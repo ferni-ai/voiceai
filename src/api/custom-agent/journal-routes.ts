@@ -11,6 +11,7 @@ import {
   getCustomAgent,
   addMemoryToAgent,
 } from '../../services/custom-agent/custom-agent-persistence-service.js';
+import { isJournalPlaceholder } from '../../services/custom-agent/journal-placeholder.js';
 import type { JournalEntryBody } from './types.js';
 import { sendJson } from './helpers.js';
 
@@ -55,6 +56,20 @@ export async function handleCreateJournalEntry(
     const mimeType = body.mimeType || 'audio/webm';
     const timestamp = new Date().toISOString();
 
+    // Transcribe first: with no words there is no entry, and no audio is stored.
+    const transcript = await transcribeAudioBuffer(
+      audioBuffer.buffer.slice(
+        audioBuffer.byteOffset,
+        audioBuffer.byteOffset + audioBuffer.byteLength
+      ),
+      mimeType
+    );
+    if (isJournalPlaceholder(transcript)) {
+      log.warn({ userId, agentId }, 'No transcript, journal entry not saved');
+      sendJson(res, 422, { error: 'Could not transcribe the recording' });
+      return true;
+    }
+
     // Upload to GCS
     let audioUrl: string | null = null;
     const entryId = `journal_${Date.now()}_${Math.random().toString(36).substring(7)}`;
@@ -66,15 +81,6 @@ export async function handleCreateJournalEntry(
     } else {
       log.warn('GCS upload failed, continuing without audio URL');
     }
-
-    // Transcribe audio
-    const transcript = await transcribeAudioBuffer(
-      audioBuffer.buffer.slice(
-        audioBuffer.byteOffset,
-        audioBuffer.byteOffset + audioBuffer.byteLength
-      ),
-      mimeType
-    );
 
     // Extract metadata from transcript
     const metadata = await extractMetadata(transcript, 'journal_entry');
