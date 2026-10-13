@@ -9,7 +9,11 @@
  * @module intelligence/world-model/temporal/in-call-load
  */
 
-import { forgottenTopics } from '../../../memory/recall/forget.js';
+import {
+  forgetForCaller,
+  forgottenTopics,
+  type ForgetResult,
+} from '../../../memory/recall/forget.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   isWorldFactsInCallOn,
@@ -73,6 +77,20 @@ export function forgetWorldFactsInCall(call: object | undefined, topic: string):
   if (!call) return;
   const known = calls.get(call) ?? { facts: [], forgotten: [] };
   calls.set(call, { ...known, forgotten: [...known.forgotten, topic] });
+}
+
+/**
+ * forgetForCaller (forget.ts: stored memory, so no later call recalls it), and
+ * this call's loaded world facts at once.
+ */
+export async function forgetForCallerAndCall(
+  call: object | undefined,
+  userId: string | undefined,
+  topic: string
+): Promise<ForgetResult> {
+  const result = await forgetForCaller(userId, topic);
+  if (result.kind === 'forgotten') forgetWorldFactsInCall(call, topic);
+  return result;
 }
 
 type TurnOptions = Omit<InCallOptions, 'forgotten'>;

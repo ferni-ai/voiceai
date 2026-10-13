@@ -34,6 +34,10 @@ import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.
 import type { Caption } from './caption-filter.js';
 import { packetLogFields, turnPacket, type TurnParts } from './context-packet/turn-packet.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import {
+  worldFactLinesFor,
+  worldFactsNoteFor,
+} from '../../intelligence/world-model/temporal/in-call-load.js';
 import { ferniStateNote } from './ferni-state.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
@@ -106,6 +110,14 @@ export function withTurnReminder(
     byNeed: teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     style: turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
   };
+  // WORLD_FACTS_IN_CALL=on: where their life stands (in-call-load.ts); nothing when off.
+  const caller = callerOf(session);
+  const lifeAt = {
+    now: Date.now(),
+    timeZone: caller?.callerTimezone,
+    userName: caller?.userName,
+    words,
+  };
   if (contextPacketEnabled()) {
     const packet = packetFor(session, {
       words,
@@ -117,12 +129,14 @@ export function withTurnReminder(
       state: parts.state,
       shape: parts.style,
       safety: options.safety,
+      life: worldFactLinesFor(caller, lifeAt),
     });
     return withTurnStyleReminder(chatCtx, packet);
   }
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
+    worldFactsNoteFor(caller, lifeAt),
     parts.told,
     parts.team,
     parts.heard,
@@ -150,8 +164,7 @@ function packetFor(
   session: object,
   turn: Omit<TurnParts, 'personaId' | 'userName' | 'timeZone' | 'now'>
 ): string {
-  const userData = (session as { userData?: unknown }).userData as
-    { personaId?: string; userName?: string; callerTimezone?: string } | undefined;
+  const userData = callerOf(session);
   const { text, accounting } = turnPacket(session, {
     ...turn,
     personaId: userData?.personaId,
@@ -162,6 +175,14 @@ function packetFor(
   log.info(packetLogFields(accounting), 'CONTEXT_PACKET'); // counts only, never text
   return text;
 }
+
+interface CallerData {
+  personaId?: string;
+  userName?: string;
+  callerTimezone?: string;
+}
+const callerOf = (session: object): CallerData | undefined =>
+  (session as { userData?: unknown }).userData as CallerData | undefined;
 
 /**
  * DELIBERATION=on: a thought from the background deliberator, if one is ready
