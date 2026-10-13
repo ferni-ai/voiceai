@@ -9,12 +9,19 @@
 import { t } from '../i18n/index.js';
 import { apiGet, getUserId, type ApiResponse } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
-import type { DayOverview, WeekOverview } from './calendar-view.ui.js';
 
 const log = createLogger('CalendarViewLoad');
 
-export type CalendarLoad =
-  | { kind: 'ready'; connected: boolean; today: DayOverview; week: WeekOverview }
+/** What the loader needs of the panel's types (calendar-view.ui.ts imports this module) */
+export interface DayShape {
+  events: unknown[];
+}
+export interface WeekShape {
+  days: Array<{ events?: unknown[] }>;
+}
+
+export type CalendarLoad<TDay extends DayShape = DayShape, TWeek extends WeekShape = WeekShape> =
+  | { kind: 'ready'; connected: boolean; today: TDay; week: TWeek }
   | { kind: 'signed-out' }
   | { kind: 'offline' }
   | { kind: 'error' };
@@ -25,7 +32,9 @@ type Overview<T> = { overview?: T | null };
 const WITHIN_TEN_SECONDS = { maxRetries: 1, timeout: 4000 };
 
 /** The panel root's data-state for a load (rubric §3: loading, ready, empty or error). */
-export function calendarDataState(load: CalendarLoad): 'ready' | 'empty' | 'error' {
+export function calendarDataState(
+  load: CalendarLoad<DayShape, WeekShape>
+): 'ready' | 'empty' | 'error' {
   if (load.kind !== 'ready') return 'error';
   const days = [load.today, ...(load.week.days ?? [])];
   const nothing = days.every((day) => (day.events ?? []).length === 0);
@@ -33,13 +42,16 @@ export function calendarDataState(load: CalendarLoad): 'ready' | 'empty' | 'erro
 }
 
 /** Fetch Google sync status, today and the week, and say which state the panel is in. */
-export async function loadCalendar(): Promise<CalendarLoad> {
+export async function loadCalendar<
+  TDay extends DayShape = DayShape,
+  TWeek extends WeekShape = WeekShape,
+>(): Promise<CalendarLoad<TDay, TWeek>> {
   if (!getUserId()) return { kind: 'signed-out' };
 
   const [status, today, week] = await Promise.all([
     apiGet<{ linked?: boolean }>('/auth/google/status', undefined, WITHIN_TEN_SECONDS), // verified caller
-    apiGet<Overview<DayOverview>>('/api/calendar/today', undefined, WITHIN_TEN_SECONDS),
-    apiGet<Overview<WeekOverview>>('/api/calendar/week', undefined, WITHIN_TEN_SECONDS),
+    apiGet<Overview<TDay>>('/api/calendar/today', undefined, WITHIN_TEN_SECONDS),
+    apiGet<Overview<TWeek>>('/api/calendar/week', undefined, WITHIN_TEN_SECONDS),
   ]);
 
   const failed = [today, week].find((r) => !r.ok);
@@ -65,7 +77,7 @@ export async function loadCalendar(): Promise<CalendarLoad> {
   };
 }
 
-function failureState(res: ApiResponse<unknown>): CalendarLoad {
+function failureState(res: ApiResponse<unknown>): { kind: 'signed-out' | 'offline' | 'error' } {
   if (res.offline === true || (res.status === 0 && !navigator.onLine)) return { kind: 'offline' };
   if (res.status === 401) return { kind: 'signed-out' };
   log.error('Calendar failed to load', { status: res.status, error: res.error });

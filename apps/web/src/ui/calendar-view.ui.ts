@@ -407,7 +407,7 @@ class CalendarViewUI {
     this.practiceViewTried = false;
     this.renderLoading();
 
-    const load = await loadCalendar();
+    const load = await loadCalendar<DayOverview, WeekOverview>();
     this.isLoading = false;
     this.panel?.setAttribute('data-state', calendarDataState(load));
     this.panel?.removeAttribute('aria-busy');
