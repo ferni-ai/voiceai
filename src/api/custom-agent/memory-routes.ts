@@ -12,6 +12,7 @@ import {
   addMemoryToAgent,
   removeMemoryFromAgent,
 } from '../../services/custom-agent/custom-agent-persistence-service.js';
+import { isJournalPlaceholder } from '../../services/custom-agent/journal-placeholder.js';
 import type { MemoryBody } from './types.js';
 import { sendJson, extractKeywords } from './helpers.js';
 
@@ -43,6 +44,14 @@ export async function handleAddMemory(
 
   if (!VALID_MEMORY_TYPES.includes(body.type)) {
     sendJson(res, 400, { error: 'Invalid memory type' });
+    return true;
+  }
+
+  // "[Transcription unavailable]" or "[Voice recording - N seconds]" is not something
+  // the person said; it used to be saved as their entry with a 201.
+  if (body.type === 'journalEntry' && isJournalPlaceholder(body.content)) {
+    log.warn({ userId, agentId }, 'Journal entry without words rejected');
+    sendJson(res, 422, { error: 'A journal entry needs words' });
     return true;
   }
 
