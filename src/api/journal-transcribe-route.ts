@@ -11,6 +11,8 @@
  * a fresh uid per request. Anonymous callers are therefore limited by client
  * IP, not uid, and every caller also shares a per-IP limit, so one address
  * can't fan out across many accounts. Anonymous people can still journal.
+ * IPv6 is keyed by its /64 (rate-limit-ip-key.ts), and the limits count across
+ * instances, with an hourly spend ceiling (journal-transcribe-limits.ts).
  *
  * @module api/journal-transcribe-route
  */
@@ -19,9 +21,16 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { transcribeAudioBuffer } from '../services/custom-agent/memory-capture-service.js';
 import { MAX_TRANSCRIBE_BYTES } from '../services/custom-agent/vertex-transcribe.js';
 import { getClientIp } from '../utils/client-ip.js';
+import { rateLimitIpKey } from '../utils/rate-limit-ip-key.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { RATE_LIMIT_TIERS, rateLimit, requireAuth } from './auth-middleware.js';
+import { requireAuth } from './auth-middleware.js';
 import { BodyTooLargeError, readJsonBodyLimited } from './bounded-body.js';
+import {
+  overHourlyCeiling,
+  overLimit,
+  PER_IP_PER_MINUTE,
+  PER_PERSON_PER_MINUTE,
+} from './journal-transcribe-limits.js';
 import { sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'journal-transcribe-route' });
@@ -30,13 +39,6 @@ const log = createLogger({ module: 'journal-transcribe-route' });
 export const MAX_AUDIO_BASE64_CHARS = Math.ceil(MAX_TRANSCRIBE_BYTES / 3) * 4;
 /** Room for the JSON around the audio (mimeType, quotes, braces). */
 export const MAX_BODY_BYTES = MAX_AUDIO_BASE64_CHARS + 64 * 1024;
-
-/** Everyone behind one address together: three people's worth of the expensive tier. */
-export const PER_IP_TIER: (typeof RATE_LIMIT_TIERS)[string] = {
-  name: 'journal-transcribe-ip',
-  maxRequests: RATE_LIMIT_TIERS.expensive.maxRequests * 3,
-  windowMs: RATE_LIMIT_TIERS.expensive.windowMs,
-};
 
 const PLACEHOLDER = '[Transcription unavailable]';
 
@@ -56,22 +58,16 @@ export async function handleJournalTranscribe(
   const auth = await requireAuth(req, res);
   if (!auth) return true; // 401 already sent
 
-  // getClientIp trusts only the proxy hops Cloud Run adds, never a caller-written header entry.
-  const ip = getClientIp(req);
-  const perIp = rateLimit(req, res, {
-    tier: PER_IP_TIER,
-    keyPrefix: 'expensive:journal-transcribe-ip',
-    keyGenerator: () => `ip:${ip}`,
-  });
-  if (perIp) return true; // 429 already sent
-
-  // The expensive tier (10 a minute) per person: the verified uid, or the IP for an anonymous uid.
-  const perPerson = rateLimit(req, res, {
-    tier: RATE_LIMIT_TIERS.expensive,
-    keyPrefix: 'expensive:journal-transcribe',
-    keyGenerator: () => (auth.isAnonymous ? `anon-ip:${ip}` : `user:${auth.userId}`),
-  });
-  if (perPerson) return true; // 429 already sent
+  // getClientIp trusts only the proxy hops Cloud Run adds; IPv6 is keyed by its /64.
+  const ip = rateLimitIpKey(getClientIp(req));
+  if (await overLimit(res, `expensive:journal-transcribe-ip:ip:${ip}`, PER_IP_PER_MINUTE)) {
+    return true; // 429 already sent
+  }
+  // Per person: the verified uid, or the IP for an anonymous uid (minted on demand).
+  const person = auth.isAnonymous ? `anon-ip:${ip}` : `user:${auth.userId}`;
+  if (await overLimit(res, `expensive:journal-transcribe:${person}`, PER_PERSON_PER_MINUTE)) {
+    return true; // 429 already sent
+  }
 
   const declared = Number(req.headers['content-length']);
   if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
@@ -108,6 +104,7 @@ export async function handleJournalTranscribe(
     );
     return tooLarge(req, res);
   }
+  if (await overHourlyCeiling(res)) return true; // 503 already sent
 
   try {
     const nodeBuffer = Buffer.from(body.audioBase64, 'base64');

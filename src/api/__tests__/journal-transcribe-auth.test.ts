@@ -14,6 +14,19 @@ import { PassThrough, Readable } from 'stream';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 const transcribe = vi.hoisted(() => vi.fn());
+const asyncLimiter = vi.hoisted(() => ({ calls: [] as string[] }));
+
+// The real limiter, recording each key, so a test can see the cross-instance path is the one used.
+vi.mock('../auth-middleware.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../auth-middleware.js')>();
+  return {
+    ...actual,
+    checkRateLimitAsync: async (key: string, max: number, windowMs: number) => {
+      asyncLimiter.calls.push(key);
+      return actual.checkRateLimitAsync(key, max, windowMs);
+    },
+  };
+});
 
 vi.mock('../../services/custom-agent/memory-capture-service.js', () => ({
   transcribeAudioBuffer: transcribe,
@@ -81,6 +94,7 @@ function signedIn(): Record<string, string> {
 }
 
 beforeEach(() => {
+  asyncLimiter.calls = [];
   transcribe.mockReset();
   transcribe.mockResolvedValue('I walked by the water today');
 });
@@ -224,5 +238,53 @@ describe('POST /api/journal/transcribe: rate limits', () => {
 
     expect((await post({ audioBase64: AUDIO }, as(`tok-f${++n}`, ip))).status).toBe(429);
     expect(transcribe).toHaveBeenCalledTimes(30);
+  });
+
+  it('counts both buckets through the cross-instance async limiter', async () => {
+    const headers = signedIn();
+    await post({ audioBase64: AUDIO }, headers);
+
+    expect(asyncLimiter.calls).toEqual(
+      expect.arrayContaining([
+        `expensive:journal-transcribe-ip:ip:${headers['x-forwarded-for']}`,
+        expect.stringMatching(/^expensive:journal-transcribe:user:uid-tok-/),
+      ])
+    );
+  });
+});
+
+describe('POST /api/journal/transcribe: IPv6 and mapped addresses', () => {
+  async function burstFrom(ips: string[]): Promise<number[]> {
+    const statuses: number[] = [];
+    for (const ip of ips) {
+      // eslint-disable-next-line no-await-in-loop -- the limiter counts calls in order
+      statuses.push((await post({ audioBase64: AUDIO }, as(`anon-v${++n}`, ip))).status ?? 0);
+    }
+    return statuses;
+  }
+
+  it('gives anonymous callers rotating addresses inside one /64 one bucket', async () => {
+    const prefix = `2001:db8:${(++n).toString(16)}:1`;
+    const ips = Array.from({ length: 11 }, (_, i) => `${prefix}:${(i + 1).toString(16)}::${i + 7}`);
+
+    const statuses = await burstFrom(ips);
+
+    expect(statuses.slice(0, 10)).toEqual(Array(10).fill(200));
+    expect(statuses[10]).toBe(429);
+    expect(transcribe).toHaveBeenCalledTimes(10);
+  });
+
+  it('keeps different /64s in different buckets', async () => {
+    const site = `2001:db8:${(++n).toString(16)}`;
+    await burstFrom(Array.from({ length: 11 }, (_, i) => `${site}:1::${i + 1}`));
+
+    expect(await burstFrom([`${site}:2::1`])).toEqual([200]);
+  });
+
+  it('gives ::ffff:a.b.c.d and a.b.c.d one bucket', async () => {
+    const v4 = `203.0.${Math.floor(++n / 250)}.${n % 250}`;
+    await burstFrom(Array(10).fill(v4));
+
+    expect(await burstFrom([`::ffff:${v4}`])).toEqual([429]);
   });
 });
