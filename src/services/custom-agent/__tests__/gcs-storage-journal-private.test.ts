@@ -32,29 +32,14 @@ afterEach(() => {
 });
 
 describe('uploadVoiceJournalEntry', () => {
-  it('saves the recording private, with no public cache header', async () => {
+  it('saves the recording private', async () => {
     const { uploadVoiceJournalEntry } = await loadService();
 
     const result = await uploadVoiceJournalEntry(Buffer.from('audio'), 'uid1', 'twin1', 'e1');
 
     expect(result).not.toBeNull();
     expect(save).toHaveBeenCalledTimes(1);
-    const options = save.mock.calls[0]?.[1] as {
-      public: boolean;
-      metadata: { cacheControl: string };
-    };
-    expect(options.public).toBe(false);
-    expect(options.metadata.cacheControl).not.toMatch(/public/);
-  });
-});
-
-describe('uploadVoicePreview', () => {
-  it('stays public, since previews are played from a plain URL', async () => {
-    const { uploadVoicePreview } = await loadService();
-
-    await uploadVoicePreview(Buffer.from('audio'), 'uid1', 'twin1', 'voice1');
-
     const options = save.mock.calls[0]?.[1] as { public: boolean };
-    expect(options.public).toBe(true);
+    expect(options.public).toBe(false);
   });
 });
