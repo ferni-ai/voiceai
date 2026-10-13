@@ -13,7 +13,10 @@
  * @module ui/whisper
  */
 
+import { createLogger } from '../utils/logger.js';
 import { moments, resetMomentsManager } from './moments/index.js';
+
+const log = createLogger('Whisper');
 
 // ============================================================================
 // TYPES
@@ -29,6 +32,8 @@ export interface WhisperConfig {
   amount?: number;
   /** Optional: reason for celebration */
   reason?: string;
+  /** Hold until the live call ends (see ToastConfig.defer). */
+  defer?: boolean;
 }
 
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
@@ -37,14 +42,27 @@ export interface ToastConfig {
   message: string;
   type?: ToastType;
   duration?: number;
+  /** Hold until the live call ends (honoured by the in-call toast gate; ignored without it). */
+  defer?: boolean;
 }
 
 // ============================================================================
 // CORE
 // ============================================================================
 
-/** Show a whisper. Returns its id; Moments queues it if another is showing. */
+/** Text a toast can't say anything with: empty, or a template whose data never arrived. */
+const EMPTY_PAYLOAD = /^[\s\p{P}]*$|\{\w+\}/u;
+
+/**
+ * Show a whisper. Returns its id ('' when nothing was shown); Moments queues
+ * it if another is showing. A message with no words, or one that still holds
+ * a "{placeholder}", is dropped rather than shown to the user.
+ */
 export function showWhisper(config: WhisperConfig): string {
+  if (config.type !== 'celebration' && EMPTY_PAYLOAD.test(config.message ?? '')) {
+    log.warn({ message: config.message, type: config.type }, 'Dropped a toast with no content');
+    return '';
+  }
   if (config.type === 'celebration') {
     return moments.notice(config.reason ?? config.message, {
       type: 'seeds',

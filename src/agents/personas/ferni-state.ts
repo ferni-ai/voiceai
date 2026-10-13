@@ -14,6 +14,14 @@
  * When the caller needs him (hard news, a crisis, real distress) the state
  * goes neutral for the rest of the call: his tiredness never takes over then.
  *
+ * He is also a well, curious friend about himself (ferni-self-share.ts): his
+ * day holds one small, specific, good thing per call; he talks about himself
+ * rarely (never in two replies running, never while they're telling him
+ * something of theirs), lightly, and turns back to them with a question; and
+ * a reply that sounded resigned or avoidant gets corrected on the next turn.
+ * Dev call 2026-10-11: five replies about a tired man's chores ("It's just too
+ * much effort") to a quiet caller, caller talk share 0.08.
+ *
  * Replaces nothing live: conversation/humanization/vocal-fatigue.ts and
  * conversation/energy-regulation.ts had the idea but no live caller on the
  * cascade (vocal-fatigue only through humanizeResponse, which nothing calls).
@@ -30,8 +38,10 @@ import {
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
+import { dayDetailFor, isSelfShare, selfQuotes, soundsLow, turnsBack } from './ferni-self-share.js';
 import { callerVenting } from './turn-extras.js';
 import { hardNews } from './turn-candor.js';
+import { callerMove } from './turn-shape.js';
 import { understandingFor } from './turn-understanding.js';
 
 const log = createLogger({ module: 'FerniState' });
@@ -127,10 +137,10 @@ export function localClock(now: Date, timeZone = FERNI_HOME_TZ): { hour: number;
   return { hour: num('hour') % 24, minute: num('minute') };
 }
 
-const NOT_UNLESS_ASKED = "Don't mention being tired unless they ask.";
+const NOT_UNLESS_ASKED = "Don't mention being sleepy unless they ask.";
 const OFFER_FADING = "If it fits, you can say once, in passing, that you're fading a bit.";
 
-/** The one line for the turn reminder (empty when steady). */
+/** The energy line for the turn reminder (empty when steady). */
 export function noteFor(
   state: FerniState,
   clock: { hour: number; minute: number },
@@ -139,12 +149,73 @@ export function noteFor(
   if (state.level === 'high')
     return "[You're in good form right now: let a little more energy into how you say things.]";
   if (state.level !== 'low') return '';
-  const where = isLate(clock.hour)
-    ? `You're a bit worn out; it's ${spokenTime(clock.hour, clock.minute)} where you are.`
-    : "You're a little worn out after a long call.";
+  if (!isLate(clock.hour))
+    return '[You two have been talking a while: keep replies short and easy.]';
+  const where = `You're getting sleepy; it's ${spokenTime(clock.hour, clock.minute)} where you are, and you're glad they called.`;
   const keep =
     "Keep replies short and unhurried, and if they're winding down, let the call end warmly.";
   return `[${where} ${keep}] ${offerFading ? OFFER_FADING : NOT_UNLESS_ASKED}`;
+}
+
+/** Always on: how he is, so he never improvises a low day to talk about. */
+const WELL =
+  "[You're doing well today and glad they called. Anything about yourself comes out light, specific and a little funny, the way someone who's doing fine talks, and your attention stays on them.]";
+
+/** What this turn knows about his own talk on the call. */
+export interface SelfTurn {
+  /** His replies so far, oldest first. */
+  replies: string[];
+  /** The caller's latest words. */
+  said: string;
+  /** The day detail for this call. */
+  detail: string;
+}
+
+/**
+ * The self-share line for this turn, and whether a story of his own may ride
+ * this reply at all (turn-shape.ts reads it for its "second story" line).
+ */
+export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean } {
+  const { replies, said, detail } = turn;
+  const last = replies[replies.length - 1] ?? '';
+  const recent = replies.slice(-2).some(isSelfShare);
+  const move = callerMove(said);
+  const sharing = move === 'share' && said.split(/\s+/).filter(Boolean).length >= 8;
+  const lines: string[] = [];
+  if (soundsLow(last))
+    lines.push(
+      "You sounded flat about your own day just now, and you aren't: leave that thread, keep it light, and turn to them."
+    );
+  else if (isSelfShare(last) && !turnsBack(last))
+    lines.push('Your last reply was about you: this one is about them, their day or their world.');
+  if (move === 'about_ferni') {
+    const told = selfQuotes(replies);
+    const consistent = told.length
+      ? ` You've said: ${told.map((q) => `"${q}"`).join(' ')} Stay consistent with it.`
+      : '';
+    lines.push(
+      `They asked about you: answer from your day (${detail}), in a sentence or two, then ask them something about theirs.${consistent}`
+    );
+    return { line: `[${lines.join(' ')}]`, ownStory: true };
+  }
+  // Early on, the call is theirs: nothing of his own until he has listened a
+  // bit, and then at most one unasked share in any three replies.
+  const early = replies.length < 2 || replies.slice(-3).some(isSelfShare);
+  if (recent || sharing || early) {
+    if (!lines.length)
+      lines.push(
+        recent
+          ? 'You talked about yourself just now: keep this reply on them, nothing more about your own day.'
+          : sharing
+            ? "They're telling you something of theirs: stay with it, nothing about yourself this time."
+            : 'Keep this reply on them.'
+      );
+    return { line: `[${lines.join(' ')}]`, ownStory: false };
+  }
+  lines.push(
+    `If something of your own fits, it's from today (${detail}): one light sentence, then turn to them with a question about their world.`
+  );
+  return { line: `[${lines.join(' ')}]`, ownStory: !soundsLow(last) };
 }
 
 /**
@@ -166,6 +237,11 @@ interface CallState {
   lastSaid?: string;
   lastLevel?: FerniEnergyLevel;
   lastNote: string;
+  lastSelf: string;
+  /** Whether the last note let a story of his own ride the reply (undefined: no say). */
+  lastOwnStory?: boolean;
+  /** The one good thing in his day this call (ferni-self-share.ts). */
+  detail: string;
 }
 const calls = new WeakMap<object, CallState>();
 
@@ -187,6 +263,17 @@ function callerTurns(chatCtx: llm.ChatContext): string[] {
   return turns;
 }
 
+/** Ferni's spoken replies so far, markup removed, oldest first. */
+function ferniReplies(chatCtx: llm.ChatContext): string[] {
+  const replies: string[] = [];
+  for (const item of chatCtx.items) {
+    if (item.type !== 'message' || item.role !== 'assistant') continue;
+    const text = (item.textContent ?? '').replace(/<[^>]+>/g, '').trim();
+    if (text) replies.push(text);
+  }
+  return replies;
+}
+
 /** On for Ferni only (his home, his clock), when the flag is on. */
 function activeFor(userData: UserDataView, env?: Record<string, string | undefined>): boolean {
   const ferni = userData.personaId === undefined || userData.personaId === 'ferni';
@@ -195,10 +282,17 @@ function activeFor(userData: UserDataView, env?: Record<string, string | undefin
 
 const wordsIn = (text: string): number => text.split(/\s+/).filter(Boolean).length;
 
-function callFor(session: object, now: Date): CallState {
+function callFor(session: object, now: Date, sessionId?: string): CallState {
   let call = calls.get(session);
   if (!call) {
-    call = { firstSeen: now.getTime(), needed: false, lastNote: '' };
+    const seed = sessionId ?? Math.random().toString(36).slice(2);
+    call = {
+      firstSeen: now.getTime(),
+      needed: false,
+      lastNote: '',
+      lastSelf: '',
+      detail: dayDetailFor(seed),
+    };
     calls.set(session, call);
   }
   return call;
@@ -225,37 +319,68 @@ function fadingOffer(
   return offer;
 }
 
+/** This turn's state: the reminder text, and whether a story of his own may ride the reply. */
+export interface StateTurn {
+  /** How he is: goes with the other notes. */
+  note: string;
+  /**
+   * His self-share line: goes last, after the turn shape, where a line is
+   * followed best (turn-shape.ts). In the middle, "keep this reply on them"
+   * was ignored as often as the director's notes were (quiet-caller rollouts).
+   */
+  last: string;
+  /** Undefined when the state has no say (flag off, another persona, the caller needs him). */
+  ownStory?: boolean;
+}
+
 /**
- * This turn's state line for the reminder (turn-request.ts), and the pace the
+ * This turn's state lines for the reminder (turn-request.ts), and the pace the
  * Director reads. Empty and nothing set when the flag is off, another persona
  * is speaking, or the caller needs him. The preemptive and final requests for
- * one turn agree: the same words get the same line, and the fading offer
+ * one turn agree: the same words get the same lines, and the fading offer
  * made with the preemptive request holds for the final one that extends it.
  */
+export function ferniStateTurn(
+  chatCtx: llm.ChatContext,
+  session: object,
+  options: { careful?: boolean; now?: Date; env?: Record<string, string | undefined> } = {}
+): StateTurn {
+  const userData = ((session as { userData?: unknown }).userData ?? {}) as UserDataView;
+  const sessionId = userData.services?.sessionId;
+  const quiet = (): StateTurn => {
+    if (sessionId) setFerniEnergy(sessionId, undefined);
+    return { note: '', last: '' };
+  };
+  if (!activeFor(userData, options.env)) return quiet();
+  const now = options.now ?? new Date();
+  const call = callFor(session, now, sessionId);
+  const turns = callerTurns(chatCtx);
+  const said = turns[turns.length - 1] ?? '';
+  if (said && said === call.lastSaid)
+    return { note: call.lastNote, last: call.lastSelf, ownStory: call.lastOwnStory };
+  call.lastSaid = said;
+  call.lastNote = '';
+  call.lastSelf = '';
+  call.lastOwnStory = undefined;
+  const mood = understandingFor(session, said)?.mood;
+  if (options.careful === true || callerNeedsHim(said, mood)) call.needed = true;
+  if (call.needed) return quiet();
+  const energy = stateNote(call, userData, { words: turns.map(wordsIn), said, mood }, now);
+  const self = selfShareFor({ replies: ferniReplies(chatCtx), said, detail: call.detail });
+  call.lastNote = [WELL, energy].filter(Boolean).join(' ');
+  call.lastSelf = self.line;
+  call.lastOwnStory = self.ownStory;
+  return { note: call.lastNote, last: call.lastSelf, ownStory: call.lastOwnStory };
+}
+
+/** The reminder text only (see ferniStateTurn). */
 export function ferniStateNote(
   chatCtx: llm.ChatContext,
   session: object,
   options: { careful?: boolean; now?: Date; env?: Record<string, string | undefined> } = {}
 ): string {
-  const userData = ((session as { userData?: unknown }).userData ?? {}) as UserDataView;
-  const sessionId = userData.services?.sessionId;
-  const quiet = (): string => {
-    if (sessionId) setFerniEnergy(sessionId, undefined);
-    return '';
-  };
-  if (!activeFor(userData, options.env)) return quiet();
-  const now = options.now ?? new Date();
-  const call = callFor(session, now);
-  const turns = callerTurns(chatCtx);
-  const said = turns[turns.length - 1] ?? '';
-  if (said && said === call.lastSaid) return call.lastNote;
-  call.lastSaid = said;
-  call.lastNote = '';
-  const mood = understandingFor(session, said)?.mood;
-  if (options.careful === true || callerNeedsHim(said, mood)) call.needed = true;
-  if (call.needed) return quiet();
-  call.lastNote = stateNote(call, userData, { words: turns.map(wordsIn), said, mood }, now);
-  return call.lastNote;
+  const turn = ferniStateTurn(chatCtx, session, options);
+  return [turn.note, turn.last].filter(Boolean).join(' ');
 }
 
 /** Ferni's state this turn: the reminder line, the Director's pace, the log on a change. */

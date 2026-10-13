@@ -403,9 +403,9 @@ describe('Alex Chen Persona E2E Tests', () => {
 
   describe('Alex Persona Consistency', () => {
     it('should not have Ferni-specific content in Alex files', () => {
-      // Check that trust phrases don't mention Ferni-specific things like "tsunami"
+      // Check that trust phrases don't mention Ferni-specific things like "Tanaka"
       const trustPhrases = JSON.stringify(behaviors.trust_phrases);
-      expect(trustPhrases.toLowerCase()).not.toContain('tsunami');
+      expect(trustPhrases.toLowerCase()).not.toContain('tanaka');
       expect(trustPhrases.toLowerCase()).not.toContain('wyoming');
       expect(trustPhrases.toLowerCase()).not.toContain('scottish');
     });

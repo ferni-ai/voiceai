@@ -59,6 +59,8 @@ import { appState, setConnectionState } from '../state/app.state.js';
 import type { ConnectionState, DataMessage } from '../types/events.js';
 import type { RoomState, TokenRequest } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
+import { agentAudioTrackKind } from './agent-audio-track.js';
+import { watchAgentDrop, type AgentLostReason } from './agent-drop-watch.js';
 import {
   AGENT_JOIN_TIMEOUT_AFTER_FAILED_DISPATCH_MS,
   AGENT_JOIN_TIMEOUT_MS,
@@ -70,6 +72,7 @@ import { registerMicRestoreHandlers, type MicRoom } from './mic-restore.js';
 import { spotifyService } from './spotify.service.js';
 import { fetchConnectionToken } from './token-fetch.service.js';
 import { attachLiveTranscription } from './live-transcription.service.js';
+import { reportPlayRejected } from './audio-play-blocked.js';
 
 const log = createLogger('Connection');
 
@@ -102,6 +105,8 @@ export interface ConnectionCallbacks {
   onError?: (error: Error) => void;
   /** The room dropped without the user hanging up. The service has already cleaned up. */
   onUnexpectedDisconnect?: (reason: string) => void;
+  /** Ferni's side ended while the caller is still in the room (agent-drop-watch.ts). */
+  onAgentLost?: (reason: AgentLostReason) => void;
 }
 
 // ============================================================================
@@ -166,7 +171,6 @@ class ConnectionService {
   expectMusicTrack(): void {
     this.expectingMusicTrack = true;
 
-    // Clear any existing timeout
     if (this.expectingMusicTrackTimeout) {
       clearTimeout(this.expectingMusicTrackTimeout);
     }
@@ -428,7 +432,6 @@ class ConnectionService {
         hasFirebaseUid: !!state.firebaseUid,
       });
 
-      // Fetch token
       let tokenResponse;
       try {
         tokenResponse = await fetchConnectionToken(tokenRequest);
@@ -451,10 +454,8 @@ class ConnectionService {
       this.room = room;
       this.awaitingAgent = true;
 
-      // Set up event handlers
       this.setupRoomHandlers();
 
-      // Connect to room
       try {
         await room.connect(tokenResponse.url, tokenResponse.token, { autoSubscribe: true });
       } catch (roomError) {
@@ -578,10 +579,8 @@ class ConnectionService {
     this.isDisconnecting = true;
 
     try {
-      // Stop quality monitoring
       this.stopQualityMonitoring();
 
-      // Clean up event handlers
       this.cleanup();
 
       // Clean up cached audio elements
@@ -675,6 +674,10 @@ class ConnectionService {
 
     // 🔄 Re-enable the mic after reconnects, foregrounding and native resume (unless muted)
     this.cleanupFunctions.push(registerMicRestoreHandlers(this.room as unknown as MicRoom));
+    // Ferni's side ended with the caller still here: offer to reconnect (flag-gated)
+    const onAgentLost = (reason: AgentLostReason): void => this.callbacks.onAgentLost?.(reason);
+    const userHangingUp = (): boolean => this.isDisconnecting;
+    this.cleanupFunctions.push(watchAgentDrop(this.room, { userHangingUp, onAgentLost }));
 
     // Participant connected (agent joins)
     // During connect(), waitForAgent reports the arrival instead (including an agent already here).
@@ -688,7 +691,6 @@ class ConnectionService {
       this.room?.off('participantConnected', onParticipantConnected);
     });
 
-    // Participant disconnected
     const onParticipantDisconnected = (participant: { identity: string; isLocal?: boolean }) => {
       if (!participant.isLocal) {
         this.callbacks.onAgentDisconnected?.();
@@ -708,7 +710,7 @@ class ConnectionService {
         mediaStreamTrack: MediaStreamTrack;
         sid?: string;
       },
-      _publication: unknown,
+      publication: unknown,
       participant: { identity: string }
     ) => {
       if (track.kind === 'audio') {
@@ -730,16 +732,14 @@ class ConnectionService {
         audioEl = track.attach() as HTMLAudioElement;
         this.audioElements.set(trackKey, audioEl);
 
-        // 🎚️ MUSIC TRACK IDENTIFICATION
-        // Determine if this is a music track or voice track
-        //
-        // RACE CONDITION FIX:
-        // Audio track might arrive BEFORE the music_state data message.
-        // We now buffer unknown tracks and retroactively identify them
-        // when expectMusicTrack() is called.
+        // 🎚️ Voice or music: by track name (agent-audio-track.ts); for unnamed tracks, by
+        // arrival order, buffering extras so a late music_state can identify them.
         let isMusicTrack = false;
+        const kind = agentAudioTrackKind(publication);
 
-        if (this.expectingMusicTrack) {
+        if (kind === 'voice') {
+          this.voiceTrackId = trackKey;
+        } else if (this.expectingMusicTrack) {
           // We received a music_state: playing message, so this is likely music
           isMusicTrack = true;
           this.expectingMusicTrack = false;
@@ -749,8 +749,8 @@ class ConnectionService {
           }
           this.musicTrackIds.add(trackKey);
           log.info('🎚️ Music track identified (data message arrived first)', { trackKey });
-        } else if (!this.voiceTrackId) {
-          // First track is usually voice - mark it
+        } else if (kind === 'unknown' && !this.voiceTrackId) {
+          // First unnamed track is usually voice - mark it
           this.voiceTrackId = trackKey;
           log.debug('🎤 Voice track identified', { trackKey });
         } else if (!this.musicTrackIds.has(trackKey) && trackKey !== this.voiceTrackId) {
@@ -785,14 +785,13 @@ class ConnectionService {
         audioEl.style.left = '-9999px';
         document.body.appendChild(audioEl);
 
-        // iOS audio unlock: try to play immediately
+        // Play now (iOS needs load() first); if refused, retry on the next gesture
         const playAudio = async () => {
           try {
-            // iOS requires load() call before play() in some cases
             audioEl.load();
             await audioEl.play();
           } catch (err) {
-            // iOS/mobile requires user gesture - set up handlers
+            reportPlayRejected(err, { trackKey, isMusicTrack }); // offers "Tap to hear Ferni"
             const unlock = () => {
               audioEl.play().catch((e) => log.warn('Audio unlock failed:', e));
               document.removeEventListener('touchstart', unlock);
@@ -864,10 +863,8 @@ class ConnectionService {
         // Try to identify the track
         const trackKey = `${participant.identity}-${track.sid || track.mediaStreamTrack?.id || 'unknown'}`;
 
-        // 🎚️ Check if this was a music track
-        if (this.musicTrackIds.has(trackKey)) {
-          this.handleTrackEnded(trackKey);
-        }
+        // Ends music, and frees voiceTrackId so a replacement voice track is played as voice
+        this.handleTrackEnded(trackKey);
 
         // Fire the voice track end callback
         this.callbacks.onAudioTrackEnd?.(participant.identity);
