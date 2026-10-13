@@ -79,6 +79,9 @@ Review for:
 4. **Best Practices**: DRY, SOLID, proper error handling
 5. **Design System**: Hardcoded colors/durations, missing CSS variables
 6. **Brand Voice**: Forbidden words (chatbot, user, utilize, leverage)
+7. **Our rules**: anything the diff does that breaks a rule in "This repo's
+   rules" below. Name the rule (e.g. "AGENTS.md rule 3: new behaviour isn't
+   behind a flag"). Only flag what the diff itself shows.
 
 Output format:
 ## Summary
@@ -242,6 +245,29 @@ function getDiff(source: DiffSource): string {
     : diff;
 }
 
+// =============================================================================
+// THIS REPO'S RULES
+// =============================================================================
+
+/** What the general review checks the diff against, besides generic practice. */
+const RULE_FILES = ['AGENTS.md', 'docs/agent/operating-model.md'];
+/** Keeps the rules from crowding out the diff in the prompt. */
+const MAX_RULES_CHARS = 20_000;
+
+/** The rule files' text under their paths; a missing file is skipped with a warning. */
+export function repoRules(root: string = PROJECT_ROOT): string {
+  const parts: string[] = [];
+  for (const file of RULE_FILES) {
+    try {
+      parts.push(`### ${file}\n\n${readFileSync(join(root, file), 'utf8').trim()}`);
+    } catch (error) {
+      log.warn(`Reviewing without ${file}: ${(error as Error).message}`);
+    }
+  }
+  const rules = parts.join('\n\n');
+  return rules.length > MAX_RULES_CHARS ? `${rules.slice(0, MAX_RULES_CHARS)}\n\n... (truncated)` : rules;
+}
+
 async function reviewCode(type: 'general' | 'security' | 'perf' = 'general', base?: string): Promise<ReviewResult> {
   const titles = {
     general: '🤖 AI Code Review',
@@ -282,10 +308,9 @@ async function reviewCode(type: 'general' | 'security' | 'perf' = 'general', bas
   log.info(`Reviewing ${files.trim().split('\n').length} file(s)${against}...`);
 
   try {
-    const review = await callGemini(
-      `Review this code diff:\n\n${finalDiff}`,
-      prompts[type]
-    );
+    const rules = type === 'general' ? repoRules() : '';
+    const system = rules ? `${prompts[type]}\n\n## This repo's rules\n\n${rules}` : prompts[type];
+    const review = await callGemini(`Review this code diff:\n\n${finalDiff}`, system);
     if (!review.trim()) {
       log.error('Review failed: Gemini returned an empty reply');
       return { status: 'failed', critical: 0 };
