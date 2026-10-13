@@ -1079,7 +1079,7 @@ function parseCSVLine(line: string): string[] {
 /**
  * Normalize phone number to consistent format
  */
-function normalizePhone(phone: string): string {
+export function normalizePhone(phone: string): string {
   // Remove all non-digits except +
   let normalized = phone.replace(/[^\d+]/g, '');
 

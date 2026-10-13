@@ -48,6 +48,7 @@ import { buildNudgeContext } from '../services/contacts/outreach-nudges.js';
 import { contactEdits } from './contact-edits.js';
 import { buildRelationshipInsightsView } from '../services/contacts/relationship-insights-view.js';
 import { findPerson, listPeople } from '../services/contacts/people-list.js';
+import { editSavedContact } from '../services/contacts/saved-contact-edits.js';
 
 const log = createLogger({ module: 'ContactsAPI' });
 
@@ -179,10 +180,9 @@ async function updateContact(
   try {
     const existing = await getContact(userId, contactId);
     if (!existing) {
-      sendError(res, 'Contact not found', 404);
-      return;
+      const saved = await editSavedContact(userId, contactId, edits);
+      return saved ? sendJSON(res, { contact: saved }) : sendError(res, 'Contact not found', 404);
     }
-
     const contact = await upsertContact(userId, {
       ...existing,
       ...edits,
