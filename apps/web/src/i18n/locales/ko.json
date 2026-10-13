@@ -8546,6 +8546,10 @@
   },
   "engagementPanel": {
     "title": "일일 체크인",
+    "emptyTitle": "우리의 체크인이 여기에 담겨요",
+    "emptyMessage": "아직 아무것도 없어요. 괜찮아요. 통화 중에 하루 체크인을 하면 그때 기분이 여기에 표시돼요. 다음에 이야기할 때 체크인하자고 말해 주세요.",
+    "loadFailedTitle": "음, 불러오지 못했어요",
+    "loadFailedMessage": "당신 탓이 아니에요. 잠시 후에 다시 열어 주세요.",
     "yourWeek": "나의 한 주",
     "weatherTrend": "감정 날씨 흐름",
     "howYouFeel": "지금 느끼는 기분",
@@ -10322,22 +10326,7 @@
         "one": "{count}개의 일기 기록에서 얻은 생각들을 나누고 싶어요."
       }
     },
-    "error": "지금은 생각 정리가 조금 어렵네. 잠시만 기다렸다가 다시 시도해 줄래?",
-    "fallback": {
-      "advicePhilosophy": "내가 뭘 배웠는지 알아? 바로 \"{philosophy}\"라는 거야. 어떤 상황에 마주하든 이걸 꼭 기억해 줘.",
-      "adviceValues": "우리에게 중요한 가치들을 생각해 봐: {values}. 그 가치들이 너를 이끌어 줄 거야.",
-      "feelRecent": "나도 그렇게 느낀 적이 있어. 일기장에 이렇게 썼더라고: \"{excerpt}...\" 우리 전에도 잘 이겨냈잖아.",
-      "feelDefault": "무슨 말인지 알아. 우리 전에도 힘든 시기를 거쳐 길을 찾아냈잖아. 진짜 마음을 힘들게 하는 게 뭐야?",
-      "rememberIntro": "응, 기억나.",
-      "rememberEntry": "일기에 이렇게 썼던 적이 있었지: \"{excerpt}...\"",
-      "mannerism": "{phrase} 나도 마침 그 생각을 하고 있었어. 왜 이 이야기를 꺼내게 됐어?",
-      "default": "좋은 질문이네. 왜 그 생각이 났어?"
-    },
-    "fallbackKeywords": {
-      "advice": "조언,해야 할까,어떡하지",
-      "feeling": "감정,느낌,기분",
-      "remember": "기억,과거,예전"
-    }
+    "error": "전달되지 않았어요. 당신 탓이 아니에요. 다시 보내 보세요."
   },
   "mood": {
     "holiday": {
@@ -10958,19 +10947,6 @@
       "feelingConnected": "연결되어 있다는 느낌",
       "roomToGrow": "성장할 수 있는 여지",
       "insight": "\"주중에 에너지가 조금 떨어지시네요. 수요일이 가장 힘든 요일인 것 같아요.\""
-    },
-    "predictions": {
-      "title": "나의 예측",
-      "message": "당신이 먼저 말하기 전에 필요한 것을 미리 헤아릴 수 있도록 배울게요.",
-      "guessOverwhelmed": "\"이번 주에 마음이 조금 버거우실 것 같아요\"",
-      "resultStress": "화요일과 목요일에 스트레스에 대해 이야기하셨어요",
-      "guessGym": "\"운동 습관을 지키기 조금 힘드실 것 같아요\"",
-      "guessSunday": "\"일요일 저녁이 조금 무겁게 느껴지실 거예요\"",
-      "resultCheckIn": "제가 체크인해 드릴게요",
-      "skipped": {
-        "other": "이번 주에 세션을 {count}번 건너뛰셨어요",
-        "one": "이번 주에 세션을 {count}번 건너뛰셨어요"
-      }
     },
     "team": {
       "title": "우리 팀이 발견한 것",

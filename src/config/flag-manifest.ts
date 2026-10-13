@@ -54,6 +54,7 @@ export const FLAG_MANIFEST = {
   BACKCHANNEL_CLIPS: { default: 'on', owner: 'voice', kind: 'config' },
   BACKCHANNEL_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKGROUND_TURN_LATENCY_WARNINGS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  BARGE_IN_ACK_WORDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   BARGE_IN_FASTPATH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   BRIEFED_HANDOFF: { default: 'off', owner: 'voice', kind: 'experiment' },
   BYPASS_INJECTION_FILTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -180,6 +181,7 @@ export const FLAG_MANIFEST = {
   // a mode: on speaks a fallback when a reply fails, shadow only logs it
   NEVER_SILENT: { default: 'off', owner: 'voice', kind: 'experiment' },
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  ON_BEHALF_TEXTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OPENER_FOLLOW_UP: { default: 'off', owner: 'memory', kind: 'experiment' },
   OPENER_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -245,6 +247,7 @@ export const FLAG_MANIFEST = {
   REQUIRE_FIX_OUTREACH_NAME: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // read as 'true', not 'on' (adaptive echo window)
   REQUIRE_FIX_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ROOM_GUESTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   ROUNDTABLE_VOICE: { default: 'off', owner: 'voice', kind: 'config' },
   SAVED_INTERESTS: { default: 'off', owner: 'platform', kind: 'experiment' },
   SCHEDULED_JOBS_AUTH: { default: 'on', owner: 'platform', kind: 'kill-switch' },
