@@ -321,7 +321,7 @@ function userAskedAboutTheme(userMessage: string, theme: PersonalTheme): boolean
   const askPatterns: Partial<Record<PersonalTheme, RegExp[]>> = {
     // Major backstory
     wyoming: [/tell me about wyoming/i, /where.*from/i, /your childhood/i],
-    japan: [/tell me about japan/i, /the tsunami/i, /what happened in japan/i],
+    japan: [/tell me about japan/i, /your mentor/i, /what happened in japan/i],
     book: [/your book/i, /writing/i, /how's the book/i, /attempt five/i],
     childhood: [/growing up/i, /when you were.*kid/i, /your childhood/i],
     family: [/your wife/i, /your kids/i, /your family/i],

@@ -24,6 +24,9 @@ import {
   renderCloseButton,
 } from './engagement-components.js';
 import { apiGet } from '../utils/api.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('RitualBuilderUI');
 
 // ============================================================================
 // HELPERS
@@ -139,8 +142,6 @@ interface RitualTemplate {
   icon: keyof typeof ICONS;
   humanName: string;
   defaults: Partial<CustomRitual>;
-  // Behavioral science context
-  scienceNote: string;
   keystonePotential: number; // 0-100, how much this cascades into other habits
   habitLoop: {
     cue: string;
@@ -164,7 +165,6 @@ const ritualTemplates = (): RitualTemplate[] => [
       preferredTime: 'morning',
       description: t('rituals.templates.morningCheckin.description', 'Start the day with intention'),
     },
-    scienceNote: t('rituals.templates.morningCheckin.scienceNote', 'Morning intentions improve focus by 31% (Harvard Business Review)'),
     keystonePotential: 85,
     habitLoop: {
       cue: t('rituals.templates.morningCheckin.cue', 'After your feet hit the floor'),
@@ -186,7 +186,6 @@ const ritualTemplates = (): RitualTemplate[] => [
       preferredTime: 'evening',
       description: t('rituals.templates.gratitudeMoment.description', 'Name three things you appreciate'),
     },
-    scienceNote: t('rituals.templates.gratitudeMoment.scienceNote', 'Gratitude practices increase happiness by 25% (UC Berkeley)'),
     keystonePotential: 70,
     habitLoop: {
       cue: t('rituals.templates.gratitudeMoment.cue', 'When you put your phone on the charger at night'),
@@ -208,7 +207,6 @@ const ritualTemplates = (): RitualTemplate[] => [
       preferredTime: 'morning',
       description: t('rituals.templates.weeklyReview.description', 'Reflect on wins and learnings'),
     },
-    scienceNote: t('rituals.templates.weeklyReview.scienceNote', 'Weekly reflection improves goal achievement by 42% (Dominican University)'),
     keystonePotential: 75,
     habitLoop: {
       cue: t('rituals.templates.weeklyReview.cue', 'Sunday morning with coffee/tea'),
@@ -225,7 +223,6 @@ const ritualTemplates = (): RitualTemplate[] => [
     humanName: t('rituals.templates.custom.humanName', 'Start fresh'),
     icon: 'plus',
     defaults: {},
-    scienceNote: t('rituals.templates.custom.scienceNote', 'Custom practices built around your life are 3x more likely to stick'),
     keystonePotential: 50,
     habitLoop: {
       cue: t('rituals.templates.custom.cue', 'You choose the trigger'),
@@ -396,7 +393,7 @@ class RitualBuilderUI {
   private renderTemplateStep(): void {
     if (!this.wrapper) return;
 
-    // Build rich template cards with behavioral science context
+    // Build rich template cards
     const templatesHtml = ritualTemplates().map(
       (tmpl, i) => `
       <button class="ritual-builder__template-card" data-index="${i}" aria-label="${t('rituals.aria.chooseTemplate', { name: tmpl.humanName }, 'Choose {name}')}">
@@ -415,16 +412,6 @@ class RitualBuilderUI {
           </div>
         </div>
         <p class="ritual-builder__template-desc">${escapeHtml(tmpl.defaults.description || tmpl.outcomePreview)}</p>
-
-        <!-- Behavioral Science Context -->
-        <div class="ritual-builder__template-science">
-          <span class="ritual-builder__science-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-          </span>
-          <span class="ritual-builder__science-text">${escapeHtml(tmpl.scienceNote)}</span>
-        </div>
 
         <!-- Tiny Version Hint -->
         <div class="ritual-builder__tiny-hint">
@@ -870,26 +857,16 @@ class RitualBuilderUI {
         frequency: this.ritual.frequency,
       });
 
-      const response = await apiGet<{ suggestions?: string[] }>(
+      // The server already sends TimeSuggestion objects (practice-calendar.ts).
+      const response = await apiGet<{ suggestions?: TimeSuggestion[] }>(
         `/api/practices/time-suggestions?${params}`
       );
       if (response.ok && response.data) {
-        // Map string times to TimeSuggestion objects
-        this.timeSuggestions = (response.data.suggestions || []).map((timeStr: string): TimeSuggestion => {
-          const [hours, minutes] = timeStr.split(':').map(Number);
-          return { 
-            time: timeStr, 
-            hour: hours ?? 0, 
-            minute: minutes ?? 0,
-            dayOfWeek: '',
-            confidence: 0.8,
-            reasoning: t('rituals.calendar.suggestedTime', 'Suggested time'),
-            freeMinutes: 60,
-          };
-        });
+        this.timeSuggestions = response.data.suggestions ?? [];
       }
     } catch (err) {
-      // Silently fail - suggestions are optional
+      // Suggestions are optional: the user can still pick a time by hand
+      log.warn('Time suggestions failed', err);
       this.timeSuggestions = [];
     } finally {
       this.loadingSuggestions = false;
@@ -1304,30 +1281,6 @@ class RitualBuilderUI {
         color: var(--color-text-secondary);
         line-height: var(--leading-relaxed);
         margin: 0;
-      }
-
-      /* Science Note */
-      .ritual-builder__template-science {
-        display: flex;
-        align-items: flex-start;
-        gap: var(--ma-breath);
-        padding: var(--ma-breath) var(--ma-pause);
-        background: var(--color-background-tertiary);
-        border-radius: var(--radius-md);
-        margin-top: var(--ma-breath);
-      }
-
-      .ritual-builder__science-icon {
-        color: var(--persona-peter, #3a6b73);
-        flex-shrink: 0;
-        margin-top: 1px;
-      }
-
-      .ritual-builder__science-text {
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
-        line-height: 1.4;
-        font-style: italic;
       }
 
       /* Tiny Hint */
@@ -2010,10 +1963,6 @@ class RitualBuilderUI {
           rgba(166, 122, 106, 0.12),
           var(--color-background-tertiary)
         );
-      }
-
-      [data-theme="midnight"] .ritual-builder__template-science {
-        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .ritual-builder__keystone-badge {

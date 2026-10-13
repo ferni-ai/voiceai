@@ -1,17 +1,25 @@
 /**
  * Memory-that-speaks SLO assert for SOTA Wave 3.
  *
- * Usage:
- *   node scripts/ops/assert-memory-speak-slo.mjs
+ * Usage (current stack, LiveKit Cloud agent):
+ *   VOICE_EVAL_RECALL=recall.json node scripts/ops/assert-memory-speak-slo.mjs
+ *   (recall.json: `node scripts/voice-eval/recall-facts.mjs --json out/<recall>-<arm>-*.json`
+ *    over seed -> recall pairs from scripts/voice-eval/batch.sh)
  *
- * Optional:
- *   OBS_URL=http://34.134.186.63:8080/api/observability
- *   MIN_RECALL_RATE=0.1
+ * Or, against an agent whose health server is reachable (e.g. local):
+ *   OBS_URL=http://localhost:8080/api/observability node scripts/ops/assert-memory-speak-slo.mjs
  *
- * If sessionsWithMemoryData is 0, the check skips successfully.
+ * Optional: MIN_RECALL_RATE=0.1
+ *
+ * Eval: exit 0 iff the pooled recall rate >= MIN_RECALL_RATE. score.mjs output
+ *       (VOICE_EVAL_RESULT) has no recall metric, so it alone fails "not measured".
+ * OBS:  if sessionsWithMemoryData is 0, the check skips successfully
+ *       (unless REQUIRE_SAMPLES=true).
+ * Neither given: exit 1 with what to pass.
  */
 
-const OBS_URL = process.env.OBS_URL || 'http://34.134.186.63:8080/api/observability';
+import { evaluateMemoryFromRecall, metricsSource, readEvalJson } from './voice-eval-metrics.mjs';
+
 const MIN_RECALL_RATE = Number(process.env.MIN_RECALL_RATE || 0.1);
 
 export function evaluateMemorySpeakSlo(payload, minRecallRate = MIN_RECALL_RATE) {
@@ -50,8 +58,8 @@ export function evaluateMemorySpeakSlo(payload, minRecallRate = MIN_RECALL_RATE)
   };
 }
 
-async function fetchObservability() {
-  const res = await fetch(OBS_URL);
+async function fetchObservability(url) {
+  const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Observability HTTP ${res.status}`);
   }
@@ -64,8 +72,25 @@ function printResult(result) {
 
 async function main() {
   try {
-    const payload = await fetchObservability();
-    const result = evaluateMemorySpeakSlo(payload);
+    const source = metricsSource(process.env, 'VOICE_EVAL_RECALL');
+    let result;
+    if (source.kind === 'eval') {
+      result = evaluateMemoryFromRecall(readEvalJson(source.path), MIN_RECALL_RATE);
+    } else if (source.kind === 'obs') {
+      result = evaluateMemorySpeakSlo(await fetchObservability(source.url));
+    } else if (process.env.VOICE_EVAL_RESULT) {
+      result = {
+        ok: false,
+        skipped: false,
+        notMeasured: true,
+        minRecallRate: MIN_RECALL_RATE,
+        reason:
+          'Not measured: score.mjs output (VOICE_EVAL_RESULT) has no memory recall metric. ' +
+          'Pass VOICE_EVAL_RECALL=<recall-facts.mjs --json output>.',
+      };
+    } else {
+      result = { ok: false, skipped: false, minRecallRate: MIN_RECALL_RATE, error: source.error };
+    }
     printResult(result);
     process.exit(result.ok ? 0 : 1);
   } catch (error) {

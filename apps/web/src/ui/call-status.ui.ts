@@ -7,6 +7,7 @@
  * two call messages never stack.
  */
 
+import { t } from '../i18n/index.js';
 import type { ConnectFailure } from '../services/connect-failure.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -21,6 +22,10 @@ const MIC_HELP =
 export interface CallNoticeHandlers {
   /** Start a new call attempt. */
   onRetry: () => void;
+  /** Offered as a second action while the call is still open: hang up for good. */
+  onEnd?: () => void;
+  /** Move keyboard focus to the main action (a prompt shown mid-call, not after a click). */
+  focusAction?: boolean;
 }
 
 function injectStyles(): void {
@@ -136,10 +141,21 @@ export function showCallNotice(failure: ConnectFailure, handlers: CallNoticeHand
       })
     );
   } else if (failure.action === 'retry') {
-    const label = failure.kind === 'dropped' ? 'Reconnect' : 'Try again';
-    actions.append(button(label, true, retry));
+    const reconnect = failure.kind === 'dropped' || failure.kind === 'agent_left';
+    actions.append(button(reconnect ? 'Reconnect' : 'Try again', true, retry));
+  }
+
+  const { onEnd } = handlers;
+  if (onEnd) {
+    actions.append(
+      button(t('accessibility.endCall'), false, () => {
+        clearCallNotice();
+        onEnd();
+      })
+    );
   }
 
   if (actions.childElementCount > 0) notice.appendChild(actions);
   mount(notice);
+  if (handlers.focusAction) actions.querySelector<HTMLButtonElement>('button')?.focus();
 }

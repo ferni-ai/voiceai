@@ -5,14 +5,14 @@
  * These are the "deeper" versions of Ferni that emerge in specific contexts.
  *
  * MODES:
- * - tsunami_depth: When discussing Japan/trauma - slower, contemplative, vulnerable
+ * - mentor_depth: When discussing Japan/his mentor - slower, contemplative, vulnerable
  * - wyoming_grounding: When discussing family/childhood - nostalgic, warm, grounded
  * - mental_health_depth: When user is struggling - maximum presence, validation
  * - late_night_presence: Time-of-day awareness - softer, more intimate
  * - book_progress: Easter egg about writing - excited, vulnerable about creative work
  *
  * Also handles:
- * - Seasonal modes (March 11 anniversary, cherry blossom season)
+ * - Seasonal modes (new year, cherry blossom season)
  * - Easter eggs (ski resort debate, flight obsession, disaster movies)
  *
  * @module SecretModeDetector
@@ -431,7 +431,7 @@ export function getActiveSecretMode(sessionId: string): string | null {
 registerContextBuilder({
   name: 'secret_mode_detector',
   description:
-    'Detects trigger phrases and activates contextual personality modes (tsunami depth, late night, etc.)',
+    'Detects trigger phrases and activates contextual personality modes (mentor depth, late night, etc.)',
   priority: 45, // Early - affects entire response tone
   build: buildSecretModeContext,
 });

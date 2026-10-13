@@ -60,10 +60,8 @@ import {
   processVoiceProsody,
 } from '../integrations/better-than-human-integration.js';
 // 🎭 Better Than Human - Speech State Events for Active Listening
-import {
-  dispatchBreathDetected,
-  dispatchSpeechPause,
-} from '../realtime/speech-state-dispatcher.js';
+import { dispatchSpeechPause } from '../realtime/speech-state-dispatcher.js';
+import { clearListenTurnSignals, getListenTurnSignals } from '../realtime/listen-turn-signals.js';
 // GC pressure baseline metrics (for Rust migration validation)
 import { GC_METRICS, gcTrackEnd, gcTrackStart } from '../../utils/performance-metrics.js';
 
@@ -374,11 +372,9 @@ export async function processAudioStream(
               });
             }
 
-            // Estimate and send breath rate periodically (every 5 seconds of speech)
-            if (currentSpeechDurationMs > 0 && currentSpeechDurationMs % 5000 < 100) {
-              const estimatedBreathRate = Math.round(12 + Math.random() * 6); // 12-18 BPM
-              void dispatchBreathDetected(sessionId, sendDataMessage, estimatedBreathRate);
-            }
+            // Turn onset (so the pause nods above fire) and breath rate: listen-turn-signals.ts
+            const listen = getListenTurnSignals(sessionId, sendDataMessage);
+            listen.onFrame(breathDetector.isUserSpeaking(), currentSpeechDurationMs);
           } catch {
             // Breath detector not initialized
           }
@@ -395,6 +391,7 @@ export async function processAudioStream(
       logger.debug('Gemini emotion stream stopped');
     }
 
+    if (sessionId) clearListenTurnSignals(sessionId);
     // Cleanup native audio analyzer (returns buffers to pool)
     if (nativeAnalyzer && sessionId) {
       resetSessionUnifiedAnalyzer(sessionId);
@@ -434,7 +431,10 @@ export async function processAudioStream(
             userData.voiceBiomarkers = biomarkerState;
           }
         } catch (biomarkerError) {
-          logger.debug({ error: String(biomarkerError) }, 'Voice biomarker analysis skipped (non-critical)');
+          logger.debug(
+            { error: String(biomarkerError) },
+            'Voice biomarker analysis skipped (non-critical)'
+          );
         }
       }
 
