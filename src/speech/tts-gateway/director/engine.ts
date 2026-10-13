@@ -344,6 +344,8 @@ export class DirectorEngine {
       previous: this.ctx.carry.emotion,
       prosody: this.toneCandidate(answerVoice),
     });
+    // A sympathetic reply is hard news even when its first phrase ("Ah, hell.") doesn't say so.
+    if (this.emotion.emotion === 'sympathetic') this.attunement = this.attune(answerVoice, 'heavy');
     const pace = decideSpeed({
       valence: readValence(openingText),
       emotion: this.emotion.emotion,
@@ -383,12 +385,12 @@ export class DirectorEngine {
   }
 
   /** VOICE_ATTUNE: how this reply answers the caller's mood (attune.ts), else undefined. */
-  private attune(answerVoice: boolean): Attunement | undefined {
+  private attune(answerVoice: boolean, valence = this.replyValence): Attunement | undefined {
     if (!this.ctx.attune) return undefined;
     return decideAttune({
       state: callerState(this.ctx.attune.userEmotion, answerVoice ? this.prosody : undefined),
       voice: this.ctx.callerProsody,
-      valence: this.replyValence,
+      valence,
       previous: { speed: this.ctx.carry.speed, volume: this.ctx.carry.volume },
       nudge: this.ctx.ferniNudge,
     });

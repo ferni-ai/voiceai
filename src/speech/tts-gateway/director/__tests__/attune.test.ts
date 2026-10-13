@@ -110,20 +110,25 @@ describe('callerState', () => {
 });
 
 describe('decideAttune', () => {
-  it('slows and softens for a low caller, toward the target over turns', () => {
+  it('drops to the low target at once for a low caller, and holds it', () => {
     let previous = { speed: 1, volume: 1 };
-    const speeds: number[] = [];
-    for (let turn = 0; turn < 4; turn++) {
+    for (let turn = 0; turn < 3; turn++) {
       const a = decideAttune({ state: 'low', valence: 'neutral', previous });
       expect(a.emotion).toBe('calm');
-      expect(previous.speed - a.speed).toBeLessThanOrEqual(MAX_SPEED_STEP + 1e-9);
-      expect(previous.volume - a.volume).toBeLessThanOrEqual(MAX_VOLUME_STEP + 1e-9);
-      speeds.push(a.speed);
+      expect(a.speed).toBe(0.86);
+      expect(a.volume).toBe(0.85);
       previous = { speed: a.speed, volume: a.volume };
     }
-    expect(speeds[0]).toBe(0.92);
-    expect(speeds[3]).toBeLessThan(0.88);
-    expect(previous.volume).toBeLessThan(0.88);
+  });
+
+  it('still moves up toward a target one step at a time', () => {
+    const a = decideAttune({
+      state: 'bright',
+      valence: 'neutral',
+      previous: { speed: 0.86, volume: 0.8 },
+    });
+    expect(a.speed - 0.86).toBeLessThanOrEqual(MAX_SPEED_STEP + 1e-9);
+    expect(a.volume - 0.8).toBeLessThanOrEqual(MAX_VOLUME_STEP + 1e-9);
   });
 
   it('answers heavy words to a low caller with sympathy', () => {
@@ -182,8 +187,8 @@ describe('on the reply stream', () => {
       env: { VOICE_ATTUNE: 'on' },
     });
     expect(summary.attune).toBe('low');
-    expect(ratio(pushes[0], 'speed')).toBe(0.92);
-    expect(ratio(pushes[0], 'volume')).toBe(0.9);
+    expect(ratio(pushes[0], 'speed')).toBe(0.86);
+    expect(ratio(pushes[0], 'volume')).toBe(0.85);
     expect(pushes[0]).toContain('<emotion value="calm"/>');
     expect(summary.emotionSource).toBe('prosody');
   });
@@ -204,8 +209,8 @@ describe('on the reply stream', () => {
     const env = { VOICE_ATTUNE: 'on' };
     await reply({ pushes: NEUTRAL_WORDS, userEmotion: 'sadness', env, sessions });
     const second = await reply({ pushes: NEUTRAL_WORDS, userEmotion: 'sadness', env, sessions });
-    expect(second.summary.speed).toBe(0.88);
-    expect(second.summary.volume).toBe(0.87);
+    expect(second.summary.speed).toBe(0.86);
+    expect(second.summary.volume).toBe(0.85);
   });
 
   it('scales a soft start and its later reset by the attuned loudness', async () => {
@@ -214,8 +219,8 @@ describe('on the reply stream', () => {
       userEmotion: 'sadness',
       env: { VOICE_ATTUNE: 'on' },
     });
-    expect(ratio(pushes[0], 'volume')).toBe(0.72);
-    expect(ratio(pushes[1], 'volume')).toBe(0.9);
+    expect(ratio(pushes[0], 'volume')).toBe(0.68);
+    expect(ratio(pushes[1], 'volume')).toBe(0.85);
   });
 });
 
@@ -246,6 +251,23 @@ describe('heavy words', () => {
     const on = await reply({ pushes: HEAVY_WORDS, env: { VOICE_ATTUNE: 'on' } });
     expect(off.summary.speed).toBeGreaterThan(0.94);
     expect(ratio(off.pushes[0], 'volume')).toBeUndefined();
+    expect(ratio(on.pushes[0], 'speed')).toBe(HEAVY.speed);
+    expect(ratio(on.pushes[0], 'volume')).toBe(HEAVY.volume);
+  });
+});
+
+describe('a sympathetic reply', () => {
+  // "Ah, man." alone doesn't read heavy; the LLM's sympathetic tag says it is.
+  const SYMPATHETIC = [
+    '<emotion value="sympathetic"/>Ah, man. ',
+    'That is a lot to carry right now. ',
+  ];
+
+  it('slows and softens like heavy words, only with the flag on', async () => {
+    const off = await reply({ pushes: SYMPATHETIC, env: {} });
+    const on = await reply({ pushes: SYMPATHETIC, env: { VOICE_ATTUNE: 'on' } });
+    expect(on.summary.emotion).toBe('sympathetic');
+    expect(off.summary.speed).toBeGreaterThan(0.9);
     expect(ratio(on.pushes[0], 'speed')).toBe(HEAVY.speed);
     expect(ratio(on.pushes[0], 'volume')).toBe(HEAVY.volume);
   });
