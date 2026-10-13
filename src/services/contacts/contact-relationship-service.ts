@@ -419,7 +419,6 @@ export async function recordInteraction(
   const streakInfo = await detectStreak(userId, interaction.contactId, interaction.type);
 
   if (contact) {
-    // Update contact stats
     contact.lastInteraction = now;
     contact.interactionCount++;
 
@@ -480,7 +479,6 @@ export async function recordInteraction(
     await persistContact(contact);
   }
 
-  // Create the full interaction record with streak info
   const fullInteraction: InteractionRecord = {
     ...interaction,
     id: `int_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
@@ -488,7 +486,6 @@ export async function recordInteraction(
     streakCount: streakInfo.streakCount,
   };
 
-  // Persist the interaction record
   await persistInteraction(fullInteraction);
 
   log.info(
@@ -600,7 +597,6 @@ export async function getRelationshipInsights(userId: string): Promise<ContactIn
     }
   }
 
-  // Sort by priority
   const priorityOrder = { high: 0, medium: 1, low: 2 };
   insights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
@@ -922,7 +918,6 @@ export async function getInteractionStats(
     };
   }
 
-  // Count by type
   const byType: Record<string, number> = {};
   const lastByType: Record<string, Date> = {};
   let longestStreak: { type: InteractionType; count: number } | null = null;
@@ -941,7 +936,6 @@ export async function getInteractionStats(
     }
   }
 
-  // Calculate avg per month
   const firstInteraction = history[history.length - 1]?.date || new Date();
   const monthsSpan = Math.max(
     1,
@@ -1094,7 +1088,6 @@ async function persistContact(contact: ContactRelationship): Promise<void> {
   if (!firestore) return;
 
   try {
-    // Remove undefined values before persisting to Firestore
     const cleanContact = Object.fromEntries(
       Object.entries(contact).filter(([_, v]) => v !== undefined)
     );
@@ -1163,6 +1156,13 @@ export function clearCache(userId?: string): void {
     contactCache.clear();
     loadedUsers.clear();
   }
+}
+
+/** A removed contact leaves this process's cache and the semantic index (person-removal.ts) */
+export function forgetContact(userId: string, contact: ContactRelationship): void {
+  clearCache(userId);
+  const forgotten = { name: contact.name, relationship: 'contact' };
+  void onContactChange(userId, contact.id, forgotten, 'delete');
 }
 
 export default {

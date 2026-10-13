@@ -50,6 +50,10 @@ describe('parseNaturalTime in the user zone', () => {
     expect(parseNaturalTime('Monday at 8am', NY, LATE_SUNDAY_NY)?.toISOString()).toBe(
       '2026-10-12T12:00:00.000Z'
     );
+    // A bare time that has passed today is tomorrow's.
+    expect(parseNaturalTime('at 7pm', NY, LATE_SUNDAY_NY)?.toISOString()).toBe(
+      '2026-10-12T23:00:00.000Z'
+    );
     expect(parseNaturalTime('tomorrow evening at 8', NY, LATE_SUNDAY_NY)?.toISOString()).toBe(
       '2026-10-13T00:00:00.000Z'
     );
