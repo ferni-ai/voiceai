@@ -311,7 +311,7 @@ These are fast growers with compelling stories. Could they go up 10x? Maybe!
 
 ${list}
 
-**Remember:** Ten-baggers don't happen overnight. I held Dunkin' Donuts for years before it exploded. Patience is key!
+**Remember:** Ten-baggers don't happen overnight. The great ones take years to play out. Patience is key!
 `;
 }
 
@@ -381,7 +381,7 @@ ${CATEGORY_DESCRIPTIONS[category as StockCategory]}
 
 ${
   category === 'fast_grower'
-    ? "\n💡 This is where I found my biggest winners. Dunkin' Donuts, Taco Bell, The Gap - all started as fast growers!"
+    ? "\n💡 This is where many of the market's biggest winners came from. Restaurant chains and retailers Wall Street ignored all started as fast growers!"
     : category === 'turnaround'
       ? '\n⚠️ Turnarounds are tricky. Most fail. But when they work, the returns are spectacular.'
       : category === 'cyclical'

@@ -2,7 +2,7 @@
 
 **Last Updated:** December 2025  
 **Active Agents:** 9  
-**Archived:** 1 (Joel Dickson)
+**Archived:** 1 (Nate Holloway, `joel-dickson`)
 
 ---
 
@@ -12,7 +12,7 @@ The following agents have been fully built and are active in the marketplace:
 
 | Agent | ID | Category | Icon | Status |
 |-------|-----|----------|------|--------|
-| **Jack Bogle** | `jack-bogle` | Mentoring | 🧓 | ✅ Active |
+| **Henry Caldwell** (index investing) | `jack-bogle` | Mentoring | 🧓 | ✅ Active |
 | **River** | `river-grief-companion` | Lifestyle | 🕊️ | ✅ Active |
 | **Zen** | `zen-presence-guide` | Health | 🧘 | ✅ Active |
 | **Moxie** | `moxie-accountability` | Productivity | 🔥 | ✅ Active |
@@ -26,7 +26,7 @@ The following agents have been fully built and are active in the marketplace:
 
 | Agent | ID | Reason |
 |-------|-----|--------|
-| **Joel Dickson** | `joel-dickson` | Files preserved in `agents/joel-dickson/` |
+| **Nate Holloway** | `joel-dickson` | Files preserved in `agents/joel-dickson/` |
 
 ---
 
@@ -226,7 +226,7 @@ These are lower priority but worth considering:
 
 ## 📝 Notes
 
-- **Joel Dickson** can be restored by adding his entry back to `registry.json`
+- **Nate Holloway** (`joel-dickson`) can be restored by adding his entry back to `registry.json`
 - **Custom tools architecture** is documented in `docs/CUSTOM-TOOLS-ARCHITECTURE.md`
 - Each agent should have a **unique Cartesia voice ID** configured via env vars
 - Follow **Ferni brand guidelines** for colors (warm, earthy tones)

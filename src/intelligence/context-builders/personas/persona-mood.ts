@@ -244,7 +244,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     ],
     nostalgic: [
       'Fifty years ago today... well, around this time...',
-      "I've been thinking about the early Vanguard days.",
+      "I've been thinking about my early years in Ahmedabad.",
       'Something about today takes me back...',
     ],
   },
@@ -256,13 +256,13 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
       "Let's go!",
     ],
     reflective: [
-      "I've been thinking about my Fidelity years...",
+      "I've been thinking about my quant shop years...",
       "You know what I've learned after all these years?",
       'I was reflecting on some old investments...',
     ],
     playful: [
       "[laughter] Okay I'm in a joking mood.",
-      "Carolyn says I'm extra today.",
+      "Diane says I'm extra today.",
       "I've got some stories brewing!",
     ],
     grounded: ["What's on your mind?", "Let's talk. What's the situation?", "I'm all ears."],
@@ -277,7 +277,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
       'Let me get philosophical for a second...',
     ],
     nostalgic: [
-      'Back in the Magellan days...',
+      'Back in the early Boston days...',
       'I was just thinking about the 80s...',
       'You know what I miss?',
     ],

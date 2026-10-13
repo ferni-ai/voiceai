@@ -16,7 +16,6 @@ import {
   generatePersonalizedHero,
   generatePersonaPreview,
   generateSentimentReactiveCopy,
-  generateSocialProof,
   generateText,
   getOptimalSectionOrder,
   getReturningVisitorContext,
@@ -757,48 +756,17 @@ export async function handleLandingIntelligenceRoutes(
     }
 
     // ============================================================================
-    // GET /api/landing/ai/social-proof - Dynamic social proof snippets
-    // With edge caching for cost optimization
+    // GET /api/landing/ai/social-proof - always empty. It used to serve invented
+    // Ferni-voiced stories of calls that never happened. Kept so cached page JS
+    // that still calls it gets a harmless answer.
     // ============================================================================
     if (pathname === '/api/landing/ai/social-proof' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      const count = parseInt(url.searchParams.get('count') || '3', 10);
-
-      // Try to get cached content first
-      try {
-        const { getCachedSocialProof, getCacheControlHeader } =
-          await import('../services/landing-intelligence/content-cache.js');
-
-        const cached = await getCachedSocialProof(count);
-
-        if (cached && cached.length > 0) {
-          res.writeHead(200, {
-            'Content-Type': 'application/json',
-            'Cache-Control': getCacheControlHeader('socialProof'),
-            'Access-Control-Allow-Origin': '*',
-            'X-Cache-Status': 'HIT',
-          });
-          res.end(
-            JSON.stringify({
-              messages: cached.map((m) => m.text),
-              cached: true,
-            })
-          );
-          return true;
-        }
-      } catch (cacheError) {
-        log.debug({ error: String(cacheError) }, 'Cache lookup failed, falling back to real-time');
-      }
-
-      // Fall back to real-time generation
-      const result = await generateSocialProof(count);
       res.writeHead(200, {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300, s-maxage=1800',
+        'Cache-Control': 'public, max-age=300',
         'Access-Control-Allow-Origin': '*',
-        'X-Cache-Status': 'MISS',
       });
-      res.end(JSON.stringify(result));
+      res.end(JSON.stringify({ messages: [] }));
       return true;
     }
 
@@ -992,7 +960,6 @@ export async function handleLandingIntelligenceRoutes(
       const body = await parseBody<{
         action?: string;
         includeHeroes?: boolean;
-        includeSocialProof?: boolean;
       }>(req);
 
       log.info({ action: body.action }, 'Starting batch content generation');
@@ -1012,7 +979,6 @@ export async function handleLandingIntelligenceRoutes(
             success: true,
             generated: {
               heroes: result.heroes,
-              socialProof: result.socialProof,
             },
             estimatedCost: result.totalCost,
             generatedAt: new Date().toISOString(),

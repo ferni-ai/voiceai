@@ -5,8 +5,7 @@
   "url": "https://developers.ferni.ai",
   "social": {
     "github": "https://github.com/ferni-ai",
-    "twitter": "https://twitter.com/ferni_ai",
-    "discord": "https://discord.gg/ferni"
+    "twitter": "https://twitter.com/ferni_ai"
   },
   "api": {
     "baseUrl": "https://app.ferni.ai/api/v1",

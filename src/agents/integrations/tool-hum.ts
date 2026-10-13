@@ -25,6 +25,7 @@ import { voice, type llm } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
 import { synthHum } from './presence-sounds.js';
 import { isHeavyMood } from './presence-watcher.js';
+import { voicedHumFor, voicedPresenceEnabled, type VoicedHum } from './voiced-presence.js';
 
 const log = createLogger({ module: 'ToolHum' });
 
@@ -130,26 +131,32 @@ export interface HumPlayer {
 
 /**
  * Wire the tool hum to a session's clip track. Returns the cleanup; a no-op
- * unless TOOL_HUM=on.
+ * unless TOOL_HUM=on. VOICED_PRESENCE=on: a voiced take on its track, or nothing.
  */
 export function startToolHum(
   session: voice.AgentSession,
   player: HumPlayer,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  voiced: () => VoicedHum | undefined = () => voicedHumFor(session)
 ): () => void {
   if (!toolHumEnabled(env)) return () => {};
   let humEndsAt = 0;
+  let out: HumPlayer = player;
   const watcher = createToolHumWatcher({
     play: () => {
-      const pcm = synthHum();
-      if (!player.play(pcm, TOOL_HUM_VOLUME)) return false;
+      // VOICED_PRESENCE: a kept take or nothing; Seth rejected the synthesized hum.
+      const hum = voicedPresenceEnabled(env) ? voiced() : undefined;
+      if (voicedPresenceEnabled(env) && !hum) return false;
+      out = hum ?? player;
+      const pcm = hum ? hum.next() : synthHum();
+      if (!pcm || !out.play(pcm, TOOL_HUM_VOLUME)) return false;
       humEndsAt = Date.now() + pcm.byteLength / PCM_BYTES_PER_MS;
-      log.info({}, 'TOOL_HUM');
+      log.info({ voiced: Boolean(hum) }, 'TOOL_HUM');
       return true;
     },
     // Only stop our own hum, never a backchannel that started after it ended.
     stop: () => {
-      if (Date.now() < humEndsAt) player.stop();
+      if (Date.now() < humEndsAt) out.stop();
       humEndsAt = 0;
     },
     mood: () =>

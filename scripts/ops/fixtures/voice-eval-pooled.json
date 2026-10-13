@@ -1,0 +1,16 @@
+{
+  "users": ["voice-eval-fixture"],
+  "replies": 24,
+  "replyDelayMs": { "p50": 1180, "p90": 1920, "n": 24 },
+  "perceivedDelayMs": { "p50": 940, "p90": 1700 },
+  "openingSounds": 3,
+  "talkOver": {
+    "backchannels": 2,
+    "backchannelStoppedAgent": 0,
+    "interruptYieldedFast": 3,
+    "interrupts": 3,
+    "interruptYielded": 3,
+    "interruptStopMs": { "p50": 420 },
+    "notTalkingWhenOverlapped": 0
+  }
+}

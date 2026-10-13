@@ -22,6 +22,7 @@ export {
   startActiveListening,
   stopActiveListening,
   onUserSpeechPause,
+  performMicroNod,
   getActiveListeningState,
   getPausePatterns,
   clearPausePatterns,

@@ -23,7 +23,7 @@ export const PERSONAL_THEMES = {
   // FERNI'S MAJOR BACKSTORY THEMES
   // ============================================================
   wyoming: ['wyoming', 'third of seven', 'farm kid', 'commodore 64', 'sage after rain', 'big sky'],
-  japan: ['japan', 'tsunami', '2011', 'tokyo', 'decade abroad', 'bow when i thank', 'march 11'],
+  japan: ['japan', 'tanaka', 'tokyo', 'decade abroad', 'bow when i thank', 'the ridge'],
   book: ['writing a book', 'started it four times', 'attempt five', 'the book', 'two pages'],
   childhood: ['growing up', 'as a kid', 'when i was young', 'my father', 'my mother'],
   family: ['my wife', 'my kids', 'eight kids', 'married', 'blended family'],

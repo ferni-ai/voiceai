@@ -30,7 +30,6 @@ import {
   isWrapUpMessage,
   normalizeMusicMessage,
 } from '../types/events.js';
-
 import { setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
@@ -40,6 +39,8 @@ import { handleVoiceEventDataMessage } from '../services/voice-events.service.js
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { handleAgentAckMessage } from './agent-ack-handlers.js';
+import { routeExpressionMessage } from './expression-routes.js';
+import { observeListenSignal } from './backchannel-signal.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
 import { coachUI } from '../ui/coach.ui.js';
@@ -60,7 +61,7 @@ import {
   type AvatarCueEvent,
   type TrustSignalEvent,
 } from './live-signal-handlers.js';
-// 🎬 Ferni Expressions - Character-level avatar expressions
+import { WRAP_UP_EXPRESSION_HOLD_MS } from './call-end.js';
 import { ferniExpressions, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
 // 🎭 Luxo Expressions - 100+ expression system from design tokens
 import type { ExpressionId } from '../config/expressions.generated.js';
@@ -116,16 +117,6 @@ import {
 
 const log = createLogger('DataMessageHandlers');
 
-// Callback for showing team huddle (set by app.ts)
-let showTeamHuddleCallback: (() => void) | null = null;
-
-/**
- * Set the callback for showing team huddle.
- */
-export function setShowTeamHuddleCallback(callback: () => void): void {
-  showTeamHuddleCallback = callback;
-}
-
 // 🔄 Last agent response - for repeat functionality
 let lastAgentResponse: { text: string; personaId?: string; timestamp: number } | null = null;
 
@@ -148,8 +139,8 @@ export function clearLastAgentResponse(): void {
  * Routes to appropriate handler based on message type.
  */
 export function handleDataMessage(message: DataMessage): void {
-  // Try to process as handoff (async - fire and forget)
-  void handoffService.processDataMessage(message);
+  observeListenSignal(message); // avatar listen nods (ferni:listen-nods); observes, never consumes
+  void handoffService.processDataMessage(message); // handoff: async, fire and forget
 
   // 🎬 Try to process as cameo (team member pop-in)
   if (cameoService.processDataMessage(message)) {
@@ -158,8 +149,8 @@ export function handleDataMessage(message: DataMessage): void {
   }
 
   if (routeGroupDataMessage(message)) return; // group roundtable / call → participant grid
-  // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.),
-  // or as an agent ack / fallback notice (failed game start, no team mode)
+  if (routeExpressionMessage(message)) return; // reply tone; expression signals (ferni:expression-arbiter)
+  // 🌉 Humanization signal (breakthrough, vulnerability…) or agent ack / fallback notice
   if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) {
     return;
   }
@@ -208,8 +199,7 @@ export function handleDataMessage(message: DataMessage): void {
   }
 
   // Try to process as music event (for avatar dancing)
-  // Backend sends 'music_state', we normalize to MusicEvent
-  // 🎧 DEBUG: Log all incoming messages to trace music state flow
+  // Backend sends 'music_state', we normalize to MusicEvent (🎧 debug-logged to trace the flow)
   if ((message as { type?: string }).type === 'music_state') {
     log.info('🎧 [FRONTEND] Received music_state message', {
       rawMessage: JSON.stringify(message).slice(0, 500),
@@ -2245,10 +2235,6 @@ export function handleEngagementTrigger(event: EngagementTriggerEvent): void {
     case 'ritual_reminder':
       engagementTriggerUI.pulseEngagement();
       break;
-    case 'team_suggestion':
-      // Show team huddle when the agent suggests it
-      showTeamHuddleCallback?.();
-      break;
   }
 
   // For high-priority triggers, show a subtle message
@@ -2276,8 +2262,8 @@ export function handleWrapUp(event: WrapUpEvent): void {
   presenceUI.farewell();
 
   // 🎬 Pixar: Show appropriate emotional expression for farewell
-  // Warm farewell with soft, happy expression that lingers
-  ferniExpressions.setExpression('happy', 400, 0); // Hold until conversation ends
+  // Warm farewell smile that lingers, then settles (a hold of 0 would keep it, and the lid overlay, forever)
+  ferniExpressions.setExpression('happy', 400, WRAP_UP_EXPRESSION_HOLD_MS);
 
   // Warm visual feedback based on sentiment
   switch (event.sentiment) {
@@ -2296,7 +2282,7 @@ export function handleWrapUp(event: WrapUpEvent): void {
     case 'thoughtful':
       presenceUI.setVoiceEmotion('thoughtful');
       // 🎬 Gentle thinking expression (like "I'm here if you need me")
-      ferniExpressions.setExpression('empathetic', 400, 0);
+      ferniExpressions.setExpression('empathetic', 400, WRAP_UP_EXPRESSION_HOLD_MS);
       break;
     case 'caring':
       presenceUI.setVoiceEmotion('empathetic');
@@ -2931,7 +2917,7 @@ function handleSemanticRouting(event: SemanticRoutingEvent): void {
 /**
  * Pending action event from backend
  *
- * Part of the AGI-like experience: Ferni shows what action she wants to take
+ * Part of the AGI-like experience: Ferni shows what action he wants to take
  * and asks for permission. The UI displays a card with approve/reject buttons.
  */
 interface PendingActionEvent extends DataMessage {
