@@ -9891,6 +9891,7 @@
     "timeout": "Das hat zu lange gedauert. Überprüfe deine Verbindung und versuche es noch einmal?",
     "network": "Ich konnte keine Verbindung zu Ferni herstellen. Überprüfe dein Internet und versuche es noch einmal?",
     "dropped": "Verbindung verloren. Neu verbinden?",
+    "agentLeft": "Ferni ist aus der Leitung gefallen. Neu verbinden?",
     "unknown": "Verbindung fehlgeschlagen. Nochmal versuchen?"
   },
   "ambientSounds": {

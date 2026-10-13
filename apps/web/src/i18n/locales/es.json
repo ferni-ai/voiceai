@@ -9978,6 +9978,7 @@
     "timeout": "Eso tardó demasiado. ¿Revisas tu conexión e intentas de nuevo?",
     "network": "No se pudo conectar con Ferni. ¿Revisas tu internet e intentas de nuevo?",
     "dropped": "Se perdió la conexión. ¿Quieres volver a conectar?",
+    "agentLeft": "Ferni se cayó de la llamada. ¿Quieres volver a conectar?",
     "unknown": "No se pudo conectar. ¿Quieres volver a intentarlo?"
   },
   "ambientSounds": {
