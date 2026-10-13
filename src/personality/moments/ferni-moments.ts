@@ -292,16 +292,16 @@ export const FERNI_MOMENTS: PersonalMoment[] = [
   // ============================================================================
 
   {
-    id: 'ferni_tsunami_survivor',
+    id: 'ferni_lost_mentor',
     personaId: 'ferni',
     topic: 'grief_and_loss',
     content:
-      "I was in Japan for the 2011 tsunami. March 11th. The ground that wouldn't stop moving. I don't talk about it much. But it changed everything.",
+      "My mentor in Japan died on a trail we used to hike together. I'd cancelled on him that morning. I don't talk about it much. But it changed everything.",
     triggers: {
-      keywords: ['disaster', 'trauma', 'survived', 'loss', 'earthquake', 'japan'],
-      emotions: ['grief', 'traumatized', 'survivor'],
-      topics: ['trauma', 'survival', 'meaning of life'],
-      directQuestions: [/tsunami/i, /japan.*2011/i, /what happened in japan/i],
+      keywords: ['mentor', 'never said goodbye', 'should have been there', 'loss', 'japan'],
+      emotions: ['grief', 'guilt'],
+      topics: ['loss', 'regret', 'meaning of life'],
+      directQuestions: [/tanaka/i, /your mentor/i, /what happened in japan/i],
     },
     transitions: STANDARD_TRANSITIONS.sacred,
     depth: 'sacred',
@@ -329,7 +329,7 @@ export const FERNI_MOMENTS: PersonalMoment[] = [
     maxSharesPerUser: 1,
     cooldownDays: 180,
     canAskAbout: false,
-    relatedMoments: ['ferni_tsunami_survivor'],
+    relatedMoments: ['ferni_lost_mentor'],
   },
 
   {

@@ -26,6 +26,7 @@ import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import {
   relationshipStageService,
   getTranslatedStageName,
@@ -276,6 +277,7 @@ function renderExpanded(
   if (!indicator) return;
   
   const circumference = 2 * Math.PI * 36; // radius = 36 (reduced from 40 for better proportion)
+  const isEmpty = metrics.totalConversations === 0; // no talks yet: invite, don't show a percentage
   const strokeDashoffset = circumference - (circumference * progressPercent / 100);
   
   indicator.innerHTML = `
@@ -287,7 +289,6 @@ function renderExpanded(
         </button>
       </div>
       
-      <!-- Progress ring -->
       <div class="progress-ring-large">
         <svg width="88" height="88" viewBox="0 0 88 88">
           <circle class="progress-ring-bg" cx="44" cy="44" r="36" />
@@ -295,8 +296,8 @@ function renderExpanded(
                   style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${strokeDashoffset}" />
         </svg>
         <div class="progress-ring-center">
-          ${isMaxStage ? `
-            <span class="progress-ring-icon-large">${ICONS.sparkles}</span>
+          ${isMaxStage || isEmpty ? `
+            <span class="progress-ring-icon-large">${isMaxStage ? ICONS.sparkles : ICONS.heart}</span>
           ` : `
             <span class="progress-ring-value">${progressPercent}%</span>
             <span class="progress-ring-label">${t('progressIndicator.progress')}</span>
@@ -307,11 +308,9 @@ function renderExpanded(
       <!-- Stage info -->
       <div class="progress-stage">
         <h3 class="progress-stage-title">${stageName}</h3>
-        <p class="progress-stage-desc">${t(stageDesc.currentKey)}</p>
+        <p class="progress-stage-desc">${isEmpty ? t('progressIndicator.emptyInvite') : t(stageDesc.currentKey)}</p>
       </div>
-      
-      <!-- Metrics -->
-      <div class="progress-metrics">
+      ${isEmpty ? '' : `<div class="progress-metrics">
         <div class="progress-metric">
           <span class="metric-icon">${ICONS.messageCircle}</span>
           <span class="metric-value">${metrics.totalConversations}</span>
@@ -322,12 +321,12 @@ function renderExpanded(
           <span class="metric-value">${metrics.daysSinceFirstMeeting}</span>
           <span class="metric-label">${t('yourStory.stats.daysTogether')}</span>
         </div>
-        <div class="progress-metric">
+        ${isNoStreaksOn() ? '' : `<div class="progress-metric">
           <span class="metric-icon">${ICONS.flame}</span>
           <span class="metric-value">${metrics.currentStreak}</span>
           <span class="metric-label">${t('yourStory.stats.dayStreak')}</span>
-        </div>
-      </div>
+        </div>`}
+      </div>`}
       
       <!-- Next stage -->
       ${!isMaxStage && progress.nextStage ? `
@@ -386,7 +385,7 @@ function injectStyles(): void {
       position: fixed;
       bottom: var(--space-4, 16px);
       left: var(--space-4, 16px);
-      z-index: var(--z-sticky, 6000);
+      z-index: var(--z-sticky);
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-xl, 16px);
       box-shadow: 
@@ -464,7 +463,7 @@ function injectStyles(): void {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
     
     .progress-ring-icon svg {
@@ -495,7 +494,7 @@ function injectStyles(): void {
     .progress-narrative {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
       font-style: italic;
       cursor: help;
     }
@@ -537,7 +536,7 @@ function injectStyles(): void {
       font-weight: var(--font-weight-bold, 700);
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
     
     .progress-collapse-btn {
@@ -609,7 +608,7 @@ function injectStyles(): void {
     }
     
     .progress-ring-icon-large {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
     
     .progress-ring-icon-large svg {
@@ -693,7 +692,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 14px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
       margin-bottom: var(--space-1, 4px);
     }
     

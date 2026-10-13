@@ -12,7 +12,7 @@ readTime: 7
 
 "Should I build a chatbot or voice AI?"
 
-We get this question constantly. The answer isn't one or the other - it's understanding when each excels.
+It's a fair question. The answer isn't one or the other - it's understanding when each excels.
 
 ## The Fundamental Difference
 

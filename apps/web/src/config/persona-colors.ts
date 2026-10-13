@@ -39,7 +39,7 @@ const ID_ALIASES: Record<string, string> = {
   'maya-santos': 'maya',
   'jordan-taylor': 'jordan',
   'nayan-patel': 'nayan',
-  // Financial Legends: their own tokens (Peter Lynch is not Peter John)
+  // Financial Legends: their own tokens (peter-lynch is Tom, not Peter John)
   'peter-lynch': 'lynch',
   'john-bogle': 'bogle',
   'joel-dickson': 'joel',

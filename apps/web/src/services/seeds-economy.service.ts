@@ -16,8 +16,10 @@
 
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createLogger } from '../utils/logger.js';
 import { addSeeds, getSeedBalance } from './cosmetics.service.js';
+import { serverSeeds } from './seeds-ledger.service.js';
 
 const log = createLogger('SeedsEconomy');
 
@@ -197,6 +199,8 @@ function describeReward({ descriptionKey, count }: SeedReward): string {
  * Award seeds for an action and show notification
  */
 function awardSeeds(reward: SeedReward, showToast = true): void {
+  // Once the server keeps seeds it pays its own earns (seeds-ledger.service)
+  if (serverSeeds()) return;
   addSeeds(reward.amount);
   state.totalEarned += reward.amount;
   saveState();
@@ -226,6 +230,7 @@ function awardSeeds(reward: SeedReward, showToast = true): void {
  * Call this when a conversation ends or reaches a meaningful point
  */
 export function recordConversation(): void {
+  if (serverSeeds()) return; // the server counts the day and the streak
   const today = getToday();
 
   // Check for daily bonus
@@ -258,10 +263,9 @@ export function recordConversation(): void {
   }
 }
 
-/**
- * Check and award streak milestone bonuses
- */
+/** Award streak milestone bonuses. None under VITE_NO_STREAKS (the streak still counts). */
 function checkStreakMilestones(): void {
+  if (isNoStreaksOn()) return;
   for (const days of STREAK_MILESTONES) {
     const milestoneId = `streak-${days}`;
 
@@ -415,6 +419,8 @@ export function getBalance(): number {
  * Get current streak
  */
 export function getCurrentStreak(): number {
+  const server = serverSeeds();
+  if (server) return server.currentStreak;
   // Check if streak is still active
   const today = getToday();
   if (
@@ -437,6 +443,8 @@ export function getTotalEarned(): number {
  * Check if daily bonus is available
  */
 export function isDailyBonusAvailable(): boolean {
+  const server = serverSeeds();
+  if (server) return server.dailyBonusAvailable;
   return !isSameDay(state.lastDailyClaimDate, getToday());
 }
 

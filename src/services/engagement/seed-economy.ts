@@ -78,21 +78,3 @@ export async function awardSeedsForConversation(userId: string, timeZone?: strin
     return { success: false, error: 'Database error' };
   }
 }
-
-/**
- * Get a user's current seed balance.
- */
-export async function getUserSeedBalance(userId: string): Promise<UserSeeds | null> {
-  if (!userId) return null;
-
-  try {
-    const db = getFirestore();
-    if (!db) return null;
-
-    const doc = await db.collection('user_seeds').doc(userId).get();
-    return doc.exists ? (doc.data() as UserSeeds) : null;
-  } catch (error) {
-    log.error({ error, userId }, 'Failed to get seed balance');
-    return null;
-  }
-}

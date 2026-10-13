@@ -91,10 +91,11 @@ const PUSHY =
  * discuss their tone instead of answering. Dev call 2026-10-05: "Sam is
  * ignoring your questions about his morning routine. Talk about the shift in
  * his tone instead." turned "what would you suggest I start with?" into "I
- * notice you went from sounding pretty excited to... a bit distant".
+ * notice you went from sounding pretty excited to... a bit distant". Prod
+ * 2026-10-12: "playfully testing if you'll notice the wrong name".
  */
 const MIND_READING =
-  /\b(dodging|deflecting|avoiding|ignoring) (your|the|his|her|their)\b|\btesting (you|him|ferni)\b|\bescape to\b|\b(shift|change|drop) in (his|her|their) (tone|mood|energy)\b|\b(talk|ask) about (his|her|their) (tone|mood|energy|feelings)\b|\b(talk|ask) about why (they|he|she)\b/i;
+  /\b(dodging|deflecting|avoiding|ignoring) (your|the|his|her|their)\b|\btesting (you|him|ferni)\b|\b(testing|seeing|checking) (if|whether) (you|ferni)\b|\bescape to\b|\b(shift|change|drop) in (his|her|their) (tone|mood|energy)\b|\b(talk|ask) about (his|her|their) (tone|mood|energy|feelings)\b|\b(talk|ask) about why (they|he|she)\b/i;
 /**
  * Sending Ferni back to an earlier line. Notes are read on the caller's next
  * turn, so this one steers away from whatever they just said. Dev call
@@ -104,6 +105,18 @@ const MIND_READING =
  */
 const BACK_TO_EARLIER =
   /\bconnect (it |this |that )?(to|with|back)\b|\b(come|circle|go|get) back to\b|\breturn to\b|\bbring (it|that|this) (back|up)\b|\bfollow(ing)? up on\b|\b(still|left) hanging\b/i;
+/**
+ * "Answer that" about something they said rather than asked: by the time Ferni
+ * reads it, "that" is an earlier line. Dev call 2026-10-11: 'Sam mentioned a
+ * sent message with no reply. Answer that instead of focusing on the running.'
+ * reached the reply to "Talk soon", which came out as a guess about why Dana
+ * hadn't written instead of a goodbye. A question they asked still gets
+ * answered ("Sam asked how you are doing; answer that directly" stays).
+ */
+const ANSWER_THAT = /\b(answer|address|respond to) that\b/i;
+const ABOUT_A_QUESTION = /\b(ask|asks|asked|asking|question|questions)\b|\?/i;
+const backToEarlier = (note: string): boolean =>
+  BACK_TO_EARLIER.test(note) || (ANSWER_THAT.test(note) && !ABOUT_A_QUESTION.test(note));
 const STOP = new Set(
   'that this they them their with what have from about your just like been were when then there some would could should into only also very really'.split(
     ' '
@@ -130,7 +143,7 @@ export function parseNotes(reply: string | undefined, call?: Line[]): string[] {
     // A note that is a quoted line for Ferni to say is exactly what we don't want.
     .filter((l) => !/^["“'].*["”']$/.test(l))
     .filter((l) => !GENERIC.test(l) && !PUSHY.test(l) && !MIND_READING.test(l))
-    .filter((l) => directorLooksBack() || !BACK_TO_EARLIER.test(l))
+    .filter((l) => directorLooksBack() || !backToEarlier(l))
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
   return notes.slice(0, 2);

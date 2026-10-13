@@ -13,6 +13,7 @@ import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { SSMLProsodyConfig } from '../types.js';
 import { decideEmotion, readValence, type EmotionDecision, type Valence } from './emotion.js';
 import { decideReplyLaughter, placeLaughter, type LaughPlacement } from './laughter.js';
+import type { LaughterWho } from './laughter.js';
 import {
   FIRST_SENTENCE_WATCH_CHARS,
   decideLateBreath,
@@ -82,17 +83,13 @@ export interface EngineContext {
     sawLaughter?: boolean;
   };
   /** Who and which turn, for the laughter rules' cooldowns. */
-  laughter?: {
-    sessionId?: string;
-    personaId?: string;
-    turn?: number;
-    userEmotion?: string;
-    comfortLevel?: number;
-  };
+  laughter?: LaughterWho;
   /** The user's words this reply answers (nonverbal.ts). */
   userText?: string;
   /** How the caller sounded this turn, against their baseline (caller-prosody.ts). */
   callerProsody?: CallerProsody;
+  /** Ferni's own energy on this call as a pace nudge (ferni-energy.ts; 0 when FERNI_STATE is off). */
+  ferniNudge?: number;
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
   /**
@@ -370,7 +367,7 @@ export class DirectorEngine {
       emotion: this.emotion.emotion,
       voiceId: this.ctx.voiceId,
       previous: this.ctx.carry.speed,
-      nudge: answerVoice ? this.prosody.speedNudge : 0,
+      nudge: (answerVoice ? this.prosody.speedNudge : 0) + (this.ctx.ferniNudge ?? 0),
     });
     this.speed = Math.abs(pace.speed - 1) < SPEED_EPSILON ? 1 : pace.speed;
     this.replySpeed = this.live('pacing') && pace.supported ? this.speed : 1;
