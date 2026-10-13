@@ -83,10 +83,15 @@
     "enabled": "Transcription on",
     "disabled": "Transcription off",
     "captionsLabel": "Live captions",
-    "showAll": "Show full transcript",
-    "sheetTitle": "Transcript",
-    "close": "Close transcript",
-    "you": "You"
+    "captionsToggle": "Captions",
+    "showAll": "Show the conversation so far",
+    "sheetTitle": "The conversation so far",
+    "close": "Close",
+    "momentRemember": "I'll remember:",
+    "momentRememberShort": "Noted:",
+    "momentNoticed": "I noticed:",
+    "momentNoticedShort": "Noticed:",
+    "momentWin": "Nice:"
   },
   "placeholders": {
     "customAmount": "Custom amount",
@@ -2495,7 +2500,6 @@
     "agentNotFound": "Agent not found",
     "aggregatesRefreshing": "Aggregates refreshing...",
     "appleHealthDisconnected": "Apple Health disconnected",
-    "audioSaved": "Audio saved!",
     "backstoryUpdated": "Backstory updated!",
     "bridgeFound": "Bridge found!",
     "catchphraseAdded": "Catchphrase added!",
@@ -2653,7 +2657,7 @@
     "tokenCreated": "Token created! Copy it now.",
     "tokenDeleted": "Token deleted",
     "transcribing": "Transcribing...",
-    "transcriptionUnavailable": "Transcription unavailable. Saving audio only.",
+    "transcriptionUnavailable": "Couldn't catch the words this time, so nothing was saved. Want to try again?",
     "unlockTeamMemberFirst": "Unlock this team member first",
     "updated": "Updated!",
     "uploadingPhoto": "Uploading photo...",
@@ -2678,7 +2682,6 @@
       "other": "Imported {count} contacts!"
     },
     "integrationNowConnected": "{integration} connected!",
-    "inviteSentTo": "Invite sent to {email}!",
     "householdMemberRemoved": "{name} removed",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} added to your team",
@@ -3880,10 +3883,12 @@
       "create": "Create Agent",
       "empty": "No agents yet",
       "emptyHint": "Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.",
+      "emptyHintWithoutVoice": "Create your first custom agent to keep a loved one's stories, build a mentor, or design your own companion.",
       "createFirst": "Create Your First Agent",
       "whatYouCan": "What you can create",
       "legacy": "Legacy",
       "legacyDesc": "Preserve the voice and wisdom of someone you cherish",
+      "legacyDescWithoutVoice": "Preserve the stories and wisdom of someone you cherish",
       "mentor": "Mentor",
       "mentorDesc": "Create a coach based on an inspiring figure",
       "twin": "Digital Twin",
@@ -5100,7 +5105,8 @@
     },
     "voiceStep": {
       "title": "How should they sound?",
-      "subtitle": "Choose a voice or clone one"
+      "subtitle": "Choose a voice or clone one",
+      "subtitleWithoutClone": "Choose a voice"
     },
     "voiceOption": {
       "cloneTitle": "Clone a Voice",
@@ -7273,6 +7279,7 @@
     "legacy": {
       "name": "Legacy",
       "description": "Preserve the voice and wisdom of someone you cherish",
+      "descriptionWithoutVoice": "Preserve the stories and wisdom of someone you cherish",
       "feature1": "Voice cloning from recordings",
       "feature2": "Capture stories and memories",
       "feature3": "Store wisdom and favorite sayings",
@@ -9350,7 +9357,8 @@
     "sharedWith": "Shared With ({count})",
     "joined": "Joined",
     "pendingInvite": "Pending invite",
-    "notFound": "Couldn't find this legacy"
+    "notFound": "Couldn't find this legacy",
+    "invitesNotReady": "Family sharing isn't ready yet, so no invite was sent."
   },
   "dataExport": {
     "title": "Your Data",
@@ -9938,6 +9946,7 @@
     "timeout": "That took too long. Check your connection and retry?",
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
+    "agentLeft": "Ferni dropped off the line. Reconnect?",
     "unknown": "Couldn't connect. Try again?"
   },
   "ambientSounds": {

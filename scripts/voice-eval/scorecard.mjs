@@ -15,6 +15,9 @@
 //   backchannel timing once score.mjs carries presence (#706);
 // - bogle_users/<owner>/ferni_commitments in Firestore (read-only): promises
 //   whose due time fell in the window, kept vs missed (promise-keeper.ts);
+// - bogle_users/<owner>/coach_media_picks in Firestore (read-only, fields
+//   masked to timestamps and outcomes, never titles or links): coaching picks
+//   Ferni offered and what became of them (COACH_MEDIA, coach-media/pick-log.ts);
 // - panel/*.json: Ferni Listening Panel reports (ferni-rater/tools/score_round.py
 //   output, saved by the weekly panel review): blind human 1-5 "sounds like a
 //   real person" scores, the headline because people, not a judge, give them.
@@ -27,14 +30,24 @@
 //     target: { value, why },
 //     current: { prodReal: { value, n } | null, devEval: { value, n } | null },
 //       (followThrough adds due: promises that fell due, settled or not;
-//        humanPanel's n is listeners and it adds round)
+//        humanPanel's n is listeners and it adds round;
+//        coachFollowUpLanded adds due like followThrough)
 //     trend: [{ date, prodReal, devEval }]       (one row per day with data)
 //   } } }
 // value is the median (or rate) over calls in the window; n is how many calls
 // or items it rests on. A null value means nothing measured it yet.
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { checkRun, parseChecks } from './recall-facts.mjs';
 
@@ -131,6 +144,42 @@ export const DIMENSIONS = {
     better: 'lower',
     human: null,
     target: { value: 0, why: 'every fallback is a degraded moment' },
+  },
+  // Coaching picks (coach_media_picks). Rates are dated by the event they are
+  // about: tried/helpful by when the follow-up was answered, landed by when it
+  // fell due, time-to-pick by when the pick was offered.
+  coachTriedRate: {
+    label: 'Recommendations the caller tried (of follow-ups answered done or not done)',
+    unit: 'rate',
+    better: 'higher',
+    human: null,
+    target: { value: 0.6, why: "assumed: no published baseline for friends' tips being tried" },
+  },
+  coachHelpfulRate: {
+    label: 'Recommendations that helped ("somewhat" counts 0.5)',
+    unit: 'rate',
+    better: 'higher',
+    human: null,
+    target: { value: 0.7, why: 'assumed: no published baseline; "somewhat" counts as 0.5' },
+  },
+  coachFollowUpLanded: {
+    label: 'Sent recommendations whose follow-up was asked within 7 days of falling due',
+    unit: 'rate',
+    better: 'higher',
+    human: null,
+    target: {
+      value: 0.9,
+      why:
+        'a friend who checks back; assumed, not measured. A follow-up is asked on the first call ' +
+        'after it falls due, so one due in the last 7 days with no call since reads as a miss',
+    },
+  },
+  coachTimeToPick: {
+    label: 'Time to the first checked recommendation in a call, p50',
+    unit: 'ms',
+    better: 'lower',
+    human: null,
+    target: { value: 4000, why: '4000 ms is a guess pending a dev measurement' },
   },
 };
 
@@ -242,7 +291,79 @@ export function panelOf(reports) {
   };
 }
 
-export function assemble(rows, followThrough, meta, panel = { current: null, trend: [] }) {
+/**
+ * Coaching picks [{ offeredAt, firstInCall, latencyMs, sentAt, followUpDueAt,
+ * followUpAskedAt, outcome, helped, answeredAt }] -> { <coach dimension>: { current, trend } }.
+ * n is each rate's denominator; nothing to count gives value null, n 0.
+ */
+const LANDED_DAYS = 7;
+
+export function coachOf(picks, since, until) {
+  const inWindow = (t) => typeof t === 'string' && t >= since && t < until;
+  const round = (x) => Math.round(x * 100) / 100;
+  const rate = (items, score) =>
+    items.length ? round(items.reduce((a, p) => a + score(p), 0) / items.length) : null;
+  /** One dimension: value(items) over the window, and per day by `dateOf`. */
+  const dim = (items, dateOf, value, extra = () => ({})) => {
+    const byDate = {};
+    for (const p of items) (byDate[dateOf(p).slice(0, 10)] ??= []).push(p);
+    return {
+      current: {
+        prodReal: { value: value(items), n: items.length, ...extra(items) },
+        devEval: null,
+      },
+      trend: Object.keys(byDate)
+        .sort()
+        .map((date) => ({ date, prodReal: value(byDate[date]), devEval: null })),
+    };
+  };
+  const tried = picks.filter(
+    (p) => inWindow(p.answeredAt) && (p.outcome === 'done' || p.outcome === 'not_done')
+  );
+  const helped = picks.filter((p) => inWindow(p.answeredAt) && p.helped);
+  const due = picks.filter((p) => p.sentAt && inWindow(p.followUpDueAt));
+  const first = picks.filter(
+    (p) => p.firstInCall && inWindow(p.offeredAt) && Number.isFinite(p.latencyMs)
+  );
+  const HELP = { yes: 1, somewhat: 0.5, no: 0 };
+  // Asked on a call within LANDED_DAYS of falling due (it can't be asked before).
+  const askedInTime = (p) => {
+    if (typeof p.followUpAskedAt !== 'string') return 0;
+    const late = Date.parse(p.followUpAskedAt) - Date.parse(p.followUpDueAt);
+    return late >= 0 && late <= LANDED_DAYS * 86_400_000 ? 1 : 0;
+  };
+  return {
+    coachTriedRate: dim(
+      tried,
+      (p) => p.answeredAt,
+      (xs) => rate(xs, (p) => (p.outcome === 'done' ? 1 : 0))
+    ),
+    coachHelpfulRate: dim(
+      helped,
+      (p) => p.answeredAt,
+      (xs) => rate(xs, (p) => HELP[p.helped] ?? 0)
+    ),
+    coachFollowUpLanded: dim(
+      due,
+      (p) => p.followUpDueAt,
+      (xs) => rate(xs, askedInTime),
+      (xs) => ({ due: xs.length })
+    ),
+    coachTimeToPick: dim(
+      first,
+      (p) => p.offeredAt,
+      (xs) => median(xs.map((p) => p.latencyMs))
+    ),
+  };
+}
+
+export function assemble(
+  rows,
+  followThrough,
+  meta,
+  panel = { current: null, trend: [] },
+  coach = {}
+) {
   const dims = {};
   for (const [name, def] of Object.entries(DIMENSIONS)) {
     const pick = (side, date) =>
@@ -261,6 +382,14 @@ export function assemble(rows, followThrough, meta, panel = { current: null, tre
       trend = panel.trend;
       dims[name] = { ...def, human: panel.human ?? null, current, trend };
       continue;
+    }
+    if (name.startsWith('coach')) {
+      // Until COACH_MEDIA writes picks, null with n 0: not measured, never 0.
+      current = coach[name]?.current ?? {
+        prodReal: { value: null, n: 0, ...(name === 'coachFollowUpLanded' ? { due: 0 } : {}) },
+        devEval: null,
+      };
+      trend = coach[name]?.trend ?? [];
     }
     if (name === 'followThrough') {
       current = { prodReal: followThrough.overall, devEval: null };
@@ -352,6 +481,58 @@ function ownerPromises() {
   return out;
 }
 
+const COACH_FIELDS = [
+  'offeredAt',
+  'firstInCall',
+  'latencyMs',
+  'sentAt',
+  'followUpDueAt',
+  'outcome',
+  'helped',
+  'answeredAt',
+  'followUpAskedAt',
+];
+
+/** A Firestore REST value as plain JS; null when absent or null. */
+export function firestoreValue(v) {
+  if (!v || 'nullValue' in v) return null;
+  if ('stringValue' in v) return v.stringValue;
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('doubleValue' in v) return v.doubleValue;
+  if ('timestampValue' in v) return v.timestampValue;
+  return null;
+}
+
+/** The owner's coach_media_picks, masked to timestamps and outcomes (no titles, topics or links). */
+function ownerPicks() {
+  const token = execFileSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8' }).trim();
+  const mask = COACH_FIELDS.map((f) => `mask.fieldPaths=${f}`).join('&');
+  const base = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/bogle_users/${OWNER}/coach_media_picks?pageSize=300&${mask}`;
+  const out = [];
+  // The token goes to curl in a 0600 header file, never on its command line.
+  const dir = mkdtempSync(join(tmpdir(), 'scorecard-'));
+  const header = join(dir, 'auth');
+  writeFileSync(header, `Authorization: Bearer ${token}\n`, { mode: 0o600 });
+  try {
+    let page = '';
+    do {
+      const url = `${base}${page ? `&pageToken=${page}` : ''}`;
+      const body = JSON.parse(
+        execFileSync('curl', ['-sf', '-H', `@${header}`, url], { encoding: 'utf8' })
+      );
+      for (const d of body.documents ?? []) {
+        const f = d.fields ?? {};
+        out.push(Object.fromEntries(COACH_FIELDS.map((k) => [k, firestoreValue(f[k])])));
+      }
+      page = body.nextPageToken ?? '';
+    } while (page);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  return out;
+}
+
 /** Panel reports saved in the window, dated by when they were saved. */
 function panelReports(since) {
   const dir = join(EVIDENCE, 'panel');
@@ -383,6 +564,12 @@ function main() {
     console.error(`follow-through not read: ${e.message}`);
   }
   const reports = panelReports(since);
+  let coach = {};
+  try {
+    coach = coachOf(ownerPicks(), since, until);
+  } catch (e) {
+    console.error(`coaching picks not read: ${e.message}`);
+  }
   const card = assemble(
     [...reviewed.rows, ...evals],
     follow,
@@ -394,7 +581,8 @@ function main() {
         panelReports: reports.length,
       },
     },
-    panelOf(reports)
+    panelOf(reports),
+    coach
   );
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, JSON.stringify(card, null, 2));

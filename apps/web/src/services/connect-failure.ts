@@ -22,6 +22,7 @@ export type ConnectFailureKind =
   | 'network' // fetch / websocket could not reach the server
   | 'cancelled' // superseded by a hang-up or a newer attempt; show nothing
   | 'dropped' // an established call lost its connection
+  | 'agent_left' // Ferni's side of the call ended while the caller was still in it
   | 'unknown';
 
 export type ConnectFailureAction = 'retry' | 'sign-in' | 'mic-help' | 'none';
@@ -72,6 +73,7 @@ const COPY: Record<ConnectFailureKind, FailureCopy> = {
   network: { messageKey: 'connectFailure.network', action: 'retry' },
   cancelled: { messageKey: null, action: 'none' },
   dropped: { messageKey: 'connectFailure.dropped', action: 'retry' },
+  agent_left: { messageKey: 'connectFailure.agentLeft', action: 'retry' },
   unknown: { messageKey: 'connectFailure.unknown', action: 'retry' },
 };
 

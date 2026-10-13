@@ -8,6 +8,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { isLegacySharingOn } from '../config/legacy-sharing-flag.js';
 import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
@@ -516,6 +517,7 @@ function generateShareLink(agentId: string): string {
 // ============================================================================
 
 export async function openLegacyShare(agentId: string): Promise<void> {
+  if (!isLegacySharingOn()) return; // nothing sends invites yet: open nothing
   log.debug('Opening Legacy Share for agent:', agentId);
 
   closeLegacyShare();
@@ -605,30 +607,8 @@ async function handleCopyLink(): Promise<void> {
 async function handleSendInvite(): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   
-  const emailInput = shareModal?.querySelector('#invite-email') as HTMLInputElement;
-  const nameInput = shareModal?.querySelector('#invite-name') as HTMLInputElement;
-  const messageInput = shareModal?.querySelector('#invite-message') as HTMLTextAreaElement;
-
-  const email = emailInput?.value?.trim();
-  if (!email) {
-    toast.warning(t('toasts.enterAnEmailAddress'));
-    emailInput?.focus();
-    return;
-  }
-
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    toast.warning(t('toasts.enterValidEmail'));
-    emailInput?.focus();
-    return;
-  }
-
-  // In production, this would call an API to send the invite
-  // For now, we'll simulate the success
-  log.info('Sending invite to:', email, nameInput?.value, messageInput?.value);
-
-  toast.success(t('toasts.inviteSentTo', { email }));
-  closeLegacyShare();
+  // No endpoint sends invites yet, so say nothing was sent rather than claim it
+  // was. The address stays out of the log: it is the invitee's, not the user's.
+  toast.info(t('legacyShare.invitesNotReady'));
 }
 

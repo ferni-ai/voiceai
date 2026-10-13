@@ -61,9 +61,27 @@ export const outreachAwarenessBuilder: ContextBuilder = {
       // Build the outreach awareness section
       let content = '';
 
+      // Someone the user has lost: remembered together, never an outreach occasion
+      const remembering = nudgeContext.upcomingDates.filter((d) => d.remembered);
+      if (remembering.length > 0) {
+        content += 'REMEMBERING:\n';
+        for (const date of remembering) {
+          const when =
+            date.daysAway === 0
+              ? 'today'
+              : date.daysAway === 1
+                ? 'tomorrow'
+                : `in ${date.daysAway} days`;
+          content += `- ${date.contactName}'s ${date.dateType} is ${when}. They have passed.\n`;
+        }
+        content +=
+          'On the day, if it fits, gently acknowledge it once and let them lead. Offer to talk about them, or just to be with them. Never offer to call, text or send them anything.\n\n';
+      }
+
       // Upcoming important dates (birthdays, anniversaries) - most urgent
-      if (nudgeContext.upcomingDates.length > 0) {
-        const urgent = nudgeContext.upcomingDates.filter((d) => d.daysAway <= 3);
+      const celebrating = nudgeContext.upcomingDates.filter((d) => !d.remembered);
+      if (celebrating.length > 0) {
+        const urgent = celebrating.filter((d) => d.daysAway <= 3);
 
         if (urgent.length > 0) {
           content += 'IMPORTANT DATES COMING UP:\n';
@@ -79,9 +97,7 @@ export const outreachAwarenessBuilder: ContextBuilder = {
           content += '\n';
         }
 
-        const upcoming = nudgeContext.upcomingDates.filter(
-          (d) => d.daysAway > 3 && d.daysAway <= 14
-        );
+        const upcoming = celebrating.filter((d) => d.daysAway > 3 && d.daysAway <= 14);
         if (upcoming.length > 0) {
           content += 'Coming up soon:\n';
           for (const date of upcoming.slice(0, 3)) {
@@ -122,7 +138,7 @@ export const outreachAwarenessBuilder: ContextBuilder = {
 
       // Guidelines for natural suggestion
       content += `When appropriate, you can naturally suggest outreach:\n`;
-      content += `- "Your [person]'s [event] is coming up. Want me to send them something?"\n`;
+      content += `- "Your [person]'s [event] is coming up. Want me to send them something?" (never for someone listed under REMEMBERING)\n`;
       content += `- "You haven't talked to [person] in a while. Should we check in?"\n`;
       content += `- Ask which channel they prefer: email, text, or voice message.\n`;
       content += `Only mention if relevant or urgent. Be subtle and natural.`;
@@ -167,7 +183,7 @@ export async function getConversationStarterNudge(userId: string): Promise<strin
     const context = await buildNudgeContext(userId);
 
     // Only suggest at conversation start if truly urgent (today or tomorrow)
-    const urgent = context.upcomingDates.filter((d) => d.daysAway <= 1);
+    const urgent = context.upcomingDates.filter((d) => d.daysAway <= 1 && !d.remembered);
 
     if (urgent.length > 0) {
       const date = urgent[0];

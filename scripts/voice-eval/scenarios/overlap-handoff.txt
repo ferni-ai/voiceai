@@ -1,0 +1,12 @@
+# Lost-reply repro, handoff variant (2026-10-13): ask for Jordan (in-session
+# persona swap), then talk again just as Jordan's replies are about to start.
+# Run with EVAL_TIER=partner so Jordan is unlocked. Ryan's prod call: after the
+# swap no Jordan reply reached the chat history (TURN_RECEIPT reply.messages:0).
+Hey Ferni. Can I talk to Jordan? I want to plan a birthday party.
+Hi Jordan. So it's for my sister. [[slnc 1000]] Oh, she's turning forty.
+Okay. Where should we have it?
+What kind of food? [[slnc 800]] She's vegetarian, by the way.
+Got it. How many people should I invite?
+And music? [[slnc 1300]] Something she can dance to.
+Cool. What should I do first?
+Thanks Jordan. That's all for now.
