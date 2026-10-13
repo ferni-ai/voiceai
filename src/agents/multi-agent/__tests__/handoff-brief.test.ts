@@ -31,6 +31,7 @@ import {
   BRIEF_MAX_CHARS,
   briefedHandoffs,
   formatBrief,
+  groundedReason,
   parseBrief,
   plainBrief,
   prepareBriefing,
@@ -161,6 +162,53 @@ describe('prepareBriefing', () => {
     });
     expect(out.brief).toContain('Why they came to you: Help with the equity question');
     expect(out.firstLine).toBeUndefined();
+  });
+});
+
+describe('ARRIVAL_GROUNDED', () => {
+  // Prod 2026-10-13: the caller only asked for Jordan; Ferni's handoff reason said
+  // "retirement planning" and Jordan opened with the direction's own example.
+  const byName = (reason?: string): BriefInput =>
+    input({
+      toName: 'Jordan',
+      toPersonaId: 'jordan-taylor',
+      turns: [
+        { speaker: 'caller', text: 'You stopped talking.' },
+        { speaker: 'caller', text: 'Hey, can I talk to Jordan?' },
+      ],
+      remembered: [],
+      reason,
+    });
+  const run = async (env: Record<string, string>) => {
+    const actor = vi.fn(async (..._args: unknown[]) => 'Hey Seth! What do you want to get into?');
+    const out = await prepareBriefing(byName('Help with retirement planning'), 'Hi!', {
+      writer: async () => undefined,
+      actor,
+      env,
+    });
+    return { out, cue: JSON.stringify(actor.mock.calls[0] ?? []) };
+  };
+
+  it('keeps a reason only when it shares a word with what the caller said', () => {
+    expect(groundedReason('Help with the equity question', ['Is the equity worth it?'])).toBe(
+      'Help with the equity question'
+    );
+    expect(groundedReason('Help with retirement planning', ['Hey, can I talk to Jordan?'])).toBe(
+      undefined
+    );
+  });
+
+  it('drops an invented reason and the copyable example when on', async () => {
+    const { out, cue } = await run({ ARRIVAL_GROUNDED: 'on' });
+    expect(out.brief).not.toContain('retirement');
+    expect(cue).not.toContain('weighing the offer');
+    expect(cue).toContain('only asked for you by name');
+  });
+
+  it('is unchanged when off', async () => {
+    const { out, cue } = await run({});
+    expect(out.brief).toContain('retirement planning');
+    expect(cue).toContain('weighing the offer');
   });
 });
 
