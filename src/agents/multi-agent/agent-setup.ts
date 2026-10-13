@@ -77,6 +77,7 @@ import {
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
+import { attachSessionEventLog } from './session-event-log.js';
 import { buildEmergencyToolset } from './emergency-toolset.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
@@ -1421,32 +1422,11 @@ Reference past context when relevant, but don't force it. Let the conversation f
       })
     );
 
-    // 🔊 COMPREHENSIVE SESSION DEBUG: Track ALL session events during startup
-    // This helps us understand what's happening during prewarm
-    process.stderr.write(
-      `\n🔊 [SESSION DEBUG] Attaching comprehensive session event listeners...\n`
+    // One compact line per state event, not a pretty JSON dump (session-event-log.ts)
+    attachSessionEventLog(
+      sessionWithEvents as { on: (e: string, h: (...a: unknown[]) => void) => void },
+      sessionEventHandlers
     );
-
-    // Track user state changes (when user starts/stops speaking)
-    const userStateHandler = (event: unknown) => {
-      process.stderr.write(`\n👤 [USER STATE] ${JSON.stringify(event, null, 2)}\n`);
-    };
-    sessionWithEvents.on('user_state_changed', userStateHandler);
-    sessionEventHandlers.push({ event: 'user_state_changed', handler: userStateHandler });
-
-    // Track agent state changes (when agent starts/stops speaking)
-    const agentStateHandler = (event: unknown) => {
-      process.stderr.write(`\n🤖 [AGENT STATE] ${JSON.stringify(event, null, 2)}\n`);
-    };
-    sessionWithEvents.on('agent_state_changed', agentStateHandler);
-    sessionEventHandlers.push({ event: 'agent_state_changed', handler: agentStateHandler });
-
-    // Track speech creation (SDK auto-generating responses)
-    const speechCreatedHandler = (event: unknown) => {
-      process.stderr.write(`\n🎙️ [SPEECH CREATED] ${JSON.stringify(event, null, 2)}\n`);
-    };
-    sessionWithEvents.on('speech_created', speechCreatedHandler);
-    sessionEventHandlers.push({ event: 'speech_created', handler: speechCreatedHandler });
 
     // Track user input transcription
     // Crisis guard in SHADOW + per-turn voice/delivery: same observers as the
