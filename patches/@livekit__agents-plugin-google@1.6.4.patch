@@ -1,8 +1,8 @@
 diff --git a/dist/llm.cjs b/dist/llm.cjs
-index 1525ad998e855e4784d8145f9612bdc3bf2dfa15..e5c73e25199968ec6ffdcaffbd1fd6660257dd65 100644
+index dbf7054cc41218cfa8c57584c53fa058a8913622..e65b6c3cbd036ee1828d0875840de67119832d40 100644
 --- a/dist/llm.cjs
 +++ b/dist/llm.cjs
-@@ -437,6 +437,9 @@ class LLMStream extends import_agents.llm.LLMStream {
+@@ -444,6 +444,9 @@ class LLMStream extends import_agents.llm.LLMStream {
          }
        }
      } catch (error) {
@@ -13,10 +13,10 @@ index 1525ad998e855e4784d8145f9612bdc3bf2dfa15..e5c73e25199968ec6ffdcaffbd1fd666
          throw error;
        }
 diff --git a/dist/llm.js b/dist/llm.js
-index fa5c06611101d1a1b58b7683dddd2af5f943d65c..261fa3741cba6961cce3a356e9729a1092ba3d70 100644
+index 4a9367a9a25c500a5f6f50dd1b49f3f28ad7f2b6..e2d21808ad26984809ce29f2b9ce2701532d9689 100644
 --- a/dist/llm.js
 +++ b/dist/llm.js
-@@ -424,6 +424,9 @@ class LLMStream extends llm.LLMStream {
+@@ -431,6 +431,9 @@ class LLMStream extends llm.LLMStream {
          }
        }
      } catch (error) {
@@ -27,10 +27,10 @@ index fa5c06611101d1a1b58b7683dddd2af5f943d65c..261fa3741cba6961cce3a356e9729a10
          throw error;
        }
 diff --git a/dist/realtime/realtime_api.cjs b/dist/realtime/realtime_api.cjs
-index 8336d2cc652c473b148a67042bbd4985dea56431..2567b7cfc04e0f182dec15dfefac8295956f6005 100644
+index add74f8d4ad03fa6109d6cc3c8dc28c2ff62dda9..60ee7c8a40dbbdab6532bcd156c4add2722e48c5 100644
 --- a/dist/realtime/realtime_api.cjs
 +++ b/dist/realtime/realtime_api.cjs
-@@ -101,6 +101,8 @@ class RealtimeModel extends import_agents.llm.RealtimeModel {
+@@ -109,6 +109,8 @@ class RealtimeModel extends import_agents.llm.RealtimeModel {
        model,
        apiKey,
        voice: options.voice || "Puck",
@@ -39,7 +39,7 @@ index 8336d2cc652c473b148a67042bbd4985dea56431..2567b7cfc04e0f182dec15dfefac8295
        language: options.language ? (0, import_agents.normalizeLanguage)(options.language) : void 0,
        responseModalities: options.modalities || [import_genai.Modality.AUDIO],
        vertexai,
-@@ -940,7 +942,8 @@ class RealtimeSession extends import_agents.llm.RealtimeSession {
+@@ -993,7 +995,8 @@ class RealtimeSession extends import_agents.llm.RealtimeSession {
          parts: [{ text: opts.instructions }]
        } : void 0,
        speechConfig: {
@@ -98,10 +98,10 @@ index 9bf37b14d7a58fc5d18edf4956359d7859651a00..362ae5d2580e2c1d5194ca9f747ca0f9
           * The language (BCP-47 Code) to use for the API
           * See https://ai.google.dev/gemini-api/docs/live#supported-languages
 diff --git a/dist/realtime/realtime_api.js b/dist/realtime/realtime_api.js
-index e7f92c13c4261cf15fd4a810e7cb51d2543b2c75..655878cc4ca7ef39693f95ef179e431f80f7b8fa 100644
+index a921f6a50f7cc78c49f876a5ca8a5c709410b3ad..7326ecf841106bd393f67fcb419d285b44b63a69 100644
 --- a/dist/realtime/realtime_api.js
 +++ b/dist/realtime/realtime_api.js
-@@ -86,6 +86,8 @@ class RealtimeModel extends llm.RealtimeModel {
+@@ -97,6 +97,8 @@ class RealtimeModel extends llm.RealtimeModel {
        model,
        apiKey,
        voice: options.voice || "Puck",
@@ -110,7 +110,7 @@ index e7f92c13c4261cf15fd4a810e7cb51d2543b2c75..655878cc4ca7ef39693f95ef179e431f
        language: options.language ? normalizeLanguage(options.language) : void 0,
        responseModalities: options.modalities || [Modality.AUDIO],
        vertexai,
-@@ -925,7 +927,8 @@ class RealtimeSession extends llm.RealtimeSession {
+@@ -981,7 +983,8 @@ class RealtimeSession extends llm.RealtimeSession {
          parts: [{ text: opts.instructions }]
        } : void 0,
        speechConfig: {

@@ -13,10 +13,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pinCartesiaModel } from '../config/voice-ids.js';
 
+// The real TTS classes are EventEmitters; PersonaAwareTTS subscribes to its
+// inner Cartesia TTS's metrics and errors.
+const { EventEmitter } = await vi.hoisted(() => import('node:events'));
+
 // Mock the external TTS dependencies before importing the module
 vi.mock('@livekit/agents-plugin-cartesia', () => ({
-  TTS: class MockCartesiaTTS {
-    constructor(_config?: { model?: string; voice?: string }) {}
+  TTS: class MockCartesiaTTS extends EventEmitter {
+    constructor(_config?: { model?: string; voice?: string }) {
+      super();
+    }
     // PersonaAwareTTS re-applies its delivery style on every voice switch.
     updateOptions(_opts: { emotion?: string[]; speed?: number }) {}
     synthesize(_text: string) {
@@ -42,8 +48,10 @@ vi.mock('@livekit/agents-plugin-cartesia', () => ({
 
 vi.mock('@livekit/agents', () => ({
   tts: {
-    TTS: class MockTTS {
-      constructor(_sampleRate?: number, _channels?: number, _options?: object) {}
+    TTS: class MockTTS extends EventEmitter {
+      constructor(_sampleRate?: number, _channels?: number, _options?: object) {
+        super();
+      }
       synthesize(_text: string) {
         return {
           [Symbol.asyncIterator]: async function* () {
