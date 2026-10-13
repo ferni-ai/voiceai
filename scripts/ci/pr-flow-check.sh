@@ -20,13 +20,11 @@ set -euo pipefail
 
 PR="${1:?usage: pr-flow-check.sh <pr-number>}"
 REPO="${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner --jq .nameWithOwner)}"
-SIZE_WARN="${SIZE_WARN:-400}"
-SIZE_FAIL="${SIZE_FAIL:-1000}"
 WIP_LIMIT="${WIP_LIMIT:-25}"
 SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
 
-# Changed lines that a reviewer has to read.
-NOT_REVIEWED='(__tests__/|\.test\.|\.spec\.|/fixtures/|__screenshots__/|__snapshots__/|\.snap$|pnpm-lock\.yaml$|package-lock\.json$|\.generated\.|\.(png|jpg|jpeg|gif|webp|svg|mp3|wav)$)'
+# shellcheck source=scripts/ci/reviewable.sh
+source "$(dirname "$0")/reviewable.sh"
 
 failures=()
 warnings=()
@@ -40,7 +38,7 @@ linked=$(jq '.closingIssuesReferences | length' <<<"$pr_json")
 # A deleted file takes a glance, not a read, so cleanup PRs aren't penalised.
 files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate \
   --jq '.[] | [.filename, (if .status == "removed" then 0 else .additions + .deletions end)] | @tsv')
-counted=$(awk -F'\t' -v skip="$NOT_REVIEWED" '$1 !~ skip { n += $2 } END { print n + 0 }' <<<"$files")
+counted=$(reviewable_lines <<<"$files")
 total=$(awk -F'\t' '{ n += $2 } END { print n + 0 }' <<<"$files")
 
 if (( counted > SIZE_FAIL )) && [[ ",$labels," != *",size/large-ok,"* ]]; then

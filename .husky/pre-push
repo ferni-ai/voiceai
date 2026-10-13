@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# =============================================================================
+# PRE-PUSH: SHIPPING RULES (AGENTS.md "How to ship")
+# =============================================================================
+# The rules used to be enforced by hooks in one machine's ~/.claude, which
+# other sessions and machines never had, so they weren't enforced at all
+# (2026-10-13: 141 open PRs, three stranded on branches with no PR). They live
+# here now, next to the code, for every clone and every agent.
+#
+#   Blocks: a branch stacked on another unmerged branch (STACKED_OK="<reason>"
+#           to override), more than SIZE_FAIL reviewable lines
+#           (PUSH_SIZE_OK="<reason>"), new architecture or quality-ratchet
+#           regressions (fix them; no override).
+#   Warns:  more than SIZE_WARN reviewable lines; behind origin/main.
+# =============================================================================
+
+set -uo pipefail
+
+# shellcheck source=scripts/ci/reviewable.sh
+source "$(git rev-parse --show-toplevel)/scripts/ci/reviewable.sh"
+
+zero=0000000000000000000000000000000000000000
+blocked=0
+fail() { echo "  ❌ $*"; blocked=1; }
+warn() { echo "  ⚠️  $*"; }
+
+if ! git fetch --quiet origin main 2>/dev/null; then
+  echo "pre-push: couldn't fetch origin/main; checking against the local copy."
+fi
+
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+  [[ "$local_sha" == "$zero" ]] && continue                 # deleting a branch
+  [[ "$remote_ref" != refs/heads/* ]] && continue           # tags etc.
+  branch=${remote_ref#refs/heads/}
+  [[ "$branch" == main || "$branch" == develop ]] && continue
+
+  echo ""
+  echo "🔍 pre-push: $branch"
+
+  # --- Starts on origin/main, not on another unmerged branch ---------------
+  first=$(git rev-list --first-parent --reverse origin/main.."$local_sha" | head -1)
+  if [[ -n "$first" ]]; then
+    # The branch we were built on: a live, unmerged branch whose whole tip is
+    # inside ours. Live = on the remote now (merged branches are deleted, and
+    # local refs can be stale). Containing our first commit is only a cheap
+    # filter; a sibling that forked partway along doesn't have its tip in ours.
+    live=$(git ls-remote --heads origin 2>/dev/null | awk '{ sub("refs/heads/", "", $2); print $2 }')
+    parents=$(git for-each-ref --format='%(refname:lstrip=3)' --contains "$first" refs/remotes/origin |
+      grep -vxE "($branch|HEAD|main|develop)" | grep -xF -f <(echo "$live") |
+      while read -r ref; do
+        tip=$(git rev-parse "origin/$ref")
+        [[ "$tip" != "$local_sha" ]] && git merge-base --is-ancestor "$tip" "$local_sha" &&
+          echo "$(git rev-list --count origin/main.."$tip") $ref"
+      done | sort -rn | awk '{ print "origin/" $2 }')
+    if [[ -n "$parents" ]]; then
+      if [[ -n "${STACKED_OK:-}" ]]; then
+        warn "built on $(head -1 <<<"$parents") (override: $STACKED_OK)"
+      else
+        fail "built on $(head -1 <<<"$parents"), which isn't merged. Branch from origin/main:"
+        echo "       land that branch first (behind a flag if unfinished), then rebase onto main."
+        echo "       Override for a genuine stack: STACKED_OK=\"<reason>\" git push ..."
+      fi
+    fi
+  fi
+
+  # --- Size ------------------------------------------------------------------
+  # Deleted files count 0; binary files (numstat "-") count 0.
+  lines=$(git diff --numstat --diff-filter=d origin/main..."$local_sha" |
+    awk -F'\t' '{ a = ($1 == "-" ? 0 : $1); d = ($2 == "-" ? 0 : $2); print $3 "\t" a + d }' |
+    reviewable_lines)
+  if (( lines > SIZE_FAIL )); then
+    if [[ -n "${PUSH_SIZE_OK:-}" ]]; then
+      warn "$lines reviewable lines (override: $PUSH_SIZE_OK). Add the size/large-ok label to the PR."
+    else
+      fail "$lines reviewable lines (limit $SIZE_FAIL). Split it by concern."
+      echo "       Override for a genuinely atomic change: PUSH_SIZE_OK=\"<reason>\" git push ..."
+    fi
+  elif (( lines > SIZE_WARN )); then
+    warn "$lines reviewable lines; aim for under $SIZE_WARN."
+  fi
+
+  # --- Behind main -------------------------------------------------------------
+  behind=$(git rev-list --count "$local_sha"..origin/main)
+  (( behind > 0 )) && warn "$behind commits behind origin/main; CI will test stale code. Rebase or merge main."
+
+  # --- Architecture and quality ratchet (≈8 s) ---------------------------------
+  # They read the working tree, so only when it's what's being pushed.
+  if [[ "$local_sha" == "$(git rev-parse HEAD)" ]] && git diff --quiet HEAD; then
+    npx tsx apps/cli/src/commands/quality/architecture-gate.ts >/tmp/pre-push-arch.log 2>&1 ||
+      fail "new architecture violations (quality:arch): see /tmp/pre-push-arch.log"
+    npx tsx apps/cli/src/commands/quality/ratchet.ts >/tmp/pre-push-ratchet.log 2>&1 ||
+      fail "quality ratchet regressed: see /tmp/pre-push-ratchet.log"
+  else
+    warn "not checked out or uncommitted changes, so architecture and ratchet checks skipped (CI runs them)."
+  fi
+done
+
+if (( blocked )); then
+  echo ""
+  echo "pre-push: blocked. Fix the cause above (AGENTS.md: never skip hooks)."
+  exit 1
+fi
+exit 0
