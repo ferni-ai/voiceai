@@ -2100,8 +2100,7 @@
     "couldNotDisconnect": "无法断开连接。要再试一次吗？",
     "sonosConnected": "Sonos 已连接！",
     "transcribing": "正在转录...",
-    "transcriptionUnavailable": "无法转录。仅保存音频。",
-    "audioSaved": "音频已保存！",
+    "transcriptionUnavailable": "这次没能听清内容，所以什么都没有保存。要再试一次吗？",
     "entrySaved": "记录已保存！",
     "couldNotSaveEntry": "无法保存记录。要再试一次吗？",
     "profileSaved": "个人资料已保存！",
@@ -2219,7 +2218,6 @@
       "other": "已导入 {count} 位联系人！"
     },
     "integrationNowConnected": "{integration} 已连接！",
-    "inviteSentTo": "邀请已发送至 {email}！",
     "householdMemberRemoved": "已移除 {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} 已加入你的团队",
@@ -3857,10 +3855,12 @@
       "create": "创建智能体",
       "empty": "暂无智能体",
       "emptyHint": "创建你的第一个自定义智能体，留存挚爱之人的声音、打造一位导师，或设计专属你自己的伴侣。",
+      "emptyHintWithoutVoice": "创建你的第一个自定义智能体，留存挚爱之人的故事、打造一位导师，或设计专属你自己的伴侣。",
       "createFirst": "创建你的第一个智能体",
       "whatYouCan": "你可以创建什么",
       "legacy": "传承",
       "legacyDesc": "留存你所珍视之人的声音与智慧",
+      "legacyDescWithoutVoice": "留存你所珍视之人的故事与智慧",
       "mentor": "导师",
       "mentorDesc": "以给你启发的人物为原型，创建一位教练",
       "twin": "数字分身",
@@ -5063,7 +5063,8 @@
     },
     "voiceStep": {
       "title": "它听起来应该是什么样的？",
-      "subtitle": "选择一个声音或克隆一个"
+      "subtitle": "选择一个声音或克隆一个",
+      "subtitleWithoutClone": "选择一个声音"
     },
     "voiceOption": {
       "cloneTitle": "克隆声音",
@@ -7236,6 +7237,7 @@
     "legacy": {
       "name": "传承",
       "description": "珍藏你所珍爱之人的声音与智慧",
+      "descriptionWithoutVoice": "珍藏你所珍爱之人的故事与智慧",
       "feature1": "通过录音克隆声音",
       "feature2": "记录故事与记忆",
       "feature3": "留存智慧与常用语",
@@ -8546,6 +8548,10 @@
   },
   "engagementPanel": {
     "title": "每日记录",
+    "emptyTitle": "我们的每日聊聊会留在这里",
+    "emptyMessage": "这里还没有内容，没关系。我们在通话里做每日聊聊时，你当时的感受会显示在这里。下次聊天时，跟我说一声就好。",
+    "loadFailedTitle": "嗯，没有加载出来",
+    "loadFailedMessage": "是我这边的问题，不是你的。稍等一下，再打开一次。",
     "yourWeek": "你的这一周",
     "weatherTrend": "情绪天气趋势",
     "howYouFeel": "你感觉怎么样",
@@ -9887,6 +9893,7 @@
     "timeout": "等得有点太久了。检查一下网络再试一次？",
     "network": "联系不上 Ferni。检查一下网络再试一次？",
     "dropped": "连接断开了。重新连接吗？",
+    "agentLeft": "Ferni 掉线了。重新连接吗？",
     "unknown": "无法连接。再试一次？"
   },
   "ambientSounds": {
@@ -10322,22 +10329,7 @@
         "one": "我有 {count} 篇日记的感悟想与你分享。"
       }
     },
-    "error": "我现在有点转不过弯来。给我一点时间，然后再试一次好吗？",
-    "fallback": {
-      "advicePhilosophy": "你知道我学到了什么吗：“{philosophy}” 无论你正面临什么，请记住这一点。",
-      "adviceValues": "想想对我们来说重要的事情：{values}。让它们指引你吧。",
-      "feelRecent": "我也曾有过这种感觉。我在日记里写过：“{excerpt}……” 我们以前也挺过来了。",
-      "feelDefault": "我懂你。我们以前也经历过艰难的时期，并找到了出路。真正让你困扰的是什么呢？",
-      "rememberIntro": "嗯，我记得。",
-      "rememberEntry": "那时候我写过：“{excerpt}……”",
-      "mannerism": "{phrase} 这也是我一直在思考的事情。是什么让你提起这个的？",
-      "default": "这是个好问题。你怎么会想到这个的？"
-    },
-    "fallbackKeywords": {
-      "advice": "建议,我应该",
-      "feeling": "感觉,觉得",
-      "remember": "记得,过去"
-    }
+    "error": "没有发送成功。是我这边的问题，不是你的。再发一次试试。"
   },
   "mood": {
     "holiday": {

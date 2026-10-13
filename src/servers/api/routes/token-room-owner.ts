@@ -14,6 +14,7 @@
 import type { ServerResponse } from 'http';
 
 import { getRoomService } from '../../token/livekit.js';
+import { claimRoom } from './token-room-claim.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'TokenRoomOwner' });
@@ -36,30 +37,41 @@ export async function roomOwnership(roomName: string, uid: string): Promise<Room
   return ownerOf(existing.metadata) === uid ? 'owned' : 'taken';
 }
 
+function refuse(res: ServerResponse, status: 403 | 503): true {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  const error =
+    status === 403
+      ? 'That room belongs to another session'
+      : 'Voice service unavailable, try again';
+  res.end(JSON.stringify({ error }));
+  return true;
+}
+
 /**
- * Answer 403 for a room someone else owns, or 503 when ownership can't be
- * checked (fail closed). Returns true when it answered.
+ * Answer 403 for a room someone else claimed or owns, or 503 when that can't
+ * be checked (fail closed). Returns true when it answered. The atomic claim
+ * (token-room-claim.ts) settles races for a fresh name; the LiveKit lookup
+ * covers live rooms /token didn't create (demo, SIP, outbound).
  */
 export async function refuseUnownedRoom(
   roomName: string,
   uid: string,
   res: ServerResponse
 ): Promise<boolean> {
-  let ownership: RoomOwnership;
-  try {
-    ownership = await roomOwnership(roomName, uid);
-  } catch (error) {
-    log.error({ error: String(error), room: roomName }, '/token could not check room ownership');
-    res.writeHead(503, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Voice service unavailable, try again' }));
-    return true;
-  }
-  if (ownership !== 'taken') return false;
+  // Both at once, so /token waits for the slower one rather than the sum
+  const [claim, lookup] = await Promise.all([
+    claimRoom(roomName, uid),
+    roomOwnership(roomName, uid).catch((error: unknown) => {
+      log.error({ error: String(error), room: roomName }, '/token could not check room ownership');
+      return 'unavailable' as const;
+    }),
+  ]);
+  if (claim === 'unavailable') return refuse(res, 503);
+  if (claim === 'mine' && lookup === 'unavailable') return refuse(res, 503);
+  if (claim === 'mine' && lookup !== 'taken') return false;
   log.warn(
-    { room: roomName, caller: uid.substring(0, 8) },
+    { room: roomName, caller: uid.substring(0, 8), claim },
     'SECURITY: /token refused a room owned by someone else'
   );
-  res.writeHead(403, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: 'That room belongs to another session' }));
-  return true;
+  return refuse(res, 403);
 }
