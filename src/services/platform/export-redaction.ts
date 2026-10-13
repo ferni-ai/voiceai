@@ -102,6 +102,22 @@ const DROP = Symbol('drop');
  */
 export const MAX_FIELD_DEPTH = 32;
 
+/**
+ * What parsing a JSON string costs: charged to the request's byte budget before the parse
+ * (ExportBudget implements this), and a string longer than maxJsonStringBytes is left out
+ * unparsed, since a secret inside it couldn't be filtered.
+ */
+export interface ParseMeter {
+  reserveBytes(bytes: number): void;
+  readonly limits: { readonly maxJsonStringBytes: number };
+}
+
+/** For callers outside an export request (tests): no budget, the same per-string limit */
+const UNMETERED: ParseMeter = {
+  reserveBytes: () => undefined,
+  limits: { maxJsonStringBytes: 64 * 1024 },
+};
+
 /** instanceof that tolerates a stubbed module (the shared test setup fakes firestore) */
 function isA<T>(type: unknown, value: unknown): value is T {
   return typeof type === 'function' && value instanceof type;
@@ -112,15 +128,15 @@ function isA<T>(type: unknown, value: unknown): value is T {
  * references their paths, and a string holding JSON is filtered like any object and
  * kept as a string. Secret fields and secret-looking values are dropped.
  */
-function clean(value: unknown, depth = 0): Plain | typeof DROP {
+function clean(value: unknown, meter: ParseMeter, depth = 0): Plain | typeof DROP {
   if (depth > MAX_FIELD_DEPTH) return DROP; // deeper than Firestore allows: crafted, not stored
   if (value === null || value === undefined) return null;
   if (isA<Timestamp>(Timestamp, value)) return value.toDate().toISOString();
   if (value instanceof Date) return value.toISOString();
   if (isA<DocumentReference>(DocumentReference, value)) return value.path;
-  if (typeof value === 'string') return cleanString(value, depth);
+  if (typeof value === 'string') return cleanString(value, meter, depth);
   if (Array.isArray(value)) {
-    return value.map((v) => clean(v, depth + 1)).filter((v): v is Plain => v !== DROP);
+    return value.map((v) => clean(v, meter, depth + 1)).filter((v): v is Plain => v !== DROP);
   }
   // Bytes: nothing a person reads, and the one shape a key name can't describe
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return DROP;
@@ -129,7 +145,7 @@ function clean(value: unknown, depth = 0): Plain | typeof DROP {
     const out = Object.create(null) as Record<string, Plain>;
     for (const [k, v] of Object.entries(value)) {
       if (isSecretField(k)) continue;
-      const kept = clean(v, depth + 1);
+      const kept = clean(v, meter, depth + 1);
       if (kept !== DROP) out[k] = kept;
     }
     return out;
@@ -138,10 +154,14 @@ function clean(value: unknown, depth = 0): Plain | typeof DROP {
   return DROP; // functions, symbols, bigints: nothing a person stored
 }
 
-function cleanString(value: string, depth: number): Plain | typeof DROP {
+function cleanString(value: string, meter: ParseMeter, depth: number): Plain | typeof DROP {
   if (isSecretValue(value)) return DROP;
   const trimmed = value.trim();
   if (!/^[[{"]/.test(trimmed)) return value;
+  // Size checked, then charged, before parsing: the parsed value is new memory
+  const bytes = Buffer.byteLength(trimmed, 'utf8');
+  if (bytes > meter.limits.maxJsonStringBytes) return DROP;
+  meter.reserveBytes(bytes);
   let parsed: unknown;
   try {
     parsed = JSON.parse(trimmed);
@@ -149,12 +169,12 @@ function cleanString(value: string, depth: number): Plain | typeof DROP {
     return value; // looks like JSON but isn't: plain text
   }
   // A JSON string literal may hold JSON again (double-encoded): clean() reaches it too
-  const kept = clean(parsed, depth + 1);
+  const kept = clean(parsed, meter, depth + 1);
   return kept === DROP ? DROP : JSON.stringify(kept);
 }
 
-/** A stored value as it goes into the export file (exported for tests) */
-export function toPlain(value: unknown): Plain {
-  const kept = clean(value);
+/** A stored value as it goes into the export file, any JSON parsing charged to the meter */
+export function toPlain(value: unknown, meter: ParseMeter = UNMETERED): Plain {
+  const kept = clean(value, meter);
   return kept === DROP ? null : kept;
 }

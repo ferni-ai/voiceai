@@ -14,8 +14,10 @@
  * @module services/platform/user-records-export
  */
 
-import { FieldPath, getFirestore } from 'firebase-admin/firestore';
+import { BoundedReader, ExportBudget, openExportDb, type ReadDoc } from './bounded-reader.js';
 import { toPlain, type Plain } from './export-redaction.js';
+
+export { ExportBudget, ExportLimitError, EXPORT_BUDGET_LIMITS } from './bounded-reader.js';
 
 /** Collections whose {uid} document, and the stores under it, belong to that person */
 export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
@@ -235,176 +237,98 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'contact_relationships',
 ];
 
-type Db = FirebaseFirestore.Firestore;
 function pick(data: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
   return Object.fromEntries(fields.filter((f) => f in data).map((f) => [f, data[f]]));
 }
 
-interface StoreReader {
-  doc(label: string, ref: FirebaseFirestore.DocumentReference): Promise<void>;
-  query(label: string, query: FirebaseFirestore.Query, fields?: readonly string[]): Promise<void>;
-}
+/** A store to read: one document, or a collection (optionally owner-filtered and projected) */
+type Store =
+  | { label: string; kind: 'doc'; path: string }
+  | {
+      label: string;
+      kind: 'collection';
+      path: string;
+      where?: { field: string; equals: string };
+      fields?: readonly string[];
+    };
 
 /**
- * Visit each exported store kept for the person. Every read is scoped to them: their
- * own {uid} document and its allowlisted subcollections, or a query on an owner field.
+ * Every store exported for the person, as paths. Each is theirs by construction: their own
+ * {uid} document and its allowlisted subcollections, or an owner-field query on their uid.
  */
-async function eachStore(db: Db, userId: string, read: StoreReader): Promise<void> {
-  const tree = async (root: string): Promise<void> => {
-    const ref = db.collection(root).doc(userId);
-    await read.doc(`${root}/{uid}`, ref);
+function storesFor(userId: string): Store[] {
+  const stores: Store[] = [];
+  const tree = (root: string): void => {
+    stores.push({ label: `${root}/{uid}`, kind: 'doc', path: `${root}/${userId}` });
     for (const sub of EXPORTED_STORES[root] ?? []) {
-      await read.query(`${root}/{uid}/${sub}`, ref.collection(sub));
+      stores.push({
+        label: `${root}/{uid}/${sub}`,
+        kind: 'collection',
+        path: `${root}/${userId}/${sub}`,
+      });
     }
   };
-  for (const root of USER_RECORD_ROOTS) await tree(root);
+  for (const root of USER_RECORD_ROOTS) tree(root);
   for (const store of OWNED_ELSEWHERE) {
-    if ('doc' in store) await tree(store.collection);
+    if ('doc' in store) tree(store.collection);
     else {
-      const owned = db.collection(store.collection).where(store.field, '==', userId);
-      await read.query(store.collection, owned, store.fields);
+      stores.push({
+        label: store.collection,
+        kind: 'collection',
+        path: store.collection,
+        where: { field: store.field, equals: userId },
+        fields: store.fields,
+      });
     }
   }
-}
-
-/** Bounds on one export, so a big account (or a crafted one) can't exhaust the server */
-export interface ExportLimits {
-  /** Documents read per page; a store is read page by page, never at once */
-  pageSize: number;
-  /** Documents across the whole export */
-  maxDocs: number;
-  /** Bytes of JSON across the whole export */
-  maxBytes: number;
-  /** Wall time for the reads, inside the UI server's 30 s request limit */
-  deadlineMs: number;
-  /** Called after each page is read (tests count pages) */
-  onPage?: (label: string, docs: number) => void;
-}
-
-export const EXPORT_LIMITS: ExportLimits = {
-  pageSize: 500,
-  maxDocs: 20_000,
-  maxBytes: 20 * 1024 * 1024,
-  deadlineMs: 20_000,
-};
-
-/** Exports running at once in this process; each holds up to maxBytes */
-const MAX_CONCURRENT_EXPORTS = 3;
-let exportsRunning = 0;
-
-/**
- * An export stopped at a limit: too many documents or bytes (413: the person can pick
- * fewer categories or ask us for a copy), out of time, or too many running (503: later).
- */
-export class ExportLimitError extends Error {
-  constructor(readonly reason: 'docs' | 'bytes' | 'time' | 'busy') {
-    super(`Export stopped at its ${reason} limit`);
-    this.name = 'ExportLimitError';
-  }
-
-  get status(): 413 | 503 {
-    return this.reason === 'docs' || this.reason === 'bytes' ? 413 : 503;
-  }
+  return stores;
 }
 
 /**
  * Every record kept for this person, as stored. Keys are store paths
- * ("users/{uid}/calendar_events"), values the documents with their ids. Reads go page by
- * page in document-id order and stop with ExportLimitError at the first limit crossed.
+ * ("users/{uid}/calendar_events"), values the documents with their ids. All reads go
+ * through one BoundedReader on the request's budget and stop at its first limit.
  */
 export async function exportUserRecords(
   userId: string,
-  firestore?: Db,
-  limits: ExportLimits = EXPORT_LIMITS
+  budget: ExportBudget = new ExportBudget(),
+  firestore?: FirebaseFirestore.Firestore,
+  onPage?: (label: string, docs: number) => void
 ): Promise<Record<string, Plain>> {
-  const db = await openFor(userId, firestore);
-  if (exportsRunning >= MAX_CONCURRENT_EXPORTS) throw new ExportLimitError('busy');
-  exportsRunning += 1;
-  try {
-    return await readAll(db, userId, limits);
-  } finally {
-    exportsRunning -= 1;
-  }
-}
-
-/** A read that gives up at the export's deadline instead of holding the request open */
-async function beforeDeadline<T>(read: Promise<T>, deadline: number): Promise<T> {
-  let timer: NodeJS.Timeout | undefined;
-  const late = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new ExportLimitError('time')),
-      Math.max(0, deadline - Date.now())
-    );
-  });
-  try {
-    return await Promise.race([read, late]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function readAll(
-  db: Db,
-  userId: string,
-  limits: ExportLimits
-): Promise<Record<string, Plain>> {
+  const reader = new BoundedReader(budget, await openExportDb(userId, firestore));
+  const plain = (doc: ReadDoc, fields?: readonly string[]): Plain =>
+    toPlain(fields ? pick(doc.data, fields) : doc.data, budget);
   const out: Record<string, Plain> = {};
-  const deadline = Date.now() + limits.deadlineMs;
-  let docs = 0;
-  let bytes = 0;
-  const take = (value: Plain): Plain => {
-    docs += 1;
-    bytes += JSON.stringify(value).length;
-    if (docs > limits.maxDocs) throw new ExportLimitError('docs');
-    if (bytes > limits.maxBytes) throw new ExportLimitError('bytes');
-    if (Date.now() > deadline) throw new ExportLimitError('time');
-    return value;
-  };
-  await eachStore(db, userId, {
-    doc: async (label, ref) => {
-      const snap = await beforeDeadline(ref.get(), deadline);
-      if (snap.exists) out[label] = take(toPlain(snap.data()));
-    },
-    query: async (label, query, fields) => {
-      const rows: Plain[] = [];
-      let page = query.orderBy(FieldPath.documentId()).limit(limits.pageSize);
-      for (;;) {
-        const snap = await beforeDeadline(page.get(), deadline);
-        limits.onPage?.(label, snap.size);
-        for (const d of snap.docs) {
-          const data = toPlain(fields ? pick(d.data(), fields) : d.data()) as Record<string, Plain>;
-          rows.push(take({ id: d.id, ...data }));
-        }
-        const last = snap.docs[snap.docs.length - 1];
-        if (snap.size < limits.pageSize || !last) break;
-        page = query.orderBy(FieldPath.documentId()).startAfter(last).limit(limits.pageSize);
-      }
-      if (rows.length > 0) out[label] = rows;
-    },
-  });
+  for (const store of storesFor(userId)) {
+    if (store.kind === 'doc') {
+      const doc = await reader.readDoc(store.path);
+      if (doc) out[store.label] = plain(doc);
+      continue;
+    }
+    const docs = await reader.readCollection(store.path, {
+      where: store.where,
+      onPage: (n) => onPage?.(store.label, n),
+    });
+    const rows = docs.map((d) => ({
+      id: d.id,
+      ...(plain(d, store.fields) as Record<string, Plain>),
+    }));
+    if (rows.length > 0) out[store.label] = rows;
+  }
   return out;
 }
 
-/** How many documents the export would hold, for the category list (counts, no reads) */
-export async function countUserRecords(userId: string, firestore?: Db): Promise<number> {
+/** How many documents the export would hold, for the category list (counts, no doc reads) */
+export async function countUserRecords(
+  userId: string,
+  budget: ExportBudget = new ExportBudget(),
+  firestore?: FirebaseFirestore.Firestore
+): Promise<number> {
+  const reader = new BoundedReader(budget, await openExportDb(userId, firestore));
   let count = 0;
-  await eachStore(await openFor(userId, firestore), userId, {
-    doc: async (_label, ref) => {
-      if ((await ref.get()).exists) count += 1;
-    },
-    query: async (_label, query) => {
-      count += (await query.count().get()).data().count;
-    },
-  });
+  for (const store of storesFor(userId)) {
+    if (store.kind === 'doc') count += (await reader.docExists(store.path)) ? 1 : 0;
+    else count += await reader.countCollection(store.path, { where: store.where });
+  }
   return count;
-}
-
-/** The person's id checked (one document, no '/'), and the database to read */
-async function openFor(userId: string, firestore?: Db): Promise<Db> {
-  const { assertErasableUserId } = await import('./erase-user-record.js');
-  assertErasableUserId(userId);
-  if (firestore) return firestore;
-  const { ensureFirebaseAdmin } = await import('../identity/firebase-auth.js');
-  if (!ensureFirebaseAdmin()) throw new Error('Firebase Admin is not initialized');
-  return getFirestore();
 }

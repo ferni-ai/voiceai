@@ -147,6 +147,27 @@ describe('the value written to the file', () => {
     expect(MAX_FIELD_DEPTH).toBeGreaterThanOrEqual(20); // Firestore's own nesting limit
   });
 
+  it('charges a JSON string to the meter before parsing it, and leaves a huge one unparsed', () => {
+    const parse = vi.spyOn(JSON, 'parse');
+    const refuse = {
+      reserveBytes: () => {
+        throw new Error('over budget');
+      },
+      limits: { maxJsonStringBytes: 1_000 },
+    };
+    expect(() => toPlain({ s: '{"a":1}' }, refuse)).toThrow('over budget');
+    expect(parse).not.toHaveBeenCalled();
+    const charged: number[] = [];
+    const meter = {
+      reserveBytes: (n: number) => void charged.push(n),
+      limits: { maxJsonStringBytes: 1_000 },
+    };
+    const out = toPlain({ small: '{"a":1}', big: JSON.stringify({ b: 'z'.repeat(2_000) }) }, meter);
+    expect(charged).toEqual([7]);
+    expect(out).toEqual({ small: '{"a":1}' });
+    parse.mockRestore();
+  });
+
   it('drops a credential value under an innocent key', () => {
     const out = JSON.stringify(
       toPlain({ note: 'Bearer zz-secret', items: ['ya29.zz-secret', 'milk'] })

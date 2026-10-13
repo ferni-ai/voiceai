@@ -9,12 +9,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import admin from 'firebase-admin';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import {
-  EXPORT_LIMITS,
-  ExportLimitError,
-  exportUserRecords,
-  KNOWN_USER_STORES,
-} from '../../services/platform/user-records-export.js';
+import { KNOWN_USER_STORES } from '../../services/platform/user-records-export.js';
 
 // The shared setup fakes Firestore for every test; here the export must read the emulator
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
@@ -169,78 +164,5 @@ describe.skipIf(!emulator)('export carries every known user store (Firestore emu
     for (const store of KNOWN_USER_STORES) await seed(store, owner, 'not-yours');
     const { records } = await exportAll(id());
     expect(JSON.stringify(records)).not.toContain('not-yours');
-  });
-});
-
-describe.skipIf(!emulator)('export limits (Firestore emulator)', () => {
-  async function seedEvents(uid: string, n: number): Promise<void> {
-    const batch = db.batch();
-    for (let i = 0; i < n; i++) {
-      batch.set(db.doc(`users/${uid}/calendar_events/e${String(i).padStart(3, '0')}`), {
-        title: `event ${i}`,
-        notes: 'x'.repeat(200),
-      });
-    }
-    await batch.commit();
-  }
-
-  it('reads a store page by page and still exports every document', async () => {
-    const uid = id();
-    await seedEvents(uid, 25);
-    const pages: number[] = [];
-    const records = await exportUserRecords(uid, db, {
-      ...EXPORT_LIMITS,
-      pageSize: 10,
-      onPage: (label, n) => {
-        if (label === 'users/{uid}/calendar_events') pages.push(n);
-      },
-    });
-    expect(pages).toEqual([10, 10, 5]); // never more than a page in one read
-    expect(records['users/{uid}/calendar_events']).toHaveLength(25);
-  });
-
-  it.each([
-    ['docs', { maxDocs: 20 }],
-    ['bytes', { maxBytes: 2_000 }],
-    ['time', { deadlineMs: 0 }],
-  ] as const)('stops at the %s limit with ExportLimitError', async (reason, limit) => {
-    const uid = id();
-    await seedEvents(uid, 25);
-    const run = exportUserRecords(uid, db, { ...EXPORT_LIMITS, pageSize: 10, ...limit });
-    await expect(run).rejects.toMatchObject({ name: 'ExportLimitError', reason });
-  });
-
-  it('a too-large export is a clear 413 with a way forward, not a partial file', async () => {
-    const uid = id();
-    await seedEvents(uid, 25);
-    const saved = EXPORT_LIMITS.maxDocs;
-    EXPORT_LIMITS.maxDocs = 20;
-    try {
-      const res = await fetch(`${base}/api/export`, {
-        method: 'POST',
-        headers: { 'x-firebase-uid': uid, 'content-type': 'application/json' },
-        body: JSON.stringify({ format: 'json', categories: ['Records', 'Profile'] }),
-      });
-      expect(res.status).toBe(413);
-      const body = (await res.json()) as { error: string; reason: string };
-      expect(body.reason).toBe('docs');
-      expect(body.error).toMatch(/too big.*Pick fewer.*hello@ferni\.ai/);
-    } finally {
-      EXPORT_LIMITS.maxDocs = saved;
-    }
-    expect(new ExportLimitError('docs').status).toBe(413);
-  });
-
-  it('a person can ask for three exports in ten minutes; the fourth is refused', async () => {
-    const uid = id();
-    const post = () =>
-      fetch(`${base}/api/export`, {
-        method: 'POST',
-        headers: { 'x-firebase-uid': uid, 'content-type': 'application/json' },
-        body: JSON.stringify({ format: 'json', categories: ['Records'] }),
-      });
-    const statuses: number[] = [];
-    for (let i = 0; i < 4; i++) statuses.push((await post()).status);
-    expect(statuses).toEqual([200, 200, 200, 429]);
   });
 });

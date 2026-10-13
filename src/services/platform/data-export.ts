@@ -27,7 +27,8 @@ type AnyRecord = Record<string, any>;
 import { getLogger } from '../../utils/safe-logger.js';
 import { erasureSteps } from './erasure-step.js';
 import { EXPORT_CATEGORIES } from './export-categories.js';
-import { countUserRecords, ExportLimitError, exportUserRecords } from './user-records-export.js';
+import { ExportBudget, ExportLimitError, serialisedBytes } from './bounded-reader.js';
+import { countUserRecords, exportUserRecords } from './user-records-export.js';
 
 const log = getLogger();
 
@@ -200,7 +201,8 @@ class DataExportService {
   async exportData(
     userId: string,
     format: ExportFormat,
-    selectedCategories: string[]
+    selectedCategories: string[],
+    budget: ExportBudget = new ExportBudget()
   ): Promise<string> {
     const exportData: ExportData = {
       exportedAt: new Date().toISOString(),
@@ -211,9 +213,13 @@ class DataExportService {
 
     try {
       // Export each selected category
-      for (const category of selectedCategories) {
+      // One budget for the whole request: a category named twice is read once, and every
+      // category's output is charged to it (Records' reads are charged before they happen)
+      for (const category of new Set(selectedCategories)) {
         try {
-          const data = await this.exportCategory(userId, category);
+          budget.checkTime();
+          const data = await this.exportCategory(userId, category, budget);
+          budget.reserveBytes(serialisedBytes(data));
           if (data !== null) {
             exportData.categories[this.categoryToKey(category)] = data;
           }
@@ -242,7 +248,11 @@ class DataExportService {
   /**
    * Export a single category's data.
    */
-  private async exportCategory(userId: string, category: string): Promise<unknown> {
+  private async exportCategory(
+    userId: string,
+    category: string,
+    budget: ExportBudget
+  ): Promise<unknown> {
     switch (category) {
       case 'Conversations':
         return this.exportConversations(userId);
@@ -269,7 +279,7 @@ class DataExportService {
       case 'Answer Cards':
         return this.exportAnswerCards(userId);
       case 'Records':
-        return exportUserRecords(userId);
+        return exportUserRecords(userId, budget);
       default:
         log.warn({ category }, 'Unknown export category');
         return null;
