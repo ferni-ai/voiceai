@@ -24,6 +24,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
+import { voiceAttuneOn } from './attune.js';
 import { DirectorEngine } from './engine.js';
 import { ferniSpeedNudge } from './ferni-energy.js';
 import { leverModes, speechDirectorMode } from './gate.js';
@@ -76,9 +77,13 @@ export interface PlanSummary {
   callerPitchRelSt?: number;
   callerEnergyRelDb?: number;
   callerRateRel?: number;
+  callerWordsPerSec?: number;
   callerPitchSlope?: number;
   callerVoicedMs?: number;
   speed: number;
+  /** VOICE_ATTUNE: the caller state answered and the reply's loudness (attune.ts). */
+  attune?: string;
+  volume?: number;
   /** Stage 2 tempo planned for this turn (a voice that ignores <speed>). */
   tempo?: number;
   /** Prosody tags were taken off every push (the voice ignores them). */
@@ -176,6 +181,7 @@ class DirectedReply implements ReplyStream {
           ? readCallerProsody(opts.sessionId, wordCount(opts.turnContext?.userRequest))
           : undefined,
       ferniNudge: ferniSpeedNudge(opts.sessionId),
+      attune: attuneContext(opts),
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,
@@ -357,6 +363,8 @@ class DirectedReply implements ReplyStream {
       prosodyEmotion: engine.prosody.emotion,
       ...callerReading(engine.callerProsody),
       speed: engine.speed,
+      attune: engine.attunement?.state,
+      volume: engine.attunement?.volume,
       tempo: engine.tempo,
       tagsStripped: this.stripProsody,
       opening: engine.opening.opening?.kind,
@@ -373,6 +381,7 @@ class DirectedReply implements ReplyStream {
       (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
         emotion: engine.emotion.emotion,
         speed: engine.speed,
+        volume: engine.attunement?.volume,
         ...engine.nonverbalCarry(),
       });
     }
@@ -405,6 +414,13 @@ export function directSpeech(
   return { reply: directed, textStream };
 }
 
+/** The caller's mood for attunement, when VOICE_ATTUNE is on (attune.ts). */
+function attuneContext(opts: DirectSpeechOptions): { userEmotion?: string } | undefined {
+  return voiceAttuneOn(opts.env)
+    ? { userEmotion: opts.turnContext?.userEmotion?.primary }
+    : undefined;
+}
+
 /** Words in what the caller said, for their speaking rate. */
 function wordCount(text: string | undefined): number | undefined {
   const n = text?.trim().split(/\s+/).filter(Boolean).length ?? 0;
@@ -420,6 +436,7 @@ function callerReading(p: CallerProsody | undefined): Partial<PlanSummary> {
     callerPitchRelSt: round1(p.pitchRelSt),
     callerEnergyRelDb: round1(p.energyRelDb),
     callerRateRel: Math.round(p.rateRel * 100) / 100,
+    callerWordsPerSec: p.wordsPerSec === undefined ? undefined : round1(p.wordsPerSec),
     callerPitchSlope: round1(p.pitchSlopeStPerS),
     callerVoicedMs: p.voicedMs,
   };

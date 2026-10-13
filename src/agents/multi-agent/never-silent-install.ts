@@ -56,8 +56,10 @@ export function installNeverSilent(
   // its audio output at start, usually after this runs: wrap it then too.
   if (mode === 'on') {
     const wrap = () =>
-      ensureResumeBuffer(session as never, (fields) =>
-        log.info({ sessionId, ...fields }, 'REPLY_RESUME')
+      ensureResumeBuffer(
+        session as never,
+        (fields) => log.info({ sessionId, ...fields }, 'REPLY_RESUME'),
+        env
       );
     wrap();
     for (const event of ['speech_created', 'agent_state_changed', 'user_state_changed'])
