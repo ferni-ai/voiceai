@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { landingAiEnabled } from './landing-ai-flag.js';
 
 const log = createLogger({ module: 'LandingAIInteractions' });
 
@@ -18,8 +19,8 @@ const log = createLogger({ module: 'LandingAIInteractions' });
 // GEMINI CONFIG (uses centralized config)
 // ============================================================================
 
+import { getGenerativeAI, type GenerativeAI } from '../../config/generative-model.js';
 import {
-  getGeminiClient,
   isGeminiConfigured,
   getDefaultModel,
   TEMP_EXTRACTION,
@@ -37,10 +38,10 @@ import {
 // Model name comes from centralized config (GEMINI_MODEL env var)
 const MODEL_NAME = getDefaultModel();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getGenAI(): Promise<any | null> {
-  if (!isGeminiConfigured()) return null;
-  return getGeminiClient();
+// The shared Gemini client in the old SDK's shape; null (static fallbacks) when LANDING_AI is off
+async function getGenAI(): Promise<GenerativeAI | null> {
+  if (!landingAiEnabled() || !isGeminiConfigured()) return null;
+  return getGenerativeAI();
 }
 
 // Rate limiting for demo chat (per visitor)
@@ -251,7 +252,7 @@ export async function sendDemoChatMessage(
 async function generateChatResponse(messages: DemoChatMessage[], persona: string): Promise<string> {
   const genAI = await getGenAI();
   if (!genAI) {
-    log.warn('Gemini API not configured, using fallback response');
+    log.debug('Landing AI off or Gemini not configured, using fallback response');
     return getFallbackResponse(messages[messages.length - 1].content, persona);
   }
 
@@ -275,24 +276,21 @@ Remember: This is their first impression of Ferni. Make it count.`;
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-    // Build conversation history
-    const history = messages.slice(0, -1).map((m) => ({
+    // Conversation history, then the new turn (what startChat().sendMessage() sent)
+    const contents = messages.slice(0, -1).map((m) => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.content }],
     }));
+    const lastText = messages[messages.length - 1].content;
+    contents.push({ role: 'user', parts: [{ text: systemPrompt }, { text: lastText }] });
 
-    const chat = model.startChat({
-      history,
+    const result = await model.generateContent({
+      contents,
       generationConfig: {
         maxOutputTokens: MAX_TOKENS_TINY,
         temperature: TEMP_REASONING,
       },
     });
-
-    const result = await chat.sendMessage([
-      { text: systemPrompt },
-      { text: messages[messages.length - 1].content },
-    ]);
 
     return result.response.text();
   } catch (error) {

@@ -129,6 +129,9 @@ vi.mock('../../../config/handoff-timing.js', () => ({
   HANDOFF_TIMING: {
     DEBOUNCE_MS: 2000,
     COOLDOWN_MS: 5000,
+    // Unset, the wait for the handler timed out at once (and the handler below confirmed
+    // the wrong id): these tests passed only because a timeout counted as a success
+    HANDOFF_TIMEOUT_MS: 1000,
   },
 }));
 
@@ -229,11 +232,12 @@ describe('Handoff Executor', () => {
     // FIX: Mock the handoff handler by auto-emitting handoffHandlerComplete
     // This simulates what handoff-handler.ts does in production.
     // Without this, tests timeout waiting for the completion event.
-    events!.on('voiceSwitch', (data: { persona?: { id: string } }) => {
+    events!.on('voiceSwitch', (data: { persona?: { id: string }; agentId?: string }) => {
       // Emit completion after a short delay to simulate async handler
       setTimeout(() => {
         events!.emit('handoffHandlerComplete', {
-          targetId: data.persona?.id || 'unknown',
+          // The mocked createHandoffEvent (above) carries the target as agentId, not persona
+          targetId: data.persona?.id || data.agentId || 'unknown',
           success: true,
           greetingSpoken: true,
           instructionsUpdated: true,
@@ -519,9 +523,20 @@ describe('Unlock Validation', () => {
    * handoffs to team members they haven't unlocked yet.
    */
 
-  beforeEach(() => {
+  beforeEach(async () => {
     resetHandoffState();
     vi.clearAllMocks();
+    // An open target still has to be switched to: the voice handler confirms it
+    const events = await getHandoffEvents();
+    events!.on('voiceSwitch', (data: { agentId?: string }) => {
+      setTimeout(() => {
+        events!.emit('handoffHandlerComplete', { targetId: data.agentId, success: true });
+      }, 10);
+    });
+  });
+
+  afterEach(async () => {
+    (await getHandoffEvents())?.removeAllListeners();
   });
 
   it('should block handoffs to locked members', async () => {
@@ -632,5 +647,92 @@ describe('Unlock Validation', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('unlock');
+  });
+});
+
+// --------------------------------------------------------------------------
+// A handoff the voice handler couldn't carry out
+// --------------------------------------------------------------------------
+
+describe('when the voice handler cannot bring the teammate in', () => {
+  // The voice handler: confirms some targets, reports the rest failed (or, with
+  // `silent`, never answers, as when it's busy with another handoff)
+  async function voiceHandler(fails: string[], silent = false) {
+    const events = await getHandoffEvents();
+    events!.on('voiceSwitch', (data: { agentId?: string }) => {
+      if (silent) return;
+      const success = !fails.includes(data.agentId ?? '');
+      setTimeout(() => {
+        events!.emit('handoffHandlerComplete', {
+          targetId: data.agentId,
+          success,
+          greetingSpoken: success,
+          instructionsUpdated: success,
+          ...(success ? {} : { error: "Error: The next persona didn't start within 8000ms" }),
+        });
+      }, 10);
+    });
+  }
+
+  beforeEach(async () => {
+    resetHandoffState();
+    vi.clearAllMocks();
+    const teamAvailability =
+      await import('../../../intelligence/context-builders/team/team-availability.js');
+    vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(true); // all open
+  });
+
+  afterEach(async () => {
+    (await getHandoffEvents())?.removeAllListeners();
+  });
+
+  it("reports the handoff as failed, and the tool doesn't tell the model it's complete", async () => {
+    await voiceHandler(['maya-santos']);
+    const result = await executeHandoff('maya-santos', 'Habits help');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("couldn't join the call"); // (the registry mock names everyone Peter)
+    expect(result.greetingSpoken).toBe(false);
+    const { handoffToolResponse } = await import('../handoff-tool-response.js');
+    expect(handoffToolResponse(result, 'Maya Santos')).not.toHaveProperty('handoff_complete');
+  });
+
+  it('puts the current agent back to the persona still on the call', async () => {
+    await voiceHandler(['maya-santos']);
+    const { getSessionState, getCurrentAgent: sessionAgent } = await import('../session-state.js');
+    const session = getSessionState('call-rollback');
+
+    await executeHandoff('maya-santos', 'Habits help', { sessionId: 'call-rollback' });
+
+    expect(getCurrentAgent()).toBe('ferni');
+    expect(sessionAgent(session)).toBe('ferni');
+    // So asking for Maya again isn't refused as "Already with Maya"
+    const again = await executeHandoff('maya-santos', 'Try again', { skipRateLimit: true });
+    expect(again.error).not.toContain('Already with');
+  });
+
+  it('after Ferni to Peter, a failed handoff to Maya leaves the call with Peter', async () => {
+    await voiceHandler(['maya-santos']);
+    expect((await executeHandoff('peter-john', 'Stocks')).success).toBe(true);
+
+    const result = await executeHandoff('maya-santos', 'Habits', { skipRateLimit: true });
+
+    expect(result.previousAgent).toBe('peter-john');
+    expect(getCurrentAgent()).toBe('peter-john');
+  });
+
+  it('records no handoff in the history (analytics, the "just took over" note)', async () => {
+    await voiceHandler(['maya-santos']);
+    await executeHandoff('maya-santos', 'Habits help');
+
+    expect(getHandoffHistory()).toHaveLength(0);
+  });
+
+  it('counts a handler that never answered as failed, not as a handoff', async () => {
+    await voiceHandler([], true);
+    const result = await executeHandoff('maya-santos', 'Habits help');
+
+    expect(result.success).toBe(false);
+    expect(getCurrentAgent()).toBe('ferni');
   });
 });

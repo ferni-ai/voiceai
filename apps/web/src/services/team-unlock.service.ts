@@ -21,6 +21,7 @@ import {
   type RelationshipStage,
 } from './relationship-stage.service.js';
 import * as server from './team-unlock-server.js';
+import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
 
 const log = createLogger('TeamUnlock');
 
@@ -403,8 +404,7 @@ function getMemberUnlockStatus(
     return { unlocked: true, progress: 1 };
   }
 
-  // Subscribers get everyone except Nayan immediately
-  // Nayan requires partner tier OR deep-partnership
+  // Subscribers get everyone but Nayan at once; Nayan needs partner tier or deep partnership
   if (tier === 'friend' || tier === 'partner') {
     if (member.premium && tier !== 'partner' && !stageAtOrBeyond(stage, member.unlocksAt)) {
       const threshold = STAGE_THRESHOLDS[member.unlocksAt];
@@ -412,7 +412,7 @@ function getMemberUnlockStatus(
         unlocked: false,
         progress: calculateProgress(metrics, threshold),
         lockReason: t('teamUnlock.nayanLockReason'),
-        unlockHint: t('teamUnlock.nayanUnlockHint'),
+        unlockHint: isVenmoChipInEnabled() ? getUnlockHint(member.unlocksAt, threshold) : t('teamUnlock.nayanUnlockHint'),
       };
     }
     return { unlocked: true, progress: 1 };

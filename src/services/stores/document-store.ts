@@ -23,7 +23,7 @@ import {
 const log = createLogger({ module: 'document-store' });
 
 // In-memory fallback when Firestore is unavailable
-const documentStorage: Map<string, DocumentData> = new Map();
+const documentStorage = new Map<string, DocumentData>();
 
 // ============================================================================
 // TYPES
@@ -273,7 +273,7 @@ export async function getDocumentData(userId: string): Promise<DocumentData> {
     };
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get document data');
-    return createDefaultDocumentData(userId);
+    throw error; // a default here would be saved over the person's data
   }
 }
 
@@ -446,10 +446,7 @@ export async function getDocumentsByType(userId: string, type: DocumentType): Pr
 /**
  * Get expiring documents
  */
-export async function getExpiringDocuments(
-  userId: string,
-  daysAhead: number = 30
-): Promise<Document[]> {
+export async function getExpiringDocuments(userId: string, daysAhead = 30): Promise<Document[]> {
   const data = await getDocumentData(userId);
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() + daysAhead);

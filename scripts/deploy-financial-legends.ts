@@ -3,7 +3,8 @@
  * Deploy Financial Legends Page to Production
  *
  * Generates and deploys the Financial Legends multi-advisor landing page
- * featuring Peter Lynch, John Bogle, and Joel Dickson.
+ * featuring Tom Brannigan, Henry Caldwell and Nate Holloway (fictional characters
+ * inspired by investing philosophies; ids peter-lynch, john-bogle, joel-dickson).
  *
  * Usage:
  *   npx tsx scripts/deploy-financial-legends.ts              # Generate and deploy
@@ -41,38 +42,38 @@ if (getApps().length === 0 && !isDryRun) {
 
 const config: MultiAdvisorPageConfig = {
   title: 'Financial Legends',
-  description: 'Get wisdom from the greatest minds in investing. Three legendary voices ready to guide your financial journey.',
+  description: 'Three fictional mentors, each inspired by a great investing philosophy, ready to guide your financial journey.',
 
   advisors: [
     {
       id: 'peter-lynch',
-      name: 'Peter Lynch',
-      initials: 'PL',
+      name: 'Tom Brannigan',
+      initials: 'TB',
       tagline: 'The Stock Picker',
-      description: 'Master of finding great companies before Wall Street catches on. Former Fidelity Magellan Fund manager who achieved 29.2% annual returns.',
+      description: 'Inspired by invest-in-what-you-know stock picking. Finds great companies by paying attention to what people actually buy.',
       color: '#1a5f2a', // Growth green
       icon: '📈',
-      voiceId: '85680374-8d94-43a1-bb15-5eea7a8bdbb8',
+      voiceId: '4cf80313-54dc-4ca9-a17c-3e5b8f68a78c', // Cartesia stock voice "Hugh - Confident Veteran"
     },
     {
       id: 'john-bogle',
-      name: 'John Bogle',
-      initials: 'JB',
-      tagline: 'The Index Pioneer',
-      description: 'Founder of Vanguard and creator of the first index fund. Champion of low-cost, long-term investing for everyday investors.',
-      color: '#8b0000', // Vanguard red
+      name: 'Henry Caldwell',
+      initials: 'HC',
+      tagline: 'The Index Investor',
+      description: 'Inspired by index investing. Champion of low-cost, long-term investing for everyday investors.',
+      color: '#8b0000', // Deep red
       icon: '🏛️',
-      voiceId: '9c10dc48-8799-42f9-a72a-0c7dfe13a06d',
+      voiceId: 'ed82c17b-4704-4d34-be43-5d19065acdf1', // Cartesia stock voice "Carl - Steady Storyteller"
     },
     {
       id: 'joel-dickson',
-      name: 'Joel Dickson',
-      initials: 'JD',
+      name: 'Nate Holloway',
+      initials: 'NH',
       tagline: 'The Life Mentor',
-      description: 'Wise mentor with a Stanford doctorate and 30 years at Vanguard. Helps navigate life decisions, career changes, and finding purpose.',
-      color: '#96151D', // Vanguard burgundy
+      description: 'Inspired by evidence-based planning and behavioral coaching. Helps navigate life decisions, career changes, and finding purpose.',
+      color: '#96151D', // Burgundy
       icon: '🧭',
-      voiceId: '3ebcd114-d280-4eed-a238-b9323a6b8e52', // Joel's existing Cartesia voice
+      voiceId: 'bbee10a8-4f08-4c5c-8282-e69299115055', // Cartesia stock voice "Ben - Helpful Man"
     },
   ],
 
@@ -88,8 +89,8 @@ const config: MultiAdvisorPageConfig = {
   },
 
   seo: {
-    title: 'Financial Legends - Investment Wisdom from the Masters',
-    description: 'Get personalized guidance from Peter Lynch, John Bogle, and Joel Dickson. Three legendary voices ready to help with your investment journey.',
+    title: 'Financial Legends - Investment Wisdom, Three Philosophies',
+    description: 'Get personalized guidance from Tom, Henry and Nate: fictional mentors inspired by stock picking, index investing and behavioral coaching.',
     twitterCard: 'summary_large_image',
   },
 };
@@ -200,9 +201,9 @@ async function deploy() {
 
   // Handoff info
   console.log('\n🔄 Handoff Triggers:');
-  console.log('   "I want to pick stocks"       → Peter Lynch');
-  console.log('   "Tell me about index funds"   → John Bogle');
-  console.log('   "I\'m thinking about my career" → Joel Dickson');
+  console.log('   "I want to pick stocks"       → Tom Brannigan');
+  console.log('   "Tell me about index funds"   → Henry Caldwell');
+  console.log('   "I\'m thinking about my career" → Nate Holloway');
 
   console.log('\n');
   return { siteId, url, deployed, html: result.html };

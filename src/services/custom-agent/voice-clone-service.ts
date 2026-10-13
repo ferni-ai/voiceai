@@ -92,7 +92,7 @@ interface ProcessedUpload {
   filename: string;
   /** Audio analysis */
   analysis: AudioAnalysis;
-  /** Storage URL (GCS public URL or temp URL) */
+  /** Storage reference (private GCS object path or temp URL), never a public URL */
   storageUrl: string;
   /** GCS file path (for downloads) */
   gcsFilePath?: string;
@@ -270,13 +270,13 @@ export async function processVoiceUpload(
         agentId,
         file.filename,
         'voiceClone',
-        true
+        false
       );
 
       if (gcsResult) {
-        storageUrl = gcsResult.publicUrl;
+        storageUrl = gcsResult.filePath;
         gcsFilePath = gcsResult.filePath;
-        log.debug({ filename: file.filename, publicUrl: storageUrl }, 'Audio uploaded to GCS');
+        log.debug({ filename: file.filename, gcsFilePath }, 'Audio stored privately in GCS');
       } else {
         // Fallback to in-memory if GCS upload fails
         storageUrl = `temp://${uploadId}/${file.filename}`;

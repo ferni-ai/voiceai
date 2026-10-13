@@ -11,7 +11,6 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { verifyFirebaseToken, isVerifiedToken } from '../services/identity/firebase-auth.js';
 import {
   getMigratedUid,
   isAlreadyMigrated,
@@ -19,7 +18,7 @@ import {
   validateMigrationRequest,
 } from '../services/user-migration.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { rateLimit } from './auth-middleware.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
 
 // Alias for compatibility
@@ -69,21 +68,15 @@ export async function handleMigrationRoutes(
 /**
  * POST /api/auth/migrate
  *
- * Migrate user data from device ID to Firebase UID.
+ * Migrate the caller's legacy device data into their own Firebase account.
  *
- * Body:
- * {
- *   deviceId: string,
- *   firebaseUid: string,
- *   displayName?: string,
- *   email?: string
- * }
+ * Requires `Authorization: Bearer <Firebase ID token>`. The target uid is the
+ * token's uid, never the body's: a body uid let anyone overwrite any profile.
+ * A body `firebaseUid` that names another account is refused with 403.
+ * The device id is the only credential a legacy device profile ever had, so
+ * holding it is the proof of ownership of the source.
  *
- * OR if Authorization header is present, just:
- * {
- *   deviceId: string
- * }
- * And firebaseUid is extracted from the verified token.
+ * Body: { deviceId: string, firebaseUid?: string, displayName?: string }
  */
 async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise<void> {
   // Rate limit: 5 migrations per hour per IP
@@ -91,12 +84,20 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
     return;
   }
 
+  const auth = await requireAuth(req, res, { allowDevMode: false });
+  if (!auth) return;
+  if (auth.authMethod !== 'firebase' || !auth.firebaseUid) {
+    log.warn('Migration refused: caller is not a signed-in user', { method: auth.authMethod });
+    sendError(res, 'Sign in to move your data to your account', 403);
+    return;
+  }
+  const firebaseUid = auth.firebaseUid;
+
   interface MigrationRequestBody {
     deviceId?: string;
     device_id?: string;
     firebaseUid?: string;
     firebase_uid?: string;
-    email?: string;
     displayName?: string;
     display_name?: string;
   }
@@ -111,33 +112,15 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
       return;
     }
 
-    // Get Firebase UID from token or body
-    let firebaseUid: string | undefined;
-    let email: string | undefined;
-    let displayName: string | undefined;
-
-    // Try to get Firebase UID from Authorization header
-    const authHeader = req.headers['authorization'];
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.slice(7);
-      const verified = await verifyFirebaseToken(token);
-      if (isVerifiedToken(verified)) {
-        firebaseUid = verified.uid;
-        email = verified.email;
-        // Note: displayName would need to be fetched from Firebase User record
-      }
+    const claimedUid = body.firebaseUid || body.firebase_uid;
+    if (claimedUid && claimedUid !== firebaseUid) {
+      log.warn('Migration refused: body names another account', {
+        caller: `${firebaseUid.substring(0, 8)}...`,
+      });
+      sendError(res, 'You can only move data into your own account', 403);
+      return;
     }
-
-    // Fall back to body if not in token
-    if (!firebaseUid) {
-      firebaseUid = body.firebaseUid || body.firebase_uid;
-    }
-    if (!email && body.email) {
-      email = body.email;
-    }
-    if (body.displayName || body.display_name) {
-      displayName = body.displayName || body.display_name;
-    }
+    const displayName = body.displayName || body.display_name;
 
     // Validate request
     const validation = validateMigrationRequest({ deviceId, firebaseUid });
@@ -149,14 +132,14 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
     // Perform migration
     log.info('Migration requested', {
       deviceId: `${deviceId.substring(0, 15)}...`,
-      firebaseUid: `${firebaseUid!.substring(0, 8)}...`,
+      firebaseUid: `${firebaseUid.substring(0, 8)}...`,
     });
 
     const result = await migrateUserData({
       deviceId,
-      firebaseUid: firebaseUid!,
+      firebaseUid,
       displayName,
-      email,
+      email: auth.email,
     });
 
     if (result.success) {

@@ -12,7 +12,8 @@
  * A result is dropped when its text is about a forgotten topic (the shared
  * matcher, isForgotten), or when it is a copy of a fact that is now forgotten
  * or deleted: an indexed dynamic fact by its id (conversation_fact_<id>,
- * fact_fact_<uid>_<id>), any other copy by the source it records
+ * fact_fact_<uid>_<id>), a call summary by its id (conversation_summary_<id>,
+ * dropped when the caller disputed an item in it), any other copy by the source it records
  * (metadata.sourceCollection / sourceDocId). If the forgotten topics or the
  * source docs can't be read, the affected results are dropped (fails closed).
  *
@@ -90,6 +91,9 @@ export function sourcePath(
   const ok = (id: string) => id !== '' && id !== '.' && id !== '..' && !id.includes('/');
   const conv = /^conversation_fact_(.+)$/.exec(doc.id);
   if (conv?.[1]) return ok(conv[1]) ? `${user}/dynamic_facts/${conv[1]}` : undefined;
+  // A call summary's copy (user-memory-indexer.ts writes conversation_<summary id>).
+  const summary = /^conversation_(summary_.+)$/.exec(doc.id);
+  if (summary?.[1]) return ok(summary[1]) ? `${user}/summaries/${summary[1]}` : undefined;
   const graph = `fact_fact_${userId}_`;
   if (doc.id.startsWith(graph)) {
     const id = doc.id.slice(graph.length);
@@ -132,7 +136,10 @@ export async function withoutForgotten<
     const path = sourcePath(userId, r.document);
     if (!path) return true;
     const src = docs.get(path);
-    if (!src) return r.document.id.startsWith('fact_fact_'); // a graph copy may not be a dynamic fact
+    // A graph copy may not be a dynamic fact; a summary copy may come from a legacy collection.
+    if (!src) return /^(?:fact_fact_|conversation_summary_)/.test(r.document.id);
+    // A summary with an item the caller disputed (dispute.ts) is dropped whole: its text has it.
+    if (Array.isArray(src.disputedItems) && src.disputedItems.length > 0) return false;
     return src.forgottenAt === undefined || src.forgottenAt === null;
   });
 }
