@@ -27,10 +27,11 @@ import {
 } from '../shared/tts-wrapper.js';
 // Centralized generateReply gateway - NEVER use session.generateReply directly!
 import { generateReply } from '../shared/generate-reply-gateway.js';
-// Safe fire-and-forget for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+import { filterSilenceReply } from '../voice-agent/presence-check.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
+import { sttWithNameFix } from './name-mishear.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
 import { isScreeningCall } from '../shared/line-screen.js';
@@ -637,12 +638,8 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    * - audioForStt: goes to the STT (FIRST_TURN_FAST may end turn 1 early: first-turn-fast.ts)
    * - audioForProcessor: goes to processAudioStream (prosody, biomarkers, voice emotion)
    *
-   * This populates userData.voiceEmotion and userData.voiceBiomarkers, which
-   * turn-handler.ts reads to activate BTH features:
-   * - Protective instinct + somatic presence (turn-handler.ts:1178)
-   * - Voice biomarker pipeline (turn-handler.ts:1617)
-   * - Audio-native LLM context (turn-handler.ts:1691)
-   * - Voice-memory emotional weighting (turn-handler.ts:602)
+   * The processor fills userData.voiceEmotion and voiceBiomarkers for turn-handler.ts. The
+   * transcripts that come back have a misheard "Ferni" put right (name-mishear.ts).
    */
   async sttNode(
     audio: NodeReadableStream<AudioFrame>,
@@ -675,7 +672,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       sendDataMessage,
     }).catch((e) => log.debug({ error: String(e) }, 'Audio processor (non-critical)'));
 
-    return sttWithFirstTurnFast(this.session, audioForStt, (a) => super.sttNode(a, modelSettings));
+    return sttWithNameFix(
+      this.session,
+      sttWithFirstTurnFast(this.session, audioForStt, (a) => super.sttNode(a, modelSettings))
+    );
   }
 
   /** Captions are what the app shows: drop speech markup the TTS consumes. See caption-filter.ts. */
@@ -688,8 +688,9 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   }
 
   /**
-   * Every LLM request (preemptive or not) goes through here, gated for crisis with
-   * the turn reminder and director's notes (crisis-gate.ts), with this turn's tools.
+   * Every LLM request (preemptive or not) goes through here, gated for crisis with the turn
+   * reminder and director's notes (crisis-gate.ts), with this turn's tools. A long-silence
+   * remark is held and dropped when it is a capped "you still there?" (presence-check.ts).
    */
   async llmNode(
     chatCtx: llm.ChatContext,
@@ -701,7 +702,8 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
       return super.llmNode(ctx, tools, modelSettings) as never;
     };
-    return gatedReply(chatCtx, this.session, model, this.openerGate as never) as never;
+    const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
+    return filterSilenceReply(this.session, reply) as never;
   }
 
   private readonly turnTools = { loggedLockedHandoffs: false, agent: this };
@@ -720,12 +722,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    * The LiveKit SDK does baseStream.tee() and sends one to transcription, one to TTS.
    * So we MUST filter in ttsNode to prevent TTS from speaking the JSON.
    *
-   * This uses the shared wrappedTtsNode which handles:
+   * This uses the shared wrappedTtsNode (../shared/tts-wrapper.ts), which handles:
    * - JSON function call sanitization
    * - Interrupt-aware SSML softening
    * - FinOps cost tracking
-   *
-   * @see ../shared/tts-wrapper.ts
    */
   async ttsNode(
     text: NodeReadableStream<string>,

@@ -10,9 +10,17 @@
  */
 
 import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
+import { callerState, decideAttune, type Attunement } from './attune.js';
 import type { SSMLProsodyConfig } from '../types.js';
-import { decideEmotion, readValence, type EmotionDecision, type Valence } from './emotion.js';
+import {
+  decideEmotion,
+  readValence,
+  type EmotionDecision,
+  type StableEmotion,
+  type Valence,
+} from './emotion.js';
 import { decideReplyLaughter, placeLaughter, type LaughPlacement } from './laughter.js';
+import type { LaughterWho } from './laughter.js';
 import {
   FIRST_SENTENCE_WATCH_CHARS,
   decideLateBreath,
@@ -82,19 +90,18 @@ export interface EngineContext {
     sawLaughter?: boolean;
   };
   /** Who and which turn, for the laughter rules' cooldowns. */
-  laughter?: {
-    sessionId?: string;
-    personaId?: string;
-    turn?: number;
-    userEmotion?: string;
-    comfortLevel?: number;
-  };
+  laughter?: LaughterWho;
   /** The user's words this reply answers (nonverbal.ts). */
   userText?: string;
   /** How the caller sounded this turn, against their baseline (caller-prosody.ts). */
   callerProsody?: CallerProsody;
   /** Ferni's own energy on this call as a pace nudge (ferni-energy.ts; 0 when FERNI_STATE is off). */
   ferniNudge?: number;
+  /**
+   * VOICE_ATTUNE=on: the caller's mood this turn (turnContext.userEmotion),
+   * answered with pace, loudness and tone (attune.ts). Absent: attunement off.
+   */
+  attune?: { userEmotion?: string };
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
   /**
@@ -140,6 +147,11 @@ export function composeSpeed(incoming: number, reply: number): number {
   return Math.round(ratio * 100) / 100;
 }
 
+/** An incoming volume (a soft start) scaled by the reply's attuned one, inside Cartesia's 0.5-2. */
+export function composeVolume(incoming: number, reply: number): number {
+  return Math.round(Math.min(2, Math.max(0.5, incoming * reply)) * 100) / 100;
+}
+
 export class DirectorEngine {
   readonly plan: SpeechPlan = { segments: [] };
   readonly stats: EngineStats = {
@@ -156,6 +168,8 @@ export class DirectorEngine {
   emotion: EmotionDecision = { emotion: undefined, source: 'none' };
   /** How this reply answers the caller's voice (applied only when the prosody lever is live). */
   prosody: ProsodyResponse = { speedNudge: 0, reason: 'no-reading' };
+  /** How this reply answers the caller's mood, when VOICE_ATTUNE is on. */
+  attunement: Attunement | undefined;
 
   /** The caller's voice reading this reply answers, for the plan log. */
   get callerProsody(): CallerProsody | undefined {
@@ -179,6 +193,8 @@ export class DirectorEngine {
   private readonly spokenPhrases: PhraseAssembler;
   private opened = false;
   private replySpeed = 1;
+  /** Attuned loudness for the whole reply (1 unless attunement and pacing are live). */
+  private replyVolume = 1;
   private pendingTags = '';
   private segmentsSinceBreath = Infinity;
   private spokenSighChecked = false;
@@ -360,12 +376,13 @@ export class DirectorEngine {
     // Decided in shadow too, so the plan log shows what it would do.
     this.prosody = respondToProsody(this.ctx.callerProsody, this.replyValence);
     const answerVoice = this.live('prosody');
+    this.attunement = this.attune(answerVoice);
     this.emotion = decideEmotion({
       authored: this.ctx.cues.authoredEmotion,
       sessionHint: this.ctx.sessionHint,
       openingText,
       previous: this.ctx.carry.emotion,
-      prosody: answerVoice ? this.prosody.emotion : undefined,
+      prosody: this.toneCandidate(answerVoice),
     });
     const pace = decideSpeed({
       valence: readValence(openingText),
@@ -374,7 +391,7 @@ export class DirectorEngine {
       previous: this.ctx.carry.speed,
       nudge: (answerVoice ? this.prosody.speedNudge : 0) + (this.ctx.ferniNudge ?? 0),
     });
-    this.speed = Math.abs(pace.speed - 1) < SPEED_EPSILON ? 1 : pace.speed;
+    this.settlePace(pace.speed);
     this.replySpeed = this.live('pacing') && pace.supported ? this.speed : 1;
     if (this.ctx.modes.nonverbal !== 'off') {
       this.opening = decideOpening({
@@ -393,12 +410,36 @@ export class DirectorEngine {
     }
   }
 
+  /** A tone answering the caller: their mood when attuned, else their voice (prosody lever). */
+  private toneCandidate(answerVoice: boolean): StableEmotion | undefined {
+    return this.attunement?.emotion ?? (answerVoice ? this.prosody.emotion : undefined);
+  }
+
+  /** The reply's speed (attunement owns it when on: its own targets, smoothing, bounds) and loudness. */
+  private settlePace(directorSpeed: number): void {
+    const speed = this.attunement?.speed ?? directorSpeed;
+    this.speed = Math.abs(speed - 1) < SPEED_EPSILON ? 1 : speed;
+    this.replyVolume = this.live('pacing') ? (this.attunement?.volume ?? 1) : 1;
+  }
+
+  /** VOICE_ATTUNE: how this reply answers the caller's mood (attune.ts), else undefined. */
+  private attune(answerVoice: boolean): Attunement | undefined {
+    if (!this.ctx.attune) return undefined;
+    return decideAttune({
+      state: callerState(this.ctx.attune.userEmotion, answerVoice ? this.prosody : undefined),
+      valence: this.replyValence,
+      previous: { speed: this.ctx.carry.speed, volume: this.ctx.carry.volume },
+      nudge: this.ctx.ferniNudge,
+    });
+  }
+
   private openingTags(original: string, lead: SSMLProsodyConfig): string {
     if (!this.live('emotion') && !this.live('pacing')) return original;
     return this.ctx.renderTags({
       // A soft start (interrupt recovery) keeps its own pace, scaled by the reply's.
       speed: this.live('pacing') ? composeSpeed(lead.speed ?? 1, this.replySpeed) : lead.speed,
-      volume: lead.volume,
+      volume:
+        this.replyVolume === 1 ? lead.volume : composeVolume(lead.volume ?? 1, this.replyVolume),
       emotion: this.live('emotion') ? this.emotion.emotion : lead.emotion,
     });
   }
@@ -415,6 +456,12 @@ export class DirectorEngine {
       tags = tags.replace(
         SPEED_TAG,
         `<speed ratio="${composeSpeed(lead.speed, this.replySpeed)}"/>`
+      );
+    }
+    if (this.replyVolume !== 1 && lead.volume !== undefined) {
+      tags = tags.replace(
+        VOLUME_TAG,
+        `<volume ratio="${composeVolume(lead.volume, this.replyVolume)}"/>`
       );
     }
     if (this.live('emotion')) tags = tags.replace(ANY_EMOTION_TAG, '');

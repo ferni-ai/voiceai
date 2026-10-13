@@ -24,6 +24,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { SELF_VOICED_NOTE, SPARSE_MARKUP_NOTE, adaptSpeechMarkup } from './speech-markup-notes.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { withOwnLife } from '../../personas/persona-slip-guard.js';
+import { withStoryHonesty } from './ai-honesty.js';
 // Use centralized FTIS mode check - single source of truth
 import { isFtisEnabled } from '../../config/tool-config.js';
 
@@ -160,13 +161,13 @@ const FALLBACK_PROMPTS: Record<string, string> = {
   'alex-chen':
     'You are Alex Chen, an efficient and warm communication coach who helps with calendar, email, and scheduling.',
   'peter-john':
-    'You are Peter John, an 80-year-old analytical mind who sees patterns nobody else sees.',
+    'You are Peter John, a retired quant in his late seventies who sees patterns nobody else sees.',
   'jordan-taylor':
     'You are Jordan Taylor, an enthusiastic lifetime planner who makes every milestone feel special.',
   'nayan-patel':
     'You are Nayan Patel, a mystic lifetime coach who thinks in decades and blends Eastern wisdom with Western pragmatism.',
   'joel-dickson':
-    'You are Joel Dickson, a wise friend and mentor with a Stanford PhD and 30 years at Vanguard. You help people think clearly about money and life with warmth, wit, and genuine curiosity.',
+    'You are Nate Holloway, a wise friend and mentor, an economist with nearly 30 years at a low-cost fund company. You help people think clearly about money and life with warmth, wit, and genuine curiosity.',
 };
 
 // ============================================================================
@@ -452,18 +453,11 @@ async function loadToolUsageGuidance(bundleDir: string): Promise<string | null> 
     return null;
   }
 
-  const guidance = await loadFile(bundleDir, 'identity/tool-usage-guidance.md');
-
-  if (guidance) {
-    log.debug(
-      { bundleDir, providerId: provider.id },
-      `${provider.getLogPrefix()} Loaded tool usage guidance (conceptual knowledge about WHEN to use tools)`
-    );
-    return guidance;
-  }
-
-  log.debug({ bundleDir }, 'No tool-usage-guidance.md found');
-  return null;
+  // Plus what every persona can do (music, timers, reminders, weather): dev call 2026-10-12
+  const own = await loadFile(bundleDir, 'identity/tool-usage-guidance.md');
+  const guidance = [own, await loadSharedFile('shared-capabilities.md')].filter(Boolean);
+  log.debug({ bundleDir, own: !!own }, `${provider.getLogPrefix()} Loaded tool usage guidance`);
+  return guidance.length ? guidance.join('\n\n') : null;
 }
 
 async function loadAssemblyConfig(bundleDir: string): Promise<AssemblyConfig | null> {
@@ -837,10 +831,9 @@ export async function loadModelBaseInstructions(): Promise<string> {
       );
     }
 
-    // The one rule for when someone sincerely asks if they're talking to an AI.
-    // Appended to every base (character, minimal, full) so no persona or
-    // provider path can lose it; the persona prompts never bring it up.
-    const aiHonesty = await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8');
+    // The one sincere-ask rule, on every base so no path loses it (ai-honesty.ts).
+    const honestyRule = await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8');
+    const aiHonesty = withStoryHonesty(honestyRule);
 
     // Combine: base content + voice output rules (always appended)
     const combined = [baseContent, voiceOutputRules, aiHonesty]

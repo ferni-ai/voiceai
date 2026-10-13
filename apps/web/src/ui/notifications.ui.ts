@@ -15,8 +15,19 @@
 import { getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { ICONS, injectSharedStyles, escapeHtml, type IconName } from './engagement-components.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { dismissToast, showToast } from './overlay/toast-region.js';
+import {
+  NOTIFICATION_COPY,
+  TYPE_COLORS,
+  TYPE_ICONS,
+  type NotificationType,
+} from './notifications-copy.js';
+
+export type { NotificationType } from './notifications-copy.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -27,7 +38,7 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 export interface Notification {
   id: string;
-  type: 'ritual_reminder' | 'streak_milestone' | 'prediction_ready' | 'team_huddle' | 'welcome';
+  type: NotificationType;
   title: string;
   message: string;
   personaId?: string;
@@ -47,75 +58,6 @@ export interface NotificationUICallbacks {
 }
 
 // ============================================================================
-// HUMANIZED COPY
-// ============================================================================
-
-const NOTIFICATION_COPY = {
-  ritual_reminder: {
-    titleKey: 'notifications.ritualReminder.title',
-    ctaKey: 'notifications.ritualReminder.cta',
-  },
-  streak_milestone: {
-    titleKey: 'notifications.streakMilestone.title',
-  },
-  prediction_ready: {
-    titleKey: 'notifications.predictionReady.title',
-    ctaKey: 'notifications.predictionReady.cta',
-  },
-  team_huddle: {
-    titleKey: 'notifications.teamHuddle.title',
-    ctaKey: 'notifications.teamHuddle.cta',
-  },
-  welcome: {
-    titleKey: 'notifications.welcome.title',
-  },
-};
-
-// ============================================================================
-// NOTIFICATION COLORS BY TYPE (CSS Variables)
-// ============================================================================
-
-const TYPE_COLORS: Record<Notification['type'], { bg: string; border: string; icon: string }> = {
-  ritual_reminder: {
-    bg: 'var(--persona-tint, var(--color-accent-subtle))',
-    border: 'var(--persona-primary, var(--color-accent-primary))',
-    icon: 'var(--persona-primary, var(--color-accent-primary))',
-  },
-  streak_milestone: {
-    bg: 'var(--color-semantic-success-glow)',
-    border: 'var(--color-semantic-success)',
-    icon: 'var(--color-semantic-success)',
-  },
-  prediction_ready: {
-    bg: 'var(--color-semantic-info-glow)',
-    border: 'var(--color-semantic-info)',
-    icon: 'var(--color-semantic-info)',
-  },
-  team_huddle: {
-    bg: 'var(--color-semantic-warning-glow)',
-    border: 'var(--color-semantic-warning)',
-    icon: 'var(--color-semantic-warning)',
-  },
-  welcome: {
-    bg: 'var(--persona-tint, var(--color-accent-subtle))',
-    border: 'var(--persona-primary, var(--color-accent-primary))',
-    icon: 'var(--persona-primary, var(--color-accent-primary))',
-  },
-};
-
-// ============================================================================
-// DEFAULT ICONS BY TYPE
-// ============================================================================
-
-const TYPE_ICONS: Record<Notification['type'], IconName> = {
-  ritual_reminder: 'clock',
-  streak_milestone: 'flame',
-  prediction_ready: 'clock',
-  team_huddle: 'heart',
-  welcome: 'sunny',
-};
-
-// ============================================================================
 // NOTIFICATIONS UI CLASS
 // ============================================================================
 
@@ -123,6 +65,8 @@ class NotificationsUI {
   private container: HTMLElement | null = null;
   private notifications: Map<string, { element: HTMLElement; data: Notification }> = new Map();
   private callbacks: NotificationUICallbacks = {};
+  /** Notification id -> toast id, while the overlay host renders them. */
+  private toasts: Map<string, string> = new Map();
   private styleElement: HTMLStyleElement | null = null;
 
   /**
@@ -158,6 +102,10 @@ class NotificationsUI {
    * Show a notification
    */
   show(notification: Notification): void {
+    if (isOverlayHostEnabled()) {
+      this.showInToastRegion(notification);
+      return;
+    }
     this.initialize();
     if (!this.container) return;
 
@@ -183,6 +131,11 @@ class NotificationsUI {
    * Dismiss a notification
    */
   dismiss(id: string): void {
+    const toastId = this.toasts.get(id);
+    if (toastId) {
+      dismissToast(toastId);
+      return;
+    }
     const item = this.notifications.get(id);
     if (!item) return;
 
@@ -205,6 +158,7 @@ class NotificationsUI {
    * Dismiss all notifications
    */
   dismissAll(): void {
+    for (const id of [...this.toasts.keys()]) this.dismiss(id);
     for (const id of this.notifications.keys()) {
       this.dismiss(id);
     }
@@ -214,12 +168,36 @@ class NotificationsUI {
    * Get active notification count
    */
   getCount(): number {
-    return this.notifications.size;
+    return this.notifications.size + this.toasts.size;
   }
 
   // ============================================================================
   // PRIVATE METHODS
   // ============================================================================
+
+  /** Overlay host on: the card becomes a toast in the shared top-right region. */
+  private showInToastRegion(notification: Notification): void {
+    const { action, dismissAfter } = notification;
+    const toastId = showToast({
+      title: notification.title,
+      message: notification.message,
+      duration: dismissAfter,
+      persistent: !dismissAfter,
+      dismissible: true,
+      action: action && {
+        label: action.label,
+        callback: () => {
+          action.callback();
+          this.callbacks.onAction?.(notification);
+        },
+      },
+      onDismiss: () => {
+        this.toasts.delete(notification.id);
+        this.callbacks.onDismiss?.(notification);
+      },
+    });
+    this.toasts.set(notification.id, toastId);
+  }
 
   private createNotificationElement(notification: Notification): HTMLElement {
     const colors = TYPE_COLORS[notification.type];
@@ -544,14 +522,13 @@ export function showRitualReminder(
   });
 }
 
-/**
- * Show a streak milestone notification
- */
+/** Show a streak milestone notification (never under VITE_NO_STREAKS). */
 export function showStreakMilestone(
   ritualName: string,
   streakCount: number,
   personaId: string
 ): void {
+  if (isNoStreaksOn()) return;
   getNotificationsUI().show({
     id: `streak-${Date.now()}`,
     type: 'streak_milestone',

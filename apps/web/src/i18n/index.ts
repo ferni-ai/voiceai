@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { hasEveryParam, interpolate, type TranslationParams } from './interpolate.js';
 
 const log = createLogger('I18n');
 
@@ -35,7 +36,7 @@ export type SupportedLocale =
 
 export type TextDirection = 'ltr' | 'rtl';
 
-export type TranslationParams = Record<string, string | number>;
+export type { TranslationParams };
 
 interface Translations {
   [key: string]: string | string[] | Translations;
@@ -256,6 +257,16 @@ async function loadTranslations(locale: SupportedLocale): Promise<void> {
       }
     }
   }
+
+  // t() falls back through FALLBACK_CHAIN to en-US, which only works if those
+  // locales are loaded. Loading only the chosen one (e.g. es after a reload)
+  // left every untranslated key on screen as its raw name ("aiLabel.companion"),
+  // which failed the signed-in locale walk on every PR (2026-10-11).
+  for (const fallback of FALLBACK_CHAIN[locale] || []) {
+    if (!loadedTranslations.has(fallback)) {
+      await loadTranslations(fallback);
+    }
+  }
 }
 
 // ============================================================================
@@ -402,15 +413,13 @@ function getNestedValue(obj: Translations, path: string): string | undefined {
 }
 
 /**
- * Interpolate variables into a translation string
+ * Translate only when every placeholder gets a non-blank param; otherwise
+ * null. For text worthless without its data, such as a toast built from a
+ * server payload: callers skip it instead of showing half a sentence.
  */
-function interpolate(str: string, params?: TranslationParams): string {
-  if (!params) return str;
-
-  return str.replace(/\{(\w+)\}/g, (match, key) => {
-    const value = params[key];
-    return value !== undefined ? String(value) : match;
-  });
+export function tIfComplete(key: string, params: TranslationParams): string | null {
+  const template = lookupTemplate(key);
+  return template !== undefined && hasEveryParam(template, params) ? interpolate(template, params) : null;
 }
 
 /**
@@ -452,34 +461,8 @@ export function t(
     }
   }
 
-  // Try current locale (skip [NEEDS_TRANSLATION] placeholders)
-  const translations = loadedTranslations.get(currentLocale);
-  if (translations) {
-    const value = getNestedValue(translations, key);
-    if (isUsableTranslation(value)) {
-      return interpolate(value, params);
-    }
-  }
-
-  // Try fallback chain
-  for (const localefall of FALLBACK_CHAIN[currentLocale] || []) {
-    const fallbackTranslations = loadedTranslations.get(localefall);
-    if (fallbackTranslations) {
-      const value = getNestedValue(fallbackTranslations, key);
-      if (isUsableTranslation(value)) {
-        return interpolate(value, params);
-      }
-    }
-  }
-
-  // Try en-US as last resort
-  const enTranslations = loadedTranslations.get('en-US');
-  if (enTranslations) {
-    const value = getNestedValue(enTranslations, key);
-    if (isUsableTranslation(value)) {
-      return interpolate(value, params);
-    }
-  }
+  const template = lookupTemplate(key);
+  if (template !== undefined) return interpolate(template, params);
 
   // Return fallback text or key if nothing found
   if (fallback) {
@@ -487,6 +470,17 @@ export function t(
   }
   log.warn(`Missing translation: ${key}`);
   return key;
+}
+
+/** The raw string for a key: current locale, its fallback chain, then en-US. */
+function lookupTemplate(key: string): string | undefined {
+  for (const locale of [currentLocale, ...(FALLBACK_CHAIN[currentLocale] || []), 'en-US' as const]) {
+    const translations = loadedTranslations.get(locale);
+    // Skip [NEEDS_TRANSLATION] placeholders.
+    const value = translations ? getNestedValue(translations, key) : undefined;
+    if (isUsableTranslation(value)) return value;
+  }
+  return undefined;
 }
 
 // ============================================================================

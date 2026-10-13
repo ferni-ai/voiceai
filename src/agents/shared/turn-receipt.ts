@@ -190,6 +190,11 @@ export class TurnReceiptRecorder {
     if (!turn) return;
     this.count += 1;
     const receipt = this.build(turn, endedBy);
+    // Prod 2026-10-12: after a cut-off, LiveKit stopped adding Ferni's replies to the
+    // history, and the model re-answered questions it had already answered.
+    if (receipt.reply.unrecorded) {
+      log.warn({ sessionId: this.opts.sessionId, turn: this.count }, 'REPLY_NOT_RECORDED');
+    }
     try {
       (this.opts.emit ?? ((r) => log.info(r, 'TURN_RECEIPT')))(receipt);
     } catch (error) {
@@ -254,7 +259,13 @@ export class TurnReceiptRecorder {
           result: handoffTool ? (personaId !== turn.personaAtStart ? 'switched' : 'stayed') : null,
         },
       },
-      reply: { ...turn.reply, ttsCancelled: turn.ttsCancelled },
+      reply: {
+        ...turn.reply,
+        ttsCancelled: turn.ttsCancelled,
+        /** Ferni spoke and the caller's turn ended, but no reply reached the chat history. */
+        unrecorded:
+          endedBy === 'listening' && turn.speakingAt !== undefined && turn.reply.messages === 0,
+      },
     };
   }
 }
