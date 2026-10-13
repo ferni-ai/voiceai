@@ -18,7 +18,6 @@ import {
   getMemoryConsolidator,
   getMemoryDecayManager,
   getMemoryDeduplicator,
-  type ConsolidationResult,
   type DecayingMemory,
   type MemoryItem,
   type MemoryMetrics,
@@ -40,6 +39,11 @@ import { runFirestoreQuery } from '../../utils/firestore-query.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { opsAlert } from '../../services/platform/ops-alert.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
+import {
+  createFirestoreCursorStore,
+  listActiveUsersPage,
+  runConsolidationBatch,
+} from './consolidation-batch.js';
 
 const log = getLogger();
 
@@ -227,6 +231,9 @@ export interface ConsolidationJobResult extends Record<string, unknown> {
   memoriesCompressed: number;
   bytesRecovered: number;
   usersProcessed: number;
+  usersVisited: number;
+  budgetExhausted: boolean;
+  passComplete: boolean;
 }
 
 /**
@@ -257,77 +264,21 @@ export class MemoryConsolidationJob extends ScheduledJob<
     const consolidator = getMemoryConsolidator({
       similarityThreshold: config.similarityThreshold,
     });
-
     ctx.log.info('Starting memory consolidation scan');
 
-    // Get active users
-    const userIds = await getActiveUserIds(config.maxUsersPerRun);
-    ctx.log.info({ userCount: userIds.length }, 'Found users for consolidation');
+    // Time-budgeted and resumable: the server drops sockets idle for 30 s.
+    const batch = await runConsolidationBatch(
+      config,
+      {
+        listUsers: listActiveUsersPage,
+        loadMemories: getUserMemories,
+        consolidate: (memories) => consolidator.runConsolidationPass(memories),
+        cursor: createFirestoreCursorStore(),
+      },
+      ctx
+    );
 
-    let totalMemoriesAnalyzed = 0;
-    let totalGroupsConsolidated = 0;
-    let totalMemoriesCompressed = 0;
-    let usersProcessed = 0;
-
-    // Process each user
-    for (const userId of userIds) {
-      try {
-        const memories = await getUserMemories(userId);
-
-        // Skip users with too few memories
-        if (memories.length < config.minMemoriesForConsolidation) {
-          ctx.log.debug(
-            { userId, memoryCount: memories.length },
-            'Skipping user - too few memories'
-          );
-          continue;
-        }
-
-        ctx.counters.processed++;
-        usersProcessed++;
-
-        if (config.dryRun) {
-          ctx.log.info(
-            { userId, memoryCount: memories.length },
-            'DRY RUN: Would consolidate memories'
-          );
-          ctx.counters.skipped++;
-          continue;
-        }
-
-        // Run consolidation for this user
-        const result: ConsolidationResult = await consolidator.runConsolidationPass(
-          memories.slice(0, config.maxMemoriesToProcess)
-        );
-
-        totalMemoriesAnalyzed += result.memoriesProcessed;
-        totalGroupsConsolidated += result.groupsFound;
-        totalMemoriesCompressed += result.consolidated.length;
-
-        if (result.consolidated.length > 0) {
-          ctx.log.info(
-            {
-              userId,
-              memoriesProcessed: result.memoriesProcessed,
-              consolidated: result.consolidated.length,
-            },
-            'Consolidated memories for user'
-          );
-          ctx.counters.success++;
-        }
-      } catch (error) {
-        ctx.counters.errors++;
-        ctx.log.warn({ error, userId }, 'Failed to consolidate memories for user');
-      }
-    }
-
-    return {
-      memoriesAnalyzed: totalMemoriesAnalyzed,
-      groupsConsolidated: totalGroupsConsolidated,
-      memoriesCompressed: totalMemoriesCompressed,
-      bytesRecovered: 0, // Would calculate based on actual storage reduction
-      usersProcessed,
-    };
+    return { ...batch, bytesRecovered: 0 };
   }
 }
 
@@ -741,7 +692,12 @@ export class MemoryHealthCheckJob extends ScheduledJob<HealthCheckJobConfig, Hea
   /** Critical findings reach the operator through the ops-alert email policy. */
   private async sendAlerts(alerts: MetricAlert[], _config: HealthCheckJobConfig): Promise<void> {
     opsAlert('memory-health', `🚨 ${alerts.length} critical memory health alert(s)`, {
-      alerts: alerts.map((a) => ({ metric: a.metric, message: a.message, value: a.currentValue, threshold: a.threshold })),
+      alerts: alerts.map((a) => ({
+        metric: a.metric,
+        message: a.message,
+        value: a.currentValue,
+        threshold: a.threshold,
+      })),
     });
   }
 }

@@ -11,6 +11,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { z } from 'zod';
 import { createLogger } from '../utils/safe-logger.js';
 import { finops } from '../services/observability/finops.js';
+import { requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendJSON, sendError } from './helpers.js';
 
 const log = createLogger({ module: 'ConversationCostRoutes' });
@@ -47,19 +48,6 @@ interface ConversationCostResponse {
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-/**
- * Extract user ID from request headers or query params.
- * SECURITY: Uses Firebase auth (x-firebase-uid) as primary identity.
- */
-function extractUserId(req: IncomingMessage, query: URLSearchParams): string | null {
-  // SECURITY: Use Firebase auth only
-  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
-  if (firebaseUid) return firebaseUid;
-
-  const queryUserId = query.get('userId') || query.get('user_id');
-  return queryUserId || null;
-}
 
 /**
  * Generate a warm, personal message about the conversation cost.
@@ -130,17 +118,22 @@ export async function handleConversationCostRoutes(
   try {
     // GET /api/conversation/cost
     if (pathname === '/api/conversation/cost' && req.method === 'GET') {
-      const userId = extractUserId(req, query);
+      // SECURITY: the subject is the verified caller. A ?userId= / ?user_id=
+      // used to pick whose costs to return, with no auth at all.
+      const auth = await requireAuth(req, res);
+      if (!auth) return true;
+      const { userId } = auth;
       const sessionId = query.get('sessionId') || query.get('session_id');
 
-      // Try to find the session cost
       let sessionCost;
-
       if (sessionId) {
-        // Get specific session
         sessionCost = finops.getSessionCost(sessionId);
-      } else if (userId) {
-        // Get most recent session for user
+        // Someone else's session (or one with no recorded owner) is not found, not forbidden
+        if (sessionCost?.userId !== userId) {
+          sendError(res, 'Session not found', 404);
+          return true;
+        }
+      } else {
         sessionCost = finops.getSessionCostByUserId(userId);
       }
 

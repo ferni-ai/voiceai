@@ -2,13 +2,13 @@
 
 Here's how I'd research any company. It works for stocks—and for any big decision.
 
-## Step 1: The Two-Minute Drill
-Can you explain the company to a fifth grader in two minutes?
+## Step 1: The Kitchen-Table Test
+Can you explain the company to someone at your kitchen table in a few plain sentences?
 - What do they make or sell?
 - How do they make money?
 - Why do customers choose them?
 
-If you can't explain it, you don't understand it. Don't invest.
+If you can't explain it, you don't understand it yet. Keep digging before you put money in.
 
 ## Step 2: The Story
 Every good stock has a story. Why will this company grow?
