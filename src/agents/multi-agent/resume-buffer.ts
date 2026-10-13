@@ -62,19 +62,49 @@ export class ResumeBufferOutput extends voice.AudioOutput {
   constructor(
     readonly inner: voice.AudioOutput,
     private readonly owner: object,
-    private readonly log: (fields: Record<string, unknown>) => void = () => undefined
+    private readonly log: (fields: Record<string, unknown>) => void = () => undefined,
+    /** PLAYOUT_DRIFT_GUARD=on: never count a segment the room never got (see waitForPlayout). */
+    private readonly driftGuard = false
   ) {
     super(inner.sampleRate, inner, { pause: true });
   }
 
   async captureFrame(frame: AudioFrame): Promise<void> {
-    await super.captureFrame(frame);
+    if (!this.driftGuard) await super.captureFrame(frame);
     const cuts = this.cuts;
     await this.gate;
     await this.replaying;
     if (cuts !== this.cuts) return; // the reply was cut while this frame waited
+    // Counted only once forwarded: a reply cut at the gate before its first frame went
+    // on must not leave a segment here that no "playout finished" will ever close.
+    if (this.driftGuard) await super.captureFrame(frame);
     this.keep(frame);
     await this.inner.captureFrame(frame);
+  }
+
+  /**
+   * Lost replies, 2026-10-13 (voiceai-evidence/lost-replies-repro-2026-10-13): a reply
+   * whose first frame waited at the paused gate and was then cut was counted here but
+   * never reached the room, so every later waitForPlayout() waited for the NEXT reply's
+   * audio: each reply was recorded one turn late, with the next reply's text, or never.
+   * LiveKit settles that drift in SyncedAudioOutput.waitForPlayout(), which nothing calls
+   * once this output wraps it; call it so the inner chain settles too.
+   */
+  async waitForPlayout(): Promise<voice.PlaybackFinishedEvent> {
+    if (this.driftGuard) {
+      // Its drift settling runs synchronously, before its first await.
+      this.inner
+        .waitForPlayout()
+        .catch((error: unknown) =>
+          this.log({ event: 'inner_playout_failed', error: String(error) })
+        );
+      const drift =
+        this.pendingPlayoutSegments - this.inner.pendingPlayoutSegments - (this.held ? 1 : 0);
+      for (let i = 0; i < drift; i++)
+        super.onPlaybackFinished({ playbackPosition: 0, interrupted: true });
+      if (drift > 0) this.log({ event: 'drift_settled', drift });
+    }
+    return super.waitForPlayout();
   }
 
   private keep(frame: AudioFrame): void {
@@ -175,9 +205,15 @@ export class ResumeBufferOutput extends voice.AudioOutput {
 /** Put a resume buffer in front of the session's audio output (again if the room replaced it). */
 export function ensureResumeBuffer(
   session: { output: { audio: voice.AudioOutput | null } },
-  log?: (fields: Record<string, unknown>) => void
+  log?: (fields: Record<string, unknown>) => void,
+  env: Record<string, string | undefined> = process.env
 ): void {
   const audio = session.output.audio;
   if (!audio || audio instanceof ResumeBufferOutput || !audio.canPause) return;
-  session.output.audio = new ResumeBufferOutput(audio, session, log);
+  session.output.audio = new ResumeBufferOutput(
+    audio,
+    session,
+    log,
+    env.PLAYOUT_DRIFT_GUARD === 'on'
+  );
 }

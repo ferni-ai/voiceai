@@ -21,6 +21,8 @@ vi.mock('../../../token/livekit.js', () => ({
   getLiveKitUrl: () => 'wss://example.livekit.cloud',
   getRoomService: () => ({ listRooms }),
 }));
+// The atomic claim has its own test (token-room-claim.test.ts)
+vi.mock('../token-room-claim.js', () => ({ claimRoom: async () => 'mine' }));
 vi.mock('../../../../api/auth-middleware.js', () => ({ rateLimit: () => false }));
 vi.mock('../../../../services/identity/firebase-auth.js', () => ({
   verifyFirebaseToken: vi.fn(async () => ({ uid: 'uid-alice', claims: {} })),
