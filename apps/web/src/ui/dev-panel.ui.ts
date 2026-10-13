@@ -111,6 +111,7 @@ import {
 import { cancelAllAvatarAnimations } from './dev-panel/handlers/index.js';
 import { handleOutreachAction as handleOutreachActionImpl } from './dev-panel/handlers/outreach.js';
 import { ICONS } from './dev-panel/icons.js';
+import { devPanelMayEnable } from './dev-panel-gate.js';
 import { toast } from './whisper.ui.js';
 
 const log = createLogger('DevPanel');
@@ -122,41 +123,10 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // CONFIG
 // ============================================================================
 
-// Check if we're in dev mode
-const isDevEnvironment = (): boolean => {
-  try {
-    // Vite sets these environment variables
-    const env = (import.meta as { env?: { DEV?: boolean; MODE?: string } }).env;
-    return env?.DEV === true || env?.MODE === 'development';
-  } catch {
-    return false;
-  }
-};
-
-// Admin key for production dev panel access
-// Configure via environment variables:
-//   VITE_DEV_PANEL_KEY  - The secret key required for access (no default: unset = no key access)
-//   VITE_DEV_PANEL_AUTO - Set to 'true' to auto-enable dev panel (for admin deployments)
-const getEnvConfig = () => {
-  try {
-    const env = (
-      import.meta as {
-        env?: {
-          VITE_DEV_PANEL_KEY?: string;
-          VITE_DEV_PANEL_AUTO?: string;
-        };
-      }
-    ).env;
-    return {
-      adminKey: env?.VITE_DEV_PANEL_KEY || null, // no default: it was public
-      autoEnable: env?.VITE_DEV_PANEL_AUTO === 'true',
-    };
-  } catch {
-    return { adminKey: null, autoEnable: false };
-  }
-};
-
-const ENV_CONFIG = getEnvConfig();
+// Who may turn the panel on is decided in dev-panel-gate.ts, so the lazy
+// loader in app.ts and the panel agree: dev builds, VITE_DEV_PANEL_AUTO=true
+// builds, or ?dev=<VITE_DEV_PANEL_KEY> when the build has a key.
+const DEV_PANEL_AUTO = import.meta.env.VITE_DEV_PANEL_AUTO === 'true';
 
 // Clean up any previously stored admin keys (security improvement)
 // Dev panel now requires URL param each time, no persistent access
@@ -166,30 +136,7 @@ try {
   // Ignore localStorage errors
 }
 
-const checkAdminAccess = (): boolean => {
-  // Auto-enable if VITE_DEV_PANEL_AUTO=true is set in .env
-  // Useful for admin/staging deployments where you always want dev tools
-  if (ENV_CONFIG.autoEnable) {
-    return true;
-  }
-
-  const urlParams = new URLSearchParams(window.location.search);
-
-  // Check URL parameter with key (must be present in URL - no longer stored)
-  const urlKey = urlParams.get('dev');
-  if (urlKey && ENV_CONFIG.adminKey && urlKey === ENV_CONFIG.adminKey) {
-    return true;
-  }
-
-  // Legacy check for simple dev mode flag (only works in dev environment)
-  if (isDevEnvironment()) {
-    return localStorage.getItem('ferni_dev_mode') === 'true' || urlParams.has('dev');
-  }
-
-  return false;
-};
-
-const DEV_MODE_ENABLED = isDevEnvironment() || checkAdminAccess();
+const DEV_MODE_ENABLED = devPanelMayEnable();
 
 // ============================================================================
 // ICONS - Now imported from ./dev-panel/icons.ts
@@ -232,11 +179,11 @@ export function initDevPanel(): void {
   const urlParams = new URLSearchParams(window.location.search);
   const hasDevParam = urlParams.has('dev');
   
-  if (ENV_CONFIG.autoEnable || hasDevParam) {
+  if (DEV_PANEL_AUTO || hasDevParam) {
     // Use setTimeout to ensure services are ready
     setTimeout(() => {
       quickUnlockAll();
-      log.info(`Auto-unlocked all team members (${ENV_CONFIG.autoEnable ? 'VITE_DEV_PANEL_AUTO' : '?dev URL param'})`);
+      log.info(`Auto-unlocked all team members (${DEV_PANEL_AUTO ? 'VITE_DEV_PANEL_AUTO' : '?dev URL param'})`);
     }, 100);
   }
 
@@ -1214,7 +1161,6 @@ function createPanel(): HTMLElement {
         <div class="dev-subsection">
           <span class="dev-label">Feature Hints</span>
           <div class="dev-expression-buttons" role="button" tabindex="0">
-            <button aria-label="Team Huddle" class="dev-expression-btn" data-feature-hint="team-huddle-intro" title="Team Huddle hint">Team Huddle</button>
             <button aria-label="Rituals" class="dev-expression-btn" data-feature-hint="custom-rituals-intro" title="Custom Rituals hint">Rituals</button>
             <button aria-label="Memory" class="dev-expression-btn" data-feature-hint="memory-timeline-intro" title="Memory Timeline hint">Memory</button>
             <button aria-label="Reset Hints" class="dev-expression-btn dev-expression-btn--danger" data-action="reset-hints" title="Reset dismissed hints">Reset Hints</button>
@@ -1813,9 +1759,6 @@ function createPanel(): HTMLElement {
             </button>
             <button aria-label="Confirm" class="dev-expression-btn dev-expression-btn--modal" data-modal="daily" title="Open daily check-in">
               ${ICONS.sun} Daily Check-in
-            </button>
-            <button aria-label="Team Huddle" class="dev-expression-btn dev-expression-btn--modal" data-modal="huddle" title="Open team huddle">
-              ${ICONS.handshake} Team Huddle
             </button>
             <button aria-label="Marketplace" class="dev-expression-btn dev-expression-btn--modal" data-modal="marketplace" title="Open marketplace">
               ${ICONS.store} Marketplace
@@ -5338,10 +5281,6 @@ function openModal(modal: string): void {
     case 'daily':
       window.dispatchEvent(new CustomEvent('ferni:open-daily-practice'));
       log.info('Opening daily check-in');
-      break;
-    case 'huddle':
-      window.dispatchEvent(new CustomEvent('ferni:open-team-huddle'));
-      log.info('Opening team huddle');
       break;
     case 'marketplace':
       window.dispatchEvent(new CustomEvent('ferni:open-marketplace'));

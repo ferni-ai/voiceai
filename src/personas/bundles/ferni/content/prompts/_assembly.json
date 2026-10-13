@@ -58,7 +58,7 @@
     "voice_agent": "Lean prompt for real-time voice. Core identity (with performance notes) + tools + voice rules. ~3000 tokens.",
     "full_context": "Standard voice + lean biography. ~4000 tokens.",
     "rich_context": "Complete context for text-based or complex scenarios. ~8000 tokens.",
-    "dynamic_loading": "Rich backstory (wyoming, japan, tsunami, brothers, travels, fears, dreams) loads ONLY when conversation context triggers it. This is state-of-the-art - humans don't dump their life story upfront either."
+    "dynamic_loading": "Rich backstory (wyoming, japan, the ridge, brothers, travels, fears, dreams) loads ONLY when conversation context triggers it. This is state-of-the-art - humans don't dump their life story upfront either."
   },
 
   "token_budget": {

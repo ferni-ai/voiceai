@@ -31,6 +31,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
 import { HedgedLLM } from './hedged-llm.js';
+import { installVertexKeepAlive } from './vertex-keepalive.js';
 import type {
   AgentSessionTurnDetection,
   LLMModelConfig,
@@ -114,11 +115,14 @@ export const INK_TURN_PROFILES: Record<'balanced' | 'responsive' | 'patient', In
  * which left every dev call deaf when 0.35 was tried. Out-of-range values are
  * ignored.
  *
- * CASCADE_TURN_END overrides the end threshold the same way (strictly between
- * 0 and the eager threshold). In stt turn detection ink alone decides when the
- * caller has finished, so this is the knob for "Ferni talks over my pauses":
- * LiveKit's max endpointing delay is never consulted in this mode. Lower waits
- * longer before taking the turn.
+ * CASCADE_TURN_END overrides the end threshold the same way: below the eager
+ * threshold and inside ink's accepted 0.05-0.5 (0.51 or 0.04 close the socket
+ * with 1008, a deaf call; probed 2026-10-11). In stt turn detection ink alone
+ * decides when the caller has finished, so this is the knob for "Ferni talks
+ * over my pauses": LiveKit's max endpointing delay is never consulted in this
+ * mode. Lower waits longer before taking the turn. The offline bakeoff
+ * (scripts/audio-eval/ink-turn-sweep.ts, 2026-10-11) keeps 0.3: 0.45 ended
+ * turns ~150 ms sooner but took 17% of 0.5-1 s mid-thought pauses (6.7% at 0.3).
  */
 export function inkTurnProfile(env: Env = process.env): InkTurnDetection {
   const name = (env.CASCADE_TURN_PROFILE || 'responsive').toLowerCase();
@@ -137,13 +141,19 @@ export function inkTurnProfile(env: Env = process.env): InkTurnDetection {
   return profile;
 }
 
+/** The turn-end thresholds ink accepts; anything else closes the stream. */
+export const INK_END_THRESHOLD_RANGE = [0.05, 0.5] as const;
+
 function withEndOverride(profile: InkTurnDetection, raw: string | undefined): InkTurnDetection {
   if (raw === undefined || raw === '') return profile;
   const end = Number(raw);
-  if (end > 0 && end < profile.eagerEndThreshold) return { ...profile, endThreshold: end };
+  const [lo, hi] = INK_END_THRESHOLD_RANGE;
+  if (end >= lo && end <= hi && end < profile.eagerEndThreshold) {
+    return { ...profile, endThreshold: end };
+  }
   log.warn(
     { end: raw, eager: profile.eagerEndThreshold },
-    'CASCADE_TURN_END ignored: must be between 0 and the eager threshold'
+    'CASCADE_TURN_END ignored: must be 0.05-0.5 and below the eager threshold'
   );
   return profile;
 }
@@ -287,25 +297,9 @@ export function logStreamOpens<T extends { stream: (...args: never[]) => unknown
   stt.stream = ((...args: never[]) => {
     opened += 1;
     log.info({ stream: opened, sinceCreatedMs: Date.now() - createdAt }, 'STT_STREAM_OPEN');
-    const stream = open(...args);
-    latestStream.set(stt, stream);
-    return stream;
+    return open(...args);
   }) as T['stream'];
   return stt;
-}
-
-/** The last stream each STT opened, for refreshSttStream. */
-const latestStream = new WeakMap<object, unknown>();
-
-/**
- * Reopen the Cartesia socket under the STT's current stream (our plugin patch's
- * refresh()). False when there is no stream, the patch is missing, or the
- * caller is mid-turn.
- */
-export function refreshSttStream(stt: unknown): boolean {
-  if (!stt || typeof stt !== 'object') return false;
-  const stream = latestStream.get(stt) as { refresh?: () => boolean } | undefined;
-  return typeof stream?.refresh === 'function' ? stream.refresh() : false;
 }
 
 /**
@@ -376,6 +370,8 @@ export class CartesiaCascadeProvider implements ModelProvider {
   async createLLMModel(config: LLMModelConfig): Promise<unknown> {
     const opts = buildCascadeLLMOptions(process.env, config.temperature);
     const hedge = buildCascadeHedge(process.env);
+    // VERTEX_KEEPALIVE=on: reply requests reuse a warm socket (vertex-keepalive.ts).
+    installVertexKeepAlive();
     log.info(
       {
         model: opts.model,

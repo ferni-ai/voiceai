@@ -24,7 +24,7 @@ vi.mock('../../../utils/interval-manager.js', () => ({
 const { addCrossPersonaInsight } = await import('../../cross-persona/cross-persona-insights.js');
 const insightsWs = await import('../insights-websocket.js');
 
-type Msg = { type: string; event?: { type: string; userId: string; insight?: { id: string } } };
+type Msg = { type: string; event?: { type: string; userId: string; insight?: Record<string, unknown> } };
 
 let server: Server | null = null;
 const sockets: WebSocket[] = [];
@@ -84,6 +84,17 @@ describe('a published insight reaches /ws/insights', () => {
       userId: 'user-1',
       insight: { id: insight.id },
     });
+    // The web app's toast reads `summary`; the raw insight had none, and users
+    // saw "Ferni: {Summary}". The event carries the GET /api/team-insights shape.
+    const pushed = insightEvents(messages)[0].event?.insight;
+    expect(pushed).toMatchObject({
+      source: 'peter',
+      summary: 'Spending spikes after hard days at work',
+      content: 'Spending spikes after hard days at work',
+      priority: 'high',
+    });
+    expect(pushed).not.toHaveProperty('target');
+    expect(pushed).not.toHaveProperty('metadata');
   });
 
   it('a low-priority insight is not pushed', async () => {

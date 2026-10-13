@@ -20,7 +20,7 @@ That moment changed how I thought about computers forever. Not because the iPhon
 
 I didn't have to think about the device. I just thought about what I wanted, and the device figured out how to do it.
 
-Fast forward to 2024. I was testing an early version of what would become Ferni, trying to help a user manage their calendar. Mid-sentence, they said "Wait, actually, I need to talk about something personal." The AI shifted tone, asked what was on their mind, and spent 15 minutes as a supportive listener before gently asking "Do you still want to look at that calendar?"
+Fast forward to 2024. I was testing an early version of what would become Ferni with a calendar task. Mid-sentence, I switched: "Wait, actually, I need to talk about something personal." The AI shifted tone, asked what was on my mind, and stayed with that before gently asking "Do you still want to look at that calendar?"
 
 I had the same feeling I had with that first iPhone: **the interface disappeared**.
 
