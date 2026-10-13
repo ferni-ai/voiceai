@@ -12,6 +12,7 @@
 
 import fs from 'fs';
 import { writeIfChanged } from './lib/write-if-changed.js';
+import { writePngIfChanged } from './lib/write-png-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -114,15 +115,11 @@ async function getSharp() {
 }
 
 /**
- * Generate PNG from SVG at a specific size
+ * Generate PNG from SVG at a specific size; true only when the file was written
  */
 async function generatePngFromSvg(sharp, svgPath, pngPath, size) {
   try {
-    await sharp(svgPath)
-      .resize(size, size)
-      .png()
-      .toFile(pngPath);
-    return true;
+    return await writePngIfChanged(sharp, svgPath, pngPath, size);
   } catch (error) {
     console.log(`  ⚠️  Failed: ${path.basename(pngPath)} - ${error.message}`);
     return false;
