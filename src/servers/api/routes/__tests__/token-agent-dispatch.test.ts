@@ -13,6 +13,8 @@ vi.mock('../../../token/livekit.js', () => ({
   getLiveKitUrl: () => 'wss://example.livekit.cloud',
   getRoomService: () => ({ listRooms: async () => [] }),
 }));
+// The atomic claim has its own test (token-room-claim.test.ts)
+vi.mock('../token-room-claim.js', () => ({ claimRoom: async () => 'mine' }));
 vi.mock('../../../../api/auth-middleware.js', () => ({ rateLimit: () => false }));
 vi.mock('../../../../services/identity/firebase-auth.js', () => ({
   verifyFirebaseToken: vi.fn(async () => ({ uid: 'uid-123', claims: {} })),
@@ -32,7 +34,10 @@ vi.mock('../../../../memory/index.js', () => ({
 // The migrated callers reach the store through getProfileStore (flag off: the default store).
 vi.mock('../../../../memory/profile-store.js', async () => {
   const { getDefaultStore } = await import('../../../../memory/index.js');
-  return { getProfileStore: async () => getDefaultStore(), isAgentProfilePersistenceOn: () => false };
+  return {
+    getProfileStore: async () => getDefaultStore(),
+    isAgentProfilePersistenceOn: () => false,
+  };
 });
 vi.mock('../../../../services/llm-dynamic-content.js', () => ({
   prewarmContent: vi.fn(async () => undefined),

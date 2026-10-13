@@ -144,7 +144,11 @@ describe('a reply paused for noise (real AgentSession)', () => {
 
   it('without it: a short reply is never resumed and most of it is never heard', async () => {
     const r = await call(SHORT, 'off', { at: 200, ms: 300 });
-    expect(r.resumed).toBe(false);
+    // 1.5.1 reported this as a false interruption with resumed: false; from 1.6
+    // the SDK drops the pause silently once the reply's playout has ended, so
+    // no event fires at all. Either way it never speaks again until asked.
+    expect(r.resumed).not.toBe(true);
+    expect(r.resumeAfterNoiseMs).toBeNull();
     expect(r.heardMs).toBeLessThan(r.replyMs / 2);
   }, 20_000);
 
