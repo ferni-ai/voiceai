@@ -123,4 +123,16 @@ describe("menu: People You've Told Me About", () => {
     expect(panel().getAttribute('data-state')).toBe('error');
     expect(document.querySelector('[aria-busy="true"]')).toBeNull();
   });
+
+  it('closing and reopening at once keeps the new panel (the old close timer used to remove it)', async () => {
+    vi.useFakeTimers();
+    serve(async () => json({ contacts: [person('Rosa', 'family')] }));
+    await openYourPeople();
+    closeYourPeople();
+    await openYourPeople();
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    expect(panel()).not.toBeNull();
+    expect(document.querySelectorAll('.your-people-panel')).toHaveLength(1);
+  });
 });

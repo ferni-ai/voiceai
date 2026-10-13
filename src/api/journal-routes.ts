@@ -547,6 +547,10 @@ export async function handleJournalRoutes(
 
       try {
         const response = await generateTwinResponse(body);
+        if (!response) {
+          sendJson(res, 503, { error: 'Twin response unavailable' });
+          return true;
+        }
         sendJson(res, 200, { response });
         return true;
       } catch (error) {
@@ -605,7 +609,11 @@ interface TwinResponseRequest {
   keyThemes: string[];
 }
 
-async function generateTwinResponse(request: TwinResponseRequest): Promise<string> {
+/**
+ * The past self's reply, or null when no model could answer. Never a canned line:
+ * words in the person's own voice that a model didn't write are invented.
+ */
+async function generateTwinResponse(request: TwinResponseRequest): Promise<string | null> {
   const { userMessage, profile, relevantJournals, keyThemes } = request;
 
   // Build system prompt from profile
@@ -636,8 +644,8 @@ async function generateTwinResponse(request: TwinResponseRequest): Promise<strin
     }
   }
 
-  // Fallback to a simpler pattern-based response
-  return generateFallbackTwinResponse(userMessage, profile, relevantJournals);
+  if (!openaiKey) log.warn('Twin response unavailable: no OPENAI_API_KEY');
+  return null;
 }
 
 function buildTwinSystemPrompt(
@@ -908,46 +916,4 @@ function extractTopThemes(entries: Array<{ themes?: string[] }>): string[] {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([theme]) => theme);
-}
-
-function generateFallbackTwinResponse(
-  userMessage: string,
-  profile: TwinResponseRequest['profile'],
-  journals: TwinResponseRequest['relevantJournals']
-): string {
-  const lowerMessage = userMessage.toLowerCase();
-
-  // Check for common patterns
-  if (lowerMessage.includes('advice') || lowerMessage.includes('should i')) {
-    if (profile.philosophy) {
-      return `You know what I've learned? "${profile.philosophy}" Whatever you're facing, remember that.`;
-    }
-    if (profile.values.length > 0) {
-      return `Think about what matters to us: ${profile.values.slice(0, 3).join(', ')}. Let those guide you.`;
-    }
-  }
-
-  if (lowerMessage.includes('feeling') || lowerMessage.includes('feel')) {
-    if (journals.length > 0) {
-      const recent = journals[0];
-      const preview = recent.content.slice(0, 150);
-      return `I've felt that too. Remember when I wrote: "${preview}..." We got through it before, we'll get through this too.`;
-    }
-    return "I hear you. We've been through tough times before and found our way. What's really on your mind?";
-  }
-
-  if (lowerMessage.includes('remember') || lowerMessage.includes('past')) {
-    if (journals.length > 0) {
-      const entry = journals[0];
-      return `Yeah, I remember. There was that time I wrote: "${entry.content.slice(0, 120)}..." What made you think of that?`;
-    }
-  }
-
-  // Use a mannerism if available
-  if (profile.mannerisms.length > 0) {
-    const phrase = profile.mannerisms[Math.floor(Math.random() * profile.mannerisms.length)];
-    return `${phrase} That's something I've been thinking about too. What's on your mind?`;
-  }
-
-  return "That's interesting. Tell me more about what you're thinking.";
 }

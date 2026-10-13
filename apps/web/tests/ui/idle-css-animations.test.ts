@@ -126,16 +126,24 @@ describe('idle loops animate only opacity or transform', () => {
     expect(grain).not.toMatch(/background-position/);
   });
 
-  it('the idle connect button breathes a pre-rendered glow by opacity', () => {
-    const glow = keyframes(inline, 'connectGlowBreath');
-    expect(glow).toMatch(/opacity/);
-    expect(glow).not.toMatch(/box-shadow/);
-    const block = inline.slice(inline.indexOf('@supports (anchor-name: --a)'));
-    // The button itself stops its box-shadow loop while idle...
-    expect(block).toMatch(/#connectBtn:not\(:disabled\):not\(:hover\)\s*\{\s*animation:\s*none;/);
-    // ...and the anchored shadow layer runs the breath instead
-    expect(block).toMatch(/\.controls-row:has\(#connectBtn[^{]*\)::before\s*\{\s*animation:\s*connectGlowBreath/);
-    expect(block).toMatch(/position-anchor:\s*--connect-btn/);
+  it('nothing animates an anchor-positioned element (it re-lays out every frame)', () => {
+    // #1248 anchored a glow layer to the connect button and faded it in and
+    // out: Chrome re-ran anchor layout for it 60 times a second, idle and in
+    // calls. The button's own box-shadow breath (below) costs less.
+    const anchored = rules(inline).filter((r) => /position-anchor\s*:/.test(r.body));
+    const animatedSelectors = rules(inline)
+      .filter((r) => /animation(-name)?\s*:\s*(?!none)/.test(r.body))
+      .flatMap((r) => r.selectors);
+    for (const rule of anchored) {
+      for (const selector of rule.selectors) expect(animatedSelectors).not.toContain(selector);
+    }
+    expect(inline).not.toMatch(/\.controls-row(:has\([^)]*\))?::before\s*\{[^}]*position-anchor/);
+  });
+
+  it('the connect button keeps its own breath', () => {
+    const zen = rules(inline).find((r) => r.selectors.includes("[data-theme='zen'] .btn-primary:not(:disabled)"));
+    expect(zen?.body).toMatch(/animation:\s*zenBtnBreath/);
+    expect(keyframes(inline, 'connectGlowBreath')).toBe('');
   });
 
   it('the active team member runs no invisible transform loop', () => {

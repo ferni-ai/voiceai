@@ -40,6 +40,7 @@ import {
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
 import { attachPhoneHangUp } from '../shared/phone-goodbye.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { registerSessionEndedSignal } from './session-ended-signal.js';
 
 const log = getLogger();
 
@@ -246,6 +247,8 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
 
       // Register session for gateway access (enables generateReplyBySessionId)
       registerSessionForReconnection(sessionId, agentSetup.session);
+      // Session closes on an error: tell the caller's app before we leave (SESSION_ENDED_SIGNAL)
+      registerSessionEndedSignal(agentSetup.session, context.room, sessionId);
 
       // Speech coordination BEFORE prewarm — greeting (TTS) needs it and must
       // not wait for Gemini. Overlap: user hears greeting while prewarm runs.

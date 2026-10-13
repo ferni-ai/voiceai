@@ -9,21 +9,15 @@
  * @module services/superhuman
  */
 
-// ============================================================================
-// ORCHESTRATION (context builder + formatter)
-// ============================================================================
+// --- ORCHESTRATION (context builder + formatter) ---
 
 export * from './superhuman-service.js';
 
-// ============================================================================
-// VALIDATION (benchmark tests + runner)
-// ============================================================================
+// --- VALIDATION (benchmark tests + runner) ---
 
 export * from './validation/index.js';
 
-// ============================================================================
-// RE-EXPORTS
-// ============================================================================
+// --- RE-EXPORTS ---
 
 // Commitment Keeper
 export {
@@ -195,7 +189,6 @@ export {
   type SimpleMilestone,
   type TimeWindow,
 } from './milestone-calendar-coordinator.js';
-
 
 // ============================================================================
 // "BETTER THAN HUMAN" CAPABILITIES (New - Dec 2025)
@@ -968,3 +961,8 @@ export {
   type SpiralStage,
   type StageIndicator,
 } from './developmental-stage-awareness.js';
+export {
+  isCommitmentCaptureOn,
+  recordCallerCommitments,
+  type CaptureDeps,
+} from './after-call-commitments.js';

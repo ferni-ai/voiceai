@@ -8600,6 +8600,10 @@
   },
   "engagementPanel": {
     "title": "Registro diario",
+    "emptyTitle": "Aquí vivirán nuestros check-ins",
+    "emptyMessage": "Aún no hay nada, y está bien. Cuando hagamos un check-in diario en una llamada, aquí verás cómo te sentías. La próxima vez que hablemos, pídeme que hagamos uno.",
+    "loadFailedTitle": "Mmm, esto no se cargó",
+    "loadFailedMessage": "Es cosa mía, no tuya. Espera un momento y vuelve a abrir esto.",
     "yourWeek": "Tu semana",
     "weatherTrend": "Tendencia del clima emocional",
     "howYouFeel": "Cómo te sientes",
@@ -9974,6 +9978,7 @@
     "timeout": "Eso tardó demasiado. ¿Revisas tu conexión e intentas de nuevo?",
     "network": "No se pudo conectar con Ferni. ¿Revisas tu internet e intentas de nuevo?",
     "dropped": "Se perdió la conexión. ¿Quieres volver a conectar?",
+    "agentLeft": "Ferni se cayó de la llamada. ¿Quieres volver a conectar?",
     "unknown": "No se pudo conectar. ¿Quieres volver a intentarlo?"
   },
   "ambientSounds": {
@@ -10428,22 +10433,7 @@
         "other": "Tengo la perspectiva de {count} entradas de diario para compartir contigo."
       }
     },
-    "error": "Me cuesta un poco pensar en este momento. ¿Me das un momento y lo volvemos a intentar?",
-    "fallback": {
-      "advicePhilosophy": "¿Sabes qué he aprendido? \"{philosophy}\" Te enfrentes a lo que te enfrentes, recuerda eso.",
-      "adviceValues": "Piensa en lo que nos importa: {values}. Deja que eso te guíe.",
-      "feelRecent": "Yo también me he sentido así. En mi diario escribí: \"{excerpt}...\" Ya lo superamos antes.",
-      "feelDefault": "Te escucho. Ya hemos pasado por momentos difíciles antes y encontramos el camino. ¿Qué es lo que realmente te preocupa?",
-      "rememberIntro": "Sí, me acuerdo.",
-      "rememberEntry": "Hubo una vez que escribí: \"{excerpt}...\"",
-      "mannerism": "{phrase} En eso también he estado pensando. ¿Qué te hizo sacar el tema?",
-      "default": "Es una buena pregunta. ¿Qué te hizo pensar en eso?"
-    },
-    "fallbackKeywords": {
-      "advice": "consejo,debería",
-      "feeling": "sentimiento,sentir",
-      "remember": "recordar,pasado"
-    }
+    "error": "Eso no se envió. Es cosa mía, no tuya. Intenta enviarlo otra vez."
   },
   "mood": {
     "holiday": {
@@ -11081,20 +11071,6 @@
       "feelingConnected": "Sintiendo conexión",
       "roomToGrow": "Espacio para crecer",
       "insight": "\"Tu energía baja a mitad de semana. El miércoles parece ser tu día más difícil.\""
-    },
-    "predictions": {
-      "title": "Mis predicciones",
-      "message": "Aprenderé a anticipar lo que necesitas antes de que lo pidas.",
-      "guessOverwhelmed": "\"Sentirías agobio esta semana\"",
-      "resultStress": "Mencionaste tener estrés el martes y el jueves",
-      "guessGym": "\"El hábito del gimnasio se vería afectado\"",
-      "guessSunday": "\"El domingo por la tarde se sentirá pesado\"",
-      "resultCheckIn": "Haré un registro contigo",
-      "skipped": {
-        "one": "Te saltaste {count} sesión esta semana",
-        "many": "Te saltaste {count} sesiones esta semana",
-        "other": "Te saltaste {count} sesiones esta semana"
-      }
     },
     "team": {
       "title": "Lo que notamos",

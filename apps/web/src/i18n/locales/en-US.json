@@ -8578,6 +8578,10 @@
   },
   "engagementPanel": {
     "title": "Daily Check-in",
+    "emptyTitle": "Our check-ins will live here",
+    "emptyMessage": "Nothing here yet, and that's okay. When we do a daily check-in on a call, how you were feeling shows up here. Next time we talk, just ask me to check in.",
+    "loadFailedTitle": "Hmm, this didn't load",
+    "loadFailedMessage": "That's on me, not you. Give it a moment, then open this again.",
     "yourWeek": "Your Week",
     "weatherTrend": "Emotional weather trend",
     "howYouFeel": "How you're feeling",
@@ -8836,6 +8840,10 @@
     "categoryWellbeing": "Wellness snapshots and trends",
     "categoryHabits": "Maya's habit coaching data",
     "categoryProductivity": "Tasks, notes, and journal entries",
+    "exportTooLarge": "Your story is too big to download in one go. Pick fewer kinds of data and try again, or write to hello@ferni.ai and we'll send you all of it.",
+    "exportTooOften": "You've asked for a few downloads just now. Try again in ten minutes.",
+    "exportBusy": "That's taking longer than it should. Try again in a minute.",
+    "categoryRecords": "Every call, summary, event, note and memory I keep for you, as stored",
     "categoryName": {
       "conversations": "Conversations",
       "insights": "Insights",
@@ -8847,7 +8855,8 @@
       "trustJourney": "Trust Journey",
       "wellbeing": "Wellbeing",
       "habits": "Habits",
-      "productivity": "Productivity"
+      "productivity": "Productivity",
+      "records": "Everything I keep"
     }
   },
   "healthDashboard": {
@@ -9923,6 +9932,7 @@
     "timeout": "That took too long. Check your connection and retry?",
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
+    "agentLeft": "Ferni dropped off the line. Reconnect?",
     "unknown": "Couldn't connect. Try again?"
   },
   "ambientSounds": {
@@ -10365,22 +10375,7 @@
       "philosophy": "Remember what we believe: \"{philosophy}\"",
       "prompt": "What would you like to talk about?"
     },
-    "error": "I'm having trouble thinking right now. Give me a moment and try again?",
-    "fallback": {
-      "advicePhilosophy": "You know what I've learned? \"{philosophy}\" Whatever you're facing, remember that.",
-      "adviceValues": "Think about what matters to us: {values}. Let those guide you.",
-      "feelRecent": "I've felt that too. In my journal I wrote: \"{excerpt}...\" We got through it before.",
-      "feelDefault": "I hear you. We've been through tough times before and found our way. What's really bothering you?",
-      "rememberIntro": "Yeah, I remember.",
-      "rememberEntry": "There was that time I wrote: \"{excerpt}...\"",
-      "mannerism": "{phrase} That's something I've been thinking about too. What made you bring this up?",
-      "default": "That's a good question. What made you think of that?"
-    },
-    "fallbackKeywords": {
-      "advice": "advice,should i",
-      "feeling": "feeling,feel",
-      "remember": "remember,past"
-    }
+    "error": "That didn't go through. It's on my end, not yours. Try sending it again."
   },
   "mood": {
     "holiday": {
@@ -11001,19 +10996,6 @@
       "feelingConnected": "Feeling connected",
       "roomToGrow": "Room to grow",
       "insight": "\"Your energy dips mid-week. Wednesday seems to be your hardest day.\""
-    },
-    "predictions": {
-      "title": "My Predictions",
-      "message": "I'll learn to anticipate what you need before you ask.",
-      "guessOverwhelmed": "\"You'd feel overwhelmed this week\"",
-      "resultStress": "You mentioned stress on Tuesday and Thursday",
-      "guessGym": "\"The gym habit would struggle\"",
-      "skipped": {
-        "one": "You skipped {count} session this week",
-        "other": "You skipped {count} sessions this week"
-      },
-      "guessSunday": "\"Sunday evening will feel heavy\"",
-      "resultCheckIn": "I'll check in with you"
     },
     "team": {
       "title": "What We Notice",

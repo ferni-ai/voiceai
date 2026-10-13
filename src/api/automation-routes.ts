@@ -2,8 +2,7 @@
  * Automation Routes - API for Autonomous Actions
  *
  * Provides HTTP endpoints for:
- * - Sending messages on behalf of users (SMS, email)
- * - Creating calendar events on behalf of users
+ * - Undoing a calendar event created on the member's behalf
  * - Viewing audit log of all autonomous actions
  * - Managing message history
  *
@@ -61,78 +60,10 @@ export async function handleAutomationRoutes(
   const { userId } = auth;
 
   try {
-    // ========================================================================
-    // SEND MESSAGE
-    // ========================================================================
-
-    // POST /api/automation/send-message
-    // Request to send a message (may require approval based on trust level)
-    if (route === '/send-message' && method === 'POST') {
-      const { sendMessageOnBehalf } = await import('../services/automation/send-on-behalf.js');
-
-      const body = await parseRequestBody(req);
-      const { channel, recipient, message, context, metadata } = body as {
-        channel: 'sms' | 'email';
-        recipient: { name: string; phone?: string; email?: string };
-        message: string;
-        context?: string;
-        metadata?: Record<string, unknown>;
-      };
-
-      if (!channel || !recipient || !message) {
-        sendJsonResponse(res, 400, {
-          success: false,
-          error: 'channel, recipient, and message are required',
-        });
-        return true;
-      }
-
-      const result = await sendMessageOnBehalf({
-        userId,
-        channel,
-        recipient,
-        message,
-        context,
-        metadata,
-      });
-
-      log.info(
-        {
-          userId,
-          channel,
-          recipientName: recipient.name,
-          requiresApproval: result.requiresApproval,
-        },
-        'Send message request processed'
-      );
-
-      sendJsonResponse(res, result.success ? 200 : 400, result);
-      return true;
-    }
-
-    // POST /api/automation/send-message/execute
-    // Execute a previously approved message
-    if (route === '/send-message/execute' && method === 'POST') {
-      const { executeApprovedMessage } = await import('../services/automation/send-on-behalf.js');
-
-      const body = await parseRequestBody(req);
-      const { pendingActionId } = body as { pendingActionId: string };
-
-      if (!pendingActionId) {
-        sendJsonResponse(res, 400, {
-          success: false,
-          error: 'pendingActionId required',
-        });
-        return true;
-      }
-
-      const result = await executeApprovedMessage(userId, pendingActionId);
-
-      log.info({ userId, pendingActionId, success: result.success }, 'Approved message executed');
-
-      sendJsonResponse(res, result.success ? 200 : 400, result);
-      return true;
-    }
+    // Sending a text or email, and creating a calendar event, for the member
+    // used to be open here (POST /send-message[/execute], /create-event[/execute]):
+    // any signed-in account could relay a message to any number or address.
+    // Nothing called them; they are gone. Approvals run through action-routes.ts.
 
     // GET /api/automation/message-history
     // Get user's message history
@@ -149,104 +80,6 @@ export async function handleAutomationRoutes(
         messages: history,
         count: history.length,
       });
-      return true;
-    }
-
-    // ========================================================================
-    // CREATE CALENDAR EVENT
-    // ========================================================================
-
-    // POST /api/automation/create-event
-    // Request to create a calendar event (may require approval)
-    if (route === '/create-event' && method === 'POST') {
-      const { createEventOnBehalf } = await import('../services/automation/calendar-on-behalf.js');
-
-      const body = await parseRequestBody(req);
-      const {
-        title,
-        description,
-        startTime,
-        endTime,
-        location,
-        attendees,
-        reminders,
-        recurrence,
-        calendar,
-        context,
-      } = body as {
-        title: string;
-        description?: string;
-        startTime: string;
-        endTime?: string;
-        location?: string;
-        attendees?: Array<{ name: string; email: string }>;
-        reminders?: Array<{ method: 'email' | 'popup'; minutesBefore: number }>;
-        recurrence?: {
-          frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
-          interval?: number;
-          until?: string;
-          count?: number;
-        };
-        calendar?: string;
-        context?: string;
-      };
-
-      if (!title || !startTime) {
-        sendJsonResponse(res, 400, {
-          success: false,
-          error: 'title and startTime are required',
-        });
-        return true;
-      }
-
-      const result = await createEventOnBehalf({
-        userId,
-        title,
-        description,
-        startTime,
-        endTime,
-        location,
-        attendees,
-        reminders,
-        recurrence,
-        calendar,
-        context,
-      });
-
-      log.info(
-        {
-          userId,
-          title,
-          requiresApproval: result.requiresApproval,
-        },
-        'Create event request processed'
-      );
-
-      sendJsonResponse(res, result.success ? 200 : 400, result);
-      return true;
-    }
-
-    // POST /api/automation/create-event/execute
-    // Execute a previously approved event creation
-    if (route === '/create-event/execute' && method === 'POST') {
-      const { executeApprovedEvent } = await import('../services/automation/calendar-on-behalf.js');
-
-      const body = await parseRequestBody(req);
-      const { pendingActionId } = body as { pendingActionId: string };
-
-      if (!pendingActionId) {
-        sendJsonResponse(res, 400, {
-          success: false,
-          error: 'pendingActionId required',
-        });
-        return true;
-      }
-
-      const result = await executeApprovedEvent(userId, pendingActionId);
-
-      log.info({ userId, pendingActionId, success: result.success }, 'Approved event executed');
-
-      sendJsonResponse(res, result.success ? 200 : 400, result);
       return true;
     }
 
