@@ -8546,6 +8546,10 @@
   },
   "engagementPanel": {
     "title": "Täglicher Check-in",
+    "emptyTitle": "Hier landen unsere Check-ins",
+    "emptyMessage": "Hier ist noch nichts, und das ist okay. Wenn wir im Gespräch einen täglichen Check-in machen, siehst du hier, wie es dir ging. Frag mich beim nächsten Mal einfach danach.",
+    "loadFailedTitle": "Hm, das hat nicht geladen",
+    "loadFailedMessage": "Das liegt an mir, nicht an dir. Warte kurz und öffne das hier noch einmal.",
     "yourWeek": "Deine Woche",
     "weatherTrend": "Emotionaler Wettertrend",
     "howYouFeel": "Wie du dich fühlst",
@@ -10322,22 +10326,7 @@
         "other": "Ich habe die Perspektiven aus {count} Tagebucheinträgen, die ich mit dir teilen möchte."
       }
     },
-    "error": "Ich kann gerade nicht richtig nachdenken. Gib mir einen Moment und versuch es noch einmal?",
-    "fallback": {
-      "advicePhilosophy": "Weißt du, was ich gelernt habe? „{philosophy}“ Was auch immer dir bevorsteht, denk daran.",
-      "adviceValues": "Denk daran, was uns wichtig ist: {values}. Lass dich davon leiten.",
-      "feelRecent": "Das habe ich auch gefühlt. In meinem Tagebuch habe ich geschrieben: „{excerpt}…“ Wir haben das schon mal geschafft.",
-      "feelDefault": "Ich verstehe dich. Wir haben schon früher schwere Zeiten durchgestanden und unseren Weg gefunden. Was bedrückt dich wirklich?",
-      "rememberIntro": "Ja, ich erinnere mich.",
-      "rememberEntry": "Da war dieses eine Mal, als ich geschrieben habe: „{excerpt}…“",
-      "mannerism": "{phrase} Darüber habe ich auch schon nachgedacht. Wie kommst du gerade darauf?",
-      "default": "Das ist eine gute Frage. Wie bist du darauf gekommen?"
-    },
-    "fallbackKeywords": {
-      "advice": "Rat,sollte ich",
-      "feeling": "Gefühl,fühlen",
-      "remember": "erinnern,Vergangenheit"
-    }
+    "error": "Das ist nicht durchgegangen. Das liegt an mir, nicht an dir. Schick es gern noch einmal."
   },
   "mood": {
     "holiday": {
@@ -10958,19 +10947,6 @@
       "feelingConnected": "Sich verbunden fühlen",
       "roomToGrow": "Raum für Wachstum",
       "insight": "„Deine Energie sinkt Mitte der Woche. Der Mittwoch scheint dein schwerster Tag zu sein.“"
-    },
-    "predictions": {
-      "title": "Meine Vorhersagen",
-      "message": "Ich werde lernen, deine Bedürfnisse vorauszusehen, noch bevor du fragst.",
-      "guessOverwhelmed": "„Dass du dich diese Woche überfordert fühlen würdest“",
-      "resultStress": "Du hast am Dienstag und Donnerstag Stress erwähnt",
-      "guessGym": "„Dass es mit dem Fitnessstudio diese Woche schwierig wird“",
-      "guessSunday": "„Dass sich der Sonntagabend schwer anfühlen wird“",
-      "resultCheckIn": "Ich mache einen Check-in bei dir",
-      "skipped": {
-        "one": "Du hast diese Woche {count} Sitzung übersprungen",
-        "other": "Du hast diese Woche {count} Sitzungen übersprungen"
-      }
     },
     "team": {
       "title": "Was uns auffällt",

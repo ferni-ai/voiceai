@@ -24,7 +24,6 @@ import { onReminderChange } from '../data-layer/hooks/index.js';
 import { sendEmail, sendReminder as sendReminderSMS, sendSMS } from '../communication-service.js';
 import { recordOutcome } from '../contacts/optimal-timing.js';
 import { WallClock, zonedWallTimeToUtc } from '../../utils/time-zone.js';
-// The zone to pass parseNaturalTime for a tool's user (their call's zone).
 export { userTimeZone } from '../../utils/caller-time-zone.js';
 import { clockTime } from './clock-time.js';
 
@@ -1168,6 +1167,15 @@ export function parseNaturalTime(
   if (iso) {
     const [year, month, day, hour, minute] = iso.slice(1).map(Number);
     return zonedWallTimeToUtc({ year, month, day, hour, minute }, timezone);
+  }
+
+  // A bare clock time ("at 3pm", "9:30"): today, or tomorrow once it has passed
+  const bare = clockTime(lower);
+  if (bare) {
+    const result = new WallClock(now, timezone);
+    result.setHours(bare[0], bare[1], 0, 0);
+    if (result.toDate() <= now) result.setDate(result.getDate() + 1);
+    return result.toDate();
   }
 
   // Try parsing as a date string

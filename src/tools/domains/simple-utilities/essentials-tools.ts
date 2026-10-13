@@ -19,6 +19,9 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { formatStoredLocalTime } from '../../../utils/time-zone.js';
+import { asksToRepeat, NO_REPEAT_YET } from '../../utils/honest-schedule.js';
+import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 
 const log = getLogger();
 
@@ -307,7 +310,7 @@ const quickCaptureDef: ToolDefinition = {
 
         let routing: string;
         let confirmation: string;
-        let followUp: string;
+        let followUp = '';
         let persisted = false;
 
         try {
@@ -328,17 +331,14 @@ const quickCaptureDef: ToolDefinition = {
                   deliveryAddress: '',
                 });
                 persisted = true; // and "I'll remind you" is a promise the delivery job keeps or misses
-                const keeper =
-                  await import('../../../services/superhuman/semantic-intelligence/promise-keeper.js');
-                await keeper.recordReminderPromise(ctx.userId, reminder);
+                await recordReminderPromise(ctx.userId, reminder);
+                followUp = `Saved one reminder for ${formatStoredLocalTime(scheduledFor, userTimeZone(ctx))}, as a message in the Ferni app.${asksToRepeat(thought) ? NO_REPEAT_YET : ''}`;
               }
             } catch (err) {
               log.debug({ error: String(err) }, 'Could not create reminder, falling back');
             }
             confirmation = `📅 **Captured as reminder**\n\n"${thought}"`;
-            followUp = persisted
-              ? `I'll remind you when the time comes.`
-              : `For a specific time, say "remind me to [task] at [time]".`;
+            followUp ||= `For a specific time, say "remind me to [task] at [time]".`;
           } else if (isShopping) {
             routing = 'shopping-list';
             const item = thought
