@@ -197,7 +197,11 @@ test_higgs_output.wav
 apps/ios-native/build/
 **/XCBuildData/
 
-# Private memory-benchmark cases built from real calls (build-private-cases.ts
-# writes them outside the repo by default; these patterns are a backstop).
-scripts/memory-eval/**/cases-*.json
-scripts/memory-eval/**/cases-*.md
+# Private memory-benchmark cases built from real calls, and longmem.ts runs on
+# them (build-private-cases.ts writes outside the repo by default; these
+# patterns are a backstop, anywhere in the repo). memory-* is dated so the
+# personas' tracked memory-patterns.json stay visible.
+cases-*.json
+cases-*.md
+longmem-*.json
+memory-[0-9]*.json

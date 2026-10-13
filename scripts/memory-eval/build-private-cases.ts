@@ -72,26 +72,22 @@ async function main(): Promise<void> {
     const i = argv.indexOf(name);
     return i >= 0 ? argv[i + 1] : undefined;
   };
-  assertVertexOnly();
+  // Every argument is checked before any call is read.
   const uid = flag('--uid') ?? 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
   const name = ALLOWED[uid];
   if (!name) throw new Error(`${uid} has not agreed to this; add them to ALLOWED first`);
   const root = resolve(import.meta.dirname, '../..');
   const out = resolve(flag('--out') ?? join(homedir(), 'Documents', 'ferni-private-bench'));
   if (isInside(out, root)) throw new Error(`refusing to write real calls inside the repo: ${out}`);
+  const perHistory = positiveInt(flag('--calls'), '--calls', 4);
+  const maxHistories = positiveInt(flag('--histories'), '--histories', 4);
+  assertVertexOnly();
   // The caller's calendar day, so "today" and the call ages match what they lived.
   const zone = callerZone();
   const runDate = localDay(Date.now(), zone);
 
   const calls = await loadCalls(uid);
-  const histories = groupIntoHistories(
-    calls,
-    positiveInt(flag('--calls'), '--calls', 4),
-    positiveInt(flag('--histories'), '--histories', 4),
-    runDate,
-    name,
-    zone
-  );
+  const histories = groupIntoHistories(calls, perHistory, maxHistories, runDate, name, zone);
   const cases = new Map<string, GeneratedCase[]>();
   const failed: string[] = [];
   for (const h of histories) {

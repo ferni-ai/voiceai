@@ -23,7 +23,8 @@
  * qwen3:30b-a3b) and reports how far the two judges agree. --cases <file>
  * replaces the seeded histories with ones kept outside the repo, such as
  * real calls. Real calls reach only Vertex AI (the run refuses otherwise,
- * see real-data.ts), and its outputs are written beside the cases file,
+ * see real-data.ts), the memory code's info logs stay off the console
+ * (quiet-logs.ts), and its outputs are written beside the cases file,
  * readable only by the owner.
  *
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 pnpm tsx scripts/memory-eval/longmem.ts \
@@ -33,6 +34,8 @@
  * judge before quoting a headline. The answer is at temperature 0, so the
  * headline is repeatable; the report records the model ids and prompt hashes.
  */
+// First, so the log level is set before any module that logs is loaded.
+import './quiet-logs.js';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -238,12 +241,13 @@ async function main(): Promise<void> {
   };
   const only = flag('--only');
   const memoryFile = flag('--memory');
+  const casesFile = flag('--cases');
+  // Before any file is read: a saved memory from a run on real calls holds them too.
+  if (casesFile) assertVertexOnly();
+  // Saved memory holds dates relative to its own run date.
   const saved = memoryFile
     ? (JSON.parse(readFileSync(memoryFile, 'utf8')) as SavedMemory)
     : undefined;
-  // Saved memory holds dates relative to its own run date.
-  const casesFile = flag('--cases');
-  if (casesFile) assertVertexOnly();
   const external = casesFile
     ? parseCaseFile(JSON.parse(readFileSync(casesFile, 'utf8')))
     : undefined;
