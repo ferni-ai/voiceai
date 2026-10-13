@@ -47,17 +47,18 @@ interface GenAIClient {
   };
 }
 
-/**
- * @returns a model bound to `model`, or null when Gemini is not configured
- */
-export async function getGenerativeModel(options: {
+export interface ModelOptions {
   model: string;
   generationConfig?: GenerationConfig;
   systemInstruction?: string;
-}): Promise<GenerativeModel | null> {
-  const client = (await getGeminiClient()) as GenAIClient | null;
-  if (!client) return null;
+}
 
+/** The old SDK's `genAI` object: a synchronous getGenerativeModel(). */
+export interface GenerativeAI {
+  getGenerativeModel: (options: ModelOptions) => GenerativeModel;
+}
+
+function bindModel(client: GenAIClient, options: ModelOptions): GenerativeModel {
   return {
     async generateContent(request) {
       const contents = typeof request === 'string' ? request : request.contents;
@@ -74,4 +75,23 @@ export async function getGenerativeModel(options: {
       return { response: { text: () => text, usageMetadata: result.usageMetadata } };
     },
   };
+}
+
+/**
+ * @returns a model bound to `model`, or null when Gemini is not configured
+ */
+export async function getGenerativeModel(options: ModelOptions): Promise<GenerativeModel | null> {
+  const client = (await getGeminiClient()) as GenAIClient | null;
+  return client ? bindModel(client, options) : null;
+}
+
+/**
+ * For call sites written as `genAI.getGenerativeModel({ model })`.
+ *
+ * @returns the old-SDK `genAI` shape over the shared client, or null when
+ *   Gemini is not configured
+ */
+export async function getGenerativeAI(): Promise<GenerativeAI | null> {
+  const client = (await getGeminiClient()) as GenAIClient | null;
+  return client ? { getGenerativeModel: (options) => bindModel(client, options) } : null;
 }

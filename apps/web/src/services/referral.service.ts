@@ -12,6 +12,15 @@
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { addSeeds } from './cosmetics.service.js';
+import {
+  clearPendingReferral,
+  getPendingReferral,
+  getReferredBy,
+  rememberReferral,
+  setReferredBy,
+} from './referral-pending.js';
+
+export { getReferredBy } from './referral-pending.js';
 
 const log = createLogger('ReferralService');
 
@@ -24,9 +33,6 @@ export const REFERRAL_SIGNUP_REWARD = 25;
 
 /** Seeds the server awards a new user who joins through a referral (seeds-routes.ts) */
 export const REFERRAL_NEW_USER_BONUS = 25;
-
-const STATE_KEY = 'ferni_referral_state'; // { referredBy }
-const PENDING_KEY = 'ferni_pending_referral';
 
 // ============================================================================
 // TYPES
@@ -95,20 +101,9 @@ export function getReferralUrl(): string | null {
 // ============================================================================
 
 /**
- * Who referred this user (their code), if the server already accepted it
- */
-export function getReferredBy(): string | null {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STATE_KEY) ?? '{}') as { referredBy?: string };
-    return saved.referredBy ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Check URL for referral code on app load
- * Should be called early in app initialization
+ * Keep a referral code from the URL (?ref=, ?referral= or /grow/<code>) and clean
+ * the URL. Called on first load, before the sign-in gate and the waitlist check,
+ * so a friend who has to wait still has it when they get in.
  */
 export function checkReferralFromUrl(): string | null {
   const url = new URL(window.location.href);
@@ -120,9 +115,8 @@ export function checkReferralFromUrl(): string | null {
     url.pathname.match(/\/grow\/([a-z0-9]+-[a-z]+)/)?.[1];
 
   if (refCode && !getReferredBy()) {
-    // Store the referral code but don't register it yet
-    // Wait for signup/first conversation
-    localStorage.setItem(PENDING_KEY, refCode);
+    // Kept, not registered: the server takes it after the first conversation
+    rememberReferral(refCode);
     log.info({ refCode }, 'Referral code detected from URL');
 
     // Clean URL (remove ref param)
@@ -131,7 +125,12 @@ export function checkReferralFromUrl(): string | null {
     if (url.pathname.includes('/grow/')) {
       url.pathname = '/';
     }
-    window.history.replaceState({}, '', url.toString());
+    try {
+      window.history.replaceState({}, '', url.toString());
+    } catch (error) {
+      // Runs before the sign-in gate: a URL we can't tidy must not stop the app loading
+      log.warn({ error: String(error) }, 'Could not clean the referral from the URL');
+    }
 
     return refCode;
   }
@@ -147,7 +146,7 @@ export async function processPendingReferral(): Promise<{
   processed: boolean;
   bonusAwarded?: number;
 }> {
-  const pendingRef = localStorage.getItem(PENDING_KEY);
+  const pendingRef = getPendingReferral();
   if (!pendingRef || getReferredBy()) {
     return { processed: false };
   }
@@ -161,19 +160,19 @@ export async function processPendingReferral(): Promise<{
     // A 4xx means this code can never work (unknown, or your own): drop it.
     // Offline / 5xx / rate-limited: keep it and try again next conversation.
     const permanent = res.status >= 400 && res.status < 500 && ![408, 429].includes(res.status);
-    if (permanent) localStorage.removeItem(PENDING_KEY);
+    if (permanent) clearPendingReferral();
     log.warn({ status: res.status, error: res.error, permanent }, 'Referral not registered');
     return { processed: false };
   }
 
-  localStorage.removeItem(PENDING_KEY);
+  clearPendingReferral();
   if (!res.data?.success) {
     log.info({ error: res.data?.error }, 'Referral declined by server');
     return { processed: false };
   }
 
   const bonus = res.data.newUserBonus ?? 0;
-  localStorage.setItem(STATE_KEY, JSON.stringify({ referredBy: pendingRef }));
+  setReferredBy(pendingRef);
   addSeeds(bonus);
 
   document.dispatchEvent(

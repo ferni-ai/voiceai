@@ -22,6 +22,7 @@ import {
 import { ARRIVING_OPENERS } from '../../services/team-engagement/banter.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { backchannelsFor, bootBackchannels } from './reaction-clips.js';
+import { renderVoicedTake, voicedTakeTexts } from './voiced-take-render.js';
 
 const log = createLogger({ module: 'ConversationalAudioCache' });
 
@@ -269,11 +270,12 @@ function estimateDuration(byteLength: number): number {
 async function cachePhrase(
   text: string,
   voiceId: string,
-  category: CachedAudio['category']
+  category: CachedAudio['category'],
+  render: (text: string, voiceId: string) => Promise<ArrayBuffer | null> = generateAudio
 ): Promise<'cached' | 'generated' | 'failed'> {
   const key = getCacheKey(text, voiceId);
   if (audioCache.has(key)) return 'cached';
-  const audio = await generateAudio(text, voiceId);
+  const audio = await render(text, voiceId);
   if (!audio || audio.byteLength === 0) return 'failed';
   audioCache.set(key, {
     audio,
@@ -302,9 +304,12 @@ export async function warmPersonaReactions(personaId: string): Promise<number> {
   const prev = reactionWarms.get(personaId);
   if (prev && Date.now() - prev.at < REACTION_RETRY_MS) return prev.done;
   const voiceId = getVoiceIdForPersona(personaId);
-  const done = Promise.all(
-    backchannelsFor(personaId).map(async (text) => cachePhrase(text, voiceId, 'backchannel'))
-  ).then((results) => results.filter((r) => r === 'generated').length);
+  const reactions = backchannelsFor(personaId);
+  const voiced = voicedTakeTexts(reactions);
+  const done = Promise.all([
+    ...reactions.map(async (text) => cachePhrase(text, voiceId, 'backchannel')),
+    ...voiced.map(async (text) => cachePhrase(text, voiceId, 'backchannel', renderVoicedTake)),
+  ]).then((results) => results.filter((r) => r === 'generated').length);
   reactionWarms.set(personaId, { at: Date.now(), done });
   return done;
 }
@@ -466,16 +471,3 @@ export function clearConversationalCache(): void {
   metrics.cacheHits = 0;
   metrics.cacheMisses = 0;
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  prewarmConversationalAudio,
-  getCachedAudio,
-  getCachedAudioForPersona,
-  isPhraseCached,
-  getConversationalCacheMetrics,
-  clearConversationalCache,
-};

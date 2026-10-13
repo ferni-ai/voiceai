@@ -709,10 +709,6 @@ class MusicDashboardUI {
           </div>
           <h4 class="music-dashboard__challenge-title">${challenge.title}</h4>
           <p class="music-dashboard__challenge-desc">${challenge.description}</p>
-          <div class="music-dashboard__challenge-meta">
-            <span>${t('musicDashboard.dailyChallenge.completion', { percent: Math.round(challenge.completionRate * 100) })}</span>
-            <span>${t('musicDashboard.dailyChallenge.playing', { count: challenge.participantCount })}</span>
-          </div>
           <button class="music-dashboard__challenge-btn" data-challenge-id="${challenge.id}">
             ${ICONS.play} ${t('musicDashboard.dailyChallenge.start')}
           </button>
@@ -1516,14 +1512,6 @@ class MusicDashboardUI {
         font-size: var(--text-sm);
         color: var(--color-text-secondary);
         margin: 0 0 var(--space-3) 0;
-      }
-
-      .music-dashboard__challenge-meta {
-        display: flex;
-        gap: var(--space-4);
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
-        margin-bottom: var(--space-3);
       }
 
       .music-dashboard__challenge-btn {

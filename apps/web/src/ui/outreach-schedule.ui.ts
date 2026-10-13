@@ -8,11 +8,21 @@
  * - See recent outreach history
  */
 
-import { formatDate, formatRelativeTime, t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
+import {
+  fetchOutreachHistory,
+  PANEL_READ_OPTIONS,
+  setPanelState,
+  showHistory,
+  showLoadProblem,
+  toLoaded,
+  type HistoryLook,
+  type Loaded,
+} from './outreach-history-view.js';
 import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('OutreachScheduleUI');
@@ -41,16 +51,6 @@ interface ScheduledOutreach {
   canCancel: boolean;
 }
 
-interface OutreachHistory {
-  id: string;
-  type: string;
-  personaId: string;
-  personaName: string;
-  channel: string;
-  sentAt: Date;
-  status: 'delivered' | 'opened' | 'responded' | 'failed';
-  preview: string;
-}
 
 // ============================================================================
 // ICONS
@@ -66,7 +66,6 @@ const ICONS = {
   close: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`,
   edit: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>`,
   trash: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`,
-  check: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
   eye: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
   history: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>`,
 };
@@ -611,50 +610,35 @@ function switchTab(tab: 'upcoming' | 'history'): void {
 // ============================================================================
 
 async function loadData(): Promise<void> {
-  const content = modalContainer?.querySelector('.outreach-schedule-content');
-  if (!content) return;
+  const root = modalContainer;
+  const content = root?.querySelector('.outreach-schedule-content');
+  if (!root || !content) return;
+  const tab = currentTab;
+  const retry = (): void => void loadData();
 
+  setPanelState(root, 'loading');
   content.innerHTML = `<div class="outreach-schedule-loading">${t('common.loading')}</div>`;
 
-  try {
-    if (currentTab === 'upcoming') {
-      const upcoming = await fetchUpcomingOutreach();
-      renderUpcoming(content, upcoming);
-    } else {
-      const history = await fetchOutreachHistory();
-      renderHistory(content, history);
-    }
-  } catch (error) {
-    log.error({ error }, 'Failed to load outreach data');
-    content.innerHTML = `
-      <div class="outreach-schedule-empty">
-        <div class="outreach-schedule-empty-text">${t('outreachSchedule.loadError')}</div>
-        <div class="outreach-schedule-empty-subtext">${t('outreachSchedule.loadErrorHint')}</div>
-      </div>
-    `;
+  if (tab === 'history') {
+    const history = await fetchOutreachHistory();
+    if (currentTab === tab) showHistory(root, content, history, HISTORY_LOOK, retry);
+    return;
   }
+  const upcoming = await fetchUpcomingOutreach();
+  if (currentTab !== tab) return;
+  if (upcoming.kind !== 'ok') return showLoadProblem(root, content, upcoming.kind, retry);
+  setPanelState(root, upcoming.data.length > 0 ? 'ready' : 'empty');
+  renderUpcoming(content, upcoming.data);
 }
 
-async function fetchUpcomingOutreach(): Promise<ScheduledOutreach[]> {
-  try {
-    const response = await apiGet<{ upcoming?: ScheduledOutreach[] }>('/api/outreach/upcoming');
-    if (!response.ok || !response.data) return [];
-    return response.data.upcoming ?? [];
-  } catch {
-    // Return empty array - real data will appear when outreach is scheduled
-    return [];
-  }
-}
-
-async function fetchOutreachHistory(): Promise<OutreachHistory[]> {
-  try {
-    const response = await apiGet<{ history?: OutreachHistory[] }>('/api/outreach/history?limit=20');
-    if (!response.ok || !response.data) return [];
-    return response.data.history ?? [];
-  } catch {
-    // Return empty array - real history will appear after outreach is sent
-    return [];
-  }
+async function fetchUpcomingOutreach(): Promise<Loaded<ScheduledOutreach[]>> {
+  const response = await apiGet('/api/outreach/upcoming', undefined, PANEL_READ_OPTIONS);
+  return toLoaded(response, (data) => {
+    const upcoming = (data as { upcoming?: unknown } | undefined)?.upcoming;
+    if (!Array.isArray(upcoming)) return null;
+    // JSON carries the time as a string; formatTime needs a Date
+    return (upcoming as ScheduledOutreach[]).map((u) => ({ ...u, scheduledFor: new Date(u.scheduledFor) }));
+  });
 }
 
 // ============================================================================
@@ -722,48 +706,6 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
           </button>
         ` : ''}
       </div>
-    </div>
-  `;
-}
-
-function renderHistory(container: Element, items: OutreachHistory[]): void {
-  if (items.length === 0) {
-    container.innerHTML = `
-      <div class="outreach-schedule-empty">
-        <div class="outreach-schedule-empty-icon">${ICONS.history}</div>
-        <div class="outreach-schedule-empty-text">${t('outreachSchedule.emptyHistory')}</div>
-        <div class="outreach-schedule-empty-subtext">${t('outreachSchedule.emptyHistoryHint')}</div>
-      </div>
-    `;
-    return;
-  }
-
-  container.innerHTML = items.map((item) => renderHistoryItem(item)).join('');
-}
-
-function renderHistoryItem(item: OutreachHistory): string {
-  const initial = item.personaName.charAt(0);
-  const channelIcon = CHANNEL_ICONS[item.channel] || CHANNEL_ICONS.sms;
-  const timeStr = formatRelativeTime(new Date(item.sentAt));
-
-  return `
-    <div class="outreach-item" data-persona="${item.personaId || 'ferni'}">
-      <div class="outreach-item-header">
-        <div class="outreach-item-persona">
-          ${initial}
-        </div>
-        <div class="outreach-item-info">
-          <p class="outreach-item-persona-name">${item.personaName}</p>
-          <div class="outreach-item-meta">
-            <span class="outreach-item-channel">${channelIcon} ${channelLabel(item.channel)}</span>
-            <span class="outreach-item-time">${ICONS.clock} ${timeStr}</span>
-          </div>
-        </div>
-        <span class="outreach-item-status ${item.status}">
-          ${item.status === 'responded' ? ICONS.check : ''} ${statusLabel(item.status)}
-        </span>
-      </div>
-      <p class="outreach-item-preview">${item.preview}</p>
     </div>
   `;
 }
@@ -1141,14 +1083,12 @@ function priorityLabel(priority: ScheduledOutreach['priority']): string {
   }[priority];
 }
 
-function statusLabel(status: OutreachHistory['status']): string {
-  return {
-    delivered: t('outreachSchedule.statusDelivered'),
-    opened: t('outreachSchedule.statusOpened'),
-    responded: t('outreachSchedule.statusResponded'),
-    failed: t('outreachSchedule.statusFailed'),
-  }[status];
-}
+const HISTORY_LOOK: HistoryLook = {
+  historyIcon: ICONS.history,
+  clockIcon: ICONS.clock,
+  channelIcon: (channel) => CHANNEL_ICONS[channel] ?? ICONS.message,
+  channelLabel,
+};
 
 // ============================================================================
 // EXPORTS
