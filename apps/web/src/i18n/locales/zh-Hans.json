@@ -8546,6 +8546,10 @@
   },
   "engagementPanel": {
     "title": "每日记录",
+    "emptyTitle": "我们的每日聊聊会留在这里",
+    "emptyMessage": "这里还没有内容，没关系。我们在通话里做每日聊聊时，你当时的感受会显示在这里。下次聊天时，跟我说一声就好。",
+    "loadFailedTitle": "嗯，没有加载出来",
+    "loadFailedMessage": "是我这边的问题，不是你的。稍等一下，再打开一次。",
     "yourWeek": "你的这一周",
     "weatherTrend": "情绪天气趋势",
     "howYouFeel": "你感觉怎么样",

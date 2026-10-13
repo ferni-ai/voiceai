@@ -8546,6 +8546,10 @@
   },
   "engagementPanel": {
     "title": "일일 체크인",
+    "emptyTitle": "우리의 체크인이 여기에 담겨요",
+    "emptyMessage": "아직 아무것도 없어요. 괜찮아요. 통화 중에 하루 체크인을 하면 그때 기분이 여기에 표시돼요. 다음에 이야기할 때 체크인하자고 말해 주세요.",
+    "loadFailedTitle": "음, 불러오지 못했어요",
+    "loadFailedMessage": "당신 탓이 아니에요. 잠시 후에 다시 열어 주세요.",
     "yourWeek": "나의 한 주",
     "weatherTrend": "감정 날씨 흐름",
     "howYouFeel": "지금 느끼는 기분",

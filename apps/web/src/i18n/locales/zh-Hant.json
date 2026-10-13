@@ -8546,6 +8546,10 @@
   },
   "engagementPanel": {
     "title": "每日自我檢視",
+    "emptyTitle": "我們的每日聊聊會留在這裡",
+    "emptyMessage": "這裡還沒有內容，沒關係。我們在通話裡做每日聊聊時，你當時的感受會顯示在這裡。下次聊天時，跟我說一聲就好。",
+    "loadFailedTitle": "嗯，沒有載入",
+    "loadFailedMessage": "是我這邊的問題，不是你的。稍等一下，再打開一次。",
     "yourWeek": "你的本週回顧",
     "weatherTrend": "情緒天氣趨勢",
     "howYouFeel": "你的感受",

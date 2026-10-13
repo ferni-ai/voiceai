@@ -8600,6 +8600,10 @@
   },
   "engagementPanel": {
     "title": "Registro diario",
+    "emptyTitle": "Aquí vivirán nuestros check-ins",
+    "emptyMessage": "Aún no hay nada, y está bien. Cuando hagamos un check-in diario en una llamada, aquí verás cómo te sentías. La próxima vez que hablemos, pídeme que hagamos uno.",
+    "loadFailedTitle": "Mmm, esto no se cargó",
+    "loadFailedMessage": "Es cosa mía, no tuya. Espera un momento y vuelve a abrir esto.",
     "yourWeek": "Tu semana",
     "weatherTrend": "Tendencia del clima emocional",
     "howYouFeel": "Cómo te sientes",

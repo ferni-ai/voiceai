@@ -8546,6 +8546,10 @@
   },
   "engagementPanel": {
     "title": "Daily Check-in",
+    "emptyTitle": "Our check-ins will live here",
+    "emptyMessage": "Nothing here yet, and that's okay. When we do a daily check-in on a call, how you were feeling shows up here. Next time we talk, just ask me to check in.",
+    "loadFailedTitle": "Hmm, this didn't load",
+    "loadFailedMessage": "That's on me, not you. Give it a moment, then open this again.",
     "yourWeek": "Your Week",
     "weatherTrend": "Emotional weather trend",
     "howYouFeel": "How you're feeling",

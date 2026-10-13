@@ -8600,6 +8600,10 @@
   },
   "engagementPanel": {
     "title": "Check-in quotidien",
+    "emptyTitle": "Nos points du jour vivront ici",
+    "emptyMessage": "Rien pour l'instant, et ce n'est pas grave. Quand on fait un point du jour pendant un appel, ce que tu ressentais s'affiche ici. La prochaine fois qu'on parle, demande-moi simplement.",
+    "loadFailedTitle": "Hum, ça ne s'est pas chargé",
+    "loadFailedMessage": "C'est de mon côté, pas du tien. Attends un instant, puis rouvre ceci.",
     "yourWeek": "Ta semaine",
     "weatherTrend": "Tendance de ta météo émotionnelle",
     "howYouFeel": "Comment tu te sens",
