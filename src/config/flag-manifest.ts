@@ -191,6 +191,8 @@ export const FLAG_MANIFEST = {
   OPENER_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
   OUTBOUND_CONFIRM: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
+  // ms, 10-1000: the room audio output queue; unset keeps the SDK default (1000 ms in 1.5.1)
+  OUTPUT_QUEUE_MS: { default: 'sdk', owner: 'voice', kind: 'config' },
   OUTREACH_DRY_RUN: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   // on: the daily scheduler sends no generic "thinking of you" check-ins
   OUTREACH_GROUNDED_CHECKINS: { default: 'on', owner: 'outreach', kind: 'kill-switch' },

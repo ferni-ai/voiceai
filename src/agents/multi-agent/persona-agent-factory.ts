@@ -40,6 +40,7 @@ import {
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
 import { attachPhoneHangUp } from '../shared/phone-goodbye.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { roomOutputOptions } from './room-output-options.js';
 
 const log = getLogger();
 
@@ -240,6 +241,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
         // For handoffs, don't claim primary status - the old session may still be releasing
         // For initial agent, be primary (record: true is default)
         ...(context.isHandoff ? { record: false } : {}),
+        ...roomOutputOptions(), // OUTPUT_QUEUE_MS: the room audio queue (room-output-options.ts)
       });
       mark('session_started');
       log.info({ personaId, agentInstanceId }, '🎭 Agent session started successfully');
