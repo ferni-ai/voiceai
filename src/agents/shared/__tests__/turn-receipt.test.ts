@@ -90,7 +90,9 @@ function call(opts: { userId?: string } = {}) {
     session.emit('conversation_item_added', {
       item: llm.ChatMessage.create({ role: role as 'user', content: text, interrupted }),
     });
-  const turn = (o: { tools?: string[]; swapTo?: string; interrupted?: boolean } = {}) => {
+  const turn = (
+    o: { tools?: string[]; swapTo?: string; interrupted?: boolean; unrecorded?: boolean } = {}
+  ) => {
     const stoppedAt = t;
     t += 300;
     metric({
@@ -134,7 +136,7 @@ function call(opts: { userId?: string } = {}) {
     t += 200;
     state('speaking');
     t += 1500;
-    item('assistant', REPLY, Boolean(o.interrupted));
+    if (!o.unrecorded) item('assistant', REPLY, Boolean(o.interrupted));
     state('listening');
   };
   return {
@@ -185,11 +187,24 @@ describe('attachTurnReceipts', () => {
         sentences: 3,
         interrupted: false,
         ttsCancelled: false,
+        unrecorded: false,
       },
     });
     // First token: request start (timestamp - duration) + TTFT, from the end of speech.
     expect(r.timing.llmReadyMs).toBe(750);
     expect(r.prompt).toEqual({ requests: 1, lane: null });
+  });
+
+  // Prod 2026-10-12: from turn 8 of one call no reply reached the history, and the
+  // model answered the same questions again ("Gujarati is what I grew up with" x4).
+  it('flags a turn where Ferni spoke but no reply reached the chat history', () => {
+    const c = call();
+    c.turn();
+    c.turn({ unrecorded: true });
+    expect(c.receipts.map((r) => [r.reply.messages, r.reply.unrecorded])).toEqual([
+      [1, false],
+      [0, true],
+    ]);
   });
 
   it('carries no transcript, reply, tool argument, note, name, number or uid', () => {

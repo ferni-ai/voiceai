@@ -58,7 +58,7 @@ export interface ForgetStore {
 }
 
 /** The text a fact document is about, in either collection's shape. */
-function factText(d: Record<string, unknown>): string {
+export function factText(d: Record<string, unknown>): string {
   return ['entityName', 'key', 'value', 'fact', 'content']
     .map((k) => (typeof d[k] === 'string' ? (d[k] as string) : ''))
     .join(' ');

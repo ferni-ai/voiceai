@@ -43,9 +43,7 @@
         "secondary": "#c44d2b",
         "gradient": "linear-gradient(135deg, #c44d2b, #e05a33)",
         "glow": "rgba(224, 90, 51, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "river-grief-companion",
@@ -72,9 +70,7 @@
         "secondary": "#3d6b7d",
         "gradient": "linear-gradient(135deg, #3d6b7d, #5b8a9a)",
         "glow": "rgba(91, 138, 154, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "zen-presence-guide",
@@ -102,9 +98,7 @@
         "secondary": "#4d6b3d",
         "gradient": "linear-gradient(135deg, #4d6b3d, #6b8a5b)",
         "glow": "rgba(107, 138, 91, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "luna-sleep-guide",
@@ -136,9 +130,7 @@
         "secondary": "#2d3748",
         "gradient": "linear-gradient(135deg, #2d3748, #4a5568)",
         "glow": "rgba(74, 85, 104, 0.4)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "atlas-career-navigator",
@@ -170,9 +162,7 @@
         "secondary": "#1a4971",
         "gradient": "linear-gradient(135deg, #1a4971, #2b6cb0)",
         "glow": "rgba(43, 108, 176, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "spark-creativity-catalyst",
@@ -204,9 +194,7 @@
         "secondary": "#d97706",
         "gradient": "linear-gradient(135deg, #d97706, #f59e0b)",
         "glow": "rgba(245, 158, 11, 0.35)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "sage-relationship-navigator",
@@ -238,9 +226,7 @@
         "secondary": "#2d5359",
         "gradient": "linear-gradient(135deg, #2d5359, #3a6b73)",
         "glow": "rgba(58, 107, 115, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "pixel-tech-translator",
@@ -272,9 +258,7 @@
         "secondary": "#0891b2",
         "gradient": "linear-gradient(135deg, #0891b2, #06b6d4)",
         "glow": "rgba(6, 182, 212, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "amara-osei",
@@ -305,9 +289,7 @@
         "secondary": "#5A4D80",
         "gradient": "linear-gradient(135deg, #5A4D80, #7B6BA8)",
         "glow": "rgba(123, 107, 168, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "carmen-reyes",
@@ -338,9 +320,7 @@
         "secondary": "#A67B5B",
         "gradient": "linear-gradient(135deg, #A67B5B, #D4A373)",
         "glow": "rgba(212, 163, 115, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "kenji-mori",
@@ -370,9 +350,7 @@
         "secondary": "#1A252F",
         "gradient": "linear-gradient(135deg, #1A252F, #2C3E50)",
         "glow": "rgba(44, 62, 80, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "sasha-kim",
@@ -402,9 +380,7 @@
         "secondary": "#B85C3C",
         "gradient": "linear-gradient(135deg, #B85C3C, #E07B53)",
         "glow": "rgba(224, 123, 83, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "eli-brennan",
@@ -433,9 +409,7 @@
         "secondary": "#4A4063",
         "gradient": "linear-gradient(135deg, #4A4063, #6B5B95)",
         "glow": "rgba(107, 91, 149, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "marcus-webb",
@@ -465,9 +439,7 @@
         "secondary": "#1E3D32",
         "gradient": "linear-gradient(135deg, #1E3D32, #2D5A4A)",
         "glow": "rgba(45, 90, 74, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     },
     {
       "id": "ray-chen",
@@ -497,9 +469,7 @@
         "secondary": "#2D3748",
         "gradient": "linear-gradient(135deg, #2D3748, #4A5568)",
         "glow": "rgba(74, 85, 104, 0.3)"
-      },
-      "downloads": 0,
-      "rating": 5.0
+      }
     }
   ]
 }

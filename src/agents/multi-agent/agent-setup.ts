@@ -122,6 +122,7 @@ import {
   installTurnListeners,
   recordAssistantTurns,
 } from './turn-observers.js';
+import { callerCityContext } from '../shared/caller-city.js';
 import { localClockContext, localClockEnabled } from '../shared/local-clock.js';
 import { timeContext } from '../shared/time-context.js';
 // Gateway for health ping callback
@@ -354,7 +355,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
               (outboundAwareness ? undefined : services.userProfile?.contactInfo?.timezone)
           )
         : timeContext(new Date(), userData?.callerTimezone);
-    modelBaseInstructions = baseInstructions + dateTimeContext + outboundAwareness;
+    // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
+    const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
+    modelBaseInstructions = baseInstructions + dateTimeContext + cityContext + outboundAwareness;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : services.userProfile;
