@@ -348,7 +348,7 @@ export function setExpression(
     },
     // NEW: Brand-aligned states
     contemplative: {
-      // Deep thought - wise, measured (like Jack Bogle)
+      // Deep thought - wise, measured (like a wise elder)
       topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z',
       dimpleOpacity: 0,

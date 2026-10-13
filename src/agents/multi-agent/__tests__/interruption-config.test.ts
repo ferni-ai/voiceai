@@ -8,4 +8,15 @@ describe('interruption config', () => {
   it('INTERRUPTION_MODE=vad keeps the previous VAD barge-in', () => {
     expect(interruptionOverrides({ INTERRUPTION_MODE: 'vad' })).toEqual({ mode: 'vad' });
   });
+
+  it('resumes a reply paused for noise after 1 s with NEVER_SILENT=on (resume-buffer.ts)', () => {
+    expect(interruptionOverrides({ NEVER_SILENT: 'on' })).toEqual({
+      mode: 'adaptive',
+      minWords: 0,
+      falseInterruptionTimeout: 1000,
+    });
+    expect(interruptionOverrides({ NEVER_SILENT: 'shadow' })).not.toHaveProperty(
+      'falseInterruptionTimeout'
+    );
+  });
 });
