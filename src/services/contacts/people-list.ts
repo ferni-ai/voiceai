@@ -48,10 +48,25 @@ export function relationshipGroup(text: string | undefined): RelationshipGroup {
   return 'other';
 }
 
+/** Panel-only fields an edit can add to a saved contact (saved-contact-edits.ts) */
+const PANEL_FIELDS = [
+  'howWeMet',
+  'interests',
+  'sensitiveTopics',
+  'preferredChannel',
+  'bestTimeToReach',
+  'photo',
+];
+
 /** A contact the voice agent saved, in the shape the panel reads */
 export function fromSavedContact(contact: Contact): ContactRelationship {
   const createdAt = new Date(contact.createdAt);
+  const stored = contact as unknown as Record<string, unknown>;
+  const panelFields = Object.fromEntries(
+    PANEL_FIELDS.filter((key) => stored[key] != null).map((key) => [key, stored[key]])
+  );
   return {
+    ...panelFields,
     id: contact.id,
     userId: contact.userId,
     contactId: contact.id,
