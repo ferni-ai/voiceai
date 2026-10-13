@@ -70,11 +70,15 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
   process.env.PROACTIVE_CHANNELS = 'on';
   process.env.PROACTIVE_CHANNELS_USERS = SETH;
+  // These cases exercise the legacy daily check-in path, which only runs when
+  // grounded check-ins are explicitly switched off.
+  process.env.OUTREACH_GROUNDED_CHECKINS = 'off';
 });
 afterEach(() => {
   vi.useRealTimers();
   delete process.env.PROACTIVE_CHANNELS;
   delete process.env.PROACTIVE_CHANNELS_USERS;
+  delete process.env.OUTREACH_GROUNDED_CHECKINS;
 });
 
 describe('daily outreach for allowlisted users', () => {
@@ -139,9 +143,9 @@ describe('daily outreach for allowlisted users', () => {
     ]);
   });
 
-  it('with grounded check-ins on, sends nobody a generic daily note', async () => {
-    process.env.OUTREACH_GROUNDED_CHECKINS = 'on';
-    try {
+  it('by default (flag unset) sends nobody a generic daily note', async () => {
+    delete process.env.OUTREACH_GROUNDED_CHECKINS;
+    {
       seedUser(SETH);
       seedUser(OTHER);
       const result = await runDailyOutreach();
@@ -159,8 +163,6 @@ describe('daily outreach for allowlisted users', () => {
       ]);
       expect(notesOf(SETH)).toHaveLength(0);
       expect(logOf(SETH)).toHaveLength(0);
-    } finally {
-      delete process.env.OUTREACH_GROUNDED_CHECKINS;
     }
   });
 

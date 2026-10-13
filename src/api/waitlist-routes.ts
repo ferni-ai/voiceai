@@ -18,8 +18,6 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import crypto from 'crypto';
-
 import admin from 'firebase-admin';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
@@ -30,6 +28,11 @@ import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { waitlistRateLimit } from './waitlist-rate-limits.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import { grantAccess, waitlistGateOn } from './open-access.js';
+import {
+  buildApprovalUrl,
+  getApprovalSecret,
+  verifyApprovalToken,
+} from './waitlist-approval-token.js';
 import { addSigninToWaitlist, keepWaitlistReferral } from './waitlist-record.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
@@ -619,37 +622,6 @@ const ADMIN_BYPASS_EMAILS: string[] = [
 ];
 
 /**
- * Secret for generating approval tokens
- */
-const APPROVAL_SECRET = process.env.WAITLIST_APPROVAL_SECRET || 'ferni-waitlist-2025';
-
-/**
- * Generate a secure approval token for one-click approve
- */
-function generateApprovalToken(email: string): string {
-  const data = `${email}:${APPROVAL_SECRET}:${Math.floor(Date.now() / (1000 * 60 * 60 * 24))}`; // Valid for 24h
-  return crypto.createHash('sha256').update(data).digest('hex').substring(0, 32);
-}
-
-/**
- * Verify approval token
- */
-function verifyApprovalToken(email: string, token: string): boolean {
-  // Check current day and previous day (in case of rollover)
-  const todayToken = generateApprovalToken(email);
-  if (token === todayToken) return true;
-
-  // Check yesterday's token
-  const yesterdayData = `${email}:${APPROVAL_SECRET}:${Math.floor(Date.now() / (1000 * 60 * 60 * 24)) - 1}`;
-  const yesterdayToken = crypto
-    .createHash('sha256')
-    .update(yesterdayData)
-    .digest('hex')
-    .substring(0, 32);
-  return token === yesterdayToken;
-}
-
-/**
  * Send notification to admin when someone joins the waitlist
  */
 async function notifyAdminOfSignup(email: string, source: string, phone?: string): Promise<void> {
@@ -661,9 +633,7 @@ async function notifyAdminOfSignup(email: string, source: string, phone?: string
     return;
   }
 
-  // Generate one-click approval token
-  const approvalToken = generateApprovalToken(email);
-  const approveUrl = `https://app.ferni.ai/api/waitlist/approve/${approvalToken}?email=${encodeURIComponent(email)}`;
+  const approveUrl = buildApprovalUrl(email);
 
   const subject = phone
     ? `🌿 New Waitlist Signup (with phone!): ${email}`
@@ -790,8 +760,16 @@ async function handleApproval(
     return true;
   }
 
-  // Verify the token
-  if (!verifyApprovalToken(email, token)) {
+  // Fail closed: with no signing key, no link can be trusted
+  const secret = getApprovalSecret();
+  if (!secret) {
+    log.error({ env: 'WAITLIST_APPROVAL_SECRET' }, 'Approval link refused: signing secret unset');
+    res.writeHead(503, { 'Content-Type': 'text/html' });
+    res.end(generateApprovalResultPage(false, 'One-click approval is not configured'));
+    return true;
+  }
+
+  if (!verifyApprovalToken(email, token, secret)) {
     res.writeHead(403, { 'Content-Type': 'text/html' });
     res.end(generateApprovalResultPage(false, 'Approval link has expired or is invalid'));
     return true;

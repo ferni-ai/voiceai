@@ -214,4 +214,22 @@ describe('live captions region', () => {
     const css = document.getElementById('ferni-captions-styles')?.textContent ?? '';
     expect(css).toMatch(/#transcriptContainer\s*\{\s*display:\s*none/);
   });
+
+  it('opens every turn in the transcript sheet from the expand button', () => {
+    const showModal = vi.fn(function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    });
+    HTMLDialogElement.prototype.showModal = showModal;
+    say('user', 'First thing', true);
+    say('agent', 'Second thing', true);
+    // The live region shows only Ferni's turn; the sheet keeps both.
+    expect(document.querySelectorAll('.ferni-captions .ferni-caption-line')).toHaveLength(1);
+    document.querySelector<HTMLButtonElement>('.ferni-captions__expand')?.click();
+    expect(showModal).toHaveBeenCalledTimes(1);
+    const items = [...document.querySelectorAll('.ferni-transcript-sheet li')];
+    expect(items.map((li) => li.textContent)).toEqual(['YouFirst thing', 'FerniSecond thing']);
+    expect(document.querySelector('.ferni-transcript-sheet')?.getAttribute('aria-labelledby')).toBe(
+      'ferni-transcript-sheet-title'
+    );
+  });
 });

@@ -388,7 +388,7 @@ function performPersonaIdleAnimation(profile: PersonaAnimationProfile): void {
       break;
 
     case 'contemplative-pause':
-      // Jack Bogle - Wise, measured settling
+      // Henry Caldwell (john-bogle) - Wise, measured settling
       keyframes = [
         { transform: 'translateY(0) scale(1, 1)' },
         { transform: 'translateY(-1px) scale(0.998, 1.002)' },
@@ -399,7 +399,7 @@ function performPersonaIdleAnimation(profile: PersonaAnimationProfile): void {
       break;
 
     case 'rapid-process':
-      // Peter Lynch - Quick, energetic micro-movements
+      // Tom Brannigan (peter-lynch) - Quick, energetic micro-movements
       keyframes = [
         { transform: 'rotate(0deg)' },
         { transform: 'rotate(2deg) translateY(-1px)' },

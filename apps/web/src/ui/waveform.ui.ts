@@ -134,21 +134,12 @@ const MUSIC_LISTENING_SHAPE: EmotionShape = {
 import { getWaveformProfile } from '@design-system/tokens';
 
 /**
- * Get persona color from CSS variable (design system integration)
- * Falls back to accent color if persona not set
- * 
- * IMPORTANT: Reads from document.body because persona CSS variables
- * are set via [data-persona='...'] selectors on the body element.
+ * The persona colour as a CSS value. Persona variables live on <body>
+ * ([data-persona] selectors) and inherit, so the browser resolves this where
+ * it is used and follows a persona switch by itself. Reading it back with
+ * getComputedStyle forced a style recalc (a 36 ms frame at 4x CPU on switch).
  */
-function getPersonaColor(): string {
-  // Read from body where persona-specific CSS variables are applied
-  const style = getComputedStyle(document.body);
-  const personaColor = style.getPropertyValue('--persona-primary').trim();
-  if (personaColor) return personaColor;
-  // Fallback to accent color (from documentElement since it's a global token)
-  const rootStyle = getComputedStyle(document.documentElement);
-  return rootStyle.getPropertyValue('--color-accent-primary').trim() || '#4a6741'; // Ferni sage green fallback
-}
+const PERSONA_COLOR = 'var(--persona-primary, var(--color-accent-primary, #4a6741))';
 
 // ============================================================================
 // STATE
@@ -228,6 +219,7 @@ export function initWaveformUI(): void {
   emotionIndicator = container.querySelector('.emotion-indicator');
   createBars();
   updateBarsStyle();
+  document.addEventListener('visibilitychange', startAnimation); // resumes if live
 }
 
 function createBars(): void {
@@ -368,10 +360,7 @@ export function setVolume(volume: number): void {
 }
 
 export function setPersona(personaId: SpeakerId): void {
-  currentConfig = getWaveformProfile(personaId);
-  // Color is read from CSS --persona-primary variable (set by design system)
-  // Use requestAnimationFrame to ensure CSS has updated
-  requestAnimationFrame(() => updateBarsStyle());
+  currentConfig = getWaveformProfile(personaId); // the colour follows CSS (PERSONA_COLOR)
 }
 
 export function setEmotion(emotion: VoiceEmotion, intensity: number = 1): void {
@@ -470,12 +459,19 @@ export function setMusicPlaying(listening: boolean): void {
 // ANIMATION ENGINE
 // ============================================================================
 
+/** The bars are visible (and worth animating) only between start() and stop(). */
+const isLive = (): boolean => !!container?.classList.contains('active') && !document.hidden;
+
 function startAnimation(): void {
-  if (animationId !== null) return;
+  if (animationId !== null || !isLive()) return;
 
   lastTimestamp = performance.now();
 
   const animate = (timestamp: number) => {
+    if (!isLive()) {
+      animationId = null; // hidden, hung up, or not started
+      return;
+    }
     const deltaTime = Math.min(timestamp - lastTimestamp, 50);
     lastTimestamp = timestamp;
 
@@ -698,7 +694,7 @@ function smoothWindDown(): void {
       }
     }
 
-    if (!allSettled && !isSpeaking) {
+    if (!allSettled && !isSpeaking && isLive()) {
       requestAnimationFrame(windDown);
     }
   };
@@ -722,7 +718,7 @@ function updateBarsStyle(): void {
   if (!container) return;
 
   // Get color from CSS variable (design system integration)
-  const color = getPersonaColor();
+  const color = PERSONA_COLOR;
   container.style.setProperty('--waveform-color', color);
 
   bars.forEach((bar) => {
@@ -753,7 +749,7 @@ function createRipple(): void {
   const ripple = document.createElement('div');
   ripple.className = 'waveform-ripple';
 
-  const color = getPersonaColor();
+  const color = PERSONA_COLOR;
   const rect = barsContainer.getBoundingClientRect();
   const containerRect = container.getBoundingClientRect();
 
@@ -808,7 +804,7 @@ function createParticleBurst(): void {
   // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  const color = getPersonaColor();
+  const color = PERSONA_COLOR;
   const rect = barsContainer.getBoundingClientRect();
   const containerRect = particleContainer.getBoundingClientRect();
 
@@ -889,6 +885,7 @@ export function burstCelebration(): void {
 
 export function dispose(): void {
   stopAnimation();
+  document.removeEventListener('visibilitychange', startAnimation);
 
   // 🎬 Clean up ripples and particles
   rippleElements.forEach((r) => r.remove());
