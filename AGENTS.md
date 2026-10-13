@@ -3,8 +3,11 @@
 Ferni is a voice AI companion ("making AI human"). This file is the one set of
 instructions for every coding agent (Claude Code reads it through `CLAUDE.md`;
 Codex, Cursor and others read it directly). It holds only what the code can't
-tell you: how work ships here, and the traps that have cost us before. For
-anything else, read the code, and `docs/agent/` on demand.
+tell you: how work ships here, and the traps that have cost us before. How
+the work around a change is organised (issues, the board, how much is in
+flight, review by risk) is in `docs/agent/operating-model.md`: read it before
+opening an issue or a PR. For anything else, read the code, and `docs/agent/`
+on demand.
 
 ## The stack today (verified 2026-10-08)
 
