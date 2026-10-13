@@ -331,6 +331,8 @@ export const FLAG_MANIFEST = {
   VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // on: web callers' audio gets BVC noise cancellation (multi-agent/room-input-options.ts)
+  WEB_NOISE_CANCEL: { default: 'off', owner: 'voice', kind: 'experiment' },
   WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
   WORKER_DRAIN_TIMEOUT_MS: { default: '1800000', owner: 'platform', kind: 'config' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },
