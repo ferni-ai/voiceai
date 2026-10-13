@@ -46,17 +46,23 @@ beforeAll(async () => {
 
 afterAll(() => server?.close());
 
-/** One document in a store: "a/{uid}/b" is a subcollection, "a/{uid}" a doc, "a" a uid field */
+/**
+ * One document in a store, by its label: "a/{uid}/b" is a subcollection, "a/{uid}" a doc,
+ * "a[field]" documents whose field names the uid (user-stores.ts storeLabel)
+ */
 async function seed(store: string, uid: string, marker: string): Promise<void> {
+  const owned = /^(.+)\[(.+)\]$/.exec(store);
+  if (owned) {
+    const [, collection, field] = owned;
+    await db
+      .collection(collection!)
+      .add({ [field!]: uid, name: marker, marker, lastInteraction: new Date() });
+    return;
+  }
   const path = store.replace('{uid}', uid);
   const parts = path.split('/');
   if (parts.length % 2 === 0) {
     await db.doc(path).set({ marker }, { merge: true });
-  } else if (parts.length === 1) {
-    const field = store === 'sponsored_identities' ? 'sponsorUserId' : 'userId';
-    await db
-      .collection(path)
-      .add({ [field]: uid, name: marker, marker, lastInteraction: new Date() });
   } else {
     await db.collection(path).add({ marker, at: new Date() });
   }
@@ -155,7 +161,9 @@ describe.skipIf(!emulator)('export carries every known user store (Firestore emu
     ]) {
       expect(file).toContain(kept);
     }
-    const [identity] = records.sponsored_identities as Array<Record<string, unknown>>;
+    const [identity] = records['sponsored_identities[sponsorUserId]'] as Array<
+      Record<string, unknown>
+    >;
     expect(identity).not.toHaveProperty('totalCalls');
   });
 

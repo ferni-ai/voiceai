@@ -16,11 +16,11 @@
 
 import { BoundedReader, ExportBudget, openExportDb, type ReadDoc } from './bounded-reader.js';
 import { toPlain, type Plain } from './export-redaction.js';
+import { USER_RECORD_ROOTS, type OwnedStore } from './user-stores.js';
 
 export { ExportBudget, ExportLimitError, EXPORT_BUDGET_LIMITS } from './bounded-reader.js';
-
-/** Collections whose {uid} document, and the stores under it, belong to that person */
-export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
+/** Shared with account deletion (user-stores.ts), so both walk the same two records */
+export { USER_RECORD_ROOTS } from './user-stores.js';
 
 /**
  * The stores exported, by name: an ALLOWLIST, so a store nobody has reviewed (a new
@@ -153,11 +153,18 @@ export const WITHHELD_STORES: Readonly<Record<string, string>> = {
   insights_cache: 'cache rebuilt from the stores above',
 };
 
-/** Stores outside those records: a document keyed by the uid, or documents naming it */
-export const OWNED_ELSEWHERE: ReadonlyArray<
-  | { collection: string; doc: 'uid' }
-  | { collection: string; field: string; fields?: readonly string[] }
-> = [
+const byId = (...collections: string[]): OwnedStore[] =>
+  collections.map((collection) => ({ collection, doc: 'uid' as const }));
+const byField = (field: string, ...collections: string[]): OwnedStore[] =>
+  collections.map((collection) => ({ collection, field }));
+
+/**
+ * The stores outside the two records that export reads: a document keyed by the uid, or
+ * documents naming it. This is the export's own allowlist; account deletion's longer list
+ * (user-stores.ts OWNED_ELSEWHERE) must agree with it: every store there is here or in
+ * WITHHELD_ELSEWHERE, and every store here is one deletion erases (unit-tested).
+ */
+export const EXPORTED_ELSEWHERE: ReadonlyArray<OwnedStore & { fields?: readonly string[] }> = [
   { collection: 'user_seeds', doc: 'uid' }, // seed balance and history (Seeds card)
   { collection: 'engagement_profiles', doc: 'uid' },
   { collection: 'households', doc: 'uid' },
@@ -209,7 +216,109 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
       'updatedAt',
     ],
   },
+  // What the voice agent has learned about the person, and the app's per-person records,
+  // one document each (for the leaderboards, the person's own entry, never the board)
+  ...byId(
+    'unified_user_models',
+    'superhuman_intelligence',
+    'user_builder_preferences',
+    'user_listening_baselines',
+    'user_tool_profiles',
+    'user_preferences',
+    'emotional_history',
+    'memory_intelligence_profiles',
+    'coaching_profiles',
+    'ant_patterns',
+    'ant_entries',
+    'creative_dna',
+    'topic_history',
+    'crisis_signals',
+    'cameo_preferences',
+    'cameo_engagements',
+    'voice_memories',
+    'knowledge_graph',
+    'entity_store',
+    'emotional_data',
+    'emotional_patterns',
+    'growth_moments',
+    'user_gifts',
+    'user_contacts',
+    'apple_health_status',
+    'apple_health_data',
+    'outreach_profiles',
+    'outreach_history',
+    'story_journeys',
+    'user_gardens',
+    'user_sleep_patterns',
+    'user_streak_rewards',
+    'twin_profiles',
+    'maya_leaderboards/weekly/entries',
+    'maya_leaderboards/monthly/entries',
+    'maya_leaderboards/all_time/entries'
+  ),
+  // The person's documents, by owner field
+  ...byField(
+    'userId',
+    'entities',
+    'entity_mentions',
+    'entity_correlations',
+    'correlation_observations',
+    'userPatterns',
+    'memory_intelligence_records',
+    'creative_insights',
+    'watch_history',
+    'learning_journey_progress',
+    'crisis_events',
+    'contact_groups',
+    'ferni_actions',
+    'concierge_requests',
+    'tracked_appointments',
+    'message_drafts',
+    'delivery_orders',
+    'delivery_order_history',
+    'user_habits',
+    'habit_completions',
+    'coaching_sessions',
+    'roleplay_sessions',
+    'task_sessions',
+    'deployed-sites',
+    'shareable_cards',
+    'user_milestones',
+    'feature_votes',
+    'roadmap_suggestions',
+    'outreach_triggers',
+    'outreach_history',
+    'voice_conversations',
+    'marketplace_installations'
+  ),
 ];
+
+/**
+ * Stores in account deletion's OWNED_ELSEWHERE that export leaves out on purpose, by
+ * storeLabel, with why. Deletion still erases them.
+ */
+export const WITHHELD_ELSEWHERE: Readonly<Record<string, string>> = {
+  'voice_profile_index/{uid}': 'the voiceprint index that recognizes the caller, an authenticator',
+  'profiles/{uid}': 'subcollections only, whose names have not been reviewed for export',
+  'outreach_context/{uid}': 'scheduler state rebuilt from outreach history',
+  'analytics_users/{uid}': "product telemetry about sessions, not the person's story",
+  'user_contacts[userId]': 'already in the file: the Contacts category reads it',
+  'pending_actions[userId]': 'approval queue: each item carries its approval link',
+  'scheduled_deliveries[userId]': 'delivery queue, removed once sent',
+  'pending_inapp_messages[userId]': 'delivery queue, removed once shown',
+  'trust_analytics[userId]': 'product telemetry',
+  'routing_events[userId]': 'product telemetry (which model answered)',
+  'game_analytics_events[userId]': 'product telemetry',
+  'bth_production_events[userId]': 'product telemetry',
+  'phone_mappings[userId]': 'the phone-to-account index used to route calls, a sign-in record',
+  'share_links[ownerId]': 'the link id is the secret that opens it',
+  'share_invites[ownerId]': 'the invite id is the secret that accepts it',
+  'voice_households[ownerId]': "other household members' voice enrolment",
+  'family_messages[toUserId]': 'written by family members, not the person',
+  'family_shared_context[toUserId]': 'written by family members, not the person',
+  'voice_referrals[referrerId]': 'names the people the person referred',
+  'analytics_sessions[odId]': 'product telemetry',
+};
 
 /**
  * Stores a menu panel reads or the voice agent writes (menu audit 2026-10-12). The
@@ -234,7 +343,7 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'users/{uid}/practices',
   'user_seeds/{uid}',
   'engagement_profiles/{uid}',
-  'contact_relationships',
+  'contact_relationships[userId]',
 ];
 
 function pick(data: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
@@ -269,11 +378,11 @@ function storesFor(userId: string): Store[] {
     }
   };
   for (const root of USER_RECORD_ROOTS) tree(root);
-  for (const store of OWNED_ELSEWHERE) {
+  for (const store of EXPORTED_ELSEWHERE) {
     if ('doc' in store) tree(store.collection);
     else {
       stores.push({
-        label: store.collection,
+        label: `${store.collection}[${store.field}]`,
         kind: 'collection',
         path: store.collection,
         where: { field: store.field, equals: userId },

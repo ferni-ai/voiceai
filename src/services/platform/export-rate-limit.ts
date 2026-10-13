@@ -4,7 +4,9 @@
  *
  * Keyed by the uid the API server verified, never by IP or a client-sent value. Claimed
  * before any export read; every attempt counts, refused ones too; and one export per
- * person runs at a time (a lease that expires if the server dies mid-export).
+ * person runs at a time, across every instance (a lease that expires if the server dies
+ * mid-export). If the store can't be reached the export is refused, never let through.
+ * The per-process cap below is the other bound: it protects this instance's memory.
  *
  * @module services/platform/export-rate-limit
  */
@@ -43,9 +45,34 @@ export async function claimExport(
 ): Promise<() => Promise<void>> {
   if (!uid || uid.includes('/')) throw new ExportLimitError('rate');
   if (runningHere >= EXPORT_RATE.maxConcurrentPerProcess) throw new ExportLimitError('busy');
-  const db = firestore ?? getFirestore();
-  const ref = db.collection(COLLECTION).doc(uid);
-  const outcome = await db.runTransaction(async (tx) => {
+  let ref: FirebaseFirestore.DocumentReference | undefined;
+  const outcome = await (async () => {
+    const db = firestore ?? getFirestore();
+    ref = db.collection(COLLECTION).doc(uid);
+    return decide(db, ref);
+  })().catch((error: unknown) => {
+    // Fail closed: if the limit can't be checked, the export doesn't run
+    log.error({ error: String(error), uid }, 'Export limit store unreachable; refusing');
+    return 'busy' as const;
+  });
+  if (outcome || !ref) throw new ExportLimitError(outcome ?? 'busy');
+  const held = ref;
+  runningHere += 1;
+  return async () => {
+    runningHere -= 1;
+    await held.update({ runningUntil: 0 }).catch((error: unknown) => {
+      // The lease still expires on its own; log so a stuck slot can be traced
+      log.warn({ error: String(error), uid }, 'Failed to release the export slot');
+    });
+  };
+}
+
+/** One transaction: record this attempt, and say whether it's refused and why */
+async function decide(
+  db: FirebaseFirestore.Firestore,
+  ref: FirebaseFirestore.DocumentReference
+): Promise<'rate' | 'busy' | null> {
+  return db.runTransaction(async (tx) => {
     const now = Date.now();
     const doc = ((await tx.get(ref)).data() ?? {}) as RateDoc;
     const recent = (doc.attempts ?? []).filter((t) => t > now - EXPORT_RATE.windowMs);
@@ -58,13 +85,4 @@ export async function claimExport(
     });
     return refused;
   });
-  if (outcome) throw new ExportLimitError(outcome);
-  runningHere += 1;
-  return async () => {
-    runningHere -= 1;
-    await ref.update({ runningUntil: 0 }).catch((error: unknown) => {
-      // The lease still expires on its own; log so a stuck slot can be traced
-      log.warn({ error: String(error), uid }, 'Failed to release the export slot');
-    });
-  };
 }

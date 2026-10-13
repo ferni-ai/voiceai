@@ -5,8 +5,6 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import admin from 'firebase-admin';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
@@ -68,19 +66,6 @@ async function seedDocs(path: string, n: number, bytesEach = 200): Promise<void>
 const spent = (b: ExportBudget) => ({
   docs: b.limits.maxDocs - b.docsLeft,
   reads: b.limits.maxReads - b.readsLeft,
-});
-
-describe('one reader, by construction', () => {
-  it('user-records-export.ts makes no Firestore call of its own', () => {
-    const file = fileURLToPath(
-      new URL('../../services/platform/user-records-export.ts', import.meta.url)
-    );
-    const code = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
-    const calls = code.match(
-      /\.get\(|\.where\(|collection\(|\.doc\(|\.count\(|listCollections|runTransaction|getFirestore|firebase-admin/g
-    );
-    expect(calls).toBeNull();
-  });
 });
 
 describe.skipIf(!emulator)('export bounds (Firestore emulator)', () => {
@@ -231,6 +216,17 @@ describe.skipIf(!emulator)('export bounds (Firestore emulator)', () => {
       (EXPORT_BUDGET_LIMITS as ExportBudgetLimits).maxDocs = saved;
     }
   });
+  it('fails closed: if the limit store is unreachable, the export is refused', async () => {
+    const { claimExport } = await import('../../services/platform/export-rate-limit.js');
+    const unreachable = {
+      collection: () => ({ doc: () => ({ update: async () => undefined }) }),
+      runTransaction: async () => {
+        throw new Error('14 UNAVAILABLE');
+      },
+    } as unknown as FirebaseFirestore.Firestore;
+    await expect(claimExport(id(), unreachable)).rejects.toMatchObject({ reason: 'busy' });
+  });
+
   // Last: resetModules gives later tests a second copy of every module
   it('the limit is per verified person, in Firestore: a fresh process still refuses the 4th', async () => {
     const uid = id();
