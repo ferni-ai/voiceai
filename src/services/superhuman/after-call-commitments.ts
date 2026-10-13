@@ -24,9 +24,8 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
-import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
-import { isForgotten } from '../../memory/recall/session-recall.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { forgottenTopicsOrNull, isForgotten } from '../../memory/index.js';
+import { getFirestoreDb } from './firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'AfterCallCommitments' });

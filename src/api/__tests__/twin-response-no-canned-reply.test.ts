@@ -6,7 +6,8 @@
  * Remember when I wrote: ..." built from their journal. Now it answers 503 and
  * the client shows an error notice instead.
  *
- * Drives the real route; only the audio-transcription import is mocked.
+ * Drives the real route as a signed-in caller; transcription, token checks and
+ * rate limiting are mocked.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +17,18 @@ import type { IncomingMessage, ServerResponse } from 'http';
 vi.mock('../../services/custom-agent/memory-capture-service.js', () => ({
   transcribeAudioBuffer: vi.fn(),
 }));
+// The route needs a signed-in caller (#1284): "tok-sam" verifies as uid-sam
+vi.mock('../../services/identity/firebase-auth.js', () => ({
+  verifyFirebaseToken: vi.fn(async (token: string) =>
+    token === 'tok-sam' ? { uid: 'uid-sam', claims: {} } : null
+  ),
+  isVerifiedToken: (r: unknown) => r !== null && typeof r === 'object',
+  claimsFirebaseIssuer: () => true,
+}));
+vi.mock('../auth-middleware.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../auth-middleware.js')>()),
+  rateLimit: () => false,
+}));
 
 const { handleJournalRoutes } = await import('../journal-routes.js');
 
@@ -24,7 +37,8 @@ async function post(body: Record<string, unknown>) {
   const req = stream as unknown as IncomingMessage;
   req.method = 'POST';
   req.url = '/api/journal/twin-response';
-  req.headers = {};
+  req.headers = { host: 'localhost', authorization: 'Bearer tok-sam' };
+  (req as { socket?: unknown }).socket = { remoteAddress: '127.0.0.1' };
   stream.end(JSON.stringify(body));
   const writeHead = vi.fn();
   const end = vi.fn();

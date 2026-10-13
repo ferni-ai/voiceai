@@ -7,6 +7,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { apiPost } from '../../utils/api.js';
 import type { JournalPrompt } from './types.js';
 import { getModal, getCurrentPrompt, setCurrentPrompt, getCurrentAgent } from './state.js';
 import { t } from '../../i18n/index.js';
@@ -113,22 +114,16 @@ export async function prefetchPrompts(): Promise<void> {
   }
   
   try {
-    const response = await fetch('/api/journal/prompts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        count: CACHE_SIZE,
-        timeOfDay: getTimeOfDay(),
-        agentId,
-      }),
+    // apiPost sends the Firebase token; a bare fetch got 401 from the auth door on prod.
+    const response = await apiPost<{ prompts?: JournalPrompt[] }>('/api/journal/prompts', {
+      count: CACHE_SIZE,
+      timeOfDay: getTimeOfDay(),
+      agentId,
     });
-    
-    if (response.ok) {
-      const data = await response.json();
-      if (data.prompts && Array.isArray(data.prompts)) {
-        saveCachedPrompts(data.prompts as JournalPrompt[], agentId);
-        log.info(`Pre-fetched ${data.prompts.length} prompts for offline use`);
-      }
+    const prompts = response.data?.prompts;
+    if (response.ok && Array.isArray(prompts)) {
+      saveCachedPrompts(prompts, agentId);
+      log.info(`Pre-fetched ${prompts.length} prompts for offline use`);
     }
   } catch (err) {
     log.debug('Failed to prefetch prompts (offline?):', err);
@@ -248,22 +243,14 @@ function getTimeBasedPrompts(): JournalPrompt[] {
 export async function fetchPrompt(selectedMood?: string): Promise<JournalPrompt> {
   // Try to get from backend first
   try {
-    const response = await fetch('/api/journal/prompt', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        timeOfDay: getTimeOfDay(),
-        mood: selectedMood,
-      }),
+    const response = await apiPost<{ prompt?: JournalPrompt }>('/api/journal/prompt', {
+      timeOfDay: getTimeOfDay(),
+      mood: selectedMood,
     });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.prompt) {
-        // Also trigger background prefetch for next time
-        void prefetchPrompts();
-        return data.prompt as JournalPrompt;
-      }
+    if (response.ok && response.data?.prompt) {
+      // Also trigger background prefetch for next time
+      void prefetchPrompts();
+      return response.data.prompt;
     }
   } catch (error) {
     log.debug('Backend prompt fetch failed, trying cache:', error);
