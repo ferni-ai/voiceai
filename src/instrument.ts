@@ -5,8 +5,7 @@
  * reporting starts (a no-op unless SENTRY_DSN is set; see utils/error-reporting.ts).
  */
 
-import { installLogPhoneRedaction } from './utils/log-redaction.js';
+import './utils/log-redaction-install.js';
 import { initErrorReporting } from './utils/error-reporting.js';
 
-installLogPhoneRedaction();
 await initErrorReporting();

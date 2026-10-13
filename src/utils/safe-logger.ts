@@ -31,6 +31,8 @@
 import type { log } from '@livekit/agents';
 import pino from 'pino';
 
+import { redactLogDestination } from './log-redaction.js';
+
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
  */
@@ -191,7 +193,8 @@ let appSink: pino.Logger | null = null;
  */
 function appStream(): pino.DestinationStream {
   if (process.env.VITEST) return process.stderr;
-  return pino.destination({ dest: 2, sync: false, maxWrite: 4096 });
+  // Writes to fd 2 itself, past process.stderr, so it needs the phone redaction of its own
+  return redactLogDestination(pino.destination({ dest: 2, sync: false, maxWrite: 4096 }));
 }
 
 function appLogger(): pino.Logger {

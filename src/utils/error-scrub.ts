@@ -62,7 +62,7 @@ const STRING_RULES: Array<[RegExp, string]> = [
 ];
 
 /** Phone- and card-like runs: 7 to 19 digits with common separators. */
-export const PHONE_LIKE = /\+?\d[\d\s().-]{5,}\d/g;
+const PHONE_LIKE = /\+?\d[\d\s().-]{5,}\d/g;
 /** Six or more plain words in a row reads as prose, not as code. */
 const PROSE_RUN = /[A-Za-z][A-Za-z']*(?:[ ,]+[A-Za-z][A-Za-z']*){5,}/g;
 
