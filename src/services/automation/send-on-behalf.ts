@@ -4,8 +4,9 @@
  * Allows Ferni to send messages (SMS, email) on the user's behalf.
  * Uses the trust level system to determine when to ask for approval.
  *
- * Key Principle: User ALWAYS sees the message before it's sent for new actions.
- * Once they've approved several similar messages, Ferni can send autonomously.
+ * Every message waits for the member's approval, however much they trust
+ * Ferni, and an approval sends exactly one message. Texts go only through the
+ * guarded sender the caller passes in (OnBehalfTextSender).
  *
  * @module services/automation/send-on-behalf
  */
@@ -13,9 +14,10 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import {
-  checkActionPermission,
+  createPendingAction,
   markActionExecuted,
   type ActionPreview,
+  type PendingAction,
 } from './trust-level-system.js';
 
 const log = createLogger({ module: 'SendOnBehalf' });
@@ -47,6 +49,19 @@ export interface SendMessageResult {
   messageId?: string;
   error?: string;
 }
+
+/**
+ * The guarded on-behalf text sender: sendOnBehalfText in outreach/guarded-text.ts
+ * (STOP, quiet hours, one per ten minutes, off unless ON_BEHALF_TEXTS=on).
+ * Outreach sits a layer above automation, so the caller passes it in; there is
+ * no raw-Twilio fallback.
+ */
+export type OnBehalfTextSender = (text: {
+  senderUserId: string;
+  toPhone: string;
+  body: string;
+  refId: string;
+}) => Promise<{ sent: true } | { sent: false; reason: string }>;
 
 export interface MessageHistory {
   id: string;
@@ -126,14 +141,11 @@ function validateMessageRequest(request: SendMessageRequest): string | null {
 // ============================================================================
 
 /**
- * Request to send a message on behalf of the user
- *
- * This checks trust level and either:
- * 1. Sends immediately (if trusted)
- * 2. Returns a pending action for approval
+ * Request to send a message on behalf of the user. Never sends: it stores the
+ * message and returns a pending action the member must approve
+ * (resolvePendingAction), then executeApprovedMessage sends it once.
  */
 export async function sendMessageOnBehalf(request: SendMessageRequest): Promise<SendMessageResult> {
-  // Validate request
   const validationError = validateMessageRequest(request);
   if (validationError) {
     return { success: false, requiresApproval: false, error: validationError };
@@ -141,77 +153,63 @@ export async function sendMessageOnBehalf(request: SendMessageRequest): Promise<
 
   const actionType = request.channel === 'sms' ? 'send_sms' : 'send_email';
   const preview = generateMessagePreview(request);
-
-  // Check permission via trust level system
-  const permissionResult = await checkActionPermission(request.userId, actionType, preview);
-
-  if (!permissionResult.success) {
-    return {
-      success: false,
-      requiresApproval: false,
-      error: permissionResult.error,
-    };
-  }
-
-  // If requires approval, return the pending action
-  if (permissionResult.requiresApproval) {
-    // Store the message request for later execution
-    await storeMessageRequest(request, permissionResult.pendingActionId!);
-
-    return {
-      success: true,
-      requiresApproval: true,
-      pendingActionId: permissionResult.pendingActionId,
-      preview,
-    };
-  }
-
-  // Trusted - send immediately
-  const sendResult = await executeMessageSend(request);
-
-  if (sendResult.success) {
-    // Mark action as executed for trust tracking
-    await markActionExecuted(request.userId, permissionResult.actionId);
-  }
-
-  return {
-    success: sendResult.success,
-    requiresApproval: false,
-    messageId: sendResult.messageId,
-    error: sendResult.error,
-  };
+  const pending = await createPendingAction(request.userId, actionType, preview);
+  await storeMessageRequest(request, pending.id);
+  return { success: true, requiresApproval: true, pendingActionId: pending.id, preview };
 }
 
 /**
- * Execute a message send after approval
+ * Move an approved message action to executed, atomically, so it sends once.
+ * False for anything not approved (pending, rejected, already executed) or not a message.
+ */
+async function claimApprovedMessage(userId: string, pendingActionId: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+  const ref = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('pending_actions')
+    .doc(pendingActionId);
+  try {
+    return await db.runTransaction(async (tx) => {
+      const action = (await tx.get(ref)).data() as PendingAction | undefined;
+      const isMessage = action?.actionType === 'send_sms' || action?.actionType === 'send_email';
+      if (action?.status !== 'approved' || !isMessage) return false;
+      tx.update(ref, { status: 'executed', executedAt: new Date().toISOString() });
+      return true;
+    });
+  } catch (error) {
+    log.error({ error: String(error), pendingActionId }, 'Failed to claim approved message');
+    return false;
+  }
+}
+
+/**
+ * Send a message the member approved. Refused unless the action is approved,
+ * and consumed before sending, so a replay sends nothing.
  */
 export async function executeApprovedMessage(
   userId: string,
-  pendingActionId: string
+  pendingActionId: string,
+  sendText: OnBehalfTextSender
 ): Promise<SendMessageResult> {
-  // Get stored message request
-  const request = await getStoredMessageRequest(userId, pendingActionId);
-
-  if (!request) {
+  if (!(await claimApprovedMessage(userId, pendingActionId))) {
+    log.warn({ userId, pendingActionId }, 'Refused to send a message that is not approved');
     return {
       success: false,
-      requiresApproval: false,
-      error: 'Message request not found',
+      requiresApproval: true,
+      error: 'Message not approved, or already sent',
     };
   }
 
-  // Execute the send
-  const result = await executeMessageSend(request);
-
-  // Mark action as executed
-  if (result.success) {
-    await markActionExecuted(userId, pendingActionId);
+  const request = await getStoredMessageRequest(userId, pendingActionId);
+  if (!request) {
+    return { success: false, requiresApproval: false, error: 'Message request not found' };
   }
 
-  return {
-    ...result,
-    requiresApproval: false, // Already approved at this point
-  };
+  const result = await executeMessageSend(request, pendingActionId, sendText);
+  if (result.success) await markActionExecuted(userId, pendingActionId);
+  return { ...result, requiresApproval: false };
 }
 
 /**
@@ -269,11 +267,13 @@ async function getStoredMessageRequest(
  * Actually send the message
  */
 async function executeMessageSend(
-  request: SendMessageRequest
+  request: SendMessageRequest,
+  refId: string,
+  sendText: OnBehalfTextSender
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     if (request.channel === 'sms') {
-      return await sendSms(request);
+      return await sendSms(request, refId, sendText);
     } else if (request.channel === 'email') {
       return await sendEmail(request);
     }
@@ -285,20 +285,15 @@ async function executeMessageSend(
   }
 }
 
-/**
- * Send SMS via Twilio
- */
+/** Send an SMS through the guarded on-behalf sender, never raw Twilio. */
 async function sendSms(
-  request: SendMessageRequest
+  request: SendMessageRequest,
+  refId: string,
+  sendText: OnBehalfTextSender
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    // Import Twilio SMS service
-    const { sendSMS } = await import('../twilio-sms.js');
-
-    // Get user's verified sender info
     const db = getFirestoreDb();
     let fromName = 'Ferni';
-
     if (db) {
       const userDoc = await db.collection('bogle_users').doc(request.userId).get();
       if (userDoc.exists) {
@@ -306,30 +301,23 @@ async function sendSms(
       }
     }
 
-    // Send the message
-    const messageId = await sendSMS(
-      request.recipient.phone!,
-      `[From ${fromName} via Ferni] ${request.message}`
-    );
-    const result = { success: messageId !== null, messageId: messageId ?? undefined };
-
-    if (result.success) {
-      // Record in message history
-      await recordMessageHistory(request, 'sent', result.messageId);
-
-      log.info(
-        {
-          userId: request.userId,
-          recipientName: request.recipient.name,
-          messageId: result.messageId,
-        },
-        'SMS sent on behalf of user'
-      );
-
-      return { success: true, messageId: result.messageId };
+    const outcome = await sendText({
+      senderUserId: request.userId,
+      toPhone: request.recipient.phone!,
+      body: `[From ${fromName} via Ferni] ${request.message}`,
+      refId,
+    });
+    if (!outcome.sent) {
+      await recordMessageHistory(request, 'failed');
+      return { success: false, error: `Text not sent (${outcome.reason})` };
     }
 
-    return { success: false, error: 'SMS delivery failed' };
+    await recordMessageHistory(request, 'sent');
+    log.info(
+      { userId: request.userId, recipientName: request.recipient.name, refId },
+      'SMS sent on behalf of user'
+    );
+    return { success: true };
   } catch (error) {
     log.error({ error: String(error) }, 'SMS send failed');
     return { success: false, error: 'SMS service unavailable' };
