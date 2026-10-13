@@ -1,6 +1,6 @@
 /**
  * Cutting a paused reply drops its held audio unplayed (PATCHED(ferni) in
- * cancelSpeechPause, patches/@livekit__agents@1.5.1.patch).
+ * cancelSpeechPause, patches/@livekit__agents@1.6.4.patch).
  *
  * Dev talk-over runs, 2026-10-05: after every real interruption the caller
  * heard a 20-40 ms blip of the reply they had cut off. The caller's voice
@@ -51,6 +51,7 @@ function pausedActivity() {
       pausedSpeech: { handle },
       cancelSpeechPauseTask: undefined,
       falseInterruptionTimer: undefined,
+      cancelFalseInterruptionTimer: vi.fn(),
       logger: { debug: vi.fn() },
     },
   };

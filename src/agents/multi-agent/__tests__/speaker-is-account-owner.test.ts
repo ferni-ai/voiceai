@@ -76,7 +76,6 @@ describe('speakerIsAccountOwner', () => {
   });
 
   it('an inbound phone call with recognition off: the caller says yes and nothing is sent', async () => {
-    vi.stubEnv('OUTREACH_CONFIRM', 'on');
     await identify('sip-session', 'metadata', { type: 'inbound_call', userId: 'owner-uid' });
     const send = vi.fn(async () => 'sent');
     const def = withOutreachConfirmation(

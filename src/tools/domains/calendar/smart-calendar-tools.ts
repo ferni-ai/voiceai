@@ -57,6 +57,8 @@ import {
   cancelPendingEvent,
   getPendingEvent,
 } from '../../../services/calendar/event-confirmation.js';
+import { userTimeZone } from '../../../utils/caller-time-zone.js';
+import { formatStoredLocalTime, zonedWallTimeToUtc } from '../../../utils/time-zone.js';
 import {
   getUpcomingBriefings,
   getPostMeetingFollowUps,
@@ -229,7 +231,9 @@ const createCalendarEventDef: ToolDefinition = {
         const [year, month, day] = params.date.split('-').map(Number);
         const [hour, minute] = params.startTime.split(':').map(Number);
 
-        const startTime = new Date(year, month - 1, day, hour, minute);
+        // The date and time the user said are their wall clock, not the server's.
+        const zone = userTimeZone(ctx);
+        const startTime = zonedWallTimeToUtc({ year, month, day, hour, minute }, zone);
         const durationMinutes = params.durationMinutes || 60;
 
         const eventInput: CreateEventInput = {
@@ -247,17 +251,10 @@ const createCalendarEventDef: ToolDefinition = {
           return "Couldn't create the event. There might be an issue with your calendar connection.";
         }
 
-        const formattedTime = startTime.toLocaleString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-        });
-
+        const formattedTime = formatStoredLocalTime(startTime, zone);
         log.info({ userId, eventTitle: params.title }, 'Created calendar event');
-        return `Done. "${params.title}" is now on your calendar for ${formattedTime}. Duration: ${durationMinutes} minutes.`;
+        // createEvent keeps it in Ferni's own calendar; nothing pushes it to Google.
+        return `Saved to the Ferni calendar only, not Google Calendar: "${params.title}", ${formattedTime}, ${durationMinutes} minutes.`;
       },
     }),
 };
@@ -293,7 +290,7 @@ const updateCalendarEventDef: ToolDefinition = {
         }
 
         const updates: Partial<CreateEventInput> = {};
-
+        const zone = userTimeZone(ctx);
         if (params.title) updates.title = params.title;
         if (params.description) updates.description = params.description;
         if (params.location) updates.location = params.location;
@@ -301,7 +298,7 @@ const updateCalendarEventDef: ToolDefinition = {
         if (params.date && params.startTime) {
           const [year, month, day] = params.date.split('-').map(Number);
           const [hour, minute] = params.startTime.split(':').map(Number);
-          updates.startTime = new Date(year, month - 1, day, hour, minute);
+          updates.startTime = zonedWallTimeToUtc({ year, month, day, hour, minute }, zone);
         }
 
         if (params.durationMinutes && updates.startTime) {
@@ -317,17 +314,7 @@ const updateCalendarEventDef: ToolDefinition = {
         }
 
         log.info({ userId, eventId: params.eventId }, 'Updated calendar event');
-        return `Updated. ${updated.title} is now scheduled for ${updated.startTime.toLocaleString(
-          'en-US',
-          {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-          }
-        )}.`;
+        return `Updated. ${updated.title} is now scheduled for ${formatStoredLocalTime(updated.startTime, zone)}.`;
       },
     }),
 };

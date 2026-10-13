@@ -44,7 +44,7 @@ struct FerniWatchContentView: View {
                         .fill(currentMood.color.opacity(0.3))
                         .frame(width: 80, height: 80)
 
-                    Text(currentMood.emoji)
+                    Image(systemName: currentMood.symbolName)
                         .font(.system(size: 40))
                 }
                 .onTapGesture {
@@ -61,18 +61,6 @@ struct FerniWatchContentView: View {
                     .font(.caption)
                     .foregroundColor(.gray)
                 
-                // Streak badge
-                if connectivity.streakDays > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "flame.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption2)
-                        Text("\(connectivity.streakDays) day streak")
-                            .font(.caption2)
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                }
-
                 // Quick actions
                 HStack(spacing: 12) {
                     QuickActionButton(
@@ -240,7 +228,7 @@ private struct MoodCheckInSheet: View {
                             selectMood(mood)
                         } label: {
                             HStack {
-                                Text(mood.emoji)
+                                Image(systemName: mood.symbolName)
                                     .font(.title2)
                                 Text(mood.description)
                                     .foregroundColor(.white)

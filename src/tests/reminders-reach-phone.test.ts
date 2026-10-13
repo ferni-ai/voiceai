@@ -117,7 +117,7 @@ describe('flag on', () => {
       deliveryMethod: 'sms',
       deliveryAddress: '+19998887777',
     });
-    expect(reply).toMatch(/I'll text you/);
+    expect(reply).toMatch(/sent by text\./);
     expect(stored(PHONE_USER)).toEqual([
       expect.objectContaining({ deliveryMethod: 'sms', deliveryAddress: '+15551234567' }),
     ]);
@@ -129,7 +129,7 @@ describe('flag on', () => {
 
   it('a phone-first user is texted even when they just said "remind me"', async () => {
     const reply = await setReminder(PHONE_USER, {});
-    expect(reply).toMatch(/I'll text you/);
+    expect(reply).toMatch(/sent by text\./);
     expect(stored(PHONE_USER)[0]).toMatchObject({ deliveryMethod: 'sms' });
   });
 
@@ -144,7 +144,7 @@ describe('flag on', () => {
   it('a web user who has not turned texts on gets it in the app, and is told so', async () => {
     state.users[WEB_USER] = { linkedIdentifiers: ['phone:+15557654321'] };
     const reply = await setReminder(WEB_USER, {});
-    expect(reply).toMatch(/I'll remind you in the app/);
+    expect(reply).toMatch(/sent as a message in the Ferni app\./);
     expect(stored(WEB_USER)[0]).toMatchObject({
       deliveryMethod: 'voice_message',
       deliveryAddress: `voice:${WEB_USER}`,
@@ -171,7 +171,7 @@ describe('flag off (today)', () => {
       outreachPreferences: { enabled: true, channels: ['sms'] },
     };
     const reply = await setReminder(WEB_USER, {});
-    expect(reply).toMatch(/^Got it! I'll remind you in 30 minutes/);
+    expect(reply).toMatch(/^Saved: .*one reminder to .*sent as a message in the Ferni app\./);
     expect(stored(WEB_USER)[0]).toMatchObject({ deliveryMethod: 'voice_message' });
     const run = await deliverDueReminders({ now: soon() });
     expect(run).toMatchObject({ delivered: 1, rerouted: 1 });

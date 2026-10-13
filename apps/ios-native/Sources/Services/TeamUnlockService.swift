@@ -205,7 +205,7 @@ public class TeamUnlockService: ObservableObject {
     }
 
     private static func getLockReason(member: TeamMemberConfig, currentStage: RelationshipStage) -> String {
-        if member.isPremium && member.unlocksAt.ordinal > currentStage.ordinal {
+        if PaidPlans.isOffered && member.isPremium && member.unlocksAt.ordinal > currentStage.ordinal {
             return "Partner tier or \(member.unlocksAt.title)"
         }
         return "Unlocks at \(member.unlocksAt.title)"

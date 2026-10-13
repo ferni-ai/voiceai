@@ -632,6 +632,6 @@ Apply transformations with pipe syntax:
 
 ## Related
 
-- [Workflow Engine Guide](/dev-blog/workflow-engine-guide/) — Full tutorial
+- [Workflow Engine Guide](/developers/blog/workflow-engine-guide/) — Full tutorial
 - [MCP Servers API](/developers/api/mcp-servers/) — Use MCP tools in workflows
 - [Webhooks API](/developers/api/webhooks/) — Trigger workflows from events

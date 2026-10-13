@@ -9,6 +9,7 @@
  * @module @ferni/ritual-engine
  */
 
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createLogger } from '../utils/logger.js';
 import { getFerniAudioEngine } from './ferni-audio.service.js';
 import { getHapticsService } from './haptics.service.js';
@@ -279,10 +280,9 @@ export class RitualEngine {
   // PUBLIC API
   // ==========================================================================
   
-  /**
-   * Trigger a ritual by type
-   */
+  /** Trigger a ritual by type. No 'streak' ritual under VITE_NO_STREAKS. */
   async trigger(type: RitualType, context: RitualContext = {}): Promise<void> {
+    if (type === 'streak' && isNoStreaksOn()) return;
     const sequence = RITUAL_SEQUENCES[type];
     if (!sequence) {
       log.warn('Unknown ritual type', { type });

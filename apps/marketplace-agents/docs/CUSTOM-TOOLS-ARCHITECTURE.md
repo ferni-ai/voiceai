@@ -155,7 +155,7 @@ Tools connect to external services through "integrations":
 
 ```
 User
- └── Agent (e.g., "Peter Lynch Stock Picker")
+ └── Agent (e.g., "Invest-in-What-You-Know Stock Picker")
       └── Integration (e.g., "Schwab")
            └── Tool Permissions
                 ├── trading:read ✓
@@ -312,7 +312,7 @@ Every tool invocation is logged:
 
 ### Connecting an Integration
 
-1. User installs agent (e.g., "Peter Lynch Stock Picker")
+1. User installs agent (e.g., "Invest-in-What-You-Know Stock Picker")
 2. Agent says: "To help you trade, I'll need access to your brokerage. Would you like to connect one?"
 3. User: "Yes, connect Schwab"
 4. Platform opens Schwab OAuth flow
