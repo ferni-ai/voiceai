@@ -2113,8 +2113,7 @@
     "couldNotDisconnect": "No se pudo desconectar. ¿Lo intentas de nuevo?",
     "sonosConnected": "¡Sonos conectado!",
     "transcribing": "Transcribiendo...",
-    "transcriptionUnavailable": "Transcripción no disponible. Guardando solo el audio.",
-    "audioSaved": "¡Audio guardado!",
+    "transcriptionUnavailable": "Esta vez no pude entender las palabras, así que no se guardó nada. ¿Lo intentamos de nuevo?",
     "entrySaved": "¡Entrada guardada!",
     "couldNotSaveEntry": "No se pudo guardar la entrada. ¿Lo intentas otra vez?",
     "profileSaved": "¡Perfil guardado!",
@@ -2233,7 +2232,6 @@
       "many": "¡Se importaron {count} contactos!"
     },
     "integrationNowConnected": "¡Se conectó {integration}!",
-    "inviteSentTo": "¡Invitación enviada a {email}!",
     "householdMemberRemoved": "Se eliminó a {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "Se añadió a {name} a tu equipo",
@@ -3880,10 +3878,12 @@
       "create": "Crear agente",
       "empty": "Aún no hay agentes",
       "emptyHint": "Crea tu primer agente personalizado para preservar la voz de un ser querido, diseñar un mentor o crear tu propio compañero.",
+      "emptyHintWithoutVoice": "Crea tu primer agente personalizado para preservar las historias de un ser querido, diseñar un mentor o crear tu propio compañero.",
       "createFirst": "Crea tu primer agente",
       "whatYouCan": "Qué puedes crear",
       "legacy": "Legado",
       "legacyDesc": "Preserva la voz y la sabiduría de alguien a quien aprecias",
+      "legacyDescWithoutVoice": "Preserva las historias y la sabiduría de alguien a quien aprecias",
       "mentor": "Mentor",
       "mentorDesc": "Crea un coach basado en una figura inspiradora",
       "twin": "Gemelo digital",
@@ -5095,7 +5095,8 @@
     },
     "voiceStep": {
       "title": "¿Cómo debería sonar?",
-      "subtitle": "Elige una voz o clona una"
+      "subtitle": "Elige una voz o clona una",
+      "subtitleWithoutClone": "Elige una voz"
     },
     "voiceOption": {
       "cloneTitle": "Clonar una voz",
@@ -7283,6 +7284,7 @@
     "legacy": {
       "name": "Legado",
       "description": "Conserva la voz y la sabiduría de alguien a quien aprecias",
+      "descriptionWithoutVoice": "Conserva las historias y la sabiduría de alguien a quien aprecias",
       "feature1": "Clonación de voz a partir de grabaciones",
       "feature2": "Captura de historias y recuerdos",
       "feature3": "Guarda su sabiduría y frases favoritas",
@@ -8600,6 +8602,10 @@
   },
   "engagementPanel": {
     "title": "Registro diario",
+    "emptyTitle": "Aquí vivirán nuestros check-ins",
+    "emptyMessage": "Aún no hay nada, y está bien. Cuando hagamos un check-in diario en una llamada, aquí verás cómo te sentías. La próxima vez que hablemos, pídeme que hagamos uno.",
+    "loadFailedTitle": "Mmm, esto no se cargó",
+    "loadFailedMessage": "Es cosa mía, no tuya. Espera un momento y vuelve a abrir esto.",
     "yourWeek": "Tu semana",
     "weatherTrend": "Tendencia del clima emocional",
     "howYouFeel": "Cómo te sientes",
@@ -9974,6 +9980,7 @@
     "timeout": "Eso tardó demasiado. ¿Revisas tu conexión e intentas de nuevo?",
     "network": "No se pudo conectar con Ferni. ¿Revisas tu internet e intentas de nuevo?",
     "dropped": "Se perdió la conexión. ¿Quieres volver a conectar?",
+    "agentLeft": "Ferni se cayó de la llamada. ¿Quieres volver a conectar?",
     "unknown": "No se pudo conectar. ¿Quieres volver a intentarlo?"
   },
   "ambientSounds": {
@@ -10428,22 +10435,7 @@
         "other": "Tengo la perspectiva de {count} entradas de diario para compartir contigo."
       }
     },
-    "error": "Me cuesta un poco pensar en este momento. ¿Me das un momento y lo volvemos a intentar?",
-    "fallback": {
-      "advicePhilosophy": "¿Sabes qué he aprendido? \"{philosophy}\" Te enfrentes a lo que te enfrentes, recuerda eso.",
-      "adviceValues": "Piensa en lo que nos importa: {values}. Deja que eso te guíe.",
-      "feelRecent": "Yo también me he sentido así. En mi diario escribí: \"{excerpt}...\" Ya lo superamos antes.",
-      "feelDefault": "Te escucho. Ya hemos pasado por momentos difíciles antes y encontramos el camino. ¿Qué es lo que realmente te preocupa?",
-      "rememberIntro": "Sí, me acuerdo.",
-      "rememberEntry": "Hubo una vez que escribí: \"{excerpt}...\"",
-      "mannerism": "{phrase} En eso también he estado pensando. ¿Qué te hizo sacar el tema?",
-      "default": "Es una buena pregunta. ¿Qué te hizo pensar en eso?"
-    },
-    "fallbackKeywords": {
-      "advice": "consejo,debería",
-      "feeling": "sentimiento,sentir",
-      "remember": "recordar,pasado"
-    }
+    "error": "Eso no se envió. Es cosa mía, no tuya. Intenta enviarlo otra vez."
   },
   "mood": {
     "holiday": {
