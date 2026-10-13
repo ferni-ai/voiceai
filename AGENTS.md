@@ -41,6 +41,15 @@ function-call workaround or Sonata are describing retired setups.
 6. **Deploy only commits that are on `origin/main`** (skill: `deploy-agent`).
    Prod deploys only what has run on dev.
 7. Delete your worktree when its PR merges.
+8. **Start from an issue, and finish before you start.** Put `Closes #N` in
+   the PR. Before opening a new PR, check `gh pr list --state open`: past 25
+   open, help land those instead, because every merge makes the rest conflict.
+9. **A check failing on many PRs is one problem on main.** Fix it once in its
+   own PR (CI Health files a `ci-health` issue for it), then update the
+   affected branches. Don't retry it PR by PR.
+
+The repo enforces 1, 2 and 9 (`.husky/pre-push`, the PR Flow and CI Health
+checks; reviewable lines are counted by `scripts/ci/reviewable.sh`).
 
 ## Hard rules (each one cost us before)
 
