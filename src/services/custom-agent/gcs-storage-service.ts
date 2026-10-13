@@ -162,7 +162,7 @@ export async function uploadAudioToGcs(
     await file.save(buffer, {
       metadata: {
         contentType,
-        cacheControl: 'public, max-age=86400', // 1 day cache
+        cacheControl: makePublic ? 'public, max-age=86400' : 'private, no-store',
         metadata: {
           userId,
           agentId,

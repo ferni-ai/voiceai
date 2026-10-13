@@ -39,7 +39,25 @@ describe('uploadVoiceJournalEntry', () => {
 
     expect(result).not.toBeNull();
     expect(save).toHaveBeenCalledTimes(1);
-    const options = save.mock.calls[0]?.[1] as { public: boolean };
+    const options = save.mock.calls[0]?.[1] as {
+      public: boolean;
+      metadata: { cacheControl: string };
+    };
     expect(options.public).toBe(false);
+    // A private recording must not tell shared caches they may keep it
+    expect(options.metadata.cacheControl).toBe('private, no-store');
+  });
+
+  it('only a file asked to be public gets a public cache header', async () => {
+    const { uploadAudioToGcs } = await loadService();
+
+    await uploadAudioToGcs(Buffer.from('audio'), 'uid1', 'twin1', 'p1', 'voicePreview', true);
+
+    const options = save.mock.calls[0]?.[1] as {
+      public: boolean;
+      metadata: { cacheControl: string };
+    };
+    expect(options.public).toBe(true);
+    expect(options.metadata.cacheControl).toBe('public, max-age=86400');
   });
 });
