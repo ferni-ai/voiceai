@@ -2219,7 +2219,6 @@
       "other": "{count}件の連絡先をインポートしました！"
     },
     "integrationNowConnected": "{integration}と接続しました！",
-    "inviteSentTo": "{email}に招待を送信しました！",
     "householdMemberRemoved": "{name}を削除しました",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name}をあなたのチームに追加しました",

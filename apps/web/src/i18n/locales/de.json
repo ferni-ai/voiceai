@@ -2219,7 +2219,6 @@
       "other": "{count} Kontakte importiert!"
     },
     "integrationNowConnected": "{integration} ist jetzt verbunden!",
-    "inviteSentTo": "Einladung an {email} gesendet!",
     "householdMemberRemoved": "{name} entfernt",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} zu deinem Team hinzugefügt",

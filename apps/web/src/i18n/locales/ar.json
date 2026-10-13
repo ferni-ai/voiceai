@@ -2275,7 +2275,6 @@
       "many": "تم استيراد {count} جهة اتصال!"
     },
     "integrationNowConnected": "تم ربط {integration}!",
-    "inviteSentTo": "تم إرسال الدعوة إلى {email}!",
     "householdMemberRemoved": "تمت إزالة {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "تمت إضافة {name} إلى فريقكم",

@@ -2678,7 +2678,6 @@
       "other": "Imported {count} contacts!"
     },
     "integrationNowConnected": "{integration} connected!",
-    "inviteSentTo": "Invite sent to {email}!",
     "householdMemberRemoved": "{name} removed",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} added to your team",
@@ -9348,7 +9347,8 @@
     "sharedWith": "Shared With ({count})",
     "joined": "Joined",
     "pendingInvite": "Pending invite",
-    "notFound": "Couldn't find this legacy"
+    "notFound": "Couldn't find this legacy",
+    "invitesNotReady": "Family sharing isn't ready yet, so no invite was sent."
   },
   "dataExport": {
     "title": "Your Data",

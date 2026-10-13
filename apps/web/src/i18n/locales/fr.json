@@ -2233,7 +2233,6 @@
       "many": "{count} contacts importés !"
     },
     "integrationNowConnected": "Connexion à {integration} réussie !",
-    "inviteSentTo": "Invitation envoyée à {email} !",
     "householdMemberRemoved": "Retrait de {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} a rejoint ton équipe",

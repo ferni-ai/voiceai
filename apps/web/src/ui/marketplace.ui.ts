@@ -16,6 +16,7 @@
  */
 
 import { DURATION } from '../config/animation-constants.js';
+import { isLegacySharingOn } from '../config/legacy-sharing-flag.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { formatDate, formatNumber, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
@@ -784,7 +785,6 @@ async function renderCreationsTab(): Promise<void> {
     btn.addEventListener('click', handleStartTaskModeClick);
   });
 
-  // Legacy share listener
   grid.querySelectorAll('[data-action="share-legacy"]').forEach(btn => {
     btn.addEventListener('click', handleShareLegacyClick);
   });
@@ -838,10 +838,10 @@ function getAgentTypeButtons(agent: CustomAgent): string {
           ${t('marketplace.actions.stories')}
         </button>
         ${renderRecordVoiceButton(agent.id)}
-        <button class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
+        ${isLegacySharingOn() ? `<button class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           ${t('marketplace.actions.share')}
-        </button>
+        </button>` : ''}
         <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
           ${icons.talk}
           ${t('marketplace.actions.talk')}
