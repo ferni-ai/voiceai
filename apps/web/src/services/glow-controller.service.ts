@@ -7,8 +7,9 @@
  * @module @ferni/glow
  */
 
+import { createFrameLoop, type FrameLoop } from '../utils/frame-loop.js';
 import { createLogger } from '../utils/logger.js';
-import { DURATION } from '../config/animation-constants.js';
+import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
 
 const log = createLogger('GlowController');
 
@@ -139,7 +140,7 @@ export class GlowController {
   private state: GlowState;
   private mode: GlowMode = 'idle';
   
-  private animationFrame: number | null = null;
+  private loop: FrameLoop | null = null; // exists while attached
   private breathingStartTime: number = 0;
   
   // Voice sync
@@ -170,7 +171,10 @@ export class GlowController {
    */
   attach(element: HTMLElement): void {
     this.element = element;
+    this.loop?.dispose();
+    this.loop = createFrameLoop((now) => this.frame(now), () => this.shouldAnimate());
     this.applyGlow();
+    this.animate();
     log.debug('Attached to element', { element: element.className });
   }
   
@@ -179,6 +183,8 @@ export class GlowController {
    */
   detach(): void {
     this.stopAnimation();
+    this.loop?.dispose();
+    this.loop = null;
     if (this.element) {
       this.element.style.boxShadow = '';
       this.element.style.filter = '';
@@ -204,10 +210,7 @@ export class GlowController {
    * Stop all animations
    */
   stopAnimation(): void {
-    if (this.animationFrame !== null) {
-      cancelAnimationFrame(this.animationFrame);
-      this.animationFrame = null;
-    }
+    this.loop?.sleep();
     this.mode = 'idle';
     this.state.isBreathing = false;
   }
@@ -224,13 +227,12 @@ export class GlowController {
     
     if (isSpeaking) {
       this.mode = 'speaking';
-      this.animate();
     } else if (this.state.isBreathing) {
       this.mode = 'breathing';
     } else {
       this.mode = 'idle';
     }
-    
+    this.animate(); // the loop may have settled; the new mode decides
     log.debug('Speaking mode', { isSpeaking });
   }
   
@@ -242,7 +244,6 @@ export class GlowController {
     
     if (isListening && !this.state.isSpeaking) {
       this.mode = 'listening';
-      this.animate();
     } else if (this.state.isSpeaking) {
       this.mode = 'speaking';
     } else if (this.state.isBreathing) {
@@ -250,7 +251,7 @@ export class GlowController {
     } else {
       this.mode = 'idle';
     }
-    
+    this.animate();
     log.debug('Listening mode', { isListening });
   }
   
@@ -262,7 +263,6 @@ export class GlowController {
     
     if (isThinking) {
       this.mode = 'thinking';
-      this.animate();
     } else if (this.state.isSpeaking) {
       this.mode = 'speaking';
     } else if (this.state.isListening) {
@@ -272,7 +272,7 @@ export class GlowController {
     } else {
       this.mode = 'idle';
     }
-    
+    this.animate();
     log.debug('Thinking mode', { isThinking });
   }
   
@@ -286,6 +286,7 @@ export class GlowController {
     // Pulse effect
     this.animateCelebration(duration).then(() => {
       this.mode = previousMode;
+      this.animate();
     });
     
     log.debug('Celebration triggered', { duration });
@@ -304,6 +305,7 @@ export class GlowController {
     // Smooth the amplitude
     this.voiceAmplitudeSmoothed += 
       (this.voiceAmplitude - this.voiceAmplitudeSmoothed) * this.voiceSmoothingFactor;
+    if (this.mode === 'speaking') this.animate();
   }
   
   // ==========================================================================
@@ -379,22 +381,22 @@ export class GlowController {
   // ANIMATION LOOP
   // ==========================================================================
   
+  /** Runs only while attached, visible and changing; reduced motion holds pulses still. */
   private animate(): void {
-    if (this.animationFrame !== null) return;
-    
-    const tick = (now: number) => {
-      if (this.mode === 'idle') {
-        this.animationFrame = null;
-        return;
-      }
-      
-      this.updateState(now);
-      this.applyGlow();
-      
-      this.animationFrame = requestAnimationFrame(tick);
-    };
-    
-    this.animationFrame = requestAnimationFrame(tick);
+    this.loop?.wake();
+  }
+
+  private shouldAnimate(): boolean {
+    if (!this.element || this.mode === 'idle' || this.mode === 'celebrating') return false;
+    return this.mode === 'speaking' || !prefersReducedMotion();
+  }
+
+  /** One frame; false once settled (speaking moves only in updateVoiceAmplitude). */
+  private frame(now: number): boolean {
+    const before = this.state.currentIntensity;
+    this.updateState(now);
+    this.applyGlow();
+    return this.mode !== 'speaking' || this.state.currentIntensity !== before;
   }
   
   private updateState(now: number): void {
@@ -517,12 +519,7 @@ export class GlowController {
   // ==========================================================================
   
   private colorWithAlpha(hexColor: string, alpha: number): string {
-    // Parse hex color
-    const hex = hexColor.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    
+    const { r, g, b } = this.parseHex(hexColor);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
   

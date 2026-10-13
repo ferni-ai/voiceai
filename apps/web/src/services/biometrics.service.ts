@@ -15,7 +15,7 @@
  * /login, so we never send users there.
  *
  * Philosophy: Give Ferni "superhuman awareness" by connecting to
- * health data that helps her understand your physical state.
+ * health data that helps him understand your physical state.
  */
 
 import { createLogger } from '../utils/logger.js';

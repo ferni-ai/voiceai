@@ -27,18 +27,14 @@
         "Building habits",
         "Medication awareness"
       ],
-      "rating": 4.9,
-      "reviewCount": 847,
-      "installs": 12500,
       "pricing": {
         "model": "subscription",
         "priceInCents": 999,
         "interval": "monthly"
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Ferni Labs",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -67,18 +63,14 @@
         "Healthy coping",
         "Celebrating milestones"
       ],
-      "rating": 4.95,
-      "reviewCount": 523,
-      "installs": 8200,
       "pricing": {
         "model": "subscription",
         "priceInCents": 1499,
         "interval": "monthly"
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Recovery Path Inc",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -107,9 +99,6 @@
         "Sleep tracking",
         "Circadian rhythm"
       ],
-      "rating": 4.7,
-      "reviewCount": 1205,
-      "installs": 18400,
       "pricing": {
         "model": "freemium",
         "priceInCents": 499,
@@ -118,10 +107,9 @@
           "monthlyExecutions": 50
         }
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Ferni Labs",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -132,6 +120,7 @@
       "description": "Carmen is your village. Practical parenting support without the judgment—from toddler tantrums to teen drama, you've got a thoughtful co-pilot.",
       "category": "life",
       "tags": ["Parenting", "Family", "Children", "Relationships"],
+      "tone": "light",
       "colors": {
         "primary": "#D4A373",
         "secondary": "#A67B5B"
@@ -150,18 +139,14 @@
         "Self-care for parents",
         "Family communication"
       ],
-      "rating": 4.85,
-      "reviewCount": 2103,
-      "installs": 31200,
       "pricing": {
         "model": "subscription",
         "priceInCents": 799,
         "interval": "monthly"
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Ferni Labs",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -190,18 +175,14 @@
         "Mental health",
         "Grief and acceptance"
       ],
-      "rating": 4.92,
-      "reviewCount": 689,
-      "installs": 9800,
       "pricing": {
         "model": "subscription",
         "priceInCents": 999,
         "interval": "monthly"
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Spoonie Tech Co",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -212,6 +193,7 @@
       "description": "Sasha sparks creativity. Whether you're battling creative block, starting a passion project, or building a creative career—Sasha brings the energy and ideas.",
       "category": "creative",
       "tags": ["Creativity", "Art", "Writing", "Music", "Inspiration"],
+      "tone": "light",
       "colors": {
         "primary": "#E07B53",
         "secondary": "#B85C3C"
@@ -230,9 +212,6 @@
         "Artistic practice",
         "Creative confidence"
       ],
-      "rating": 4.75,
-      "reviewCount": 1456,
-      "installs": 22100,
       "pricing": {
         "model": "freemium",
         "priceInCents": 699,
@@ -241,10 +220,9 @@
           "monthlyExecutions": 30
         }
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Ferni Labs",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -273,18 +251,14 @@
         "Professional networking",
         "Executive presence"
       ],
-      "rating": 4.6,
-      "reviewCount": 934,
-      "installs": 15600,
       "pricing": {
         "model": "subscription",
         "priceInCents": 1299,
         "interval": "monthly"
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "CareerPath AI",
-        "verified": true
+        "name": "Ferni"
       }
     }
   ],

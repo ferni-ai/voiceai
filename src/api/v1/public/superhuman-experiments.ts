@@ -48,6 +48,7 @@ import {
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody } from '../../helpers.js';
 import { requireAuth, optionalAuth, type AuthContext } from '../../auth-middleware.js';
+import { experimentSubject } from './experiment-subject.js';
 
 const log = createLogger({ module: 'SuperhumanExperimentsAPI' });
 
@@ -130,11 +131,7 @@ export async function handleSuperhumanExperimentsRoutes(
     // GET /api/v1/public/superhuman/experiments - List active experiments
     if (pathname === BASE_PATH && method === 'GET') {
       const status = parsedUrl.searchParams.get('status') as
-        | 'running'
-        | 'paused'
-        | 'graduated'
-        | 'stopped'
-        | null;
+        'running' | 'paused' | 'graduated' | 'stopped' | null;
       const experiments = await listExperiments(status || 'running');
 
       sendJson(res, 200, {
@@ -206,16 +203,15 @@ export async function handleSuperhumanExperimentsRoutes(
         context?: Partial<UserContext>;
       };
 
-      if (!body.userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      // Only an anonymous visitor id, or the verified caller (experiment-subject.ts)
+      const userId = await experimentSubject(req, res, body.userId);
+      if (userId === null) return true;
 
       // Merge request context with provided context
       const requestContext = extractContext(req, parsedUrl);
       const context: UserContext = { ...requestContext, ...body.context };
 
-      const enrollment = await enrollUser(experimentId, body.userId, context);
+      const enrollment = await enrollUser(experimentId, userId, context);
 
       if (!enrollment) {
         sendJson(res, 200, {
@@ -256,8 +252,10 @@ export async function handleSuperhumanExperimentsRoutes(
         sendJson(res, 400, { error: 'userId and success are required' });
         return true;
       }
+      const userId = await experimentSubject(req, res, body.userId);
+      if (userId === null) return true;
 
-      const result = await recordUserConversion(experimentId, body.userId, body.success);
+      const result = await recordUserConversion(experimentId, userId, body.success);
 
       if (!result) {
         sendJson(res, 404, { error: 'Enrollment not found' });
@@ -284,12 +282,10 @@ export async function handleSuperhumanExperimentsRoutes(
         context?: Partial<UserContext>;
       };
 
+      const userId = body.userId ? await experimentSubject(req, res, body.userId) : undefined;
+      if (userId === null) return true;
       const requestContext = extractContext(req, parsedUrl);
-      const context = {
-        ...requestContext,
-        ...body.context,
-        userId: body.userId,
-      };
+      const context = { ...requestContext, ...body.context, userId };
 
       let result;
       if (body.intent) {

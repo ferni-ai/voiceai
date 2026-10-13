@@ -5,7 +5,7 @@
  * the server once an insight has been shown so it is not shown again.
  */
 
-import type { TeamInsight } from '../types/team-insight.js';
+import { TeamInsightSchema, type TeamInsight } from '../types/team-insight.js';
 import { apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -63,4 +63,25 @@ export async function acknowledgeTeamInsight(insightId: string): Promise<boolean
   const res = await apiPost(`/api/team-insights/acknowledge/${encodeURIComponent(insightId)}`);
   if (!res.ok) log.warn('Failed to acknowledge team insight', { insightId, status: res.status, error: res.error });
   return res.ok;
+}
+
+/**
+ * Keeps the insights that match TeamInsightSchema and drops the rest with a
+ * warning, so a malformed payload never reaches a card or a toast.
+ */
+export function parseTeamInsights(raw: unknown, origin: string): TeamInsight[] {
+  if (!Array.isArray(raw)) {
+    if (raw !== undefined) log.warn({ origin }, 'Team insights payload was not a list; ignored');
+    return [];
+  }
+  return raw.flatMap((item: unknown) => {
+    const result = TeamInsightSchema.safeParse(item);
+    if (result.success) return [result.data];
+    const id = (item as { id?: unknown } | null)?.id;
+    log.warn(
+      { origin, id: typeof id === 'string' ? id : undefined, issues: result.error.issues.map((i) => i.path.join('.')) },
+      'Dropped a malformed team insight'
+    );
+    return [];
+  });
 }

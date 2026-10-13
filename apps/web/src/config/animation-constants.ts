@@ -19,6 +19,27 @@
  * - Spring: For playful, bouncy effects
  * - Anticipation: For "wind-up before action" effects
  * - Follow-through: For settling after action
+ *
+ * ANIMATION STANDARDS (measured in the dev app, 2026-10; see PR #1034):
+ * 1. Animate transform and opacity only. filter, box-shadow, border-width,
+ *    width/height/top/left and text rewrites repaint or re-layout every frame.
+ *    For a glow, fade the opacity of a pre-painted layer instead.
+ * 2. Durations come from DURATION / ANIMATION_PRESET, never literals. A
+ *    response to an event (a handoff, a tap) shows its result in the next
+ *    frame and settles within DURATION.MODERATE; never await a sound or a
+ *    timer before showing it.
+ * 3. One engine per element: WAAPI (safeAnimate) or CSS or GSAP, not two on
+ *    the same property. Overlap phases in one timeline; don't chain timeouts.
+ * 4. Reduced motion: go through safeAnimate(), which keeps opacity and pins
+ *    motion to its end state. CSS animations need a prefers-reduced-motion rule.
+ * 5. Nothing runs per frame while idle. No rAF loop that writes styles when
+ *    nothing changed, and never a per-frame custom property on :root (it
+ *    re-runs style for the whole document). Write on change, to the element
+ *    that uses it. will-change only while an animation runs.
+ * 6. Measure layouts per second, not only style and task time. Two shapes
+ *    looked cheap and weren't: any animation on an anchor-positioned element
+ *    re-runs anchor layout every frame (60 layouts/s, PR #1248's connect
+ *    glow), and `composite: 'add'` keeps an animation off the compositor.
  */
 
 // ============================================================================

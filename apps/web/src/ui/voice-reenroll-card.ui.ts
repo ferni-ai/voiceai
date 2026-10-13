@@ -53,7 +53,7 @@ function injectStyles(): void {
   style.textContent = `
     .${CARD_CLASS} {
       position: fixed;
-      bottom: var(--ma-silence);
+      bottom: calc(var(--ma-silence) + var(--safe-bottom));
       left: 50%;
       transform: translateX(-50%);
       z-index: var(--z-notification);
@@ -118,8 +118,14 @@ function injectStyles(): void {
   document.head.appendChild(style);
 }
 
+/** Undoes what the open card set up: the Escape listener and moved focus. */
+let releaseCard: (() => void) | null = null;
+
 export function hideVoiceReenrollCard(): void {
+  const release = releaseCard;
+  releaseCard = null;
   document.querySelectorAll(`.${CARD_CLASS}`).forEach((el) => el.remove());
+  release?.();
 }
 
 /**
@@ -144,6 +150,11 @@ export function showVoiceReenrollCard(startEnrollment: () => void): HTMLElement 
     </div>
   `;
 
+  const dismiss = (): void => {
+    rememberAnswer('dismissed');
+    hideVoiceReenrollCard();
+  };
+
   card.addEventListener('click', (event) => {
     const action = (event.target as HTMLElement).closest<HTMLElement>('[data-action]')?.dataset
       .action;
@@ -152,12 +163,24 @@ export function showVoiceReenrollCard(startEnrollment: () => void): HTMLElement 
       hideVoiceReenrollCard();
       startEnrollment();
     } else if (action === 'dismiss') {
-      rememberAnswer('dismissed');
-      hideVoiceReenrollCard();
+      dismiss();
     }
   });
 
+  // Escape answers "not now", like the close button.
+  const onKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape') dismiss();
+  };
+  // Focus goes back where it was when the card closes, however it closes.
+  const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  document.addEventListener('keydown', onKeydown);
+  releaseCard = () => {
+    document.removeEventListener('keydown', onKeydown);
+    if (previousFocus?.isConnected) previousFocus.focus();
+  };
+
   document.body.appendChild(card);
+  card.querySelector<HTMLElement>(`.${CARD_CLASS}__btn[data-action="dismiss"]`)?.focus();
   return card;
 }
 
