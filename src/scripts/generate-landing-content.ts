@@ -9,7 +9,6 @@
  * Usage:
  *   pnpm landing:generate          # Generate all content
  *   pnpm landing:generate:heroes   # Generate hero variations only
- *   pnpm landing:generate:social   # Generate social proof only
  *
  * Cost: ~$0.05 per full generation (vs $$$$ for real-time)
  */
@@ -19,7 +18,6 @@ import { createLogger } from '../utils/safe-logger.js';
 import {
   runBatchGeneration,
   generateAndCacheHeroes,
-  generateAndCacheSocialProof,
 } from '../services/landing-intelligence/content-cache.js';
 
 const log = createLogger({ module: 'GenerateLandingContent' });
@@ -44,13 +42,6 @@ async function main() {
         break;
       }
 
-      case 'social': {
-        console.log('💬 Generating social proof messages...');
-        const socialCount = await generateAndCacheSocialProof();
-        console.log(`✅ Generated ${socialCount} social proof messages`);
-        break;
-      }
-
       case 'all':
       default: {
         console.log('🚀 Generating all content...');
@@ -64,9 +55,6 @@ async function main() {
         console.log('╠══════════════════════════════════════════════════════════════╣');
         console.log(
           `║  Heroes generated:      ${String(result.heroes).padStart(3)}                              ║`
-        );
-        console.log(
-          `║  Social proof:          ${String(result.socialProof).padStart(3)}                              ║`
         );
         console.log(
           `║  Estimated cost:        ${result.totalCost.padStart(7)}                          ║`

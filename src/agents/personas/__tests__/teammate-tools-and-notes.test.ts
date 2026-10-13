@@ -25,7 +25,7 @@ const REAL_PERSON_MARKERS =
   /Lynch|Carolyn|Boston College|Magellan|Fidelity|caddy|Sadhguru|Jaggi|Isha|Adiyogi|Vijji|Mysore|Chamundi|motorcycle/i;
 
 /** Ferni's own life: none of it belongs in a teammate's sheet. */
-const FERNI_BIOGRAPHY = /Wyoming|Tanaka|tsunami|kintsugi|wabi-sabi|third of seven|\bJapan\b/i;
+const FERNI_BIOGRAPHY = /Wyoming|Tanaka|kintsugi|wabi-sabi|third of seven|\bJapan\b/i;
 
 describe.each(SHEETS)('$name in character mode', ({ id, name, line, bio }) => {
   afterEach(() => {

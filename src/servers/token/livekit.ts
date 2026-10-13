@@ -44,7 +44,7 @@ export function getLiveKitUrl(): string {
 /**
  * Get or create RoomServiceClient
  */
-function getRoomService(): RoomServiceClient {
+export function getRoomService(): RoomServiceClient {
   if (!roomService) {
     roomService = new RoomServiceClient(LIVEKIT_HOST, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
   }

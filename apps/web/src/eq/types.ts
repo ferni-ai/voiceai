@@ -141,7 +141,8 @@ export type BetterThanHumanSignalType =
   | 'meta_relationship_moment'
   | 'somatic_presence'
   | 'anticipatory_presence'
-  | 'micro_expression'; // Backend-driven subliminal flash (concern 60ms, delight 100ms, recognition 80ms)
+  | 'micro_expression' // Backend-driven subliminal flash (concern 60ms, delight 100ms, recognition 80ms)
+  | 'name_lift'; // The caller named someone Ferni remembers (ui/avatar-motion/name-lift.ts)
 
 /**
  * Signal from backend superhuman capabilities
@@ -149,6 +150,9 @@ export type BetterThanHumanSignalType =
 export interface BetterThanHumanSignal {
   signalType: BetterThanHumanSignalType;
   intensity?: number;
+
+  // name_lift: only the kind ('brighten' | 'attentive' | 'comfort'), never who or what
+  effect?: string;
 
   // emotional_bond_deepen
   bondType?: string;

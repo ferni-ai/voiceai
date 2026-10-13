@@ -95,6 +95,8 @@ export async function handleUtilitiesRoutes(
         when: string;
         deliveryMethod?: 'sms' | 'email' | 'voice_message';
         deliveryAddress?: string;
+        /** The user's IANA zone; "tomorrow at noon" is noon there. */
+        timezone?: string;
       }>(req);
 
       if (!body.userId || !body.message || !body.when) {
@@ -105,7 +107,9 @@ export async function handleUtilitiesRoutes(
       const { createReminder, parseNaturalTime } =
         await import('../../../services/scheduling/reminder-scheduler.js');
 
-      const scheduledFor = parseNaturalTime(body.when);
+      const { userTimeZone } = await import('../../../utils/caller-time-zone.js');
+      const zone = body.timezone ?? userTimeZone({ userId: body.userId });
+      const scheduledFor = parseNaturalTime(body.when, zone);
       if (!scheduledFor) {
         sendJson(res, 400, { error: `Could not parse time: "${body.when}"` });
         return true;
