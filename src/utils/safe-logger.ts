@@ -180,13 +180,27 @@ export function safeLog(): FallbackLogger {
  */
 let appSink: pino.Logger | null = null;
 
+/**
+ * stderr, written off the event loop. A pipe write is synchronous on Linux, and
+ * a call's logs were the largest CPU owner left on a worker's first call (2.6 s
+ * of 18.7 s busy, dev 2026-10-12): every line blocked the loop the VAD and the
+ * reply's audio share. SonicBoom writes from libuv and batches what queues up
+ * meanwhile; maxWrite stays at PIPE_BUF so a batch can't interleave with a line
+ * another writer puts on fd 2. pino flushes it synchronously on exit. Tests keep
+ * process.stderr, which they spy on.
+ */
+function appStream(): pino.DestinationStream {
+  if (process.env.VITEST) return process.stderr;
+  return pino.destination({ dest: 2, sync: false, maxWrite: 4096 });
+}
+
 function appLogger(): pino.Logger {
   appSink ??= pino(
     {
       level: process.env.LOG_LEVEL || 'info',
       serializers: { error: pino.stdSerializers.err },
     },
-    process.stderr
+    appStream()
   );
   return appSink;
 }
