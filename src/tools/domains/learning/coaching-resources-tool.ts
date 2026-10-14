@@ -44,7 +44,7 @@ import {
 } from '../../../services/coach-media/topic-query.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../utils/synthetic-user.js';
-import { speakerIsNotOwner, testAccountReply } from '../communication/outreach/outreach-confirm.js';
+import { ownerKnown, testAccountReply } from '../communication/outreach/outreach-confirm.js';
 import { toolRegistry } from '../../registry/index.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
@@ -203,10 +203,11 @@ export async function runCoachingPick(
     );
   }
   const how = args.action === 'send_text' ? 'text' : 'app';
-  // A text reaches the owner's phone: the outbound confirm gate's own checks.
+  // A text reaches the owner's phone: only when the speaker is known to be the
+  // owner. Unknown counts as no, whatever session path built this call.
   if (how === 'text' && isSyntheticUserId(userId)) return testAccountReply(COACHING_PICK);
-  if (how === 'text' && call.session && speakerIsNotOwner(call.session))
-    return "Nothing was sent: only the account owner can have this texted, and they aren't on the line.";
+  if (how === 'text' && !ownerKnown(call.session))
+    return "Nothing was sent: a text goes only to the account owner, and I can't tell they're the one on the line. Offer the app instead.";
   return deliverPick(call.session, userId, how, personaId);
 }
 

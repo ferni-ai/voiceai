@@ -88,6 +88,15 @@ export function speakerIsNotOwner(session: object): boolean {
   return sessions.get(session)?.speakerIsOwner?.() === false;
 }
 
+/**
+ * Whether the person on this call is known to be the account owner. Unknown is
+ * false: no session, or no owner check registered (a session built without
+ * outreachConfirmListeners, or OUTBOUND_CONFIRM=off outside production).
+ */
+export function ownerKnown(session: object | undefined): boolean {
+  return session !== undefined && sessions.get(session)?.speakerIsOwner?.() === true;
+}
+
 function record(session: object, event: SessionEvent): void {
   const entry = logFor(session);
   entry.events.push({ ...event, seq: ++entry.seq });
