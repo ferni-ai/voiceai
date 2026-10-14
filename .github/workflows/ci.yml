@@ -490,7 +490,8 @@ jobs:
   # integration test surfaced only as a queue rejection, which also knocks out
   # the PRs queued with it (#1332). This runs just the integration tests that
   # import the PR's changed src/ files (`vitest related`), before the queue (#1366).
-  # Hosted on purpose, never CI_RUNNER: it takes no runner from the merge queue.
+  # Hosted on purpose, never CI_RUNNER: it takes no runner from the merge queue,
+  # so OPTIONAL_CI (which exists to free those runners, #1018) doesn't gate it.
   # Not a required check, and it never runs in merge_group (the queue runs all).
   test-integration-related:
     name: Related Integration Tests
@@ -510,12 +511,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
-        # Files that still exist (a deleted module has no importers left to run).
+        # The files API, not `gh pr diff` (which 406s past 300 files and would
+        # leave a big PR green having run nothing). Removed files are skipped: a
+        # deleted module has no importers left to run. A listing failure fails.
         run: |
-          gh pr diff "$PR" --name-only -R "$GITHUB_REPOSITORY" |
-            grep -E '^src/.+\.(ts|tsx|js|mjs)$' |
-            while IFS= read -r f; do [ -f "$f" ] && printf '%s\n' "$f"; done > "$RUNNER_TEMP/changed-src.txt" || true
-          count=$(wc -l < "$RUNNER_TEMP/changed-src.txt")
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate \
+            --jq '.[] | select(.status != "removed") | .filename' > "$RUNNER_TEMP/pr-files.txt"
+          { grep -E '^src/.+\.(ts|tsx|js|mjs)$' "$RUNNER_TEMP/pr-files.txt" || true; } > "$RUNNER_TEMP/changed-src.txt"
+          count=$(wc -l < "$RUNNER_TEMP/changed-src.txt" | tr -d " ")
           echo "count=$count" >> "$GITHUB_OUTPUT"
           echo "$count changed src file(s)"
 
