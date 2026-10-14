@@ -1,0 +1,64 @@
+name: Ferni Liveness
+
+# Is Ferni answering callers? scripts/ops/ferni-liveness.mjs reads the voice
+# agents' Cloud Logging lines (read-only) and fails on a silent call, an
+# uncaught-exception spike, a runtime module that failed to load, or a low
+# reply rate. Setup and alerting: docs/runbooks/FERNI-LIVENESS.md.
+#
+# Off until the FERNI_LIVENESS repo variable is 'on' (a skipped scheduled run
+# uses no minutes) and the FERNI_LIVENESS_SA_KEY secret (logging.viewer only)
+# exists.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'Window in minutes'
+        default: '60'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ferni-liveness
+  cancel-in-progress: false
+
+jobs:
+  liveness:
+    if: github.event_name == 'workflow_dispatch' || vars.FERNI_LIVENESS == 'on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      WINDOW_MINUTES: ${{ inputs.minutes || '60' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/ops
+      - uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FERNI_LIVENESS_SA_KEY }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Check both agents
+        id: check
+        run: |
+          set +e
+          node scripts/ops/ferni-liveness.mjs --minutes "$WINDOW_MINUTES" | tee report.txt
+          code=${PIPESTATUS[0]}
+          {
+            echo 'report<<EOF'
+            cat report.txt
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Alert Slack
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          REPORT: ${{ steps.check.outputs.report }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          jq -n --arg text "Ferni liveness failed: ${REPORT:-could not read logs}
+          ${RUN_URL}" '{text: $text}' |
+            curl -sS -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"

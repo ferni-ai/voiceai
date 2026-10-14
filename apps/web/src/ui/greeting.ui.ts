@@ -5,6 +5,7 @@
  * Clean typography carries the message.
  */
 
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { t } from '../i18n/index.js';
 
 // ============================================================================
@@ -93,12 +94,13 @@ function getReturningGreeting(timeGreeting: string, history: UserHistory): strin
     return selected ?? `${timeGreeting}.`;
   }
   
-  // Streak celebration - subtle, no emoji
-  if (history.streak >= 7) {
-    return t('greetings.streakImpressive', { days: history.streak });
+  // Streak celebration - subtle, no emoji. None under VITE_NO_STREAKS.
+  const streak = isNoStreaksOn() ? 0 : history.streak;
+  if (streak >= 7) {
+    return t('greetings.streakImpressive', { days: streak });
   }
-  if (history.streak >= 3) {
-    return t('greetings.streakNice', { days: history.streak });
+  if (streak >= 3) {
+    return t('greetings.streakNice', { days: streak });
   }
   
   // Been away for a while
@@ -159,6 +161,7 @@ export function getStreak(): number {
  * Check if user earned a new streak milestone.
  */
 export function checkStreakMilestone(): number | null {
+  if (isNoStreaksOn()) return null;
   const streak = getStreak();
   const milestones = [3, 7, 14, 30, 60, 100];
   

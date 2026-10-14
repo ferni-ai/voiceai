@@ -16,6 +16,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { apiPost } from '../utils/api.js';
+import { isJournalCaptureOn } from '../config/journal-capture-flag.js';
 
 const log = createLogger('JournalCapture');
 
@@ -93,7 +94,8 @@ export const DEFAULT_CAPTURE_SETTINGS: JournalCaptureSettings = {
 // ============================================================================
 
 const SETTINGS_KEY = 'ferni_journal_capture_settings';
-const PENDING_MOMENTS_KEY = 'ferni_pending_moments';
+/** Where older builds hoarded captured call words. Read by nobody; only ever removed now. */
+export const PENDING_MOMENTS_KEY = 'ferni_pending_moments';
 
 /**
  * Load user's capture settings
@@ -144,10 +146,10 @@ export function disableJournalCapture(): void {
 }
 
 /**
- * Check if capture is enabled
+ * Check if capture is enabled: the build flag is on and the person opted in.
  */
 export function isCaptureEnabled(): boolean {
-  return loadCaptureSettings().enabled;
+  return isJournalCaptureOn() && loadCaptureSettings().enabled;
 }
 
 // ============================================================================
@@ -241,22 +243,22 @@ export function estimateMomentType(text: string): MomentType | null {
 // MOMENT QUEUE (for batching/review)
 // ============================================================================
 
+/** Held in memory only, for a sender that does not exist yet. Oldest drop first. */
+const MAX_PENDING_MOMENTS = 20;
+
 let pendingMoments: CapturedMoment[] = [];
 
 /**
- * Add a moment to the pending queue
+ * Add a moment to the pending queue. Does nothing while the capture flag is
+ * off, and never writes the person's words to browser storage.
  */
 export function queueMoment(moment: CapturedMoment): void {
+  if (!isJournalCaptureOn()) return;
   pendingMoments.push(moment);
-  
-  // Persist to localStorage for recovery
-  try {
-    localStorage.setItem(PENDING_MOMENTS_KEY, JSON.stringify(pendingMoments));
-  } catch (e) {
-    log.warn('Failed to persist pending moments:', e);
+  if (pendingMoments.length > MAX_PENDING_MOMENTS) {
+    pendingMoments = pendingMoments.slice(-MAX_PENDING_MOMENTS);
   }
-  
-  log.debug('Moment queued:', moment.type, moment.content.substring(0, 50));
+  log.debug('Moment queued:', moment.type);
 }
 
 /**
@@ -271,21 +273,18 @@ export function getPendingMoments(): CapturedMoment[] {
  */
 export function clearPendingMoments(): void {
   pendingMoments = [];
-  localStorage.removeItem(PENDING_MOMENTS_KEY);
+  purgeStoredMoments();
 }
 
 /**
- * Load any pending moments from previous session
+ * Remove any queue an older build left in localStorage. Those were raw call
+ * sentences that were never sent anywhere, so they are deleted, not loaded.
  */
-export function loadPendingMoments(): void {
+export function purgeStoredMoments(): void {
   try {
-    const stored = localStorage.getItem(PENDING_MOMENTS_KEY);
-    if (stored) {
-      pendingMoments = JSON.parse(stored);
-      log.info(`Loaded ${pendingMoments.length} pending moments from storage`);
-    }
+    localStorage.removeItem(PENDING_MOMENTS_KEY);
   } catch (e) {
-    log.warn('Failed to load pending moments:', e);
+    log.warn('Failed to clear stored moments:', e);
   }
 }
 
@@ -355,14 +354,8 @@ export async function saveAllPendingMoments(twinId: string): Promise<number> {
  * Initialize journal capture service
  */
 export function initJournalCapture(): void {
-  loadPendingMoments();
-  
-  const settings = loadCaptureSettings();
-  log.info(
-    'Journal capture initialized:',
-    settings.enabled ? 'enabled' : 'disabled',
-    settings.enabled ? `(${settings.captureTypes.length} types)` : ''
-  );
+  purgeStoredMoments();
+  log.info('Journal capture initialized:', isCaptureEnabled() ? 'enabled' : 'disabled');
 }
 
 // ============================================================================

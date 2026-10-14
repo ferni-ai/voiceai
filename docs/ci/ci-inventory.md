@@ -77,15 +77,23 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 | Runner | ubuntu-latest |
 | Duration | ~5 min |
 
-### staging.yml
+### build.yml
 
-**Purpose:** Deploy preview to staging environment
+**Purpose:** The required `Build & Test` check. Builds the backend, design system, web app and UI server image, then starts the image and waits for `/health`.
 
 | Property | Value |
 |----------|-------|
-| Trigger | PR to main |
+| Trigger | Merge queue (on PRs it's skipped and reports success, #1250) |
+| Runner | `CI_PR_RUNNER` / `CI_RUNNER` |
+
+### staging.yml
+
+**Purpose:** Cloud Run preview of a PR (`staging-pr-<n>`). Nothing required runs here.
+
+| Property | Value |
+|----------|-------|
+| Trigger | PR with the `preview` label (adding it deploys, pushes redeploy), or manual |
 | Runner | ubuntu-latest |
-| Duration | ~12 min |
 
 ### deploy-worker.yml
 

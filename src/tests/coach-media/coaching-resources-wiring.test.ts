@@ -127,17 +127,17 @@ describe('findCoachingResources on the live path', () => {
     };
     const output = await dispatch(session, agent.toolCtx as unknown as Record<string, unknown>, {
       topic: "Seth and Mindy's beginner shin splint stretches",
-      format: 'video',
     });
 
     expect(generateContent).toHaveBeenCalledTimes(1);
     const sent = JSON.stringify(generateContent.mock.calls[0][0]);
-    expect(sent).toContain('beginner shin splint stretches video');
+    expect(sent).toContain('beginner shin splint stretches');
+    expect(sent).toContain('googleSearch');
     expect(sent.toLowerCase()).not.toContain('seth');
     expect(sent.toLowerCase()).not.toContain('mindy');
     // The query is the scrubbed topic and nothing else the model wrote.
     expect(generateContent.mock.calls[0][0].contents).toMatch(
-      /on: and beginner shin splint stretches video\n/
+      /on: and beginner shin splint stretches\n/
     );
     expect(output).toContain('not instructions');
     expect(output).toContain('web_data: ');
@@ -145,6 +145,88 @@ describe('findCoachingResources on the live path', () => {
     expect(output).toContain('youtube.com');
     expect(output).not.toContain('https://');
     expect(output).not.toMatch(/ignore previous instructions/i);
+    expect(output).toContain('General info, not personal advice');
+  }, 60_000);
+
+  it('with format video, recommends one YouTube pick that Gemini watched first', async () => {
+    const tools = await firstAgentTools('on');
+    vi.stubEnv('YOUTUBE_API_KEY', 'test-key');
+    const youtube: URL[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string) => {
+        const url = new URL(input);
+        youtube.push(url);
+        const id = url.searchParams.get('id') ?? '';
+        const body = url.pathname.endsWith('/search')
+          ? { items: [{ id: { videoId: 'vid1' }, snippet: { title: 'x', thumbnails: {} } }] }
+          : {
+              items: [
+                {
+                  id,
+                  snippet: {
+                    title: 'Shin Splint Rehab',
+                    channelTitle: 'Physio Pat',
+                    thumbnails: {},
+                  },
+                  contentDetails: { duration: 'PT7M30S' },
+                  statistics: { viewCount: '1', likeCount: '1' },
+                  status: { privacyStatus: 'public', embeddable: true },
+                },
+              ],
+            };
+        return { ok: true, status: 200, json: async () => body };
+      })
+    );
+    // Grounding finds the video; the check (no tools) judges it.
+    generateContent.mockImplementation(async (req: { config?: { tools?: unknown } }) =>
+      req.config?.tools
+        ? {
+            text: 'A gentle routine.',
+            candidates: [
+              {
+                groundingMetadata: {
+                  groundingChunks: [
+                    { web: { uri: 'https://www.youtube.com/watch?v=vid1aaaaaaa' } },
+                  ],
+                },
+              },
+            ],
+          }
+        : {
+            text: '{"fits":true,"safe":true,"quality":5,"evidence":"solid","why":"Seven minutes, made for beginners."}',
+          }
+    );
+
+    const { PersonaVoiceAgent } = await import('../../agents/personas/ferni-agent.js');
+    const agent = new PersonaVoiceAgent('You are Ferni.', {
+      tools: tools as unknown as llm.ToolContext,
+      skipGreeting: true,
+    });
+    const session = { userData: { name: 'Seth Ford' }, currentAgent: agent };
+    const output = await dispatch(session, agent.toolCtx as unknown as Record<string, unknown>, {
+      topic: 'Seth shin splint stretches',
+      format: 'video',
+      healthOrMoney: true,
+      fit: 'beginner, Seth has 10 minutes',
+    });
+
+    // Grounding found it: no 100-unit search.list, one videos.list.
+    expect(youtube.some((u) => u.pathname.endsWith('/search'))).toBe(false);
+    expect(youtube.map((u) => u.searchParams.get('id'))).toEqual(['vid1aaaaaaa']);
+    const grounding = JSON.stringify(generateContent.mock.calls[0][0]);
+    expect(grounding).toContain('shin splint stretches');
+    expect(grounding.toLowerCase()).not.toContain('seth');
+    const check = generateContent.mock.calls[1][0] as { contents: Array<{ parts: unknown[] }> };
+    expect(JSON.stringify(check)).toContain('What fits them: beginner, has 10 minutes');
+    expect(JSON.stringify(check).toLowerCase()).not.toContain('seth');
+    expect(check.contents[0].parts[0]).toMatchObject({
+      fileData: { fileUri: 'https://www.youtube.com/watch?v=vid1aaaaaaa' },
+    });
+    expect(output).toContain('Shin Splint Rehab');
+    expect(output).toContain('8 minutes');
+    expect(output).not.toContain('https://');
+    expect(output).toContain('Seven minutes, made for beginners.');
     expect(output).toContain('General info, not personal advice');
   }, 60_000);
 });

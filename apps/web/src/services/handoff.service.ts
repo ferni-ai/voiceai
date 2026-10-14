@@ -75,7 +75,8 @@ export type HandoffCompleteCallback = (toPersona: SpeakerId) => void;
 export type HandoffFailedCallback = (
   error: string,
   targetPersona: SpeakerId,
-  rollbackTo?: SpeakerId
+  rollbackTo?: SpeakerId,
+  userMessage?: string // the backend's words for the caller (a locked teammate's decline)
 ) => void;
 /** FIX BUG #17: Callback for when backend acknowledges receiving handoff request */
 export type HandoffAcknowledgedCallback = (
@@ -420,7 +421,7 @@ class HandoffService {
 
       // Process like a normal handoff (plays sounds, updates UI)
       const handoff = this.normalizeHandoff(event);
-      await this.handleHandoff(handoff);
+      this.handleHandoff(handoff);
       return true;
     } else if (isSoftOpenComplete(message)) {
       // WARM HANDOFF: Departing persona finished speaking their warm sendoff.
@@ -554,8 +555,8 @@ class HandoffService {
       // Handoff failed - recover gracefully
       const errorMsg = (event as HandoffEvent & { error?: string }).error ?? 'Unknown error';
       // FIX AUDIT GAP #1: Extract rollbackTo for UI state recovery
-      const rollbackTo = (event as HandoffEvent & { rollbackTo?: string }).rollbackTo;
-      const rollbackPersona = rollbackTo ? normalizeSpeakerId(rollbackTo) : undefined;
+      const rollbackPersona = event.rollbackTo ? normalizeSpeakerId(event.rollbackTo) : undefined;
+      const shown = event.userMessage?.trim() ? event.userMessage : undefined;
 
       log.error('Handoff failed:', { errorMsg, rollbackTo: rollbackPersona });
 
@@ -583,10 +584,9 @@ class HandoffService {
         setActivePersona(rollbackPersona);
       }
 
-      // Notify failure callbacks (now includes rollbackTo)
       for (const callback of this.failedCallbacks) {
         try {
-          callback(errorMsg, toPersona, rollbackPersona);
+          callback(errorMsg, toPersona, rollbackPersona, shown);
         } catch (error) {
           log.error('Handoff failed callback error:', error);
         }
@@ -617,7 +617,7 @@ class HandoffService {
     } else {
       // Legacy single handoff message - process normally
       const handoff = this.normalizeHandoff(event);
-      await this.handleHandoff(handoff);
+      this.handleHandoff(handoff);
       return true;
     }
   }
@@ -754,7 +754,7 @@ class HandoffService {
       direction: this.determineDirection(fromPersona.id, toPersonaId),
     };
 
-    await this.handleHandoff(handoff);
+    this.handleHandoff(handoff);
   }
 
   /**
@@ -1148,17 +1148,16 @@ class HandoffService {
   /**
    * Handle a normalized handoff event.
    *
-   * Orchestrates a smooth, human-like transition:
-   * 1. Log and validate the handoff
-   * 2. Track persona meeting history
-   * 3. Play transition sound → wait for completion → pause
-   * 4. Update UI state
-   * 5. Notify callbacks for additional UI updates
+   * Orchestrates the transition:
+   * 1. Track persona meeting history
+   * 2. Start the transition chime (not awaited)
+   * 3. Update UI state and notify callbacks in the same task
    *
-   * The timing creates: Sound → Pause → UI Update → Voice
-   * This feels natural, like a person taking a breath before speaking.
+   * The chime and the visual swap overlap. Awaiting the chime + post-sound
+   * pause held the new persona off screen for ~1.2 s; the voice switch is
+   * driven by the backend and never waited on it.
    */
-  private async handleHandoff(handoff: NormalizedHandoff): Promise<void> {
+  private handleHandoff(handoff: NormalizedHandoff): void {
     const toPersona = getPersona(handoff.toPersona);
     const isFirstMeeting = !this.metPersonas.has(handoff.toPersona);
 
@@ -1177,8 +1176,8 @@ class HandoffService {
     // FIX BUG #38: Mark that we're about to play a sound for this handoff
     this._soundPlayedForCurrentHandoff = true;
 
-    // Play sound and WAIT for it to finish, then pause
-    await this.playHandoffSoundWithTiming(handoff, isFirstMeeting, pauseAfterSound);
+    // The chime plays alongside the visual swap; failures are handled inside.
+    void this.playHandoffSoundWithTiming(handoff, isFirstMeeting, pauseAfterSound);
 
     // Create enhanced handoff data
     const enhanced: EnhancedHandoff = {

@@ -67,6 +67,7 @@ const { BackgroundAudioPlayer } = voice;
 type PlayHandle = ReturnType<InstanceType<typeof BackgroundAudioPlayer>['play']>;
 
 const execAsync = promisify(exec);
+let ffmpegCheck: Promise<boolean> | null = null;
 
 // ============================================================================
 // TYPES
@@ -1755,17 +1756,16 @@ export class CallMusicPlayer {
     }
   }
 
-  /**
-   * Check if ffmpeg is available on this system
-   */
+  /** Whether ffmpeg runs here, checked once per process: each spawn blocked a call 100+ ms. */
   private async checkFfmpegAvailability(): Promise<boolean> {
-    try {
-      await execAsync('ffmpeg -version');
-      return true;
-    } catch {
-      log.info('🎧 ffmpeg not available - DJ fade-out will be skipped (audio will end abruptly)');
-      return false;
-    }
+    ffmpegCheck ??= execAsync('ffmpeg -version').then(
+      () => true,
+      () => {
+        log.info('🎧 ffmpeg not available - DJ fade-out will be skipped (audio will end abruptly)');
+        return false;
+      }
+    );
+    return ffmpegCheck;
   }
 
   /**
