@@ -55,9 +55,13 @@ const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 /** A project of its own: the test clears it first, then scans all of it */
 const PROJECT = 'demo-account-delete';
 if (emulator) {
-  // getAdminFirestore() (here and in the erase) picks its project from these
-  process.env.GOOGLE_CLOUD_PROJECT = PROJECT;
-  process.env.GCLOUD_PROJECT = PROJECT;
+  // getAdminFirestore() (here and in the erase) resolves the project from GCP_PROJECT_ID,
+  // then GOOGLE_CLOUD_PROJECT, then FIREBASE_PROJECT_ID: pin all three, so the project the
+  // test clears is the one it seeds, erases and scans
+  vi.stubEnv('GCP_PROJECT_ID', PROJECT);
+  vi.stubEnv('GOOGLE_CLOUD_PROJECT', PROJECT);
+  vi.stubEnv('FIREBASE_PROJECT_ID', PROJECT);
+  vi.stubEnv('GCLOUD_PROJECT', PROJECT);
 }
 
 /** Stores measured surviving deletion, credentials and the agent's stores, written out */
