@@ -133,9 +133,9 @@ export function isSwappable(persona: object): persona is SwappablePersona {
 /**
  * Swap `to` in for `from` in the call's session (or, with `onReady`, let the handoff tool
  * hand it to the SDK: swapBySdk), with the talk so far and `to`'s voice
- * (userData.personaId picks the voice for every line spoken). If `to` doesn't come up,
- * `from` is swapped back once the failed transition has settled (the SDK runs them in
- * order, so a swap back can't overtake it), and only then gets its voice back. `forget`
+ * (userData.personaId picks the voice for every line spoken), which `to` gets only once
+ * it is on. If `to` doesn't come up, `from` is swapped back once the failed transition has
+ * settled (the SDK runs them in order, so a swap back can't overtake it). `forget`
  * drops a persona from the orchestrator's agents; the session's owner stays, since its
  * cleanup ends the call.
  */
@@ -164,7 +164,6 @@ export async function swapPersona(
     await to.release();
     throw error;
   }
-  if (to.userData) to.userData.personaId = to.personaId;
   try {
     await within(transition, timeoutMs);
   } catch (error) {
@@ -182,6 +181,9 @@ export async function swapPersona(
       .catch((e: unknown) => log.error({ error: String(e) }, '🎭 Could not swap back'));
     throw error;
   }
+  // Only now: until the transition is done the outgoing persona's speech is still draining,
+  // and a swap that times out must not leave the rest of it in the teammate's voice
+  if (to.userData) to.userData.personaId = to.personaId;
   await from.release();
   if (!from.ownsSession) forget(from);
 }

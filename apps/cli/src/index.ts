@@ -4395,7 +4395,7 @@ async function handleVoices(args: string[]): Promise<void> {
 
     // Import the full persona platform
     // Note: Path is relative to apps/cli/src/
-    const { getVoiceIdForPersona, CARTESIA_MODEL } =
+    const { getVoiceIdForPersona, CARTESIA_MODEL, CARTESIA_API_VERSION } =
       await import('../../../src/config/voice-ids.js');
     const { humanizeText, addBreathGroupPauses } =
       await import('../../../src/speech/advanced-humanization/index.js');
@@ -4508,7 +4508,7 @@ async function handleVoices(args: string[]): Promise<void> {
     console.log(`  ${icons.bullet} Voice IDs from persona registry`);
     console.log(`  ${icons.bullet} Advanced humanization pipeline`);
     console.log(`  ${icons.bullet} Breath group pauses`);
-    console.log(`  ${icons.bullet} Cartesia sonic-english model`);
+    console.log(`  ${icons.bullet} Cartesia ${CARTESIA_MODEL}`);
 
     console.log(`\n${colors.bold}Personas:${colors.reset}`);
     for (const [shortName, config] of Object.entries(PERSONA_CONFIG)) {
@@ -4550,7 +4550,7 @@ async function handleVoices(args: string[]): Promise<void> {
           method: 'POST',
           headers: {
             'X-API-Key': apiKey,
-            'Cartesia-Version': '2024-06-10',
+            'Cartesia-Version': CARTESIA_API_VERSION,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -4562,8 +4562,8 @@ async function handleVoices(args: string[]): Promise<void> {
             },
             output_format: {
               container: 'mp3',
-              encoding: 'mp3',
               sample_rate: 44100,
+              bit_rate: 128000,
             },
             language: 'en',
           }),
