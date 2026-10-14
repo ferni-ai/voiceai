@@ -16,12 +16,7 @@ import {
   type PlanSummary,
 } from '../../../speech/tts-gateway/director/reply-director.js';
 import { DirectorSessions } from '../../../speech/tts-gateway/director/session-state.js';
-import {
-  ferniVolume,
-  porchLightOn,
-  scaleVolumeTags,
-  setPorchLight,
-} from '../../../speech/tts-gateway/director/ferni-energy.js';
+import { porchLightOn, setPorchLight } from '../../../speech/tts-gateway/director/ferni-energy.js';
 
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
 const NOTE = /Keep your voice low and gentle/;
@@ -78,7 +73,6 @@ describe('PORCH_LIGHT off (default)', () => {
     const asked = await askedWith(request('Hey. Can I just talk for a bit?'), session);
     expect(asked).not.toMatch(NOTE);
     expect(porchLightOn(sessionId)).toBe(false);
-    expect(ferniVolume(sessionId)).toBe(1);
   });
 });
 
@@ -93,7 +87,6 @@ describe('PORCH_LIGHT on', () => {
       const asked = await askedWith(request('Hey. Can I just talk for a bit?'), session);
       expect(asked).toContain(PORCH_LIGHT_NOTE);
       expect(porchLightOn(sessionId)).toBe(true);
-      expect(ferniVolume(sessionId)).toBeLessThan(1);
     }
   );
 
@@ -192,8 +185,18 @@ describe('the line', () => {
   });
 });
 
-describe('the Director hears it', () => {
-  async function plan(sessionId: string, voiceId: string) {
+describe('the Director hears it, through attune (late night is its second layer)', () => {
+  async function plan(
+    sessionId: string,
+    voiceId: string,
+    opts: {
+      pushes?: string[];
+      env?: Record<string, string>;
+      personaId?: string;
+      userEmotion?: string;
+      sessions?: DirectorSessions;
+    } = {}
+  ) {
     let summary: PlanSummary | undefined;
     const pushed: string[] = [];
     const sink = {
@@ -202,39 +205,42 @@ describe('the Director hears it', () => {
       cancel() {},
       async *[Symbol.asyncIterator]() {},
     };
-    const text = 'Yeah, I know that feeling. ';
+    const pushes = opts.pushes ?? ['Yeah, I know that feeling. '];
     const directed = directSpeech(sink as never, {
       textStream: new ReadableStream<string>({
         start(c) {
-          c.enqueue(text);
+          c.enqueue(pushes.join(''));
           c.close();
         },
       }),
       voiceId,
       sessionId,
-      env: { SPEECH_DIRECTOR: 'live' },
-      sessions: new DirectorSessions(),
+      personaId: opts.personaId,
+      turnContext: opts.userEmotion ? { userEmotion: { primary: opts.userEmotion } } : undefined,
+      env: { SPEECH_DIRECTOR: 'live', ...opts.env },
+      sessions: opts.sessions ?? new DirectorSessions(),
       onPlan: (s) => (summary = s),
     });
     for await (const _ of directed.textStream) {
       /* drain */
     }
-    directed.reply.push(text);
+    for (const p of pushes) directed.reply.push(p);
     directed.reply.end();
     return { summary: summary!, spoken: pushed.join('') };
   }
   const INSTANT = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
+  const NAYAN = '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3';
 
   it('an instant clone answers slower and quieter (<speed> and <volume>)', async () => {
     const normal = await plan('porch-director-off', INSTANT);
     setPorchLight('porch-director-on', true);
     const lit = await plan('porch-director-on', INSTANT);
-    expect(lit.summary.speed).toBeLessThan(normal.summary.speed);
-    expect(normal.summary.speed - lit.summary.speed).toBeLessThanOrEqual(0.05);
+    expect(lit.summary.speed).toBe(0.97);
+    expect(normal.summary.speed).toBe(1);
     expect(lit.spoken).toContain('<volume ratio="0.85"/>');
-    expect(lit.summary.volume).toBe(0.85);
+    expect(lit.summary.layers).toBe('late-night 0.97/0.85 > caller 0.97/0.85');
     expect(normal.spoken).not.toMatch(/<volume/);
-    expect(normal.summary.volume).toBeUndefined();
+    expect(normal.summary.layers).toBeUndefined();
   });
 
   it('a Pro clone gets <volume> only, and the slower pace as Stage 2 tempo', async () => {
@@ -245,12 +251,45 @@ describe('the Director hears it', () => {
     expect(lit.summary.tempo).toBeLessThan(1);
   });
 
-  it('scales a soft start and its later return to 1, so the reply stays quiet', () => {
-    expect(scaleVolumeTags('<volume ratio="0.7"/><speed ratio="1"/>', 0.85, true)).toBe(
-      '<volume ratio="0.6"/><speed ratio="1"/>'
+  it('scales a soft start and its later return to 1, so the reply stays quiet', async () => {
+    setPorchLight('porch-soft-start', true);
+    const lit = await plan('porch-soft-start', INSTANT, {
+      pushes: ['<volume ratio="0.7"/>Yeah, I know. ', '<volume ratio="1"/>It was a long one.'],
+    });
+    expect(lit.spoken).toContain('<volume ratio="0.6"/>'); // 0.7 x 0.85
+    expect(lit.spoken).toContain('<volume ratio="0.85"/>'); // the return to 1, still quiet
+    expect(lit.spoken).not.toContain('<volume ratio="1"/>');
+  });
+
+  it('is a resting layer: applied every reply, never carried, so it never compounds', async () => {
+    const sessions = new DirectorSessions();
+    setPorchLight('porch-carry', true);
+    const first = await plan('porch-carry', INSTANT, { sessions });
+    const second = await plan('porch-carry', INSTANT, { sessions });
+    expect([first.summary.speed, second.summary.speed]).toEqual([0.97, 0.97]);
+    // Only the caller layer is carried: a nudge inside it would carry 0.97 and drift lower.
+    expect(sessions.get('porch-carry', undefined).speed).toBe(1);
+  });
+
+  it('layers persona, then late night, then the caller (TEAM_VOICES + VOICE_ATTUNE)', async () => {
+    const sessions = new DirectorSessions();
+    setPorchLight('porch-layers', true);
+    const nayan = await plan('porch-layers', NAYAN, {
+      env: { TEAM_VOICES: 'on', VOICE_ATTUNE: 'on' },
+      personaId: 'nayan-patel',
+      userEmotion: 'sadness',
+      sessions,
+    });
+    // Nayan rests at 0.85 / 0.92; late night takes that to 0.82 / 0.78; a low caller
+    // (attune 0.86 / 0.85) then moves from there: 0.82 x 0.86, 0.78 x 0.85.
+    expect(nayan.summary.layers).toBe(
+      'persona 0.85/0.92 > late-night 0.82/0.78 > caller 0.71/0.66'
     );
-    expect(scaleVolumeTags('<volume ratio="1"/>', 0.85, false)).toBe('<volume ratio="0.85"/>');
-    expect(scaleVolumeTags('', 0.85, false)).toBe('');
-    expect(scaleVolumeTags('<volume ratio="1"/>', 1, true)).toBe('<volume ratio="1"/>');
+    expect(nayan.spoken.match(/<volume ratio="[\d.]+"\/>/g)).toEqual(['<volume ratio="0.66"/>']);
+    // What carries is the caller's own answer, relative to 1.
+    expect(sessions.get('porch-layers', 'nayan-patel')).toMatchObject({
+      speed: 0.86,
+      volume: 0.85,
+    });
   });
 });

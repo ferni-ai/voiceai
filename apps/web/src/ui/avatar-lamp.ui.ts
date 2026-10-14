@@ -63,7 +63,7 @@ interface LampState {
   isAnimating: boolean;
   currentEmotion: LampEmotion;
   breathingActive: boolean;
-  breathingTimeline: gsap.core.Timeline | null;
+  breathingTimeline: Animation | null;
 }
 
 // ============================================================================
@@ -144,19 +144,14 @@ export function startBreathing(): void {
 
   state.breathingActive = true;
 
-  // Create breathing timeline
-  const tl = gsap.timeline({ repeat: -1, yoyo: true });
-  state.breathingTimeline = tl;
-
-  // Inhale - noticeable but gentle expansion (2.5-3.5%)
-  tl.to(coachAvatar, {
-    scaleX: 1.025,
-    scaleY: 1.035,
-    duration: 2.8,
-    ease: 'sine.inOut',
-  });
-
-  // The yoyo handles the exhale automatically
+  // Inhale - noticeable but gentle expansion (2.5-3.5%); alternate is the exhale.
+  // WAAPI on the separate `scale` property: composited, so idle costs no frame
+  // work (a GSAP loop kept its ticker running forever), and it stacks with the
+  // GSAP transform moves below instead of fighting them.
+  state.breathingTimeline = coachAvatar.animate(
+    [{ scale: '1 1' }, { scale: '1.025 1.035' }],
+    { duration: 2800, easing: 'cubic-bezier(0.37, 0, 0.63, 1)', iterations: Infinity, direction: 'alternate' }
+  );
 
   log.debug('Breathing started');
 }
@@ -167,18 +162,9 @@ export function startBreathing(): void {
 export function stopBreathing(): void {
   if (!state.breathingActive) return;
 
-  state.breathingTimeline?.kill();
+  state.breathingTimeline?.cancel();
   state.breathingTimeline = null;
   state.breathingActive = false;
-
-  // Reset to default scale
-  if (coachAvatar) {
-    gsap.to(coachAvatar, {
-      scaleX: 1,
-      scaleY: 1,
-      duration: 0.3,
-    });
-  }
 
   log.debug('Breathing stopped');
 }
@@ -190,7 +176,7 @@ function pauseBreathingFor(duration: number): void {
   state.breathingTimeline?.pause();
   trackedTimeout(() => {
     if (state.breathingActive) {
-      state.breathingTimeline?.resume();
+      state.breathingTimeline?.play();
     }
   }, duration);
 }

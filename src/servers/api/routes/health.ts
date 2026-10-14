@@ -12,6 +12,7 @@ import { requireAdmin } from '../../../api/auth-middleware.js';
 import { parseRawBody } from '../../../api/helpers.js';
 import { getAllStats as getPersistenceStats } from '../../../services/persistence/index.js';
 import { persistenceMetrics } from '../../../services/analytics/persistence-metrics.js';
+import { useVertexAI } from '../../../config/vertex-flag.js';
 
 const log = createLogger({ module: 'HealthRoutes' });
 
@@ -22,9 +23,7 @@ const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 const PLAID_ENV = process.env.PLAID_ENV || 'sandbox';
 const PORT = process.env.PORT || 3002;
 
-/**
- * Handle health routes
- */
+/** Handle health routes */
 export async function handleHealthRoutes(
   req: IncomingMessage,
   res: ServerResponse,
@@ -91,7 +90,7 @@ export async function handleHealthRoutes(
       // 3. LLM Connectivity Check (OpenAI key present)
       const llmStart = Date.now();
       const hasOpenAI = !!process.env.OPENAI_API_KEY;
-      const hasGemini = !!process.env.GOOGLE_API_KEY || process.env.USE_VERTEX_AI !== 'false'; // Vertex: service account
+      const hasGemini = !!process.env.GOOGLE_API_KEY || useVertexAI(); // Vertex: service account
       if (hasOpenAI || hasGemini) {
         checks.llm = { status: 'ok', latencyMs: Date.now() - llmStart, details: hasOpenAI ? 'OpenAI' : 'Gemini' };
       } else {
@@ -1013,13 +1012,10 @@ export async function handleHealthRoutes(
   // Data integrity health (memory persistence audit)
   if (pathname === '/health/data-integrity' || pathname === '/api/health/data-integrity') {
     try {
-      const { checkDataIntegrity } = await import('../../../api/health/data-integrity.js');
-
-      // Parse userId from query string if provided
-      const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const userId = url.searchParams.get('userId') || undefined;
-
-      const report = await checkDataIntegrity(userId);
+      const { integrityReportFor } = await import('../../../api/health/data-integrity.js');
+      // A per-user report is admin-only (data-integrity.ts)
+      const report = await integrityReportFor(req, res);
+      if (report === null) return true;
 
       // Determine response status based on health
       const status =

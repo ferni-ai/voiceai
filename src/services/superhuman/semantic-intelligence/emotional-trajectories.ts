@@ -15,6 +15,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import type { EmotionalArc, EmotionalWaypoint, ArcPhase } from './types.js';
+import { arcForStorage } from './storage-shape.js';
 import { onEmotionalPatternChange } from '../../data-layer/hooks/wisdom-hooks.js';
 
 // Re-export types for external consumers
@@ -67,7 +68,6 @@ export async function recordEmotionalWaypoint(
   const { emotion, intensity, valence, arousal = 0.5, context, trigger } = waypoint;
   const timestamp = Date.now();
 
-  // Generate embedding for the emotional context
   const emotionText = `${emotion} ${context || ''} ${trigger || ''}`.trim();
   let embedding: number[] | undefined;
   try {
@@ -511,7 +511,7 @@ async function saveArc(userId: string, arc: EmotionalArc): Promise<void> {
       .doc(userId)
       .collection('emotional_arcs')
       .doc(arc.id)
-      .set(cleanForFirestore(arc));
+      .set(cleanForFirestore(arcForStorage(arc))); // waypoint embeddings are never read back
 
     // Index emotional arc to semantic memory
     void onEmotionalPatternChange(

@@ -23,7 +23,7 @@ import {
 const log = createLogger({ module: 'meal-store' });
 
 // In-memory fallback when Firestore is unavailable
-const mealStorage: Map<string, MealData> = new Map();
+const mealStorage = new Map<string, MealData>();
 
 // ============================================================================
 // TYPES
@@ -253,7 +253,7 @@ export async function getMealData(userId: string): Promise<MealData> {
     };
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get meal data');
-    return createDefaultMealData(userId);
+    throw error; // a default here would be saved over the person's data
   }
 }
 
@@ -500,7 +500,7 @@ export async function getRecipesForDiet(userId: string): Promise<Recipe[]> {
 /**
  * Get quick recipes (under specified minutes)
  */
-export async function getQuickRecipes(userId: string, maxMinutes: number = 30): Promise<Recipe[]> {
+export async function getQuickRecipes(userId: string, maxMinutes = 30): Promise<Recipe[]> {
   const data = await getMealData(userId);
   return data.recipes.filter((r) => r.totalTimeMinutes <= maxMinutes);
 }

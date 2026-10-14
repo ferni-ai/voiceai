@@ -9,8 +9,10 @@
  * - one line in the turn reminder (turn-request.ts) asking for a softer,
  *   simpler delivery. It never names the hour, the night or sleep: Ferni
  *   brings none of that up unless the caller does;
- * - a gentler voice through the Director (ferni-energy.ts): a touch slower
- *   and a little quieter.
+ * - a gentler voice: this module only marks the call lit (ferni-energy.ts);
+ *   how much slower and quieter is attune.ts's LATE_NIGHT, the second of its
+ *   layers (persona, late night, caller), so attune stays the single owner of
+ *   pace and loudness.
  *
  * The decision is made once, from the caller's time zone (userData
  * .callerTimezone, sent by their browser) at the start of the call. No known
