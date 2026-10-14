@@ -61,6 +61,8 @@ import {
   loadLifeUpdates,
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
+import { commonGroundEnabled, formatCommonGround } from '../personas/common-ground.js';
+import { firestoreGroundStore, type GroundStore } from '../personas/common-ground-after-call.js';
 import {
   callCheckIns,
   coachFollowThroughMode,
@@ -130,6 +132,8 @@ export interface MemoryRecallDeps {
   lifeUpdates?: LifeUpdateDeps;
   /** What they said they'd do, asked about early (COACH_FOLLOW_THROUGH). */
   checkIns?: () => Promise<OpenCommitment[]>;
+  /** What the two of them both know (common-ground.ts, COMMON_GROUND). */
+  groundStore?: GroundStore;
   /** FERNI_SELF_RECALL=on; read from the environment when not given. */
   selfRecall?: boolean;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
@@ -202,6 +206,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let ledgerNote: string | null = null;
   let peopleNote: string | null = null;
   let sinceNote: string | null = null;
+  let groundNote: string | null = null;
   let checkInNote: string | null = null;
   let checkInOffered = false;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
@@ -299,12 +304,21 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       checkInNote = formatCheckIn(open, Date.now());
     })
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Check-ins not loaded'));
+  // Like the life updates: joins the first note only if loaded by then.
+  const ground = commonGroundEnabled()
+    ? (deps.groundStore ?? firestoreGroundStore)
+        .load(deps.userId)
+        .then((g) => {
+          groundNote = formatCommonGround(g, deps.userName);
+        })
+        .catch((error: unknown) => log.warn({ error: String(error) }, 'Common ground not loaded'))
+    : Promise.resolve();
   const canonLoaded = selfRecall
     ? loadCanon(personaId).then((c) => {
         canon = c;
       })
     : Promise.resolve();
-  const ready = Promise.all([loaded, since, checkedIn, canonLoaded]).then(() => undefined);
+  const ready = Promise.all([loaded, since, checkedIn, ground, canonLoaded]).then(() => undefined);
 
   return {
     ready,
@@ -367,6 +381,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const told = tellNow ? [ledgerNote, sinceNote].filter(Boolean).join('\n') || null : null;
       // Who is who (RECALL_PEOPLE), once, with the first note.
       const people = followUpsOffered ? null : peopleNote;
+      // What the two of them both know (COMMON_GROUND), once, with the first note.
+      const groundNow = followUpsOffered ? null : groundNote;
       const checkIn = checkInOffered ? null : checkInNote;
       // One follow-up per call opener (opener-claim.ts): a check-in in this
       // note, or one the greeting already asked, leaves the thread line out.
@@ -393,6 +409,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           summaryRecall?.take(text) ?? null,
           people,
           told,
+          groundNow,
           extraTold.length > 0
             ? formatLedger(extraTold, deps.userName, Date.now(), { bridge })
             : null,
