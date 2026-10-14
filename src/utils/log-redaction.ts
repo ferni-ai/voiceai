@@ -18,7 +18,8 @@
  *   from", "phone"), or a phone key, and has 7 to 15 digits. A phone key ends in phone,
  *   mobile, msisdn, e164, digits or number (contactPhone, user_phone, phones, Digits,
  *   fromNumber, to_number) or is caller/callee/recipient/destination/dest/tel and their
- *   Id/_number forms; callerLatencyMs is not one, and turnNumber: 3 is too short;
+ *   Id/_number forms; callerLatencyMs is not one, and turnNumber: 3 is too short. Every
+ *   element of a flat array under such a key counts ("phones":["…","…"]);
  * - it follows a to/from/number key and is a valid North American number (10 digits, or
  *   11 starting with 1, area code and exchange starting 2-9) or a 10-11 digit national
  *   number starting with 0, so `"from":1791797261` (epoch seconds) is left alone;
@@ -65,7 +66,8 @@ const KEY_TAIL = String.raw`(?:\\?["'])?\s*[:=]\s*\[?\s*(?:\\?["'])?`;
  * user_phone, phones, Digits), or in number (fromNumber, to_number; "number" alone is
  * a weak key), plus caller/callee/recipient/destination and their _number/Id forms.
  * callerLatencyMs is not one. Only runs of 7+ digits are ever masked, so turnNumber: 3
- * stays.
+ * stays, but a non-phone *Number key holding 7-15 digits (sequenceNumber: 12345678) is
+ * masked too: over-masking an id is the safe side.
  */
 const PHONE_KEY = String.raw`(?:\w*?(?:phone|mobile|msisdn|e164|digits)(?:_?(?:number|num|no|id)|s)?|\w+?_?number|(?:caller|callee|recipient|destination)(?:_?(?:num|no|id))?|dest|tel|telephone|cell)`;
 const STRONG_CONTEXT = new RegExp(
@@ -75,7 +77,24 @@ const STRONG_CONTEXT = new RegExp(
 );
 const WEAK_CONTEXT = new RegExp(String.raw`(?<!\w)(?:to|from|number|num)${KEY_TAIL}$`, 'i');
 /** A context ends in one of these, so most runs skip the context regexes. */
-const CONTEXT_END = /[_:"'=\s[>]$/;
+const CONTEXT_END = /[_:"'=\s[>,]$/;
+/** Between two elements of an array: a comma, maybe quotes (escaped or not). */
+const ARRAY_NEXT = /,\s*(?:\\?["'])?$/;
+/** How far back the "[" of an array of phone numbers may be. */
+const ARRAY_LOOKBACK = 512;
+
+/**
+ * For a later element of a flat array ("phones":["…","…"]), the text up to and
+ * including the array's "[", so its key is the context; otherwise `before`.
+ */
+function arrayContext(text: string, offset: number, before: string): string {
+  if (!ARRAY_NEXT.test(before)) return before;
+  const open = text.lastIndexOf('[', offset);
+  if (open < 0 || offset - open > ARRAY_LOOKBACK) return before;
+  const elements = text.slice(open + 1, offset);
+  if (/[\]{}]/.test(elements)) return before;
+  return text.slice(Math.max(0, open - 40), open + 1);
+}
 
 const NANP_PAREN = /^\(\d{3}\) ?\d{3}[ .-]\d{4}(?!\d)/;
 const NANP_SEP = /^\d{3}[.-]\d{3}[.-]\d{4}(?!\d)/;
@@ -146,13 +165,21 @@ function digitsOf(groups: Group[], i: number, count: number): string {
   return d;
 }
 
+/** Whether the text before a run makes it a phone number (strong) or maybe one (weak). */
+function contextKind(text: string, offset: number, before: string): 'strong' | 'weak' | null {
+  if (!CONTEXT_END.test(before)) return null;
+  const context = arrayContext(text, offset, before);
+  if (STRONG_CONTEXT.test(context)) return 'strong';
+  return WEAK_CONTEXT.test(context) ? 'weak' : null;
+}
+
 /** How many groups at the start of the run are a number, given what precedes it. */
 function leadingNumber(text: string, run: string, offset: number, groups: Group[]): number {
   const plus = run[0] === '+' || run[0] === '%';
   const before = text.slice(Math.max(0, offset - 40), offset);
-  const ctx = CONTEXT_END.test(before);
-  const strong = ctx && STRONG_CONTEXT.test(before);
-  const weak = !strong && ctx && WEAK_CONTEXT.test(before);
+  const kind = contextKind(text, offset, before);
+  const strong = kind === 'strong';
+  const weak = kind === 'weak';
   if (plus || strong || weak) {
     const count = takeNumber(run, groups, 0);
     const digits = digitsOf(groups, 0, count);

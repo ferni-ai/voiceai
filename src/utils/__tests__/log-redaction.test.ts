@@ -81,6 +81,31 @@ const PHONE_KEYS = [
   '{"Digits":"4155550123"}',
 ];
 
+describe('redactPhoneNumbers: every element of an array under a phone key', () => {
+  it.each([
+    [
+      '{"phones":["4155550123","4155550198","+14155550177"]}',
+      '{"phones":["***0123","***0198","***0177"]}',
+    ],
+    ['{"phones": [4155550123, 4155550198]}', '{"phones": [***0123, ***0198]}'],
+    [
+      '{"contacts":[{"phone":"4155550123"},{"phone":"4155550198"}]}',
+      '{"contacts":[{"phone":"***0123"},{"phone":"***0198"}]}',
+    ],
+    [
+      '{"meta":"{\\"phones\\":[\\"4155550123\\",\\"4155550198\\"]}"}',
+      '{"meta":"{\\"phones\\":[\\"***0123\\",\\"***0198\\"]}"}',
+    ],
+  ])('%s', (input, expected) => {
+    expect(redactPhoneNumbers(input)).toBe(expected);
+  });
+
+  it('leaves arrays under other keys alone', () => {
+    const line = '{"sizes":[4155550123,4155550198],"ids":["1234567","7654321"]}';
+    expect(redactPhoneNumbers(line)).toBe(line);
+  });
+});
+
 describe('redactPhoneNumbers: bare digits under phone keys and words', () => {
   it.each(PHONE_KEYS)('%s', (line) => {
     const out = redactPhoneNumbers(line);
