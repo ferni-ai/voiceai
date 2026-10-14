@@ -30,7 +30,6 @@ import {
   isWrapUpMessage,
   normalizeMusicMessage,
 } from '../types/events.js';
-
 import { setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
@@ -40,6 +39,8 @@ import { handleVoiceEventDataMessage } from '../services/voice-events.service.js
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { handleAgentAckMessage } from './agent-ack-handlers.js';
+import { routeExpressionMessage } from './expression-routes.js';
+import { observeListenSignal } from './backchannel-signal.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
 import { coachUI } from '../ui/coach.ui.js';
@@ -60,7 +61,7 @@ import {
   type AvatarCueEvent,
   type TrustSignalEvent,
 } from './live-signal-handlers.js';
-// 🎬 Ferni Expressions - Character-level avatar expressions
+import { WRAP_UP_EXPRESSION_HOLD_MS } from './call-end.js';
 import { ferniExpressions, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
 // 🎭 Luxo Expressions - 100+ expression system from design tokens
 import type { ExpressionId } from '../config/expressions.generated.js';
@@ -116,16 +117,6 @@ import {
 
 const log = createLogger('DataMessageHandlers');
 
-// Callback for showing team huddle (set by app.ts)
-let showTeamHuddleCallback: (() => void) | null = null;
-
-/**
- * Set the callback for showing team huddle.
- */
-export function setShowTeamHuddleCallback(callback: () => void): void {
-  showTeamHuddleCallback = callback;
-}
-
 // 🔄 Last agent response - for repeat functionality
 let lastAgentResponse: { text: string; personaId?: string; timestamp: number } | null = null;
 
@@ -148,8 +139,8 @@ export function clearLastAgentResponse(): void {
  * Routes to appropriate handler based on message type.
  */
 export function handleDataMessage(message: DataMessage): void {
-  // Try to process as handoff (async - fire and forget)
-  void handoffService.processDataMessage(message);
+  observeListenSignal(message); // avatar listen nods (ferni:listen-nods); observes, never consumes
+  void handoffService.processDataMessage(message); // handoff: async, fire and forget
 
   // 🎬 Try to process as cameo (team member pop-in)
   if (cameoService.processDataMessage(message)) {
@@ -158,8 +149,8 @@ export function handleDataMessage(message: DataMessage): void {
   }
 
   if (routeGroupDataMessage(message)) return; // group roundtable / call → participant grid
-  // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.),
-  // or as an agent ack / fallback notice (failed game start, no team mode)
+  if (routeExpressionMessage(message)) return; // reply tone; expression signals (ferni:expression-arbiter)
+  // 🌉 Humanization signal (breakthrough, vulnerability…) or agent ack / fallback notice
   if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) {
     return;
   }
@@ -208,8 +199,7 @@ export function handleDataMessage(message: DataMessage): void {
   }
 
   // Try to process as music event (for avatar dancing)
-  // Backend sends 'music_state', we normalize to MusicEvent
-  // 🎧 DEBUG: Log all incoming messages to trace music state flow
+  // Backend sends 'music_state', we normalize to MusicEvent (🎧 debug-logged to trace the flow)
   if ((message as { type?: string }).type === 'music_state') {
     log.info('🎧 [FRONTEND] Received music_state message', {
       rawMessage: JSON.stringify(message).slice(0, 500),
@@ -2245,10 +2235,6 @@ export function handleEngagementTrigger(event: EngagementTriggerEvent): void {
     case 'ritual_reminder':
       engagementTriggerUI.pulseEngagement();
       break;
-    case 'team_suggestion':
-      // Show team huddle when the agent suggests it
-      showTeamHuddleCallback?.();
-      break;
   }
 
   // For high-priority triggers, show a subtle message
@@ -2276,8 +2262,8 @@ export function handleWrapUp(event: WrapUpEvent): void {
   presenceUI.farewell();
 
   // 🎬 Pixar: Show appropriate emotional expression for farewell
-  // Warm farewell with soft, happy expression that lingers
-  ferniExpressions.setExpression('happy', 400, 0); // Hold until conversation ends
+  // Warm farewell smile that lingers, then settles (a hold of 0 would keep it, and the lid overlay, forever)
+  ferniExpressions.setExpression('happy', 400, WRAP_UP_EXPRESSION_HOLD_MS);
 
   // Warm visual feedback based on sentiment
   switch (event.sentiment) {
@@ -2296,7 +2282,7 @@ export function handleWrapUp(event: WrapUpEvent): void {
     case 'thoughtful':
       presenceUI.setVoiceEmotion('thoughtful');
       // 🎬 Gentle thinking expression (like "I'm here if you need me")
-      ferniExpressions.setExpression('empathetic', 400, 0);
+      ferniExpressions.setExpression('empathetic', 400, WRAP_UP_EXPRESSION_HOLD_MS);
       break;
     case 'caring':
       presenceUI.setVoiceEmotion('empathetic');
@@ -2357,9 +2343,9 @@ async function handleSetLanguage(event: SetLanguageMessage): Promise<void> {
     name: localeInfo?.nativeName,
   });
 
-  // Show a brief confirmation (in the NEW language after change)
-  // We show this before the change so it's visible immediately
-  messageUI.show(`Switching to ${localeInfo?.nativeName || locale}...`, 'info', 1500);
+  // Shown before the change (so in the old language) to be visible immediately
+  const language = localeInfo?.nativeName || locale;
+  messageUI.show(t('agentNotices.switchingLanguage', { language }), 'info', 1500);
 
   // Change locale WITHOUT reloading - keeps LiveKit connection alive!
   await setLocale(locale, { reload: false });
@@ -2512,8 +2498,7 @@ export function handleConversationEnd(event: ConversationEndEvent): void {
   // Play warm goodbye sound (different from abrupt disconnect)
   soundUI.play('goodbye');
 
-  // Show a brief "See you!" message
-  messageUI.show('See you next time!', 'info', 2000);
+  messageUI.show(t('agentNotices.seeYou'), 'info', 2000);
 
   // 🌟 Superhuman: Warm farewell expression - gentle smile with sparkle
   ferniExpressions.setExpression('farewell', 600, 2500);
@@ -2578,8 +2563,7 @@ function handleOnBehalfCallComplete(event: OnBehalfCallCompleteEvent): void {
     // Celebratory sound
     soundUI.play('success');
 
-    // Show warm message
-    messageUI.show(`✓ ${event.outcome}`, 'success', 5000);
+    messageUI.show(event.outcome, 'success', 5000);
   } else if (event.status === 'voicemail') {
     // Left voicemail - not ideal but okay
     playMicroExpression('noticing');
@@ -2588,32 +2572,25 @@ function handleOnBehalfCallComplete(event: OnBehalfCallCompleteEvent): void {
     // Informational sound
     soundUI.play('message');
 
-    // Show status
-    messageUI.show(`📞 Left voicemail for ${event.contactName}`, 'info', 4000);
+    messageUI.show(t('agentNotices.callVoicemail', { name: event.contactName }), 'info', 4000);
   } else if (event.status === 'no_answer' || event.status === 'busy') {
     // Couldn't reach them - slight concern, offer to retry
     playMicroExpression('concern_flash');
     ferniExpressions.setExpression('curious', 400, 2000);
 
-    // Show retry option
-    messageUI.show(
-      `📞 Couldn't reach ${event.contactName}. Want me to try again later?`,
-      'warning',
-      5000
-    );
+    messageUI.show(t('agentNotices.callNoAnswer', { name: event.contactName }), 'warning', 5000);
   } else if (event.status === 'failed') {
     // Call failed - apologetic
     playMicroExpression('concern_flash');
     ferniExpressions.setExpression('contemplative', 400, 2500);
 
-    // Show apology
-    messageUI.show(`Sorry, the call to ${event.contactName} didn't go through`, 'warning', 4000);
+    messageUI.show(t('agentNotices.callFailed', { name: event.contactName }), 'warning', 4000);
   }
 
   // If callback is required, show a more prominent notification
   if (event.callbackRequired) {
     setTimeout(() => {
-      messageUI.show(`📅 ${event.contactName} wants you to call back`, 'info', 4000);
+      messageUI.show(t('agentNotices.callBack', { name: event.contactName }), 'info', 4000);
     }, 2000);
   }
 
@@ -2686,39 +2663,38 @@ function handleBackgroundResultComplete(event: BackgroundResultCompleteEvent): v
 
   const { playMicroExpression } = ferni;
 
-  // Get appropriate icon for result type
-  const icon = getResultTypeIcon(event.resultType);
-
+  // The whisper's success/info/warning styling carries the status; no icon prefix.
   // Handle based on status
   if (event.status === 'success') {
     // Task succeeded! Show happiness
     playMicroExpression('delight_flash');
     ferniExpressions.setExpression('pleased', 400, 2000);
     soundUI.play('success');
-    messageUI.show(`${icon} ${event.summary}`, 'success', 5000);
+    messageUI.show(event.summary, 'success', 5000);
   } else if (event.status === 'partial_success') {
     // Partially done - informative
     playMicroExpression('noticing');
     ferniExpressions.setExpression('contemplative', 400, 1800);
     soundUI.play('message');
-    messageUI.show(`${icon} ${event.summary}`, 'info', 4000);
+    messageUI.show(event.summary, 'info', 4000);
   } else if (event.status === 'requires_action') {
     // Needs user attention
     playMicroExpression('concern_flash');
     ferniExpressions.setExpression('curious', 400, 2000);
     soundUI.play('message'); // Use 'message' sound for notifications
-    messageUI.show(`${icon} ${event.summary}`, 'warning', 5000);
+    messageUI.show(event.summary, 'warning', 5000);
   } else if (event.status === 'failed') {
     // Task failed - apologetic
     playMicroExpression('concern_flash');
     ferniExpressions.setExpression('contemplative', 400, 2000);
-    messageUI.show(`${icon} ${event.summary}`, 'warning', 4000);
+    messageUI.show(event.summary, 'warning', 4000);
   }
 
   // Show callback notification if needed
-  if (event.requiresCallback && event.contactName) {
+  const name = event.contactName;
+  if (event.requiresCallback && name) {
     setTimeout(() => {
-      messageUI.show(`📅 ${event.contactName} wants you to follow up`, 'info', 4000);
+      messageUI.show(t('agentNotices.followUp', { name }), 'info', 4000);
     }, 2000);
   }
 
@@ -2737,25 +2713,6 @@ function handleBackgroundResultComplete(event: BackgroundResultCompleteEvent): v
       },
     })
   );
-}
-
-/**
- * Get appropriate icon for result type
- */
-function getResultTypeIcon(type: BackgroundResultCompleteEvent['resultType']): string {
-  const icons: Record<BackgroundResultCompleteEvent['resultType'], string> = {
-    on_behalf_call: '📞',
-    research_complete: '🔍',
-    reservation_made: '📅',
-    follow_up_sent: '📧',
-    reminder_triggered: '⏰',
-    commitment_check: '📋',
-    calendar_update: '🗓️',
-    contact_updated: '👤',
-    email_sent: '✉️',
-    task_completed: '✓',
-  };
-  return icons[type] || '📋';
 }
 
 // ============================================================================
@@ -2960,7 +2917,7 @@ function handleSemanticRouting(event: SemanticRoutingEvent): void {
 /**
  * Pending action event from backend
  *
- * Part of the AGI-like experience: Ferni shows what action she wants to take
+ * Part of the AGI-like experience: Ferni shows what action he wants to take
  * and asks for permission. The UI displays a card with approve/reject buttons.
  */
 interface PendingActionEvent extends DataMessage {

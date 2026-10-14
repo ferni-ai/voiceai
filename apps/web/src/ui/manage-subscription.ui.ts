@@ -17,6 +17,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appleIAPService, type SubscriptionStatus } from '../services/apple-iap.service.js';
 import { isPaywallOn } from '../services/paywall.service.js';
+import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
 import { openBillingPortal } from '../utils/billing.js';
 import { asModalDialog } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
@@ -203,9 +204,9 @@ class ManageSubscriptionUI {
   private renderActions(): string {
     const { tier, provider } = this.status || { tier: 'free', provider: 'none' };
 
-    // Free tier: a warm invitation to join, but only while there is a paywall
-    if (tier === 'free' && !isPaywallOn())
-      return `<p class="manage-sub__footer-note">${t('manageSubscription.noBilling')}</p>`;
+    // Free tier without a paywall: no Join button; the Venmo note only when chip-in is on
+    const note = isVenmoChipInEnabled() ? 'freeNote' : 'noBilling';
+    if (tier === 'free' && !isPaywallOn()) return `<p class="manage-sub__footer-note">${t(`manageSubscription.${note}`)}</p>`;
     if (tier === 'free') {
       return `
         <div class="manage-sub__actions">
@@ -435,7 +436,7 @@ class ManageSubscriptionUI {
         padding: var(--space-4, 16px);
         background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.12)), transparent);
         border-radius: var(--radius-full, 9999px);
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-text);
       }
 
       .manage-sub__icon--premium {
@@ -453,7 +454,7 @@ class ManageSubscriptionUI {
         font-family: var(--font-body);
         font-size: 0.6875rem;
         font-weight: 500;
-        color: var(--persona-primary, #4a6741);
+        color: var(--persona-text);
         letter-spacing: 0.08em;
         margin-bottom: var(--space-2, 8px);
         opacity: 0.9;
@@ -645,7 +646,7 @@ class ManageSubscriptionUI {
 
       [data-theme="midnight"] .manage-sub__icon {
         background: linear-gradient(135deg, rgba(106, 138, 97, 0.2), transparent);
-        color: var(--persona-primary, #6a8a61);
+        color: var(--persona-text);
       }
 
       [data-theme="midnight"] .manage-sub__icon--premium {

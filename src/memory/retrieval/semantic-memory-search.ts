@@ -34,12 +34,7 @@ export const MEMORY_EMBEDDINGS_COLLECTION = 'memory_embeddings';
 
 /** Memory source types for filtering */
 export type MemorySourceType =
-  | 'anchor'
-  | 'thread'
-  | 'session_summary'
-  | 'fact'
-  | 'entity'
-  | 'conversation';
+  'anchor' | 'thread' | 'session_summary' | 'fact' | 'entity' | 'conversation';
 
 /** Default number of results to return */
 const DEFAULT_TOP_K = 5;
@@ -152,6 +147,8 @@ export async function searchMemories(
 
     // 4. Transform results
     const results: SemanticSearchResult[] = searchResults
+      // Only this caller's own memories, whatever the store returned.
+      .filter((r) => r.document.metadata.userId === userId)
       .filter((r) => r.score >= minScore)
       .slice(0, topK)
       .map((r) => ({

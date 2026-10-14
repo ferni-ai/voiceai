@@ -23,11 +23,11 @@ import {
   showUpgradeModal,
   type SubscriptionStatus,
 } from './subscription.ui.js';
+import { isVenmoChipInEnabled } from './support/open-support.js';
 import { apiGet } from '../utils/api.js';
 
 const log = createLogger('SubBadge');
 
-// FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
@@ -181,12 +181,11 @@ async function refreshStatus(): Promise<void> {
       badgeElement.style.display = '';
     }
 
-    // Status first: it carries the paywall flag the trial countdown depends on
+    // Status first: it carries the paywall flag. No paywall: no badge (it only leads to paid plans)
     const status = await loadSubscriptionStatus();
+    if (!isPaywallOn()) return updateBadgeDisplay(null);
     await refreshTrialStatus();
-
-    // A trial counts down only while there is a paywall (services/paywall.service.ts)
-    if (currentTrialStatus?.inTrial && isPaywallOn()) {
+    if (currentTrialStatus?.inTrial) {
       updateTrialDisplay();
       return;
     }
@@ -203,7 +202,7 @@ async function refreshStatus(): Promise<void> {
  */
 async function refreshTrialStatus(): Promise<void> {
   const deviceId = appState.getState().deviceId;
-  if (!deviceId || !isPaywallOn()) return; // no trial clock while Ferni is free
+  if (!deviceId || !isPaywallOn() || isVenmoChipInEnabled()) return; // free (no paywall) or on Venmo: no trial clock
 
   try {
     const sessionTimeMs = sessionStartTime ? Date.now() - sessionStartTime : 0;

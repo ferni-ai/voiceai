@@ -263,13 +263,13 @@ const THOUGHTFUL_QUESTIONS = {
 const GENTLE_OBSERVATIONS = {
   jackBogle: [
     '<break time="500ms"/>You know, I\'ve been at this a long time. <break time="300ms"/>The silences are where the real thinking happens.',
-    '<break time="400ms"/>Eve used to say I think too much. <break time="300ms"/>But thinking is how I make sense of things.',
+    '<break time="400ms"/>Margaret used to say I think too much. <break time="300ms"/>But thinking is how I make sense of things.',
     '<break time="500ms"/>Some of my best decisions came after long silences. <break time="300ms"/>The worst ones came from rushing.',
     '<break time="400ms"/>At my age, you learn to appreciate a quiet moment. <break time="300ms"/>Not everything needs words.',
   ],
   peterLynch: [
     '<break time="400ms"/>You know what? <break time="200ms"/>Some of my best stock ideas came to me in quiet moments. <break time="300ms"/>Just walking around, thinking.',
-    '<break time="500ms"/>Carolyn always says I never stop thinking about stocks. <break time="200ms"/>She\'s not wrong. <break time="300ms"/>What are YOU thinking about?',
+    '<break time="500ms"/>My wife always says I never stop thinking about stocks. <break time="200ms"/>She\'s not wrong. <break time="300ms"/>What are YOU thinking about?',
     '<break time="400ms"/>Hey, you know what I love? <break time="200ms"/>Comfortable silence. <break time="300ms"/>Means we\'re past the small talk.',
   ],
   jackB: [
@@ -367,28 +367,28 @@ const STORY_OFFERING_TEMPLATES = [
  */
 const MICRO_STORIES = {
   jackBogle: [
-    '<break time="500ms"/>You know, Eve and I used to sit on the porch some evenings and just... <break time="300ms"/>not talk. <break time="400ms"/>Best conversations we never had.',
+    '<break time="500ms"/>You know, Margaret and I used to sit on the porch some evenings and just... <break time="300ms"/>not talk. <break time="400ms"/>Best conversations we never had.',
     '<break time="400ms"/>I once spent three hours watching a cardinal build a nest outside my window. <break time="300ms"/>Three hours. <break time="200ms"/>No regrets.',
     '<break time="500ms"/>My granddaughter asked me once what I think about when I\'m quiet. <break time="300ms"/>I told her: everything and nothing. <break time="200ms"/>She understood perfectly.',
     '<break time="400ms"/>There\'s a painting in my office I\'ve looked at for forty years. <break time="300ms"/>Still finding new things in it.',
     '<break time="500ms"/>When I was young, I thought silence meant something was wrong. <break time="300ms"/>Now I know it\'s where the good stuff lives.',
-    '<break time="400ms"/>I still keep my first Vanguard business card. <break time="300ms"/>Not worth anything. <break time="200ms"/>Worth everything.',
+    '<break time="400ms"/>I still keep my first fund report from St. Paul. <break time="300ms"/>Not worth anything. <break time="200ms"/>Worth everything.',
     '<break time="500ms"/>Every morning I have the same cup of coffee in the same chair. <break time="300ms"/>Some would call it boring. <break time="200ms"/>I call it tradition.',
-    '<break time="400ms"/>My son asked me once why I never worried about money. <break time="300ms"/>I told him I worried every day for twenty years so I wouldn\'t have to later.',
-    '<break time="500ms"/>There\'s a tree outside my window that\'s been there longer than Vanguard. <break time="300ms"/>That\'s perspective.',
+    '<break time="400ms"/>My daughter asked me once why I never worried about money. <break time="300ms"/>I told her I worried every day for twenty years so I wouldn\'t have to later.',
+    '<break time="500ms"/>There\'s a tree outside my window that\'s been there longer than my career. <break time="300ms"/>That\'s perspective.',
     '<break time="400ms"/>I once met a young investor who apologized for asking a \'dumb question.\' <break time="300ms"/>I told him the only dumb question is the one you\'re afraid to ask.',
-    '<break time="500ms"/>Eve used to joke that I\'d read prospectuses instead of novels. <break time="300ms"/>She wasn\'t wrong. <break time="200ms"/>But I\'ve read a few good novels too.',
+    '<break time="500ms"/>Margaret used to joke that I\'d read prospectuses instead of novels. <break time="300ms"/>She wasn\'t wrong. <break time="200ms"/>But I\'ve read a few good novels too.',
   ],
   peterLynch: [
-    '<break time="400ms"/>Carolyn caught me staring at the ceiling last week. <break time="200ms"/>She asked what I was doing. <break time="300ms"/>I said \'thinking about Dunkin\' Donuts.\' <break time="200ms"/>She just walked away. <break time="300ms"/>[laughter]',
+    '<break time="400ms"/>My wife caught me staring at the ceiling last week. <break time="200ms"/>She asked what I was doing. <break time="300ms"/>I said \'thinking about donut shops.\' <break time="200ms"/>She just walked away. <break time="300ms"/>[laughter]',
     '<break time="500ms"/>You know what I did yesterday? <break time="200ms"/>Watched my neighbor mow his lawn for twenty minutes. <break time="300ms"/>Don\'t ask me why. <break time="200ms"/>Sometimes you just gotta zone out.',
-    '<break time="400ms"/>My daughters used to tease me for talking to myself. <break time="300ms"/>I told them I was conducting important business meetings. <break time="200ms"/>They didn\'t buy it.',
+    '<break time="400ms"/>My kids used to tease me for talking to myself. <break time="300ms"/>I told them I was conducting important business meetings. <break time="200ms"/>They didn\'t buy it.',
     '<break time="500ms"/>I once fell asleep at my desk dreaming about a company I was researching. <break time="300ms"/>Woke up and bought the stock. <break time="200ms"/>It did okay. <break time="300ms"/>[laughter]',
     '<break time="400ms"/>I found my best stock tip ever at a shopping mall. <break time="200ms"/>My wife was shopping, I was people-watching. <break time="300ms"/>Everyone was carrying the same bag. <break time="200ms"/>Bought the stock Monday.',
     '<break time="500ms"/>My golf game is terrible. <break time="200ms"/>But I\'ve found three ten-baggers on the golf course. <break time="300ms"/>Worth every lost ball.',
     '<break time="400ms"/>I keep a notebook of \'maybes.\' <break time="200ms"/>Companies I notice but haven\'t researched yet. <break time="300ms"/>That notebook is more valuable than my golf clubs.',
     '<break time="500ms"/>My daughter once asked why I read annual reports for fun. <break time="200ms"/>I told her it\'s like detective stories. <break time="300ms"/>She still doesn\'t get it.',
-    '<break time="400ms"/>I walked into a Taco Bell in 1982 just because I was hungry. <break time="200ms"/>Walked out thinking about investing in them. <break time="300ms"/>Should\'ve.',
+    '<break time="400ms"/>I walked into a little burrito chain years ago just because I was hungry. <break time="200ms"/>Walked out thinking about investing in them. <break time="300ms"/>Should\'ve.',
     '<break time="500ms"/>People ask what I\'m thinking when I\'m quiet. <break time="200ms"/>Usually it\'s grocery stores. <break time="300ms"/>Or car companies. <break time="200ms"/>Or both.',
   ],
   jackB: [
@@ -1648,7 +1648,7 @@ function getPersonaHumor(persona: PersonaConfig): string | null {
     return randomFrom(humor);
   }
 
-  // Jack Bogle, Maya, Alex - no humor during silence (stay warm/professional)
+  // Henry, Maya, Alex - no humor during silence (stay warm/professional)
   return null;
 }
 

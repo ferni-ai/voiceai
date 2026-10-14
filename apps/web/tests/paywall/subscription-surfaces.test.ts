@@ -104,7 +104,15 @@ for (const state of SERVER_STATES) {
       badge.initSubscriptionBadge();
       const el = document.querySelector<HTMLElement>('.subscription-badge');
       expect(el).not.toBeNull();
-      await vi.waitFor(() => expect(el?.querySelector('.subscription-badge__text')).not.toBeNull());
+      if (state.on) {
+        await vi.waitFor(() =>
+          expect(el?.querySelector('.subscription-badge__text')).not.toBeNull()
+        );
+      } else {
+        await badge.forceRefresh();
+        // No paywall: the badge only leads to paid plans, so it stays hidden
+        expect(el?.classList.contains('subscription-badge--hidden')).toBe(true);
+      }
 
       expect(el?.classList.contains('subscription-badge--trial')).toBe(state.on);
       const askedForTrial = apiGet.mock.calls.some(([p]) =>

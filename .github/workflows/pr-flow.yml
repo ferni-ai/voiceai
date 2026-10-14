@@ -1,0 +1,30 @@
+name: PR Flow
+
+# Size, base branch, WIP and issue link (scripts/ci/pr-flow-check.sh).
+# Labels and the description change the result, so those events re-run it.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, ready_for_review]
+
+concurrency:
+  group: pr-flow-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  pr-flow:
+    name: PR Flow
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci
+      - name: Check size, base, WIP and issue link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/ci/pr-flow-check.sh ${{ github.event.pull_request.number }}

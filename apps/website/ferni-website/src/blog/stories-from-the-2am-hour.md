@@ -1,6 +1,6 @@
 ---
 title: "Stories from the 2am Hour"
-excerpt: "Real conversations from the quiet hours. Names changed, permission granted."
+excerpt: "Composite stories, written to show the kinds of things people carry at 2am. Not real users."
 author: "The Ferni Team"
 authorInitials: "FE"
 authorColor: "#4a6741"
@@ -17,11 +17,11 @@ The hours between 2am and 5am are different.
 
 The world is quieter. The defenses lower. The things you've been avoiding all day finally catch up with you.
 
-We see this in the conversations. They're rawer at 2am. More honest. More vulnerable. People say things in the middle of the night that they'd never say in daylight.
+Thoughts get rawer at 2am. More honest. More vulnerable. People say things in the middle of the night that they'd never say in daylight.
 
-Here are some of those stories. Names changed. Permission granted. No identifying details.
+**A note before you read: these are not real users.** Ferni is new, and we don't have a pile of late-night conversations to share. Marcus, Sarah, James, Elena and David are composites we wrote, drawn from the kinds of things people carry at night. The names, details and times are invented.
 
-We share these not because they're extraordinary—they're not. We share them because they're ordinary. They're what people carry in the quiet hours.
+We wrote them not because they're extraordinary. They're not. We wrote them because they're ordinary. They're the kind of thing people carry in the quiet hours, and the kind of moment we built Ferni for.
 
 ---
 
@@ -115,7 +115,7 @@ Grief, it turns out, isn't a stage you complete. It's a conversation that contin
 
 ## What the 2am Hour Teaches Us
 
-These conversations share common threads:
+These stories share common threads, and they're the threads we design for:
 
 **The issue at 2am is rarely the first issue.** It's the thing underneath. The real thing takes time and safety to emerge.
 
@@ -135,4 +135,4 @@ Not to solve it. Not to fix you. Just to listen while you figure out what you ne
 
 ---
 
-*This concludes our Building in Public series. Thank you for reading. Thank you for trusting us with your 2am hours.*
+*This concludes our Building in Public series. Thank you for reading.*

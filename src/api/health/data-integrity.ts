@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { requireAdmin } from '../auth-middleware.js';
 import {
   getFirestoreHealthMetrics,
   getHealthSummary,
@@ -205,6 +206,21 @@ async function checkUserData(userId: string) {
 // ============================================================================
 
 /**
+ * The report a request asks for: the global one for anyone, a per-user one
+ * (whether the account exists, its memory and entity counts, relationship
+ * stage) only for an admin. ?userId= used to return it to anyone. Answers 401
+ * or 403 and returns null when it refused.
+ */
+export async function integrityReportFor(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<DataIntegrityReport | null> {
+  const userId = new URL(req.url || '/', 'http://local').searchParams.get('userId') || undefined;
+  if (userId !== undefined && !(await requireAdmin(req, res))) return null;
+  return checkDataIntegrity(userId);
+}
+
+/**
  * HTTP handler for /api/health/data-integrity
  */
 export async function handleDataIntegrityHealth(
@@ -212,11 +228,8 @@ export async function handleDataIntegrityHealth(
   res: ServerResponse
 ): Promise<void> {
   try {
-    // Parse query params
-    const url = new URL(req.url || '', `http://${req.headers.host}`);
-    const userId = url.searchParams.get('userId') || undefined;
-
-    const report = await checkDataIntegrity(userId);
+    const report = await integrityReportFor(req, res);
+    if (report === null) return;
 
     // Determine response status
     const status =

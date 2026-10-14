@@ -61,7 +61,7 @@ Memory system used legacy aliases in tool API surface and had confusing type def
 Before:
 ```typescript
 .enum(['jack-b', 'nayan-patel', 'peter-john', 'spend-save', 'event-planner', 'comm-specialist'])
-.describe('Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni...)')
+.describe('Which persona stored this memory (jack-b=Ferni, nayan-patel=Nayan...)')
 ```
 
 After:

@@ -36,6 +36,7 @@ import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { addTapListener, addTapListeners, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { isVenmoChipInEnabled, openSupport } from './support/open-support.js';
 import { toast } from './whisper.ui.js';
 
 const log = createLogger('SubscriptionUI');
@@ -490,8 +491,7 @@ export async function loadStatus(): Promise<SubscriptionStatus | null> {
       recordPaywallFlag(response.data);
       log.debug('Subscription status loaded:', status);
 
-      // FIX: Sync subscription tier to team unlock service
-      // This ensures team members unlock correctly based on subscription
+      // Keep team member unlocks in step with the subscription tier
       if (status?.tier) {
         teamUnlockService.setTier(status.tier);
       }
@@ -517,7 +517,8 @@ export function setOnUpgrade(callback: (tier: string) => void): void {
 // ============================================================================
 
 export function showUpgradeModal(prompt?: string): void {
-  if (!isPaywallOn()) return; // Ferni is free: no upsell (services/paywall.service.ts)
+  if (!isPaywallOn()) return; // paywall off: no upsell, and no Venmo redirect from upgrade/limit prompts
+  if (isVenmoChipInEnabled()) return void openSupport(); // paywall on + Venmo: every upgrade entry point chips in (#1031)
   modalCoordinator.request('subscription-upgrade', 'medium', () => {
     showUpgradeModalInternal(prompt);
   });
@@ -565,8 +566,7 @@ export function hideModal(): void {
 }
 
 export function showLimitReachedModal(upgradePrompt: string, resetDate?: string): void {
-  if (!isPaywallOn()) return; // no limits without a paywall
-  // Critical: shows even during a conversation (bypasses most modal checks)
+  if (!isPaywallOn()) return; // no limits without a paywall; critical: shows even mid-conversation
   modalCoordinator.requestCriticalModal('subscription-limit', () => {
     showLimitReachedModalInternal(upgradePrompt, resetDate);
   });

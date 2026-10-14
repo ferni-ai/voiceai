@@ -25,7 +25,7 @@ import type { VoiceAgentId } from './types.js';
  * This implements the TTS interface so it can be used directly
  * with LiveKit's AgentSession.
  *
- * Supports: Ferni, Jack Bogle, Peter John, Alex, Maya, Jordan
+ * Supports: Ferni, Henry (legacy index elder), Peter John, Alex, Maya, Jordan
  */
 export class DynamicTTS extends tts.TTS {
   readonly label = 'dynamic-cartesia-tts';

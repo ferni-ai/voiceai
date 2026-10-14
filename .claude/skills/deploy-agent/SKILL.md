@@ -36,10 +36,10 @@ LOG=$(mktemp)
 - Then wait until the new version is live:
   `lk agent versions --project $P --config $C`. The row with ✓ in
   Production must show your `git_commit`. Give it about 45 s more before calling.
-- The deploy hook refuses a commit that isn't on `origin/main`. Trying a
-  branch on dev before merging is the exception, and it says why:
-  `PDLC_DEPLOY_UNMERGED="<reason>" lk agent deploy ...` (dev only; prod has no
-  override).
+- The command refuses a commit that isn't on `origin/main` (its
+  `git merge-base --is-ancestor` step; no hook does this for you, so don't
+  deploy any other way). Trying a branch on dev before merging is the one
+  exception: drop that step knowingly and say why in the PR. Never on prod.
 
 ## Flags and secrets
 ```bash

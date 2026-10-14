@@ -79,15 +79,57 @@ describe('after-call card', () => {
     localStorage.clear();
     mockApiGet.mockReset();
     mockSupportOpen.mockClear();
+    // These cases are the paywall-on behaviour; 'paywall off' below covers Ferni being free
+    const { recordPaywallFlag } = await import('../../src/services/paywall.service.js');
+    recordPaywallFlag({ paywall: true });
     await startCall();
   });
 
   afterEach(async () => {
     vi.unstubAllEnvs();
+    const { resetPaywallFlagForTests } = await import('../../src/services/paywall.service.js');
+    resetPaywallFlagForTests();
     const { hideAfterCallCard } = await import('../../src/ui/after-call/after-call-card.ui.js');
     hideAfterCallCard(true);
     const { hide } = await import('../../src/ui/conversation-cost.ui.js');
     hide();
+  });
+
+  describe('paywall off', () => {
+    beforeEach(async () => {
+      const { resetPaywallFlagForTests } = await import('../../src/services/paywall.service.js');
+      resetPaywallFlagForTests();
+    });
+
+    it('with Venmo off: no Support Ferni link on the card', async () => {
+      vi.stubEnv('VITE_VENMO_CHIP_IN', 'false');
+      routeApi({ memories: [{ content: 'Likes tea', learnedAt: inCall(1000) }] });
+      await runPostCall();
+      expect(afterCallCard()).not.toBeNull();
+      expect(afterCallCard()!.querySelector('.after-call-support')).toBeNull();
+      expect(costCard()).toBeNull();
+    });
+
+    it('with Venmo off and the card flag off: no cost/tip card either', async () => {
+      vi.stubEnv('VITE_VENMO_CHIP_IN', 'false');
+      vi.stubEnv('VITE_AFTER_CALL_CARD', 'false');
+      routeApi({});
+      await runPostCall();
+      expect(costCard()).toBeNull();
+    });
+
+    it('with Venmo on: the voluntary Support Ferni link stays and opens the Venmo card', async () => {
+      vi.stubEnv('VITE_VENMO_CHIP_IN', 'true');
+      vi.stubEnv('VITE_VENMO_HANDLE', 'ferni-test');
+      routeApi({ memories: [{ content: 'Likes tea', learnedAt: inCall(1000) }] });
+      await runPostCall();
+      const link = afterCallCard()!.querySelector<HTMLButtonElement>('.after-call-support');
+      expect(link).not.toBeNull();
+      link!.click();
+      await vi.waitFor(() => expect(document.querySelector('dialog.venmo-chip-in')).not.toBeNull());
+      expect(mockSupportOpen).not.toHaveBeenCalled();
+      document.querySelector('dialog.venmo-chip-in')?.remove();
+    });
   });
 
   describe('flag off', () => {
@@ -114,7 +156,6 @@ describe('after-call card', () => {
   });
 
   describe('default build', () => {
-
     it('shows memories saved during this call and a commitment from it, not the cost card', async () => {
       routeApi({
         memories: [
@@ -192,24 +233,89 @@ describe('after-call card', () => {
       expect(costCard()).toBeNull();
     });
 
-    it('sits in the page flow after the call controls, so it never covers Connect', async () => {
-      document.body.innerHTML = `
-        <main class="main">
-          <div class="controls-row"><div class="controls"><button id="connectBtn">Connect</button></div></div>
-          <p id="helperText">Your personal guide</p>
-        </main>`;
-      routeApi({});
+    describe('placement', () => {
+      const CARD_CONTENT_PX = 288;
+      let restoreHeight: number;
 
-      await runPostCall();
+      /** Lay out Connect's row and the round buttons under it, in a viewport `height` tall. */
+      function layOut(height: number, row: [number, number], triggers: [number, number]): void {
+        document.body.innerHTML = `
+          <main class="main">
+            <div class="controls-row"><div class="controls"><button id="connectBtn">Connect</button></div></div>
+            <div class="engagement-triggers"><button>Daily practice</button></div>
+            <p id="helperText">Your personal guide</p>
+          </main>`;
+        Object.defineProperty(window, 'innerHeight', { value: height, configurable: true });
+        const box =
+          ([top, bottom]: [number, number]) =>
+          () =>
+            ({
+              top,
+              bottom,
+              height: bottom - top,
+              left: 0,
+              right: 390,
+              width: 390,
+              x: 0,
+              y: top,
+            }) as DOMRect;
+        document.querySelector('.controls-row')!.getBoundingClientRect = box(row);
+        document.querySelector('.engagement-triggers')!.getBoundingClientRect = box(triggers);
+      }
 
-      const card = afterCallCard()!;
-      const controls = document.querySelector('.controls-row')!;
-      expect(controls.nextElementSibling).toBe(card);
-      expect(card.contains(document.getElementById('connectBtn'))).toBe(false);
-      const position = getComputedStyle(card).position;
-      expect(position).not.toBe('fixed');
-      expect(position).not.toBe('absolute');
-      expect(card.querySelector('.after-call-support')).not.toBeNull();
+      beforeEach(() => {
+        restoreHeight = window.innerHeight;
+        vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (
+          this: HTMLElement
+        ) {
+          return this.classList.contains('ferni-after-call-card') ? CARD_CONTENT_PX : 0;
+        });
+      });
+
+      afterEach(() => {
+        vi.restoreAllMocks();
+        Object.defineProperty(window, 'innerHeight', { value: restoreHeight, configurable: true });
+      });
+
+      it('is a fixed sheet that scrolls inside itself, not a block that grows the page', async () => {
+        layOut(844, [562, 614], [638, 686]);
+        routeApi({});
+
+        await runPostCall();
+
+        const card = afterCallCard()!;
+        expect(card.parentElement).toBe(document.body);
+        expect(document.querySelector('.controls-row')!.nextElementSibling).not.toBe(card);
+        const style = getComputedStyle(card);
+        expect(style.position).toBe('fixed');
+        expect(style.overflowY).toBe('auto');
+        expect(document.getElementById('ferni-after-call-styles')!.textContent).toMatch(
+          /max-height: calc\(100dvh/
+        );
+        expect(card.querySelector('.after-call-support')).not.toBeNull();
+      });
+
+      it('sits just below the call controls when it fits there, so it never covers Connect', async () => {
+        layOut(1024, [562, 614], [638, 686]);
+        routeApi({});
+
+        await runPostCall();
+
+        const card = afterCallCard()!;
+        expect(card.classList.contains('below-controls')).toBe(true);
+        expect(card.style.getPropertyValue('--after-call-anchor')).toBe('686px');
+      });
+
+      it('sits just above Connect when it does not fit below and there is more room above', async () => {
+        layOut(844, [562, 614], [638, 686]);
+        routeApi({});
+
+        await runPostCall();
+
+        const card = afterCallCard()!;
+        expect(card.classList.contains('above-controls')).toBe(true);
+        expect(card.style.getPropertyValue('--after-call-anchor')).toBe(`${844 - 562}px`);
+      });
     });
 
     it('closes when the next call connects', async () => {
