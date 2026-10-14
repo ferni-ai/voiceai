@@ -3,8 +3,10 @@
  * (snore, whistle, hum, backchannels, laugh-along: clip-player.ts) and the
  * director's laugh and opening breath/sigh (reply-director.ts) never enter the
  * chat history, so asked "did you just snore?" the model could only guess.
- * Each is recorded where it played, with why, for the next reply
- * (personas/quirk-note.ts) and the after-call memory (quirk-memory-register.ts).
+ * Clips are recorded where they played, with why; the director (L1) reports
+ * through its onNonverbal option, which tts-wrapper.ts points here. Read by the
+ * next reply (personas/quirk-note.ts) and the after-call memory
+ * (quirk-memory-register.ts).
  *
  * Keyed by userData.services.sessionId (the id the TTS gateway and endSession
  * use); bounded per call and per process. QUIRK_AWARENESS=on, else a no-op.

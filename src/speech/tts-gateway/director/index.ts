@@ -8,7 +8,12 @@
  * @module speech/tts-gateway/director
  */
 
-export { directSpeech, type DirectSpeechOptions, type PlanSummary } from './reply-director.js';
+export {
+  directSpeech,
+  type DirectSpeechOptions,
+  type DirectorNonverbal,
+  type PlanSummary,
+} from './reply-director.js';
 export { leverModes, speechDirectorMode } from './gate.js';
 export { directorSessions, DirectorSessions } from './session-state.js';
 export { STABLE_EMOTIONS } from './emotion.js';
