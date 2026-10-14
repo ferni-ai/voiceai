@@ -1,8 +1,9 @@
 /**
  * Attunement: meet the caller where they are, the way a good friend on the
  * phone does. Each reply gets one target, read from the caller's recent turns
- * (and their voice, when the reading is confident): how long, how many
- * questions, whether advice or stories of his own fit, and at what pace.
+ * (and their voice, when the reading is confident): how many questions,
+ * whether advice or stories of his own fit, and at what pace. Not how long:
+ * see below.
  *
  * Seth's dev call 2026-10-11: quiet and tired on a Sunday, three-word answers.
  * The director saw it ("Seth is quiet and giving short answers") but every
@@ -16,11 +17,14 @@
  *     short-answer caller never moves it;
  *   - director notes sit mid-reminder and the turn shape, which goes last,
  *     wins when they disagree.
- * So the target goes last, after the shape, and says it outranks it.
+ * So the target goes near the end, after the shape and FERNI_STATE's
+ * self-share (turn-request.ts), and outranks the extras above it. Only the
+ * commitment invite and the director's hard rule come after it.
  *
  * Offline (scripts/voice-eval/attunement, 48 frozen scenarios): see the PR.
- * ATTUNE=on for the states with a measured win, ATTUNE=all for every state;
- * off (the default) adds nothing, so requests are unchanged.
+ * Those runs had the length cap. ATTUNE=on for the states with a measured
+ * win, ATTUNE=all for every state; off (the default) adds nothing, so
+ * requests are unchanged.
  *
  * Reply length is not decided here: TURN_LENGTH=learned owns it (turn-length.ts,
  * decision 2026-10-14). This module's own length cap ("at most N words") is off
@@ -68,6 +72,11 @@ export type CallerState =
  * moved the same way but cleared noise in only one run each; distracted,
  * hurried and playful replies moved into band with no judge change. ATTUNE=all
  * attunes every state, for further measurement.
+ *
+ * Every one of those runs had the length cap, which is now off the live path
+ * (ATTUNE_LENGTH). ATTUNE=on without it (questions, advice, own stories, no
+ * orders) is unmeasured on its own: measure it against TURN_LENGTH=learned
+ * alone (#1377) before turning it on anywhere.
  */
 const ON_STATES: ReadonlySet<CallerState> = new Set(['low']);
 
@@ -263,26 +272,42 @@ const HOW: Record<Exclude<CallerState, 'neutral'>, string> = {
 const NO_ORDERS =
   'no instructions, not even caring ones (to rest, breathe, eat or put their feet up): notice how they are, or just keep them company';
 
+/** Advice and his own stories; their sizing words only with the length experiment. */
+function talkParts(t: AttuneTarget, withLength: boolean): string[] {
+  const parts: string[] = [];
+  if (!t.advice) parts.push('no advice, lessons or sayings about life');
+  else if (t.state === 'venting' || t.state === 'hurried')
+    parts.push(
+      `they asked, so give your honest take${withLength ? ' in a sentence' : ''}, one idea, not a list`
+    );
+  if (!t.ownStories) parts.push('no stories or news of your own');
+  else if (t.state === 'low')
+    parts.push(
+      withLength
+        ? 'they asked about you: one short sentence about yourself'
+        : 'they asked about you: answer honestly about yourself, then back to them'
+    );
+  return parts;
+}
+
 /**
  * The target as one line for the end of the reminder; '' for a neutral caller.
- * The length cap only with `withLength` (ATTUNE_LENGTH, off): TURN_LENGTH owns length.
+ * Anything that sizes the reply (the cap, "in a sentence", the caller's word
+ * count) only with `withLength` (ATTUNE_LENGTH, off): TURN_LENGTH owns length.
  */
 export function attunementLine(t: AttuneTarget, turns: string[], withLength = false): string {
   if (t.state === 'neutral') return '';
   const cap = withLength && t.maxWords !== null;
   const parts = [cap ? `at most ${t.maxWords} words` : '', HOW[t.state]];
-  if (!t.advice) parts.push('no advice, lessons or sayings about life');
-  else if (t.state === 'venting' || t.state === 'hurried')
-    parts.push('they asked, so give your honest take in a sentence, one idea, not a list');
-  if (!t.ownStories) parts.push('no stories or news of your own');
-  else if (t.state === 'low') parts.push('they asked about you: one short sentence about yourself');
+  parts.push(...talkParts(t, withLength));
   // Told to give no advice, replies still gave orders: "Go on, get those socks
   // off" to a tired caller (qwen 1/5). Taking care of them reads as a command.
   parts.push(NO_ORDERS);
   parts.push(t.questions === 0 ? 'no question' : 'at most one easy question');
   const said = words(turns[turns.length - 1] ?? '');
+  const count = withLength ? ` (${said} ${said === 1 ? 'word' : 'words'} just now)` : '';
   return (
-    `[Meet them where they are: ${READ[t.state]} (${said} ${said === 1 ? 'word' : 'words'} just now). ` +
+    `[Meet them where they are: ${READ[t.state]}${count}. ` +
     `This reply: ${parts.filter(Boolean).join('; ')}. ` +
     `This outranks any ${cap ? 'length or ' : ''}extras above.]`
   );

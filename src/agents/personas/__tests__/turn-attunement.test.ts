@@ -172,6 +172,15 @@ describe('attunementNote', () => {
   });
 });
 
+/** turn-length.ts lengthLine, the learned length target. */
+const LEARNED_LENGTH =
+  /THIS REPLY: (?:a quick spoken reaction|just a few words, about \d+|one sentence, about \d+ words|a sentence or two, about \d+ words|you have something to say)/;
+/** Every phrase that sizes a reply: main's (learned, or the fixed rule a request keeps) and attunement's own. */
+const ANY_LENGTH = new RegExp(
+  `${LEARNED_LENGTH.source}|Most replies are a sentence or two|at most \\d+ words|one short sentence|in a sentence|\\d+ words? just now`,
+  'g'
+);
+
 describe('on the live request path (withTurnReminder)', () => {
   it('ATTUNE off leaves the request byte for byte as before; on adds one line, last', () => {
     const session = {};
@@ -195,8 +204,33 @@ describe('on the live request path (withTurnReminder)', () => {
     const request = last(withTurnReminder(call(...SETH), session));
     expect(request).toContain('Meet them where they are');
     expect(request).not.toMatch(/at most \d+ words/);
-    expect(request).toMatch(/THIS REPLY: /); // turn-length.ts lengthLine
+    expect(request).toMatch(LEARNED_LENGTH);
     delete process.env.TURN_LENGTH;
     expect(last(withTurnReminder(call(...SETH), session))).toMatch(/at most \d+ words/);
+  });
+
+  it('a tired caller asking about Ferni, or for advice, still gets exactly one length target', () => {
+    const askedAboutHim = call('Hey.', 'Hey you.', 'Tired.', 'Long day?', 'Yeah. What about you?');
+    const venting = call(
+      'Ugh, my boss took credit for my work again.',
+      'That is maddening.',
+      "I'm so fed up. What should I do?"
+    );
+    for (const [convo, attune] of [
+      [askedAboutHim, 'on'],
+      [venting, 'all'],
+    ] as const) {
+      for (const capped of [undefined, 'on']) {
+        process.env.ATTUNE = attune;
+        if (capped) process.env.ATTUNE_LENGTH = capped;
+        else delete process.env.ATTUNE_LENGTH;
+        process.env.TURN_LENGTH = 'learned';
+        const request = last(withTurnReminder(convo, {}));
+        expect(request).toContain('Meet them where they are');
+        // One length target, TURN_LENGTH's (a request keeps its fixed rule, turn-shape.ts).
+        expect(request.match(ANY_LENGTH)).toHaveLength(1);
+        if (convo === askedAboutHim) expect(request).toMatch(LEARNED_LENGTH);
+      }
+    }
   });
 });
