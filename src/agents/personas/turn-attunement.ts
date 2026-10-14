@@ -40,6 +40,7 @@ import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { hardNews } from './turn-candor.js';
 import { callerLaughed } from './turn-extras.js';
 import { lengthLearned } from './turn-length.js';
+import { callerMove } from './turn-shape.js';
 
 const log = createLogger({ module: 'Attunement' });
 
@@ -189,7 +190,8 @@ function fromVoice(voice: VoiceCue | undefined): CallerState | undefined {
 export function targetFor(state: CallerState, turns: string[], askedLast: boolean): AttuneTarget {
   const said = turns[turns.length - 1] ?? '';
   const wantsAdvice = ASKS_ADVICE.test(said);
-  const own = ABOUT_HIM.test(said);
+  // The turn shape's own read too ("How have you been?", "And you?"), so the two never disagree.
+  const own = ABOUT_HIM.test(said) || callerMove(said) === 'about_ferni';
   const oneIfNoneLast: 0 | 1 = askedLast ? 0 : 1;
   switch (state) {
     case 'low': {
@@ -303,7 +305,8 @@ export function attunementLine(t: AttuneTarget, turns: string[], withLength = fa
   // Told to give no advice, replies still gave orders: "Go on, get those socks
   // off" to a tired caller (qwen 1/5). Taking care of them reads as a command.
   parts.push(NO_ORDERS);
-  parts.push(t.questions === 0 ? 'no question' : 'at most one easy question');
+  // Only ever tightens the shape's question rule: it never grants a question the shape withheld.
+  parts.push(t.questions === 0 ? 'no question' : 'any question an easy one');
   const said = words(turns[turns.length - 1] ?? '');
   const count = withLength ? ` (${said} ${said === 1 ? 'word' : 'words'} just now)` : '';
   return (

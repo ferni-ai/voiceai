@@ -125,6 +125,27 @@ describe('attunementLine', () => {
   });
 });
 
+describe('a tired caller asking about Ferni', () => {
+  it.each(['Yeah. How have you been?', 'And you?', 'What have you been up to?', 'What about you?'])(
+    '"%s" lets him answer about himself',
+    (asked) => {
+      const turns = ['Hey.', 'Tired.', asked];
+      const line = attunementLine(targetFor('low', turns, false), turns);
+      expect(line).not.toContain('no stories or news of your own');
+      expect(line).toContain('they asked about you');
+    }
+  );
+
+  it('never grants a question: "no question" or "any question an easy one"', () => {
+    const turns = ['Hey.', 'Quiet Sunday.', "I'm still here."];
+    expect(attunementLine(targetFor('low', turns, false), turns)).toContain(
+      'any question an easy one'
+    );
+    expect(attunementLine(targetFor('low', turns, true), turns)).toContain('no question');
+    expect(attunementLine(targetFor('low', turns, false), turns)).not.toContain('at most one');
+  });
+});
+
 describe('ATTUNE_LENGTH (loop experiment; learned TURN_LENGTH wins)', () => {
   it('is off by default and never on with TURN_LENGTH=learned', () => {
     expect(attunedLengthOn({})).toBe(false);
