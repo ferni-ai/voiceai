@@ -46,6 +46,9 @@ on:
       - 'src/memory/**'
       - 'firestore.indexes.json'
       - 'firebase.json'
+  # Nightly on main, whatever OPTIONAL_CI says (#1366); PR and push runs still follow it
+  schedule:
+    - cron: '41 3 * * *'
   workflow_dispatch:
 
 # One run per PR: a new push cancels the PR's running one. Every other run (push,
@@ -56,7 +59,7 @@ concurrency:
 
 jobs:
   firestore-e2e:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Firestore Emulator E2E
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
@@ -164,7 +167,7 @@ jobs:
   # firestore-e2e job sets SKIP_EMBEDDING, which would make create/resolve
   # paths here meaningless.
   entity-resolver-emulator:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Entity Resolver Emulator
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -221,7 +224,7 @@ jobs:
 
   # Quick unit tests (no emulator required)
   unit-tests:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Data Layer Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
