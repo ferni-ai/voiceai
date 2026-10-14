@@ -383,11 +383,11 @@ async function validateLiveKitSip(): Promise<void> {
     const trunks = await sipClient.listSipInboundTrunk();
     addResult(
       'livekit:sip-trunks',
-      trunks.items.length > 0,
-      trunks.items.length > 0
-        ? `Found ${trunks.items.length} SIP inbound trunk(s)`
+      trunks.length > 0,
+      trunks.length > 0
+        ? `Found ${trunks.length} SIP inbound trunk(s)`
         : 'No SIP inbound trunks configured',
-      trunks.items.map((t) => t.sipTrunkId).join(', ')
+      trunks.map((t) => t.sipTrunkId).join(', ')
     );
   } catch (error) {
     warn(`Could not verify SIP trunks: ${String(error)}`);
@@ -456,7 +456,7 @@ async function validateContextBuilderFunctionality(): Promise<void> {
       'context-builder:injections',
       injections.length > 0,
       `Builder produces ${injections.length} injection(s)`,
-      injections.map((i) => i.key).join(', ')
+      injections.map((i) => i.id).join(', ')
     );
   } catch (error) {
     addResult('context-builder', false, 'Context builder test failed', String(error));
