@@ -11,14 +11,22 @@
  * replying, when the next commit comes first ('superseded'), or at the end of
  * the call. Agent-initiated speech (greeting, check-ins) opens no turn.
  *
- * `tokens` carries the model's own counts for the turn's first request.
+ * Prompt tokens per section are estimates (chars/4, labelled), over the chat
+ * context only; `tokens` carries the model's own counts, tool schemas included.
  *
  * @module agents/shared/turn-receipt
  */
+import { onGatewayFirstAudio } from '../../speech/tts-gateway/first-audio-observer.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { callerTurn, fastLaneEnabled, laneReason } from '../model-provider/fast-lane.js';
 import { toolRetrievalMode } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { llmReady, type EouMetric, type LlmMetric } from './turn-metrics.js';
+import {
+  promptSections,
+  type ItemView,
+  type PromptSection,
+  type ReminderNote,
+} from './prompt-sections.js';
 
 export const TURN_RECEIPT_VERSION = 1;
 export type UserKind = 'owner' | 'eval' | 'other';
@@ -40,13 +48,6 @@ export function sentenceCount(text: string): number {
   return Math.max(1, (text.match(/[.!?]+(?=\s|$)/g) ?? []).length);
 }
 
-/** A chat item as far as the receipt reads it (llm.ChatItem). */
-interface ItemView {
-  type?: string;
-  role?: string;
-  textContent?: string;
-}
-
 const isHandoffTool = (name: string): boolean => /^handoffto/i.test(name); // handoff-factory.ts
 
 interface OpenTurn {
@@ -55,13 +56,16 @@ interface OpenTurn {
   eou?: EouMetric;
   llm?: LlmMetric;
   ttsTtfbMs?: number;
+  ttsPushMs?: number;
   ttsCancelled: boolean;
   thinkingAt?: number;
   speakingAt?: number;
   /** Ferni spoke, a tool ran or a reply was added: the reply is under way. */
   replied: boolean;
   requests: number;
+  sections: PromptSection[] | null;
   lane: { lane: 'fast' | 'main'; reason: string } | null;
+  director: Omit<ReminderNote, 'reminder' | 'directorNotes'> & { kept: number };
   toolsOffered: number | null;
   called: string[];
   toolErrors: number;
@@ -88,6 +92,7 @@ const ms = (n: number | undefined | null): number | null =>
 export class TurnReceiptRecorder {
   private turn: OpenTurn | null = null;
   private count = 0;
+  private reminder: ReminderNote | null = null;
   private readonly userKind: UserKind;
   private readonly now: () => number;
 
@@ -103,7 +108,9 @@ export class TurnReceiptRecorder {
       ttsCancelled: false,
       replied: false,
       requests: 0,
+      sections: null,
       lane: null,
+      director: { offered: 0, kept: 0, droppedIdx: [] },
       toolsOffered: null,
       called: [],
       toolErrors: 0,
@@ -133,15 +140,39 @@ export class TurnReceiptRecorder {
     }
   }
 
+  onReminder(note: ReminderNote): void {
+    this.reminder = note;
+  }
+
   /** A request about to go to the model (preemptive, final or after tools): the last one counts. */
   onRequest(items: readonly ItemView[], toolsOffered: number): void {
     const turn = this.open();
+    const note = this.reminder;
+    this.reminder = null;
     turn.requests += 1;
+    turn.sections = promptSections(items, note ?? undefined);
     turn.toolsOffered = toolsOffered;
+    turn.director = note
+      ? {
+          offered: note.offered,
+          kept: note.offered - note.droppedIdx.length,
+          droppedIdx: note.droppedIdx,
+        }
+      : { offered: 0, kept: 0, droppedIdx: [] };
     if (fastLaneEnabled(this.opts.env)) {
       const reason = laneReason(callerTurn(items as never));
       turn.lane = { lane: reason === 'chat' ? 'fast' : 'main', reason };
     }
+  }
+
+  /**
+   * The TTS gateway's first audio for this reply (first-audio-observer.ts). Prod speaks through
+   * the gateway, which never emits the SDK's tts_metrics, so ttsTtfbMs was null in every receipt.
+   */
+  onGatewayAudio(ttfbMs: number, pushMs?: number): void {
+    if (!this.turn) return;
+    this.turn.ttsTtfbMs ??= ttfbMs;
+    if (pushMs !== undefined) this.turn.ttsPushMs ??= pushMs;
   }
 
   onItem(item: { role?: string; interrupted?: boolean; textContent?: string } | undefined): void {
@@ -215,6 +246,8 @@ export class TurnReceiptRecorder {
       llmReadyMs: eou && llm ? ms(llmReady(eou, llm)) : null,
       llmDurationMs: ms(llm?.durationMs),
       ttsTtfbMs: ms(turn.ttsTtfbMs),
+      /** Gateway: first text sent to the provider, from the start of the TTS node. */
+      ttsPushMs: ms(turn.ttsPushMs),
       /** Commit (thinking) to Ferni's first audio, as REPLY_GAP measures it. */
       commitToAudioMs: since(thinkingAt ?? 0, speakingAt),
       /** End of the caller's speech to Ferni's first audio. */
@@ -228,6 +261,7 @@ export class TurnReceiptRecorder {
     const { llm } = turn;
     const personaId = this.opts.persona() ?? null;
     const handoffTool = turn.called.find(isHandoffTool) ?? null;
+    const sections = turn.sections ?? [];
     return {
       event: 'TURN_RECEIPT' as const,
       v: TURN_RECEIPT_VERSION,
@@ -246,8 +280,12 @@ export class TurnReceiptRecorder {
         : null,
       prompt: {
         requests: turn.requests,
+        estimate: 'chars/4' as const,
+        totalTokensEst: sections.reduce((n, s) => n + s.tokensEst, 0),
+        sections,
         lane: turn.lane,
       },
+      director: turn.director,
       tools: {
         offered: turn.toolsOffered,
         retrieval: toolRetrievalMode(),
@@ -270,8 +308,13 @@ export class TurnReceiptRecorder {
   }
 }
 
-// One recorder per AgentSession, so llmNode can find it.
+// One recorder per AgentSession, so llmNode and withTurnReminder can find it.
 const recorders = new WeakMap<object, TurnReceiptRecorder>();
+
+/** withTurnReminder: the per-turn reminder of the request being built. */
+export function noteReminder(session: object, note: ReminderNote): void {
+  recorders.get(session)?.onReminder(note);
+}
 
 /** llmNode: the request as it goes to the model, with the tools it carries. */
 export function noteRequest(
@@ -313,7 +356,11 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     ['close', () => rec.flush()],
   ];
   for (const [event, handler] of handlers) session.on(event, handler);
+  const offAudio = onGatewayFirstAudio((sessionId, ttfbMs, pushMs) => {
+    if (sessionId === opts.sessionId) rec.onGatewayAudio(ttfbMs, pushMs);
+  });
   return () => {
+    offAudio();
     rec.flush();
     for (const [event, handler] of handlers) session.off(event, handler);
     recorders.delete(session);

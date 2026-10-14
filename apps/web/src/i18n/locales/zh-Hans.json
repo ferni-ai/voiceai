@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "正在切换到{language}",
+    "seeYou": "下次见！",
+    "callVoicemail": "已给{name}留了语音信息",
+    "callNoAnswer": "没联系上{name}。要我晚点再试吗？",
+    "callFailed": "没能拨通{name}的电话",
+    "callBack": "{name}希望你回个电话",
+    "followUp": "{name}在等你的消息"
+  },
   "accessibility": {
     "accountMenu": "账户菜单",
     "accountSettings": "账户设置",
@@ -2100,8 +2109,7 @@
     "couldNotDisconnect": "无法断开连接。要再试一次吗？",
     "sonosConnected": "Sonos 已连接！",
     "transcribing": "正在转录...",
-    "transcriptionUnavailable": "无法转录。仅保存音频。",
-    "audioSaved": "音频已保存！",
+    "transcriptionUnavailable": "这次没能听清内容，所以什么都没有保存。要再试一次吗？",
     "entrySaved": "记录已保存！",
     "couldNotSaveEntry": "无法保存记录。要再试一次吗？",
     "profileSaved": "个人资料已保存！",
@@ -2219,7 +2227,6 @@
       "other": "已导入 {count} 位联系人！"
     },
     "integrationNowConnected": "{integration} 已连接！",
-    "inviteSentTo": "邀请已发送至 {email}！",
     "householdMemberRemoved": "已移除 {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} 已加入你的团队",
@@ -3857,10 +3864,12 @@
       "create": "创建智能体",
       "empty": "暂无智能体",
       "emptyHint": "创建你的第一个自定义智能体，留存挚爱之人的声音、打造一位导师，或设计专属你自己的伴侣。",
+      "emptyHintWithoutVoice": "创建你的第一个自定义智能体，留存挚爱之人的故事、打造一位导师，或设计专属你自己的伴侣。",
       "createFirst": "创建你的第一个智能体",
       "whatYouCan": "你可以创建什么",
       "legacy": "传承",
       "legacyDesc": "留存你所珍视之人的声音与智慧",
+      "legacyDescWithoutVoice": "留存你所珍视之人的故事与智慧",
       "mentor": "导师",
       "mentorDesc": "以给你启发的人物为原型，创建一位教练",
       "twin": "数字分身",
@@ -5063,7 +5072,8 @@
     },
     "voiceStep": {
       "title": "它听起来应该是什么样的？",
-      "subtitle": "选择一个声音或克隆一个"
+      "subtitle": "选择一个声音或克隆一个",
+      "subtitleWithoutClone": "选择一个声音"
     },
     "voiceOption": {
       "cloneTitle": "克隆声音",
@@ -7236,6 +7246,7 @@
     "legacy": {
       "name": "传承",
       "description": "珍藏你所珍爱之人的声音与智慧",
+      "descriptionWithoutVoice": "珍藏你所珍爱之人的故事与智慧",
       "feature1": "通过录音克隆声音",
       "feature2": "记录故事与记忆",
       "feature3": "留存智慧与常用语",
@@ -9466,7 +9477,10 @@
     "rememberEmpty": "这次没有需要记住的新内容。谢谢你的陪伴。",
     "nextStepTitle": "温和的下一步",
     "invitation": "随时回来，我会在这里。",
-    "close": "关闭"
+    "close": "关闭",
+    "seeCost": "这次通话的费用",
+    "feedbackQuestion": "这次聊得怎么样？",
+    "feedbackThanks": "谢谢，这很有帮助。"
   },
   "moments": {
     "teamUnlockTitle": "认识 {name}",
@@ -9891,6 +9905,7 @@
     "timeout": "等得有点太久了。检查一下网络再试一次？",
     "network": "联系不上 Ferni。检查一下网络再试一次？",
     "dropped": "连接断开了。重新连接吗？",
+    "agentLeft": "Ferni 掉线了。重新连接吗？",
     "unknown": "无法连接。再试一次？"
   },
   "ambientSounds": {

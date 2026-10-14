@@ -285,6 +285,7 @@ import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
 import { cancelConnectAttempt, connectWithTimeout } from './app/call-connect.js';
 import { onCallEnded, onCallStarted } from './app/call-end.js';
 import { connectFailure } from './services/connect-failure.js';
+import { showAgentLostPrompt } from './app/agent-lost-prompt.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
 import { initMomentsSystem } from './ui/moments/index.js';
@@ -339,7 +340,7 @@ import { playBeat, updateNarrativeContext } from './narrative/narrative-director
 // 🧪 Soul test utilities (available as window.testSoul in dev)
 // NOTE: Test file imported dynamically to avoid build errors
 if (import.meta.env.DEV) {
-  void import('./ui/soul.test.js');
+  void import('./ui/soul-console.js');
 }
 
 // 🧪 First-time user testing utilities (available as window.testFirstTimeUser in dev)
@@ -696,11 +697,6 @@ class VoiceAIApp {
 
     // Update all UI systems
     presenceUI.setConnected(true);
-    // keyboardUI.setConnected(true);
-
-    // Connection quality indicator disabled for clean UI
-    // connectionQualityUI.show();
-    // connectionQualityUI.setQuality('good');
 
     // Start session stats
     statsUI.startSession();
@@ -1251,7 +1247,7 @@ class VoiceAIApp {
     });
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
-      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
+      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless VITE_SPEAKER_CUES or ferni:speaker-cues
       (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // turns on unless ferni:avatar-turns=off; gestures need ferni:turn-gestures
       (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
@@ -2257,8 +2253,6 @@ class VoiceAIApp {
 
     // 🔊 Check for voice profile re-enrollment needs
     void this.checkVoiceReEnrollment();
-    // Agent particles disabled for cleaner professional UI
-    // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
 
     // 💚 Connection Heart - Listen for connect requests
     this.addTrackedListener(window, 'ferni:request-connect', () => {
@@ -2759,7 +2753,6 @@ class VoiceAIApp {
           presenceUI.setConnected(false);
           connectionQualityUI.hide();
           waveformUI.stop();
-          // agentParticlesUI.stop();
         }
       },
 
@@ -2957,6 +2950,12 @@ class VoiceAIApp {
           showCallNotice(connectFailure('dropped'), { onRetry: () => void this.connect() })
         );
       },
+      // Ferni's side ended with the caller still here (services/agent-drop-watch.ts)
+      onAgentLost: () =>
+        showAgentLostPrompt({
+          endCall: () => this.performStandardDisconnect(),
+          connect: () => this.connect(),
+        }),
     });
 
     // Handoff service callbacks

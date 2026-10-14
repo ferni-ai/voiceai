@@ -20,6 +20,7 @@ import { handleCallStatus, handleMachineDetection } from '../sip-bridge.js';
 import { findContactByPhone, markContactResponded } from '../../contacts/optimal-timing.js';
 // Bidirectional engagement - route replies to the right agent
 import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/inbound-router.js';
+import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -332,6 +333,9 @@ export async function handleInboundSMSWebhook(
 
   log.info({ MessageSid, From, bodyLength: Body.length }, '📥 Inbound SMS received');
 
+  // Replies to proactive check-ins: "less", "not now", "stop" (sms-replies.ts).
+  const proactiveReply = await handleProactiveSmsReply(From, Body);
+  if (proactiveReply) return { success: true, twiml: generateTwiML(proactiveReply) };
   // Check for opt-out
   const optOutKeywords = ['stop', 'unsubscribe', 'cancel', 'quit', 'end'];
   const normalizedBody = Body.toLowerCase().trim();
@@ -474,8 +478,6 @@ export async function handleInboundSMSWebhook(
         '🔀 SMS routed to agent'
       );
 
-      // If user wants a call, we could trigger one here
-      // For now, just track the routing decision
       if (routeResult.shouldInitiateCall && routeResult.responseMessage) {
         return {
           success: true,
@@ -488,9 +490,7 @@ export async function handleInboundSMSWebhook(
     }
   }
 
-  // Auto-reply (optional)
-  // For now, don't auto-reply to avoid confusion
-  return { success: true };
+  return { success: true }; // no auto-reply
 }
 
 /**

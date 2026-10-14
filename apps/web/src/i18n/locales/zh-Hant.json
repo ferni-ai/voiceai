@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "正在切換到{language}",
+    "seeYou": "下次見！",
+    "callVoicemail": "已經留語音訊息給{name}了",
+    "callNoAnswer": "聯絡不上{name}。要我晚點再試嗎？",
+    "callFailed": "沒能撥通{name}的電話",
+    "callBack": "{name}希望你回個電話",
+    "followUp": "{name}在等你的消息"
+  },
   "accessibility": {
     "accountMenu": "帳號選單",
     "accountSettings": "帳號設定",
@@ -2100,8 +2109,7 @@
     "couldNotDisconnect": "無法中斷連線。要再試一次嗎？",
     "sonosConnected": "Sonos 已連線！",
     "transcribing": "正在語音轉文字...",
-    "transcriptionUnavailable": "無法轉換文字。僅儲存音訊。",
-    "audioSaved": "音訊已儲存！",
+    "transcriptionUnavailable": "這次沒能聽清內容，所以什麼都沒有儲存。要再試一次嗎？",
     "entrySaved": "記錄已儲存！",
     "couldNotSaveEntry": "無法儲存記錄。要再試一次嗎？",
     "profileSaved": "個人檔案已儲存！",
@@ -2219,7 +2227,6 @@
       "other": "已匯入 {count} 位聯絡人！"
     },
     "integrationNowConnected": "{integration} 已連線！",
-    "inviteSentTo": "邀請已傳送至 {email}！",
     "householdMemberRemoved": "{name} 已移除",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} 已加入你的團隊",
@@ -3857,10 +3864,12 @@
       "create": "創造 AI 夥伴",
       "empty": "目前沒有 AI 夥伴",
       "emptyHint": "創造你的第一個專屬 AI 夥伴，珍藏摯愛的聲音、打造一位導師，或設計專屬於你的貼心伴侶。",
+      "emptyHintWithoutVoice": "創造你的第一個專屬 AI 夥伴，珍藏摯愛的故事、打造一位導師，或設計專屬於你的貼心伴侶。",
       "createFirst": "創造你的第一個 AI 夥伴",
       "whatYouCan": "你可以創造什麼",
       "legacy": "情感傳承",
       "legacyDesc": "珍藏你所珍愛之人的聲音與智慧",
+      "legacyDescWithoutVoice": "珍藏你所珍愛之人的故事與智慧",
       "mentor": "心靈導師",
       "mentorDesc": "以啟發人心的人物為藍本，打造專屬教練",
       "twin": "數位分身",
@@ -5063,7 +5072,8 @@
     },
     "voiceStep": {
       "title": "他們聽起來應該是什麼樣子？",
-      "subtitle": "選擇聲音或複製聲音"
+      "subtitle": "選擇聲音或複製聲音",
+      "subtitleWithoutClone": "選擇聲音"
     },
     "voiceOption": {
       "cloneTitle": "複製聲音",
@@ -7236,6 +7246,7 @@
     "legacy": {
       "name": "傳承",
       "description": "珍藏你所珍愛之人的聲音與智慧",
+      "descriptionWithoutVoice": "珍藏你所珍愛之人的故事與智慧",
       "feature1": "透過錄音進行聲音複製",
       "feature2": "記錄故事與回憶",
       "feature3": "珍藏智慧與口頭禪",
@@ -9466,7 +9477,10 @@
     "rememberEmpty": "這次沒有需要記住的新內容。謝謝你的陪伴。",
     "nextStepTitle": "溫和的下一步",
     "invitation": "隨時回來，我會在這裡。",
-    "close": "關閉"
+    "close": "關閉",
+    "seeCost": "這次通話的費用",
+    "feedbackQuestion": "這次聊得怎麼樣？",
+    "feedbackThanks": "謝謝，這很有幫助。"
   },
   "moments": {
     "teamUnlockTitle": "認識 {name}",
@@ -9891,6 +9905,7 @@
     "timeout": "花了太多時間。檢查一下網路連線並重試好嗎？",
     "network": "無法連線到 Ferni。檢查一下網路並重試好嗎？",
     "dropped": "連線中斷了。要重新連線嗎？",
+    "agentLeft": "Ferni 斷線了。要重新連線嗎？",
     "unknown": "無法連線。要再試一次嗎？"
   },
   "ambientSounds": {

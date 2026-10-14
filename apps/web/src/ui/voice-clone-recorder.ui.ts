@@ -489,7 +489,7 @@ const STYLES = `
 
   .vcr-nav-btn--primary {
     background: var(--color-accent, #4a6741);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
   }
 
@@ -542,7 +542,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-text-on-accent);
     flex-shrink: 0;
     transition: all ${DURATION.FAST}ms ease;
   }
@@ -631,7 +631,7 @@ const STYLES = `
 
   .vcr-footer-btn--primary {
     background: var(--color-accent, #4a6741);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
     display: flex;
     align-items: center;

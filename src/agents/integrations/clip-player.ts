@@ -23,6 +23,7 @@ import {
 } from './presence-watcher.js';
 import { startToolHum } from './tool-hum.js';
 import { startVoicedPresence, voicedPresenceEnabled } from './voiced-presence.js';
+import { presenceClipPickers } from './presence-clips.js';
 import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
 import { LAUGH_CLIP } from './backchannel-policy.js';
 import { callerVenting } from '../personas/turn-extras.js';
@@ -293,21 +294,24 @@ function startPresenceSounds(
     return ok;
   };
   const stop = () => player.stop();
+  // PRESENCE_SOUND_ASSETS: a recorded whistle or snore when one loaded, else the synthesized one
+  const recorded = presenceClipPickers();
   const watchers = [
     createPresenceWatcher({
       play: (quietMs) =>
         presenceHumEnabled() && Math.random() < 0.5
           ? playing('hum', synthHum(), quietMs)
-          : playing('whistle', synthWhistle(), quietMs),
+          : playing('whistle', recorded?.whistle.next() ?? synthWhistle(), quietMs),
       stop,
       mood,
       serious,
     }),
   ];
   if (presenceSnoreEnabled()) {
+    const snore = () => recorded?.snore.next() ?? synthSnore();
     watchers.push(
       createPresenceWatcher(
-        { play: (quietMs) => playing('snore', synthSnore(), quietMs), stop, mood, serious },
+        { play: (quietMs) => playing('snore', snore(), quietMs), stop, mood, serious },
         LONG_QUIET
       )
     );
