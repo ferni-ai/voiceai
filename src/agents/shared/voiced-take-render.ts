@@ -7,7 +7,11 @@
  * @module agents/shared/voiced-take-render
  */
 
-import { CARTESIA_SNAPSHOT, cartesiaPronunciation } from '../../config/voice-ids.js';
+import {
+  CARTESIA_API_VERSION,
+  CARTESIA_SNAPSHOT,
+  cartesiaPronunciation,
+} from '../../config/voice-ids.js';
 import { voiceHonorsProsodyTags, voiceHonorsVolumeTag } from '../../config/voice-capabilities.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { VOICED_TAKES } from './reaction-clips.js';
@@ -77,7 +81,7 @@ export async function renderVoicedTake(text: string, voiceId: string): Promise<A
     const response = await fetch('https://api.cartesia.ai/tts/bytes', {
       method: 'POST',
       headers: {
-        'Cartesia-Version': '2025-04-16',
+        'Cartesia-Version': CARTESIA_API_VERSION,
         'X-API-Key': apiKey,
         'Content-Type': 'application/json',
       },

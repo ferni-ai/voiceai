@@ -55,7 +55,7 @@ function extractToolsFromFile(filePath: string): ExtractedTool[] {
 
   const toolDefRegex = /export const (\w+)(?:Def)?:\s*ToolDefinition\s*=\s*\{[\s\S]*?id:\s*['"](\w+)['"][\s\S]*?description:\s*['"`]([\s\S]*?)['"`][\s\S]*?create:[\s\S]*?llm\.tool\(\{[\s\S]*?description:\s*['"`]([\s\S]*?)['"`]/g;
 
-  let match;
+  let match: RegExpExecArray | null;
   while ((match = toolDefRegex.exec(content)) !== null) {
     tools.push({
       id: match[2],
@@ -71,10 +71,11 @@ function extractToolsFromFile(filePath: string): ExtractedTool[] {
 
   while ((match = directToolRegex.exec(content)) !== null) {
     // Skip if already captured by pattern 1
-    if (tools.some(t => t.id === match[1])) continue;
+    const id = match[1];
+    if (tools.some(t => t.id === id)) continue;
 
     tools.push({
-      id: match[1],
+      id,
       innerDescription: match[2].replace(/\n\s*/g, ' ').trim(),
       file: filePath.replace(ROOT + '/', ''),
     });
