@@ -248,6 +248,14 @@ export async function installTurnListeners(
     ),
     () => loop.close()
   );
+  // One TOOL_USAGE line per call: tool names and counts (tool-usage-log.ts).
+  const { trackToolUsage } = await import('../shared/tool-usage-log.js');
+  const { getAgentToolCount } = await import('../shared/tool-updater.js');
+  input.cleanupFunctions.push(
+    trackToolUsage(input.session as never, input.sessionId, () =>
+      getAgentToolCount(now(input.agent) as never)
+    )
+  );
   // PAUSE_HOLD: a reply to a turn ink ended hesitantly waits out the pause (pause-hold.ts).
   const { attachPauseHold } = await import('../../speech/output-control/pause-hold.js');
   const detachPauseHold = attachPauseHold(input.session as never, input.sessionId);
