@@ -83,10 +83,15 @@
     "enabled": "Transcription on",
     "disabled": "Transcription off",
     "captionsLabel": "Live captions",
-    "showAll": "Show full transcript",
-    "sheetTitle": "Transcript",
-    "close": "Close transcript",
-    "you": "You"
+    "captionsToggle": "Captions",
+    "showAll": "Show the conversation so far",
+    "sheetTitle": "The conversation so far",
+    "close": "Close",
+    "momentRemember": "I'll remember:",
+    "momentRememberShort": "Noted:",
+    "momentNoticed": "I noticed:",
+    "momentNoticedShort": "Noticed:",
+    "momentWin": "Nice:"
   },
   "placeholders": {
     "customAmount": "Custom amount",
@@ -2495,7 +2500,6 @@
     "agentNotFound": "Agent not found",
     "aggregatesRefreshing": "Aggregates refreshing...",
     "appleHealthDisconnected": "Apple Health disconnected",
-    "audioSaved": "Audio saved!",
     "backstoryUpdated": "Backstory updated!",
     "bridgeFound": "Bridge found!",
     "catchphraseAdded": "Catchphrase added!",
@@ -2653,7 +2657,7 @@
     "tokenCreated": "Token created! Copy it now.",
     "tokenDeleted": "Token deleted",
     "transcribing": "Transcribing...",
-    "transcriptionUnavailable": "Transcription unavailable. Saving audio only.",
+    "transcriptionUnavailable": "Couldn't catch the words this time, so nothing was saved. Want to try again?",
     "unlockTeamMemberFirst": "Unlock this team member first",
     "updated": "Updated!",
     "uploadingPhoto": "Uploading photo...",
@@ -2678,7 +2682,6 @@
       "other": "Imported {count} contacts!"
     },
     "integrationNowConnected": "{integration} connected!",
-    "inviteSentTo": "Invite sent to {email}!",
     "householdMemberRemoved": "{name} removed",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} added to your team",
@@ -2938,6 +2941,12 @@
     "quickConnections": "Quick Connections",
     "startWithAnyone": "Start a conversation with anyone on your team",
     "allCaughtUp": "All caught up!",
+    "hubEmptyTitle": "Nothing here yet",
+    "hubEmptyBody": "When you tell me what you're working on, or something you mean to do, I'll keep it here.",
+    "hubSomethingUnexpected": "Something unexpected happened. Want to try again?",
+    "hubTryAgain": "Try again",
+    "hubSignInFirst": "You need to sign in first.",
+    "hubSignIn": "Sign in",
     "close": "Close"
   },
   "breathing": {
@@ -3874,10 +3883,12 @@
       "create": "Create Agent",
       "empty": "No agents yet",
       "emptyHint": "Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.",
+      "emptyHintWithoutVoice": "Create your first custom agent to keep a loved one's stories, build a mentor, or design your own companion.",
       "createFirst": "Create Your First Agent",
       "whatYouCan": "What you can create",
       "legacy": "Legacy",
       "legacyDesc": "Preserve the voice and wisdom of someone you cherish",
+      "legacyDescWithoutVoice": "Preserve the stories and wisdom of someone you cherish",
       "mentor": "Mentor",
       "mentorDesc": "Create a coach based on an inspiring figure",
       "twin": "Digital Twin",
@@ -5094,7 +5105,8 @@
     },
     "voiceStep": {
       "title": "How should they sound?",
-      "subtitle": "Choose a voice or clone one"
+      "subtitle": "Choose a voice or clone one",
+      "subtitleWithoutClone": "Choose a voice"
     },
     "voiceOption": {
       "cloneTitle": "Clone a Voice",
@@ -5917,6 +5929,11 @@
     "recoveryRecommended": "Recovery Recommended",
     "free": "Free",
     "tryAgain": "Try Again",
+    "tryAgainShort": "Try again",
+    "signedOut": "You need to sign in first.",
+    "signIn": "Sign in",
+    "offline": "This needs a connection. I'll be here when you're back.",
+    "somethingUnexpected": "Something unexpected happened. Want to try again?",
     "whatsAhead": "What's Ahead",
     "practice": "Practice",
     "footerHint": "Say \"Alex, schedule a meeting\" to add events",
@@ -7267,6 +7284,7 @@
     "legacy": {
       "name": "Legacy",
       "description": "Preserve the voice and wisdom of someone you cherish",
+      "descriptionWithoutVoice": "Preserve the stories and wisdom of someone you cherish",
       "feature1": "Voice cloning from recordings",
       "feature2": "Capture stories and memories",
       "feature3": "Store wisdom and favorite sayings",
@@ -8578,6 +8596,10 @@
   },
   "engagementPanel": {
     "title": "Daily Check-in",
+    "emptyTitle": "Our check-ins will live here",
+    "emptyMessage": "Nothing here yet, and that's okay. When we do a daily check-in on a call, how you were feeling shows up here. Next time we talk, just ask me to check in.",
+    "loadFailedTitle": "Hmm, this didn't load",
+    "loadFailedMessage": "That's on me, not you. Give it a moment, then open this again.",
     "yourWeek": "Your Week",
     "weatherTrend": "Emotional weather trend",
     "howYouFeel": "How you're feeling",
@@ -8836,6 +8858,10 @@
     "categoryWellbeing": "Wellness snapshots and trends",
     "categoryHabits": "Maya's habit coaching data",
     "categoryProductivity": "Tasks, notes, and journal entries",
+    "exportTooLarge": "Your story is too big to download in one go. Pick fewer kinds of data and try again, or write to hello@ferni.ai and we'll send you all of it.",
+    "exportTooOften": "You've asked for a few downloads just now. Try again in ten minutes.",
+    "exportBusy": "That's taking longer than it should. Try again in a minute.",
+    "categoryRecords": "Every call, summary, event, note and memory I keep for you, as stored",
     "categoryName": {
       "conversations": "Conversations",
       "insights": "Insights",
@@ -8847,7 +8873,8 @@
       "trustJourney": "Trust Journey",
       "wellbeing": "Wellbeing",
       "habits": "Habits",
-      "productivity": "Productivity"
+      "productivity": "Productivity",
+      "records": "Everything I keep"
     }
   },
   "healthDashboard": {
@@ -9335,7 +9362,8 @@
     "sharedWith": "Shared With ({count})",
     "joined": "Joined",
     "pendingInvite": "Pending invite",
-    "notFound": "Couldn't find this legacy"
+    "notFound": "Couldn't find this legacy",
+    "invitesNotReady": "Family sharing isn't ready yet, so no invite was sent."
   },
   "dataExport": {
     "title": "Your Data",
@@ -9923,6 +9951,7 @@
     "timeout": "That took too long. Check your connection and retry?",
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
+    "agentLeft": "Ferni dropped off the line. Reconnect?",
     "unknown": "Couldn't connect. Try again?"
   },
   "ambientSounds": {
@@ -10365,22 +10394,7 @@
       "philosophy": "Remember what we believe: \"{philosophy}\"",
       "prompt": "What would you like to talk about?"
     },
-    "error": "I'm having trouble thinking right now. Give me a moment and try again?",
-    "fallback": {
-      "advicePhilosophy": "You know what I've learned? \"{philosophy}\" Whatever you're facing, remember that.",
-      "adviceValues": "Think about what matters to us: {values}. Let those guide you.",
-      "feelRecent": "I've felt that too. In my journal I wrote: \"{excerpt}...\" We got through it before.",
-      "feelDefault": "I hear you. We've been through tough times before and found our way. What's really bothering you?",
-      "rememberIntro": "Yeah, I remember.",
-      "rememberEntry": "There was that time I wrote: \"{excerpt}...\"",
-      "mannerism": "{phrase} That's something I've been thinking about too. What made you bring this up?",
-      "default": "That's a good question. What made you think of that?"
-    },
-    "fallbackKeywords": {
-      "advice": "advice,should i",
-      "feeling": "feeling,feel",
-      "remember": "remember,past"
-    }
+    "error": "That didn't go through. It's on my end, not yours. Try sending it again."
   },
   "mood": {
     "holiday": {

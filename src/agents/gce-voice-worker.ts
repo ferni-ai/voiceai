@@ -185,16 +185,17 @@ import { getCrashSummary } from './shared/crash-analytics.js';
 import { warmCallPath } from './gce/call-path-warmup.js';
 import { startProcessRuntime } from './gce/process-runtime.js';
 import { jobExecutorMode, startJobRunner, stopJobRunner } from './gce/job-runner.js';
+import { drainTimeoutMs, waitForActiveJobs } from './gce/drain.js';
+import { sdkLoggerOptions } from './gce/sdk-logger-options.js';
 log('Phase 2.5: Starting async background workers');
 const processRuntime = startProcessRuntime(log);
 
 const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
 
-// Initialize LiveKit SDK logger
-// Set to 'debug' for verbose turn monitoring and startup logging
-const logLevel = process.env.LOG_LEVEL || 'info';
-initializeLogger({ pretty: true, level: logLevel as 'debug' | 'info' | 'warn' | 'error' });
+// Initialize LiveKit SDK logger: JSON lines when deployed, pretty locally.
+// LOG_LEVEL=debug for verbose turn monitoring and startup logging.
+initializeLogger(sdkLoggerOptions());
 
 // Initialize LiveKit connection module
 initLiveKitConnection(
@@ -310,29 +311,24 @@ const shutdown = async (signal: string): Promise<void> => {
     // Ignore
   }
 
+  // 2. Disable reconnects (the native mutex crash) and report full, so LiveKit sends no
+  // new jobs; the connection stays open so it doesn't re-dispatch the calls still running.
+  prepareForShutdown();
+
+  // 3. Keep the calls alive until they end (drain.ts: 30 min, like LiveKit's SDK).
+  const drain = await waitForActiveJobs(() => getJobMetrics().activeJobs, drainTimeoutMs(), {
+    pollMs: GCE_WORKER_STARTUP_DELAY_MS,
+    onWait: (activeJobs, waitedMs) => log('Waiting for active jobs...', { activeJobs, waitedMs }),
+  });
+  log('Drain finished', { ...drain });
+
+  // 4. Now stop the job runner and timers, and close the connection.
   processRuntime.stop();
   stopJobRunner();
-
-  // 2. Mark LiveKit as disconnected and stop keepalive
   markLivekitDisconnected();
   stopPingKeepalive();
   stopPendingJobsCleanup();
-
-  // 3. CRITICAL: Prepare for shutdown BEFORE closing connection
-  // This prevents the reconnect race condition that causes native mutex crash
-  prepareForShutdown();
-
-  // 4. Close WebSocket (safe now that reconnect is disabled)
   closeConnection();
-
-  // 5. Wait for active jobs to complete (max 30s)
-  const shutdownStart = Date.now();
-  while (getJobMetrics().activeJobs > 0 && Date.now() - shutdownStart < 30000) {
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, GCE_WORKER_STARTUP_DELAY_MS);
-    });
-    log('Waiting for active jobs...', { activeJobs: getJobMetrics().activeJobs });
-  }
 
   // 6. Run memory work still waiting for its batch (deep extraction, knowledge capture), max 10s
   await drainBatchedMemoryWork(10_000);

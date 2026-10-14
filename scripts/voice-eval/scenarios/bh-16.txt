@@ -1,0 +1,7 @@
+# bh: {"to": "jordan-taylor", "path": "need", "facts": ["lily", "seven", "7", "dinosaur", "saturday", "birthday"]}
+Hey Ferni. My daughter Lily turns seven next Saturday, and I haven't planned a thing. She's obsessed with dinosaurs.
+Who on your team could help me plan it?
+Yeah, let's do that.
+@pause 9000 -
+Hi.
+So, what do you think?

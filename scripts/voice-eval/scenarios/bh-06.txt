@@ -1,0 +1,6 @@
+# bh: {"to": "maya-santos", "path": "ask", "facts": ["10k", "ten k", "10 k", "march", "twice", "running", "run", "race"]}
+Hey Ferni. I signed up for a ten K in March, but I've only gone running twice in three weeks.
+I want a routine that actually sticks. Can Maya help me with that?
+@pause 9000 -
+Hi Maya.
+So, what do you think?

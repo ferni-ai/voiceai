@@ -38,6 +38,8 @@ import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
+import { beatNote, priorCallsOf } from './personal-beats.js';
+import { roomGuestsNote } from './room-guests.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
@@ -115,8 +117,16 @@ export function withTurnReminder(
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
     state.note,
+    // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
+    beatNote({
+      said: words,
+      priorCalls: priorCallsOf((session as { userData?: unknown }).userData),
+      careful: options.shape === false,
+    }),
     // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
     firstCallNote(chatCtx, session, words),
+    // ROOM_GUESTS=on: someone else is in the room on the same mic (room-guests.ts)
+    roomGuestsNote(session, words),
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's
     nameCorrectionNote(chatCtx, session, words, process.env, {
       verifiedOwner: sessionIsVerifiedOwner,
@@ -133,6 +143,9 @@ export function withTurnReminder(
     // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
     // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),
+    // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
+    // for this reply, last of all; never with crisis guidance.
+    options.shape !== false ? (director?.hardRule?.() ?? '') : '',
   ]
     .filter(Boolean)
     .join(' ');
