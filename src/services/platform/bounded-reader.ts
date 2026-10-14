@@ -14,11 +14,13 @@
 
 import { FieldPath, getFirestore } from 'firebase-admin/firestore';
 
-export type ExportLimitReason = 'docs' | 'bytes' | 'reads' | 'time' | 'busy' | 'rate';
+export type ExportLimitReason =
+  'docs' | 'bytes' | 'reads' | 'time' | 'busy' | 'rate' | 'unavailable';
 
 /**
  * An export stopped at a limit. 413: too much to send at once (the person can pick fewer
- * categories or ask us for a copy). 429: asked too often. 503: out of time, or busy.
+ * categories or ask us for a copy). 429: asked too often. 503: out of time, busy, or a
+ * store that couldn't be read ('unavailable'), so the file would be missing part of it.
  */
 export class ExportLimitError extends Error {
   constructor(readonly reason: ExportLimitReason) {
@@ -28,7 +30,7 @@ export class ExportLimitError extends Error {
 
   get status(): 413 | 429 | 503 {
     if (this.reason === 'rate') return 429;
-    return this.reason === 'time' || this.reason === 'busy' ? 503 : 413;
+    return ['time', 'busy', 'unavailable'].includes(this.reason) ? 503 : 413;
   }
 }
 

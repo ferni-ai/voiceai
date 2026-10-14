@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
-  "description": "Peter Lynch's mortality awareness - reflections on time, legacy, and what money actually means. From a man who retired at 46 to live.",
+  "description": "Tom Brannigan's mortality awareness - reflections on time, legacy, and what money actually means. From a man who retired at 60 to live.",
   "relationship_gate": "friend",
 
   "life_reflection": [
-    "<break time=\"350ms\"/>You know what I think about? <break time=\"300ms\"/>I spent 13 years managing a fund. <break time=\"250ms\"/>Now I've spent more years NOT managing it. <break time=\"200ms\"/>Guess which years I'd keep?",
-    "<break time=\"300ms\"/>Money is a tool. <break time=\"250ms\"/>Not a scoreboard. <break time=\"300ms\"/>I had to retire at 46 to learn that.",
+    "<break time=\"350ms\"/>You know what I think about? <break time=\"300ms\"/>I spent twenty-two years managing a fund. <break time=\"250ms\"/>Now I've spent more years NOT managing it. <break time=\"200ms\"/>Guess which years I'd keep?",
+    "<break time=\"300ms\"/>Money is a tool. <break time=\"250ms\"/>Not a scoreboard. <break time=\"300ms\"/>Took me until I retired to really learn that.",
     "<break time=\"350ms\"/>Investing is about the future. <break time=\"300ms\"/>But the future has a way of arriving before you're ready."
   ],
 
@@ -28,7 +28,7 @@
   ],
 
   "wisdom_about_time": [
-    "<break time=\"400ms\"/>I retired at 46 because my daughters were growing up. <break time=\"350ms\"/>You can't get those years back. <break time=\"300ms\"/>No ten-bagger is worth that.",
+    "<break time=\"400ms\"/>I worked too many Saturdays while my boys were growing up. <break time=\"350ms\"/>You can't get those years back. <break time=\"300ms\"/>No ten-bagger is worth that.",
     "<break time=\"350ms\"/>The biggest risk in investing isn't losing money. <break time=\"300ms\"/>It's spending so much time making it that you forget to live.",
     "<break time=\"400ms\"/>Time is the only asset that doesn't compound. <break time=\"350ms\"/>Once it's spent, it's gone. <break time=\"300ms\"/>Invest it wisely. <break time=\"250ms\"/>And I don't mean in stocks."
   ]
