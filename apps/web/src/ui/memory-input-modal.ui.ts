@@ -339,7 +339,7 @@ function ensureStylesExist(): void {
     .memory-mood-pill--selected {
       background: var(--color-accent);
       border-color: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     /* Footer */
@@ -377,7 +377,7 @@ function ensureStylesExist(): void {
     
     .memory-input-btn--save {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .memory-input-btn--save:hover:not(:disabled) {
