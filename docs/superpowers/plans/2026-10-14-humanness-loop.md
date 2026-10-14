@@ -3899,6 +3899,19 @@ This is the first phase the loop runs. Until it passes on the current harness, `
       expect(
         exemptFor('fault-sandbox-proof', { KIND: 'ab', SAMPLES: '1', SPLITS: 'working' })
       ).toEqual({ row: 'proof', throwaway: false });
+      // A PR never rides a harness-fixed row's exemptions.
+      const g2 = {
+        KIND: 'ab',
+        OFF_SET: 'TURN_LENGTH=off',
+        ON_SET: 'TURN_LENGTH=learned',
+        SAMPLES: '6',
+        SPLITS: 'both',
+      };
+      expect(exemptFor('fault-G2', { ...g2, PR: '9' })).toBeNull();
+      expect(rowFor('fault-G2', { ...g2, PR: '9' })).toBeNull();
+      expect(
+        exemptFor('fault-sandbox-proof', { KIND: 'ab', SAMPLES: '1', SPLITS: 'working', PR: '9' })
+      ).toBeNull();
       expect(
         exemptFor('fault-sandbox-proof', { KIND: 'ab', SAMPLES: '6', SPLITS: 'both' })
       ).toBeNull();
@@ -4031,7 +4044,8 @@ This is the first phase the loop runs. Until it passes on the current harness, `
   ];
   /**
    * Which row a run may record: the experiment id names it (fault-AA is A/A), and the run's dispatch must
-   * match that row's spec exactly, so no other run can overwrite a row. B8 also needs a PR.
+   * match that row's spec exactly, so no other run can overwrite a row. B8 needs a PR; every other row needs none
+   * (a PR would run its own src/ under a harness-fixed row's exemptions).
    */
   export function rowFor(
     experiment: string,
@@ -4041,7 +4055,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
     const row = SUITE.find((r) => r.id === id);
     if (!row) return null;
     const ok = Object.entries(row.want).every(([k, v]) => (env[k] ?? '') === v);
-    return ok && (id !== 'B8' || !!env.PR) ? id : null;
+    return ok && (id === 'B8' ? !!env.PR : !env.PR) ? id : null;
   }
   /**
    * What a fault-* run is exempt from (the full-size gate, the fault-suite gate, the real held-out budget).
@@ -4055,7 +4069,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
     env: Record<string, string | undefined>
   ): { row: string; throwaway: boolean } | null {
     if (experiment === 'fault-sandbox-proof')
-      return env.KIND === 'ab' && env.SAMPLES === '1' && env.SPLITS === 'working'
+      return env.KIND === 'ab' && env.SAMPLES === '1' && env.SPLITS === 'working' && !env.PR
         ? { row: 'proof', throwaway: false }
         : null;
     const row = rowFor(experiment, env);
