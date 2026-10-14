@@ -30,7 +30,6 @@ import {
   MAX_FOLLOW_UPS,
   recallBridgeEnabled,
   recallForTurn,
-  THREAD_BRIDGE,
   threadsForTurn,
   type RecallFact,
   type RecallSnapshot,
@@ -49,7 +48,6 @@ import {
 } from '../../memory/recall/semantic-recall.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import {
-  BRIDGE_FOOTER,
   formatLedger,
   loadLedger,
   personaDisplayName,
@@ -61,10 +59,8 @@ import { loadCanon, selfRecallEnabled, selfRecallNote } from '../personas/self-r
 import {
   formatLifeUpdates,
   loadLifeUpdates,
-  type LifeUpdate,
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
-import type { RecallPick } from '../personas/context-packet/turn-packet.js';
 import {
   callCheckIns,
   coachFollowThroughMode,
@@ -83,6 +79,7 @@ import {
 } from '../../memory/recall/episodes.js';
 import { firestoreEpisodeStore } from '../../memory/storage/episode-store.js';
 import { createSummaryRecall, summaryRecallEnabled } from '../../memory/recall/call-summaries.js';
+import type { RecallPick } from '../personas/context-packet/turn-packet.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -162,7 +159,7 @@ export interface MemoryRecall {
   noteFor(transcript: string, opts?: { final?: boolean }): string | null;
   /** The agent started replying: the next transcript belongs to a new user turn. */
   newTurn(): void;
-  /** What the last note held, typed, for the context packet (CONTEXT_PACKET); null before any. */
+  /** The last note split for the context packet (CONTEXT_PACKET); null before any. */
   lastPick(): RecallPick | null;
 }
 
@@ -197,7 +194,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let callerTurn = 0;
   let turnCounted = false;
   // RECALL_BRIDGE: his own life waits too, and is offered once.
-  let ledgerText = '';
+  let ledgerFacts = '';
   let toldOffered = false;
   let factsThisTurn = 0;
   let tokensLeft = RECALL_TOKENS_PER_TURN;
@@ -208,10 +205,6 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let sinceNote: string | null = null;
   let checkInNote: string | null = null;
   let checkInOffered = false;
-  // The same, typed, for the context packet (CONTEXT_PACKET).
-  let ledgerTop: LedgerFact[] = [];
-  let sinceUpdates: LifeUpdate[] = [];
-  let openCheckIns: OpenCommitment[] = [];
   let lastPick: RecallPick | null = null;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
   // Key points of earlier calls' summaries; loaded apart so the snapshot never waits.
@@ -260,8 +253,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     snapshot = { ...s, followUps: s.followUps.slice(0, MAX_FOLLOW_UPS) };
     threadsLeft = snapshot.followUps;
     allTold = told;
-    ledgerTop = told.slice(0, RECALL_LIMIT);
-    ledgerText = ledgerTop
+    ledgerFacts = told
+      .slice(0, RECALL_LIMIT)
       .map((f) => f.fact)
       .join(' ');
     ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName, Date.now(), { bridge });
@@ -298,7 +291,6 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       loadLifeUpdates(deps.userId, told.slice(0, RECALL_LIMIT), personaId, deps.lifeUpdates)
     )
     .then((updates) => {
-      sinceUpdates = updates;
       sinceNote = formatLifeUpdates(updates);
     });
   // Also never holds up the snapshot; joins the first note once it is ready.
@@ -306,7 +298,6 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     deps.checkIns ?? (coachFollowThroughMode() ? () => callCheckIns(deps.userId) : undefined);
   const checkedIn = (checkIns ? checkIns() : Promise.resolve([]))
     .then((open) => {
-      openCheckIns = open;
       checkInNote = formatCheckIn(open, Date.now());
     })
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Check-ins not loaded'));
@@ -373,7 +364,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       // "Still on there." alone it was read as his mail pile (6/8 replies).
       const tellNow = bridge
         ? !toldOffered &&
-          (ASKS_ABOUT_YOU.test(text) || threadsForTurn([ledgerText], text, callerTurn).length > 0)
+          (ASKS_ABOUT_YOU.test(text) || threadsForTurn([ledgerFacts], text, callerTurn).length > 0)
         : !followUpsOffered;
       const told = tellNow ? [ledgerNote, sinceNote].filter(Boolean).join('\n') || null : null;
       // Who is who (RECALL_PEOPLE), once, with the first note.
@@ -397,10 +388,11 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           : null;
       if (self) selfNoteGiven = true;
       const [summary, episode] = [summaryRecall?.take(text) ?? null, episodes?.take() ?? null];
-      const note =
+      // The same note with or without the facts: CONTEXT_PACKET labels those in the packet.
+      const noteWith = (shown: RecallFact[]): string | null =>
         [
           checkIn,
-          formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
+          formatRecall(shown, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
           opener,
           summary,
           people,
@@ -413,23 +405,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         ]
           .filter(Boolean)
           .join('\n\n') || null;
+      const note = noteWith(facts);
       if (!note) return null;
-      const toldNow = [...(told && ledgerNote ? ledgerTop : []), ...extraTold];
-      // What the packet has no typed line for stays recall's own words.
-      const jokes = formatRecall([], [], deps.userName, Date.now(), { insideJokes, bridge });
-      const bridged = (on: boolean, text: string) => (bridge && on ? text : null);
-      const rest = [jokes, bridged(followUps.length > 0, THREAD_BRIDGE), opener, summary, people]
-        .concat([bridged(toldNow.length > 0, BRIDGE_FOOTER), episode, self])
-        .filter(Boolean);
-      lastPick = {
-        facts,
-        followUps,
-        told: toldNow,
-        since: told && sinceNote ? sinceUpdates : [],
-        checkIns: checkIn ? openCheckIns : [],
-        userName: deps.userName,
-        rest: rest.join('\n\n') || null,
-      };
+      lastPick = { facts, userName: deps.userName, rest: noteWith([]) };
       followUpsOffered = true;
       if (told) toldOffered = true;
       threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));

@@ -90,6 +90,8 @@ export interface PacketInput {
   };
   /** Most relevant first: the budget keeps the head. */
   memories?: KnownFact[];
+  /** Keep every memory: the caller budgeted them already (turn-packet.ts, recall's per-turn limit). */
+  memoriesWhole?: boolean;
   commitments?: Commitment[];
   guidance?: GuidanceNote[];
   /**
@@ -275,6 +277,8 @@ export function assembleContextPacket(input: PacketInput): ContextPacket {
   const room = turnRoom + (shape.length ? shape[0].text.length + 1 : 0);
   const built = (Object.keys(HEADINGS) as SectionName[]).map((name) => {
     if (name === 'data') return dataSection(input.untrusted ?? [], dropped);
+    if (name === 'what_i_remember' && input.memoriesWhole)
+      return { name, lines: content[name].map((l) => oneLine(l.text)), dropped: 0 };
     if (name !== 'this_turn') return fit(name, content[name], dropped);
     const notes = fit(name, content.this_turn, dropped, room);
     const used = notes.lines.reduce((n, l) => n + l.length + 1, 0) + turnRoom;

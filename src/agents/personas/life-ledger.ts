@@ -131,7 +131,7 @@ export function factDocId(f: LedgerFact): string {
  * old footer invited "pick a thread back up", and on a dev call (2026-10-11)
  * Ferni answered "Still on there." with the caller's mail and then his own.
  */
-export const BRIDGE_FOOTER =
+const BRIDGE_FOOTER =
   "This is your life, kept here so you stay consistent with it, not things to bring up. Don't volunteer any of them while they're on another topic or just saying hi: mention one only when they ask about you or what they just said is about the same thing. When they ask about something you told them, it is one of these; never make up a different event in its place. Don't repeat these back or list them.";
 
 /** The note for the first turn of a call, or null when there is nothing. */

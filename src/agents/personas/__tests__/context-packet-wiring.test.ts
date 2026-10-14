@@ -13,6 +13,7 @@ vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null
 
 import { createMemoryRecall } from '../../multi-agent/memory-recall-hook.js';
 import { MEMORY_RULE, SECTION_BUDGETS } from '../context-packet/context-packet.js';
+import { RECALL_LIMIT } from '../life-ledger.js';
 import {
   rememberForPacket,
   sendRecall,
@@ -312,6 +313,125 @@ describe('CONTEXT_PACKET on: recall rides the packet, labelled', () => {
     expect(sent).toContain('[Director: Stop explaining your math');
   });
 
+  /** A recall with everything it can say: a full ledger, check-ins, his news, people, opener. */
+  async function fullRecall(bridge: boolean) {
+    const now = Date.now();
+    const ledger = Array.from({ length: RECALL_LIMIT + 2 }, (_, i) => ({
+      personaId: 'ferni',
+      fact: `Ferni is fixing the porch with ladder number ${i}`,
+      saidAt: new Date(now - (i + 2) * 86_400_000).toISOString(),
+    }));
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store: {
+        facts: async () => [
+          {
+            entityName: 'Sam',
+            key: 'up_late',
+            value: 'finishing the investor deck',
+            confidence: 0.9,
+          },
+          { entityName: 'Dana', key: 'relationship', value: 'sister', confidence: 0.9 },
+          { entityName: 'Sam', key: 'dog', value: 'Biscuit', confidence: 0.5 },
+        ],
+        summaries: async () => [
+          { followUps: ['ask how the investor pitch went'], timestamp: new Date(now) },
+        ],
+      },
+      ledgerStore: { save: async () => undefined, recent: async () => ledger },
+      lifeUpdates: {
+        env: { LIFE_MOVES_ON: 'on' },
+        store: { save: async () => undefined, recent: async () => [] },
+        write: async () => ["The ladder came back; you've started on the gutters."],
+      },
+      checkIns: async () => [
+        {
+          id: 'c1',
+          statement: "I'm going to send my resume to Dana by Thursday.",
+          createdAt: now - 3 * 86_400_000,
+          followUpAfter: now,
+          followUpCount: 0,
+        },
+      ],
+      people: true,
+      opener: true,
+      bridge,
+      semantic: false,
+      summaries: false,
+    });
+    await recall.ready;
+    return recall;
+  }
+
+  for (const bridge of [false, true]) {
+    it(`rest is recall's note word for word without the fact lines (RECALL_BRIDGE ${bridge ? 'on' : 'off'})`, async () => {
+      const recall = await fullRecall(bridge);
+      const seen = new Set<string>();
+      for (const said of [
+        'Hey, how have you been?',
+        'Sam was up so late with the investor deck, Biscuit too.',
+        'Dana says hi. How are you doing?',
+      ]) {
+        const note = recall.noteFor(said);
+        const pick = recall.lastPick();
+        if (!note || !pick) continue;
+        const lines = note.split('\n');
+        const factLines = lines.filter((l) => /^- (Sam|Dana|Biscuit): .+ = /.test(l));
+        expect(pick.facts).toHaveLength(factLines.length);
+        // rest keeps every other line, in order; only the facts (and their block's
+        // header and rule, when the block held nothing else) leave it.
+        const rest = (pick.rest ?? '').split('\n').filter(Boolean);
+        expect(lines.filter((l) => rest.includes(l))).toEqual(rest);
+        for (const l of factLines) expect(rest).not.toContain(l); // labelled in the packet instead
+        const gone = lines.filter((l) => l && !rest.includes(l));
+        for (const l of gone)
+          expect(
+            factLines.includes(l) || /^\[WHAT YOU REMEMBER|^These are from past calls/.test(l)
+          ).toBe(true);
+        for (const l of rest) seen.add(l);
+        recall.newTurn();
+      }
+      const all = [...seen].join('\n');
+      // Nothing trimmed: the whole ledger, its footer, the check-in once, his news.
+      for (let i = 0; i < RECALL_LIMIT; i++) expect(all).toContain(`ladder number ${i} [`);
+      expect(all).toContain(
+        bridge ? 'kept here so you stay consistent with it' : 'This is your life: stay consistent'
+      );
+      expect(all.split('[THINGS THEY SAID THEY WOULD DO]')).toHaveLength(2);
+      expect(all).toContain('[SINCE YOU LAST TALKED]');
+    });
+  }
+
+  it('crisis turn with recall loaded: memories labelled, and nothing else of recall in the packet', async () => {
+    const recall = await fullRecall(false);
+    const { chat, session } = call('Sam was up so late with the investor deck.');
+    recall.noteFor('Sam was up so late with the investor deck.');
+    const pick = recall.lastPick();
+    if (pick) rememberForPacket(session, pick);
+    vi.stubEnv('CONTEXT_PACKET', 'on');
+    const sent = lastText(withTurnReminder(chat, session, { shape: false }));
+    expect(block(sent, '## What I remember')).toContain(
+      '- (you said) Sam up late: finishing the investor deck'
+    );
+    for (const absent of ["## What I've promised", 'resume', 'gutters', 'ladder'])
+      expect(sent).not.toContain(absent);
+  });
+
+  it('keeps every picked memory, past the section budget', () => {
+    const session = {};
+    const facts = Array.from({ length: 40 }, (_, i) => ({
+      entity: 'Sam',
+      key: `fact_${i}`,
+      value: `a fairly long remembered detail about Sam, number ${i}`,
+      confidence: 0.9,
+    }));
+    rememberForPacket(session, { facts, rest: null });
+    const { text, accounting } = turnPacket(session, { words: 'hi', notes: [], now: Date.now() });
+    expect(block(text, '## What I remember')).toHaveLength(41); // the rule and all 40
+    expect(accounting.dropped).toEqual([]);
+  });
+
   it('sendRecall: off adds the whole note; on keeps the pick and adds only the rest', async () => {
     const added: string[] = [];
     const agent = {
@@ -323,10 +443,6 @@ describe('CONTEXT_PACKET on: recall rides the packet, labelled', () => {
     const recall = {
       lastPick: (): RecallPick => ({
         facts: [{ entity: 'Sam', key: 'dog', value: 'Biscuit', confidence: 0.9 }],
-        followUps: [],
-        told: [],
-        since: [],
-        checkIns: [],
         rest: 'OPENER LINE',
       }),
     };
@@ -345,14 +461,7 @@ describe('CONTEXT_PACKET on: recall rides the packet, labelled', () => {
 
 describe('turnPacket', () => {
   const parts = { words: 'hi', notes: [], now: Date.parse('2026-10-11T18:00:00Z') };
-  const pick = (over: Partial<RecallPick>): RecallPick => ({
-    facts: [],
-    followUps: [],
-    told: [],
-    since: [],
-    checkIns: [],
-    ...over,
-  });
+  const pick = (over: Partial<RecallPick>): RecallPick => ({ facts: [], rest: null, ...over });
   const fact = (value: string) => ({ entity: 'Sam', key: 'note', value, confidence: 0.9 });
   const memories = (session: object, personaId = 'ferni'): string[] =>
     turnPacket(session, { ...parts, personaId })
@@ -379,15 +488,5 @@ describe('turnPacket', () => {
     expect(memories(session)).toEqual([
       '- (you said) Sam note: baker at Rise and Grind [no longer true: how things were before]',
     ]);
-  });
-
-  it("tells Ferni's news only while Ferni is speaking", () => {
-    const session = {};
-    rememberForPacket(
-      session,
-      pick({ since: [{ personaId: 'ferni', update: 'the basil died', createdAt: '' }] })
-    );
-    expect(memories(session, 'ferni')).toHaveLength(1);
-    expect(memories(session, 'maya-santos')).toEqual([]);
   });
 });

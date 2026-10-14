@@ -51,20 +51,7 @@ function plant(session: object): void {
           confidence: 0.9,
         })),
       ],
-      followUps: ['ask Jane Doe about the lake story'],
-      told: [
-        { personaId: 'ferni', fact: 'told Jane the lake story', saidAt: '2026-10-01T00:00:00Z' },
-      ],
-      since: [{ personaId: 'ferni', update: 'Biscuit learned the lake story', createdAt: '' }],
-      checkIns: [
-        {
-          id: 'jane@example.com',
-          statement: 'Jane Doe will call 555 867 5309',
-          createdAt: 0,
-          followUpAfter: 0,
-          followUpCount: 0,
-        },
-      ],
+      rest: null,
     },
     'Jane Doe'
   );
@@ -92,9 +79,8 @@ describe('CONTEXT_PACKET logging', () => {
       ],
       now: Date.parse('2026-10-11T18:00:00Z'),
     });
-    // Non-vacuous: the planted details really are in the packet, and some were dropped.
-    for (const pii of ['Jane', '5309', 'lake story']) expect(packet.text).toContain(pii);
-    expect(packet.accounting.dropped.length).toBeGreaterThan(0);
+    // Non-vacuous: the planted details really are in the packet.
+    for (const pii of ['Jane', '5309', 'lake story', 'Biscuit']) expect(packet.text).toContain(pii);
 
     const json = JSON.stringify(packetLogFields(packet.accounting));
     for (const pii of PII) expect(json).not.toContain(pii);
