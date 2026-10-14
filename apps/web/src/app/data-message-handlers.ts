@@ -39,6 +39,7 @@ import { handleVoiceEventDataMessage } from '../services/voice-events.service.js
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { handleAgentAckMessage } from './agent-ack-handlers.js';
+import { handleMomentMessage } from './moment-messages.js';
 import { routeExpressionMessage } from './expression-routes.js';
 import { observeListenSignal } from './backchannel-signal.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
@@ -153,9 +154,8 @@ export function handleDataMessage(message: DataMessage): void {
   if (routeGroupDataMessage(message)) return; // group roundtable / call → participant grid
   if (routeExpressionMessage(message)) return; // reply tone; expression signals (ferni:expression-arbiter)
   // 🌉 Humanization signal (breakthrough, vulnerability…) or agent ack / fallback notice
-  if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) {
-    return;
-  }
+  if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) return;
+  if (handleMomentMessage(message)) return; // ferni_moment: the "I'll remember: …" pill
 
   // 🔄 Try to process as behavior signal (bidirectional behavior system)
   // These signals change HOW Ferni appears (avatar mode, pacing, expressions)

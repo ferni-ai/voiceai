@@ -9485,6 +9485,7 @@
   "moments": {
     "teamUnlockTitle": "认识 {name}",
     "niceWork": "做得真棒",
+    "remembered": "我会记住：{summary}",
     "streakSubtitle": "你一直在坚持。这很重要。",
     "streakTitle": {
       "other": "连续 {count} 天",

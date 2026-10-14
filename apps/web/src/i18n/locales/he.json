@@ -9565,6 +9565,7 @@
   "moments": {
     "teamUnlockTitle": "להכיר את {name}",
     "niceWork": "עבודה יפה",
+    "remembered": "אזכור את זה: {summary}",
     "streakSubtitle": "ההתמדה שלך. זה מה שחשוב.",
     "streakTitle": {
       "one": "רצף של {count} יום",

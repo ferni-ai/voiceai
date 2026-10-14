@@ -9485,6 +9485,7 @@
   "moments": {
     "teamUnlockTitle": "{name} 님 만나기",
     "niceWork": "멋져요",
+    "remembered": "기억해 둘게요: {summary}",
     "streakSubtitle": "꾸준히 찾아오고 계시네요. 그것만으로도 큰 의미가 있어요.",
     "streakTitle": {
       "other": "{count}일 연속 기록",
