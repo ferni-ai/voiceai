@@ -3,6 +3,7 @@
  *
  * Manages contact groups like "Family", "Close Friends", "Work Team".
  * Enables batch operations and occasion-based outreach.
+ * (Throwaway line to exercise Related Integration Tests on #1391; never merged.)
  *
  * @module services/contacts/contact-groups
  */
