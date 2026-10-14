@@ -290,6 +290,7 @@ export const FLAG_MANIFEST = {
   TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TOOL_ACK: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
+  TOOL_EMPTY_RESULT_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   TOOL_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   TOOL_LEAD_IN: { default: 'on', owner: 'voice', kind: 'config' },
   // hourly pool shared by anonymous journal transcriptions (api/journal-transcribe-limits.ts)
