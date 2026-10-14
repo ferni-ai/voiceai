@@ -51,14 +51,22 @@ export function tasteFrom(records: PickRecord[]): Taste {
   return taste;
 }
 
-/** How far taste moves a candidate up (or down) the ranking. */
+/**
+ * How far taste may move a pick on the check's 1-5 quality scale: enough to
+ * break a near tie, never past a pick 2 quality points better (two picks'
+ * boosts differ by less than 2 * MAX_BOOST).
+ */
+export const MAX_BOOST = 1;
+
+/** How far taste moves a candidate up (or down) the ranking, within MAX_BOOST. */
 export function boostFor(taste: Taste, c: Candidate, format: string): number {
   const len = lengthKey(c.seconds);
-  return (
+  const boost =
     (c.creatorId ? (taste.creators[c.creatorId] ?? 0) : 0) +
     0.5 * (taste.formats[format] ?? 0) +
-    (len ? 0.5 * taste.length[len] : 0)
-  );
+    (len ? 0.5 * taste.length[len] : 0);
+  // A smooth cap: liking more still ranks higher, but never past MAX_BOOST.
+  return MAX_BOOST * Math.tanh(boost / MAX_BOOST);
 }
 
 /** Why this pick suits what worked before, in a few words; '' when taste says nothing. */

@@ -41,21 +41,14 @@ export function lowEnergyCaller(callerTurns: readonly string[]): boolean {
 }
 
 /**
- * The caller's time zone: the device's, from the call's metadata (the app
- * sends it), else the account's (profile contactInfo.timezone). Phone calls
- * carry no metadata zone, so without the account's they never read as late
- * night.
+ * The caller's time zone as settled for this call: the device's (the app sends
+ * it) or, for a verified owner with PHONE_PARITY=on, their profile's
+ * (phone-parity.ts). The profile is never read here: on a phone call the
+ * account's zone may belong to someone other than the caller.
  */
 export function callerTimeZoneOf(userData: unknown): string | undefined {
-  const ud = userData as
-    | {
-        callerTimezone?: string;
-        services?: { userProfile?: { contactInfo?: { timezone?: unknown } } | null };
-      }
-    | undefined;
-  if (isValidTimeZone(ud?.callerTimezone)) return ud?.callerTimezone;
-  const account = ud?.services?.userProfile?.contactInfo?.timezone;
-  return typeof account === 'string' && isValidTimeZone(account) ? account : undefined;
+  const zone = (userData as { callerTimezone?: string } | undefined)?.callerTimezone;
+  return isValidTimeZone(zone) ? zone : undefined;
 }
 
 /** 11 pm to 5 am where the caller is; unknown zone is not late night. */

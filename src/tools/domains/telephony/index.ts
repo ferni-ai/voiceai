@@ -22,6 +22,19 @@ import { createTelephonyTools } from './telephony.js';
 // Import on-behalf call tool
 import { createCallOnBehalfTool } from './call-on-behalf.js';
 
+// The call path that really rings the user's phone
+import { callUserDef } from '../proactive/outreach/agent-to-user.js';
+
+/**
+ * callUser is defined once, here. The registry keeps whichever definition
+ * registers last, so a second callUser in another domain made the behaviour
+ * depend on load order. With TOOLS_REAL_CALL_USER=on it places the call;
+ * otherwise it says honestly that no call is coming.
+ */
+function isRealCallUserEnabled(): boolean {
+  return process.env.TOOLS_REAL_CALL_USER === 'on';
+}
+
 // ============================================================================
 // LEGACY TOOL WRAPPER
 // ============================================================================
@@ -55,13 +68,20 @@ function getTelephonyToolDefinitions(): ToolDefinition[] {
   const legacyTools = createTelephonyTools();
 
   return [
-    wrapLegacyTool(
-      'callUser',
-      'Call User',
-      'Make an outbound phone call to the user for alerts, reminders, or check-ins',
-      legacyTools.callUser,
-      { tags: ['outbound', 'call'], requiredServices: ['twilio'] }
-    ),
+    isRealCallUserEnabled()
+      ? {
+          ...callUserDef,
+          domain: 'telephony',
+          tags: ['telephony', 'phone', 'outbound', 'call'],
+          requiredServices: ['twilio'],
+        }
+      : wrapLegacyTool(
+          'callUser',
+          'Call User',
+          'Make an outbound phone call to the user for alerts, reminders, or check-ins',
+          legacyTools.callUser,
+          { tags: ['outbound', 'call'], requiredServices: ['twilio'] }
+        ),
     wrapLegacyTool(
       'scheduleCallback',
       'Schedule Callback',

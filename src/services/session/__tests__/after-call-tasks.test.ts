@@ -43,6 +43,7 @@ import {
   type AfterCallContext,
 } from '../after-call-tasks.js';
 import { createSessionServices } from '../session-manager.js';
+import { rememberCallerTimeZone } from '../../../utils/caller-time-zone.js';
 
 const ctx: AfterCallContext = { userId: 'u1', sessionId: 's1', turns: [], startedAt: new Date() };
 const never = (): Promise<void> =>
@@ -98,18 +99,16 @@ describe('runAfterCallTasks', () => {
 });
 
 describe('runAfterCall', () => {
-  it("builds the call's start time and the caller's timezone", async () => {
+  it("builds the call's start time and the zone the call settled", async () => {
     const task = vi.fn(async (_c: AfterCallContext) => undefined);
     registerAfterCallTask('t', task);
+    rememberCallerTimeZone('America/Denver', 's1'); // phone-parity.ts at call start
     runAfterCall(
       'u1',
       's1',
       [{ role: 'user', content: 'hi' }],
       { id: 'x' },
-      { getDurationSeconds: () => 120 },
-      {
-        contactInfo: { timezone: 'America/Denver' },
-      }
+      { getDurationSeconds: () => 120 }
     );
     await drainAfterCallTasks(1_000);
     const got = task.mock.calls[0]?.[0];
@@ -119,6 +118,22 @@ describe('runAfterCall', () => {
 });
 
 describe('endSession', () => {
+  it("never dates after-call memories in the profile's zone when the call settled none", async () => {
+    // A call placed for someone else, or a caller matched by number alone: the
+    // loaded profile (America/Denver) isn't theirs (phone-parity.ts).
+    const task = vi.fn(async (_c: AfterCallContext) => undefined);
+    registerAfterCallTask('unsettled', task);
+    const sessionId = `after-call-unsettled-${Date.now()}`;
+    const services = await createSessionServices(sessionId, 'user-after-call');
+    getHistoryTracker(sessionId, 'user-after-call').addUserTurn("I'll see you Tuesday at 3.");
+
+    await services.endSession();
+    await drainAfterCallTasks(2_000);
+
+    expect(task).toHaveBeenCalledTimes(1);
+    expect(task.mock.calls[0]?.[0].timezone).toBeUndefined();
+  });
+
   it('starts the registered after-call tasks once the summary is saved', async () => {
     const task = vi.fn(async (_c: AfterCallContext) => undefined);
     registerAfterCallTask('probe', task);
@@ -128,6 +143,7 @@ describe('endSession', () => {
     tracker.addUserTurn('My mom has knee surgery on Tuesday.');
     tracker.addAssistantTurn('Oh, I hope it goes well.');
 
+    rememberCallerTimeZone('America/Denver', sessionId); // the zone the call settled
     await services.endSession();
     await drainAfterCallTasks(2_000);
 

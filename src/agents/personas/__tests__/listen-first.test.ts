@@ -139,11 +139,11 @@ describe('the caller low on energy', () => {
 });
 
 describe("the caller's zone", () => {
-  it('prefers the call metadata zone, else the account zone (phone calls carry none)', () => {
+  it("uses the call's settled zone, never the account's profile zone (phone-parity.ts)", () => {
     const account = { services: { userProfile: { contactInfo: { timezone: 'America/Denver' } } } };
     expect(callerTimeZoneOf({ callerTimezone: 'Europe/Dublin', ...account })).toBe('Europe/Dublin');
-    expect(callerTimeZoneOf(account)).toBe('America/Denver');
-    expect(callerTimeZoneOf({ callerTimezone: 'Not/AZone', ...account })).toBe('America/Denver');
+    expect(callerTimeZoneOf(account)).toBeUndefined();
+    expect(callerTimeZoneOf({ callerTimezone: 'Not/AZone', ...account })).toBeUndefined();
     expect(callerTimeZoneOf({ services: { userProfile: null } })).toBeUndefined();
     expect(callerTimeZoneOf(undefined)).toBeUndefined();
   });
@@ -198,7 +198,16 @@ describe('LISTEN_FIRST through the reply path', () => {
     expect(cues?.ferniLines.at(-1)).toMatch(/sleep/);
   });
 
-  it('on, a phone call with only the account zone: still late night', async () => {
+  it("on, a phone call whose owner's zone phone-parity settled: late night", async () => {
+    process.env.LISTEN_FIRST = 'on';
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-11T07:47:00Z'));
+    const phone = { userData: { callerTimezone: 'America/New_York' } };
+    const sent = await reminders(phone);
+    expect(sent[4]).toMatch(/middle of the night/);
+  });
+
+  it('on, a phone call with only an account zone in the profile: not read as late night', async () => {
     process.env.LISTEN_FIRST = 'on';
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-11T07:47:00Z'));
@@ -208,7 +217,7 @@ describe('LISTEN_FIRST through the reply path', () => {
       },
     };
     const sent = await reminders(phone);
-    expect(sent[4]).toMatch(/middle of the night/);
+    expect(sent[4]).not.toMatch(/middle of the night/);
   });
 
   it('on: drops director notes that push him to share, keeps the rest', async () => {

@@ -182,17 +182,14 @@ describe('the silence path, through the real handler', () => {
     expect(safeGenerateReply).toHaveBeenCalledTimes(1);
   });
 
-  it('on, a phone call (no metadata zone) at night by the account zone: the soft check', async () => {
+  it('on, a phone call with only an account zone in the profile: never read as night', async () => {
+    // The account's zone reaches a call only through phone-parity.ts (callerTimezone).
     process.env.LISTEN_FIRST = 'on';
     const { result, emit } = setup(TIRED, undefined, 'America/New_York');
     for (const ms of GAPS) await gap(emit, ms); // eslint-disable-line no-await-in-loop
     await gap(emit, QUIET_WAIT_MS + 1_000);
     result.clearTimers();
-    expect(safeGenerateReply).toHaveBeenCalledTimes(1);
-    expect(safeGenerateReply.mock.calls[0]).toEqual([
-      expect.anything(),
-      expect.objectContaining({ instructions: NIGHT_NOTE }),
-    ]);
+    expect(safeGenerateReply).not.toHaveBeenCalled();
   });
 
   it('on, a tired caller in the daytime: no spoken check-ins at all', async () => {

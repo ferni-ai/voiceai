@@ -4,7 +4,7 @@
  * follow-up answered "it really helped", and the next ask on another topic
  * ranks the same creator's short video first and says why.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Doc = Record<string, unknown>;
 const store = new Map<string, Doc>();
@@ -36,7 +36,7 @@ const db = {
   runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
     fn({
       get: async (r: ReturnType<typeof docRef>) => r.get(),
-      set: (r: ReturnType<typeof docRef>, d: Doc) => void r.set(d),
+      set: (r: ReturnType<typeof docRef>, d: Doc, o?: { merge?: boolean }) => void r.set(d, o),
     }),
 };
 vi.mock('../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => db }));
@@ -99,7 +99,9 @@ function webFinds(...ids: string[]) {
   );
 }
 
+afterEach(() => vi.unstubAllEnvs());
 beforeEach(() => {
+  vi.stubEnv('COACH_MEDIA', 'on');
   store.clear();
   generateContent.mockReset();
 });
