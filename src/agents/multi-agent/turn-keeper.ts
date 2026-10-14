@@ -24,6 +24,11 @@ export const TURN_KEEPER_GRACE_MS = 2500;
 const MIN_WORDS = 3;
 /** A reply cut off within this much speaking time didn't answer anything. */
 export const MIN_ANSWER_SPEAKING_MS = 1500;
+/**
+ * With `spokeCountsAsAnswer`: Ferni speaking this long after the caller's
+ * final, with no caller speech over it, answered it.
+ */
+export const SPOKE_ANSWER_MS = 700;
 
 interface ChatItemLike {
   id?: string;
@@ -77,6 +82,13 @@ export function createTurnKeeper(deps: {
   setTimer?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
   clearTimer?: (t: ReturnType<typeof setTimeout>) => void;
   now?: () => number;
+  /**
+   * TURN_KEEPER_SPOKE: count a reply as an answer from what was heard, not
+   * only from the chat item. Prod 2026-10-12: after a reply was cut before its
+   * audio, LiveKit added each reply one late or not at all, so the keeper
+   * re-answered turns Ferni had already answered ("Wyoming, actually." twice).
+   */
+  spokeCountsAsAnswer?: boolean;
 }): TurnKeeper {
   const now = deps.now ?? Date.now;
   let speakingSince: number | undefined;
@@ -85,6 +97,8 @@ export function createTurnKeeper(deps: {
   const clearTimer = deps.clearTimer ?? clearTimeout;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let pending: string | undefined; // latest final transcript not yet answered
+  let pendingAt = 0;
+  let talkedOver = false; // the caller spoke during Ferni's current speaking span
   const recovered = new Set<string>();
   const bothQuiet = (): boolean =>
     deps.session.agentState === 'listening' && deps.session.userState === 'listening';
@@ -108,9 +122,20 @@ export function createTurnKeeper(deps: {
   return {
     onStateChange() {
       const speaking = deps.session.agentState === 'speaking';
-      if (speaking && speakingSince === undefined) speakingSince = now();
+      if (speaking && speakingSince === undefined) {
+        speakingSince = now();
+        talkedOver = false;
+      }
+      if (speaking && deps.session.userState === 'speaking') talkedOver = true;
       if (!speaking && speakingSince !== undefined) {
         lastSpokeMs = now() - speakingSince;
+        const answeredByVoice =
+          deps.spokeCountsAsAnswer === true &&
+          pending !== undefined &&
+          speakingSince >= pendingAt &&
+          lastSpokeMs >= SPOKE_ANSWER_MS &&
+          !talkedOver;
+        if (answeredByVoice) pending = undefined;
         speakingSince = undefined;
       }
       reschedule();
@@ -119,7 +144,10 @@ export function createTurnKeeper(deps: {
       const ev = event as { transcript?: string; isFinal?: boolean };
       if (!ev?.isFinal) return;
       const text = (ev.transcript ?? '').trim();
-      if (wordCount(text) >= MIN_WORDS) pending = text;
+      if (wordCount(text) >= MIN_WORDS) {
+        pending = text;
+        pendingAt = now();
+      }
       reschedule();
     },
     onItemAdded(event) {

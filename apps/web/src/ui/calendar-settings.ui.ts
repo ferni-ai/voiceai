@@ -1576,7 +1576,7 @@ class CalendarSettingsUI {
 
       .calendar-settings__btn--primary {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .calendar-settings__btn--primary:hover {

@@ -23,7 +23,7 @@
 import { perfInstrumentation } from '../../services/performance-instrumentation.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getRequestCoalescer } from '../../utils/request-coalescer.js';
-
+import { gateOutboundTool } from './outbound-gate.js';
 import { toolRegistry } from './index.js';
 import { ALL_TOOL_DOMAINS, type ToolDefinition, type ToolDomain } from './types.js';
 
@@ -1327,7 +1327,7 @@ export function createDomainExport(
   domain: ToolDomain;
   definitions: ToolDefinition[];
 } {
-  // Validate all definitions have the correct domain
+  const gated = definitions.map(gateOutboundTool); // calls/texts wait for a yes, on every import
   for (const def of definitions) {
     if (def.domain !== domain && !def.additionalDomains?.includes(domain)) {
       getLogger().warn(
@@ -1338,9 +1338,9 @@ export function createDomainExport(
   }
 
   return {
-    getToolDefinitions: async () => definitions,
+    getToolDefinitions: async () => gated,
     domain,
-    definitions,
+    definitions: gated,
   };
 }
 

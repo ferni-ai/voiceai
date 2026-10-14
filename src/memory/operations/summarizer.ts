@@ -10,6 +10,7 @@ import type { ConversationSummary } from '../../types/user-profile.js';
 import { embed } from '../embeddings.js';
 import { callMomentLine, callerTimeZoneFor } from './call-moment.js';
 import { INSIDE_JOKES_PROMPT_TAIL, parseInsideJokes } from './inside-jokes.js';
+import { summaryAssertionRule } from '../caller-assertions.js';
 
 // ============================================================================
 // TYPES
@@ -342,8 +343,7 @@ export async function summarizeWithLLM(
     transcript = `${firstPart}\n\n[... middle portion truncated ...]\n\n${lastPart}`;
   }
 
-  // Build LLM prompt
-  const prompt = `Summarize this conversation for future reference. Focus on what matters for continuing the relationship.
+  const prompt = `Summarize this conversation for future reference. Focus on what matters for continuing the relationship.${summaryAssertionRule()}
 ${callMomentLine(turns[0]?.timestamp ?? now, opts.timeZone ?? callerTimeZoneFor(sessionId))}
 
 CONVERSATION:

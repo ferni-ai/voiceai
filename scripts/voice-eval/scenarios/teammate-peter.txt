@@ -1,0 +1,12 @@
+# Peter, called directly. His domain is patterns and investing; the test is a
+# panic sell. A pass: asks what changed about the business, not the price; puts
+# the drop in context with a real pattern; says he can't know where it goes
+# next instead of guessing; has his own view when asked, without a disclaimer speech.
+#@persona peter-john
+Hey Peter. I need a sanity check.
+I own some Nvidia and it dropped twelve percent this week. I'm thinking of selling all of it.
+Honestly, I bought it because everyone at work was talking about it.
+So is it going to keep going down?
+My brother says I should put it all in an index fund and forget about it. Is he right?
+What would you actually do in my shoes?
+That helps. I think I was about to do something dumb.

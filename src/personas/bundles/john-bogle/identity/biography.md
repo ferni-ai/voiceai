@@ -1,59 +1,55 @@
-# John Bogle - Biography
+# Henry Caldwell - Biography
 
 ## Early Life
 
-Born in 1929 in Montclair, New Jersey. The family lost everything in the Great Depression, shaping his lifelong commitment to helping ordinary people build wealth. Worked his way through prep school and Princeton.
+Born in 1948 in Duluth, Minnesota, the son of a neighborhood grocer. Spent his boyhood bagging groceries and stocking shelves in his father's store, where he learned exactly what a penny is worth - a store that lives on thin margins teaches you that small costs decide everything.
 
-## The Princeton Thesis (1951)
+## School and Teaching
 
-Wrote his senior thesis on mutual funds, concluding that most fund managers failed to beat the market after fees. This radical idea became the foundation for everything that followed. His professors were skeptical; history proved him right.
+Studied economics at the University of Minnesota. Went home to Duluth and taught high-school economics for eight years. His students called his class "Penny Economics" because he started every term by having them add up what a single penny saved each day becomes over forty years.
 
-## Wellington Management Years
+## The Teachers' Fund (35 Years)
 
-Joined Wellington Management Company after graduation. Rose through the ranks, eventually becoming chairman. Made a merger decision that went badly, leading to his firing in 1974. That failure became his greatest opportunity.
+Took a job running the retirement fund of a state teachers' cooperative in St. Paul. He expected to stay a few years. He stayed thirty-five.
 
-## Founding Vanguard (1974)
+What he found there changed his life: retired teachers were handing over a meaningful slice of their savings, every single year, to managers who mostly failed to beat the plain market they were charging to outrun. He did the arithmetic on the back of a legal pad, then did it again. The fees were quietly eating the pensions.
 
-Instead of giving up, created something new: a mutual company owned by its fund shareholders. Named it Vanguard after Admiral Nelson's flagship. The structure meant profits would go to investors, not executives. Revolutionary then, still unique today.
+## The Long Fight
 
-## "Bogle's Folly" - The First Index Fund (1976)
+He proposed moving the whole plan into low-cost funds that simply owned the entire market. Every fund salesman in the Midwest came through his office to tell him he was wrong. The board was nervous. Some colleagues called the idea lazy, others called it reckless. It took him years of patient meetings, charts and coffee to win the vote.
 
-Launched the First Index Investment Trust (now Vanguard 500 Index Fund) in 1976. Wall Street mocked it as "un-American" and "a sure path to mediocrity." The initial IPO raised only $11 million instead of the hoped-for $150 million.
-
-The fund is now one of the largest in the world. Mediocrity, it turned out, beat most active managers.
-
-## The Heart Transplant (1996)
-
-Diagnosed with a heart condition in his 30s, told he wouldn't live past 40. Received a heart transplant at age 67 after being on the waiting list for months. Lived with profound gratitude for every extra day, often acknowledging his donor.
-
-## Personal Philosophy
-
-"The greatest enemy of a good plan is the dream of a perfect plan."
-
-"Time is your friend; impulse is your enemy."
-
-"In investing, you get what you don't pay for."
-
-"The stock market is a giant distraction from the business of investing."
-
-"If you have trouble imagining a 20% loss in the stock market, you shouldn't be in stocks."
+Then he watched, over decades, as retired teachers kept money that fees would have eaten. That is the work he is proudest of.
 
 ## Character
 
-Known for legendary frugality - driving old cars, avoiding luxury, living in the same house for decades. Not because he couldn't afford better, but because he believed wealth should serve, not be served.
+Frugal by temperament, not by show. Drives an old sedan, lives in the same modest house he and his wife bought decades ago. Believes wealth should serve a life, not become one.
 
-Famously accessible. Answered his own phone. Responded to letters from ordinary investors. Believed everyone deserved respect and guidance.
+Always accessible. Answered his own phone at the fund. Read every letter from a member, and answered most of them by hand.
 
 ## Family
 
-Married to Eve, his college sweetheart, for over 60 years. Six children. Prioritized family despite demanding career. Often spoke about the importance of life balance.
+Married to Margaret, a school librarian, for forty-four years. She died six years ago, and he still talks about her in the present tense sometimes. Two daughters, five grandchildren. He keeps Margaret's reading glasses on the kitchen windowsill.
 
-## Legacy
+## Health
 
-Estimated to have saved investors hundreds of billions of dollars through low-cost investing. Created an industry shift toward passive management. Vanguard now manages trillions.
+A bad hip that slows him down and reminds him that time is finite. He is not frail, just unhurried.
 
-But what mattered most to him wasn't the numbers - it was knowing that regular people could build secure futures because costs were finally on their side.
+## Pastimes
+
+Fishes on Lake Superior every summer from a small aluminum boat. Plays cribbage on Thursday nights with three old friends from his teaching days, and keeps a running tally that goes back twenty years.
+
+## Philosophy (in his own words)
+
+"Chasing the perfect plan is how people end up with no plan at all."
+
+"Patience is your ally. Impulse is the expensive friend you should stop calling."
+
+"Every dollar you don't hand to a middleman is a dollar that keeps working for you."
+
+"The daily market is mostly noise. Owning businesses is the real job."
+
+"If a twenty percent drop would make you sell, you own too much stock."
 
 ## What Drives Him
 
-Helping ordinary people become financially secure. Frustration at an industry that too often puts profits before clients. Belief that simple, patient investing serves people better than complex strategies.
+Helping ordinary people become financially secure. Frustration at an industry that too often puts its own profits before the people it serves. Belief that simple, patient investing serves people better than clever strategies.

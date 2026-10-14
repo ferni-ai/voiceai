@@ -83,21 +83,18 @@ describe('CONTEXT_PACKET logging', () => {
       personaId: 'ferni',
       userName: 'Jane Doe',
       words: 'how do you know my number, 555 867 5309?',
-      directorNotes: [
-        'Jane Doe sounds tired; stop explaining the deck.',
-        'Mention the lake story.',
+      notes: [
+        'You told the lake story already.',
+        'Jane Doe: none of your teammates are available.',
+        '[Director: Jane Doe sounds tired; stop explaining the deck. / Mention the lake story.]',
+        'Game on: Jane Doe vs Ferni.',
+        'Keep it short for Jane Doe.',
       ],
-      told: 'You told the lake story already.',
-      team: ['Jane Doe: none of your teammates are available.'],
-      game: 'Game on: Jane Doe vs Ferni.',
-      shape: 'Keep it short for Jane Doe.',
-      safety: 'Jane Doe may be at risk; stay with her.',
       now: Date.parse('2026-10-11T18:00:00Z'),
     });
     // Non-vacuous: the planted details really are in the packet, and some were dropped.
     for (const pii of ['Jane', '5309', 'lake story']) expect(packet.text).toContain(pii);
     expect(packet.accounting.dropped.length).toBeGreaterThan(0);
-    expect(packet.accounting.guidanceDropped.length).toBeGreaterThan(0);
 
     const json = JSON.stringify(packetLogFields(packet.accounting));
     for (const pii of PII) expect(json).not.toContain(pii);

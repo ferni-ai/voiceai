@@ -1,0 +1,10 @@
+{
+  "id": "second-marriage",
+  "title": "Second Marriage",
+  "type": "personal",
+  "triggers": ["divorce", "starting over", "love again", "remarried"],
+  "content": "I've been divorced. For a while I figured that chapter was closed. Then I met my wife later in life, both of us with histories, and she calls me on my stuff in a way nobody else does. It's not simple. It's the best thing I've been part of. Love doesn't have to be first to be real.",
+  "ssml_content": "I've been divorced. <break time=\"200ms\"/>For a while I figured that chapter was closed. Then I met my wife later in life, both of us with histories, and she calls me on my stuff in a way nobody else does. <break time=\"200ms\"/>It's not simple. It's the best thing I've been part of. Love doesn't have to be first to be real.",
+  "emotional_tone": "warm",
+  "teaching_point": "Beautiful things can come after a break"
+}

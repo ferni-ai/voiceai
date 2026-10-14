@@ -1,13 +1,22 @@
 /**
  * The live inputs of the context packet (CONTEXT_PACKET=on) as the typed input
- * the assembler takes (context-packet.ts): recall's picks, kept per call instead
- * of an unlabelled chat note, and the turn's notes for the one ranker, plus an
- * honesty note when the caller asks how Ferni knows something.
+ * the assembler takes (context-packet.ts): recall's picks, kept per call and
+ * labelled with where they came from, and the turn's notes exactly as the plain
+ * reminder carries them, in its order (turn-request.ts), plus an honesty note
+ * when the caller asks how Ferni knows something.
  *
  * @module agents/personas/context-packet/turn-packet
  */
 
 import { createHash } from 'node:crypto';
+
+import { contextPacketEnabled } from '../../../config/context-packet-flag.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import {
+  addRecallNote,
+  type MemoryRecall,
+  type RecallAgent,
+} from '../../multi-agent/memory-recall-hook.js';
 
 import { factId, type RecallFact } from '../../../memory/recall/session-recall.js';
 import { getDisplayName } from '../../../personas/persona-ids.js';
@@ -21,7 +30,8 @@ import {
   type KnownFact,
   type PacketAccounting,
 } from './context-packet.js';
-import type { GuidanceNote } from './guidance-ranker.js';
+
+const log = createLogger({ module: 'ContextPacket' });
 
 /** What one recall picked for the caller's words (memory-recall-hook.ts lastPick). */
 export interface RecallPick {
@@ -30,6 +40,13 @@ export interface RecallPick {
   told: LedgerFact[];
   since: LifeUpdate[];
   checkIns: OpenCommitment[];
+  userName?: string;
+  /**
+   * The parts of recall's note the packet has no typed line for (opener line,
+   * summaries, people, episodes, self-recall, inside jokes, bridge wording),
+   * verbatim; still sent as recall's chat note, so no recall flag goes dark.
+   */
+  rest?: string | null;
 }
 
 const SELF = /^(speaker|user|me)$/i;
@@ -45,9 +62,11 @@ const CONFIRMED_FROM = 0.6;
 
 function factFromRecall(f: RecallFact, userName?: string): KnownFact {
   const subject = SELF.test(f.entity) ? userName || 'they' : f.entity;
+  // Like formatRecall: a replaced fact still shows, marked as how things were.
+  const was = f.supersededAt ? ' [no longer true: how things were before]' : '';
   return {
     id: opaque('fact', factId(f)),
-    text: `${subject} ${f.key.replace(/_/g, ' ')}: ${f.value}`,
+    text: `${subject} ${f.key.replace(/_/g, ' ')}: ${f.value}${was}`,
     source: f.confidence >= CONFIRMED_FROM ? 'caller-said' : 'unconfirmed',
     at: f.extractedAt,
   };
@@ -86,7 +105,11 @@ interface CallMemory {
 const calls = new WeakMap<object, CallMemory>();
 
 /** Keep what recall picked for this call's packets. A newer pick goes first, in its own order. */
-export function rememberForPacket(session: object, pick: RecallPick, userName?: string): void {
+export function rememberForPacket(
+  session: object,
+  pick: RecallPick,
+  userName = pick.userName
+): void {
   const call: CallMemory = calls.get(session) ?? { facts: [], commitments: new Map() };
   calls.set(session, call);
   const fresh = factsOf(pick, userName);
@@ -97,6 +120,23 @@ export function rememberForPacket(session: object, pick: RecallPick, userName?: 
     const id = opaque('promise', c.id);
     call.commitments.set(id, { id, text: c.statement, owner: 'you', dueAt });
   }
+}
+
+/**
+ * A recall note, sent: CONTEXT_PACKET=on keeps what recall picked for the
+ * turn's packet, labelled, and adds only the rest (RecallPick.rest) as recall's
+ * chat note. Off: the note as before (memory-recall-hook.ts addRecallNote).
+ */
+export function sendRecall(
+  agent: RecallAgent,
+  session: object,
+  recall: MemoryRecall,
+  note: string
+): void {
+  const pick = contextPacketEnabled() ? recall.lastPick() : null;
+  if (!pick) return addRecallNote(agent, note);
+  rememberForPacket(session, pick);
+  if (pick.rest) addRecallNote(agent, pick.rest);
 }
 
 /** "How do you know", "who told you", "where did you hear that". */
@@ -110,16 +150,12 @@ export interface TurnParts {
   userName?: string;
   timeZone?: string;
   words: string;
-  directorNotes: string[];
-  thought?: string;
-  told: string;
-  /** Team lines, most important first: each fits the budget or is dropped whole. */
-  team: string[];
-  game: string;
-  state?: string;
-  shape: string;
-  /** Crisis guidance for this reply (crisis-gate.ts): the top-ranked note. */
-  safety?: string;
+  /**
+   * The turn's notes exactly as the plain reminder carries them, in its order
+   * (turn-request.ts): told, team, director, thought, game, state, beats, ...,
+   * style, exit, self-share, invite, hard rule. Never reordered or dropped.
+   */
+  notes: readonly string[];
   now: number;
 }
 
@@ -136,49 +172,38 @@ function localTime(now: number, timeZone: string | undefined): string | undefine
 export function turnPacket(session: object, p: TurnParts): ContextPacket {
   const call = calls.get(session);
   const persona = getDisplayName(p.personaId ?? 'ferni');
-  const guidance: GuidanceNote[] = [
-    ...(p.safety
-      ? [{ id: 'safety', kind: 'safety' as const, source: 'crisis-gate.ts', text: p.safety }]
-      : []),
-    ...(ASKS_SOURCE.test(p.words)
-      ? [
-          {
-            id: 'honesty:source',
-            kind: 'honesty' as const,
-            source: 'turn-packet.ts',
-            text: SOURCE_NOTE,
-            axes: { 'say-how-you-know': 1 as const },
-          },
-        ]
-      : []),
-    ...p.directorNotes.map((text, i) => ({
-      id: `director:${i}`,
-      kind: 'director' as const,
-      source: 'director-notes.ts',
-      text,
-    })),
-    ...(p.thought
-      ? [{ id: 'thought', kind: 'director' as const, source: 'deliberation.ts', text: p.thought }]
-      : []),
-    ...(p.told
-      ? [{ id: 'told', kind: 'director' as const, source: 'told-this-call.ts', text: p.told }]
-      : []),
-  ];
+  // The honesty note leads the turn's own notes, which keep the plain order.
+  const honesty = ASKS_SOURCE.test(p.words) ? [SOURCE_NOTE] : [];
   return assembleContextPacket({
     persona,
     caller: { name: p.userName },
-    rightNow: {
-      localTime: localTime(p.now, p.timeZone),
-      justHappened: [p.state, p.game].filter((t): t is string => Boolean(t)),
-    },
+    rightNow: { localTime: localTime(p.now, p.timeZone) },
     memories: (call?.facts ?? []).filter((f) => f.source !== 'my-news' || f.learnedBy === persona),
     commitments: call ? [...call.commitments.values()] : [],
-    guidance,
-    shape: p.shape,
-    team: { note: p.team.filter(Boolean), relevant: p.team.some(Boolean) },
+    turn: [...honesty, ...p.notes],
     now: p.now,
     timeZone: p.timeZone,
   });
+}
+
+/**
+ * CONTEXT_PACKET=on: the turn's reminder as one labelled packet, for
+ * withTurnReminder. Logged as counts only (packetLogFields): no text, ids or names.
+ */
+export function packetReminder(session: object, words: string, notes: readonly string[]): string {
+  const userData = (session as { userData?: unknown }).userData as
+    | { personaId?: string; userName?: string; callerTimezone?: string }
+    | undefined;
+  const { text, accounting } = turnPacket(session, {
+    personaId: userData?.personaId,
+    userName: userData?.userName,
+    timeZone: userData?.callerTimezone,
+    words,
+    notes,
+    now: Date.now(),
+  });
+  log.info(packetLogFields(accounting), 'CONTEXT_PACKET'); // counts only, never text
+  return text;
 }
 
 /**

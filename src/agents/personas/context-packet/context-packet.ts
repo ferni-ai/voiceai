@@ -92,6 +92,12 @@ export interface PacketInput {
   memories?: KnownFact[];
   commitments?: Commitment[];
   guidance?: GuidanceNote[];
+  /**
+   * This turn's notes in the order they were given, after the ranked guidance:
+   * never reordered, capped or dropped, since they carry their own ordering
+   * rules (turn-request.ts). They count against This turn's budget first.
+   */
+  turn?: readonly string[];
   /** This reply's shape (turn-shape.ts): the last line of This turn, outside the 3-note cap. */
   shape?: string;
   /** The team lines (who's available, misheard names, who helps with what); only when relevant. */
@@ -261,16 +267,23 @@ export function assembleContextPacket(input: PacketInput): ContextPacket {
     this_turn: ranked.kept.map((n) => ({ text: bullet(n.text), id: n.id })),
     team: team?.relevant ? teamLines.map((text) => ({ text })) : [],
   };
-  // The reply's shape closes This turn, outside the note cap, its room kept first.
+  // The turn's own notes are kept whole, in order; their room is taken first.
+  const turn = (input.turn ?? []).map(oneLine).filter(Boolean).map(bullet);
+  const turnRoom = turn.reduce((n, l) => n + l.length + 1, 0);
+  // The reply's shape closes This turn, outside the note cap, its room kept next.
   const shape = opt(input.shape && oneLine(input.shape)).map((l) => ({ ...l, id: 'shape' }));
-  const room = shape.length ? shape[0].text.length + 1 : 0;
+  const room = turnRoom + (shape.length ? shape[0].text.length + 1 : 0);
   const built = (Object.keys(HEADINGS) as SectionName[]).map((name) => {
     if (name === 'data') return dataSection(input.untrusted ?? [], dropped);
     if (name !== 'this_turn') return fit(name, content[name], dropped);
     const notes = fit(name, content.this_turn, dropped, room);
-    const used = notes.lines.reduce((n, l) => n + l.length + 1, 0);
+    const used = notes.lines.reduce((n, l) => n + l.length + 1, 0) + turnRoom;
     const last = fit(name, shape, dropped, used);
-    return { name, lines: [...notes.lines, ...last.lines], dropped: notes.dropped + last.dropped };
+    return {
+      name,
+      lines: [...notes.lines, ...turn, ...last.lines],
+      dropped: notes.dropped + last.dropped,
+    };
   });
 
   // A guidance note the budget cut is a dropped note too.
