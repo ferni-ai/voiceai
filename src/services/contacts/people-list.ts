@@ -11,12 +11,9 @@
  * @module services/contacts/people-list
  */
 
-import { getUserContacts, type Contact } from '../identity/contacts/contacts-management.js';
-import {
-  getContacts,
-  RELATIONSHIP_ALIASES,
-  type ContactRelationship,
-} from './contact-relationship-service.js';
+import { loadUserContacts, type Contact } from '../identity/contacts/contacts-management.js';
+import { loadContacts, type ContactRelationship } from './contact-relationship-service.js';
+import { RELATIONSHIP_ALIASES } from './relationship-aliases.js';
 
 type RelationshipGroup = NonNullable<ContactRelationship['relationship']>;
 
@@ -114,12 +111,25 @@ function fillGaps(kept: ContactRelationship, saved: ContactRelationship): Contac
   };
 }
 
-/** Everyone this person has told Ferni about, from both stores, each person once */
+/** A contact store couldn't be read, so the list is unknown: never answer it as empty */
+export class PeopleUnavailableError extends Error {
+  constructor(readonly reason: string) {
+    super(`Contacts could not be read: ${reason}`);
+    this.name = 'PeopleUnavailableError';
+  }
+}
+
+/**
+ * Everyone this person has told Ferni about, from both stores, each person once. Throws
+ * PeopleUnavailableError when either store couldn't be read.
+ */
 export async function listPeople(userId: string): Promise<ContactRelationship[]> {
-  const [kept, saved] = await Promise.all([getContacts(userId), getUserContacts(userId)]);
-  const people = kept.map((person) => ({ ...person }));
+  const [kept, saved] = await Promise.all([loadContacts(userId), loadUserContacts(userId)]);
+  if (!kept.ok) throw new PeopleUnavailableError(kept.error);
+  if (!saved.ok) throw new PeopleUnavailableError(saved.error);
+  const people = kept.contacts.map((person) => ({ ...person }));
   const fromCalls: ContactRelationship[] = [];
-  for (const contact of saved) {
+  for (const contact of saved.contacts) {
     const person = fromSavedContact(contact);
     const index = people.findIndex((p) => samePerson(p, person));
     if (index >= 0) people[index] = fillGaps(people[index], person);
