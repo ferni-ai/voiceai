@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "正在切換到{language}",
+    "seeYou": "下次見！",
+    "callVoicemail": "已經留語音訊息給{name}了",
+    "callNoAnswer": "聯絡不上{name}。要我晚點再試嗎？",
+    "callFailed": "沒能撥通{name}的電話",
+    "callBack": "{name}希望你回個電話",
+    "followUp": "{name}在等你的消息"
+  },
   "accessibility": {
     "accountMenu": "帳號選單",
     "accountSettings": "帳號設定",

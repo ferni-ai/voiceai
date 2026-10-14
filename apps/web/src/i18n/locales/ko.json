@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "{language}(으)로 바꿀게요",
+    "seeYou": "다음에 또 봐요!",
+    "callVoicemail": "{name}님께 음성 메시지를 남겼어요",
+    "callNoAnswer": "{name}님과 연결되지 않았어요. 나중에 다시 걸어 볼까요?",
+    "callFailed": "{name}님께 전화를 걸지 못했어요",
+    "callBack": "{name}님이 다시 전화해 달래요",
+    "followUp": "{name}님이 연락을 기다리고 있어요"
+  },
   "accessibility": {
     "accountMenu": "계정 메뉴",
     "accountSettings": "계정 설정",
