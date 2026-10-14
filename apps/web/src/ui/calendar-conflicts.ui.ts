@@ -760,7 +760,7 @@ class CalendarConflictsUI {
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md, 8px);
         cursor: pointer;

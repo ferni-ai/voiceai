@@ -1,9 +1,9 @@
-// node --test design-system/lib/
+// pnpm vitest run --config vitest.config.unit.ts design-system/
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { test } from 'node:test';
+import { test } from 'vitest';
 import sharp from 'sharp';
 import { writePngIfChanged } from './write-png-if-changed.js';
 

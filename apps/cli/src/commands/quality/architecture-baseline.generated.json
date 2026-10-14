@@ -284,8 +284,6 @@
   "src/services/contacts/optimal-timing.ts -> src/utils/firestore-utils.ts",
   "src/services/contacts/personalized-outreach.ts -> src/services/data-layer/hooks/contacts-hooks.ts",
   "src/services/contacts/personalized-outreach.ts -> src/utils/firestore-utils.ts",
-  "src/services/conversation-thread/conversation-state.ts -> src/utils/firestore-utils.ts",
-  "src/services/conversation-thread/conversation-state.ts -> src/utils/safe-firestore.ts",
   "src/services/conversation-thread/thread-persistence.ts -> src/services/data-layer/hooks/index.ts",
   "src/services/conversation-thread/thread-persistence.ts -> src/utils/firestore-utils.ts",
   "src/services/creative-you/better-than-human-memory.ts -> src/utils/firestore-utils.ts",
