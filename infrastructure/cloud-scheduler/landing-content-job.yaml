@@ -39,7 +39,6 @@ spec:
       {
         "action": "generate-all",
         "includeHeroes": true,
-        "includeSocialProof": true,
         "includeMemoryStories": true,
         "includeLateNightScenarios": true
       }

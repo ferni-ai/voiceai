@@ -6,7 +6,7 @@
  * (after-call/call-feedback.ts). The bottom dock below remains for show().
  *
  * Design principles:
- * - Floats at the bottom of the screen as a pill-shaped dock
+ * - A pill in the bottom feedback slot, below the call controls, one pill at a time
  * - Stays out of the way of main content (conversation, waveform)
  * - Uses SVG icons (no emojis per brand guidelines)
  * - Auto-hides after timeout if no interaction
@@ -23,8 +23,10 @@ import { DURATION } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { t } from '../i18n/index.js';
 import { holdFeedbackPrompt } from './after-call/call-feedback.js';
+import * as bottomSlot from './bottom-feedback-slot.js';
 
 const log = createLogger('ContextualFeedbackUI');
+const SLOT_ID = 'contextual-feedback';
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
@@ -159,17 +161,10 @@ function injectStyles(): void {
   const style = document.createElement('style');
   style.id = styleId;
   style.textContent = `
-    /* ========================================
-       CONTEXTUAL FEEDBACK - Bottom Floating Dock
-       
-       Positioned at the bottom of the screen as a 
-       floating pill, keeping it out of the way of
-       main content while remaining accessible.
-       ======================================== */
-
+    /* Contextual feedback: a pill in the bottom slot, below the call controls */
     .contextual-feedback {
       position: fixed;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
+      bottom: ${bottomSlot.SLOT_BOTTOM};
       left: 50%;
       transform: translateX(-50%) translateY(20px);
       z-index: var(--z-floating);
@@ -301,7 +296,7 @@ function injectStyles(): void {
     /* Mobile adjustments */
     @media (max-width: 480px) {
       .contextual-feedback {
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+        bottom: ${bottomSlot.SLOT_BOTTOM_PHONE};
       }
 
       .contextual-feedback__btn {
@@ -365,7 +360,6 @@ function createContainer(): void {
   bubble.appendChild(skipBtn);
   container.appendChild(bubble);
 
-  // Append to body for fixed positioning
   document.body.appendChild(container);
 }
 
@@ -400,7 +394,12 @@ function handleFeedbackPrompt(event: FeedbackPromptEvent): void {
 // VISIBILITY
 // ============================================================================
 
+/** Shows the pill once the bottom slot is free (one pill at a time). */
 export function show(): void {
+  bottomSlot.claimBottomSlot({ id: SLOT_ID, show: reveal });
+}
+
+function reveal(): void {
   if (!container) createContainer(); // late initialization
   if (!container) return;
   container.inert = false;
@@ -408,6 +407,7 @@ export function show(): void {
 }
 
 export function hide(): void {
+  bottomSlot.releaseBottomSlot(SLOT_ID);
   if (!container) return;
   container.inert = true;
   container.classList.remove('contextual-feedback--visible');

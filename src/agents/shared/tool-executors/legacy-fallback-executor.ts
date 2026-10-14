@@ -24,9 +24,7 @@ export async function executeLegacyFallback(
 ): Promise<unknown | null> {
   const fnLower = fn.toLowerCase();
 
-  // ========================================
-  // MEMORY TOOLS (With Embedding + Firestore for SUPERHUMAN recall)
-  // ========================================
+  // --- MEMORY TOOLS (With Embedding + Firestore for SUPERHUMAN recall) ---
   if (fnLower === 'rememberaboutuser') {
     const fact = args.fact as string;
     const category = (args.category as string) || 'personal';
@@ -78,7 +76,7 @@ export async function executeLegacyFallback(
           personaId: ctx.personaId || 'ferni',
         };
 
-        await db
+        const stored = await db
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('extracted_facts')
@@ -100,6 +98,9 @@ export async function executeLegacyFallback(
               userId: ctx.userId,
               importance,
               timestamp: new Date(),
+              // The fact it copies, so a forget reaches this copy (firestore-vector-store/forget-filter.ts).
+              sourceCollection: 'extracted_facts',
+              sourceDocId: stored.id,
               emotionalWeight: importance === 'high' ? 0.9 : importance === 'medium' ? 0.6 : 0.3,
             },
           });
@@ -134,9 +135,7 @@ export async function executeLegacyFallback(
 
     log.info({ topic, userId: ctx.userId }, '🧠 Recalling from memory (SEMANTIC SEARCH)');
 
-    // ========================================
-    // SUPERHUMAN MEMORY RECALL - Semantic + Temporal + Emotional
-    // ========================================
+    // --- SUPERHUMAN MEMORY RECALL - Semantic + Temporal + Emotional ---
     if (ctx.userId) {
       // 🚀 PERFORMANCE: Check memory deduplication cache first
       if (ctx.sessionId) {

@@ -19,7 +19,7 @@ const LATE = new Date('2026-10-11T07:47:00Z');
 /** 14:10 in Wyoming. */
 const AFTERNOON = new Date('2026-10-11T20:10:00Z');
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
-const LOW_LINE = /worn out/;
+const LOW_LINE = /getting sleepy/;
 const SHORT_LINE = /Keep replies short and unhurried/;
 const OFFER = /fading a bit/;
 
@@ -75,7 +75,7 @@ describe('Ferni at 1:47am in Wyoming, eight minutes in (FERNI_STATE=on)', () => 
     process.env.FERNI_STATE = 'on';
   });
 
-  it('is told he is worn out and the hour, asked for shorter replies, and slows', async () => {
+  it('is told he is getting sleepy and the hour, asked for shorter replies, and slows', async () => {
     const { session, sessionId } = call(8);
     expect(ferniEnergyFor(sessionId)).toBeUndefined();
     const asked = await askedWith(
@@ -113,7 +113,7 @@ describe('Ferni at 1:47am in Wyoming, eight minutes in (FERNI_STATE=on)', () => 
     );
     expect(next).toMatch(LOW_LINE);
     expect(next).not.toMatch(OFFER);
-    expect(next).toContain("Don't mention being tired unless they ask.");
+    expect(next).toContain("Don't mention being sleepy unless they ask.");
   });
 
   it('does not offer it in the first minutes of a call', async () => {

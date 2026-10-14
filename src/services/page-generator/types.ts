@@ -96,7 +96,7 @@ export interface AgentPageConfig {
     /** Unique agent ID (used for CSS persona selector) */
     id: string;
 
-    /** Full display name (e.g., "Joel Dickson") */
+    /** Full display name (e.g., "Nate Holloway") */
     name: string;
 
     /** Short display name for UI (defaults to first name) */
@@ -237,7 +237,7 @@ export interface AdvisorConfig {
   /** Unique advisor ID (used for routing) */
   id: string;
 
-  /** Full display name (e.g., "Peter Lynch") */
+  /** Full display name (e.g., "Tom Brannigan") */
   name: string;
 
   /** Initials for avatar (e.g., "PL") */

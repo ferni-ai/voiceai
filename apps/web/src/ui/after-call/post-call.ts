@@ -14,6 +14,7 @@
 import { conversationTracker } from '../../services/conversation-tracker.service.js';
 import { createLogger } from '../../utils/logger.js';
 import { REACTIONS } from '../contextual-feedback.ui.js';
+import { openSupport as openSupportFlow } from '../support/open-support.js';
 import { showConversationCost } from '../conversation-cost.ui.js';
 import { hideAfterCallCard, showAfterCallCard } from './after-call-card.ui.js';
 import { loadAfterCallData } from './after-call-data.js';
@@ -30,11 +31,9 @@ function callStartedAt(startTime: string | undefined): number | null {
 
 /** Opens Support Ferni only when the person taps the link. */
 function openSupport(): void {
-  import('../support-ferni.ui.js')
-    .then(({ supportFerniUI }) => supportFerniUI.open())
-    .catch((error: unknown) =>
-      log.warn('Support Ferni failed to open from after-call card', { error: String(error) })
-    );
+  openSupportFlow().catch((error: unknown) =>
+    log.warn('Support Ferni failed to open from after-call card', { error: String(error) })
+  );
 }
 
 export async function showPostCallCard(): Promise<void> {

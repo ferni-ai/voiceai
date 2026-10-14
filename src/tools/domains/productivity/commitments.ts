@@ -92,9 +92,9 @@ const recordCommitmentDef: ToolDefinition = {
         // Parse target date if provided
         let targetDateMs: number | undefined;
         if (targetDate) {
-          const { parseNaturalTime } =
+          const { parseNaturalTime, userTimeZone } =
             await import('../../../services/scheduling/reminder-scheduler.js');
-          const parsed = parseNaturalTime(targetDate);
+          const parsed = parseNaturalTime(targetDate, userTimeZone(ctx));
           if (parsed) {
             targetDateMs = parsed.getTime();
           }
