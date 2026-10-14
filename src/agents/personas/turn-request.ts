@@ -44,6 +44,7 @@ import { beatNote, priorCallsOf } from './personal-beats.js';
 import { roomGuestsNote } from './room-guests.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { honestFriendNote } from './honest-friend.js';
+import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
@@ -148,6 +149,9 @@ export function withTurnReminder(
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
+    // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
+    // self-share so "no stories of your own" wins for a tired caller. No length (TURN_LENGTH's).
+    attunementNote(chatCtx, session, { careful: options.shape === false }),
     // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
     // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),

@@ -49,6 +49,11 @@ export const FLAG_MANIFEST = {
   ARRIVAL_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASK_ADVICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASSISTANT_ACTIONS_REAL: { default: 'off', owner: 'platform', kind: 'experiment' },
+  ATTUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // Loop experiment, not live: attunement's own reply-length cap (turn-attunement.ts
+  // attunedLengthOn). Learned TURN_LENGTH owns reply length and wins when both are set.
+  // Candidate experiment for the humanness loop (#1377): ATTUNE_LENGTH=on vs TURN_LENGTH=learned.
+  ATTUNE_LENGTH: { default: 'off', owner: 'voice', kind: 'experiment' },
   AVATAR_LISTEN_SIGNALS: { default: 'off', owner: 'voice', kind: 'experiment' },
   AVATAR_REPLY_TONE: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKCHANNELS: { default: 'off', owner: 'platform', kind: 'experiment' },
