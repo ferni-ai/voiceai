@@ -10,6 +10,7 @@
  */
 
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import type { TextSource } from './outreach-text.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
 export const LOG_COLLECTION = 'proactive_outreach_log';
@@ -32,6 +33,16 @@ export interface OutreachLogEntry {
   at: string;
   outcome: OutreachOutcome;
   outcomeAt?: string;
+  /** The channel the policy chose when delivery fell back from it (a text that failed). */
+  fallbackFrom?: ProactiveChannel;
+  /** What was sent, and who wrote it (outreach-text.ts). */
+  text?: string;
+  textSource?: TextSource;
+}
+
+/** The newest text in the log, so the same words don't go out twice in a row. */
+export function lastTextOf(entries: OutreachLogEntry[]): string | undefined {
+  return [...entries].filter((e) => e.text).sort((a, b) => b.at.localeCompare(a.at))[0]?.text;
 }
 
 function logOf(userId: string): FirebaseFirestore.CollectionReference {
@@ -51,4 +62,10 @@ export async function alreadySent(userId: string, sourceId: string): Promise<boo
 
 export async function writeOutreachLog(userId: string, entry: OutreachLogEntry): Promise<void> {
   await logOf(userId).doc(logId(entry.sourceId)).set(entry);
+}
+
+/** Their log since `since` (ISO), for the daily caps and back-off. */
+export async function recentOutreach(userId: string, since: Date): Promise<OutreachLogEntry[]> {
+  const snap = await logOf(userId).where('at', '>=', since.toISOString()).get();
+  return snap.docs.map((d) => d.data() as OutreachLogEntry);
 }

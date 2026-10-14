@@ -671,7 +671,7 @@ export interface PersonaMemoryForGreeting {
   details?: string;
   sentiment?: 'positive' | 'negative' | 'neutral' | 'watchful';
   // Persona-specific fields
-  ticker?: string; // Bogle, Peter
+  ticker?: string; // Nayan (index funds), Peter
   date?: string; // Jordan
   targetAmount?: number; // Maya
   currentAmount?: number; // Maya
@@ -712,7 +712,7 @@ function generateMemoryBasedGreeting(
     }
   }
 
-  // Bogle memories - funds, philosophy
+  // Index-investing memories (legacy 'bogle' type) - funds, philosophy
   if (['nayan-patel', 'bogle'].includes(personaId)) {
     const funds = memories.filter((m) => m.type === 'fund');
     const philosophies = memories.filter((m) => m.type === 'philosophy');

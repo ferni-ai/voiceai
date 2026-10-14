@@ -14,6 +14,7 @@
  * @module agents/shared/tts-wrapper
  */
 
+import { isMetaInstructionChunk } from './tts-meta-filter.js';
 import { voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import {
@@ -33,7 +34,6 @@ import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
 import {
   applyPostTTSEnhancement,
   PostTTSPresets,
-  postTtsEnvOverrides,
   type PostTTSConfig,
 } from './performance/post-tts-transform.js';
 import { wrapWithTTSCheckpoints } from './performance/tts-checkpoints.js';
@@ -44,7 +44,7 @@ import {
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
-import { isFTISEnabled } from '../processors/tool-routing-integration.js';
+import { isFtisEnabled } from '../../config/tool-config.js';
 
 // TTS Gateway integration
 import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
@@ -438,7 +438,7 @@ export async function wrappedTtsNode(
 
   let filteredText: NodeReadableStream<string>;
   if (skipJsonWorkaround) {
-    const reason = isFTISEnabled()
+    const reason = isFtisEnabled()
       ? 'FTIS handles all tools'
       : `${provider.displayName} uses native function calling`;
     log.info(`${provider.getLogPrefix()} JSON workaround removed — ${reason}`);
@@ -537,16 +537,7 @@ export async function wrappedTtsNode(
         // In Gemini Live, instructions are sent as MODEL ROLE turns and the
         // model treats them as its own prior output, echoing them verbatim.
         // ========================================================================
-        const metaInstructionPatterns = [
-          /^Speaking now:?\s*$/i, // Silence handler cue (the most common leak)
-          /^Speaking now/i, // Partial match at start of chunk
-          /^\s*$/, // Empty/whitespace-only chunks (no value to TTS)
-          /^\[.*\]\s*$/, // Bracketed stage directions: [Ferni plays music], [searches weather]
-          /^\*.*\*\s*$/, // Asterisk stage directions: *plays music*, *searches weather*
-        ];
-        const isMetaInstruction = metaInstructionPatterns.some((pattern) =>
-          pattern.test(chunk.trim())
-        );
+        const isMetaInstruction = isMetaInstructionChunk(chunk); // tts-meta-filter.ts
 
         if (isMetaInstruction) {
           log.warn(
@@ -731,7 +722,7 @@ export async function wrappedTtsNode(
             });
           }
 
-          // V3.2: Track Ferni's commitments in her response
+          // V3.2: Track Ferni's commitments in his response
           // This catches when Ferni says things like "I'll check in about that" or "Let me know how it goes"
           // Fire-and-forget to not block TTS stream
           if (userId && userId !== 'anonymous' && rawLLMBuffer.length > 10 && !isGarbageResponse) {
@@ -1155,7 +1146,6 @@ export async function wrappedTtsNode(
     const enhancementConfig = {
       ...PostTTSPresets.betterThanHuman,
       ...postTTSConfig,
-      ...postTtsEnvOverrides(),
       sessionId,
       personaId,
     };
@@ -1190,7 +1180,7 @@ const PERSONA_DISPLAY_NAMES: Record<string, string> = {
   'alex-chen': 'Alex',
   'jordan-taylor': 'Jordan',
   'nayan-patel': 'Nayan',
-  'joel-dickson': 'Joel',
+  'joel-dickson': 'Nate',
 };
 
 /**
@@ -1305,8 +1295,7 @@ export function extractTtsSessionContext(
     interruptType: userData?.interruptType as 'hard' | 'soft' | undefined,
     emotion: userData?.currentEmotion as string | undefined,
     userLocation: userData?.userLocation as
-      | { city?: string; regionCode?: string; countryCode?: string }
-      | undefined,
+      { city?: string; regionCode?: string; countryCode?: string } | undefined,
     // Turn number for profiling checkpoints (P1 UTO Fix - January 2026)
     turnNumber:
       (userData?.turnCount as number | undefined) ?? (userData?.turnNumber as number | undefined),

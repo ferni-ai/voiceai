@@ -32,8 +32,11 @@ describe('alias resolution against the real bundles', () => {
     expect(await AgentRegistry.resolveAgentId('henry')).toBe('john-bogle');
   });
 
-  it("lets Ferni's team keep its own names (john: Peter John)", async () => {
+  it("lets Ferni's team keep a shared alias (john: Peter John)", async () => {
     expect(await AgentRegistry.resolveAgentId('john')).toBe('peter-john');
+    expect(await AgentRegistry.resolveAgentId('henry caldwell')).toBe('john-bogle');
+    expect(await AgentRegistry.resolveAgentId('henry')).toBe('john-bogle');
+    expect(await AgentRegistry.getHandoffToolName('john-bogle')).toBe('handoffToHenry');
     // Ferni's own role id, also declared as an alias by Maya.
     expect(await AgentRegistry.resolveAgentId('life-coach')).toBe('ferni');
   });

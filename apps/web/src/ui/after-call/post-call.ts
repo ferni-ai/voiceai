@@ -1,16 +1,17 @@
 /**
  * What appears after the goodbye ceremony.
  *
- * Flag off (default): the conversation cost card, exactly as before.
- * Flag on: the after-call card (what Ferni will remember and one next step),
- * with the cost card one tap away from it.
+ * Default: the after-call recap (what Ferni will remember and one next step,
+ * or a short warm close when there is nothing to recap), with a quiet
+ * "Support Ferni" text link on it. The support ask never replaces the recap.
+ * Flag off (VITE_AFTER_CALL_CARD=false): the conversation cost card, as before.
  *
  * @module ui/after-call/post-call
  */
 
 import { conversationTracker } from '../../services/conversation-tracker.service.js';
-import { apiGet } from '../../utils/api.js';
 import { createLogger } from '../../utils/logger.js';
+import { openSupport as openSupportFlow } from '../support/open-support.js';
 import { showConversationCost } from '../conversation-cost.ui.js';
 import { hideAfterCallCard, showAfterCallCard } from './after-call-card.ui.js';
 import { loadAfterCallData } from './after-call-data.js';
@@ -24,17 +25,11 @@ function callStartedAt(startTime: string | undefined): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
-/** Same test the cost card uses before it shows itself, so the link is never a dead tap. */
-async function hasCallCost(): Promise<boolean> {
-  try {
-    const res = await apiGet<{ sessionId?: string | null; totalCost?: number }>(
-      '/api/conversation/cost'
-    );
-    return Boolean(res.ok && res.data?.sessionId && (res.data.totalCost ?? 0) >= 0.0001);
-  } catch (error) {
-    log.debug('Cost check failed', { error: String(error) });
-    return false;
-  }
+/** Opens Support Ferni only when the person taps the link. */
+function openSupport(): void {
+  openSupportFlow().catch((error: unknown) =>
+    log.warn('Support Ferni failed to open from after-call card', { error: String(error) })
+  );
 }
 
 export async function showPostCallCard(): Promise<void> {
@@ -54,18 +49,13 @@ export async function showPostCallCard(): Promise<void> {
 
   // The tracker keeps the last call's session until the next call starts.
   const session = conversationTracker.getCurrentSession();
-  const [data, costAvailable] = await Promise.all([
-    loadAfterCallData(callStartedAt(session?.startTime), session?.insights ?? []),
-    hasCallCost(),
-  ]);
-  const onShowCost = (): void => {
-    showConversationCost().catch((error: unknown) =>
-      log.warn('Cost card failed to open from after-call card', { error: String(error) })
-    );
-  };
+  const data = await loadAfterCallData(
+    callStartedAt(session?.startTime),
+    session?.insights ?? []
+  );
   if (newCallStarted) return;
   showAfterCallCard(data, {
     personaName: session?.personaName || 'Ferni',
-    onShowCost: costAvailable ? onShowCost : undefined,
+    onSupport: openSupport,
   });
 }

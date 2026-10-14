@@ -91,8 +91,8 @@
   ],
 
   "stats": [
-    { "value": "10,000+", "label": "Conversations" },
-    { "value": "<500ms", "label": "Response Time" },
+    { "value": "Free", "label": "Right Now" },
+    { "value": "6", "label": "Specialists" },
     { "value": "∞", "label": "Memory" },
     { "value": "24/7", "label": "Always There" }
   ],
@@ -160,33 +160,6 @@
     }
   ],
 
-  "testimonials": [
-    {
-      "quote": "I called Ferni at 2am when I couldn't sleep because of work stress. Having someone to talk through my thoughts with—no judgment, just guidance—was exactly what I needed.",
-      "author": "Sarah K.",
-      "role": "Product Manager",
-      "initials": "SK"
-    },
-    {
-      "quote": "The fact that Ferni remembers our previous conversations makes it feel like talking to a friend who actually knows my situation. Game changer.",
-      "author": "Michael R.",
-      "role": "Entrepreneur",
-      "initials": "MR"
-    },
-    {
-      "quote": "I was skeptical at first, but Ferni helped me work through a career decision I'd been stuck on for months. The team approach is brilliant.",
-      "author": "Jessica L.",
-      "role": "Designer",
-      "initials": "JL"
-    },
-    {
-      "quote": "Being able to call a number and just talk—no app download, no login—is so refreshing. I use Ferni during my commute and it's become my favorite part of the day.",
-      "author": "David W.",
-      "role": "Sales Director",
-      "initials": "DW",
-      "featured": true
-    }
-  ],
 
   "faq": [
     {

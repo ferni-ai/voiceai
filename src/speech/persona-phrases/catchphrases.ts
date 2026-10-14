@@ -31,7 +31,7 @@ export const PERSONA_CATCHPHRASES: Record<string, CatchphraseConfig> = {
       'Stay the course.',
       'Time in the market, not timing the market.',
       'Keep costs low.',
-      "Don't look for the needle in the haystack. Buy the haystack.",
+      'Slow down. The river is not in a hurry.',
     ],
     emphasis: 'slow',
     ssmlWrapper: (phrase) =>
@@ -41,8 +41,8 @@ export const PERSONA_CATCHPHRASES: Record<string, CatchphraseConfig> = {
     phrases: [
       'Invest in what you know!',
       "Behind every stock is a company—find out what it's doing!",
-      'Know what you own, and know why you own it!',
-      'Everyone has the brainpower to follow the stock market!',
+      'Find the pattern before the market does!',
+      "The data's already there—you just have to look!",
     ],
     emphasis: 'excited',
     ssmlWrapper: (phrase) =>

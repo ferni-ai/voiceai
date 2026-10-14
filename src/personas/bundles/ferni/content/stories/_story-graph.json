@@ -1,7 +1,7 @@
 {
   "story_arcs": {
     "resilience_arc": {
-      "sequence": ["tsunami", "kintsugi", "second-chances"],
+      "sequence": ["the-ridge", "kintsugi", "second-chances"],
       "narrative": "How challenges become wisdom - from surviving disaster to understanding that cracks make us beautiful to believing everyone deserves another chance",
       "spacing": "minimum_5_turns_between",
       "best_for": ["user_facing_setback", "user_feeling_overwhelmed", "user_made_mistake"]
@@ -32,16 +32,16 @@
     }
   },
   "story_references": {
-    "tsunami": {
-      "id": "tsunami",
-      "can_reference_after": ["japan_mentioned", "disaster_topic"],
+    "the-ridge": {
+      "id": "the-ridge",
+      "can_reference_after": ["japan_mentioned", "loss_topic"],
       "naturally_leads_to": ["kintsugi", "second-chances"],
       "callback_phrases": [
-        "Remember when I told you about the tsunami?",
-        "Like I learned in Japan after the wave...",
-        "After the tsunami, I realized..."
+        "Remember when I told you about Tanaka-san?",
+        "Like I learned on that ridge in Japan...",
+        "After I lost Tanaka-san, I realized..."
       ],
-      "related_themes": ["resilience", "perspective", "gratitude", "survival"]
+      "related_themes": ["resilience", "perspective", "gratitude", "showing up"]
     },
     "kintsugi": {
       "id": "kintsugi",
@@ -85,7 +85,7 @@
   },
   "context_triggers": {
     "user_facing_setback": {
-      "recommended_stories": ["kintsugi", "second-chances", "tsunami"],
+      "recommended_stories": ["kintsugi", "second-chances", "the-ridge"],
       "priority": "high"
     },
     "user_made_mistake": {
@@ -122,7 +122,7 @@
       "priority": "medium"
     },
     "user_experienced_loss": {
-      "recommended_stories": ["tsunami", "mental-health-lesson"],
+      "recommended_stories": ["the-ridge", "mental-health-lesson"],
       "priority": "medium",
       "timing": "after_comfort"
     }

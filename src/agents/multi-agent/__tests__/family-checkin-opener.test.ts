@@ -96,9 +96,13 @@ async function openerFor(sessionId: string, metadata: Record<string, unknown>): 
       }) as never,
     sessionId,
   }).start('ferni');
-  await new Promise((r) => {
-    setTimeout(r, 50);
-  });
+  // Pick up only once the agent is listening for it: the greeting path loads
+  // its modules lazily, and under a loaded full run that took longer than a
+  // fixed 50 ms, so the pickup fired into a room nobody was watching yet.
+  await vi.waitFor(
+    () => expect(room.listenerCount('participantAttributesChanged')).toBeGreaterThan(0),
+    { timeout: 10_000 }
+  );
   expect(say, 'nothing is said into a ringing line').not.toHaveBeenCalled();
   room.emit('participantAttributesChanged', { 'sip.callStatus': 'active' }, phone);
   await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 10_000 });

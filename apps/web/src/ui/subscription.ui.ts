@@ -35,11 +35,11 @@ import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { addTapListener, addTapListeners, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { isVenmoChipInEnabled, openSupport } from './support/open-support.js';
 import { toast } from './whisper.ui.js';
 
 const log = createLogger('SubscriptionUI');
 
-// FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
@@ -491,8 +491,7 @@ export async function loadStatus(): Promise<SubscriptionStatus | null> {
       status = response.data;
       log.debug('Subscription status loaded:', status);
 
-      // FIX: Sync subscription tier to team unlock service
-      // This ensures team members unlock correctly based on subscription
+      // Keep team member unlocks in step with the subscription tier
       if (status?.tier) {
         teamUnlockService.setTier(status.tier);
       }
@@ -518,6 +517,7 @@ export function setOnUpgrade(callback: (tier: string) => void): void {
 // ============================================================================
 
 export function showUpgradeModal(prompt?: string): void {
+  if (isVenmoChipInEnabled()) return void openSupport(); // every upgrade entry point chips in on Venmo
   // Use modal coordinator for upgrade prompts (medium priority - can be queued)
   modalCoordinator.request('subscription-upgrade', 'medium', () => {
     showUpgradeModalInternal(prompt);
@@ -1003,7 +1003,7 @@ function injectStyles(): void {
     .subscription-modal {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 9999);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1519,7 +1519,7 @@ function injectStyles(): void {
       box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
       cursor: pointer;
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
-      z-index: var(--z-toast, 1100);
+      z-index: var(--z-toast);
     }
     
     .usage-indicator:hover {
@@ -1619,7 +1619,7 @@ function injectStyles(): void {
     }
     
     /* Responsive */
-    @media (max-width: clamp(538px, 90vw, 768px)) {
+    @media (max-width: 768px) {
       .subscription-modal {
         /* Safe area padding for notched devices */
         padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
@@ -1657,7 +1657,7 @@ function injectStyles(): void {
     
     /* iOS Safari specific fixes */
     @supports (-webkit-touch-callout: none) {
-      @media (max-width: clamp(538px, 90vw, 768px)) {
+      @media (max-width: 768px) {
         .subscription-card {
           max-height: -webkit-fill-available;
         }

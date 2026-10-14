@@ -61,6 +61,11 @@ export function understandingFor(session: object, text: string): Understanding |
   return understanders.get(session)?.forTurn(text)?.result ?? null;
 }
 
+/** What the model understood of the caller's last finished turn, or null (deliberation.ts). */
+export function understandingOfLastTurn(session: object): Understanding | null {
+  return understanders.get(session)?.previous ?? null;
+}
+
 /** Whether this session's understanding covers `text` right now (counts only), or null when off. */
 /**
  * The latest answer's labels (no words), whether or not it covers the whole turn:
@@ -162,6 +167,8 @@ const words = (t: string): string[] => t.toLowerCase().match(/[a-z0-9']+/g) ?? [
  */
 export class TurnUnderstander {
   private latest: { text: string; result: Understanding; at: number } | null = null;
+  /** The understanding that covered the last finished turn, kept past newTurn(). */
+  previous: Understanding | null = null;
   private running: string | null = null;
   private pending: string | null = null;
   private earlier: string[] = [];
@@ -260,6 +267,7 @@ export class TurnUnderstander {
 
   /** A new caller turn begins: the last one becomes context, and its call is dropped. */
   newTurn(lastTurn: string): void {
+    this.previous = this.forTurn(lastTurn)?.result ?? null;
     if (lastTurn.trim()) this.earlier = [...this.earlier, lastTurn.trim()].slice(-3);
     this.turn++;
     this.inFlight?.abort();

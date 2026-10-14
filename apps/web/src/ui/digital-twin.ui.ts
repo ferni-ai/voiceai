@@ -24,6 +24,7 @@ import {
 } from '../services/custom-agent.service.js';
 import { openVoiceJournal } from './voice-journal/index.js';
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
+import { isJournalCaptureOn } from '../config/journal-capture-flag.js';
 import {
   enableJournalCapture,
   disableJournalCapture,
@@ -520,7 +521,7 @@ const STYLES = `
   }
 
   .digital-twin-modal__close:hover {
-    background: var(--color-background-hover, rgba(44, 37, 32, 0.05));
+    background: var(--color-tonal-surface-hover-background);
     color: var(--color-text-primary, #2c2520);
   }
 
@@ -658,7 +659,7 @@ const STYLES = `
     align-items: flex-start;
     gap: var(--space-3, 12px);
     padding: var(--space-4, 16px);
-    background: var(--color-background-subtle, rgba(44, 37, 32, 0.03));
+    background: var(--color-tonal-surface1-background);
     border-radius: var(--radius-lg, 12px);
   }
 
@@ -871,7 +872,7 @@ const STYLES = `
 
   /* Auto-capture card */
   .digital-twin-capture-card {
-    background: var(--color-background-subtle, rgba(44, 37, 32, 0.03));
+    background: var(--color-tonal-surface1-background);
     border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     border-radius: var(--radius-lg, 12px);
     padding: var(--space-4, 16px);
@@ -1074,30 +1075,8 @@ const STYLES = `
     to { transform: rotate(360deg); }
   }
 
-  /* Dark theme overrides */
-  [data-theme="dark"] .digital-twin-modal__container,
-  [data-theme="zen"] .digital-twin-modal__container {
-    background: var(--color-background-elevated, #3a3530);
-  }
-
-  [data-theme="dark"] .digital-twin-card,
-  [data-theme="zen"] .digital-twin-card {
-    background: var(--color-background-subtle, rgba(255, 255, 255, 0.05));
-    border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-  }
-
-  [data-theme="dark"] .digital-twin-card:hover,
-  [data-theme="zen"] .digital-twin-card:hover {
-    border-color: var(--color-accent, #5a8a62);
-  }
-
-  [data-theme="dark"] .digital-twin-feature,
-  [data-theme="zen"] .digital-twin-feature {
-    background: var(--color-background-subtle, rgba(255, 255, 255, 0.05));
-  }
-
   /* Responsive */
-  @media (max-width: clamp(336px, 90vw, 480px)) {
+  @media (max-width: 480px) {
     .digital-twin-modal__container {
       width: 100%;
       height: 100%;
@@ -1236,12 +1215,10 @@ function renderTwinsList(): string {
  * Shows consent prompt if never enabled, or toggle if already set up
  */
 function renderAutoCaptureCard(): string {
-  const settings = loadCaptureSettings();
-  const hasConsented = settings.consentDate != null;
-  const isEnabled = settings.enabled;
-
+  if (!isJournalCaptureOn()) return ''; // no sender yet: never promise to remember
+  const { consentDate, enabled: isEnabled } = loadCaptureSettings();
   // First-time consent flow
-  if (!hasConsented) {
+  if (consentDate == null) {
     return `
       <div class="digital-twin-consent">
         <div class="digital-twin-consent__icon">

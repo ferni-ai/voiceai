@@ -13,6 +13,7 @@
  */
 
 import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { STREAK_MILESTONES, getStreakMilestoneMessage } from './engagement-components.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -99,8 +100,8 @@ class StreakCelebrationsUI {
     centerElement?: HTMLElement,
     onComplete?: () => void
   ): void {
-    // Skip if reduced motion is preferred
-    if (prefersReducedMotion()) {
+    // Skip if reduced motion is preferred, or streaks are off (VITE_NO_STREAKS)
+    if (prefersReducedMotion() || isNoStreaksOn()) {
       log.debug(`[Celebration] Skipping animation (reduced motion) for ${streak}-day streak`);
       onComplete?.();
       return;
@@ -188,7 +189,7 @@ class StreakCelebrationsUI {
       width: 100vw;
       height: 100vh;
       pointer-events: none;
-      z-index: var(--z-celebration, 9999);
+      z-index: var(--z-celebration);
     `;
     document.body.appendChild(this.canvas);
 
@@ -438,6 +439,7 @@ export function celebrateStreak(
  * Check if a streak count is a milestone
  */
 export function isStreakMilestone(count: number): boolean {
+  if (isNoStreaksOn()) return false;
   return count in STREAK_MILESTONES || Object.keys(MILESTONE_CONFIG).map(Number).includes(count);
 }
 

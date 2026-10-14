@@ -48,6 +48,11 @@ export function isSignedByTwilio(
   if (typeof signature !== 'string' || !signature) return false;
   const forwardedProto = req.headers['x-forwarded-proto'];
   const protocol = typeof forwardedProto === 'string' ? forwardedProto : 'https';
+  // Behind Firebase Hosting the Host is the run.app host, not the public one
+  // Twilio signed, so /api/voice/inbound refuses every real call today
+  // (UNCONFIRMED cause). Changing this turns that webhook on for real calls:
+  // do it as a separate step, in the order docs/runbooks/phone-attestation.md
+  // gives ("Blocker", then "Steps"), not as a drive-by fix.
   const host = req.headers.host ?? '';
   return validateTwilioSignature(signature, `${protocol}://${host}${pathAndQuery}`, params);
 }

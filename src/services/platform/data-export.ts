@@ -26,6 +26,9 @@ import { getCognitiveMemoryService } from '../memory/cognitive-memory.js';
 type AnyRecord = Record<string, any>;
 import { getLogger } from '../../utils/safe-logger.js';
 import { erasureSteps } from './erasure-step.js';
+import { EXPORT_CATEGORIES } from './export-categories.js';
+import { ExportBudget, ExportLimitError, serialisedBytes } from './bounded-reader.js';
+import { countUserRecords, exportUserRecords } from './user-records-export.js';
 
 const log = getLogger();
 
@@ -54,55 +57,7 @@ export type ExportFormat = 'json' | 'csv';
 // CATEGORY DEFINITIONS
 // ============================================================================
 
-/**
- * All exportable data categories with their descriptions.
- */
-export const EXPORT_CATEGORIES = {
-  Conversations: {
-    description: 'All conversation transcripts and metadata',
-    icon: 'message-circle',
-  },
-  Insights: {
-    description: 'What Ferni has learned about you',
-    icon: 'lightbulb',
-  },
-  Rituals: {
-    description: 'Daily practice history and streaks',
-    icon: 'sun',
-  },
-  Predictions: {
-    description: 'Your predictions and outcomes',
-    icon: 'target',
-  },
-  'Mood History': {
-    description: 'Emotional weather records',
-    icon: 'cloud-sun',
-  },
-  Profile: {
-    description: 'Your profile and preferences',
-    icon: 'user',
-  },
-  Contacts: {
-    description: 'Your people and relationships',
-    icon: 'users',
-  },
-  'Trust Journey': {
-    description: 'Your growth, boundaries, and shared moments',
-    icon: 'heart',
-  },
-  Wellbeing: {
-    description: 'Wellness snapshots and trends',
-    icon: 'activity',
-  },
-  Habits: {
-    description: "Maya's habit coaching data",
-    icon: 'repeat',
-  },
-  Productivity: {
-    description: 'Tasks, notes, and journal entries',
-    icon: 'check-square',
-  },
-} as const;
+export { EXPORT_CATEGORIES } from './export-categories.js';
 
 // ============================================================================
 // DATA EXPORT SERVICE
@@ -115,6 +70,13 @@ class DataExportService {
    */
   async getExportableCategories(userId: string): Promise<ExportCategory[]> {
     const categories: ExportCategory[] = [];
+    // First and on its own: it holds everything, so a failure below must not hide it
+    const itemCount = await countUserRecords(userId).catch((error: unknown) => {
+      log.warn({ error: String(error), userId }, 'Failed to count stored records');
+      return 0;
+    });
+    const { description } = EXPORT_CATEGORIES.Records;
+    categories.push({ category: 'Records', description, itemCount, exportable: true });
 
     try {
       // 1. Conversations
@@ -217,6 +179,15 @@ class DataExportService {
         itemCount: productivityCount,
         exportable: true,
       });
+
+      // 10. Answer cards (the /a/:id pages)
+      const { listAnswerCardsForUser } = await import('../approvals/answer-cards.js');
+      categories.push({
+        category: 'Answer Cards',
+        description: EXPORT_CATEGORIES['Answer Cards'].description,
+        itemCount: (await listAnswerCardsForUser(userId)).length,
+        exportable: true,
+      });
     } catch (error) {
       log.error({ error, userId }, 'Failed to get exportable categories');
     }
@@ -230,7 +201,8 @@ class DataExportService {
   async exportData(
     userId: string,
     format: ExportFormat,
-    selectedCategories: string[]
+    selectedCategories: string[],
+    budget: ExportBudget = new ExportBudget()
   ): Promise<string> {
     const exportData: ExportData = {
       exportedAt: new Date().toISOString(),
@@ -241,13 +213,19 @@ class DataExportService {
 
     try {
       // Export each selected category
-      for (const category of selectedCategories) {
+      // One budget for the whole request: a category named twice is read once, and every
+      // category's output is charged to it (Records' reads are charged before they happen)
+      for (const category of new Set(selectedCategories)) {
         try {
-          const data = await this.exportCategory(userId, category);
+          budget.checkTime();
+          const data = await this.exportCategory(userId, category, budget);
+          budget.reserveBytes(serialisedBytes(data));
           if (data !== null) {
             exportData.categories[this.categoryToKey(category)] = data;
           }
         } catch (categoryError) {
+          // A limit stops the whole export: a file silently missing Records would look complete
+          if (categoryError instanceof ExportLimitError) throw categoryError;
           log.warn({ error: String(categoryError), userId, category }, 'Failed to export category');
           // Continue with other categories
         }
@@ -270,7 +248,11 @@ class DataExportService {
   /**
    * Export a single category's data.
    */
-  private async exportCategory(userId: string, category: string): Promise<unknown> {
+  private async exportCategory(
+    userId: string,
+    category: string,
+    budget: ExportBudget
+  ): Promise<unknown> {
     switch (category) {
       case 'Conversations':
         return this.exportConversations(userId);
@@ -294,6 +276,10 @@ class DataExportService {
         return this.exportHabits(userId);
       case 'Productivity':
         return this.exportProductivity(userId);
+      case 'Answer Cards':
+        return this.exportAnswerCards(userId);
+      case 'Records':
+        return exportUserRecords(userId, budget);
       default:
         log.warn({ category }, 'Unknown export category');
         return null;
@@ -432,10 +418,10 @@ class DataExportService {
 
   private async exportContacts(userId: string) {
     try {
-      const { getUserContacts } = await import('../contacts.js');
-      const contacts = await getUserContacts(userId);
-
-      return contacts.map((c: AnyRecord) => ({
+      const { loadUserContacts } = await import('../contacts.js');
+      const loaded = await loadUserContacts(userId);
+      if (!loaded.ok) throw new ExportLimitError('unavailable'); // never a file that looks whole
+      return loaded.contacts.map((c: AnyRecord) => ({
         id: c.id,
         displayName: c.displayName,
         firstName: c.firstName,
@@ -452,6 +438,7 @@ class DataExportService {
         updatedAt: c.updatedAt,
       }));
     } catch (error) {
+      if (error instanceof ExportLimitError) throw error;
       log.warn({ error: String(error), userId }, 'Failed to export contacts');
       return [];
     }
@@ -605,6 +592,12 @@ class DataExportService {
     }
   }
 
+  private async exportAnswerCards(userId: string) {
+    const { listAnswerCardsForUser } = await import('../approvals/answer-cards.js');
+    const cards = await listAnswerCardsForUser(userId);
+    return cards.map(({ userId: _owner, deleteAt: _deleteAt, ...card }) => card);
+  }
+
   private async exportProductivity(userId: string) {
     try {
       const { getProductivityStore } = await import('../stores/productivity-store.js');
@@ -704,8 +697,7 @@ class DataExportService {
   private async getContactsCount(userId: string): Promise<number> {
     try {
       const { getUserContacts } = await import('../contacts.js');
-      const contacts = await getUserContacts(userId);
-      return contacts.length;
+      return (await getUserContacts(userId)).length;
     } catch {
       return 0;
     }
@@ -828,6 +820,12 @@ class DataExportService {
         const { getProductivityStore } = await import('../stores/productivity-store.js');
         const store = getProductivityStore();
         await store.clearUserData(userId);
+      });
+
+      // 6b. Delete answer cards (/a/:id)
+      await step('answer_cards', 'Failed to delete answer cards', async () => {
+        const { deleteAnswerCardsForUser } = await import('../approvals/answer-cards.js');
+        await deleteAnswerCardsForUser(userId);
       });
 
       // 7. Delete conversation history (if method exists)

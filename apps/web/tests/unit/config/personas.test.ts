@@ -214,10 +214,25 @@ describe('Personas Config', () => {
   describe('Financial Legends (who is speaking, not the team)', () => {
     it('normalizeSpeakerId keeps a Legend as themselves and aliases as the bundles do', () => {
       expect(normalizeSpeakerId('peter-lynch')).toBe('peter-lynch');
-      expect(normalizeSpeakerId('lynch')).toBe('peter-lynch');
-      expect(normalizeSpeakerId('bogle')).toBe('john-bogle');
-      expect(normalizeSpeakerId('jack-bogle')).toBe('john-bogle');
-      expect(normalizeSpeakerId('joel')).toBe('joel-dickson');
+      expect(normalizeSpeakerId('tom')).toBe('peter-lynch');
+      expect(normalizeSpeakerId('henry')).toBe('john-bogle');
+      expect(normalizeSpeakerId('caldwell')).toBe('john-bogle');
+      expect(normalizeSpeakerId('nate')).toBe('joel-dickson');
+    });
+
+    it('normalizeSpeakerId never maps a real person to a Legend', () => {
+      for (const real of [
+        'lynch',
+        'magellan',
+        'bogle',
+        'jack-bogle',
+        'vanguard-founder',
+        'joel',
+        'dickson',
+        'dr-dickson',
+      ]) {
+        expect(normalizeSpeakerId(real), real).toBe('ferni');
+      }
     });
 
     it('normalizeSpeakerId leaves team ids and aliases to the team', () => {
@@ -235,7 +250,7 @@ describe('Personas Config', () => {
       expect(tom.colors.primary).toBe(getPersonaColors('lynch').primary);
       expect(tom.colors.primary).not.toBe(getPersona('peter-john').colors.primary);
       expect(getPersona('john-bogle').name).toBe('Henry Caldwell');
-      expect(getPersona('joel-dickson').name).toBe('Joel Dickson');
+      expect(getPersona('joel-dickson').name).toBe('Nate Holloway');
     });
   });
 });
