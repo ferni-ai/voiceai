@@ -218,11 +218,12 @@ export function peopleOf(facts: readonly RecallFact[]): Person[] {
   return people;
 }
 
-/** The note: who is who, and never a guessed relation. */
-export function formatPeople(people: readonly Person[]): string {
+/** The note: who is who (and, from pets.ts, whose animals are whose), and never a guess. */
+export function formatPeople(people: readonly Person[], animals: string | null = null): string {
   const rule =
-    "Never guess how someone is related to them. If they ask about a person or relation not listed here, say you don't know or ask.";
-  if (people.length === 0) return rule;
+    "Never guess how someone is related to them, or whose an animal is. If they ask about a person, relation or pet not listed here, say you don't know or ask.";
   const list = people.map((p) => `${p.name} (${p.relation})`).join(', ');
-  return `People in their life: ${list}.\n${rule}`;
+  return [people.length > 0 ? `People in their life: ${list}.` : null, animals, rule]
+    .filter(Boolean)
+    .join('\n');
 }
