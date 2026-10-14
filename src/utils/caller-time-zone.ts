@@ -47,11 +47,12 @@ export function userTimeZone(ids: { sessionId?: string; userId?: string }): stri
 
 /**
  * The zone for a tool given LiveKit's run context (`execute(args, { ctx })`),
- * whose userData carries the user id and the browser zone.
+ * whose userData carries the user id and the call's own zone. The call's own
+ * zone comes first: the user id's entry may have been written by another call.
  */
 export function runContextTimeZone(ctx: unknown): string | undefined {
   const data = (ctx as { userData?: { userId?: unknown; callerTimezone?: unknown } } | undefined)
     ?.userData;
-  const byUser = typeof data?.userId === 'string' ? zones.get(data.userId) : undefined;
-  return byUser ?? (isValidTimeZone(data?.callerTimezone) ? data.callerTimezone : undefined);
+  if (isValidTimeZone(data?.callerTimezone)) return data.callerTimezone;
+  return typeof data?.userId === 'string' ? zones.get(data.userId) : undefined;
 }

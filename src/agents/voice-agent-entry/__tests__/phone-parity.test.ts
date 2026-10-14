@@ -12,6 +12,7 @@ import { trackDeferredProfileLoad } from '../../../services/session/deferred-pro
 import {
   callerTimeZoneFor,
   rememberCallerTimeZone,
+  runContextTimeZone,
   userTimeZone,
 } from '../../../utils/caller-time-zone.js';
 import { rememberCallerRecognition, rememberDispatchIdentity } from '../caller-recognition.js';
@@ -184,22 +185,54 @@ describe('settleCallerZone', () => {
   });
 });
 
-describe('the call path reads a profile zone only through phone-parity.ts', () => {
-  const AGENTS = join(__dirname, '..', '..');
+describe("a tool in a call reads the call's own zone first", () => {
+  it('not one another call wrote under the same user id after this call settled', () => {
+    rememberCallerTimeZone(NY, 'u-later'); // e.g. the owner's app session, after ours started
+    expect(runContextTimeZone({ userData: { userId: 'u-later', callerTimezone: LA } })).toBe(LA);
+    expect(userTimeZone({ sessionId: 'this-call', userId: 'u-later' })).toBe(NY); // no own zone
+    rememberCallerTimeZone(LA, 'this-call');
+    expect(userTimeZone({ sessionId: 'this-call', userId: 'u-later' })).toBe(LA);
+  });
+});
+
+describe('a profile zone reaches a call only through phone-parity.ts', () => {
+  const SRC = join(__dirname, '..', '..', '..');
   function files(dir: string, out: string[] = []): string[] {
     for (const entry of readdirSync(dir)) {
       const path = join(dir, entry);
       if (statSync(path).isDirectory()) {
-        if (entry !== '__tests__') files(path, out);
-      } else if (/\.ts$/.test(entry) && !/\.(test|d)\.ts$/.test(entry)) out.push(path);
+        if (entry !== '__tests__' && entry !== 'node_modules') files(path, out);
+      } else if (/\.ts$/.test(entry) && !/\.(test|spec|d)\.ts$/.test(entry)) out.push(path);
     }
     return out;
   }
+  /** Every other reader of contactInfo.timezone, and why it is not a call's caller zone. */
+  const ALLOWED: Record<string, string> = {
+    'agents/voice-agent-entry/phone-parity.ts': 'the guard itself',
+    'tools/domains/simple-utilities/advanced-reminders.ts': 'only outside a call (no sessionId)',
+    'tools/domains/telephony/call-on-behalf.ts': "the sponsor's zone, for a call they asked for",
+    'tools/domains/proactive/outreach/service.ts': "the account's contact info for outreach",
+    'services/outreach/user-contact.ts': "the account's contact info for outreach",
+    'services/outreach/quiet-hours.ts': 'quiet hours for outreach to the account',
+    'services/outreach/timing-intelligence.ts': 'outreach timing for the account',
+    'services/engagement/engagement-notification-service.ts': 'notifications to the account',
+    'services/identity/contacts/contact-onboarding.ts': "the account's own onboarding",
+    'services/world-awareness/session-integration.ts': 'its one caller passes no profile',
+    'tasks/scheduled/calendar-briefing-job.ts': 'a scheduled job for the account',
+    'api/user-routes.ts': "the signed-in account's own settings",
+    'api/gdpr-routes.ts': "the signed-in account's own data export",
+  };
 
-  it('no other file under src/agents reads contactInfo.timezone', () => {
-    const readers = files(AGENTS)
-      .filter((f) => /contactInfo\??\.timezone/.test(readFileSync(f, 'utf8')))
-      .map((f) => relative(AGENTS, f));
-    expect(readers).toEqual(['voice-agent-entry/phone-parity.ts']);
+  it('no other file in src/ reads contactInfo.timezone', () => {
+    const readers = files(SRC)
+      .filter((f) =>
+        /contactInfo\??\.timezone|'contactInfo\.timezone'/.test(readFileSync(f, 'utf8'))
+      )
+      .map((f) => relative(SRC, f).split('\\').join('/'))
+      .sort();
+    expect(
+      readers,
+      'A new reader must not hand a call a profile zone; list it here with why'
+    ).toEqual(Object.keys(ALLOWED).sort());
   });
 });
