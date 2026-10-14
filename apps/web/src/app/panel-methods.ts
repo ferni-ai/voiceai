@@ -24,11 +24,10 @@ import {
   toPredictionTrackerData,
   type PredictionsResponse,
 } from '../services/prediction-tracker-data.js';
-import { showTeamHuddle as showTeamHuddleUI, type TeamHuddleData } from '../ui/team-huddle.ui.js';
 import { loadYourStory } from '../ui/lazy-screens.js';
 import { memoryControlEnabled, showRemembered } from '../ui/memory/remembered.js';
 import { toast } from '../ui/whisper.ui.js';
-import { apiDelete, apiGet, apiPost } from '../utils/api.js';
+import { apiDelete, apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 // 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
@@ -242,7 +241,6 @@ export async function showCognitiveInsights(): Promise<void> {
       memories: data.memories ?? [],
       patterns: data.patterns ?? [],
       totalInteractions: data.totalInteractions ?? 0,
-      knowledgeScore: data.knowledgeScore ?? 0,
     });
     return;
   }
@@ -310,7 +308,7 @@ function getDemoCognitiveData() {
         type: 'preference' as const,
         content: 'You prefer index funds over individual stocks',
         confidence: 0.9,
-        source: 'Jack Bogle',
+        source: 'Henry',
         learnedAt: new Date(Date.now() - 518400000).toISOString(),
       },
       {
@@ -450,7 +448,6 @@ function getDemoCognitiveData() {
       },
     ],
     totalInteractions: 45,
-    knowledgeScore: 78,
   };
 }
 
@@ -535,36 +532,6 @@ export async function showDataExport(): Promise<void> {
   });
 
   getDataExportUI().show(await dataExportService.getExportableCategories());
-}
-
-// ============================================================================
-// TEAM HUDDLE
-// ============================================================================
-
-/** Body of POST /api/huddles/start (src/api/routes/team.ts handleStartHuddle). */
-interface StartHuddleResponse {
-  success?: boolean;
-  huddle?: Omit<TeamHuddleData, 'type'> & { type?: string };
-}
-
-/**
- * Start a team huddle via POST /api/huddles/start and show it.
- * A failed start says so; nothing is shown that the server didn't send.
- */
-export async function showTeamHuddle(topic?: string): Promise<void> {
-  void trackScreen('team');
-  const response = await apiPost<StartHuddleResponse>('/api/huddles/start', {
-    topic: topic || t('app.defaultHuddleTopic'),
-    type: 'weekly',
-  });
-  const huddle = response.ok ? response.data?.huddle : undefined;
-  if (!huddle) {
-    log.warn({ status: response.status }, 'Team huddle start failed');
-    toast.error(t('app.couldNotStartHuddle'));
-    return;
-  }
-  const type = huddle.type === 'milestone' || huddle.type === 'special' ? huddle.type : 'weekly';
-  showTeamHuddleUI({ ...huddle, type });
 }
 
 // ============================================================================

@@ -28,6 +28,8 @@ export interface CallerProsody {
   energyRelDb: number;
   /** Words per voiced second vs the caller's baseline (1 = usual pace, or unknown). */
   rateRel: number;
+  /** Words per voiced second this turn, when the words are known (attune.ts paces to it). */
+  wordsPerSec?: number;
   voicedMs: number;
 }
 
@@ -125,6 +127,7 @@ export class CallerProsodyTracker {
         pitchSlopeStPerS: slopePerSecond(tail),
         energyRelDb: turn.energyDb - base.energyDb,
         rateRel: turn.rate !== undefined && base.rate ? turn.rate / base.rate : 1,
+        wordsPerSec: turn.rate,
         voicedMs,
       },
     };

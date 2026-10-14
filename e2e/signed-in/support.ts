@@ -35,6 +35,20 @@ export async function createUser({ verified = true } = {}): Promise<TestUser> {
   return { email, password, uid: localId };
 }
 
+/** A Firebase ID token for `user` from the Auth emulator, for API calls sent with `Authorization: Bearer`. */
+export async function idTokenFor(user: TestUser): Promise<string> {
+  const signInRes = await fetch(
+    `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=emulator`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email, password: user.password, returnSecureToken: true }),
+    }
+  );
+  expect(signInRes.ok, `emulator sign-in failed: ${signInRes.status}`).toBe(true);
+  return ((await signInRes.json()) as { idToken: string }).idToken;
+}
+
 /** Sign in through the app's own Firebase Auth instance (dev server only). */
 export async function signIn(page: Page, user: TestUser): Promise<void> {
   await page.goto('/');

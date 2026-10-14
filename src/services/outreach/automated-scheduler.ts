@@ -16,6 +16,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isSyntheticUserId } from '../../utils/synthetic-user.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deliver, getChannelStatus, type DeliveryChannel } from './unified-delivery.js';
 import {
@@ -34,7 +35,7 @@ import {
   lastTalkedAt,
   unansweredCount,
 } from './outreach-cadence.js';
-import { dailyCheckInChannel, logDailyCheckIn } from './proactive-channels/daily-checkin.js';
+import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
 import { blocksGenericCheckIns } from './grounded-checkin.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
@@ -42,12 +43,6 @@ const log = createLogger({ module: 'AutomatedScheduler' });
 const CANDIDATE_PAGE_SIZE = 200;
 /** Bound one run's reads; users past this are reached on later days. */
 const MAX_USERS_SCANNED = 5000;
-/**
- * Accounts made by test harnesses (voice-eval callers, e2e runs, local
- * devices). They share production Firestore and look active, so without this
- * they'd be the main recipients of "thinking of you" messages.
- */
-const SYNTHETIC_USER_ID = /^(voice-eval-|e2e-|device:(test|local-dev|debug))/;
 
 // ============================================================================
 // TYPES
@@ -195,7 +190,7 @@ async function processCandidate(
   // Proactive dogfood users (PROACTIVE_CHANNELS): channel, quiet hours (in
   // their own time zone) and caps come from the proactive channel policy.
   const now = new Date();
-  const proactive = await dailyCheckInChannel(userId, now);
+  const proactive = await dailyCheckIn(userId, now);
 
   // Check quiet hours
   if (!proactive && config.respectQuietHours && isInQuietHours(candidate)) {
@@ -239,8 +234,10 @@ async function processCandidate(
     return { sent: true, channel, outreachType, reason: 'Dry run' };
   }
 
-  // Generate personalized content
-  const content = await generatePersonalizedContent(userContext, outreachType, channel);
+  // Generate personalized content (allowlisted users: the proactive writer)
+  const content = proactive
+    ? await proactive.content()
+    : await generatePersonalizedContent(userContext, outreachType, channel);
 
   // Send the outreach
   const deliveryResult = await deliver({
@@ -252,9 +249,7 @@ async function processCandidate(
     outreachType,
   });
 
-  if (proactive) {
-    await logDailyCheckIn(userId, now, proactive, outreachType, deliveryResult.success);
-  }
+  await proactive?.done(outreachType, deliveryResult.success);
 
   if (deliveryResult.success) {
     // Record that we sent outreach
@@ -303,7 +298,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         const data = doc.data();
         const userId = doc.id;
         if (data.outreachPreferences?.enabled === false) continue;
-        if (SYNTHETIC_USER_ID.test(userId)) continue;
+        if (isSyntheticUserId(userId)) continue; // test harness accounts
 
         const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
         const engagementLevel = engagementLevelOf(data, now.getTime());

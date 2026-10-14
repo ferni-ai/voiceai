@@ -305,6 +305,9 @@ COPY --from=builder /app/src/tasks/wisdom/*.json ./dist/tasks/wisdom/
 # Copy tool description JSON files (not compiled by esbuild)
 COPY --from=builder /app/src/tools/config/*.json ./dist/tools/config/
 
+# Recorded presence whistles and snores (PRESENCE_SOUND_ASSETS; Pixabay license, in-app only)
+COPY --from=builder /app/src/agents/integrations/assets/ ./dist/agents/integrations/assets/
+
 # Copy sound effects for session intro/outro (connect.mp3, disconnect.mp3, etc.)
 # These are used by the DJ system for "opening the show" moments
 COPY apps/web/public/sounds/ ./sounds/
