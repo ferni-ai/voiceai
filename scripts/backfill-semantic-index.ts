@@ -333,7 +333,8 @@ const COLLECTION_MAPPINGS: CollectionMapping[] = [
     collection: 'bogle_users',
     subcollection: 'voice_profiles',
     entityType: 'voice_recognition',
-    storeType: 'voice',
+    // Same store as the live hook (onVoiceRecognitionChange); 'voice' is not a StoreType.
+    storeType: 'superhuman-intelligence',
     contentBuilder: (doc) => `Voice Profile: ${doc.displayName || 'User'}. Quality: ${Math.round((doc.qualityScore || 0) * 100)}%. Verifications: ${doc.verificationCount || 0}`,
   },
 ];
