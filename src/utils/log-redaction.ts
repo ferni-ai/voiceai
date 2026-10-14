@@ -14,10 +14,11 @@
  * numbers (epoch ms, durations, sizes, dates, IPs, UUIDs), so a run of digits joined by
  * single separators (space, dot, dash, parens) is masked only when one of these holds:
  * - it starts with "+" or "%2B" and has 8 to 15 digits (E.164; 7 with a phone context);
- * - it follows sip_, sip:, tel:, a dialling verb ("dialing", "calling", "text to"), or a
- *   phone key (phone, phoneNumber, mobile, msisdn, caller, callerId, callee, recipient,
- *   dest, destination: the key exactly, so callerLatencyMs is not one), and has 7 to 15
- *   digits;
+ * - it follows sip_, sip:, tel:, <Dial>, a dialling word ("dialing", "calling", "SMS
+ *   from", "phone"), or a phone key, and has 7 to 15 digits. A phone key ends in phone,
+ *   mobile, msisdn, e164, digits or number (contactPhone, user_phone, phones, Digits,
+ *   fromNumber, to_number) or is caller/callee/recipient/destination/dest/tel and their
+ *   Id/_number forms; callerLatencyMs is not one, and turnNumber: 3 is too short;
  * - it follows a to/from/number key and is a valid North American number (10 digits, or
  *   11 starting with 1, area code and exchange starting 2-9) or a 10-11 digit national
  *   number starting with 0, so `"from":1791797261` (epoch seconds) is left alone;
@@ -37,8 +38,8 @@
  *
  * What this does not cover: a child process with inherited stdio writes to the fd
  * directly, so it has to install this itself (the per-call job child imports
- * instrument.ts first; the voice worker, tool service, outreach worker and Pub/Sub
- * worker install it first thing). A worker thread's console goes through the main
+ * instrument.ts first; the voice worker, tool service, persona service, outreach
+ * worker and Pub/Sub worker install it first thing). A worker thread's console goes through the main
  * thread's process.stdout and is covered; a worker thread that opens its own fd
  * destination is not (none does today). Native code writing to fd 1/2 is not covered.
  *
@@ -57,16 +58,24 @@ const MAX_DIGITS = 15;
 const RUN = /(?:\+|%2[Bb])?\(?\d+(?:(?:[ .-]\(?|\)[ .-]?|\()\d+)*/g;
 const GROUP = /\d+/g;
 
-const KEY_TAIL = String.raw`(?:\\?["'])?\s*[:=]\s*(?:\\?["'])?`;
+/** Between a key and its value: a quote (maybe escaped), ":" or "=", an array's "[". */
+const KEY_TAIL = String.raw`(?:\\?["'])?\s*[:=]\s*\[?\s*(?:\\?["'])?`;
+/**
+ * Phone keys: any key ending in phone/mobile/msisdn/e164/digits (contactPhone,
+ * user_phone, phones, Digits), or in number (fromNumber, to_number; "number" alone is
+ * a weak key), plus caller/callee/recipient/destination and their _number/Id forms.
+ * callerLatencyMs is not one. Only runs of 7+ digits are ever masked, so turnNumber: 3
+ * stays.
+ */
+const PHONE_KEY = String.raw`(?:\w*?(?:phone|mobile|msisdn|e164|digits)(?:_?(?:number|num|no|id)|s)?|\w+?_?number|(?:caller|callee|recipient|destination)(?:_?(?:num|no|id))?|dest|tel|telephone|cell)`;
 const STRONG_CONTEXT = new RegExp(
-  String.raw`(?:sip[_:]|tel:|(?<!\w)(?:dial(?:s|ed|ing)?|call(?:s|ed|ing)?|text(?:s|ed|ing)?|sms|fax)\s+(?:to\s+)?` +
-    String.raw`|(?<!\w)(?:(?:phone|mobile|cell|caller|callee|recipient|destination)(?:_?(?:number|num|no|id))?` +
-    String.raw`|msisdn|dest|tel|telephone)${KEY_TAIL})$`,
+  String.raw`(?:sip[_:]|tel:|<(?:dial|number|sms)>|(?<!\w)(?:dial(?:s|ed|ing)?|call(?:s|ed|ing)?|text(?:s|ed|ing)?|sms|fax|phone|mobile)\s+(?:(?:to|from|on|at)\s+)?` +
+    String.raw`|(?<!\w)${PHONE_KEY}${KEY_TAIL})$`,
   'i'
 );
 const WEAK_CONTEXT = new RegExp(String.raw`(?<!\w)(?:to|from|number|num)${KEY_TAIL}$`, 'i');
 /** A context ends in one of these, so most runs skip the context regexes. */
-const CONTEXT_END = /[_:"'=\s]$/;
+const CONTEXT_END = /[_:"'=\s[>]$/;
 
 const NANP_PAREN = /^\(\d{3}\) ?\d{3}[ .-]\d{4}(?!\d)/;
 const NANP_SEP = /^\d{3}[.-]\d{3}[.-]\d{4}(?!\d)/;
@@ -222,13 +231,16 @@ function chunkText(chunk: unknown, encoding: unknown, decoder: StringDecoder): s
     return decoder.write(Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
   }
   if (typeof chunk !== 'string') return undefined;
-  return typeof encoding !== 'string' || /^utf-?8$/i.test(encoding) ? chunk : undefined;
+  if (typeof encoding === 'string' && !/^utf-?8$/i.test(encoding)) return undefined;
+  // Bytes a Buffer write left mid-character can't be completed by a string: keep them (as U+FFFD)
+  return decoder.end() + chunk;
 }
 
-/** Whether a write is complete lines, with no partial character left in the decoder. */
+/** Whether a write is complete lines and its text is exactly the chunk (nothing held before or after). */
 function wholeLines(chunk: unknown, text: string): boolean {
   if (!text.endsWith('\n')) return false;
-  return typeof chunk === 'string' || Buffer.byteLength(text) === (chunk as Uint8Array).byteLength;
+  if (typeof chunk === 'string') return text === chunk;
+  return Buffer.byteLength(text) === (chunk as Uint8Array).byteLength;
 }
 
 function callbackOf(rest: unknown[]): (() => void) | undefined {

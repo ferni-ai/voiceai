@@ -60,7 +60,38 @@ const LEAKS: Array<[string, string, string]> = [
   ['+44 20 7946 0958 1234 5678', '7946 0958', '***0958 1234 5678'],
 ];
 
+// relationship-health-tracker.ts logs contactPhone as bare digits
+const PHONE_KEYS = [
+  '{"level":30,"userId":"u1","contactPhone":"14155550123","healthScore":0.8,"msg":"Updated relationship health"}',
+  '{"callerPhone":"4155550123"}',
+  '{"recipientPhone":"4155550123"}',
+  '{"userPhone":"4155550123"}',
+  '{"targetPhone":4155550123}',
+  '{"fromNumber":"4155550123"}',
+  '{"toNumber":"4155550123"}',
+  '{"from_number":"4155550123"}',
+  '{"to_number":"4155550123"}',
+  'callerPhone=4155550123',
+  'recipientPhone: 4155550123',
+  'SMS from 4155550123',
+  'phone 4155550123',
+  '{"phones":["4155550123"]}',
+  '{"e164":"14155550123"}',
+  '<Dial>4155550123</Dial>',
+  '{"Digits":"4155550123"}',
+];
+
+describe('redactPhoneNumbers: bare digits under phone keys and words', () => {
+  it.each(PHONE_KEYS)('%s', (line) => {
+    const out = redactPhoneNumbers(line);
+    expect(out).not.toContain('4155550123');
+    expect(out).toContain('***0123');
+  });
+});
+
 const KEPT = [
+  '{"turnNumber":3,"pageNumber":12,"versionNumber":"1.42.0"}',
+  '{"callerLatencyMs":1234567,"phoneLatencyMs":7654321}',
   'buffer sizes 512 256 1024',
   '{"callerLatencyMs": 1234567}',
   '{"delta":"+1234567"}',
@@ -131,6 +162,14 @@ describe('redactWrites: chunk edges', () => {
     s.target.write(bytes.subarray(7));
     expect(s.text()).toBe('café ☕ ok\n');
     expect(s.text()).not.toContain('�');
+  });
+
+  it('bytes a Buffer write left mid-character are not dropped by a following string write', () => {
+    const s = sink();
+    const euro = Buffer.from('€', 'utf8');
+    s.target.write(Buffer.concat([Buffer.from('a '), euro.subarray(0, 2)]));
+    s.target.write(' b\n');
+    expect(s.text()).toBe('a \uFFFD b\n');
   });
 
   it('an unfinished line is written out shortly, not held forever', async () => {
