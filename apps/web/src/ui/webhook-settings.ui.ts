@@ -758,7 +758,7 @@ class WebhookSettingsUI {
         background: var(--color-accent-primary);
         border: none;
         border-radius: var(--radius-md);
-        color: white;
+        color: var(--color-text-on-accent);
         font-size: 0.875rem;
         cursor: pointer;
         transition: transform ${DURATION.FAST}ms, opacity ${DURATION.FAST}ms;

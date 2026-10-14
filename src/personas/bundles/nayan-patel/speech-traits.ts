@@ -5,9 +5,9 @@
  * voice personality: deliberate wisdom, paradoxical insights, profound pauses,
  * and a mystical yet grounded presence.
  *
- * Nayan is Ferni's wisdom and philosophy guide - from Mysore, India, had an
- * enlightenment experience on Chamundi Hills, rides motorcycles, and believes
- * "I am here to disturb you. Not to comfort you."
+ * Nayan is Ferni's wisdom and philosophy guide - grew up in Vadodara, India,
+ * left his family's business after sitting with his dying grandmother, walks
+ * long distances at dawn, and believes honesty helps more than comfort.
  *
  * @module personas/bundles/nayan-patel/speech-traits
  */
@@ -30,7 +30,6 @@ export function addCatchphraseEmphasis(text: string, _emotion: string): string {
     { pattern: /\bthe question is the answer\b/gi, gravitas: 'high' },
     { pattern: /\bthe journey is the destination\b/gi, gravitas: 'high' },
     { pattern: /\bexistence experiencing itself\b/gi, gravitas: 'high' },
-    { pattern: /\bnamaskaram\b/gi, gravitas: 'closing' },
     { pattern: /\bdon['']t believe anything i say\b/gi, gravitas: 'medium' },
     { pattern: /\bgo have your own experiences?\b/gi, gravitas: 'medium' },
     { pattern: /\bthis is not riddles?\b/gi, gravitas: 'medium' },
@@ -137,8 +136,8 @@ export function addStorytellingMode(text: string, _emotion: string): string {
   const storyBeginnings = [
     /\b(let me tell you (a story|something)|there was (once|a time))\b/gi,
     /\b(i (remember|recall)|when i was)\b/gi,
-    /\b(on chamundi hills|in 1982|at mount kailash)\b/gi,
-    /\b(my father|the doctor|in mysore)\b/gi,
+    /\b(on the roof|at thirty-two|by the river)\b/gi,
+    /\b(my father|my grandmother|in vadodara)\b/gi,
   ];
 
   storyBeginnings.forEach((pattern) => {
@@ -281,21 +280,21 @@ export function addLaughterLightness(text: string, emotion: string): string {
 }
 
 // =============================================================================
-// MOTORCYCLE & NATURE
+// WALKING & NATURE
 // =============================================================================
 
 /**
- * Add energy when referencing motorcycles or nature
+ * Add energy when referencing long walks or nature
  * These are Nayan's places of presence
  */
 export function addPresenceReferences(text: string, _emotion: string): string {
   let result = text;
 
   const presenceTerms = [
-    /\b(motorcycle|riding|the road)\b/gi,
-    /\b(mount kailash|kailash|chamundi)\b/gi,
+    /\b(walking|long walk|the road)\b/gi,
+    /\b(first light|the garden)\b/gi,
     /\b(mountains?|rivers?|nature|sky)\b/gi,
-    /\b(the ride|meditation in motion)\b/gi,
+    /\b(the walk|meditation with your shoes on)\b/gi,
   ];
 
   presenceTerms.forEach((pattern) => {
@@ -319,9 +318,9 @@ export function addCulturalAuthenticity(text: string, _emotion: string): string 
   let result = text;
 
   const culturalTerms = [
-    /\b(adiyogi|shiva|guru)\b/gi,
-    /\b(dhyanalinga|isha|isha foundation)\b/gi,
-    /\b(karnataka|mysore|india)\b/gi,
+    /\b(shiva|guru|yogi)\b/gi,
+    /\b(namaste|chai)\b/gi,
+    /\b(gujarat|vadodara|india)\b/gi,
     /\b(seva|karma|dharma|moksha)\b/gi,
     /\b(samskara|vasana)\b/gi,
   ];

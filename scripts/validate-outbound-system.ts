@@ -17,7 +17,7 @@
  */
 
 import { config } from 'dotenv';
-config();
+config({ quiet: true });
 
 // ============================================================================
 // CONFIGURATION
@@ -149,19 +149,19 @@ async function checkInfrastructure(): Promise<void> {
 
   // Contact Service
   try {
-    const { ContactRelationshipService } = await import('../src/services/contacts/contact-relationship-service.js');
+    const { getContacts } = await import('../src/services/contacts/contact-relationship-service.js');
     addResult({
       name: 'Contact Storage Service',
       category: 'infrastructure',
-      status: 'pass',
-      message: 'ContactRelationshipService available',
+      status: typeof getContacts === 'function' ? 'pass' : 'fail',
+      message: 'contact-relationship-service loads',
     });
   } catch {
     addResult({
       name: 'Contact Storage Service',
       category: 'infrastructure',
       status: 'fail',
-      message: 'Could not load ContactRelationshipService',
+      message: 'Could not load contact-relationship-service',
       gap: 'Fix import errors in contact-relationship-service.ts',
     });
   }
@@ -422,7 +422,8 @@ async function runLiveTests(): Promise<void> {
     const { getOnBehalfCallOrchestrator } = await import('../src/services/outreach/on-behalf-call-orchestrator.js');
     const orchestrator = getOnBehalfCallOrchestrator();
     
-    const result = await orchestrator.initiateCall({
+    // initiateCall resolves to the call id and throws on failure.
+    const callId = await orchestrator.initiateCall({
       contactQuery: testPhoneNumber,
       resolvedContact: {
         name: 'Test User',
@@ -442,13 +443,9 @@ async function runLiveTests(): Promise<void> {
     addResult({
       name: 'E2E: Conversational Call Initiation',
       category: 'e2e',
-      status: result.success ? 'partial' : 'fail',
-      message: result.success 
-        ? `Call initiated (${result.callId}) - CHECK IF AGENT SPEAKS!`
-        : `Failed: ${result.error}`,
-      gap: result.success 
-        ? 'Call connects but agent may not speak - check on-behalf-call-agent.ts'
-        : undefined,
+      status: 'partial',
+      message: `Call initiated (${callId}) - CHECK IF AGENT SPEAKS!`,
+      gap: 'Call connects but agent may not speak - check on-behalf-call-agent.ts',
     });
   } catch (err) {
     addResult({

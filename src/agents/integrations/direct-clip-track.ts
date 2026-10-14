@@ -1,8 +1,9 @@
 /**
  * A side track for reaction clips ("mm-hmm", a laugh, the turn-opening "Mm")
- * with no mixer in front of it: 10 ms frames go straight into an AudioSource
- * that holds ~50 ms of silence while idle, and a clip's frames the moment it
- * plays.
+ * with no mixer in front of it: a clip's 10 ms frames go straight into an
+ * AudioSource the moment it plays. Idle, nothing is pushed: topping up 50 ms of
+ * silence meant 100 captureFrame calls a second on the agent's event loop, 1.3-
+ * 2.4 s of CPU per 40 s of call, most of it GC (dev profile, 2026-10-12).
  *
  * The BackgroundAudioPlayer path queues ahead of every clip: its AudioMixer
  * works in 100 ms blocks and its AudioSource holds 400 ms. A clip reached the
@@ -29,6 +30,7 @@ import {
   type Room,
 } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
+import { logVoicedTake } from './voiced-presence.js';
 
 const log = createLogger({ module: 'DirectClipTrack' });
 
@@ -40,17 +42,14 @@ const FADE_FRAMES = 2;
 export const DIRECT_TRACK_NAME = 'background_reactions';
 /** Source capacity: up to this much of a clip is queued, a cushion against stalls. */
 export const DIRECT_CAPACITY_MS = 400;
-/** Silence kept queued while idle: all a new clip waits behind. */
-export const IDLE_QUEUE_MS = 50;
-const IDLE_POLL_MS = 5;
 /** A clip the caller talks over within this long of play() is taken back. */
 export const CANCEL_WINDOW_MS = 200;
 
-/** REACTION_SIDETRACK=direct: reaction clips play on this track. */
+/** REACTION_SIDETRACK=direct: reaction clips play on this track, as VOICED_PRESENCE takes must. */
 export function reactionSidetrackDirect(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return env.REACTION_SIDETRACK === 'direct';
+  return env.REACTION_SIDETRACK === 'direct' || env.VOICED_PRESENCE === 'on';
 }
 
 /** When a clip's first frame went out, measured, not estimated. */
@@ -111,11 +110,12 @@ export class DirectClipTrack {
   private pump: Promise<void> | null = null;
   private publication: LocalTrackPublication | null = null;
   private room: Room | null = null;
+  /** Resolves the idle pump's wait: a clip arrived, or the track closed. */
+  private wake: (() => void) | null = null;
 
   constructor(
     private readonly onWire: (wire: ClipWire) => void = () => {},
-    private readonly source: AudioSource = new AudioSource(RATE, 1, DIRECT_CAPACITY_MS),
-    private readonly idleQueueMs = IDLE_QUEUE_MS
+    private readonly source: AudioSource = new AudioSource(RATE, 1, DIRECT_CAPACITY_MS)
   ) {}
 
   /** Publish the track and start feeding it. */
@@ -154,6 +154,7 @@ export class DirectClipTrack {
     this.frames = frames;
     this.sent = 0;
     this.current = { label, playedAt: performance.now(), pauseStartedAt, wired: false };
+    this.wake?.();
     return true;
   }
 
@@ -185,6 +186,7 @@ export class DirectClipTrack {
     this.frames = tail;
     this.sent = 0;
     this.clipEndsAt = 0;
+    this.wake?.();
     return true;
   }
 
@@ -197,21 +199,21 @@ export class DirectClipTrack {
   /**
    * Clip frames go in as fast as the source takes them, up to its 400 ms
    * capacity, so an event-loop stall mid-clip plays out of the queue instead
-   * of leaving a gap in the "mm-hmm". Idle, silence is topped up only to
-   * `idleQueueMs`, so a new clip waits behind that little and no more.
+   * of leaving a gap in the "mm-hmm". Idle, it waits for play() and sends
+   * nothing, so a new clip waits behind nothing.
    */
   private async run(): Promise<void> {
-    const silent = new Int16Array(FRAME);
     while (!this.closed) {
       const clip = this.sent < this.frames.length ? this.frames[this.sent] : undefined;
-      if (clip === undefined && this.source.queuedDuration >= this.idleQueueMs) {
+      if (clip === undefined) {
         await new Promise<void>((resolve) => {
-          setTimeout(resolve, IDLE_POLL_MS);
+          this.wake = resolve;
         });
+        this.wake = null;
         continue;
       }
       const cur = this.current;
-      if (clip !== undefined && cur && !cur.wired) {
+      if (cur && !cur.wired) {
         cur.wired = true;
         const queuedAheadMs = this.source.queuedDuration;
         const playToWireMs = performance.now() - cur.playedAt + queuedAheadMs;
@@ -225,19 +227,20 @@ export class DirectClipTrack {
           pauseToWireMs: cur.pauseStartedAt === undefined ? undefined : wireAt - cur.pauseStartedAt,
         });
       }
-      if (clip !== undefined) this.sent++;
+      this.sent++;
       try {
-        await this.source.captureFrame(new AudioFrame(clip ?? silent, RATE, 1, FRAME));
+        await this.source.captureFrame(new AudioFrame(clip, RATE, 1, FRAME));
       } catch {
         break;
       }
-      if (clip !== undefined) this.clipEndsAt = Date.now() + this.source.queuedDuration;
+      this.clipEndsAt = Date.now() + this.source.queuedDuration;
     }
   }
 
   /** Never rejects: it runs from session cleanup, often after the room is gone. */
   async close(): Promise<void> {
     this.closed = true;
+    this.wake?.();
     this.stop();
     for (const fn of this.cleanups.splice(0)) fn();
     await this.pump?.catch(() => undefined);
@@ -261,7 +264,8 @@ export async function startDirectClips(
   room: Room,
   session: voice.AgentSession
 ): Promise<DirectClipTrack | null> {
-  const track = new DirectClipTrack((wire) =>
+  const track = new DirectClipTrack((wire) => {
+    logVoicedTake(wire.label, wire.playToWireMs);
     log.info(
       {
         clip: wire.label,
@@ -272,8 +276,8 @@ export async function startDirectClips(
         track: 'direct',
       },
       'CLIP_WIRE'
-    )
-  );
+    );
+  });
   try {
     await track.publish(room);
   } catch (error) {

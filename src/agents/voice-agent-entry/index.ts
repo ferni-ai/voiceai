@@ -18,6 +18,7 @@ import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
+import { injectUserAwareness } from './user-awareness-injection.js';
 
 // Event cleanup registry for proper memory management
 import {
@@ -27,7 +28,6 @@ import {
 
 // Phase modules
 import {
-  buildUserAwareness,
   connectToRoom,
   getCachedVoiceDeps,
   loadVoiceDeps as loadVoiceDepsPhase,
@@ -61,6 +61,7 @@ import { configureModelProvider } from '../../personas/bundles/model-provider-co
 
 // Submodule imports
 import { finishCallTypeContexts, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import { evalLocalTime } from '../personas/eval-local-time.js';
 import { buildSessionPersona } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
@@ -336,7 +337,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     });
     userId = identifiedUserId ?? null;
 
-    // Update crash analytics with user context
     updateSessionState(sessionId, { state: 'active' });
     registerSession(sessionId, {
       sessionId,
@@ -347,7 +347,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     const servicesInitStartedAt = Date.now();
 
-    // Initialize session services
     const initResult = await initializeSession({
       sessionId,
       userId: userId ?? undefined,
@@ -374,7 +373,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
     if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
-    rememberCallerTimeZone(metadata.timezone, sessionId, services?.realtimeConversationId);
+    rememberCallerTimeZone(isValidTimeZone(metadata.timezone) || callType === 'on_behalf_call' ? metadata.timezone : services?.userProfile?.contactInfo?.timezone, sessionId, services?.realtimeConversationId, userId); // no browser zone (phone): the profile's
+    if (userData) userData.evalLocalTime = evalLocalTime(userId, metadata);
     // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
       userData.userLocation = {
@@ -438,26 +438,17 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         );
       }
 
-      const userAwarenessResult = buildUserAwareness({
+      // Read the profile as it stands now: session init decided "returning" before the deferred load.
+      const awareness = injectUserAwareness({
         sessionId,
         userProfile: services.userProfile,
+        userData,
         isReturningUser,
         userName,
         sessionStartTime,
       });
-      if (userAwarenessResult.facts.length > 0) {
-        modelBaseInstructions += userAwarenessResult.instructionsBlock;
-        process.stderr.write(
-          `[voice-agent-entry] 👤 BETTER THAN HUMAN - User awareness injected (${userAwarenessResult.facts.length} facts):\n`
-        );
-        userAwarenessResult.facts.forEach((fact: string, i: number) => {
-          process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${fact}\n`);
-        });
-      } else {
-        process.stderr.write(
-          `[voice-agent-entry] 👤 No user awareness facts available (new user or empty profile)\n`
-        );
-      }
+      isReturningUser = awareness.isReturningUser;
+      modelBaseInstructions += awareness.instructionsBlock;
 
       // Calendar awareness (non-blocking)
       if (services.userProfile && userId) {

@@ -142,6 +142,9 @@ class RedisPubSubService {
         maxRetriesPerRequest: 3,
         enableReadyCheck: true,
         lazyConnect: true,
+        // ioredis 6 defaults to RESP3, which changes reply shapes and
+        // pub/sub framing; keep v5's RESP2. duplicate() below inherits this option.
+        protocol: 2,
       }) as unknown as RedisClient;
 
       // Create subscriber connection (must be separate for pub/sub)

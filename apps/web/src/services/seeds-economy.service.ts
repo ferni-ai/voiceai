@@ -16,6 +16,7 @@
 
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createLogger } from '../utils/logger.js';
 import { addSeeds, getSeedBalance } from './cosmetics.service.js';
 import { serverSeeds } from './seeds-ledger.service.js';
@@ -262,10 +263,9 @@ export function recordConversation(): void {
   }
 }
 
-/**
- * Check and award streak milestone bonuses
- */
+/** Award streak milestone bonuses. None under VITE_NO_STREAKS (the streak still counts). */
 function checkStreakMilestones(): void {
+  if (isNoStreaksOn()) return;
   for (const days of STREAK_MILESTONES) {
     const milestoneId = `streak-${days}`;
 
@@ -274,16 +274,11 @@ function checkStreakMilestones(): void {
       const reward = SEED_REWARDS[rewardKey];
 
       if (reward) {
+        // awardSeeds' ferni:seeds-earned (type 'streak', streak reason) is the one
+        // notice; a second ferni:streak-milestone here announced the same award twice.
         awardSeeds(reward);
         state.awardedMilestones.push(milestoneId);
         saveState();
-
-        // Dispatch streak celebration event
-        document.dispatchEvent(
-          new CustomEvent('ferni:streak-milestone', {
-            detail: { days, reward: reward.amount },
-          })
-        );
       }
     }
   }
