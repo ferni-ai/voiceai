@@ -88,6 +88,8 @@ function videoCandidate(v: YouTubeVideo): Candidate {
     by: v.channelTitle,
     url: `https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}`,
     length: v.durationSeconds ? spokenLength(v.durationSeconds) : undefined,
+    seconds: v.durationSeconds || undefined,
+    creatorId: v.channelId || undefined,
   };
 }
 

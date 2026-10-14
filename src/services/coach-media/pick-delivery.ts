@@ -30,6 +30,7 @@ import { safeHttpsUrl } from './grounded-search.js';
 import { webData } from './result-text.js';
 import type { Candidate } from './checked-pick.js';
 import { COACH_MEDIA_COMMITMENT_PREFIX } from './feedback.js';
+import { markSent } from './pick-log.js';
 import { topicOnlyQuery } from './topic-query.js';
 
 export interface SentPick {
@@ -37,6 +38,8 @@ export interface SentPick {
   candidate: Candidate;
   /** The check's one sentence on why it suits them. */
   why?: string;
+  /** Its pick-log id (pick-log.ts); the follow-up commitment carries it. */
+  pickId?: string;
 }
 
 /** Sends per call, per channel (text, app). */
@@ -48,6 +51,11 @@ const sends = new WeakMap<object, Record<'text' | 'app', number>>();
 
 export function rememberPick(session: object | undefined, pick: SentPick): void {
   if (session) lastPicks.set(session, pick);
+}
+
+/** Whether this call already had a pick. */
+export function hasPick(session: object | undefined): boolean {
+  return session ? lastPicks.has(session) : false;
 }
 
 /** Hosts a sent link may point to: where checked videos and books come from. */
@@ -95,17 +103,18 @@ export function commitmentText(c: Candidate): string {
   return title ? `try the ${c.kind} '${title}'` : `try the ${c.kind} Ferni sent`;
 }
 
-async function followUpLater(userId: string, sent: SentPick): Promise<void> {
+async function followUpLater(userId: string, sent: SentPick): Promise<Date> {
   const now = new Date();
+  const due = new Date(now.getTime() + FOLLOW_UP_DAYS * 86_400_000);
   await saveCommitment({
-    id: `${COACH_MEDIA_COMMITMENT_PREFIX}${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `${COACH_MEDIA_COMMITMENT_PREFIX}${sent.pickId ?? `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`}`,
     userId,
     content: commitmentText(sent.candidate),
     type: 'task',
     status: 'active',
     createdAt: now,
     lastMentioned: now,
-    followUpDate: new Date(now.getTime() + FOLLOW_UP_DAYS * 86_400_000),
+    followUpDate: due,
     followUpType: 'specific',
     originalQuote: callerText(sent.topic, 120),
     motivation: 'Ferni sent this to help; ask whether it helped.',
@@ -115,6 +124,7 @@ async function followUpLater(userId: string, sent: SentPick): Promise<void> {
     importance: 'low',
     shouldFollowUp: true,
   });
+  return due;
 }
 
 /**
@@ -184,9 +194,11 @@ export async function deliverPick(
     }
   }
 
-  await followUpLater(userId, sent).catch((error: unknown) =>
-    log.warn({ error: String(error) }, 'coach-media: follow-up not saved')
-  );
+  const due = await followUpLater(userId, sent).catch((error: unknown) => {
+    log.warn({ error: String(error) }, 'coach-media: follow-up not saved');
+    return null;
+  });
+  if (sent.pickId && due) await markSent(userId, sent.pickId, how, due);
   log.info({ how, kind: c.kind }, 'coach-media: pick sent');
   return how === 'text'
     ? 'Texted it to them. In a few days, ask once whether it helped.'

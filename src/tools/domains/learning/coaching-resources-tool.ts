@@ -16,9 +16,17 @@ import { checkedPick } from '../../../services/coach-media/checked-pick.js';
 import { fitContext } from '../../../services/coach-media/fit.js';
 import {
   deliverPick,
+  hasPick,
   recordPickFeedback,
   rememberPick,
 } from '../../../services/coach-media/pick-delivery.js';
+import { logOffered, recentPicks } from '../../../services/coach-media/pick-log.js';
+import {
+  boostFor,
+  tasteFrom,
+  tasteReason,
+  tasteWords,
+} from '../../../services/coach-media/taste.js';
 import {
   GROUNDING_PER_USER_PER_DAY,
   takeDailyBudget,
@@ -91,6 +99,7 @@ export async function runFindCoachingResources(
   call: Call,
   userId?: string
 ): Promise<string> {
+  const started = Date.now();
   const names = sessionIdentifiers(call.userData);
   const topic = topicOnlyQuery(args.topic, names);
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
@@ -107,11 +116,28 @@ export async function runFindCoachingResources(
       format === 'book'
         ? await bookCandidates(topic)
         : await videoCandidates(topic, format === 'short');
-    const fit = await fitContext(userId, args.fit, names);
-    const pick = await checkedPick(candidates, topic, fit);
+    const known = userId && userId !== 'anonymous' ? userId : undefined;
+    const taste = tasteFrom(known ? await recentPicks(known) : []);
+    const fit = [await fitContext(userId, args.fit, names), tasteWords(taste)]
+      .filter(Boolean)
+      .join('; ');
+    const pick = await checkedPick(candidates, topic, fit, (c) => boostFor(taste, c, format));
     if (pick) {
-      rememberPick(call.session, { topic, candidate: pick.candidate, why: pick.verdict?.why });
-      return pickResultText(topic, pick, sensitive);
+      const c = pick.candidate;
+      const pickId = known
+        ? await logOffered(known, {
+            topic,
+            format,
+            title: c.title,
+            by: c.by,
+            lengthSeconds: c.seconds,
+            creatorId: c.creatorId,
+            latencyMs: Date.now() - started,
+            firstInCall: !hasPick(call.session),
+          })
+        : undefined;
+      rememberPick(call.session, { topic, candidate: c, why: pick.verdict?.why, pickId });
+      return pickResultText(topic, pick, sensitive, tasteReason(taste, c, format));
     }
     if (candidates.length > 0) return NONE_FIT;
   }
