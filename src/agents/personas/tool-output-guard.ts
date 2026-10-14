@@ -33,12 +33,22 @@ export function toolOutputGuardEnabled(env: Record<string, string | undefined> =
   return flagOn('TOOL_EMPTY_RESULT_GUARD', env);
 }
 
-/** Tool outputs reach the model as JSON strings: `""` is an empty string result. */
+/** Tool outputs reach the model as JSON: `""`, `"  "`, `null`, `{}` and `[]` say nothing. */
 function isEmptyOutput(output: unknown): boolean {
   if (output === undefined || output === null) return true;
   if (typeof output !== 'string') return false;
   const text = output.trim();
-  return text === '' || text === '""' || text === 'null' || text === 'undefined';
+  if (text === '' || text === 'undefined') return true;
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    return false; // plain text that isn't JSON is a real result
+  }
+  if (value === null) return true;
+  if (typeof value === 'string') return value.trim() === '';
+  if (Array.isArray(value)) return value.length === 0;
+  return typeof value === 'object' && Object.keys(value).length === 0;
 }
 
 /** A handoff returns no output by design: the teammate's agent takes over. */

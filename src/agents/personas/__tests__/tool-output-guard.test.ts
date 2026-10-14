@@ -37,18 +37,24 @@ const session = { userData: { services: { sessionId: 's1' } } };
 const outputOf = (chat: llm.ChatContext) => (chat.items.at(-1) as llm.FunctionCallOutput).output;
 
 describe('fillEmptyToolOutputs', () => {
-  it.each(['""', '', 'null', '  '])('turns an empty result (%j) into an explicit one', (raw) => {
-    const chat = contextWith('playMusic', raw);
-    expect(fillEmptyToolOutputs(chat, session)).toBe(1);
-    expect(outputOf(chat)).toBe(JSON.stringify('playMusic ran; no details returned.'));
-    // Idempotent: the filled result is not filled again.
-    expect(fillEmptyToolOutputs(chat, session)).toBe(0);
-  });
+  it.each(['""', '', 'null', JSON.stringify('  '), JSON.stringify('\n'), '{}', '[]'])(
+    'turns an empty result (%j) into an explicit one',
+    (raw) => {
+      const chat = contextWith('playMusic', raw);
+      expect(fillEmptyToolOutputs(chat, session)).toBe(1);
+      expect(outputOf(chat)).toBe(JSON.stringify('playMusic ran; no details returned.'));
+      // Idempotent: the filled result is not filled again.
+      expect(fillEmptyToolOutputs(chat, session)).toBe(0);
+    }
+  );
 
   it('leaves real results and handoffs alone', () => {
     const real = contextWith('getWeather', JSON.stringify('72 and sunny'));
     const handoff = contextWith('handoffToPeter', '');
-    expect(fillEmptyToolOutputs(real) + fillEmptyToolOutputs(handoff)).toBe(0);
+    const words = contextWith('getNews', 'plain words, not JSON');
+    expect(
+      fillEmptyToolOutputs(real) + fillEmptyToolOutputs(handoff) + fillEmptyToolOutputs(words)
+    ).toBe(0);
     expect(outputOf(real)).toBe(JSON.stringify('72 and sunny'));
     expect(outputOf(handoff)).toBe('');
   });
@@ -69,7 +75,8 @@ describe('fillEmptyToolOutputs', () => {
 
 describe('rememberAboutUser says what happened', () => {
   it('has short, non-empty results for saved and not saved', () => {
-    expect(REMEMBERED).toMatch(/saved/i);
+    expect(REMEMBERED).toMatch(/noted for next time/i);
+    expect(REMEMBERED).not.toMatch(/saved/i); // the write isn't awaited, so it doesn't claim one
     expect(REMEMBERED_THIS_CALL).toMatch(/couldn't be saved/i);
   });
 });

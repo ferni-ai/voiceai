@@ -187,16 +187,16 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
 
-        if (!userId) {
-          log.warn('No userId available for memory write');
-          return REMEMBERED_THIS_CALL;
-        }
-
         // Store in session for awareness tools (backward compat)
         if (!userData.keyMoments) {
           userData.keyMoments = [];
         }
         userData.keyMoments.push(`[${category}] ${fact}`);
+
+        if (!userId) {
+          log.warn('No userId available for memory write');
+          return REMEMBERED_THIS_CALL;
+        }
 
         // Write to unified memory service
         const result = await memoryService.write({
