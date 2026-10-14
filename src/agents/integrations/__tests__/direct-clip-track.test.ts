@@ -5,7 +5,6 @@ import {
   clipFrames,
   DIRECT_CAPACITY_MS,
   DIRECT_TRACK_NAME,
-  IDLE_QUEUE_MS,
   DirectClipTrack,
   reactionSidetrackDirect,
   type ClipWire,
@@ -25,22 +24,31 @@ afterEach(async () => {
   await Promise.all(open.splice(0).map((t) => t.close()));
 });
 
-function track(idleMs = IDLE_QUEUE_MS): { t: DirectClipTrack; wires: ClipWire[] } {
-  const wires: ClipWire[] = [];
-  const source = new AudioSource(48000, 1, DIRECT_CAPACITY_MS);
-  const t = new DirectClipTrack((w) => wires.push(w), source, idleMs);
-  open.push(t);
-  t.start();
-  return { t, wires };
+/** A real source that counts the frames pushed into it. */
+class CountingSource extends AudioSource {
+  frames = 0;
+  override async captureFrame(frame: Parameters<AudioSource['captureFrame']>[0]): Promise<void> {
+    this.frames++;
+    return super.captureFrame(frame);
+  }
 }
 
-/** Median play()-to-wire over three clips, after the queue reaches steady state. */
-async function clipToWireMs(idleMs: number): Promise<number> {
-  const { t, wires } = track(idleMs);
-  await sleep(idleMs + 400); // the idle queue as full as it gets
+function track(): { t: DirectClipTrack; wires: ClipWire[]; source: CountingSource } {
+  const wires: ClipWire[] = [];
+  const source = new CountingSource(48000, 1, DIRECT_CAPACITY_MS);
+  const t = new DirectClipTrack((w) => wires.push(w), source);
+  open.push(t);
+  t.start();
+  return { t, wires, source };
+}
+
+/** Median play()-to-wire over three clips. */
+async function clipToWireMs(): Promise<number> {
+  const { t, wires } = track();
+  await sleep(400);
   for (let i = 0; i < 3; i++) {
     expect(t.play(clip(100), 1, 'Mm')).toBe(true);
-    await sleep(idleMs + 300);
+    await sleep(300);
   }
   expect(wires).toHaveLength(3);
   const lags = wires.map((w) => w.playToWireMs).sort((a, b) => a - b);
@@ -77,11 +85,19 @@ describe('clipFrames', () => {
 
 describe('clip to wire (real rtc-node AudioSource)', () => {
   it('a clip reaches the wire in well under 150 ms (mixer path: 640-688 ms)', async () => {
-    expect(await clipToWireMs(IDLE_QUEUE_MS)).toBeLessThan(150);
+    expect(await clipToWireMs()).toBeLessThan(150);
   }, 10_000);
 
-  it('the idle queue is what sets it: topped up to 400 ms, a clip waits ~400 ms', async () => {
-    expect(await clipToWireMs(400)).toBeGreaterThan(350);
+  it('pushes no frames while idle, only the clip, then goes quiet again', async () => {
+    const { t, source } = track();
+    await sleep(300);
+    expect(source.frames).toBe(0); // was ~30: 10 ms of silence every 10 ms
+    t.play(clip(100), 1, 'Mm');
+    await sleep(300);
+    const clipFramesSent = source.frames;
+    expect(clipFramesSent).toBe(clipFrames(clip(100)).length);
+    await sleep(300);
+    expect(source.frames).toBe(clipFramesSent);
   }, 10_000);
 
   it('reports pause onset to wire when the caller passes the pause start', async () => {

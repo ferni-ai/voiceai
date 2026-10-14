@@ -32,9 +32,11 @@ import {
 import { CircuitOpenError, getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { vertexText, type VertexTextModel } from './llm/vertex-text.js';
+import { claudeText, routesToClaude, type LLMTask } from './llm/claude-text.js';
+import { useVertexAI } from '../config/vertex-flag.js';
 
 // Check if Vertex AI is explicitly enabled
-const USE_VERTEX_AI = process.env.USE_VERTEX_AI !== 'false';
+const USE_VERTEX_AI = useVertexAI();
 
 // ============================================================================
 // CIRCUIT BREAKERS
@@ -64,6 +66,7 @@ export interface LLMCallOptions {
   timeout?: number;
   /** Retry a Vertex 429 three times (0.5s, 1s, 2s). Default: LLM_RETRY_429=on. */
   retry429?: boolean;
+  task?: LLMTask; // CLAUDE_LLM_TASKS can route this background job to Claude first
 }
 
 const is429 = (error: unknown): boolean => /429|RESOURCE_EXHAUSTED/.test(String(error));
@@ -79,9 +82,7 @@ interface VertexAIClient {
 }
 
 let vertexAIClient: VertexAIClient | null = null;
-// FIX: Use Promise-based singleton to prevent race condition
-// When multiple callers invoke getVertexAIClient() concurrently,
-// they all wait for the same initialization promise instead of each starting their own
+// Concurrent callers share one initialization promise instead of each starting their own.
 let vertexAIClientInitPromise: Promise<VertexAIClient | null> | null = null;
 
 async function getVertexAIClient(): Promise<VertexAIClient | null> {
@@ -381,7 +382,8 @@ async function callOpenAI(prompt: string, options: LLMCallOptions = {}): Promise
 /**
  * Make a supplementary LLM call with automatic fallback
  *
- * Priority depends on USE_VERTEX_AI setting:
+ * A call whose task is listed in CLAUDE_LLM_TASKS tries Claude first (llm/claude-text.ts).
+ * Then priority depends on USE_VERTEX_AI setting:
  * - If USE_VERTEX_AI=true (default): Vertex AI → OpenAI → null
  * - If USE_VERTEX_AI=false: Gemini API (consumer) → OpenAI → null
  *
@@ -396,6 +398,8 @@ export async function callLLM(
   prompt: string,
   options: LLMCallOptions = {}
 ): Promise<string | null> {
+  const claude = routesToClaude(options.task) ? await claudeText(prompt, options) : null;
+  if (claude) return claude;
   if (USE_VERTEX_AI) {
     // Try Vertex AI first (enterprise tier with higher quotas)
     const vertexResult = await callVertexAI(prompt, options);
@@ -469,6 +473,7 @@ export function createSummarizationLLMCaller(): (prompt: string) => Promise<stri
       maxTokens: 1000,
       temperature: 0.4,
       timeout: 10000,
+      task: 'summary',
     });
     return result || '';
   };

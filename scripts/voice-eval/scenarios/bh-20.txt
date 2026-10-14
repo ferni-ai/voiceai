@@ -1,0 +1,7 @@
+# bh: {"to": "nayan-patel", "path": "need", "facts": ["awake", "night", "replay", "conversation", "said something wrong", "overthink"]}
+Hey Ferni. I lie awake at night replaying every conversation from the day, wondering if I said something wrong.
+Is there someone on your team who'd be good to talk to about this?
+Yeah, let's do that.
+@pause 9000 -
+Hi.
+So, what do you think?

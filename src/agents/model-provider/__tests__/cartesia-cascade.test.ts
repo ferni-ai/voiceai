@@ -286,6 +286,18 @@ describe('ink-2 turn detection', () => {
     });
   });
 
+  it('ignores a CASCADE_TURN_END ink would reject (outside 0.05-0.5), which leaves a call deaf', async () => {
+    const { inkTurnProfile, INK_TURN_PROFILES } = await import('../cartesia-cascade.js');
+    // 0.55 is below the eager threshold (0.6) but ink closes the socket with 1008
+    for (const bad of ['0.55', '0.51', '0.04']) {
+      expect(inkTurnProfile({ CASCADE_TURN_END: bad }).endThreshold).toBe(
+        INK_TURN_PROFILES.responsive.endThreshold
+      );
+    }
+    expect(inkTurnProfile({ CASCADE_TURN_END: '0.5' }).endThreshold).toBe(0.5);
+    expect(inkTurnProfile({ CASCADE_TURN_END: '0.05' }).endThreshold).toBe(0.05);
+  });
+
   it('keeps each profile in the order ink requires (start > eager end > end)', async () => {
     const { INK_TURN_PROFILES } = await import('../cartesia-cascade.js');
     for (const p of Object.values(INK_TURN_PROFILES)) {
