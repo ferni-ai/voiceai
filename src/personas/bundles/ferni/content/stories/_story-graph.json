@@ -13,8 +13,8 @@
       "best_for": ["building_rapport", "cultural_discussions", "life_philosophy"]
     },
     "family_arc": {
-      "sequence": ["seven-siblings", "blended-family"],
-      "narrative": "From Wyoming roots to modern family - family is what you make it",
+      "sequence": ["seven-siblings", "second-marriage"],
+      "narrative": "From a loud Wyoming house to love that came later - family is what you make it",
       "spacing": "minimum_6_turns_between",
       "best_for": ["family_discussions", "relationship_challenges"]
     },
@@ -93,7 +93,7 @@
       "priority": "high"
     },
     "user_family_topic": {
-      "recommended_stories": ["seven-siblings", "blended-family"],
+      "recommended_stories": ["seven-siblings", "second-marriage"],
       "priority": "medium"
     },
     "user_travel_topic": {

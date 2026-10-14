@@ -6,10 +6,10 @@ import { join } from 'node:path';
 
 import { hashSeed, shuffled } from '../judge-stats.mjs';
 
-/** A run's directory (--out, else today's under voiceai-evidence): it holds corpus text. */
+/** A run's directory (--out, else today's, local date, under voiceai-evidence): it holds corpus text. */
 export const runDir = (out) =>
   out ??
-  join(homedir(), 'Documents/voiceai-evidence/next-turn', new Date().toISOString().slice(0, 10));
+  join(homedir(), 'Documents/voiceai-evidence/next-turn', new Date().toLocaleDateString('en-CA'));
 
 /** Friends, couples and family talking; lectures, sermons, meetings and service talk are out. */
 export const CONVERSATIONS = [

@@ -19,6 +19,7 @@ import { ReadableStream } from 'node:stream/web';
 import { findChunkEnd, findFirstChunkEnd, findFirstWordEnd } from './chunk-boundary.js';
 import { leadSilenceTrimEnabled, trimLeadingSilence } from './lead-silence.js';
 import { decideEmotion, STABLE_EMOTIONS } from './director/emotion.js';
+import { withFallingVocative } from './name-intonation.js';
 import { sendReplyTone } from './reply-tone-signal.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
@@ -135,7 +136,8 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
   const { textStream, reply, sanitize, openingTags, emotion, toFrames, onFirstAudio, onError } =
     opts;
   const trimLead = opts.trimLeadSilence ?? leadSilenceTrimEnabled();
-  const reader = textStream.getReader();
+  // NAME_FALLING_INTONATION: an opening "Hey Seth, ..." becomes "Hey Seth." on its own piece.
+  const reader = withFallingVocative(textStream).getReader();
   let stopped = false;
   // Contexts in play order; the feed writes to the last one.
   const replies: ReplyStream[] = [reply];
