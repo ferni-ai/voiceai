@@ -335,7 +335,8 @@ export async function completeOnBehalfCall(
     const machine = heardAs === 'voicemail' || heard.length === 0;
     const missed =
       outcome.status === 'no_answer' || (outcome.status === 'voicemail' && machine);
-    if (followthrough && missed && scheduleRetry) {
+    const refused = heardAs === 'opted_out' || heardAs === 'declined';
+    if (followthrough && missed && !refused && scheduleRetry) {
       const retryAt = await scheduleRetry(call);
       if (retryAt) {
         // Keep whatever the report said about the call; the retry replaces only the offer.
