@@ -59,6 +59,9 @@ checks; reviewable lines are counted by `scripts/ci/reviewable.sh`).
 - **Never print, log or commit secrets.** Read them into env vars from Secret
   Manager (`gcloud secrets versions access latest --secret=<name> --project=johnb-2025`).
 - **Never skip git hooks** (`--no-verify`, `core.hooksPath`), not even for local commits.
+- **Never use `git stash`.** The stash list is shared by every worktree of this
+  repo; on 2026-10-14 one session's pop dropped another's work. Set work aside
+  by committing on a throwaway branch.
 - **Commit subjects**: conventional type (`feat fix refactor docs test chore
   style perf ci revert`) and entirely lower-case. A camelCase word in the
   subject fails commitlint.
@@ -113,9 +116,9 @@ pnpm build:fast              # esbuild
 
 ## Where to look (load on demand)
 
-- `docs/agent/reference.md`: the former 2,000-line CLAUDE.md. Subsystem
-  overviews (memory, personas, tools, design system, CLI). **Partly outdated:
-  verify against the code.**
+- `docs/archive/2026-10-08-former-claude-md.md`: the former 2,000-line
+  CLAUDE.md, archived. Subsystem overviews (memory, personas, tools, design
+  system, CLI). **Partly outdated: verify against the code.**
 - `src/**/CLAUDE.md`: notes for a subsystem, read when you work in it.
 - `docs/DEFINITION-OF-CLEAN.md`: what "clean" means here.
 - `scripts/voice-eval/`: the live-call eval harness and its scenarios.
