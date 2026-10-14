@@ -32,7 +32,11 @@ import {
   takeDailyBudget,
 } from '../../../services/coach-media/quota.js';
 import { groundedAnswer } from '../../../services/coach-media/grounded-search.js';
-import { groundedResultText, pickResultText } from '../../../services/coach-media/result-text.js';
+import {
+  groundedResultText,
+  pickResultText,
+  useRegisteredToolNames,
+} from '../../../services/coach-media/result-text.js';
 import {
   coachMediaEnabled,
   sessionIdentifiers,
@@ -41,7 +45,11 @@ import {
 import { getLogger } from '../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../utils/synthetic-user.js';
 import { ownerKnown, testAccountReply } from '../communication/outreach/outreach-confirm.js';
+import { toolRegistry } from '../../registry/index.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
+
+// Brands like iPhone may stay in web text; registered tool names never do.
+useRegisteredToolNames(() => toolRegistry.getAllIds());
 
 export const FIND_COACHING_RESOURCES = 'findCoachingResources';
 
