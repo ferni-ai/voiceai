@@ -15,11 +15,8 @@
 import { CartesiaMarkupFilter, filterCartesiaMarkup } from './cartesia-markup-filter.js';
 import { tts } from '@livekit/agents';
 import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
-import {
-  CARTESIA_API_VERSION,
-  CARTESIA_MODEL,
-  DEFAULT_VOICE_IDS,
-} from '../../config/voice-ids.js';
+import { CARTESIA_API_VERSION, CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
+import { forwardTtsEvents } from './forward-tts-events.js';
 import type { PersonaVoiceConfig } from './types.js';
 
 // ============================================================================
@@ -99,6 +96,8 @@ export class PersonaAwareTTS extends tts.TTS {
   readonly label = 'persona-aware-tts';
 
   private personaTTS: CartesiaTTS;
+  /** Stops passing the current inner TTS's metrics and errors on to this one. */
+  private stopForwarding: () => void;
   private personaName: string;
   private voiceId: string;
   private accent: EnglishAccent;
@@ -129,6 +128,7 @@ export class PersonaAwareTTS extends tts.TTS {
     this.isLocalizedVoice = voiceConfig.isLocalizedVoice ?? this.accent !== 'american';
 
     this.personaTTS = createCartesiaTTSInstance(this.voiceId);
+    this.stopForwarding = forwardTtsEvents(this.personaTTS, this);
 
     // Initialize logger asynchronously (non-blocking)
     getLogger().then((logger) => {
@@ -149,7 +149,7 @@ export class PersonaAwareTTS extends tts.TTS {
    * Clean up resources.
    */
   cleanup(): void {
-    // No-op - no event listeners to clean up in this version
+    this.stopForwarding();
   }
 
   /**
@@ -272,7 +272,9 @@ export class PersonaAwareTTS extends tts.TTS {
     this.accent = newAccent ?? this.accent;
     this.isLocalizedVoice = this.accent !== 'american';
 
+    this.stopForwarding();
     this.personaTTS = createCartesiaTTSInstance(newVoiceId);
+    this.stopForwarding = forwardTtsEvents(this.personaTTS, this);
 
     log(
       'info',

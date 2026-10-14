@@ -23,15 +23,15 @@ Still, you're here. You're reading. You probably want to know where this is goin
 
 So here's an honest look at what we're thinking about. Not promises. Just directions.
 
-## What's Working
+## What We're Betting On
 
-Before talking about what's next, it's worth naming what's working.
+It's early. Ferni doesn't have a crowd of users yet, so we can't tell you what's working at scale. What we can tell you is what we're betting on.
 
-**The core experience is right.** People talk to Ferni and feel heard. They come back. They tell friends. The fundamental thing—AI that feels like talking to someone who knows you—is working.
+**The core experience.** AI that feels like talking to someone who knows you. That's the thing we're building toward, and the thing we'll judge ourselves on.
 
-**The team model is landing.** Users get the six specialists. They develop preferences. They ask for specific team members. The "one conversation, six perspectives" concept makes sense.
+**The team model.** Six specialists, each with a real perspective. We think "one conversation, six perspectives" will make sense to people. We'll find out.
 
-**The 2am moment is real.** A significant portion of usage happens late at night, early morning, or during commutes. People are using Ferni exactly when we hoped—the gaps when human support isn't available.
+**The 2am moment.** We expect Ferni to matter most late at night, early in the morning and on commutes: the gaps when human support isn't available.
 
 ## What We're Working On
 
@@ -41,7 +41,7 @@ Before talking about what's next, it's worth naming what's working.
 
 **More ways to connect.** Right now it's phone and web. We're exploring text messaging, integrations with tools you already use, ways to have Ferni present in more moments without being invasive.
 
-**Group dynamics.** We've seen users want Ferni in their relationships. Couples coaching. Family facilitation. This is complex—privacy, consent, multiple perspectives—but it's interesting.
+**Group dynamics.** We keep thinking about Ferni in relationships. Couples coaching. Family facilitation. This is complex—privacy, consent, multiple perspectives—but it's interesting.
 
 ## What We're Not Doing
 
@@ -57,7 +57,7 @@ Equally important: what we're not building.
 
 Here's the thing about building in public: it's not just transparency. It's invitation.
 
-We read feedback. We read the conversations (anonymized) that users allow us to read. We notice patterns. We make changes based on what we learn.
+We read feedback. We notice patterns. We make changes based on what we learn.
 
 If you're using Ferni, you're shaping what it becomes.
 

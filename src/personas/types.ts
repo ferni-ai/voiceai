@@ -23,7 +23,7 @@ export interface PersonaConfig {
   /** Unique identifier for this persona */
   id: string;
 
-  /** Display name (e.g., "Jack Bogle", "Financial Advisor") */
+  /** Display name (e.g., "Peter", "Financial Advisor") */
   name: string;
 
   /** Optional display name for UI (falls back to name if not provided) */

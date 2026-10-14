@@ -1,14 +1,14 @@
 /**
  * Roster Preferences Service
- * 
+ *
  * Manages which team members the user has chosen to show in their roster.
  * Implements the "Get to Know Ferni First" UX pattern:
- * 
+ *
  * - New users see only Ferni + prominent "Meet Your Team" button
  * - Users can add team members from the marketplace
  * - Added members persist across sessions
  * - Subscribers can show all members at once
- * 
+ *
  * This reduces initial overwhelm while still allowing full access to the team.
  */
 
@@ -20,13 +20,8 @@ const log = createLogger('RosterPrefs');
 // TYPES
 // ============================================================================
 
-export type TeamMemberId = 
-  | 'ferni'
-  | 'peter-john'
-  | 'maya-santos'
-  | 'jordan-taylor'
-  | 'alex-chen'
-  | 'nayan-patel';
+export type TeamMemberId =
+  'ferni' | 'peter-john' | 'maya-santos' | 'jordan-taylor' | 'alex-chen' | 'nayan-patel';
 
 export interface RosterPreferences {
   /** Members the user has explicitly added to their roster */
@@ -58,10 +53,14 @@ function loadPreferences(): RosterPreferences {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored) as RosterPreferences;
+      const parsed = JSON.parse(stored) as Partial<RosterPreferences>;
+      const addedMembers = Array.isArray(parsed.addedMembers)
+        ? parsed.addedMembers.filter((id): id is TeamMemberId => typeof id === 'string')
+        : [];
       return {
         ...getDefaultPreferences(),
         ...parsed,
+        addedMembers,
       };
     }
   } catch (err) {
@@ -83,8 +82,16 @@ function savePreferences(prefs: RosterPreferences): void {
 // STATE
 // ============================================================================
 
-let preferences: RosterPreferences = getDefaultPreferences();
+// Loaded from storage on first use, so a read or a write that happens before
+// initRosterPreferences() (or without it) still sees the saved roster instead
+// of an empty one, and an add can never overwrite what was saved.
+let loaded: RosterPreferences | null = null;
 const changeListeners: Set<() => void> = new Set();
+
+function current(): RosterPreferences {
+  loaded ??= loadPreferences();
+  return loaded;
+}
 
 // ============================================================================
 // PUBLIC API
@@ -94,7 +101,8 @@ const changeListeners: Set<() => void> = new Set();
  * Initialize the roster preferences service
  */
 export function initRosterPreferences(): void {
-  preferences = loadPreferences();
+  loaded = loadPreferences();
+  const preferences = loaded;
   log.debug('Roster preferences loaded:', {
     addedMembers: preferences.addedMembers.length,
     showAll: preferences.showAllMembers,
@@ -109,19 +117,20 @@ export function initRosterPreferences(): void {
 export function getVisibleMembers(): TeamMemberId[] {
   // Ferni is always visible
   const visible: TeamMemberId[] = ['ferni'];
-  
+
   // If showing all, return the full list
-  if (preferences.showAllMembers) {
+  const prefs = current();
+  if (prefs.showAllMembers) {
     return ['ferni', 'peter-john', 'maya-santos', 'jordan-taylor', 'alex-chen', 'nayan-patel'];
   }
-  
+
   // Add user's chosen members
-  for (const member of preferences.addedMembers) {
+  for (const member of prefs.addedMembers) {
     if (!visible.includes(member)) {
       visible.push(member);
     }
   }
-  
+
   return visible;
 }
 
@@ -130,8 +139,8 @@ export function getVisibleMembers(): TeamMemberId[] {
  */
 export function isMemberVisible(memberId: TeamMemberId): boolean {
   if (memberId === 'ferni') return true;
-  if (preferences.showAllMembers) return true;
-  return preferences.addedMembers.includes(memberId);
+  const prefs = current();
+  return prefs.showAllMembers || prefs.addedMembers.includes(memberId);
 }
 
 /**
@@ -139,12 +148,13 @@ export function isMemberVisible(memberId: TeamMemberId): boolean {
  */
 export function addMemberToRoster(memberId: TeamMemberId): void {
   if (memberId === 'ferni') return; // Ferni always visible
-  if (preferences.addedMembers.includes(memberId)) return; // Already added
-  
-  preferences.addedMembers.push(memberId);
-  preferences.isFirstVisit = false;
-  savePreferences(preferences);
-  
+  const prefs = current();
+  if (prefs.addedMembers.includes(memberId)) return; // Already added
+
+  prefs.addedMembers.push(memberId);
+  prefs.isFirstVisit = false;
+  savePreferences(prefs);
+
   log.info({ memberId }, 'Added team member to roster');
   notifyListeners();
 }
@@ -154,12 +164,13 @@ export function addMemberToRoster(memberId: TeamMemberId): void {
  */
 export function removeMemberFromRoster(memberId: TeamMemberId): void {
   if (memberId === 'ferni') return; // Can't remove Ferni
-  
-  const index = preferences.addedMembers.indexOf(memberId);
+
+  const prefs = current();
+  const index = prefs.addedMembers.indexOf(memberId);
   if (index > -1) {
-    preferences.addedMembers.splice(index, 1);
-    savePreferences(preferences);
-    
+    prefs.addedMembers.splice(index, 1);
+    savePreferences(prefs);
+
     log.info({ memberId }, 'Removed team member from roster');
     notifyListeners();
   }
@@ -169,10 +180,11 @@ export function removeMemberFromRoster(memberId: TeamMemberId): void {
  * Set whether to show all team members (for subscribers)
  */
 export function setShowAllMembers(showAll: boolean): void {
-  preferences.showAllMembers = showAll;
-  preferences.isFirstVisit = false;
-  savePreferences(preferences);
-  
+  const prefs = current();
+  prefs.showAllMembers = showAll;
+  prefs.isFirstVisit = false;
+  savePreferences(prefs);
+
   log.info({ showAll }, 'Set show all members');
   notifyListeners();
 }
@@ -181,16 +193,17 @@ export function setShowAllMembers(showAll: boolean): void {
  * Check if this is the user's first visit
  */
 export function isFirstVisit(): boolean {
-  return preferences.isFirstVisit;
+  return current().isFirstVisit;
 }
 
 /**
  * Mark first visit as complete
  */
 export function markFirstVisitComplete(): void {
-  if (preferences.isFirstVisit) {
-    preferences.isFirstVisit = false;
-    savePreferences(preferences);
+  const prefs = current();
+  if (prefs.isFirstVisit) {
+    prefs.isFirstVisit = false;
+    savePreferences(prefs);
   }
 }
 
@@ -198,7 +211,7 @@ export function markFirstVisitComplete(): void {
  * Get current preferences
  */
 export function getPreferences(): Readonly<RosterPreferences> {
-  return { ...preferences };
+  return { ...current() };
 }
 
 /**
@@ -213,8 +226,8 @@ export function onRosterChange(callback: () => void): () => void {
  * Reset preferences (for testing)
  */
 export function resetPreferences(): void {
-  preferences = getDefaultPreferences();
-  savePreferences(preferences);
+  loaded = getDefaultPreferences();
+  savePreferences(loaded);
   notifyListeners();
 }
 
@@ -223,7 +236,7 @@ export function resetPreferences(): void {
 // ============================================================================
 
 function notifyListeners(): void {
-  changeListeners.forEach(cb => {
+  changeListeners.forEach((cb) => {
     try {
       cb();
     } catch (err) {
@@ -249,4 +262,3 @@ export const rosterPreferences = {
   onChange: onRosterChange,
   reset: resetPreferences,
 };
-
