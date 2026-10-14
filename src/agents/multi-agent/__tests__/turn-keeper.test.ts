@@ -12,7 +12,7 @@ const msg = (role: string, textContent: string, interrupted = false) => ({
   interrupted,
 });
 
-function harness(items: unknown[] = []) {
+function harness(items: unknown[] = [], opts: { spokeCountsAsAnswer?: boolean } = {}) {
   const timers: Array<() => void> = [];
   const reply = vi.fn();
   const session = { agentState: 'listening', userState: 'listening', history: { items } };
@@ -26,17 +26,26 @@ function harness(items: unknown[] = []) {
       return timers.length as unknown as ReturnType<typeof setTimeout>;
     },
     clearTimer: () => undefined,
+    ...opts,
   });
   const fire = () => timers.splice(0).forEach((f) => f());
-  /** Ferni speaks for `ms`, then goes quiet. */
-  const speak = (ms: number) => {
+  /** Ferni speaks for `ms` (the caller talking over him if `talkedOver`), then goes quiet. */
+  const speak = (ms: number, talkedOver = false) => {
     session.agentState = 'speaking';
     keeper.onStateChange();
+    if (talkedOver) {
+      session.userState = 'speaking';
+      keeper.onStateChange();
+      session.userState = 'listening';
+    }
     clock += ms;
     session.agentState = 'listening';
     keeper.onStateChange();
   };
-  return { keeper, reply, session, fire, speak };
+  const tick = (ms: number) => {
+    clock += ms;
+  };
+  return { keeper, reply, session, fire, speak, tick };
 }
 
 describe('isRealAnswer', () => {
@@ -110,5 +119,60 @@ describe('createTurnKeeper', () => {
     h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: true });
     h.fire();
     expect(h.reply).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('createTurnKeeper with spokeCountsAsAnswer (TURN_KEEPER_SPOKE)', () => {
+  const asked = 'Are you from Southern are you from California?';
+
+  // Prod 2026-10-12 20:53: "Wyoming, actually." played with no caller speech,
+  // but LiveKit added no chat item for it, and the keeper made him say it again.
+  it('treats a reply Ferni spoke, unheard by the history, as the answer', () => {
+    const h = harness([msg('user', asked)], { spokeCountsAsAnswer: true });
+    h.keeper.onTranscript({ transcript: asked, isFinal: true });
+    h.tick(300);
+    h.speak(1100);
+    h.fire();
+    expect(h.reply).not.toHaveBeenCalled();
+  });
+
+  it('re-answers that same turn when the option is off (the prod behaviour)', () => {
+    const h = harness([msg('user', asked)]);
+    h.keeper.onTranscript({ transcript: asked, isFinal: true });
+    h.tick(300);
+    h.speak(1100);
+    h.fire();
+    expect(h.reply).toHaveBeenCalledWith(undefined);
+  });
+
+  it('still answers the Biscuit case: a reply cut after one word answered nothing', () => {
+    const h = harness([msg('user', 'Oh, and Biscuit chewed up my phone charger.')], {
+      spokeCountsAsAnswer: true,
+    });
+    h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: true });
+    h.speak(29);
+    h.fire();
+    expect(h.reply).toHaveBeenCalledWith('So, that was fun.');
+  });
+
+  it('does not count a reply the caller talked over', () => {
+    const h = harness([], { spokeCountsAsAnswer: true });
+    h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: true });
+    h.speak(1500, true);
+    h.fire();
+    expect(h.reply).toHaveBeenCalledWith('So, that was fun.');
+  });
+
+  it('does not count speech that began before the caller finished', () => {
+    const h = harness([], { spokeCountsAsAnswer: true });
+    h.session.agentState = 'speaking';
+    h.keeper.onStateChange();
+    h.tick(400);
+    h.keeper.onTranscript({ transcript: 'So, that was fun.', isFinal: true });
+    h.tick(900);
+    h.session.agentState = 'listening';
+    h.keeper.onStateChange();
+    h.fire();
+    expect(h.reply).toHaveBeenCalledWith('So, that was fun.');
   });
 });

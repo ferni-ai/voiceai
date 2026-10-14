@@ -24,8 +24,8 @@ import {
   type UserOutreachContext,
 } from './thinking-of-you.js';
 import { deliverOutreach } from './delivery/index.js';
-// Outreach History Tracking - "Better Than Human" learning from patterns
-import { outreachHistory } from './outreach-history.js';
+// Outreach History Tracking - every send is recorded with its message
+import { deliverAndRecord } from './deliver-and-record.js';
 // Session lifecycle - respect presence and post-session suppression
 import { sessionLifecycle } from '../session/session-lifecycle-hooks.js';
 
@@ -365,37 +365,16 @@ export class OutreachOrchestrator extends EventEmitter {
       log.warn({ error: String(err), userId }, 'Proactive call availability check failed - proceeding');
     }
 
-    // Attempt to deliver via outbound call system
-    try {
-      await deliverOutreach({
-        userId,
-        channel: 'call',
-        message: event.message,
-        personaId: event.personaId,
-        outreachId: `call_${userId}_${Date.now()}`,
-      });
-      this.telemetry.successfulDeliveries++;
-
-      // Record to outreach history for learning
-      await outreachHistory.recordAttempt(userId, {
-        type: 'thinking_of_you',
-        reason: context.trigger,
-        channel: 'voice',
-        personaId,
-        status: 'delivered',
-      });
-    } catch (err) {
-      log.error({ error: String(err), userId }, 'Failed to deliver proactive call');
-
-      // Record failed attempt
-      await outreachHistory.recordAttempt(userId, {
-        type: 'thinking_of_you',
-        reason: context.trigger,
-        channel: 'voice',
-        personaId,
-        status: 'failed',
-      });
-    }
+    // Attempt to deliver via outbound call system, and record it for learning
+    const delivered = await deliverAndRecord({
+      userId,
+      channel: 'call',
+      message: event.message,
+      personaId: event.personaId,
+      outreachId: `call_${userId}_${Date.now()}`,
+      reason: context.trigger,
+    });
+    if (delivered) this.telemetry.successfulDeliveries++;
 
     return event;
   }
@@ -461,37 +440,16 @@ export class OutreachOrchestrator extends EventEmitter {
 
     log.info({ userId, personaId, trigger: context.trigger }, '🔔 Push notification sent');
 
-    // Attempt to deliver
-    try {
-      await deliverOutreach({
-        userId,
-        channel: 'push',
-        message: event.message,
-        personaId: event.personaId,
-        outreachId: `push_${userId}_${Date.now()}`,
-      });
-      this.telemetry.successfulDeliveries++;
-
-      // Record to outreach history for learning
-      await outreachHistory.recordAttempt(userId, {
-        type: 'thinking_of_you',
-        reason: context.trigger || 'proactive',
-        channel: 'push',
-        personaId,
-        status: 'delivered',
-      });
-    } catch (err) {
-      log.error({ error: String(err), userId }, 'Failed to deliver push notification');
-
-      // Record failed attempt
-      await outreachHistory.recordAttempt(userId, {
-        type: 'thinking_of_you',
-        reason: context.trigger || 'proactive',
-        channel: 'push',
-        personaId,
-        status: 'failed',
-      });
-    }
+    // Attempt to deliver, and record it for learning
+    const delivered = await deliverAndRecord({
+      userId,
+      channel: 'push',
+      message: event.message,
+      personaId: event.personaId,
+      outreachId: `push_${userId}_${Date.now()}`,
+      reason: context.trigger || 'proactive',
+    });
+    if (delivered) this.telemetry.successfulDeliveries++;
 
     return event;
   }
@@ -551,36 +509,15 @@ export class OutreachOrchestrator extends EventEmitter {
 
     log.info({ userId, personaId }, '💬 SMS sent');
 
-    try {
-      await deliverOutreach({
-        userId,
-        channel: 'sms',
-        message: event.message,
-        personaId: event.personaId,
-        outreachId: `sms_${userId}_${Date.now()}`,
-      });
-      this.telemetry.successfulDeliveries++;
-
-      // Record to outreach history for learning
-      await outreachHistory.recordAttempt(userId, {
-        type: 'thinking_of_you',
-        reason: context.trigger || 'proactive',
-        channel: 'sms',
-        personaId,
-        status: 'delivered',
-      });
-    } catch (err) {
-      log.error({ error: String(err), userId }, 'Failed to deliver SMS');
-
-      // Record failed attempt for learning
-      await outreachHistory.recordAttempt(userId, {
-        type: 'thinking_of_you',
-        reason: context.trigger || 'proactive',
-        channel: 'sms',
-        personaId,
-        status: 'failed',
-      });
-    }
+    const delivered = await deliverAndRecord({
+      userId,
+      channel: 'sms',
+      message: event.message,
+      personaId: event.personaId,
+      outreachId: `sms_${userId}_${Date.now()}`,
+      reason: context.trigger || 'proactive',
+    });
+    if (delivered) this.telemetry.successfulDeliveries++;
 
     return event;
   }
