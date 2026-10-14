@@ -18,7 +18,11 @@ import { geminiJson, pool, qwenJson } from './models.mjs';
 
 export const RUBRIC = ['warmth', 'specificity', 'listening', 'naturalness'];
 const JUDGES = {
-  gemini: { ask: geminiJson, orders: 2, parallel: Number(process.env.GEMINI_PARALLEL ?? 6) },
+  gemini: {
+    ask: geminiJson,
+    orders: Number(process.env.GEMINI_ORDERS ?? 2),
+    parallel: Number(process.env.GEMINI_PARALLEL ?? 6),
+  },
   qwen: { ask: qwenJson, orders: 1, parallel: Number(process.env.QWEN_PARALLEL ?? 1) },
 };
 const HEADER = `Two people who know each other well are talking. The lines are transcribed speech, all lowercase with no punctuation; that is how every line is shown, so it says nothing about who said it. "sam" and "jo" are stand-in names.`;
@@ -71,13 +75,19 @@ export const firstOrder = (id) => (hashSeed(id) % 2 ? ['ferni', 'human'] : ['hum
 
 async function main() {
   const opt = { type: 'string' };
-  const { values: a } = parseArgs({ options: { judge: opt, pairs: opt, alone: opt, out: opt } });
+  const { values: a } = parseArgs({
+    options: { judge: opt, pairs: opt, alone: opt, out: opt, arm: opt },
+  });
   const judge = JUDGES[a.judge];
   if (!judge) throw new Error(`--judge must be one of ${Object.keys(JUDGES)}`);
   const read = (f) => JSON.parse(readFileSync(join(runDir(a.out), f), 'utf8'));
-  const [ferni, file] = [read('ferni.json'), join(runDir(a.out), `judge.${a.judge}.json`)];
+  const arm = a.arm && a.arm !== 'base' ? `.${a.arm}` : '';
+  const [ferni, file] = [
+    read(`ferni${arm}.json`),
+    join(runDir(a.out), `judge.${a.judge}${arm}.json`),
+  ];
   const moments = read('moments.json').filter((m) => ferni[m.id]);
-  const verdicts = existsSync(file) ? read(`judge.${a.judge}.json`) : {};
+  const verdicts = existsSync(file) ? read(`judge.${a.judge}${arm}.json`) : {};
   const split = (s) => moments.filter((m) => m.split === s);
   const some = (s, n, seed) => (n ? stratified(split(s), n, { seed }) : split(s));
   const n = Number(a.pairs ?? 0);
@@ -85,7 +95,8 @@ async function main() {
   const orders = (m) => [firstOrder(m.id), firstOrder(m.id).toReversed()].slice(0, judge.orders);
   const jobs = [
     ...forPairs.flatMap((m) => orders(m).map((order) => ({ m, order }))),
-    ...some('main', Number(a.alone ?? 0), 4).flatMap((m) => [
+    // --alone 0: pairs only.
+    ...(a.alone === '0' ? [] : some('main', Number(a.alone ?? 0), 4)).flatMap((m) => [
       { m, arm: 'ferni' },
       { m, arm: 'human' },
     ]),

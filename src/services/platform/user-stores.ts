@@ -118,12 +118,15 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'routing_events',
     'game_analytics_events',
     'bth_production_events',
-    'phone_mappings'
+    'phone_mappings',
+    'feature_checkins' // texts sent to the person, with their replies
   ),
   ...byField('ownerId', 'share_links', 'share_invites', 'voice_households'),
   ...byField('toUserId', 'family_messages', 'family_shared_context'),
   ...byField('referrerId', 'voice_referrals'),
   ...byField('odId', 'analytics_sessions'),
+  ...byField('firebaseUid', 'user_profiles'), // access grants; the email-keyed ones too (erase-other-keys)
+  ...byField('injection.userId', 'context_injection_outcomes'),
 ];
 
 /**
