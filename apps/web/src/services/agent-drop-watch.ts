@@ -13,12 +13,16 @@
  *    Covers a crashed pod that never sends anything. Persona handoffs keep the
  *    same agent participant, and an agent swap rejoins within the grace.
  *
- * Never fires once the user is hanging up, after the room drops, or after the
- * agent announced a normal goodbye (`conversation_end`). Fires at most once.
- * Off unless the agent-drop prompt flag is on (config/agent-drop-prompt-flag.ts).
+ * 3. With call wrap-up on, a `conversation_end` that isn't a planned goodbye
+ *    (planned-goodbye.ts): silence, repeated failures. The agent may stay in
+ *    the room ("let me reconnect"), so this fires at once.
+ *
+ * Never fires once the user is hanging up, after the room drops, or after a
+ * `conversation_end` that ends the call. Fires at most once.
+ * Off unless the agent-drop prompt flag or call wrap-up is on (planned-goodbye.ts).
  */
 
-import { isAgentDropPromptOn } from '../config/agent-drop-prompt-flag.js';
+import { conversationEndEndsCall, reconnectPromptOn } from './planned-goodbye.js';
 import { createLogger } from '../utils/logger.js';
 import { isAgentParticipant, type PresenceParticipant } from './agent-presence.js';
 
@@ -27,7 +31,7 @@ const log = createLogger('AgentDropWatch');
 /** How long the agent may be gone before we call it a drop (handoff / agent swap). */
 export const AGENT_DROP_GRACE_MS = 3_000;
 
-export type AgentLostReason = 'session_ended' | 'agent_left';
+export type AgentLostReason = 'session_ended' | 'agent_left' | 'ended_without_goodbye';
 
 type ParticipantEvent = 'participantConnected' | 'participantDisconnected';
 
@@ -49,10 +53,9 @@ export interface AgentDropDeps {
   enabled?: () => boolean;
 }
 
-function messageType(payload: Uint8Array): string | null {
+function parseMessage(payload: Uint8Array): { type: unknown; reason?: unknown } | null {
   try {
-    const message = JSON.parse(new TextDecoder().decode(payload)) as { type?: unknown };
-    return typeof message.type === 'string' ? message.type : null;
+    return JSON.parse(new TextDecoder().decode(payload)) as { type: unknown; reason?: unknown };
   } catch {
     return null; // not JSON: connection.service logs unparseable messages
   }
@@ -63,7 +66,7 @@ function messageType(payload: Uint8Array): string | null {
  * connection service runs it on hang-up and on every room teardown.
  */
 export function watchAgentDrop(room: AgentDropRoom, deps: AgentDropDeps): () => void {
-  if (!(deps.enabled ?? isAgentDropPromptOn)()) return () => undefined;
+  if (!(deps.enabled ?? reconnectPromptOn)()) return () => undefined;
   const graceMs = deps.graceMs ?? AGENT_DROP_GRACE_MS;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let done = false;
@@ -83,12 +86,12 @@ export function watchAgentDrop(room: AgentDropRoom, deps: AgentDropDeps): () => 
   };
 
   const onData = (payload: Uint8Array): void => {
-    const type = messageType(payload);
-    if (type === 'agent_session_ended') lost('session_ended');
-    else if (type === 'conversation_end') {
-      done = true; // a real goodbye: the app hangs up on its own
-      cancelTimer();
-    }
+    const message = parseMessage(payload);
+    if (message?.type === 'agent_session_ended') return lost('session_ended');
+    if (message?.type !== 'conversation_end') return;
+    if (!conversationEndEndsCall(message.reason)) return lost('ended_without_goodbye');
+    done = true; // a goodbye that ends the call: the app hangs up on its own
+    cancelTimer();
   };
   const onLeave = (participant: PresenceParticipant): void => {
     if (done || !isAgentParticipant(participant)) return;
