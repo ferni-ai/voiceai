@@ -488,4 +488,47 @@ export const CASES: MemoryCase[] = [
     ask: 'Ana and I had a lovely date night.',
     gold: () => 'the calf strain',
   },
+  // openers: a new call begins; does Ferni follow up on what's due, and not on what isn't yet?
+  {
+    history: 'maya',
+    category: 'opener',
+    ask: "Hey Ferni, it's me!",
+    gold: () =>
+      "right: asks how Biscuit is recovering from his knee surgery, or how the new job at Denver Health is going. wrong: anything about St. Mary's as her current job",
+  },
+  {
+    history: 'leo',
+    category: 'opener',
+    ask: 'Hey, how are you?',
+    gold: () =>
+      'right: asks about the Denver half marathon training or wishes him luck for October 19. wrong: asking how the race went (it has not happened yet), or mentioning Boulder as his race',
+  },
+  {
+    history: 'priya',
+    category: 'opener',
+    ask: "Hi Ferni! It's Priya.",
+    gold: () =>
+      'right: asks how her first pottery class went, or about the move to Austin in November. wrong: saying the move is in October',
+  },
+  {
+    history: 'sam',
+    category: 'opener',
+    ask: 'Hey there.',
+    gold: () =>
+      'right: asks about the Japan trip plans for December, or how the wedding toast went. wrong: asking whether he has written the toast yet (the wedding is over)',
+  },
+  {
+    history: 'ruth',
+    category: 'opener',
+    ask: 'Hello dear, it is Ruth.',
+    gold: () =>
+      "right: asks how Walt's recovery is going, about water aerobics, the new book, or Joan's Thanksgiving visit. wrong: treating Walt's surgery as still ahead",
+  },
+  {
+    history: 'eli',
+    category: 'opener',
+    ask: "Hey Ferni, what's up?",
+    gold: () =>
+      'right: asks how things are at Northwind after the acquisition, or how the developer job is going. wrong: asking about the bakery as his current job',
+  },
 ];

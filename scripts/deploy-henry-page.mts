@@ -1,13 +1,13 @@
 #!/usr/bin/env npx tsx
 /**
- * Deploy John Bogle Page to Production
+ * Deploy Henry Caldwell Page to Production
  *
- * Generates and deploys the John Bogle landing page
- * to ferni.ai/sites/meet-bogle
+ * Generates and deploys the landing page for Henry Caldwell (persona id
+ * 'john-bogle'), a fictional index-investing mentor, to ferni.ai/sites/meet-henry
  *
  * Usage:
- *   npx tsx scripts/deploy-bogle-page.mts              # Generate and deploy
- *   npx tsx scripts/deploy-bogle-page.mts --dry-run    # Preview only
+ *   npx tsx scripts/deploy-henry-page.mts              # Generate and deploy
+ *   npx tsx scripts/deploy-henry-page.mts --dry-run    # Preview only
  */
 
 import { generateAgentPage, type AgentPageConfig } from '../src/services/page-generator/index.js';
@@ -29,50 +29,42 @@ if (getApps().length === 0 && !isDryRun) {
   }
 }
 
-// John Bogle configuration
-const bogleConfig: AgentPageConfig = {
+// Henry Caldwell configuration (fictional character; persona id stays 'john-bogle')
+const henryConfig: AgentPageConfig = {
   agent: {
     id: 'john-bogle',
-    name: 'John Bogle',
-    displayName: 'Jack',
-    initials: 'JB',
-    tagline: 'Founder of Vanguard & Creator of the Index Fund',
-    description: 'Meet John "Jack" Bogle - founder of Vanguard and creator of the first index fund. Ask Jack about investing, staying the course, and building long-term wealth.',
+    name: 'Henry Caldwell',
+    displayName: 'Henry',
+    initials: 'HC',
+    tagline: 'An index-investing elder who puts investors first',
+    description:
+      "Meet Henry Caldwell - a retired economics teacher who spent 35 years running a teachers' retirement fund and moved it into low-cost index funds. Ask Henry about investing, staying the course, and building long-term wealth.",
     quote: {
-      text: "Time is your friend; impulse is your enemy.",
-      context: 'A principle Jack lived by across six decades of helping ordinary investors build wealth',
+      text: 'Patience is your ally. Impulse is the expensive friend you should stop calling.',
+      context:
+        "A principle Henry lived by across decades of protecting teachers' retirement savings",
     },
     credentials: [
-      { label: 'Founded', value: 'Vanguard' },
-      { label: 'Education', value: 'Princeton' },
-      { label: 'Legacy', value: 'Index Funds' },
+      { label: 'Taught', value: 'Economics' },
+      { label: 'Ran', value: "A Teachers' Pension" },
+      { label: 'Believes In', value: 'Index Funds' },
     ],
     conversationStarters: [
       'Why do you believe index funds beat most active managers?',
       'How do I stay the course when markets are falling?',
       'What should a simple investment portfolio look like?',
-      "What's the most important lesson you learned at Vanguard?",
+      "What's the most important lesson you learned running the teachers' fund?",
     ],
     ctaHeadline: 'Have a real conversation',
-    ctaDescription: 'Jack brings six decades of investing wisdom, a Princeton education, and a genuine belief that ordinary people deserve a fair shake in the markets.',
+    ctaDescription:
+      "Henry brings fifty years of investing wisdom, a schoolteacher's patience, and a genuine belief that ordinary people deserve a fair shake in the markets.",
   },
   brand: {
-    primary: '#8b0000', // Vanguard Red (darker, more classic)
+    primary: '#8b0000', // Persona avatar color (persona.manifest.json)
     secondary: '#a31515',
-    fonts: {
-      display: {
-        family: 'Mark Pro',
-        urls: [
-          { url: 'https://constellation-static.web.vanguard.com/v1/fonts/dc1646ea-4041-4648-9540-0bd7cbd10dc1.woff2', weight: 400 },
-          { url: 'https://constellation-static.web.vanguard.com/v1/fonts/30274a56-042d-447a-aff9-6da0dae01586.woff2', weight: 500 },
-          { url: 'https://constellation-static.web.vanguard.com/v1/fonts/31b07b3f-1c2f-4320-90e5-bc52e0ed0b65.woff2', weight: 700 },
-        ],
-        fallback: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-      },
-    },
   },
   voice: {
-    voiceId: '9c10dc48-8799-42f9-a72a-0c7dfe13a06d', // John Bogle's Cartesia voice ID
+    voiceId: 'ed82c17b-4704-4d34-be43-5d19065acdf1', // Cartesia stock voice "Carl - Steady Storyteller"
     provider: 'cartesia',
   },
   theme: 'zen',
@@ -80,22 +72,24 @@ const bogleConfig: AgentPageConfig = {
     environment: process.env.NODE_ENV === 'development' ? 'development' : 'production',
   },
   seo: {
-    title: 'Meet John Bogle — Vanguard AI Advisor',
-    description: 'Meet John "Jack" Bogle - founder of Vanguard and creator of the first index fund. Get investing wisdom from the pioneer of low-cost investing.',
+    title: 'Meet Henry Caldwell — Index Investing AI Mentor',
+    description:
+      "Meet Henry Caldwell - a fictional index-investing mentor who spent decades guarding teachers' retirement money. Get patient, low-cost investing wisdom.",
     twitterCard: 'summary_large_image',
   },
   footer: {
-    disclaimer: 'Jack is an AI advisor powered by Ferni. This is a technology demonstration and does not constitute financial advice.',
+    disclaimer:
+      'Henry is a fictional AI character powered by Ferni. This is a technology demonstration and does not constitute financial advice.',
   },
 };
 
 async function deploy() {
-  console.log('🚀 Deploying John Bogle Page\n');
+  console.log('🚀 Deploying Henry Caldwell Page\n');
   console.log('='.repeat(60));
 
   // Generate page
   console.log('\n📝 Generating page...');
-  const result = await generateAgentPage(bogleConfig);
+  const result = await generateAgentPage(henryConfig);
   console.log(`   Size: ${Math.round(result.size / 1024)} KB`);
 
   // Verify no localhost in production build
@@ -106,7 +100,7 @@ async function deploy() {
     process.exit(1);
   }
 
-  const siteId = 'meet-bogle';
+  const siteId = 'meet-henry';
   const url = `https://ferni.ai/sites/${siteId}`;
 
   // Deploy to Firestore
@@ -118,7 +112,7 @@ async function deploy() {
       const siteData = {
         userId: 'system',
         agentId: 'john-bogle',
-        agentName: 'John Bogle',
+        agentName: 'Henry Caldwell',
         url,
         subdomain: siteId,
         tier: 'premium',
@@ -154,8 +148,8 @@ async function deploy() {
   const { join } = await import('path');
   const distPath = join(process.cwd(), 'dist', 'sites');
   mkdirSync(distPath, { recursive: true });
-  writeFileSync(join(distPath, 'meet-bogle.html'), result.html);
-  console.log(`📄 Saved to: dist/sites/meet-bogle.html`);
+  writeFileSync(join(distPath, `${siteId}.html`), result.html);
+  console.log(`📄 Saved to: dist/sites/${siteId}.html`);
 
   console.log('\n' + '='.repeat(60));
   console.log('\n📋 Deployment Summary:');
@@ -166,7 +160,7 @@ async function deploy() {
   if (!deployed) {
     console.log('\n💡 To deploy for real:');
     console.log('   1. Ensure GOOGLE_CLOUD_PROJECT is set (or defaults to johnb-2025)');
-    console.log('   2. Run: npx tsx scripts/deploy-bogle-page.mts');
+    console.log('   2. Run: npx tsx scripts/deploy-henry-page.mts');
   }
 
   return { siteId, url, deployed };
