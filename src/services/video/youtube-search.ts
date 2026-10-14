@@ -44,6 +44,10 @@ export interface YouTubeVideo {
   category?: string;
   tags?: string[];
   url: string;
+  /** From getVideoDetails: age-restricted, privacy and embeddable status. */
+  ageRestricted?: boolean;
+  privacyStatus?: string;
+  embeddable?: boolean;
 }
 
 export interface YouTubeSearchResult {
@@ -99,7 +103,9 @@ interface YouTubeApiVideoResponse {
     };
     contentDetails: {
       duration: string;
+      contentRating?: { ytRating?: string };
     };
+    status?: { privacyStatus?: string; embeddable?: boolean };
     statistics: {
       viewCount: string;
       likeCount: string;
@@ -279,7 +285,7 @@ export async function getVideoDetails(videoId: string): Promise<YouTubeVideoDeta
   }
 
   const params = new URLSearchParams({
-    part: 'snippet,contentDetails,statistics',
+    part: 'snippet,contentDetails,statistics,status',
     id: videoId,
     key: apiKey,
   });
@@ -318,6 +324,9 @@ export async function getVideoDetails(videoId: string): Promise<YouTubeVideoDeta
       durationSeconds: parseDuration(item.contentDetails.duration),
       viewCount: parseInt(item.statistics.viewCount || '0', 10),
       likeCount: parseInt(item.statistics.likeCount || '0', 10),
+      ageRestricted: item.contentDetails.contentRating?.ytRating === 'ytAgeRestricted',
+      privacyStatus: item.status?.privacyStatus,
+      embeddable: item.status?.embeddable,
       category: item.snippet.categoryId,
       tags: item.snippet.tags,
       url: `https://www.youtube.com/watch?v=${item.id}`,

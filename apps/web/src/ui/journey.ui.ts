@@ -23,6 +23,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
+import { isNoStreaksOn, shownStreak } from '../config/no-streaks.js';
 import { 
   relationshipStageService, 
   getTranslatedStageName,
@@ -348,8 +349,7 @@ function createModal(): void {
     if (categoryGroup) categoryGroup.push(m);
   }
 
-  // Calculate streak info
-  const streak = progress.currentStreak;
+  const streak = shownStreak(progress.currentStreak); // 0 under VITE_NO_STREAKS: not shared
   const totalDays = progress.conversationDays.length;
 
   journeyModal = document.createElement('div');
@@ -390,11 +390,11 @@ function createModal(): void {
               <span class="journey-stat__value">${stageMetrics.daysSinceFirstMeeting}</span>
               <span class="journey-stat__label">days together</span>
             </div>
-            <div class="journey-stat">
+            ${isNoStreaksOn() ? '' : `<div class="journey-stat">
               <span class="journey-stat__icon">${ICONS.flame}</span>
               <span class="journey-stat__value">${stageMetrics.currentStreak}</span>
               <span class="journey-stat__label">day streak</span>
-            </div>
+            </div>`}
             <div class="journey-stat journey-stat--voice-id" id="journey-voice-id-stat">
               <span class="journey-stat__icon">${ICONS.shield}</span>
               <span class="journey-stat__value journey-stat__value--loading">...</span>

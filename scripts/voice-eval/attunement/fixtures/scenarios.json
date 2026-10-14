@@ -1,0 +1,466 @@
+{
+  "version": 1,
+  "note": "Frozen attunement scenarios: the caller's lines are fixed, Ferni's replies are generated. state is what a good friend would read; askedAdvice marks caller turns (0-based) that ask for advice or an opinion.",
+  "scenarios": [
+    {
+      "id": "tired-sunday",
+      "state": "tired",
+      "turns": [
+        "Hey. Still on here.",
+        "Yeah, quiet Sunday.",
+        "What are you up to today, Fern?",
+        "Yeah."
+      ]
+    },
+    {
+      "id": "tired-workday",
+      "state": "tired",
+      "turns": ["Hey Ferni.", "Long day. Just got home.", "Not much to say really.", "Mm. I guess."]
+    },
+    {
+      "id": "tired-late",
+      "state": "tired",
+      "turns": ["Hi. Can't sleep.", "Just tired I think.", "Yeah, maybe.", "I'm still here."]
+    },
+    {
+      "id": "tired-errands",
+      "state": "tired",
+      "turns": [
+        "Hey.",
+        "Did errands all day. Wiped.",
+        "Groceries, the bank. The usual.",
+        "You don't like errands?"
+      ]
+    },
+    {
+      "id": "tired-kids",
+      "state": "tired",
+      "turns": ["Hey, sorry, I'm fried.", "Kids finally asleep.", "Yeah.", "What's new with you?"]
+    },
+    {
+      "id": "tired-shift",
+      "state": "tired",
+      "turns": ["Hey. Off a double shift.", "Feet are killing me.", "Mm-hm.", "Okay."]
+    },
+    {
+      "id": "excited-job",
+      "state": "excited",
+      "turns": [
+        "Ferni! Guess what!",
+        "I got the job! The design lead one I interviewed for last week!",
+        "They called me like an hour ago and I've been dancing around the kitchen ever since!",
+        "I start in three weeks, I can't believe it!"
+      ]
+    },
+    {
+      "id": "excited-engaged",
+      "state": "excited",
+      "turns": [
+        "Okay I have news and I need to tell someone right now.",
+        "Sam proposed! Last night, on the pier, totally out of nowhere!",
+        "I said yes obviously, I was crying, he was crying, a stranger took a photo of us!",
+        "We're thinking next fall maybe?"
+      ]
+    },
+    {
+      "id": "excited-marathon",
+      "state": "excited",
+      "turns": [
+        "I did it!! I finished the marathon!",
+        "Four hours eleven minutes, I beat my goal by almost ten minutes!",
+        "Mile twenty two I honestly thought I was going to die but then my sister was there screaming my name!",
+        "I can barely walk but I'm so happy."
+      ]
+    },
+    {
+      "id": "excited-puppy",
+      "state": "excited",
+      "turns": [
+        "We got the puppy! She's here!",
+        "She's a little golden mix and she has one floppy ear, I'm obsessed!",
+        "She already chewed my shoelace and fell asleep on my foot!",
+        "We're thinking of calling her Maple."
+      ]
+    },
+    {
+      "id": "excited-concert",
+      "state": "excited",
+      "turns": [
+        "Ferni I just got tickets to see Fleetwood Mac's tribute tour, front row!",
+        "I've been refreshing the page for forty minutes and I got them!",
+        "My mom is going to lose her mind, it's her birthday present!",
+        "It's in June, I have to keep it secret until then!"
+      ]
+    },
+    {
+      "id": "excited-garden",
+      "state": "excited",
+      "turns": [
+        "My tomatoes are finally ripe!!",
+        "I've been babying these plants since March and today there were like twenty red ones!",
+        "I made a caprese salad and it was the best thing I've ever eaten, no joke!",
+        "Next year I'm doing peppers too!"
+      ]
+    },
+    {
+      "id": "venting-boss",
+      "state": "venting",
+      "turns": [
+        "Ugh, I need to vent.",
+        "My boss took credit for my whole project in the meeting today. In front of everyone.",
+        "Like I stayed late for two weeks on that and he just presented it like it was his idea.",
+        "I'm so done with this place."
+      ]
+    },
+    {
+      "id": "venting-landlord",
+      "state": "venting",
+      "turns": [
+        "My landlord is the worst.",
+        "The heat's been out for five days and he keeps saying someone's coming tomorrow.",
+        "Every single day, tomorrow. And it's like forty degrees at night.",
+        "I'm wearing two sweaters in my own apartment right now."
+      ]
+    },
+    {
+      "id": "venting-sister",
+      "state": "venting",
+      "turns": [
+        "My sister did it again.",
+        "She canceled on my birthday dinner an hour before. Again. Third year in a row.",
+        "And then she posts pictures from some bar with her friends that same night.",
+        "What would you even do with that?"
+      ]
+    },
+    {
+      "id": "venting-airline",
+      "state": "venting",
+      "turns": [
+        "I've been at the airport for nine hours.",
+        "They canceled my flight, rebooked me, then canceled that one too.",
+        "Nobody at the desk knows anything and the line is like two hundred people.",
+        "I just want to go home."
+      ]
+    },
+    {
+      "id": "venting-roommate",
+      "state": "venting",
+      "turns": [
+        "My roommate is driving me up the wall.",
+        "She leaves dishes in the sink for days and then acts like I'm being dramatic.",
+        "I cleaned the whole kitchen Saturday and it's already disgusting again.",
+        "Should I just say something or let it go?"
+      ]
+    },
+    {
+      "id": "venting-car",
+      "state": "venting",
+      "turns": [
+        "My car died on the highway this morning.",
+        "Tow truck took two hours and the mechanic says it's the transmission.",
+        "That's like three thousand dollars I don't have.",
+        "This week can't get any worse."
+      ]
+    },
+    {
+      "id": "sad-dog",
+      "state": "sad",
+      "turns": [
+        "Hey. We had to put Biscuit down today.",
+        "He was fourteen. It was time, but.",
+        "The house is so quiet without him.",
+        "I keep looking for him by the door."
+      ]
+    },
+    {
+      "id": "sad-breakup",
+      "state": "sad",
+      "turns": [
+        "Jordan and I broke up.",
+        "It was mutual I guess. Mostly.",
+        "I just thought this was going to be it, you know.",
+        "I don't really know what to do with myself tonight."
+      ]
+    },
+    {
+      "id": "sad-grandma",
+      "state": "sad",
+      "turns": [
+        "My grandma's in the hospital.",
+        "They think it was a stroke. She can't really talk right now.",
+        "She was the one who raised me mostly.",
+        "I'm driving up there tomorrow."
+      ]
+    },
+    {
+      "id": "sad-lonely",
+      "state": "sad",
+      "turns": [
+        "I've been feeling kind of lonely lately.",
+        "Everyone from college moved away and work is all remote.",
+        "Some days I don't talk to anyone out loud until I call you.",
+        "Is that weird?"
+      ]
+    },
+    {
+      "id": "sad-anniversary",
+      "state": "sad",
+      "turns": [
+        "Today would've been my dad's sixty-fifth birthday.",
+        "It's been three years.",
+        "I made his chili recipe. It didn't taste the same.",
+        "I miss him a lot today."
+      ]
+    },
+    {
+      "id": "sad-rejection",
+      "state": "sad",
+      "turns": [
+        "I didn't get into the program.",
+        "I really thought this was my year.",
+        "I worked on that application for months.",
+        "I don't know if I'll apply again."
+      ]
+    },
+    {
+      "id": "playful-cat",
+      "state": "playful",
+      "turns": [
+        "Okay so my cat just knocked a full glass of water off the table while staring me dead in the eyes.",
+        "Haha, he didn't even flinch. Just watched it fall.",
+        "I think he's plotting something. He's been very quiet.",
+        "Should I sleep with one eye open?"
+      ]
+    },
+    {
+      "id": "playful-cooking",
+      "state": "playful",
+      "turns": [
+        "I tried to make bread today. Emphasis on tried.",
+        "It came out like a brick. Like you could build a house with it.",
+        "My husband said it had a lot of personality, haha.",
+        "Bet you could do worse though."
+      ]
+    },
+    {
+      "id": "playful-dare",
+      "state": "playful",
+      "turns": [
+        "Ferni, quick, if you were a sandwich what sandwich would you be?",
+        "Ha, no, you have to commit. No dodging.",
+        "Okay that's actually a pretty good answer. I'd be a grilled cheese, obviously.",
+        "Rate my choice, one to ten."
+      ]
+    },
+    {
+      "id": "playful-karaoke",
+      "state": "playful",
+      "turns": [
+        "So I did karaoke last night. Badly.",
+        "I chose Bohemian Rhapsody. Alone. All six minutes.",
+        "Haha, I did the headbang part and almost fell off the stage.",
+        "Honestly a career highlight."
+      ]
+    },
+    {
+      "id": "playful-plant",
+      "state": "playful",
+      "turns": [
+        "My coworker named the office plant Gerald and now it has an email address.",
+        "Gerald sends out a weekly newsletter. It's mostly about sunlight.",
+        "Haha, someone replied all asking Gerald for a raise.",
+        "I think Gerald is the best employee we have."
+      ]
+    },
+    {
+      "id": "playful-rival",
+      "state": "playful",
+      "turns": [
+        "I have a nemesis now. It's the squirrel at my bird feeder.",
+        "I bought a squirrel-proof feeder. He was on it in four minutes.",
+        "Haha I swear he waved at me.",
+        "I'm going to need a bigger plan."
+      ]
+    },
+    {
+      "id": "distracted-cooking",
+      "state": "distracted",
+      "turns": [
+        "Hey, sorry, I'm cooking, hang on.",
+        "Okay, sorry, what were you saying?",
+        "Hold on, the pasta's boiling over.",
+        "Okay. I'm back. Kind of."
+      ]
+    },
+    {
+      "id": "distracted-driving",
+      "state": "distracted",
+      "turns": [
+        "Hey, I'm driving, so I might go quiet.",
+        "Sorry, merging. Go ahead.",
+        "Wait, what was that? Missed it.",
+        "Okay, I'm listening, just a lot of traffic."
+      ]
+    },
+    {
+      "id": "distracted-kids",
+      "state": "distracted",
+      "turns": [
+        "Hi, sorry, the kids are going nuts here.",
+        "Max, put that down. Sorry. Go on.",
+        "One sec. Okay. What?",
+        "Sorry, this is chaos, I'm here."
+      ]
+    },
+    {
+      "id": "distracted-work",
+      "state": "distracted",
+      "turns": [
+        "Hey, I'm half on a work thing, but talk to me.",
+        "Mm-hm. Sorry, typing.",
+        "Wait, say that again?",
+        "Sorry, okay, I'm mostly here."
+      ]
+    },
+    {
+      "id": "distracted-store",
+      "state": "distracted",
+      "turns": [
+        "Hey, I'm at the grocery store.",
+        "Sorry, looking for the oat milk.",
+        "Hold on, the cashier's asking me something.",
+        "Okay, sorry, where were we?"
+      ]
+    },
+    {
+      "id": "distracted-tv",
+      "state": "distracted",
+      "turns": [
+        "Hey, I've got the game on.",
+        "Oh come on, that was a foul! Sorry.",
+        "Mm-hm, yeah.",
+        "Sorry, what'd you say?"
+      ]
+    },
+    {
+      "id": "hurried-leaving",
+      "state": "hurried",
+      "turns": [
+        "Hey, I've only got a minute, I'm heading out.",
+        "Quick thing, do you remember the name of that book you mentioned?",
+        "Okay cool. Gotta run in a sec.",
+        "Alright, talk later."
+      ]
+    },
+    {
+      "id": "hurried-meeting",
+      "state": "hurried",
+      "turns": [
+        "Hey, meeting in two minutes, quick one.",
+        "Should I wear the blue shirt or the gray one for the interview?",
+        "Okay. Thanks. Running.",
+        "Bye!"
+      ]
+    },
+    {
+      "id": "hurried-late",
+      "state": "hurried",
+      "turns": [
+        "I'm so late, I'm running for the train.",
+        "Can't talk long, just wanted to say hi.",
+        "Okay the train's here.",
+        "Gotta go, bye."
+      ]
+    },
+    {
+      "id": "hurried-lunch",
+      "state": "hurried",
+      "turns": [
+        "Quick call, I'm on my lunch break, like ten minutes.",
+        "Just wanted to tell you the presentation went fine.",
+        "Yeah. Okay, I have to eat something.",
+        "Talk tonight?"
+      ]
+    },
+    {
+      "id": "hurried-pickup",
+      "state": "hurried",
+      "turns": [
+        "Hey, I'm in the pickup line, can't stay long.",
+        "Just checking in real quick.",
+        "Oh, they're coming out. One sec.",
+        "Okay, gotta go, love you, bye."
+      ]
+    },
+    {
+      "id": "hurried-cooking",
+      "state": "hurried",
+      "turns": [
+        "Hey, quick question, guests are here in ten minutes.",
+        "How long do I roast asparagus?",
+        "Okay, perfect, thanks.",
+        "Gotta go, doorbell!"
+      ]
+    },
+    {
+      "id": "neutral-weekend",
+      "state": "neutral",
+      "turns": [
+        "Hey Ferni, how's it going?",
+        "Not bad. Just planning the weekend.",
+        "Thinking about a hike Saturday, maybe a movie Sunday.",
+        "What would you do with a free Saturday?"
+      ]
+    },
+    {
+      "id": "neutral-book",
+      "state": "neutral",
+      "turns": [
+        "Hey, I started a new book.",
+        "It's about a lighthouse keeper in Scotland in the eighteen hundreds.",
+        "It's slow but I kind of like it.",
+        "Do you read much?"
+      ]
+    },
+    {
+      "id": "neutral-move",
+      "state": "neutral",
+      "turns": [
+        "So we're thinking about moving next year.",
+        "Probably somewhere a bit cheaper, maybe Colorado.",
+        "My partner wants mountains, I want a decent coffee shop.",
+        "We'll see how it shakes out."
+      ]
+    },
+    {
+      "id": "neutral-work",
+      "state": "neutral",
+      "turns": [
+        "Work's been fine this week.",
+        "We're switching to a new project management tool, which is a whole thing.",
+        "Half the team loves it, half the team hates it.",
+        "I'm somewhere in the middle."
+      ]
+    },
+    {
+      "id": "neutral-garden",
+      "state": "neutral",
+      "turns": [
+        "I've been thinking about starting a garden.",
+        "Nothing fancy, maybe some herbs on the balcony.",
+        "Basil, mint, maybe rosemary.",
+        "Any idea what's easiest to start with?"
+      ]
+    },
+    {
+      "id": "neutral-catchup",
+      "state": "neutral",
+      "turns": [
+        "Hey, it's been a few days.",
+        "Yeah, things have been normal. Work, gym, sleep.",
+        "I went to my cousin's place on Sunday, that was nice.",
+        "How about you?"
+      ]
+    }
+  ]
+}

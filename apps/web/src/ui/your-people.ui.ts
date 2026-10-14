@@ -23,6 +23,7 @@ import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { parseNudgesResponse, type Nudge } from './your-people-nudges.js';
+import { groupByRelationship, settleWithin } from './your-people-groups.js';
 import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('YourPeopleUI');
 
@@ -234,8 +235,8 @@ function injectStyles(): void {
     }
 
     .yp-close {
-      width: var(--space-10, 2.5rem);
-      height: var(--space-10, 2.5rem);
+      width: var(--space-11, 2.75rem);
+      height: var(--space-11, 2.75rem);
       border: none;
       background: transparent;
       border-radius: var(--radius-full, 50%);
@@ -773,6 +774,8 @@ function render(): void {
     </div>
   `;
 
+  const view = state.isLoading ? 'loading' : state.error ? 'error' : state.people.length ? 'ready' : 'empty';
+  panel.setAttribute('data-state', view); // for tests and the live probe
   bindEvents();
 }
 
@@ -1157,23 +1160,6 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-/** Group headings in display order; relationship ids map to a heading key. */
-const GROUP_HEADINGS: Array<[string, string]> = [
-  ['family', 'yourPeople.groups.family'],
-  ['friend', 'yourPeople.groups.friends'],
-  ['colleague', 'yourPeople.groups.work'],
-  ['mentor', 'yourPeople.groups.mentor'],
-  ['acquaintance', 'yourPeople.groups.acquaintance'],
-  ['other', 'yourPeople.groups.misc'],
-];
-
-function groupByRelationship(people: Person[]): Array<[string, Person[]]> {
-  return GROUP_HEADINGS.map((heading): [string, Person[]] => [
-    t(heading[1]),
-    people.filter((person) => (person.relationship || 'other').toLowerCase() === heading[0]),
-  ]).filter(([, members]) => members.length > 0);
-}
-
 // ============================================================================
 // API CALLS
 // ============================================================================
@@ -1187,7 +1173,7 @@ async function loadPeopleData(): Promise<void> {
 
   try {
     // Load contacts
-    const contactsRes = await apiFetch('/api/contacts');
+    const contactsRes = await settleWithin(apiFetch('/api/contacts'));
     if (contactsRes.ok) {
       const contactsData = await contactsRes.json();
       const contacts = Array.isArray(contactsData) ? contactsData : (contactsData.contacts || []);
@@ -1208,7 +1194,7 @@ async function loadPeopleData(): Promise<void> {
     }
 
     // Load nudges
-    const nudgesRes = await apiFetch('/api/contacts/nudges');
+    const nudgesRes = await settleWithin(apiFetch('/api/contacts/nudges'));
     if (nudgesRes.ok) {
       state.nudges = parseNudgesResponse(await nudgesRes.json());
     } else if (useMockData) {
@@ -1296,13 +1282,12 @@ export function closeYourPeople(): void {
   if (!state.isOpen || !panelContainer) return;
 
   releaseEscape?.();
-  
   panelContainer.classList.remove('open');
-  
+  const closing = panelContainer;
   setTimeout(() => {
-    panelContainer?.remove();
+    closing.remove();
+    if (panelContainer !== closing) return; // reopened meanwhile: the new panel stays
     panelContainer = null;
-    
     // Restore focus to previously focused element
     if (previouslyFocusedElement && document.body.contains(previouslyFocusedElement)) {
       previouslyFocusedElement.focus();

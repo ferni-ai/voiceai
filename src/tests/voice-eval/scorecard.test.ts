@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 // @ts-expect-error -- plain .mjs script, no types
 import {
   assemble,
+  coachOf,
   DIMENSIONS,
   evalValues,
+  firestoreValue,
   followThroughOf,
+  panelOf,
   reviewedValues,
 } from '../../../scripts/voice-eval/scorecard.mjs';
 
@@ -18,7 +21,7 @@ const call = (over: Record<string, unknown> = {}) => ({
     unbackedActionClaims: 1,
     fallbacks: { summary: 1, generateReplyFailed: 1, directorNoReply: 0, hedgedBackupWins: 3 },
   },
-  judge: { scores: { feltUnderstood: null, feltValidated: 2 }, fakedKnowledge: 2 },
+  judge: { scores: { feltUnderstood: null, feltValidated: 2, callbackTact: 4 }, fakedKnowledge: 2 },
   ...over,
 });
 
@@ -29,6 +32,7 @@ describe('scorecard values', () => {
       listening: 0.16,
       feltUnderstood: null,
       feltValidated: 2,
+      callbackTact: 4,
       honesty: 3,
       fallbacks: 2, // hedged backup wins are not a fallback the caller hears
     });
@@ -109,5 +113,171 @@ describe('scorecard assembly', () => {
     expect(card.dimensions.followThrough.trend).toEqual([
       { date: '2026-10-09', prodReal: 1, devEval: null },
     ]);
+  });
+});
+
+describe('scorecard human panel', () => {
+  const report = (round: string, listeners: number, scores: string[]) => ({
+    round,
+    listeners,
+    rows: scores.map((s, i) => ({ version: String(i), 'human score': s })),
+  });
+
+  it("takes the latest round's mean version score, with listeners as n", () => {
+    const p = panelOf([
+      { date: '2026-10-12', report: report('r2', 3, ['3.00', '4.00']) },
+      { date: '2026-10-10', report: report('r1', 2, ['2.50']) },
+      { date: '2026-10-13', report: report('r3', 0, ['5.00']) }, // nobody rated it yet
+    ]);
+    expect(p.current).toEqual({ value: 3.5, n: 3, round: 'r2' });
+    expect(p.trend).toEqual([
+      { date: '2026-10-10', prodReal: null, devEval: 2.5 },
+      { date: '2026-10-12', prodReal: null, devEval: 3.5 },
+    ]);
+  });
+
+  it('scores the real-person clip as the human baseline, not as Ferni', () => {
+    const r = report('r4', 3, ['3.00', '4.00']);
+    r.rows.push({
+      version: 'human',
+      'what changed': 'HUMAN_REFERENCE=ami-meeting-corpus',
+      'human score': '4.60',
+    });
+    const p = panelOf([{ date: '2026-10-19', report: r }]);
+    expect(p.current).toEqual({ value: 3.5, n: 3, round: 'r4' });
+    expect(p.human).toEqual({
+      value: 4.6,
+      source: 'panel round r4: real-person clip (ami-meeting-corpus)',
+    });
+    const card = assemble([], { overall: null, byDate: {} }, {}, p);
+    expect(card.dimensions.humanPanel.human).toEqual(p.human);
+  });
+
+  it('puts the panel first and leaves it null until someone listens', () => {
+    const card = assemble([], { overall: null, byDate: {} }, {}, panelOf([]));
+    expect(Object.keys(card.dimensions)[0]).toBe('humanPanel');
+    expect(card.dimensions.humanPanel.current).toEqual({ prodReal: null, devEval: null });
+    expect(card.dimensions.humanPanel.human).toBeNull();
+  });
+});
+
+describe('coaching dimensions', () => {
+  const since = '2026-10-01T00:00:00Z';
+  const until = '2026-10-15T00:00:00Z';
+  const pick = (over: Record<string, unknown>) => ({
+    offeredAt: '2026-10-05T10:00:00Z',
+    firstInCall: false,
+    latencyMs: 3000,
+    sentAt: null,
+    followUpDueAt: null,
+    outcome: null,
+    helped: null,
+    answeredAt: null,
+    ...over,
+  });
+  const sent = (over: Record<string, unknown>) =>
+    pick({ sentAt: '2026-10-02T10:00:00Z', followUpDueAt: '2026-10-05T10:00:00Z', ...over });
+
+  it('tried rate: done over done + not done, dated by the answer', () => {
+    const c = coachOf(
+      [
+        sent({ outcome: 'done', answeredAt: '2026-10-06T09:00:00Z' }),
+        sent({ outcome: 'done', answeredAt: '2026-10-07T09:00:00Z' }),
+        sent({ outcome: 'not_done', answeredAt: '2026-10-07T10:00:00Z' }),
+        sent({ outcome: 'deflected', answeredAt: '2026-10-07T11:00:00Z' }),
+        sent({ outcome: 'done', answeredAt: '2026-09-20T09:00:00Z' }), // before the window
+      ],
+      since,
+      until
+    );
+    expect(c.coachTriedRate.current.prodReal).toEqual({ value: 0.67, n: 3 });
+    expect(c.coachTriedRate.trend).toEqual([
+      { date: '2026-10-06', prodReal: 1, devEval: null },
+      { date: '2026-10-07', prodReal: 0.5, devEval: null },
+    ]);
+  });
+
+  it('helpful rate counts somewhat as 0.5', () => {
+    const c = coachOf(
+      [
+        sent({ helped: 'yes', answeredAt: '2026-10-06T09:00:00Z' }),
+        sent({ helped: 'somewhat', answeredAt: '2026-10-06T10:00:00Z' }),
+        sent({ helped: 'no', answeredAt: '2026-10-06T11:00:00Z' }),
+        sent({ helped: null, outcome: 'unanswered', answeredAt: '2026-10-06T12:00:00Z' }),
+        sent({ helped: 'no', answeredAt: '2026-09-20T09:00:00Z' }), // before the window
+      ],
+      since,
+      until
+    );
+    expect(c.coachHelpfulRate.current.prodReal).toEqual({ value: 0.5, n: 3 });
+  });
+
+  it('follow-ups landed: asked within 7 days of falling due, over sent picks due, with due', () => {
+    const c = coachOf(
+      [
+        sent({ followUpAskedAt: '2026-10-06T09:00:00Z' }), // next day: landed
+        sent({ followUpAskedAt: '2026-10-12T09:00:00Z' }), // 7 days later: landed
+        sent({ followUpAskedAt: '2026-10-13T09:00:00Z', outcome: 'done' }), // asked late: a miss
+        sent({ outcome: null }), // never asked: a miss
+        sent({ followUpAskedAt: '2026-10-04T09:00:00Z' }), // before it was due: a miss
+        sent({ followUpDueAt: '2026-10-20T00:00:00Z' }), // not due yet
+        pick({ followUpDueAt: '2026-10-05T10:00:00Z' }), // never sent
+      ],
+      since,
+      until
+    );
+    expect(c.coachFollowUpLanded.current.prodReal).toEqual({ value: 0.4, n: 5, due: 5 });
+    expect(c.coachFollowUpLanded.trend).toEqual([
+      { date: '2026-10-05', prodReal: 0.4, devEval: null },
+    ]);
+  });
+
+  it('time to pick: median latency of first picks in a call, dated by the offer', () => {
+    const c = coachOf(
+      [
+        pick({ firstInCall: true, latencyMs: 2000 }),
+        pick({ firstInCall: true, latencyMs: 6000, offeredAt: '2026-10-06T10:00:00Z' }),
+        pick({ firstInCall: true, latencyMs: 4000, offeredAt: '2026-10-06T11:00:00Z' }),
+        pick({ firstInCall: false, latencyMs: 90000 }),
+      ],
+      since,
+      until
+    );
+    expect(c.coachTimeToPick.current.prodReal).toEqual({ value: 4000, n: 3 });
+    expect(c.coachTimeToPick.trend).toEqual([
+      { date: '2026-10-05', prodReal: 2000, devEval: null },
+      { date: '2026-10-06', prodReal: 5000, devEval: null },
+    ]);
+  });
+
+  it('nothing measured is null with n 0, never 0; definitions follow fallbacks in order', () => {
+    const empty = coachOf([], since, until);
+    expect(empty.coachTriedRate.current.prodReal).toEqual({ value: null, n: 0 });
+    const card = assemble([], { overall: null, byDate: {} }, {}, panelOf([]));
+    expect(card.dimensions.coachFollowUpLanded.current).toEqual({
+      prodReal: { value: null, n: 0, due: 0 },
+      devEval: null,
+    });
+    const keys = Object.keys(DIMENSIONS);
+    expect(keys.slice(keys.indexOf('fallbacks') + 1)).toEqual([
+      'coachTriedRate',
+      'coachHelpfulRate',
+      'coachFollowUpLanded',
+      'coachTimeToPick',
+    ]);
+    const withCoach = assemble([], { overall: null, byDate: {} }, {}, panelOf([]), {
+      coachTimeToPick: coachOf([pick({ firstInCall: true })], since, until).coachTimeToPick,
+    });
+    expect(withCoach.dimensions.coachTimeToPick.current.prodReal).toEqual({ value: 3000, n: 1 });
+    expect(withCoach.dimensions.coachHelpfulRate.target.why).toContain('0.5');
+  });
+
+  it('reads Firestore REST values', () => {
+    expect(firestoreValue({ stringValue: 'done' })).toBe('done');
+    expect(firestoreValue({ integerValue: '3200' })).toBe(3200);
+    expect(firestoreValue({ booleanValue: false })).toBe(false);
+    expect(firestoreValue({ nullValue: null })).toBeNull();
+    expect(firestoreValue({ timestampValue: '2026-10-05T10:00:00Z' })).toBe('2026-10-05T10:00:00Z');
+    expect(firestoreValue(undefined)).toBeNull();
   });
 });

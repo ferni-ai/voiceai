@@ -6,8 +6,8 @@ import WidgetKit
 /// Designed for glanceable emotional check-ins and quick conversation starts.
 ///
 /// Complication Types:
-/// - Mood indicator (shows current mood emoji)
-/// - Streak counter (days of consistent check-ins)
+/// - Mood indicator (SF Symbol for the current mood; the brand has no emoji in UI)
+/// - Last check-in (no streak counts: `streakDays` is still read, never shown)
 /// - Quick start (tap to talk)
 /// - Time since last check-in
 
@@ -37,14 +37,15 @@ public struct FerniComplicationEntry: TimelineEntry {
     public enum MoodState: String {
         case great, good, okay, meh, low, unknown
 
-        public var emoji: String {
+        /// Same SF Symbols as the iPhone mood widget (`MoodType`, PR #1042).
+        public var symbolName: String {
             switch self {
-            case .great: return "😊"
-            case .good: return "🙂"
-            case .okay: return "😐"
-            case .meh: return "😕"
-            case .low: return "😔"
-            case .unknown: return "💭"
+            case .great: return "sun.max.fill"
+            case .good: return "sun.min.fill"
+            case .okay: return "cloud.sun.fill"
+            case .meh: return "cloud.fill"
+            case .low: return "cloud.rain.fill"
+            case .unknown: return "bubble.left"
             }
         }
 
@@ -153,8 +154,7 @@ public struct FerniCircularComplication: View {
             Circle()
                 .fill(entry.mood.color.opacity(0.3))
 
-            // Mood emoji
-            Text(entry.mood.emoji)
+            Image(systemName: entry.mood.symbolName)
                 .font(.system(size: 22))
         }
         .widgetURL(URL(string: "ferni://checkin"))
@@ -171,17 +171,8 @@ public struct FerniCornerComplication: View {
 
     public var body: some View {
         ZStack {
-            // Gauge showing streak progress
-            if entry.streakDays > 0 {
-                Gauge(value: min(Double(entry.streakDays), 7), in: 0...7) {
-                    Text(entry.mood.emoji)
-                }
-                .gaugeStyle(.accessoryCircularCapacity)
-                .tint(entry.mood.color)
-            } else {
-                Image(systemName: "bubble.left.fill")
-                    .foregroundColor(entry.mood.color)
-            }
+            Image(systemName: "bubble.left.fill")
+                .foregroundColor(entry.mood.color)
         }
         .widgetURL(URL(string: "ferni://talk"))
     }
@@ -197,8 +188,7 @@ public struct FerniRectangularComplication: View {
 
     public var body: some View {
         HStack(spacing: 8) {
-            // Mood indicator
-            Text(entry.mood.emoji)
+            Image(systemName: entry.mood.symbolName)
                 .font(.title2)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -206,17 +196,7 @@ public struct FerniRectangularComplication: View {
                     .font(.headline)
                     .foregroundColor(.white)
 
-                // Streak or last check-in
-                if entry.streakDays > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "flame.fill")
-                            .font(.caption2)
-                            .foregroundColor(.orange)
-                        Text("\(entry.streakDays) day streak")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
-                    }
-                } else if let lastCheckIn = entry.lastCheckIn {
+                if let lastCheckIn = entry.lastCheckIn {
                     Text(timeAgo(from: lastCheckIn))
                         .font(.caption2)
                         .foregroundColor(.gray)
@@ -257,12 +237,8 @@ public struct FerniInlineComplication: View {
 
     public var body: some View {
         HStack(spacing: 4) {
-            Text(entry.mood.emoji)
-            if entry.streakDays > 0 {
-                Text("🔥 \(entry.streakDays)")
-            } else {
-                Text(entry.greeting)
-            }
+            Image(systemName: entry.mood.symbolName)
+            Text(entry.greeting)
         }
         .widgetURL(URL(string: "ferni://talk"))
     }

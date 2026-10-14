@@ -229,11 +229,11 @@ const FERNI_STORY_UNLOCKS: Record<string, StoryUnlockRequirements> = {
   // =========================================================================
   // SACRED STORIES - Trusted advisor only
   // =========================================================================
-  tsunami: {
+  'the-ridge': {
     minRelationship: 'trusted_advisor',
-    fitsEmotions: ['grieving', 'vulnerable', 'traumatized', 'surviving'],
+    fitsEmotions: ['grieving', 'vulnerable', 'guilty'],
     fitsPhases: ['peak', 'release'],
-    topicTriggers: ['trauma', 'survival', 'death', 'disaster', 'guilt'],
+    topicTriggers: ['death', 'never said goodbye', 'should have been there', 'guilt'],
     prerequisiteStories: ['tanaka-san'],
     depth: 'sacred',
     minTurns: 20,
@@ -245,7 +245,7 @@ const FERNI_STORY_UNLOCKS: Record<string, StoryUnlockRequirements> = {
     fitsEmotions: ['guilty', 'unworthy', 'grieving'],
     fitsPhases: ['peak', 'release'],
     topicTriggers: ['guilt', 'survivor', 'why me', 'undeserving'],
-    prerequisiteStories: ['tsunami'],
+    prerequisiteStories: ['the-ridge'],
     depth: 'sacred',
     minTurns: 25,
     needsEmotionalPermission: true,

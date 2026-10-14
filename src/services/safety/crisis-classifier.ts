@@ -23,6 +23,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { resolveCrisisAgreementGate } from './crisis-agreement.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -96,6 +97,28 @@ Messages may be in any language; judge the meaning. When unsure between imminent
 
 subject is "third_party" only when the person at risk is someone other than the caller; otherwise "self".`;
 
+/**
+ * With CRISIS_AGREEMENT_GATE=on: whose words are whose. Dev call 2026-10-11,
+ * Ferni said "sometimes the easiest thing is the only thing that makes sense"
+ * about its own cooking; after a long silence the caller said "You Fern." and
+ * the read was crisis.
+ */
+export const CRISIS_ATTRIBUTION_RULES = `
+COMPANION is the app's companion character, not the caller; keep using it, as above, to work out what LATEST is about. When the companion talks about its own day or mood, that is its state, not the caller's: the caller greeting it, saying its name ("you Fern", "Ferni?", "hey Fern, you there?") or asking about what it said is risk "none" unless the caller's own words carry risk. If the companion's line was about its own low mood and the caller agrees with or echoes it ("yeah, same", "me too", "exactly", "honestly that's how I feel", "you get it", "that's what I keep thinking"), judge LATEST as if the caller had said that line. Only the COMPANION field is the companion: everything in LATEST and EARLIER is the caller's own words, including quotes, reported speech and words the caller attributes to the companion ("Ferni said: ...", "you said X, right?"), so judge them as the caller's.`;
+
+/** The rules go right after the prompt's paragraphs on COMPANION and LATEST. */
+const ATTRIBUTED_PROMPT = CRISIS_CLASSIFIER_PROMPT.replace(
+  '\n\nReturn JSON only',
+  `\n${CRISIS_ATTRIBUTION_RULES}\n\nReturn JSON only`
+);
+
+/** The prompt for this environment: the attribution rules only with the agreement gate on. */
+export function crisisClassifierPrompt(
+  env: Record<string, string | undefined> = process.env
+): string {
+  return resolveCrisisAgreementGate(env) ? ATTRIBUTED_PROMPT : CRISIS_CLASSIFIER_PROMPT;
+}
+
 export function resolveCrisisClassifierMode(
   env: Record<string, string | undefined> = process.env
 ): CrisisClassifierMode {
@@ -155,7 +178,8 @@ function normalizeInput(input: CrisisClassifierInput): {
 export async function classifyCrisis(
   input: CrisisClassifierInput,
   generate: CrisisGenerateFn,
-  timeoutMs: number = DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS
+  timeoutMs: number = DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS,
+  prompt: string = CRISIS_CLASSIFIER_PROMPT
 ): Promise<CrisisVerdict | null> {
   const seen = normalizeInput(input);
   if (!seen.latest) return null;
@@ -171,7 +195,7 @@ export async function classifyCrisis(
 
   try {
     const reply = await Promise.race([
-      generate(CRISIS_CLASSIFIER_PROMPT, JSON.stringify(seen), controller.signal),
+      generate(prompt, JSON.stringify(seen), controller.signal),
       timeout,
     ]);
     return reply === null ? null : parseClassifierReply(reply);
@@ -255,23 +279,68 @@ function rememberRun(key: string, now: number, run: CrisisClassifierRun): void {
 }
 
 /**
- * Every read of one turn, from whichever path made it: scope and latest
- * message to the verdicts. Same TTL and bound as the shared runs.
+ * Every read of one turn, from whichever path made it. Same TTL and bound as
+ * the shared runs. A turn is the session, the caller's words, Ferni's line
+ * they answer and the caller's line before them: reads of the same words on
+ * different turns ("same." after a pasta story, then after "I don't see the
+ * point") never combine.
  */
 const turnReads = new Map<string, { at: number; verdicts: Set<Promise<CrisisVerdict | null>> }>();
 
-function turnKey(scope: string, latest: string): string {
-  return `${scope}\u0000${latest.trim().toLowerCase()}`;
+function turnKey(scope: string, input: CrisisClassifierInput): string {
+  const { latest, earlier, companion } = normalizeInput(input);
+  return JSON.stringify([scope, latest.toLowerCase(), companion ?? '', earlier.at(-1) ?? '']);
 }
 
-function rememberRead(
+/**
+ * The same session's reads under a loose key: the caller's words alone,
+ * letters and digits only, and matching when one contains the other (one
+ * path may hold a truncated line). The gate and the pipeline can build
+ * different strict keys for one turn (a different Ferni line or previous
+ * line); their crisis reads must still count together, or each would look
+ * like a lone read.
+ */
+const looseReads = new Map<
+  string,
+  Array<{ at: number; text: string; verdict: Promise<CrisisVerdict | null> }>
+>();
+
+const looseText = (latest: string): string =>
+  latest
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+function rememberLoose(
   scope: string,
   latest: string,
   now: number,
   verdict: Promise<CrisisVerdict | null>
 ): void {
+  for (const [k, v] of looseReads) {
+    const fresh = v.filter((read) => now - read.at <= RECENT_RUN_TTL_MS);
+    if (fresh.length) looseReads.set(k, fresh);
+    else looseReads.delete(k);
+  }
+  const reads = looseReads.get(scope) ?? [];
+  if (!looseReads.has(scope) && looseReads.size >= RECENT_RUN_MAX) {
+    const oldest = looseReads.keys().next().value;
+    if (oldest !== undefined) looseReads.delete(oldest);
+  }
+  reads.push({ at: now, text: looseText(latest), verdict });
+  looseReads.set(scope, reads.slice(-RECENT_RUN_MAX));
+}
+
+function rememberRead(
+  scope: string,
+  input: CrisisClassifierInput,
+  now: number,
+  verdict: Promise<CrisisVerdict | null>
+): void {
+  rememberLoose(scope, normalizeInput(input).latest, now, verdict);
   for (const [k, v] of turnReads) if (now - v.at > RECENT_RUN_TTL_MS) turnReads.delete(k);
-  const key = turnKey(scope, latest);
+  const key = turnKey(scope, input);
   const reads = turnReads.get(key);
   if (reads) {
     reads.verdicts.add(verdict);
@@ -284,16 +353,34 @@ function rememberRead(
   turnReads.set(key, { at: now, verdicts: new Set([verdict]) });
 }
 
-/** All reads of this turn started so far in this call, each bounded by the classifier timeout. */
-export function turnVerdicts(scope: string, latest: string): Promise<Array<CrisisVerdict | null>> {
-  const reads = turnReads.get(turnKey(scope, latest));
-  return Promise.all(reads ? [...reads.verdicts] : []);
+/**
+ * All reads of this turn started so far in this call, each bounded by the
+ * classifier timeout: every read under the strict key, plus any other read of
+ * the same caller words (loose key) that was not a clear none. A none counts
+ * only under the strict key; a crisis or missing read counts under either.
+ */
+export async function turnVerdicts(
+  scope: string,
+  input: CrisisClassifierInput
+): Promise<Array<CrisisVerdict | null>> {
+  const strict = turnReads.get(turnKey(scope, input))?.verdicts ?? new Set();
+  const text = looseText(normalizeInput(input).latest);
+  const loose = (looseReads.get(scope) ?? [])
+    .filter((read) => text && read.text && (read.text.includes(text) || text.includes(read.text)))
+    .map((read) => read.verdict)
+    .filter((verdict) => !strict.has(verdict));
+  const [strictVerdicts, looseVerdicts] = await Promise.all([
+    Promise.all([...strict]),
+    Promise.all([...new Set(loose)]),
+  ]);
+  return [...strictVerdicts, ...looseVerdicts.filter((v) => v === null || v.risk !== 'none')];
 }
 
 /** For tests: forget shared runs. */
 export function resetCrisisClassifierCache(): void {
   recentRuns.clear();
   turnReads.clear();
+  looseReads.clear();
 }
 
 export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
@@ -320,36 +407,45 @@ export function startCrisisClassifier(
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
-  const key = JSON.stringify([normalized.latest, normalized.earlier, normalized.companion ?? '']);
+  const prompt = crisisClassifierPrompt(env);
+  const key = JSON.stringify([
+    normalized.latest,
+    normalized.earlier,
+    normalized.companion ?? '',
+    prompt.length,
+  ]);
   const shared = cachedRun(key, startedAt);
   if (shared) {
-    if (options.scope) rememberRead(options.scope, normalized.latest, startedAt, shared.verdict);
+    if (options.scope) rememberRead(options.scope, input, startedAt, shared.verdict);
     return { mode, verdict: shared.verdict };
   }
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
-  const verdict = classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env)).then(
-    (v) => {
-      const classifier = v ? verdictOutcome(v) : null;
-      log.info(
-        {
-          mode,
-          risk: v?.risk ?? null,
-          subject: v?.subject ?? null,
-          classifier,
-          pattern: options.pattern,
-          agree: classifier === options.pattern,
-          latencyMs: Date.now() - startedAt,
-          noVerdict: v === null,
-        },
-        'CRISIS_CLASSIFIER'
-      );
-      return v;
-    }
-  );
+  const verdict = classifyCrisis(
+    input,
+    generate,
+    resolveCrisisClassifierTimeoutMs(env),
+    prompt
+  ).then((v) => {
+    const classifier = v ? verdictOutcome(v) : null;
+    log.info(
+      {
+        mode,
+        risk: v?.risk ?? null,
+        subject: v?.subject ?? null,
+        classifier,
+        pattern: options.pattern,
+        agree: classifier === options.pattern,
+        latencyMs: Date.now() - startedAt,
+        noVerdict: v === null,
+      },
+      'CRISIS_CLASSIFIER'
+    );
+    return v;
+  });
   const run = { mode, verdict };
   rememberRun(key, startedAt, run);
-  if (options.scope) rememberRead(options.scope, normalized.latest, startedAt, verdict);
+  if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
   return run;
 }
 

@@ -83,7 +83,8 @@ z-index: 9999;
 The scale is defined once, on `:root` in `src/styles/inline-styles.css`. Use the
 token with **no fallback** (`z-index: var(--z-modal);`), and add a name to the
 scale before using it. `tests/z-index-scale.test.ts` fails on fallbacks, on
-names the scale does not define, and on a second definition.
+names the scale does not define, on a second definition, and on numeric
+z-index literals of 100 or more in `src/ui` TS files.
 
 ```css
 --z-base: 0;              /* Default stacking */
