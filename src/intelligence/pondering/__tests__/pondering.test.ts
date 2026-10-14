@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { ponderUser, toPonderSummary } from '../ponder-user.js';
 import {
   buildPonderingPrompt,
+  callerOnly,
+  isFerniLine,
   isSubstantive,
   friendWorthy,
   parsePondering,
@@ -180,6 +182,76 @@ describe('ponder', () => {
   });
 });
 
+describe("only the caller's own lines", () => {
+  // The 2026-10-10 dry run credited Ferni's own Silk Road story to the caller.
+  const silk = call('a', {
+    topics: ['Silk Road', 'knee surgery'],
+    keyPoints: [
+      'The assistant shared a story about walking the Silk Road',
+      'Mom has knee surgery Tuesday',
+      'Seth is driving her',
+    ],
+  });
+
+  it('recognises lines about Ferni in the shapes summaries write them', () => {
+    expect(isFerniLine('The assistant shared observations of horses in the pasture')).toBe(true);
+    expect(isFerniLine('Assistant is a proud parent.')).toBe(true);
+    expect(isFerniLine('Share more about myself (the AI) as requested.')).toBe(true);
+    expect(isFerniLine('Seth addressed the assistant as Fern')).toBe(false);
+    expect(isFerniLine("Seth's sister is moving to Boise")).toBe(false);
+  });
+
+  it("never shows the model Ferni's story, and drops a note it invents from the topics", async () => {
+    const llm = vi.fn().mockResolvedValue(
+      reply({
+        followUps: [{ text: 'How did the Silk Road walk go?', when: '2026-10-12', basis: 'a' }],
+        thinkingOf: [
+          { text: 'your Silk Road trip', basis: 'b' },
+          { text: "your mom's knee surgery", basis: 'b' },
+        ],
+      })
+    );
+    const out = await ponder([silk, call('b')], today, llm);
+    const prompt = String(llm.mock.calls[0]?.[0]);
+    expect(prompt).not.toContain('The assistant shared');
+    expect(out.followUps).toEqual([]);
+    expect(out.thinkingOf).toEqual([{ text: "your mom's knee surgery", basis: 'b' }]);
+  });
+
+  it('drops items about Ferni, and items drawn only from the follow-up notes', async () => {
+    const jack = call('a', {
+      keyPoints: ['Seth switched to a faster model', 'The new model is slower at night'],
+      followUps: ["Ask about Jack's impression of the AI"],
+    });
+    const llm = vi.fn().mockResolvedValue(
+      reply({
+        followUps: [
+          { text: 'What did Jack think of me when you introduced us?', basis: 'a' },
+          { text: 'How did your mom react when I called her?', when: '2026-10-11', basis: 'b' },
+          { text: "How's Jack doing?", basis: 'a' },
+        ],
+        thinkingOf: [{ text: 'how we both grew up with six siblings', basis: 'b' }],
+      })
+    );
+    const out = await ponder([jack, call('b')], today, llm);
+    expect(out).toEqual({ followUps: [], thinkingOf: [] });
+  });
+
+  it('leaves calls older than a month out', async () => {
+    const llm = vi.fn();
+    const old = await ponder([call('a', { date: '2026-08-01' }), call('b')], today, llm);
+    expect(old).toEqual({ followUps: [], thinkingOf: [] });
+    expect(llm).not.toHaveBeenCalled();
+  });
+
+  it('keeps a call whose only real lines were Ferni talking out of the pass', () => {
+    const ferniOnly = call('c', {
+      keyPoints: ['The assistant talked about jazz', 'Assistant expressed affection'],
+    });
+    expect(isSubstantive(callerOnly(ferniOnly))).toBe(false);
+  });
+});
+
 describe('toPonderSummary', () => {
   it('reads the live summary fields and both timestamp forms', () => {
     const iso = toPonderSummary('x', {
@@ -237,13 +309,26 @@ describe('ponderUser', () => {
     expect(set).not.toHaveBeenCalled();
   });
 
-  it('writes nothing when there is nothing worth saying', async () => {
+  it('with nothing worth saying, records only when it pondered, keeping earlier items', async () => {
     const { db, set } = fakeDb([live('a'), live('b')]);
     const out = await ponderUser(db, 'u1', async () => reply({ followUps: [], thinkingOf: [] }), {
       now,
       env: { PONDERING: 'on' },
     });
     expect(out.status).toBe('nothing');
+    expect(set).toHaveBeenCalledWith({ ponderedAt: now.toISOString() }, { merge: true });
+  });
+
+  it('writes nothing in a dry run', async () => {
+    const { db, set } = fakeDb([live('a'), live('b')]);
+    const out = await ponderUser(
+      db,
+      'u1',
+      async () => reply({ followUps: [{ text: 'How is your mom doing?', basis: 'a' }] }),
+      { now, env: { PONDERING: 'on' }, dryRun: true }
+    );
+    expect(out.status).toBe('dry-run');
+    expect(out.pondering?.followUps).toHaveLength(1);
     expect(set).not.toHaveBeenCalled();
   });
 
@@ -260,11 +345,16 @@ describe('ponderUser', () => {
       { now, env: { PONDERING: 'on' } }
     );
     expect(out.status).toBe('stored');
-    expect(set).toHaveBeenCalledWith({
-      followUps: [{ text: 'How is your mom doing?', when: '2026-10-14', basis: 'a' }],
-      thinkingOf: [],
-      generatedAt: now.toISOString(),
-      basedOn: ['a', 'b'],
-    });
+    // Merged, so the record of items already raised survives a new pass.
+    expect(set).toHaveBeenCalledWith(
+      {
+        followUps: [{ text: 'How is your mom doing?', when: '2026-10-14', basis: 'a' }],
+        thinkingOf: [],
+        generatedAt: now.toISOString(),
+        ponderedAt: now.toISOString(),
+        basedOn: ['a', 'b'],
+      },
+      { merge: true }
+    );
   });
 });

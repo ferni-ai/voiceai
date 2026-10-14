@@ -555,7 +555,7 @@ code {
 
 .persona-detail-tagline {
   font-size: var(--text-xl);
-  opacity: 0.9;
+  color: white; /* the global p colour is dark brown: 1.05:1 on the hero */
   margin-bottom: var(--space-4);
 }
 
@@ -564,7 +564,6 @@ code {
   align-items: center;
   gap: var(--space-6);
   font-size: var(--text-sm);
-  opacity: 0.85;
 }
 
 .persona-detail-actions {
@@ -573,25 +572,22 @@ code {
   margin-top: var(--space-6);
 }
 
-.btn-add-team {
+.btn-add-team,
+.btn-add-team:hover {
   background: white;
-  color: var(--persona-color, var(--accent-primary));
+  /* raw light persona colours were 2.3-3.0:1 on white */
+  color: color-mix(in srgb, var(--persona-color, var(--accent-primary)) 55%, var(--text-primary));
   font-weight: 700;
 }
 
-.btn-add-team:hover {
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--persona-color, var(--accent-primary));
-}
-
 .btn-preview-voice {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.2); /* a white tint left white text at 3.2:1 */
   color: white;
   backdrop-filter: blur(10px);
 }
 
 .btn-preview-voice:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* ========================================

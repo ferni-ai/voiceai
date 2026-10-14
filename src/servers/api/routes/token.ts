@@ -16,6 +16,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { onBodyEnd } from '../request-failure.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
+import { refuseUnownedRoom } from './token-room-owner.js';
 
 // Import shared rate limiting from token server module (single source of truth)
 import {
@@ -468,11 +469,7 @@ export async function handleTokenRoutes(
       // Anonymous Firebase users are an intentional product path (zero-friction onboarding);
       // they still present a verified ID token. Query-param firebase_uid alone is never trusted.
       const authHeader = req.headers['authorization'];
-      if (
-        !authHeader ||
-        typeof authHeader !== 'string' ||
-        !authHeader.startsWith('Bearer ')
-      ) {
+      if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
         log.warn('SECURITY: /token rejected — missing Firebase auth');
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(
@@ -519,6 +516,7 @@ export async function handleTokenRoutes(
         res.end(JSON.stringify({ error: 'Authentication service unavailable' }));
         return true;
       }
+      if (await refuseUnownedRoom(room, firebaseUid, res)) return true; // never join another's room
 
       // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
       log.info(

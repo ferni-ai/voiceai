@@ -212,6 +212,40 @@ describe('YouTube Search Service', () => {
       expect(result.video!.durationSeconds).toBe(630); // 10*60 + 30
     });
 
+    it('asks for status and reports age restriction, privacy and embeddability', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              id: 'r18',
+              snippet: {
+                title: 't',
+                description: '',
+                channelTitle: 'c',
+                channelId: 'c',
+                publishedAt: '',
+                thumbnails: {},
+                categoryId: '22',
+              },
+              contentDetails: { duration: 'PT1M', contentRating: { ytRating: 'ytAgeRestricted' } },
+              status: { privacyStatus: 'unlisted', embeddable: false },
+              statistics: { viewCount: '1', likeCount: '1' },
+            },
+          ],
+        }),
+      });
+      const result = await getVideoDetails('r18');
+      expect(String(mockFetch.mock.calls.at(-1)?.[0])).toContain(
+        'part=snippet%2CcontentDetails%2Cstatistics%2Cstatus'
+      );
+      expect(result.video).toMatchObject({
+        ageRestricted: true,
+        privacyStatus: 'unlisted',
+        embeddable: false,
+      });
+    });
+
     it('should handle video not found', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,

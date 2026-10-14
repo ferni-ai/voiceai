@@ -22,6 +22,8 @@ import {
   presenceSoundsEnabled,
 } from './presence-watcher.js';
 import { startToolHum } from './tool-hum.js';
+import { startVoicedPresence, voicedPresenceEnabled } from './voiced-presence.js';
+import { presenceClipPickers } from './presence-clips.js';
 import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
 import { withBackchannelSignal } from './backchannel-signal.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
@@ -156,8 +158,9 @@ const BACKCHANNEL_VOLUME = 0.75;
  *
  * REACTION_SIDETRACK=direct: backchannel, laugh and opening clips play on a
  * mixer-free track (direct-clip-track.ts, ~56 ms to the wire instead of
- * ~650); presence sounds and the tool hum stay on the mixer track. One clip
- * at a time across both, and one lastPlayedAt for all of them.
+ * ~650); presence sounds and the tool hum stay on the mixer track, except
+ * VOICED_PRESENCE takes (voiced-presence.ts), which play direct. One clip at a
+ * time across both, and one lastPlayedAt for all of them.
  */
 export async function startBackchannelClips(
   room: Room,
@@ -193,6 +196,13 @@ export async function startBackchannelClips(
   const direct = reactionSidetrackDirect() ? await startDirectClips(room, session) : null;
   const stopPresence = startPresenceSounds(session, player, () => direct?.playing ?? false);
   const stopToolHum = startToolHum(session, player);
+  const voiced = startVoicedPresence({
+    session,
+    direct,
+    mixerBusy: () => player.playing,
+    getClip,
+    personaId,
+  });
   const playClip = (text: string, opts?: { pauseStartedAt?: number }): boolean => {
     const pcm = getClip(text, personaId());
     if (pcm === null) return false;
@@ -207,9 +217,12 @@ export async function startBackchannelClips(
   const wireDelayMs = (): number =>
     direct ? (direct.lastWireMs ?? 60) : process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650;
   // Live backchannels and laughs (not the turn-opening "Mm") tell the avatar they played.
+  // VOICED_PRESENCE varies the live picks; the signal wraps the variation so
+  // its kind follows the requested clip (a laugh take still signals 'laugh').
+  const variedPlayClip = voiced?.vary(playClip) ?? playClip;
   const livePlayClip = avatarListenSignalsEnabled()
-    ? withBackchannelSignal(playClip, createDataMessageSender(room), wireDelayMs)
-    : playClip;
+    ? withBackchannelSignal(variedPlayClip, createDataMessageSender(room), wireDelayMs)
+    : variedPlayClip;
   return {
     playClip,
     lastPlayedAt: () => lastPlayedAt,
@@ -219,6 +232,7 @@ export async function startBackchannelClips(
     close: async () => {
       stopPresence();
       stopToolHum();
+      voiced?.close();
       await direct?.close();
       await player.close();
     },
@@ -239,7 +253,8 @@ function startPresenceSounds(
   player: ClipPlayer,
   otherTrackBusy: () => boolean = () => false
 ): () => void {
-  if (!presenceSoundsEnabled()) return () => {};
+  // VOICED_PRESENCE: no whistle or snore until researched; voiced-presence.ts fills the quiet.
+  if (!presenceSoundsEnabled() || voicedPresenceEnabled()) return () => {};
   const mood = () =>
     (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
       ?.primary;
@@ -249,19 +264,22 @@ function startPresenceSounds(
     return ok;
   };
   const stop = () => player.stop();
+  // PRESENCE_SOUND_ASSETS: a recorded whistle or snore when one loaded, else the synthesized one
+  const recorded = presenceClipPickers();
   const watchers = [
     createPresenceWatcher({
       play: () =>
         presenceHumEnabled() && Math.random() < 0.5
           ? playing('hum', synthHum())
-          : playing('whistle', synthWhistle()),
+          : playing('whistle', recorded?.whistle.next() ?? synthWhistle()),
       stop,
       mood,
     }),
   ];
   if (presenceSnoreEnabled()) {
+    const snore = () => recorded?.snore.next() ?? synthSnore();
     watchers.push(
-      createPresenceWatcher({ play: () => playing('snore', synthSnore()), stop, mood }, LONG_QUIET)
+      createPresenceWatcher({ play: () => playing('snore', snore()), stop, mood }, LONG_QUIET)
     );
   }
   const onAgent = (ev: { newState?: string }) =>

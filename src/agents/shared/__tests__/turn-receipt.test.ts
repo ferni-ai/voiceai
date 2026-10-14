@@ -14,6 +14,7 @@ import {
   userKindOf,
   type TurnReceipt,
 } from '../turn-receipt.js';
+import { createFirstAudioObserver } from '../../../speech/tts-gateway/first-audio-observer.js';
 import { promptSections } from '../prompt-sections.js';
 
 const INSTRUCTIONS = 'You are Ferni, a warm friend on a call.';
@@ -138,7 +139,9 @@ function call(opts: { userId?: string } = {}) {
     session.emit('conversation_item_added', {
       item: llm.ChatMessage.create({ role: role as 'user', content: text, interrupted }),
     });
-  const turn = (o: { tools?: string[]; swapTo?: string; interrupted?: boolean } = {}) => {
+  const turn = (
+    o: { tools?: string[]; swapTo?: string; interrupted?: boolean; unrecorded?: boolean } = {}
+  ) => {
     const stoppedAt = t;
     t += 300;
     metric({
@@ -188,7 +191,7 @@ function call(opts: { userId?: string } = {}) {
     t += 200;
     state('speaking');
     t += 1500;
-    item('assistant', REPLY, Boolean(o.interrupted));
+    if (!o.unrecorded) item('assistant', REPLY, Boolean(o.interrupted));
     state('listening');
   };
   return {
@@ -240,6 +243,7 @@ describe('attachTurnReceipts', () => {
         sentences: 3,
         interrupted: false,
         ttsCancelled: false,
+        unrecorded: false,
       },
     });
     // First token: request start (timestamp - duration) + TTFT, from the end of speech.
@@ -248,6 +252,39 @@ describe('attachTurnReceipts', () => {
     expect(r.prompt.requests).toBe(1);
     expect(r.prompt.totalTokensEst).toBe(r.prompt.sections.reduce((n, s) => n + s.tokensEst, 0));
     expect(r.prompt.totalTokensEst).toBeGreaterThan(0);
+  });
+
+  // Prod 2026-10-12: from turn 8 of one call no reply reached the history, and the
+  // model answered the same questions again ("Gujarati is what I grew up with" x4).
+  it('flags a turn where Ferni spoke but no reply reached the chat history', () => {
+    const c = call();
+    c.turn();
+    c.turn({ unrecorded: true });
+    expect(c.receipts.map((r) => [r.reply.messages, r.reply.unrecorded])).toEqual([
+      [1, false],
+      [0, true],
+    ]);
+  });
+
+  // Prod speaks through the TTS gateway, which never emits the SDK's tts_metrics:
+  // ttsTtfbMs was null in 135/135 receipts (SDK speech audit 2026-10-13).
+  it("records the TTS gateway's first audio for this session's reply only", () => {
+    const c = call();
+    c.metric({ type: 'eou_metrics', endOfUtteranceDelayMs: 300, lastSpeakingTimeMs: 1 });
+    c.item('user', CALLER);
+    c.state('thinking');
+    const theirs = createFirstAudioObserver({ sessionId: 'RM_other', startTime: Date.now() - 50 });
+    theirs();
+    const ours = createFirstAudioObserver({ sessionId: 'RM_test', startTime: Date.now() - 420 });
+    ours.stage('push');
+    ours();
+    c.state('speaking');
+    c.item('assistant', REPLY);
+    c.state('listening');
+    const timing = c.receipts[0]?.timing;
+    expect(timing?.ttsTtfbMs).toBeGreaterThanOrEqual(420);
+    expect(timing?.ttsTtfbMs).toBeLessThan(2000);
+    expect(timing?.ttsPushMs).not.toBeNull();
   });
 
   it('carries no transcript, reply, tool argument, note, name, number or uid', () => {

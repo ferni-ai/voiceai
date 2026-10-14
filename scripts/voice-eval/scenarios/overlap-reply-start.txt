@@ -1,0 +1,16 @@
+# Lost-reply repro (2026-10-13): the caller (or a second person on the same mic)
+# starts talking again just as Ferni's reply is about to start, i.e. after the
+# turn was committed but before the reply's audio plays. "[[slnc N]]" is the
+# gap inside one caller line; gaps of 700-1500 ms land between end-of-turn and
+# first audio (dev reply delay is ~1.3-2.9 s). Plain lines in between show
+# whether later replies still reach the chat history with their own text.
+# Watch: TURN_RECEIPT reply.messages, "playout completed" text vs the TTS text.
+Hey Ferni. So where did you grow up? [[slnc 900]] Oh, and was it somewhere out west?
+Huh, cool. What was it like there as a kid?
+My buddy David is here too. Did you ever have a dog? [[slnc 1200]] David wants to know what kind.
+Ha. What's your favorite thing to do on a weekend?
+Do you like music? [[slnc 700]] Like, what bands?
+Nice. Have you ever been to a concert?
+What should I make for dinner tonight? [[slnc 1500]] Something quick, though.
+Okay. And what about dessert?
+Alright, thanks Ferni. Talk later.
