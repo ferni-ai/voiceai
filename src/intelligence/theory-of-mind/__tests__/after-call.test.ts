@@ -90,6 +90,45 @@ describe('theory of mind: forget, on the way in', () => {
     expect(saved).toContain('Stripe interview on Monday');
   });
 
+  it('drops a forgotten topic from the moments behind a pattern, and a pattern left with none', async () => {
+    const store = memoryMindStore();
+    const model = emptyMindModel('u1', T0);
+    const at = T0.toISOString();
+    const moment = (cue: string) => ({ sessionId: 's0', at, cue });
+    model.patterns.push(
+      {
+        key: 'jokes-when-anxious',
+        kind: 'coping',
+        statement: 'jokes when anxious, then wants practical help',
+        moments: [
+          moment('joked about the landlord selling the building'),
+          moment('joked about a box'),
+        ],
+        contradictions: 0,
+        confidence: 0.6,
+        lastSeen: at,
+      },
+      {
+        key: 'vents-then-plans',
+        kind: 'coping',
+        statement: 'vents first, then makes a plan',
+        moments: [moment('vented about the landlord, then listed options')],
+        contradictions: 0,
+        confidence: 0.5,
+        lastSeen: at,
+      }
+    );
+    await store.save(model);
+    await updateTheoryOfMindAfterCall(
+      { userId: 'u1', sessionId: 's1', turns: CALL_1, summary: null },
+      { store, llm: replying('{}'), env: ON, now: () => T0, forgotten: forgetLandlord }
+    );
+    const saved = (await store.load('u1'))!;
+    expect(JSON.stringify(saved)).not.toMatch(/landlord/i);
+    expect(saved.patterns.map((p) => p.key)).toEqual(['jokes-when-anxious']);
+    expect(saved.patterns[0]?.moments.map((m) => m.cue)).toEqual(['joked about a box']);
+  });
+
   it('skips the update when what they asked to forget cannot be read', async () => {
     const store = memoryMindStore();
     const llm = replying(READING_1);

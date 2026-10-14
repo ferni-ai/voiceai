@@ -10,7 +10,7 @@ import { registerAfterCallTask } from '../services/session/after-call-tasks.js';
 import { updateTheoryOfMindAfterCall } from '../intelligence/theory-of-mind/after-call.js';
 import type { CallSummaryView } from '../intelligence/theory-of-mind/extract.js';
 import { firestoreMindStore } from '../memory/storage/mind-store.js';
-import { forgottenFilter } from './multi-agent/mind-note-hook.js';
+import { forgottenFilter } from './multi-agent/forgotten-filter.js';
 
 export const THEORY_OF_MIND_TASK = 'theory-of-mind';
 

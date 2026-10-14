@@ -87,12 +87,16 @@ export interface CallReading {
 export type IsForgotten = (text: string) => boolean;
 export const nothingForgotten: IsForgotten = () => false;
 
-/** The model without anything about a forgotten topic: told, patterns, sensitivities, mood. */
+/** The model without anything about a forgotten topic: told, patterns and their moments, sensitivities, mood. */
 export function withoutForgotten(model: MindModel, forgotten: IsForgotten): MindModel {
   return {
     ...model,
     toldFerni: model.toldFerni.filter((t) => !forgotten(t.topic)),
-    patterns: model.patterns.filter((p) => !forgotten(p.statement)),
+    // A moment's paraphrase can name the topic too; a pattern left with none goes.
+    patterns: model.patterns
+      .filter((p) => !forgotten(p.statement))
+      .map((p) => ({ ...p, moments: p.moments.filter((m) => !forgotten(m.cue)) }))
+      .filter((p) => p.moments.length > 0),
     sensitivities: model.sensitivities.filter((s) => !forgotten(s.topic)),
     current: model.current && !forgotten(model.current.state) ? model.current : undefined,
   };
