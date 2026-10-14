@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { voice } from '@livekit/agents';
+import { claimOpenerFollowUp } from '../../../memory/recall/opener-claim.js';
+import type { OpenCommitment } from '../../../services/superhuman/commitment-follow-up.js';
 
 // A fake Firestore that records how dynamic_facts is queried.
 const fake = vi.hoisted(() => {
@@ -151,6 +153,65 @@ describe('createMemoryRecall', () => {
     };
     const recall = createMemoryRecall({ userId: 'u1', store: slow });
     expect(recall.noteFor('Biscuit is great')).toBeNull();
+  });
+
+  it('with OPENER_FOLLOW_UP, the first note asks Ferni to follow up on a thread, once', async () => {
+    const on = createMemoryRecall({ userId: 'u1', userName: 'Maya', store, opener: true });
+    await on.ready;
+    const first = on.noteFor("Hey Ferni, it's me!");
+    expect(first).toContain('Ask how Biscuit is settling in');
+    expect(first).toMatch(/start of the call\. After saying hello, ask about the one open thread/);
+    expect(on.noteFor('Biscuit chewed my shoes again')).not.toMatch(/start of the call/);
+
+    const off = createMemoryRecall({ userId: 'u1', userName: 'Maya', store, opener: false });
+    await off.ready;
+    expect(off.noteFor("Hey Ferni, it's me!")).not.toMatch(/start of the call/);
+
+    const noThreads = createMemoryRecall({
+      userId: 'u1',
+      store: { ...store, summaries: async () => [] },
+      opener: true,
+    });
+    await noThreads.ready;
+    expect(noThreads.noteFor('Biscuit is asleep')).not.toMatch(/start of the call/);
+  });
+
+  it('asks one follow-up per call opener: a greeting check-in or pondered item, or a check-in note, wins', async () => {
+    const opening = (userId: string, checkIns?: () => Promise<OpenCommitment[]>) =>
+      createMemoryRecall({
+        userId,
+        userName: 'Maya',
+        store,
+        opener: true,
+        ...(checkIns && { checkIns }),
+      });
+    const THREAD = /start of the call\. After saying hello/;
+
+    // The greeting already asked about something: the note leaves the thread line out.
+    claimOpenerFollowUp('u-greeted', 'greeting');
+    const greeted = opening('u-greeted');
+    await greeted.ready;
+    expect(greeted.noteFor("Hey Ferni, it's me!")).not.toMatch(THREAD);
+
+    // The claim was taken with that call's first note: the next call asks as usual.
+    const next = opening('u-greeted');
+    await next.ready;
+    expect(next.noteFor("Hey Ferni, it's me!")).toMatch(THREAD);
+
+    // A check-in in the first note is the one follow-up.
+    const withCheckIn = opening('u-check', async () => [
+      {
+        id: 'c1',
+        statement: "I'm going to send my resume to Dana by Thursday.",
+        createdAt: Date.now() - 3 * 86_400_000,
+        followUpAfter: Date.now(),
+        followUpCount: 0,
+      },
+    ]);
+    await withCheckIn.ready;
+    const first = withCheckIn.noteFor("Hey Ferni, it's me!");
+    expect(first).toContain('send my resume to Dana');
+    expect(first).not.toMatch(THREAD);
   });
 
   it('with RECALL_PEOPLE, the first note says who is who and forbids guessing', async () => {

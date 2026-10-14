@@ -68,6 +68,8 @@ import {
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
+import { takeOpenerClaim } from '../../memory/recall/opener-claim.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import {
   createEpisodeRecall,
@@ -134,6 +136,8 @@ export interface MemoryRecallDeps {
   /** RECALL_PEOPLE=on (people.ts); read from the environment when not given. */
   people?: boolean;
   embed?: RetrievalEmbedder;
+  /** OPENER_FOLLOW_UP=on (opener.ts); read from the environment when not given. */
+  opener?: boolean;
   /** RECALL_BRIDGE=on; read from the environment when not given. */
   bridge?: boolean;
   /** RECALL_EPISODES=on (episodes.ts, needs semantic); read from the environment when not given. */
@@ -361,6 +365,17 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       // Who is who (RECALL_PEOPLE), once, with the first note.
       const people = followUpsOffered ? null : peopleNote;
       const checkIn = checkInOffered ? null : checkInNote;
+      // One follow-up per call opener (opener-claim.ts): a check-in in this
+      // note, or one the greeting already asked, leaves the thread line out.
+      const greetingAsked = followUpsOffered ? undefined : takeOpenerClaim(deps.userId);
+      const opener =
+        !followUpsOffered &&
+        !checkIn &&
+        !greetingAsked &&
+        threadsNow.length > 0 &&
+        (deps.opener ?? openerFollowUpEnabled())
+          ? OPENER_FOLLOW_UP_LINE
+          : null;
       // Once a turn, when they ask about him and something answers it.
       const self =
         selfRecall && !selfNoteGiven
@@ -371,6 +386,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         [
           checkIn,
           formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
+          opener,
           summaryRecall?.take(text) ?? null,
           people,
           told,
