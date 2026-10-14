@@ -3,7 +3,9 @@ import 'dotenv/config';
 import { RoomServiceClient } from 'livekit-server-sdk';
 
 async function main() {
-  const roomService = new RoomServiceClient(process.env.LIVEKIT_URL, process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET);
+  const url = process.env.LIVEKIT_URL;
+  if (!url) throw new Error('LIVEKIT_URL is not set');
+  const roomService = new RoomServiceClient(url, process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET);
 
   // List rooms to see if the call is still active
   const rooms = await roomService.listRooms();

@@ -63,12 +63,6 @@ export function initSeedsToast(): void {
     showSeedsToast(amount, reason, isCelebration);
   }) as EventListener);
 
-  // Listen for streak milestone events
-  document.addEventListener('ferni:streak-milestone', ((e: CustomEvent) => {
-    const { days, reward } = e.detail as { days: number; reward: number };
-    showStreakToast(days, reward);
-  }) as EventListener);
-
   log.info('Seeds toast initialized (using whisper system)');
 }
 

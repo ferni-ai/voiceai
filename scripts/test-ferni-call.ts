@@ -5,7 +5,7 @@
  */
 
 import 'dotenv/config';
-import { callWithPersonaVoice } from '../src/services/voice-call.js';
+import { callWithPersonaVoice } from '../src/services/voice/voice-call.js';
 import { generateCallOpening, generateVoicemailMessage } from '../src/services/outreach/persona-voice-generator.js';
 
 async function testFerniCall() {
