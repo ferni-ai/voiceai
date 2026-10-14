@@ -100,6 +100,7 @@ export const FLAG_MANIFEST = {
   DELIBERATION: { default: 'off', owner: 'voice', kind: 'experiment' },
   DEV_TELEMETRY: { default: 'off', owner: 'voice', kind: 'config' },
   DEV_TELEMETRY_VERBOSE: { default: 'off', owner: 'voice', kind: 'config' },
+  DIRECTOR_ESCALATE: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_LOOK_BACK: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_NOTES: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_PERSONA_AWARE: { default: 'off', owner: 'voice', kind: 'experiment' },

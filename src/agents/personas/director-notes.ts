@@ -23,6 +23,12 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import {
+  DIRECTOR_ADDRESS,
+  directorEscalates,
+  hardRuleFor,
+  NoteHistory,
+} from './director-escalation.js';
 import { directorSeesTools, ToolLog } from './director-tool-state.js';
 import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
 import { claimsIdentity, speakerNote } from './director-persona.js';
@@ -203,6 +209,9 @@ export class Director {
   private notes: string[] = [];
   private toldRecord: Told | null = null;
   private generation = 0;
+  /** DIRECTOR_ESCALATE=on: what the notes have raised, and the rule a repeat earned. */
+  private readonly history = new NoteHistory();
+  private rule = '';
 
   constructor(
     private readonly opts: {
@@ -221,13 +230,14 @@ export class Director {
   observe(lines: Line[]): Promise<void> {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
+    this.rule = '';
     this.toldRecord = toldThisCallEnabled() ? toldThisCall(lines, this.opts.userName) : null;
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const seesTools = directorSeesTools();
     const started = Date.now();
     const speaking = this.opts.speaking?.();
-    const system = directorLooksBack() ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM;
+    const system = directorSystem();
     const work = (async () => {
       try {
         const reply = await withTimeout(
@@ -253,8 +263,14 @@ export class Director {
           return;
         }
         this.notes = parseNotes(reply, lines.slice(-12), speaking);
+        const escalated = this.escalate();
         log.info(
-          { sessionId: this.opts.sessionId, ms: Date.now() - started, notes: this.notes },
+          {
+            sessionId: this.opts.sessionId,
+            ms: Date.now() - started,
+            notes: this.notes,
+            escalated,
+          },
           'DIRECTOR_NOTES'
         );
       } catch (error) {
@@ -263,6 +279,23 @@ export class Director {
       }
     })();
     return work;
+  }
+
+  /** DIRECTOR_ESCALATE=on: record this reply's notes; a theme raised twice becomes the rule. */
+  private escalate(): string[] | undefined {
+    if (!directorEscalates()) return undefined;
+    this.history.record(this.notes);
+    const themes = this.history.escalated();
+    this.rule = hardRuleFor(themes);
+    return themes;
+  }
+
+  /**
+   * DIRECTOR_ESCALATE=on: the hard rule for the reply being generated now, or
+   * '' (director-escalation.ts). Read like current(); the next observe() clears it.
+   */
+  hardRule(): string {
+    return this.rule;
   }
 
   /**
@@ -289,6 +322,12 @@ export class Director {
       recentLines: told.recentLines.filter(keep),
     });
   }
+}
+
+/** The director's instructions for this call's flags. */
+function directorSystem(): string {
+  const system = directorLooksBack() ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM;
+  return directorEscalates() ? `${system}\n${DIRECTOR_ADDRESS}` : system;
 }
 
 function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | undefined> {

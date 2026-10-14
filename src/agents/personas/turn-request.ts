@@ -141,6 +141,9 @@ export function withTurnReminder(
     // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
     // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),
+    // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
+    // for this reply, last of all; never with crisis guidance.
+    options.shape !== false ? (director?.hardRule?.() ?? '') : '',
   ]
     .filter(Boolean)
     .join(' ');
