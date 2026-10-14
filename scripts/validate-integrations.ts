@@ -10,7 +10,22 @@
 
 /* eslint-disable no-console */
 
-import chalk from 'chalk';
+import { styleText } from 'node:util';
+
+// chalk 6 ships its types only through package.json "exports", which the scripts
+// typecheck (moduleResolution "node") can't see. node:util covers what this needs.
+type Style = Parameters<typeof styleText>[0];
+const paint =
+  (format: Style) =>
+  (text: string): string =>
+    styleText(format, text);
+const tint = {
+  green: paint('green'),
+  red: paint('red'),
+  yellow: paint('yellow'),
+  gray: paint('gray'),
+  bold: Object.assign(paint('bold'), { blue: paint(['bold', 'blue']) }),
+};
 
 // ============================================================================
 // TYPES
@@ -33,14 +48,14 @@ function log(result: ValidationResult): void {
   const icon = result.status === 'pass' ? '✅' : result.status === 'fail' ? '❌' : '⏭️';
   const color =
     result.status === 'pass'
-      ? chalk.green
+      ? tint.green
       : result.status === 'fail'
-        ? chalk.red
-        : chalk.yellow;
+        ? tint.red
+        : tint.yellow;
 
   console.log(`${icon} ${color(result.name)}: ${result.message}`);
   if (result.details) {
-    console.log(chalk.gray(`   ${result.details}`));
+    console.log(tint.gray(`   ${result.details}`));
   }
   results.push(result);
 }
@@ -72,7 +87,7 @@ async function validate(
 // ============================================================================
 
 async function validateSECEdgar(): Promise<void> {
-  console.log(chalk.bold('\n📊 SEC EDGAR (Peter)'));
+  console.log(tint.bold('\n📊 SEC EDGAR (Peter)'));
 
   const { getCIKByTicker, getCompanyFilings, generateSECInsight } = await import(
     '../src/services/finance/sec-edgar.js'
@@ -110,7 +125,7 @@ async function validateSECEdgar(): Promise<void> {
 }
 
 async function validateLifeExpectancy(): Promise<void> {
-  console.log(chalk.bold('\n🧘 Life Expectancy (Nayan)'));
+  console.log(tint.bold('\n🧘 Life Expectancy (Nayan)'));
 
   const { calculateLifeExpectancy, generateMortalityPerspective } = await import(
     '../src/services/wisdom/life-expectancy.js'
@@ -143,7 +158,7 @@ async function validateLifeExpectancy(): Promise<void> {
 }
 
 async function validateMarketData(): Promise<void> {
-  console.log(chalk.bold('\n📈 Market Data (Peter)'));
+  console.log(tint.bold('\n📈 Market Data (Peter)'));
 
   const hasAlphaVantage = !!process.env.ALPHA_VANTAGE_API_KEY;
   const hasFRED = !!process.env.FRED_API_KEY;
@@ -162,7 +177,7 @@ async function validateMarketData(): Promise<void> {
 }
 
 async function validateBiometrics(): Promise<void> {
-  console.log(chalk.bold('\n💓 Biometrics (Maya)'));
+  console.log(tint.bold('\n💓 Biometrics (Maya)'));
 
   const hasOura = !!process.env.OURA_CLIENT_ID;
   const hasWhoop = !!process.env.WHOOP_CLIENT_ID;
@@ -195,7 +210,7 @@ async function validateBiometrics(): Promise<void> {
 }
 
 async function validateReservations(): Promise<void> {
-  console.log(chalk.bold('\n🍽️ Restaurant Reservations (Jordan)'));
+  console.log(tint.bold('\n🍽️ Restaurant Reservations (Jordan)'));
 
   const hasOpenTable = !!process.env.OPENTABLE_API_KEY;
   const hasResy = !!process.env.RESY_API_KEY;
@@ -221,7 +236,7 @@ async function validateReservations(): Promise<void> {
 }
 
 async function validateGmail(): Promise<void> {
-  console.log(chalk.bold('\n📧 Gmail (Alex)'));
+  console.log(tint.bold('\n📧 Gmail (Alex)'));
 
   const hasGoogle = !!process.env.GOOGLE_CLIENT_ID;
 
@@ -258,8 +273,8 @@ async function validateGmail(): Promise<void> {
 // ============================================================================
 
 async function main(): Promise<void> {
-  console.log(chalk.bold.blue('\n🔍 Ferni Integration Validation\n'));
-  console.log(chalk.gray('Validating "Better than Human" integrations...\n'));
+  console.log(tint.bold.blue('\n🔍 Ferni Integration Validation\n'));
+  console.log(tint.gray('Validating "Better than Human" integrations...\n'));
 
   await validateSECEdgar();
   await validateLifeExpectancy();
@@ -269,26 +284,26 @@ async function main(): Promise<void> {
   await validateGmail();
 
   // Summary
-  console.log(chalk.bold('\n📋 Summary'));
+  console.log(tint.bold('\n📋 Summary'));
   const passed = results.filter((r) => r.status === 'pass').length;
   const failed = results.filter((r) => r.status === 'fail').length;
   const skipped = results.filter((r) => r.status === 'skip').length;
 
-  console.log(chalk.green(`  ✅ Passed: ${passed}`));
-  console.log(chalk.red(`  ❌ Failed: ${failed}`));
-  console.log(chalk.yellow(`  ⏭️ Skipped: ${skipped}`));
+  console.log(tint.green(`  ✅ Passed: ${passed}`));
+  console.log(tint.red(`  ❌ Failed: ${failed}`));
+  console.log(tint.yellow(`  ⏭️ Skipped: ${skipped}`));
 
   if (failed > 0) {
-    console.log(chalk.red('\n⚠️ Some validations failed. Check the details above.'));
+    console.log(tint.red('\n⚠️ Some validations failed. Check the details above.'));
     process.exit(1);
   } else if (skipped > 0) {
     console.log(
-      chalk.yellow(
+      tint.yellow(
         '\n⚠️ Some integrations are not configured. Set the required environment variables.'
       )
     );
   } else {
-    console.log(chalk.green('\n🎉 All integrations validated successfully!'));
+    console.log(tint.green('\n🎉 All integrations validated successfully!'));
   }
 }
 
