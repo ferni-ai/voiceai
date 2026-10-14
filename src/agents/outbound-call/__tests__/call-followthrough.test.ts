@@ -93,6 +93,25 @@ describe('classifyAnsweredCall', () => {
       'opted_out',
     ],
     ['stop calling', ['Stop calling this number'], 5, 'opted_out'],
+    [
+      'a curly apostrophe',
+      ['I\u2019m not available right now, don\u2019t call me again'],
+      8,
+      'opted_out',
+    ],
+    [
+      'no object after call',
+      ["I am not available right now, please don't call again"],
+      8,
+      'opted_out',
+    ],
+    ['quit calling', ['Not available right now. Quit calling.'], 5, 'opted_out'],
+    [
+      'never call this number',
+      ['I\u2019m not available right now. Don\u2019t ever call this number again.'],
+      8,
+      'opted_out',
+    ],
     ['a person saying no', ['Not interested, bye'], 6, 'declined'],
     ['a wrong number', ['Sorry, wrong number'], 6, 'declined'],
     ['a very short exchange', ['Hey', 'Gotta run'], 12, 'hung_up_early'],
@@ -208,6 +227,18 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     await completeOnBehalfCall('s11', makeCall(), 6, true, declined);
     expect(declined.scheduleRetry).not.toHaveBeenCalled();
     expect(declined.recordOptOut).not.toHaveBeenCalled();
+  });
+
+  it('still reports, and never retries, when the opt-out cannot be recorded', async () => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    const p = ports(said('I\u2019m not available right now, don\u2019t call me again'), new Date());
+    p.recordOptOut = vi.fn(async () => {
+      throw new Error('firestore down');
+    });
+    const outcome = await completeOnBehalfCall('s12', makeCall(), 8, true, p);
+    expect(outcome?.status).toBe('completed');
+    expect(p.report).toHaveBeenCalledTimes(1);
+    expect(p.scheduleRetry).not.toHaveBeenCalled();
   });
 
   it('still summarizes a real conversation and never retries it', async () => {

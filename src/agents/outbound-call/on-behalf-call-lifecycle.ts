@@ -54,7 +54,7 @@ const VOICEMAIL_CUES =
   /\b(leave (me )?a message|after the (tone|beep)|voice ?mail|mailbox|record your message|can't come to the phone|not available right now)\b/i;
 /** The person asked not to be called again: never retried, and the number is put on the do-not-call list. */
 const OPT_OUT_CUES =
-  /\b((don'?t|do not|never) (ever )?call (me|us|here|this number)( again)?|stop calling|do not call|(remove|take) (me|us|this number) off)\b/i;
+  /\b((don'?t|do not|never) (ever )?call (me|us|here|this number)( again)?|(don'?t|do not|never) (ever )?call (again|back|anymore)|(stop|quit) calling|do not call|lose (this|my) number|(remove|take) (me|us|this number) off)\b/i;
 /** The person said no: never retried. */
 const DECLINE_CUES = /\b(not interested|wrong number|no thank(s| you)|leave me alone)\b/i;
 /** A real conversation has at least two replies from the person and lasts a little while. */
@@ -70,6 +70,8 @@ export function classifyAnsweredCall(
   heard: string[],
   durationSeconds: number
 ): 'opted_out' | 'declined' | 'voicemail' | 'hung_up_early' | 'answered' {
+  // Transcripts may carry typographic apostrophes ("don’t"); match them as straight ones.
+  heard = heard.map((h) => h.replace(/[\u2018\u2019\u02bc]/g, "'"));
   // A person saying no outranks anything that looks like a voicemail greeting.
   if (heard.some((h) => OPT_OUT_CUES.test(h))) return 'opted_out';
   if (heard.some((h) => DECLINE_CUES.test(h))) return 'declined';
@@ -224,8 +226,10 @@ export async function beginOnBehalfCall(sessionId: string, call: OnBehalfDispatc
   initializeTranscriptCapture(call.callId, call.contact.name, call.contact.relationship);
   // Only called for a verified dispatch: lets other paths in this job (voicemail
   // detection) schedule the retry by callId without rebuilding the dispatch.
-  const { rememberVerifiedCall } = await import('../../services/outreach/call-retry.js');
-  rememberVerifiedCall(call);
+  if (isCallFollowthroughEnabled()) {
+    const { rememberVerifiedCall } = await import('../../services/outreach/call-retry.js');
+    rememberVerifiedCall(call);
+  }
   if (!initializeOnBehalfCapture(sessionId)) {
     log.warn({ sessionId, callId: call.callId }, 'No outbound context; turns will not be captured');
   }
@@ -314,12 +318,18 @@ export async function completeOnBehalfCall(
     const request = toOnBehalfCallRequest(call);
     let outcome = buildCallOutcome(call, turns, analysis, disposition, durationSeconds);
     const followthrough = isCallFollowthroughEnabled();
-    if (followthrough && classifyAnsweredCall(heard, durationSeconds) === 'opted_out') {
-      await recordOptOut?.(call);
+    const heardAs = followthrough ? classifyAnsweredCall(heard, durationSeconds) : 'answered';
+    if (heardAs === 'opted_out') {
+      // A failed write must not cost the requester their report; the retry is refused below anyway.
+      await Promise.resolve(recordOptOut?.(call)).catch((error: unknown) =>
+        log.error({ error: String(error), callId: call.callId }, 'Could not record call opt-out')
+      );
     }
-    // Only a call nobody answered, or that reached voicemail, is retried.
+    // Only a call nobody answered, or that reached voicemail, is retried, and never
+    // one where the person said no, whatever else the transcript looked like.
+    const refused = heardAs === 'opted_out' || heardAs === 'declined';
     const missed = outcome.status === 'no_answer' || outcome.status === 'voicemail';
-    if (followthrough && missed && scheduleRetry) {
+    if (followthrough && missed && !refused && scheduleRetry) {
       const retryAt = await scheduleRetry(call);
       if (retryAt) {
         // Keep whatever the report said about the call; the retry replaces only the offer.

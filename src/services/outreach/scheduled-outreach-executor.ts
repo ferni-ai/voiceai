@@ -207,7 +207,11 @@ async function processUserOutreach(userId: string): Promise<number> {
   }
 
   try {
-    const pending = await getPendingOutreach(userId);
+    // A missed-call retry is placed only by the Cloud Scheduler job, which claims
+    // each item in a transaction; placing it here too could ring them twice.
+    const pending = (await getPendingOutreach(userId)).filter(
+      (o) => o.target.channel !== 'on_behalf_call'
+    );
     if (pending.length === 0) {
       return 0;
     }
