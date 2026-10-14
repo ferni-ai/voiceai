@@ -14,7 +14,7 @@
  */
 
 import { type EnglishAccent, ACCENT_TO_DIALECT } from '../../config/voice-accents.js';
-import { getVoiceIdForPersona } from '../../config/voice-ids.js';
+import { CARTESIA_API_VERSION, getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -57,19 +57,29 @@ export interface LocalizationResult {
   cached: boolean;
 }
 
+/**
+ * POST /voices/localize as of Cartesia-Version 2026-08-14: the target is one
+ * `accent` id from GET /accents?is_localizable=true; `language`,
+ * `original_speaker_gender` and `dialect` were dropped.
+ */
 interface CartesiaLocalizeRequest {
   voice_id: string;
   name: string;
   description: string;
-  language: string;
-  original_speaker_gender: 'male' | 'female';
-  dialect?: string;
+  accent: string;
 }
+
+/** Cartesia's localizable accent id for each English accent (GET /accents, 2026-10-12). */
+export const ACCENT_TO_CARTESIA_ACCENT: Record<EnglishAccent, string> = {
+  american: 'general-american',
+  british: 'british',
+  australian: 'australian',
+  indian: 'indian-english',
+};
 
 interface CartesiaLocalizeResponse {
   id: string;
   user_id: string;
-  is_public: boolean;
   name: string;
   description: string;
   created_at: string;
@@ -208,7 +218,6 @@ async function deleteFromFirestore(cacheKey: string): Promise<void> {
 // =============================================================================
 
 const CARTESIA_API_URL = 'https://api.cartesia.ai';
-const CARTESIA_API_VERSION = '2024-06-10';
 
 /**
  * Call Cartesia's voice localization API.
@@ -297,9 +306,7 @@ export async function getLocalizedVoiceId(
       voice_id: originalVoiceId,
       name: `${personaMeta.name} (${accent})`,
       description: `Localized ${personaMeta.name} voice with ${accent} English accent`,
-      language: 'en',
-      original_speaker_gender: personaMeta.gender,
-      dialect,
+      accent: ACCENT_TO_CARTESIA_ACCENT[accent],
     });
 
     // Cache the result

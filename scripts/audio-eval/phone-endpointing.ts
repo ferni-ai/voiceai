@@ -103,7 +103,7 @@ async function endpoint(pcm: Int16Array, rate: number): Promise<Timing> {
     turn_end_timeout_ms: String(td.endTimeoutMs),
   });
   const ws = new WebSocket(`wss://api.cartesia.ai/stt/turns/websocket?${params}`, {
-    headers: { 'X-API-Key': apiKey!, 'Cartesia-Version': '2026-03-01' },
+    headers: { 'X-API-Key': apiKey!, 'Cartesia-Version': '2026-08-14' },
   });
   await new Promise<void>((r, j) => {
     ws.once('open', () => r());

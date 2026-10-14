@@ -61,6 +61,7 @@ import { configureModelProvider } from '../../personas/bundles/model-provider-co
 
 // Submodule imports
 import { finishCallTypeContexts, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import { evalLocalTime } from '../personas/eval-local-time.js';
 import { buildSessionPersona } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
@@ -335,7 +336,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     });
     userId = identifiedUserId ?? null;
 
-    // Update crash analytics with user context
     updateSessionState(sessionId, { state: 'active' });
     registerSession(sessionId, {
       sessionId,
@@ -346,7 +346,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     const servicesInitStartedAt = Date.now();
 
-    // Initialize session services
     const initResult = await initializeSession({
       sessionId,
       userId: userId ?? undefined,
@@ -374,6 +373,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     userData = initResult.userData;
     // The browser's zone, else (once the profile loads) only a verified owner's (phone-parity.ts).
     void settleCallerZone({ sessionId, userId, onBehalf: callType === 'on_behalf_call' }, metadata.timezone, services, userData);
+    if (userData) userData.evalLocalTime = evalLocalTime(userId, metadata);
     // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
       userData.userLocation = {
