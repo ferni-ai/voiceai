@@ -336,25 +336,19 @@
       "emotional_triggers": ["endless striving", "dissatisfaction", "lack of gratitude"]
     },
     {
-      "id": "blended-family",
-      "title": "Blended Family",
-      "file": "blended-family.json",
+      "id": "second-marriage",
+      "title": "Second Marriage",
+      "file": "second-marriage.json",
       "triggers": [
-        "family",
-        "complicated",
-        "kids",
-        "children",
-        "stepkids",
         "divorce",
         "remarried",
-        "co-parenting",
-        "blended",
-        "multiple households",
-        "family dynamics",
-        "step parent"
+        "starting over",
+        "love again",
+        "second chance at love",
+        "dating again"
       ],
       "type": "personal",
-      "emotional_triggers": ["family complexity", "guilt about family", "blended family challenges"]
+      "emotional_triggers": ["fear of starting over", "guilt about a marriage ending", "hope after divorce"]
     },
     {
       "id": "seven-siblings",

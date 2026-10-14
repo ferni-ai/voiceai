@@ -18,12 +18,14 @@ import { apiDelete, apiGet, apiPatch } from '../../utils/api.js';
 import { createLogger } from '../../utils/logger.js';
 import { toast } from '../whisper.ui.js';
 import { closeFerniKnowsPanel, openFerniKnowsPanel, type KnowledgeItem } from './ferni-knows.ui.js';
+import { memoryViewEnabled } from './known.js';
 import { openCorrectionModal, type CorrectionSubmission } from './memory-correction.ui.js';
 
 const log = createLogger('Remembered');
 
+/** On with VITE_MEMORY_CONTROL, or with the memory view (known.ts), which it opens instead. */
 export function memoryControlEnabled(): boolean {
-  return import.meta.env.VITE_MEMORY_CONTROL === 'true';
+  return import.meta.env.VITE_MEMORY_CONTROL === 'true' || memoryViewEnabled();
 }
 
 /** A fact as the server lists it (memory-control.ts RememberedFact). */
@@ -88,6 +90,10 @@ async function load(): Promise<RememberedFact[] | null> {
 
 /** Open the panel with what Ferni remembers; the correct button opens the correction modal. */
 export async function showRemembered(): Promise<void> {
+  if (memoryViewEnabled()) {
+    const { openMemoryView } = await import('./known-view.ui.js');
+    return openMemoryView();
+  }
   const facts = await load();
   if (!facts) {
     toast.error(t('app.couldNotLoadMemories'));

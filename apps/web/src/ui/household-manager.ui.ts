@@ -163,7 +163,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--persona-primary, var(--color-ferni, #4a6741));
+    color: var(--persona-text);
     margin-bottom: var(--space-1, 4px);
   }
   
@@ -343,7 +343,7 @@ const styles = `
     width: 64px;
     height: 64px;
     margin: 0 auto var(--space-4, 16px);
-    color: var(--persona-primary, var(--color-ferni, #4a6741));
+    color: var(--persona-text);
     opacity: 0.6;
   }
   

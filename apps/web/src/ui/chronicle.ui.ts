@@ -815,7 +815,7 @@ const styles = `
     height: 48px;
     border: none;
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
     border-radius: var(--radius-full, 9999px);
     cursor: pointer;
     display: flex;

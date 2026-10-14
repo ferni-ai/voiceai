@@ -239,6 +239,26 @@ export async function getFirebaseUser(uid: string): Promise<admin.auth.UserRecor
   }
 }
 
+/** Lookup failures that mean the user doesn't exist, not that the lookup failed */
+const NO_SUCH_USER = new Set(['auth/user-not-found', 'auth/invalid-uid']);
+
+/**
+ * getFirebaseUser for callers that must not take a failed lookup for "no such user"
+ * (account erasure, which deletes by the user's email and phone): null only when
+ * Firebase says the user doesn't exist, or the id is one Firebase could never have
+ * issued (auth/invalid-uid: a device id, or over 128 characters). Any other failure throws.
+ */
+export async function getFirebaseUserOrThrow(uid: string): Promise<admin.auth.UserRecord | null> {
+  if (!ensureInitialized()) throw new Error('Firebase Admin is not initialized');
+  try {
+    return await admin.auth().getUser(uid);
+  } catch (error) {
+    const code = (error as { code?: unknown } | null)?.code;
+    if (typeof code === 'string' && NO_SUCH_USER.has(code)) return null;
+    throw error;
+  }
+}
+
 /**
  * The Firebase user whose sign-in phone number is `e164`, or null. Firebase
  * only puts a number on an account through phone verification (or an admin),

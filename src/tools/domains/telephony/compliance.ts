@@ -13,9 +13,9 @@
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { OnBehalfCallRequest, CallType } from './types.js';
-import { checkDialableNumber } from './dialable-number.js';
+import { checkDialableNumber } from '../../../utils/dialable-number.js';
 
-export { checkDialableNumber, type DialCheck } from './dialable-number.js';
+export { checkDialableNumber, type DialCheck } from '../../../utils/dialable-number.js';
 
 const log = getLogger().child({ module: 'telephony-compliance' });
 
