@@ -1,8 +1,13 @@
 /**
- * The card a sent pick lands as in the app: what the signed-in sources page
- * (approvals-page, `answer_cards`) renders. Google's grounding terms ask that a
- * grounded result's sources and Search suggestions be shown to the user; voice
- * can't, so they travel with the card, never in the model's text.
+ * The card a sent pick carries: its sources and Google Search suggestions,
+ * which Google's grounding terms ask be shown to the user; voice can't, so
+ * they travel with the card, never in the model's text.
+ *
+ * Today the card is saved with the in-app message (pending_messages), and no
+ * client shows it: the web inbox (proactive-messages.ui.ts) shows the text
+ * only. The page that renders these sources (/a/:id, answer-card-page.ui.ts)
+ * reads `answer_cards`, which nothing here writes yet. Until it does,
+ * COACH_MEDIA must stay off.
  *
  * Shape agreed with approvals-page: answerText is plain text (400 chars),
  * sources are https only, searchSuggestionsHtml is Google's renderedContent

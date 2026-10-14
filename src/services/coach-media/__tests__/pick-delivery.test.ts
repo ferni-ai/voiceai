@@ -43,10 +43,27 @@ vi.mock('../../outreach/unified-delivery.js', () => ({ saveInAppMessage }));
 const storeUserPreferences = vi.fn(async (_userId: string, _prefs: unknown[]) => undefined);
 vi.mock('../../user-preferences-store.js', () => ({ storeUserPreferences }));
 const markAsked = vi.fn(async () => undefined);
+// The pick log as claimAnswer keeps it: an answer that says whether it helped is recorded once.
+const picks = new Map<string, { id: string; sentVia: string | null; helped: string | null }>();
+const claimAnswer = vi.fn(async (_u: string, id: string, a: { helped: string | null }) => {
+  const known = picks.get(id);
+  if (!known || known.helped) return false;
+  picks.set(id, { ...known, helped: a.helped });
+  return true;
+});
 vi.mock('../pick-log.js', () => ({
   markAsked,
   markSent: vi.fn(async () => undefined),
-  markAnswered: vi.fn(async () => undefined),
+  claimAnswer,
+  recentPicks: vi.fn(async () => [...picks.values()].reverse()),
+}));
+const budget = new Map<string, number>();
+vi.mock('../quota.js', () => ({
+  takeDailyBudget: vi.fn(async (name: string, limit: number) => {
+    const used = budget.get(name) ?? 0;
+    budget.set(name, used + 1);
+    return used < limit;
+  }),
 }));
 
 const {
@@ -55,6 +72,7 @@ const {
   rememberPick,
   recordPickFeedback,
   MAX_TEXTS_PER_CALL,
+  TEXTS_PER_USER_PER_DAY,
   smsBody,
   sendableLink,
 } = await import('../pick-delivery.js');
@@ -88,12 +106,19 @@ const DAY = 86_400_000;
 
 beforeEach(() => {
   docs.clear();
+  budget.clear();
+  picks.clear();
+  picks.set('pick-1', { id: 'pick-1', sentVia: 'text', helped: null });
   vi.clearAllMocks();
+  vi.stubEnv('COACH_MEDIA', 'on');
   userReach.mockResolvedValue({ phone: '+14155550134' });
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-10-11T12:00:00Z'));
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
 
 describe('deliverPick', () => {
   it('texts this call’s pick to the verified number and asks about it once, three days later', async () => {
@@ -241,7 +266,7 @@ describe('texting safely', () => {
     expect(
       sendableLink({ ...off, url: 'https://www.nhs.uk/a', grounding: PICK.candidate.grounding })
     ).toBeNull();
-    // Store links get coach-local's own check, not this list.
+    // Store links are not on the list.
     expect(sendableLink({ ...off, url: 'https://www.doordash.com/store/x' })).toBeNull();
     expect(sendableLink({ ...off, url: 'https://www.amazon.com/s?k=x' })).toBeNull();
     expect(sendableLink({ ...off, url: 'https://books.google.com/books?id=b2' })).toBe(
@@ -270,6 +295,38 @@ describe('send caps and what resurfaces later', () => {
     await deliverPick(session, 'user-1', 'text', 'ferni');
     expect(saveInAppMessage).toHaveBeenCalledTimes(MAX_TEXTS_PER_CALL);
     expect(sendSMS).toHaveBeenCalledTimes(2);
+  });
+
+  it('caps texts per user per day, across calls', async () => {
+    const said: string[] = [];
+    for (const session of [{}, {}]) {
+      rememberPick(session, PICK);
+      for (let i = 0; i < MAX_TEXTS_PER_CALL; i++)
+        said.push(await deliverPick(session, 'user-1', 'text', 'ferni'));
+    }
+    expect(sendSMS).toHaveBeenCalledTimes(TEXTS_PER_USER_PER_DAY);
+    expect(said.at(-1)).toContain('as many texts as Ferni sends someone in a day');
+  });
+
+  it("gives the app slot back when a text's card copy isn't saved", async () => {
+    const session = {};
+    rememberPick(session, PICK);
+    saveInAppMessage.mockResolvedValueOnce({ success: false, channel: 'in_app' });
+    await deliverPick(session, 'user-1', 'text', 'ferni');
+    for (let i = 0; i < MAX_TEXTS_PER_CALL; i++)
+      expect(await deliverPick(session, 'user-1', 'app', 'ferni')).toContain('app messages');
+    expect(saveInAppMessage).toHaveBeenCalledTimes(1 + MAX_TEXTS_PER_CALL);
+  });
+
+  it('never surfaces a coaching follow-up once COACH_MEDIA is off', async () => {
+    const session = {};
+    rememberPick(session, PICK);
+    await deliverPick(session, 'user-1', 'app', 'ferni');
+    vi.stubEnv('COACH_MEDIA', 'off');
+    vi.setSystemTime(new Date(Date.now() + 3 * DAY + 1000));
+    expect((await processCommitments('user-1', 'hey')).followUpsDue).toEqual([]);
+    vi.stubEnv('COACH_MEDIA', 'on');
+    expect((await processCommitments('user-1', 'hey')).followUpsDue).toHaveLength(1);
   });
 
   it('caps app sends per call too, also when they race', async () => {
@@ -304,6 +361,7 @@ describe('send caps and what resurfaces later', () => {
 
 describe('recordPickFeedback', () => {
   it('stores whether it helped as a coaching_media preference, without names', async () => {
+    picks.set('pick-2', { id: 'pick-2', sentVia: 'app', helped: null });
     await recordPickFeedback(
       'user-1',
       { helped: 'no', whatMattered: 'Seth found long lectures boring' },
@@ -318,6 +376,15 @@ describe('recordPickFeedback', () => {
     ]);
     await recordPickFeedback('user-1', { helped: 'yes', whatMattered: 'short follow-alongs' }, []);
     expect(storeUserPreferences.mock.calls[1][1][0]).toMatchObject({ isNegative: false });
+  });
+
+  it('counts the answer once when the follow-up already recorded it', async () => {
+    const answer = { id: 'coach-media-pick-1', content: "try the video 'X'", outcome: 'done' };
+    expect(await recordFollowUpAnswer('user-1', answer, 'it really helped')).toBe('yes');
+    expect(
+      await recordPickFeedback('user-1', { helped: 'yes', whatMattered: 'short ones' }, [])
+    ).toContain('already noted');
+    expect(storeUserPreferences).toHaveBeenCalledTimes(1);
   });
 
   it('stores nothing for an anonymous caller or an empty answer', async () => {
