@@ -1,9 +1,9 @@
 /**
  * Contextual Feedback UI
  *
- * Bottom-docked floating feedback component that appears during natural
- * conversation pauses to collect micro-feedback on how the conversation
- * is landing.
+ * Micro-feedback on how the conversation is landing. Prompts from the agent
+ * are never shown mid-call: they are held for one tap on the post-call card
+ * (after-call/call-feedback.ts). The bottom dock below remains for show().
  *
  * Design principles:
  * - A pill in the bottom feedback slot, below the call controls, one pill at a time
@@ -22,6 +22,7 @@ import { createLogger } from '../utils/logger.js';
 import { DURATION } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { t } from '../i18n/index.js';
+import { holdFeedbackPrompt } from './after-call/call-feedback.js';
 import * as bottomSlot from './bottom-feedback-slot.js';
 
 const log = createLogger('ContextualFeedbackUI');
@@ -90,7 +91,7 @@ const REACTION_ICONS: Record<string, string> = {
 
 // Reaction configs (labels are i18n keys, resolved when rendered)
 
-const REACTIONS: ReactionConfig[] = [
+export const REACTIONS: ReactionConfig[] = [
   {
     id: 'resonated',
     icon: REACTION_ICONS.resonated ?? '',
@@ -124,7 +125,6 @@ const REACTIONS: ReactionConfig[] = [
 let container: HTMLElement | null = null;
 let isInitialized = false;
 let currentFeedbackId: string | null = null;
-let promptShownAt: number = 0;
 let autoHideTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ============================================================================
@@ -379,26 +379,14 @@ function setupMessageHandler(): void {
 function handleFeedbackPrompt(event: FeedbackPromptEvent): void {
   log.info({ feedbackId: event.feedbackId, trigger: event.trigger }, 'Received feedback prompt');
 
-  // Only show if connected
+  // Only for the live call
   if (appState.get('connection') !== 'connected') {
     log.debug('Not connected, skipping feedback prompt');
     return;
   }
 
-  currentFeedbackId = event.feedbackId;
-  promptShownAt = Date.now();
-
-  show();
-
-  // Set auto-hide timer
-  if (autoHideTimer) {
-    clearTimeout(autoHideTimer);
-  }
-  autoHideTimer = trackedTimeout(() => {
-    if (currentFeedbackId === event.feedbackId) {
-      dismissPrompt();
-    }
-  }, event.autoHideMs);
+  // Never interrupt the conversation: the post-call card asks with one tap
+  holdFeedbackPrompt(event.feedbackId);
 }
 
 // ============================================================================
@@ -469,13 +457,12 @@ function sendReactionToBackend(reaction: FeedbackReaction): void {
     return;
   }
 
-  const responseTimeMs = Date.now() - promptShownAt;
-
+  // No responseTimeMs: prompts are held for the post-call card, so this dock never
+  // knows when one was shown (the field is optional in data-channel-handler.ts).
   const message = JSON.stringify({
     type: 'user_feedback',
     feedbackId: currentFeedbackId,
     reaction,
-    responseTimeMs,
     timestamp: Date.now(),
   });
 
@@ -483,7 +470,7 @@ function sendReactionToBackend(reaction: FeedbackReaction): void {
     reliable: true,
   });
 
-  log.info({ feedbackId: currentFeedbackId, reaction, responseTimeMs }, 'Feedback sent');
+  log.info({ feedbackId: currentFeedbackId, reaction }, 'Feedback sent');
 
   // Clear auto-hide timer
   if (autoHideTimer) {

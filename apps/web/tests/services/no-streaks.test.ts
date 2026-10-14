@@ -69,19 +69,21 @@ describe.each([
 
   it('a seventh day in a row pays the daily seeds, and streak seeds only when off', async () => {
     storeSixDayStreak();
-    const milestones: unknown[] = [];
-    const onMilestone = (e: Event): void => {
-      milestones.push((e as CustomEvent).detail);
+    // A streak award is announced once, as a seeds-earned of type 'streak'.
+    const streakAwards: number[] = [];
+    const onEarned = (e: Event): void => {
+      const detail = (e as CustomEvent<{ amount: number; type: string }>).detail;
+      if (detail.type === 'streak') streakAwards.push(detail.amount);
     };
-    document.addEventListener('ferni:streak-milestone', onMilestone);
+    document.addEventListener('ferni:seeds-earned', onEarned);
     const seeds = await import('@/services/seeds-economy.service.js');
 
     seeds.recordConversation();
-    document.removeEventListener('ferni:streak-milestone', onMilestone);
+    document.removeEventListener('ferni:seeds-earned', onEarned);
 
     // Daily conversation seeds (5) are a genuine action: paid either way.
     expect(addSeeds.mock.calls.map(([n]) => n)).toEqual(on ? [5] : [5, 25]);
-    expect(milestones).toEqual(on ? [] : [{ days: 7, reward: 25 }]);
+    expect(streakAwards).toEqual(on ? [] : [25]);
     // The streak is still recorded, so turning the flag off restores it.
     expect(seeds.getCurrentStreak()).toBe(7);
   });
