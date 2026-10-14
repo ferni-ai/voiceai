@@ -22,10 +22,10 @@ const SAMPLE_TEXTS = {
     With a low expense ratio of just 0.03%, your 401k can grow significantly over time. 
     Remember, it's time in the market, not timing the market.`,
 
-  long: `I remember back in 1975 when we started Vanguard. The financial industry was very different then.
+  long: `I remember back in the seventies when index funds were brand new. The financial industry was very different then.
     Wall Street thought we were crazy to offer index funds to regular investors. "Who would want to just 
     match the market?" they asked. Well, over the past 50 years, index funds have grown from nothing to 
-    over $10 trillion in assets. The S&P 500 index fund that we created has outperformed most actively 
+    over $10 trillion in assets. The S&P 500 index funds from that era have outperformed most actively 
     managed funds over any 15-year period. The key principles remain the same: keep costs low, diversify 
     broadly, stay the course, and don't let emotions drive your investment decisions. Your 401k and IRA 
     should be invested in low-cost index funds like VTI or VTSAX. The expense ratio matters more than 
@@ -46,7 +46,7 @@ const SAMPLE_TEXTS = {
     a penny saved is a penny earned." Back in those days, we didn't have 401ks or IRAs. You know 
     what we did? We put money in a jar. Simple as that. And then one day, years later, I found myself 
     on Wall Street, surrounded by all these fancy financial instruments. But I never forgot those 
-    lessons. That's why I started Vanguard - to bring simple, low-cost investing to everyone.`,
+    lessons. That's why I've spent my career bringing simple, low-cost investing to everyone.`,
 };
 
 // ============================================================================

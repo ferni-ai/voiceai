@@ -10,6 +10,7 @@
 import type { PersonaId } from '../types/persona.js';
 import { tsParticles } from '@tsparticles/engine';
 import { loadSlim } from '@tsparticles/slim';
+import { loadShadowEffect } from '@tsparticles/effect-shadow';
 import type { Container, ISourceOptions, MoveDirection } from '@tsparticles/engine';
 import { addClass, removeClass } from '../utils/dom.js';
 import { getParticleProfile, type ParticleProfile } from '@design-system/tokens';
@@ -113,6 +114,8 @@ export async function initAgentParticles(): Promise<void> {
     // Load tsParticles engine
     if (!particlesInitialized) {
       await loadSlim(tsParticles);
+      // tsParticles 4 moved the particle glow out of the engine into an effect plugin
+      await loadShadowEffect(tsParticles);
       particlesInitialized = true;
     }
   } catch (error) {
@@ -172,8 +175,11 @@ function getParticleOptions(personaId: PersonaId, intensityLevel: number): ISour
           height: 200,
         },
       },
-      color: {
-        value: colors,
+      // tsParticles 4 reads colour from `paint`; a top-level `color` is ignored (white particles)
+      paint: {
+        color: {
+          value: colors,
+        },
       },
       shape: {
         type: behavior.shape === 'star' ? 'star' : 'circle',
@@ -234,10 +240,14 @@ function getParticleOptions(personaId: PersonaId, intensityLevel: number): ISour
       },
       // Glow effect
       ...(behavior.glow && {
-        shadow: {
-          enable: true,
-          blur: 8,
-          color: colors[0],
+        effect: {
+          type: 'shadow',
+          options: {
+            shadow: {
+              blur: 8,
+              color: { value: colors[0] },
+            },
+          },
         },
       }),
       // Life cycle for continuous renewal

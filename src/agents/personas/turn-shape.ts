@@ -21,6 +21,13 @@
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
+import {
+  lengthLearned,
+  lengthLine,
+  targetWords,
+  textureLearned,
+  textureLine,
+} from './turn-length.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -129,6 +136,13 @@ const SECOND_STORY =
   'If something from your own life comes to mind, share a small piece of it (a sentence), the way a friend trades a story, rather than asking about theirs.';
 const ABOUT_YOU =
   'They asked about you: answer about yourself, something specific from your own life, before anything else.';
+/**
+ * DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question. "I did." to
+ * "did you tackle that mail yet?" read as something shared and got a story
+ * about his own morning (prod, 2026-10-12; answer-turn.ts).
+ */
+const TAKE_UP_ANSWER =
+  'They just answered what you asked: take up their answer first, the way a friend would, rather than anything from your own life.';
 
 const REGISTER =
   'Start with the substance, not a stock reaction word like Oh, Ugh, Yeah or Hmm. ' +
@@ -158,7 +172,21 @@ const QUESTION_LINE = {
   allowed:
     'You may ask one question if you really want to know something; otherwise end on a thought.',
   none: 'No question this time: end on a thought, a reaction or something of your own.',
+  /** FERNI_STATE=on, his stories held back this turn: "something of your own" invited one. */
+  noneOnThem: 'No question this time: end on a thought or a reaction.',
+  /** FERNI_STATE=on: a word about himself is followed by turning to them. */
+  noneUnlessOwn:
+    'No question this time, unless you said something about yourself: then end by asking them one about their world.',
 };
+
+/**
+ * The no-question line. ownStory is Ferni's own state's say on this turn
+ * (ferni-state.ts): undefined when FERNI_STATE is off, and then as before.
+ */
+function noQuestion(ownStory: boolean | undefined): string {
+  if (ownStory === undefined) return QUESTION_LINE.none;
+  return ownStory ? QUESTION_LINE.noneUnlessOwn : QUESTION_LINE.noneOnThem;
+}
 
 export interface TurnShape {
   move: CallerMove;
@@ -192,6 +220,8 @@ const FIT_THE_MOMENT =
   'Anything that matters to them, good or bad (news, something they are proud of, worried about or hurt by), gets a real response to that specific thing, with the feeling it deserves, not a remark that would fit anything. ' +
   'When they ask you something or ask for help, actually answer it; when they ask about you, talk about yourself, something specific. ' +
   'Most replies are a sentence or two, some only a few words; go longer only when they asked for it.';
+/** FIT_THE_MOMENT without its fixed length rule, for TURN_LENGTH=learned (the length line says it). */
+const FIT_THE_MOMENT_LEARNED = FIT_THE_MOMENT.replace(/ Most replies are .*$/, '');
 
 function modelChosenShape(
   userText: string,
@@ -210,7 +240,9 @@ function modelChosenShape(
   // (dev A/B, 15 calls per arm, judge.mjs, 2026-10-10).
   const parts = [REGISTER];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
-  else if (move === 'share' && !sig.careful && rng() < 0.3) parts.push(SECOND_STORY);
+  else if (sig.answered) parts.push(TAKE_UP_ANSWER);
+  else if (move === 'share' && !sig.careful && rng() < 0.3 && sig.ownStory !== false)
+    parts.push(SECOND_STORY);
   const stance = stanceFor(
     userText,
     move,
@@ -218,17 +250,32 @@ function modelChosenShape(
     move !== 'ack' && rng() < scaled(0.3, style.opinion)
   );
   parts.push(...stance.lines);
-  if (rng() < scaled(0.5, style.filler))
+  // TURN_LENGTH / TURN_TEXTURE=learned (turn-length.ts): length and roughness drawn from friends'
+  // next turns; a question or request still gets a real answer.
+  const learn = { length: lengthLearned() && move !== 'request', texture: textureLearned() };
+  // Off, nothing is drawn, so the rest of the reminder is the same as before.
+  const target =
+    learn.length || learn.texture
+      ? targetWords(userText, sig.recent, rng, sig.careful || move !== 'share')
+      : 0;
+  const texture = learn.texture ? textureLine(target, rng) : null;
+  if (texture) parts.push(texture.line);
+  else if (rng() < scaled(0.5, style.filler))
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
   const asks = rng() < 0.25;
   const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
-  parts.push(...extras.lines, FIT_THE_MOMENT);
-  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none));
+  parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
+  if (learn.length) parts.push(lengthLine(target));
+  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory)));
+  const learned = [
+    learn.length ? `length_${target}` : '',
+    texture ? `texture_${texture.kind}` : '',
+  ];
   return {
     move,
     shape: 'answer',
     reminder: parts.join(' '),
-    extras: ['model_shape', ...stance.fired, ...extras.fired],
+    extras: ['model_shape', ...stance.fired, ...extras.fired, ...learned.filter(Boolean)],
   };
 }
 
@@ -252,8 +299,15 @@ export function turnShapeFor(
   // it was diluted (replay: 5% of replies 6 words or fewer).
   const parts = [REGISTER];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
+  else if (sig.answered) parts.push(TAKE_UP_ANSWER);
   // Not while they're venting: a friend stays with them instead of telling a story.
-  else if (move === 'share' && shape !== 'react' && !sig.careful && rng() < 0.3)
+  else if (
+    move === 'share' &&
+    shape !== 'react' &&
+    !sig.careful &&
+    rng() < 0.3 &&
+    sig.ownStory !== false
+  )
     parts.push(SECOND_STORY);
   const stance = stanceFor(
     userText,
@@ -269,7 +323,7 @@ export function turnShapeFor(
   parts.push(...extras.lines);
   parts.push(
     extras.shapeLine ?? SHAPE_LINE[shape],
-    extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none)
+    extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory))
   );
   return {
     move,

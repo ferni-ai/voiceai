@@ -29,6 +29,7 @@ import {
 import { getTeamScore } from '../../tools/domains/information/sports.js';
 import { getCurrentWeather, getWeatherForecast } from '../../tools/domains/information/weather.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { generateWeatherHook, homeWeatherFrom, refreshHomeWeather } from './home-weather.js';
 
 const log = createLogger({ module: 'WorldAwareness' });
 
@@ -483,38 +484,6 @@ function getSeasonalContext(): string {
 }
 
 // ============================================================================
-// WEATHER CONVERSATION HOOKS
-// ============================================================================
-
-function generateWeatherHook(weatherText: string): string | undefined {
-  const lower = weatherText.toLowerCase();
-
-  if (lower.includes('rain') || lower.includes('storm')) {
-    return "It's rainy out there - good day to stay cozy.";
-  }
-  if (lower.includes('snow')) {
-    return 'Snow outside! Perfect weather for hot cocoa.';
-  }
-  if (lower.includes('sunny') || lower.includes('clear')) {
-    return 'Beautiful weather today - hope you can enjoy some of it.';
-  }
-  if (
-    lower.includes('hot') ||
-    (lower.includes('°f') && parseInt(lower.match(/(\d+)°f/)?.[1] || '0') > 85)
-  ) {
-    return "It's hot out there - stay hydrated!";
-  }
-  if (
-    lower.includes('cold') ||
-    (lower.includes('°f') && parseInt(lower.match(/(\d+)°f/)?.[1] || '100') < 40)
-  ) {
-    return 'Pretty cold today - bundle up if you go out.';
-  }
-
-  return undefined;
-}
-
-// ============================================================================
 // DATA FETCHING (Background)
 // ============================================================================
 
@@ -543,6 +512,9 @@ async function fetchWeatherData(
     return undefined;
   }
 }
+
+/** WORLD_NOW's home report: today's weather only (home-weather.ts). */
+const fetchHomeWeather = (location: string) => fetchWeatherData(location, false);
 
 async function fetchNewsData(): Promise<NewsContext | undefined> {
   try {
@@ -706,7 +678,7 @@ export async function warmWorldCache(
   if (options.weatherOnly) {
     const location = fullInterests.location;
     cache.isRefreshing = Boolean(location);
-    if (location) void refreshHomeWeather(userId, cache, location);
+    if (location) void refreshHomeWeather(userId, cache, location, fetchHomeWeather);
     return;
   }
 
@@ -827,7 +799,10 @@ export function updateUserInterests(userId: string, interests: Partial<UserInter
           }
         })
         .catch((err) => {
-          log.warn({ error: String(err), teams: newTeams }, 'Failed to fetch sports data for new teams');
+          log.warn(
+            { error: String(err), teams: newTeams },
+            'Failed to fetch sports data for new teams'
+          );
         });
     }
   }
@@ -842,7 +817,10 @@ export function updateUserInterests(userId: string, interests: Partial<UserInter
         }
       })
       .catch((err) => {
-        log.warn({ error: String(err), location: interests.location }, 'Failed to fetch weather for new location');
+        log.warn(
+          { error: String(err), location: interests.location },
+          'Failed to fetch weather for new location'
+        );
       });
   }
 
@@ -949,35 +927,12 @@ export function clearUserCache(userId: string): void {
 // BACKGROUND REFRESH
 // ============================================================================
 
-async function refreshHomeWeather(
-  userId: string,
-  cache: UserWorldCache,
-  location: string
-): Promise<void> {
-  try {
-    const weather = await fetchWeatherData(location, false);
-    if (weather) cache.weather = weather;
-    log.info({ userId, hasWeather: Boolean(weather) }, 'Home weather cached');
-  } finally {
-    cache.isRefreshing = false;
-  }
-}
-
-/**
- * The cached weather report for the caller's home (WORLD_NOW), never waiting
- * on the network: once it is older than the weather TTL (30 min) a background
- * refresh starts and the next read gets the new report.
- */
+/** The cached weather report for the caller's home (WORLD_NOW): home-weather.ts. */
 export function cachedHomeWeather(userId: string, now: number = Date.now()): string | undefined {
   const cache = userCaches.get(userId);
-  if (!cache) return undefined;
-  const location = cache.interests.location;
-  const age = cache.weather ? now - cache.weather.fetchedAt.getTime() : Infinity;
-  if (location && age > CACHE_TTL.weather && !cache.isRefreshing) {
-    cache.isRefreshing = true;
-    void refreshHomeWeather(userId, cache, location);
-  }
-  return age > 2 * CACHE_TTL.weather ? undefined : cache.weather?.current;
+  return cache
+    ? homeWeatherFrom(userId, cache, CACHE_TTL.weather, now, fetchHomeWeather)
+    : undefined;
 }
 
 async function refreshStaleData(

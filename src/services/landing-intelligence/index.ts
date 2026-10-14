@@ -71,7 +71,6 @@ export {
   generatePersonaPreview,
   answerSmartFAQ,
   generatePersonalizedHero,
-  generateSocialProof,
   generateHoverPreview,
   generateSentimentReactiveCopy,
   type DemoChatMessage,
@@ -82,7 +81,6 @@ export {
   type SmartFAQResponse,
   type PersonalizedHeroRequest,
   type PersonalizedHeroResponse,
-  type SocialProofSnippet,
   type SentimentCopyRequest,
   type SentimentCopyResponse,
 } from './ai-interactions.js';
@@ -107,7 +105,6 @@ export { generateText, generateJSON, checkGeminiHealth } from './gemini-client.j
 // Content cache (pre-generation)
 export {
   getCachedHero,
-  getCachedSocialProof,
   getCachedMemoryStories,
   getCachedLateNightScenarios,
   runBatchGeneration,

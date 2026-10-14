@@ -192,21 +192,16 @@ export async function handleGetCognitiveMemories(
     });
 
     const totalInteractions = (userProfile?.totalConversations as number) || 0;
-    const knowledgeScore = Math.min(
-      100,
-      Math.round(allMemories.length * 3 + totalInteractions * 2 + uniquePatterns.length * 5)
-    );
 
     // Not cacheable: a browser-cached list would still show a memory the user just forgot.
     sendJSON(res, {
       memories: allMemories,
       patterns: uniquePatterns,
       totalInteractions,
-      knowledgeScore,
     });
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get cognitive memories');
-    sendJSON(res, { memories: [], patterns: [], totalInteractions: 0, knowledgeScore: 0 }, 500);
+    sendJSON(res, { memories: [], patterns: [], totalInteractions: 0 }, 500);
   }
 }
 

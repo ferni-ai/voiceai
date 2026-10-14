@@ -166,11 +166,11 @@ const FERNI_STORY_UNLOCKS: Record<string, StoryUnlockRequirements> = {
     minTurns: 6,
   },
 
-  'blended-family': {
+  'second-marriage': {
     minRelationship: 'acquaintance',
-    fitsEmotions: ['stressed', 'overwhelmed', 'loving'],
+    fitsEmotions: ['hopeful', 'lonely', 'loving'],
     fitsPhases: ['building', 'release'],
-    topicTriggers: ['family', 'kids', 'chaos', 'love', 'relationships'],
+    topicTriggers: ['divorce', 'starting over', 'love', 'relationships'],
     depth: 'medium',
     minTurns: 7,
   },
@@ -229,11 +229,11 @@ const FERNI_STORY_UNLOCKS: Record<string, StoryUnlockRequirements> = {
   // =========================================================================
   // SACRED STORIES - Trusted advisor only
   // =========================================================================
-  tsunami: {
+  'the-ridge': {
     minRelationship: 'trusted_advisor',
-    fitsEmotions: ['grieving', 'vulnerable', 'traumatized', 'surviving'],
+    fitsEmotions: ['grieving', 'vulnerable', 'guilty'],
     fitsPhases: ['peak', 'release'],
-    topicTriggers: ['trauma', 'survival', 'death', 'disaster', 'guilt'],
+    topicTriggers: ['death', 'never said goodbye', 'should have been there', 'guilt'],
     prerequisiteStories: ['tanaka-san'],
     depth: 'sacred',
     minTurns: 20,
@@ -245,7 +245,7 @@ const FERNI_STORY_UNLOCKS: Record<string, StoryUnlockRequirements> = {
     fitsEmotions: ['guilty', 'unworthy', 'grieving'],
     fitsPhases: ['peak', 'release'],
     topicTriggers: ['guilt', 'survivor', 'why me', 'undeserving'],
-    prerequisiteStories: ['tsunami'],
+    prerequisiteStories: ['the-ridge'],
     depth: 'sacred',
     minTurns: 25,
     needsEmotionalPermission: true,

@@ -5,7 +5,7 @@
  *
  * Each persona remembers things their own way:
  * - Ferni: preferences, wins, topics, inside jokes
- * - Bogle: funds, investing philosophy, allocations
+ * - Henry Caldwell (john-bogle, 'bogle' type): funds, investing philosophy, allocations
  * - Nayan: what matters in their life, held with the long view
  * - Peter: watchlist, companies they know, ten-baggers
  * - Maya: merchants, bills, savings goals, spending triggers
@@ -541,7 +541,7 @@ function getProactiveMemoryCallback(
     }
 
     case 'bogle': {
-      // Jack Bogle remembers funds, philosophy, expense ratios
+      // Index-investing memories: funds, philosophy, expense ratios
       const funds = result.memories.filter((m) => (m as BogleMemory).type === 'fund');
       const philosophies = result.memories.filter((m) => (m as BogleMemory).type === 'philosophy');
 

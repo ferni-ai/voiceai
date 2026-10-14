@@ -17,6 +17,7 @@ const BUNDLES = join(SRC, 'personas/bundles');
 /** Prompt text written in code rather than in a bundle. */
 const CODE_PROMPTS = [
   'agents/gce/fast-join.ts',
+  'agents/personas/ai-honesty.ts',
   'agents/model-provider/cartesia-cascade.ts',
   'agents/model-provider/gemini-live.ts',
   'agents/model-provider/gemini-native-audio.ts',

@@ -36,6 +36,7 @@ import {
   type ReminderDeliveryMethod,
 } from '../../../services/scheduling/reminder-scheduler.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { runContextTimeZone, userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
   sanitizeEmailForLog,
   sanitizePhoneForLog,
@@ -53,7 +54,6 @@ const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY || '';
 
 // Import voice registry for consistent voice ID resolution
 import { getVoiceId } from '../../../personas/voice-registry.js';
-
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // Get Alex's voice ID from the registry (single source of truth)
 const getAlexVoiceId = () => getVoiceId('alex-chen');
@@ -306,7 +306,7 @@ async function scheduleReminderReal(params: {
   contact?: string;
   timezone?: string;
 }): Promise<string> {
-  const scheduledFor = parseNaturalTime(params.when, params.timezone);
+  const scheduledFor = parseNaturalTime(params.when, params.timezone ?? userTimeZone(params));
 
   if (!scheduledFor) {
     return `I couldn't understand "${params.when}". Could you be more specific? Like "tomorrow at 9am" or "in 2 hours"?`;
@@ -350,7 +350,7 @@ async function scheduleReminderReal(params: {
       message: params.message,
       subject: `⏰ Reminder: ${params.message.slice(0, 50)}...`,
       scheduledFor,
-      timezone: params.timezone || 'America/New_York',
+      timezone: params.timezone ?? userTimeZone(params) ?? 'Etc/UTC',
       deliveryMethod,
       deliveryAddress,
       createdBy: 'alex',
@@ -739,8 +739,8 @@ export function createCommunicationTools() {
         date: z.string().describe('Date to check (e.g., "tomorrow", "next Monday", "December 15")'),
         durationMinutes: z.number().default(30).describe('Duration in minutes'),
       }),
-      execute: async ({ date, durationMinutes }) => {
-        const targetDate = parseNaturalTime(date);
+      execute: async ({ date, durationMinutes }, { ctx }) => {
+        const targetDate = parseNaturalTime(date, runContextTimeZone(ctx));
         if (!targetDate) {
           return `I couldn't understand that date. Try "tomorrow", "next Tuesday", or a specific date?`;
         }
@@ -782,7 +782,7 @@ export function createCommunicationTools() {
         notes: z.string().optional().describe('Talking points or notes'),
       }),
       execute: async ({ contact, phone, purpose, dateTime, duration, notes }, { ctx }) => {
-        const scheduledTime = parseNaturalTime(dateTime);
+        const scheduledTime = parseNaturalTime(dateTime, runContextTimeZone(ctx));
         if (!scheduledTime) {
           return `When would you like to schedule this call? Give me a day and time like "tomorrow at 2pm".`;
         }
