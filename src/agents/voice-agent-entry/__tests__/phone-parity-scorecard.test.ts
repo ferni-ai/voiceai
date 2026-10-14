@@ -97,7 +97,8 @@ async function startCall(way: Way): Promise<Row> {
     realtimeConversationId: `conv-${sessionId}`,
   };
   const userData: { callerTimezone?: string } = {};
-  settleCallerZone(sessionId, app ? ZONE : undefined, services, userData);
+  const call = { sessionId, userId: who.userId, onBehalf: false };
+  settleCallerZone(call, app ? ZONE : undefined, services, userData);
 
   const hour = callerHour(NOW, userData.callerTimezone);
   const facts = greetingFacts(hour === null ? '' : partOfDayFor(hour), who.userName, undefined);
@@ -156,13 +157,13 @@ describe('phone vs app parity scorecard', () => {
     }
   });
 
-  it('off (main): a recognised phone caller is named but gets no local time and no turn-1 prefetch', async () => {
+  it('off (main): a recognised phone caller is named and dated, but gets no local time or turn-1 prefetch', async () => {
     const row = await scored('phone, signed A', false);
     expect(row['account identified (memory, profile)']).toBe(true);
     expect(row['greeting uses their name']).toBe(true);
     expect(row['greeting knows time of day']).toBe(false);
     expect(row['prompt has their local time']).toBe(false);
-    expect(row['memories dated in their zone']).toBe(false);
+    expect(row['memories dated in their zone']).toBe(true);
     expect(row['turn-1 commitments prefetched']).toBe(false);
   });
 

@@ -1,22 +1,29 @@
 /**
  * Barge-in recover latency SLO assert for SOTA Wave 2.
  *
- * Usage:
- *   node scripts/ops/assert-barge-in-slo.mjs
+ * Usage (current stack, LiveKit Cloud agent):
+ *   VOICE_EVAL_RESULT=scripts/voice-eval/pooled.json node scripts/ops/assert-barge-in-slo.mjs
+ *   (pooled score.mjs output that includes talk-over runs; see the voice-eval skill)
  *
- * Optional:
- *   OBS_URL=http://34.134.186.63:8080/api/observability
- *   MAX_MS=500
+ * Or, against an agent whose health server is reachable (e.g. local):
+ *   OBS_URL=http://localhost:8080/api/observability node scripts/ops/assert-barge-in-slo.mjs
  *
- * Exit 0 iff no samples exist, or bargeInRecoverP95Ms <= MAX_MS.
- * Prints JSON: { ok, skipped, bargeInRecoverP95Ms, samples, maxMs }
+ * Optional: BARGE_IN_MAX_MS=500 (or MAX_MS)
+ *
+ * Eval: exit 0 iff the caller interrupted at least once, every interrupt
+ *       stopped the agent, and talkOver.interruptStopMs.p50 <= max. The
+ *       harness reports p50, not p95. No interrupts: exit 1, "not measured".
+ * OBS:  exit 0 iff no samples exist (unless REQUIRE_SAMPLES=true), or
+ *       bargeInRecoverP95Ms <= max.
+ * Neither given: exit 1 with what to pass.
  */
 
-const OBS_URL = process.env.OBS_URL || 'http://34.134.186.63:8080/api/observability';
+import { evaluateBargeInFromEval, metricsSource, readEvalJson } from './voice-eval-metrics.mjs';
+
 const MAX_MS = Number(process.env.BARGE_IN_MAX_MS || process.env.MAX_MS || 500);
 
-async function fetchObservability() {
-  const res = await fetch(OBS_URL);
+async function fetchObservability(url) {
+  const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Observability HTTP ${res.status}`);
   }
@@ -55,8 +62,13 @@ function printResult(result) {
 
 async function main() {
   try {
-    const metrics = await fetchObservability();
-    const result = evaluateBargeInSlo(metrics);
+    const source = metricsSource(process.env);
+    const result =
+      source.kind === 'missing'
+        ? { ok: false, skipped: false, maxMs: MAX_MS, error: source.error }
+        : source.kind === 'eval'
+          ? evaluateBargeInFromEval(readEvalJson(source.path), MAX_MS)
+          : evaluateBargeInSlo(await fetchObservability(source.url));
     printResult(result);
     process.exit(result.ok ? 0 : 1);
   } catch (error) {

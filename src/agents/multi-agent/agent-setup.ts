@@ -26,6 +26,7 @@ import { diag } from '../../services/diagnostic-logger.js';
 import { modelConfig } from '../../services/model-config.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import type { UserData } from '../shared/types.js';
 import { getRealtimeModel } from '../../config/gemini-config.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
@@ -64,7 +65,7 @@ import {
 // ============================================================================
 import { FerniAgent } from '../personas/ferni-agent.js';
 import {
-  createTurnContextPusher,
+  attachTurnContextPusher,
   createTurnIntelligenceHook,
   resolveTurnIntelligenceMode,
 } from './turn-intelligence.js';
@@ -77,6 +78,7 @@ import {
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
+import { attachSessionEventLog } from './session-event-log.js';
 import { buildEmergencyToolset } from './emergency-toolset.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
@@ -122,6 +124,7 @@ import {
   installTurnListeners,
   recordAssistantTurns,
 } from './turn-observers.js';
+import { callerCityContext } from '../shared/caller-city.js';
 import { localClockContext, localClockEnabled } from '../shared/local-clock.js';
 import { timeContext } from '../shared/time-context.js';
 // Gateway for health ping callback
@@ -137,6 +140,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
+import { lastTalkedAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
 const log = getLogger();
@@ -343,17 +347,15 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
     // Append date/time to model base instructions (session-specific, not cached)
     const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
-    // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's
-    // (browser zone, else the profile zone: a phone call may carry no browser zone).
+    // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's: the zone the
+    // call settled (browser, else a verified owner's profile zone, never a sponsor's).
     const dateTimeContext =
       localClockEnabled() && persona.id === 'ferni'
-        ? localClockContext(
-            new Date(),
-            userData?.callerTimezone ??
-              (outboundAwareness ? undefined : services.userProfile?.contactInfo?.timezone)
-          )
+        ? localClockContext(new Date(), userData?.callerTimezone ?? callerTimeZoneFor(sessionId))
         : timeContext(new Date(), userData?.callerTimezone);
-    modelBaseInstructions = baseInstructions + dateTimeContext + outboundAwareness;
+    // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
+    const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
+    modelBaseInstructions = baseInstructions + dateTimeContext + cityContext + outboundAwareness;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : services.userProfile;
@@ -392,21 +394,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           const daysSince = Math.floor(
             (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
           );
-          if (daysSince === 0) {
-            userAwareness.push('You talked earlier today.');
-          } else if (daysSince === 1) {
-            userAwareness.push('You talked yesterday.');
-          } else if (daysSince < 7) {
-            userAwareness.push(`Last talked ${daysSince} days ago.`);
-          } else if (daysSince < 30) {
-            userAwareness.push(
-              `It's been about ${Math.round(daysSince / 7)} weeks since you last talked.`
-            );
-          } else {
-            userAwareness.push(
-              `It's been a while - about ${Math.round(daysSince / 30)} month${daysSince > 45 ? 's' : ''} since you last talked.`
-            );
-          }
+          userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
         userAwareness.push(
@@ -1431,32 +1419,11 @@ Reference past context when relevant, but don't force it. Let the conversation f
       })
     );
 
-    // 🔊 COMPREHENSIVE SESSION DEBUG: Track ALL session events during startup
-    // This helps us understand what's happening during prewarm
-    process.stderr.write(
-      `\n🔊 [SESSION DEBUG] Attaching comprehensive session event listeners...\n`
+    // One compact line per state event, not a pretty JSON dump (session-event-log.ts)
+    attachSessionEventLog(
+      sessionWithEvents as { on: (e: string, h: (...a: unknown[]) => void) => void },
+      sessionEventHandlers
     );
-
-    // Track user state changes (when user starts/stops speaking)
-    const userStateHandler = (event: unknown) => {
-      process.stderr.write(`\n👤 [USER STATE] ${JSON.stringify(event, null, 2)}\n`);
-    };
-    sessionWithEvents.on('user_state_changed', userStateHandler);
-    sessionEventHandlers.push({ event: 'user_state_changed', handler: userStateHandler });
-
-    // Track agent state changes (when agent starts/stops speaking)
-    const agentStateHandler = (event: unknown) => {
-      process.stderr.write(`\n🤖 [AGENT STATE] ${JSON.stringify(event, null, 2)}\n`);
-    };
-    sessionWithEvents.on('agent_state_changed', agentStateHandler);
-    sessionEventHandlers.push({ event: 'agent_state_changed', handler: agentStateHandler });
-
-    // Track speech creation (SDK auto-generating responses)
-    const speechCreatedHandler = (event: unknown) => {
-      process.stderr.write(`\n🎙️ [SPEECH CREATED] ${JSON.stringify(event, null, 2)}\n`);
-    };
-    sessionWithEvents.on('speech_created', speechCreatedHandler);
-    sessionEventHandlers.push({ event: 'speech_created', handler: speechCreatedHandler });
 
     // Track user input transcription
     // Crisis guard in SHADOW + per-turn voice/delivery: same observers as the
@@ -1657,9 +1624,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
       personaId: persona.id,
     });
     const onRecallTranscript = (event: unknown) => {
-      const evt = event as { transcript?: string };
+      const evt = event as { transcript?: string; isFinal?: boolean };
       if (!evt.transcript) return;
-      const note = recall.noteFor(evt.transcript);
+      const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
       if (note) addRecallNote(agent as unknown as RecallAgent, note);
     };
     const onRecallAgentState = (event: unknown) => {
@@ -1677,27 +1644,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // turns for the next reply: never in onUserTurnCompleted, where changing the
   // chat context throws away the SDK's preemptive generation (turn-intelligence.ts).
   if (turnContextHook && sessionWithEvents.on) {
-    const pusher = createTurnContextPusher(
-      turnContextHook,
-      agent as unknown as Parameters<typeof createTurnContextPusher>[1]
+    forPersona(
+      attachTurnContextPusher(
+        turnContextHook,
+        agent as unknown as Parameters<typeof attachTurnContextPusher>[1],
+        sessionWithEvents,
+        { userData }
+      )
     );
-    const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
-    const onTranscript = (event: unknown) => {
-      const evt = event as { transcript?: string; isFinal?: boolean };
-      if (evt.isFinal && evt.transcript) pusher.onFinalTranscript(evt.transcript).catch(failed);
-    };
-    const onAgentState = (event: unknown) =>
-      pusher.onAgentState((event as { newState?: string }).newState).catch(failed);
-    const onUserState = (event: unknown) =>
-      pusher.onUserState((event as { newState?: string }).newState).catch(failed);
-    sessionWithEvents.on('user_input_transcribed', onTranscript);
-    sessionWithEvents.on('agent_state_changed', onAgentState);
-    sessionWithEvents.on('user_state_changed', onUserState);
-    forPersona(() => {
-      sessionWithEvents.off?.('user_input_transcribed', onTranscript);
-      sessionWithEvents.off?.('agent_state_changed', onAgentState);
-      sessionWithEvents.off?.('user_state_changed', onUserState);
-    });
   }
 
   // Track handler status

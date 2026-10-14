@@ -55,6 +55,7 @@ import { startAnalyticsPersistence } from '../../audio/music-transition-analytic
 import { getFrontendPublisher } from '../realtime/frontend-publisher.js';
 import { djSpeaksOnItsOwn } from '../../audio/dj-speech-policy.js';
 import { createMusicHandlerCleanup } from './music-handler-cleanup.js';
+import { continueAfterQueue } from './music-continuation.js';
 
 const log = createLogger({ module: 'MusicHandler' });
 
@@ -354,39 +355,11 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
         // Double-check player still valid and we haven't started new music or user stopped it
         if (!musicPlayer.isInitialized()) return;
         if (!musicPlayer.isPlaying() && !musicPlayer.wasExplicitlyStopped()) {
-          try {
-            // Import music tools dynamically to avoid circular deps
-            const { playViaItunes } = await import('../../tools/domains/entertainment/music.js');
-
-            // Build a query based on what was playing (same artist or similar vibe)
-            const lastTrack = event.track;
-            const searchQuery = lastTrack?.artist ? `more ${lastTrack.artist}` : 'upbeat music';
-
-            log.info(
-              { lastTrack: lastTrack?.name, searchQuery },
-              '🎧 DJ auto-continuing with more music in same vibe'
-            );
-
-            // Play more music - DJ style continuation phrase built into playViaItunes
-            const result = await playViaItunes(searchQuery, sessionPersona.id);
-
-            // Only speak if music started successfully
-            if (!result.includes("couldn't") && !result.includes('trouble')) {
-              const continuationPhrases = [
-                'Keeping it going...',
-                'More vibes coming...',
-                "Let's keep this rolling...",
-                '', // Sometimes just let the music speak
-              ];
-              const phrase =
-                continuationPhrases[Math.floor(Math.random() * continuationPhrases.length)];
-              if (phrase) {
-                djSay(sessionId, phrase);
-              }
-            }
-          } catch (err) {
-            log.warn({ error: String(err) }, '🎧 DJ auto-continuation failed - music will stop');
-          }
+          await continueAfterQueue(event.track, {
+            personaId: sessionPersona.id,
+            djSay: (line) => djSay(sessionId, line),
+            say: (line) => coordinatedSay(sessionId, line),
+          });
         }
       }, 2000); // Wait 2 seconds before auto-continuing
     }

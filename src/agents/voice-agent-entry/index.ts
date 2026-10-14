@@ -18,6 +18,7 @@ import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
 import { settleCallerZone } from './phone-parity.js';
+import { injectUserAwareness } from './user-awareness-injection.js';
 
 // Event cleanup registry for proper memory management
 import {
@@ -27,7 +28,6 @@ import {
 
 // Phase modules
 import {
-  buildUserAwareness,
   connectToRoom,
   getCachedVoiceDeps,
   loadVoiceDeps as loadVoiceDepsPhase,
@@ -372,8 +372,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
-    // The browser's zone, else a verified phone owner's profile zone (PHONE_PARITY).
-    settleCallerZone(sessionId, metadata.timezone, services, userData);
+    // The browser's zone, else only a verified owner's profile zone (phone-parity.ts).
+    settleCallerZone({ sessionId, userId, onBehalf: callType === 'on_behalf_call' }, metadata.timezone, services, userData);
     // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
       userData.userLocation = {
@@ -437,26 +437,17 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         );
       }
 
-      const userAwarenessResult = buildUserAwareness({
+      // Read the profile as it stands now: session init decided "returning" before the deferred load.
+      const awareness = injectUserAwareness({
         sessionId,
         userProfile: services.userProfile,
+        userData,
         isReturningUser,
         userName,
         sessionStartTime,
       });
-      if (userAwarenessResult.facts.length > 0) {
-        modelBaseInstructions += userAwarenessResult.instructionsBlock;
-        process.stderr.write(
-          `[voice-agent-entry] 👤 BETTER THAN HUMAN - User awareness injected (${userAwarenessResult.facts.length} facts):\n`
-        );
-        userAwarenessResult.facts.forEach((fact: string, i: number) => {
-          process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${fact}\n`);
-        });
-      } else {
-        process.stderr.write(
-          `[voice-agent-entry] 👤 No user awareness facts available (new user or empty profile)\n`
-        );
-      }
+      isReturningUser = awareness.isReturningUser;
+      modelBaseInstructions += awareness.instructionsBlock;
 
       // Calendar awareness (non-blocking)
       if (services.userProfile && userId) {

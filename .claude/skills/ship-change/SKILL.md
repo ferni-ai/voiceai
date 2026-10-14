@@ -8,6 +8,8 @@ description: Ship one small change to Ferni from a fresh branch to merged and ch
 One concern, one branch, one PR of about 400 reviewable lines or fewer.
 
 ## 1. Start from main
+Check `gh pr list --state open --json number --jq length` first: past 25,
+land open PRs before starting another.
 ```bash
 git fetch origin
 git worktree add -b <type>/<slug> .claude/worktrees/<slug> origin/main   # or: git switch -c <type>/<slug> origin/main
@@ -42,15 +44,15 @@ git push -u origin <branch>
 gh pr create --base main --title "..." --body "..."
 gh pr merge <n> --auto        # queue it; no --squash
 ```
-The PR-size hook blocks more than about 400 reviewable lines. Split by
-concern instead of overriding. Override only for a genuinely atomic change:
-`PDLC_LARGE_PR="<reason>" gh pr create ...`.
+Put `Closes #<issue>` in the body. The pre-push hook and the PR Flow check
+block more than 1000 reviewable lines and warn over 400. Split by concern
+instead of overriding. Only for a genuinely atomic change: push with
+`PUSH_SIZE_OK="<reason>" git push ...` and add the `size/large-ok` label.
 
 ## 5. After merge
 - Deploy `main` to dev (skill `deploy-agent`), turn the flag on in dev, and
   check it live.
-- Remove the worktree: `git worktree remove .claude/worktrees/<slug>`
-  (or let `python3 ~/.claude/hooks/pdlc/wt_gc.py --apply` clean merged ones).
+- Remove the worktree: `git worktree remove .claude/worktrees/<slug>`.
 
 ## If CI is red
 Read the failing job's log (`gh run view <id> --log-failed`) before changing

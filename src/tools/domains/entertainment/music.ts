@@ -39,6 +39,8 @@ import {
   shouldReactToMusic,
 } from '../../../speech/music-reactions.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { startWithin } from './music-start.js';
+import { noteMusicRequest, playAmbientMusic, resetAmbientSession } from './ambient-play.js';
 import { getParameterDescription, getToolDescription } from '../../utils/tool-descriptions.js';
 
 // ============================================================================
@@ -143,7 +145,7 @@ async function checkSpotifyAvailability(): Promise<boolean> {
 export async function initializeMusicConfig(): Promise<void> {
   // Reset to defaults first to prevent cross-session pollution
   musicConfig = { ...DEFAULT_MUSIC_CONFIG };
-
+  resetAmbientSession();
   musicConfig.spotifyLinked = await checkSpotifyAvailability();
 
   getLogger().info(
@@ -188,6 +190,7 @@ export function resetMusicConfig(): void {
 export async function playMusicUnified(query: string): Promise<string> {
   const log = getLogger();
   const intent = detectMusicIntent(query);
+  noteMusicRequest(query, intent); // what auto-continue keeps playing (ambient-play.ts)
 
   // Check for Sonos/room mentions - guide user to the right approach
   const explicitSonos = mentionsSonos(query);
@@ -231,7 +234,7 @@ export async function playMusicUnified(query: string): Promise<string> {
   // AMBIENT INTENT: Always use iTunes DJ mode (chains previews, always works)
   if (intent === 'ambient') {
     log.info({ query }, '🎵 AMBIENT mode: Using iTunes DJ (chains previews)');
-    return playAmbientMusic(query);
+    return playAmbientMusic(query, musicConfig.spotifyLinked);
   }
 
   // LISTENING INTENT: Try Spotify first, graceful fallback
@@ -251,107 +254,6 @@ export async function playMusicUnified(query: string): Promise<string> {
   // No Spotify: Use iTunes with "listening" framing
   log.info({ query }, '🎵 LISTENING mode: No Spotify, using iTunes preview');
   return playViaItunesWithListeningFallback(query);
-}
-
-/**
- * Play ambient background music - chains iTunes previews like a DJ.
- * Perfect for conversation - 30-second segments with smooth crossfades.
- *
- * 🎧 DJ AMBIENT MODE:
- * - Searches for multiple tracks matching the mood/genre
- * - Queues them up for continuous playback
- * - Music player handles crossfades between tracks
- * - Each preview is ~30 seconds - perfect for conversation!
- */
-async function playAmbientMusic(query: string): Promise<string> {
-  const log = getLogger();
-  log.info({ query }, '🎧 DJ Ambient Mode: Starting...');
-
-  // Search for multiple tracks to queue
-  const searchResults = await searchItunes(query, 5);
-
-  if (searchResults.resultCount === 0 || !searchResults.results.length) {
-    log.warn({ query }, '🎧 No tracks found for ambient mode');
-    return `Couldn't find any ${query} tracks. Want to try something else?`;
-  }
-
-  // Filter to only tracks with preview URLs
-  const tracksWithPreviews = searchResults.results.filter((t) => t.previewUrl);
-
-  if (tracksWithPreviews.length === 0) {
-    log.warn({ query }, '🎧 Found tracks but none have previews');
-    return `Found some ${query} tracks but none have previews available. Try a different search?`;
-  }
-
-  // Get the music player
-  const musicPlayer = getMusicPlayer();
-
-  // 🚨 IMPROVED: Better check with clear error message
-  const musicAvailability = isMusicAvailable();
-  if (!musicAvailability.available) {
-    log.warn(
-      { query, reason: musicAvailability.reason },
-      '🎧 Music player not available for ambient mode'
-    );
-    return `I'd love to set the mood with some ${query} music, but the audio system isn't ready this session. Let's keep chatting!`;
-  }
-
-  // Play the first track immediately
-  const firstTrack = tracksWithPreviews[0];
-  const ITUNES_PREVIEW_DURATION_MS = 30000;
-
-  const musicTrack: MusicTrack = {
-    name: firstTrack.trackName,
-    artist: firstTrack.artistName,
-    previewUrl: firstTrack.previewUrl!,
-    duration: ITUNES_PREVIEW_DURATION_MS,
-    albumArt: firstTrack.artworkUrl100, // 🎨 Album artwork for Now Playing UI
-  };
-
-  const success = await musicPlayer.playFromUrl(firstTrack.previewUrl!, musicTrack);
-
-  if (!success) {
-    log.error({ track: firstTrack.trackName }, '🎧 Failed to start ambient playback');
-    // 🚨 IMPROVED: Better error message - system issue, not track issue
-    return `Something went wrong with the audio system while trying to play ${query} music. You might need to reconnect for music to work.`;
-  }
-
-  // 🎧 DJ MODE: Queue multiple tracks for a continuous DJ experience
-  // Each track is ~30 seconds, so 5 tracks = ~2.5 minutes of continuous music
-  // This gives the user a proper music session, not just 2 quick songs!
-  const TRACKS_TO_QUEUE = 4; // Queue 4 backup tracks (+ 1 playing = 5 total)
-  const tracksToQueue = tracksWithPreviews.slice(1, TRACKS_TO_QUEUE + 1);
-
-  for (const backupTrack of tracksToQueue) {
-    musicPlayer.addToQueue({
-      name: backupTrack.trackName,
-      artist: backupTrack.artistName,
-      previewUrl: backupTrack.previewUrl!,
-      duration: ITUNES_PREVIEW_DURATION_MS,
-      albumArt: backupTrack.artworkUrl100,
-    });
-  }
-
-  log.info(
-    {
-      firstTrack: firstTrack.trackName,
-      queuedTracks: tracksToQueue.map((t) => t.trackName),
-      queueLength: tracksToQueue.length,
-      totalTracksFound: tracksWithPreviews.length,
-    },
-    '🎧 DJ Mode: Playing with continuous queue for a proper music session!'
-  );
-
-  // Return ambient-style response (short, doesn't interrupt conversation)
-  const ambientResponses = [
-    "Here's some vibes...",
-    'Setting the mood...',
-    'Got something for you...',
-    `Some ${query} coming up...`,
-    '', // Sometimes just play silently and let the music speak!
-  ];
-
-  return ambientResponses[Math.floor(Math.random() * ambientResponses.length)];
 }
 
 /**
@@ -578,8 +480,9 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
       usedCrossfade = true;
     } else {
       // Normal play (nothing was playing before)
-      log.debug('Step 4: Calling playFromUrl', { previewUrl: track.previewUrl });
-      success = await currentMusicPlayer.playFromUrl(track.previewUrl, musicTrack);
+      // Not waiting out the download: still loading after START_WAIT_MS counts as on its way.
+      const play = () => currentMusicPlayer.playFromUrl(track.previewUrl, musicTrack);
+      success = (await startWithin(play, track)) !== 'failed';
     }
 
     log.debug('Play returned', { success, usedCrossfade });

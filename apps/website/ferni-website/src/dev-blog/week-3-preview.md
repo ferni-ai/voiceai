@@ -139,7 +139,6 @@ In case you missed them:
 
 - [Authentication Deep Dive](/developers/blog/authentication-deep-dive/) - OAuth, JWTs, and multi-tenant auth
 - [Performance Optimization](/developers/blog/performance-optimization/) - Sub-200ms response times
-- [Community Spotlight: MindfulMoments](/developers/blog/community-spotlight-healthtech/) - Voice AI for mental health
 - [Error Handling Patterns](/developers/blog/error-handling-patterns/) - Graceful degradation
 - [Voice AI vs Chatbots](/developers/blog/voice-ai-vs-chatbots/) - When to use which
 
