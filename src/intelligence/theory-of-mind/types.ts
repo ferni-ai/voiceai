@@ -80,6 +80,24 @@ export interface CallReading {
   sensitivities: Array<{ topic: string; how: string }>;
 }
 
+/**
+ * A topic the caller asked Ferni to forget (memory/recall/forget.ts), as the
+ * session layer reads it. Theory of mind never imports memory's internals.
+ */
+export type IsForgotten = (text: string) => boolean;
+export const nothingForgotten: IsForgotten = () => false;
+
+/** The model without anything about a forgotten topic: told, patterns, sensitivities, mood. */
+export function withoutForgotten(model: MindModel, forgotten: IsForgotten): MindModel {
+  return {
+    ...model,
+    toldFerni: model.toldFerni.filter((t) => !forgotten(t.topic)),
+    patterns: model.patterns.filter((p) => !forgotten(p.statement)),
+    sensitivities: model.sensitivities.filter((s) => !forgotten(s.topic)),
+    current: model.current && !forgotten(model.current.state) ? model.current : undefined,
+  };
+}
+
 export function emptyMindModel(userId: string, now: Date): MindModel {
   return {
     userId,

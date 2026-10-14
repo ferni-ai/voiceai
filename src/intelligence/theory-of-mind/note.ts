@@ -13,7 +13,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { MindStore } from './store.js';
-import type { MindModel, Pattern } from './types.js';
+import { nothingForgotten, type IsForgotten, type MindModel, type Pattern } from './types.js';
 import { isEstablished } from './update.js';
 
 const log = createLogger({ module: 'TheoryOfMind' });
@@ -40,9 +40,7 @@ export function patternsToRespect(model: MindModel, now: Date): Pattern[] {
     .slice(0, MAX_PATTERNS);
 }
 
-/** A topic the caller asked Ferni to forget (memory/recall/forget.ts), as the session layer reads it. */
-export type IsForgotten = (text: string) => boolean;
-const nothingForgotten: IsForgotten = () => false;
+export type { IsForgotten };
 
 /** The told topics Ferni may build on: not forgotten, and not one they want gone around. */
 function toldToBuildOn(model: MindModel, forgotten: IsForgotten): string[] {
@@ -85,7 +83,7 @@ export function renderMindNote(
   }
   const told = toldToBuildOn(model, forgotten);
   while (told.length > 0) {
-    const line = `They've already told you about ${told.join('; ')}; pick up from there, don't ask as if new.`;
+    const line = `They've already told you about: ${told.join('; ')}. Pick up from there; don't ask as if new.`;
     if (fits(line)) {
       lines.push(line);
       break;
@@ -179,7 +177,7 @@ export function createMindNote(deps: MindNoteDeps): MindNote {
       if (!topic) return null;
       covered.add(topic);
       remindedThisTurn = true;
-      return `${MIND_NOTE_HEADER} They told you about ${topic} on an earlier call. Pick up from there; don't ask as if it's new.`;
+      return `${MIND_NOTE_HEADER} On an earlier call they told you about: ${topic}. Pick up from there; don't ask as if it's new.`;
     },
     newTurn() {
       remindedThisTurn = false;

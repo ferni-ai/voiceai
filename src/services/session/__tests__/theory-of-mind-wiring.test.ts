@@ -2,7 +2,7 @@
  * The theory-of-mind update runs after a call through the after-call registry:
  * registered by agents/after-call-register.ts, started by the real endSession,
  * never awaited by it, and counted until it settles so the job process waits
- * for it, with the Firestore store handed in. Only the writer itself is a spy.
+ * for it, with the Firestore store and the forget filter handed in. Only the writer itself is a spy.
  */
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -55,7 +55,7 @@ describe('endSession → after-call registry → theory of mind', () => {
     expect(writer.calls[0]?.sessionId).toBe(services.sessionId);
     expect(writer.calls[0]?.turns.length).toBeGreaterThanOrEqual(3);
     // The register (L4) hands in the Firestore adapter; theory of mind (L3) never imports it.
-    expect(writer.deps[0]).toEqual({ store: firestoreMindStore });
+    expect(writer.deps[0]).toEqual({ store: firestoreMindStore, forgotten: expect.any(Function) });
 
     // Still pending, so a per-call job process would wait for it before exiting.
     const pending = pendingAfterCallTasks();

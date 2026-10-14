@@ -12,7 +12,13 @@ import { withTimeout } from '../../utils/async.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { type CallSummaryView, type CallTurn, parseReading, readingPrompt } from './extract.js';
 import type { MindStore } from './store.js';
-import { emptyMindModel, type MindModel } from './types.js';
+import {
+  emptyMindModel,
+  nothingForgotten,
+  withoutForgotten,
+  type IsForgotten,
+  type MindModel,
+} from './types.js';
 import { applyCallReading } from './update.js';
 
 const log = createLogger({ module: 'TheoryOfMind' });
@@ -35,6 +41,12 @@ export interface AfterCallInput {
 export interface AfterCallDeps {
   /** Where the model lives; the register hands in the Firestore adapter. */
   store: MindStore;
+  /**
+   * What the caller asked Ferni to forget. Nothing about it is sent to the
+   * reading model or saved; null (unreadable) skips the update. Absent:
+   * nothing is forgotten (tests).
+   */
+  forgotten?: () => Promise<IsForgotten | null>;
   /** Prompt in, raw reply out. Defaults to the background LLM used for summaries. */
   llm?: (prompt: string) => Promise<string>;
   now?: () => Date;
@@ -49,14 +61,20 @@ async function defaultLlm(prompt: string): Promise<string> {
 async function update(input: AfterCallInput, deps: AfterCallDeps): Promise<MindModel | null> {
   const { store } = deps;
   const now = (deps.now ?? (() => new Date()))();
-  const model = (await store.load(input.userId)) ?? emptyMindModel(input.userId, now);
+  const forgotten = deps.forgotten ? await deps.forgotten() : nothingForgotten;
+  if (!forgotten) {
+    log.warn({ sessionId: input.sessionId }, 'Theory of mind skipped: forgotten topics unreadable');
+    return null;
+  }
+  const stored = (await store.load(input.userId)) ?? emptyMindModel(input.userId, now);
+  const model = withoutForgotten(stored, forgotten);
   const raw = await (deps.llm ?? defaultLlm)(readingPrompt(input.turns, input.summary, model));
   const reading = parseReading(raw);
   if (!reading) {
     log.warn({ sessionId: input.sessionId }, 'Theory of mind: no usable reading');
     return null;
   }
-  const next = applyCallReading(model, reading, input.sessionId, now);
+  const next = withoutForgotten(applyCallReading(model, reading, input.sessionId, now), forgotten);
   await store.save(next);
   log.info(
     {

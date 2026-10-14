@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { theoryOfMindMode, updateTheoryOfMindAfterCall } from '../after-call.js';
 import { createMindNote, MAX_NOTE_CHARS, renderMindNote } from '../note.js';
 import { memoryMindStore } from '../store.js';
+import { readingPrompt } from '../extract.js';
 import { emptyMindModel } from '../types.js';
 import { CALL_1, DAY, READING_1, T0 } from './fixtures.js';
 
@@ -70,6 +71,51 @@ describe('theory of mind: after-call writer', () => {
   });
 });
 
+describe('theory of mind: forget, on the way in', () => {
+  const forgetLandlord = async () => (text: string) => /landlord/i.test(text);
+
+  it('never sends a forgotten topic to the reading model, and never saves it', async () => {
+    const store = memoryMindStore();
+    const model = emptyMindModel('u1', T0);
+    model.toldFerni.push({ topic: 'their landlord dispute', at: T0.toISOString() });
+    await store.save(model);
+    const llm = replying(READING_1); // this call's reading mentions the landlord again
+    await updateTheoryOfMindAfterCall(
+      { userId: 'u1', sessionId: 's1', turns: CALL_1, summary: null },
+      { store, llm, env: ON, now: () => T0, forgotten: forgetLandlord }
+    );
+    expect(llm.mock.calls[0]?.[0]).not.toMatch(/landlord dispute/i);
+    const saved = JSON.stringify(await store.load('u1'));
+    expect(saved).not.toMatch(/landlord/i);
+    expect(saved).toContain('Stripe interview on Monday');
+  });
+
+  it('skips the update when what they asked to forget cannot be read', async () => {
+    const store = memoryMindStore();
+    const llm = replying(READING_1);
+    const out = await updateTheoryOfMindAfterCall(
+      { userId: 'u1', sessionId: 's1', turns: CALL_1, summary: null },
+      { store, llm, env: ON, now: () => T0, forgotten: async () => null }
+    );
+    expect(out).toBeNull();
+    expect(llm).not.toHaveBeenCalled();
+    expect(store.models.size).toBe(0);
+  });
+});
+
+describe('theory of mind: the reading prompt', () => {
+  it('asks only for what the caller asked to steer clear of, and shows what is already held', () => {
+    const model = emptyMindModel('u1', T0);
+    model.sensitivities.push({ topic: 'their ex', how: 'asked not to talk about it', at: '' });
+    const prompt = readingPrompt(CALL_1, null, model);
+    expect(prompt).toContain('a topic the CALLER asked, or plainly signalled, not to discuss');
+    expect(prompt).toContain('never your guess from a pause or a short answer');
+    expect(prompt).toContain(
+      'Already asked to go gently around: their ex (asked not to talk about it)'
+    );
+  });
+});
+
 describe('theory of mind: the note', () => {
   it('says what not to re-ask and which patterns to respect, within ~100 tokens', async () => {
     const store = memoryMindStore();
@@ -82,7 +128,7 @@ describe('theory of mind: the note', () => {
     expect(note).toContain(
       "What you've noticed about them: jokes when anxious, then wants practical help."
     );
-    expect(note).toContain("They've already told you about Stripe interview on Monday");
+    expect(note).toContain("They've already told you about: Stripe interview on Monday");
     expect(note).toContain('Last time they seemed anxious about the Stripe interview;');
     expect(note).toMatch(/never name them/);
     // A one-moment hunch is not acted on.
@@ -103,7 +149,7 @@ describe('theory of mind: the note', () => {
     const note = renderMindNote((await store.load('u1'))!, later)!.note;
     expect(note).not.toContain('jokes when anxious');
     expect(note).not.toContain('Last time they seemed');
-    expect(note).toContain("They've already told you about");
+    expect(note).toContain("They've already told you about:");
   });
 
   it('leaves out a mood that expired since the last call', () => {
@@ -142,7 +188,7 @@ describe('theory of mind: the note', () => {
     await store.save(model);
     const mind = createMindNote({ userId: 'u1', store, now: () => T0 });
     await mind.ready;
-    expect(mind.noteFor('hey')).toContain("They've already told you about");
+    expect(mind.noteFor('hey')).toContain("They've already told you about:");
     const reminder = mind.noteFor('so the wedding is next week');
     expect(reminder).toContain("their sister Priya's wedding in Lisbon");
     mind.newTurn();

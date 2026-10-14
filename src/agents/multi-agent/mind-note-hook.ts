@@ -9,7 +9,11 @@
  * @module agents/multi-agent/mind-note-hook
  */
 
-import { createMindNote, type MindNoteDeps } from '../../intelligence/theory-of-mind/note.js';
+import {
+  createMindNote,
+  type IsForgotten,
+  type MindNoteDeps,
+} from '../../intelligence/theory-of-mind/note.js';
 import { firestoreMindStore } from '../../memory/storage/mind-store.js';
 import { forgottenTopicsOrNull, isForgotten } from '../../memory/recall/forget.js';
 import { addRecallNote, type RecallAgent } from './memory-recall-hook.js';
@@ -21,19 +25,25 @@ interface SessionEvents {
   off?(event: string, listener: (event: unknown) => void): unknown;
 }
 
+/**
+ * What the caller asked Ferni to forget (forget.ts), as theory of mind takes it:
+ * a filter, or null when the list can't be read. Used by the live note and the
+ * after-call update (agents/theory-of-mind-register.ts), so a forgotten topic
+ * stays out of both, as it does out of recall.
+ */
+export async function forgottenFilter(userId: string): Promise<IsForgotten | null> {
+  const topics = await forgottenTopicsOrNull(userId);
+  return topics && ((text: string) => isForgotten(text, topics));
+}
+
 /** Starts loading the caller's model and listens for their words. Returns the detach. */
 export function attachMindNote(
   session: SessionEvents,
   agent: RecallAgent,
   deps: Omit<MindNoteDeps, 'store'> & Partial<Pick<MindNoteDeps, 'store'>>
 ): { ready: Promise<void>; detach: () => void } {
-  // What they asked Ferni to forget stays out of the note, as it does out of recall.
-  const forgotten = async () => {
-    const topics = await forgottenTopicsOrNull(deps.userId);
-    return topics && ((text: string) => isForgotten(text, topics));
-  };
   const mind = createMindNote({
-    forgotten,
+    forgotten: () => forgottenFilter(deps.userId),
     ...deps,
     store: deps.store ?? firestoreMindStore,
   });

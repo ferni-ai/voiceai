@@ -10,6 +10,7 @@ import { registerAfterCallTask } from '../services/session/after-call-tasks.js';
 import { updateTheoryOfMindAfterCall } from '../intelligence/theory-of-mind/after-call.js';
 import type { CallSummaryView } from '../intelligence/theory-of-mind/extract.js';
 import { firestoreMindStore } from '../memory/storage/mind-store.js';
+import { forgottenFilter } from './multi-agent/mind-note-hook.js';
 
 export const THEORY_OF_MIND_TASK = 'theory-of-mind';
 
@@ -23,7 +24,7 @@ registerAfterCallTask(
         turns: [...ctx.turns],
         summary: (ctx.summary ?? null) as CallSummaryView | null,
       },
-      { store: firestoreMindStore }
+      { store: firestoreMindStore, forgotten: () => forgottenFilter(ctx.userId) }
     );
   },
   // Headroom over the update's own 15 s limit (after-call.ts), so its log line wins.
