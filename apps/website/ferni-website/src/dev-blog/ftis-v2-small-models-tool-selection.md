@@ -154,22 +154,9 @@ Total: ~480MB of models loaded at startup, providing sub-20ms inference.
 
 Here's what nobody tells you about finetuning classifiers: **the model is only as good as your training data.**
 
-We generated training data three ways:
+We didn't have a large set of real user transcripts to learn from, so the training data is generated. We built it two ways:
 
-### 1. Real User Transcripts (Gold Standard)
-
-```json
-{
-  "text": "can you play that song again",
-  "super_category": "media",
-  "fine_category": "music_control",
-  "source": "production_logs"
-}
-```
-
-We had 6 months of production logs with tool execution data. If a user said X and tool Y was called, that's a training example.
-
-### 2. Synthetic Generation (Scale)
+### 1. Synthetic Generation (Scale)
 
 ```python
 # Generate variations for each intent
@@ -183,9 +170,9 @@ Include:
 """
 ```
 
-This gave us ~5,000 examples per fine category.
+The generated set checked into our repo has 28,378 examples across 886 tools.
 
-### 3. Hard Negatives (Robustness)
+### 2. Hard Negatives (Robustness)
 
 The hardest cases are **near-misses** - utterances that sound like one intent but are actually another:
 
@@ -265,16 +252,12 @@ The LLM is liberated from tool selection entirely.
 | Metric | Before (LLM FC) | After (FTIS V2) |
 |--------|-----------------|-----------------|
 | Tool selection | 300-500ms | **~20ms** |
-| Total response time | 800-1200ms | **400-600ms** |
-| P99 latency | 2.5s | **900ms** |
+
+Tool selection is one step in a turn, not the whole turn. A full Ferni reply still takes around two seconds end to end today, most of it in the model.
 
 ### Reliability
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Tool call success rate | ~80% | **99.2%** |
-| Leakage rate | ~15% | **<0.5%** |
-| Wrong tool selection | ~5% | **<1%** |
+The bigger change is structural. The LLM no longer decides whether to call a tool, so it can't forget to call one, and it no longer sees tool schemas, so it has nothing to leak into speech. We don't yet have enough real traffic to publish production success rates.
 
 ### Cost
 
@@ -282,7 +265,7 @@ The LLM is liberated from tool selection entirely.
 |--------|--------|-------|
 | Tokens for tool schemas | ~4000/turn | **0** |
 | LLM cost for tool selection | ~$0.02/turn | **~$0.0001/turn** |
-| Monthly savings (1M turns) | - | **~$19,000** |
+| Estimated savings at 1M turns/month | - | **~$19,000** |
 
 ## Confidence Thresholds: The Safety Net
 
@@ -344,10 +327,10 @@ FTIS V2 is in production today. We're exploring:
 
 The fundamental insight remains: **tool selection is classification, not generation.** Once you accept that, everything gets simpler.
 
-But here's what really matters: that 500ms we saved isn't just a number. It's the difference between "Ferni heard me" and "did Ferni hear me?" It's the difference between presence and awkwardness.
+But here's what really matters: the time we no longer spend on tool selection isn't just a number. It's the difference between "Ferni heard me" and "did Ferni hear me?" It's the difference between presence and awkwardness.
 
 Every millisecond of latency is a moment where connection wavers. FTIS V2 gives us those moments back.
 
 ---
 
-*Want to learn more about our voice AI architecture? Check out our posts on [half-cascade architecture](/dev-blog/half-cascade-architecture) and [the movie production paradigm](/dev-blog/movie-production-paradigm).*
+*Want to learn more about our voice AI architecture? Check out our posts on [half-cascade architecture](/developers/blog/half-cascade-architecture/) and [the movie production paradigm](/developers/blog/movie-production-paradigm/).*

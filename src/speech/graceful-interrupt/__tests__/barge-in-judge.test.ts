@@ -234,8 +234,16 @@ describe('the reply after an overlap (speech-wrapper.ts)', () => {
     caller('speaking');
     wait(1500);
     caller('listening');
-    const text = await opening('judged-barge-in', true);
-    expect(text.startsWith('<speed ratio="1.15"/><volume ratio="0.72"/>Oh—')).toBe(true);
+    // The "Oh—" ack only with BARGE_IN_ACK_WORDS=on (off by default: it lands before the answer).
+    const plain = await opening('judged-barge-in', true);
+    expect(plain).not.toContain('Oh—');
+    process.env.BARGE_IN_ACK_WORDS = 'on';
+    try {
+      const text = await opening('judged-barge-in', true);
+      expect(text.startsWith('<speed ratio="1.15"/><volume ratio="0.72"/>Oh—')).toBe(true);
+    } finally {
+      delete process.env.BARGE_IN_ACK_WORDS;
+    }
   });
 
   it('keeps the old behavior for a session without a judge', () => {

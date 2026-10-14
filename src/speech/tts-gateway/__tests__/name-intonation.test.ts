@@ -1,0 +1,150 @@
+import { ReadableStream } from 'node:stream/web';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AudioFrame } from '@livekit/rtc-node';
+import { createContinuationTTS } from '../continuation-tts.js';
+import { fallingVocative, WAIT, withFallingVocative } from '../name-intonation.js';
+import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
+import { prosodyTags } from '../providers/cartesia.js';
+import { getSSMLProcessor } from '../ssml/processor.js';
+
+describe('fallingVocative', () => {
+  it.each([
+    ["Hey Seth, how's it going?", "Hey Seth. How's it going?"],
+    ['Hi Sam — up late tonight?', 'Hi Sam. Up late tonight?'],
+    ['Hey Seth! Good to hear you.', 'Hey Seth. Good to hear you.'],
+    [
+      'Morning, Seth, did you tackle that mail yet?',
+      'Hey Seth. Morning. Did you tackle that mail yet?',
+    ],
+    ['Morning, Seth. Did you finally tackle it?', 'Hey Seth. Morning. Did you finally tackle it?'],
+    ['Good evening, Sam, how was the shift?', 'Hey Sam. Good evening. How was the shift?'],
+    ['<emotion value="calm"/>Hey Seth, rough day?', '<emotion value="calm"/>Hey Seth. Rough day?'],
+  ])('ends the opening name on its own sentence: %s', (input, expected) => {
+    expect(fallingVocative(input, false)).toBe(expected);
+  });
+
+  it('rewrites a reply that is only the greeting once it is complete', () => {
+    expect(fallingVocative('Morning, Seth.', true)).toBe('Hey Seth. Morning.');
+    expect(fallingVocative('Hey Seth', true)).toBe('Hey Seth.');
+  });
+
+  it.each([
+    "So, how's it going?",
+    "Hey, how's it going?",
+    'Hey there, Seth.',
+    'Hey I was thinking about that.',
+    'Hey, Look, it happens to everyone.',
+    'Hey Seth? You still there?',
+    "That's rough, Sam.",
+    'Morning routines help.',
+  ])('leaves other openings alone: %s', (input) => {
+    expect(fallingVocative(input, false)).toBe(input);
+  });
+
+  it('waits while the opening could still be a greeting with a name', () => {
+    for (const partial of [
+      '',
+      'Mor',
+      'Good',
+      'Morning, ',
+      'Morning, Se',
+      'Hey Seth,',
+      'Hey Seth, ',
+    ]) {
+      expect(fallingVocative(partial, false)).toBe(WAIT);
+    }
+  });
+});
+
+/** A reply stream that records what would be sent to Cartesia. */
+class FakeReply implements ReplyStream {
+  pushes: string[] = [];
+  push(text: string) {
+    this.pushes.push(text);
+  }
+  end() {}
+  cancel() {}
+  async *[Symbol.asyncIterator]() {}
+}
+
+function textStream(pieces: string[]) {
+  return new ReadableStream<string>({
+    start(c) {
+      for (const p of pieces) c.enqueue(p);
+      c.close();
+    },
+  });
+}
+
+const processor = getSSMLProcessor();
+
+/** Run a streamed reply through the production continuation path and return the pushes. */
+async function pushesFor(pieces: string[]): Promise<string[]> {
+  const reply = new FakeReply();
+  const stream = createContinuationTTS({
+    textStream: textStream(pieces),
+    reply,
+    sanitize: (chunk) => {
+      const r = processor.parse(chunk);
+      return { text: r.cleanText.trim(), prosody: r.prosody };
+    },
+    openingTags: prosodyTags,
+    toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
+    onFirstAudio: () => undefined,
+    onError: (e) => {
+      throw e;
+    },
+  });
+  for await (const _ of stream) {
+    /* drain */
+  }
+  return reply.pushes;
+}
+
+describe('NAME_FALLING_INTONATION on the continuation path', () => {
+  beforeEach(() => vi.stubEnv('CASCADE_SENTENCE_BREAK_MS', '0'));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('off: the opening name runs on into the question (the measured rising shape)', async () => {
+    vi.stubEnv('NAME_FALLING_INTONATION', 'off');
+    expect(await pushesFor(["Hey Seth, how's it going?"])).toEqual(["Hey Seth, how's it going? "]);
+  });
+
+  it('on: the name ends its own Cartesia piece', async () => {
+    vi.stubEnv('NAME_FALLING_INTONATION', 'on');
+    expect(await pushesFor(["Hey Seth, how's it going?"])).toEqual([
+      'Hey Seth. ',
+      "How's it going? ",
+    ]);
+  });
+
+  it('on: a streamed "Morning, Seth, ..." never sends the name before it is decided', async () => {
+    vi.stubEnv('NAME_FALLING_INTONATION', 'on');
+    const pushes = await pushesFor([
+      'Morning',
+      ', Se',
+      'th, ',
+      'did you ',
+      'tackle that mail yet?',
+    ]);
+    expect(pushes).toEqual(['Hey Seth. ', 'Morning. ', 'Did you tackle that mail yet? ']);
+  });
+
+  it('on: a reply that does not open on a greeting is pushed exactly as with the flag off', async () => {
+    const reply = ["That's rough, Sam. ", 'Long shift?'];
+    vi.stubEnv('NAME_FALLING_INTONATION', 'off');
+    const off = await pushesFor(reply);
+    vi.stubEnv('NAME_FALLING_INTONATION', 'on');
+    expect(await pushesFor(reply)).toEqual(off);
+    expect(off.join('')).toContain('Sam.');
+  });
+});
+
+describe('withFallingVocative', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('returns the same stream when the flag is off', () => {
+    const stream = textStream(['Hey Seth, hi.']);
+    expect(withFallingVocative(stream, { NAME_FALLING_INTONATION: 'off' })).toBe(stream);
+  });
+});

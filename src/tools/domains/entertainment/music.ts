@@ -39,7 +39,8 @@ import {
   shouldReactToMusic,
 } from '../../../speech/music-reactions.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { ambientStartLine, startWithin } from './music-start.js';
+import { startWithin } from './music-start.js';
+import { noteMusicRequest, playAmbientMusic, resetAmbientSession } from './ambient-play.js';
 import { getParameterDescription, getToolDescription } from '../../utils/tool-descriptions.js';
 
 // ============================================================================
@@ -144,7 +145,7 @@ async function checkSpotifyAvailability(): Promise<boolean> {
 export async function initializeMusicConfig(): Promise<void> {
   // Reset to defaults first to prevent cross-session pollution
   musicConfig = { ...DEFAULT_MUSIC_CONFIG };
-
+  resetAmbientSession();
   musicConfig.spotifyLinked = await checkSpotifyAvailability();
 
   getLogger().info(
@@ -189,6 +190,7 @@ export function resetMusicConfig(): void {
 export async function playMusicUnified(query: string): Promise<string> {
   const log = getLogger();
   const intent = detectMusicIntent(query);
+  noteMusicRequest(query, intent); // what auto-continue keeps playing (ambient-play.ts)
 
   // Check for Sonos/room mentions - guide user to the right approach
   const explicitSonos = mentionsSonos(query);
@@ -232,7 +234,7 @@ export async function playMusicUnified(query: string): Promise<string> {
   // AMBIENT INTENT: Always use iTunes DJ mode (chains previews, always works)
   if (intent === 'ambient') {
     log.info({ query }, '🎵 AMBIENT mode: Using iTunes DJ (chains previews)');
-    return playAmbientMusic(query);
+    return playAmbientMusic(query, musicConfig.spotifyLinked);
   }
 
   // LISTENING INTENT: Try Spotify first, graceful fallback
@@ -252,82 +254,6 @@ export async function playMusicUnified(query: string): Promise<string> {
   // No Spotify: Use iTunes with "listening" framing
   log.info({ query }, '🎵 LISTENING mode: No Spotify, using iTunes preview');
   return playViaItunesWithListeningFallback(query);
-}
-
-/**
- * Play ambient background music - chains iTunes previews like a DJ.
- * Perfect for conversation - 30-second segments with smooth crossfades.
- *
- * 🎧 DJ AMBIENT MODE:
- * - Searches for multiple tracks matching the mood/genre
- * - Queues them up for continuous playback
- * - Music player handles crossfades between tracks
- * - Each preview is ~30 seconds - perfect for conversation!
- */
-async function playAmbientMusic(query: string): Promise<string> {
-  const log = getLogger();
-  log.info({ query }, '🎧 DJ Ambient Mode: Starting...');
-
-  // Search for multiple tracks to queue
-  const searchResults = await searchItunes(query, 5);
-
-  if (searchResults.resultCount === 0 || !searchResults.results.length) {
-    log.warn({ query }, '🎧 No tracks found for ambient mode');
-    return `Couldn't find any ${query} tracks. Want to try something else?`;
-  }
-
-  // Filter to only tracks with preview URLs
-  const tracksWithPreviews = searchResults.results.filter((t) => t.previewUrl);
-
-  if (tracksWithPreviews.length === 0) {
-    log.warn({ query }, '🎧 Found tracks but none have previews');
-    return `Found some ${query} tracks but none have previews available. Try a different search?`;
-  }
-
-  // Get the music player
-  const musicPlayer = getMusicPlayer();
-
-  // 🚨 IMPROVED: Better check with clear error message
-  const musicAvailability = isMusicAvailable();
-  if (!musicAvailability.available) {
-    log.warn(
-      { query, reason: musicAvailability.reason },
-      '🎧 Music player not available for ambient mode'
-    );
-    return `I'd love to set the mood with some ${query} music, but the audio system isn't ready this session. Let's keep chatting!`;
-  }
-
-  // Start the first track, queue up to 4 more (~2.5 min of continuous DJ previews),
-  // and answer with what's playing without waiting out the download (music-start.ts).
-  const firstTrack = tracksWithPreviews[0];
-  const PREVIEW_MS = 30000;
-  const toTrack = (t: (typeof tracksWithPreviews)[number]): MusicTrack => ({
-    name: t.trackName,
-    artist: t.artistName,
-    previewUrl: t.previewUrl,
-    duration: PREVIEW_MS,
-    albumArt: t.artworkUrl100, // 🎨 Album artwork for Now Playing UI
-  });
-  const queued = tracksWithPreviews.slice(1, 5);
-  const track = { ...toTrack(firstTrack), genre: firstTrack.primaryGenreName };
-  const outcome = await startWithin(
-    () => musicPlayer.playFromUrl(firstTrack.previewUrl, toTrack(firstTrack)),
-    track,
-    (ok) => {
-      if (!ok) return;
-      for (const t of queued) musicPlayer.addToQueue(toTrack(t));
-      log.info(
-        { firstTrack: firstTrack.trackName, queuedTracks: queued.map((t) => t.trackName) },
-        '🎧 DJ Mode: Playing with continuous queue for a proper music session!'
-      );
-    }
-  );
-
-  if (outcome === 'failed') {
-    log.error({ track: firstTrack.trackName }, '🎧 Failed to start ambient playback');
-    return `Something went wrong with the audio system while trying to play ${query} music. You might need to reconnect for music to work.`;
-  }
-  return ambientStartLine(outcome, track, queued.length);
 }
 
 /**

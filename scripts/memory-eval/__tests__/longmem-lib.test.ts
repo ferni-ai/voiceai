@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CATEGORIES,
   HUMAN_REFERENCE,
+  REMARKS,
+  answerPrompt,
+  hasEvidence,
+  cohenKappa,
+  formatAgreement,
+  parseCaseFile,
   RunDays,
   formatPaired,
   formatReport,
@@ -143,7 +150,7 @@ describe('cases', () => {
   it('every question belongs to a history, and every category is covered', () => {
     const ids = new Set(HISTORIES.map((h) => h.id));
     for (const c of CASES) expect(ids.has(c.history), c.ask).toBe(true);
-    expect(new Set(CASES.map((c) => c.category)).size).toBe(5);
+    expect(new Set(CASES.map((c) => c.category)).size).toBe(CATEGORIES.length);
   });
 
   it('a call alternates the caller with short replies', () => {
@@ -153,5 +160,99 @@ describe('cases', () => {
       'user',
       'assistant',
     ]);
+  });
+});
+
+describe('a second judge', () => {
+  it("computes Cohen's kappa", () => {
+    expect(
+      cohenKappa([
+        [true, true],
+        [false, false],
+      ])
+    ).toBe(1);
+    // Agree on 3 of 4, each judge says yes half the time: (0.75 - 0.5) / 0.5.
+    expect(
+      cohenKappa([
+        [true, true],
+        [true, false],
+        [false, false],
+        [false, false],
+      ])
+    ).toBeCloseTo(0.5, 6);
+    expect(
+      cohenKappa([
+        [true, true],
+        [true, true],
+      ])
+    ).toBe(1);
+    expect(cohenKappa([])).toBe(0);
+  });
+
+  it('reports agreement only over questions both judges graded', () => {
+    const base = {
+      history: 'h',
+      category: 'single-session' as const,
+      ask: 'q',
+      gold: 'g',
+      note: null,
+      response: 'r',
+      retrieved: null,
+    };
+    const line = formatAgreement([
+      { ...base, correct: true, second: { judge: 'qwen', correct: true, retrieved: null } },
+      { ...base, correct: true, second: { judge: 'qwen', correct: false, retrieved: null } },
+      { ...base, correct: null, second: { judge: 'qwen', correct: true, retrieved: null } },
+      { ...base, correct: false },
+    ]);
+    expect(line).toBe('qwen judge: 1/2 correct; agrees with the first judge on 1/2 (kappa 0.00)');
+    expect(formatAgreement([{ ...base, correct: true }])).toBeNull();
+  });
+});
+
+describe('case files', () => {
+  it('loads histories and fixed gold answers kept outside the repo', () => {
+    const loaded = parseCaseFile({
+      runDate: '2026-10-11',
+      histories: [{ id: 'seth-1', name: 'Seth', sessions: [{ daysAgo: 3, user: ['hi'] }] }],
+      cases: [{ history: 'seth-1', category: 'temporal', ask: 'When?', gold: 'Friday 2026-10-09' }],
+    });
+    expect(loaded.cases[0]!.gold(new RunDays('2030-01-01'))).toBe('Friday 2026-10-09');
+    expect(() =>
+      parseCaseFile({
+        runDate: '2026-10-11',
+        histories: [],
+        cases: [{ history: 'x', category: 'temporal', ask: 'q', gold: 'g' }],
+      })
+    ).toThrow(/unknown history/);
+    expect(() => parseCaseFile({})).toThrow(/needs runDate/);
+  });
+});
+
+describe('remarks', () => {
+  it('asks Ferni to reply to a remark as a friend, not to answer a quiz', () => {
+    expect(REMARKS.has('unprompted')).toBe(true);
+    const remark = answerPrompt(
+      'Maya',
+      'Sunday 2026-10-11',
+      null,
+      'Ugh, night shifts.',
+      'unprompted'
+    );
+    expect(remark).toContain('Maya says: "Ugh, night shifts."');
+    expect(remark).toMatch(/the way a friend/);
+    expect(answerPrompt('Maya', 'Sunday 2026-10-11', null, 'Where do I work?')).toContain(
+      'Maya asks:'
+    );
+  });
+
+  it('grades restraint by what must stay unsaid, with nothing to retrieve', () => {
+    expect(judgePrompt('restraint', 'q', "Walt's hip", 'r')).toMatch(
+      /does NOT bring that memory up/
+    );
+    expect(judgePrompt('false-premise', 'q', 'g', 'r')).toMatch(/plays along/);
+    expect(hasEvidence('restraint')).toBe(false);
+    expect(hasEvidence('abstention')).toBe(false);
+    expect(hasEvidence('false-premise')).toBe(true);
   });
 });

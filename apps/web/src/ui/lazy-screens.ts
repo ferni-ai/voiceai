@@ -15,6 +15,7 @@ import { toast, toastInfo } from './whisper.ui.js';
 import { startOAuthConnect } from '../services/oauth-connect.service.js';
 import { isVenmoChipInEnabled, openSupport } from './support/open-support.js';
 import { createLogger } from '../utils/logger.js';
+import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
 
 const log = createLogger('LazyScreens');
 
@@ -132,6 +133,7 @@ export async function openMemoryLane(): Promise<void> {
 }
 
 export async function showPatternInsights(container: HTMLElement): Promise<void> {
+  if (!isPatternInsightsOn()) return; // no data path yet: see config/pattern-insights-flag.ts
   const m = await loadScreen('lazyScreens.screens.patterns', () => import('./pattern-insights.ui.js'));
   await m?.patternInsightsUI.show(container);
 }

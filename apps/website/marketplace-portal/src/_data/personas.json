@@ -120,6 +120,7 @@
       "description": "Carmen is your village. Practical parenting support without the judgment—from toddler tantrums to teen drama, you've got a thoughtful co-pilot.",
       "category": "life",
       "tags": ["Parenting", "Family", "Children", "Relationships"],
+      "tone": "light",
       "colors": {
         "primary": "#D4A373",
         "secondary": "#A67B5B"
@@ -192,6 +193,7 @@
       "description": "Sasha sparks creativity. Whether you're battling creative block, starting a passion project, or building a creative career—Sasha brings the energy and ideas.",
       "category": "creative",
       "tags": ["Creativity", "Art", "Writing", "Music", "Inspiration"],
+      "tone": "light",
       "colors": {
         "primary": "#E07B53",
         "secondary": "#B85C3C"

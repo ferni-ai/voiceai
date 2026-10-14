@@ -240,11 +240,11 @@ const OVERLAY_PAIRS: OverlayPair[] = [
     surface: '--color-background-elevated',
     scriptVars: {
       '--notification-icon': {
-        file: 'src/ui/notifications.ui.ts',
+        file: 'src/ui/notifications-copy.ts',
         pattern: /ritual_reminder:\s*\{[^}]*icon:\s*'([^']+)'/,
       },
       '--notification-bg': {
-        file: 'src/ui/notifications.ui.ts',
+        file: 'src/ui/notifications-copy.ts',
         pattern: /ritual_reminder:\s*\{[^}]*bg:\s*'([^']+)'/,
       },
     },
