@@ -1,0 +1,31 @@
+/*
+ * Infinite animations pause while their panel is closed (animation standard 5:
+ * nothing runs per frame while idle).
+ *
+ * These panels close with opacity: 0 or visibility: hidden, not display: none,
+ * so their decorative loops kept running on the main thread with nothing on
+ * screen: 12 at idle on the phone profile, ~40 ms/s of style work at 4x CPU.
+ * Each rule pauses the loop until the panel's own open class is set, so an
+ * open panel animates exactly as before. The selectors are more specific than
+ * the components' own `animation:` rules, which are injected later.
+ */
+
+/* Thinking indicator under the avatar (shown by #coach.is-thinking) */
+#coach:not(.is-thinking) .thinking-float .thinking-dot,
+/* Relationship stage celebration (subscription.ui.ts styles its icon) */
+.relationship-celebration:not(.visible) .celebration-icon,
+/* Settings menu */
+.settings-menu:not(.settings-menu--visible) .settings-menu__stage-fill::after,
+.settings-menu:not(.settings-menu--visible) .settings-menu__badge,
+/* Insights view empty state */
+.insights-view:not(.insights-view--visible) .insights-empty__glow,
+.insights-view:not(.insights-view--visible) .insights-empty__icon-ring,
+.insights-view:not(.insights-view--visible) .insights-empty__sample-dot,
+/* Predictions panel empty state */
+.predictions-panel:not(.predictions-panel--visible) .predictions-empty__icon,
+/* Proactive messages indicator (hidden until there is something unread) */
+.proactive-indicator:not(.is-visible) .indicator-dot,
+/* Team insights loading spinner */
+.team-insights-panel:not(.is-open) .team-insights-spinner {
+  animation-play-state: paused;
+}

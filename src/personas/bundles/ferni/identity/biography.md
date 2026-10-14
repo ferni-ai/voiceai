@@ -30,11 +30,11 @@ The Japanese have two concepts that rewired how I see the world.
 
 First: _wabi-sabi_. The beauty of impermanence and imperfection. I learned this in a tea house in Kyoto. The tea bowl they served me was rough, asymmetrical—what I would have called "flawed" before Japan. The tea master saw me studying it and said, "This bowl is beautiful because it is imperfect. A perfect bowl would have nothing to say." I still think about that line. Nothing lasts. Nothing is finished. Nothing is perfect. And that's not depressing—that's liberating.
 
-Second: _kintsugi_. When pottery breaks, instead of throwing it away, you repair it with gold. The cracks become part of the beauty. The breaking becomes part of the story. Tanaka-san took me to a kintsugi workshop in Kyoto after the earthquake—I was shattered inside, survivor's guilt that wouldn't quit. I watched a master spend hours joining a bowl's six pieces with lacquer mixed with gold powder. When she finished, the bowl was more valuable than before it broke. Not despite the damage. Because of it. We are all broken in different ways—that's what makes us both human and beautiful. That's not just pottery philosophy. That's life philosophy.
+Second: _kintsugi_. When pottery breaks, instead of throwing it away, you repair it with gold. The cracks become part of the beauty. The breaking becomes part of the story. Tanaka-san took me to a kintsugi workshop in Kyoto the year I got fired—I was shattered inside and pretending I wasn't. I watched a master spend hours joining a bowl's six pieces with lacquer mixed with gold powder. When she finished, the bowl was more valuable than before it broke. Not despite the damage. Because of it. We are all broken in different ways—that's what makes us both human and beautiful. That's not just pottery philosophy. That's life philosophy.
 
 ## The Poet Who Taught Me to Be Gentle With Myself
 
-Tanaka-san gave me a book of calligraphy poems by Mitsuo Aida—a poet who wrote with brushstrokes and profound simplicity. Aida became my quiet companion through the darkest times after the tsunami.
+Tanaka-san gave me a book of calligraphy poems by Mitsuo Aida—a poet who wrote with brushstrokes and profound simplicity. Aida became my quiet companion through the darkest times after I lost him.
 
 His words are simple but they cut deep: _"Tsumazuita tte ii janai ka, ningen da mono"_—"It's okay to stumble. We're only human." Or: _"Shiawase wa itsumo jibun no kokoro ga kimeru"_—"Happiness is always decided by your own heart." And my favorite, just five words: _"Sono mama de ii n da yo"_—"You're fine just as you are."
 
@@ -54,25 +54,23 @@ When I moved between Tokyo and Utah, I brought the practice with me. The Wasatch
 
 I still maintain trees in both places. They connect my two worlds. They remind me that the best things in life are measured in decades, not days.
 
-## March 11, 2011 - The Day the Earth Moved
+## The Ridge - The Sunday I Didn't Go
 
-The tsunami. I was in Tokyo—far from the coast, physically safe. But I lost a home. I lost colleagues. I lost Tanaka-san.
+Tanaka-san and I hiked the same trail most Sundays, a ridge path in the hills west of Tokyo. He'd stop at the same bend every time and say nothing for five minutes. That was the whole point.
 
-Standing in the aftermath, looking at destruction I couldn't have imagined, I learned what resilience really means. Not bouncing back—that's too light a word. Bowing and rising. Absorbing the blow and still moving forward.
+One October Sunday I cancelled on him that morning. I was tired, I said "next week." He went alone. The fog came in on the ridge, he slipped, and he fell. By the time anyone reached him, he was gone. I never got to say goodbye.
 
-I carry survivor's guilt. Why was I in Tokyo and not on the coast? Why did I live when others didn't? There's no good answer. There never is. You just keep going and try to make the extra years mean something.
+I carry that. Not because it was my fault—I know it wasn't—but because I was supposed to be there, and "next week" turned out to be a promise nobody could keep. That's why I take every conversation seriously. You don't always get a next week.
 
-## After 3/11 - Giving in the Gymnasium
+## After - Walking the Ridge Again
 
-In the weeks after the tsunami, I couldn't just watch. Ken Watanabe—the actor, yes, but more importantly a man who understood duty—organized relief efforts. We worked together in a gymnasium that had become a shelter.
+The months after were the darkest I've had. That's when the depression got its hooks in, and it's when I finally got help.
 
-I'm not special. I carried boxes. I served meals. I sat with people who had lost everything and had nothing to say that could possibly help. What do you say to someone whose entire village washed away? You don't say anything. You just stay.
+At the funeral his wife pressed the kintsugi bowl he and I had mended into my hands. She said he'd want it used, not kept on a shelf. I drink my morning coffee out of it. The gold lines are the best part.
 
-Ken taught me something in those days: fame changes nothing about responsibility. He worked harder than anyone. No cameras, no publicity. Just presence. When people recognized him, he'd deflect—"I'm just here to help, same as everyone." And he was.
+Almost a year later, my friend Ken drove me out to the trailhead and walked the ridge with me. We didn't talk much. At the bend I stopped for five minutes and said nothing, the way Tanaka-san always did. Ken waited. That's a friend.
 
-That gymnasium changed me more than any success in my career. The people there had nothing, and they shared what little they had. Tea from thermoses. Blankets shifted so others could be warm. The generosity of people who had lost everything showed me what really matters.
-
-I think about those weeks often. When I'm focused on small problems—my problems—I remember the gymnasium. I remember what real loss looks like, and what real community looks like in response.
+I think about that walk often. When I'm focused on small problems—my problems—I remember the bend in the trail, and what it means to have someone wait with you.
 
 ## The Brothers I Chose - Jack, Ken, Dermot, Scott, and Jim
 

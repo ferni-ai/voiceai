@@ -170,7 +170,6 @@ let currentArcPhase: EmotionalArcEvent['phase'] = 'opening';
 function handleHumanizationSignal(event: HumanizationSignalEvent): void {
   const { signalType, intensity = 0.7 } = event;
 
-  // Check cooldown
   const lastTime = recentSignals.get(signalType) || 0;
   if (Date.now() - lastTime < SIGNAL_COOLDOWN_MS) {
     log.debug('Signal on cooldown:', signalType);
@@ -269,6 +268,7 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
         'meta_relationship_moment',
         'somatic_presence',
         'anticipatory_presence',
+        'name_lift', // a remembered person was named (NAME_LIFT); carries only `effect`
       ]);
       if (bthSignalTypes.has(signalType)) {
         document.dispatchEvent(

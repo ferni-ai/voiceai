@@ -80,19 +80,6 @@ const ICONS = {
 // ============================================================================
 
 export const getFeatureHints = (): FeatureHint[] => [
-  // Team Huddle hint - unlocks at building-trust
-  {
-    id: 'team-huddle-intro',
-    type: 'spotlight',
-    targetSelector: '[data-feature="team-huddle"], .engagement-trigger',
-    title: t('featureHints.teamHuddlesTitle'),
-    message: t('featureHints.teamHuddlesMessage'),
-    ctaText: t('featureHints.teamHuddlesCta'),
-    minStage: 'building-trust',
-    showOnce: true,
-    priority: 10,
-  },
-
   // Custom rituals hint - unlocks at getting-started
   {
     id: 'custom-rituals-intro',

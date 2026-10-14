@@ -107,7 +107,7 @@ struct InteractiveMoodProvider: TimelineProvider {
             case .okay:
                 return "Hanging in there?"
             case .meh, .low:
-                return "Here for you 💚"
+                return "Go easy on yourself today"
             case .none:
                 return "Thanks for checking in"
             }
@@ -196,35 +196,18 @@ struct InteractiveMoodWidgetView: View {
                 }
             }
 
+            // No streak badge: the brand doesn't count streaks. `streakDays` is
+            // still read from the App Group so old data loads; it's never shown.
             Spacer()
-
-            if entry.streakDays > 0 {
-                streakBadge
-            }
         }
-    }
-
-    private var streakBadge: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "flame.fill")
-                .font(.caption2)
-                .foregroundColor(.orange)
-            Text("\(entry.streakDays)")
-                .font(.caption2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(Color.white.opacity(0.2))
-        .cornerRadius(10)
     }
 
     private var checkedInView: some View {
         VStack(spacing: 8) {
             if let mood = entry.currentMood {
-                Text(mood.emoji)
+                Image(systemName: mood.symbolName)
                     .font(.system(size: family == .systemSmall ? 36 : 44))
+                    .foregroundColor(.white)
 
                 Text("Feeling \(mood.rawValue)")
                     .font(.caption)
@@ -252,8 +235,9 @@ struct InteractiveMoodWidgetView: View {
     private func moodButton(for mood: MoodType) -> some View {
         Button(intent: MoodCheckInIntent(mood: mood)) {
             VStack(spacing: 4) {
-                Text(mood.emoji)
+                Image(systemName: mood.symbolName)
                     .font(.system(size: family == .systemSmall ? 22 : 26))
+                    .foregroundColor(.white)
 
                 if family == .systemMedium {
                     Text(mood.rawValue.capitalized)

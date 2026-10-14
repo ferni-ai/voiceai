@@ -1,6 +1,6 @@
 /**
  * Ferni doesn't answer half a sentence (unfinished-turn.ts and the
- * UNFINISHED_TURN_HELD hunk of patches/@livekit__agents@1.5.1.patch).
+ * UNFINISHED_TURN_HELD hunk of patches/@livekit__agents@1.6.4.patch).
  *
  * Dev call, 2026-10-03: "We don't get" | "caught up in reviews." got a reply
  * to "We don't get"; so did "When you go to sleep, what do you dream" | "of?".
@@ -109,6 +109,7 @@ function activity() {
     logger: { info: vi.fn(), warn: vi.fn(), debug: vi.fn() },
     cancelPreemptiveGeneration: vi.fn(),
     startFalseInterruptionTimer: vi.fn(),
+    cancelFalseInterruptionTimer: vi.fn(),
     createSpeechTask: vi.fn(() => ({ done: false })),
     userTurnCompleted: vi.fn(),
   };

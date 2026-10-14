@@ -25,15 +25,15 @@ There's a reason therapists don't hand you a keyboard. Speaking activates differ
 - You make connections you'd miss while typing
 - You're more honest—there's no time to craft the "right" answer
 
-Ferni is designed for this kind of thinking out loud. No typing. No waiting. Just a natural conversation.
+Ferni is designed for this kind of thinking out loud. No typing. Just a natural conversation.
 
 ## Response Time Matters
 
 Real conversations don't have loading spinners.
 
-We obsess over latency at Ferni. Our AI responds in under 500 milliseconds—fast enough that it feels like talking to a person, not a computer.
+We obsess over latency at Ferni. Today a reply takes around two seconds, which is slower than a person and slower than we want. Closing that gap is some of the most important work we do.
 
-This isn't just a nice feature. It changes the entire experience. When responses are instant, your train of thought stays intact. You think more clearly because you're not waiting.
+This isn't just a nice feature. It changes the entire experience. When responses come fast, your train of thought stays intact. You think more clearly because you're not waiting.
 
 ## No App Required
 

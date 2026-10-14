@@ -223,8 +223,6 @@ export function getDailyChallenge(date?: Date): DailyChallenge {
     xpReward: template.xpReward,
     streakBonus: template.streakBonus,
     specialReward: template.specialReward,
-    participantCount: Math.floor(Math.random() * 500) + 100, // Simulated
-    completionRate: 0.45 + Math.random() * 0.3, // Simulated 45-75%
   };
 
   todayChallengeDate = dateStr;

@@ -1,0 +1,126 @@
+/**
+ * What the existing stores say Ferni should follow through on, for the
+ * follow-through importer (services/follow-through/import-follow-ups.ts):
+ *
+ * - pending reminders (bogle_users/{uid}/reminders, status 'pending');
+ * - open commitments (bogle_users/{uid}/commitments), parsed by the same
+ *   rules the call check-in uses, so sign-offs like "I need to go" stay out;
+ * - follow-up items from the last calls' summaries.
+ *
+ * Anything about a topic the caller asked Ferni to forget is left out. When
+ * that list can't be read, the commitments and call threads (raw words) are
+ * left out too: erring toward silence is the right side of a privacy request.
+ * Reminders are the caller's own explicit asks and are kept either way.
+ *
+ * @module services/stores/follow-through-sources
+ */
+
+import type { Firestore } from '@google-cloud/firestore';
+import type { FollowUpSources, SourceItem } from '../follow-through/index.js';
+import { firestoreCommitmentStore, toOpenCommitment } from '../superhuman/commitment-follow-up.js';
+import { readCallSummaries } from '../../memory/storage/call-summaries.js';
+import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
+import { isForgotten } from '../../memory/recall/session-recall.js';
+import { isValidTimeZone } from '../../utils/time-zone.js';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'follow-through-sources' });
+
+/** How many recent summaries' follow-up items to bring in, and how many reminders. */
+const SUMMARIES = 3;
+const REMINDERS = 50;
+
+const iso = (ms: number | undefined): string | null =>
+  ms !== undefined && Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+
+async function pendingReminders(db: Firestore, userId: string): Promise<SourceItem[]> {
+  const snap = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('reminders')
+    .where('status', '==', 'pending')
+    .limit(REMINDERS)
+    .get();
+  return snap.docs.flatMap((d) => {
+    const r = d.data();
+    const text = typeof r.message === 'string' ? r.message.trim() : '';
+    const due =
+      typeof r.scheduledFor === 'string' && !Number.isNaN(Date.parse(r.scheduledFor))
+        ? r.scheduledFor
+        : null;
+    if (!text || !due) return [];
+    return [
+      {
+        kind: 'reminder' as const,
+        text,
+        dueAt: new Date(due).toISOString(),
+        repeat: null,
+        source: { store: 'reminders', ref: d.id },
+        ...(isValidTimeZone(r.timezone) ? { zone: r.timezone } : {}),
+      },
+    ];
+  });
+}
+
+async function openCommitments(
+  userId: string,
+  forgotten: readonly string[]
+): Promise<SourceItem[]> {
+  const docs = await firestoreCommitmentStore.active(userId);
+  return docs.flatMap((d) => {
+    const c = toOpenCommitment(d.id, d.data);
+    if (!c || isForgotten(c.statement, forgotten)) return [];
+    return [
+      {
+        kind: 'commitment' as const,
+        text: c.statement,
+        dueAt: iso(c.targetDate ?? c.followUpAfter),
+        repeat: null,
+        source: { store: 'commitments', ref: c.id },
+      },
+    ];
+  });
+}
+
+async function lastCallThreads(
+  db: Firestore,
+  userId: string,
+  forgotten: readonly string[]
+): Promise<SourceItem[]> {
+  const { docs } = await readCallSummaries(db, userId, { limit: SUMMARIES });
+  return docs.flatMap((d) => {
+    const raw: unknown = d.data().followUpItems;
+    const items: unknown[] = Array.isArray(raw) ? raw : [];
+    return items.flatMap((item, i) => {
+      const text = String(item).trim();
+      if (!text || isForgotten(text, forgotten)) return [];
+      return [
+        {
+          kind: 'thread' as const,
+          text,
+          dueAt: null,
+          repeat: null,
+          source: { store: 'summaries', ref: `${d.id}:${i}` },
+        },
+      ];
+    });
+  });
+}
+
+export function createFollowUpSources(db: Firestore): FollowUpSources {
+  return {
+    async itemsFor(userId) {
+      const forgotten = await forgottenTopicsOrNull(userId);
+      const reads: Array<Promise<SourceItem[]>> = [pendingReminders(db, userId)];
+      if (forgotten !== null)
+        reads.push(openCommitments(userId, forgotten), lastCallThreads(db, userId, forgotten));
+      else log.warn({ userId }, 'Forgotten topics unreadable: importing reminders only');
+      const settled = await Promise.allSettled(reads);
+      return settled.flatMap((r) => {
+        if (r.status === 'fulfilled') return r.value;
+        log.warn({ error: String(r.reason), userId }, 'A follow-up source could not be read');
+        return [];
+      });
+    },
+  };
+}

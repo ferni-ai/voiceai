@@ -28,10 +28,10 @@
 import { getLogger } from '../../../utils/safe-logger.js';
 import { runBackground } from '../../../utils/background-task.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
-import * as fs from 'fs';
-import * as path from 'path';
+import { loadLocalContacts, saveLocalContacts } from './contacts-local-file.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { onContactChange } from '../../data-layer/hooks/contacts-hooks.js';
+import { createExpiringMarks } from '../../../utils/expiring-marks.js';
 
 // ============================================================================
 // TYPES
@@ -103,65 +103,6 @@ export interface ContactSearchResult {
 let db: FirestoreType | null = null;
 const CONTACTS_COLLECTION = 'user_contacts';
 
-// Local file fallback for development
-const LOCAL_CONTACTS_DIR = '.ferni';
-const LOCAL_CONTACTS_FILE = 'contacts.json';
-
-/**
- * Get the path to local contacts file
- */
-function getLocalContactsPath(): string {
-  return path.join(process.cwd(), LOCAL_CONTACTS_DIR, LOCAL_CONTACTS_FILE);
-}
-
-/**
- * Ensure local contacts directory exists
- */
-function ensureLocalDir(): void {
-  const dir = path.join(process.cwd(), LOCAL_CONTACTS_DIR);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
-
-/**
- * Load contacts from local JSON file (development fallback)
- */
-function loadLocalContacts(): Map<string, Contact> {
-  const filePath = getLocalContactsPath();
-  if (!fs.existsSync(filePath)) {
-    return new Map();
-  }
-  try {
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    const contacts = new Map<string, Contact>();
-    for (const [id, contact] of Object.entries(data)) {
-      contacts.set(id, contact as Contact);
-    }
-    return contacts;
-  } catch (err) {
-    getLogger().warn({ err }, 'Failed to load local contacts file');
-    return new Map();
-  }
-}
-
-/**
- * Save contacts to local JSON file (development fallback)
- */
-function saveLocalContacts(contacts: Map<string, Contact>): void {
-  try {
-    ensureLocalDir();
-    const data: Record<string, Contact> = {};
-    for (const [id, contact] of contacts) {
-      data[id] = contact;
-    }
-    fs.writeFileSync(getLocalContactsPath(), JSON.stringify(data, null, 2));
-    getLogger().debug({ count: contacts.size }, '💾 Contacts saved to local file');
-  } catch (err) {
-    getLogger().warn({ err }, 'Failed to save local contacts file');
-  }
-}
-
 let useLocalFallback = false;
 // FIX: Promise-based singleton to prevent race condition
 let dbInitPromise: Promise<FirestoreType | null> | null = null;
@@ -196,11 +137,12 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 }
 
 // ============================================================================
-// IN-MEMORY CACHE (with Firestore or local file sync)
+// IN-MEMORY CACHE (with Firestore or local file sync), read again once the read expires
 // ============================================================================
 
 const contactsStore = new Map<string, Contact>();
-const loadedUsers = new Set<string>(); // Track which users have been loaded from persistence
+const loadedUsers = createExpiringMarks(); // expires, so another process's writes show up here
+const loadFailures = new Map<string, string>(); // why a user's last Firestore read failed
 let localContactsLoaded = false;
 
 /**
@@ -231,11 +173,12 @@ async function ensureContactsLoaded(userId: string): Promise<void> {
         } as Contact;
         contactsStore.set(doc.id, contact);
       }
-
-      loadedUsers.add(userId);
+      loadFailures.delete(userId);
       getLogger().debug({ userId, count: snapshot.size }, 'Loaded contacts from Firestore');
     } catch (err) {
-      getLogger().warn({ err, userId }, 'Failed to load contacts from Firestore');
+      getLogger().error({ err, userId }, 'Failed to load contacts from Firestore');
+      loadFailures.set(userId, String(err));
+      return; // not marked loaded: the next read tries again
     }
   } else if (!localContactsLoaded) {
     // Load from local file fallback (development)
@@ -510,6 +453,18 @@ export async function getUserContacts(userId: string): Promise<Contact[]> {
   return Array.from(contactsStore.values())
     .filter((c) => c.userId === userId)
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
+
+/**
+ * This user's contacts, or why they couldn't be read: for the panel and the export, which
+ * must never show a failed read as "no contacts". getUserContacts degrades to [] instead.
+ */
+export async function loadUserContacts(
+  userId: string
+): Promise<{ ok: true; contacts: Contact[] } | { ok: false; error: string }> {
+  const contacts = await getUserContacts(userId);
+  const error = loadFailures.get(userId);
+  return error ? { ok: false, error } : { ok: true, contacts };
 }
 
 /**
@@ -1080,7 +1035,7 @@ function parseCSVLine(line: string): string[] {
 /**
  * Normalize phone number to consistent format
  */
-function normalizePhone(phone: string): string {
+export function normalizePhone(phone: string): string {
   // Remove all non-digits except +
   let normalized = phone.replace(/[^\d+]/g, '');
 

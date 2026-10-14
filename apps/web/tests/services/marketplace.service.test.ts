@@ -51,7 +51,7 @@ const mockRegistryResponse = {
   agents: [
     {
       id: 'joel-dickson',
-      name: 'Joel Dickson',
+      name: 'Nate Holloway',
       version: '1.0.0',
       description: 'A financial advisor specializing in retirement planning.',
       short_description: 'Retirement planning expert.',
@@ -97,8 +97,8 @@ const mockManifest = {
   version: '1.0.0',
   identity: {
     id: 'joel-dickson',
-    name: 'Joel Dickson',
-    display_name: 'Joel Dickson',
+    name: 'Nate Holloway',
+    display_name: 'Nate Holloway',
     description: 'A financial advisor',
   },
   personality: {
@@ -109,7 +109,7 @@ const mockManifest = {
     traits: ['knowledgeable', 'patient'],
   },
   marketplace: {
-    display_name: 'Joel Dickson',
+    display_name: 'Nate Holloway',
     short_description: 'Retirement expert',
     category: 'finance',
     tags: ['retirement'],
@@ -125,7 +125,7 @@ const mockManifest = {
   },
   team: {
     handoff_phrases: {
-      receive: ['Joel here. Let me help with that.'],
+      receive: ['Nate here. Let me help with that.'],
     },
   },
 };
@@ -204,7 +204,7 @@ describe('MarketplaceService', () => {
       const registry = await fetchRegistry(true);
       const agent = registry.agents[0];
 
-      expect(agent.display_name).toBe('Joel Dickson');
+      expect(agent.display_name).toBe('Nate Holloway');
       expect(agent.short_description).toBeDefined();
       expect(agent.colors.primary).toBe('#2E7D32');
       expect(agent.colors.gradient).toBeDefined();
@@ -266,9 +266,9 @@ describe('MarketplaceService', () => {
       await installAgent('joel-dickson');
 
       const available = await getAvailableAgents();
-      const hasJoel = available.some((a) => a.id === 'joel-dickson');
+      const hasNate = available.some((a) => a.id === 'joel-dickson');
 
-      expect(hasJoel).toBe(false);
+      expect(hasNate).toBe(false);
     });
   });
 
@@ -280,7 +280,7 @@ describe('MarketplaceService', () => {
     });
 
     it('should filter by name', async () => {
-      const results = await searchAgents('joel');
+      const results = await searchAgents('nate');
 
       expect(results.some((a) => a.id === 'joel-dickson')).toBe(true);
     });
@@ -298,7 +298,7 @@ describe('MarketplaceService', () => {
     });
 
     it('should be case insensitive', async () => {
-      const results = await searchAgents('JOEL');
+      const results = await searchAgents('NATE');
 
       expect(results.some((a) => a.id === 'joel-dickson')).toBe(true);
     });
@@ -448,11 +448,11 @@ describe('MarketplaceService', () => {
       const config = marketplaceAgentToPersonaConfig(agent, mockManifest);
 
       expect(config.id).toBe('joel-dickson');
-      expect(config.name).toBe('Joel Dickson');
-      expect(config.initials).toBe('JO');
+      expect(config.name).toBe('Nate Holloway');
+      expect(config.initials).toBe('NA');
       expect(config.role).toBe('standalone');
       expect(config.colors.primary).toBeDefined();
-      expect(config.entrancePhrase).toBe('Joel here. Let me help with that.');
+      expect(config.entrancePhrase).toBe('Nate here. Let me help with that.');
     });
 
     it('should handle null manifest', async () => {
@@ -462,7 +462,7 @@ describe('MarketplaceService', () => {
       const config = marketplaceAgentToPersonaConfig(agent, null);
 
       expect(config.id).toBe('joel-dickson');
-      expect(config.entrancePhrase).toContain('Joel Dickson');
+      expect(config.entrancePhrase).toContain('Nate Holloway');
     });
 
     it('should use agent colors from manifest', async () => {

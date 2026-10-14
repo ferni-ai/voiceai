@@ -59,6 +59,7 @@ import type {
   PromptModuleConfig,
 } from './types.js';
 import { getContextualTemperature, TEMPERATURE_DEFAULTS } from './types.js';
+import { useVertexAI } from '../../config/vertex-flag.js';
 
 const log = createLogger({ module: 'GeminiLiveProvider' });
 
@@ -326,12 +327,6 @@ export class GeminiLiveProvider implements ModelProvider {
       log.debug({ temperature }, '🌡️ Lowered temperature (tool call expected)');
     }
 
-    // Check if Vertex AI should be used for Live API
-    // Try BOTH env vars - GEMINI_LIVE_USE_VERTEX_AI for explicit control, or fall back to general vars
-    const useVertexAI =
-      process.env.GEMINI_LIVE_USE_VERTEX_AI === 'true' ||
-      process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true' ||
-      process.env.USE_VERTEX_AI === 'true';
     const gcpProject = process.env.GOOGLE_CLOUD_PROJECT;
     const gcpLocation = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
@@ -351,15 +346,13 @@ export class GeminiLiveProvider implements ModelProvider {
     };
 
     // Configure Vertex AI if enabled (higher quotas)
-    if (useVertexAI && gcpProject) {
+    if (useVertexAI() && gcpProject) {
       modelOptions.vertexai = true;
       modelOptions.project = gcpProject;
       modelOptions.location = gcpLocation;
       log.info({ project: gcpProject, location: gcpLocation }, '🔷 Gemini Live using Vertex AI');
     } else {
-      log.info(
-        '🔶 Gemini Live using Gemini API (set GOOGLE_GENAI_USE_VERTEXAI=true for Vertex AI)'
-      );
+      log.info('🔶 Gemini Live using Gemini API (USE_VERTEX_AI=false or no GOOGLE_CLOUD_PROJECT)');
     }
 
     // Pass tools for native function calling

@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { handOffToFaceEngine } from './face/face-engine.js';
 import {
   EXPRESSIONS,
   MICRO_EXPRESSIONS,
@@ -142,10 +143,8 @@ export function setExpression(
   expression: ExpressionId,
   options: ExpressionOptions = {}
 ): void {
-  // Auto-initialize if needed
-  if (!isInitialized) {
-    initLuxoExpressions();
-  }
+  if (handOffToFaceEngine(expression, 'agent', options.hold ?? 0)) return;
+  if (!isInitialized) initLuxoExpressions();
 
   if (!avatarElement && !avatarContainer) {
     log.warn('Avatar not found, cannot set expression');
