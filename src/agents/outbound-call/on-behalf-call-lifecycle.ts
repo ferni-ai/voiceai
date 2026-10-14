@@ -49,29 +49,16 @@ export interface CallLifecyclePorts {
 
 export const toOnBehalfCallRequest = onBehalfRequestFromDispatch;
 
-/** Phrases from voicemail greetings. */
+/**
+ * Phrases only a recorded greeting says. "Not available right now" and "can't
+ * come to the phone" are left out on purpose: a person can say them too, often
+ * just before "don't call me again", and voicemail is the outcome that gets a retry.
+ */
 const VOICEMAIL_CUES =
-  /\b(leave (me )?a message|after the (tone|beep)|voice ?mail|mailbox|record your message|can't come to the phone|not available right now)\b/i;
+  /\b(leave (me |us )?a message|after the (tone|beep)|voice ?mail|mailbox|record your message)\b/i;
 /** The person asked not to be called again: never retried, and the number is put on the do-not-call list. */
 const OPT_OUT_CUES =
   /\b((don'?t|do not|never) (ever )?call (me|us|here|this number)( again)?|(don'?t|do not|never) (ever )?call (again|back|anymore)|(stop|quit) calling|do not call|lose (this|my) number|(remove|take) (me|us|this number) off)\b/i;
-/** Greeting phrases that mention calls or carry a "not" without refusing anything. */
-const GREETING_PHRASES =
-  /\b(leave (me )?a message|after the (tone|beep)|voice ?mail|mailbox|record your message|can't come to the phone|not available right now|(not able|unable) to (take|answer) (your|the|this) call|(i'll|i will|we'll|we will) (call|get back to) you( back)?|return your call)\b/gi;
-const CALL_WORDS = /\b(call|calls|calling|called|ring|number|list)\b/i;
-const NEGATION = /\b(no|not|never|stop|quit|off|lose|more|anymore)\b|n't\b/i;
-
-/**
- * Fail closed for the retry: once the greeting phrases are taken out, any reply
- * that still puts a call word next to a negation might be a refusal the cue
- * lists don't know ("I don't want any more calls"), so the call is not retried.
- */
-export function mightBeRefusal(heard: string[]): boolean {
-  return heard
-    .map((h) => h.replace(/[\u2018\u2019\u02bc`\u2032]/g, "'").replace(GREETING_PHRASES, ' '))
-    .some((h) => CALL_WORDS.test(h) && NEGATION.test(h));
-}
-
 /** The person said no: never retried. */
 const DECLINE_CUES = /\b(not interested|wrong number|no thank(s| you)|leave me alone)\b/i;
 /** A real conversation has at least two replies from the person and lasts a little while. */
@@ -342,11 +329,13 @@ export async function completeOnBehalfCall(
         log.error({ error: String(error), callId: call.callId }, 'Could not record call opt-out')
       );
     }
-    // Only a call nobody answered, or that reached voicemail, is retried, and never
-    // one where the person said no, whatever else the transcript looked like.
-    const refused = heardAs === 'opted_out' || heardAs === 'declined' || mightBeRefusal(heard);
-    const missed = outcome.status === 'no_answer' || outcome.status === 'voicemail';
-    if (followthrough && missed && !refused && scheduleRetry) {
+    // Only a call nobody answered, or that reached voicemail, is retried.
+    // A voicemail is retried only when the words heard read as a recorded greeting
+    // (or nothing was transcribed); anything a person might have said fails closed.
+    const machine = heardAs === 'voicemail' || heard.length === 0;
+    const missed =
+      outcome.status === 'no_answer' || (outcome.status === 'voicemail' && machine);
+    if (followthrough && missed && scheduleRetry) {
       const retryAt = await scheduleRetry(call);
       if (retryAt) {
         // Keep whatever the report said about the call; the retry replaces only the offer.

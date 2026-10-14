@@ -23,7 +23,7 @@ vi.mock('../../../services/outreach/delivery/push-notifications.js', () => ({
   sendPushNotification: vi.fn(),
 }));
 
-const { beginOnBehalfCall, classifyAnsweredCall, completeOnBehalfCall, mightBeRefusal } =
+const { beginOnBehalfCall, classifyAnsweredCall, completeOnBehalfCall } =
   await import('../on-behalf-call-lifecycle.js');
 import type { CallLifecyclePorts } from '../on-behalf-call-lifecycle.js';
 import type { CallTranscriptTurn } from '../../../services/outreach/call-transcript-intelligence.js';
@@ -234,7 +234,15 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     "I'm not available right now. Take my number off your list",
     'I\u2019m not available right now. I don\u2019t want any more calls',
     "I'm not available right now. Stop it, no more calls",
-  ])('never retries a refusal the cue lists miss: %s', async (words) => {
+    "I'm not available right now. Don't contact me again",
+    "I'm not available right now. Don't phone me again",
+    "I'm not available right now. Do not reach out again",
+    "I'm not available right now. Stop bothering me",
+    "I'm not available right now. Please remove me",
+    "I'm not available right now. Leave us alone",
+    "I'm not available right now. Unsubscribe me",
+    "I'm not available right now. Go away",
+  ])('never retries a person who may have refused: %s', async (words) => {
     process.env.CALL_FOLLOWTHROUGH = 'on';
     const p = ports(said(words), new Date());
     await completeOnBehalfCall('s13', makeCall(), 8, true, p);
@@ -243,11 +251,14 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
   });
 
   it.each([
-    "You've reached Mom, leave a message after the beep",
+    "Hi, this is Doug. I can't take your call right now. Leave a message.",
+    'The person you are calling is not available. Please record your message.',
     "I'm not available right now, leave a message and I'll call you back",
-    "Sorry, I'm not able to take your call, please leave a message",
-  ])('a plain greeting is not a refusal: %s', (greeting) => {
-    expect(mightBeRefusal([greeting])).toBe(false);
+  ])('retries a recorded greeting: %s', async (greeting) => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    const p = ports(said(greeting), new Date());
+    await completeOnBehalfCall('s14', makeCall(), 30, true, p);
+    expect(p.scheduleRetry).toHaveBeenCalledTimes(1);
   });
 
   it('still reports, and never retries, when the opt-out cannot be recorded', async () => {
