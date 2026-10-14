@@ -250,7 +250,7 @@ const STYLES = `
     border: none;
     border-radius: var(--radius-md);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-text-on-accent);
     font-size: 0.85rem;
     cursor: pointer;
     display: flex;
@@ -291,7 +291,7 @@ const STYLES = `
   .legacy-share-btn--primary {
     background: var(--color-accent);
     border: none;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .legacy-share-btn--primary:hover {
