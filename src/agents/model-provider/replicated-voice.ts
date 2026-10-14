@@ -18,7 +18,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { CARTESIA_MODEL, getVoiceIdForPersona } from '../../config/voice-ids.js';
+import {
+  CARTESIA_API_VERSION,
+  CARTESIA_MODEL,
+  getVoiceIdForPersona,
+} from '../../config/voice-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ReplicatedVoice' });
@@ -215,7 +219,7 @@ async function liveHandshake(opts: AllowlistOptions): Promise<HandshakeResult> {
 async function renderWithCartesia(voiceId: string, apiKey: string): Promise<Buffer> {
   const res = await fetch('https://api.cartesia.ai/tts/bytes', {
     method: 'POST',
-    headers: { 'X-API-Key': apiKey, 'Cartesia-Version': '2025-04-16', 'Content-Type': 'application/json' },
+    headers: { 'X-API-Key': apiKey, 'Cartesia-Version': CARTESIA_API_VERSION, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model_id: CARTESIA_MODEL,
       transcript: SAMPLE_TRANSCRIPT,

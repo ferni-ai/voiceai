@@ -114,8 +114,6 @@ async function main(): Promise<void> {
     getMigrationHealth,
   } = await import('../src/memory/entity-store/migration.js');
 
-  const { ConflictStrategy } = await import('../src/memory/entity-store/migration.js');
-
   // ========== STATUS ==========
   if (values.status) {
     console.log('\n📊 Migration Status\n');

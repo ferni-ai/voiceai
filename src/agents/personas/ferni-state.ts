@@ -249,6 +249,8 @@ interface UserDataView {
   personaId?: string;
   voiceEmotion?: { arousal?: number; confidence?: number };
   services?: { sessionId?: string; sessionStartTime?: number };
+  /** Eval calls only: his clock from the job metadata (eval-local-time.ts). */
+  evalLocalTime?: { hour: number; minute: number };
 }
 
 function callerTurns(chatCtx: llm.ChatContext): string[] {
@@ -390,7 +392,7 @@ function stateNote(
 ): string {
   const { said, mood } = turn;
   const sessionId = userData.services?.sessionId;
-  const clock = localClock(now);
+  const clock = userData.evalLocalTime ?? localClock(now);
   const minutes =
     (now.getTime() - (userData.services?.sessionStartTime ?? call.firstSeen)) / 60_000;
   const state = stateFor({
