@@ -128,7 +128,8 @@ describe('topicOnlyQuery leaks found in review', () => {
 
   it.each([
     ['write jake.ford(at)gmail(dot)com about it', [], 'write about it'],
-    ['my boss kowalczyk micromanages', [], 'my boss micromanages'],
+    // After a relation, every unknown word goes (it could be a name), not just one.
+    ['my boss kowalczyk micromanages', [], 'my boss'],
     ['notes for kowal\u200bczyk on sleep', ['Kowalczyk'], 'notes for on sleep'],
     ['nunez cooking class', ['Núñez'], 'cooking class'],
   ])('%s → %s', (topic, ids, expected) => {
@@ -148,12 +149,38 @@ describe('topicOnlyQuery leaks found in review', () => {
     ['my son jake failing math', 'my son failing math'],
     ['dr. smith knee surgery', 'knee surgery'],
     ['for dad bob retirement', 'for dad retirement'],
-    ['my boss kowalczyk micromanages', 'my boss micromanages'],
     ['seth(at)ferni.ai budgeting', 'budgeting'],
   ])('%s → %s, twice', (topic, expected) => {
     const once = topicOnlyQuery(topic, ['Seth']);
     expect(once).toBe(expected);
     expect(topicOnlyQuery(once ?? '', ['Seth'])).toBe(once);
+  });
+
+  // Uncommon names after a relation or title are unknown to the parser, like many
+  // topic words: they go, and only topic words (TOPIC_WORDS or known non-names) stay.
+  it.each([
+    ['my son zephyr has adhd', 'zephyr', 'my son has adhd'],
+    ['my daughter priya anxiety', 'priya', 'my daughter anxiety'],
+    ['my wife aaliyah postpartum depression', 'aaliyah', 'my wife postpartum depression'],
+    ['my sister xiomara dyslexia', 'xiomara', 'my sister dyslexia'],
+    ['dr. okonkwo knee surgery', 'okonkwo', 'knee surgery'],
+    ['my friend siobhan grief', 'siobhan', 'my friend grief'],
+    ['my husband tomasz burnout', 'tomasz', 'my husband burnout'],
+    ['my mom nguyen alzheimers', 'nguyen', 'my mom alzheimers'],
+    ['my grandpa okafor parkinsons', 'okafor', 'my grandpa parkinsons'],
+    ['mrs. adeyemi math tutoring', 'adeyemi', 'math tutoring'],
+    ['my coworker zephyr okonkwo insomnia', 'okonkwo', 'my coworker insomnia'],
+    ['my partner priya struggling with sleep', 'priya', 'my partner struggling with sleep'],
+  ])('%s: never sends %s', (topic, name, expected) => {
+    const once = topicOnlyQuery(topic, []);
+    expect(once ?? '').not.toContain(name);
+    expect(once).toBe(expected);
+    expect(topicOnlyQuery(once ?? '', [])).toBe(once);
+  });
+
+  it('keeps ordinary words after a relation: "my mom and dad divorce", "my son is failing math"', () => {
+    expect(topicOnlyQuery('my mom and dad divorce', [])).toBe('my mom and dad divorce');
+    expect(topicOnlyQuery('my son is failing math', [])).toBe('my son is failing math');
   });
 
   it('is idempotent: scrubbing its own output changes nothing', () => {

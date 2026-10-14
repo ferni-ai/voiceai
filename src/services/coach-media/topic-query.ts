@@ -3,13 +3,14 @@
  * Best effort, on one normalized string (NFKC, no zero-width characters, no
  * accents): every name the session knows; emails (also "(at)" spellings),
  * links, @handles, bare domains, dates (numeric and month-name), street
- * addresses, any word with 3+ digits and longer digit runs; the word after
- * "named"/"called" (and that word); people, places and organizations an
- * English parser (compromise, already a dependency) finds even in lowercase,
- * a "person" only if the word is a name on its own (so "cancer" stays); every
+ * addresses, any word with 3+ digits and longer digit runs; "named"/"called"
+ * and the word after; after a relation or title ("my son", "dr."), the words
+ * that follow unless they are topic words; people, places and organizations an
+ * English parser (compromise, already a dependency) finds even in lowercase, a
+ * "person" only if the word is a name on its own (so "cancer" stays); every
  * other capitalized word not on a short list of languages and things people
- * learn; then quotes, lowercase, a 12-word cap, and known names once more.
- * The tool description also asks for a generic topic.
+ * learn; then quotes, lowercase, a 12-word cap, and known names once more. The
+ * tool description also asks for a generic topic.
  *
  * @module services/coach-media/topic-query
  */
@@ -46,6 +47,59 @@ const QUOTED = /"[^"]*"|“[^”]*”|‘[^’]*’/g;
 // "a friend named mike", "a dog called biscuit": the word after is a name; both go,
 // so a second pass finds nothing to take.
 const NAMED = /\b(?:named|called)\s+[\p{L}'-]+/giu;
+// After a relation or title the next words may be a name in any case ("my son
+// zephyr", "dr. okonkwo"). They go unless each is a topic word: on TOPIC_WORDS,
+// or a word compromise knows that isn't a name on its own ("failing", "has").
+// compromise tags an unknown name and an unknown word alike, so an unknown word
+// goes too: a dropped rare word is cheap, a leaked name is not. The whole run
+// goes, so a second pass finds nothing new.
+const RELATIONS = new Set(
+  (
+    'son daughter wife husband mom mum dad mother father brother sister friend boss coworker ' +
+    'co-worker partner girlfriend boyfriend fiance fiancee aunt uncle grandma grandpa grandmother ' +
+    'grandfather cousin niece nephew neighbor neighbour roommate kid child stepson stepdaughter ' +
+    'mr mrs ms dr prof'
+  ).split(' ')
+);
+const TOPIC_WORDS = new Set(
+  (
+    'cancer alzheimers dementia parkinsons depression anxiety adhd autism diabetes arthritis ' +
+    'asthma copd insomnia migraine migraines chemo chemotherapy surgery therapy rehab recovery ' +
+    'knee knees hip hips back neck shoulder ankle wrist spine injury pain stroke heart dialysis ' +
+    'pregnancy postpartum menopause addiction alcoholism sobriety ptsd ocd bipolar anorexia ' +
+    'bulimia dyslexia grief loss divorce burnout stress loneliness caregiving hospice retirement ' +
+    'debt budgeting math reading homework piano guitar spanish french coding school college ' +
+    'exams diet weight fitness nutrition sleep'
+  ).split(' ')
+);
+const LEXICON = (nlp.model() as { one: { lexicon: Record<string, unknown> } }).one.lexicon;
+
+const keptAfterRelation = (word: string): boolean =>
+  !/\p{L}/u.test(word) ||
+  TOPIC_WORDS.has(word) ||
+  (Object.prototype.hasOwnProperty.call(LEXICON, word) && !nlp(word).has('#Person'));
+
+/** `text` without the words after a relation or title that may be a name. */
+function dropNamesAfterRelations(text: string): string {
+  let dropping = false;
+  return text
+    .split(/\s+/)
+    .filter((token) => {
+      const word = token
+        .toLowerCase()
+        .replace(/['’]s$/, '')
+        .replace(/[^\p{L}'-]/gu, '');
+      if (RELATIONS.has(word)) {
+        dropping = true;
+        return true;
+      }
+      if (dropping && !keptAfterRelation(word)) return false;
+      dropping = false;
+      return true;
+    })
+    .join(' ');
+}
+
 // Capitalized words are dropped unless they are one of these.
 const KEPT_PROPER = new Set(
   (
@@ -145,7 +199,7 @@ export function topicOnlyQuery(
     .replace(DATE, ' ')
     .replace(DIGITS, ' ')
     .replace(NAMED, ' ');
-  let query = stripEntities(patterns)
+  let query = stripEntities(dropNamesAfterRelations(patterns))
     .replace(CAPITALIZED, (w: string) =>
       KEPT_PROPER.has(w.replace(/['’]s$/, '').toLowerCase()) ? w : ' '
     )
