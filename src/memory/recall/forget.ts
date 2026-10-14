@@ -34,6 +34,8 @@ const FACT_COLLECTIONS = ['dynamic_facts', 'extracted_facts'] as const;
 /** A topic matching more than this share of the caller's facts (and more than a few) is too broad. */
 const MAX_SHARE = 0.3;
 const MAX_UNASKED = 5;
+/** Earlier-forgotten facts sent through again per request; the rest go on the next forget. */
+export const MAX_RECLEANED = 100;
 
 export type ForgetResult =
   | { kind: 'forgotten'; marked: number }
@@ -94,9 +96,11 @@ export async function forgetTopic(
   }
   // Facts about the topic forgotten one by one earlier go through again, so
   // any index copy they still have is removed (markForgotten keeps their date).
-  const earlier = facts.filter(
-    (f) => typeof f.data.forgottenAt === 'string' && isForgotten(factText(f.data), [tokens])
-  );
+  const earlier = facts
+    .filter(
+      (f) => typeof f.data.forgottenAt === 'string' && isForgotten(factText(f.data), [tokens])
+    )
+    .slice(0, MAX_RECLEANED);
   await store.addTopic(userId, tokens, topic.trim());
   noteForgotten(userId, tokens);
   bumpForgetGeneration(userId);
@@ -187,10 +191,11 @@ export function parseTopics(raw: unknown): string[] | null {
  */
 export async function removeIndexCopies(userId: string, factIds: string[]): Promise<void> {
   if (factIds.length === 0) return;
-  const { removeConversationDocument } = await import('../retrieval/conversation-index.js');
+  const { removeOwnedConversationDocument } = await import('../retrieval/conversation-index.js');
   const { removeIndexedMemory } = await import('../retrieval/semantic-memory-search.js');
   for (const id of factIds) {
-    await removeConversationDocument(`fact_${id}`).catch((error: unknown) =>
+    // Only this caller's copy: fact ids are shared by callers with the same fact.
+    await removeOwnedConversationDocument(`fact_${id}`, userId).catch((error: unknown) =>
       log.warn({ error: String(error) }, 'Forgotten fact not removed from the index')
     );
     await removeIndexedMemory('fact', `fact_${userId}_${id}`);

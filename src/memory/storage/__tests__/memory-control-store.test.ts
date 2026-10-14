@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const removed: string[] = [];
 vi.mock('../../retrieval/conversation-index.js', () => ({
-  removeConversationDocument: async (id: string) => {
+  removeOwnedConversationDocument: async (id: string, _userId: string) => {
     removed.push(`conversation:${id}`);
   },
 }));
@@ -23,6 +23,7 @@ type Data = Record<string, unknown>;
 const db = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
   failCommit: false,
+  queries: [] as Array<{ path: string; field: string; dir: string; limit: number }>,
 }));
 
 function docRef(path: string) {
@@ -48,10 +49,18 @@ function collection(path: string) {
       ...docRef(`${path}/${id}`),
       collection: (c: string) => collection(`${path}/${id}/${c}`),
     }),
-    get: async () => ({
-      docs: [...db.docs.entries()]
-        .filter(([p]) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
-        .map(([p, data]) => ({ id: p.split('/').pop()!, data: () => data })),
+    orderBy: (field: string, dir: string) => ({
+      limit: (n: number) => {
+        db.queries.push({ path, field, dir, limit: n });
+        return {
+          get: async () => ({
+            docs: [...db.docs.entries()]
+              .filter(([p]) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
+              .slice(0, n)
+              .map(([p, data]) => ({ id: p.split('/').pop()!, data: () => data })),
+          }),
+        };
+      },
     }),
   };
 }
@@ -77,7 +86,7 @@ vi.mock('../../../utils/firestore-utils.js', () => ({
   }),
 }));
 
-const { correctRemembered, forgetRemembered, listRemembered } =
+const { MAX_LISTED, correctRemembered, forgetRemembered, listRemembered } =
   await import('../../recall/memory-control.js');
 const { firestoreMemoryControlStore: store } = await import('../memory-control-store.js');
 
@@ -95,6 +104,7 @@ beforeEach(() => {
   removed.length = 0;
   db.docs.clear();
   db.failCommit = false;
+  db.queries.length = 0;
   db.docs.set(`${FACTS}/dog`, { ...dog });
 });
 
@@ -138,14 +148,25 @@ describe('correcting a fact in the app', () => {
   });
 });
 
-describe('listing facts', () => {
-  it('includes a fact recall uses that has no extractedAt, after the dated ones', async () => {
-    db.docs.set(`${FACTS}/old`, {
-      entityName: 'User',
-      key: 'home',
-      value: 'Leeds',
-      confidence: 0.9,
+describe("another caller's fact", () => {
+  it('is not found by id: no write, no index removal, their fact untouched', async () => {
+    const theirs = `bogle_users/u2/dynamic_facts/dog2`;
+    db.docs.set(theirs, { ...dog });
+    expect(await forgetRemembered('u1', 'dog2', store)).toBe(false);
+    expect(await correctRemembered('u1', 'dog2', 'labradoodle', store)).toEqual({
+      kind: 'not-found',
     });
-    expect((await listRemembered('u1', store)).map((f) => f.id)).toEqual(['dog', 'old']);
+    expect(db.docs.get(theirs)).toEqual(dog);
+    expect([...db.docs.keys()].sort()).toEqual([`${FACTS}/dog`, theirs].sort());
+    expect(removed).toEqual([]);
+  });
+});
+
+describe('listing facts', () => {
+  it('reads a bounded page under the caller, newest first', async () => {
+    await listRemembered('u1', store);
+    expect(db.queries).toEqual([
+      { path: FACTS, field: 'extractedAt', dir: 'desc', limit: MAX_LISTED * 2 },
+    ]);
   });
 });

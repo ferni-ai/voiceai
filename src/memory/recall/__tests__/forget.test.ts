@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MAX_RECLEANED,
   forgetForCaller,
   forgetProblem,
   forgetTopic,
@@ -117,6 +118,24 @@ describe('forgetTopic', () => {
     };
     expect(await forgetTopic('u', 'my divorce', store)).toEqual({ kind: 'forgotten', marked: 0 });
     expect(marked).toEqual(['d9']);
+  });
+
+  it('sends at most MAX_RECLEANED earlier-forgotten facts through per request', async () => {
+    const old = Array.from({ length: MAX_RECLEANED + 20 }, (_, i) =>
+      fact('dynamic_facts', `o${i}`, {
+        entityName: 'User',
+        key: 'divorce',
+        value: `divorce note ${i}`,
+        forgottenAt: '2026-10-01T00:00:00Z',
+      })
+    );
+    const { store } = memoryStore([...old, dog]);
+    let marked = 0;
+    store.markForgotten = async (_u, refs) => {
+      marked += refs.length;
+    };
+    await forgetTopic('u', 'my divorce', store);
+    expect(marked).toBe(MAX_RECLEANED);
   });
 
   it('matches whole words only', () => {

@@ -14,7 +14,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { API_ERRORS } from '../error-messages.js';
-import { parseBody, requireUserId, sendError, sendJSON } from '../helpers.js';
+import { parseRawBody, requireUserId, sendError, sendJSON } from '../helpers.js';
 import {
   correctRemembered,
   forgetRemembered,
@@ -24,6 +24,19 @@ import { firestoreMemoryControlStore as store } from '../../memory/storage/memor
 
 const log = createLogger({ module: 'RememberedAPI' });
 const FACT_ID = /^[A-Za-z0-9_-]{1,200}$/;
+/** A correction is at most MAX_CORRECTION_CHARS; its body never needs more than this. */
+const MAX_BODY_BYTES = 4096;
+
+/** The PATCH body, or null when it is too large or not JSON. */
+async function correctionBody(req: IncomingMessage): Promise<{ value?: unknown } | null> {
+  try {
+    const raw = await parseRawBody(req, { maxBytes: MAX_BODY_BYTES });
+    const body: unknown = JSON.parse(raw || '{}');
+    return typeof body === 'object' && body !== null ? (body as { value?: unknown }) : {};
+  } catch {
+    return null;
+  }
+}
 
 export async function handleRememberedRoutes(
   req: IncomingMessage,
@@ -61,8 +74,12 @@ export async function handleRememberedRoutes(
       else sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
       return true;
     }
-    const body = await parseBody<{ value?: unknown }>(req);
-    const result = await correctRemembered(userId, id, body?.value, store);
+    const body = await correctionBody(req);
+    if (!body) {
+      sendError(res, API_ERRORS.INVALID_REQUEST, 400);
+      return true;
+    }
+    const result = await correctRemembered(userId, id, body.value, store);
     if (result.kind === 'corrected') sendJSON(res, { success: true, fact: result.fact });
     else if (result.kind === 'not-found') sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
     else sendError(res, result.reason, 400);

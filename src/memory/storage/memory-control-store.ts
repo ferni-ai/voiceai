@@ -7,26 +7,23 @@
  */
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { firestoreForgetStore, removeIndexCopies } from '../recall/forget.js';
-import type { MemoryControlStore } from '../recall/memory-control.js';
+import { MAX_LISTED, type MemoryControlStore } from '../recall/memory-control.js';
+
+const MAX_READ = MAX_LISTED * 2;
 
 const facts = (userId: string): FirebaseFirestore.CollectionReference | null => {
   const db = getFirestoreDb();
   return db ? db.collection('bogle_users').doc(userId).collection('dynamic_facts') : null;
 };
 
-const learned = (d: Record<string, unknown>): string =>
-  typeof d.extractedAt === 'string' ? d.extractedAt : '';
-
 export const firestoreMemoryControlStore: MemoryControlStore = {
   async facts(userId) {
     const col = facts(userId);
     if (!col) return [];
-    // All of them, sorted here: orderBy('extractedAt') would leave out any fact
-    // without that field, which recall still uses. Undated facts come last.
-    const snap = await col.get();
-    return snap.docs
-      .map((d) => ({ id: d.id, data: d.data() }))
-      .sort((a, b) => learned(b.data).localeCompare(learned(a.data)));
+    // Bounded: twice what is listed, newest first. (A fact without extractedAt
+    // is left out by orderBy; recall still uses it. Follow-up.)
+    const snap = await col.orderBy('extractedAt', 'desc').limit(MAX_READ).get();
+    return snap.docs.map((d) => ({ id: d.id, data: d.data() }));
   },
   async fact(userId, id) {
     const col = facts(userId);

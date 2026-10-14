@@ -56,7 +56,8 @@ export interface MemoryControlStore {
 
 /** The same bar recall uses: facts the extractor itself marked unsure are not recalled. */
 const MIN_CONFIDENCE = 0.4;
-const MAX_LISTED = 300;
+/** The most facts listed at once. */
+export const MAX_LISTED = 300;
 /** A correction is a short fact, not an essay. */
 export const MAX_CORRECTION_CHARS = 200;
 const SELF = /^(?:speaker|user|me)$/i;

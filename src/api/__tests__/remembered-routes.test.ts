@@ -125,6 +125,13 @@ describe('/api/memories/remembered', () => {
       body: JSON.stringify({ value: '' }),
     });
     expect(empty.status).toBe(400);
+    const huge = await fetch(`${base}/api/memories/remembered/f1`, {
+      method: 'PATCH',
+      headers: asUser,
+      body: JSON.stringify({ value: 'x'.repeat(10_000) }),
+    }).catch(() => null);
+    expect(huge === null || huge.status === 400).toBe(true); // refused before parsing, never stored
+    expect(control.correctRemembered).toHaveBeenCalledTimes(2);
   });
 
   it('leaves other paths and methods to other routes', async () => {

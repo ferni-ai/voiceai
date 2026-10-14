@@ -15,7 +15,7 @@ vi.mock('../../semantic-rag.js', () => ({
   },
 }));
 vi.mock('../../retrieval/conversation-index.js', () => ({
-  removeConversationDocument: async (id: string) => {
+  removeOwnedConversationDocument: async (id: string, _userId: string) => {
     removed.push(id);
   },
 }));

@@ -12,7 +12,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getFirestoreDb, toSafeDate } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { indexConversationSummary } from '../semantic-rag.js';
-import { removeConversationDocument } from '../retrieval/conversation-index.js';
+import { removeOwnedConversationDocument } from '../retrieval/conversation-index.js';
 import { isForgotten } from '../recall/session-recall.js';
 import { getFirestore } from '../firestore-factory.js';
 import { readCallSummaries } from '../storage/call-summaries.js';
@@ -118,10 +118,11 @@ async function readFactDocs(
 }
 
 /** Takes a forgotten item out of the index too: it may have been indexed before it was forgotten. */
-async function dropForgotten(id: string, result: IndexingResult): Promise<void> {
+async function dropForgotten(userId: string, id: string, result: IndexingResult): Promise<void> {
   result.skipped++;
   result.categories['forgotten'] = (result.categories['forgotten'] || 0) + 1;
-  await removeConversationDocument(id).catch((error: unknown) =>
+  // Only this caller's copy: ids such as a fact's are shared by callers with the same words.
+  await removeOwnedConversationDocument(id, userId).catch((error: unknown) =>
     log.warn({ error: String(error), id }, 'Forgotten memory not removed from the index')
   );
 }
@@ -179,7 +180,7 @@ export async function indexUserMemories(
         continue;
       }
       if (summary.forgottenAt != null || isForgotten(text, forgotten)) {
-        await dropForgotten(doc.id, result);
+        await dropForgotten(userId, doc.id, result);
         continue;
       }
 
@@ -224,7 +225,7 @@ export async function indexUserMemories(
       // Marked by forget.ts, or about a forgotten topic: never searchable again.
       const about = `${String(fact.entityName ?? '')} ${String(fact.key ?? '')} ${text}`;
       if (fact.forgottenAt != null || isForgotten(about, forgotten)) {
-        await dropForgotten(`fact_${doc.id}`, result);
+        await dropForgotten(userId, `fact_${doc.id}`, result);
         continue;
       }
 
@@ -259,7 +260,7 @@ export async function indexUserMemories(
 
         if (!text || typeof text !== 'string') continue;
         if (isForgotten(text, forgotten)) {
-          await dropForgotten(`insight_${doc.id}`, result);
+          await dropForgotten(userId, `insight_${doc.id}`, result);
           continue;
         }
 

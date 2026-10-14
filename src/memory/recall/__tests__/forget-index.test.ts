@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const removed: string[] = [];
 vi.mock('../../retrieval/conversation-index.js', () => ({
-  removeConversationDocument: async (id: string) => {
+  removeOwnedConversationDocument: async (id: string, _userId: string) => {
     removed.push(id);
   },
 }));
