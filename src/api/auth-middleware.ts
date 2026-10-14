@@ -38,6 +38,7 @@ import { getClientIp } from '../utils/ddos-protection.js';
 import { rateLimitUid } from './rate-limit-identity.js';
 import { API_ERRORS } from './error-messages.js';
 import { sendError } from './helpers.js';
+import { verifyTokenOnce } from './verify-token-once.js';
 
 const log = createLogger({ module: 'AuthMiddleware' });
 
@@ -196,13 +197,10 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
 }
 
 /**
- * Try to verify a pending Firebase token from the request.
+ * Verify the request's pending Firebase token (once per request: call via verifyTokenOnce).
  * Returns AuthContext if valid Firebase token, null otherwise.
  */
-async function tryFirebaseAuth(req: IncomingMessage): Promise<AuthContext | null> {
-  const token = (req as IncomingMessage & { _pendingFirebaseToken?: string })._pendingFirebaseToken;
-  if (!token) return null;
-
+async function tryFirebaseAuth(req: IncomingMessage, token: string): Promise<AuthContext | null> {
   const ip = getClientIP(req);
   const userAgent = getHeader(req, 'User-Agent');
 
@@ -210,9 +208,10 @@ async function tryFirebaseAuth(req: IncomingMessage): Promise<AuthContext | null
     const verified = await verifyFirebaseToken(token);
     if (!verified) {
       // A failed Firebase token counts toward lockout; a Google service token (Scheduler's OIDC) doesn't
-      if (claimsFirebaseIssuer(token)) void trackFailedAuth(`firebase:${ip}`, ip, 'firebase_token_invalid').catch((e) =>
-        log.error({ error: String(e) }, 'Failed to track auth failure')
-      );
+      if (claimsFirebaseIssuer(token))
+        void trackFailedAuth(`firebase:${ip}`, ip, 'firebase_token_invalid').catch((e) =>
+          log.error({ error: String(e) }, 'Failed to track auth failure')
+        );
       return null;
     }
 
@@ -286,7 +285,7 @@ export async function requireAuth(
 
   // If no sync auth and we have a pending Firebase token, try async Firebase auth
   if (!auth) {
-    auth = await tryFirebaseAuth(req);
+    auth = await verifyTokenOnce(req, tryFirebaseAuth);
   }
 
   // No auth found
@@ -438,7 +437,7 @@ export function optionalAuth(req: IncomingMessage): AuthContext | null {
 export async function optionalAuthAsync(req: IncomingMessage): Promise<AuthContext | null> {
   let auth = authenticate(req);
   if (!auth) {
-    auth = await tryFirebaseAuth(req);
+    auth = await verifyTokenOnce(req, tryFirebaseAuth);
   }
   return auth;
 }

@@ -17,7 +17,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { generateTwinResponse, hasTwinProfile } from '../services/custom-agent/twin-reply.js';
-import { transcribeAudioBuffer } from '../services/custom-agent/memory-capture-service.js';
+import { handleJournalTranscribe } from './journal-transcribe-route.js';
 import {
   generatePrompts,
   getBestPrompt,
@@ -135,42 +135,9 @@ export async function handleJournalRoutes(
       return true;
     }
 
-    // POST /api/journal/transcribe - Transcribe audio to text
+    // POST /api/journal/transcribe - Transcribe audio to text (signed in, rate limited, capped)
     if (method === 'POST' && pathname === '/api/journal/transcribe') {
-      const body = await parseBody<{
-        audioBase64: string;
-        mimeType?: string;
-      }>(req);
-
-      if (!body.audioBase64) {
-        sendJson(res, 400, { error: 'Missing audioBase64 data' });
-        return true;
-      }
-
-      try {
-        // Decode base64 to buffer
-        const nodeBuffer = Buffer.from(body.audioBase64, 'base64');
-        // Convert Node.js Buffer to ArrayBuffer
-        const audioBuffer = nodeBuffer.buffer.slice(
-          nodeBuffer.byteOffset,
-          nodeBuffer.byteOffset + nodeBuffer.byteLength
-        ) as ArrayBuffer;
-        const mimeType = body.mimeType || 'audio/webm';
-
-        log.debug({ bufferSize: audioBuffer.byteLength, mimeType }, 'Transcribing journal audio');
-
-        const transcript = await transcribeAudioBuffer(audioBuffer, mimeType);
-
-        sendJson(res, 200, {
-          transcript,
-          success: transcript !== '[Transcription unavailable]',
-        });
-        return true;
-      } catch (error) {
-        log.error({ error: String(error) }, 'Transcription failed');
-        sendJson(res, 500, { error: 'Transcription failed', transcript: '' });
-        return true;
-      }
+      return handleJournalTranscribe(req, res);
     }
 
     // POST /api/journal/capture - Save auto-captured moment
