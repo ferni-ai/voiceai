@@ -18,9 +18,10 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
+import { escapeHtml } from './engagement-components.js';
 import { apiGet, apiPost, getUserId } from '../utils/api.js';
 import { connectionService } from '../services/connection.service.js';
-import { formatDate, getLocale, t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 
 const log = createLogger('ChronicleUI');
 
@@ -71,7 +72,7 @@ interface ChronicleState {
 
 interface ChatMessage {
   id: string;
-  role: 'user' | 'past-self';
+  role: 'user' | 'past-self' | 'notice';
   content: string;
   timestamp: Date;
 }
@@ -747,7 +748,10 @@ const styles = `
     border-bottom-right-radius: var(--radius-sm, 4px);
   }
   
-  .chronicle-chat-message.thinking {
+  .chronicle-chat-message.notice { align-self: center; }
+
+  .chronicle-chat-message.thinking,
+  .chronicle-chat-message.notice {
     background: var(--color-background-subtle, rgba(0,0,0,0.04));
     color: var(--color-text-muted, #9a8c7f);
   }
@@ -811,7 +815,7 @@ const styles = `
     height: 48px;
     border: none;
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
     border-radius: var(--radius-full, 9999px);
     cursor: pointer;
     display: flex;
@@ -1367,8 +1371,8 @@ function renderInsightCard(insight: JournalInsight): string {
   return `
     <div class="chronicle-insight-card ${isFullWidth ? 'full-width' : ''}">
       <div class="chronicle-insight-icon">${insight.icon}</div>
-      <h4 class="chronicle-insight-title">${insight.title}</h4>
-      <p class="chronicle-insight-description">${insight.description}</p>
+      <h4 class="chronicle-insight-title">${escapeHtml(insight.title)}</h4>
+      <p class="chronicle-insight-description">${escapeHtml(insight.description)}</p>
     </div>
   `;
 }
@@ -1387,7 +1391,7 @@ function renderMemoryCard(entry: JournalEntry): string {
   return `
     <div class="chronicle-memory-card">
       <div class="chronicle-memory-quote">${ICONS.quote}</div>
-      <p class="chronicle-memory-content">${t('chronicle.quoted', { text: content })}</p>
+      <p class="chronicle-memory-content">${t('chronicle.quoted', { text: escapeHtml(content) })}</p>
       <p class="chronicle-memory-date">${dateStr}</p>
     </div>
   `;
@@ -1544,13 +1548,10 @@ function renderChatMessages(): void {
   const messagesContainer = container?.querySelector('#converse-messages');
   if (!messagesContainer) return;
 
+  // The user's words and the model's replies are text, never markup.
   messagesContainer.innerHTML = state.chatMessages
     .map(
-      (msg) => `
-      <div class="chronicle-chat-message ${msg.role}">
-        ${msg.content}
-      </div>
-    `
+      (msg) => `<div class="chronicle-chat-message ${msg.role}">${escapeHtml(msg.content)}</div>`
     )
     .join('');
 
@@ -1599,25 +1600,22 @@ async function sendConversation(): Promise<void> {
       agentId: state.agentId,
     });
 
-    const response =
-      result.ok && result.data?.response ? result.data.response : getFallbackResponse(userMessage);
-
-    state.chatMessages.push({
-      id: `msg-${Date.now() + 1}`,
-      role: 'past-self',
-      content: response,
-      timestamp: new Date(),
-    });
-
-    soundUI.play('click');
+    const response = result.ok ? result.data?.response : undefined;
+    if (response) {
+      state.chatMessages.push({
+        id: `msg-${Date.now() + 1}`,
+        role: 'past-self',
+        content: response,
+        timestamp: new Date(),
+      });
+      soundUI.play('click');
+    } else {
+      log.warn(`Twin response failed with status ${result.status}`);
+      pushReplyFailedNotice();
+    }
   } catch (error) {
     log.error('Conversation error:', error);
-    state.chatMessages.push({
-      id: `msg-${Date.now() + 1}`,
-      role: 'past-self',
-      content: getFallbackResponse(userMessage),
-      timestamp: new Date(),
-    });
+    pushReplyFailedNotice();
   }
 
   state.isThinking = false;
@@ -1627,19 +1625,14 @@ async function sendConversation(): Promise<void> {
   input?.focus();
 }
 
-function getFallbackResponse(userMessage: string): string {
-  const lower = userMessage.toLocaleLowerCase(getLocale());
-  // Each locale lists, comma-separated, the words that signal the intent.
-  const mentions = (intent: string): boolean =>
-    t(`chronicle.fallbackKeywords.${intent}`)
-      .split(',')
-      .some((word) => lower.includes(word.trim()));
-
-  if (mentions('advice')) return t('chronicle.fallback.advice');
-  if (mentions('feeling')) return t('chronicle.fallback.feeling');
-  if (mentions('remember')) return t('chronicle.fallback.remember');
-
-  return pickVariant('chronicle.fallback', 4);
+/** No reply came back: say so, never answer in the user's past voice. */
+function pushReplyFailedNotice(): void {
+  state.chatMessages.push({
+    id: `msg-${Date.now() + 1}`,
+    role: 'notice',
+    content: t('chronicle.replyFailed'),
+    timestamp: new Date(),
+  });
 }
 
 // ============================================================================

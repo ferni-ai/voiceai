@@ -11,7 +11,8 @@
  * - Color intensity pulses
  */
 
-import { DURATION } from '../config/animation-constants.js';
+import { prefersReducedMotion } from '../config/animation-constants.js';
+import { createFrameLoop, type FrameLoop } from '../utils/frame-loop.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('BreathSync');
@@ -82,7 +83,8 @@ class BreathSyncManager {
   private config: BreathConfig;
   private state: BreathState;
   private listeners: Set<BreathListener> = new Set();
-  private animationFrame: number | null = null;
+  /** Pushes the phase to subscribers; idle when nobody subscribes. */
+  private loop: FrameLoop | null = null;
   private startTime: number = 0;
 
   // For natural variation
@@ -104,19 +106,29 @@ class BreathSyncManager {
   // Lifecycle
   // ─────────────────────────────────────────────────────────────────────────
 
+  /**
+   * The phase is a pure function of time, computed when read. The frame loop
+   * only pushes it to subscribers, so with none (or with reduced motion, or a
+   * hidden page) nothing runs per frame.
+   */
   start(): void {
-    if (this.animationFrame) return;
+    if (this.loop) return;
 
     this.startTime = performance.now();
     this.nextVariationTime = this.startTime + this.getNextVariationInterval();
-    this.tick();
+    this.updateCSSProperties();
+    this.loop = createFrameLoop(this.tick, () => this.listeners.size > 0 && !prefersReducedMotion());
+    this.loop.wake();
   }
 
   stop(): void {
-    if (this.animationFrame) {
-      cancelAnimationFrame(this.animationFrame);
-      this.animationFrame = null;
-    }
+    this.loop?.dispose();
+    this.loop = null;
+  }
+
+  /** True while the per-frame loop is scheduled. */
+  isLooping(): boolean {
+    return this.loop?.isRunning() ?? false;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -124,10 +136,12 @@ class BreathSyncManager {
   // ─────────────────────────────────────────────────────────────────────────
 
   getState(): Readonly<BreathState> {
+    this.advance(performance.now());
     return { ...this.state };
   }
 
   getPhase(): number {
+    this.advance(performance.now());
     return this.state.phase;
   }
 
@@ -185,6 +199,7 @@ class BreathSyncManager {
       source: 'guided',
       timestamp: Date.now(),
     };
+    this.updateCSSProperties();
   }
 
   /**
@@ -194,6 +209,7 @@ class BreathSyncManager {
     this.transitionToRate(this.config.baseRate, 2);
     this.state.source = 'ambient';
     this.state.depth = 0.7;
+    this.updateCSSProperties();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -202,6 +218,7 @@ class BreathSyncManager {
 
   subscribe(listener: BreathListener): () => void {
     this.listeners.add(listener);
+    this.loop?.wake();
     return () => this.listeners.delete(listener);
   }
 
@@ -210,7 +227,12 @@ class BreathSyncManager {
   // ─────────────────────────────────────────────────────────────────────────
 
   private tick = (): void => {
-    const now = performance.now();
+    this.advance(performance.now());
+    this.notifyListeners();
+  };
+
+  /** Bring the phase up to `now`. */
+  private advance(now: number): void {
     const elapsed = now - this.startTime;
 
     // Apply natural variation periodically
@@ -233,16 +255,7 @@ class BreathSyncManager {
       phase,
       timestamp: Date.now(),
     };
-
-    // Notify listeners
-    this.notifyListeners();
-
-    // Update CSS custom properties
-    this.updateCSSProperties();
-
-    // Continue loop
-    this.animationFrame = requestAnimationFrame(this.tick);
-  };
+  }
 
   private notifyListeners(): void {
     const stateCopy = { ...this.state };
@@ -255,26 +268,22 @@ class BreathSyncManager {
     });
   }
 
+  /**
+   * Mirror the slow-changing breath values to :root, only when they change.
+   * The per-frame phase is not mirrored: a custom property on :root changes
+   * the computed style of every element, so writing one each frame re-ran
+   * style for the whole document (~2,000 elements) 60 times a second, and no
+   * stylesheet read it. Per-frame consumers subscribe() instead.
+   */
   private updateCSSProperties(): void {
-    const root = document.documentElement;
+    this.setRootVar('--breath-rate-ms', `${Math.round(this.getCycleDuration())}ms`);
+    this.setRootVar('--breath-depth', this.state.depth.toFixed(2));
+  }
 
-    // Core breath properties
-    root.style.setProperty('--breath-phase', this.state.phase.toFixed(4));
-    root.style.setProperty('--breath-rate-ms', `${this.getCycleDuration()}ms`);
-    root.style.setProperty('--breath-depth', this.state.depth.toFixed(2));
-
-    // Derived properties for common use cases
-    // Scale: 1.0 at exhale, 1.002 at inhale peak (subtle!)
-    const breathScale = 1 + this.state.phase * 0.002 * this.state.depth;
-    root.style.setProperty('--breath-scale', breathScale.toFixed(5));
-
-    // Opacity pulse: 0.95 at exhale, 1.0 at inhale
-    const breathOpacity = 0.95 + this.state.phase * 0.05 * this.state.depth;
-    root.style.setProperty('--breath-opacity', breathOpacity.toFixed(3));
-
-    // Translate for subtle rise/fall: 0 at exhale, -2px at inhale
-    const breathTranslateY = -this.state.phase * 2 * this.state.depth;
-    root.style.setProperty('--breath-translate-y', `${breathTranslateY.toFixed(2)}px`);
+  private setRootVar(name: string, value: string): void {
+    // Reading the inline declaration does not compute style, so this is cheap
+    const { style } = document.documentElement;
+    if (style.getPropertyValue(name) !== value) style.setProperty(name, value);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -307,6 +316,7 @@ class BreathSyncManager {
       const easedProgress = 1 - Math.pow(1 - progress, 3);
 
       this.state.rate = currentRate + (targetRate - currentRate) * easedProgress;
+      this.updateCSSProperties();
 
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -346,26 +356,13 @@ export function destroyBreathSync(): void {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CSS Usage Examples (for reference)
+// Usage
 // ─────────────────────────────────────────────────────────────────────────────
 
 /*
-Usage in CSS:
-
-.avatar-container {
-  transform: translateY(var(--breath-translate-y)) scale(var(--breath-scale));
-}
-
-.glass-card {
-  transform: scale(var(--breath-scale));
-  opacity: var(--breath-opacity);
-}
-
-.ambient-glow {
-  opacity: calc(0.3 + var(--breath-phase) * 0.1);
-}
-
-For more complex animations, subscribe to updates:
+CSS can read --breath-rate-ms and --breath-depth (on :root, written on change).
+For per-frame motion, subscribe and write to the element you animate, or use a
+CSS animation with duration var(--breath-rate-ms):
 
 getBreathSync().subscribe((state) => {
   // Custom animation logic based on state.phase

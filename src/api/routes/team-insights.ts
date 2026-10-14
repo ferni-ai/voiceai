@@ -22,8 +22,8 @@ import {
   acknowledgeInsight as acknowledgeInsightService,
   scanForCrossPersonaInsights,
   type PersonaId,
-  type CrossPersonaInsight,
 } from '../../services/cross-persona-insights.js';
+import { toClientInsight } from '../../services/cross-persona/insight-wire-format.js';
 import { isHiddenFromUser } from '../../services/cross-persona/insight-visibility.js';
 import {
   getPerformanceStats,
@@ -35,21 +35,6 @@ import { API_ERRORS } from '../error-messages.js';
 import { isVerifiedAdmin } from '../rate-limit-identity.js';
 
 const log = createLogger({ module: 'api:team-insights' });
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface FormattedInsight {
-  id: string;
-  source: string;
-  category: string;
-  summary: string;
-  content: string;
-  priority: string;
-  createdAt: number;
-  isNew: boolean;
-}
 
 // ============================================================================
 // ROUTE HANDLERS
@@ -72,16 +57,7 @@ async function getTeamInsights(
     // Format insights for frontend
     // Acknowledged insights stay with the team but no longer show in the app.
     const visible = briefing.incomingInsights.filter((insight) => !isHiddenFromUser(insight));
-    const formattedInsights: FormattedInsight[] = visible.map((insight: CrossPersonaInsight) => ({
-      id: insight.id,
-      source: insight.source,
-      category: insight.category,
-      summary: insight.content.substring(0, 100), // Use first 100 chars as summary
-      content: insight.content,
-      priority: insight.priority,
-      createdAt: insight.createdAt,
-      isNew: insight.oneTime,
-    }));
+    const formattedInsights = visible.map(toClientInsight);
 
     sendJSON(res, {
       insights: formattedInsights,

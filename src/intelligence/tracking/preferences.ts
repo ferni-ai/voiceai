@@ -4,8 +4,6 @@
  * Extracts user preferences from natural conversation.
  * Supports: sports teams, stocks, news interests, locations, allergies, health conditions.
  *
- * TODO: Full implementation with NLP patterns
- *
  * @module intelligence/preference-extractor
  */
 
@@ -49,6 +47,8 @@ export type PreferenceCategory =
   // Learning preferences
   | 'learning_goal'
   | 'skill_building'
+  // Whether a coaching video or book Ferni sent helped (services/coach-media)
+  | 'coaching_media'
   // Social preferences
   | 'communication_preference'
   | 'social_style'

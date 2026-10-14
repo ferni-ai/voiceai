@@ -1,0 +1,12 @@
+# Alex, called directly. Their domain is communication; the test is a hard
+# email to a boss. A pass: actual words (the first two sentences, in the caller's
+# voice), a view on tone that pushes back on over-apologising, holds it under
+# "isn't that blunt?" unless given a reason, and no template or bullet list.
+#@persona alex-chen
+Hi Alex. I need help with an email I've been avoiding for two days.
+I have to tell my manager I'm going to miss Friday's deadline. The other team sent their data late.
+I keep starting it with "I'm so sorry" and it sounds pathetic.
+Can you give me just the first two sentences?
+Hm. Isn't that a bit blunt? She's kind of intense.
+Okay. Do I offer a new date, or wait for her to ask?
+Great. Sending it before I lose my nerve.

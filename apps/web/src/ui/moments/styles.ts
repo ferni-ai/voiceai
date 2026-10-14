@@ -35,27 +35,26 @@ export function removeMomentStyles(): void {
 // ============================================================================
 
 const MOMENT_STYLES = `
-/* ============================================================================
-   MOMENTS CONTAINER
-   Positioned near the avatar for conversational feel
-   ============================================================================ */
+/* MOMENTS CONTAINER: toasts, centred at the bottom of the screen */
 
 .moments-container {
   position: fixed;
   bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
   z-index: ${MOMENT_Z_INDEX.whisper};
   pointer-events: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2, 8px);
 }
 
+/* Phones: inset past the menu button (16px + 44px wide, mobile-bottom-sheet.styles.ts) */
 @media (max-width: 480px) {
   .moments-container {
     bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    left: calc(var(--space-md) + 44px + var(--space-sm));
+    right: calc(var(--space-md) + 44px + var(--space-sm));
   }
 }
 
@@ -67,29 +66,30 @@ const MOMENT_STYLES = `
 .moment-whisper {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2, 8px);
   padding: var(--space-2, 8px) var(--space-4, 16px);
   border-radius: var(--radius-full, 9999px);
   font-family: var(--font-body, 'Inter', system-ui);
   font-size: clamp(12px, 2.8vw, 14px);
   font-weight: 500;
   letter-spacing: 0.01em;
-  white-space: nowrap;
+  text-align: center;
   max-width: calc(100vw - 48px);
-  overflow: hidden;
-  text-overflow: ellipsis;
   box-shadow: var(--shadow-md);
   pointer-events: auto;
   opacity: 0;
   transform: translateY(8px) scale(0.95);
 }
 
-.moment-whisper--info {
-  background: var(--persona-primary, #4a6741);
-  color: white;
-  border: 1px solid var(--persona-secondary, #3d5a35);
+/* Two lines, then an ellipsis; clamped on a span so padding can't show line 3 */
+.moment-whisper__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
+.moment-whisper--info,
 .moment-whisper--success {
   background: var(--persona-primary, #4a6741);
   color: white;
@@ -98,13 +98,13 @@ const MOMENT_STYLES = `
 
 .moment-whisper--warning {
   background: color-mix(in srgb, var(--color-semantic-warning, #a67c35) 80%, black);
-  color: white;
+  color: var(--color-semantic-on-warning);
   border: 1px solid var(--color-semantic-warning-border, rgba(184, 149, 106, 0.8));
 }
 
 .moment-whisper--error {
   background: var(--color-semantic-error, #a65a52);
-  color: white;
+  color: var(--color-semantic-on-error);
   border: 1px solid var(--color-semantic-error-border, rgba(166, 90, 82, 0.8));
 }
 
@@ -144,7 +144,7 @@ const MOMENT_STYLES = `
    ============================================================================ */
 
 .moment-notice {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
   padding: var(--space-3, 12px) var(--space-4, 16px);
@@ -439,7 +439,7 @@ const MOMENT_STYLES = `
   justify-content: center;
   color: var(--color-text-muted, #7a6f63);
   transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-  z-index: 1;
+  z-index: var(--z-raised);
 }
 
 .moment-milestone__close:hover {
@@ -458,7 +458,7 @@ const MOMENT_STYLES = `
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-text, #4a6741);
   margin-bottom: var(--space-2, 8px);
   opacity: 0;
 }

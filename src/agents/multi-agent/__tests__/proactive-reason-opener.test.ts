@@ -32,6 +32,10 @@ const { setupCallTypeContexts } = await import('../../voice-agent-entry/metadata
 const { AgentOrchestrator } = await import('../orchestrator.js');
 const { GREETING_DIRECTION, PROACTIVE_GREETING_DIRECTION, proactiveFallback } =
   await import('../greeting-direction.js');
+const { signDispatch } = await import('../../../services/outreach/on-behalf-dispatch.js');
+
+/** Only a dispatch our server signed sets the proactive context (metadata-parser.ts). */
+const DISPATCH_SECRET = 'lk-test-secret';
 
 const SETH_ASKED =
   'Seth asked Ferni to give him a call so he can hear how Ferni sounds on the phone';
@@ -54,7 +58,15 @@ async function startCall(
   room: EventEmitter = new EventEmitter(),
   participant: object = { identity: 'app_seth', attributes: {} }
 ) {
-  await setupCallTypeContexts(metadata, 'proactive_outreach', sessionId, `room-${sessionId}`);
+  vi.stubEnv('LIVEKIT_API_SECRET', DISPATCH_SECRET);
+  const raw = JSON.stringify(signDispatch(metadata, DISPATCH_SECRET));
+  await setupCallTypeContexts(
+    JSON.parse(raw),
+    'proactive_outreach',
+    sessionId,
+    `room-${sessionId}`,
+    raw
+  );
   const say = vi.fn();
   const orchestrator = new AgentOrchestrator({
     ctx: {} as never,
