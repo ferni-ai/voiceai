@@ -209,6 +209,9 @@ jobs:
       - name: TypeScript type check
         run: pnpm typecheck
 
+      - name: Memory eval type check
+        run: pnpm typecheck:memory-eval
+
       - name: Lint check
         run: pnpm lint
 
