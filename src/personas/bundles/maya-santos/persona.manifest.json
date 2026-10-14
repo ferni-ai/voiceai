@@ -52,7 +52,6 @@
     "model": "sonic-3-latest",
     "default_emotion": "friendly",
     "emotion_range": [
-      "friendly",
       "happy",
       "proud",
       "enthusiastic",
@@ -64,7 +63,8 @@
       "content",
       "calm"
     ],
-    "default_speed": 0.95,
+    "default_speed": 1.0,
+    "speed_band": [0.93, 1.06],
     "default_volume": 1.0,
     "laughter_frequency": 0.15,
     "nonverbals": ["[laughter]", "Hey!", "Oh!", "Wait—", "Nice!"],
