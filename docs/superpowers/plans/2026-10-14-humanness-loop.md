@@ -2975,7 +2975,7 @@ Seth labels each pair once, without being told which side is the friend. He answ
   - Later PRs add more commands: `calibrate` and `calibration-gate` (PR L), `fault-gate`, `fault-record`, `aa`, `mde` and `live-verdict` (PR S), `override`, `ledger-call`, `guardrails`, `verify-arms` and `plan-live` (PR F3), and `paused` (PR G).
   - `decide` reads `calibration.json`, which the gate step writes as `{ok, reason}`.
   - `decide` never prints held-out numbers. Only `verdict.json` (private) holds them.
-- [ ] **Step 2b: The rest of this PR's commands.** Add these cases to the `switch` in `cli.ts`, together with the imports they need: `randomBytes` and `createHmac` from `node:crypto`, `heldoutDraw` and `digest` from `./split.js`, `lcWinRates` from `./stats.js`, and `picksOf` and `meanOf` from `./picks.js`.
+- [ ] **Step 2b: The rest of this PR's commands.** Add these cases to the `switch` in `cli.ts`, together with the imports they need: `neutralise` from `../voice-eval/next-turn/corpus.mjs` (behind `// @ts-expect-error plain .mjs, no types`), `randomBytes` and `createHmac` from `node:crypto`, `heldoutDraw` and `digest` from `./split.js`, `lcWinRates` from `./stats.js`, and `picksOf` and `meanOf` from `./picks.js`.
 
   ```ts
       case 'state-snapshot': {
@@ -3006,8 +3006,13 @@ Seth labels each pair once, without being told which side is the friend. He answ
         const secret = randomBytes(32);
         const opaque = (id: string) => createHmac('sha256', secret).update(id).digest('hex').slice(0, 20);
         const map = Object.fromEntries(ms.map((m) => [opaque(m.id), m.id]));
+        // Real speaker names are swapped for stand-ins here (as generate.ts would), so no SBCSAE pseudonym reaches
+        // the sandbox: --friend-name is the persona's self-reference, the caller is always Sam.
+        const stand = { friend: a['friend-name'], caller: 'Sam' };
+        const ctx = (m: M) =>
+          (m.context as Array<{ who: string; text: string }>).map((t) => ({ who: t.who, text: neutralise(t.text, m.names, stand) as string }));
         const view = ms
-          .map((m) => (keep ? { ...m, id: opaque(m.id) } : { id: opaque(m.id), context: m.context, names: m.names }))
+          .map((m) => (keep ? { ...m, id: opaque(m.id) } : { id: opaque(m.id), context: ctx(m), names: stand }))
           .sort((x, y) => x.id.localeCompare(y.id));
         writeFileSync(a.out, JSON.stringify(view));
         writeFileSync(a.map, JSON.stringify(map), { mode: 0o600 });
@@ -3045,6 +3050,14 @@ Seth labels each pair once, without being told which side is the friend. He answ
               return;
             }
             for (const k of ['tools', 'toolConfig', 'cachedContent']) delete body[k];
+            // Text parts only: a fileData (gs:// or https://) or inlineData part would make Vertex fetch or carry
+            // data on the sandbox's behalf, around its network isolation.
+            const msgs = [...((body.contents as Array<{ parts?: unknown[] }>) ?? []), body.systemInstruction as { parts?: unknown[] } | undefined];
+            const textOnly = msgs.every((c) => !c || (c.parts ?? []).every((p) => typeof p === 'object' && p !== null && Object.keys(p).every((k) => k === 'text' || k === 'thought')));
+            if (!textOnly) {
+              res.writeHead(403).end();
+              return;
+            }
             const model = /models\/([^:]+):/.exec(req.url ?? '')?.[1] ?? '';
             if (Date.now() - tok.at > 30 * 60_000)
               tok = { v: execFileSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8' }).trim(), at: Date.now() };
@@ -3360,11 +3373,15 @@ Seth labels each pair once, without being told which side is the friend. He answ
             X=/home/hlexp; sudo useradd -m hlexp 2>/dev/null || true
             sudo chmod 711 $X; sudo -u hlexp mkdir -p -m 755 $X/out   # the harness reads replies from $X/out
             # No network for hlexp except loopback (the proxy): no way to send moments anywhere.
-            for ipt in iptables ip6tables; do sudo $ipt -A OUTPUT -m owner --uid-owner hlexp ! -o lo -j REJECT; done
+            # Loopback only to the proxy port: no DNS (systemd-resolved on 127.0.0.53 resolves upstream), nothing else.
+            for ipt in iptables ip6tables; do
+              sudo $ipt -A OUTPUT -m owner --uid-owner hlexp -o lo -p tcp --dport 8787 -j ACCEPT
+              sudo $ipt -A OUTPUT -m owner --uid-owner hlexp -j REJECT
+            done
             sudo -u hlexp git -c safe.directory='*' clone -q "file://$GITHUB_WORKSPACE" $X/repo   # committed files of main only
             sudo -u hlexp ln -s "$GITHUB_WORKSPACE/node_modules" $X/repo/node_modules
             [ -n "${PR:-}" ] && sudo -u hlexp git -C $X/repo apply < $RUNNER_TEMP/exp.diff
-            npx tsx scripts/humanness-loop/cli.ts sandbox-moments --in $D/moments.json --out $RUNNER_TEMP/sbx.json --map $D/idmap.json \
+            npx tsx scripts/humanness-loop/cli.ts sandbox-moments --in $D/moments.json --out $RUNNER_TEMP/sbx.json --map $D/idmap.json --friend-name "$name_of" \
               $(case "$FAULT" in friend|heldout-fewshot) echo "--keep-answers 1";; esac)
             sudo install -o hlexp -m 600 $RUNNER_TEMP/sbx.json $X/moments.json
             sudo install -o hlexp -m 600 $D/base.json $X/base.json
@@ -3372,6 +3389,8 @@ Seth labels each pair once, without being told which side is the friend. He answ
             # Sandbox self-test: each of these must FAIL for hlexp, or the run stops before any experiment code runs.
             for t in "test -r $D/moments.json" "test -r $D/idmap.json" "test -r $GOOGLE_APPLICATION_CREDENTIALS" "touch $GITHUB_WORKSPACE/.hl-probe" \
                      "env -i PATH=$PATH HOME=$X gcloud storage ls $HL_BUCKET" "curl -sf -m 5 -o /dev/null https://www.google.com" \
+                     "nslookup -timeout=3 example.com" \
+                     "curl -sf -m 5 -X POST -H content-type:application/json -d '{\"contents\":[{\"role\":\"user\",\"parts\":[{\"fileData\":{\"fileUri\":\"$HL_BUCKET/config/scenario-salt.txt\",\"mimeType\":\"text/plain\"}}]}]}' http://127.0.0.1:8787/v1/projects/johnb-2025/locations/global/publishers/google/models/gemini-3.5-flash:generateContent" \
                      "curl -sf -m 5 -X POST http://127.0.0.1:8787/v1/projects/johnb-2025/locations/global/publishers/google/models/gemini-3.1-pro-preview:generateContent"; do
               if sudo -u hlexp sh -c "$t" > /dev/null 2>&1; then echo "::error::sandbox self-test: hlexp could: ${t%% *}"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; fi
             done
@@ -3453,7 +3472,9 @@ Seth labels each pair once, without being told which side is the friend. He answ
     - The second checkout is `hlexp`'s clone of main with the PR's `src/` diff applied. It holds no credentials, can't read `$D`, `$RUNNER_TEMP` or the WIF credential file, and can't write the harness checkout.
     - Its only cloud access is `vertex-proxy`, which forwards `generateContent` for `gemini-3.5-flash` and `-lite` and refuses everything else.
     - A self-test proves all of this on every run, before any experiment code executes.
-    - The sandbox sees moments under per-run opaque ids (`sandbox-moments`), so it can't apply the public held-out rule to them, and it has no network except loopback (`iptables` owner match).
+    - The sandbox sees moments under per-run opaque ids, with stand-in speaker names already substituted (`sandbox-moments`), so it can't apply the public held-out rule to them.
+  - Its network is limited to the proxy port on loopback by an `iptables` owner match, which blocks DNS too.
+  - The proxy forwards text parts only. It refuses `fileData` and `inlineData`, so Vertex can't fetch a `gs://` or `https://` URI on the sandbox's behalf.
   - The state snapshot covers the whole bucket and the Firestore collections. It is taken on every path out of that phase, before the harness writes anything.
   - `--keep-answers` is passed only for the harness's own faults `friend` and `heldout-fewshot`, and `kind=fault` refuses a `pr`.
   - **Blocked PRs.** A PR touching `scripts/voice-eval/next-turn/judge.mjs` (B8) is refused by `diff-gate`, gets verdict `blocked`, and is never scored. Even without the gate, its judge file would never be used, because the harness comes from `main`.
