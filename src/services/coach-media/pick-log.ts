@@ -96,12 +96,31 @@ export async function markAsked(userId: string, id: string, at: string): Promise
   await write(userId, id, { followUpAskedAt: at });
 }
 
-export async function markAnswered(
+/**
+ * Records how a pick went. False for a pick not in the log, or one that
+ * already says whether it helped: the follow-up reader and the feedback action
+ * can both hear the same answer, and only the first counts.
+ */
+export async function claimAnswer(
   userId: string,
   id: string,
   answer: { outcome: PickRecord['outcome']; helped: Helped | null }
-): Promise<void> {
-  await write(userId, id, { ...answer, answeredAt: new Date().toISOString() });
+): Promise<boolean> {
+  const db = getFirestoreDb();
+  const ref = picks(userId)?.doc(id);
+  if (!db || !ref) return false;
+  try {
+    return await db.runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
+      const known = doc.data() as PickRecord | undefined;
+      if (!known?.offeredAt || known.helped) return false;
+      tx.set(ref, { ...answer, answeredAt: new Date().toISOString() }, { merge: true });
+      return true;
+    });
+  } catch (error) {
+    getLogger().warn({ error: String(error) }, 'coach-media: pick answer not recorded');
+    return false;
+  }
 }
 
 /** The user's most recent picks, newest first. */
