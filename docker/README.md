@@ -9,7 +9,6 @@ This directory contains modular Dockerfiles for all Ferni services.
 | `Dockerfile.agent` | Voice Agent | LiveKit voice agent (all personas) |
 | `Dockerfile.ui` | UI Server | Main frontend + API server |
 | `Dockerfile.landing` | Landing Page | Lightweight promo page + tokens |
-| `Dockerfile.base` | Base Image | Shared base (optional) |
 
 ## Quick Start
 
