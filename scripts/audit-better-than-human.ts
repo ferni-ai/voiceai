@@ -338,41 +338,6 @@ const CAPABILITIES: CapabilityAudit[] = [
       }
     },
   },
-
-  {
-    capability: 'Superhuman Session Priming',
-    description: 'Surface all superhuman memory at session start',
-    humanLimitation: 'N/A - This is the integration layer',
-    components: {
-      contextBuilder: 'superhuman-session-priming',
-    },
-    test: async () => {
-      try {
-        const { buildSuperhumanSessionPriming } = await import(
-          '../src/intelligence/context-builders/superhuman-session-priming.js'
-        );
-        if (typeof buildSuperhumanSessionPriming !== 'function') {
-          return {
-            name: 'Superhuman Session Priming',
-            status: 'fail',
-            details: 'buildSuperhumanSessionPriming not exported',
-          };
-        }
-        return {
-          name: 'Superhuman Session Priming',
-          status: 'pass',
-          details: 'Session priming context builder exists and exports build function',
-        };
-      } catch (error) {
-        return {
-          name: 'Superhuman Session Priming',
-          status: 'fail',
-          details: `Import failed: ${error}`,
-          recommendation: 'Create superhuman-session-priming.ts context builder',
-        };
-      }
-    },
-  },
 ];
 
 // ============================================================================
@@ -383,7 +348,6 @@ async function auditContextBuilders(): Promise<AuditResult[]> {
   const results: AuditResult[] = [];
 
   const criticalBuilders = [
-    'superhuman-session-priming',
     'commitment-follow-up',
     'prediction-surfacing',
     'crisis',

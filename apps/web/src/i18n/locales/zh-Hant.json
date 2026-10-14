@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "正在切換到{language}",
+    "seeYou": "下次見！",
+    "callVoicemail": "已經留語音訊息給{name}了",
+    "callNoAnswer": "聯絡不上{name}。要我晚點再試嗎？",
+    "callFailed": "沒能撥通{name}的電話",
+    "callBack": "{name}希望你回個電話",
+    "followUp": "{name}在等你的消息"
+  },
   "accessibility": {
     "accountMenu": "帳號選單",
     "accountSettings": "帳號設定",
@@ -9468,7 +9477,10 @@
     "rememberEmpty": "這次沒有需要記住的新內容。謝謝你的陪伴。",
     "nextStepTitle": "溫和的下一步",
     "invitation": "隨時回來，我會在這裡。",
-    "close": "關閉"
+    "close": "關閉",
+    "seeCost": "這次通話的費用",
+    "feedbackQuestion": "這次聊得怎麼樣？",
+    "feedbackThanks": "謝謝，這很有幫助。"
   },
   "moments": {
     "teamUnlockTitle": "認識 {name}",

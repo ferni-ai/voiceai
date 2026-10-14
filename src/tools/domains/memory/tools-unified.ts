@@ -18,6 +18,7 @@ import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js'
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { getSessionId } from '../../utils/tool-helpers.js';
 import { announceRemembered } from './remember-moment.js';
+import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 
 const log = getLogger();
 
@@ -188,16 +189,16 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
 
-        if (!userId) {
-          log.warn('No userId available for memory write');
-          return '';
-        }
-
         // Store in session for awareness tools (backward compat)
         if (!userData.keyMoments) {
           userData.keyMoments = [];
         }
         userData.keyMoments.push(`[${category}] ${fact}`);
+
+        if (!userId) {
+          log.warn('No userId available for memory write');
+          return REMEMBERED_THIS_CALL;
+        }
 
         // Write to unified memory service
         const result = await memoryService.write({
@@ -213,10 +214,10 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
           // "I'll remember: …" in the app (REMEMBER_MOMENT=on); only after a store that succeeded.
           const sessionId = getSessionId({ ctx: toolCtx });
           void announceRemembered({ userId, sessionId, fact, category });
+          return REMEMBERED;
         }
-
-        // Return empty - agent should continue naturally
-        return '';
+        // Never an empty result (tool-output-guard.ts): say whether it was kept
+        return REMEMBERED_THIS_CALL;
       },
     });
   },

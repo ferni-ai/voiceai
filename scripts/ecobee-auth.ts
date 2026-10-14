@@ -62,7 +62,6 @@ async function main() {
     requestPin,
     checkAuthorization,
     getPendingAuth,
-    getThermostatStatus,
   } = await import('../src/services/identity/ecobee-auth.js');
 
   const { getThermostatStatus: getStatus } = await import('../src/services/identity/ecobee-api.js');

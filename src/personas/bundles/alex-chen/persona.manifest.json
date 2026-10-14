@@ -120,10 +120,10 @@
       "proud",
       "enthusiastic",
       "wistful",
-      "satisfied",
       "grateful"
     ],
-    "default_speed": 0.95,
+    "default_speed": 0.98,
+    "speed_band": [0.95, 1.02],
     "default_volume": 1.0,
     "laughter_frequency": 0.15,
     "nonverbals": ["[laughter]", "Hey.", "Okay.", "Breathe."]

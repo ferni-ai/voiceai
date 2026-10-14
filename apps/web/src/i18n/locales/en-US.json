@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "Switching to {language}",
+    "seeYou": "See you next time!",
+    "callVoicemail": "Left {name} a voicemail",
+    "callNoAnswer": "Couldn't reach {name}. Want me to try again later?",
+    "callFailed": "The call to {name} didn't go through",
+    "callBack": "{name} wants you to call back",
+    "followUp": "{name} wants to hear back from you"
+  },
   "answerCard": {
     "answer": "What I found",
     "recommendation": "My pick for you",
@@ -9526,7 +9535,10 @@
     "rememberEmpty": "Nothing new to hold onto this time. Thanks for the company.",
     "nextStepTitle": "A gentle next step",
     "invitation": "Come back whenever you like. I'll be here.",
-    "close": "Close"
+    "close": "Close",
+    "seeCost": "What this call cost",
+    "feedbackQuestion": "How did that feel?",
+    "feedbackThanks": "Thanks, that helps."
   },
   "moments": {
     "streakTitle": {
