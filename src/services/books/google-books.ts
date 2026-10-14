@@ -47,6 +47,8 @@ export interface Book {
   isbn10?: string;
   isbn13?: string;
   language: string;
+  /** Google Books' MATURE / NOT_MATURE. */
+  maturityRating?: string;
 }
 
 export interface BookSearchResult {
@@ -89,6 +91,7 @@ interface GoogleBooksApiResponse {
       previewLink?: string;
       infoLink?: string;
       language?: string;
+      maturityRating?: string;
     };
   }>;
   error?: { message: string };
@@ -159,6 +162,7 @@ function transformToBook(item: NonNullable<GoogleBooksApiResponse['items']>[numb
     isbn10,
     isbn13,
     language: info.language || 'en',
+    maturityRating: info.maturityRating,
   };
 }
 

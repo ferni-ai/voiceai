@@ -131,16 +131,20 @@ struct SettingsView: View {
                     Text("Current Guide")
                 }
 
-                // Your plan: quiet, below everything that matters more
-                Section {
-                    NavigationLink {
-                        YourPlanView()
-                    } label: {
-                        HStack {
-                            Text("Your plan")
-                            Spacer()
-                            Text(subscriptions.currentTier.displayName)
-                                .foregroundColor(.secondary)
+                // Your plan: quiet, below everything that matters more.
+                // While Ferni is free, only existing supporters see it (to manage
+                // what they already have); nobody else is shown a plan.
+                if PaidPlans.isOffered || subscriptions.currentTier != .free {
+                    Section {
+                        NavigationLink {
+                            YourPlanView()
+                        } label: {
+                            HStack {
+                                Text("Your plan")
+                                Spacer()
+                                Text(subscriptions.currentTier.displayName)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                 }

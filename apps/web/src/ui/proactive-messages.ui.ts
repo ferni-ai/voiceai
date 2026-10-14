@@ -85,7 +85,7 @@ export function initProactiveMessages(): void {
     position: fixed;
     bottom: var(--space-20, 80px);
     right: var(--space-6, 24px);
-    z-index: var(--z-toast, 999);
+    z-index: var(--z-toast);
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--duration-normal, 200ms) var(--ease-standard, ease-out),
@@ -139,7 +139,7 @@ export function initProactiveMessages(): void {
       position: fixed;
       bottom: var(--space-20, 80px);
       right: var(--space-6, 24px);
-      z-index: var(--z-toast, 1000);
+      z-index: var(--z-toast);
       max-width: 380px;
       width: calc(100vw - 48px);
       opacity: 0;
@@ -400,15 +400,12 @@ function updateIndicator(): void {
     countEl.textContent = state.messages.length.toString();
   }
 
-  if (state.hasUnread && !state.isVisible) {
-    indicator.style.opacity = '1';
-    indicator.style.visibility = 'visible';
-    indicator.style.transform = 'scale(1)';
-  } else {
-    indicator.style.opacity = '0';
-    indicator.style.visibility = 'hidden';
-    indicator.style.transform = 'scale(0.8)';
-  }
+  // is-visible also lets the dot's pulse run (paused-when-hidden.css)
+  const show = state.hasUnread && !state.isVisible;
+  indicator.classList.toggle('is-visible', show);
+  indicator.style.opacity = show ? '1' : '0';
+  indicator.style.visibility = show ? 'visible' : 'hidden';
+  indicator.style.transform = show ? 'scale(1)' : 'scale(0.8)';
 }
 
 /**

@@ -16,6 +16,11 @@
  *   endpoints that use it as an anonymous visitor id keep it.
  * - likewise the legacy x-user-id header (~26 route helpers fall back
  *   to it) gets the same treatment: the verified uid, or nothing.
+ * - every alias of those gets it too (`?user_id=`, `?uid=`, `?firebase_uid=`,
+ *   any casing; `x-uid`, `x-userid`). /api/conversation/cost read `user_id`
+ *   and so bypassed the door; a route that picks up an alias later can't.
+ *   Request bodies are not rewritten here: a route that reads a user id from
+ *   its body must resolve it against the verified caller itself.
  *
  * Only NODE_ENV=development keeps the old behavior, so an unset NODE_ENV fails
  * closed. A verified admin keeps the target user it names.
@@ -32,9 +37,27 @@ const log = createLogger({ module: 'RequestIdentity' });
 /** Endpoints where userId is an anonymous visitor id, not an account. */
 const ANONYMOUS_USER_ID_PREFIXES = ['/api/v1/public/', '/api/landing/'];
 
+/** Query params that name a user, compared lower-cased. */
+const SUBJECT_PARAMS = new Set(['userid', 'user_id', 'uid', 'firebase_uid', 'firebaseuid']);
+/** Headers (already lower-cased by node) that name a user. */
+const SUBJECT_HEADERS = ['x-user-id', 'x-userid', 'x-uid'] as const;
+
 function hasCredential(req: IncomingMessage): boolean {
   const auth = req.headers.authorization;
   return (typeof auth === 'string' && auth.startsWith('Bearer ')) || !!req.headers['x-api-key'];
+}
+
+/** Point every user-naming query param at the verified uid, or drop it. */
+function rebindSubjectParams(req: IncomingMessage, url: URL, uid: string | null): void {
+  const claimed = new Set(
+    [...url.searchParams.keys()].filter((k) => SUBJECT_PARAMS.has(k.toLowerCase()))
+  );
+  if (claimed.size === 0) return;
+  for (const name of claimed) {
+    if (uid !== null) url.searchParams.set(name, uid);
+    else url.searchParams.delete(name);
+  }
+  req.url = `${url.pathname}${url.search}`;
 }
 
 /** Client-claimed ids are only taken as given on a developer's machine. */
@@ -75,14 +98,12 @@ export async function bindVerifiedIdentity(
   if (uid) req.headers['x-firebase-uid'] = uid;
   if (trustsClaimedIds(env)) return uid;
 
-  if (uid) req.headers['x-user-id'] = uid;
-  else delete req.headers['x-user-id'];
-
-  const anonymousAllowed = ANONYMOUS_USER_ID_PREFIXES.some((p) => url.pathname.startsWith(p));
-  if (url.searchParams.has('userId') && !anonymousAllowed) {
-    if (uid) url.searchParams.set('userId', uid);
-    else url.searchParams.delete('userId');
-    req.url = `${url.pathname}${url.search}`;
+  for (const name of SUBJECT_HEADERS) {
+    if (uid !== null) req.headers[name] = uid;
+    else delete req.headers[name];
+  }
+  if (!ANONYMOUS_USER_ID_PREFIXES.some((p) => url.pathname.startsWith(p))) {
+    rebindSubjectParams(req, url, uid);
   }
   return uid;
 }

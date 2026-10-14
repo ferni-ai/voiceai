@@ -1,9 +1,16 @@
 /**
  * After-call card: what Ferni will remember, and one gentle next step.
  *
- * Shown after the goodbye ceremony in place of the cost card when the
- * after-call flag is on. Non-modal, focusable, closes on Escape or the close
- * button, and keeps still for prefers-reduced-motion.
+ * The default post-call moment (the cost card only returns when the after-call
+ * flag is turned off). When nothing new came out of the call it is just a
+ * short warm close. Support Ferni is a quiet text link at the bottom, never a
+ * separate ask.
+ *
+ * The card is a fixed sheet just below the call controls (above them when it
+ * doesn't fit below and there is more room above), so it never covers Connect
+ * and never grows the page, which can't scroll. It is capped to the viewport
+ * and scrolls inside itself. Non-modal, focusable, closes on Escape or the
+ * close button, and keeps still for prefers-reduced-motion.
  *
  * @module ui/after-call/after-call-card
  */
@@ -23,8 +30,8 @@ const AUTO_DISMISS_MS = 60_000;
 export interface AfterCallCardOptions {
   /** Name of the persona the user just talked to. */
   personaName: string;
-  /** Opens the conversation cost card, so cost stays one tap away. */
-  onShowCost?: () => void;
+  /** Opens Support Ferni. Shown as a quiet text link when given. */
+  onSupport?: () => void;
 }
 
 let card: HTMLElement | null = null;
@@ -43,10 +50,15 @@ function injectStyles(): void {
   style.textContent = `
     .${CARD_CLASS} {
       position: fixed;
-      bottom: 120px;
       left: 50%;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-md));
+      z-index: var(--z-sticky);
+      box-sizing: border-box;
       width: min(340px, calc(100% - 2 * var(--space-md)));
-      transform: translateX(-50%) translateY(12px);
+      max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2 * var(--space-md));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      transform: translate(-50%, 12px);
       opacity: 0;
       background: var(--color-bg-elevated);
       color: var(--color-text-primary);
@@ -54,11 +66,19 @@ function injectStyles(): void {
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow-lg);
       padding: var(--space-md) var(--space-lg);
-      z-index: var(--z-notification);
       transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD},
         transform ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
-    .${CARD_CLASS}.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .${CARD_CLASS}.below-controls {
+      top: calc(var(--after-call-anchor) + var(--space-sm));
+      bottom: auto;
+      max-height: calc(100dvh - var(--after-call-anchor) - var(--space-sm) - env(safe-area-inset-bottom, 0px) - var(--space-md));
+    }
+    .${CARD_CLASS}.above-controls {
+      bottom: calc(var(--after-call-anchor) + var(--space-sm));
+      max-height: calc(100dvh - var(--after-call-anchor) - var(--space-sm) - env(safe-area-inset-top, 0px) - var(--space-md));
+    }
+    .${CARD_CLASS}.visible { opacity: 1; transform: translateX(-50%); }
     .${CARD_CLASS}:focus-visible,
     .${CARD_CLASS} button:focus-visible {
       outline: 2px solid var(--color-accent-primary);
@@ -66,7 +86,7 @@ function injectStyles(): void {
     }
     .${CARD_CLASS} h2 {
       margin: 0 0 var(--space-xs);
-      font-size: var(--font-size-sm);
+      font-size: var(--text-sm);
       font-weight: var(--font-weight-semibold);
       color: var(--color-text-secondary);
     }
@@ -74,8 +94,8 @@ function injectStyles(): void {
     .${CARD_CLASS} ul { margin: 0; padding-left: var(--space-md); }
     .${CARD_CLASS} li, .${CARD_CLASS} p {
       margin: 0;
-      font-size: var(--font-size-base);
-      line-height: var(--line-height-normal);
+      font-size: var(--text-base);
+      line-height: var(--leading-normal);
     }
     .${CARD_CLASS} .after-call-close {
       position: absolute;
@@ -88,14 +108,17 @@ function injectStyles(): void {
       padding: var(--space-xs);
       border-radius: var(--radius-full);
     }
-    .${CARD_CLASS} .after-call-cost {
-      margin-top: var(--space-md);
+    .${CARD_CLASS} .after-call-close-line { padding-right: var(--space-md); }
+    .${CARD_CLASS} .after-call-support {
+      display: block;
+      margin-top: var(--space-sm);
       background: transparent;
       border: none;
       padding: 0;
-      font-size: var(--font-size-xs);
-      color: var(--color-text-muted);
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
       text-decoration: underline;
+      text-underline-offset: 2px;
       cursor: pointer;
     }
     @media (prefers-reduced-motion: reduce) {
@@ -123,6 +146,37 @@ function buildCard(data: AfterCallData, options: AfterCallCardOptions): HTMLElem
   root.setAttribute('aria-label', t('afterCall.ariaLabel'));
   root.tabIndex = -1;
 
+  const close = el('button', 'after-call-close', '×');
+  close.type = 'button';
+  close.setAttribute('aria-label', t('afterCall.close'));
+  close.addEventListener('click', () => hideAfterCallCard());
+  root.appendChild(close);
+
+  if (data.remembered.length === 0 && !data.nextStep) {
+    // Nothing to recap: a short warm close instead of empty headings.
+    root.appendChild(el('p', 'after-call-close-line', t('afterCall.invitation')));
+  } else {
+    root.append(...buildRecap(data, options));
+  }
+
+  if (options.onSupport) {
+    const onSupport = options.onSupport;
+    const support = el('button', 'after-call-support', t('menu.items.supportFerni'));
+    support.type = 'button';
+    support.addEventListener('click', () => {
+      hideAfterCallCard();
+      onSupport();
+    });
+    root.appendChild(support);
+  }
+
+  root.addEventListener('keydown', onKeydown);
+  root.addEventListener('focusin', clearDismissTimer);
+  root.addEventListener('focusout', armDismissTimer);
+  return root;
+}
+
+function buildRecap(data: AfterCallData, options: AfterCallCardOptions): HTMLElement[] {
   const remember = el('section', 'after-call-remember');
   remember.setAttribute('aria-labelledby', 'after-call-remember-title');
   const rememberTitle = el('h2', undefined, t('afterCall.rememberTitle', { name: options.personaName }));
@@ -147,28 +201,30 @@ function buildCard(data: AfterCallData, options: AfterCallCardOptions): HTMLElem
       : el('p', 'after-call-invitation', t('afterCall.invitation'))
   );
 
-  const close = el('button', 'after-call-close', '×');
-  close.type = 'button';
-  close.setAttribute('aria-label', t('afterCall.close'));
-  close.addEventListener('click', () => hideAfterCallCard());
+  return [remember, next];
+}
 
-  root.append(close, remember, next);
-
-  if (options.onShowCost) {
-    const onShowCost = options.onShowCost;
-    const cost = el('button', 'after-call-cost', t('afterCall.seeCost'));
-    cost.type = 'button';
-    cost.addEventListener('click', () => {
-      hideAfterCallCard();
-      onShowCost();
-    });
-    root.appendChild(cost);
-  }
-
-  root.addEventListener('keydown', onKeydown);
-  root.addEventListener('focusin', clearDismissTimer);
-  root.addEventListener('focusout', armDismissTimer);
-  return root;
+/**
+ * Anchor the card just below the call controls, or just above them when it
+ * doesn't fit below and there is more room above, so it never sits on Connect
+ * and scrolls inside itself as little as possible. Without controls on screen
+ * it stays a bottom sheet.
+ */
+function placeCard(): void {
+  if (!card) return;
+  card.classList.remove('below-controls', 'above-controls');
+  const connect = document.getElementById('connectBtn');
+  // Connect's row, plus the round buttons under it (daily practice, predictions, insights).
+  const rects = [connect?.closest('.controls-row') ?? connect, document.querySelector('.engagement-triggers')]
+    .map((node) => node?.getBoundingClientRect())
+    .filter((rect): rect is DOMRect => rect !== undefined && rect.height > 0);
+  if (rects.length === 0) return;
+  const top = Math.min(...rects.map((rect) => rect.top));
+  const bottom = Math.max(...rects.map((rect) => rect.bottom));
+  const roomBelow = window.innerHeight - bottom;
+  const below = roomBelow >= card.scrollHeight || roomBelow >= top;
+  card.style.setProperty('--after-call-anchor', `${Math.round(below ? bottom : window.innerHeight - top)}px`);
+  card.classList.add(below ? 'below-controls' : 'above-controls');
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -201,11 +257,14 @@ export function showAfterCallCard(data: AfterCallData, options: AfterCallCardOpt
   returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   card = buildCard(data, options);
   document.body.appendChild(card);
+  placeCard();
+  window.addEventListener('resize', placeCard);
   document.addEventListener('keydown', onDocumentKeydown);
 
   const shown = card;
   const reveal = (): void => {
     if (card !== shown) return; // closed or replaced before the first frame
+    placeCard(); // the controls may have settled since the card was mounted
     shown.classList.add('visible');
     shown.focus({ preventScroll: true });
   };
@@ -224,6 +283,7 @@ export function showAfterCallCard(data: AfterCallData, options: AfterCallCardOpt
 export function hideAfterCallCard(immediate = false): void {
   clearDismissTimer();
   document.removeEventListener('keydown', onDocumentKeydown);
+  window.removeEventListener('resize', placeCard);
   if (!card) return;
 
   const closing = card;

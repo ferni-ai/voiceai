@@ -24,6 +24,9 @@ import {
   renderCloseButton,
 } from './engagement-components.js';
 import { apiGet } from '../utils/api.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('RitualBuilderUI');
 
 // ============================================================================
 // HELPERS
@@ -85,7 +88,7 @@ export interface RitualBuilderUICallbacks {
 // HUMANIZED COPY
 // ============================================================================
 
-const BUILDER_COPY = {
+const builderCopy = () => ({
   title: t('rituals.title', 'Create Custom Practice'),
   templateIntro: t('rituals.templateIntro', 'Choose a starting point or build from scratch'),
   customizeTitle: t('rituals.customizeTitle', 'Make it yours'),
@@ -128,7 +131,7 @@ const BUILDER_COPY = {
     created: t('rituals.confirmation.created', "Your practice is ready. You've got this."),
     withCalendar: t('rituals.confirmation.withCalendar', "Your practice is scheduled. I'll remind you!"),
   },
-};
+});
 
 // ============================================================================
 // RITUAL TEMPLATES - Powered by Behavioral Science
@@ -139,8 +142,6 @@ interface RitualTemplate {
   icon: keyof typeof ICONS;
   humanName: string;
   defaults: Partial<CustomRitual>;
-  // Behavioral science context
-  scienceNote: string;
   keystonePotential: number; // 0-100, how much this cascades into other habits
   habitLoop: {
     cue: string;
@@ -153,7 +154,7 @@ interface RitualTemplate {
   mayaGuidance: string; // Maya's coaching voice
 }
 
-const RITUAL_TEMPLATES: RitualTemplate[] = [
+const ritualTemplates = (): RitualTemplate[] => [
   {
     name: t('rituals.templates.morningCheckin.name', 'Morning Check-in'),
     humanName: t('rituals.templates.morningCheckin.humanName', 'Morning moment'),
@@ -164,7 +165,6 @@ const RITUAL_TEMPLATES: RitualTemplate[] = [
       preferredTime: 'morning',
       description: t('rituals.templates.morningCheckin.description', 'Start the day with intention'),
     },
-    scienceNote: t('rituals.templates.morningCheckin.scienceNote', 'Morning intentions improve focus by 31% (Harvard Business Review)'),
     keystonePotential: 85,
     habitLoop: {
       cue: t('rituals.templates.morningCheckin.cue', 'After your feet hit the floor'),
@@ -186,7 +186,6 @@ const RITUAL_TEMPLATES: RitualTemplate[] = [
       preferredTime: 'evening',
       description: t('rituals.templates.gratitudeMoment.description', 'Name three things you appreciate'),
     },
-    scienceNote: t('rituals.templates.gratitudeMoment.scienceNote', 'Gratitude practices increase happiness by 25% (UC Berkeley)'),
     keystonePotential: 70,
     habitLoop: {
       cue: t('rituals.templates.gratitudeMoment.cue', 'When you put your phone on the charger at night'),
@@ -208,7 +207,6 @@ const RITUAL_TEMPLATES: RitualTemplate[] = [
       preferredTime: 'morning',
       description: t('rituals.templates.weeklyReview.description', 'Reflect on wins and learnings'),
     },
-    scienceNote: t('rituals.templates.weeklyReview.scienceNote', 'Weekly reflection improves goal achievement by 42% (Dominican University)'),
     keystonePotential: 75,
     habitLoop: {
       cue: t('rituals.templates.weeklyReview.cue', 'Sunday morning with coffee/tea'),
@@ -225,7 +223,6 @@ const RITUAL_TEMPLATES: RitualTemplate[] = [
     humanName: t('rituals.templates.custom.humanName', 'Start fresh'),
     icon: 'plus',
     defaults: {},
-    scienceNote: t('rituals.templates.custom.scienceNote', 'Custom practices built around your life are 3x more likely to stick'),
     keystonePotential: 50,
     habitLoop: {
       cue: t('rituals.templates.custom.cue', 'You choose the trigger'),
@@ -353,7 +350,7 @@ class RitualBuilderUI {
     this.panel = document.createElement('div');
     this.panel.className = 'ritual-builder';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', BUILDER_COPY.title);
+    this.panel.setAttribute('aria-label', builderCopy().title);
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'ritual-builder__wrapper';
@@ -396,8 +393,8 @@ class RitualBuilderUI {
   private renderTemplateStep(): void {
     if (!this.wrapper) return;
 
-    // Build rich template cards with behavioral science context
-    const templatesHtml = RITUAL_TEMPLATES.map(
+    // Build rich template cards
+    const templatesHtml = ritualTemplates().map(
       (tmpl, i) => `
       <button class="ritual-builder__template-card" data-index="${i}" aria-label="${t('rituals.aria.chooseTemplate', { name: tmpl.humanName }, 'Choose {name}')}">
         <div class="ritual-builder__template-header">
@@ -415,16 +412,6 @@ class RitualBuilderUI {
           </div>
         </div>
         <p class="ritual-builder__template-desc">${escapeHtml(tmpl.defaults.description || tmpl.outcomePreview)}</p>
-
-        <!-- Behavioral Science Context -->
-        <div class="ritual-builder__template-science">
-          <span class="ritual-builder__science-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-          </span>
-          <span class="ritual-builder__science-text">${escapeHtml(tmpl.scienceNote)}</span>
-        </div>
 
         <!-- Tiny Version Hint -->
         <div class="ritual-builder__tiny-hint">
@@ -444,8 +431,8 @@ class RitualBuilderUI {
 
     this.wrapper.innerHTML = `
       <header class="ritual-builder__header">
-        <h2>${BUILDER_COPY.title}</h2>
-        ${renderCloseButton(BUILDER_COPY.buttons.close)}
+        <h2>${builderCopy().title}</h2>
+        ${renderCloseButton(builderCopy().buttons.close)}
       </header>
 
       <!-- Maya's Guidance -->
@@ -485,7 +472,7 @@ class RitualBuilderUI {
     this.wrapper.querySelectorAll('.ritual-builder__template-card').forEach((btn) => {
       btn.addEventListener('click', () => {
         const index = parseInt((btn as HTMLElement).dataset.index || '0', 10);
-        const template = RITUAL_TEMPLATES[index];
+        const template = ritualTemplates()[index];
         if (template) {
           this.selectedTemplate = template;
           this.ritual = {
@@ -533,36 +520,36 @@ class RitualBuilderUI {
 
     this.wrapper.innerHTML = `
       <header class="ritual-builder__header">
-        ${renderBackButton(BUILDER_COPY.buttons.back)}
-        <h2>${BUILDER_COPY.customizeTitle}</h2>
-        ${renderCloseButton(BUILDER_COPY.buttons.close)}
+        ${renderBackButton(builderCopy().buttons.back)}
+        <h2>${builderCopy().customizeTitle}</h2>
+        ${renderCloseButton(builderCopy().buttons.close)}
       </header>
 
       <div class="ritual-builder__form">
         <div class="ritual-builder__field">
-          <label for="ritual-name">${BUILDER_COPY.fieldLabels.name}</label>
+          <label for="ritual-name">${builderCopy().fieldLabels.name}</label>
           <input 
             type="text" 
             id="ritual-name" 
             class="engagement-input"
             value="${escapeAttr(this.ritual.name)}" 
-            placeholder="${escapeAttr(BUILDER_COPY.placeholders.name)}" 
+            placeholder="${escapeAttr(builderCopy().placeholders.name)}" 
           />
         </div>
 
         <div class="ritual-builder__field">
-          <label for="ritual-desc">${BUILDER_COPY.fieldLabels.description}</label>
+          <label for="ritual-desc">${builderCopy().fieldLabels.description}</label>
           <textarea 
             id="ritual-desc" 
             class="engagement-textarea"
             rows="2" 
-            placeholder="${escapeAttr(BUILDER_COPY.placeholders.description)}"
+            placeholder="${escapeAttr(builderCopy().placeholders.description)}"
           >${escapeHtml(this.ritual.description)}</textarea>
         </div>
 
         <div class="ritual-builder__row">
           <div class="ritual-builder__field">
-            <label>${BUILDER_COPY.fieldLabels.duration}</label>
+            <label>${builderCopy().fieldLabels.duration}</label>
             <select id="ritual-duration" class="engagement-select">
               ${durationOptions
                 .map(
@@ -575,7 +562,7 @@ class RitualBuilderUI {
           </div>
 
           <div class="ritual-builder__field">
-            <label>${BUILDER_COPY.fieldLabels.frequency}</label>
+            <label>${builderCopy().fieldLabels.frequency}</label>
             <select id="ritual-frequency" class="engagement-select">
               ${frequencyOptions
                 .map(
@@ -589,7 +576,7 @@ class RitualBuilderUI {
         </div>
 
         <div class="ritual-builder__field">
-          <label>${BUILDER_COPY.fieldLabels.time}</label>
+          <label>${builderCopy().fieldLabels.time}</label>
           <div class="ritual-builder__time-options">
             ${timeOptions
               .map(
@@ -609,7 +596,7 @@ class RitualBuilderUI {
       </div>
 
       <div class="ritual-builder__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${builderCopy().buttons.preview}</button>
       </div>
     `;
 
@@ -680,9 +667,9 @@ class RitualBuilderUI {
 
     this.wrapper.innerHTML = `
       <header class="ritual-builder__header">
-        ${renderBackButton(BUILDER_COPY.buttons.back)}
-        <h2>${BUILDER_COPY.calendarTitle}</h2>
-        ${renderCloseButton(BUILDER_COPY.buttons.close)}
+        ${renderBackButton(builderCopy().buttons.back)}
+        <h2>${builderCopy().calendarTitle}</h2>
+        ${renderCloseButton(builderCopy().buttons.close)}
       </header>
 
       <div class="ritual-builder__form">
@@ -690,16 +677,16 @@ class RitualBuilderUI {
           <label class="ritual-builder__toggle-container">
             <input type="checkbox" id="schedule-toggle" ${this.ritual.scheduleInCalendar ? 'checked' : ''} />
             <span class="ritual-builder__toggle-slider" role="button" tabindex="0"></span>
-            <span class="ritual-builder__toggle-label" role="button" tabindex="0">${BUILDER_COPY.fieldLabels.scheduleInCalendar}</span>
+            <span class="ritual-builder__toggle-label" role="button" tabindex="0">${builderCopy().fieldLabels.scheduleInCalendar}</span>
           </label>
           <p class="ritual-builder__toggle-hint">
-            ${this.ritual.scheduleInCalendar ? BUILDER_COPY.calendar.enabled : BUILDER_COPY.calendar.disabled}
+            ${this.ritual.scheduleInCalendar ? builderCopy().calendar.enabled : builderCopy().calendar.disabled}
           </p>
         </div>
 
         <div class="ritual-builder__calendar-options ${this.ritual.scheduleInCalendar ? '' : 'ritual-builder__calendar-options--hidden'}">
           <div class="ritual-builder__field">
-            <label>${BUILDER_COPY.fieldLabels.specificTime}</label>
+            <label>${builderCopy().fieldLabels.specificTime}</label>
             <div class="ritual-builder__time-picker">
               <input 
                 type="time" 
@@ -709,16 +696,16 @@ class RitualBuilderUI {
               />
               <button aria-label="${t('accessibility.copy')}" type="button" class="engagement-btn-secondary ritual-builder__suggest-btn">
                 ${ICONS.clock}
-                ${BUILDER_COPY.buttons.suggestTimes}
+                ${builderCopy().buttons.suggestTimes}
               </button>
             </div>
           </div>
 
           <div class="ritual-builder__suggestions ${this.timeSuggestions.length > 0 || this.loadingSuggestions ? '' : 'ritual-builder__suggestions--hidden'}">
             ${this.loadingSuggestions ? `
-              <div class="ritual-builder__loading">${BUILDER_COPY.calendar.loadingSuggestions}</div>
+              <div class="ritual-builder__loading">${builderCopy().calendar.loadingSuggestions}</div>
             ` : this.timeSuggestions.length > 0 ? `
-              <p class="ritual-builder__suggestion-hint">${BUILDER_COPY.calendar.suggestion}</p>
+              <p class="ritual-builder__suggestion-hint">${builderCopy().calendar.suggestion}</p>
               <div class="ritual-builder__suggestion-list">
                 ${this.timeSuggestions.slice(0, 3).map((s, i) => `
                   <button type="button" class="ritual-builder__suggestion-item" data-hour="${s.hour}" data-minute="${s.minute}" data-index="${i}">
@@ -732,7 +719,7 @@ class RitualBuilderUI {
           </div>
 
           <div class="ritual-builder__field">
-            <label>${BUILDER_COPY.fieldLabels.reminders}</label>
+            <label>${builderCopy().fieldLabels.reminders}</label>
             <div class="ritual-builder__reminder-options">
               ${reminderOptions.map(opt => `
                 <label class="ritual-builder__reminder-option">
@@ -750,8 +737,8 @@ class RitualBuilderUI {
       </div>
 
       <div class="ritual-builder__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.skipCalendar}</button>
-        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-secondary" type="button">${builderCopy().buttons.skipCalendar}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${builderCopy().buttons.preview}</button>
       </div>
     `;
 
@@ -870,26 +857,16 @@ class RitualBuilderUI {
         frequency: this.ritual.frequency,
       });
 
-      const response = await apiGet<{ suggestions?: string[] }>(
+      // The server already sends TimeSuggestion objects (practice-calendar.ts).
+      const response = await apiGet<{ suggestions?: TimeSuggestion[] }>(
         `/api/practices/time-suggestions?${params}`
       );
       if (response.ok && response.data) {
-        // Map string times to TimeSuggestion objects
-        this.timeSuggestions = (response.data.suggestions || []).map((timeStr: string): TimeSuggestion => {
-          const [hours, minutes] = timeStr.split(':').map(Number);
-          return { 
-            time: timeStr, 
-            hour: hours ?? 0, 
-            minute: minutes ?? 0,
-            dayOfWeek: '',
-            confidence: 0.8,
-            reasoning: t('rituals.calendar.suggestedTime', 'Suggested time'),
-            freeMinutes: 60,
-          };
-        });
+        this.timeSuggestions = response.data.suggestions ?? [];
       }
     } catch (err) {
-      // Silently fail - suggestions are optional
+      // Suggestions are optional: the user can still pick a time by hand
+      log.warn('Time suggestions failed', err);
       this.timeSuggestions = [];
     } finally {
       this.loadingSuggestions = false;
@@ -990,9 +967,9 @@ class RitualBuilderUI {
 
     this.wrapper.innerHTML = `
       <header class="ritual-builder__header">
-        ${renderBackButton(BUILDER_COPY.buttons.back)}
-        <h2>${BUILDER_COPY.previewTitle}</h2>
-        ${renderCloseButton(BUILDER_COPY.buttons.close)}
+        ${renderBackButton(builderCopy().buttons.back)}
+        <h2>${builderCopy().previewTitle}</h2>
+        ${renderCloseButton(builderCopy().buttons.close)}
       </header>
 
       <div class="ritual-builder__preview">
@@ -1038,8 +1015,8 @@ class RitualBuilderUI {
       </div>
 
       <div class="ritual-builder__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.edit')}" class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.edit}</button>
-        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.save}</button>
+        <button aria-label="${t('accessibility.edit')}" class="engagement-btn-secondary" type="button">${builderCopy().buttons.edit}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${builderCopy().buttons.save}</button>
       </div>
     `;
 
@@ -1099,7 +1076,7 @@ class RitualBuilderUI {
       .ritual-builder {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1304,30 +1281,6 @@ class RitualBuilderUI {
         color: var(--color-text-secondary);
         line-height: var(--leading-relaxed);
         margin: 0;
-      }
-
-      /* Science Note */
-      .ritual-builder__template-science {
-        display: flex;
-        align-items: flex-start;
-        gap: var(--ma-breath);
-        padding: var(--ma-breath) var(--ma-pause);
-        background: var(--color-background-tertiary);
-        border-radius: var(--radius-md);
-        margin-top: var(--ma-breath);
-      }
-
-      .ritual-builder__science-icon {
-        color: var(--persona-peter, #3a6b73);
-        flex-shrink: 0;
-        margin-top: 1px;
-      }
-
-      .ritual-builder__science-text {
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
-        line-height: 1.4;
-        font-style: italic;
       }
 
       /* Tiny Hint */
@@ -2010,10 +1963,6 @@ class RitualBuilderUI {
           rgba(166, 122, 106, 0.12),
           var(--color-background-tertiary)
         );
-      }
-
-      [data-theme="midnight"] .ritual-builder__template-science {
-        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .ritual-builder__keystone-badge {

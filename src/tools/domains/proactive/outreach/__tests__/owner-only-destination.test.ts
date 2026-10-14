@@ -1,0 +1,89 @@
+/**
+ * The outreach tools exempt from the confirm gate (outbound-gate.ts) are exempt
+ * because they only ever reach the account owner: the number and address come
+ * from the owner's saved profile. A number or address the model puts in the
+ * arguments is ignored. Mocked at the edges: the profile store and the
+ * SMS / email / call / reminder senders.
+ */
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const OWNER = { phone: '+18015550100', email: 'owner@example.com' };
+const STRANGER = { phoneNumber: '+12125550199', to: '+12125550199', recipient: '+12125550199' };
+
+const sent = vi.hoisted(() => ({
+  sms: vi.fn(async (..._a: unknown[]) => 'sent'),
+  email: vi.fn(async (..._a: unknown[]) => 'sent'),
+  call: vi.fn(async (..._a: unknown[]) => ({ success: true, callSid: 'CA1' })),
+  reminder: vi.fn(async (..._a: unknown[]) => ({ id: 'r1' })),
+}));
+
+vi.mock('../../../../../memory/profile-store.js', () => ({
+  getProfileStore: async () => ({
+    getProfile: async () => ({
+      contactInfo: { phone: '+18015550100', email: 'owner@example.com', timezone: 'UTC' },
+      preferences: { proactiveContact: { phone: '+18015550100', email: 'owner@example.com' } },
+    }),
+  }),
+}));
+vi.mock('../../../../../services/communication-service.js', () => ({
+  sendSMS: sent.sms,
+  sendEmail: sent.email,
+}));
+vi.mock('../../../../../services/voice/voice-call.js', () => ({
+  callWithPersonaVoice: sent.call,
+}));
+vi.mock('../../../../../services/scheduling/reminder-scheduler.js', async (orig) => ({
+  ...(await orig<object>()),
+  createReminder: sent.reminder,
+  startReminderScheduler: () => undefined,
+}));
+vi.mock('../../../../../services/superhuman/semantic-intelligence/promise-keeper.js', () => ({
+  recordScheduledPromise: async () => undefined,
+  recordReminderPromise: async () => undefined,
+}));
+
+import type { ToolContext, ToolDefinition } from '../../../../registry/types.js';
+import { definitions as schedulingDefs } from '../../../scheduling/index.js';
+import { getAgentToUserOutreachDefinitions } from '../agent-to-user.js';
+
+const ctx: ToolContext = { userId: 'owner-uid', agentId: 'ferni', agentDisplayName: 'Ferni' };
+const all: ToolDefinition[] = [...schedulingDefs, ...getAgentToUserOutreachDefinitions()];
+const run = (id: string, args: Record<string, unknown>) =>
+  all
+    .find((d) => d.id === id)!
+    .create(ctx)
+    .execute({ ...args, ...STRANGER }, {});
+
+afterEach(() => vi.clearAllMocks());
+
+describe('owner-only tools ignore a destination in their arguments', () => {
+  it('sendMessageNow texts the owner, not the supplied number', async () => {
+    await run('sendMessageNow', { message: 'hi' });
+    expect(sent.sms.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
+  });
+
+  it('sendImmediateOutreach texts, emails and calls only the owner', async () => {
+    await run('sendImmediateOutreach', { message: 'hi', method: 'sms' });
+    await run('sendImmediateOutreach', { message: 'hi', method: 'email' });
+    await run('sendImmediateOutreach', { message: 'hi', method: 'call' });
+    expect(sent.sms.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
+    expect(sent.email.mock.calls.map((c) => c[0])).toEqual([OWNER.email]);
+    expect(sent.call.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
+  });
+
+  it('callUser calls only the owner', async () => {
+    await run('callUser', { message: 'hi' });
+    expect(sent.call.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
+  });
+
+  it('scheduleMessage / scheduleCall / scheduleEmail deliver only to the owner', async () => {
+    await run('scheduleMessage', { message: 'hi', when: 'in 2 hours' });
+    await run('scheduleCall', { message: 'hi', when: 'in 2 hours' });
+    await run('scheduleEmail', { subject: 's', message: 'hi', when: 'in 2 hours' });
+    const addresses = sent.reminder.mock.calls.map(
+      (c) => (c[0] as { deliveryAddress: string }).deliveryAddress
+    );
+    expect(addresses).toEqual([OWNER.phone, OWNER.phone, OWNER.email]);
+  });
+});

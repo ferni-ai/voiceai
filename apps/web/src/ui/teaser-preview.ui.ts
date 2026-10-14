@@ -35,7 +35,6 @@ export type TeaserType =
   | 'patterns'
   | 'trust_insights'
   | 'life_context'
-  | 'predictions'
   | 'team_insights'
   | 'memories'
   | 'your_people'
@@ -208,35 +207,6 @@ const getTeaserContent = (): Record<TeaserType, TeaserContent> => ({
         <div class="teaser-life-insight">
           <span class="teaser-life-insight-icon">${ICONS.sparkle}</span>
           <p>${t('teaserPreview.life.insight')}</p>
-        </div>
-      </div>
-    `,
-  },
-
-  predictions: {
-    title: t('teaserPreview.predictions.title'),
-    message: t('teaserPreview.predictions.message'),
-    daysRequired: 21,
-    previewHtml: `
-      <div class="teaser-predictions">
-        <div class="teaser-prediction-card teaser-prediction--accurate">
-          <span class="teaser-prediction-status">✓ ${t('predictions.accurate')}</span>
-          <p class="teaser-prediction-text">${t('teaserPreview.predictions.guessOverwhelmed')}</p>
-          <span class="teaser-prediction-result">${t('teaserPreview.predictions.resultStress')}</span>
-        </div>
-        <div class="teaser-prediction-card teaser-prediction--accurate">
-          <span class="teaser-prediction-status">✓ ${t('predictions.accurate')}</span>
-          <p class="teaser-prediction-text">${t('teaserPreview.predictions.guessGym')}</p>
-          <span class="teaser-prediction-result">${tp('teaserPreview.predictions.skipped', 2)}</span>
-        </div>
-        <div class="teaser-prediction-card teaser-prediction--pending">
-          <span class="teaser-prediction-status">⏳ ${t('predictions.watching')}</span>
-          <p class="teaser-prediction-text">${t('teaserPreview.predictions.guessSunday')}</p>
-          <span class="teaser-prediction-result">${t('teaserPreview.predictions.resultCheckIn')}</span>
-        </div>
-        <div class="teaser-prediction-accuracy">
-          <span class="teaser-prediction-accuracy-value">78%</span>
-          <span class="teaser-prediction-accuracy-label">${t('predictions.accuracy')}</span>
         </div>
       </div>
     `,
@@ -509,10 +479,6 @@ export class TeaserPreviewUI {
     return this.create({ type: 'life_context' });
   }
 
-  predictions(): HTMLElement {
-    return this.create({ type: 'predictions' });
-  }
-
   teamInsights(): HTMLElement {
     return this.create({ type: 'team_insights' });
   }
@@ -549,7 +515,7 @@ export class TeaserPreviewUI {
 
     // Stagger-animate preview cards
     const cards = element.querySelectorAll(
-      '.teaser-pattern-card, .teaser-memory-card, .teaser-person-card, .teaser-habit-card, .teaser-team-insight, .teaser-prediction-card'
+      '.teaser-pattern-card, .teaser-memory-card, .teaser-person-card, .teaser-habit-card, .teaser-team-insight'
     );
     cards.forEach((card, i) => {
       const el = card as HTMLElement;
@@ -969,73 +935,6 @@ export class TeaserPreviewUI {
         line-height: 1.4;
       }
 
-      /* ==================== PREDICTIONS TEASER ==================== */
-
-      .teaser-predictions {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-      }
-
-      .teaser-prediction-card {
-        padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
-        border-radius: var(--radius-md, 8px);
-      }
-
-      .teaser-prediction--accurate {
-        border-left: 3px solid var(--persona-primary, #4a6741);
-      }
-
-      .teaser-prediction--pending {
-        border-left: 3px solid var(--color-text-muted, #7a6a5a);
-        opacity: 0.7;
-      }
-
-      .teaser-prediction-status {
-        font-size: 0.65rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--persona-primary, #4a6741);
-      }
-
-      .teaser-prediction--pending .teaser-prediction-status {
-        color: var(--color-text-muted, #7a6a5a);
-      }
-
-      .teaser-prediction-text {
-        font-size: 0.85rem;
-        font-style: italic;
-        color: var(--color-text-primary, #2C2520);
-        margin: var(--space-1) 0;
-      }
-
-      .teaser-prediction-result {
-        font-size: 0.7rem;
-        color: var(--color-text-muted, #7a6a5a);
-      }
-
-      .teaser-prediction-accuracy {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: var(--space-3);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-        border-radius: var(--radius-md, 8px);
-      }
-
-      .teaser-prediction-accuracy-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--persona-primary, #4a6741);
-      }
-
-      .teaser-prediction-accuracy-label {
-        font-size: 0.7rem;
-        color: var(--color-text-muted, #7a6a5a);
-      }
-
       /* ==================== TEAM INSIGHTS TEASER ==================== */
 
       .teaser-team-insights {
@@ -1331,8 +1230,7 @@ export class TeaserPreviewUI {
         .teaser-memory-card,
         .teaser-person-card,
         .teaser-habit-card,
-        .teaser-team-insight,
-        .teaser-prediction-card {
+        .teaser-team-insight {
           transition: none !important;
         }
       }
@@ -1364,7 +1262,6 @@ export const teaserPreview = {
   patterns: () => getTeaserPreviewUI().patterns(),
   trustInsights: () => getTeaserPreviewUI().trustInsights(),
   lifeContext: () => getTeaserPreviewUI().lifeContext(),
-  predictions: () => getTeaserPreviewUI().predictions(),
   teamInsights: () => getTeaserPreviewUI().teamInsights(),
   memories: () => getTeaserPreviewUI().memories(),
   yourPeople: () => getTeaserPreviewUI().yourPeople(),

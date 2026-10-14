@@ -20,6 +20,7 @@ import { createLogger } from '../utils/logger.js';
 import { asModalDialog } from '../utils/accessibility.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
+import { getUserTimezone } from '../services/timezone.service.js';
 
 const log = createLogger('NotifySettings');
 const TIME_FORMAT: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
@@ -89,6 +90,8 @@ class NotificationSettingsUI {
   private currentTab: 'settings' | 'upcoming' = 'settings';
   private upcomingItems: ScheduledOutreach[] = [];
   private isLoadingUpcoming = false;
+  private upcomingLoadFailed = false;
+  private quietHoursEdited = false;
 
   initialize(): void {
     if (this.panel) return;
@@ -128,6 +131,45 @@ class NotificationSettingsUI {
 
     // Pre-load upcoming data in background
     void this.loadUpcomingData();
+    this.quietHoursEdited = false;
+    void this.loadServerQuietHours();
+  }
+
+  /**
+   * Quiet hours live on the server too: texts, calls and check-ins are sent
+   * from there, so the saved window is what the user set, not this browser's copy.
+   */
+  private async loadServerQuietHours(): Promise<void> {
+    try {
+      const response = await apiGet<{
+        success?: boolean;
+        preferences?: { quietHoursStart?: string; quietHoursEnd?: string };
+      }>('/api/user/preferences');
+      const prefs = response.ok && response.data?.success ? response.data.preferences : undefined;
+      if (!prefs?.quietHoursStart || !prefs.quietHoursEnd || !this.localPrefs) return;
+      if (this.quietHoursEdited) return; // don't overwrite what the user is typing
+      this.localPrefs.quietHoursStart = prefs.quietHoursStart;
+      this.localPrefs.quietHoursEnd = prefs.quietHoursEnd;
+      const start = this.panel?.querySelector<HTMLInputElement>('#quiet-start');
+      const end = this.panel?.querySelector<HTMLInputElement>('#quiet-end');
+      if (start) start.value = prefs.quietHoursStart;
+      if (end) end.value = prefs.quietHoursEnd;
+    } catch (error) {
+      log.warn({ error }, 'Failed to load quiet hours from server');
+    }
+  }
+
+  private async saveServerQuietHours(start: string, end: string): Promise<void> {
+    try {
+      const response = await apiPost('/api/user/preferences', {
+        timezone: getUserTimezone(),
+        quietHoursStart: start,
+        quietHoursEnd: end,
+      });
+      if (!response.ok) log.warn({ error: response.error }, 'Failed to save quiet hours to server');
+    } catch (error) {
+      log.warn({ error }, 'Failed to save quiet hours to server');
+    }
   }
 
   hide(): void {
@@ -162,6 +204,7 @@ class NotificationSettingsUI {
 
     try {
       const response = await apiGet<{ upcoming?: Array<Record<string, unknown>> }>('/api/outreach/upcoming');
+      this.upcomingLoadFailed = !response.ok || !response.data;
       if (response.ok && response.data) {
         this.upcomingItems = (response.data.upcoming || []).map((item: Record<string, unknown>) => ({
           scheduledFor: new Date(item.scheduledFor as string),
@@ -171,12 +214,13 @@ class NotificationSettingsUI {
       }
     } catch (error) {
       log.warn({ error }, 'Failed to load upcoming check-ins');
+      this.upcomingLoadFailed = true;
       this.upcomingItems = [];
     } finally {
       this.isLoadingUpcoming = false;
-      // Re-render if we're on the upcoming tab
+      // Re-render if we're on the upcoming tab (renderTabContent only returns HTML)
       if (this.currentTab === 'upcoming' && this.panel) {
-        this.renderTabContent();
+        this.renderContent();
       }
     }
   }
@@ -364,8 +408,8 @@ class NotificationSettingsUI {
         </div>
       </div>
 
-      <!-- Quiet Hours: Guardian Respects Boundaries -->
-      <div class="notif-settings__group" data-requires="enabled">
+      <!-- Quiet Hours: Guardian Respects Boundaries (texts and calls too, so not tied to push) -->
+      <div class="notif-settings__group">
         <div class="notif-settings__section-header">
           <h3>${t('notificationSettings.quietHours')}</h3>
         </div>
@@ -473,6 +517,10 @@ class NotificationSettingsUI {
       `;
     }
 
+    if (this.upcomingLoadFailed) {
+      return `<p class="notif-settings__empty-subtitle">${t('notificationSettings.upcomingLoadFailed')}</p>`;
+    }
+
     if (this.upcomingItems.length === 0) {
       return this.renderUpcomingEmptyState();
     }
@@ -495,8 +543,7 @@ class NotificationSettingsUI {
   }
 
   /**
-   * Better Than Human empty state for the Upcoming tab
-   * Shows what proactive check-ins WILL look like with superhuman capabilities
+   * Empty state for the Upcoming tab: nothing is scheduled yet
    */
   private renderUpcomingEmptyState(): string {
     return `
@@ -517,65 +564,7 @@ class NotificationSettingsUI {
         <p class="notif-settings__empty-subtitle">
           ${t('notificationSettings.learningDesc')}
         </p>
-      </div>
-
-      <!-- Preview Badge -->
-      <div class="notif-settings__preview-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12">
-          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        <span>${t('notificationSettings.whatThisWillLook')}</span>
-      </div>
-
-      <!-- Sample Upcoming Check-ins Preview -->
-      <div class="notif-settings__sample-checkins">
-        <div class="notif-settings__sample-checkin" style="animation-delay: 100ms">
-          <div class="notif-settings__sample-avatar notif-settings__sample-avatar--ferni">${t('team.members.ferni.name').charAt(0)}</div>
-          <div class="notif-settings__sample-content">
-            <span class="notif-settings__sample-persona">${t('team.members.ferni.name')}</span>
-            <span class="notif-settings__sample-time">${t('outreachSchedule.tomorrowAt', { time: formatDate(new Date(2000, 0, 1, 8, 15), TIME_FORMAT) })}</span>
-            <p class="notif-settings__sample-preview">${t('notificationSettings.sampleOverwhelmed')}</p>
-          </div>
-          <div class="notif-settings__sample-reason">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-            </svg>
-            ${t('notificationSettings.noticedConcern')}
-          </div>
-        </div>
-
-        <div class="notif-settings__sample-checkin" style="animation-delay: 200ms">
-          <div class="notif-settings__sample-avatar notif-settings__sample-avatar--maya">${t('team.members.maya.name').charAt(0)}</div>
-          <div class="notif-settings__sample-content">
-            <span class="notif-settings__sample-persona">${t('team.members.maya.name')}</span>
-            <span class="notif-settings__sample-time">${t('notificationSettings.sampleFriday', { time: formatDate(new Date(2000, 0, 1, 7, 0), TIME_FORMAT) })}</span>
-            <p class="notif-settings__sample-preview">${t('notificationSettings.sampleMeditation')}</p>
-          </div>
-          <div class="notif-settings__sample-reason">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12">
-              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
-            </svg>
-            ${t('notificationSettings.streakSupport')}
-          </div>
-        </div>
-
-        <div class="notif-settings__sample-checkin notif-settings__sample-checkin--watching" style="animation-delay: 300ms">
-          <div class="notif-settings__sample-avatar notif-settings__sample-avatar--peter">${t('team.members.peter.name').charAt(0)}</div>
-          <div class="notif-settings__sample-content">
-            <span class="notif-settings__sample-persona">${t('team.members.peter.name')}</span>
-            <span class="notif-settings__sample-time">${t('notificationSettings.nextMonday')}</span>
-            <p class="notif-settings__sample-preview">${t('notificationSettings.samplePresentation')}</p>
-          </div>
-          <div class="notif-settings__sample-reason">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12">
-              <rect width="18" height="18" x="3" y="4" rx="2"/>
-              <line x1="16" x2="16" y1="2" y2="6"/>
-              <line x1="8" x2="8" y1="2" y2="6"/>
-            </svg>
-            ${t('notificationSettings.calendarAware')}
-          </div>
-        </div>
+        <p class="notif-settings__empty-subtitle" style="margin-top: var(--space-2)">${t('notificationSettings.upcomingEmptyNote')}</p>
       </div>
 
       <!-- Four Superhuman Capabilities -->
@@ -768,6 +757,7 @@ class NotificationSettingsUI {
       (this.localPrefs as unknown as Record<string, unknown>)[pref] = input.checked;
     } else {
       (this.localPrefs as unknown as Record<string, unknown>)[pref] = input.value;
+      if (pref === 'quietHoursStart' || pref === 'quietHoursEnd') this.quietHoursEdited = true;
     }
 
     // Update dependent sections if main toggle changed
@@ -904,6 +894,12 @@ class NotificationSettingsUI {
     // Enabling subscribes this browser on the server; disabling removes it.
     void applyPushPreference(this.localPrefs.enabled);
 
+    // Texts, calls and check-ins are sent by the server, in the user's own time zone.
+    void this.saveServerQuietHours(
+      this.localPrefs.quietHoursStart || '22:00',
+      this.localPrefs.quietHoursEnd || '08:00'
+    );
+
     // Save outreach preferences
     if (this.outreachPrefs) {
       void outreachService.updatePreferences(this.outreachPrefs);
@@ -923,7 +919,7 @@ class NotificationSettingsUI {
       .notif-settings {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1501,129 +1497,6 @@ class NotificationSettingsUI {
         margin: 0 auto;
       }
 
-      /* Preview Badge */
-      .notif-settings__preview-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-1, 4px);
-        padding: var(--space-1, 4px) var(--space-3, 12px);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-        border-radius: var(--radius-full);
-        margin: var(--space-4, 16px) auto;
-        color: var(--persona-primary, #4a6741);
-        font-size: 10px;
-        font-weight: var(--font-weight-semibold, 600);
-        text-transform: uppercase;
-        letter-spacing: var(--tracking-wider, 0.05em);
-      }
-
-      /* Sample Check-ins */
-      .notif-settings__sample-checkins {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-2, 8px);
-        margin-bottom: var(--space-6, 24px);
-        position: relative;
-      }
-
-      .notif-settings__sample-checkins::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 40px;
-        background: linear-gradient(to bottom, transparent, var(--color-bg-elevated, #FFFDFB));
-        pointer-events: none;
-        border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
-      }
-
-      .notif-settings__sample-checkin {
-        display: flex;
-        align-items: flex-start;
-        gap: var(--space-3, 12px);
-        padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
-        border-radius: var(--radius-lg, 12px);
-        opacity: 0;
-        transform: translateY(8px);
-        animation: sampleCheckinSlide ${DURATION.MODERATE}ms ${EASING.SPRING} forwards;
-      }
-
-      @keyframes sampleCheckinSlide {
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      .notif-settings__sample-checkin--watching {
-        opacity: 0.7;
-      }
-
-      .notif-settings__sample-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: var(--text-xs, 0.75rem);
-        font-weight: var(--font-weight-semibold, 600);
-        color: white;
-        flex-shrink: 0;
-      }
-
-      .notif-settings__sample-avatar--ferni { background: var(--persona-primary, #4a6741); }
-      .notif-settings__sample-avatar--maya { background: var(--persona-maya, #a67a6a); }
-      .notif-settings__sample-avatar--peter { background: var(--persona-peter, #3a6b73); }
-      .notif-settings__sample-avatar--alex { background: var(--persona-alex, #5a6b8a); }
-      .notif-settings__sample-avatar--jordan { background: var(--persona-jordan, #c4856a); }
-      .notif-settings__sample-avatar--nayan { background: var(--persona-nayan, #b8956a); }
-
-      .notif-settings__sample-content {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .notif-settings__sample-persona {
-        display: block;
-        font-family: var(--font-display);
-        font-size: var(--text-xs, 0.75rem);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary);
-      }
-
-      .notif-settings__sample-time {
-        font-size: 10px;
-        color: var(--color-text-muted);
-      }
-
-      .notif-settings__sample-preview {
-        font-family: var(--font-body);
-        font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary);
-        font-style: italic;
-        margin: var(--space-1, 4px) 0 0;
-        line-height: var(--leading-snug, 1.375);
-      }
-
-      .notif-settings__sample-reason {
-        display: flex;
-        align-items: center;
-        gap: var(--space-1, 4px);
-        font-size: 9px;
-        font-weight: var(--font-weight-medium, 500);
-        text-transform: uppercase;
-        letter-spacing: var(--tracking-wide, 0.025em);
-        color: var(--persona-primary, #4a6741);
-        flex-shrink: 0;
-        padding: var(--space-1, 4px) var(--space-2, 8px);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-        border-radius: var(--radius-sm, 6px);
-      }
-
       /* Superhuman Capabilities Grid */
       .notif-settings__capabilities {
         display: grid;
@@ -1911,7 +1784,7 @@ class NotificationSettingsUI {
       .notif-settings__dialog-overlay {
         position: fixed;
         inset: 0;
-        z-index: calc(var(--z-modal, 1400) + 10);
+        z-index: calc(var(--z-modal) + 10);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -2005,12 +1878,10 @@ class NotificationSettingsUI {
       }
       [data-theme="midnight"] .notif-settings__hero-title,
       [data-theme="midnight"] .notif-settings__empty-title,
-      [data-theme="midnight"] .notif-settings__sample-persona,
       [data-theme="midnight"] .notif-settings__capability-name { color: var(--color-text-primary, #faf6f0); }
       [data-theme="midnight"] .notif-settings__hero-desc,
       [data-theme="midnight"] .notif-settings__empty-subtitle,
-      [data-theme="midnight"] .notif-settings__empty-cta-text,
-      [data-theme="midnight"] .notif-settings__sample-preview { color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .notif-settings__empty-cta-text { color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .notif-settings__section-badge {
         background: linear-gradient(135deg, var(--persona-tint-dark, rgba(140, 179, 128, 0.25)), var(--persona-tint-dark, rgba(140, 179, 128, 0.1)));
         color: var(--persona-primary-dark, #8cb380);
@@ -2034,20 +1905,6 @@ class NotificationSettingsUI {
       [data-theme="midnight"] .notif-settings__guardian-ring { border-color: var(--persona-primary-dark, #8cb380); }
       [data-theme="midnight"] .notif-settings__guardian-icon {
         background: linear-gradient(135deg, var(--persona-tint-dark, rgba(140, 179, 128, 0.25)), var(--persona-tint-dark, rgba(140, 179, 128, 0.1)));
-        color: var(--persona-primary-dark, #8cb380);
-      }
-      [data-theme="midnight"] .notif-settings__preview-badge {
-        background: var(--persona-tint-dark, rgba(140, 179, 128, 0.2));
-        color: var(--persona-primary-dark, #8cb380);
-      }
-      [data-theme="midnight"] .notif-settings__sample-checkin {
-        background: var(--color-background-secondary, #1e1a16);
-      }
-      [data-theme="midnight"] .notif-settings__sample-checkins::after {
-        background: linear-gradient(to bottom, transparent, var(--color-background-elevated, #352e28));
-      }
-      [data-theme="midnight"] .notif-settings__sample-reason {
-        background: var(--persona-tint-dark, rgba(140, 179, 128, 0.15));
         color: var(--persona-primary-dark, #8cb380);
       }
       [data-theme="midnight"] .notif-settings__capability {

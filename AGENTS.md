@@ -3,8 +3,11 @@
 Ferni is a voice AI companion ("making AI human"). This file is the one set of
 instructions for every coding agent (Claude Code reads it through `CLAUDE.md`;
 Codex, Cursor and others read it directly). It holds only what the code can't
-tell you: how work ships here, and the traps that have cost us before. For
-anything else, read the code, and `docs/agent/` on demand.
+tell you: how work ships here, and the traps that have cost us before. How
+the work around a change is organised (issues, the board, how much is in
+flight, review by risk) is in `docs/agent/operating-model.md`: read it before
+opening an issue or a PR. For anything else, read the code, and `docs/agent/`
+on demand.
 
 ## The stack today (verified 2026-10-08)
 
@@ -41,6 +44,15 @@ function-call workaround or Sonata are describing retired setups.
 6. **Deploy only commits that are on `origin/main`** (skill: `deploy-agent`).
    Prod deploys only what has run on dev.
 7. Delete your worktree when its PR merges.
+8. **Start from an issue, and finish before you start.** Put `Closes #N` in
+   the PR. Before opening a new PR, check `gh pr list --state open`: past 25
+   open, help land those instead, because every merge makes the rest conflict.
+9. **A check failing on many PRs is one problem on main.** Fix it once in its
+   own PR (CI Health files a `ci-health` issue for it), then update the
+   affected branches. Don't retry it PR by PR.
+
+The repo enforces 1, 2 and 9 (`.husky/pre-push`, the PR Flow and CI Health
+checks; reviewable lines are counted by `scripts/ci/reviewable.sh`).
 
 ## Hard rules (each one cost us before)
 
@@ -74,9 +86,9 @@ function-call workaround or Sonata are describing retired setups.
 - **Logging**: `createLogger` from `src/utils/logger.js`, never `console.*`.
   Never swallow an error (`.catch(() => {})`); log it with context.
 - **Types**: no `any`, no `as any`. Use `unknown` and narrow.
-- **Layers**: `agents/` and `api/` → `personas/ intelligence/ tools/
-  conversation/ speech/` → `services/` → `memory/` → `config/ utils/ types/`.
-  Lower layers never import higher ones (`pnpm quality:arch`).
+- **Layers** point inward: L5 entrypoints → L4 orchestration → L3 (ten capability
+  contexts, via each other's index.ts) → L2 shared kernel; L1 adapters implement L2/L3 ports.
+  Map: `apps/cli/src/commands/quality/architecture-layers.ts`; `pnpm quality:arch` fails new violations.
 - **Names**: files are kebab-case. Name by function, not acronym or version
   (`tool-classifier.ts`, not `ftis-v2.ts`). No persona names in tool files.
 - **Classifiers on user text** match whole words, never substrings

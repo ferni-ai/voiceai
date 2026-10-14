@@ -18,6 +18,7 @@
  */
 
 import { getProfileStore } from '../../memory/profile-store.js';
+import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
@@ -240,8 +241,7 @@ class MayaNotificationService extends EventEmitter {
     // Load from productivity store (legacy)
     const store = getProductivityStore();
     const prefs = store.getUserPreference(userId, 'mayaNotificationPrefs') as
-      | MayaNotificationPreferences
-      | undefined;
+      MayaNotificationPreferences | undefined;
 
     if (prefs) {
       this.userPreferences.set(userId, prefs);
@@ -411,15 +411,14 @@ class MayaNotificationService extends EventEmitter {
     getLogger().info({ userId, habitCount: habits.length }, '📅 Scheduled daily habit reminders');
   }
 
-  /**
-   * Schedule streak-at-risk alert
-   */
+  /** Schedule a streak-at-risk alert; none under TEAM_BY_NEED (no streak nudges) */
   async scheduleStreakAlert(
     userId: string,
     habitId: string,
     habitName: string,
     currentStreak: number
   ): Promise<void> {
+    if (isTeamByNeedEnabled()) return;
     const now = new Date();
     // Alert at 6 PM if they haven't completed the habit
     const alertTime = new Date(now);

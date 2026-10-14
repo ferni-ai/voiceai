@@ -79,7 +79,7 @@ function injectStyles(): void {
       background: var(--backdrop-subtle, rgba(0, 0, 0, 0.4));
       opacity: 0;
       pointer-events: none;
-      z-index: var(--z-modal-backdrop, 2000);
+      z-index: var(--z-modal-backdrop);
       transition: opacity var(--duration-normal, 200ms) var(--ease-out-expo);
     }
 
@@ -99,7 +99,7 @@ function injectStyles(): void {
       backdrop-filter: blur(var(--glass-blur-heavy, 24px));
       -webkit-backdrop-filter: blur(var(--glass-blur-heavy, 24px));
       border-left: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       flex-direction: column;
       transition: transform var(--duration-slow, 300ms) var(--ease-out-expo);

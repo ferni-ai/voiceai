@@ -1,0 +1,7 @@
+# bh: {"to": "peter-john", "path": "need", "facts": ["401", "retirement", "match", "sign up", "signed up"]}
+Hey Ferni. I keep putting off my retirement account. My work has a 401k match and I've never even signed up.
+Is someone on your team good with this kind of money stuff?
+Yeah, let's do that.
+@pause 9000 -
+Hi.
+So, what do you think?

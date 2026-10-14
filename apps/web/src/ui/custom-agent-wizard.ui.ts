@@ -14,7 +14,7 @@
  * @module custom-agent-wizard.ui
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { t } from '../i18n/index.js';
@@ -37,6 +37,7 @@ import {
   dispatchCustomAgentEvent,
 } from '../services/custom-agent.service.js';
 import { openMemoryInput, toAddMemoryRequest } from './memory-input-modal.ui.js';
+import { effectiveVoiceOption, renderCloneVoiceOption, visibleAgentTypes, voiceCopyKey } from './voice-clone-entry.js';
 
 const log = createLogger('CustomAgentWizard');
 
@@ -267,7 +268,7 @@ function renderStep(): void {
   }
 
   // Animate in
-  content.animate(
+  safeAnimate(content,
     [
       { opacity: 0, transform: 'translateY(10px)' },
       { opacity: 1, transform: 'translateY(0)' },
@@ -318,7 +319,7 @@ function getTypeIconSvg(iconName: string): string {
 }
 
 function renderTypeStep(): string {
-  const types = getAgentTypes();
+  const types = visibleAgentTypes(getAgentTypes());
   const selectedType = draft.type;
 
   return `
@@ -451,34 +452,17 @@ function renderInfoStep(): string {
  * Renders Step 3: Voice Setup
  */
 function renderVoiceStep(): string {
-  const voiceOption = draft.voiceOption || 'library';
+  const voiceOption = effectiveVoiceOption(draft.voiceOption);
   const voices = getVoiceLibrary();
 
   return `
     <div class="wizard-step wizard-step--voice">
       <div class="step-header">
         <h2 class="step-title" id="wizard-title">${t('customAgentWizard.voiceStep.title')}</h2>
-        <p class="step-subtitle">${t('customAgentWizard.voiceStep.subtitle')}</p>
+        <p class="step-subtitle">${t(voiceCopyKey('customAgentWizard.voiceStep.subtitle'))}</p>
       </div>
       
-      <div class="voice-options">
-        <button
-          class="voice-option ${voiceOption === 'clone' ? 'voice-option--selected' : ''}"
-          data-voice-option="clone"
-        >
-          <div class="voice-option-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-              <line x1="12" y1="19" x2="12" y2="23"></line>
-              <line x1="8" y1="23" x2="16" y2="23"></line>
-            </svg>
-          </div>
-          <div class="voice-option-content">
-            <h3>${t('customAgentWizard.voiceOption.cloneTitle')}</h3>
-            <p>${t('customAgentWizard.voiceOption.cloneDescription')}</p>
-          </div>
-        </button>
+      <div class="voice-options">${renderCloneVoiceOption(voiceOption === 'clone')}
 
         <button
           class="voice-option ${voiceOption === 'library' ? 'voice-option--selected' : ''}"
@@ -897,7 +881,7 @@ function renderMemoriesStep(): string {
           </div>
           <div class="summary-item">
             <span class="summary-label">${t('customAgentWizard.review.voiceSummaryLabel')}</span>
-            <span class="summary-value">${draft.voiceOption === 'clone' ? t('customAgentWizard.review.customClone') : draft.voiceOption === 'library' ? t('customAgentWizard.review.libraryVoice') : t('customAgentWizard.review.defaultName')}</span>
+            <span class="summary-value">${effectiveVoiceOption(draft.voiceOption) === 'clone' ? t('customAgentWizard.review.customClone') : effectiveVoiceOption(draft.voiceOption) === 'library' ? t('customAgentWizard.review.libraryVoice') : t('customAgentWizard.review.defaultName')}</span>
           </div>
           <div class="summary-item">
             <span class="summary-label">${t('customAgentWizard.review.memoriesSummaryLabel')}</span>
@@ -1397,7 +1381,7 @@ async function createAgent(): Promise<void> {
     _createdAgentId = agent.id;
 
     // Upload voice if recorded
-    if (draft.voiceOption === 'clone' && recordedAudioBlob) {
+    if (effectiveVoiceOption(draft.voiceOption) === 'clone' && recordedAudioBlob) {
       const { audioUrl } = await uploadVoiceSample(agent.id, recordedAudioBlob);
       await createVoiceClone(agent.id, audioUrl, draft.displayName || draft.name!);
     } else if (draft.voiceOption === 'library' && draft.selectedVoiceId) {
@@ -1470,7 +1454,7 @@ function getWizardStyles(): string {
     .custom-agent-wizard-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2357,7 +2341,7 @@ function getWizardStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .wizard-container {
         width: 100vw;
         height: 100vh;

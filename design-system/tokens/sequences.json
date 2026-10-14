@@ -779,6 +779,295 @@
         "pattern": "gentle",
         "delay": 300
       }
+    },
+    "arrival_calling": {
+      "id": "arrival_calling",
+      "name": "Calling Ferni",
+      "description": "Arrival beat 1: the caller tapped Call. Ferni rests; only the button and his halo answer. No sound: the chord waits for him.",
+      "trigger": "call_start",
+      "totalDuration": 1400,
+      "interruptible": true,
+      "emotion": "anticipatory",
+      "steps": [
+        {
+          "element": "face",
+          "animation": "expression",
+          "delay": 0,
+          "duration": 0,
+          "properties": { "expression": "resting" },
+          "description": "Resting while we reach him"
+        },
+        {
+          "element": "callButton",
+          "animation": "press",
+          "delay": 0,
+          "duration": 260,
+          "easing": "spring",
+          "properties": { "scale": [1, 0.95, 1] }
+        },
+        {
+          "element": "halo",
+          "animation": "warm",
+          "delay": 60,
+          "duration": 1340,
+          "easing": "gentle",
+          "properties": { "opacity": [0, 0.35] },
+          "description": "Warms like a porch light; no spinner"
+        },
+        {
+          "element": "statusText",
+          "animation": "swap",
+          "delay": 0,
+          "duration": 240,
+          "properties": { "text": "Calling Ferni…" }
+        }
+      ],
+      "haptic": { "pattern": "tap", "delay": 0 }
+    },
+    "arrival_slow": {
+      "id": "arrival_slow",
+      "name": "Waking Ferni",
+      "description": "Arrival after 4 s of connecting: the words say so and Ferni stirs once.",
+      "trigger": "connect_slow",
+      "totalDuration": 2700,
+      "interruptible": true,
+      "emotion": "patient",
+      "steps": [
+        {
+          "element": "statusText",
+          "animation": "swap",
+          "delay": 0,
+          "duration": 240,
+          "properties": { "text": "Waking Ferni up…" }
+        },
+        {
+          "element": "face",
+          "animation": "expression",
+          "delay": 2000,
+          "duration": 0,
+          "properties": { "expression": "sleepy" },
+          "description": "Stirs, eyes half open"
+        },
+        {
+          "element": "face",
+          "animation": "expression",
+          "delay": 2700,
+          "duration": 0,
+          "properties": { "expression": "resting" },
+          "description": "Drifts back"
+        }
+      ]
+    },
+    "arrival_very_slow": {
+      "id": "arrival_very_slow",
+      "name": "Longer than usual",
+      "description": "Arrival after 9 s of connecting.",
+      "trigger": "connect_very_slow",
+      "totalDuration": 240,
+      "interruptible": true,
+      "emotion": "patient",
+      "steps": [
+        {
+          "element": "statusText",
+          "animation": "swap",
+          "delay": 0,
+          "duration": 240,
+          "properties": { "text": "Taking a little longer than usual" }
+        }
+      ]
+    },
+    "arrival_joined": {
+      "id": "arrival_joined",
+      "name": "Ferni arrives",
+      "description": "The hero beat: Ferni joined the call. He wakes (surprised), dips, then rises happy as the chord plays; the controls follow. One focal point, one sound, one haptic.",
+      "trigger": "agent_joined",
+      "totalDuration": 1000,
+      "interruptible": false,
+      "emotion": "warm",
+      "steps": [
+        {
+          "element": "face",
+          "animation": "expression",
+          "delay": 0,
+          "duration": 0,
+          "properties": { "expression": "surprised" },
+          "description": "Wakes: eyes fly open"
+        },
+        {
+          "element": "avatar",
+          "animation": "anticipate",
+          "delay": 0,
+          "duration": 140,
+          "easing": "spring",
+          "properties": { "scaleY": [1, 0.95], "scaleX": [1, 1.03] }
+        },
+        {
+          "element": "face",
+          "animation": "expression",
+          "delay": 140,
+          "duration": 0,
+          "properties": { "expression": "happy" },
+          "description": "Happy squint as he rises"
+        },
+        {
+          "element": "avatar",
+          "animation": "rise",
+          "delay": 140,
+          "duration": 450,
+          "easing": "spring",
+          "properties": { "scaleY": [0.95, 1], "scaleX": [1.03, 1], "translateY": [0, -6, 0] }
+        },
+        {
+          "element": "halo",
+          "animation": "bloom",
+          "delay": 170,
+          "duration": 600,
+          "easing": "spring",
+          "properties": { "opacity": [0.35, 1], "scale": [0.97, 1.06, 1] }
+        },
+        {
+          "element": "controls",
+          "animation": "followIn",
+          "delay": 280,
+          "duration": 360,
+          "easing": "decelerate",
+          "stagger": 60,
+          "properties": { "opacity": [0, 1], "translateY": [14, 0] }
+        },
+        {
+          "element": "statusText",
+          "animation": "swap",
+          "delay": 0,
+          "duration": 240,
+          "properties": { "text": "" }
+        },
+        {
+          "element": "face",
+          "animation": "expression",
+          "delay": 1000,
+          "duration": 0,
+          "properties": { "expression": "attentive" },
+          "description": "Settles and looks at you"
+        }
+      ],
+      "sound": { "track": "system.connectionSuccess", "delay": 140, "volume": 0.6 },
+      "haptic": { "pattern": "success", "delay": 140 }
+    },
+    "arrival_ready": {
+      "id": "arrival_ready",
+      "name": "About to speak",
+      "description": "Ferni is thinking of his first words: he looks at you and breathes in.",
+      "trigger": "agent_thinking",
+      "totalDuration": 500,
+      "interruptible": true,
+      "emotion": "present",
+      "steps": [
+        {
+          "element": "avatar",
+          "animation": "inhale",
+          "delay": 0,
+          "duration": 320,
+          "easing": "gentle",
+          "properties": { "scaleY": [1, 1.025], "scaleX": [1, 1.01] }
+        },
+        {
+          "element": "eyes",
+          "animation": "look",
+          "delay": 0,
+          "duration": 500,
+          "easing": "spring",
+          "properties": { "translateY": [0, -1.2, 0] }
+        }
+      ]
+    },
+    "arrival_speaking": {
+      "id": "arrival_speaking",
+      "name": "Speaking",
+      "description": "His voice is playing: it drives his body, eyes and halo (speaking system). Interface sounds duck under it.",
+      "trigger": "agent_speaking",
+      "totalDuration": 0,
+      "interruptible": true,
+      "emotion": "present",
+      "steps": [
+        {
+          "element": "face",
+          "animation": "expression",
+          "delay": 0,
+          "duration": 0,
+          "properties": { "expression": "speaking" },
+          "description": "Speaking face"
+        }
+      ]
+    },
+    "arrival_listening": {
+      "id": "arrival_listening",
+      "name": "Listening",
+      "description": "He finished speaking: he exhales and leans in, only while he listens.",
+      "trigger": "agent_listening",
+      "totalDuration": 600,
+      "interruptible": true,
+      "emotion": "attentive",
+      "steps": [
+        {
+          "element": "face",
+          "animation": "expression",
+          "delay": 0,
+          "duration": 0,
+          "properties": { "expression": "listening" },
+          "description": "Listening face"
+        },
+        {
+          "element": "avatar",
+          "animation": "lean",
+          "delay": 0,
+          "duration": 600,
+          "easing": "gentle",
+          "properties": { "translateY": [0, -3] }
+        }
+      ]
+    },
+    "arrival_failed": {
+      "id": "arrival_failed",
+      "name": "Couldn't reach Ferni",
+      "description": "Connecting failed: a soft sigh and plain words. No shake and no chime.",
+      "trigger": "connect_failed",
+      "totalDuration": 700,
+      "interruptible": false,
+      "emotion": "empathetic",
+      "steps": [
+        {
+          "element": "face",
+          "animation": "expression",
+          "delay": 0,
+          "duration": 0,
+          "properties": { "expression": "empathetic" },
+          "description": "Empathetic, not broken"
+        },
+        {
+          "element": "halo",
+          "animation": "dim",
+          "delay": 0,
+          "duration": 700,
+          "easing": "gentle",
+          "properties": { "opacity": [0.35, 0.15] }
+        },
+        {
+          "element": "avatar",
+          "animation": "sigh",
+          "delay": 0,
+          "duration": 700,
+          "easing": "gentle",
+          "properties": { "scaleY": [1, 0.97], "translateY": [0, 3] }
+        },
+        {
+          "element": "statusText",
+          "animation": "swap",
+          "delay": 0,
+          "duration": 240,
+          "properties": { "text": "Couldn't reach Ferni. Try again?" }
+        }
+      ],
+      "haptic": { "pattern": "soft", "delay": 0 }
     }
   },
 
@@ -847,6 +1136,14 @@
     "_documentation": "Alternative sequences for prefers-reduced-motion",
 
     "simplifications": {
+      "arrival_joined": {
+        "description": "The same story in light and faces: no dip, rise or slide",
+        "removeSteps": ["avatar"],
+        "modifySteps": { "controls": { "properties": { "opacity": [0, 1] } } }
+      },
+      "arrival_ready": { "description": "Look only, no breath scaling", "removeSteps": ["avatar"] },
+      "arrival_listening": { "description": "No lean", "removeSteps": ["avatar"] },
+      "arrival_failed": { "description": "No sigh motion", "removeSteps": ["avatar"] },
       "celebration_big": {
         "description": "Simplified celebration without confetti",
         "removeSteps": ["confetti"],
