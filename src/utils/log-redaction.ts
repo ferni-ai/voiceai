@@ -207,9 +207,14 @@ function leadingNumber(
 function redactRun(run: string, ctx: PhoneContext, afterWord: boolean): string {
   // %2B is a URL-encoded "+": its 2 isn't a digit of the number
   const groups: Group[] = [];
-  for (const g of run.matchAll(GROUP)) {
-    if (g.index === 1 && run[0] === '%') continue;
-    groups.push({ start: g.index, end: g.index + g[0].length, digits: g[0] });
+  let start = run[0] === '%' ? 3 : 0;
+  for (let k = start; k <= run.length; k++) {
+    const digit = k < run.length && run.charCodeAt(k) >= 48 && run.charCodeAt(k) <= 57;
+    if (digit && start < 0) start = k;
+    else if (!digit && start >= 0) {
+      if (k > start) groups.push({ start, end: k, digits: run.slice(start, k) });
+      start = -1;
+    }
   }
   let out = '';
   let cursor = 0;
