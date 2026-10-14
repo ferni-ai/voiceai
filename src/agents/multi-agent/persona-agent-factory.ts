@@ -35,7 +35,7 @@ import { registerAgentReplyRecorder } from '../voice-agent/agent-reply-recorder.
 import { isPhoneParticipant } from '../integrations/pre-stt-frame-processor.js';
 import { roomInputOptions } from './room-input-options.js';
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
-import { attachPhoneHangUp } from '../shared/phone-goodbye.js';
+import { attachCallWrapUp } from '../shared/call-wrap-up.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { roomOutputOptions } from './room-output-options.js';
 import { registerSessionEndedSignal } from './session-ended-signal.js';
@@ -163,9 +163,11 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       phoneCaller: isPhoneParticipant(context.userParticipant),
     });
     mark('setup_persona_agent_done');
-    // A phone caller: Ferni hangs up after a real goodbye (PHONE_GOODBYE, phone-goodbye.ts).
-    await attachPhoneHangUp(agentSetup.agent, {
-      roomName: context.room.name ?? '',
+    // Ferni ends the call after a mutual goodbye: phone callers with PHONE_GOODBYE
+    // (phone-goodbye.ts), app callers with CALL_WRAP_UP (call-wrap-up.ts).
+    await attachCallWrapUp(agentSetup.agent, {
+      sessionId,
+      room: context.room,
       participant: context.userParticipant,
       onBehalf: outboundPartiesFor(sessionId) !== undefined,
     }).catch((error: unknown) =>

@@ -62,7 +62,9 @@ export const FLAG_MANIFEST = {
   BYPASS_TEAM_UNLOCKS: { default: 'off', owner: 'tools', kind: 'kill-switch' },
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_RECOGNITION: { default: 'off', owner: 'voice', kind: 'experiment' },
+  CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
+  CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
   CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
   CARTESIA_STREAMING_TTS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   CASCADE_APPEND_ONLY_TOOLS: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -98,9 +100,11 @@ export const FLAG_MANIFEST = {
   DELIBERATION: { default: 'off', owner: 'voice', kind: 'experiment' },
   DEV_TELEMETRY: { default: 'off', owner: 'voice', kind: 'config' },
   DEV_TELEMETRY_VERBOSE: { default: 'off', owner: 'voice', kind: 'config' },
+  DIRECTOR_ESCALATE: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_LOOK_BACK: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_NOTES: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_PERSONA_AWARE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  DIRECTOR_TOOL_STATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   DISABLE_BATCHED_SUMMARIZATION: { default: 'off', owner: 'platform', kind: 'config' },
   DISABLE_BUILDER_PRIORITIZATION: { default: 'off', owner: 'intelligence', kind: 'config' },
   DISABLE_CONTEXT_PREWARM: { default: 'off', owner: 'platform', kind: 'config' },
@@ -160,6 +164,8 @@ export const FLAG_MANIFEST = {
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   INTERRUPT_TRACE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   IN_PROCESS_SCHEDULERS: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // voice journal speech-to-text through Gemini on Vertex when Deepgram and Whisper have no key
+  JOURNAL_TRANSCRIBE_VERTEX: { default: 'off', owner: 'memory', kind: 'experiment' },
   // public landing-page Gemini calls; off until the chat has per-IP and daily limits
   LANDING_AI: { default: 'off', owner: 'platform', kind: 'experiment' },
   LAUGH_ALONG: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -182,6 +188,8 @@ export const FLAG_MANIFEST = {
   MUSIC_CONTINUE_AS_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
   MUSIC_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   NAME_CORRECTION: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: an opening "Hey Seth, ..." is voiced as "Hey Seth." so the name falls (speech/tts-gateway/name-intonation.ts)
+  NAME_FALLING_INTONATION: { default: 'off', owner: 'voice', kind: 'experiment' },
   NAME_MISHEAR_NORMALIZE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a mode: on speaks a fallback when a reply fails, shadow only logs it
   NEVER_SILENT: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -200,6 +208,7 @@ export const FLAG_MANIFEST = {
   PACE_MATCHING: { default: 'on', owner: 'voice', kind: 'config' },
   PAUSE_HOLD: { default: 'off', owner: 'voice', kind: 'experiment' },
   PAYWALL: { default: 'off', owner: 'billing', kind: 'kill-switch' },
+  PERSONA_BEATS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -302,6 +311,8 @@ export const FLAG_MANIFEST = {
   TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   TOOL_LEAD_IN: { default: 'on', owner: 'voice', kind: 'config' },
+  // hourly pool shared by anonymous journal transcriptions (api/journal-transcribe-limits.ts)
+  TRANSCRIBE_ANON_MAX_PER_HOUR: { default: '200', owner: 'memory', kind: 'config' },
   // on: inner TTS failures reach the agent session (which closes after 4 in a row)
   TTS_FORWARD_ERRORS: { default: 'off', owner: 'voice', kind: 'experiment' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },

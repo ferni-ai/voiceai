@@ -23,6 +23,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import type { VoiceEmotion } from '../types/events.js';
 import type { SpeakerId } from '../types/persona.js';
+import { createFrameLoop } from '../utils/frame-loop.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -38,6 +39,13 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 const BAR_COUNT = 9; // More bars for smoother curves
 const MIN_BAR_HEIGHT = 6;
 const MAX_BAR_HEIGHT = 48; // Fits within 56px container with room for shadows
+
+/** Size `bar` to `heightPx`: scaled from its full laid-out height, anchored at the bottom. */
+function sizeBar(bar: HTMLElement, heightPx: number, widthScale: number): void {
+  const sy = (heightPx / MAX_BAR_HEIGHT).toFixed(4);
+  bar.style.transform = `scaleX(${widthScale}) scaleY(${sy})`;
+  bar.style.setProperty('--bar-sy', sy); // keeps the caps round (CSS border-radius)
+}
 
 // ============================================================================
 // EMOTION SHAPES - Bar height multipliers to form expressions
@@ -155,7 +163,6 @@ let currentEmotion: VoiceEmotion | 'neutral' = 'neutral';
 let currentShape: EmotionShape = { ...EMOTION_SHAPES.neutral };
 let targetShape: EmotionShape = { ...EMOTION_SHAPES.neutral };
 
-let animationId: number | null = null;
 let lastVolume = 0;
 let smoothedVolume = 0;
 let isSpeaking = false;
@@ -219,7 +226,6 @@ export function initWaveformUI(): void {
   emotionIndicator = container.querySelector('.emotion-indicator');
   createBars();
   updateBarsStyle();
-  document.addEventListener('visibilitychange', startAnimation); // resumes if live
 }
 
 function createBars(): void {
@@ -232,10 +238,10 @@ function createBars(): void {
     const bar = document.createElement('div');
     bar.className = 'waveform-bar';
     bar.style.setProperty('--bar-index', String(i));
-    bar.style.height = `${MIN_BAR_HEIGHT}px`;
-    // 🎬 Add 3D depth shadow
-    bar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)';
-    bar.style.transform = 'scaleX(1)';
+    // Laid out once at full height; a frame only changes its transform (no layout)
+    bar.style.height = `${MAX_BAR_HEIGHT}px`;
+    bar.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.15)';
+    sizeBar(bar, MIN_BAR_HEIGHT, 1);
     // NOTE: translateZ(0) and willChange removed - causes visible box bug in Safari
     barsContainer.appendChild(bar);
     bars.push(bar);
@@ -462,45 +468,34 @@ export function setMusicPlaying(listening: boolean): void {
 /** The bars are visible (and worth animating) only between start() and stop(). */
 const isLive = (): boolean => !!container?.classList.contains('active') && !document.hidden;
 
+/** The bars' frame loop (utils/frame-loop.ts): runs only while live, sleeps while hidden. */
+const barsLoop = createFrameLoop((timestamp) => {
+  const deltaTime = Math.min(timestamp - lastTimestamp, 50);
+  lastTimestamp = timestamp;
+
+  // Update phase
+  const shapeSpeed = targetShape.speed * currentConfig.speed;
+  wavePhase += deltaTime * 0.004 * shapeSpeed;
+
+  // Smooth volume - use faster response for more reactive feel
+  // Higher factor = faster response (less smoothing)
+  const smoothingFactor = Math.max(0.3, 1 - currentConfig.smoothing * 0.7);
+  smoothedVolume += (lastVolume - smoothedVolume) * smoothingFactor;
+
+  // Interpolate shape curve toward target
+  interpolateShape();
+
+  // Update bars
+  updateBars();
+}, isLive);
+
 function startAnimation(): void {
-  if (animationId !== null || !isLive()) return;
-
-  lastTimestamp = performance.now();
-
-  const animate = (timestamp: number) => {
-    if (!isLive()) {
-      animationId = null; // hidden, hung up, or not started
-      return;
-    }
-    const deltaTime = Math.min(timestamp - lastTimestamp, 50);
-    lastTimestamp = timestamp;
-
-    // Update phase
-    const shapeSpeed = targetShape.speed * currentConfig.speed;
-    wavePhase += deltaTime * 0.004 * shapeSpeed;
-
-    // Smooth volume - use faster response for more reactive feel
-    // Higher factor = faster response (less smoothing)
-    const smoothingFactor = Math.max(0.3, 1 - currentConfig.smoothing * 0.7);
-    smoothedVolume += (lastVolume - smoothedVolume) * smoothingFactor;
-
-    // Interpolate shape curve toward target
-    interpolateShape();
-
-    // Update bars
-    updateBars();
-
-    animationId = requestAnimationFrame(animate);
-  };
-
-  animationId = requestAnimationFrame(animate);
+  if (!barsLoop.isRunning()) lastTimestamp = performance.now();
+  barsLoop.wake();
 }
 
 function stopAnimation(): void {
-  if (animationId !== null) {
-    cancelAnimationFrame(animationId);
-    animationId = null;
-  }
+  barsLoop.sleep();
 }
 
 function interpolateShape(): void {
@@ -646,20 +641,11 @@ function updateBars(): void {
 
     const bar = bars[i];
     if (bar) {
-      bar.style.height = `${currentBarHeight}px`;
+      // 🎬 Height and squash & stretch in one transform (no translateZ - Safari bug)
+      sizeBar(bar, currentBarHeight, barWidths[i] ?? 1);
 
-      // 🎬 Apply squash & stretch transform (no translateZ - Safari bug)
-      const currentBarWidth = barWidths[i] ?? 1;
-      bar.style.transform = `scaleX(${currentBarWidth})`;
-
-      // 🎬 Dynamic shadows based on height (3D depth illusion)
-      const shadowIntensity = heightRatio * 0.3;
-      const shadowBlur = 2 + heightRatio * 8;
-      const shadowY = 2 + heightRatio * 6;
-      bar.style.boxShadow = `
-        0 ${shadowY}px ${shadowBlur}px rgba(0,0,0,${shadowIntensity}),
-        inset 0 ${1 + heightRatio * 2}px 0 rgba(255,255,255,${0.15 + heightRatio * 0.1})
-      `;
+      // 🎬 Depth: a pre-rendered shadow (::after) fades in as the bar grows
+      bar.style.setProperty('--bar-lift', heightRatio.toFixed(3));
     }
   }
 
@@ -709,7 +695,8 @@ function resetBarsToIdle(): void {
     interpolatedCurve[i] = EMOTION_SHAPES.neutral.curve[i] ?? 0.5;
     const bar = bars[i];
     if (bar) {
-      bar.style.height = `${MIN_BAR_HEIGHT}px`;
+      sizeBar(bar, MIN_BAR_HEIGHT, 1);
+      bar.style.setProperty('--bar-lift', '0');
     }
   }
 }
@@ -885,7 +872,6 @@ export function burstCelebration(): void {
 
 export function dispose(): void {
   stopAnimation();
-  document.removeEventListener('visibilitychange', startAnimation);
 
   // 🎬 Clean up ripples and particles
   rippleElements.forEach((r) => r.remove());
