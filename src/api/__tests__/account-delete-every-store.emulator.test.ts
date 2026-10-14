@@ -17,7 +17,8 @@ import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import admin from 'firebase-admin';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { emailDocId } from '../../services/platform/erase-other-keys.js';
+import { emailDocId, KEYED_STORES } from '../../services/platform/erase-other-keys.js';
+import { eraseUserRecord } from '../../services/platform/erase-user-record.js';
 import { ERASED_STORES, storeLabel } from '../../services/platform/user-stores.js';
 
 /** The Firebase record each test uid signs in with: its email, whether Firebase verified it, its phone */
@@ -352,4 +353,40 @@ describe.skipIf(!emulator)('DELETE /api/account erases every store kept for the 
     expect(cleanup.get('stripeCustomerId')).toBe(`cus_${k}`);
     expect(holds(cleanup.data(), [k, `${k}@example.com`])).toBe(false);
   }, 60_000);
+
+  /** The keyed stores with the waitlist erase failing, as on a first attempt that hit an outage */
+  const waitlistFails = KEYED_STORES.map((k) =>
+    k.label === 'waitlist/{email}'
+      ? {
+          ...k,
+          erase: async () => {
+            throw new Error('unavailable');
+          },
+        }
+      : k
+  );
+
+  it.each([
+    ['the Firebase user is gone', undefined],
+    ['their verified email changed since the grant', 'new-address@example.com'],
+  ])(
+    'a retry still erases the waitlist place when %s, because the grant naming the email outlives it',
+    async (_case, currentEmail) => {
+      const r = `del-r-${Date.now()}-${currentEmail ? 2 : 1}`;
+      const email = `${r}@example.com`;
+      if (currentEmail) firebaseUsers.set(r, { email: currentEmail, emailVerified: true });
+      await db.doc(`user_profiles/${emailDocId(email)}`).set({ email, firebaseUid: r });
+      await db.doc(`waitlist/${emailDocId(email)}`).set({ email, status: 'approved' });
+
+      await expect(eraseUserRecord(r, db, ERASED_STORES, waitlistFails)).rejects.toThrow(
+        'waitlist/{email}'
+      );
+      expect((await db.doc(`user_profiles/${emailDocId(email)}`).get()).exists).toBe(true);
+
+      await eraseUserRecord(r, db);
+      expect((await db.doc(`waitlist/${emailDocId(email)}`).get()).exists).toBe(false);
+      expect((await db.doc(`user_profiles/${emailDocId(email)}`).get()).exists).toBe(false);
+    },
+    60_000
+  );
 });

@@ -91,8 +91,8 @@ interface Job {
 
 /**
  * The stores the keys are read from (erasure-keys.ts), erased only once everything
- * else is gone, so a retry after a failure finds the same keys: 1 the access grants'
- * emails and the sponsored identities, then 2 the record, whose links (and, for a
+ * else is gone, so a retry after a failure finds the same keys: 1 the access grants
+ * (by uid here, by email in erase-other-keys.ts) and the sponsored identities, then 2 the record, whose links (and, for a
  * linked phone profile, whose existence) is how the person's phone profiles are found.
  */
 const KEY_TIER = new Map([
@@ -146,14 +146,20 @@ export async function eraseUserRecord(
         erase: async () => eraseStore(db, store, uid),
         remains: async () => holdsUser(db, store, uid).catch(() => true),
       }));
-  const keyedJobs: Job[] = keys
-    ? keyed.map((k) => ({
-        label: k.label,
-        erase: async () => k.erase(db, keys),
-        remains: async () => k.remains(db, keys).catch(() => true),
-      }))
-    : [];
-  await runPhase([...keyedJobs, ...[userId, ...linked].flatMap((uid) => uidJobs(uid, 0))], userId);
+  const keyedJobs = (tier: number): Job[] =>
+    keys
+      ? keyed
+          .filter((k) => (k.keyTier ?? 0) === tier)
+          .map((k) => ({
+            label: k.label,
+            erase: async () => k.erase(db, keys),
+            remains: async () => k.remains(db, keys).catch(() => true),
+          }))
+      : [];
+  await runPhase(
+    [...keyedJobs(0), ...[userId, ...linked].flatMap((uid) => uidJobs(uid, 0))],
+    userId
+  );
   for (const tier of [1, 2]) {
     if (linked.length > 0)
       await runPhase(
@@ -161,7 +167,9 @@ export async function eraseUserRecord(
         userId
       );
   }
-  for (const tier of [1, 2]) await runPhase(uidJobs(userId, tier), userId);
+  for (const tier of [1, 2]) {
+    await runPhase([...keyedJobs(tier), ...uidJobs(userId, tier)], userId);
+  }
 }
 
 /**

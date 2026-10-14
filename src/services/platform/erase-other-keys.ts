@@ -25,6 +25,13 @@ export interface KeyedStore {
   erase: (db: Db, keys: ErasureKeys) => Promise<void>;
   /** True while anything of the person's is left */
   remains: (db: Db, keys: ErasureKeys) => Promise<boolean>;
+  /**
+   * Set when gatherErasureKeys reads keys from this store: it is erased in that tier of
+   * the user's key stores (erase-user-record.ts), after every store keyed by them.
+   * Of these stores only the email-keyed access grants are read; the Stripe ids the
+   * others hold are kept before anything is erased, so they need no tier.
+   */
+  keyTier?: number;
 }
 
 const PAGE = 300;
@@ -33,7 +40,7 @@ const PAGE = 300;
 const uidsOf = (keys: ErasureKeys): string[] => [keys.userId, ...keys.linkedUserIds];
 
 /** A document per email: the waitlist place, and an access grant unless it names someone else */
-function byEmail(collection: string): KeyedStore {
+function byEmail(collection: string, keyTier?: number): KeyedStore {
   const refs = async (db: Db, keys: ErasureKeys): Promise<DocRef[]> => {
     const all = keys.emails.map((email) => db.collection(collection).doc(emailDocId(email)));
     const snaps = await Promise.all(all.map(async (ref) => ref.get()));
@@ -47,6 +54,7 @@ function byEmail(collection: string): KeyedStore {
   };
   return {
     label: `${collection}/{email}`,
+    keyTier,
     erase: async (db, keys) => {
       await Promise.all((await refs(db, keys)).map(async (ref) => db.recursiveDelete(ref)));
     },
@@ -164,7 +172,7 @@ const deleteAll = async (db: Db, refs: DocRef[]): Promise<void> => {
 
 export const KEYED_STORES: readonly KeyedStore[] = [
   byEmail('waitlist'),
-  byEmail('user_profiles'),
+  byEmail('user_profiles', 1), // a grant naming the uid is where the email is read from
   {
     label: 'sponsored_identity_phone_index[identityId]',
     erase: async (db, keys) => deleteAll(db, await phoneIndexRefs(db, keys)),
