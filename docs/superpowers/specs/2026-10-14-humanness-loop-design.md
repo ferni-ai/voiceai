@@ -157,11 +157,13 @@ then keeps generating and testing new changes, without anyone in the loop.
      used. It is applied to main's `src/` in a second checkout, owned by an
      unprivileged user that can't write the harness checkout and can't read
      the run directory or the credential file.
-   - That user holds **no credentials**. Its only cloud access is a local
-     proxy that forwards Gemini `generateContent` for the generator models.
-   - It sees the moments without the friends' real turns and without split
-     labels, so it can neither copy the answer nor tell held-out from
-     working.
+   - That user holds **no credentials** and has **no network except
+     loopback**. Its only cloud access is a local proxy that forwards Gemini
+     `generateContent` for the generator models. The proxy strips tools such
+     as search or URL grounding, and meters the spend itself.
+   - It sees the moments under per-run opaque ids, without the friends' real
+     turns, split labels or conversation names. So it can neither copy the
+     answer nor tell held-out from working.
    - Only validated reply files come back, and the harness judges and
      decides in its own checkout. Replies are leak-checked against the
      friends' real turns.
@@ -370,8 +372,10 @@ Claude Code routine (brain, daily)            GitHub Actions (hands, hosted runn
     registries only.
   - The brain has no GCP credentials.
   - Experiment code (`src/` only) runs as an unprivileged user in its own
-    checkout, with no credentials. It can reach only the generator through
-    the harness's proxy: no secret, no bucket, no Firestore.
+    checkout, with no credentials and no network but loopback. It can reach
+    only the generator through the harness's proxy: no secret, no bucket, no
+    Firestore and no outside host. A fault run (the harness's own code)
+    never takes a PR.
   - The workflow refuses a diff whose added lines make network calls, spawn
     processes or read credential environment variables.
   - The state snapshot around the step catches writes to the bucket or

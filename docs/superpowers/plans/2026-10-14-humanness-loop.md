@@ -2864,8 +2864,18 @@ Seth labels each pair once, without being told which side is the friend. He answ
           for (const f of readdirSync(a.dir).filter((x) => /^ferni\.on\d+\.json$/.test(x)))
             for (const [id, v] of Object.entries(
               json<Record<string, { reply: string }>>(join(a.dir, f))
-            ))
+            )) {
               n += leakCount([v.reply], [human.get(id) ?? '']);
+              // Friends' turns are short (median 7 words): also catch a whole short turn copied, normalised.
+              const norm = (t: string) =>
+                ` ${t
+                  .toLowerCase()
+                  .replace(/[^a-z0-9' ]+/g, ' ')
+                  .replace(/\s+/g, ' ')
+                  .trim()} `;
+              const h = norm(human.get(id) ?? '');
+              if (h.trim().split(' ').length >= 3 && norm(v.reply).includes(h)) n++;
+            }
         }
         out({ leak: n > 0, sharedEightGrams: n });
         if (n > 0) process.exit(3);
@@ -2965,21 +2975,14 @@ Seth labels each pair once, without being told which side is the friend. He answ
   - Later PRs add more commands: `calibrate` and `calibration-gate` (PR L), `fault-gate`, `fault-record`, `aa`, `mde` and `live-verdict` (PR S), `override`, `ledger-call`, `guardrails`, `verify-arms` and `plan-live` (PR F3), and `paused` (PR G).
   - `decide` reads `calibration.json`, which the gate step writes as `{ok, reason}`.
   - `decide` never prints held-out numbers. Only `verdict.json` (private) holds them.
-- [ ] **Step 2b: The rest of this PR's commands.** Add these cases to the `switch` in `cli.ts`, together with the imports they need: `randomBytes` from `node:crypto`, `heldoutDraw` and `digest` from `./split.js`, `lcWinRates` from `./stats.js`, and `picksOf` and `meanOf` from `./picks.js`.
+- [ ] **Step 2b: The rest of this PR's commands.** Add these cases to the `switch` in `cli.ts`, together with the imports they need: `randomBytes` and `createHmac` from `node:crypto`, `heldoutDraw` and `digest` from `./split.js`, `lcWinRates` from `./stats.js`, and `picksOf` and `meanOf` from `./picks.js`.
 
   ```ts
       case 'state-snapshot': {
         // --out FILE: what a sandboxed step must not change. Object generations under the prefixes it has
         // no business writing, and Firestore size and last update of the lock and override collections.
-        const objs = ['state', 'cache', 'heldout', 'calibration', 'config', 'corpus']
-          .flatMap((p) => {
-            try {
-              return gcs('ls', '-a', `${BUCKET}/${p}/**`).split('\n').filter(Boolean);
-            } catch {
-              return [];
-            }
-          })
-          .sort();
+        // The whole bucket: nothing may change while only the sandbox and the proxy are running.
+        const objs = gcs('ls', '-a', `${BUCKET}/**`).split('\n').filter(Boolean).sort();
         const { Firestore } = await import('@google-cloud/firestore');
         const db = new Firestore({ projectId: 'johnb-2025' });
         const coll = async (c: string): Promise<string> => {
@@ -2993,22 +2996,34 @@ Seth labels each pair once, without being told which side is the friend. He answ
         break;
       }
       case 'sandbox-moments': {
-        // --in D/moments.json --out F [--keep-answers 1]: what the sandbox may see: context and stand-in names only.
-        // No friend's real turn (the answer), no split label, no conversation id. Fault runs keep them (harness code).
+        // --in D/moments.json --out F --map D/idmap.json [--keep-answers 1]: what the sandbox may see.
+        // Context and stand-in names only, under opaque ids (an HMAC with a per-run secret, shuffled), so it can't
+        // map a moment back to its conversation and the public held-out rule. No friend's turn, no split, no file.
+        // --keep-answers is only for the harness's own faults friend and heldout-fewshot (never with a PR).
         type M = { id: string; context: unknown; names: unknown; split?: string; human?: string; file?: string };
         const ms = json<M[]>(a.in);
         const keep = a['keep-answers'] === '1';
-        writeFileSync(a.out, JSON.stringify(ms.map((m) => (keep ? m : { id: m.id, context: m.context, names: m.names }))));
+        const secret = randomBytes(32);
+        const opaque = (id: string) => createHmac('sha256', secret).update(id).digest('hex').slice(0, 20);
+        const map = Object.fromEntries(ms.map((m) => [opaque(m.id), m.id]));
+        const view = ms
+          .map((m) => (keep ? { ...m, id: opaque(m.id) } : { id: opaque(m.id), context: m.context, names: m.names }))
+          .sort((x, y) => x.id.localeCompare(y.id));
+        writeFileSync(a.out, JSON.stringify(view));
+        writeFileSync(a.map, JSON.stringify(map), { mode: 0o600 });
         out({ moments: ms.length, answers: keep });
         break;
       }
       case 'vertex-proxy': {
-        // --port P: the sandbox's only cloud access. Forwards POST generateContent for the generator models,
-        // with the harness's token; refuses every other path, method and model.
+        // --port P --usage D/usage.generate.proxy.json: the sandbox's only cloud access. Forwards POST
+        // generateContent for the generator models with the harness's token, after dropping tools (no search or
+        // URL grounding: no second way out) and capping the body; refuses everything else. It meters usage
+        // itself from each response's usageMetadata, so spend never depends on what the sandbox reports.
         const { createServer } = await import('node:http');
         const lock = json<{ generator: { models: string[] } }>(join(import.meta.dirname, 'judges.lock.json'));
         const allowed = new RegExp(`^/v1/projects/johnb-2025/locations/global/publishers/google/models/(${lock.generator.models.join('|')}):generateContent$`);
         let tok = { v: '', at: 0 };
+        const metered: Record<string, { input: number; output: number }> = {};
         createServer((req, res) => {
           if (req.method !== 'POST' || !allowed.test(req.url ?? '')) {
             res.writeHead(403).end();
@@ -3017,14 +3032,36 @@ Seth labels each pair once, without being told which side is the friend. He answ
           const chunks: Buffer[] = [];
           req.on('data', (c: Buffer) => chunks.push(c));
           req.on('end', () => {
+            const raw = Buffer.concat(chunks);
+            let body: Record<string, unknown>;
+            try {
+              body = JSON.parse(raw.toString('utf8')) as Record<string, unknown>;
+            } catch {
+              res.writeHead(400).end();
+              return;
+            }
+            if (raw.length > 200_000) {
+              res.writeHead(413).end();
+              return;
+            }
+            for (const k of ['tools', 'toolConfig', 'cachedContent']) delete body[k];
+            const model = /models\/([^:]+):/.exec(req.url ?? '')?.[1] ?? '';
             if (Date.now() - tok.at > 30 * 60_000)
               tok = { v: execFileSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8' }).trim(), at: Date.now() };
             fetch(`https://aiplatform.googleapis.com${req.url}`, {
               method: 'POST',
               headers: { Authorization: `Bearer ${tok.v}`, 'Content-Type': 'application/json' },
-              body: Buffer.concat(chunks),
+              body: JSON.stringify(body),
             })
-              .then(async (r) => res.writeHead(r.status, { 'Content-Type': 'application/json' }).end(await r.text()))
+              .then(async (r) => {
+                const text = await r.text();
+                const u = (JSON.parse(text || '{}') as { usageMetadata?: Record<string, number> }).usageMetadata;
+                const m = (metered[model] ??= { input: 0, output: 0 });
+                m.input += u?.promptTokenCount ?? 0;
+                m.output += (u?.candidatesTokenCount ?? 0) + (u?.thoughtsTokenCount ?? 0);
+                writeFileSync(a.usage, JSON.stringify(metered));
+                res.writeHead(r.status, { 'Content-Type': 'application/json' }).end(text);
+              })
               .catch(() => res.writeHead(502).end());
           });
         }).listen(Number(a.port), '127.0.0.1');
@@ -3033,8 +3070,10 @@ Seth labels each pair once, without being told which side is the friend. He answ
         break;
       }
       case 'take-replies': {
-        // --from DIR --arm A --as B --moments M --dir D: copy a sandboxed arm's replies back, only if well-formed
-        const ids = new Set(json<Array<{ id: string }>>(a.moments).map((m) => m.id));
+        // --from DIR --arm A --as B --map D/idmap.json --dir D: copy a sandboxed arm's replies back under the real
+        // ids, only if well-formed. The sandbox's own usage file is ignored: the proxy meters what it forwarded.
+        const map = json<Record<string, string>>(a.map);
+        const ids = new Set(Object.keys(map));
         const file = join(a.from, `ferni.${a.arm}.json`);
         if (!existsSync(file)) {
           out({ ok: false, why: 'no reply file' });
@@ -3048,22 +3087,10 @@ Seth labels each pair once, without being told which side is the friend. He answ
           out({ ok: false, bad: bad.length });
           process.exit(3);
         }
-        const clean = Object.fromEntries(Object.entries(r).map(([id, v]) => [id, { reply: v.reply as string }]));
+        const clean = Object.fromEntries(Object.entries(r).map(([id, v]) => [map[id], { reply: v.reply as string }]));
         writeFileSync(join(a.dir, `ferni.${a.as}.json`), JSON.stringify(clean));
         const pf = join(a.from, `prompt.${a.arm}.txt`);
         if (existsSync(pf)) writeFileSync(join(a.dir, `prompt.${a.as}.txt`), readFileSync(pf));
-        // Usage is priced, so it is validated: known generator models, whole token counts in a sane range.
-        const uf = join(a.from, `usage.generate.${a.arm}.json`);
-        const usage = existsSync(uf) ? json<Record<string, { input?: unknown; output?: unknown }>>(uf) : {};
-        const okCount = (x: unknown) => Number.isInteger(x) && (x as number) >= 0 && (x as number) < 5e7;
-        const badUsage = Object.entries(usage).filter(
-          ([m, u]) => !(m in prices.llm) || !okCount(u?.input) || !okCount(u?.output)
-        );
-        if (badUsage.length) {
-          out({ ok: false, badUsage: badUsage.length });
-          process.exit(3);
-        }
-        writeFileSync(join(a.dir, `usage.generate.${a.as}.json`), JSON.stringify(usage));
         out({ ok: true, replies: Object.keys(clean).length });
         break;
       }
@@ -3247,6 +3274,9 @@ Seth labels each pair once, without being told which side is the friend. He answ
             D=$RUNNER_TEMP/nt; mkdir -p $D; chmod 700 $D "$RUNNER_TEMP"
             npx tsx scripts/humanness-loop/cli.ts classify --on-set "$ON_SET" \
               || { echo "verdict=unmeasurable" >> "$GITHUB_ENV"; exit 0; }
+            # Fault runs are the harness's own code: never with a PR, never without a fault.
+            if [ "$KIND" = fault ] && { [ -n "$PR" ] || [ -z "$FAULT" ]; }; then
+              echo "::error::kind=fault needs a fault and takes no pr"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; fi
             npx tsx scripts/humanness-loop/cli.ts calibration-gate --out $D/calibration.json \
               || { echo "verdict=unreliable" >> "$GITHUB_ENV"; exit 0; }
             # Phase S's own runs (experiment fault-*) are exempt; a flip never is.
@@ -3328,17 +3358,20 @@ Seth labels each pair once, without being told which side is the friend. He answ
             E="$HL_BUCKET/exp/$EXPERIMENT/$EXP_KEY"   # resume cache, written only by this harness
             gcloud storage cp --quiet "$E/*" $D/ > /dev/null 2>&1 || true
             X=/home/hlexp; sudo useradd -m hlexp 2>/dev/null || true
-            sudo -u hlexp git clone -q "file://$GITHUB_WORKSPACE" $X/repo     # committed files of main only
+            sudo chmod 711 $X; sudo -u hlexp mkdir -p -m 755 $X/out   # the harness reads replies from $X/out
+            # No network for hlexp except loopback (the proxy): no way to send moments anywhere.
+            for ipt in iptables ip6tables; do sudo $ipt -A OUTPUT -m owner --uid-owner hlexp ! -o lo -j REJECT; done
+            sudo -u hlexp git -c safe.directory='*' clone -q "file://$GITHUB_WORKSPACE" $X/repo   # committed files of main only
             sudo -u hlexp ln -s "$GITHUB_WORKSPACE/node_modules" $X/repo/node_modules
             [ -n "${PR:-}" ] && sudo -u hlexp git -C $X/repo apply < $RUNNER_TEMP/exp.diff
-            npx tsx scripts/humanness-loop/cli.ts sandbox-moments --in $D/moments.json --out $RUNNER_TEMP/sbx.json \
-              $([ "$KIND" = fault ] && echo "--keep-answers 1")
+            npx tsx scripts/humanness-loop/cli.ts sandbox-moments --in $D/moments.json --out $RUNNER_TEMP/sbx.json --map $D/idmap.json \
+              $(case "$FAULT" in friend|heldout-fewshot) echo "--keep-answers 1";; esac)
             sudo install -o hlexp -m 600 $RUNNER_TEMP/sbx.json $X/moments.json
             sudo install -o hlexp -m 600 $D/base.json $X/base.json
-            npx tsx scripts/humanness-loop/cli.ts vertex-proxy --port 8787 > $D/proxy.log 2>&1 & echo $! > $RUNNER_TEMP/proxy.pid
+            npx tsx scripts/humanness-loop/cli.ts vertex-proxy --port 8787 --usage $D/usage.generate.proxy.json > $D/proxy.log 2>&1 & echo $! > $RUNNER_TEMP/proxy.pid
             # Sandbox self-test: each of these must FAIL for hlexp, or the run stops before any experiment code runs.
-            for t in "test -r $D/moments.json" "test -r $GOOGLE_APPLICATION_CREDENTIALS" "touch $GITHUB_WORKSPACE/.hl-probe" \
-                     "env -i PATH=$PATH HOME=$X gcloud storage ls $HL_BUCKET" \
+            for t in "test -r $D/moments.json" "test -r $D/idmap.json" "test -r $GOOGLE_APPLICATION_CREDENTIALS" "touch $GITHUB_WORKSPACE/.hl-probe" \
+                     "env -i PATH=$PATH HOME=$X gcloud storage ls $HL_BUCKET" "curl -sf -m 5 -o /dev/null https://www.google.com" \
                      "curl -sf -m 5 -X POST http://127.0.0.1:8787/v1/projects/johnb-2025/locations/global/publishers/google/models/gemini-3.1-pro-preview:generateContent"; do
               if sudo -u hlexp sh -c "$t" > /dev/null 2>&1; then echo "::error::sandbox self-test: hlexp could: ${t%% *}"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; fi
             done
@@ -3351,8 +3384,9 @@ Seth labels each pair once, without being told which side is the friend. He answ
                 HL_FAULT_SUITE=$([ "$KIND" = fault ] && echo 1 || echo 0) \
                 bash -c 'cd ~/repo && npx tsx scripts/voice-eval/next-turn/generate.ts --out ~/out --moments ~/moments.json --persona "$0" --flags-file ~/base.json ${1:+--set "$1"} ${2:+--fault "$2"} --arm "$3"' \
                 "$PERSONA" "$ON_SET" "$([ "$KIND" = fault ] && echo "$FAULT")" "$arm" > $D/gen-on$i.log 2>&1 || true
-              npx tsx scripts/humanness-loop/cli.ts take-replies --from $X/out --arm "$arm" --as on$i --moments $D/moments.json --dir $D || { ok=0; break; }
+              npx tsx scripts/humanness-loop/cli.ts take-replies --from $X/out --arm "$arm" --as on$i --map $D/idmap.json --dir $D || { ok=0; break; }
             done
+            sudo pkill -KILL -u hlexp || true
             kill "$(cat $RUNNER_TEMP/proxy.pid)"
             # Taken on every path out of the sandboxed phase, before anything else writes to the bucket.
             npx tsx scripts/humanness-loop/cli.ts state-snapshot --out $RUNNER_TEMP/state.after
@@ -3362,7 +3396,7 @@ Seth labels each pair once, without being told which side is the friend. He answ
             fi
             [ $ok = 1 ] || { echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; }
             gcloud storage cp --quiet $D/ferni.on*.json $D/prompt.on*.txt "$E/" > /dev/null
-            price
+            price   # prices usage.generate.proxy.json: the proxy's own meter
             # ---- On arm, phase 2: judge in the harness, from this checkout of main.
             for i in $(seq 1 $SAMPLES); do
               [ -f $D/judge.gemini.on$i.json ] && continue
@@ -3419,7 +3453,9 @@ Seth labels each pair once, without being told which side is the friend. He answ
     - The second checkout is `hlexp`'s clone of main with the PR's `src/` diff applied. It holds no credentials, can't read `$D`, `$RUNNER_TEMP` or the WIF credential file, and can't write the harness checkout.
     - Its only cloud access is `vertex-proxy`, which forwards `generateContent` for `gemini-3.5-flash` and `-lite` and refuses everything else.
     - A self-test proves all of this on every run, before any experiment code executes.
-    - The state snapshot covers every bucket prefix the sandboxed phase must not touch (including `exp/`, `ledger/` and `runs/`) and the Firestore collections. It is taken on every path out of that phase, before the harness writes anything.
+    - The sandbox sees moments under per-run opaque ids (`sandbox-moments`), so it can't apply the public held-out rule to them, and it has no network except loopback (`iptables` owner match).
+  - The state snapshot covers the whole bucket and the Firestore collections. It is taken on every path out of that phase, before the harness writes anything.
+  - `--keep-answers` is passed only for the harness's own faults `friend` and `heldout-fewshot`, and `kind=fault` refuses a `pr`.
   - **Blocked PRs.** A PR touching `scripts/voice-eval/next-turn/judge.mjs` (B8) is refused by `diff-gate`, gets verdict `blocked`, and is never scored. Even without the gate, its judge file would never be used, because the harness comes from `main`.
   - **The ledger.** `price` runs after every generate and judge invocation. Each call writes one ledger object, and the run stops when the day or the run cap is reached. The `always()` step only prices what a cancelled run left behind (`--seq final`).
   - **Baseline rows.** `kind=baseline` posts the off arm's raw and LC win rate per judge on **working** only (`cli.ts baseline-row`, using `stats.ts` `lcWinRates`). Held-out baseline numbers stay in `runs/<id>/` until the set is retired.
@@ -3742,7 +3778,7 @@ The live stage runs on code that is already on dev (merged, then deployed with t
   6. `update-secrets` with `$ON_SET`, then all on calls
   7. Restore every touched flag to its `state/baseline-flags.json` value with `update-secrets`
      Each `update-secrets` comes after a `wait-rooms`, because an update restarts the agent.
-- [ ] **Step 6: Prove it.** Dispatch on main with `kind=ab`, `on_set=TURN_LENGTH=learned`, `stage=live`, `budget=10`, and `offline_run=<the F2 proof run>`. Expected:
+- [ ] **Step 6: Prove it.** Dispatch on main with `kind=ab`, `on_set=TURN_LENGTH=learned`, `stage=live`, `budget=10`, and `offline_run=<the run id of F2 Step 6's sandbox ab proof>` (it has an on arm; a baseline run doesn't). Expected:
   - `arms verified: N calls`.
   - A guardrails line on #1377.
   - The lock doc is deleted afterwards (`npx tsx scripts/humanness-loop/dev-lock.ts --status` gives `{"held":false}`).
@@ -3776,7 +3812,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
     B5: { decision: 'discard', reasons: ['first-audio latency p50 +300 ms (limit +100)'] },
     B6: { decision: 'unmeasurable', reasons: [] },
     B7: { decision: 'discard', reasons: ['claude: no improvement'] },
-    B8: { decision: 'blocked', reasons: [], judgeUnchanged: true },
+    B8: { decision: 'blocked', reasons: [], prTouchedJudge: true },
   };
   describe('suiteStatus', () => {
     it('has the eleven rows of the spec', () => {
@@ -3841,7 +3877,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
     keeps?: number;
     runs?: number;
     onRate?: number | null;
-    judgeUnchanged?: boolean;
+    prTouchedJudge?: boolean;
   }
   const offlineKeep = (d: string): boolean => d === 'keep' || d === 'pending-live';
   const why = (r: FaultResult, re: RegExp): boolean => r.reasons.some((x) => re.test(x));
@@ -3909,7 +3945,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
     {
       id: 'B8',
       want: { KIND: 'ab', ON_SET: 'TURN_LENGTH=learned' },
-      expect: (r) => r.decision === 'blocked' && r.judgeUnchanged === true,
+      expect: (r) => r.decision === 'blocked' && r.prTouchedJudge === true,
     },
   ];
   /**
@@ -3936,7 +3972,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
     return { pass: !missing.length && !failed.length, failed, missing };
   }
   ```
-- [ ] **Step 3: The CLI commands.** Add these cases to `cli.ts`. Imports: `sample` from `./split.js`, `decide`, `liveGuardrailFailures` and `DECIDING` from `./decide.js`, `momentDeltas` from `./picks.js`, and `suiteStatus` and `type FaultResult` from `./fault-suite.js`.
+- [ ] **Step 3: The CLI commands.** Add these cases to `cli.ts`. Imports: `sample` from `./split.js`, `decide`, `liveGuardrailFailures` and `DECIDING` from `./decide.js`, `momentDeltas` from `./picks.js`, and `suiteStatus`, `rowFor` and `type FaultResult` from `./fault-suite.js`.
   ```ts
       case 'fault-gate':
       case 'fault-record': {
@@ -3964,8 +4000,11 @@ This is the first phase the loop runs. Until it passes on the current harness, `
             runs: pub.runs,
             keeps: pub.keeps,
             onRate: onRates.length ? onRates.reduce((s, x) => s + x, 0) / onRates.length : null,
-            // B8: main's judge is what scored (it is never the PR's); the harness tree on main is unchanged.
-            ...(id === 'B8' ? { judgeUnchanged: execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'scripts/voice-eval'], { encoding: 'utf8' }).trim() === '' } : {}),
+            // B8: the row only counts if the PR really edited the judge (and was blocked). Its score is unchanged
+            // because none is computed, and the harness that would compute one comes from main regardless.
+            ...(id === 'B8'
+              ? { prTouchedJudge: execFileSync('gh', ['pr', 'diff', process.env.PR ?? '', '--name-only'], { encoding: 'utf8' }).split('\n').includes('scripts/voice-eval/next-turn/judge.mjs') }
+              : {}),
           };
           const f = join(process.env.RUNNER_TEMP ?? '/tmp', 'fault-suite.json');
           writeFileSync(f, JSON.stringify(rec));
@@ -4042,7 +4081,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
   ```
   In the workflow:
   - Add `kind=aa`. It runs the "Plan the run" step with `SAMPLES=12`, and is otherwise only `gcloud storage cp "$HL_BUCKET/cache/off/$OFF_KEY/*" $D/`, then `cli.ts aa --dir $D --runs 30`, then `cli.ts mde --dir $D`.
-  - The posting step runs `cli.ts fault-record --id <row> --public $D/public.json` when `EXPERIMENT` starts with `fault-`. The row is `EXPERIMENT` without the `fault-` prefix, with `AA` mapped to `A/A`.
+  - The posting step runs `cli.ts fault-record --public $D/public.json` when `EXPERIMENT` starts with `fault-`. The row comes from `rowFor`, which checks the dispatch.
   - `post` reads `state/mde.json` for the MDE column.
 - [ ] **Step 4: Run the suite** (on main, after F2, F3, G and L have merged and the calibration is frozen). Run the dispatches one at a time; the concurrency group serialises them. Each run's posting step calls `fault-record` when `EXPERIMENT` starts with `fault-`.
   ```bash
@@ -4065,7 +4104,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
     w -f kind=ab -f pr=<that PR> -f on_set=TURN_LENGTH=learned -f experiment=fault-B8
     gh pr close <that PR> --delete-branch
     ```
-    `diff-gate` gives `blocked`, and the posting step records row B8 with `judgeUnchanged` computed on main. Nothing is recorded by hand.
+    `diff-gate` gives `blocked`, and the posting step records row B8 with `prTouchedJudge` (read from the PR's file list). Nothing is recorded by hand.
   - Every row is recorded by the run's own posting step (`fault-record`), and only when the dispatch matches the row's `want` (`rowFor`). A run with other inputs, such as the sandbox proof in F2 Step 6, records nothing.
   - **Phase S rows run below the spec's sample size on purpose.** The text faults use 2 samples on working, and G1 and B4 use 1. They are gross faults with known answers, not experiments, so the "never decide on fewer than 132 × 6" rule doesn't apply to them.
 - [ ] **Step 5: Check, and what failure means.** `gcloud storage cat gs://ferni-humanness-eval/state/fault-suite.json | jq '.results | keys | length'` should give `11`, and the last `fault-record` should print `{"pass":true,"failed":[],"missing":[]}`. Post the eleven decisions (one word each) and the MDE on #1377.
