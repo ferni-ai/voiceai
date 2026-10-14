@@ -49,15 +49,15 @@
       "affectionate",
       "curious",
       "excited",
-      "hopeful",
+      "anticipation",
       "proud",
       "calm",
       "sympathetic",
-      "gentle",
       "triumphant",
       "wistful"
     ],
-    "default_speed": 0.95,
+    "default_speed": 1.06,
+    "speed_band": [0.98, 1.12],
     "default_volume": 1.0,
     "laughter_frequency": 0.22,
     "nonverbals": ["[laughter]", "Oh!", "Wait—", "Yes!", "Wow!"]
