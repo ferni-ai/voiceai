@@ -458,7 +458,7 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
       `https://api.open-meteo.com/v1/forecast?` +
       `latitude=${geo.latitude}&longitude=${geo.longitude}` +
       `&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max` +
-      `&temperature_unit=fahrenheit&forecast_days=${days}`;
+      `&temperature_unit=fahrenheit&forecast_days=${days}&timezone=auto`; // the place's own days
 
     const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
 

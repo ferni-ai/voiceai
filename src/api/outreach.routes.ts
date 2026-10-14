@@ -8,7 +8,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
   calculateOptimalTime,
-  cancelOutreach,
   getChannelProfile,
   getConversationalCallService,
   getOutreachDecisionEngine,
@@ -25,6 +24,7 @@ import {
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
+import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
 import { sendOutreachHistory } from './outreach-history-route.js';
 import {
   channelsFromSettings,
@@ -398,7 +398,7 @@ export async function handleOutreachRoutes(
     if (route.startsWith('/pending/') && method === 'DELETE') {
       const triggerId = route.replace('/pending/', '');
 
-      const cancelled = cancelOutreach(triggerId);
+      const cancelled = cancelOwnedOutreach(authenticatedUserId, triggerId);
       if (cancelled) {
         sendJsonResponse(res, 200, { success: true, message: 'Outreach cancelled' });
       } else {
@@ -417,8 +417,8 @@ export async function handleOutreachRoutes(
         return true;
       }
 
-      const engine = getOutreachDecisionEngine();
-      const trigger = engine.getTrigger(triggerId);
+      // Only the caller's own trigger; someone else's id is "not found", not "forbidden".
+      const trigger = findOwnedOutreach(authenticatedUserId, triggerId);
 
       if (!trigger) {
         sendJsonResponse(res, 404, { success: false, error: 'Trigger not found' });
@@ -426,7 +426,7 @@ export async function handleOutreachRoutes(
       }
 
       // Cancel the old trigger and create a new one with the updated time
-      cancelOutreach(triggerId);
+      cancelOwnedOutreach(authenticatedUserId, triggerId);
 
       const newTriggerId = triggerOutreach({
         ...trigger,
