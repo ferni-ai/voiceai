@@ -29,9 +29,7 @@ import {
 import { recordReminderPromise } from '../../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { sendEmail, sendSMS } from '../../../../services/communication-service.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
-import { scheduleProactiveCall } from '../../../../services/outreach/conversational-calls.js';
-import { userReach } from '../../../../services/outreach/user-reach.js';
-import { escapeXml } from '../../../../services/outreach/twilio-ssml.js';
+import { getCallUserPort } from './call-user-port.js';
 import {
   getPersonaDisplayName,
   getCanonicalPersonaId,
@@ -398,9 +396,9 @@ Use when you need to reach them right now outside of the conversation.`,
  * Call the user. Registered by the telephony domain (behind
  * TOOLS_REAL_CALL_USER), not here, so there is one callUser.
  *
- * It only rings the verified phone on the account (userReach), never the
- * model-written contactInfo.phone, and goes through scheduleProactiveCall so
- * calling hours and quiet hours decide when it rings.
+ * It only rings the verified phone on the account, never the model-written
+ * contactInfo.phone, and calling hours and quiet hours decide when it rings
+ * (call-user-port.ts; the call session installs the outreach adapter).
  */
 export const callUserDef: ToolDefinition = {
   id: 'callUser',
@@ -421,19 +419,20 @@ Use for important check-ins or when a phone call is more personal than text.`,
           return "I'd need to know who you are to call you.";
         }
 
-        // They asked for this call, so a verified phone is enough; no standing opt-in.
-        const reach = await userReach(ctx.userId, 'voice_call', { standingOptIn: false });
-        if (!reach.phone) {
+        const port = getCallUserPort();
+        if (!port) {
+          return "I can't place calls from here, so no call is coming.";
+        }
+        const phone = await port.verifiedPhone(ctx.userId);
+        if (!phone) {
           return "I can't call you yet: there's no verified phone number on your account, so no call is coming.";
         }
 
-        const result = await scheduleProactiveCall({
+        const result = await port.call({
           userId: ctx.userId,
-          phoneNumber: reach.phone,
+          phoneNumber: phone,
           message,
-          ssml: `<speak>${escapeXml(message)}</speak>`,
           personaId: getCanonicalPersonaId(ctx.agentId || 'ferni'),
-          reason: 'user_requested_call',
         });
 
         if (!result.success) {

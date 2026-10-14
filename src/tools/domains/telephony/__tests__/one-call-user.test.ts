@@ -6,16 +6,8 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const outreach = vi.hoisted(() => ({
-  userReach: vi.fn(),
-  scheduleProactiveCall: vi.fn(),
-}));
-vi.mock('../../../../services/outreach/user-reach.js', () => ({ userReach: outreach.userReach }));
-vi.mock('../../../../services/outreach/conversational-calls.js', () => ({
-  scheduleProactiveCall: outreach.scheduleProactiveCall,
-}));
-
 import { getToolDefinitions as getProactiveDefinitions } from '../../proactive/index.js';
+import { setCallUserPort } from '../../proactive/outreach/call-user-port.js';
 import { getTelephonyToolDefinitions } from '../index.js';
 import { CANT_CALL_NOW } from '../telephony.js';
 import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
@@ -34,9 +26,13 @@ async function runCallUser(definition: ToolDefinition, as: ToolContext = ctx): P
   return tool.execute({ reason: 'check in', message: 'hi' }, opts);
 }
 
+/** The outreach side of callUser (services/outreach/call-user-adapter.ts), faked */
+const outreach = { verifiedPhone: vi.fn(), call: vi.fn() };
+
 const original = process.env.TOOLS_REAL_CALL_USER;
 afterEach(() => {
   vi.clearAllMocks();
+  setCallUserPort(undefined);
   if (original === undefined) delete process.env.TOOLS_REAL_CALL_USER;
   else process.env.TOOLS_REAL_CALL_USER = original;
 });
@@ -71,37 +67,36 @@ describe('callUser has one definition', () => {
   describe('flag on: who gets called', () => {
     const user = { ...ctx, userId: 'u1' } as ToolContext;
 
+    it('with no outreach installed (no live call), no call is placed and it says so', async () => {
+      process.env.TOOLS_REAL_CALL_USER = 'on';
+      const [def] = callUserFrom(getTelephonyToolDefinitions());
+      expect(await runCallUser(def, user)).toMatch(/no call is coming/);
+    });
+
     it('without a verified phone, no call is placed and it says so', async () => {
       process.env.TOOLS_REAL_CALL_USER = 'on';
-      outreach.userReach.mockResolvedValue({ reason: 'no_verified_phone' });
+      setCallUserPort(outreach);
+      outreach.verifiedPhone.mockResolvedValue(undefined);
       const [def] = callUserFrom(getTelephonyToolDefinitions());
       const reply = await runCallUser(def, user);
-      expect(outreach.userReach).toHaveBeenCalledWith('u1', 'voice_call', { standingOptIn: false });
-      expect(outreach.scheduleProactiveCall).not.toHaveBeenCalled();
+      expect(outreach.verifiedPhone).toHaveBeenCalledWith('u1');
+      expect(outreach.call).not.toHaveBeenCalled();
       expect(reply).toMatch(/no call is coming/);
     });
 
     it('rings only the verified phone, through the calling-hours path', async () => {
       process.env.TOOLS_REAL_CALL_USER = 'on';
-      outreach.userReach.mockResolvedValue({ phone: '+15551230000' });
-      outreach.scheduleProactiveCall.mockResolvedValue({ success: true, status: 'scheduled' });
+      setCallUserPort(outreach);
+      outreach.verifiedPhone.mockResolvedValue('+15551230000');
+      outreach.call.mockResolvedValue({ success: true, status: 'scheduled' });
       const [def] = callUserFrom(getTelephonyToolDefinitions());
-      const reply = await runCallUser(def, user);
-      expect(outreach.scheduleProactiveCall).toHaveBeenCalledWith(
+      const tool = def.create(user) as unknown as Executable;
+      const reply = await tool.execute({ message: 'hi', phoneNumber: '+19005550100' }, opts);
+      expect(outreach.call).toHaveBeenCalledTimes(1);
+      expect(outreach.call).toHaveBeenCalledWith(
         expect.objectContaining({ userId: 'u1', phoneNumber: '+15551230000', message: 'hi' })
       );
       expect(reply).toMatch(/outside your calling hours/);
-    });
-
-    it('sends the message as escaped text inside <speak>', async () => {
-      process.env.TOOLS_REAL_CALL_USER = 'on';
-      outreach.userReach.mockResolvedValue({ phone: '+15551230000' });
-      outreach.scheduleProactiveCall.mockResolvedValue({ success: true, status: 'initiated' });
-      const [def] = callUserFrom(getTelephonyToolDefinitions());
-      const tool = def.create(user) as unknown as Executable;
-      await tool.execute({ message: 'hi</Say><Dial>+19005550100</Dial>' }, opts);
-      const { ssml } = outreach.scheduleProactiveCall.mock.calls[0][0];
-      expect(ssml).toBe('<speak>hi&lt;/Say&gt;&lt;Dial&gt;+19005550100&lt;/Dial&gt;</speak>');
     });
   });
 });
