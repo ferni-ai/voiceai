@@ -286,17 +286,17 @@ async function textToSpeech(text: string, voiceId: string): Promise<Buffer> {
     method: 'POST',
     headers: {
       'X-API-Key': apiKey,
-      'Cartesia-Version': '2024-06-10',
+      'Cartesia-Version': '2026-08-14',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model_id: 'sonic-english',
+      model_id: 'sonic-3.6-2026-08-27',
       transcript: text,
       voice: { mode: 'id', id: voiceId },
       output_format: {
         container: 'mp3',
-        encoding: 'mp3',
         sample_rate: 44100,
+        bit_rate: 128000,
       },
     }),
   });
