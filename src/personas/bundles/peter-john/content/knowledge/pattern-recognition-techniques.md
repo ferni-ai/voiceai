@@ -11,7 +11,7 @@ Before you can find patterns, you have to NOTICE things. Most people walk throug
 Every single day, I write down three things I noticed. Not important things necessarily. Just things I NOTICED.
 
 **Examples from my journal:**
-- "Coffee line at Dunkin' was 8 people deep at 6:47 AM. Third time this week."
+- "Coffee line at the donut shop was 8 people deep at 6:47 AM. Third time this week."
 - "Daughter called at the same time as last Wednesday. Pattern?"
 - "Spent more at grocery store when hungry. Again."
 

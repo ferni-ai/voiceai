@@ -19,8 +19,10 @@ import {
   CARTESIA_MODEL,
   cartesiaPronunciation,
 } from '../../config/voice-ids.js';
+import { ARRIVING_OPENERS } from '../../services/team-engagement/banter.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { backchannelsFor, bootBackchannels } from './reaction-clips.js';
+import { renderVoicedTake, voicedTakeTexts } from './voiced-take-render.js';
 
 const log = createLogger({ module: 'ConversationalAudioCache' });
 
@@ -185,28 +187,8 @@ const HANDOFF_BANTER: Record<string, string[]> = {
   'nayan-patel': ['Let me bring in Ferni.', 'Maya would be good for this.', 'One moment.'],
 };
 
-/**
- * Arriving banter - new persona's welcome (AFTER voice switch).
- * Keep warm and SHORT.
- */
-const ARRIVING_BANTER: Record<string, string[]> = {
-  ferni: [
-    "Hey, I'm here.",
-    'Hey! Good to see you.',
-    'Hey, good to be back.',
-    "Hey! What's going on?",
-  ],
-  'maya-santos': [
-    'Hey! Maya here.',
-    'Hey there!',
-    "Hey! I'm here for you.",
-    'Hey! Good to connect.',
-  ],
-  'peter-john': ['Hey! Peter here.', 'Hey there!', 'Hey! Good to meet you.', "Hey! I've got you."],
-  'alex-chen': ['Hey! Alex here.', 'Hey there!', "Hey! I'm here to help.", 'Hey! Good to see you.'],
-  'jordan-taylor': ['Hey! Jordan here!', 'Hey hey!', 'Hey! So good to meet you!', "Hey! Let's go!"],
-  'nayan-patel': ['Hello. Nayan here.', 'Namaste.', "Hello. I'm here.", 'Hello. Good to meet you.'],
-};
+/** Arriving openers (team-engagement/banter.ts): pre-rendered so the first words after a handoff are instant. */
+const ARRIVING_BANTER = ARRIVING_OPENERS;
 
 // ============================================================================
 // CARTESIA API (Direct calls for speed)
@@ -288,11 +270,12 @@ function estimateDuration(byteLength: number): number {
 async function cachePhrase(
   text: string,
   voiceId: string,
-  category: CachedAudio['category']
+  category: CachedAudio['category'],
+  render: (text: string, voiceId: string) => Promise<ArrayBuffer | null> = generateAudio
 ): Promise<'cached' | 'generated' | 'failed'> {
   const key = getCacheKey(text, voiceId);
   if (audioCache.has(key)) return 'cached';
-  const audio = await generateAudio(text, voiceId);
+  const audio = await render(text, voiceId);
   if (!audio || audio.byteLength === 0) return 'failed';
   audioCache.set(key, {
     audio,
@@ -321,9 +304,12 @@ export async function warmPersonaReactions(personaId: string): Promise<number> {
   const prev = reactionWarms.get(personaId);
   if (prev && Date.now() - prev.at < REACTION_RETRY_MS) return prev.done;
   const voiceId = getVoiceIdForPersona(personaId);
-  const done = Promise.all(
-    backchannelsFor(personaId).map(async (text) => cachePhrase(text, voiceId, 'backchannel'))
-  ).then((results) => results.filter((r) => r === 'generated').length);
+  const reactions = backchannelsFor(personaId);
+  const voiced = voicedTakeTexts(reactions);
+  const done = Promise.all([
+    ...reactions.map(async (text) => cachePhrase(text, voiceId, 'backchannel')),
+    ...voiced.map(async (text) => cachePhrase(text, voiceId, 'backchannel', renderVoicedTake)),
+  ]).then((results) => results.filter((r) => r === 'generated').length);
   reactionWarms.set(personaId, { at: Date.now(), done });
   return done;
 }
@@ -485,16 +471,3 @@ export function clearConversationalCache(): void {
   metrics.cacheHits = 0;
   metrics.cacheMisses = 0;
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  prewarmConversationalAudio,
-  getCachedAudio,
-  getCachedAudioForPersona,
-  isPhraseCached,
-  getConversationalCacheMetrics,
-  clearConversationalCache,
-};

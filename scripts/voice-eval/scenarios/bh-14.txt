@@ -1,0 +1,6 @@
+# bh: {"to": "jordan-taylor", "path": "ask", "facts": ["anniversary", "fifth", "5th", "three weeks", "beach"]}
+Hey Ferni. Our fifth anniversary is in three weeks, and I haven't planned anything yet. She loves the beach.
+Can Jordan help me figure something out?
+@pause 9000 -
+Hi Jordan.
+So, what do you think?

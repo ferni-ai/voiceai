@@ -117,24 +117,8 @@ test.describe('Account API', () => {
 // ============================================================================
 
 test.describe('Migration API', () => {
-  test('POST /api/auth/migrate - requires deviceId', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/auth/migrate`, {
-      headers: {
-        'X-User-ID': TEST_USER_ID,
-        'Content-Type': 'application/json',
-      },
-      data: {
-        // Missing deviceId
-        firebaseUid: 'test-firebase-uid-12345678901234567890',
-      },
-    });
-
-    expect(response.status()).toBe(400);
-    const data = await response.json();
-    expect(data.error).toContain('deviceId');
-  });
-
-  test('POST /api/auth/migrate - requires valid firebaseUid', async ({ request }) => {
+  test('POST /api/auth/migrate - requires a Firebase token', async ({ request }) => {
+    // The target account comes from the verified token, never the body
     const response = await request.post(`${BASE_URL}/api/auth/migrate`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
@@ -142,44 +126,11 @@ test.describe('Migration API', () => {
       },
       data: {
         deviceId: TEST_DEVICE_ID,
-        firebaseUid: 'short', // Too short to be valid
+        firebaseUid: 'test-firebase-uid-12345678901234567890',
       },
     });
 
-    expect(response.status()).toBe(400);
-    const data = await response.json();
-    expect(data.error).toContain('firebaseUid');
-  });
-
-  test('POST /api/auth/migrate - succeeds with valid params', async ({ request }) => {
-    const migrateDeviceId = `migrate-test-${Date.now()}`;
-    const migrateFirebaseUid = `firebase-uid-test-${Date.now()}-12345678`;
-
-    // First create some data under the device ID
-    await request.put(`${BASE_URL}/api/account/profile`, {
-      headers: {
-        'X-User-ID': `device:${migrateDeviceId}`,
-        'Content-Type': 'application/json',
-      },
-      data: { name: 'Migration Test User' },
-    });
-
-    // Now migrate
-    const response = await request.post(`${BASE_URL}/api/auth/migrate`, {
-      headers: {
-        'X-User-ID': `device:${migrateDeviceId}`,
-        'Content-Type': 'application/json',
-      },
-      data: {
-        deviceId: migrateDeviceId,
-        firebaseUid: migrateFirebaseUid,
-      },
-    });
-
-    expect(response.status()).toBe(200);
-    const data = await response.json();
-    expect(data).toHaveProperty('success', true);
-    expect(data).toHaveProperty('profileAction');
+    expect(response.status()).toBe(401);
   });
 
   test('GET /api/auth/migration-status - returns status for device', async ({ request }) => {

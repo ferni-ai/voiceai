@@ -13,6 +13,8 @@
 import { t } from '../i18n/index.js';
 import { isOffline, onOfflineChange } from '../services/offline.service.js';
 import { createLogger } from '../utils/logger.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { initStatusIslandConnection, setIslandOffline } from './status-island-connection.js';
 
 const log = createLogger('OfflineBanner');
 
@@ -23,6 +25,8 @@ const log = createLogger('OfflineBanner');
 let bannerElement: HTMLElement | null = null;
 let unsubscribe: (() => void) | null = null;
 let isVisible = false;
+/** Overlay-host flag on: offline is a status-island state, not this banner. */
+let useIsland = false;
 
 // ============================================================================
 // STYLES
@@ -41,10 +45,14 @@ const BANNER_STYLES = `
     justify-content: center;
     gap: var(--space-sm, 0.5rem);
     
-    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+    /* Below the notch / status bar on phones. */
+    padding: calc(var(--space-sm) + env(safe-area-inset-top, 0px)) var(--space-md) var(--space-sm);
     
-    background: var(--color-semantic-warning-bg, #fef3cd);
-    color: var(--color-semantic-warning-text, #856404);
+    /* Neutral surface; the warning tone is only the icon and the 3px rule
+       (the old -warning-bg/-text tokens were never defined: yellow in dark). */
+    background: var(--color-background-elevated);
+    color: var(--color-text-primary);
+    border-bottom: 3px solid var(--color-semantic-warning);
     
     font-family: var(--font-body, 'Inter', sans-serif);
     font-size: 0.875rem;
@@ -66,6 +74,7 @@ const BANNER_STYLES = `
     width: 16px;
     height: 16px;
     flex-shrink: 0;
+    color: var(--color-semantic-warning);
   }
   
   .offline-banner__text {
@@ -125,6 +134,15 @@ const WIFI_OFF_ICON = `
  * Initialize offline banner
  */
 export function initOfflineBanner(): void {
+  useIsland = isOverlayHostEnabled();
+  if (useIsland) {
+    initStatusIslandConnection();
+    unsubscribe = onOfflineChange(setIslandOffline);
+    setIslandOffline(isOffline());
+    log.debug('Offline state routed to the status island');
+    return;
+  }
+
   // Add styles
   addStyles();
   
@@ -148,6 +166,8 @@ export function initOfflineBanner(): void {
 export function disposeOfflineBanner(): void {
   unsubscribe?.();
   unsubscribe = null;
+  if (useIsland) setIslandOffline(false);
+  useIsland = false;
   
   bannerElement?.remove();
   bannerElement = null;
@@ -204,6 +224,10 @@ function handleOfflineChange(offline: boolean): void {
 }
 
 function showBanner(): void {
+  if (useIsland) {
+    setIslandOffline(true);
+    return;
+  }
   if (isVisible || !bannerElement) {
     return;
   }
@@ -219,6 +243,10 @@ function showBanner(): void {
 }
 
 function hideBanner(): void {
+  if (useIsland) {
+    setIslandOffline(false);
+    return;
+  }
   if (!isVisible || !bannerElement) {
     return;
   }

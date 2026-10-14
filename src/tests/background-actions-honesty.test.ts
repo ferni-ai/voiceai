@@ -108,6 +108,7 @@ describe('background calls: none without a number and a calling service', () => 
   });
 
   it('the backgroundCall tool says no call was made instead of "Call Scheduled"', async () => {
+    vi.stubEnv('OUTBOUND_CONFIRM', 'off'); // past the confirm gate (outbound-gate.ts) to the tool
     const tools = await getProactiveTools();
     const reply = await runTool(tools, 'backgroundCall', {
       contactName: 'Mom',
@@ -116,6 +117,7 @@ describe('background calls: none without a number and a calling service', () => 
     });
     expect(reply).toMatch(/No call was made/);
     expect(reply).not.toMatch(/Call Scheduled|I'll call/);
+    vi.unstubAllEnvs();
   });
 
   it('an unplaced call is recorded as failed, not completed', async () => {

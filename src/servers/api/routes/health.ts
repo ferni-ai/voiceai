@@ -12,6 +12,7 @@ import { requireAdmin } from '../../../api/auth-middleware.js';
 import { parseRawBody } from '../../../api/helpers.js';
 import { getAllStats as getPersistenceStats } from '../../../services/persistence/index.js';
 import { persistenceMetrics } from '../../../services/analytics/persistence-metrics.js';
+import { useVertexAI } from '../../../config/vertex-flag.js';
 
 const log = createLogger({ module: 'HealthRoutes' });
 
@@ -22,9 +23,7 @@ const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 const PLAID_ENV = process.env.PLAID_ENV || 'sandbox';
 const PORT = process.env.PORT || 3002;
 
-/**
- * Handle health routes
- */
+/** Handle health routes */
 export async function handleHealthRoutes(
   req: IncomingMessage,
   res: ServerResponse,
@@ -91,7 +90,7 @@ export async function handleHealthRoutes(
       // 3. LLM Connectivity Check (OpenAI key present)
       const llmStart = Date.now();
       const hasOpenAI = !!process.env.OPENAI_API_KEY;
-      const hasGemini = !!process.env.GOOGLE_API_KEY || process.env.USE_VERTEX_AI !== 'false'; // Vertex: service account
+      const hasGemini = !!process.env.GOOGLE_API_KEY || useVertexAI(); // Vertex: service account
       if (hasOpenAI || hasGemini) {
         checks.llm = { status: 'ok', latencyMs: Date.now() - llmStart, details: hasOpenAI ? 'OpenAI' : 'Gemini' };
       } else {

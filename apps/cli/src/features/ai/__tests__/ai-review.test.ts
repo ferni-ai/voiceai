@@ -4,7 +4,7 @@
  * "No changes to review".
  */
 import { execFileSync } from 'child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -239,5 +239,49 @@ describe('Gemini request', () => {
     expect(url).not.toContain('test-key');
     expect(url).not.toMatch(/[?&]key=/);
     expect(new Headers(init.headers).get('x-goog-api-key')).toBe('test-key');
+  });
+});
+
+// The review checked diffs against generic prompts only, never this repo's own
+// rules, so it couldn't say "new behaviour isn't behind a flag" or "this PR has
+// no linked issue". The general review now reads AGENTS.md and the operating model.
+describe('ai review checks the repo rules', () => {
+  const rulesDir = () => join(repo, 'docs', 'agent');
+
+  beforeAll(() => {
+    mkdirSync(rulesDir(), { recursive: true });
+    writeFileSync(join(repo, 'AGENTS.md'), '3. New behaviour goes behind an env flag that is off by default.\n');
+    writeFileSync(join(rulesDir(), 'operating-model.md'), 'One issue, one PR. The PR says Closes #N.\n');
+  });
+
+  afterAll(() => {
+    rmSync(join(repo, 'AGENTS.md'), { force: true });
+    rmSync(join(repo, 'docs'), { recursive: true, force: true });
+  });
+
+  it('sends AGENTS.md and the operating model with the general review', async () => {
+    const { handleAIReview } = await import('../ai-review.js');
+    await handleAIReview(['general', '--base', 'origin/main']);
+    const sent = sentDiff() ?? '';
+    expect(sent).toContain('behind an env flag that is off by default');
+    expect(sent).toContain('One issue, one PR');
+    expect(sent).toContain('feature.ts'); // still reviews the diff
+  });
+
+  it('leaves the security and performance reviews to their own focus', async () => {
+    const { handleAIReview } = await import('../ai-review.js');
+    await handleAIReview(['security', '--base', 'origin/main']);
+    expect(sentDiff()).not.toContain('One issue, one PR');
+  });
+
+  it('still reviews when a rules file is missing, and says so', async () => {
+    rmSync(join(rulesDir(), 'operating-model.md'));
+    const { handleAIReview } = await import('../ai-review.js');
+    await handleAIReview(['general', '--base', 'origin/main']);
+    const sent = sentDiff() ?? '';
+    expect(sent).toContain('behind an env flag');
+    expect(sent).not.toContain('One issue, one PR');
+    expect(printed().some((l) => l.includes('docs/agent/operating-model.md'))).toBe(true);
+    writeFileSync(join(rulesDir(), 'operating-model.md'), 'One issue, one PR. The PR says Closes #N.\n');
   });
 });

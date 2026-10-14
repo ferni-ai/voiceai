@@ -344,8 +344,10 @@ describe('Moments System E2E', () => {
 
       const container = document.querySelector('.moments-container');
       expect(container).toBeTruthy();
-      expect(container?.getAttribute('role')).toBe('status');
-      expect(container?.getAttribute('aria-live')).toBe('polite');
+      // The container is layout only; its polite status region announces
+      expect(container?.hasAttribute('role')).toBe(false);
+      const status = container?.querySelector('[role="status"]');
+      expect(status?.getAttribute('aria-live')).toBe('polite');
 
       resetMomentsManager();
     });
