@@ -446,12 +446,10 @@ async function determineBestChannel(
 // ============================================================================
 
 /**
- * Is it quiet hours for this user now?
- *
- * QUIET_HOURS_UNIFIED=on uses the shared predicate (quiet-hours.ts): 22:00-08:00
- * and both US coasts when the zone is unknown. Off, this scheduler keeps its
- * own window: 21:00-08:00 Eastern unless the user set one. A zone that cannot
- * be read fails closed.
+ * Is it quiet hours for this user now? QUIET_HOURS_UNIFIED=on uses the shared
+ * predicate (quiet-hours.ts): 22:00-08:00 and both US coasts when the zone is
+ * unknown. Off, this scheduler keeps its own window: 21:00-08:00 Eastern unless
+ * the user set one. A zone that cannot be read fails closed.
  */
 function isInQuietHours(candidate: UserOutreachCandidate): boolean {
   if (isQuietHoursUnified()) return isUserQuiet(candidate);
