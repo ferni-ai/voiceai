@@ -8,7 +8,7 @@ import {
 } from './gcp-test-guard.js';
 
 // Load test environment variables
-dotenv.config({ path: '.env.test' });
+dotenv.config({ path: '.env.test', quiet: true });
 
 // No test reaches real Google Cloud: no credentials resolve (which also stops
 // the metadata-server probe that stalled CI's integration job until its

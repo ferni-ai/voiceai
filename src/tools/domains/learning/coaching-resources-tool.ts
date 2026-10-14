@@ -15,6 +15,19 @@ import { bookCandidates, videoCandidates } from '../../../services/coach-media/c
 import { checkedPick } from '../../../services/coach-media/checked-pick.js';
 import { fitContext } from '../../../services/coach-media/fit.js';
 import {
+  deliverPick,
+  hasPick,
+  recordPickFeedback,
+  rememberPick,
+} from '../../../services/coach-media/pick-delivery.js';
+import { logOffered, recentPicks } from '../../../services/coach-media/pick-log.js';
+import {
+  boostFor,
+  tasteFrom,
+  tasteReason,
+  tasteWords,
+} from '../../../services/coach-media/taste.js';
+import {
   GROUNDING_PER_USER_PER_DAY,
   takeDailyBudget,
 } from '../../../services/coach-media/quota.js';
@@ -70,12 +83,24 @@ const OVER_DAILY_CAP =
 const NOTHING =
   "Couldn't find a solid resource on that just now. Say so plainly rather than guessing a title or link.";
 
+/** The call a tool runs on: its session object (keys this call's pick) and userData. */
+interface Call {
+  session?: object;
+  userData: Record<string, unknown>;
+}
+
+function callOf(run: unknown): Call {
+  const ctx = (run as { ctx?: { session?: object; userData?: unknown } } | undefined)?.ctx;
+  return { session: ctx?.session, userData: (ctx?.userData ?? {}) as Record<string, unknown> };
+}
+
 export async function runFindCoachingResources(
   args: z.infer<typeof parameters>,
-  userData: Record<string, unknown>,
+  call: Call,
   userId?: string
 ): Promise<string> {
-  const names = sessionIdentifiers(userData);
+  const started = Date.now();
+  const names = sessionIdentifiers(call.userData);
   const topic = topicOnlyQuery(args.topic, names);
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
   // No account, no per-user cap to hold it to: no paid lookups.
@@ -91,9 +116,29 @@ export async function runFindCoachingResources(
       format === 'book'
         ? await bookCandidates(topic)
         : await videoCandidates(topic, format === 'short');
-    const fit = await fitContext(userId, args.fit, names);
-    const pick = await checkedPick(candidates, topic, fit);
-    if (pick) return pickResultText(topic, pick, sensitive);
+    const known = userId && userId !== 'anonymous' ? userId : undefined;
+    const taste = tasteFrom(known ? await recentPicks(known) : []);
+    const fit = [await fitContext(userId, args.fit, names), tasteWords(taste)]
+      .filter(Boolean)
+      .join('; ');
+    const pick = await checkedPick(candidates, topic, fit, (c) => boostFor(taste, c, format));
+    if (pick) {
+      const c = pick.candidate;
+      const pickId = known
+        ? await logOffered(known, {
+            topic,
+            format,
+            title: c.title,
+            by: c.by,
+            lengthSeconds: c.seconds,
+            creatorId: c.creatorId,
+            latencyMs: Date.now() - started,
+            firstInCall: !hasPick(call.session),
+          })
+        : undefined;
+      rememberPick(call.session, { topic, candidate: c, why: pick.verdict?.why, pickId });
+      return pickResultText(topic, pick, sensitive, tasteReason(taste, c, format));
+    }
     if (candidates.length > 0) return NONE_FIT;
   }
   // Only the scrubbed topic and a fixed word go to search; no model text, no fit.
@@ -112,22 +157,61 @@ const findCoachingResourcesDefinition: ToolDefinition = {
     llm.tool({
       description: DESCRIPTION,
       parameters,
-      // The session's userData: the caller's name, so it can be kept out of the query.
-      execute: async (args, run) =>
-        runFindCoachingResources(
-          args,
-          ((run as Partial<typeof run> | undefined)?.ctx?.userData ?? {}) as Record<
-            string,
-            unknown
-          >,
-          ctx.userId
-        ),
+      execute: async (args, run) => runFindCoachingResources(args, callOf(run), ctx.userId),
     }),
 };
 
-/** The learning domain's share: findCoachingResources with COACH_MEDIA=on, nothing otherwise. */
+export const COACHING_PICK = 'coachingPick';
+
+const PICK_DESCRIPTION =
+  'After findCoachingResources gave one pick on this call: send it, only when they asked ' +
+  'or said yes (send_text to their verified number, send_app to their app messages); a ' +
+  'follow-up to ask whether it helped is set for a few days later. Also: feedback, when ' +
+  'they tell you whether something you sent helped.';
+
+const pickParameters = z.object({
+  action: z.enum(['send_text', 'send_app', 'feedback']),
+  helped: z.enum(['yes', 'somewhat', 'no']).optional().describe('feedback: did it help'),
+  whatMattered: z
+    .string()
+    .optional()
+    .describe('feedback: what made it work or not, no names (e.g. "short follow-along videos")'),
+});
+
+export async function runCoachingPick(
+  args: z.infer<typeof pickParameters>,
+  call: Call,
+  userId: string | undefined,
+  personaId: string
+): Promise<string> {
+  if (args.action === 'feedback') {
+    if (!args.helped) return 'Ask whether it helped first.';
+    return recordPickFeedback(
+      userId,
+      { helped: args.helped, whatMattered: args.whatMattered },
+      sessionIdentifiers(call.userData)
+    );
+  }
+  return deliverPick(call.session, userId, args.action === 'send_text' ? 'text' : 'app', personaId);
+}
+
+const coachingPickDefinition: ToolDefinition = {
+  id: COACHING_PICK,
+  name: 'Coaching Pick',
+  description: PICK_DESCRIPTION,
+  domain: 'learning',
+  tags: ['learning', 'resources', 'coaching', 'text', 'follow-up'],
+  create: (ctx: ToolContext) =>
+    llm.tool({
+      description: PICK_DESCRIPTION,
+      parameters: pickParameters,
+      execute: async (args, run) => runCoachingPick(args, callOf(run), ctx.userId, ctx.agentId),
+    }),
+};
+
+/** The learning domain's share with COACH_MEDIA=on (nothing otherwise). */
 export function coachingResourceTools(
   env: Record<string, string | undefined> = process.env
 ): ToolDefinition[] {
-  return coachMediaEnabled(env) ? [findCoachingResourcesDefinition] : [];
+  return coachMediaEnabled(env) ? [findCoachingResourcesDefinition, coachingPickDefinition] : [];
 }

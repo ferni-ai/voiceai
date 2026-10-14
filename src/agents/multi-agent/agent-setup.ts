@@ -74,6 +74,7 @@ import {
   memoryRecallMode,
   type RecallAgent,
 } from './memory-recall-hook.js';
+import { startNameLift } from '../realtime/name-lift.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
@@ -1615,20 +1616,19 @@ Reference past context when relevant, but don't force it. Let the conversation f
     ...(callSession && { voice: { llm: llmModel, tts } }),
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
 
-  // Memory recall: add what Ferni remembers as soon as the user's words are
-  // transcribed, before the SDK starts preemptive generation (see
-  // memory-recall-hook.ts for why it must not wait for onUserTurnCompleted).
-  // Interim events count: with STT turn detection the SDK starts preemptive
-  // generation from the preflight transcript, which arrives as an interim.
+  // Memory recall, added as the user's words are transcribed (interims too), before the
+  // SDK's preemptive generation; memory-recall-hook.ts says why. The name lift rides along.
   if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
     const recall = createMemoryRecall({
       userId,
       userName: userData.userName,
       personaId: persona.id,
     });
+    const nameLift = startNameLift(recall, createDataMessageSender(room)); // NAME_LIFT=on
     const onRecallTranscript = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       if (!evt.transcript) return;
+      nameLift?.(evt.transcript);
       const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
       if (note) addRecallNote(agent as unknown as RecallAgent, note);
     };

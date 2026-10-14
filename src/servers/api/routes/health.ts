@@ -1012,13 +1012,10 @@ export async function handleHealthRoutes(
   // Data integrity health (memory persistence audit)
   if (pathname === '/health/data-integrity' || pathname === '/api/health/data-integrity') {
     try {
-      const { checkDataIntegrity } = await import('../../../api/health/data-integrity.js');
-
-      // Parse userId from query string if provided
-      const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const userId = url.searchParams.get('userId') || undefined;
-
-      const report = await checkDataIntegrity(userId);
+      const { integrityReportFor } = await import('../../../api/health/data-integrity.js');
+      // A per-user report is admin-only (data-integrity.ts)
+      const report = await integrityReportFor(req, res);
+      if (report === null) return true;
 
       // Determine response status based on health
       const status =

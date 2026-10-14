@@ -1,13 +1,13 @@
 name: BTH Capability Benchmarks
 
-# Runs BTH (Better Than Human) capability benchmarks weekly
+# Runs BTH (Better Than Human) capability benchmarks nightly
 # Detects regressions in commitment detection, crisis detection, and reading between lines
 # Also runnable on-demand and on PRs touching BTH code
 
 on:
-  # Weekly run (Sunday at 2 AM UTC)
+  # Nightly on main, whatever OPTIONAL_CI says (#1366); PR and push runs still follow it
   schedule:
-    - cron: '0 2 * * 0'
+    - cron: '7 4 * * *'
 
   # On PRs touching BTH-related code
   pull_request:
@@ -40,7 +40,7 @@ concurrency:
 
 jobs:
   benchmark:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: BTH Capability Benchmark
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
@@ -198,7 +198,9 @@ jobs:
     name: Notify Results
     needs: benchmark
     runs-on: ubuntu-latest
-    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')) }}
+    # !cancelled(): the benchmark job fails on a regression, and that is when
+    # the regression alert below has to run.
+    if: ${{ !cancelled() && (vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')) }}
 
     steps:
       - name: Send Slack Notification (Regression)
@@ -327,7 +329,7 @@ jobs:
     name: Store Benchmark History
     needs: benchmark
     runs-on: ubuntu-latest
-    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event_name == 'schedule' && needs.benchmark.outputs.has_regressions != 'true') }}
+    if: ${{ (vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.event_name == 'schedule' && needs.benchmark.outputs.has_regressions != 'true') }}
 
     steps:
       - name: Checkout
