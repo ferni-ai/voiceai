@@ -20,6 +20,7 @@ import {
   registerContextBuilder,
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
+import { recordFollowUpAnswer } from '../../../services/coach-media/feedback.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   processCommitments,
@@ -71,6 +72,12 @@ async function buildCommitmentFollowUpContext(
   );
 
   const injections: ContextInjection[] = answers.flatMap(answerGuidance);
+  // A sent coaching pick's answer ("it helped") becomes a preference for the next pick.
+  for (const answer of answers) {
+    recordFollowUpAnswer(userId, answer, userText).catch((error: unknown) =>
+      log.warn({ error: String(error) }, 'coach-media answer not stored')
+    );
+  }
 
   // 1. If user made a new commitment, acknowledge it internally
   if (newCommitments.length > 0) {
