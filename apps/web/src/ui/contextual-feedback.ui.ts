@@ -125,7 +125,6 @@ export const REACTIONS: ReactionConfig[] = [
 let container: HTMLElement | null = null;
 let isInitialized = false;
 let currentFeedbackId: string | null = null;
-let promptShownAt: number = 0;
 let autoHideTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ============================================================================
@@ -458,13 +457,12 @@ function sendReactionToBackend(reaction: FeedbackReaction): void {
     return;
   }
 
-  const responseTimeMs = Date.now() - promptShownAt;
-
+  // No responseTimeMs: prompts are held for the post-call card, so this dock never
+  // knows when one was shown (the field is optional in data-channel-handler.ts).
   const message = JSON.stringify({
     type: 'user_feedback',
     feedbackId: currentFeedbackId,
     reaction,
-    responseTimeMs,
     timestamp: Date.now(),
   });
 
@@ -472,7 +470,7 @@ function sendReactionToBackend(reaction: FeedbackReaction): void {
     reliable: true,
   });
 
-  log.info({ feedbackId: currentFeedbackId, reaction, responseTimeMs }, 'Feedback sent');
+  log.info({ feedbackId: currentFeedbackId, reaction }, 'Feedback sent');
 
   // Clear auto-hide timer
   if (autoHideTimer) {
