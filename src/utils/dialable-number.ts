@@ -1,9 +1,9 @@
 /**
- * Whether Ferni may dial a number on someone's behalf (used by compliance.ts
- * and the call read-back in call-confirm.ts). No imports, so the tool registry
- * can load it cheaply.
+ * Whether Ferni may dial a number on someone's behalf: telephony compliance,
+ * the call read-back (telephony/call-confirm.ts) and family check-in calls.
+ * No imports, so any layer can use it.
  *
- * @module tools/domains/telephony/dialable-number
+ * @module utils/dialable-number
  */
 
 export type DialCheck = { ok: true; e164: string; spoken: string } | { ok: false; reason: string };
