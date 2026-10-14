@@ -9557,7 +9557,10 @@
     "rememberEmpty": "אין משהו חדש לשמור הפעם. תודה על החברה.",
     "nextStepTitle": "צעד הבא עדין",
     "invitation": "חזור מתי שתרצה. אני כאן.",
-    "close": "סגור"
+    "close": "סגור",
+    "seeCost": "כמה עלתה השיחה הזו",
+    "feedbackQuestion": "איך זה הרגיש?",
+    "feedbackThanks": "תודה, זה עוזר."
   },
   "moments": {
     "teamUnlockTitle": "להכיר את {name}",

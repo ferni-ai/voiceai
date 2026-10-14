@@ -9797,7 +9797,10 @@
     "rememberEmpty": "لا شيء جديد نحتفظ به هذه المرة. شكرًا على الصحبة.",
     "nextStepTitle": "خطوة تالية لطيفة",
     "invitation": "عد متى شئت. سأكون هنا.",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "seeCost": "تكلفة هذه المكالمة",
+    "feedbackQuestion": "كيف كانت المكالمة؟",
+    "feedbackThanks": "شكرًا، هذا يساعدني."
   },
   "moments": {
     "teamUnlockTitle": "تعرف على {name}",
