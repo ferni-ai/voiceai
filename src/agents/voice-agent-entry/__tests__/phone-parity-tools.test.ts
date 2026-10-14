@@ -49,10 +49,31 @@ async function viaTool(ctx: { userId: string; sessionId?: string }): Promise<str
   return zonesParsedIn[0];
 }
 
-async function viaExecutor(ctx: { userId: string; sessionId?: string }): Promise<unknown> {
+async function viaExecutor(
+  ctx: { userId: string; sessionId?: string },
+  fn = 'scheduleText'
+): Promise<unknown> {
   zonesParsedIn.length = 0;
-  await schedulingExecutor.execute('scheduleText', { message: 'hi', when: 'tomorrow at 9am' }, ctx);
+  const args = { message: 'hi', recipient: 'Mom', subject: 'hi', when: 'tomorrow at 9am' };
+  await schedulingExecutor.execute(fn, args, ctx);
   return zonesParsedIn[0];
+}
+
+async function viaTools(ctx: { userId: string; sessionId?: string }): Promise<unknown[]> {
+  const seen: unknown[] = [];
+  for (const id of ['scheduleCall', 'scheduleEmail']) {
+    zonesParsedIn.length = 0;
+    const def = definitions.find((d) => d.id === id)!;
+    const tool = def.create({ agentId: 'ferni', agentDisplayName: 'Ferni', ...ctx } as never);
+    await (tool as unknown as Exec).execute({
+      message: 'hi',
+      subject: 'hi',
+      when: 'tomorrow at 9am',
+    });
+    seen.push(zonesParsedIn[0]);
+  }
+  for (const fn of ['scheduleCall', 'scheduleEmail']) seen.push(await viaExecutor(ctx, fn));
+  return seen;
 }
 
 describe("in-call scheduling uses the call's zone, never the profile's", () => {
@@ -74,5 +95,15 @@ describe("in-call scheduling uses the call's zone, never the profile's", () => {
     rememberCallerTimeZone(NY, 's-owner', 'u-owner'); // what settleCallerZone records
     expect(await run({ userId: 'u-owner', sessionId: 's-owner' })).toBe(NY);
     expect(await run({ userId: 'u-owner' })).toBe(NY);
+  });
+
+  it('call and email scheduling, tool and executor: never the profile zone', async () => {
+    expect(await viaTools({ userId: 'u-unverified', sessionId: 's-unverified' })).not.toContain(
+      'America/Los_Angeles'
+    );
+    rememberCallerTimeZone(NY, 's-owner', 'u-owner');
+    expect(new Set(await viaTools({ userId: 'u-owner', sessionId: 's-owner' }))).toEqual(
+      new Set([NY])
+    );
   });
 });

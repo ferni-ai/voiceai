@@ -26,7 +26,8 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { rememberCallerTimeZone } from '../../memory/operations/call-moment.js';
 import { profileOnceLoaded } from '../../services/session/deferred-profile.js';
-import { forgetCallerTimeZone } from '../../utils/caller-time-zone.js';
+import { markZonelessCall } from '../../utils/caller-time-zone.js';
+import { registerCleanup } from '../session/event-cleanup-registry.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { isValidTimeZone } from '../shared/time-context.js';
 import { sessionIsVerifiedOwner } from './caller-recognition.js';
@@ -55,10 +56,10 @@ interface ZoneServices {
 
 /**
  * Settle the call's zone at session start. The browser's zone applies at once.
- * Otherwise the call starts with no zone (an earlier call's zone under the same
- * ids is forgotten), and the verified owner's profile zone is added once the
- * profile has loaded: on the multi-agent fast path it loads after this runs.
- * Resolves to the zone recorded for the call.
+ * Otherwise the call starts with no zone, under its own ids and (until it ends)
+ * for lookups by its user id alone, so it inherits no other call's zone. The
+ * verified owner's profile zone is added once the profile has loaded: on the
+ * multi-agent fast path it loads after this runs. Resolves to the call's zone.
  */
 export async function settleCallerZone(
   call: { sessionId: string; userId?: string | null; onBehalf: boolean },
@@ -67,18 +68,21 @@ export async function settleCallerZone(
   userData: { callerTimezone?: string } | undefined,
   env: Env = process.env
 ): Promise<string | undefined> {
-  const ids = [call.sessionId, services?.realtimeConversationId, call.userId];
+  const { sessionId, userId } = call;
+  const conversationId = services?.realtimeConversationId;
   if (isValidTimeZone(browserZone)) {
     if (userData) userData.callerTimezone = browserZone;
-    rememberCallerTimeZone(browserZone, ...ids);
+    rememberCallerTimeZone(browserZone, sessionId, conversationId, userId);
     return browserZone;
   }
-  forgetCallerTimeZone(...ids);
+  const release = markZonelessCall(sessionId, userId, conversationId);
+  registerCleanup(sessionId, 'resource', 'zoneless call (phone-parity)', release);
   if (call.onBehalf || !services) return undefined;
   const profile = await profileOnceLoaded(services);
-  const zone = verifiedOwnerProfileZone(call.sessionId, profile?.contactInfo?.timezone);
+  const zone = verifiedOwnerProfileZone(sessionId, profile?.contactInfo?.timezone);
   if (!zone) return undefined;
-  rememberCallerTimeZone(zone, ...ids);
+  release();
+  rememberCallerTimeZone(zone, sessionId, conversationId, userId);
   if (userData && phoneParityEnabled(env)) userData.callerTimezone ??= zone;
   return zone;
 }

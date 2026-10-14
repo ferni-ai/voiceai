@@ -16,6 +16,7 @@ import {
   userTimeZone,
 } from '../../../utils/caller-time-zone.js';
 import { rememberCallerRecognition, rememberDispatchIdentity } from '../caller-recognition.js';
+import { runSessionCleanup } from '../../session/event-cleanup-registry.js';
 import { settleCallerZone, verifiedOwnerProfileZone } from '../phone-parity.js';
 
 const ON = { PHONE_PARITY: 'on' };
@@ -185,13 +186,38 @@ describe('settleCallerZone', () => {
   });
 });
 
-describe("a tool in a call reads the call's own zone first", () => {
-  it('not one another call wrote under the same user id after this call settled', () => {
-    rememberCallerTimeZone(NY, 'u-later'); // e.g. the owner's app session, after ours started
-    expect(runContextTimeZone({ userData: { userId: 'u-later', callerTimezone: LA } })).toBe(LA);
-    expect(userTimeZone({ sessionId: 'this-call', userId: 'u-later' })).toBe(NY); // no own zone
-    rememberCallerTimeZone(LA, 'this-call');
-    expect(userTimeZone({ sessionId: 'this-call', userId: 'u-later' })).toBe(LA);
+describe('two calls on one account at once', () => {
+  it("an unverified call never gets the owner's zone, and doesn't take it from the owner", async () => {
+    // A caller matched by number alone keeps the account's id (CALLER_RECOGNITION off).
+    const unverified = session();
+    await settleCallerZone(
+      { sessionId: unverified, userId: 'u-both', onBehalf: false },
+      undefined,
+      withProfile(NY),
+      {},
+      ON
+    );
+    // The owner's app call on the same account settles after it, with a browser zone.
+    const owner = session();
+    await settleCallerZone(
+      { sessionId: owner, userId: 'u-both', onBehalf: false },
+      NY,
+      undefined,
+      {}
+    );
+
+    expect(userTimeZone({ sessionId: unverified, userId: 'u-both' })).toBeUndefined();
+    expect(userTimeZone({ userId: 'u-both' })).toBeUndefined(); // a tool context without a session id
+    expect(runContextTimeZone({ userData: { userId: 'u-both' } })).toBeUndefined();
+    expect(userTimeZone({ sessionId: owner, userId: 'u-both' })).toBe(NY); // the owner keeps theirs
+    expect(
+      runContextTimeZone({ userData: { userId: 'u-both', services: { sessionId: owner } } })
+    ).toBe(NY);
+
+    await runSessionCleanup(unverified); // the unverified call ends
+    expect(userTimeZone({ userId: 'u-both' })).toBe(NY);
+    // Work still finishing for the ended call keeps reading its own "no zone".
+    expect(userTimeZone({ sessionId: unverified, userId: 'u-both' })).toBeUndefined();
   });
 
   it("a run context's own session entry beats the user id's", () => {
@@ -199,6 +225,7 @@ describe("a tool in a call reads the call's own zone first", () => {
     rememberCallerTimeZone(LA, 'run-call');
     const data = { userId: 'u-run', services: { sessionId: 'run-call' } };
     expect(runContextTimeZone({ userData: data })).toBe(LA);
+    expect(runContextTimeZone({ userData: { userId: 'u-run', callerTimezone: LA } })).toBe(LA);
   });
 });
 
