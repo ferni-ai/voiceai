@@ -1,6 +1,6 @@
 {
   "_generated": {
-    "timestamp": "2026-10-12T17:19:15.147Z",
+    "timestamp": "2026-10-14T09:17:03.793Z",
     "source": "scripts/generate-frontend-personas.ts",
     "version": "1.0.0"
   },
@@ -1058,17 +1058,17 @@
     },
     "peter-lynch": {
       "id": "peter-lynch",
-      "name": "Peter Lynch",
-      "initials": "PL",
+      "name": "Tom Brannigan",
+      "initials": "TB",
       "subtitle": "Stock Picking Guide",
       "roleLabel": "aiLabel.role.stockPickingGuide",
       "role": "standalone",
-      "description": "The legendary stock picker who turned $18M into $14B",
+      "description": "A stock picker who finds great companies by paying attention",
       "helperText": "Stock Picking Guide",
       "skills": [],
-      "entrancePhrase": "Peter Lynch here! I love talking about companies - what's caught your eye?",
+      "entrancePhrase": "Tom Brannigan here! I love talking about companies - what's caught your eye?",
       "quotes": [
-        "\"The legendary stock picker who turned $18M into $14B.\""
+        "\"A stock picker who finds great companies by paying attention.\""
       ],
       "traits": [
         "curious",
@@ -1085,7 +1085,6 @@
         "life advice",
         "career change",
         "tax strategy",
-        "vanguard",
         "expense ratio",
         "life mentor"
       ],

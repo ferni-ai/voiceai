@@ -1226,7 +1226,7 @@ function getEditorStyles(): string {
     .editor-trait--selected {
       background: var(--color-accent);
       border-color: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     /* Profiles */
@@ -1365,7 +1365,7 @@ function getEditorStyles(): string {
       background: var(--color-accent);
       border: none;
       border-radius: var(--radius-md, 8px);
-      color: white;
+      color: var(--color-text-on-accent);
       font-size: 0.85rem;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
@@ -1495,7 +1495,7 @@ function getEditorStyles(): string {
     
     .editor-btn--primary {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .editor-btn--primary:hover:not(:disabled) {
