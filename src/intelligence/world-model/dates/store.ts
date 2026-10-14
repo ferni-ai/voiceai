@@ -28,11 +28,12 @@ const newDateId = (): string => `wd_${Date.now().toString(36)}_${(counter += 1).
 
 /**
  * The same thing on someone's calendar: same kind for yearly dates, overlapping words otherwise.
- * A one-time date is never a yearly one: mom's birthday party doesn't replace her birthday.
+ * A one-time date is never a yearly one, either way round: mom's birthday party and her
+ * birthday are two dates. Facts without a recurrence (the world extractor's) still match.
  */
 function sameThing(f: DateFact, o: DateObservation): boolean {
   if (f.attribute !== 'event' || f.subjectKey !== subjectKeyOf(o) || f.by === 'ferni') return false;
-  if (o.recurrence === 'once' && f.recurrence === 'yearly') return false;
+  if (f.recurrence !== undefined && f.recurrence !== o.recurrence) return false;
   if (o.recurrence === 'yearly' && f.kind === o.kind) return true;
   const a = forgetTokens(f.value);
   const b = forgetTokens(o.value);

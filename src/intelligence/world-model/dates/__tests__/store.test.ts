@@ -52,6 +52,19 @@ describe('planDates', () => {
     ]);
   });
 
+  it('never lets a yearly birthday heard later close her one-time birthday party', () => {
+    const party = fact({ id: 'party', value: 'birthday party', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-17' }); // prettier-ignore
+    const plan = planDates([party], [obs({ eventDate: '2026-10-20', monthDay: '10-20' })], ids);
+    expect(plan.close).toEqual([]);
+    expect(plan.create).toHaveLength(1);
+  });
+
+  it("replaces the world extractor's one-time birthday (no recurrence) with the yearly one", () => {
+    const extracted = fact({ id: 'w1', value: 'birthday', recurrence: undefined, kind: undefined, monthDay: undefined, eventDate: '2026-10-20' }); // prettier-ignore
+    const plan = planDates([extracted], [obs({ eventDate: '2026-10-20', monthDay: '10-20' })], ids);
+    expect(plan.close.map((c) => c.id)).toEqual(['w1']);
+  });
+
   it("reads 'still ahead' on the caller's own day, not the UTC one", () => {
     // 21:00 Sunday Oct 11 in New York is 01:00 Monday Oct 12 UTC; the surgery is today, local.
     const today = fact({ id: 'today', value: 'knee surgery', kind: 'medical', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-11' }); // prettier-ignore
