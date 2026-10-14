@@ -30,7 +30,7 @@
   - Node 22 and pnpm.
   - New logic is TypeScript run through `tsx` (as `scripts/memory-eval/*.ts`). It imports the existing `.mjs` harness with `// @ts-expect-error plain .mjs, no types`, as `generate.ts` does.
   - Tests use Vitest via `vitest.config.unit.ts`, typechecked by `tsconfig.scripts.json`.
-  - The rest: `@google-cloud/firestore` (as `seed-tier.ts`), `gcloud storage`, the `lk` CLI, zsh (`run.sh`), `gh`, and `google-github-actions/auth@v3`.
+  - The rest: `@google-cloud/firestore` (as `seed-tier.ts`), `gcloud storage`, the `lk` CLI, zsh (`run.sh`), `gh`, and `google-github-actions/auth@v2` with Workload Identity Federation (no key).
 
 ---
 
@@ -75,7 +75,7 @@
 12. **The dev agent is not auto-deployed.** Code lands on dev through the `deploy-agent` skill chain. The live stage checks `lk agent versions` before trusting that a flag's code is on dev.
 13. **Room names.** `run.sh` names its rooms `eval-<scenario>-<label>-<HHMMSS>` (`run.sh:164`). A person running `run.sh` by hand also makes `eval-*` rooms, so the loop recognises only its own rooms: the label carries `hl<run id>`.
 14. **Test and typecheck wiring:**
-    - `vitest.config.unit.ts` includes `scripts/memory-eval/**/__tests__/**/*.test.ts` and excludes `**/*firestore*.test.ts`. The lock test must not have "firestore" in its name.
+    - `vitest.config.unit.ts` already includes `scripts/**/__tests__/**/*.test.{ts,mjs}`, so the loop's tests run in CI with no config change. Keep tests free of network and Firestore (the lock test uses the memory store).
     - `tsconfig.scripts.json` includes `scripts/memory-eval/**/*.ts` and is run by CI (`pnpm typecheck:memory-eval`, ci.yml:213).
 15. **Rulesets.** `main` has one ruleset ("main merge queue") with no pull-request review rule, so a `CODEOWNERS` file alone enforces nothing. Requiring code-owner review is a ruleset change, which is ask-first (Task 0.6). The workflow's own path gate (PR F2) is the hard guard either way.
 
@@ -201,11 +201,12 @@ Seth approved the dedicated SA, and it exists. **No JSON key exists, and none ma
             gcloud auth list --filter=status:ACTIVE --format='value(account)'
             for s in livekit-dev-api-key livekit-dev-api-secret cartesia-api-key; do
               gcloud secrets versions access latest --secret=$s --project=johnb-2025 > /dev/null && echo "read $s"; done
-            gcloud secrets list --project=johnb-2025 --format='value(name)' | grep -vxE 'livekit-dev-api-key|livekit-dev-api-secret|cartesia-api-key' | head -3 |
-              while read s; do gcloud secrets versions access latest --secret=$s --project=johnb-2025 > /dev/null 2>&1 && echo "LEAK $s" || echo "denied $s"; done
+            # Named, not listed: the SA has no project-level secrets.list (by design).
+            for s in livekit-prod-api-key livekit-prod-api-secret anthropic-api-key; do
+              gcloud secrets versions access latest --secret=$s --project=johnb-2025 > /dev/null 2>&1 && { echo "LEAK $s"; exit 1; } || echo "denied $s"; done
   ```
   - **Negative check:** the PR's own `pull_request` run must pass with `negative check ok: pull_request run got no token`.
-  - **Positive check:** after merge, `gh workflow run humanness-auth-check.yml --ref main` must print `humanness-loop@johnb-2025.iam.gserviceaccount.com`, three `read` lines, then `denied` lines and no `LEAK`.
+  - **Positive check:** after merge, `gh workflow run humanness-auth-check.yml --ref main` must print `humanness-loop@johnb-2025.iam.gserviceaccount.com`, three `read` lines, then three `denied` lines; a `LEAK` fails the run. Before merging, check with `gcloud secrets list --project=johnb-2025 --format='value(name)'` (as Seth) that the three named secrets exist and are prod or otherwise ungranted; replace any that don't exist with ones that do.
   - Post both run links on #1377, then keep the file as a regression check.
 
 ### 0.2 A Claude Code routine can push, open PRs and run `gh workflow run`, with no web access
@@ -312,22 +313,18 @@ Seth approved the dedicated SA, and it exists. **No JSON key exists, and none ma
 
 This PR goes first. Everything after it is owned by Seth's review, and the judge pins exist before any judge runs.
 
-**Files:** create `.github/CODEOWNERS`, `scripts/humanness-loop/judges.lock.json`, `scripts/humanness-loop/judges-lock.ts`, `scripts/humanness-loop/__tests__/judges-lock.test.ts`. Modify `vitest.config.unit.ts` and `tsconfig.scripts.json`.
+**Files:** create `.github/CODEOWNERS`, `scripts/humanness-loop/judges.lock.json`, `scripts/humanness-loop/judges-lock.ts`, `scripts/humanness-loop/__tests__/judges-lock.test.ts`. Modify `tsconfig.scripts.json`.
 
 - [ ] **Step 1: `.github/CODEOWNERS`.**
   ```
   # The humanness loop's harness: a change under test must never grade itself (#1377).
   /scripts/humanness-loop/                 @sethdford
   /scripts/voice-eval/                     @sethdford
-  /.github/workflows/humanness-eval.yml    @sethdford
+  # Every humanness-* workflow: WIF issues the SA's token to any of them on main.
+  /.github/workflows/humanness-*           @sethdford
   /.github/CODEOWNERS                      @sethdford
   ```
-- [ ] **Step 2: Wire the directory into CI.** In `vitest.config.unit.ts`, after the memory-eval line, add:
-  ```ts
-      // The humanness loop's pure logic (decision rule, budget, split, lock).
-      'scripts/humanness-loop/**/__tests__/**/*.test.ts',
-  ```
-  In `tsconfig.scripts.json`:
+- [ ] **Step 2: Wire the directory into CI.** `vitest.config.unit.ts` already picks up `scripts/**/__tests__/**`; only the typecheck needs the directory. In `tsconfig.scripts.json`:
   ```json
   "include": ["scripts/memory-eval/**/*.ts", "scripts/humanness-loop/**/*.ts"],
   ```
@@ -1355,6 +1352,11 @@ The rule, from the spec:
       expect(v.reasons).toContain('held-out: not confirmed');
       expect(JSON.stringify(v.public)).not.toMatch(/heldout-c/);
     });
+    it('is unreliable, not a coin flip, when a working win has no held-out data', () => {
+      const v = decide(base(picks('working', WIN)));
+      expect(v.decision).toBe('unreliable');
+      expect(v.next.queries).toBe(0);
+    });
     it('does not query held-out (or spend its budget) when working loses', () => {
       const v = decide(base(both(FLAT, WIN)));
       expect(v.decision).toBe('discard');
@@ -1952,6 +1954,11 @@ The rule, from the spec:
       DECIDING,
       (p) => p.y
     );
+    // No held-out data is lost data, never a silent 0 (a 0 would make confirmation a coin flip).
+    if (hd.length < 50) {
+      reasons.push(`only ${hd.length} held-out moments scored (< 50)`);
+      return out('unreliable');
+    }
     const t = thresholdout(w.mean, meanOf(hd.map((x) => x.delta)) ?? 0, input.heldout);
     pub.heldout = t.value > 0 ? 'confirmed' : 'not confirmed';
     if (t.value <= 0) {
@@ -2455,8 +2462,8 @@ Seth labels each pair once, without being told which side is the friend. He answ
   ```
   Add a `kappas(labels, verdicts)` helper beside it, with its own test. A judge's label for a pair is its pick in the first position; its two-position consistency is reported alongside. It returns `stats.ts` `kappa` against Seth's labels for each judge, and for each pair of judges.
 - [ ] **Step 3: `label-calibration.ts`** (Seth's machine, run once).
-  - It reads the 2026-10-11 `moments.json` and `ferni.json` and takes 120 working moments with `sample(…, 120, 'calibration-v1')`.
-  - It builds the 20 fault pairs from 20 more working moments.
+  - It reads the 2026-10-11 `moments.json` and `ferni.json` and takes 120 of the 132 working moments with `sample(…, 120, 'calibration-v1')`.
+  - It builds the 20 fault pairs from the first 20 of those same 120, applying a fault transform to Ferni's reply. 140 pairs in all, all working-split.
   - It shows each pair in the terminal in a random order: the context, `1:` and `2:`. It reads two keys per pair: close friend (1 or 2) and responds (1 or 2).
   - It writes `calibration/set-v1.json`, which has the judge.mjs `moments.json` shape plus `ferni.cal.json`, and `calibration/labels-v1.json` to the bucket.
   - It prints `labelled 140 pairs (120 real, 20 faults)` and nothing else.
@@ -3296,6 +3303,10 @@ Seth labels each pair once, without being told which side is the friend. He answ
               echo "::error::kind=fault needs a fault and takes no pr"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; fi
             npx tsx scripts/humanness-loop/cli.ts calibration-gate --out $D/calibration.json \
               || { echo "verdict=unreliable" >> "$GITHUB_ENV"; exit 0; }
+            # Experiments decide only at full power (spec: 132 x 6, held-out confirms). Phase S rows are exempt.
+            case "$KIND:$EXPERIMENT" in ab:fault-*|fault:*) ;; ab:*)
+              { [ "$SAMPLES" = 6 ] && [ "$SPLITS" = both ]; } \
+                || { echo "::error::kind=ab needs samples=6 and splits=both"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; } ;; esac
             # Phase S's own runs (experiment fault-*) are exempt; a flip never is.
             case "$KIND:$EXPERIMENT" in ab:fault-*) ;; ab:*|flip:*) npx tsx scripts/humanness-loop/cli.ts fault-gate \
               || { echo "verdict=unreliable" >> "$GITHUB_ENV"; exit 0; } ;; esac
@@ -3455,9 +3466,13 @@ Seth labels each pair once, without being told which side is the friend. He answ
           if: steps.pause.outputs.paused != 'true' && env.verdict == '' && contains(fromJSON('["ab","fault"]'), env.KIND) && env.STAGE != 'live'
           run: |
             D=$RUNNER_TEMP/nt
+            # Phase S rows never spend the real held-out budget: a throwaway Thresholdout state, never written back.
+            case "$EXPERIMENT" in fault-*)
+              node -e 'const f=process.argv[1],s=require(f);require("fs").writeFileSync(f,JSON.stringify({...s,seed:"fault-"+process.env.GITHUB_RUN_ID,budget:1e9,queries:0}))' $D/heldout-state.json ;; esac
             npx tsx scripts/humanness-loop/cli.ts decide --dir $D --samples "$SAMPLES" $([ "$FAULT" = friend ] && echo "--max-inconsistency 1")
             echo "decision=$(node -p 'require(process.argv[1]).decision' $D/verdict.json)" >> "$GITHUB_OUTPUT"
             gcloud storage cp --quiet $D/verdict.json "$HL_BUCKET/runs/$GITHUB_RUN_ID/verdict.json"
+            case "$EXPERIMENT" in fault-*) exit 0 ;; esac
             node -e 'const v=require(process.argv[1]);require("fs").writeFileSync(process.argv[2],JSON.stringify({...require(process.argv[3]),...v.next}))' $D/verdict.json $D/heldout-next.json $D/heldout-state.json
             gcloud storage cp --quiet $D/heldout-next.json $HL_BUCKET/state/heldout.json
             [ "$(node -p 'require(process.argv[1]).rotate' $D/verdict.json)" = true ] && npx tsx scripts/humanness-loop/cli.ts rotate --dir $D || true
@@ -4207,6 +4222,8 @@ This is the first phase the loop runs. Until it passes on the current harness, `
     used corpus text.
   - `unmeasurable`: record it in the digest as "needs a human listen"; never retry.
   - `pending-live` with code not on main: mark the PR ready; `gh pr merge <n> --auto` (no --squash).
+    Never merge, or enable auto-merge on, any PR whose files include anything outside `src/` and `docs/`
+    (`gh pr diff <n> --name-only`). In particular, never add or change `.github/workflows/humanness-*`.
   - `pending-live`, merged: ask in the digest for a dev deploy (deploy-agent skill; you don't deploy),
     then dispatch the live stage: `-f stage=live -f offline_run=<run id from the row's link>`.
   - `keep`: dispatch `-f kind=flip -f on_set=<the on set>` (dev only). Add the flag to the digest's
@@ -4327,6 +4344,58 @@ This is the first phase the loop runs. Until it passes on the current harness, `
 
 - [ ] **Step 4: Run the tests and commit.** `git commit -m "chore(humanness-loop): phase 1 backlog"`.
 
+## Task Q: The spec's open questions, checked (`chore(humanness-loop): memorisation probe and holdout-budget simulation`)
+
+Each spec open question gets a check that produces numbers only. **Q1 must run before Phase 0's numbers are trusted**: if a judge has memorised SBCSAE, it may recognise the friend's turn rather than judge it.
+
+**Files:** create `scripts/humanness-loop/cloze-probe.ts`, `scripts/humanness-loop/holdout-sim.ts` and `__tests__/cloze.test.ts`.
+
+- [ ] **Q1: Memorisation probe (Gemini and Claude).**
+  - For 50 working moments (`sample(…, 50, 'cloze-v1')`), give each judge the context and the first half of the friend's real turn. Ask it to continue.
+  - Score a hit when the continuation's first 4 words exactly match the turn's next 4 words, after `normalise`.
+  - The control is the same prompt with the friend's half-turn taken from a different conversation (shuffled by `sample`).
+  - The pure part goes in `cloze.ts`-style helpers inside `cloze-probe.ts` and is tested in `__tests__/cloze.test.ts`:
+  ```ts
+  /** Exact match of the next n words after normalising, the cloze hit rule. */
+  export function clozeHit(turn: string, half: number, continuation: string, n = 4): boolean {
+    const w = (t: string) =>
+      t
+        .toLowerCase()
+        .replace(/[^a-z0-9' ]+/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
+    const want = w(turn).slice(half, half + n);
+    return want.length === n && w(continuation).slice(0, n).join(' ') === want.join(' ');
+  }
+  ```
+  Test it with synthetic strings only: a hit, a near miss, and a turn too short to score.
+  - Run it on Seth's machine, where the corpus lives. It prints rates only:
+  ```bash
+  GOOGLE_CLOUD_PROJECT=johnb-2025 npx tsx scripts/humanness-loop/cloze-probe.ts \
+    --moments ~/Documents/voiceai-evidence/next-turn/2026-10-11/moments.json --n 50
+  ```
+  Expected output: one JSON line, `{"gemini":{"hit":h,"control":c},"claude":{"hit":h,"control":c}}`.
+  - **Decision rule (from the spec):** if any judge's `hit − control` is above 0.05, post it on #1377, pause the loop, and move the primary corpus (Q2) before Phase 0.
+- [ ] **Q2: SBCSAE vs CallFriend/CallHome.** This is research plus one comparison, all on Seth's machine.
+  - Run Deep Research (the `anthropic-skills:deep-research` skill) on CallFriend and CallHome. It answers three questions:
+    - the LDC licence terms for internal evaluation;
+    - whether the corpus has American English friend pairs;
+    - which published turn statistics exist (words per turn, filled pauses, backchannels).
+  - Post the summary on #1377.
+  - If the licence allows and Seth obtains it, compute the same three distributions for both corpora and for 20 recent dev calls (`score.mjs` `humanness`).
+  - Switch the primary corpus only if the phone corpus is closer to the dev calls on two of the three (1-Wasserstein, `stats.ts`). Obtaining the corpus is Seth's call (cost, licence).
+- [ ] **Q3: Thresholdout error budget.** `holdout-sim.ts` runs offline on the A/A pool (after Phase S):
+  - Treat each of 200 null "changes" as a random resplit of the 12 samples.
+  - Simulate an adaptive brain that keeps the best working result so far, and query `thresholdout()` on each one, with budgets of 5, 10, 20 and 40.
+  - Report the share of null changes that held-out "confirms".
+  ```bash
+  gcloud storage cp --quiet "gs://ferni-humanness-eval/cache/off/<A/A pool key>/*" /tmp/aa/   # on the runner or Seth's machine only
+  npx tsx scripts/humanness-loop/holdout-sim.ts --dir /tmp/aa --changes 200 --budgets 5,10,20,40
+  ```
+  - Expected: one JSON line, `{"5":r5,"10":r10,"20":r20,"40":r40}` (false-confirmation rates).
+  - Set the initial `budget` in `state/heldout.json` to the largest budget with a rate under 0.10. The plan starts at 10; change it only through a commit to `publish-split.ts`'s default and a note on #1377.
+- [ ] **Commit.** `git commit -m "chore(humanness-loop): memorisation probe and holdout-budget simulation"`.
+
 ## Task M: Release gate, the human paired test (`docs(humanness-loop): preregistration template for the human paired test`)
 
 **Files:** create `docs/humanness-loop/prereg/TEMPLATE.md`. Each test copies it to `docs/humanness-loop/prereg/<date>-<flags>.md` and merges it **before** any clip is played to a rater.
@@ -4365,6 +4434,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
 - Task I Step 1 needs F3 and C1 on dev.
 - S needs F2, F3, G, L, a frozen calibration, and Task I Step 1. **S must pass before H's first run, and before Task I Step 2.**
 - J can merge any time before H's first run.
+- Task Q1 (memorisation probe) runs before Phase 0's numbers are trusted, and Q3 after Phase S, before H's first run. Q2 is research, and blocks nothing unless Q1 fails.
 - M is needed only when the first flag reaches `keep`.
 
 ## Assumptions I could not verify

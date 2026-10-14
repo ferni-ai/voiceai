@@ -74,8 +74,9 @@ then keeps generating and testing new changes, without anyone in the loop.
   set before it decides anything. The **Gemini** judge
   still runs and is reported, but never counts toward a keep. Model versions
   and the SHA-256 of every judge prompt are pinned in
-  `scripts/humanness-loop/judges.lock.json`; a run whose judges don't match
-  the lock is unreliable. A panel of different families is more reliable than
+  `scripts/humanness-loop/judges.lock.json`. CI fails if the prompts drift
+  from the lock, and a run whose lock differs from the one the last
+  calibration used is unreliable. A panel of different families is more reliable than
   one large judge (2404.18796).
 - **Decision statistic.** For each moment, the mean over the deciding judges
   of (on-arm score − off-arm score), where an arm's score on a moment is the
@@ -146,7 +147,8 @@ then keeps generating and testing new changes, without anyone in the loop.
 ## One experiment
 
 1. One hypothesis, one flag (registered in `src/config/flag-manifest.ts`).
-   Arms are explicit: `--off-set` and `--on-set` each list `FLAG=value`
+   Arms are explicit: the off set and on set (the workflow's `off_set` and
+   `on_set` inputs, each passed to `generate.ts --set`) list `FLAG=value`
    pairs applied on top of dev's current flags. "Turn off" is a valid result
    for a flag that dev already has on (off arm `X=on`, on arm `X=off`), and
    so is a mode change (`TURN_SHAPE=model` vs `TURN_SHAPE=dice`).
@@ -176,7 +178,7 @@ then keeps generating and testing new changes, without anyone in the loop.
    - A PR that changes anything outside `src/` (or `docs/`), or whose diff
      doesn't apply to main, is refused with verdict `blocked`, and its score
      is never computed. `.github/CODEOWNERS` assigns `scripts/humanness-loop/**`,
-     `scripts/voice-eval/**` and `.github/workflows/humanness-eval.yml` to
+     `scripts/voice-eval/**` and `.github/workflows/humanness-*` to
      @sethdford, so a brain PR can't change them without his review.
 3. Offline: replies for every working and held-out moment, 6 samples per arm,
    judged by the three families in both positions.
