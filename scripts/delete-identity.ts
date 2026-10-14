@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 import { config } from 'dotenv';
-config();
+config({ quiet: true });
 
 import { lookupByPhone, deleteSponsoredIdentity } from '../src/services/identity/sponsored-identity.js';
 
