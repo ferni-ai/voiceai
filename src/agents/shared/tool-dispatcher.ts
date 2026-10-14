@@ -170,7 +170,7 @@ async function routeToTool(
     return null;
   }
 
-  const refusal = outboundDispatchRefusal(fn, ctx.userId); // no live call here to hear a yes
+  const refusal = outboundDispatchRefusal(fn, ctx.userId, args); // no live call to hear a yes
   if (refusal) return refusal;
 
   const { routeToToolModular } = await import('./tool-executors/index.js');

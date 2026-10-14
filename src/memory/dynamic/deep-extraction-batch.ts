@@ -9,6 +9,7 @@
  */
 import type { DeepExtractionJob } from './deep-extraction-worker.js';
 import { createTurnBatcher, type TurnBatcher, type TurnBatcherOptions } from './turn-batcher.js';
+import { assertedLines, callerAssertedMemoryOn } from '../caller-assertions.js';
 
 export const DEEP_EXTRACTION_BATCH_TURNS = 4;
 export const DEEP_EXTRACTION_IDLE_MS = 30_000;
@@ -40,6 +41,17 @@ export function mergeDeepExtractionJobs(jobs: readonly DeepExtractionJob[]): Dee
 }
 
 /**
+ * The job without the caller's questions when CALLER_ASSERTED_MEMORY is on
+ * (caller-assertions.ts); null when nothing the caller asserted is left.
+ */
+export function assertedJob(job: DeepExtractionJob): DeepExtractionJob | null {
+  if (!callerAssertedMemoryOn()) return job; // flag off: every job runs, as before
+  const transcript = assertedLines(job.transcript.split('\n')).join('\n');
+  if (transcript.length === 0) return null;
+  return transcript === job.transcript ? job : { ...job, transcript };
+}
+
+/**
  * Batcher that hands merged jobs to `run`. High-priority jobs skip the wait:
  * anything already buffered for that session goes out with them.
  */
@@ -59,7 +71,10 @@ export function createDeepExtractionBatcher(
     maxItems: Math.max(1, options.batchTurns ?? DEEP_EXTRACTION_BATCH_TURNS),
     idleMs: DEEP_EXTRACTION_IDLE_MS,
     keyOf: (job) => `${job.userId}:${job.sessionId}`,
-    flush: (_key, jobs) => run(mergeDeepExtractionJobs(jobs)),
+    flush: (_key, jobs) => {
+      const job = assertedJob(mergeDeepExtractionJobs(jobs));
+      if (job) run(job);
+    },
     setTimer: options.setTimer,
     clearTimer: options.clearTimer,
   });

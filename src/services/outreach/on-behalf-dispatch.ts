@@ -43,6 +43,8 @@ export interface OnBehalfDispatch {
   userPreferences?: unknown;
   /** The missed call this one retries; a retry is never retried. Signed with the rest. */
   retryOf?: string;
+  /** When signDispatch signed it (epoch ms); covered by the signature. */
+  signedAt?: number;
   /** HMAC from a trusted dispatcher; see signOnBehalfDispatch. */
   requesterSignature?: string;
 }
@@ -75,12 +77,18 @@ function signatureFor(payload: Record<string, unknown>, secret: string): string 
  * signed payload (who hears the result, which room it goes to, what was said
  * about the call) can be changed. Use the LiveKit API secret. Any outbound
  * call the server places is signed this way (on-behalf and family check-in).
+ *
+ * `signedAt` (epoch ms) is stamped in and signed with the rest, so a reader
+ * that acts on the payload as an identity claim can refuse a replayed old one
+ * (signed-dispatch-identity.ts). verifyOnBehalfDispatch itself does not check it.
  */
 export function signDispatch<T extends object>(
   d: T,
-  secret: string
-): T & { requesterSignature: string } {
-  return { ...d, requesterSignature: signatureFor({ ...d } as Record<string, unknown>, secret) };
+  secret: string,
+  signedAt: number = Date.now()
+): T & { signedAt: number; requesterSignature: string } {
+  const stamped = { ...d, signedAt };
+  return { ...stamped, requesterSignature: signatureFor(stamped as Record<string, unknown>, secret) };
 }
 
 export function signOnBehalfDispatch(d: OnBehalfDispatch, secret: string): OnBehalfDispatch {

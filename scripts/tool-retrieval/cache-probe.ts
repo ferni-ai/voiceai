@@ -30,7 +30,8 @@ const all = Object.entries(toolRegistry.buildToolSet({ domains: [...ALL_TOOL_DOM
 process.env.PROMPT_MODE ??= 'character';
 const system = await loadSystemPrompt('ferni');
 const genai = new GoogleGenAI({ vertexai: true, project: 'johnb-2025', location: 'global' });
-const setOf = (offset: number) => new llm.ToolContext(Object.fromEntries(all.slice(offset, offset + size)));
+const setOf = (offset: number) =>
+  new llm.ToolContext(Object.fromEntries(all.slice(offset, offset + size)) as unknown as Record<string, llm.AnonFunctionTool>);
 
 async function ttft(tools: llm.ToolContext, text: string) {
   const started = Date.now();
