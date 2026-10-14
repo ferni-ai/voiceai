@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "Cambiando a {language}",
+    "seeYou": "¡Hasta la próxima!",
+    "callVoicemail": "Le dejé un mensaje de voz a {name}",
+    "callNoAnswer": "No pude localizar a {name}. ¿Lo intento más tarde?",
+    "callFailed": "La llamada a {name} no se pudo completar",
+    "callBack": "{name} quiere que le devuelvas la llamada",
+    "followUp": "{name} espera noticias tuyas"
+  },
   "accessibility": {
     "accountMenu": "Menú de cuenta",
     "accountSettings": "Ajustes de cuenta",
@@ -9549,11 +9558,15 @@
     "rememberEmpty": "Nada nuevo que guardar esta vez. Gracias por la compañía.",
     "nextStepTitle": "Un pequeño siguiente paso",
     "invitation": "Vuelve cuando quieras. Aquí estaré.",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "seeCost": "Lo que costó esta llamada",
+    "feedbackQuestion": "¿Qué tal te sentó?",
+    "feedbackThanks": "Gracias, eso me ayuda."
   },
   "moments": {
     "teamUnlockTitle": "Conoce a {name}",
     "niceWork": "Buen trabajo",
+    "remembered": "Lo recordaré: {summary}",
     "streakSubtitle": "Estás aquí. Eso es lo que importa.",
     "streakTitle": {
       "one": "racha de {count} día",

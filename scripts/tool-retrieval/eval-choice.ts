@@ -65,7 +65,7 @@ const built = toolRegistry.buildToolSet({ domains: [...ALL_TOOL_DOMAINS] as Tool
 const catalog = new llm.ToolContext({
   ...(built.tools as Record<string, llm.FunctionTool>),
   [FIND_TOOLS]: createFindToolsTool() as unknown as llm.FunctionTool,
-});
+} as unknown as Record<string, llm.AnonFunctionTool>);
 
 process.env.PROMPT_MODE ??= 'character';
 const system = await loadSystemPrompt('ferni');

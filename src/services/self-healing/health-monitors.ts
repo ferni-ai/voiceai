@@ -16,6 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { createCircuitBreaker } from './circuit-breaker.js';
 import { recordLatency, recordSuccessRate } from './anomaly-detection.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { CARTESIA_API_VERSION } from '../../config/voice-ids.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import { useVertexAI } from '../../config/vertex-flag.js';
 
@@ -144,12 +145,11 @@ async function checkCartesia(): Promise<HealthCheckResult> {
     try {
       // Cartesia voices endpoint as health check
       // Note: Cartesia API returns 405 for HEAD requests, so we use GET
-      // As of 2024, Cartesia requires a version header in YYYY-MM-DD format
       const response = await fetch('https://api.cartesia.ai/voices', {
         method: 'GET',
         headers: {
           'X-API-Key': apiKey,
-          'Cartesia-Version': '2024-06-10', // Required version header
+          'Cartesia-Version': CARTESIA_API_VERSION,
         },
         signal: controller.signal,
       });

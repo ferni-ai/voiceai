@@ -5,16 +5,20 @@
  * or a short warm close when there is nothing to recap), with a quiet
  * "Support Ferni" text link on it. The support ask never replaces the recap.
  * Flag off (VITE_AFTER_CALL_CARD=false): the conversation cost card, as before.
+ * Either card carries the one-tap "how did that feel?" row when the agent
+ * asked for feedback during the call (it is never asked mid-call).
  *
  * @module ui/after-call/post-call
  */
 
 import { conversationTracker } from '../../services/conversation-tracker.service.js';
 import { createLogger } from '../../utils/logger.js';
+import { REACTIONS } from '../contextual-feedback.ui.js';
 import { openSupport as openSupportFlow } from '../support/open-support.js';
 import { showConversationCost } from '../conversation-cost.ui.js';
 import { hideAfterCallCard, showAfterCallCard } from './after-call-card.ui.js';
 import { loadAfterCallData } from './after-call-data.js';
+import { buildCallFeedbackRow } from './call-feedback.js';
 import { isAfterCallCardEnabled } from './after-call-flag.js';
 
 const log = createLogger('PostCall');
@@ -34,7 +38,7 @@ function openSupport(): void {
 
 export async function showPostCallCard(): Promise<void> {
   if (!isAfterCallCardEnabled()) {
-    await showConversationCost();
+    addFeedbackRow(await showConversationCost());
     return;
   }
 
@@ -54,8 +58,15 @@ export async function showPostCallCard(): Promise<void> {
     session?.insights ?? []
   );
   if (newCallStarted) return;
-  showAfterCallCard(data, {
+  const card = showAfterCallCard(data, {
     personaName: session?.personaName || 'Ferni',
     onSupport: openSupport,
   });
+  addFeedbackRow(card);
+}
+
+function addFeedbackRow(card: HTMLElement | null): void {
+  if (!card) return;
+  const row = buildCallFeedbackRow(REACTIONS);
+  if (row) card.appendChild(row);
 }
