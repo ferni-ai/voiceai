@@ -8,12 +8,13 @@
  * teammate averaged 0.991-0.998 (voiceai-evidence/reports/
  * sonic-capabilities-audit-2026-10-12.md section 4).
  *
- * The Director (and VOICE_ATTUNE, when on) still decides a pace RELATIVE to
- * a resting 1.0, smoothed across turns in that relative space; this module
- * then places it on the persona's own scale: `base x relative`, inside the
- * persona's band. So a heavy reply slows Nayan from 0.85, not from Ferni's
- * 1.0, and attunement's "slow and soften for someone low" lowers each voice
- * from its own resting point.
+ * This module only reads the manifest and picks the persona's tone. It sets
+ * no speed or volume: attune.ts owns both (layerDelivery). The persona is its
+ * first layer, the resting point: the Director (and VOICE_ATTUNE, when on)
+ * still decides a pace RELATIVE to a resting 1.0, smoothed across turns in
+ * that relative space, and attune places it on the persona's scale, `base x
+ * relative`, inside the persona's band. So a heavy reply slows Nayan from
+ * 0.85, not from Ferni's 1.0.
  *
  * Ferni is the reference the Director was tuned on (its six stable emotions
  * were measured on Ferni's voice), so Ferni gets no profile and is unchanged.
@@ -121,11 +122,6 @@ export function deliveryFromManifest(personaId: string, voice: unknown): Persona
   };
 }
 
-/** The persona's pace for a Director pace relative to a resting 1.0. */
-export function personaPace(delivery: PersonaDelivery, relative: number): number {
-  return round2(clamp(delivery.base * relative, delivery.band));
-}
-
 /**
  * The persona's tone: the Director's pick when the persona uses it, else the
  * persona's default or first emotion that fits the words, else none (the
@@ -153,35 +149,6 @@ export function personaTone(
   return emotion === decision.emotion
     ? decision
     : { emotion, source: emotion ? 'persona' : 'none' };
-}
-
-/** The reply's speed and resting loudness; without a persona, the Director's own pace. */
-export function placePace(
-  delivery: PersonaDelivery | undefined,
-  relative: number,
-  pacingLive: boolean
-): { speed: number; volume: number } {
-  if (!delivery) return { speed: relative, volume: 1 };
-  return { speed: personaPace(delivery, relative), volume: pacingLive ? delivery.volume : 1 };
-}
-
-/** An incoming volume (a soft start, the LLM's own tag) scaled by the reply's, inside 0.5-2. */
-export function composeVolume(incoming: number | undefined, reply: number): number | undefined {
-  if (reply === 1) return incoming;
-  return round2(clamp((incoming ?? 1) * reply, VOLUME_LIMITS));
-}
-
-/** A later push's <volume> tag, scaled by the reply's loudness rather than replacing it. */
-export function composeVolumeTag(
-  tags: string,
-  incoming: number | undefined,
-  reply: number
-): string {
-  if (reply === 1 || incoming === undefined) return tags;
-  return tags.replace(
-    /<volume\s+ratio="[\d.]+"\s*\/>/,
-    `<volume ratio="${composeVolume(incoming, reply)}"/>`
-  );
 }
 
 const SAFE_ID = /^[a-z0-9][a-z0-9-]*$/;

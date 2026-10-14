@@ -36,6 +36,7 @@ import {
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
 import { formatPeople, peopleOf, recallPeopleEnabled } from '../../memory/recall/people.js';
+import { formatPets, petsOf } from '../../memory/recall/pets.js';
 import {
   createSemanticIndex,
   estimateTokens,
@@ -248,7 +249,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       .map((f) => f.fact)
       .join(' ');
     ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName, Date.now(), { bridge });
-    if (deps.people ?? recallPeopleEnabled()) peopleNote = formatPeople(peopleOf(s.facts));
+    if (deps.people ?? recallPeopleEnabled())
+      peopleNote = formatPeople(peopleOf(s.facts), formatPets(petsOf(s.facts)));
     log.info(
       {
         facts: s.facts.length,

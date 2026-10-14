@@ -12,11 +12,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { SONIC3_EMOTIONS, toSonicEmotion } from '../../../sonic-emotions.js';
 import type { ReplyStream } from '../../providers/cartesia-reply-stream.js';
+import { decideAttune, layerDelivery } from '../attune.js';
 import {
   deliveryFromManifest,
   personaDelivery,
   personaEmotion,
-  personaPace,
   resetPersonaDeliveryCache,
 } from '../persona-delivery.js';
 import { directSpeech, type PlanSummary } from '../reply-director.js';
@@ -42,6 +42,7 @@ async function reply(opts: {
   env: Record<string, string>;
   sessions: DirectorSessions;
   text: string;
+  userEmotion?: string;
 }): Promise<{ pushes: string[]; summary: PlanSummary }> {
   const inner = new Recorder();
   let summary: PlanSummary | undefined;
@@ -57,6 +58,7 @@ async function reply(opts: {
     personaId: opts.personaId,
     env: opts.env,
     sessions: opts.sessions,
+    turnContext: opts.userEmotion ? { userEmotion: { primary: opts.userEmotion } } : undefined,
     onPlan: (s) => (summary = s),
   });
   for await (const _ of directed.textStream) {
@@ -112,7 +114,7 @@ describe('deliveryFromManifest', () => {
   });
 });
 
-describe('personaPace and personaEmotion', () => {
+describe('attune layers the persona under the caller, and personaEmotion', () => {
   const nayan = deliveryFromManifest('nayan', {
     default_speed: 0.85,
     speed_band: [0.8, 0.93],
@@ -120,11 +122,14 @@ describe('personaPace and personaEmotion', () => {
     emotion_range: ['contemplative', 'calm', 'affectionate'],
   });
 
-  it("scales the Director's relative pace by the base, inside the band", () => {
-    expect(personaPace(nayan, 1)).toBe(0.85);
-    expect(personaPace(nayan, 1.08)).toBe(0.92);
+  const pace = (relative: number) =>
+    layerDelivery({ persona: nayan, caller: { speed: relative, volume: 1 } }, true).speed;
+
+  it("places the Director's relative pace on the persona's base, inside the band", () => {
+    expect(pace(1)).toBe(0.85);
+    expect(pace(1.08)).toBe(0.92);
     // An attuned "caller is low" pace (0.86) lowers Nayan from HIS base, to the band floor.
-    expect(personaPace(nayan, 0.86)).toBe(0.8);
+    expect(pace(0.86)).toBe(0.8);
   });
 
   it('keeps a tone the persona uses, else its default or first fit, else none', () => {
@@ -133,6 +138,58 @@ describe('personaPace and personaEmotion', () => {
     expect(personaEmotion(nayan, 'content', 'bright')).toBe('calm');
     expect(personaEmotion(nayan, 'sympathetic', 'heavy')).toBe('contemplative');
     expect(personaEmotion(nayan, undefined, 'neutral')).toBeUndefined();
+  });
+});
+
+/**
+ * Attune is the single owner of speed and volume (decision 2026-10-14). Its
+ * inputs are layered: persona base, then late night, then the caller.
+ */
+describe('layerDelivery: persona, then late night, then the caller', () => {
+  const persona = { base: 1.03, band: [0.95, 1.08] as const, volume: 0.9 };
+  const lateNight = { speed: 0.97, volume: 0.85 };
+
+  it('applies the layers in order, each from the resting point the one before left', () => {
+    const d = layerDelivery({ persona, lateNight, caller: { speed: 1, volume: 1 } }, true);
+    expect(d.trace.map((t) => t.layer)).toEqual(['persona', 'late-night', 'caller']);
+    expect(d.trace[0]).toMatchObject({ speed: 1.03, volume: 0.9 });
+    // Late night moves the persona's rest, not Ferni's 1.0: 1.03 x 0.97, 0.9 x 0.85.
+    expect(d.trace[1]).toMatchObject({ speed: 1, volume: 0.77 });
+    // A neutral caller leaves that resting point as it is.
+    expect(d).toMatchObject({ speed: 1, volume: 0.77 });
+  });
+
+  it("the caller's adjustment works from the late-night rest, not from 1", () => {
+    // A bright caller (attune's 1.04 / 1.08) lifts from the softened rest.
+    const d = layerDelivery({ persona, lateNight, caller: { speed: 1.04, volume: 1.08 } }, true);
+    expect(d.speed).toBe(1.04); // 1.03 x 0.97 x 1.04
+    expect(d.volume).toBe(0.83); // 0.9 x 0.85 x 1.08, under the persona's 0.9
+  });
+
+  it('keeps late night and the caller together inside attune bounds, the persona band last', () => {
+    // Low caller at night: 0.97 x 0.86 = 0.83 relative; 0.85 x 0.85 volume = 0.72.
+    const low = layerDelivery({ persona, lateNight, caller: { speed: 0.86, volume: 0.85 } }, true);
+    expect(low.trace.at(-1)).toMatchObject({ speed: 0.95, volume: 0.65 }); // band floor; 0.9 x 0.72
+    // Without a persona the attune bounds hold the two shifts: never below 0.8 / 0.7.
+    const floor = layerDelivery({ lateNight, caller: { speed: 0.8, volume: 0.7 } }, true);
+    expect(floor).toMatchObject({ speed: 0.8, volume: 0.7 });
+  });
+
+  it('carries only the caller layer, so the resting layers never compound', () => {
+    const d = layerDelivery({ persona, lateNight, caller: { speed: 0.92, volume: 1 } }, true);
+    expect(d.relativeSpeed).toBe(0.92);
+    expect(d.speed).toBe(0.95); // 1.03 x 0.97 x 0.92 = 0.92, held at the band floor
+  });
+
+  it('with no resting layer is exactly the caller layer (all flags off: as on main)', () => {
+    const attuned = decideAttune({ state: 'low', valence: 'neutral', previous: {} });
+    const d = layerDelivery({ caller: attuned }, true);
+    expect(d).toMatchObject({ speed: attuned.speed, volume: attuned.volume });
+    expect(d.trace).toHaveLength(1);
+    expect(layerDelivery({ caller: { speed: 1.01, volume: 0.9 } }, false)).toMatchObject({
+      speed: 1, // under SPEED_EPSILON: no tag
+      volume: 1, // loudness only with the pacing lever live
+    });
   });
 });
 
@@ -228,6 +285,24 @@ describe('the Director with TEAM_VOICES', () => {
     // would compound the base: relative ~0.89, Nayan pinned at the 0.8 floor.
     expect(second.summary.relativeSpeed).toBeGreaterThanOrEqual(0.96);
     expect(second.summary.speed).toBeGreaterThan(0.8);
+  });
+
+  it("with VOICE_ATTUNE, the caller's softening lands on Nayan's rest (attune owns both)", async () => {
+    const env = { ...ON, VOICE_ATTUNE: 'on' };
+    const sad = await reply({
+      personaId: 'nayan-patel',
+      voiceId: NAYAN_VOICE,
+      env,
+      sessions: new DirectorSessions(),
+      text: TEXT,
+      userEmotion: 'sadness',
+    });
+    // Attune's low caller: 0.86 pace, 0.85 loudness, relative; on Nayan: 0.85 x 0.86 -> band floor.
+    expect(sad.summary.layers).toBe('persona 0.85/0.92 > caller 0.8/0.78');
+    expect(sad.summary.volume).toBe(0.85); // the caller layer, as main logs it
+    expect(tag(sad.pushes[0], 'speed')).toBe(0.8);
+    expect(tag(sad.pushes[0], 'volume')).toBe(0.78); // 0.92 x 0.85, one volume tag
+    expect(sad.pushes.join('').match(/<volume /g)).toHaveLength(1);
   });
 
   it('leaves Ferni exactly as without the flag', async () => {

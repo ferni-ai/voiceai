@@ -286,7 +286,7 @@ describe('Handoff Integration - Persona ID Consistency', () => {
   });
 
   it('should have banter entries for all canonical IDs', async () => {
-    const { HANDOFF_BANTER, ARRIVING_BANTER } =
+    const { HANDOFF_BANTER, ARRIVING_OPENERS } =
       await import('../../../services/team-engagement/banter.js');
 
     for (const id of CANONICAL_IDS) {
@@ -295,7 +295,7 @@ describe('Handoff Integration - Persona ID Consistency', () => {
       const hasBanterTo = Object.values(HANDOFF_BANTER).some(
         (targets) => id in (targets as Record<string, unknown>)
       );
-      const hasArrivingBanter = id in ARRIVING_BANTER;
+      const hasArrivingBanter = id in ARRIVING_OPENERS;
 
       expect(hasBanterFrom || hasBanterTo).toBe(true);
       expect(hasArrivingBanter).toBe(true);

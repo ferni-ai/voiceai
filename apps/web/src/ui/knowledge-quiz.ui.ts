@@ -779,7 +779,7 @@ function injectStyles(): void {
       background: var(--color-accent-primary, #4a6741);
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: white;
+      color: var(--color-text-on-accent);
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 600;
       cursor: pointer;

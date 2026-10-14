@@ -24,6 +24,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
+import { voiceAttuneOn, type Delivery } from './attune.js';
 import { DirectorEngine } from './engine.js';
 import { ferniSpeedNudge } from './ferni-energy.js';
 import { leverModes, speechDirectorMode } from './gate.js';
@@ -77,11 +78,17 @@ export interface PlanSummary {
   callerPitchRelSt?: number;
   callerEnergyRelDb?: number;
   callerRateRel?: number;
+  callerWordsPerSec?: number;
   callerPitchSlope?: number;
   callerVoicedMs?: number;
   speed: number;
-  /** TEAM_VOICES: the Director's pace before the persona's scale (absent when the same). */
+  /** VOICE_ATTUNE: the caller state answered and the reply's loudness (attune.ts). */
+  attune?: string;
+  volume?: number;
+  /** The caller layer's pace under the resting layers (attune.ts layerDelivery), when it differs. */
   relativeSpeed?: number;
+  /** Pace/loudness after each layer, in order, when a resting layer applies: "persona 0.85/0.92 > ...". */
+  layers?: string;
   /** Stage 2 tempo planned for this turn (a voice that ignores <speed>). */
   tempo?: number;
   /** Prosody tags were taken off every push (the voice ignores them). */
@@ -179,6 +186,7 @@ class DirectedReply implements ReplyStream {
           ? readCallerProsody(opts.sessionId, wordCount(opts.turnContext?.userRequest))
           : undefined,
       ferniNudge: ferniSpeedNudge(opts.sessionId),
+      attune: attuneContext(opts),
       persona: teamVoicesOn(opts.env) ? personaDelivery(opts.personaId) : undefined,
       laughter: {
         sessionId: opts.sessionId,
@@ -361,7 +369,9 @@ class DirectedReply implements ReplyStream {
       prosodyEmotion: engine.prosody.emotion,
       ...callerReading(engine.callerProsody),
       speed: engine.speed,
-      relativeSpeed: engine.relativeSpeed === engine.speed ? undefined : engine.relativeSpeed,
+      attune: engine.attunement?.state,
+      volume: engine.attunement?.volume,
+      ...layered(engine.delivery),
       tempo: engine.tempo,
       tagsStripped: this.stripProsody,
       opening: engine.opening.opening?.kind,
@@ -377,8 +387,9 @@ class DirectedReply implements ReplyStream {
     if (opts.sessionId && engine.stats.pushesIn > 0) {
       (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
         emotion: engine.emotion.emotion,
-        // Smoothed in the Director's relative space; the persona scale is reapplied each reply.
-        speed: engine.relativeSpeed,
+        // The caller layer only: the resting layers are reapplied each reply, never compounded.
+        speed: engine.delivery?.relativeSpeed ?? engine.speed,
+        volume: engine.attunement?.volume,
         ...engine.nonverbalCarry(),
       });
     }
@@ -411,6 +422,13 @@ export function directSpeech(
   return { reply: directed, textStream };
 }
 
+/** The caller's mood for attunement, when VOICE_ATTUNE is on (attune.ts). */
+function attuneContext(opts: DirectSpeechOptions): { userEmotion?: string } | undefined {
+  return voiceAttuneOn(opts.env)
+    ? { userEmotion: opts.turnContext?.userEmotion?.primary }
+    : undefined;
+}
+
 /** Words in what the caller said, for their speaking rate. */
 function wordCount(text: string | undefined): number | undefined {
   const n = text?.trim().split(/\s+/).filter(Boolean).length ?? 0;
@@ -419,6 +437,13 @@ function wordCount(text: string | undefined): number | undefined {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/** The layered delivery for the plan log, only when a resting layer (persona, late night) applies. */
+function layered(d: Delivery | undefined): Partial<PlanSummary> {
+  if (!d || d.trace.length < 2) return {};
+  const layers = d.trace.map((t) => `${t.layer} ${t.speed}/${t.volume}`).join(' > ');
+  return { layers, relativeSpeed: d.relativeSpeed === d.speed ? undefined : d.relativeSpeed };
+}
+
 /** The raw reading behind the prosody decision, rounded for the plan log. */
 function callerReading(p: CallerProsody | undefined): Partial<PlanSummary> {
   if (!p) return {};
@@ -426,6 +451,7 @@ function callerReading(p: CallerProsody | undefined): Partial<PlanSummary> {
     callerPitchRelSt: round1(p.pitchRelSt),
     callerEnergyRelDb: round1(p.energyRelDb),
     callerRateRel: Math.round(p.rateRel * 100) / 100,
+    callerWordsPerSec: p.wordsPerSec === undefined ? undefined : round1(p.wordsPerSec),
     callerPitchSlope: round1(p.pitchSlopeStPerS),
     callerVoicedMs: p.voicedMs,
   };

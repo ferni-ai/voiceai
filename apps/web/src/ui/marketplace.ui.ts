@@ -16,6 +16,7 @@
  */
 
 import { DURATION } from '../config/animation-constants.js';
+import { isLegacySharingOn } from '../config/legacy-sharing-flag.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { formatDate, formatNumber, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
@@ -52,6 +53,7 @@ import {
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
 import { confirmDelete } from './confirm-modal.ui.js';
 import { openAgentEditor } from './custom-agent-editor.ui.js';
+import { openVoiceCloneRecorderWhenOn, renderRecordVoiceButton, voiceCopyKey } from './voice-clone-entry.js';
 import { getFirebaseUid, getAuthState } from '../services/firebase-auth.service.js';
 import { toast } from './whisper.ui.js';
 
@@ -637,7 +639,7 @@ async function renderCreationsTab(): Promise<void> {
             </svg>
           </div>
           <h4 class="creations-empty-title">${t('marketplace.creations.empty')}</h4>
-          <p class="creations-empty-hint">${t('marketplace.creations.emptyHint')}</p>
+          <p class="creations-empty-hint">${t(voiceCopyKey('marketplace.creations.emptyHint'))}</p>
           <button class="creations-empty-btn" data-action="create-agent">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -657,7 +659,7 @@ async function renderCreationsTab(): Promise<void> {
                 </svg>
               </span>
               <h5 class="creation-type-name">${t('marketplace.creations.legacy')}</h5>
-              <p class="creation-type-desc">${t('marketplace.creations.legacyDesc')}</p>
+              <p class="creation-type-desc">${t(voiceCopyKey('marketplace.creations.legacyDesc'))}</p>
               <span class="creation-type-cta">${t('marketplace.creations.startCreating')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
             </button>
             <button type="button" class="creation-type-card" data-action="create-type" data-type="mentor" aria-label="${t('marketplace.creations.createMentorAria')}">
@@ -783,7 +785,6 @@ async function renderCreationsTab(): Promise<void> {
     btn.addEventListener('click', handleStartTaskModeClick);
   });
 
-  // Legacy share listener
   grid.querySelectorAll('[data-action="share-legacy"]').forEach(btn => {
     btn.addEventListener('click', handleShareLegacyClick);
   });
@@ -836,14 +837,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
           ${icons.stories}
           ${t('marketplace.actions.stories')}
         </button>
-        <button class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-          ${t('marketplace.actions.voice')}
-        </button>
-        <button class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
+        ${renderRecordVoiceButton(agent.id)}
+        ${isLegacySharingOn() ? `<button class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           ${t('marketplace.actions.share')}
-        </button>
+        </button>` : ''}
         <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
           ${icons.talk}
           ${t('marketplace.actions.talk')}
@@ -1148,8 +1146,7 @@ async function handleRecordVoiceClick(e: Event): Promise<void> {
   if (!agentId) return;
 
   try {
-    const { openVoiceCloneRecorder } = await import('./voice-clone-recorder.ui.js');
-    await openVoiceCloneRecorder(agentId);
+    await openVoiceCloneRecorderWhenOn(agentId);
   } catch (err) {
     log.error('Failed to open Voice Recorder:', err);
     toast.error(t('toasts.couldNotOpenVoiceRecorder'));

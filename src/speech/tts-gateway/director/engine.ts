@@ -10,8 +10,16 @@
  */
 
 import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
+import { callerState, decideAttune, layerDelivery, SPEED_EPSILON } from './attune.js';
+import type { Attunement, Delivery } from './attune.js';
 import type { SSMLProsodyConfig } from '../types.js';
-import { decideEmotion, readValence, type EmotionDecision, type Valence } from './emotion.js';
+import {
+  decideEmotion,
+  readValence,
+  type EmotionDecision,
+  type StableEmotion,
+  type Valence,
+} from './emotion.js';
 import { decideReplyLaughter, placeLaughter, type LaughPlacement } from './laughter.js';
 import type { LaughterWho } from './laughter.js';
 import {
@@ -26,48 +34,35 @@ import {
 } from './nonverbal.js';
 import { normalizeForSpeech } from './normalize.js';
 import { decideSpeed } from './pacing.js';
-import * as team from './persona-delivery.js';
+import { personaTone, type PersonaDelivery } from './persona-delivery.js';
 import { respondToProsody, type ProsodyResponse } from './prosody-response.js';
 import type { CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { commaDensity, planPauses, removeMidSentenceEllipses } from './pauses.js';
 import { PhraseAssembler } from './phrasing.js';
 import type { CarryOver } from './session-state.js';
+import {
+  ANY_EMOTION_TAG,
+  composeSpeed,
+  composeVolume,
+  parseLead,
+  PROSODY_TAG,
+  SPEED_TAG,
+  VOLUME_TAG,
+  volumeOnly,
+  wordCount,
+} from './engine-tags.js';
+export { composeSpeed, composeVolume } from './engine-tags.js';
 import type { Lever, LeverModes, RustEvent, SpeechPlan, SpeechSegment } from './types.js';
 
-/** Leading inline tags continuation-tts puts on a push. */
-const LEAD_TAGS = /^((?:\s*<(?:speed|volume|emotion)\b[^>]*\/>)*)([\s\S]*)$/;
-const SPEED_TAG = /<speed\s+ratio="([\d.]+)"\s*\/>/;
-const VOLUME_TAG = /<volume\s+ratio="([\d.]+)"\s*\/>/;
-const EMOTION_TAG = /<emotion\s+value="([a-z_]+)"\s*\/>/;
-/** Any emotion tag, anywhere in a push: stripped after the opening when emotion is live. */
-const ANY_EMOTION_TAG = /<\/?emotion\b[^>]*>/gi;
-/**
- * The tags a PVC ignores, stripped from each push for one. <volume> stays: a
- * PVC honors it (voice-capabilities.ts), and it is how a reply restarts
- * softly after the caller interrupts.
- */
-const PROSODY_TAG = /<\/?(?:speed|emotion)\b[^>]*>/gi;
-const VOLUME_TAGS = /<volume\s+ratio="[\d.]+"\s*\/>/g;
-
-/** Only the volume tags of a run of leading tags. */
-function volumeOnly(tags: string): string {
-  return (tags.match(VOLUME_TAGS) ?? []).join('');
-}
 /**
  * Stage 2 tempo range for a voice that ignores <speed>. Listeners hear about
  * +/-10% tempo; more is a different voice. Gentle on purpose.
  */
 export const STAGE2_TEMPO_MIN = 0.85;
 export const STAGE2_TEMPO_MAX = 1.15;
-/** Cartesia's accepted speed range (providers/cartesia.ts prosodyTags). */
-const MIN_RATIO = 0.6;
-const MAX_RATIO = 1.5;
-
 /** A breath before a phrase this long, at most every other segment. */
 const BREATH_MIN_WORDS = 10;
 const BREATH_FULL_WORDS = 18;
-/** Below this distance from 1 a speed is not worth a tag. */
-const SPEED_EPSILON = 0.015;
 
 export interface EngineContext {
   modes: LeverModes;
@@ -91,7 +86,12 @@ export interface EngineContext {
   callerProsody?: CallerProsody;
   /** Ferni's own energy on this call as a pace nudge (ferni-energy.ts; 0 when FERNI_STATE is off). */
   ferniNudge?: number;
-  persona?: team.PersonaDelivery; // TEAM_VOICES=on (persona-delivery.ts); absent: Ferni's delivery
+  /**
+   * VOICE_ATTUNE=on: the caller's mood this turn (turnContext.userEmotion),
+   * answered with pace, loudness and tone (attune.ts). Absent: attunement off.
+   */
+  attune?: { userEmotion?: string };
+  persona?: PersonaDelivery; // TEAM_VOICES=on: resting voice and tones (persona-delivery.ts)
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
   /**
@@ -113,30 +113,6 @@ export interface EngineStats {
   sighs: number;
 }
 
-function parseLead(push: string): { tags: string; body: string; prosody: SSMLProsodyConfig } {
-  const [, tags = '', body = ''] = LEAD_TAGS.exec(push) ?? [];
-  const prosody: SSMLProsodyConfig = {};
-  const speed = SPEED_TAG.exec(tags);
-  const volume = VOLUME_TAG.exec(tags);
-  const emotion = EMOTION_TAG.exec(tags);
-  if (speed) prosody.speed = Number(speed[1]);
-  if (volume) prosody.volume = Number(volume[1]);
-  if (emotion) prosody.emotion = emotion[1];
-  return { tags, body: body.trim(), prosody };
-}
-
-const wordCount = (text: string): number => text.split(/\s+/).filter(Boolean).length;
-
-/**
- * The Director's reply speed applied ON TOP of whatever speed the push already
- * asks for (a soft start, or per-sentence pace matching from continuation-tts):
- * multiplied, never substituted, inside Cartesia's range.
- */
-export function composeSpeed(incoming: number, reply: number): number {
-  const ratio = Math.min(MAX_RATIO, Math.max(MIN_RATIO, incoming * reply));
-  return Math.round(ratio * 100) / 100;
-}
-
 export class DirectorEngine {
   readonly plan: SpeechPlan = { segments: [] };
   readonly stats: EngineStats = {
@@ -153,13 +129,15 @@ export class DirectorEngine {
   emotion: EmotionDecision = { emotion: undefined, source: 'none' };
   /** How this reply answers the caller's voice (applied only when the prosody lever is live). */
   prosody: ProsodyResponse = { speedNudge: 0, reason: 'no-reading' };
+  /** How this reply answers the caller's mood, when VOICE_ATTUNE is on. */
+  attunement: Attunement | undefined;
+  delivery: Delivery | undefined; // pace and loudness, layered by attune.ts (layerDelivery)
 
   /** The caller's voice reading this reply answers, for the plan log. */
   get callerProsody(): CallerProsody | undefined {
     return this.ctx.callerProsody;
   }
   speed = 1;
-  relativeSpeed = 1; // before the persona's scale (persona-delivery.ts): the next reply smooths from it
   /** Stage 2 tempo for this reply, when the voice can't take a <speed> tag. */
   tempo: number | undefined;
   /** The opening breath/sigh decision (decided unless the nonverbal lever is off). */
@@ -177,6 +155,7 @@ export class DirectorEngine {
   private readonly spokenPhrases: PhraseAssembler;
   private opened = false;
   private replySpeed = 1;
+  /** Attuned loudness for the whole reply (1 unless attunement and pacing are live). */
   private replyVolume = 1;
   private pendingTags = '';
   private segmentsSinceBreath = Infinity;
@@ -359,14 +338,17 @@ export class DirectorEngine {
     // Decided in shadow too, so the plan log shows what it would do.
     this.prosody = respondToProsody(this.ctx.callerProsody, this.replyValence);
     const answerVoice = this.live('prosody');
+    this.attunement = this.attune(answerVoice);
     this.emotion = decideEmotion({
       authored: this.ctx.cues.authoredEmotion,
       sessionHint: this.ctx.sessionHint ?? this.ctx.persona?.defaultEmotion,
       openingText,
       previous: this.ctx.carry.emotion,
-      prosody: answerVoice ? this.prosody.emotion : undefined,
+      prosody: this.toneCandidate(answerVoice),
     });
-    this.emotion = team.personaTone(this.ctx.persona, this.emotion, this.replyValence);
+    this.emotion = personaTone(this.ctx.persona, this.emotion, this.replyValence);
+    // A sympathetic reply is hard news even when its first phrase ("Ah, hell.") doesn't say so.
+    if (this.emotion.emotion === 'sympathetic') this.attunement = this.attune(answerVoice, 'heavy');
     const pace = decideSpeed({
       valence: readValence(openingText),
       emotion: this.emotion.emotion,
@@ -393,12 +375,29 @@ export class DirectorEngine {
     }
   }
 
-  /** Pace relative to a resting 1.0 (smoothed across turns), placed on the persona's scale. */
-  private settlePace(relative: number): void {
-    const placed = team.placePace(this.ctx.persona, relative, this.live('pacing'));
-    this.speed = Math.abs(placed.speed - 1) < SPEED_EPSILON ? 1 : placed.speed;
-    this.relativeSpeed = this.ctx.persona ? relative : this.speed;
-    this.replyVolume = placed.volume;
+  /** A tone answering the caller: their mood when attuned, else their voice (prosody lever). */
+  private toneCandidate(answerVoice: boolean): StableEmotion | undefined {
+    return this.attunement?.emotion ?? (answerVoice ? this.prosody.emotion : undefined);
+  }
+
+  /** Pace and loudness are attune's alone (layerDelivery): the persona's rest, then the caller's. */
+  private settlePace(directorSpeed: number): void {
+    const caller = this.attunement ?? { speed: directorSpeed, volume: 1 };
+    this.delivery = layerDelivery({ persona: this.ctx.persona, caller }, this.live('pacing'));
+    this.speed = this.delivery.speed;
+    this.replyVolume = this.delivery.volume;
+  }
+
+  /** VOICE_ATTUNE: how this reply answers the caller's mood (attune.ts), else undefined. */
+  private attune(answerVoice: boolean, valence = this.replyValence): Attunement | undefined {
+    if (!this.ctx.attune) return undefined;
+    return decideAttune({
+      state: callerState(this.ctx.attune.userEmotion, answerVoice ? this.prosody : undefined),
+      voice: this.ctx.callerProsody,
+      valence,
+      previous: { speed: this.ctx.carry.speed, volume: this.ctx.carry.volume },
+      nudge: this.ctx.ferniNudge,
+    });
   }
 
   private openingTags(original: string, lead: SSMLProsodyConfig): string {
@@ -406,7 +405,8 @@ export class DirectorEngine {
     return this.ctx.renderTags({
       // A soft start (interrupt recovery) keeps its own pace, scaled by the reply's.
       speed: this.live('pacing') ? composeSpeed(lead.speed ?? 1, this.replySpeed) : lead.speed,
-      volume: team.composeVolume(lead.volume, this.replyVolume),
+      volume:
+        this.replyVolume === 1 ? lead.volume : composeVolume(lead.volume ?? 1, this.replyVolume),
       emotion: this.live('emotion') ? this.emotion.emotion : lead.emotion,
     });
   }
@@ -425,7 +425,12 @@ export class DirectorEngine {
         `<speed ratio="${composeSpeed(lead.speed, this.replySpeed)}"/>`
       );
     }
-    tags = team.composeVolumeTag(tags, lead.volume, this.replyVolume);
+    if (this.replyVolume !== 1 && lead.volume !== undefined) {
+      tags = tags.replace(
+        VOLUME_TAG,
+        `<volume ratio="${composeVolume(lead.volume, this.replyVolume)}"/>`
+      );
+    }
     if (this.live('emotion')) tags = tags.replace(ANY_EMOTION_TAG, '');
     return tags;
   }
