@@ -20,7 +20,7 @@
  */
 
 import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
-import { distinctDays } from '../../memory/storage/conversation-days.js';
+import { distinctDays } from '../../utils/conversation-day.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { withUpgradePath } from '../billing/paywall.js';

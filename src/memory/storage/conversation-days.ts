@@ -16,7 +16,11 @@
  * @module memory/storage/conversation-days
  */
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
+import { distinctDays } from '../../utils/conversation-day.js';
 import { getLogger } from '../../utils/safe-logger.js';
+
+// Pure helpers live in utils (L2) so streak code outside storage can use them too
+export { dayOf, distinctDays } from '../../utils/conversation-day.js';
 
 /** Summaries read for streaks: more than a year of daily calls. */
 export const CONVERSATION_DAYS_LIMIT = 400;
@@ -25,30 +29,6 @@ export function streakFromSummariesEnabled(
   env: Record<string, string | undefined> = process.env
 ): boolean {
   return env.STREAK_FROM_SUMMARIES !== 'off';
-}
-
-/** YYYY-MM-DD (UTC) for a summary timestamp in any stored shape; null when unreadable. */
-export function dayOf(value: unknown): string | null {
-  let date: Date | null = null;
-  if (value instanceof Date) date = value;
-  else if (typeof value === 'string' || typeof value === 'number') date = new Date(value);
-  else if (value && typeof value === 'object') {
-    const ts = value as { toDate?: () => Date; _seconds?: number; seconds?: number };
-    if (typeof ts.toDate === 'function') date = ts.toDate();
-    else if (typeof ts._seconds === 'number') date = new Date(ts._seconds * 1000);
-    else if (typeof ts.seconds === 'number') date = new Date(ts.seconds * 1000);
-  }
-  return date && !Number.isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : null;
-}
-
-/** Distinct days, oldest first. */
-export function distinctDays(timestamps: unknown[]): string[] {
-  const days = new Set<string>();
-  for (const t of timestamps) {
-    const day = dayOf(t);
-    if (day) days.add(day);
-  }
-  return [...days].sort();
 }
 
 /** The days of the user's most recent call summaries (timestamps only), oldest first. */
