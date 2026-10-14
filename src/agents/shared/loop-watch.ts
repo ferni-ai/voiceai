@@ -172,6 +172,7 @@ export function watchCallLoop(
       );
     }
   }, thresholdMs);
+
   // CALL_CPU_PROFILE=on: what ran in those stalls (call-cpu-profile.ts).
   const finishProfile = profileCall(jobId, startedAt, stalls, env);
 

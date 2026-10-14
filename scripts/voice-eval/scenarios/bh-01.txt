@@ -1,0 +1,6 @@
+# bh: {"to": "peter-john", "path": "ask", "facts": ["offer", "denver", "startup", "equity", "140", "one forty", "115", "one fifteen"]}
+Hey Ferni. I got a job offer from a startup in Denver. It pays one forty, and I'm making one fifteen now, but a lot of it is equity.
+I honestly can't tell if the equity is worth anything. Can I talk to Peter about the money side?
+@pause 9000 -
+Hi Peter.
+So, what do you think?

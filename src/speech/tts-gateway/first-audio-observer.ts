@@ -29,6 +29,16 @@ export type FirstAudioObserver = (() => void) & {
   trimmed(ms: number): void;
 };
 
+/** First audio of a gateway reply: ms from the start of the TTS node, and when its first text was sent. */
+export type FirstAudioListener = (sessionId: string, ttfbMs: number, pushMs?: number) => void;
+const firstAudioListeners = new Set<FirstAudioListener>();
+
+/** Hear each gateway reply's first audio (turn-receipt.ts records it). Returns an unsubscribe. */
+export function onGatewayFirstAudio(listener: FirstAudioListener): () => void {
+  firstAudioListeners.add(listener);
+  return () => void firstAudioListeners.delete(listener);
+}
+
 interface FirstAudioObserverOptions {
   sessionId?: string;
   startTime: number;
@@ -49,6 +59,7 @@ export function createFirstAudioObserver({
     log.info({ ttfbMs, ...stages, sessionId }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
     if (sessionId) {
       noteReplyAudio(sessionId);
+      for (const listener of firstAudioListeners) listener(sessionId, ttfbMs, stages.pushMs);
       try {
         const firstAudioAtMs = Date.now();
         markCallStage(sessionId, 'tts_first_frame', firstAudioAtMs);

@@ -77,7 +77,6 @@ export interface CognitiveInsightsData {
   memories: CognitiveMemory[];
   patterns: LearningPattern[];
   totalInteractions: number;
-  knowledgeScore: number;
   // Superhuman Memory Insights
   superhumanInsights?: SuperhumanInsight[];
   temporalContext?: {
@@ -281,15 +280,8 @@ class CognitiveInsightsUI {
     const groupedMemories = this.groupMemoriesByType(data.memories);
 
     content.innerHTML = `
-      <!-- Understanding Score -->
       <div class="cognitive-insights__score">
-        <div class="cognitive-insights__score-ring" style="--progress: ${data.knowledgeScore}">
-          <span>${data.knowledgeScore}%</span>
-        </div>
-        <div class="cognitive-insights__score-info">
-          <span class="cognitive-insights__score-label">${t('cognitive.understanding')}</span>
-          <span class="cognitive-insights__score-detail">${tp('cognitive.conversationsCount', data.totalInteractions)}</span>
-        </div>
+        <span class="cognitive-insights__score-detail">${tp('cognitive.conversationsCount', data.totalInteractions)}</span>
       </div>
 
       <!-- Memory Sections -->
@@ -730,7 +722,7 @@ class CognitiveInsightsUI {
         gap: var(--space-5, 20px);
       }
 
-      /* Score Ring */
+      /* Conversation count */
       .cognitive-insights__score {
         display: flex;
         align-items: center;
@@ -738,49 +730,6 @@ class CognitiveInsightsUI {
         padding: var(--space-4, 16px);
         background: var(--color-background-secondary);
         border-radius: var(--radius-xl, 1.25rem);
-      }
-
-      .cognitive-insights__score-ring {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        background: conic-gradient(
-          var(--persona-primary, var(--color-accent-primary)) calc(var(--progress, 0) * 1%),
-          var(--color-border-medium) calc(var(--progress, 0) * 1%)
-        );
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        flex-shrink: 0;
-      }
-
-      .cognitive-insights__score-ring::before {
-        content: '';
-        position: absolute;
-        inset: 6px;
-        background: var(--color-background-secondary);
-        border-radius: 50%;
-      }
-
-      .cognitive-insights__score-ring span {
-        position: relative;
-        font-family: var(--font-display);
-        font-size: var(--text-base);
-        font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary);
-      }
-
-      .cognitive-insights__score-info {
-        flex: 1;
-      }
-
-      .cognitive-insights__score-label {
-        display: block;
-        font-family: var(--font-display);
-        font-size: var(--text-base);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary);
       }
 
       .cognitive-insights__score-detail {
@@ -1271,10 +1220,6 @@ class CognitiveInsightsUI {
 
       [data-theme="midnight"] .cognitive-insights__score,
       [data-theme="midnight"] .cognitive-insights__patterns {
-        background: var(--color-background-tertiary);
-      }
-
-      [data-theme="midnight"] .cognitive-insights__score-ring::before {
         background: var(--color-background-tertiary);
       }
 

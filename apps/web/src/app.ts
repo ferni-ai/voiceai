@@ -223,7 +223,7 @@ import {
   getDemoEngagementData,
   getDemoPredictions,
 } from './services/engagement-demo-data.js';
-import { scoredStreak } from './services/prediction-data.js';
+import { pendingPredictionCount, scoredStreak } from './services/prediction-data.js';
 // Environment detection
 import { getApiHeadersAsync } from './utils/api.js';
 import { shouldUseDemoData } from './utils/environment.js';
@@ -251,7 +251,6 @@ import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
 import { initCameoRoster } from './ui/cameo-roster.ui.js';
 import { initRelationshipProgressUI } from './ui/stage-celebration.ui.js';
 // Trust Journey is now integrated into journey.ui.ts - no separate init needed
-import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
 // Team Intro - Meet the team modal for mobile
 import { initTeamIntro, showTeamIntro } from './ui/team-intro.ui.js';
 // Push Notifications
@@ -284,7 +283,9 @@ import { announceMonthlyGiftPaid } from './services/seed-payment.js';
 import { toast } from './ui/whisper.ui.js';
 import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
 import { cancelConnectAttempt, connectWithTimeout } from './app/call-connect.js';
+import { onCallEnded, onCallStarted } from './app/call-end.js';
 import { connectFailure } from './services/connect-failure.js';
+import { showAgentLostPrompt } from './app/agent-lost-prompt.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
 import { initMomentsSystem } from './ui/moments/index.js';
@@ -302,7 +303,7 @@ import { initCosmeticsService } from './services/cosmetics.service.js';
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
 import { watchServerSeeds } from './services/seeds-ledger.service.js';
 // Referral Service - network effect seeds system
-import { initReferralService, processPendingReferral } from './services/referral.service.js';
+import { checkReferralFromUrl, initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
 import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
@@ -388,17 +389,12 @@ import {
   showConversationHistory,
   showDataExport,
   showPredictionTracker,
-  showTeamHuddle,
   showTrustDashboard,
   showYourStoryDashboard,
 } from './app/panel-methods.js';
 
 // Data message handlers (extracted for file size)
-import {
-  handleDataMessage,
-  handleEngagementTrigger,
-  setShowTeamHuddleCallback,
-} from './app/data-message-handlers.js';
+import { handleDataMessage, handleEngagementTrigger } from './app/data-message-handlers.js';
 
 // ============================================================================
 // APPLICATION CLASS
@@ -516,6 +512,7 @@ class VoiceAIApp {
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
+      checkReferralFromUrl(); // before the sign-in gate and the waitlist: a friend who waits keeps the code
       // Require sign-in, like iOS; await it so an existing session is restored
       const authState = await initializeAuth();
       // The dev server accepts ?e2e=1 so Playwright can reach the settings
@@ -700,11 +697,6 @@ class VoiceAIApp {
 
     // Update all UI systems
     presenceUI.setConnected(true);
-    // keyboardUI.setConnected(true);
-
-    // Connection quality indicator disabled for clean UI
-    // connectionQualityUI.show();
-    // connectionQualityUI.setQuality('good');
 
     // Start session stats
     statsUI.startSession();
@@ -713,11 +705,8 @@ class VoiceAIApp {
     // Update gesture system
     gesturesUI.setCurrentPersona(persona.id);
 
-    // Show engagement triggers ONLY for returning users
-    // First conversation should be pure - just Ferni, nothing else
-    if (modalCoordinator.hasMinimumConversations(1)) {
-      setTimeout(() => engagementTriggerUI.show(), 500);
-    }
+    // Quick actions for returning users; the after-call card is now owed when this call ends
+    onCallStarted();
 
     // The "<persona> joined" message comes from onAgentConnected, now that the agent is really here.
 
@@ -815,18 +804,8 @@ class VoiceAIApp {
     soundUI.play('hangup');
     delightService.haptic('light'); // Subtle haptic for the click
 
-    // Step 8: Now perform the actual disconnect (gracefully)
+    // Step 8: Now perform the actual disconnect (gracefully); it also brings up the after-call card
     await this.performStandardDisconnect(true); // true = skip disconnect sound
-
-    // Step 9: After a moment, the after-call card (flag on) or the cost card (flag off)
-    setTimeout(async () => {
-      try {
-        const { showPostCallCard } = await import('./ui/after-call/post-call.js');
-        await showPostCallCard();
-      } catch (e) {
-        log.debug('Post-call card skipped', { error: String(e) });
-      }
-    }, 800);
 
     log.info('🌅 Goodbye ceremony complete');
   }
@@ -856,7 +835,7 @@ class VoiceAIApp {
     presenceUI.setListening(false);
     connectionQualityUI.hide();
     transcriptUI.hide();
-    engagementTriggerUI.hide();
+    onCallEnded(); // face back to neutral, quick actions back, after-call card once per call
 
     // Clean up game board UI
     void import('./ui/game-board.ui.js')
@@ -1726,7 +1705,6 @@ class VoiceAIApp {
     this.safeInit('PersonaTransitionUI', () => initPersonaTransitionUI());
     // 🎬 Cameo Roster - Team member pop-in/out in the roster
     this.safeInit('CameoRoster', () => initCameoRoster());
-    this.safeInit('TeamHuddleUI', () => initTeamHuddleUI());
     // Team Intro - "Meet the Team" modal (used by mobile bottom sheet)
     this.safeInit('TeamIntro', () => initTeamIntro());
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
@@ -1790,7 +1768,6 @@ class VoiceAIApp {
     // 🌱 Server seed ledger - one balance from the server once it keeps seeds
     this.safeInit('SeedsLedger', () => watchServerSeeds());
 
-    // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
     this.safeInit('ReferralService', () => initReferralService());
 
     // 🌱 Seeds UI - Display balance and toast notifications
@@ -1873,9 +1850,6 @@ class VoiceAIApp {
         onNotificationSettingsClick: () => void openNotificationSettings(),
         onSleepSettingsClick: () => void import('./ui/sleep-settings.ui.js').then((m) => m.show()),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
-        onTeamHuddleClick: () => showTeamHuddle(),
-        onTeamObservationsClick: () =>
-          void import('./ui/team-observations-panel.ui.js').then((m) => m.show()),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
         onTrustDashboardClick: () =>
@@ -2018,9 +1992,6 @@ class VoiceAIApp {
     });
     this.addTrackedListener(window, 'ferni:open-predictions', () => {
       void getPredictionsUI().show();
-    });
-    this.addTrackedListener(window, 'ferni:open-team-huddle', () => {
-      void showTeamHuddle();
     });
 
     // 🎤 Voice-Activated Navigation - Handle panel open events from voice commands
@@ -2277,16 +2248,11 @@ class VoiceAIApp {
       }
     }) as EventListener);
 
-    // Set up team huddle callback for data message handlers
-    setShowTeamHuddleCallback(() => showTeamHuddle());
-
     // 📊 Load engagement data (API first, demo fallback in dev)
     void this.loadEngagementData();
 
     // 🔊 Check for voice profile re-enrollment needs
     void this.checkVoiceReEnrollment();
-    // Agent particles disabled for cleaner professional UI
-    // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
 
     // 💚 Connection Heart - Listen for connect requests
     this.addTrackedListener(window, 'ferni:request-connect', () => {
@@ -2787,7 +2753,6 @@ class VoiceAIApp {
           presenceUI.setConnected(false);
           connectionQualityUI.hide();
           waveformUI.stop();
-          // agentParticlesUI.stop();
         }
       },
 
@@ -2985,6 +2950,12 @@ class VoiceAIApp {
           showCallNotice(connectFailure('dropped'), { onRetry: () => void this.connect() })
         );
       },
+      // Ferni's side ended with the caller still here (services/agent-drop-watch.ts)
+      onAgentLost: () =>
+        showAgentLostPrompt({
+          endCall: () => this.performStandardDisconnect(),
+          connect: () => this.connect(),
+        }),
     });
 
     // Handoff service callbacks
@@ -3149,8 +3120,7 @@ class VoiceAIApp {
 
       onPredictionsUpdate: (predictions) => {
         // Update predictions UI
-        const readyCount = predictions.filter((p) => p.status === 'resolved').length;
-        engagementTriggerUI.updateBadges({ predictionsReady: readyCount > 0 ? readyCount : 0 });
+        engagementTriggerUI.updateBadges({ predictionsReady: pendingPredictionCount(predictions) });
 
         // Accuracy and streak come from the server's scores, not the raw numbers.
         getPredictionsUI().update({
