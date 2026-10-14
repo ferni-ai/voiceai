@@ -211,6 +211,8 @@ export const FLAG_MANIFEST = {
   OUTREACH_DRY_RUN: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   // on: the daily scheduler sends no generic "thinking of you" check-ins
   OUTREACH_GROUNDED_CHECKINS: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
+  // on: pondered follow-ups go out as in-app notes (also a per-person cohort flag)
+  OUTREACH_PONDERED_NOTES: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OVERLAP_GREETING_WITH_PREWARM: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PACE_MATCHING: { default: 'on', owner: 'voice', kind: 'config' },
   PAUSE_HOLD: { default: 'off', owner: 'voice', kind: 'experiment' },
