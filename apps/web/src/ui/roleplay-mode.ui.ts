@@ -342,7 +342,7 @@ const STYLES = `
   .roleplay-btn--primary {
     background: var(--color-accent);
     border: none;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .roleplay-btn--primary:hover {
