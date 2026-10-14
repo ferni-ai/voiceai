@@ -12,17 +12,14 @@
 
 import type { Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  deleteContact,
-  getUserContacts,
-  type Contact,
-} from '../identity/contacts/contacts-management.js';
+import { deleteContact, getUserContacts } from '../identity/contacts/contacts-management.js';
 import {
   clearCache,
   forgetContact,
   getContact,
   type ContactRelationship,
 } from './contact-relationship-service.js';
+import { fromSavedContact, samePerson } from './people-list.js';
 
 const log = createLogger({ module: 'person-removal' });
 
@@ -38,21 +35,6 @@ function contactsDb(): Promise<Firestore> {
       })
   );
   return db;
-}
-
-const digits = (phone: string | undefined): string => (phone ?? '').replace(/\D/g, '').slice(-10);
-
-/**
- * The saved contact is the same person as the panel's, by the rules the panel list
- * merges them on: data capture's id link, then email, phone or name.
- */
-function samePerson(kept: ContactRelationship, saved: Contact): boolean {
-  if (kept.contactId === saved.id) return true;
-  const email = saved.emails?.[0]?.address;
-  if (kept.email && email && kept.email.toLowerCase() === email.toLowerCase()) return true;
-  const phone = digits(saved.phones?.[0]?.number);
-  if (phone.length >= 7 && digits(kept.phone) === phone) return true;
-  return kept.name.trim().toLowerCase() === saved.displayName.trim().toLowerCase();
 }
 
 export interface Removal {
@@ -71,7 +53,7 @@ export interface Removal {
 export async function removePerson(userId: string, identifier: string): Promise<Removal | null> {
   const kept = await getContact(userId, identifier);
   const saved = (await getUserContacts(userId)).filter(
-    (c) => c.id === identifier || (kept !== null && samePerson(kept, c))
+    (c) => c.id === identifier || (kept !== null && samePerson(kept, fromSavedContact(c)))
   );
   if (!kept && saved.length === 0) return null;
 

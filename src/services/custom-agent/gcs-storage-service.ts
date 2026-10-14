@@ -201,7 +201,8 @@ export async function uploadVoicePreview(
 }
 
 /**
- * Upload voice journal entry audio to GCS
+ * Upload voice journal entry audio to GCS. Always private: a journal recording
+ * must never get a public URL. Read it back through generateSignedUrl.
  */
 export async function uploadVoiceJournalEntry(
   audioBuffer: ArrayBuffer | Buffer,
@@ -210,7 +211,7 @@ export async function uploadVoiceJournalEntry(
   entryId: string
 ): Promise<UploadResult | null> {
   const filename = `entry-${entryId}.webm`;
-  return uploadAudioToGcs(audioBuffer, userId, agentId, filename, 'voiceJournal', true);
+  return uploadAudioToGcs(audioBuffer, userId, agentId, filename, 'voiceJournal', false);
 }
 
 // ============================================================================
