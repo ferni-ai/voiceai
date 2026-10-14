@@ -34,7 +34,7 @@ export type ThemeCategory =
   | 'food_opinions' // street food, cereal, pineapple pizza
   | 'nature_connection' // Tetons, sky, weather, sunrise
   | 'philosophical' // meaning, presence, patience
-  | 'vulnerability' // tsunami, grief, survivor guilt
+  | 'vulnerability' // his mentor's death, grief, survivor guilt
   | 'professional' // coaching, listening, questions
   | 'quirky_interests' // golf, disaster movies, flight searches
   | 'sensory_moment' // sounds, smells, textures
@@ -231,9 +231,8 @@ const KEYWORD_TO_THEME_ORDERED: Array<[string, ThemeCategory]> = [
   // =========================================================================
   // VULNERABILITY - Deep sharing
   // =========================================================================
-  ['tsunami', 'vulnerability'],
+  ['the ridge', 'vulnerability'],
   ['grief', 'vulnerability'],
-  ['2011', 'vulnerability'],
   ['survivor guilt', 'vulnerability'],
   ['loss', 'vulnerability'],
   ['hard conversation', 'vulnerability'],

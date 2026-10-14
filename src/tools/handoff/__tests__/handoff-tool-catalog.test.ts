@@ -33,6 +33,7 @@ describe('the handoff tool catalog', () => {
     const { toolsByName } = await createHandoffTools();
     expect(toolsByName.get('handofftopeter')?.agentId).toBe('peter-john');
     expect(toolsByName.get('handofftopeterlynch')?.agentId).toBe('peter-lynch');
+    expect(toolsByName.get('handofftohenry')?.agentId).toBe('john-bogle');
   }, 60_000);
 
   it('describes every handoff tool with real text', async () => {

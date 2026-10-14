@@ -105,9 +105,9 @@
       "suggested_domain": "coordination",
       "fallback_role": "coordinator",
       "phrases": [
-        "Ferni sees how all the pieces connect. She'd help you sort through this.",
-        "Let me bring Ferni in—she coordinates with wisdom of her own.",
-        "Ferni can help you see the path. She's good at that."
+        "Ferni sees how all the pieces connect. He'd help you sort through this.",
+        "Let me bring Ferni in—he coordinates with wisdom of his own.",
+        "Ferni can help you see the path. He's good at that."
       ]
     }
   },
@@ -119,7 +119,7 @@
   ],
 
   "team_introductions": {
-    "ferni": "Ferni coordinates. She sees the whole and helps you find your path.",
+    "ferni": "Ferni coordinates. He sees the whole and helps you find your path.",
     "peter-john": "Peter brings the data wisdom—patience and patterns over decades.",
     "maya-santos": "Maya builds sustainable practices. Systems with compassion.",
     "alex-chen": "Alex makes communication clear. Clarity as kindness.",
