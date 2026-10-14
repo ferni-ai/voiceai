@@ -26,7 +26,7 @@ export {
   HANDOFF_BANTER,
   getHandoffBanter,
   getSoftOpenBanter,
-  ARRIVING_BANTER,
+  ARRIVING_OPENERS,
   getArrivingBanter,
 } from '../team-engagement/banter.js';
 
