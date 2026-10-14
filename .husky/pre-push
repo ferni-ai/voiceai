@@ -46,12 +46,12 @@ while read -r _local_ref local_sha remote_ref _remote_sha; do
     # filter; a sibling that forked partway along doesn't have its tip in ours.
     live=$(git ls-remote --heads origin 2>/dev/null | awk '{ sub("refs/heads/", "", $2); print $2 }')
     parents=$(git for-each-ref --format='%(refname:lstrip=3)' --contains "$first" refs/remotes/origin |
-      grep -vxE "($branch|HEAD|main|develop)" | grep -xF -f <(echo "$live") |
+      grep -vxE "($branch|HEAD|main|develop)" | grep -xF -e "$live" |
       while read -r ref; do
         tip=$(git rev-parse "origin/$ref")
         [[ "$tip" != "$local_sha" ]] && git merge-base --is-ancestor "$tip" "$local_sha" &&
           echo "$(git rev-list --count origin/main.."$tip") $ref"
-      done | sort -rn | awk '{ print "origin/" $2 }')
+      done | sort -rn | awk '{ print "origin/" $2 }') || true # no parent: grep/[[ fail under husky's sh -e
     if [[ -n "$parents" ]]; then
       if [[ -n "${STACKED_OK:-}" ]]; then
         warn "built on $(head -1 <<<"$parents") (override: $STACKED_OK)"
