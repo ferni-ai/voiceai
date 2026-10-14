@@ -19,6 +19,7 @@ import { directLine, type Actor } from '../../speech/direction/director.js';
 import { handoffAskFirstEnabled } from '../../tools/handoff/handoff-consent.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
+type Env = Record<string, string | undefined>;
 const log = createLogger({ module: 'HandoffBrief' });
 
 export function briefedHandoffs(env: Record<string, string | undefined> = process.env): boolean {
@@ -256,11 +257,42 @@ export function formatBrief(brief: HandoffBrief, fromName: string): string {
 export const ARRIVAL_DIRECTION =
   "You've just been brought onto this call by {from}, who filled you in. Open like a friend who was briefed: a quick hello, then show you already know why they came by naming the specific thing in a few words (\"{from} said you're weighing the offer\"), then at most one question that moves it forward and that they have not already answered. Don't ask what's up or how you can help, don't make them repeat themselves, don't introduce your job. Two short sentences at most.";
 
+/**
+ * ARRIVAL_GROUNDED=on. Prod 2026-10-13: Seth said only "can I talk to Jordan?", Ferni's
+ * handoff call gave the reason "retirement planning", and Jordan opened with the direction's
+ * own example: "Ferni told me you're weighing the offer." Neither was said on the call.
+ */
+export const ARRIVAL_DIRECTION_GROUNDED =
+  "You've just been brought onto this call by {from}. Open like a friend who was filled in: a quick hello, then, only if the facts say what they want, name it in a few of their own words. If they only asked for you by name, just say hi warmly and ask what they'd like to get into. At most one question, never one they already answered; don't introduce your job or make them repeat themselves. Two short sentences at most.";
+
+const contentWords = (text: string): Set<string> =>
+  new Set(text.toLowerCase().match(/\p{L}{4,}/gu) ?? []);
+
+/** The handoff tool's reason, only when it shares a word with what the caller actually said. */
+export function groundedReason(
+  reason: string | undefined,
+  callerLines: string[]
+): string | undefined {
+  if (!reason) return undefined;
+  const said = contentWords(callerLines.join(' '));
+  return [...contentWords(reason)].some((w) => said.has(w)) ? reason : undefined;
+}
+
+/** With ARRIVAL_GROUNDED=on, the input without a reason the caller never gave. */
+export function groundedInput(input: BriefInput, env: Env = process.env): BriefInput {
+  if (env.ARRIVAL_GROUNDED !== 'on') return input;
+  const callerLines = input.turns.filter((t) => t.speaker === 'caller').map((t) => t.text);
+  return { ...input, reason: groundedReason(input.reason, callerLines) };
+}
+
 export async function prepareBriefing(
-  input: BriefInput,
+  raw: BriefInput,
   fallbackLine: string,
-  opts: { writer?: BriefWriter; actor?: Actor; budgetMs?: number } = {}
+  opts: { writer?: BriefWriter; actor?: Actor; budgetMs?: number; env?: Env } = {}
 ): Promise<Briefing> {
+  const env = opts.env ?? process.env;
+  const input = groundedInput(raw, env);
+  const grounded = env.ARRIVAL_GROUNDED === 'on';
   const started = Date.now();
   const budgetMs = opts.budgetMs ?? BRIEFING_BUDGET_MS;
   const plain = plainBrief(input);
@@ -281,7 +313,10 @@ export async function prepareBriefing(
   const line = directLine(
     {
       moment: 'handoff_arrival',
-      direction: ARRIVAL_DIRECTION.replaceAll('{from}', input.fromName),
+      direction: (grounded ? ARRIVAL_DIRECTION_GROUNDED : ARRIVAL_DIRECTION).replaceAll(
+        '{from}',
+        input.fromName
+      ),
       facts,
       fallback: fallbackLine,
       urgency: 'soon',

@@ -38,6 +38,7 @@ import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
+import { roomGuestsNote } from './room-guests.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
@@ -117,6 +118,8 @@ export function withTurnReminder(
     state.note,
     // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
     firstCallNote(chatCtx, session, words),
+    // ROOM_GUESTS=on: someone else is in the room on the same mic (room-guests.ts)
+    roomGuestsNote(session, words),
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's
     nameCorrectionNote(chatCtx, session, words, process.env, {
       verifiedOwner: sessionIsVerifiedOwner,

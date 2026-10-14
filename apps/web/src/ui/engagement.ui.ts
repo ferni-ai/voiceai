@@ -24,6 +24,7 @@ import {
   escapeHtml,
   renderCloseButton,
   renderStreakDots,
+  renderEmptyState,
   getStreakMilestoneMessage,
   type IconName,
 } from './engagement-components.js';
@@ -33,7 +34,6 @@ import { engagementService } from '../services/engagement.service.js';
 import { isDemoDataEnabled, getDemoEngagementData } from '../services/engagement-demo-data.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { teaserPreview } from './teaser-preview.ui.js';
 
 const log = createLogger('EngagementUI');
 
@@ -145,13 +145,9 @@ export class EngagementUI {
     });
   }
 
-  /**
-   * Render empty state - shows teaser preview of what daily habits WILL look like
-   */
+  /** No check-ins yet: say what fills this panel, never invented habits or streaks. */
   private renderEmptyState(): string {
-    // Use teaser preview system to show what daily habits WILL look like
-    // Creates anticipation by showing realistic dummy data
-    return teaserPreview.habits().outerHTML;
+    return renderEmptyState('sunny', t('engagementPanel.emptyTitle'), t('engagementPanel.emptyMessage'));
   }
 
   /**
@@ -445,8 +441,11 @@ export class EngagementUI {
       return;
     }
 
-    // Leave as empty state
-    log.debug('No engagement data available, showing empty state');
+    // A failed load is not "nothing here yet"; the next open retries.
+    const content = this.container?.querySelector('#engagement-content');
+    if (userId && content) {
+      content.innerHTML = renderEmptyState('cloudy', t('engagementPanel.loadFailedTitle'), t('engagementPanel.loadFailedMessage'));
+    }
   }
 
   /**
@@ -883,71 +882,6 @@ export class EngagementUI {
         text-align: center;
       }
 
-      /* Empty State */
-      .engagement-empty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: var(--space-8, 32px) var(--space-4, 16px);
-      }
-
-      .engagement-empty__icon {
-        width: 64px;
-        height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--persona-tint, var(--color-accent-subtle));
-        border-radius: var(--radius-full);
-        color: var(--color-accent-text);
-        margin-bottom: var(--space-4, 16px);
-      }
-
-      .engagement-empty__icon svg {
-        width: 32px;
-        height: 32px;
-      }
-
-      .engagement-empty__title {
-        font-family: var(--font-display);
-        font-size: var(--text-lg);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary);
-        margin: 0 0 var(--space-2, 8px) 0;
-      }
-
-      .engagement-empty__message {
-        font-size: var(--text-sm);
-        color: var(--color-text-secondary);
-        line-height: var(--leading-relaxed);
-        max-width: min(280px, 100%);
-        margin: 0 0 var(--space-5, 20px) 0;
-      }
-
-      .engagement-empty__cta {
-        background: var(--persona-primary, var(--color-accent-primary));
-        color: white;
-        border: none;
-        padding: var(--space-3, 12px) var(--space-6, 24px);
-        border-radius: var(--radius-full);
-        font-family: var(--font-body);
-        font-size: var(--text-sm);
-        font-weight: var(--font-weight-medium, 500);
-        cursor: pointer;
-        transition: transform ${DURATION.FAST}ms ${EASING.SPRING},
-                    background ${DURATION.FAST}ms ${EASING.STANDARD};
-      }
-
-      .engagement-empty__cta:hover {
-        transform: scale(1.05);
-        background: var(--persona-secondary);
-      }
-
-      .engagement-empty__cta:active {
-        transform: scale(0.98);
-      }
-
       /* Dark Theme */
       [data-theme="midnight"] .engagement-panel__backdrop {
         background: var(--backdrop-heavy);
@@ -984,8 +918,7 @@ export class EngagementUI {
       [data-theme="midnight"] .engagement-weather__description,
       [data-theme="midnight"] .engagement-streaks__content,
       [data-theme="midnight"] .engagement-streaks__empty,
-      [data-theme="midnight"] .engagement-streak__milestone,
-      [data-theme="midnight"] .engagement-empty__message {
+      [data-theme="midnight"] .engagement-streak__milestone {
         color: var(--color-text-secondary);
       }
 
