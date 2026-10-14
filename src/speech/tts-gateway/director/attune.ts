@@ -223,19 +223,22 @@ export function decideAttune(input: AttuneInput): Attunement {
 }
 
 /**
- * Attune is the single owner of a reply's pace and loudness (decision
- * 2026-10-14, for TEAM_VOICES and PORCH_LIGHT): nothing else in the Director
- * sets either. Its inputs are layered in this order:
+ * Attune is the single owner of a reply's pace and loudness inside the
+ * Director (decision 2026-10-14, for TEAM_VOICES and PORCH_LIGHT): nothing else
+ * there sets either. Its inputs are layered in this order:
  *  1. persona: the speaker's resting pace, pace band and loudness (TEAM_VOICES;
  *     persona-delivery.ts reads them from the manifest). Ferni has none: 1.
  *  2. late night: a slower, softer resting point for a call the caller started
- *     in their small hours (PORCH_LIGHT).
+ *     in their small hours (PORCH_LIGHT). The persona's band bounds the rest.
  *  3. caller: how this reply answers the caller and its own words, relative to
- *     a resting 1 (decideAttune with VOICE_ATTUNE, else pacing.ts).
- * Only the caller layer is smoothed across turns and carried to the next reply,
- * so the resting layers under it apply at once and never compound. Late night
- * and the caller together stay inside SPEED_RANGE / VOLUME_RANGE (never comic,
- * never a whisper); the persona's band has the last word on pace.
+ *     a resting 1 (decideAttune with VOICE_ATTUNE, else pacing.ts), applied
+ *     last and in proportion: hard news slows Nayan as much as Ferni, from his
+ *     own rest. Only this layer is smoothed and carried to the next reply, so
+ *     the resting layers apply at once and never compound.
+ * Late night and the caller together stay inside SPEED_RANGE / VOLUME_RANGE of
+ * the persona's own rest (never comic; never more than ~3 dB softer than the
+ * persona's own voice). Tags continuation-tts leads a push with (a soft start,
+ * pace matching) are still composed on top, in engine.ts, as before.
  */
 export interface Shift {
   speed: number;
@@ -265,27 +268,32 @@ export const SPEED_EPSILON = 0.015;
 const CARTESIA_SPEED = [0.6, 1.5] as const;
 const CARTESIA_VOLUME = [0.5, 2] as const;
 const snap = (speed: number): number => (Math.abs(speed - 1) < SPEED_EPSILON ? 1 : speed);
+const around = (rest: number, [lo, hi]: readonly [number, number]): readonly [number, number] => [
+  rest * lo,
+  rest * hi,
+];
 
 /** Pace and loudness from the layers, in order. Loudness applies only with the pacing lever live. */
 export function layerDelivery(layers: DeliveryLayers, pacingLive: boolean): Delivery {
   const { persona, lateNight, caller } = layers;
-  const trace: Delivery['trace'] = [];
-  const rest = { speed: persona?.base ?? 1, volume: persona?.volume ?? 1 };
-  if (persona) trace.push({ layer: 'persona', ...rest });
-  const night = lateNight ?? { speed: 1, volume: 1 };
+  if (!persona && !lateNight) {
+    const trace = [{ layer: 'caller' as const, ...caller }];
+    const speed = snap(caller.speed);
+    return { speed, volume: pacingLive ? caller.volume : 1, relativeSpeed: speed, trace };
+  }
+  const own = { speed: persona?.base ?? 1, volume: persona?.volume ?? 1 };
+  const band = persona?.band ?? CARTESIA_SPEED;
+  const trace: Delivery['trace'] = persona ? [{ layer: 'persona', ...own }] : [];
+  const rest = { ...own };
   if (lateNight) {
-    const at = { speed: rest.speed * night.speed, volume: rest.volume * night.volume };
-    trace.push({ layer: 'late-night', speed: round2(at.speed), volume: round2(at.volume) });
+    rest.speed = round2(clamp(own.speed * lateNight.speed, band));
+    rest.volume = round2(own.volume * lateNight.volume);
+    trace.push({ layer: 'late-night', ...rest });
   }
-  let speed = caller.speed;
-  let volume = caller.volume;
-  if (persona || lateNight) {
-    const shift = clamp(night.speed * caller.speed, SPEED_RANGE);
-    const band = persona?.band ?? CARTESIA_SPEED;
-    speed = round2(clamp(clamp(rest.speed * shift, band), CARTESIA_SPEED));
-    const loud = clamp(night.volume * caller.volume, VOLUME_RANGE);
-    volume = round2(clamp(rest.volume * loud, CARTESIA_VOLUME));
-  }
+  const speedLimits = around(own.speed, SPEED_RANGE);
+  const speed = round2(clamp(clamp(rest.speed * caller.speed, speedLimits), CARTESIA_SPEED));
+  const loudLimits = around(own.volume, VOLUME_RANGE);
+  const volume = round2(clamp(clamp(rest.volume * caller.volume, loudLimits), CARTESIA_VOLUME));
   trace.push({ layer: 'caller', speed, volume });
   return {
     speed: snap(speed),

@@ -386,7 +386,8 @@ class DirectedReply implements ReplyStream {
     };
     if (opts.sessionId && engine.stats.pushesIn > 0) {
       (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
-        emotion: engine.emotion.emotion,
+        // The Director's own picks: the persona's tone and rest are reapplied each reply.
+        emotion: engine.directorEmotion ?? engine.emotion.emotion,
         // The caller layer only: the resting layers are reapplied each reply, never compounded.
         speed: engine.delivery?.relativeSpeed ?? engine.speed,
         volume: engine.attunement?.volume,

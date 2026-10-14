@@ -60,7 +60,7 @@ export interface PersonaDelivery {
   volume: number;
   /** The Director's stable emotions this persona uses; undefined = no limit. */
   emotions?: ReadonlySet<StableEmotion>;
-  /** Tone when nothing more specific applies (the session-hint slot). */
+  /** Tone when the Director chose none (personaEmotion). */
   defaultEmotion?: StableEmotion;
   /** Manifest emotion names with no Sonic equivalent. */
   dropped: readonly string[];
@@ -125,7 +125,9 @@ export function deliveryFromManifest(personaId: string, voice: unknown): Persona
 /**
  * The persona's tone: the Director's pick when the persona uses it, else the
  * persona's default or first emotion that fits the words, else none (the
- * voice then takes its tone from the words).
+ * voice then takes its tone from the words). Applied after the Director has
+ * decided pace and loudness from its own pick (engine.ts), so it colours the
+ * tag only and never moves speed or volume.
  */
 export function personaEmotion(
   delivery: PersonaDelivery,
@@ -133,7 +135,10 @@ export function personaEmotion(
   valence: Valence
 ): StableEmotion | undefined {
   const allowed = delivery.emotions;
-  if (!allowed || !chosen || allowed.has(chosen)) return chosen;
+  const own = delivery.defaultEmotion;
+  // Nothing chosen: the persona's own default, if the words can carry it.
+  if (!chosen) return own && fitsWords(own, valence) ? own : undefined;
+  if (!allowed || allowed.has(chosen)) return chosen;
   const preferred = delivery.defaultEmotion ? [delivery.defaultEmotion, ...allowed] : [...allowed];
   return preferred.find((e) => fitsWords(e, valence));
 }
