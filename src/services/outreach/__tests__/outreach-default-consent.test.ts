@@ -190,10 +190,15 @@ describe('daily outreach selection', () => {
 
 describe('daily outreach reaches only the verified phone', () => {
   const smsOptIn = { outreachPreferences: { enabled: true, channels: ['sms'] } };
+  // Channel choice and delivery are only reached with grounded check-ins off.
   beforeEach(() => {
+    process.env.OUTREACH_GROUNDED_CHECKINS = 'off';
     vi.mocked(deliver)
       .mockReset()
       .mockResolvedValue({ success: true, channel: 'sms' } as never);
+  });
+  afterEach(() => {
+    delete process.env.OUTREACH_GROUNDED_CHECKINS;
   });
 
   it('texts the account phone, not a profile phone the model wrote', async () => {
@@ -221,7 +226,14 @@ describe('daily outreach reaches only the verified phone', () => {
 });
 
 describe('daily outreach quiet hours', () => {
-  afterEach(() => vi.useRealTimers());
+  // A user outside quiet hours is only reached with grounded check-ins off.
+  beforeEach(() => {
+    process.env.OUTREACH_GROUNDED_CHECKINS = 'off';
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    delete process.env.OUTREACH_GROUNDED_CHECKINS;
+  });
 
   it('a time zone that cannot be read counts as quiet', async () => {
     users = [user('bad-tz', { outreachPreferences: { timezone: 'Not/AZone' } })];
