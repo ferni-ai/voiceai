@@ -198,7 +198,9 @@ jobs:
     name: Notify Results
     needs: benchmark
     runs-on: ubuntu-latest
-    if: ${{ (vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')) }}
+    # !cancelled(): the benchmark job fails on a regression, and that is when
+    # the regression alert below has to run.
+    if: ${{ !cancelled() && (vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')) }}
 
     steps:
       - name: Send Slack Notification (Regression)
