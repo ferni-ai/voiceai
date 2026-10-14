@@ -894,7 +894,6 @@
   "src/services/contacts/voice-message-delivery.ts": 509,
   "src/services/context-awareness/day-awareness-cache.ts": 893,
   "src/services/context-awareness/location-calendar.ts": 611,
-  "src/services/conversation-thread/conversation-state.ts": 1067,
   "src/services/conversation-thread/group-outreach.ts": 605,
   "src/services/conversation-thread/outreach-rules.ts": 721,
   "src/services/conversation-thread/outreach-signal-generators-v2.ts": 533,

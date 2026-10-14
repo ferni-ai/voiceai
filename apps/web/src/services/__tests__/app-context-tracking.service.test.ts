@@ -1,5 +1,4 @@
 // @ts-nocheck
-// TODO: These tests need to be updated to match the new ScreenName type
 /**
  * Tests for App Context Tracking Service
  *
@@ -76,8 +75,8 @@ describe('AppContextTrackingService', () => {
     it('should queue interaction events', async () => {
       const { trackInteraction, flushEvents } = await import('../app-context-tracking.service.js');
 
-      trackInteraction('button', 'click', 'submit-form');
-      trackInteraction('dropdown', 'select', 'option-1');
+      trackInteraction({ element: 'button', action: 'click', value: 'submit-form' });
+      trackInteraction({ element: 'dropdown', action: 'tap', value: 'option-1' });
 
       await flushEvents();
 
@@ -96,7 +95,7 @@ describe('AppContextTrackingService', () => {
     it('should format interactions correctly', async () => {
       const { trackInteraction, flushEvents } = await import('../app-context-tracking.service.js');
 
-      trackInteraction('save-button', 'click', 'profile');
+      trackInteraction({ element: 'save-button', action: 'click', value: 'profile' });
       await flushEvents();
 
       const browsingCall = mockApiPost.mock.calls.find(([url]) => url === '/api/context/browsing');
@@ -107,11 +106,11 @@ describe('AppContextTrackingService', () => {
     });
   });
 
-  describe('trackBrowsingBatch', () => {
+  describe('trackBrowsingSummary', () => {
     it('should send browsing summary', async () => {
-      const { trackBrowsingBatch, flushEvents } = await import('../app-context-tracking.service.js');
+      const { trackBrowsingSummary, flushEvents } = await import('../app-context-tracking.service.js');
 
-      trackBrowsingBatch('Explored settings and profile', ['settings', 'profile'], 30000);
+      trackBrowsingSummary('Explored settings and profile', { screens: ['settings', 'profile'] });
       await flushEvents();
 
       const browsingCall = mockApiPost.mock.calls.find(([url]) => url === '/api/context/browsing');
@@ -128,9 +127,9 @@ describe('AppContextTrackingService', () => {
       const { trackScreenView, trackInteraction, flushEvents } = await import('../app-context-tracking.service.js');
 
       trackScreenView('page-1');
-      trackInteraction('btn-1', 'click');
+      trackInteraction({ element: 'btn-1', action: 'click' });
       trackScreenView('page-2');
-      trackInteraction('btn-2', 'click');
+      trackInteraction({ element: 'btn-2', action: 'click' });
 
       await flushEvents();
 

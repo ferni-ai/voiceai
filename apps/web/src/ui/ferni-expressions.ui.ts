@@ -49,6 +49,7 @@ import { gsap } from '../utils/gsap-setup.js';
 import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { expressionMotion, holdReturnTarget, noteExpressionSet } from './avatar-motion/expression-easing.js';
+import { handOffToFaceEngine } from './face/face-engine.js';
 
 const log = createLogger('FerniExpressions');
 
@@ -245,10 +246,8 @@ export function setExpression(
   duration: number = DURATION.SLOW,
   hold: number = 0
 ): void {
-  // Auto-initialize if needed
-  if (!isInitialized) {
-    initFerniExpressions();
-  }
+  if (handOffToFaceEngine(expression, 'reaction', hold)) return;
+  if (!isInitialized) initFerniExpressions();
   if (!lidOverlay || expression === currentExpression) return;
   // Cancel any existing expression animation
   if (expressionTimeline) {

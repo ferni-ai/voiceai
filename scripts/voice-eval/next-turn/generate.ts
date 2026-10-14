@@ -6,7 +6,11 @@
  * temperature 0.8. Ferni sits in the real friend's seat (their earlier turns are his), named
  * Ferni; the other speaker is Sam. Not replayed: tools, memory, director notes, deliberation.
  *
- *   npx tsx scripts/voice-eval/next-turn/generate.ts [--out <dir>]
+ *   npx tsx scripts/voice-eval/next-turn/generate.ts [--arm <name>] [--out <dir>]
+ *
+ * --arm runs prod plus one arm's flags (ARMS) into ferni.<arm>.json; base (the default) is prod as
+ * is, in ferni.json. A trailing digit (lt2, lt3) is the same arm drawn again with another seed,
+ * for pooling several samples per moment (compare-arms.mjs).
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -21,16 +25,36 @@ import { gemini, pool } from './models.mjs';
 const PROD =
   'PROMPT_MODE=character CASCADE_FAST_LANE=on HUMAN_TEXTURE=on LAUGH_ALONG=on THINK_ALOUD=on CURIOUS_DETAIL=on ASK_ADVICE=on LIFE_MOVES_ON=on';
 for (const [k, v] of PROD.split(' ').map((kv) => kv.split('='))) process.env[k] ??= v;
+const ARMS: Record<string, string> = {
+  base: '',
+  rep: '', // base again: how far a re-run moves on its own
+  length: 'TURN_LENGTH=learned',
+  texture: 'TURN_TEXTURE=learned',
+  lt: 'TURN_LENGTH=learned TURN_TEXTURE=learned',
+};
+const opts = parseArgs({ options: { out: { type: 'string' }, arm: { type: 'string' } } }).values;
+const arm = (opts.arm as string | undefined) ?? 'base';
+const [, name, salt = ''] = arm.match(/^(.*?)(\d*)$/) ?? [];
+if (!(name in ARMS))
+  throw new Error(`--arm must be one of ${Object.keys(ARMS)} (optionally + digit)`);
+for (const [k, v] of ARMS[name]
+  .split(' ')
+  .filter(Boolean)
+  .map((kv) => kv.split('=')))
+  process.env[k] = v;
 const loader = await import('../../../src/agents/personas/prompt-loader.js');
 const { turnShapeFor, rngFor } = await import('../../../src/agents/personas/turn-shape.js');
 const { laneReason } = await import('../../../src/agents/model-provider/fast-lane.js');
+const { recentTurns } = await import('../../../src/agents/personas/turn-length.js');
+const { regexSignals } = await import('../../../src/agents/personas/turn-extras.js');
+const { callerMove } = await import('../../../src/agents/personas/turn-shape.js');
 
 type Turn = { who: 'caller' | 'friend'; text: string };
 type Moment = { id: string; context: Turn[]; names: { friend: string; caller: string } };
 
-const out = runDir(parseArgs({ options: { out: { type: 'string' } } }).values.out) as string;
+const out = runDir(opts.out) as string;
 const moments = JSON.parse(readFileSync(join(out, 'moments.json'), 'utf8')) as Moment[];
-const file = join(out, 'ferni.json');
+const file = join(out, arm === 'base' ? 'ferni.json' : `ferni.${arm}.json`);
 const done: Record<string, object> = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
 const persona = await loader.loadSystemPrompt('ferni', 'voice_agent');
 const system = `${(await loader.loadModelBaseInstructions()).trim()}\n\n---\n\n${persona}`;
@@ -55,9 +79,13 @@ await pool(
   6,
   async (m: Moment) => {
     const said = neutralise(m.context[m.context.length - 1].text, m.names) as string;
-    const shape = turnShapeFor(said, rngFor(`${m.id}:${said}`));
+    // The turns before this reply, which the learned length reads (turn-length.ts).
+    const recent = recentTurns(m.context.map((t) => ({ ferni: t.who === 'friend', text: t.text })));
+    const sig = { ...regexSignals(said, callerMove(said)), recent };
+    const shape = turnShapeFor(said, rngFor(`${salt}${m.id}:${said}`), undefined, sig);
     const lane = laneReason(said);
-    const model = lane === 'chat' ? 'gemini-3.5-flash-lite' : 'gemini-3.5-flash';
+    const lite = process.env.CASCADE_FAST_LANE === 'on' && lane === 'chat';
+    const model = lite ? 'gemini-3.5-flash-lite' : 'gemini-3.5-flash';
     const generationConfig = {
       temperature,
       maxOutputTokens: 400,

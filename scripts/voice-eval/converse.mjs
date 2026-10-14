@@ -3,6 +3,8 @@
 // usage: node converse.mjs <wss-url> <token> <out.json> <turn1.pcm> [turn2.pcm ...]
 //
 // Each turn is 48 kHz mono s16le PCM, spoken after the agent finishes. A turn
+// given as "-::pause::<ms>" speaks nothing: it waits for the agent to be quiet, <ms>,
+// then quiet again (a handoff's arrival line). A turn
 // given as "<pcm>::backchannel::<ms>" or "<pcm>::interrupt::<ms>" is instead
 // spoken <ms> after the agent started its current reply, over it: a caller's
 // "mm-hmm" should not stop the agent; a real interruption should, quickly. The mic
@@ -203,6 +205,14 @@ const results = [];
 let replyStartedAt = 0;
 for (const arg of turns) {
   const [path, mode, at] = arg.split('::');
+  if (mode === 'pause') {
+    // A handoff: the outgoing persona's goodbye, the swap, the teammate's first line.
+    await waitQuiet(30000);
+    await sleep(Number(at) || 3000);
+    await waitQuiet(30000);
+    results.push({ turn: 'pause', mode, at: Number(at) });
+    continue;
+  }
   if (mode === 'data') {
     // A UI action (music_control, approvals): sent the way the web app sends
     // it, reliable and with no topic, once the agent is quiet.

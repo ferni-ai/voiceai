@@ -36,7 +36,7 @@ import {
   lastTalkedAt,
   unansweredCount,
 } from './outreach-cadence.js';
-import { dailyCheckInChannel, logDailyCheckIn } from './proactive-channels/daily-checkin.js';
+import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
 import { blocksGenericCheckIns } from './grounded-checkin.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
@@ -191,7 +191,7 @@ async function processCandidate(
   // Proactive dogfood users (PROACTIVE_CHANNELS): channel, quiet hours (in
   // their own time zone) and caps come from the proactive channel policy.
   const now = new Date();
-  const proactive = await dailyCheckInChannel(userId, now);
+  const proactive = await dailyCheckIn(userId, now);
 
   // Check quiet hours
   if (!proactive && config.respectQuietHours && isInQuietHours(candidate)) {
@@ -235,8 +235,10 @@ async function processCandidate(
     return { sent: true, channel, outreachType, reason: 'Dry run' };
   }
 
-  // Generate personalized content
-  const content = await generatePersonalizedContent(userContext, outreachType, channel);
+  // Generate personalized content (allowlisted users: the proactive writer)
+  const content = proactive
+    ? await proactive.content()
+    : await generatePersonalizedContent(userContext, outreachType, channel);
 
   // Send the outreach
   const deliveryResult = await deliver({
@@ -248,9 +250,7 @@ async function processCandidate(
     outreachType,
   });
 
-  if (proactive) {
-    await logDailyCheckIn(userId, now, proactive, outreachType, deliveryResult.success);
-  }
+  await proactive?.done(outreachType, deliveryResult.success);
 
   if (deliveryResult.success) {
     // Record that we sent outreach
