@@ -340,7 +340,7 @@ import { playBeat, updateNarrativeContext } from './narrative/narrative-director
 // 🧪 Soul test utilities (available as window.testSoul in dev)
 // NOTE: Test file imported dynamically to avoid build errors
 if (import.meta.env.DEV) {
-  void import('./ui/soul.test.js');
+  void import('./ui/soul-console.js');
 }
 
 // 🧪 First-time user testing utilities (available as window.testFirstTimeUser in dev)
