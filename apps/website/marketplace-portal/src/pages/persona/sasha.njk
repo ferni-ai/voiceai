@@ -1,16 +1,17 @@
 ---
 layout: layouts/base.njk
+extraCss: persona-detail
 title: Sasha - Creative Catalyst
 description: Sasha sparks creativity. Whether you're battling creative block, starting a passion project, or building a creative career—Sasha brings the energy and ideas.
 personaColor: "#E07B53"
 personaSecondary: "#B85C3C"
 ---
 
-{% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+{% from "partials/icons.njk" import play, plus, check %}
 {% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
-<section class="persona-detail-hero" style="--persona-color: #E07B53; --persona-secondary: #B85C3C;">
+<section class="persona-detail-hero persona-tone-light" style="--persona-color: #E07B53; --persona-secondary: #B85C3C;">
   <div class="container">
     <div class="persona-detail-content">
       <div class="persona-detail-avatar">
@@ -31,14 +32,7 @@ personaSecondary: "#B85C3C"
         <h1>Sasha</h1>
         <p class="persona-detail-tagline">Creative Catalyst</p>
         <div class="persona-detail-meta">
-          <span style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--warning);">
-            {{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ star(16) }}
-          </span>
-          <span>4.75 (1,456 reviews)</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>22,100+ users</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>by Ferni Labs</span>
+          <span>by Ferni</span>
         </div>
         <div class="persona-detail-actions">
           <a href="{{ site.appUrl }}" class="btn btn-add-team btn-lg">
@@ -58,7 +52,7 @@ personaSecondary: "#B85C3C"
 <!-- Main Content -->
 <section class="section">
   <div class="container">
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-8); align-items: start;">
+    <div class="persona-detail-layout">
 
       <!-- Left Column -->
       <div>
@@ -79,7 +73,7 @@ personaSecondary: "#B85C3C"
         <!-- What Sasha Helps With -->
         <div style="margin-bottom: var(--space-12);">
           <h2 style="margin-bottom: var(--space-4);">What I Help With</h2>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4);">
+          <div class="persona-help-grid">
             <div style="background: var(--bg-elevated); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
               <h4 style="margin-bottom: var(--space-2);">Creative Blocks</h4>
               <p style="font-size: var(--text-sm); color: var(--text-muted);">
@@ -126,75 +120,6 @@ personaSecondary: "#B85C3C"
             "Okay okay okay—I love this direction! But what if we pushed it even further? What's
             the version of this idea that scares you a little? That's usually where the magic is."
           </p>
-        </div>
-
-        <!-- Reviews -->
-        <div class="reviews-section">
-          <div class="reviews-header">
-            <div class="reviews-summary">
-              <span class="reviews-rating-big">4.75</span>
-              <div class="reviews-rating-info">
-                <span class="reviews-stars" style="color: var(--warning);">
-                  {{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ star(18) }}
-                </span>
-                <span class="reviews-count">1,456 reviews</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #E07B53, #B85C3C); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">M</div>
-              <div>
-                <div class="review-author">Maya T.</div>
-                <div class="review-date">4 days ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              Sasha's energy is contagious! I was stuck on a novel for months, and after one
-              brainstorming session with her, I had new plot ideas AND the motivation to actually
-              write them. She makes creativity feel fun again.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #6B5B95, #4A4063); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">J</div>
-              <div>
-                <div class="review-author">Jordan K.</div>
-                <div class="review-date">2 weeks ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              As a musician, I've tried so many creativity tools. Sasha stands out because she
-              actually pushes you to try weird things instead of just validating safe choices.
-              Sometimes her energy is a lot, but that's kind of what I need.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #2C3E50, #1A252F); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">L</div>
-              <div>
-                <div class="review-author">Lisa H.</div>
-                <div class="review-date">1 month ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              I started a side business selling my art because Sasha helped me believe it was
-              worth sharing. She helped me work through imposter syndrome and actually put my
-              work out there. Best investment I've made.
-            </p>
-          </div>
         </div>
       </div>
 
@@ -268,22 +193,18 @@ personaSecondary: "#B85C3C"
           <div style="display: flex; align-items: center; gap: var(--space-3);">
             <div style="width: 48px; height: 48px; background: var(--accent-primary); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">F</div>
             <div>
-              <div style="font-weight: 600;">Ferni Labs</div>
-              <div style="font-size: var(--text-sm); color: var(--success); display: flex; align-items: center; gap: var(--space-1);">
-                {{ verified(14) }}
-                Verified Publisher
-              </div>
+              <div style="font-weight: 600;">Ferni</div>
             </div>
           </div>
         </div>
 
         <!-- CTA -->
-        <div style="background: linear-gradient(135deg, #E07B53, #B85C3C); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
+        <div class="persona-cta-card persona-tone-light" style="--cta-from: #E07B53; --cta-to: #B85C3C;">
           <h3 style="margin-bottom: var(--space-2); color: white;">Ready to create?</h3>
-          <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
+          <p>
             Let's make something amazing
           </p>
-          <a href="{{ site.appUrl }}" class="btn" style="background: white; color: #E07B53; width: 100%;">
+          <a href="{{ site.appUrl }}" class="btn persona-cta-btn">
             {{ priced('Try Free', 'Add to Team') }}
           </a>
         </div>
@@ -302,7 +223,7 @@ personaSecondary: "#B85C3C"
     </div>
 
     <div class="persona-grid" style="max-width: 900px; margin: 0 auto;">
-      <a href="/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
+      <a href="/pages/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">E</span>
@@ -313,18 +234,12 @@ personaSecondary: "#B85C3C"
         <div class="persona-body">
           <p class="persona-description">Strategies that work with how your ADHD brain operates.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.9</span>
-            </div>
             {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
 
-      <a href="/persona/ray/" class="persona-card" style="--persona-color: #4A5568; --persona-secondary: #2D3748;">
+      <a href="/pages/persona/ray/" class="persona-card" style="--persona-color: #4A5568; --persona-secondary: #2D3748;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">R</span>
@@ -335,18 +250,12 @@ personaSecondary: "#B85C3C"
         <div class="persona-body">
           <p class="persona-description">Strategic thinking for navigating your professional journey.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-              <span class="persona-rating-count">4.6</span>
-            </div>
             {{ priceBadge('$12.99/mo') }}
           </div>
         </div>
       </a>
 
-      <a href="/persona/carmen/" class="persona-card" style="--persona-color: #D4A373; --persona-secondary: #A67B5B;">
+      <a href="/pages/persona/carmen/" class="persona-card persona-tone-light" style="--persona-color: #D4A373; --persona-secondary: #A67B5B;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">C</span>
@@ -357,12 +266,6 @@ personaSecondary: "#B85C3C"
         <div class="persona-body">
           <p class="persona-description">Your village for practical parenting support.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.85</span>
-            </div>
             {{ priceBadge('$7.99/mo') }}
           </div>
         </div>

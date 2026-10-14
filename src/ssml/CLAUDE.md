@@ -333,9 +333,9 @@ import {
 } from '../ssml/index.js';
 ```
 
-### Jack Bogle-Specific Code (COMPLETED)
+### Peter-Specific Code (COMPLETED)
 
-Jack Bogle (Peter John) specific speech patterns are now in the persona bundle:
+Peter John specific speech patterns are now in the persona bundle:
 
 ```typescript
 // ✅ CORRECT - Import from persona bundle

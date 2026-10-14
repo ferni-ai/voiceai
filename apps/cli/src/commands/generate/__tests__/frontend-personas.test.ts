@@ -30,16 +30,16 @@ describe('Financial Legends (generated so the web can show who is speaking)', ()
   });
 
   it('build a speaker card from the bundle: own name, initials and title, not a team member', async () => {
-    const lynch = await manifestToLegend(manifestOf('peter-lynch'), bundle('peter-lynch'));
-    expect(lynch).toMatchObject({
+    const tom = await manifestToLegend(manifestOf('peter-lynch'), bundle('peter-lynch'));
+    expect(tom).toMatchObject({
       id: 'peter-lynch',
-      name: 'Peter Lynch',
-      initials: 'PL',
+      name: 'Tom Brannigan',
+      initials: 'TB',
       subtitle: 'Stock Picking Guide',
       role: 'standalone',
       skills: [],
     });
-    expect(lynch.transition.emoji).toBe('');
+    expect(tom.transition.emoji).toBe('');
     const joel = await manifestToLegend(manifestOf('joel-dickson'), bundle('joel-dickson'));
     expect(joel.subtitle).toBe('Life Mentor');
   });

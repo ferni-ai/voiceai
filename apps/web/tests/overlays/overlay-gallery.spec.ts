@@ -29,9 +29,12 @@ const SCENES = [
   'achievement',
   'celebration',
   'milestone',
+  'first-milestone',
   'notification-card',
   'outreach',
   'offline-banner',
+  'reconnecting',
+  'weak-connection',
   'collision',
   'modal',
   'sheet',
@@ -41,26 +44,56 @@ const SCENES = [
   'call-notice',
   'command-palette',
   'coach-mark',
+  'captions',
+  'caption-moments',
 ] as const;
 
 const BASELINE_FILE = join(dirname(fileURLToPath(import.meta.url)), 'contrast-baseline.json');
 const baseline: Record<string, number> = JSON.parse(readFileSync(BASELINE_FILE, 'utf8'));
 const updating = process.env.UPDATE_CONTRAST_BASELINE === '1';
 
+/** Wait until no finite animation or transition is still running (5 s cap). */
+async function settleAnimations(page: Page): Promise<void> {
+  await page
+    .waitForFunction(
+      () =>
+        document
+          .getAnimations()
+          .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
+      null,
+      { timeout: 5_000 }
+    )
+    .catch(() => undefined);
+}
+
 async function openScene(page: Page, scene: string, flagOn = false): Promise<void> {
   await page.addInitScript(
-    ([withAchievement, overlayHost]) => {
+    ([withAchievement, overlayHost, withCaptions]) => {
       try {
         // The first chat of the day unlocks Early Bird; keep it to the scenes that show it.
         if (!withAchievement)
           localStorage.setItem('ferni-last-interaction-date', new Date().toDateString());
         if (overlayHost) localStorage.setItem('ferni:flag:overlay-host', 'true');
+        // Live captions need their flag and the transcription setting, or the scene shows none.
+        if (withCaptions) {
+          localStorage.setItem('ferni:flag:captions-v2', 'true');
+          localStorage.setItem('ferni_show_transcription', 'true');
+        }
+        // The welcome tour is not a gallery scene; on a slow runner it opened mid-test.
+        localStorage.setItem('ferni:onboarding:complete', 'true');
       } catch {
         // Storage unavailable: the scene still renders.
       }
     },
-    [scene === 'achievement' || scene === 'collision', flagOn] as const
+    [
+      scene === 'achievement' || scene === 'collision',
+      flagOn,
+      scene === 'captions' || scene === 'caption-moments',
+    ] as const
   );
+  // Pin the wall clock: greetings, countdowns and time-of-day features must not
+  // depend on when CI runs (a run between 00:00 and 05:00 showed Night Owl).
+  await page.clock.setFixedTime(new Date('2026-10-12T14:00:00'));
   await page.goto(`/?e2e=1&gallery=overlays&scene=${scene}`);
   await page.waitForFunction(
     () => (window as unknown as { __overlayGallery?: { ready: boolean } }).__overlayGallery?.ready,
@@ -82,16 +115,7 @@ async function openScene(page: Page, scene: string, flagOn = false): Promise<voi
     await page.waitForTimeout(250);
   }
   // Let finite entrance animations and transitions finish (the busier the machine, the longer).
-  await page
-    .waitForFunction(
-      () =>
-        document
-          .getAnimations()
-          .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
-      null,
-      { timeout: 5_000 }
-    )
-    .catch(() => undefined);
+  await settleAnimations(page);
   // Freeze transitions from here on, so a theme switch can't be measured mid-fade.
   await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
 }
@@ -101,14 +125,26 @@ async function useTheme(page: Page, theme: 'zen' | 'midnight'): Promise<void> {
   await page.emulateMedia({ colorScheme: theme === 'midnight' ? 'dark' : 'light' });
   await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
   await page.waitForTimeout(300);
+  // A late entrance (a coach mark fading in) can still be running; measure it settled.
+  await settleAnimations(page);
 }
 
 /**
  * Scenes whose overlays keep animating (sparkles, the avatar's stretch, several
  * arrivals at once) are contrast-checked but not pixel-compared: their frames
- * differ run to run on a busy runner.
+ * differ run to run on a busy runner. Captions too: on a phone the in-call
+ * layout is still settling, so they show three lines, one or none depending on
+ * when the frame is taken (tests/e2e/captions-layout.spec.ts checks their box).
+ * Caption moments add a chip that springs in and leaves after 9 s.
  */
-const NO_SNAPSHOT = new Set(['achievement', 'celebration', 'collision']);
+const NO_SNAPSHOT = new Set([
+  'achievement',
+  'celebration',
+  'first-milestone',
+  'collision',
+  'captions',
+  'caption-moments',
+]);
 
 /** Text that changes with the clock or animates, kept out of the pixel diff. */
 const MASKS = ['.avatar-container', '.settings-menu__header-eyebrow', '.countdown-text'];
@@ -213,6 +249,85 @@ for (const scene of ['toast-pair', 'notice-action', 'toast-over-sheet'] as const
         region.y < a.y + a.h &&
         a.y < region.y + region.h;
       expect(overlaps).toBe(false);
+    }
+  });
+}
+
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const overlaps = (a: Box, b: Box): boolean =>
+  a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** Boxes of the first visible match of each selector, plus the viewport. */
+async function boxes(page: Page, selectors: string[]): Promise<{ vw: number; vh: number; found: (Box | null)[] }> {
+  return page.evaluate((sels) => {
+    const box = (el: Element | null) => {
+      if (!el || el.getClientRects().length === 0) return null;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 ? { x: r.x, y: r.y, w: r.width, h: r.height } : null;
+    };
+    return {
+      vw: window.innerWidth,
+      vh: window.innerHeight,
+      found: sels.map((s) => box(document.querySelector(s))),
+    };
+  }, selectors);
+}
+
+/** What a celebration card may never cover: Connect, the call controls and the menu trigger. */
+const CONTROLS = ['#connectBtn', '.controls-row', '#waveformContainer', '.mobile-menu-trigger'];
+
+// With the flag off, the old cards are still what people see (#1065 moved the
+// easter-egg card off the controls, #846 the milestone card): keep them there.
+for (const [scene, card] of [
+  ['achievement', '.achievement-notification'],
+  ['first-milestone', '.ferni-milestone'],
+] as const) {
+  test(`${scene}: card stays on screen and clear of the controls with the overlay host off`, async ({
+    page,
+  }) => {
+    await openScene(page, scene);
+    const { vw, vh, found } = await boxes(page, [card, ...CONTROLS]);
+    const [box, ...controls] = found;
+    expect(box, `${card} is not on screen`).not.toBeNull();
+    if (!box) return;
+    expect(box.x).toBeGreaterThanOrEqual(8);
+    expect(box.y).toBeGreaterThanOrEqual(8);
+    expect(box.x + box.w).toBeLessThanOrEqual(vw - 8);
+    expect(box.y + box.h).toBeLessThanOrEqual(vh - 8);
+    for (const [i, c] of controls.entries()) {
+      if (c) expect(overlaps(box, c), `${card} covers ${CONTROLS[i]}`).toBe(false);
+    }
+  });
+}
+
+// With the flag on, every celebration is an achievement toast in the region,
+// and the old card does not appear as well.
+for (const [scene, legacy] of [
+  ['achievement', '.achievement-notification'],
+  ['celebration', '.moment-celebration'],
+  ['first-milestone', '.ferni-milestone'],
+] as const) {
+  test(`${scene}: an achievement toast instead of the card with the overlay host on`, async ({
+    page,
+  }) => {
+    await openScene(page, scene, true);
+    await expect(page.locator('.ferni-toast-region .ferni-toast--achievement').first()).toBeVisible();
+    await expect(page.locator(legacy)).toHaveCount(0);
+    const { vw, vh, found } = await boxes(page, ['.ferni-toast-region', ...CONTROLS]);
+    const [region, ...controls] = found;
+    expect(region).not.toBeNull();
+    if (!region) return;
+    expect(region.x).toBeGreaterThanOrEqual(15);
+    expect(vw - (region.x + region.w)).toBeGreaterThanOrEqual(15);
+    expect(region.y + region.h).toBeLessThanOrEqual(vh / 2);
+    for (const [i, c] of controls.entries()) {
+      if (c) expect(overlaps(region, c), `toast region covers ${CONTROLS[i]}`).toBe(false);
     }
   });
 }

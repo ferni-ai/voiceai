@@ -420,7 +420,7 @@ const styles = `
 
   .word-chain-item.current {
     background: var(--color-accent-primary);
-    color: white;
+    color: var(--color-text-on-accent);
     font-weight: 600;
   }
 

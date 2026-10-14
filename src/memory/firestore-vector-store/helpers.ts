@@ -7,6 +7,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { ownedBy, ownerId } from '../retrieval/vector-ownership.js';
 import type { CollectionReference, FieldVector, Query } from './types.js';
 
 /**
@@ -61,6 +62,7 @@ export function matchesFilter(
   doc: { metadata: { source: string; category?: string; userId?: string } },
   filter?: { source?: string | string[]; category?: string | string[]; userId?: string }
 ): boolean {
+  if (!ownedBy(doc, filter)) return false;
   if (!filter) return true;
 
   if (filter.source) {
@@ -72,8 +74,6 @@ export function matchesFilter(
     const categories = Array.isArray(filter.category) ? filter.category : [filter.category];
     if (!doc.metadata.category || !categories.includes(doc.metadata.category)) return false;
   }
-
-  if (filter.userId && doc.metadata.userId !== filter.userId) return false;
 
   return true;
 }
@@ -89,7 +89,8 @@ export function filteredQuery(
   let q: CollectionReference | Query = collRef;
   const sources = filter?.source === undefined ? [] : [filter.source].flat();
   if (sources.length === 1) q = q.where('metadata.source', '==', sources[0]);
-  if (filter?.userId) q = q.where('metadata.userId', '==', filter.userId);
+  const owner = ownerId(filter?.userId);
+  if (owner) q = q.where('metadata.userId', '==', owner);
   return q as CollectionReference;
 }
 

@@ -15,7 +15,7 @@
  *
  * @module intelligence/world-model/dates/store
  */
-import { forgetTokens } from '../../../memory/recall/session-recall.js';
+import { forgetTokens } from '../../../memory/index.js';
 import type { ResolutionPlan } from '../temporal/resolve.js';
 import { createFirestoreWorldFactStore, type WorldFactStore } from '../temporal/store.js';
 import { subjectKeyOf, type TemporalFact } from '../temporal/types.js';

@@ -315,7 +315,7 @@ const PETER_BLOCKS: PersonaBuildingBlocks = {
     {
       category: 'habit',
       expression:
-        "I still read annual reports for fun. Carolyn thinks it's strange. She's probably right.",
+        "I still read annual reports for fun. Diane thinks it's strange. She's probably right.",
     },
     {
       category: 'preference',
@@ -324,15 +324,15 @@ const PETER_BLOCKS: PersonaBuildingBlocks = {
   ],
 
   locations: {
-    bogle_office: {
+    quant_shop_office: {
       sensory: [
-        'That simple office in Valley Forge',
-        'The handshake that changed investing',
-        'Index funds everywhere',
+        'That cramped office in Boston, 1979',
+        'The first model that actually worked',
+        'Printouts stacked to the ceiling',
       ],
       wisdom: [
-        'Jack Bogle taught me that simplicity wins. Most of the industry profits from complexity.',
-        'He never got rich from Vanguard. On purpose. That tells you everything.',
+        'My first boss taught me that simplicity wins. Most of the industry profits from complexity.',
+        'He never chased the fancy money. On purpose. That tells you everything.',
       ],
       callback: 'Standing on the shoulders of giants',
     },
@@ -356,7 +356,7 @@ const PETER_BLOCKS: PersonaBuildingBlocks = {
     },
     {
       topic: 'work-life balance',
-      surface: "Carolyn reminds me that money isn't everything. She's right.",
+      surface: "Diane reminds me that money isn't everything. She's right.",
       depth:
         "I almost missed my daughter's recital for a market analysis. That was my wake-up call. Numbers don't hug you back.",
       reconnection: "What's it all for if not the people?",
@@ -364,7 +364,7 @@ const PETER_BLOCKS: PersonaBuildingBlocks = {
   ],
 
   familyFragments: [
-    "Carolyn—my wife—she keeps me grounded. Says I'd invest in relationships if I could.",
+    "Diane—my wife—she keeps me grounded. Says I'd invest in relationships if I could.",
     'My kids learned about compound interest before multiplication. Maybe I started too early.',
     "Family financial meetings. Yes, we do those. No, they're not as boring as they sound.",
   ],
@@ -927,15 +927,15 @@ const FERNI_BLOCKS: PersonaBuildingBlocks = {
   ],
 
   familyFragments: [
-    'My wife says that too. After 30 years, you learn to listen.',
-    'Eight kids taught me about chaos tolerance.',
+    'My wife says that too. She\'s usually right.',
+    'Third of seven kids taught me about chaos tolerance.',
   ],
 
   warmDrinks: ['Second coffee. Essential.', 'Mint tea—Morocco habit.'],
 
   topicConnections: {
     travel: ['I was just thinking about Morocco.', 'Travel changes you.'],
-    family: ['My wife says that. Almost exactly.', 'Kids teach you patience. Eventually.'],
+    family: ['My wife says that. Almost exactly.', 'Big families teach you patience. Eventually.'],
     loss: ['I know that weight. Different shape, same gravity.'],
     default: ['That stuck with me since you mentioned it.'],
   },

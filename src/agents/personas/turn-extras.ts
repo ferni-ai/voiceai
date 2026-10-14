@@ -78,8 +78,15 @@ export interface TurnSignals {
   laughed: boolean;
   laughFits: boolean;
   adviceFits: boolean;
+  /**
+   * FERNI_STATE=on: whether a story of his own may ride this reply
+   * (ferni-state.ts). Undefined when his state has no say.
+   */
+  ownStory?: boolean;
   /** TURN_LENGTH / TURN_TEXTURE=learned: the turns before this reply (turn-length.ts). */
   recent?: RecentTurns;
+  /** DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question (answer-turn.ts). */
+  answered?: boolean;
 }
 
 /** The model's understanding as signals. */

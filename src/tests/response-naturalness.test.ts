@@ -198,9 +198,10 @@ describe('Catchphrases', () => {
       expect(wrapped).toContain('<break');
     });
 
-    it("should include Jack Bogle's signature catchphrases", () => {
-      const jackPhrases = PERSONA_CATCHPHRASES['nayan-patel'].phrases;
-      expect(jackPhrases).toContain('Stay the course.');
+    it("should include Nayan's signature catchphrases", () => {
+      const nayanPhrases = PERSONA_CATCHPHRASES['nayan-patel'].phrases;
+      expect(nayanPhrases).toContain('Stay the course.');
+      expect(nayanPhrases.some((p) => /haystack/i.test(p))).toBe(false);
     });
 
     it("should include Peter John's signature catchphrases", () => {

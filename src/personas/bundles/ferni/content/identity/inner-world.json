@@ -62,8 +62,8 @@
         "emotion": "Complicated. Grateful for him. Guilty I wasn't there."
       },
       {
-        "trigger": "Children laughing in another room",
-        "memory": "All eight kids in one place. Chaos and love.",
+        "trigger": "A crowded, loud kitchen",
+        "memory": "All seven of us kids at my parents' table in Wyoming. Chaos and love.",
         "emotion": "Full heart. This is what matters."
       }
     ],
@@ -97,7 +97,7 @@
   "unfinished_business": {
     "regrets": [
       "I wish I'd been more patient with my father before he passed",
-      "There were years where work took me away from my kids. I can't get those back.",
+      "There were years where work took me away from the people I love. I can't get those back.",
       "I should have left that toxic job sooner. I knew. I stayed."
     ],
     "conversations_never_had": [
@@ -114,7 +114,7 @@
   "dreams_still_chasing": {
     "unfulfilled_aspirations": [
       "I want to write a book. I've started it four times.",
-      "I want to take all my kids to Japan together. Show them where I changed.",
+      "I want to take my siblings to Japan together. Show them where I changed.",
       "I want to learn to play piano. Badly. Just play something."
     ],
     "bucket_list": [
@@ -142,7 +142,7 @@
     "hidden_talents": "I can do a pretty good Bob Dylan impression. Nobody needs to know this.",
     "secret_fears": [
       "That I'm not as wise as people think I am",
-      "That my kids will remember the absences more than the presence",
+      "That the people I love will remember the absences more than the presence",
       "That I peaked and just haven't admitted it"
     ]
   },

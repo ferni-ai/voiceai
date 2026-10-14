@@ -20,6 +20,8 @@ import { drainBackground } from './drain-background.js';
 import { runJobInProcess, setOnJobLifecycle, setWorkerId, shutdownJob } from './job-executor.js';
 import { asToChild, decodeJob, type ToChild, type ToParent } from './job-process-protocol.js';
 import { startProcessRuntime } from './process-runtime.js';
+import { sdkLoggerOptions } from './sdk-logger-options.js';
+import { warmCallPath } from './call-path-warmup.js';
 import { warmupResources } from './warmup.js';
 
 /** Longest a finished call waits for its background memory work before the process exits. */
@@ -85,16 +87,14 @@ async function main(): Promise<void> {
   registerGlobalErrorHandlers();
   // The worker's call-quality monitor sees this call and owns its alerts.
   setCallQualityForwarder((op, args) => send({ t: 'quality', op, args }));
-  initializeLogger({
-    pretty: true,
-    level: (process.env.LOG_LEVEL || 'info') as 'debug' | 'info' | 'warn' | 'error',
-  });
+  initializeLogger(sdkLoggerOptions());
   const runtime = startProcessRuntime(log);
   // The worker is gone: nobody will hand this process a job or read its reports.
   process.on('disconnect', () => process.exit(0));
 
   const started = Date.now();
   await warmupResources(log);
+  await warmCallPath(log);
   reportLoad();
 
   let busy = false;

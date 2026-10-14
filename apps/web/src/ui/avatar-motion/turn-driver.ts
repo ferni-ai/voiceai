@@ -2,21 +2,28 @@
  * Turn driver: the avatar follows real turns, not audio tracks.
  *
  * Without it, "speaking" means the agent's audio track is subscribed and
- * "listening" means the mic is on, both true for the whole call, so Ferni
- * never blinks, never leans in when you start talking and never shows that he
- * is thinking. This reads the same signals as the speaker cues (LiveKit's
- * `lk.agent.state` and whether you are an active speaker) and sets:
+ * "listening" means the mic is on, both true for the whole call, so the
+ * avatar and the waveform show Ferni talking through his silences and before
+ * he starts (you see him talk and hear nothing), and he never blinks, leans
+ * in or shows that he is thinking. This reads the same signals as the speaker
+ * cues (LiveKit's `lk.agent.state` and whether you are an active speaker) and
+ * sets:
  *
- * - Ferni speaking: speaking presence and eyes.
+ * - Ferni speaking: speaking presence, eyes and waveform.
  * - You speaking: listening presence (lean-in) and attentive eyes.
  * - Ferni thinking: the thinking pose (curious tilt, eyes up, "Thinking").
  * - Nobody: idle eyes, so the natural blink and micro-idle run again.
+ *
+ * Each settled change also fires a window `ferni:avatar-turn` event (detail
+ * `{ speaker }`, a Speaker), which the spring body, blinks, gaze and turn
+ * gestures follow. It only fires while this driver runs.
  *
  * A turn must hold for a short settle time before the avatar follows it, so
  * brief flips don't flicker. With reduced motion the settle is longer, so the
  * avatar changes pose less often.
  *
- * Off by default. Turn on: localStorage.setItem('ferni:avatar-turns', 'true')
+ * On by default. Kill switch: localStorage.setItem('ferni:avatar-turns', 'off')
+ * brings back the old track-driven avatar and waveform.
  */
 
 import { DURATION } from '../../config/animation-constants.js';
@@ -30,10 +37,13 @@ import { presenceUI } from '../presence.ui.js';
 import { watchSpeakerSignals, type CueRoom, type SpeakerSignals } from '../speaker-cues-signals.js';
 import { speakerFrom, type Speaker } from '../speaker-cues.ui.js';
 import { thinkingUI } from '../thinking.ui.js';
+import { waveformUI } from '../waveform.ui.js';
 
 const log = createLogger('AvatarTurns');
 
 export const AVATAR_TURNS_FLAG_KEY = 'ferni:avatar-turns';
+/** Window event fired once per settled turn change, detail `{ speaker }`. */
+export const AVATAR_TURN_EVENT = 'ferni:avatar-turn';
 /** How long a turn must hold before the avatar follows it. */
 export const TURN_SETTLE_MS = DURATION.FAST_RELEASE;
 /** The settle time when the viewer prefers reduced motion: fewer pose changes. */
@@ -69,6 +79,8 @@ export interface AvatarTargets {
   setEyes(state: VoiceState): void;
   showThinking(): void;
   hideThinking(): void;
+  setWaveSpeaking(speaking: boolean): void;
+  setWaveListening(listening: boolean): void;
 }
 
 export const defaultTargets: AvatarTargets = {
@@ -78,6 +90,8 @@ export const defaultTargets: AvatarTargets = {
   setEyes: (state) => expressiveEyes.setVoiceState(state),
   showThinking: () => thinkingUI.show(t('accessibility.thinking')),
   hideThinking: () => thinkingUI.hide(),
+  setWaveSpeaking: (speaking) => waveformUI.setSpeaking(speaking),
+  setWaveListening: (listening) => waveformUI.setListening(listening),
 };
 
 export interface TurnDriver {
@@ -89,6 +103,10 @@ export interface TurnDriver {
   dispose(): void;
 }
 
+function announceTurn(speaker: Speaker): void {
+  window.dispatchEvent(new CustomEvent(AVATAR_TURN_EVENT, { detail: { speaker } }));
+}
+
 function applyPose(targets: AvatarTargets, pose: AvatarPose): void {
   // Thinking first: hiding it clears the class the eyes are about to set.
   if (!pose.thinking) targets.hideThinking();
@@ -96,6 +114,8 @@ function applyPose(targets: AvatarTargets, pose: AvatarPose): void {
   targets.setEyes(pose.eyes);
   targets.setSpeaking(pose.speaking);
   targets.setListening(pose.listening);
+  targets.setWaveSpeaking(pose.speaking);
+  targets.setWaveListening(pose.listening);
   if (pose.thinking) targets.showThinking();
 }
 
@@ -113,8 +133,10 @@ export function createTurnDriver(targets: AvatarTargets, settleMs: number): Turn
 
   const show = (speaker: Speaker): void => {
     clearTimer();
+    const changed = speaker !== shown;
     shown = speaker;
     applyPose(targets, POSES[speaker]);
+    if (changed) announceTurn(speaker);
   };
 
   return {
@@ -131,20 +153,25 @@ export function createTurnDriver(targets: AvatarTargets, settleMs: number): Turn
     dispose() {
       clearTimer();
       if (shown === null) return;
+      if (shown !== 'none') announceTurn('none'); // the call ended: settle to rest
       shown = null;
       // Only what the driver turned on: the call's own teardown owns the rest.
       targets.hideThinking();
       targets.setSpeaking(false);
       targets.setListening(false);
+      targets.setWaveSpeaking(false);
+      targets.setWaveListening(false);
     },
   };
 }
 
+/** On unless the kill switch is set ('off', or the old 'false'). */
 export function isAvatarTurnsEnabled(): boolean {
   try {
-    return localStorage.getItem(AVATAR_TURNS_FLAG_KEY) === 'true';
+    const value = localStorage.getItem(AVATAR_TURNS_FLAG_KEY);
+    return value !== 'off' && value !== 'false';
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -184,7 +211,7 @@ function attach(): void {
   stopWatching = watchSpeakerSignals(room, (signals) => current.update(signals));
 }
 
-/** Starts the driver when the flag is on; returns whether it started. */
+/** Starts the driver unless the kill switch is set; returns whether it started. */
 export function initAvatarTurns(
   roomSource: GetRoom = defaultGetRoom,
   avatarTargets: AvatarTargets = defaultTargets
@@ -214,13 +241,18 @@ export type TrackTurnEvent = 'agent-audio' | 'agent-audio-end' | 'mic-on' | 'mic
 
 /**
  * What app.ts's audio-track and mic callbacks did before this driver: set the
- * avatar from track events. Does nothing while the driver owns the avatar.
+ * avatar and waveform from track events. Does nothing while the driver owns them.
  */
 export function trackTurnFallback(event: TrackTurnEvent, avatar: AvatarTargets = targets): void {
   if (enabled) return;
-  if (event === 'mic-on' || event === 'mic-off') return avatar.setListening(event === 'mic-on');
+  if (event === 'mic-on' || event === 'mic-off') {
+    avatar.setWaveListening(event === 'mic-on');
+    return avatar.setListening(event === 'mic-on');
+  }
   const speaking = event === 'agent-audio';
   avatar.setAudioState(speaking ? 'speaking' : 'listening');
   avatar.setSpeaking(speaking);
   avatar.setEyes(speaking ? 'speaking' : 'listening');
+  avatar.setWaveSpeaking(speaking);
+  avatar.setWaveListening(!speaking);
 }

@@ -115,7 +115,7 @@ async function execute(
           personaId: ctx.personaId || 'ferni',
         };
 
-        await db
+        const stored = await db
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('extracted_facts')
@@ -137,6 +137,9 @@ async function execute(
               userId: ctx.userId,
               importance,
               timestamp: new Date(),
+              // The fact it copies, so a forget reaches this copy (firestore-vector-store/forget-filter.ts).
+              sourceCollection: 'extracted_facts',
+              sourceDocId: stored.id,
               emotionalWeight: importance === 'high' ? 0.9 : importance === 'medium' ? 0.6 : 0.3,
             },
           });
@@ -153,9 +156,7 @@ async function execute(
     return '';
   }
 
-  // ========================================
-  // RECALL FROM MEMORY (Semantic Search)
-  // ========================================
+  // --- RECALL FROM MEMORY (Semantic Search) ---
   if (fnLower === 'recallfrommemory') {
     const topic = args.topic as string;
 
@@ -313,9 +314,7 @@ async function execute(
     return `I don't have specific memories about that right now.`;
   }
 
-  // ========================================
-  // REINFORCE MEMORY
-  // ========================================
+  // --- REINFORCE MEMORY ---
   if (fnLower === 'reinforcememory') {
     const memory = args.memory as string;
     if (!memory || !ctx.userId) return '';
@@ -359,9 +358,7 @@ async function execute(
     return '';
   }
 
-  // ========================================
-  // UPDATE MEMORY
-  // ========================================
+  // --- UPDATE MEMORY ---
   if (fnLower === 'updatememory') {
     const oldFact = args.oldFact as string;
     const newFact = args.newFact as string;
@@ -451,6 +448,11 @@ async function execute(
 
     // Both fact collections, and recall from then on (forget.ts).
     const forgot = await forgetForCaller(ctx.userId, target);
+    // A recall cached earlier in this call must not say it back.
+    if (ctx.sessionId) {
+      const { clearSessionMemoryCache } = await import('../performance/session-optimizations.js');
+      clearSessionMemoryCache(ctx.sessionId);
+    }
     if (forgot.kind !== 'forgotten') return forgetProblem(forgot);
     return `I've forgotten about that. Your privacy matters.`;
   }

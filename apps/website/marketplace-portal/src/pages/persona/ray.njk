@@ -1,12 +1,13 @@
 ---
 layout: layouts/base.njk
+extraCss: persona-detail
 title: Ray - Career Architect
 description: Ray builds careers. Strategic thinking, networking guidance, negotiation coaching—Ray helps you navigate the professional world with confidence.
 personaColor: "#4A5568"
 personaSecondary: "#2D3748"
 ---
 
-{% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+{% from "partials/icons.njk" import play, plus, check %}
 {% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
@@ -31,14 +32,7 @@ personaSecondary: "#2D3748"
         <h1>Ray</h1>
         <p class="persona-detail-tagline">Career Architect</p>
         <div class="persona-detail-meta">
-          <span style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--warning);">
-            {{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ star(16) }}
-          </span>
-          <span>4.6 (934 reviews)</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>15,600+ users</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>by CareerPath AI</span>
+          <span>by Ferni</span>
         </div>
         <div class="persona-detail-actions">
           <a href="{{ site.appUrl }}" class="btn btn-add-team btn-lg">
@@ -58,7 +52,7 @@ personaSecondary: "#2D3748"
 <!-- Main Content -->
 <section class="section">
   <div class="container">
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-8); align-items: start;">
+    <div class="persona-detail-layout">
 
       <!-- Left Column -->
       <div>
@@ -80,7 +74,7 @@ personaSecondary: "#2D3748"
         <!-- What Ray Helps With -->
         <div style="margin-bottom: var(--space-12);">
           <h2 style="margin-bottom: var(--space-4);">What I Help With</h2>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4);">
+          <div class="persona-help-grid">
             <div style="background: var(--bg-elevated); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
               <h4 style="margin-bottom: var(--space-2);">Career Transitions</h4>
               <p style="font-size: var(--text-sm); color: var(--text-muted);">
@@ -128,75 +122,6 @@ personaSecondary: "#2D3748"
             afraid to ask. Let's practice. I'll be the hiring manager. Tell me why you deserve more
             than their initial offer."
           </p>
-        </div>
-
-        <!-- Reviews -->
-        <div class="reviews-section">
-          <div class="reviews-header">
-            <div class="reviews-summary">
-              <span class="reviews-rating-big">4.6</span>
-              <div class="reviews-rating-info">
-                <span class="reviews-stars" style="color: var(--warning);">
-                  {{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ star(18) }}
-                </span>
-                <span class="reviews-count">934 reviews</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #4A5568, #2D3748); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">A</div>
-              <div>
-                <div class="review-author">Amanda C.</div>
-                <div class="review-date">1 week ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              Ray helped me negotiate a 25% raise when I was going to accept the first offer.
-              He coached me through the conversation, gave me the exact words to use, and helped
-              me believe I was worth it. Paid for itself immediately.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #E07B53, #B85C3C); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">M</div>
-              <div>
-                <div class="review-author">Michael P.</div>
-                <div class="review-date">3 weeks ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              Transitioning from engineering to product management felt impossible until Ray helped
-              me reframe my experience. The mock interviews were incredibly helpful. Now I'm a PM
-              at a company I love. Ray's style is direct—might not be for everyone.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #D4A373, #A67B5B); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">S</div>
-              <div>
-                <div class="review-author">Sarah L.</div>
-                <div class="review-date">1 month ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              The networking coaching was exactly what I needed. Ray helped me see that networking
-              isn't about being fake—it's about building genuine relationships. My LinkedIn
-              engagement went up 400% using his strategies.
-            </p>
-          </div>
         </div>
       </div>
 
@@ -251,24 +176,20 @@ personaSecondary: "#2D3748"
         <div style="background: var(--bg-elevated); border-radius: var(--radius-2xl); padding: var(--space-6); box-shadow: var(--shadow-card); margin-bottom: var(--space-6);">
           <h3 style="font-size: var(--text-lg); margin-bottom: var(--space-4);">Publisher</h3>
           <div style="display: flex; align-items: center; gap: var(--space-3);">
-            <div style="width: 48px; height: 48px; background: #4A5568; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">C</div>
+            <div style="width: 48px; height: 48px; background: #4A5568; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">F</div>
             <div>
-              <div style="font-weight: 600;">CareerPath AI</div>
-              <div style="font-size: var(--text-sm); color: var(--success); display: flex; align-items: center; gap: var(--space-1);">
-                {{ verified(14) }}
-                Verified Publisher
-              </div>
+              <div style="font-weight: 600;">Ferni</div>
             </div>
           </div>
         </div>
 
         <!-- CTA -->
-        <div style="background: linear-gradient(135deg, #4A5568, #2D3748); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
+        <div class="persona-cta-card" style="--cta-from: #4A5568; --cta-to: #2D3748;">
           <h3 style="margin-bottom: var(--space-2); color: white;">Ready to level up?</h3>
-          <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
+          <p>
             Build the career you deserve
           </p>
-          <a href="{{ site.appUrl }}" class="btn" style="background: white; color: #4A5568; width: 100%;">
+          <a href="{{ site.appUrl }}" class="btn persona-cta-btn">
             {{ priced('Add to Team - $12.99/mo', 'Add to Team') }}
           </a>
         </div>
@@ -287,7 +208,7 @@ personaSecondary: "#2D3748"
     </div>
 
     <div class="persona-grid" style="max-width: 900px; margin: 0 auto;">
-      <a href="/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
+      <a href="/pages/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">E</span>
@@ -298,18 +219,12 @@ personaSecondary: "#2D3748"
         <div class="persona-body">
           <p class="persona-description">Strategies that work with how your ADHD brain operates.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.9</span>
-            </div>
             {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
 
-      <a href="/persona/sasha/" class="persona-card" style="--persona-color: #E07B53; --persona-secondary: #B85C3C;">
+      <a href="/pages/persona/sasha/" class="persona-card persona-tone-light" style="--persona-color: #E07B53; --persona-secondary: #B85C3C;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">S</span>
@@ -320,18 +235,12 @@ personaSecondary: "#2D3748"
         <div class="persona-body">
           <p class="persona-description">Spark creativity and battle creative block with energy and ideas.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-              <span class="persona-rating-count">4.75</span>
-            </div>
             {{ priceBadge('Free+') }}
           </div>
         </div>
       </a>
 
-      <a href="/persona/kenji/" class="persona-card" style="--persona-color: #2C3E50; --persona-secondary: #1A252F;">
+      <a href="/pages/persona/kenji/" class="persona-card" style="--persona-color: #2C3E50; --persona-secondary: #1A252F;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">K</span>
@@ -342,12 +251,6 @@ personaSecondary: "#2D3748"
         <div class="persona-body">
           <p class="persona-description">Reclaim your nights with evidence-based sleep coaching.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-              <span class="persona-rating-count">4.7</span>
-            </div>
             {{ priceBadge('Free+') }}
           </div>
         </div>

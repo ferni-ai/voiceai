@@ -18,8 +18,12 @@ import { apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
+import * as bottomSlot from './bottom-feedback-slot.js';
 
 const log = createLogger('MemoryFeedback');
+const SLOT_ID = 'memory-feedback';
+/** How long a prompt stays up, and how long it may wait for the bottom slot. */
+const PROMPT_LIFETIME_MS = 10_000;
 
 // ============================================================================
 // TYPES
@@ -58,6 +62,8 @@ const ICON_X = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" v
 
 export class MemoryFeedbackManager {
   private activePrompt: ActiveFeedbackPrompt | null = null;
+  /** A prompt waiting for the bottom slot gives up after PROMPT_LIFETIME_MS. */
+  private waitTimeout: ReturnType<typeof setTimeout> | null = null;
   private idCounter = 0;
   private styleElement: HTMLStyleElement | null = null;
 
@@ -67,12 +73,28 @@ export class MemoryFeedbackManager {
   }
 
   /**
-   * Show feedback prompt for a surfaced memory
+   * Show feedback prompt for a surfaced memory, once the bottom slot is free
+   * (one pill at a time; a newer memory replaces a waiting or showing one).
    */
   show(config: MemoryFeedbackConfig): void {
+    this.clearWaitTimeout();
+    this.waitTimeout = setTimeout(() => {
+      this.waitTimeout = null;
+      bottomSlot.releaseBottomSlot(SLOT_ID);
+    }, PROMPT_LIFETIME_MS);
+    bottomSlot.claimBottomSlot({ id: SLOT_ID, show: () => this.present(config) });
+  }
+
+  private clearWaitTimeout(): void {
+    if (this.waitTimeout) clearTimeout(this.waitTimeout);
+    this.waitTimeout = null;
+  }
+
+  private present(config: MemoryFeedbackConfig): void {
+    this.clearWaitTimeout();
     // Don't stack prompts - replace existing one
     if (this.activePrompt) {
-      this.dismiss();
+      this.removePrompt();
     }
 
     const id = `memory-feedback-${++this.idCounter}`;
@@ -85,10 +107,10 @@ export class MemoryFeedbackManager {
       element.classList.add('memory-feedback--visible');
     });
 
-    // Auto-dismiss after 10 seconds if not interacted with
+    // Auto-dismiss if not interacted with
     const timeout = setTimeout(() => {
       this.dismiss();
-    }, 10000);
+    }, PROMPT_LIFETIME_MS);
 
     this.activePrompt = { id, element, config, timeout };
 
@@ -137,6 +159,13 @@ export class MemoryFeedbackManager {
    * Dismiss current prompt without sending feedback
    */
   dismiss(): void {
+    this.clearWaitTimeout();
+    this.removePrompt();
+    bottomSlot.releaseBottomSlot(SLOT_ID);
+  }
+
+  /** Take the prompt off screen without freeing the slot. */
+  private removePrompt(): void {
     if (!this.activePrompt) return;
 
     const { element, timeout } = this.activePrompt;
@@ -245,7 +274,7 @@ export class MemoryFeedbackManager {
     this.styleElement.textContent = `
       .memory-feedback {
         position: fixed;
-        bottom: calc(var(--space-xl, 42px) + 80px);
+        bottom: ${bottomSlot.SLOT_BOTTOM};
         left: 50%;
         transform: translateX(-50%) translateY(12px);
         /* Glass styling - consistent with whisper.ui.ts */
@@ -353,7 +382,7 @@ export class MemoryFeedbackManager {
 
       @media (max-width: 480px) {
         .memory-feedback {
-          bottom: calc(var(--space-lg, 26px) + 60px);
+          bottom: ${bottomSlot.SLOT_BOTTOM_PHONE};
           padding: 4px 8px;
           gap: 8px;
         }

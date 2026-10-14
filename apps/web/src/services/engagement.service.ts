@@ -20,6 +20,7 @@ import {
   isDailyCheckInRecordedMessage,
 } from '../types/events.js';
 import type { EngagementData, EmotionalWeatherData } from '../ui/engagement.ui.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { runningAccuracy, toPredictionData, type PredictionData } from './prediction-data.js';
@@ -197,9 +198,11 @@ class EngagementService {
   }
 
   /**
-   * Check if streak count is a milestone.
+   * Check if streak count is a milestone. None under VITE_NO_STREAKS, so
+   * onStreakMilestone (celebration, notice, glow, streak seed reward) never fires.
    */
   private isStreakMilestone(count: number): boolean {
+    if (isNoStreaksOn()) return false;
     const milestones = [3, 7, 14, 21, 30, 60, 90, 100, 365];
     return milestones.includes(count);
   }
@@ -306,9 +309,10 @@ class EngagementService {
 
   /**
    * Fetch predictions from backend.
-   * First tries REST API, then falls back to cached data from LiveKit.
+   * Uses data already sent over LiveKit if there is any, else the REST API.
+   * null means the load failed, which is not the same as "no predictions".
    */
-  async fetchPredictions(userId: string): Promise<PredictionData[]> {
+  async fetchPredictions(userId: string): Promise<PredictionData[] | null> {
     if (this.cachedPredictions.length > 0) {
       return this.cachedPredictions;
     }
@@ -316,11 +320,11 @@ class EngagementService {
   }
 
   /** Re-read predictions from the server (e.g. after one is resolved). */
-  async refreshPredictions(): Promise<PredictionData[]> {
+  async refreshPredictions(): Promise<PredictionData[] | null> {
     return this.loadPredictions();
   }
 
-  private async loadPredictions(params?: Record<string, string>): Promise<PredictionData[]> {
+  private async loadPredictions(params?: Record<string, string>): Promise<PredictionData[] | null> {
     try {
       const result = await apiGet<PredictionsResponse>('/api/predictions', params);
       if (result.ok && result.data) {
@@ -329,11 +333,12 @@ class EngagementService {
         this.callbacks.onPredictionsUpdate?.(predictions);
         return predictions;
       }
+      log.warn('Predictions API returned an error', { status: result.status, error: result.error });
     } catch (err) {
       log.warn('Failed to fetch predictions from API', err);
     }
 
-    return this.cachedPredictions;
+    return null;
   }
 
   /**
