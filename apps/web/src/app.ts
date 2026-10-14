@@ -284,6 +284,7 @@ import { toast } from './ui/whisper.ui.js';
 import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
 import { cancelConnectAttempt, connectWithTimeout } from './app/call-connect.js';
 import { onCallEnded, onCallStarted } from './app/call-end.js';
+import { wrapUpOwnsAgentLeaving, afterConversationEnd, playEndSound } from './app/call-end-paths.js';
 import { connectFailure } from './services/connect-failure.js';
 import { showAgentLostPrompt } from './app/agent-lost-prompt.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
@@ -781,27 +782,23 @@ class VoiceAIApp {
     // Step 1: Update button to show ceremony is happening
     controlsUI.showClosingState();
 
-    // Step 2: Play warm goodbye sound (resolving chord progression)
-    // This sound is 2s and sets the emotional tone
-    soundUI.play('goodbye');
+    // Step 2: Warm goodbye sound (~2s resolving chord), unless the agent's goodbye already played it
+    playEndSound('goodbye');
 
     // Step 3: Gentle haptic for the farewell moment
     delightService.haptic('medium');
 
-    // Step 4: Avatar settling animation - peaceful close
-    // This runs alongside the sound for 1.5s
+    // Step 4: Avatar settling animation (peaceful close), alongside the sound for 1.5s
     const settlingPromise = presenceUI.settling();
 
-    // Step 5: Wait for both sound and animation
-    // Sound is ~2s, settling is ~1.5s - we wait for settling then add a pause
+    // Step 5: Wait for the ~1.5s settling (the ~2s sound overlaps), then add a pause
     await settlingPromise;
 
     // Step 6: Brief pause to appreciate the moment (the goodbye "hangs")
     await new Promise((resolve) => setTimeout(resolve, 400));
 
-    // Step 7: Satisfying phone "click" at the moment of disconnect
-    // Like gently placing down a receiver - tactile finality
-    soundUI.play('hangup');
+    // Step 7: Phone "click" at the moment of disconnect, like placing down a receiver (one end sound)
+    playEndSound('hangup');
     delightService.haptic('light'); // Subtle haptic for the click
 
     // Step 8: Now perform the actual disconnect (gracefully); it also brings up the after-call card
@@ -870,9 +867,9 @@ class VoiceAIApp {
     // FIX BUG: Reset handoff service to clear stuck transition states
     handoffService.resetSession();
 
-    // Play disconnect sound (unless ceremony already played goodbye sound)
+    // Play disconnect sound (unless the ceremony or the agent's goodbye already played one)
     if (!skipSound) {
-      soundUI.play('disconnect');
+      playEndSound('disconnect');
     }
 
     // Reset audio state
@@ -2799,6 +2796,7 @@ class VoiceAIApp {
       },
 
       onAgentDisconnected: () => {
+        if (wrapUpOwnsAgentLeaving()) return presenceUI.setSpeaking(false); // the goodbye or the reconnect prompt
         messageUI.show(t('app.seeYouNextTime'), 'info', 2000);
         presenceUI.setSpeaking(false);
 
@@ -2944,7 +2942,9 @@ class VoiceAIApp {
       },
 
       // The call dropped on its own: same cleanup as hang-up, then offer to reconnect.
+      // After a planned goodbye (wrap-up on) it's the planned end: the goodbye, no notice.
       onUnexpectedDisconnect: (reason) => {
+        if (afterConversationEnd()) return void this.disconnect();
         log.warn('Call dropped unexpectedly', { reason });
         void this.performStandardDisconnect().then(() =>
           showCallNotice(connectFailure('dropped'), { onRetry: () => void this.connect() })
