@@ -205,8 +205,8 @@ class ManageSubscriptionUI {
     const { tier, provider } = this.status || { tier: 'free', provider: 'none' };
 
     // Free tier without a paywall: no Join button; the Venmo note only when chip-in is on
-    const note = isVenmoChipInEnabled() ? 'freeNote' : 'noBilling';
-    if (tier === 'free' && !isPaywallOn()) return `<p class="manage-sub__footer-note">${t(`manageSubscription.${note}`)}</p>`;
+    const note = t(`manageSubscription.${isVenmoChipInEnabled() ? 'freeNote' : 'noBilling'}`);
+    if (tier === 'free' && !isPaywallOn()) return `<p class="manage-sub__footer-note">${note}</p>`;
     if (tier === 'free') {
       return `
         <div class="manage-sub__actions">
