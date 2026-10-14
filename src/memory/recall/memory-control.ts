@@ -9,14 +9,17 @@
  * caller sees is what Ferni will remember, and what they forget or correct
  * is gone from the next call.
  *
- * Forgetting marks the fact forgottenAt (forget.ts), which recall skips;
- * correcting marks the wrong fact forgotten (it was never true, so it is
- * not "how things were") and writes the corrected one as said by the caller.
+ * Forgetting marks the fact forgotten the way forget.ts does (forgottenAt,
+ * which recall skips, and its copies taken out of the indexes per-turn
+ * memory search reads); correcting does the same to the wrong fact (it was
+ * never true, so it is not "how things were") and writes the corrected one
+ * as said by the caller, both in one write.
+ *
+ * Firestore: storage/memory-control-store.ts.
  *
  * @module memory/recall/memory-control
  */
 import { createHash } from 'node:crypto';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
 export interface RememberedFact {
   id: string;
@@ -36,8 +39,19 @@ export interface MemoryControlStore {
   /** The caller's facts, newest first, raw. */
   facts: (userId: string) => Promise<Array<{ id: string; data: Record<string, unknown> }>>;
   fact: (userId: string, id: string) => Promise<Record<string, unknown> | null>;
-  update: (userId: string, id: string, patch: Record<string, unknown>) => Promise<void>;
-  create: (userId: string, id: string, data: Record<string, unknown>) => Promise<void>;
+  /** Mark one fact forgotten and take its copies out of recall's indexes. */
+  forget: (userId: string, id: string, data: Record<string, unknown>, at: string) => Promise<void>;
+  /**
+   * Write the corrected fact and mark the wrong one forgotten (correctedBy the
+   * new one) in one write, both or neither; then take the wrong one's copies
+   * out of recall's indexes.
+   */
+  correct: (
+    userId: string,
+    wrongId: string,
+    right: { id: string; data: Record<string, unknown> },
+    at: string
+  ) => Promise<void>;
 }
 
 /** The same bar recall uses: facts the extractor itself marked unsure are not recalled. */
@@ -82,7 +96,7 @@ function shown(id: string, d: Record<string, unknown>): RememberedFact {
 
 export async function listRemembered(
   userId: string,
-  store: MemoryControlStore = firestoreMemoryControlStore
+  store: MemoryControlStore
 ): Promise<RememberedFact[]> {
   const facts = await store.facts(userId);
   return facts
@@ -95,12 +109,12 @@ export async function listRemembered(
 export async function forgetRemembered(
   userId: string,
   id: string,
-  store: MemoryControlStore = firestoreMemoryControlStore,
+  store: MemoryControlStore,
   now: Date = new Date()
 ): Promise<boolean> {
   const d = await store.fact(userId, id);
   if (!d || typeof d.forgottenAt === 'string') return false;
-  await store.update(userId, id, { forgottenAt: now.toISOString() });
+  await store.forget(userId, id, d, now.toISOString());
   return true;
 }
 
@@ -117,12 +131,12 @@ export async function correctRemembered(
   userId: string,
   id: string,
   value: unknown,
-  store: MemoryControlStore = firestoreMemoryControlStore,
+  store: MemoryControlStore,
   now: Date = new Date()
 ): Promise<CorrectResult> {
   if (typeof value !== 'string') return { kind: 'invalid', reason: 'value must be text' };
   const clean = value
-    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\p{Cc}/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   if (!clean) return { kind: 'invalid', reason: 'value is empty' };
@@ -145,37 +159,6 @@ export async function correctRemembered(
     source: 'user-correction',
     corrects: id,
   };
-  await store.create(userId, newId, corrected);
-  await store.update(userId, id, { forgottenAt: at, correctedBy: newId });
+  await store.correct(userId, id, { id: newId, data: corrected }, at);
   return { kind: 'corrected', fact: shown(newId, corrected) };
 }
-
-const facts = (userId: string) => {
-  const db = getFirestoreDb();
-  return db ? db.collection('bogle_users').doc(userId).collection('dynamic_facts') : null;
-};
-
-/** bogle_users/{uid}/dynamic_facts: always the caller's own, by path. */
-export const firestoreMemoryControlStore: MemoryControlStore = {
-  async facts(userId) {
-    const col = facts(userId);
-    if (!col) return [];
-    const snap = await col
-      .orderBy('extractedAt', 'desc')
-      .limit(MAX_LISTED * 2)
-      .get();
-    return snap.docs.map((d) => ({ id: d.id, data: d.data() }));
-  },
-  async fact(userId, id) {
-    const col = facts(userId);
-    if (!col) return null;
-    const doc = await col.doc(id).get();
-    return doc.exists ? (doc.data() ?? null) : null;
-  },
-  async update(userId, id, patch) {
-    await facts(userId)?.doc(id).update(patch);
-  },
-  async create(userId, id, data) {
-    await facts(userId)?.doc(id).create(data);
-  },
-};

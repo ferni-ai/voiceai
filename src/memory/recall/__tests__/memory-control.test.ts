@@ -18,12 +18,13 @@ function memoryStore(rows: Record<string, Record<string, unknown>>) {
           String(b.data.extractedAt ?? '').localeCompare(String(a.data.extractedAt ?? ''))
         ),
     fact: async (_u, id) => state.rows[id] ?? null,
-    update: async (_u, id, patch) => {
-      state.rows[id] = { ...state.rows[id], ...patch };
+    forget: async (_u, id, _d, at) => {
+      state.rows[id] = { ...state.rows[id], forgottenAt: at };
     },
-    create: async (_u, id, data) => {
-      if (state.rows[id]) throw new Error('exists');
-      state.rows[id] = data;
+    correct: async (_u, wrongId, right, at) => {
+      if (state.rows[right.id]) throw new Error('exists');
+      state.rows[right.id] = right.data;
+      state.rows[wrongId] = { ...state.rows[wrongId], forgottenAt: at, correctedBy: right.id };
     },
   };
   return { store, state };
