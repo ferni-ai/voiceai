@@ -16,6 +16,8 @@ export default defineConfig({
     include: [
       // Unit tests in __tests__ directories
       'src/**/__tests__/**/*.test.ts',
+      // The memory eval's pure logic (scripts/memory-eval); other scripts stay out.
+      'scripts/memory-eval/**/__tests__/**/*.test.ts',
       // Exclude integration and e2e patterns
     ],
     exclude: [
