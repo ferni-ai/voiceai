@@ -159,6 +159,7 @@ export const FLAG_MANIFEST = {
   HANDOFF_ASK_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
   HAPPY_EXITS: { default: 'off', owner: 'voice', kind: 'experiment' },
   HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
   HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
   INSIDE_JOKES: { default: 'off', owner: 'memory', kind: 'experiment' },
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
