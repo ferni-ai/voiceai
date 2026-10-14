@@ -12,14 +12,15 @@
  */
 
 import { getGenerativeModel } from '../../config/generative-model.js';
+import { contentWords } from '../../memory/recall/session-recall.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement/banter.js';
 import { characterOf } from '../../speech/direction/cue-say.js';
 import { directLine, type Actor } from '../../speech/direction/director.js';
 import { handoffAskFirstEnabled } from '../../tools/handoff/handoff-consent.js';
+import { teammateHeardAs } from '../../tools/handoff/teammate-names.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
-type Env = Record<string, string | undefined>;
 const log = createLogger({ module: 'HandoffBrief' });
 
 export function briefedHandoffs(env: Record<string, string | undefined> = process.env): boolean {
@@ -63,7 +64,6 @@ export interface HandoffBrief {
   discussed?: string;
   open?: string;
   mood?: string;
-  promised?: string;
   facts: string[];
 }
 
@@ -144,39 +144,135 @@ export function readConversation(
   return { turns: turns.slice(-maxTurns), remembered: [...new Set(remembered)].slice(-12) };
 }
 
-/** A brief from the turns alone: the reason, and the caller's own last words. */
+/*
+ * Grounding. Prod 2026-10-13: the caller said only "can I talk to Jordan?", Ferni's
+ * handoff tool gave the reason "retirement planning", and Jordan opened with the
+ * direction's own example, "Ferni told me you're weighing the offer". The call's
+ * summary then kept "the offer" as the caller's, and later calls asked about it.
+ * So the brief holds only what the caller said on this call, marked as theirs;
+ * nothing grounded means the teammate greets without a topic.
+ */
+
+/** The brief's reason when the caller gave none: they asked for the teammate, that's all. */
+export const NO_TOPIC = 'They asked for you by name and have not said what about yet.';
+
+/** Words that ask for a teammate, or are filler, rather than say what the call is about. */
+const ASKING = new Set(
+  'talk speak chat switch transfer hand bring put connect over hey please want wanted need wanna gonna let help hello thank thanks sure yes yep okay right now quick minute someone somebody doing well good great hope question thing stuff side'.split(
+    ' '
+  )
+);
+
+/** What a line is about once the teammates' names and the asking are taken out. */
+export function topicWords(text: string): string[] {
+  return [...contentWords(text)].filter((w) => !ASKING.has(w) && teammateHeardAs(w) === null);
+}
+
+const stem = (w: string): string => w.slice(0, 5);
+
+/**
+ * True when `text` is the caller's own words or a close paraphrase: at least two
+ * thirds of its topic words (by their first five letters) are in what they said.
+ */
+export function groundedIn(text: string, callerLines: string[]): boolean {
+  const said = new Set(topicWords(callerLines.join(' ')).map(stem));
+  const words = topicWords(text).map(stem);
+  if (words.length === 0) return false;
+  return words.filter((w) => said.has(w)).length >= Math.ceil((words.length * 2) / 3);
+}
+
+const callerLinesOf = (input: BriefInput): string[] =>
+  input.turns.filter((t) => t.speaker === 'caller').map((t) => t.text);
+
+const quoted = (line: string): string => `"${clip(line, FIELD_MAX - 20)}"`;
+
+/** The handoff tool's reason, only when it is what the caller actually said. */
+export function groundedReason(
+  reason: string | undefined,
+  callerLines: string[]
+): string | undefined {
+  if (!reason || GENERIC_REASON.test(reason.trim())) return undefined;
+  return groundedIn(reason, callerLines) ? reason : undefined;
+}
+
+/** The input without a reason the caller never gave. */
+export function groundedInput(input: BriefInput): BriefInput {
+  return { ...input, reason: groundedReason(input.reason, callerLinesOf(input)) };
+}
+
+/**
+ * A brief from the turns alone: the reason if the caller said it, else their own last
+ * words when those say what it's about, else NO_TOPIC. Earlier lines are quoted.
+ */
 export function plainBrief(input: BriefInput): HandoffBrief {
-  const callerLines = input.turns.filter((t) => t.speaker === 'caller').map((t) => t.text);
-  const reason = input.reason && !GENERIC_REASON.test(input.reason.trim()) ? input.reason : '';
+  const callerLines = callerLinesOf(input);
+  const last = callerLines.at(-1);
+  const lastHasTopic = last !== undefined && topicWords(last).length > 0;
+  const earlier = callerLines.slice(0, -1).filter((l) => topicWords(l).length > 0);
+  const reason = groundedReason(input.reason, callerLines);
   return {
-    why: clip(reason || callerLines.at(-1) || `to talk with ${input.toName}`),
-    discussed: callerLines.length > 1 ? clip(callerLines.slice(-3, -1).join(' ')) : undefined,
+    why: clip(reason || (lastHasTopic ? `In their words: ${quoted(last)}` : NO_TOPIC)),
+    discussed: earlier.length > 0 ? clip(earlier.slice(-2).map(quoted).join(' ')) : undefined,
     mood: input.emotion && input.emotion !== 'neutral' ? input.emotion : undefined,
     facts: input.remembered.slice(-3),
   };
 }
 
+/**
+ * The model's brief with every field the caller didn't say dropped: `why` falls back
+ * to the plain one, facts must be copied from the recall notes, a mood is a few words.
+ */
+export function groundBrief(
+  brief: HandoffBrief,
+  input: BriefInput,
+  plain: HandoffBrief = plainBrief(input)
+): HandoffBrief {
+  const callerLines = callerLinesOf(input);
+  const keep = (field: string | undefined): string | undefined =>
+    field && groundedIn(field, callerLines) ? field : undefined;
+  const mood = brief.mood && brief.mood.split(/\s+/).length <= 3 ? brief.mood : keep(brief.mood);
+  return {
+    why: plain.why === NO_TOPIC ? NO_TOPIC : (keep(brief.why) ?? plain.why),
+    discussed: keep(brief.discussed),
+    open: keep(brief.open),
+    mood,
+    facts: brief.facts.filter((f) => input.remembered.includes(f)),
+  };
+}
+
+/** A claim about what the caller said ("Ferni told me you're…", "you're weighing…"). */
+const CLAIMS = [
+  /\b(?:told me|tells me|said|says|mentioned|filled me in|heard)\b(.*)$/i,
+  /\byou(?:'re| are)\s+(\w+ing\b.*)$/i,
+];
+
+/** True when `line` claims something about the caller that they never said. */
+export function ungroundedClaim(line: string, callerLines: string[]): boolean {
+  return CLAIMS.some((re) => {
+    const clause = line.match(re)?.[1]?.split(/[.?!]/)[0] ?? '';
+    return topicWords(clause).length > 0 && !groundedIn(clause, callerLines);
+  });
+}
+
 const WRITER_SYSTEM =
-  'You brief a teammate taking over a live voice call. Read the conversation and return JSON with: ' +
-  '"why" (why the caller wants this teammate, specific, with their details), ' +
-  '"discussed" (what the caller already told, numbers and names kept), ' +
-  '"open" (the question still unanswered), "mood" (how they seem, a few words), ' +
-  '"promised" (what the outgoing persona told them this teammate would do, if anything), ' +
-  '"facts" (at most 3 remembered facts that matter here, copied from the list given, else []). ' +
-  'Each field one short sentence or empty. Never invent anything not in the input.';
+  'You brief a teammate taking over a live voice call. You get only the lines the caller ' +
+  'said on this call. Return JSON with: ' +
+  '"why" (why the caller wants this teammate, in their own words), ' +
+  '"discussed" (what the caller already told, numbers and names kept, in their words), ' +
+  '"open" (the question the caller asked that is still unanswered), "mood" (how they seem, ' +
+  'at most three words), ' +
+  '"facts" (at most 3 remembered facts that matter here, copied exactly from the list given, else []). ' +
+  'Each field one short sentence or empty. Use only what the caller said: never add a topic, ' +
+  'a plan or a detail they did not say. If they only asked for the teammate, "why" is "".';
 
 function writerPrompt(input: BriefInput): string {
-  const turns = input.turns
-    .map(
-      (t) => `${t.speaker === 'caller' ? input.userName || 'Caller' : input.fromName}: ${t.text}`
-    )
-    .join('\n');
+  const said = callerLinesOf(input).map(quoted);
   return [
     `${input.fromName} is handing this caller to ${input.toName}.`,
-    input.reason && !GENERIC_REASON.test(input.reason)
-      ? `${input.fromName}'s reason: ${input.reason}`
-      : '',
-    `Conversation:\n${turns || '(nothing yet)'}`,
+    input.reason ? `The caller's reason, as ${input.fromName} put it: ${input.reason}` : '',
+    `What ${input.userName || 'the caller'} said on this call, oldest first:\n${
+      said.length ? `- ${said.join('\n- ')}` : '(nothing yet)'
+    }`,
     input.remembered.length
       ? `Remembered from past calls:\n- ${input.remembered.join('\n- ')}`
       : '',
@@ -221,7 +317,6 @@ export function parseBrief(raw: string | undefined): HandoffBrief | null {
       discussed: str('discussed'),
       open: str('open'),
       mood: str('mood'),
-      promised: str('promised'),
       facts: facts.slice(0, 3),
     };
   } catch {
@@ -236,8 +331,7 @@ export function formatBrief(brief: HandoffBrief, fromName: string): string {
     brief.discussed && `What they already told ${fromName}: ${brief.discussed}`,
     brief.open && `Still open: ${brief.open}`,
     brief.mood && `How they seem: ${brief.mood}`,
-    brief.promised && `${fromName} told them: ${brief.promised}`,
-    brief.facts.length > 0 && `Worth remembering: ${brief.facts.join('; ')}`,
+    brief.facts.length > 0 && `From past calls (not said today): ${brief.facts.join('; ')}`,
   ].filter((l): l is string => Boolean(l));
   const kept: string[] = [];
   let used = 0;
@@ -247,52 +341,27 @@ export function formatBrief(brief: HandoffBrief, fromName: string): string {
     used += line.length;
   }
   return [
-    `[HANDOFF BRIEF from ${fromName}, just now]`,
+    `[HANDOFF BRIEF from ${fromName}, just now: only what the caller said]`,
     ...kept,
-    `You were filled in: pick it up the way a friend who was briefed would. Never ask them to explain again anything above or anything they already said; ask only about what is still open. Stay yourself.`,
+    `You were filled in: pick it up the way a friend who was briefed would. Never ask them to explain again anything above or anything they already said; ask only about what is still open. Anything not above, they have not told you: never say ${fromName} told you something that isn't here. Stay yourself.`,
   ].join('\n');
 }
 
-/** Director's cue for the teammate's first line. */
-export const ARRIVAL_DIRECTION =
-  "You've just been brought onto this call by {from}, who filled you in. Open like a friend who was briefed: a quick hello, then show you already know why they came by naming the specific thing in a few words (\"{from} said you're weighing the offer\"), then at most one question that moves it forward and that they have not already answered. Don't ask what's up or how you can help, don't make them repeat themselves, don't introduce your job. Two short sentences at most.";
-
 /**
- * ARRIVAL_GROUNDED=on. Prod 2026-10-13: Seth said only "can I talk to Jordan?", Ferni's
- * handoff call gave the reason "retirement planning", and Jordan opened with the direction's
- * own example: "Ferni told me you're weighing the offer." Neither was said on the call.
+ * Director's cue for the teammate's first line. It used to carry a copyable example
+ * ("{from} said you're weighing the offer"), and in prod the teammate said exactly that
+ * to a caller who had only asked for them by name.
  */
-export const ARRIVAL_DIRECTION_GROUNDED =
-  "You've just been brought onto this call by {from}. Open like a friend who was filled in: a quick hello, then, only if the facts say what they want, name it in a few of their own words. If they only asked for you by name, just say hi warmly and ask what they'd like to get into. At most one question, never one they already answered; don't introduce your job or make them repeat themselves. Two short sentences at most.";
-
-const contentWords = (text: string): Set<string> =>
-  new Set(text.toLowerCase().match(/\p{L}{4,}/gu) ?? []);
-
-/** The handoff tool's reason, only when it shares a word with what the caller actually said. */
-export function groundedReason(
-  reason: string | undefined,
-  callerLines: string[]
-): string | undefined {
-  if (!reason) return undefined;
-  const said = contentWords(callerLines.join(' '));
-  return [...contentWords(reason)].some((w) => said.has(w)) ? reason : undefined;
-}
-
-/** With ARRIVAL_GROUNDED=on, the input without a reason the caller never gave. */
-export function groundedInput(input: BriefInput, env: Env = process.env): BriefInput {
-  if (env.ARRIVAL_GROUNDED !== 'on') return input;
-  const callerLines = input.turns.filter((t) => t.speaker === 'caller').map((t) => t.text);
-  return { ...input, reason: groundedReason(input.reason, callerLines) };
-}
+export const ARRIVAL_DIRECTION =
+  "You've just been brought onto this call by {from}. Open like a friend who was filled in: a quick hello, then, only if the facts say what they want, name it in a few of their own words. If they only asked for you by name, just say hi warmly and ask what they'd like to get into. Never say {from} told you anything that is not in the facts. At most one question, never one they already answered; don't introduce your job or make them repeat themselves. Two short sentences at most.";
 
 export async function prepareBriefing(
   raw: BriefInput,
   fallbackLine: string,
-  opts: { writer?: BriefWriter; actor?: Actor; budgetMs?: number; env?: Env } = {}
+  opts: { writer?: BriefWriter; actor?: Actor; budgetMs?: number } = {}
 ): Promise<Briefing> {
-  const env = opts.env ?? process.env;
-  const input = groundedInput(raw, env);
-  const grounded = env.ARRIVAL_GROUNDED === 'on';
+  const input = groundedInput(raw);
+  const callerLines = callerLinesOf(input);
   const started = Date.now();
   const budgetMs = opts.budgetMs ?? BRIEFING_BUDGET_MS;
   const plain = plainBrief(input);
@@ -302,21 +371,21 @@ export async function prepareBriefing(
   });
   const written = writer(WRITER_SYSTEM, writerPrompt(input))
     .then(parseBrief)
+    .then((b) => (b ? groundBrief(b, input, plain) : null))
     .catch((error: unknown) => {
       log.warn({ error: String(error) }, 'Handoff brief writer failed, using the plain brief');
       return null;
     });
   const character = characterOf(input.toPersonaId);
+  // Only this call's caller lines: a fact from past calls is not why they came today
   const facts: Record<string, string> = { 'why they came': plain.why };
-  if (plain.discussed) facts[`what they told ${input.fromName}`] = plain.discussed;
-  if (plain.facts[0]) facts['something you know about them'] = plain.facts[0];
+  if (plain.discussed && plain.why !== NO_TOPIC) {
+    facts[`what they told ${input.fromName}`] = plain.discussed;
+  }
   const line = directLine(
     {
       moment: 'handoff_arrival',
-      direction: (grounded ? ARRIVAL_DIRECTION_GROUNDED : ARRIVAL_DIRECTION).replaceAll(
-        '{from}',
-        input.fromName
-      ),
+      direction: ARRIVAL_DIRECTION.replaceAll('{from}', input.fromName),
       facts,
       fallback: fallbackLine,
       urgency: 'soon',
@@ -326,27 +395,26 @@ export async function prepareBriefing(
       character: character.name,
       brief: character.brief,
       // The persona's own lines were the outgoing persona's: only the caller's are shown.
-      recentTurns: input.turns
-        .filter((t) => t.speaker === 'caller')
-        .slice(-4)
-        .map((t) => ({ speaker: 'user' as const, text: t.text })),
+      recentTurns: callerLines.slice(-4).map((text) => ({ speaker: 'user' as const, text })),
       userName: input.userName,
     },
     { actor: opts.actor, budgetMs }
   );
   const [brief, spoken] = await Promise.all([Promise.race([written, late]), line]);
+  const invented = spoken.source === 'actor' && ungroundedClaim(spoken.text, callerLines);
   log.info(
     {
       to: input.toPersonaId,
       written: Boolean(brief),
       line: spoken.source,
+      invented,
       ms: Date.now() - started,
     },
     'Handoff brief ready'
   );
   return {
     brief: formatBrief(brief ?? plain, input.fromName),
-    firstLine: spoken.source === 'actor' ? spoken.text : undefined,
+    firstLine: spoken.source === 'actor' && !invented ? spoken.text : undefined,
   };
 }
 

@@ -29,13 +29,16 @@ vi.mock('../../../config/generative-model.js', () => ({
 
 import {
   BRIEF_MAX_CHARS,
+  NO_TOPIC,
   briefedHandoffs,
   formatBrief,
+  groundBrief,
   groundedReason,
   parseBrief,
   plainBrief,
   prepareBriefing,
   readConversation,
+  ungroundedClaim,
   type BriefInput,
 } from '../handoff-brief.js';
 import { createAgentOrchestrator, type PersonaAgent } from '../orchestrator.js';
@@ -112,7 +115,6 @@ describe('parseBrief', () => {
       discussed: undefined,
       open: undefined,
       mood: undefined,
-      promised: undefined,
       facts: ['Sam: partner = Ana'],
     });
     expect(parseBrief('{"discussed":"x"}')).toBeNull();
@@ -124,14 +126,14 @@ describe('formatBrief', () => {
   it('stays within the budget, dropping whole lines, and says not to re-ask', () => {
     const long = 'x'.repeat(150);
     const text = formatBrief(
-      { why: long, discussed: long, open: long, mood: long, promised: long, facts: [long] },
+      { why: long, discussed: long, open: long, mood: long, facts: [long, long] },
       'Ferni'
     );
     const content = text.split('\n').slice(1, -1).join('');
     expect(content.length).toBeLessThanOrEqual(BRIEF_MAX_CHARS);
     expect(text.startsWith('[HANDOFF BRIEF from Ferni')).toBe(true);
     expect(text).toContain('Never ask them to explain again');
-    expect(text).not.toContain('Worth remembering'); // the last line didn't fit
+    expect(text).not.toContain('From past calls'); // the last line didn't fit
   });
 });
 
@@ -140,10 +142,10 @@ describe('prepareBriefing', () => {
     const actor = vi.fn(async () => 'Hey Sam. Ferni said the Denver offer is mostly equity?');
     const out = await prepareBriefing(input(), 'Hey there! Peter here.', {
       writer: async () =>
-        '{"why":"Weighing whether the Denver equity is worth the jump","open":"what the equity is worth"}',
+        '{"why":"Whether the equity in the Denver offer is worth anything","open":"what the equity is worth"}',
       actor,
     });
-    expect(out.brief).toContain('Why they came to you: Weighing whether the Denver equity');
+    expect(out.brief).toContain('Why they came to you: Whether the equity in the Denver offer');
     expect(out.brief).toContain('Still open: what the equity is worth');
     expect(out.firstLine).toBe('Hey Sam. Ferni said the Denver offer is mostly equity?');
     const [system, prompt] = actor.mock.calls[0] as unknown as [string, string];
@@ -165,50 +167,107 @@ describe('prepareBriefing', () => {
   });
 });
 
-describe('ARRIVAL_GROUNDED', () => {
-  // Prod 2026-10-13: the caller only asked for Jordan; Ferni's handoff reason said
-  // "retirement planning" and Jordan opened with the direction's own example.
-  const byName = (reason?: string): BriefInput =>
+describe('grounding: the brief holds only what the caller said', () => {
+  // Prod 2026-10-13, synthetic words: the caller only asked for a teammate by name; the
+  // handoff tool's reason, the brief writer and the first line each supplied a topic.
+  const byName = (over: Partial<BriefInput> = {}): BriefInput =>
     input({
       toName: 'Jordan',
       toPersonaId: 'jordan-taylor',
       turns: [
         { speaker: 'caller', text: 'You stopped talking.' },
+        { speaker: 'persona', text: "Sorry! So, since you're weighing the offer, what's next?" },
         { speaker: 'caller', text: 'Hey, can I talk to Jordan?' },
       ],
-      remembered: [],
-      reason,
+      remembered: ['Sam: partner = Ana'],
+      reason: 'Help with retirement planning',
+      ...over,
     });
-  const run = async (env: Record<string, string>) => {
-    const actor = vi.fn(async (..._args: unknown[]) => 'Hey Seth! What do you want to get into?');
-    const out = await prepareBriefing(byName('Help with retirement planning'), 'Hi!', {
-      writer: async () => undefined,
-      actor,
-      env,
-    });
-    return { out, cue: JSON.stringify(actor.mock.calls[0] ?? []) };
+  const run = async (
+    over: Partial<BriefInput> = {},
+    said = "Hey Sam! Ferni told me you're weighing the offer.",
+    written = '{"why":"Weighing the job offer","discussed":"A new offer from a bank"}'
+  ) => {
+    const actor = vi.fn(async (..._args: unknown[]) => said);
+    const writer = vi.fn(async (..._args: unknown[]) => written);
+    const out = await prepareBriefing(byName(over), 'Hey, it’s Jordan.', { writer, actor });
+    return {
+      out,
+      cue: JSON.stringify(actor.mock.calls[0] ?? []),
+      prompt: String(writer.mock.calls[0]?.[1] ?? ''),
+    };
   };
 
-  it('keeps a reason only when it shares a word with what the caller said', () => {
+  it('greets without a topic when the caller only asked for the teammate', async () => {
+    const { out, cue, prompt } = await run();
+    expect(out.brief).toContain(`Why they came to you: ${NO_TOPIC}`);
+    expect(out.brief).not.toMatch(/offer|retirement|bank/i);
+    expect(cue).not.toMatch(/offer|retirement|Ana/);
+    expect(cue).toContain('only asked for you by name');
+    // the outgoing persona's lines never reach the writer: "the offer" was Ferni's
+    expect(prompt).not.toContain('offer');
+    // the director's invented "Ferni told me…" is not spoken: the plain line is
+    expect(out.firstLine).toBeUndefined();
+  });
+
+  it('keeps a first line that only greets', async () => {
+    const { out } = await run({}, 'Hey Sam! What do you want to get into?');
+    expect(out.firstLine).toBe('Hey Sam! What do you want to get into?');
+  });
+
+  it("drops the writer's additions and keeps the caller's own words", async () => {
+    const turns = [
+      {
+        speaker: 'caller' as const,
+        text: 'Hey Jordan, can you help me do some planning for the move?',
+      },
+    ];
+    const { out } = await run(
+      { turns, reason: undefined },
+      "Hi! Ferni said you're planning the move.",
+      '{"why":"Weighing the new job offer before the move","open":"Which offer pays more"}'
+    );
+    expect(out.brief).toContain(
+      'Why they came to you: In their words: "Hey Jordan, can you help me'
+    );
+    expect(out.brief).not.toContain('offer');
+    expect(out.firstLine).toBe("Hi! Ferni said you're planning the move."); // grounded
+  });
+
+  it('keeps a reason only when the caller said it', () => {
     expect(groundedReason('Help with the equity question', ['Is the equity worth it?'])).toBe(
       'Help with the equity question'
     );
     expect(groundedReason('Help with retirement planning', ['Hey, can I talk to Jordan?'])).toBe(
       undefined
     );
+    expect(
+      groundedReason('Help with retirement planning', ['Can you help me do some planning?'])
+    ).toBe(undefined); // "retirement" is the model's
   });
 
-  it('drops an invented reason and the copyable example when on', async () => {
-    const { out, cue } = await run({ ARRIVAL_GROUNDED: 'on' });
-    expect(out.brief).not.toContain('retirement');
-    expect(cue).not.toContain('weighing the offer');
-    expect(cue).toContain('only asked for you by name');
+  it('knows a claim about the caller from a greeting', () => {
+    const asked = ['Hey, can I talk to Jordan?'];
+    expect(ungroundedClaim("Ferni told me you're weighing the offer.", asked)).toBe(true);
+    expect(ungroundedClaim("Hey! You're weighing the offer, right?", asked)).toBe(true);
+    expect(ungroundedClaim('Hey, it’s Jordan. What would you like to get into?', asked)).toBe(
+      false
+    );
+    expect(ungroundedClaim('Ferni said you wanted to talk to me!', asked)).toBe(false);
+    expect(
+      ungroundedClaim("Ferni said you're not sure the equity is worth it.", [
+        'Is the equity worth it?',
+      ])
+    ).toBe(false);
   });
 
-  it('is unchanged when off', async () => {
-    const { out, cue } = await run({});
-    expect(out.brief).toContain('retirement planning');
-    expect(cue).toContain('weighing the offer');
+  it('keeps only recalled facts that were in the notes, marked as from past calls', () => {
+    const grounded = groundBrief(
+      { why: 'x', facts: ['Sam: partner = Ana', 'Sam: offer = bank job'] },
+      byName()
+    );
+    expect(grounded.facts).toEqual(['Sam: partner = Ana']);
+    expect(formatBrief(grounded, 'Ferni')).toContain('From past calls (not said today)');
   });
 });
 
@@ -247,7 +306,7 @@ describe('orchestrator with BRIEFED_HANDOFF', () => {
     process.env.BRIEFED_HANDOFF = 'on';
     models.reply = (system) =>
       system.startsWith('You brief a teammate')
-        ? '{"why":"Valuing the equity in a Denver startup offer (140 vs 115)"}'
+        ? '{"why":"Whether the startup equity in the Denver offer is worth anything"}'
         : system.startsWith('You are Peter')
           ? 'Hey Sam. Ferni says the Denver offer leans on equity.'
           : undefined;
@@ -257,7 +316,7 @@ describe('orchestrator with BRIEFED_HANDOFF', () => {
     expect(result.success).toBe(true);
     const peter = made.find((m) => m.personaId === 'peter-john')!;
     expect(peter.context.conversationSummary).toContain(
-      'Why they came to you: Valuing the equity in a Denver startup offer'
+      'Why they came to you: Whether the startup equity in the Denver offer'
     );
     expect(peter.agent.say).toHaveBeenCalledWith(
       'Hey Sam. Ferni says the Denver offer leans on equity.',
