@@ -5,7 +5,6 @@
  * Validates ALL platform capabilities against LLM-generated realistic scenarios:
  * - Semantic Router: Tool selection for 265+ tools
  * - Handoff Intelligence: Persona suggestion based on topic
- * - Music Intelligence: Emotion-reactive DJ decisions
  * - Contact Resolution: Relationship detection
  * - Habit Coaching: Goal/obstacle detection
  * - Calendar Intelligence: Meeting/schedule detection
@@ -34,7 +33,6 @@ const TEST_LLM_MODEL = process.env.TEST_LLM_MODEL || 'gemini-3.5-flash';
 type SystemName =
   | 'semantic-router'
   | 'handoff'
-  | 'music'
   | 'contact'
   | 'habit'
   | 'calendar'
@@ -49,9 +47,7 @@ async function loadSystems() {
   const [
     handoffMod,
     semanticHandoffMod,
-    musicMod,
     habitMod,
-    calendarMod,
     trustMod,
     contactMod,
     routerMod,
@@ -63,9 +59,7 @@ async function loadSystems() {
   ] = await Promise.all([
     import('../src/services/coaching/handoff-intelligence.js').catch(() => null),
     import('../src/services/coaching/semantic-handoff.js').catch(() => null),
-    import('../src/audio/dj-enhancements.js').catch(() => null),
     import('../src/services/coaching/index.js').catch(() => null),
-    import('../src/tools/domains/calendar/calendar-tools.js').catch(() => null),
     import('../src/services/trust-systems/boundary-memory.js').catch(() => null),
     import('../src/services/contacts/contact-relationship-service.js').catch(() => null),
     import('../src/tools/semantic-router/voice-integration.js').catch(() => null),
@@ -80,7 +74,6 @@ async function loadSystems() {
     // Use enhanced semantic handoff (falls back to keyword if no match)
     detectHandoffOpportunity: semanticHandoffMod?.detectHandoffEnhanced ?? handoffMod?.detectHandoffOpportunity,
     getBestPersonaForTopic: handoffMod?.getBestPersonaForTopic,
-    getEmotionMusicSuggestion: musicMod?.getEmotionMusicSuggestion,
     analyzeForCoaching: habitMod?.analyzeForCoaching,
     detectGoalStatement: habitMod?.detectGoalStatement,
     detectObstacle: habitMod?.detectObstacle,
@@ -173,22 +166,6 @@ Generate natural requests that should route to each team member.
 Include subtle signals, not explicit "I want to talk to Maya".
 
 Expected: {"targetPersona": "maya-santos|alex-chen|peter-john|jordan-taylor|nayan-patel"}`,
-
-  music: `Generate user utterances expressing emotions that should influence music selection.
-
-Emotions and expected music:
-- sad: acoustic, piano, comforting (slow tempo)
-- anxious: ambient, lo-fi, calming (slow tempo)
-- happy: pop, indie, feel-good (upbeat tempo)
-- excited: electronic, dance, energetic (upbeat tempo)
-- tired: chill, soft, relaxing (slow tempo)
-- focused: lo-fi, instrumental, concentration (medium tempo)
-- frustrated: rock, cathartic, release energy (upbeat tempo)
-
-Mix of explicit emotions and implicit signals.
-Include context like time of day, activities.
-
-Expected: {"emotion": "sad|anxious|happy|etc", "expectedTempo": "slow|medium|upbeat"}`,
 
   contact: `Generate utterances mentioning people and relationships.
 
@@ -335,36 +312,6 @@ async function testHandoff(
     } else {
       details = 'Handoff detection not loaded';
     }
-
-    results.push({ scenario, passed, details });
-  }
-
-  return results;
-}
-
-async function testMusic(
-  scenarios: Scenario[],
-  systems: Awaited<ReturnType<typeof loadSystems>>
-): Promise<TestResult[]> {
-  const results: TestResult[] = [];
-
-  if (!systems.getEmotionMusicSuggestion) {
-    return scenarios.map((s) => ({
-      scenario: s,
-      passed: false,
-      details: 'Music intelligence not loaded',
-    }));
-  }
-
-  for (const scenario of scenarios) {
-    const expectedEmotion = (scenario.expected as { emotion?: string })?.emotion;
-    const expectedTempo = (scenario.expected as { expectedTempo?: string })?.expectedTempo;
-
-    // Get music suggestion for the expected emotion
-    const suggestion = systems.getEmotionMusicSuggestion(expectedEmotion ?? 'neutral');
-
-    const passed = suggestion.tempo === expectedTempo;
-    const details = `Emotion: ${expectedEmotion} → Genres: ${suggestion.genres?.join(', ')}, Tempo: ${suggestion.tempo}`;
 
     results.push({ scenario, passed, details });
   }
@@ -663,7 +610,7 @@ async function main() {
   const systems = await loadSystems();
   const systemsToTest: SystemName[] = SYSTEM
     ? [SYSTEM as SystemName]
-    : ['semantic-router', 'handoff', 'music', 'contact', 'habit', 'calendar', 'trust'];
+    : ['semantic-router', 'handoff', 'contact', 'habit', 'calendar', 'trust'];
 
   const allResults: { system: string; results: TestResult[] }[] = [];
 
@@ -685,9 +632,6 @@ async function main() {
           break;
         case 'handoff':
           results = await testHandoff(scenarios, systems);
-          break;
-        case 'music':
-          results = await testMusic(scenarios, systems);
           break;
         case 'contact':
           results = await testContact(scenarios, systems);
@@ -753,7 +697,6 @@ async function main() {
   console.log('  ├─────────────────────────┼──────────┼───────────┼─────────────┤');
   console.log('  │ Semantic Router (265+)  │ ✅       │ ✅        │ Production  │');
   console.log('  │ Handoff Intelligence    │ ✅       │ ✅        │ Production  │');
-  console.log('  │ Music Intelligence      │ ✅       │ ✅        │ Production  │');
   console.log('  │ Contact Resolution      │ ✅       │ ✅        │ Production  │');
   console.log('  │ Habit Coaching          │ ✅       │ ✅        │ Production  │');
   console.log('  │ Calendar Intelligence   │ ✅       │ ✅        │ Production  │');

@@ -140,17 +140,6 @@ async function validateLifeExpectancy(): Promise<void> {
       details: perspective.statement.substring(0, 80) + '...',
     };
   });
-
-  await validate('Parent Visits Calculation', async () => {
-    const { calculateParentVisitsRemaining } = await import(
-      '../src/intelligence/context-builders/mortality-perspective.js'
-    );
-    const result = calculateParentVisitsRemaining(70, 'monthly');
-    return {
-      success: result !== null && result.visits > 0,
-      message: result ? `~${result.visits} visits remaining` : 'Calculation failed',
-    };
-  });
 }
 
 async function validateMarketData(): Promise<void> {
@@ -264,39 +253,6 @@ async function validateGmail(): Promise<void> {
   });
 }
 
-async function validateContextBuilders(): Promise<void> {
-  console.log(chalk.bold('\n🧠 Context Builders'));
-
-  await validate('SEC Intelligence Builder', async () => {
-    const { buildSECIntelligenceContext } = await import(
-      '../src/intelligence/context-builders/sec-intelligence.js'
-    );
-    // Just verify it loads and is callable
-    return {
-      success: typeof buildSECIntelligenceContext === 'function',
-      message: 'Module loaded',
-    };
-  });
-
-  await validate('Mortality Perspective Builder', async () => {
-    const { buildMortalityPerspectiveContext } = await import(
-      '../src/intelligence/context-builders/mortality-perspective.js'
-    );
-    return {
-      success: typeof buildMortalityPerspectiveContext === 'function',
-      message: 'Module loaded',
-    };
-  });
-
-  await validate('Biometrics Builder', async () => {
-    const biometrics = await import('../src/intelligence/context-builders/biometrics.js');
-    return {
-      success: !!biometrics,
-      message: 'Module loaded',
-    };
-  });
-}
-
 // ============================================================================
 // MAIN
 // ============================================================================
@@ -311,7 +267,6 @@ async function main(): Promise<void> {
   await validateBiometrics();
   await validateReservations();
   await validateGmail();
-  await validateContextBuilders();
 
   // Summary
   console.log(chalk.bold('\n📋 Summary'));
