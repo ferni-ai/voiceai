@@ -88,6 +88,29 @@ describe('toDateObservations', () => {
     ]);
   });
 
+  it('keeps a yearly birthday and a one-time "birthday" of another kind as two dates', () => {
+    const got = toDateObservations(
+      parseDateMentions(
+        reply(
+          { who: 'mom', what: 'birthday', kind: 'birthday', when: 'October 20th' },
+          { who: 'mom', what: 'birthday', kind: 'event', when: 'Saturday' }
+        )
+      ),
+      CALL
+    );
+    expect(got.map((o) => o.recurrence)).toEqual(['yearly', 'once']);
+  });
+
+  it('reads a party with recurring unsaid as one-time, and a bare birthday as yearly', () => {
+    const got = parseDateMentions(
+      reply(
+        { who: 'mom', what: 'birthday party', kind: 'birthday', when: 'Saturday' },
+        { who: 'mom', what: "Mom's birthday", kind: 'birthday', when: 'October 20th' }
+      )
+    );
+    expect(got.map((m) => m.recurring)).toEqual([false, true]);
+  });
+
   it('lets a correction in the same call win, and marks it as replacing', () => {
     const got = toDateObservations(
       parseDateMentions(

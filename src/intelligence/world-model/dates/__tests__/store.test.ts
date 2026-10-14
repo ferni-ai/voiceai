@@ -65,6 +65,15 @@ describe('planDates', () => {
     expect(plan.close.map((c) => c.id)).toEqual(['w1']);
   });
 
+  it("keeps the world extractor's party and birthday apart from this task's dates", () => {
+    const extracted = (id: string, value: string) =>
+      fact({ id, value, recurrence: undefined, kind: undefined, monthDay: undefined, eventDate: '2026-10-17' }); // prettier-ignore
+    const birthday = obs({ eventDate: '2026-10-20', monthDay: '10-20' });
+    const party = obs({ value: 'birthday party', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-18' }); // prettier-ignore
+    expect(planDates([extracted('w2', 'birthday party')], [birthday], ids).close).toEqual([]);
+    expect(planDates([extracted('w3', 'birthday')], [party], ids).close).toEqual([]);
+  });
+
   it("reads 'still ahead' on the caller's own day, not the UTC one", () => {
     // 21:00 Sunday Oct 11 in New York is 01:00 Monday Oct 12 UTC; the surgery is today, local.
     const today = fact({ id: 'today', value: 'knee surgery', kind: 'medical', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-11' }); // prettier-ignore

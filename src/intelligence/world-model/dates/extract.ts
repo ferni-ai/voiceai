@@ -34,6 +34,13 @@ export const DATE_KINDS = [
 export type DateKind = (typeof DATE_KINDS)[number];
 const YEARLY_KINDS: ReadonlySet<DateKind> = new Set(['birthday', 'anniversary', 'memorial']);
 
+/** "birthday" or "her birthday" is the kind itself; "birthday party" is something on it. */
+function isJustTheKind(what: string, kind: DateKind): boolean {
+  const words = what.toLowerCase().match(/[a-z']+/g) ?? [];
+  const rest = words.filter((w) => !/^(?:my|her|his|their|our|the|a|an)$|'s$/.test(w));
+  return rest.length === 1 && rest[0] === kind;
+}
+
 /** One mention, as the model reported it. */
 export interface DateMention {
   /** "self" for the caller; otherwise a name ("Mindy") or the relation ("mom"). */
@@ -117,8 +124,8 @@ function toMention(raw: unknown): DateMention | null {
     what,
     kind,
     when,
-    // Unsaid means the kind decides: a birthday recurs, a surgery doesn't.
-    recurring: r.recurring !== false,
+    // Unsaid: only the bare kind recurs ("birthday" does, "birthday party" doesn't).
+    recurring: r.recurring === undefined ? isJustTheKind(what, kind) : r.recurring !== false,
     past: r.past === true,
     correction: r.correction === true,
     unsure: r.unsure === true,
@@ -146,7 +153,7 @@ const yearlyKind = (m: DateMention): boolean => YEARLY_KINDS.has(m.kind) && m.re
 
 /** A yearly date is one per person and kind; a one-time one (a birthday party) is its own thing. */
 const key = (m: DateMention): string =>
-  `${m.who.toLowerCase()}|${yearlyKind(m) ? m.kind : m.what.toLowerCase()}`;
+  `${m.who.toLowerCase()}|${yearlyKind(m) ? `yearly:${m.kind}` : `once:${m.what.toLowerCase()}`}`;
 
 /** The model's own day, if it is a real day within two years of the call. */
 function plausibleGuess(guess: string | undefined, callDate: string): string | null {
