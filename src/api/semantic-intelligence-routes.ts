@@ -387,6 +387,18 @@ function getEnergyLabel(level: number): string {
 // MAIN ROUTER
 // ============================================================================
 
+const HANDLERS = new Map<string, (res: ServerResponse, userId: string) => Promise<void>>([
+  ['/insights', getInsights],
+  ['/open-loops', getOpenLoops],
+  ['/commitments', getCommitments],
+  ['/relationships', getRelationships],
+  ['/temporal', getTemporal],
+  ['/behavioral', getBehavioral],
+  ['/coaching', getCoaching],
+  ['/self-awareness', getSelfAwareness],
+  ['/deep-analysis', getDeepAnalysis],
+]);
+
 /**
  * Handle all /api/semantic-intelligence/* routes
  */
@@ -405,54 +417,18 @@ export async function handleSemanticIntelligenceRoutes(
     return true;
   }
 
+  // Paths this module doesn't serve fall through to servers/api/routes, which
+  // verifies the caller itself; checking here too would verify the token twice.
+  const handler = HANDLERS.get(pathname.replace('/api/semantic-intelligence', ''));
+  if (!handler) return false;
+
   // SECURITY: the verified caller's data only, never whoever ?userId= names
   const userId = await requireVerifiedSubject(req, res);
   if (userId === null) return true;
 
-  // Route to appropriate handler
-  const route = pathname.replace('/api/semantic-intelligence', '');
-
   try {
-    switch (route) {
-      case '/insights':
-        await getInsights(res, userId);
-        return true;
-
-      case '/open-loops':
-        await getOpenLoops(res, userId);
-        return true;
-
-      case '/commitments':
-        await getCommitments(res, userId);
-        return true;
-
-      case '/relationships':
-        await getRelationships(res, userId);
-        return true;
-
-      case '/temporal':
-        await getTemporal(res, userId);
-        return true;
-
-      case '/behavioral':
-        await getBehavioral(res, userId);
-        return true;
-
-      case '/coaching':
-        await getCoaching(res, userId);
-        return true;
-
-      case '/self-awareness':
-        await getSelfAwareness(res, userId);
-        return true;
-
-      case '/deep-analysis':
-        await getDeepAnalysis(res, userId);
-        return true;
-
-      default:
-        return false;
-    }
+    await handler(res, userId);
+    return true;
   } catch (error) {
     log.error({ error, pathname, userId }, 'Unhandled error in semantic intelligence routes');
     sendError(res, 'Internal server error', 500);

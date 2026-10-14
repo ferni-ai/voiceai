@@ -37,6 +37,7 @@ import {
   verifyPayment,
 } from '../services/stripe-payments.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { getOrganization, refuseUnverifiedWrite } from './monetization-access.js';
 import { handleMonetizationWebhook } from './monetization-webhook.js';
 
 // Initialize persistence on module load
@@ -82,7 +83,6 @@ type RouteHandler = (ctx: RequestContext) => Promise<ResponseContext>;
  * SECURITY: Uses authenticated userId when available
  */
 async function getTipConfig(ctx: RequestContext): Promise<ResponseContext> {
-  // SECURITY: Prefer authenticated userId over deprecated x-user-id
   const userId = ctx.authUserId; // verified only; ?userId= never names the subject
 
   const config = tipJar.getConfig();
@@ -109,17 +109,17 @@ async function getTipConfig(ctx: RequestContext): Promise<ResponseContext> {
  * Create a tip payment
  */
 async function createTip(ctx: RequestContext): Promise<ResponseContext> {
-  const { userId, amountCents, message } = ctx.body as {
-    userId?: string;
+  const { amountCents, message } = ctx.body as {
     amountCents?: number;
     message?: string;
   };
+  const userId = ctx.authUserId; // verified by refuseUnverifiedWrite
 
   if (!userId || !amountCents) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId and amountCents are required' },
+      body: { error: 'amountCents is required' },
     };
   }
 
@@ -208,17 +208,17 @@ async function completeTip(ctx: RequestContext): Promise<ResponseContext> {
  * Detect if a message indicates a value event
  */
 async function detectValue(ctx: RequestContext): Promise<ResponseContext> {
-  const { userId, message, conversationId } = ctx.body as {
-    userId?: string;
+  const { message, conversationId } = ctx.body as {
     message?: string;
     conversationId?: string;
   };
+  const userId = ctx.authUserId; // verified by refuseUnverifiedWrite
 
   if (!userId || !message) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId and message are required' },
+      body: { error: 'message is required' },
     };
   }
 
@@ -258,17 +258,17 @@ async function detectValue(ctx: RequestContext): Promise<ResponseContext> {
  * Create a value capture contribution
  */
 async function contributeValue(ctx: RequestContext): Promise<ResponseContext> {
-  const { userId, eventId, amountCents } = ctx.body as {
-    userId?: string;
+  const { eventId, amountCents } = ctx.body as {
     eventId?: string;
     amountCents?: number;
   };
+  const userId = ctx.authUserId; // verified by refuseUnverifiedWrite
 
   if (!userId || !eventId || !amountCents) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId, eventId, and amountCents are required' },
+      body: { error: 'eventId and amountCents are required' },
     };
   }
 
@@ -321,19 +321,19 @@ async function getFundStatus(): Promise<ResponseContext> {
  * Contribute to Ferni Fund
  */
 async function contributeFund(ctx: RequestContext): Promise<ResponseContext> {
-  const { userId, amountCents, message, isRecurring, recurringFrequency } = ctx.body as {
-    userId?: string;
+  const { amountCents, message, isRecurring, recurringFrequency } = ctx.body as {
     amountCents?: number;
     message?: string;
     isRecurring?: boolean;
     recurringFrequency?: 'weekly' | 'monthly';
   };
+  const userId = ctx.authUserId; // verified by refuseUnverifiedWrite
 
   if (!userId || !amountCents) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId and amountCents are required' },
+      body: { error: 'amountCents is required' },
     };
   }
 
@@ -382,7 +382,6 @@ async function contributeFund(ctx: RequestContext): Promise<ResponseContext> {
  * SECURITY: Uses authenticated userId
  */
 async function getContributorImpact(ctx: RequestContext): Promise<ResponseContext> {
-  // SECURITY: Prefer authenticated userId over deprecated x-user-id
   const userId = ctx.authUserId; // verified only; ?userId= never names the subject
 
   if (!userId) {
@@ -429,19 +428,19 @@ async function getB2BPlans(): Promise<ResponseContext> {
  * Create a new organization
  */
 async function createOrganization(ctx: RequestContext): Promise<ResponseContext> {
-  const { name, plan, seatCount, adminUserId, config } = ctx.body as {
+  const { name, plan, seatCount, config } = ctx.body as {
     name?: string;
     plan?: 'starter' | 'growth' | 'enterprise';
     seatCount?: number;
-    adminUserId?: string;
     config?: Record<string, unknown>;
   };
+  const adminUserId = ctx.authUserId; // verified by refuseUnverifiedWrite
 
   if (!name || !plan || !seatCount || !adminUserId) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'name, plan, seatCount, and adminUserId are required' },
+      body: { error: 'name, plan, and seatCount are required' },
     };
   }
 
@@ -481,77 +480,22 @@ async function createOrganization(ctx: RequestContext): Promise<ResponseContext>
 }
 
 /**
- * GET /api/monetization/b2b/organization/:orgId
- * Get organization details
- *
- * SECURITY: Uses authenticated userId
- */
-async function getOrganization(ctx: RequestContext): Promise<ResponseContext> {
-  const { orgId } = ctx.query;
-  // SECURITY: Prefer authenticated userId over deprecated x-user-id
-  const userId = ctx.authUserId; // verified only; ?userId= never names the subject
-
-  if (!orgId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'orgId is required' },
-    };
-  }
-
-  const org = b2bLicensing.getOrganization(orgId);
-
-  if (!org) {
-    return {
-      status: 404,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Organization not found' },
-    };
-  }
-
-  // Check if user has access
-  if (userId && !org.memberUserIds.includes(userId)) {
-    return {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Access denied' },
-    };
-  }
-
-  const isAdmin = userId ? b2bLicensing.isOrgAdmin(userId, orgId) : false;
-  const usageStats = b2bLicensing.getOrgUsageStats(orgId);
-  const roi = b2bLicensing.getROIEstimate(org);
-
-  return {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-    body: {
-      organization: org,
-      isAdmin,
-      usageStats,
-      roiEstimate: roi,
-      onboardingChecklist: b2bLicensing.getOnboardingChecklist(org),
-    },
-  };
-}
-
-/**
  * POST /api/monetization/b2b/invite
  * Create an organization invite
  */
 async function createOrgInvite(ctx: RequestContext): Promise<ResponseContext> {
-  const { orgId, email, role, invitedBy } = ctx.body as {
+  const { orgId, email, role } = ctx.body as {
     orgId?: string;
     email?: string;
     role?: 'admin' | 'member';
-    invitedBy?: string;
   };
+  const invitedBy = ctx.authUserId; // verified by refuseUnverifiedWrite
 
   if (!orgId || !email || !role || !invitedBy) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'orgId, email, role, and invitedBy are required' },
+      body: { error: 'orgId, email, and role are required' },
     };
   }
 
@@ -632,18 +576,18 @@ async function getPartnerRecommendation(ctx: RequestContext): Promise<ResponseCo
  * Record a partner referral click
  */
 async function recordPartnerClick(ctx: RequestContext): Promise<ResponseContext> {
-  const { userId, partnerId, conversationId, triggerContext } = ctx.body as {
-    userId?: string;
+  const { partnerId, conversationId, triggerContext } = ctx.body as {
     partnerId?: string;
     conversationId?: string;
     triggerContext?: string;
   };
+  const userId = ctx.authUserId; // verified by refuseUnverifiedWrite
 
   if (!userId || !partnerId) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId and partnerId are required' },
+      body: { error: 'partnerId is required' },
     };
   }
 
@@ -768,7 +712,6 @@ async function getUserMonetization(ctx: RequestContext): Promise<ResponseContext
  * SECURITY: Uses authenticated userId
  */
 async function getJourneyInfo(ctx: RequestContext): Promise<ResponseContext> {
-  // SECURITY: Prefer authenticated userId over deprecated x-user-id
   const userId = ctx.authUserId; // verified only; ?userId= never names the subject
 
   const currentSeason = getCurrentSeason();
@@ -822,16 +765,14 @@ async function getJourneyInfo(ctx: RequestContext): Promise<ResponseContext> {
  * Become a season companion (supporter)
  */
 async function becomeCompanion(ctx: RequestContext): Promise<ResponseContext> {
-  const { userId, seasonId } = ctx.body as {
-    userId?: string;
-    seasonId?: string;
-  };
+  const { seasonId } = ctx.body as { seasonId?: string };
+  const userId = ctx.authUserId; // verified by refuseUnverifiedWrite
 
   if (!userId || !seasonId) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId and seasonId are required' },
+      body: { error: 'seasonId is required' },
     };
   }
 
@@ -867,16 +808,14 @@ async function becomeCompanion(ctx: RequestContext): Promise<ResponseContext> {
  * Record activity for milestone tracking
  */
 async function recordJourneyActivity(ctx: RequestContext): Promise<ResponseContext> {
-  const { userId, activityType } = ctx.body as {
-    userId?: string;
-    activityType?: 'conversation' | 'goal';
-  };
+  const { activityType } = ctx.body as { activityType?: 'conversation' | 'goal' };
+  const userId = ctx.authUserId; // verified by refuseUnverifiedWrite
 
   if (!userId || !activityType) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId and activityType are required' },
+      body: { error: 'activityType is required' },
     };
   }
 
@@ -927,16 +866,14 @@ async function recordJourneyActivity(ctx: RequestContext): Promise<ResponseConte
  * Celebrate a milestone (receive the gift)
  */
 async function celebrateMilestone(ctx: RequestContext): Promise<ResponseContext> {
-  const { userId, milestoneId } = ctx.body as {
-    userId?: string;
-    milestoneId?: string;
-  };
+  const { milestoneId } = ctx.body as { milestoneId?: string };
+  const userId = ctx.authUserId; // verified by refuseUnverifiedWrite
 
   if (!userId || !milestoneId) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId and milestoneId are required' },
+      body: { error: 'milestoneId is required' },
     };
   }
 
@@ -1056,5 +993,6 @@ export async function handleMonetizationRequest(ctx: RequestContext): Promise<Re
     };
   }
 
-  return handler(ctx);
+  // SECURITY: writes act for the verified caller only, never a uid in the body
+  return refuseUnverifiedWrite(ctx) ?? handler(ctx);
 }

@@ -61,6 +61,8 @@ const serverSemantic = await import('../../servers/api/routes/semantic-intellige
 const apiSemantic = await import('../semantic-intelligence-routes.js');
 const { integrityReportFor } = await import('../health/data-integrity.js');
 const { handleMonetizationRequest } = await import('../monetization-routes.js');
+const { verifyFirebaseToken } = await import('../../services/identity/firebase-auth.js');
+const { handleEngagementRoutes } = await import('../engagement-routes.js');
 
 function fakeReq(url: string, token?: string): IncomingMessage {
   return {
@@ -209,5 +211,41 @@ describe('monetization', () => {
     });
     expect(response.status).toBe(200);
     expect(getContributorImpact).toHaveBeenCalledWith('uid-alice');
+  });
+});
+
+describe('semantic intelligence verifies the token once per request', () => {
+  // The real server order: engagement routes (optional auth, then the api/
+  // semantic handler), and if nobody answered, servers/api/routes
+  async function routeLikeServer(path: string): Promise<void> {
+    const req = fakeReq(path, 'tok-alice');
+    const { res } = fakeRes();
+    if (await handleEngagementRoutes(req, res, path, new URL(path, 'http://x'))) return;
+    await serverSemantic.handleSemanticIntelligenceRoutes(req, res, path);
+  }
+
+  it.each([
+    '/api/semantic-intelligence/summary',
+    '/api/semantic-intelligence/context',
+    '/api/semantic-intelligence/team-observations',
+    '/api/semantic-intelligence/insights/i1/dismiss',
+    '/api/semantic-intelligence/open-loops/l1/resolve',
+    '/api/semantic-intelligence/commitments/c1/fulfill',
+    '/api/semantic-intelligence/temporal',
+  ])('%s', async (path) => {
+    vi.mocked(verifyFirebaseToken).mockClear();
+    await routeLikeServer(path);
+    expect(verifyFirebaseToken).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the api/ semantic handler', () => {
+  it('leaves paths it does not serve, auth included, to servers/api/routes', async () => {
+    const { res, status } = fakeRes();
+    const path = '/api/semantic-intelligence/summary';
+    expect(await apiSemantic.handleSemanticIntelligenceRoutes(fakeReq(path), res, path)).toBe(
+      false
+    );
+    expect(status()).toBe(200);
   });
 });
