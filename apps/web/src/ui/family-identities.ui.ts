@@ -166,7 +166,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--persona-primary, var(--color-ferni, #4a6741));
+    color: var(--persona-text);
     margin-bottom: var(--space-1, 4px);
   }
   
@@ -396,7 +396,7 @@ const styles = `
   
   .family-btn--primary {
     background: var(--color-accent-primary, #4a6741);
-    color: white;
+    color: var(--color-text-on-accent);
   }
   
   .family-btn--primary:hover {

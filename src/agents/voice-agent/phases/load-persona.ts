@@ -10,6 +10,7 @@
 
 import type { JobContext } from '@livekit/agents';
 import type { PersonaConfig } from '../../../personas/types.js';
+import { signedClaim } from '../../../services/identity/signed-dispatch-identity.js';
 import type { PersonaPhaseResult } from './types.js';
 
 /**
@@ -42,24 +43,20 @@ function parseMetadata(ctx: JobContext): { personaId: string; userId: string | n
   const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
 
   // Priority: firebase_uid (cryptographically secure) > user_id > userId
-  // This ensures Firebase-authenticated users get their Firebase UID as the profile key
+  // user_id/userId count only on a signed dispatch (services/identity/signed-dispatch-identity.ts)
   const userId =
     (metadata.firebase_uid as string) ||
     (metadata.firebaseUid as string) ||
-    (metadata.user_id as string) ||
-    (metadata.userId as string) ||
-    null;
+    signedClaim(metadata, ['user_id', 'userId']);
 
   // 🧠 MEMORY AUDIT: Log identity extraction for debugging memory issues
   const identitySource = metadata.firebase_uid
     ? 'firebase_uid'
     : metadata.firebaseUid
       ? 'firebaseUid'
-      : metadata.user_id
-        ? 'user_id'
-        : metadata.userId
-          ? 'userId'
-          : 'none';
+      : userId
+        ? 'signed user_id'
+        : 'none';
   process.stderr.write(
     `[load-persona] 🧠 [MEMORY-AUDIT] Identity extracted - userId: ${userId ? userId.substring(0, 8) + '...' : 'null'}, source: ${identitySource}, personaId: ${personaId}\n`
   );
