@@ -21,18 +21,24 @@ import type { JobContext, voice } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import type { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
+import { wireDeferredHandlers } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { directedGreeting } from './greeting-direction.js';
+import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
-import { briefedHandoffs, briefingFor, withBrief } from './handoff-brief.js';
+import {
+  arrivalLine,
+  briefedHandoffs,
+  briefingFor,
+  departureLine,
+  withBrief,
+} from './handoff-brief.js';
 export { calmGreeting } from './greeting-direction.js';
 
 // Predictive handoff - pre-briefings for specialist personas
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
 import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
-import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement/banter.js';
 
 const log = getLogger();
 
@@ -252,7 +258,7 @@ export class AgentOrchestrator {
         greeting = outboundOpener(parties);
       } else {
         const userData = agent.userData as UserData | undefined;
-        greeting = await directedGreeting(this.sessionId, agent.personaId, userData);
+        greeting = await greetingOrResume(this.sessionId, agent, userData); // RESUME_AFTER_DROP
       }
 
       // Greeting awareness: the turn handler tells the LLM on turn 0 what it said.
@@ -279,22 +285,8 @@ export class AgentOrchestrator {
       // Prompt-cache warm + STT refresh when the greeting ends (after-greeting.ts).
       void import('../model-provider/after-greeting.js').then((m) => m.run(agent.session));
 
-      // ⚡ FAST-AGENT-JOIN: Wire deferred handlers in background after greeting starts
-      // Handlers run in parallel with speech - user hears greeting while handlers wire
-      if (agent.wireHandlers) {
-        agent
-          .wireHandlers()
-          .then(() => {
-            log.info({ personaId: agent.personaId }, '⚡ Deferred handlers wired after greeting');
-          })
-          .catch((err) => {
-            // 🐛 FIX: Don't swallow errors! Music handler won't work if this fails.
-            log.error(
-              { error: String(err), personaId: agent.personaId },
-              '🚨 CRITICAL: Deferred handler wiring FAILED! Music/tools may not work.'
-            );
-          });
-      }
+      // ⚡ FAST-AGENT-JOIN: wire deferred handlers as the greeting starts, or after it (greeting-wiring.ts)
+      void wireDeferredHandlers(agent);
     } catch (err) {
       log.warn({ error: String(err), personaId: agent.personaId }, '🎭 Initial greeting failed');
     }
@@ -626,7 +618,6 @@ export class AgentOrchestrator {
         isHandoff: context.isHandoff,
         previousPersonaId: context.previousPersonaId,
         hasConversationSummary: !!context.conversationSummary,
-        recentMessageCount: context.recentMessages?.length || 0,
       },
       '🎭 [spawnAgent] Starting agent creation...'
     );
@@ -925,26 +916,18 @@ export class AgentOrchestrator {
     return speakingTimeMs + breakTimeMs + buffer;
   }
 
-  /**
-   * Get a goodbye phrase for the departing agent.
-   */
+  /** The departing persona's last line (handoff-brief.ts). */
   private getGoodbyePhrase(fromPersonaId: string, toPersonaId: string): string | null {
-    // Banter, or a plain line (a require() of the wrong module always fell back to it)
-    return (
-      getHandoffBanter(fromPersonaId, toPersonaId) ??
-      `Let me hand you off to ${getPersonaDisplayName(toPersonaId)}.`
-    );
+    return departureLine(fromPersonaId, toPersonaId);
   }
 
-  /**
-   * Get a greeting phrase for the arriving agent.
-   */
+  /** The arriving teammate's first line (handoff-brief.ts). */
   private getGreetingPhrase(
     toPersonaId: string,
     fromPersonaId: string,
     _request: HandoffRequest
   ): string | null {
-    return getArrivingBanter(toPersonaId, fromPersonaId) ?? "Hey! What's up?";
+    return arrivalLine(toPersonaId, fromPersonaId);
   }
 }
 

@@ -1,0 +1,37 @@
+name: CI Health
+
+# Daily: a CI job failing on many different PRs is one shared problem.
+# Opens or updates a `ci-health` issue for it (scripts/ci/ci-health.sh).
+on:
+  schedule:
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+    inputs:
+      min_prs:
+        description: 'Flag a job that failed on at least this many PRs'
+        default: '5'
+      since_hours:
+        description: 'Look back this many hours'
+        default: '24'
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  ci-health:
+    name: CI Health
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci
+      - name: Find jobs failing across PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MIN_PRS: ${{ inputs.min_prs || '5' }}
+          SINCE_HOURS: ${{ inputs.since_hours || '24' }}
+        run: scripts/ci/ci-health.sh

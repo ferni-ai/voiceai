@@ -1,0 +1,7 @@
+# bh: {"to": "alex-chen", "path": "tap", "facts": ["two thousand", "2,000", "2000", "unread", "client", "inbox", "email"]}
+Hey Ferni. I have about two thousand unread emails, and three of them are from clients I've been avoiding.
+I don't even know where to start.
+@data 4000 {"type":"handoff_request","target":"alex-chen","timestamp":0,"attempt":1}
+@pause 9000 -
+Hi Alex.
+So, what do you think?

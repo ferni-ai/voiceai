@@ -1,5 +1,6 @@
 ---
 layout: layouts/base.njk
+extraCss: persona-detail
 title: Amara - Chronic Illness Ally
 description: Amara gets it. Living with chronic illness is more than managing symptoms—it's grieving, adapting, and finding joy anyway. Amara is here for all of it.
 personaColor: "#7B6BA8"
@@ -51,7 +52,7 @@ personaSecondary: "#5A4D80"
 <!-- Main Content -->
 <section class="section">
   <div class="container">
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-8); align-items: start;">
+    <div class="persona-detail-layout">
 
       <!-- Left Column -->
       <div>
@@ -73,7 +74,7 @@ personaSecondary: "#5A4D80"
         <!-- What Amara Helps With -->
         <div style="margin-bottom: var(--space-12);">
           <h2 style="margin-bottom: var(--space-4);">What I Help With</h2>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4);">
+          <div class="persona-help-grid">
             <div style="background: var(--bg-elevated); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
               <h4 style="margin-bottom: var(--space-2);">Symptom Management</h4>
               <p style="font-size: var(--text-sm); color: var(--text-muted);">
@@ -183,12 +184,12 @@ personaSecondary: "#5A4D80"
         </div>
 
         <!-- CTA -->
-        <div style="background: linear-gradient(135deg, #7B6BA8, #5A4D80); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
+        <div class="persona-cta-card" style="--cta-from: #7B6BA8; --cta-to: #5A4D80;">
           <h3 style="margin-bottom: var(--space-2); color: white;">Ready to get started?</h3>
-          <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
+          <p>
             Someone who truly gets it
           </p>
-          <a href="{{ site.appUrl }}" class="btn" style="background: white; color: #7B6BA8; width: 100%;">
+          <a href="{{ site.appUrl }}" class="btn persona-cta-btn">
             {{ priced('Add to Team - $9.99/mo', 'Add to Team') }}
           </a>
         </div>
@@ -207,7 +208,7 @@ personaSecondary: "#5A4D80"
     </div>
 
     <div class="persona-grid" style="max-width: 900px; margin: 0 auto;">
-      <a href="/persona/kenji/" class="persona-card" style="--persona-color: #2C3E50; --persona-secondary: #1A252F;">
+      <a href="/pages/persona/kenji/" class="persona-card" style="--persona-color: #2C3E50; --persona-secondary: #1A252F;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">K</span>
@@ -223,7 +224,7 @@ personaSecondary: "#5A4D80"
         </div>
       </a>
 
-      <a href="/persona/marcus/" class="persona-card" style="--persona-color: #2D5A4A; --persona-secondary: #1E3D32;">
+      <a href="/pages/persona/marcus/" class="persona-card" style="--persona-color: #2D5A4A; --persona-secondary: #1E3D32;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">M</span>
@@ -239,7 +240,7 @@ personaSecondary: "#5A4D80"
         </div>
       </a>
 
-      <a href="/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
+      <a href="/pages/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">E</span>

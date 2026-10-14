@@ -37,6 +37,7 @@ import { soulStatsService } from '../services/soul-stats.service.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { onThinkingTurns } from './avatar-motion/thinking-glance.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
 
 const log = createLogger('AvatarSoul');
@@ -153,9 +154,6 @@ const SOUL_TIMING = {
   ENERGY_MATCH_SMOOTHING: 0.15,
   ENERGY_UPDATE_INTERVAL: 500,
 
-  // Grain
-  GRAIN_CYCLE: 4000,
-
   // Growth celebration
   GROWTH_CELEBRATION_DURATION: 1200,
 } as const;
@@ -239,6 +237,8 @@ let avatarContainer: HTMLElement | null = null;
 const pupilElement: HTMLElement | null = null;
 const irisShimmerElement: HTMLElement | null = null;
 let glowBleedElement: HTMLElement | null = null;
+/** Radius (in % of the avatar) the glow layer is laid out at; see .soul-glow-bleed. */
+const GLOW_BLEED_MAX_RADIUS = 90;
 let grainOverlay: HTMLElement | null = null;
 let memorySparkElement: HTMLElement | null = null;
 let comfortPulseElement: HTMLElement | null = null;
@@ -801,8 +801,11 @@ export function setGlowBleed(amount: number, color?: string): void {
     state.glow.color = color;
   }
 
-  // Increased from 40 to 50 for more dramatic halo expansion when speaking
+  // Increased from 40 to 50 for more dramatic halo expansion when speaking.
+  // The layer is laid out at its largest (radius 90, see .soul-glow-bleed) and
+  // shrinks by scale, so a change never re-lays out the avatar.
   const radius = state.glow.baseRadius + clampedAmount * 50;
+  const bleedScale = radius / GLOW_BLEED_MAX_RADIUS;
   const opacity = 0.3 + clampedAmount * 0.4;
 
   glowTimeline?.kill();
@@ -813,7 +816,7 @@ export function setGlowBleed(amount: number, color?: string): void {
   // Anticipation - slight shrink before expansion
   if (clampedAmount > 0.3) {
     glTl.to(glowBleedElement, {
-      scale: 0.95,
+      scale: bleedScale * 0.95,
       duration: 0.1,
       ease: 'power2.in',
     });
@@ -825,12 +828,13 @@ export function setGlowBleed(amount: number, color?: string): void {
     return `${opacity})`;
   });
 
-  glTl.to(glowBleedElement, {
-    width: radius * 2 + '%',
-    height: radius * 2 + '%',
-    opacity: opacity,
+  // The gradient swaps once; only scale and opacity animate
+  glTl.set(glowBleedElement, {
     background: `radial-gradient(circle, ${state.glow.color} 0%, ${colorWithHalfOpacity} 30%, transparent 60%)`,
-    scale: 1,
+  }, 0);
+  glTl.to(glowBleedElement, {
+    opacity: opacity,
+    scale: bleedScale,
     duration: SOUL_TIMING.GLOW_BLEED_TRANSITION / 1000,
     ease: EASING.SPRING_GENTLE,
   });
@@ -1374,24 +1378,6 @@ export function exitProtectiveMode(): void {
 }
 
 // ============================================================================
-// ORGANIC GRAIN ANIMATION
-// ============================================================================
-
-/**
- * Animate the grain overlay for organic texture breathing.
- */
-function animateGrain(): void {
-  if (!grainOverlay || state.reducedMotion) return;
-
-  gsap.to(grainOverlay, {
-    backgroundPosition: () => `${Math.random() * 100}% ${Math.random() * 100}%`,
-    duration: SOUL_TIMING.GRAIN_CYCLE / 1000,
-    repeat: -1,
-    ease: 'none',
-  });
-}
-
-// ============================================================================
 // CAMEO EFFECTS - Team Member Pop-In Transitions
 // ============================================================================
 
@@ -1481,29 +1467,10 @@ function startAnimationLoops(): void {
   // Shimmer animation
   startShimmerAnimation();
 
-  // Grain animation
-  animateGrain();
+  // Grain and the glow pulse are CSS animations (grainBreath, soulGlowPulse)
 
   // Energy matching update loop
   energyMatchingInterval = setInterval(updateEnergyMatching, SOUL_TIMING.ENERGY_UPDATE_INTERVAL);
-
-  // Glow pulse loop
-  startGlowPulseLoop();
-}
-
-/**
- * Start the subtle glow pulse loop.
- */
-function startGlowPulseLoop(): void {
-  if (!glowBleedElement || state.reducedMotion) return;
-
-  gsap.to(glowBleedElement, {
-    '--pulse-scale': 1.05,
-    duration: SOUL_TIMING.GLOW_PULSE_CYCLE / 1000,
-    repeat: -1,
-    yoyo: true,
-    ease: 'sine.inOut',
-  });
 }
 
 // ============================================================================
@@ -1565,16 +1532,15 @@ function setupEventListeners(): void {
     exitProtectiveMode();
   });
 
-  // Thinking state - responds to the existing ferni:thinking event
-  document.addEventListener('ferni:thinking', ((e: CustomEvent) => {
-    const isThinking = e.detail?.isThinking;
-    if (isThinking) {
+  // Thinking: glance away on the turn driver's thinking turn, mid-call, under
+  // ferni:thinking-glance (see thinking-glance.ts; never while connecting)
+  onThinkingTurns(
+    () => {
       glanceAway();
       setPupilDilation('CONTRACTED', 'slow');
-    } else {
-      setPupilDilation('NEUTRAL', 'slow');
-    }
-  }) as EventListener);
+    },
+    () => setPupilDilation('NEUTRAL', 'slow')
+  );
 
   // Inside joke / shared history
   document.addEventListener('ferni:inside-joke', () => {
@@ -1704,12 +1670,10 @@ function injectSoulStyles(): void {
     /* NOTE: Do NOT use filter: blur() here - causes visible box artifacts in Safari */
     .soul-glow-bleed {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      /* Increased from 140% to 180% to give halo more room to expand when speaking */
-      width: 180%;
-      height: 180%;
-      transform: translate(-50%, -50%) scale(var(--pulse-scale, 1));
+      /* 180% of the avatar, centred (radius 90). setGlowBleed sizes it with a
+         GSAP scale on the transform; the pulse runs on the separate scale property. */
+      inset: -40%;
+      animation: soulGlowPulse ${SOUL_TIMING.GLOW_PULSE_CYCLE}ms ease-in-out infinite alternate;
       border-radius: 50%;
       /* Use a more diffuse gradient instead of filter: blur() to avoid Safari compositing artifacts */
       background: radial-gradient(
@@ -1735,19 +1699,19 @@ function injectSoulStyles(): void {
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
       background-size: 100px 100px;
       mix-blend-mode: overlay;
-      /* Subtle breathing animation - grain shifts with avatar breathing */
+      /* Breathes with the avatar: opacity only (composited; moving the
+         background-position repainted the grain every frame at idle) */
       animation: grainBreath 8s ease-in-out infinite;
     }
     
+    @keyframes soulGlowPulse {
+      from { scale: 1; }
+      to { scale: 1.05; }
+    }
+
     @keyframes grainBreath {
-      0%, 100% { 
-        background-position: 0% 0%;
-        opacity: 0.04;
-      }
-      50% { 
-        background-position: 5% 5%;
-        opacity: 0.05;
-      }
+      0%, 100% { opacity: 0.04; }
+      50% { opacity: 0.05; }
     }
     
     /* Warmth Bloom - Emotional warmth radiating outward */
@@ -2021,6 +1985,7 @@ function injectSoulStyles(): void {
       }
       
       .soul-glow-bleed {
+        animation: none;
         transition: none;
       }
       

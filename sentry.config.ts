@@ -20,7 +20,6 @@ export interface SentryConfig {
   environment: string;
   release?: string;
   tracesSampleRate: number;
-  profilesSampleRate: number;
 }
 
 const defaultConfig: SentryConfig = {
@@ -28,7 +27,6 @@ const defaultConfig: SentryConfig = {
   environment: process.env.NODE_ENV || 'development',
   release: process.env.npm_package_version,
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-  profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 };
 
 export function initSentry(config: Partial<SentryConfig> = {}): void {
@@ -46,7 +44,6 @@ export function initSentry(config: Partial<SentryConfig> = {}): void {
     
     // Performance Monitoring
     tracesSampleRate: finalConfig.tracesSampleRate,
-    profilesSampleRate: finalConfig.profilesSampleRate,
     
     // Integrations
     integrations: [
