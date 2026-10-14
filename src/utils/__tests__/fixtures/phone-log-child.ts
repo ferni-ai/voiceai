@@ -16,7 +16,15 @@ const identity = 'sip_+15555550123';
 
 initializeLogger({ pretty: true, level: 'info' });
 log().info({ participantValue: identity }, 'sdk line');
+// Bare numbers only a structured pass sees: arrays under phone keys, child bindings
+const listed = { phoneNumbers: [{ value: '5555550123' }, '5555550123'], to: [['5555550123']] };
+log().info(listed, 'sdk structured line');
+log()
+  .child({ recipients: ['5555550123', '5555550123'] })
+  .info('sdk child line');
 createLogger({ module: 'phone-log-child' }).info({ participant: identity }, 'app line');
+createLogger({ module: 'phone-log-child' }).info(listed, 'app structured line');
+createLogger({ module: 'phone-log-child', contactPhone: '5555550123' }).info('app child line');
 console.log(`console line ${identity}`);
 process.stderr.write(`[voice-agent-entry] Participant ready (wait): ${identity}\n`);
 

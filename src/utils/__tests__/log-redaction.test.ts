@@ -81,6 +81,64 @@ const PHONE_KEYS = [
   '{"Digits":"4155550123"}',
 ];
 
+// Round-3 leaks in free text (the structured pass covers log objects)
+const TEXT_LEAKS = [
+  'phone number 4155550123',
+  'phone #4155550123',
+  'Calling user at 4155550123',
+  'forwarding to 4155550123',
+  'Called=4155550123&ForwardedFrom=4155550123&CallerCity=SF',
+  '{"sip.callTo":"4155550123","lk.sip.callFrom":"4155550123"}',
+  'from whatsapp:4155550123',
+  'GET /v1/users/by-phone/4155550123/history',
+  'GET /phones/4155550123',
+  'q=phoneNumber%3D4155550123',
+  '{"phoneNumbers":["4155550123","4155550123"]}',
+  '{"toNumbers":["4155550123"],"recipients":["4155550123","4155550123"]}',
+  '{"phones":[["4155550123","4155550123"],["4155550123"]]}',
+  '{"phone":"4155550123,4155550123"}',
+  `{"phones":["${'1'.repeat(3)}",${' '.repeat(40)}"4155550123","4155550123"]}`,
+];
+
+describe('redactPhoneNumbers: phrasings, URLs, form fields and lists in text', () => {
+  it.each(TEXT_LEAKS)('%s', (line) => {
+    const out = redactPhoneNumbers(line);
+    expect(out).not.toContain('4155550123');
+    expect(out).toContain('***0123');
+  });
+
+  it('a list ends where its array closes', () => {
+    expect(redactPhoneNumbers('{"phones":["4155550123"],"t":[1791797261114,1791797261115]}')).toBe(
+      '{"phones":["***0123"],"t":[1791797261114,1791797261115]}'
+    );
+  });
+});
+
+function bestOf(n: number, fn: () => unknown): number {
+  let best = Infinity;
+  for (let i = 0; i < n; i++) {
+    const t = performance.now();
+    fn();
+    best = Math.min(best, performance.now() - t);
+  }
+  return best;
+}
+
+describe('redactPhoneNumbers: cost is linear in the line', () => {
+  const epochs = Array.from({ length: 20_000 }, (_, i) => 1791797261114 + i);
+  const cases: Array<[string, string]> = [
+    ['a 20,000-element numeric array', JSON.stringify({ t: epochs })],
+    ['a 20,000-element array under a phone key', JSON.stringify({ phones: epochs })],
+    ['a 20,000-number csv under a phone key', `{"phone":"${epochs.join(',')}"}`],
+    ['a 1 MB line of words and numbers', 'took 1234ms at 2026-10-12 to 3 of '.repeat(30_000)],
+    ['a 1 MB line of digits and spaces', '1234 '.repeat(210_000)],
+    ['a 1 MB line of one letter', 'a'.repeat(1_000_000)],
+  ];
+  it.each(cases)('%s redacts in well under 50 ms', (_name, line) => {
+    expect(bestOf(5, () => redactPhoneNumbers(line))).toBeLessThan(50);
+  });
+});
+
 describe('redactPhoneNumbers: every element of an array under a phone key', () => {
   it.each([
     [
@@ -231,7 +289,16 @@ describe('every way the agent logs (child process, real SDK logger)', () => {
     const out = `${r.stdout}\n${r.stderr}`;
     expect(r.status).toBe(0);
     expect(out).not.toContain('5555550123');
-    for (const line of ['sdk line', 'app line', 'console line', 'Participant ready']) {
+    for (const line of [
+      'sdk line',
+      'sdk structured line',
+      'sdk child line',
+      'app line',
+      'app structured line',
+      'app child line',
+      'console line',
+      'Participant ready',
+    ]) {
       expect(out).toContain(line);
     }
     expect(out.match(/sip_\*\*\*0123/g)?.length ?? 0).toBeGreaterThanOrEqual(4);

@@ -31,7 +31,7 @@
 import type { log } from '@livekit/agents';
 import pino from 'pino';
 
-import { redactLogDestination } from './log-redaction.js';
+import { redactLogDestination, redactPinoLogger } from './log-redaction.js';
 
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
@@ -198,12 +198,14 @@ function appStream(): pino.DestinationStream {
 }
 
 function appLogger(): pino.Logger {
-  appSink ??= pino(
-    {
-      level: process.env.LOG_LEVEL || 'info',
-      serializers: { error: pino.stdSerializers.err },
-    },
-    appStream()
+  appSink ??= redactPinoLogger(
+    pino(
+      {
+        level: process.env.LOG_LEVEL || 'info',
+        serializers: { error: pino.stdSerializers.err },
+      },
+      appStream()
+    )
   );
   return appSink;
 }

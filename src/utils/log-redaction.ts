@@ -5,24 +5,29 @@
  * reached the agent log in full from our own lines ("Participant ready", "Participant
  * left") and from the LiveKit SDK's (room_io `participantValue`), along with the
  * numbers in job metadata for calls made on someone's behalf. Fixing call sites can't
- * reach the SDK, so this sits under all of them: it rewrites what is written to
- * process.stdout and process.stderr, what the SDK's logger writes (its pretty printer
- * writes to fd 1 directly, past process.stdout), and our app sink's fd-2 SonicBoom
- * (safe-logger passes it through redactLogDestination).
+ * reach the SDK, so this sits under all of them, in two passes:
  *
- * What counts as a phone number. A log line is full of digit runs that are not phone
- * numbers (epoch ms, durations, sizes, dates, IPs, UUIDs), so a run of digits joined by
- * single separators (space, dot, dash, parens) is masked only when one of these holds:
+ * 1. Structured, while a log call's object is still an object (log-object-redaction.ts):
+ *    on our pino sink (safe-logger) and the LiveKit SDK's pino logger, the `log`
+ *    formatter and every child's bindings are walked once, and any value under a phone
+ *    key is masked, at any depth, in arrays, nested arrays and csv strings.
+ * 2. Text, as a backstop for what isn't an object (messages, console, the SDK's pretty
+ *    printer, raw writes): everything written to process.stdout, process.stderr, the
+ *    SDK logger's destination and our fd-2 SonicBoom is scanned once, linearly.
+ *
+ * What the text pass masks. A log line is full of digit runs that are not phone numbers
+ * (epoch ms, durations, sizes, dates, IPs, UUIDs), so a run of digits joined by single
+ * separators (space, dot, dash, parens) is masked only when one of these holds:
  * - it starts with "+" or "%2B" and has 8 to 15 digits (E.164; 7 with a phone context);
- * - it follows sip_, sip:, tel:, <Dial>, a dialling word ("dialing", "calling", "SMS
- *   from", "phone"), or a phone key, and has 7 to 15 digits. A phone key ends in phone,
- *   mobile, msisdn, e164, digits or number (contactPhone, user_phone, phones, Digits,
- *   fromNumber, to_number) or is caller/callee/recipient/destination/dest/tel and their
- *   Id/_number forms; callerLatencyMs is not one, and turnNumber: 3 is too short. Every
- *   element of a flat array under such a key counts ("phones":["…","…"]);
- * - it follows a to/from/number key and is a valid North American number (10 digits, or
- *   11 starting with 1, area code and exchange starting 2-9) or a 10-11 digit national
- *   number starting with 0, so `"from":1791797261` (epoch seconds) is left alone;
+ * - it follows sip_, sip:, tel:, whatsapp:, <Dial>, a URL path segment such as
+ *   /by-phone/ or /phones/, a phrase (phone, phone number, phone #, dialing, calling,
+ *   SMS from, mobile), or a phone key (the keys log-object-redaction.ts names, also
+ *   URL-encoded as phoneNumber%3D), and has 7 to 15 digits;
+ * - it follows a weak word or key (to, from, at, number) and is a valid phone number:
+ *   NANP (10 digits, or 11 starting with 1, area code and exchange starting 2-9) or a
+ *   10-11 digit national number starting with 0, so `"from":1791797261` is left alone;
+ * - it continues a list under such a context: the next element of a flat or nested
+ *   JSON array ("phones":["…","…"]) or of a csv value ("4155550123,4155550198");
  * - it is laid out like one: (415) 555-0123, 415-555-0123, 415.555.0123, 1-415-555-0123,
  *   1 415 555 0123 (valid NANP only), or a national number starting with 0 in 2 to 5
  *   groups totalling 10-11 digits (020 7946 0958, 01 23 45 67 89).
@@ -30,7 +35,9 @@
  * size or an id), and neither is "415 555 0123" without the leading 1 (it reads the same
  * as three buffer sizes). A run that joins several numbers is read group by group, so a
  * phone number inside a longer run is still found, and a number never takes more than
- * 15 digits. The last four digits stay, for debugging.
+ * 15 digits. Some ids are masked too (orderNumber: 12345678, "called 12345678 times"):
+ * over-masking is the safe side. The last four digits stay, for debugging. Mixed
+ * arrays in text ([{"n":"…"},"…"]) are left to the structured pass.
  *
  * Writes are redacted line by line: text after the last newline is held (at most a few
  * hundred chars, and only until the next write or 20 ms) so a number or its key split
@@ -40,77 +47,69 @@
  * What this does not cover: a child process with inherited stdio writes to the fd
  * directly, so it has to install this itself (the per-call job child imports
  * instrument.ts first; the voice worker, tool service, persona service, outreach
- * worker and Pub/Sub worker install it first thing). A worker thread's console goes through the main
- * thread's process.stdout and is covered; a worker thread that opens its own fd
- * destination is not (none does today). Native code writing to fd 1/2 is not covered.
+ * worker and Pub/Sub worker install it first thing). A worker thread's console goes
+ * through the main thread's process.stdout and is covered; a worker thread that opens
+ * its own fd destination is not (none does today). Native code writing to fd 1/2 is
+ * not covered.
  *
- * LOG_PHONE_REDACTION=off turns it off. It is read on every write, so it can also be
- * set in .env, which loads after the redaction is installed.
+ * LOG_PHONE_REDACTION=off turns it off. It is read on every write and log call, so it
+ * can also be set in .env, which loads after the redaction is installed.
  *
  * @module utils/log-redaction
  */
 
 import { StringDecoder } from 'node:string_decoder';
 
-const KEEP_DIGITS = 4;
-const MAX_DIGITS = 15;
+import {
+  maskDigits,
+  NO_CONTEXT,
+  type PhoneContext,
+  redactLogObject,
+  STRONG,
+  validWeak,
+  WEAK,
+} from './log-object-redaction.js';
 
-/** Digit groups joined by one separator; a "+" (or its URL encoding) may start it. */
-const RUN = /(?:\+|%2[Bb])?\(?\d+(?:(?:[ .-]\(?|\)[ .-]?|\()\d+)*/g;
+const MAX_DIGITS = 15;
 const GROUP = /\d+/g;
 
-/** Between a key and its value: a quote (maybe escaped), ":" or "=", an array's "[". */
-const KEY_TAIL = String.raw`(?:\\?["'])?\s*[:=]\s*\[?\s*(?:\\?["'])?`;
+/** Digit groups joined by one separator; a "+" (or its URL encoding) may start it. */
+const RUN = String.raw`(?:\+|%2B)?\(?\d+(?:(?:[ .-]\(?|\)[ .-]?|\()\d+)*`;
+/** Between a key and its value: a quote (maybe escaped), ":" or "=" (or %3D), array "["s. */
+const KEY_TAIL = String.raw`(?:\\?["'])?[ \t]{0,3}(?:[:=]|%3D)[ \t]{0,3}(?:\[[ \t]{0,3}){0,3}(?:\\?["'])?`;
+/** Phone keys, matched from their phone word so a camelCase prefix needs no scan (see log-object-redaction.ts). */
+const PHONE_KEY = String.raw`(?:(?:phone|mobile|msisdn|e164|digits|caller|callee|recipient|destination|called|forwardedfrom|calledfrom|callto|callfrom|whatsapp|telephone)(?:s|_?numbers?|_?nums?|_?nos?|_?ids?|_?values?)?|(?<![a-z])(?:dest|tel|cell)|[a-z0-9]_?numbers?)`;
+const PHRASE = String.raw`(?<![a-z])(?:phone(?:[ \t]{1,3}(?:number|num|no\.?))?|dial(?:s|ed|ing)?|call(?:s|ed|ing)?|text(?:s|ed|ing)?|sms|fax|mobile|cell|whatsapp)(?:[ \t]{1,3}(?:to|from|on|at))?(?:[ \t]{0,3}#[ \t]{0,2}|:[ \t]{0,2}|[ \t]{1,3})`;
+const STRONG_PREFIX = String.raw`sip[_:]|tel:|whatsapp:|<(?:dial|number|sms)>|/(?:by-)?(?:phones?|numbers?|msisdn|tel|callers?|callees?|recipients?|contacts?)/|${PHONE_KEY}${KEY_TAIL}|${PHRASE}`;
+const WEAK_PREFIX = String.raw`(?<![a-z])(?:(?:to|from|number|num)${KEY_TAIL}|(?:to|at|from)[ \t]{1,3})`;
 /**
- * Phone keys: any key ending in phone/mobile/msisdn/e164/digits (contactPhone,
- * user_phone, phones, Digits), or in number (fromNumber, to_number; "number" alone is
- * a weak key), plus caller/callee/recipient/destination and their _number/Id forms.
- * callerLatencyMs is not one. Only runs of 7+ digits are ever masked, so turnNumber: 3
- * stays, but a non-phone *Number key holding 7-15 digits (sequenceNumber: 12345678) is
- * masked too: over-masking an id is the safe side.
+ * One linear scan for runs. A run shorter than 7 chars can't hold a phone number and is
+ * skipped by the first lookahead, unless it opens an array (it may start a list of
+ * phone numbers); the context is a lookbehind with only bounded quantifiers, tried only
+ * where a run starts.
  */
-const PHONE_KEY = String.raw`(?:\w*?(?:phone|mobile|msisdn|e164|digits)(?:_?(?:number|num|no|id)|s)?|\w+?_?number|(?:caller|callee|recipient|destination)(?:_?(?:num|no|id))?|dest|tel|telephone|cell)`;
-const STRONG_CONTEXT = new RegExp(
-  String.raw`(?:sip[_:]|tel:|<(?:dial|number|sms)>|(?<!\w)(?:dial(?:s|ed|ing)?|call(?:s|ed|ing)?|text(?:s|ed|ing)?|sms|fax|phone|mobile)\s+(?:(?:to|from|on|at)\s+)?` +
-    String.raw`|(?<!\w)${PHONE_KEY}${KEY_TAIL})$`,
-  'i'
+const TEXT = new RegExp(
+  // A run starts here; it is long enough or opens an array; a context ends in one of
+  // these chars, so the context lookbehinds run only then. An empty last alternative,
+  // not "?": a quantified group may not match empty, so its captures would never be set.
+  `(?=[+%(\\d])(?:(?=.[\\d+%().\\- Bb]{6})|(?<=\\[[ \\t]{0,3}(?:\\\\?["'])?))` +
+    `(?:(?<=[_:"'=\\s>/#[Dd])(?:(?<=(${STRONG_PREFIX}))|(?<=(${WEAK_PREFIX})))|)(${RUN})`,
+  'gi'
 );
-const WEAK_CONTEXT = new RegExp(String.raw`(?<!\w)(?:to|from|number|num)${KEY_TAIL}$`, 'i');
-/** A context ends in one of these, so most runs skip the context regexes. */
-const CONTEXT_END = /[_:"'=\s[>,]$/;
-/** Between two elements of an array: a comma, maybe quotes (escaped or not). */
-const ARRAY_NEXT = /,\s*(?:\\?["'])?$/;
-/** How far back the "[" of an array of phone numbers may be. */
-const ARRAY_LOOKBACK = 512;
 
-/**
- * For a later element of a flat array ("phones":["…","…"]), the text up to and
- * including the array's "[", so its key is the context; otherwise `before`.
- */
-function arrayContext(text: string, offset: number, before: string): string {
-  if (!ARRAY_NEXT.test(before)) return before;
-  const open = text.lastIndexOf('[', offset);
-  if (open < 0 || offset - open > ARRAY_LOOKBACK) return before;
-  const elements = text.slice(open + 1, offset);
-  if (/[\]{}]/.test(elements)) return before;
-  return text.slice(Math.max(0, open - 40), open + 1);
+// Layouts, matched in place in the run (sticky) so a long run is never re-sliced
+const NANP_PAREN = /\(\d{3}\) ?\d{3}[ .-]\d{4}(?!\d)/y;
+const NANP_SEP = /\d{3}[.-]\d{3}[.-]\d{4}(?!\d)/y;
+const NANP_CC = /1[ .-]?(?:\(\d{3}\)[ .-]?|\d{3}[ .-])\d{3}[ .-]\d{4}(?!\d)/y;
+const NATIONAL = /0\d{1,4}(?:[ -]\d{2,6}){1,4}(?!\d)/y;
+
+function matchAt(re: RegExp, run: string, at: number): string | undefined {
+  re.lastIndex = at;
+  return run.match(re)?.[0];
 }
 
-const NANP_PAREN = /^\(\d{3}\) ?\d{3}[ .-]\d{4}(?!\d)/;
-const NANP_SEP = /^\d{3}[.-]\d{3}[.-]\d{4}(?!\d)/;
-const NANP_CC = /^1[ .-]?(?:\(\d{3}\)[ .-]?|\d{3}[ .-])\d{3}[ .-]\d{4}(?!\d)/;
-const NATIONAL = /^0\d{1,4}(?:[ -]\d{2,6}){1,4}(?!\d)/;
-
-function validNanp(digits: string): boolean {
-  const d = digits.length === 11 && digits[0] === '1' ? digits.slice(1) : digits;
-  return d.length === 10 && d[0] >= '2' && d[3] >= '2';
-}
-
-/** Under a to/from/number key, which also hold timestamps and counts. */
-function validWeak(digits: string, plus: boolean): boolean {
-  if (plus) return digits.length >= 7;
-  if (digits[0] === '0') return digits.length === 10 || digits.length === 11;
-  return validNanp(digits);
+function validNanpLayout(digits: string): boolean {
+  return validWeak(digits, false) && digits[0] !== '0';
 }
 
 interface Group {
@@ -147,16 +146,34 @@ function takeNumber(run: string, groups: Group[], i: number): number {
   return count;
 }
 
+/** Whether group i can start a layout at all: "(", "1", a leading 0, or ddd then "." or "-". */
+function mayStartLayout(run: string, groups: Group[], i: number): boolean {
+  const g = groups[i];
+  const next = run[g.end];
+  return (
+    run[g.start - 1] === '(' ||
+    g.digits === '1' ||
+    g.digits[0] === '0' ||
+    (g.digits.length === 3 && (next === '.' || next === '-'))
+  );
+}
+
 /** How many groups from i form a number laid out like a phone number (0 if none). */
 function shapedNumber(run: string, groups: Group[], i: number): number {
-  const rest = run.slice(groupStart(run, groups, i));
+  if (!mayStartLayout(run, groups, i)) return 0;
+  const at = groupStart(run, groups, i);
   const m =
-    rest.match(NANP_PAREN) ?? rest.match(NANP_SEP) ?? rest.match(NATIONAL) ?? rest.match(NANP_CC);
-  if (!m) return 0;
-  const digits = m[0].replace(/\D/g, '');
-  if (m[0].startsWith('0') && digits.length !== 10 && digits.length !== 11) return 0;
-  if (m[0].startsWith('1') && !NANP_SEP.test(rest) && !validNanp(digits)) return 0;
-  return m[0].match(GROUP)?.length ?? 0;
+    matchAt(NANP_PAREN, run, at) ??
+    matchAt(NANP_SEP, run, at) ??
+    matchAt(NATIONAL, run, at) ??
+    matchAt(NANP_CC, run, at);
+  if (m === undefined) return 0;
+  const digits = m.replace(/\D/g, '');
+  if (m.startsWith('0') && digits.length !== 10 && digits.length !== 11) return 0;
+  if (m.startsWith('1') && matchAt(NANP_SEP, run, at) === undefined && !validNanpLayout(digits)) {
+    return 0;
+  }
+  return m.match(GROUP)?.length ?? 0;
 }
 
 function digitsOf(groups: Group[], i: number, count: number): string {
@@ -165,62 +182,106 @@ function digitsOf(groups: Group[], i: number, count: number): string {
   return d;
 }
 
-/** Whether the text before a run makes it a phone number (strong) or maybe one (weak). */
-function contextKind(text: string, offset: number, before: string): 'strong' | 'weak' | null {
-  if (!CONTEXT_END.test(before)) return null;
-  const context = arrayContext(text, offset, before);
-  if (STRONG_CONTEXT.test(context)) return 'strong';
-  return WEAK_CONTEXT.test(context) ? 'weak' : null;
-}
-
-/** How many groups at the start of the run are a number, given what precedes it. */
-function leadingNumber(text: string, run: string, offset: number, groups: Group[]): number {
+/** How many groups at the start of the run are a number, given its context. */
+function leadingNumber(
+  run: string,
+  groups: Group[],
+  ctx: PhoneContext,
+  afterWord: boolean
+): number {
   const plus = run[0] === '+' || run[0] === '%';
-  const before = text.slice(Math.max(0, offset - 40), offset);
-  const kind = contextKind(text, offset, before);
-  const strong = kind === 'strong';
-  const weak = kind === 'weak';
-  if (plus || strong || weak) {
+  if (plus || ctx !== NO_CONTEXT) {
     const count = takeNumber(run, groups, 0);
     const digits = digitsOf(groups, 0, count);
+    const min = plus && ctx === NO_CONTEXT ? 8 : 7;
     const ok =
       digits.length <= MAX_DIGITS &&
-      (weak ? validWeak(digits, plus) : digits.length >= (plus && !strong ? 8 : 7));
+      (ctx === WEAK ? validWeak(digits, plus) : digits.length >= min);
     if (ok) return count;
   }
-  if (plus || /\w$/.test(before)) return 0;
+  if (plus || afterWord) return 0;
   return shapedNumber(run, groups, 0);
 }
 
-/** Redacts one run of digit groups found at `offset` in `text`. */
-function redactRun(text: string, run: string, offset: number): string {
+/** Redacts one run of digit groups. */
+function redactRun(run: string, ctx: PhoneContext, afterWord: boolean): string {
+  // %2B is a URL-encoded "+": its 2 isn't a digit of the number
   const groups: Group[] = [];
   for (const g of run.matchAll(GROUP)) {
+    if (g.index === 1 && run[0] === '%') continue;
     groups.push({ start: g.index, end: g.index + g[0].length, digits: g[0] });
   }
   let out = '';
   let cursor = 0;
   let i = 0;
   while (i < groups.length) {
-    const count = i === 0 ? leadingNumber(text, run, offset, groups) : shapedNumber(run, groups, i);
+    const count =
+      i === 0 ? leadingNumber(run, groups, ctx, afterWord) : shapedNumber(run, groups, i);
     if (count === 0) {
       i++;
       continue;
     }
-    const digits = digitsOf(groups, i, count);
-    out += `${run.slice(cursor, groupStart(run, groups, i))}***${digits.slice(-KEEP_DIGITS)}`;
+    out += run.slice(cursor, groupStart(run, groups, i)) + maskDigits(digitsOf(groups, i, count));
     cursor = groups[i + count - 1].end;
     i += count;
   }
   return cursor === 0 ? run : out + run.slice(cursor);
 }
 
-/** Masks phone numbers in free text, keeping their last four digits. */
+/** A context that carries to the next run while only list punctuation lies between them. */
+interface Carry {
+  ctx: PhoneContext;
+  /** How many arrays deep the run is; 0 for a scalar (a csv string). */
+  depth: number;
+  array: boolean;
+}
+
+const MAX_GAP = 64;
+/** What may lie between two elements of a list, short elements ("123") included. */
+const GAP_CHARS = new Set(' \t"\'\\0123456789.-+');
+
+/** Whether the text between two runs keeps `carry` going: the next element of the same list. */
+function continues(carry: Carry, text: string, from: number, to: number): boolean {
+  if (to - from > MAX_GAP || to === from) return false;
+  let comma = false;
+  for (let i = from; i < to; i++) {
+    const c = text[i];
+    if (c === ',' || c === ';') comma = true;
+    else if (c === '[') carry.depth++;
+    else if (c === ']') {
+      carry.depth--;
+      if (!carry.array || carry.depth <= 0) return false;
+    } else if (!GAP_CHARS.has(c)) return false;
+  }
+  return comma;
+}
+
+function countBrackets(prefix: string): number {
+  let n = 0;
+  for (const c of prefix) if (c === '[') n++;
+  return n;
+}
+
+/** Masks phone numbers in free text, keeping their last four digits. One linear scan. */
 export function redactPhoneNumbers(text: string): string {
-  // A phone number has at least 7 digits, so a shorter run can't hold one
-  return text.replace(RUN, (run: string, offset: number) =>
-    run.length < 7 ? run : redactRun(text, run, offset)
-  );
+  let carry: Carry | undefined;
+  let lastEnd = -1;
+  return text.replace(TEXT, (run: string, strong?: string, weak?: string, ...rest: unknown[]) => {
+    const offset = rest[1] as number;
+    const prefix = strong ?? weak;
+    let ctx: PhoneContext = strong !== undefined ? STRONG : weak !== undefined ? WEAK : NO_CONTEXT;
+    if (prefix !== undefined) {
+      const depth = countBrackets(prefix);
+      carry = { ctx, depth, array: depth > 0 };
+    } else if (carry && continues(carry, text, lastEnd, offset)) {
+      ({ ctx } = carry);
+    } else {
+      carry = undefined;
+    }
+    lastEnd = offset + run.length;
+    const before = text[offset - 1];
+    return redactRun(run, ctx, before !== undefined && /\w/.test(before));
+  });
 }
 
 function redactionOff(): boolean {
@@ -231,15 +292,16 @@ function redactionOff(): boolean {
 const HOLD_MAX = 512;
 const HOLD_TAIL = 64;
 const HOLD_MS = 20;
-const TRAILING_RUN = /[\d+%().\s-]*$/;
+const RUN_CHARS = new Set('0123456789+%(). \t-');
 
 /** Where the part of `text` to hold back for the next write starts. */
 function holdFrom(text: string): number {
   if (text.endsWith('\n')) return text.length;
   const lineStart = text.lastIndexOf('\n') + 1;
   if (text.length - lineStart <= HOLD_MAX) return lineStart;
-  const run = text.match(TRAILING_RUN)?.[0].length ?? 0;
-  return Math.max(lineStart, text.length - run - HOLD_TAIL);
+  let runStart = text.length;
+  while (runStart > lineStart && RUN_CHARS.has(text[runStart - 1])) runStart--;
+  return Math.max(lineStart, runStart - HOLD_TAIL);
 }
 
 const flushers = new Set<() => void>();
@@ -327,7 +389,7 @@ export function redactWrites(target: unknown): void {
 
 /** Redacts a log destination (safe-logger's fd-2 SonicBoom) once this process installed the redaction. */
 export function redactLogDestination<T>(stream: T): T {
-  if ((globalThis as Record<symbol, unknown>)[REDACTING] === true) redactWrites(stream);
+  if (installed()) redactWrites(stream);
   return stream;
 }
 
@@ -338,6 +400,48 @@ function pinoDestination(logger: unknown): unknown {
   return key ? (logger as Record<symbol, unknown>)[key] : undefined;
 }
 
+function installed(): boolean {
+  return (globalThis as Record<symbol, unknown>)[REDACTING] === true;
+}
+
+function pinoSymbol(logger: object, description: string): symbol | undefined {
+  return Object.getOwnPropertySymbols(logger).find((s) => s.description === description);
+}
+
+type LogFormatter = (obj: Record<string, unknown>) => Record<string, unknown>;
+interface PinoLike {
+  child: (bindings: Record<string, unknown>, options?: unknown) => unknown;
+  [key: symbol]: unknown;
+}
+
+/**
+ * Masks phone numbers in a pino logger's log objects and child bindings, where they are
+ * still objects (log-object-redaction.ts), once this process installed the redaction.
+ * Its `log` formatter is wrapped, which children inherit; children reset the bindings
+ * formatter, so `child` is wrapped instead, on the root, where children find it too.
+ */
+export function redactPinoLogger<T>(logger: T): T {
+  if (!installed() || typeof logger !== 'object' || logger === null) return logger;
+  const l = logger as unknown as PinoLike;
+  const key = pinoSymbol(l, 'pino.formatters');
+  if (!key || l[REDACTING] === true || typeof l.child !== 'function') return logger;
+  const formatters = l[key] as { log?: LogFormatter };
+  const { log } = formatters;
+  l[key] = {
+    ...formatters,
+    log: (obj: Record<string, unknown>) => {
+      const out = log ? log(obj) : obj;
+      return redactionOff() ? out : redactLogObject(out);
+    },
+  };
+  const { child } = l;
+  l.child = function redactedChild(this: unknown, bindings, options) {
+    return child.call(this, redactionOff() ? bindings : redactLogObject(bindings), options);
+  };
+  l[REDACTING] = true;
+  return logger;
+}
+
 const SDK_LOGGER = Symbol.for('@livekit/agents:logger');
 
 /** Redacts the SDK logger now and every time initializeLogger replaces it. */
@@ -345,6 +449,7 @@ function redactSdkLogger(): void {
   const g = globalThis as Record<symbol, unknown>;
   let current = g[SDK_LOGGER];
   redactWrites(pinoDestination(current));
+  redactPinoLogger(current);
   Object.defineProperty(g, SDK_LOGGER, {
     configurable: true,
     enumerable: false,
@@ -352,6 +457,7 @@ function redactSdkLogger(): void {
     set: (logger: unknown) => {
       current = logger;
       redactWrites(pinoDestination(logger));
+      redactPinoLogger(logger);
     },
   });
 }
