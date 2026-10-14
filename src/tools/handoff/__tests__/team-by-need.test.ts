@@ -71,6 +71,7 @@ describe('a brand-new free caller, TEAM_BY_NEED=on', () => {
     const orchestrator = {
       isHandoffInProgress: () => false,
       getCurrentPersonaId: () => 'ferni',
+      getActiveAgent: () => null,
       handoff,
     } as unknown as Parameters<typeof handleHandoffFromDataChannel>[0];
     const services = {

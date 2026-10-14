@@ -1,8 +1,8 @@
-// node --test design-system/generate-sequences.test.js
+// pnpm vitest run --config vitest.config.unit.ts design-system/
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { test } from 'node:test';
+import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import { generate } from './generate-sequences.js';
 

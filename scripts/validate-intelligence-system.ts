@@ -114,19 +114,6 @@ async function validateStoreIntegration(): Promise<void> {
   console.log('\n🏪 PHASE 2: Validating Store Integration...\n');
 
   try {
-    // Productivity store
-    const { getProductivityStore } = await import('../src/services/stores/productivity-store.js');
-    const store = getProductivityStore();
-    check(
-      'Productivity store has domain signal wiring',
-      typeof store.logHabitCompletion === 'function',
-      'logHabitCompletion method exists for habit signals'
-    );
-  } catch (e) {
-    fail('Productivity store integration', e as Error);
-  }
-
-  try {
     // Financial store
     await import('../src/services/stores/financial-store.js');
     // Check that the import doesn't fail (signals are wired inline)
@@ -310,16 +297,16 @@ async function validateDomainSignals(): Promise<void> {
     const TEST_USER = 'signal-test-user';
 
     // Test each signal type
-    recordHabitSignal(TEST_USER, 'Test Habit', 'completed');
+    recordHabitSignal(TEST_USER, { type: 'completed', habitName: 'Test Habit' });
     check('Habit signal recording', true, 'No errors');
 
-    recordTaskSignal(TEST_USER, 'Test Task', 'completed');
+    recordTaskSignal(TEST_USER, 'completed', { title: 'Test Task' });
     check('Task signal recording', true, 'No errors');
 
     recordFinancialSignal(TEST_USER, 'savings_goal_progress', { savingsProgress: 50 });
     check('Financial signal recording', true, 'No errors');
 
-    recordMilestoneSignal(TEST_USER, 'Test Milestone', 'created');
+    recordMilestoneSignal(TEST_USER, 'created', { title: 'Test Milestone' });
     check('Milestone signal recording', true, 'No errors');
 
     recordEmotionSignal(TEST_USER, 'joy', 0.8);

@@ -15,6 +15,8 @@
  * @module memory/recall/session-recall
  */
 import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
+import { MIN_WEIGHTED_OVERLAP, rareWordsEnabled, weighWords } from './rare-words.js';
+export { rareWordsEnabled } from './rare-words.js';
 
 import { flagOn } from '../../config/env-flag.js';
 
@@ -25,6 +27,9 @@ export interface RecallFact {
   confidence: number;
   /** When it was extracted (ISO), so Ferni knows how old the memory is. */
   extractedAt?: string;
+  /** The extractor's kind (relationship, event, state...) and when it holds ("next week"). */
+  factType?: string;
+  temporalContext?: string;
   /** When a newer fact replaced it (fact-supersession.ts): how things were, not how they are. */
   supersededAt?: string;
 }
@@ -33,6 +38,8 @@ export interface RecallSnapshot {
   facts: RecallFact[];
   /** Open threads from recent sessions ("ask how the vet visit went"). */
   followUps: string[];
+  /** With RECALL_RARE_WORDS=on: how much a shared word counts (rareWordWeights). */
+  wordWeights?: ReadonlyMap<string, number>;
   /** Bits that were genuinely funny between them on recent calls (summaries' insideJokes). */
   insideJokes?: string[];
 }
@@ -103,6 +110,11 @@ export function dedupeFacts(facts: RecallFact[]): RecallFact[] {
     }
   }
   return [...best.values()];
+}
+
+/** Rarity weights for the caller's facts (rare-words.ts, RECALL_RARE_WORDS). */
+export function rareWordWeights(facts: readonly RecallFact[]): Map<string, number> | undefined {
+  return weighWords(facts, contentWords);
 }
 
 /** Words that say nothing about what to forget: "forget what I said about that". */
@@ -234,8 +246,9 @@ export function recallForTurn(
     const named = !SELF_ENTITY.test(fact.entity) && mentions(userText, fact.entity);
     let overlap = 0;
     for (const w of contentWords(`${fact.entity} ${fact.key} ${fact.value}`)) {
-      if (words.has(w)) overlap++;
+      if (words.has(w)) overlap += snapshot.wordWeights?.get(w) ?? 1;
     }
+    if (snapshot.wordWeights && overlap < MIN_WEIGHTED_OVERLAP) overlap = 0;
     const margin = blend?.semantic.get(id) ?? 0;
     if (!named && (blend?.namedOnly || (overlap === 0 && margin === 0))) continue;
     let score = (named ? 2 : 0) + overlap * 0.5 + fact.confidence * 0.5;
@@ -437,6 +450,8 @@ export async function loadRecallSnapshot(
         value: String(d.value ?? ''),
         confidence: confidenceOf(d.confidence),
         ...(typeof d.extractedAt === 'string' ? { extractedAt: d.extractedAt } : {}),
+        ...(typeof d.factType === 'string' ? { factType: d.factType } : {}),
+        ...(typeof d.temporalContext === 'string' ? { temporalContext: d.temporalContext } : {}),
         ...(typeof d.supersededAt === 'string' ? { supersededAt: d.supersededAt } : {}),
       }))
       .filter((f) => f.confidence >= MIN_RECALL_CONFIDENCE)
@@ -463,5 +478,10 @@ export async function loadRecallSnapshot(
     }
     if (insideJokes.length >= MAX_INSIDE_JOKES) break;
   }
-  return { facts, followUps, insideJokes };
+  return {
+    facts,
+    followUps,
+    insideJokes,
+    ...(rareWordsEnabled() && { wordWeights: rareWordWeights(facts) }),
+  };
 }

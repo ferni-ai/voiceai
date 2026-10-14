@@ -135,7 +135,7 @@ const EVIDENCE_WORDS: Record<string, string> = {
 };
 
 /** The tool result for one checked pick: guard line, one JSON data field, what to do. */
-export function pickResultText(topic: string, pick: Pick, sensitive = false): string {
+export function pickResultText(topic: string, pick: Pick, sensitive = false, because = ''): string {
   const c = pick.candidate;
   const title = webData(c.title, MAX_TITLE_CHARS);
   const why = webData(pick.verdict.why, MAX_SUMMARY_CHARS).text;
@@ -150,6 +150,8 @@ export function pickResultText(topic: string, pick: Pick, sensitive = false): st
       host: hostOf(c.url),
       evidence: EVIDENCE_WORDS[pick.verdict.evidence],
       why,
+      // From their own past answers (taste.ts), so Ferni can say why it suits them.
+      because: because || null,
     },
   };
   const lines = [WEB_DATA_GUARD, `web_data: ${JSON.stringify(data)}`];

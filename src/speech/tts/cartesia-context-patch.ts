@@ -141,7 +141,7 @@ export interface CartesiaContextOptions {
  * ```typescript
  * const contextOptions = getCartesiaContextOptions(sessionId);
  * const tts = new cartesia.TTS({
- *   model: 'sonic-3',
+ *   model: CARTESIA_MODEL,
  *   voice: voiceId,
  *   ...contextOptions, // Adds context_id if available
  * });

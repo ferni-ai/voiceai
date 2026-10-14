@@ -17,6 +17,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  COACH_MEDIA_COMMITMENT_PREFIX,
+  classifyHelpfulness,
+  recordFollowUpAsked,
+} from '../coach-media/feedback.js';
 
 const log = createLogger({ module: 'CommitmentFollowThrough' });
 
@@ -74,6 +79,14 @@ export function classifyFollowUpAnswer(
   return null;
 }
 
+/** A sent coaching pick is answered with "it helped" / "didn't help" as well (coach-media/feedback.ts). */
+function answerOutcome(id: string, text: string): Exclude<FollowUpOutcome, 'unanswered'> | null {
+  const generic = classifyFollowUpAnswer(text);
+  if (generic || !id.startsWith(COACH_MEDIA_COMMITMENT_PREFIX)) return generic;
+  const helped = classifyHelpfulness(text);
+  return helped === null ? null : helped === 'no' ? 'not_done' : 'done';
+}
+
 async function commitmentDoc(
   userId: string,
   commitmentId: string
@@ -127,6 +140,7 @@ export async function noteAskedFollowUps(
       followUpCount: 1,
       lastMentioned: at,
     });
+    await recordFollowUpAsked(userId, id, at);
     askedNow.push(id);
     log.info({ userId, commitmentId: id }, 'Asked how a commitment went');
   }
@@ -171,7 +185,7 @@ export async function settleAwaitingAnswers(
     if (!c.awaitingAnswer) continue;
     const askedAt = c.followUpAskedAt ? new Date(c.followUpAskedAt).getTime() : 0;
     const outcome: FollowUpOutcome | null =
-      now - askedAt > ANSWER_WINDOW_MS ? 'unanswered' : classifyFollowUpAnswer(userText);
+      now - askedAt > ANSWER_WINDOW_MS ? 'unanswered' : answerOutcome(c.id, userText);
     if (outcome === null) continue; // not an answer yet; the window decides
     const at = new Date(now).toISOString();
     await (

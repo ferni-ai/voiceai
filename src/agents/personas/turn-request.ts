@@ -33,13 +33,18 @@ import {
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
+import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { noteReminder } from '../shared/turn-receipt.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
+import { beatNote, priorCallsOf } from './personal-beats.js';
 import { roomGuestsNote } from './room-guests.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
+import { honestFriendNote } from './honest-friend.js';
+import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
@@ -52,6 +57,7 @@ import {
   understandingMode,
   understandingStatusFor,
 } from './turn-understanding.js';
+import { getWrapUp } from './wrap-up.js';
 import {
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
@@ -87,7 +93,7 @@ const sessionIdOf = (userData: unknown): string | undefined =>
 export function withTurnReminder(
   request: llm.ChatContext,
   session: object,
-  options: { shape?: boolean } = {}
+  options: { shape?: boolean; closeLoop?: boolean } = {}
 ): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
@@ -96,7 +102,10 @@ export function withTurnReminder(
   // Nothing steers back to a locked teammate the caller didn't just name.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
-  const notes = formatNotes((director?.current() ?? []).filter(keep));
+  const offered = director?.current() ?? [];
+  // DIRECTOR_ANSWER_TURN_GUARD=on: notes written before they answered Ferni's question are stale.
+  const answering = isAnswerTurn(chatCtx.items, words);
+  const notes = answering ? '' : formatNotes(offered.filter(keep));
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
@@ -110,10 +119,17 @@ export function withTurnReminder(
     // "Naya" in the transcript is Nayan (teammate-names.ts)
     heardTeammateNote(words),
     notes,
+    options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
     state.note,
+    // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
+    beatNote({
+      said: words,
+      priorCalls: priorCallsOf((session as { userData?: unknown }).userData),
+      careful: options.shape === false,
+    }),
     // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
     firstCallNote(chatCtx, session, words),
     // ROOM_GUESTS=on: someone else is in the room on the same mic (room-guests.ts)
@@ -124,20 +140,45 @@ export function withTurnReminder(
     }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
+    // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
+    honestFriendNote(chatCtx, words, { careful: options.shape === false }),
     turnStyleReminderEnabled()
-      ? styleFor(chatCtx, session, options.shape !== false, state.ownStory)
+      ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
       : '',
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
+    // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
+    // self-share so "no stories of your own" wins for a tired caller. No length (TURN_LENGTH's).
+    attunementNote(chatCtx, session, { careful: options.shape === false }),
     // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
     // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),
+    // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
+    // for this reply, last of all; never with crisis guidance.
+    options.shape !== false ? (director?.hardRule?.() ?? '') : '',
   ]
     .filter(Boolean)
     .join(' ');
+  // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
+  noteReminder(session, {
+    reminder,
+    directorNotes: notes,
+    offered: offered.length,
+    droppedIdx: offered.flatMap((note, i) => (!answering && keep(note) ? [] : [i])),
+  });
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+}
+
+/**
+ * WRAP_UP=on: the caller is signing off after something was settled, so the
+ * goodbye closes the loop (wrap-up.ts). Read in code, nothing awaited.
+ */
+function closeLoopNote(session: object, words: string): string {
+  const wrapUp = getWrapUp(session);
+  if (!wrapUp || !words) return '';
+  return wrapUp.noteFor(words, understandingFor(session, words)?.wantsToEnd === true);
 }
 
 /**
@@ -215,27 +256,26 @@ function styleFor(
   chatCtx: llm.ChatContext,
   session: object,
   shape: boolean,
-  ownStory?: boolean
+  ownStory?: boolean,
+  answering = false
 ): string {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return TURN_STYLE_REMINDER;
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
+  const held = withSupportHold(session, said, signals, source);
+  const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
   const turn = turnShapeFor(
     said,
     rngFor(`${callSeed(session)}:${said}`),
     undefined,
-    withRecent(
-      withOwnStory(withSupportHold(session, said, signals, source), said, ownStory),
-      said,
-      chatCtx
-    )
+    withRecent(withOwnStory(sig, said, ownStory), said, chatCtx)
   );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
   log.info(
-    { move: turn.move, shape: turn.shape, extras: turn.extras, source, understood },
+    { move: turn.move, shape: turn.shape, extras: turn.extras, source, understood, answering },
     'TURN_SHAPE'
   );
   return turn.reminder;

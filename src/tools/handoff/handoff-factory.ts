@@ -448,10 +448,9 @@ export async function buildHandoffTools(
       }),
       execute: async ({ reason, context_summary }, runContext) => {
         // The unlock check needs the RUNTIME profile ({ ctx: { userData } }); build time may lack it.
-        // 🐛 FIX BUG-008: Include recentMessages and conversationTopics in type for clearing
+        // 🐛 FIX BUG-008: conversationTopics is in the type so it can be cleared
         interface RuntimeUserData {
           services?: { userProfile?: UserProfile | null; sessionId?: string };
-          recentMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
           conversationTopics?: string[];
           lastEmotionAnalysis?: { primary: string; intensity: number };
           voiceEmotion?: {
@@ -488,7 +487,6 @@ export async function buildHandoffTools(
         // This ensures the receiving persona gets cognitive context about the user
         const emotionalState = userData?.lastEmotionAnalysis?.primary || 'neutral';
         const topics = userData?.conversationTopics || [];
-        const recentMessages = userData?.recentMessages || [];
         const sessionId = userData?.services?.sessionId;
 
         // Extract voice emotion for better-than-human entrance adaptation
@@ -511,7 +509,6 @@ export async function buildHandoffTools(
           // Pass conversation context for cognitive handoff
           emotionalState,
           topics,
-          recentMessages,
           sessionId,
           // Pass voice emotion for better-than-human entrance adaptation
           voiceEmotion,
@@ -520,7 +517,6 @@ export async function buildHandoffTools(
         // 🐛 FIX BUG-008: Clear stale conversation context after successful handoff
         // Without this, the new persona would see messages from the previous persona's conversation
         if (result.success && userData) {
-          userData.recentMessages = [];
           userData.conversationTopics = [];
           // Note: We preserve lastEmotionAnalysis as it's useful context for the new persona
         }

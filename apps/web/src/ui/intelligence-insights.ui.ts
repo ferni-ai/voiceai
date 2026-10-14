@@ -111,7 +111,7 @@ const STYLES = `
 
   .intelligence-insights__suggestion-cta {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
     border-radius: var(--radius-md);
     padding: var(--space-2) var(--space-3);

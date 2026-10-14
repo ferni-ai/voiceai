@@ -5,6 +5,8 @@
  * ceremony, the Disconnect button or a dropped call. The avatar's face goes
  * back to neutral, the quick actions come back, and the after-call card (the
  * cost card when its flag is off) appears once for the call that just ended.
+ * With call wrap-up on, every end also tells the ritual engine, speaker cues
+ * and game board (`ferni:disconnected`) and holds toasts past the card.
  */
 
 import { DURATION } from '../config/animation-constants.js';
@@ -12,6 +14,8 @@ import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { engagementTriggerUI } from '../ui/engagement-trigger.ui.js';
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
 import { createLogger } from '../utils/logger.js';
+import { holdToastsPastCard } from './call-end-paths.js';
+import { isCallWrapUpEnabled } from '../config/call-wrap-up-flag.js';
 
 const log = createLogger('CallEnd');
 
@@ -55,6 +59,11 @@ export function onCallEnded(): void {
 
   if (!callLive) return;
   callLive = false;
+  if (isCallWrapUpEnabled()) {
+    // Once per call, like `ferni:connected`, which a hang-up never answered before.
+    document.dispatchEvent(new CustomEvent('ferni:disconnected'));
+    holdToastsPastCard();
+  }
   cardTimer = setTimeout(() => {
     cardTimer = null;
     void showPostCall();
