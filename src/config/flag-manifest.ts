@@ -87,7 +87,7 @@ export const FLAG_MANIFEST = {
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // after-call date extraction into world_facts, and the in-call date note
+  // after-call date extraction into world_facts (nothing reads them in a call yet)
   DATES_THAT_MATTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   DEBUG_AGENT: { default: 'off', owner: 'voice', kind: 'config' },
   DEBUG_BUILDER_PRIORITIZATION: { default: 'off', owner: 'intelligence', kind: 'config' },

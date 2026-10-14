@@ -43,6 +43,23 @@ describe('planDates', () => {
     expect(planDates([surgery('past', '2026-09-01')], [moved], ids).close).toEqual([]);
   });
 
+  it("never lets a one-time date (her birthday party) replace a person's yearly birthday", () => {
+    const party = obs({ value: 'birthday party', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-17' }); // prettier-ignore
+    const plan = planDates([fact()], [party], ids);
+    expect(plan.close).toEqual([]);
+    expect((plan.create as DateFact[]).map((f) => [f.value, f.recurrence])).toEqual([
+      ['birthday party', 'once'],
+    ]);
+  });
+
+  it("reads 'still ahead' on the caller's own day, not the UTC one", () => {
+    // 21:00 Sunday Oct 11 in New York is 01:00 Monday Oct 12 UTC; the surgery is today, local.
+    const today = fact({ id: 'today', value: 'knee surgery', kind: 'medical', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-11' }); // prettier-ignore
+    const moved = obs({ value: 'surgery', kind: 'medical', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-16', observedAt: '2026-10-12T01:00:00.000Z' }); // prettier-ignore
+    expect(planDates([today], [moved], ids, '2026-10-11').close.map((c) => c.id)).toEqual(['today']); // prettier-ignore
+    expect(planDates([today], [moved], ids).close).toEqual([]);
+  });
+
   it("never touches another person's date or Ferni's own promises", () => {
     const plan = planDates(
       [

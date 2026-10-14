@@ -144,8 +144,9 @@ export function parseDateMentions(reply: string | null | undefined): DateMention
 
 const yearlyKind = (m: DateMention): boolean => YEARLY_KINDS.has(m.kind) && m.recurring;
 
+/** A yearly date is one per person and kind; a one-time one (a birthday party) is its own thing. */
 const key = (m: DateMention): string =>
-  `${m.who.toLowerCase()}|${YEARLY_KINDS.has(m.kind) ? m.kind : m.what.toLowerCase()}`;
+  `${m.who.toLowerCase()}|${yearlyKind(m) ? m.kind : m.what.toLowerCase()}`;
 
 /** The model's own day, if it is a real day within two years of the call. */
 function plausibleGuess(guess: string | undefined, callDate: string): string | null {

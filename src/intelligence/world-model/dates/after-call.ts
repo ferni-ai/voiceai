@@ -86,7 +86,8 @@ export async function extractDatesAfterCall(ctx: DatesCall, deps: DatesDeps = {}
   const kept = dates.filter(
     (d) => !isForgotten([d.subject, d.relation, d.value, d.source.quote].join(' '), topics)
   );
-  const result = await recordDates(ctx.userId, kept, deps.store);
+  const callDay = callMomentFor(ctx.startedAt, ctx.timezone ?? 'UTC').date;
+  const result = await recordDates(ctx.userId, kept, deps.store, callDay);
   log.info(
     { sessionId: ctx.sessionId, found: dates.length, ...result, toConfirm: kept.filter((d) => d.needsConfirmation).length },
     'DATES_RECORDED'

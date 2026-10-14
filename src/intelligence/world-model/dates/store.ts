@@ -4,8 +4,7 @@
  * with a few fields of their own: kind, recurrence (yearly or once), MM-DD
  * for yearly ones, the caller's words for when, and whether to confirm it.
  * One store means one erasure path (eraseUserRecord deletes the user doc
- * recursively) and one reader for a call (temporal/in-call.ts) besides
- * upcoming.ts.
+ * recursively). Nothing reads these dates during a call yet.
  *
  * The same date heard again is refreshed; a yearly date (a birthday) or a
  * correction replaces the one on file for that person and kind; a one-time
@@ -27,9 +26,13 @@ export type DateFact = TemporalFact & Partial<Omit<DateObservation, keyof Tempor
 let counter = 0;
 const newDateId = (): string => `wd_${Date.now().toString(36)}_${(counter += 1).toString(36)}`;
 
-/** The same thing on someone's calendar: same kind for yearly dates, overlapping words otherwise. */
+/**
+ * The same thing on someone's calendar: same kind for yearly dates, overlapping words otherwise.
+ * A one-time date is never a yearly one: mom's birthday party doesn't replace her birthday.
+ */
 function sameThing(f: DateFact, o: DateObservation): boolean {
   if (f.attribute !== 'event' || f.subjectKey !== subjectKeyOf(o) || f.by === 'ferni') return false;
+  if (o.recurrence === 'once' && f.recurrence === 'yearly') return false;
   if (o.recurrence === 'yearly' && f.kind === o.kind) return true;
   const a = forgetTokens(f.value);
   const b = forgetTokens(o.value);
@@ -37,11 +40,15 @@ function sameThing(f: DateFact, o: DateObservation): boolean {
   return a.every((w) => b.includes(w)) || b.every((w) => a.includes(w));
 }
 
-/** What a call's dates do to the facts on file (pure). */
+/**
+ * What a call's dates do to the facts on file (pure). callDay is the call's day
+ * in the caller's timezone; without it, the UTC day it was observed.
+ */
 export function planDates(
   open: readonly DateFact[],
   observations: readonly DateObservation[],
-  newId: () => string = newDateId
+  newId: () => string = newDateId,
+  callDay?: string
 ): ResolutionPlan {
   const plan: ResolutionPlan = { create: [], close: [], refresh: [] };
   const live = open.filter((f) => f.validTo === null);
@@ -55,12 +62,12 @@ export function planDates(
       plan.refresh.push({ id: heard.id, observedAt: o.observedAt, confidence });
       continue;
     }
-    const callDay = o.observedAt.slice(0, 10);
+    const today = callDay ?? o.observedAt.slice(0, 10);
     const replaced = same.filter(
       (f) =>
         o.recurrence === 'yearly' ||
         o.replaces !== undefined ||
-        (f.eventDate !== undefined && f.eventDate >= callDay)
+        (f.eventDate !== undefined && f.eventDate >= today)
     );
     const fact: DateFact = {
       ...o,
@@ -84,10 +91,11 @@ export function planDates(
 export async function recordDates(
   userId: string,
   observations: readonly DateObservation[],
-  store: WorldFactStore = createFirestoreWorldFactStore()
+  store: WorldFactStore = createFirestoreWorldFactStore(),
+  callDay?: string
 ): Promise<{ created: number; closed: number; refreshed: number }> {
   if (observations.length === 0) return { created: 0, closed: 0, refreshed: 0 };
-  const plan = planDates(await store.listOpen(userId), observations);
+  const plan = planDates(await store.listOpen(userId), observations, newDateId, callDay);
   await store.apply(userId, plan);
   return { created: plan.create.length, closed: plan.close.length, refreshed: plan.refresh.length };
 }

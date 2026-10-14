@@ -72,6 +72,22 @@ describe('toDateObservations', () => {
     expect(o.monthDay).toBeUndefined();
   });
 
+  it("keeps mom's birthday and her birthday party from one call as two dates", () => {
+    const got = toDateObservations(
+      parseDateMentions(
+        reply(
+          { who: 'mom', what: 'birthday', kind: 'birthday', when: 'October 20th' },
+          { who: 'mom', what: 'birthday party', kind: 'birthday', recurring: false, when: 'Saturday' }
+        )
+      ), // prettier-ignore
+      CALL
+    );
+    expect(got.map((o) => [o.value, o.recurrence, o.eventDate])).toEqual([
+      ['birthday', 'yearly', '2026-10-20'],
+      ['birthday party', 'once', '2026-10-17'],
+    ]);
+  });
+
   it('lets a correction in the same call win, and marks it as replacing', () => {
     const got = toDateObservations(
       parseDateMentions(
