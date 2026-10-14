@@ -10,6 +10,7 @@ import { diag } from '../../services/diagnostic-logger.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { armSilentLine } from '../outbound-call/silent-line.js';
 import { canTriggerProactive } from '../shared/response-orchestrator.js';
+import { musicHoldsRemark } from './silence-remark-guard.js';
 
 /**
  * The caller said they were stepping away ("give me a second, I'm going to open
@@ -87,6 +88,9 @@ export function silenceResponseBlocked(
     });
   }
 
+  // SILENCE_REMARK_GUARD: his music is playing (the early dead-air path already held back for it).
+  const music = musicHoldsRemark(silenceDurationSec);
+
   // ResponseOrchestrator check: Only trigger if SDK is not currently handling a response
   // This is the key integration point for the clean architecture
   const sdkIdle = canTriggerProactive(sessionId);
@@ -97,6 +101,12 @@ export function silenceResponseBlocked(
   }
 
   return Boolean(
-    steppedAway || silentLine || toolsActive || handoffOrDraining || noParticipants || !sdkIdle
+    steppedAway ||
+    silentLine ||
+    toolsActive ||
+    handoffOrDraining ||
+    noParticipants ||
+    music ||
+    !sdkIdle
   );
 }

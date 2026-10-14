@@ -23,6 +23,7 @@ import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { parseNudgesResponse, type Nudge } from './your-people-nudges.js';
+import { groupByRelationship, settleWithin } from './your-people-groups.js';
 import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('YourPeopleUI');
 
@@ -190,7 +191,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -225,7 +226,7 @@ function injectStyles(): void {
 
     .yp-action-btn:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
 
     .yp-action-btn:focus-visible {
@@ -351,7 +352,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
 
     .yp-nudges-header svg {
@@ -533,7 +534,7 @@ function injectStyles(): void {
       align-items: center;
     }
 
-    .yp-person-trend.growing { color: var(--persona-primary, #4a6741); }
+    .yp-person-trend.growing { color: var(--persona-text); }
     .yp-person-trend.fading { color: var(--color-semantic-error, #c44); }
 
     .yp-person-meta {
@@ -554,7 +555,7 @@ function injectStyles(): void {
       border-radius: var(--radius-full, 50%);
       font-size: var(--text-xxs, 0.625rem);
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
 
     .yp-person-upcoming svg {
@@ -626,7 +627,7 @@ function injectStyles(): void {
 
     .yp-add-btn:hover {
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
       background: var(--persona-tint, rgba(74, 103, 65, 0.03));
     }
 
@@ -690,7 +691,7 @@ function injectStyles(): void {
 
     .yp-error-retry {
       background: var(--color-accent, #3D5A45);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
       border-radius: var(--radius-md, 0.5rem);
       padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
@@ -773,6 +774,8 @@ function render(): void {
     </div>
   `;
 
+  const view = state.isLoading ? 'loading' : state.error ? 'error' : state.people.length ? 'ready' : 'empty';
+  panel.setAttribute('data-state', view); // for tests and the live probe
   bindEvents();
 }
 
@@ -1157,23 +1160,6 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-/** Group headings in display order; relationship ids map to a heading key. */
-const GROUP_HEADINGS: Array<[string, string]> = [
-  ['family', 'yourPeople.groups.family'],
-  ['friend', 'yourPeople.groups.friends'],
-  ['colleague', 'yourPeople.groups.work'],
-  ['mentor', 'yourPeople.groups.mentor'],
-  ['acquaintance', 'yourPeople.groups.acquaintance'],
-  ['other', 'yourPeople.groups.misc'],
-];
-
-function groupByRelationship(people: Person[]): Array<[string, Person[]]> {
-  return GROUP_HEADINGS.map((heading): [string, Person[]] => [
-    t(heading[1]),
-    people.filter((person) => (person.relationship || 'other').toLowerCase() === heading[0]),
-  ]).filter(([, members]) => members.length > 0);
-}
-
 // ============================================================================
 // API CALLS
 // ============================================================================
@@ -1187,7 +1173,7 @@ async function loadPeopleData(): Promise<void> {
 
   try {
     // Load contacts
-    const contactsRes = await apiFetch('/api/contacts');
+    const contactsRes = await settleWithin(apiFetch('/api/contacts'));
     if (contactsRes.ok) {
       const contactsData = await contactsRes.json();
       const contacts = Array.isArray(contactsData) ? contactsData : (contactsData.contacts || []);
@@ -1208,7 +1194,7 @@ async function loadPeopleData(): Promise<void> {
     }
 
     // Load nudges
-    const nudgesRes = await apiFetch('/api/contacts/nudges');
+    const nudgesRes = await settleWithin(apiFetch('/api/contacts/nudges'));
     if (nudgesRes.ok) {
       state.nudges = parseNudgesResponse(await nudgesRes.json());
     } else if (useMockData) {
@@ -1296,13 +1282,12 @@ export function closeYourPeople(): void {
   if (!state.isOpen || !panelContainer) return;
 
   releaseEscape?.();
-  
   panelContainer.classList.remove('open');
-  
+  const closing = panelContainer;
   setTimeout(() => {
-    panelContainer?.remove();
+    closing.remove();
+    if (panelContainer !== closing) return; // reopened meanwhile: the new panel stays
     panelContainer = null;
-    
     // Restore focus to previously focused element
     if (previouslyFocusedElement && document.body.contains(previouslyFocusedElement)) {
       previouslyFocusedElement.focus();

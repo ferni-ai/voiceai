@@ -2,6 +2,7 @@ import { llm } from '@livekit/agents';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  attunedLengthOn,
   attunementEnabled,
   attunementLine,
   attunementNote,
@@ -12,10 +13,13 @@ import {
 import { withTurnReminder } from '../turn-request.js';
 import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-context-header.js';
 
-const before = process.env.ATTUNE;
+const KEYS = ['ATTUNE', 'ATTUNE_LENGTH', 'TURN_LENGTH'] as const;
+const before = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
 afterEach(() => {
-  if (before === undefined) delete process.env.ATTUNE;
-  else process.env.ATTUNE = before;
+  for (const k of KEYS) {
+    if (before[k] === undefined) delete process.env[k];
+    else process.env[k] = before[k];
+  }
 });
 
 /** A call: caller and Ferni alternating, caller first. */
@@ -101,15 +105,40 @@ describe('attunementLine', () => {
     expect(attunementLine(targetFor('neutral', ['Hi'], false), ['Hi'])).toBe('');
   });
 
-  it('gives a tired caller a short, gentle, advice-free target that outranks the shape', () => {
+  it('gives a tired caller a gentle, advice-free target with no length of its own', () => {
     const turns = ['Hey.', 'Quiet Sunday.', "I'm still here."];
     const line = attunementLine(targetFor('low', turns, true), turns);
-    expect(line).toContain('at most 10 words');
+    expect(line).not.toMatch(/at most \d+ words/);
     expect(line).toContain('no advice');
     expect(line).toContain('no stories or news of your own');
     expect(line).toContain('no question');
     expect(line).toContain('no instructions, not even caring ones');
-    expect(line).toContain('outranks');
+    expect(line).toContain('This outranks any extras above.');
+    expect(line).not.toContain('length');
+  });
+
+  it('adds the length cap only when asked (the ATTUNE_LENGTH experiment)', () => {
+    const turns = ['Hey.', 'Quiet Sunday.', "I'm still here."];
+    const line = attunementLine(targetFor('low', turns, true), turns, true);
+    expect(line).toContain('at most 10 words');
+    expect(line).toContain('This outranks any length or extras above.');
+  });
+});
+
+describe('ATTUNE_LENGTH (loop experiment; learned TURN_LENGTH wins)', () => {
+  it('is off by default and never on with TURN_LENGTH=learned', () => {
+    expect(attunedLengthOn({})).toBe(false);
+    expect(attunedLengthOn({ ATTUNE_LENGTH: 'on' })).toBe(true);
+    expect(attunedLengthOn({ ATTUNE_LENGTH: 'on', TURN_LENGTH: 'learned' })).toBe(false);
+  });
+
+  it('ATTUNE=on alone sizes nothing; the experiment flag adds the cap; learned length removes it', () => {
+    const quiet = call(...SETH);
+    const cap = /at most \d+ words/;
+    expect(attunementNote(quiet, {}, { env: { ATTUNE: 'on' } })).not.toMatch(cap);
+    expect(attunementNote(quiet, {}, { env: { ATTUNE: 'on', ATTUNE_LENGTH: 'on' } })).toMatch(cap);
+    const both = { ATTUNE: 'on', ATTUNE_LENGTH: 'on', TURN_LENGTH: 'learned' };
+    expect(attunementNote(quiet, {}, { env: both })).not.toMatch(cap);
   });
 });
 
@@ -156,5 +185,18 @@ describe('on the live request path (withTurnReminder)', () => {
     expect(off).not.toContain('Meet them where they are');
     const line = attunementNote(call(...SETH), session);
     expect(on).toBe(off.replace(/\)$/, ` ${line})`));
+  });
+
+  it('with TURN_LENGTH=learned the request carries one length target, the learned one', () => {
+    const session = {};
+    process.env.ATTUNE = 'on';
+    process.env.ATTUNE_LENGTH = 'on';
+    process.env.TURN_LENGTH = 'learned';
+    const request = last(withTurnReminder(call(...SETH), session));
+    expect(request).toContain('Meet them where they are');
+    expect(request).not.toMatch(/at most \d+ words/);
+    expect(request).toMatch(/THIS REPLY: /); // turn-length.ts lengthLine
+    delete process.env.TURN_LENGTH;
+    expect(last(withTurnReminder(call(...SETH), session))).toMatch(/at most \d+ words/);
   });
 });

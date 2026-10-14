@@ -33,6 +33,7 @@ import { AgentRegistry, type Agent } from '../../personas/registry/unified-regis
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
+import { holdUnaskedHandoff } from './handoff-consent.js';
 import { handoffToolResponse } from './handoff-tool-response.js';
 import { noteHandoffReason } from './handoff-reasons.js';
 import { introduceTeammate } from './introduce-member.js';
@@ -446,14 +447,10 @@ export async function buildHandoffTools(
         context_summary: z.string().optional().describe('Summary of relevant conversation context'),
       }),
       execute: async ({ reason, context_summary }, runContext) => {
-        // Get user profile from RUNTIME context: { ctx: { userData: UserData } }, services.userProfile.
-        // This is critical for unlock validation - build time may not have profile data,
-        // but runtime context always should (after user joins session)
-        //
-        // 🐛 FIX BUG-008: Include recentMessages and conversationTopics in type for clearing
+        // The unlock check needs the RUNTIME profile ({ ctx: { userData } }); build time may lack it.
+        // 🐛 FIX BUG-008: conversationTopics is in the type so it can be cleared
         interface RuntimeUserData {
           services?: { userProfile?: UserProfile | null; sessionId?: string };
-          recentMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
           conversationTopics?: string[];
           lastEmotionAnalysis?: { primary: string; intensity: number };
           voiceEmotion?: {
@@ -464,6 +461,8 @@ export async function buildHandoffTools(
           };
         }
         const ctx = (runContext as { ctx?: { userData?: RuntimeUserData } })?.ctx;
+        const held = holdUnaskedHandoff(ctx, def.agentName, isTargetCoordinator);
+        if (held) return held;
         const userData = ctx?.userData;
         const runtimeUserProfile = userData?.services?.userProfile || userProfile || null;
         const runtimeTier =
@@ -488,7 +487,6 @@ export async function buildHandoffTools(
         // This ensures the receiving persona gets cognitive context about the user
         const emotionalState = userData?.lastEmotionAnalysis?.primary || 'neutral';
         const topics = userData?.conversationTopics || [];
-        const recentMessages = userData?.recentMessages || [];
         const sessionId = userData?.services?.sessionId;
 
         // Extract voice emotion for better-than-human entrance adaptation
@@ -511,7 +509,6 @@ export async function buildHandoffTools(
           // Pass conversation context for cognitive handoff
           emotionalState,
           topics,
-          recentMessages,
           sessionId,
           // Pass voice emotion for better-than-human entrance adaptation
           voiceEmotion,
@@ -520,7 +517,6 @@ export async function buildHandoffTools(
         // 🐛 FIX BUG-008: Clear stale conversation context after successful handoff
         // Without this, the new persona would see messages from the previous persona's conversation
         if (result.success && userData) {
-          userData.recentMessages = [];
           userData.conversationTopics = [];
           // Note: We preserve lastEmotionAnalysis as it's useful context for the new persona
         }

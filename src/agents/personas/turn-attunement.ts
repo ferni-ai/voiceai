@@ -22,6 +22,11 @@
  * ATTUNE=on for the states with a measured win, ATTUNE=all for every state;
  * off (the default) adds nothing, so requests are unchanged.
  *
+ * Reply length is not decided here: TURN_LENGTH=learned owns it (turn-length.ts,
+ * decision 2026-10-14). This module's own length cap ("at most N words") is off
+ * the live path and kept as a loop experiment behind ATTUNE_LENGTH (see
+ * attunedLengthOn).
+ *
  * @module agents/personas/turn-attunement
  */
 import type { llm } from '@livekit/agents';
@@ -30,6 +35,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { hardNews } from './turn-candor.js';
 import { callerLaughed } from './turn-extras.js';
+import { lengthLearned } from './turn-length.js';
 
 const log = createLogger({ module: 'Attunement' });
 
@@ -37,6 +43,19 @@ type Env = Record<string, string | undefined>;
 
 export function attunementEnabled(env: Env = process.env): boolean {
   return env.ATTUNE === 'on' || env.ATTUNE === 'all';
+}
+
+/**
+ * ATTUNE_LENGTH=on (off by default): the attunement line also caps the reply
+ * at `maxWords`, sized from the caller's own turns. Not on the live path:
+ * learned TURN_LENGTH owns reply length, so with TURN_LENGTH=learned the cap
+ * is never added, whatever this flag says. Kept as a candidate experiment for
+ * the humanness loop (#1377): offline it took tired callers' replies from ~31
+ * to ~12 words (judge +0.81 to +1.10, see #1086), but it was never measured
+ * against TURN_LENGTH=learned, which is the comparison the loop should run.
+ */
+export function attunedLengthOn(env: Env = process.env): boolean {
+  return env.ATTUNE_LENGTH === 'on' && !lengthLearned(env);
 }
 
 export type CallerState =
@@ -62,7 +81,7 @@ export interface VoiceCue {
 
 export interface AttuneTarget {
   state: CallerState;
-  /** Most words this reply should run to; null when no cap fits (excited, neutral). */
+  /** Most words for this reply (null: no cap fits); said only with ATTUNE_LENGTH (attunedLengthOn). */
   maxWords: number | null;
   /** Questions this reply may ask. */
   questions: 0 | 1;
@@ -244,10 +263,14 @@ const HOW: Record<Exclude<CallerState, 'neutral'>, string> = {
 const NO_ORDERS =
   'no instructions, not even caring ones (to rest, breathe, eat or put their feet up): notice how they are, or just keep them company';
 
-/** The target as one line for the end of the reminder; '' for a neutral caller. */
-export function attunementLine(t: AttuneTarget, turns: string[]): string {
+/**
+ * The target as one line for the end of the reminder; '' for a neutral caller.
+ * The length cap only with `withLength` (ATTUNE_LENGTH, off): TURN_LENGTH owns length.
+ */
+export function attunementLine(t: AttuneTarget, turns: string[], withLength = false): string {
   if (t.state === 'neutral') return '';
-  const parts = [t.maxWords !== null ? `at most ${t.maxWords} words` : '', HOW[t.state]];
+  const cap = withLength && t.maxWords !== null;
+  const parts = [cap ? `at most ${t.maxWords} words` : '', HOW[t.state]];
   if (!t.advice) parts.push('no advice, lessons or sayings about life');
   else if (t.state === 'venting' || t.state === 'hurried')
     parts.push('they asked, so give your honest take in a sentence, one idea, not a list');
@@ -260,7 +283,8 @@ export function attunementLine(t: AttuneTarget, turns: string[]): string {
   const said = words(turns[turns.length - 1] ?? '');
   return (
     `[Meet them where they are: ${READ[t.state]} (${said} ${said === 1 ? 'word' : 'words'} just now). ` +
-    `This reply: ${parts.filter(Boolean).join('; ')}. This outranks any length or extras above.]`
+    `This reply: ${parts.filter(Boolean).join('; ')}. ` +
+    `This outranks any ${cap ? 'length or ' : ''}extras above.]`
   );
 }
 
@@ -284,13 +308,14 @@ export function attunementNote(
   const env = options.env ?? process.env;
   if (env.ATTUNE !== 'all' && !ON_STATES.has(state)) return '';
   const target = targetFor(state, turns, ferniAskedLast(chatCtx.items));
+  const withLength = attunedLengthOn(env);
   const said = turns[turns.length - 1];
   // Preemptive and final requests for one turn log once.
   if (lastSaid.get(session) !== said) {
     lastSaid.set(session, said);
-    log.info({ ...target, callerWords: words(said) }, 'ATTUNE');
+    log.info({ ...target, lengthCapped: withLength, callerWords: words(said) }, 'ATTUNE');
   }
-  return attunementLine(target, turns);
+  return attunementLine(target, turns, withLength);
 }
 
 function ferniAskedLast(items: readonly unknown[]): boolean {

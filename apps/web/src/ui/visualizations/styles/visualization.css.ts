@@ -988,7 +988,7 @@ export function getVisualizationStyles(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-text-on-accent);
       font-weight: 600;
       font-size: var(--viz-text-md);
       box-shadow: 0 4px 12px rgba(61, 90, 69, 0.3);

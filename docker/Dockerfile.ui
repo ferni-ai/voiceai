@@ -191,7 +191,9 @@ COPY --from=backend-builder /app/packages/shared-types/package.json ./packages/s
 # chain with the cleanup, so an out-of-disk install (ERR_PNPM_ENOSPC on the CI
 # runner, 2026-09-27) was swallowed and the image shipped without dotenv. The
 # cleanup stays in the same layer (so it still shrinks the image) but runs in a
-# subshell whose failures cannot mask the install.
+# subshell whose failures cannot mask the install. suffix-thumb (via compromise)
+# imports its own src/test/index.js at runtime, so it is exempt from the test-dir
+# prune, as in Dockerfile.agent (#989); without it the UI server crashed on start.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --prefer-offline --prod --frozen-lockfile && \
     test -f node_modules/dotenv/package.json && \
@@ -199,7 +201,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
       find node_modules -name "*.map" -delete; \
       find node_modules -name "*.ts" ! -name "*.d.ts" -delete; \
       find node_modules -name "CHANGELOG*" -delete; \
-      find node_modules -type d \( -name test -o -name tests -o -name __tests__ \) -prune -exec rm -rf {} +; \
+      find node_modules -type d \( -name test -o -name tests -o -name __tests__ \) ! -path "*/suffix-thumb/*" -prune -exec rm -rf {} +; \
       true ) 2>/dev/null
 
 # UI server is compiled from TypeScript (src/servers/api/index.ts → dist/servers/api/index.js)

@@ -7,6 +7,13 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// The imports below schedule timers at import (luxo-expressions auto-init, 100 ms).
+// Real ones can fire after jsdom is torn down ("document is not defined"), so fake
+// them from before the first import, as the other UI tests do.
+vi.hoisted(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
+});
+
 const performMicroNod = vi.hoisted(() => vi.fn());
 vi.mock('../../src/eq/capabilities/active-listening.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/eq/capabilities/active-listening.js')>()),

@@ -9,6 +9,7 @@ import { voice } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { TurnToolRetrieval } from '../../tools/retrieval/turn-tool-retrieval.js';
 import type { PersonaId } from '../../personas/types.js';
+import type { SpeakerLog } from '../personas/director-persona.js';
 import { assistantTranscriptHandler } from './assistant-transcript.js';
 import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
@@ -291,15 +292,23 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
   const { toldThisCallEnabled } = await import('../personas/told-this-call.js');
   const writeNotes = directorNotesEnabled();
   if (!writeNotes && !toldThisCallEnabled()) return;
-  const director = new Director({ sessionId, userName, writeNotes });
+  // DIRECTOR_PERSONA_AWARE: after a handoff in one session, direct the persona on the call.
+  const speakers = await speakerLog(session, cleanupFunctions);
+  const director = new Director({ sessionId, userName, writeNotes, speaking: speakers?.now });
   setDirector(session, director);
+  // The director sees Ferni's tool calls as they start and finish (director-tool-state.ts).
+  const { directorSeesTools, watchToolsForDirector } =
+    await import('../personas/director-tool-state.js');
+  if (writeNotes && directorSeesTools()) {
+    cleanupFunctions.push(watchToolsForDirector(session as never, director.tools));
+  }
   let spoke = false;
   const directorHandler = (ev: unknown): void => {
     const state = (ev as { newState?: string }).newState;
     if (state === 'speaking') spoke = true;
     if (state !== 'listening' || !spoke) return;
     spoke = false;
-    void director.observe(linesFromChat(now(agent).chatCtx.items as never));
+    void director.observe(linesFromChat(now(agent).chatCtx.items as never, speakers?.by));
   };
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, directorHandler);
   cleanupFunctions.push(() => {
@@ -307,6 +316,27 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
     setDirector(session, null);
   });
   log.info({ sessionId, writeNotes, toldThisCall: toldThisCallEnabled() }, 'director notes on');
+}
+
+/**
+ * With DIRECTOR_PERSONA_AWARE=on, the log of which persona said each assistant
+ * line, read from userData.personaId (a swap sets it); null when off.
+ */
+async function speakerLog(session: Session, cleanupFunctions: Cleanup): Promise<SpeakerLog | null> {
+  const { directorPersonaAware, SpeakerLog } = await import('../personas/director-persona.js');
+  if (!directorPersonaAware()) return null;
+  const speakers = new SpeakerLog(() => {
+    try {
+      return (session.userData as { personaId?: string } | undefined)?.personaId;
+    } catch {
+      return undefined; // a session started without userData: Ferni
+    }
+  });
+  session.on(voice.AgentSessionEventTypes.ConversationItemAdded, speakers.onItemAdded);
+  cleanupFunctions.push(() => {
+    session.off(voice.AgentSessionEventTypes.ConversationItemAdded, speakers.onItemAdded);
+  });
+  return speakers;
 }
 
 /**

@@ -8,7 +8,10 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { rateLimit } from '../auth-middleware.js';
 import { requireUserId, sendJSON, sendError } from '../helpers.js';
+import { rateLimitUid } from '../rate-limit-identity.js';
+import { ExportLimitError } from '../../services/platform/bounded-reader.js';
 import { validateBody, ExportDataSchema, DeleteAllDataSchema } from '../validators.js';
 import { API_ERRORS } from '../error-messages.js';
 
@@ -24,6 +27,10 @@ export async function handleGetExportCategories(
 ): Promise<void> {
   const userId = requireUserId(req, res, parsedUrl);
   if (!userId) return;
+  // Each listing counts every store: bounded per person like the export itself
+  if (rateLimit(req, res, { maxRequests: 20, windowMs: 60_000, keyPrefix: 'export-categories' })) {
+    return;
+  }
 
   try {
     const { getDataExportService } = await import('../../services/data-export.js');
@@ -45,6 +52,10 @@ export async function handleExportData(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
+  // A flood guard only; the per-person limit is claimExport's, shared by every instance
+  if (rateLimit(req, res, { maxRequests: 10, windowMs: 60_000, keyPrefix: 'data-export' })) {
+    return;
+  }
   try {
     const body = await validateBody(req, res, ExportDataSchema);
     if (!body) return;
@@ -53,9 +64,17 @@ export async function handleExportData(
     const userId = requireUserId(req, res, parsedUrl);
     if (!userId) return;
 
-    const { getDataExportService } = await import('../../services/data-export.js');
-    const exportService = getDataExportService();
-    const data = await exportService.exportData(userId, body.format, body.categories || []);
+    // The person's slot, by the uid the server verified, before any export read
+    const { claimExport } = await import('../../services/platform/export-rate-limit.js');
+    const release = await claimExport(rateLimitUid(req) ?? userId);
+    let data: string;
+    try {
+      const { getDataExportService } = await import('../../services/data-export.js');
+      const exportService = getDataExportService();
+      data = await exportService.exportData(userId, body.format, body.categories || []);
+    } finally {
+      await release();
+    }
 
     const contentType = body.format === 'csv' ? 'text/csv' : 'application/json';
     const filename = `ferni-export-${new Date().toISOString().split('T')[0]}.${body.format}`;
@@ -66,6 +85,18 @@ export async function handleExportData(
     });
     res.end(data);
   } catch (err) {
+    if (err instanceof ExportLimitError) {
+      log.warn({ reason: err.reason }, 'Export stopped at a limit');
+      const tooLarge = err.status === 413;
+      if (!tooLarge) res.setHeader('Retry-After', err.status === 429 ? '600' : '60');
+      const error = tooLarge
+        ? API_ERRORS.DATA_EXPORT_TOO_LARGE
+        : err.status === 429
+          ? API_ERRORS.DATA_EXPORT_TOO_OFTEN
+          : API_ERRORS.DATA_EXPORT_BUSY;
+      sendJSON(res, { error, reason: err.reason }, err.status);
+      return;
+    }
     log.error({ error: err }, 'Failed to export data');
     sendError(res, API_ERRORS.DATA_EXPORT_FAILED, 500);
   }

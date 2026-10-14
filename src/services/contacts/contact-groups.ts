@@ -185,14 +185,19 @@ export async function updateGroup(
     throw new Error(`Group not found: ${groupId}`);
   }
 
+  // The type excludes id/userId/createdAt, but nothing enforces that at runtime: pin them to
+  // the stored group so no caller can move a group to another owner or another document.
   const updated: ContactGroup = {
     ...group,
     ...updates,
+    id: group.id,
+    userId: group.userId,
+    createdAt: group.createdAt,
     updatedAt: new Date(),
   };
 
   const groups = groupCache.get(userId) || [];
-  const idx = groups.findIndex((g) => g.id === groupId);
+  const idx = groups.findIndex((g) => g.id === group.id);
   if (idx >= 0) {
     groups[idx] = updated;
   }
@@ -244,9 +249,16 @@ export async function removeFromGroup(
  * Delete a contact group
  */
 export async function deleteGroup(userId: string, groupId: string): Promise<void> {
-  const groups = groupCache.get(userId) || [];
-  const idx = groups.findIndex((g) => g.id === groupId);
+  // Resolve against this user's own groups first, and delete only that document: the id
+  // passed in is never used as a document path on its own.
+  const group = await getGroup(userId, groupId);
+  if (!group) {
+    log.info({ userId, groupId }, 'Contact group to delete not found for user');
+    return;
+  }
 
+  const groups = groupCache.get(userId) || [];
+  const idx = groups.findIndex((g) => g.id === group.id);
   if (idx >= 0) {
     groups.splice(idx, 1);
     groupCache.set(userId, groups);
@@ -255,13 +267,13 @@ export async function deleteGroup(userId: string, groupId: string): Promise<void
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      await firestore.collection(GROUPS_COLLECTION).doc(groupId).delete();
+      await firestore.collection(GROUPS_COLLECTION).doc(group.id).delete();
     } catch (error) {
-      log.error({ error: String(error), groupId }, 'Failed to delete group');
+      log.error({ error: String(error), groupId: group.id }, 'Failed to delete group');
     }
   }
 
-  log.info({ userId, groupId }, 'Contact group deleted');
+  log.info({ userId, groupId: group.id }, 'Contact group deleted');
 }
 
 /**

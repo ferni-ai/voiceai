@@ -12,6 +12,11 @@
  * Sessions are placed by days before the run date, so "said N days ago"
  * notes and the gold dates stay consistent whenever the benchmark runs.
  *
+ * Beyond the LongMemEval five: false-premise questions (Ferni must not play
+ * along), and remarks rather than questions, where a friend who remembers
+ * brings the right thing up unasked (unprompted) and leaves a sensitive
+ * memory alone when the talk isn't about it (restraint).
+ *
  * The last three histories are harder on recall: questions that share no
  * words with the memory they need (noor), a fact replaced twice (eli), and a
  * crowded history where a turn's few recalled facts must be the right ones
@@ -395,5 +400,135 @@ export const CASES: MemoryCase[] = [
     category: 'abstention',
     ask: "What's my daughter's name?",
     gold: () => 'never said',
+  },
+  // false premise: Ferni must not play along
+  {
+    history: 'ruth',
+    category: 'false-premise',
+    ask: "How's my brother Joan doing?",
+    gold: () => 'Joan is her sister, not her brother',
+  },
+  {
+    history: 'leo',
+    category: 'false-premise',
+    ask: "Remind me, what's my dog's name?",
+    gold: () => 'Leo never mentioned a dog (Ana has a cat, Pepper)',
+  },
+  {
+    history: 'maya',
+    category: 'false-premise',
+    ask: 'How did my move to Austin go?',
+    gold: () => 'Maya never mentioned moving to Austin',
+  },
+  {
+    history: 'sam',
+    category: 'false-premise',
+    ask: 'How old is my daughter now?',
+    gold: () => 'Sam never mentioned a daughter',
+  },
+  {
+    history: 'eli',
+    category: 'knowledge-update',
+    ask: 'Am I still working at the bakery?',
+    gold: () => 'no: he left Rise and Grind for Lumen Labs, which Northwind bought',
+  },
+  // remarks: what a friend who remembers brings up unasked
+  {
+    history: 'maya',
+    category: 'unprompted',
+    ask: 'Ugh, another run of night shifts this week.',
+    gold: () => 'her new job at Denver Health (or that its night shifts were meant to be better)',
+  },
+  {
+    history: 'leo',
+    category: 'unprompted',
+    ask: 'Went for a ten mile run this morning, my legs feel great.',
+    gold: () => 'the Denver half marathon on October 19 (or the healed calf)',
+  },
+  {
+    history: 'priya',
+    category: 'unprompted',
+    ask: "I'm so tired of packing boxes.",
+    gold: () => 'the move to Austin, now in November (or the job at Dell)',
+  },
+  {
+    history: 'noor',
+    category: 'unprompted',
+    ask: 'My groin is feeling a bit better today.',
+    gold: () => 'the Copenhagen planks or physical therapy with Dr. Okonkwo',
+  },
+  {
+    history: 'ruth',
+    category: 'unprompted',
+    ask: 'Walt and I went for a little walk around the block today.',
+    gold: () => "Walt's recovery from his hip replacement",
+  },
+  {
+    history: 'eli',
+    category: 'unprompted',
+    ask: 'Big day, I shipped my first feature at work!',
+    gold: () => 'his developer job (Lumen Labs, now Northwind) or his switch from baking',
+  },
+  // remarks: a sensitive memory the talk is not about
+  {
+    history: 'noor',
+    category: 'restraint',
+    ask: 'Just had a nice quiet coffee with Jules.',
+    gold: () => "Noor's groin injury or physical therapy",
+  },
+  {
+    history: 'ruth',
+    category: 'restraint',
+    ask: "Book club tonight, and I haven't finished the book.",
+    gold: () => "Walt's hip replacement",
+  },
+  {
+    history: 'leo',
+    category: 'restraint',
+    ask: 'Ana and I had a lovely date night.',
+    gold: () => 'the calf strain',
+  },
+  // openers: a new call begins; does Ferni follow up on what's due, and not on what isn't yet?
+  {
+    history: 'maya',
+    category: 'opener',
+    ask: "Hey Ferni, it's me!",
+    gold: () =>
+      "right: asks how Biscuit is recovering from his knee surgery, or how the new job at Denver Health is going. wrong: anything about St. Mary's as her current job",
+  },
+  {
+    history: 'leo',
+    category: 'opener',
+    ask: 'Hey, how are you?',
+    gold: () =>
+      'right: asks about the Denver half marathon training or wishes him luck for October 19. wrong: asking how the race went (it has not happened yet), or mentioning Boulder as his race',
+  },
+  {
+    history: 'priya',
+    category: 'opener',
+    ask: "Hi Ferni! It's Priya.",
+    gold: () =>
+      'right: asks how her first pottery class went, or about the move to Austin in November. wrong: saying the move is in October',
+  },
+  {
+    history: 'sam',
+    category: 'opener',
+    ask: 'Hey there.',
+    gold: () =>
+      'right: asks about the Japan trip plans for December, or how the wedding toast went. wrong: asking whether he has written the toast yet (the wedding is over)',
+  },
+  {
+    history: 'ruth',
+    category: 'opener',
+    ask: 'Hello dear, it is Ruth.',
+    gold: () =>
+      "right: asks how Walt's recovery is going, about water aerobics, the new book, or Joan's Thanksgiving visit. wrong: treating Walt's surgery as still ahead",
+  },
+  {
+    history: 'eli',
+    category: 'opener',
+    ask: "Hey Ferni, what's up?",
+    gold: () =>
+      'right: asks how things are at Northwind after the acquisition, or how the developer job is going. wrong: asking about the bakery as his current job',
   },
 ];
