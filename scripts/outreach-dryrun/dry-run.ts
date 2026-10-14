@@ -9,8 +9,8 @@
  *   GOOGLE_API_KEY, so llm-content-generator falls back to one fixed line.
  * - pondering-ungated: the pondering pass's follow-ups in that same daily
  *   slot, with no grounding, timing or voice rules.
- * - grounded: the same follow-ups through grounded-checkin.ts
- *   (OUTREACH_GROUNDED_CHECKINS), with the caller's own lines from Firestore.
+ * - grounded: the same follow-ups through grounded-checkin.ts (sent live as
+ *   in-app notes behind OUTREACH_PONDERED_NOTES), with the caller's own lines.
  *
  * --replay adds past days (as if it were that evening); --passes re-runs the
  * sampled pondering pass per day. Assumes no new calls in the week. READ ONLY,
