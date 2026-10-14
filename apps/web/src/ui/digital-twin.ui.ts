@@ -24,6 +24,7 @@ import {
 } from '../services/custom-agent.service.js';
 import { openVoiceJournal } from './voice-journal/index.js';
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
+import { isJournalCaptureOn } from '../config/journal-capture-flag.js';
 import {
   enableJournalCapture,
   disableJournalCapture,
@@ -1214,12 +1215,10 @@ function renderTwinsList(): string {
  * Shows consent prompt if never enabled, or toggle if already set up
  */
 function renderAutoCaptureCard(): string {
-  const settings = loadCaptureSettings();
-  const hasConsented = settings.consentDate != null;
-  const isEnabled = settings.enabled;
-
+  if (!isJournalCaptureOn()) return ''; // no sender yet: never promise to remember
+  const { consentDate, enabled: isEnabled } = loadCaptureSettings();
   // First-time consent flow
-  if (!hasConsented) {
+  if (consentDate == null) {
     return `
       <div class="digital-twin-consent">
         <div class="digital-twin-consent__icon">

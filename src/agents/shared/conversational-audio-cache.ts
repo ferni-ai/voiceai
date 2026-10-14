@@ -19,6 +19,7 @@ import {
   CARTESIA_MODEL,
   cartesiaPronunciation,
 } from '../../config/voice-ids.js';
+import { ARRIVING_OPENERS } from '../../services/team-engagement/banter.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { backchannelsFor, bootBackchannels } from './reaction-clips.js';
 import { renderVoicedTake, voicedTakeTexts } from './voiced-take-render.js';
@@ -186,28 +187,8 @@ const HANDOFF_BANTER: Record<string, string[]> = {
   'nayan-patel': ['Let me bring in Ferni.', 'Maya would be good for this.', 'One moment.'],
 };
 
-/**
- * Arriving banter - new persona's welcome (AFTER voice switch).
- * Keep warm and SHORT.
- */
-const ARRIVING_BANTER: Record<string, string[]> = {
-  ferni: [
-    "Hey, I'm here.",
-    'Hey! Good to see you.',
-    'Hey, good to be back.',
-    "Hey! What's going on?",
-  ],
-  'maya-santos': [
-    'Hey! Maya here.',
-    'Hey there!',
-    "Hey! I'm here for you.",
-    'Hey! Good to connect.',
-  ],
-  'peter-john': ['Hey! Peter here.', 'Hey there!', 'Hey! Good to meet you.', "Hey! I've got you."],
-  'alex-chen': ['Hey! Alex here.', 'Hey there!', "Hey! I'm here to help.", 'Hey! Good to see you.'],
-  'jordan-taylor': ['Hey! Jordan here!', 'Hey hey!', 'Hey! So good to meet you!', "Hey! Let's go!"],
-  'nayan-patel': ['Hello. Nayan here.', 'Namaste.', "Hello. I'm here.", 'Hello. Good to meet you.'],
-};
+/** Arriving openers (team-engagement/banter.ts): pre-rendered so the first words after a handoff are instant. */
+const ARRIVING_BANTER = ARRIVING_OPENERS;
 
 // ============================================================================
 // CARTESIA API (Direct calls for speed)

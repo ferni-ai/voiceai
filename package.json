@@ -433,7 +433,7 @@
     "ci:release-notes": "npx tsx apps/cli/src/index.ts release-auto notes",
     "ci:cost-forecast": "npx tsx apps/cli/src/index.ts costs-ai forecast",
     "ci:all": "npm run ci:review && npm run ci:api-diff && npm run ci:bundle && npm run ci:security",
-    "prepare": "husky || true",
+    "prepare": "git config core.hooksPath .husky || true",
     "postinstall": "[ ! -f apps/cli/src/commands/patch/livekit-timeout.ts ] || tsx apps/cli/src/commands/patch/livekit-timeout.ts",
     "test:live": "npx tsx scripts/test-gemini-live-e2e.ts"
   },
