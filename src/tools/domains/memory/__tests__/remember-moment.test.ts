@@ -33,6 +33,7 @@ import {
   setRememberMomentPorts,
   type MomentPorts,
 } from '../remember-moment.js';
+import { REMEMBERED } from '../remember-results.js';
 import { rememberAboutUserUnifiedDef } from '../tools-unified.js';
 
 const ON = { REMEMBER_MOMENT: 'on' };
@@ -164,7 +165,7 @@ describe('rememberAboutUser in a call', () => {
   it('shows the moment in the room once the store succeeded', async () => {
     vi.stubEnv('REMEMBER_MOMENT', 'on');
     const received = call();
-    expect(await remember('has two kids')).toBe('');
+    expect(await remember('has two kids')).toBe(REMEMBERED);
     await vi.waitFor(() =>
       expect(received).toEqual([
         expect.objectContaining({
