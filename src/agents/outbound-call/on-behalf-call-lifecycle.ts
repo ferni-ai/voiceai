@@ -55,6 +55,23 @@ const VOICEMAIL_CUES =
 /** The person asked not to be called again: never retried, and the number is put on the do-not-call list. */
 const OPT_OUT_CUES =
   /\b((don'?t|do not|never) (ever )?call (me|us|here|this number)( again)?|(don'?t|do not|never) (ever )?call (again|back|anymore)|(stop|quit) calling|do not call|lose (this|my) number|(remove|take) (me|us|this number) off)\b/i;
+/** Greeting phrases that mention calls or carry a "not" without refusing anything. */
+const GREETING_PHRASES =
+  /\b(leave (me )?a message|after the (tone|beep)|voice ?mail|mailbox|record your message|can't come to the phone|not available right now|(not able|unable) to (take|answer) (your|the|this) call|(i'll|i will|we'll|we will) (call|get back to) you( back)?|return your call)\b/gi;
+const CALL_WORDS = /\b(call|calls|calling|called|ring|number|list)\b/i;
+const NEGATION = /\b(no|not|never|stop|quit|off|lose|more|anymore)\b|n't\b/i;
+
+/**
+ * Fail closed for the retry: once the greeting phrases are taken out, any reply
+ * that still puts a call word next to a negation might be a refusal the cue
+ * lists don't know ("I don't want any more calls"), so the call is not retried.
+ */
+export function mightBeRefusal(heard: string[]): boolean {
+  return heard
+    .map((h) => h.replace(/[\u2018\u2019\u02bc`\u2032]/g, "'").replace(GREETING_PHRASES, ' '))
+    .some((h) => CALL_WORDS.test(h) && NEGATION.test(h));
+}
+
 /** The person said no: never retried. */
 const DECLINE_CUES = /\b(not interested|wrong number|no thank(s| you)|leave me alone)\b/i;
 /** A real conversation has at least two replies from the person and lasts a little while. */
@@ -71,7 +88,7 @@ export function classifyAnsweredCall(
   durationSeconds: number
 ): 'opted_out' | 'declined' | 'voicemail' | 'hung_up_early' | 'answered' {
   // Transcripts may carry typographic apostrophes ("don’t"); match them as straight ones.
-  heard = heard.map((h) => h.replace(/[\u2018\u2019\u02bc]/g, "'"));
+  heard = heard.map((h) => h.replace(/[\u2018\u2019\u02bc`\u2032]/g, "'"));
   // A person saying no outranks anything that looks like a voicemail greeting.
   if (heard.some((h) => OPT_OUT_CUES.test(h))) return 'opted_out';
   if (heard.some((h) => DECLINE_CUES.test(h))) return 'declined';
@@ -327,7 +344,7 @@ export async function completeOnBehalfCall(
     }
     // Only a call nobody answered, or that reached voicemail, is retried, and never
     // one where the person said no, whatever else the transcript looked like.
-    const refused = heardAs === 'opted_out' || heardAs === 'declined';
+    const refused = heardAs === 'opted_out' || heardAs === 'declined' || mightBeRefusal(heard);
     const missed = outcome.status === 'no_answer' || outcome.status === 'voicemail';
     if (followthrough && missed && !refused && scheduleRetry) {
       const retryAt = await scheduleRetry(call);

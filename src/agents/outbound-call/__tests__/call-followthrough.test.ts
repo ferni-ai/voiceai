@@ -23,7 +23,7 @@ vi.mock('../../../services/outreach/delivery/push-notifications.js', () => ({
   sendPushNotification: vi.fn(),
 }));
 
-const { beginOnBehalfCall, classifyAnsweredCall, completeOnBehalfCall } =
+const { beginOnBehalfCall, classifyAnsweredCall, completeOnBehalfCall, mightBeRefusal } =
   await import('../on-behalf-call-lifecycle.js');
 import type { CallLifecyclePorts } from '../on-behalf-call-lifecycle.js';
 import type { CallTranscriptTurn } from '../../../services/outreach/call-transcript-intelligence.js';
@@ -227,6 +227,27 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     await completeOnBehalfCall('s11', makeCall(), 6, true, declined);
     expect(declined.scheduleRetry).not.toHaveBeenCalled();
     expect(declined.recordOptOut).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "I'm not available right now. Don't you ever call me again",
+    "I'm not available right now. Take my number off your list",
+    'I\u2019m not available right now. I don\u2019t want any more calls',
+    "I'm not available right now. Stop it, no more calls",
+  ])('never retries a refusal the cue lists miss: %s', async (words) => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    const p = ports(said(words), new Date());
+    await completeOnBehalfCall('s13', makeCall(), 8, true, p);
+    expect(p.scheduleRetry).not.toHaveBeenCalled();
+    expect(p.report).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    "You've reached Mom, leave a message after the beep",
+    "I'm not available right now, leave a message and I'll call you back",
+    "Sorry, I'm not able to take your call, please leave a message",
+  ])('a plain greeting is not a refusal: %s', (greeting) => {
+    expect(mightBeRefusal([greeting])).toBe(false);
   });
 
   it('still reports, and never retries, when the opt-out cannot be recorded', async () => {
