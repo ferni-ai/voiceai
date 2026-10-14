@@ -76,8 +76,12 @@ const assignmentRefs = async (db: Db, keys: ErasureKeys): Promise<DocRef[]> => {
 type ToolCall = Record<string, unknown> & { userId?: unknown };
 
 const CALLS = 'tool_usage_calls';
-/** Instances still running the old writer during a rollout keep writing uids for a while */
-const ROLLOUT_MARGIN_MS = 24 * 60 * 60 * 1000;
+const BATCH_ID = /^batch_\d+$/;
+const BATCH_PREFIX = 'batch_';
+/** Sorts after every batch_{digits} id (':' follows '9') */
+const BATCH_END = 'batch_:';
+/** Holds lastUnmarked, the newest batch id seen without the noUserIds mark (no personal data) */
+const META = { collection: 'analytics_meta', doc: 'tool_usage_calls' };
 
 const names = (call: ToolCall | null | undefined, uids: readonly string[]): boolean =>
   typeof call?.userId === 'string' && uids.includes(call.userId);
@@ -86,41 +90,50 @@ const callsNaming = (calls: unknown, uids: readonly string[]): calls is ToolCall
   Array.isArray(calls) && calls.some((c: ToolCall) => names(c, uids));
 
 /**
- * The batch id past which no batch holds a uid. tool-usage-analytics.ts stopped writing
- * uids and marks every batch since with noUserIds; batch ids are batch_{epoch ms}, so
- * id order is time order. Undefined (scan everything) until the first marked batch.
- */
-async function legacyEnd(db: Db): Promise<string | undefined> {
-  const first = await db
-    .collection(CALLS)
-    .where('noUserIds', '==', true)
-    .orderBy('__name__')
-    .limit(1)
-    .get();
-  const id = first.docs[0]?.id;
-  const ms = Number(/^batch_(\d+)$/.exec(id ?? '')?.[1]);
-  if (!id) return undefined;
-  return Number.isFinite(ms) ? `batch_${ms + ROLLOUT_MARGIN_MS}` : id;
-}
-
-/**
  * tool_usage_calls/{batch} holds many people's calls in one array, which can't be
- * queried by uid. Only batches written before calls lost their uid can name anyone,
- * so only those are read: a set that stops growing once the change is deployed.
+ * queried by uid. tool-usage-analytics.ts stopped writing uids and marks every batch
+ * since with noUserIds, so only unmarked batches can name anyone. Firestore can't
+ * query for a missing field, so the newest unmarked batch seen is remembered, and two
+ * counts check that nothing unmarked was written after it (an agent still on the old
+ * writer during a rollout writes unmarked batches). Only then does the scan stop
+ * there; otherwise everything is read and the mark moves. Once every writer is new,
+ * each erasure reads the frozen set of old batches and no more.
  */
 async function batchesNaming(db: Db, uids: readonly string[]): Promise<DocRef[]> {
-  const end = await legacyEnd(db);
+  const meta = db.collection(META.collection).doc(META.doc);
+  const seen: unknown = (await meta.get()).get('lastUnmarked');
+  const known = typeof seen === 'string' ? seen : undefined;
+  // Only the writer's batch_{ms} ids count: any other document can't move the mark
+  const tail = db
+    .collection(CALLS)
+    .where('__name__', '>', known ?? BATCH_PREFIX)
+    .where('__name__', '<', BATCH_END);
+  const [all, marked] = await Promise.all([
+    tail.count().get(),
+    tail.where('noUserIds', '==', true).count().get(),
+  ]);
+  const wholeCollection = all.data().count > marked.data().count;
+  if (!wholeCollection && !known) return [];
+
   const named: DocRef[] = [];
+  let newest = known;
   let last: FirebaseFirestore.QueryDocumentSnapshot | undefined;
   for (;;) {
     let query = db.collection(CALLS).orderBy('__name__');
-    if (end) query = query.endBefore(end);
+    if (!wholeCollection && known) query = query.endAt(known);
     if (last) query = query.startAfter(last);
-    const snap = await query.select('calls').limit(PAGE).get();
-    named.push(...snap.docs.filter((d) => callsNaming(d.get('calls'), uids)).map((d) => d.ref));
-    if (snap.size < PAGE) return named;
+    const snap = await query.select('calls', 'noUserIds').limit(PAGE).get();
+    for (const doc of snap.docs) {
+      if (doc.get('noUserIds') === true) continue;
+      // ascending, so the last unmarked batch read is the newest
+      if (BATCH_ID.test(doc.id)) newest = doc.id;
+      if (callsNaming(doc.get('calls'), uids)) named.push(doc.ref);
+    }
+    if (snap.size < PAGE) break;
     last = snap.docs[snap.docs.length - 1];
   }
+  if (newest !== known) await meta.set({ lastUnmarked: newest }, { merge: true });
+  return named;
 }
 
 /**

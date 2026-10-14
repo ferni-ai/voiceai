@@ -12,7 +12,7 @@
  *   `phone:` links on their record (linkPhoneToProfile, after a texted code).
  * - phone profiles (bogle_users/phone:{e164}): one of those phones, or one that linked
  *   this sign-in (`auth:{provider}:{uid}`, linkWebAuthToPhone). A phone profile that
- *   linked a different sign-in is someone else's and is left alone.
+ *   linked any other sign-in, even alongside this one, is left alone (and logged).
  *
  * The Firebase lookup must succeed: a lookup that fails for any reason other than
  * "no such user" throws, so the erasure is reported as failed and can be retried,
@@ -74,11 +74,9 @@ const links = (snap: Snap): string[] => {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 };
 
-/** A phone profile that linked some other sign-in belongs to that person */
-const linkedElsewhere = (snap: Snap, userId: string): boolean => {
-  const auths = links(snap).filter((l) => l.startsWith('auth:'));
-  return auths.length > 0 && !auths.some((l) => l.endsWith(`:${userId}`));
-};
+/** A phone profile that linked any other sign-in is that person's too, so it is never erased */
+const linkedElsewhere = (snap: Snap, userId: string): boolean =>
+  links(snap).some((l) => l.startsWith('auth:') && !l.endsWith(`:${userId}`));
 
 async function phoneProfiles(
   db: Db,
@@ -96,8 +94,10 @@ async function phoneProfiles(
     )
   );
   const found = new Map<string, Snap>();
+  // A proven phone's profile stays in scope with its record gone (an earlier attempt
+  // erased it), so a retry still reaches what is left under it
   for (const snap of [...byPhone, ...byAuth.flatMap((s) => s.docs)]) {
-    if (!snap.exists || snap.id === userId) continue;
+    if (snap.id === userId) continue;
     if (linkedElsewhere(snap, userId)) {
       log.warn({ userId }, 'Phone profile linked to another sign-in; not erased with this account');
       continue;

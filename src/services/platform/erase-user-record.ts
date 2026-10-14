@@ -90,40 +90,19 @@ interface Job {
 }
 
 /**
- * Delete every store kept for the user, by uid (user-stores.ts, for the uid and every
- * phone profile that is the same person) and by their other keys (erase-other-keys.ts),
- * then check that nothing is left. Throws when Firestore or Firebase Auth is
- * unreachable or anything survives, so callers never report an erasure that did not
- * happen.
+ * The stores the keys are read from (erasure-keys.ts), erased only once everything
+ * else is gone, so a retry after a failure finds the same keys: 1 the access grants'
+ * emails and the sponsored identities, then 2 the record, whose links (and, for a
+ * linked phone profile, whose existence) is how the person's phone profiles are found.
  */
-export async function eraseUserRecord(
-  userId: string,
-  firestore?: Db,
-  stores: readonly OwnedStore[] = ERASED_STORES,
-  keyed: readonly KeyedStore[] = KEYED_STORES
-): Promise<void> {
-  assertErasableUserId(userId);
-  const db = firestore ?? defaultDb();
-  // Gathered first: the sweep erases the records the keys are read from
-  const keys = keyed.length > 0 ? await gatherKeys(db, userId, keyed) : null;
-  const uids = [userId, ...(keys?.linkedUserIds ?? [])];
-  uids.forEach(assertErasableUserId);
-  const jobs: Job[] = [
-    ...uids.flatMap((uid) =>
-      stores.map((store) => ({
-        label: uid === userId ? storeLabel(store) : `${storeLabel(store)} (linked phone profile)`,
-        erase: async () => eraseStore(db, store, uid),
-        remains: async () => holdsUser(db, store, uid).catch(() => true),
-      }))
-    ),
-    ...(keys
-      ? keyed.map((k) => ({
-          label: k.label,
-          erase: async () => k.erase(db, keys),
-          remains: async () => k.remains(db, keys).catch(() => true),
-        }))
-      : []),
-  ];
+const KEY_TIER = new Map([
+  ['user_profiles[firebaseUid]', 1],
+  ['sponsored_identities[sponsorUserId]', 1],
+  [`${USER_RECORDS_COLLECTION}/{uid}`, 2],
+]);
+
+/** Erase every job, then check them all; throws naming whatever is left */
+async function runPhase(jobs: readonly Job[], userId: string): Promise<void> {
   const results = await Promise.allSettled(jobs.map(async (job) => job.erase()));
   const errors = jobs.filter((job, i) => {
     const result = results[i];
@@ -136,6 +115,53 @@ export async function eraseUserRecord(
   if (stuck.size > 0) {
     throw new Error(`User record not fully erased: ${[...stuck].join(',')}`);
   }
+}
+
+/**
+ * Delete every store kept for the user, by uid (user-stores.ts, for the uid and every
+ * phone profile that is the same person) and by their other keys (erase-other-keys.ts),
+ * then check that nothing is left. Throws when Firestore or Firebase Auth is
+ * unreachable or anything survives, so callers never report an erasure that did not
+ * happen. Runs in phases, each only once the one before left nothing: everything
+ * else, then the linked phone profiles' key stores (tier 1, then their records), then
+ * the user's own.
+ */
+export async function eraseUserRecord(
+  userId: string,
+  firestore?: Db,
+  stores: readonly OwnedStore[] = ERASED_STORES,
+  keyed: readonly KeyedStore[] = KEYED_STORES
+): Promise<void> {
+  assertErasableUserId(userId);
+  const db = firestore ?? defaultDb();
+  // Gathered first: the sweep erases the records the keys are read from
+  const keys = keyed.length > 0 ? await gatherKeys(db, userId, keyed) : null;
+  const linked = keys?.linkedUserIds ?? [];
+  linked.forEach(assertErasableUserId);
+  const uidJobs = (uid: string, tier: number): Job[] =>
+    stores
+      .filter((store) => (KEY_TIER.get(storeLabel(store)) ?? 0) === tier)
+      .map((store) => ({
+        label: uid === userId ? storeLabel(store) : `${storeLabel(store)} (linked phone profile)`,
+        erase: async () => eraseStore(db, store, uid),
+        remains: async () => holdsUser(db, store, uid).catch(() => true),
+      }));
+  const keyedJobs: Job[] = keys
+    ? keyed.map((k) => ({
+        label: k.label,
+        erase: async () => k.erase(db, keys),
+        remains: async () => k.remains(db, keys).catch(() => true),
+      }))
+    : [];
+  await runPhase([...keyedJobs, ...[userId, ...linked].flatMap((uid) => uidJobs(uid, 0))], userId);
+  for (const tier of [1, 2]) {
+    if (linked.length > 0)
+      await runPhase(
+        linked.flatMap((uid) => uidJobs(uid, tier)),
+        userId
+      );
+  }
+  for (const tier of [1, 2]) await runPhase(uidJobs(userId, tier), userId);
 }
 
 /**

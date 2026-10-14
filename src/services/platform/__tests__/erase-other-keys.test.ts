@@ -14,14 +14,17 @@ type Data = Record<string, unknown>;
 
 /**
  * A Firestore holding documents by path with their fields: enough for the reads the
- * keyed stores make (doc reads, ==/in/array-contains-any queries, name-ordered pages,
- * listDocuments, transactions and recursive deletes). Records every page read.
+ * keyed stores make (doc reads, ==/>/in/array-contains-any queries, counts,
+ * name-ordered pages, listDocuments, transactions and recursive deletes). Records
+ * every page read.
  */
 function fakeFirestore(seed: Record<string, Data>) {
   const docs = new Map(Object.entries(seed));
   const pagesRead: string[][] = [];
   const field = (data: Data | undefined, path: string): unknown =>
     path.split('.').reduce<unknown>((v, k) => (v as Data | undefined)?.[k], data);
+  const valueAt = (docPath: string, f: string): unknown =>
+    f === '__name__' ? docPath.split('/').pop() : field(docs.get(docPath), f);
   const snap = (path: string) => ({
     id: path.split('/').pop() ?? '',
     ref: docRef(path),
@@ -33,7 +36,8 @@ function fakeFirestore(seed: Record<string, Data>) {
     id: path.split('/').pop(),
     path,
     get: async () => snap(path),
-    set: async (data: Data) => void docs.set(path, data),
+    set: async (data: Data, opts?: { merge?: boolean }) =>
+      void docs.set(path, opts?.merge ? { ...docs.get(path), ...data } : data),
     collection: (name: string) => collection(`${path}/${name}`),
     listCollections: async () =>
       [
@@ -58,8 +62,10 @@ function fakeFirestore(seed: Record<string, Data>) {
         [
           ...filters,
           (p: string) => {
-            const value = field(docs.get(p), f);
+            const value = valueAt(p, f);
             if (op === '==') return value === v;
+            if (op === '>') return String(value) > String(v);
+            if (op === '<') return String(value) < String(v);
             if (op === 'in') return (v as unknown[]).includes(value);
             if (op === 'array-contains-any')
               return Array.isArray(value) && value.some((x) => (v as unknown[]).includes(x));
@@ -74,7 +80,18 @@ function fakeFirestore(seed: Record<string, Data>) {
     select: () => query(name, filters, limit, from, to),
     limit: (n: number) => query(name, filters, n, from, to),
     startAfter: (s: { id: string }) => query(name, filters, limit, s.id, to),
-    endBefore: (id: string) => query(name, filters, limit, from, id),
+    endAt: (id: string) => query(name, filters, limit, from, `${id}\0`),
+    count: () => ({
+      get: async () => {
+        const n = [...docs.keys()].filter(
+          (p) =>
+            p.startsWith(`${name}/`) &&
+            p.split('/').length === name.split('/').length + 1 &&
+            filters.every((f) => f(p))
+        ).length;
+        return { data: () => ({ count: n }) };
+      },
+    }),
     get: async () => {
       const ids = [...docs.keys()]
         .filter(
@@ -174,8 +191,8 @@ describe('KEYED_STORES', () => {
     );
   });
 
-  it('strips the uid from calls in batches written before the change, in a transaction, reading no later batch', async () => {
-    const { db, raw, docs, pagesRead } = fakeFirestore({
+  it('strips the uid from unmarked batches only, in a transaction, leaving everyone else', async () => {
+    const { db, raw, docs } = fakeFirestore({
       'tool_usage_calls/batch_1700000000000': {
         calls: [
           { toolId: 'a', userId: 'u-1' },
@@ -183,9 +200,7 @@ describe('KEYED_STORES', () => {
         ],
       },
       'tool_usage_calls/batch_1700000000001': { calls: [{ toolId: 'c', userId: 'u-2' }] },
-      // The first marked batch; ids past it plus the rollout margin are never read
       'tool_usage_calls/batch_1800000000000': { calls: [{ toolId: 'd' }], noUserIds: true },
-      'tool_usage_calls/batch_1900000000000': { calls: [{ toolId: 'e' }], noUserIds: true },
     });
     const calls = store('tool_usage_calls[calls.userId]');
     expect(await calls.remains(db, keysFor())).toBe(true);
@@ -195,9 +210,66 @@ describe('KEYED_STORES', () => {
       { toolId: 'a' },
       { toolId: 'b', userId: 'u-2' },
     ]);
+    expect(docs.get('tool_usage_calls/batch_1700000000001')?.['calls']).toEqual([
+      { toolId: 'c', userId: 'u-2' },
+    ]);
     expect(raw.runTransaction).toHaveBeenCalledTimes(1);
     expect(await calls.remains(db, keysFor())).toBe(false);
+  });
+
+  it('once nothing unmarked was written after the last one seen, reads no later batch', async () => {
+    const { db, docs, pagesRead } = fakeFirestore({
+      'tool_usage_calls/batch_1700000000000': { calls: [{ toolId: 'a', userId: 'u-2' }] },
+      'tool_usage_calls/batch_1800000000000': { calls: [{ toolId: 'd' }], noUserIds: true },
+    });
+    const calls = store('tool_usage_calls[calls.userId]');
+    await calls.erase(db, keysFor());
+    expect(docs.get('analytics_meta/tool_usage_calls')).toEqual({
+      lastUnmarked: 'batch_1700000000000',
+    });
+    docs.set('tool_usage_calls/batch_1900000000000', { calls: [{ toolId: 'e' }], noUserIds: true });
+    pagesRead.length = 0;
+
+    await calls.erase(db, keysFor());
+
     expect(pagesRead.flat()).not.toContain('batch_1900000000000');
+    expect(pagesRead.flat()).not.toContain('batch_1800000000000');
+  });
+
+  it('finds a batch an old writer wrote after the new writer started (an uneven rollout)', async () => {
+    const { db, docs } = fakeFirestore({
+      'tool_usage_calls/batch_1700000000000': { calls: [{ toolId: 'a', userId: 'u-2' }] },
+      'tool_usage_calls/batch_1800000000000': { calls: [{ toolId: 'd' }], noUserIds: true },
+    });
+    const calls = store('tool_usage_calls[calls.userId]');
+    await calls.erase(db, keysFor()); // remembers batch_1700000000000
+    // Days later, an agent not yet redeployed writes the old way
+    docs.set('tool_usage_calls/batch_1900000000000', { calls: [{ toolId: 'e', userId: 'u-1' }] });
+
+    expect(await calls.remains(db, keysFor())).toBe(true);
+    await calls.erase(db, keysFor());
+
+    expect(docs.get('tool_usage_calls/batch_1900000000000')?.['calls']).toEqual([{ toolId: 'e' }]);
+    expect(await calls.remains(db, keysFor())).toBe(false);
+  });
+
+  it('pages past the first 300 batches', async () => {
+    const seed: Record<string, Data> = {};
+    for (let i = 0; i < 650; i++) {
+      seed[`tool_usage_calls/batch_${1700000000000 + i}`] = {
+        calls: [{ toolId: 't', userId: [0, 299, 300, 301, 599, 649].includes(i) ? 'u-1' : 'u-2' }],
+      };
+    }
+    const { db, docs } = fakeFirestore(seed);
+    await store('tool_usage_calls[calls.userId]').erase(db, keysFor());
+    const named = [...docs.values()].filter((d) =>
+      (d['calls'] as Data[] | undefined)?.some((c) => c['userId'] === 'u-1')
+    );
+    const others = [...docs.values()].filter((d) =>
+      (d['calls'] as Data[] | undefined)?.some((c) => c['userId'] === 'u-2')
+    );
+    expect(named).toEqual([]);
+    expect(others).toHaveLength(644);
   });
 });
 
@@ -255,6 +327,10 @@ describe('gatherErasureKeys', () => {
     getFirebaseUserOrThrow.mockResolvedValue({ phoneNumber: '+15550000009', providerData: [] });
     const { db } = fakeFirestore({
       'bogle_users/phone:+15550000009': { linkedIdentifiers: ['auth:default:u-2'] },
+      // Linked to this sign-in and someone else's: theirs too
+      'bogle_users/phone:+15550000008': {
+        linkedIdentifiers: ['auth:default:u-1', 'auth:google.com:u-2'],
+      },
     });
     expect((await gatherErasureKeys(db, 'u-1')).linkedUserIds).toEqual([]);
   });
@@ -283,5 +359,74 @@ describe('eraseUserRecord with keyed stores', () => {
     await eraseUserRecord('u-1', db, [{ collection: 'bogle_users', doc: 'uid' }]);
     expect([...docs.keys()]).toEqual(['billing_cleanup/cus_9']);
     expect(docs.get('billing_cleanup/cus_9')).toMatchObject({ stripeCustomerId: 'cus_9' });
+  });
+
+  it('keeps the records the keys come from until everything else is gone, so a retry finds them', async () => {
+    getFirebaseUserOrThrow.mockResolvedValue(null); // the Firebase user is already gone
+    const waitlist = `waitlist/${emailDocId('me@example.com')}`;
+    const { db, docs } = fakeFirestore({
+      'user_profiles/g1': { email: 'me@example.com', firebaseUid: 'u-1' },
+      'bogle_users/u-1': {},
+      [waitlist]: { email: 'me@example.com' },
+    });
+    let failures = 1;
+    const flaky = {
+      label: 'flaky',
+      erase: async () => {
+        if (failures-- > 0) throw new Error('unavailable');
+      },
+      remains: async () => failures >= 0,
+    };
+    const stores = [
+      { collection: 'bogle_users', doc: 'uid' as const },
+      { collection: 'user_profiles', field: 'firebaseUid' },
+    ];
+    const keyed = [flaky, store('waitlist/{email}')];
+
+    await expect(eraseUserRecord('u-1', db, stores, keyed)).rejects.toThrow('flaky');
+    expect(docs.has('user_profiles/g1')).toBe(true);
+
+    await eraseUserRecord('u-1', db, stores, keyed);
+    expect(docs.has(waitlist)).toBe(false);
+    expect(docs.has('user_profiles/g1')).toBe(false);
+  });
+
+  it("a retry reaches a linked phone profile's sponsored identities after its record is gone", async () => {
+    getFirebaseUserOrThrow.mockResolvedValue({ providerData: [] });
+    // An earlier attempt erased bogle_users/phone:+15550001111, then failed
+    const { db, docs } = fakeFirestore({
+      'bogle_users/u-1': { linkedIdentifiers: ['phone:+15550001111'] },
+      'sponsored_identities/sid1': { sponsorUserId: 'phone:+15550001111' },
+    });
+    const stores = [
+      { collection: 'bogle_users', doc: 'uid' as const },
+      { collection: 'sponsored_identities', field: 'sponsorUserId' },
+    ];
+    await eraseUserRecord('u-1', db, stores, [store('waitlist/{email}')]);
+    expect([...docs.keys()]).toEqual([]);
+  });
+
+  it("erases a linked phone profile's sponsored identities before its record", async () => {
+    getFirebaseUserOrThrow.mockResolvedValue({ providerData: [] });
+    const { db, raw, docs } = fakeFirestore({
+      'bogle_users/u-1': { linkedIdentifiers: ['phone:+15550001111'] },
+      'bogle_users/phone:+15550001111': {},
+      'sponsored_identities/sid1': { sponsorUserId: 'phone:+15550001111' },
+    });
+    const erase = raw.recursiveDelete.getMockImplementation();
+    raw.recursiveDelete.mockImplementation(async (ref: { path: string }) => {
+      if (ref.path.startsWith('sponsored_identities/')) throw new Error('unavailable');
+      await erase?.(ref);
+    });
+    const stores = [
+      { collection: 'bogle_users', doc: 'uid' as const },
+      { collection: 'sponsored_identities', field: 'sponsorUserId' },
+    ];
+    await expect(eraseUserRecord('u-1', db, stores, [store('waitlist/{email}')])).rejects.toThrow(
+      'sponsored_identities[sponsorUserId]'
+    );
+    // Both records stay, so the retry finds the linked profile again
+    expect(docs.has('bogle_users/phone:+15550001111')).toBe(true);
+    expect(docs.has('bogle_users/u-1')).toBe(true);
   });
 });

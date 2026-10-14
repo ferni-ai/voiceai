@@ -201,7 +201,7 @@ describe.skipIf(!emulator)('DELETE /api/account erases every store kept for the 
     const aKeys = await seedOtherKeys(a, `${a}@example.com`, '+15550000001');
     const bKeys = await seedOtherKeys(b, `${b}@example.com`, '+15550000002');
     // Tool-call telemetry: both people's calls in one batch, written before calls lost their uid
-    await db.doc('tool_usage_calls/batch_1').set({
+    await db.doc('tool_usage_calls/batch_1700000000001').set({
       calls: [
         { toolId: 'weather', userId: a, sessionId: 's-a' },
         { toolId: 'music', userId: b, sessionId: 's-b' },
@@ -217,7 +217,7 @@ describe.skipIf(!emulator)('DELETE /api/account erases every store kept for the 
     expect(res.status, res.body).toBe(200);
     expect(await docsNaming(a, ...aKeys)).toEqual([]);
     expect((await docsNaming(b, ...bKeys)).sort()).toEqual(bBefore);
-    expect((await db.doc('tool_usage_calls/batch_1').get()).get('calls')).toEqual([
+    expect((await db.doc('tool_usage_calls/batch_1700000000001').get()).get('calls')).toEqual([
       { toolId: 'weather', sessionId: 's-a' },
       { toolId: 'music', userId: b, sessionId: 's-b' },
     ]);
@@ -302,6 +302,11 @@ describe.skipIf(!emulator)('DELETE /api/account erases every store kept for the 
     await db
       .doc(`bogle_users/phone:${other}`)
       .set({ linkedIdentifiers: ['auth:default:someone-else'] });
+    // Linked to this sign-in and to someone else's: it is theirs too
+    const shared = `+1559${n}`;
+    await db
+      .doc(`bogle_users/phone:${shared}`)
+      .set({ linkedIdentifiers: [`auth:default:${h}`, 'auth:google.com:someone-else'] });
 
     expect((await deleteAccount(h)).status).toBe(200);
 
@@ -311,9 +316,10 @@ describe.skipIf(!emulator)('DELETE /api/account erases every store kept for the 
     expect((await db.doc(`bogle_users/phone:${similar}`).get()).exists).toBe(true);
     expect((await db.doc(`bogle_users/phone:${similar}/summaries/s1`).get()).exists).toBe(true);
     expect((await db.doc(`bogle_users/phone:${other}`).get()).exists).toBe(true);
+    expect((await db.doc(`bogle_users/phone:${shared}`).get()).exists).toBe(true);
   }, 60_000);
 
-  it('strips only batches written before calls lost their uid, and keeps the Stripe customer id', async () => {
+  it('strips every batch still holding a uid, even one an old agent wrote after the new writer started', async () => {
     const k = `del-k-${Date.now()}`;
     firebaseUsers.set(k, { email: `${k}@example.com`, emailVerified: true });
     await db.collection('user_profiles').add({
@@ -321,18 +327,26 @@ describe.skipIf(!emulator)('DELETE /api/account erases every store kept for the 
       firebaseUid: k,
       subscription: { tier: 'partner', stripeCustomerId: `cus_${k}` },
     });
-    await db.doc('tool_usage_calls/batch_2').set({ calls: [{ toolId: 'weather', userId: k }] });
-    // A batch from after the change has no uid to strip, and is never rewritten
-    const later = { calls: [{ toolId: 'music', sessionId: 's-k' }], noUserIds: true };
-    await db.doc('tool_usage_calls/batch_9').set(later);
-    const before = (await db.doc('tool_usage_calls/batch_9').get()).updateTime;
+    const day = 24 * 60 * 60 * 1000;
+    await db
+      .doc('tool_usage_calls/batch_1700000000002')
+      .set({ calls: [{ toolId: 'w', userId: k }] });
+    // The new writer's batches carry no uid and are never rewritten
+    await db
+      .doc('tool_usage_calls/batch_1800000000000')
+      .set({ calls: [{ toolId: 'music', sessionId: 's-k' }], noUserIds: true });
+    const before = (await db.doc('tool_usage_calls/batch_1800000000000').get()).updateTime;
+    // Two days later an agent not yet redeployed still writes the old way
+    const late = `tool_usage_calls/batch_${1800000000000 + 2 * day}`;
+    await db.doc(late).set({ calls: [{ toolId: 'x', userId: k }] });
 
     expect((await deleteAccount(k)).status).toBe(200);
 
-    expect((await db.doc('tool_usage_calls/batch_2').get()).get('calls')).toEqual([
-      { toolId: 'weather' },
+    expect((await db.doc('tool_usage_calls/batch_1700000000002').get()).get('calls')).toEqual([
+      { toolId: 'w' },
     ]);
-    expect((await db.doc('tool_usage_calls/batch_9').get()).updateTime).toEqual(before);
+    expect((await db.doc(late).get()).get('calls')).toEqual([{ toolId: 'x' }]);
+    expect((await db.doc('tool_usage_calls/batch_1800000000000').get()).updateTime).toEqual(before);
     // The pointer billing needs to close the Stripe customer, without who it was
     const cleanup = await db.doc(`billing_cleanup/cus_${k}`).get();
     expect(cleanup.get('stripeCustomerId')).toBe(`cus_${k}`);
