@@ -11,7 +11,8 @@
  *
  * getProfile reads the days alongside the profile and puts them on it as
  * conversationDays; saveProfile leaves them out, so they never go stale in
- * the profile document. STREAK_FROM_SUMMARIES=off turns the read off.
+ * the profile document. STREAK_FROM_SUMMARIES=on turns the read on; it is off
+ * by default because it adds up to CONVERSATION_DAYS_LIMIT reads to every load.
  *
  * @module memory/storage/conversation-days
  */
@@ -28,7 +29,7 @@ export const CONVERSATION_DAYS_LIMIT = 400;
 export function streakFromSummariesEnabled(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return env.STREAK_FROM_SUMMARIES !== 'off';
+  return env.STREAK_FROM_SUMMARIES === 'on';
 }
 
 /** The days of the user's most recent call summaries (timestamps only), oldest first. */

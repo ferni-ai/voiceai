@@ -6,12 +6,9 @@
  * summaries with a 12-day longest streak, and was computed "getting-started"
  * (Ferni and Maya only) because the streak read an empty array.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  calculateStreaks,
-  getTeamUnlockState,
-} from '../../../services/social/team-unlocks.js';
+import { calculateStreaks, getTeamUnlockState } from '../../../services/social/team-unlocks.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import {
   dayOf,
@@ -137,15 +134,20 @@ describe('readConversationDays', () => {
 });
 
 describe('STREAK_FROM_SUMMARIES', () => {
-  it('is on unless set to off', () => {
-    expect(streakFromSummariesEnabled({})).toBe(true);
+  it('is off unless set to on', () => {
+    expect(streakFromSummariesEnabled({})).toBe(false);
     expect(streakFromSummariesEnabled({ STREAK_FROM_SUMMARIES: 'off' })).toBe(false);
+    expect(streakFromSummariesEnabled({ STREAK_FROM_SUMMARIES: 'on' })).toBe(true);
   });
 });
 
 describe('FirestoreStore profile load and save', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   /** A fake db: one profile document and its summaries subcollection; records writes. */
-  function fakeDb(writes: unknown[]) {
+  function fakeDb(writes: unknown[], summaryReads: string[] = []) {
     const profile = {
       id: 'owner',
       name: 'Seth',
@@ -170,12 +172,16 @@ describe('FirestoreStore profile load and save', () => {
       set: async (data: unknown) => {
         writes.push(data);
       },
-      collection: () => query,
+      collection: (name: string) => {
+        summaryReads.push(name);
+        return query;
+      },
     };
     return { collection: () => ({ doc: () => doc }), terminate: async () => undefined };
   }
 
   it('getProfile puts the summary days on the profile, saveProfile leaves them out', async () => {
+    vi.stubEnv('STREAK_FROM_SUMMARIES', 'on');
     const { FirestoreStore } = await import('../firestore-store.js');
     const writes: unknown[] = [];
     const store = new FirestoreStore({ projectId: 'test-project' });
@@ -192,5 +198,21 @@ describe('FirestoreStore profile load and save', () => {
     expect(writes[0]).not.toHaveProperty('conversationDays');
     // The in-memory profile keeps them for the rest of the call
     expect(profile?.conversationDays).toHaveLength(2);
+  });
+
+  it('with the flag unset, getProfile reads no summaries and adds no days', async () => {
+    const { FirestoreStore } = await import('../firestore-store.js');
+    const writes: unknown[] = [];
+    const summaryReads: string[] = [];
+    const store = new FirestoreStore({ projectId: 'test-project' });
+    Object.assign(store as unknown as Record<string, unknown>, {
+      db: fakeDb(writes, summaryReads),
+      _initialized: true,
+    });
+
+    const profile = await store.getProfile('owner');
+    expect(profile?.totalConversations).toBe(647);
+    expect(summaryReads).toEqual([]);
+    expect(profile).not.toHaveProperty('conversationDays');
   });
 });

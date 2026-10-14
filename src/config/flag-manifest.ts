@@ -288,8 +288,8 @@ export const FLAG_MANIFEST = {
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
   SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // streaks count days from the summaries subcollection; off reads only the profile
-  STREAK_FROM_SUMMARIES: { default: 'on', owner: 'memory', kind: 'kill-switch' },
+  // streaks count days from the summaries subcollection (up to 400 reads per profile load)
+  STREAK_FROM_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   STT_REFRESH_AFTER_GREETING: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read in patches/@livekit__agents@1.6.4.patch
