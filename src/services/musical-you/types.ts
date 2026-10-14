@@ -372,10 +372,6 @@ export interface DailyChallenge {
   xpReward: number;
   streakBonus: boolean;
   specialReward?: string;
-
-  // Participation
-  participantCount: number;
-  completionRate: number;
 }
 
 export type DailyChallengeType =

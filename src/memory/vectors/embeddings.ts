@@ -24,6 +24,7 @@ import {
   cosineSimilarity,
   type EmbeddingVector as RustEmbeddingVector,
 } from './rust-accelerator/index.js';
+import { useVertexAI } from '../../config/vertex-flag.js';
 
 // Re-export for backwards compatibility with existing consumers
 export { cosineSimilarity };
@@ -608,11 +609,10 @@ async function getVertexAIAccessToken(): Promise<string> {
  */
 export function getEmbeddingProvider(): EmbeddingProvider {
   if (!defaultProvider) {
-    const useVertexAI = process.env.USE_VERTEX_AI !== 'false';
     const projectId = process.env.GOOGLE_CLOUD_PROJECT;
 
     // Use Vertex AI when configured (default in production)
-    if (useVertexAI && projectId) {
+    if (useVertexAI() && projectId) {
       defaultProvider = new VertexAIEmbeddings({
         projectId,
         location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1',

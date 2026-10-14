@@ -48,10 +48,11 @@
 import { gsap } from '../utils/gsap-setup.js';
 import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { expressionMotion, holdReturnTarget, noteExpressionSet } from './avatar-motion/expression-easing.js';
+import { handOffToFaceEngine } from './face/face-engine.js';
 
 const log = createLogger('FerniExpressions');
 
-// GSAP helper
 const toSeconds = (ms: number) => ms / 1000;
 
 // ============================================================================
@@ -128,6 +129,8 @@ export type CharacterReaction =
 
 let isInitialized = false;
 let currentExpression: EmotionalExpression = 'neutral';
+/** Target lid paths of the current expression (null until one is set); read by ferni:lid-blend. */
+let currentLidBase: { top: string; bottom: string } | null = null;
 let lidOverlay: HTMLElement | null = null;
 let sparkleContainer: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
@@ -243,22 +246,16 @@ export function setExpression(
   duration: number = DURATION.SLOW,
   hold: number = 0
 ): void {
-  // Auto-initialize if needed
-  if (!isInitialized) {
-    initFerniExpressions();
-  }
-  
+  if (handOffToFaceEngine(expression, 'reaction', hold)) return;
+  if (!isInitialized) initFerniExpressions();
   if (!lidOverlay || expression === currentExpression) return;
-  
   // Cancel any existing expression animation
   if (expressionTimeline) {
     expressionTimeline.kill();
   }
-  
   const prevExpression = currentExpression;
   currentExpression = expression;
   
-  // Get the lid elements
   // Get lid elements and dimples
   const lidTop = lidOverlay.querySelector('.lid-top') as SVGPathElement;
   const lidBottom = lidOverlay.querySelector('.lid-bottom') as SVGPathElement;
@@ -268,8 +265,7 @@ export function setExpression(
   
   if (!lidTop || !lidBottom) return;
   
-  // Expression configurations - Brand-aligned emotional range
-  // dimpleOpacity: 0-1, appears during warm/happy expressions
+  // Expression configurations - Brand-aligned emotional range. dimpleOpacity: 0-1, for warm/happy expressions
   const expressions: Record<EmotionalExpression, {
     topPath: string;
     bottomPath: string;
@@ -351,7 +347,7 @@ export function setExpression(
     },
     // NEW: Brand-aligned states
     contemplative: {
-      // Deep thought - wise, measured (like Jack Bogle)
+      // Deep thought - wise, measured (like a wise elder)
       topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z',
       dimpleOpacity: 0,
@@ -562,13 +558,13 @@ export function setExpression(
   
   const config = expressions[expression];
   if (!config) return;
-  
-  // Create timeline with anticipation
+  currentLidBase = { top: config.topPath, bottom: config.bottomPath };
+  // Create timeline; weight-aware easing + reduced motion when ferni:weighted-easing is on
   const tl = gsap.timeline();
   expressionTimeline = tl;
-  
+  const motion = expressionMotion(expression, duration);
   // Anticipation phase - slight opposite movement
-  if (prevExpression !== 'neutral' || expression !== 'neutral') {
+  if (motion.anticipate && (prevExpression !== 'neutral' || expression !== 'neutral')) {
     tl.to([lidTop, lidBottom], {
       scaleY: 0.95,
       duration: toSeconds(DURATION.MICRO),
@@ -580,25 +576,25 @@ export function setExpression(
   tl.to(lidTop, {
     attr: { d: config.topPath },
     scaleY: 1,
-    duration: toSeconds(duration),
-    ease: 'elastic.out(1, 0.7)',
-  }, toSeconds(DURATION.MICRO));
+    duration: toSeconds(motion.durationMs),
+    ease: motion.ease,
+  }, toSeconds(motion.delayMs));
   
   tl.to(lidBottom, {
     attr: { d: config.bottomPath },
     scaleY: 1,
-    duration: toSeconds(duration),
-    ease: 'elastic.out(1, 0.7)',
-  }, toSeconds(DURATION.MICRO));
+    duration: toSeconds(motion.durationMs),
+    ease: motion.ease,
+  }, toSeconds(motion.delayMs));
   
   // Dimple animations - subtle shadows that appear on warm expressions
   if (dimpleLeft && dimpleRight) {
     const dimpleOpacity = config.dimpleOpacity ?? 0;
     tl.to([dimpleLeft, dimpleRight], {
       opacity: dimpleOpacity,
-      duration: toSeconds(duration * 0.8),
+      duration: toSeconds(motion.durationMs * 0.8),
       ease: dimpleOpacity > 0 ? 'power2.out' : 'power2.in',
-    }, toSeconds(DURATION.MICRO));
+    }, toSeconds(motion.delayMs));
   }
   
   // Warmth sparkle effect for delighted/excited
@@ -606,21 +602,24 @@ export function setExpression(
     triggerWarmthSparkle();
   }
   
-  // Return to neutral after hold
+  noteExpressionSet(expression, hold); // resting moods become the hold-return baseline
   if (hold > 0) {
     tl.call(() => {
-      setExpression('neutral', DURATION.SLOW);
+      setExpression(holdReturnTarget('neutral', expressions), DURATION.SLOW);
     }, [], `+=${toSeconds(hold)}`);
   }
   
   log.debug('Expression set:', expression);
 }
 
-/**
- * Get current expression.
- */
+/** Get current expression. */
 export function getExpression(): EmotionalExpression {
   return currentExpression;
+}
+
+/** The current expression's lid paths, so the speaking lid can open from them (ferni:lid-blend). */
+export function getLidBasePaths(): { top: string; bottom: string } | null {
+  return currentLidBase;
 }
 
 // ============================================================================
@@ -1355,8 +1354,8 @@ export function dispose(): void {
   styleElement = null;
   currentIconElement = null;
   currentExpression = 'neutral';
+  currentLidBase = null;
   isInitialized = false;
-  
   log.debug('Ferni expressions disposed');
 }
 

@@ -9,7 +9,6 @@
  * Used by:
  * - ferni-hub.ui.ts
  * - while-you-were-away.ui.ts
- * - team-observations-panel.ui.ts
  * - insights-view.ui.ts
  */
 
