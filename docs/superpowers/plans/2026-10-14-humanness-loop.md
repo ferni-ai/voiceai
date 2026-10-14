@@ -14,7 +14,7 @@
   - `.github/CODEOWNERS` puts the harness paths under @sethdford's review.
 - **Hands:** `.github/workflows/humanness-eval.yml` on `ubuntu-latest`. It runs only from `refs/heads/main` (`workflow_dispatch` or `schedule`), and authenticates keylessly through Workload Identity Federation as the dedicated SA `humanness-loop@johnb-2025.iam.gserviceaccount.com`. The provider's condition issues tokens only to `humanness-*.yml` workflows on main. No JSON key, `GCP_SA_KEY` or `github-actions-deploy` is involved.
   - **Offline stage (primary):**
-    - `next-turn/generate.ts` builds the persona's prompt in-process, with each arm's flags set from `--off-set` and `--on-set`.
+    - `next-turn/generate.ts` builds the persona's prompt in-process, with each arm's flags set by `--set` from the workflow's `off_set` and `on_set` inputs.
     - It produces 6 samples per arm for every working and held-out moment.
     - Claude, Qwen and Gemini judge each pair in both positions, and rate each reply alone (listening, specificity, invented facts).
   - **Live stage:** dev calls through the unchanged `scripts/voice-eval/run.sh`, for the live guardrails (latency, talk-over, cost, invented facts) and diagnostics. It is the gate before anything is proposed for prod.
@@ -128,7 +128,7 @@
 | `.github/workflows/humanness-auth-check.yml`            | new     | WIF regression check: main dispatch authenticates, a PR run can't                                      |
 | `.github/workflows/humanness-dispatch.yml`              | new     | Routine branch B only: label on a PR → dispatch the eval on main (no GCP access)                       |
 | `docs/humanness-loop/prereg/TEMPLATE.md`                | new     | Preregistration for the human paired test (release gate)                                               |
-| `vitest.config.unit.ts`, `tsconfig.scripts.json`        | mod     | Include `scripts/humanness-loop`                                                                       |
+| `tsconfig.scripts.json`                                 | mod     | Include `scripts/humanness-loop` (vitest already picks up `scripts/**/__tests__`)                      |
 
 ---
 
@@ -202,7 +202,7 @@ Seth approved the dedicated SA, and it exists. **No JSON key exists, and none ma
             for s in livekit-dev-api-key livekit-dev-api-secret cartesia-api-key; do
               gcloud secrets versions access latest --secret=$s --project=johnb-2025 > /dev/null && echo "read $s"; done
             # Named, not listed: the SA has no project-level secrets.list (by design).
-            for s in livekit-prod-api-key livekit-prod-api-secret anthropic-api-key; do
+            for s in livekit-api-key livekit-api-secret STRIPE_SECRET_KEY; do   # prod LiveKit and Stripe: never granted
               gcloud secrets versions access latest --secret=$s --project=johnb-2025 > /dev/null 2>&1 && { echo "LEAK $s"; exit 1; } || echo "denied $s"; done
   ```
   - **Negative check:** the PR's own `pull_request` run must pass with `negative check ok: pull_request run got no token`.
@@ -381,7 +381,7 @@ This PR goes first. Everything after it is owned by Seth's review, and the judge
 - [ ] **Step 6: Run.** `pnpm vitest run --config vitest.config.unit.ts scripts/humanness-loop && pnpm typecheck:memory-eval`. Expected: 3 tests pass.
 - [ ] **Step 7: Commit.**
   ```bash
-  git add .github/CODEOWNERS scripts/humanness-loop/judges.lock.json scripts/humanness-loop/judges-lock.ts scripts/humanness-loop/__tests__/judges-lock.test.ts vitest.config.unit.ts tsconfig.scripts.json
+  git add .github/CODEOWNERS scripts/humanness-loop/judges.lock.json scripts/humanness-loop/judges-lock.ts scripts/humanness-loop/__tests__/judges-lock.test.ts tsconfig.scripts.json
   git commit -m "chore(humanness-loop): code owners and a pinned judge lock"
   ```
 
@@ -3303,6 +3303,13 @@ Seth labels each pair once, without being told which side is the friend. He answ
               echo "::error::kind=fault needs a fault and takes no pr"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; fi
             npx tsx scripts/humanness-loop/cli.ts calibration-gate --out $D/calibration.json \
               || { echo "verdict=unreliable" >> "$GITHUB_ENV"; exit 0; }
+            # A fault-* name is exempt from the gates below only if it is a real suite row (or the sandbox proof).
+            case "$EXPERIMENT" in fault-*)
+              ex=$(npx tsx scripts/humanness-loop/cli.ts fault-exempt) \
+                || { echo "::error::$EXPERIMENT is not a suite row with its dispatch"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; }
+              echo "FAULT_THROWAWAY=$(node -p 'JSON.parse(process.argv[1]).throwaway' "$ex")" >> "$GITHUB_ENV" ;; esac
+            [ "$KIND" = fault ] && case "$EXPERIMENT" in fault-*) ;; *)
+              echo "::error::kind=fault runs must be named fault-<row>"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0 ;; esac
             # Experiments decide only at full power (spec: 132 x 6, held-out confirms). Phase S rows are exempt.
             case "$KIND:$EXPERIMENT" in ab:fault-*|fault:*) ;; ab:*)
               { [ "$SAMPLES" = 6 ] && [ "$SPLITS" = both ]; } \
@@ -3467,12 +3474,12 @@ Seth labels each pair once, without being told which side is the friend. He answ
           run: |
             D=$RUNNER_TEMP/nt
             # Phase S rows never spend the real held-out budget: a throwaway Thresholdout state, never written back.
-            case "$EXPERIMENT" in fault-*)
-              node -e 'const f=process.argv[1],s=require(f);require("fs").writeFileSync(f,JSON.stringify({...s,seed:"fault-"+process.env.GITHUB_RUN_ID,budget:1e9,queries:0}))' $D/heldout-state.json ;; esac
+            [ "${FAULT_THROWAWAY:-}" = true ] && \
+              node -e 'const f=process.argv[1],s=require(f);require("fs").writeFileSync(f,JSON.stringify({...s,seed:"fault-"+process.env.GITHUB_RUN_ID,budget:1e9,queries:0}))' $D/heldout-state.json
             npx tsx scripts/humanness-loop/cli.ts decide --dir $D --samples "$SAMPLES" $([ "$FAULT" = friend ] && echo "--max-inconsistency 1")
             echo "decision=$(node -p 'require(process.argv[1]).decision' $D/verdict.json)" >> "$GITHUB_OUTPUT"
             gcloud storage cp --quiet $D/verdict.json "$HL_BUCKET/runs/$GITHUB_RUN_ID/verdict.json"
-            case "$EXPERIMENT" in fault-*) exit 0 ;; esac
+            [ "${FAULT_THROWAWAY:-}" = true ] && exit 0
             node -e 'const v=require(process.argv[1]);require("fs").writeFileSync(process.argv[2],JSON.stringify({...require(process.argv[3]),...v.next}))' $D/verdict.json $D/heldout-next.json $D/heldout-state.json
             gcloud storage cp --quiet $D/heldout-next.json $HL_BUCKET/state/heldout.json
             [ "$(node -p 'require(process.argv[1]).rotate' $D/verdict.json)" = true ] && npx tsx scripts/humanness-loop/cli.ts rotate --dir $D || true
@@ -3845,7 +3852,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
 - [ ] **Step 1: Write the failing test** `__tests__/fault-suite.test.ts`:
   ```ts
   import { describe, expect, it } from 'vitest';
-  import { SUITE, rowFor, suiteStatus, type FaultResult } from '../fault-suite.js';
+  import { SUITE, exemptFor, rowFor, suiteStatus, type FaultResult } from '../fault-suite.js';
   const ok: Record<string, FaultResult> = {
     'A/A': { decision: 'discard', reasons: [], keeps: 0, runs: 30 },
     G1: { decision: 'pending-live', reasons: [], onRate: 0.48 },
@@ -3886,6 +3893,32 @@ This is the first phase the loop runs. Until it passes on the current harness, `
       expect(
         suiteStatus({ ...ok, B1: { decision: 'discard', reasons: ['working: no win'] } }).failed
       ).toEqual(['B1']);
+    });
+    it('exempts only real suite rows and the sandbox proof, and never gives B8 a throwaway budget', () => {
+      expect(exemptFor('fault-x', { KIND: 'ab', SAMPLES: '6', SPLITS: 'both' })).toBeNull();
+      expect(
+        exemptFor('fault-sandbox-proof', { KIND: 'ab', SAMPLES: '1', SPLITS: 'working' })
+      ).toEqual({ row: 'proof', throwaway: false });
+      expect(
+        exemptFor('fault-sandbox-proof', { KIND: 'ab', SAMPLES: '6', SPLITS: 'both' })
+      ).toBeNull();
+      expect(
+        exemptFor('fault-B8', {
+          KIND: 'ab',
+          ON_SET: 'TURN_LENGTH=learned',
+          SAMPLES: '6',
+          SPLITS: 'both',
+          PR: '9',
+        })
+      ).toEqual({ row: 'B8', throwaway: false });
+      expect(
+        exemptFor('fault-B1', {
+          KIND: 'fault',
+          FAULT: 'backchannel',
+          SAMPLES: '2',
+          SPLITS: 'working',
+        })
+      ).toEqual({ row: 'B1', throwaway: true });
     });
     it('records a run only under the row its dispatch matches', () => {
       expect(
@@ -3992,7 +4025,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
     },
     {
       id: 'B8',
-      want: { KIND: 'ab', ON_SET: 'TURN_LENGTH=learned' },
+      want: { KIND: 'ab', ON_SET: 'TURN_LENGTH=learned', SAMPLES: '6', SPLITS: 'both' },
       expect: (r) => r.decision === 'blocked' && r.prTouchedJudge === true,
     },
   ];
@@ -4010,6 +4043,24 @@ This is the first phase the loop runs. Until it passes on the current harness, `
     const ok = Object.entries(row.want).every(([k, v]) => (env[k] ?? '') === v);
     return ok && (id !== 'B8' || !!env.PR) ? id : null;
   }
+  /**
+   * What a fault-* run is exempt from (the full-size gate, the fault-suite gate, the real held-out budget).
+   * Only a dispatch that rowFor maps to a suite row, or the F2 sandbox proof, is exempt; any other fault-* name
+   * is blocked. A throwaway Thresholdout state is given only to rows whose changes are fixed by the harness
+   * (never B8, whose src/ comes from a PR, and never the proof, which has no held-out data). So no fault-* run
+   * can buy adaptive held-out answers.
+   */
+  export function exemptFor(
+    experiment: string,
+    env: Record<string, string | undefined>
+  ): { row: string; throwaway: boolean } | null {
+    if (experiment === 'fault-sandbox-proof')
+      return env.KIND === 'ab' && env.SAMPLES === '1' && env.SPLITS === 'working'
+        ? { row: 'proof', throwaway: false }
+        : null;
+    const row = rowFor(experiment, env);
+    return row ? { row, throwaway: row !== 'B8' } : null;
+  }
   export function suiteStatus(results: Record<string, FaultResult>): {
     pass: boolean;
     failed: string[];
@@ -4022,6 +4073,13 @@ This is the first phase the loop runs. Until it passes on the current harness, `
   ```
 - [ ] **Step 3: The CLI commands.** Add these cases to `cli.ts`. Imports: `sample` from `./split.js`, `decide`, `liveGuardrailFailures` and `DECIDING` from `./decide.js`, `momentDeltas` from `./picks.js`, and `suiteStatus`, `rowFor` and `type FaultResult` from `./fault-suite.js`.
   ```ts
+      case 'fault-exempt': {
+        // A fault-* run: exit 3 unless exemptFor allows it; prints {row, throwaway}.
+        const ex = exemptFor(process.env.EXPERIMENT ?? '', process.env);
+        out(ex ?? { exempt: false });
+        if (!ex) process.exit(3);
+        break;
+      }
       case 'fault-gate':
       case 'fault-record': {
         // The suite is bound to the exact harness: any change to it starts the suite over.
@@ -4212,6 +4270,8 @@ This is the first phase the loop runs. Until it passes on the current harness, `
   ## 1. Read state (numbers only)
 
   - Scoreboard rows: trusted comments on #1377 carrying `<!-- humanness-loop:<experiment>:<decision> -->`.
+    Rows whose experiment starts with `fault-` belong to Phase S: never act on them, never dispatch a
+    `fault-*` experiment outside the plan's PR S Step 4 list, and never flip or merge because of one.
     The latest row per experiment id is that experiment's status. You never edit backlog.json.
   - Open PRs labelled `humanness-experiment` and their checks.
 
