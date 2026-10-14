@@ -47,8 +47,8 @@ vi.mock('../personas/bundles/loader.js', () => ({
       },
       secret_modes: {
         trigger_modes: {
-          tsunami_depth: {
-            triggers: ['tsunami', 'japan earthquake', 'march 11'],
+          mentor_depth: {
+            triggers: ['tanaka', 'your mentor', 'what happened in japan'],
             description: 'Deeper, contemplative mode',
             voice_shift: {
               pace: 'slower',
@@ -251,9 +251,9 @@ describe('Secret Mode Detector', () => {
   });
 
   describe('Trigger Modes', () => {
-    it('should activate tsunami depth mode on Japan earthquake mention', async () => {
+    it('should activate mentor depth mode when asked about his mentor', async () => {
       const input = createMockInput({
-        userText: 'I was in Japan during the tsunami, it changed everything.',
+        userText: 'What happened to your mentor in Japan?',
       });
 
       const injections = await buildSecretModeContext(input);
@@ -261,7 +261,7 @@ describe('Secret Mode Detector', () => {
       expect(injections.length).toBeGreaterThan(0);
       const secretMode = injections.find((i) => i.source === 'secret_mode_trigger');
       expect(secretMode).toBeDefined();
-      expect(secretMode?.content).toContain('TSUNAMI_DEPTH');
+      expect(secretMode?.content).toContain('MENTOR_DEPTH');
     });
 
     it('should activate mental health mode on distress signals', async () => {

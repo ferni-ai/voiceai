@@ -22,7 +22,6 @@ describe('cognitive insights: undated memories', () => {
       ],
       patterns: [],
       totalInteractions: 0,
-      knowledgeScore: 0,
     });
 
     const items = Array.from(document.querySelectorAll('.cognitive-insights__memory'));

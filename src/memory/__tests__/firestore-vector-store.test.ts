@@ -189,8 +189,9 @@ describe('FirestoreVectorStore', () => {
       const beforeDelete = await store.getDocument('to_delete');
       expect(beforeDelete).toBeDefined();
 
+      // Gone from the cache, but nothing persisted was reached: not confirmed.
       const success = await store.removeDocument('to_delete');
-      expect(success).toBe(true);
+      expect(success).toBe(false);
 
       const afterDelete = await store.getDocument('to_delete');
       expect(afterDelete).toBeUndefined();

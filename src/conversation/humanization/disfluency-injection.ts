@@ -228,7 +228,7 @@ const PERSONA_DISFLUENCY_PREFERENCES: Record<
     preferredTypes: ['discourse_marker', 'filled_pause', 'false_start', 'self_correction'],
     filledPauseStyle: ['Hmm', 'So', 'Well', 'Uh'],
     discourseMarkers: ['Look', 'Here\'s the thing', 'You know', 'So', 'Actually', 'I mean', 'Okay'],
-    probabilityMultiplier: 1.3, // Joel thinks aloud — warm, professorial, catches himself going into the weeds
+    probabilityMultiplier: 1.3, // Nate thinks aloud — warm, professorial, catches himself going into the weeds
   },
 };
 

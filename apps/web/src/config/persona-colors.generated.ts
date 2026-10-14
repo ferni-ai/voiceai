@@ -4,7 +4,7 @@
  * Persona colors generated from design-system/tokens/colors.json
  * Regenerate with: npm run build:persona-colors
  *
- * Generated: 2026-10-04T19:43:36.363Z
+ * Generated: 2026-10-11T15:53:32.032Z
  */
 
 import type { PersonaColorConfig } from '../types/colors.js';
@@ -91,7 +91,7 @@ export const GENERATED_PERSONA_COLORS: Record<string, PersonaColorConfig> = {
     glow: 'rgba(154, 7, 24, 0.28)',
     tint: 'rgba(154, 7, 24, 0.06)',
     gradient: 'linear-gradient(135deg, #7A0514 0%, #9A0718 100%)',
-    description: 'Vanguard burgundy red - distinguished, trustworthy, Stanford PhD mentor',
+    description: 'Burgundy red - distinguished, trustworthy mentor (Nate, id joel-dickson)',
   },
 
   'lynch': {
@@ -101,7 +101,7 @@ export const GENERATED_PERSONA_COLORS: Record<string, PersonaColorConfig> = {
     glow: 'rgba(26, 95, 42, 0.28)',
     tint: 'rgba(26, 95, 42, 0.06)',
     gradient: 'linear-gradient(135deg, #154c22 0%, #1a5f2a 100%)',
-    description: 'Peter Lynch (Financial Legend) - Fidelity forest green, from his bundle avatar colour',
+    description: 'Tom Brannigan (Financial Legend, id peter-lynch) - forest green, from his bundle avatar colour',
   },
 
   'bogle': {
@@ -111,7 +111,7 @@ export const GENERATED_PERSONA_COLORS: Record<string, PersonaColorConfig> = {
     glow: 'rgba(139, 0, 0, 0.28)',
     tint: 'rgba(139, 0, 0, 0.06)',
     gradient: 'linear-gradient(135deg, #6f0000 0%, #8b0000 100%)',
-    description: 'John Bogle (Financial Legend) - deep Vanguard red, from his bundle avatar colour',
+    description: 'Henry Caldwell (Financial Legend, id john-bogle) - deep red, from his bundle avatar colour',
   },
 
   'eli': {
