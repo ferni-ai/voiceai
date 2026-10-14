@@ -752,7 +752,7 @@ describe('EngagementService', () => {
       expect(result[1].status).toBe('pending');
     });
 
-    it('should handle offline status for predictions', async () => {
+    it('reports an offline load as a failure, not as no predictions', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
 
       engagementService.clearCache();
@@ -762,7 +762,18 @@ describe('EngagementService', () => {
 
       const result = await engagementService.fetchPredictions('user123');
 
-      expect(result).toEqual([]);
+      expect(result).toBeNull();
+    });
+
+    it('reports a server error as a failure, not as no predictions', async () => {
+      const { engagementService } = await import('../../../src/services/engagement.service.js');
+
+      engagementService.clearCache();
+      mockFetch.mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve({}) });
+
+      const result = await engagementService.fetchPredictions('user123');
+
+      expect(result).toBeNull();
     });
 
     it('should extract category correctly', async () => {

@@ -407,7 +407,7 @@ function getCuriousTiltIntensity(): { angle: number; duration: number } {
     // Nayan Patel - subtle, wise contemplation
     'nayan-patel': { angle: 2.5, duration: 4000 },
     
-    // Peter Lynch - eager, quick curiosity
+    // Tom Brannigan (peter-lynch) - eager, quick curiosity
     'peter-john': { angle: 5, duration: 2600 },
     
     // Alex Chen - thoughtful, measured tilt

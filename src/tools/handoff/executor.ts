@@ -22,6 +22,7 @@ import {
 } from '../../personas/voice-registry.js';
 import type { AgentId } from '../../services/agent-bus.js';
 import { checkHandoffUnlocked } from './handoff-unlock-check.js';
+import { handoffNotConfirmed } from './unconfirmed-handoff.js';
 // FIX BUG #1: Import trust context builder for handoffs
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -297,11 +298,6 @@ export interface ExecuteHandoffOptions {
   subscriptionTier?: 'free' | 'friend' | 'partner';
   /** Skip unlock validation (for testing) */
   skipUnlockCheck?: boolean;
-  /**
-   * FIX BUG #6: Recent conversation messages to pass to the new persona.
-   * This ensures the new agent has context of what was just discussed.
-   */
-  recentMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
   /** Current emotional state of the user */
   emotionalState?: string;
   /** Topics discussed in the conversation */
@@ -368,7 +364,6 @@ export async function executeHandoff(
       sessionId: options.sessionId,
       hasUserProfile: !!options.userProfile,
       subscriptionTier: options.subscriptionTier,
-      recentMessageCount: options.recentMessages?.length || 0,
     },
     '🔧 [TOOL] executeHandoff() ENTRY'
   );
@@ -433,23 +428,18 @@ export async function executeHandoff(
   // Get display name
   const targetAgentName = agent?.name || getPersonaDisplayName(canonicalTargetId);
 
-  // FIX BUG #2: Record the handoff via state.ts (updates rate limiting timestamp too)
-  recordHandoffToState(previousAgent, canonicalTargetId as AgentId, reason);
-
   // FIX BUG #6: Capture conversation context if provided
   // This ensures the new persona has awareness of what was just discussed
-  if (options.recentMessages || options.topics || options.emotionalState || options.voiceEmotion) {
+  if (options.topics || options.emotionalState || options.voiceEmotion) {
     captureHandoffContext({
       topics: options.topics || [],
       emotionalState: options.emotionalState || 'neutral',
       summary: reason,
       pendingItems: [],
-      recentMessages: options.recentMessages || [],
       voiceEmotion: options.voiceEmotion,
     });
     getLogger().debug(
       {
-        messageCount: options.recentMessages?.length || 0,
         topics: options.topics,
         emotionalState: options.emotionalState,
       },
@@ -467,8 +457,7 @@ export async function executeHandoff(
   // Generate greeting
   const greeting = await generateHandoffGreeting(canonicalTargetId, reason, previousAgent);
 
-  // Build context continuation - now includes recent messages if available
-  let contextContinuation = buildContextContinuation(reason, options.recentMessages);
+  let contextContinuation = buildContextContinuation(reason);
 
   // FIX: Add cross-persona insights to handoff context
   try {
@@ -597,6 +586,8 @@ export async function executeHandoff(
 
   // 🐛 FIX: Properly log and handle handler failures/timeouts
   if (handlerResult.success) {
+    // Only a confirmed switch goes into the history (and its rate limit): unconfirmed-handoff.ts
+    recordHandoffToState(previousAgent, canonicalTargetId as AgentId, reason);
     getLogger().info(
       {
         targetId: canonicalTargetId,
@@ -682,12 +673,10 @@ export async function executeHandoff(
       },
       '⚠️ Handoff handler did not complete successfully'
     );
+    const target = { targetAgent: canonicalTargetId, targetAgentName };
+    return handoffNotConfirmed({ sessionState, previousAgent, ...target });
   }
 
-  // Note: We still return success: true from the executor's perspective because:
-  // 1. The handoff state WAS updated (currentAgent changed)
-  // 2. The voiceSwitch event WAS emitted
-  // The handler result indicates whether greeting/instructions were applied
   const totalDurationMs = Date.now() - executionStart;
   getLogger().info(
     {
@@ -889,13 +878,10 @@ function getReasonAcknowledgment(reason: string): string {
 // ============================================================================
 
 /**
- * Build context continuation string from reason and recent messages
- * FIX BUG #6: Now accepts recent messages to pass to the new persona
+ * Build context continuation string from the handoff reason. The teammate's
+ * own context comes from session history (persona-agent-factory.ts).
  */
-function buildContextContinuation(
-  reason: string,
-  recentMessages?: Array<{ role: 'user' | 'assistant'; content: string }>
-): string {
+function buildContextContinuation(reason: string): string {
   const parts: string[] = [];
 
   // Extract key topics from the reason
@@ -914,20 +900,6 @@ function buildContextContinuation(
       parts.push(`The user was discussing: ${topics.join(', ')}.`);
     }
     parts.push(`Handoff reason: ${reason}`);
-  }
-
-  // FIX BUG #6: Include recent conversation for context continuity
-  if (recentMessages && recentMessages.length > 0) {
-    // Get last 3 messages to give new persona context without overwhelming
-    const lastMessages = recentMessages.slice(-3);
-    const conversationSummary = lastMessages
-      .map(
-        (m) =>
-          `${m.role === 'user' ? 'User' : 'Previous Agent'}: ${m.content.slice(0, 150)}${m.content.length > 150 ? '...' : ''}`
-      )
-      .join('\n');
-
-    parts.push(`\n[RECENT CONVERSATION]\n${conversationSummary}`);
   }
 
   return parts.join(' ');

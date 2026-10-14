@@ -219,7 +219,7 @@ export const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
   },
   'joel-dickson': {
     id: 'joel-dickson',
-    name: 'Joel',
+    name: 'Nate',
     specializations: [
       'investing',
       'financial planning',
@@ -243,9 +243,9 @@ export const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
       'IRA',
     ],
     warmIntros: [
-      "Joel is our financial mentor. He's brilliant with investment strategy.",
-      'For financial planning, Joel brings decades of wisdom. Want to meet him?',
-      "Joel lives and breathes smart investing. He'd love to help you think this through.",
+      "Nate is our financial mentor. He's brilliant with investment strategy.",
+      'For financial planning, Nate brings decades of wisdom. Want to meet him?',
+      "Nate lives and breathes smart investing. He'd love to help you think this through.",
     ],
     description: 'Financial mentor and investment strategist',
   },

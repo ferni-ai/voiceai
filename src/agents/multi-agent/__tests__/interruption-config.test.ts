@@ -28,4 +28,15 @@ describe('interruption config', () => {
       falseInterruptionTimeout: 1000,
     });
   });
+
+  it('resumes a reply paused for noise after 1 s with NEVER_SILENT=on (resume-buffer.ts)', () => {
+    expect(interruptionOverrides({ NEVER_SILENT: 'on' })).toEqual({
+      mode: 'adaptive',
+      minWords: 0,
+      falseInterruptionTimeout: 1000,
+    });
+    expect(interruptionOverrides({ NEVER_SILENT: 'shadow' })).not.toHaveProperty(
+      'falseInterruptionTimeout'
+    );
+  });
 });

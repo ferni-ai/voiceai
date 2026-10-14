@@ -29,6 +29,10 @@ on:
     branches: [main, develop]
     # No path filter on PRs: branch protection requires these checks, so a PR
     # they skip can never merge (docs, .claude/, dependabot.yml PRs all stuck).
+    # PR runs are the fast checks only: Lint & Type Check, Frontend Quality, Unit
+    # Tests, Security Scan. Integration Tests, Quality Gates, Build and the other
+    # slow jobs skip on pull_request (a skipped job still reports its check), so PR
+    # runs stop starving the merge queue for runners. The queue runs everything.
   # The merge queue tests each PR on top of main and whatever is queued ahead of it.
   merge_group:
 
@@ -79,13 +83,26 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      actions: read # queue-tested lists merge-queue runs
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
       # 'false' only when a PR touches nothing but docs/, scripts/voice-eval/ and
       # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
       code: ${{ steps.code.outputs.matched }}
+      # 'false' also when a PR touches only apps that aren't the Node app (website,
+      # ios-native, android-native, macos-menubar): none is in the UI image, ESLint
+      # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
+      # see the change. Security and Quality Gates (brand scans the website) stay on
+      # `code`. The merge queue is scoped the same way unless CI_SCOPED_QUEUE=off.
+      # On a push to main whose exact tree a successful merge-queue run already
+      # tested, the Node suite is skipped too (queue-tested; Security and Quality
+      # Gates still run). Admin merges and direct pushes always get the full suite.
+      node: ${{ steps.queue.outputs.tested == 'true' && 'false' || steps.node.outputs.matched }}
+      queue-run: ${{ steps.queue.outputs.run-id }}
       # voice-eval scripts are tested by Unit Tests (src/tests/voice-eval)
-      voice-eval: ${{ steps.voice-eval.outputs.matched }}
+      voice-eval: ${{ steps.queue.outputs.tested == 'true' && 'false' || steps.voice-eval.outputs.matched }}
+      # the web app, design system or brand changed (Overlay Gallery)
+      web: ${{ steps.web.outputs.matched }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -95,12 +112,31 @@ jobs:
         uses: ./.github/actions/pr-changes
         with:
           exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$'
+          merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
+
+      - name: Did the Node app change?
+        id: node
+        uses: ./.github/actions/pr-changes
+        with:
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
+          merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
+
+      - name: Did the merge queue already test this tree?
+        id: queue
+        uses: ./.github/actions/queue-tested
 
       - name: Did voice-eval scripts change?
         id: voice-eval
         uses: ./.github/actions/pr-changes
         with:
           include: '^scripts/voice-eval/'
+          merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
+
+      - name: Did the web app, design system or brand change?
+        id: web
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(apps/web/|design-system/|brand/|\.github/workflows/ci\.yml$)'
 
       - name: Generate cache key
         id: cache-key
@@ -139,7 +175,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -173,6 +209,9 @@ jobs:
       - name: TypeScript type check
         run: pnpm typecheck
 
+      - name: Memory eval type check
+        run: pnpm typecheck:memory-eval
+
       - name: Lint check
         run: pnpm lint
 
@@ -192,7 +231,7 @@ jobs:
     # an ~8 min test run. Cached cargo brings later runs back near the old budget.
     timeout-minutes: 35
     needs: setup
-    if: needs.setup.outputs.code != 'false' || needs.setup.outputs.voice-eval == 'true'
+    if: needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -315,7 +354,8 @@ jobs:
     needs: setup
     # No job-level `if:`: a skipped matrix job reports one check named
     # "Integration Tests (${{ matrix.shard }}/3)", so the three required checks
-    # would never report. It always runs; its steps skip on a docs-only PR.
+    # would never report. It always runs; its steps skip on a docs-only PR and on
+    # every pull_request run (the merge queue runs the suite; see on.pull_request).
     # Since the repo went private (2026-09-27) its runners are smaller: the
     # suite ran at ~1 worker and passed 30 minutes, where it took ~11 before.
     # Three shards in parallel cost about the same minutes and finish sooner.
@@ -325,21 +365,21 @@ jobs:
         shard: [1, 2, 3]
     steps:
       - name: Checkout
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         uses: actions/checkout@v7
 
       - name: Setup pnpm
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         id: nm-cache
         uses: actions/cache/restore@v6
         with:
@@ -354,17 +394,17 @@ jobs:
       # and cache eviction (10 GB repo limit) both leave it missing; install
       # instead of failing a job that has nothing wrong with it.
       - name: Install dependencies (node_modules cache miss)
-        if: needs.setup.outputs.code != 'false' && (steps.nm-cache.outputs.cache-hit != 'true')
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false' && (steps.nm-cache.outputs.cache-hit != 'true')
         run: pnpm install --no-frozen-lockfile
 
       # memory-persistence loads the native vector accelerator (loadRustPerf
       # throws without it); see the same steps in Unit Tests for why.
       - name: Setup Rust (for the @ferni/perf native binding)
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable @ 2026-09-25
 
       - name: Cache cargo + native targets
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         uses: actions/cache@v6
         with:
           path: |
@@ -378,34 +418,34 @@ jobs:
             ${{ runner.os }}-native-
 
       - name: Build @ferni/perf native binding
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         working-directory: apps/rust-perf
         run: |
           pnpm install
           pnpm exec napi build --platform
 
       - name: Check @ferni/perf loads
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         run: node -e "require('./apps/rust-perf')"
 
       # speech-modules runs the audio-prosody analyzer, which needs this binding
       # (no JS fallback). The repo only has the darwin-arm64 build, so on Linux
       # it failed with "Cannot find module '@ferni/audio-linux-x64-gnu'".
       - name: Build @ferni/audio native binding
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         working-directory: apps/rust-audio
         run: |
           pnpm install
           pnpm exec napi build --platform
 
       - name: Check @ferni/audio loads
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         run: node -e "require('./apps/rust-audio')"
 
       # Blocking. It ran with continue-on-error, so 13 tests could fail on every
       # run of main and the job still showed green.
       - name: Run integration tests
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         # No `--`: pnpm would pass it through and vitest ignores every flag after it.
         run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose
         env:
@@ -422,7 +462,7 @@ jobs:
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Check coverage threshold
-        if: needs.setup.outputs.code != 'false'
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         run: |
           # Extract coverage percentage from coverage summary
           COVERAGE=$(cat coverage/coverage-summary.json 2>/dev/null | grep -o '"pct":[0-9.]*' | head -1 | grep -o '[0-9.]*' || echo "0")
@@ -436,7 +476,7 @@ jobs:
 
       - name: Upload integration coverage
         uses: codecov/codecov-action@v7
-        if: always() && needs.setup.outputs.code != 'false'
+        if: always() && github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
@@ -451,7 +491,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -502,6 +542,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: [setup, lint, test-unit, test-integration, test-agi-features]
+    if: github.event_name != 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -638,7 +679,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -683,7 +724,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: github.event_name != 'pull_request' && needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -738,7 +779,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -785,7 +826,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -858,7 +899,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -931,6 +972,77 @@ jobs:
           pnpm tsx apps/cli/src/commands/quality/ratchet.ts --bundle
 
   # ============================================================================
+  # OVERLAY GALLERY (visual + contrast) - PRs touching web, design system, brand
+  # ============================================================================
+  # Opens every scene of the dev-only overlay gallery on a phone and a desktop
+  # viewport, light and dark: contrast may not get worse than
+  # apps/web/tests/overlays/contrast-baseline.json (axe + the gallery probe),
+  # snapshots must match the committed Linux baselines, and with the overlay
+  # host on the toast region must keep clear of Connect and the menu trigger.
+  # Other PRs and the merge queue skip it (a skipped job reports success, so it
+  # can become a required check). Reuses setup's node_modules cache and runs the
+  # Vite dev server (the gallery is dev-only, so the prod build can't be used).
+  overlay-gallery:
+    name: Overlay Gallery (visual + contrast)
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
+    timeout-minutes: 10
+    needs: setup
+    if: github.event_name == 'pull_request' && needs.setup.outputs.web != 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        id: nm-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: false
+
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      # Browsers persist in the runner user's cache on the self-hosted VM, which
+      # also has Chromium's system libraries (no sudo there).
+      - name: Install Chromium
+        working-directory: apps/web
+        run: pnpm exec playwright install ${{ runner.environment == 'github-hosted' && '--with-deps' || '' }} chromium
+
+      - name: Overlay gallery checks
+        working-directory: apps/web
+        run: |
+          if [ -d tests/overlays/__screenshots__/linux ]; then
+            pnpm exec playwright test -c playwright.overlays.config.ts
+          else
+            echo "::warning::No Linux overlay snapshots are committed yet. Writing them: commit tests/overlays/__screenshots__/linux from the overlay-gallery artifact."
+            pnpm exec playwright test -c playwright.overlays.config.ts --update-snapshots=all
+          fi
+
+      - name: Upload report and snapshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: overlay-gallery
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+            apps/web/tests/overlays/__screenshots__/linux/
+          retention-days: 7
+
+  # ============================================================================
   # DEPENDENCY CHECK
   # ============================================================================
   dependencies:
@@ -938,7 +1050,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 10
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7

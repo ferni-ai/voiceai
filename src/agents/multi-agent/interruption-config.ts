@@ -25,6 +25,8 @@
  *   350 ms hangover plus 1 s) for 98% of dev turns (n=1553, 2026-10-04..11).
  * On dev, 4.7% of replies were paused for a caller who said nothing
  * (BARGE_IN_FALSE_INTERRUPTION, 73 in 7 days; scripts/voice-eval/turn-taking.mjs).
+ * With NEVER_SILENT=on a reply paused for noise resumes 1 s after the noise
+ * ends instead of LiveKit's 2 s (resume-buffer.ts brings back its lost audio).
  *
  * @module agents/multi-agent/interruption-config
  */
@@ -48,8 +50,13 @@ export function bargeInGuardOn(env: Record<string, string | undefined> = process
 export function interruptionOverrides(
   env: Record<string, string | undefined> = process.env
 ): InterruptionOverrides {
+  const resume = env.NEVER_SILENT?.trim().toLowerCase() === 'on' && {
+    falseInterruptionTimeout: 1000,
+  };
   const base: InterruptionOverrides =
-    env.INTERRUPTION_MODE === 'vad' ? { mode: 'vad' } : { mode: 'adaptive', minWords: 0 };
+    env.INTERRUPTION_MODE === 'vad'
+      ? { mode: 'vad', ...resume }
+      : { mode: 'adaptive', minWords: 0, ...resume };
   if (!bargeInGuardOn(env)) return base;
   return {
     ...base,
