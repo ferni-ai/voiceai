@@ -42,6 +42,12 @@ const saveInAppMessage = vi.fn(async () => ({ success: true, channel: 'in_app' }
 vi.mock('../../outreach/unified-delivery.js', () => ({ saveInAppMessage }));
 const storeUserPreferences = vi.fn(async (_userId: string, _prefs: unknown[]) => undefined);
 vi.mock('../../user-preferences-store.js', () => ({ storeUserPreferences }));
+const markAsked = vi.fn(async () => undefined);
+vi.mock('../pick-log.js', () => ({
+  markAsked,
+  markSent: vi.fn(async () => undefined),
+  markAnswered: vi.fn(async () => undefined),
+}));
 
 const {
   commitmentText,
@@ -53,7 +59,8 @@ const {
   sendableLink,
 } = await import('../pick-delivery.js');
 const { processCommitments } = await import('../../trust-systems/commitment-tracking.js');
-const { asksAbout } = await import('../../trust-systems/commitment-follow-through.js');
+const { asksAbout, noteAskedFollowUps, noteFollowUpOffered } =
+  await import('../../trust-systems/commitment-follow-through.js');
 const { recordFollowUpAnswer } = await import('../feedback.js');
 
 const PICK = {
@@ -75,6 +82,7 @@ const PICK = {
     },
   },
   why: 'Eight gentle minutes, made for beginners.',
+  pickId: 'pick-1',
 };
 const DAY = 86_400_000;
 
@@ -119,13 +127,12 @@ describe('deliverPick', () => {
       true
     );
 
-    // Ferni asks; "it really helped" settles it and becomes a preference.
+    // Ferni asks (through the real follow-through reader); the pick log notes when.
     const key = [...docs.keys()].find((k) => k.includes('/commitments/'))!;
-    docs.set(key, {
-      ...docs.get(key),
-      awaitingAnswer: true,
-      followUpAskedAt: new Date().toISOString(),
-    });
+    noteFollowUpOffered('user-1', due[0]);
+    await noteAskedFollowUps('user-1', `You were going to ${due[0].content}. Did it help?`);
+    expect(docs.get(key)).toMatchObject({ awaitingAnswer: true });
+    expect(markAsked).toHaveBeenCalledWith('user-1', 'pick-1', expect.any(String));
     const { answers } = await processCommitments('user-1', 'oh it really helped, thanks');
     expect(answers).toEqual([expect.objectContaining({ outcome: 'done' })]);
     expect(await recordFollowUpAnswer('user-1', answers[0], 'oh it really helped, thanks')).toBe(

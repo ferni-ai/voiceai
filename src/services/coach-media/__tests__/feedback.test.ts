@@ -52,4 +52,10 @@ describe('recordFollowUpAnswer', () => {
     expect(await recordFollowUpAnswer('u1', other, 'it helped')).toBeNull();
     expect(storeUserPreferences).toHaveBeenCalledTimes(1);
   });
+
+  it('stores nothing for a follow-up that went unanswered, whatever this turn says', async () => {
+    const lapsed = { id: 'coach-media-3', content: "try the video 'X'", outcome: 'unanswered' };
+    expect(await recordFollowUpAnswer('u1', lapsed, 'that was great, thanks')).toBeNull();
+    expect(storeUserPreferences).not.toHaveBeenCalled();
+  });
 });

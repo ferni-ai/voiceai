@@ -17,7 +17,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { COACH_MEDIA_COMMITMENT_PREFIX, classifyHelpfulness } from '../coach-media/feedback.js';
+import {
+  COACH_MEDIA_COMMITMENT_PREFIX,
+  classifyHelpfulness,
+  recordFollowUpAsked,
+} from '../coach-media/feedback.js';
 
 const log = createLogger({ module: 'CommitmentFollowThrough' });
 
@@ -136,6 +140,7 @@ export async function noteAskedFollowUps(
       followUpCount: 1,
       lastMentioned: at,
     });
+    await recordFollowUpAsked(userId, id, at);
     askedNow.push(id);
     log.info({ userId, commitmentId: id }, 'Asked how a commitment went');
   }

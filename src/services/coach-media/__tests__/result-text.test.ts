@@ -164,6 +164,7 @@ describe('pickResultText', () => {
       host: 'youtube.com',
       evidence: 'evidence-based',
       why: 'Short and gentle for a beginner.',
+      because: null,
     });
     expect(text).not.toMatch(/555|previous instructions/i);
     expect(text).not.toContain(GENERAL_INFO_NOTE);
