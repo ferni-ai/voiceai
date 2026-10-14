@@ -59,7 +59,8 @@ describe('the eval clock on the reply path', () => {
     vi.setSystemTime(new Date('2026-10-11T20:10:00Z')); // 14:10 in Denver
     process.env.FERNI_STATE = 'on';
     const real = last(withTurnReminder(request(), session()));
-    expect(real).not.toMatch(/where you are/);
+    // The late-night note itself; "where you are" alone also appears in other turn copy.
+    expect(real).not.toMatch(/getting sleepy; it's .+ where you are/);
     const shifted = last(withTurnReminder(request(), session({ hour: 1, minute: 47 })));
     expect(shifted).toContain("it's nearly 2am where you are");
   });
