@@ -484,6 +484,110 @@ jobs:
           fail_ci_if_error: false
 
   # ============================================================================
+  # RELATED INTEGRATION TESTS (pull_request only)
+  # ============================================================================
+  # PR runs skip the integration suite (the merge queue runs it), so a broken
+  # integration test surfaced only as a queue rejection, which also knocks out
+  # the PRs queued with it (#1332). This runs just the integration tests that
+  # import the PR's changed src/ files (`vitest related`), before the queue (#1366).
+  # Hosted on purpose, never CI_RUNNER: it takes no runner from the merge queue.
+  # Not a required check, and it never runs in merge_group (the queue runs all).
+  test-integration-related:
+    name: Related Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: setup
+    if: github.event_name == 'pull_request' && needs.setup.outputs.node != 'false'
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Changed src files
+        id: changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        # Files that still exist (a deleted module has no importers left to run).
+        run: |
+          gh pr diff "$PR" --name-only -R "$GITHUB_REPOSITORY" |
+            grep -E '^src/.+\.(ts|tsx|js|mjs)$' |
+            while IFS= read -r f; do [ -f "$f" ] && printf '%s\n' "$f"; done > "$RUNNER_TEMP/changed-src.txt" || true
+          count=$(wc -l < "$RUNNER_TEMP/changed-src.txt")
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "$count changed src file(s)"
+
+      - name: Setup pnpm
+        if: steps.changed.outputs.count != '0'
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        if: steps.changed.outputs.count != '0'
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        if: steps.changed.outputs.count != '0'
+        id: nm-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: false
+
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.changed.outputs.count != '0' && steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      # Same native bindings as Integration Tests: memory-persistence and
+      # speech-modules load them, and a related run can select either.
+      - name: Setup Rust (for the @ferni/perf native binding)
+        if: steps.changed.outputs.count != '0'
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable @ 2026-09-25
+
+      - name: Cache cargo + native targets
+        if: steps.changed.outputs.count != '0'
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            apps/rust-perf/target/
+            apps/rust-audio/target/
+          key: ${{ runner.os }}-native-${{ hashFiles('apps/rust-perf/Cargo.lock', 'apps/rust-audio/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-native-
+
+      - name: Build native bindings
+        if: steps.changed.outputs.count != '0'
+        run: |
+          (cd apps/rust-perf && pnpm install && pnpm exec napi build --platform)
+          (cd apps/rust-audio && pnpm install && pnpm exec napi build --platform)
+
+      - name: Run integration tests related to the change
+        if: steps.changed.outputs.count != '0'
+        # No `--` (see Integration Tests). Paths are read into an array, never
+        # word-split, since a file name comes from the PR.
+        run: |
+          mapfile -t files < "$RUNNER_TEMP/changed-src.txt"
+          pnpm exec vitest related --run --config vitest.config.integration.ts --passWithNoTests --reporter=verbose "${files[@]}"
+        env:
+          NODE_ENV: test
+          # Same env as Integration Tests (no GOOGLE_API_KEY, see there).
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+
+  # ============================================================================
   # AGI FEATURE TESTS
   # ============================================================================
   test-agi-features:
