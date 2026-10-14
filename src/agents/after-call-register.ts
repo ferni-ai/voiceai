@@ -7,7 +7,7 @@
  *
  * @module agents/after-call-register
  */
-import '../intelligence/theory-of-mind/register.js';
+import './theory-of-mind-register.js';
 import './fact-sweep-register.js';
 import './personas/common-ground-register.js';
 import '../intelligence/world-model/extraction/register.js';

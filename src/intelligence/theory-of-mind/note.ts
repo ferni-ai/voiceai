@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { firestoreMindStore, type MindStore } from './store.js';
+import type { MindStore } from './store.js';
 import type { MindModel, Pattern } from './types.js';
 import { isEstablished } from './update.js';
 
@@ -85,7 +85,8 @@ const words = (s: string): Set<string> =>
 
 export interface MindNoteDeps {
   userId: string;
-  store?: MindStore;
+  /** Where the model lives; mind-note-hook.ts hands in the Firestore adapter. */
+  store: MindStore;
   now?: () => Date;
 }
 
@@ -109,7 +110,7 @@ export function createMindNote(deps: MindNoteDeps): MindNote {
   let started = false;
   let remindedThisTurn = false;
   const covered = new Set<string>();
-  const ready = (deps.store ?? firestoreMindStore)
+  const ready = deps.store
     .load(deps.userId)
     .then((m) => {
       model = m;

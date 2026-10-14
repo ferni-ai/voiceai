@@ -1,7 +1,7 @@
 /**
  * After a call ends, update what Ferni understands about the person.
  *
- * Runs as the 'theory-of-mind' after-call task (register.ts): endSession starts
+ * Runs as the 'theory-of-mind' after-call task (agents/theory-of-mind-register.ts): endSession starts
  * it once the summary is saved and never waits on it. Off unless
  * THEORY_OF_MIND=on. Bounded by its own timeout and never throws.
  *
@@ -11,7 +11,7 @@
 import { withTimeout } from '../../utils/async.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { type CallSummaryView, type CallTurn, parseReading, readingPrompt } from './extract.js';
-import { firestoreMindStore, type MindStore } from './store.js';
+import type { MindStore } from './store.js';
 import { emptyMindModel, type MindModel } from './types.js';
 import { applyCallReading } from './update.js';
 
@@ -33,7 +33,8 @@ export interface AfterCallInput {
 }
 
 export interface AfterCallDeps {
-  store?: MindStore;
+  /** Where the model lives; the register hands in the Firestore adapter. */
+  store: MindStore;
   /** Prompt in, raw reply out. Defaults to the background LLM used for summaries. */
   llm?: (prompt: string) => Promise<string>;
   now?: () => Date;
@@ -46,7 +47,7 @@ async function defaultLlm(prompt: string): Promise<string> {
 }
 
 async function update(input: AfterCallInput, deps: AfterCallDeps): Promise<MindModel | null> {
-  const store = deps.store ?? firestoreMindStore;
+  const { store } = deps;
   const now = (deps.now ?? (() => new Date()))();
   const model = (await store.load(input.userId)) ?? emptyMindModel(input.userId, now);
   const raw = await (deps.llm ?? defaultLlm)(readingPrompt(input.turns, input.summary, model));
@@ -73,7 +74,7 @@ async function update(input: AfterCallInput, deps: AfterCallDeps): Promise<MindM
 /** The updated model, or null when off, skipped, or failed. */
 export async function updateTheoryOfMindAfterCall(
   input: AfterCallInput,
-  deps: AfterCallDeps = {}
+  deps: AfterCallDeps
 ): Promise<MindModel | null> {
   if (!theoryOfMindMode(deps.env)) return null;
   const callerTurns = input.turns.filter((t) => t.role === 'user').length;

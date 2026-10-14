@@ -2,18 +2,20 @@
  * The theory-of-mind update runs after a call through the after-call registry:
  * registered by agents/after-call-register.ts, started by the real endSession,
  * never awaited by it, and counted until it settles so the job process waits
- * for it. Only the writer itself is a spy.
+ * for it, with the Firestore store handed in. Only the writer itself is a spy.
  */
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 const writer = vi.hoisted(() => ({
   calls: [] as Array<{ userId: string; sessionId: string; turns: unknown[] }>,
+  deps: [] as unknown[],
   release: null as null | (() => void),
 }));
 vi.mock('../../../intelligence/theory-of-mind/after-call.js', () => ({
   updateTheoryOfMindAfterCall: vi.fn(
-    (input: { userId: string; sessionId: string; turns: unknown[] }) => {
+    (input: { userId: string; sessionId: string; turns: unknown[] }, deps: unknown) => {
       writer.calls.push(input);
+      writer.deps.push(deps);
       return new Promise<null>((resolve) => {
         writer.release = () => resolve(null);
       });
@@ -26,6 +28,7 @@ await import('../../../agents/after-call-register.js');
 const { drainAfterCallTasks, pendingAfterCallTasks, registeredAfterCallTasks } =
   await import('../after-call-tasks.js');
 const { createSessionServices, initializeServices } = await import('../../index.js');
+const { firestoreMindStore } = await import('../../../memory/storage/mind-store.js');
 
 describe('endSession → after-call registry → theory of mind', () => {
   beforeAll(async () => {
@@ -51,6 +54,8 @@ describe('endSession → after-call registry → theory of mind', () => {
     expect(writer.calls[0]?.userId).toBe('tom-wiring-user-1');
     expect(writer.calls[0]?.sessionId).toBe(services.sessionId);
     expect(writer.calls[0]?.turns.length).toBeGreaterThanOrEqual(3);
+    // The register (L4) hands in the Firestore adapter; theory of mind (L3) never imports it.
+    expect(writer.deps[0]).toEqual({ store: firestoreMindStore });
 
     // Still pending, so a per-call job process would wait for it before exiting.
     const pending = pendingAfterCallTasks();

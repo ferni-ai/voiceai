@@ -14,6 +14,15 @@ import { CALL_1, READING_1, T0 } from '../../../intelligence/theory-of-mind/__te
 import type { RecallAgent } from '../memory-recall-hook.js';
 import { attachMindNote } from '../mind-note-hook.js';
 
+// Production store (L1): the hook hands it in when the caller passes none.
+const firestore = vi.hoisted(() => ({ loads: [] as string[] }));
+vi.mock('../../../memory/storage/mind-store.js', () => ({
+  firestoreMindStore: {
+    load: async (userId: string) => (firestore.loads.push(userId), null),
+    save: async () => undefined,
+  },
+}));
+
 const notesIn = (agent: voice.Agent) =>
   agent.chatCtx.items
     .map((i) => (i as { textContent?: string }).textContent ?? '')
@@ -69,5 +78,16 @@ describe('theory of mind on the live path', () => {
     await mind.ready;
     session.emit('user_input_transcribed', { transcript: 'Hey Ferni' });
     expect(notesIn(agent)).toHaveLength(0);
+  });
+
+  it('with no store passed (agent-setup), loads from the Firestore adapter', async () => {
+    firestore.loads.length = 0;
+    const agent = new voice.Agent({ instructions: 'You are Ferni.' });
+    const mind = attachMindNote(new EventEmitter(), agent as unknown as RecallAgent, {
+      userId: 'u-prod',
+    });
+    await mind.ready;
+    expect(firestore.loads).toEqual(['u-prod']);
+    mind.detach();
   });
 });
