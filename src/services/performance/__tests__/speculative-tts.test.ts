@@ -19,7 +19,8 @@ vi.mock('../../../config/voice-ids.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../config/voice-ids.js')>();
   return {
     ...actual,
-    getVoiceIdForPersona: vi.fn((persona: string) => `voice-id-${persona}`),
+    // A UUID: the engine skips any voice Cartesia would reject.
+    getVoiceIdForPersona: vi.fn(() => '00000000-0000-4000-8000-000000000001'),
   };
 });
 
@@ -50,6 +51,8 @@ describe('SpeculativeTTS', () => {
 
     // Set API key for tests
     vi.stubEnv('CARTESIA_API_KEY', 'test-api-key');
+    // These cover the engine when enabled; the flag defaults off.
+    vi.stubEnv('SPECULATIVE_TTS', 'on');
   });
 
   afterEach(() => {

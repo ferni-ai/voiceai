@@ -25,24 +25,20 @@ vi.mock('@google-cloud/firestore', () => ({
 }));
 
 // Use vi.hoisted for AI interaction mocks
-const { mockGeneratePersonalizedHero, mockGenerateSocialProof } = vi.hoisted(() => ({
+const { mockGeneratePersonalizedHero } = vi.hoisted(() => ({
   mockGeneratePersonalizedHero: vi.fn(),
-  mockGenerateSocialProof: vi.fn(),
 }));
 
 vi.mock('../ai-interactions.js', () => ({
   generatePersonalizedHero: mockGeneratePersonalizedHero,
-  generateSocialProof: mockGenerateSocialProof,
 }));
 
 import {
   getCachedHero,
-  getCachedSocialProof,
   getCachedMemoryStories,
   getCachedLateNightScenarios,
   getCachedUseCaseQuotes,
   generateAndCacheHeroes,
-  generateAndCacheSocialProof,
   runBatchGeneration,
   getCacheControlHeader,
   CONTENT_CACHE_CONFIG,
@@ -58,7 +54,6 @@ describe('ContentCache', () => {
       subhead: 'Generated subhead',
       ctaText: 'Generated CTA',
     });
-    mockGenerateSocialProof.mockResolvedValue([{ content: 'Message 1' }, { content: 'Message 2' }]);
   });
 
   afterEach(() => {
@@ -68,7 +63,6 @@ describe('ContentCache', () => {
   describe('CONTENT_CACHE_CONFIG', () => {
     it('should have collection names', () => {
       expect(CONTENT_CACHE_CONFIG.collections.heroes).toBe('landing_cache_heroes');
-      expect(CONTENT_CACHE_CONFIG.collections.socialProof).toBe('landing_cache_social_proof');
       expect(CONTENT_CACHE_CONFIG.collections.memoryStories).toBe('landing_cache_memory_stories');
       expect(CONTENT_CACHE_CONFIG.collections.lateNightScenarios).toBe('landing_cache_late_night');
       expect(CONTENT_CACHE_CONFIG.collections.useCaseQuotes).toBe('landing_cache_use_cases');
@@ -76,13 +70,11 @@ describe('ContentCache', () => {
 
     it('should have TTL values in milliseconds', () => {
       expect(CONTENT_CACHE_CONFIG.ttl.heroes).toBe(24 * 60 * 60 * 1000); // 24 hours
-      expect(CONTENT_CACHE_CONFIG.ttl.socialProof).toBe(24 * 60 * 60 * 1000);
       expect(CONTENT_CACHE_CONFIG.ttl.memoryStories).toBe(7 * 24 * 60 * 60 * 1000); // 7 days
     });
 
     it('should have variation counts', () => {
       expect(CONTENT_CACHE_CONFIG.variations.heroes).toBe(15);
-      expect(CONTENT_CACHE_CONFIG.variations.socialProof).toBe(30);
       expect(CONTENT_CACHE_CONFIG.variations.memoryStories).toBe(10);
       expect(CONTENT_CACHE_CONFIG.variations.lateNightScenarios).toBe(15);
     });
@@ -151,38 +143,6 @@ describe('ContentCache', () => {
     });
   });
 
-  describe('getCachedSocialProof', () => {
-    it('should return array of social proof messages', async () => {
-      const messages = await getCachedSocialProof(3);
-
-      expect(Array.isArray(messages)).toBe(true);
-      expect(messages.length).toBeGreaterThan(0);
-      expect(messages.length).toBeLessThanOrEqual(3);
-    });
-
-    it('should return fallback messages with correct structure', async () => {
-      const messages = await getCachedSocialProof(5);
-
-      messages.forEach((msg) => {
-        expect(msg).toHaveProperty('text');
-        expect(msg).toHaveProperty('type');
-        expect(['memory', 'presence', 'understanding', 'moment']).toContain(msg.type);
-      });
-    });
-
-    it('should default to 5 messages when no count specified', async () => {
-      const messages = await getCachedSocialProof();
-
-      expect(messages.length).toBeLessThanOrEqual(5);
-    });
-
-    it('should limit messages to requested count', async () => {
-      const messages = await getCachedSocialProof(2);
-
-      expect(messages.length).toBeLessThanOrEqual(2);
-    });
-  });
-
   describe('getCachedMemoryStories', () => {
     it('should return array (empty when Firestore unavailable)', async () => {
       const stories = await getCachedMemoryStories();
@@ -237,39 +197,13 @@ describe('ContentCache', () => {
     });
   });
 
-  describe('generateAndCacheSocialProof', () => {
-    it('should return count of generated snippets', async () => {
-      const count = await generateAndCacheSocialProof();
-
-      // With Firestore unavailable, returns 0 (can't save)
-      // or returns the count if mock worked
-      expect(typeof count).toBe('number');
-    });
-
-    it('should return 0 when AI generation fails', async () => {
-      mockGenerateSocialProof.mockRejectedValue(new Error('AI error'));
-
-      const count = await generateAndCacheSocialProof();
-
-      expect(count).toBe(0);
-    });
-
-    it('should return 0 when AI returns empty array', async () => {
-      mockGenerateSocialProof.mockResolvedValue([]);
-
-      const count = await generateAndCacheSocialProof();
-
-      expect(count).toBe(0);
-    });
-  });
-
   describe('runBatchGeneration', () => {
     it('should return result object with generation counts', async () => {
       const result = await runBatchGeneration();
 
       expect(result).toHaveProperty('heroes');
-      expect(result).toHaveProperty('socialProof');
       expect(result).toHaveProperty('totalCost');
+      expect(result).not.toHaveProperty('socialProof');
     });
 
     it('should calculate cost estimate', async () => {
@@ -283,12 +217,6 @@ describe('ContentCache', () => {
 
       expect(typeof result.heroes).toBe('number');
     });
-
-    it('should return numeric social proof count', async () => {
-      const result = await runBatchGeneration();
-
-      expect(typeof result.socialProof).toBe('number');
-    });
   });
 
   describe('getCacheControlHeader', () => {
@@ -298,14 +226,6 @@ describe('ContentCache', () => {
       expect(header).toContain('public');
       expect(header).toContain('max-age=3600');
       expect(header).toContain('s-maxage=86400');
-    });
-
-    it('should return correct header for socialProof', () => {
-      const header = getCacheControlHeader('socialProof');
-
-      expect(header).toContain('public');
-      expect(header).toContain('max-age=1800');
-      expect(header).toContain('s-maxage=43200');
     });
 
     it('should return correct header for memoryStories', () => {

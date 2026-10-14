@@ -34,21 +34,25 @@ import {
   type Contact,
 } from '../services/contacts.js';
 
-// Mock the logger
-vi.mock('../utils/safe-logger.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  }),
-  createLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  }),
-}));
+// The contacts store is faked here, not left to whatever else is loaded: these
+// tests write through the real service, and run on a machine signed in to
+// gcloud they once wrote to production user_contacts. (The logger is mocked
+// globally in setup.ts.)
+const storeWrites = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+vi.mock('@google-cloud/firestore', () => {
+  const collection = () => ({
+    doc: (id: string) => ({
+      set: (data: Record<string, unknown>) => Promise.resolve(void storeWrites.set(id, data)),
+      delete: () => Promise.resolve(void storeWrites.delete(id)),
+    }),
+    where: () => ({ get: () => Promise.resolve({ docs: [], size: 0 }) }),
+  });
+  return {
+    Firestore: class {
+      collection = collection;
+    },
+  };
+});
 
 // Mock background task runner
 vi.mock('../utils/background-task.js', () => ({
@@ -81,6 +85,11 @@ describe('Contacts Service', () => {
       expect(contact.displayName).toBe('John Doe');
       expect(contact.phones.length).toBe(1);
       expect(contact.source).toBe('manual');
+    });
+
+    it('persists a created contact to the faked store', async () => {
+      const contact = createContact(testUserId, { displayName: 'Stored Contact' });
+      await vi.waitFor(() => expect(storeWrites.get(contact.id)?.userId).toBe(testUserId));
     });
 
     it('should create a contact with all fields', () => {

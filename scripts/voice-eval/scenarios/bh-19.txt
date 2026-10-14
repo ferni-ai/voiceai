@@ -1,0 +1,7 @@
+# bh: {"to": "nayan-patel", "path": "tap", "facts": ["ohio", "sister", "move", "home", "backwards"]}
+Hey Ferni. I'm trying to decide whether to move back home to Ohio to be near my sister.
+Part of me wants to, and part of me feels like it would be going backwards.
+@data 4000 {"type":"handoff_request","target":"nayan-patel","timestamp":0,"attempt":1}
+@pause 9000 -
+Hi Nayan.
+So, what do you think?

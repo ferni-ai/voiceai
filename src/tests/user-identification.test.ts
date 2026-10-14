@@ -28,7 +28,7 @@ import {
   identifyByWebAuth,
   identifyFromMetadata,
 } from '../services/identity/user-identification.js';
-import { signOnBehalfDispatch } from '../services/outreach/on-behalf-dispatch.js';
+import { signDispatch, signOnBehalfDispatch } from '../services/outreach/on-behalf-dispatch.js';
 
 describe('User Identification Service', () => {
   describe('Phone Number Normalization', () => {
@@ -117,14 +117,23 @@ describe('User Identification Service', () => {
     const signed = (m: Record<string, unknown>) =>
       signOnBehalfDispatch(m as never, SECRET) as unknown as Record<string, unknown>;
 
-    it('should identify from explicit user_id', async () => {
+    it('should identify from explicit user_id on a signed dispatch', async () => {
+      const result = await identifyFromMetadata(
+        signDispatch({ user_id: 'explicit-user-123', user_name: 'John' }, SECRET)
+      );
+
+      expect(result.userId).toBe('explicit-user-123');
+      expect(result.source.type).toBe('web_auth');
+    });
+
+    it('should refuse an explicit user_id in unsigned metadata', async () => {
       const result = await identifyFromMetadata({
         user_id: 'explicit-user-123',
         user_name: 'John',
       });
 
-      expect(result.userId).toBe('explicit-user-123');
-      expect(result.source.type).toBe('web_auth');
+      expect(result.userId).not.toBe('explicit-user-123');
+      expect(result.source.type).toBe('anonymous');
     });
 
     it('should identify from phone number in caller_id on a dispatch our server signed', async () => {
@@ -174,14 +183,23 @@ describe('User Identification Service', () => {
       expect(result.isNew).toBe(true);
     });
 
-    it('should prioritize explicit user_id over phone', async () => {
+    it('should prioritize explicit user_id over phone on a signed dispatch', async () => {
+      const result = await identifyFromMetadata(
+        signDispatch({ user_id: 'explicit-user', caller_id: '+15551234567' }, SECRET)
+      );
+
+      expect(result.userId).toBe('explicit-user');
+      expect(result.source.type).toBe('web_auth');
+    });
+
+    it('should not let an unsigned user_id win over phone', async () => {
       const result = await identifyFromMetadata({
         user_id: 'explicit-user',
         caller_id: '+15551234567',
       });
 
-      expect(result.userId).toBe('explicit-user');
-      expect(result.source.type).toBe('web_auth');
+      expect(result.userId).not.toBe('explicit-user');
+      expect(result.source.type).toBe('anonymous');
     });
   });
 });

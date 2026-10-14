@@ -1,16 +1,22 @@
-import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { beforeAll, afterAll, beforeEach, afterEach, expect, vi } from 'vitest';
 import * as dotenv from 'dotenv';
 import { initializeLogger } from '@livekit/agents';
+import {
+  guardRealFirestore,
+  isolateGcpCredentials,
+  setGcpGuardTestPath,
+} from './gcp-test-guard.js';
 
 // Load test environment variables
 dotenv.config({ path: '.env.test' });
 
-// Never look for a Google metadata server. Modules that load the real
-// firebase-admin (anything not mocked below) otherwise probe for one when
-// they find no credentials. On GitHub's runners that probe stalled the
-// integration job until its 30-minute timeout (2026-10-01); locally it fails
-// fast, so the suite looked fine here.
-process.env.METADATA_SERVER_DETECTION = 'none';
+// No test reaches real Google Cloud: no credentials resolve (which also stops
+// the metadata-server probe that stalled CI's integration job until its
+// 30-minute timeout on 2026-10-01), and a real Firestore client refuses to
+// send. See gcp-test-guard.ts.
+isolateGcpCredentials();
+guardRealFirestore();
+setGcpGuardTestPath(expect.getState().testPath);
 
 // ============================================================================
 // GLOBAL FIRESTORE MOCKS
@@ -290,6 +296,23 @@ vi.mock('@google-cloud/firestore', async (importOriginal) => {
     }
   }
   return { ...actual, Firestore, default: { ...actual, Firestore } };
+});
+
+// The namespaced API (the default `admin` export, in the files not yet
+// moved to utils/firebase-admin-app.ts) builds Firestore through Node's require,
+// which the mocks above never reach, so its admin.firestore() returned a real
+// client. It returns the mock too; app.firestore() on a real app stays real and
+// is refused by guardRealFirestore().
+vi.mock('firebase-admin', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('firebase-admin')>();
+  if (process.env.FIRESTORE_EMULATOR_HOST) return actual;
+  const admin = actual.default;
+  const firestore = new Proxy(admin.firestore, { apply: () => mockFirestoreDb });
+  const mocked = new Proxy(admin, {
+    get: (target, prop, receiver) =>
+      prop === 'firestore' ? firestore : Reflect.get(target, prop, receiver),
+  });
+  return { ...actual, default: mocked };
 });
 
 vi.mock('firebase-admin/app', () => ({
