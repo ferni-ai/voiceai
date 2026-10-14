@@ -193,6 +193,13 @@ describe("a tool in a call reads the call's own zone first", () => {
     rememberCallerTimeZone(LA, 'this-call');
     expect(userTimeZone({ sessionId: 'this-call', userId: 'u-later' })).toBe(LA);
   });
+
+  it("a run context's own session entry beats the user id's", () => {
+    rememberCallerTimeZone(NY, 'u-run');
+    rememberCallerTimeZone(LA, 'run-call');
+    const data = { userId: 'u-run', services: { sessionId: 'run-call' } };
+    expect(runContextTimeZone({ userData: data })).toBe(LA);
+  });
 });
 
 describe('a profile zone reaches a call only through phone-parity.ts', () => {
@@ -206,28 +213,39 @@ describe('a profile zone reaches a call only through phone-parity.ts', () => {
     }
     return out;
   }
-  /** Every other reader of contactInfo.timezone, and why it is not a call's caller zone. */
+  /**
+   * Every other reader of an account's zone (the profile's contactInfo, or
+   * getUserContactInfo's), and why it never sets the zone a call reads a time in.
+   */
   const ALLOWED: Record<string, string> = {
     'agents/voice-agent-entry/phone-parity.ts': 'the guard itself',
-    'tools/domains/simple-utilities/advanced-reminders.ts': 'only outside a call (no sessionId)',
     'tools/domains/telephony/call-on-behalf.ts': "the sponsor's zone, for a call they asked for",
-    'tools/domains/proactive/outreach/service.ts': "the account's contact info for outreach",
-    'services/outreach/user-contact.ts': "the account's contact info for outreach",
+    'tools/domains/proactive/outreach/service.ts':
+      'delivery to the account; its schedule_reminder is in proactiveOutreachTools, which nothing loads',
+    'tools/domains/family/leave-message-tool.ts':
+      "the sponsor's own reminder's delivery zone; the time is parsed without it",
+    'services/outreach/user-contact.ts': "the account's contact info, stored with delivery to it",
     'services/outreach/quiet-hours.ts': 'quiet hours for outreach to the account',
+    'services/outreach/call-hours-guard.ts': 'call hours for outreach to the account',
     'services/outreach/timing-intelligence.ts': 'outreach timing for the account',
+    'services/outreach/proactive-channels/proactive-tick.ts':
+      'between-call outreach to the account',
+    'services/outreach-admin.ts': 'the admin view of an account',
     'services/engagement/engagement-notification-service.ts': 'notifications to the account',
     'services/identity/contacts/contact-onboarding.ts': "the account's own onboarding",
     'services/world-awareness/session-integration.ts': 'its one caller passes no profile',
+    'intelligence/context-builders/behavioral/awareness.ts':
+      'reads profile.contact, a field UserProfile does not have (always undefined)',
     'tasks/scheduled/calendar-briefing-job.ts': 'a scheduled job for the account',
     'api/user-routes.ts': "the signed-in account's own settings",
     'api/gdpr-routes.ts': "the signed-in account's own data export",
   };
+  const READS_ACCOUNT_ZONE =
+    /contactInfo\??\.timezone|'contactInfo\.timezone'|[cC]ontact\??\.timezone|getUserContactInfo\([^)]*\)\)\??\.timezone/;
 
-  it('no other file in src/ reads contactInfo.timezone', () => {
+  it("no other file in src/ reads an account's zone", () => {
     const readers = files(SRC)
-      .filter((f) =>
-        /contactInfo\??\.timezone|'contactInfo\.timezone'/.test(readFileSync(f, 'utf8'))
-      )
+      .filter((f) => READS_ACCOUNT_ZONE.test(readFileSync(f, 'utf8')))
       .map((f) => relative(SRC, f).split('\\').join('/'))
       .sort();
     expect(

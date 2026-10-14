@@ -1,9 +1,9 @@
 /**
- * Whose clock a recurring reminder is set by. In a call it is the zone the
- * call settled (phone-parity.ts: the browser's, else only a verified owner's
- * profile zone), never the raw profile's: on a call placed for someone, or
- * from a caller matched by number alone, the profile isn't theirs. Outside a
- * call the account's own profile zone still applies.
+ * Whose clock a recurring reminder is set by: the zone the call settled
+ * (phone-parity.ts: the browser's, else only a verified owner's profile
+ * zone), never the raw profile's. On a call placed for someone, or from a
+ * caller matched by number alone, the profile isn't theirs. Some tool
+ * contexts carry no session id, so the user id's settled entry counts too.
  */
 // Prod servers run in UTC; pin it so a dev machine's own zone can't mask the bug.
 process.env.TZ = 'UTC';
@@ -72,7 +72,10 @@ describe('recurring reminder time zone', () => {
     );
   });
 
-  it("outside a call: the account's own profile zone", async () => {
-    expect(await dailyAt8({ userId: 'u-app' })).toBe('2026-10-12T15:00:00.000Z');
+  it("no session id in the tool context: the user's settled zone, never the profile's", async () => {
+    expect(await dailyAt8({ userId: 'u-unsettled-2' })).toBe('2026-10-12T08:00:00.000Z');
+    rememberCallerTimeZone('America/New_York', 'u-owner'); // settled for a verified owner
+    created.length = 0;
+    expect(await dailyAt8({ userId: 'u-owner' })).toBe('2026-10-12T12:00:00.000Z');
   });
 });

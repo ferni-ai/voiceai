@@ -12,8 +12,9 @@
  * when the caller is that verified owner, with or without the flag: a phone
  * caller recognised by a signed attestation, or an account named by an
  * authenticated dispatch (sessionIsVerifiedOwner). A caller matched only by
- * their number gets nothing from the account, and a call Ferni placed for
- * someone else keeps the sponsor's zone out.
+ * their number never gets the account's zone (with CALLER_RECOGNITION off,
+ * such a caller still keeps the account's id and memory; that is #877's
+ * call), and a call Ferni placed for someone else keeps the sponsor's out.
  *
  * Without the flag, a verified owner's zone dates their memories and sets the
  * local clock (both read the zone recorded for the call). PHONE_PARITY=on
