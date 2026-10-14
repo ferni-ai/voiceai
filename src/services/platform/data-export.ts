@@ -418,10 +418,10 @@ class DataExportService {
 
   private async exportContacts(userId: string) {
     try {
-      const { getUserContacts } = await import('../contacts.js');
-      const contacts = await getUserContacts(userId);
-
-      return contacts.map((c: AnyRecord) => ({
+      const { loadUserContacts } = await import('../contacts.js');
+      const loaded = await loadUserContacts(userId);
+      if (!loaded.ok) throw new ExportLimitError('unavailable'); // never a file that looks whole
+      return loaded.contacts.map((c: AnyRecord) => ({
         id: c.id,
         displayName: c.displayName,
         firstName: c.firstName,
@@ -438,6 +438,7 @@ class DataExportService {
         updatedAt: c.updatedAt,
       }));
     } catch (error) {
+      if (error instanceof ExportLimitError) throw error;
       log.warn({ error: String(error), userId }, 'Failed to export contacts');
       return [];
     }
@@ -696,8 +697,7 @@ class DataExportService {
   private async getContactsCount(userId: string): Promise<number> {
     try {
       const { getUserContacts } = await import('../contacts.js');
-      const contacts = await getUserContacts(userId);
-      return contacts.length;
+      return (await getUserContacts(userId)).length;
     } catch {
       return 0;
     }

@@ -24,6 +24,7 @@ import {
 } from '../services/custom-agent.service.js';
 import { openVoiceJournal } from './voice-journal/index.js';
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
+import { isJournalCaptureOn } from '../config/journal-capture-flag.js';
 import {
   enableJournalCapture,
   disableJournalCapture,
@@ -984,7 +985,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .digital-twin-consent__icon svg {
@@ -1015,7 +1016,7 @@ const STYLES = `
     gap: var(--space-2, 8px);
     padding: var(--space-3, 12px) var(--space-5, 20px);
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
     font-size: 14px;
     font-weight: 600;
     border: none;
@@ -1214,12 +1215,10 @@ function renderTwinsList(): string {
  * Shows consent prompt if never enabled, or toggle if already set up
  */
 function renderAutoCaptureCard(): string {
-  const settings = loadCaptureSettings();
-  const hasConsented = settings.consentDate != null;
-  const isEnabled = settings.enabled;
-
+  if (!isJournalCaptureOn()) return ''; // no sender yet: never promise to remember
+  const { consentDate, enabled: isEnabled } = loadCaptureSettings();
   // First-time consent flow
-  if (!hasConsented) {
+  if (consentDate == null) {
     return `
       <div class="digital-twin-consent">
         <div class="digital-twin-consent__icon">

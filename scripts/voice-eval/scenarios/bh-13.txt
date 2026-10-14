@@ -1,0 +1,6 @@
+# bh: {"to": "jordan-taylor", "path": "ask", "facts": ["mom", "sixty", "60", "november", "surprise", "five hundred", "500", "italian", "budget"]}
+Hey Ferni. My mom turns sixty on November ninth, and I want to throw her a surprise party.
+My budget's about five hundred bucks, and she loves Italian food. Can I talk to Jordan?
+@pause 9000 -
+Hi Jordan.
+So, what do you think?
