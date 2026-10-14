@@ -17,6 +17,9 @@
  *
  * Changes apply from each member's next call. Flags are limited to
  * COHORT_FLAGS; the agent applies them only with COHORT_FLAGS=on.
+ * OUTREACH_PONDERED_NOTES is read outside calls, by the API server's
+ * per-minute proactive run: it applies within a minute, and only with
+ * COHORT_FLAGS=on on that server.
  */
 import { FieldValue } from 'firebase-admin/firestore';
 import { getFirestoreDb } from '../../src/utils/firestore-utils.js';

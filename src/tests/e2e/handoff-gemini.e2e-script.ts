@@ -21,7 +21,7 @@
 
 // Load environment variables from .env file
 import { config } from 'dotenv';
-config();
+config({ quiet: true });
 
 import { GoogleGenAI, Type as ToolType } from '@google/genai';
 import * as fs from 'fs';

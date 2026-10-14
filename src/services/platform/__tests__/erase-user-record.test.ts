@@ -73,7 +73,7 @@ describe('eraseUserRecord', () => {
       'contact_relationships[userId]',
     ]);
 
-    await eraseUserRecord('u-1', db, STORES);
+    await eraseUserRecord('u-1', db, STORES, []);
 
     expect(await findUserRecordRemnants(db, 'u-1', STORES)).toEqual([]);
     expect([...docs.keys()].sort()).toEqual([
@@ -88,7 +88,7 @@ describe('eraseUserRecord', () => {
       { 'users/u-1/journal/j1': {}, 'contact_relationships/r1': { userId: 'u-1' } },
       { deleteWorks: false }
     );
-    await expect(eraseUserRecord('u-1', db, STORES)).rejects.toThrow(
+    await expect(eraseUserRecord('u-1', db, STORES, [])).rejects.toThrow(
       'User record not fully erased: users/{uid},contact_relationships[userId]'
     );
   });
@@ -100,7 +100,7 @@ describe('eraseUserRecord', () => {
       if (name === 'contact_relationships') throw new Error('unavailable');
       return original(name);
     };
-    await expect(eraseUserRecord('u-1', db, STORES.slice(0, 3))).rejects.toThrow(
+    await expect(eraseUserRecord('u-1', db, STORES.slice(0, 3), [])).rejects.toThrow(
       'contact_relationships[userId]'
     );
     expect(docs.has('users/u-1/calendar_events/e1')).toBe(false);

@@ -65,6 +65,21 @@ Nothing tracked the work except the PRs themselves.
 Nobody reads every PR. Quality comes from checks that run on every change, an
 independent verifier on risky ones, and flags that make merging safe.
 
+Every review, whether by the AI review, a verifier subagent or a person, is
+adversarial: it looks for reasons to reject. The reviewer is never the author
+(an agent doesn't verify its own change). Each review answers the same six
+questions:
+
+1. What's broken?
+2. What's wrong?
+3. What needs to be refactored, refined or reworked? For persona and voice
+   code: what would make Ferni more human?
+4. Does this need deep research?
+5. How do we stay grounded? Evidence and real data, not self-grading.
+6. How do we prove it works end to end?
+
+Who reviews what:
+
 1. **Every PR**: CI, the PR Flow check (size, base branch, issue link) and the
    AI review, which reads `AGENTS.md` and this file and checks the diff
    against them. A 🔴 finding is fixed before the PR enters the queue.

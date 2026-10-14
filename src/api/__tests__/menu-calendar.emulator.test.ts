@@ -6,10 +6,13 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import admin from 'firebase-admin';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
+
+// src/tests/setup.ts fakes firebase-admin for every test; this file reads the emulator
+vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
 process.env.GCLOUD_PROJECT ??= 'demo-menu-calendar';
 
 let server: Server;
@@ -18,7 +21,8 @@ const id = () => `u-${Math.random().toString(36).slice(2)}`;
 
 beforeAll(async () => {
   if (!emulator) return;
-  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
+  const { getAdminApp } = await import('../../utils/firebase-admin-app.js');
+  getAdminApp();
   const { handleCalendarRoutes } = await import('../calendar-routes/index.js');
   server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://x');

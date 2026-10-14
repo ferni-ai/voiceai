@@ -126,6 +126,6 @@ describe('with VOICE_CLONE_CREATION on', () => {
     expect(clone.result().status).toBe(200);
     expect(clone.result().body.voice.voiceId).toBe('voice_real_1');
     expect(cartesiaCalls()).toHaveLength(1);
-    expect(String(cartesiaCalls()[0][0])).toBe('https://api.cartesia.ai/voices/clone/clip');
+    expect(String(cartesiaCalls()[0][0])).toBe('https://api.cartesia.ai/voices/clone');
   });
 });
