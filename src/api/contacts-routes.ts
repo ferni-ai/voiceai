@@ -25,12 +25,11 @@ import {
   sendJSON,
 } from './helpers.js';
 import { deletePersonHandler } from './contact-delete.js';
+import { getInsights, getNudges, sendContactsError } from './contact-overview-handlers.js';
 import {
-  getContacts,
   getContact,
   upsertContact,
   recordInteraction,
-  getRelationshipInsights,
   searchContacts,
   getInteractionHistory,
   getInteractionStats,
@@ -44,10 +43,9 @@ import {
   updateGroup,
   deleteGroup,
 } from '../services/contacts/contact-groups.js';
-import { buildNudgeContext } from '../services/contacts/outreach-nudges.js';
 import { contactEdits } from './contact-edits.js';
-import { buildRelationshipInsightsView } from '../services/contacts/relationship-insights-view.js';
 import { findPerson, listPeople } from '../services/contacts/people-list.js';
+import { editSavedContact } from '../services/contacts/saved-contact-edits.js';
 
 const log = createLogger({ module: 'ContactsAPI' });
 
@@ -70,8 +68,7 @@ async function listContacts(
     const contacts = await listPeople(userId); // the panel's people and the ones saved in calls
     sendJSON(res, { contacts, count: contacts.length });
   } catch (error) {
-    log.error({ error: String(error) }, 'Failed to list contacts');
-    sendError(res, 'Failed to load contacts', 500);
+    sendContactsError(res, error, 'Failed to load contacts');
   }
 }
 
@@ -121,8 +118,7 @@ async function getContactHandler(
     }
     sendJSON(res, { contact });
   } catch (error) {
-    log.error({ error: String(error) }, 'Failed to get contact');
-    sendError(res, 'Failed to load contact', 500);
+    sendContactsError(res, error, 'Failed to load contact');
   }
 }
 
@@ -179,10 +175,9 @@ async function updateContact(
   try {
     const existing = await getContact(userId, contactId);
     if (!existing) {
-      sendError(res, 'Contact not found', 404);
-      return;
+      const saved = await editSavedContact(userId, contactId, edits);
+      return saved ? sendJSON(res, { contact: saved }) : sendError(res, 'Contact not found', 404);
     }
-
     const contact = await upsertContact(userId, {
       ...existing,
       ...edits,
@@ -562,53 +557,6 @@ async function deleteGroupHandler(
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to delete group');
     sendError(res, 'Failed to delete group', 500);
-  }
-}
-
-// Insights & Nudges
-async function getInsights(
-  req: IncomingMessage,
-  res: ServerResponse,
-  parsedUrl: URL
-): Promise<void> {
-  const userId = getUserId(req, parsedUrl);
-  if (!userId) {
-    sendError(res, 'Unauthorized', 401);
-    return;
-  }
-
-  try {
-    // Exactly what the web Relationship Insights dashboard reads.
-    const [contacts, insights] = await Promise.all([
-      getContacts(userId),
-      getRelationshipInsights(userId),
-    ]);
-    sendJSON(res, buildRelationshipInsightsView(contacts, insights));
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to get insights');
-    sendError(res, 'Failed to get insights', 500);
-  }
-}
-
-async function getNudges(req: IncomingMessage, res: ServerResponse, parsedUrl: URL): Promise<void> {
-  const userId = getUserId(req, parsedUrl);
-  if (!userId) {
-    sendError(res, 'Unauthorized', 401);
-    return;
-  }
-
-  try {
-    const nudgeContext = await buildNudgeContext(userId);
-
-    sendJSON(res, {
-      nudges: nudgeContext.nudges,
-      summary: nudgeContext.summary,
-      upcomingDates: nudgeContext.upcomingDates,
-      upcomingHolidays: nudgeContext.upcomingHolidays,
-    });
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to get nudges');
-    sendError(res, 'Failed to get outreach suggestions', 500);
   }
 }
 
