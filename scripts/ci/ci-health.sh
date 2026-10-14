@@ -76,7 +76,7 @@ _Opened by scripts/ci/ci-health.sh._"
   $DRY_RUN && continue
 
   existing=$(gh issue list -R "$REPO" --state open --label ci-health --search "in:title \"$job\"" \
-    --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -1)
+    --json number,title --jq '.[] | [.number, .title] | @tsv' | awk -F'\t' -v t="$title" '$2 == t { print $1; exit }')
   if [[ -n "$existing" ]]; then
     gh issue comment "$existing" -R "$REPO" --body "$body" >/dev/null
     echo "  updated #$existing"
