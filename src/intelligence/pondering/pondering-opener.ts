@@ -9,7 +9,7 @@
  * @module intelligence/pondering/pondering-opener
  */
 import type { Firestore } from 'firebase-admin/firestore';
-import { isForgotten } from '../../memory/recall/session-recall.js';
+import { isForgotten } from '../../memory/index.js';
 import { isPonderingOn, type PonderFollowUp, type PonderNote } from './pondering.js';
 import { readPonderingForGreeting } from './pondering-reader.js';
 
