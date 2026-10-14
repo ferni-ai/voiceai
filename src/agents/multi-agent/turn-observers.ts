@@ -175,7 +175,12 @@ export async function installTurnUnderstanding(
     import('../model-provider/fast-lane.js'),
     import('../integrations/backchannel-context.js'),
   ]);
-  const understander = new TurnUnderstander(geminiUnderstand());
+  const understander = new TurnUnderstander(
+    geminiUnderstand(),
+    undefined,
+    undefined,
+    await promptOnCall(session)
+  );
   setTurnUnderstander(session, understander);
   const finals: string[] = [];
   const onState = (ev: unknown): void => {
@@ -327,19 +332,33 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
 }
 
 /**
+ * With DIRECTOR_PERSONA_AWARE=on, the understanding prompt names the persona
+ * on the call now (a swap changes it); undefined when off.
+ */
+async function promptOnCall(session: Session): Promise<(() => string) | undefined> {
+  const { directorPersonaAware, SpeakerLog } = await import('../personas/director-persona.js');
+  if (!directorPersonaAware()) return undefined;
+  const { understandingPrompt } = await import('../personas/turn-understanding.js');
+  const { now } = new SpeakerLog(() => personaIdOf(session));
+  return () => understandingPrompt(now());
+}
+
+function personaIdOf(session: Session): string | undefined {
+  try {
+    return (session.userData as { personaId?: string } | undefined)?.personaId;
+  } catch {
+    return undefined; // a session started without userData: Ferni
+  }
+}
+
+/**
  * With DIRECTOR_PERSONA_AWARE=on, the log of which persona said each assistant
  * line, read from userData.personaId (a swap sets it); null when off.
  */
 async function speakerLog(session: Session, cleanupFunctions: Cleanup): Promise<SpeakerLog | null> {
   const { directorPersonaAware, SpeakerLog } = await import('../personas/director-persona.js');
   if (!directorPersonaAware()) return null;
-  const speakers = new SpeakerLog(() => {
-    try {
-      return (session.userData as { personaId?: string } | undefined)?.personaId;
-    } catch {
-      return undefined; // a session started without userData: Ferni
-    }
-  });
+  const speakers = new SpeakerLog(() => personaIdOf(session));
   session.on(voice.AgentSessionEventTypes.ConversationItemAdded, speakers.onItemAdded);
   cleanupFunctions.push(() => {
     session.off(voice.AgentSessionEventTypes.ConversationItemAdded, speakers.onItemAdded);

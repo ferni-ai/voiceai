@@ -31,7 +31,7 @@ import {
 } from './director-escalation.js';
 import { directorSeesTools, ToolLog } from './director-tool-state.js';
 import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
-import { claimsIdentity, speakerNote } from './director-persona.js';
+import { claimsIdentity, speakerNote, teamNote } from './director-persona.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -231,18 +231,20 @@ export class Director {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
     this.rule = '';
-    this.toldRecord = toldThisCallEnabled() ? toldThisCall(lines, this.opts.userName) : null;
+    const speaking = this.opts.speaking?.();
+    this.toldRecord = toldThisCallEnabled()
+      ? toldThisCall(lines, this.opts.userName, speaking)
+      : null;
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const seesTools = directorSeesTools();
     const started = Date.now();
-    const speaking = this.opts.speaking?.();
     const system = directorSystem();
     const work = (async () => {
       try {
         const reply = await withTimeout(
           writer(
-            (speaking ? `${system}\n${speakerNote(speaking)}` : system) +
+            (speaking ? `${system}\n${speakerNote(speaking)}\n${teamNote(speaking)}` : system) +
               (seesTools ? `\n${TOOL_RULE}` : ''),
             buildDirectorPrompt(
               lines,
