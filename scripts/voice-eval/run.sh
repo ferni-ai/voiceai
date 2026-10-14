@@ -134,6 +134,12 @@ prepare_turns() {
       mode=${${line%% *}#@}; rest=${line#* }; at=${rest%% *}; line=${rest#* }
     fi
     pcm=$adir/t$i.pcm
+    # "@pause 9000 -": once the agent is quiet, wait that long (a handoff's swap and
+    # arrival line), then until it is quiet again. No speech.
+    if [[ $mode == pause ]]; then
+      print -r -- "-::pause::$at"
+      continue
+    fi
     # "@data 0 {json}": publish that JSON to the room as the app would, no speech.
     if [[ $mode == data ]]; then
       print -r -- "$line" > $adir/t$i.json

@@ -28,6 +28,9 @@ on:
       - 'src/conversation/**'
       - 'src/speech/**'
       - 'src/intelligence/**'
+  # Nightly on main, whatever OPTIONAL_CI says (#1366); PR and push runs still follow it
+  schedule:
+    - cron: '23 3 * * *'
   workflow_dispatch:
     inputs:
       run_performance:
@@ -50,7 +53,7 @@ jobs:
   # UNIT TESTS
   # ==========================================================================
   unit-tests:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Agent Unit Tests
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
@@ -93,7 +96,7 @@ jobs:
   # INTEGRATION TESTS
   # ==========================================================================
   integration-tests:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Agent Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -127,7 +130,7 @@ jobs:
   # CONTRACT TESTS
   # ==========================================================================
   contract-tests:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Contract Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -151,7 +154,7 @@ jobs:
   # SNAPSHOT TESTS
   # ==========================================================================
   snapshot-tests:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Snapshot Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -186,7 +189,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [unit-tests, integration-tests]
-    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event.inputs.run_performance != 'false') }}
+    if: ${{ (vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.event.inputs.run_performance != 'false') }}
 
     steps:
       - name: Checkout
@@ -212,7 +215,7 @@ jobs:
   # MULTI-AGENT E2E TESTS
   # ==========================================================================
   multi-agent-e2e:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Multi-Agent E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -268,7 +271,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [unit-tests, integration-tests]
-    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event.inputs.run_chaos != 'false') }}
+    if: ${{ (vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.event.inputs.run_chaos != 'false') }}
 
     steps:
       - name: Checkout
@@ -303,7 +306,7 @@ jobs:
       - multi-agent-e2e
       - performance-tests
       - chaos-tests
-    if: ${{ vars.OPTIONAL_CI != 'off' && (always()) }}
+    if: ${{ (vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (always()) }}
 
     steps:
       - name: Generate Summary
