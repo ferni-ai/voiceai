@@ -24,6 +24,18 @@ const TARGETS: Array<{ id: string; root: string; markerFile: string; marker: str
     markerFile: 'persona.manifest.json',
     marker: 'Henry Caldwell',
   },
+  {
+    id: 'peter-lynch',
+    root: bundle('peter-lynch'),
+    markerFile: 'persona.manifest.json',
+    marker: 'Tom Brannigan',
+  },
+  {
+    id: 'henry landing page',
+    root: fileURLToPath(new URL('../../../scripts/deploy-henry-page.mts', import.meta.url)),
+    markerFile: '',
+    marker: "'meet-henry'",
+  },
 ];
 /** Files each target holds today; fewer means the scan missed files. */
 const MIN_FILES = 20;

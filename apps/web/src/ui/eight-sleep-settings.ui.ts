@@ -431,7 +431,7 @@ function getStyles(): string {
 
     .eightsleep-btn-primary {
       background: var(--color-accent-primary, #4a9eff);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
     }
 

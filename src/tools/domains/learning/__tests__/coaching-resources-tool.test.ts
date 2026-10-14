@@ -24,7 +24,7 @@ describe('runFindCoachingResources', () => {
   it('falls back to the grounded answer when no video candidates came back (budget spent)', async () => {
     const out = await runFindCoachingResources(
       { topic: 'shin splints', format: 'video' },
-      {},
+      { userData: {} },
       'u1'
     );
     expect(videoCandidates).toHaveBeenCalledWith('shin splints', false);
@@ -33,17 +33,21 @@ describe('runFindCoachingResources', () => {
   });
 
   it('makes no paid lookup for a caller with no account', async () => {
-    const out = await runFindCoachingResources({ topic: 'shin splints' }, {}, 'anonymous');
+    const out = await runFindCoachingResources(
+      { topic: 'shin splints' },
+      { userData: {} },
+      'anonymous'
+    );
     expect(takeDailyBudget).not.toHaveBeenCalled();
     expect(groundedAnswer).not.toHaveBeenCalled();
     expect(out).toContain('once signed in');
-    await runFindCoachingResources({ topic: 'shin splints' }, {}, undefined);
+    await runFindCoachingResources({ topic: 'shin splints' }, { userData: {} }, undefined);
     expect(groundedAnswer).not.toHaveBeenCalled();
   });
 
   it("stops at the caller's daily grounding cap before any lookup", async () => {
     takeDailyBudget.mockResolvedValueOnce(false);
-    const out = await runFindCoachingResources({ topic: 'shin splints' }, {}, 'u1');
+    const out = await runFindCoachingResources({ topic: 'shin splints' }, { userData: {} }, 'u1');
     expect(takeDailyBudget).toHaveBeenCalledWith('grounding:u1', 30);
     expect(groundedAnswer).not.toHaveBeenCalled();
     expect(videoCandidates).not.toHaveBeenCalled();
