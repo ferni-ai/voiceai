@@ -23,6 +23,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { splitSaidBy } from './said-by.js';
 import {
   DIRECTOR_ADDRESS,
   directorEscalates,
@@ -371,12 +372,15 @@ export function linesFromChat(
   for (const item of items) {
     if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
     if (item.textContent?.startsWith(TURN_CONTEXT_HEADER)) continue;
-    const text = (item.textContent ?? '')
+    const said = (item.textContent ?? '')
       .replace(/<[^>]+>/g, '')
       .replace(/\s+/g, ' ')
       .trim();
+    // A reply carried over at a handoff is marked "(Ferni said:) " (persona-swap.ts).
+    const marked = item.role === 'assistant' ? splitSaidBy(said) : undefined;
+    const text = marked?.text ?? said;
     if (!text) continue;
-    const name = item.role === 'assistant' ? by?.(item) : undefined;
+    const name = item.role === 'assistant' ? (by?.(item) ?? marked?.name) : undefined;
     if (name) lines.push({ speaker: 'ferni', text, by: name });
     else lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
   }

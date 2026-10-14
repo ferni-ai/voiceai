@@ -116,6 +116,7 @@ import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 import { createPersonaTTS } from './persona-tts.js';
 import { createCallSession } from './call-session.js';
 import { agentOnCall, personaOnCall, rememberPersona } from './persona-swap.js';
+import { handoffIntro, lastTalkedAbout, teammateRelationship } from './teammate-relationship.js';
 import { installLiveCallBehaviors, startTurnSounds } from './live-call-behaviors.js';
 import {
   installDirectorNotes,
@@ -368,14 +369,13 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       const sessionStartTime = new Date();
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
 
-      // User's name
-      if (displayName) {
-        userAwareness.push(`You're talking to ${displayName}.`);
-      }
+      if (displayName) userAwareness.push(`You're talking to ${displayName}.`);
 
-      // Relationship context
+      // Relationship context: a teammate's own after a handoff (teammate-relationship.ts)
       const isReturningUser = (userProfile.totalConversations ?? 0) > 0;
-      if (isReturningUser && userProfile.totalConversations) {
+      const teammate = teammateRelationship(config, userProfile);
+      if (teammate) userAwareness.push(...teammate);
+      else if (isReturningUser && userProfile.totalConversations) {
         const convCount = userProfile.totalConversations;
         if (convCount === 1) {
           userAwareness.push("You've talked once before.");
@@ -407,7 +407,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
       // Key relationship facts (if available)
       const { relationshipStage } = userProfile;
-      if (relationshipStage && relationshipStage !== 'new_acquaintance') {
+      if (!teammate && relationshipStage && relationshipStage !== 'new_acquaintance') {
         const stageDescriptions: Record<string, string> = {
           getting_to_know: "You're still getting to know each other.",
           trusted_advisor: 'They trust you and share openly.',
@@ -424,7 +424,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // Ferni remembers EXACTLY what you talked about
       // =========================================================================
       if (isReturningUser && userProfile.lastConversationSummary) {
-        userAwareness.push(`Last time you talked about: ${userProfile.lastConversationSummary}`);
+        userAwareness.push(lastTalkedAbout(!!teammate, userProfile.lastConversationSummary));
       }
 
       // =========================================================================
@@ -2307,7 +2307,7 @@ function buildAgentSystemPrompt(config: AgentSetupConfig): string {
  * Build handoff-specific context to append to system prompt.
  * Includes both conversation context AND trust context (boundaries, sensitive topics, etc.)
  */
-async function buildHandoffContext(config: AgentSetupConfig): Promise<string | null> {
+export async function buildHandoffContext(config: AgentSetupConfig): Promise<string | null> {
   const { isHandoff, previousPersonaId, conversationSummary, recentMessages, userData } = config;
 
   if (!isHandoff || !previousPersonaId) {
@@ -2316,8 +2316,7 @@ async function buildHandoffContext(config: AgentSetupConfig): Promise<string | n
 
   const parts: string[] = [];
   parts.push('[HANDOFF CONTEXT]');
-  parts.push(`You just received this conversation from ${previousPersonaId}.`);
-  parts.push('Continue naturally - acknowledge the handoff briefly but focus on helping.');
+  parts.push(...handoffIntro(previousPersonaId)); // teammate-relationship.ts
 
   if (conversationSummary) {
     parts.push(`\nConversation summary: ${conversationSummary}`);
