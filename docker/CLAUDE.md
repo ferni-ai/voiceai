@@ -9,7 +9,6 @@
 | `Dockerfile.agent` | Voice Agent | LiveKit voice agent (all personas) - deploys to GCE |
 | `Dockerfile.ui` | UI Server | Main frontend + API server - deploys to Cloud Run |
 | `Dockerfile.landing` | Landing Page | Lightweight promo page + tokens |
-| `Dockerfile.base` | Base Image | Shared base (optional) |
 | `Dockerfile.outreach` | Outreach | Proactive outreach worker |
 | `Dockerfile.context` | Context Service | Context building service |
 
