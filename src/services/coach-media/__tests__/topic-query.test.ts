@@ -178,6 +178,22 @@ describe('topicOnlyQuery leaks found in review', () => {
     expect(topicOnlyQuery(once ?? '', [])).toBe(once);
   });
 
+  // compromise reads "bob golf" as one person; the name goes (it is a name on its
+  // own), the topic after it stays.
+  it.each([
+    ['helping bob golf', 'helping golf'],
+    ['with jake mortgage', 'with mortgage'],
+  ])('%s → %s', (topic, expected) => {
+    expect(topicOnlyQuery(topic, [])).toBe(expected);
+  });
+
+  // Known limit: compromise doesn't tag an uncommon lowercase name with no
+  // relation word before it, so these go out as they are (as on main before #1411).
+  it.todo('drops zephyr from "helping zephyr with homework"');
+  it.todo('drops priya from "talking with priya about grief"');
+  it.todo('drops xiomara from "notes on xiomara\'s anxiety"');
+  it.todo('drops okonkwo from "okonkwo knee pain"');
+
   it('keeps ordinary words after a relation: "my mom and dad divorce", "my son is failing math"', () => {
     expect(topicOnlyQuery('my mom and dad divorce', [])).toBe('my mom and dad divorce');
     expect(topicOnlyQuery('my son is failing math', [])).toBe('my son is failing math');
