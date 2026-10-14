@@ -117,7 +117,11 @@ describe('persona display names', () => {
     });
     rec.add(PETER, 'I spent the weekend restoring an old canoe.');
     await rec.flush();
-    expect(extract).toHaveBeenCalledWith('Peter', ['I spent the weekend restoring an old canoe.']);
+    expect(extract).toHaveBeenCalledWith('Peter', ['I spent the weekend restoring an old canoe.'], {
+      subject: 'he',
+      object: 'him',
+      possessive: 'his',
+    });
   });
 
   it('writes what happened since in Peter\'s name', async () => {

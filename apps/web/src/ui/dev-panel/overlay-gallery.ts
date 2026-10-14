@@ -25,6 +25,28 @@ const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms)
 /** Long enough to screenshot; real toasts use the Moments defaults. */
 const HOLD_MS = 60_000;
 
+/**
+ * Run `show` with its self-dismiss timers stretched to HOLD_MS. Outreach and
+ * notification cards close themselves after 15 s, achievement toasts after
+ * 3-8 s, and a busy CI runner can spend longer than that settling the page,
+ * so a check missed the overlay. Timers of 3 s or more scheduled
+ * synchronously inside `show` are affected; shorter ones (animations) are not.
+ */
+function holdOpen(show: () => void): void {
+  const realSetTimeout = window.setTimeout;
+  window.setTimeout = ((handler: TimerHandler, ms?: number, ...args: unknown[]) =>
+    realSetTimeout(
+      handler,
+      ms !== undefined && ms >= 3_000 ? HOLD_MS : ms,
+      ...args
+    )) as typeof window.setTimeout;
+  try {
+    show();
+  } finally {
+    window.setTimeout = realSetTimeout;
+  }
+}
+
 async function twoToasts(): Promise<void> {
   const { showWhisper } = await import('../whisper.ui.js');
   showWhisper({
@@ -61,12 +83,12 @@ async function noticeWithAction(): Promise<void> {
 async function achievement(): Promise<void> {
   // A real easter-egg achievement (the Konami code), through its own unlock path.
   const { easterEggsUI } = await import('../easter-eggs.ui.js');
-  easterEggsUI.triggerKonamiCode();
+  holdOpen(() => easterEggsUI.triggerKonamiCode());
 }
 
 async function celebration(): Promise<void> {
   const { moments } = await import('../moments/index.js');
-  void moments.celebrate('streak', { count: 7 });
+  holdOpen(() => void moments.celebrate('streak', { count: 7 }));
 }
 
 async function milestone(): Promise<void> {
@@ -79,21 +101,36 @@ async function milestone(): Promise<void> {
   });
 }
 
+/** A first call's milestone card: what lands on the call controls if placement slips. */
+async function firstMilestone(): Promise<void> {
+  const { initFerniMilestones } = await import('../ferni-milestones.ui.js');
+  initFerniMilestones();
+  // Outside a real call there is no opening to wait out, so it shows at once.
+  holdOpen(() =>
+    window.dispatchEvent(
+      new CustomEvent('ferni:connection-state', { detail: { state: 'connected' } })
+    )
+  );
+  await wait(400);
+}
+
 async function notificationCard(): Promise<void> {
   const { showRitualReminder } = await import('../notifications.ui.js');
-  showRitualReminder('Evening reflection', 'ferni', () => undefined);
+  holdOpen(() => showRitualReminder('Evening reflection', 'ferni', () => undefined));
 }
 
 async function outreach(): Promise<void> {
   const ui = await import('../proactive-outreach.ui.js');
   ui.initProactiveOutreachUI();
-  ui.showOutreach({
-    id: 'gallery-outreach',
-    type: 'thinking_of_you',
-    message: 'Thinking of you before your interview tomorrow. You have prepared well.',
-    personaId: 'ferni',
-    personaName: 'Ferni',
-  });
+  holdOpen(() =>
+    ui.showOutreach({
+      id: 'gallery-outreach',
+      type: 'thinking_of_you',
+      message: 'Thinking of you before your interview tomorrow. You have prepared well.',
+      personaId: 'ferni',
+      personaName: 'Ferni',
+    })
+  );
 }
 
 async function offlineBanner(): Promise<void> {
@@ -105,14 +142,18 @@ async function offlineBanner(): Promise<void> {
 /** A call that dropped and is coming back (status island with the flag on). */
 async function reconnecting(): Promise<void> {
   (await import('../status-island-connection.js')).initStatusIslandConnection();
-  window.dispatchEvent(new CustomEvent('ferni:connection-state', { detail: { state: 'reconnecting' } }));
+  window.dispatchEvent(
+    new CustomEvent('ferni:connection-state', { detail: { state: 'reconnecting' } })
+  );
 }
 
 /** A call on a poor link; the island shows it after its 3 s debounce. */
 async function weakConnection(): Promise<void> {
   (await import('../status-island-connection.js')).initStatusIslandConnection();
   const cq = await import('../connection-quality.ui.js');
-  window.dispatchEvent(new CustomEvent('ferni:connection-state', { detail: { state: 'connected' } }));
+  window.dispatchEvent(
+    new CustomEvent('ferni:connection-state', { detail: { state: 'connected' } })
+  );
   cq.setQuality('poor');
   cq.show();
   await wait(3200);
@@ -232,6 +273,20 @@ async function captions(): Promise<void> {
   await wait(400);
 }
 
+/** Captions plus a moment Ferni is holding on to (moment chip). */
+async function captionMoments(): Promise<void> {
+  await captions();
+  window.dispatchEvent(
+    new CustomEvent('ferni:backend-trust-signal', {
+      detail: {
+        type: 'callback',
+        message: 'You started martial arts on Tuesdays',
+      },
+    })
+  );
+  await wait(400);
+}
+
 export const SCENES: Readonly<Record<string, Scene>> = {
   'toast-pair': twoToasts,
   'toast-error': toastError,
@@ -240,6 +295,7 @@ export const SCENES: Readonly<Record<string, Scene>> = {
   achievement,
   celebration,
   milestone,
+  'first-milestone': firstMilestone,
   'notification-card': notificationCard,
   outreach,
   'offline-banner': offlineBanner,
@@ -255,6 +311,7 @@ export const SCENES: Readonly<Record<string, Scene>> = {
   'command-palette': commandPalette,
   'coach-mark': coachMark,
   captions,
+  'caption-moments': captionMoments,
 };
 
 // Probe: measurements of every visible fixed overlay, for the screenshot report.

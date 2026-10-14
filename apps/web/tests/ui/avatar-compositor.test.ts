@@ -1,9 +1,11 @@
 /**
- * Avatar compositor (behind ferni:avatar-compositor, off by default): one
- * writer per animated property. Breathing composites with `add` so the
- * speaking body pulse shows, the presence voice pulse and the coach ring
- * writer stand down, and the body pulse stays within +8 %. Speaking-system
- * body and halo hold still under prefers-reduced-motion in both flag states.
+ * Avatar compositor (on by default; ferni:avatar-compositor = 'off' is the
+ * kill switch): one writer per animated property. Breathing composites with
+ * `add` so the speaking body pulse shows, the speaking system is the only
+ * writer of the container's transform (the presence voice-pulse loop is gone,
+ * and with it a getComputedStyle read every frame), the coach ring writer
+ * stands down, and the body pulse stays within +8 %. Speaking-system body and
+ * halo hold still under prefers-reduced-motion in both flag states.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +18,10 @@ vi.mock('../../src/services/relationship-stage.service.js', () => ({
 }));
 
 const FLAG = 'ferni:avatar-compositor';
+/** Set the kill switch for the 'off' cases; 'on' is the default. */
+function setFlag(on: boolean): void {
+  if (!on) localStorage.setItem(FLAG, 'off');
+}
 const REDUCED = '(prefers-reduced-motion: reduce)';
 
 let frames: FrameRequestCallback[] = [];
@@ -81,6 +87,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  localStorage.clear();
   document.getElementById('avatar-compositor-styles')?.remove();
 });
 
@@ -93,7 +101,14 @@ function scaleYOf(transform: string): number {
 }
 
 describe('compositor flag helpers', () => {
-  it('is off by default: breathing replaces and the container is not claimed', async () => {
+  it('is on by default: breathing adds', async () => {
+    const m = await import('../../src/ui/avatar-motion/compositor.js');
+    expect(m.isAvatarCompositorEnabled()).toBe(true);
+    expect(m.breathingComposite()).toBe('add');
+  });
+
+  it.each(['off', 'false'])('the kill switch %s: breathing replaces and the container is not claimed', async (value) => {
+    localStorage.setItem(FLAG, value);
     const m = await import('../../src/ui/avatar-motion/compositor.js');
     expect(m.isAvatarCompositorEnabled()).toBe(false);
     expect(m.breathingComposite()).toBe('replace');
@@ -103,7 +118,6 @@ describe('compositor flag helpers', () => {
   });
 
   it('with the flag on: breathing adds, the container is claimed and the CSS loop is switched off', async () => {
-    localStorage.setItem(FLAG, 'true');
     const m = await import('../../src/ui/avatar-motion/compositor.js');
     expect(m.breathingComposite()).toBe('add');
     expect(m.claimAvatarContainer(container())).toBe(true);
@@ -148,7 +162,7 @@ describe('speaking system body pulse', () => {
     ['off', false],
     ['on', true],
   ])('with the flag %s: writes the inline pulse capped at +8%%', async (_label, on) => {
-    if (on) localStorage.setItem(FLAG, 'true');
+    setFlag(on);
     const { speakingSystem } = await import('../../src/ui/speaking-system.ui.js');
     speakingSystem.init();
     speakingSystem.start();
@@ -167,7 +181,7 @@ describe('speaking system body pulse', () => {
   ])(
     'with the flag %s and reduced motion: body and halo hold still, the lid still opens',
     async (_label, on) => {
-      if (on) localStorage.setItem(FLAG, 'true');
+      setFlag(on);
       localStorage.setItem('ferni:lid-blend', 'true'); // the lid mouth runs only under lid-blend
       setReducedMotion(true);
       const { speakingSystem } = await import('../../src/ui/speaking-system.ui.js');
@@ -197,18 +211,60 @@ describe('presence breathing and voice pulse', () => {
     return (call?.options ?? {}) as KeyframeAnimationOptions;
   }
 
-  it('with the flag off: breathing replaces and the presence voice pulse still writes', async () => {
+  /** Count every write to the container's inline transform. */
+  function countTransformWrites(): { count: number } {
+    const counter = { count: 0 };
+    let proto: object | null = Object.getPrototypeOf(container().style) as object;
+    while (proto && !Object.getOwnPropertyDescriptor(proto, 'transform')) {
+      proto = Object.getPrototypeOf(proto) as object | null;
+    }
+    const descriptor = proto ? Object.getOwnPropertyDescriptor(proto, 'transform') : undefined;
+    if (!proto || !descriptor?.set) throw new Error('no transform setter to spy on');
+    const target = container().style;
+    const { get, set } = descriptor;
+    Object.defineProperty(target, 'transform', {
+      configurable: true,
+      get() {
+        return get?.call(target) as string;
+      },
+      set(value: string) {
+        counter.count++;
+        set.call(target, value);
+      },
+    });
+    return counter;
+  }
+
+  it.each([
+    ['off', false],
+    ['on', true],
+  ])('with the flag %s: speaking never calls getComputedStyle per frame', async (_label, on) => {
+    setFlag(on);
     const presence = await import('../../src/ui/presence.ui.js');
     presence.initPresenceUI();
-    expect(breathingOptions().composite).toBe('replace');
+    const spy = vi.spyOn(window, 'getComputedStyle');
     presence.setSpeaking(true);
     presence.setVoiceVolume(0.6);
-    flushFrames(5);
-    expect(container().style.getPropertyValue('--voice-scale-y')).not.toBe('');
+    flushFrames(30);
+    presence.setVoiceVolume(0.3);
+    flushFrames(30);
+    expect(spy).not.toHaveBeenCalled();
   });
 
-  it('with the flag on: breathing adds and the presence voice pulse stands down', async () => {
-    localStorage.setItem(FLAG, 'true');
+  it('by default: the speaking system is the one writer of the container transform', async () => {
+    const presence = await import('../../src/ui/presence.ui.js');
+    presence.initPresenceUI();
+    const writes = countTransformWrites();
+    presence.setSpeaking(true);
+    presence.setVoiceVolume(0.6);
+    flushFrames(10);
+    // One writer = one write per frame (the old voice-pulse loop made it two)
+    expect(writes.count).toBe(10);
+    expect(scaleYOf(container().style.transform)).toBeGreaterThan(1);
+    expect(scaleYOf(container().style.transform)).toBeLessThanOrEqual(1.08);
+  });
+
+  it('by default: breathing adds and stopping speech leaves no replace-mode fill', async () => {
     const presence = await import('../../src/ui/presence.ui.js');
     presence.initPresenceUI();
     expect(breathingOptions().composite).toBe('add');
@@ -229,6 +285,25 @@ describe('presence breathing and voice pulse', () => {
     );
     expect(replaceFills).toHaveLength(0);
   });
+
+  it('with the kill switch off: breathing replaces', async () => {
+    setFlag(false);
+    const presence = await import('../../src/ui/presence.ui.js');
+    presence.initPresenceUI();
+    expect(breathingOptions().composite).toBe('replace');
+  });
+
+  it('setVoicePulseEnabled(false) stops volume reaching the body pulse', async () => {
+    const presence = await import('../../src/ui/presence.ui.js');
+    presence.initPresenceUI();
+    presence.setVoicePulseEnabled(false);
+    presence.setSpeaking(true);
+    presence.setVoiceVolume(1);
+    flushFrames(30);
+    const transform = container().style.transform;
+    expect(transform === '' || scaleYOf(transform) === 1).toBe(true);
+    presence.setVoicePulseEnabled(true);
+  });
 });
 
 describe('coach ring writer', () => {
@@ -236,7 +311,7 @@ describe('coach ring writer', () => {
     ['off', false],
     ['on', true],
   ])('with the flag %s', async (_label, on) => {
-    if (on) localStorage.setItem(FLAG, 'true');
+    setFlag(on);
     const coach = await import('../../src/ui/coach.ui.js');
     coach.initCoachUI();
     ring().style.transform = '';

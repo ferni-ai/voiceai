@@ -340,6 +340,13 @@ body {
   --z-celebration: 9999;    /* Full-screen celebration canvas */
   --z-system: 9999;         /* Critical system UI (splash) */
 
+  /* Overlay spacing and radii (8-pt grid, rem so text size scales them) */
+  --overlay-gutter: 1rem;      /* Edge gutter on phones; 1.5rem on desktop */
+  --overlay-gap: 0.5rem;       /* Between stacked toasts, between actions */
+  --overlay-radius-sm: 0.75rem; /* Toast, tooltip */
+  --overlay-radius-md: 1rem;    /* Popover, card */
+  --overlay-radius-lg: 1.5rem;  /* Dialog, sheet */
+
   /* Backdrop overlays */
   --backdrop-light: rgba(20, 16, 14, 0.4);
   --backdrop-medium: rgba(20, 16, 14, 0.6);
@@ -536,7 +543,7 @@ body {
   --persona-bg-tint: rgba(58, 107, 115, 0.08);
 }
 
-/* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy, financial wisdom) */
+/* Nate Holloway (joel-dickson) - Burgundy (distinguished, trustworthy, financial wisdom) */
 [data-persona='joel-dickson'] {
   --persona-primary: #9A0718;
   --persona-secondary: #7A0514;
@@ -663,6 +670,9 @@ body {
 /* Zen header styling - clean, extends to top */
 [data-theme='zen'] .header {
   background: transparent;
+  /* No bottom border: the frosted panel below fades out instead. A hard
+     1px line plus a white-to-beige step cut the page in two at the end of
+     the header (2026-10-11 audit). */
   /* Padding at top instead of margin so frosted glass covers full area */
   margin-top: 0;
   padding-top: calc(32px + env(safe-area-inset-top, 0px));
@@ -677,11 +687,12 @@ body {
   right: -50vw;
   bottom: 0;
   background: rgba(255, 255, 255, 0.75);
-  /* Fade out at the bottom: a hard edge read as a seam across the screen */
-  mask-image: linear-gradient(to bottom, black 70%, transparent);
   backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   z-index: -1;
+  /* Fade the panel's bottom edge into the page instead of ending it on a line. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
 }
 
 /* Zen avatar styling: the face carries the persona color. The eyes are
@@ -922,7 +933,7 @@ body {
   );
 }
 
-/* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy) */
+/* Nate Holloway (joel-dickson) - Burgundy (distinguished, trustworthy) */
 [data-theme='zen'][data-persona='joel-dickson'] .btn-primary {
   background: linear-gradient(
     145deg,
@@ -3839,14 +3850,6 @@ body {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
 }
 
-/* Dark theme adjustments for lid overlay */
-[data-theme='dark'] .avatar-lid-overlay .lid-top,
-[data-theme='dark'] .avatar-lid-overlay .lid-bottom,
-[data-theme='dark'] .avatar-lid-overlay .brow-left,
-[data-theme='dark'] .avatar-lid-overlay .brow-right {
-  fill: var(--color-background-primary, #352e28);
-}
-
 /* Reduced motion - disable lid transitions */
 @media (prefers-reduced-motion: reduce) {
   .avatar-lid-overlay .lid-top,
@@ -5159,14 +5162,36 @@ body {
   height: 56px;
 }
 
-/* Individual bar */
+/* Individual bar. waveform.ui.ts lays each bar out once at full height and
+   sets its height per frame with transform: scaleY (from the bottom), so a
+   frame never re-lays out the page; writing height did, ~60 times a second
+   for the whole call. */
 .waveform-bar {
+  position: relative;
   width: 4px;
   min-height: 6px;
   background: var(--waveform-color);
-  border-radius: 100px;
+  /* Round caps that stay round under scaleY: the vertical radius is divided
+     by the bar's scale (--bar-sy, set with the transform) */
+  border-radius: 2px / calc(2px / var(--bar-sy, 1));
+  transform-origin: 50% 100%;
   transition: background 0.3s ease;
-  will-change: height;
+  will-change: transform;
+}
+
+/* Depth shadow, pre-rendered at full height: it fades in as the bar grows
+   (--bar-lift, 0..1) and scales with the bar, instead of a box-shadow
+   rewritten every frame. */
+.waveform-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    0 8px 10px rgba(0, 0, 0, 0.3),
+    inset 0 3px 0 rgba(255, 255, 255, 0.1);
+  opacity: var(--bar-lift, 0);
+  pointer-events: none;
 }
 
 /* 🫁 IDLE BREATHING - Ferni is alive even when quiet
@@ -5235,18 +5260,19 @@ body {
   animation-delay: 0s;
 }
 
+/* On `scale`, not `transform`: transform carries the bar's height (inline) */
 @keyframes waveformIdleBreath {
   0%,
   100% {
-    transform: scaleY(1);
+    scale: 1 1;
     opacity: 0.5;
   }
   40% {
-    transform: scaleY(1.08);
+    scale: 1 1.08;
     opacity: 0.6;
   }
   60% {
-    transform: scaleY(1.08);
+    scale: 1 1.08;
     opacity: 0.6;
   }
 }
@@ -5952,7 +5978,7 @@ body {
   ) !important;
 }
 
-/* Joel Dickson - Vanguard Burgundy (financial wisdom) */
+/* Nate Holloway (joel-dickson) - Burgundy (financial wisdom) */
 [data-persona='joel-dickson'] .btn-primary {
   background: linear-gradient(
     145deg,
@@ -6624,20 +6650,10 @@ body {
   color: var(--color-text-primary);
 }
 
-/* 🌬️ ACTIVE MEMBER BREATHING - Very subtle idle animation */
-.team-member.active:not(.switching-to):not(.switching-from) {
-  animation: teamMemberBreathing 6s ease-in-out infinite;
-}
-
-@keyframes teamMemberBreathing {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-1px);
-  }
-}
+/* The active member used to "breathe" with a transform loop here, but the
+   rule above pins transform with !important, so it never moved: it only ran
+   on the main thread every frame (Chrome can't composite a property that an
+   !important declaration overrides). Removed. */
 
 /* ✨ ACTIVE RING SHIMMER - Very subtle glow pulse on selected member */
 .team-member.active .team-avatar-ring {
@@ -6698,7 +6714,7 @@ body {
 } /* Golden amber - wisdom */
 .team-member[data-persona-id='joel-dickson'] {
   --member-color: #9A0718;
-} /* Vanguard burgundy - financial wisdom */
+} /* burgundy - financial wisdom */
 .team-member[data-persona-id='peter-john'] {
   --member-color: #3a6b73;
 } /* Ocean teal - research */
@@ -10650,10 +10666,10 @@ body {
   opacity: 1;
 }
 
-/* Ensure roster has room for hint */
+/* Room for the hint. Not !important: it beat the phone row's scrolling. */
 #teamRoster {
   padding-bottom: 16px;
-  overflow: visible !important;
+  overflow: visible;
 }
 
 /* Full coach section becomes drop zone */

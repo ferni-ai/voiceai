@@ -22,6 +22,7 @@
 
 import type { llm } from '@livekit/agents';
 import { latestUserText } from '../retrieval/turn-tool-retrieval.js';
+import { misheardTeammates, teammateHeardAs } from './teammate-names.js';
 
 export function handoffAskFirstEnabled(
   env: Record<string, string | undefined> = process.env
@@ -33,12 +34,19 @@ export type HandoffConsent = 'asked' | 'agreed' | 'none';
 
 const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Whole-word, case-insensitive: "Johnny" does not name John. */
+/**
+ * Whether `text` names the teammate: any part of their name as a whole word
+ * ("Johnny" does not name John), or a spelling speech-to-text writes for them
+ * ("Can I talk to Naya?" is Nayan; see teammate-names.ts).
+ */
 function names(text: string, agentName: string): boolean {
-  return agentName
+  const byName = agentName
     .split(/\s+/)
     .filter((w) => w.length >= 3)
     .some((w) => new RegExp(`\\b${escape(w)}\\b`, 'i').test(text));
+  if (byName) return true;
+  const target = teammateHeardAs(agentName.split(/\s+/)[0] ?? '');
+  return target !== null && misheardTeammates(text).some((m) => m.id === target);
 }
 
 /**

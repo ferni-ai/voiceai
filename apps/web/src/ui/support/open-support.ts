@@ -8,20 +8,9 @@
  * @module ui/support/open-support
  */
 
-/** Venmo usernames: letters, digits, hyphens and underscores. */
-const HANDLE_PATTERN = /^[A-Za-z0-9_-]{1,30}$/;
+import { getVenmoHandle, isVenmoChipInEnabled } from '../../config/venmo-chip-in.js';
 
-/** The configured Venmo handle without the @, or null when unset or malformed. */
-export function getVenmoHandle(): string | null {
-  const raw = String(import.meta.env.VITE_VENMO_HANDLE ?? '')
-    .trim()
-    .replace(/^@/, '');
-  return HANDLE_PATTERN.test(raw) ? raw : null;
-}
-
-export function isVenmoChipInEnabled(): boolean {
-  return import.meta.env.VITE_VENMO_CHIP_IN === 'true' && getVenmoHandle() !== null;
-}
+export { getVenmoHandle, isVenmoChipInEnabled };
 
 export async function openSupport(): Promise<void> {
   const handle = isVenmoChipInEnabled() ? getVenmoHandle() : null;

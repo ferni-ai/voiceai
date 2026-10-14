@@ -11,6 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, updateCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
+import { escapeHtml } from './engagement-components.js';
 import { formatDate, t } from '../i18n/index.js';
 
 const log = createLogger('LegacyStories');
@@ -384,7 +385,7 @@ function render(): string {
         <header class="legacy-stories-header">
           <div class="legacy-stories-title">
             <span class="legacy-stories-eyebrow">${t('legacyStories.preservingMemory')}</span>
-            <h2 class="legacy-stories-name" id="legacy-title">${t('legacyStories.storiesTitle', { name: currentAgent.displayName || currentAgent.name })}</h2>
+            <h2 class="legacy-stories-name" id="legacy-title">${t('legacyStories.storiesTitle', { name: escapeHtml(currentAgent.displayName || currentAgent.name) })}</h2>
           </div>
           <button class="legacy-close-btn" aria-label="${t('accessibility.closeStories')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -424,8 +425,8 @@ function render(): string {
               </div>
             ` : wisdom.map((w, i) => `
               <div class="legacy-wisdom-card" data-index="${i}">
-                <p class="legacy-wisdom-quote">${t('legacyStories.wisdomQuote', { quote: w.quote })}</p>
-                ${w.context ? `<span class="legacy-wisdom-context">${w.context}</span>` : ''}
+                <p class="legacy-wisdom-quote">${t('legacyStories.wisdomQuote', { quote: escapeHtml(w.quote) })}</p>
+                ${w.context ? `<span class="legacy-wisdom-context">${escapeHtml(w.context)}</span>` : ''}
                 <div class="legacy-card-actions">
                   <button class="legacy-action-btn" data-action="edit-wisdom" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -471,7 +472,7 @@ function render(): string {
               </div>
             ` : stories.map((s, i) => `
               <div class="legacy-story-card" data-index="${i}">
-                <p class="legacy-story-content">${s.content}</p>
+                <p class="legacy-story-content">${escapeHtml(s.content)}</p>
                 ${s.date ? `<span class="legacy-story-meta">${formatDate(new Date(s.date))}</span>` : ''}
                 <div class="legacy-card-actions">
                   <button class="legacy-action-btn" data-action="edit-story" data-index="${i}">
@@ -526,8 +527,7 @@ export async function openLegacyStories(agentId: string): Promise<void> {
 
   // Animate in
   requestAnimationFrame(() => {
-    const modal = storiesModal?.querySelector('.legacy-stories-modal');
-    modal?.classList.add('visible');
+    storiesModal?.querySelector('.legacy-stories-modal')?.classList.add('visible');
   });
 
   // Attach listeners

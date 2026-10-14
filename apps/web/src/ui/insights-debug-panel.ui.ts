@@ -12,6 +12,7 @@
 import { getState as getNotificationState } from '../services/cross-team-notifications.service.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { devPanelMayEnable } from './dev-panel-gate.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('InsightsDebugPanel');
@@ -654,12 +655,7 @@ export function toggleInsightsDebugPanel(): void {
  */
 export function initInsightsDebugPanel(): void {
   // Only in dev mode
-  const isDevMode =
-    window.location.search.includes('dev') ||
-    localStorage.getItem('ferni_dev_mode') === 'true' ||
-    import.meta.env?.DEV;
-
-  if (!isDevMode) {
+  if (!devPanelMayEnable()) {
     log.debug('Insights debug panel disabled (not in dev mode)');
     return;
   }
