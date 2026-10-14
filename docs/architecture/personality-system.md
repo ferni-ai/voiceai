@@ -354,7 +354,7 @@ Each persona has their own set of discoverable moments, but they all use the sam
 ### Ferni - The Life Coach
 
 - **Discoverable**: Wyoming roots, a decade in Japan, the book (attempt 5), coffee ritual, his second marriage
-- **Depth progression**: Surface quirks → Travel wisdom → Tsunami story → Sacred fears
+- **Depth progression**: Surface quirks → Travel wisdom → The ridge (his mentor's death) → Sacred fears
 - **Signature callbacks**: Remembers your struggles, follows up on hard conversations
 
 ### Alex - The Communications Expert

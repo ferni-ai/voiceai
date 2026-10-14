@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
+import { commitmentCache, loadActiveCommitmentsOrThrow } from './commitment-store.js';
 import {
   validateCommitmentFeasibility,
   createCalendarBlocksForCommitment,
@@ -361,8 +362,6 @@ export function detectCommitment(
 // STORAGE
 // ============================================================================
 
-const commitmentCache = new Map<string, Commitment[]>();
-
 export async function saveCommitment(
   commitment: Omit<Commitment, 'id'>,
   options?: { validateCalendar?: boolean; createCalendarBlocks?: boolean }
@@ -483,10 +482,8 @@ export async function saveCommitment(
       }
     }
 
-    // Update cache
-    const userCommitments = commitmentCache.get(commitment.userId) || [];
-    userCommitments.push(fullCommitment);
-    commitmentCache.set(commitment.userId, userCommitments);
+    // Only a list read from the store is cached: seeding one with just this commitment hid the rest
+    commitmentCache.get(commitment.userId)?.push(fullCommitment);
 
     // Better Than Human: Schedule proactive follow-up via outreach system
     try {
@@ -526,31 +523,10 @@ export async function saveCommitment(
   }
 }
 
+/** Active commitments, or [] when the store can't be read (callers degrade quietly). */
 export async function loadUserCommitments(userId: string): Promise<Commitment[]> {
-  if (commitmentCache.has(userId)) {
-    return commitmentCache.get(userId) || [];
-  }
-
   try {
-    const db = getFirestoreDb();
-    if (!db) {
-      recordDegradation('commitment-keeper');
-      return [];
-    }
-
-    const snapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('commitments')
-      .where('status', '==', 'active')
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
-
-    const commitments = snapshot.docs.map((doc) => doc.data() as Commitment);
-    commitmentCache.set(userId, commitments);
-
-    return commitments;
+    return await loadActiveCommitmentsOrThrow(userId);
   } catch (error) {
     const errorStr = String(error);
     // Check if this is a Firestore index building error - suppress warning and gracefully degrade

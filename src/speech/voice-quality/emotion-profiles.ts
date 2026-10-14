@@ -145,8 +145,8 @@ export const PERSONA_EMOTION_PROFILES: Record<string, PersonaEmotionProfile> = {
     ],
     defaultSpeed: 1.0, // From manifest: base_speed_multiplier 1.0
     defaultVolume: 1.0,
-    laughterFrequency: 0.18, // Joel laughs easily — humor_level 0.82
-    // Joel's natural sounds: economist wit, warm self-deprecation
+    laughterFrequency: 0.18, // Nate laughs easily — humor_level 0.82
+    // Nate's natural sounds: economist wit, warm self-deprecation
     nonverbals: ['[laughter]', 'Ha!', 'Hmm.', 'Oh!', 'Wait—'],
   },
 };

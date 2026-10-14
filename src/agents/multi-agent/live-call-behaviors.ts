@@ -26,6 +26,8 @@ import {
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
+import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
 
@@ -126,6 +128,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         }
       },
       log: (fields) => log.info({ sessionId, ...fields }, 'TURN_KEEPER_RECOVERED'),
+      spokeCountsAsAnswer: process.env.TURN_KEEPER_SPOKE === 'on',
     });
     const onState = () => keeper.onStateChange();
     sessionWithEvents.on('agent_state_changed', onState);
@@ -140,6 +143,9 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     );
     cleanupFunctions.push(() => keeper.stop());
   }
+
+  // Say something human when a reply fails instead of going silent (never-silent.ts).
+  installNeverSilent(input);
 
   // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). With the
   // end-of-turn model on, the model decides and a second hold would only stack delay.
@@ -202,6 +208,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
 /** Whether the person on the line is the account owner, whose yes may confirm a send. */
 export function speakerIsAccountOwner(sessionId: string): boolean {
+  // ROOM_GUESTS=on: with a guest on the same mic, the yes may not be the owner's.
+  if (roomGuestsEnabled() && hasGuests(sessionId)) return false;
   return !outboundPartiesFor(sessionId) && sessionIsVerifiedOwner(sessionId);
 }
 

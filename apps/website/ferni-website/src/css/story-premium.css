@@ -20,9 +20,10 @@
 
 :root {
   /* Page-specific overrides - extend tokens, don't duplicate */
+  /* --color-bg-dark / --color-bg-darker come from _tokens.css. Never alias a
+     token to itself here: var(--x) inside --x is a cycle, the value computes
+     to nothing, and every dark surface (phone mockup, final CTA) goes clear. */
   --color-bg-warm: var(--color-bg-secondary);
-  --color-bg-dark: var(--color-bg-dark);
-  --color-bg-darker: var(--color-bg-dark);
   --color-text-light: var(--color-bg-secondary);
   
   /* Brand Colors - Use design system values */
@@ -34,6 +35,7 @@
   --gradient-hero: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
   --gradient-dark: linear-gradient(180deg, var(--color-bg-dark) 0%, var(--color-bg-dark) 100%);
   --gradient-ferni: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
+  --gradient-ferni-text: var(--gradient-ferni);
   --gradient-glow: radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-ferni-glow), transparent);
   --gradient-shine: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
   
@@ -76,6 +78,18 @@
   --duration-normal: 300ms;
   --duration-slow: 500ms;
   --duration-slower: 800ms;
+}
+
+/* Gradient text needs the light sage in dark mode: the brand gradient is
+   2.4:1 on the Night Ink field. Buttons keep --gradient-ferni (white text). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gradient-ferni-text: linear-gradient(135deg, var(--color-ferni-text) 0%, var(--color-accent) 100%);
+  }
+}
+
+[data-theme="dark"] {
+  --gradient-ferni-text: linear-gradient(135deg, var(--color-ferni-text) 0%, var(--color-accent) 100%);
 }
 
 /* ============================================
@@ -134,7 +148,8 @@ button {
   right: 0;
   z-index: 1000;
   padding: var(--space-4) var(--space-6);
-  background: rgba(250, 249, 247, 0.72);
+  /* Glass follows the theme: a fixed light tint put cream text on cream in dark mode */
+  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid transparent;
@@ -142,7 +157,7 @@ button {
 }
 
 .nav.is-scrolled {
-  background: rgba(250, 249, 247, 0.92);
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
   border-bottom-color: var(--color-border);
   box-shadow: var(--shadow-sm);
 }
@@ -237,7 +252,7 @@ button {
   gap: var(--space-2);
   padding: 10px 20px;
   background: var(--color-text);
-  color: white;
+  color: var(--color-text-inverse);
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   font-weight: 600;
@@ -385,7 +400,7 @@ button {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   margin-bottom: var(--space-6);
 }
 
@@ -512,7 +527,7 @@ button {
 }
 
 .hero__headline-accent {
-  background: var(--gradient-ferni);
+  background: var(--gradient-ferni-text);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -704,7 +719,8 @@ button {
 
 .showcase__app-status {
   font-size: var(--text-sm);
-  color: var(--color-ferni-light);
+  /* the phone screen is dark in both themes */
+  color: var(--color-dark-accent);
 }
 
 .showcase__app-message {
@@ -1014,7 +1030,7 @@ button {
 .team-card__role {
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   margin-bottom: var(--space-4);
 }
 
@@ -1065,7 +1081,7 @@ button {
 .feature__icon svg {
   width: 36px;
   height: 36px;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 .feature__title {
@@ -1322,7 +1338,7 @@ button {
 .pricing-card__features svg {
   width: 20px;
   height: 20px;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -1337,11 +1353,12 @@ button {
 
 .pricing-card--featured .pricing-card__cta {
   background: white;
-  color: var(--color-text);
+  /* --color-text turns cream in dark mode; this button stays white in both */
+  color: var(--color-text-dark);
 }
 
 .pricing-card--featured .pricing-card__cta:hover {
-  background: var(--color-bg-secondary);
+  background: var(--color-dark-text);
 }
 
 /* ============================================
@@ -1408,15 +1425,18 @@ button {
 
 .final-cta .btn--primary {
   background: white;
-  color: var(--color-text);
+  /* --color-text turns cream in dark mode; this button stays white in both */
+  color: var(--color-text-dark);
 }
 
 .final-cta .btn--primary:hover {
-  background: var(--color-bg-secondary);
+  background: var(--color-dark-text);
   box-shadow: var(--shadow-xl);
 }
 
 .final-cta .btn--secondary {
+  /* the base .btn--secondary fill is the light elevated surface: white on it was 1:1 */
+  background: transparent;
   border-color: rgba(255, 255, 255, 0.2);
   color: white;
 }
