@@ -362,7 +362,7 @@ export const HUMANIZING_PRESETS = {
 
   /**
    * Expert - For authoritative personas
-   * Good for: Jack Bogle, financial expertise, decisiveness
+   * Good for: elder index-investing personas, financial expertise, decisiveness
    */
   expert: {
     disfluency: { frequency: 0.06 }, // Confident, minimal hesitation

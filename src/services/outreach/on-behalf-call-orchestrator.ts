@@ -212,8 +212,8 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       preferredTimes: request.userPreferences?.preferredTimes,
     });
 
-    // Check compliance
     const compliance = checkCallCompliance(request);
+    if (!compliance.passed) throw new Error(`Call refused: ${compliance.issues.join(', ')}`);
     const complianceScript = generateComplianceScript(request, compliance);
 
     // Create call record

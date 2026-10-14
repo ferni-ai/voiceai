@@ -51,3 +51,28 @@ export function backchannelsFor(personaId: string): string[] {
 export function bootBackchannels(personaId: string): readonly string[] {
   return personaId === 'ferni' ? backchannelsFor('ferni') : (EXTRAS[personaId] ?? []);
 }
+
+/**
+ * Presence-sound takes Seth kept (41 rated, 2026-10, Ferni's instant clone on
+ * sonic-3.6-2026-08-27); he rejected every synthesized or voice-converted hum,
+ * snore and whistle. Exact transcripts, tags and all (voiced-take-render.ts
+ * passes on the ones each voice honors). The sung hum is not a real tune yet.
+ */
+// prettier-ignore
+export const VOICED_TAKES = {
+  'thinking-hum': ['Hmmm.', '<speed ratio="0.8"/><volume ratio="0.6"/>Hmmmm.', 'Mmm... hm.',
+    '<volume ratio="0.7"/>Mmm-hmm-hmm.'],
+  recognition: ['<emotion value="excited"/>Ohh!', '<emotion value="happy"/>Oh, mm!', 'Ohhh, yeah.',
+    '<emotion value="excited"/>Ah!'],
+  surprised: ['Huh! [laughter]', '<emotion value="excited"/>Ha! Huh.', '[laughter] Huh!'],
+  'content-sigh': ['<emotion value="calm"/>Ahhh.', '<emotion value="calm"/><speed ratio="0.8"/>Mmm, ahh.',
+    '<emotion value="content"/>Haahh.'],
+  'morning-yawn': ['<emotion value="calm"/><speed ratio="0.7"/>Aaaahhh, mmm.',
+    '<emotion value="calm"/><speed ratio="0.75"/>Ohhh, aaahh, okay.'],
+  laugh: ['[laughter]', 'Ha, [laughter]', '<emotion value="happy"/>[laughter] oh man.'],
+  aww: ['<emotion value="happy"/>Aww.', '<emotion value="happy"/><speed ratio="0.85"/>Awww, mm.'],
+  mmhm: ['Mm-hm.', '<emotion value="happy"/>Mmhm!', '<volume ratio="0.7"/>Mm. Mm-hm.'],
+  'sung-hum': ['<speed ratio="0.8"/>Hmm hmm hmmm, hm hm hmmm.'],
+} satisfies Record<string, readonly string[]>;
+
+export type VoicedCategory = keyof typeof VOICED_TAKES;

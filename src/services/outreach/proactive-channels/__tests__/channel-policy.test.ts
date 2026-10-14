@@ -90,4 +90,14 @@ describe('chooseChannel: calls', () => {
     const recent = [call(1, 'answered'), call(2, 'answered'), call(3, 'answered')];
     expect(chooseChannel(input({ recent }))).toEqual({ channel: null, why: 'daily limit reached' });
   });
+
+  it('light: one a day and never a call', () => {
+    const prefs = { channels: ['sms', 'voice_call'], proactiveFrequency: 'light' };
+    expect(chooseChannel(input({ prefs })).channel).toBe('sms');
+    const textedToday = { ...call(2, 'replied'), channel: 'sms' as const };
+    expect(chooseChannel(input({ prefs, recent: [textedToday] }))).toEqual({
+      channel: null,
+      why: 'daily limit reached',
+    });
+  });
 });

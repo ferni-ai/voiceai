@@ -11,6 +11,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 // ============================================================================
 // SERVICE TYPES
@@ -60,11 +61,6 @@ interface UserData {
 // ============================================================================
 // REMEMBER ABOUT USER
 // ============================================================================
-
-/** rememberAboutUser's results: short, honest, and not something to read out. */
-export const REMEMBERED = 'Saved for next time. Carry on; no need to mention it.';
-export const REMEMBERED_THIS_CALL =
-  "Noted for this call, but it couldn't be saved for next time. Carry on; no need to mention it.";
 
 export const rememberAboutUserDef: ToolDefinition = {
   id: 'rememberAboutUser',
@@ -119,8 +115,7 @@ export const rememberAboutUserDef: ToolDefinition = {
           return REMEMBERED;
         }
 
-        // Kept in this call's notes only: say so rather than return nothing (tool-output-guard.ts)
-        return REMEMBERED_THIS_CALL;
+        return REMEMBERED_THIS_CALL; // this call's notes only; never '' (tool-output-guard.ts)
       },
     });
   },

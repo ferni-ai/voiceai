@@ -45,9 +45,9 @@ const validConfig: AgentPageConfig = {
 const fullConfig: AgentPageConfig = {
   agent: {
     id: 'joel-dickson',
-    name: 'Joel Dickson',
-    displayName: 'Joel',
-    initials: 'JD',
+    name: 'Nate Holloway',
+    displayName: 'Nate',
+    initials: 'NH',
     tagline: 'Global Head of Investment Strategy',
     description: 'Expert in investment research and strategy',
   },
@@ -64,8 +64,8 @@ const fullConfig: AgentPageConfig = {
     environment: 'production',
   },
   seo: {
-    title: 'Meet Joel Dickson',
-    description: 'Talk with Joel about investment strategy',
+    title: 'Meet Nate Holloway',
+    description: 'Talk with Nate about investment strategy',
     twitterCard: 'summary_large_image',
   },
 };
@@ -319,7 +319,7 @@ describe('Page Generator', () => {
     it('should use custom display name if provided', async () => {
       const result = await generateAgentPage(fullConfig);
 
-      expect(result.html).toContain('Joel');
+      expect(result.html).toContain('Nate');
     });
 
     it('should include LiveKit connection script', async () => {

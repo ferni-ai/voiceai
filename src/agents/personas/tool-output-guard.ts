@@ -56,10 +56,12 @@ type OutputItem = { type?: string; name?: string; callId?: string; output?: unkn
  */
 export function fillEmptyToolOutputs(
   chatCtx: Pick<llm.ChatContext, 'items'>,
-  sessionId?: string,
+  session?: { userData?: unknown },
   env: Record<string, string | undefined> = process.env
 ): number {
   if (!toolOutputGuardEnabled(env)) return 0;
+  const sessionId = (session?.userData as { services?: { sessionId?: string } } | undefined)
+    ?.services?.sessionId;
   let filled = 0;
   for (const item of chatCtx.items as unknown as OutputItem[]) {
     if (item.type !== 'function_call_output' || !isEmptyOutput(item.output)) continue;

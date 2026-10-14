@@ -16,7 +16,7 @@ import { getUnifiedMemoryService } from '../../../services/unified-memory-servic
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { REMEMBERED, REMEMBERED_THIS_CALL } from './tools.js';
+import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 
 const log = getLogger();
 

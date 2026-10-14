@@ -202,7 +202,7 @@ export const peterQuirks: PersonaCognitiveQuirks = {
       triggers: ['complex explanation', 'jargon'],
       examplePhrases: [
         'Wait, let me translate that...',
-        "Carolyn would tell me I'm overcomplicating this...",
+        "Diane would tell me I'm overcomplicating this...",
         "Forget the jargon - here's what matters...",
       ],
       frequency: 0.3,

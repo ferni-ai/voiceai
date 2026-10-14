@@ -21,7 +21,7 @@ import { getApiHeadersAsync, getUserId } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
-import { formatRelativeTime, t } from '../i18n/index.js';
+import { formatRelativeTime, t, tIfComplete } from '../i18n/index.js';
 import { openAuthedWebSocket } from '../services/authed-websocket.service.js';
 
 const log = createLogger('TeamInsightsUI');
@@ -34,6 +34,7 @@ const { clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 
 import type { TeamInsight } from '../types/team-insight.js';
+import { parseTeamInsights } from '../services/cross-team-insight-mapper.js';
 
 export type { TeamInsight };
 
@@ -255,9 +256,9 @@ interface WebSocketMessage {
   type: 'event' | 'state' | 'heartbeat' | 'pong';
   event?: {
     type: 'new_insight' | 'insight_updated' | 'insight_removed';
-    insight: TeamInsight;
+    insight: unknown; // validated by parseTeamInsights before use
   };
-  insights?: TeamInsight[];
+  insights?: unknown;
   teamStatus?: TeamStatus;
   timestamp?: string;
 }
@@ -272,7 +273,7 @@ function handleWebSocketMessage(message: WebSocketMessage): void {
 
     case 'state':
       if (message.insights) {
-        state.insights = message.insights;
+        state.insights = parseTeamInsights(message.insights, 'ws state');
         state.teamStatus = message.teamStatus || null;
         state.lastUpdated = Date.now();
         if (state.isOpen) {
@@ -296,15 +297,13 @@ function handleWebSocketMessage(message: WebSocketMessage): void {
 }
 
 function handleInsightEvent(event: NonNullable<WebSocketMessage['event']>): void {
-  const { type, insight } = event;
+  const [insight] = parseTeamInsights([event.insight], `ws ${event.type}`);
+  if (!insight) return; // malformed: dropped with a warning, never rendered
 
-  switch (type) {
+  switch (event.type) {
     case 'new_insight':
-      // Add to beginning of list
-      state.insights = [{ ...insight, isNew: true }, ...state.insights];
+      state.insights = [{ ...insight, isNew: true }, ...state.insights.filter((i) => i.id !== insight.id)];
       state.hasNewInsights = true;
-
-      // Show notification for high-priority insights
       if (insight.priority === 'high' || insight.priority === 'critical') {
         showInsightNotification(insight);
       }
@@ -348,7 +347,8 @@ async function fetchTeamInsights(): Promise<{ insights: TeamInsight[]; teamStatu
       throw new Error(`Failed to fetch insights: ${response.status}`);
     }
 
-    return await response.json();
+    const data = (await response.json()) as { insights?: unknown; teamStatus: TeamStatus };
+    return { ...data, insights: parseTeamInsights(data.insights, 'GET /api/team-insights') };
   } catch (err) {
     log.warn({ error: String(err) }, 'Failed to fetch team insights');
     // Return empty data on error
@@ -694,21 +694,14 @@ async function refreshInsights(): Promise<void> {
 // NOTIFICATION SYSTEM
 // ============================================================================
 
-/**
- * Show a notification for a high-priority insight
- */
+/** Badge a high-priority insight and toast it; no toast when its summary is empty. */
 export function showInsightNotification(insight: TeamInsight): void {
-  const _style = PERSONA_STYLES[insight.source] || PERSONA_STYLES.system;
-
-  // Add to state
-  state.insights.unshift(insight);
+  if (!state.insights.some((i) => i.id === insight.id)) state.insights.unshift(insight);
   state.hasNewInsights = true;
   updateTriggerBadge();
-
-  // Show toast notification
-  toast.info(t('toasts.teamInsight', { source: capitalize(insight.source), summary: insight.summary }));
-
-  log.info({ insightId: insight.id, source: insight.source }, 'Insight notification shown');
+  const message = tIfComplete('toasts.teamInsight', { source: capitalize(insight.source), summary: insight.summary });
+  if (message) toast.show({ message, type: 'info', defer: true }); // not mid-call
+  log.info({ insightId: insight.id, source: insight.source, toasted: Boolean(message) }, 'Insight notification');
 }
 
 /**

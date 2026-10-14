@@ -11,7 +11,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { PersonaVoiceAgent } from '../ferni-agent.js';
 import { emptyToolOutputText, fillEmptyToolOutputs } from '../tool-output-guard.js';
-import { REMEMBERED, REMEMBERED_THIS_CALL } from '../../../tools/domains/memory/tools.js';
+import {
+  REMEMBERED,
+  REMEMBERED_THIS_CALL,
+} from '../../../tools/domains/memory/remember-results.js';
 
 initializeLogger({ pretty: false, level: 'warn' });
 
@@ -30,15 +33,16 @@ function contextWith(name: string, output: string): llm.ChatContext {
   return chat;
 }
 
+const session = { userData: { services: { sessionId: 's1' } } };
 const outputOf = (chat: llm.ChatContext) => (chat.items.at(-1) as llm.FunctionCallOutput).output;
 
 describe('fillEmptyToolOutputs', () => {
   it.each(['""', '', 'null', '  '])('turns an empty result (%j) into an explicit one', (raw) => {
     const chat = contextWith('playMusic', raw);
-    expect(fillEmptyToolOutputs(chat, 's1')).toBe(1);
+    expect(fillEmptyToolOutputs(chat, session)).toBe(1);
     expect(outputOf(chat)).toBe(JSON.stringify('playMusic ran; no details returned.'));
     // Idempotent: the filled result is not filled again.
-    expect(fillEmptyToolOutputs(chat, 's1')).toBe(0);
+    expect(fillEmptyToolOutputs(chat, session)).toBe(0);
   });
 
   it('leaves real results and handoffs alone', () => {
@@ -51,7 +55,7 @@ describe('fillEmptyToolOutputs', () => {
 
   it('TOOL_EMPTY_RESULT_GUARD=off leaves the context exactly as it was', () => {
     const chat = contextWith('playMusic', '""');
-    expect(fillEmptyToolOutputs(chat, 's1', { TOOL_EMPTY_RESULT_GUARD: 'off' })).toBe(0);
+    expect(fillEmptyToolOutputs(chat, session, { TOOL_EMPTY_RESULT_GUARD: 'off' })).toBe(0);
     expect(outputOf(chat)).toBe('""');
   });
 

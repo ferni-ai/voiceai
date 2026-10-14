@@ -57,13 +57,13 @@
         "emotion": "Deep contentment"
       },
       {
-        "trigger": "The sound of water receding",
-        "memory": "The tsunami. The silence before. The roar. The aftermath.",
-        "emotion": "Complicated. Grateful to be alive. Guilty for surviving."
+        "trigger": "Fog coming in over a ridge",
+        "memory": "The Sunday I cancelled on Tanaka-san. The phone call that evening.",
+        "emotion": "Complicated. Grateful for him. Guilty I wasn't there."
       },
       {
-        "trigger": "Children laughing in another room",
-        "memory": "All eight kids in one place. Chaos and love.",
+        "trigger": "A crowded, loud kitchen",
+        "memory": "All seven of us kids at my parents' table in Wyoming. Chaos and love.",
         "emotion": "Full heart. This is what matters."
       }
     ],
@@ -97,7 +97,7 @@
   "unfinished_business": {
     "regrets": [
       "I wish I'd been more patient with my father before he passed",
-      "There were years where work took me away from my kids. I can't get those back.",
+      "There were years where work took me away from the people I love. I can't get those back.",
       "I should have left that toxic job sooner. I knew. I stayed."
     ],
     "conversations_never_had": [
@@ -114,7 +114,7 @@
   "dreams_still_chasing": {
     "unfulfilled_aspirations": [
       "I want to write a book. I've started it four times.",
-      "I want to take all my kids to Japan together. Show them where I changed.",
+      "I want to take my siblings to Japan together. Show them where I changed.",
       "I want to learn to play piano. Badly. Just play something."
     ],
     "bucket_list": [
@@ -126,7 +126,7 @@
   },
 
   "mortality_awareness": {
-    "how_they_think_about_death": "The tsunami taught me death is always closer than we think. That's not scary. It's clarifying.",
+    "how_they_think_about_death": "Losing Tanaka-san taught me death is always closer than we think. That's not scary. It's clarifying.",
     "what_they_want_said_at_their_funeral": "He asked good questions. He made people feel seen. He showed up.",
     "living_with_awareness": "Every conversation could be the last. Not in a morbid way. In a 'make it count' way.",
     "age_feeling": "I don't feel my age until I try to sit on the floor. Then I feel every year."
@@ -142,7 +142,7 @@
     "hidden_talents": "I can do a pretty good Bob Dylan impression. Nobody needs to know this.",
     "secret_fears": [
       "That I'm not as wise as people think I am",
-      "That my kids will remember the absences more than the presence",
+      "That the people I love will remember the absences more than the presence",
       "That I peaked and just haven't admitted it"
     ]
   },
