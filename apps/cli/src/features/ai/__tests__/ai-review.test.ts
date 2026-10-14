@@ -119,7 +119,15 @@ function geminiReplies(text: string): void {
 /** What a model writes when it follows REVIEW_SYSTEM_PROMPT's format and finds nothing. */
 const CLEAN_REVIEW = [
   '## Summary',
-  'A small, safe change.',
+  'Accept: a small, safe change.',
+  '',
+  '## The six questions',
+  "1. What's broken: nothing found",
+  "2. What's wrong: nothing found",
+  '3. Refactor or rework: none',
+  '4. Deep research: No',
+  '5. Grounding: the tests cover it',
+  '6. End to end: the CLI test runs it',
   '',
   '## Issues Found',
   '### 🔴 Critical (must fix)',
@@ -130,9 +138,6 @@ const CLEAN_REVIEW = [
   '',
   '### 🟢 Suggestions (nice to have)',
   '- None',
-  '',
-  "## What's Good",
-  '- Clear naming',
 ].join('\n');
 
 // The PR comment ended "✅ No critical issues found" whenever nothing matched 🔴,
@@ -266,6 +271,26 @@ describe('ai review checks the repo rules', () => {
     expect(sent).toContain('behind an env flag that is off by default');
     expect(sent).toContain('One issue, one PR');
     expect(sent).toContain('feature.ts'); // still reviews the diff
+  });
+
+  it('asks the six review questions, adversarially, before the repo rules', async () => {
+    const { handleAIReview } = await import('../ai-review.js');
+    await handleAIReview(['general', '--base', 'origin/main']);
+    const sent = sentDiff() ?? '';
+    expect(sent).toContain('find reasons to reject');
+    const questions = [
+      "What's broken?",
+      "What's wrong?",
+      'What needs to be refactored, refined or reworked?',
+      'Does this need deep research?',
+      'How do we stay grounded?',
+      'How do we prove it works end to end?',
+    ];
+    const at = questions.map((q) => sent.indexOf(q));
+    expect(at.every((i) => i >= 0)).toBe(true);
+    expect(at).toEqual([...at].sort((a, b) => a - b));
+    expect(sent).toContain('more human');
+    expect(at[5]).toBeLessThan(sent.indexOf("## This repo's rules"));
   });
 
   it('leaves the security and performance reviews to their own focus', async () => {
