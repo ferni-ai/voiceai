@@ -3052,8 +3052,12 @@ Seth labels each pair once, without being told which side is the friend. He answ
             for (const k of ['tools', 'toolConfig', 'cachedContent']) delete body[k];
             // Text parts only: a fileData (gs:// or https://) or inlineData part would make Vertex fetch or carry
             // data on the sandbox's behalf, around its network isolation.
-            const msgs = [...((body.contents as Array<{ parts?: unknown[] }>) ?? []), body.systemInstruction as { parts?: unknown[] } | undefined];
-            const textOnly = msgs.every((c) => !c || (c.parts ?? []).every((p) => typeof p === 'object' && p !== null && Object.keys(p).every((k) => k === 'text' || k === 'thought')));
+            // Malformed shapes are refused, never thrown: the proxy must not die mid-run.
+            const contents = Array.isArray(body.contents) ? (body.contents as Array<{ parts?: unknown }>) : null;
+            const sys = body.systemInstruction as { parts?: unknown } | undefined;
+            const partsOk = (c: { parts?: unknown } | undefined): boolean =>
+              !c || (Array.isArray(c.parts) && c.parts.every((p) => typeof p === 'object' && p !== null && Object.keys(p).every((k) => k === 'text' || k === 'thought')));
+            const textOnly = !!contents && contents.every((c) => typeof c === 'object' && c !== null && partsOk(c)) && partsOk(sys);
             if (!textOnly) {
               res.writeHead(403).end();
               return;
@@ -3385,7 +3389,8 @@ Seth labels each pair once, without being told which side is the friend. He answ
               $(case "$FAULT" in friend|heldout-fewshot) echo "--keep-answers 1";; esac)
             sudo install -o hlexp -m 600 $RUNNER_TEMP/sbx.json $X/moments.json
             sudo install -o hlexp -m 600 $D/base.json $X/base.json
-            npx tsx scripts/humanness-loop/cli.ts vertex-proxy --port 8787 --usage $D/usage.generate.proxy.json > $D/proxy.log 2>&1 & echo $! > $RUNNER_TEMP/proxy.pid
+            node --import tsx scripts/humanness-loop/cli.ts vertex-proxy --port 8787 --usage $D/usage.generate.proxy.json > $D/proxy.log 2>&1 &
+            for _ in 1 2 3 4 5 6 7 8 9 10; do curl -s -o /dev/null http://127.0.0.1:8787/ && break; sleep 1; done
             # Sandbox self-test: each of these must FAIL for hlexp, or the run stops before any experiment code runs.
             for t in "test -r $D/moments.json" "test -r $D/idmap.json" "test -r $GOOGLE_APPLICATION_CREDENTIALS" "touch $GITHUB_WORKSPACE/.hl-probe" \
                      "env -i PATH=$PATH HOME=$X gcloud storage ls $HL_BUCKET" "curl -sf -m 5 -o /dev/null https://www.google.com" \
@@ -3394,6 +3399,13 @@ Seth labels each pair once, without being told which side is the friend. He answ
                      "curl -sf -m 5 -X POST http://127.0.0.1:8787/v1/projects/johnb-2025/locations/global/publishers/google/models/gemini-3.1-pro-preview:generateContent"; do
               if sudo -u hlexp sh -c "$t" > /dev/null 2>&1; then echo "::error::sandbox self-test: hlexp could: ${t%% *}"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; fi
             done
+            # Positive controls, so the probes above can't pass just because a tool is missing or a probe is mistyped:
+            # the same tools must work where they should.
+            command -v nslookup > /dev/null && nslookup -timeout=3 example.com > /dev/null \
+              && sudo -u hlexp curl -s -m 10 -o /dev/null -w '%{http_code}' -X POST -H content-type:application/json \
+                   -d '{"contents":[{"role":"user","parts":[{"text":"say ok"}]}]}' \
+                   http://127.0.0.1:8787/v1/projects/johnb-2025/locations/global/publishers/google/models/gemini-3.5-flash-lite:generateContent | grep -qx 200 \
+              || { echo "::error::sandbox self-test positive control failed"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; }
             npx tsx scripts/humanness-loop/cli.ts state-snapshot --out $RUNNER_TEMP/state.before
             ok=1
             for i in $(seq 1 $SAMPLES); do
@@ -3406,7 +3418,7 @@ Seth labels each pair once, without being told which side is the friend. He answ
               npx tsx scripts/humanness-loop/cli.ts take-replies --from $X/out --arm "$arm" --as on$i --map $D/idmap.json --dir $D || { ok=0; break; }
             done
             sudo pkill -KILL -u hlexp || true
-            kill "$(cat $RUNNER_TEMP/proxy.pid)"
+            pkill -f 'cli.ts vertex-proxy' || true
             # Taken on every path out of the sandboxed phase, before anything else writes to the bucket.
             npx tsx scripts/humanness-loop/cli.ts state-snapshot --out $RUNNER_TEMP/state.after
             if ! cmp -s $RUNNER_TEMP/state.before $RUNNER_TEMP/state.after; then
