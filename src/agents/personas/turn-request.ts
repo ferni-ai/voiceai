@@ -37,6 +37,7 @@ import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { noteReminder } from '../shared/turn-receipt.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
@@ -100,9 +101,10 @@ export function withTurnReminder(
   // Nothing steers back to a locked teammate the caller didn't just name.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
+  const offered = director?.current() ?? [];
   // DIRECTOR_ANSWER_TURN_GUARD=on: notes written before they answered Ferni's question are stale.
   const answering = isAnswerTurn(chatCtx.items, words);
-  const notes = answering ? '' : formatNotes((director?.current() ?? []).filter(keep));
+  const notes = answering ? '' : formatNotes(offered.filter(keep));
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
@@ -156,6 +158,13 @@ export function withTurnReminder(
   ]
     .filter(Boolean)
     .join(' ');
+  // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
+  noteReminder(session, {
+    reminder,
+    directorNotes: notes,
+    offered: offered.length,
+    droppedIdx: offered.flatMap((note, i) => (!answering && keep(note) ? [] : [i])),
+  });
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
 }
 
