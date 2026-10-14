@@ -4,12 +4,12 @@
  * accents): every name the session knows; emails (also "(at)" spellings),
  * links, @handles, bare domains, dates (numeric and month-name), street
  * addresses, any word with 3+ digits and longer digit runs; the word after
- * "named"/"called" or a relation or title ("my son jake", "dr smith"); people,
- * places and organizations an English parser (compromise, already a
- * dependency) finds even in lowercase; every other capitalized word not on a
- * short list of languages and things people learn; then quotes, lowercase,
- * a 12-word cap, and known names once more. The tool description also asks
- * for a generic topic.
+ * "named"/"called" (and that word); people, places and organizations an
+ * English parser (compromise, already a dependency) finds even in lowercase,
+ * a "person" only if the word is a name on its own (so "cancer" stays); every
+ * other capitalized word not on a short list of languages and things people
+ * learn; then quotes, lowercase, a 12-word cap, and known names once more.
+ * The tool description also asks for a generic topic.
  *
  * @module services/coach-media/topic-query
  */
@@ -24,7 +24,8 @@ export function coachMediaEnabled(env: Record<string, string | undefined> = proc
 export const MAX_QUERY_LENGTH = 120;
 export const MAX_QUERY_WORDS = 12;
 
-const EMAIL = /[\w.+-]+\s*(?:@|\(at\)|\[at\])\s*[\w-]+(?:(?:\.|\(dot\)|\[dot\])[\w-]+)+/giu;
+// The local part may already be gone: a known name is taken first ("seth(at)ferni.ai").
+const EMAIL = /(?:[\w.+-]+\s*)?(?:@|\(at\)|\[at\])\s*[\w-]+(?:(?:\.|\(dot\)|\[dot\])[\w-]+)+/giu;
 const LINK = /\b(?:[a-z][a-z0-9+.-]*:\/\/|hxxps?:|www\.)\S+/gi;
 const HANDLE = /(?<![\p{L}\p{N}])@[\w.]+/gu;
 const DOMAIN = /\b[\w-]+(?:\.|\[\.\])[a-z]{2,}\b\S*/gi;
@@ -42,10 +43,9 @@ const LOCATED =
 // Any word holding 3+ digits ("jakeford99" is caught as a handle), and longer digit runs.
 const DIGITS = /\b[\p{L}]*\d{3,}[\p{L}\d]*\b|\+?\d(?:[\s()/.-]*\d){4,}/gu;
 const QUOTED = /"[^"]*"|“[^”]*”|‘[^’]*’/g;
-// "a friend named mike", "my son jake", "dr. smith": the next word may be a
-// lowercase name, unless it is one of the little words that usually follow.
-const NAMED =
-  /\b(named|called|son|daughter|wife|husband|mom|mum|dad|mother|father|brother|sister|friend|boss|coworker|co-worker|partner|girlfriend|boyfriend|aunt|uncle|grandma|grandpa|cousin|niece|nephew|mr|mrs|ms|dr)\.?\s+(?!(?:named|called|is|was|are|were|has|had|have|says|said|told|thinks|wants|keeps|asked|suggested|recommended|and|or|but|to|for|with|at|in|on|of|about|who|that|always|never|just|really|and|the|a|an|my|our|his|her|their)\b)[\p{L}'-]+/giu;
+// "a friend named mike", "a dog called biscuit": the word after is a name; both go,
+// so a second pass finds nothing to take.
+const NAMED = /\b(?:named|called)\s+[\p{L}'-]+/giu;
 // Capitalized words are dropped unless they are one of these.
 const KEPT_PROPER = new Set(
   (
@@ -107,11 +107,22 @@ function stripIdentifiers(text: string, identifiers: Array<string | undefined>):
   return out;
 }
 
-/** People, places and organizations compromise finds, lowercase ones too. */
+/**
+ * People, places and organizations compromise finds, lowercase ones too. A word
+ * it calls a person only in context ("bob retirement") stays unless it is a
+ * name on its own, so topic words ("cancer", "knee") never go.
+ */
 function stripEntities(text: string): string {
-  const doc = nlp(text);
-  doc.match('(#Person|#Place|#Organization)').replaceWith(' ');
-  return doc.text();
+  const drop = nlp(text)
+    .terms()
+    .json()
+    .flatMap((t: { text: string; terms: Array<{ tags: string[] }> }) => {
+      const tags = t.terms[0]?.tags ?? [];
+      const entity = tags.includes('Place') || tags.includes('Organization');
+      const person = tags.includes('Person') && nlp(t.text).has('#Person');
+      return entity || person ? [t.text] : [];
+    });
+  return stripIdentifiers(text, drop);
 }
 
 /**
@@ -133,7 +144,7 @@ export function topicOnlyQuery(
     .replace(LOCATED, '$1 $2 ')
     .replace(DATE, ' ')
     .replace(DIGITS, ' ')
-    .replace(NAMED, '$1 ');
+    .replace(NAMED, ' ');
   let query = stripEntities(patterns)
     .replace(CAPITALIZED, (w: string) =>
       KEPT_PROPER.has(w.replace(/['’]s$/, '').toLowerCase()) ? w : ' '

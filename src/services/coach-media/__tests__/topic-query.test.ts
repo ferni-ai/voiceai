@@ -82,8 +82,8 @@ describe('topicOnlyQuery leaks found in review', () => {
     ['help with Jordan at work', 'help with at work'],
     ['talking to Megan about her diabetes diagnosis', 'talking to about her diabetes diagnosis'],
     ['helping Ryan with homework', 'helping with homework'],
-    ['my friend named mike says try yoga', 'my friend named says try yoga'],
-    ['a dog called biscuit', 'a dog called'],
+    ['my friend named mike says try yoga', 'my friend says try yoga'],
+    ['a dog called biscuit', 'a dog'],
     ['born 03/14/1980 sleep tips', 'born sleep tips'],
     ['since 3-14-1980 and 2024.05.01', 'since and'],
     ['on 3/4/80 back pain', 'on back pain'],
@@ -109,7 +109,9 @@ describe('topicOnlyQuery leaks found in review', () => {
     ['email seth(at)ferni.ai about it', /seth|ferni|\(at\)/],
     ['notes for se\u200bth on sleep', /se.?th/],
   ])('%s', (topic, leak) => {
-    expect(topicOnlyQuery(topic, ['Seth']) ?? '').not.toMatch(leak);
+    const once = topicOnlyQuery(topic, ['Seth']);
+    expect(once ?? '').not.toMatch(leak);
+    expect(topicOnlyQuery(once ?? '', ['Seth'])).toBe(once);
   });
 
   it.each([
@@ -136,6 +138,22 @@ describe('topicOnlyQuery leaks found in review', () => {
   it('matches profile names with or without accents', () => {
     expect(topicOnlyQuery('stretches for jose', ['José'])).toBe('stretches for');
     expect(topicOnlyQuery('stretches for josé', ['Jose'])).toBe('stretches for');
+  });
+
+  // Follow-up review: names go, the topic stays, and a second pass changes nothing.
+  it.each([
+    ['my wife maria cancer diagnosis', 'my wife cancer diagnosis'],
+    ['my mom alzheimers', 'my mom alzheimers'],
+    ['my brother depression', 'my brother depression'],
+    ['my son jake failing math', 'my son failing math'],
+    ['dr. smith knee surgery', 'knee surgery'],
+    ['for dad bob retirement', 'for dad retirement'],
+    ['my boss kowalczyk micromanages', 'my boss micromanages'],
+    ['seth(at)ferni.ai budgeting', 'budgeting'],
+  ])('%s → %s, twice', (topic, expected) => {
+    const once = topicOnlyQuery(topic, ['Seth']);
+    expect(once).toBe(expected);
+    expect(topicOnlyQuery(once ?? '', ['Seth'])).toBe(once);
   });
 
   it('is idempotent: scrubbing its own output changes nothing', () => {
