@@ -12,7 +12,7 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { DocumentData, Firestore } from 'firebase-admin/firestore';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -108,8 +108,8 @@ async function agentAddContact(userId: string, args: Record<string, string>): Pr
 /** The user's saved contact once the store has it in the shape `ready` expects */
 async function savedContact(
   userId: string,
-  ready: (c: admin.firestore.DocumentData) => boolean
-): Promise<admin.firestore.DocumentData> {
+  ready: (c: DocumentData) => boolean
+): Promise<DocumentData> {
   for (let i = 0; i < 50; i++) {
     const saved = await db.collection('user_contacts').where('userId', '==', userId).get();
     const match = saved.docs.map((d) => d.data()).find(ready);
