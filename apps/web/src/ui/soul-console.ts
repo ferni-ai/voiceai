@@ -46,7 +46,7 @@ export async function testHandoff(): Promise<void> {
     fromName: 'Ferni',
     toId: 'maya',
     toName: 'Maya',
-    banter: "Maya's wonderful with habits—you'll love her!",
+    banter: "Maya's wonderful with habits. You'll love her!",
   });
 
   log.info('Handoff test complete');

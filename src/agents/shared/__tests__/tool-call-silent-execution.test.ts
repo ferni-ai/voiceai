@@ -14,7 +14,7 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, test } from 'vitest';
 
-import { detectsFunctionCallLeakage } from './sanitizer/index.js';
+import { detectsFunctionCallLeakage } from '../sanitizer/index.js';
 
 // Find project root
 const findProjectRoot = () => {
@@ -100,7 +100,6 @@ describe('LAYER 1: System Prompts - Silent Execution Instructions', () => {
 
 describe('LAYER 2: Tool Descriptions - Imperative Language', () => {
   const ferniAgentPath = join(PROJECT_ROOT, 'src/agents/personas/ferni-agent.ts');
-  const musicToolsPath = join(PROJECT_ROOT, 'src/tools/music.ts');
 
   test('handoff tools use SILENT HANDOFF language', () => {
     if (!existsSync(ferniAgentPath)) {
@@ -116,27 +115,6 @@ describe('LAYER 2: Tool Descriptions - Imperative Language', () => {
 
     expect(hasSilentHandoff).toBe(true);
     console.log('✅ Handoff tools use SILENT HANDOFF language');
-  });
-
-  test('music tools use imperative DO NOT SPEAK language', () => {
-    if (!existsSync(musicToolsPath)) {
-      console.log('⚠️ music.ts not found, skipping');
-      return;
-    }
-
-    const content = readFileSync(musicToolsPath, 'utf-8');
-
-    // Should have imperative language
-    const hasImperative =
-      content.includes('CALL this function') ||
-      content.includes('Do not respond conversationally') ||
-      content.includes('Execute immediately');
-
-    if (hasImperative) {
-      console.log('✅ Music tools use imperative language');
-    } else {
-      console.log('⚠️ Music tools could use stronger imperative language');
-    }
   });
 });
 
