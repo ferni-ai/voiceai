@@ -2,11 +2,25 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
+    // src/types/custom-agent.ts pulls in the DOM lib for the main program, so
+    // fetch's Response.json() is typed the same way here.
+    "lib": ["ES2022", "DOM"],
     "noEmit": true,
     "declaration": false,
     "declarationMap": false,
     "sourceMap": false
   },
-  "include": ["scripts/memory-eval/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["scripts/**/*.ts", "scripts/**/*.mts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    // These import packages that are not in package.json and are installed only
+    // when the script runs: @octokit/rest (the ci-metrics and devops-dashboard
+    // workflows add it), ts-morph, canvas, gifencoder and png-to-ico.
+    "scripts/devops/collect_ci_metrics.ts",
+    "scripts/devops/generate_dashboard.ts",
+    "scripts/fix-unchecked-index.ts",
+    "scripts/generate-favicons.ts",
+    "scripts/generate-smile-gif.ts"
+  ]
 }

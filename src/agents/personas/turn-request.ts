@@ -56,6 +56,7 @@ import {
   understandingMode,
   understandingStatusFor,
 } from './turn-understanding.js';
+import { getWrapUp } from './wrap-up.js';
 import {
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
@@ -91,7 +92,7 @@ const sessionIdOf = (userData: unknown): string | undefined =>
 export function withTurnReminder(
   request: llm.ChatContext,
   session: object,
-  options: { shape?: boolean } = {}
+  options: { shape?: boolean; closeLoop?: boolean } = {}
 ): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
@@ -117,6 +118,7 @@ export function withTurnReminder(
     // "Naya" in the transcript is Nayan (teammate-names.ts)
     heardTeammateNote(words),
     notes,
+    options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
@@ -163,6 +165,16 @@ export function withTurnReminder(
     droppedIdx: offered.flatMap((note, i) => (!answering && keep(note) ? [] : [i])),
   });
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+}
+
+/**
+ * WRAP_UP=on: the caller is signing off after something was settled, so the
+ * goodbye closes the loop (wrap-up.ts). Read in code, nothing awaited.
+ */
+function closeLoopNote(session: object, words: string): string {
+  const wrapUp = getWrapUp(session);
+  if (!wrapUp || !words) return '';
+  return wrapUp.noteFor(words, understandingFor(session, words)?.wantsToEnd === true);
 }
 
 /**
