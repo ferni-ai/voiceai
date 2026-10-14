@@ -234,6 +234,10 @@ export async function handleHandoffFromDataChannel(
   }
 
   diag.entry(`🎭 Data channel handoff: ${currentPersona} → ${target}`);
+  // A tap mid-reply: stop the reply, as a person would when you turn to someone else. With
+  // one session per call the swap waits for the outgoing speech to drain, so a long reply
+  // ran the swap past its timeout: the app showed "failed", then the teammate came on anyway
+  if (!onAgentReady) orchestrator.getActiveAgent()?.interrupt();
 
   const result = await orchestrator.handoff({
     targetPersonaId: target,

@@ -36,6 +36,7 @@ import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { noteReminder } from '../shared/turn-receipt.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
@@ -56,6 +57,7 @@ import {
   understandingMode,
   understandingStatusFor,
 } from './turn-understanding.js';
+import { getWrapUp } from './wrap-up.js';
 import {
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
@@ -91,7 +93,7 @@ const sessionIdOf = (userData: unknown): string | undefined =>
 export function withTurnReminder(
   request: llm.ChatContext,
   session: object,
-  options: { shape?: boolean } = {}
+  options: { shape?: boolean; closeLoop?: boolean } = {}
 ): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
@@ -100,9 +102,10 @@ export function withTurnReminder(
   // Nothing steers back to a locked teammate the caller didn't just name.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
+  const offered = director?.current() ?? [];
   // DIRECTOR_ANSWER_TURN_GUARD=on: notes written before they answered Ferni's question are stale.
   const answering = isAnswerTurn(chatCtx.items, words);
-  const notes = answering ? '' : formatNotes((director?.current() ?? []).filter(keep));
+  const notes = answering ? '' : formatNotes(offered.filter(keep));
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
@@ -116,6 +119,7 @@ export function withTurnReminder(
     // "Naya" in the transcript is Nayan (teammate-names.ts)
     heardTeammateNote(words),
     notes,
+    options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
@@ -156,7 +160,24 @@ export function withTurnReminder(
   ]
     .filter(Boolean)
     .join(' ');
+  // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
+  noteReminder(session, {
+    reminder,
+    directorNotes: notes,
+    offered: offered.length,
+    droppedIdx: offered.flatMap((note, i) => (!answering && keep(note) ? [] : [i])),
+  });
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+}
+
+/**
+ * WRAP_UP=on: the caller is signing off after something was settled, so the
+ * goodbye closes the loop (wrap-up.ts). Read in code, nothing awaited.
+ */
+function closeLoopNote(session: object, words: string): string {
+  const wrapUp = getWrapUp(session);
+  if (!wrapUp || !words) return '';
+  return wrapUp.noteFor(words, understandingFor(session, words)?.wantsToEnd === true);
 }
 
 /**

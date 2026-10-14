@@ -86,7 +86,8 @@ let isPlayingMicroExpression = false;
 
 /**
  * Initialize the Luxo expression system.
- * Finds avatar elements and sets up CSS.
+ * Finds avatar elements and sets up CSS. setExpression runs it on first use;
+ * nothing runs it at import, so importing this module schedules no timer.
  */
 export function initLuxoExpressions(): void {
   if (isInitialized) return;
@@ -497,20 +498,4 @@ export function cleanupLuxoExpressions(): void {
   isInitialized = false;
 
   log.debug('Luxo expressions cleaned up');
-}
-
-// ============================================================================
-// AUTO-INIT
-// ============================================================================
-
-// Auto-initialize when DOM is ready
-if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      // Delay to ensure avatar is rendered
-      setTimeout(initLuxoExpressions, 100);
-    });
-  } else {
-    setTimeout(initLuxoExpressions, 100);
-  }
 }

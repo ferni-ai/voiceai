@@ -110,7 +110,6 @@ export const FLAG_MANIFEST = {
   DIRECTOR_TOOL_STATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   DISABLE_BATCHED_SUMMARIZATION: { default: 'off', owner: 'platform', kind: 'config' },
   DISABLE_BUILDER_PRIORITIZATION: { default: 'off', owner: 'intelligence', kind: 'config' },
-  DISABLE_CONTEXT_PREWARM: { default: 'off', owner: 'platform', kind: 'config' },
   DISABLE_DYNAMIC_STRATEGY: { default: 'off', owner: 'tools', kind: 'config' },
   DISABLE_INTERRUPT_TRANSFORM: { default: 'off', owner: 'voice', kind: 'config' },
   DISABLE_LINGUISTIC_MIRRORING: { default: 'off', owner: 'voice', kind: 'config' },
@@ -125,6 +124,8 @@ export const FLAG_MANIFEST = {
   ENABLE_INTELLIGENT_ROUTING: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   ENABLE_PROFILING: { default: 'off', owner: 'voice', kind: 'config' },
   ENDPOINT_FAST_FINISHED: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // late turn-1 words join that turn instead of opening a new one
+  EOT_CONTINUED_MERGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -150,6 +151,7 @@ export const FLAG_MANIFEST = {
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   GEMINI_LIVE_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },
   GEMMA3N_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
   GREETING_WIRE_AFTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GTM_AUTO_PUBLISH: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -208,6 +210,8 @@ export const FLAG_MANIFEST = {
   OUTREACH_DRY_RUN: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   // on: the daily scheduler sends no generic "thinking of you" check-ins
   OUTREACH_GROUNDED_CHECKINS: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
+  // on: pondered follow-ups go out as in-app notes (also a per-person cohort flag)
+  OUTREACH_PONDERED_NOTES: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OVERLAP_GREETING_WITH_PREWARM: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PACE_MATCHING: { default: 'on', owner: 'voice', kind: 'config' },
   PAUSE_HOLD: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -220,36 +224,13 @@ export const FLAG_MANIFEST = {
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // read in patches/@livekit__agents@1.6.4.patch
   PLAYOUT_LAUNCH_RESUME: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PONDERING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // late-night calls: a softer reply line and the LATE_NIGHT layer in attune.ts (porch-light.ts)
   PORCH_LIGHT: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_ADAPTIVE_PACING: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_AMPLITUDE_JITTER: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_BREATH: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_COMPRESSION: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_EMOTION_PROSODY: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_ENHANCEMENT_ENABLED: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_GLOTTALIZATION: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_HESITATION: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_HNR_MODULATION: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_JITTER: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_LIP_SMACKS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_LOMBARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_MICRO_PITCH: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_NOISE_FLOOR: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_ONSET_SOFTENING: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_PHARYNGEAL: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_PITCH_DRIFT: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_PRESENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_REGISTER: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_SHIMMER: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_SMILE_FORMANTS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_SOLA_PITCH: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_SUBGLOTTAL: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_TEMPO_VARIATION: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_VOCAL_FRY: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_WARMTH: { default: 'off', owner: 'voice', kind: 'experiment' },
   PREDICTIONS_USE_ASYNC: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: preemptive replies are also synthesized before the commit (multi-agent/preemptive-tts.ts)
   PREEMPTIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -265,7 +246,6 @@ export const FLAG_MANIFEST = {
   QUIET_HOURS_UNIFIED: { default: 'off', owner: 'outreach', kind: 'experiment' },
   RECALL_BRIDGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   RECALL_EPISODES: { default: 'off', owner: 'memory', kind: 'experiment' },
-  RECALL_FACT_QUOTES: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_PEOPLE: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_RARE_WORDS: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -307,6 +287,7 @@ export const FLAG_MANIFEST = {
   SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   STT_REFRESH_AFTER_GREETING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // read in patches/@livekit__agents@1.6.4.patch
   STT_RETRY_RESET: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TAP_INTERRUPT: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -315,6 +296,7 @@ export const FLAG_MANIFEST = {
   TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TOOL_ACK: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
+  TOOL_EMPTY_RESULT_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   TOOL_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   TOOL_LEAD_IN: { default: 'on', owner: 'voice', kind: 'config' },
   // hourly pool shared by anonymous journal transcriptions (api/journal-transcribe-limits.ts)
@@ -342,7 +324,6 @@ export const FLAG_MANIFEST = {
   USE_NATIVE_AUDIO: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   USE_NEW_TEAM_HANDLERS: { default: 'off', owner: 'tools', kind: 'experiment' },
   USE_OPENAI_REALTIME: { default: 'off', owner: 'platform', kind: 'experiment' },
-  USE_OWNED_STACK: { default: 'off', owner: 'platform', kind: 'experiment' },
   USE_PRE_STT_PROCESSING: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // SERVICE_MODE=remote also turns it on
   USE_RUNTIME: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -371,6 +352,8 @@ export const FLAG_MANIFEST = {
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },
   WORLD_MODEL_SNAPSHOT: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   WORLD_MODEL_TEMPORAL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // the goodbye closes the loop on what the call decided
+  WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
 
 export type FlagName = keyof typeof FLAG_MANIFEST;
