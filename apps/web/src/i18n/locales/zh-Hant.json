@@ -10,7 +10,6 @@
     "closeDashboard": "關閉控制台",
     "closeDetails": "關閉詳細資訊",
     "closeHistory": "關閉歷史紀錄",
-    "closeHuddle": "關閉討論",
     "closeMenu": "關閉選單",
     "closePublisher": "關閉發布者入口網站",
     "closeSettings": "關閉設定",
@@ -545,7 +544,6 @@
     "target": "目標",
     "tasks": "任務",
     "teachings": "指引",
-    "teamHuddle": "團隊小聚",
     "teamMembersUnlocked": "已解鎖的團隊成員",
     "teamUnlock": "解鎖團隊",
     "testCall": "測試通話",
@@ -1156,7 +1154,7 @@
       "upgrade": "加入這趟旅程"
     },
     "expiresLabel": "有效期限至",
-    "freeNote": "創始成員可以無限時間與整個團隊互動，並協助我們讓 Ferni 對所有人保持免費",
+    "freeNote": "Ferni 是免費的。如果你想幫助它繼續下去，可以透過 Venmo 支持一下。",
     "label": "共同成長",
     "renewsLabel": "自動續訂日期",
     "restore": {
@@ -1213,7 +1211,6 @@
       "supportFerni": "支持 Ferni",
       "supportFerniExpanded": "支持 Ferni",
       "takeTour": "帶我到處看看",
-      "teamHuddles": "團隊聚聚",
       "teamInsights": "團隊的洞察",
       "toggleTheme": "淺色 / 深色",
       "trustDetails": "我們的成長點滴",
@@ -1256,8 +1253,7 @@
       "growthJournal": "成長日記",
       "knowledgeQuiz": "你有多了解我？",
       "soundEffects": "音效",
-      "sleepSchedule": "睡眠作息",
-      "teamObservations": "團隊觀察"
+      "sleepSchedule": "睡眠作息"
     },
     "keepChatting": "我們聊得越多，就越親近喔",
     "maxLevel": "終生夥伴",
@@ -1417,8 +1413,6 @@
     "dailyChallenge": {
       "title": "今日挑戰",
       "xpReward": "+{xp} XP",
-      "completion": "已完成 {percent}%",
-      "playing": "{count} 人正在進行",
       "start": "開始挑戰",
       "dayStreak": {
         "other": "連續 {count} 天！",
@@ -1758,10 +1752,10 @@
       "plant": "在你希望開發的功能上播下種子",
       "suggest": "花費 5 顆種子來提議新想法",
       "title": "種子如何運作",
-      "conversation": "進行一次對話：+1 顆種子",
+      "conversation": "每天第一次對話：+5 顆種子",
       "note": "種子能幫助我們決定接下來要優先打造什麼功能！",
-      "streak30": "連續 30 天：+15 顆種子",
-      "streak7": "連續 7 天：+5 顆種子",
+      "streak30": "連續 30 天：+100 顆種子",
+      "streak7": "連續 7 天：+25 顆種子",
       "vote": "為功能投票：1-10 顆種子"
     },
     "intro": "每段美好的關係都有四季更迭。這些是我們一起播下的種子。",
@@ -2106,8 +2100,7 @@
     "couldNotDisconnect": "無法中斷連線。要再試一次嗎？",
     "sonosConnected": "Sonos 已連線！",
     "transcribing": "正在語音轉文字...",
-    "transcriptionUnavailable": "無法轉換文字。僅儲存音訊。",
-    "audioSaved": "音訊已儲存！",
+    "transcriptionUnavailable": "這次沒能聽清內容，所以什麼都沒有儲存。要再試一次嗎？",
     "entrySaved": "記錄已儲存！",
     "couldNotSaveEntry": "無法儲存記錄。要再試一次嗎？",
     "profileSaved": "個人檔案已儲存！",
@@ -2225,7 +2218,6 @@
       "other": "已匯入 {count} 位聯絡人！"
     },
     "integrationNowConnected": "{integration} 已連線！",
-    "inviteSentTo": "邀請已傳送至 {email}！",
     "householdMemberRemoved": "{name} 已移除",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} 已加入你的團隊",
@@ -3727,8 +3719,7 @@
       "disabled": "不建立行事曆活動",
       "loadingSuggestions": "正在尋找最適合的時間...",
       "noSuggestions": "找不到建議的時間",
-      "suggestion": "你的行事曆顯示這個時間通常是有空的",
-      "suggestedTime": "建議時間"
+      "suggestion": "你的行事曆顯示這個時間通常是有空的"
     },
     "validation": {
       "nameRequired": "每個練習都需要一個名字"
@@ -3771,7 +3762,6 @@
         "name": "早晨自我檢視",
         "humanName": "早晨時光",
         "description": "帶著意圖開啟新的一天",
-        "scienceNote": "早晨設定意圖能提升 31% 的專注力（《哈佛商業評論》）",
         "cue": "當雙腳著地起床的那一刻",
         "routine": "停頓、深呼吸，並設定一個意圖",
         "reward": "感到思緒清晰且掌控自如",
@@ -3785,7 +3775,6 @@
         "name": "感恩時刻",
         "humanName": "感恩停頓",
         "description": "寫下三件你感激的事",
-        "scienceNote": "感恩練習能提升 25% 的幸福感（加州大學柏克萊分校）",
         "cue": "當你晚上把手機接上充電器時",
         "routine": "寫下今天發生的三件好事，無論大小",
         "reward": "心中充滿溫暖的感激之情",
@@ -3799,7 +3788,6 @@
         "name": "每週回顧",
         "humanName": "每週反思",
         "description": "反思收穫與學習",
-        "scienceNote": "每週反思能提高 42% 的目標達成率（多明尼克大學）",
         "cue": "星期日早晨配著咖啡或茶",
         "routine": "回顧收穫、記錄學習，並設定本週的意圖",
         "reward": "獲得進步與方向感",
@@ -3812,7 +3800,6 @@
       "custom": {
         "name": "自訂",
         "humanName": "全新開始",
-        "scienceNote": "圍繞你的生活量身打造的自訂練習，持續下去的機率會高出 3 倍",
         "cue": "由你選擇觸發點",
         "routine": "由你設計練習內容",
         "reward": "由你定義成功的感覺",
@@ -3868,10 +3855,12 @@
       "create": "創造 AI 夥伴",
       "empty": "目前沒有 AI 夥伴",
       "emptyHint": "創造你的第一個專屬 AI 夥伴，珍藏摯愛的聲音、打造一位導師，或設計專屬於你的貼心伴侶。",
+      "emptyHintWithoutVoice": "創造你的第一個專屬 AI 夥伴，珍藏摯愛的故事、打造一位導師，或設計專屬於你的貼心伴侶。",
       "createFirst": "創造你的第一個 AI 夥伴",
       "whatYouCan": "你可以創造什麼",
       "legacy": "情感傳承",
       "legacyDesc": "珍藏你所珍愛之人的聲音與智慧",
+      "legacyDescWithoutVoice": "珍藏你所珍愛之人的故事與智慧",
       "mentor": "心靈導師",
       "mentorDesc": "以啟發人心的人物為藍本，打造專屬教練",
       "twin": "數位分身",
@@ -3908,6 +3897,8 @@
     "loadingCoaches": "正在尋找教練...",
     "noMatches": "找不到相符的結果",
     "noMatchesHint": "試試其他關鍵字，或探索所有教練。",
+    "nobodyYet": "還沒有新朋友可以認識。",
+    "nobodyYetHint": "等有新朋友可以加入你的通話時，你會在這裡認識他們。現在，先和你的團隊聊聊吧。",
     "becomeCreator": "成為創作者",
     "poweredBy": "由 Ferni 提供技術支援",
     "teamLocked": {
@@ -4543,7 +4534,7 @@
     "successDeployed": "頁面已成功部署！",
     "title": "建立助理頁面",
     "nameLabel": "助理名稱",
-    "namePlaceholder": "例如：Joel Dickson",
+    "namePlaceholder": "例如：Nate Holloway",
     "nameHint": "你的 AI 助理全名",
     "initialsLabel": "縮寫",
     "initialsPlaceholder": "例如：JD",
@@ -5072,7 +5063,8 @@
     },
     "voiceStep": {
       "title": "他們聽起來應該是什麼樣子？",
-      "subtitle": "選擇聲音或複製聲音"
+      "subtitle": "選擇聲音或複製聲音",
+      "subtitleWithoutClone": "選擇聲音"
     },
     "voiceOption": {
       "cloneTitle": "複製聲音",
@@ -5327,11 +5319,8 @@
     "upcomingIntro": "我會一直守護著你。以下是我會與你進行自我檢視的時間。",
     "learningTitle": "我正在學習你何時最需要我",
     "learningDesc": "我們聊得越多，我就越能理解你的生活節奏、模式與需求。",
-    "whatThisWillLook": "這會是什麼樣子",
-    "noticedConcern": "注意到令人擔憂的狀況",
-    "streakSupport": "連續天數支持",
-    "nextMonday": "下週一",
-    "calendarAware": "行事曆感知",
+    "upcomingEmptyNote": "還沒有安排，沒關係。等我打算聯絡你時，你會在這裡看到。",
+    "upcomingLoadFailed": "嗯，你的聯絡安排沒有載入。是我這邊的問題，不是你的。稍等一下，再打開一次。",
     "perfectTiming": "完美時機",
     "perfectTimingDesc": "我會學習你最容易接受訊息的時間",
     "patternDetection": "模式偵測",
@@ -5349,10 +5338,6 @@
     "streakMilestonesDesc": "慶祝你的持之以恆——我記得你旅程中的每一步",
     "to": "至",
     "quietNote": "如果你在凌晨兩點醒來並找我，我也會像中午一樣，隨時在這裡陪伴你。",
-    "sampleFriday": "星期五 {time}",
-    "sampleOverwhelmed": "「你昨天提到覺得有些招架不住。你現在還好嗎？」",
-    "sampleMeditation": "「你的冥想連續天數已經達到 6 天囉！準備好迎接第 7 天了嗎？」",
-    "samplePresentation": "「那場重要的簡報快到了。想一起準備一下嗎？」",
     "guardianDesc": "全天候守護著你",
     "emptyCta": "繼續和我聊聊吧。每一次的對話，都能幫助我更了解該在什麼時候、用什麼方式給予你最好的支持。",
     "emptyTip": "在設定中啟用「{feature}」來解鎖主動支持"
@@ -6256,20 +6241,6 @@
       },
       "empty": "嗨。我在這裡——嗯，其實我就是你。開始寫日記吧，這樣我就能有更多內容可以為你整理。現在，你腦海中在想些什麼？"
     },
-    "fallback": {
-      "option1": "這很有意思。是什麼讓你現在提起這件事？",
-      "option2": "我聽到了。還有其他想說的嗎？",
-      "option3": "多跟我說一點。這背後隱藏著什麼呢？",
-      "option4": "這也是我一直在思考的事。這個問題背後真正的核心問題是什麼？",
-      "advice": "我明白最好的建議通常來自於與問題共處更長的時間。你的直覺怎麼說？",
-      "feeling": "這確實不容易承受。我也曾有過這種感覺。現在什麼對你最有幫助——是好好聊聊，還是只是靜靜地待著？",
-      "remember": "我記住的事情可能比你想像的還要多。日記裡記錄了好多東西。你具體在尋找什麼呢？"
-    },
-    "fallbackKeywords": {
-      "advice": "建議,應該",
-      "feeling": "感覺,感受",
-      "remember": "記得,回憶"
-    },
     "dialogLabel": "你的時光紀錄",
     "switchToVoice": "切換至語音",
     "captured": "已記錄！",
@@ -6284,7 +6255,8 @@
       }
     },
     "emptyDescription": "你的時光紀錄目前是空的，但每個偉大的故事都有個起點。寫下你的第一個想法，看著你的智慧漸漸成長。",
-    "quoted": "「{text}」"
+    "quoted": "「{text}」",
+    "replyFailed": "沒有傳送成功。是我這邊的問題，不是你的。再傳一次試試。"
   },
   "marketplacePermissionConsent": {
     "required": "必要權限",
@@ -6350,12 +6322,17 @@
     "categoryConnectDescription": "滋養人際關係",
     "categoryGrow": "成長",
     "categoryGrowDescription": "溫和地進步",
-    "insightYourMorningsSetTone": "你的早晨決定了一天的基調",
-    "insightYourMorningsDesc": "你用來開啟一天的對話，往往會形塑接下來的日常。",
-    "insightEveningReflectionsHelp": "睡前反思很有幫助",
-    "insightEveningReflectionsDesc": "在休息前花點時間反思，能讓隔天的心境更清晰。",
-    "insightIRememberEverything": "我記得所有事情",
-    "insightIRememberEverythingDesc": "每一次對話、每一個細節、每一個成長的瞬間。我為你完整保留你的故事。",
+    "noInsightsYetTitle": "這裡還什麼都沒有。",
+    "noInsightsYetDesc": "聊過幾次之後，我會開始注意到一些事：你的習慣模式、你提到的計畫、重要的時刻。它們會出現在這裡。現在，我們先聊聊吧。",
+    "insightsUnavailableTitle": "我沒能載入我注意到的內容。",
+    "insightsUnavailableDesc": "這是我的問題，不是你的。稍後再試一次。我會一直在這裡。",
+    "practicePrompt": {
+      "dailyCheckin": "很高興見到你。你現在真實的感覺如何？",
+      "gratitude": "讓我們停下腳步，心存感激。此時此刻，有哪一件事讓你感到感恩？",
+      "brainstorm": "我們來腦力激盪一下吧。你現在正為什麼挑戰或決定而煩惱呢？",
+      "weeklyReview": "我們來回顧一下你的一週。最讓你印象深刻的是什麼？",
+      "windDown": "我們一起沉澱下來吧。今天有哪一件事讓你為自己感到驕傲？"
+    },
     "practiceSetYourIntention": "設定你的意圖",
     "practiceSetYourIntentionDesc": "帶著清晰的心境開始。今天最重要的是什麼？",
     "practiceGratitudeMoment": "感恩時刻",
@@ -7216,19 +7193,6 @@
       "one": "已啟用 {count} 項功能中的 {active} 項"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "團隊綜合分析",
-    "assessment": "整體評估",
-    "connections": "跨領域關聯",
-    "recommendations": "團隊建議",
-    "loading": "正在載入團隊觀察...",
-    "empty": {
-      "title": "目前還沒有團隊觀察",
-      "description": "當你與團隊對話時，他們會互相分享彼此的洞察。"
-    },
-    "recent": "最近的觀察",
-    "title": "團隊觀察"
-  },
   "observationTypes": {
     "insight": "洞察",
     "concern": "擔憂",
@@ -7273,6 +7237,7 @@
     "legacy": {
       "name": "傳承",
       "description": "珍藏你所珍愛之人的聲音與智慧",
+      "descriptionWithoutVoice": "珍藏你所珍愛之人的故事與智慧",
       "feature1": "透過錄音進行聲音複製",
       "feature2": "記錄故事與回憶",
       "feature3": "珍藏智慧與口頭禪",
@@ -7971,7 +7936,9 @@
     "emptyVision": "隨著時間推移，<strong>生活的規律將會顯現</strong>。日子會串連成週，你也會<strong>更清晰地</strong>看見自己。",
     "last4Weeks": "過去 4 週",
     "stable": "穩定",
-    "fromLastMonth": "比上個月 {change}%",
+    "improving": "在上升",
+    "declining": "最近稍低一些",
+    "trendUnavailable": "這個趨勢沒有載入。稍後再試一次。",
     "trendUp": "上升",
     "trendDown": "下降",
     "trendStable": "持平",
@@ -8014,7 +7981,6 @@
     "loading": "載入中...",
     "whatIveLearned": "我的收穫",
     "loadingInsights": "正在載入洞察...",
-    "understanding": "理解",
     "thingsIWantToRemember": "我想記住的事",
     "proactive": "主動積極",
     "patternsIveNoticed": "我注意到的規律",
@@ -8277,8 +8243,7 @@
     "growthDesc": "那些你可能自己沒注意到的進步。",
     "guardianPresence": "守護者的陪伴",
     "guardianDesc": "我能讀懂你欲言又止的心聲。",
-    "whatMightLook": "洞察可能會是這個樣子",
-    "keepTalking": "繼續聊聊吧。我一直在聽、一直在學習，而且會一直陪著你。",
+    "keepTalking": "現在，儘管聊就好。我在認真聽。",
     "betterThanMemory": "比人類的記憶更可靠，全心為你服務。",
     "chapter": {
       "default": {
@@ -8502,23 +8467,17 @@
   },
   "predictions": {
     "promise": "承諾",
-    "title": "你的水晶球",
-    "description": "我會學習在你開口之前，就先預測你的需求。",
-    "preview": "預覽",
+    "title": "預測你的一週",
+    "description": "這是在通話中和 Peter 一起玩的遊戲。猜猜你這一週會怎樣，再看看猜得有多準。",
     "accurate": "準確",
-    "exampleStress": "你在週二提到了壓力",
     "watching": "觀察中",
-    "checkIn": "我會陪你進行自我檢視",
     "accuracy": "預測準確度",
     "keepTalking": "繼續聊聊吧。我們正在共同建立一些默契。",
     "accuracyLabel": "準確度",
+    "loadFailed": "嗯，你的預測沒有載入。是我這邊的問題，不是你的。稍等一下，再打開一次。",
     "resolved": "已解決",
     "streak": "連續天數",
-    "sampleOverwhelmed": "「你這週可能會感到有些喘不過氣」",
-    "sampleGym": "「去健身房的習慣可能會遇到瓶頸」",
-    "sampleSunday": "「週日的傍晚可能會感到有些沉重」",
-    "exampleGym": "你錯過了 2 次健身房行程",
-    "ctaText": "和 Peter 聊聊如何做出預測吧。透過預測遊戲來建立自我覺察。",
+    "ctaText": "下次聊天時請 Peter 和你一起玩。你的預測和結果會顯示在這裡。",
     "activePredictions": "進行中的預測",
     "recentResults": "最近的結果"
   },
@@ -8589,6 +8548,10 @@
   },
   "engagementPanel": {
     "title": "每日自我檢視",
+    "emptyTitle": "我們的每日聊聊會留在這裡",
+    "emptyMessage": "這裡還沒有內容，沒關係。我們在通話裡做每日聊聊時，你當時的感受會顯示在這裡。下次聊天時，跟我說一聲就好。",
+    "loadFailedTitle": "嗯，沒有載入",
+    "loadFailedMessage": "是我這邊的問題，不是你的。稍等一下，再打開一次。",
     "yourWeek": "你的本週回顧",
     "weatherTrend": "情緒天氣趨勢",
     "howYouFeel": "你的感受",
@@ -8978,9 +8941,6 @@
     "he": "希伯來文"
   },
   "featureHints": {
-    "teamHuddlesTitle": "團隊小聚來囉！",
-    "teamHuddlesMessage": "既然我們對彼此更熟悉了，你現在可以同時聽聽多位團隊成員的想法囉。",
-    "teamHuddlesCta": "體驗團隊小聚",
     "createRitualsTitle": "創造你專屬的儀式",
     "createRitualsMessage": "你現在可以自訂每日練習了。什麼樣的小習慣對你最有幫助呢？",
     "createRitualsCta": "建立儀式",
@@ -9933,6 +9893,7 @@
     "timeout": "花了太多時間。檢查一下網路連線並重試好嗎？",
     "network": "無法連線到 Ferni。檢查一下網路並重試好嗎？",
     "dropped": "連線中斷了。要重新連線嗎？",
+    "agentLeft": "Ferni 斷線了。要重新連線嗎？",
     "unknown": "無法連線。要再試一次嗎？"
   },
   "ambientSounds": {
@@ -10229,8 +10190,6 @@
     "allDataDeleted": "所有資料已刪除",
     "deletingAccount": "正在刪除你的帳號...",
     "accountDeleted": "你的帳號已刪除。保重喔。",
-    "couldNotStartHuddle": "無法開始團隊小聚。要再試一次嗎？",
-    "defaultHuddleTopic": "每週進度自我檢視",
     "conversationsLeft": {
       "other": "還剩下 {count} 次對話。只要你需要，我隨時都在這裡。",
       "one": "還剩下 {count} 次對話。只要你需要，我隨時都在這裡。"
@@ -10370,22 +10329,7 @@
         "one": "我有 {count} 篇日記的獨特觀點想跟你分享。"
       }
     },
-    "error": "我現在腦袋有點轉不過來。給我一點時間，然後再試一次好嗎？",
-    "fallback": {
-      "advicePhilosophy": "你知道我學到了什麼嗎？「{philosophy}」無論你現在面臨什麼，都要記住這點。",
-      "adviceValues": "想想對我們來說重要的事情：{values}。讓這些指引你吧。",
-      "feelRecent": "我也有過這種感覺。我在日記裡寫過：「{excerpt}...」我們以前也挺過來了。",
-      "feelDefault": "我懂。我們以前也經歷過艱難的時刻，並找到了出路。真正讓你困擾的是什麼呢？",
-      "rememberIntro": "對啊，我記得。",
-      "rememberEntry": "那時候我寫過：「{excerpt}...」",
-      "mannerism": "{phrase} 這也是我一直在思考的事情。是什麼讓你提起這個的？",
-      "default": "這是個好問題。你怎麼會想到這個呢？"
-    },
-    "fallbackKeywords": {
-      "advice": "建議,我應該",
-      "feeling": "感覺,心情",
-      "remember": "記得,過去"
-    }
+    "error": "沒有傳送成功。是我這邊的問題，不是你的。再傳一次試試。"
   },
   "mood": {
     "holiday": {
@@ -10825,11 +10769,6 @@
     "endTalk": "掛斷",
     "connectingCancel": "正在連線。輕點即可取消"
   },
-  "teamHuddle": {
-    "typeWeekly": "每週自我檢視",
-    "typeMilestone": "里程碑慶祝",
-    "typeSpecial": "特別時刻"
-  },
   "analyticsDashboard": {
     "title": "你的旅程",
     "loading": "正在載入你的進度...",
@@ -11012,19 +10951,6 @@
       "roomToGrow": "成長空間",
       "insight": "「你的精力在週中會有所下降。週三似乎是你最難熬的一天。」"
     },
-    "predictions": {
-      "title": "我的預測",
-      "message": "我會學著在你開口前，就預判你的需求。",
-      "guessOverwhelmed": "「你這週可能會感到有些吃不消」",
-      "resultStress": "你在週二和週四提到了壓力",
-      "guessGym": "「去健身房的習慣可能會遇到瓶頸」",
-      "guessSunday": "「週日晚上會感覺有些沉重」",
-      "resultCheckIn": "我會找你進行自我檢視",
-      "skipped": {
-        "other": "你這週跳過了 {count} 次對話",
-        "one": "你這週跳過了 {count} 次對話"
-      }
-    },
     "team": {
       "title": "我們的觀察",
       "message": "你的整個團隊都會分享他們的觀察，來幫助你成長。",
@@ -11078,9 +11004,9 @@
   },
   "x": "朋友 • 提及 12 次",
   "insightsView": {
-    "samplePattern": "「星期天晚上對你來說似乎特別不容易……」",
-    "sampleInsight": "「你這週提到了 8 次感到疲憊。這份疲倦似乎與你在工作上建立界線的挑戰有關。」",
-    "sampleEvidence": "基於 {count} 次對話"
+    "patternDesc": "我們聊天時反覆出現的事。",
+    "emptyNote": "這裡還沒有內容，沒關係。聊過幾次之後，我會開始注意到一些規律，它們會顯示在這裡。",
+    "loadFailed": "嗯，我注意到的內容沒有載入。是我這邊的問題，不是你的。稍等一下，再打開一次。"
   },
   "agentAcks": {
     "gameStartFailed": "遊戲沒能開始。試著直接對 Ferni 說出來吧。",
@@ -11090,7 +11016,8 @@
     "ferniSpeaking": "Ferni 正在說話",
     "youSpeaking": "你正在說話",
     "ferniThinking": "Ferni 正在思考",
-    "tapToInterrupt": "輕點以打斷"
+    "tapToInterrupt": "輕點以打斷",
+    "tapToHear": "輕點收聽 Ferni"
   },
   "answerCard": {
     "answer": "",
@@ -11125,6 +11052,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "出份力",

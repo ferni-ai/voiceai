@@ -1,0 +1,7 @@
+# bh: {"to": "peter-john", "path": "tap", "facts": ["house", "home", "down payment", "forty thousand", "40,000", "40000", "partner"]}
+Hey Ferni. My partner and I want to buy a house next year. We've saved about forty thousand so far.
+I just don't know if that's enough for a down payment.
+@data 4000 {"type":"handoff_request","target":"peter-john","timestamp":0,"attempt":1}
+@pause 9000 -
+Hi Peter.
+So, what do you think?

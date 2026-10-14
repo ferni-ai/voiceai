@@ -11,6 +11,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { checkDialableNumber } from '../../utils/dialable-number.js';
+import { isSyntheticUserId } from '../../utils/synthetic-user.js';
 import {
   getDueSchedules,
   getCheckinSchedule,
@@ -162,14 +164,15 @@ export async function initiateCheckinCall(
   schedule: FamilyCheckinSchedule
 ): Promise<SingleCallResult> {
   try {
-    // 1. Get the sponsored identity
+    // Test accounts never ring anyone; never dial emergency, premium or malformed numbers
+    const number = checkDialableNumber(schedule.phoneNumber);
+    if (isSyntheticUserId(schedule.sponsorUserId) || !number.ok)
+      return { success: false, error: number.ok ? 'Test account' : number.reason };
+    // 1. Get the sponsored identity, and verify sponsor ownership
     const identity = await getSponsoredIdentity(schedule.sponsoredIdentityId);
-
     if (!identity) {
       return { success: false, error: 'Sponsored identity not found' };
     }
-
-    // Verify sponsor ownership
     if (identity.sponsorUserId !== schedule.sponsorUserId) {
       return { success: false, error: 'Sponsor mismatch' };
     }
@@ -180,12 +183,9 @@ export async function initiateCheckinCall(
     // 3. Build the check-in context (it looks up the sponsor's name)
     const { buildFamilyCheckinContext, generateFamilyCheckinSystemPrompt } =
       await import('../../intelligence/context-builders/family/family-wellbeing-context.js');
-
     const context = await buildFamilyCheckinContext(schedule, identity, recentCalls);
-
     // 4. Generate the system prompt for the agent
     const systemPrompt = generateFamilyCheckinSystemPrompt(context);
-
     // 5. Create a call record
     const callRecord = await createCallRecord(schedule);
 
