@@ -7,7 +7,8 @@ tell you: how work ships here, and the traps that have cost us before. How
 the work around a change is organised (issues, the board, how much is in
 flight, review by risk) is in `docs/agent/operating-model.md`: read it before
 opening an issue or a PR. For anything else, read the code, and `docs/agent/`
-on demand.
+on demand. Reviews are adversarial and answer the six questions in the
+operating model's Review section; the reviewer is never the author.
 
 ## The stack today (verified 2026-10-08)
 
