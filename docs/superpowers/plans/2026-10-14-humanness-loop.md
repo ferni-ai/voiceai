@@ -7,11 +7,12 @@
 - **Two checkouts, so the change under test never grades itself.**
   - The workflow checks out `main` for the harness: `scripts/humanness-loop/**`, `scripts/voice-eval/**`, the judges, `decide.ts`, the split, the prices and the workflow itself.
   - From an experiment PR it takes only the `src/` diff (merge-base to head). It applies that diff to main's `src/` in a separate copy owned by an unprivileged user (`hlexp`), and generates the on arm there.
-  - Only validated reply files come back. The harness judges and decides in its own checkout, which that user can't read or write.
+  - That user gets **no credentials**: its only cloud access is a local proxy that forwards Gemini `generateContent` calls for the generator models and refuses everything else. It also gets the moments **without** the friends' real turns and without split labels.
+  - Only validated reply files come back. The harness judges and decides in its own checkout, which that user can't write, using a run directory it can't read.
   - Bucket and Firestore state are snapshotted around the sandboxed step, and any change outside the run's own prefix blocks the run.
   - A PR touching anything outside `src/` or `docs/` is refused with verdict `blocked`.
   - `.github/CODEOWNERS` puts the harness paths under @sethdford's review.
-- **Hands:** `.github/workflows/humanness-eval.yml` on `ubuntu-latest`. It runs only from `refs/heads/main`, in the GitHub environment `humanness-eval`. That environment holds the key of the dedicated SA `humanness-loop@johnb-2025.iam.gserviceaccount.com`, and never `GCP_SA_KEY`.
+- **Hands:** `.github/workflows/humanness-eval.yml` on `ubuntu-latest`. It runs only from `refs/heads/main` (`workflow_dispatch` or `schedule`), and authenticates keylessly through Workload Identity Federation as the dedicated SA `humanness-loop@johnb-2025.iam.gserviceaccount.com`. The provider's condition issues tokens only to `humanness-*.yml` workflows on main. No JSON key, `GCP_SA_KEY` or `github-actions-deploy` is involved.
   - **Offline stage (primary):**
     - `next-turn/generate.ts` builds the persona's prompt in-process, with each arm's flags set from `--off-set` and `--on-set`.
     - It produces 6 samples per arm for every working and held-out moment.
@@ -124,6 +125,8 @@
 | `src/services/platform/cohort-flags.ts`                 | mod     | Per-flag allowed values; humanness flags added                                                         |
 | `.claude/skills/deploy-agent/SKILL.md`                  | mod     | Dev deploys refuse while the loop holds the dev lock                                                   |
 | `.github/workflows/humanness-eval.yml`                  | new     | The hands                                                                                              |
+| `.github/workflows/humanness-auth-check.yml`            | new     | WIF regression check: main dispatch authenticates, a PR run can't                                      |
+| `.github/workflows/humanness-dispatch.yml`              | new     | Routine branch B only: label on a PR → dispatch the eval on main (no GCP access)                       |
 | `docs/humanness-loop/prereg/TEMPLATE.md`                | new     | Preregistration for the human paired test (release gate)                                               |
 | `vitest.config.unit.ts`, `tsconfig.scripts.json`        | mod     | Include `scripts/humanness-loop`                                                                       |
 
@@ -134,52 +137,76 @@
 Run from a clean checkout of `origin/main`:
 `P=ferni-dev; C=$(git rev-parse --show-toplevel)/livekit.toml`.
 
-### 0.1 The dedicated service account (ask Seth first; IAM is ask-first)
+### 0.1 The dedicated service account and keyless auth (done; verify only)
 
-- [ ] **Find which Firestore database the dev agent uses.** Both the lock and the per-caller overrides live there.
+Seth approved the dedicated SA, and it exists. **No JSON key exists, and none may be created.** `GCP_SA_KEY` and `github-actions-deploy` are never used by the loop.
+
+- **SA:** `humanness-loop@johnb-2025.iam.gserviceaccount.com`. Its roles:
+  - `roles/secretmanager.secretAccessor` on `livekit-dev-api-key`, `livekit-dev-api-secret` and `cartesia-api-key` only
+  - `roles/storage.objectAdmin` on `gs://ferni-humanness-eval`
+  - project `roles/datastore.user` and `roles/aiplatform.user`
+  - no prod secrets, no deploy roles, no IAM roles
+- **Auth:** Workload Identity Federation. Every loop workflow uses:
+  ```yaml
+  permissions: { id-token: write, contents: read }
+  # ...
+  - uses: google-github-actions/auth@v2
+    with:
+      workload_identity_provider: projects/1031920444452/locations/global/workloadIdentityPools/github-pool/providers/ferni-voiceai-humanness
+      service_account: humanness-loop@johnb-2025.iam.gserviceaccount.com
+  ```
+- **The provider's attribute condition** issues tokens only when all three hold:
+  - the repository is `ferni-ai/voiceai`;
+  - the ref is `refs/heads/main`;
+  - `job_workflow_ref` starts with `ferni-ai/voiceai/.github/workflows/humanness-` and ends with `@refs/heads/main`.
+
+  So every workflow that needs GCP is named `.github/workflows/humanness-*.yml`, and runs from `main` through `workflow_dispatch` or `schedule`. An experiment's `src/` is fetched as data, never as a workflow definition. A `pull_request` run can't get a token, which is the point.
+
+- [ ] **Check the Firestore exposure, and record it.** Find which Firestore database the dev agent uses; the lock and the per-caller overrides live there.
   ```bash
   git grep -nE "new Firestore\(|databaseId" origin/main -- src | grep -v __tests__ | head
   gcloud firestore databases list --project=johnb-2025 --format='value(name)'
   ```
-  If the dev agent and prod share `(default)` in `johnb-2025`, then `roles/datastore.user` lets experiment code read prod user data, and the request below must say so. In that case, offer the conditioned grant written below.
-- [ ] **Post the request on #1377 and wait for Seth's "approved" comment.** Do not create anything before it.
+  If dev and prod share `(default)`, the project-level `datastore.user` reaches prod user data. Note that on #1377 as a known exposure. The sandbox (PR F2) never gets credentials, so only main's harness code holds this grant.
+- [ ] **Positive and negative auth check: one PR, `chore(humanness-loop): keyless auth probe`.** It adds `.github/workflows/humanness-auth-check.yml`:
+  ```yaml
+  name: Humanness Auth Check
+  # Proves the WIF condition: main + workflow_dispatch gets humanness-loop@ and the 3 dev secrets;
+  # a pull_request run of this same file must NOT get a token. Prints names and counts only.
+  on:
+    workflow_dispatch:
+    pull_request:
+      paths: ['.github/workflows/humanness-auth-check.yml']
+  permissions: { id-token: write, contents: read }
+  jobs:
+    probe:
+      runs-on: ubuntu-latest
+      steps:
+        - id: auth
+          continue-on-error: true
+          uses: google-github-actions/auth@v2
+          with:
+            workload_identity_provider: projects/1031920444452/locations/global/workloadIdentityPools/github-pool/providers/ferni-voiceai-humanness
+            service_account: humanness-loop@johnb-2025.iam.gserviceaccount.com
+        - uses: google-github-actions/setup-gcloud@v2
+          if: steps.auth.outcome == 'success'
+        - name: Assert
+          env: { OUTCOME: '${{ steps.auth.outcome }}', EVENT: '${{ github.event_name }}' }
+          run: |
+            if [ "$EVENT" = pull_request ]; then
+              [ "$OUTCOME" != success ] || { echo "::error::WIF issued a token to a pull_request run"; exit 1; }
+              echo "negative check ok: pull_request run got no token"; exit 0
+            fi
+            [ "$OUTCOME" = success ] || { echo "::error::main dispatch could not authenticate"; exit 1; }
+            gcloud auth list --filter=status:ACTIVE --format='value(account)'
+            for s in livekit-dev-api-key livekit-dev-api-secret cartesia-api-key; do
+              gcloud secrets versions access latest --secret=$s --project=johnb-2025 > /dev/null && echo "read $s"; done
+            gcloud secrets list --project=johnb-2025 --format='value(name)' | grep -vxE 'livekit-dev-api-key|livekit-dev-api-secret|cartesia-api-key' | head -3 |
+              while read s; do gcloud secrets versions access latest --secret=$s --project=johnb-2025 > /dev/null 2>&1 && echo "LEAK $s" || echo "denied $s"; done
   ```
-  Humanness loop needs a dedicated service account (spec: Safety). Proposed:
-  humanness-loop@johnb-2025.iam.gserviceaccount.com with
-  - roles/secretmanager.secretAccessor on livekit-dev-api-key, livekit-dev-api-secret, cartesia-api-key only
-  - roles/storage.objectAdmin on gs://ferni-humanness-eval only
-  - roles/datastore.user (Firestore: <answer from the check above>)
-  - roles/aiplatform.user (generator and judges on Vertex)
-  Its key goes in a new GitHub environment `humanness-eval` limited to main. It is NOT github-actions-deploy.
-  Also asking: a ruleset requiring code-owner review on main (0.6), and accepting the Qwen3 model terms in Vertex Model Garden (0.4).
-  ```
-- [ ] **After approval:**
-  ```bash
-  SA=humanness-loop@johnb-2025.iam.gserviceaccount.com
-  gcloud iam service-accounts create humanness-loop --project=johnb-2025 --display-name="humanness loop (dev evals, #1377)"
-  for s in livekit-dev-api-key livekit-dev-api-secret cartesia-api-key; do
-    gcloud secrets add-iam-policy-binding $s --project=johnb-2025 --member=serviceAccount:$SA --role=roles/secretmanager.secretAccessor > /dev/null; done
-  gcloud projects add-iam-policy-binding johnb-2025 --member=serviceAccount:$SA --role=roles/aiplatform.user --condition=None > /dev/null
-  gcloud projects add-iam-policy-binding johnb-2025 --member=serviceAccount:$SA --role=roles/datastore.user --condition=None > /dev/null
-  ```
-  If Seth approved the conditioned Firestore grant, replace the last line with the same command plus:
-  `--condition='expression=resource.name.startsWith("projects/johnb-2025/databases/<dev db>"),title=dev-db-only'`.
-  The bucket grant is in PR A, Step 7, once the bucket exists.
-- [ ] **Key into the environment.**
-  ```bash
-  gh api -X PUT repos/ferni-ai/voiceai/environments/humanness-eval -F 'deployment_branch_policy[protected_branches]=false' -F 'deployment_branch_policy[custom_branch_policies]=true' > /dev/null
-  gh api -X POST repos/ferni-ai/voiceai/environments/humanness-eval/deployment-branch-policies -f name=main -f type=branch > /dev/null
-  K=$(mktemp); gcloud iam service-accounts keys create $K --iam-account=$SA > /dev/null
-  gh secret set HUMANNESS_SA_KEY --env humanness-eval < $K; rm -P $K
-  ```
-- [ ] **Check that it reads exactly what it should.** Impersonate the SA with `--impersonate-service-account=$SA`:
-  ```bash
-  for s in livekit-dev-api-key livekit-dev-api-secret cartesia-api-key; do
-    gcloud secrets versions access latest --secret=$s --project=johnb-2025 --impersonate-service-account=$SA > /dev/null && echo "ok $s"; done
-  gcloud secrets list --project=johnb-2025 --format='value(name)' | grep -vxE 'livekit-dev-api-key|livekit-dev-api-secret|cartesia-api-key' | head -3 | while read s; do
-    gcloud secrets versions access latest --secret=$s --project=johnb-2025 --impersonate-service-account=$SA > /dev/null 2>&1 && echo "LEAK $s" || echo "denied $s"; done
-  ```
-  Expected: three `ok` lines, then three `denied` lines and no `LEAK`.
+  - **Negative check:** the PR's own `pull_request` run must pass with `negative check ok: pull_request run got no token`.
+  - **Positive check:** after merge, `gh workflow run humanness-auth-check.yml --ref main` must print `humanness-loop@johnb-2025.iam.gserviceaccount.com`, three `read` lines, then `denied` lines and no `LEAK`.
+  - Post both run links on #1377, then keep the file as a regression check.
 
 ### 0.2 A Claude Code routine can push, open PRs and run `gh workflow run`, with no web access
 
@@ -190,7 +217,7 @@ Run from a clean checkout of `origin/main`:
 - [ ] Expected: the `curl` fails (`curl=` non-zero, or HTTP `000`). If it succeeds, the environment has full network access. Change the environment's network level and re-probe before Task H.
 - [ ] **How the answer changes later tasks:**
   - **Branch A, everything works:** the brain dispatches with `gh workflow run humanness-eval.yml --ref main -f ...` (Task H as written).
-  - **Branch B, push and PR work but `gh workflow run` doesn't:** PR F2 Step 3 adds the `pull_request: types: [labeled]` trigger. The brain dispatches by adding the label `humanness-run` to its experiment PR, with the inputs in a fenced `humanness` block in the PR body. For flags that need no code, the brain opens a docs-only PR that adds `docs/humanness-loop/requests/<experiment>.md` carrying the block. It never touches `backlog.json`.
+  - **Branch B, push and PR work but `gh workflow run` doesn't:** PR F2 Step 5 adds `humanness-dispatch.yml`, which runs on `pull_request: types: [labeled]` and holds no GCP access. With its `GITHUB_TOKEN` it calls `gh workflow run humanness-eval.yml --ref main`, so the eval itself still runs from main. The brain dispatches by adding the label `humanness-run` to its experiment PR, with the inputs in a fenced `humanness` block in the PR body. For flags that need no code, the brain opens a docs-only PR that adds `docs/humanness-loop/requests/<experiment>.md` carrying the block. It never touches `backlog.json`.
   - **Branch C, it can't push or open PRs:** the brain can't run Phase 2. The schedule runs calibration only, so Phase 0 and Phase 1 dispatches come from an interactive Claude Code session, which walks `backlog.json` with the same commands as `brain.md` §4. Record this on #1377 and stop before Task H.
 
 ### 0.3 Does the agent honour per-call flag overrides?
@@ -608,12 +635,11 @@ This PR goes first. Everything after it is owned by Seth's review, and the judge
     --out ~/Documents/voiceai-evidence/next-turn/heldout-pool | tail -1 | sed -E 's/;.*//'
   ```
   Expected: `<N> candidates`, with N in the hundreds. Only that count is printed. If `stratified` caps the draw below the number of held-out candidates, read `corpus.mjs` `stratified` and pass the held-out candidate count instead.
-- [ ] **Step 7: Create the bucket (after 0.1's approval).**
+- [ ] **Step 7: Check the bucket.** It exists, and the SA already has `objectAdmin` on it (Task 0.1). Confirm it is private:
   ```bash
-  gcloud storage buckets create gs://ferni-humanness-eval --project=johnb-2025 --location=us-central1 --uniform-bucket-level-access --public-access-prevention
-  gcloud storage buckets add-iam-policy-binding gs://ferni-humanness-eval \
-    --member=serviceAccount:humanness-loop@johnb-2025.iam.gserviceaccount.com --role=roles/storage.objectAdmin
+  gcloud storage buckets describe gs://ferni-humanness-eval --format='value(iamConfiguration.publicAccessPrevention,iamConfiguration.uniformBucketLevelAccess.enabled)'
   ```
+  Expected: `enforced	True`. If it isn't, ask Seth before changing it (IAM is ask-first).
 - [ ] **Step 8: Upload.** Run Step 5's command. Expected output: one JSON line, `{"working":132,"heldout":66,"overlap":0,"heldoutDigest":"<64 hex>","pool":<N>,"poolFree":<N-66>}`. Post only `working`, `heldout`, `overlap`, `poolFree` and the first 12 characters of `heldoutDigest` on #1377, so later runs can show they used the same set.
 - [ ] **Step 9: Verify, then commit.** `pnpm typecheck:memory-eval && pnpm vitest run --config vitest.config.unit.ts scripts/humanness-loop`, then:
   ```bash
@@ -2151,7 +2177,7 @@ The rule, from the spec:
   }
   ```
   At the top of `qwenJson`: `if (process.env.QWEN_BACKEND === 'vertex') return qwenVertex(prompt);`.
-  The sandboxed on-arm generation (PR F2) has no gcloud credentials. In `gemini()` and `qwenVertex()`, take the token from the environment when it is set: `token = { value: process.env.HL_ACCESS_TOKEN ?? gcloud(['auth', 'print-access-token']), at: Date.now() }`.
+  The sandboxed on-arm generation (PR F2) has no credentials at all. In `gemini()`, when `HL_VERTEX_PROXY` is set, send to `${process.env.HL_VERTEX_PROXY}/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent` with no `Authorization` header, and skip the token. The proxy (`cli.ts vertex-proxy`) adds the token and forwards only generator-model `generateContent`.
 - [ ] **Step 6: The judges.** In `next-turn/judge.mjs`, replace `JUDGES` and export it. Model ids come from `judges.lock.json`, so the lock is the one place they are pinned. `readFileSync` is already imported from `node:fs` there, so don't add a second import:
   ```js
   import { PROVIDERS } from '../judge.mjs';
@@ -2829,7 +2855,18 @@ Seth labels each pair once, without being told which side is the friend. He answ
                 .map((f) => readFileSync(join(a.dir, f), 'utf8'))
             : []),
         ];
-        const n = leakCount(texts, corpus);
+        let n = leakCount(texts, corpus);
+        if (a.replies) {
+          // --replies D/moments.json: no on-arm reply may contain 8 words of the friend's real turn on its moment
+          const human = new Map(
+            json<Array<{ id: string; human: string }>>(a.replies).map((m) => [m.id, m.human])
+          );
+          for (const f of readdirSync(a.dir).filter((x) => /^ferni\.on\d+\.json$/.test(x)))
+            for (const [id, v] of Object.entries(
+              json<Record<string, { reply: string }>>(join(a.dir, f))
+            ))
+              n += leakCount([v.reply], [human.get(id) ?? '']);
+        }
         out({ leak: n > 0, sharedEightGrams: n });
         if (n > 0) process.exit(3);
         break;
@@ -2955,6 +2992,46 @@ Seth labels each pair once, without being told which side is the friend. He answ
         out({ objects: objs.length });
         break;
       }
+      case 'sandbox-moments': {
+        // --in D/moments.json --out F [--keep-answers 1]: what the sandbox may see: context and stand-in names only.
+        // No friend's real turn (the answer), no split label, no conversation id. Fault runs keep them (harness code).
+        type M = { id: string; context: unknown; names: unknown; split?: string; human?: string; file?: string };
+        const ms = json<M[]>(a.in);
+        const keep = a['keep-answers'] === '1';
+        writeFileSync(a.out, JSON.stringify(ms.map((m) => (keep ? m : { id: m.id, context: m.context, names: m.names }))));
+        out({ moments: ms.length, answers: keep });
+        break;
+      }
+      case 'vertex-proxy': {
+        // --port P: the sandbox's only cloud access. Forwards POST generateContent for the generator models,
+        // with the harness's token; refuses every other path, method and model.
+        const { createServer } = await import('node:http');
+        const lock = json<{ generator: { models: string[] } }>(join(import.meta.dirname, 'judges.lock.json'));
+        const allowed = new RegExp(`^/v1/projects/johnb-2025/locations/global/publishers/google/models/(${lock.generator.models.join('|')}):generateContent$`);
+        let tok = { v: '', at: 0 };
+        createServer((req, res) => {
+          if (req.method !== 'POST' || !allowed.test(req.url ?? '')) {
+            res.writeHead(403).end();
+            return;
+          }
+          const chunks: Buffer[] = [];
+          req.on('data', (c: Buffer) => chunks.push(c));
+          req.on('end', () => {
+            if (Date.now() - tok.at > 30 * 60_000)
+              tok = { v: execFileSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8' }).trim(), at: Date.now() };
+            fetch(`https://aiplatform.googleapis.com${req.url}`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${tok.v}`, 'Content-Type': 'application/json' },
+              body: Buffer.concat(chunks),
+            })
+              .then(async (r) => res.writeHead(r.status, { 'Content-Type': 'application/json' }).end(await r.text()))
+              .catch(() => res.writeHead(502).end());
+          });
+        }).listen(Number(a.port), '127.0.0.1');
+        out({ proxy: `127.0.0.1:${a.port}` });
+        await new Promise(() => undefined); // runs until the workflow kills it
+        break;
+      }
       case 'take-replies': {
         // --from DIR --arm A --as B --moments M --dir D: copy a sandboxed arm's replies back, only if well-formed
         const ids = new Set(json<Array<{ id: string }>>(a.moments).map((m) => m.id));
@@ -2973,11 +3050,20 @@ Seth labels each pair once, without being told which side is the friend. He answ
         }
         const clean = Object.fromEntries(Object.entries(r).map(([id, v]) => [id, { reply: v.reply as string }]));
         writeFileSync(join(a.dir, `ferni.${a.as}.json`), JSON.stringify(clean));
-        for (const [f, g] of [
-          [`prompt.${a.arm}.txt`, `prompt.${a.as}.txt`],
-          [`usage.generate.${a.arm}.json`, `usage.generate.${a.as}.json`],
-        ])
-          if (existsSync(join(a.from, f))) writeFileSync(join(a.dir, g), readFileSync(join(a.from, f)));
+        const pf = join(a.from, `prompt.${a.arm}.txt`);
+        if (existsSync(pf)) writeFileSync(join(a.dir, `prompt.${a.as}.txt`), readFileSync(pf));
+        // Usage is priced, so it is validated: known generator models, whole token counts in a sane range.
+        const uf = join(a.from, `usage.generate.${a.arm}.json`);
+        const usage = existsSync(uf) ? json<Record<string, { input?: unknown; output?: unknown }>>(uf) : {};
+        const okCount = (x: unknown) => Number.isInteger(x) && (x as number) >= 0 && (x as number) < 5e7;
+        const badUsage = Object.entries(usage).filter(
+          ([m, u]) => !(m in prices.llm) || !okCount(u?.input) || !okCount(u?.output)
+        );
+        if (badUsage.length) {
+          out({ ok: false, badUsage: badUsage.length });
+          process.exit(3);
+        }
+        writeFileSync(join(a.dir, `usage.generate.${a.as}.json`), JSON.stringify(usage));
         out({ ok: true, replies: Object.keys(clean).length });
         break;
       }
@@ -3095,6 +3181,7 @@ Seth labels each pair once, without being told which side is the friend. He answ
     schedule:
       - cron: '30 6 * * *' # daily judge calibration
   permissions:
+    id-token: write # Workload Identity Federation (no key)
     contents: read
     issues: write
   concurrency:
@@ -3109,7 +3196,7 @@ Seth labels each pair once, without being told which side is the friend. He answ
     ON_SET: ${{ inputs.on_set }}
     FAULT: ${{ inputs.fault }}
     STAGE: ${{ inputs.stage || 'offline' }}
-    SAMPLES: ${{ inputs.samples || '6' }}
+    SAMPLES: ${{ inputs.kind == 'aa' && '12' || inputs.samples || '6' }}
     SPLITS: ${{ inputs.splits || 'both' }}
     PR: ${{ inputs.pr }}
     BUDGET: ${{ inputs.budget || '50' }}
@@ -3122,9 +3209,8 @@ Seth labels each pair once, without being told which side is the friend. He answ
     GH_TOKEN: ${{ github.token }}
   jobs:
     eval:
-      # Only main's copy of this file runs, so a branch can't bring its own harness.
+      # Only main's copy of this file runs, so a branch can't bring its own harness; WIF refuses any other ref.
       if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.HUMANNESS_LOOP == 'on')
-      environment: humanness-eval
       runs-on: ubuntu-latest
       timeout-minutes: 340
       steps:
@@ -3137,18 +3223,21 @@ Seth labels each pair once, without being told which side is the friend. He answ
         - name: Harness checkout (main)
           if: steps.pause.outputs.paused != 'true'
           uses: actions/checkout@v7
-          with: { ref: '${{ github.sha }}', fetch-depth: 0 }
+          with: { ref: '${{ github.sha }}', fetch-depth: 0, persist-credentials: false }
         - uses: ./.github/actions/setup-node-pnpm
           if: steps.pause.outputs.paused != 'true'
           with: { frozen-lockfile: 'true' }
-        - uses: google-github-actions/auth@v3
+        - uses: google-github-actions/auth@v2
           if: steps.pause.outputs.paused != 'true'
-          with: { credentials_json: '${{ secrets.HUMANNESS_SA_KEY }}' }
-        - uses: google-github-actions/setup-gcloud@v3
+          with:
+            workload_identity_provider: projects/1031920444452/locations/global/workloadIdentityPools/github-pool/providers/ferni-voiceai-humanness
+            service_account: humanness-loop@johnb-2025.iam.gserviceaccount.com
+        - uses: google-github-actions/setup-gcloud@v2
           if: steps.pause.outputs.paused != 'true'
         - name: Who we are (the dedicated SA, never github-actions-deploy)
           if: steps.pause.outputs.paused != 'true'
           run: |
+            chmod 600 "$GOOGLE_APPLICATION_CREDENTIALS"; chmod 700 "$RUNNER_TEMP"
             sa=$(gcloud auth list --filter=status:ACTIVE --format='value(account)')
             [ "$sa" = humanness-loop@johnb-2025.iam.gserviceaccount.com ] || { echo "::error::active account is $sa, not humanness-loop@"; exit 1; }
             echo "service account ok"
@@ -3171,13 +3260,13 @@ Seth labels each pair once, without being told which side is the friend. He answ
             head=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid -q .headRefOid)
             git fetch -q origin "+refs/pull/$PR/head:refs/remotes/pr/$PR"
             [ "$(git rev-parse refs/remotes/pr/$PR)" = "$head" ] || { echo "::error::PR head moved; rerun"; exit 1; }
-            base=$(git merge-base origin/main "$head")
+            base=$(git merge-base origin/main "$head"); echo "PR_HEAD=$head" >> "$GITHUB_ENV"
             npx tsx scripts/humanness-loop/cli.ts diff-gate --base "$base" --head "$head" --added $RUNNER_TEMP/added.json \
               || { echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; }
             git diff "$base" "$head" -- src > $RUNNER_TEMP/exp.diff
             git apply --check $RUNNER_TEMP/exp.diff || { echo "::warning::PR src/ diff does not apply to main; rebase it"; echo "verdict=blocked" >> "$GITHUB_ENV"; }
         - name: Plan the run (inputs, off-arm cache key, budget)
-          if: steps.pause.outputs.paused != 'true' && env.verdict == '' && contains(fromJSON('["baseline","ab","fault"]'), env.KIND)
+          if: steps.pause.outputs.paused != 'true' && env.verdict == '' && contains(fromJSON('["baseline","ab","fault","aa"]'), env.KIND)
           run: |
             D=$RUNNER_TEMP/nt
             gcloud storage cp --quiet $HL_BUCKET/corpus/moments.json $D/all.json
@@ -3190,7 +3279,8 @@ Seth labels each pair once, without being told which side is the friend. He answ
             for i in $(seq 1 $SAMPLES); do
               npx tsx scripts/voice-eval/next-turn/generate.ts --out $D --moments $D/moments.json --persona "$PERSONA" \
                 --flags-file $D/base.json ${OFF_SET:+--set "$OFF_SET"} --arm off$i --dry-run 1 > /dev/null 2>&1; done
-            key=$(cat $D/requests.off*.sha256 $D/heldout-state.json scripts/humanness-loop/judges.lock.json | sha256sum | cut -c1-16)
+            # Held-out VERSION only (its query count and budget change on every query).
+            key=$( { cat $D/requests.off*.sha256; node -p 'require(process.argv[1]).version' $D/heldout-state.json; cat scripts/humanness-loop/judges.lock.json; } | sha256sum | cut -c1-16)
             echo "OFF_KEY=$key" >> "$GITHUB_ENV"
             have=$(gcloud storage ls "$HL_BUCKET/cache/off/$key/" 2>/dev/null | grep -c '/judge\.claude\.off[0-9]*\.json$' || true)
             echo "OFF_HAVE=$have" >> "$GITHUB_ENV"
@@ -3230,44 +3320,78 @@ Seth labels each pair once, without being told which side is the friend. He answ
               gcloud storage cp --quiet $D/ferni.off$i.json $D/prompt.off$i.txt $D/judge.*.off$i.json "$C/" > /dev/null
             done
             [ "$KIND" = baseline ] && exit 0
-            # On arm: generated by an unprivileged user in its own copy of main with the PR's src/ diff
-            # applied. It can't read or write this checkout, $D or the SA key file; it gets a 1-hour token.
+            # ---- On arm, phase 1: generate every sample in the sandbox. User hlexp has no credentials, no
+            # bucket and no Firestore; its only cloud access is the local proxy, which forwards Gemini
+            # generateContent for the generator models and nothing else. It sees moments without the
+            # friends' real turns or split labels (fault runs excepted: they are the harness's own code).
+            EXP_KEY=$(printf '%s\n' "${PR_HEAD:-main}" "$ON_SET" "$OFF_KEY" "$FAULT" "$SAMPLES" | sha256sum | cut -c1-16)
+            E="$HL_BUCKET/exp/$EXPERIMENT/$EXP_KEY"   # resume cache, written only by this harness
+            gcloud storage cp --quiet "$E/*" $D/ > /dev/null 2>&1 || true
             X=/home/hlexp; sudo useradd -m hlexp 2>/dev/null || true
-            sudo -u hlexp git clone -q --no-hardlinks "file://$GITHUB_WORKSPACE" $X/repo
+            sudo -u hlexp git clone -q "file://$GITHUB_WORKSPACE" $X/repo     # committed files of main only
             sudo -u hlexp ln -s "$GITHUB_WORKSPACE/node_modules" $X/repo/node_modules
             [ -n "${PR:-}" ] && sudo -u hlexp git -C $X/repo apply < $RUNNER_TEMP/exp.diff
-            sudo install -o hlexp -m 600 $D/moments.json $D/base.json -t $X/
-            E="$HL_BUCKET/exp/$EXPERIMENT"   # on-arm samples, kept so a stopped run resumes
-            gcloud storage cp --quiet "$E/*" $D/ > /dev/null 2>&1 || true
+            npx tsx scripts/humanness-loop/cli.ts sandbox-moments --in $D/moments.json --out $RUNNER_TEMP/sbx.json \
+              $([ "$KIND" = fault ] && echo "--keep-answers 1")
+            sudo install -o hlexp -m 600 $RUNNER_TEMP/sbx.json $X/moments.json
+            sudo install -o hlexp -m 600 $D/base.json $X/base.json
+            npx tsx scripts/humanness-loop/cli.ts vertex-proxy --port 8787 > $D/proxy.log 2>&1 & echo $! > $RUNNER_TEMP/proxy.pid
+            # Sandbox self-test: each of these must FAIL for hlexp, or the run stops before any experiment code runs.
+            for t in "test -r $D/moments.json" "test -r $GOOGLE_APPLICATION_CREDENTIALS" "touch $GITHUB_WORKSPACE/.hl-probe" \
+                     "env -i PATH=$PATH HOME=$X gcloud storage ls $HL_BUCKET" \
+                     "curl -sf -m 5 -X POST http://127.0.0.1:8787/v1/projects/johnb-2025/locations/global/publishers/google/models/gemini-3.1-pro-preview:generateContent"; do
+              if sudo -u hlexp sh -c "$t" > /dev/null 2>&1; then echo "::error::sandbox self-test: hlexp could: ${t%% *}"; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; fi
+            done
             npx tsx scripts/humanness-loop/cli.ts state-snapshot --out $RUNNER_TEMP/state.before
-            T=$(gcloud auth print-access-token)
+            ok=1
             for i in $(seq 1 $SAMPLES); do
-              [ -f $D/judge.gemini.on$i.json ] && continue
+              [ -f $D/ferni.on$i.json ] && continue
               arm=$([ "$KIND" = fault ] && echo fault-on$i || echo on$i)
-              sudo -u hlexp env -i PATH="$PATH" HOME=$X GOOGLE_CLOUD_PROJECT=johnb-2025 HL_ACCESS_TOKEN="$T" \
+              sudo -u hlexp env -i PATH="$PATH" HOME=$X GOOGLE_CLOUD_PROJECT=johnb-2025 HL_VERTEX_PROXY=http://127.0.0.1:8787 \
                 HL_FAULT_SUITE=$([ "$KIND" = fault ] && echo 1 || echo 0) \
                 bash -c 'cd ~/repo && npx tsx scripts/voice-eval/next-turn/generate.ts --out ~/out --moments ~/moments.json --persona "$0" --flags-file ~/base.json ${1:+--set "$1"} ${2:+--fault "$2"} --arm "$3"' \
                 "$PERSONA" "$ON_SET" "$([ "$KIND" = fault ] && echo "$FAULT")" "$arm" > $D/gen-on$i.log 2>&1 || true
-              npx tsx scripts/humanness-loop/cli.ts take-replies --from $X/out --arm "$arm" --as on$i --moments $D/moments.json --dir $D \
-                || { echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; }
-              price; judge on$i "$(alone $i)"
-              gcloud storage cp --quiet $D/ferni.on$i.json $D/prompt.on$i.txt $D/judge.*.on$i.json "$E/" > /dev/null
+              npx tsx scripts/humanness-loop/cli.ts take-replies --from $X/out --arm "$arm" --as on$i --moments $D/moments.json --dir $D || { ok=0; break; }
             done
+            kill "$(cat $RUNNER_TEMP/proxy.pid)"
+            # Taken on every path out of the sandboxed phase, before anything else writes to the bucket.
             npx tsx scripts/humanness-loop/cli.ts state-snapshot --out $RUNNER_TEMP/state.after
-            cmp -s $RUNNER_TEMP/state.before $RUNNER_TEMP/state.after \
-              || { echo "verdict=blocked" >> "$GITHUB_ENV"; gh issue edit 1377 --add-label pause; echo "::error::bucket or Firestore state changed during the sandboxed step"; }
+            if ! cmp -s $RUNNER_TEMP/state.before $RUNNER_TEMP/state.after; then
+              echo "::error::bucket or Firestore state changed during the sandboxed phase"
+              gh issue edit 1377 --add-label pause; echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0
+            fi
+            [ $ok = 1 ] || { echo "verdict=blocked" >> "$GITHUB_ENV"; exit 0; }
+            gcloud storage cp --quiet $D/ferni.on*.json $D/prompt.on*.txt "$E/" > /dev/null
+            price
+            # ---- On arm, phase 2: judge in the harness, from this checkout of main.
+            for i in $(seq 1 $SAMPLES); do
+              [ -f $D/judge.gemini.on$i.json ] && continue
+              judge on$i "$(alone $i)"
+              gcloud storage cp --quiet $D/judge.*.on$i.json "$E/" > /dev/null
+            done
             echo "replies and verdicts written: $(ls $D | grep -cE '^(ferni|judge)\.')"
-        - name: Leak check (diff and every prompt used)
+        - name: A/A resplits (Phase S; SAMPLES is forced to 12 for kind=aa)
+          if: steps.pause.outputs.paused != 'true' && env.verdict == '' && env.KIND == 'aa'
+          run: |
+            D=$RUNNER_TEMP/nt
+            gcloud storage cp --quiet "$HL_BUCKET/cache/off/$OFF_KEY/*" $D/ > /dev/null
+            [ "$(ls $D/judge.gemini.off*.json | wc -l)" -ge 12 ] || { echo "::error::the 12-sample pool is not complete; run kind=baseline samples=12 until it is"; exit 1; }
+            npx tsx scripts/humanness-loop/cli.ts aa --dir $D --runs 30
+            npx tsx scripts/humanness-loop/cli.ts mde --dir $D
+        - name: Leak check (the diff, every prompt used, and the replies against the friends' real turns)
           if: steps.pause.outputs.paused != 'true' && env.verdict == '' && contains(fromJSON('["ab","fault"]'), env.KIND)
           run: |
             D=$RUNNER_TEMP/nt
             npx tsx scripts/humanness-loop/cli.ts leak --corpus $D/all.json --dir $D ${PR:+--texts $RUNNER_TEMP/added.json} \
+              $([ "$FAULT" = friend ] || echo "--replies $D/moments.json") \
               || echo "verdict=leak" >> "$GITHUB_ENV"
         - name: Decide
+          id: decide
           if: steps.pause.outputs.paused != 'true' && env.verdict == '' && contains(fromJSON('["ab","fault"]'), env.KIND) && env.STAGE != 'live'
           run: |
             D=$RUNNER_TEMP/nt
             npx tsx scripts/humanness-loop/cli.ts decide --dir $D --samples "$SAMPLES" $([ "$FAULT" = friend ] && echo "--max-inconsistency 1")
+            echo "decision=$(node -p 'require(process.argv[1]).decision' $D/verdict.json)" >> "$GITHUB_OUTPUT"
             gcloud storage cp --quiet $D/verdict.json "$HL_BUCKET/runs/$GITHUB_RUN_ID/verdict.json"
             node -e 'const v=require(process.argv[1]);require("fs").writeFileSync(process.argv[2],JSON.stringify({...require(process.argv[3]),...v.next}))' $D/verdict.json $D/heldout-next.json $D/heldout-state.json
             gcloud storage cp --quiet $D/heldout-next.json $HL_BUCKET/state/heldout.json
@@ -3286,9 +3410,16 @@ Seth labels each pair once, without being told which side is the friend. He answ
               npx tsx scripts/humanness-loop/cli.ts baseline-row --dir $D --samples "$SAMPLES" > $D/public.json
             fi
             [ -f $D/public.json ] && npx tsx scripts/humanness-loop/cli.ts post --public $D/public.json --base $D/base.json --out $RUNNER_TEMP/comment.md
+            # Phase S: record the row; fault-record refuses a dispatch that doesn't match the row's spec.
+            case "$EXPERIMENT" in fault-*) [ -f $D/public.json ] && npx tsx scripts/humanness-loop/cli.ts fault-record --public $D/public.json || true ;; esac
   ```
   Notes on the YAML:
-  - **The two checkouts.** The harness is `main` at the workflow's root. The experiment is a `git worktree` of the PR head, used only to copy its `src/` over main's `src/` for the on arm. The off arm is generated (or taken from the cache) before the copy, from main's `src/`. `git checkout -- src` restores main's afterwards.
+  - **The two checkouts.**
+    - The harness is `main` at the workflow's root. It never changes during the run, and it alone judges and decides.
+    - The second checkout is `hlexp`'s clone of main with the PR's `src/` diff applied. It holds no credentials, can't read `$D`, `$RUNNER_TEMP` or the WIF credential file, and can't write the harness checkout.
+    - Its only cloud access is `vertex-proxy`, which forwards `generateContent` for `gemini-3.5-flash` and `-lite` and refuses everything else.
+    - A self-test proves all of this on every run, before any experiment code executes.
+    - The state snapshot covers every bucket prefix the sandboxed phase must not touch (including `exp/`, `ledger/` and `runs/`) and the Firestore collections. It is taken on every path out of that phase, before the harness writes anything.
   - **Blocked PRs.** A PR touching `scripts/voice-eval/next-turn/judge.mjs` (B8) is refused by `diff-gate`, gets verdict `blocked`, and is never scored. Even without the gate, its judge file would never be used, because the harness comes from `main`.
   - **The ledger.** `price` runs after every generate and judge invocation. Each call writes one ledger object, and the run stops when the day or the run cap is reached. The `always()` step only prices what a cancelled run left behind (`--seq final`).
   - **Baseline rows.** `kind=baseline` posts the off arm's raw and LC win rate per judge on **working** only (`cli.ts baseline-row`, using `stats.ts` `lcWinRates`). Held-out baseline numbers stay in `runs/<id>/` until the set is retired.
@@ -3296,23 +3427,54 @@ Seth labels each pair once, without being told which side is the friend. He answ
     - `calibration-gate` (PR L): stale or failing calibration gives `unreliable`.
     - `fault-gate` (PR S): the suite hasn't passed on this harness, so the verdict is `unreliable`.
     - `classify` (PR S): exits 3 for an `ON_SET` flag that `backlog.json` marks `unmeasurable`, or one that matches `^POST_TTS_`, giving `unmeasurable` (B6).
-  - **MDE.** `mde` (minimum detectable effect, in points) comes from the A/A pool's per-moment SD: `2.49 × SD / √moments × design effect`, where the design effect is computed from the pool's per-conversation variance. `cli.ts mde` writes it once to `state/mde.json` after Phase S, and `post` reads it.
-- [ ] **Step 5, routine branch B only (from 0.2):** add the label trigger:
-  ```yaml
-  pull_request:
-    types: [labeled]
-  ```
-  On the job: `if: github.event_name == 'pull_request' && github.event.label.name == 'humanness-run' && github.event.pull_request.head.repo.full_name == github.repository || (...)`.
-  A `pull_request` run uses the workflow file from the PR's merge ref, not from `main`. In this branch, the first step therefore checks out `main` and runs `git diff --quiet origin/main "$GITHUB_SHA" -- .github/workflows/humanness-eval.yml scripts/humanness-loop scripts/voice-eval`, and refuses on any difference. The environment's main-only deployment policy also withholds the SA key, so branch B needs Seth to add `pull_request` runs to the environment policy. That is ask-first.
-  A step parses the PR body's fenced `humanness` block (`kind=… persona=… on_set=…`) into `$GITHUB_ENV` with `node -e`. It accepts only keys from the dispatch input list and values matching `^[A-Za-z0-9_.=+ ,-]*$`.
-- [ ] **Step 6: Prove it on main after merge** (the environment only serves `main`). The workflow does nothing until dispatched, so it is inert when it merges. First, dispatch a tiny calibrate run, then a tiny baseline:
+  - **MDE.** `cli.ts mde` (PR S) computes it from the A/A resplits as `(1.2816 + 0.8416) × SD / √n × √(design effect)` and writes it to `state/mde.json`; `post` reads it.
+  - **Live after offline.** With `stage=both`, the live steps (PR F3) run only when `steps.decide.outputs.decision == 'pending-live'`.
+- [ ] **Step 5, routine branch B only (from 0.2): `.github/workflows/humanness-dispatch.yml`.** A `pull_request` run can't get a GCP token (Task 0.1), so this workflow holds none. It only turns a label into a dispatch of the eval on main:
+  ````yaml
+  name: Humanness Dispatch
+  # Routine branch B: label humanness-run on a same-repo PR -> dispatch humanness-eval.yml on main.
+  # No GCP access (WIF refuses pull_request runs); the eval itself always runs from main.
+  on:
+    pull_request:
+      types: [labeled]
+  permissions: { actions: write, contents: read, pull-requests: read }
+  jobs:
+    dispatch:
+      if: github.event.label.name == 'humanness-run' && github.event.pull_request.head.repo.full_name == github.repository
+      runs-on: ubuntu-latest
+      steps:
+        - env:
+            GH_TOKEN: ${{ github.token }}
+            BODY: ${{ github.event.pull_request.body }}
+            PR: ${{ github.event.pull_request.number }}
+          run: |
+            args=$(node -e '
+              const m=/```humanness\n([\s\S]*?)```/.exec(process.env.BODY||""); if(!m) process.exit(3);
+              const ok=new Set(["kind","persona","off_set","on_set","stage","samples","splits","experiment","budget"]);
+              const out=[];
+              for (const line of m[1].split("\n").filter(Boolean)) {
+                const i=line.indexOf("="); const k=line.slice(0,i), v=line.slice(i+1);
+                if(!ok.has(k)||!/^[A-Za-z0-9_.=+ ,-]*$/.test(v)) process.exit(4);
+                out.push("-f", `${k}=${v}`);
+              }
+              console.log(JSON.stringify(out));')
+            node -e 'const a=JSON.parse(process.argv[1]);require("child_process").execFileSync("gh",["workflow","run","humanness-eval.yml","--repo",process.env.GITHUB_REPOSITORY,"--ref","main",...a,"-f",`pr=${process.env.PR}`],{stdio:"inherit"})' "$args"
+  ````
+  The block holds one `key=value` per line (`kind=ab`, `on_set=TURN_LENGTH=learned`, …). A docs-only request PR for a flag that needs no code carries the same block.
+- [ ] **Step 6: Prove it on main after merge.** WIF serves only `main`, and the workflow does nothing until it is dispatched, so it is inert when it merges. Run three proofs: a calibrate run, a tiny baseline, and a tiny `ab` that goes through the sandbox.
   ```bash
-  gh workflow run humanness-eval.yml --ref main -f kind=baseline -f stage=offline -f samples=1 -f splits=working -f budget=8
-  gh run watch "$(gh run list --workflow humanness-eval.yml -L1 --json databaseId -q '.[0].databaseId')"
-  gh run view --log | grep -ciE "\bjo\b|\bsam\b|holdout-|heldout/v"
+  run() { gh workflow run humanness-eval.yml --ref main "$@"; sleep 20; id=$(gh run list --workflow humanness-eval.yml -L1 --json databaseId -q '.[0].databaseId'); gh run watch $id > /dev/null; echo $id; }
+  b=$(run -f kind=baseline -f stage=offline -f samples=1 -f splits=working -f budget=8)
+  x=$(run -f kind=ab -f on_set=TURN_LENGTH=learned -f samples=1 -f splits=working -f experiment=fault-sandbox-proof -f budget=8)
+  for id in $b $x; do gh run view $id --log | grep -ciE "\bjo\b|\bsam\b|holdout-|heldout/v"; done
+  gh run view $x --log | grep -E "sandbox self-test|replies and verdicts written"
   ```
-  Expected: the run passes, a baseline row appears on #1377, and the last command prints `0` (no transcript and no held-out path in the public log). Also check `gcloud storage ls gs://ferni-humanness-eval/runs/<id>/` and `gcloud storage ls gs://ferni-humanness-eval/ledger/$(date -u +%F)/`, which should show one object per priced step.
-- [ ] **Step 7: Commit.** `git commit -m "ci(humanness-loop): eval workflow, offline arms from main's harness"`.
+  Expected:
+  - Both runs pass, and each grep count is `0` (no transcript and no held-out path in the public log).
+  - The `ab` log has no `sandbox self-test` error, and does have `replies and verdicts written`.
+  - `gcloud storage ls gs://ferni-humanness-eval/ledger/$(date -u +%F)/` shows one object per priced step.
+  - The `fault-sandbox-proof` row is not recorded: `fault-record` prints `not a suite row`.
+- [ ] **Step 7: Commit.** `git commit -m "ci(humanness-loop): eval workflow, offline arms from main's harness"` (and `humanness-dispatch.yml` only on branch B).
 
 ---
 
@@ -3403,7 +3565,7 @@ The live stage runs on code that is already on dev (merged, then deployed with t
   - `ledger-call` prices each call's STT and TTS units (`units.ts` `callUnits`) as its own ledger object, as soon as the call ends.
   - LLM tokens come from `TURN_METRICS` in the agent log (`llmFromLogs`). They are priced once, at the end of the stage, in one more object.
   - So the ledger is written per call and never only at the end.
-- [ ] **Step 3: `override`, `ledger-call`, `guardrails`, `verify-arms` and `plan-live` in `cli.ts`.** Imports: `setOverrides` from `./overrides.js`, `callUnits` and `llmFromLogs` from `./units.js`, `guardrailsFrom` from `./outcomes.js`, `liveScenarios`, `scenarioSplit` from `./split.js`, `basename` from `node:path`.
+- [ ] **Step 3: `override`, `ledger-call`, `guardrails`, `verify-arms` and `plan-live` in `cli.ts`.** Imports: `setOverrides` from `./overrides.js`, `callUnits` from `./units.js`, `guardrailsFrom` and `type ScoreJson` from `./outcomes.js`, `liveScenarios` and `scenarioSplit` from `./split.js`, and `basename` from `node:path`.
       First, the pure formulas, in a new `outcomes.ts`. Its test covers each field, plus the B5 fault offset:
   ```ts
   /** Live guardrails from pooled score.mjs output per arm (field names as score.mjs prints them). */
@@ -3505,7 +3667,7 @@ The live stage runs on code that is already on dev (merged, then deployed with t
 - [ ] **Step 4: Add the live steps to the workflow.** They go after "Decide". They run when `STAGE` is `live` or `both`; for `both`, only when the offline decision was `pending-live`. For `stage=live`, the input `offline_run` names the offline run, whose `runs/<id>/` directory is copied in, so the final `decide --live` uses the same offline data.
   ```yaml
   - name: Tools for live calls (lk, zsh, ffmpeg)
-    if: steps.pause.outputs.paused != 'true' && env.verdict == '' && contains(fromJSON('["live","both"]'), env.STAGE)
+    if: steps.pause.outputs.paused != 'true' && env.verdict == '' && (env.STAGE == 'live' || (env.STAGE == 'both' && steps.decide.outputs.decision == 'pending-live'))
     run: |
       sudo apt-get update -qq && sudo apt-get install -y -qq zsh ffmpeg > /dev/null
       curl -sSL https://get.livekit.io/cli | bash > /dev/null
@@ -3515,12 +3677,12 @@ The live stage runs on code that is already on dev (merged, then deployed with t
       k=$(gcloud secrets versions access latest --secret=cartesia-api-key --project=johnb-2025); echo "::add-mask::$k"
       echo "CARTESIA_API_KEY=$k" >> "$GITHUB_ENV"
   - name: Take the dev lock (waits while anyone else is on a dev call, including a person's eval-* room)
-    if: steps.pause.outputs.paused != 'true' && env.verdict == '' && contains(fromJSON('["live","both"]'), env.STAGE)
+    if: steps.pause.outputs.paused != 'true' && env.verdict == '' && (env.STAGE == 'live' || (env.STAGE == 'both' && steps.decide.outputs.decision == 'pending-live'))
     run: |
       npx tsx scripts/humanness-loop/cli.ts wait-rooms --minutes 120
       npx tsx scripts/humanness-loop/cli.ts lock --holder "$GITHUB_RUN_ID" --url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --ttl 300
   - name: Dev runs the change's code
-    if: steps.pause.outputs.paused != 'true' && env.verdict == '' && contains(fromJSON('["live","both"]'), env.STAGE)
+    if: steps.pause.outputs.paused != 'true' && env.verdict == '' && (env.STAGE == 'live' || (env.STAGE == 'both' && steps.decide.outputs.decision == 'pending-live'))
     run: |
       dev=$(lk agent versions --project ferni-dev --config $PWD/livekit.toml | awk '/✓/{for(i=1;i<=NF;i++) if($i ~ /^[0-9a-f]{7,40}$/) print $i}' | head -1)
       git cat-file -e "$dev^{commit}" 2>/dev/null || git fetch -q origin "$dev"
@@ -3529,7 +3691,7 @@ The live stage runs on code that is already on dev (merged, then deployed with t
         git merge-base --is-ancestor "$intro" "$dev" || { echo "::error::dev ($dev) predates $name; deploy main to dev first"; exit 1; }
       done
   - name: Live arms
-    if: steps.pause.outputs.paused != 'true' && env.verdict == '' && contains(fromJSON('["live","both"]'), env.STAGE)
+    if: steps.pause.outputs.paused != 'true' && env.verdict == '' && (env.STAGE == 'live' || (env.STAGE == 'both' && steps.decide.outputs.decision == 'pending-live'))
     env:
       CALLER_VOICE: 'cartesia:c894559e-d529-4d70-a6fb-3330ecf7ef6b'
       HUMAN_TARGETS: '${{ runner.temp }}/score-targets.json'
@@ -3599,7 +3761,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
 - [ ] **Step 1: Write the failing test** `__tests__/fault-suite.test.ts`:
   ```ts
   import { describe, expect, it } from 'vitest';
-  import { SUITE, suiteStatus, type FaultResult } from '../fault-suite.js';
+  import { SUITE, rowFor, suiteStatus, type FaultResult } from '../fault-suite.js';
   const ok: Record<string, FaultResult> = {
     'A/A': { decision: 'discard', reasons: [], keeps: 0, runs: 30 },
     G1: { decision: 'pending-live', reasons: [], onRate: 0.48 },
@@ -3641,6 +3803,28 @@ This is the first phase the loop runs. Until it passes on the current harness, `
         suiteStatus({ ...ok, B1: { decision: 'discard', reasons: ['working: no win'] } }).failed
       ).toEqual(['B1']);
     });
+    it('records a run only under the row its dispatch matches', () => {
+      expect(
+        rowFor('fault-G2', {
+          KIND: 'ab',
+          OFF_SET: 'TURN_LENGTH=off',
+          ON_SET: 'TURN_LENGTH=learned',
+          SAMPLES: '6',
+          SPLITS: 'both',
+        })
+      ).toBe('G2');
+      expect(
+        rowFor('fault-G2', {
+          KIND: 'ab',
+          ON_SET: 'TURN_LENGTH=learned',
+          SAMPLES: '1',
+          SPLITS: 'working',
+        })
+      ).toBeNull();
+      expect(rowFor('fault-AA', { KIND: 'aa', SAMPLES: '12' })).toBe('A/A');
+      expect(rowFor('fault-sandbox-proof', { KIND: 'ab' })).toBeNull();
+      expect(rowFor('fault-B8', { KIND: 'ab', ON_SET: 'TURN_LENGTH=learned' })).toBeNull();
+    });
     it('treats a missing row as not passed', () => {
       const { B8: _, ...rest } = ok;
       expect(suiteStatus(rest).missing).toEqual(['B8']);
@@ -3661,65 +3845,87 @@ This is the first phase the loop runs. Until it passes on the current harness, `
   }
   const offlineKeep = (d: string): boolean => d === 'keep' || d === 'pending-live';
   const why = (r: FaultResult, re: RegExp): boolean => r.reasons.some((x) => re.test(x));
-  export const SUITE: Array<{ id: string; dispatch: string; expect: (r: FaultResult) => boolean }> =
-    [
-      {
-        id: 'A/A',
-        dispatch: 'kind=aa (30 resplits of a 12-sample baseline pool)',
-        expect: (r) => r.runs === 30 && r.keeps === 0,
+  /** Each row's dispatch, as the workflow env must show it (unset keys must be empty). */
+  type Want = Partial<
+    Record<'KIND' | 'FAULT' | 'OFF_SET' | 'ON_SET' | 'STAGE' | 'SAMPLES' | 'SPLITS' | 'PR', string>
+  >;
+  export const SUITE: Array<{ id: string; want: Want; expect: (r: FaultResult) => boolean }> = [
+    {
+      id: 'A/A',
+      want: { KIND: 'aa', SAMPLES: '12' },
+      expect: (r) => r.runs === 30 && r.keeps === 0,
+    },
+    {
+      id: 'G1',
+      want: { KIND: 'fault', FAULT: 'friend', SAMPLES: '1', SPLITS: 'both' },
+      expect: (r) => offlineKeep(r.decision) && (r.onRate ?? 0) >= 0.35 && (r.onRate ?? 1) <= 0.65,
+    },
+    {
+      id: 'G2',
+      want: {
+        KIND: 'ab',
+        OFF_SET: 'TURN_LENGTH=off',
+        ON_SET: 'TURN_LENGTH=learned',
+        SAMPLES: '6',
+        SPLITS: 'both',
       },
-      {
-        id: 'G1',
-        dispatch: 'kind=fault fault=friend',
-        expect: (r) =>
-          offlineKeep(r.decision) && (r.onRate ?? 0) >= 0.35 && (r.onRate ?? 1) <= 0.65,
-      },
-      {
-        id: 'G2',
-        dispatch: 'kind=ab off_set=TURN_LENGTH=off on_set=TURN_LENGTH=learned',
-        expect: (r) => offlineKeep(r.decision),
-      },
-      {
-        id: 'B1',
-        dispatch: 'kind=fault fault=backchannel splits=working samples=2',
-        expect: (r) => r.decision === 'discard' && why(r, /^(responds|listening)/),
-      },
-      {
-        id: 'B2',
-        dispatch: 'kind=fault fault=parrot5 splits=working samples=2',
-        expect: (r) => r.decision === 'discard',
-      },
-      {
-        id: 'B3',
-        dispatch: 'kind=fault fault=invent-memory splits=working samples=2',
-        expect: (r) => r.decision === 'discard' && why(r, /invented facts/),
-      },
-      {
-        id: 'B4',
-        dispatch: 'kind=fault fault=heldout-fewshot samples=1',
-        expect: (r) => r.decision === 'leak',
-      },
-      {
-        id: 'B5',
-        dispatch: 'kind=fault fault=delay300 stage=live',
-        expect: (r) => r.decision === 'discard' && why(r, /latency/),
-      },
-      {
-        id: 'B6',
-        dispatch: 'kind=ab on_set=POST_TTS_PITCH=+6',
-        expect: (r) => r.decision === 'unmeasurable',
-      },
-      {
-        id: 'B7',
-        dispatch: 'kind=fault fault=regular-person splits=working samples=2',
-        expect: (r) => r.decision === 'discard',
-      },
-      {
-        id: 'B8',
-        dispatch: 'kind=ab pr=<draft PR that edits judge.mjs>',
-        expect: (r) => r.decision === 'blocked' && r.judgeUnchanged === true,
-      },
-    ];
+      expect: (r) => offlineKeep(r.decision),
+    },
+    {
+      id: 'B1',
+      want: { KIND: 'fault', FAULT: 'backchannel', SAMPLES: '2', SPLITS: 'working' },
+      expect: (r) => r.decision === 'discard' && why(r, /^(responds|listening)/),
+    },
+    {
+      id: 'B2',
+      want: { KIND: 'fault', FAULT: 'parrot5', SAMPLES: '2', SPLITS: 'working' },
+      expect: (r) => r.decision === 'discard',
+    },
+    {
+      id: 'B3',
+      want: { KIND: 'fault', FAULT: 'invent-memory', SAMPLES: '2', SPLITS: 'working' },
+      expect: (r) => r.decision === 'discard' && why(r, /invented facts/),
+    },
+    {
+      id: 'B4',
+      want: { KIND: 'fault', FAULT: 'heldout-fewshot', SAMPLES: '1', SPLITS: 'both' },
+      expect: (r) => r.decision === 'leak',
+    },
+    {
+      id: 'B5',
+      want: { KIND: 'fault', FAULT: 'delay300', STAGE: 'live' },
+      expect: (r) => r.decision === 'discard' && why(r, /latency/),
+    },
+    {
+      id: 'B6',
+      want: { KIND: 'ab', ON_SET: 'POST_TTS_PITCH=+6' },
+      expect: (r) => r.decision === 'unmeasurable',
+    },
+    {
+      id: 'B7',
+      want: { KIND: 'fault', FAULT: 'regular-person', SAMPLES: '2', SPLITS: 'working' },
+      expect: (r) => r.decision === 'discard',
+    },
+    {
+      id: 'B8',
+      want: { KIND: 'ab', ON_SET: 'TURN_LENGTH=learned' },
+      expect: (r) => r.decision === 'blocked' && r.judgeUnchanged === true,
+    },
+  ];
+  /**
+   * Which row a run may record: the experiment id names it (fault-AA is A/A), and the run's dispatch must
+   * match that row's spec exactly, so no other run can overwrite a row. B8 also needs a PR.
+   */
+  export function rowFor(
+    experiment: string,
+    env: Record<string, string | undefined>
+  ): string | null {
+    const id = experiment.replace(/^fault-/, '').replace(/^AA$/, 'A/A');
+    const row = SUITE.find((r) => r.id === id);
+    if (!row) return null;
+    const ok = Object.entries(row.want).every(([k, v]) => (env[k] ?? '') === v);
+    return ok && (id !== 'B8' || !!env.PR) ? id : null;
+  }
   export function suiteStatus(results: Record<string, FaultResult>): {
     pass: boolean;
     failed: string[];
@@ -3744,14 +3950,22 @@ This is the first phase the loop runs. Until it passes on the current harness, `
           /* no suite run yet */
         }
         if (cmd === 'fault-record') {
-          // --id A/A|G1|...|B8 --public D/public.json [--extra json]
-          const pub = json<{ decision: string; reasons: string[]; result?: { perJudge?: Record<string, { onRate: number | null }> } }>(a.public);
+          // --public D/public.json: the row comes from EXPERIMENT and must match the run's dispatch (rowFor)
+          const id = rowFor(process.env.EXPERIMENT ?? '', process.env);
+          if (!id) {
+            out({ recorded: false, why: 'not a suite row, or the dispatch does not match the row' });
+            break;
+          }
+          const pub = json<{ decision: string; reasons: string[]; runs?: number; keeps?: number; result?: { perJudge?: Record<string, { onRate: number | null }> } }>(a.public);
           const onRates = DECIDING.map((j) => pub.result?.perJudge?.[j]?.onRate ?? null).filter((x): x is number => x !== null);
-          rec.results[a.id] = {
+          rec.results[id] = {
             decision: pub.decision,
             reasons: pub.reasons,
+            runs: pub.runs,
+            keeps: pub.keeps,
             onRate: onRates.length ? onRates.reduce((s, x) => s + x, 0) / onRates.length : null,
-            ...(a.extra ? JSON.parse(a.extra) : {}),
+            // B8: main's judge is what scored (it is never the PR's); the harness tree on main is unchanged.
+            ...(id === 'B8' ? { judgeUnchanged: execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'scripts/voice-eval'], { encoding: 'utf8' }).trim() === '' } : {}),
           };
           const f = join(process.env.RUNNER_TEMP ?? '/tmp', 'fault-suite.json');
           writeFileSync(f, JSON.stringify(rec));
@@ -3791,7 +4005,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
           deltas.push(momentDeltas(picks.filter((p) => p.split === 'working'), DECIDING, (p) => p.y));
         }
         writeFileSync(join(a.dir, 'aa-deltas.json'), JSON.stringify(deltas));
-        writeFileSync(join(a.dir, 'public.json'), JSON.stringify({ decision: keeps ? 'keep' : 'discard', reasons: [`${keeps} keeps in ${a.runs} A/A resplits`], result: null }));
+        writeFileSync(join(a.dir, 'public.json'), JSON.stringify({ decision: keeps ? 'keep' : 'discard', reasons: [`${keeps} keeps in ${a.runs} A/A resplits`], runs: Number(a.runs), keeps, result: null }));
         out({ runs: Number(a.runs), keeps });
         break;
       }
@@ -3817,9 +4031,12 @@ This is the first phase the loop runs. Until it passes on the current harness, `
       }
       case 'live-verdict': {
         // --guardrails L.json --out D/public.json: live limits only (B5, whose on arm has no text change)
-        const fails = liveGuardrailFailures(json(a.guardrails));
-        writeFileSync(a.out, JSON.stringify({ decision: fails.length ? 'discard' : 'keep', reasons: fails, result: null }));
-        out({ decision: fails.length ? 'discard' : 'keep' });
+        const g = json<Record<string, unknown>>(a.guardrails);
+        const lost = ['latencyP50DeltaMs', 'talkedOverDeltaPts', 'inventedFactsDelta', 'costPerCallDeltaPct'].filter((k) => typeof g[k] !== 'number');
+        const fails = liveGuardrailFailures(g);
+        const decision = lost.length ? 'unreliable' : fails.length ? 'discard' : 'keep';
+        writeFileSync(a.out, JSON.stringify({ decision, reasons: lost.length ? [`live guardrails lost: ${lost.join(', ')}`] : fails, result: null }));
+        out({ decision });
         break;
       }
   ```
@@ -3827,7 +4044,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
   - Add `kind=aa`. It runs the "Plan the run" step with `SAMPLES=12`, and is otherwise only `gcloud storage cp "$HL_BUCKET/cache/off/$OFF_KEY/*" $D/`, then `cli.ts aa --dir $D --runs 30`, then `cli.ts mde --dir $D`.
   - The posting step runs `cli.ts fault-record --id <row> --public $D/public.json` when `EXPERIMENT` starts with `fault-`. The row is `EXPERIMENT` without the `fault-` prefix, with `AA` mapped to `A/A`.
   - `post` reads `state/mde.json` for the MDE column.
-- [ ] **Step 4: Run the suite** (on main, after F2, F3, G and L have merged and the calibration is frozen). Run the dispatches one at a time; the concurrency group serialises them. Each run's posting step calls `fault-record` when `KIND=fault`, or when `EXPERIMENT` starts with `fault-`.
+- [ ] **Step 4: Run the suite** (on main, after F2, F3, G and L have merged and the calibration is frozen). Run the dispatches one at a time; the concurrency group serialises them. Each run's posting step calls `fault-record` when `EXPERIMENT` starts with `fault-`.
   ```bash
   w() { gh workflow run humanness-eval.yml --ref main "$@"; sleep 20; gh run watch "$(gh run list --workflow humanness-eval.yml -L1 --json databaseId -q '.[0].databaseId')" > /dev/null; }
   # The A/A pool (also Ferni's Phase 0 baseline): ~$90, so it spans two days. Each dispatch caches finished
@@ -3846,10 +4063,11 @@ This is the first phase the loop runs. Until it passes on the current harness, `
   - **B8:** open a draft PR from a branch `hl-fault/b8` that changes `scripts/voice-eval/next-turn/judge.mjs` to always answer `closeFriend: 1`, plus a one-line comment in `src/`. Then run:
     ```bash
     w -f kind=ab -f pr=<that PR> -f on_set=TURN_LENGTH=learned -f experiment=fault-B8
-    npx tsx scripts/humanness-loop/cli.ts fault-record --id B8 --public <run>/public.json \
-      --extra "{\"judgeUnchanged\":$(git diff --quiet origin/main -- scripts/voice-eval && echo true || echo false)}"
     gh pr close <that PR> --delete-branch
     ```
+    `diff-gate` gives `blocked`, and the posting step records row B8 with `judgeUnchanged` computed on main. Nothing is recorded by hand.
+  - Every row is recorded by the run's own posting step (`fault-record`), and only when the dispatch matches the row's `want` (`rowFor`). A run with other inputs, such as the sandbox proof in F2 Step 6, records nothing.
+  - **Phase S rows run below the spec's sample size on purpose.** The text faults use 2 samples on working, and G1 and B4 use 1. They are gross faults with known answers, not experiments, so the "never decide on fewer than 132 × 6" rule doesn't apply to them.
 - [ ] **Step 5: Check, and what failure means.** `gcloud storage cat gs://ferni-humanness-eval/state/fault-suite.json | jq '.results | keys | length'` should give `11`, and the last `fault-record` should print `{"pass":true,"failed":[],"missing":[]}`. Post the eleven decisions (one word each) and the MDE on #1377.
   - A failed row is a harness bug, not something to tune away. Fix the harness, which changes `harnessHash` and restarts the suite.
   - If an A/A run keeps, the decision rule is too loose. If G1 or G2 discards, it is too strict or the judges are miscalibrated.
@@ -4063,7 +4281,7 @@ This is the first phase the loop runs. Until it passes on the current harness, `
 
 ## Order and dependencies
 
-- Task 0 comes first, including Seth's approvals (SA, bucket, environment, ruleset, Qwen terms).
+- Task 0 comes first. The SA, WIF provider and bucket already exist (approved). Still open: the `humanness-auth-check.yml` probe PR, the ruleset, and the Qwen terms.
 - PR K comes next: CODEOWNERS and the judge lock.
 - A, B, C and D are independent pure modules and can merge in any order after K.
 - E needs K (the lock) and D (`sets.ts` imports nothing from D, but the picks format must match).
@@ -4087,8 +4305,14 @@ This is the first phase the loop runs. Until it passes on the current harness, `
 3. **Power.**
    - "About 200 moments for +8 points at α = 0.1 with 80% power" is the spec's planning number. The real per-moment SD and design effect come from the Phase S A/A pool (`state/mde.json`).
    - If the MDE on 132 working moments is above 8 points, the scoreboard shows it, and smaller effects will read as `discard`.
-4. **Firestore.** The dev agent might read `feature_flag_overrides` from a database it shares with prod. In that case `roles/datastore.user` reaches prod user data, which is why Task 0.1 checks this first and offers a database-conditioned grant.
-5. **Experiment code runs with the SA.** The blast radius is limited to the three dev secrets, one bucket, Vertex and the Firestore grant, and `diff-gate` refuses new egress, processes and credential reads. A determined change could still misuse the Vertex or Firestore grant during its run. The remaining protection is the brain's narrowed inputs (trusted comments only, no web).
+4. **Firestore.** The dev agent might read `feature_flag_overrides` from a database it shares with prod. If so, the SA's project-level `roles/datastore.user` reaches prod user data. Task 0.1 records the answer. Only main's harness code holds that grant; the sandbox has no credentials.
+5. **Sandbox isolation on a hosted runner.** The plan relies on a few runner facts:
+   - A second Unix user can't read `$RUNNER_TEMP` (700) or the WIF credential file (600).
+   - The user can't write the workspace.
+   - The proxy is its only route to Google APIs.
+
+   The F2 self-test checks these on every run, and stops the run if any of them is false. Experiment code can still send arbitrary text to the generator through the proxy, which costs money but reaches nothing else. Its replies reach the judges as data (the B7 risk).
+
 6. **Log shapes.**
    - `TURN_METRICS` lines in `lk agent logs` are JSON with `time`, `promptTokens` and `completionTokens`.
    - `lk room list --json` returns `{rooms:[{name,numParticipants}]}`.

@@ -155,13 +155,19 @@ then keeps generating and testing new changes, without anyone in the loop.
      always run from `main`.
    - From an experiment PR, only the `src/` diff (merge-base to head) is
      used. It is applied to main's `src/` in a second checkout, owned by an
-     unprivileged user that can't read or write the harness checkout, the
-     run directory or the service-account key.
-   - The on arm is generated there with a one-hour access token. Only
-     validated reply files come back, and the harness judges and decides in
-     its own checkout.
-   - Bucket and Firestore state are snapshotted around that step. Any change
-     outside the run's own prefix blocks the run and pauses the loop.
+     unprivileged user that can't write the harness checkout and can't read
+     the run directory or the credential file.
+   - That user holds **no credentials**. Its only cloud access is a local
+     proxy that forwards Gemini `generateContent` for the generator models.
+   - It sees the moments without the friends' real turns and without split
+     labels, so it can neither copy the answer nor tell held-out from
+     working.
+   - Only validated reply files come back, and the harness judges and
+     decides in its own checkout. Replies are leak-checked against the
+     friends' real turns.
+   - A self-test proves the isolation on every run.
+   - Bucket and Firestore state are snapshotted on every path out of that
+     step. Any change blocks the run and pauses the loop.
    - A PR that changes anything outside `src/` (or `docs/`), or whose diff
      doesn't apply to main, is refused with verdict `blocked`, and its score
      is never computed. `.github/CODEOWNERS` assigns `scripts/humanness-loop/**`,
@@ -189,8 +195,9 @@ then keeps generating and testing new changes, without anyone in the loop.
    - Runs are resumable. Each finished sample is stored, a run stops at the
      daily cap with the verdict `incomplete`, and the same experiment id
      resumes the next day.
-   - A run never decides on fewer than the full 132 × 6, so nothing runs
-     underpowered.
+   - An experiment never decides on fewer than the full 132 × 6, so nothing
+     runs underpowered. Phase S's fault rows are the exception: they are
+     gross faults with known answers and run at 1–2 samples.
 
 ## What the loop cannot measure
 
@@ -276,7 +283,7 @@ then keeps generating and testing new changes, without anyone in the loop.
 ```
 Claude Code routine (brain, daily)            GitHub Actions (hands, hosted runners, ref main only)
   no web access, no GCP access                  humanness-eval.yml (workflow_dispatch + nightly)
-  reads #1377 comments by sethdford/bot only      env humanness-eval -> SA humanness-loop@
+  reads #1377 comments by sethdford/bot only      WIF (main only, no key) -> SA humanness-loop@
   pick next experiment                            checkout main (harness) + PR src/ overlay
   implement behind a flag (src/ only), open PR    calibration + fault-suite gates
   gh workflow run humanness-eval.yml  ───────▶    offline arms: generate, 3 judges x 2 orders
@@ -288,9 +295,12 @@ Claude Code routine (brain, daily)            GitHub Actions (hands, hosted runn
 
 - **Hands: `.github/workflows/humanness-eval.yml`** on `ubuntu-latest`
   (never the self-hosted VM; the merge queue needs it).
-  - It runs only from `refs/heads/main`, in the GitHub environment
-    `humanness-eval`, whose deployment branches are limited to `main`. That
-    environment holds the dedicated SA key.
+  - It runs only from `refs/heads/main` (`workflow_dispatch` or `schedule`),
+    and authenticates keylessly through Workload Identity Federation.
+  - The provider issues tokens only to this repo, ref `refs/heads/main`, and
+    workflows named `.github/workflows/humanness-*.yml` on main. Every loop
+    workflow that needs GCP is named that way, and a `pull_request` run can
+    never authenticate.
   - Inputs: persona, kind (`baseline`, `ab`, `fault`, `aa`, `calibrate`,
     `flip`), `off_set`, `on_set`, fault, stage, samples, PR, experiment,
     budget.
@@ -334,19 +344,21 @@ Claude Code routine (brain, daily)            GitHub Actions (hands, hosted runn
 
 - **Dev only**, synthetic callers with `voice-eval-` uids (`run.sh` already
   enforces the prefix).
-- **Dedicated service account, pending Seth's approval:**
-  `humanness-loop@johnb-2025.iam.gserviceaccount.com`. Task 0 creates it
-  only after he approves. Its roles:
+- **Dedicated service account (approved by Seth and created):**
+  `humanness-loop@johnb-2025.iam.gserviceaccount.com`. Its roles:
   - `roles/secretmanager.secretAccessor` on exactly three secrets:
     `livekit-dev-api-key`, `livekit-dev-api-secret`, `cartesia-api-key`
   - `roles/storage.objectAdmin` on `gs://ferni-humanness-eval` only
-  - `roles/datastore.user`, for the dev lock and per-caller overrides.
-    Task 0 checks whether prod data shares that Firestore database, and asks
-    before granting.
-  - `roles/aiplatform.user`, for the generator and judges on Vertex
+  - project `roles/datastore.user`, for the dev lock and per-caller
+    overrides. Task 0 records whether prod data shares that Firestore
+    database.
+  - project `roles/aiplatform.user`, for the generator and judges on Vertex
+  - no prod secrets, no deploy roles, no IAM roles
 
-  The workflow never uses `github-actions-deploy`, and it fails if the active
-  account is anything other than `humanness-loop@`.
+  It has **no JSON key**. Workflows reach it only through Workload Identity
+  Federation on main. The loop never uses `GCP_SA_KEY` or
+  `github-actions-deploy`, and the workflow fails if the active account is
+  anything other than `humanness-loop@`.
 
 - **Prompt injection.** The brain writes code and reads text, so both are
   narrowed:
@@ -358,9 +370,8 @@ Claude Code routine (brain, daily)            GitHub Actions (hands, hosted runn
     registries only.
   - The brain has no GCP credentials.
   - Experiment code (`src/` only) runs as an unprivileged user in its own
-    checkout, with a one-hour access token for the dedicated SA, and never
-    with the key file. At worst it reaches three dev secrets, one bucket,
-    Vertex and the Firestore grant; never a prod secret.
+    checkout, with no credentials. It can reach only the generator through
+    the harness's proxy: no secret, no bucket, no Firestore.
   - The workflow refuses a diff whose added lines make network calls, spawn
     processes or read credential environment variables.
   - The state snapshot around the step catches writes to the bucket or
@@ -396,9 +407,11 @@ Claude Code routine (brain, daily)            GitHub Actions (hands, hosted runn
 
 ## Step 0: verify before building
 
-1. Seth approves the dedicated SA and its four grants. Then: create it, add
-   its key as the `humanness-eval` environment secret, and confirm it can
-   read exactly the three secrets and nothing else in Secret Manager.
+1. The dedicated SA and its WIF provider exist (Seth approved them). Verify
+   both ways with `humanness-auth-check.yml`:
+   - A dispatch on main authenticates as `humanness-loop@` and reads exactly
+     the three secrets.
+   - A `pull_request` run of the same file fails to get a token.
 2. A Claude Code routine can push branches, open PRs and run
    `gh workflow run` on this repo; it has no web access (a `curl` to a
    non-GitHub host fails).
