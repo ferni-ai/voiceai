@@ -12,7 +12,6 @@
  */
 
 import { voice } from '@livekit/agents';
-import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { VOICED_TAKES, type VoicedCategory } from '../shared/reaction-clips.js';
 import { callerHour } from '../shared/time-context.js';
@@ -99,7 +98,6 @@ type PlayClip = (text: string, opts?: { pauseStartedAt?: number }) => boolean;
 type CallerData = {
   voiceEmotion?: { primary?: string };
   callerTimezone?: string;
-  userId?: string;
 };
 
 export interface VoicedPresenceOptions {
@@ -179,8 +177,8 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
   };
   const watcher = createPresenceWatcher({
     play: () => {
-      // The zone the call settled: never a profile's zone for a caller who isn't its owner.
-      const tz = v.caller()?.callerTimezone ?? userTimeZone({ userId: v.caller()?.userId });
+      // Never the profile's own zone: a phone caller gets one only as its verified owner (phone-parity.ts).
+      const tz = v.caller()?.callerTimezone;
       const category = idleCategory(callerHour(now(), tz), yawned, v.rng);
       // The morning yawn keeps its slot; otherwise, sometimes one of Seth's whistles
       if (whistles && category !== 'morning-yawn' && v.rng() < WHISTLE_SHARE && whistle())

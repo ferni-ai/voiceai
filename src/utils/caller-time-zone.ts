@@ -1,7 +1,8 @@
 /**
  * The caller's time zone per call, recorded when the call starts: the
  * browser's zone from the dispatch metadata, else the profile's contactInfo
- * zone (a phone call carries no browser zone). Memory writers read it by
+ * zone, only for the account's verified owner (agents/voice-agent-entry/
+ * phone-parity.ts; a phone call carries no browser zone). Memory writers read it by
  * session id; tools that schedule things read it by session or user id so
  * "tomorrow at noon" means noon where the user is.
  *
@@ -25,6 +26,11 @@ export function rememberCallerTimeZone(timeZone: unknown, ...ids: unknown[]): vo
     zones.set(id, timeZone);
   }
   while (zones.size > MAX_ENTRIES) zones.delete(zones.keys().next().value as string);
+}
+
+/** Forgets these ids' zones: a call with no zone of its own must not inherit an earlier call's. */
+export function forgetCallerTimeZone(...ids: unknown[]): void {
+  for (const id of ids) if (typeof id === 'string') zones.delete(id);
 }
 
 export function callerTimeZoneFor(id: string): string | undefined {

@@ -372,8 +372,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
-    // The browser's zone, else only a verified owner's profile zone (phone-parity.ts).
-    settleCallerZone({ sessionId, userId, onBehalf: callType === 'on_behalf_call' }, metadata.timezone, services, userData);
+    // The browser's zone, else (once the profile loads) only a verified owner's (phone-parity.ts).
+    void settleCallerZone({ sessionId, userId, onBehalf: callType === 'on_behalf_call' }, metadata.timezone, services, userData);
     // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
       userData.userLocation = {

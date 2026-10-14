@@ -358,10 +358,10 @@ const recurringReminderDef: ToolDefinition = {
             recurrencePattern = { type: 'daily' };
         }
 
-        // The user's zone: their call's, else the profile's, else UTC.
-        let userTimezone = userTimeZone(ctx) ?? 'Etc/UTC';
+        let userTimezone = userTimeZone(ctx) ?? 'Etc/UTC'; // the call's zone, else the profile's, else UTC
         try {
-          const profile = await (await getProfileStore()).getProfile(ctx.userId || 'anon');
+          const store = ctx.sessionId ? null : await getProfileStore(); // in a call: only the zone it settled
+          const profile = await store?.getProfile(ctx.userId || 'anon');
           userTimezone = userTimeZone(ctx) ?? profile?.contactInfo?.timezone ?? userTimezone;
         } catch {
           // Fallback to default timezone

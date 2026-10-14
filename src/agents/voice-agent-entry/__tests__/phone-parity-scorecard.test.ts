@@ -39,6 +39,7 @@ vi.mock('../../../tools/domains/entertainment/spotify.js', () => ({ setStreamInt
 const { identifyUser } = await import('../../voice-agent/user-identification-handler.js');
 const { productionRecognitionDeps } = await import('../caller-recognition.js');
 const { settleCallerZone } = await import('../phone-parity.js');
+const { trackDeferredProfileLoad } = await import('../../../services/session/deferred-profile.js');
 const { greetingFacts, partOfDayFor } = await import('../../multi-agent/greeting-direction.js');
 const { callerHour, timeContext } = await import('../../shared/time-context.js');
 const { callerTimeZoneFor } = await import('../../../memory/operations/call-moment.js');
@@ -91,14 +92,20 @@ async function startCall(way: Way): Promise<Row> {
     room: roomWith(app ? null : sipCaller),
     sessionId,
   });
-  // initializeSession loads the profile for an identified account, none otherwise.
-  const services = {
-    userProfile: who.userId ? PROFILE : null,
+  // The multi-agent fast path (the default) loads an identified account's
+  // profile after session start; none for an anonymous caller.
+  const services: { userProfile: typeof PROFILE | null; realtimeConversationId: string } = {
+    userProfile: null,
     realtimeConversationId: `conv-${sessionId}`,
   };
+  if (who.userId)
+    trackDeferredProfileLoad(
+      services,
+      Promise.resolve().then(() => void (services.userProfile = PROFILE))
+    );
   const userData: { callerTimezone?: string } = {};
   const call = { sessionId, userId: who.userId, onBehalf: false };
-  settleCallerZone(call, app ? ZONE : undefined, services, userData);
+  await settleCallerZone(call, app ? ZONE : undefined, services, userData);
 
   const hour = callerHour(NOW, userData.callerTimezone);
   const facts = greetingFacts(hour === null ? '' : partOfDayFor(hour), who.userName, undefined);
@@ -126,7 +133,7 @@ async function scored(way: Way, parity: boolean): Promise<Row> {
   if (parity) process.env.PHONE_PARITY = 'on';
   else delete process.env.PHONE_PARITY;
   const row = await startCall(way);
-  card.push({ mode: parity ? 'PHONE_PARITY=on' : 'off (main)', way, row });
+  card.push({ mode: parity ? 'PHONE_PARITY=on' : 'PHONE_PARITY off', way, row });
   return row;
 }
 
@@ -157,7 +164,7 @@ describe('phone vs app parity scorecard', () => {
     }
   });
 
-  it('off (main): a recognised phone caller is named and dated, but gets no local time or turn-1 prefetch', async () => {
+  it('PHONE_PARITY off: a recognised phone caller is named and dated, but gets no local time or turn-1 prefetch', async () => {
     const row = await scored('phone, signed A', false);
     expect(row['account identified (memory, profile)']).toBe(true);
     expect(row['greeting uses their name']).toBe(true);
