@@ -494,6 +494,6 @@ const marketingTools: ToolDefinition[] = [
 export const { domain, definitions } = createDomainExport('marketing', marketingTools);
 /** What the registry loads: no postToLinkedIn while LinkedIn is off (config/linkedin-flag.ts). */
 export const getToolDefinitions = (): Promise<ToolDefinition[]> =>
-  Promise.resolve(definitions.filter((d) => d !== postToLinkedInDef || isLinkedInEnabled()));
+  Promise.resolve(definitions.filter((d) => d.id !== postToLinkedInDef.id || isLinkedInEnabled()));
 
 export default getToolDefinitions;
