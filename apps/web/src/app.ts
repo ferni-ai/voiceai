@@ -340,7 +340,7 @@ import { playBeat, updateNarrativeContext } from './narrative/narrative-director
 // 🧪 Soul test utilities (available as window.testSoul in dev)
 // NOTE: Test file imported dynamically to avoid build errors
 if (import.meta.env.DEV) {
-  void import('./ui/soul.test.js');
+  void import('./ui/soul-console.js');
 }
 
 // 🧪 First-time user testing utilities (available as window.testFirstTimeUser in dev)
@@ -1247,7 +1247,7 @@ class VoiceAIApp {
     });
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
-      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
+      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless VITE_SPEAKER_CUES or ferni:speaker-cues
       (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // turns on unless ferni:avatar-turns=off; gestures need ferni:turn-gestures
       (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });

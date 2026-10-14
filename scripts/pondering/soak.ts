@@ -19,7 +19,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { FieldPath, getFirestore, type Firestore } from 'firebase-admin/firestore';
-import { callLLM } from '../../src/services/llm/llm-utils.js';
+import { callLLM } from '../../src/services/llm-utils.js';
 import { ponder, type PonderLlm } from '../../src/intelligence/pondering/pondering.js';
 import {
   SUMMARIES_READ,

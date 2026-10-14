@@ -253,7 +253,7 @@ async function testDirectBackgroundAgents(): Promise<{ passed: boolean; details?
     const context = await buildPendingResultsContext(TEST_USER_ID);
 
     return {
-      passed: result.id && pending.length > 0,
+      passed: Boolean(result.id) && pending.length > 0,
       details: `Result: ${result.id.slice(0, 12)}..., Pending: ${pending.length}, Context: ${context ? 'yes' : 'no'}`,
     };
   } catch (error) {
@@ -386,3 +386,5 @@ main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });
+
+export {};

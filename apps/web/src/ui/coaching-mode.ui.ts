@@ -366,7 +366,7 @@ const STYLES = `
   .coaching-btn--primary {
     background: var(--color-accent);
     border: none;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .coaching-btn--primary:hover {

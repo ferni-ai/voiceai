@@ -34,7 +34,7 @@ export function isGroundedCheckInsOn(
  * picks is generic: nothing the user said backs it up, and in production it is
  * the same "Thinking of you. How are things going?" for everyone. With grounded
  * check-ins on, only the proactive run's quote-backed follow-ups reach out
- * (proactive-channels/pondered-triggers.ts).
+ * (proactive-channels/pondered-triggers.ts, behind OUTREACH_PONDERED_NOTES).
  */
 export function blocksGenericCheckIns(
   env: Record<string, string | undefined> = process.env

@@ -10,7 +10,8 @@
  */
 
 import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
-import { callerState, decideAttune, type Attunement } from './attune.js';
+import { callerState, decideAttune, layerDelivery, SPEED_EPSILON } from './attune.js';
+import type { Attunement, Delivery } from './attune.js';
 import type { SSMLProsodyConfig } from '../types.js';
 import {
   decideEmotion,
@@ -33,6 +34,7 @@ import {
 } from './nonverbal.js';
 import { normalizeForSpeech } from './normalize.js';
 import { decideSpeed } from './pacing.js';
+import { personaTone, type PersonaDelivery } from './persona-delivery.js';
 import { respondToProsody, type ProsodyResponse } from './prosody-response.js';
 import type { CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { commaDensity, planPauses, removeMidSentenceEllipses } from './pauses.js';
@@ -61,8 +63,6 @@ export const STAGE2_TEMPO_MAX = 1.15;
 /** A breath before a phrase this long, at most every other segment. */
 const BREATH_MIN_WORDS = 10;
 const BREATH_FULL_WORDS = 18;
-/** Below this distance from 1 a speed is not worth a tag. */
-const SPEED_EPSILON = 0.015;
 
 export interface EngineContext {
   modes: LeverModes;
@@ -91,6 +91,7 @@ export interface EngineContext {
    * answered with pace, loudness and tone (attune.ts). Absent: attunement off.
    */
   attune?: { userEmotion?: string };
+  persona?: PersonaDelivery; // TEAM_VOICES=on: resting voice and tones (persona-delivery.ts)
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
   /**
@@ -130,6 +131,8 @@ export class DirectorEngine {
   prosody: ProsodyResponse = { speedNudge: 0, reason: 'no-reading' };
   /** How this reply answers the caller's mood, when VOICE_ATTUNE is on. */
   attunement: Attunement | undefined;
+  delivery: Delivery | undefined; // pace and loudness, layered by attune.ts (layerDelivery)
+  directorEmotion: StableEmotion | undefined; // decided in Ferni's space, before the persona's tone
 
   /** The caller's voice reading this reply answers, for the plan log. */
   get callerProsody(): CallerProsody | undefined {
@@ -213,8 +216,11 @@ export class DirectorEngine {
       // never voiced with them (review LOW: tags one phrase early).
       const strip = this.ctx.stripProsody === true;
       if (strip) spokenBody = spokenBody.replace(PROSODY_TAG, '');
-      if (first) this.pendingTags += strip ? volumeOnly(tags) : this.openingTags(tags, prosody);
-      else spokenBody = `${strip ? volumeOnly(tags) : this.laterTags(tags, prosody)}${spokenBody}`;
+      const lead = first ? this.openingTags(tags, prosody) : this.laterTags(tags, prosody);
+      // A voice that ignores the rest still takes the reply's loudness (attune.ts layerDelivery).
+      const own = strip ? volumeOnly(this.replyVolume === 1 ? tags : lead) : lead;
+      if (first) this.pendingTags += own;
+      else spokenBody = `${own}${spokenBody}`;
       const spoken = this.spokenPhrases.accept(spokenBody, first);
       if (spoken.length === 0) this.stats.held++;
       return this.emit(spoken);
@@ -353,7 +359,12 @@ export class DirectorEngine {
       previous: this.ctx.carry.speed,
       nudge: (answerVoice ? this.prosody.speedNudge : 0) + (this.ctx.ferniNudge ?? 0),
     });
-    this.settlePace(pace.speed);
+    // Pace and loudness are attune's alone: the persona's rest, then the caller's answer.
+    const caller = this.attunement ?? { speed: pace.speed, volume: 1 };
+    this.delivery = layerDelivery({ persona: this.ctx.persona, caller }, this.live('pacing'));
+    ({ speed: this.speed, volume: this.replyVolume } = this.delivery);
+    this.directorEmotion = this.emotion.emotion;
+    this.emotion = personaTone(this.ctx.persona, this.emotion, this.replyValence);
     this.replySpeed = this.live('pacing') && pace.supported ? this.speed : 1;
     if (this.ctx.modes.nonverbal !== 'off') {
       this.opening = decideOpening({
@@ -375,13 +386,6 @@ export class DirectorEngine {
   /** A tone answering the caller: their mood when attuned, else their voice (prosody lever). */
   private toneCandidate(answerVoice: boolean): StableEmotion | undefined {
     return this.attunement?.emotion ?? (answerVoice ? this.prosody.emotion : undefined);
-  }
-
-  /** The reply's speed (attunement owns it when on: its own targets, smoothing, bounds) and loudness. */
-  private settlePace(directorSpeed: number): void {
-    const speed = this.attunement?.speed ?? directorSpeed;
-    this.speed = Math.abs(speed - 1) < SPEED_EPSILON ? 1 : speed;
-    this.replyVolume = this.live('pacing') ? (this.attunement?.volume ?? 1) : 1;
   }
 
   /** VOICE_ATTUNE: how this reply answers the caller's mood (attune.ts), else undefined. */

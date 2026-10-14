@@ -19,6 +19,12 @@ vi.mock('../../config/gemini-config.js', async (importOriginal) => ({
   getGeminiClient: async () => ({ models: { generateContent } }),
 }));
 
+const sendSMS = vi.fn(async () => 'SM1');
+vi.mock('../../services/communication-service.js', () => ({ sendSMS }));
+vi.mock('../../services/outreach/user-reach.js', () => ({
+  userReach: async () => ({ phone: '+14155550134' }),
+}));
+
 const profile = { subscription: { tier: 'free' } };
 
 /** The first agent's tools for a call, capped like agent-setup.ts, with COACH_MEDIA as given. */
@@ -39,7 +45,8 @@ async function firstAgentTools(coachMedia: string): Promise<Record<string, unkno
 async function dispatch(
   session: object,
   toolCtx: Record<string, unknown>,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  name = 'findCoachingResources'
 ): Promise<string> {
   const dist = dirname(createRequire(import.meta.url).resolve('@livekit/agents'));
   const { performToolExecutions } = (await import(
@@ -51,7 +58,7 @@ async function dispatch(
   };
   const call = llm.FunctionCall.create({
     callId: `call-${Math.random()}`,
-    name: 'findCoachingResources',
+    name,
     args: JSON.stringify(args),
   });
   const [task, out] = performToolExecutions({
@@ -82,7 +89,9 @@ afterEach(() => {
 
 describe('findCoachingResources on the live path', () => {
   it('is not in a call’s tools with the flag off', async () => {
-    expect(Object.keys(await firstAgentTools(''))).not.toContain('findCoachingResources');
+    const names = Object.keys(await firstAgentTools(''));
+    expect(names).not.toContain('findCoachingResources');
+    expect(names).not.toContain('coachingPick');
   }, 60_000);
 
   it('is in a call’s tools with COACH_MEDIA=on and searches the topic, not the caller', async () => {
@@ -228,5 +237,21 @@ describe('findCoachingResources on the live path', () => {
     expect(output).not.toContain('https://');
     expect(output).toContain('Seven minutes, made for beginners.');
     expect(output).toContain('General info, not personal advice');
+
+    // They ask for it by text: the same call's pick goes to their verified number.
+    expect(Object.keys(tools)).toContain('coachingPick');
+    const toolCtx = agent.toolCtx as unknown as Record<string, unknown>;
+    const sent = await dispatch(session, toolCtx, { action: 'send_text' }, 'coachingPick');
+    expect(sent).toContain('Texted it');
+    expect(sendSMS).toHaveBeenCalledWith(
+      '+14155550134',
+      expect.stringContaining('https://www.youtube.com/watch?v=vid1')
+    );
+    // Another call has no pick to send.
+    const other = { userData: {}, currentAgent: agent };
+    expect(await dispatch(other, toolCtx, { action: 'send_text' }, 'coachingPick')).toContain(
+      'no checked pick'
+    );
+    expect(sendSMS).toHaveBeenCalledTimes(1);
   }, 60_000);
 });
