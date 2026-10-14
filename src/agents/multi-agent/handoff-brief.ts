@@ -158,7 +158,7 @@ export const NO_TOPIC = 'They asked for you by name and have not said what about
 
 /** Words that ask for a teammate, or are filler, rather than say what the call is about. */
 const ASKING = new Set(
-  'talk speak chat switch transfer hand bring put connect over hey please want wanted need wanna gonna let help hello thank thanks sure yes yep okay right now quick minute someone somebody doing well good great hope question thing stuff side'.split(
+  "talk talking speak speaking chat chatting switch transfer hand bring put connect over hey please want wanted need wanna gonna let let's help hello thank thanks sure yes yep okay right now quick minute someone somebody doing well good great hope question thing stuff side whether more glad calling called asked ask getting get into what's you're you've i've it's that's we're said told heard hear mentioned filled voice day today tonight evening morning afternoon week weekend time moment ready dig figure start sounds sorted fun cool nice awesome perfect exciting together".split(
     ' '
   )
 );
@@ -168,17 +168,22 @@ export function topicWords(text: string): string[] {
   return [...contentWords(text)].filter((w) => !ASKING.has(w) && teammateHeardAs(w) === null);
 }
 
-const stem = (w: string): string => w.slice(0, 5);
+/** The same word give or take an ending: "plan"/"planning", "move"/"moving". */
+function sameWord(a: string, b: string): boolean {
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 4 && long.startsWith(short.slice(0, short.length - 1));
+}
 
 /**
- * True when `text` is the caller's own words or a close paraphrase: at least two
- * thirds of its topic words (by their first five letters) are in what they said.
+ * True when `text` is the caller's own words or a close paraphrase: every word it is
+ * about is one they said (give or take an ending). One added detail ("Paris", "the
+ * divorce") is enough to refuse it.
  */
 export function groundedIn(text: string, callerLines: string[]): boolean {
-  const said = new Set(topicWords(callerLines.join(' ')).map(stem));
-  const words = topicWords(text).map(stem);
-  if (words.length === 0) return false;
-  return words.filter((w) => said.has(w)).length >= Math.ceil((words.length * 2) / 3);
+  const said = topicWords(callerLines.join(' '));
+  const words = topicWords(text);
+  return words.length > 0 && words.every((w) => said.some((s) => sameWord(w, s)));
 }
 
 const callerLinesOf = (input: BriefInput): string[] =>
@@ -201,22 +206,26 @@ export function groundedInput(input: BriefInput): BriefInput {
 }
 
 /**
- * A brief from the turns alone: the reason if the caller said it, else their own last
- * words when those say what it's about, else NO_TOPIC. Earlier lines are quoted.
+ * A brief from the turns alone: the caller's own last words, quoted, when those say what
+ * it's about, else NO_TOPIC. Earlier lines are quoted too. The handoff tool's reason is the
+ * model's wording, so it never stands in for theirs.
  */
 export function plainBrief(input: BriefInput): HandoffBrief {
   const callerLines = callerLinesOf(input);
   const last = callerLines.at(-1);
   const lastHasTopic = last !== undefined && topicWords(last).length > 0;
   const earlier = callerLines.slice(0, -1).filter((l) => topicWords(l).length > 0);
-  const reason = groundedReason(input.reason, callerLines);
   return {
-    why: clip(reason || (lastHasTopic ? `In their words: ${quoted(last)}` : NO_TOPIC)),
+    why: clip(lastHasTopic ? `In their words: ${quoted(last)}` : NO_TOPIC),
     discussed: earlier.length > 0 ? clip(earlier.slice(-2).map(quoted).join(' ')) : undefined,
     mood: input.emotion && input.emotion !== 'neutral' ? input.emotion : undefined,
     facts: input.remembered.slice(-3),
   };
 }
+
+/** A mood is one or two feeling words, nothing about what happened. */
+const MOODS =
+  /^(?:(?:a bit|a little|pretty|really|very|quite|kind of|somewhat)\s+)?(?:calm|relaxed|happy|excited|hopeful|upbeat|cheerful|curious|playful|tired|stressed|anxious|nervous|worried|overwhelmed|frustrated|annoyed|upset|sad|down|low|flat|lonely|confused|unsure|uncertain|distracted|rushed|impatient|focused|determined|motivated|eager|grateful|relieved|neutral|fine|okay|ok)(?:\s*(?:,|and)\s*(?:calm|relaxed|happy|excited|hopeful|upbeat|curious|tired|stressed|anxious|nervous|worried|overwhelmed|frustrated|upset|sad|down|unsure|focused|eager|relieved))?$/i;
 
 /**
  * The model's brief with every field the caller didn't say dropped: `why` falls back
@@ -230,7 +239,7 @@ export function groundBrief(
   const callerLines = callerLinesOf(input);
   const keep = (field: string | undefined): string | undefined =>
     field && groundedIn(field, callerLines) ? field : undefined;
-  const mood = brief.mood && brief.mood.split(/\s+/).length <= 3 ? brief.mood : keep(brief.mood);
+  const mood = brief.mood && MOODS.test(brief.mood.trim()) ? brief.mood.trim() : undefined;
   return {
     why: plain.why === NO_TOPIC ? NO_TOPIC : (keep(brief.why) ?? plain.why),
     discussed: keep(brief.discussed),
@@ -240,18 +249,25 @@ export function groundBrief(
   };
 }
 
-/** A claim about what the caller said ("Ferni told me you're…", "you're weighing…"). */
+/**
+ * A claim about the caller: "Ferni told me you're…", "I hear the offer came through",
+ * "Ferni let me know about…", "you've been weighing…", "congrats on…", "about your…".
+ */
 const CLAIMS = [
-  /\b(?:told me|tells me|said|says|mentioned|filled me in|heard)\b(.*)$/i,
-  /\byou(?:'re| are)\s+(\w+ing\b.*)$/i,
+  /\b(?:told me|tells me|said|says|mentioned|filled me in|heard|hear|let me know|passed along|caught me up)\b(.*)$/i,
+  /\byou(?:'re| are|'ve been| have been)\s+(\w+ing\b.*)$/i,
+  /\b(?:congrats|congratulations)\b(.*)$/i,
+  /\b(?:your|the|that|this)\s+(\w+.*)$/i,
 ];
 
-/** True when `line` claims something about the caller that they never said. */
+/** True when a sentence of `line` claims something about the caller that they never said. */
 export function ungroundedClaim(line: string, callerLines: string[]): boolean {
-  return CLAIMS.some((re) => {
-    const clause = line.match(re)?.[1]?.split(/[.?!]/)[0] ?? '';
-    return topicWords(clause).length > 0 && !groundedIn(clause, callerLines);
-  });
+  return line.split(/(?<=[.?!])\s+/).some((sentence) =>
+    CLAIMS.some((re) => {
+      const clause = sentence.match(re)?.[1] ?? '';
+      return topicWords(clause).length > 0 && !groundedIn(clause, callerLines);
+    })
+  );
 }
 
 const WRITER_SYSTEM =

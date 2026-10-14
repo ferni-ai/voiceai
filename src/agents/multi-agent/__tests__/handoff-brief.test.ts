@@ -96,13 +96,11 @@ describe('readConversation', () => {
 });
 
 describe('plainBrief', () => {
-  it("uses the model's reason, else the caller's own last words", () => {
-    expect(plainBrief(input({ reason: 'Wants help valuing startup equity' })).why).toBe(
-      'Wants help valuing startup equity'
-    );
-    const tap = plainBrief(input({ reason: 'User requested via UI' }));
-    expect(tap.why).toContain('equity is worth anything');
-    expect(tap.discussed).toContain('one forty');
+  it("quotes the caller's own last words, never the model's reason", () => {
+    const brief = plainBrief(input({ reason: 'Wants help valuing startup equity' }));
+    expect(brief.why).toContain('In their words: "I can\'t tell if the equity is worth anything');
+    expect(brief.why).not.toContain('valuing');
+    expect(brief.discussed).toContain('one forty');
   });
 });
 
@@ -139,7 +137,7 @@ describe('formatBrief', () => {
 
 describe('prepareBriefing', () => {
   it("uses the model's brief and the director's first line", async () => {
-    const actor = vi.fn(async () => 'Hey Sam. Ferni said the Denver offer is mostly equity?');
+    const actor = vi.fn(async () => 'Hey Sam. Is the equity in that Denver offer worth anything?');
     const out = await prepareBriefing(input(), 'Hey there! Peter here.', {
       writer: async () =>
         '{"why":"Whether the equity in the Denver offer is worth anything","open":"what the equity is worth"}',
@@ -147,7 +145,7 @@ describe('prepareBriefing', () => {
     });
     expect(out.brief).toContain('Why they came to you: Whether the equity in the Denver offer');
     expect(out.brief).toContain('Still open: what the equity is worth');
-    expect(out.firstLine).toBe('Hey Sam. Ferni said the Denver offer is mostly equity?');
+    expect(out.firstLine).toBe('Hey Sam. Is the equity in that Denver offer worth anything?');
     const [system, prompt] = actor.mock.calls[0] as unknown as [string, string];
     expect(system).toContain('You are Peter');
     expect(prompt).toContain('equity is worth anything'); // the caller's words
@@ -162,7 +160,9 @@ describe('prepareBriefing', () => {
       },
       budgetMs: 30,
     });
-    expect(out.brief).toContain('Why they came to you: Help with the equity question');
+    expect(out.brief).toContain(
+      'Why they came to you: In their words: "I can\'t tell if the equity'
+    );
     expect(out.firstLine).toBeUndefined();
   });
 });
@@ -261,6 +261,66 @@ describe('grounding: the brief holds only what the caller said', () => {
     ).toBe(false);
   });
 
+  it('refuses a reason or a writer field with one detail the caller never gave', async () => {
+    const turns = [
+      {
+        speaker: 'caller' as const,
+        text: 'Can I talk to Peter? I need help with a budget for my trip.',
+      },
+    ];
+    const { out, cue } = await run(
+      { turns, reason: 'budget for the Paris trip', toName: 'Peter', toPersonaId: 'peter-john' },
+      "Hey! Let's get that Paris trip budget sorted.",
+      '{"why":"A budget for the Paris trip","discussed":"Money worries and the divorce","mood":"anxious about offer"}'
+    );
+    expect(out.brief).not.toMatch(/Paris|divorce|offer/);
+    expect(cue).not.toContain('Paris');
+    expect(out.firstLine).toBeUndefined();
+    expect(groundedReason('budget for the Paris trip', ['help me with a budget for my trip'])).toBe(
+      undefined
+    );
+  });
+
+  it('keeps a mood only when it is a feeling', async () => {
+    const calm = await run({}, 'Hi!', '{"why":"x","mood":"a bit stressed"}');
+    expect(calm.out.brief).toContain('How they seem: a bit stressed');
+    const topical = await run({}, 'Hi!', '{"why":"x","mood":"anxious about offer"}');
+    expect(topical.out.brief).not.toContain('How they seem');
+  });
+
+  it('drops invented first lines that make no "told me" claim', () => {
+    const asked = ['Hey, can I talk to Jordan?'];
+    for (const line of [
+      'So, the offer. Big decision!',
+      "How's the new job thing going?",
+      'Hi! I hear the offer came through.',
+      'Congrats on the offer!',
+      "Hey! You've been weighing the offer, huh?",
+      'Ferni let me know about your offer.',
+      "Ferni said you're planning the move. Ferni also told me about the job offer.",
+    ]) {
+      expect(ungroundedClaim(line, asked), line).toBe(true);
+    }
+  });
+
+  it('keeps warm, grounded first lines', () => {
+    const asked = ['Hey, can I talk to Jordan?'];
+    for (const line of [
+      'I heard you asked for me! What are we getting into?',
+      "Hey, you're talking to Jordan now.",
+      "Glad you're calling.",
+      'Good to hear your voice. What would you like to dig into today?',
+    ]) {
+      expect(ungroundedClaim(line, asked), line).toBe(false);
+    }
+    expect(ungroundedClaim("Ferni said you're moving to Denver!", ['A move to Denver.'])).toBe(
+      false
+    );
+    expect(
+      ungroundedClaim("Ferni said you're planning a wedding.", ['I need to plan my wedding'])
+    ).toBe(false);
+  });
+
   it('keeps only recalled facts that were in the notes, marked as from past calls', () => {
     const grounded = groundBrief(
       { why: 'x', facts: ['Sam: partner = Ana', 'Sam: offer = bank job'] },
@@ -308,7 +368,7 @@ describe('orchestrator with BRIEFED_HANDOFF', () => {
       system.startsWith('You brief a teammate')
         ? '{"why":"Whether the startup equity in the Denver offer is worth anything"}'
         : system.startsWith('You are Peter')
-          ? 'Hey Sam. Ferni says the Denver offer leans on equity.'
+          ? 'Hey Sam. Ferni says the Denver offer is a startup one?'
           : undefined;
     const { orchestrator, made } = agentsFor();
     await orchestrator.start('ferni');
@@ -319,7 +379,7 @@ describe('orchestrator with BRIEFED_HANDOFF', () => {
       'Why they came to you: Whether the startup equity in the Denver offer'
     );
     expect(peter.agent.say).toHaveBeenCalledWith(
-      'Hey Sam. Ferni says the Denver offer leans on equity.',
+      'Hey Sam. Ferni says the Denver offer is a startup one?',
       expect.anything()
     );
   });
