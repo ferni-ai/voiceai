@@ -38,6 +38,8 @@ export interface CallMetrics {
   nameKnown: boolean;
   nameAskedByFerni: boolean;
   nameUsed: boolean;
+  /** With an account name they don't go by: Ferni's replies using it after they gave theirs. */
+  accountNameAfter: number | null;
   facts: number;
   factsTotal: number;
   replies: number;
@@ -87,6 +89,13 @@ export function metricsFor(p: Persona, raw: Line[]): CallMetrics {
       .some((l) => l.who === 'agent' && NAME_ASK.test(l.text)),
     nameUsed:
       nameAt >= 0 && lines.slice(nameAt + 1).some((l) => l.who === 'agent' && nameRe.test(l.text)),
+    accountNameAfter: p.accountName
+      ? lines
+          .slice(nameAt >= 0 ? nameAt + 1 : lines.length)
+          .filter(
+            (l) => l.who === 'agent' && new RegExp(`\\b${p.accountName}\\b`, 'i').test(l.text)
+          ).length
+      : null,
     facts: p.facts.filter(told).length,
     factsTotal: p.facts.length,
     replies: replies.length,
@@ -194,6 +203,10 @@ async function main(): Promise<void> {
     nameKnownWhenOnlyOnRequest: rate(onRequest.map((x) => x.nameKnown)),
     nameAskedByFerniWhenOnlyOnRequest: rate(onRequest.map((x) => x.nameAskedByFerni)),
     nameUsedWhenKnown: rate(m.filter((x) => x.nameKnown).map((x) => x.nameUsed)),
+    accountNameAfterOwnName: m
+      .filter((x) => x.accountNameAfter !== null)
+      .map((x) => `${x.id}:${x.accountNameAfter}`)
+      .join(' '),
     factsShared: `${mean(m.map((x) => x.facts)).toFixed(2)} of ${mean(m.map((x) => x.factsTotal)).toFixed(0)}`,
     questionsPerReply: +mean(m.map((x) => x.questionsPerReply)).toFixed(2),
     multiQuestionReplies: `${m.reduce((n, x) => n + x.multiQuestionReplies, 0)}/${m.reduce((n, x) => n + x.replies, 0)}`,

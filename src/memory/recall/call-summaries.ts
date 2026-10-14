@@ -28,7 +28,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
 import { isForgottenPassage } from './episodes.js';
-import { contentWords, type RecallStore } from './session-recall.js';
+import { contentWords, undisputed, type RecallStore } from './session-recall.js';
 import {
   createSemanticIndex,
   estimateTokens,
@@ -110,8 +110,9 @@ export function summarySnippets(
 ): SummarySnippet[] {
   const out: SummarySnippet[] = [];
   const seen = new Set<string>();
-  for (const [i, s] of summaries.entries()) {
-    if (s.forgottenAt !== undefined && s.forgottenAt !== null) continue;
+  for (const [i, raw] of summaries.entries()) {
+    if (raw.forgottenAt !== undefined && raw.forgottenAt !== null) continue;
+    const s = undisputed(raw); // items the caller denied (dispute.ts)
     const at = isoOf(s.timestamp);
     const whole = summaryText(s);
     if (!at || isForgottenPassage(whole, forgotten)) continue;

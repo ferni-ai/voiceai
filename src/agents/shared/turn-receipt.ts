@@ -15,6 +15,7 @@
  *
  * @module agents/shared/turn-receipt
  */
+import { onGatewayFirstAudio } from '../../speech/tts-gateway/first-audio-observer.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { callerTurn, fastLaneEnabled, laneReason } from '../model-provider/fast-lane.js';
 import { toolRetrievalMode } from '../../tools/retrieval/turn-tool-retrieval.js';
@@ -55,6 +56,7 @@ interface OpenTurn {
   eou?: EouMetric;
   llm?: LlmMetric;
   ttsTtfbMs?: number;
+  ttsPushMs?: number;
   ttsCancelled: boolean;
   thinkingAt?: number;
   speakingAt?: number;
@@ -144,6 +146,16 @@ export class TurnReceiptRecorder {
     }
   }
 
+  /**
+   * The TTS gateway's first audio for this reply (first-audio-observer.ts). Prod speaks through
+   * the gateway, which never emits the SDK's tts_metrics, so ttsTtfbMs was null in every receipt.
+   */
+  onGatewayAudio(ttfbMs: number, pushMs?: number): void {
+    if (!this.turn) return;
+    this.turn.ttsTtfbMs ??= ttfbMs;
+    if (pushMs !== undefined) this.turn.ttsPushMs ??= pushMs;
+  }
+
   onItem(item: { role?: string; interrupted?: boolean; textContent?: string } | undefined): void {
     if (item?.role === 'user') return this.onCommit();
     if (item?.role !== 'assistant' || !this.turn) return;
@@ -190,6 +202,11 @@ export class TurnReceiptRecorder {
     if (!turn) return;
     this.count += 1;
     const receipt = this.build(turn, endedBy);
+    // Prod 2026-10-12: after a cut-off, LiveKit stopped adding Ferni's replies to the
+    // history, and the model re-answered questions it had already answered.
+    if (receipt.reply.unrecorded) {
+      log.warn({ sessionId: this.opts.sessionId, turn: this.count }, 'REPLY_NOT_RECORDED');
+    }
     try {
       (this.opts.emit ?? ((r) => log.info(r, 'TURN_RECEIPT')))(receipt);
     } catch (error) {
@@ -210,6 +227,8 @@ export class TurnReceiptRecorder {
       llmReadyMs: eou && llm ? ms(llmReady(eou, llm)) : null,
       llmDurationMs: ms(llm?.durationMs),
       ttsTtfbMs: ms(turn.ttsTtfbMs),
+      /** Gateway: first text sent to the provider, from the start of the TTS node. */
+      ttsPushMs: ms(turn.ttsPushMs),
       /** Commit (thinking) to Ferni's first audio, as REPLY_GAP measures it. */
       commitToAudioMs: since(thinkingAt ?? 0, speakingAt),
       /** End of the caller's speech to Ferni's first audio. */
@@ -254,7 +273,13 @@ export class TurnReceiptRecorder {
           result: handoffTool ? (personaId !== turn.personaAtStart ? 'switched' : 'stayed') : null,
         },
       },
-      reply: { ...turn.reply, ttsCancelled: turn.ttsCancelled },
+      reply: {
+        ...turn.reply,
+        ttsCancelled: turn.ttsCancelled,
+        /** Ferni spoke and the caller's turn ended, but no reply reached the chat history. */
+        unrecorded:
+          endedBy === 'listening' && turn.speakingAt !== undefined && turn.reply.messages === 0,
+      },
     };
   }
 }
@@ -302,7 +327,11 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     ['close', () => rec.flush()],
   ];
   for (const [event, handler] of handlers) session.on(event, handler);
+  const offAudio = onGatewayFirstAudio((sessionId, ttfbMs, pushMs) => {
+    if (sessionId === opts.sessionId) rec.onGatewayAudio(ttfbMs, pushMs);
+  });
   return () => {
+    offAudio();
     rec.flush();
     for (const [event, handler] of handlers) session.off(event, handler);
     recorders.delete(session);

@@ -12,7 +12,7 @@
  * manual API route, and nothing ran the overdue check, so the factor never appeared.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sharedNestedFirestore as fs } from './helpers/nested-firestore.js';
 
 vi.mock('firebase-admin/firestore', async () => {
@@ -119,7 +119,10 @@ async function followsThrough(day = 5): Promise<{ kept: number; total: number } 
   return factor?.detail as { kept: number; total: number } | undefined;
 }
 
+afterEach(() => vi.unstubAllEnvs());
+
 beforeEach(() => {
+  vi.stubEnv('OUTBOUND_CONFIRM', 'off'); // pins promise keeping; the confirm gate is tested elsewhere
   fs.store.clear();
   clearCommitmentCache();
   resetOfferedMisses();
@@ -132,7 +135,7 @@ describe('Ferni keeps her promises', () => {
   it('a reminder she promised is sent, the promise is kept, and Trust shows it', async () => {
     await seedConversations();
     const said = await setReminder('in 30 minutes');
-    expect(said).toMatch(/I'll text you/);
+    expect(said).toMatch(/sent by text\./);
 
     const [promise] = promises();
     expect(promise).toMatchObject({ type: 'remind', outcome: 'open', fulfilled: false });

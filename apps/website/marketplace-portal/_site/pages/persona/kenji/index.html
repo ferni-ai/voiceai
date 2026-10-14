@@ -18,6 +18,9 @@
   <!-- Styles -->
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/persona-tone.css">
+  
+  <link rel="stylesheet" href="/css/persona-detail.css">
   
   
   
@@ -49,7 +52,7 @@
     
     <ul class="nav-links">
       <li><a href="/" >Browse</a></li>
-      <li><a href="/categories/" >Categories</a></li>
+      <li><a href="/pages/categories/" >Categories</a></li>
       <li><a href="https://app.ferni.ai" class="nav-cta-link">My Team</a></li>
     </ul>
     
@@ -116,7 +119,7 @@
 <!-- Main Content -->
 <section class="section">
   <div class="container">
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-8); align-items: start;">
+    <div class="persona-detail-layout">
 
       <!-- Left Column -->
       <div>
@@ -137,7 +140,7 @@
         <!-- What Kenji Helps With -->
         <div style="margin-bottom: var(--space-12);">
           <h2 style="margin-bottom: var(--space-4);">What I Help With</h2>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4);">
+          <div class="persona-help-grid">
             <div style="background: var(--bg-elevated); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
               <h4 style="margin-bottom: var(--space-2);">Sleep Hygiene</h4>
               <p style="font-size: var(--text-sm); color: var(--text-muted);">
@@ -253,12 +256,12 @@
         </div>
 
         <!-- CTA -->
-        <div style="background: linear-gradient(135deg, #2C3E50, #1A252F); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
+        <div class="persona-cta-card" style="--cta-from: #2C3E50; --cta-to: #1A252F;">
           <h3 style="margin-bottom: var(--space-2); color: white;">Ready for better sleep?</h3>
-          <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
+          <p>
             Free to add to your team
           </p>
-          <a href="https://app.ferni.ai" class="btn" style="background: white; color: #2C3E50; width: 100%;">
+          <a href="https://app.ferni.ai" class="btn persona-cta-btn">
             Add to Team
           </a>
         </div>
@@ -277,7 +280,7 @@
     </div>
 
     <div class="persona-grid" style="max-width: 900px; margin: 0 auto;">
-      <a href="/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
+      <a href="/pages/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">E</span>
@@ -293,7 +296,7 @@
         </div>
       </a>
 
-      <a href="/persona/amara/" class="persona-card" style="--persona-color: #7B6BA8; --persona-secondary: #5A4D80;">
+      <a href="/pages/persona/amara/" class="persona-card" style="--persona-color: #7B6BA8; --persona-secondary: #5A4D80;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">A</span>
@@ -309,7 +312,7 @@
         </div>
       </a>
 
-      <a href="/persona/marcus/" class="persona-card" style="--persona-color: #2D5A4A; --persona-secondary: #1E3D32;">
+      <a href="/pages/persona/marcus/" class="persona-card" style="--persona-color: #2D5A4A; --persona-secondary: #1E3D32;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">M</span>
@@ -350,7 +353,7 @@
         <h4>Explore</h4>
         <ul class="footer-links">
           <li><a href="/">All Personas</a></li>
-          <li><a href="/categories/">Categories</a></li>
+          <li><a href="/pages/categories/">Categories</a></li>
         </ul>
       </div>
 
@@ -358,8 +361,8 @@
         <h4>For Publishers</h4>
         <ul class="footer-links">
           <li><a href="https://developers.ferni.ai">Developer Portal</a></li>
-          <li><a href="https://developers.ferni.ai/pages/getting-started/">Create a Persona</a></li>
-          <li><a href="https://developers.ferni.ai/pages/api/">API Reference</a></li>
+          <li><a href="https://developers.ferni.ai/getting-started/">Create a Persona</a></li>
+          <li><a href="https://developers.ferni.ai/api/">API Reference</a></li>
         </ul>
       </div>
       

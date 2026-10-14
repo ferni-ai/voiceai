@@ -30,12 +30,15 @@ export async function handleGetCommitments(
 
   try {
     const limit = parsePositiveInt(parsedUrl.searchParams.get('limit'), 20, 100);
-    const status = parsedUrl.searchParams.get('status'); // 'pending', 'completed', 'all'
+    // Only active commitments are loaded, so 'active' and 'all' are the useful values
+    const status = parsedUrl.searchParams.get('status');
     const type = parsedUrl.searchParams.get('type'); // commitment type filter
 
-    const { loadUserCommitments } = await import('../../services/superhuman/commitment-keeper.js');
+    // The throwing read: a store failure is a 500 here, never an empty "all caught up"
+    const { loadActiveCommitmentsOrThrow } =
+      await import('../../services/superhuman/commitment-store.js');
 
-    let commitments = await loadUserCommitments(userId);
+    let commitments = [...(await loadActiveCommitmentsOrThrow(userId))];
 
     // Filter by status
     if (status && status !== 'all') {
@@ -59,6 +62,7 @@ export async function handleGetCommitments(
       type: c.type,
       description: c.summary,
       topic: c.topic,
+      personaId: c.personaId,
       dueDate: c.targetDate,
       status: c.status,
       createdAt: c.createdAt,
