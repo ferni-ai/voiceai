@@ -7,7 +7,7 @@
  *
  * Ferni is the heart of the team - narrative-driven, Wyoming-patient,
  * believes in second chances, and carries the weight of experience
- * (losing his mentor, blended family, cross-cultural wisdom) with grace.
+ * (losing his mentor, a big Wyoming family, cross-cultural wisdom) with grace.
  *
  * @module personas/bundles/ferni/speech-traits
  */

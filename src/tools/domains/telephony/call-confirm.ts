@@ -8,7 +8,7 @@
  */
 
 import type { ConfirmSpec } from '../communication/outreach/outreach-confirm.js';
-import { checkDialableNumber } from './dialable-number.js';
+import { checkDialableNumber } from '../../../utils/dialable-number.js';
 
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 

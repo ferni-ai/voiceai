@@ -75,8 +75,28 @@ describe('waveform frame loop', () => {
     expect(looping()).toBe(true);
     step(5);
     const bar = document.querySelector<HTMLElement>('.waveform-bar');
-    expect(bar?.style.height).toMatch(/px$/);
+    expect(bar?.style.transform).toMatch(/scaleY\(/);
     expect(looping()).toBe(true);
+  });
+
+  it('moves the bars with transform only: height is laid out once and never written per frame', () => {
+    const bar = document.querySelector<HTMLElement>('.waveform-bar') as HTMLElement;
+    expect(bar.style.height).toBe('48px');
+    const heights: string[] = [];
+    const scales = new Set<string>();
+    waveform.start();
+    waveform.setSpeaking(true);
+    for (let i = 0; i < 20; i++) {
+      step(1);
+      heights.push(bar.style.height);
+      scales.add(/scaleY\(([\d.]+)\)/.exec(bar.style.transform)?.[1] ?? '');
+    }
+    expect(new Set(heights)).toEqual(new Set(['48px']));
+    expect(scales.size).toBeGreaterThan(3); // the bar does move
+    expect(bar.style.boxShadow).toBe('inset 0 1px 0 rgba(255,255,255,0.15)'); // never rewritten
+    expect(Number(bar.style.getPropertyValue('--bar-lift'))).toBeGreaterThan(0);
+    waveform.stop();
+    expect(bar.style.transform).toMatch(/scaleY\(0\.125/); // 6px of 48px
   });
 
   it('stops on hang-up and nothing restarts it afterwards', () => {
