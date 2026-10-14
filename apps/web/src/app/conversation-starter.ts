@@ -7,7 +7,7 @@
  * that answers them, doing what the home Connect button does.
  *
  * There is no channel to hand a topic to the agent at connect time, so the
- * context an event carries (outreach id, message reason) is logged, not sent.
+ * context an event carries (outreach id, the hub thread's id) is logged, not sent.
  */
 
 import { appState } from '../state/app.state.js';
@@ -32,13 +32,18 @@ export interface ConversationHost {
 interface StartDetail {
   personaId?: unknown;
   outreachId?: unknown;
+  /** set by the hub's open-thread cards */
+  threadId?: unknown;
 }
 
 export function createConversationStarter(host: ConversationHost): EventListener {
   return (event: Event) => {
     const detail: StartDetail = (event as CustomEvent<StartDetail | null>).detail ?? {};
     const connection = appState.get('connection');
-    log.debug({ event: event.type, connection, outreachId: detail.outreachId }, 'start requested');
+    log.debug(
+      { event: event.type, connection, outreachId: detail.outreachId, threadId: detail.threadId },
+      'start requested'
+    );
 
     // A persona button while connected is a handoff; while idle it just picks who answers
     if (isValidPersonaId(detail.personaId)) host.selectPersona(detail.personaId);

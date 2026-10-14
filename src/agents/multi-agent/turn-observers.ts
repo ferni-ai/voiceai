@@ -248,6 +248,14 @@ export async function installTurnListeners(
     ),
     () => loop.close()
   );
+  // One TOOL_USAGE line per call: tool names and counts (tool-usage-log.ts).
+  const { trackToolUsage } = await import('../shared/tool-usage-log.js');
+  const { getAgentToolCount } = await import('../shared/tool-updater.js');
+  input.cleanupFunctions.push(
+    trackToolUsage(input.session as never, input.sessionId, () =>
+      getAgentToolCount(now(input.agent) as never)
+    )
+  );
   // PAUSE_HOLD: a reply to a turn ink ended hesitantly waits out the pause (pause-hold.ts).
   const { attachPauseHold } = await import('../../speech/output-control/pause-hold.js');
   const detachPauseHold = attachPauseHold(input.session as never, input.sessionId);
@@ -296,6 +304,12 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
   const speakers = await speakerLog(session, cleanupFunctions);
   const director = new Director({ sessionId, userName, writeNotes, speaking: speakers?.now });
   setDirector(session, director);
+  // The director sees Ferni's tool calls as they start and finish (director-tool-state.ts).
+  const { directorSeesTools, watchToolsForDirector } =
+    await import('../personas/director-tool-state.js');
+  if (writeNotes && directorSeesTools()) {
+    cleanupFunctions.push(watchToolsForDirector(session as never, director.tools));
+  }
   let spoke = false;
   const directorHandler = (ev: unknown): void => {
     const state = (ev as { newState?: string }).newState;

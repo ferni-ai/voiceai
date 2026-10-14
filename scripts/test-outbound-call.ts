@@ -18,7 +18,7 @@
  */
 
 import { config } from 'dotenv';
-config(); // Load .env file
+config({ quiet: true }); // Load .env file
 
 // ============================================================================
 // ARGUMENT PARSING
