@@ -10,5 +10,6 @@
 import './fact-sweep-register.js';
 import './personas/common-ground-register.js';
 import '../intelligence/world-model/extraction/register.js';
+import './dates-register.js';
 import '../services/outreach/after-call-checkin-register.js';
 import './fact-supersession-register.js';
