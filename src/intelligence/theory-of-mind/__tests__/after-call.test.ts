@@ -79,9 +79,11 @@ describe('theory of mind: the note', () => {
     );
     const model = (await store.load('u1'))!;
     const note = renderMindNote(model, new Date(T0.getTime() + DAY))!.note;
-    expect(note).toContain('They tend to: jokes when anxious, then wants practical help.');
-    expect(note).toContain('Already told you: Stripe interview on Monday');
-    expect(note).toContain('Lately: anxious about the Stripe interview.');
+    expect(note).toContain(
+      "What you've noticed about them: jokes when anxious, then wants practical help."
+    );
+    expect(note).toContain("They've already told you about Stripe interview on Monday");
+    expect(note).toContain('Last time they seemed anxious about the Stripe interview;');
     expect(note).toMatch(/never name them/);
     // A one-moment hunch is not acted on.
     expect(note).not.toContain('wants solutions, not sympathy');
@@ -100,15 +102,17 @@ describe('theory of mind: the note', () => {
     await call('s2', JSON.stringify({ contradicted: ['jokes-when-anxious'] }), later);
     const note = renderMindNote((await store.load('u1'))!, later)!.note;
     expect(note).not.toContain('jokes when anxious');
-    expect(note).not.toContain('Lately');
-    expect(note).toContain('Already told you');
+    expect(note).not.toContain('Last time they seemed');
+    expect(note).toContain("They've already told you about");
   });
 
   it('leaves out a mood that expired since the last call', () => {
     const model = emptyMindModel('u1', T0);
     const until = new Date(T0.getTime() + 5 * DAY).toISOString();
     model.current = { state: 'anxious about the Stripe interview', at: T0.toISOString(), until };
-    expect(renderMindNote(model, new Date(T0.getTime() + DAY))?.note).toContain('Lately');
+    expect(renderMindNote(model, new Date(T0.getTime() + DAY))?.note).toContain(
+      'Last time they seemed'
+    );
     expect(renderMindNote(model, new Date(T0.getTime() + 8 * DAY))).toBeNull();
   });
 
@@ -123,7 +127,7 @@ describe('theory of mind: the note', () => {
       model.toldFerni.push({ topic: `a long story about thing number ${i}`, at: T0.toISOString() });
     const r = renderMindNote(model, T0)!;
     expect(r.note.length).toBeLessThanOrEqual(MAX_NOTE_CHARS);
-    expect(r.note).toContain('Go gently around: their ex');
+    expect(r.note).toContain("Go gently around their ex (doesn't want to talk about it)");
     expect(r.told.length).toBeGreaterThan(0);
     expect(r.told.length).toBeLessThan(30);
     expect(renderMindNote(emptyMindModel('u1', T0), T0)).toBeNull();
@@ -138,7 +142,7 @@ describe('theory of mind: the note', () => {
     await store.save(model);
     const mind = createMindNote({ userId: 'u1', store, now: () => T0 });
     await mind.ready;
-    expect(mind.noteFor('hey')).toContain('Already told you');
+    expect(mind.noteFor('hey')).toContain("They've already told you about");
     const reminder = mind.noteFor('so the wedding is next week');
     expect(reminder).toContain("their sister Priya's wedding in Lisbon");
     mind.newTurn();
@@ -149,5 +153,72 @@ describe('theory of mind: the note', () => {
     fresh.noteFor('hey');
     expect(fresh.noteFor('weddings are a lot')).toBeNull(); // whole words only
     expect(fresh.noteFor('anyway, the wedding')).toContain('Priya');
+  });
+
+  it('leaves out what they asked Ferni to forget, everywhere in the note', () => {
+    const model = emptyMindModel('u1', T0);
+    const at = T0.toISOString();
+    model.toldFerni.push({ topic: 'the divorce papers', at }, { topic: 'new puppy Biscuit', at });
+    model.sensitivities.push({ topic: 'the divorce', how: 'still raw', at });
+    model.current = {
+      state: 'worn out by the divorce',
+      at,
+      until: new Date(T0.getTime() + 5 * DAY).toISOString(),
+    };
+    const forgotten = (text: string) => /divorce/i.test(text);
+    const note = renderMindNote(model, T0, forgotten)!.note;
+    expect(note).not.toMatch(/divorce/i);
+    expect(note).toContain('new puppy Biscuit');
+  });
+
+  it('never lists a topic they want gone around as one to pick up, nor reminds of it', async () => {
+    const model = emptyMindModel('u1', T0);
+    const at = T0.toISOString();
+    model.toldFerni.push(
+      { topic: "their ex's new partner", at },
+      { topic: 'marathon training', at }
+    );
+    model.sensitivities.push({ topic: 'their ex', how: "doesn't want to talk about it", at });
+    const r = renderMindNote(model, T0)!;
+    expect(r.told).toEqual(['marathon training']);
+    expect(r.note).not.toContain('new partner');
+
+    const store = memoryMindStore();
+    await store.save(model);
+    const mind = createMindNote({ userId: 'u1', store, now: () => T0 });
+    await mind.ready;
+    mind.noteFor('hey');
+    mind.newTurn();
+    expect(mind.noteFor("my ex's partner showed up")).toBeNull();
+  });
+
+  it('a passing day or time word is not a reason to remind', async () => {
+    const store = memoryMindStore();
+    const model = emptyMindModel('u1', T0);
+    for (let i = 0; i < 30; i++)
+      model.toldFerni.push({ topic: `story number ${i}`, at: T0.toISOString() });
+    model.toldFerni.push({ topic: 'Stripe interview on Monday', at: T0.toISOString() });
+    await store.save(model);
+    const mind = createMindNote({ userId: 'u1', store, now: () => T0 });
+    await mind.ready;
+    mind.noteFor('hey');
+    expect(mind.noteFor('anyway, monday was fine')).toBeNull();
+    expect(mind.noteFor('the interview went okay')).toContain('Stripe interview on Monday');
+  });
+
+  it('with forgotten topics unreadable, adds no note at all (fails closed)', async () => {
+    const store = memoryMindStore();
+    const model = emptyMindModel('u1', T0);
+    model.toldFerni.push({ topic: 'marathon training', at: T0.toISOString() });
+    await store.save(model);
+    const mind = createMindNote({
+      userId: 'u1',
+      store,
+      now: () => T0,
+      forgotten: async () => null,
+    });
+    await mind.ready;
+    expect(mind.noteFor('hey')).toBeNull();
+    expect(mind.noteFor('marathon training is going well')).toBeNull();
   });
 });

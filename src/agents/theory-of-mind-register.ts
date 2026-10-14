@@ -26,5 +26,6 @@ registerAfterCallTask(
       { store: firestoreMindStore }
     );
   },
-  { timeoutMs: 15_000 }
+  // Headroom over the update's own 15 s limit (after-call.ts), so its log line wins.
+  { timeoutMs: 20_000 }
 );

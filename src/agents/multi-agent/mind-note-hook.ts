@@ -11,6 +11,7 @@
 
 import { createMindNote, type MindNoteDeps } from '../../intelligence/theory-of-mind/note.js';
 import { firestoreMindStore } from '../../memory/storage/mind-store.js';
+import { forgottenTopicsOrNull, isForgotten } from '../../memory/recall/forget.js';
 import { addRecallNote, type RecallAgent } from './memory-recall-hook.js';
 
 export { theoryOfMindMode } from '../../intelligence/theory-of-mind/after-call.js';
@@ -26,7 +27,16 @@ export function attachMindNote(
   agent: RecallAgent,
   deps: Omit<MindNoteDeps, 'store'> & Partial<Pick<MindNoteDeps, 'store'>>
 ): { ready: Promise<void>; detach: () => void } {
-  const mind = createMindNote({ ...deps, store: deps.store ?? firestoreMindStore });
+  // What they asked Ferni to forget stays out of the note, as it does out of recall.
+  const forgotten = async () => {
+    const topics = await forgottenTopicsOrNull(deps.userId);
+    return topics && ((text: string) => isForgotten(text, topics));
+  };
+  const mind = createMindNote({
+    forgotten,
+    ...deps,
+    store: deps.store ?? firestoreMindStore,
+  });
   const onTranscript = (event: unknown) => {
     const transcript = (event as { transcript?: string }).transcript;
     const note = transcript ? mind.noteFor(transcript) : null;

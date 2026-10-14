@@ -13,6 +13,15 @@ import { memoryMindStore, type MindStore } from '../../../intelligence/theory-of
 import { CALL_1, READING_1, T0 } from '../../../intelligence/theory-of-mind/__tests__/fixtures.js';
 import type { RecallAgent } from '../memory-recall-hook.js';
 import { attachMindNote } from '../mind-note-hook.js';
+import { storedTopic } from '../../../memory/recall/session-recall.js';
+import { emptyMindModel } from '../../../intelligence/theory-of-mind/types.js';
+
+// What the caller asked Ferni to forget, as forget.ts records it (null: unreadable).
+const forgetting = vi.hoisted(() => ({ topics: [] as string[] | null }));
+vi.mock('../../../memory/recall/forget.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  forgottenTopicsOrNull: async () => forgetting.topics,
+}));
 
 // Production store (L1): the hook hands it in when the caller passes none.
 const firestore = vi.hoisted(() => ({ loads: [] as string[] }));
@@ -89,5 +98,28 @@ describe('theory of mind on the live path', () => {
     await mind.ready;
     expect(firestore.loads).toEqual(['u-prod']);
     mind.detach();
+  });
+
+  it('leaves out what the caller asked Ferni to forget, and adds nothing when that is unreadable', async () => {
+    const store = memoryMindStore();
+    const model = emptyMindModel('u1', T0);
+    const at = T0.toISOString();
+    model.toldFerni.push({ topic: 'the divorce papers', at }, { topic: 'new puppy Biscuit', at });
+    await store.save(model);
+
+    forgetting.topics = [storedTopic('the divorce')];
+    const call = nextCall(store);
+    await call.mind.ready;
+    call.session.emit('user_input_transcribed', { transcript: 'Hey Ferni' });
+    const [note] = notesIn(call.agent);
+    expect(note).toContain('new puppy Biscuit');
+    expect(note).not.toMatch(/divorce/i);
+
+    forgetting.topics = null;
+    const closed = nextCall(store);
+    await closed.mind.ready;
+    closed.session.emit('user_input_transcribed', { transcript: 'Hey Ferni' });
+    expect(notesIn(closed.agent)).toHaveLength(0);
+    forgetting.topics = [];
   });
 });
