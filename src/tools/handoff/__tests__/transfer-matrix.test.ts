@@ -32,6 +32,7 @@ function orchestratorWith(current: string) {
   const o = {
     isHandoffInProgress: () => false,
     getCurrentPersonaId: () => current,
+    getActiveAgent: () => null,
     handoff,
   } as unknown as Orchestrator;
   return { o, handoff };

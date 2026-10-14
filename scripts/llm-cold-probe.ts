@@ -38,9 +38,10 @@ const persona = readdirSync(dir)
 
 /** ~150 tools with Ferni-sized descriptions; names and text vary so they are not trivially cacheable. */
 function tools(): llm.ToolContext {
-  const ctx: llm.ToolContext = {};
+  const entries: llm.ToolContextEntry[] = [];
   for (let i = 0; i < 150; i++) {
-    ctx[`tool_${i}`] = llm.tool({
+    entries.push(llm.tool({
+      name: `tool_${i}`,
       description: `Helper ${i}: ${persona.slice(i * 100, i * 100 + 90).replace(/\s+/g, ' ')}`,
       parameters: z.object({
         query: z.string().describe('What the caller asked for'),
@@ -48,9 +49,9 @@ function tools(): llm.ToolContext {
         count: z.number().optional(),
       }),
       execute: async () => 'ok',
-    });
+    }));
   }
-  return ctx;
+  return new llm.ToolContext(entries);
 }
 
 function client(model: string): llm.LLM {
