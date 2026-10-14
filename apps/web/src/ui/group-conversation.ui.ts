@@ -721,7 +721,7 @@ const styles = `
   border: none;
   border-radius: var(--radius-lg);
   background: var(--color-accent);
-  color: white;
+  color: var(--color-text-on-accent);
   font-weight: 500;
   cursor: pointer;
   transition: background ${DURATION.FAST}ms, transform ${DURATION.FAST}ms;

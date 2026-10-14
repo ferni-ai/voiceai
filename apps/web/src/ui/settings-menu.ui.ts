@@ -1499,7 +1499,7 @@ class SettingsMenuUI {
 
       .settings-trigger--active {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
         border-color: var(--color-accent-primary, #2d5a3d);
       }
 

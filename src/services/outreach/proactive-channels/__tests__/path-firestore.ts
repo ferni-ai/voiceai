@@ -1,6 +1,6 @@
 /**
  * An in-memory Firestore keyed by document path, with nested subcollections:
- * doc get/set/update, collection where (==, >=, <=), orderBy (asc/desc, or
+ * doc get/set (with merge)/update, collection where (==, >=, <=), orderBy (asc/desc, or
  * '__name__' for the document id), startAfter(id), limit. Enough for the
  * proactive check-in run and the daily outreach run end to end.
  */
@@ -11,6 +11,18 @@ const cmp = (a: unknown, b: unknown): number => {
   const [x, y] = [v(a), v(b)];
   return x === y ? 0 : x < y ? -1 : 1;
 };
+
+const isMap = (v: unknown): v is Json =>
+  typeof v === 'object' && v !== null && !Array.isArray(v) && !(v instanceof Date);
+
+/** set(..., { merge: true }): nested maps merge, everything else is replaced. */
+function deepMerge(base: Json, patch: Json): Json {
+  const out: Json = structuredClone(base);
+  for (const [k, v] of Object.entries(patch)) {
+    out[k] = isMap(v) && isMap(out[k]) ? deepMerge(out[k] as Json, v) : structuredClone(v);
+  }
+  return out;
+}
 
 export function pathFirestore(docs: Map<string, Json>) {
   const snap = (path: string) => {
@@ -27,7 +39,11 @@ export function pathFirestore(docs: Map<string, Json>) {
       id: path.split('/').pop(),
       path,
       get: async () => snap(path),
-      set: async (data: Json) => void docs.set(path, structuredClone(data)),
+      set: async (data: Json, opts?: { merge?: boolean }) =>
+        void docs.set(
+          path,
+          opts?.merge ? deepMerge(docs.get(path) ?? {}, data) : structuredClone(data)
+        ),
       update: async (patch: Json) => void docs.set(path, { ...docs.get(path), ...patch }),
       collection: (name: string) => collectionRef(`${path}/${name}`),
     };
