@@ -296,6 +296,12 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
   const speakers = await speakerLog(session, cleanupFunctions);
   const director = new Director({ sessionId, userName, writeNotes, speaking: speakers?.now });
   setDirector(session, director);
+  // The director sees Ferni's tool calls as they start and finish (director-tool-state.ts).
+  const { directorSeesTools, watchToolsForDirector } =
+    await import('../personas/director-tool-state.js');
+  if (writeNotes && directorSeesTools()) {
+    cleanupFunctions.push(watchToolsForDirector(session as never, director.tools));
+  }
   let spoke = false;
   const directorHandler = (ev: unknown): void => {
     const state = (ev as { newState?: string }).newState;
