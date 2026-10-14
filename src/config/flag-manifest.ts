@@ -124,6 +124,8 @@ export const FLAG_MANIFEST = {
   ENABLE_INTELLIGENT_ROUTING: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   ENABLE_PROFILING: { default: 'off', owner: 'voice', kind: 'config' },
   ENDPOINT_FAST_FINISHED: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // late turn-1 words join that turn instead of opening a new one
+  EOT_CONTINUED_MERGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
