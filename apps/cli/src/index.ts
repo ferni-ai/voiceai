@@ -73,7 +73,7 @@ const PROJECT_ROOT =
   (isSEABinary ? process.cwd() : join(__dirname, '..', '..', '..'));
 
 // Load .env file from project root
-dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
+dotenvConfig({ path: join(PROJECT_ROOT, '.env'), quiet: true });
 const GCP_PROJECT = 'johnb-2025';
 const GCP_REGION = 'us-central1';
 

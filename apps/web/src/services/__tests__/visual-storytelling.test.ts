@@ -269,9 +269,12 @@ describe('Warmth Manager', () => {
   describe('Animation Duration Adjustment', () => {
     it('should adjust duration based on relationship depth', async () => {
       const { warmthManager } = await import('../warmth-manager.js');
-      
-      // Apply a stage first
-      warmthManager.applyTheme('deep-partnership');
+      const { relationshipStageService } = await import('../relationship-stage.service.js');
+
+      // getAdjustedDuration reads the stage the manager tracks, which comes from the
+      // stage service (applyTheme only paints CSS variables).
+      vi.spyOn(relationshipStageService, 'getStage').mockReturnValue('deep-partnership');
+      warmthManager.forceUpdate();
       
       const baseDuration = 300;
       const adjusted = warmthManager.getAdjustedDuration(baseDuration);
@@ -283,8 +286,10 @@ describe('Warmth Manager', () => {
 
     it('should return base duration at first-meeting stage', async () => {
       const { warmthManager } = await import('../warmth-manager.js');
-      
-      warmthManager.applyTheme('first-meeting');
+      const { relationshipStageService } = await import('../relationship-stage.service.js');
+
+      vi.spyOn(relationshipStageService, 'getStage').mockReturnValue('first-meeting');
+      warmthManager.forceUpdate();
       
       const baseDuration = 300;
       const adjusted = warmthManager.getAdjustedDuration(baseDuration);
@@ -444,7 +449,8 @@ describe('Visual Storytelling API Integration', () => {
 
     const { visualStorytellingService } = await import('../visual-storytelling.service.js');
     
-    await visualStorytellingService.init('test-user-id');
+    // A user id the earlier tests did not init, so init fetches instead of returning their cache.
+    await visualStorytellingService.init('teaser-test-user-id');
     const eligibility = visualStorytellingService.getTeaserEligibility();
     
     expect(eligibility.history).toBe(true);
