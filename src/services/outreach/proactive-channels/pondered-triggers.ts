@@ -120,6 +120,7 @@ function toTrigger(p: PlannedCheckIn): ProactiveTrigger {
     weight: 'light',
     timely: false,
     text: p.message,
+    finalText: true, // planned and checked by grounded-checkin.ts: no model rewrite
     reason: `you said "${quote}" on ${p.callDate}`,
     expiresAt: new Date(p.sendAt.getTime() + DAY_MS),
   };

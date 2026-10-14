@@ -35,6 +35,10 @@ vi.mock('../../../identity/firebase-auth.js', () => ({
 vi.mock('../../../communication-service.js', () => ({
   sendSMS: vi.fn(async (_to: string, body: string) => void texts.push(body)),
 }));
+// A working model that would turn the follow-up into a pre-event line.
+vi.mock('../../../llm-utils.js', () => ({
+  callLLM: vi.fn(async () => 'Good luck at the open mic on Wednesday! Feeling ready?'),
+}));
 
 const { handleDeliverScheduledActions } =
   await import('../../../../api/scheduled-jobs/background-delivery-jobs.js');
@@ -111,12 +115,15 @@ describe('grounded check-ins', () => {
 
     const result = await run();
     expect(result).toMatchObject({ status: 'sent', channel: 'in_app' });
+    // The planned question as written: the model never rewrites it.
     expect(notes().map(([, d]) => d.text)).toEqual(['Hey Seth, how did the bluegrass demo go?']);
     expect(texts).toEqual([]);
     const id = itemId('s1', DEMO_Q);
     expect(log(id)).toMatchObject({
       kind: 'follow_up',
       channel: 'in_app',
+      text: 'Hey Seth, how did the bluegrass demo go?',
+      textSource: 'template',
       reason: `you said "I'm playing the bluegrass demo at the open mic on Wednesday" on 2026-10-11`,
     });
     // Once only.
@@ -164,9 +171,19 @@ describe('grounded check-ins', () => {
     delete process.env.OUTREACH_PONDERED_NOTES;
     process.env.COHORT_FLAGS = 'on';
     seed([{ text: DEMO_Q, when: '2026-10-14', basis: 's1' }]);
+    // A promise Ferni made after the call ("I'll check in about the move"): due today.
+    docs.set(`${U}/ferni_commitments/p1`, {
+      type: 'check_in',
+      commitment: "I'll check in about the move",
+      relatedTopic: 'the move',
+      madeAt: new Date(DEMO_EVENING.getTime() - 20 * 3600_000).toISOString(),
+      outcome: 'open',
+    });
     cohortReadFails = true;
-    expect((await run()).status).toBe('idle');
-    expect(notes()).toHaveLength(0);
+    expect(await run()).toMatchObject({ status: 'sent', sourceId: 'promise:p1' });
+    expect(
+      docs.get(`${U}/proactive_outreach_log/grounded:${itemId('s1', DEMO_Q)}`)
+    ).toBeUndefined();
   });
 
   it('ignores a cohort flag unless COHORT_FLAGS is on', async () => {
