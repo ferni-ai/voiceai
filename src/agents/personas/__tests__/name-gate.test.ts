@@ -206,6 +206,18 @@ describe('withNameGate', () => {
     );
   });
 
+  it('at goodbye, with the falling-name delivery, the kept name ends its own sentence', async () => {
+    const env = { NAME_FALLING_INTONATION: 'on' };
+    // The eval scenarios end like this (catch-up, about-ferni: "I gotta go. Talk soon.").
+    const bye = callWith(6, 'Okay, I gotta go. Talk soon.');
+    expect(await run(['Sam, ', 'take care. ', 'Talk soon.'], bye, env)).toBe(
+      'Sam. Take care. Talk soon.'
+    );
+    expect(await run(['Talk soon', ', Sam.'], bye, env)).toBe('Talk soon, Sam.');
+    // Never twice, even at goodbye.
+    expect(await run(['Sam, take care. ', 'Bye, Sam!'], bye, env)).toBe('Sam. Take care. Bye!');
+  });
+
   it('never changes its mind on a long sentence that ends in a goodbye phrase', async () => {
     for (const text of [
       'Sam, when you show up like that for your team, people really see you.',
