@@ -97,7 +97,7 @@ function sentenceEnd(text: string): number {
 
 /** What a caller says when they want Ferni to do something: call, text, book, remind, save. */
 const ACTION_TALK =
-  /\b(?:call\w*|cal|ring\w*|rang|rung|phon\w*|dial\w*|buzz|face ?time|whats ?app|text\w*|tex|txt|messag\w*|msg|dm|e-?mail\w*|send\w*|sent|ping\w*|contact\w*|reach\w*|hit (?:up|her|him|them)|hold of|ahold|on the line|tell (?!me\b)\w+|let (?:her|him|them|my \w+|\w+) know|book\w*|schedul\w*|set up|reserv\w*|appointment\w*|meeting|calendar|remind\w*|wake me|alarm\w*|timer\w*|sav\w*|remember\w*|write (?:that|it|this) down|jot|note\w*|number\w*|llam\w*|appel\w*|anruf\w*|ruf|chiam\w*|liga\w*)\b|\d{3}/i;
+  /\b(?:call\w*|cal|ring\w*|rang|rung|phon\w*|dial\w*|buzz|face ?time|whats ?app|text\w*|tex|txt|messag\w*|msg|dm|e-?mail\w*|send\w*|sent|ping\w*|contact\w*|reach\w*|hit (?:up|her|him|them)|holler|connect\w*|put (?:me )?through|loop (?:in|\w+ in)|get (?:my|her|him|them|\w+ for me)|(?:talk|speak) (?:to|with) (?:my|her|him|them)|ask (?:my|her|him|them)\b|hold of|ahold|on the line|tell (?!me\b)\w+|let (?:her|him|them|my \w+|\w+) know|book\w*|schedul\w*|set up|reserv\w*|appointment\w*|meeting|calendar|remind\w*|wake me|alarm\w*|timer\w*|sav\w*|remember\w*|write (?:that|it|this) down|jot|note\w*|number\w*|llam\w*|appel\w*|anruf\w*|ruf|chiam\w*|liga\w*)\b|\d{3}/i;
 /** How many of the caller's (and Ferni's) latest messages can put an action in play. */
 const ASK_WINDOW = 6;
 
@@ -114,7 +114,7 @@ const spokenOf = (item: Item): string => {
   const text =
     item.textContent ??
     (Array.isArray(item.content)
-      ? item.content.filter((part): part is string => typeof part === 'string').join('')
+      ? item.content.filter((part): part is string => typeof part === 'string').join(' ')
       : '');
   const first = text.split('\n')[0].trim();
   return first.startsWith(TURN_CONTEXT_HEADER) ? '' : first;
@@ -223,6 +223,7 @@ export async function withActionClaimCheck<T>(
             // A tool call goes out after the words before it, as the model wrote them.
             if (pending) flush(pending);
             pending = '';
+            passed = 0;
             for (const name of toolNamesOf(chunk)) kindsOfTool(name).forEach((k) => calling.add(k));
             controller.enqueue(chunk);
             continue;

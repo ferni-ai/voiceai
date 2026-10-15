@@ -488,6 +488,13 @@ describe('no hold at the head of the reply (dev latency, increment 3)', () => {
       'tex my sister',
       'Llama a mi mamá.',
       'Appelle ma mère.',
+      'Can you connect me with my mom?',
+      'Could you get my mom for me?',
+      'Put me through to my mom.',
+      'I want to talk to my mom.',
+      'Loop in my sister.',
+      'Holler at my brother.',
+      'Ask my sister to pick me up.',
     ])
       expect([ask, actionInPlay(ctx(user(ask)))]).toEqual([ask, true]);
     expect(actionInPlay(ctx(user('Tell me something interesting.')))).toBe(false);
@@ -528,6 +535,24 @@ describe('no hold at the head of the reply (dev latency, increment 3)', () => {
     const parts = ["I'm calling her now. Sh", "e'll be glad to hear from you."];
     expect(await textOf(await check(streamOf(...parts), SMALL_TALK))).toBe(
       "I'm calling her now. Scratch that, I can't actually make calls for you, so I haven't rung anyone. I can help you work out what to say, though. She'll be glad to hear from you."
+    );
+  });
+
+  it('with no action in play, words after a tool call mid-reply come through intact', async () => {
+    const stream = streamOf(
+      'Let me look',
+      toolCall('searchMemory'),
+      ' that up for you. ',
+      'Here it is.'
+    );
+    const out = await chunksOf(await check(stream, SMALL_TALK, toolsWith('searchMemory')));
+    expect(out.map((c) => c.delta?.content ?? '').join('')).toBe(
+      'Let me look that up for you. Here it is.'
+    );
+    expect(out.findIndex((c) => c.delta?.toolCalls?.length)).toBe(1);
+    const claim = streamOf('Okay, so', toolCall('searchMemory'), " I'm calling her now. Bye.");
+    expect(await textOf(await check(claim, SMALL_TALK, toolsWith('searchMemory')))).toBe(
+      "Okay, so I'm calling her now. Scratch that, I can't actually make calls for you, so I haven't rung anyone. I can help you work out what to say, though. Bye."
     );
   });
 
