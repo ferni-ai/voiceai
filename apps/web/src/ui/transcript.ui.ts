@@ -46,6 +46,12 @@ let container: HTMLElement | null = null;
 let textElement: HTMLElement | null = null;
 let hideTimeout: ReturnType<typeof setTimeout> | null = null;
 let isEnabled = true; // Will be set during init based on platform and user preference
+let liveRegion: HTMLElement | null = null;
+let announceTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingAnnouncement = '';
+
+/** Same settle time as speaker cues: screen readers hear a line once it has landed. */
+export const CAPTION_ANNOUNCE_SETTLE_MS = 700;
 
 // ============================================================================
 // PREFERENCE MANAGEMENT
@@ -106,6 +112,14 @@ export function initTranscriptUI(): void {
     return;
   }
   
+  // Captions change many times a second; screen readers get a polite, settled copy
+  liveRegion?.remove();
+  liveRegion = document.createElement('div');
+  liveRegion.className = 'sr-only';
+  liveRegion.setAttribute('role', 'log');
+  liveRegion.setAttribute('aria-live', 'polite');
+  container.after(liveRegion);
+
   // Load user preference (defaults to OFF on mobile)
   isEnabled = getTranscriptionPreference();
   log.info(`Transcription initialized: ${isEnabled ? 'enabled' : 'disabled'} (mobile: ${isMobileDevice()}, iOS: ${isIOSDevice()})`);
@@ -145,6 +159,7 @@ export function showTranscript(text: string, isFinal = false): void {
   // Toggle typing cursor based on final state
   if (isFinal) {
     textElement.classList.remove('typing');
+    announceCaption(text);
     
     // Auto-hide after final text
     hideTimeout = trackedTimeout(() => {
@@ -153,6 +168,20 @@ export function showTranscript(text: string, isFinal = false): void {
   } else {
     textElement.classList.add('typing');
   }
+}
+
+/**
+ * Announce a finished caption line to screen readers once it settles. Lines
+ * that finish within the settle window are read together, so none are lost.
+ */
+function announceCaption(text: string): void {
+  pendingAnnouncement = pendingAnnouncement ? `${pendingAnnouncement} ${text}` : text;
+  if (announceTimer) clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => {
+    announceTimer = null;
+    if (liveRegion) liveRegion.textContent = pendingAnnouncement;
+    pendingAnnouncement = '';
+  }, CAPTION_ANNOUNCE_SETTLE_MS);
 }
 
 /**
@@ -208,6 +237,11 @@ export function dispose(): void {
   if (hideTimeout) {
     clearTimeout(hideTimeout);
   }
+  if (announceTimer) clearTimeout(announceTimer);
+  announceTimer = null;
+  pendingAnnouncement = '';
+  liveRegion?.remove();
+  liveRegion = null;
   
   container = null;
   textElement = null;

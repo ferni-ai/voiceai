@@ -15,7 +15,8 @@
  * - Legacy: ferniExpressions (GSAP-based lid overlays)
  * - Luxo: luxoExpressions (CSS transform-based, 100+ expressions)
  *
- * Set USE_LUXO_EXPRESSIONS=true to use the new system.
+ * Routing: Luxo by default (today's behaviour). localStorage
+ * 'ferni:luxo-bridge' = 'false' routes to the lid overlay instead.
  */
 
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
@@ -28,14 +29,24 @@ import { emotionState, type EmotionId, type EmotionState } from './emotion-state
 // CONFIGURATION
 // ============================================================================
 
-/**
- * Feature flag: Use new Luxo expression system (CSS transforms)
- * When true, uses the 100+ expression system from expressions.json
- * When false, uses legacy GSAP-based lid overlay system
- */
-const USE_LUXO_EXPRESSIONS = true;
-
 const log = createLogger('EmotionBridge');
+
+/**
+ * Which expression system emotion changes are routed to.
+ * Unset (default): Luxo (CSS transforms, 100+ IDs), which is today's behaviour.
+ * 'false': the GSAP lid overlay (ferniExpressions), the system that renders.
+ */
+export const LUXO_BRIDGE_FLAG_KEY = 'ferni:luxo-bridge';
+
+/** Read per call so the switch takes effect without a reload. */
+export function isLuxoBridgeEnabled(): boolean {
+  try {
+    return localStorage.getItem(LUXO_BRIDGE_FLAG_KEY) !== 'false';
+  } catch (error) {
+    log.debug('localStorage unavailable, keeping Luxo routing', { error });
+    return true;
+  }
+}
 
 // ============================================================================
 // EMOTION → EXPRESSION MAPPING
@@ -242,7 +253,7 @@ function onEmotionChange(emotion: EmotionState, previous: EmotionState): void {
   const intensity = intensityValue > 0.6 ? 'high' : 'normal';
 
   // Use appropriate expression system
-  if (USE_LUXO_EXPRESSIONS) {
+  if (isLuxoBridgeEnabled()) {
     // New Luxo expression system (CSS-based, 100+ expressions)
     triggerLuxoExpression(emotion.id, intensityValue);
     lastExpressionTime = now;
@@ -317,7 +328,7 @@ export function isBridgeEnabled(): boolean {
  * Useful for testing or one-off triggers.
  */
 export function triggerExpressionForEmotion(emotionId: EmotionId, intensity = 0.5): void {
-  if (USE_LUXO_EXPRESSIONS) {
+  if (isLuxoBridgeEnabled()) {
     triggerLuxoExpression(emotionId, intensity);
   } else {
     const expressionFn = EMOTION_TO_EXPRESSION[emotionId];
@@ -346,14 +357,14 @@ export function setLuxoExpression(expressionId: string, options?: { duration?: n
  * Check if using Luxo expression system.
  */
 export function isUsingLuxoExpressions(): boolean {
-  return USE_LUXO_EXPRESSIONS;
+  return isLuxoBridgeEnabled();
 }
 
 /**
  * Get current expression ID (Luxo system only).
  */
 export function getCurrentExpression(): ExpressionId | null {
-  if (USE_LUXO_EXPRESSIONS) {
+  if (isLuxoBridgeEnabled()) {
     return luxoExpressions.getCurrentExpression();
   }
   return null;

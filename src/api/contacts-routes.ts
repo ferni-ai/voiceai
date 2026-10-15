@@ -44,6 +44,7 @@ import {
   deleteGroup,
 } from '../services/contacts/contact-groups.js';
 import { contactEdits } from './contact-edits.js';
+import { groupEdits } from './contact-group-edits.js';
 import { findPerson, listPeople } from '../services/contacts/people-list.js';
 import { editSavedContact } from '../services/contacts/saved-contact-edits.js';
 
@@ -514,14 +515,11 @@ async function updateGroupHandler(
     return;
   }
 
-  const body = await parseBody<Record<string, unknown>>(req);
-  if (body === null || body === undefined) {
-    sendError(res, 'Invalid request body', 400);
-    return;
-  }
+  const edits = groupEdits(await parseBody<unknown>(req).catch(() => null));
+  if (!edits) return sendError(res, 'Invalid request body', 400);
 
   try {
-    const group = await updateGroup(userId, groupId, body as Parameters<typeof updateGroup>[2]);
+    const group = await updateGroup(userId, groupId, edits as Parameters<typeof updateGroup>[2]);
     if (group === null || group === undefined) {
       sendError(res, 'Group not found', 404);
       return;

@@ -45,6 +45,7 @@ const SCENES = [
   'command-palette',
   'coach-mark',
   'captions',
+  'caption-moments',
 ] as const;
 
 const BASELINE_FILE = join(dirname(fileURLToPath(import.meta.url)), 'contrast-baseline.json');
@@ -84,7 +85,11 @@ async function openScene(page: Page, scene: string, flagOn = false): Promise<voi
         // Storage unavailable: the scene still renders.
       }
     },
-    [scene === 'achievement' || scene === 'collision', flagOn, scene === 'captions'] as const
+    [
+      scene === 'achievement' || scene === 'collision',
+      flagOn,
+      scene === 'captions' || scene === 'caption-moments',
+    ] as const
   );
   // Pin the wall clock: greetings, countdowns and time-of-day features must not
   // depend on when CI runs (a run between 00:00 and 05:00 showed Night Owl).
@@ -130,6 +135,7 @@ async function useTheme(page: Page, theme: 'zen' | 'midnight'): Promise<void> {
  * differ run to run on a busy runner. Captions too: on a phone the in-call
  * layout is still settling, so they show three lines, one or none depending on
  * when the frame is taken (tests/e2e/captions-layout.spec.ts checks their box).
+ * Caption moments add a chip that springs in and leaves after 9 s.
  */
 const NO_SNAPSHOT = new Set([
   'achievement',
@@ -137,6 +143,7 @@ const NO_SNAPSHOT = new Set([
   'first-milestone',
   'collision',
   'captions',
+  'caption-moments',
 ]);
 
 /** Text that changes with the clock or animates, kept out of the pixel diff. */

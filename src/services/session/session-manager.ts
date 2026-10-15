@@ -1748,7 +1748,7 @@ export async function createSessionServices(
               );
             } else {
               await global.store.saveSummary(validatedUserId, summary);
-              runAfterCall(validatedUserId, sessionId, turns, summary, historyTracker, userProfile);
+              runAfterCall(validatedUserId, sessionId, turns, summary, historyTracker);
 
               // Index for semantic retrieval
               try {

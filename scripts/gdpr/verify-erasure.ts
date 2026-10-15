@@ -34,3 +34,5 @@ const docLeft = (await user.get()).exists;
 const leftDocs = Object.values(left).reduce((a, b) => a + b, 0) + (docLeft ? 1 : 0);
 console.log(JSON.stringify({ variant: process.argv[2] ?? 'prod-env', seededDocs: seeded, remainingDocs: leftDocs, userDocRemains: docLeft, subcollectionsRemaining: Object.keys(left).length, threw: threw || null }));
 process.exit(0);
+
+export {};

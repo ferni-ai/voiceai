@@ -18,7 +18,8 @@
       "sage",
       "wisdom"
     ],
-    "self_reference": "Nayan"
+    "self_reference": "Nayan",
+    "role_label": "aiLabel.role.wisdomGuide"
   },
 
   "llm_context": {
@@ -44,10 +45,11 @@
   "voice": {
     "provider": "cartesia",
     "voice_id": "${env:NAYAN_PATEL_VOICE_ID|52f0a563-2a2a-4c4a-ab4f-000eaaed32b3}",
-    "model": "sonic-3-latest",
+    "model": "sonic-3.6-2026-08-27",
     "default_emotion": "contemplative",
-    "emotion_range": ["contemplative", "serene", "wise", "gentle", "warm", "amused", "profound"],
+    "emotion_range": ["contemplative", "serene", "calm", "affectionate", "happy"],
     "default_speed": 0.85,
+    "speed_band": [0.8, 0.93],
     "default_volume": 0.92,
     "laughter_frequency": 0.06,
     "nonverbals": ["Hmm.", "Mmm.", "Ah."]

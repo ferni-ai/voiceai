@@ -30,7 +30,6 @@ export const LAYER_LEVELS: Readonly<Record<string, number>> = {
   services: 60,
   // Emotion state and animation choreography that services may drive.
   emotion: 55,
-  animation: 55,
   // Animation/presence systems: pure, config-driven.
   systems: 50,
   // App state.

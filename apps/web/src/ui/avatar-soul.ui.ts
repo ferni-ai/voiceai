@@ -476,11 +476,6 @@ export function triggerWarmthBloom(intensity: number = 1, color?: string): void 
   // Remove any existing animation
   warmthBloomElement.classList.remove('active');
 
-  // Apply custom color if provided
-  if (color) {
-    warmthBloomElement.style.setProperty('--warmth-color', color);
-  }
-
   // Scale the element based on intensity
   warmthBloomElement.style.transform = `translate(-50%, -50%) scale(${0.95 * intensity})`;
 
@@ -493,7 +488,6 @@ export function triggerWarmthBloom(intensity: number = 1, color?: string): void 
   // Remove class after animation
   trackedTimeout(() => {
     warmthBloomElement?.classList.remove('active');
-    warmthBloomElement?.style.removeProperty('--warmth-color');
   }, 1500);
 
   log.debug('Warmth bloom triggered', { intensity, color });
