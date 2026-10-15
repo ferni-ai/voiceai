@@ -1,0 +1,69 @@
+/* =======================================================
+   DARK MODE: BASE AND PAGE LAYOUTS
+   =======================================================
+
+   Pages on the base and page layouts (compare, enterprise, use cases,
+   marketplace, press, accessibility, cookies) use Tailwind utilities
+   and pages.css. _tokens.css flips the text tokens in dark mode, but
+   bg-white, the Tailwind tints and --color-bg stayed light, so the
+   flipped text sat on white.
+
+   Loads after styles.css and pages.css, and only acts in dark mode.
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  :root:root {
+    --color-bg: var(--color-bg-secondary);
+    --color-elevated: var(--color-bg-tertiary);
+  }
+
+  :root .nav {
+    background-color: var(--color-bg-overlay);
+  }
+
+  :root .bg-white {
+    background-color: var(--color-bg-tertiary);
+  }
+
+  :root .bg-amber-50,
+  :root .bg-amber-100 {
+    background-color: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  }
+
+  :root .bg-pink-100 {
+    background-color: var(--color-maya-glow);
+  }
+
+  :root .border-amber-200 {
+    border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+  }
+
+  :root .text-amber-600 {
+    color: var(--color-warning);
+  }
+
+  :root .text-pink-500 {
+    color: var(--color-maya-text);
+  }
+
+  /* Dark sage reads at 2:1 on the dark field */
+  :root .text-ferni,
+  :root .press-email {
+    color: var(--color-ferni-text);
+  }
+
+  /* The accent lightens in dark mode, so its skip link takes dark text */
+  :root .skip-link {
+    color: var(--color-text-inverse);
+  }
+
+  /* Initials on the colored persona fills stay light in both themes */
+  :root .persona-card__avatar {
+    color: var(--color-text-primary);
+  }
+
+  /* Jordan's fill is too light for light initials (2.9:1); dark ink reads at 6.2:1 */
+  :root .persona-card__avatar[data-persona='jordan'] {
+    color: var(--color-text-inverse);
+  }
+}
