@@ -10150,8 +10150,8 @@ body {
 
 /* 🆕 CONVERSATIONAL AVATAR - Natural head movements while speaking
        Like Ferni is actually engaged in conversation, not a pulsing orb */
-#coach.is-speaking .avatar-container,
-#coach.is-speaking #coachAvatar {
+#coach.is-speaking:not([data-speech-beats]) .avatar-container,
+#coach.is-speaking:not([data-speech-beats]) #coachAvatar {
   animation: conversationalSpeaking 3.5s ease-in-out infinite;
 }
 
