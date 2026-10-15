@@ -71,7 +71,6 @@
   :root:root .help-faq__item,
   :root:root .help-contact__option,
   :root:root .help-gift__content,
-  :root:root .help-contact,
   :root:root .philosophy-card,
   :root:root .step {
     background: #2a241f;
@@ -137,6 +136,7 @@
   :root:root .memory-demo__text,
   :root:root .memory-demo__magic,
   :root:root .memory-demo__speaker--user,
+  :root:root .memory-demo__speaker--ferni,
   :root:root .memory-demo .section__title,
   :root:root .two-am__quote,
   :root:root .assistant-phone__time,
@@ -163,7 +163,6 @@
   /* Dark sage (#4a6741) reads at 2:1 on the dark field; use light sage */
   :root:root .step__link,
   :root:root .hero__badge,
-  :root:root .memory-demo__speaker--ferni,
   :root:root .proof-table__good,
   :root:root .gift-card__impact,
   :root:root .fund-note a,
@@ -237,6 +236,7 @@
   /* Sage fills: the accent lightens in dark mode, so white text on it fails */
   :root:root .btn-primary,
   :root:root .capabilities-badge,
+  :root:root .hero-badge,
   :root:root .final-cta__phone-label {
     color: #14110e;
   }
@@ -270,5 +270,53 @@
 
   :root:root .story-page__section--accent {
     background: #3d5a35 !important;
+  }
+
+  /* Sage icons and marks: dark sage (#4a6741) is about 2.4:1 on Night Ink.
+     :root (not :root:root) so the white-on-sage hover states still win. */
+  :root :is(.story__card-icon, .capability__icon, .step__icon) svg,
+  :root :is(.help-quick__icon, .help-contact__option, .eq-icon) svg,
+  :root .help-faq__item summary::after,
+  :root .eq-icon,
+  :root .memory-demo__indicator {
+    color: var(--color-ferni-text);
+  }
+
+  /* story-brand.css pins these two to dark sage with !important */
+  :root:root :is(.use-case__icon, .feature__icon) svg {
+    color: var(--color-ferni-text) !important;
+  }
+
+  :root:root :is(.use-case:hover .use-case__icon, .feature:hover .feature__icon) svg {
+    color: var(--color-text-primary) !important;
+  }
+
+  :root:root .memory-demo__date {
+    color: var(--color-text-secondary);
+  }
+
+  /* Elevation: bands sit on the raised field, cards one step above with a
+     hairline. These bands were --page-card, the same tone as their cards. */
+  :root:root :is(.help-quick, .help-contact, .superpowers-section, .truth-section) {
+    background: var(--color-bg-secondary);
+  }
+
+  :root:root :is(.help-quick__card, .help-contact__option, .superpower-card, .truth-note) {
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border-subtle);
+  }
+
+  :root:root .bth-card {
+    background: var(--color-bg-elevated);
+    border-color: var(--color-border-subtle);
+  }
+
+  /* Chip-in band: --color-paper-sand stays cream in dark mode */
+  :root:root .ferni-fund {
+    background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
+  }
+
+  :root:root .chip-in {
+    border-color: var(--color-border-subtle);
   }
 }
