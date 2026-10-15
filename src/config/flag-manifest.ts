@@ -34,6 +34,7 @@ export interface FlagSpec {
 }
 
 export const FLAG_MANIFEST = {
+  ACTION_CLAIM_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   AFTER_CALL_EXTRACTION: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // set by the job runner for its child processes
   AGENT_JOB_CHILD: { default: 'off', owner: 'voice', kind: 'config' },
