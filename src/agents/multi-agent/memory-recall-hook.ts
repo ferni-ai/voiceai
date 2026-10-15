@@ -326,7 +326,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         turnCounted = true;
         callerTurn++;
       }
-      if (!snapshot || !text) return null;
+      if (!snapshot || !text || world.loading) return null;
       index?.observe(text);
       episodes?.observe(text);
       summaryRecall?.observe(text);

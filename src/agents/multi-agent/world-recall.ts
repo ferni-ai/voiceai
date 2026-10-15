@@ -12,8 +12,10 @@
  * - its note is the single source for who is who, so RECALL_PEOPLE's note is
  *   not shown beside it (the pets line still is). If the world model is empty
  *   or fails to load, RECALL_PEOPLE's note is shown as before.
- * Until it has loaded (flag on), recall adds nothing: a note then could hold
- * a topic to avoid, and the world note joins the first note after it loads.
+ * Until it has loaded (flag on), recall adds nothing (`loading`): a note then
+ * could hold a topic to avoid, and the world note joins the first note after
+ * it loads. Past WORLD_WAIT_MS it stops waiting: recall goes on as with the
+ * flag off (RECALL_PEOPLE's note included), and a late snapshot is ignored.
  * Off, recall is exactly what it was.
  *
  * @module agents/multi-agent/world-recall
@@ -33,6 +35,9 @@ import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
+/** How long recall waits for the world model before going on without it. */
+export const WORLD_WAIT_MS = 3000;
+
 export type LoadWorldModel = (userId: string) => Promise<WorldModelSnapshot>;
 
 /** For createMemoryRecall's `world` dep; both default to the real snapshot and process.env. */
@@ -42,8 +47,10 @@ export interface WorldRecallDeps {
 }
 
 export interface WorldRecall {
-  /** Settles once the snapshot is loaded (or failed, or the flag is off). Never rejects. */
+  /** Settles once the snapshot is loaded (or failed, timed out, or the flag is off). Never rejects. */
   ready: Promise<void>;
+  /** Flag on and still loading: recall adds nothing yet (and uses nothing up). */
+  readonly loading: boolean;
   /** The facts per-turn recall may pick from: the snapshot without what the note already says. */
   pool(snapshot: RecallSnapshot): RecallSnapshot;
   /** False for a thread or inside joke about a topic they asked not to bring up. */
@@ -52,7 +59,10 @@ export interface WorldRecall {
   note(): string | null;
   /** Who is who, once a call: RECALL_PEOPLE's note, or only its pets line beside a world note. */
   whoIsWho(facts: readonly RecallFact[], enabled?: boolean): string | null;
-  /** The assembled recall note without any line about a topic to avoid; null while loading. */
+  /**
+   * The assembled note without any listed item ("- ...") about a topic to
+   * avoid. Guidance and headings stay; a heading or block left with no items goes.
+   */
   screen(note: string): string | null;
 }
 
@@ -65,21 +75,34 @@ export function createWorldRecall(userId: string, deps: WorldRecallDeps = {}): W
   let noteGiven = false;
   let peopleGiven = false;
   let pooled: { from: RecallSnapshot; to: RecallSnapshot } | undefined;
-  const ready = on
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<void>((resolve) => {
+    if (!on) return;
+    timer = setTimeout(() => {
+      log.warn({ userId }, 'WORLD_MODEL_LATE');
+      resolve();
+    }, WORLD_WAIT_MS);
+  });
+  const loaded = on
     ? load(userId)
         .then((snap) => {
+          if (!pending) return; // came after recall stopped waiting
           const formatted = formatWorldNote(snap);
           if (formatted) world = { snapshot: snap, ...formatted };
           else log.info({ userId }, 'WORLD_MODEL_EMPTY');
         })
         .catch((error: unknown) => log.warn({ error: String(error) }, 'World model not loaded'))
-        .finally(() => {
-          pending = false;
-        })
     : Promise.resolve();
+  const ready = (on ? Promise.race([loaded, late]) : loaded).finally(() => {
+    pending = false;
+    clearTimeout(timer);
+  });
   const avoided = (text: string) => world !== null && touchesAvoided(text, world.snapshot);
   return {
     ready,
+    get loading() {
+      return pending;
+    },
     pool(snapshot) {
       if (!world) return snapshot;
       if (pooled?.from !== snapshot) {
@@ -104,12 +127,21 @@ export function createWorldRecall(userId: string, deps: WorldRecallDeps = {}): W
     screen(note) {
       if (pending) return null;
       if (!world) return note || null;
-      const own = new Set(world.note.split('\n'));
-      const kept = note
-        .split('\n')
-        .filter((line) => own.has(line) || !avoided(line))
-        .join('\n');
-      return kept.trim() ? kept : null;
+      const blocks = note.split('\n\n').flatMap((block) => {
+        if (block === world?.note) return [block];
+        const lines = block.split('\n');
+        const item = (line: string) => line.startsWith('- ');
+        const kept = lines.filter((line, i) => {
+          if (item(line)) return !avoided(line);
+          // A heading whose items all went goes with them.
+          const own = lines.slice(i + 1).findIndex((l) => !item(l));
+          const items = lines.slice(i + 1, own < 0 ? undefined : i + 1 + own);
+          return items.length === 0 || items.some((l) => !avoided(l));
+        });
+        const hadItems = lines.some(item);
+        return hadItems && !kept.some(item) ? [] : [kept.join('\n')];
+      });
+      return blocks.join('\n\n') || null;
     },
   };
 }

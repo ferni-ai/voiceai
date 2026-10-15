@@ -29,6 +29,8 @@ import {
   formatWorldNote,
   WORLD_NOTE_MAX_CHARS,
 } from '../../../intelligence/world-model/recall-note.js';
+import { claimOpenerFollowUp, clearOpenerClaims } from '../../../memory/recall/opener-claim.js';
+import { WORLD_WAIT_MS } from '../world-recall.js';
 import { EMPTY_GROUND, type CommonGround } from '../../personas/common-ground.js';
 
 const ON = { WORLD_MODEL_SNAPSHOT: 'on' };
@@ -96,6 +98,8 @@ async function run(env: Record<string, string>, sources = worldSources()) {
 }
 
 const events = (msg: string) => logged.filter((l) => l.msg === msg);
+
+const PEOPLE_RULE_TEXT = 'Never guess how someone is related to them';
 
 describe('world model in the live recall hook', () => {
   beforeEach(() => {
@@ -402,5 +406,99 @@ describe('formatWorldNote under a tight budget', () => {
     expect(note).toContain('Never list them.');
     expect(note).toContain("don't guess: ask");
     expect(note).toMatch(/Never bring up: a long and specific topic to avoid number 0/);
+  });
+});
+
+describe('world model screening keeps recall whole', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+    clearOpenerClaims();
+  });
+  const withAvoid = (topic: string) =>
+    loadWorldModel(
+      worldSources({
+        getHumanSignals: async () =>
+          mergeProfileSignals(
+            { unspoken: { avoidances: [{ topic, approach: 'never_raise' }] } },
+            null
+          ),
+      })
+    );
+
+  it("an avoid topic named in recall's own guidance never removes that guidance", async () => {
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store,
+      world: { env: ON, load: withAvoid('my health') },
+    });
+    await recall.ready;
+    const note = recall.noteFor(turns[1] ?? '') ?? '';
+    expect(note).toContain('[WHAT YOU REMEMBER ABOUT SAM]');
+    expect(note).toContain('Never bring up health, pregnancy, money or relationships');
+  });
+
+  it('a block whose every item touches a topic to avoid goes whole, header and all', async () => {
+    vi.stubEnv('COMMON_GROUND', 'on');
+    const ground = {
+      ...EMPTY_GROUND,
+      references: [{ phrase: 'the ex files', meaning: 'their ex and the breakup' }],
+    } as unknown as CommonGround;
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store,
+      groundStore: { load: async () => ground, save: async () => undefined },
+      world: { env: ON, load: loadWorldModel(worldSources()) },
+    });
+    await recall.ready;
+    const note = recall.noteFor(turns[0] ?? '') ?? '';
+    expect(note).not.toContain('Shorthand you share:');
+    expect(note).not.toContain('[COMMON GROUND');
+  });
+
+  it('a world model that never loads stops holding recall up after WORLD_WAIT_MS', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store,
+      people: true,
+      world: { env: ON, load: () => new Promise(() => {}) },
+    });
+    await vi.advanceTimersByTimeAsync(WORLD_WAIT_MS + 10);
+    await recall.ready;
+    const note = recall.noteFor(turns[0] ?? '') ?? '';
+    expect(note).toContain('[WHAT YOU REMEMBER ABOUT SAM]');
+    expect(note).toContain(PEOPLE_RULE_TEXT); // as with the flag off
+    expect(note).not.toContain('[THEIR WORLD]');
+  });
+
+  it("while loading, a turn uses nothing up: the greeting's opener claim still counts after", async () => {
+    vi.stubEnv('OPENER_FOLLOW_UP', 'on');
+    claimOpenerFollowUp('u1', 'greeting');
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const slow = async (userId: string) => {
+      await gate;
+      return loadWorldModel(worldSources())(userId);
+    };
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store,
+      world: { env: ON, load: slow },
+    });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(recall.noteFor(turns[0] ?? '')).toBeNull();
+    recall.newTurn();
+    release();
+    await recall.ready;
+    const note = recall.noteFor(turns[3] ?? '') ?? '';
+    expect(note).toContain('[THEIR WORLD]');
+    expect(note).not.toContain('This is the start of the call.'); // the greeting already asked
   });
 });
