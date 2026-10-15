@@ -13,7 +13,7 @@
  * @module voice-agent/phases/user-awareness
  */
 
-import { lastCallNotes, lastMoodNote } from '../../../services/session/summary-topics.js';
+import { lastMoodNote } from '../../../services/session/last-mood-note.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../../shared/outbound-opener.js';
 
@@ -104,7 +104,7 @@ export function buildUserAwareness(config: UserAwarenessConfig): UserAwarenessRe
 
   // Better Than Human #1: Last Conversation Context
   if (isReturningUser && profile.lastConversationSummary) {
-    facts.push(...lastCallNotes(profile.lastConversationSummary));
+    facts.push(`Last time you talked about: ${profile.lastConversationSummary}`);
   }
 
   // Better Than Human #2: Emotional Memory

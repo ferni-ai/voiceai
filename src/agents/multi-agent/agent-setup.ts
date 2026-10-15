@@ -137,7 +137,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
-import { lastCallNotes, lastMoodNote } from '../../services/session/summary-topics.js';
+import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
@@ -419,7 +419,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // Ferni remembers EXACTLY what you talked about
       // =========================================================================
       if (isReturningUser && userProfile.lastConversationSummary) {
-        userAwareness.push(...lastCallNotes(userProfile.lastConversationSummary));
+        userAwareness.push(`Last time you talked about: ${userProfile.lastConversationSummary}`);
       }
 
       // =========================================================================

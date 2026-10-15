@@ -14,7 +14,6 @@ import { claimOpenerFollowUp } from '../../memory/recall/opener-claim.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
 import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
-import { lastCallTopics } from '../../services/session/summary-topics.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { callerHour } from '../shared/time-context.js';
@@ -147,7 +146,7 @@ export function callerHistory(
     const ms = now.getTime() - new Date(profile.lastContact).getTime();
     if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
   }
-  const topic = lastCallTopics(profile.lastConversationSummary); // no mood reads
+  const topic = profile.lastConversationSummary?.trim();
   if (topic) history.lastTopic = topic.slice(0, MAX_TOPIC_CHARS);
   return history;
 }
