@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ReadableStream } from 'node:stream/web';
 
 import {
+  HOLD_LIMIT_MS,
   NAME_EVERY,
   applyVocatives,
   findVocatives,
@@ -200,7 +201,8 @@ describe('withNameGate', () => {
     expect(await run(['Talk soon', ', Sam.'], callWith(2, 'Alright, bye!'))).toBe(
       'Talk soon, Sam.'
     );
-    expect(await run(['Sam, ', 'take care. ', 'Bye!'], callWith(2))).toBe('Sam, take care. Bye!');
+    // A name before Ferni's own goodbye isn't waited on (that held first audio): it goes.
+    expect(await run(['Sam, ', 'take care. ', 'Bye!'], callWith(2))).toBe('Take care. Bye!');
     expect(await run(['That is rough, Sam. ', 'Talk soon, Sam.'], callWith(2))).toBe(
       'That is rough. Talk soon, Sam.'
     );
@@ -310,18 +312,29 @@ describe('withNameGate timing (#1413: under 50 ms to first audio)', () => {
     });
     let timing: { firstHoldMs: number; maxHoldMs: number } | undefined;
     const out: Array<[number, string]> = [];
+    const timers: Array<[number, () => void]> = [];
     const gated = withNameGate(input as never, {
       name: 'Sam',
       history,
       env: {},
       now: () => clock,
       onTiming: (t) => (timing = t),
+      setTimer: (fn, ms) => void timers.push([clock + ms, fn]),
     });
     const reading = (async () => {
       for await (const ch of gated as unknown as AsyncIterable<string>) out.push([clock, ch]);
     })();
     const settle = () => new Promise((r) => setImmediate(r));
+    const until = async (t: number) => {
+      for (let due = timers.find(([d]) => d <= t); due; due = timers.find(([d]) => d <= t)) {
+        timers.splice(timers.indexOf(due), 1);
+        clock = due[0];
+        due[1]();
+        await settle();
+      }
+    };
     for (const [t, s] of chunks) {
+      await until(t);
       clock = t;
       push(s);
       await settle();
@@ -334,7 +347,11 @@ describe('withNameGate timing (#1413: under 50 ms to first audio)', () => {
   it('sends ordinary first words the moment they arrive', async () => {
     for (const first of ['That', 'Oh,', 'Yeah', 'So', 'Honestly', '[laughter]', 'I']) {
       const { out, timing } = await timed(
-        [[0, first], [200, ' that sounds'], [240, ' rough. How']],
+        [
+          [0, first],
+          [200, ' that sounds'],
+          [240, ' rough. How'],
+        ],
         callWith(2)
       );
       expect(out[0], first).toEqual([0, first.replace(/,$/, '')]);
@@ -342,13 +359,59 @@ describe('withNameGate timing (#1413: under 50 ms to first audio)', () => {
     }
   });
 
+  it('never holds a comma or a hello word past the hold limit', async () => {
+    // continuation-tts cuts its first piece on "...brutal," at 12 characters.
+    const slow = await timed(
+      [
+        [0, 'That deadline is just brutal,'],
+        [200, ' honestly. What now?'],
+      ],
+      callWith(2)
+    );
+    expect(slow.out[1]).toEqual([HOLD_LIMIT_MS, ',']);
+    expect(slow.timing.maxHoldMs).toBeLessThanOrEqual(HOLD_LIMIT_MS);
+    // Mid-call "Hey" goes out; the name after it still goes.
+    const hey = await timed(
+      [
+        [0, 'Hey'],
+        [200, ' Sam, good to hear you.'],
+      ],
+      callWith(2)
+    );
+    expect(hey.out[0]).toEqual([HOLD_LIMIT_MS, 'Hey']);
+    expect(hey.out.map(([, t]) => t).join('')).toBe('Hey, good to hear you.');
+    // "Yes, Sam, I'm sure": the comma went out; the name is still dropped.
+    const yes = await timed(
+      [
+        [0, 'Yes,'],
+        [200, ' Sam, I am sure.'],
+      ],
+      callWith(2)
+    );
+    expect(yes.out.map(([, t]) => t).join('')).toBe('Yes, I am sure.');
+    // A sentence-final name after a released comma can't be undone, so it stays (rare).
+    const rough = await timed(
+      [
+        [0, 'That is rough,'],
+        [200, ' Sam.'],
+      ],
+      callWith(2)
+    );
+    expect(rough.out.map(([, t]) => t).join('')).toBe('That is rough, Sam.');
+  });
+
   it('holds only the few characters a name could start in, until the next chunk', async () => {
     const { out, timing } = await timed(
-      [[0, 'That is rough'], [30, ','], [60, ' Sam'], [90, '. How was it?']],
+      [
+        [0, 'That is rough'],
+        [30, ','],
+        [50, ' Sam'],
+        [80, '. How was it?'],
+      ],
       callWith(2)
     );
     expect(out.map(([, s]) => s).join('')).toBe('That is rough. How was it?');
     expect(out[0]).toEqual([0, 'That is rough']);
-    expect(timing.maxHoldMs).toBeLessThanOrEqual(60);
+    expect(timing.maxHoldMs).toBe(50); // the comma, then the name itself until its next character
   });
 });

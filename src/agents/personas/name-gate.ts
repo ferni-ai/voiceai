@@ -16,8 +16,8 @@
  * - "Yes, Sam, I'm sure." -> "Yes, I'm sure."
  * - "Sam, really? Again?" -> "Really? Again?"
  * It stays in the call's first reply (hello), when the caller is saying
- * goodbye or the reply is one, and once NAME_EVERY replies have gone by
- * without it; never twice in a reply. Only the name addressing the caller
+ * goodbye or the name closes a goodbye ("Talk soon, Sam."), and once
+ * NAME_EVERY replies have gone by without it; never twice in a reply. Only the name addressing the caller
  * goes: "Tell Sam I said hi", "Sam's sister", "Your name is Sam." and "My
  * friend, Sam, called" stay, and a reply to a question about the caller's own
  * name is left alone.
@@ -25,6 +25,11 @@
  * With NAME_FALLING_INTONATION on, a kept name that runs on into its sentence
  * ("Sam, take care.") ends its own sentence ("Sam. Take care.") so it falls:
  * the delivery #1320 measured for greetings (speech/tts-gateway/name-intonation.ts).
+ *
+ * Text waits only where a name could be starting (after a comma, or a
+ * sentence's first letters), and never more than HOLD_LIMIT_MS when what
+ * waits isn't the name itself: first audio must not pay for the gate
+ * (#1413: the dev A/B; continuation-tts cuts its first piece on a comma).
  *
  * NAME_GATE=off turns it off.
  *
@@ -49,12 +54,17 @@ const log = createLogger({ module: 'NameGate' });
  */
 export const NAME_EVERY = 40;
 
+const GOODBYE_PHRASES = String.raw`bye(?:-bye)?|goodbye|good ?night|talk (?:to you )?(?:soon|later|tomorrow)|(?<!\bi )see (?:you|ya)(?: (?:soon|later|tomorrow|then|next time|around))?|take care(?: of yourself)?|(?:gotta|got to|have to|need to) (?:go|run|hop off)|catch you later|let you go`;
 /**
  * A goodbye closes its sentence: "Take care, Sam." and "See you tomorrow!"
  * do; "I see you" and "I have to go to the doctor" don't.
  */
-const GOODBYE =
-  /\b(?:bye(?:-bye)?|goodbye|good ?night|talk (?:to you )?(?:soon|later|tomorrow)|(?<!\bi )see (?:you|ya)(?: (?:soon|later|tomorrow|then|next time|around))?|take care(?: of yourself)?|(?:gotta|got to|have to|need to) (?:go|run|hop off)|catch you later|let you go)\s*(?:,\s*[\p{L}'’-]+\s*)?(?:[.!?…]|$)/iu;
+const GOODBYE = new RegExp(
+  String.raw`\b(?:${GOODBYE_PHRASES})\s*(?:,\s*[\p{L}'’-]+\s*)?(?:[.!?…]|$)`,
+  'iu'
+);
+/** A goodbye the name closes: "Talk soon, Sam." (decided before the name, so nothing waits). */
+const GOODBYE_BEFORE_NAME = new RegExp(String.raw`\b(?:${GOODBYE_PHRASES})\s*,?\s*$`, 'iu');
 
 /** The caller asking about, or giving, their own name: the reply may need it. */
 const ASKS_OWN_NAME =
@@ -63,16 +73,26 @@ const ASKS_OWN_NAME =
 /** "Just call me Sam" (a capital, so not "call me tomorrow"). */
 const GIVES_NAME = /\b(?:[Yy]ou can|[Jj]ust|[Pp]lease) call me \p{Lu}/u;
 
-/** Characters a name may wait for its sentence to end (a goodbye is shorter). */
-const GOODBYE_WAIT = 40;
+/**
+ * The longest a comma or a sentence's first letters wait to show they don't
+ * start the name. Past it they go out; a name that follows is still dropped
+ * (or, after a comma that already went out, kept: ", Sam." can't be undone).
+ */
+export const HOLD_LIMIT_MS = 30;
+/** What a hold may be released on: punctuation, spaces, a greeting word or its start. */
+const RELEASABLE = /^[\s,—–;:]*(?:(?:hey|hi|hiya|hello|oh)\b\s*)?([a-z]*)$/i;
+const GREETING_WORDS = ['hey', 'hi', 'hiya', 'hello', 'oh'];
+const SPOKEN = /\p{L}/u;
+/** Letters outside markup: what counts as words for timing. */
+const spoken = (t: string): boolean => SPOKEN.test(t.replace(/<[^>]*>|\[[^\]]*\]/g, ''));
 
 type Chunk = llm.ChatChunk | string | object;
 
 /** How long the gate held text back in one reply. */
 export interface NameGateTiming {
-  /** From the reply's first words arriving to the first words going out. */
+  /** From the reply's first spoken letters arriving to the first going out. */
   firstHoldMs: number;
-  /** The longest any text waited for the characters that decide it. */
+  /** The longest one stretch of text waited for the characters that decide it. */
   maxHoldMs: number;
 }
 export interface HistoryItem {
@@ -129,8 +149,8 @@ export function mayUseName(items: readonly HistoryItem[], name: string): boolean
 /**
  * One reply's LLM stream with the caller's vocative name limited. Text passes
  * straight through except where a vocative might be starting (after a comma
- * or at a sentence start); that waits only until the next few characters
- * decide it.
+ * or at a sentence start); that waits for the next characters, and at most
+ * HOLD_LIMIT_MS unless the name itself is arriving.
  */
 export function withNameGate(
   input: ReadableStream<Chunk>,
@@ -141,6 +161,8 @@ export function withNameGate(
     /** How long the gate held text back (tests; production logs it). */
     onTiming?: (timing: NameGateTiming) => void;
     now?: () => number;
+    /** Schedules the hold limit (tests drive a virtual clock). */
+    setTimer?: (fn: () => void, ms: number) => void;
   }
 ): ReadableStream<Chunk> {
   const env = opts.env ?? process.env;
@@ -150,50 +172,51 @@ export function withNameGate(
   if (ASKS_OWN_NAME.test(caller) || GIVES_NAME.test(caller)) return input;
   const allowed = mayUseName(history, name);
   const falling = flagOn('NAME_FALLING_INTONATION', env);
+  const now = opts.now ?? Date.now;
+  const setTimer = opts.setTimer ?? ((fn: () => void, ms: number) => void setTimeout(fn, ms));
   let raw = '';
   let sent = '';
+  /** raw[0, committed) has gone out; released[] are the stretches sent undecided after HOLD_LIMIT_MS. */
+  let committed = 0;
+  const released: Array<[number, number]> = [];
   let template: Chunk | null = null;
-  // Timing: when the reply's first words came in and went out, and the longest any text waited.
-  const now = opts.now ?? Date.now;
+  let held = 0;
+  let timerFor = -1;
   let firstIn: number | null = null;
   let firstOut: number | null = null;
-  let heldSince: number | null = null;
+  let holdAt = -1;
+  let holdSince = 0;
   let maxHoldMs = 0;
-  let held = 0;
+
+  /** A vocative that starts in text already sent: drop only what is still to come. */
+  const clip = (v: Vocative): Vocative | null => {
+    // Decided before any release (already applied to what was sent), or after it: as found.
+    const range = released.find(([from, to]) => v.start >= from && v.start < to);
+    if (!range) return v;
+    const sentTo = range[1];
+    if (v.nameAt < sentTo) return null; // the name went out: it stays
+    if (v.with === '' && !v.capNext && v.start < v.nameAt) return null; // ", Sam." after "," went out
+    // ", Sam, I'm" -> ", I'm"; "Hey Sam, afternoon" -> "Hey, afternoon"
+    const after = v.with === ',' ? (raw.slice(v.end).match(/^\s*/)?.[0].length ?? 0) : 0;
+    const end = v.with === ',' ? v.end + after : v.nameEnd;
+    const space = raw.slice(0, v.nameAt).match(/\s*$/)?.[0].length ?? 0;
+    const start = Math.max(sentTo, v.nameAt - (v.with === ',' ? 0 : space));
+    return { ...v, start, end, with: '', capNext: false, fallAt: undefined };
+  };
 
   const render = (final: boolean): string => {
-    const { found, undecidedAt } = findVocatives(raw, name, final);
-    let upTo = final ? raw.length : (undecidedAt ?? raw.length);
-    // Outside hello, a name is kept only in a goodbye ("Sam, take care."), so
-    // it waits for its sentence to end before that is decided.
-    const keep = new Set<Vocative>();
-    for (const v of found) {
-      if (v.start >= upTo || keep.size > 0) break;
-      if (allowed) {
-        keep.add(v);
-        break;
-      }
-      // Goodbyes are short: only the first GOODBYE_WAIT characters after the
-      // name are read, so the decision never changes once it is made.
-      const stop = raw.slice(v.end).search(/[.!?…]/);
-      const window = v.end + GOODBYE_WAIT;
-      let close: number;
-      if (stop >= 0 && v.end + stop + 1 <= window) close = v.end + stop + 1;
-      else if (raw.length >= window)
-        continue; // a sentence this long isn't a goodbye
-      else if (final) close = raw.length;
-      else {
-        upTo = v.start;
-        break;
-      }
-      const from =
-        Math.max(...['.', '!', '?', '…'].map((p) => raw.lastIndexOf(p, v.start - 1))) + 1;
-      if (GOODBYE.test(raw.slice(from, close))) keep.add(v);
-    }
+    const result = findVocatives(raw, name, final);
+    const found = result.found.flatMap((v) => clip(v) ?? []);
+    let upTo = final ? raw.length : Math.max(committed, result.undecidedAt ?? raw.length);
     for (const v of found) if (v.start < upTo && v.end > upTo) upTo = v.start; // waits whole
     const done = found.filter((v) => v.end <= upTo);
+    // One vocative may stay: at hello, a caller's goodbye or the interval, the
+    // first; otherwise the first that closes a goodbye ("Talk soon, Sam.").
+    // Each is decided from the text before it, so nothing waits.
+    const kept =
+      done.find((v) => allowed || GOODBYE_BEFORE_NAME.test(raw.slice(0, v.nameAt))) ?? null;
     held = raw.length - upTo;
-    const out = applyVocatives(raw.slice(0, upTo), done, (v) => keep.has(v), falling);
+    const out = applyVocatives(raw.slice(0, upTo), done, (v) => v === kept, falling);
     // A reply that was only the name ("Sam?") is said as it came.
     if (final && sent === '' && !LETTER.test(out)) return raw;
     return out;
@@ -212,12 +235,13 @@ export function withNameGate(
   const flush = (controller: ReadableStreamDefaultController<Chunk>, final: boolean): void => {
     const out = render(final);
     const t = now();
-    if (held > 0) heldSince ??= t;
-    else if (heldSince !== null) {
-      maxHoldMs = Math.max(maxHoldMs, t - heldSince);
-      heldSince = null;
+    // Each held stretch is timed on its own, from where it starts.
+    const at = held > 0 ? raw.length - held : -1;
+    if (at !== holdAt) {
+      if (holdAt >= 0) maxHoldMs = Math.max(maxHoldMs, t - holdSince);
+      holdAt = at;
+      holdSince = t;
     }
-    if (firstOut === null && out.length > sent.length) firstOut = t;
     // Decisions are final once made, so what was sent stays a prefix.
     if (out.startsWith(sent)) {
       enqueue(controller, out.slice(sent.length));
@@ -227,7 +251,27 @@ export function withNameGate(
       log.warn({ sent: sent.length, out: out.length }, 'Name gate output diverged');
       enqueue(controller, out.slice(sent.length));
     }
+    if (firstOut === null && spoken(sent)) firstOut = t;
+    if (!final && held > 0 && timerFor !== raw.length) release(controller);
   };
+  /** After HOLD_LIMIT_MS, send held text that only might start the name. */
+  const release = (controller: ReadableStreamDefaultController<Chunk>): void => {
+    const waiting = raw.slice(raw.length - held);
+    const m = waiting.match(RELEASABLE);
+    if (!m) return; // the name itself is arriving: it waits
+    const letters = m[1].toLowerCase();
+    const greeting = letters === '' || GREETING_WORDS.some((g) => g.startsWith(letters));
+    if (!greeting || (letters !== '' && name.toLowerCase().startsWith(letters))) return;
+    const length = raw.length;
+    timerFor = length;
+    setTimer(() => {
+      if (closed || raw.length !== length || held === 0) return;
+      released.push([length - held, length]);
+      committed = length;
+      flush(controller, false);
+    }, HOLD_LIMIT_MS);
+  };
+  let closed = false;
 
   return new ReadableStream<Chunk>({
     async start(controller) {
@@ -240,18 +284,20 @@ export function withNameGate(
             continue;
           }
           raw += content;
-          if (content) firstIn ??= now();
+          if (firstIn === null && spoken(raw)) firstIn = now();
           template = chunk;
           flush(controller, false);
         }
+        closed = true;
         flush(controller, true);
         const timing = {
           firstHoldMs: firstIn !== null && firstOut !== null ? firstOut - firstIn : 0,
           maxHoldMs,
         };
         opts.onTiming?.(timing);
-        // Expected ~0: text waits only where a name could be starting (#1413 latency check).
-        if (timing.firstHoldMs >= 20) log.info(timing, 'Name gate held the first words');
+        if (timing.firstHoldMs >= 20 || timing.maxHoldMs > HOLD_LIMIT_MS + 20) {
+          log.info(timing, 'Name gate held text');
+        }
         controller.close();
       } catch (error) {
         controller.error(error);
