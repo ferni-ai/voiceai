@@ -128,27 +128,41 @@ function pastCalls(input: RevivedInput): Array<{ doc: SummaryDoc; days: number }
 }
 
 /**
- * A last call that hurt (tears, a fight, a loss, a hang-up in anger). Its
- * details stay out: Ferni gets the tone, never a painful moment to open with.
+ * How a recent call felt reaches Ferni in detail only when it plainly went
+ * lightly. Anything else (a hard call, or one this can't tell) fails closed:
+ * the tone without the details, and none of that call's open questions, so
+ * Ferni never has a painful moment to open with.
  */
 const HARD_CALL =
-  /\b(cried|crying|tears|sobb|upset|angry|furious|hung up|panic|crisis|griev|grief|died|death|funeral|suicid|self-harm|scared|terrified|devastat|heartbr|fight|argument)/i;
+  /\b(cried|crying|tears|sobb|upset|angry|furious|hung up|panic|crisis|griev|grief|died|death|funeral|suicid|self-harm|scared|terrified|devastat|heartbr|fight|argument|heavy|miscarri|cancer|diagnos|divorce|laid off|fired|broke down|hospital)/i;
+const LIGHT_CALL =
+  /\b(lighthearted|light|fun|funny|laugh|joked|joking|playful|easy|easygoing|upbeat|cheerful|warm|relaxed|happy|excited|friendly|casual|calm|chatty)\b/i;
+
+/** "Whether the hearing went okay" reads mid-sentence as "whether the hearing went okay". */
+const midSentence = (q: string): string => q.charAt(0).toLowerCase() + q.slice(1);
 
 export function lastCallLines(input: RevivedInput): RevivedLine[] {
+  // The newest summary left after forget and dispute filtering: "a recent
+  // call", since an earlier one may have been left out.
   const last = pastCalls(input).at(0);
   if (last === undefined) return [];
   const lines: RevivedLine[] = [];
   const arc = text(last.doc.emotionalArc);
+  const light = arc !== '' && LIGHT_CALL.test(arc) && !HARD_CALL.test(arc);
+  const when = ago(last.days);
   if (arc) {
     lines.push({
       builder: 'last-call',
-      text: HARD_CALL.test(arc)
-        ? `Your last call (${ago(last.days)}) was a hard one. Be gentle and let them lead; don't bring it up.`
-        : `How your last call (${ago(last.days)}) felt, for your tone, not to bring up: ${clip(inFerniVoice(arc, input.userName), 240)}`,
+      text: light
+        ? `How a recent call (${when}) felt, for your tone, not to bring up: ${clip(inFerniVoice(arc, input.userName), 240)}`
+        : HARD_CALL.test(arc)
+          ? `A recent call (${when}) was a hard one. Be gentle and let them lead; don't bring it up.`
+          : `Let them lead on anything from a recent call (${when}); don't bring it up yourself.`,
       priority: 76,
       untilTurn: 10,
     });
   }
+  if (arc && !light) return lines; // its open questions could name what hurt
   // Follow-ups reach the call through memory recall (memory-recall-hook.ts);
   // only questions it doesn't already cover are new here.
   const followUps = input.summaries.flatMap((s) => strings(s.followUpItems));
@@ -156,11 +170,11 @@ export function lastCallLines(input: RevivedInput): RevivedLine[] {
   const open = strings(last.doc.questionsRemaining)
     .filter((q) => !alreadyCovered(q, seen))
     .slice(0, 2)
-    .map((q) => clip(inFerniVoice(q, input.userName), 120));
+    .map((q) => midSentence(clip(inFerniVoice(q, input.userName), 120)));
   if (open.length > 0) {
     lines.push({
       builder: 'last-call',
-      text: `Only if they bring it up: last time you didn't find out ${open.join('; ')}`,
+      text: `Only if they bring it up: last time you didn't find out ${open.join('; or ')}.`,
       priority: 75,
       untilTurn: 10,
     });

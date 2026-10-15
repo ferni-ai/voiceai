@@ -44,11 +44,11 @@ describe('revived builders', () => {
     const text = lastCallLines(input())
       .map((l) => l.text)
       .join('\n');
-    expect(text).toContain('How your last call (2 days ago) felt, for your tone, not to bring up');
+    expect(text).toContain('How a recent call (2 days ago) felt, for your tone, not to bring up');
     expect(text).toContain('you confused martial arts with tea blocks');
     expect(text).not.toMatch(/assistant/i);
     expect(text).toContain(
-      "Only if they bring it up: last time you didn't find out How the move to Denver is going"
+      "Only if they bring it up: last time you didn't find out how the move to Denver is going"
     );
     // Covered by the follow-up memory recall already offers.
     expect(text).not.toContain('martial arts training is going');
@@ -97,8 +97,38 @@ describe('revived builders', () => {
     const text = lastCallLines(input({ summaries: [hard] }))
       .map((l) => l.text)
       .join('\n');
-    expect(text).toContain('Your last call (2 days ago) was a hard one');
+    expect(text).toContain('A recent call (2 days ago) was a hard one');
     expect(text).toContain("don't bring it up");
     expect(text).not.toMatch(/divorce|cried|hung up/i);
+  });
+
+  it("last-call: after a hard call, none of that call's open questions (they could name what hurt)", () => {
+    const hard = {
+      ...LAST_CALL,
+      emotionalArc: 'Started heavy; the user cried about the divorce.',
+      questionsRemaining: ['Whether the custody hearing went okay'],
+    };
+    const text = lastCallLines(input({ summaries: [hard] }))
+      .map((l) => l.text)
+      .join('\n');
+    expect(text).not.toMatch(/custody|hearing|divorce/i);
+  });
+
+  it('last-call: fails closed on an arc it cannot read as light, painful words or not', () => {
+    for (const emotionalArc of [
+      'Quiet; they talked through the miscarriage and what the doctor said.',
+      'They walked through their week and the new schedule.',
+    ]) {
+      const call = {
+        ...LAST_CALL,
+        emotionalArc,
+        questionsRemaining: ['What the doctor said next'],
+      };
+      const text = lastCallLines(input({ summaries: [call] }))
+        .map((l) => l.text)
+        .join('\n');
+      expect(text).toMatch(/let them lead/i);
+      expect(text).not.toMatch(/miscarriage|doctor|schedule/i);
+    }
   });
 });

@@ -99,7 +99,7 @@ describe('revived intelligence on the live turn path', () => {
     expect(note).toContain('Keep it short.');
     expect(note).toContain('From earlier calls');
     expect(note).toContain(ARC);
-    expect(note).toContain('How the move to Denver is going');
+    expect(note).toContain('how the move to Denver is going');
   });
 
   it('flag off: the note is unchanged and nothing is read', async () => {
