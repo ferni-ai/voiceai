@@ -29,6 +29,9 @@ import {
   type RevivedStore,
 } from '../../intelligence/revived/revived-intelligence.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { firestoreRevivedStore } from '../../memory/storage/revived-store.js';
+import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
+import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
 import {
   deferFirstTurn,
@@ -75,7 +78,12 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       userName: profile?.preferredName || profile?.name || deps.userData.userName,
       lastContact: profile?.lastContact,
       lastConversationSummary: profile?.lastConversationSummary,
-      store: deps.revivedStore,
+      store: deps.revivedStore ?? firestoreRevivedStore,
+      // Earlier calls' words never bring back what they asked Ferni to forget.
+      forgotten: async () => {
+        const topics = userId ? await forgottenTopicsOrNull(userId) : null;
+        return topics && ((text: string) => isForgottenPassage(text, topics));
+      },
     });
   }
 

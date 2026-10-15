@@ -26,6 +26,14 @@ vi.mock('../../processors/index.js', async (importOriginal) => ({
   })),
 }));
 
+// What the caller asked Ferni to forget, as forget.ts records it (null: unreadable).
+const forgetting = vi.hoisted(() => ({ topics: [] as string[] | null }));
+vi.mock('../../../memory/recall/forget.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  forgottenTopicsOrNull: async () => forgetting.topics,
+}));
+const { storedTopic } = await import('../../../memory/recall/session-recall.js');
+
 const { createTurnContextPusher, createTurnIntelligenceHook } =
   await import('../turn-intelligence.js');
 type Deps = Parameters<typeof createTurnIntelligenceHook>[0];
@@ -74,6 +82,7 @@ const settle = () =>
   });
 
 afterEach(() => {
+  forgetting.topics = [];
   delete process.env.REVIVED_INTELLIGENCE;
   delete process.env.REVIVED_BUILDERS;
   processed.injections = [{ category: 'pacing', content: 'Keep it short.', priority: 40 }];
@@ -145,5 +154,21 @@ describe('revived intelligence on the live turn path', () => {
     const note = await noteFor(hook);
     expect(note).toContain('[CRISIS] Stay with them.');
     expect(note).not.toContain('From earlier calls');
+  });
+
+  it('a call they asked Ferni to forget part of never comes back; unreadable means none', async () => {
+    process.env.REVIVED_INTELLIGENCE = 'on';
+    forgetting.topics = [storedTopic('the move to Denver')];
+    const forgot = setup(store());
+    await settle();
+    const note = await noteFor(forgot.hook);
+    expect(note).toContain('Keep it short.');
+    expect(note).not.toMatch(/denver/i);
+    expect(note).not.toContain(ARC); // the whole summary goes, not one line of it
+
+    forgetting.topics = null;
+    const closed = setup(store());
+    await settle();
+    expect(await noteFor(closed.hook)).not.toContain('From earlier calls');
   });
 });

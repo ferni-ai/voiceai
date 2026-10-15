@@ -15,7 +15,6 @@
  */
 
 import type { ContextInjection } from '../../types/context-injection-types.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   REVIVED_BUILDER_NAMES,
@@ -35,7 +34,6 @@ const CHARS_PER_TOKEN = 4;
 const REFRESH_MS = 10 * 60 * 1000;
 const SESSION_TTL_MS = 3 * 60 * 60 * 1000;
 const MAX_SESSIONS = 500;
-const SUMMARIES = 6;
 
 export const REVIVED_CATEGORY = 'revived_intelligence';
 export const REVIVED_HEADER = 'From earlier calls (what you know, not a topic to raise):';
@@ -62,26 +60,40 @@ export function revivedIntelligenceConfig(env: Env = process.env): RevivedConfig
   };
 }
 
+/**
+ * What revived intelligence needs from storage. The Firestore adapter (L1,
+ * memory/storage/revived-store.ts) implements it; turn-intelligence.ts hands it in.
+ */
 export interface RevivedStore {
   /** The user's session summaries, newest first. */
   summaries: (userId: string) => Promise<SummaryDoc[]>;
 }
 
-/** The same summaries query memory recall uses (single-field order, no composite index). */
-export const firestoreRevivedStore: RevivedStore = {
-  async summaries(userId) {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    const snap = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('summaries')
-      .orderBy('timestamp', 'desc')
-      .limit(SUMMARIES)
-      .get();
-    return snap.docs.map((d) => d.data() as SummaryDoc);
-  },
-};
+/** Is this text about a topic the caller asked Ferni to forget (memory/recall/forget.ts)? */
+export type IsForgotten = (text: string) => boolean;
+
+/** Every string in a summary, so it is checked whole against forgotten topics. */
+function wordsOf(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.flatMap(wordsOf);
+  if (value && typeof value === 'object') return Object.values(value).flatMap(wordsOf);
+  return [];
+}
+
+/**
+ * The summaries Ferni may use, failing closed as call-summaries.ts does: one
+ * marked forgottenAt goes, and so does the whole summary when any of its text
+ * is about a forgotten topic. Unreadable forgotten topics: none at all.
+ */
+export function rememberable(summaries: SummaryDoc[], forgotten: IsForgotten | null): SummaryDoc[] {
+  if (!forgotten) return [];
+  return summaries.filter((s) => {
+    const marked = (s as { forgottenAt?: unknown }).forgottenAt;
+    if (marked !== undefined && marked !== null) return false;
+    const { sessionId: _id, timestamp: _at, ...said } = s;
+    return !forgotten(wordsOf(said).join('\n'));
+  });
+}
 
 export interface RevivedStart {
   sessionId: string;
@@ -89,7 +101,12 @@ export interface RevivedStart {
   userName?: string;
   lastContact?: unknown;
   lastConversationSummary?: string;
-  store?: RevivedStore;
+  store: RevivedStore;
+  /**
+   * What the caller asked Ferni to forget, or null when it can't be read (then
+   * nothing from earlier calls is offered). Absent: nothing is forgotten (tests).
+   */
+  forgotten?: () => Promise<IsForgotten | null>;
   now?: () => Date;
   env?: Env;
 }
@@ -120,13 +137,21 @@ async function load(entry: Entry): Promise<void> {
   const { start } = entry;
   const now = start.now ?? (() => new Date());
   const began = Date.now();
-  entry.loading = (start.store ?? firestoreRevivedStore)
-    .summaries(start.userId as string)
-    .catch((error: unknown) => {
+  const forgotten = (start.forgotten?.() ?? Promise.resolve(() => false)).catch(
+    (error: unknown) => {
+      log.warn({ error: String(error) }, 'Revived intelligence: forgotten topics unreadable');
+      return null;
+    }
+  );
+  entry.loading = Promise.all([
+    start.store.summaries(start.userId as string).catch((error: unknown) => {
       log.warn({ error: String(error) }, 'Revived intelligence: summaries unavailable');
       return [] as SummaryDoc[];
-    })
-    .then((summaries) => {
+    }),
+    forgotten,
+  ])
+    .then(([all, isForgotten]) => {
+      const summaries = rememberable(all, isForgotten);
       const input = {
         sessionId: start.sessionId,
         userName: start.userName,

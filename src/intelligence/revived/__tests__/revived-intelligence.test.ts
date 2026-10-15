@@ -4,6 +4,7 @@ import {
   REVIVED_CATEGORY,
   revivedInjection,
   revivedIntelligenceConfig,
+  rememberable,
   startRevivedIntelligence,
   withRevivedIntelligence,
   type RevivedStore,
@@ -193,5 +194,46 @@ describe('withRevivedIntelligence', () => {
       .join('\n\n');
     expect(before.length).toBeLessThanOrEqual(400);
     expect(withRevivedIntelligence(turn, { sessionId: id, turn: 1, maxChars: 150 }, ON)).toBe(turn);
+  });
+});
+
+describe('forget: earlier calls never bring back what they asked Ferni to forget', () => {
+  const forgetDenver = (text: string) => /denver/i.test(text);
+
+  it('drops a whole summary about a forgotten topic, and one marked forgottenAt', () => {
+    const marked = { ...OLDER, sessionId: 'session-marked', forgottenAt: daysAgo(1) };
+    const kept = rememberable([LAST_CALL, OLDER, marked], forgetDenver);
+    expect(kept).toEqual([OLDER]); // LAST_CALL mentions Denver in questionsRemaining
+  });
+
+  it('offers nothing when the forgotten topics cannot be read', () => {
+    expect(rememberable([LAST_CALL, OLDER], null)).toEqual([]);
+  });
+
+  it('on the live path: the forgotten summary never reaches the block', async () => {
+    const id = sid();
+    await startRevivedIntelligence({
+      sessionId: id,
+      userId: 'u',
+      userName: 'Seth',
+      store: store([LAST_CALL, OLDER]),
+      forgotten: async () => forgetDenver,
+      now: () => NOW,
+      env: ON,
+    });
+    const block = revivedInjection(id, 1, Infinity, ON);
+    expect(block?.content ?? '').not.toMatch(/denver|tea blocks/i);
+    endRevivedIntelligence(id);
+
+    const closed = sid();
+    await startRevivedIntelligence({
+      sessionId: closed,
+      userId: 'u',
+      store: store([LAST_CALL, OLDER]),
+      forgotten: async () => null,
+      now: () => NOW,
+      env: ON,
+    });
+    expect(revivedInjection(closed, 1, Infinity, ON)).toBeNull();
   });
 });
