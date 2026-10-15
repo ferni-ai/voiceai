@@ -260,6 +260,7 @@ describe('toPonderSummary', () => {
       keyPoints: ['k1', 'k2'],
       questionsRemaining: ['q'],
       followUpItems: ['f'],
+      callerProvenance: 1,
     });
     expect(iso).toEqual({
       id: 'x',
@@ -269,6 +270,9 @@ describe('toPonderSummary', () => {
       openThreads: ['q'],
       followUps: ['f'],
     });
+    // A summary written before provenance: its threads aren't served as the caller's
+    const legacy = toPonderSummary('z', { questionsRemaining: ['q'], followUpItems: ['f'] });
+    expect([legacy.openThreads, legacy.followUps]).toEqual([[], []]);
     const ts = toPonderSummary('y', {
       timestamp: { toDate: () => new Date('2026-06-08T03:48:48Z') },
     });

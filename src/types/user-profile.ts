@@ -121,9 +121,9 @@ export interface ConversationSummary {
   followUpItems?: string[];
   /** Bits that were genuinely funny between the caller and Ferni in this call. */
   insideJokes?: string[];
-
-  // Embedding for semantic search
-  embedding?: number[];
+  assistantRaisedItems?: string[]; // only Ferni or a teammate said these: never theirs
+  callerProvenance?: number; // items checked against the caller's lines (caller-assertions.ts)
+  embedding?: number[]; // for semantic search
 }
 
 // ============================================================================

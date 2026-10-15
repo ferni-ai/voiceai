@@ -20,6 +20,10 @@
  * @module memory/caller-assertions
  */
 import { flagOn, type Env } from '../config/env-flag.js';
+import { DISPLAY_NAMES } from '../personas/persona-ids.js';
+import { CALLER_PROVENANCE, contentWords } from './recall/session-recall.js';
+
+export { CALLER_PROVENANCE };
 
 /** True when CALLER_ASSERTED_MEMORY is on. */
 export function callerAssertedMemoryOn(env: Env = process.env): boolean {
@@ -45,7 +49,131 @@ export function assertedLines(lines: readonly string[], env: Env = process.env):
 export const CALLER_ASSERTION_RULE =
   'Keep only what the USER said or confirmed. Something only the ASSISTANT said, or the USER only asked about, is not a fact about the USER. If the USER questions or denies something the ASSISTANT brought up ("What contracts?", "I never said that", "No, that\'s wrong"), leave that thing out of every field.';
 
-/** The summarizer prompt's rule line: empty when the flag is off. */
+/** The summarizer prompt's rule lines: SPEAKER_RULE always, the question rule with the flag. */
 export function summaryAssertionRule(env: Env = process.env): string {
-  return callerAssertedMemoryOn(env) ? `\n${CALLER_ASSERTION_RULE}` : '';
+  return `\n${SPEAKER_RULE}${callerAssertedMemoryOn(env) ? `\n${CALLER_ASSERTION_RULE}` : ''}`;
+}
+
+/**
+ * Always told to the after-call summarizer, flag or not: who said it decides whose it is.
+ * Prod 2026-10-13: a teammate's handoff greeting said "the offer", the caller never did,
+ * and the summary kept "career offer" as the caller's topic; later calls asked about it.
+ */
+export const SPEAKER_RULE =
+  'Only what the USER said is about the USER. Something only the ASSISTANT said (Ferni, or a teammate who took over the call, including a greeting like "Ferni told me you\'re...") is not a topic, key point, open thread, follow-up or concern of the USER: leave it out unless the USER said it too. Asking for a teammate by name ("can I talk to Jordan?") is not a topic. Call them USER, never by name, and use their own words for each item.';
+
+/** Summary fields whose items say something about the caller. */
+export const PROVENANCE_FIELDS = [
+  'mainTopics',
+  'keyPoints',
+  'questionsRemaining',
+  'followUpItems',
+  'decisionsReached',
+] as const;
+
+/** Summary words that say nothing about what the item is ("User wants to follow up on…"). */
+const NOT_THE_TOPIC = new Set(
+  'user caller ask asked talk talked talking discuss discussed discussing mention mentioned share shared said tell told want wanted wants feel feeling felt follow check next time how went goe going coming upcoming recent recently new update thing stuff conversation call help anxious nervous worried excited stressed happy sad upset hear heard back whether'.split(
+    ' '
+  )
+);
+
+const TEAM = new Set(Object.values(DISPLAY_NAMES).map((n) => n.toLowerCase()));
+
+/** What an item is about: content words that aren't summary filler or a teammate's name. */
+function topicWordsOf(text: string): string[] {
+  return [...contentWords(text)].filter((w) => !NOT_THE_TOPIC.has(w) && !TEAM.has(w));
+}
+
+/** The same word, give or take an ending ("plan", "planning"; "interview", "interviews"). */
+function sameWord(a: string, b: string): boolean {
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 4 && long.startsWith(short.slice(0, short.length - 1));
+}
+
+/**
+ * True when the caller's own lines back `item` up: every word it is about is one they
+ * said, give or take an ending. One added detail ("career", "the offer") is enough to
+ * refuse it. A teammate's name in their line backs nothing up.
+ */
+export function saidByCaller(item: string, callerLines: readonly string[]): boolean {
+  const said = topicWordsOf(callerLines.join(' '));
+  const words = topicWordsOf(item);
+  return words.length > 0 && words.every((w) => said.some((s) => sameWord(w, s)));
+}
+
+/** Fields Ferni follows up on ("did you hear back about…"): every word must be the caller's. */
+const THREAD_FIELDS: ReadonlySet<string> = new Set(['questionsRemaining', 'followUpItems']);
+
+/**
+ * True when `item` came from the assistant's side of the call: a word it is about was said
+ * by Ferni or a teammate and never by the caller ("career offer" after a teammate's "Ferni
+ * told me you're weighing the offer"). A label the model chose for their own talk
+ * ("cooking" for a risotto story) is not.
+ */
+export function raisedByAssistant(
+  item: string,
+  callerLines: readonly string[],
+  assistantLines: readonly string[]
+): boolean {
+  const said = topicWordsOf(callerLines.join(' '));
+  const theirs = topicWordsOf(assistantLines.join(' '));
+  return topicWordsOf(item).some(
+    (w) => !said.some((s) => sameWord(w, s)) && theirs.some((a) => sameWord(w, a))
+  );
+}
+
+export interface ProvenanceSummary {
+  mainTopics: string[];
+  keyPoints: string[];
+  questionsRemaining?: string[];
+  followUpItems?: string[];
+  decisionsReached?: string[];
+  /**
+   * Items that aren't the caller's: raised by Ferni or a teammate, or (for threads) not
+   * backed by the caller's own words. Kept and labelled, never served as theirs.
+   */
+  assistantRaisedItems?: string[];
+  callerProvenance?: number;
+}
+
+/**
+ * The summary with its items checked against who said what, and the CALLER_PROVENANCE
+ * marker set. Threads (open questions, follow-ups) stay only when every word is the
+ * caller's; other items go only when they came from the assistant's side. What goes is
+ * moved to assistantRaisedItems. `fields` limits the check.
+ */
+export function withCallerProvenance<T extends ProvenanceSummary>(
+  summary: T,
+  turns: ReadonlyArray<{ role: string; content: string }>,
+  fields: ReadonlyArray<(typeof PROVENANCE_FIELDS)[number]> = PROVENANCE_FIELDS
+): T & Pick<ProvenanceSummary, 'assistantRaisedItems' | 'callerProvenance'> {
+  const lines = (role: string) => turns.filter((t) => t.role === role).map((t) => t.content);
+  const [callerLines, assistantLines] = [lines('user'), lines('assistant')];
+  const raised = new Set(summary.assistantRaisedItems ?? []);
+  const out: T = { ...summary, callerProvenance: CALLER_PROVENANCE };
+  for (const field of fields) {
+    const items = summary[field];
+    if (!Array.isArray(items)) continue;
+    const kept = items.filter((item) => {
+      const theirs = THREAD_FIELDS.has(field)
+        ? saidByCaller(item, callerLines)
+        : !raisedByAssistant(item, callerLines, assistantLines);
+      if (!theirs) raised.add(item);
+      return theirs;
+    });
+    (out as ProvenanceSummary)[field] = kept;
+  }
+  if (raised.size > 0) out.assistantRaisedItems = [...raised];
+  return out;
+}
+
+/** The items that didn't come from the assistant's side of the call (raisedByAssistant). */
+export function theirs(
+  items: readonly string[],
+  turns: ReadonlyArray<{ role: string; content: string }>
+): string[] {
+  const lines = (role: string) => turns.filter((t) => t.role === role).map((t) => t.content);
+  return items.filter((i) => !raisedByAssistant(i, lines('user'), lines('assistant')));
 }
