@@ -214,8 +214,15 @@ test.describe('ferni.ai in dark mode', () => {
           continue;
         }
         const style = getComputedStyle(el);
-        const text = lum(rgbs(style.color)[0]);
-        for (const stop of rgbs(style.backgroundImage)) {
+        const [color] = rgbs(style.color);
+        const stops = rgbs(style.backgroundImage);
+        // Fail rather than pass silently if the colours can't be read
+        if (!color || stops.length < 2) {
+          found.push(`${selector} unreadable: ${style.color} / ${style.backgroundImage}`);
+          continue;
+        }
+        const text = lum(color);
+        for (const stop of stops) {
           const ratio = (Math.max(text, lum(stop)) + 0.05) / (Math.min(text, lum(stop)) + 0.05);
           if (ratio < 4.5)
             found.push(`${selector} stop rgb(${stop.join(',')}) ${ratio.toFixed(2)}:1`);
