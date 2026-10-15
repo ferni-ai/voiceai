@@ -100,6 +100,36 @@ describe('vocative names', () => {
     expect(strip('That is rough, May.', 'May')).toBe('That is rough.');
   });
 
+  it('leaves a name that is also a word unless a clause addresses them', () => {
+    expect(strip("Hope. That's what keeps you going.", 'Hope')).toBe(
+      "Hope. That's what keeps you going."
+    );
+    expect(strip("Rich, isn't it? The cake.", 'Rich')).toBe("Rich, isn't it? The cake.");
+    expect(strip('Will, not talent, got you there.', 'Will')).toBe(
+      'Will, not talent, got you there.'
+    );
+    expect(strip('Will, you did great.', 'Will')).toBe('You did great.');
+    expect(strip('What got you through? Honestly, Faith.', 'Faith')).toBe(
+      'What got you through? Honestly, Faith.'
+    );
+  });
+
+  it('after a question, drops only a name that addresses them', () => {
+    expect(strip('You know what? Sam, you did great.')).toBe('You know what? You did great.');
+    expect(strip("How are you holding up? Sam, I've been thinking.")).toBe(
+      "How are you holding up? I've been thinking."
+    );
+    expect(strip("Who's driving? Sam, I think.")).toBe("Who's driving? Sam, I think.");
+  });
+
+  it('reads ; and : after the name as the end of the address, and "sam" as Sam', () => {
+    expect(strip("I hear you, Sam; that's hard.")).toBe("I hear you; that's hard.");
+    expect(strip("that's rough, sam.")).toBe("that's rough.");
+    expect(strip('My mentor, Sam, I think, said that.')).toBe(
+      'My mentor, Sam, I think, said that.'
+    );
+  });
+
   it('drops it past markup in the middle of a reply', () => {
     expect(strip('Okay. [laughter] Sam, stop.')).toBe('Okay. [laughter] Stop.');
   });
@@ -138,6 +168,7 @@ describe('when the name may be said', () => {
     expect(firstNameOf('seth ford')).toBe('Seth');
     expect(firstNameOf("o'neil")).toBe("O'Neil");
     expect(firstNameOf('McKenzie')).toBe('McKenzie');
+    expect(firstNameOf('SETH')).toBe('Seth');
     expect(firstNameOf('')).toBeNull();
     expect(firstNameOf(undefined)).toBeNull();
   });
@@ -172,6 +203,19 @@ describe('withNameGate', () => {
     expect(await run(['Okay, Sam, ', '5 things to do.'], callWith(2))).toBe(
       'Okay, Sam, 5 things to do.'
     );
+  });
+
+  it('counts only a goodbye that closes its sentence', async () => {
+    for (const caller of [
+      'I have to go to the doctor tomorrow.',
+      'I need to see you about something.',
+      'You can call me tomorrow.',
+      'My name was on the list.',
+    ]) {
+      expect(await run(['That is rough, Sam.'], callWith(2, caller))).toBe('That is rough.');
+    }
+    expect(await run(['I see you, Sam.'], callWith(2))).toBe('I see you.');
+    expect(await run(['Take care to rest, Sam.'], callWith(2))).toBe('Take care to rest.');
   });
 
   it('is not fooled by "take care of" or "call me back"', async () => {

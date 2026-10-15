@@ -18,6 +18,9 @@ const DISAGREE =
 // Self-repair: a dash restart, a correction marker, or a repeated word ("I, I").
 const SELF_REPAIR =
   /[—–]|--|\b(i mean|wait,? no|or,? actually|well,? actually|let me put it|sorry,? i mean|what i meant)\b|\b([a-z']+),? \2\b/i;
+// A goodbye that closes its sentence ("Take care, Sam."), as name-gate.ts reads one.
+const CLOSING =
+  /\b(?:bye(?:-bye)?|goodbye|good ?night|talk (?:to you )?(?:soon|later|tomorrow)|(?<!\bi )see (?:you|ya)(?: (?:soon|later|tomorrow|then|next time|around))?|take care(?: of yourself)?|(?:gotta|got to|have to|need to) (?:go|run|hop off)|catch you later|let you go)\s*(?:,\s*[\p{L}'’-]+\s*)?(?:[.!?…]|$)/iu;
 const FILLED_PAUSE = /\b(uh|um|uhm|erm|er)\b/gi;
 // Marks the voice rules ban or that read as broken text: a doubled comma
 // ("Cats are,, I mean"), an ellipsis or a dash.
@@ -137,10 +140,11 @@ export function computeHumanness(runs, { callerName = 'Sam' } = {}) {
     selfRepairRate: rate(agent, (a) => SELF_REPAIR.test(a.text)),
     filledPausesPer100Words: totalWords ? Math.round((filled / totalWords) * 1000) / 10 : null,
     laughterRate: rate(agent, (a) => LAUGHTER.test(a.text)),
-    // Hello aside, whenever it came (name-gate.ts keeps the name there too).
+    // Hello and goodbye aside (name-gate.ts keeps the name there; the SBCSAE
+    // target is mid-conversation talk).
     nameUseRate: callerName
       ? rate(
-          agent.filter((a) => !a.hello),
+          agent.filter((a) => !a.hello && !CLOSING.test(a.text) && !CLOSING.test(a.before)),
           (a) => nameIn(callerName).test(a.text)
         )
       : null,
