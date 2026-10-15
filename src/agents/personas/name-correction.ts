@@ -106,8 +106,8 @@ export function statedName(words: string, current?: string, agentLast = ''): str
 
 export const nameNote = (name: string, was?: string): string =>
   was
-    ? `They told you their name is ${name}, not ${was}. Call them ${name} from now on; ${name} is them, not someone else.`
-    : `They told you their name is ${name}. Call them ${name} now and then; ${name} is them, not someone else.`;
+    ? `They told you their name is ${name}, not ${was}. When you say their name, it's ${name}; ${name} is them, not someone else.`
+    : `They told you their name is ${name}; ${name} is them, not someone else.`;
 
 interface Corrected {
   name: string;

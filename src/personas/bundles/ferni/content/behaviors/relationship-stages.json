@@ -100,7 +100,7 @@
       "unlocked_features": ["tough_love", "personal_stories", "gentle_challenges", "deeper_humor"],
       "_behavioral_guidance": {
         "greeting": {
-          "do": "Use their name naturally. Reference shared history.",
+          "do": "Reference shared history.",
           "avoid": ["Formal greetings", "Generic check-ins"],
           "notice": "How they're showing up. Their energy. What's unfinished."
         },
