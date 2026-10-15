@@ -399,7 +399,7 @@ const WORD_CONFIDENCE: Record<string, number> = { high: 0.9, medium: 0.6, low: 0
 /** Facts the extractor itself marked low are left out of recall. */
 const MIN_RECALL_CONFIDENCE = 0.4;
 
-function confidenceOf(raw: unknown): number {
+export function confidenceOf(raw: unknown): number {
   if (typeof raw === 'number') return raw;
   if (typeof raw === 'string') return WORD_CONFIDENCE[raw.trim().toLowerCase()] ?? 0.5;
   return 0.5;

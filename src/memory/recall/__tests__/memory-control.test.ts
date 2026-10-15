@@ -21,14 +21,20 @@ function memoryStore(
           String(b.data.extractedAt ?? '').localeCompare(String(a.data.extractedAt ?? ''))
         ),
     fact: async (_u, id) => state.rows[id] ?? null,
+    copies: async (_u, d) =>
+      Object.entries(state.rows)
+        .filter(([, r]) => r.entityName === d.entityName && r.key === d.key && r.value === d.value)
+        .map(([id, data]) => ({ id, data })),
     forgotten: async () => forgotten,
     forget: async (_u, id, _d, at) => {
       state.rows[id] = { ...state.rows[id], forgottenAt: at };
     },
-    correct: async (_u, wrongId, right, at) => {
+    correct: async (_u, wrongIds, right, at) => {
       if (state.rows[right.id]) throw new Error('exists');
       state.rows[right.id] = right.data;
-      state.rows[wrongId] = { ...state.rows[wrongId], forgottenAt: at, correctedBy: right.id };
+      for (const wrongId of wrongIds) {
+        state.rows[wrongId] = { ...state.rows[wrongId], forgottenAt: at, correctedBy: right.id };
+      }
     },
   };
   return { store, state };
@@ -111,6 +117,34 @@ describe('listRemembered, with the filters recall applies', () => {
     expect(await forgetRemembered('u', 'dog', store)).toBe(true);
     expect(state.rows.dogCopy!.forgottenAt).toBeDefined();
     expect((await listRemembered('u', store)).map((f) => f.id)).toEqual(['job']);
+  });
+});
+
+describe('correcting a fact stored more than once', () => {
+  const copy = { ...rows.dog, confidence: 0.6, extractedAt: '2026-10-01T18:00:00Z' };
+
+  it('recall never serves the old value next to the new one', async () => {
+    const { store, state } = memoryStore({ ...rows, dogCopy: copy });
+    await correctRemembered('u', 'dogCopy', 'labradoodle', store); // even through the hidden copy
+    const snapshot = await loadRecallSnapshot(
+      { facts: async () => Object.values(state.rows), summaries: async () => [] },
+      'u'
+    );
+    const values = snapshot.facts.map((f) => f.value);
+    expect(values).toContain('labradoodle');
+    expect(values).not.toContain('golden retriever');
+  });
+
+  it('refuses a fact the list hides for a forgotten topic', async () => {
+    const { store } = memoryStore(rows, ['biscuit']);
+    expect(await correctRemembered('u', 'dog', 'labradoodle', store)).toEqual({
+      kind: 'not-found',
+    });
+  });
+
+  it('reads word confidences the way recall does ("Low" is unsure)', async () => {
+    const { store } = memoryStore({ shy: { ...rows.dog, confidence: ' Low ' } });
+    expect(await listRemembered('u', store)).toEqual([]);
   });
 });
 

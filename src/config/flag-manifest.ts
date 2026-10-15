@@ -202,7 +202,8 @@ export const FLAG_MANIFEST = {
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: the caller can see, forget and correct what Ferni knows (/api/memories/remembered).
-  // Turn on together with the web app's VITE_MEMORY_CONTROL, which shows the view that calls it.
+  // Turn on with the web app's switch for the view that calls it: VITE_MEMORY_CONTROL, or the
+  // memory view (VITE_MEMORY_VIEW / localStorage ferni:flag:memory-view, web known.ts).
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
   MULTI_AGENT_ESSENTIAL_TOOLS_FIRST: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MULTI_AGENT_MODE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
