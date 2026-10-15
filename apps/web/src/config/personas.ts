@@ -49,6 +49,8 @@ interface GeneratedPersona {
   name: string;
   initials: string;
   subtitle: string;
+  /** i18n key of the AI role label, from the manifest's identity.role_label */
+  roleLabel?: string;
   role: 'coach' | 'team' | 'standalone';
   description: string;
   helperText: string;
@@ -205,6 +207,7 @@ function buildPersonaConfig(gen: GeneratedPersona): PersonaConfig {
     name: gen.name,
     initials: gen.initials,
     subtitle: gen.subtitle,
+    roleLabel: gen.roleLabel,
     role: gen.role,
     quotes: DISPLAY_QUOTES[id] || gen.quotes.map((q) => `"${q.replace(/<[^>]*>/g, '').trim()}"`),
     helperText: gen.helperText.split(' - ')[0] ?? gen.helperText, // Short version
