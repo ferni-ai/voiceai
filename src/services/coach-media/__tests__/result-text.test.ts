@@ -5,6 +5,7 @@ import {
   isInstructionLike,
   isSensitiveTopic,
   pickResultText,
+  useRegisteredToolNames,
   MAX_TITLE_CHARS,
   webData,
   WEB_DATA_GUARD,
@@ -109,6 +110,23 @@ describe('groundedResultText', () => {
     expect(flagged).toContain(GENERAL_INFO_NOTE);
     const plain = groundedResultText('public speaking tips', { answer: '', sources: src });
     expect(plain).not.toContain(GENERAL_INFO_NOTE);
+  });
+});
+
+describe('brand words shaped like tool names', () => {
+  it('keeps iPhone and eBay, drops real tool names, and drops a brand-shaped word that is a tool', () => {
+    useRegisteredToolNames(() => ['reachOut', 'eSync']);
+    try {
+      expect(webData('Apple iPhone 16 Pro', 200).text).toBe('Apple iPhone 16 Pro');
+      expect(webData('Used on eBay for less', 200).text).toBe('Used on eBay for less');
+      expect(webData('Then use reachOut', 200).text).toBe('');
+      expect(webData('Works great with eSync', 200).text).toBe('');
+      expect(webData('Works great with ESYNC esync', 200).text).toBe(
+        'Works great with ESYNC esync'
+      );
+    } finally {
+      useRegisteredToolNames(() => []);
+    }
   });
 });
 

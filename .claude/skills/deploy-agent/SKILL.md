@@ -38,9 +38,19 @@ LOG=$(mktemp)
  && cp docker/Dockerfile.agent ./Dockerfile \
  && { lk agent deploy --project $P --config $C -y . > $LOG 2>&1; rm -f Dockerfile; } \
  && ! grep -qE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" $LOG \
+ && ! grep "unable to deploy agent" $LOG | grep -qv "bufio.Scanner" \
+ && for i in $(seq 1 16); do lk agent versions --project $P --config $C 2>/dev/null \
+      | awk -F'│' '$3 ~ /✓/' | grep -q "\"git_commit\":\"$(git rev-parse --short=9 HEAD)\"" && break; sleep 15; done \
+ && lk agent versions --project $P --config $C 2>/dev/null | awk -F'│' '$3 ~ /✓/' \
+      | grep -q "\"git_commit\":\"$(git rev-parse --short=9 HEAD)\"" \
  && echo DEPLOYED $(git rev-parse --short=9 HEAD)
 ```
 - `unable to deploy agent: bufio.Scanner: token too long` at the end is harmless.
+- Any other `unable to deploy agent: …` (for example `stream error … INTERNAL_ERROR`)
+  means the upload failed, even though `lk` exits 0. LiveKit's log lines aren't proof
+  either way: after the harmless bufio message there's no "Completed deployment" line.
+  So the chain only prints DEPLOYED once `lk agent versions` shows your commit as
+  Production (it waits up to 4 minutes).
 - The build log echoes minified bundle code, which contains strings like
   `ERROR:` mid-line. The check only matches real error lines (tsc `error TS2322`,
   a BuildKit line starting `ERROR:` or `#14 ERROR:`, esbuild `✘ [ERROR]`).

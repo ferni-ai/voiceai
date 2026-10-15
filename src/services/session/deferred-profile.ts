@@ -44,6 +44,12 @@ export async function returningOnceLoaded(
   return isReturningProfile(services.userProfile);
 }
 
+/** The profile once any deferred load has settled (at once when none is pending). */
+export async function profileOnceLoaded<P>(services: { userProfile?: P }): Promise<P | undefined> {
+  await pendingLoads.get(services);
+  return services.userProfile;
+}
+
 /**
  * When the deferred profile lands and shows a returning user, set
  * userData.isReturningUser, which the per-turn context builders read.

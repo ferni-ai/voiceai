@@ -18,8 +18,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import {
-  COACH_MEDIA_COMMITMENT_PREFIX,
   classifyHelpfulness,
+  isCoachingFollowUp,
   recordFollowUpAsked,
 } from '../coach-media/feedback.js';
 
@@ -82,7 +82,7 @@ export function classifyFollowUpAnswer(
 /** A sent coaching pick is answered with "it helped" / "didn't help" as well (coach-media/feedback.ts). */
 function answerOutcome(id: string, text: string): Exclude<FollowUpOutcome, 'unanswered'> | null {
   const generic = classifyFollowUpAnswer(text);
-  if (generic || !id.startsWith(COACH_MEDIA_COMMITMENT_PREFIX)) return generic;
+  if (generic || !isCoachingFollowUp(id)) return generic;
   const helped = classifyHelpfulness(text);
   return helped === null ? null : helped === 'no' ? 'not_done' : 'done';
 }

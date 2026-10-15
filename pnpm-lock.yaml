@@ -159,14 +159,14 @@ importers:
         specifier: 6.0.1
         version: 6.0.1
       compromise:
-        specifier: 14.18.0
-        version: 14.18.0
+        specifier: 14.17.0
+        version: 14.17.0
       compromise-dates:
         specifier: 3.9.0
-        version: 3.9.0(compromise@14.18.0)
+        version: 3.9.0(compromise@14.17.0)
       compromise-numbers:
         specifier: 1.4.0
-        version: 1.4.0(compromise@14.18.0)
+        version: 1.4.0(compromise@14.17.0)
       dotenv:
         specifier: ^18.0.7
         version: 18.0.7
@@ -462,7 +462,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.10.8
-        version: 3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.9)
+        version: 3.10.8(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@25.9.9)
 
   apps/rust-perf:
     devDependencies:
@@ -4514,9 +4514,9 @@ packages:
     peerDependencies:
       compromise: '>=12.0.0'
 
-  compromise@14.18.0:
-    resolution: {integrity: sha512-SCNTeMZN8ZnvDz96igAjV2QuvvmcKA1bVDbFr8IH672Ec9w+fTSxixIPGgrlivaxU+jyk/Ei3AT3gGtP23n6Vg==}
-    engines: {node: '>=18'}
+  compromise@14.17.0:
+    resolution: {integrity: sha512-zw9iEcts/8tMDASNopMQEs3Pclkx2Xk7XCltAb/oV1LEZcCQpDaalAtFmvuxYo+wnVDsW3H3oT16mw9qVHpkqA==}
+    engines: {node: '>=12.0.0'}
 
   concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
@@ -4728,8 +4728,8 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
-  efrt@2.9.0:
-    resolution: {integrity: sha512-ZMAvlcu4AfmtJ4K/0hs0uofVUZPSeLG/w4yOyZawQLl9YEy8iDKIxIIPsUAlS907clC7bgD17e73vi5unwNE/g==}
+  efrt@2.7.0:
+    resolution: {integrity: sha512-/RInbCy1d4P6Zdfa+TMVsf/ufZVotat5hCw3QXmWtjU+3pFEOvOQ7ibo3aIxyCJw2leIeAMjmPj+1SLJiCpdrQ==}
     engines: {node: '>=12.0.0'}
 
   electron-to-chromium@1.5.444:
@@ -5262,9 +5262,9 @@ packages:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
 
-  grad-school@0.0.9:
-    resolution: {integrity: sha512-/aoG9CJz/1gB7x5XKp9i7ggA4k+MqZD7Neph3crfrOLWERkeJFXDXzNefvPW0j97iGTNYqTL+rpBEcz83MTmZw==}
-    engines: {node: '>=12'}
+  grad-school@0.0.5:
+    resolution: {integrity: sha512-rXunEHF9M9EkMydTBux7+IryYXEZinRk6g8OBOGDBzo/qWJjhTxy86i5q7lQYpCLHN8Sqv1XX3OIOc7ka2gtvQ==}
+    engines: {node: '>=8.0.0'}
 
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
@@ -6772,9 +6772,8 @@ packages:
   stubs@3.0.0:
     resolution: {integrity: sha512-PdHt7hHUJKxvTCgbKX9C1V/ftOcjJQgz8BZwNfV5c4B6dcGqlpelTbJ999jBGZ2jYiPAwcX5dP6oBwVlBlUbxw==}
 
-  suffix-thumb@6.0.0:
-    resolution: {integrity: sha512-HsCTMLaupbob5ZG//ZW6PSj446tHT5kSJ1qXS5F/qO2Nt13uAn6ZLPhJQ/H6bN/jVQCb+pcqe2psEwy4Mp5+Vw==}
-    engines: {node: '>=18'}
+  suffix-thumb@5.0.3:
+    resolution: {integrity: sha512-d77avV91FwJkDA0juRQ19XjE1lE1cNCVIWS0ZRicXqdMN28yjO5LltzEkZBNAWS7qHpn37c1fU4PkIJ/rjJQEA==}
 
   supports-color@5.5.0:
     resolution: {integrity: sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow==}
@@ -9097,37 +9096,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@napi-rs/cli@3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.9)':
-    dependencies:
-      '@inquirer/prompts': 8.7.2(@types/node@25.9.9)
-      '@napi-rs/cross-toolchain': 1.0.3
-      '@napi-rs/wasm-tools': 1.1.0
-      '@octokit/rest': 22.0.1
-      clipanion: 4.0.0-rc.4(typanion@3.14.0)
-      colorette: 2.0.20
-      es-toolkit: 1.52.0
-      js-yaml: 5.4.2
-      obug: 3.0.0
-      semver: 7.8.5
-      typanion: 3.14.0
-      typescript: 6.0.3
-    optionalDependencies:
-      '@emnapi/core': 1.11.2
-      '@emnapi/runtime': 1.11.2
-    transitivePeerDependencies:
-      - '@napi-rs/cross-toolchain-arm64-target-aarch64'
-      - '@napi-rs/cross-toolchain-arm64-target-armv7'
-      - '@napi-rs/cross-toolchain-arm64-target-ppc64le'
-      - '@napi-rs/cross-toolchain-arm64-target-s390x'
-      - '@napi-rs/cross-toolchain-arm64-target-x86_64'
-      - '@napi-rs/cross-toolchain-x64-target-aarch64'
-      - '@napi-rs/cross-toolchain-x64-target-armv7'
-      - '@napi-rs/cross-toolchain-x64-target-ppc64le'
-      - '@napi-rs/cross-toolchain-x64-target-s390x'
-      - '@napi-rs/cross-toolchain-x64-target-x86_64'
-      - '@types/node'
-      - supports-color
-
   '@napi-rs/cli@3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.9.9)':
     dependencies:
       '@inquirer/prompts': 8.7.2(@types/node@25.9.9)
@@ -9145,6 +9113,37 @@ snapshots:
     optionalDependencies:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.3
+    transitivePeerDependencies:
+      - '@napi-rs/cross-toolchain-arm64-target-aarch64'
+      - '@napi-rs/cross-toolchain-arm64-target-armv7'
+      - '@napi-rs/cross-toolchain-arm64-target-ppc64le'
+      - '@napi-rs/cross-toolchain-arm64-target-s390x'
+      - '@napi-rs/cross-toolchain-arm64-target-x86_64'
+      - '@napi-rs/cross-toolchain-x64-target-aarch64'
+      - '@napi-rs/cross-toolchain-x64-target-armv7'
+      - '@napi-rs/cross-toolchain-x64-target-ppc64le'
+      - '@napi-rs/cross-toolchain-x64-target-s390x'
+      - '@napi-rs/cross-toolchain-x64-target-x86_64'
+      - '@types/node'
+      - supports-color
+
+  '@napi-rs/cli@3.10.8(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@25.9.9)':
+    dependencies:
+      '@inquirer/prompts': 8.7.2(@types/node@25.9.9)
+      '@napi-rs/cross-toolchain': 1.0.3
+      '@napi-rs/wasm-tools': 1.1.0
+      '@octokit/rest': 22.0.1
+      clipanion: 4.0.0-rc.4(typanion@3.14.0)
+      colorette: 2.0.20
+      es-toolkit: 1.52.0
+      js-yaml: 5.4.2
+      obug: 3.0.0
+      semver: 7.8.5
+      typanion: 3.14.0
+      typescript: 6.0.3
+    optionalDependencies:
+      '@emnapi/core': 1.9.2
+      '@emnapi/runtime': 1.9.2
     transitivePeerDependencies:
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
       - '@napi-rs/cross-toolchain-arm64-target-armv7'
@@ -11215,21 +11214,21 @@ snapshots:
 
   commander@9.5.0: {}
 
-  compromise-dates@3.9.0(compromise@14.18.0):
+  compromise-dates@3.9.0(compromise@14.17.0):
     dependencies:
-      compromise: 14.18.0
+      compromise: 14.17.0
       spacetime: 7.16.0
       spacetime-holiday: 0.3.0(spacetime@7.16.0)
 
-  compromise-numbers@1.4.0(compromise@14.18.0):
+  compromise-numbers@1.4.0(compromise@14.17.0):
     dependencies:
-      compromise: 14.18.0
+      compromise: 14.17.0
 
-  compromise@14.18.0:
+  compromise@14.17.0:
     dependencies:
-      efrt: 2.9.0
-      grad-school: 0.0.9
-      suffix-thumb: 6.0.0
+      efrt: 2.7.0
+      grad-school: 0.0.5
+      suffix-thumb: 5.0.3
 
   concat-map@0.0.1: {}
 
@@ -11403,7 +11402,7 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  efrt@2.9.0: {}
+  efrt@2.7.0: {}
 
   electron-to-chromium@1.5.444: {}
 
@@ -12183,7 +12182,7 @@ snapshots:
 
   gopd@1.2.0: {}
 
-  grad-school@0.0.9: {}
+  grad-school@0.0.5: {}
 
   graphemer@1.4.0: {}
 
@@ -13790,7 +13789,7 @@ snapshots:
 
   stubs@3.0.0: {}
 
-  suffix-thumb@6.0.0: {}
+  suffix-thumb@5.0.3: {}
 
   supports-color@5.5.0:
     dependencies:

@@ -48,6 +48,7 @@ export const FLAG_MANIFEST = {
   APPROVALS_PASSKEYS: { default: 'off', owner: 'platform', kind: 'experiment' },
   ARRIVAL_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASK_ADVICE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ASK_WHEN_UNCLEAR: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASSISTANT_ACTIONS_REAL: { default: 'off', owner: 'platform', kind: 'experiment' },
   ATTUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // Loop experiment, not live: attunement's own reply-length cap (turn-attunement.ts
@@ -70,6 +71,7 @@ export const FLAG_MANIFEST = {
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_RECOGNITION: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
+  CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
   CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -94,6 +96,8 @@ export const FLAG_MANIFEST = {
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // after-call date extraction into world_facts (nothing reads them in a call yet)
+  DATES_THAT_MATTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   DEBUG_AGENT: { default: 'off', owner: 'voice', kind: 'config' },
   DEBUG_BUILDER_PRIORITIZATION: { default: 'off', owner: 'intelligence', kind: 'config' },
   DEBUG_GEMINI_ALL: { default: 'off', owner: 'voice', kind: 'config' },
@@ -185,6 +189,7 @@ export const FLAG_MANIFEST = {
   LAZY_FIRESTORE: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   LIFE_LEDGER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIFE_MOVES_ON: { default: 'off', owner: 'voice', kind: 'experiment' },
+  LISTEN_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
   LIVE_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   LLM_DYNAMIC_CONTENT_ENABLED: { default: 'on', owner: 'platform', kind: 'config' },
   // a caller's retry429 option overrides it
@@ -229,6 +234,7 @@ export const FLAG_MANIFEST = {
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -259,6 +265,7 @@ export const FLAG_MANIFEST = {
   // shows "I'll remember" in the app after a fact is stored
   REMEMBER_MOMENT: { default: 'off', owner: 'memory', kind: 'experiment' },
   REMINDER_SCHEDULER_IN_PROCESS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  REPAIR_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH_NAME: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // read as 'true', not 'on' (adaptive echo window)
@@ -305,6 +312,8 @@ export const FLAG_MANIFEST = {
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // callUser places a real call to the verified phone; off keeps the honest stub
+  TOOLS_REAL_CALL_USER: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_ACK: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_EMPTY_RESULT_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
@@ -347,6 +356,7 @@ export const FLAG_MANIFEST = {
   USE_VERTEX_AI: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   VERTEX_KEEPALIVE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VITEST: { default: 'off', owner: 'tools', kind: 'experiment' },
+  VOCAL_BURSTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICED_PRESENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICEMAIL_DETECT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // the reply's pace, loudness and tone answer the caller's mood (director/attune.ts)
