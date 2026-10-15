@@ -40,12 +40,14 @@ export const ANCHOR = '3 = a good friend on a casual phone call; 5 = better than
 /**
  * Gates. A friendship that fabricates history or contradicts canon is not
  * friendship, so those two are zero. Asking for help is a mutuality signal,
- * but a friend who asks every call is a chore: at most one call in five.
+ * but a friend who asks every call is a chore: at most one recall call in
+ * five. That gate needs five recall calls to mean anything; shorter series
+ * report it without judging it.
  */
 export const TARGETS = {
   fabricated: { max: 0 },
   lifeContradictions: { max: 0 },
-  askRate: { max: 0.2 },
+  askRate: { max: 0.2, minCalls: 5 },
 };
 
 const KINDS = ['fact', 'avoid', 'ask'];
@@ -53,8 +55,8 @@ const KINDS = ['fact', 'avoid', 'ask'];
 /** The #@fact / #@avoid / #@ask lines of a scenario file. */
 export function parseChecks(text) {
   const checks = [];
-  for (const line of text.split('\n')) {
-    const m = line.match(/^#@(fact|avoid|ask)\s+(\S+)\s+(.+)$/);
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.trim().match(/^#@(fact|avoid|ask)\s+(\S+)\s+(.+)$/);
     if (m && KINDS.includes(m[1])) checks.push({ kind: m[1], id: m[2], re: new RegExp(m[3].trim(), 'i') });
   }
   return checks;
@@ -62,6 +64,7 @@ export function parseChecks(text) {
 
 /** The call in order, greeting kept: [{ who: 'agent'|'user', text, t }]. */
 function eventsOf(run) {
+  if (!Array.isArray(run?.events)) throw new Error('not a call recording: no events array');
   return (run.events ?? [])
     .filter((e) => (e.who === 'agent' || e.who === 'user') && typeof e.text === 'string')
     .sort((a, b) => (a.t ?? 0) - (b.t ?? 0));
@@ -117,7 +120,7 @@ export function scoreSeries(runs, checks) {
   const allFacts = Object.entries(perFact);
   const avoids = scored.flatMap((c) => c.avoids);
   const asks = scored.flatMap((c) => c.asks);
-  const callsWithAsk = scored.filter((c) => c.asks.length > 0).length;
+  const callsWithAsk = recallCalls.filter((c) => c.asks.length > 0).length;
   const metrics = {
     calls: scored.length,
     recallCalls: n,
@@ -128,13 +131,21 @@ export function scoreSeries(runs, checks) {
     fabricated: avoids.filter((a) => !a.id.startsWith('life:')).length,
     lifeContradictions: avoids.filter((a) => a.id.startsWith('life:')).length,
     asksPerCall: scored.length ? round(asks.length / scored.length) : null,
-    askRate: scored.length ? round(callsWithAsk / scored.length) : null,
+    askRate: n ? round(callsWithAsk / n) : null,
     laughsPerCall: scored.length ? round(scored.reduce((a, c) => a + c.laughs, 0) / scored.length) : null,
+  };
+  // Gates read the unrounded rate, so 0.204 is not 0.2.
+  const exact = {
+    fabricated: avoids.filter((a) => !a.id.startsWith('life:')).length,
+    lifeContradictions: avoids.filter((a) => a.id.startsWith('life:')).length,
+    askRate: n ? callsWithAsk / n : null,
   };
   const gates = Object.fromEntries(
     Object.entries(TARGETS).map(([k, t]) => {
       const v = metrics[k];
-      const ok = v !== null && (t.max === undefined || v <= t.max) && (t.min === undefined || v >= t.min);
+      if (t.minCalls !== undefined && n < t.minCalls) return [k, { value: v, ...t, ok: null }];
+      const x = exact[k];
+      const ok = x !== null && (t.max === undefined || x <= t.max) && (t.min === undefined || x >= t.min);
       return [k, { value: v, ...t, ok }];
     })
   );
@@ -158,6 +169,7 @@ function main() {
   }
   const runs = files.map((f) => JSON.parse(readFileSync(f, 'utf8')));
   const result = scoreSeries(runs, checks);
+  if (Object.values(result.gates).some((g) => g.ok === false)) process.exitCode = 1;
   if (json) {
     console.log(JSON.stringify(result, null, 2));
     return;
@@ -168,7 +180,10 @@ function main() {
     for (const a of c.avoids) console.log(`  AVOID ${a.id}: "${a.quote}"`);
   }
   console.log(`\nanchor: ${result.anchor}`);
-  for (const [k, g] of Object.entries(result.gates)) console.log(`  ${k.padEnd(18)} ${g.value ?? '-'}  ${g.ok ? 'ok' : 'FAIL'}`);
+  for (const [k, g] of Object.entries(result.gates)) {
+    const verdict = g.ok === null ? 'not judged (too few calls)' : g.ok ? 'ok' : 'FAIL';
+    console.log(`  ${k.padEnd(18)} ${g.value ?? '-'}  ${verdict}`);
+  }
   for (const [k, v] of Object.entries(result.metrics)) if (!(k in result.gates)) console.log(`  ${k.padEnd(18)} ${v ?? '-'}`);
 }
 

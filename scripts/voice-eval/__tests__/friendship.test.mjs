@@ -71,8 +71,28 @@ describe('friendship scoreSeries', () => {
   it('keeps the ask rate under one call in five', () => {
     const asker = run([['user', 'hi'], ['agent', 'Any ideas for a name?']]);
     const quiet = run([['user', 'hi'], ['agent', 'Good to hear.']]);
-    const s = scoreSeries([seed, asker, quiet, quiet, quiet], checks);
+    const s = scoreSeries([seed, asker, quiet, quiet, quiet, quiet], checks);
     expect(s.metrics.askRate).toBe(0.2);
     expect(s.gates.askRate.ok).toBe(true);
+  });
+});
+
+describe('friendship review fixes', () => {
+  const seed = run([['user', 'my cat is a mastermind'], ['agent', 'I will call her The Mastermind']]);
+
+  it('does not judge the ask gate on a series shorter than five recall calls', () => {
+    const asker = run([['user', 'hi'], ['agent', 'Any ideas for a name?']]);
+    const s = scoreSeries([seed, asker], checks);
+    expect(s.metrics.askRate).toBe(1);
+    expect(s.gates.askRate.ok).toBe(null);
+  });
+
+  it('rejects a file that is not a call recording', () => {
+    expect(() => scoreSeries([seed, { meta: {} }], checks)).toThrow(/not a call recording/);
+  });
+
+  it('reads scenario files with CRLF line endings', () => {
+    const crlf = parseChecks('#@fact bit:x \\bx\\b\r\n#@avoid decoy:y \\by\\b\r\n');
+    expect(crlf.map((c) => c.id)).toEqual(['bit:x', 'decoy:y']);
   });
 });

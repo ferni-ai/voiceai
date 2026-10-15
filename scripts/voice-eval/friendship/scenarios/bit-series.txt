@@ -9,7 +9,7 @@
 #
 # The caller's answer to "what should we name the plant?" (seeded on the
 # friendship call that asks it). Ferni uses it on a later call.
-#@fact ans:plant-name \bfern\b|the fern
+#@fact ans:plant-name \bfern\b
 #
 # A decoy the caller never said (fabricated history, counted against him).
 #@avoid decoy:dog \bbeagle\b|your dog
