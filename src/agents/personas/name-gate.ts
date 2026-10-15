@@ -35,13 +35,16 @@ import type { llm } from '@livekit/agents';
 import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 
+const log = createLogger({ module: 'NameGate' });
+
 /**
- * Replies between kept names (hello and goodbye aside): 1 / 0.0424, the most
- * name-heavy SBCSAE friend conversation, so Ferni is never more name-heavy.
+ * Replies between kept names (hello and goodbye aside): 1 / 0.025, the
+ * score-targets.json nameUseRate max (the p90 of SBCSAE friend conversations).
  */
-export const NAME_EVERY = 24;
+export const NAME_EVERY = 40;
 
 const GREETINGS = ['hey', 'hi', 'hiya', 'hello', 'oh'];
 const GREETING_WORD = /^(?:hey|hi|hiya|hello|oh)\s+/i;
@@ -55,8 +58,44 @@ const CLAUSE_START = new Set(
   ).split(' ')
 );
 const GOODBYE =
-  /\b(?:bye|goodbye|good night|goodnight|talk (?:to you )?(?:soon|later|tomorrow)|see you|take care|gotta go|have to go|catch you later)\b/i;
-const ASKS_OWN_NAME = /\b(?:my name|call me|what am i called|who am i)\b/i;
+  /\b(?:bye|goodbye|good night|goodnight|talk (?:to you )?(?:soon|later|tomorrow)|see you|take care|gotta go|have to go|catch you later|let you go)(?![\p{L}'’]| of)/iu;
+const ASKS_OWN_NAME =
+  /\b(?:my name|what(?:'s| is| do you| should you| would you) call me|you can call me|just call me|what am i called|who am i)\b/i;
+/** "my friend, Sam" renames someone; it doesn't address the caller. */
+const APPOSITIVE = new RegExp(
+  `\\b(?:my|your|his|her|their|our|the|a|an|this|that)\\s+(?:[\\p{L}'’-]+\\s+)?(?:${(
+    'friend friends brother sister son daughter mom mum dad mother father wife husband partner ' +
+    'boss cousin uncle aunt kid kids boy girl guy coworker colleague neighbor neighbour roommate ' +
+    'buddy teacher doctor nephew niece grandson granddaughter grandma grandpa boyfriend ' +
+    'girlfriend fiance fiancee manager baby child nurse dog cat puppy coach therapist ex'
+  )
+    .split(' ')
+    .join('|')})\\s*$`,
+  'iu'
+);
+/** Words that open a sentence and then address someone ("Yes, Sam"), not a list ("Alex, Sam"). */
+const DISCOURSE = new Set(
+  (
+    'yes yeah yep no nope okay ok well oh hey hi right sure so but and really honestly ' +
+    'seriously look listen alright aw ah wow man thanks sorry good great fair true wait ' +
+    'hmm hm mm come fine totally exactly absolutely see'
+  ).split(' ')
+);
+/** A caller named May or June: "April, May, June" is the calendar. */
+const CALENDAR = new Set(
+  'january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday'.split(
+    ' '
+  )
+);
+/** The words either side of `start`..`end` include a month or weekday. */
+function inCalendarList(text: string, start: number, end: number): boolean {
+  const before = text.slice(0, start).match(/([\p{L}]+)[\s,]*$/u)?.[1] ?? '';
+  const after = text.slice(end).match(/^[\s,]*([\p{L}]+)/u)?.[1] ?? '';
+  return CALENDAR.has(before.toLowerCase()) || CALENDAR.has(after.toLowerCase());
+}
+
+/** A full stop after these doesn't end a sentence ("Dr. Will"). */
+const ABBREVIATION = /\b(?:dr|mr|mrs|ms|st|jr|sr|prof|mt)\.\s+$/i;
 const LETTER = /\p{L}/u;
 const LEAD = /^(?:\s|<[^>]*>|\[[^\]]*\])*/;
 
@@ -72,12 +111,19 @@ export interface Vocative {
   fallAt?: number;
 }
 
-const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/** Sentence starts: the reply's first spoken character and after . ! ? … plus space. */
-function sentenceStarts(text: string): number[] {
-  const starts = [text.match(LEAD)?.[0].length ?? 0];
-  for (const m of text.matchAll(/[.!?…]+["')\]]?\s+/g)) starts.push(m.index + m[0].length);
+/**
+ * Sentence starts (past any markup): the reply's first spoken character and
+ * after . ! ? … plus space, but not after "Dr.". `afterQuestion`: the
+ * sentence before asked something, so a name here may be the answer.
+ */
+function sentenceStarts(text: string): Array<{ at: number; afterQuestion: boolean }> {
+  const lead = (i: number): number => i + (text.slice(i).match(LEAD)?.[0].length ?? 0);
+  const starts = [{ at: lead(0), afterQuestion: false }];
+  for (const m of text.matchAll(/[.!?…]+["')\]]?\s+/g)) {
+    const end = m.index + m[0].length;
+    if (ABBREVIATION.test(text.slice(Math.max(0, end - 8), end))) continue;
+    starts.push({ at: lead(end), afterQuestion: m[0].includes('?') });
+  }
   return starts;
 }
 
@@ -101,7 +147,19 @@ export function findVocatives(
     const c = text.charAt(i);
     if (c === '') return final ? 'end' : 'wait';
     if (LETTER.test(c) || /[\d'’]/.test(c)) return 'word';
-    return /\s/.test(c) ? 'space' : 'punct';
+    if (c === '-') {
+      // "Mary-Kate" is another name; "Sam - " is a dash.
+      const next = text.charAt(i + 1);
+      if (next === '') return final ? 'punct' : 'wait';
+      if (LETTER.test(next)) return 'word';
+    }
+    if (/\s/.test(c)) {
+      const after = text.slice(i);
+      if (/^\s+[—–]/.test(after)) return 'punct'; // "Sam — I hear you"
+      if (!final && /^\s+$/.test(after)) return 'wait';
+      return 'space';
+    }
+    return 'punct';
   };
   /** A start of the name that more text could complete. */
   const partialName = (rest: string): boolean =>
@@ -124,12 +182,28 @@ export function findVocatives(
       continue;
     }
     if (f === 'word' || f === 'space') continue; // ", Sam said", ", Sam and I"
-    if (f === 'end' || /^[.!?…]/.test(text.slice(end))) {
+    if (CALENDAR.has(name.toLowerCase()) && inCalendarList(text, nameAt, end)) continue;
+    // "my friend, Sam" and "Alex, Jo, Sam" name someone.
+    const before = text.slice(0, at);
+    const clause = before.slice(
+      Math.max(...[',', '.', '!', '?', '…'].map((p) => before.lastIndexOf(p))) + 1
+    );
+    if (APPOSITIVE.test(clause)) continue;
+    const listed = clause.trim().match(/^\p{Lu}[\p{L}'’-]*$/u);
+    const delimiter = before.charAt(before.length - clause.length - 1);
+    if (listed && delimiter === ',' && !DISCOURSE.has(listed[0].toLowerCase())) continue;
+    if (f === 'end' || /^\s*[.!?…—–]/.test(text.slice(end))) {
       found.push({ start: at, end, with: '', capNext: false });
       continue;
     }
     if (text.charAt(end) !== ',') continue;
-    // ", Sam, I'm sure" addresses them; "My friend, Sam, called" names someone.
+    // ", Sam, I'm sure" addresses them; ", Sam, called" or ", Sam, [laughter]" isn't clear.
+    const first = text.slice(end).match(/^,\s*(\S)/);
+    if (!first) {
+      if (!final) undecided(at);
+      continue;
+    }
+    if (!LETTER.test(first[1])) continue;
     const word = text.slice(end).match(/^,\s*([\p{L}'’]+)([\s\S]?)/u);
     if (!word || (word[2] === '' && !final)) {
       if (!final) undecided(at);
@@ -141,7 +215,8 @@ export function findVocatives(
   }
 
   // "Sam, really?" | "Hey Sam, ..." | "… Sam" ending the reply
-  for (const s of sentenceStarts(text)) {
+  for (const { at: s, afterQuestion } of sentenceStarts(text)) {
+    if (afterQuestion) continue; // "Who goes first? Sam." answers it
     let rest = text.slice(s);
     if (
       !final &&
@@ -166,7 +241,14 @@ export function findVocatives(
       continue;
     }
     if (f === 'word' || f === 'space') continue; // "Sam's", "Sam and I"
-    // The name goes with its comma or dash; a sentence that was only the name goes whole.
+    if (CALENDAR.has(name.toLowerCase()) && inCalendarList(text, nameAt, end)) continue;
+    if (/^oh\s/i.test(greet)) {
+      // "Oh Sam, that's awful" -> "Oh, that's awful": the "Oh" is the reaction, not a hello.
+      found.push({ start: nameAt - 1, end, with: '', capNext: false });
+      continue;
+    }
+    // The name goes with its comma or dash (a hello before it goes too: "Hey Sam,"
+    // mid-call is a second hello); a sentence that was only the name goes whole.
     const tail = text.slice(end).match(/^(?:\s*[,—–]\s*|[.!?…]+\s*)?/)?.[0] ?? '';
     const runsOn = f !== 'end' && /^\s*[,—–]/.test(tail);
     found.push({
@@ -185,13 +267,13 @@ export function findVocatives(
 }
 
 /**
- * Apply the decisions to `text`: with `keepOne`, the first vocative stays
+ * Apply the decisions to `text`: the first vocative `mayKeep` accepts stays
  * (ending its own sentence when `falling`); every other one goes.
  */
 export function applyVocatives(
   text: string,
   found: readonly Vocative[],
-  keepOne: boolean,
+  mayKeep: (v: Vocative) => boolean,
   falling: boolean
 ): string {
   let out = '';
@@ -211,7 +293,7 @@ export function applyVocatives(
   for (const v of found) {
     emit(text.slice(at, v.start));
     const said = text.slice(v.start, v.end);
-    if (keepOne && !kept) {
+    if (!kept && mayKeep(v)) {
       kept = true;
       if (falling && v.fallAt !== undefined) {
         // "Sam, take care" -> "Sam. Take care": the name ends its own sentence.
@@ -250,7 +332,8 @@ export function firstNameOf(userName: unknown): string | null {
   if (typeof userName !== 'string') return null;
   const first = userName.trim().split(/\s+/)[0] ?? '';
   if (first.length < 2 || !/^\p{L}[\p{L}'’-]*$/u.test(first)) return null;
-  return first.charAt(0).toUpperCase() + first.slice(1);
+  if (first !== first.toLowerCase()) return first; // "O'Neil", "McKenzie" as written
+  return first.replace(/(^|['’-])(\p{L})/gu, (_, p: string, c: string) => p + c.toUpperCase());
 }
 
 const messagesOf = (items: readonly HistoryItem[]): HistoryItem[] =>
@@ -268,7 +351,7 @@ const lastCallerWords = (items: readonly HistoryItem[]): string =>
  * (or since the call began, when it hasn't).
  */
 export function mayUseName(items: readonly HistoryItem[], name: string): boolean {
-  const said = new RegExp(`(?<![\\p{L}'])${escape(name)}(?![\\p{L}'])`, 'u');
+  const said = { test: (t: string): boolean => findVocatives(t, name, true).found.length > 0 };
   const replies = messagesOf(items).filter((i) => i.role === 'assistant');
   if (replies.length === 0) return true;
   if (GOODBYE.test(lastCallerWords(items))) return true;
@@ -300,12 +383,27 @@ export function withNameGate(
   const render = (final: boolean): string => {
     const { found, undecidedAt } = findVocatives(raw, name, final);
     let upTo = final ? raw.length : (undecidedAt ?? raw.length);
+    // Outside hello, a name is kept only in a goodbye ("Sam, take care."), so
+    // it waits for its sentence to end before that is decided.
+    const keep = new Set<Vocative>();
+    for (const v of found) {
+      if (v.start >= upTo || keep.size > 0) break;
+      if (allowed) {
+        keep.add(v);
+        break;
+      }
+      const stop = raw.slice(v.end).search(/[.!?…]/);
+      if (stop < 0 && !final) {
+        upTo = v.start;
+        break;
+      }
+      if (GOODBYE.test(raw.slice(0, stop < 0 ? raw.length : v.end + stop + 1))) keep.add(v);
+    }
     for (const v of found) if (v.start < upTo && v.end > upTo) upTo = v.start; // waits whole
     const done = found.filter((v) => v.end <= upTo);
-    const keep = allowed || GOODBYE.test(raw.slice(0, done[0]?.end ?? 0));
-    const out = applyVocatives(raw.slice(0, upTo), done, keep, falling);
+    const out = applyVocatives(raw.slice(0, upTo), done, (v) => keep.has(v), falling);
     // A reply that was only the name ("Sam?") is said as it came.
-    if (final && !LETTER.test(out) && !LETTER.test(sent)) return raw;
+    if (final && sent === '' && !LETTER.test(out)) return raw;
     return out;
   };
   const enqueue = (controller: ReadableStreamDefaultController<Chunk>, text: string): void => {
@@ -325,6 +423,12 @@ export function withNameGate(
     if (out.startsWith(sent)) {
       enqueue(controller, out.slice(sent.length));
       sent = out;
+    } else if (final) {
+      // Never expected; say the rest rather than lose it.
+      let same = 0;
+      while (same < sent.length && out[same] === sent[same]) same++;
+      log.warn({ sent: sent.length, same }, 'Name gate output diverged; sending the rest as is');
+      enqueue(controller, out.slice(same));
     }
   };
 

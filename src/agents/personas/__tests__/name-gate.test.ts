@@ -12,10 +12,10 @@ import {
 } from '../name-gate.js';
 
 /** The reply with every vocative "Sam" dropped (what a mid-call reply gets). */
-const strip = (text: string): string =>
-  applyVocatives(text, findVocatives(text, 'Sam', true).found, false, false);
+const strip = (text: string, name = 'Sam'): string =>
+  applyVocatives(text, findVocatives(text, name, true).found, () => false, false);
 const keep = (text: string, falling = false): string =>
-  applyVocatives(text, findVocatives(text, 'Sam', true).found, true, falling);
+  applyVocatives(text, findVocatives(text, 'Sam', true).found, () => true, falling);
 
 const msg = (role: string, textContent: string): HistoryItem => ({
   type: 'message',
@@ -83,9 +83,25 @@ describe('vocative names', () => {
       'Samantha, really?',
       'Same, honestly.',
       ', Sam said it first.',
+      'That was my friend, Sam.',
+      'Her son, Sam, just started school.',
+      'My cousin, Sam, I think you met him.',
+      'I invited Alex, Jo, Sam.',
+      'Who should go first? Sam.',
+      "Who's driving? Sam, I think.",
+      'I talked to Dr. Sam, he said rest.',
     ]) {
       expect(strip(text)).toBe(text);
     }
+    expect(strip('I talked to my brother, Bill.', 'Bill')).toBe('I talked to my brother, Bill.');
+    expect(strip("Mary-Kate's coming over? Fun.", 'Mary')).toBe("Mary-Kate's coming over? Fun.");
+    expect(strip('April, May, I think it was.', 'May')).toBe('April, May, I think it was.');
+    expect(strip('May, June, July. Busy months.', 'May')).toBe('May, June, July. Busy months.');
+    expect(strip('That is rough, May.', 'May')).toBe('That is rough.');
+  });
+
+  it('drops it past markup in the middle of a reply', () => {
+    expect(strip('Okay. [laughter] Sam, stop.')).toBe('Okay. [laughter] Stop.');
   });
 
   it('with the falling-name delivery, a kept name ends its own sentence', () => {
@@ -108,12 +124,20 @@ describe('when the name may be said', () => {
     expect(mayUseName(noNameHello, 'Sam')).toBe(false);
   });
 
-  it('sets NAME_EVERY from the human rate: at most one turn in 24', () => {
-    expect(1 / NAME_EVERY).toBeLessThanOrEqual(0.0424);
+  it('sets NAME_EVERY from the human target (score-targets.json nameUseRate max 0.025)', () => {
+    expect(1 / NAME_EVERY).toBeLessThanOrEqual(0.025);
+  });
+
+  it('counts only names that addressed them, not "tell Sam I said hi"', () => {
+    const items = callWith(NAME_EVERY);
+    items.splice(4, 1, msg('assistant', 'Tell Sam I said hi.'));
+    expect(mayUseName(items, 'Sam')).toBe(true);
   });
 
   it('reads the first name from the profile', () => {
     expect(firstNameOf('seth ford')).toBe('Seth');
+    expect(firstNameOf("o'neil")).toBe("O'Neil");
+    expect(firstNameOf('McKenzie')).toBe('McKenzie');
     expect(firstNameOf('')).toBeNull();
     expect(firstNameOf(undefined)).toBeNull();
   });
@@ -134,9 +158,28 @@ describe('withNameGate', () => {
     );
   });
 
-  it('keeps a goodbye by name', async () => {
+  it("keeps a goodbye by name, the caller's or its own", async () => {
     expect(await run(['Talk soon', ', Sam.'], callWith(2, 'Alright, bye!'))).toBe(
       'Talk soon, Sam.'
+    );
+    expect(await run(['Sam, ', 'take care. ', 'Bye!'], callWith(2))).toBe('Sam, take care. Bye!');
+    expect(await run(['That is rough, Sam. ', 'Talk soon, Sam.'], callWith(2))).toBe(
+      'That is rough. Talk soon, Sam.'
+    );
+  });
+
+  it('does not stall a reply on an unclear ", Sam," (it keeps the name)', async () => {
+    expect(await run(['Okay, Sam, ', '5 things to do.'], callWith(2))).toBe(
+      'Okay, Sam, 5 things to do.'
+    );
+  });
+
+  it('is not fooled by "take care of" or "call me back"', async () => {
+    expect(await run(['That is rough, Sam.'], callWith(2, 'I need to take care of my mom.'))).toBe(
+      'That is rough.'
+    );
+    expect(await run(['Of course, Sam.'], callWith(2, 'Can you call me back tomorrow?'))).toBe(
+      'Of course.'
     );
   });
 

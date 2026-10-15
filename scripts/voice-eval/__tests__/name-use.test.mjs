@@ -22,6 +22,19 @@ describe('nameUseRate', () => {
     expect(computeHumanness([run]).nameUseRate).toBe(0.5);
   });
 
+  it("leaves out Ferni's hello when the caller spoke first", () => {
+    const callerFirst = {
+      userSpeech: [[0, 400]],
+      events: [
+        { who: 'user', text: 'Hello?', t: 200 },
+        { who: 'agent', text: 'Hey Sam, good evening.', t: 900 },
+        { who: 'user', text: 'Long day.', t: 1600 },
+        { who: 'agent', text: 'That sounds rough.', t: 1900 },
+      ],
+    };
+    expect(computeHumanness([callerFirst]).nameUseRate).toBe(0);
+  });
+
   it('matches the name as a word, with its capital', () => {
     expect(computeHumanness([run], { callerName: 'Will' }).nameUseRate).toBe(0);
   });

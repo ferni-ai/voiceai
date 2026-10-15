@@ -106,10 +106,14 @@ export function computeHumanness(runs, { callerName = 'Sam' } = {}) {
   const agent = [];
   for (const run of runs) {
     const turns = turnsOf(run);
+    // On a call the caller often says hello first: Ferni's first turn is then its hello.
+    const greetedFirst = turnsOf(run, { greeting: true }).some((t) => t.greeting);
+    let firstAgent = !greetedFirst;
     turns.forEach((turn, i) => {
       if (turn.who !== 'agent') return;
       const before = turns[i - 1]?.who === 'user' ? turns[i - 1].text : '';
-      agent.push({ text: turn.text, before });
+      agent.push({ text: turn.text, before, hello: firstAgent });
+      firstAgent = false;
     });
   }
   const lens = agent.map((a) => words(a.text).length);
@@ -133,7 +137,13 @@ export function computeHumanness(runs, { callerName = 'Sam' } = {}) {
     selfRepairRate: rate(agent, (a) => SELF_REPAIR.test(a.text)),
     filledPausesPer100Words: totalWords ? Math.round((filled / totalWords) * 1000) / 10 : null,
     laughterRate: rate(agent, (a) => LAUGHTER.test(a.text)),
-    nameUseRate: callerName ? rate(agent, (a) => nameIn(callerName).test(a.text)) : null,
+    // Hello aside, whenever it came (name-gate.ts keeps the name there too).
+    nameUseRate: callerName
+      ? rate(
+          agent.filter((a) => !a.hello),
+          (a) => nameIn(callerName).test(a.text)
+        )
+      : null,
     markupArtifactRate: rate(agent, (a) => MARKUP_ARTIFACT.test(a.text)),
     selfDisclosureRate: rate(agent, (a) => SELF_DISCLOSURE.test(a.text)),
     // Picks up one of the caller's own content words, the way people echo.
