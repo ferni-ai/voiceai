@@ -13,7 +13,7 @@
  * @module services/ceo/briefing
  */
 
-import chalk from 'chalk';
+import { tint } from '../../utils/terminal-tint.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { goalsService, type Goal } from './goals.js';
 import { getRunningWebExperiments, analyzeExperiment } from '../experiments/web-experiments.js';
@@ -121,11 +121,11 @@ function formatDate(date: Date): string {
  */
 function formatChange(change: number): string {
   if (change > 0) {
-    return chalk.green(`+${change}% ↑`);
+    return tint.green(`+${change}% ↑`);
   } else if (change < 0) {
-    return chalk.red(`${change}% ↓`);
+    return tint.red(`${change}% ↓`);
   }
-  return chalk.gray('stable');
+  return tint.gray('stable');
 }
 
 /**
@@ -378,74 +378,74 @@ export function formatForTerminal(briefing: Briefing): string {
 
   // Header with greeting and date
   lines.push('');
-  lines.push(chalk.yellow.bold(`🌅 ${briefing.greeting}`));
-  lines.push(chalk.gray(`   ${formatDate(briefing.date)}`));
+  lines.push(tint.yellow.bold(`🌅 ${briefing.greeting}`));
+  lines.push(tint.gray(`   ${formatDate(briefing.date)}`));
   lines.push('');
 
   // Calendar section
   if (briefing.calendar.length > 0) {
     lines.push(
-      chalk.cyan.bold(`📅 TODAY'S CALENDAR`) +
-        chalk.gray(
+      tint.cyan.bold(`📅 TODAY'S CALENDAR`) +
+        tint.gray(
           ` (${briefing.calendar.length} meeting${briefing.calendar.length !== 1 ? 's' : ''})`
         )
     );
     for (const event of briefing.calendar) {
       const time = formatTime(event.startTime);
-      const location = event.location ? chalk.gray(` @ ${event.location}`) : '';
-      lines.push(`   ${chalk.white(time.padEnd(10))} ${event.title}${location}`);
+      const location = event.location ? tint.gray(` @ ${event.location}`) : '';
+      lines.push(`   ${tint.white(time.padEnd(10))} ${event.title}${location}`);
     }
     lines.push('');
   } else {
-    lines.push(chalk.cyan.bold("📅 TODAY'S CALENDAR"));
-    lines.push(chalk.gray('   No meetings scheduled - great for deep work!'));
+    lines.push(tint.cyan.bold("📅 TODAY'S CALENDAR"));
+    lines.push(tint.gray('   No meetings scheduled - great for deep work!'));
     lines.push('');
   }
 
   // Priorities section
   if (briefing.priorities.length > 0) {
-    lines.push(chalk.magenta.bold('🎯 TOP PRIORITIES'));
+    lines.push(tint.magenta.bold('🎯 TOP PRIORITIES'));
     for (let i = 0; i < briefing.priorities.length; i++) {
       const p = briefing.priorities[i];
-      const progress = p.progress !== undefined ? chalk.gray(` (${p.progress}%)`) : '';
+      const progress = p.progress !== undefined ? tint.gray(` (${p.progress}%)`) : '';
       lines.push(`   ${i + 1}. ${p.title}${progress}`);
     }
     lines.push('');
   }
 
   // Metrics section
-  lines.push(chalk.blue.bold('📊 METRICS'));
+  lines.push(tint.blue.bold('📊 METRICS'));
   const m = briefing.metrics;
   lines.push(
-    `   ${chalk.white('•')} Active users: ${chalk.white(m.activeUsers.value.toLocaleString())} ${formatChange(m.activeUsers.change)}`
+    `   ${tint.white('•')} Active users: ${tint.white(m.activeUsers.value.toLocaleString())} ${formatChange(m.activeUsers.change)}`
   );
   lines.push(
-    `   ${chalk.white('•')} Call quality: ${chalk.white(`${m.callQuality.value.toFixed(1)}%`)} ${formatChange(m.callQuality.change)}`
+    `   ${tint.white('•')} Call quality: ${tint.white(`${m.callQuality.value.toFixed(1)}%`)} ${formatChange(m.callQuality.change)}`
   );
   lines.push(
-    `   ${chalk.white('•')} Revenue: ${chalk.white(`$${m.revenue.value.toLocaleString()}`)} MTD ${formatChange(m.revenue.change)}`
+    `   ${tint.white('•')} Revenue: ${tint.white(`$${m.revenue.value.toLocaleString()}`)} MTD ${formatChange(m.revenue.change)}`
   );
   lines.push('');
 
   // Experiments section
   if (briefing.experiments.length > 0) {
-    lines.push(chalk.yellow.bold('⚡ EXPERIMENTS'));
+    lines.push(tint.yellow.bold('⚡ EXPERIMENTS'));
     for (const exp of briefing.experiments) {
       const confidenceColor =
-        exp.confidence >= 95 ? chalk.green : exp.confidence >= 80 ? chalk.yellow : chalk.gray;
+        exp.confidence >= 95 ? tint.green : exp.confidence >= 80 ? tint.yellow : tint.gray;
       const status =
         exp.isSignificant && exp.confidence >= 95
-          ? chalk.green.bold('ready to promote')
+          ? tint.green.bold('ready to promote')
           : `${exp.progress}% to significance`;
       lines.push(
-        `   ${chalk.white('•')} ${exp.name}: ${confidenceColor(`${exp.confidence}% confidence`)} (${status})`
+        `   ${tint.white('•')} ${exp.name}: ${confidenceColor(`${exp.confidence}% confidence`)} (${status})`
       );
     }
     lines.push('');
   }
 
   // AI Suggestion section
-  lines.push(chalk.green.bold('💡 SUGGESTION'));
+  lines.push(tint.green.bold('💡 SUGGESTION'));
   lines.push(`   "${briefing.suggestion}"`);
   lines.push('');
 

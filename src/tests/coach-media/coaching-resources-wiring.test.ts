@@ -213,6 +213,10 @@ describe('findCoachingResources on the live path', () => {
       skipGreeting: true,
     });
     const session = { userData: { name: 'Seth Ford' }, currentAgent: agent };
+    // A live call registers the owner check (live-call-behaviors.ts); this caller is the owner.
+    const { outreachConfirmListeners } =
+      await import('../../tools/domains/communication/outreach/outreach-confirm.js');
+    outreachConfirmListeners(session, () => true);
     const output = await dispatch(session, agent.toolCtx as unknown as Record<string, unknown>, {
       topic: 'Seth shin splint stretches',
       format: 'video',
@@ -249,6 +253,7 @@ describe('findCoachingResources on the live path', () => {
     );
     // Another call has no pick to send.
     const other = { userData: {}, currentAgent: agent };
+    outreachConfirmListeners(other, () => true);
     expect(await dispatch(other, toolCtx, { action: 'send_text' }, 'coachingPick')).toContain(
       'no checked pick'
     );

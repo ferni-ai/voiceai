@@ -21,6 +21,10 @@ EVAL_DRY_RUN=1 ./run.sh dev playful x    # print the plan only
 - Main set: `long-day playful story real-call`.
   Special-purpose: `quiet` (long pause), `talk-over`, `timer`, `tools`,
   `catch-up` + `returning` (memory).
+- Handoffs: `EVAL_TIER=partner ./run.sh dev handoff-by-name <label>` asks for teammates
+  by name only. `score.mjs` runs `handoff-grounding.mjs` on any `handoff-*` scenario and
+  fails a teammate's first line that claims a reason the caller never gave (for example
+  "Ferni said you're weighing the offer"). Run it after any change to handoffs or briefs.
 - Run each scenario at least twice. One call is an anecdote.
 - Output lands in `out/<scenario>-<label>.json` plus wav files and `.score.json`.
 - Don't run while someone is on a dev call. Never deploy mid-run.

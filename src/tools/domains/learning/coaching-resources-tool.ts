@@ -16,22 +16,40 @@ import { checkedPick } from '../../../services/coach-media/checked-pick.js';
 import { fitContext } from '../../../services/coach-media/fit.js';
 import {
   deliverPick,
+  hasPick,
   recordPickFeedback,
   rememberPick,
 } from '../../../services/coach-media/pick-delivery.js';
+import { logOffered, recentPicks } from '../../../services/coach-media/pick-log.js';
+import {
+  boostFor,
+  tasteFrom,
+  tasteReason,
+  tasteWords,
+} from '../../../services/coach-media/taste.js';
 import {
   GROUNDING_PER_USER_PER_DAY,
   takeDailyBudget,
 } from '../../../services/coach-media/quota.js';
 import { groundedAnswer } from '../../../services/coach-media/grounded-search.js';
-import { groundedResultText, pickResultText } from '../../../services/coach-media/result-text.js';
+import {
+  groundedResultText,
+  pickResultText,
+  useRegisteredToolNames,
+} from '../../../services/coach-media/result-text.js';
 import {
   coachMediaEnabled,
   sessionIdentifiers,
   topicOnlyQuery,
 } from '../../../services/coach-media/topic-query.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { isSyntheticUserId } from '../../../utils/synthetic-user.js';
+import { ownerKnown, testAccountReply } from '../communication/outreach/outreach-confirm.js';
+import { toolRegistry } from '../../registry/index.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
+
+// Brands like iPhone may stay in web text; registered tool names never do.
+useRegisteredToolNames(() => toolRegistry.getAllIds());
 
 export const FIND_COACHING_RESOURCES = 'findCoachingResources';
 
@@ -91,6 +109,7 @@ export async function runFindCoachingResources(
   call: Call,
   userId?: string
 ): Promise<string> {
+  const started = Date.now();
   const names = sessionIdentifiers(call.userData);
   const topic = topicOnlyQuery(args.topic, names);
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
@@ -107,11 +126,28 @@ export async function runFindCoachingResources(
       format === 'book'
         ? await bookCandidates(topic)
         : await videoCandidates(topic, format === 'short');
-    const fit = await fitContext(userId, args.fit, names);
-    const pick = await checkedPick(candidates, topic, fit);
+    const known = userId && userId !== 'anonymous' ? userId : undefined;
+    const taste = tasteFrom(known ? await recentPicks(known) : []);
+    const fit = [await fitContext(userId, args.fit, names), tasteWords(taste)]
+      .filter(Boolean)
+      .join('; ');
+    const pick = await checkedPick(candidates, topic, fit, (c) => boostFor(taste, c, format));
     if (pick) {
-      rememberPick(call.session, { topic, candidate: pick.candidate });
-      return pickResultText(topic, pick, sensitive);
+      const c = pick.candidate;
+      const pickId = known
+        ? await logOffered(known, {
+            topic,
+            format,
+            title: c.title,
+            by: c.by,
+            lengthSeconds: c.seconds,
+            creatorId: c.creatorId,
+            latencyMs: Date.now() - started,
+            firstInCall: !hasPick(call.session),
+          })
+        : undefined;
+      rememberPick(call.session, { topic, candidate: c, why: pick.verdict?.why, pickId });
+      return pickResultText(topic, pick, sensitive, tasteReason(taste, c, format));
     }
     if (candidates.length > 0) return NONE_FIT;
   }
@@ -166,7 +202,13 @@ export async function runCoachingPick(
       sessionIdentifiers(call.userData)
     );
   }
-  return deliverPick(call.session, userId, args.action === 'send_text' ? 'text' : 'app', personaId);
+  const how = args.action === 'send_text' ? 'text' : 'app';
+  // A text reaches the owner's phone: only when the speaker is known to be the
+  // owner. Unknown counts as no, whatever session path built this call.
+  if (how === 'text' && isSyntheticUserId(userId)) return testAccountReply(COACHING_PICK);
+  if (how === 'text' && !ownerKnown(call.session))
+    return "Nothing was sent: a text goes only to the account owner, and I can't tell they're the one on the line. Offer the app instead.";
+  return deliverPick(call.session, userId, how, personaId);
 }
 
 const coachingPickDefinition: ToolDefinition = {

@@ -9,7 +9,7 @@
 
 // Load environment variables
 import { config } from 'dotenv';
-config();
+config({ quiet: true });
 
 import { createLogger } from '../src/utils/safe-logger.js';
 

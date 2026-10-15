@@ -169,7 +169,8 @@ Examples:
         }
 
         // Get user's timezone if not specified
-        const timezone = args.timezone || (await getUserTimezone(userId)) || 'America/New_York';
+        const timezone =
+          args.timezone || (await getUserTimezone(userId, ctx.sessionId)) || 'America/New_York';
 
         // Create the schedule
         const { createCheckinSchedule } =
@@ -588,13 +589,12 @@ function formatCallDate(date: Date): string {
 }
 
 /**
- * Get user's timezone from profile
+ * The zone this call settled (phone-parity.ts): never the raw profile's
  */
-async function getUserTimezone(userId: string): Promise<string | null> {
+async function getUserTimezone(userId: string, sessionId?: string): Promise<string | null> {
   try {
-    const { getUserContactInfo } = await import('../../../services/outreach/user-contact.js');
-    const contact = await getUserContactInfo(userId);
-    return contact?.timezone || null;
+    const { userTimeZone } = await import('../../../utils/caller-time-zone.js'); // never the raw profile's
+    return userTimeZone({ sessionId, userId }) ?? null;
   } catch {
     return null;
   }

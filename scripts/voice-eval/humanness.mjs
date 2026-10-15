@@ -92,8 +92,17 @@ const pct = (xs, p) => {
   return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
 };
 
-/** Humanness metrics pooled over one or more recorded runs. */
-export function computeHumanness(runs) {
+/** The caller's name as a capitalized word of its own ("Sam," yes; "Samantha" no; "will" is not "Will"). */
+const nameIn = (name) =>
+  new RegExp(`(?<![\\p{L}'])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}'])`, 'u');
+
+/**
+ * Humanness metrics pooled over one or more recorded runs. callerName is who
+ * the eval calls as (run.sh: Sam): nameUseRate is the share of Ferni's turns
+ * that say it. Friends say each other's name in about 1 turn in 75 (SBCSAE,
+ * score-targets.json nameUseRate); Ferni said it in 16 of 24 on a prod call.
+ */
+export function computeHumanness(runs, { callerName = 'Sam' } = {}) {
   const agent = [];
   for (const run of runs) {
     const turns = turnsOf(run);
@@ -124,6 +133,7 @@ export function computeHumanness(runs) {
     selfRepairRate: rate(agent, (a) => SELF_REPAIR.test(a.text)),
     filledPausesPer100Words: totalWords ? Math.round((filled / totalWords) * 1000) / 10 : null,
     laughterRate: rate(agent, (a) => LAUGHTER.test(a.text)),
+    nameUseRate: callerName ? rate(agent, (a) => nameIn(callerName).test(a.text)) : null,
     markupArtifactRate: rate(agent, (a) => MARKUP_ARTIFACT.test(a.text)),
     selfDisclosureRate: rate(agent, (a) => SELF_DISCLOSURE.test(a.text)),
     // Picks up one of the caller's own content words, the way people echo.
