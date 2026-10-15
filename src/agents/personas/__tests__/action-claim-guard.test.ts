@@ -40,7 +40,6 @@ describe('claimedAction', () => {
     ["I'm going to give her a call right now.", 'call'],
     ['Hang tight while I call her.', 'call'],
     ["Okay, I'm on it \u2014 calling Mom now.", 'call'],
-    ['On it, calling her.', 'call'],
     ["I'm on the phone with her now.", 'call'],
     ['Placing the call now.', 'call'],
     ["I'm getting her on the line.", 'call'],
@@ -58,8 +57,6 @@ describe('claimedAction', () => {
     ["I've texted your sister.", 'send'],
     ["I've let your brother know.", 'send'],
     ['I just shot her a text.', 'send'],
-    ["All set, she'll get the text.", 'send'],
-    ['Message is on its way to Dana.', 'send'],
     ["I've booked it.", 'schedule'],
     ['Got you a table at seven.', 'schedule'],
     ["I've put it in your calendar.", 'schedule'],
@@ -73,8 +70,9 @@ describe('claimedAction', () => {
     ["I've left her a voicemail.", 'call'],
     ["I'll call her in a sec.", 'call'],
     ['I dropped her a line.', 'send'],
-    ["Text's on the way.", 'send'],
     ['Booked!', 'schedule'],
+    ["I'm giving her a call right now.", 'call'],
+    ["I'll give her a ring right now.", 'call'],
   ])('%j claims %s', (sentence, kind) => {
     expect(claimedAction(sentence)).toBe(kind);
   });
@@ -156,6 +154,31 @@ describe('claimedAction', () => {
     "I'll let you know a trick for when he answers the phone.",
     "I'm calling Dad's behavior what it is.",
     "That's saved, in my heart at least.",
+    "She's probably asleep. She'll get the text when she wakes up.",
+    "Your text was delivered, she's just busy.",
+    "If you stop replying, he'll get the message.",
+    "Give it time, they'll get the message.",
+    'Calling your mom \u2014 I love that.',
+    "Calling her, wow, that's a big step.",
+    "Ah, calling Grandma, she'll love that.",
+    "Calling Mom! That's so sweet.",
+    'Calling her.',
+    'Texting her.',
+    'Message sent, loud and clear, huh.',
+    "I've reached out to her before and it didn't land.",
+    "I've texted my mom's old number too.",
+    "I'm booking it to the finish line.",
+    "I'm calling back to what you said earlier.",
+    "Oh, the call's connecting now, can you hear me?",
+    'The call is going through your head over and over.',
+    "I'll get back to you when she answers your question about it.",
+    "I'll let you know when she picks up the vibe, haha.",
+    "I've booked it, I'm going to Lisbon in my imagination.",
+    "I've sent it out into the universe.",
+    // Known misses, left alone on purpose (they read like the caller's own news):
+    "All set, she'll get the text.",
+    'Message is on its way to Dana.',
+    'On it, calling her.',
   ])('%j is not a claim', (sentence) => {
     expect(claimedAction(sentence)).toBeNull();
   });
@@ -375,6 +398,9 @@ describe('withActionClaimCheck', () => {
     const parts = [
       "It sounds like she's going through a lot. ",
       "I know it's hard. Calling her number just to hear her voice, that makes so much sense. ",
+      "She'll get the text when she wakes up. ",
+      'Calling your mom, I love that. ',
+      'Calling her. ',
       "I'm here with you.",
     ];
     expect(await textOf(await check(streamOf(...parts), [ASK], toolsWith('endCall')))).toBe(

@@ -24,7 +24,7 @@ export const ACTION_KINDS: readonly ActionKind[] = ['call', 'send', 'schedule', 
 const HAVE = "\\b(?:i've|i have|we've|i just|i've just|i already|i've already)";
 const DOING = "\\b(?:i'm|i am|we're)(?: just| now| already)?";
 const LEAD =
-  '^(?:(?:okay|ok|alright|all right|sure|right|great|perfect|got it|done|yep|yes|on it|hang on|one sec)\\W+)*';
+  "^(?:(?:okay|ok|alright|all right|sure|right|great|perfect|got it|done|yep|yes|on it|i'm on it|hang on|one sec)\\W+)*";
 const NOW =
   '\\b(?:now|right now|right away|straight away|this second|immediately|in a (?:sec|second|moment|minute))\\b';
 const KIN =
@@ -33,12 +33,16 @@ const KIN =
 const WHO = `(?:her|him|them|${KIN}|your (?:\\w+ )?${KIN})\\b(?!'s)`;
 
 const CALL_VERB = '(?:calling|ringing|dialing|dialling|phoning)';
+/** A short reassurance may follow a bare report: "Calling her now, don't worry." */
+const TAIL = "(?:\\W+(?:don't worry|okay|ok|hang tight|one sec|hold on|bear with me))*\\W*$";
 /** A call's target: a person, or the number the caller gave. */
 const NUMBER = '(?:(?:that|the|this|her|his|their|your \\w+) number|\\d[\\d -]{2,})';
 const DIALED = `(?:${WHO}|${NUMBER})`;
-/** A whole clause that is only the action and "now": "Calling her now.", "Okay, dialing." */
-const BARE = (verbs: string): RegExp =>
-  new RegExp(`${LEAD}${verbs}(?: ${DIALED})?(?: ${NOW})?\\W*$`);
+/** The whole sentence is only the action, its target and "now": "Calling her now.", "Okay, dialing." */
+const BARE = (verbs: string, now = NOW): RegExp =>
+  new RegExp(`${LEAD}${verbs}(?: ${DIALED})?(?: ${now})${TAIL}`);
+
+/** Read on each clause: Ferni as the actor, a person in the caller's world (or their number) as the object. */
 const CLAIMS: Record<ActionKind, RegExp[]> = {
   call: [
     new RegExp(
@@ -46,45 +50,42 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
     ),
     new RegExp(`${HAVE} left ${WHO} a (?:voicemail|message)`),
     new RegExp(
-      `${DOING} (?:${CALL_VERB}|reaching out to|getting in touch with|on the phone with) (?:${DIALED}|now|back)`
+      `${DOING} (?:${CALL_VERB}|reaching out to|getting in touch with|on the phone with) ${DIALED}`
     ),
-    new RegExp(`${DOING} (?:${CALL_VERB})\\W*$`),
+    new RegExp(`${DOING} (?:${CALL_VERB})(?: ${NOW}| back ${NOW})?\\W*$`),
     new RegExp(`${DOING} (?:getting ${WHO} on the line|placing (?:the|a) call)`),
-    BARE(`(?:${CALL_VERB}|placing the call)`),
     new RegExp(
       `\\b(?:let me|i'm going to|i'm gonna|i'll) (?:call|ring|dial|phone) ${DIALED}.*${NOW}`
     ),
     new RegExp(`\\b(?:let me|i'm going to|i'm gonna) give ${WHO} a (?:ring|call|buzz)`),
+    new RegExp(`\\b(?:i'm giving|i'll give) ${WHO} a (?:ring|call|buzz).*${NOW}`),
     new RegExp(`\\bwhile i (?:call|ring|dial|phone|reach) ${DIALED}`),
-    /\bthe call(?: is|'s) (?:ringing|connecting|going through)\b|\bcall (?:is|has been|was) placed\b|\bgetting a call (?:any (?:second|minute|moment)|right now|now|shortly)\b/,
-    /\b(?:let you know|get back to you|report back|update you) (?:as soon as|when|once|the moment|if|after) (?:i|she|he|they) (?:reach|get (?:a ?hold|ahold) of|get through|hear back|picks? up|answers?|talk|speak)/,
+    /\bthe call(?: is|'s) ringing\b|\bcall (?:is|has been|was) placed\b|\bgetting a call (?:any (?:second|minute|moment)|right now|now|shortly)\b/,
+    /\b(?:let you know|get back to you|report back|update you) (?:as soon as|when|once|the moment|if|after) i (?:reach|get (?:a ?hold|ahold) of|get through to|hear back from|talk to|speak (?:to|with))/,
+    /\b(?:let you know|get back to you|report back|update you) (?:as soon as|when|once|the moment) (?:she|he|they) (?:picks? up|answers?)(?: the phone)?\W*$/,
   ],
   send: [
-    new RegExp(
-      `${HAVE} (?:texted|messaged|emailed|pinged|let ${WHO} know|dropped ${WHO} a line)(?: ${WHO})?`
-    ),
+    new RegExp(`${HAVE} (?:texted|messaged|emailed|pinged) ${WHO}`),
+    new RegExp(`${HAVE} (?:let ${WHO} know|dropped ${WHO} a line)`),
     new RegExp(`${HAVE} sent (?:it|that|the (?:text|message|email|note)|${WHO})`),
     new RegExp(`${DOING} (?:texting|messaging|emailing) ${WHO}`),
     new RegExp(`${DOING} sending (?:it|that|the (?:text|message|email|note)|${WHO})`),
-    BARE('(?:texting|sending it)'),
-    new RegExp(`${LEAD}(?:just sent(?: it)?|message sent|text sent|email sent|done,? sent)\\W*$`),
     new RegExp(
       `\\b(?:let me|i'm going to|i'm gonna|i'll) (?:text|message|email|send) ${WHO}.*${NOW}`
     ),
     new RegExp(`\\b(?:shot|dropped) ${WHO} a (?:text|message|note|email|line)`),
-    /\b(?:message|text|email|note)(?: is|'s| has been| was) (?:sent|delivered|on (?:its|the) way|gone out)\b|\b(?:she'll|he'll|they'll) get the (?:text|message|email)\b/,
   ],
   schedule: [
     new RegExp(`${HAVE} (?:booked|scheduled|reserved) (?:it|that|this|the|a|an|your|you|${WHO})`),
     new RegExp(
       `${HAVE} (?:put|added) (?:it|that|this|the \\w+) (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
     ),
-    new RegExp(`${DOING} (?:booking|scheduling|reserving) (?:it|that|this|the|a|an|your|you)\\b`),
-    new RegExp(`${LEAD}booked\\W*$`),
-    /\bgot you (?:a|the) (?:table|booking|reservation|appointment|spot)\b|^(?:(?:okay|ok|great|done|perfect)\W+)*you're all booked\W*$/,
+    new RegExp(
+      `${DOING} (?:booking|scheduling|reserving) (?:it|that|this|the|a|an|your|you)\\b(?! to\\b)`
+    ),
+    /\bgot you (?:a|the) (?:table|booking|reservation|appointment|spot)\b/,
   ],
   reminder: [
-    /^(?:(?:okay|ok|great|done|perfect)\W+)*(?:your )?(?:reminder|timer|alarm)(?:'s| is) all set\W*$/,
     new RegExp(
       `${HAVE} (?:set|added|created|started) (?:a|the|your|that|an) (?:\\w+ )?(?:reminder|timer|alarm)\\b`
     ),
@@ -92,11 +93,19 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
       `${DOING} (?:setting|starting) (?:a|the|your|that|an) (?:\\w+ )?(?:reminder|timer|alarm)\\b`
     ),
   ],
-  save: [
-    new RegExp(`${HAVE} (?:saved|stored|logged) (?:it|that|this|those)\\b`),
-    /^(?:(?:okay|ok|done|great|got it)\W+)*(?:it's|that's) (?:been )?(?:saved|logged)\W*$/,
-    new RegExp(`${LEAD}saved\\W*$`),
+  save: [new RegExp(`${HAVE} (?:saved|stored|logged) (?:it|that|this|those)\\b`)],
+};
+
+/** Read on the whole sentence: a bare report that is the entire sentence ("Just sent it.", "Booked!"). */
+const WHOLE: Record<ActionKind, RegExp[]> = {
+  call: [BARE(`(?:${CALL_VERB}|placing the call)`), new RegExp(`${LEAD}(?:dialing|dialling)\\W*$`)],
+  send: [
+    BARE('(?:texting|sending it)'),
+    new RegExp(`${LEAD}(?:just sent(?: it)?|message sent|text sent|email sent|sent it)\\W*$`),
   ],
+  schedule: [new RegExp(`${LEAD}(?:booked|you're all booked)\\W*$`)],
+  reminder: [new RegExp(`${LEAD}(?:your )?(?:reminder|timer|alarm)(?:'s| is) (?:all )?set\\W*$`)],
+  save: [new RegExp(`${LEAD}(?:saved|(?:it's|that's) (?:been )?saved)\\W*$`)],
 };
 
 /** An offer, question or first-person negation: this clause says it hasn't happened. */
@@ -105,14 +114,15 @@ const NOT_A_CLAIM =
 
 /** Ferni's own life, or an idiom: not an action in this call. */
 const NOT_AN_ACTION =
-  /^(?:and |but |so )?(?:when|after|before|because|since|as|once|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time|summer|winter|spring|fall|autumn)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time|in spirit)\b|\bsend(?:ing)? (?:you )?(?:\w+ ){0,4}(?:hugs?|love|vibes|strength|thoughts|prayers|energy|luck|warmth|kindness|good wishes)\b|\bcall(?:ed|ing)? (?:it|that|this)\b(?! number)|\bcalling (?:you|them|him|her) out\b/;
+  /^(?:and |but |so )?(?:when|after|before|because|since|as|once|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time|summer|winter|spring|fall|autumn)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time|in spirit|before|plenty of times|many times|a few times|so many times|too)\b|\bsend(?:ing)? (?:you )?(?:\w+ ){0,4}(?:hugs?|love|vibes|strength|thoughts|prayers|energy|luck|warmth|kindness|good wishes)\b|\bcall(?:ed|ing)? (?:it|that|this)\b(?! number)|\bcalling (?:you|them|him|her) out\b/;
 
 /** A capitalised word inside a clause is a name: read it as "her" (the patterns are lower case). */
 const names = (text: string): string =>
   text.replace(/([a-z,;:]\s+)(?!I\b|I'|I’)[A-Z][a-z]+\b(?!['’])/g, '$1her');
 
 /** Anywhere in the sentence: it's about feelings, not an action ("that's saved, in my heart"). */
-const FIGURATIVE = /\bin (?:my|your|our) (?:heart|head|memory|mind)\b|\bin spirit\b/;
+const FIGURATIVE =
+  /\bin (?:my|your|our) (?:heart|head|memory|mind|imagination|dreams)\b|\bin spirit\b|\binto the universe\b/;
 
 const normalize = (text: string): string =>
   names(text.replace(/"[^"]*"|“[^”]*”/g, ' ')) // a message's words, quoted: never Ferni's claim
@@ -125,6 +135,11 @@ const normalize = (text: string): string =>
 export function claimedAction(sentence: string): ActionKind | null {
   const text = normalize(sentence);
   if (FIGURATIVE.test(text)) return null;
+  const whole = text.replace(/[—–]/g, ',');
+  if (!NOT_A_CLAIM.test(whole) && !NOT_AN_ACTION.test(whole)) {
+    const kind = ACTION_KINDS.find((k) => WHOLE[k].some((re) => re.test(whole)));
+    if (kind) return kind;
+  }
   for (const raw of text.split(/[,;:—–]| - /)) {
     const clause = raw.trim();
     if (!clause || NOT_A_CLAIM.test(clause) || NOT_AN_ACTION.test(clause)) continue;
@@ -153,7 +168,7 @@ export function kindsOfTool(name: string): ActionKind[] {
 const PREVIEW = /^\W*not sent yet\b/i;
 /** A result that says the action did not happen. */
 const REFUSAL =
-  /^\W*(?:nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi don't have (?:a|the|their|any) (?:phone )?number\b|\bi couldn't find\b|\b(?:calls?|calling|texts?|texting|outbound \w+) (?:are|is) (?:disabled|turned off|off|not available|unavailable)\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
+  /^\W*(?:nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi don't have (?:a|the|their|any) (?:phone )?number\b|\bi couldn't find\b|\bdon't see \w+(?: \w+)? in your contacts\b|\bdoesn't look (?:valid|right)\b|\b(?:calls?|calling|texts?|texting|outbound \w+) (?:are|is) (?:disabled|turned off|off|not available|unavailable)\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
 
 function outputText(output: unknown): string {
   if (typeof output !== 'string') return JSON.stringify(output ?? '');
