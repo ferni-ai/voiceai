@@ -8,6 +8,7 @@
 
 import type { llm } from '@livekit/agents';
 
+import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
@@ -27,6 +28,7 @@ import {
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
+import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt.js';
@@ -114,7 +116,8 @@ export function withTurnReminder(
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
-  const reminder = [
+  // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
+  const turnNotes = [
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     // "Naya" in the transcript is Nayan (teammate-names.ts)
@@ -162,9 +165,10 @@ export function withTurnReminder(
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
     options.shape !== false && !answering ? repairNoteFor(chatCtx, session) : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  ].filter(Boolean);
+  const reminder = contextPacketEnabled()
+    ? packetReminder(session, words, turnNotes)
+    : turnNotes.join(' ');
   // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
   noteReminder(session, {
     reminder,
