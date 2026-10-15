@@ -82,11 +82,8 @@ interface CallMemory {
   /** The latest pick's note already carried the rule (RECALL_RULE), so the packet leaves it out. */
   ruleInChat: boolean;
 }
-/** Keyed by the call's session id (services.sessionId): one live call per id. */
-const calls = new Map<string, CallMemory>();
-
-const sessionKey = (session: object): string | undefined =>
-  (session as { userData?: { services?: { sessionId?: string } } }).userData?.services?.sessionId;
+/** Held by the call's session object, so it goes when the call does (nothing outlives it). */
+const calls = new WeakMap<object, CallMemory>();
 
 /** Keep the facts recall picked for this call's packets. A newer pick goes first, in its own order. */
 export function rememberForPacket(
@@ -94,10 +91,8 @@ export function rememberForPacket(
   pick: RecallPick,
   userName = pick.userName
 ): void {
-  const key = sessionKey(session);
-  if (!key) return;
-  const call: CallMemory = calls.get(key) ?? { facts: [], ruleInChat: false };
-  calls.set(key, call);
+  const call: CallMemory = calls.get(session) ?? { facts: [], ruleInChat: false };
+  calls.set(session, call);
   const fresh = pick.facts.map((f) => factFromRecall(f, userName));
   const ids = new Set(fresh.map((f) => f.id));
   call.facts = [...fresh, ...call.facts.filter((f) => !ids.has(f.id))].slice(0, MAX_CALL_FACTS);
@@ -152,8 +147,7 @@ function localTime(now: number, timeZone: string | undefined): string | undefine
 }
 
 export function turnPacket(session: object, p: TurnParts): ContextPacket {
-  const key = sessionKey(session);
-  const call = key ? calls.get(key) : undefined;
+  const call = calls.get(session);
   const persona = getDisplayName(p.personaId ?? 'ferni');
   // Topics they asked us to forget (forget.ts) are never said back, even from a pick made earlier.
   const userId = (session as { userData?: { userId?: string } }).userData?.userId;

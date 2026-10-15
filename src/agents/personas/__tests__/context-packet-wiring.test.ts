@@ -28,7 +28,7 @@ import { setDirector, type Director } from '../director-notes.js';
 import { forgetRoom } from '../room-guests.js';
 import { withTurnReminder } from '../turn-request.js';
 
-/** A session as the live path has it: the packet is kept per call, by its session id. */
+/** A session as the live path has it. */
 const keyed = (sessionId: string) => ({ userData: { services: { sessionId } } });
 
 const lastText = (ctx: llm.ChatContext): string =>
@@ -52,7 +52,7 @@ let calls = 0;
 function call(
   words = 'Wait, how do you know I was up late?',
   earlier: readonly string[] = ['I was up so late last night.'],
-  sessionId = `packet-call-${++calls}` // the packet keeps picks per session id: one per test
+  sessionId = `packet-call-${++calls}` // per-call state (ROOM_GUESTS and others) is keyed by it: fresh per call
 ): { chat: llm.ChatContext; session: { userData: unknown } } {
   forgetRoom(sessionId); // ROOM_GUESTS keeps the room by session id
   const chat = llm.ChatContext.empty();
