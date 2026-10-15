@@ -100,8 +100,6 @@ export function withTurnReminder(
   // DIRECTOR_ANSWER_TURN_GUARD=on: notes written before they answered Ferni's question are stale.
   const answering = isAnswerTurn(chatCtx.items, words);
   const notes = answering ? '' : formatNotes(offered.filter(keep));
-  // REPAIR_MODE=on: a light check on words that look misheard; none with crisis guidance.
-  const repair = options.shape !== false ? repairNoteFor(chatCtx, session) : '';
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
@@ -115,7 +113,6 @@ export function withTurnReminder(
     // "Naya" in the transcript is Nayan (teammate-names.ts)
     heardTeammateNote(words),
     notes,
-    repair,
     options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
@@ -155,6 +152,9 @@ export function withTurnReminder(
     // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
     // for this reply, last of all; never with crisis guidance.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
+    // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
+    // note above cancels it; none with crisis guidance or when they answered Ferni's question.
+    options.shape !== false && !answering ? repairNoteFor(chatCtx, session) : '',
   ]
     .filter(Boolean)
     .join(' ');

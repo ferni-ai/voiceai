@@ -33,7 +33,13 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import { callerVenting } from './turn-extras.js';
-import { askWhenUnclearEnabled, toolLinesOf, unclearCue, unclearNote } from './unclear-turn.js';
+import {
+  askWhenUnclearEnabled,
+  quoted,
+  toolLinesOf,
+  unclearCue,
+  unclearNote,
+} from './unclear-turn.js';
 
 const log = createLogger({ module: 'RepairCheck' });
 
@@ -59,7 +65,7 @@ export interface CallText {
 
 /** Words that start a turn capitalized and are never names (the prompt's vocabulary covers the rest). */
 const NEVER_NAMES = new Set(
-  'yeah yep yes yup no nope nah okay ok sure right really true what why how who when where which huh hm hmm mhm uh um oh ah hey hi hello thanks cool nice wow totally exactly maybe sorry good fine great well so and or but if just like anyway whatever seriously bye wait that this there these those they them it is are was were do does did have has had can could will would should not you your we our he she his her my me us the an to in on at for of with from about also even still now here today tonight tomorrow yesterday'.split(
+  'yeah yep yes yup no nope nah okay ok sure right really true what why how who when where which huh hm hmm mhm uh um oh ah hey hi hello thanks cool nice wow totally exactly maybe sorry good fine great well so and or but if just like anyway whatever seriously bye wait that this there these those they them it is are was were do does did have has had can could will would should not you your we our he she his her my me us the an to in on at for of with from about also even still now here today tonight tomorrow yesterday honestly basically actually literally obviously apparently luckily sadly anyway anyhow mom mum dad mother father grandma grandpa granny nana papa auntie uncle sis bro babe honey'.split(
     ' '
   )
 );
@@ -68,15 +74,15 @@ const FILLERS = new Set('uh um oh ah well so hm hmm er like'.split(' '));
 
 /** Words "you've" can be followed by: participles that don't end -ed/-en, and adverbs. */
 const AFTER_HAVE = new Set(
-  'got been seen done made had heard read run come become met left lost said told thought bought brought taught caught found kept slept felt won begun sung swum put set let cut hit hurt quit shut spent sent built meant dealt learnt burnt dreamt sat stood understood held paid laid gone grown known shown thrown drawn flown worn torn sworn never always just already ever only really also still actually probably definitely both all each not no got to a an the'.split(
+  'got been seen done made had heard read run come become met left lost said told thought bought brought taught caught found kept slept felt won begun sung swum put set let cut hit hurt quit shut spent sent built meant dealt learnt burnt dreamt sat stood understood held paid laid gone grown known shown thrown drawn flown worn torn sworn never always just already ever only really also still actually probably definitely both all each not no got to a an the gotta something nothing anything everything enough plenty one two three some most much many'.split(
     ' '
   )
 );
 const BAD_HAVE = /\b(?:I|you|we|they|could|would|should|might|must)'ve ([a-z]+)\b/gi;
 const BAD_ARTICLE = /\b(?:the|a|an) (?:I|we|they)\b(?![-'’])/g;
-/** Ferni asked for a name or a place, so a lone one is the answer ("What part?" "Dublin."). */
+/** Ferni asked for a name or a place, so a lone one is the answer ("What part?" "Dublin.", "Her name?"). */
 const ASKED_FOR_A_NAME =
-  /\b(?:who|where|which|what (?:part|city|town|place|name|country|state|street|team|band|show|movie|book))\b/i;
+  /\b(?:who|where|which|names?|called|call (?:him|her|them|it)|what do you call|what (?:part|city|town|place|country|state|street|team|band|show|movie|book))\b/i;
 /** Ferni's previous line already asked them to say it again: never twice in a row. */
 const ALREADY_CHECKED =
   /\b(?:did you say|you said what|didn'?t (?:quite )?catch|say that again|come again|sorry, what)\b/i;
@@ -121,7 +127,8 @@ function garbledCue(latest: string): MishearCue | null {
   });
   for (const match of latest.matchAll(BAD_HAVE)) {
     const next = (match[1] ?? '').toLowerCase();
-    if (!AFTER_HAVE.has(next) && !/(?:ed|en)$/.test(next)) return quote(match[0]);
+    // Participles (-ed, -en) and adverbs (-ly: "I've finally") are ordinary speech.
+    if (!AFTER_HAVE.has(next) && !/(?:ed|en|ly)$/.test(next)) return quote(match[0]);
   }
   const article = latest.match(BAD_ARTICLE);
   return article ? quote(article[0]) : null;
@@ -155,8 +162,8 @@ export function mishearCue(latest: string, call: CallText, previous = ''): Mishe
 /** The note for the reply model: check only if it doesn't fit, in a few words. */
 export function repairNote(cue: MishearCue): string {
   return cue.kind === 'name'
-    ? `Speech-to-text heard "${cue.heard}", a name nobody has said on this call, and it often mishears names. If it doesn't fit what you were talking about, check it in a few words before building on it ("Sorry, did you say ${cue.heard}?"); if it clearly fits, just carry on.`
-    : `Speech-to-text heard "${cue.heard}", which doesn't quite parse, so it may have misheard them. If you can't tell what they meant, say so in a few words and ask, the way a friend would ("Sorry, you what?"), instead of guessing; if the meaning is clear, just answer it.`;
+    ? `Speech-to-text heard "${quoted(cue.heard)}", a name nobody has said on this call, and it often mishears names. If it doesn't fit what you were talking about, check it in a few words before building on it ("Sorry, did you say ${quoted(cue.heard)}?"); if it clearly fits, just carry on.`
+    : `Speech-to-text heard "${quoted(cue.heard)}", which doesn't quite parse, so it may have misheard them. If you can't tell what they meant, say so in a few words and ask, the way a friend would ("Sorry, you what?"), instead of guessing; if the meaning is clear, just answer it.`;
 }
 
 interface MessageView {
@@ -245,5 +252,7 @@ export function repairNoteFor(
   // The kind and cost only: logs never carry the caller's words.
   const ms = Math.round((performance.now() - started) * 100) / 100;
   log.info({ kind: cue.kind, ms }, 'REPAIR_CHECK');
-  return 'options' in cue ? unclearNote(cue) : repairNote(cue);
+  const note = 'options' in cue ? unclearNote(cue) : repairNote(cue);
+  // Last in the reminder (turn-request.ts), so it can say what wins over the shape line.
+  return `${note} Checking like this is fine even where a line above says no question.`;
 }

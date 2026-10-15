@@ -25,6 +25,11 @@ afterEach(() => {
 });
 
 describe('unclearCue', () => {
+  it('lets a long turn that trails off, or "night night", pass as said', () => {
+    expect(unclearCue("It's been a long week and I just keep coming back to the", [])).toBeNull();
+    expect(unclearCue('Night night.', [])).toBeNull();
+  });
+
   it('flags a short doubled-word turn with no one doing anything (dev call 2026-10-11)', () => {
     expect(unclearCue('Still still on there.', [])).toEqual({
       kind: 'fragment',

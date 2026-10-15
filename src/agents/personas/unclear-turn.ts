@@ -32,6 +32,14 @@ export function askWhenUnclearEnabled(
   return env.ASK_WHEN_UNCLEAR === 'on';
 }
 
+/** Caller words quoted in a note: no quotes or brackets to break out of it, and short. */
+export const quoted = (text: string): string =>
+  text
+    .replace(/["“”()[\]{}<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60);
+
 export interface UnclearCue {
   kind: 'reference' | 'fragment';
   /** The words that are unclear, as the caller's captions have it. */
@@ -117,13 +125,14 @@ function fragmentCue(said: string): UnclearCue | null {
   const doubled = words.some(
     (w, i) =>
       w === words[i + 1] &&
-      !/^(?:no|yeah|yes|very|really|so|ha|bye|okay|ok|now|go|wait|more)$/.test(w)
+      !/^(?:no|yeah|yes|very|really|so|ha|bye|okay|ok|now|go|wait|more|night|there)$/.test(w)
   );
   const subject = words.some((w) =>
     /^(?:i|i'm|you|you're|he|she|we|they|it|it's|that's|this|what|who|where|why|how)$/.test(w)
   );
   const cutOff = /\b(?:the|a|an|my|your|our|their)\s*\.?$/i.test(said.trim());
-  return (doubled && !subject && words.length <= 6) || cutOff
+  // Short turns only: a long turn that trails off ("...I keep coming back to the") wants a pause.
+  return words.length <= 6 && ((doubled && !subject) || cutOff)
     ? { kind: 'fragment', heard: said.trim(), options: [] }
     : null;
 }
@@ -157,13 +166,13 @@ export function unclearCue(said: string, turns: string[]): UnclearCue | null {
 /** The note for the reply model: one short question with a guess, only if it's really unclear. */
 export function unclearNote(cue: UnclearCue): string {
   if (cue.kind === 'fragment')
-    return `Speech-to-text heard "${cue.heard}", which looks cut up. If you can tell what they most likely meant, answer that, checking it in a few words; if you can't, ask them to say it again, the way a friend would ("Sorry, you cut out, what was that?"). Don't build on the words as heard.`;
+    return `Speech-to-text heard "${quoted(cue.heard)}", which looks cut up. If you can tell what they most likely meant, answer that, checking it in a few words; if you can't, ask them to say it again, the way a friend would ("Sorry, you cut out, what was that?"). Don't build on the words as heard.`;
   const [first, second] = cue.options;
   if (first && second)
-    return `Before you call any tool: they said "${cue.heard}", and both ${first} and ${second} came up, so you can't be sure who they mean. Ask in a few words with your best guess ("${first}, right?") and wait for the answer.`;
+    return `Before you call any tool: they said "${quoted(cue.heard)}", and both ${first} and ${second} came up, so you can't be sure who they mean. Ask in a few words with your best guess ("${first}, right?") and wait for the answer.`;
   if (/\b(?:that|this|the other) one\b/i.test(cue.heard))
-    return `Before you call any tool: they said "${cue.heard}", and nothing on this call is clearly the one they mean. Ask which in a few words with your best guess ("The ..., right?") and wait for the answer.`;
-  return `They said "${cue.heard}". If two things on this call could be what they mean, or nothing could, don't call a tool or say you did it yet: ask in a few words with your best guess ("The ..., right?") and wait for the answer. If only one thing fits, just do it.`;
+    return `Before you call any tool: they said "${quoted(cue.heard)}", and nothing on this call is clearly the one they mean. Ask which in a few words with your best guess ("The ..., right?") and wait for the answer.`;
+  return `They said "${quoted(cue.heard)}". If two things on this call could be what they mean, or nothing could, don't call a tool or say you did it yet: ask in a few words with your best guess ("The ..., right?") and wait for the answer. If only one thing fits, just do it.`;
 }
 
 /** Tool calls earlier in the request, as text ("[playMusic]"), so a played song counts. */
