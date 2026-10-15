@@ -462,8 +462,6 @@ Example: "That sounds like something ${targetAgentInfo.name} could help with bet
 
     // Include preserved conversation context
     const preservedContext = formatHandoffContextForAgent();
-    // No reason: it is the handoff tool's, written by the model, and it read as something the
-    // caller said ("Ferni told me you're weighing the offer", prod 2026-10-13)
     let handoffMessage = `[RECENT HANDOFF: You just took over from ${fromName}. Only what the caller has said is theirs: don't bring up a topic they haven't.
 Acknowledge the transition naturally and continue the conversation.]`;
     if (preservedContext) {

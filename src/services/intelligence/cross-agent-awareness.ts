@@ -409,7 +409,6 @@ export function formatCrossAgentContextForPrompt(
 
     parts.push('');
     parts.push(
-      // No example sentence: a model copies one as fact ("Jordan said you're weighing the offer")
       `[TIP: You can refer to what ${context.recentTeamInteractions[0]?.agentName || 'a teammate'} discussed, but only what is listed above, and never add a detail the caller didn't give.]`
     );
   }
