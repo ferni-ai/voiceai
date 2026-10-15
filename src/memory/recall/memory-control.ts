@@ -133,16 +133,23 @@ export async function listRemembered(
   return (await recalledFacts(userId, store)).map((f) => shown(f.id, f.data));
 }
 
-/** This fact and every live copy of it, wherever they are in the collection. */
+/**
+ * This fact and every live copy of it: the exact copies anywhere in the collection, and
+ * any copy recall would read next call and count as the same fact (dedupeFacts: case
+ * apart, a missing key as ''), which an equality query misses.
+ */
 async function liveCopies(
   userId: string,
   id: string,
   d: Record<string, unknown>,
   store: MemoryControlStore
 ): Promise<Array<{ id: string; data: Record<string, unknown> }>> {
-  const others = (await store.copies(userId, d)).filter(
-    (c) => c.id !== id && typeof c.data.forgottenAt !== 'string'
-  );
+  const [exact, read] = await Promise.all([store.copies(userId, d), store.facts(userId)]);
+  const found = new Map<string, Record<string, unknown>>();
+  for (const c of [...exact, ...read.filter((f) => sameFact(f.data) === sameFact(d))]) {
+    if (c.id !== id && typeof c.data.forgottenAt !== 'string') found.set(c.id, c.data);
+  }
+  const others = [...found].map(([cid, data]) => ({ id: cid, data }));
   return typeof d.forgottenAt === 'string' ? others : [{ id, data: d }, ...others];
 }
 

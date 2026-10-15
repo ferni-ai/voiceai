@@ -148,6 +148,44 @@ describe('correcting a fact stored more than once', () => {
   });
 });
 
+describe('copies recall counts as the same fact (case apart, a missing key)', () => {
+  const recallValues = async (state: { rows: Record<string, Record<string, unknown>> }) =>
+    (
+      await loadRecallSnapshot(
+        { facts: async () => Object.values(state.rows), summaries: async () => [] },
+        'u'
+      )
+    ).facts.map((f) => f.value);
+  const older = { ...rows.dog, extractedAt: '2026-09-01T18:00:00Z' };
+
+  it('forgets a copy that differs only in case', async () => {
+    const { store, state } = memoryStore({
+      ...rows,
+      legacy: { ...older, value: 'Golden Retriever' },
+    });
+    await forgetRemembered('u', 'dog', store);
+    expect((await recallValues(state)).map((v) => v.toLowerCase())).not.toContain(
+      'golden retriever'
+    );
+  });
+
+  it('corrects a copy whose name differs only in case', async () => {
+    const { store, state } = memoryStore({ ...rows, legacy: { ...older, entityName: 'biscuit' } });
+    await correctRemembered('u', 'dog', 'labradoodle', store);
+    expect(await recallValues(state)).not.toContain('golden retriever');
+  });
+
+  it('forgets a copy with no key next to one with an empty key', async () => {
+    const vegan = { entityName: 'User', value: 'vegan', confidence: 0.9 };
+    const { store, state } = memoryStore({
+      a: { ...vegan, key: '', extractedAt: '2026-10-02T00:00:00Z' },
+      b: { ...vegan, extractedAt: '2026-10-01T00:00:00Z' },
+    });
+    await forgetRemembered('u', 'a', store);
+    expect(await recallValues(state)).not.toContain('vegan');
+  });
+});
+
 describe('forgetRemembered', () => {
   it('marks the fact forgotten, so recall leaves it out from the next call', async () => {
     const { store, state } = memoryStore(rows);
