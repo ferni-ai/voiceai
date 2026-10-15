@@ -48,6 +48,7 @@ export const FLAG_MANIFEST = {
   APPROVALS_PASSKEYS: { default: 'off', owner: 'platform', kind: 'experiment' },
   ARRIVAL_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASK_ADVICE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ASK_WHEN_UNCLEAR: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASSISTANT_ACTIONS_REAL: { default: 'off', owner: 'platform', kind: 'experiment' },
   ATTUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // Loop experiment, not live: attunement's own reply-length cap (turn-attunement.ts
@@ -264,6 +265,7 @@ export const FLAG_MANIFEST = {
   // shows "I'll remember" in the app after a fact is stored
   REMEMBER_MOMENT: { default: 'off', owner: 'memory', kind: 'experiment' },
   REMINDER_SCHEDULER_IN_PROCESS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  REPAIR_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH_NAME: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // read as 'true', not 'on' (adaptive echo window)
