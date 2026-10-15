@@ -158,9 +158,11 @@ describe('saidByCaller', () => {
     expect(saidByCaller('Ask about the offer', ["I'm off on Friday"])).toBe(false);
     expect(saidByCaller('Ask about the career', ['I really care about my sister'])).toBe(false);
     expect(saidByCaller('Ask about the offer', ['What offer?'], ['How is the offer?'])).toBe(false);
-    expect(saidByCaller('Ask about the offer', ["No, that's wrong, there's no offer."])).toBe(
-      false
-    );
+    const claim = ['How is the offer?'];
+    expect(
+      saidByCaller('Ask about the offer', ["No, that's wrong, there's no offer."], claim)
+    ).toBe(false);
+    expect(saidByCaller('Ask about the offer', ['Yes, the offer came through.'], claim)).toBe(true);
   });
 
   it('labels what came from the assistant, and keeps a label the model chose for their talk', () => {

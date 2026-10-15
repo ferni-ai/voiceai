@@ -1839,7 +1839,7 @@ export async function createSessionServices(
             }
           }
 
-          if (summary?.keyPoints && summary.keyPoints.length > 0) {
+          if (summary?.callerProvenance || summary?.keyPoints?.length) {
             updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
           } else if (turns.length > 0) {
             // FIX: Always save at least a basic summary from turns

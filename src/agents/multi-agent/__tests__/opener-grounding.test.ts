@@ -76,7 +76,20 @@ describe('an invented topic never reaches the next call', () => {
     );
 
   it('the caller echoing it ("What offer?") or a word like "off" does not make it theirs', async () => {
-    for (const reply of ['What offer?', 'Ok.', 'No, there is no offer.']) {
+    for (const reply of [
+      'What offer?',
+      'what offer',
+      'What offer.',
+      'Sorry, what offer?',
+      'Wait, what offer?',
+      "What offer? I don't have any offer.",
+      "I don't know what offer you mean.",
+      "There's no offer.",
+      "I haven't gotten an offer",
+      "I'm not sure what offer you're talking about",
+      'Ok.',
+      'No, there is no offer.',
+    ]) {
       const summary = await afterTheClaim(reply, { followUps: ['Ask about the offer'] });
       expect(await nextCallOpener(summary), reply).not.toMatch(/offer/i);
     }
@@ -91,5 +104,19 @@ describe('an invented topic never reaches the next call', () => {
       lastConversationSummary: summary.keyPoints.slice(0, 2).join('; '),
     });
     expect(JSON.stringify(greetingFacts('evening', 'Sam', history))).not.toMatch(/job|offer/i);
+  });
+
+  it("a teammate's invented job is not backed by the caller working a lot", async () => {
+    const summary = await summarizeWithLLM(
+      's3',
+      [
+        { role: 'user', content: 'Can I talk to Jordan?' },
+        { role: 'assistant', content: "Ferni told me you're starting a new job!" },
+        { role: 'user', content: "Yeah I'm working a lot." },
+      ],
+      async () => JSON.stringify({ ...MODEL, followUps: ['Ask about the new job'] }),
+      { generateEmbedding: false }
+    );
+    expect(await nextCallOpener(summary)).not.toMatch(/job/i);
   });
 });

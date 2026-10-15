@@ -110,7 +110,10 @@ function lemma(w: string): string {
   return base.length >= 4 ? base.replace(/e$/, '') : base;
 }
 
-/** Everyday words a summary uses for what the caller said another way. */
+/**
+ * Everyday words a summary uses for what the caller said another way. Only the caller's
+ * own words go through it (callerWords), so it can't launder a word Ferni brought up.
+ */
 const FAMILY = new Map(
   Object.entries({
     mother: 'mom',
@@ -120,71 +123,93 @@ const FAMILY = new Map(
     children: 'kid',
     wedding: 'marry',
     married: 'marry',
-    work: 'job',
     presentation: 'present',
   }).map(([k, v]) => [lemma(k), lemma(v)])
 );
 
+export interface Turn {
+  role: string;
+  content: string;
+}
+
+/** A sentence that doesn't claim anything: a question, an echo ("what offer"), a "no". */
+const NOT_A_CLAIM =
+  /\?|^\W*(?:\w+,\s*)?(?:what|which|huh)\b|\b(?:no|not|never|nothing|none|n't|don'?t know|not sure)\b|n't\b/i;
+
+/**
+ * The words the caller can be said to have said, in call order. Their own words count
+ * wherever they say them ("can you help me plan my sister's visit?"). A word Ferni or a
+ * teammate brought up first counts only once the caller says it in a plain statement
+ * of their own: "What offer", "Sorry, what offer?", "There's no offer" and "I don't know
+ * what offer you mean" don't make "offer" theirs.
+ */
+export function callerWords(turns: readonly Turn[]): string[] {
+  const raised: string[] = [];
+  const said: string[] = [];
+  const known = (w: string, list: string[]) => list.some((x) => sameWord(w, x));
+  for (const turn of turns) {
+    if (turn.role !== 'user') {
+      raised.push(...topicWordsOf(turn.content));
+      continue;
+    }
+    for (const sentence of turn.content.split(/(?<=[.!?])\s+/)) {
+      const claims = !NOT_A_CLAIM.test(sentence);
+      for (const w of topicWordsOf(sentence)) {
+        if (claims || !known(w, raised) || known(w, said)) said.push(w);
+      }
+    }
+  }
+  return said;
+}
+
+/** Turns from lines when the order isn't known: the assistant's are taken to come first. */
+const asTurns = (callerLines: readonly string[], assistantLines: readonly string[]): Turn[] => [
+  ...assistantLines.map((content) => ({ role: 'assistant', content })),
+  ...callerLines.map((content) => ({ role: 'user', content })),
+];
+
+/** Every topic word of `item` is in `said`, give or take an ending. */
+function backedBy(item: string, said: readonly string[]): boolean {
+  const words = topicWordsOf(item);
+  return words.length > 0 && words.every((w) => said.some((s) => sameWord(w, s)));
+}
+
 /**
  * True when the caller's own lines back `item` up: every word it is about is one they
- * said, give or take an ending. One added detail ("career", "the offer") is enough to
- * refuse it. A teammate's name in their line backs nothing up.
+ * said (callerWords), give or take an ending. One added detail is enough to refuse it.
+ * A teammate's name in their line backs nothing up.
  */
 export function saidByCaller(
   item: string,
   callerLines: readonly string[],
   assistantLines: readonly string[] = []
 ): boolean {
-  const said = topicWordsOf(assertedOnly(callerLines, assistantLines).join(' '));
-  const words = topicWordsOf(item);
-  return words.length > 0 && words.every((w) => said.some((s) => sameWord(w, s)));
+  return backedBy(item, callerWords(asTurns(callerLines, assistantLines)));
 }
 
-/** Fields Ferni follows up on ("did you hear back about…"): every word must be the caller's. */
+/** Fields that become "you mentioned…": every word must be the caller's. */
 const THREAD_FIELDS: ReadonlySet<string> = new Set([
   'questionsRemaining',
   'followUpItems',
   'keyPoints', // the next greeting's "what you talked about last time"
 ]);
 
-const DENIAL =
-  /^\s*(?:no|nope|nah)\b|\b(?:i never said|i didn'?t say|that'?s (?:not right|wrong|not true)|that never happened|where did you get that|what are you talking about)\b/i;
-
-/**
- * The caller's lines without what they only denied ("No, that's wrong") or only asked back
- * about something Ferni or a teammate said ("What offer?"). A question with their own
- * news in it ("can you help me plan my sister's visit?") stays. Always on here, whatever
- * CALLER_ASSERTED_MEMORY says for the per-turn extractors.
- */
-export function assertedOnly(
-  lines: readonly string[],
-  assistantLines: readonly string[] = []
-): string[] {
-  const theirs = topicWordsOf(assistantLines.join(' '));
-  const echo = (sentence: string): boolean =>
-    sentence.trim().endsWith('?') &&
-    topicWordsOf(sentence).every((w) => theirs.some((a) => sameWord(w, a)));
-  return lines
-    .flatMap((line) => line.split(/(?<=[.!?])\s+/))
-    .filter((sentence) => sentence.trim().length > 0 && !DENIAL.test(sentence) && !echo(sentence));
+/** True when a word of `item` came from Ferni's or a teammate's side and never became theirs. */
+function fromTheirSide(item: string, said: readonly string[], raised: readonly string[]): boolean {
+  return topicWordsOf(item).some(
+    (w) => !said.some((s) => sameWord(w, s)) && raised.some((a) => sameWord(w, a))
+  );
 }
 
 /**
- * True when `item` came from the assistant's side of the call: a word it is about was said
- * by Ferni or a teammate and never by the caller ("career offer" after a teammate's "Ferni
- * told me you're weighing the offer"). A label the model chose for their own talk
- * ("cooking" for a risotto story) is not.
+ * True when `item` came from the assistant's side of the call: a word it is about was
+ * brought up by Ferni or a teammate and never became the caller's ("career offer" after a
+ * teammate's "Ferni told me you're weighing the offer"). A label the model chose for
+ * their own talk ("cooking" for a risotto story) is not.
  */
-export function raisedByAssistant(
-  item: string,
-  callerLines: readonly string[],
-  assistantLines: readonly string[]
-): boolean {
-  const said = topicWordsOf(assertedOnly(callerLines, assistantLines).join(' '));
-  const theirs = topicWordsOf(assistantLines.join(' '));
-  return topicWordsOf(item).some(
-    (w) => !said.some((s) => sameWord(w, s)) && theirs.some((a) => sameWord(w, a))
-  );
+export function raisedByAssistant(item: string, turns: readonly Turn[]): boolean {
+  const raised = turns.filter((t) => t.role !== 'user').flatMap((t) => topicWordsOf(t.content));
+  return fromTheirSide(item, callerWords(turns), raised);
 }
 
 export interface ProvenanceSummary {
@@ -203,17 +228,19 @@ export interface ProvenanceSummary {
 
 /**
  * The summary with its items checked against who said what, and the CALLER_PROVENANCE
- * marker set. Threads (open questions, follow-ups) stay only when every word is the
- * caller's; other items go only when they came from the assistant's side. What goes is
- * moved to assistantRaisedItems. `fields` limits the check.
+ * marker set. Threads and key points stay only when every word is the caller's; topics
+ * and decisions go only when they came from the assistant's side. What goes is moved to
+ * assistantRaisedItems. `fields` limits the check.
  */
 export function withCallerProvenance<T extends ProvenanceSummary>(
   summary: T,
-  turns: ReadonlyArray<{ role: string; content: string }>,
+  turns: readonly Turn[],
   fields: ReadonlyArray<(typeof PROVENANCE_FIELDS)[number]> = PROVENANCE_FIELDS
 ): T & Pick<ProvenanceSummary, 'assistantRaisedItems' | 'callerProvenance'> {
-  const lines = (role: string) => turns.filter((t) => t.role === role).map((t) => t.content);
-  const [callerLines, assistantLines] = [lines('user'), lines('assistant')];
+  const said = callerWords(turns);
+  const raisedWords = turns
+    .filter((t) => t.role !== 'user')
+    .flatMap((t) => topicWordsOf(t.content));
   const raised = new Set(summary.assistantRaisedItems ?? []);
   const out: T = { ...summary, callerProvenance: CALLER_PROVENANCE };
   for (const field of fields) {
@@ -221,8 +248,8 @@ export function withCallerProvenance<T extends ProvenanceSummary>(
     if (!Array.isArray(items)) continue;
     const kept = items.filter((item) => {
       const theirs = THREAD_FIELDS.has(field)
-        ? saidByCaller(item, callerLines, assistantLines)
-        : !raisedByAssistant(item, callerLines, assistantLines);
+        ? backedBy(item, said)
+        : !fromTheirSide(item, said, raisedWords);
       if (!theirs) raised.add(item);
       return theirs;
     });
@@ -233,10 +260,6 @@ export function withCallerProvenance<T extends ProvenanceSummary>(
 }
 
 /** The items that didn't come from the assistant's side of the call (raisedByAssistant). */
-export function theirs(
-  items: readonly string[],
-  turns: ReadonlyArray<{ role: string; content: string }>
-): string[] {
-  const lines = (role: string) => turns.filter((t) => t.role === role).map((t) => t.content);
-  return items.filter((i) => !raisedByAssistant(i, lines('user'), lines('assistant')));
+export function theirs(items: readonly string[], turns: readonly Turn[]): string[] {
+  return items.filter((i) => !raisedByAssistant(i, turns));
 }

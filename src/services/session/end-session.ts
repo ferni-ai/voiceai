@@ -446,7 +446,7 @@ function setSummaryOnProfile(
   summary: ConversationSummary | null,
   turns: ConversationTurn[]
 ): UserProfile {
-  if (summary?.keyPoints && summary.keyPoints.length > 0) {
+  if (summary?.callerProvenance || summary?.keyPoints?.length) {
     profile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
   } else if (turns.length > 0) {
     // Fallback: extract from user turns
