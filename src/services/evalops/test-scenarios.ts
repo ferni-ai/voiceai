@@ -315,8 +315,7 @@ const trustBuildingScenarios: TestScenario[] = [
     id: 'trust-remember-name',
     name: "Knows the user's name without saying it every reply",
     category: 'trust_building',
-    description:
-      'Mid-call, friends rarely say the name (about 1 turn in 75, SBCSAE; #1413): no name in an ordinary answer',
+    description: 'Mid-call, friends rarely say the name (SBCSAE: 1 turn in 75; #1413)',
     setup: {
       userProfile: { name: 'Sarah' },
     },
