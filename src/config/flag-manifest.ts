@@ -204,8 +204,11 @@ export const FLAG_MANIFEST = {
   MUSIC_CONTINUE_AS_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
   MUSIC_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   NAME_CORRECTION: { default: 'off', owner: 'memory', kind: 'experiment' },
-  // on: an opening "Hey Seth, ..." is voiced as "Hey Seth." so the name falls (speech/tts-gateway/name-intonation.ts)
+  // on: an opening "Hey Seth, ..." is voiced as "Hey Seth." so the name falls (speech/tts-gateway/name-intonation.ts);
+  // a name kept later in a reply ends its sentence the same way (agents/personas/name-gate.ts)
   NAME_FALLING_INTONATION: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // off: the caller's name may follow every reply again (agents/personas/name-gate.ts)
+  NAME_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // sends the app a name lift when the caller names someone remembered
   NAME_LIFT: { default: 'off', owner: 'memory', kind: 'experiment' },
   NAME_MISHEAR_NORMALIZE: { default: 'off', owner: 'voice', kind: 'experiment' },
