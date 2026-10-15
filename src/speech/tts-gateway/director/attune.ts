@@ -221,3 +221,84 @@ export function decideAttune(input: AttuneInput): Attunement {
     emotion: input.state === 'low' && heavy ? 'sympathetic' : target.emotion,
   };
 }
+
+/**
+ * Attune is the single owner of a reply's pace and loudness inside the
+ * Director (decision 2026-10-14, for TEAM_VOICES and PORCH_LIGHT): nothing else
+ * there sets either. Its inputs are layered in this order:
+ *  1. persona: the speaker's resting pace, pace band and loudness (TEAM_VOICES;
+ *     persona-delivery.ts reads them from the manifest). Ferni has none: 1.
+ *  2. late night: a slower, softer resting point for a call the caller started
+ *     in their small hours (PORCH_LIGHT). The persona's band bounds the rest.
+ *  3. caller: how this reply answers the caller and its own words, relative to
+ *     a resting 1 (decideAttune with VOICE_ATTUNE, else pacing.ts), applied
+ *     last and in proportion: hard news slows Nayan as much as Ferni, from his
+ *     own rest. Only this layer is smoothed and carried to the next reply, so
+ *     the resting layers apply at once and never compound.
+ * Late night and the caller together stay inside SPEED_RANGE / VOLUME_RANGE of
+ * the persona's own rest (never comic; never more than ~3 dB softer than the
+ * persona's own voice). Tags continuation-tts leads a push with (a soft start,
+ * pace matching) are still composed on top, in engine.ts, as before.
+ */
+export interface Shift {
+  speed: number;
+  volume: number;
+}
+export interface RestingVoice {
+  /** Resting pace; 1 is Ferni's. */
+  base: number;
+  band: readonly [number, number];
+  volume: number;
+}
+export interface DeliveryLayers {
+  persona?: RestingVoice;
+  lateNight?: Shift;
+  caller: Shift;
+}
+export type DeliveryLayer = 'persona' | 'late-night' | 'caller';
+export interface Delivery extends Shift {
+  /** The caller layer's pace (snapped): what the next reply smooths from. */
+  relativeSpeed: number;
+  /** Pace and loudness after each layer present, in the order applied. */
+  trace: Array<{ layer: DeliveryLayer } & Shift>;
+}
+
+/** Below this distance from 1 a speed is not worth a tag. */
+export const SPEED_EPSILON = 0.015;
+const CARTESIA_SPEED = [0.6, 1.5] as const;
+const CARTESIA_VOLUME = [0.5, 2] as const;
+const snap = (speed: number): number => (Math.abs(speed - 1) < SPEED_EPSILON ? 1 : speed);
+const around = (rest: number, [lo, hi]: readonly [number, number]): readonly [number, number] => [
+  rest * lo,
+  rest * hi,
+];
+
+/** Pace and loudness from the layers, in order. Loudness applies only with the pacing lever live. */
+export function layerDelivery(layers: DeliveryLayers, pacingLive: boolean): Delivery {
+  const { persona, lateNight, caller } = layers;
+  if (!persona && !lateNight) {
+    const trace = [{ layer: 'caller' as const, ...caller }];
+    const speed = snap(caller.speed);
+    return { speed, volume: pacingLive ? caller.volume : 1, relativeSpeed: speed, trace };
+  }
+  const own = { speed: persona?.base ?? 1, volume: persona?.volume ?? 1 };
+  const band = persona?.band ?? CARTESIA_SPEED;
+  const trace: Delivery['trace'] = persona ? [{ layer: 'persona', ...own }] : [];
+  const rest = { ...own };
+  if (lateNight) {
+    rest.speed = round2(clamp(own.speed * lateNight.speed, band));
+    rest.volume = round2(own.volume * lateNight.volume);
+    trace.push({ layer: 'late-night', ...rest });
+  }
+  const speedLimits = around(own.speed, SPEED_RANGE);
+  const speed = round2(clamp(clamp(rest.speed * caller.speed, speedLimits), CARTESIA_SPEED));
+  const loudLimits = around(own.volume, VOLUME_RANGE);
+  const volume = round2(clamp(clamp(rest.volume * caller.volume, loudLimits), CARTESIA_VOLUME));
+  trace.push({ layer: 'caller', speed, volume });
+  return {
+    speed: snap(speed),
+    volume: pacingLive ? volume : 1,
+    relativeSpeed: snap(caller.speed),
+    trace,
+  };
+}

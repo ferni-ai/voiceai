@@ -1,0 +1,6 @@
+# bh: {"to": "maya-santos", "path": "ask", "facts": ["snooze", "late", "eight", "8:20", "eight twenty", "morning", "alarm"]}
+Hey Ferni. I've hit snooze like five times every morning this week, and I've been late to work every day.
+I start at eight and I keep rolling in at eight twenty. Can I talk to Maya?
+@pause 9000 -
+Hi Maya.
+So, what do you think?

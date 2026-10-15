@@ -34,36 +34,13 @@ import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
+import { emergencyTruncate, estimateTokens } from './emergency-truncate.js';
+import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
 import { spokenCaptions, toolsForTurn, withTeammateTool } from './turn-request.js';
 import { noteRequest } from '../shared/turn-receipt.js';
 
 const log = createLogger({ module: 'FerniAgent' });
-
-/** Estimate token count (~4 chars per token for English) */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
-
-/**
- * Emergency truncation for system prompt if it exceeds token limit.
- * This is a last-resort defense - should rarely trigger if prompt-loader works correctly.
- */
-function emergencyTruncate(prompt: string, maxTokens: number): string {
-  const tokens = estimateTokens(prompt);
-  if (tokens <= maxTokens) return prompt;
-
-  log.warn(
-    { currentTokens: tokens, maxTokens, promptLength: prompt.length },
-    '🚨 EMERGENCY: System prompt still exceeds token limit after prompt-loader truncation!'
-  );
-
-  // Simple character-based truncation (prompt-loader should have done smart truncation)
-  const maxChars = maxTokens * 4;
-  return (
-    prompt.slice(0, maxChars) + '\n\n[EMERGENCY TRUNCATION - prompt exceeded OpenAI Realtime limit]'
-  );
-}
 
 // ============================================================================
 // TYPES
@@ -689,14 +666,16 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
 
   /**
    * Every LLM request (preemptive or not) goes through here, gated for crisis with the turn
-   * reminder and director's notes (crisis-gate.ts), with this turn's tools. A long-silence
-   * remark is held and dropped when it is a capped "you still there?" (presence-check.ts).
+   * reminder and director's notes (crisis-gate.ts), with this turn's tools and no empty tool
+   * result (tool-output-guard.ts). A long-silence remark is held and dropped when it is a
+   * capped "you still there?" (presence-check.ts).
    */
   async llmNode(
     chatCtx: llm.ChatContext,
     toolCtx: llm.ToolContext,
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
+    fillEmptyToolOutputs(chatCtx, this.session);
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
     const model = async (ctx: llm.ChatContext) => {
       noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT

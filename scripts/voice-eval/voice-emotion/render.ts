@@ -160,7 +160,7 @@ function expand(entries: Array<Job | Scenario>): Job[] {
   return entries.flatMap((e): Job[] => {
     if (!('reply' in e)) return [e];
     return Array.from({ length: reps }, (_, r) =>
-      (['A', 'B'] as const).map((arm) => ({
+      (['A', 'B'] as const).map((arm): Job => ({
         name: `${e.id}-${arm}-${r + 1}`,
         chunks: asTokens(e.reply),
         env: arm === 'B' ? { VOICE_ATTUNE: 'on' } : {},

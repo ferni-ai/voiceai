@@ -155,8 +155,9 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   // The game scorekeeper; only exists with GAME_STATE=on (games/game-state-tool.ts).
   // Without this the first agent's 64-slot cap dropped every games tool.
   'gameState',
-  // Coaching resources from the web; only exists with COACH_MEDIA=on (learning/coaching-resources-tool.ts).
+  // Coaching resources and sending the pick; only exist with COACH_MEDIA=on (learning/coaching-resources-tool.ts).
   'findCoachingResources',
+  'coachingPick',
   // End call
   'endCall',
 ];

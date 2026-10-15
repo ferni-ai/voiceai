@@ -525,7 +525,7 @@ const STYLES = `
   .btn-primary {
     background: var(--color-accent-primary);
     border: none;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .btn-primary:hover {

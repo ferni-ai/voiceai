@@ -85,6 +85,8 @@ export interface TurnSignals {
   ownStory?: boolean;
   /** TURN_LENGTH / TURN_TEXTURE=learned: the turns before this reply (turn-length.ts). */
   recent?: RecentTurns;
+  /** DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question (answer-turn.ts). */
+  answered?: boolean;
 }
 
 /** The model's understanding as signals. */

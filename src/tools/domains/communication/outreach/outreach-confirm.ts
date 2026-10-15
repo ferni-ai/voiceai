@@ -83,6 +83,20 @@ function logFor(session: object): SessionLog {
   return entry;
 }
 
+/** Whether the person on this call is known not to be the account owner (outreachConfirmListeners). */
+export function speakerIsNotOwner(session: object): boolean {
+  return sessions.get(session)?.speakerIsOwner?.() === false;
+}
+
+/**
+ * Whether the person on this call is known to be the account owner. Unknown is
+ * false: no session, or no owner check registered (a session built without
+ * outreachConfirmListeners, or OUTBOUND_CONFIRM=off outside production).
+ */
+export function ownerKnown(session: object | undefined): boolean {
+  return session !== undefined && sessions.get(session)?.speakerIsOwner?.() === true;
+}
+
 function record(session: object, event: SessionEvent): void {
   const entry = logFor(session);
   entry.events.push({ ...event, seq: ++entry.seq });
@@ -177,6 +191,8 @@ export function outreachConfirmListeners(
 }
 
 export interface ConfirmSpec {
+  /** Whether these arguments reach anyone (e.g. a post, not a draft); omitted means always. */
+  applies?: (args: Record<string, unknown>) => boolean;
   /**
    * Fix the exact args to send and the read-back, without sending (`plan`
    * runs the tool with PLAN_ONLY). A string answers without storing anything.
@@ -198,6 +214,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
       type Execute = (a: unknown, o?: unknown) => Promise<unknown>;
       const execute = (tool as { execute: Execute }).execute.bind(tool);
       const gated = async (args: Record<string, unknown>, opts?: unknown): Promise<unknown> => {
+        if (spec.applies && !spec.applies(args)) return execute(args, opts);
         if (isSyntheticUserId(ctx.userId)) {
           log.info({ toolId: def.id }, 'OUTBOUND_CONFIRM: test account, nothing sent');
           return testAccountReply(def.id);
@@ -211,7 +228,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           return 'Nothing was sent: I can only send this after the caller says yes on a call.';
         }
         const entry = logFor(session);
-        if (entry.speakerIsOwner?.() === false) {
+        if (speakerIsNotOwner(session)) {
           log.warn({ toolId: def.id }, 'OUTREACH_CONFIRM: speaker is not the owner, nothing sent');
           return "Nothing was sent: only the account owner can confirm this, and they aren't on the line.";
         }

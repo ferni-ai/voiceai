@@ -59,7 +59,7 @@ const WARM_DRINK_EXPRESSIONS: PersonalityExpression[] = [
   {
     id: 'drink-cider-1',
     theme: 'warm_drinks',
-    content: 'Apple cider. Fall drink. My daughter got me hooked.',
+    content: 'Apple cider. Fall drink. My wife got me hooked.',
   },
   {
     id: 'drink-cocoa-1',
@@ -167,7 +167,7 @@ const MUSIC_EXPRESSIONS: PersonalityExpression[] = [
 ];
 
 /**
- * Family expressions - wife, kids, brother - varied mentions
+ * Family expressions - wife, siblings - varied mentions (identity/character.md)
  * Core trait: Family grounds him
  */
 const FAMILY_EXPRESSIONS: PersonalityExpression[] = [
@@ -177,9 +177,9 @@ const FAMILY_EXPRESSIONS: PersonalityExpression[] = [
     content: 'My wife says I do that too. <break time="150ms"/>She\'s usually right.',
   },
   {
-    id: 'family-kids-1',
+    id: 'family-siblings-1',
     theme: 'family_life',
-    content: 'Eight kids. <break time="150ms"/>Teaches you patience. And chaos tolerance.',
+    content: 'Third of seven kids. <break time="150ms"/>Teaches you patience. And chaos tolerance.',
   },
   {
     id: 'family-brother-1',
@@ -314,7 +314,7 @@ const QUIRKY_EXPRESSIONS: PersonalityExpression[] = [
   {
     id: 'quirk-cereal-1',
     theme: 'quirky_interests',
-    content: 'Cereal for dinner sometimes. <break time="150ms"/>Don\'t tell my kids.',
+    content: 'Cereal for dinner sometimes. <break time="150ms"/>Don\'t tell my wife.',
   },
 ];
 

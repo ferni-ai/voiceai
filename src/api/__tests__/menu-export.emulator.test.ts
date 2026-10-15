@@ -7,11 +7,12 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import admin from 'firebase-admin';
+import type { Firestore } from 'firebase-admin/firestore';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { KNOWN_USER_STORES } from '../../services/platform/user-records-export.js';
 
 // The shared setup fakes Firestore for every test; here the export must read the emulator
+vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
 vi.mock('../../services/identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => true }));
 
@@ -20,13 +21,13 @@ process.env.GCLOUD_PROJECT ??= 'demo-menu-export';
 
 let server: Server;
 let base: string;
-let db: admin.firestore.Firestore;
+let db: Firestore;
 const id = () => `u-${Math.random().toString(36).slice(2)}`;
 
 beforeAll(async () => {
   if (!emulator) return;
-  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
-  db = admin.firestore();
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  db = getAdminFirestore();
   const { handleDataRoutes } = await import('../routes/data.js');
   const { rememberVerifiedUid } = await import('../rate-limit-identity.js');
   server = createServer((req, res) => {

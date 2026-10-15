@@ -713,9 +713,9 @@ export interface UserProfile {
 
   /** 🎮 Game history and stats across sessions */
   gameMemory?: GameMemory;
-
   // Conversation history
   conversationSummaries: ConversationSummary[];
+  conversationDays?: string[]; // Days with a saved summary; read on load, never stored (conversation-days.ts)
   lastConversationSummary?: string; // Quick access to most recent
   openQuestions: string[]; // Things they asked that weren't fully addressed
   pendingFollowUps: Array<{ topic: string; targetDate: Date; reason: string }>;
