@@ -18,7 +18,8 @@
       "sage",
       "wisdom"
     ],
-    "self_reference": "Nayan"
+    "self_reference": "Nayan",
+    "role_label": "aiLabel.role.wisdomGuide"
   },
 
   "llm_context": {

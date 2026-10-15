@@ -62,7 +62,9 @@ const store = {
   facts: async () => [
     { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 1 },
   ],
-  summaries: async () => [{ followUpItems: ['Ask how Biscuit is settling in'] }],
+  summaries: async () => [
+    { callerProvenance: 1, followUpItems: ['Ask how Biscuit is settling in'] },
+  ],
 };
 
 describe('createMemoryRecall', () => {
@@ -223,7 +225,9 @@ describe('createMemoryRecall', () => {
         { entityName: 'Walt', key: 'spouse of', value: 'User', confidence: 0.9 },
         { entityName: 'Walt', key: 'pet owned', value: 'Pepper (cat)', confidence: 0.9 },
       ],
-      summaries: async () => [{ followUpItems: ["Ask how Joan's Thanksgiving visit went"] }],
+      summaries: async () => [
+        { callerProvenance: 1, followUpItems: ["Ask how Joan's Thanksgiving visit went"] },
+      ],
     };
     const on = createMemoryRecall({ userId: 'u-fam', userName: 'Ruth', store: family, people: true });
     await on.ready;

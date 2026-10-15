@@ -138,8 +138,6 @@ import { disposeMobileBottomSheet } from './ui/mobile-bottom-sheet.ui.js';
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
 import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
 import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
-// Disabled: Eye animations removed - keeping just zen blink
-// import { initFerniEye } from './ui/ferni-eye.ui.js';
 import { greetingUI } from './ui/greeting.ui.js';
 import { initMoodUI, moodUI } from './ui/mood.ui.js';
 // DISABLED: No skeleton loading - everything visible immediately

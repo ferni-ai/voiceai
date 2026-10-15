@@ -7,6 +7,7 @@
  *
  * @module agents/after-call-register
  */
+import './integrations/quirk-memory-register.js';
 import './fact-sweep-register.js';
 import './personas/common-ground-register.js';
 import '../intelligence/world-model/extraction/register.js';

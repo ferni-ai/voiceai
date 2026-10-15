@@ -328,7 +328,7 @@ export async function createSessionServices(
       realtimeMemory
         .getLastConversationContext(validatedUserId)
         .then((lastContext) => {
-          if (lastContext && userProfile && !userProfile.lastConversationSummary) {
+          if (lastContext && userProfile && userProfile.lastConversationSummary === undefined) {
             const summary =
               lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
             if (summary) userProfile.lastConversationSummary = summary;
@@ -1839,11 +1839,11 @@ export async function createSessionServices(
             }
           }
 
-          if (summary?.keyPoints && summary.keyPoints.length > 0) {
+          if (summary?.callerProvenance || summary?.keyPoints?.length) {
             updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
+            if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
           } else if (turns.length > 0) {
-            // FIX: Always save at least a basic summary from turns
-            // This ensures returning users are recognized even if LLM summarization fails
+            // Always save a basic summary, so a returning user is recognized without the LLM
             const userTurns = turns.filter((t) => t.role === 'user');
             if (userTurns.length > 0) {
               const topics = userTurns

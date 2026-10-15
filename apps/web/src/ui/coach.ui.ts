@@ -19,6 +19,7 @@ import type { ConnectionState, AudioState, VoiceEmotion } from '../types/events.
 import { appState } from '../state/app.state.js';
 import { getElementById, setText, setClasses, addClass, removeClass } from '../utils/dom.js';
 import { safeAnimate } from '../config/animation-constants.js';
+import { showAiRoleLabel } from './ai-role-label.ui.js';
 import { animateNameHandoff, scrambleReveal } from './kinetic-typography.ui.js';
 import {
   getPersonaAnimationProfile,
@@ -311,8 +312,7 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
     elements?.container && removeClass(elements.container, 'persona-transitioning');
   }, PERSONA_SWAP_MAX_MS);
 
-  // Note: avatarText is hidden by CSS - all personas now show eyes instead of initials
-  // setText(elements.avatarText, persona.initials);
+  showAiRoleLabel(elements.container.querySelector<HTMLElement>('.ai-companion-label'), persona);
 
   // 🔤 Animate name change with kinetic typography
   if (elements.name && elements.name.textContent !== persona.name) {

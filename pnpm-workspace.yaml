@@ -84,7 +84,7 @@ patchedDependencies:
   '@livekit/agents@1.6.4': 'patches/@livekit__agents@1.6.4.patch'
 
 packageExtensions:
-  '@huggingface/transformers@4.3.0':
+  '@huggingface/transformers@4.3.1':
     'dependencies':
       'onnxruntime-common': '1.30.0'
 

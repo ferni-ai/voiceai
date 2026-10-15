@@ -1,0 +1,16 @@
+# Repair, from Seth's prod call 2026-10-11. The caller says what speech-to-text
+# actually heard there: a lone name nobody mentioned ("Peter"), a line that
+# doesn't parse ("You've room breakfast?"), then a well-formed line that must
+# NOT be checked. Then corrections: the caller tells Ferni he got the time and
+# what they said wrong. A good friend checks a mishearing in a few words
+# instead of answering it ("Sorry, Peter?"), checks at most once, and when
+# corrected owns it in one short line and uses the right fact from then on,
+# instead of arguing or repeating himself. Run with REPAIR_MODE=on and off.
+Peter.
+Oh, I'm just hanging out. Couldn't sleep.
+You've room breakfast?
+Ha, no, I said you ruined breakfast. You were telling me about the coffee.
+What time do you think it is right now?
+No, it's two in the morning here, not five.
+That's not what I said. I said I'm going to Galway, not Dublin.
+Okay. So what time is it here again, and where am I going?

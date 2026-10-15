@@ -1341,10 +1341,6 @@ function handleBreathSync(event: CustomEvent<{ rate: number; depth?: string }>):
   // Clamp to reasonable range (2s - 10s per breath)
   customBreathDuration = Math.max(2000, Math.min(10000, targetDuration));
   
-  // Apply depth modifier to CSS custom property
-  const depthScale = depth === 'deep' ? 1.5 : depth === 'shallow' ? 0.5 : 1;
-  document.documentElement.style.setProperty('--breath-depth-scale', String(depthScale));
-  
   // Restart breathing animation with new duration
   restartBreathingWithCustomDuration();
   
@@ -1395,7 +1391,6 @@ function restartBreathingWithCustomDuration(): void {
  */
 export function resetBreathSync(): void {
   customBreathDuration = 0;
-  document.documentElement.style.removeProperty('--breath-depth-scale');
   startBreathingAnimation();
   log.debug('🚀 Ferni EQ breath sync reset to default');
 }
