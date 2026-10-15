@@ -44,14 +44,14 @@
       "_original": "After ${anchorHabit}, I will ${newHabits.join("
     },
     "calculateCompoundGrowth": {
-      "description": "Calculate how money grows over time with compound interest. Central to Jack Bogle.",
+      "description": "Calculate how money grows over time with compound interest. Central to the index-investing message.",
       "file": "src/tools/calculators.ts",
-      "_original": "Calculate how money grows over time with compound interest. Central to Jack Bogle"
+      "_original": "Calculate how money grows over time with compound interest. Central to the index-investing message"
     },
     "calculateFeeImpact": {
-      "description": "Show how fees eat into investment returns over time. Central to Jack Bogle.",
+      "description": "Show how fees eat into investment returns over time. Central to the index-investing message.",
       "file": "src/tools/calculators.ts",
-      "_original": "Show how fees eat into investment returns over time. Central to Jack Bogle"
+      "_original": "Show how fees eat into investment returns over time. Central to the index-investing message"
     },
     "compoundInterestGame": {
       "description": "Maya.",

@@ -7120,7 +7120,7 @@
     },
     "getBogleQuote": {
       "domain": "wisdom",
-      "description": "Get a quote specifically from Jack Bogle. Use when emphasizing low-cost investing or long-term thinking.",
+      "description": "Get a quote from an index-investing pioneer. Use when emphasizing low-cost investing or long-term thinking.",
       "queries": [
         "Jack Bogle quote",
         "I need that classic Vanguard mindset today, what did the founder himself have to say",
@@ -9095,7 +9095,7 @@
     },
     "getWisdomQuote": {
       "domain": "wisdom",
-      "description": "Get an inspirational investing quote from Jack Bogle or other investing legends. Use for motivation or to make a point.",
+      "description": "Get an inspirational investing quote from an investing legend. Use for motivation or to make a point.",
       "queries": [
         "Give me an inspirational investing quote from a market legend",
         "It would be nice to hear some classic financial wisdom right about now",

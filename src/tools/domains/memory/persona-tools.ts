@@ -39,7 +39,7 @@ import {
   rememberPreference,
   rememberWin,
   getFerniMemories,
-  // Bogle helpers
+  // Index-fund legend helpers
   rememberFund,
   rememberInvestingPhilosophy,
   getBogleMemories,

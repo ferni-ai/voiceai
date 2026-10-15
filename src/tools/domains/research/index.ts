@@ -63,7 +63,7 @@ function getStockAnalysisToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'analyzeStock',
       'Analyze Stock',
-      'Deep analysis of any stock using Peter Lynch\'s framework. Includes: P/E ratio, PEG ratio, growth rate, category classification (slow grower, stalwart, fast grower, cyclical, turnaround, asset play), and "the story" - why this company will succeed. Just provide a ticker symbol like AAPL, COST, or TSLA.',
+      'Deep analysis of any stock using a classic growth-stock framework. Includes: P/E ratio, PEG ratio, growth rate, category classification (slow grower, stalwart, fast grower, cyclical, turnaround, asset play), and "the story" - why this company will succeed. Just provide a ticker symbol like AAPL, COST, or TSLA.',
       legacyTools.analyzeStock,
       {
         tags: ['stocks', 'analysis', 'valuation', 'peg', 'category'],

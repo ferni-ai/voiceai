@@ -400,7 +400,7 @@
       "file": "src/tools/domains/simple-utilities/date-tools.ts"
     },
     "calculateCompoundGrowth": {
-      "description": "Calculate how money grows over time with compound interest. Central to Jack Bogle's message about long-term investing.",
+      "description": "Calculate how money grows over time with compound interest. Central to the long-term, low-cost index-investing message.",
       "file": "src/tools/calculators.ts"
     },
     "calculateDebtPayoff": {
@@ -416,7 +416,7 @@
       "file": "src/tools/personal-finance.ts"
     },
     "calculateFeeImpact": {
-      "description": "Show how fees eat into investment returns over time. Central to Jack Bogle's crusade against high fees!.",
+      "description": "Show how fees eat into investment returns over time. Central to the crusade against high fees!.",
       "file": "src/tools/calculators.ts"
     },
     "calculateHomeAffordability": {
@@ -1394,7 +1394,7 @@
       "file": "src/tools/personal-finance.ts"
     },
     "explainPrinciple": {
-      "description": "Explain Jack Bogle's investment principles: goals, balance, cost, discipline.",
+      "description": "Explain the core investment principles: goals, balance, cost, discipline.",
       "file": "src/tools/calculators.ts"
     },
     "explainRetirementAccounts": {
@@ -1743,7 +1743,7 @@
       "file": "src/tools/bills.ts"
     },
     "getBogleQuote": {
-      "description": "Get a quote specifically from Jack Bogle. Use when emphasizing low-cost investing or long-term thinking.",
+      "description": "Get a quote from an index-investing pioneer. Use when emphasizing low-cost investing or long-term thinking.",
       "file": "src/tools/wisdom.ts"
     },
     "getBudgetStatus": {
@@ -2238,7 +2238,7 @@
       "file": "src/tools/daily-briefing.ts"
     },
     "getWisdomQuote": {
-      "description": "Get an inspirational investing quote from Jack Bogle or other investing legends. Use for motivation or to make a point.",
+      "description": "Get an inspirational investing quote from an investing legend. Use for motivation or to make a point.",
       "file": "src/tools/wisdom.ts"
     },
     "gitCommit": {

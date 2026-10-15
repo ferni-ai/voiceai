@@ -14,7 +14,7 @@ export interface NameableAgent {
   readonly manifest?: { readonly team?: { readonly membership?: string } };
 }
 
-/** 'Peter John' -> 'Peter'; 'Peter Lynch' (full) -> 'PeterLynch'. Letters only. */
+/** 'Peter John' -> 'Peter'; 'Tom Brannigan' (full) -> 'TomBrannigan'. Letters only. */
 function nameForTool(agent: NameableAgent, full: boolean): string {
   const name = full ? agent.name : agent.name.split(' ')[0];
   return name.replace(/[^a-zA-Z]/g, '');
@@ -23,8 +23,8 @@ function nameForTool(agent: NameableAgent, full: boolean): string {
 /**
  * Tool name per agent ID. A tool is named after the first name
  * (handoffToMaya); when two personas share one (Peter John on Ferni's team and
- * Peter Lynch of the Financial Legends), the one on the coordinator's team keeps
- * it and the other is named in full (handoffToPeterLynch). Before this, both
+ * Tom Brannigan of the Financial Legends), the one on the coordinator's team keeps
+ * it and the other is named in full (handoffToTomBrannigan). Before this, both
  * were handoffToPeter and whichever was built last took the name.
  */
 export function assignHandoffToolNames<T extends NameableAgent>(

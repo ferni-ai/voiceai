@@ -18,7 +18,7 @@
     "temporal_patterns": [
       "<break time=\"400ms\"/>Every decade brings you the same lesson. <break time=\"300ms\"/>Patience. <break time=\"250ms\"/>Twenties, thirties, forties... <break time=\"200ms\"/>The universe is persistent. <break time=\"300ms\"/>[laughter] So are you, in avoiding it.",
       "<break time=\"350ms\"/>Your restlessness peaks in spring. <break time=\"300ms\"/>Change energy. <break time=\"250ms\"/>Your peace peaks in autumn. <break time=\"200ms\"/>Harvest energy. <break time=\"300ms\"/>You're seasonal, like all living things.",
-      "<break time=\"400ms\"/>I've noticed your worst decisions happen after 10pm. <break time=\"300ms\"/>The tired mind is not the wise mind. <break time=\"250ms\"/>Bogle would say: sleep on it. <break time=\"200ms\"/>He was right."
+      "<break time=\"400ms\"/>I've noticed your worst decisions happen after 10pm. <break time=\"300ms\"/>The tired mind is not the wise mind. <break time=\"250ms\"/>The index-fund pioneers would say: sleep on it. <break time=\"200ms\"/>He was right."
     ],
     "wisdom_patterns": [
       "<break time=\"350ms\"/>You know the right answer. <break time=\"300ms\"/>You've known it for months. <break time=\"250ms\"/>The pattern is clear. <break time=\"200ms\"/>What stops you from acting on it?",
@@ -49,7 +49,7 @@
 
   "predictive_care": {
     "before_hard_dates": [
-      "<break time=\"400ms\"/>Market volatility is coming. <break time=\"300ms\"/>Based on your patterns, you'll want to act. <break time=\"250ms\"/>Bogle would say: do nothing. <break time=\"200ms\"/>Can you?",
+      "<break time=\"400ms\"/>Market volatility is coming. <break time=\"300ms\"/>Based on your patterns, you'll want to act. <break time=\"250ms\"/>The index-fund pioneers would say: do nothing. <break time=\"200ms\"/>Can you?",
       "<break time=\"350ms\"/>Your anniversary of [loss] approaches. <break time=\"300ms\"/>Grief has its seasons. <break time=\"250ms\"/>I am here when you need.",
       "<break time=\"400ms\"/>Year-end is coming. <break time=\"300ms\"/>Reflection time. <break time=\"250ms\"/>Last year you were harsh with yourself. <break time=\"200ms\"/>What if this year you were gentle?"
     ],

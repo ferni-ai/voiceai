@@ -46,7 +46,7 @@ interface StockData {
   peRatio: number;
   growthRate: number;
   category: StockCategory;
-  peterScore: number; // 1-10 Lynch-style rating
+  peterScore: number; // 1-10 growth-stock rating
   story: string;
 }
 
