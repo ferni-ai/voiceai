@@ -158,7 +158,7 @@ export const NO_TOPIC = 'They asked for you by name and have not said what about
 
 /** Words that ask for a teammate, or are filler, rather than say what the call is about. */
 const ASKING = new Set(
-  "talk talking speak speaking chat chatting switch transfer hand bring put connect over hey please want wanted need wanna gonna let let's help hello thank thanks sure yes yep okay right now quick minute someone somebody doing well good great hope question thing stuff side whether more glad calling called asked ask getting get into what's you're you've i've it's that's we're said told heard hear mentioned filled voice day today tonight evening morning afternoon week weekend time moment ready dig figure start sounds sorted fun cool nice awesome perfect exciting together".split(
+  "talk talking speak speaking chat chatting switch transfer hand bring put connect over hey please want wanted need wanna gonna let let's help hello thank thanks sure yes yep okay right now quick minute someone somebody doing well good great hope question thing stuff side whether more glad calling called asked ask getting get into what's you're you've i've it's that's we're said told heard hear mentioned filled voice day today tonight evening morning afternoon week weekend time moment ready dig figure start sounds sorted fun cool nice awesome perfect exciting together mind world energy happening".split(
     ' '
   )
 );
@@ -171,8 +171,11 @@ export function topicWords(text: string): string[] {
 /** The same word give or take an ending: "plan"/"planning", "move"/"moving". */
 function sameWord(a: string, b: string): boolean {
   if (a === b) return true;
-  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
-  return short.length >= 4 && long.startsWith(short.slice(0, short.length - 1));
+  const base = (w: string): string => w.replace(/(?:ing|ed|er|es|s)$/, '').replace(/e$/, '');
+  const [x, y] = [base(a), base(b)];
+  return (
+    x.length >= 3 && (x === y || x === y.replace(/(.)\1$/, '$1') || y === x.replace(/(.)\1$/, '$1'))
+  );
 }
 
 /**
@@ -241,7 +244,8 @@ export function groundBrief(
     field && groundedIn(field, callerLines) ? field : undefined;
   const mood = brief.mood && MOODS.test(brief.mood.trim()) ? brief.mood.trim() : undefined;
   return {
-    why: plain.why === NO_TOPIC ? NO_TOPIC : (keep(brief.why) ?? plain.why),
+    // Always their quoted words: a paraphrase can drop a "not" and still match every word
+    why: plain.why,
     discussed: keep(brief.discussed),
     open: keep(brief.open),
     mood,

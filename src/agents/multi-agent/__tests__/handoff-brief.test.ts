@@ -143,7 +143,9 @@ describe('prepareBriefing', () => {
         '{"why":"Whether the equity in the Denver offer is worth anything","open":"what the equity is worth"}',
       actor,
     });
-    expect(out.brief).toContain('Why they came to you: Whether the equity in the Denver offer');
+    expect(out.brief).toContain(
+      'Why they came to you: In their words: "I can\'t tell if the equity'
+    );
     expect(out.brief).toContain('Still open: what the equity is worth');
     expect(out.firstLine).toBe('Hey Sam. Is the equity in that Denver offer worth anything?');
     const [system, prompt] = actor.mock.calls[0] as unknown as [string, string];
@@ -321,6 +323,17 @@ describe('grounding: the brief holds only what the caller said', () => {
     ).toBe(false);
   });
 
+  it('never takes the writer\'s paraphrase of why: a dropped "not" still matches every word', async () => {
+    const turns = [
+      {
+        speaker: 'caller' as const,
+        text: "I'm not quitting my job, I just want to talk to Jordan about vacation.",
+      },
+    ];
+    const { out } = await run({ turns, reason: undefined }, 'Hi!', '{"why":"quitting job"}');
+    expect(out.brief).toContain('Why they came to you: In their words: "I\'m not quitting my job');
+  });
+
   it('keeps only recalled facts that were in the notes, marked as from past calls', () => {
     const grounded = groundBrief(
       { why: 'x', facts: ['Sam: partner = Ana', 'Sam: offer = bank job'] },
@@ -376,7 +389,7 @@ describe('orchestrator with BRIEFED_HANDOFF', () => {
     expect(result.success).toBe(true);
     const peter = made.find((m) => m.personaId === 'peter-john')!;
     expect(peter.context.conversationSummary).toContain(
-      'Why they came to you: Whether the startup equity in the Denver offer'
+      'Why they came to you: In their words: "I can\'t tell if the equity'
     );
     expect(peter.agent.say).toHaveBeenCalledWith(
       'Hey Sam. Ferni says the Denver offer is a startup one?',
