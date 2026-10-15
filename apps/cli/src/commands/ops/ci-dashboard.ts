@@ -19,7 +19,7 @@ import { spawn, execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-config();
+config({ quiet: true });
 
 interface CommandOptions {
   json?: boolean;

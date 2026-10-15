@@ -1,0 +1,6 @@
+# bh: {"to": "nayan-patel", "path": "ask", "facts": ["dad", "father", "year", "heavy", "died", "anniversary", "loss"]}
+Hey Ferni. It's been a year since my dad died, and this week has been really heavy.
+I don't really need advice. I just want to talk it through with someone. Can I talk to Nayan?
+@pause 9000 -
+Hi Nayan.
+So, what do you think?

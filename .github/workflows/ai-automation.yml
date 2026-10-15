@@ -35,6 +35,7 @@ on:
       - 'packages/**'
       - 'design-system/**'
       - 'package.json'
+      - '.github/workflows/ai-automation.yml'
   push:
     branches: [main]
     tags: ['v*']
@@ -84,8 +85,10 @@ jobs:
 
   pr-ai-review:
     name: 🤖 AI Code Review
-    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event_name == 'pull_request') }}
-    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    # Every PR, whatever OPTIONAL_CI says: docs/agent/operating-model.md promises
+    # each PR this review, and it is one hosted job and a few LLM calls, so it
+    # takes nothing from the merge queue's runners (#1366).
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -343,7 +346,8 @@ jobs:
 
   weekly-flags:
     name: 🚩 Stale Flag Check
-    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'flags'))) }}
+    # Weekly whatever OPTIONAL_CI says (#1366): one hosted job, no runner pressure.
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'flags')) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

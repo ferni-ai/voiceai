@@ -27,12 +27,6 @@ const SERVICES = {
     entry: 'dist/services/persona-service/server.js',
     color: '\x1b[35m', // magenta
   },
-  memory: {
-    name: 'Memory Service',
-    port: 50053,
-    entry: 'dist/services/memory-service/server.js',
-    color: '\x1b[33m', // yellow
-  },
 };
 
 const RESET = '\x1b[0m';
@@ -169,7 +163,6 @@ async function main() {
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Tool Service:    http://localhost:50051                      ║
 ║  Persona Service: http://localhost:50052                      ║
-║  Memory Service:  http://localhost:50053                      ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Press Ctrl+C to stop all services                            ║
 ╚═══════════════════════════════════════════════════════════════╝

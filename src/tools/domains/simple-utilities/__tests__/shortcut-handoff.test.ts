@@ -12,6 +12,8 @@ const fakeDomain = (id: string) => ({
   getToolDefinitions: () => [
     {
       id,
+      name: id,
+      domain: 'communication',
       create: (c: { userId?: string }) => ({
         execute: async (args: unknown) => {
           ran.push({ id, userId: c.userId, args });
@@ -35,9 +37,24 @@ async function run(shortcut: string, args: object): Promise<string> {
 beforeEach(() => {
   ran.length = 0;
   process.env.ASSISTANT_ACTIONS_REAL = 'on';
+  process.env.OUTBOUND_CONFIRM = 'off'; // these pin argument mapping; the gate is tested below
 });
 afterEach(() => {
   delete process.env.ASSISTANT_ACTIONS_REAL;
+  delete process.env.OUTBOUND_CONFIRM;
+});
+
+describe('the call or text waits for a yes (default)', () => {
+  it('with no live call to hear a yes, quickCall and quickText run nothing', async () => {
+    delete process.env.OUTBOUND_CONFIRM;
+    expect(await run('quickCall', { contact: 'mom', message: 'dinner at 7' })).toMatch(
+      /^Nothing was sent/
+    );
+    expect(await run('quickText', { contact: 'mom', message: 'on my way' })).toMatch(
+      /^Nothing was sent/
+    );
+    expect(ran).toEqual([]);
+  });
 });
 
 describe('flag on: shortcuts hand off to the real tools', () => {

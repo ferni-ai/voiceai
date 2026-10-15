@@ -130,7 +130,6 @@ async function makeOutboundCall(phoneNumber: string) {
     console.log(`   Participant ID: ${sipParticipant.participantId}`);
     console.log(`   Participant Identity: ${sipParticipant.participantIdentity}`);
     console.log(`   SIP Call ID: ${sipParticipant.sipCallId}`);
-    console.log(`   Call Status: ${sipParticipant.callStatus}`);
 
     console.log('\n🎉 SUCCESS! Your phone should be ringing now.');
     console.log('   When you answer, Ferni will greet you and you can have a conversation!');

@@ -87,7 +87,8 @@ function createTestInput(userText: string): ContextBuilderInput {
       relationshipStage: 'friend',
     },
     bundleRuntime: null,
-  } as ContextBuilderInput;
+    // A partial input: the audit only needs the fields builders read first.
+  } as unknown as ContextBuilderInput;
 }
 
 async function auditBuilderRegistration(): Promise<{

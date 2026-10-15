@@ -6,9 +6,11 @@
  * short warm close. Support Ferni is a quiet text link at the bottom, never a
  * separate ask.
  *
- * The card sits in the page flow right after the call controls, so it can
- * never cover the Connect button. Non-modal, focusable, closes on Escape or
- * the close button, and keeps still for prefers-reduced-motion.
+ * The card is a fixed sheet just below the call controls (above them when it
+ * doesn't fit below and there is more room above), so it never covers Connect
+ * and never grows the page, which can't scroll. It is capped to the viewport
+ * and scrolls inside itself. Non-modal, focusable, closes on Escape or the
+ * close button, and keeps still for prefers-reduced-motion.
  *
  * @module ui/after-call/after-call-card
  */
@@ -47,10 +49,16 @@ function injectStyles(): void {
   style.id = STYLE_ID;
   style.textContent = `
     .${CARD_CLASS} {
-      position: relative;
-      flex-shrink: 0;
+      position: fixed;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-md));
+      z-index: var(--z-sticky);
+      box-sizing: border-box;
       width: min(340px, calc(100% - 2 * var(--space-md)));
-      transform: translateY(12px);
+      max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2 * var(--space-md));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      transform: translate(-50%, 12px);
       opacity: 0;
       background: var(--color-bg-elevated);
       color: var(--color-text-primary);
@@ -61,7 +69,16 @@ function injectStyles(): void {
       transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD},
         transform ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
-    .${CARD_CLASS}.visible { opacity: 1; transform: none; }
+    .${CARD_CLASS}.below-controls {
+      top: calc(var(--after-call-anchor) + var(--space-sm));
+      bottom: auto;
+      max-height: calc(100dvh - var(--after-call-anchor) - var(--space-sm) - env(safe-area-inset-bottom, 0px) - var(--space-md));
+    }
+    .${CARD_CLASS}.above-controls {
+      bottom: calc(var(--after-call-anchor) + var(--space-sm));
+      max-height: calc(100dvh - var(--after-call-anchor) - var(--space-sm) - env(safe-area-inset-top, 0px) - var(--space-md));
+    }
+    .${CARD_CLASS}.visible { opacity: 1; transform: translateX(-50%); }
     .${CARD_CLASS}:focus-visible,
     .${CARD_CLASS} button:focus-visible {
       outline: 2px solid var(--color-accent-primary);
@@ -105,7 +122,7 @@ function injectStyles(): void {
       cursor: pointer;
     }
     @media (prefers-reduced-motion: reduce) {
-      .${CARD_CLASS}, .${CARD_CLASS}.visible { transition: none; transform: none; }
+      .${CARD_CLASS}, .${CARD_CLASS}.visible { transition: none; transform: translateX(-50%); }
     }
   `;
   document.head.appendChild(style);
@@ -188,14 +205,26 @@ function buildRecap(data: AfterCallData, options: AfterCallCardOptions): HTMLEle
 }
 
 /**
- * Right after the call controls, in the page flow, so the card can never sit
- * on top of Connect. Falls back to the end of the page when the controls are
- * not on screen.
+ * Anchor the card just below the call controls, or just above them when it
+ * doesn't fit below and there is more room above, so it never sits on Connect
+ * and scrolls inside itself as little as possible. Without controls on screen
+ * it stays a bottom sheet.
  */
-function mountCard(node: HTMLElement): void {
-  const controls = document.getElementById('connectBtn')?.closest('.controls-row');
-  if (controls?.parentElement) controls.after(node);
-  else document.body.appendChild(node);
+function placeCard(): void {
+  if (!card) return;
+  card.classList.remove('below-controls', 'above-controls');
+  const connect = document.getElementById('connectBtn');
+  // Connect's row, plus the round buttons under it (daily practice, predictions, insights).
+  const rects = [connect?.closest('.controls-row') ?? connect, document.querySelector('.engagement-triggers')]
+    .map((node) => node?.getBoundingClientRect())
+    .filter((rect): rect is DOMRect => rect !== undefined && rect.height > 0);
+  if (rects.length === 0) return;
+  const top = Math.min(...rects.map((rect) => rect.top));
+  const bottom = Math.max(...rects.map((rect) => rect.bottom));
+  const roomBelow = window.innerHeight - bottom;
+  const below = roomBelow >= card.scrollHeight || roomBelow >= top;
+  card.style.setProperty('--after-call-anchor', `${Math.round(below ? bottom : window.innerHeight - top)}px`);
+  card.classList.add(below ? 'below-controls' : 'above-controls');
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -227,12 +256,15 @@ export function showAfterCallCard(data: AfterCallData, options: AfterCallCardOpt
 
   returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   card = buildCard(data, options);
-  mountCard(card);
+  document.body.appendChild(card);
+  placeCard();
+  window.addEventListener('resize', placeCard);
   document.addEventListener('keydown', onDocumentKeydown);
 
   const shown = card;
   const reveal = (): void => {
     if (card !== shown) return; // closed or replaced before the first frame
+    placeCard(); // the controls may have settled since the card was mounted
     shown.classList.add('visible');
     shown.focus({ preventScroll: true });
   };
@@ -251,10 +283,13 @@ export function showAfterCallCard(data: AfterCallData, options: AfterCallCardOpt
 export function hideAfterCallCard(immediate = false): void {
   clearDismissTimer();
   document.removeEventListener('keydown', onDocumentKeydown);
+  window.removeEventListener('resize', placeCard);
   if (!card) return;
 
   const closing = card;
   card = null;
+  // Held toasts wait for this (AFTER_CALL_CARD_CLOSED_EVENT in app/call-end-paths.ts).
+  document.dispatchEvent(new CustomEvent('ferni:after-call-card-closed'));
   const hadFocus = closing.contains(document.activeElement);
   closing.classList.remove('visible');
   if (immediate || prefersReducedMotion()) closing.remove();

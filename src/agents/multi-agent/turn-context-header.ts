@@ -11,3 +11,9 @@ export const TURN_CONTEXT_HEADER =
 
 /** What a pushed note is cut to, so it can't grow the session's context unboundedly. */
 export const MAX_PUSHED_CONTEXT_CHARS = 2000;
+
+/**
+ * The id prefix of a memory-recall note (memory-recall-hook.ts addRecallNote),
+ * so a turn receipt can count what recall added without reading it.
+ */
+export const RECALL_NOTE_ID_PREFIX = 'recall_';

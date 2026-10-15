@@ -33,7 +33,7 @@ import {
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -47,6 +47,9 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
+import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { holdCommitmentInvite } from './commitment-invite.js';
+import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { getDeliberator } from './deliberation.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
@@ -163,8 +166,11 @@ export function startCrisisGate(
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
     if (scope) {
-      const verdicts = await turnVerdicts(scope, latest);
-      const outcome = agreementOutcome({ pattern, verdicts, latest, companion });
+      // Fail closed: a failed lookup counts as a missing read, which escalates.
+      const verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [
+        null,
+      ]);
+      const outcome = agreementOutcome({ pattern, verdicts, latest, earlier, companion });
       if (outcome !== 'escalate') {
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
         return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
@@ -250,6 +256,16 @@ export function holdUntilCleared(
 }
 
 /**
+ * A crisis turn: no background thought now or for the next few turns
+ * (deliberation.ts), and no small-step invite for the rest of the call
+ * (commitment-invite.ts).
+ */
+function holdAfterCrisis(session: object): void {
+  getDeliberator(session)?.hold();
+  holdCommitmentInvite(session);
+}
+
+/**
  * One persona reply through the gate: the crisis script instead of the model,
  * or the model asked with the turn reminder (plus crisis guidance when the
  * patterns call for it) and held until the classifier clears it. The opener
@@ -272,13 +288,18 @@ export async function gatedReply(
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => turnOpenedSince(session, askedAt);
   const gate = startCrisisGate(chatCtx, session.userData, options);
-  // A crisis turn: no background thought now or for the next few turns (deliberation.ts).
-  if (gate && gate.decision.action !== 'pass') getDeliberator(session)?.hold();
+  signalCrisisDecision(session, gate?.decision.action);
+  gate?.escalation
+    ?.then((decision) => signalCrisisDecision(session, decision?.action))
+    .catch(() => undefined);
+  if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
-  // shape ("six words at most") must never hold it back.
-  const plain = (): llm.ChatContext => withTurnReminder(chatCtx, session, { shape: false });
+  // shape ("six words at most") must never hold it back, and no goodbye
+  // closes the loop on a plan (wrap-up.ts).
+  const plain = (): llm.ChatContext =>
+    withTurnReminder(chatCtx, session, { shape: false, closeLoop: false });
   const ctx =
     gate?.decision.action === 'guide'
       ? withTurnStyleReminder(plain(), gate.decision.guidance)
@@ -287,12 +308,13 @@ export async function gatedReply(
     const stream = tapToolCalls(await model(request), session);
     if (!stream) return stream;
     const trimmed = env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound) : stream;
-    return withToolLeadIn(trimmed, chatCtx, session, env);
+    // COMMITMENT_INVITE: on the invite turn, no step named for them (commitment-invite-reply.ts).
+    return withToolLeadIn(withInviteReplyCheck(trimmed, session), chatCtx, session, env);
   };
   const reply = await ask(ctx);
   if (!reply || !gate?.escalation) return reply;
   return holdUntilCleared(reply, gate.escalation, async (decision) => {
-    if (decision.action !== 'pass') getDeliberator(session)?.hold();
+    if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
     return ask(withTurnStyleReminder(plain(), decision.guidance));
