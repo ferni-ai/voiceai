@@ -140,7 +140,10 @@ describe('recall after forgetting', () => {
           { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 0.9 },
         ],
         summaries: async () => [
-          { followUpItems: ['Ask how the divorce paperwork is going', 'Ask how Biscuit is doing'] },
+          {
+            callerProvenance: 1,
+            followUpItems: ['Ask how the divorce paperwork is going', 'Ask how Biscuit is doing'],
+          },
         ],
         forgotten: async () => ['divorce'],
       },

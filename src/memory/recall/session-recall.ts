@@ -407,16 +407,21 @@ function confidenceOf(raw: unknown): number {
 export const MAX_FOLLOW_UPS = 3;
 const MAX_INSIDE_JOKES = 3;
 
+/** Set on a summary whose items were checked against the caller's lines (caller-assertions.ts). */
+export const CALLER_PROVENANCE = 1;
+const LABELLED = ['disputedItems', 'assistantRaisedItems'];
+
 /**
- * A summary without the items the caller disputed (dispute.ts: disputedItems)
- * and without that list itself, so no reader serves or matches them.
+ * A summary without the items the caller disputed (dispute.ts: disputedItems) or that
+ * only the assistant said (assistantRaisedItems), and without those lists, so no reader
+ * serves or matches them.
  */
 export function undisputed(s: Record<string, unknown>): Record<string, unknown> {
-  if (!Array.isArray(s.disputedItems)) return s;
-  const gone = new Set(s.disputedItems.map(String));
+  const gone = new Set(LABELLED.flatMap((k) => (Array.isArray(s[k]) ? s[k].map(String) : [])));
+  if (!LABELLED.some((k) => k in s)) return s;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(s)) {
-    if (k === 'disputedItems') continue;
+    if (LABELLED.includes(k)) continue;
     out[k] = Array.isArray(v) ? v.filter((x) => typeof x !== 'string' || !gone.has(x)) : v;
   }
   return out;
@@ -461,6 +466,8 @@ export async function loadRecallSnapshot(
   );
   const followUps: string[] = [];
   for (const s of rawSummaries) {
+    // A thread is theirs only if the summary checked it against their own lines
+    if (s.callerProvenance !== CALLER_PROVENANCE) continue;
     for (const item of Array.isArray(s.followUpItems) ? s.followUpItems : []) {
       const text = String(item).trim();
       if (text && !followUps.includes(text) && !isForgotten(text, forgotten)) followUps.push(text);
