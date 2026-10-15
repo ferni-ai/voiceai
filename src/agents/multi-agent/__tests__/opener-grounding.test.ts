@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
 import { summarizeWithLLM } from '../../../memory/operations/summarizer.js';
+import { callerHistory, greetingFacts } from '../greeting-direction.js';
 import { createMemoryRecall } from '../memory-recall-hook.js';
 
 const CALL = [
@@ -60,5 +61,35 @@ describe('an invented topic never reaches the next call', () => {
       followUpItems: ['Did the user hear back about the offer?'],
     });
     expect(note).not.toMatch(/offer/i);
+  });
+
+  const afterTheClaim = (reply: string, model: object) =>
+    summarizeWithLLM(
+      's2',
+      [
+        { role: 'user', content: 'Can I talk to Jordan? I am off on Friday.' },
+        { role: 'assistant', content: "Hey Sam! Ferni told me you're weighing the offer." },
+        { role: 'user', content: reply },
+      ],
+      async () => JSON.stringify({ ...MODEL, ...model }),
+      { generateEmbedding: false }
+    );
+
+  it('the caller echoing it ("What offer?") or a word like "off" does not make it theirs', async () => {
+    for (const reply of ['What offer?', 'Ok.', 'No, there is no offer.']) {
+      const summary = await afterTheClaim(reply, { followUps: ['Ask about the offer'] });
+      expect(await nextCallOpener(summary), reply).not.toMatch(/offer/i);
+    }
+  });
+
+  it('a paraphrase neither of them said never becomes "what you talked about last time"', async () => {
+    const summary = await afterTheClaim('Ok.', {
+      keyPoints: ['User is considering a new job opportunity'],
+    });
+    const history = callerHistory({
+      totalConversations: 2,
+      lastConversationSummary: summary.keyPoints.slice(0, 2).join('; '),
+    });
+    expect(JSON.stringify(greetingFacts('evening', 'Sam', history))).not.toMatch(/job|offer/i);
   });
 });

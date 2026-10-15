@@ -72,7 +72,7 @@ export const PROVENANCE_FIELDS = [
 
 /** Summary words that say nothing about what the item is ("User wants to follow up on…"). */
 const NOT_THE_TOPIC = new Set(
-  'user caller ask asked talk talked talking discuss discussed discussing mention mentioned share shared said tell told want wanted wants feel feeling felt follow check next time how went goe going coming upcoming recent recently new update thing stuff conversation call help anxious nervous worried excited stressed happy sad upset hear heard back whether'.split(
+  'user caller ask asked talk talked talking discuss discussed discussing mention mentioned share shared said tell told want wanted wants feel feeling felt follow check next time how went goe going coming upcoming recent recently new update thing stuff conversation call help anxious nervous worried excited stressed happy sad upset hear heard back whether did does doing get got any yet see way go goes went go'.split(
     ' '
   )
 );
@@ -88,31 +88,86 @@ const TEAM = TEAM_FIRST_NAMES;
 
 /** What an item is about: content words that aren't summary filler or a teammate's name. */
 function topicWordsOf(text: string): string[] {
-  return [...contentWords(text)].filter((w) => !NOT_THE_TOPIC.has(w) && !TEAM.has(w));
+  return [...contentWords(text)]
+    .map((w) => w.replace(/'+$/, ''))
+    .filter((w) => !NOT_THE_TOPIC.has(w) && !TEAM.has(w));
 }
 
 /** The same word, give or take an ending ("plan", "planning"; "interview", "interviews"). */
 function sameWord(a: string, b: string): boolean {
-  if (a === b) return true;
-  const base = (w: string): string => w.replace(/(?:ing|ed|er|es|s)$/, '').replace(/e$/, '');
-  const [x, y] = [base(a), base(b)];
-  const undouble = (w: string): string => w.replace(/(.)\1$/, '$1');
-  return x.length >= 3 && (x === y || x === undouble(y) || undouble(x) === y);
+  const [x, y] = [lemma(a), lemma(b)];
+  return x === y || (FAMILY.get(x) ?? x) === (FAMILY.get(y) ?? y);
 }
+
+/**
+ * A word without -s, -es, -ed or -ing, a doubled last consonant or a final "e", when at
+ * least three letters are left: "planning" and "plans" are "plan", "moving" and "move" are
+ * "mov". "-er" is never cut, so "offer" is never "off" and "career" never "care".
+ */
+function lemma(w: string): string {
+  const cut = w.replace(/(?:ing|ed|es|s)$/, '');
+  const base = cut.length >= 3 ? cut.replace(/([^aeiou])\1$/, '$1') : w;
+  return base.length >= 4 ? base.replace(/e$/, '') : base;
+}
+
+/** Everyday words a summary uses for what the caller said another way. */
+const FAMILY = new Map(
+  Object.entries({
+    mother: 'mom',
+    mum: 'mom',
+    father: 'dad',
+    child: 'kid',
+    children: 'kid',
+    wedding: 'marry',
+    married: 'marry',
+    work: 'job',
+    presentation: 'present',
+  }).map(([k, v]) => [lemma(k), lemma(v)])
+);
 
 /**
  * True when the caller's own lines back `item` up: every word it is about is one they
  * said, give or take an ending. One added detail ("career", "the offer") is enough to
  * refuse it. A teammate's name in their line backs nothing up.
  */
-export function saidByCaller(item: string, callerLines: readonly string[]): boolean {
-  const said = topicWordsOf(callerLines.join(' '));
+export function saidByCaller(
+  item: string,
+  callerLines: readonly string[],
+  assistantLines: readonly string[] = []
+): boolean {
+  const said = topicWordsOf(assertedOnly(callerLines, assistantLines).join(' '));
   const words = topicWordsOf(item);
   return words.length > 0 && words.every((w) => said.some((s) => sameWord(w, s)));
 }
 
 /** Fields Ferni follows up on ("did you hear back about…"): every word must be the caller's. */
-const THREAD_FIELDS: ReadonlySet<string> = new Set(['questionsRemaining', 'followUpItems']);
+const THREAD_FIELDS: ReadonlySet<string> = new Set([
+  'questionsRemaining',
+  'followUpItems',
+  'keyPoints', // the next greeting's "what you talked about last time"
+]);
+
+const DENIAL =
+  /^\s*(?:no|nope|nah)\b|\b(?:i never said|i didn'?t say|that'?s (?:not right|wrong|not true)|that never happened|where did you get that|what are you talking about)\b/i;
+
+/**
+ * The caller's lines without what they only denied ("No, that's wrong") or only asked back
+ * about something Ferni or a teammate said ("What offer?"). A question with their own
+ * news in it ("can you help me plan my sister's visit?") stays. Always on here, whatever
+ * CALLER_ASSERTED_MEMORY says for the per-turn extractors.
+ */
+export function assertedOnly(
+  lines: readonly string[],
+  assistantLines: readonly string[] = []
+): string[] {
+  const theirs = topicWordsOf(assistantLines.join(' '));
+  const echo = (sentence: string): boolean =>
+    sentence.trim().endsWith('?') &&
+    topicWordsOf(sentence).every((w) => theirs.some((a) => sameWord(w, a)));
+  return lines
+    .flatMap((line) => line.split(/(?<=[.!?])\s+/))
+    .filter((sentence) => sentence.trim().length > 0 && !DENIAL.test(sentence) && !echo(sentence));
+}
 
 /**
  * True when `item` came from the assistant's side of the call: a word it is about was said
@@ -125,7 +180,7 @@ export function raisedByAssistant(
   callerLines: readonly string[],
   assistantLines: readonly string[]
 ): boolean {
-  const said = topicWordsOf(callerLines.join(' '));
+  const said = topicWordsOf(assertedOnly(callerLines, assistantLines).join(' '));
   const theirs = topicWordsOf(assistantLines.join(' '));
   return topicWordsOf(item).some(
     (w) => !said.some((s) => sameWord(w, s)) && theirs.some((a) => sameWord(w, a))
@@ -166,7 +221,7 @@ export function withCallerProvenance<T extends ProvenanceSummary>(
     if (!Array.isArray(items)) continue;
     const kept = items.filter((item) => {
       const theirs = THREAD_FIELDS.has(field)
-        ? saidByCaller(item, callerLines)
+        ? saidByCaller(item, callerLines, assistantLines)
         : !raisedByAssistant(item, callerLines, assistantLines);
       if (!theirs) raised.add(item);
       return theirs;

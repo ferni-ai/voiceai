@@ -124,9 +124,9 @@ describe('after-call summary provenance', () => {
     );
     expect(summary.mainTopics).not.toContain('work');
     expect(summary.keyPoints.join(' ')).not.toContain('offer');
-    expect(summary.assistantRaisedItems).toEqual([
-      'Remember, the job offer is the key thing to weigh here',
-    ]);
+    expect(summary.assistantRaisedItems).toContain(
+      'Remember, the job offer is the key thing to weigh here'
+    );
     expect(summary.callerProvenance).toBe(CALLER_PROVENANCE);
   });
 });
@@ -141,6 +141,26 @@ describe('saidByCaller', () => {
     expect(saidByCaller("Sam's career offer", ['Hey, can I talk to Jordan?'])).toBe(false);
     // a teammate's name in the caller's line backs nothing up
     expect(saidByCaller('Plans with Jordan', ['Hey Jordan'])).toBe(false);
+  });
+
+  it("keeps the caller's real threads, said another way", () => {
+    const keep: Array<[string, string]> = [
+      ['How did the interview go?', "I've got a job interview Thursday"],
+      ["Ask how the user's mom's surgery went", 'My mother has surgery on Monday'],
+      ['Ask about the wedding plans', 'We are getting married in June and planning it all'],
+      ['Ask how school went for the kids', 'The children start school tomorrow'],
+      ['Ask how the move went', "We're moving on Saturday"],
+    ];
+    for (const [item, line] of keep) expect(saidByCaller(item, [line]), item).toBe(true);
+  });
+
+  it('never lets a different word with the same start vouch for one', () => {
+    expect(saidByCaller('Ask about the offer', ["I'm off on Friday"])).toBe(false);
+    expect(saidByCaller('Ask about the career', ['I really care about my sister'])).toBe(false);
+    expect(saidByCaller('Ask about the offer', ['What offer?'], ['How is the offer?'])).toBe(false);
+    expect(saidByCaller('Ask about the offer', ["No, that's wrong, there's no offer."])).toBe(
+      false
+    );
   });
 
   it('labels what came from the assistant, and keeps a label the model chose for their talk', () => {
@@ -163,7 +183,14 @@ describe('saidByCaller', () => {
 
 describe('TEAM_FIRST_NAMES', () => {
   it('is the team in persona-ids', () => {
-    const team = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+    const team = [
+      'ferni',
+      'peter-john',
+      'alex-chen',
+      'maya-santos',
+      'jordan-taylor',
+      'nayan-patel',
+    ];
     expect([...TEAM_FIRST_NAMES]).toEqual(
       team.map((id) => DISPLAY_NAMES[id as keyof typeof DISPLAY_NAMES].toLowerCase())
     );
