@@ -63,4 +63,9 @@
   :root .persona-card__avatar {
     color: #faf8f5;
   }
+
+  /* Jordan's fill is too light for light initials (2.9:1); dark ink reads at 6.2:1 */
+  :root .persona-card__avatar[style*="#c4856a" i] {
+    color: #14110e;
+  }
 }
