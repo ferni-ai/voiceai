@@ -95,14 +95,11 @@ function sentenceEnd(text: string): number {
   return m?.index === undefined ? 0 : m.index + m[0].length;
 }
 
-/** A sentence that ends the text so far: no need to wait for the next chunk to see it end. */
-const ENDS_SENTENCE = /[.!?]+["')\]]*\s*$/;
-
 /** What a caller says when they want Ferni to do something: call, text, book, remind, save. */
 const ACTION_TALK =
-  /\b(?:call\w*|ring\w*|rang|rung|phon\w*|dial\w*|text\w*|messag\w*|e-?mail\w*|send\w*|sent|ping\w*|contact\w*|reach\w*|tell (?:her|him|them|my)|let (?:her|him|them|my \w+) know|book\w*|schedul\w*|reserv\w*|appointment\w*|calendar|remind\w*|alarm\w*|timer\w*|sav\w*|remember\w*|note\w*|number\w*)\b|\d{3}/i;
-/** How many of the caller's latest messages can put an action in play. */
-const ASK_WINDOW = 3;
+  /\b(?:call\w*|cal|ring\w*|rang|rung|phon\w*|dial\w*|buzz|face ?time|whats ?app|text\w*|tex|txt|messag\w*|msg|dm|e-?mail\w*|send\w*|sent|ping\w*|contact\w*|reach\w*|hit (?:up|her|him|them)|hold of|ahold|on the line|tell (?!me\b)\w+|let (?:her|him|them|my \w+|\w+) know|book\w*|schedul\w*|set up|reserv\w*|appointment\w*|meeting|calendar|remind\w*|wake me|alarm\w*|timer\w*|sav\w*|remember\w*|write (?:that|it|this) down|jot|note\w*|number\w*|llam\w*|appel\w*|anruf\w*|ruf|chiam\w*|liga\w*)\b|\d{3}/i;
+/** How many of the caller's (and Ferni's) latest messages can put an action in play. */
+const ASK_WINDOW = 6;
 
 interface Item {
   type?: string;
@@ -123,6 +120,12 @@ const spokenOf = (item: Item): string => {
   return first.startsWith(TURN_CONTEXT_HEADER) ? '' : first;
 };
 
+/** Ferni's own line claimed an action or said honestly he couldn't: the action is still in play. */
+const HONEST_SAID = /\b(?:can't actually|didn't go through)\b/i;
+const actedOn = (text: string): boolean =>
+  HONEST_SAID.test(text) ||
+  text.split(/(?<=[.!?])\s+/).some((part) => claimedAction(part) !== null);
+
 /** The caller asked for an action lately, or an action tool ran on this call. */
 export function actionInPlay(chatCtx: { items: readonly unknown[] }): boolean {
   const items = chatCtx.items as readonly Item[];
@@ -134,6 +137,10 @@ export function actionInPlay(chatCtx: { items: readonly unknown[] }): boolean {
     )
   )
     return true;
+  // Ferni's own last replies too: after "yes" and "hello?" the ask can be four messages back,
+  // but his "dialing her now" or honest line keeps the action in play (prod, 2026-10-15).
+  const said = items.filter((item) => item.type === 'message' && item.role === 'assistant');
+  if (said.slice(-ASK_WINDOW).some((item) => actedOn(spokenOf(item)))) return true;
   const asks = items.filter((item) => item.type === 'message' && item.role === 'user');
   return asks
     .map(spokenOf)
@@ -168,6 +175,7 @@ export async function withActionClaimCheck<T>(
   const guarded = new ReadableStream<Chunk>({
     async start(controller) {
       let pending = '';
+      let passed = 0; // how much of pending already streamed out
       let last = '';
       let said = false; // an honest line already went out
       let lineLast = false; // the last thing out was an honest line
@@ -203,7 +211,8 @@ export async function withActionClaimCheck<T>(
           return;
         }
         said = true;
-        emit(honestLine(kind, reason, open.has('reminder')));
+        const line = honestLine(kind, reason, open.has('reminder'));
+        emit(hold ? line : `Scratch that, ${line}`);
         lineLast = true;
       };
       try {
@@ -222,15 +231,16 @@ export async function withActionClaimCheck<T>(
             stringChunks = false;
             id = (chunk as llm.ChatChunk).id ?? id;
           }
-          if (!hold) pass(content);
           pending += content;
           for (let end = sentenceEnd(pending); end > 0; end = sentenceEnd(pending)) {
+            if (!hold) pass(pending.slice(passed, end)); // the rest of this sentence, then any correction
             flush(pending.slice(0, end));
             pending = pending.slice(end);
+            passed = 0;
           }
-          if (ENDS_SENTENCE.test(pending)) {
-            flush(pending);
-            pending = '';
+          if (!hold) {
+            pass(pending.slice(passed));
+            passed = pending.length;
           }
         }
         if (pending) flush(pending);
