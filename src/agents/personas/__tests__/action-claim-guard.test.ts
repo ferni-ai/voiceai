@@ -57,11 +57,17 @@ describe('claimedAction', () => {
     ['Got you a table at seven.', 'schedule'],
     ["I've put it in your calendar.", 'schedule'],
     ["You're all booked.", 'schedule'],
-    ['Your appointment is booked for Tuesday.', 'schedule'],
     ["Your reminder's all set.", 'reminder'],
     ["I've set a reminder for nine.", 'reminder'],
     ['Saved.', 'save'],
     ["I've saved that.", 'save'],
+    ["I'm reaching out to your sister now.", 'call'],
+    ["I'm getting in touch with her now.", 'call'],
+    ["I've left her a voicemail.", 'call'],
+    ["I'll call her in a sec.", 'call'],
+    ['I dropped her a line.', 'send'],
+    ["Text's on the way.", 'send'],
+    ['Booked!', 'schedule'],
   ])('%j claims %s', (sentence, kind) => {
     expect(claimedAction(sentence)).toBe(kind);
   });
@@ -108,6 +114,21 @@ describe('claimedAction', () => {
     "I'll be here.",
     "I'll remember that.",
     'Give her a call when you get a minute.',
+    "It sounds like she's going through a lot.",
+    "He's going through so much since the divorce.",
+    "They're going through a rough patch.",
+    "They're connecting again, that's lovely.",
+    "Oh your phone's ringing! Go grab it, I'll wait.",
+    'Calling all the good vibes!',
+    "I'm ringing in the new year with you!",
+    "Wow, you're booked solid this week.",
+    "So you're scheduled for surgery Tuesday morning.",
+    'Your appointment is set for Thursday.',
+    "Sounds like your alarm's set for five tomorrow.",
+    'Sending a little sunshine your way.',
+    'Her text sent you spinning, huh.',
+    "That's saved my whole afternoon.",
+    "It's stored somewhere deep in your heart.",
   ])('%j is not a claim', (sentence) => {
     expect(claimedAction(sentence)).toBeNull();
   });
@@ -158,6 +179,20 @@ describe('callActions', () => {
       ctx(result('quickText', '"Sent."'), result('quickText', '"Nothing was sent: no number."'))
     );
     expect([...later.failed]).toEqual(['send']);
+    // The tool asking for a number, or refusing on compliance, is not a call.
+    const noNumber = callActions(
+      ctx(
+        result(
+          'callOnBehalf',
+          '"I found Sam, but I don\u2019t have a phone number for them. Could you provide their number?"'
+        )
+      )
+    );
+    expect([...noNumber.failed]).toEqual(['call']);
+    const refused = callActions(
+      ctx(result('callOnBehalf', '"I can\u2019t make this call because: outside calling hours."'))
+    );
+    expect([...refused.failed]).toEqual(['call']);
     // "Sorry for the wait" is not a refusal.
     const sorry = callActions(
       ctx(result('callOnBehalf', '"Sorry for the wait, the call is ringing now."'))
@@ -298,6 +333,19 @@ describe('withActionClaimCheck', () => {
     const out = await chunksOf(await check(stream, [ASK], toolsWith('getWeather')));
     expect(out[0].delta?.content).toBe('Sure, let me check the weather');
     expect(out[1].delta?.toolCalls?.[0].name).toBe('getWeather');
+  });
+
+  it('empathy on a phone-only call (no action tools) streams untouched', async () => {
+    const parts = ["It sounds like she's going through a lot. ", "I'm here with you."];
+    expect(await textOf(await check(streamOf(...parts), [ASK], toolsWith('endCall')))).toBe(
+      parts.join('')
+    );
+  });
+
+  it('a sentence ending with no space before the next one is still its own sentence', async () => {
+    const text = await textOf(await check(streamOf('Calling her now!Hang tight.'), [ASK]));
+    expect(text).toMatch(/Hang tight\.$/);
+    expect(text).not.toMatch(/Calling her/);
   });
 
   it('chunks out carry no usage of the chunk they came from', async () => {

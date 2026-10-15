@@ -83,7 +83,7 @@ function toolNamesOf(chunk: Chunk): string[] {
 
 /** Length of the first whole sentence in the text, with its trailing space; 0 if none yet. */
 function sentenceEnd(text: string): number {
-  const m = text.match(/[.!?]+\s/);
+  const m = text.match(/[.!?]+(?:\s|(?=[A-Z]))/);
   return m?.index === undefined ? 0 : m.index + m[0].length;
 }
 
