@@ -11,7 +11,6 @@
  * @module simple-utilities/advanced-reminders
  */
 
-import { getProfileStore } from '../../../memory/profile-store.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
@@ -358,14 +357,8 @@ const recurringReminderDef: ToolDefinition = {
             recurrencePattern = { type: 'daily' };
         }
 
-        // The user's zone: their call's, else the profile's, else UTC.
-        let userTimezone = userTimeZone(ctx) ?? 'Etc/UTC';
-        try {
-          const profile = await (await getProfileStore()).getProfile(ctx.userId || 'anon');
-          userTimezone = userTimeZone(ctx) ?? profile?.contactInfo?.timezone ?? userTimezone;
-        } catch {
-          // Fallback to default timezone
-        }
+        // The zone the call settled (phone-parity.ts), never the raw profile's, else UTC
+        const userTimezone = userTimeZone(ctx) ?? 'Etc/UTC';
         const nextOccurrence = calculateNextOccurrence(recurrencePattern, parsedTime, userTimezone);
 
         const reminder: RecurringReminder = {

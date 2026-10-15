@@ -38,8 +38,23 @@ export function isSensitiveTopic(topic: string): boolean {
 // Spoken to someone (the reader, the user, Ferni, a model) or about its tools.
 const ADDRESSED =
   /\b(you|your|you're|yourself|user|users|reader|readers|ferni|persona|instructions?|assistant|ai|chatbot|model|llm|agent|tools?|functions?)\b/i;
-// A camelCase word is a tool name ("reachOut", "sendText").
-const TOOL_NAME = /\b[a-z]+[A-Z][A-Za-z]+\b/;
+// A camelCase word is a tool name ("reachOut", "sendText"), except brand words
+// shaped like iPhone or eBay, unless one of those is a registered tool's name.
+const CAMEL = /\b[a-z]+[A-Z][A-Za-z]+\b/g;
+const BRAND_SHAPE = /^[ie][A-Z][a-z]+$/;
+let registeredToolNames: () => Iterable<string> = () => [];
+
+/** The tools layer hands over its live tool registry (services can't import tools). */
+export function useRegisteredToolNames(names: () => Iterable<string>): void {
+  registeredToolNames = names;
+}
+
+const namesATool = (s: string): boolean =>
+  (s.match(CAMEL) ?? []).some(
+    (w) =>
+      !BRAND_SHAPE.test(w) ||
+      [...registeredToolNames()].some((n) => n.toLowerCase() === w.toLowerCase())
+  );
 // Any scheme, hxxp, www., or a bare/defanged domain ("bit.ly/abc", "evil[.]com").
 const URLISH = /\b(?:[a-z][a-z0-9+.-]*:\/\/|hxxps?:|www\.)|\b[\w-]+(?:\.|\[\.\])[a-z]{2,}\b/i;
 // Opens with an order. Neutral summaries open with a noun, not one of these.
@@ -50,7 +65,7 @@ const PHONE_LIKE = /\+?\d(?:[\s().-]*\d){6,}/g;
 /** A fragment that gives an order, speaks to someone, names a tool or holds a link. */
 export function isInstructionLike(sentence: string): boolean {
   const s = sentence.trim();
-  return IMPERATIVE.test(s) || ADDRESSED.test(s) || TOOL_NAME.test(s) || URLISH.test(s);
+  return IMPERATIVE.test(s) || ADDRESSED.test(s) || namesATool(s) || URLISH.test(s);
 }
 
 /**

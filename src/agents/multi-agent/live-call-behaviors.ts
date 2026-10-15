@@ -8,6 +8,7 @@
 import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
+import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createBargeInJudge,
@@ -95,6 +96,9 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       { event: 'user_state_changed', handler: bargeIn.onUserState }
     );
   }
+
+  // callUser rings the caller's verified phone through outreach (call-user-port.ts).
+  installCallUserPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler
