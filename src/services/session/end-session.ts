@@ -448,8 +448,8 @@ function setSummaryOnProfile(
 ): UserProfile {
   if (summary?.callerProvenance || summary?.keyPoints?.length) {
     profile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
+    if (summary.callerProvenance) profile.lastCallerSummary = profile.lastConversationSummary;
   } else if (turns.length > 0) {
-    // Fallback: extract from user turns
     const fallbackSummary = createFallbackSummary(turns);
     if (fallbackSummary) {
       profile.lastConversationSummary = fallbackSummary;

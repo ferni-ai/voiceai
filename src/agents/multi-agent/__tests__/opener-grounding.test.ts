@@ -112,7 +112,7 @@ describe('an invented topic never reaches the next call', () => {
     });
     const history = callerHistory({
       totalConversations: 2,
-      lastConversationSummary: summary.keyPoints.slice(0, 2).join('; '),
+      lastCallerSummary: summary.keyPoints.slice(0, 2).join('; '),
     });
     expect(JSON.stringify(greetingFacts('evening', 'Sam', history))).not.toMatch(/job|offer/i);
   });
@@ -129,5 +129,15 @@ describe('an invented topic never reaches the next call', () => {
       { generateEmbedding: false }
     );
     expect(await nextCallOpener(summary)).not.toMatch(/job/i);
+  });
+
+  it('a last-call summary stored before provenance never reaches the greeting', () => {
+    const legacy = {
+      totalConversations: 4,
+      lastConversationSummary: 'User is weighing a job offer',
+    };
+    expect(JSON.stringify(greetingFacts('evening', 'Sam', callerHistory(legacy)))).not.toMatch(
+      /offer/i
+    );
   });
 });
