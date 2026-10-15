@@ -150,7 +150,7 @@ export function withTurnReminder(
     // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),
     // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
-    // for this reply, last of all; never with crisis guidance.
+    // for this reply, last but the repair check; never with crisis guidance.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.

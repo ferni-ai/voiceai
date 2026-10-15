@@ -162,7 +162,7 @@ export function mishearCue(latest: string, call: CallText, previous = ''): Mishe
 /** The note for the reply model: check only if it doesn't fit, in a few words. */
 export function repairNote(cue: MishearCue): string {
   return cue.kind === 'name'
-    ? `Speech-to-text heard "${quoted(cue.heard)}", a name nobody has said on this call, and it often mishears names. If it doesn't fit what you were talking about, check it in a few words before building on it ("Sorry, did you say ${quoted(cue.heard)}?"); if it clearly fits, just carry on.`
+    ? `Speech-to-text heard "${quoted(cue.heard)}", a name nobody has said on this call, and it often mishears names. If it doesn't fit what you were talking about, check it in a few words before building on it ("Sorry, did you say ${quoted(cue.heard)}?"); if it clearly fits, just carry on. If you're not sure, check before acting on any other note about ${quoted(cue.heard)} above (such as saying a teammate isn't available).`
     : `Speech-to-text heard "${quoted(cue.heard)}", which doesn't quite parse, so it may have misheard them. If you can't tell what they meant, say so in a few words and ask, the way a friend would ("Sorry, you what?"), instead of guessing; if the meaning is clear, just answer it.`;
 }
 

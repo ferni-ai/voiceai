@@ -160,9 +160,17 @@ describe('the repair note on the reply request (withTurnReminder)', () => {
     vi.stubEnv('REPAIR_MODE', 'on');
     vi.stubEnv('TURN_SHAPE', 'on');
     const reminder = sent(call(GREETING, ['user', 'Gretchen made pancakes.']));
+    // The shape line is drawn per call, so assert the order: the check is the last thing said.
     expect(reminder).toMatch(
-      /No question this time.*did you say Gretchen\?.*even where a line above says no question\.\)?\s*$/s
+      /did you say Gretchen\?.*even where a line above says no question\.\)?\s*$/s
     );
+  });
+
+  it('a lone locked teammate name: check it before saying they are unavailable', () => {
+    vi.stubEnv('REPAIR_MODE', 'on');
+    const reminder = sent(call(GREETING, ['user', 'Peter.']));
+    expect(reminder).toContain('did you say Peter?');
+    expect(reminder).toMatch(/check before acting on any other note about Peter above/);
   });
 
   it('stays out of a turn that answers a question Ferni asked (answer-turn guard)', () => {
