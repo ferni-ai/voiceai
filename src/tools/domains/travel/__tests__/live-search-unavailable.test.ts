@@ -201,4 +201,68 @@ describe('live travel search with provider keys', () => {
     });
     expect(outcome).toEqual({ status: 'unavailable', reason: 'provider-error' });
   });
+
+  it('is unavailable when Amadeus answers with an error status', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 't' }), { status: 200 }))
+        .mockResolvedValueOnce(new Response('nope', { status: 500 }))
+    );
+    const { travel } = await loadTravel({ AMADEUS_API_KEY: 'k', AMADEUS_API_SECRET: 's' });
+    const outcome = await travel.searchFlights({
+      origin: 'JFK',
+      destination: 'LAX',
+      departureDate: new Date('2026-11-06'),
+      passengers: 1,
+      cabinClass: 'economy',
+    });
+    expect(outcome).toEqual({ status: 'unavailable', reason: 'provider-error' });
+  });
+
+  it('lists live offers cheapest first', async () => {
+    const offer = (id: string, total: string) => ({
+      id,
+      price: { total },
+      itineraries: [
+        {
+          duration: 'PT2H',
+          segments: [
+            {
+              departure: { at: '2026-11-06T08:00:00' },
+              arrival: { at: '2026-11-06T10:00:00' },
+              carrierCode: 'XX',
+            },
+          ],
+        },
+      ],
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 't' }), { status: 200 }))
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ data: [offer('dear', '400.00'), offer('cheap', '99.00')] }),
+            {
+              status: 200,
+            }
+          )
+        )
+    );
+    const { travel } = await loadTravel({ AMADEUS_API_KEY: 'k', AMADEUS_API_SECRET: 's' });
+    const outcome = await travel.searchFlights({
+      origin: 'JFK',
+      destination: 'LAX',
+      departureDate: new Date('2026-11-06'),
+      passengers: 1,
+      cabinClass: 'economy',
+    });
+    expect(outcome.status).toBe('live');
+    if (outcome.status === 'live') {
+      expect(outcome.results.map((r) => r.id)).toEqual(['cheap', 'dear']);
+    }
+  });
 });

@@ -353,7 +353,9 @@ export async function searchFlights(params: {
   passengers: number;
   cabinClass: CabinClass;
 }): Promise<LiveSearch<FlightResult>> {
-  return searchFlightsReal(params);
+  const outcome = await searchFlightsReal(params);
+  if (outcome.status === 'unavailable') return outcome;
+  return { status: 'live', results: [...outcome.results].sort((a, b) => a.price - b.price) };
 }
 
 // Booking.com Affiliate API: https://developers.booking.com/
@@ -437,7 +439,12 @@ export async function searchHotels(params: {
   guests: number;
   rooms: number;
 }): Promise<LiveSearch<HotelResult>> {
-  return searchHotelsReal(params);
+  const outcome = await searchHotelsReal(params);
+  if (outcome.status === 'unavailable') return outcome;
+  return {
+    status: 'live',
+    results: [...outcome.results].sort((a, b) => a.pricePerNight - b.pricePerNight),
+  };
 }
 
 /** What Ferni says when there are no live fares. Offers help, invents nothing. */
