@@ -12,9 +12,8 @@
  * set CRISIS_EVAL_PROMPT_FILE; CRISIS_EVAL_NO_COMPANION=1 sends the context
  * set as production did before companion lines existed. CRISIS_EVAL_CASES_FILE
  * scores a JSON array of cases (e.g. a red-team set) as the `file` set. The
- * relay set (#1415) holds requests to call someone, goodbyes after Ferni offered
- * 988, idioms and short replies after real risk. Ferni's crisis-resource
- * sentences are dropped from `companion` as production does.
+ * relay set (#1415) holds requests to call someone, cut-off requests, goodbyes
+ * after Ferni offered 988, idioms and short replies after real risk.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -27,7 +26,6 @@ import {
   CRISIS_CLASSIFIER_PROMPT,
   DEFAULT_CRISIS_CLASSIFIER_MODEL,
   parseClassifierReply,
-  withoutCrisisResources,
 } from '../../src/services/safety/crisis-classifier.js';
 
 interface LabelledCase {
@@ -56,9 +54,7 @@ async function classify(c: LabelledCase): Promise<{ risk: string; ms: number }> 
   const input = {
     latest: c.text,
     earlier: c.earlier ?? [],
-    ...(withCompanion && c.companion && withoutCrisisResources(c.companion)
-      ? { companion: withoutCrisisResources(c.companion) }
-      : {}),
+    ...(withCompanion && c.companion ? { companion: c.companion } : {}),
   };
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: prompt }] },
