@@ -165,7 +165,10 @@ export function withNameGate(
       }
       const from =
         Math.max(...['.', '!', '?', '…'].map((p) => raw.lastIndexOf(p, v.start - 1))) + 1;
-      if (GOODBYE.test(raw.slice(from, close))) keep.add(v);
+      // A cut mid-sentence is not a sentence end: "take care" there doesn't close it.
+      const said =
+        raw.slice(from, close) + (close === window && stop !== close - v.end - 1 ? 'x' : '');
+      if (GOODBYE.test(said)) keep.add(v);
     }
     for (const v of found) if (v.start < upTo && v.end > upTo) upTo = v.start; // waits whole
     const done = found.filter((v) => v.end <= upTo);

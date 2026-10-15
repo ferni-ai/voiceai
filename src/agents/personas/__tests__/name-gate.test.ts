@@ -232,6 +232,13 @@ describe('withNameGate', () => {
     }
   });
 
+  it('does not read a goodbye where the 40-character window cuts a sentence', async () => {
+    const text = 'Sam, x x x x x x x x x remember to take care of the paperwork first.';
+    expect(await run(text.split(/(?<= )/), callWith(2))).toBe(
+      'X x x x x x x x x remember to take care of the paperwork first.'
+    );
+  });
+
   it('leaves no stray ; or : where a sentence-start name was', () => {
     expect(strip("Sam; that's hard.")).toBe("That's hard.");
   });
