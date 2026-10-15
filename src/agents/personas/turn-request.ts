@@ -57,9 +57,10 @@ import {
   turnStyleReminderEnabled,
   withTurnStyleReminder,
 } from './turn-style.js';
+import { burstLine, clearBurstOffer } from './vocal-bursts.js';
 
 // Moved to turn-request-tools.ts; re-exported for existing importers.
-export { tapSpokenText, tapToolCalls } from './turn-request-tools.js';
+export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -90,6 +91,8 @@ export function withTurnReminder(
   options: { shape?: boolean; closeLoop?: boolean } = {}
 ): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
+  // An invitation to open with a sound is for one request only (vocal-bursts.ts).
+  clearBurstOffer(session);
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
@@ -265,19 +268,28 @@ function styleFor(
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const turn = turnShapeFor(
-    said,
-    rngFor(`${callSeed(session)}:${said}`),
-    undefined,
-    withRecent(withOwnStory(sig, said, ownStory), said, chatCtx)
+  const shaped = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
+  // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
+  const burst = burstLine(
+    session,
+    shaped ?? regexSignals(said, callerMove(said)),
+    rngFor(`${callSeed(session)}:${said}:burst`)
   );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
   log.info(
-    { move: turn.move, shape: turn.shape, extras: turn.extras, source, understood, answering },
+    {
+      move: turn.move,
+      shape: turn.shape,
+      extras: burst ? [...turn.extras, 'vocal_burst'] : turn.extras,
+      source,
+      understood,
+      answering,
+    },
     'TURN_SHAPE'
   );
-  return turn.reminder;
+  return burst ? `${turn.reminder} ${burst}` : turn.reminder;
 }
 
 /**

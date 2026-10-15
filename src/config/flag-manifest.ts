@@ -354,6 +354,7 @@ export const FLAG_MANIFEST = {
   USE_VERTEX_AI: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   VERTEX_KEEPALIVE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VITEST: { default: 'off', owner: 'tools', kind: 'experiment' },
+  VOCAL_BURSTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICED_PRESENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICEMAIL_DETECT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // the reply's pace, loudness and tone answer the caller's mood (director/attune.ts)
