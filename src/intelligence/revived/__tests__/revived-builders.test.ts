@@ -44,10 +44,12 @@ describe('revived builders', () => {
     const text = lastCallLines(input())
       .map((l) => l.text)
       .join('\n');
-    expect(text).toContain('How your last call (2 days ago) felt');
+    expect(text).toContain('How your last call (2 days ago) felt, for your tone, not to bring up');
     expect(text).toContain('you confused martial arts with tea blocks');
     expect(text).not.toMatch(/assistant/i);
-    expect(text).toContain('How the move to Denver is going');
+    expect(text).toContain(
+      "Only if they bring it up: last time you didn't find out How the move to Denver is going"
+    );
     // Covered by the follow-up memory recall already offers.
     expect(text).not.toContain('martial arts training is going');
   });
@@ -75,7 +77,7 @@ describe('revived builders', () => {
     expect(sessionGapLines(input({ lastContact: daysAgo(5) }))).toEqual([]);
     const [line] = sessionGapLines(input({ lastContact: daysAgo(30) }));
     expect(line.text).toContain("It's been 4 weeks since you last talked");
-    expect(line.text).toContain("don't ask where they've been");
+    expect(line.text).toContain("they don't owe you an explanation for the gap");
     expect(sessionGapLines(input({ lastContact: 'not a date' }))).toEqual([]);
   });
 
@@ -85,5 +87,18 @@ describe('revived builders', () => {
     );
     expect(alreadyCovered('how the vet visit went', ['Ask how the vet visit went'])).toBe(true);
     expect(alreadyCovered('how the new job is going', ['Ask how the vet visit went'])).toBe(false);
+  });
+
+  it('last-call: a hard last call gives Ferni the tone, never the painful details', () => {
+    const hard = {
+      ...LAST_CALL,
+      emotionalArc: 'Started heavy; the user cried about the divorce and hung up upset.',
+    };
+    const text = lastCallLines(input({ summaries: [hard] }))
+      .map((l) => l.text)
+      .join('\n');
+    expect(text).toContain('Your last call (2 days ago) was a hard one');
+    expect(text).toContain("don't bring it up");
+    expect(text).not.toMatch(/divorce|cried|hung up/i);
   });
 });

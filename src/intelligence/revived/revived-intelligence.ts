@@ -72,6 +72,9 @@ export interface RevivedStore {
 /** Is this text about a topic the caller asked Ferni to forget (memory/recall/forget.ts)? */
 export type IsForgotten = (text: string) => boolean;
 
+/** Past this, forgotten topics count as unreadable and nothing is offered (as call-summaries.ts). */
+export const FORGOTTEN_WAIT_MS = 5000;
+
 /** Every string in a summary, so it is checked whole against forgotten topics. */
 function wordsOf(value: unknown): string[] {
   if (typeof value === 'string') return [value];
@@ -89,10 +92,14 @@ export function rememberable(summaries: SummaryDoc[], forgotten: IsForgotten | n
   if (!forgotten) return [];
   return summaries.filter((s) => {
     const marked = (s as { forgottenAt?: unknown }).forgottenAt;
-    if (marked !== undefined && marked !== null) return false;
-    const { sessionId: _id, timestamp: _at, ...said } = s;
-    return !forgotten(wordsOf(said).join('\n'));
+    return (marked === undefined || marked === null) && !forgotten(wholeText(s));
   });
+}
+
+/** All the words a summary says, without its id and date. */
+function wholeText(s: SummaryDoc): string {
+  const { sessionId: _id, timestamp: _at, ...said } = s;
+  return wordsOf(said).join('\n');
 }
 
 export interface RevivedStart {
@@ -103,10 +110,12 @@ export interface RevivedStart {
   lastConversationSummary?: string;
   store: RevivedStore;
   /**
-   * What the caller asked Ferni to forget, or null when it can't be read (then
-   * nothing from earlier calls is offered). Absent: nothing is forgotten (tests).
+   * What the caller asked Ferni to forget, as stored, or null when it can't be
+   * read (or takes past FORGOTTEN_WAIT_MS): then nothing from earlier calls is offered.
    */
-  forgotten?: () => Promise<IsForgotten | null>;
+  forgotten: () => Promise<IsForgotten | null>;
+  /** What they asked to forget during this call (forget.ts forgottenInProcess), checked every turn. */
+  forgottenNow: () => IsForgotten;
   now?: () => Date;
   env?: Env;
 }
@@ -116,7 +125,17 @@ interface Entry {
   createdAt: number;
   computedAt?: number;
   lines: RevivedLine[];
+  /** The whole text of each summary the lines came from, rechecked every turn. */
+  sources: string[];
   loading?: Promise<void>;
+}
+
+function within<T>(read: Promise<T | null>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  return Promise.race([read, late]).finally(() => clearTimeout(timer));
 }
 
 const sessions = new Map<string, Entry>();
@@ -135,14 +154,12 @@ function evict(now: number): void {
 async function load(entry: Entry): Promise<void> {
   if (entry.loading) return entry.loading;
   const { start } = entry;
-  const now = start.now ?? (() => new Date());
+  const clock = start.now ?? (() => new Date());
   const began = Date.now();
-  const forgotten = (start.forgotten?.() ?? Promise.resolve(() => false)).catch(
-    (error: unknown) => {
-      log.warn({ error: String(error) }, 'Revived intelligence: forgotten topics unreadable');
-      return null;
-    }
-  );
+  const forgotten = within(start.forgotten(), FORGOTTEN_WAIT_MS).catch((error: unknown) => {
+    log.warn({ error: String(error) }, 'Revived intelligence: forgotten topics unreadable');
+    return null;
+  });
   entry.loading = Promise.all([
     start.store.summaries(start.userId as string).catch((error: unknown) => {
       log.warn({ error: String(error) }, 'Revived intelligence: summaries unavailable');
@@ -150,15 +167,19 @@ async function load(entry: Entry): Promise<void> {
     }),
     forgotten,
   ])
-    .then(([all, isForgotten]) => {
+    .then(([all, stored]) => {
+      const now = start.forgottenNow();
+      const isForgotten = stored && ((t: string) => stored(t) || now(t));
+      if (!isForgotten) log.warn('Revived intelligence: forgotten topics unreadable; none offered');
       const summaries = rememberable(all, isForgotten);
+      entry.sources = summaries.map(wholeText);
       const input = {
         sessionId: start.sessionId,
         userName: start.userName,
         summaries,
         lastContact: start.lastContact,
         lastConversationSummary: start.lastConversationSummary,
-        now: now(),
+        now: clock(),
       };
       entry.lines = REVIVED_BUILDER_NAMES.flatMap((name) => REVIVED_BUILDERS[name](input));
       entry.computedAt = Date.now();
@@ -184,7 +205,7 @@ export async function startRevivedIntelligence(start: RevivedStart): Promise<voi
   const existing = sessions.get(start.sessionId);
   if (existing) return existing.loading ?? Promise.resolve();
   evict(Date.now());
-  const entry: Entry = { start, createdAt: Date.now(), lines: [] };
+  const entry: Entry = { start, createdAt: Date.now(), lines: [], sources: [] };
   sessions.set(start.sessionId, entry);
   return load(entry);
 }
@@ -210,6 +231,14 @@ export function revivedInjection(
   if (!config.on) return null;
   const entry = sessions.get(sessionId);
   if (!entry) return null;
+  // Forgotten during this call: nothing until it is rebuilt without that summary.
+  const forgottenNow = entry.start.forgottenNow();
+  if (entry.sources.some((text) => forgottenNow(text))) {
+    entry.lines = [];
+    entry.sources = [];
+    void load(entry).catch(() => undefined);
+    return null;
+  }
   if (entry.computedAt !== undefined && Date.now() - entry.computedAt > REFRESH_MS) {
     void load(entry).catch(() => undefined);
   }

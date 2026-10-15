@@ -8,10 +8,11 @@
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import type { RevivedStore } from '../../intelligence/revived/revived-intelligence.js';
 import type { SummaryDoc } from '../../intelligence/revived/revived-builders.js';
+import { undisputed } from '../recall/session-recall.js';
 
 const SUMMARIES = 6;
 
-/** bogle_users/{uid}/summaries, newest first. */
+/** bogle_users/{uid}/summaries, newest first, without items the caller said were wrong (dispute.ts). */
 export const firestoreRevivedStore: RevivedStore = {
   async summaries(userId) {
     const db = getFirestoreDb();
@@ -23,6 +24,6 @@ export const firestoreRevivedStore: RevivedStore = {
       .orderBy('timestamp', 'desc')
       .limit(SUMMARIES)
       .get();
-    return snap.docs.map((d) => d.data() as SummaryDoc);
+    return snap.docs.map((d) => undisputed(d.data()) as SummaryDoc);
   },
 };

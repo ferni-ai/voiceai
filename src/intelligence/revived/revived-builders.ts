@@ -127,6 +127,13 @@ function pastCalls(input: RevivedInput): Array<{ doc: SummaryDoc; days: number }
   return out;
 }
 
+/**
+ * A last call that hurt (tears, a fight, a loss, a hang-up in anger). Its
+ * details stay out: Ferni gets the tone, never a painful moment to open with.
+ */
+const HARD_CALL =
+  /\b(cried|crying|tears|sobb|upset|angry|furious|hung up|panic|crisis|griev|grief|died|death|funeral|suicid|self-harm|scared|terrified|devastat|heartbr|fight|argument)/i;
+
 export function lastCallLines(input: RevivedInput): RevivedLine[] {
   const last = pastCalls(input).at(0);
   if (last === undefined) return [];
@@ -135,7 +142,9 @@ export function lastCallLines(input: RevivedInput): RevivedLine[] {
   if (arc) {
     lines.push({
       builder: 'last-call',
-      text: `How your last call (${ago(last.days)}) felt: ${clip(inFerniVoice(arc, input.userName), 240)}`,
+      text: HARD_CALL.test(arc)
+        ? `Your last call (${ago(last.days)}) was a hard one. Be gentle and let them lead; don't bring it up.`
+        : `How your last call (${ago(last.days)}) felt, for your tone, not to bring up: ${clip(inFerniVoice(arc, input.userName), 240)}`,
       priority: 76,
       untilTurn: 10,
     });
@@ -151,7 +160,7 @@ export function lastCallLines(input: RevivedInput): RevivedLine[] {
   if (open.length > 0) {
     lines.push({
       builder: 'last-call',
-      text: `Still unknown from last time: ${open.join('; ')}`,
+      text: `Only if they bring it up: last time you didn't find out ${open.join('; ')}`,
       priority: 75,
       untilTurn: 10,
     });
@@ -191,7 +200,7 @@ export function sessionGapLines(input: RevivedInput): RevivedLine[] {
   return [
     {
       builder: 'session-gap',
-      text: `It's been ${ago(days).replace(' ago', '')} since you last talked. Pick up like a friend who's glad to hear from them; don't ask where they've been or make them explain the gap.`,
+      text: `It's been ${ago(days).replace(' ago', '')} since you last talked; they don't owe you an explanation for the gap.`,
       priority: 74,
       untilTurn: 3,
     },
