@@ -346,7 +346,7 @@
   
   .hero__bg-orb {
     opacity: 0.5;
-    filter: saturate(1.2);
+    filter: blur(80px) saturate(1.2); /* keep story-brand.css blur: without it the orbs are hard discs */
   }
 
   /* Ferni Avatar */
@@ -445,7 +445,7 @@
 @media (prefers-color-scheme: dark) {
   .two-am {
     /* Explicit dark gradient - var(--color-background-deep) doesn't exist in tokens */
-    background: linear-gradient(180deg, var(--cinematic-black-rich) 0%, var(--color-text-primary) 100%);
+    background: linear-gradient(180deg, var(--cinematic-black-rich) 0%, var(--color-bg-tertiary) 100%);
   }
 
   .two-am__darkness {
@@ -2170,7 +2170,7 @@
 
 [data-theme="dark"] .hero__bg-orb {
   opacity: 0.5;
-  filter: saturate(1.2);
+  filter: blur(80px) saturate(1.2); /* keep story-brand.css blur: without it the orbs are hard discs */
 }
 
 [data-theme="dark"] .hero__tagline {
