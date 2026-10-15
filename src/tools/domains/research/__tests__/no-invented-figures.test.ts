@@ -20,7 +20,7 @@ vi.mock('@livekit/agents', () => ({
   },
 }));
 
-vi.mock('../../superhuman-tools/firestore-persistence.js', () => ({
+vi.mock('../superhuman-tools/firestore-persistence.js', () => ({
   getUserIdFromContext: () => 'u1',
 }));
 
@@ -41,7 +41,6 @@ vi.mock('../../../../services/stores/financial-store.js', () => ({
   }),
 }));
 
-import { financialResearchTools } from '../superhuman-tools/financial-research.js';
 import { createResearchTools } from '../research-tools.js';
 import { createInsightsAnalysisTools } from '../insights-analysis.js';
 import { getStockQuote, type StockQuoteProvider } from '../stock-quote-provider.js';
@@ -123,15 +122,25 @@ describe('stock research: live price only, no static figures', () => {
     expect(text).not.toMatch(/P\/E \d/);
   });
 
-  it('findStockCategory names no companies and quotes no figures', async () => {
-    const tools = createResearchTools();
-    const text = String(
-      await tools.findStockCategory.execute({ category: 'fast_grower' } as never, ctx as never)
-    );
-    expect(text).not.toMatch(NO_TICKER_TABLE);
-    expect(text).not.toMatch(/P\/E \d|Growth \d/);
-    expect(text).toMatch(/can't|don't have/);
-  });
+  it.each([
+    'slow_grower',
+    'stalwart',
+    'fast_grower',
+    'cyclical',
+    'turnaround',
+    'asset_play',
+  ] as const)(
+    'findStockCategory(%s) names no companies and quotes no figures',
+    async (category) => {
+      const text = String(
+        await createResearchTools().findStockCategory.execute({ category } as never, ctx as never)
+      );
+      expect(text).not.toMatch(NO_TICKER_TABLE);
+      expect(text).not.toMatch(/\d+(\.\d+)?%|\d+-\d+|P\/E \d|Growth \d/);
+      expect(text).not.toMatch(/Coca-Cola|Costco|Chipotle|Lululemon/i);
+      expect(text).toMatch(/can't/);
+    }
+  );
 
   it('findTenBaggers names no candidates', async () => {
     const text = String(
@@ -175,6 +184,30 @@ describe('insights: nothing synthesized from sample figures', () => {
     );
     expect(text).toContain('Shopping spending');
     expect(text).not.toMatch(/40%/);
+  });
+
+  it('synthesizeInsights uses only the real data on file', async () => {
+    financialStore.budget = { categories: [{ name: 'Shopping', limit: 100, spent: 250 }] };
+    const text = String(
+      await createInsightsAnalysisTools().synthesizeInsights.execute(
+        { focusDomains: ['all'], timeframe: 'month' } as never,
+        ctx as never
+      )
+    );
+    expect(text).toContain('I looked across your spending.');
+    expect(text).not.toMatch(/calendar|portfolio|investment behavior/i);
+    expect(text).not.toMatch(/heavy meeting|overloaded|health score|\d+%/i);
+  });
+
+  it('spotAnomalies says a time or wealth source is not connected, not that a budget is missing', async () => {
+    const text = String(
+      await createInsightsAnalysisTools().spotAnomalies.execute(
+        { domain: 'time' } as never,
+        ctx as never
+      )
+    );
+    expect(text).toMatch(/calendar yet: that data isn't connected/);
+    expect(text).not.toMatch(/budget/);
   });
 
   it('findCorrelation measures nothing and quotes no percentages', async () => {

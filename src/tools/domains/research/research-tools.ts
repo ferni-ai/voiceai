@@ -107,6 +107,19 @@ Rule of thumb: PEG under 1.0 suggests the stock might be undervalued relative to
 }
 
 /**
+ * What each category means, without figures or company names: the definitions
+ * above quote growth rates, and this reply must quote none.
+ */
+const CATEGORY_TRAITS: Record<StockCategory, string> = {
+  slow_grower: 'Large, mature companies that grow slowly and often pay dividends.',
+  stalwart: 'Large, established companies with steadier growth.',
+  fast_grower: 'Smaller companies that are expanding quickly.',
+  cyclical: 'Companies whose results follow the economic cycle.',
+  turnaround: 'Companies recovering from a rough patch.',
+  asset_play: 'Companies whose assets may be worth more than the market price suggests.',
+};
+
+/**
  * List the companies that fit a category. There is no live screen behind
  * this, so it explains the category and says how to find companies.
  */
@@ -114,7 +127,7 @@ function findStocksByCategory(category: StockCategory): string {
   return `
 **${category.replace('_', ' ').toUpperCase()} STOCKS:**
 
-${CATEGORY_DESCRIPTIONS[category]}
+${CATEGORY_TRAITS[category]}
 
 ${NO_FUNDAMENTALS} So I can't name which companies fit this category today. To find them yourself, use a stock screener to filter on growth and valuation, then check each business story.
 `;

@@ -555,6 +555,9 @@ export function createInsightsAnalysisTools() {
         }
 
         if (anomalies.length === 0) {
+          if (domain === 'time' || domain === 'wealth') {
+            return `I can't check your ${domain === 'time' ? 'calendar' : 'portfolio'} yet: that data isn't connected to this tool.`;
+          }
           const hasData = spending.length > 0 || habits !== null || goals !== null;
           return hasData
             ? `Nothing stands out in the data I have for ${domain === 'all' ? 'your life' : domain}.`
@@ -665,7 +668,7 @@ export function createInsightsAnalysisTools() {
         response += `**The Two-Minute Version:**\n`;
         response += `Based on patterns I've seen, here's what matters about ${topic}:\n\n`;
 
-        response += `1. **The Data Says:** This area has 3 key metrics that matter. Most people track the wrong ones.\n\n`;
+        response += `1. **The Data Says:** A few metrics matter more than the rest, and the ones people track are often not those.\n\n`;
 
         response += `2. **The Hidden Pattern:** There's usually a connection between ${topic} and another life domain that people miss.\n\n`;
 
@@ -738,8 +741,8 @@ export function createInsightsAnalysisTools() {
         response += `Protect the hour for ONE week. Don't use it productively - leave it empty. `;
         response += `Watch what happens to the rest of your challenges.\n\n`;
 
-        response += `I predict at least 3 of these ${currentChallenges.length} challenges will improve with NO direct intervention. `;
-        response += `Because they're symptoms of the same root cause.`;
+        response += `Some of these may ease with NO direct intervention, because they can be symptoms of the same root cause. `;
+        response += `Watch which ones do.`;
 
         return response;
       },
