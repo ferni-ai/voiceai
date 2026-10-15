@@ -137,7 +137,7 @@ function pastCalls(input: RevivedInput): Array<{ doc: SummaryDoc; days: number }
  * moment to open with.
  */
 const HARD =
-  /\b(cri(ed|es|ing)|tears|sobb|upset|angry|furious|hung up|panic|crisis|griev|grief|died|death|dying|passing|passed away|lost (his|her|their|my)|funeral|suicid|self-harm|scared|terrified|devastat|heartbr|fight|argument|heavy|miscarri|cancer|biopsy|diagnos|sick|illness|hospital|surgery|divorce|breakup|broke up|laid off|fired|broke down|lonely|depress|anxious|worried|frustrat|sad|hard time|struggl)/i;
+  /\b(cri(ed|es|ing)|tears|sobb|upset|angry|furious|hung up|panic|crisis|griev|grief|died|death|dying|passing|passed away|lost (his|her|their|my)|funeral|suicid|self-harm|scared|terrified|devastat|heartbr|fight|argument|heavy|miscarri|cancer|biopsy|diagnos|sick|illness|hospital|surgery|divorce|breakup|broke up|laid off|fired|broke down|lonely|depress|evict|stroke|relaps|rehab|overdos|abuse|anxious|worried|frustrat|sad|hard time|struggl)/i;
 const LIGHT =
   /\b(lighthearted|light|fun|funny|laugh|joked|joking|playful|easy|easygoing|upbeat|cheerful|relaxed|happy|excited|friendly|casual|chatty)\b/i;
 const NEGATED = /\b(not|n't|no|never|without|hardly|barely)\b/i;

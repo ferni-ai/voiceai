@@ -164,6 +164,21 @@ describe('revived builders fail closed on what an earlier call might hold', () =
     }
   });
 
+  it('a call the summary calls light still keeps hard details out (eviction, stroke, relapse)', () => {
+    for (const question of [
+      'Whether the eviction notice was resolved',
+      "How Sam's mum is after the stroke",
+      'Whether Sam is okay after the relapse',
+    ]) {
+      const text = lastText({
+        ...LAST_CALL,
+        emotionalArc: 'Light and friendly throughout.',
+        questionsRemaining: [question],
+      });
+      expect(text).not.toMatch(/eviction|stroke|relapse/i);
+    }
+  });
+
   it("an earlier hard call's key points stay out of the earlier-calls line", () => {
     const hardOlder = {
       sessionId: 'session-hard',
