@@ -10,9 +10,10 @@ import { initializeLogger, llm, voice } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { honestLine, withActionClaimCheck } from '../action-claim-guard.js';
+import { actionInPlay, honestLine, withActionClaimCheck } from '../action-claim-guard.js';
 import { callActions, claimedAction, kindsOfTool, type ActionKind } from '../action-claims.js';
 import { PersonaVoiceAgent } from '../ferni-agent.js';
+import { withTurnStyleReminder } from '../turn-style.js';
 
 initializeLogger({ pretty: false, level: 'warn' });
 
@@ -429,6 +430,83 @@ describe('withActionClaimCheck', () => {
     const off = { ACTION_CLAIM_GUARD: 'off' };
     expect(await withActionClaimCheck(Promise.resolve(stream), ctx(ASK), toolsWith(), off)).toBe(
       stream
+    );
+  });
+});
+
+/** A model stream that has sent these chunks and is still open: nothing after them is known yet. */
+function openStreamOf(...parts: string[]): ReadableStream<llm.ChatChunk> {
+  return new ReadableStream({
+    start(c) {
+      for (const p of parts) c.enqueue(chunk(p));
+    },
+  });
+}
+async function firstOut(stream: ReadableStream<llm.ChatChunk>): Promise<string | undefined> {
+  const reader = stream.getReader();
+  const next = await Promise.race([
+    reader.read(),
+    new Promise<'held'>((resolve) => setTimeout(() => resolve('held'), 50)),
+  ]);
+  void reader.cancel();
+  return next === 'held' ? undefined : (next.value?.delta?.content ?? undefined);
+}
+
+describe('no hold at the head of the reply (dev latency, increment 3)', () => {
+  const SMALL_TALK = [
+    user('I had a long day.'),
+    said('Oh no.'),
+    user('My boss kept piling it on.'),
+  ];
+
+  it('an action is in play when the caller asked for one lately or an action tool ran', () => {
+    expect(actionInPlay(ctx(ASK))).toBe(true);
+    expect(actionInPlay(ctx(user('Remind me to call the dentist.')))).toBe(true);
+    expect(actionInPlay(ctx(user('Text my sister I am late.')))).toBe(true);
+    expect(actionInPlay(ctx(user('Okay so are you calling him now?')))).toBe(true);
+    expect(actionInPlay(ctx(user('Hi'), result('quickText', '"Sent."'), user('Thanks')))).toBe(
+      true
+    );
+    expect(actionInPlay(ctx(...SMALL_TALK))).toBe(false);
+    expect(actionInPlay(ctx(ASK, user('ok'), user('anyway'), user('my day was long')))).toBe(false);
+    expect(actionInPlay(ctx(result('getWeather', '"Sunny."')))).toBe(false);
+  });
+
+  it("reads only the caller's spoken words, never the turn reminder after them", () => {
+    const chat = llm.ChatContext.empty();
+    chat.addMessage({ role: 'user', content: 'My boss kept piling it on.' });
+    const reminded = withTurnStyleReminder(chat);
+    expect(JSON.stringify(reminded.items)).toMatch(/on a call/);
+    expect(actionInPlay(reminded)).toBe(false);
+    chat.addMessage({ role: 'user', content: 'Can you text my sister?' });
+    expect(actionInPlay(withTurnStyleReminder(chat))).toBe(true);
+  });
+
+  it('with no action in play, each chunk goes out as it comes, before the sentence ends', async () => {
+    const out = await check(openStreamOf('Oh,'), SMALL_TALK);
+    expect(await firstOut(out)).toBe('Oh,');
+  });
+
+  it('with no action in play, the words come out exactly as the model wrote them', async () => {
+    const parts = ['Hey', "! It's going really well,", ' thanks for asking. How are', ' you?'];
+    expect(await textOf(await check(streamOf(...parts), SMALL_TALK))).toBe(parts.join(''));
+  });
+
+  it('with no action in play, a claim is corrected straight after it', async () => {
+    const parts = ["I've texted her for you. ", 'Anything else?'];
+    expect(await textOf(await check(streamOf(...parts), SMALL_TALK))).toBe(
+      "I've texted her for you. I can't actually send messages for you, so nothing's gone out. I can help you word it, though. Anything else?"
+    );
+  });
+
+  it('with an action in play, a sentence ending a chunk goes out without waiting for the next', async () => {
+    expect(await firstOut(await check(openStreamOf('Sure thing.'), [ASK]))).toBe('Sure thing.');
+  });
+
+  it('with an action in play, a claim ending a chunk is still never spoken', async () => {
+    const out = await check(openStreamOf("Okay, I'm calling him right now."), [ASK]);
+    expect(await firstOut(out)).toBe(
+      "I can't actually make calls for you, so I haven't rung anyone. I can help you work out what to say, though."
     );
   });
 });

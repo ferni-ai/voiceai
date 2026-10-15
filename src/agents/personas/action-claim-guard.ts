@@ -21,6 +21,13 @@
  * their order. ACTION_CLAIM_GUARD=off turns the guard off. Logs carry the kind
  * and the reason, never words.
  *
+ * Holding a sentence delays the first audio (dev A/B, increment 3: about
+ * 0.2-0.5 s, a whole model chunk), so sentences are held only when an action
+ * is in play: the caller asked for one in their last few turns, or a tool of
+ * that kind ran on this call. A sentence ending a chunk goes out at once. On
+ * every other turn the words stream as they come and a claim, rare there, is
+ * corrected by the honest line straight after it.
+ *
  * @module agents/personas/action-claim-guard
  */
 import type { llm } from '@livekit/agents';
@@ -28,6 +35,7 @@ import { ReadableStream } from 'node:stream/web';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { callActions, claimedAction, kindsOfTool, type ActionKind } from './action-claims.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
@@ -87,6 +95,53 @@ function sentenceEnd(text: string): number {
   return m?.index === undefined ? 0 : m.index + m[0].length;
 }
 
+/** A sentence that ends the text so far: no need to wait for the next chunk to see it end. */
+const ENDS_SENTENCE = /[.!?]+["')\]]*\s*$/;
+
+/** What a caller says when they want Ferni to do something: call, text, book, remind, save. */
+const ACTION_TALK =
+  /\b(?:call\w*|ring\w*|rang|rung|phon\w*|dial\w*|text\w*|messag\w*|e-?mail\w*|send\w*|sent|ping\w*|contact\w*|reach\w*|tell (?:her|him|them|my)|let (?:her|him|them|my \w+) know|book\w*|schedul\w*|reserv\w*|appointment\w*|calendar|remind\w*|alarm\w*|timer\w*|sav\w*|remember\w*|note\w*|number\w*)\b|\d{3}/i;
+/** How many of the caller's latest messages can put an action in play. */
+const ASK_WINDOW = 3;
+
+interface Item {
+  type?: string;
+  role?: string;
+  name?: string;
+  content?: unknown;
+  textContent?: string;
+}
+
+/** The caller's spoken words: the first line only, since a per-turn reminder rides after a blank line (turn-style.ts). */
+const spokenOf = (item: Item): string => {
+  const text =
+    item.textContent ??
+    (Array.isArray(item.content)
+      ? item.content.filter((part): part is string => typeof part === 'string').join('')
+      : '');
+  const first = text.split('\n')[0].trim();
+  return first.startsWith(TURN_CONTEXT_HEADER) ? '' : first;
+};
+
+/** The caller asked for an action lately, or an action tool ran on this call. */
+export function actionInPlay(chatCtx: { items: readonly unknown[] }): boolean {
+  const items = chatCtx.items as readonly Item[];
+  if (
+    items.some(
+      (item) =>
+        (item.type === 'function_call' || item.type === 'function_call_output') &&
+        kindsOfTool(item.name ?? '').length > 0
+    )
+  )
+    return true;
+  const asks = items.filter((item) => item.type === 'message' && item.role === 'user');
+  return asks
+    .map(spokenOf)
+    .filter(Boolean)
+    .slice(-ASK_WINDOW)
+    .some((text) => ACTION_TALK.test(text));
+}
+
 /**
  * The model's reply, held a sentence at a time: a sentence claiming an action
  * no tool carried out is dropped, and one honest line goes in its place.
@@ -102,6 +157,7 @@ export async function withActionClaimCheck<T>(
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
   const { failed } = callActions(chatCtx);
   const open = new Set(Object.keys(tools.functionTools ?? {}).flatMap(kindsOfTool));
+  const hold = actionInPlay(chatCtx);
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind): MissReason | null =>
     !open.has(kind) ? 'no_tool' : failed.has(kind) ? 'failed' : null;
@@ -114,19 +170,33 @@ export async function withActionClaimCheck<T>(
       let pending = '';
       let last = '';
       let said = false; // an honest line already went out
+      let lineLast = false; // the last thing out was an honest line
       let deferred: ActionKind | undefined;
       const calling = new Set<ActionKind>();
-      const emit = (text: string): void => {
+      const emit = (raw: string): void => {
+        const text = !last || /\s$/.test(last) ? raw.trimStart() : raw;
         if (!text) return;
         const spaced = last && !/\s$/.test(last) && !/^\s/.test(text) ? ` ${text}` : text;
         controller.enqueue(out(spaced));
         last = spaced;
       };
+      /** A streamed chunk goes out as the model wrote it, spaced only after an honest line. */
+      const pass = (text: string): void => {
+        if (!text) return;
+        const spaced = lineLast && !/^\s/.test(text) ? ` ${text}` : text;
+        controller.enqueue(out(spaced));
+        last = spaced;
+        lineLast = false;
+      };
+      /** A whole sentence: held ones go out unless they claim; streamed ones are already out. */
       const flush = (text: string): void => {
         const kind = claimedAction(text);
         const reason = kind ? missing(kind) : null;
-        if (!kind || !reason) return emit(text);
-        log.warn({ kind, reason }, 'ACTION_CLAIM_DROPPED');
+        if (!kind || !reason) {
+          if (hold) emit(text);
+          return;
+        }
+        log.warn({ kind, reason, held: hold }, 'ACTION_CLAIM_DROPPED');
         if (said || deferred) return;
         if (reason === 'failed') {
           deferred = kind;
@@ -134,6 +204,7 @@ export async function withActionClaimCheck<T>(
         }
         said = true;
         emit(honestLine(kind, reason, open.has('reminder')));
+        lineLast = true;
       };
       try {
         for (let next = await reader.read(); !next.done; next = await reader.read()) {
@@ -151,10 +222,15 @@ export async function withActionClaimCheck<T>(
             stringChunks = false;
             id = (chunk as llm.ChatChunk).id ?? id;
           }
+          if (!hold) pass(content);
           pending += content;
           for (let end = sentenceEnd(pending); end > 0; end = sentenceEnd(pending)) {
             flush(pending.slice(0, end));
             pending = pending.slice(end);
+          }
+          if (ENDS_SENTENCE.test(pending)) {
+            flush(pending);
+            pending = '';
           }
         }
         if (pending) flush(pending);
