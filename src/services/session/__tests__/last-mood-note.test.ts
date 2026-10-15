@@ -1,6 +1,6 @@
 /**
- * A new call hears Ferni's read of the last call's mood as his own sense,
- * never as a fact about the caller (#1415).
+ * Ferni's own persona mood from the last call is never told to him as the
+ * caller's (#1415).
  */
 import { describe, expect, it } from 'vitest';
 import { buildUserAwareness } from '../../../agents/voice-agent/phases/user-awareness.js';
@@ -16,37 +16,32 @@ const MOODS = [
   'playful',
   'nostalgic',
 ];
+const OFF = { PERSONA_MOOD_NOT_CALLERS: 'off' };
 
 describe('lastMoodNote', () => {
-  it("names Ferni's mood read as his own sense, not a fact about them", () => {
-    expect(lastMoodNote('tired_but_present')).toEqual([
-      'Your own sense last time, not something they said: they seemed a bit tired. Let it shape your tone; never tell them how they were or how their day went unless they say so on this call.',
-    ]);
+  it.each(MOODS)('%s: no line about how they were', (mood) => {
+    expect(lastMoodNote(mood)).toEqual([]);
   });
 
-  it.each(MOODS)('%s: labelled, never "Last time they ..."', (mood) => {
-    const [note] = lastMoodNote(mood);
-    expect(note).toMatch(/^Your own sense last time, not something they said: they seemed /);
-    expect(note).not.toMatch(/Last time they|—|–|\.\.|…/);
+  it('gives no line for an unknown, missing or prototype-key mood, switch on or off', () => {
+    for (const env of [{}, OFF]) {
+      expect(lastMoodNote(undefined, env)).toEqual([]);
+      expect(lastMoodNote('constructor', env)).toEqual([]);
+      expect(lastMoodNote('furious', env)).toEqual([]);
+    }
   });
 
-  it('gives no line for an unknown or missing mood', () => {
-    expect(lastMoodNote(undefined)).toEqual([]);
-    expect(lastMoodNote('constructor')).toEqual([]);
-    expect(lastMoodNote('furious')).toEqual([]);
-  });
-
-  it('LAST_MOOD_AS_SENSE=off gives the old lines exactly', () => {
-    const off = { LAST_MOOD_AS_SENSE: 'off' };
-    expect(lastMoodNote('tired_but_present', off)).toEqual([
+  it('PERSONA_MOOD_NOT_CALLERS=off gives the old lines exactly', () => {
+    expect(lastMoodNote('tired_but_present', OFF)).toEqual([
       'Last time they seemed a bit tired - be gentle.',
     ]);
-    expect(lastMoodNote('energized', off)).toEqual(['Last time they were full of energy!']);
+    expect(lastMoodNote('energized', OFF)).toEqual(['Last time they were full of energy!']);
+    expect(MOODS.every((mood) => lastMoodNote(mood, OFF).length === 1)).toBe(true);
   });
 });
 
 describe('the system prompt a returning caller gets', () => {
-  it('carries the mood as Ferni\'s sense, not "Last time they seemed"', () => {
+  it('says nothing about how they seemed last time', () => {
     const profile = {
       humanizingState: { lastMood: 'tired_but_present' },
     } as unknown as UserProfile;
@@ -55,8 +50,6 @@ describe('the system prompt a returning caller gets', () => {
       isReturningUser: true,
       sessionStartTime: new Date(),
     });
-    const text = facts.join('\n');
-    expect(text).toContain('not something they said: they seemed a bit tired.');
-    expect(text).not.toContain('Last time they');
+    expect(facts.join('\n')).not.toMatch(/they seemed|they were|Last time they/);
   });
 });

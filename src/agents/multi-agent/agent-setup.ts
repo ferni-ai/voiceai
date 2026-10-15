@@ -427,7 +427,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // A human friend might not notice you were struggling last time
       // Ferni remembers and checks in
       // =========================================================================
-      userAwareness.push(...lastMoodNote(userProfile.humanizingState?.lastMood)); // Ferni's read, labelled
+      userAwareness.push(...lastMoodNote(userProfile.humanizingState?.lastMood)); // his own mood, not theirs
 
       // =========================================================================
       // BETTER THAN HUMAN #3: Key Life Events Awareness

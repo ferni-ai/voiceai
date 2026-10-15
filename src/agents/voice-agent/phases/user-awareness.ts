@@ -42,7 +42,7 @@ export interface UserAwarenessResult {
 }
 
 // ============================================================================
-// CONTEXT MAPPINGS (last-call mood lines live in summary-topics.ts)
+// CONTEXT MAPPINGS (the old last-call mood lines live in last-mood-note.ts)
 // ============================================================================
 
 const RELATIONSHIP_STAGE_DESCRIPTIONS: Record<string, string> = {
