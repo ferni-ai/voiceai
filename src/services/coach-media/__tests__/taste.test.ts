@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Candidate } from '../checked-pick.js';
 import type { PickRecord } from '../pick-log.js';
-import { boostFor, signalOf, tasteFrom, tasteReason, tasteWords } from '../taste.js';
+import { MAX_BOOST, boostFor, signalOf, tasteFrom, tasteReason, tasteWords } from '../taste.js';
 
 const record = (over: Partial<PickRecord>): PickRecord => ({
   id: 'p',
@@ -108,6 +108,17 @@ describe('taste', () => {
     expect(tasteWords(taste)).toBe(
       'liked videos, short ones (under 10 minutes); not books, long ones'
     );
+  });
+
+  it('never lets taste outrank a pick 2 quality points better', () => {
+    const fan = tasteFrom(Array.from({ length: 10 }, () => record({ helped: 'yes' })));
+    const liked = boostFor(fan, video('Physio Pat', 400), 'video');
+    const disliked = boostFor(taste, video('Lecture Hall', 3000), 'video');
+    expect(liked).toBeLessThanOrEqual(MAX_BOOST);
+    expect(disliked).toBeGreaterThanOrEqual(-MAX_BOOST);
+    // Quality 3 from the creator they love vs quality 5 from one they didn't like.
+    expect(3 + liked).toBeLessThan(5 + boostFor(fan, video('Someone New', 3000), 'video'));
+    expect(liked - disliked).toBeLessThan(2);
   });
 
   it('is empty with no answers', () => {

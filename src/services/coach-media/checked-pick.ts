@@ -19,7 +19,7 @@ import type { GroundedAnswer } from './grounded-search.js';
 import { webData } from './result-text.js';
 
 export interface Candidate {
-  kind: 'video' | 'book' | 'place' | 'product';
+  kind: 'video' | 'book';
   title: string;
   /** Channel or authors. */
   by: string;

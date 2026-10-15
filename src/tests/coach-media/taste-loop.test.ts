@@ -4,7 +4,7 @@
  * follow-up answered "it really helped", and the next ask on another topic
  * ranks the same creator's short video first and says why.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Doc = Record<string, unknown>;
 const store = new Map<string, Doc>();
@@ -36,7 +36,7 @@ const db = {
   runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
     fn({
       get: async (r: ReturnType<typeof docRef>) => r.get(),
-      set: (r: ReturnType<typeof docRef>, d: Doc) => void r.set(d),
+      set: (r: ReturnType<typeof docRef>, d: Doc, o?: { merge?: boolean }) => void r.set(d, o),
     }),
 };
 vi.mock('../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => db }));
@@ -76,6 +76,8 @@ vi.mock('../../services/outreach/unified-delivery.js', () => ({
 const { runFindCoachingResources, runCoachingPick } =
   await import('../../tools/domains/learning/coaching-resources-tool.js');
 const { recordFollowUpAnswer } = await import('../../services/coach-media/feedback.js');
+const { outreachConfirmListeners } =
+  await import('../../tools/domains/communication/outreach/outreach-confirm.js');
 
 /** Grounding returns these YouTube ids; every check says fits, quality 4. */
 function webFinds(...ids: string[]) {
@@ -99,7 +101,9 @@ function webFinds(...ids: string[]) {
   );
 }
 
+afterEach(() => vi.unstubAllEnvs());
 beforeEach(() => {
+  vi.stubEnv('COACH_MEDIA', 'on');
   store.clear();
   generateContent.mockReset();
 });
@@ -107,6 +111,7 @@ beforeEach(() => {
 describe('taste loop', () => {
   it('learns from "it really helped" and prefers the same creator next time, saying why', async () => {
     const call1 = { session: {}, userData: {} };
+    outreachConfirmListeners(call1.session, () => true); // the owner, as a live call registers it
     webFinds('vidPatShort');
     await runFindCoachingResources({ topic: 'shin splints', format: 'video' }, call1, 'u1');
     const logged = [...store.entries()].filter(([k]) => k.includes('/coach_media_picks/'));
