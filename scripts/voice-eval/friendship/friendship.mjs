@@ -65,9 +65,11 @@ export function parseChecks(text) {
 /** The call in order, greeting kept: [{ who: 'agent'|'user', text, t }]. */
 function eventsOf(run) {
   if (!Array.isArray(run?.events)) throw new Error('not a call recording: no events array');
-  return (run.events ?? [])
+  const events = run.events
     .filter((e) => (e.who === 'agent' || e.who === 'user') && typeof e.text === 'string')
     .sort((a, b) => (a.t ?? 0) - (b.t ?? 0));
+  if (!events.some((e) => e.who === 'agent')) throw new Error('not a call recording: no agent turns');
+  return events;
 }
 
 /** One call's checks: which facts Ferni brought back, avoids he said, asks he made, laughs. */

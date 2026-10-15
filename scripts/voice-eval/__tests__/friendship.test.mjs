@@ -91,6 +91,10 @@ describe('friendship review fixes', () => {
     expect(() => scoreSeries([seed, { meta: {} }], checks)).toThrow(/not a call recording/);
   });
 
+  it('rejects a recording with no agent turns', () => {
+    expect(() => scoreSeries([seed, { events: [] }], checks)).toThrow(/no agent turns/);
+  });
+
   it('reads scenario files with CRLF line endings', () => {
     const crlf = parseChecks('#@fact bit:x \\bx\\b\r\n#@avoid decoy:y \\by\\b\r\n');
     expect(crlf.map((c) => c.id)).toEqual(['bit:x', 'decoy:y']);
