@@ -151,16 +151,21 @@ export function withNameGate(
         keep.add(v);
         break;
       }
-      // Goodbyes are short: past GOODBYE_WAIT characters it isn't one.
+      // Goodbyes are short: only the first GOODBYE_WAIT characters after the
+      // name are read, so the decision never changes once it is made.
       const stop = raw.slice(v.end).search(/[.!?…]/);
-      if (stop < 0 && !final && raw.length - v.end < GOODBYE_WAIT) {
+      const window = v.end + GOODBYE_WAIT;
+      let close: number;
+      if (stop >= 0 && v.end + stop + 1 <= window) close = v.end + stop + 1;
+      else if (raw.length >= window) close = window;
+      else if (final) close = raw.length;
+      else {
         upTo = v.start;
         break;
       }
       const from =
         Math.max(...['.', '!', '?', '…'].map((p) => raw.lastIndexOf(p, v.start - 1))) + 1;
-      const sentence = raw.slice(from, stop < 0 ? raw.length : v.end + stop + 1);
-      if (GOODBYE.test(sentence)) keep.add(v);
+      if (GOODBYE.test(raw.slice(from, close))) keep.add(v);
     }
     for (const v of found) if (v.start < upTo && v.end > upTo) upTo = v.start; // waits whole
     const done = found.filter((v) => v.end <= upTo);
@@ -187,11 +192,9 @@ export function withNameGate(
       enqueue(controller, out.slice(sent.length));
       sent = out;
     } else if (final) {
-      // Never expected; say the rest rather than lose it.
-      let same = 0;
-      while (same < sent.length && out[same] === sent[same]) same++;
-      log.warn({ sent: sent.length, same }, 'Name gate output diverged; sending the rest as is');
-      enqueue(controller, out.slice(same));
+      // Never expected: say what is left past what was sent, never anything twice.
+      log.warn({ sent: sent.length, out: out.length }, 'Name gate output diverged');
+      enqueue(controller, out.slice(sent.length));
     }
   };
 

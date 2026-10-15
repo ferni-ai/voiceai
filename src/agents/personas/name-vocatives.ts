@@ -230,6 +230,7 @@ export function findVocatives(
     if (f === 'word' || f === 'space') continue; // "Sam's", "Sam and I"
     // After a question ("Who goes first? Sam.") or for a name that is also a word
     // ("Hope. That's what..."), only "Sam, you did great" addresses them.
+    if (afterQuestion && wordName) continue; // "What carried you? Faith, you said."
     if (afterQuestion || wordName) {
       const word = nextWord(end);
       if (word === null) {
@@ -237,7 +238,7 @@ export function findVocatives(
         continue;
       }
       if (!/^\s*[,—–]/.test(text.slice(end))) continue;
-      if (!(afterQuestion ? ADDRESSING : CLAUSE_START).has(word)) continue;
+      if (!ADDRESSING.has(word)) continue; // "Will, you did great"; not "Rich, that's the word"
     }
     if (CALENDAR.has(name.toLowerCase()) && inCalendarList(text, nameAt, end)) continue;
     if (/^oh\s/i.test(greet)) {
@@ -247,7 +248,7 @@ export function findVocatives(
     }
     // The name goes with its comma or dash (a hello before it goes too: "Hey Sam,"
     // mid-call is a second hello); a sentence that was only the name goes whole.
-    const tail = text.slice(end).match(/^(?:\s*[,—–]\s*|[.!?…]+\s*)?/)?.[0] ?? '';
+    const tail = text.slice(end).match(/^(?:\s*[,—–;:]\s*|[.!?…]+\s*)?/)?.[0] ?? '';
     const runsOn = f !== 'end' && /^\s*[,—–]/.test(tail);
     found.push({
       start: greet ? s : nameAt,

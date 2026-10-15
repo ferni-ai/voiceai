@@ -109,6 +109,13 @@ describe('vocative names', () => {
       'Will, not talent, got you there.'
     );
     expect(strip('Will, you did great.', 'Will')).toBe('You did great.');
+    expect(strip('Hope, I think, is the thing.', 'Hope')).toBe('Hope, I think, is the thing.');
+    expect(strip("Rich, that's the word for the cake.", 'Rich')).toBe(
+      "Rich, that's the word for the cake."
+    );
+    expect(strip('What carried you? Faith, you said.', 'Faith')).toBe(
+      'What carried you? Faith, you said.'
+    );
     expect(strip('What got you through? Honestly, Faith.', 'Faith')).toBe(
       'What got you through? Honestly, Faith.'
     );
@@ -197,6 +204,24 @@ describe('withNameGate', () => {
     expect(await run(['That is rough, Sam. ', 'Talk soon, Sam.'], callWith(2))).toBe(
       'That is rough. Talk soon, Sam.'
     );
+  });
+
+  it('never changes its mind on a long sentence that ends in a goodbye phrase', async () => {
+    for (const text of [
+      'Sam, when you show up like that for your team, people really see you.',
+      "Sam, no matter what happens at the hearing next week, I won't let you go.",
+      "Honestly, Sam, it's been really good talking tonight, so I'll talk to you tomorrow!",
+    ]) {
+      const words = text.split(/(?<= )/);
+      const out = await run(words, callWith(2));
+      expect(out.length).toBeLessThan(text.length);
+      expect(out).toBe(await run([text], callWith(2)));
+      expect(out).not.toMatch(/Sam/);
+    }
+  });
+
+  it('leaves no stray ; or : where a sentence-start name was', () => {
+    expect(strip("Sam; that's hard.")).toBe("That's hard.");
   });
 
   it('does not stall a reply on an unclear ", Sam," (it keeps the name)', async () => {
