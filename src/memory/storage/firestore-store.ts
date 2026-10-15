@@ -10,6 +10,7 @@
  * - GOOGLE_APPLICATION_CREDENTIALS: Path to service account JSON
  */
 
+import { withoutTeammateMoments } from '../../utils/teammate-talk.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
 import type {
@@ -206,7 +207,6 @@ export class FirestoreStore extends MemoryStore {
 
       const hydrated = Object.assign(this.hydrateData(data), days && { conversationDays: days });
       if (!isValidUserProfile(hydrated)) {
-        // FIX: Enhanced logging with data sample for debugging data corruption
         getLogger().error(
           {
             userId,
@@ -219,7 +219,7 @@ export class FirestoreStore extends MemoryStore {
         );
         return null;
       }
-      return hydrated;
+      return withoutTeammateMoments(hydrated); // stored before teammate talk was told apart
     } catch (error) {
       getLogger().error(`getProfile error: ${error}`);
       return null;

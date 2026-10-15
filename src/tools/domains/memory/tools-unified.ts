@@ -10,6 +10,7 @@
  * @module tools/domains/memory/tools-unified
  */
 
+import { isTeammateTalk } from '../../../utils/teammate-talk.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getUnifiedMemoryService } from '../../../services/unified-memory-service.js';
@@ -259,6 +260,9 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
           log.warn('No userId available for memory write');
           return "I'll remember that.";
         }
+
+        // "Decided to talk to Jordan" is a teammate on this call, not their life (teammate-talk.ts)
+        if (isTeammateTalk(fact)) return "I'll remember that.";
 
         // Store in session
         if (!userData.keyMoments) {

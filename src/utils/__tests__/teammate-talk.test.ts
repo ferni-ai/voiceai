@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { DISPLAY_NAMES } from '../../personas/persona-ids.js';
+import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import { HEARD_AS as HANDOFF_SPELLINGS } from '../../tools/handoff/teammate-names.js';
 import {
   HEARD_AS,
@@ -24,6 +25,18 @@ describe('withoutTeammateTalk', () => {
       'Is Jordan around?',
       'Jordan please',
       'Can I talk to Naya?', // speech-to-text for Nayan
+      "I'm going to talk to Jordan about planning this weekend",
+      'put me through to Jordan',
+      'lemme chat w/ Jordan',
+      'talk 2 jordan',
+      'can I have Jordan',
+      'I need Jordan',
+      'go back to Ferni',
+      "I'm going to have Jordan help me plan",
+      "I'm going to go with Jordan",
+      'Jordan, you there?',
+      "I'll go ask Jordan",
+      'hand me to Nayan',
     ]) {
       expect(withoutTeammateTalk(line), line).toBe('');
     }
@@ -37,6 +50,10 @@ describe('withoutTeammateTalk', () => {
       'my mom is in the hospital.'
     );
     expect(withoutTeammateTalk('That helps a lot, thanks Maya.')).toBe('That helps a lot');
+    // speech-to-text often drops the comma after a greeting
+    expect(withoutTeammateTalk('hey jordan can you help me do some planning')).toBe(
+      'can you help me do some planning'
+    );
   });
 
   it('leaves alone a person in their life who shares a teammate name', () => {
@@ -47,6 +64,15 @@ describe('withoutTeammateTalk', () => {
       'I need to talk to Jordan tomorrow about the rent.',
       'My sister Maya got the job!',
       'I had a fight with my brother Peter.',
+      'I asked Alex to marry me!',
+      'I talked to Maya, she is pregnant.',
+      'I spoke with Peter and he wants a divorce.',
+      "We're trying to get Jordan into rehab.",
+      "I'm going to talk to Jordan about the divorce.",
+      'I need to talk to Peter about money, he has been distant.',
+      'I have to talk to Alex about our son.',
+      'I need to ask Maya for forgiveness.',
+      'I finally talked to Peter about the loan.',
     ]) {
       expect(withoutTeammateTalk(line), line).toBe(line);
     }
@@ -61,6 +87,8 @@ describe('isTeammateTalk', () => {
       'Did you ever talk to Jordan about those plans?',
       'Ask if they talked to Jordan about the plans',
       'Expressed concern about "Hey Jordan, can you help me do some planning"',
+      'expressed concern about "hey jordan can you help me do some planning"',
+      'Made a decision to "I\'m going to talk to Jordan about planning this weekend"',
     ]) {
       expect(isTeammateTalk(text), text).toBe(true);
     }
@@ -92,5 +120,7 @@ describe('the roster', () => {
       team.map((id) => DISPLAY_NAMES[id as keyof typeof DISPLAY_NAMES].toLowerCase())
     );
     expect(HANDOFF_SPELLINGS).toBe(HEARD_AS);
+    const ids = new Set(TEAM_MEMBERS.map((m) => m.memberId as string));
+    for (const id of Object.values(HEARD_AS)) expect(ids.has(id), id).toBe(true);
   });
 });

@@ -7,7 +7,9 @@
  * person who shares a teammate's name still counts.
  */
 import { describe, expect, it } from 'vitest';
+import { ProactiveInsightEngine } from '../intelligence/proactive-insight-engine.js';
 import { UserLearningEngine } from '../intelligence/user-learning-engine.js';
+import { withoutTeammateMoments } from '../utils/teammate-talk.js';
 import type { EmotionResult } from '../intelligence/detectors/emotion.js';
 import type { IntentResult } from '../intelligence/intent-classifier.js';
 import type { ConversationState } from '../intelligence/state/conversation.js';
@@ -103,6 +105,38 @@ describe('callbacks ("the smile factor")', () => {
   });
 });
 
+describe('the next call, from what was stored before this fix', () => {
+  // the prod record's shape, synthetic words: a concern from five days ago
+  const stored = () => [
+    {
+      ...moment(
+        'Expressed concern about "Hey Jordan, can you help me do some planning"',
+        'concern'
+      ),
+      timestamp: new Date(Date.now() - 5 * 86_400_000),
+    },
+    {
+      ...moment('Expressed concern about "My sister Maya is in the hospital"', 'concern'),
+      timestamp: new Date(Date.now() - 5 * 86_400_000),
+    },
+  ];
+
+  it('the proactive opener asks about the real concern, never the teammate one', () => {
+    const insights = new ProactiveInsightEngine('u-synthetic')
+      .generateInsights({ ...profile(stored()), goals: [] } as UserProfile)
+      .insights.map((i) => JSON.stringify(i));
+    expect(insights.join(' ')).not.toMatch(/jordan/i);
+    expect(insights.join(' ')).toMatch(/hospital/i);
+  });
+
+  it('the profile loads without the teammate moments, for every reader', () => {
+    const loaded = withoutTeammateMoments(profile(stored()));
+    expect(loaded.keyMoments.map((m) => m.summary)).toEqual([
+      'Expressed concern about "My sister Maya is in the hospital"',
+    ]);
+  });
+});
+
 describe('after-call commitments', () => {
   it('"I\'m going to talk to Jordan" is not a plan to check in on', () => {
     const observation = (quote: string) => ({
@@ -148,7 +182,7 @@ describe("a teammate's notes in another persona's prompt", () => {
       content: 'Planning a move in spring',
     } as never);
     expect(line).toBe(
-      "- Your teammate Jordan, from the caller's call with Jordan: Planning a move in spring"
+      "- From the caller's call with your teammate Jordan: Planning a move in spring"
     );
   });
 });

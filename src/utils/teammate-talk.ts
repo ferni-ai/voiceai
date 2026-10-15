@@ -49,19 +49,27 @@ const re = (source: string): RegExp => new RegExp(source, 'i');
 
 /** Asking for a teammate, or saying they'll go to one ("I'm going to talk to Jordan"). */
 const SWITCH = [
-  re(`\\b(?:talk|talked|talking|speak|spoke|speaking|chat)\\s+(?:to|with)\\s+${N}\\b`),
   re(
-    `\\b(?:switch|transfer|hand|pass|send|connect|take)\\s+(?:me\\s+)?(?:back\\s+)?(?:over\\s+)?(?:to|through\\s+to|with)\\s+${N}\\b`
+    `\\b(?:talk|talked|talking|speak|spoke|speaking|chat|chatting)\\s+(?:to|with|w/|2)\\s+${N}\\b`
   ),
+  re(
+    `\\b(?:switch|transfer|hand|pass|send|connect|take|put)\\s+(?:me\\s+)?(?:back\\s+)?(?:over\\s+|through\\s+)?(?:to|with)\\s+${N}\\b`
+  ),
+  re(`\\b(?:go|going|get)\\s+back\\s+to\\s+${N}\\b`),
   re(`\\b(?:get|bring|put)\\s+(?:in\\s+)?${N}\\b(?!'s)`),
+  re(`\\b(?:can i have|i need|i want|gimme|give me|go with)\\s+${N}\\b(?!'s)`),
+  re(`\\bhave\\s+${N}\\s+help\\b`),
   re(`\\b(?:is|can)\\s+${N}\\s+(?:there|around|available|free|join)\\b`),
   re(`\\b(?:ask|asked|asking)\\s+${N}\\b(?!'s)`),
-  re(`^\\W*${N}\\W*(?:please)?\\W*$`),
+  re(`^\\W*${N}\\W*(?:please|you there)?\\W*$`),
 ];
 
-/** The name said to them: "Hey Jordan, …", "Jordan, can you…", "…, thanks Maya". */
+/**
+ * The name said to them: "Hey Jordan, …", "hey jordan can you…" (speech-to-text often
+ * drops the comma after a greeting), "Jordan, can you…", "…, thanks Maya".
+ */
 const VOCATIVE_START = re(
-  `^\\s*(?:(?:hey|hi|hello|ok|okay|so|yo|thanks|thank\\s+you|bye|alright|well)[,!.]?\\s+)?${N}\\b\\s*[,!.?:-]\\s*`
+  `^\\s*(?:(?:hey|hi|hello|yo|okay|ok)[,!.]?\\s+${N}\\b[,!.?:-]?|(?:(?:so|thanks|thank\\s+you|bye|alright|well)[,!.]?\\s+)?${N}\\b\\s*[,!.?:-])\\s*`
 );
 const VOCATIVE_END = re(`,\\s*(?:(?:thanks|thank\\s+you)\\s+)?${N}\\s*[?!.]*\\s*$`);
 
@@ -72,18 +80,22 @@ const ABOUT_SOMEONE = [
   re(
     `\\b${N}\\s+(?:said|says|told|tells|called|calls|texted|texts|is|was|has|had|and\\s+i|thinks|thought|wants|wanted|didn'?t|doesn'?t|got|went|came|lives|works|just)\\b`
   ),
-  re(
-    `\\b(?:tomorrow|tonight|yesterday|later\\s+today|this\\s+(?:week|weekend|evening)|next\\s+(?:week|month)|last\\s+(?:night|week)|at\\s+work|on\\s+(?:mon|tues|wednes|thurs|fri|satur|sun)day)\\b`
-  ),
 ];
 
 const aboutSomeone = (sentence: string): boolean => ABOUT_SOMEONE.some((p) => p.test(sentence));
 
-/** One sentence without its teammate talk: '' when it was only that. */
+/**
+ * One sentence without its teammate talk: '' when it was only that. A sentence that
+ * names a teammate the way one asks for them is kept whole when something about their
+ * life is left once the asking is taken out ("I talked to Maya, she is pregnant", "I asked
+ * Alex to marry me", "talk to Jordan about the divorce"): that is someone in their life.
+ */
 function ownWords(sentence: string): string {
   if (aboutSomeone(sentence)) return sentence;
-  if (SWITCH.some((p) => p.test(sentence))) return '';
-  return sentence.replace(VOCATIVE_START, '').replace(VOCATIVE_END, '').trim();
+  const asking = SWITCH.find((p) => p.test(sentence));
+  const said = sentence.replace(VOCATIVE_START, '').replace(VOCATIVE_END, '').trim();
+  if (!asking) return said;
+  return hasOwnSubstance(said.replace(asking, ' '), 1) ? sentence : '';
 }
 
 /** The caller's line with every request for, and every name said to, a teammate taken out. */
@@ -110,15 +122,30 @@ export function isTeammateTalk(text: string): boolean {
   return withoutTeammateTalk(plain) !== plain && !hasOwnSubstance(withoutTeammateTalk(plain));
 }
 
-/** Left over after the teammate talk: more than a request ("can you help me plan"). */
-function hasOwnSubstance(rest: string): boolean {
+/** Left over after the teammate talk: at least `min` words that say something of their life. */
+function hasOwnSubstance(rest: string, min = 1): boolean {
   const words = rest.toLowerCase().match(/[a-z']{3,}/g) ?? [];
-  return words.filter((w) => !FILLER.has(w)).length >= 2;
+  return words.filter((w) => !FILLER.has(w) && !NAMES.has(w)).length >= min;
 }
 
-/** Words that ask or point rather than say anything about their life. */
+const NAMES = new Set([...TEAM_FIRST_NAMES, ...Object.keys(HEARD_AS)]);
+
+/** Words that ask, point or say when, rather than say anything about their life. */
 const FILLER = new Set(
-  "the and for are was not but its it's his her she him they them our out get got did does has had may who how why yes can you your i'm i've i'll help with some that this those these plan plans planning about could would want need just please thanks stuff thing things have what when there here do".split(
+  "the and for are was not but its it's his her she him they them our out get got did does has had may who how why yes can you your i'm i've i'll i'd let let's lemme help with some that this those these plan plans planning about could would want need just please thanks stuff thing things have what when there here going gonna wanna now right today tomorrow tonight week weekend later soon quick real minute morning evening afternoon back over through call talk chat speak ask more bit also really too guess maybe think okay sure yeah hey around available free again first then one".split(
     ' '
   )
 );
+
+/**
+ * A profile without the key moments that are only teammate talk. Applied where the
+ * profile is loaded (memory/storage/firestore-store.ts), so no reader of keyMoments
+ * (openers, callbacks, proactive insights, memory builders) follows up on one stored
+ * before this, like the prod "Made a decision to talk to Jordan".
+ */
+export function withoutTeammateMoments<T extends { keyMoments?: Array<{ summary: string }> }>(
+  profile: T
+): T {
+  if (!Array.isArray(profile.keyMoments)) return profile;
+  return { ...profile, keyMoments: profile.keyMoments.filter((m) => !isTeammateTalk(m.summary)) };
+}

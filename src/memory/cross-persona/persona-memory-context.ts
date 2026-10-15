@@ -182,7 +182,7 @@ function formatPersonaName(personaId: PersonaId): string {
 /** A teammate's insight as what came up on the caller's call WITH them ("From Jordan" read as news). */
 export function teammateNote(i: CrossPersonaInsight): string {
   const name = formatPersonaName(i.fromPersona);
-  return `- Your teammate ${name}, from the caller's call with ${name}: ${i.content}`;
+  return `- From the caller's call with your teammate ${name}: ${i.content}`;
 }
 
 // ============================================================================
