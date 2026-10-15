@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { ProactiveInsightEngine } from '../intelligence/proactive-insight-engine.js';
 import { UserLearningEngine } from '../intelligence/user-learning-engine.js';
-import { withoutTeammateMoments } from '../utils/teammate-talk.js';
+import { lifeMoments } from '../utils/teammate-talk.js';
 import type { EmotionResult } from '../intelligence/detectors/emotion.js';
 import type { IntentResult } from '../intelligence/intent-classifier.js';
 import type { ConversationState } from '../intelligence/state/conversation.js';
@@ -26,6 +26,8 @@ const TO_JORDAN = [
   'Hey Jordan, can you help me do some planning',
   "I'm going to talk to Jordan.",
   'Can I talk to Jordan?',
+  "I'm going to talk to Jordan about my birthday party.",
+  'I need to talk to Jordan about the trip',
 ];
 
 const analysis = (distressLevel: number) => ({
@@ -129,11 +131,12 @@ describe('the next call, from what was stored before this fix', () => {
     expect(insights.join(' ')).toMatch(/hospital/i);
   });
 
-  it('the profile loads without the teammate moments, for every reader', () => {
-    const loaded = withoutTeammateMoments(profile(stored()));
-    expect(loaded.keyMoments.map((m) => m.summary)).toEqual([
+  it('every keyMoments reader sees only life moments, and nothing is deleted', () => {
+    const p = profile(stored());
+    expect(lifeMoments(p.keyMoments).map((m) => m.summary)).toEqual([
       'Expressed concern about "My sister Maya is in the hospital"',
     ]);
+    expect(p.keyMoments).toHaveLength(2);
   });
 });
 
