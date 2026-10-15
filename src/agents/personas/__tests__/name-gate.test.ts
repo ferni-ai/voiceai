@@ -297,3 +297,58 @@ describe('withNameGate', () => {
     expect(await run(['Sam?'], callWith(2))).toBe('Sam?');
   });
 });
+
+describe('withNameGate timing (#1413: under 50 ms to first audio)', () => {
+  /** Stream `chunks` at virtual times; returns what came out, when, and the gate's own timing. */
+  async function timed(chunks: Array<[number, string]>, history: HistoryItem[]) {
+    let clock = 0;
+    let push!: (s: string | null) => void;
+    const input = new ReadableStream<string>({
+      start(c) {
+        push = (s) => (s === null ? c.close() : c.enqueue(s));
+      },
+    });
+    let timing: { firstHoldMs: number; maxHoldMs: number } | undefined;
+    const out: Array<[number, string]> = [];
+    const gated = withNameGate(input as never, {
+      name: 'Sam',
+      history,
+      env: {},
+      now: () => clock,
+      onTiming: (t) => (timing = t),
+    });
+    const reading = (async () => {
+      for await (const ch of gated as unknown as AsyncIterable<string>) out.push([clock, ch]);
+    })();
+    const settle = () => new Promise((r) => setImmediate(r));
+    for (const [t, s] of chunks) {
+      clock = t;
+      push(s);
+      await settle();
+    }
+    push(null);
+    await reading;
+    return { out, timing: timing! };
+  }
+
+  it('sends ordinary first words the moment they arrive', async () => {
+    for (const first of ['That', 'Oh,', 'Yeah', 'So', 'Honestly', '[laughter]', 'I']) {
+      const { out, timing } = await timed(
+        [[0, first], [200, ' that sounds'], [240, ' rough. How']],
+        callWith(2)
+      );
+      expect(out[0], first).toEqual([0, first.replace(/,$/, '')]);
+      expect(timing.firstHoldMs, first).toBe(0);
+    }
+  });
+
+  it('holds only the few characters a name could start in, until the next chunk', async () => {
+    const { out, timing } = await timed(
+      [[0, 'That is rough'], [30, ','], [60, ' Sam'], [90, '. How was it?']],
+      callWith(2)
+    );
+    expect(out.map(([, s]) => s).join('')).toBe('That is rough. How was it?');
+    expect(out[0]).toEqual([0, 'That is rough']);
+    expect(timing.maxHoldMs).toBeLessThanOrEqual(60);
+  });
+});

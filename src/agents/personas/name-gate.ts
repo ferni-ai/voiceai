@@ -67,6 +67,14 @@ const GIVES_NAME = /\b(?:[Yy]ou can|[Jj]ust|[Pp]lease) call me \p{Lu}/u;
 const GOODBYE_WAIT = 40;
 
 type Chunk = llm.ChatChunk | string | object;
+
+/** How long the gate held text back in one reply. */
+export interface NameGateTiming {
+  /** From the reply's first words arriving to the first words going out. */
+  firstHoldMs: number;
+  /** The longest any text waited for the characters that decide it. */
+  maxHoldMs: number;
+}
 export interface HistoryItem {
   type?: string;
   role?: string;
@@ -126,7 +134,14 @@ export function mayUseName(items: readonly HistoryItem[], name: string): boolean
  */
 export function withNameGate(
   input: ReadableStream<Chunk>,
-  opts: { name: string | null; history: readonly HistoryItem[]; env?: Env }
+  opts: {
+    name: string | null;
+    history: readonly HistoryItem[];
+    env?: Env;
+    /** How long the gate held text back (tests; production logs it). */
+    onTiming?: (timing: NameGateTiming) => void;
+    now?: () => number;
+  }
 ): ReadableStream<Chunk> {
   const env = opts.env ?? process.env;
   const { name, history } = opts;
@@ -138,6 +153,13 @@ export function withNameGate(
   let raw = '';
   let sent = '';
   let template: Chunk | null = null;
+  // Timing: when the reply's first words came in and went out, and the longest any text waited.
+  const now = opts.now ?? Date.now;
+  let firstIn: number | null = null;
+  let firstOut: number | null = null;
+  let heldSince: number | null = null;
+  let maxHoldMs = 0;
+  let held = 0;
 
   const render = (final: boolean): string => {
     const { found, undecidedAt } = findVocatives(raw, name, final);
@@ -170,6 +192,7 @@ export function withNameGate(
     }
     for (const v of found) if (v.start < upTo && v.end > upTo) upTo = v.start; // waits whole
     const done = found.filter((v) => v.end <= upTo);
+    held = raw.length - upTo;
     const out = applyVocatives(raw.slice(0, upTo), done, (v) => keep.has(v), falling);
     // A reply that was only the name ("Sam?") is said as it came.
     if (final && sent === '' && !LETTER.test(out)) return raw;
@@ -188,6 +211,13 @@ export function withNameGate(
   };
   const flush = (controller: ReadableStreamDefaultController<Chunk>, final: boolean): void => {
     const out = render(final);
+    const t = now();
+    if (held > 0) heldSince ??= t;
+    else if (heldSince !== null) {
+      maxHoldMs = Math.max(maxHoldMs, t - heldSince);
+      heldSince = null;
+    }
+    if (firstOut === null && out.length > sent.length) firstOut = t;
     // Decisions are final once made, so what was sent stays a prefix.
     if (out.startsWith(sent)) {
       enqueue(controller, out.slice(sent.length));
@@ -210,10 +240,18 @@ export function withNameGate(
             continue;
           }
           raw += content;
+          if (content) firstIn ??= now();
           template = chunk;
           flush(controller, false);
         }
         flush(controller, true);
+        const timing = {
+          firstHoldMs: firstIn !== null && firstOut !== null ? firstOut - firstIn : 0,
+          maxHoldMs,
+        };
+        opts.onTiming?.(timing);
+        // Expected ~0: text waits only where a name could be starting (#1413 latency check).
+        if (timing.firstHoldMs >= 20) log.info(timing, 'Name gate held the first words');
         controller.close();
       } catch (error) {
         controller.error(error);
