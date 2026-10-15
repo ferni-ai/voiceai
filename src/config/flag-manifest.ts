@@ -181,7 +181,8 @@ export const FLAG_MANIFEST = {
   MAYA_PROACTIVE_CHECKS: { default: 'off', owner: 'platform', kind: 'experiment' },
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // on: the caller can see, forget and correct what Ferni knows (/api/memories/remembered)
+  // on: the caller can see, forget and correct what Ferni knows (/api/memories/remembered).
+  // Turn on together with the web app's VITE_MEMORY_CONTROL, which shows the view that calls it.
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
   MULTI_AGENT_ESSENTIAL_TOOLS_FIRST: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MULTI_AGENT_MODE: { default: 'on', owner: 'voice', kind: 'kill-switch' },

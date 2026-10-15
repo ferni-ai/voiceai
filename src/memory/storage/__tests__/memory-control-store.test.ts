@@ -23,6 +23,7 @@ type Data = Record<string, unknown>;
 const db = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
   failCommit: false,
+  limits: [] as number[],
 }));
 
 function docRef(path: string) {
@@ -48,11 +49,19 @@ function collection(path: string) {
       ...docRef(`${path}/${id}`),
       collection: (c: string) => collection(`${path}/${id}/${c}`),
     }),
-    get: async () => ({
-      docs: [...db.docs.entries()]
-        .filter(([p]) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
-        .map(([p, data]) => ({ id: p.split('/').pop()!, data: () => data })),
-    }),
+    get: async () => listed(path, Infinity),
+    limit: (n: number) => {
+      db.limits.push(n);
+      return { get: async () => listed(path, n) };
+    },
+  };
+}
+function listed(path: string, n: number) {
+  return {
+    docs: [...db.docs.entries()]
+      .filter(([p]) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
+      .slice(0, n)
+      .map(([p, data]) => ({ id: p.split('/').pop()!, data: () => data })),
   };
 }
 vi.mock('../../../utils/firestore-utils.js', () => ({
@@ -79,7 +88,7 @@ vi.mock('../../../utils/firestore-utils.js', () => ({
 
 const { correctRemembered, forgetRemembered, listRemembered } =
   await import('../../recall/memory-control.js');
-const { firestoreMemoryControlStore: store } = await import('../memory-control-store.js');
+const { firestoreMemoryControlStore: store, MAX_READ } = await import('../memory-control-store.js');
 
 const FACTS = 'bogle_users/u1/dynamic_facts';
 const dog = {
@@ -123,6 +132,7 @@ describe('correcting a fact in the app', () => {
     expect(db.docs.get(`${FACTS}/${newId}`)).toMatchObject({
       value: 'labradoodle',
       corrects: 'dog',
+      syncedToSpanner: false, // or the graph sync never picks the corrected fact up
     });
     expect(removed).toEqual(['conversation:fact_dog', 'semantic:fact_fact_u1_dog']);
   });
@@ -147,5 +157,11 @@ describe('listing facts', () => {
       confidence: 0.9,
     });
     expect((await listRemembered('u1', store)).map((f) => f.id)).toEqual(['dog', 'old']);
+  });
+
+  it('reads a capped number of facts, not the whole collection', async () => {
+    db.limits.length = 0;
+    await listRemembered('u1', store);
+    expect(db.limits).toEqual([MAX_READ]);
   });
 });

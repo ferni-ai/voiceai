@@ -20,6 +20,7 @@
  * @module memory/recall/memory-control
  */
 import { createHash } from 'node:crypto';
+import { isForgotten } from './session-recall.js';
 
 export interface RememberedFact {
   id: string;
@@ -39,6 +40,8 @@ export interface MemoryControlStore {
   /** The caller's facts, newest first, raw. */
   facts: (userId: string) => Promise<Array<{ id: string; data: Record<string, unknown> }>>;
   fact: (userId: string, id: string) => Promise<Record<string, unknown> | null>;
+  /** Topics the caller asked to forget (forget.ts); null when they can't be read. */
+  forgotten: (userId: string) => Promise<string[] | null>;
   /** Mark one fact forgotten and take its copies out of recall's indexes. */
   forget: (userId: string, id: string, data: Record<string, unknown>, at: string) => Promise<void>;
   /**
@@ -94,15 +97,45 @@ function shown(id: string, d: Record<string, unknown>): RememberedFact {
   };
 }
 
+/** One fact however many times it was extracted: recall counts it once (dedupeFacts). */
+const sameFact = (d: Record<string, unknown>): string =>
+  `${String(d.entityName)}|${String(d.key ?? '')}|${String(d.value)}`.trim().toLowerCase();
+
+/**
+ * What recall would use: not forgotten, not unsure, not about a topic they asked to
+ * forget, and each fact once (the most confident copy, then the newest). Nothing when
+ * the forgotten topics can't be read, as recall itself fails closed (session-recall.ts).
+ */
+async function recalledFacts(
+  userId: string,
+  store: MemoryControlStore
+): Promise<Array<{ id: string; data: Record<string, unknown> }>> {
+  const [facts, forgotten] = await Promise.all([store.facts(userId), store.forgotten(userId)]);
+  if (forgotten === null) return [];
+  const best = new Map<string, { id: string; data: Record<string, unknown> }>();
+  for (const f of facts) {
+    if (!recalled(f.data)) continue;
+    if (
+      isForgotten(
+        `${String(f.data.entityName)} ${String(f.data.key ?? '')} ${String(f.data.value)}`,
+        forgotten
+      )
+    )
+      continue;
+    const seen = best.get(sameFact(f.data));
+    // newest first already: a later copy wins only by being more confident
+    if (!seen || confidence(f.data.confidence) > confidence(seen.data.confidence)) {
+      best.set(sameFact(f.data), f);
+    }
+  }
+  return [...best.values()];
+}
+
 export async function listRemembered(
   userId: string,
   store: MemoryControlStore
 ): Promise<RememberedFact[]> {
-  const facts = await store.facts(userId);
-  return facts
-    .filter((f) => recalled(f.data))
-    .slice(0, MAX_LISTED)
-    .map((f) => shown(f.id, f.data));
+  return (await recalledFacts(userId, store)).slice(0, MAX_LISTED).map((f) => shown(f.id, f.data));
 }
 
 /** Forget one fact. False when the caller has no such fact (or it is already forgotten). */
@@ -114,7 +147,13 @@ export async function forgetRemembered(
 ): Promise<boolean> {
   const d = await store.fact(userId, id);
   if (!d || typeof d.forgottenAt === 'string') return false;
-  await store.forget(userId, id, d, now.toISOString());
+  const at = now.toISOString();
+  await store.forget(userId, id, d, at);
+  // Every other copy of the same fact too, or recall serves one of them next call
+  const copies = (await store.facts(userId)).filter(
+    (f) => f.id !== id && typeof f.data.forgottenAt !== 'string' && sameFact(f.data) === sameFact(d)
+  );
+  for (const c of copies) await store.forget(userId, c.id, c.data, at);
   return true;
 }
 
@@ -144,9 +183,8 @@ export async function correctRemembered(
     return { kind: 'invalid', reason: `value is over ${MAX_CORRECTION_CHARS} characters` };
   }
   const old = await store.fact(userId, id);
-  if (!old || typeof old.forgottenAt === 'string' || typeof old.entityName !== 'string') {
-    return { kind: 'not-found' };
-  }
+  // A fact recall doesn't use (forgotten, unsure, empty) isn't shown, so it can't be corrected
+  if (!old || !recalled(old)) return { kind: 'not-found' };
   const at = now.toISOString();
   const newId = `f_${createHash('sha1').update(`${id}|${clean}|${at}`).digest('hex').slice(0, 24)}`;
   const corrected = {
@@ -158,6 +196,8 @@ export async function correctRemembered(
     extractedAt: at,
     source: 'user-correction',
     corrects: id,
+    // the graph sync picks up only unsynced facts (fact-sync-ops.ts), as extraction writes them
+    syncedToSpanner: false,
   };
   await store.correct(userId, id, { id: newId, data: corrected }, at);
   return { kind: 'corrected', fact: shown(newId, corrected) };

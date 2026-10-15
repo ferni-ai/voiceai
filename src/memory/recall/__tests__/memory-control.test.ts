@@ -8,7 +8,10 @@ import {
 } from '../memory-control.js';
 import { loadRecallSnapshot } from '../session-recall.js';
 
-function memoryStore(rows: Record<string, Record<string, unknown>>) {
+function memoryStore(
+  rows: Record<string, Record<string, unknown>>,
+  forgotten: string[] | null = []
+) {
   const state = { rows: structuredClone(rows) };
   const store: MemoryControlStore = {
     facts: async () =>
@@ -18,6 +21,7 @@ function memoryStore(rows: Record<string, Record<string, unknown>>) {
           String(b.data.extractedAt ?? '').localeCompare(String(a.data.extractedAt ?? ''))
         ),
     fact: async (_u, id) => state.rows[id] ?? null,
+    forgotten: async () => forgotten,
     forget: async (_u, id, _d, at) => {
       state.rows[id] = { ...state.rows[id], forgottenAt: at };
     },
@@ -84,6 +88,32 @@ describe('listRemembered', () => {
   });
 });
 
+describe('listRemembered, with the filters recall applies', () => {
+  const copy = { ...rows.dog, confidence: 0.6, extractedAt: '2026-10-01T18:00:00Z' };
+
+  it('leaves out a fact about a topic they asked to forget', async () => {
+    const { store } = memoryStore(rows, ['biscuit']);
+    expect((await listRemembered('u', store)).map((f) => f.id)).toEqual(['job']);
+  });
+
+  it('shows nothing when the forgotten topics cannot be read, as recall does', async () => {
+    const { store } = memoryStore(rows, null);
+    expect(await listRemembered('u', store)).toEqual([]);
+  });
+
+  it('shows a fact extracted twice once, the most confident copy', async () => {
+    const { store } = memoryStore({ ...rows, dogCopy: copy });
+    expect((await listRemembered('u', store)).map((f) => f.id)).toEqual(['dog', 'job']);
+  });
+
+  it('forgets every copy of a fact, so none comes back on the next call', async () => {
+    const { store, state } = memoryStore({ ...rows, dogCopy: copy });
+    expect(await forgetRemembered('u', 'dog', store)).toBe(true);
+    expect(state.rows.dogCopy!.forgottenAt).toBeDefined();
+    expect((await listRemembered('u', store)).map((f) => f.id)).toEqual(['job']);
+  });
+});
+
 describe('forgetRemembered', () => {
   it('marks the fact forgotten, so recall leaves it out from the next call', async () => {
     const { store, state } = memoryStore(rows);
@@ -137,6 +167,8 @@ describe('correctRemembered', () => {
       (await correctRemembered('u', 'dog', 'x'.repeat(MAX_CORRECTION_CHARS + 1), store)).kind
     ).toBe('invalid');
     expect(await correctRemembered('u', 'gone', 'new', store)).toEqual({ kind: 'not-found' });
+    // a fact the list hides (recall doesn't use it) can't be corrected either
+    expect(await correctRemembered('u', 'unsure', 'new', store)).toEqual({ kind: 'not-found' });
     expect(state.rows.dog!.forgottenAt).toBeUndefined();
   });
 });

@@ -6,7 +6,11 @@
  * @module memory/storage/memory-control-store
  */
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { firestoreForgetStore, removeIndexCopies } from '../recall/forget.js';
+import {
+  firestoreForgetStore,
+  forgottenTopicsOrNull,
+  removeIndexCopies,
+} from '../recall/forget.js';
 import type { MemoryControlStore } from '../recall/memory-control.js';
 
 const facts = (userId: string): FirebaseFirestore.CollectionReference | null => {
@@ -17,13 +21,17 @@ const facts = (userId: string): FirebaseFirestore.CollectionReference | null => 
 const learned = (d: Record<string, unknown>): string =>
   typeof d.extractedAt === 'string' ? d.extractedAt : '';
 
+/** Facts read at most: well over what is listed (300), so duplicates and forgotten ones fit. */
+export const MAX_READ = 2000;
+
 export const firestoreMemoryControlStore: MemoryControlStore = {
+  forgotten: (userId) => forgottenTopicsOrNull(userId),
   async facts(userId) {
     const col = facts(userId);
     if (!col) return [];
-    // All of them, sorted here: orderBy('extractedAt') would leave out any fact
-    // without that field, which recall still uses. Undated facts come last.
-    const snap = await col.get();
+    // Sorted here: orderBy('extractedAt') would leave out any fact without that
+    // field, which recall still uses. Undated facts come last. Capped read.
+    const snap = await col.limit(MAX_READ).get();
     return snap.docs
       .map((d) => ({ id: d.id, data: d.data() }))
       .sort((a, b) => learned(b.data).localeCompare(learned(a.data)));
