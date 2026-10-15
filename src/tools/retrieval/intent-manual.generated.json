@@ -9515,7 +9515,7 @@
     },
     "handoffToJohn": {
       "domain": "handoff",
-      "description": "Transfer conversation to John Bogle, who specializes in undefined.",
+      "description": "Transfer conversation to Henry Caldwell, who specializes in undefined.",
       "queries": [
         "I want to get some classic, straightforward advice on low-cost investing from John.",
         "Put me on the line with John Bogle please.",
@@ -9598,7 +9598,7 @@
     },
     "handoffToPeter": {
       "domain": "handoff",
-      "description": "Transfer conversation to Peter Lynch, who specializes in undefined.",
+      "description": "Transfer conversation to Tom Brannigan, who specializes in undefined.",
       "queries": [
         "Peter is clearly the one who should be in charge here.",
         "I definitely need Peter's input on this situation.",
@@ -10322,7 +10322,7 @@
     },
     "investmentCalc": {
       "domain": "finance",
-      "description": "Calculate how money grows over time with compound interest. Central to Jack Bogle's message about long-term investing.",
+      "description": "Calculate how money grows over time with compound interest. Central to the long-term, low-cost index-investing message.",
       "queries": [
         "Calculate investment growth.",
         "I want to see how much my retirement fund will grow if I start putting in an extra hundred dollars every month.",

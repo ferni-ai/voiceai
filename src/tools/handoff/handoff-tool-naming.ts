@@ -22,10 +22,10 @@ function nameForTool(agent: NameableAgent, full: boolean): string {
 
 /**
  * Tool name per agent ID. A tool is named after the first name
- * (handoffToMaya); when two personas share one (Peter John on Ferni's team and
- * Tom Brannigan of the Financial Legends), the one on the coordinator's team keeps
- * it and the other is named in full (handoffToTomBrannigan). Before this, both
- * were handoffToPeter and whichever was built last took the name.
+ * (handoffToMaya); when two personas share one (Peter John on Ferni's team and a
+ * Financial Legend who also went by Peter), the one on the coordinator's team keeps
+ * it and the other is named in full. Before this, both were handoffToPeter and
+ * whichever was built last took the name.
  */
 export function assignHandoffToolNames<T extends NameableAgent>(
   agents: T[],

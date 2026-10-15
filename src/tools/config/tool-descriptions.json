@@ -416,7 +416,7 @@
       "file": "src/tools/personal-finance.ts"
     },
     "calculateFeeImpact": {
-      "description": "Show how fees eat into investment returns over time. Central to the crusade against high fees!.",
+      "description": "Show how fees eat into investment returns over time. Central to the fight against high fees.",
       "file": "src/tools/calculators.ts"
     },
     "calculateHomeAffordability": {

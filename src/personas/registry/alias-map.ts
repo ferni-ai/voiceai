@@ -1,10 +1,10 @@
 /**
  * Alias and handoff-tool-name lookup for the agent registry (unified-registry.ts).
  *
- * Personas can claim the same alias: Peter John (Ferni's team) and Tom Brannigan
- * (Financial Legends) both declare "peter"; Ferni's role id "life-coach" is also
+ * Personas can claim the same alias: Peter John (Ferni's team) and a Financial
+ * Legend once both declared "peter"; Ferni's role id "life-coach" is also
  * one of Maya's aliases. The map used to be last-write-wins, so "peter" and
- * "handoffToPeter" went to whichever bundle loaded last (Tom Brannigan). Now a
+ * "handoffToPeter" went to whichever bundle loaded last. Now a
  * contested name is settled the same way the handoff tools name personas
  * (handoff-tool-naming.ts): the coordinator first, then the coordinator's team,
  * then everyone else, ties by id. Each collision is logged once per logger.

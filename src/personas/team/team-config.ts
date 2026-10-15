@@ -157,7 +157,7 @@ export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
       'This one needs deep wisdom - let me bring in Nayan.',
       "Nayan's perfect for the big picture stuff. Hold on...",
       'You need the sage perspective. Let me get Nayan.',
-      "index-fund, Gandhi, Buffett wisdom? That's Nayan's domain. One sec.",
+      "Index-fund, Gandhi or Buffett wisdom? That's Nayan's domain. One sec.",
     ],
     triggers: [
       'meaning of life',

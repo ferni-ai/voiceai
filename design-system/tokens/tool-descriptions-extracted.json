@@ -49,9 +49,9 @@
       "_original": "Calculate how money grows over time with compound interest. Central to the index-investing message"
     },
     "calculateFeeImpact": {
-      "description": "Show how fees eat into investment returns over time. Central to the index-investing message.",
+      "description": "Show how fees eat into investment returns over time. Central to the fight against high fees.",
       "file": "src/tools/calculators.ts",
-      "_original": "Show how fees eat into investment returns over time. Central to the index-investing message"
+      "_original": "Show how fees eat into investment returns over time. Central to the fight against high fees"
     },
     "compoundInterestGame": {
       "description": "Maya.",
