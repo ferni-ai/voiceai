@@ -165,6 +165,66 @@ describe('saidByCaller', () => {
     expect(saidByCaller('Ask about the offer', ['Yes, the offer came through.'], claim)).toBe(true);
   });
 
+  it('a word Ferni raised is theirs only when they tell something new about it', () => {
+    const claim = ["Ferni told me you're weighing the offer."];
+    const notTheirs = [
+      'Um what offer',
+      'So, um, what offer',
+      'Hold on, what offer',
+      'Excuse me, what offer',
+      'Sorry, I mean, which offer',
+      'Uh, what? The offer',
+      'Wait. What. The offer',
+      'Huh. Offer.',
+      'Yeah, the offer thing.',
+      'ok the offer',
+      'Oh right, the offer.',
+      'Hmm the offer',
+      'The offer, I guess.',
+      'Offer.',
+      'Uh. The offer. Okay.',
+      'Jordan, the offer',
+      "I haven't gotten an offer",
+    ];
+    for (const reply of notTheirs) {
+      expect(saidByCaller('Ask about the offer', [reply], claim), reply).toBe(false);
+    }
+    expect(saidByCaller('Ask about the offer', ['I got the offer from Acme.'], claim)).toBe(true);
+  });
+
+  it('keeps the threads Ferni asked about when the caller answers', () => {
+    const cases: Array<[string, string, string]> = [
+      [
+        'Did you have that interview yet?',
+        'Not yet, the interview is Thursday.',
+        'Ask how the interview went',
+      ],
+      [
+        "How's your mom doing?",
+        "My mom's surgery is next week, I'm not ready.",
+        "Ask about mom's surgery",
+      ],
+      [
+        'Did you call your landlord?',
+        'No, I still need to call the landlord.',
+        'Ask if they called the landlord',
+      ],
+      [
+        'How is the wedding planning?',
+        "We booked the venue for the wedding, it's in June.",
+        'Ask about the wedding venue',
+      ],
+      [
+        'Are you still training for the marathon?',
+        'Yes, the marathon is in three weeks.',
+        'Ask how the marathon went',
+      ],
+    ];
+    for (const [asked, answer, thread] of cases) {
+      expect(saidByCaller(thread, [answer], [asked]), thread).toBe(true);
+    }
+  });
+
   it('labels what came from the assistant, and keeps a label the model chose for their talk', () => {
     const out = withCallerProvenance(
       { mainTopics: ['the offer'], keyPoints: [], followUpItems: ['the offer?'] },

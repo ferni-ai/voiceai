@@ -328,7 +328,7 @@ export async function createSessionServices(
       realtimeMemory
         .getLastConversationContext(validatedUserId)
         .then((lastContext) => {
-          if (lastContext && userProfile && !userProfile.lastConversationSummary) {
+          if (lastContext && userProfile && userProfile.lastConversationSummary === undefined) {
             const summary =
               lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
             if (summary) userProfile.lastConversationSummary = summary;

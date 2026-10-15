@@ -90,8 +90,12 @@ const TEAM = TEAM_FIRST_NAMES;
 function topicWordsOf(text: string): string[] {
   return [...contentWords(text)]
     .map((w) => w.replace(/'+$/, ''))
-    .filter((w) => !NOT_THE_TOPIC.has(w) && !TEAM.has(w));
+    .filter((w) => !NOT_THE_TOPIC.has(w) && !fillerLemmas().has(lemma(w)) && !TEAM.has(w));
 }
+
+let fillers: Set<string> | undefined;
+/** NOT_THE_TOPIC by lemma ("called" is "call"), built on first use. */
+const fillerLemmas = (): Set<string> => (fillers ??= new Set([...NOT_THE_TOPIC].map(lemma)));
 
 /** The same word, give or take an ending ("plan", "planning"; "interview", "interviews"). */
 function sameWord(a: string, b: string): boolean {
@@ -132,16 +136,25 @@ export interface Turn {
   content: string;
 }
 
-/** A sentence that doesn't claim anything: a question, an echo ("what offer"), a "no". */
-const NOT_A_CLAIM =
-  /\?|^\W*(?:\w+,\s*)?(?:what|which|huh)\b|\b(?:no|not|never|nothing|none|n't|don'?t know|not sure)\b|n't\b/i;
+/** A sentence that asks or echoes ("what offer", "huh, the offer?") rather than tells. */
+const ASKS = /\?|\b(?:what|which|huh|hmm|mean)\b/i;
+/** A "no" just before a word ("no offer", "haven't gotten an offer"); "not yet" is a status. */
+const NEGATED = /(?:\bno|\bnot|\bnever|n't|\bnothing|\bany)\b(?!\s+yet)[^.?!,]{0,24}$/i;
+/** Words that acknowledge without adding anything ("yeah, the offer thing", "oh right"). */
+const ACKNOWLEDGING = new Set(
+  'yeah yes yep yup okay sure right hold wait excuse sorry guess like know think really well just actually maybe kind sort uh um oh hmm mhm'.split(
+    ' '
+  )
+);
 
 /**
  * The words the caller can be said to have said, in call order. Their own words count
  * wherever they say them ("can you help me plan my sister's visit?"). A word Ferni or a
- * teammate brought up first counts only once the caller says it in a plain statement
- * of their own: "What offer", "Sorry, what offer?", "There's no offer" and "I don't know
- * what offer you mean" don't make "offer" theirs.
+ * teammate brought up first counts only when the caller tells something new about it in
+ * the same sentence: a word of their own that isn't an acknowledgement, in a sentence
+ * that doesn't ask or echo, with no "no" right before it. "I got the offer from Acme" and
+ * "Not yet, the interview is Thursday" count; "Hold on, what offer", "Yeah, the offer
+ * thing", "Huh. Offer." and "I haven't gotten an offer" don't.
  */
 export function callerWords(turns: readonly Turn[]): string[] {
   const raised: string[] = [];
@@ -153,9 +166,12 @@ export function callerWords(turns: readonly Turn[]): string[] {
       continue;
     }
     for (const sentence of turn.content.split(/(?<=[.!?])\s+/)) {
-      const claims = !NOT_A_CLAIM.test(sentence);
-      for (const w of topicWordsOf(sentence)) {
-        if (claims || !known(w, raised) || known(w, said)) said.push(w);
+      const words = topicWordsOf(sentence);
+      const ferni = (w: string) => known(w, raised) && !known(w, said);
+      const tells = !ASKS.test(sentence) && words.some((w) => !ferni(w) && !ACKNOWLEDGING.has(w));
+      for (const w of words) {
+        const before = sentence.toLowerCase().split(w)[0] ?? '';
+        if (!ferni(w) || (tells && !NEGATED.test(before))) said.push(w);
       }
     }
   }
