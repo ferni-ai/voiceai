@@ -9,7 +9,7 @@
  *   npx tsx scripts/diagnose-awareness.ts seth-123
  */
 
-import { getFirestoreDb } from '../src/memory/firestore-client.js';
+import { getFirestoreDb } from '../src/utils/firestore-utils.js';
 import { validateUserId } from '../src/services/session/validation.js';
 import { createLogger } from '../src/utils/safe-logger.js';
 

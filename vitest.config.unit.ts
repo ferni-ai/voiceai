@@ -45,9 +45,10 @@ export default defineConfig({
       '**/*integration*.test.ts',
       '**/integration/**',
       '**/e2e/**',
-      // Exclude tests that need Firestore
-      '**/*firestore*.test.ts',
-      '**/*firebase*.test.ts',
+      // No name-based Firestore exclusion: '*firebase*' and '*firestore*' also matched
+      // mocked unit tests and the firebase-admin guard, which then never ran in CI.
+      // Tests that need the emulator are named *.emulator.test.ts and skip without
+      // FIRESTORE_EMULATOR_HOST.
       // Exclude src/tests directory (mixed unit/integration)
       'src/tests/**',
     ],

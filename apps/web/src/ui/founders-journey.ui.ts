@@ -34,6 +34,7 @@ import {
   type Founder,
   type PersonalImpact,
 } from '../services/founders.service.js';
+import { isPaywallOn } from '../services/paywall.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -258,14 +259,14 @@ function createOverlay(): HTMLElement {
         ${renderVisionSection()}
       </div>
 
-      <!-- Footer CTA -->
-      <footer class="founders-journey-footer">
+      <!-- Footer CTA: only while the server has a paywall on (services/paywall.service.ts) -->
+      ${isPaywallOn() ? `<footer class="founders-journey-footer">
         <button class="founders-journey-cta" data-action="join">
           <span>${t('foundersJourney.cta.join')}</span>
           ${ICONS.arrowRight}
         </button>
         <p class="founders-journey-footer-note">${t('foundersJourney.footer.note')}</p>
-      </footer>
+      </footer>` : ''}
     </div>
   `;
 
@@ -281,7 +282,6 @@ function createOverlay(): HTMLElement {
     });
   });
 
-  // CTA button
   container.querySelector('[data-action="join"]')?.addEventListener('click', () => {
     closeFoundersJourney();
     // Dispatch event to open subscription modal

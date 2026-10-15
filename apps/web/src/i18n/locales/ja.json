@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "{language}に切り替えます",
+    "seeYou": "またね！",
+    "callVoicemail": "{name}さんに留守電を残しました",
+    "callNoAnswer": "{name}さんにつながりませんでした。あとでかけ直しましょうか？",
+    "callFailed": "{name}さんへの発信がうまくいきませんでした",
+    "callBack": "{name}さんが折り返しの電話を待っています",
+    "followUp": "{name}さんが連絡を待っています"
+  },
   "accessibility": {
     "accountMenu": "アカウントメニュー",
     "accountSettings": "アカウント設定",
@@ -9468,11 +9477,15 @@
     "rememberEmpty": "今回は新しく覚えておくことはありません。一緒に過ごしてくれてありがとう。",
     "nextStepTitle": "次のやさしい一歩",
     "invitation": "いつでも戻ってきてください。ここで待っています。",
-    "close": "閉じる"
+    "close": "閉じる",
+    "seeCost": "この通話の費用",
+    "feedbackQuestion": "今回の会話はどうでしたか？",
+    "feedbackThanks": "ありがとう、参考になります。"
   },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",
     "niceWork": "よく頑張りましたね",
+    "remembered": "覚えておきますね：{summary}",
     "streakSubtitle": "続けてお話できていますね。それが何より大切です。",
     "streakTitle": {
       "other": "{count}日連続のストリーク",

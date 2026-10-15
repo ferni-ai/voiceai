@@ -122,7 +122,7 @@
   "voice": {
     "provider": "cartesia",
     "voice_id": "${env:PETER_JOHN_VOICE_ID|3f04e815-3260-4f50-8fd9-af9c657be4c2}",
-    "model": "sonic-3-latest",
+    "model": "sonic-3.6-2026-08-27",
     "default_emotion": "curious",
     "emotion_range": [
       "curious",
@@ -131,9 +131,10 @@
       "surprised",
       "sympathetic",
       "wistful",
-      "playful"
+      "happy"
     ],
-    "default_speed": 0.95,
+    "default_speed": 1.03,
+    "speed_band": [0.95, 1.08],
     "default_volume": 1.0,
     "laughter_frequency": 0.18,
     "nonverbals": ["[laughter]", "Ha!", "Oh!", "Ooh!", "Wait—"]

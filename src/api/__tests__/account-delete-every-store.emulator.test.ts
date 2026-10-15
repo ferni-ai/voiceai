@@ -15,7 +15,7 @@
  */
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import admin from 'firebase-admin';
+import type { CollectionReference, DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { emailDocId, KEYED_STORES } from '../../services/platform/erase-other-keys.js';
 import { eraseUserRecord } from '../../services/platform/erase-user-record.js';
@@ -29,6 +29,7 @@ const firebaseUsers = vi.hoisted(
 const lookupFails = vi.hoisted(() => new Set<string>());
 
 // The shared setup fakes Firestore for every test; here the erase must reach the emulator
+vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
 vi.mock('../../services/identity/firebase-auth.js', () => ({
   ensureFirebaseAdmin: () => true,
@@ -53,6 +54,15 @@ vi.mock('../../services/security-events.js', () => ({
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 /** A project of its own: the test clears it first, then scans all of it */
 const PROJECT = 'demo-account-delete';
+if (emulator) {
+  // getAdminFirestore() (here and in the erase) resolves the project from GCP_PROJECT_ID,
+  // then GOOGLE_CLOUD_PROJECT, then FIREBASE_PROJECT_ID: pin all three, so the project the
+  // test clears is the one it seeds, erases and scans
+  vi.stubEnv('GCP_PROJECT_ID', PROJECT);
+  vi.stubEnv('GOOGLE_CLOUD_PROJECT', PROJECT);
+  vi.stubEnv('FIREBASE_PROJECT_ID', PROJECT);
+  vi.stubEnv('GCLOUD_PROJECT', PROJECT);
+}
 
 /** Stores measured surviving deletion, credentials and the agent's stores, written out */
 const MUST_ERASE = [
@@ -85,7 +95,7 @@ const MUST_ERASE = [
   'user_profiles[firebaseUid]',
 ];
 
-let db: admin.firestore.Firestore;
+let db: Firestore;
 
 beforeAll(async () => {
   if (!emulator) return;
@@ -93,14 +103,14 @@ beforeAll(async () => {
   await fetch(`http://${host}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, {
     method: 'DELETE',
   });
-  if (!admin.apps.length) admin.initializeApp({ projectId: PROJECT });
-  db = admin.firestore();
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  db = getAdminFirestore();
 });
 
 /** One document in a store, and one under it: "a/{uid}/b" a subcollection, "a/{uid}" a doc, "a[f]" a field */
 async function seed(store: string, uid: string): Promise<void> {
   const field = /^(.+)\[(.+)\]$/.exec(store);
-  let doc: admin.firestore.DocumentReference;
+  let doc: DocumentReference;
   if (field) {
     // "injection.userId" is a field inside a map
     const value = field[2]!.split('.').reduceRight<unknown>((v, key) => ({ [key]: v }), uid);
@@ -126,10 +136,7 @@ async function docsNaming(uid: string, ...otherKeys: string[]): Promise<string[]
   const names = [uid, ...otherKeys];
   const found: string[] = [];
   // A document under one that names uid is the person's too
-  const walk = async (
-    collections: admin.firestore.CollectionReference[],
-    underNamed: boolean
-  ): Promise<void> => {
+  const walk = async (collections: CollectionReference[], underNamed: boolean): Promise<void> => {
     for (const collection of collections) {
       const [existing, refs] = await Promise.all([collection.get(), collection.listDocuments()]);
       const data = new Map(existing.docs.map((d) => [d.ref.path, d.data()]));
