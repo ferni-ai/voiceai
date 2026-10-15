@@ -240,19 +240,17 @@
    ======================================================= */
 
 @media (prefers-color-scheme: dark) {
-  .nav {
-    background: rgba(88, 72, 64, 0.85);
+  /* Dark glass bar, the same overlay and hairline as the base and legal navs */
+  .nav,
+  .nav.is-scrolled {
+    background: var(--color-bg-overlay);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(244, 239, 230, 0.10);
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
-  .nav.is-scrolled {
-    background: rgba(88, 72, 64, 0.95);
-    box-shadow: var(--shadow-md);
-  }
-
-  /* Logo text - explicit light color for dark mode */
+  .nav.is-scrolled { box-shadow: var(--shadow-md); }
+  .nav__logo--wordmark-only .nav__logo-text { -webkit-text-fill-color: var(--color-ferni-text); }
   .nav__logo-text,
   .nav-logo,
   .logo-text {
@@ -2072,14 +2070,14 @@
 
 /* ----- Navigation ----- */
 [data-theme="dark"] .nav {
-  background: rgba(88, 72, 64, 0.85);
+  background: var(--color-bg-overlay);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(244, 239, 230, 0.10);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 [data-theme="dark"] .nav.is-scrolled {
-  background: rgba(88, 72, 64, 0.95);
+  background: var(--color-bg-overlay);
   box-shadow: var(--shadow-md);
 }
 
