@@ -38,8 +38,6 @@ import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
-// Disabled: Eye animations removed - keeping just zen blink
-// import { ferniEye } from './ferni-eye.ui.js';
 import { presenceUI } from './presence.ui.js';
 import { teamUnlockCelebration } from './team-unlock-celebration.ui.js';
 
@@ -2602,9 +2600,6 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // ${ICONS.eye} Ferni Eye - DISABLED (keeping just zen blink)
-  // Eye peek-through animations removed for simpler, calmer UX
-
   // ${ICONS.movie} Narrative story beat buttons
   container.querySelectorAll('[data-beat]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -4169,9 +4164,6 @@ function triggerExpression(expression: string): void {
   }
   log.info({ expression }, 'Triggered avatar expression');
 }
-
-// Disabled: Eye animations removed - keeping just zen blink
-// function triggerFerniEye() { ... }
 
 // ============================================================================
 // ${ICONS.movie} PIXAR EMOTIONS - Eye Lid Expressions & Advanced Reactions

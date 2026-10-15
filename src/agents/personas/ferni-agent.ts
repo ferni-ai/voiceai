@@ -30,15 +30,15 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { filterSilenceReply } from '../voice-agent/presence-check.js';
 import { getModelProvider } from '../model-provider/index.js';
-import { filterCaptionStream } from './caption-filter.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
 import { emergencyTruncate, estimateTokens } from './emergency-truncate.js';
+import { withActionClaimCheck } from './action-claim-guard.js';
 import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
-import { tapSpokenText, toolsForTurn, withTeammateTool } from './turn-request.js';
+import { spokenCaptions, toolsForTurn, withTeammateTool } from './turn-request.js';
 import { noteRequest } from '../shared/turn-receipt.js';
 
 const log = createLogger({ module: 'FerniAgent' });
@@ -661,15 +661,14 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     text: Parameters<voice.Agent<PersonaSessionData>['transcriptionNode']>[0],
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['transcriptionNode']> {
-    const captions = tapSpokenText(filterCaptionStream(text), this.session as object);
+    const captions = spokenCaptions(text, this.session as object);
     return super.transcriptionNode(captions, modelSettings);
   }
 
   /**
-   * Every LLM request (preemptive or not) goes through here, gated for crisis with the turn
-   * reminder and director's notes (crisis-gate.ts), with this turn's tools and no empty tool
-   * result (tool-output-guard.ts). A long-silence remark is held and dropped when it is a
-   * capped "you still there?" (presence-check.ts).
+   * Every LLM request goes through here: crisis-gated with the turn reminder (crisis-gate.ts),
+   * this turn's tools, no empty tool result (tool-output-guard.ts), no claimed action no tool
+   * did (action-claim-guard.ts), and no capped "you still there?" (presence-check.ts).
    */
   async llmNode(
     chatCtx: llm.ChatContext,
@@ -680,7 +679,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
     const model = async (ctx: llm.ChatContext) => {
       noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
-      return super.llmNode(ctx, tools, modelSettings) as never;
+      return withActionClaimCheck(super.llmNode(ctx, tools, modelSettings), ctx, tools) as never;
     };
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
     return filterSilenceReply(this.session, reply) as never;

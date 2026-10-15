@@ -15,7 +15,8 @@ import {
   toolRetrievalMode,
 } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
-import type { Caption } from './caption-filter.js';
+import { filterCaptionStream, type Caption } from './caption-filter.js';
+import { tapSpokenBursts } from './vocal-bursts.js';
 
 /** Live tool retrieval waits this long for the pick before falling back (see toolsForTurn). */
 const LIVE_PICK_WAIT_MS = 150;
@@ -47,6 +48,18 @@ export async function retrievedTools(
     return toolCtx;
   }
   return retrieval.selectLive(text, toolCtx, LIVE_PICK_WAIT_MS);
+}
+
+/**
+ * The captions the app shows from a reply's transcription. Bursts are read first,
+ * because the caption filter drops [laughter] (vocal-bursts.ts); the spoken text
+ * then feeds the barge-in fast path.
+ */
+export function spokenCaptions(
+  text: ReadableStream<Caption> | AsyncIterable<Caption>,
+  session: object
+): ReadableStream<Caption> {
+  return tapSpokenText(filterCaptionStream(tapSpokenBursts(text, session)), session);
 }
 
 /** Captions, reporting what Ferni is saying to the barge-in echo guard (barge-in-fastpath.ts). */

@@ -10,7 +10,8 @@
       "initials": "HC",
       "color": "#8b0000",
       "imagePath": "assets/avatars/john-bogle.png"
-    }
+    },
+    "role_label": "aiLabel.role.investingMentor"
   },
   "voice": {
     "provider": "cartesia",

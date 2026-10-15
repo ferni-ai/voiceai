@@ -69,13 +69,9 @@ import {
   createTurnIntelligenceHook,
   resolveTurnIntelligenceMode,
 } from './turn-intelligence.js';
-import {
-  addRecallNote,
-  createMemoryRecall,
-  memoryRecallMode,
-  type RecallAgent,
-} from './memory-recall-hook.js';
+import { createMemoryRecall, memoryRecallMode, type RecallAgent } from './memory-recall-hook.js';
 import { startNameLift } from '../realtime/name-lift.js';
+import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
@@ -1627,7 +1623,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
       if (!evt.transcript) return;
       nameLift?.(evt.transcript);
       const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
-      if (note) addRecallNote(agent as unknown as RecallAgent, note);
+      // CONTEXT_PACKET=on: what it picked rides the turn's packet, labelled (turn-packet.ts).
+      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note);
     };
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();

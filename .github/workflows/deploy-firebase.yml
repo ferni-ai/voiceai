@@ -190,7 +190,10 @@ jobs:
   deploy-landing:
     name: Deploy Landing
     runs-on: ubuntu-latest
-    if: ${{ inputs.target == 'landing' || inputs.target == 'both' }}
+    # Every push to main, like the app, plus a manual landing or both
+    # dispatch. A push-only "did the site change" check would miss site
+    # merges whose queued run the concurrency group replaced with a newer one.
+    if: ${{ github.event_name == 'push' || inputs.target == 'landing' || inputs.target == 'both' }}
 
     steps:
       - name: Checkout
@@ -212,6 +215,13 @@ jobs:
       - name: Build landing page
         working-directory: apps/website/ferni-website
         run: npm run build:prod
+
+      - name: Install Playwright chromium
+        run: pnpm playwright install --with-deps --only-shell chromium
+
+      # Fails the deploy if dark mode leaves any text under 3:1 again.
+      - name: Check light and dark mode on the built site
+        run: pnpm playwright test -c apps/website/ferni-website/playwright.config.ts
 
       - name: Deploy landing to Firebase
         id: deploy-landing

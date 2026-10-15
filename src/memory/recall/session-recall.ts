@@ -343,6 +343,13 @@ export function threadsForTurn(threads: string[], text: string, callerTurn: numb
   });
 }
 
+/** How to use what recall picked: the rule every memory note carries. CONTEXT_PACKET uses it verbatim. */
+export const RECALL_RULE =
+  'These are from past calls, not this one. Use at most one, and only if it fits naturally, the way a friend who remembers would. ' +
+  'Words like today, tomorrow or Friday inside a memory are as of when it was said. ' +
+  'Anything a few days old or that could have changed, check instead of asserting ("is she still...?"). ' +
+  'Never bring up health, pregnancy, money or relationships unless they bring it up first. Never list them or say you looked it up.';
+
 /** A context note for the LLM, or null when there is nothing to recall. */
 export function formatRecall(
   facts: RecallFact[],
@@ -374,12 +381,7 @@ export function formatRecall(
     );
     for (const joke of jokes) lines.push(`- ${joke}`);
   }
-  lines.push(
-    'These are from past calls, not this one. Use at most one, and only if it fits naturally, the way a friend who remembers would. ' +
-      'Words like today, tomorrow or Friday inside a memory are as of when it was said. ' +
-      'Anything a few days old or that could have changed, check instead of asserting ("is she still...?"). ' +
-      'Never bring up health, pregnancy, money or relationships unless they bring it up first. Never list them or say you looked it up.'
-  );
+  lines.push(RECALL_RULE);
   return lines.join('\n');
 }
 
