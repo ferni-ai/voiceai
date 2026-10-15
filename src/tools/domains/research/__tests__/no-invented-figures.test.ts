@@ -142,6 +142,27 @@ describe('stock research: live price only, no static figures', () => {
     }
   );
 
+  it.each([
+    'slow_grower',
+    'stalwart',
+    'fast_grower',
+    'cyclical',
+    'turnaround',
+    'asset_play',
+  ] as const)(
+    'explainStockCategory(%s) quotes no growth figures and names no companies',
+    async (category) => {
+      const text = String(
+        await createResearchTools().explainStockCategory.execute(
+          { category } as never,
+          ctx as never
+        )
+      );
+      expect(text).not.toMatch(/\d+(\.\d+)?%|\d+-\d+/);
+      expect(text).not.toMatch(/Coca-Cola|Costco|Chipotle|Lululemon/i);
+    }
+  );
+
   it('findTenBaggers names no candidates', async () => {
     const text = String(
       await createResearchTools().findTenBaggers.execute({} as never, ctx as never)

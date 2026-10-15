@@ -26,16 +26,6 @@ export type StockCategory =
   | 'turnaround' // Companies recovering from problems
   | 'asset_play'; // Companies with undervalued assets
 
-const CATEGORY_DESCRIPTIONS: Record<StockCategory, string> = {
-  slow_grower: 'Large, mature companies growing at 2-4% annually. Good for dividends, not growth.',
-  stalwart: 'Big, solid companies growing at 10-12%. Not exciting, but reliable. Think Coca-Cola.',
-  fast_grower: 'Small, aggressive companies growing 20-25%+. This is where ten-baggers come from!',
-  cyclical: 'Companies that rise and fall with the economy. Timing is everything here.',
-  turnaround: 'Companies bouncing back from near-death. High risk, high reward.',
-  asset_play:
-    'Companies with hidden assets worth more than the stock price. The market missed something!',
-};
-
 // ============================================================================
 // TOOL IMPLEMENTATIONS
 // ============================================================================
@@ -202,7 +192,7 @@ export function createResearchTools() {
         return `
 **${category.replace('_', ' ').toUpperCase()}:**
 
-${CATEGORY_DESCRIPTIONS[category as StockCategory]}
+${CATEGORY_TRAITS[category as StockCategory]}
 
 ${
   category === 'fast_grower'
