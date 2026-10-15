@@ -135,8 +135,8 @@ export function mergeProfileSignals(
     ...itemsOf<{ description?: unknown; title?: unknown }>(identity.dreams),
     ...(shards?.dreams ?? []),
   ];
-  const seen = new Set<string>();
-  const once = <T>(list: T[], key: (item: T) => unknown): T[] =>
+  // Each list dedupes on its own: a dream can share words with an avoidance.
+  const once = <T>(list: T[], key: (item: T) => unknown, seen = new Set<string>()): T[] =>
     list.filter((item) => {
       const k = String(key(item) ?? '').trim().toLowerCase();
       if (!k || seen.has(k)) return false;
@@ -153,7 +153,7 @@ export function mergeProfileSignals(
 async function defaultGetHumanSignals(userId: string): Promise<LooseHumanSignals | null> {
   try {
     const [profile, shards] = await Promise.all([
-      getHumanMemoryProfile(userId),
+      getHumanMemoryProfile(userId).catch(() => undefined),
       getPersistedHumanSignals(userId).catch(() => null),
     ]);
     return mergeProfileSignals(profile, shards as LooseHumanSignals | null);

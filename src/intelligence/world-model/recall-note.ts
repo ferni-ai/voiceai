@@ -62,17 +62,6 @@ function relationOf(snapshot: WorldModelSnapshot, name: string): string | undefi
   return SELF.test(edge.source) ? edge.relation : `${edge.source}'s ${edge.relation}`;
 }
 
-function capped(lines: string[], maxChars: number): string[] {
-  const out: string[] = [];
-  let used = 0;
-  for (const line of lines) {
-    if (used + line.length + 1 > maxChars) break;
-    out.push(line);
-    used += line.length + 1;
-  }
-  return out;
-}
-
 /** The note, and what went into it, or null when the stores had nothing. */
 export function formatWorldNote(
   snapshot: WorldModelSnapshot,
@@ -80,29 +69,48 @@ export function formatWorldNote(
 ): { note: string; counts: WorldNoteCounts } | null {
   const people = snapshot.people.map((p) => {
     const rel = relationOf(snapshot, p.name);
-    return rel ? `${p.name} (${rel})` : p.name;
+    return `${p.name} (${rel ?? 'relation unknown'})`;
   });
   const goals = [...new Map(snapshot.goals.map((g) => [g.text.toLowerCase(), g.text])).values()];
   const hard = snapshot.negatives.filter((n) => n.source === 'user').map((n) => n.text);
   const soft = snapshot.negatives.filter((n) => n.source !== 'user').map((n) => n.text);
   if (people.length + goals.length + hard.length + soft.length === 0) return null;
 
-  const lines = ['[THEIR WORLD]'];
-  if (hard.length > 0) lines.push(`Never bring up: ${hard.join('; ')}.`);
-  if (soft.length > 0) lines.push(`Only if they raise it: ${soft.join('; ')}.`);
-  if (people.length > 0) lines.push(`People in their life: ${people.join(', ')}.`);
-  if (goals.length > 0) lines.push(`Working toward: ${goals.join('; ')}.`);
-  lines.push('Use these the way a friend who knows them would, only when it fits. Never list them.');
-  // Avoidances go first so a tight budget never drops them.
-  const kept = capped(lines, maxChars);
-  const text = kept.join('\n');
+  // Guidance first, so no budget can cut it; then each list, item by item,
+  // avoidances before people before goals, so a tight budget drops the least.
+  const lines = [
+    '[THEIR WORLD]',
+    'Use these the way a friend who knows them would, only when it fits. Never list them.',
+    "If they mention someone not listed, or a relation isn't given, don't guess: ask.",
+  ];
+  const lists: Array<[string, string[], string]> = [
+    ['Never bring up: ', hard, '; '],
+    ['Only if they raise it: ', soft, '; '],
+    ['People in their life: ', people, ', '],
+    ['Working toward: ', goals, '; '],
+  ];
+  let used = lines.join('\n').length;
+  for (const [prefix, items, sep] of lists) {
+    const fit: string[] = [];
+    for (const item of items) {
+      const line = `${prefix}${[...fit, item].join(sep)}.`;
+      if (used + 1 + line.length > maxChars) break;
+      fit.push(item);
+    }
+    if (fit.length === 0) continue;
+    const line = `${prefix}${fit.join(sep)}.`;
+    lines.push(line);
+    used += 1 + line.length;
+  }
+  const text = lines.join('\n');
   const inText = (items: string[]) => items.filter((i) => text.includes(i)).length;
   return {
     note: text,
     counts: {
       people: inText(snapshot.people.map((p) => p.name)),
-      relations: snapshot.people.filter((p) => relationOf(snapshot, p.name) && text.includes(p.name))
-        .length,
+      relations: snapshot.people.filter(
+        (p) => relationOf(snapshot, p.name) && text.includes(p.name)
+      ).length,
       goals: inText(goals),
       avoids: inText([...hard, ...soft]),
     },

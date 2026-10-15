@@ -25,7 +25,11 @@ import {
   type WorldModelSources,
 } from '../../../intelligence/world-model/sources.js';
 import { buildWorldModelSnapshot } from '../../../intelligence/world-model/snapshot.js';
-import { WORLD_NOTE_MAX_CHARS } from '../../../intelligence/world-model/recall-note.js';
+import {
+  formatWorldNote,
+  WORLD_NOTE_MAX_CHARS,
+} from '../../../intelligence/world-model/recall-note.js';
+import { EMPTY_GROUND, type CommonGround } from '../../personas/common-ground.js';
 
 const ON = { WORLD_MODEL_SNAPSHOT: 'on' };
 
@@ -122,11 +126,115 @@ describe('world model in the live recall hook', () => {
     expect(note).not.toContain('[THEIR WORLD]');
   });
 
-  it('RECALL_PEOPLE, world model on: only the world note says who is who', async () => {
+  it('RECALL_PEOPLE, world model on: only the world note says who is who, and never to guess', async () => {
     const note = await firstNoteWithPeople(ON);
     expect(note).toContain('[THEIR WORLD]');
     expect(note).not.toContain(PEOPLE_RULE);
     expect(note.match(/People in their life:/g)).toHaveLength(1);
+    expect(note).toContain(
+      "If they mention someone not listed, or a relation isn't given, don't guess: ask."
+    );
+  });
+
+  it('RECALL_PEOPLE, world model on but empty or failing: its note is there, as with the flag off', async () => {
+    for (const load of [
+      loadWorldModel(
+        worldSources({ listEntities: async () => [], getHumanSignals: async () => null })
+      ),
+      async () => {
+        throw new Error('entity store down');
+      },
+    ]) {
+      const recall = createMemoryRecall({
+        userId: 'u1',
+        userName: 'Sam',
+        store,
+        people: true,
+        world: { env: ON, load },
+      });
+      await recall.ready;
+      const note = recall.noteFor(turns[0] ?? '') ?? '';
+      expect(note).toContain(PEOPLE_RULE);
+      expect(note).toContain('Mindy (sister)');
+      expect(note).not.toContain('[THEIR WORLD]');
+    }
+  });
+
+  it('RECALL_PEOPLE, world model on: the pets line still comes, beside the world note', async () => {
+    const pets = {
+      ...store,
+      facts: async () => [
+        ...(await store.facts()),
+        // As the deep extractor writes them (pets.test.ts).
+        {
+          entityName: 'User',
+          key: 'acquired_pet',
+          value: 'got a golden retriever puppy named Biscuit',
+          confidence: 1,
+        },
+        { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 1 },
+      ],
+    };
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store: pets,
+      people: true,
+      world: { env: ON, load: loadWorldModel(worldSources()) },
+    });
+    await recall.ready;
+    const note = recall.noteFor(turns[0] ?? '') ?? '';
+    expect(note).toContain('[THEIR WORLD]');
+    expect(note).toContain('Biscuit');
+    expect(note).not.toContain(PEOPLE_RULE);
+  });
+
+  it('world model still loading: recall waits, then the world note joins the next note, with no ex', async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const slow = async (userId: string) => {
+      await gate;
+      return loadWorldModel(worldSources())(userId);
+    };
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store,
+      world: { env: ON, load: slow },
+    });
+    await new Promise((r) => setTimeout(r, 20)); // the recall snapshot is in; the world model is not
+    expect(recall.noteFor(turns[0] ?? '')).toBeNull();
+    recall.newTurn();
+    release();
+    await recall.ready;
+    const note = recall.noteFor(turns[2] ?? '') ?? '';
+    expect(note).toContain('[THEIR WORLD]');
+    expect(note).not.toMatch(/ex settled down|Jake/);
+  });
+
+  it('no line of another recall block touches a topic to avoid (common ground shown)', async () => {
+    vi.stubEnv('COMMON_GROUND', 'on');
+    const ground = {
+      ...EMPTY_GROUND,
+      references: [
+        { phrase: 'the ex files', meaning: 'their ex and the breakup' },
+        { phrase: 'the spreadsheet goblin', meaning: 'their boss' },
+      ],
+    } as unknown as CommonGround;
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store,
+      groundStore: { load: async () => ground, save: async () => undefined },
+      world: { env: ON, load: loadWorldModel(worldSources()) },
+    });
+    await recall.ready;
+    const note = recall.noteFor(turns[0] ?? '') ?? '';
+    expect(note).toContain('the spreadsheet goblin');
+    expect(note).not.toContain('the ex files');
+    expect(note).toContain('Never bring up: their ex.'); // the world note's own line stays
   });
 
   it('flag off: recall is exactly what it was, and the world model is never loaded', async () => {
@@ -263,10 +371,36 @@ describe('mergeProfileSignals', () => {
     const merged = mergeProfileSignals(profile, { avoidances: [], dreams: [] });
     expect(merged.avoidances?.map((a) => a.topic)).toEqual(['their ex']);
     expect(merged.dreams?.map((d) => d.description)).toEqual(['Run a half marathon']);
+    // A dream that reads like an avoidance is still a dream.
+    const same = mergeProfileSignals(
+      {
+        unspoken: { avoidances: [{ topic: 'moving abroad' }] },
+        identity: { dreams: [{ description: 'moving abroad' }] },
+      },
+      null
+    );
+    expect(same.dreams?.map((d) => d.description)).toEqual(['moving abroad']);
     expect(mergeProfileSignals(undefined, null)).toEqual({
       avoidances: [],
       dreams: [],
       values: undefined,
     });
+  });
+});
+
+describe('formatWorldNote under a tight budget', () => {
+  it('keeps the guidance and as many avoidances as fit, never a bare header', () => {
+    const negatives = Array.from({ length: 30 }, (_, i) => ({
+      text: `a long and specific topic to avoid number ${i}`,
+      source: 'user' as const,
+    }));
+    const snap = { people: [], relations: [], goals: [], negatives } as unknown as Parameters<
+      typeof formatWorldNote
+    >[0];
+    const note = formatWorldNote(snap)?.note ?? '';
+    expect(note.length).toBeLessThanOrEqual(WORLD_NOTE_MAX_CHARS);
+    expect(note).toContain('Never list them.');
+    expect(note).toContain("don't guess: ask");
+    expect(note).toMatch(/Never bring up: a long and specific topic to avoid number 0/);
   });
 });

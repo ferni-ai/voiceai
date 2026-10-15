@@ -378,7 +378,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         : !followUpsOffered;
       const told = tellNow ? [ledgerNote, sinceNote].filter(Boolean).join('\n') || null : null;
       // Who is who (RECALL_PEOPLE, or the world note's), once, with the first note.
-      const people = followUpsOffered ? null : world.whoIsWho(snapshot.facts, deps.people);
+      const people = world.whoIsWho(snapshot.facts, deps.people);
       // What the two of them both know (COMMON_GROUND), once, with the first note.
       const groundNow = followUpsOffered ? null : groundNote;
       const checkIn = checkInOffered ? null : checkInNote;
@@ -399,10 +399,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           ? selfRecallNote(text, allTold, canon, { name: personaDisplayName(personaId) })
           : null;
       if (self) selfNoteGiven = true;
-      const note =
+      const note = world.screen(
         [
           checkIn,
-          world.note(!followUpsOffered),
+          world.note(),
           formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
           opener,
           summaryRecall?.take(text) ?? null,
@@ -416,7 +416,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           self,
         ]
           .filter(Boolean)
-          .join('\n\n') || null;
+          .join('\n\n')
+      );
       if (!note) return null;
       followUpsOffered = true;
       if (told) toldOffered = true;
