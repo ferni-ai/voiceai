@@ -20,7 +20,6 @@
  * @module memory/caller-assertions
  */
 import { flagOn, type Env } from '../config/env-flag.js';
-import { DISPLAY_NAMES } from '../personas/persona-ids.js';
 import { CALLER_PROVENANCE, contentWords } from './recall/session-recall.js';
 
 export { CALLER_PROVENANCE };
@@ -78,7 +77,14 @@ const NOT_THE_TOPIC = new Set(
   )
 );
 
-const TEAM = new Set(Object.values(DISPLAY_NAMES).map((n) => n.toLowerCase()));
+/**
+ * The team's first names (personas/persona-ids.ts DISPLAY_NAMES; a test keeps them in step).
+ * Not imported: memory can't reach into personas, and its index pulls in the whole agent.
+ */
+export const TEAM_FIRST_NAMES: ReadonlySet<string> = new Set(
+  'ferni peter alex maya jordan nayan'.split(' ')
+);
+const TEAM = TEAM_FIRST_NAMES;
 
 /** What an item is about: content words that aren't summary filler or a teammate's name. */
 function topicWordsOf(text: string): string[] {
@@ -88,8 +94,10 @@ function topicWordsOf(text: string): string[] {
 /** The same word, give or take an ending ("plan", "planning"; "interview", "interviews"). */
 function sameWord(a: string, b: string): boolean {
   if (a === b) return true;
-  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
-  return short.length >= 4 && long.startsWith(short.slice(0, short.length - 1));
+  const base = (w: string): string => w.replace(/(?:ing|ed|er|es|s)$/, '').replace(/e$/, '');
+  const [x, y] = [base(a), base(b)];
+  const undouble = (w: string): string => w.replace(/(.)\1$/, '$1');
+  return x.length >= 3 && (x === y || x === undouble(y) || undouble(x) === y);
 }
 
 /**

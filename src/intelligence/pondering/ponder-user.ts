@@ -7,7 +7,7 @@
  * @module intelligence/pondering/ponder-user
  */
 import type { Firestore } from 'firebase-admin/firestore';
-import { CALLER_PROVENANCE } from '../../memory/recall/session-recall.js';
+import { CALLER_PROVENANCE } from '../../memory/index.js';
 import {
   isPonderingOn,
   ponder,

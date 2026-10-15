@@ -5,8 +5,10 @@
  * next call opens with "did you hear back about the offer?".
  */
 import { describe, expect, it } from 'vitest';
+import { DISPLAY_NAMES } from '../../personas/persona-ids.js';
 import {
   CALLER_PROVENANCE,
+  TEAM_FIRST_NAMES,
   SPEAKER_RULE,
   saidByCaller,
   withCallerProvenance,
@@ -156,5 +158,14 @@ describe('saidByCaller', () => {
       { role: 'user', content: 'I made risotto' },
     ]);
     expect(cooking.mainTopics).toEqual(['cooking']);
+  });
+});
+
+describe('TEAM_FIRST_NAMES', () => {
+  it('is the team in persona-ids', () => {
+    const team = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+    expect([...TEAM_FIRST_NAMES]).toEqual(
+      team.map((id) => DISPLAY_NAMES[id as keyof typeof DISPLAY_NAMES].toLowerCase())
+    );
   });
 });
