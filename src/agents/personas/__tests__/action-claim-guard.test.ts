@@ -25,13 +25,21 @@ describe('claimedAction', () => {
   it.each<[string, ActionKind]>([
     ["Okay, I'm calling him right now.", 'call'],
     ["I'll let you know as soon as I get ahold of her.", 'call'],
+    ["I'll let you know when she picks up.", 'call'],
+    ["I'm calling her now and I'll let you know if she picks up.", 'call'],
+    ["I'm calling your sister now so you don't have to.", 'call'],
     ['Ringing her now.', 'call'],
     ['Okay, dialing.', 'call'],
     ['She should be getting a call any second.', 'call'],
     ["I've reached out to her.", 'call'],
+    ['I just called her.', 'call'],
     ["Calling her now, don't worry.", 'call'],
     ["I'm calling her right now, okay?", 'call'],
     ['Let me call her right now.', 'call'],
+    ['Let me give her a ring.', 'call'],
+    ["I'm going to give her a call right now.", 'call'],
+    ['Hang tight while I call her.', 'call'],
+    ["Okay, I'm on it \u2014 calling Mom now.", 'call'],
     ['On it, calling her.', 'call'],
     ["I'm on the phone with her now.", 'call'],
     ['Placing the call now.', 'call'],
@@ -42,16 +50,16 @@ describe('claimedAction', () => {
     ['Just sent it.', 'send'],
     ["I've texted your sister.", 'send'],
     ["I've let your brother know.", 'send'],
-    ['I texted Dana for you earlier and she said yes.', 'send'],
+    ['I just shot her a text.', 'send'],
     ["All set, she'll get the text.", 'send'],
     ['Message is on its way to Dana.', 'send'],
-    ['I booked it.', 'schedule'],
+    ["I've booked it.", 'schedule'],
     ['Got you a table at seven.', 'schedule'],
     ["I've put it in your calendar.", 'schedule'],
     ["You're all booked.", 'schedule'],
+    ['Your appointment is booked for Tuesday.', 'schedule'],
     ["Your reminder's all set.", 'reminder'],
     ["I've set a reminder for nine.", 'reminder'],
-    ["Noted, I'll remind you at five.", 'reminder'],
     ['Saved.', 'save'],
     ["I've saved that.", 'save'],
   ])('%j claims %s', (sentence, kind) => {
@@ -67,21 +75,33 @@ describe('claimedAction', () => {
     "I haven't called anyone.",
     "I'll call Dana at five five five, zero one nine nine, to say you're running late. Want me to go ahead?",
     "I'll text Dana that you're running late.",
+    'That\'s a text to Sam saying "I sent the forms already". Should I send it?',
+    "Okay, I'll text Dana \u201cI've already booked the table\u201d once you say so.",
     "I'll message you on the app later.",
     "I'll call you back if we get cut off.",
     'I called my sister after that and we both cried.',
+    'My sister was struggling, so I called her.',
     'I texted my mom about it and she laughed at me.',
+    'Honestly I texted a friend once at 3am and regretted it.',
     'I rang my dad every Sunday for years.',
     'When I called the hospital, they put me on hold for an hour.',
+    'We booked a cabin last summer and it rained the whole time.',
     'I called her yesterday.',
     "Yeah, I've called him a lot of names over the years.",
     "I'm sending you a big hug.",
+    'I sent you a big hug in spirit.',
     'Sending you so much love.',
+    "I'm so glad I'm on the phone with you tonight.",
+    "I'm calling that a win!",
+    "Honestly, I'm calling that progress.",
+    "I'm calling you out, lovingly.",
     "I'm calling it, you're going to love that job.",
     'I called it, they won.',
+    "Hmm, it's ringing a bell.",
     "I'll tell you what, let's talk to her together.",
     "It's booked solid on weekends, that place.",
     "I'll remind you of that next time you doubt yourself.",
+    "I'll remind you to be gentle with yourself.",
     "I just want to remind you that you're doing great.",
     "I'm so glad you called.",
     "I'll keep you posted.",
@@ -152,18 +172,16 @@ describe('honestLine', () => {
       honestLine('call', 'no_tool', false),
       honestLine('call', 'no_tool', true),
       honestLine('call', 'failed', true),
-      honestLine('call', 'awaiting_yes', true),
-      honestLine('send', 'not_called', true),
       honestLine('reminder', 'no_tool', false),
     ];
     expect(lines[0]).toBe(
-      "I can't place calls from here, so I haven't called anyone. I can help you work out what to say, though."
+      "I can't actually make calls for you, so I haven't rung anyone. I can help you work out what to say, though."
     );
-    expect(lines[1]).toContain('set a reminder for you to do it');
+    expect(lines[1]).toBe(
+      "I can't actually make calls for you, so I haven't rung anyone. Want me to remind you to do it?"
+    );
     expect(lines[2]).toMatch(/didn't go through/);
-    expect(lines[3]).toBe("Nothing's been dialed yet, I need your yes first.");
-    expect(lines[4]).toBe("I haven't sent anything yet. Want me to?");
-    for (const line of lines) expect(line).not.toMatch(/—|–|\.\.\.|…/);
+    for (const line of lines) expect(line).not.toMatch(/\u2014|\u2013|\.\.\.|\u2026/);
   });
 });
 
@@ -206,41 +224,61 @@ const check = (stream: ReadableStream<llm.ChatChunk>, items: unknown[], tools = 
   withActionClaimCheck(Promise.resolve(stream), ctx(...items), tools, {});
 
 describe('withActionClaimCheck', () => {
-  it('no call tool: the claim is dropped and Ferni says he cannot place calls', async () => {
+  it('no call tool: the claim is dropped and Ferni says he cannot make calls', async () => {
     const text = await textOf(await check(streamOf(...CLAIM), [ASK], toolsWith('setReminder')));
     expect(text).not.toMatch(/calling|get ahold/i);
     expect(text).toBe(
-      "I can't place calls from here, so I haven't called anyone. I can set a reminder for you to do it, if you like."
+      "I can't actually make calls for you, so I haven't rung anyone. Want me to remind you to do it?"
     );
   });
 
   it('the honest line goes where the claim was', async () => {
     const parts = ['Sure. ', "I'm calling her right now. ", "How's the rest of your day?"];
     expect(await textOf(await check(streamOf(...parts), [ASK]))).toBe(
-      "Sure. I can't place calls from here, so I haven't called anyone. I can help you work out what to say, though. How's the rest of your day?"
+      "Sure. I can't actually make calls for you, so I haven't rung anyone. I can help you work out what to say, though. How's the rest of your day?"
     );
   });
 
-  it('the call tool refused: Ferni says it did not go through', async () => {
+  it('the call tool refused: the claim is dropped and the reply ends saying it did not go through', async () => {
     const items = [
       ASK,
       result('callOnBehalf', JSON.stringify("Nothing was dialed: I don't have a number.")),
     ];
-    expect(await textOf(await check(streamOf(...CLAIM), items, toolsWith('callOnBehalf')))).toBe(
-      "That call didn't go through, so nothing's been dialed. I can help you work out what to say, though."
+    const parts = [...CLAIM, ' Anything else on your mind?'];
+    expect(await textOf(await check(streamOf(...parts), items, toolsWith('callOnBehalf')))).toBe(
+      "Anything else on your mind? That call didn't go through, so nothing's been dialed. I can help you work out what to say, though."
     );
   });
 
-  it('the confirm preview came back: a read-back offer is kept, a claim waits for the yes', async () => {
+  it('after a refusal, a retry of the tool in the same reply gets no line', async () => {
+    const items = [ASK, result('callOnBehalf', JSON.stringify('Nothing was dialed: no number.'))];
+    const stream = streamOf('Calling him now. ', toolCall('callOnBehalf'));
+    const out = await chunksOf(await check(stream, items, toolsWith('callOnBehalf')));
+    expect(out.map((c) => c.delta?.content ?? '').join('')).toBe('');
+    expect(out.some((c) => c.delta?.toolCalls?.length)).toBe(true);
+  });
+
+  it('the confirm flow streams untouched: read-back, the yes turn, and the tool call', async () => {
     const items = [
       ASK,
       result('quickText', JSON.stringify('NOT SENT YET. Read this to the caller')),
     ];
-    const readBack = ["I'll text Dana that you're running late. ", 'Should I send it?'];
     const tools = toolsWith('quickText');
+    const readBack = [
+      'That\'s a text to Sam saying "I sent the forms already". ',
+      'Should I send it?',
+    ];
     expect(await textOf(await check(streamOf(...readBack), items, tools))).toBe(readBack.join(''));
-    expect(await textOf(await check(streamOf('Done, sent it.'), items, tools))).toBe(
-      "Nothing's gone out yet, I need your yes first."
+    const yes = await chunksOf(
+      await check(streamOf('Great, sending it now. ', toolCall('quickText')), items, tools)
+    );
+    expect(yes[0].delta?.content).toBe('Great, sending it now. ');
+    expect(yes[1].delta?.toolCalls?.[0].name).toBe('quickText');
+  });
+
+  it('a call tool open but not called is left to the model and its tool', async () => {
+    expect(await textOf(await check(streamOf(...CLAIM), [ASK], toolsWith('callOnBehalf')))).toBe(
+      CLAIM.join('')
     );
   });
 
@@ -251,28 +289,8 @@ describe('withActionClaimCheck', () => {
       said('Sent.'),
       user('Did you text her?'),
     ];
-    const reply = 'Yep, I texted her for you.';
+    const reply = "Yep, I've texted her for you.";
     expect(await textOf(await check(streamOf(reply), items, toolsWith('quickText')))).toBe(reply);
-  });
-
-  it('the call tool is open but was not called: he has not yet, and asks', async () => {
-    expect(await textOf(await check(streamOf(...CLAIM), [ASK], toolsWith('callOnBehalf')))).toBe(
-      "I haven't placed that call yet. Want me to?"
-    );
-  });
-
-  it('a call that went through keeps the words', async () => {
-    const items = [ASK, result('callOnBehalf', JSON.stringify("Got it! I'm calling him now."))];
-    expect(await textOf(await check(streamOf(...CLAIM), items, toolsWith('callOnBehalf')))).toBe(
-      CLAIM.join('')
-    );
-  });
-
-  it('a claim beside a call to the tool is dropped without a line: the result answers next', async () => {
-    const stream = streamOf("I'm calling him now. ", toolCall('callOnBehalf'));
-    const out = await chunksOf(await check(stream, [ASK], toolsWith('callOnBehalf')));
-    expect(out.map((c) => c.delta?.content ?? '').join('')).toBe('');
-    expect(out.some((c) => c.delta?.toolCalls?.length)).toBe(true);
   });
 
   it('words and tool calls keep their order, with a partial sentence before the call', async () => {
@@ -342,7 +360,7 @@ describe('a call request on a real agent session', () => {
   it('with no call tool, Ferni says he cannot place the call and offers help instead', async () => {
     const words = await run({});
     expect(words).not.toMatch(/calling him|get ahold/i);
-    expect(words).toMatch(/can't place calls from here/);
+    expect(words).toMatch(/can't actually make calls for you/);
   });
 
   it('with a reminder tool open, he offers to set a reminder to call', async () => {
@@ -351,7 +369,9 @@ describe('a call request on a real agent session', () => {
       parameters: z.object({ what: z.string() }),
       execute: async () => 'set',
     });
-    expect(await run({}, { setReminder })).toMatch(/can't place calls from here.*set a reminder/);
+    expect(await run({}, { setReminder })).toMatch(
+      /can't actually make calls.*remind you to do it/
+    );
   });
 
   it('with the guard off, the false claim is spoken (the prod call)', async () => {

@@ -2,15 +2,18 @@
  * What Ferni's words claim he did, and what the call's tools actually did
  * (action-claim-guard.ts reads both).
  *
- * A claim is an action reported as done or under way: "I'm calling her right
- * now", "I've texted your brother", "Done, message sent", "It's ringing",
- * "I'll let you know once I reach her". These are not claims: offers and
- * questions ("want me to call her?"), conditions ("I'll call you back if we
- * get cut off"), negations, a plain future without "now" ("I'll text Dana that
- * you're running late", the confirm read-back), and Ferni's own life ("I
- * called my sister last week", "when I called the hospital"). Idioms ("sending
- * you a big hug", "I called it") are not either. Clauses are read on their own,
- * so a "?" or "don't worry" elsewhere in a sentence never excuses a claim.
+ * Precision first: a sentence wrongly flagged loses Ferni's words, so only
+ * clear reports of an action done or under way count. "I'm calling her right
+ * now", "calling your brother now", "I've texted her", "I just sent it",
+ * "message sent", "it's ringing", "I'll let you know when she picks up", "let
+ * me give her a ring", "hang tight while I call her", "your appointment is
+ * booked". Not claims: offers and questions, a plain future ("I'll text Dana
+ * that you're running late", the confirm read-back), anything in quotes (the
+ * words of a message), first-person negations, Ferni's own life (a plain past
+ * tense like "so I called her", "when I called the hospital", "last summer")
+ * and idioms ("on the phone with you", "I'm calling that a win", "sending you
+ * a big hug", "it's ringing a bell", "I'll remind you to breathe"). Clauses are
+ * read on their own, so a "?" in another clause never excuses a claim.
  *
  * @module agents/personas/action-claims
  */
@@ -18,79 +21,90 @@
 export type ActionKind = 'call' | 'send' | 'schedule' | 'reminder' | 'save';
 export const ACTION_KINDS: readonly ActionKind[] = ['call', 'send', 'schedule', 'reminder', 'save'];
 
-const DONE = "\\b(?:i|i've|i have|we've|we)(?: just| already| now)?";
+const HAVE = "\\b(?:i've|i have|we've|i just|i've just|i already|i've already)";
 const DOING = "\\b(?:i'm|i am|we're)(?: just| now| already)?";
-const LEAD = '^(?:(?:okay|ok|alright|sure|right|great|perfect|got it|done|yep|yes|all right)\\W+)*';
-const WILL_NOW =
-  "\\b(?:i'll|i will|let me|i'm going to|i'm gonna)(?: just)? VERB\\b(?! (?:my|it)\\b).*\\b(?:now|right now|right away|straight away|this second|immediately)\\b";
-const NOT_MINE = '(?! (?:my|it)\\b)';
+const LEAD =
+  '^(?:(?:okay|ok|alright|all right|sure|right|great|perfect|got it|done|yep|yes|on it|hang on|one sec)\\W+)*';
+const NOW = '\\b(?:now|right now|right away|straight away|this second|immediately)\\b';
+/** Someone in the caller's world: never "you" (Ferni is on the call), "my", "it" or "that". */
+const WHO = "(?!(?:you|my|it|that|this|me)\\b)(?:her|him|them|your \\w+(?: \\w+)?|\\w+(?:'s)?)";
+const OBJ = '(?! (?:you|my|it|that|this|a bell)\\b)';
 
-const CALL_DONE = '(?:called|rang|phoned|dialed|dialled|reached out to|got (?:a ?hold|ahold) of)';
 const CALL_DOING =
-  '(?:calling|ringing|dialing|dialling|phoning|on the phone with|placing (?:the|a) call)';
-const SEND_DONE =
-  '(?:texted|messaged|emailed|sent|posted|let (?:her|him|them|your \\w+(?: \\w+)?) know)';
-const SEND_DOING = '(?:texting|messaging|emailing|sending|posting)';
-
+  '(?:calling|ringing|dialing|dialling|phoning|placing (?:the|a) call (?:to|for)|getting \\w+ on the line)';
 const CLAIMS: Record<ActionKind, RegExp[]> = {
   call: [
-    new RegExp(`${DONE} ${CALL_DONE}\\b${NOT_MINE}`),
-    new RegExp(`${DOING} ${CALL_DOING}\\b${NOT_MINE}`),
-    new RegExp(`${LEAD}${CALL_DOING}\\b${NOT_MINE}`),
-    new RegExp(WILL_NOW.replace('VERB', '(?:call|ring|dial|phone)')),
-    /\b(?:it's|it is|the call is|call's|phone's|she's|he's|they're) (?:ringing|connecting|going through|on its way)\b|\bgetting a call\b|\bcall (?:is|has been|was) placed\b|\bgetting (?:her|him|them|\w+) on the line\b/,
-    /\b(?:let you know|get back to you|report back|update you)\b.{0,40}\b(?:reach|get (?:a ?hold|ahold) of|get through to|hear back|talk to|speak (?:to|with)|talk with)\b/,
+    new RegExp(
+      `${HAVE} (?:called|rung|rang|phoned|dialed|dialled|reached out to|got (?:a ?hold|ahold) of)\\b${OBJ}`
+    ),
+    new RegExp(`${DOING} ${CALL_DOING}\\b${OBJ}`),
+    new RegExp(`${DOING} on the phone with ${WHO}`),
+    new RegExp(`${LEAD}(?:calling|ringing|dialing|dialling|phoning)\\b${OBJ}`),
+    new RegExp(`${LEAD}placing the call\\b`),
+    new RegExp(`\\b(?:let me|i'm going to|i'm gonna|i'll) (?:call|ring|dial|phone) ${WHO}.*${NOW}`),
+    new RegExp(`\\b(?:let me|i'm going to|i'm gonna) give ${WHO} a (?:ring|call|buzz)\\b`),
+    new RegExp(`\\bwhile i (?:call|ring|dial|phone|reach) ${WHO}`),
+    /\b(?:it's|it is|the call is|call's|phone's|she's|he's|they're) (?:ringing|connecting|going through|on its way)\b(?! a bell)|\bgetting a call\b|\bcall (?:is|has been|was) placed\b/,
+    /\b(?:let you know|get back to you|report back|update you)\b.{0,40}\b(?:reach|get (?:a ?hold|ahold) of|get through to|hear back|picks? up|answers?|talk to|speak (?:to|with)|talk with)\b/,
   ],
   send: [
-    new RegExp(`${DONE} ${SEND_DONE}\\b(?! my\\b)`),
-    new RegExp(`${DOING} ${SEND_DOING}\\b(?! my\\b)`),
-    new RegExp(`${LEAD}(?:just )?(?:sent|texting|sending)\\b(?! my\\b)`),
-    new RegExp(WILL_NOW.replace('VERB', '(?:text|message|email|send)')),
+    new RegExp(
+      `${HAVE} (?:texted|messaged|emailed|sent|posted|let ${WHO} know)\\b(?! (?:you|my)\\b)`
+    ),
+    new RegExp(`${DOING} (?:texting|messaging|emailing|sending|posting)\\b(?! (?:you|my)\\b)`),
+    new RegExp(
+      `${LEAD}(?:just )?(?:sent|texting|sending) (?:it|that|the \\w+|${WHO})\\b(?! (?:you|my)\\b)`
+    ),
+    new RegExp(`${LEAD}(?:just )?sent\\W*$`),
+    new RegExp(
+      `\\b(?:let me|i'm going to|i'm gonna|i'll) (?:text|message|email|send) ${WHO}.*${NOW}`
+    ),
+    /\bshot (?:her|him|them|\w+) a (?:text|message|note|email)\b/,
     /\b(?:message|text|email|note)(?: is| has been|'s)? (?:sent|delivered|on its way|gone out)\b|\b(?:she'll|he'll|they'll) get the (?:text|message|email)\b/,
   ],
   schedule: [
-    new RegExp(`${DONE} (?:booked|scheduled|reserved)\\b(?! my\\b)`),
+    new RegExp(`${HAVE} (?:booked|scheduled|reserved)\\b(?! my\\b)`),
     new RegExp(
-      `${DONE} (?:put|added) (?:it|that|this|the \\w+|\\w+) (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
+      `${HAVE} (?:put|added) (?:it|that|this|the \\w+|\\w+) (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
     ),
-    new RegExp(`${DOING} (?:booking|scheduling|reserving)\\b(?! my\\b)`),
-    /\bgot you (?:a|the) (?:table|booking|reservation|appointment|spot)\b|\b(?:you're|you are) (?:all )?(?:booked|scheduled)\b|\b(?:it's|that's) (?:on|in) your calendar\b/,
+    new RegExp(`${DOING} (?:booking|scheduling|reserving)\\b(?! (?:my|a cabin)\\b)`),
+    /\bgot you (?:a|the) (?:table|booking|reservation|appointment|spot)\b|\b(?:you're|you are) (?:all )?(?:booked|scheduled)\b|\b(?:it's|that's) (?:on|in) your calendar\b|\b(?:your )?(?:appointment|reservation|table|booking) (?:is|'s|has been) (?:booked|set|confirmed|made)\b/,
   ],
   reminder: [
     new RegExp(
-      `${DONE} (?:set|added|created|started) (?:a|the|your|that|an) (?:\\w+ )?(?:reminder|timer|alarm)\\b`
+      `${HAVE} (?:set|added|created|started) (?:a|the|your|that|an) (?:\\w+ )?(?:reminder|timer|alarm)\\b`
     ),
     new RegExp(
       `${DOING} (?:setting|starting) (?:a|the|your|that|an) (?:\\w+ )?(?:reminder|timer|alarm)\\b`
     ),
     /\b(?:reminder|timer|alarm)(?: is|'s| has been)(?: all)? (?:set|running|on|started)\b/,
-    /\bi'll remind you (?:to|at|in|on|tomorrow|tonight|this|before|after)\b/,
   ],
   save: [
-    new RegExp(`${DONE} (?:saved|stored|logged) (?:it|that|this|those|your)\\b`),
+    new RegExp(`${HAVE} (?:saved|stored|logged) (?:it|that|this|those|your)\\b`),
     /\b(?:it's|that's|it is|that is) (?:been )?(?:saved|stored|logged)\b/,
-    new RegExp(`${LEAD}saved\\b`),
+    new RegExp(`${LEAD}saved\\W*$`),
   ],
 };
 
-/** An offer, question, condition or negation: this clause says it hasn't happened. */
+/** An offer, question or first-person negation: this clause says it hasn't happened. */
 const NOT_A_CLAIM =
-  /\?|\b(?:want me to|should i|shall i|can i|could i|i can|i could|i'd|i would|would you like|do you want|say the word|let me know if|if|unless|once you|after you|when you|can't|cannot|couldn't|won't|wasn't able|haven't|hasn't|didn't|don't|not|never|unable|no way to)\b/;
+  /\?|\b(?:want me to|should i|shall i|can i|could i|i can|i could|i'd|i would|would you like|do you want|say the word|let me know if|if you(?:'d)? (?:want|like|say)|once you|after you|when you say|i can't|i cannot|i couldn't|i won't|i haven't|i didn't|i don't|i'm not|i am not|i wasn't|i never|nothing|no way to|unable)\b/;
 
 /** Ferni's own life, or an idiom: not an action in this call. */
 const NOT_AN_ACTION =
-  /^(?:and |but |so )?(?:when|after|before|because|since|while|as|once|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time)\b|\bsend(?:ing)? (?:you )?(?:\w+ ){0,4}(?:hugs?|love|vibes|strength|thoughts|prayers|energy|luck|warmth|kindness|good wishes)\b|\bcall(?:ed|ing)? it\b/;
+  /^(?:and |but |so )?(?:when|after|before|because|since|as|once|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time|summer|winter|spring|fall|autumn)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time|in spirit)\b|\bsend(?:ing)? (?:you )?(?:\w+ ){0,4}(?:hugs?|love|vibes|strength|thoughts|prayers|energy|luck|warmth|kindness|good wishes)\b|\bcall(?:ed|ing)? (?:it|that|this)\b|\bcalling (?:you|them|him|her) out\b/;
 
 const normalize = (text: string): string =>
   text
     .toLowerCase()
     .replace(/[‘’ʼ`]/g, "'")
+    .replace(/"[^"]*"|“[^”]*”/g, ' ') // a message's words, quoted: never Ferni's claim
     .replace(/\s+/g, ' ')
     .trim();
 
 /** The kind of action one sentence claims was done or is under way, or null. */
 export function claimedAction(sentence: string): ActionKind | null {
-  for (const raw of normalize(sentence).split(/[,;:]| - /)) {
+  for (const raw of normalize(sentence).split(/[,;:—–]| - /)) {
     const clause = raw.trim();
     if (!clause || NOT_A_CLAIM.test(clause) || NOT_AN_ACTION.test(clause)) continue;
     const kind = ACTION_KINDS.find((k) => CLAIMS[k].some((re) => re.test(clause)));

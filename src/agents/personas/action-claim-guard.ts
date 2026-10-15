@@ -1,5 +1,5 @@
 /**
- * Ferni never says he did, or is doing, something no tool did.
+ * Ferni never says he did, or is doing, something he can't do or that failed.
  *
  * Prod call 2026-10-14: the caller asked Ferni to phone a relative and gave a
  * number. Ferni said he was calling right now and would report back once he
@@ -8,19 +8,18 @@
  *
  * Every reply the model writes passes through here (ferni-agent.ts llmNode),
  * a sentence at a time. A sentence that claims a call, a text or email, a
- * booking, a reminder or a save (action-claims.ts) is dropped unless the
- * latest tool result of that kind on this call carried it out. One honest line
- * takes its place, where the claim was:
- * - no tool of that kind open: he can't do that from here, and what he can do
- *   instead (a reminder when one is open);
- * - the confirm preview came back (outreach-confirm.ts): nothing's gone out
- *   until the caller says yes;
- * - the tool refused or failed: it didn't go through;
- * - the tool is open and wasn't called: he hasn't yet, want him to? This one
- *   waits for the end of the reply and is left out when the reply calls a tool
- *   of that kind, whose result answers next.
- * Text and tool calls keep their order. ACTION_CLAIM_GUARD=off turns the guard
- * off. Logs carry the kind and the reason, never words.
+ * booking, a reminder or a save (action-claims.ts) is dropped in two cases
+ * only, and one honest line says what happened and what he can do instead:
+ * - no tool of that kind is open this turn (it doesn't exist here, or is off):
+ *   he can't do that for them; the line goes where the claim was;
+ * - the latest tool result of that kind on this call refused or failed: it
+ *   didn't go through; the line goes at the end, and not at all when the reply
+ *   calls a tool of that kind again.
+ * Everything else streams untouched, so the confirm read-back and the yes turn
+ * (outreach-confirm.ts), a tool the model is about to call, and talk about an
+ * action that really happened are never changed. Text and tool calls keep
+ * their order. ACTION_CLAIM_GUARD=off turns the guard off. Logs carry the kind
+ * and the reason, never words.
  *
  * @module agents/personas/action-claim-guard
  */
@@ -34,26 +33,12 @@ import { callActions, claimedAction, kindsOfTool, type ActionKind } from './acti
 const log = createLogger({ module: 'ActionClaimGuard' });
 
 type Chunk = llm.ChatChunk | string | object;
-export type MissReason = 'no_tool' | 'awaiting_yes' | 'failed' | 'not_called';
+export type MissReason = 'no_tool' | 'failed';
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
 }
 
-const NOT_YET: Record<ActionKind, string> = {
-  call: "I haven't placed that call yet.",
-  send: "I haven't sent anything yet.",
-  schedule: "I haven't booked that yet.",
-  reminder: "I haven't set that yet.",
-  save: "I haven't saved that yet.",
-};
-const AWAITING: Record<ActionKind, string> = {
-  call: "Nothing's been dialed yet, I need your yes first.",
-  send: "Nothing's gone out yet, I need your yes first.",
-  schedule: "Nothing's booked yet, I need your yes first.",
-  reminder: "Nothing's set yet, I need your yes first.",
-  save: "Nothing's saved yet, I need your yes first.",
-};
 const DID_NOT_GO: Record<ActionKind, string> = {
   call: "That call didn't go through, so nothing's been dialed.",
   send: "That didn't go through, so nothing's been sent.",
@@ -62,11 +47,11 @@ const DID_NOT_GO: Record<ActionKind, string> = {
   save: "That didn't go through, so it isn't saved.",
 };
 const CANNOT: Record<ActionKind, string> = {
-  call: "I can't place calls from here, so I haven't called anyone.",
-  send: "I can't send messages from here, so nothing's gone out.",
-  schedule: "I can't book things from here, so that isn't booked.",
-  reminder: "I can't set reminders from here, so there isn't one set.",
-  save: "I can't save that from here, so it isn't saved.",
+  call: "I can't actually make calls for you, so I haven't rung anyone.",
+  send: "I can't actually send messages for you, so nothing's gone out.",
+  schedule: "I can't actually book that for you, so it isn't booked.",
+  reminder: "I can't actually set reminders for you, so there isn't one set.",
+  save: "I can't actually save that for you, so it isn't saved.",
 };
 const INSTEAD: Record<ActionKind, string> = {
   call: ' I can help you work out what to say, though.',
@@ -75,12 +60,10 @@ const INSTEAD: Record<ActionKind, string> = {
   reminder: ' Maybe pop it in your phone so it nudges you.',
   save: '',
 };
-const REMIND = ' I can set a reminder for you to do it, if you like.';
+const REMIND = ' Want me to remind you to do it?';
 
 /** What Ferni says in place of a claim, and what he can do instead. */
 export function honestLine(kind: ActionKind, reason: MissReason, canRemind: boolean): string {
-  if (reason === 'not_called') return `${NOT_YET[kind]} Want me to?`;
-  if (reason === 'awaiting_yes') return AWAITING[kind];
   const instead = canRemind && kind !== 'reminder' && kind !== 'save' ? REMIND : INSTEAD[kind];
   return `${reason === 'failed' ? DID_NOT_GO[kind] : CANNOT[kind]}${instead}`;
 }
@@ -117,16 +100,11 @@ export async function withActionClaimCheck<T>(
   const stream = await reply;
   if (stream === null || stream === undefined || !actionClaimGuardEnabled(env)) return stream;
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
-  const { done, awaiting, failed } = callActions(chatCtx);
+  const { failed } = callActions(chatCtx);
   const open = new Set(Object.keys(tools.functionTools ?? {}).flatMap(kindsOfTool));
-  const reasonFor = (kind: ActionKind): MissReason =>
-    !open.has(kind)
-      ? 'no_tool'
-      : awaiting.has(kind)
-        ? 'awaiting_yes'
-        : failed.has(kind)
-          ? 'failed'
-          : 'not_called';
+  /** Why a claim of this kind is false, or null when it may stand. */
+  const missing = (kind: ActionKind): MissReason | null =>
+    !open.has(kind) ? 'no_tool' : failed.has(kind) ? 'failed' : null;
   let id = '';
   let stringChunks = true;
   const out = (text: string): Chunk =>
@@ -146,17 +124,16 @@ export async function withActionClaimCheck<T>(
       };
       const flush = (text: string): void => {
         const kind = claimedAction(text);
-        if (!kind || done.has(kind)) return emit(text);
-        const reason = reasonFor(kind);
+        const reason = kind ? missing(kind) : null;
+        if (!kind || !reason) return emit(text);
         log.warn({ kind, reason }, 'ACTION_CLAIM_DROPPED');
         if (said || deferred) return;
-        if (reason === 'not_called') {
+        if (reason === 'failed') {
           deferred = kind;
           return;
         }
         said = true;
-        const line = honestLine(kind, reason, open.has('reminder'));
-        emit(line);
+        emit(honestLine(kind, reason, open.has('reminder')));
       };
       try {
         for (let next = await reader.read(); !next.done; next = await reader.read()) {
@@ -182,7 +159,7 @@ export async function withActionClaimCheck<T>(
         }
         if (pending) flush(pending);
         if (deferred && !said && !calling.has(deferred)) {
-          emit(honestLine(deferred, 'not_called', open.has('reminder')));
+          emit(honestLine(deferred, 'failed', open.has('reminder')));
         }
         controller.close();
       } catch (error) {
