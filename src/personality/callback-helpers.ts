@@ -9,6 +9,7 @@
  */
 
 import type { KeyMoment, UserProfile } from '../types/user-profile.js';
+import { isTeammateTalk, withoutTeammateTalk } from '../utils/teammate-talk.js';
 
 // ============================================================================
 // CALLBACK CREATION
@@ -43,8 +44,11 @@ export function createCallbackKeyMoment(
  * Extract callback-worthy moments from user message
  * Returns KeyMoments that can be added to the user's profile
  */
-export function extractCallbackKeyMoments(userMessage: string): KeyMoment[] {
+export function extractCallbackKeyMoments(said: string): KeyMoment[] {
   const keyMoments: KeyMoment[] = [];
+  // "I'm going to talk to Jordan" is a teammate on this call, not a hard conversation ahead
+  const userMessage = withoutTeammateTalk(said);
+  if (!userMessage) return keyMoments;
 
   // Upcoming events
   const eventPatterns = [
@@ -121,7 +125,8 @@ export function getPendingCallbacksFromProfile(
   const pending: Array<{ moment: KeyMoment; question: string }> = [];
 
   for (const moment of keyMoments) {
-    if (!moment.followUpNeeded) continue;
+    // Stored before teammate talk was told apart ("Made a decision to talk to Jordan")
+    if (!moment.followUpNeeded || isTeammateTalk(moment.summary)) continue;
 
     // Check if follow-up date has passed
     if (moment.followUpDate && new Date(moment.followUpDate) > new Date()) {

@@ -146,45 +146,43 @@ const PERSONA_CONTEXT_TEMPLATES: Record<
   ferni: {
     prefix: 'As their life coach, you know:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: (i) => `- [From ${formatPersonaName(i.fromPersona)}] ${i.content}`,
+    insightFormat: teammateNote,
   },
   peter: {
     prefix: 'Relevant background for research:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: (i) => `- Insight from ${formatPersonaName(i.fromPersona)}: ${i.content}`,
+    insightFormat: teammateNote,
   },
   maya: {
     prefix: 'For habit coaching, remember:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: (i) => `- ${formatPersonaName(i.fromPersona)} noted: ${i.content}`,
+    insightFormat: teammateNote,
   },
   jordan: {
     prefix: 'For event planning, key details:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: (i) => `- From ${formatPersonaName(i.fromPersona)}: ${i.content}`,
+    insightFormat: teammateNote,
   },
   alex: {
     prefix: 'Communication context:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: (i) => `- ${formatPersonaName(i.fromPersona)} shared: ${i.content}`,
+    insightFormat: teammateNote,
   },
   nayan: {
     prefix: 'For wisdom and reflection:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: (i) => `- ${formatPersonaName(i.fromPersona)} observed: ${i.content}`,
+    insightFormat: teammateNote,
   },
 };
 
 function formatPersonaName(personaId: PersonaId): string {
-  const names: Record<PersonaId, string> = {
-    ferni: 'Ferni',
-    peter: 'Peter',
-    maya: 'Maya',
-    jordan: 'Jordan',
-    alex: 'Alex',
-    nayan: 'Nayan',
-  };
-  return names[personaId] || personaId;
+  return personaId.charAt(0).toUpperCase() + personaId.slice(1);
+}
+
+/** A teammate's insight as what came up on the caller's call WITH them ("From Jordan" read as news). */
+export function teammateNote(i: CrossPersonaInsight): string {
+  const name = formatPersonaName(i.fromPersona);
+  return `- Your teammate ${name}, from the caller's call with ${name}: ${i.content}`;
 }
 
 // ============================================================================

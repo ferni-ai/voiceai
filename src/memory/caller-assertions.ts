@@ -20,6 +20,7 @@
  * @module memory/caller-assertions
  */
 import { flagOn, type Env } from '../config/env-flag.js';
+import { TEAM_FIRST_NAMES as TEAM_NAMES, isTeammateTalk } from '../utils/teammate-talk.js';
 import { CALLER_PROVENANCE, contentWords } from './recall/session-recall.js';
 
 export { CALLER_PROVENANCE };
@@ -77,13 +78,8 @@ const NOT_THE_TOPIC = new Set(
   )
 );
 
-/**
- * The team's first names (personas/persona-ids.ts DISPLAY_NAMES; a test keeps them in step).
- * Not imported: memory can't reach into personas, and its index pulls in the whole agent.
- */
-export const TEAM_FIRST_NAMES: ReadonlySet<string> = new Set(
-  'ferni peter alex maya jordan nayan'.split(' ')
-);
+/** The team's first names (utils/teammate-talk.ts, kept in step with persona-ids by a test). */
+export const TEAM_FIRST_NAMES: ReadonlySet<string> = new Set(TEAM_NAMES);
 const TEAM = TEAM_FIRST_NAMES;
 
 /** What an item is about: content words that aren't summary filler or a teammate's name. */
@@ -242,8 +238,9 @@ export function withCallerProvenance<T extends ProvenanceSummary>(
     const items = summary[field];
     if (!Array.isArray(items)) continue;
     const kept = items.filter((item) => {
+      // "Did you ever talk to Jordan about those plans?": a teammate, not their life
       const theirs = THREAD_FIELDS.has(field)
-        ? backedBy(item, said)
+        ? backedBy(item, said) && !isTeammateTalk(item)
         : !fromTheirSide(item, said, raisedWords);
       if (!theirs) raised.add(item);
       return theirs;

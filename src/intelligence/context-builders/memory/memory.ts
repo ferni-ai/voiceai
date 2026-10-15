@@ -27,6 +27,7 @@
  *
  * Extracted from jack-bogle.ts lines 561-612, 959-1005, 1066-1100, 1241-1259
  */
+import { isTeammateTalk } from '../../../utils/teammate-talk.js';
 import type { EmotionResult } from '../../../intelligence/detectors/emotion.js';
 import { getKeyMomentRetrieval } from '../../../memory/key-moment-retrieval.js';
 import { getSessionConversationManager } from '../../../services/conversation-manager.js';
@@ -109,8 +110,9 @@ function getCrossSessionMemory(
     references.push(`Last time you mentioned being concerned about ${concern}...`);
   }
   // Reference key moments (emotional, meaningful)
-  if (profile.keyMoments && profile.keyMoments.length > 0) {
-    const moment = profile.keyMoments[0];
+  // Not one about switching to a teammate ("Made a decision to talk to Jordan")
+  const moment = profile.keyMoments?.find((m) => !isTeammateTalk(m.summary));
+  if (moment) {
     references.push(
       `I've been thinking about what you shared last time—about ${moment.summary}...`
     );
