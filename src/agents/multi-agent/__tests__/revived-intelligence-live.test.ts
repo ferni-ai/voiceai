@@ -46,7 +46,8 @@ const LAST_CALL = {
   questionsRemaining: ['How the move to Denver is going'],
   keyPoints: ['Seth trains martial arts'],
 };
-const ARC = 'ended abruptly after a mix-up about tea blocks';
+/** The tone line for a light last call; its arc is never passed on as written. */
+const ARC = 'A recent call (2 days ago) went easily';
 
 let n = 0;
 function setup(store: RevivedStore) {

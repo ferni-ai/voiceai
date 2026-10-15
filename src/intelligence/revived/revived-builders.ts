@@ -128,15 +128,26 @@ function pastCalls(input: RevivedInput): Array<{ doc: SummaryDoc; days: number }
 }
 
 /**
- * How a recent call felt reaches Ferni in detail only when it plainly went
- * lightly. Anything else (a hard call, or one this can't tell) fails closed:
- * the tone without the details, and none of that call's open questions, so
- * Ferni never has a painful moment to open with.
+ * What Ferni hears about an earlier call fails closed. Its emotional arc is
+ * never passed on as written, only as a fixed tone line. Its details (open
+ * questions, key points) are passed on only when the whole call plainly went
+ * lightly: an arc that reads light and isn't negated, and nothing in it, its
+ * key points or its questions that reads hard. A call with no arc, or one
+ * this can't tell, gives the tone line at most, so Ferni never has a painful
+ * moment to open with.
  */
-const HARD_CALL =
-  /\b(cried|crying|tears|sobb|upset|angry|furious|hung up|panic|crisis|griev|grief|died|death|funeral|suicid|self-harm|scared|terrified|devastat|heartbr|fight|argument|heavy|miscarri|cancer|diagnos|divorce|laid off|fired|broke down|hospital)/i;
-const LIGHT_CALL =
-  /\b(lighthearted|light|fun|funny|laugh|joked|joking|playful|easy|easygoing|upbeat|cheerful|warm|relaxed|happy|excited|friendly|casual|calm|chatty)\b/i;
+const HARD =
+  /\b(cri(ed|es|ing)|tears|sobb|upset|angry|furious|hung up|panic|crisis|griev|grief|died|death|dying|passing|passed away|lost (his|her|their|my)|funeral|suicid|self-harm|scared|terrified|devastat|heartbr|fight|argument|heavy|miscarri|cancer|biopsy|diagnos|sick|illness|hospital|surgery|divorce|breakup|broke up|laid off|fired|broke down|lonely|depress|anxious|worried|frustrat|sad|hard time|struggl)/i;
+const LIGHT =
+  /\b(lighthearted|light|fun|funny|laugh|joked|joking|playful|easy|easygoing|upbeat|cheerful|relaxed|happy|excited|friendly|casual|chatty)\b/i;
+const NEGATED = /\b(not|n't|no|never|without|hardly|barely)\b/i;
+
+/** The whole call plainly went lightly; anything less keeps its details out. */
+export function wentLightly(doc: SummaryDoc): boolean {
+  const arc = text(doc.emotionalArc);
+  const all = [arc, ...strings(doc.keyPoints), ...strings(doc.questionsRemaining)].join('\n');
+  return arc !== '' && LIGHT.test(arc) && !NEGATED.test(arc) && !HARD.test(all);
+}
 
 /** "Whether the hearing went okay" reads mid-sentence as "whether the hearing went okay". */
 const midSentence = (q: string): string => q.charAt(0).toLowerCase() + q.slice(1);
@@ -146,23 +157,19 @@ export function lastCallLines(input: RevivedInput): RevivedLine[] {
   // call", since an earlier one may have been left out.
   const last = pastCalls(input).at(0);
   if (last === undefined) return [];
-  const lines: RevivedLine[] = [];
-  const arc = text(last.doc.emotionalArc);
-  const light = arc !== '' && LIGHT_CALL.test(arc) && !HARD_CALL.test(arc);
   const when = ago(last.days);
-  if (arc) {
-    lines.push({
+  const light = wentLightly(last.doc);
+  const lines: RevivedLine[] = [
+    {
       builder: 'last-call',
       text: light
-        ? `How a recent call (${when}) felt, for your tone, not to bring up: ${clip(inFerniVoice(arc, input.userName), 240)}`
-        : HARD_CALL.test(arc)
-          ? `A recent call (${when}) was a hard one. Be gentle and let them lead; don't bring it up.`
-          : `Let them lead on anything from a recent call (${when}); don't bring it up yourself.`,
+        ? `A recent call (${when}) went easily; keep that light, warm tone.`
+        : `Let them lead on anything from a recent call (${when}); be gentle and don't bring it up yourself.`,
       priority: 76,
       untilTurn: 10,
-    });
-  }
-  if (arc && !light) return lines; // its open questions could name what hurt
+    },
+  ];
+  if (!light) return lines;
   // Follow-ups reach the call through memory recall (memory-recall-hook.ts);
   // only questions it doesn't already cover are new here.
   const followUps = input.summaries.flatMap((s) => strings(s.followUpItems));
@@ -187,6 +194,7 @@ export function recentCallsLines(input: RevivedInput): RevivedLine[] {
   const said = [input.lastConversationSummary ?? ''];
   const lines: string[] = [];
   for (const { doc, days } of earlier) {
+    if (!wentLightly(doc)) continue; // the same gate as the last call's details
     const points = strings(doc.keyPoints)
       .filter((p) => !alreadyCovered(p, said))
       .slice(0, 2)

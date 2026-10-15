@@ -26,6 +26,7 @@ const LAST_CALL = {
 const OLDER = {
   sessionId: 'session-older',
   timestamp: daysAgo(30),
+  emotionalArc: 'An easy, chatty catch-up.',
   keyPoints: ['Match sparring has been limited for the user', 'Knee is still sore'],
 };
 
@@ -83,9 +84,7 @@ describe('startRevivedIntelligence / revivedInjection', () => {
     const block = revivedInjection(id, 1, Infinity, ON);
     expect(reads).toBe(1);
     expect(block?.category).toBe(REVIVED_CATEGORY);
-    expect(block?.content).toContain(
-      'How a recent call (2 days ago) felt, for your tone, not to bring up'
-    );
+    expect(block?.content).toContain('A recent call (2 days ago) went easily');
     expect(block?.content).toContain('Earlier calls: 4 weeks ago');
   });
 
@@ -140,7 +139,7 @@ describe('startRevivedIntelligence / revivedInjection', () => {
     const tight = { ...ON, REVIVED_TOKEN_BUDGET: '80' }; // 320 chars
     const block = revivedInjection(id, 1, Infinity, tight)!;
     expect(block.content.length).toBeLessThanOrEqual(320);
-    expect(block.content).toContain('How a recent call'); // priority 76 kept
+    expect(block.content).toContain('A recent call'); // priority 76 kept
     expect(block.content).not.toContain('Earlier calls'); // priority 70 dropped
     expect(block.content.endsWith('…')).toBe(false);
   });
@@ -277,7 +276,7 @@ describe('forget during the call, and a forget list that never answers', () => {
       now: () => NOW,
       env: ON,
     });
-    expect(revivedInjection(id, 1, Infinity, ON)?.content).toMatch(/tea blocks/);
+    expect(revivedInjection(id, 1, Infinity, ON)?.content).toMatch(/denver/i);
 
     forgottenHere = ['denver']; // the caller asked Ferni to forget the move, this call
     expect(revivedInjection(id, 2, Infinity, ON)).toBeNull();
