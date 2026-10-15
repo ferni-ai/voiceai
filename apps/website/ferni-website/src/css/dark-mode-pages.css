@@ -30,6 +30,11 @@
     background-color: color-mix(in srgb, var(--color-warning) 12%, transparent);
   }
 
+  /* Ink turns light in dark mode, so ink-to-night cards lost their white text */
+  :root .from-ink {
+    --tw-gradient-from: var(--color-bg-tertiary) var(--tw-gradient-from-position);
+  }
+
   :root .bg-pink-100 {
     background-color: var(--color-maya-glow);
   }
