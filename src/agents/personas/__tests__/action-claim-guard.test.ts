@@ -44,7 +44,14 @@ describe('claimedAction', () => {
     ["I'm on the phone with her now.", 'call'],
     ['Placing the call now.', 'call'],
     ["I'm getting her on the line.", 'call'],
-    ["It's ringing.", 'call'],
+    ["The call's ringing now.", 'call'],
+    ["I'm calling that number right now.", 'call'],
+    ["I'm calling the number you gave me now.", 'call'],
+    ['Dialing 555-0134 now.', 'call'],
+    ["I'm dialing that number now.", 'call'],
+    ["Sure, give me a sec, I'm dialing.", 'call'],
+    ['Calling Rosa now.', 'call'],
+    ["I'll ring Mom right now.", 'call'],
     ["I'll ring her right away and let you know how it goes.", 'call'],
     ['Done! Message sent.', 'send'],
     ['Just sent it.', 'send'],
@@ -129,6 +136,26 @@ describe('claimedAction', () => {
     'Her text sent you spinning, huh.',
     "That's saved my whole afternoon.",
     "It's stored somewhere deep in your heart.",
+    "I know it's hard. Calling her number just to hear her voice, that makes so much sense.",
+    "Texting him at two in the morning probably isn't the move.",
+    'Calling her tonight sounds like a really good plan.',
+    'Calling your mom tonight is a great idea.',
+    'Calling Grandma every Sunday is such a sweet ritual.',
+    'Calling Mom was brave.',
+    'Texting her first might be easier.',
+    'Texting Jake back can wait until tomorrow.',
+    'Ringing your dad on his birthday is a lovely idea.',
+    'Phoning him can feel scarier than texting.',
+    'Dialing her number with shaking hands, I get it.',
+    "Sent her flowers, wow, that's so thoughtful.",
+    'Sent it, huh.',
+    "She's getting a call back for the second interview, that's huge!",
+    "They're getting a call from the school today.",
+    "Oh it's ringing, go answer it!",
+    "Sounds like it's ringing, go get it.",
+    "I'll let you know a trick for when he answers the phone.",
+    "I'm calling Dad's behavior what it is.",
+    "That's saved, in my heart at least.",
   ])('%j is not a claim', (sentence) => {
     expect(claimedAction(sentence)).toBeNull();
   });
@@ -193,6 +220,15 @@ describe('callActions', () => {
       ctx(result('callOnBehalf', '"I can\u2019t make this call because: outside calling hours."'))
     );
     expect([...refused.failed]).toEqual(['call']);
+    for (const off of [
+      "I don't have a number for Rosa.",
+      'Calls are disabled right now.',
+      'Outbound calling is turned off.',
+    ]) {
+      expect([...callActions(ctx(result('callOnBehalf', JSON.stringify(off)))).failed]).toEqual([
+        'call',
+      ]);
+    }
     // "Sorry for the wait" is not a refusal.
     const sorry = callActions(
       ctx(result('callOnBehalf', '"Sorry for the wait, the call is ringing now."'))
@@ -336,7 +372,11 @@ describe('withActionClaimCheck', () => {
   });
 
   it('empathy on a phone-only call (no action tools) streams untouched', async () => {
-    const parts = ["It sounds like she's going through a lot. ", "I'm here with you."];
+    const parts = [
+      "It sounds like she's going through a lot. ",
+      "I know it's hard. Calling her number just to hear her voice, that makes so much sense. ",
+      "I'm here with you.",
+    ];
     expect(await textOf(await check(streamOf(...parts), [ASK], toolsWith('endCall')))).toBe(
       parts.join('')
     );

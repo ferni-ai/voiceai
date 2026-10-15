@@ -30,25 +30,34 @@ const NOW =
 const KIN =
   '(?:mom|mum|mother|dad|father|sister|brother|grandma|grandmother|gran|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|son|daughter|kids?|friend|boss|doctor|dentist|landlord|teacher|neighbou?r|family)';
 /** Someone in the caller's world: a pronoun, a name (read as "her"), or a relative. Never "you" or "my". */
-const WHO = `(?:her|him|them|${KIN}|your (?:\\w+ )?${KIN})\\b`;
+const WHO = `(?:her|him|them|${KIN}|your (?:\\w+ )?${KIN})\\b(?!'s)`;
 
 const CALL_VERB = '(?:calling|ringing|dialing|dialling|phoning)';
+/** A call's target: a person, or the number the caller gave. */
+const NUMBER = '(?:(?:that|the|this|her|his|their|your \\w+) number|\\d[\\d -]{2,})';
+const DIALED = `(?:${WHO}|${NUMBER})`;
+/** A whole clause that is only the action and "now": "Calling her now.", "Okay, dialing." */
+const BARE = (verbs: string): RegExp =>
+  new RegExp(`${LEAD}${verbs}(?: ${DIALED})?(?: ${NOW})?\\W*$`);
 const CLAIMS: Record<ActionKind, RegExp[]> = {
   call: [
     new RegExp(
-      `${HAVE} (?:called|rung|rang|phoned|dialed|dialled|reached out to|got (?:a ?hold|ahold) of|pinged) ${WHO}`
+      `${HAVE} (?:called|rung|rang|phoned|dialed|dialled|reached out to|got (?:a ?hold|ahold) of|pinged) ${DIALED}`
     ),
     new RegExp(`${HAVE} left ${WHO} a (?:voicemail|message)`),
     new RegExp(
-      `${DOING} (?:${CALL_VERB}|reaching out to|getting in touch with|on the phone with) (?:${WHO}|now|back)`
+      `${DOING} (?:${CALL_VERB}|reaching out to|getting in touch with|on the phone with) (?:${DIALED}|now|back)`
     ),
+    new RegExp(`${DOING} (?:${CALL_VERB})\\W*$`),
     new RegExp(`${DOING} (?:getting ${WHO} on the line|placing (?:the|a) call)`),
-    new RegExp(`${LEAD}(?:${CALL_VERB} (?:${WHO}|now)|placing the call|(?:calling|dialing|dialling)\\W*$)`),
-    new RegExp(`\\b(?:let me|i'm going to|i'm gonna|i'll) (?:call|ring|dial|phone) ${WHO}.*${NOW}`),
+    BARE(`(?:${CALL_VERB}|placing the call)`),
+    new RegExp(
+      `\\b(?:let me|i'm going to|i'm gonna|i'll) (?:call|ring|dial|phone) ${DIALED}.*${NOW}`
+    ),
     new RegExp(`\\b(?:let me|i'm going to|i'm gonna) give ${WHO} a (?:ring|call|buzz)`),
-    new RegExp(`\\bwhile i (?:call|ring|dial|phone|reach) ${WHO}`),
-    /\b(?:it's|it is|the call is|the call's) (?:ringing|connecting|going through)\W*$|\b(?:is|she's|he's|they're|should be|will be) getting a call\b|\bcall (?:is|has been|was) placed\b/,
-    /\b(?:let you know|get back to you|report back|update you)\b.{0,40}\b(?:reach|get (?:a ?hold|ahold) of|get through to|hear back|picks? up|answers?|talk to|speak (?:to|with)|talk with)\b/,
+    new RegExp(`\\bwhile i (?:call|ring|dial|phone|reach) ${DIALED}`),
+    /\bthe call(?: is|'s) (?:ringing|connecting|going through)\b|\bcall (?:is|has been|was) placed\b|\bgetting a call (?:any (?:second|minute|moment)|right now|now|shortly)\b/,
+    /\b(?:let you know|get back to you|report back|update you) (?:as soon as|when|once|the moment|if|after) (?:i|she|he|they) (?:reach|get (?:a ?hold|ahold) of|get through|hear back|picks? up|answers?|talk|speak)/,
   ],
   send: [
     new RegExp(
@@ -57,10 +66,8 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
     new RegExp(`${HAVE} sent (?:it|that|the (?:text|message|email|note)|${WHO})`),
     new RegExp(`${DOING} (?:texting|messaging|emailing) ${WHO}`),
     new RegExp(`${DOING} sending (?:it|that|the (?:text|message|email|note)|${WHO})`),
-    new RegExp(
-      `${LEAD}(?:just )?(?:sent|sending|texting) (?:it|that|the (?:text|message|email)|${WHO})`
-    ),
-    new RegExp(`${LEAD}(?:just |message |text |email )?sent\\W*$`),
+    BARE('(?:texting|sending it)'),
+    new RegExp(`${LEAD}(?:just sent(?: it)?|message sent|text sent|email sent|done,? sent)\\W*$`),
     new RegExp(
       `\\b(?:let me|i'm going to|i'm gonna|i'll) (?:text|message|email|send) ${WHO}.*${NOW}`
     ),
@@ -98,11 +105,14 @@ const NOT_A_CLAIM =
 
 /** Ferni's own life, or an idiom: not an action in this call. */
 const NOT_AN_ACTION =
-  /^(?:and |but |so )?(?:when|after|before|because|since|as|once|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time|summer|winter|spring|fall|autumn)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time|in spirit)\b|\bsend(?:ing)? (?:you )?(?:\w+ ){0,4}(?:hugs?|love|vibes|strength|thoughts|prayers|energy|luck|warmth|kindness|good wishes)\b|\bcall(?:ed|ing)? (?:it|that|this)\b|\bcalling (?:you|them|him|her) out\b/;
+  /^(?:and |but |so )?(?:when|after|before|because|since|as|once|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time|summer|winter|spring|fall|autumn)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time|in spirit)\b|\bsend(?:ing)? (?:you )?(?:\w+ ){0,4}(?:hugs?|love|vibes|strength|thoughts|prayers|energy|luck|warmth|kindness|good wishes)\b|\bcall(?:ed|ing)? (?:it|that|this)\b(?! number)|\bcalling (?:you|them|him|her) out\b/;
 
 /** A capitalised word inside a clause is a name: read it as "her" (the patterns are lower case). */
 const names = (text: string): string =>
-  text.replace(/([a-z,;:]\s+)(?!I\b|I'|I’)[A-Z][a-z]+\b/g, '$1her');
+  text.replace(/([a-z,;:]\s+)(?!I\b|I'|I’)[A-Z][a-z]+\b(?!['’])/g, '$1her');
+
+/** Anywhere in the sentence: it's about feelings, not an action ("that's saved, in my heart"). */
+const FIGURATIVE = /\bin (?:my|your|our) (?:heart|head|memory|mind)\b|\bin spirit\b/;
 
 const normalize = (text: string): string =>
   names(text.replace(/"[^"]*"|“[^”]*”/g, ' ')) // a message's words, quoted: never Ferni's claim
@@ -113,7 +123,9 @@ const normalize = (text: string): string =>
 
 /** The kind of action one sentence claims was done or is under way, or null. */
 export function claimedAction(sentence: string): ActionKind | null {
-  for (const raw of normalize(sentence).split(/[,;:—–]| - /)) {
+  const text = normalize(sentence);
+  if (FIGURATIVE.test(text)) return null;
+  for (const raw of text.split(/[,;:—–]| - /)) {
     const clause = raw.trim();
     if (!clause || NOT_A_CLAIM.test(clause) || NOT_AN_ACTION.test(clause)) continue;
     const kind = ACTION_KINDS.find((k) => CLAIMS[k].some((re) => re.test(clause)));
@@ -141,7 +153,7 @@ export function kindsOfTool(name: string): ActionKind[] {
 const PREVIEW = /^\W*not sent yet\b/i;
 /** A result that says the action did not happen. */
 const REFUSAL =
-  /^\W*(?:nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi couldn't find\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
+  /^\W*(?:nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi don't have (?:a|the|their|any) (?:phone )?number\b|\bi couldn't find\b|\b(?:calls?|calling|texts?|texting|outbound \w+) (?:are|is) (?:disabled|turned off|off|not available|unavailable)\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
 
 function outputText(output: unknown): string {
   if (typeof output !== 'string') return JSON.stringify(output ?? '');
