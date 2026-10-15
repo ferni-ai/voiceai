@@ -320,12 +320,6 @@ function applyMicroExpressionStyles(name: string): void {
     if (eyeElements.right) eyeElements.right.style.transform = transform;
   }
 
-  // Apply lid curve if specified (via CSS custom property)
-  if (micro.lidTop) {
-    const curve = micro.lidTop.curve;
-    document.documentElement.style.setProperty('--micro-lid-top-curve', String(curve));
-  }
-
   // Apply smile crease if specified
   if (micro.smileCrease) {
     const opacity = micro.smileCrease.opacity ?? 0;
