@@ -61,7 +61,9 @@ describe('injectUserAwareness after the deferred profile load', () => {
     expect(result.facts).toContain(
       "You've had 654 conversations together - you know each other well."
     );
-    expect(result.facts).toContain('Last time you talked about: the boat trip and the new job');
+    expect(result.facts.some((f) => f.includes('last time (not their words): the boat trip'))).toBe(
+      true
+    );
   });
 
   it('a genuinely new user (0 conversations) still gets the first-conversation line', () => {

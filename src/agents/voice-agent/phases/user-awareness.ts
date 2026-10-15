@@ -13,6 +13,7 @@
  * @module voice-agent/phases/user-awareness
  */
 
+import { lastCallNotes, lastMoodNote } from '../../../services/session/summary-topics.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../../shared/outbound-opener.js';
 
@@ -41,18 +42,8 @@ export interface UserAwarenessResult {
 }
 
 // ============================================================================
-// MOOD CONTEXT MAPPINGS
+// CONTEXT MAPPINGS (last-call mood lines live in summary-topics.ts)
 // ============================================================================
-
-const MOOD_CONTEXT: Record<string, string> = {
-  tired_but_present: 'Last time they seemed a bit tired - be gentle.',
-  reflective: 'Last time they were in a reflective mood.',
-  philosophical: 'Last time they were in a thoughtful, philosophical space.',
-  energized: 'Last time they were full of energy!',
-  grounded: 'Last time they seemed calm and grounded.',
-  playful: 'Last time they were in a playful mood.',
-  nostalgic: 'Last time they were feeling nostalgic.',
-};
 
 const RELATIONSHIP_STAGE_DESCRIPTIONS: Record<string, string> = {
   getting_to_know: "You're still getting to know each other.",
@@ -113,7 +104,7 @@ export function buildUserAwareness(config: UserAwarenessConfig): UserAwarenessRe
 
   // Better Than Human #1: Last Conversation Context
   if (isReturningUser && profile.lastConversationSummary) {
-    facts.push(`Last time you talked about: ${profile.lastConversationSummary}`);
+    facts.push(...lastCallNotes(profile.lastConversationSummary));
   }
 
   // Better Than Human #2: Emotional Memory
@@ -212,13 +203,7 @@ function addLastContactContext(
 }
 
 function addEmotionalMemory(facts: string[], profile: UserProfile): void {
-  if (profile.humanizingState?.lastMood) {
-    const { lastMood } = profile.humanizingState;
-    const moodDescription = MOOD_CONTEXT[lastMood];
-    if (moodDescription) {
-      facts.push(moodDescription);
-    }
-  }
+  facts.push(...lastMoodNote(profile.humanizingState?.lastMood));
 }
 
 function addLifeEventsAwareness(facts: string[], profile: UserProfile): void {

@@ -186,6 +186,7 @@ export const FLAG_MANIFEST = {
   JOURNAL_TRANSCRIBE_VERTEX: { default: 'off', owner: 'memory', kind: 'experiment' },
   // public landing-page Gemini calls; off until the chat has per-IP and daily limits
   LANDING_AI: { default: 'off', owner: 'platform', kind: 'experiment' },
+  LAST_CALL_TOPICS_ONLY: { default: 'on', owner: 'memory', kind: 'kill-switch' },
   LAUGH_ALONG: { default: 'off', owner: 'voice', kind: 'experiment' },
   LAZY_FIRESTORE: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   LIFE_LEDGER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
