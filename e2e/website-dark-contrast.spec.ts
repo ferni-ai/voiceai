@@ -188,4 +188,41 @@ test.describe('ferni.ai in dark mode', () => {
       expect(await lowContrastText(page)).toEqual([]);
     });
   }
+
+  // The text check above skips gradient backgrounds, and these night
+  // sections are gradients: every stop must stay dark under their light text.
+  test('/ night sections keep a dark gradient', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await page.goto(`${SITE}/`, { waitUntil: 'networkidle' });
+    const weak = await page.evaluate(() => {
+      const lum = (rgb: number[]): number => {
+        const [r, g, b] = rgb.map((v) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const rgbs = (value: string): number[][] =>
+        [...value.matchAll(/rgba?\(([^)]+)\)/g)].map((m) =>
+          m[1].split(',').slice(0, 3).map(Number)
+        );
+      const found: string[] = [];
+      for (const selector of ['.two-am', '.stats-bar', '.memory-demo']) {
+        const el = document.querySelector(selector);
+        if (!el) {
+          found.push(`${selector} missing`);
+          continue;
+        }
+        const style = getComputedStyle(el);
+        const text = lum(rgbs(style.color)[0]);
+        for (const stop of rgbs(style.backgroundImage)) {
+          const ratio = (Math.max(text, lum(stop)) + 0.05) / (Math.min(text, lum(stop)) + 0.05);
+          if (ratio < 4.5)
+            found.push(`${selector} stop rgb(${stop.join(',')}) ${ratio.toFixed(2)}:1`);
+        }
+      }
+      return found;
+    });
+    expect(weak).toEqual([]);
+  });
 });

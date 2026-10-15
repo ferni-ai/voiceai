@@ -97,6 +97,41 @@
     color: #f4efe6;
   }
 
+  /* Night sections on the home page (3:47 AM, stats band, memory).
+     story-brand.css paints them with --color-text-primary as the dark
+     end of a gradient, which is cream in dark mode, and its
+     body:not(.theme--dark) guard still matches without the night class.
+     --color-bg-tertiary is the dark-mode match for the light ink. */
+  :root:root .two-am {
+    background: linear-gradient(
+      180deg,
+      var(--color-cinematic-rich) 0%,
+      var(--color-bg-tertiary) 100%
+    ) !important;
+  }
+
+  :root:root .stats-bar {
+    background: linear-gradient(
+      180deg,
+      var(--color-bg-tertiary) 0%,
+      var(--color-cedar-deep) 100%
+    ) !important;
+  }
+
+  :root:root .memory-demo {
+    background: linear-gradient(
+      180deg,
+      var(--color-bg-tertiary) 0%,
+      var(--color-cinematic-rich) 100%
+    ) !important;
+  }
+
+  /* Hero accent ("What's new?"): the gradient text from story-brand.css is
+     dark sage, about 2.7:1 on the dark hero. Keep the gradient, in light sage. */
+  :root:root .hero__headline-accent {
+    background-image: linear-gradient(135deg, var(--color-ferni-text), var(--color-accent));
+  }
+
   /* --color-text-inverse is Night Ink in dark mode, but these sit on
      sections and glass cards that stay dark in both themes */
   :root:root .memory-demo__text,
