@@ -9,63 +9,61 @@
    flipped text sat on white.
 
    Loads after styles.css and pages.css, and only acts in dark mode.
-   Night Ink: field #14110e, raised #1e1a16, card #2a241f.
-
    ======================================================= */
 
 @media (prefers-color-scheme: dark) {
   :root:root {
-    --color-bg: #1e1a16;
-    --color-elevated: #2a241f;
+    --color-bg: var(--color-bg-secondary);
+    --color-elevated: var(--color-bg-tertiary);
   }
 
   :root .nav {
-    background-color: rgba(20, 17, 14, 0.85);
+    background-color: var(--color-bg-overlay);
   }
 
   :root .bg-white {
-    background-color: #2a241f;
+    background-color: var(--color-bg-tertiary);
   }
 
   :root .bg-amber-50,
   :root .bg-amber-100 {
-    background-color: rgba(224, 184, 96, 0.12);
+    background-color: color-mix(in srgb, var(--color-warning) 12%, transparent);
   }
 
   :root .bg-pink-100 {
-    background-color: rgba(236, 72, 153, 0.14);
+    background-color: var(--color-maya-glow);
   }
 
   :root .border-amber-200 {
-    border-color: rgba(224, 184, 96, 0.3);
+    border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
   }
 
   :root .text-amber-600 {
-    color: #e0b860;
+    color: var(--color-warning);
   }
 
   :root .text-pink-500 {
-    color: #f49ac8;
+    color: var(--color-maya-text);
   }
 
-  /* Dark sage (#4a6741) reads at 2:1 on the dark field */
+  /* Dark sage reads at 2:1 on the dark field */
   :root .text-ferni,
   :root .press-email {
-    color: #a5c99a;
+    color: var(--color-ferni-text);
   }
 
   /* The accent lightens in dark mode, so its skip link takes dark text */
   :root .skip-link {
-    color: #14110e;
+    color: var(--color-text-inverse);
   }
 
   /* Initials on the colored persona fills stay light in both themes */
   :root .persona-card__avatar {
-    color: #faf8f5;
+    color: var(--color-text-primary);
   }
 
   /* Jordan's fill is too light for light initials (2.9:1); dark ink reads at 6.2:1 */
-  :root .persona-card__avatar[style*="#c4856a" i] {
-    color: #14110e;
+  :root .persona-card__avatar[data-persona='jordan'] {
+    color: var(--color-text-inverse);
   }
 }
