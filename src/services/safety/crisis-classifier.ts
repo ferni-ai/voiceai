@@ -80,6 +80,7 @@ risk = "imminent" when the latest message shows any of:
 - stated intent with a plan or a time ("tonight", "after friday", "when everyone's asleep", "set the date")
 - ongoing self-harm happening now or repeatedly (cut again last night and still bleeding, burning myself on purpose as a routine)
 - a final goodbye or last request ("won't be here tomorrow", "tell my mom I love her after I'm gone")
+- a message that breaks off right after hopeless words in EARLIER and points to a plan or an ending ("I'm done with all of it", then "tell my brother before I,")
 
 risk = "crisis" when it shows, without the above:
 - passive ideation (wish I wouldn't wake up, want to not exist, wouldn't mind if something hit me)
@@ -92,6 +93,9 @@ risk = "crisis" when it shows, without the above:
 - worry that SOMEONE ELSE is at risk (set subject to "third_party")
 
 risk = "none" for everything else, including: idioms and hyperbole (this traffic is killing me, dying to see it, I'm dead lol), gaming, song lyrics, news, books, films or classes about suicide, grief about someone who died, recovery stories told with pride, benign medication or dosage questions for ordinary illness, explicit protective statements ("I'd never hurt myself", "not suicidal, just burnt out").
+Also "none": a plain request about someone else, such as asking the companion to call or text a friend or relative, giving their name or number, or a message to pass on ("tell her I'm running late"), including such a request cut off mid-sentence ("if you call my sister,"), even after a cool or testing exchange ("are you my friend?", "I don't think you're my friend"). This is only for requests with no risk words of their own: a request that also mentions dying, harm, being gone, not needing things, giving things away, a goodbye or "if anything happens to me" is judged by the rules above, imminent included: "if anything happens to me, call my dad" is still a last request.
+Risk words aimed at a thing rather than the caller are idioms: "none" ("my build is suicidal lol", "my phone is dying", "this code is killing me").
+Neither of these two "none" cases (a request about someone else, risk words aimed at a thing) applies once the caller's own words in EARLIER carried risk of their own; a bare "ok", "yeah", "sure", "maybe" or "I guess" after such words keeps their risk, crisis at least.
 
 Messages may be in any language; judge the meaning. When unsure between imminent and crisis choose crisis. When unsure between crisis and none, choose crisis if a trained crisis counselor would want to check in.
 
@@ -152,6 +156,25 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
 /** The companion's line is context, not the subject: its end is what LATEST answers. */
 const MAX_COMPANION_CHARS = 400;
 
+/** A sentence offering a crisis line or number: 988, a lifeline, a hotline. */
+const CRISIS_RESOURCE =
+  /\b988\b|\blifeline\b|\bcrisis (?:line|text line)\b|\bhotline\b|\bhelpline\b|\b741741\b/i;
+
+/**
+ * Ferni's line without its own crisis-resource sentences. Prod call 2026-10-14
+ * (#1415): after a false crisis read Ferni offered 988; the caller's plain
+ * goodbye then went to the classifier with that offer as COMPANION and read as
+ * crisis again, so the goodbye repeated 988. The offer is Ferni's words, not
+ * the caller's risk; the caller's own earlier words still go in EARLIER.
+ */
+export function withoutCrisisResources(line: string): string {
+  return line
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => !CRISIS_RESOURCE.test(sentence))
+    .join(' ')
+    .trim();
+}
+
 /** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
 function normalizeInput(input: CrisisClassifierInput): {
   latest: string;
@@ -165,7 +188,7 @@ function normalizeInput(input: CrisisClassifierInput): {
     .slice(-MAX_EARLIER_MESSAGES);
   // Stripped of SSML so the gate (chat context) and the turn pipeline (recorded
   // reply) key the same line alike and share one call.
-  const companion = stripSSML(input.companion ?? '')
+  const companion = withoutCrisisResources(stripSSML(input.companion ?? ''))
     .trim()
     .slice(-MAX_COMPANION_CHARS);
   return companion ? { latest, earlier, companion } : { latest, earlier };
