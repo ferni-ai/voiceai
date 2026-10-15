@@ -9805,6 +9805,7 @@
   "moments": {
     "teamUnlockTitle": "تعرف على {name}",
     "niceWork": "عمل رائع",
+    "remembered": "سأتذكّر هذا: {summary}",
     "streakSubtitle": "حضورك مستمر، وهذا أمر رائع.",
     "streakTitle": {
       "zero": "سلسلة من {count} يوم",
@@ -11539,7 +11540,18 @@
     "switchAccount": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

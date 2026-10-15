@@ -581,19 +581,20 @@ export async function buildHandoffTools(
         };
       }
 
-      // Generate a soft intro message from the teammate
+      // Generate a soft intro message from the teammate. No "Ferni tells me you're…": a canned
+      // line can't know what the caller said, and the model repeats it as fact.
       const softIntros: Record<string, string[]> = {
         'maya-santos': [
-          "Hey! I'm Maya - I help with habits and routines. Ferni tells me you're working on building something new. That's exciting! I specialize in making changes actually stick. Looking forward to working together when you're ready!",
-          "Hi there! Maya here. I heard you're thinking about habits. My whole thing is making change feel natural, not forced. Can't wait to dive deeper with you soon!",
+          "Hey! I'm Maya - I help with habits and routines. I specialize in making changes actually stick. Looking forward to working together when you're ready!",
+          "Hi there! Maya here. My whole thing is making change feel natural, not forced. Can't wait to dive deeper with you soon!",
         ],
         'peter-john': [
-          "Hello! Peter here - I'm the numbers person. I love finding patterns that others miss. Ferni's been telling me about you. When we connect properly, I'll show you some insights that might surprise you.",
-          "Hi! I'm Peter. I see you're curious about data and patterns. That's my world. Looking forward to showing you what the numbers are really saying when we meet properly.",
+          "Hello! Peter here - I'm the numbers person. I love finding patterns that others miss. When we connect properly, I'll show you some insights that might surprise you.",
+          "Hi! I'm Peter. Data and patterns are my world. Looking forward to showing you what the numbers are really saying when we meet properly.",
         ],
         'alex-chen': [
           "Hey! Alex here - communications is my thing. Whether it's emails, calendar chaos, or tough conversations, I've got you. Can't wait to help you communicate with more confidence!",
-          "Hi! I'm Alex. I heard you might need help organizing things or navigating a conversation. That's exactly what I do. See you soon!",
+          "Hi! I'm Alex. Organizing things and navigating tricky conversations is exactly what I do. See you soon!",
         ],
         'jordan-taylor': [
           "Hi! Jordan here - I'm all about turning dreams into plans. Vacations, life milestones, big changes - I love making them happen. Excited to help you design something amazing!",

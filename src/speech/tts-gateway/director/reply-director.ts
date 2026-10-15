@@ -24,10 +24,11 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
-import { voiceAttuneOn } from './attune.js';
+import { voiceAttuneOn, type Delivery } from './attune.js';
 import { DirectorEngine } from './engine.js';
 import { ferniSpeedNudge } from './ferni-energy.js';
 import { leverModes, speechDirectorMode } from './gate.js';
+import { personaDelivery, teamVoicesOn } from './persona-delivery.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
 import type { DirectorMode, LeverModes, SpeechPlan, TurnContext } from './types.js';
@@ -84,6 +85,10 @@ export interface PlanSummary {
   /** VOICE_ATTUNE: the caller state answered and the reply's loudness (attune.ts). */
   attune?: string;
   volume?: number;
+  /** The caller layer's pace under the resting layers (attune.ts layerDelivery), when it differs. */
+  relativeSpeed?: number;
+  /** Pace/loudness after each layer, in order, when a resting layer applies: "persona 0.85/0.92 > ...". */
+  layers?: string;
   /** Stage 2 tempo planned for this turn (a voice that ignores <speed>). */
   tempo?: number;
   /** Prosody tags were taken off every push (the voice ignores them). */
@@ -197,6 +202,7 @@ class DirectedReply implements ReplyStream {
           : undefined,
       ferniNudge: ferniSpeedNudge(opts.sessionId),
       attune: attuneContext(opts),
+      persona: teamVoicesOn(opts.env) ? personaDelivery(opts.personaId) : undefined,
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,
@@ -380,6 +386,7 @@ class DirectedReply implements ReplyStream {
       speed: engine.speed,
       attune: engine.attunement?.state,
       volume: engine.attunement?.volume,
+      ...layered(engine.delivery),
       tempo: engine.tempo,
       tagsStripped: this.stripProsody,
       opening: engine.opening.opening?.kind,
@@ -394,8 +401,10 @@ class DirectedReply implements ReplyStream {
     };
     if (opts.sessionId && engine.stats.pushesIn > 0) {
       (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
-        emotion: engine.emotion.emotion,
-        speed: engine.speed,
+        // The Director's own picks: the persona's tone and rest are reapplied each reply.
+        emotion: engine.directorEmotion ?? engine.emotion.emotion,
+        // The caller layer only: the resting layers are reapplied each reply, never compounded.
+        speed: engine.delivery?.relativeSpeed ?? engine.speed,
         volume: engine.attunement?.volume,
         ...engine.nonverbalCarry(),
       });
@@ -465,6 +474,13 @@ function wordCount(text: string | undefined): number | undefined {
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** The layered delivery for the plan log, only when a resting layer (persona, late night) applies. */
+function layered(d: Delivery | undefined): Partial<PlanSummary> {
+  if (!d || d.trace.length < 2) return {};
+  const layers = d.trace.map((t) => `${t.layer} ${t.speed}/${t.volume}`).join(' > ');
+  return { layers, relativeSpeed: d.relativeSpeed === d.speed ? undefined : d.relativeSpeed };
+}
 
 /** The raw reading behind the prosody decision, rounded for the plan log. */
 function callerReading(p: CallerProsody | undefined): Partial<PlanSummary> {

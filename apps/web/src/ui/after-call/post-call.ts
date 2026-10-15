@@ -14,7 +14,7 @@
 import { conversationTracker } from '../../services/conversation-tracker.service.js';
 import { createLogger } from '../../utils/logger.js';
 import { REACTIONS } from '../contextual-feedback.ui.js';
-import { openSupport as openSupportFlow } from '../support/open-support.js';
+import { canOpenSupport, openSupport as openSupportFlow } from '../support/open-support.js';
 import { showConversationCost } from '../conversation-cost.ui.js';
 import { hideAfterCallCard, showAfterCallCard } from './after-call-card.ui.js';
 import { loadAfterCallData } from './after-call-data.js';
@@ -53,14 +53,12 @@ export async function showPostCallCard(): Promise<void> {
 
   // The tracker keeps the last call's session until the next call starts.
   const session = conversationTracker.getCurrentSession();
-  const data = await loadAfterCallData(
-    callStartedAt(session?.startTime),
-    session?.insights ?? []
-  );
+  const data = await loadAfterCallData(callStartedAt(session?.startTime), session?.insights ?? []);
   if (newCallStarted) return;
   const card = showAfterCallCard(data, {
     personaName: session?.personaName || 'Ferni',
-    onSupport: openSupport,
+    // No support link when there is nothing to open (paywall off and Venmo off)
+    onSupport: canOpenSupport() ? openSupport : undefined,
   });
   addFeedbackRow(card);
 }

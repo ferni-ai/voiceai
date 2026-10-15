@@ -12,7 +12,11 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getVoiceIdForPersona, CARTESIA_MODEL } from '../../../config/voice-ids.js';
+import {
+  getVoiceIdForPersona,
+  CARTESIA_MODEL,
+  CARTESIA_API_VERSION,
+} from '../../../config/voice-ids.js';
 import { generateWarmGreeting, type GreetingContext } from '../warm-greeting.js';
 
 const log = createLogger({ module: 'GreetingAudioPrewarm' });
@@ -22,8 +26,6 @@ const log = createLogger({ module: 'GreetingAudioPrewarm' });
 // ============================================================================
 
 const CARTESIA_API_URL = 'https://api.cartesia.ai/tts/bytes';
-const CARTESIA_API_VERSION = '2024-06-10';
-// CARTESIA_MODEL imported from config/voice-ids.ts for consistency
 
 /** Primary personas to pre-warm (most likely to be used) */
 const PRIMARY_PERSONAS = ['ferni', 'maya-santos'] as const;

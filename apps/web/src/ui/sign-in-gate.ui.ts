@@ -22,6 +22,7 @@ import { createLogger } from '../utils/logger.js';
 import { checkAccess, type AccessOutcome } from '../services/access-check.js';
 import { emulatorSignInButtons } from './emulator-sign-in.js';
 import { t } from '../i18n/index.js';
+import { createAiRoleLabelRow } from './ai-role-label.ui.js';
 
 // TYPES
 
@@ -501,17 +502,6 @@ function releaseAppBehindGate(): void {
   inertBehindGate = [];
 }
 
-/** Small, persistent, honest label: Ferni is an AI companion (styles in ai-companion-label.css). */
-function createAiCompanionLabel(): HTMLElement {
-  const row = document.createElement('div');
-  row.className = 'ai-companion-label-row sign-in-gate-ai-label';
-  const label = document.createElement('span');
-  label.className = 'ai-companion-label';
-  label.textContent = t('aiLabel.companion');
-  row.appendChild(label);
-  return row;
-}
-
 function createOverlay(): HTMLElement {
   const overlay = document.createElement('div');
   overlay.className = 'sign-in-gate-overlay';
@@ -599,7 +589,7 @@ function createOverlay(): HTMLElement {
 
   // Assemble
   content.appendChild(logoDiv);
-  content.appendChild(createAiCompanionLabel());
+  content.appendChild(createAiRoleLabelRow('sign-in-gate-ai-label'));
   content.appendChild(title);
   content.appendChild(subtitle);
   content.appendChild(buttonsDiv);
