@@ -15,19 +15,29 @@ const SKIP = /(__tests__|\.backups-|\/tests\/|node_modules)/;
 const OTHER_PERSONA = /personas\/bundles\/(?!ferni\/|shared\/)/;
 const NAME_VAR = String.raw`(?:\$\{(?:name|userName|firstName|preferredName|displayName)\}|\{name\})`;
 /** Instructions to say the name, and few-shot replies that address the caller by it. */
-const LEAD_IN = String.raw`(?:consider\w*|maybe(?: \w+){0,2}|say|e\.g\.|example|try)\s*:?\s*`;
+const LEAD_IN = String.raw`(?:consider|maybe|say|e\.g\.|example|try)(?: \w+){0,2}\s*:?\s*`;
+const WHOSE = String.raw`(?:their|the user'?s|the caller'?s|the person'?s|\$\{\w+\}'s)`;
 const ASKS = [
-  /\b(?:use|uses|using|say|says)\s+(?:their|the user'?s|the caller'?s)\s+(?:first\s+)?name\b/i,
-  /\baddress(?:es)?\s+(?:them|the user|the caller)\s+by\s+name\b/i,
+  new RegExp(
+    String.raw`\b(?:use|uses|using|say|says|mention|mentions|sprinkle in|personali[sz]e with)\s+${WHOSE}\s+(?:first\s+)?name\b`,
+    'i'
+  ),
+  /\b(?:address|addresses|refer to|refers to|call|calls)\s+(?:them|the user|the caller|the person)\s+by\s+(?:their\s+)?name\b/i,
   /\bname\b.*\buse it (?:occasionally|naturally|often|now and then)\b/i,
   /\bcall them \$\{name\} (?:now and then|often|from now on)\b/i,
   // Few-shot replies that address the caller: Consider: "Sam, remember when..."
-  new RegExp(`\\b${LEAD_IN}["\`]${NAME_VAR},\\s`, 'i'),
+  new RegExp(`\\b${LEAD_IN}["\`](?:(?:hey|hi|oh)\\s+)?${NAME_VAR}(?:,|\\s[-—])\\s`, 'i'),
   new RegExp(`\\b${LEAD_IN}["\`][^"\`]*,\\s${NAME_VAR}[.?!]`, 'i'),
 ];
-/** Where the name belongs: within the same clause as hello or goodbye. */
-const NEAR_HELLO_OR_BYE = /\b(?:hello|hey|hi|goodbye|bye|greet\w*|talk soon|take care)\b/i;
-const NEGATED = /\b(?:don'?t|do not|never|not|avoid|no need to|instead of)\b[^.;]*$/i;
+/** Where the name belongs: an instruction or line about hello or goodbye. */
+const HELLO_OR_BYE = /\b(?:hello|goodbye|greet\w*|farewell|sign-?off|talk soon|take care|bye)\b/i;
+/** "Don't use their name" (the negation right before it), not "Don't forget to use their name". */
+const NEGATED = /\b(?:don'?t|do not|never|avoid|no need to)\s+(?:\w+\s+)?$/i;
+/** Lines that name the caller in the third person (notes about them, not to them). */
+const ABOUT_THEM = [
+  'src/agents/personas/director-escalation.ts', // the director's notes to Ferni name the caller
+  'src/intelligence/pondering/pondering.ts', // "the summaries may call them by name"
+];
 const COMMENT = /^\s*(?:\/\/|\/\*|\*(?!\s*\*))/; // TS comments; markdown "* " bullets are checked
 
 function files(dir: string): string[] {
@@ -47,8 +57,8 @@ export function nameAsks(text: string, markdown = false): number[] {
     for (const re of ASKS) {
       const m = re.exec(line);
       if (!m) continue;
-      const clause = line.slice(Math.max(0, m.index - 40), m.index + m[0].length + 40);
-      if (NEAR_HELLO_OR_BYE.test(clause) || NEGATED.test(line.slice(0, m.index))) continue;
+      const clause = line.slice(Math.max(0, m.index - 40), m.index + m[0].length + 30);
+      if (HELLO_OR_BYE.test(clause) || NEGATED.test(line.slice(0, m.index))) continue;
       out.push(i + 1);
       return;
     }
@@ -67,12 +77,21 @@ describe('prompt text about the caller name', () => {
       'Address them by name.',
       '`Consider: "${name}, remember when you won?"`',
       'Maybe check in: "Still holding it, ${name}?"',
+      '`Consider celebrating: "Hey ${name}, I was thinking about that win you had."`',
+      "Don't forget to use their name.",
+      'Mention their name often.',
+      'Refer to them by name.',
+      'Call them by their name.',
+      "- Uses the person's name",
+      'Say something like "${name}, that sounds hard."',
+      'Consider: "${name} - remember when you won?"',
     ]) {
       expect(nameAsks(ask, true), ask).toEqual([1]);
     }
     for (const fine of [
       "Don't use their name every reply.",
       '- Greeting: "Hey ${name}, good to hear you."',
+      'Greet them by name.',
       'Keep the goodbye short, by name if you know it: "Talk soon, ${name}."',
       "`User's name: ${userName}.`",
       'You have a memory callback available. Use it naturally if it fits:',
@@ -85,7 +104,7 @@ describe('prompt text about the caller name', () => {
   it('never asks Ferni to say their name outside hello and goodbye', () => {
     const hits: string[] = [];
     for (const file of files(join(ROOT, 'src'))) {
-      if (OTHER_PERSONA.test(file)) continue;
+      if (OTHER_PERSONA.test(file) || ABOUT_THEM.some((f) => file.endsWith(f))) continue;
       const text = readFileSync(file, 'utf8');
       const lines = text.split('\n');
       for (const n of nameAsks(text, file.endsWith('.md'))) {
