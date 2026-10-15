@@ -89,6 +89,17 @@ describe('an invented topic never reaches the next call', () => {
       "I'm not sure what offer you're talking about",
       'Ok.',
       'No, there is no offer.',
+      "I'm confused, the offer.",
+      "Where'd that offer come from",
+      'Who said anything about an offer',
+      'Nobody gave me an offer.',
+      'I wish I had an offer.',
+      'Forget the offer.',
+      'Ugh, the offer.',
+      'Cool, the offer.',
+      'Funny you bring up the offer',
+      'Yeah, the offer thing.',
+      'Huh. Offer.',
     ]) {
       const summary = await afterTheClaim(reply, { followUps: ['Ask about the offer'] });
       expect(await nextCallOpener(summary), reply).not.toMatch(/offer/i);

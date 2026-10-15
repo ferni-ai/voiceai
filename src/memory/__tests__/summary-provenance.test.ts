@@ -162,10 +162,9 @@ describe('saidByCaller', () => {
     expect(
       saidByCaller('Ask about the offer', ["No, that's wrong, there's no offer."], claim)
     ).toBe(false);
-    expect(saidByCaller('Ask about the offer', ['Yes, the offer came through.'], claim)).toBe(true);
   });
 
-  it('a word Ferni raised is theirs only when they tell something new about it', () => {
+  it('a word Ferni raised first never becomes theirs, whatever they say back', () => {
     const claim = ["Ferni told me you're weighing the offer."];
     const notTheirs = [
       'Um what offer',
@@ -189,40 +188,16 @@ describe('saidByCaller', () => {
     for (const reply of notTheirs) {
       expect(saidByCaller('Ask about the offer', [reply], claim), reply).toBe(false);
     }
-    expect(saidByCaller('Ask about the offer', ['I got the offer from Acme.'], claim)).toBe(true);
+    // even a reply that sounds like a claim: its words can't be told from an echo's
+    expect(saidByCaller('Ask about the offer', ['I got the offer from Acme.'], claim)).toBe(false);
   });
 
-  it('keeps the threads Ferni asked about when the caller answers', () => {
-    const cases: Array<[string, string, string]> = [
-      [
-        'Did you have that interview yet?',
-        'Not yet, the interview is Thursday.',
-        'Ask how the interview went',
-      ],
-      [
-        "How's your mom doing?",
-        "My mom's surgery is next week, I'm not ready.",
-        "Ask about mom's surgery",
-      ],
-      [
-        'Did you call your landlord?',
-        'No, I still need to call the landlord.',
-        'Ask if they called the landlord',
-      ],
-      [
-        'How is the wedding planning?',
-        "We booked the venue for the wedding, it's in June.",
-        'Ask about the wedding venue',
-      ],
-      [
-        'Are you still training for the marathon?',
-        'Yes, the marathon is in three weeks.',
-        'Ask how the marathon went',
-      ],
-    ];
-    for (const [asked, answer, thread] of cases) {
-      expect(saidByCaller(thread, [answer], [asked]), thread).toBe(true);
-    }
+  it("keeps what the caller adds when Ferni asks, not Ferni's own words", () => {
+    const asked = ['How did the interview go?'];
+    const answer = ['Great, I got the job at the bakery!'];
+    expect(saidByCaller('Ask how the bakery job is going', answer, asked)).toBe(true);
+    // the cost: Ferni's own "interview" isn't stored again from this call
+    expect(saidByCaller('Ask how the interview went', answer, asked)).toBe(false);
   });
 
   it('labels what came from the assistant, and keeps a label the model chose for their talk', () => {

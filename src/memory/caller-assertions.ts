@@ -136,44 +136,23 @@ export interface Turn {
   content: string;
 }
 
-/** A sentence that asks or echoes ("what offer", "huh, the offer?") rather than tells. */
-const ASKS = /\?|\b(?:what|which|huh|hmm|mean)\b/i;
-/** A "no" just before a word ("no offer", "haven't gotten an offer"); "not yet" is a status. */
-const NEGATED = /(?:\bno|\bnot|\bnever|n't|\bnothing|\bany)\b(?!\s+yet)[^.?!,]{0,24}$/i;
-/** Words that acknowledge without adding anything ("yeah, the offer thing", "oh right"). */
-const ACKNOWLEDGING = new Set(
-  'yeah yes yep yup okay sure right hold wait excuse sorry guess like know think really well just actually maybe kind sort uh um oh hmm mhm'.split(
-    ' '
-  )
-);
-
 /**
- * The words the caller can be said to have said, in call order. Their own words count
- * wherever they say them ("can you help me plan my sister's visit?"). A word Ferni or a
- * teammate brought up first counts only when the caller tells something new about it in
- * the same sentence: a word of their own that isn't an acknowledgement, in a sentence
- * that doesn't ask or echo, with no "no" right before it. "I got the offer from Acme" and
- * "Not yet, the interview is Thursday" count; "Hold on, what offer", "Yeah, the offer
- * thing", "Huh. Offer." and "I haven't gotten an offer" don't.
+ * The words the caller said first, in call order. A word Ferni or a teammate brought up
+ * before the caller ever said it stays theirs for the rest of the call, whatever the
+ * caller says back: "What offer", "Huh. Offer.", "Nobody gave me an offer", "Yeah, the
+ * offer thing" and "I got the offer" alike. Reading consent from a reply's wording
+ * failed four review rounds; an echo can't be told from a claim by its words. The cost
+ * is a thread Ferni asked about first ("how did the interview go?"), which isn't stored
+ * again from that call; the earlier call's summary that raised it still holds it.
  */
 export function callerWords(turns: readonly Turn[]): string[] {
   const raised: string[] = [];
   const said: string[] = [];
   const known = (w: string, list: string[]) => list.some((x) => sameWord(w, x));
   for (const turn of turns) {
-    if (turn.role !== 'user') {
-      raised.push(...topicWordsOf(turn.content));
-      continue;
-    }
-    for (const sentence of turn.content.split(/(?<=[.!?])\s+/)) {
-      const words = topicWordsOf(sentence);
-      const ferni = (w: string) => known(w, raised) && !known(w, said);
-      const tells = !ASKS.test(sentence) && words.some((w) => !ferni(w) && !ACKNOWLEDGING.has(w));
-      for (const w of words) {
-        const before = sentence.toLowerCase().split(w)[0] ?? '';
-        if (!ferni(w) || (tells && !NEGATED.test(before))) said.push(w);
-      }
-    }
+    const words = topicWordsOf(turn.content);
+    if (turn.role !== 'user') raised.push(...words.filter((w) => !known(w, said)));
+    else said.push(...words.filter((w) => !known(w, raised)));
   }
   return said;
 }
