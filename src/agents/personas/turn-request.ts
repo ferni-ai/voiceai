@@ -32,6 +32,7 @@ import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt.js';
+import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes, listeningReply } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
@@ -159,8 +160,11 @@ export function withTurnReminder(
     // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),
     // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
-    // for this reply, last of all; never with crisis guidance.
+    // for this reply, last but the repair check; never with crisis guidance.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
+    // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
+    // note above cancels it; none with crisis guidance or when they answered Ferni's question.
+    options.shape !== false && !answering ? repairNoteFor(chatCtx, session) : '',
   ].filter(Boolean);
   const reminder = contextPacketEnabled()
     ? packetReminder(session, words, turnNotes)
