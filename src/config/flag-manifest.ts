@@ -188,6 +188,7 @@ export const FLAG_MANIFEST = {
   LAZY_FIRESTORE: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   LIFE_LEDGER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIFE_MOVES_ON: { default: 'off', owner: 'voice', kind: 'experiment' },
+  LISTEN_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
   LIVE_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   LLM_DYNAMIC_CONTENT_ENABLED: { default: 'on', owner: 'platform', kind: 'config' },
   // a caller's retry429 option overrides it

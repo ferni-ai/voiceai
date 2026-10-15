@@ -31,6 +31,7 @@ import { retrievedTools } from './turn-request-tools.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt.js';
 import { ferniStateTurn } from './ferni-state.js';
+import { listeningNotes, listeningReply } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
@@ -98,7 +99,10 @@ export function withTurnReminder(
   const offered = director?.current() ?? [];
   // DIRECTOR_ANSWER_TURN_GUARD=on: notes written before they answered Ferni's question are stale.
   const answering = isAnswerTurn(chatCtx.items, words);
-  const notes = answering ? '' : formatNotes(offered.filter(keep));
+  // LISTEN_FIRST=on: a caller low on energy gets no note pushing Ferni to share.
+  const notes = answering
+    ? ''
+    : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
@@ -254,6 +258,8 @@ function styleFor(
 ): string {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return TURN_STYLE_REMINDER;
+  const listening = listeningReply(said, chatCtx, session);
+  if (listening) return listening;
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
