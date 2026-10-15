@@ -157,7 +157,8 @@ export function withNameGate(
       const window = v.end + GOODBYE_WAIT;
       let close: number;
       if (stop >= 0 && v.end + stop + 1 <= window) close = v.end + stop + 1;
-      else if (raw.length >= window) close = window;
+      else if (raw.length >= window)
+        continue; // a sentence this long isn't a goodbye
       else if (final) close = raw.length;
       else {
         upTo = v.start;
@@ -165,10 +166,7 @@ export function withNameGate(
       }
       const from =
         Math.max(...['.', '!', '?', '…'].map((p) => raw.lastIndexOf(p, v.start - 1))) + 1;
-      // A cut mid-sentence is not a sentence end: "take care" there doesn't close it.
-      const said =
-        raw.slice(from, close) + (close === window && stop !== close - v.end - 1 ? 'x' : '');
-      if (GOODBYE.test(said)) keep.add(v);
+      if (GOODBYE.test(raw.slice(from, close))) keep.add(v);
     }
     for (const v of found) if (v.start < upTo && v.end > upTo) upTo = v.start; // waits whole
     const done = found.filter((v) => v.end <= upTo);

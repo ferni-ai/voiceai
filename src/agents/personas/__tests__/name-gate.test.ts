@@ -237,6 +237,15 @@ describe('withNameGate', () => {
     expect(await run(text.split(/(?<= )/), callWith(2))).toBe(
       'X x x x x x x x x remember to take care of the paperwork first.'
     );
+    for (const text of [
+      'Sam, x x x x x x x x x x x x x x bye, everyone at the office says hi to you.',
+      'Sam, x x x x x x x x x x x x talk soon, Jordan and I will plan the trip.',
+      'Sam, x x x x x x x x take care of yourself, and also the dog and the cat.',
+    ]) {
+      const out = await run(text.split(/(?<= )/), callWith(2));
+      expect(out).not.toMatch(/Sam/);
+      expect(out).toBe(await run([text], callWith(2)));
+    }
   });
 
   it('leaves no stray ; or : where a sentence-start name was', () => {
