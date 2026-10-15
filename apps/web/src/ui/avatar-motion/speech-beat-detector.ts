@@ -66,9 +66,10 @@ export function createBeatDetector(): BeatDetector {
     lastT = null;
   }
 
-  function detectBeat(nowMs: number): { beat: boolean; strength: number } {
+  function detectBeat(nowMs: number, prevEnv: number): { beat: boolean; strength: number } {
     history = history.filter((s) => nowMs - s.t <= RISE_WINDOW_MS);
-    const floor = history.reduce((min, s) => Math.min(min, s.env), env);
+    // prevEnv covers an empty window (turn start, throttled frame), so the onset still counts.
+    const floor = history.reduce((min, s) => Math.min(min, s.env), Math.min(env, prevEnv));
     history.push({ t: nowMs, env });
     const rise = env - floor;
     if (rise < RISE_THRESHOLD || env < BEAT_FLOOR) return { beat: false, strength: 0 };
@@ -96,8 +97,9 @@ export function createBeatDetector(): BeatDetector {
 
   function step(level: number, nowMs: number): BeatFrame {
     const target = Math.max(0, Math.min(1, Number.isFinite(level) ? level : 0));
+    const prevEnv = env;
     env += (target - env) * (target > env ? ENVELOPE_ATTACK : ENVELOPE_RELEASE);
-    const { beat, strength } = detectBeat(nowMs);
+    const { beat, strength } = detectBeat(nowMs, prevEnv);
     const phraseEnd = detectPhraseEnd(nowMs);
     lastT = nowMs;
     return { beat, strength, phraseEnd };

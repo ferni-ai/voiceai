@@ -102,4 +102,17 @@ describe('speech beat detector', () => {
     const onset = feed(d, 0.7, 100, quiet.t);
     expect(beats(onset.frames)).toBe(1);
   });
+
+  it('beats on the first stressed syllable of a turn, with no quiet frames before it', () => {
+    const d = createBeatDetector();
+    const onset = feed(d, 0.4, 100, 0); // beats after quiet frames too
+    expect(beats(onset.frames)).toBe(1);
+  });
+
+  it('beats on an onset after a frame gap longer than the rise window', () => {
+    const d = createBeatDetector();
+    const quiet = feed(d, 0, 200, 0);
+    const onset = feed(d, 0.4, 100, quiet.t + 200); // e.g. a throttled animation frame
+    expect(beats(onset.frames)).toBe(1);
+  });
 });
