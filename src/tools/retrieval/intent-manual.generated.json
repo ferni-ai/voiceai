@@ -9598,7 +9598,7 @@
     },
     "handoffToPeter": {
       "domain": "handoff",
-      "description": "Transfer conversation to Tom Brannigan, who specializes in undefined.",
+      "description": "Transfer conversation to Peter, who specializes in undefined.",
       "queries": [
         "Peter is clearly the one who should be in charge here.",
         "I definitely need Peter's input on this situation.",
