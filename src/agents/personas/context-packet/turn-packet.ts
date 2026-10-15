@@ -19,7 +19,13 @@ import {
   type RecallAgent,
 } from '../../multi-agent/memory-recall-hook.js';
 
-import { factId, type RecallFact } from '../../../memory/recall/session-recall.js';
+import { forgottenInProcess } from '../../../memory/recall/forget.js';
+import {
+  factId,
+  isForgotten,
+  RECALL_RULE,
+  type RecallFact,
+} from '../../../memory/recall/session-recall.js';
 import { getDisplayName } from '../../../personas/persona-ids.js';
 import {
   assembleContextPacket,
@@ -67,11 +73,20 @@ function factFromRecall(f: RecallFact, userName?: string): KnownFact {
   };
 }
 
+/** Most picked facts a call keeps for its packets; the packet carries them whole, so this bounds it. */
+const MAX_CALL_FACTS = 20;
+
 interface CallMemory {
   /** Newest pick first; each pick in recall's own order (most relevant first). */
   facts: KnownFact[];
+  /** The latest pick's note already carried the rule (RECALL_RULE), so the packet leaves it out. */
+  ruleInChat: boolean;
 }
-const calls = new WeakMap<object, CallMemory>();
+/** Keyed by the call's session id (services.sessionId): one live call per id. */
+const calls = new Map<string, CallMemory>();
+
+const sessionKey = (session: object): string | undefined =>
+  (session as { userData?: { services?: { sessionId?: string } } }).userData?.services?.sessionId;
 
 /** Keep the facts recall picked for this call's packets. A newer pick goes first, in its own order. */
 export function rememberForPacket(
@@ -79,11 +94,14 @@ export function rememberForPacket(
   pick: RecallPick,
   userName = pick.userName
 ): void {
-  const call: CallMemory = calls.get(session) ?? { facts: [] };
-  calls.set(session, call);
+  const key = sessionKey(session);
+  if (!key) return;
+  const call: CallMemory = calls.get(key) ?? { facts: [], ruleInChat: false };
+  calls.set(key, call);
   const fresh = pick.facts.map((f) => factFromRecall(f, userName));
   const ids = new Set(fresh.map((f) => f.id));
-  call.facts = [...fresh, ...call.facts.filter((f) => !ids.has(f.id))];
+  call.facts = [...fresh, ...call.facts.filter((f) => !ids.has(f.id))].slice(0, MAX_CALL_FACTS);
+  call.ruleInChat = pick.rest?.includes(RECALL_RULE) ?? false;
 }
 
 /**
@@ -107,7 +125,7 @@ export function sendRecall(
 const ASKS_SOURCE =
   /\b(how (do|did|would) you (know|remember)|who told you|where did you (hear|get|learn)|how('d| did) you find out)\b/i;
 export const SOURCE_NOTE =
-  'They asked how you know: answer honestly from the label on that memory (when and to whom they said it), plainly, without guessing.';
+  'They asked how you know: answer honestly from the label on that memory (when they said it), plainly, without guessing.';
 
 export interface TurnParts {
   personaId?: string;
@@ -134,8 +152,13 @@ function localTime(now: number, timeZone: string | undefined): string | undefine
 }
 
 export function turnPacket(session: object, p: TurnParts): ContextPacket {
-  const call = calls.get(session);
+  const key = sessionKey(session);
+  const call = key ? calls.get(key) : undefined;
   const persona = getDisplayName(p.personaId ?? 'ferni');
+  // Topics they asked us to forget (forget.ts) are never said back, even from a pick made earlier.
+  const userId = (session as { userData?: { userId?: string } }).userData?.userId;
+  const forgotten = userId ? forgottenInProcess(userId) : [];
+  const memories = (call?.facts ?? []).filter((f) => !isForgotten(f.text, forgotten));
   // The honesty note leads the turn's own notes, which keep the plain order.
   const honesty = ASKS_SOURCE.test(p.words) ? [SOURCE_NOTE] : [];
   return assembleContextPacket({
@@ -143,8 +166,9 @@ export function turnPacket(session: object, p: TurnParts): ContextPacket {
     caller: { name: p.userName },
     rightNow: { localTime: localTime(p.now, p.timeZone) },
     // Recall budgets its facts per turn; once picked they stay, like its notes in the chat.
-    memories: call?.facts ?? [],
+    memories,
     memoriesWhole: true,
+    memoryRule: call?.ruleInChat ? undefined : RECALL_RULE,
     turn: [...honesty, ...p.notes],
     now: p.now,
     timeZone: p.timeZone,

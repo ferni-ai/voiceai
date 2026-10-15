@@ -64,7 +64,7 @@ afterEach(() => {
 
 describe('CONTEXT_PACKET logging', () => {
   it('packetLogFields: counts only, though the packet itself carries every planted detail', () => {
-    const session = {};
+    const session = { userData: { services: { sessionId: 'log-bare' } } };
     plant(session);
     const packet = turnPacket(session, {
       personaId: 'ferni',
@@ -90,7 +90,9 @@ describe('CONTEXT_PACKET logging', () => {
   });
 
   it('what withTurnReminder logs on the live path has none of it', () => {
-    const session = { userData: { userName: 'Jane Doe', personaId: 'ferni' } };
+    const session = {
+      userData: { userName: 'Jane Doe', personaId: 'ferni', services: { sessionId: 'log-named' } },
+    };
     plant(session);
     setDirector(session, {
       current: () => ['Jane Doe sounds tired; stop explaining the deck.'],

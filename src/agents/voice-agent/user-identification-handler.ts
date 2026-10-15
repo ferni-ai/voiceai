@@ -31,6 +31,7 @@ import {
   callerRecognitionEnabled,
   recognizePhoneSession,
 } from '../voice-agent-entry/caller-recognition.js';
+import { flagOn } from '../../config/env-flag.js';
 
 // ============================================================================
 // TYPES
@@ -169,6 +170,8 @@ export async function identifyUser(
     else if (phone && identificationSource !== 'anonymous' && identificationSource !== 'device')
       userId = userName = undefined;
     if (phone) identificationSource = 'phone';
+    // The prefetch above ran before recognition named the account (PHONE_PARITY).
+    if (phone?.userId && flagOn('PHONE_PARITY')) void prefetchUserCommitments(phone.userId);
   }
 
   // Configure music playback mode for phone calls

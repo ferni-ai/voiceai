@@ -969,19 +969,15 @@
     "steps": {
       "welcome": {
         "title": "Welcome to Ferni",
-        "description": "Your personal team of AI life coaches. Each brings unique wisdom to support your journey."
+        "description": "Your personal team of life coaches. Each one brings their own way of seeing things."
       },
       "voice": {
         "title": "Just Speak",
-        "description": "Tap the center to start a conversation. Speak naturally - Ferni listens and responds in real time."
+        "description": "Tap Connect to start a conversation. Then just talk, the way you would with a friend."
       },
       "personas": {
         "title": "Meet Your Team",
         "description": "Six unique coaches with different perspectives. Each understands your history with the team."
-      },
-      "rituals": {
-        "title": "Daily Practices",
-        "description": "Build consistency with short daily rituals. Track streaks and celebrate progress."
       },
       "ready": {
         "title": "You're Ready",
@@ -3655,11 +3651,12 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — Your AI Life Companion",
-      "message": "I've been using Ferni and it's genuinely changed how I approach my day. Join me! {url}",
-      "shortMessage": "Join me on Ferni! {url}",
-      "emailSubject": "You should try Ferni",
-      "emailBody": "Hey! I've been using Ferni — it's an AI companion that actually feels human. Thought you'd love it. {url}"
+      "title": "Meet Ferni"
+    },
+    "draft": {
+      "label": "Your message",
+      "text": "I've been talking things through with Ferni. Thought you might like it too.",
+      "hint": "Say it your way. Your link goes at the end."
     },
     "modal": {
       "title": "Share the Growth",
@@ -3692,7 +3689,6 @@
       "friendsGrowing": "{count} friends growing",
       "title": "Your garden:"
     },
-    "quoteMessage": "\"Give them someone who remembers everything, shows up at 2am, and never judges.\"",
     "subtitle": "Know someone who could use a friend like this?",
     "title": "Share the Growth",
     "yourLink": "Your link:"
@@ -9547,6 +9543,7 @@
     },
     "teamUnlockTitle": "Meet {name}",
     "niceWork": "Nice work",
+    "remembered": "I'll remember: {summary}",
     "streakSubtitle": "You're showing up. That matters."
   },
   "marketplaceService": {

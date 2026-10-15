@@ -1288,4 +1288,4 @@ export default {
   rehydrateConversationEmbeddings,
 };
 export { forgottenTopicsOrNull } from './recall/forget.js';
-export { contentWords, isForgotten } from './recall/session-recall.js';
+export { contentWords, forgetTokens, isForgotten } from './recall/session-recall.js';

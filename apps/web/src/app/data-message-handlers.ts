@@ -39,6 +39,7 @@ import { handleVoiceEventDataMessage } from '../services/voice-events.service.js
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { handleAgentAckMessage } from './agent-ack-handlers.js';
+import { handleMomentMessage } from './moment-messages.js';
 import { routeExpressionMessage } from './expression-routes.js';
 import { observeListenSignal } from './backchannel-signal.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
@@ -62,6 +63,8 @@ import {
   type TrustSignalEvent,
 } from './live-signal-handlers.js';
 import { WRAP_UP_EXPRESSION_HOLD_MS } from './call-end.js';
+import { noteConversationEnd, playGoodbyeSound } from './call-end-paths.js';
+import { conversationEndEndsCall } from '../services/planned-goodbye.js';
 import { ferniExpressions, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
 // 🎭 Luxo Expressions - 100+ expression system from design tokens
 import type { ExpressionId } from '../config/expressions.generated.js';
@@ -151,9 +154,8 @@ export function handleDataMessage(message: DataMessage): void {
   if (routeGroupDataMessage(message)) return; // group roundtable / call → participant grid
   if (routeExpressionMessage(message)) return; // reply tone; expression signals (ferni:expression-arbiter)
   // 🌉 Humanization signal (breakthrough, vulnerability…) or agent ack / fallback notice
-  if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) {
-    return;
-  }
+  if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) return;
+  if (handleMomentMessage(message)) return; // ferni_moment: the "I'll remember: …" pill
 
   // 🔄 Try to process as behavior signal (bidirectional behavior system)
   // These signals change HOW Ferni appears (avatar mode, pacing, expressions)
@@ -2461,19 +2463,17 @@ export function handleCameoUnlock(event: CameoUnlockMessage): void {
  * 3. Disconnect from the room
  */
 export function handleConversationEnd(event: ConversationEndEvent): void {
-  log.info('Conversation end signal received:', {
-    reason: event.reason,
-    exitType: event.exitType,
-    delay: event.disconnectDelay,
-  });
+  noteConversationEnd(event); // logs it; with wrap-up on, a warm goodbye gets the ceremony
+  // Wrap-up: not a planned goodbye (silence, failures), so the reconnect prompt takes the call
+  if (!conversationEndEndsCall(event.reason)) return;
 
   // 📞 AGENT EXIT - When Ferni chooses to hang up
   // More tactile, quicker, like placing a phone receiver down firmly
   if (event.reason === 'agent_exit') {
     log.info('🛑 Agent-initiated exit:', event.exitType);
 
-    // Play the phone click sound - satisfying, tactile finality
-    soundUI.play('phoneClick');
+    // Play the phone click sound - satisfying, tactile finality (the hang-up after it stays quiet)
+    playGoodbyeSound('phoneClick');
 
     // Brief, respectful message - no cheerful "see you!"
     messageUI.show(t('session.takeCare'), 'info', 1500);
@@ -2495,8 +2495,8 @@ export function handleConversationEnd(event: ConversationEndEvent): void {
   }
 
   // 🌅 NORMAL GOODBYE - Warm farewell ceremony
-  // Play warm goodbye sound (different from abrupt disconnect)
-  soundUI.play('goodbye');
+  // Play warm goodbye sound: the call's one end sound (the hang-up after it stays quiet)
+  playGoodbyeSound('goodbye');
 
   messageUI.show(t('agentNotices.seeYou'), 'info', 2000);
 

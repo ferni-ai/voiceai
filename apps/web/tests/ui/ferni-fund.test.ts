@@ -32,6 +32,7 @@ function json(status: number, body: unknown): () => Response {
 }
 
 const { open, close } = await import('../../src/ui/ferni-fund.ui.js');
+const { recordPaywallFlag } = await import('../../src/services/paywall.service.js');
 
 async function settle(ms = 30): Promise<void> {
   await new Promise((r) => {
@@ -51,6 +52,7 @@ function choose(selector: string): void {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  recordPaywallFlag({ paywall: true }); // the fund opens only while the server has a paywall on
   replies.clear();
   replies.set('/api/garden/status', json(200, null));
   globalThis.fetch = vi.fn(async (url: string | URL | Request) => {

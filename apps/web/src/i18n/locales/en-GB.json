@@ -9489,6 +9489,7 @@
   "moments": {
     "teamUnlockTitle": "Meet {name}",
     "niceWork": "Nice work",
+    "remembered": "I'll remember: {summary}",
     "streakSubtitle": "You're showing up. That matters.",
     "streakTitle": {
       "one": "{count} day streak",

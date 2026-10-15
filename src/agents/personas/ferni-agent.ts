@@ -30,7 +30,6 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { filterSilenceReply } from '../voice-agent/presence-check.js';
 import { getModelProvider } from '../model-provider/index.js';
-import { filterCaptionStream } from './caption-filter.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
 import { gatedReply } from './crisis-gate.js';
@@ -38,7 +37,7 @@ import { OpenerGate } from './opener-gate.js';
 import { emergencyTruncate, estimateTokens } from './emergency-truncate.js';
 import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
-import { tapSpokenText, toolsForTurn, withTeammateTool } from './turn-request.js';
+import { spokenCaptions, toolsForTurn, withTeammateTool } from './turn-request.js';
 import { noteRequest } from '../shared/turn-receipt.js';
 
 const log = createLogger({ module: 'FerniAgent' });
@@ -661,7 +660,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     text: Parameters<voice.Agent<PersonaSessionData>['transcriptionNode']>[0],
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['transcriptionNode']> {
-    const captions = tapSpokenText(filterCaptionStream(text), this.session as object);
+    const captions = spokenCaptions(text, this.session as object);
     return super.transcriptionNode(captions, modelSettings);
   }
 

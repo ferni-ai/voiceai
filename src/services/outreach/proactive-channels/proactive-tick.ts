@@ -20,6 +20,7 @@ import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { lastTalkedAt } from '../outreach-cadence.js';
 import { isValidTimezone, localMinutes } from '../call-hours-guard.js';
 import { collectTriggers } from './triggers.js';
+import { ponderedTriggers } from './pondered-triggers.js';
 import { chooseChannel } from './channel-policy.js';
 import { alreadySent, lastTextOf, recentOutreach, writeOutreachLog } from './outreach-log.js';
 import { writeOutreachText } from './outreach-text.js';
@@ -78,12 +79,20 @@ async function nextTrigger(
   user: Record<string, unknown>,
   now: Date
 ): Promise<ProactiveTrigger | undefined> {
-  const triggers = await collectTriggers(userId, {
-    now,
-    // Unknown time zone: never "evening", so time-of-day triggers wait.
-    localHour: localHourOf(user, now) ?? 0,
-    lastTalkedAt: lastTalkedAt(user),
-  });
+  const triggers = [
+    ...(await collectTriggers(userId, {
+      now,
+      // Unknown time zone: never "evening", so time-of-day triggers wait.
+      localHour: localHourOf(user, now) ?? 0,
+      lastTalkedAt: lastTalkedAt(user),
+    })),
+    // Pondered follow-ups backed by the caller's own words (OUTREACH_PONDERED_NOTES).
+    // A failed read skips them this minute; the triggers above still go out.
+    ...(await ponderedTriggers(userId, user, now, timezoneOf(user)).catch((error: unknown) => {
+      log.warn({ error: String(error), userId }, 'Pondered follow-ups not read');
+      return [];
+    })),
+  ];
   for (const t of triggers) {
     // Sequential on purpose: usually the first one is new.
     // eslint-disable-next-line no-await-in-loop

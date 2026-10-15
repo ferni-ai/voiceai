@@ -38,6 +38,7 @@
     "default_rate": "medium",
     "emotion_range": ["excited", "curious", "happy", "affectionate", "sympathetic", "proud", "contemplative", "confident", "nostalgic"],
     "default_speed": 0.95,
+    "speed_band": [0.88, 1.03],
     "laughter_frequency": 0.2
   },
 

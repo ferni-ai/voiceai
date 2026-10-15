@@ -12,8 +12,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
 import { createMemoryRecall } from '../../multi-agent/memory-recall-hook.js';
-import { MEMORY_RULE, SECTION_BUDGETS } from '../context-packet/context-packet.js';
+import { SECTION_BUDGETS } from '../context-packet/context-packet.js';
 import { RECALL_LIMIT } from '../life-ledger.js';
+import { RECALL_RULE } from '../../../memory/recall/session-recall.js';
 import {
   rememberForPacket,
   sendRecall,
@@ -26,6 +27,9 @@ import { setDeliberator, type Deliberator } from '../deliberation.js';
 import { setDirector, type Director } from '../director-notes.js';
 import { forgetRoom } from '../room-guests.js';
 import { withTurnReminder } from '../turn-request.js';
+
+/** A session as the live path has it: the packet is kept per call, by its session id. */
+const keyed = (sessionId: string) => ({ userData: { services: { sessionId } } });
 
 const lastText = (ctx: llm.ChatContext): string =>
   (ctx.items.at(-1) as llm.ChatMessage).textContent ?? '';
@@ -44,10 +48,11 @@ const LONG_CALL = [
   "It's a lot to weigh.",
   "I'm wondering if Friday works.",
 ];
+let calls = 0;
 function call(
   words = 'Wait, how do you know I was up late?',
   earlier: readonly string[] = ['I was up so late last night.'],
-  sessionId = 'packet-call'
+  sessionId = `packet-call-${++calls}` // the packet keeps picks per session id: one per test
 ): { chat: llm.ChatContext; session: { userData: unknown } } {
   forgetRoom(sessionId); // ROOM_GUESTS keeps the room by session id
   const chat = llm.ChatContext.empty();
@@ -160,14 +165,16 @@ describe('CONTEXT_PACKET: the same notes in the same order, on and off', () => {
         for (const [words, earlier] of SAYINGS) {
           for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
           vi.stubEnv('CONTEXT_PACKET', 'off');
-          const off = call(words, earlier);
+          // Off and on share one session id, so the per-call state both runs read is the same.
+          const pair = `pair ${name} ${shaped} ${words}`;
+          const off = call(words, earlier, pair);
           const plain = plainReminder(
             lastText(withTurnReminder(off.chat, off.session, options)),
             words
           );
 
           vi.stubEnv('CONTEXT_PACKET', 'on');
-          const on = call(words, earlier);
+          const on = call(words, earlier, pair);
           const sent = lastText(withTurnReminder(on.chat, on.session, options));
           const { notes, honesty } = packetNotes(sent);
 
@@ -295,7 +302,7 @@ describe('CONTEXT_PACKET on: recall rides the packet, labelled', () => {
       sent.startsWith('Wait, how do you know I was up late?\n\n\n([Context for this reply')
     ).toBe(true);
     expect(block(sent, '## What I remember')).toEqual([
-      MEMORY_RULE,
+      RECALL_RULE,
       '- (you said on Oct 10) Sam up late: finishing the investor deck',
     ]);
     const { notes, honesty } = packetNotes(sent);
@@ -418,9 +425,52 @@ describe('CONTEXT_PACKET on: recall rides the packet, labelled', () => {
       expect(sent).not.toContain(absent);
   });
 
-  it('keeps every picked memory, past the section budget', () => {
-    const session = {};
-    const facts = Array.from({ length: 40 }, (_, i) => ({
+  it("a facts-only note: the packet carries recall's rule, verbatim, once", async () => {
+    const { chat, session } = call();
+    const pick = await recalled(session);
+    expect(pick?.rest).toBeNull();
+    vi.stubEnv('CONTEXT_PACKET', 'on');
+    const sent = lastText(withTurnReminder(chat, session));
+    expect(sent.split(RECALL_RULE)).toHaveLength(2);
+    expect(block(sent, '## What I remember')[0]).toBe(RECALL_RULE);
+  });
+
+  it('a mixed note: the rule rides the chat note, once; the packet leaves it out', () => {
+    const { chat, session } = call();
+    const rest = `[THINGS THEY SAID THEY WOULD DO]\n- "I'll send the deck Thursday." (they said this 3 days ago)\n\n${RECALL_RULE}`;
+    rememberForPacket(session, {
+      facts: [
+        { entity: 'Sam', key: 'up_late', value: 'finishing the investor deck', confidence: 0.9 },
+      ],
+      rest,
+    });
+    vi.stubEnv('CONTEXT_PACKET', 'on');
+    const sent = lastText(withTurnReminder(chat, session));
+    expect(rest.split(RECALL_RULE)).toHaveLength(2);
+    expect(sent.split(RECALL_RULE)).toHaveLength(1);
+    expect(block(sent, '## What I remember')).toEqual([
+      '- (you said) Sam up late: finishing the investor deck',
+    ]);
+  });
+
+  it('a note whose rest carries no rule: the packet carries it, once', async () => {
+    const recall = await fullRecall(false);
+    const said = 'Sam was up so late with the investor deck.';
+    const { chat, session } = call(said);
+    recall.noteFor(said);
+    const pick = recall.lastPick();
+    // Recall's rule comes with its follow-ups or jokes; this note has neither, so the packet must.
+    expect(pick?.rest).not.toContain(RECALL_RULE);
+    if (pick) rememberForPacket(session, pick);
+    vi.stubEnv('CONTEXT_PACKET', 'on');
+    const sent = lastText(withTurnReminder(chat, session));
+    expect(sent.split(RECALL_RULE)).toHaveLength(2);
+    expect(block(sent, '## What I remember')[0]).toBe(RECALL_RULE);
+  });
+
+  it('keeps the picked memories past the section budget, up to the per-call cap (newest first)', () => {
+    const session = keyed('packet-keep');
+    const facts = Array.from({ length: 25 }, (_, i) => ({
       entity: 'Sam',
       key: `fact_${i}`,
       value: `a fairly long remembered detail about Sam, number ${i}`,
@@ -428,7 +478,10 @@ describe('CONTEXT_PACKET on: recall rides the packet, labelled', () => {
     }));
     rememberForPacket(session, { facts, rest: null });
     const { text, accounting } = turnPacket(session, { words: 'hi', notes: [], now: Date.now() });
-    expect(block(text, '## What I remember')).toHaveLength(41); // the rule and all 40
+    const kept = block(text, '## What I remember');
+    expect(kept).toHaveLength(21); // the rule and the first 20
+    expect(kept[1]).toContain('number 0');
+    expect(kept.at(-1)).toContain('number 19');
     expect(accounting.dropped).toEqual([]);
   });
 
@@ -446,7 +499,7 @@ describe('CONTEXT_PACKET on: recall rides the packet, labelled', () => {
         rest: 'OPENER LINE',
       }),
     };
-    const session = {};
+    const session = keyed('packet-send');
     sendRecall(agent, session, recall as never, 'WHOLE NOTE');
     expect(added).toEqual(['WHOLE NOTE']);
 
@@ -469,7 +522,7 @@ describe('turnPacket', () => {
       .filter((l) => l.startsWith('- ('));
 
   it('puts the newest pick first, each pick in its own (relevance) order', () => {
-    const session = {};
+    const session = keyed('packet-newest');
     rememberForPacket(session, pick({ facts: [fact('old one')] }));
     rememberForPacket(session, pick({ facts: [fact('best match'), fact('second match')] }));
     expect(memories(session)).toEqual([
@@ -480,7 +533,7 @@ describe('turnPacket', () => {
   });
 
   it('marks a replaced fact as how things were, like the recall note', () => {
-    const session = {};
+    const session = keyed('packet-replaced');
     rememberForPacket(
       session,
       pick({ facts: [{ ...fact('baker at Rise and Grind'), supersededAt: '2026-10-09' }] })

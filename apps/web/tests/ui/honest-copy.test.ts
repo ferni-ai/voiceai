@@ -7,7 +7,7 @@
  * - Your Contribution said "Founders get unlimited time with the whole team",
  *   but Ferni is free.
  * - A supporter's locked Nayan said "become a Founding Patron" while paid plans
- *   are off (the Venmo chip-in switch, #1031).
+ *   are off: no paywall (#749), or the Venmo chip-in switch (#1031).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,6 +38,7 @@ vi.mock('../../src/services/relationship-stage.service.js', () => ({
 import { apiGet } from '../../src/utils/api.js';
 import { getSanctuaryUI } from '../../src/ui/sanctuary.ui.js';
 import { manageSubscriptionUI } from '../../src/ui/manage-subscription.ui.js';
+import { recordPaywallFlag, resetPaywallFlagForTests } from '../../src/services/paywall.service.js';
 import {
   _resetForTesting,
   getMemberStatus,
@@ -121,6 +122,8 @@ describe('honest copy', () => {
   });
 
   it('your contribution says Ferni is free and makes no founders promise', async () => {
+    vi.stubEnv('VITE_VENMO_CHIP_IN', 'true');
+    vi.stubEnv('VITE_VENMO_HANDLE', 'ferni');
     await settle(manageSubscriptionUI.open('user-1'));
     const text = document.body.textContent ?? '';
 
@@ -128,24 +131,50 @@ describe('honest copy', () => {
       "Ferni is free. If you'd like to help keep it going, you can chip in on Venmo."
     );
     expect(text).not.toContain('Founders get unlimited time');
+    // No paywall: no Join button, even with Venmo on
+    expect(document.querySelector('.manage-sub [data-action="upgrade"]')).toBeNull();
     manageSubscriptionUI.close();
+    vi.unstubAllEnvs();
+  });
+
+  it('with no paywall and Venmo off, your contribution mentions no Venmo and no Join button', async () => {
+    vi.stubEnv('VITE_VENMO_CHIP_IN', 'false');
+    await settle(manageSubscriptionUI.open('user-1'));
+    const text = document.body.textContent ?? '';
+
+    expect(text).not.toContain('Venmo');
+    expect(document.querySelector('.manage-sub [data-action="upgrade"]')).toBeNull();
+    manageSubscriptionUI.close();
+    vi.unstubAllEnvs();
   });
 
   describe("a supporter's locked Nayan", () => {
     beforeEach(() => _resetForTesting());
-
-    it('shows the free relationship path while paid plans are off', () => {
-      vi.stubEnv('VITE_VENMO_CHIP_IN', 'true');
-      vi.stubEnv('VITE_VENMO_HANDLE', 'ferni');
-      setSubscriptionTier('friend'); // recomputes the cached unlock state
-      const status = getMemberStatus('nayan-patel');
-
-      expect(status.unlocked).toBe(false);
-      expect(status.unlockHint).not.toContain('Founding Patron');
-      expect(status.unlockHint).toContain('60');
+    afterEach(() => {
+      resetPaywallFlagForTests();
+      vi.unstubAllEnvs();
     });
 
-    it('still names the paid path when paid plans are on', () => {
+    for (const [name, paywall, venmo] of [
+      ['paywall on, Venmo on', true, 'true'],
+      ['paywall off, Venmo on', false, 'true'],
+      ['paywall off, Venmo off', false, 'false'],
+    ] as const) {
+      it(`shows the free relationship path while paid plans are off (${name})`, () => {
+        recordPaywallFlag({ paywall });
+        vi.stubEnv('VITE_VENMO_CHIP_IN', venmo);
+        vi.stubEnv('VITE_VENMO_HANDLE', 'ferni');
+        setSubscriptionTier('friend'); // recomputes the cached unlock state
+        const status = getMemberStatus('nayan-patel');
+
+        expect(status.unlocked).toBe(false);
+        expect(status.unlockHint).not.toContain('Founding Patron');
+        expect(status.unlockHint).toContain('60');
+      });
+    }
+
+    it('names the paid path only with the paywall on and Venmo off', () => {
+      recordPaywallFlag({ paywall: true });
       vi.stubEnv('VITE_VENMO_CHIP_IN', 'false');
       setSubscriptionTier('friend');
       expect(getMemberStatus('nayan-patel').unlockHint).toContain('Founding Patron');

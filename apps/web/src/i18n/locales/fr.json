@@ -9566,6 +9566,7 @@
   "moments": {
     "teamUnlockTitle": "Fais la connaissance de {name}",
     "niceWork": "Beau travail",
+    "remembered": "Je m'en souviendrai : {summary}",
     "streakSubtitle": "Tu es là, fidèle au rendez-vous. C'est ça qui compte.",
     "streakTitle": {
       "one": "Série de {count} jour",
