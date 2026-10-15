@@ -18,19 +18,26 @@ const SITE = `http://127.0.0.1:${PORT}`;
 const PAGES = [
   '/',
   '/about/',
+  '/accessibility/',
   '/capabilities/',
+  '/compare/',
   '/contact/',
+  '/cookies/',
+  '/enterprise/',
   '/faq/',
   '/features/',
   '/garden/',
   '/give/',
   '/help/',
   '/how-it-works/',
+  '/marketplace/',
+  '/press/',
   '/privacy/',
   '/sms-consent/',
   '/story/',
   '/team/',
   '/terms/',
+  '/use-cases/',
 ];
 
 let server: ChildProcess | undefined;
