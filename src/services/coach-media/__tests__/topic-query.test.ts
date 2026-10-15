@@ -82,8 +82,8 @@ describe('topicOnlyQuery leaks found in review', () => {
     ['help with Jordan at work', 'help with at work'],
     ['talking to Megan about her diabetes diagnosis', 'talking to about her diabetes diagnosis'],
     ['helping Ryan with homework', 'helping with homework'],
-    ['my friend named mike says try yoga', 'my friend named says try yoga'],
-    ['a dog called biscuit', 'a dog called'],
+    ['my friend named mike says try yoga', 'my friend says try yoga'],
+    ['a dog called biscuit', 'a dog'],
     ['born 03/14/1980 sleep tips', 'born sleep tips'],
     ['since 3-14-1980 and 2024.05.01', 'since and'],
     ['on 3/4/80 back pain', 'on back pain'],
@@ -109,7 +109,9 @@ describe('topicOnlyQuery leaks found in review', () => {
     ['email seth(at)ferni.ai about it', /seth|ferni|\(at\)/],
     ['notes for se\u200bth on sleep', /se.?th/],
   ])('%s', (topic, leak) => {
-    expect(topicOnlyQuery(topic, ['Seth']) ?? '').not.toMatch(leak);
+    const once = topicOnlyQuery(topic, ['Seth']);
+    expect(once ?? '').not.toMatch(leak);
+    expect(topicOnlyQuery(once ?? '', ['Seth'])).toBe(once);
   });
 
   it.each([
@@ -126,7 +128,8 @@ describe('topicOnlyQuery leaks found in review', () => {
 
   it.each([
     ['write jake.ford(at)gmail(dot)com about it', [], 'write about it'],
-    ['my boss kowalczyk micromanages', [], 'my boss micromanages'],
+    // After a relation, every unknown word goes (it could be a name), not just one.
+    ['my boss kowalczyk micromanages', [], 'my boss'],
     ['notes for kowal\u200bczyk on sleep', ['Kowalczyk'], 'notes for on sleep'],
     ['nunez cooking class', ['Núñez'], 'cooking class'],
   ])('%s → %s', (topic, ids, expected) => {
@@ -136,6 +139,64 @@ describe('topicOnlyQuery leaks found in review', () => {
   it('matches profile names with or without accents', () => {
     expect(topicOnlyQuery('stretches for jose', ['José'])).toBe('stretches for');
     expect(topicOnlyQuery('stretches for josé', ['Jose'])).toBe('stretches for');
+  });
+
+  // Follow-up review: names go, the topic stays, and a second pass changes nothing.
+  it.each([
+    ['my wife maria cancer diagnosis', 'my wife cancer diagnosis'],
+    ['my mom alzheimers', 'my mom alzheimers'],
+    ['my brother depression', 'my brother depression'],
+    ['my son jake failing math', 'my son failing math'],
+    ['dr. smith knee surgery', 'knee surgery'],
+    ['for dad bob retirement', 'for dad retirement'],
+    ['seth(at)ferni.ai budgeting', 'budgeting'],
+  ])('%s → %s, twice', (topic, expected) => {
+    const once = topicOnlyQuery(topic, ['Seth']);
+    expect(once).toBe(expected);
+    expect(topicOnlyQuery(once ?? '', ['Seth'])).toBe(once);
+  });
+
+  // Uncommon names after a relation or title are unknown to the parser, like many
+  // topic words: they go, and only topic words (TOPIC_WORDS or known non-names) stay.
+  it.each([
+    ['my son zephyr has adhd', 'zephyr', 'my son has adhd'],
+    ['my daughter priya anxiety', 'priya', 'my daughter anxiety'],
+    ['my wife aaliyah postpartum depression', 'aaliyah', 'my wife postpartum depression'],
+    ['my sister xiomara dyslexia', 'xiomara', 'my sister dyslexia'],
+    ['dr. okonkwo knee surgery', 'okonkwo', 'knee surgery'],
+    ['my friend siobhan grief', 'siobhan', 'my friend grief'],
+    ['my husband tomasz burnout', 'tomasz', 'my husband burnout'],
+    ['my mom nguyen alzheimers', 'nguyen', 'my mom alzheimers'],
+    ['my grandpa okafor parkinsons', 'okafor', 'my grandpa parkinsons'],
+    ['mrs. adeyemi math tutoring', 'adeyemi', 'math tutoring'],
+    ['my coworker zephyr okonkwo insomnia', 'okonkwo', 'my coworker insomnia'],
+    ['my partner priya struggling with sleep', 'priya', 'my partner struggling with sleep'],
+  ])('%s: never sends %s', (topic, name, expected) => {
+    const once = topicOnlyQuery(topic, []);
+    expect(once ?? '').not.toContain(name);
+    expect(once).toBe(expected);
+    expect(topicOnlyQuery(once ?? '', [])).toBe(once);
+  });
+
+  // compromise reads "bob golf" as one person; the name goes (it is a name on its
+  // own), the topic after it stays.
+  it.each([
+    ['helping bob golf', 'helping golf'],
+    ['with jake mortgage', 'with mortgage'],
+  ])('%s → %s', (topic, expected) => {
+    expect(topicOnlyQuery(topic, [])).toBe(expected);
+  });
+
+  // Known limit: compromise doesn't tag an uncommon lowercase name with no
+  // relation word before it, so these go out as they are (as on main before #1411).
+  it.todo('drops zephyr from "helping zephyr with homework"');
+  it.todo('drops priya from "talking with priya about grief"');
+  it.todo('drops xiomara from "notes on xiomara\'s anxiety"');
+  it.todo('drops okonkwo from "okonkwo knee pain"');
+
+  it('keeps ordinary words after a relation: "my mom and dad divorce", "my son is failing math"', () => {
+    expect(topicOnlyQuery('my mom and dad divorce', [])).toBe('my mom and dad divorce');
+    expect(topicOnlyQuery('my son is failing math', [])).toBe('my son is failing math');
   });
 
   it('is idempotent: scrubbing its own output changes nothing', () => {

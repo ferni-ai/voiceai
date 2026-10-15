@@ -10,6 +10,7 @@
 
 import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { getPendingReferral, rememberReferral } from './referral-pending.js';
 
 const log = createLogger('AccessCheck');
 
@@ -18,6 +19,8 @@ interface AccessCheckResponse {
   approved: boolean;
   status: 'approved' | 'pending' | 'no_email' | 'unverified_email' | 'not_found';
   email?: string;
+  /** A friend's referral code kept on this person's waitlist record */
+  referralCode?: string;
 }
 
 export type AccessOutcome =
@@ -58,8 +61,15 @@ export async function checkAccess({
 }: AccessCheckOptions = {}): Promise<AccessOutcome> {
   for (let attempt = 1; attempt <= attempts; attempt++) {
     // Our own backoff below; the generic quick retries would just spend the rate limit.
-    const response = await apiGet<AccessCheckResponse>('/api/waitlist/check', undefined, { maxRetries: 0 });
-    if (response.ok && response.data) return outcomeOf(response.data);
+    // A pending referral rides along so the waitlist record keeps it until approval
+    const pending = getPendingReferral();
+    const params = pending ? { referralCode: pending } : undefined;
+    const response = await apiGet<AccessCheckResponse>('/api/waitlist/check', params, { maxRetries: 0 });
+    if (response.ok && response.data) {
+      // Back on another device after approval: the record hands the code back
+      if (response.data.approved) rememberReferral(response.data.referralCode);
+      return outcomeOf(response.data);
+    }
 
     const retriable = response.status === 0 || response.status === 429 || response.status >= 500;
     log.warn('Access check failed', { status: response.status, attempt, retriable });

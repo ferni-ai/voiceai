@@ -28,7 +28,7 @@ export interface VoiceConfig {
   voiceId: string;
   /** TTS provider (default: 'cartesia') */
   provider?: TTSProvider;
-  /** Cartesia model (default: from CARTESIA_MODEL env var or 'sonic-3') */
+  /** Cartesia model (default: CARTESIA_MODEL, a dated 3.6+ snapshot) */
   model?: string;
   /** English accent variant */
   accent?: 'american' | 'british' | 'australian' | 'indian';
@@ -66,7 +66,7 @@ export interface TTSOptions {
  * Default TTS options.
  */
 export const DEFAULT_TTS_OPTIONS: Required<TTSOptions> = {
-  model: 'sonic-3-latest', // Will be overridden by env var
+  model: 'sonic-3.6-2026-08-27', // = CARTESIA_SNAPSHOT (config/voice-ids.ts); this file has no imports
   encoding: 'pcm_s16le',
   sampleRate: 24000,
   language: 'en',

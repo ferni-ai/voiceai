@@ -51,7 +51,7 @@ export function getMilestoneMessage(streak: number): string {
 export function getPersonaName(personaId?: string): string {
   const names: Record<string, string> = {
     'jack-b': 'Ferni',
-    'nayan-patel': 'Jack Bogle',
+    'nayan-patel': 'Nayan',
     'peter-john': 'Peter',
     'spend-save': 'Maya',
     'event-planner': 'Jordan',

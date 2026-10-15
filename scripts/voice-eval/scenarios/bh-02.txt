@@ -1,0 +1,6 @@
+# bh: {"to": "peter-john", "path": "ask", "facts": ["credit card", "card", "bonus", "eight thousand", "8,000", "8000", "twenty four", "24", "three thousand", "3,000", "3000"]}
+Hey Ferni. I've got about eight thousand dollars on a credit card at twenty four percent, and I just got a three thousand dollar bonus.
+Part of me wants to throw all of it at the card. Can you put Peter on?
+@pause 9000 -
+Hi Peter.
+So, what do you think?

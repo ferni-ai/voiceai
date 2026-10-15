@@ -168,7 +168,7 @@ interface EffectiveQuestions {
 #### D. Story Resonance
 ```typescript
 interface StoryResonance {
-  // "Jack's Wellington story resonates 2.3x more with Gen X users"
+  // "Peter's '87 crash story resonates 2.3x more with Gen X users"
   
   storyId: string;
   overallEffectiveness: number;

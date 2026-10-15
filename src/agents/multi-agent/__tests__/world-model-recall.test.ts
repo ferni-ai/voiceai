@@ -3,7 +3,7 @@
  * snapshot builder, the real profile/shard merge and the real formatter; only
  * the stores are fakes. Mirrors the world-seed / world-recall eval pair.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const logged = vi.hoisted(() => [] as Array<{ msg: string; data: Record<string, unknown> }>);
 vi.mock('../../../utils/safe-logger.js', () => {
@@ -81,8 +81,7 @@ async function run(env: Record<string, string>, sources = worldSources()) {
     userId: 'u1',
     userName: 'Sam',
     store,
-    env,
-    loadWorldModel: loadWorldModel(sources),
+    world: { env, load: loadWorldModel(sources) },
   });
   await recall.ready;
   return turns.map((t) => {
@@ -98,6 +97,37 @@ describe('world model in the live recall hook', () => {
   beforeEach(() => {
     logged.length = 0;
   });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  /** The first note with RECALL_PEOPLE on, the world model on or off. */
+  async function firstNoteWithPeople(env: Record<string, string>): Promise<string> {
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store,
+      people: true,
+      world: { env, load: loadWorldModel(worldSources()) },
+    });
+    await recall.ready;
+    return recall.noteFor(turns[0] ?? '') ?? '';
+  }
+  const PEOPLE_RULE = 'Never guess how someone is related to them';
+
+  it('RECALL_PEOPLE, world model off: the who-is-who note is there, as before', async () => {
+    const note = await firstNoteWithPeople({});
+    expect(note).toContain(PEOPLE_RULE);
+    expect(note).toContain('Mindy (sister)');
+    expect(note).not.toContain('[THEIR WORLD]');
+  });
+
+  it('RECALL_PEOPLE, world model on: only the world note says who is who', async () => {
+    const note = await firstNoteWithPeople(ON);
+    expect(note).toContain('[THEIR WORLD]');
+    expect(note).not.toContain(PEOPLE_RULE);
+    expect(note.match(/People in their life:/g)).toHaveLength(1);
+  });
 
   it('flag off: recall is exactly what it was, and the world model is never loaded', async () => {
     const loader = vi.fn(loadWorldModel(worldSources()));
@@ -105,8 +135,7 @@ describe('world model in the live recall hook', () => {
       userId: 'u1',
       userName: 'Sam',
       store,
-      env: {},
-      loadWorldModel: loader,
+      world: { env: {}, load: loader },
     });
     await recall.ready;
     const off = turns.map((t) => {
@@ -167,8 +196,7 @@ describe('world model in the live recall hook', () => {
       userId: 'u1',
       userName: 'Sam',
       store,
-      env: ON,
-      loadWorldModel: loadWorldModel(worldSources()),
+      world: { env: ON, load: loadWorldModel(worldSources()) },
       checkIns: async () => [
         {
           id: 'c1',
@@ -194,7 +222,8 @@ describe('world model in the live recall hook', () => {
   });
 
   it('flag on with inside jokes: a bit about a topic to avoid is left out, the rest stay', async () => {
-    const env = { ...ON, INSIDE_JOKES: 'on' };
+    vi.stubEnv('INSIDE_JOKES', 'on'); // read by the recall formatter, not the world model
+    const env = ON;
     const jokes = {
       ...store,
       summaries: async () => [
@@ -208,8 +237,7 @@ describe('world model in the live recall hook', () => {
       userId: 'u1',
       userName: 'Sam',
       store: jokes,
-      env,
-      loadWorldModel: loadWorldModel(worldSources()),
+      world: { env, load: loadWorldModel(worldSources()) },
     });
     await recall.ready;
     const first = recall.noteFor(turns[0] ?? '') ?? '';

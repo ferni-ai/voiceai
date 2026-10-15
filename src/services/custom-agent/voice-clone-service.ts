@@ -20,6 +20,7 @@ import {
   simulatedVoicePreview,
 } from './voice-clone-stubs.js';
 import { getRateLimiter } from '../../tools/rate-limiter.js';
+import { CARTESIA_API_VERSION, CARTESIA_MODEL } from '../../config/voice-ids.js';
 import type {
   ClonedVoice,
   VoiceUploadResponse,
@@ -92,7 +93,7 @@ interface ProcessedUpload {
   filename: string;
   /** Audio analysis */
   analysis: AudioAnalysis;
-  /** Storage URL (GCS public URL or temp URL) */
+  /** Storage reference (private GCS object path or temp URL), never a public URL */
   storageUrl: string;
   /** GCS file path (for downloads) */
   gcsFilePath?: string;
@@ -104,9 +105,8 @@ interface CartesiaVoiceCloneResponse {
   id: string;
   name: string;
   description?: string;
-  is_public: boolean;
+  is_public?: boolean;
   created_at: string;
-  embedding?: number[];
 }
 
 // ============================================================================
@@ -270,13 +270,13 @@ export async function processVoiceUpload(
         agentId,
         file.filename,
         'voiceClone',
-        true
+        false
       );
 
       if (gcsResult) {
-        storageUrl = gcsResult.publicUrl;
+        storageUrl = gcsResult.filePath;
         gcsFilePath = gcsResult.filePath;
-        log.debug({ filename: file.filename, publicUrl: storageUrl }, 'Audio uploaded to GCS');
+        log.debug({ filename: file.filename, gcsFilePath }, 'Audio stored privately in GCS');
       } else {
         // Fallback to in-memory if GCS upload fails
         storageUrl = `temp://${uploadId}/${file.filename}`;
@@ -469,29 +469,28 @@ async function callCartesiaCloneAPI(
     formData.append('description', `Custom voice for ${name}`);
     formData.append('language', 'en');
 
-    // Add audio clips - retrieve from GCS or in-memory
-    let clipsAdded = 0;
+    // POST /voices/clone takes ONE clip (the older multi-clip embedding
+    // endpoint was shut down 2026-06-01): send the longest speech.
+    let clip: { buffer: ArrayBuffer; filename: string; speech: number } | undefined;
     for (const upload of uploads) {
       const buffer = await getAudioBuffer(upload);
-      if (buffer) {
-        // Convert ArrayBuffer to Blob
-        const blob = new Blob([buffer], { type: 'audio/wav' });
-        formData.append('clip', blob, upload.filename);
-        clipsAdded++;
+      if (buffer && (!clip || upload.analysis.speechDuration > clip.speech)) {
+        clip = { buffer, filename: upload.filename, speech: upload.analysis.speechDuration };
       }
     }
 
-    if (clipsAdded === 0) {
+    if (!clip) {
       throw new Error('No audio clips available for voice clone');
     }
+    formData.append('clip', new Blob([clip.buffer], { type: 'audio/wav' }), clip.filename);
 
-    log.info({ name, clipCount: clipsAdded }, 'Calling Cartesia voice clone API');
+    log.info({ name, clipSeconds: clip.speech }, 'Calling Cartesia voice clone API');
 
-    const response = await fetch(`${CARTESIA_BASE_URL}/voices/clone/clip`, {
+    const response = await fetch(`${CARTESIA_BASE_URL}/voices/clone`, {
       method: 'POST',
       headers: {
         'X-API-Key': CARTESIA_API_KEY,
-        'Cartesia-Version': '2024-06-10',
+        'Cartesia-Version': CARTESIA_API_VERSION,
       },
       body: formData,
     });
@@ -555,14 +554,14 @@ export async function generateVoicePreview(
       method: 'POST',
       headers: {
         'X-API-Key': CARTESIA_API_KEY,
-        'Cartesia-Version': '2024-06-10',
+        'Cartesia-Version': CARTESIA_API_VERSION,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model_id: 'sonic-english',
+        model_id: CARTESIA_MODEL,
         voice: { mode: 'id', id: voiceId },
         transcript: text,
-        output_format: { container: 'mp3', encoding: 'mp3', sample_rate: 44100 },
+        output_format: { container: 'mp3', sample_rate: 44100, bit_rate: 128000 },
       }),
     });
 

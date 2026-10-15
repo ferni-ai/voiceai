@@ -12,9 +12,11 @@ import {
   getAllEntities,
   getRelationshipsForEntity,
 } from '../../memory/entity-store/index.js';
-import { getPersistedHumanSignals } from '../../memory/human-signal-persistence.js';
+import {
+  getHumanMemoryProfile,
+  getPersistedHumanSignals,
+} from '../../memory/human-signal-persistence.js';
 import { loadUserModel } from '../unified-user-model.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'world-model:sources' });
@@ -150,14 +152,10 @@ export function mergeProfileSignals(
 
 async function defaultGetHumanSignals(userId: string): Promise<LooseHumanSignals | null> {
   try {
-    const db = getFirestoreDb();
-    const [profileDoc, shards] = await Promise.all([
-      db
-        ? db.collection('bogle_users').doc(userId).collection('human_memory').doc('profile').get()
-        : Promise.resolve(null),
+    const [profile, shards] = await Promise.all([
+      getHumanMemoryProfile(userId),
       getPersistedHumanSignals(userId).catch(() => null),
     ]);
-    const profile = profileDoc?.exists ? profileDoc.data() : undefined;
     return mergeProfileSignals(profile, shards as LooseHumanSignals | null);
   } catch (error) {
     log.debug({ userId, error: String(error) }, 'human-signal read failed');

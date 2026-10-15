@@ -17,6 +17,8 @@
  * before its first await, so calling it from the listener lands first.
  *
  * Follow-ups from recent sessions are offered once, with the first recall.
+ * With RECALL_BRIDGE=on they wait for a turn they fit (threadsForTurn) instead,
+ * and so does Ferni's own life unless they ask about him; each still comes once.
  *
  * @module agents/multi-agent/memory-recall-hook
  */
@@ -26,7 +28,9 @@ import {
   formatRecall,
   loadRecallSnapshot,
   MAX_FOLLOW_UPS,
+  recallBridgeEnabled,
   recallForTurn,
+  threadsForTurn,
   type RecallFact,
   type RecallSnapshot,
   type RecallStore,
@@ -44,15 +48,19 @@ import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import {
   formatLedger,
   loadLedger,
+  personaDisplayName,
   RECALL_LIMIT,
   type LedgerFact,
   type LedgerStore,
 } from '../personas/life-ledger.js';
+import { loadCanon, selfRecallEnabled, selfRecallNote } from '../personas/self-recall.js';
 import {
   formatLifeUpdates,
   loadLifeUpdates,
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
+import { commonGroundEnabled, formatCommonGround } from '../personas/common-ground.js';
+import { firestoreGroundStore, type GroundStore } from '../personas/common-ground-after-call.js';
 import {
   callCheckIns,
   coachFollowThroughMode,
@@ -60,15 +68,18 @@ import {
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { createWorldRecall, type WorldRecallDeps } from './world-recall.js';
+import { RECALL_NOTE_ID_PREFIX } from './turn-context-header.js';
+import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
+import { takeOpenerClaim } from '../../memory/recall/opener-claim.js';
+import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import {
-  formatWorldNote,
-  isWorldModelSnapshotOn,
-  touchesAvoided,
-  withoutWorldDuplicates,
-} from '../../intelligence/world-model/recall-note.js';
-import { buildWorldModelSnapshot } from '../../intelligence/world-model/snapshot.js';
-import type { WorldModelSnapshot } from '../../intelligence/world-model/types.js';
-import { forgottenTopics } from '../../memory/recall/forget.js';
+  createEpisodeRecall,
+  recallEpisodesEnabled,
+  type EpisodeStore,
+} from '../../memory/recall/episodes.js';
+import { firestoreEpisodeStore } from '../../memory/storage/episode-store.js';
+import { createSummaryRecall, summaryRecallEnabled } from '../../memory/recall/call-summaries.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -78,7 +89,8 @@ export function memoryRecallMode(env: Record<string, string | undefined> = proce
 
 /** Reads the collections the live pipeline writes. Plain queries: no composite index needed. */
 export const firestoreRecallStore: RecallStore = {
-  forgotten: (userId) => forgottenTopics(userId),
+  // Null when unreadable: the snapshot then fails closed (session-recall.ts).
+  forgotten: async (userId) => forgottenTopicsOrNull(userId),
   async facts(userId) {
     const db = getFirestoreDb();
     if (!db) return [];
@@ -117,23 +129,41 @@ export interface MemoryRecallDeps {
   ledgerStore?: LedgerStore;
   /** What has happened in his life since (life-updates.ts, LIFE_MOVES_ON). */
   lifeUpdates?: LifeUpdateDeps;
-  /** Who is in their life, goals, what to avoid (WORLD_MODEL_SNAPSHOT=on). */
-  loadWorldModel?: (userId: string) => Promise<WorldModelSnapshot>;
-  env?: Record<string, string | undefined>;
   /** What they said they'd do, asked about early (COACH_FOLLOW_THROUGH). */
   checkIns?: () => Promise<OpenCommitment[]>;
+  /** What the two of them both know (common-ground.ts, COMMON_GROUND). */
+  groundStore?: GroundStore;
+  /** FERNI_SELF_RECALL=on; read from the environment when not given. */
+  selfRecall?: boolean;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
+  /** RECALL_PEOPLE=on (people.ts; env when not given); WORLD_MODEL_SNAPSHOT turns it off. */
+  people?: boolean;
   embed?: RetrievalEmbedder;
+  /** OPENER_FOLLOW_UP=on (opener.ts); read from the environment when not given. */
+  opener?: boolean;
+  /** RECALL_BRIDGE=on; read from the environment when not given. */
+  bridge?: boolean;
+  /** RECALL_EPISODES=on (episodes.ts, needs semantic); read from the environment when not given. */
+  episodes?: boolean;
+  episodeStore?: EpisodeStore;
+  /** RECALL_SUMMARIES=on (call-summaries.ts); read from the environment when not given. */
+  summaries?: boolean;
+  world?: WorldRecallDeps;
 }
 
 export interface MemoryRecall {
   /** Resolves once the snapshot is loaded (for tests and startup logging). */
   ready: Promise<void>;
-  /** The recall note for this transcript, or null. Synchronous: never waits on the store. */
-  noteFor(transcript: string): string | null;
+  /**
+   * The recall note for this transcript, or null. Synchronous: never waits on
+   * the store. `final: false` marks an interim transcript.
+   */
+  noteFor(transcript: string, opts?: { final?: boolean }): string | null;
   /** The agent started replying: the next transcript belongs to a new user turn. */
   newTurn(): void;
+  /** What was loaded at call start, once it is (for the name lift); undefined before. */
+  snapshot(): RecallSnapshot | undefined;
 }
 
 /**
@@ -144,6 +174,8 @@ export interface MemoryRecall {
 const FACTS_PER_TURN = 4;
 /** One person or thing can't take the whole turn ("sister" brought 4 pregnancy rows, 2026-10-04). */
 const FACTS_PER_ENTITY = 2;
+/** "How are you?", "what about you": they asked about him, so his own life is fair game. */
+const ASKS_ABOUT_YOU = /\byou(?:'re|r|rself)?\b/i;
 /** With semantic recall: open threads and Ferni's own stories kept for later in the call. */
 const FOLLOW_UPS_KEPT = 12;
 const TOLD_KEPT = 40;
@@ -159,25 +191,59 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let snapshot: RecallSnapshot | undefined;
   const surfaced = new Set<string>();
   let followUpsOffered = false;
+  const bridge = deps.bridge ?? recallBridgeEnabled();
+  // RECALL_BRIDGE: open threads not yet offered, and which caller turn this is.
+  let threadsLeft: string[] = [];
+  let callerTurn = 0;
+  let turnCounted = false;
+  // RECALL_BRIDGE: his own life waits too, and is offered once.
+  let ledgerFacts = '';
+  let toldOffered = false;
   let factsThisTurn = 0;
   let tokensLeft = RECALL_TOKENS_PER_TURN;
   const entitiesThisTurn = new Map<string, number>();
 
   let ledgerNote: string | null = null;
   let sinceNote: string | null = null;
+  let groundNote: string | null = null;
   let checkInNote: string | null = null;
   let checkInOffered = false;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
+  // Key points of earlier calls' summaries; loaded apart so the snapshot never waits.
+  const summaryRecall =
+    (deps.summaries ?? summaryRecallEnabled())
+      ? createSummaryRecall({
+          userId: deps.userId,
+          store: deps.store ?? firestoreRecallStore,
+          ...(semanticOn && { embed: deps.embed }),
+        })
+      : undefined;
   let index: SemanticIndex | undefined;
   // Semantic recall only: threads and stories past the first note, by id.
   const laterFollowUps = new Map<string, string>();
   const laterTold = new Map<string, LedgerFact>();
+  // The caller's own words from earlier calls; indexed apart so the snapshot never waits.
+  const episodes =
+    semanticOn && (deps.episodes ?? recallEpisodesEnabled())
+      ? createEpisodeRecall({
+          userId: deps.userId,
+          before: new Date(started),
+          store: deps.episodeStore ?? firestoreEpisodeStore,
+          embed: deps.embed,
+        })
+      : undefined;
   const personaId = deps.personaId ?? 'ferni';
+  const world = createWorldRecall(deps.userId, deps.world);
+  // FERNI_SELF_RECALL=on: asked about himself, what he told about it (self-recall.ts).
+  const selfRecall = deps.selfRecall ?? selfRecallEnabled();
+  let allTold: LedgerFact[] = [];
+  let canon: Record<string, string> = {};
+  let selfNoteGiven = false;
   const ledger = loadLedger(
     deps.userId,
     personaId,
     deps.ledgerStore,
-    semanticOn ? TOLD_KEPT : RECALL_LIMIT
+    semanticOn || selfRecall ? TOLD_KEPT : RECALL_LIMIT
   );
   const loaded = Promise.all([
     loadRecallSnapshot(
@@ -188,7 +254,13 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     ledger,
   ]).then(([s, told]) => {
     snapshot = { ...s, followUps: s.followUps.slice(0, MAX_FOLLOW_UPS) };
-    ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName);
+    threadsLeft = snapshot.followUps;
+    allTold = told;
+    ledgerFacts = told
+      .slice(0, RECALL_LIMIT)
+      .map((f) => f.fact)
+      .join(' ');
+    ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName, Date.now(), { bridge });
     log.info(
       {
         facts: s.facts.length,
@@ -230,42 +302,47 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       checkInNote = formatCheckIn(open, Date.now());
     })
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Check-ins not loaded'));
-  // The world model is the single source for people, goals and what to avoid:
-  // its note comes once, and recall then leaves out facts it already covers.
-  let world: { snapshot: WorldModelSnapshot; note: string; counts: object } | null = null;
-  let worldOffered = false;
-  let pool: RecallSnapshot | undefined;
-  const worldLoaded = isWorldModelSnapshotOn(deps.env)
-    ? (deps.loadWorldModel ?? ((userId: string) => buildWorldModelSnapshot({ userId })))(
-        deps.userId
-      )
-        .then((snap) => {
-          const formatted = formatWorldNote(snap);
-          if (formatted) world = { snapshot: snap, ...formatted };
-          else log.info({ userId: deps.userId }, 'WORLD_MODEL_EMPTY');
+  // Like the life updates: joins the first note only if loaded by then.
+  const ground = commonGroundEnabled()
+    ? (deps.groundStore ?? firestoreGroundStore)
+        .load(deps.userId)
+        .then((g) => {
+          groundNote = formatCommonGround(g, deps.userName);
         })
-        .catch((error: unknown) => {
-          log.warn({ error: String(error) }, 'World model not loaded');
-        })
+        .catch((error: unknown) => log.warn({ error: String(error) }, 'Common ground not loaded'))
     : Promise.resolve();
-  const ready = Promise.all([loaded, since, checkedIn, worldLoaded]).then(() => undefined);
+  const canonLoaded = selfRecall
+    ? loadCanon(personaId).then((c) => {
+        canon = c;
+      })
+    : Promise.resolve();
+  const ready = Promise.all([loaded, since, checkedIn, ground, canonLoaded, world.ready]);
 
   return {
-    ready,
-    noteFor(transcript) {
+    ready: ready.then(() => undefined),
+    noteFor(transcript, opts = {}) {
       const text = transcript.trim();
-      if (!snapshot || !text) return null;
-      if (world && !pool) {
-        pool = { ...snapshot, facts: withoutWorldDuplicates(snapshot.facts, world.snapshot) };
+      if (text && !turnCounted) {
+        turnCounted = true;
+        callerTurn++;
       }
+      if (!snapshot || !text) return null;
       index?.observe(text);
+      episodes?.observe(text);
+      summaryRecall?.observe(text);
       const semantic = index?.matches() ?? new Map<string, number>();
-      const blend = index ? { semantic, now: Date.now() } : undefined;
+      // The first interim of a turn comes before its embedding. Word matches
+      // alone then spent the turn's four facts ("work" -> "works long
+      // shifts"), and the final transcript's meaning-matched facts found no
+      // room ("employer = St. Mary's", benchmark 2026-10-11). Interims wait
+      // for the meaning unless they name someone; a final transcript never waits.
+      const namedOnly = opts.final === false && (index?.awaitingTurn() ?? false);
+      const blend = index ? { semantic, now: Date.now(), namedOnly } : undefined;
       const budget = FACTS_PER_TURN - factsThisTurn;
       const ranked =
         budget > 0
           ? recallForTurn(
-              pool ?? snapshot,
+              world.pool(snapshot),
               text,
               surfaced,
               budget,
@@ -274,7 +351,6 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
               blend
             )
           : [];
-      const worldNote = world && !worldOffered ? world.note : null;
       // Older threads and stories come back only when the turn is about them.
       const later = [...semantic.keys()].filter(
         (id) => !surfaced.has(id) && (laterFollowUps.has(id) || laterTold.has(id))
@@ -285,37 +361,66 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const factTokens = estimateTokens(facts.map((f) => factText(f)));
       const extras = blend ? withinTokens(later, laterText, tokensLeft - factTokens) : later;
       const extraTold = extras.flatMap((id) => laterTold.get(id) ?? []);
-      // Nothing about a topic they asked to avoid comes back as a thread either.
-      const followUps = [
-        ...(followUpsOffered ? [] : snapshot.followUps),
-        ...extras.flatMap((id) => laterFollowUps.get(id) ?? []),
-      ].filter((item) => !world || !touchesAvoided(item, world.snapshot));
-      // Shared bits, like the follow-ups, come once (shown only with INSIDE_JOKES=on);
-      // none about a topic they asked to avoid.
-      const insideJokes = (followUpsOffered ? [] : (snapshot.insideJokes ?? [])).filter(
-        (joke) => !world || !touchesAvoided(joke, world.snapshot)
-      );
-      // The ledger, like the follow-ups, comes once, with the first note.
-      const told = followUpsOffered
-        ? null
-        : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
+      const threadsNow = bridge
+        ? threadsForTurn(threadsLeft.filter(world.keep), text, callerTurn)
+        : followUpsOffered
+          ? []
+          : snapshot.followUps.filter(world.keep);
+      const followUps = [...threadsNow, ...extras.flatMap((id) => laterFollowUps.get(id) ?? [])];
+      // Shared bits, like the follow-ups, come once (shown only with INSIDE_JOKES=on).
+      const insideJokes = followUpsOffered ? [] : (snapshot.insideJokes ?? []).filter(world.keep);
+      // The ledger, like the follow-ups, comes once, with the first note. With
+      // RECALL_BRIDGE it waits like the threads, unless they ask about him: on
+      // "Still on there." alone it was read as his mail pile (6/8 replies).
+      const tellNow = bridge
+        ? !toldOffered &&
+          (ASKS_ABOUT_YOU.test(text) || threadsForTurn([ledgerFacts], text, callerTurn).length > 0)
+        : !followUpsOffered;
+      const told = tellNow ? [ledgerNote, sinceNote].filter(Boolean).join('\n') || null : null;
+      // Who is who (RECALL_PEOPLE, or the world note's), once, with the first note.
+      const people = followUpsOffered ? null : world.whoIsWho(snapshot.facts, deps.people);
+      // What the two of them both know (COMMON_GROUND), once, with the first note.
+      const groundNow = followUpsOffered ? null : groundNote;
       const checkIn = checkInOffered ? null : checkInNote;
+      // One follow-up per call opener (opener-claim.ts): a check-in in this
+      // note, or one the greeting already asked, leaves the thread line out.
+      const greetingAsked = followUpsOffered ? undefined : takeOpenerClaim(deps.userId);
+      const opener =
+        !followUpsOffered &&
+        !checkIn &&
+        !greetingAsked &&
+        threadsNow.length > 0 &&
+        (deps.opener ?? openerFollowUpEnabled())
+          ? OPENER_FOLLOW_UP_LINE
+          : null;
+      // Once a turn, when they ask about him and something answers it.
+      const self =
+        selfRecall && !selfNoteGiven
+          ? selfRecallNote(text, allTold, canon, { name: personaDisplayName(personaId) })
+          : null;
+      if (self) selfNoteGiven = true;
       const note =
         [
           checkIn,
-          worldNote,
-          formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes, env: deps.env }),
+          world.note(!followUpsOffered),
+          formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
+          opener,
+          summaryRecall?.take(text) ?? null,
+          people,
           told,
-          extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
+          groundNow,
+          extraTold.length > 0
+            ? formatLedger(extraTold, deps.userName, Date.now(), { bridge })
+            : null,
+          episodes?.take() ?? null,
+          self,
         ]
           .filter(Boolean)
           .join('\n\n') || null;
       if (!note) return null;
       followUpsOffered = true;
-      if (world && worldNote) {
-        worldOffered = true;
-        log.info({ ...world.counts, chars: worldNote.length }, 'WORLD_MODEL_INJECTED');
-      }
+      if (told) toldOffered = true;
+      threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));
       if (checkIn) checkInOffered = true;
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);
@@ -331,24 +436,33 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           followUps: followUps.length,
           semantic: semantic.size,
           extras: extras.length,
+          self: self !== null,
         },
         'Recall added'
       );
       return note;
     },
     newTurn() {
+      turnCounted = false;
+      episodes?.newTurn();
+      selfNoteGiven = false;
       factsThisTurn = 0;
       tokensLeft = RECALL_TOKENS_PER_TURN;
       entitiesThisTurn.clear();
       index?.newTurn();
+      summaryRecall?.newTurn();
     },
+    snapshot: () => snapshot,
   };
 }
+
+/** Recall notes added so far, for their ids (RECALL_NOTE_ID_PREFIX). */
+let recallNotes = 0;
 
 /** The slice of the SDK Agent this needs. */
 export interface RecallAgent {
   readonly chatCtx: {
-    copy(): { addMessage(msg: { role: 'system'; content: string }): unknown };
+    copy(): { addMessage(msg: { role: 'system'; content: string; id?: string }): unknown };
   };
   updateChatCtx(chatCtx: unknown): Promise<void>;
 }
@@ -360,7 +474,7 @@ export interface RecallAgent {
  */
 export function addRecallNote(agent: RecallAgent, note: string): void {
   const ctx = agent.chatCtx.copy();
-  ctx.addMessage({ role: 'system', content: note });
+  ctx.addMessage({ role: 'system', content: note, id: `${RECALL_NOTE_ID_PREFIX}${++recallNotes}` });
   agent.updateChatCtx(ctx).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Recall note not added');
   });

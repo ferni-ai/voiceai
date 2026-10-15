@@ -34,6 +34,7 @@ import {
 import { ownedCosmetics } from '../services/seeds/cosmetics-catalog.js';
 import { purchaseCosmetic } from './seeds-purchase.js';
 import { importLocalSeeds, serverLedgerEnabled } from './seeds-import.js';
+import { APP_URL } from '../config/api-urls.js';
 
 const log = createLogger({ module: 'SeedsRoutes' });
 
@@ -127,6 +128,14 @@ const REFERRAL_WORDS = [
   'fern',
   'moss',
 ];
+
+/**
+ * The link a friend opens. The app redeems /grow/<code> (apps/web referral.service.ts);
+ * ferni.ai/grow/ is the website, which has no such page, so nobody was ever referred.
+ */
+export function referralLink(code: string): string {
+  return `${APP_URL}/grow/${code}`;
+}
 
 function generateReferralCode(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -275,7 +284,7 @@ export async function handleSeedsRoutes(
         currentStreak: day.currentStreak,
         dailyBonusAvailable: day.dailyBonusAvailable && dailyEarnsSeeds(),
         referralCode: userSeeds.referralCode,
-        referralUrl: `https://ferni.ai/grow/${userSeeds.referralCode}`,
+        referralUrl: referralLink(userSeeds.referralCode),
         garden: {
           title: userSeeds.gardenTitle,
           totalReferrals: userSeeds.referrals.length,
@@ -402,7 +411,7 @@ export async function handleSeedsRoutes(
         totalReferrals: userSeeds.referrals.length,
         totalEarnedFromReferrals: userSeeds.earnedFrom.referrals,
         referralCode: userSeeds.referralCode,
-        referralUrl: `https://ferni.ai/grow/${userSeeds.referralCode}`,
+        referralUrl: referralLink(userSeeds.referralCode),
       });
       return true;
     }
