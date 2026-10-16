@@ -101,13 +101,11 @@ Each lane maps to an agent in `.claude/agents/`.
 - #1495: the handoff says "they're" for Ferni, and Ferni asks a known caller's name mid-call.
 
 ### tools (`ferni-tools`)
-- #1508 (stock quotes): re-verify at its head. #1506 is merged.
-- **Routing, option A (narrow).** Add only the needed tools to the held list:
-  places, searchFlights, searchHotels, trackPackage. Prove it in both
-  TOOL_RETRIEVAL=live and the prod cap. `processMessage` in the dynamic
-  loader is dead code: file an issue.
+- #1508 (stock quotes): verified at 14037aea8 and queued. #1506 is merged.
+- **#1535 (draft), routing:** places, flights, hotels and packages are now held for the model. Verify pending at 024f1b7d8. Then the lead runs the dev lookups eval, and then it's queued. Diagnosis: #1548. The dead loader is #1534.
+- Routing, option A, is #1535 above. Prove it in both TOOL_RETRIEVAL=live and the prod cap.
 - The director doesn't know the caller's location: a small PR.
-- **Calendar honesty:** with no Google calendar connected, Ferni said "your
+- **Calendar honesty (#1547):** with no Google calendar connected, Ferni said "your
   calendar is clear" and "I've got that on your calendar". Find out which
   tool answered and fix the wording. This blocks the calendar keys in prod.
 - The remaining fake-data tools from #1496: packages, research simulators,
