@@ -57,11 +57,12 @@ export function createFirestoreWorldFactStore(
   };
 }
 
-/** Notes the day a fact was raised on a call (dates/recall.ts), so it isn't raised again soon. */
+/** Notes the day and moment a fact was raised on a call (dates/recall.ts), so it isn't raised again soon. */
 export async function markFactRaised(
   userId: string,
   factId: string,
   day: string,
+  moment: string,
   getDb: () => Firestore | null = getFirestoreDb
 ): Promise<void> {
   const db = getDb();
@@ -71,5 +72,5 @@ export async function markFactRaised(
     .doc(userId)
     .collection('world_facts')
     .doc(factId)
-    .update({ raisedOn: day });
+    .update({ raisedOn: day, raisedAs: moment });
 }

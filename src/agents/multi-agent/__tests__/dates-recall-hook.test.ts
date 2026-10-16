@@ -59,10 +59,10 @@ async function firstNote(store: ReturnType<typeof memoryStore>, day: string) {
     userId: 'u1',
     store,
     now: () => new Date(`${day}T15:00:00Z`),
-    mark: async (_u, id, raisedOn) => {
+    mark: async (_u, id, raisedOn, raisedAs) => {
       Object.assign(
         store.facts.find((f) => f.id === id)!,
-        { raisedOn }
+        { raisedOn, raisedAs }
       );
     },
   });
@@ -87,12 +87,12 @@ describe('dates that matter in the first note (FRIEND_FOLLOWUPS)', () => {
     const store = memoryStore();
     await recordDates('u1', [INTERVIEW], store, '2026-10-13');
 
-    // Call 2, the day before: no "how did it go".
-    const before = await firstNote(store, '2026-10-13');
+    // The day before: asked how they feel about it, never how it went.
+    const before = await firstNote(store, '2026-10-14');
+    expect(before).toContain("Their sister Kate's job interview is tomorrow");
     expect(before).not.toContain('how it went');
 
-    // Call 2 on Friday's clock: asked, by relation and name, and it takes the opener.
-    store.facts.forEach((f) => delete f.raisedOn);
+    // Friday's clock: asking the day before still leaves "how did it go?", by relation and name.
     const friday = await firstNote(store, '2026-10-16');
     expect(friday).toContain("Their sister Kate's job interview was yesterday");
     expect(friday).toContain('Ask how it went');

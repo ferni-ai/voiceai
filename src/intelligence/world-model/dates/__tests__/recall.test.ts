@@ -62,7 +62,14 @@ describe('dueDate', () => {
   });
 
   it('raises a date once, and a yearly one again next year', () => {
-    expect(dueDate([fact({ eventDate: '2026-10-15', raisedOn: '2026-10-16' })], TODAY)).toBeNull();
+    expect(
+      dueDate(
+        [fact({ eventDate: '2026-10-15', raisedOn: '2026-10-16', raisedAs: 'passed' })],
+        TODAY
+      )
+    ).toBeNull();
+    const askedBefore = fact({ eventDate: '2026-10-15', raisedOn: '2026-10-14', raisedAs: 'soon' });
+    expect(dueDate([askedBefore], TODAY)?.moment).toBe('passed');
     const birthday = fact({
       subject: 'mom',
       relation: 'mom',
@@ -139,7 +146,7 @@ describe('createDatesRecall', () => {
     dates.raised();
     expect(dates.note()).toBeNull();
     expect(mark).toHaveBeenCalledTimes(1);
-    expect(mark).toHaveBeenCalledWith('u1', 'wd_1', TODAY);
+    expect(mark).toHaveBeenCalledWith('u1', 'wd_1', TODAY, 'passed');
 
     const failing = {
       listOpen: async () => Promise.reject(new Error('down')),

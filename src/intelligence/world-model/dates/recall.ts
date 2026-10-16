@@ -10,9 +10,10 @@
  * - a date that is today: wish them well;
  * - a one-time date tomorrow, or a yearly one within the week: ask about it.
  *
- * One per call. A date is raised once (raisedOn on the fact), then not again
- * for 20 days, so a birthday comes back next year and the interview never
- * does. Dates marked to confirm are left out: Ferni never asks about a day he
+ * One per call. Each moment is raised once (raisedOn and raisedAs on the
+ * fact) and not again for 20 days: asking about the interview the day before
+ * still leaves "how did it go?" for after, a birthday comes back next year,
+ * and the interview never does. Dates marked to confirm are left out: Ferni never asks about a day he
  * may have wrong. Only the caller's own dates (by "ferni" is a promise of his).
  *
  * @module intelligence/world-model/dates/recall
@@ -35,7 +36,7 @@ export function friendFollowUpsOn(env: Record<string, string | undefined> = proc
 }
 
 /** A stored date, with the day it was last raised on a call. */
-export type RaisableDate = DateFact & { raisedOn?: string };
+export type RaisableDate = DateFact & { raisedOn?: string; raisedAs?: DateMoment };
 
 export type DateMoment = 'passed' | 'today' | 'soon';
 
@@ -72,7 +73,6 @@ function whose(f: RaisableDate): string {
 function dueOne(f: RaisableDate, today: string): DueDate | null {
   if (f.attribute !== 'event' || f.validTo !== null || f.by === 'ferni') return null;
   if (f.needsConfirmation) return null;
-  if (f.raisedOn && daysBetween(f.raisedOn, today) < QUIET_DAYS) return null;
   let days: number;
   if (f.recurrence === 'yearly' && f.monthDay) {
     days = daysBetween(today, nextOccurrence(f.monthDay, today));
@@ -84,6 +84,8 @@ function dueOne(f: RaisableDate, today: string): DueDate | null {
     return null;
   }
   const moment: DateMoment = days < 0 ? 'passed' : days === 0 ? 'today' : 'soon';
+  const sameMoment = f.raisedAs === undefined || f.raisedAs === moment;
+  if (f.raisedOn && sameMoment && daysBetween(f.raisedOn, today) < QUIET_DAYS) return null;
   return { id: f.id, moment, what: `${whose(f)} ${oneLine(f.value)}`, days };
 }
 
@@ -114,8 +116,8 @@ export function formatDueDate(d: DueDate): string {
 export interface DatesRecallDeps {
   userId: string;
   store?: WorldFactStore;
-  /** Saves the day a date was raised; the default writes raisedOn on the fact. */
-  mark?: (userId: string, factId: string, day: string) => Promise<void>;
+  /** Saves the day and moment a date was raised; the default writes them on the fact. */
+  mark?: (userId: string, factId: string, day: string, moment: DateMoment) => Promise<void>;
   now?: () => Date;
 }
 
@@ -145,8 +147,8 @@ export function createDatesRecall(deps: DatesRecallDeps): DatesRecall {
     raised() {
       if (!due || given) return;
       given = true;
-      (deps.mark ?? markFactRaised)(deps.userId, due.id, today).catch((error: unknown) =>
-        log.warn({ error: String(error) }, 'Date not marked raised')
+      (deps.mark ?? markFactRaised)(deps.userId, due.id, today, due.moment).catch(
+        (error: unknown) => log.warn({ error: String(error) }, 'Date not marked raised')
       );
     },
   };
