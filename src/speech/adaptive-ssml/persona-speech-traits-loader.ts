@@ -17,6 +17,7 @@
  *
  * Each persona has unique speech patterns:
  * - **Peter John**: Curious, quick, pattern-spotting research voice
+ * - **Henry Caldwell**: Grandfatherly warmth, financial wisdom, elderly pauses
  * - **Maya Santos**: Habit vocabulary, encouragement warmth, practical wisdom
  * - **Alex Chen**: Efficiency emphasis, clear instructions, hidden warmth
  * - **Jordan Taylor**: Life arc language, celebration energy, forward-looking

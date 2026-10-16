@@ -104,7 +104,7 @@ ${generateCSSVariables(flattened)}
  * --persona-* below holds whichever persona is active.
  */
 function generatePersonaGlobalsCSS(personas) {
-  const suffixes = ['', 'secondary', 'text', 'textOnDark', 'glow', 'tint', 'light', 'dark'];
+  const suffixes = ['', 'secondary', 'text', 'textOnDark', 'onPrimary', 'glow', 'tint', 'light', 'dark'];
   const lines = [':root {'];
   for (const [personaId, personaColors] of Object.entries(personas)) {
     if (personaId.startsWith('_') || typeof personaColors !== 'object') continue;

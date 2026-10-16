@@ -129,21 +129,21 @@ async function testSemanticSearch(
   const vectorStore = getFirestoreVectorStore();
   await vectorStore.initialize();
 
-  const filters: Record<string, unknown> = {};
+  const filters: { userId?: string; metadata?: Record<string, unknown> } = {};
 
   if (options.userId) {
     filters.userId = options.userId;
   }
 
   if (options.domain) {
-    filters.storeType = options.domain;
+    filters.metadata = { storeType: options.domain };
   }
 
   console.log(`\nSearching for: "${query}"`);
   console.log('Filters:', JSON.stringify(filters));
   console.log('---');
 
-  const results = await vectorStore.search(query, 10, filters);
+  const results = await vectorStore.search(query, { topK: 10, filter: filters });
 
   if (results.length === 0) {
     console.log('No results found.');
@@ -153,9 +153,9 @@ async function testSemanticSearch(
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
     console.log(`\n#${i + 1} (score: ${result.score.toFixed(3)})`);
-    console.log(`  Content: ${result.content.slice(0, 150)}...`);
-    if (options.verbose && result.metadata) {
-      console.log(`  Metadata: ${JSON.stringify(result.metadata, null, 2)}`);
+    console.log(`  Content: ${result.document.text.slice(0, 150)}...`);
+    if (options.verbose) {
+      console.log(`  Metadata: ${JSON.stringify(result.document.metadata, null, 2)}`);
     }
   }
 }

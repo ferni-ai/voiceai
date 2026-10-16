@@ -38,4 +38,17 @@ describe('marking facts forgotten', () => {
       { path: 'bogle_users/u1/extracted_facts/e1', data: { forgottenAt: '2026-01-07T00:00:00Z' } },
     ]);
   });
+
+  it('keeps when a fact was first forgotten when it goes through again', async () => {
+    updates.length = 0;
+    await firestoreForgetStore.markForgotten(
+      'u1',
+      [{ collection: 'dynamic_facts', id: 'f2', data: { forgottenAt: '2026-01-01T00:00:00Z' } }],
+      '2026-01-07T00:00:00Z'
+    );
+    expect(updates[0]?.data).toEqual({
+      forgottenAt: '2026-01-01T00:00:00Z',
+      syncedToSpanner: false,
+    });
+  });
 });

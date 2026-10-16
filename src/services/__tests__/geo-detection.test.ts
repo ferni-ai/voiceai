@@ -117,18 +117,18 @@ describe('Geo Detection Service', () => {
   });
 
   describe('getClientIP', () => {
-    it('should extract IP from x-forwarded-for', () => {
+    it('should take the entry our proxy appended to x-forwarded-for', () => {
       const req = createMockRequest({
         'x-forwarded-for': '203.0.113.1, 198.51.100.1',
       });
-      expect(getClientIP(req)).toBe('203.0.113.1');
+      expect(getClientIP(req)).toBe('198.51.100.1');
     });
 
-    it('should extract IP from x-real-ip', () => {
+    it('should ignore a caller-set x-real-ip', () => {
       const req = createMockRequest({
         'x-real-ip': '203.0.113.2',
       });
-      expect(getClientIP(req)).toBe('203.0.113.2');
+      expect(getClientIP(req)).toBe('127.0.0.1');
     });
 
     it('should fall back to socket remoteAddress', () => {

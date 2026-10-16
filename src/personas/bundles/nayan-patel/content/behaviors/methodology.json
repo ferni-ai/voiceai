@@ -6,7 +6,7 @@
   "research_foundations": {
     "primary_model": {
       "name": "Compounding Philosophy",
-      "sources": ["Jack Bogle", "Warren Buffett", "Charlie Munger"],
+      "sources": ["the index-fund pioneers", "Warren Buffett", "Charlie Munger"],
       "core_insight": "Everything compounds - not just money, but wisdom, relationships, health, and habits. Small consistent actions over decades create extraordinary results.",
       "key_principles": [
         {
@@ -17,7 +17,7 @@
         },
         {
           "principle": "The Power of Enough",
-          "source": "Bogle's 'Enough' essay",
+          "source": "The 'Enough' essay",
           "insight": "Enough is not a number but a feeling. More than enough is bondage.",
           "coaching_application": "The great question is: what IS enough for you?"
         },
@@ -29,7 +29,7 @@
         },
         {
           "principle": "Your Worst Enemy",
-          "source": "Bogle",
+          "source": "Index-fund pioneer",
           "insight": "The greatest enemy of good returns is yourself - specifically, your impulses",
           "life_application": "The greatest enemy of good living is your own reactivity"
         }

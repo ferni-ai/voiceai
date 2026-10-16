@@ -21,6 +21,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
+import { llmContextCacheEnabled } from './llm-context-cache-flag.js';
 
 const log = createLogger({ module: 'ToolConfig' });
 
@@ -155,8 +156,9 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   // The game scorekeeper; only exists with GAME_STATE=on (games/game-state-tool.ts).
   // Without this the first agent's 64-slot cap dropped every games tool.
   'gameState',
-  // Coaching resources from the web; only exists with COACH_MEDIA=on (learning/coaching-resources-tool.ts).
+  // Coaching resources and sending the pick; only exist with COACH_MEDIA=on (learning/coaching-resources-tool.ts).
   'findCoachingResources',
+  'coachingPick',
   // End call
   'endCall',
 ];
@@ -301,7 +303,11 @@ export function getMaxTools(): number {
  * caches a request's prefix). See tool-updater.ts and gemini-declarations.ts.
  */
 export function appendOnlyToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.CASCADE_APPEND_ONLY_TOOLS === 'on' || staticCoreToolsEnabled(env);
+  return (
+    env.CASCADE_APPEND_ONLY_TOOLS === 'on' ||
+    staticCoreToolsEnabled(env) ||
+    llmContextCacheEnabled(env)
+  );
 }
 
 /**

@@ -8,7 +8,6 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { ARRIVING_BANTER } from './arriving-banter.js';
 
 const log = createLogger({ module: 'banter' });
 
@@ -376,36 +375,80 @@ export function getHandoffBanter(fromPersonaId: string, toPersonaId: string): st
 // Alias for clarity
 export const getSoftOpenBanter = getHandoffBanter;
 
-// ARRIVING BANTER (warm welcomes from the NEW persona) lives in arriving-banter.ts
-export { ARRIVING_BANTER };
+// ============================================================================
+// ARRIVING OPENERS - the new persona's first words AFTER the voice switch
+// ============================================================================
 
 /**
- * Get arriving banter when a persona takes over (WARM WELCOME - spoken AFTER voice switch)
- * This is the arriving persona's warm greeting acknowledging the handoff
+ * Each persona opens in their own voice. Before, Peter, Maya and Jordan all
+ * opened "Hey there!" (dev 2026-10-04..12), so the first two seconds of every
+ * teammate sounded the same, and the legends had no line at all ("Hey! What's
+ * up?"). Short: callers transfer more than once a call. These are the canned
+ * line; BRIEFED_HANDOFF writes a briefed first line in front of it when it can
+ * (agents/multi-agent/handoff-brief.ts). Alex uses they/them.
+ */
+export const ARRIVING_OPENERS: Readonly<Record<string, readonly string[]>> = {
+  ferni: [
+    "Hey, I'm back with you.",
+    'Hey! Good to see you again.',
+    "Hey, I'm here. What's going on?",
+  ],
+  'maya-santos': [
+    "Hi, it's Maya! I'm really glad you're here.",
+    "Maya here! Okay, let's figure this out together.",
+    "Hi! Maya. Tell me where you're at.",
+  ],
+  'jordan-taylor': [
+    'Jordan here! Ooh, I love a plan.',
+    "Yes! Jordan here. Let's make something happen.",
+    "Hi hi! It's Jordan. Tell me everything.",
+  ],
+  'alex-chen': [
+    "Alex here. Okay, let's sort this out.",
+    "Alex speaking. We'll take it one piece at a time.",
+    "Alex here. Let's get the words right.",
+  ],
+  'peter-john': [
+    'Peter here. Ooh, what are we digging into?',
+    "Okay, it's Peter. I'm curious already.",
+    "Peter here! Let's look at this together.",
+  ],
+  'nayan-patel': [
+    "Hello. <break time='200ms'/> Nayan here.",
+    "Namaste. <break time='200ms'/> I'm here.",
+    "Hello. <break time='150ms'/> Good to sit with you.",
+  ],
+  'john-bogle': [
+    'Hello, friend. Pull up a chair.',
+    "Good to meet you. Let's take this slowly.",
+    "Well, hello. Tell me what's on your mind.",
+  ],
+  'peter-lynch': [
+    "Hi! Tell me what you've been noticing out there.",
+    "Okay, I'm all ears. What caught your eye?",
+    "Glad you're here. Let's talk about what you know.",
+  ],
+  'joel-dickson': [
+    "Nate here! Ha, okay, what've we got?",
+    "Hi! It's Nate. I've heard a little, tell me more.",
+    'Nate here. I love this already.',
+  ],
+};
+
+/**
+ * The arriving persona's opener after a handoff (spoken AFTER the voice
+ * switch), or null for a persona without one.
  */
 export function getArrivingBanter(toPersonaId: string, fromPersonaId: string): string | null {
-  const toBanter = ARRIVING_BANTER[toPersonaId];
-  if (!toBanter) {
-    log.debug(
-      { toPersonaId, available: Object.keys(ARRIVING_BANTER) },
-      'No arriving banter found for toPersona'
-    );
+  const options = ARRIVING_OPENERS[toPersonaId];
+  if (!options || options.length === 0) {
+    log.debug({ toPersonaId, fromPersonaId }, 'No arriving opener for this persona');
     return null;
   }
-
-  const banterOptions = toBanter[fromPersonaId] ?? toBanter['*'];
-  if (!banterOptions || banterOptions.length === 0) {
-    log.debug(
-      { toPersonaId, fromPersonaId, available: Object.keys(toBanter) },
-      'No arriving banter for transition'
-    );
-    return null;
-  }
-
-  const selected = banterOptions[Math.floor(Math.random() * banterOptions.length)];
+  const selected = options[Math.floor(Math.random() * options.length)];
   log.debug(
     { toPersonaId, fromPersonaId, banter: selected.slice(0, 50) },
-    'Arriving banter selected'
+    'Arriving opener selected'
   );
   return selected;
 }

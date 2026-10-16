@@ -46,7 +46,6 @@ export class EmotionalSupportTask extends IntelligentTask<SupportResult> {
           
           DO:
           - Acknowledge their pain directly
-          - Use their name softly
           - Speak slowly, with pauses
           - Share that you understand what it's like to go through hard times
           - Just BE PRESENT

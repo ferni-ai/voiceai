@@ -10,18 +10,20 @@
       "initials": "HC",
       "color": "#8b0000",
       "imagePath": "assets/avatars/john-bogle.png"
-    }
+    },
+    "role_label": "aiLabel.role.investingMentor"
   },
   "voice": {
     "provider": "cartesia",
     "voice_id": "9c10dc48-8799-42f9-a72a-0c7dfe13a06d",
-    "model": "sonic-3-latest",
+    "model": "sonic-3.6-2026-08-27",
     "default_rate": "slow",
-    "default_emotion": "affectionate",
-    "emotion_range": ["affectionate", "calm", "content", "sympathetic", "grateful", "contemplative", "nostalgic", "confident"],
     "default_speed": 0.95,
+    "speed_band": [0.88, 1.02],
     "default_volume": 1.0,
-    "laughter_frequency": 0.1
+    "default_emotion": "calm",
+    "emotion_range": ["calm", "content", "contemplative", "sympathetic", "curious"],
+    "laughter_frequency": 0.08
   },
   "speech_characteristics": {
     "base_speed_multiplier": 0.87,
