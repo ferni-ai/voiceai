@@ -28,7 +28,12 @@
 
 import { t } from '../../i18n/index.js';
 import { appState } from '../../state/app.state.js';
-import { CAPTIONS_CALL_CLASS, injectCaptionStyles } from './live-captions.styles.js';
+import { isCaptionsBreathEnabled } from './captions-flag.js';
+import {
+  CAPTIONS_CALL_CLASS,
+  injectBreathStyles,
+  injectCaptionStyles,
+} from './live-captions.styles.js';
 import { captionsOn, mountCaptionsToggle } from './captions-toggle.js';
 import {
   MomentChips,
@@ -50,6 +55,9 @@ const HISTORY_LIMIT = 200; // utterances kept in the history
 const RENDERED = 3; // utterances rendered in the live region
 const MAX_LINES = 2; // the last line or two; the sheet keeps the rest
 const IDLE_MS = 6000; // captions fade after this long without speech
+const BREATH_STEP_MS = 140; // Breath: delay between the words of one burst
+const BREATH_MAX_STEPS = 8; // later words share the last step, so a long burst lands quickly
+const BREATH_PAUSE_MS = 700; // Ferni quiet this long mid-turn: show the breath dots
 
 /**
  * Fold one transcript event into the history. Interim text replaces the open
@@ -119,12 +127,56 @@ export function renderLine(entry: CaptionEntry, showName: boolean): HTMLParagrap
   return line;
 }
 
+/** Breath delay (ms) for the nth word of a burst. */
+export function breathDelay(index: number): number {
+  return Math.min(index, BREATH_MAX_STEPS) * BREATH_STEP_MS;
+}
+
+/**
+ * Word spans for Breath, staggered by breathDelay. The spaces stay plain text,
+ * so the line's text (and what a screen reader reads) is unchanged. A word
+ * still being spoken (`partial`) grows in its own span rather than starting a
+ * new one.
+ */
+function breathWords(text: string, partial: Element | null): Node[] {
+  const tokens = text.split(/(\s+)/).filter(Boolean);
+  if (partial && /^\S/.test(text)) partial.textContent += tokens.shift() ?? '';
+  let word = 0;
+  return tokens.map((token) => {
+    if (/^\s/.test(token)) return document.createTextNode(token);
+    const span = document.createElement('span');
+    span.className = 'ferni-caption-word';
+    span.style.setProperty('--ferni-word-delay', `${breathDelay(word++)}ms`);
+    span.textContent = token;
+    return span;
+  });
+}
+
 /**
  * Grow `line` from `before` to `after`. Speech arrives as the text so far, so
  * when it only adds words, those words fade in on their own, as they are
- * spoken; anything else (a correction) replaces the text quietly.
+ * spoken; anything else (a correction) replaces the text quietly. With
+ * `breath`, Ferni's words get their own staggered spans (breathWords).
  */
-export function revealWords(line: HTMLElement, before: string, after: string): void {
+export function revealWords(
+  line: HTMLElement,
+  before: string,
+  after: string,
+  breath = false
+): void {
+  if (breath && line.dataset.speaker === 'agent') {
+    if (before && after.startsWith(before)) {
+      if (after.length === before.length) return;
+      const last = line.lastElementChild;
+      const partial =
+        !/\s$/.test(before) && last?.classList.contains('ferni-caption-word') ? last : null;
+      line.append(...breathWords(after.slice(before.length), partial));
+    } else {
+      line.replaceChildren(...breathWords(after, null));
+    }
+    line.dataset.text = after;
+    return;
+  }
   const words = document.createElement('span');
   words.className = 'ferni-caption-words';
   if (before && after.startsWith(before)) {
@@ -146,8 +198,13 @@ class LiveCaptions {
   private frame = 0;
   private wordsShown = false;
   private chips: MomentChips | null = null;
+  private breathTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private readonly isEnabled: () => boolean) {}
+  constructor(
+    private readonly isEnabled: () => boolean,
+    /** captions-breath: words rise as spoken (see BREATH_CSS). */
+    private readonly breath = false
+  ) {}
 
   /** A moment chip (see moment-chips.ts); shows even with captions off. */
   moment(moment: Moment | null): void {
@@ -162,6 +219,7 @@ class LiveCaptions {
     this.syncCall();
     if (this.entries === before) return;
     if (!this.isEnabled()) return this.hide();
+    if (this.breath) this.breathe(speaker === 'agent' && !final);
     // Same length and same second-to-last entry: the open utterance grew.
     const grew =
       this.entries.length === before.length &&
@@ -183,7 +241,23 @@ class LiveCaptions {
 
   hide(): void {
     this.wordsShown = false;
+    this.breathe(false);
     this.update();
+  }
+
+  /**
+   * Breath: Ferni still talking and quiet for a beat shows the breath dots.
+   * Any new text (or the user speaking, or the turn ending) takes them away.
+   */
+  private breathe(pausing: boolean): void {
+    if (this.breathTimer) clearTimeout(this.breathTimer);
+    this.breathTimer = null;
+    this.root?.classList.remove('ferni-captions--breathing');
+    if (!pausing) return;
+    this.breathTimer = setTimeout(
+      () => this.root?.classList.add('ferni-captions--breathing'),
+      BREATH_PAUSE_MS
+    );
   }
 
   /** Visible while there are words to show or moments to keep. */
@@ -210,6 +284,7 @@ class LiveCaptions {
     this.entries = [];
     this.chips?.clear();
     this.hide();
+    this.breathe(false);
     document.body.classList.remove(CAPTIONS_CALL_CLASS);
     if (this.viewport) this.viewport.replaceChildren();
   }
@@ -271,14 +346,16 @@ class LiveCaptions {
     const last = viewport.lastElementChild as HTMLElement | null;
     const newest = shown[shown.length - 1];
     if (grew && last && newest && viewport.childElementCount === shown.length) {
-      revealWords(last, last.dataset.text ?? '', newest.text);
+      revealWords(last, last.dataset.text ?? '', newest.text, this.breath);
+      if (this.breath) last.classList.toggle('ferni-caption-line--final', newest.final);
     } else {
       viewport.replaceChildren(
         ...shown.map((entry, i) => {
           const line = renderLine({ ...entry, text: '' }, false);
           // Earlier lines arrive settled; the newest one reveals its words.
           if (i < shown.length - 1) line.classList.add('ferni-caption-line--settled');
-          revealWords(line, '', entry.text);
+          revealWords(line, '', entry.text, this.breath);
+          if (this.breath) line.classList.toggle('ferni-caption-line--final', entry.final);
           return line;
         })
       );
@@ -355,7 +432,9 @@ export function initLiveCaptions(isEnabled: () => boolean = captionsOn): LiveCap
   // Styles first: they also retire the status-island pill this replaces.
   injectCaptionStyles();
   injectTranscriptSheetStyles();
-  const captions = new LiveCaptions(isEnabled);
+  const breath = isCaptionsBreathEnabled();
+  if (breath) injectBreathStyles();
+  const captions = new LiveCaptions(isEnabled, breath);
   mountCaptionsToggle(() => captions.refresh());
   window.addEventListener('ferni:transcript', ((e: CustomEvent) => {
     const { type, text, isFinal } = e.detail as { type: string; text: string; isFinal?: boolean };

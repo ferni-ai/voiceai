@@ -120,3 +120,50 @@ export function injectCaptionStyles(): void {
   style.textContent = CSS;
   document.head.appendChild(style);
 }
+
+const BREATH_STYLE_ID = 'ferni-captions-breath-styles';
+
+/**
+ * Breath (captions-breath flag). Ferni's words rise in one at a time, each
+ * from blurred to sharp and at most 6px up; the word being spoken is
+ * underlined in the persona colour; a pause shows three breath dots. Only
+ * injected when the flag is on, so flag-off pages get no new rules.
+ */
+const BREATH_CSS = `
+.ferni-caption-word { display: inline-block; }
+.ferni-caption-line[data-speaker='agent'] .ferni-caption-word {
+  animation: ferni-breath-word ${DURATION.SLOW * 2}ms ${EASING.DECELERATE} both;
+  animation-delay: var(--ferni-word-delay, 0ms);
+}
+@keyframes ferni-breath-word {
+  from { opacity: 0; filter: blur(3px); transform: translateY(6px); }
+}
+.ferni-caption-line[data-speaker='agent']:not(.ferni-caption-line--final) .ferni-caption-word:last-child {
+  /* A text decoration, not a background: axe reads a background-image as the
+     text's background and fails the contrast check on the word. */
+  text-decoration: underline var(--persona-primary) 3px;
+  text-underline-offset: 0.2em;
+}
+.ferni-captions--breathing .ferni-caption-line[data-speaker='agent']:last-child::after {
+  content: ''; display: inline-block; vertical-align: middle;
+  width: var(--space-xs); height: var(--space-xs); margin-inline: var(--space-sm);
+  border-radius: var(--radius-full); background: var(--persona-primary);
+  box-shadow: calc(var(--space-sm) + var(--space-2xs)) 0 0 var(--persona-primary),
+    calc(2 * (var(--space-sm) + var(--space-2xs))) 0 0 var(--persona-primary);
+  animation: ferni-breath-dots ${DURATION.SLOW * 6}ms ease-in-out infinite;
+}
+@keyframes ferni-breath-dots { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .ferni-caption-line[data-speaker='agent'] .ferni-caption-word { animation: none; }
+  .ferni-captions--breathing .ferni-caption-line[data-speaker='agent']:last-child::after { animation: none; }
+}
+`;
+
+/** Add the Breath rules. Call only when the captions-breath flag is on. */
+export function injectBreathStyles(): void {
+  if (document.getElementById(BREATH_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = BREATH_STYLE_ID;
+  style.textContent = BREATH_CSS;
+  document.head.appendChild(style);
+}
