@@ -284,6 +284,9 @@ export const FLAG_MANIFEST = {
   REQUIRE_FIX_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   RESUME_AFTER_DROP: { default: 'off', owner: 'voice', kind: 'experiment' },
   ROOM_GUESTS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // read in patches/@livekit__agents@1.9.3.patch: livekit/agents-js#2655 (unmerged), so an
+  // interrupted reply is not committed with the previous reply's text (#2566)
+  ROTATED_SEGMENT_FIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   ROUNDTABLE_VOICE: { default: 'off', owner: 'voice', kind: 'config' },
   SAVED_INTERESTS: { default: 'off', owner: 'platform', kind: 'experiment' },
   SCHEDULED_JOBS_AUTH: { default: 'on', owner: 'platform', kind: 'kill-switch' },
