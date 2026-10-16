@@ -22,7 +22,7 @@ apps/marketing/
 ├── copy/                       # Marketing copy
 │   ├── app-store-description.md
 │   ├── play-store-description.md
-│   ├── blog-posts/            # 10 blog posts ready
+│   ├── blog-posts/            # social kit + team letter (posts: apps/website/ferni-website/src/blog/)
 │   └── BUILDING-WITH-AI-BLOG-SERIES.md
 │
 ├── screenshots/                # App store screenshots (to generate)

@@ -229,7 +229,7 @@
 - YouTube: @ferniAI
 
 ### Key Assets Location
-- Blog posts: `/apps/marketing/copy/blog-posts/`
+- Blog posts: `/apps/website/ferni-website/src/blog/`
 - Social snippets: `/apps/marketing/copy/blog-posts/SOCIAL-SNIPPETS-KIT.md`
 - Social guide: `/apps/website/ferni-website/SOCIAL-MEDIA-GUIDE.md`
 - Brand guidelines: `/design-system/docs/brand/FERNI-BRAND-GUIDELINES.md`

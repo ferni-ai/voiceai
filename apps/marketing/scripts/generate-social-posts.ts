@@ -22,7 +22,7 @@ const __dirname = path.dirname(__filename);
 // Configuration
 // ============================================================================
 
-const BLOG_DIR = path.join(__dirname, '../copy/blog-posts');
+const BLOG_DIR = path.join(__dirname, '../../website/ferni-website/src/blog');
 const OUTPUT_DIR = path.join(__dirname, '../content/social');
 
 const FERNI_VOICE_PROMPT = `You are writing social media content for Ferni, an AI life coaching company based in Park City, Utah.
@@ -285,7 +285,7 @@ async function main() {
   
   if (blogs.length === 0) {
     console.log('⚠️  No blog posts found in:', BLOG_DIR);
-    console.log('\nExpected location: apps/marketing/copy/blog-posts/*.md');
+    console.log('\nExpected location: apps/website/ferni-website/src/blog/*.md');
     process.exit(1);
   }
 

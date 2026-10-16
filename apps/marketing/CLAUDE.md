@@ -17,7 +17,7 @@ apps/marketing/
 ├── copy/                       # Marketing copy
 │   ├── app-store-description.md
 │   ├── play-store-description.md
-│   ├── blog-posts/            # 10 blog posts ready
+│   ├── blog-posts/            # social kit + team letter (posts: apps/website/ferni-website/src/blog/)
 │   └── BUILDING-WITH-AI-BLOG-SERIES.md
 │
 ├── screenshots/                # App store screenshots (to generate)
@@ -49,11 +49,6 @@ apps/marketing/
 │   ├── generate-social-posts.ts
 │   ├── content-calendar.ts
 │   └── schedule-buffer.ts
-│
-├── site/                       # Static marketing site
-│   ├── blog/                   # HTML blog posts
-│   ├── css/                    # Marketing CSS
-│   └── screenshots/            # Screenshot generator
 │
 └── config/                     # Configuration
     ├── CALENDAR.md

@@ -14,7 +14,7 @@
 | **Component Library** | `brand/brand-components.css` | Production-ready |
 | **6 Persona Avatars** | `brand/characters/*/` | Complete with expressions |
 | **100+ Capabilities** | `brand/capabilities/` | Documented and visualized |
-| **10 Blog Posts** | `apps/marketing/copy/blog-posts/` | Written, need styling |
+| **10 Blog Posts** | `apps/website/ferni-website/src/blog/` | Written, need styling |
 | **Storytelling Strategy** | `apps/marketing/STORYTELLING-STRATEGY.md` | Defined |
 | **App Store Copy** | `apps/marketing/copy/` | Written |
 | **Social Content** | `apps/marketing/content/social/` | Partially adapted |
@@ -33,7 +33,7 @@ The brand library and marketing content exist in **separate silos**:
 ## Integration Strategy
 
 ### Phase 1: Marketing Website (Week 1)
-**Build: `apps/marketing/site/index.html`**
+**Build: `apps/website/ferni-website/`** (the deployed site; the old `apps/marketing/site/` prototype was removed)
 
 Create a marketing landing page that showcases Ferni using the brand library.
 
@@ -226,7 +226,7 @@ Create a marketing landing page that showcases Ferni using the brand library.
 
 - [ ] **Create marketing site structure**
   ```
-  apps/marketing/site/
+  apps/website/ferni-website/src/
   ├── index.html          # Landing page
   ├── capabilities.html   # What Ferni can do
   ├── team.html           # Meet the 6 personas

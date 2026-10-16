@@ -29,56 +29,56 @@
 
 - **Publish Date:** 2024-12-09
 - **Status:** draft
-- **File:** `apps/marketing/copy/blog-posts/01-why-we-let-ai-help-build-ferni.md`
+- **File:** `apps/website/ferni-website/src/blog/why-we-let-ai-help-build-ferni.md`
 - **Slug:** `why-we-let-ai-help-build-ferni`
 
 ### Part 2: How an AI Helped Design Its Own Brain
 
 - **Publish Date:** 2024-12-23
 - **Status:** draft
-- **File:** `apps/marketing/copy/blog-posts/02-how-ai-helped-design-its-own-brain.md`
+- **File:** `apps/website/ferni-website/src/blog/how-ai-helped-design-its-own-brain.md`
 - **Slug:** `how-ai-helped-design-its-own-brain`
 
 ### Part 3: Giving AI a Personality (Without Losing Its Soul)
 
 - **Publish Date:** 2025-01-06
 - **Status:** draft
-- **File:** `apps/marketing/copy/blog-posts/03-giving-ai-a-personality.md`
+- **File:** `apps/website/ferni-website/src/blog/giving-ai-a-personality.md`
 - **Slug:** `giving-ai-a-personality`
 
 ### Part 4: Our Daily Standup Has an AI in the Room
 
 - **Publish Date:** 2025-01-20
 - **Status:** draft
-- **File:** `apps/marketing/copy/blog-posts/04-daily-standup-with-ai.md`
+- **File:** `apps/website/ferni-website/src/blog/daily-standup-with-ai.md`
 - **Slug:** `daily-standup-with-ai`
 
 ### Part 5: How Ferni Remembers You (Without Being Creepy)
 
 - **Publish Date:** 2025-02-03
 - **Status:** draft
-- **File:** `apps/marketing/copy/blog-posts/05-how-ferni-remembers-you.md`
+- **File:** `apps/website/ferni-website/src/blog/how-ferni-remembers-you.md`
 - **Slug:** `how-ferni-remembers-you`
 
 ### Part 6: We Ship Every Day. Here's How.
 
 - **Publish Date:** 2025-02-17
 - **Status:** draft
-- **File:** `apps/marketing/copy/blog-posts/06-we-ship-every-day.md`
+- **File:** `apps/website/ferni-website/src/blog/we-ship-every-day.md`
 - **Slug:** `we-ship-every-day`
 
 ### Part 7: AI Should Make You Feel Less Alone
 
 - **Publish Date:** 2025-03-03
 - **Status:** draft
-- **File:** `apps/marketing/copy/blog-posts/07-ai-should-make-you-feel-less-alone.md`
+- **File:** `apps/website/ferni-website/src/blog/ai-should-make-you-feel-less-alone.md`
 - **Slug:** `ai-should-make-you-feel-less-alone`
 
 ### Part 8: What's Next for Ferni
 
 - **Publish Date:** 2025-03-16
 - **Status:** draft
-- **File:** `apps/marketing/copy/blog-posts/08-whats-next-for-ferni.md`
+- **File:** `apps/website/ferni-website/src/blog/whats-next-for-ferni.md`
 - **Slug:** `whats-next-for-ferni`
 
 ---
