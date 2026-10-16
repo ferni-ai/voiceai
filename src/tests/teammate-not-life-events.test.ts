@@ -75,6 +75,27 @@ describe('the learning engine', () => {
     expect(momentsFrom("I'm going to tell my friend Jordan I'm moving.")).toHaveLength(1);
   });
 
+  it('records news about someone they know, named the way people name a partner or child', () => {
+    for (const line of [
+      'Alex left me.',
+      'Alex has cancer.',
+      'Jordan lost his job.',
+      'Peter cheated on me.',
+      "I'm worried about Alex.",
+      "I'm scared Peter will leave.",
+      'I miss Peter so much.',
+      'I talked to Maya, she is pregnant.',
+      'I spoke with Peter and he wants a divorce.',
+      'I have to tell Peter I lost my job.',
+      "I'm going to visit Peter in the hospital.",
+    ]) {
+      const moments = momentsFrom(line, 0.9);
+      expect(moments, line).toHaveLength(1);
+      // and every reader keeps it
+      expect(lifeMoments(moments), line).toHaveLength(1);
+    }
+  });
+
   it('refuses a key moment the model wrote about switching to a teammate', () => {
     const engine = new UserLearningEngine();
     engine.captureExternalKeyMoment(moment('Made a decision to talk to Jordan'));

@@ -89,7 +89,10 @@ const SOMEONE_THEY_KNOW = [
   re(`\\b${N},?\\s+(?:my|our)\\s+(?:${RELATION})\\b`),
   re(`\\b${N}'s\\b`),
   re(
-    `\\b${N}\\s+(?:said|says|told|tells|texted|texts|called|calls|lives|works|died|passed|moved|broke|got|is\\s+(?:pregnant|sick|moving|getting|in|at|not|so|really|still)|was\\s+(?:diagnosed|fired|born|in|at)|and\\s+i\\b)`
+    `\\b${N}\\s+(?:(?:has|had|have|hasn't|hadn't|is|isn't|was|wasn't|will|won't|would|did|didn't|does|doesn't|just|finally|still|never|always)\\s+)?(?:said|says|told|tells|texted|texts|called|calls|lives|works|died|passed|moved|broke|got|gets|left|leaves|lost|loses|cheated|wants|wanted|misses|missed|drinks|drinking|drank|had|has|have|hit|yelled|hates|loves|needs|spoken|been|gone|started|quit|is|was|isn't|wasn't|will|won't|hasn't|and\\s+i)\\b`
+  ),
+  re(
+    `\\b(?:worried|scared|afraid|thinking|think|miss|missing|visit|visiting|propose|proposing|lost|love|hate|forgive|divorce|divorcing|marry|marrying|dating|date|lose|losing)\\s+(?:about\\s+|to\\s+|for\\s+|of\\s+)?${N}\\b`
   ),
   re(`\\b(?:talked|spoke|asked|told|met|saw|called|texted|visited)\\s+(?:to\\s+|with\\s+)?${N}\\b`),
   re(
@@ -98,7 +101,7 @@ const SOMEONE_THEY_KNOW = [
 ];
 
 /** Index of the "already happened" sign above. */
-const PAST = 4;
+const PAST = 5;
 const knowsThem = (text: string): boolean => SOMEONE_THEY_KNOW.some((p) => p.test(text));
 /**
  * The same, without "already happened": in a stored summary or thread ("ask if they
@@ -133,21 +136,41 @@ export function withoutTeammateTalk(line: string): string {
 const WRAPPER =
   /^\s*(?:user\s+)?(?:made a decision to|decided to|expressed concern about|opened up about|had a breakthrough:?|celebrated|reached a milestone:?)\s*/i;
 
-/** A teammate's name, as a whole word. */
-const NAMED = re(`\\b${N}\\b`);
+/**
+ * How a summary writes up going to a teammate: "decided to talk to Jordan", "planning
+ * with Jordan", "wants Jordan to help", "ask if they talked to Jordan".
+ */
+const STORED_ASKS = [
+  ...ASKS_FOR,
+  re(`\\b(?:planning|plans?|conversation|call|session|chat|talk|work|working)\\s+with\\s+${N}\\b`),
+  re(`\\b${N}\\s+(?:to\\s+)?help\\b`),
+  re(
+    `\\b(?:if|whether|did)\\s+(?:they|the user|you)\\s+(?:ever\\s+)?(?:talked|spoke|talk|speak)\\s+(?:to|with)\\s+${N}\\b`
+  ),
+];
 
 /**
- * True when `text` (a caller line, a stored moment's summary, a thread) is about asking
- * for or going to a teammate rather than their life: nothing of theirs is left once the
- * teammate talk is out ("Hey Jordan, can you help me do some planning"), or a teammate is
- * still named with no sign of someone they know ("Decided to talk to Jordan about their
- * plans", "Ask how the planning with Jordan went").
+ * True when a caller line is nothing but teammate talk once that is taken out: the
+ * asking, or the name said to a teammate with a request and nothing of their life ("Hey
+ * Jordan, can you help me do some planning"). For live caller lines.
  */
-export function isTeammateTalk(text: string): boolean {
+export function onlyTeammateTalk(text: string): boolean {
   const plain = text.replace(/["“”]/g, ' ').replace(WRAPPER, '').trim();
   const own = withoutTeammateTalk(plain);
-  if (own !== plain && !hasOwnSubstance(own)) return true;
-  return own.split(/(?<=[.!?;])\s+/).some((c) => NAMED.test(c) && !knowsThemStored(c));
+  return own !== plain && !hasOwnSubstance(own);
+}
+
+/**
+ * True when stored text (a moment's summary, a thread, the model's own wording) is about
+ * going to a teammate rather than their life: only teammate talk, or a clause that writes
+ * up asking for or working with a teammate ("Decided to talk to Jordan about their
+ * plans", "Ask how the planning with Jordan went") with no sign of someone they know. A
+ * name alone is not enough: "Alex left me" and "Alex has cancer" are their life.
+ */
+export function isTeammateTalk(text: string): boolean {
+  if (onlyTeammateTalk(text)) return true;
+  const plain = text.replace(/["“”]/g, ' ').replace(WRAPPER, '').trim();
+  return clauses(plain).some((c) => STORED_ASKS.some((p) => p.test(c)) && !knowsThemStored(c));
 }
 
 /** Left over after the teammate talk: words that say something of their life. */
