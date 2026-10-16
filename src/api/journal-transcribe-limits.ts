@@ -7,11 +7,13 @@
  * every instance) and falls back to memory otherwise.
  *
  * Every key has a per-minute and a per-hour cap, so a steady caller can't
- * spend a day's budget a minute at a time. There is no shared ceiling for
- * everyone: a global hourly cap let one address drain it in minutes and lock
- * out real people. Instead anonymous callers, whose uids are free to mint,
- * share one hourly pool (TRANSCRIBE_ANON_MAX_PER_HOUR, default 200).
- * Signed-in people are never blocked by a shared pool.
+ * spend a day's budget a minute at a time. Anonymous callers, whose uids are
+ * free to mint, share one hourly pool (TRANSCRIBE_ANON_MAX_PER_HOUR, default
+ * 200). Above that, one emergency breaker caps everyone together
+ * (TRANSCRIBE_MAX_PER_HOUR, default 2000). It is set far above real use: it
+ * exists to bound the bill if many accounts on many addresses spend at once,
+ * and tripping it pauses transcription for an hour rather than letting the
+ * spend run. Pair it with a billing budget alert.
  *
  * @module api/journal-transcribe-limits
  */
@@ -38,12 +40,24 @@ export const TRANSCRIBE_LIMITS = {
 
 export const DEFAULT_ANON_MAX_PER_HOUR = 200;
 export const ANON_POOL_KEY = 'expensive:journal-transcribe:anon-pool';
+export const DEFAULT_GLOBAL_MAX_PER_HOUR = 2000;
+export const GLOBAL_BREAKER_KEY = 'expensive:journal-transcribe:global';
+
+/** `env[name]` as a positive whole number, or `fallback` when unset or anything else. */
+function positiveIntEnv(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
+  const raw = env[name]?.trim() ?? '';
+  const value = /^\d+$/.test(raw) ? Number(raw) : NaN;
+  return value > 0 ? value : fallback;
+}
 
 /** TRANSCRIBE_ANON_MAX_PER_HOUR, or the default when unset or not a positive whole number. */
 export function anonMaxPerHour(env: NodeJS.ProcessEnv = process.env): number {
-  const raw = env.TRANSCRIBE_ANON_MAX_PER_HOUR?.trim() ?? '';
-  const value = /^\d+$/.test(raw) ? Number(raw) : NaN;
-  return value > 0 ? value : DEFAULT_ANON_MAX_PER_HOUR;
+  return positiveIntEnv(env, 'TRANSCRIBE_ANON_MAX_PER_HOUR', DEFAULT_ANON_MAX_PER_HOUR);
+}
+
+/** TRANSCRIBE_MAX_PER_HOUR, or the default when unset or not a positive whole number. */
+export function globalMaxPerHour(env: NodeJS.ProcessEnv = process.env): number {
+  return positiveIntEnv(env, 'TRANSCRIBE_MAX_PER_HOUR', DEFAULT_GLOBAL_MAX_PER_HOUR);
 }
 
 function retryAfterSeconds(resetAt: number): number {
@@ -68,19 +82,20 @@ async function overLimit(
   return true;
 }
 
-let warnedForWindow = -1;
+const warnedForWindow = new Map<string, number>();
 
-/** True, with a 503 sent, when the anonymous pool for this hour is used up. Warns once per window. */
-async function overAnonPool(res: ServerResponse): Promise<boolean> {
-  const max = anonMaxPerHour();
-  const result = await checkRateLimitAsync(ANON_POOL_KEY, max, HOUR_MS);
+/** True, with a 503 sent, when the shared pool `key` is used up this hour. Warns once per window. */
+async function overSharedPool(
+  res: ServerResponse,
+  key: string,
+  max: number,
+  warning: string
+): Promise<boolean> {
+  const result = await checkRateLimitAsync(key, max, HOUR_MS);
   if (result.allowed) return false;
-  if (warnedForWindow !== result.resetAt) {
-    warnedForWindow = result.resetAt;
-    log.warn(
-      { maxPerHour: max, resetAt: new Date(result.resetAt).toISOString() },
-      'Anonymous journal transcription pool used up; anonymous callers refused until it resets'
-    );
+  if (warnedForWindow.get(key) !== result.resetAt) {
+    warnedForWindow.set(key, result.resetAt);
+    log.warn({ maxPerHour: max, resetAt: new Date(result.resetAt).toISOString() }, warning);
   }
   const retryAfter = retryAfterSeconds(result.resetAt);
   res.setHeader('Retry-After', retryAfter);
@@ -91,7 +106,9 @@ async function overAnonPool(res: ServerResponse): Promise<boolean> {
 /**
  * True, with a 429 or 503 sent, when this call is over any limit. In order:
  * the IP's minute and hour, the person's minute and hour (uid, or the IP for
- * an anonymous caller), then the anonymous pool for anonymous callers only.
+ * an anonymous caller), the anonymous pool for anonymous callers only, then
+ * the breaker for everyone. A call refused earlier never counts toward a
+ * later pool, so per-key abuse can't trip the breaker by itself.
  */
 export async function refusedByTranscribeLimits(
   res: ServerResponse,
@@ -108,6 +125,22 @@ export async function refusedByTranscribeLimits(
   if (await overLimit(res, personKey, tier.perMinute, MINUTE_MS)) return true;
   if (await overLimit(res, `${personKey}:hour`, tier.perHour, HOUR_MS)) return true;
 
-  if (!anonymous) return false;
-  return overAnonPool(res);
+  if (
+    anonymous &&
+    (await overSharedPool(
+      res,
+      ANON_POOL_KEY,
+      anonMaxPerHour(),
+      'Anonymous journal transcription pool used up; anonymous callers refused until it resets'
+    ))
+  ) {
+    return true;
+  }
+
+  return overSharedPool(
+    res,
+    GLOBAL_BREAKER_KEY,
+    globalMaxPerHour(),
+    'Journal transcription breaker tripped; every caller refused until it resets. Check for abuse and the billing alert'
+  );
 }
