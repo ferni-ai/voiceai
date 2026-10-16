@@ -11256,7 +11256,9 @@
     "helper": "المرشد الشخصي",
     "connectToTalk": "تواصل",
     "endTalk": "إنهاء",
-    "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء"
+    "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء",
+    "connectingNow": "جارٍ الاتصال…",
+    "tapToCancel": "اضغط للإلغاء"
   },
   "analyticsDashboard": {
     "title": "رحلتك",

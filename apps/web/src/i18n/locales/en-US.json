@@ -10852,7 +10852,9 @@
     "helper": "Your personal guide",
     "connectToTalk": "Connect",
     "endTalk": "Disconnect",
-    "connectingCancel": "Connecting. Tap to cancel"
+    "connectingCancel": "Connecting. Tap to cancel",
+    "connectingNow": "Connecting…",
+    "tapToCancel": "Tap to cancel"
   },
   "analyticsDashboard": {
     "title": "Your Journey",

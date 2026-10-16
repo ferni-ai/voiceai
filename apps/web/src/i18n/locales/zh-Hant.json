@@ -10780,7 +10780,9 @@
     "helper": "你的貼心嚮導",
     "connectToTalk": "聊聊",
     "endTalk": "掛斷",
-    "connectingCancel": "正在連線。輕點即可取消"
+    "connectingCancel": "正在連線。輕點即可取消",
+    "connectingNow": "正在連線…",
+    "tapToCancel": "輕點即可取消"
   },
   "analyticsDashboard": {
     "title": "你的旅程",
