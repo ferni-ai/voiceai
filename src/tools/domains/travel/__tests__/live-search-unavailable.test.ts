@@ -69,6 +69,10 @@ describe('live travel search without provider keys', () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    // "next Friday" to "next Sunday" only parses as a forward stay on some
+    // weekdays, so pin the clock to a Wednesday.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-14T12:00:00Z'));
     fetchSpy = vi.fn(() => {
       throw new Error('no network call expected');
     });
@@ -76,6 +80,7 @@ describe('live travel search without provider keys', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
