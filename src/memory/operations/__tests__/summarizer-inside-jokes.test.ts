@@ -67,13 +67,13 @@ describe('parseInsideJokes', () => {
       parseInsideJokes(
         [
           ok('the mushroom police', 'the mushroom police'),
-          { bit: 'the risotto', quote: 'Should I alert the authorities', speaker: 'user' },
+          { bit: 'the authorities', quote: 'Should I alert the authorities', speaker: 'assistant' },
         ],
         turns
       )
     ).toEqual([
       { bit: 'the mushroom police', quote: 'the mushroom police', speaker: 'user' },
-      { bit: 'the risotto', quote: 'Should I alert the authorities', speaker: 'assistant' },
+      { bit: 'the authorities', quote: 'Should I alert the authorities', speaker: 'assistant' },
     ]);
   });
 
@@ -85,23 +85,35 @@ describe('parseInsideJokes', () => {
           ok('made up', 'Ferni went skydiving last week'),
           ok('too short', 'the mushroom'),
           ok('the Mushroom Police', 'the mushroom police'),
-          ok('keep', 'the mushroom police'),
+          ok('mushroom police again', 'the mushroom police'),
         ],
         turns
       )
     ).toEqual([
       { bit: 'the Mushroom Police', quote: 'the mushroom police', speaker: 'user' },
-      { bit: 'keep', quote: 'the mushroom police', speaker: 'user' },
     ]);
   });
 
+  it('rejects a line the named speaker did not say, a fragment inside a word, and a bit that names nothing in its line', () => {
+    expect(
+      parseInsideJokes(
+        [
+          { bit: 'mushroom police', quote: 'the mushroom police', speaker: 'assistant' },
+          { bit: 'mushroom police', quote: 'e mushroom p', speaker: 'user' },
+          { bit: 'the vacation', quote: 'the mushroom police', speaker: 'user' },
+        ],
+        turns
+      )
+    ).toEqual([]);
+  });
+
   it('caps at three bits and trims each to 140 characters', () => {
-    const long = 'x'.repeat(300);
+    const long = `fungus ${'x'.repeat(300)}`;
     const more = [
       ok(long, 'a fungus incident'),
-      ok('b', 'the mushroom police'),
-      ok('c', 'haha yes, the mushroom police'),
-      ok('d', 'the fungus incident'),
+      ok('mushroom police bit', 'the mushroom police'),
+      ok('mushroom police again', 'haha yes, the mushroom police'),
+      ok('fungus again', 'a fungus incident'),
     ];
     const kept = parseInsideJokes(more, turns);
     expect(kept).toHaveLength(3);

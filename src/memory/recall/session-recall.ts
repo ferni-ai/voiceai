@@ -476,11 +476,15 @@ export async function loadRecallSnapshot(
     for (const item of Array.isArray(s.insideJokes) ? s.insideJokes : []) {
       if (!item || typeof item !== 'object') continue;
       const { bit, quote, speaker } = item as Partial<InsideJokeRef>;
-      if (typeof bit !== 'string' || typeof quote !== 'string' || !quote.trim()) continue;
+      if (typeof bit !== 'string' || typeof quote !== 'string') continue;
+      if (speaker !== 'user' && speaker !== 'assistant') continue;
+      if (quote.trim().split(/\s+/).length < 3) continue;
       const text = bit.trim();
-      const seen = insideJokes.some((j) => j.bit.toLowerCase() === text.toLowerCase());
+      const seen = insideJokes.some(
+        (j) => j.bit.toLowerCase() === text.toLowerCase() || j.quote.toLowerCase() === quote.trim().toLowerCase()
+      );
       if (text && !seen && !isForgotten(text, forgotten))
-        insideJokes.push({ bit: text, quote: quote.trim(), speaker: speaker ?? 'user' });
+        insideJokes.push({ bit: text, quote: quote.trim(), speaker });
       if (insideJokes.length >= MAX_INSIDE_JOKES) break;
     }
     if (insideJokes.length >= MAX_INSIDE_JOKES) break;

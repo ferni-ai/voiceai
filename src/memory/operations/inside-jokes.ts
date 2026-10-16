@@ -27,6 +27,17 @@ const normalise = (text: string): string =>
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 
+/** Words so common they say nothing about a bit: a line that only shares these isn't the bit. */
+const FILLER = new Set([
+  'really', 'should', 'though', 'because', 'people', 'actually', 'about', 'think', 'would',
+  'could', 'going', 'something', 'things', 'there', 'their', 'where', 'which', 'these', 'those',
+  'right', 'thing', 'still', 'maybe', 'anyway', 'always', 'never', 'every', 'before', 'after',
+]);
+
+/** The distinctive words in a text: at least six letters, not filler. */
+export const jokeWords = (text: string): Set<string> =>
+  new Set((normalise(text).match(/[\p{L}']{6,}/gu) ?? []).filter((w) => !FILLER.has(w)));
+
 /**
  * The inside jokes the summary model reported, checked against the turns: each
  * kept bit has a quote found in one of the turns and that turn's speaker. At
@@ -37,18 +48,22 @@ export function parseInsideJokes(
   turns: ReadonlyArray<{ role: 'user' | 'assistant'; content: string }>
 ): InsideJokeRef[] {
   if (!Array.isArray(raw)) return [];
-  const said = turns.map((t) => ({ speaker: t.role, text: normalise(t.content) }));
+  // Padded with spaces so a quote only matches whole words, never inside one.
+  const said = turns.map((t) => ({ speaker: t.role, text: ` ${normalise(t.content)} ` }));
   const refs: InsideJokeRef[] = [];
   for (const item of raw) {
     if (!item || typeof item !== 'object') continue;
-    const { bit, quote } = item as Record<string, unknown>;
+    const { bit, quote, speaker } = item as Record<string, unknown>;
     if (typeof bit !== 'string' || typeof quote !== 'string') continue;
+    if (speaker !== 'user' && speaker !== 'assistant') continue;
     const text = bit.trim().slice(0, MAX_BIT_LENGTH);
     const needle = normalise(quote);
     if (!text || needle.split(' ').length < MIN_QUOTE_WORDS) continue;
-    const line = said.find((s) => s.text.includes(needle));
-    if (!line || refs.some((r) => r.bit.toLowerCase() === text.toLowerCase())) continue;
-    refs.push({ bit: text, quote: quote.trim(), speaker: line.speaker });
+    // The line must be said by the speaker the model named, and the bit must name a word in it.
+    const line = said.find((s) => s.speaker === speaker && s.text.includes(` ${needle} `));
+    if (!line || [...jokeWords(text)].every((w) => !jokeWords(quote).has(w))) continue;
+    if (refs.some((r) => r.bit.toLowerCase() === text.toLowerCase() || r.quote.toLowerCase() === quote.trim().toLowerCase())) continue;
+    refs.push({ bit: text, quote: quote.trim(), speaker });
     if (refs.length >= MAX_INSIDE_JOKES) break;
   }
   return refs;

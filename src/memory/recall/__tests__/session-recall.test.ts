@@ -297,10 +297,10 @@ describe('inside jokes', () => {
       {
         facts: async () => [],
         summaries: async () => [
-          { insideJokes: [ref('the mushroom thing'), { bit: '  ', quote: 'x y z' }] },
+          { insideJokes: [ref('the mushroom thing', 'the fungus incident'), { bit: '  ', quote: 'x y z' }] },
           {},
-          { insideJokes: [ref('The Mushroom Thing'), ref('Biscuit vs the vacuum'), 42] },
-          { insideJokes: [ref('the "accountant voice" bit'), 'the parking-lot saga'] },
+          { insideJokes: [ref('The Mushroom Thing', 'other line here'), ref('Biscuit vs the vacuum', 'the vacuum roared'), 42] },
+          { insideJokes: [ref('the "accountant voice" bit', 'the accountant voice'), 'the parking-lot saga'] },
         ],
       },
       'u1'
@@ -321,6 +321,12 @@ describe('inside jokes', () => {
       'u2'
     );
     expect(snap.insideJokes).toEqual([]);
+  });
+
+  it('does not bring a bit back on filler words like "really" alone', () => {
+    const j = [ref('the mushroom police', 'I really love the mushroom police')];
+    expect(jokesForTurn(j, 'Hi, really good to hear you')).toEqual([]);
+    expect(jokesForTurn(j, 'the mushroom police came back')).toHaveLength(1);
   });
 
   it('brings a bit back only on a turn that touches its line', () => {

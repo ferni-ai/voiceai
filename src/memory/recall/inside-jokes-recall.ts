@@ -4,6 +4,7 @@
  */
 
 import type { InsideJokeRef } from '../../types/profile/inside-joke.js';
+import { jokeWords } from '../operations/inside-jokes.js';
 
 /**
  * INSIDE_JOKES=on lets Ferni bring back a bit the two of them really shared
@@ -13,10 +14,6 @@ import type { InsideJokeRef } from '../../types/profile/inside-joke.js';
 export function insideJokesEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.INSIDE_JOKES === 'on';
 }
-
-/** Words of a quote long enough to be about something, not "about" or "really". */
-const jokeWords = (text: string): Set<string> =>
-  new Set(text.toLowerCase().match(/[a-z']{6,}/g) ?? []);
 
 /**
  * The bits whose line shares a word with what the caller is saying now, so a
