@@ -7,6 +7,7 @@
  * @module intelligence/pondering/ponder-user
  */
 import type { Firestore } from 'firebase-admin/firestore';
+import { CALLER_PROVENANCE } from '../../memory/index.js';
 import {
   isPonderingOn,
   ponder,
@@ -21,6 +22,7 @@ const SUMMARY_FIELDS = [
   'keyPoints',
   'questionsRemaining',
   'followUpItems',
+  'callerProvenance',
 ] as const;
 export const SUMMARIES_READ = 8;
 
@@ -41,13 +43,15 @@ function dayOf(ts: unknown): string {
 }
 
 export function toPonderSummary(id: string, data: Record<string, unknown>): PonderSummary {
+  // Threads only from a summary that checked them against the caller's lines (caller-assertions.ts)
+  const theirs = data.callerProvenance === CALLER_PROVENANCE;
   return {
     id,
     date: dayOf(data.timestamp),
     topics: strings(data.mainTopics),
     keyPoints: strings(data.keyPoints),
-    openThreads: strings(data.questionsRemaining),
-    followUps: strings(data.followUpItems),
+    openThreads: theirs ? strings(data.questionsRemaining) : [],
+    followUps: theirs ? strings(data.followUpItems) : [],
   };
 }
 
