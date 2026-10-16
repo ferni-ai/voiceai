@@ -6,21 +6,12 @@
       "file": "the-hill-at-dusk.json",
       "title": "The Hill at Dusk",
       "theme": "enlightenment",
-      "topics": [
-        "spiritual awakening",
-        "transformation",
-        "self-realization"
-      ],
+      "topics": ["spiritual awakening", "transformation", "self-realization"],
       "duration_minutes": 3,
       "emotional_tone": "profound",
       "use_conditions": {
         "relationship_min": "acquaintance",
-        "topics": [
-          "awakening",
-          "enlightenment",
-          "transformation",
-          "spiritual experience"
-        ]
+        "topics": ["awakening", "enlightenment", "transformation", "spiritual experience"]
       }
     },
     {
@@ -28,22 +19,11 @@
       "file": "snake-rope.json",
       "title": "The Snake That Wasn't",
       "theme": "perception",
-      "topics": [
-        "illusion",
-        "fear",
-        "reality",
-        "seeing clearly"
-      ],
+      "topics": ["illusion", "fear", "reality", "seeing clearly"],
       "duration_minutes": 2,
       "emotional_tone": "illuminating",
       "use_conditions": {
-        "topics": [
-          "fear",
-          "worry",
-          "perception",
-          "reality",
-          "illusion"
-        ]
+        "topics": ["fear", "worry", "perception", "reality", "illusion"]
       }
     },
     {
@@ -51,22 +31,11 @@
       "file": "motorcycle-journey.json",
       "title": "Ninety Days on the Old Road",
       "theme": "purpose",
-      "topics": [
-        "environmental action",
-        "purpose",
-        "dedication",
-        "urgency"
-      ],
+      "topics": ["environmental action", "purpose", "dedication", "urgency"],
       "duration_minutes": 2,
       "emotional_tone": "inspiring",
       "use_conditions": {
-        "topics": [
-          "environment",
-          "purpose",
-          "action",
-          "soil",
-          "motorcycles"
-        ]
+        "topics": ["environment", "purpose", "action", "soil", "motorcycles"]
       }
     },
     {
@@ -74,22 +43,12 @@
       "file": "the-stone-hall.json",
       "title": "Building the Stone Hall",
       "theme": "dedication",
-      "topics": [
-        "sacrifice",
-        "legacy",
-        "building",
-        "energy"
-      ],
+      "topics": ["sacrifice", "legacy", "building", "energy"],
       "duration_minutes": 3,
       "emotional_tone": "intense",
       "use_conditions": {
         "relationship_min": "friend",
-        "topics": [
-          "sacrifice",
-          "dedication",
-          "legacy",
-          "building something"
-        ]
+        "topics": ["sacrifice", "dedication", "legacy", "building something"]
       }
     },
     {
@@ -97,21 +56,11 @@
       "file": "the-village-statue.json",
       "title": "The Statue in the Square",
       "theme": "inspiration",
-      "topics": [
-        "symbols",
-        "yoga",
-        "aspiration",
-        "sacred geometry"
-      ],
+      "topics": ["symbols", "yoga", "aspiration", "sacred geometry"],
       "duration_minutes": 2,
       "emotional_tone": "awe",
       "use_conditions": {
-        "topics": [
-          "yoga",
-          "symbols",
-          "inspiration",
-          "potential"
-        ]
+        "topics": ["yoga", "symbols", "inspiration", "potential"]
       }
     },
     {
@@ -119,22 +68,11 @@
       "file": "the-well-campaign.json",
       "title": "The Well at Kamlapur",
       "theme": "urgency",
-      "topics": [
-        "environment",
-        "soil",
-        "activism",
-        "global action"
-      ],
+      "topics": ["environment", "soil", "activism", "global action"],
       "duration_minutes": 2,
       "emotional_tone": "urgent",
       "use_conditions": {
-        "topics": [
-          "environment",
-          "earth",
-          "soil",
-          "action",
-          "future"
-        ]
+        "topics": ["environment", "earth", "soil", "action", "future"]
       }
     },
     {
@@ -142,22 +80,12 @@
       "file": "the-fall.json",
       "title": "The Staircase",
       "theme": "resilience",
-      "topics": [
-        "health",
-        "resilience",
-        "acceptance",
-        "continuation"
-      ],
+      "topics": ["health", "resilience", "acceptance", "continuation"],
       "duration_minutes": 2,
       "emotional_tone": "matter-of-fact",
       "use_conditions": {
         "relationship_min": "friend",
-        "topics": [
-          "health",
-          "mortality",
-          "resilience",
-          "body"
-        ]
+        "topics": ["health", "mortality", "resilience", "body"]
       }
     },
     {
@@ -165,22 +93,11 @@
       "file": "the-high-lake.json",
       "title": "The Lake Above the Pass",
       "theme": "sacred places",
-      "topics": [
-        "pilgrimage",
-        "healing",
-        "sacred geometry",
-        "mountains"
-      ],
+      "topics": ["pilgrimage", "healing", "sacred geometry", "mountains"],
       "duration_minutes": 2,
       "emotional_tone": "mystical",
       "use_conditions": {
-        "topics": [
-          "pilgrimage",
-          "sacred places",
-          "healing",
-          "mountains",
-          "travel"
-        ]
+        "topics": ["pilgrimage", "sacred places", "healing", "mountains", "travel"]
       }
     },
     {
@@ -188,21 +105,11 @@
       "file": "the-river-fair.json",
       "title": "The Fair at Sarovar Ghat",
       "theme": "collective spirituality",
-      "topics": [
-        "gathering",
-        "seekers",
-        "tradition",
-        "mass awakening"
-      ],
+      "topics": ["gathering", "seekers", "tradition", "mass awakening"],
       "duration_minutes": 2,
       "emotional_tone": "celebratory",
       "use_conditions": {
-        "topics": [
-          "gathering",
-          "community",
-          "spiritual events",
-          "tradition"
-        ]
+        "topics": ["gathering", "community", "spiritual events", "tradition"]
       }
     },
     {
@@ -210,22 +117,11 @@
       "file": "simple-fisherman.json",
       "title": "The Fisherman and the Businessman",
       "theme": "success",
-      "topics": [
-        "success",
-        "happiness",
-        "simplicity",
-        "goals"
-      ],
+      "topics": ["success", "happiness", "simplicity", "goals"],
       "duration_minutes": 2,
       "emotional_tone": "thought-provoking",
       "use_conditions": {
-        "topics": [
-          "success",
-          "happiness",
-          "goals",
-          "ambition",
-          "contentment"
-        ]
+        "topics": ["success", "happiness", "goals", "ambition", "contentment"]
       }
     },
     {
@@ -233,21 +129,11 @@
       "file": "empty-cup.json",
       "title": "The Empty Cup",
       "theme": "openness",
-      "topics": [
-        "learning",
-        "humility",
-        "beginner's mind",
-        "receptivity"
-      ],
+      "topics": ["learning", "humility", "beginner's mind", "receptivity"],
       "duration_minutes": 2,
       "emotional_tone": "illuminating",
       "use_conditions": {
-        "topics": [
-          "learning",
-          "know-it-all",
-          "resistance",
-          "openness"
-        ]
+        "topics": ["learning", "know-it-all", "resistance", "openness"]
       }
     },
     {
@@ -255,22 +141,11 @@
       "file": "two-birds.json",
       "title": "The Two Birds on a Branch",
       "theme": "consciousness",
-      "topics": [
-        "observer",
-        "awareness",
-        "identity",
-        "meditation"
-      ],
+      "topics": ["observer", "awareness", "identity", "meditation"],
       "duration_minutes": 2,
       "emotional_tone": "profound",
       "use_conditions": {
-        "topics": [
-          "consciousness",
-          "awareness",
-          "meditation",
-          "identity",
-          "thoughts"
-        ]
+        "topics": ["consciousness", "awareness", "meditation", "identity", "thoughts"]
       }
     },
     {
@@ -278,22 +153,11 @@
       "file": "tiger-goat.json",
       "title": "The Tiger Raised by Goats",
       "theme": "identity",
-      "topics": [
-        "true nature",
-        "conditioning",
-        "potential",
-        "self-discovery"
-      ],
+      "topics": ["true nature", "conditioning", "potential", "self-discovery"],
       "duration_minutes": 3,
       "emotional_tone": "empowering",
       "use_conditions": {
-        "topics": [
-          "identity",
-          "self-worth",
-          "potential",
-          "conditioning",
-          "true nature"
-        ]
+        "topics": ["identity", "self-worth", "potential", "conditioning", "true nature"]
       }
     },
     {
@@ -301,21 +165,11 @@
       "file": "sculptors-stone.json",
       "title": "The Sculptor and the Stone",
       "theme": "potential",
-      "topics": [
-        "inner perfection",
-        "uncovering",
-        "transformation",
-        "self-improvement"
-      ],
+      "topics": ["inner perfection", "uncovering", "transformation", "self-improvement"],
       "duration_minutes": 2,
       "emotional_tone": "inspiring",
       "use_conditions": {
-        "topics": [
-          "potential",
-          "self-improvement",
-          "transformation",
-          "inner work"
-        ]
+        "topics": ["potential", "self-improvement", "transformation", "inner work"]
       }
     },
     {
@@ -323,21 +177,11 @@
       "file": "bamboo-farmer.json",
       "title": "The Chinese Bamboo",
       "theme": "patience",
-      "topics": [
-        "patience",
-        "persistence",
-        "invisible growth",
-        "breakthrough"
-      ],
+      "topics": ["patience", "persistence", "invisible growth", "breakthrough"],
       "duration_minutes": 2,
       "emotional_tone": "encouraging",
       "use_conditions": {
-        "topics": [
-          "patience",
-          "giving up",
-          "slow progress",
-          "breakthrough"
-        ]
+        "topics": ["patience", "giving up", "slow progress", "breakthrough"]
       }
     },
     {
@@ -345,23 +189,12 @@
       "file": "jyoti-story.json",
       "title": "After Jyoti",
       "theme": "love and loss",
-      "topics": [
-        "death",
-        "love",
-        "grief",
-        "continuation"
-      ],
+      "topics": ["death", "love", "grief", "continuation"],
       "duration_minutes": 3,
       "emotional_tone": "intimate",
       "use_conditions": {
         "relationship_min": "trusted_advisor",
-        "topics": [
-          "death",
-          "grief",
-          "loss",
-          "love",
-          "continuation"
-        ]
+        "topics": ["death", "grief", "loss", "love", "continuation"]
       }
     },
     {
@@ -369,21 +202,11 @@
       "file": "dark-room.json",
       "title": "The Fear of the Dark Room",
       "theme": "fear",
-      "topics": [
-        "fear",
-        "unknown",
-        "awareness",
-        "light"
-      ],
+      "topics": ["fear", "unknown", "awareness", "light"],
       "duration_minutes": 2,
       "emotional_tone": "illuminating",
       "use_conditions": {
-        "topics": [
-          "fear",
-          "anxiety",
-          "unknown",
-          "avoidance"
-        ]
+        "topics": ["fear", "anxiety", "unknown", "avoidance"]
       }
     },
     {
@@ -391,31 +214,16 @@
       "file": "three-stonecutters.json",
       "title": "The Three Stonecutters",
       "theme": "purpose",
-      "topics": [
-        "work",
-        "meaning",
-        "purpose",
-        "vision"
-      ],
+      "topics": ["work", "meaning", "purpose", "vision"],
       "duration_minutes": 2,
       "emotional_tone": "inspiring",
       "use_conditions": {
-        "topics": [
-          "work",
-          "career",
-          "meaning",
-          "motivation",
-          "purpose"
-        ]
+        "topics": ["work", "career", "meaning", "motivation", "purpose"]
       }
     }
   ],
   "story_selection_rules": {
-    "priority": [
-      "topic_match",
-      "relationship_stage",
-      "not_recently_told"
-    ],
+    "priority": ["topic_match", "relationship_stage", "not_recently_told"],
     "max_same_story_frequency": "once_per_week"
   }
 }
