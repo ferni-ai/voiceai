@@ -98,9 +98,10 @@ export async function staticCoreTools(
 
 /**
  * The static core for a call's session, with findTools added: without it the
- * agent has no way to reach a tool outside the core (agent-setup.ts does the same).
- * Used by every path that builds a call's tools under TOOL_CORE_STATIC, so the
- * eval measures what runtime sends.
+ * agent has no way to reach a tool outside the core. The tool-choice eval uses
+ * it to mirror the multi-agent path (agent-setup.ts), where findTools can pin a
+ * tool. The single-agent fallback (session-creator.ts) has no tool pinner, so it
+ * keeps the gateway set and does not use this.
  */
 export async function staticCoreCallTools(
   tools: Record<string, unknown>,
