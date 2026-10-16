@@ -35,6 +35,7 @@ import { getTTSCache } from '../../services/tts/index.js';
 import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
 import { findChunkEnd } from './chunk-boundary.js';
+import { findFirstReleaseEnd } from './first-clause-release.js';
 import { sessionSpeed } from '../output-control/pace-matching.js';
 import { createContinuationTTS } from './continuation-tts.js';
 import { createFirstAudioObserver, type FirstAudioObserver } from './first-audio-observer.js';
@@ -553,9 +554,8 @@ async function createStreamingOverlapTTS(
 
           const minLen = firstChunk ? MIN_FIRST_CHUNK : MIN_CHUNK;
           let chunk: string | null = null;
-
-          // Never cut inside Cartesia markup (see chunk-boundary.ts)
-          const end = findChunkEnd(buffer, minLen);
+          // Never cut inside markup; FIRST_CLAUSE_TTS may cut the first piece at a clause.
+          const end = (firstChunk ? findFirstReleaseEnd : findChunkEnd)(buffer, minLen);
           if (end !== null) {
             chunk = buffer.slice(0, end);
             buffer = buffer.slice(end);
