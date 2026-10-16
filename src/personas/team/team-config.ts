@@ -36,7 +36,7 @@ export const DEFAULT_TEAM_MEMBERS: TeamMember[] = [
       'Your main point of contact. Asks the questions that unlock insight, celebrates every win, and connects you to the right specialist when you need them.',
     active: true,
   },
-  // NOTE: Jack Bogle (sage-mentor) moved to Agent Marketplace. Nayan Patel is now the lifetime-advisor.
+  // NOTE: the index-investing mentor (sage-mentor) moved to Agent Marketplace. Nayan Patel is now the lifetime-advisor.
   {
     roleId: 'researcher',
     characterId: 'peter-john',
@@ -86,7 +86,7 @@ export const DEFAULT_TEAM_MEMBERS: TeamMember[] = [
  */
 export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
   // From Life Coach to others
-  // NOTE: sage-mentor (Jack Bogle) moved to Agent Marketplace. Use lifetime-advisor (Nayan) instead.
+  // NOTE: sage-mentor (the index-investing mentor) moved to Agent Marketplace. Use lifetime-advisor (Nayan) instead.
   {
     fromRole: 'life-coach',
     toRole: 'researcher',
@@ -157,7 +157,7 @@ export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
       'This one needs deep wisdom - let me bring in Nayan.',
       "Nayan's perfect for the big picture stuff. Hold on...",
       'You need the sage perspective. Let me get Nayan.',
-      "Bogle, Gandhi, Buffett wisdom? That's Nayan's domain. One sec.",
+      "Index-fund, Gandhi or Buffett wisdom? That's Nayan's domain. One sec.",
     ],
     triggers: [
       'meaning of life',
@@ -233,7 +233,7 @@ export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
 export const DEFAULT_TEAM_COORDINATION: TeamCoordination = {
   teammateReferences: [
     { roleId: 'life-coach', informalReference: 'Ferni', formalReference: 'your life coach' },
-    // NOTE: sage-mentor (Jack Bogle) moved to Agent Marketplace
+    // NOTE: sage-mentor (the index-investing mentor) moved to Agent Marketplace
     { roleId: 'researcher', informalReference: 'Peter', formalReference: 'our research expert' },
     {
       roleId: 'communicator',
@@ -253,7 +253,7 @@ export const DEFAULT_TEAM_COORDINATION: TeamCoordination = {
     },
   ],
   taskRouting: [
-    // NOTE: Jack Bogle (sage-mentor) moved to Agent Marketplace.
+    // NOTE: the index-investing mentor (sage-mentor) moved to Agent Marketplace.
     // These tasks now route to Nayan (lifetime-advisor) for deep wisdom.
     { taskType: 'investing philosophy', targetRole: 'lifetime-advisor' },
     { taskType: 'life wisdom', targetRole: 'lifetime-advisor' },

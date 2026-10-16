@@ -1,7 +1,7 @@
 /**
  * An in-memory Firestore keyed by document path, with nested subcollections:
- * doc get/set/update, collection where (==, >=, <=), orderBy (asc/desc, or
- * '__name__' for the document id), startAfter(id), limit. Enough for the
+ * doc get/set (with merge)/update, collection where (==, >=, <=, array-contains), orderBy (asc/desc, or
+ * '__name__' for the document id), startAfter/startAt/endAt(id), limit. Enough for the
  * proactive check-in run and the daily outreach run end to end.
  */
 type Json = Record<string, unknown>;
@@ -11,6 +11,18 @@ const cmp = (a: unknown, b: unknown): number => {
   const [x, y] = [v(a), v(b)];
   return x === y ? 0 : x < y ? -1 : 1;
 };
+
+const isMap = (v: unknown): v is Json =>
+  typeof v === 'object' && v !== null && !Array.isArray(v) && !(v instanceof Date);
+
+/** set(..., { merge: true }): nested maps merge, everything else is replaced. */
+function deepMerge(base: Json, patch: Json): Json {
+  const out: Json = structuredClone(base);
+  for (const [k, v] of Object.entries(patch)) {
+    out[k] = isMap(v) && isMap(out[k]) ? deepMerge(out[k] as Json, v) : structuredClone(v);
+  }
+  return out;
+}
 
 export function pathFirestore(docs: Map<string, Json>) {
   const snap = (path: string) => {
@@ -27,7 +39,11 @@ export function pathFirestore(docs: Map<string, Json>) {
       id: path.split('/').pop(),
       path,
       get: async () => snap(path),
-      set: async (data: Json) => void docs.set(path, structuredClone(data)),
+      set: async (data: Json, opts?: { merge?: boolean }) =>
+        void docs.set(
+          path,
+          opts?.merge ? deepMerge(docs.get(path) ?? {}, data) : structuredClone(data)
+        ),
       update: async (patch: Json) => void docs.set(path, { ...docs.get(path), ...patch }),
       collection: (name: string) => collectionRef(`${path}/${name}`),
     };
@@ -38,14 +54,17 @@ export function pathFirestore(docs: Map<string, Json>) {
     filters: Filter[],
     order?: [string, string],
     n = Infinity,
-    after?: string
+    after?: string,
+    range: { from?: string; to?: string } = {}
   ): Json {
     return {
       where: (f: string, op: string, v: unknown) =>
-        query(prefix, [...filters, [f, op, v]], order, n, after),
-      orderBy: (f: string, dir = 'asc') => query(prefix, filters, [f, dir], n, after),
-      limit: (k: number) => query(prefix, filters, order, k, after),
-      startAfter: (id: string) => query(prefix, filters, order, n, id),
+        query(prefix, [...filters, [f, op, v]], order, n, after, range),
+      orderBy: (f: string, dir = 'asc') => query(prefix, filters, [f, dir], n, after, range),
+      limit: (k: number) => query(prefix, filters, order, k, after, range),
+      startAfter: (id: string) => query(prefix, filters, order, n, id, range),
+      startAt: (id: string) => query(prefix, filters, order, n, after, { ...range, from: id }),
+      endAt: (id: string) => query(prefix, filters, order, n, after, { ...range, to: id }),
       get: async () => {
         let paths = [...docs.keys()].filter(
           (p) => p.startsWith(`${prefix}/`) && !p.slice(prefix.length + 1).includes('/')
@@ -54,6 +73,7 @@ export function pathFirestore(docs: Map<string, Json>) {
           filters.every(([f, op, v]) => {
             const x = docs.get(p)?.[f];
             if (op === '==') return x === v;
+            if (op === 'array-contains') return Array.isArray(x) && x.includes(v);
             if (x === undefined) return false;
             return op === '>=' ? cmp(x, v) >= 0 : op === '<=' ? cmp(x, v) <= 0 : false;
           })
@@ -65,6 +85,9 @@ export function pathFirestore(docs: Map<string, Json>) {
           paths.sort((a, b) => cmp(key(a), key(b)) * (dir === 'desc' ? -1 : 1));
         }
         if (after !== undefined) paths = paths.filter((p) => idOf(p) > after);
+        const { from, to } = range;
+        if (from !== undefined) paths = paths.filter((p) => idOf(p) >= from);
+        if (to !== undefined) paths = paths.filter((p) => idOf(p) <= to);
         const out = paths.slice(0, n).map(snap);
         return { docs: out, size: out.length, empty: out.length === 0 };
       },

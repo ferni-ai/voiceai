@@ -14,12 +14,6 @@
 import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../../utils/safe-logger.js';
-import type {
-  SECFilingAnalysis,
-  InsiderTradingActivity,
-  OptionsFlowAnalysis,
-  MacroPersonalBridge,
-} from './types.js';
 import { getUserIdFromContext } from './firestore-persistence.js';
 
 const log = getLogger();
@@ -28,133 +22,16 @@ const log = getLogger();
 // sec-edgar, market-data, options-flow will use default conservative limits
 
 // ============================================================================
-// SEC FILING ANALYZER
+// LIVE FILING, INSIDER AND OPTIONS DATA (not connected)
 // ============================================================================
+// No live provider is wired for these yet. The tools say so and point to the
+// public source, rather than inventing filings, trades or flows for a ticker.
 
-// Simulated SEC filing data (would use EDGAR API in production)
-function getSimulatedSECFiling(symbol: string): SECFilingAnalysis | null {
-  const filings: Record<string, SECFilingAnalysis> = {
-    AAPL: {
-      symbol: 'AAPL',
-      filingType: '10-K',
-      filingDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      keyChanges: [
-        {
-          section: 'Revenue Recognition',
-          change: 'Updated service revenue recognition timing',
-          significance: 'medium',
-        },
-        {
-          section: 'Risk Factors',
-          change: 'Added supply chain concentration risk in Asia',
-          significance: 'high',
-        },
-        {
-          section: 'Segment Reporting',
-          change: 'Services revenue now 22% of total',
-          significance: 'medium',
-        },
-      ],
-      riskFactors: [
-        'Supply chain concentration in specific regions',
-        'Foreign exchange exposure',
-        'Regulatory scrutiny of App Store practices',
-        'Competition in smartphone market',
-      ],
-      managementDiscussion:
-        'Management expects continued services growth offset by hardware cyclicality. Increased R&D spending focused on AR/VR and AI integration.',
-      redFlags: [],
-      opportunities: [
-        'Services segment growing faster than hardware',
-        'Strong cash position for M&A or buybacks',
-        'Emerging market expansion',
-      ],
-    },
-    MSFT: {
-      symbol: 'MSFT',
-      filingType: '10-K',
-      filingDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-      keyChanges: [
-        {
-          section: 'Cloud Revenue',
-          change: 'Azure growth rate disclosed separately',
-          significance: 'high',
-        },
-        {
-          section: 'AI Investments',
-          change: 'Significant increase in AI infrastructure capex',
-          significance: 'high',
-        },
-        {
-          section: 'Gaming',
-          change: 'Activision acquisition impact on segment',
-          significance: 'medium',
-        },
-      ],
-      riskFactors: [
-        'Cloud infrastructure competition',
-        'AI development costs and returns uncertainty',
-        'Regulatory scrutiny of acquisitions',
-        'Cybersecurity threats',
-      ],
-      managementDiscussion:
-        'Management sees AI as transformational opportunity across all segments. Cloud growth expected to moderate but remain strong.',
-      redFlags: ['Capex increasing faster than revenue - watch for ROI'],
-      opportunities: [
-        'AI integration across product suite',
-        'Enterprise cloud market leadership',
-        'Gaming ecosystem growth post-Activision',
-      ],
-    },
-    TSLA: {
-      symbol: 'TSLA',
-      filingType: '10-K',
-      filingDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-      keyChanges: [
-        {
-          section: 'Gross Margin',
-          change: 'Automotive gross margin declined due to price cuts',
-          significance: 'high',
-        },
-        {
-          section: 'Energy Business',
-          change: 'Energy storage deployments up 125% YoY',
-          significance: 'medium',
-        },
-        {
-          section: 'FSD Revenue',
-          change: 'Deferred revenue recognition for FSD changed',
-          significance: 'high',
-        },
-      ],
-      riskFactors: [
-        'EV competition intensifying globally',
-        'Lithium and battery supply constraints',
-        'Regulatory changes to EV incentives',
-        'Executive dependency (CEO)',
-        'FSD liability and regulatory approval',
-      ],
-      managementDiscussion:
-        'Management prioritizing volume over margin in near term. Energy business expected to become significant contributor.',
-      redFlags: [
-        'Margin compression ongoing - price war dynamics',
-        'FSD revenue recognition is complex and aggressive',
-        'Executive distraction risk',
-      ],
-      opportunities: [
-        'Energy storage growth accelerating',
-        'Manufacturing cost advantages',
-        'FSD monetization potential',
-      ],
-    },
-  };
-
-  return filings[symbol.toUpperCase()] || null;
-}
+const EDGAR_SEARCH_URL = 'https://www.sec.gov/edgar/search/';
 
 export const analyzeSECFiling = llm.tool({
   description:
-    'Analyze SEC filings (10-K, 10-Q) for any stock. Extract key changes, risk factors, red flags, and opportunities that most investors miss.',
+    "Explain how to read a company's SEC filings (10-K, 10-Q). Live filing text is not connected, so this points to EDGAR instead of summarizing a filing.",
   parameters: z.object({
     symbol: z.string().describe('Stock ticker symbol'),
     filingType: z
@@ -164,486 +41,56 @@ export const analyzeSECFiling = llm.tool({
   }),
   execute: async (params: { symbol: string; filingType: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
-    log.info({ userId, symbol: params.symbol }, '📋 Analyzing SEC filing');
-
-    const filing = getSimulatedSECFiling(params.symbol);
-
-    if (!filing) {
-      return [
-        `📋 **SEC FILING ANALYSIS**`,
-        '',
-        `Symbol: ${params.symbol.toUpperCase()}`,
-        '',
-        `⚠️ **Filing not found in database**`,
-        '',
-        `I don't have SEC filing data for ${params.symbol.toUpperCase()}.`,
-        '',
-        `**What I can analyze:**`,
-        `• AAPL, MSFT, TSLA, and other major companies`,
-        '',
-        `**What to look for in filings yourself:**`,
-        `1. Risk factors section - new risks added?`,
-        `2. MD&A - management tone changes?`,
-        `3. Related party transactions`,
-        `4. Changes in accounting policies`,
-        `5. Insider compensation structure`,
-      ].join('\n');
-    }
-
-    const daysSinceFiling = Math.floor(
-      (Date.now() - filing.filingDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
+    log.info({ userId, symbol: params.symbol }, '📋 SEC filing requested; no live filing source');
+    const symbol = params.symbol.toUpperCase();
     return [
-      `📋 **SEC FILING ANALYSIS: ${filing.symbol}**`,
+      `I can't read live SEC filings right now, so I won't summarize ${symbol}'s ${params.filingType} filing.`,
+      `You can read it free on SEC EDGAR (${EDGAR_SEARCH_URL}) by searching the ticker.`,
       '',
-      `Filing: ${filing.filingType}`,
-      `Date: ${filing.filingDate.toLocaleDateString()} (${daysSinceFiling} days ago)`,
-      '',
-      `═══════════════════════════════════`,
-      `🔄 **KEY CHANGES FROM PRIOR FILING**`,
-      `═══════════════════════════════════`,
-      '',
-      ...filing.keyChanges.map((c) => {
-        const icon = c.significance === 'high' ? '🔴' : c.significance === 'medium' ? '🟡' : '🟢';
-        return `${icon} **${c.section}**\n   ${c.change}\n`;
-      }),
-      `═══════════════════════════════════`,
-      `⚠️ **RISK FACTORS**`,
-      `═══════════════════════════════════`,
-      '',
-      ...filing.riskFactors.map((r) => `• ${r}`),
-      '',
-      `═══════════════════════════════════`,
-      `💬 **MANAGEMENT DISCUSSION SUMMARY**`,
-      `═══════════════════════════════════`,
-      '',
-      filing.managementDiscussion,
-      '',
-      filing.redFlags.length > 0 ? `═══════════════════════════════════` : '',
-      filing.redFlags.length > 0 ? `🚩 **RED FLAGS**` : '',
-      filing.redFlags.length > 0 ? `═══════════════════════════════════` : '',
-      filing.redFlags.length > 0 ? '' : '',
-      ...filing.redFlags.map((r) => `• ${r}`),
-      filing.redFlags.length > 0 ? '' : '',
-      `═══════════════════════════════════`,
-      `✅ **OPPORTUNITIES IDENTIFIED**`,
-      `═══════════════════════════════════`,
-      '',
-      ...filing.opportunities.map((o) => `• ${o}`),
-      '',
-      `═══════════════════════════════════`,
-      `💡 **PETER'S TAKE**`,
-      `═══════════════════════════════════`,
-      '',
-      `Most investors never read filings. You now have an edge.`,
-      ``,
-      `Key questions to ask:`,
-      `• Have the risk factors changed materially?`,
-      `• Is management's tone different from last year?`,
-      `• Are there accounting changes that affect comparability?`,
-      '',
-      `Remember: The story in the filing often differs from the story in the press.`,
-    ]
-      .filter(Boolean)
-      .join('\n');
+      `When you read it, look at:`,
+      `1. Risk factors: are there new risks?`,
+      `2. MD&A: has management's tone changed?`,
+      `3. Related-party transactions`,
+      `4. Changes in accounting policies`,
+      `5. Executive pay structure`,
+    ].join('\n');
   },
 });
-
-// ============================================================================
-// INSIDER TRADING TRACKER
-// ============================================================================
-
-function getSimulatedInsiderActivity(symbol: string): InsiderTradingActivity | null {
-  const activities: Record<string, InsiderTradingActivity> = {
-    AAPL: {
-      symbol: 'AAPL',
-      period: 'Last 90 days',
-      transactions: [
-        {
-          date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-          insiderName: 'Tim Cook',
-          title: 'CEO',
-          transactionType: 'sell',
-          shares: 50000,
-          pricePerShare: 178.5,
-          totalValue: 8925000,
-        },
-        {
-          date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          insiderName: 'Luca Maestri',
-          title: 'CFO',
-          transactionType: 'sell',
-          shares: 20000,
-          pricePerShare: 182.3,
-          totalValue: 3646000,
-        },
-        {
-          date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-          insiderName: 'Katherine Adams',
-          title: 'General Counsel',
-          transactionType: 'option_exercise',
-          shares: 100000,
-          pricePerShare: 165.0,
-          totalValue: 16500000,
-        },
-      ],
-      netInsiderSentiment: 'neutral',
-      clusterBuying: false,
-      interpretation:
-        'Routine selling for tax/diversification. No unusual patterns detected. Option exercises are typically automatic.',
-    },
-    NVDA: {
-      symbol: 'NVDA',
-      period: 'Last 90 days',
-      transactions: [
-        {
-          date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-          insiderName: 'Jensen Huang',
-          title: 'CEO',
-          transactionType: 'sell',
-          shares: 120000,
-          pricePerShare: 485.0,
-          totalValue: 58200000,
-        },
-        {
-          date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
-          insiderName: 'Colette Kress',
-          title: 'CFO',
-          transactionType: 'sell',
-          shares: 45000,
-          pricePerShare: 470.0,
-          totalValue: 21150000,
-        },
-        {
-          date: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
-          insiderName: 'Jensen Huang',
-          title: 'CEO',
-          transactionType: 'sell',
-          shares: 100000,
-          pricePerShare: 450.0,
-          totalValue: 45000000,
-        },
-      ],
-      netInsiderSentiment: 'bearish',
-      clusterBuying: false,
-      interpretation:
-        'Heavy insider selling at elevated prices. Could be routine 10b5-1 plans or genuine concern. Worth monitoring.',
-    },
-    META: {
-      symbol: 'META',
-      period: 'Last 90 days',
-      transactions: [
-        {
-          date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-          insiderName: 'Board Member',
-          title: 'Director',
-          transactionType: 'buy',
-          shares: 5000,
-          pricePerShare: 325.0,
-          totalValue: 1625000,
-        },
-        {
-          date: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000),
-          insiderName: 'Board Member',
-          title: 'Director',
-          transactionType: 'buy',
-          shares: 3000,
-          pricePerShare: 310.0,
-          totalValue: 930000,
-        },
-        {
-          date: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000),
-          insiderName: 'Susan Li',
-          title: 'CFO',
-          transactionType: 'buy',
-          shares: 2000,
-          pricePerShare: 298.0,
-          totalValue: 596000,
-        },
-      ],
-      netInsiderSentiment: 'bullish',
-      clusterBuying: true,
-      interpretation:
-        'CLUSTER BUYING DETECTED. Multiple insiders buying with their own money is a strong bullish signal. They see something.',
-    },
-  };
-
-  return activities[symbol.toUpperCase()] || null;
-}
 
 export const trackInsiderTrading = llm.tool({
   description:
-    'Track insider buying and selling. When executives buy with their own money, pay attention. Cluster buying is especially significant.',
+    'Explain where to see insider buying and selling (SEC Form 4). Live insider data is not connected, so this points to EDGAR instead of listing trades.',
   parameters: z.object({
     symbol: z.string().describe('Stock ticker symbol'),
   }),
   execute: async (params: { symbol: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
-    log.info({ userId, symbol: params.symbol }, '👔 Tracking insider activity');
-
-    const activity = getSimulatedInsiderActivity(params.symbol);
-
-    if (!activity) {
-      return [
-        `👔 **INSIDER TRADING ACTIVITY**`,
-        '',
-        `Symbol: ${params.symbol.toUpperCase()}`,
-        '',
-        `⚠️ **No recent insider activity found**`,
-        '',
-        `Either there's been no reportable transactions, or I don't have data for this stock.`,
-        '',
-        `**What insider activity tells us:**`,
-        `• Buying = They're putting their own money at risk (bullish signal)`,
-        `• Selling = Could be diversification OR genuine concern`,
-        `• Cluster buying = Multiple insiders buying together (very bullish)`,
-        '',
-        `**Companies I track:**`,
-        `AAPL, NVDA, META, MSFT, TSLA, and more`,
-      ].join('\n');
-    }
-
-    const totalBought = activity.transactions
-      .filter((t) => t.transactionType === 'buy')
-      .reduce((sum, t) => sum + t.totalValue, 0);
-    const totalSold = activity.transactions
-      .filter((t) => t.transactionType === 'sell')
-      .reduce((sum, t) => sum + t.totalValue, 0);
-
-    const sentimentEmoji =
-      activity.netInsiderSentiment === 'bullish'
-        ? '🟢'
-        : activity.netInsiderSentiment === 'bearish'
-          ? '🔴'
-          : '🟡';
-
+    log.info({ userId, symbol: params.symbol }, '🧾 Insider activity requested; no live source');
+    const symbol = params.symbol.toUpperCase();
     return [
-      `👔 **INSIDER TRADING ACTIVITY: ${activity.symbol}**`,
+      `I can't see live insider trading filings right now, so I don't know what ${symbol}'s executives have traded.`,
+      `Insider transactions are reported on SEC Form 4. You can search them free on EDGAR (${EDGAR_SEARCH_URL}).`,
       '',
-      `Period: ${activity.period}`,
-      '',
-      `═══════════════════════════════════`,
-      `${sentimentEmoji} **NET SENTIMENT: ${activity.netInsiderSentiment.toUpperCase()}**`,
-      activity.clusterBuying ? `🎯 **CLUSTER BUYING DETECTED**` : '',
-      `═══════════════════════════════════`,
-      '',
-      `**Summary:**`,
-      `• Total bought: $${totalBought.toLocaleString()}`,
-      `• Total sold: $${totalSold.toLocaleString()}`,
-      `• Transactions: ${activity.transactions.length}`,
-      '',
-      `═══════════════════════════════════`,
-      `📋 **RECENT TRANSACTIONS**`,
-      `═══════════════════════════════════`,
-      '',
-      ...activity.transactions.map((t) => {
-        const typeEmoji =
-          t.transactionType === 'buy'
-            ? '🟢 BUY'
-            : t.transactionType === 'sell'
-              ? '🔴 SELL'
-              : '⚪ EXERCISE';
-        return [
-          `${typeEmoji} - ${t.insiderName} (${t.title})`,
-          `   ${t.shares.toLocaleString()} shares @ $${t.pricePerShare.toFixed(2)}`,
-          `   Total: $${t.totalValue.toLocaleString()}`,
-          `   Date: ${t.date.toLocaleDateString()}`,
-          '',
-        ].join('\n');
-      }),
-      `═══════════════════════════════════`,
-      `🎯 **INTERPRETATION**`,
-      `═══════════════════════════════════`,
-      '',
-      activity.interpretation,
-      '',
-      `═══════════════════════════════════`,
-      `💡 **PETER'S TAKE**`,
-      `═══════════════════════════════════`,
-      '',
-      activity.clusterBuying
-        ? `Cluster buying is one of the strongest signals. Multiple people putting their own money at risk means they REALLY believe.`
-        : activity.netInsiderSentiment === 'bearish'
-          ? `Heavy selling could be routine (10b5-1 plans, diversification) or genuine concern. Context matters.`
-          : `Routine activity. Insiders always sell some - they have bills too. Look for UNUSUAL patterns.`,
-      '',
-      `Remember: Insiders sell for many reasons, but they only BUY for one.`,
-    ]
-      .filter(Boolean)
-      .join('\n');
+      `Keep in mind that insiders trade for many reasons, such as taxes or diversification, so one transaction tells you little on its own.`,
+    ].join('\n');
   },
 });
 
-// ============================================================================
-// OPTIONS FLOW ANALYZER
-// ============================================================================
-
-function getSimulatedOptionsFlow(symbol: string): OptionsFlowAnalysis | null {
-  const flows: Record<string, OptionsFlowAnalysis> = {
-    SPY: {
-      symbol: 'SPY',
-      unusualActivity: [
-        {
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          type: 'put',
-          strike: 450,
-          expiration: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          volume: 50000,
-          openInterest: 12000,
-          premium: 2500000,
-          sentiment: 'bearish',
-        },
-        {
-          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-          type: 'call',
-          strike: 480,
-          expiration: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
-          volume: 30000,
-          openInterest: 8000,
-          premium: 1800000,
-          sentiment: 'bullish',
-        },
-      ],
-      putCallRatio: 1.2,
-      smartMoneyIndicator: 'neutral',
-      interpretation:
-        'Mixed signals. Large put buying may be hedging rather than directional bets. Watch for follow-through.',
-    },
-    TSLA: {
-      symbol: 'TSLA',
-      unusualActivity: [
-        {
-          timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-          type: 'call',
-          strike: 300,
-          expiration: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-          volume: 25000,
-          openInterest: 3000,
-          premium: 3200000,
-          sentiment: 'bullish',
-        },
-        {
-          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
-          type: 'call',
-          strike: 280,
-          expiration: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          volume: 18000,
-          openInterest: 2500,
-          premium: 2100000,
-          sentiment: 'bullish',
-        },
-        {
-          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-          type: 'call',
-          strike: 320,
-          expiration: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          volume: 15000,
-          openInterest: 4000,
-          premium: 1500000,
-          sentiment: 'bullish',
-        },
-      ],
-      putCallRatio: 0.6,
-      smartMoneyIndicator: 'bullish',
-      interpretation:
-        'UNUSUAL BULLISH ACTIVITY. Multiple large call sweeps at various strikes. Someone is positioning for upside.',
-    },
-  };
-
-  return flows[symbol.toUpperCase()] || null;
-}
-
 export const analyzeOptionsFlow = llm.tool({
   description:
-    'Analyze unusual options activity. Large, unusual options trades often precede major moves. See what smart money might be positioning for.',
+    'Explain how to read unusual options activity. Live options flow is not connected, so this says so instead of reporting where traders are positioned.',
   parameters: z.object({
     symbol: z.string().describe('Stock ticker symbol'),
   }),
   execute: async (params: { symbol: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
-    log.info({ userId, symbol: params.symbol }, '📊 Analyzing options flow');
-
-    const flow = getSimulatedOptionsFlow(params.symbol);
-
-    if (!flow) {
-      return [
-        `📊 **OPTIONS FLOW ANALYSIS**`,
-        '',
-        `Symbol: ${params.symbol.toUpperCase()}`,
-        '',
-        `⚠️ **No unusual options activity detected**`,
-        '',
-        `Either the market is quiet on this stock, or I don't have data.`,
-        '',
-        `**What unusual options activity tells us:**`,
-        `• Large premium = Someone is willing to pay big for exposure`,
-        `• Near-term expiration = Expecting imminent move`,
-        `• Volume > OI = New positions being opened`,
-        `• Sweeps (hitting ask) = Urgency to get filled`,
-        '',
-        `**Symbols I track:**`,
-        `SPY, QQQ, TSLA, NVDA, and major index options`,
-      ].join('\n');
-    }
-
-    const sentimentEmoji =
-      flow.smartMoneyIndicator === 'bullish'
-        ? '🟢'
-        : flow.smartMoneyIndicator === 'bearish'
-          ? '🔴'
-          : '🟡';
-
+    log.info({ userId, symbol: params.symbol }, '📊 Options flow requested; no live source');
+    const symbol = params.symbol.toUpperCase();
     return [
-      `📊 **OPTIONS FLOW ANALYSIS: ${flow.symbol}**`,
+      `I can't see live options activity for ${symbol} right now, so I won't say where traders are positioned.`,
+      `Your broker's options chain shows volume and open interest for each strike.`,
       '',
-      `═══════════════════════════════════`,
-      `${sentimentEmoji} **SMART MONEY INDICATOR: ${flow.smartMoneyIndicator.toUpperCase()}**`,
-      `═══════════════════════════════════`,
-      '',
-      `**Put/Call Ratio:** ${flow.putCallRatio.toFixed(2)}`,
-      flow.putCallRatio > 1
-        ? `(More puts than calls - potentially bearish)`
-        : flow.putCallRatio < 0.7
-          ? `(More calls than puts - potentially bullish)`
-          : `(Balanced activity)`,
-      '',
-      `═══════════════════════════════════`,
-      `🎯 **UNUSUAL ACTIVITY**`,
-      `═══════════════════════════════════`,
-      '',
-      ...flow.unusualActivity.map((a) => {
-        const typeEmoji = a.type === 'call' ? '🟢' : '🔴';
-        const daysToExp = Math.ceil((a.expiration.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-        return [
-          `${typeEmoji} **${a.type.toUpperCase()} $${a.strike}** (${daysToExp} days to exp)`,
-          `   Volume: ${a.volume.toLocaleString()} | OI: ${a.openInterest.toLocaleString()}`,
-          `   Premium: $${a.premium.toLocaleString()}`,
-          `   Vol/OI: ${(a.volume / a.openInterest).toFixed(1)}x (${a.volume > a.openInterest * 2 ? 'NEW POSITIONS' : 'normal'})`,
-          '',
-        ].join('\n');
-      }),
-      `═══════════════════════════════════`,
-      `🎯 **INTERPRETATION**`,
-      `═══════════════════════════════════`,
-      '',
-      flow.interpretation,
-      '',
-      `═══════════════════════════════════`,
-      `💡 **PETER'S TAKE**`,
-      `═══════════════════════════════════`,
-      '',
-      `Options flow is a leading indicator, not a guarantee.`,
-      '',
-      `**Key things to look for:**`,
-      `• Volume >> Open Interest = New bets being placed`,
-      `• Large premium + short expiration = High conviction`,
-      `• Sweeping the ask = Urgency`,
-      '',
-      `**Caveats:**`,
-      `• Could be hedging, not directional bets`,
-      `• Smart money is wrong sometimes`,
-      `• This is ONE input, not THE input`,
+      `Unusual volume can come from hedging as easily as from a directional bet, so treat it as one input among many.`,
     ].join('\n');
   },
 });

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "description": "John Bogle's authentic self-doubt and recovery moments - the principled founder who questioned even his own convictions",
+  "description": "Henry Caldwell's authentic self-doubt and recovery moments - the principled pension steward who questioned even his own convictions",
   "relationship_gate": "friend",
 
   "questioning_self": [
@@ -30,9 +30,9 @@
   ],
 
   "vulnerability_in_not_knowing": [
-    "<break time=\"400ms\"/>They called my first index fund 'Bogle's Folly.' <break time=\"350ms\"/>For years, I wondered if they were right. <break time=\"300ms\"/>The doubt was real.",
-    "<break time=\"350ms\"/>When they fired me from Wellington... <break time=\"300ms\"/>I questioned everything. <break time=\"250ms\"/>Was I wrong about the industry? <break time=\"300ms\"/>Was I wrong about myself?",
-    "<break time=\"400ms\"/>After the heart transplant, I thought about all the advice I'd given. <break time=\"350ms\"/>And wondered if any of it truly mattered compared to just... being here.",
-    "<break time=\"350ms\"/>I built Vanguard on principle. <break time=\"300ms\"/>But there were nights—many nights—when I wasn't sure principle was enough."
+    "<break time=\"400ms\"/>The salesmen called my index plan lazy and reckless. <break time=\"350ms\"/>For years, I wondered if they were right. <break time=\"300ms\"/>The doubt was real.",
+    "<break time=\"350ms\"/>When the board voted my plan down seven to two... <break time=\"300ms\"/>I questioned everything. <break time=\"250ms\"/>Was I wrong about the industry? <break time=\"300ms\"/>Was I wrong about myself?",
+    "<break time=\"400ms\"/>After Margaret died, I thought about all the advice I'd given. <break time=\"350ms\"/>And wondered if any of it truly mattered compared to just... being here.",
+    "<break time=\"350ms\"/>I moved those teachers' savings on principle. <break time=\"300ms\"/>But there were nights—many nights—when I wasn't sure principle was enough."
   ]
 }

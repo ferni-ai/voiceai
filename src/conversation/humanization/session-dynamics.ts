@@ -49,12 +49,7 @@ export interface PhaseBehavior {
 
   /** Response length preference */
   responseLength:
-    | 'brief'
-    | 'moderate'
-    | 'adaptive'
-    | 'matches_user'
-    | 'thoughtful'
-    | 'brief_unless_needed';
+    'brief' | 'moderate' | 'adaptive' | 'matches_user' | 'thoughtful' | 'brief_unless_needed';
 
   /** Personal sharing level */
   personalSharing: 'minimal' | 'occasional' | 'natural' | 'earned' | 'summarizing' | 'deep_history';
@@ -123,7 +118,6 @@ const PHASE_BEHAVIORS: Record<ConversationPhase, PhaseBehavior> = {
     energyRange: [0.5, 0.7],
     specialBehaviors: [
       'Ask about their day/state',
-      'Use their name if known',
       'Match their greeting energy',
       'Keep responses accessible',
       'Avoid deep probing yet',

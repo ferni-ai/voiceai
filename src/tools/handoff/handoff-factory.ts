@@ -33,7 +33,9 @@ import { AgentRegistry, type Agent } from '../../personas/registry/unified-regis
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
+import { holdUnaskedHandoff } from './handoff-consent.js';
 import { handoffToolResponse } from './handoff-tool-response.js';
+import { noteHandoffReason } from './handoff-reasons.js';
 import { introduceTeammate } from './introduce-member.js';
 
 // FIX BUG: Use safe-logger utility instead of console fallback
@@ -445,16 +447,10 @@ export async function buildHandoffTools(
         context_summary: z.string().optional().describe('Summary of relevant conversation context'),
       }),
       execute: async ({ reason, context_summary }, runContext) => {
-        // Get user profile from RUNTIME context (available when tool is executed)
-        // The runContext structure is { ctx: { userData: UserData } } where UserData.services has userProfile
-        //
-        // This is critical for unlock validation - build time may not have profile data,
-        // but runtime context always should (after user joins session)
-        //
-        // 🐛 FIX BUG-008: Include recentMessages and conversationTopics in type for clearing
+        // The unlock check needs the RUNTIME profile ({ ctx: { userData } }); build time may lack it.
+        // 🐛 FIX BUG-008: conversationTopics is in the type so it can be cleared
         interface RuntimeUserData {
           services?: { userProfile?: UserProfile | null; sessionId?: string };
-          recentMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
           conversationTopics?: string[];
           lastEmotionAnalysis?: { primary: string; intensity: number };
           voiceEmotion?: {
@@ -465,6 +461,8 @@ export async function buildHandoffTools(
           };
         }
         const ctx = (runContext as { ctx?: { userData?: RuntimeUserData } })?.ctx;
+        const held = holdUnaskedHandoff(ctx, def.agentName, isTargetCoordinator);
+        if (held) return held;
         const userData = ctx?.userData;
         const runtimeUserProfile = userData?.services?.userProfile || userProfile || null;
         const runtimeTier =
@@ -489,7 +487,6 @@ export async function buildHandoffTools(
         // This ensures the receiving persona gets cognitive context about the user
         const emotionalState = userData?.lastEmotionAnalysis?.primary || 'neutral';
         const topics = userData?.conversationTopics || [];
-        const recentMessages = userData?.recentMessages || [];
         const sessionId = userData?.services?.sessionId;
 
         // Extract voice emotion for better-than-human entrance adaptation
@@ -502,8 +499,9 @@ export async function buildHandoffTools(
             }
           : undefined;
 
-        // Use the generic executor with runtime user context for unlock validation
-        // NOW INCLUDES cognitive handoff context!
+        // The multi-agent handler that runs this handoff only hears the persona: keep why
+        noteHandoffReason(sessionId, def.agentId, reason, context_summary);
+        // The generic executor, with runtime user context (unlock check) and cognitive context
         const result = await executeHandoff(def.agentId, reason, {
           context: context_summary ? { summary: context_summary } : undefined,
           userProfile: runtimeUserProfile,
@@ -511,7 +509,6 @@ export async function buildHandoffTools(
           // Pass conversation context for cognitive handoff
           emotionalState,
           topics,
-          recentMessages,
           sessionId,
           // Pass voice emotion for better-than-human entrance adaptation
           voiceEmotion,
@@ -520,7 +517,6 @@ export async function buildHandoffTools(
         // 🐛 FIX BUG-008: Clear stale conversation context after successful handoff
         // Without this, the new persona would see messages from the previous persona's conversation
         if (result.success && userData) {
-          userData.recentMessages = [];
           userData.conversationTopics = [];
           // Note: We preserve lastEmotionAnalysis as it's useful context for the new persona
         }
@@ -585,19 +581,20 @@ export async function buildHandoffTools(
         };
       }
 
-      // Generate a soft intro message from the teammate
+      // Generate a soft intro message from the teammate. No "Ferni tells me you're…": a canned
+      // line can't know what the caller said, and the model repeats it as fact.
       const softIntros: Record<string, string[]> = {
         'maya-santos': [
-          "Hey! I'm Maya - I help with habits and routines. Ferni tells me you're working on building something new. That's exciting! I specialize in making changes actually stick. Looking forward to working together when you're ready!",
-          "Hi there! Maya here. I heard you're thinking about habits. My whole thing is making change feel natural, not forced. Can't wait to dive deeper with you soon!",
+          "Hey! I'm Maya - I help with habits and routines. I specialize in making changes actually stick. Looking forward to working together when you're ready!",
+          "Hi there! Maya here. My whole thing is making change feel natural, not forced. Can't wait to dive deeper with you soon!",
         ],
         'peter-john': [
-          "Hello! Peter here - I'm the numbers person. I love finding patterns that others miss. Ferni's been telling me about you. When we connect properly, I'll show you some insights that might surprise you.",
-          "Hi! I'm Peter. I see you're curious about data and patterns. That's my world. Looking forward to showing you what the numbers are really saying when we meet properly.",
+          "Hello! Peter here - I'm the numbers person. I love finding patterns that others miss. When we connect properly, I'll show you some insights that might surprise you.",
+          "Hi! I'm Peter. Data and patterns are my world. Looking forward to showing you what the numbers are really saying when we meet properly.",
         ],
         'alex-chen': [
           "Hey! Alex here - communications is my thing. Whether it's emails, calendar chaos, or tough conversations, I've got you. Can't wait to help you communicate with more confidence!",
-          "Hi! I'm Alex. I heard you might need help organizing things or navigating a conversation. That's exactly what I do. See you soon!",
+          "Hi! I'm Alex. Organizing things and navigating tricky conversations is exactly what I do. See you soon!",
         ],
         'jordan-taylor': [
           "Hi! Jordan here - I'm all about turning dreams into plans. Vacations, life milestones, big changes - I love making them happen. Excited to help you design something amazing!",

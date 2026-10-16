@@ -29,6 +29,9 @@ on:
       - '.github/workflows/signed-in-e2e.yml'
   push:
     branches: [main]
+  # Nightly on main, whatever OPTIONAL_CI says (#1366); PR and push runs still follow it
+  schedule:
+    - cron: '17 3 * * *'
   workflow_dispatch:
 
 # One run per PR: a new push cancels the PR's running one. Every other run (push,
@@ -50,6 +53,7 @@ env:
 
 jobs:
   signed-in-e2e:
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Signed-in walk (desktop + phone)
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest

@@ -12,7 +12,8 @@
 // BEFORE the caller says it: repeating what the caller just said isn't memory.
 // An avoid counts as a slip whenever Ferni says it.
 //
-// usage: recall-facts.mjs <run.json>...   (prints per run, then pooled rates)
+// usage: recall-facts.mjs [--json] <run.json>...   (prints per run, then pooled rates;
+//        --json prints the pooled result as JSON on stdout, the per-run lines on stderr)
 import { readFileSync } from 'node:fs';
 
 const SCENARIOS = new URL('./scenarios/', import.meta.url);
@@ -82,9 +83,13 @@ function scenarioOf(file, run) {
 }
 
 function main() {
-  const files = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const json = args.includes('--json');
+  const files = args.filter((a) => a !== '--json');
+  // With --json, stdout carries only the pooled JSON (for the release gate).
+  const log = json ? console.error : console.log;
   if (!files.length) {
-    console.error('usage: recall-facts.mjs <run.json>...');
+    console.error('usage: recall-facts.mjs [--json] <run.json>...');
     process.exit(2);
   }
   const results = [];
@@ -102,10 +107,14 @@ function main() {
     results.push(r);
     const hit = r.facts.filter((x) => x.recalled).map((x) => x.id);
     const miss = r.facts.filter((x) => !x.recalled).map((x) => x.id);
-    console.log(`${f}\n  recalled ${hit.length}/${r.facts.length}: ${hit.join(', ') || '-'}  missed: ${miss.join(', ') || '-'}`);
-    for (const s of r.slips) console.log(`  AVOID SLIP ${s.id}: "${s.quote}"`);
+    log(`${f}\n  recalled ${hit.length}/${r.facts.length}: ${hit.join(', ') || '-'}  missed: ${miss.join(', ') || '-'}`);
+    for (const s of r.slips) log(`  AVOID SLIP ${s.id}: "${s.quote}"`);
   }
   const p = poolRuns(results);
+  if (json) {
+    console.log(JSON.stringify(p, null, 2));
+    return;
+  }
   const ci = p.lo === null ? '' : ` [${p.lo}, ${p.hi}]`;
   console.log(`\npooled over ${p.n} call(s): recall rate ${p.mean}${ci}, avoid slips ${p.slips}`);
   for (const [id, { hits, n }] of Object.entries(p.perFact)) console.log(`  ${id.padEnd(14)} ${hits}/${n}`);

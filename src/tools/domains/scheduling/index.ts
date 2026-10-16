@@ -40,9 +40,9 @@ import {
   scheduleEmail,
   scheduleCall,
   textUser,
-  getUserContactInfo,
   setUserContactInfo,
 } from '../proactive/outreach/index.js';
+import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
   getPendingReminders,
   cancelReminder,
@@ -144,8 +144,8 @@ If no recipient specified, sends to the user themselves.`,
         );
 
         // Parse the time
-        const contact = await getUserContactInfo(userId);
-        const scheduledFor = parseScheduleTime(params.when, contact?.timezone);
+        const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+        const scheduledFor = parseScheduleTime(params.when, zone);
 
         if (!scheduledFor) {
           return "I couldn't understand that time. Could you say it differently? Like 'tomorrow at 9am' or 'in 2 hours'?";
@@ -203,8 +203,8 @@ The call will play a voice message when answered.`,
 
         log.info({ userId, when: params.when }, '📞 Scheduling phone call');
 
-        const contact = await getUserContactInfo(userId);
-        const scheduledFor = parseScheduleTime(params.when, contact?.timezone);
+        const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+        const scheduledFor = parseScheduleTime(params.when, zone);
 
         if (!scheduledFor) {
           return "I couldn't understand that time. Try something like 'at 2pm' or 'tomorrow morning'.";
@@ -259,8 +259,8 @@ Use when the user says things like:
 
         log.info({ userId, when: params.when, subject: params.subject }, '📧 Scheduling email');
 
-        const contact = await getUserContactInfo(userId);
-        const scheduledFor = parseScheduleTime(params.when, contact?.timezone);
+        const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+        const scheduledFor = parseScheduleTime(params.when, zone);
 
         if (!scheduledFor) {
           return "I couldn't parse that time. Try 'Friday morning' or 'in 3 days'.";

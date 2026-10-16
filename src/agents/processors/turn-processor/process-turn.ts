@@ -237,9 +237,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     safeFireAndForget(
       async () => {
         try {
-          const { userCorrections } =
-            await import('../../../services/superhuman/user-corrections.js');
-          await userCorrections.autoRecord(uid, userText, prevFerni, personaId);
+          const { recordCallerCorrection } = await import('./caller-correction.js');
+          await recordCallerCorrection(uid, userText, prevFerni, personaId);
         } catch {
           // Non-blocking
         }

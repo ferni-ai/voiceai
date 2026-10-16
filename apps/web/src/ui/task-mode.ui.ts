@@ -320,7 +320,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .task-summary-title {
@@ -399,7 +399,7 @@ const STYLES = `
   .task-btn--primary {
     background: var(--color-accent);
     border: none;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .task-btn--primary:hover {

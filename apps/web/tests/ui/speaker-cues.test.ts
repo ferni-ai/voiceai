@@ -19,6 +19,7 @@ import {
   SPEAKER_CUES_FLAG_KEY,
   disposeSpeakerCues,
   initSpeakerCues,
+  isSpeakerCuesEnabled,
 } from '../../src/ui/speaker-cues.ui.js';
 import type { CueRoom } from '../../src/ui/speaker-cues-signals.js';
 import { SPEAKER_CUES_CSS } from '../../src/ui/speaker-cues-styles.js';
@@ -94,6 +95,31 @@ describe('speaker cues', () => {
       expect(document.querySelector('.speaker-cues__part')).toBeNull();
       expect(room.listenerCount()).toBe(0);
       expect(coach.classList.contains('cue-ferni-speaking')).toBe(false);
+    });
+  });
+
+  describe('build flag VITE_SPEAKER_CUES', () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it('turns the cues on for a build without any localStorage', () => {
+      vi.stubEnv('VITE_SPEAKER_CUES', 'true');
+
+      expect(isSpeakerCuesEnabled()).toBe(true);
+      expect(initSpeakerCues(() => room)).toBe(true);
+    });
+
+    it('stays off when the build flag is unset or not "true"', () => {
+      vi.stubEnv('VITE_SPEAKER_CUES', '');
+      expect(isSpeakerCuesEnabled()).toBe(false);
+      vi.stubEnv('VITE_SPEAKER_CUES', 'false');
+      expect(isSpeakerCuesEnabled()).toBe(false);
+    });
+
+    it('lets one browser opt out of a build that has it on', () => {
+      vi.stubEnv('VITE_SPEAKER_CUES', 'true');
+      localStorage.setItem(SPEAKER_CUES_FLAG_KEY, 'false');
+
+      expect(isSpeakerCuesEnabled()).toBe(false);
     });
   });
 

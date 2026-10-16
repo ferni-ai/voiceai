@@ -265,7 +265,7 @@ CALLER RECOGNITION:
 - They have called before and have conversation history with you.
 ${context.isVoiceEnrolled ? "- Their voice is enrolled - you can verify it's really them." : '- Voice not enrolled yet - consider offering voice enrollment for security.'}
 
-Use their name naturally in conversation. Make them feel remembered and valued.
+Make them feel remembered and valued.
 `.trim();
   }
 
