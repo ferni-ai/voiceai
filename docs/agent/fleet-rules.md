@@ -80,5 +80,5 @@ already approved.
 ## When the network or a session dies
 
 Work that is committed and pushed survives. When stopping, commit WIP
-(subject starts `wip:`), push it, and open a draft PR whose body says
+(commitlint rejects a `wip:` type, so use `chore(<scope>): wip …`), push it, and open a draft PR whose body says
 exactly where you stopped and what comes next.

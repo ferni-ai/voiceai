@@ -22,4 +22,4 @@ Scope: `src/agents/model-provider/`, prompt assembly, `cache-warm.ts`, `static-c
 
 Work your queue one PR at a time. When a PR is queued, tell the lead its
 number and verdict, then move to the next item. If you have to stop, commit
-WIP, push it, and open a draft PR that says where you stopped.
+WIP (`chore(<scope>): wip …`), push it, and open a draft PR that says where you stopped.

@@ -22,4 +22,4 @@ Scope: `src/tools/`, `src/tools/dynamic-loader/`, `turn-tool-retrieval.ts` and t
 
 Work your queue one PR at a time. When a PR is queued, tell the lead its
 number and verdict, then move to the next item. If you have to stop, commit
-WIP, push it, and open a draft PR that says where you stopped.
+WIP (`chore(<scope>): wip …`), push it, and open a draft PR that says where you stopped.
