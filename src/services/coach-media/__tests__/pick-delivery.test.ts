@@ -285,14 +285,22 @@ describe('texting safely', () => {
   });
 
   it.each([
-    ['the card page is off', () => vi.stubEnv('APPROVALS_PAGE', '')],
-    ['the card is not saved', () => createAnswerCard.mockRejectedValue(new Error('down'))],
-  ])('sends nothing when %s, and gives the slot back', async (_why, arrange) => {
+    // Page off: refused before anything is spent, worded so the model doesn't retry.
+    ['the card page is off', () => vi.stubEnv('APPROVALS_PAGE', ''), "can't send picks yet", 0],
+    // A failed write still spends the day's text: the daily cap fails closed.
+    [
+      'the card is not saved',
+      () => createAnswerCard.mockRejectedValue(new Error('down')),
+      "Couldn't send it",
+      1,
+    ],
+  ])('sends nothing when %s, and gives the slot back', async (_why, arrange, says, textsUsed) => {
     arrange();
     const session = {};
     rememberPick(session, PICK);
     for (const how of ['text', 'app'] as const)
-      expect(await deliverPick(session, 'user-1', how, 'ferni')).toContain("Couldn't send it");
+      expect(await deliverPick(session, 'user-1', how, 'ferni')).toContain(says);
+    expect(budget.get('texts:user-1') ?? 0).toBe(textsUsed);
     expect(sendSMS).not.toHaveBeenCalled();
     expect(saveInAppMessage).not.toHaveBeenCalled();
     expect([...docs.keys()].some((k) => k.includes('/commitments/'))).toBe(false);

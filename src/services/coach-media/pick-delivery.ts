@@ -116,13 +116,12 @@ export function commitmentText(c: Candidate): string {
   return title ? `try the ${c.kind} '${title}'` : `try the ${c.kind} Ferni sent`;
 }
 
-/** The pick's card, saved for its page; null when that page is off or the save fails. */
+/** The pick's card, saved for its page; null when the save fails. */
 async function saveCard(
   userId: string,
   sent: SentPick,
   personaId: string
 ): Promise<{ id: string; url: string } | null> {
-  if (!isApprovalsPageEnabled()) return null;
   return createAnswerCard(userId, pickCard(sent.topic, sent.candidate, sent.why, personaId)).catch(
     (error: unknown) => {
       getLogger().warn({ error: String(error) }, 'coach-media: answer card not saved');
@@ -173,6 +172,11 @@ export async function deliverPick(
   const link = sendableLink(c);
   if (!link) return "That link isn't one Ferni can send; describe it instead.";
   const log = getLogger();
+  // Every send links its card page (/a/:id). That page is the UI server's
+  // APPROVALS_PAGE, so this agent needs the same flag (and APP_URL) as the
+  // UI server; with it off, refuse before any slot or daily text is used.
+  if (!isApprovalsPageEnabled())
+    return "Ferni can't send picks yet. Describe it instead, and don't offer to send it again.";
 
   // Take a slot before the first await: parallel calls in one model step would
   // otherwise all pass the check. Given back if nothing is sent.
