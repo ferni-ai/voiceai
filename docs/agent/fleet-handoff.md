@@ -2,7 +2,7 @@
 
 This is the plan a new lead session picks up. Read `fleet-rules.md` first.
 PR and issue numbers are live, so check them with `gh` before acting: the
-states below are as of 2026-10-16 about 04:30 UTC. The umbrella is epic #1467;
+states below are as of 2026-10-16 about 13:00 UTC. The umbrella is epic #1467;
 the release train is #1400.
 
 ## Start here (new machine)
@@ -32,18 +32,10 @@ the release train is #1400.
 ## Ship next (lead)
 
 1. **Increment 4: guard latency.** #1501 (name gate) and #1504 (action-claim
-   guard) remove the extra time the two new guards added.
-   - #1501 is queued; its re-run Unit Tests job had failed on a network flake.
-   - #1504 FAILED its 4th verifier round. The latency gain is real (first TTS
-     token p50 1 ms against 118 on main), but it misses ask phrasings:
-     - the request check is case-sensitive, so "Can you get the vet?" is missed;
-     - emergency wording ("help me, my chest hurts") lets "I'm calling 911 now" be spoken before the correction;
-     - a "yes" after Ferni's own offer isn't caught.
-
-     The PR body recommends flipping it to hold by default, streaming only
-     clear small talk. Fix that, re-verify, then queue.
-   - When both are merged: deploy main to dev, run long-day ×2, real-call
-     and action-claim, then deploy to prod and run the prod gate (#1400).
+   guard) both merged on 2026-10-16; main is `dbe48cae2` or later. Nothing
+   from increment 4 is deployed yet. Deploy main to dev, run long-day ×2,
+   real-call and action-claim (single runs: see Cost), then deploy to prod
+   and run the prod gate (#1400). Seth has already approved this increment.
 2. **Calendar keys to prod**, once the calendar-honesty fix merges (tools
    lane). Re-run the dev calendar check first: an unconnected caller must
    be told to connect, not told their calendar is clear.
@@ -58,7 +50,7 @@ the release train is #1400.
 Each lane maps to an agent in `.claude/agents/`.
 
 ### safety (`ferni-safety`)
-- #1504, guard latency: fix the three blockers in its PR body (hold by default, stream only small talk), then re-verify and queue.
+- #1504 merged. Watch increment 4's action-claim eval for missed ask phrasings.
 - **Ferni's invented life:**
   - `ferni-self-share.ts` DAY_DETAILS has 4 items that are in no canon file;
   - `life-updates.ts` (LIFE_MOVES_ON, on in prod) has the model invent
@@ -88,8 +80,8 @@ Each lane maps to an agent in `.claude/agents/`.
 
 ### personas (`ferni-personas`)
 - #1491, legend pseudonyms: verified and queued. Confirm it merges.
-- **#1500, Nayan's stories as fiction.** The work is on branch
-  `canon/nayan-fiction` (draft PR to come). Once #1491 merges: merge main in,
+- **#1500, Nayan's stories as fiction.** Draft PR #1554 (branch
+  `canon/nayan-fiction`); its body lists the remaining steps. Once #1491 merges: merge main in,
   re-run `nayan-fiction.test.ts`, then verify.
 - **The legends stack:** #971, #933, #939.
   - Merge main into each.
@@ -101,8 +93,8 @@ Each lane maps to an agent in `.claude/agents/`.
 - #1495: the handoff says "they're" for Ferni, and Ferni asks a known caller's name mid-call.
 
 ### tools (`ferni-tools`)
-- #1508 (stock quotes): verified at 14037aea8 and queued. #1506 is merged.
-- **#1535 (draft), routing:** places, flights, hotels and packages are now held for the model. Verify pending at 024f1b7d8. Then the lead runs the dev lookups eval, and then it's queued. Diagnosis: #1548. The dead loader is #1534.
+- #1508 and #1506 are merged.
+- **#1535 (draft), routing:** places, flights, hotels and packages are now held for the model. Verifier PASS at 024f1b7d8; since then only a lint fix and a merge of main (24edba8a0). Open risk: travel tools may miss the 3 s `INTENT_LOAD_WAIT_MS` window on a cold start. Next the lead runs the dev lookups eval, and then it's queued. Diagnosis: #1548. The dead loader is #1534.
 - Routing, option A, is #1535 above. Prove it in both TOOL_RETRIEVAL=live and the prod cap.
 - The director doesn't know the caller's location: a small PR.
 - **Calendar honesty (#1547):** with no Google calendar connected, Ferni said "your
@@ -142,7 +134,7 @@ Each lane maps to an agent in `.claude/agents/`.
   - #1302 needs its deliberate auth-gate break reverted first (commit aef006b28).
 
 ### best-friend (`ferni-bestfriend`)
-- #1522, the friendship rubric: verified and queued. Then a dev baseline (the lead schedules dev).
+- #1522, the friendship rubric: merged. Next, a dev baseline (the lead schedules dev).
 - #1529, #1513 inside jokes: verified and queued. It deletes the in-memory joke Map.
   Follow-ups listed in its body:
   - `persona-memory.ts` and `callback-opportunities.ts` still inject jokes outside the INSIDE_JOKES flag;
