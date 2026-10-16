@@ -47,7 +47,10 @@ const [nArg, seedArg, label = 'live'] = process.argv.slice(2);
 const n = Number(nArg || 100);
 const seed = Number(seedArg || 1);
 const MODEL = process.env.CASCADE_LLM_MODEL || 'gemini-3.5-flash';
-const TOOL_SET = (process.env.TOOL_SET || 'retrieval') as 'retrieval' | 'today' | 'core';
+const TOOL_SETS = ['retrieval', 'today', 'core'] as const;
+const TOOL_SET = (process.env.TOOL_SET || 'retrieval') as (typeof TOOL_SETS)[number];
+if (!TOOL_SETS.includes(TOOL_SET))
+  throw new Error(`TOOL_SET must be one of ${TOOL_SETS.join(', ')}`);
 const CONCURRENCY = 6;
 const MAX_STEPS = 3;
 /** Look-up tools the model often calls before acting, with a plausible answer. */
@@ -84,7 +87,8 @@ const catalog = new llm.ToolContext({
 
 // The tool set a live turn sends without retrieval (TOOL_SET today|core): the
 // same for every request, built with the production code.
-const asTools = (r: Record<string, unknown>) => r as unknown as Record<string, llm.AnonFunctionTool>;
+const asTools = (r: Record<string, unknown>) =>
+  r as unknown as Record<string, llm.AnonFunctionTool>;
 async function fixedSet(): Promise<llm.ToolContext | null> {
   if (TOOL_SET === 'retrieval') return null;
   const essentialDomains = DEFAULT_ESSENTIAL_DOMAINS as ToolDomain[];

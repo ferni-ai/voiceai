@@ -106,7 +106,8 @@ export async function staticCoreCallTools(
   tools: Record<string, unknown>,
   userId: string | null | undefined,
   sessionId: string | null | undefined,
-  persona: { id: string; name?: string }
+  persona: { id: string; name?: string },
+  build: BuildToolsByName = buildToolsByName
 ): Promise<Record<string, unknown>> {
   const { createFindToolsTool, FIND_TOOLS } =
     await import('../../tools/retrieval/find-tools-tool.js');
@@ -116,7 +117,7 @@ export async function staticCoreCallTools(
     agentId: persona.id,
     agentDisplayName: persona.name || persona.id,
   };
-  return staticCoreTools({ ...tools, [FIND_TOOLS]: createFindToolsTool() }, ctx);
+  return staticCoreTools({ ...tools, [FIND_TOOLS]: createFindToolsTool() }, ctx, build);
 }
 
 interface ToolHolder {
