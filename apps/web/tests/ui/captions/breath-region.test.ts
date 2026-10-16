@@ -78,4 +78,21 @@ describe('breath in the live region', () => {
     say('agent', 'Then let us protect it.', true);
     expect(lastLine()?.classList.contains('ferni-caption-line--final')).toBe(true);
   });
+  it('clears the dots when the call ends, even mid-pause', () => {
+    say('agent', 'Then let us', false);
+    vi.advanceTimersByTime(700);
+    expect(dots()).toBe(true);
+    window.dispatchEvent(
+      new CustomEvent('ferni:connection-state', { detail: { state: 'disconnected' } })
+    );
+    expect(dots()).toBe(false);
+  });
+
+  it('keeps the finished marker on a line that is redrawn when a new segment starts', () => {
+    say('agent', 'That makes a lot of sense.', true);
+    say('agent', 'When you said it went sideways', false);
+    const first = document.querySelector('.ferni-caption-line');
+    expect(first?.classList.contains('ferni-caption-line--final')).toBe(true);
+    expect(first?.classList.contains('ferni-caption-line--settled')).toBe(true);
+  });
 });

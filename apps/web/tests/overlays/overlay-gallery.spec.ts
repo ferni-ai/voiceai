@@ -340,3 +340,40 @@ for (const [scene, legacy] of [
     }
   });
 }
+
+test.describe('breath motion, in the browser', () => {
+  test('reduced motion shows every word at once', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openScene(page, 'caption-breath');
+    const names = await page.$$eval('.ferni-caption-word', (els) =>
+      els.map((el) => getComputedStyle(el).animationName)
+    );
+    expect(names.length).toBeGreaterThan(0);
+    expect(names.every((name) => name === 'none')).toBe(true);
+  });
+
+  test('a settled line does not replay its rise when the region redraws', async ({ page }) => {
+    await openScene(page, 'caption-breath');
+    await page.evaluate(() => {
+      const say = (text: string, isFinal: boolean): void => {
+        window.dispatchEvent(
+          new CustomEvent('ferni:transcript', { detail: { type: 'agent', text, isFinal } })
+        );
+      };
+      say('That makes a lot of sense.', true);
+      say('When you said it went sideways', false);
+    });
+    await page.waitForTimeout(150);
+    const settled = await page.$$eval(
+      '.ferni-captions__viewport > .ferni-caption-line:first-child .ferni-caption-word',
+      (els) => els.map((el) => getComputedStyle(el).animationName)
+    );
+    const live = await page.$$eval(
+      '.ferni-captions__viewport > .ferni-caption-line:last-child .ferni-caption-word',
+      (els) => els.map((el) => getComputedStyle(el).animationName)
+    );
+    expect(settled.length).toBeGreaterThan(0);
+    expect(settled.every((name) => name === 'none')).toBe(true);
+    expect(live.every((name) => name === 'ferni-breath-word')).toBe(true);
+  });
+});

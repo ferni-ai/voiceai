@@ -131,11 +131,17 @@ const BREATH_STYLE_ID = 'ferni-captions-breath-styles';
  */
 const BREATH_CSS = `
 .ferni-caption-word { display: inline-block; }
-/* Only the line still arriving rises: a settled line is redrawn with the same
-   spans, and must not replay its words. */
-.ferni-caption-line[data-speaker='agent']:not(.ferni-caption-line--settled) .ferni-caption-word {
-  animation: ferni-breath-word ${DURATION.SLOW * 2}ms ${EASING.DECELERATE} both;
-  animation-delay: var(--ferni-word-delay, 0ms);
+/* Motion is defined only for no-preference, so reduced motion has no rise and
+   no dots to fight with: every word is simply there. Only the line still
+   arriving rises; a settled line is redrawn with the same spans. */
+@media (prefers-reduced-motion: no-preference) {
+  .ferni-caption-line[data-speaker='agent']:not(.ferni-caption-line--settled) .ferni-caption-word {
+    animation: ferni-breath-word ${DURATION.SLOW * 2}ms ${EASING.DECELERATE} both;
+    animation-delay: var(--ferni-word-delay, 0ms);
+  }
+  .ferni-captions--breathing .ferni-caption-line[data-speaker='agent']:last-child::after {
+    animation: ferni-breath-dots ${DURATION.SLOW * 6}ms ${EASING.STANDARD} infinite;
+  }
 }
 /* A correction swaps words in without a second rise, as the plain path does. */
 .ferni-caption-line[data-speaker='agent'] .ferni-caption-word.ferni-caption-word--quiet {
@@ -156,13 +162,8 @@ const BREATH_CSS = `
   border-radius: var(--radius-full); background: var(--persona-primary);
   box-shadow: calc(var(--space-sm) + var(--space-2xs)) 0 0 var(--persona-primary),
     calc(2 * (var(--space-sm) + var(--space-2xs))) 0 0 var(--persona-primary);
-  animation: ferni-breath-dots ${DURATION.SLOW * 6}ms ${EASING.STANDARD} infinite;
 }
 @keyframes ferni-breath-dots { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) {
-  .ferni-caption-line[data-speaker='agent'] .ferni-caption-word { animation: none; }
-  .ferni-captions--breathing .ferni-caption-line[data-speaker='agent']:last-child::after { animation: none; }
-}
 `;
 
 /** Add the Breath rules. Call only when the captions-breath flag is on. */
