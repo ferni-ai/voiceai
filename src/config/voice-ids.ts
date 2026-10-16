@@ -119,7 +119,7 @@ export const VOICE_IDS = {
   // Nayan Patel (lifetime advisor / sage) - Updated Dec 2024
   NAYAN_PATEL: '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
 
-  // Joel Dickson (Vanguard life mentor) - Added Jan 2025
+  // Nate Holloway (life mentor) - Added Jan 2025
   JOEL_DICKSON: '3ebcd114-d280-4eed-a238-b9323a6b8e52',
 
   // Financial Legends team - Added Jan 2026
@@ -219,7 +219,7 @@ export function getVoiceIdForPersona(personaId: string): string {
     mystic: VOICE_IDS.NAYAN_PATEL,
     'lifetime-advisor': VOICE_IDS.NAYAN_PATEL,
 
-    // Joel Dickson aliases
+    // Nate Holloway aliases
     'joel-dickson': VOICE_IDS.JOEL_DICKSON,
     joel: VOICE_IDS.JOEL_DICKSON,
     dickson: VOICE_IDS.JOEL_DICKSON,
@@ -227,13 +227,13 @@ export function getVoiceIdForPersona(personaId: string): string {
     'vanguard-mentor': VOICE_IDS.JOEL_DICKSON,
     'life-mentor': VOICE_IDS.JOEL_DICKSON,
 
-    // Peter Lynch aliases (Financial Legends)
+    // Tom Brannigan aliases (Financial Legends)
     'peter-lynch': VOICE_IDS.PETER_LYNCH,
     lynch: VOICE_IDS.PETER_LYNCH,
     'stock-picker': VOICE_IDS.PETER_LYNCH,
     magellan: VOICE_IDS.PETER_LYNCH,
 
-    // John Bogle aliases (Financial Legends)
+    // Henry Caldwell aliases (Financial Legends)
     'john-bogle': VOICE_IDS.JOHN_BOGLE,
     bogle: VOICE_IDS.JOHN_BOGLE,
     'jack-bogle': VOICE_IDS.JOHN_BOGLE,

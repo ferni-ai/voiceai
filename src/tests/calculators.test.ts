@@ -73,7 +73,7 @@ describe('Calculator E2E Tests', () => {
     it('should show dramatic fee impact over time', () => {
       const result = calculateFeeImpact(100000, 30, 7, 0.1, 2);
 
-      // Classic Bogle example: $100k over 30 years
+      // Classic index-fund example: $100k over 30 years
       // 7% - 0.1% = 6.9% net return for low fee
       // 7% - 2% = 5% net return for high fee
       expect(result.lowFeeValue).toBeGreaterThan(700000);
@@ -288,7 +288,7 @@ describe('Calculator E2E Tests', () => {
       const lowFee25 = calculateFeeImpact(100000, 25, 7, 0.1, 0.1);
 
       // Low fee for 25 years often beats high fee for 30!
-      // This is a core Bogle lesson
+      // This is a core index-investing lesson
       const high30Value = highFee30.highFeeValue;
       const low25Value = lowFee25.lowFeeValue;
 

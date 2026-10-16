@@ -1051,7 +1051,7 @@ function buildDynamicPeterGreeting(ctx?: GreetingContext): string {
 }
 
 /**
- * Joel Dickson - Life Mentor
+ * Nate Holloway - Life Mentor
  * Energy: Bright, warm, quick-witted
  * Style: Professorial warmth with economist humor — like a brilliant friend at a dinner party
  *
