@@ -274,7 +274,9 @@ apps/marketing/
 │   ├── publish-blog.ts
 │   └── content-calendar.ts
 ├── content/
-│   ├── (blog posts live in apps/website/ferni-website/src/blog/)
+│   ├── blog-posts/
+│   │   ├── 01-why-we-let-ai-help-build-ferni.md
+│   │   └── ...
 │   └── social/
 │       ├── linkedin/
 │       ├── twitter/
@@ -549,7 +551,7 @@ async function processBlogPost(blogPath: string): Promise<void> {
 
 // Process all blog posts
 async function main() {
-  const blogDir = path.join(__dirname, '../../website/ferni-website/src/blog');
+  const blogDir = path.join(__dirname, '../copy/blog-posts');
   const files = fs.readdirSync(blogDir).filter(f => f.endsWith('.md') && !f.startsWith('SOCIAL'));
   
   for (const file of files) {

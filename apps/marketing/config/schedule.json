@@ -14,7 +14,7 @@
       "seriesPart": 1,
       "publishDate": "2024-12-09",
       "status": "draft",
-      "filePath": "apps/website/ferni-website/src/blog/why-we-let-ai-help-build-ferni.md"
+      "filePath": "apps/marketing/copy/blog-posts/01-why-we-let-ai-help-build-ferni.md"
     },
     {
       "id": 2,
@@ -23,7 +23,7 @@
       "seriesPart": 2,
       "publishDate": "2024-12-23",
       "status": "draft",
-      "filePath": "apps/website/ferni-website/src/blog/how-ai-helped-design-its-own-brain.md"
+      "filePath": "apps/marketing/copy/blog-posts/02-how-ai-helped-design-its-own-brain.md"
     },
     {
       "id": 3,
@@ -32,7 +32,7 @@
       "seriesPart": 3,
       "publishDate": "2025-01-06",
       "status": "draft",
-      "filePath": "apps/website/ferni-website/src/blog/giving-ai-a-personality.md"
+      "filePath": "apps/marketing/copy/blog-posts/03-giving-ai-a-personality.md"
     },
     {
       "id": 4,
@@ -41,7 +41,7 @@
       "seriesPart": 4,
       "publishDate": "2025-01-20",
       "status": "draft",
-      "filePath": "apps/website/ferni-website/src/blog/daily-standup-with-ai.md"
+      "filePath": "apps/marketing/copy/blog-posts/04-daily-standup-with-ai.md"
     },
     {
       "id": 5,
@@ -50,7 +50,7 @@
       "seriesPart": 5,
       "publishDate": "2025-02-03",
       "status": "draft",
-      "filePath": "apps/website/ferni-website/src/blog/how-ferni-remembers-you.md"
+      "filePath": "apps/marketing/copy/blog-posts/05-how-ferni-remembers-you.md"
     },
     {
       "id": 6,
@@ -59,7 +59,7 @@
       "seriesPart": 6,
       "publishDate": "2025-02-17",
       "status": "draft",
-      "filePath": "apps/website/ferni-website/src/blog/we-ship-every-day.md"
+      "filePath": "apps/marketing/copy/blog-posts/06-we-ship-every-day.md"
     },
     {
       "id": 7,
@@ -68,7 +68,7 @@
       "seriesPart": 7,
       "publishDate": "2025-03-03",
       "status": "draft",
-      "filePath": "apps/website/ferni-website/src/blog/ai-should-make-you-feel-less-alone.md"
+      "filePath": "apps/marketing/copy/blog-posts/07-ai-should-make-you-feel-less-alone.md"
     },
     {
       "id": 8,
@@ -77,7 +77,7 @@
       "seriesPart": 8,
       "publishDate": "2025-03-16",
       "status": "draft",
-      "filePath": "apps/website/ferni-website/src/blog/whats-next-for-ferni.md"
+      "filePath": "apps/marketing/copy/blog-posts/08-whats-next-for-ferni.md"
     }
   ],
   "social": [

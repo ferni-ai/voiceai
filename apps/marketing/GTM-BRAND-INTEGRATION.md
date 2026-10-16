@@ -14,7 +14,7 @@
 | **Component Library** | `brand/brand-components.css` | Production-ready |
 | **6 Persona Avatars** | `brand/characters/*/` | Complete with expressions |
 | **100+ Capabilities** | `brand/capabilities/` | Documented and visualized |
-| **10 Blog Posts** | `apps/website/ferni-website/src/blog/` | Written, need styling |
+| **10 Blog Posts** | `apps/marketing/copy/blog-posts/` | Written, need styling |
 | **Storytelling Strategy** | `apps/marketing/STORYTELLING-STRATEGY.md` | Defined |
 | **App Store Copy** | `apps/marketing/copy/` | Written |
 | **Social Content** | `apps/marketing/content/social/` | Partially adapted |

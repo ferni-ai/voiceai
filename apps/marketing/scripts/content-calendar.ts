@@ -161,12 +161,13 @@ function generateBlogSchedule(): BlogPost[] {
   
   return BLOG_POSTS.map((post, index) => {
     const publishDate = addDays(startDate, index * SERIES_CONFIG.cadenceWeeks * 7);
+    const paddedId = String(post.id).padStart(2, '0');
     
     return {
       ...post,
       publishDate: formatDate(publishDate),
       status: 'draft' as const,
-      filePath: `apps/website/ferni-website/src/blog/${post.slug}.md`,
+      filePath: `apps/marketing/copy/blog-posts/${paddedId}-${post.slug}.md`,
     };
   });
 }
@@ -391,7 +392,7 @@ async function main() {
   }
   
   console.log('\n🎯 Next steps:');
-  console.log('   1. Review and edit blog posts in apps/website/ferni-website/src/blog/');
+  console.log('   1. Review and edit blog posts in apps/marketing/copy/blog-posts/');
   console.log('   2. Run `npm run marketing:generate-social` to create social content');
   console.log('   3. Run `npm run marketing:schedule` to queue posts in Buffer');
   console.log('');
