@@ -36,6 +36,7 @@ import {
   type ReminderDeliveryMethod,
 } from '../../../services/scheduling/reminder-scheduler.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { runContextTimeZone, userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
   sanitizeEmailForLog,
   sanitizePhoneForLog,
@@ -53,7 +54,6 @@ const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY || '';
 
 // Import voice registry for consistent voice ID resolution
 import { getVoiceId } from '../../../personas/voice-registry.js';
-
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // Get Alex's voice ID from the registry (single source of truth)
 const getAlexVoiceId = () => getVoiceId('alex-chen');
@@ -306,7 +306,7 @@ async function scheduleReminderReal(params: {
   contact?: string;
   timezone?: string;
 }): Promise<string> {
-  const scheduledFor = parseNaturalTime(params.when, params.timezone);
+  const scheduledFor = parseNaturalTime(params.when, params.timezone ?? userTimeZone(params));
 
   if (!scheduledFor) {
     return `I couldn't understand "${params.when}". Could you be more specific? Like "tomorrow at 9am" or "in 2 hours"?`;
@@ -350,7 +350,7 @@ async function scheduleReminderReal(params: {
       message: params.message,
       subject: `⏰ Reminder: ${params.message.slice(0, 50)}...`,
       scheduledFor,
-      timezone: params.timezone || 'America/New_York',
+      timezone: params.timezone ?? userTimeZone(params) ?? 'Etc/UTC',
       deliveryMethod,
       deliveryAddress,
       createdBy: 'alex',
@@ -739,35 +739,20 @@ export function createCommunicationTools() {
         date: z.string().describe('Date to check (e.g., "tomorrow", "next Monday", "December 15")'),
         durationMinutes: z.number().default(30).describe('Duration in minutes'),
       }),
-      execute: async ({ date, durationMinutes }) => {
-        const targetDate = parseNaturalTime(date);
+      execute: async ({ date }, { ctx }) => {
+        const targetDate = parseNaturalTime(date, runContextTimeZone(ctx));
         if (!targetDate) {
           return `I couldn't understand that date. Try "tomorrow", "next Tuesday", or a specific date?`;
         }
 
-        // Simulate checking calendar (production would use Google Calendar API)
+        // Nothing here reads a calendar, so there are no real free slots to report.
+        // Say so rather than inventing availability.
         const dateStr = targetDate.toLocaleDateString('en-US', {
           weekday: 'long',
           month: 'long',
           day: 'numeric',
         });
-
-        // Generate some realistic-looking availability
-        const slots = [
-          { time: '9:00 AM - 9:30 AM', available: Math.random() > 0.3 },
-          { time: '10:00 AM - 10:30 AM', available: Math.random() > 0.4 },
-          { time: '11:00 AM - 11:30 AM', available: Math.random() > 0.5 },
-          { time: '2:00 PM - 2:30 PM', available: Math.random() > 0.3 },
-          { time: '3:00 PM - 3:30 PM', available: Math.random() > 0.4 },
-          { time: '4:00 PM - 4:30 PM', available: Math.random() > 0.5 },
-        ].filter((s) => s.available);
-
-        if (slots.length === 0) {
-          return `Hmm, ${dateStr} looks pretty packed. Want me to check another day?`;
-        }
-
-        const slotList = slots.map((s) => `• ${s.time}`).join('\n');
-        return `📅 Available slots for ${dateStr}:\n\n${slotList}\n\nWhich works best?`;
+        return `I can't see your calendar right now, so I can't tell you what's free on ${dateStr}. Your calendar app will show the real openings. Tell me the time you have in mind and I can help you think it through.`;
       },
     }),
 
@@ -782,7 +767,7 @@ export function createCommunicationTools() {
         notes: z.string().optional().describe('Talking points or notes'),
       }),
       execute: async ({ contact, phone, purpose, dateTime, duration, notes }, { ctx }) => {
-        const scheduledTime = parseNaturalTime(dateTime);
+        const scheduledTime = parseNaturalTime(dateTime, runContextTimeZone(ctx));
         if (!scheduledTime) {
           return `When would you like to schedule this call? Give me a day and time like "tomorrow at 2pm".`;
         }

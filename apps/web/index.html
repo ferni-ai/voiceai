@@ -116,7 +116,10 @@
 
     <link rel="stylesheet" href="/src/styles/inline-styles.css" />
     <link rel="stylesheet" href="/src/styles/call-controls.css" />
+    <link rel="stylesheet" href="/src/styles/tap-target-size.css" />
     <link rel="stylesheet" href="/src/styles/touch-input-size.css" />
+    <link rel="stylesheet" href="/src/styles/ai-companion-label.css" />
+    <link rel="stylesheet" href="/src/styles/paused-when-hidden.css" />
   </head>
 
   <body data-persona="ferni">
@@ -212,6 +215,10 @@
           </div>
           <h1 id="personaName" class="entrance-name">Ferni</h1>
           <p id="personaSubtitle" class="entrance-subtitle" data-i18n="team.members.ferni.role">Life Coach</p>
+          <!-- Honest AI role label for whoever is speaking (ai-role-label.ui.ts). Kept apart from #personaSubtitle, which changes with the relationship stage. -->
+          <div class="ai-companion-label-row entrance-subtitle">
+            <span class="ai-companion-label"><span class="ai-companion-label-text" data-i18n="aiLabel.role.lifeCoach">Life coach</span></span>
+          </div>
 
           <!-- Team Roster - Dynamically populated by JS -->
           <!-- Empty initially to prevent flash of all team members on mobile -->
@@ -223,7 +230,7 @@
       <!-- Main Content -->
       <main class="main" id="main-content">
         <!-- Waveform - WALL-E Inspired Bars Visualization -->
-        <div id="waveformContainer" class="entrance-waveform">
+        <div id="waveformContainer" class="entrance-waveform" aria-hidden="true">
           <div class="waveform-glow"></div>
           <div class="waveform-bars">
             <!-- Bars are generated dynamically by waveform.ui.ts -->

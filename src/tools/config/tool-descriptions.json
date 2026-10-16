@@ -102,7 +102,7 @@
       "_original": "Create a new habit to track. Use when user wants to: - Start tracking a habit - Build a new routine - Work on consistency"
     },
     "addItemToOrder": {
-      "description": "Add an item to the current food order. Use when user says what they want to eat.",
+      "description": "Add an item to the current food cart. Use when user says what they want to eat.",
       "file": "src/tools/scheduling/delivery-tools.ts"
     },
     "addMedication": {
@@ -202,7 +202,7 @@
       "_original": "Analyze the user"
     },
     "analyzeStock": {
-      "description": "Analyze a stock Peter John style. Looks at P/E ratio, PEG ratio, growth rate, and most importantly - THE STORY. Peter believes you should understand what you own. Use when user asks about a specific stock.",
+      "description": "Analyze a stock Peter John style: the live price (when a quote is available) and the research steps. It does not carry P/E, growth or other company figures. Peter believes you should understand what you own. Use when user asks about a specific stock.",
       "file": "src/tools/research-tools.ts",
       "_original": "Analyze a stock Peter John style. Looks at P/E ratio, PEG ratio, growth rate,  and most importantly - THE STORY. Peter believes you should understand what you own. Use when user asks about a specific stock."
     },
@@ -613,7 +613,7 @@
       "_original": "Check if bringing in a team member would add value to the current conversation. Use this when you"
     },
     "checkConciergeStatus": {
-      "description": "Check the status of active concierge outreach requests (hotel quotes, restaurant reservations, appointments, service quotes). Use when user asks about pending requests.",
+      "description": "Use when the user asks about hotel quotes, reservations or appointments you were getting for them. Relay the result exactly.",
       "file": "src/tools/domains/concierge/index.ts"
     },
     "checkFinancialHealth": {
@@ -698,7 +698,7 @@
       "file": "src/tools/domains/decisions/index.ts"
     },
     "checkoutOrder": {
-      "description": "Finalize the food order and get a link to complete payment. Use when user is done adding items and ready to pay.",
+      "description": "Build a cart link the user opens on the delivery app to review and pay themselves. Nothing is ordered or charged by you. Use when they are done adding items.",
       "file": "src/tools/scheduling/delivery-tools.ts"
     },
     "circleBack": {
@@ -1557,7 +1557,7 @@
       "_original": "Find areas where the user might be overspending or wasting money. Use when the user wants to: - Cut expenses - Find savings opportunities - Audit their spending"
     },
     "findStockCategory": {
-      "description": "Find stocks by Peter John.",
+      "description": "Explain a stock category (fast grower, stalwart, cyclical and so on) and how to find companies in it. It names no companies, because live data is not connected.",
       "file": "src/tools/research-tools.ts",
       "_original": "Find stocks by Peter John"
     },
@@ -1566,7 +1566,7 @@
       "file": "src/tools/domains/habit-persistence/index.ts"
     },
     "findTenBaggers": {
-      "description": "Find potential ten-baggers (stocks that could go up 10x). These are fast-growing companies with compelling stories and room to grow. Use when user asks about finding big winners or growth stocks.",
+      "description": "Explain how to look for ten-baggers (stocks that could go up 10x). It names no candidates, because live growth and valuation data are not connected. Use when user asks about finding big winners.",
       "file": "src/tools/research-tools.ts"
     },
     "findTheLessons": {
@@ -1607,7 +1607,7 @@
       "file": "src/tasks/finance-tasks.ts"
     },
     "foodDelivery": {
-      "description": "Food delivery management. Actions: \"search\" (find restaurants), \"start\" (begin order), \"add\" (add item), \"checkout\" (complete order), \"status\" (check order).",
+      "description": "Food delivery cart links. You never place an order: the person checks out themselves. Actions: \"search\" (find restaurants), \"start\" (begin a cart), \"add\" (add an item to the cart), \"checkout\" (build a cart link they open, review and pay for themselves), \"status\" (what is in the cart).",
       "file": "src/tools/domains/calendar/index.ts"
     },
     "forgetMemory": {
@@ -2025,7 +2025,7 @@
       "_original": "Get the user"
     },
     "getOrderStatus": {
-      "description": "Check the status of a food order.",
+      "description": "Check what is in a food cart.",
       "file": "src/tools/scheduling/delivery-tools.ts"
     },
     "getPackages": {
@@ -2106,7 +2106,7 @@
       "_original": "Get status of all savings goals. Use when the user asks about: - Savings progress - Goal status - Emergency fund"
     },
     "getServiceQuotes": {
-      "description": "Contact local service providers (plumbers, electricians, cleaners, etc.) to get quotes. AI-powered concierge calls businesses on user's behalf to get pricing and availability. Use when user needs home services quotes.",
+      "description": "Use when the user asks you to get quotes from a plumber, electrician, cleaner or other home service. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       "file": "src/tools/domains/concierge/index.ts"
     },
     "getShoppingList": {
@@ -2649,7 +2649,7 @@
       "file": "src/tools/scheduling/appointments-tools.ts"
     },
     "makeRestaurantReservation": {
-      "description": "Book restaurant tables via AI-powered concierge. Calls restaurants to check availability, make reservations, and handle special requests. Use when user wants to reserve a table, book for a party, or make dining reservations.",
+      "description": "Use when the user asks you to book a restaurant table. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       "file": "src/tools/domains/concierge/index.ts"
     },
     "makeTextGameMove": {
@@ -3149,7 +3149,7 @@
       "file": "src/tools/domains/engagement/team-challenges.ts"
     },
     "quickFoodOrder": {
-      "description": "Quick order for common food items - searches, picks best match, and creates order link. Use for simple orders like.",
+      "description": "Quick food link for common items - searches, picks the best match, and gives a link to its page where they order themselves.",
       "file": "src/tools/scheduling/delivery-tools.ts",
       "_original": "Quick order for common food items - searches, picks best match, and creates order link. Use for simple orders like"
     },
@@ -3446,7 +3446,7 @@
       "file": "src/tools/domains/difficult-conversations/index.ts"
     },
     "requestHotelQuotes": {
-      "description": "Contact hotels to get room rates and availability. AI-powered concierge calls hotels on user's behalf to compare prices and book rooms. Use when user wants hotel quotes, room rates, or to book accommodations.",
+      "description": "Use when the user asks you to call hotels for rates or to book a room. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       "file": "src/tools/domains/concierge/index.ts"
     },
     "requestMayaRetirementHelp": {
@@ -3609,7 +3609,7 @@
       "file": "src/tools/proactive.ts"
     },
     "scheduleHealthcareAppointment": {
-      "description": "Schedule doctor, dentist, specialist, or other healthcare appointments. AI-powered concierge calls providers to find availability and book appointments. Use when user wants to schedule medical appointments or find healthcare providers.",
+      "description": "Use when the user asks you to book a doctor, dentist or specialist appointment. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       "file": "src/tools/domains/concierge/index.ts"
     },
     "scheduleJoy": {
@@ -3656,7 +3656,7 @@
       "_original": "Search for flights between cities. Use when user wants to: - Find flights - Check flight prices - Plan a trip"
     },
     "searchFoodDelivery": {
-      "description": "Search for restaurants on food delivery apps (DoorDash, Uber Eats). Use when the user wants to: - Order food for delivery - Find what delivers to their area - Get dinner/lunch delivered.",
+      "description": "Search for restaurants on food delivery apps (DoorDash, Uber Eats). Use when the user wants food delivered or wants to know what delivers to their area. They order it themselves from the link.",
       "file": "src/tools/scheduling/delivery-tools.ts",
       "_original": "Search for restaurants on food delivery apps (DoorDash, Uber Eats). Use when the user wants to: - Order food for delivery - Find what delivers to their area - Get dinner/lunch delivered"
     },
@@ -4021,7 +4021,7 @@
       "_original": "Start a structured 30-day challenge with daily guidance. Challenges are pre-built programs that gradually build habits over 30 days. Each day has specific actions and the difficulty increases progressively. Use when: - User wants structured guidance - User says"
     },
     "startFoodOrder": {
-      "description": "Start a food delivery order from a specific restaurant. Use after the user picks a restaurant from search results.",
+      "description": "Start a food delivery cart for a specific restaurant. Use after the user picks a restaurant from search results. Nothing is ordered.",
       "file": "src/tools/scheduling/delivery-tools.ts"
     },
     "startGame": {

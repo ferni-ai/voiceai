@@ -8,16 +8,15 @@
  * - Onboarding arc progression
  * - Re-engagement campaigns
  * - Milestone celebrations
- *
  * Runs on Cloud Scheduler (cron) and respects:
  * - User preferences and quiet hours
  * - Optimal timing per user
  * - Rate limits and quotas
- *
  * @module AutomatedScheduler
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isSyntheticUserId } from '../../utils/synthetic-user.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deliver, getChannelStatus, type DeliveryChannel } from './unified-delivery.js';
 import {
@@ -28,6 +27,9 @@ import {
 import { getOnboardingState, getPendingCheckIns } from './intelligent-onboarding-arc.js';
 import { getOptimalOutreachTime, getPreferredChannel } from './engagement-tracking.js';
 import { allowedDeliveryChannels } from './outreach-consent.js';
+import { verifiedPhoneOf } from './user-reach.js';
+import { isValidTimezone } from './call-hours-guard.js';
+import { hoursWindow, isQuietAt, isQuietHoursUnified, isUserQuiet } from './quiet-hours.js';
 import {
   cadenceHold,
   engagementLevel as engagementLevelOf,
@@ -35,18 +37,13 @@ import {
   unansweredCount,
 } from './outreach-cadence.js';
 import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
+import { blocksGenericCheckIns } from './grounded-checkin.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
 
 const CANDIDATE_PAGE_SIZE = 200;
 /** Bound one run's reads; users past this are reached on later days. */
 const MAX_USERS_SCANNED = 5000;
-/**
- * Accounts made by test harnesses (voice-eval callers, e2e runs, local
- * devices). They share production Firestore and look active, so without this
- * they'd be the main recipients of "thinking of you" messages.
- */
-const SYNTHETIC_USER_ID = /^(voice-eval-|e2e-|device:(test|local-dev|debug))/;
 
 // ============================================================================
 // TYPES
@@ -95,6 +92,7 @@ interface UserOutreachCandidate {
     quietHoursEnd?: number;
     timezone?: string;
   };
+  contactInfo?: { timezone?: string };
 }
 
 // ============================================================================
@@ -205,6 +203,7 @@ async function processCandidate(
   if (!outreachType) {
     return { sent: false, reason: 'No outreach needed' };
   }
+  if (blocksGenericCheckIns()) return { sent: false, reason: 'No grounded reason to reach out' };
 
   // Determine best channel
   const channel = proactive ? proactive.channel : await determineBestChannel(candidate);
@@ -300,7 +299,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         const data = doc.data();
         const userId = doc.id;
         if (data.outreachPreferences?.enabled === false) continue;
-        if (SYNTHETIC_USER_ID.test(userId)) continue;
+        if (isSyntheticUserId(userId)) continue; // test harness accounts
 
         const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
         const engagementLevel = engagementLevelOf(data, now.getTime());
@@ -317,7 +316,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         candidates.push({
           userId,
           email: data.email,
-          phone: data.phone || data.phoneNumber,
+          phone: verifiedPhoneOf(userId, data), // never the model-written profile phone
           name: data.displayName || data.name,
           daysSinceSignup,
           lastConversationDate: talkedAt === undefined ? undefined : new Date(talkedAt),
@@ -326,6 +325,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
           engagementLevel,
           unanswered: unansweredCount(data),
           outreachPreferences: data.outreachPreferences,
+          contactInfo: data.contactInfo,
         });
       }
       if (page.size < CANDIDATE_PAGE_SIZE) break;
@@ -446,31 +446,18 @@ async function determineBestChannel(
 // ============================================================================
 
 /**
- * Check if user is in quiet hours
+ * Is it quiet hours for this user now? QUIET_HOURS_UNIFIED=on uses the shared
+ * predicate (quiet-hours.ts): 22:00-08:00 and both US coasts when the zone is
+ * unknown. Off, this scheduler keeps its own window: 21:00-08:00 Eastern unless
+ * the user set one. A zone that cannot be read fails closed.
  */
 function isInQuietHours(candidate: UserOutreachCandidate): boolean {
-  const { outreachPreferences } = candidate;
-
-  // Default quiet hours: 10 PM - 8 AM
-  const quietStart = outreachPreferences?.quietHoursStart ?? 22;
-  const quietEnd = outreachPreferences?.quietHoursEnd ?? 8;
-  const timezone = outreachPreferences?.timezone || 'America/Los_Angeles';
-
-  try {
-    const now = new Date();
-    const userTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
-    const hour = userTime.getHours();
-
-    // Handle overnight quiet hours (e.g., 22:00 - 08:00)
-    if (quietStart > quietEnd) {
-      return hour >= quietStart || hour < quietEnd;
-    }
-
-    return hour >= quietStart && hour < quietEnd;
-  } catch {
-    // If timezone fails, assume not in quiet hours
-    return false;
-  }
+  if (isQuietHoursUnified()) return isUserQuiet(candidate);
+  const prefs = candidate.outreachPreferences;
+  const zone = prefs?.timezone || 'America/New_York';
+  if (!isValidTimezone(zone)) return true;
+  const window = hoursWindow(prefs?.quietHoursStart ?? 21, prefs?.quietHoursEnd ?? 8);
+  return isQuietAt(new Date(), window, [zone]);
 }
 
 // ============================================================================

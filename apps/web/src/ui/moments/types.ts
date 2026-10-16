@@ -184,7 +184,6 @@ export interface Badge {
  * Badge categories
  */
 export type BadgeCategory =
-  | 'time'
   | 'consistency'
   | 'team'
   | 'memory'

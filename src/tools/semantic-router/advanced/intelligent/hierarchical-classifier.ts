@@ -10,6 +10,7 @@
  * @module semantic-router/advanced/intelligent/hierarchical-classifier
  */
 
+import { existsSync } from 'fs';
 import path from 'path';
 import { createLogger } from '../../../../utils/safe-logger.js';
 
@@ -300,12 +301,10 @@ export function shutdownHierarchicalClassifier(): void {
  * Returns 'available' if both stage1 and stage2 models exist, 'none' otherwise.
  */
 export function detectFTISModels(): 'available' | 'none' {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const fs = require('fs');
   const modelsRoot = path.resolve(process.cwd(), 'models');
   const stage1 = path.join(modelsRoot, 'ferni-router-v7-stage1', 'model.onnx');
   const stage2 = path.join(modelsRoot, 'ferni-router-v7-stage2', 'model.onnx');
-  if (fs.existsSync(stage1) && fs.existsSync(stage2)) {
+  if (existsSync(stage1) && existsSync(stage2)) {
     return 'available';
   }
   return 'none';

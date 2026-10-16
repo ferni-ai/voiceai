@@ -41,6 +41,8 @@ import {
   pruneHistory as pruneHistoryFromMetrics,
   clearHistory as clearHistoryFromMetrics,
 } from './analytics/engagement-metrics.js';
+import { getUserContext } from './context-aggregator.js';
+import { isRequireFixOutreachNameOn } from './engagement/personalization-engine.js';
 import {
   getPendingCheckIns,
   recordCheckInSent,
@@ -921,33 +923,21 @@ class OutreachDecisionEngine extends EventEmitter {
    * Get user's name from context aggregator or profile
    */
   private getUserNameFromContext(userId: string, state: UserOutreachState): string {
-    // Try context aggregator first (has personal info from conversations)
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { getUserContext } = require('./context-aggregator.js');
-      const context = getUserContext(userId);
-      if (context?.personal?.preferredName) {
-        return context.personal.preferredName;
+    // The lookup used a bare require(), which throws under ESM, so prod has
+    // always greeted with "there". Using the real name changes what outreach
+    // says, so it waits for REQUIRE_FIX_OUTREACH_NAME=on.
+    if (isRequireFixOutreachNameOn()) {
+      try {
+        const context = getUserContext(userId);
+        if (context.personal.preferredName) {
+          return context.personal.preferredName;
+        }
+        if (context.personal.firstName) {
+          return context.personal.firstName;
+        }
+      } catch (err) {
+        log.debug({ error: String(err), userId }, 'Outreach name lookup failed, using default');
       }
-      if (context?.personal?.firstName) {
-        return context.personal.firstName;
-      }
-    } catch {
-      // Context aggregator not available, fall through
-    }
-
-    // Fallback: Try user identification service
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { getGreeting } = require('../user-identification.js');
-      const greeting = getGreeting(userId);
-      // Parse name from greeting if it contains one
-      const nameMatch = greeting.match(/(?:Welcome back|Hey|Hi),?\s+(\w+)/i);
-      if (nameMatch?.[1] && nameMatch[1] !== 'there') {
-        return nameMatch[1];
-      }
-    } catch {
-      // User identification not available, fall through
     }
 
     // Default friendly fallback

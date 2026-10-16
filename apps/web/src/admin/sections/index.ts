@@ -13,11 +13,6 @@ export {
   setupEvents as setupAvatarSoulEvents,
 } from './AvatarSoulSection.js';
 export {
-  cleanup as cleanupBuilderMetrics,
-  render as renderBuilderMetrics,
-  setupEvents as setupBuilderMetricsEvents,
-} from './BuilderMetricsSection.js';
-export {
   cleanup as cleanupBusinessMetrics,
   init as initBusinessMetrics,
   render as renderBusinessMetrics,

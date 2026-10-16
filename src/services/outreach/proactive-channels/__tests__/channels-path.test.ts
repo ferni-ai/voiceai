@@ -36,7 +36,7 @@ vi.mock('../../../communication-service.js', () => ({
   }),
 }));
 
-vi.mock('../../../llm/llm-utils.js', () => ({
+vi.mock('../../../llm-utils.js', () => ({
   callLLM: vi.fn(async (prompt: string) => {
     prompts.push(prompt);
     if (modelReply instanceof Error) throw modelReply;
@@ -296,7 +296,7 @@ describe('proactive check-in words', () => {
   });
 
   it('a reply that calls Ferni an assistant is not sent; the promise line goes instead', async () => {
-    modelReply = 'Hi! As your AI assistant, I wanted to check in about the move.';
+    modelReply = 'Hi! As your assistant, I wanted to check in about the move.';
     seedUser();
     seedPromise('p1');
     await runHandler();

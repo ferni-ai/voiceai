@@ -9,6 +9,7 @@
 //   line cut mid-sentence right before one is the barge-in it caused.
 import { readFileSync } from 'node:fs';
 import { turnsOf } from './humanness.mjs';
+import { handoffGrounding } from './handoff-grounding.mjs';
 
 /** The spoken words of a scenario file, in order (no comments, data, or say tags). */
 export function scriptLines(text) {
@@ -91,5 +92,6 @@ export function checksFor(run, scenarioDir) {
     return null;
   }
   const { heard: _heard, ...stt } = sttAccuracy(run, scriptLines(text));
-  return { stt, echo: echoCheck(run) };
+  const handoff = name.startsWith('handoff') ? handoffGrounding(run) : undefined;
+  return { stt, echo: echoCheck(run), ...(handoff ? { handoff } : {}) };
 }

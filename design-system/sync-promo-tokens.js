@@ -369,14 +369,77 @@ function generateColorVars(colors) {
   lines.push(`  --color-paper-sand: ${zen.natural.paperCream};`);
   lines.push('');
 
-  // Legacy aliases
-  lines.push('  /* ============================================');
-  lines.push('     COLORS - Legacy Aliases');
-  lines.push('     ============================================ */');
-  lines.push(`  --color-jaggi: var(--color-nayan);`);
-  lines.push(`  --color-jaggi-secondary: var(--color-jack);`);
-  lines.push('');
 
+  return lines;
+}
+
+/**
+ * Dark theme (midnight) variable overrides, one per line at the given indent.
+ * Shared by the prefers-color-scheme block and the [data-theme="dark"] block so
+ * the two can't drift. Every background alias the light :root sets must be
+ * overridden here, or a page painted with that alias stays cream in dark mode.
+ */
+function darkOverrideLines(colors, indent) {
+  const m = colors.themes.midnight;
+  const groups = [
+    ['Background', [
+      ['bg-primary', m.background.primary],
+      ['bg-secondary', m.background.secondary],
+      ['bg-tertiary', m.background.tertiary],
+      ['bg-elevated', m.background.elevated],
+      ['bg-glass', m.background.glass],
+      ['bg-overlay', m.background.overlay],
+      ['bg', m.background.primary],
+      ['bg-surface', m.background.secondary],
+      ['bg-warm', m.background.tertiary],
+      ['elevated', m.background.elevated],
+    ]],
+    ['Text', [
+      ['text-primary', m.text.primary],
+      ['text-secondary', m.text.secondary],
+      ['text-muted', m.text.muted],
+      ['text-dimmed', m.text.dimmed],
+      ['text-inverse', m.text.inverse],
+      ['text', m.text.primary],
+      ['background', m.background.primary],
+      ['background-subtle', m.background.secondary],
+      ['background-muted', m.background.tertiary],
+      ['background-surface', m.background.secondary],
+      ['background-elevated', m.background.elevated],
+      ['paper-cream', m.background.primary],
+    ]],
+    ['Accent', [
+      ['accent', m.accent.primary],
+      ['accent-hover', m.accent.hover],
+      ['accent-pressed', m.accent.pressed],
+      ['accent-glow', m.accent.glow],
+      ['accent-subtle', m.accent.subtle],
+    ]],
+    ['Borders', [
+      ['border-subtle', m.border.subtle],
+      ['border-medium', m.border.medium],
+      ['border-strong', m.border.strong],
+    ]],
+    ['Semantic', [
+      ['success', m.semantic.success],
+      ['success-bg', m.semantic.successGlow],
+      ['error', m.semantic.error],
+      ['error-bg', m.semantic.errorGlow],
+      ['warning', m.semantic.warning],
+      ['warning-bg', m.semantic.warningGlow],
+    ]],
+  ];
+  const lines = [];
+  for (const [label, vars] of groups) {
+    lines.push(`${indent}/* ${label} */`);
+    for (const [name, value] of vars) lines.push(`${indent}--color-${name}: ${value};`);
+    lines.push('');
+  }
+  lines.push(`${indent}/* Persona Text Colors - WCAG AA on dark backgrounds */`);
+  for (const [personaId, persona] of Object.entries(colors.personas)) {
+    if (personaId.startsWith('_') || !persona.textOnDark) continue;
+    lines.push(`${indent}--color-${personaId.split('-')[0]}-text: ${persona.textOnDark};`);
+  }
   return lines;
 }
 
@@ -385,143 +448,25 @@ function generateColorVars(colors) {
  * Uses midnight theme values + textOnDark persona variants for WCAG AA contrast
  */
 function generateDarkThemeVars(colors) {
-  const lines = [];
-  const midnight = colors.themes.midnight;
-
-  lines.push('');
-  lines.push('/* ============================================================================');
-  lines.push('   DARK THEME OVERRIDES');
-  lines.push('   Midnight theme (Night Ink) - warm near-black field, paper type, sage actions');
-  lines.push('   All persona text colors are WCAG AA compliant (4.5:1+ contrast)');
-  lines.push('   ============================================================================ */');
-  lines.push('');
-  lines.push('@media (prefers-color-scheme: dark) {');
-  lines.push('  :root {');
-
-  // Background colors
-  lines.push('    /* Background */');
-  lines.push(`    --color-bg-primary: ${midnight.background.primary};`);
-  lines.push(`    --color-bg-secondary: ${midnight.background.secondary};`);
-  lines.push(`    --color-bg-elevated: ${midnight.background.elevated};`);
-  lines.push(`    --color-bg-glass: ${midnight.background.glass};`);
-  lines.push(`    --color-bg-overlay: ${midnight.background.overlay};`);
-  lines.push('');
-
-  // Text colors
-  lines.push('    /* Text */');
-  lines.push(`    --color-text-primary: ${midnight.text.primary};`);
-  lines.push(`    --color-text-secondary: ${midnight.text.secondary};`);
-  lines.push(`    --color-text-muted: ${midnight.text.muted};`);
-  lines.push(`    --color-text-dimmed: ${midnight.text.dimmed};`);
-  lines.push(`    --color-text-inverse: ${midnight.text.inverse};`);
-  lines.push(`    --color-text: ${midnight.text.primary};`);
-  lines.push(`    --color-background: ${midnight.background.primary};`);
-  lines.push(`    --color-paper-cream: ${midnight.background.primary};`);
-  lines.push('');
-
-  // Accent colors
-  lines.push('    /* Accent */');
-  lines.push(`    --color-accent: ${midnight.accent.primary};`);
-  lines.push(`    --color-accent-hover: ${midnight.accent.hover};`);
-  lines.push(`    --color-accent-pressed: ${midnight.accent.pressed};`);
-  lines.push(`    --color-accent-glow: ${midnight.accent.glow};`);
-  lines.push(`    --color-accent-subtle: ${midnight.accent.subtle};`);
-  lines.push('');
-
-  // Border colors
-  lines.push('    /* Borders */');
-  lines.push(`    --color-border-subtle: ${midnight.border.subtle};`);
-  lines.push(`    --color-border-medium: ${midnight.border.medium};`);
-  lines.push(`    --color-border-strong: ${midnight.border.strong};`);
-  lines.push('');
-
-  // Semantic colors
-  lines.push('    /* Semantic */');
-  lines.push(`    --color-success: ${midnight.semantic.success};`);
-  lines.push(`    --color-success-bg: ${midnight.semantic.successGlow};`);
-  lines.push(`    --color-error: ${midnight.semantic.error};`);
-  lines.push(`    --color-error-bg: ${midnight.semantic.errorGlow};`);
-  lines.push(`    --color-warning: ${midnight.semantic.warning};`);
-  lines.push(`    --color-warning-bg: ${midnight.semantic.warningGlow};`);
-  lines.push('');
-
-  // Persona text colors (WCAG AA compliant on dark backgrounds)
-  lines.push('    /* Persona Text Colors - WCAG AA on dark backgrounds */');
-  for (const [personaId, persona] of Object.entries(colors.personas)) {
-    if (personaId.startsWith('_')) continue;
-    const shortId = personaId.split('-')[0];
-    if (persona.textOnDark) {
-      lines.push(`    --color-${shortId}-text: ${persona.textOnDark};`);
-    }
-  }
-
-  lines.push('  }');
-  lines.push('}');
-  lines.push('');
-
-  // Also add [data-theme="dark"] selector for manual toggle
-  lines.push('[data-theme="dark"] {');
-
-  // Background colors
-  lines.push('  /* Background */');
-  lines.push(`  --color-bg-primary: ${midnight.background.primary};`);
-  lines.push(`  --color-bg-secondary: ${midnight.background.secondary};`);
-  lines.push(`  --color-bg-elevated: ${midnight.background.elevated};`);
-  lines.push(`  --color-bg-glass: ${midnight.background.glass};`);
-  lines.push(`  --color-bg-overlay: ${midnight.background.overlay};`);
-  lines.push('');
-
-  // Text colors
-  lines.push('  /* Text */');
-  lines.push(`  --color-text-primary: ${midnight.text.primary};`);
-  lines.push(`  --color-text-secondary: ${midnight.text.secondary};`);
-  lines.push(`  --color-text-muted: ${midnight.text.muted};`);
-  lines.push(`  --color-text-dimmed: ${midnight.text.dimmed};`);
-  lines.push(`  --color-text-inverse: ${midnight.text.inverse};`);
-  lines.push(`  --color-text: ${midnight.text.primary};`);
-  lines.push(`  --color-background: ${midnight.background.primary};`);
-  lines.push(`  --color-paper-cream: ${midnight.background.primary};`);
-  lines.push('');
-
-  // Accent colors
-  lines.push('  /* Accent */');
-  lines.push(`  --color-accent: ${midnight.accent.primary};`);
-  lines.push(`  --color-accent-hover: ${midnight.accent.hover};`);
-  lines.push(`  --color-accent-pressed: ${midnight.accent.pressed};`);
-  lines.push(`  --color-accent-glow: ${midnight.accent.glow};`);
-  lines.push(`  --color-accent-subtle: ${midnight.accent.subtle};`);
-  lines.push('');
-
-  // Border colors
-  lines.push('  /* Borders */');
-  lines.push(`  --color-border-subtle: ${midnight.border.subtle};`);
-  lines.push(`  --color-border-medium: ${midnight.border.medium};`);
-  lines.push(`  --color-border-strong: ${midnight.border.strong};`);
-  lines.push('');
-
-  // Semantic colors
-  lines.push('  /* Semantic */');
-  lines.push(`  --color-success: ${midnight.semantic.success};`);
-  lines.push(`  --color-success-bg: ${midnight.semantic.successGlow};`);
-  lines.push(`  --color-error: ${midnight.semantic.error};`);
-  lines.push(`  --color-error-bg: ${midnight.semantic.errorGlow};`);
-  lines.push(`  --color-warning: ${midnight.semantic.warning};`);
-  lines.push(`  --color-warning-bg: ${midnight.semantic.warningGlow};`);
-  lines.push('');
-
-  // Persona text colors
-  lines.push('  /* Persona Text Colors - WCAG AA on dark backgrounds */');
-  for (const [personaId, persona] of Object.entries(colors.personas)) {
-    if (personaId.startsWith('_')) continue;
-    const shortId = personaId.split('-')[0];
-    if (persona.textOnDark) {
-      lines.push(`  --color-${shortId}-text: ${persona.textOnDark};`);
-    }
-  }
-
-  lines.push('}');
-
-  return lines;
+  return [
+    '',
+    '/* ============================================================================',
+    '   DARK THEME OVERRIDES',
+    '   Midnight theme (Night Ink) - warm near-black field, paper type, sage actions',
+    '   All persona text colors are WCAG AA compliant (4.5:1+ contrast)',
+    '   ============================================================================ */',
+    '',
+    '@media (prefers-color-scheme: dark) {',
+    '  :root {',
+    ...darkOverrideLines(colors, '    '),
+    '  }',
+    '}',
+    '',
+    // Also add [data-theme="dark"] selector for manual toggle
+    '[data-theme="dark"] {',
+    ...darkOverrideLines(colors, '  '),
+    '}',
+  ];
 }
 
 function generateSpacingVars(spacing) {

@@ -4,7 +4,7 @@
  * Comprehensive tests to validate:
  * 1. All behavior files load correctly
  * 2. 200% superhuman behaviors exist and have content
- * 3. Nayan's unique personality is captured (Chamundi Hills, Gita, wisdom)
+ * 3. Nayan's unique personality is captured (Vadodara, Jyoti, Gita, wisdom)
  * 4. Trust phrases are Nayan-voiced (not generic)
  * 5. Wisdom/meaning-specific content is present
  * 6. Critical: emotional-intelligence.json exists (was missing!)
@@ -195,10 +195,9 @@ describe('Nayan Patel Persona E2E Tests', () => {
       const lateNight = behaviors.late_night_presence as any;
       expect(lateNight?.late_night_greetings).toBeDefined();
 
-      // Should have Chamundi Hills or meditation
+      // Should have meditation or other contemplative content
       const lateNightJson = JSON.stringify(lateNight);
       const hasWisdomContent =
-        lateNightJson.toLowerCase().includes('chamundi') ||
         lateNightJson.toLowerCase().includes('meditation') ||
         lateNightJson.toLowerCase().includes('soul') ||
         lateNightJson.toLowerCase().includes('existence');
@@ -218,7 +217,7 @@ describe('Nayan Patel Persona E2E Tests', () => {
         thinkingJson.toLowerCase().includes('sunrise') ||
         thinkingJson.toLowerCase().includes('temple') ||
         thinkingJson.toLowerCase().includes('father') ||
-        thinkingJson.toLowerCase().includes('chamundi');
+        thinkingJson.toLowerCase().includes('grandmother');
       expect(hasSpiritualContent).toBe(true);
     });
 
@@ -283,10 +282,10 @@ describe('Nayan Patel Persona E2E Tests', () => {
   // ==========================================================================
 
   describe('Persona Consistency', () => {
-    it('should reference Chamundi Hills', () => {
-      const allBehaviors = JSON.stringify(behaviors);
-      const hasChamundi = allBehaviors.toLowerCase().includes('chamundi');
-      expect(hasChamundi).toBe(true);
+    it('should reference his fictional life (Vadodara and Jyoti)', () => {
+      const allBehaviors = JSON.stringify(behaviors).toLowerCase();
+      expect(allBehaviors).toContain('vadodara');
+      expect(allBehaviors).toContain('jyoti');
     });
 
     it('should reference the Gita or dharma', () => {
@@ -334,7 +333,7 @@ describe('Nayan Patel Persona E2E Tests', () => {
       // Check story content or IDs for wisdom themes
       const storyIds = allStories.map((s) => s.id);
       const hasWisdomStories =
-        storyIds.includes('chamundi-hills') ||
+        storyIds.includes('grandmother') ||
         storyIds.includes('empty-cup') ||
         storyIds.includes('bamboo-farmer') ||
         storyIds.some((id) => id.toLowerCase().includes('wisdom'));

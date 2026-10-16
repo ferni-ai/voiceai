@@ -105,11 +105,11 @@ import { getContinuousProsodyStream } from '../../intelligence/context-builders/
 import { cueSay } from '../../speech/direction/index.js';
 import { silenceResponseInstructions } from './character-silence.js';
 import { silenceResponseBlocked } from './silence-response-blockers.js';
+import { quietPresenceFor } from './quiet-presence.js';
+import { createPresenceCap, type RoomLike } from './presence-check.js';
 import { clearReplyAudioPlan } from '../../speech/reply-audio-plan.js';
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// --- TYPES ---
 
 export interface SessionStateContext {
   /** Voice session instance */
@@ -133,7 +133,7 @@ export interface SessionStateContext {
    * FIX (Jan 2026): Required to prevent speaking to empty rooms when participant
    * hasn't joined yet (fixes "no response from Ferni" issue).
    */
-  room?: { remoteParticipants?: Map<string, unknown> };
+  room?: RoomLike;
   /** Session services, for recording committed agent replies as turns */
   services?: AgentReplyContext['services'];
 }
@@ -214,6 +214,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   let userLastSpokeAt = Date.now();
   let silenceResponseCount = 0;
   let lastSilenceResponseAt = 0;
+  const quiet = quietPresenceFor(ctx, () => userLastSpokeAt); // LISTEN_FIRST=on (quiet-presence.ts)
+  const presenceCap = createPresenceCap(session, room); // PRESENCE_CHECK_CAP
   let backchannelTimer: ReturnType<typeof setTimeout> | null = null;
   let lastBackchannelAt = 0;
   let pendingBackchannelReaction = false;
@@ -319,7 +321,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
     // Warning timer: gentle check-in at 90 seconds
     idleWarningTimer = setTimeout(() => {
-      if (isDisconnectingDueToIdle) return;
+      if (isDisconnectingDueToIdle || quiet?.takeCheck() === false) return;
 
       diag.state('⏰ Idle warning triggered', {
         threshold: IDLE_TIMEOUT.WARNING_THRESHOLD_SECONDS,
@@ -906,6 +908,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // Reset silence tracking when user speaks
       silenceResponseCount = 0;
       lastSilenceResponseAt = 0;
+      presenceCap.callerSpoke();
 
       // Clear idle timeout - user is active
       clearIdleTimeout();
@@ -1435,15 +1438,17 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         }
       }
 
-      // LONG SILENCE (10s+) - Meaningful silence responses
-      // HUMANIZATION FIX: Add ±20% randomization to prevent predictable timing
+      // LONG SILENCE (10s+): meaningful silence responses, timing randomized ±20%
       // Intervals are configurable via SILENCE_INTERVALS env var (e.g., "6,15,30" for faster)
       const baseIntervals = SILENCE_THRESHOLDS.intervals;
       const randomize = (base: number) => Math.round(base * (0.8 + Math.random() * 0.4));
       const intervals = baseIntervals.map(randomize);
       const targetInterval = intervals[silenceResponseCount];
 
-      const blocked = silenceResponseBlocked(sessionId, room, silenceDurationSec, userData);
+      const blocked =
+        quiet?.onQuiet() === true ||
+        silenceResponseBlocked(sessionId, room, silenceDurationSec, userData) ||
+        presenceCap.held();
 
       if (
         !blocked &&
@@ -1451,7 +1456,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         silenceDurationSec >= targetInterval &&
         Date.now() - lastSilenceResponseAt > SILENCE_THRESHOLDS.MIN_RESPONSE_INTERVAL &&
         // In character mode Ferni makes at most one remark into a silence.
-        (!characterSilence || silenceResponseCount === 0)
+        (!characterSilence || silenceResponseCount === 0) &&
+        quiet?.takeCheck() !== false
       ) {
         userData.userWentSilent = true;
 
@@ -1461,9 +1467,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         silenceContext.userName = userData.name;
         silenceContext.silenceResponseCount = silenceResponseCount; // Sync for deduplication
 
-        // FIX: Sync topics JUST BEFORE generating silence response (not at transcript time)
-        // This ensures topics from turn analysis are available for memory_callback responses.
-        // Previously, topics were synced in processFinalTranscript which runs BEFORE topic analysis.
+        // Topics synced here, not at transcript time: topic analysis runs after processFinalTranscript.
         if (userData.recentTopics && userData.recentTopics.length > 0) {
           silenceContext.topicsDiscussed = [...userData.recentTopics];
         } else if (userData.lastTopic) {
@@ -1479,9 +1483,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           silenceContext.wasDiscussingTopic = userData.lastTopic;
         }
 
-        // FIX: Update music state before silence response
-        // Bug: isMusicPlaying was always false, causing LLM to call playMusic during silence
-        // when music was already playing (the silence handler didn't know music was on)
+        // Music state now: stale, it read false and the LLM called playMusic over playing music.
         try {
           const djController = getDJController();
           silenceContext.isMusicPlaying = djController.isMusicActive();
@@ -1490,14 +1492,11 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           silenceContext.isMusicPlaying = false;
         }
 
-        // LLM-DRIVEN: Get instructions for natural, contextual silence response
-        const silenceInstructions = silenceResponseInstructions(
-          sessionPersona,
-          silenceContext,
-          characterSilence
+        // LLM-DRIVEN: a natural, contextual silence response; "you still there?" capped
+        const silenceInstructions = presenceCap.cap(
+          silenceResponseInstructions(sessionPersona, silenceContext, characterSilence)
         );
 
-        // PROMINENT LOG: Show silence response timing
         diag.state('🤫 [SILENCE] LLM response triggered', {
           type: silenceInstructions.type,
           silenceSec: Math.round(silenceDurationSec),
@@ -1564,6 +1563,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // CLEANUP - Clear all timers and listeners to prevent memory leaks
   // ============================================================
   const clearTimers = () => {
+    quiet?.cancel();
     if (backchannelTimer) {
       clearTimeout(backchannelTimer);
       backchannelTimer = null;
@@ -1590,8 +1590,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       feedbackPromptTimer = null;
     }
     feedbackTriggerEngine.clearState(sessionId);
-    // Clear idle timeout timers
     clearIdleTimeout();
+    presenceCap.stop();
     // 🚨 EMPTY RESPONSE WATCHDOG: Clear timer
     emptyResponseWatchdog.reset();
     stopToolCallWatch();

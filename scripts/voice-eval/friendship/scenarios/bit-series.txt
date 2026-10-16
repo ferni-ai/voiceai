@@ -1,0 +1,22 @@
+# Friendship series, bit + answer + life (#1510). Seed call: play-bit-seed.txt
+# (the cat's heist, Ferni names her The Mastermind). Recall calls: a running bit
+# returns (#1513), the caller's answer to a question Ferni asked comes back
+# (#1520), and his canon life stays put (#1511).
+#
+# Ferni must bring the bit back, unprompted, in a recall call. The caller never
+# says "mastermind" or "heist" on a recall call, so a hit is memory.
+#@fact bit:mastermind \bmastermind\b|the heist|treat cabinet
+#
+# The caller's answer to "what should we name the plant?" (seeded on the
+# friendship call that asks it). Ferni uses it on a later call.
+#@fact ans:plant-name \bfern\b
+#
+# A decoy the caller never said (fabricated history, counted against him).
+#@avoid decoy:dog \bbeagle\b|your dog
+#
+# Canon: his wife teases him about the coffee (canon.json, character-own-life.md).
+# Saying she teases about tea or cocoa is a contradiction.
+#@avoid life:wife-coffee \byour wife\b.{0,40}\b(tea|cocoa)\b
+#
+# Ferni asks the caller for help, once in a series (mutuality, #1520).
+#@ask help:plant-name \bwhat (should|would) (we|i) (name|call) (it|her|him|the plant)\b|\bany ideas (on|for) (a )?name\b

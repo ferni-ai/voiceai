@@ -11,16 +11,23 @@ on:
     paths:
       - 'src/memory/**'
       - '.github/workflows/memory-recall-gate.yml'
+  # Nightly on main, whatever OPTIONAL_CI says (#1366); PR and push runs still follow it
+  schedule:
+    - cron: '53 3 * * *'
+  workflow_dispatch:
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
 concurrency:
-  group: memory-recall-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NODE_VERSION: '22'
 
 jobs:
   recall-at-5:
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Memory recall@5 golden gate
     runs-on: ubuntu-latest
     timeout-minutes: 10

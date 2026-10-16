@@ -18,6 +18,7 @@
   <!-- Styles -->
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/persona-tone.css">
   
   
   
@@ -42,7 +43,7 @@
     
     <ul class="nav-links">
       <li><a href="/" class="active">Browse</a></li>
-      <li><a href="/categories/" >Categories</a></li>
+      <li><a href="/pages/categories/" >Categories</a></li>
       <li><a href="https://app.ferni.ai" class="nav-cta-link">My Team</a></li>
     </ul>
     
@@ -93,17 +94,6 @@
       <div class="hero-feature">
         <div class="hero-feature-icon">
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-</svg>
-</div>
-        <div class="hero-feature-text">
-          <strong>Community ratings</strong>
-          <span>Real experiences, real reviews</span>
-        </div>
-      </div>
-      <div class="hero-feature">
-        <div class="hero-feature-icon">
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
   <circle cx="9" cy="7" r="4"/>
   <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
@@ -118,8 +108,8 @@
     </div>
     
     <div class="hero-arrival">
-      <span class="arrival-label">Expected arrival</span>
-      <span class="arrival-date">Q1 2026</span>
+      <span class="arrival-label">Arriving</span>
+      <span class="arrival-date">Soon</span>
     </div>
   </div>
   
@@ -190,7 +180,7 @@
           <h3>Eli</h3>
           <p class="preview-role">ADHD Navigator</p>
           <p class="preview-desc">Turns overwhelming days into manageable moments. No judgment, just practical strategies that actually work.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
 
@@ -224,7 +214,7 @@
           <h3>Marcus</h3>
           <p class="preview-role">Sobriety Companion</p>
           <p class="preview-desc">24/7 support for your recovery journey. Here for the hard moments, celebrating the small wins.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
 
@@ -258,7 +248,7 @@
           <h3>Kenji</h3>
           <p class="preview-role">Sleep Specialist</p>
           <p class="preview-desc">Understands why your mind races at 2am. Gentle guidance back to restful nights.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
 
@@ -292,7 +282,7 @@
           <h3>Carmen</h3>
           <p class="preview-role">Parenting Guide</p>
           <p class="preview-desc">Because parents need someone too. Practical wisdom for the beautiful chaos of raising tiny humans.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
 
@@ -326,7 +316,7 @@
           <h3>Amara</h3>
           <p class="preview-role">Grief Companion</p>
           <p class="preview-desc">Holds space for loss without rushing healing. Your grief is valid. Your pace is right.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
 
@@ -360,7 +350,7 @@
           <h3>Sasha</h3>
           <p class="preview-role">Creative Catalyst</p>
           <p class="preview-desc">Helps you past the blank page. Sparks ideas, unblocks creativity, champions your artistic voice.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
     </div>
@@ -850,7 +840,9 @@
 .preview-content h3 {
   font-size: var(--text-lg);
   margin-bottom: var(--space-1);
-  color: var(--persona-color, var(--text-primary));
+  /* pure persona colours (Carmen's sand, Sasha's coral) were 2.2-2.9:1 on the
+     card; mixing in the text colour keeps the hue and clears 4.5:1 */
+  color: color-mix(in srgb, var(--persona-color) 55%, var(--text-primary));
 }
 
 .preview-role {
@@ -1212,7 +1204,7 @@
         <h4>Explore</h4>
         <ul class="footer-links">
           <li><a href="/">All Personas</a></li>
-          <li><a href="/categories/">Categories</a></li>
+          <li><a href="/pages/categories/">Categories</a></li>
         </ul>
       </div>
 
@@ -1220,8 +1212,8 @@
         <h4>For Publishers</h4>
         <ul class="footer-links">
           <li><a href="https://developers.ferni.ai">Developer Portal</a></li>
-          <li><a href="https://developers.ferni.ai/pages/getting-started/">Create a Persona</a></li>
-          <li><a href="https://developers.ferni.ai/pages/api/">API Reference</a></li>
+          <li><a href="https://developers.ferni.ai/getting-started/">Create a Persona</a></li>
+          <li><a href="https://developers.ferni.ai/api/">API Reference</a></li>
         </ul>
       </div>
       

@@ -22,7 +22,7 @@ import {
   makeConversationalReferralCall,
   INTRO_TEMPLATES,
 } from '../src/tools/domains/referral/voice-referral.js';
-import { enhanceOutboundMessage } from '../src/services/voice-call.js';
+import { enhanceOutboundMessage } from '../src/services/outreach/outbound-ssml.js';
 import { isConversationalCallsConfigured } from '../src/services/outreach/conversational-calls.js';
 
 async function main() {

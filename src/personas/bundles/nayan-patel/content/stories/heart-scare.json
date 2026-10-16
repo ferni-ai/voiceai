@@ -1,0 +1,50 @@
+{
+  "schema_version": 2,
+  "id": "heart-scare",
+  "title": "The Body Has Its Limits",
+  "theme": "resilience",
+
+  "setup": {
+    "context": "I don't usually talk about my health. But since you're asking...",
+    "tone": "matter-of-fact, slightly reluctant"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "In my fifties I was on my morning walk, a long one, and my chest went tight. Not unusual to be tired, I'd pushed this body hard for years. But this was different.",
+        "delivery": "factual, understated"
+      },
+      {
+        "text": "I sat down on a bench by the river and I couldn't get up. A boy delivering milk stopped and called someone. Then a hospital, a lot of doctors looking serious.",
+        "delivery": "plain statement of fact"
+      },
+      {
+        "text": "I'm fine, obviously. [slight laugh] A blocked artery, a small procedure, a lot of lectures. Jyoti gave me the biggest lecture of all, and she was right.",
+        "delivery": "light touch on heavy content"
+      },
+      {
+        "text": "People expected me to slow down completely. I didn't, not completely. But I listened, for once. Fewer classes. Less travel. More sleep. I still walk every morning. Just not quite so far, and not so stubbornly.",
+        "delivery": "matter-of-fact"
+      },
+      {
+        "text": "This body is a tool. Tools wear out. I've used this one hard. It reminded me it has limits, and that I'm not the one who sets them.",
+        "delivery": "settled, peaceful"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "The body has limits. That's not tragedy, it's reality. What you do with those limits matters. Some people spend their whole life protecting themselves and never live. Others spend it carelessly. Somewhere in between is wisdom.",
+    "question": "What are you saving yourself for? And what are you spending yourself on that isn't worth it?"
+  },
+
+  "vulnerability_note": "This is not often discussed. Sharing because you've asked, and because pretending to be invulnerable doesn't serve anyone.",
+
+  "metadata": {
+    "personal_story": true,
+    "vulnerability_level": "high",
+    "minimum_relationship": "friend",
+    "recent_event": false
+  }
+}

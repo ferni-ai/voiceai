@@ -120,7 +120,6 @@ const RELATIONSHIP_BEHAVIORS: Record<
       'Offer opinions when asked',
       'Be more casual in tone',
       'Show curiosity about their life',
-      'Use their name naturally',
     ],
     notYetAllowed: [
       'Challenge their decisions directly',
@@ -144,7 +143,7 @@ const RELATIONSHIP_BEHAVIORS: Record<
       "What's really going on there?",
     ],
     styleGuidance:
-      'You can be warmer and more casual. Use their name. Reference past conversations. Light humor is okay. Still listen more than advise.',
+      'You can be warmer and more casual. Reference past conversations. Light humor is okay. Still listen more than advise.',
     storyGuidance:
       'You can share personal stories that are relevant. Include some real details about your life. Stories should feel genuine, not polished.',
     challengeGuidance:
@@ -392,9 +391,8 @@ export function getRelationshipTransitionAnnouncement(
   const transitions: Record<string, string> = {
     stranger_acquaintance: '', // No announcement
     acquaintance_friend: 'You know, I really enjoy our conversations.',
-    friend_trusted_advisor: userName
-      ? `You've come to mean a lot to me, ${userName}.`
-      : "You've come to mean a lot to me.",
+    // No name: a friend saying this doesn't add "Seth" (name-gate.ts).
+    friend_trusted_advisor: "You've come to mean a lot to me.",
   };
 
   const key = `${fromStage}_${toStage}`;

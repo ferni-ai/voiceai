@@ -131,7 +131,7 @@ export abstract class IntelligentTask<TResult> extends AgentTask<TResult> {
 
     // Add user context
     if (this._context.userName) {
-      instructions += `\n\nUser's name: ${this._context.userName}. Use their name warmly.`;
+      instructions += `\n\nUser's name: ${this._context.userName}.`;
     }
 
     this._instructions = instructions;

@@ -29,6 +29,7 @@ interface PersonaManifest {
     initials?: string;
     avatar?: { initials?: string };
     self_reference?: string;
+    role_label?: string; // i18n key of the role label under the name ("Life coach")
   };
   voice?: {
     provider: string;
@@ -84,6 +85,7 @@ interface FrontendPersona {
   name: string;
   initials: string;
   subtitle: string;
+  roleLabel?: string; // i18n key of the role label; the web falls back to "Friend"
   role: 'coach' | 'team' | 'standalone';
   description: string;
   helperText: string;
@@ -337,6 +339,7 @@ async function manifestToFrontendPersona(
     name: manifest.identity.display_name || manifest.identity.name,
     initials: manifest.identity.initials || generateInitials(manifest.identity.name),
     subtitle: manifest.team?.role_description?.split(' - ')[0] || roleSubtitles[roleId] || 'Team Member',
+    roleLabel: manifest.identity.role_label,
     role: isCoordinator ? 'coach' : 'team',
     description,
     helperText: manifest.team?.role_description?.split(' - ')[0] || description.split('.')[0],
@@ -468,9 +471,7 @@ async function generateFrontendConfig(): Promise<void> {
   const previous = await readFile(outputPath, 'utf-8').catch(() => null);
   await writeFile(outputPath, JSON.stringify(keepTimestampIfUnchanged(config, previous), null, 2), 'utf-8');
   
-  console.log(`\n✨ Generated: ${outputPath}`);
-  console.log(`   Personas: ${Object.keys(personas).length}`);
-  console.log(`   Coordinator: ${coordinatorId}`);
+  console.log(`\n✨ Generated: ${outputPath} (${Object.keys(personas).length} personas, coordinator: ${coordinatorId})`);
   console.log(`   Team order: ${teamOrder.join(', ')}`);
 }
 
