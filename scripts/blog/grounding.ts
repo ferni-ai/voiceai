@@ -43,6 +43,9 @@ interface RestPr {
  * some callers). Pages by `updated` and stops once a page is older than `since`.
  * Bot PRs and earlier blog drafts are left out; bodies lose comments and footers.
  */
+/** Enough of a PR body for its why and what; the rest is test detail. */
+const MAX_BODY = 4000;
+
 export function fetchMergedPrs(since: string, repo: string, gh: GhRunner = runGh): PrSource[] {
   const prs: PrSource[] = [];
   for (let page = 1; page <= 10; page++) {
@@ -52,7 +55,7 @@ export function fetchMergedPrs(since: string, repo: string, gh: GhRunner = runGh
       if (!pr.merged_at || pr.merged_at < since) continue;
       if (pr.user?.type === 'Bot' || pr.head.ref.startsWith('blog/')) continue;
       const body = (pr.body ?? '').replace(/<!--[\s\S]*?-->|🤖 Generated with[\s\S]*$/g, '').trim();
-      const text = `${pr.title}\n\n${body.length > 1500 ? `${body.slice(0, 1500)} [truncated]` : body}`;
+      const text = `${pr.title}\n\n${body.length > MAX_BODY ? `${body.slice(0, MAX_BODY)} [truncated]` : body}`;
       const label = `PR #${pr.number}: ${pr.title}`;
       prs.push({ label, url: pr.html_url, text, title: pr.title, mergedAt: pr.merged_at });
     }

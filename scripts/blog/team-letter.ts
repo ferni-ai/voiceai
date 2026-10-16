@@ -49,13 +49,16 @@ export function pickPersona(isoWeek: number, key?: string): LetterPersona {
 
 export function personaSources(root: string, p: LetterPersona): Source[] {
   const bio = `src/personas/bundles/${p.bundle}/identity/biography-core.md`;
+  const voice = docSource(root, 'brand/voice-tone/README.md', { fromHeading: p.voiceHeading });
+  voice.label += ' [how they sound; where its life details differ, the biography is right]';
   return [
     {
       label: `Letter writer: ${p.name}`,
       text: `This letter is in the voice of ${p.name}, a character on the Ferni team. Use only the life details below.`,
     },
     docSource(root, bio, { maxChars: 4000 }),
-    docSource(root, 'brand/voice-tone/README.md', { fromHeading: p.voiceHeading, maxChars: 3000 }),
+    // How they sound only: its life details (Peter's "Carolyn", caddy days) predate the bios.
+    voice,
   ];
 }
 

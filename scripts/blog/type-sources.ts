@@ -13,14 +13,14 @@ export interface SourceContext {
   persona: LetterPersona;
 }
 
-/** feat/fix/perf only: what someone outside the repo could notice. */
-const NOTICEABLE = /^(?:feat|fix|perf)(?:\([^)]*\))?!?:/;
+/** What someone outside the repo could notice (any change, or features only). */
+const KINDS = { any: /./, noticeable: /^(?:feat|fix|perf)\b/, feature: /^feat\b/ };
 const BRAND_OVERVIEW = { fromHeading: '# 1. Brand Overview', maxChars: 3000 };
 const LESS_ALONE = 'apps/website/ferni-website/src/blog/ai-should-make-you-feel-less-alone.md';
 
-function prs(ctx: SourceContext, limit: number, onlyNoticeable: boolean): Source[] {
+function prs(ctx: SourceContext, limit: number, kind: keyof typeof KINDS): Source[] {
   return fetchMergedPrs(ctx.since, ctx.repo, ctx.gh)
-    .filter((pr) => !onlyNoticeable || NOTICEABLE.test(pr.title))
+    .filter((pr) => KINDS[kind].test(pr.title))
     .slice(0, limit);
 }
 
@@ -32,13 +32,13 @@ export function collectSources(
   const { root } = ctx;
   switch (type.id) {
     case 'whats-new':
-      return { prs: prs(ctx, 40, false), docs: [] };
+      return { prs: prs(ctx, 40, 'any'), docs: [] };
     case 'building-in-public':
-      return { prs: prs(ctx, 15, true), docs: [HOUSE_FACTS] };
+      return { prs: prs(ctx, 15, 'noticeable'), docs: [HOUSE_FACTS] };
     case 'how-ferni-works': {
       const aims = docSource(root, 'brand/FERNI-CAPABILITIES.md', { maxChars: 4000 });
       aims.label += ' [what we are aiming for, not what has shipped]';
-      return { prs: prs(ctx, 20, true), docs: [aims, HOUSE_FACTS] };
+      return { prs: prs(ctx, 20, 'feature'), docs: [aims, HOUSE_FACTS] };
     }
     case 'mission-essay':
       return {
