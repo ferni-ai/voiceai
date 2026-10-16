@@ -183,6 +183,8 @@ export const FLAG_MANIFEST = {
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   INTERRUPT_TRACE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   IN_PROCESS_SCHEDULERS: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // every journal surface reads and writes bogle_users/{uid}/journal (old twin arrays merged in)
+  JOURNAL_ONE_STORE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // voice journal speech-to-text through Gemini on Vertex when Deepgram and Whisper have no key
   JOURNAL_TRANSCRIBE_VERTEX: { default: 'off', owner: 'memory', kind: 'experiment' },
   // public landing-page Gemini calls; off until the chat has per-IP and daily limits
