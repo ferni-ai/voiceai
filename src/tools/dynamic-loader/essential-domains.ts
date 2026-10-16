@@ -34,19 +34,24 @@ export const DEFAULT_ESSENTIAL_DOMAINS: ToolDomain[] = essentialDomainsFromEnv()
 ];
 
 /**
- * Domains that are loaded at startup only so their named tools (INTENT_TOOL_IDS)
- * can join the first agent's set. The rest of these domains stay out: loading
- * a domain holds every tool in it.
+ * Domains loaded at startup so their named tools (INTENT_TOOL_IDS) join the first
+ * agent's set. The rest of these domains stay out: loading a domain holds every
+ * tool in it.
  */
 export const INTENT_TOOL_DOMAINS: ToolDomain[] = ['travel', 'local-search'];
 
-/** The tools from INTENT_TOOL_DOMAINS that the first agent holds. */
+/**
+ * The named tools the first agent holds: places, flights, hotels, and packages.
+ * The package tools come from productivity, which is already essential.
+ */
 export const INTENT_TOOL_IDS: readonly string[] = [
   'searchFlights',
   'searchHotels',
   'getFlightPrice',
   'findRestaurants',
   'searchLocalBusinesses',
+  'trackPackage',
+  'checkPackageStatus',
 ];
 
 /** ESSENTIAL_TOOL_DOMAINS=memory,handoff,... overrides the list (e.g. to roll back). */

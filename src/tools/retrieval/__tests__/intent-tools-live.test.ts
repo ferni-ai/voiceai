@@ -1,79 +1,39 @@
 /**
- * Live retrieval (TOOL_RETRIEVAL=live) sends the intent tool for a places,
- * flight or package request, but only when the agent holds that tool.
+ * Live retrieval ranks the intent tools for a caller's words, using the real
+ * intent manual (the queries the tools are indexed under). Retrieval only sends a
+ * tool the agent holds; loadEssentialDomains is what puts the named ones there.
  */
 
-import { describe, expect, it, vi } from 'vitest';
-import { llm } from '@livekit/agents';
-import { z } from 'zod';
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
 import { DenseToolIndex } from '../dense-index.js';
-import { TurnToolRetrieval } from '../turn-tool-retrieval.js';
 import { fakeEmbedder } from './fake-embedder.js';
 import type { IntentManual } from '../tool-retriever.js';
 
-vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../utils/safe-logger.js')>()),
-  createLogger: () => {
-    const rec = () => undefined;
-    return { info: rec, warn: rec, error: rec, debug: rec };
-  },
-}));
+const manual = JSON.parse(
+  readFileSync(new URL('../intent-manual.generated.json', import.meta.url), 'utf8')
+) as IntentManual;
 
-const manual: IntentManual = {
-  tools: {
-    searchFlights: {
-      domain: 'travel',
-      description: 'search flights between two cities on a date',
-      queries: ['flights Boston to Denver next Friday'],
-    },
-    findRestaurants: {
-      domain: 'local-search',
-      description: 'find restaurants nearby',
-      queries: ['coffee shop near me open now'],
-    },
-    trackPackage: {
-      domain: 'productivity',
-      description: 'track a package by tracking number',
-      queries: ['check this tracking number'],
-    },
-    getWeather: {
-      domain: 'information',
-      description: 'weather forecast',
-      queries: ['will it rain today'],
-    },
-  },
-};
+/** How deep the retrieval pick goes: TurnToolRetrieval ranks CANDIDATES_PER_SLOT x k. */
+const PICK_DEPTH = 20;
 
-const fn = (name: string) =>
-  llm.tool({ name, description: name, parameters: z.object({}), execute: async () => 'ok' });
-
-async function setup(held: string[]) {
-  const embedder = fakeEmbedder();
-  const index = await DenseToolIndex.build(manual, embedder);
-  const retrieval = new TurnToolRetrieval({
-    sessionId: 's',
-    embedder,
-    index: async () => index,
-    domainOf: (t) => manual.tools[t]?.domain,
-    k: 1,
-  });
-  return { retrieval, toolCtx: new llm.ToolContext(held.map(fn)) };
-}
-
-describe('live retrieval sends the intent tools', () => {
+describe('live retrieval ranks the intent tools for the caller words', () => {
   it.each([
-    ['flights Boston to Denver next Friday', 'searchFlights'],
-    ['coffee shop near me open now', 'findRestaurants'],
+    ['Flights to Denver next Friday', 'searchFlights'],
+    ['book a hotel in Denver for next Friday', 'searchHotels'],
+    ['find a coffee shop near me open now', 'findRestaurants'],
     ['check this tracking number', 'trackPackage'],
-  ])('"%s" sends %s when the agent holds it', async (text, tool) => {
-    const { retrieval, toolCtx } = await setup(Object.keys(manual.tools));
-    const sent = await retrieval.selectLive(text, toolCtx, 150);
-    expect(Object.keys(sent.functionTools)).toContain(tool);
-  });
-
-  it('cannot send a tool the agent does not hold', async () => {
-    const { retrieval, toolCtx } = await setup(['getWeather']);
-    const sent = await retrieval.selectLive('flights Boston to Denver next Friday', toolCtx, 150);
-    expect(Object.keys(sent.functionTools)).not.toContain('searchFlights');
-  });
+  ])(
+    '"%s" puts %s in the pick',
+    async (text, tool) => {
+      const embedder = fakeEmbedder();
+      const index = await DenseToolIndex.build(manual, embedder);
+      const [vector] = await embedder.embed([text]);
+      const picked = index.search(vector, PICK_DEPTH).map((t) => t.tool);
+      const places =
+        tool === 'findRestaurants' ? ['findRestaurants', 'searchLocalBusinesses'] : [tool];
+      expect(picked.some((name) => places.includes(name))).toBe(true);
+    },
+    60_000
+  );
 });

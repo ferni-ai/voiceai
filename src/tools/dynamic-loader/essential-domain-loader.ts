@@ -11,6 +11,37 @@ import {
 } from './essential-domains.js';
 
 let essentialDomainsReady: Promise<void> | null = null;
+let intentDomainsReady: Promise<void> | null = null;
+
+/**
+ * How long a call waits for the intent domains (places, travel, packages).
+ * They load in the background at job entry. Past this wait the call starts
+ * without them, and later calls get them.
+ */
+export const INTENT_LOAD_WAIT_MS = 3_000;
+
+/** Load the intent domains in the background. Never rejects: a failure is logged and the call goes on without them. */
+function startIntentDomains(): Promise<void> {
+  intentDomainsReady ??= (async () => {
+    const { loadToolDomainsLazy } = await import('../registry/loader.js');
+    await loadToolDomainsLazy([...INTENT_TOOL_DOMAINS]);
+  })().catch((error: unknown) => {
+    intentDomainsReady = null; // let the next call retry
+    getLogger().warn({ error: String(error) }, 'Intent tool domains failed to load');
+  });
+  return intentDomainsReady;
+}
+
+/** Wait for the intent domains, but no longer than INTENT_LOAD_WAIT_MS. */
+async function waitForIntentDomains(): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([
+    startIntentDomains(),
+    new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, INTENT_LOAD_WAIT_MS);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
 
 /**
  * Register the domain loaders and load the essential domains, once per context.
@@ -26,10 +57,8 @@ export function ensureEssentialDomainsLoaded(): Promise<void> {
     const { autoRegisterAllDomains, loadToolDomainsLazy } = await import('../registry/loader.js');
     await autoRegisterAllDomains();
     await loadToolDomainsLazy([...DEFAULT_ESSENTIAL_DOMAINS]);
-    // Isolated: a failed intent domain must not take the essential set down with it.
-    await loadToolDomainsLazy([...INTENT_TOOL_DOMAINS]).catch((error: unknown) =>
-      getLogger().warn({ error: String(error) }, 'Intent tool domains failed to load')
-    );
+    // Not awaited: the intent domains must not hold up the essential set.
+    void startIntentDomains();
   })().catch((error: unknown) => {
     essentialDomainsReady = null; // let the next caller retry
     throw error;
@@ -52,6 +81,7 @@ export async function loadEssentialDomains(
   const log = getLogger();
 
   await ensureEssentialDomainsLoaded();
+  await waitForIntentDomains();
 
   // Import registry and build tools for essential domains
   const { toolRegistry, EnvironmentServiceRegistry } = await import('../registry/index.js');
@@ -77,14 +107,20 @@ export async function loadEssentialDomains(
     ctx as import('../registry/types.js').ToolContext
   );
 
-  // Only the named tools from the intent domains: the rest of those domains stay out.
-  const intent = toolRegistry.buildToolSet(
-    { domains: INTENT_TOOL_DOMAINS as unknown as ToolDomainType[] },
-    ctx as import('../registry/types.js').ToolContext
-  );
-  const intentTools = Object.fromEntries(
-    Object.entries(intent.tools).filter(([name]) => INTENT_TOOL_IDS.includes(name))
-  );
+  // Only the named intent tools, from their domains: the rest of those domains stay out.
+  // Built apart so a failure here costs these tools, not the essential set.
+  let intentTools: Record<string, unknown> = {};
+  try {
+    const intent = toolRegistry.buildToolSet(
+      { domains: INTENT_TOOL_DOMAINS as unknown as ToolDomainType[] },
+      ctx as import('../registry/types.js').ToolContext
+    );
+    intentTools = Object.fromEntries(
+      Object.entries(intent.tools).filter(([name]) => INTENT_TOOL_IDS.includes(name))
+    );
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Intent tools could not be built; continuing without them');
+  }
 
   log.info(
     {
@@ -96,5 +132,11 @@ export async function loadEssentialDomains(
     '🎵 Essential domain tools loaded from registry'
   );
 
-  return { ...(result.tools as Record<string, unknown>), ...intentTools };
+  // Named tools first: the mid-session cap keeps the first non-essential tools
+  // it is offered, so these survive it.
+  const tools = result.tools as Record<string, unknown>;
+  const namedFirst = Object.fromEntries(
+    Object.entries(tools).filter(([name]) => INTENT_TOOL_IDS.includes(name))
+  );
+  return { ...namedFirst, ...intentTools, ...tools };
 }

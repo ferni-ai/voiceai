@@ -158,15 +158,6 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   // Coaching resources and sending the pick; only exist with COACH_MEDIA=on (learning/coaching-resources-tool.ts).
   'findCoachingResources',
   'coachingPick',
-  // Places, flights, hotels and packages. Asked for in plain words, the model
-  // reached for searchWeb instead when these weren't on the list (dev, 2026-10-15).
-  'findRestaurants',
-  'searchLocalBusinesses',
-  'searchFlights',
-  'searchHotels',
-  'getFlightPrice',
-  'trackPackage',
-  'checkPackageStatus',
   // End call
   'endCall',
 ];

@@ -1,9 +1,9 @@
 /**
- * Places, flights, hotels and packages: the intent tools the first agent holds,
- * and the phrases that point at them.
+ * The first agent holds the named places, travel and package tools, and no
+ * other tool from those domains.
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../utils/safe-logger.js', () => {
   const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
@@ -18,13 +18,22 @@ const FAKE_DOMAIN_TOOLS: Record<string, string[]> = {
   memory: ['rememberAboutUser'],
   travel: ['searchFlights', 'searchHotels', 'getFlightPrice', 'planTrip'],
   'local-search': ['findRestaurants', 'searchLocalBusinesses', 'checkLocalSearchStatus'],
-  productivity: ['trackPackage', 'checkPackageStatus'],
+  productivity: ['trackPackage', 'checkPackageStatus', 'setReminder'],
 };
+
+/** Test switches: which intent domain's load hangs, and whether its build throws. */
+const registryMode = vi.hoisted(() => ({
+  hangDomain: null as string | null,
+  throwDomain: null as string | null,
+}));
 
 vi.mock('../../registry/index.js', () => ({
   EnvironmentServiceRegistry: class {},
   toolRegistry: {
     buildToolSet: (opts: { domains: string[] }) => {
+      if (registryMode.throwDomain && opts.domains.includes(registryMode.throwDomain)) {
+        throw new Error('build failed');
+      }
       const tools: Record<string, unknown> = {};
       for (const domain of opts.domains) {
         for (const name of FAKE_DOMAIN_TOOLS[domain] ?? []) tools[name] = { id: name };
@@ -36,60 +45,76 @@ vi.mock('../../registry/index.js', () => ({
 
 vi.mock('../../registry/loader.js', () => ({
   autoRegisterAllDomains: async () => undefined,
-  loadToolDomainsLazy: async () => 0,
+  loadToolDomainsLazy: async (domains: string[]) =>
+    registryMode.hangDomain && domains.includes(registryMode.hangDomain)
+      ? new Promise<number>(() => undefined)
+      : 0,
 }));
 
-import { dynamicToolLoader } from '../../dynamic-loader.js';
-import { getEssentialTools, capToolsToLimit } from '../../../config/tool-config.js';
-import { loadEssentialDomains } from '../essential-domain-loader.js';
-import { INTENT_TOOL_DOMAINS, INTENT_TOOL_IDS } from '../essential-domains.js';
 import { resolveCallerLocation } from '../../shared/caller-location.js';
 
-const INTENT = [
-  'findRestaurants',
-  'searchLocalBusinesses',
-  'searchFlights',
-  'searchHotels',
-  'getFlightPrice',
-  'trackPackage',
-  'checkPackageStatus',
-];
+async function freshLoader() {
+  vi.resetModules();
+  return import('../essential-domain-loader.js');
+}
+
+beforeEach(() => {
+  registryMode.hangDomain = null;
+  registryMode.throwDomain = null;
+});
 
 afterEach(() => vi.restoreAllMocks());
 
-describe('intent phrases route to their domains', () => {
-  it.each([
-    ['coffee shop near me open now', 'local-search'],
-    ['flights Boston to Denver next Friday', 'travel'],
-    ['check this tracking number', 'productivity'],
-  ])('"%s" loads %s', (phrase, domain) => {
-    const { suggestedDomains } = dynamicToolLoader.detectTopics(phrase);
-    expect(suggestedDomains).toContain(domain);
-  });
-});
-
-describe('the first agent holds the intent tools', () => {
-  it('lists them as essential, so the tool cap keeps them', () => {
-    for (const name of INTENT) expect(getEssentialTools()).toContain(name);
-  });
-
-  it('keeps them when the cap is far below the essential count', () => {
-    const tools = Object.fromEntries(
-      [...INTENT, 'planTrip', 'memoryOnlyTool', 'anotherTool'].map((name) => [name, { name }])
-    );
-    const capped = capToolsToLimit(tools, 2);
-    for (const name of INTENT) expect(capped).toHaveProperty(name);
-  });
-
-  it('adds only the named tools from the intent domains', async () => {
+describe('the first agent holds the named intent tools', () => {
+  it('holds the five named tools from travel and local-search, and not the rest of those domains', async () => {
+    const { loadEssentialDomains } = await freshLoader();
     const tools = await loadEssentialDomains('u1', {});
-    expect(tools).toHaveProperty('searchFlights');
-    expect(tools).toHaveProperty('findRestaurants');
-    expect(tools).toHaveProperty('trackPackage');
+    for (const name of [
+      'searchFlights',
+      'searchHotels',
+      'getFlightPrice',
+      'findRestaurants',
+      'searchLocalBusinesses',
+    ]) {
+      expect(tools).toHaveProperty(name);
+    }
     expect(tools).not.toHaveProperty('planTrip');
     expect(tools).not.toHaveProperty('checkLocalSearchStatus');
-    expect(INTENT_TOOL_DOMAINS).toEqual(['travel', 'local-search']);
-    for (const name of INTENT_TOOL_IDS) expect(tools).toHaveProperty(name);
+  });
+
+  it('keeps the package tools, which come from the productivity domain', async () => {
+    const { loadEssentialDomains } = await freshLoader();
+    const tools = await loadEssentialDomains('u1', {});
+    expect(tools).toHaveProperty('trackPackage');
+    expect(tools).toHaveProperty('checkPackageStatus');
+  });
+
+  it('lists the named tools before the other tools, so a mid-session cap keeps them', async () => {
+    const { loadEssentialDomains } = await freshLoader();
+    const names = Object.keys(await loadEssentialDomains('u1', {}));
+    const firstOther = names.findIndex((n) => n === 'rememberAboutUser');
+    const lastNamed = Math.max(
+      ...['searchFlights', 'findRestaurants', 'trackPackage'].map((n) => names.indexOf(n))
+    );
+    expect(lastNamed).toBeLessThan(firstOther);
+  });
+
+  it('does not hold the call up when an intent domain never finishes loading', async () => {
+    registryMode.hangDomain = 'travel';
+    const { loadEssentialDomains, INTENT_LOAD_WAIT_MS } = await freshLoader();
+    const started = Date.now();
+    const tools = await loadEssentialDomains('u1', {});
+    expect(Date.now() - started).toBeLessThan(INTENT_LOAD_WAIT_MS + 2_000);
+    expect(tools).toHaveProperty('rememberAboutUser');
+  }, 20_000);
+
+  it('still returns the essential tools when building the intent tools fails', async () => {
+    registryMode.throwDomain = 'travel';
+    const { loadEssentialDomains } = await freshLoader();
+    const tools = await loadEssentialDomains('u1', {});
+    expect(tools).toHaveProperty('rememberAboutUser');
+    expect(tools).toHaveProperty('trackPackage');
+    expect(tools).not.toHaveProperty('searchFlights');
   });
 });
 
