@@ -34,6 +34,8 @@ export interface FlagSpec {
 }
 
 export const FLAG_MANIFEST = {
+  ACTION_CLAIM_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  ACTION_CLAIM_STREAM: { default: 'off', owner: 'voice', kind: 'experiment' },
   AFTER_CALL_EXTRACTION: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // set by the job runner for its child processes
   AGENT_JOB_CHILD: { default: 'off', owner: 'voice', kind: 'config' },
@@ -46,8 +48,8 @@ export const FLAG_MANIFEST = {
   APPROVALS_PAGE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // only with APPROVALS_PAGE=on
   APPROVALS_PASSKEYS: { default: 'off', owner: 'platform', kind: 'experiment' },
-  ARRIVAL_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASK_ADVICE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ASK_WHEN_UNCLEAR: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASSISTANT_ACTIONS_REAL: { default: 'off', owner: 'platform', kind: 'experiment' },
   ATTUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // Loop experiment, not live: attunement's own reply-length cap (turn-attunement.ts
@@ -92,6 +94,7 @@ export const FLAG_MANIFEST = {
   // adds what Ferni and the caller both know to the first recall note
   COMMON_GROUND: { default: 'off', owner: 'memory', kind: 'experiment' },
   CONDITIONAL_BUILDERS: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  CONTEXT_PACKET: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -190,6 +193,8 @@ export const FLAG_MANIFEST = {
   LIFE_MOVES_ON: { default: 'off', owner: 'voice', kind: 'experiment' },
   LISTEN_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
   LIVE_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // the cascade's prompt-cache settings in one switch (llm-context-cache-flag.ts)
+  LLM_CONTEXT_CACHE: { default: 'off', owner: 'voice', kind: 'experiment' },
   LLM_DYNAMIC_CONTENT_ENABLED: { default: 'on', owner: 'platform', kind: 'config' },
   // a caller's retry429 option overrides it
   LLM_RETRY_429: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -199,14 +204,21 @@ export const FLAG_MANIFEST = {
   MAYA_PROACTIVE_CHECKS: { default: 'off', owner: 'platform', kind: 'experiment' },
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // on: the caller can see, forget and correct what Ferni knows (/api/memories/remembered).
+  // Turn on with the web app's switch for the view that calls it: VITE_MEMORY_CONTROL, or the
+  // memory view (VITE_MEMORY_VIEW / localStorage ferni:flag:memory-view, web known.ts).
+  MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
   MULTI_AGENT_ESSENTIAL_TOOLS_FIRST: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MULTI_AGENT_MODE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MULTI_AGENT_SINGLE_SESSION: { default: 'off', owner: 'voice', kind: 'experiment' },
   MUSIC_CONTINUE_AS_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
   MUSIC_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   NAME_CORRECTION: { default: 'off', owner: 'memory', kind: 'experiment' },
-  // on: an opening "Hey Seth, ..." is voiced as "Hey Seth." so the name falls (speech/tts-gateway/name-intonation.ts)
+  // on: an opening "Hey Seth, ..." is voiced as "Hey Seth." so the name falls (speech/tts-gateway/name-intonation.ts);
+  // a name kept later in a reply ends its sentence the same way (agents/personas/name-gate.ts)
   NAME_FALLING_INTONATION: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // off: the caller's name may follow every reply again (agents/personas/name-gate.ts)
+  NAME_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // sends the app a name lift when the caller names someone remembered
   NAME_LIFT: { default: 'off', owner: 'memory', kind: 'experiment' },
   NAME_MISHEAR_NORMALIZE: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -256,6 +268,7 @@ export const FLAG_MANIFEST = {
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   PUBSUB_ENABLED: { default: 'off', owner: 'voice', kind: 'config' },
   QUIET_HOURS_UNIFIED: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  QUIRK_AWARENESS: { default: 'off', owner: 'voice', kind: 'experiment' },
   RECALL_BRIDGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   RECALL_EPISODES: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_PEOPLE: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -264,6 +277,7 @@ export const FLAG_MANIFEST = {
   // shows "I'll remember" in the app after a fact is stored
   REMEMBER_MOMENT: { default: 'off', owner: 'memory', kind: 'experiment' },
   REMINDER_SCHEDULER_IN_PROCESS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  REPAIR_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH_NAME: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // read as 'true', not 'on' (adaptive echo window)

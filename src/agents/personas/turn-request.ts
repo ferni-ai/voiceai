@@ -8,6 +8,7 @@
 
 import type { llm } from '@livekit/agents';
 
+import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
@@ -27,9 +28,11 @@ import {
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
+import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt.js';
+import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes, listeningReply } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
@@ -37,6 +40,7 @@ import { nameCorrectionNote } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { roomGuestsNote } from './room-guests.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
+import { quirkTurnNote } from './quirk-note.js';
 import { honestFriendNote } from './honest-friend.js';
 import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
@@ -113,7 +117,8 @@ export function withTurnReminder(
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
-  const reminder = [
+  // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
+  const turnNotes = [
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     // "Naya" in the transcript is Nayan (teammate-names.ts)
@@ -123,6 +128,8 @@ export function withTurnReminder(
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
+    // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
+    quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
     state.note,
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
@@ -156,11 +163,15 @@ export function withTurnReminder(
     // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),
     // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
-    // for this reply, last of all; never with crisis guidance.
+    // for this reply, last but the repair check; never with crisis guidance.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+    // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
+    // note above cancels it; none with crisis guidance or when they answered Ferni's question.
+    options.shape !== false && !answering ? repairNoteFor(chatCtx, session) : '',
+  ].filter(Boolean);
+  const reminder = contextPacketEnabled()
+    ? packetReminder(session, words, turnNotes)
+    : turnNotes.join(' ');
   // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
   noteReminder(session, {
     reminder,

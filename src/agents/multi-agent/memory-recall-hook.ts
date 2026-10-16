@@ -80,6 +80,7 @@ import {
 } from '../../memory/recall/episodes.js';
 import { firestoreEpisodeStore } from '../../memory/storage/episode-store.js';
 import { createSummaryRecall, summaryRecallEnabled } from '../../memory/recall/call-summaries.js';
+import type { RecallPick } from '../personas/context-packet/turn-packet.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -162,6 +163,8 @@ export interface MemoryRecall {
   noteFor(transcript: string, opts?: { final?: boolean }): string | null;
   /** The agent started replying: the next transcript belongs to a new user turn. */
   newTurn(): void;
+  /** The last note split for the context packet (CONTEXT_PACKET); null before any. */
+  lastPick(): RecallPick | null;
   /** What was loaded at call start, once it is (for the name lift); undefined before. */
   snapshot(): RecallSnapshot | undefined;
 }
@@ -208,6 +211,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let groundNote: string | null = null;
   let checkInNote: string | null = null;
   let checkInOffered = false;
+  let lastPick: RecallPick | null = null;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
   // Key points of earlier calls' summaries; loaded apart so the snapshot never waits.
   const summaryRecall =
@@ -399,26 +403,32 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           ? selfRecallNote(text, allTold, canon, { name: personaDisplayName(personaId) })
           : null;
       if (self) selfNoteGiven = true;
-      const note = world.screen(
-        [
-          checkIn,
-          world.note(),
-          formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
-          opener,
-          summaryRecall?.take(text) ?? null,
-          people,
-          told,
-          groundNow,
-          extraTold.length > 0
-            ? formatLedger(extraTold, deps.userName, Date.now(), { bridge })
-            : null,
-          episodes?.take() ?? null,
-          self,
-        ]
-          .filter(Boolean)
-          .join('\n\n')
-      );
+      const [summary, episode] = [summaryRecall?.take(text) ?? null, episodes?.take() ?? null];
+      const worldNote = world.note();
+      // The same note with or without the facts: CONTEXT_PACKET labels those in the packet.
+      const noteWith = (shown: RecallFact[]): string | null =>
+        world.screen(
+          [
+            checkIn,
+            worldNote,
+            formatRecall(shown, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
+            opener,
+            summary,
+            people,
+            told,
+            groundNow,
+            extraTold.length > 0
+              ? formatLedger(extraTold, deps.userName, Date.now(), { bridge })
+              : null,
+            episode,
+            self,
+          ]
+            .filter(Boolean)
+            .join('\n\n')
+        );
+      const note = noteWith(facts);
       if (!note) return null;
+      lastPick = { facts, userName: deps.userName, rest: noteWith([]) };
       followUpsOffered = true;
       if (told) toldOffered = true;
       threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));
@@ -443,6 +453,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       );
       return note;
     },
+    lastPick: () => lastPick,
     newTurn() {
       turnCounted = false;
       episodes?.newTurn();

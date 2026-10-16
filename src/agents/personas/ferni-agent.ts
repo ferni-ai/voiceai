@@ -35,6 +35,7 @@ import { sttWithNameFix } from './name-mishear.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
 import { emergencyTruncate, estimateTokens } from './emergency-truncate.js';
+import { withActionClaimCheck } from './action-claim-guard.js';
 import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
 import { spokenCaptions, toolsForTurn, withTeammateTool } from './turn-request.js';
@@ -665,10 +666,9 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   }
 
   /**
-   * Every LLM request (preemptive or not) goes through here, gated for crisis with the turn
-   * reminder and director's notes (crisis-gate.ts), with this turn's tools and no empty tool
-   * result (tool-output-guard.ts). A long-silence remark is held and dropped when it is a
-   * capped "you still there?" (presence-check.ts).
+   * Every LLM request goes through here: crisis-gated with the turn reminder (crisis-gate.ts),
+   * this turn's tools, no empty tool result (tool-output-guard.ts), no claimed action no tool
+   * did (action-claim-guard.ts), and no capped "you still there?" (presence-check.ts).
    */
   async llmNode(
     chatCtx: llm.ChatContext,
@@ -679,7 +679,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
     const model = async (ctx: llm.ChatContext) => {
       noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
-      return super.llmNode(ctx, tools, modelSettings) as never;
+      return withActionClaimCheck(super.llmNode(ctx, tools, modelSettings), ctx, tools) as never;
     };
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
     return filterSilenceReply(this.session, reply) as never;

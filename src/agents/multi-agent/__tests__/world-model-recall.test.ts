@@ -70,7 +70,10 @@ const store = {
     { entityName: 'Dana', key: 'behavior', value: 'takes credit for my work', confidence: 1 },
   ],
   summaries: async () => [
-    { followUpItems: ['Ask whether things with her ex settled down', 'Ask how training is going'] },
+    {
+      callerProvenance: 1,
+      followUpItems: ['Ask whether things with her ex settled down', 'Ask how training is going'],
+    },
   ],
 };
 
