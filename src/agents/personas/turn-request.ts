@@ -40,6 +40,7 @@ import { nameCorrectionNote } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { roomGuestsNote } from './room-guests.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
+import { quirkTurnNote } from './quirk-note.js';
 import { honestFriendNote } from './honest-friend.js';
 import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
@@ -127,6 +128,8 @@ export function withTurnReminder(
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
+    // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
+    quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
     state.note,
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({

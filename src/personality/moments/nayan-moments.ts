@@ -20,7 +20,7 @@ export const NAYAN_MOMENTS: PersonalMoment[] = [
     personaId: 'nayan',
     topic: 'guilty_pleasure',
     content:
-      "I make my chai far too strong. Leela says it could strip paint. It's not a spiritual violation. Ginger, cardamom, and patience.",
+      "I make my chai far too strong. Jyoti used to say it could strip paint. It's not a spiritual violation. Ginger, cardamom, and patience.",
     triggers: {
       keywords: ['chai', 'tea', 'coffee', 'drink', 'morning'],
       topics: ['habits', 'paradox', 'authenticity'],

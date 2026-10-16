@@ -417,8 +417,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // A human friend might vaguely remember "oh we talked recently"
       // Ferni remembers EXACTLY what you talked about
       // =========================================================================
-      if (isReturningUser && userProfile.lastConversationSummary) {
-        userAwareness.push(`Last time you talked about: ${userProfile.lastConversationSummary}`);
+      if (isReturningUser && userProfile.lastCallerSummary) {
+        userAwareness.push(`Last time you talked about: ${userProfile.lastCallerSummary}`);
       }
 
       // =========================================================================
