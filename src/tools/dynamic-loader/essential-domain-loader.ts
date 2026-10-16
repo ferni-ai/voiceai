@@ -4,7 +4,11 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { DEFAULT_ESSENTIAL_DOMAINS } from './essential-domains.js';
+import {
+  DEFAULT_ESSENTIAL_DOMAINS,
+  INTENT_TOOL_DOMAINS,
+  INTENT_TOOL_IDS,
+} from './essential-domains.js';
 
 let essentialDomainsReady: Promise<void> | null = null;
 
@@ -22,6 +26,10 @@ export function ensureEssentialDomainsLoaded(): Promise<void> {
     const { autoRegisterAllDomains, loadToolDomainsLazy } = await import('../registry/loader.js');
     await autoRegisterAllDomains();
     await loadToolDomainsLazy([...DEFAULT_ESSENTIAL_DOMAINS]);
+    // Isolated: a failed intent domain must not take the essential set down with it.
+    await loadToolDomainsLazy([...INTENT_TOOL_DOMAINS]).catch((error: unknown) =>
+      getLogger().warn({ error: String(error) }, 'Intent tool domains failed to load')
+    );
   })().catch((error: unknown) => {
     essentialDomainsReady = null; // let the next caller retry
     throw error;
@@ -69,14 +77,24 @@ export async function loadEssentialDomains(
     ctx as import('../registry/types.js').ToolContext
   );
 
+  // Only the named tools from the intent domains: the rest of those domains stay out.
+  const intent = toolRegistry.buildToolSet(
+    { domains: INTENT_TOOL_DOMAINS as unknown as ToolDomainType[] },
+    ctx as import('../registry/types.js').ToolContext
+  );
+  const intentTools = Object.fromEntries(
+    Object.entries(intent.tools).filter(([name]) => INTENT_TOOL_IDS.includes(name))
+  );
+
   log.info(
     {
       essentialDomains: DEFAULT_ESSENTIAL_DOMAINS.length,
       totalTools: result.stats.total,
+      intentTools: Object.keys(intentTools).length,
       skipped: result.skipped?.length || 0,
     },
     '🎵 Essential domain tools loaded from registry'
   );
 
-  return result.tools as Record<string, unknown>;
+  return { ...(result.tools as Record<string, unknown>), ...intentTools };
 }

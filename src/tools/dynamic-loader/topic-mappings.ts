@@ -9,6 +9,7 @@
 
 import type { ToolDomain } from '../registry/types.js';
 import { LOCAL_PLACE_TOPICS } from './local-place-topics.js';
+import { INTENT_TOPICS } from './intent-topics.js';
 
 // ============================================================================
 // TOPIC TO DOMAIN MAPPING
@@ -321,6 +322,7 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   wondering: ['curiosity'],
 
   ...LOCAL_PLACE_TOPICS,
+  ...INTENT_TOPICS,
 
   // =========================================================================
   // EMOTIONAL & SPIRITUAL TOPICS
