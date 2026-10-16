@@ -46,6 +46,8 @@ vi.mock('../../../../../services/superhuman/semantic-intelligence/promise-keeper
 import type { ToolContext, ToolDefinition } from '../../../../registry/types.js';
 import { definitions as schedulingDefs } from '../../../scheduling/index.js';
 import { getAgentToUserOutreachDefinitions } from '../agent-to-user.js';
+import { setCallUserPort } from '../call-user-port.js';
+import { getTelephonyToolDefinitions } from '../../../telephony/index.js';
 
 const ctx: ToolContext = { userId: 'owner-uid', agentId: 'ferni', agentDisplayName: 'Ferni' };
 const all: ToolDefinition[] = [...schedulingDefs, ...getAgentToUserOutreachDefinitions()];
@@ -72,9 +74,22 @@ describe('owner-only tools ignore a destination in their arguments', () => {
     expect(sent.call.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
   });
 
-  it('callUser calls only the owner', async () => {
-    await run('callUser', { message: 'hi' });
-    expect(sent.call.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
+  it('callUser calls only the owner, at the verified phone on the account', async () => {
+    // Telephony registers the real callUser behind TOOLS_REAL_CALL_USER; it reaches
+    // outreach through its port (the account's verified phone), never the arguments.
+    vi.stubEnv('TOOLS_REAL_CALL_USER', 'on');
+    const placed = vi.fn(async (..._a: unknown[]) => ({ success: true, status: 'initiated' }));
+    setCallUserPort({ verifiedPhone: async () => OWNER.phone, call: placed });
+    try {
+      const callUser = getTelephonyToolDefinitions().find((d) => d.id === 'callUser')!;
+      await callUser.create(ctx).execute({ message: 'hi', ...STRANGER }, {});
+    } finally {
+      setCallUserPort(undefined);
+      vi.unstubAllEnvs();
+    }
+    expect(placed.mock.calls.map((c) => (c[0] as { phoneNumber: string }).phoneNumber)).toEqual([
+      OWNER.phone,
+    ]);
   });
 
   it('scheduleMessage / scheduleCall / scheduleEmail deliver only to the owner', async () => {

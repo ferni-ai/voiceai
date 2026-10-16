@@ -4,7 +4,7 @@
  * Domain: All financial calculations and projections.
  * Single responsibility: Pure calculation logic for investing, retirement, fees.
  *
- * These tools embody Jack Bogle's philosophy - showing the power of compounding
+ * These tools embody index-investing philosophy - showing the power of compounding
  * and the devastating impact of fees.
  */
 

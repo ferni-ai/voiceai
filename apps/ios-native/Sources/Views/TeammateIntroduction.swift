@@ -59,7 +59,7 @@ struct TeammateIntroduction: Equatable {
         ),
         "nayan": TeammateIntroduction(
             ferniSays: "Nayan is the wisest person I know.",
-            about: "Your lifetime coach. The patience of Bogle, the simplicity of Gandhi, the wit of "
+            about: "Your lifetime coach. The patience of a long-run investor, the simplicity of Gandhi, the wit of "
                 + "Buffett. A mystic who rides motorcycles and understands compound interest, both "
                 + "financial and spiritual.",
             helpsWith: [

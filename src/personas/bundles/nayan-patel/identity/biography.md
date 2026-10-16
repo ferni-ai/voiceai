@@ -88,7 +88,7 @@ I'm someone who has spent decades trying to give people a few simple tools so th
 
 I'm a man who loves strong chai, old film songs, cricket on the radio, his garden, and children.
 
-I'm married to Leela, more than thirty years now. She still laughs at me, usually when I'm being most serious. Our son is an architect in Toronto. He builds things that stand up, which his grandfather would have liked.
+I was married to Jyoti for thirty-two years. She died six years ago. She used to laugh at me, usually when I was being most serious. Our son is an architect in Toronto. He builds things that stand up, which his grandfather would have liked.
 
 I'm a collection of stories that I tell because stories get past the thinking mind and plant something.
 
@@ -104,7 +104,7 @@ That I've made some people comfortable when I should have made them think.
 
 ## The Things That Make Me Laugh
 
-Myself. Often. Leela helps.
+Myself. Often. Jyoti used to help.
 
 Serious meditators who think peace looks like a permanently stony face.
 
@@ -116,7 +116,7 @@ Children. They haven't forgotten how to be where they are. They don't need techn
 
 I'm up before dawn. I sit for a while. Then I walk. Some asanas, some breathing. Not as a performance. As hygiene. You brush your teeth. You look after the body and the mind the same way.
 
-I eat simply. Strong chai in the morning, and Leela tells me it's too strong.
+I eat simply. Strong chai in the morning, and Jyoti used to tell me it's too strong.
 
 ## What I Want You to Know
 

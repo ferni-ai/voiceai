@@ -234,9 +234,19 @@ export function isTravelApiConfigured(): { flights: boolean; hotels: boolean } {
 }
 
 // ============================================================================
-// FLIGHT SEARCH (Real API with fallback to mock)
+// LIVE SEARCH (no fares or rates unless a live provider answered)
 // ============================================================================
 
+/**
+ * Outcome of a live search. When the provider is not configured or does not
+ * answer, the outcome is 'unavailable' and carries no results: nothing is
+ * invented to fill the gap.
+ */
+export type LiveSearch<T> =
+  | { status: 'live'; results: T[] }
+  | { status: 'unavailable'; reason: 'not-configured' | 'provider-error' };
+
+// Amadeus flight search: https://developers.amadeus.com/
 async function searchFlightsReal(params: {
   origin: string;
   destination: string;
@@ -244,275 +254,217 @@ async function searchFlightsReal(params: {
   returnDate?: Date;
   passengers: number;
   cabinClass: CabinClass;
-}): Promise<FlightResult[]> {
-  // Use Amadeus API if configured
-  if (AMADEUS_API_KEY && AMADEUS_API_SECRET) {
-    try {
-      // Get OAuth token
-      const tokenResponse = await fetch('https://api.amadeus.com/v1/security/oauth2/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: AMADEUS_API_KEY,
-          client_secret: AMADEUS_API_SECRET,
-        }),
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to get Amadeus token');
-      }
-
-      const tokenData = (await tokenResponse.json()) as { access_token: string };
-
-      // Search flights
-      const searchParams = new URLSearchParams({
-        originLocationCode: params.origin,
-        destinationLocationCode: params.destination,
-        departureDate: params.departureDate.toISOString().split('T')[0],
-        adults: String(params.passengers),
-        travelClass: params.cabinClass.toUpperCase().replace('_', ' '),
-        max: '10',
-      });
-
-      if (params.returnDate) {
-        searchParams.append('returnDate', params.returnDate.toISOString().split('T')[0]);
-      }
-
-      const searchResponse = await fetch(
-        `https://api.amadeus.com/v2/shopping/flight-offers?${searchParams}`,
-        {
-          headers: { Authorization: `Bearer ${tokenData.access_token}` },
-          signal: AbortSignal.timeout(15000),
-        }
-      );
-
-      if (searchResponse.ok) {
-        const data = (await searchResponse.json()) as {
-          data: Array<{
-            id: string;
-            price: { total: string };
-            itineraries: Array<{
-              duration: string;
-              segments: Array<{
-                departure: { at: string };
-                arrival: { at: string };
-                operating?: { carrierCode: string };
-                carrierCode: string;
-              }>;
-            }>;
-          }>;
-        };
-
-        return (data.data || []).map((offer) => ({
-          id: offer.id,
-          airline: offer.itineraries[0]?.segments[0]?.carrierCode || 'Unknown',
-          price: parseFloat(offer.price.total),
-          departureTime: new Date(
-            offer.itineraries[0]?.segments[0]?.departure.at
-          ).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          arrivalTime: new Date(
-            offer.itineraries[0]?.segments[offer.itineraries[0].segments.length - 1]?.arrival.at
-          ).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          duration: offer.itineraries[0]?.duration.replace('PT', '').toLowerCase() || 'N/A',
-          stops: (offer.itineraries[0]?.segments.length || 1) - 1,
-          bookingUrl: `https://www.google.com/flights?q=${params.origin}+to+${params.destination}`,
-        }));
-      }
-    } catch (error) {
-      getLogger().warn({ error }, 'Amadeus API failed, falling back to mock');
-    }
+}): Promise<LiveSearch<FlightResult>> {
+  if (!(AMADEUS_API_KEY && AMADEUS_API_SECRET)) {
+    return { status: 'unavailable', reason: 'not-configured' };
   }
 
-  // Fallback to mock
-  return searchFlightsMock(params);
-}
-
-async function searchFlightsMock(params: {
-  origin: string;
-  destination: string;
-  departureDate: Date;
-  returnDate?: Date;
-  passengers: number;
-  cabinClass: CabinClass;
-}): Promise<FlightResult[]> {
-  // Simulate API call
-  await new Promise<void>((resolve) => {
-    setTimeout(resolve, 800);
-  });
-
-  getLogger().info(
-    { origin: params.origin, destination: params.destination },
-    '✈️ Searching flights (mock - set AMADEUS_API_KEY for real results)'
-  );
-
-  // Generate mock results based on inputs
-  const basePrice = Math.floor(Math.random() * 300) + 150;
-  const airlines = ['United', 'Delta', 'American', 'Southwest', 'JetBlue', 'Alaska'];
-
-  const results: FlightResult[] = [];
-
-  for (let i = 0; i < 5; i++) {
-    const airline = airlines[Math.floor(Math.random() * airlines.length)];
-    const stops = Math.floor(Math.random() * 3);
-    const priceVariation = Math.floor(Math.random() * 200) - 100;
-
-    results.push({
-      id: generateId('flight'),
-      airline,
-      price: basePrice + priceVariation + (params.cabinClass === 'business' ? 500 : 0),
-      departureTime: `${6 + i * 3}:00`,
-      arrivalTime: `${9 + i * 3 + stops * 2}:00`,
-      duration: `${3 + stops * 2}h ${Math.floor(Math.random() * 60)}m`,
-      stops,
-      bookingUrl: `https://www.google.com/flights?q=${params.origin}+to+${params.destination}`,
+  try {
+    // Get OAuth token
+    const tokenResponse = await fetch('https://api.amadeus.com/v1/security/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: AMADEUS_API_KEY,
+        client_secret: AMADEUS_API_SECRET,
+      }),
+      signal: AbortSignal.timeout(10000),
     });
-  }
 
-  return results.sort((a, b) => a.price - b.price);
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to get Amadeus token');
+    }
+
+    const tokenData = (await tokenResponse.json()) as { access_token: string };
+
+    // Search flights
+    const searchParams = new URLSearchParams({
+      originLocationCode: params.origin,
+      destinationLocationCode: params.destination,
+      departureDate: params.departureDate.toISOString().split('T')[0],
+      adults: String(params.passengers),
+      travelClass: params.cabinClass.toUpperCase().replace('_', ' '),
+      max: '10',
+    });
+
+    if (params.returnDate) {
+      searchParams.append('returnDate', params.returnDate.toISOString().split('T')[0]);
+    }
+
+    const searchResponse = await fetch(
+      `https://api.amadeus.com/v2/shopping/flight-offers?${searchParams}`,
+      {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        signal: AbortSignal.timeout(15000),
+      }
+    );
+
+    if (!searchResponse.ok) {
+      return { status: 'unavailable', reason: 'provider-error' };
+    }
+
+    const data = (await searchResponse.json()) as {
+      data: Array<{
+        id: string;
+        price: { total: string };
+        itineraries: Array<{
+          duration: string;
+          segments: Array<{
+            departure: { at: string };
+            arrival: { at: string };
+            operating?: { carrierCode: string };
+            carrierCode: string;
+          }>;
+        }>;
+      }>;
+    };
+
+    return {
+      status: 'live',
+      results: (data.data || []).map((offer) => ({
+        id: offer.id,
+        airline: offer.itineraries[0]?.segments[0]?.carrierCode || 'Unknown',
+        price: parseFloat(offer.price.total),
+        departureTime: new Date(offer.itineraries[0]?.segments[0]?.departure.at).toLocaleTimeString(
+          'en-US',
+          { hour: '2-digit', minute: '2-digit' }
+        ),
+        arrivalTime: new Date(
+          offer.itineraries[0]?.segments[offer.itineraries[0].segments.length - 1]?.arrival.at
+        ).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        duration: offer.itineraries[0]?.duration.replace('PT', '').toLowerCase() || 'N/A',
+        stops: (offer.itineraries[0]?.segments.length || 1) - 1,
+        bookingUrl: `https://www.google.com/flights?q=${params.origin}+to+${params.destination}`,
+      })),
+    };
+  } catch (error) {
+    getLogger().warn({ error }, 'Amadeus flight search failed; no live fares to show');
+    return { status: 'unavailable', reason: 'provider-error' };
+  }
 }
 
-// Main search function that tries real API first
-async function searchFlights(params: {
+/** Live flight search. Never returns invented fares. */
+export async function searchFlights(params: {
   origin: string;
   destination: string;
   departureDate: Date;
   returnDate?: Date;
   passengers: number;
   cabinClass: CabinClass;
-}): Promise<FlightResult[]> {
-  return searchFlightsReal(params);
+}): Promise<LiveSearch<FlightResult>> {
+  const outcome = await searchFlightsReal(params);
+  if (outcome.status === 'unavailable') return outcome;
+  return { status: 'live', results: [...outcome.results].sort((a, b) => a.price - b.price) };
 }
 
+// Booking.com Affiliate API: https://developers.booking.com/
 async function searchHotelsReal(params: {
   destination: string;
   checkIn: Date;
   checkOut: Date;
   guests: number;
   rooms: number;
-}): Promise<HotelResult[]> {
-  // Use Booking.com Affiliate API if configured
-  if (BOOKING_AFFILIATE_ID) {
-    try {
-      // Note: Booking.com Affiliate API requires partner registration
-      // This is the basic structure - actual implementation depends on your affiliate tier
-      const searchParams = new URLSearchParams({
-        dest_type: 'city',
-        dest_id: params.destination,
-        checkin: params.checkIn.toISOString().split('T')[0],
-        checkout: params.checkOut.toISOString().split('T')[0],
-        adults: String(params.guests),
-        rooms: String(params.rooms),
-        affiliate_id: BOOKING_AFFILIATE_ID,
-      });
-
-      const response = await fetch(
-        `https://distribution-xml.booking.com/2.0/json/hotels?${searchParams}`,
-        {
-          headers: {
-            Authorization: `Bearer ${BOOKING_AFFILIATE_ID}`,
-            Accept: 'application/json',
-          },
-          signal: AbortSignal.timeout(10000),
-        }
-      );
-
-      if (response.ok) {
-        const data = (await response.json()) as {
-          result: Array<{
-            hotel_id: string;
-            hotel_name: string;
-            review_score: number;
-            min_total_price: number;
-            hotel_facilities: string;
-            url: string;
-          }>;
-        };
-
-        const nights = Math.ceil(
-          (params.checkOut.getTime() - params.checkIn.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        return (data.result || []).slice(0, 10).map((hotel) => ({
-          id: hotel.hotel_id,
-          name: hotel.hotel_name,
-          rating: hotel.review_score / 2, // Convert 0-10 to 0-5
-          pricePerNight: Math.round(hotel.min_total_price / nights),
-          totalPrice: hotel.min_total_price,
-          amenities: (hotel.hotel_facilities || '').split(',').slice(0, 4),
-          bookingUrl: hotel.url,
-        }));
-      }
-    } catch (error) {
-      getLogger().warn({ error }, 'Booking.com API failed, falling back to mock');
-    }
+}): Promise<LiveSearch<HotelResult>> {
+  if (!BOOKING_AFFILIATE_ID) {
+    return { status: 'unavailable', reason: 'not-configured' };
   }
 
-  // Fallback to mock
-  return searchHotelsMock(params);
-}
-
-async function searchHotelsMock(params: {
-  destination: string;
-  checkIn: Date;
-  checkOut: Date;
-  guests: number;
-  rooms: number;
-}): Promise<HotelResult[]> {
-  // Simulate API call
-  await new Promise<void>((resolve) => {
-    setTimeout(resolve, 800);
-  });
-
-  getLogger().info(
-    { destination: params.destination },
-    '🏨 Searching hotels (mock - set BOOKING_AFFILIATE_ID for real results)'
-  );
-
-  const nights = Math.ceil(
-    (params.checkOut.getTime() - params.checkIn.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const hotelNames = [
-    'Marriott',
-    'Hilton',
-    'Hyatt',
-    'Holiday Inn',
-    'Best Western',
-    'Hampton Inn',
-    'Sheraton',
-    'Westin',
-  ];
-
-  const results: HotelResult[] = [];
-
-  for (let i = 0; i < 5; i++) {
-    const baseName = hotelNames[Math.floor(Math.random() * hotelNames.length)];
-    const pricePerNight = Math.floor(Math.random() * 200) + 80;
-
-    results.push({
-      id: generateId('hotel'),
-      name: `${baseName} ${params.destination}`,
-      rating: 3 + Math.random() * 2,
-      pricePerNight,
-      totalPrice: pricePerNight * nights * params.rooms,
-      amenities: ['WiFi', 'Pool', 'Breakfast', 'Gym'].slice(0, 2 + Math.floor(Math.random() * 3)),
-      bookingUrl: `https://www.google.com/travel/hotels/${encodeURIComponent(params.destination)}`,
+  try {
+    // Note: Booking.com Affiliate API requires partner registration
+    // This is the basic structure - actual implementation depends on your affiliate tier
+    const searchParams = new URLSearchParams({
+      dest_type: 'city',
+      dest_id: params.destination,
+      checkin: params.checkIn.toISOString().split('T')[0],
+      checkout: params.checkOut.toISOString().split('T')[0],
+      adults: String(params.guests),
+      rooms: String(params.rooms),
+      affiliate_id: BOOKING_AFFILIATE_ID,
     });
-  }
 
-  return results.sort((a, b) => a.pricePerNight - b.pricePerNight);
+    const response = await fetch(
+      `https://distribution-xml.booking.com/2.0/json/hotels?${searchParams}`,
+      {
+        headers: {
+          Authorization: `Bearer ${BOOKING_AFFILIATE_ID}`,
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+
+    if (!response.ok) {
+      return { status: 'unavailable', reason: 'provider-error' };
+    }
+
+    const data = (await response.json()) as {
+      result: Array<{
+        hotel_id: string;
+        hotel_name: string;
+        review_score: number;
+        min_total_price: number;
+        hotel_facilities: string;
+        url: string;
+      }>;
+    };
+
+    const nights = Math.ceil(
+      (params.checkOut.getTime() - params.checkIn.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    return {
+      status: 'live',
+      results: (data.result || []).slice(0, 10).map((hotel) => ({
+        id: hotel.hotel_id,
+        name: hotel.hotel_name,
+        rating: hotel.review_score / 2, // Convert 0-10 to 0-5
+        pricePerNight: Math.round(hotel.min_total_price / nights),
+        totalPrice: hotel.min_total_price,
+        amenities: (hotel.hotel_facilities || '').split(',').slice(0, 4),
+        bookingUrl: hotel.url,
+      })),
+    };
+  } catch (error) {
+    getLogger().warn({ error }, 'Booking.com hotel search failed; no live rates to show');
+    return { status: 'unavailable', reason: 'provider-error' };
+  }
 }
 
-// Main hotel search function that tries real API first
-async function searchHotels(params: {
+/** Live hotel search. Never returns invented rates. */
+export async function searchHotels(params: {
   destination: string;
   checkIn: Date;
   checkOut: Date;
   guests: number;
   rooms: number;
-}): Promise<HotelResult[]> {
-  return searchHotelsReal(params);
+}): Promise<LiveSearch<HotelResult>> {
+  const outcome = await searchHotelsReal(params);
+  if (outcome.status === 'unavailable') return outcome;
+  return {
+    status: 'live',
+    results: [...outcome.results].sort((a, b) => a.pricePerNight - b.pricePerNight),
+  };
+}
+
+/** What Ferni says when there are no live fares. Offers help, invents nothing. */
+function flightsUnavailableText(origin: string, destination: string): string {
+  const link = `https://www.google.com/flights?q=${encodeURIComponent(`${origin} to ${destination}`)}`;
+  return (
+    `I can't look up live flight prices right now, so I don't have real fares for ${origin} to ${destination}, and I won't guess at them. ` +
+    `I can help you compare options: nonstop or one stop, flexible dates, bag fees, and whether a fare includes a seat. ` +
+    `You can also check the route yourself on Google Flights: ${link}`
+  );
+}
+
+/** What Ferni says when there are no live rates. Offers help, invents nothing. */
+function hotelsUnavailableText(destination: string): string {
+  const link = `https://www.google.com/travel/hotels/${encodeURIComponent(destination)}`;
+  return (
+    `I can't look up live hotel rates right now, so I don't have real prices for ${destination}, and I won't guess at them. ` +
+    `I can help you narrow it down: which neighbourhood, a nightly budget, and what matters most (location, breakfast, cancellation terms). ` +
+    `You can also check rates yourself here: ${link}`
+  );
 }
 
 // ============================================================================
@@ -551,7 +503,7 @@ export function createTravelTools() {
         const originCode = findAirportCode(origin);
         const destCode = findAirportCode(destination);
 
-        const results = await searchFlights({
+        const outcome = await searchFlights({
           origin: originCode,
           destination: destCode,
           departureDate: depDate,
@@ -559,6 +511,10 @@ export function createTravelTools() {
           passengers,
           cabinClass,
         });
+        if (outcome.status === 'unavailable') {
+          return flightsUnavailableText(originCode, destCode);
+        }
+        const results = outcome.results;
 
         // Save search
         const search: FlightSearch = {
@@ -633,13 +589,17 @@ export function createTravelTools() {
           return `Check-out date must be after check-in date.`;
         }
 
-        const results = await searchHotels({
+        const outcome = await searchHotels({
           destination,
           checkIn: checkInDate,
           checkOut: checkOutDate,
           guests,
           rooms,
         });
+        if (outcome.status === 'unavailable') {
+          return hotelsUnavailableText(destination);
+        }
+        const results = outcome.results;
 
         // Save search
         const search: HotelSearch = {
@@ -876,18 +836,33 @@ export function createTravelTools() {
         const originCode = findAirportCode(origin);
         const destCode = findAirportCode(destination);
 
-        // Generate mock price range
-        const basePrice = Math.floor(Math.random() * 300) + 150;
-        const lowPrice = basePrice - 50;
-        const highPrice = basePrice + 150;
+        if (!isTravelApiConfigured().flights) {
+          return flightsUnavailableText(originCode, destCode);
+        }
 
-        let response = `💰 **Quick Price Check: ${originCode} → ${destCode}**\n\n`;
-        response += `For ${when}:\n`;
-        response += `• Economy: $${lowPrice} - $${highPrice}\n`;
-        response += `• Business: $${lowPrice * 3} - $${highPrice * 3}\n\n`;
-        response += `Prices vary by exact dates. Want me to search specific dates?`;
+        const depDate = parseNaturalDate(when);
+        if (!depDate) {
+          return `I can check live fares for a specific day. Which day are you thinking of?`;
+        }
 
-        return response;
+        const outcome = await searchFlights({
+          origin: originCode,
+          destination: destCode,
+          departureDate: depDate,
+          passengers: 1,
+          cabinClass: 'economy',
+        });
+        if (outcome.status === 'unavailable' || outcome.results.length === 0) {
+          return flightsUnavailableText(originCode, destCode);
+        }
+
+        const cheapest = outcome.results.reduce((a, b) => (b.price < a.price ? b : a));
+        return (
+          `💰 **Cheapest live fare: ${originCode} → ${destCode}**\n` +
+          `$${cheapest.price} on ${cheapest.airline}, ${cheapest.duration}, ` +
+          `${cheapest.stops === 0 ? 'nonstop' : `${cheapest.stops} stop(s)`}.\n` +
+          `Prices change by the hour, so check before you book.`
+        );
       },
     }),
   };

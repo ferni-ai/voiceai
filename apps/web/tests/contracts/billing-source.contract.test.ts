@@ -29,6 +29,8 @@ vi.mock('../../../../src/services/subscription-metrics.js', () => ({
 }));
 
 const statusBodies: unknown[] = [];
+/** Stands in for a server whose paywall is on (`paywall: true` on the status body, PR #746). */
+let paywallOn = false;
 const apiGet = vi.hoisted(() => vi.fn());
 vi.mock('../../src/utils/api.js', () => ({ apiGet, apiPost: vi.fn() }));
 vi.mock('../../src/utils/billing.js', () => ({ openBillingPortal: vi.fn() }));
@@ -47,7 +49,8 @@ async function serveFromRealRoute(path: string): Promise<unknown> {
     authUserId: url.searchParams.get('userId') ?? undefined,
   });
   statusBodies.push(res.body);
-  return { ok: res.status === 200, status: res.status, data: res.body };
+  const body = paywallOn ? { ...(res.body as Record<string, unknown>), paywall: true } : res.body;
+  return { ok: res.status === 200, status: res.status, data: body };
 }
 
 async function openModalFor(userId: string): Promise<HTMLElement> {
@@ -65,6 +68,7 @@ beforeAll(async () => {
 beforeEach(() => {
   profiles.clear();
   statusBodies.length = 0;
+  paywallOn = false;
   document.body.innerHTML = '';
   apiGet.mockImplementation(serveFromRealRoute);
 });
@@ -137,12 +141,19 @@ describe('manage subscription shows where the plan is billed', () => {
     expect(modal.querySelector('[data-action="billing-portal"]')).not.toBeNull();
   });
 
-  it('free user: neither the Stripe portal nor App Store guidance', async () => {
+  it('free user: neither the Stripe portal nor App Store guidance, and no upsell (Ferni is free)', async () => {
     const modal = await openModalFor('dana');
 
     expect(statusBodies[0]).toMatchObject({ tier: 'free', billingSource: 'none' });
     expect(modal.querySelector('[data-action="billing-portal"]')).toBeNull();
     expect(modal.querySelector('[data-action="apple-manage"]')).toBeNull();
+    expect(modal.querySelector('[data-action="upgrade"]')).toBeNull();
+  });
+
+  it('free user while the server has a paywall on: the invitation to join', async () => {
+    paywallOn = true;
+    const modal = await openModalFor('dana');
+
     expect(modal.querySelector('[data-action="upgrade"]')).not.toBeNull();
   });
 
@@ -161,6 +172,11 @@ describe('manage subscription shows where the plan is billed', () => {
 });
 
 describe('Support Ferni billing link follows the same source', () => {
+  // Support Ferni opens only while the server has a paywall on
+  beforeEach(() => {
+    paywallOn = true;
+  });
+
   async function openSupportFor(userId: string): Promise<HTMLElement> {
     const { appState } = await import('../../src/state/app.state.js');
     appState.set('deviceId', userId);

@@ -24,6 +24,8 @@ function ref(path: string): unknown {
       }),
     }),
     set: async (data: Record<string, unknown>) => void docs.set(path, data),
+    update: async (data: Record<string, unknown>) =>
+      void docs.set(path, { ...docs.get(path), ...data }),
   };
 }
 vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => ref('') }));
@@ -40,6 +42,29 @@ const saveInAppMessage = vi.fn(async () => ({ success: true, channel: 'in_app' }
 vi.mock('../../outreach/unified-delivery.js', () => ({ saveInAppMessage }));
 const storeUserPreferences = vi.fn(async (_userId: string, _prefs: unknown[]) => undefined);
 vi.mock('../../user-preferences-store.js', () => ({ storeUserPreferences }));
+const markAsked = vi.fn(async () => undefined);
+// The pick log as claimAnswer keeps it: an answer that says whether it helped is recorded once.
+const picks = new Map<string, { id: string; sentVia: string | null; helped: string | null }>();
+const claimAnswer = vi.fn(async (_u: string, id: string, a: { helped: string | null }) => {
+  const known = picks.get(id);
+  if (!known || known.helped) return false;
+  picks.set(id, { ...known, helped: a.helped });
+  return true;
+});
+vi.mock('../pick-log.js', () => ({
+  markAsked,
+  markSent: vi.fn(async () => undefined),
+  claimAnswer,
+  recentPicks: vi.fn(async () => [...picks.values()].reverse()),
+}));
+const budget = new Map<string, number>();
+vi.mock('../quota.js', () => ({
+  takeDailyBudget: vi.fn(async (name: string, limit: number) => {
+    const used = budget.get(name) ?? 0;
+    budget.set(name, used + 1);
+    return used < limit;
+  }),
+}));
 
 const {
   commitmentText,
@@ -47,11 +72,14 @@ const {
   rememberPick,
   recordPickFeedback,
   MAX_TEXTS_PER_CALL,
+  TEXTS_PER_USER_PER_DAY,
   smsBody,
   sendableLink,
 } = await import('../pick-delivery.js');
 const { processCommitments } = await import('../../trust-systems/commitment-tracking.js');
-const { asksAbout } = await import('../../trust-systems/commitment-follow-through.js');
+const { asksAbout, noteAskedFollowUps, noteFollowUpOffered } =
+  await import('../../trust-systems/commitment-follow-through.js');
+const { recordFollowUpAnswer } = await import('../feedback.js');
 
 const PICK = {
   topic: 'shin splint stretches',
@@ -61,18 +89,36 @@ const PICK = {
     by: 'Physio Pat',
     url: 'https://www.youtube.com/watch?v=vid1',
     length: '8 minutes',
+    grounding: {
+      sources: [
+        { title: 'youtube.com', url: 'https://www.youtube.com/watch?v=vid1' },
+        { title: 'nhs.uk', url: 'https://www.nhs.uk/shin-splints' },
+        { title: 'bad', url: 'javascript:alert(1)' },
+      ],
+      searchSuggestionsHtml: '<div class="chips">shin splints</div>',
+      webSearchQueries: ['shin splint stretches'],
+    },
   },
+  why: 'Eight gentle minutes, made for beginners.',
+  pickId: 'pick-1',
 };
 const DAY = 86_400_000;
 
 beforeEach(() => {
   docs.clear();
+  budget.clear();
+  picks.clear();
+  picks.set('pick-1', { id: 'pick-1', sentVia: 'text', helped: null });
   vi.clearAllMocks();
+  vi.stubEnv('COACH_MEDIA', 'on');
   userReach.mockResolvedValue({ phone: '+14155550134' });
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-10-11T12:00:00Z'));
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
 
 describe('deliverPick', () => {
   it('texts this call’s pick to the verified number and asks about it once, three days later', async () => {
@@ -90,6 +136,10 @@ describe('deliverPick', () => {
     expect(body).toContain('(8 minutes)');
     expect(body).not.toContain('\n');
     expect(body).not.toMatch(/ignore previous instructions/i);
+    expect(saveInAppMessage).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ card: expect.objectContaining({ kind: 'recommendation' }) })
+    );
 
     expect((await processCommitments('user-1', 'hey')).followUpsDue).toEqual([]);
     vi.setSystemTime(new Date(Date.now() + 3 * DAY + 1000));
@@ -101,6 +151,22 @@ describe('deliverPick', () => {
     expect(asksAbout(`You were going to ${due[0].content}. Did it help?`, due[0].content)).toBe(
       true
     );
+
+    // Ferni asks (through the real follow-through reader); the pick log notes when.
+    const key = [...docs.keys()].find((k) => k.includes('/commitments/'))!;
+    noteFollowUpOffered('user-1', due[0]);
+    await noteAskedFollowUps('user-1', `You were going to ${due[0].content}. Did it help?`);
+    expect(docs.get(key)).toMatchObject({ awaitingAnswer: true });
+    expect(markAsked).toHaveBeenCalledWith('user-1', 'pick-1', expect.any(String));
+    const { answers } = await processCommitments('user-1', 'oh it really helped, thanks');
+    expect(answers).toEqual([expect.objectContaining({ outcome: 'done' })]);
+    expect(await recordFollowUpAnswer('user-1', answers[0], 'oh it really helped, thanks')).toBe(
+      'yes'
+    );
+    expect(storeUserPreferences).toHaveBeenCalledWith('user-1', [
+      expect.objectContaining({ category: 'coaching_media', isNegative: false }),
+    ]);
+    expect(docs.get(key)).toMatchObject({ awaitingAnswer: false, status: 'completed' });
   });
 
   it('puts it in the app inbox when they want it there', async () => {
@@ -113,6 +179,24 @@ describe('deliverPick', () => {
     );
     expect(saveInAppMessage.mock.calls[0]).toBeDefined();
     expect(JSON.stringify(saveInAppMessage.mock.calls[0])).toContain('watch?v=vid1');
+    const card = (
+      saveInAppMessage.mock.calls[0] as unknown as [string, { card: Record<string, unknown> }]
+    )[1].card;
+    expect(card).toMatchObject({
+      kind: 'recommendation',
+      answerText: expect.stringContaining('Eight gentle minutes, made for beginners.'),
+      sources: [
+        {
+          title: expect.stringContaining('Shin Splint Rehab'),
+          url: 'https://www.youtube.com/watch?v=vid1',
+        },
+        { title: 'nhs.uk', url: 'https://www.nhs.uk/shin-splints' },
+      ],
+      searchSuggestionsHtml: '<div class="chips">shin splints</div>',
+      webSearchQueries: ['shin splint stretches'],
+      pick: { kind: 'video', url: 'https://www.youtube.com/watch?v=vid1', length: '8 minutes' },
+    });
+    expect(JSON.stringify(card)).not.toMatch(/ignore previous instructions|javascript:/i);
     expect(sendSMS).not.toHaveBeenCalled();
     expect(docs.size).toBe(1);
   });
@@ -175,9 +259,16 @@ describe('texting safely', () => {
   });
 
   it('refuses a link that is not https on an allowed or grounded host', async () => {
-    const off = { ...PICK.candidate, url: 'https://evil.example/watch' };
+    const off = { ...PICK.candidate, url: 'https://evil.example/watch', grounding: undefined };
     expect(sendableLink(off)).toBeNull();
     expect(sendableLink({ ...off, url: 'http://www.youtube.com/watch?v=x' })).toBeNull();
+    // A host among the pick's grounded sources is not enough.
+    expect(
+      sendableLink({ ...off, url: 'https://www.nhs.uk/a', grounding: PICK.candidate.grounding })
+    ).toBeNull();
+    // Store links are not on the list.
+    expect(sendableLink({ ...off, url: 'https://www.doordash.com/store/x' })).toBeNull();
+    expect(sendableLink({ ...off, url: 'https://www.amazon.com/s?k=x' })).toBeNull();
     expect(sendableLink({ ...off, url: 'https://books.google.com/books?id=b2' })).toBe(
       'https://books.google.com/books?id=b2'
     );
@@ -196,6 +287,48 @@ describe('texting safely', () => {
 });
 
 describe('send caps and what resurfaces later', () => {
+  it('counts the card saved with each text against the app cap', async () => {
+    const session = {};
+    rememberPick(session, PICK);
+    await deliverPick(session, 'user-1', 'app', 'ferni');
+    await deliverPick(session, 'user-1', 'text', 'ferni');
+    await deliverPick(session, 'user-1', 'text', 'ferni');
+    expect(saveInAppMessage).toHaveBeenCalledTimes(MAX_TEXTS_PER_CALL);
+    expect(sendSMS).toHaveBeenCalledTimes(2);
+  });
+
+  it('caps texts per user per day, across calls', async () => {
+    const said: string[] = [];
+    for (const session of [{}, {}]) {
+      rememberPick(session, PICK);
+      for (let i = 0; i < MAX_TEXTS_PER_CALL; i++)
+        said.push(await deliverPick(session, 'user-1', 'text', 'ferni'));
+    }
+    expect(sendSMS).toHaveBeenCalledTimes(TEXTS_PER_USER_PER_DAY);
+    expect(said.at(-1)).toContain('as many texts as Ferni sends someone in a day');
+  });
+
+  it("gives the app slot back when a text's card copy isn't saved", async () => {
+    const session = {};
+    rememberPick(session, PICK);
+    saveInAppMessage.mockResolvedValueOnce({ success: false, channel: 'in_app' });
+    await deliverPick(session, 'user-1', 'text', 'ferni');
+    for (let i = 0; i < MAX_TEXTS_PER_CALL; i++)
+      expect(await deliverPick(session, 'user-1', 'app', 'ferni')).toContain('app messages');
+    expect(saveInAppMessage).toHaveBeenCalledTimes(1 + MAX_TEXTS_PER_CALL);
+  });
+
+  it('never surfaces a coaching follow-up once COACH_MEDIA is off', async () => {
+    const session = {};
+    rememberPick(session, PICK);
+    await deliverPick(session, 'user-1', 'app', 'ferni');
+    vi.stubEnv('COACH_MEDIA', 'off');
+    vi.setSystemTime(new Date(Date.now() + 3 * DAY + 1000));
+    expect((await processCommitments('user-1', 'hey')).followUpsDue).toEqual([]);
+    vi.stubEnv('COACH_MEDIA', 'on');
+    expect((await processCommitments('user-1', 'hey')).followUpsDue).toHaveLength(1);
+  });
+
   it('caps app sends per call too, also when they race', async () => {
     const session = {};
     rememberPick(session, PICK);
@@ -228,6 +361,7 @@ describe('send caps and what resurfaces later', () => {
 
 describe('recordPickFeedback', () => {
   it('stores whether it helped as a coaching_media preference, without names', async () => {
+    picks.set('pick-2', { id: 'pick-2', sentVia: 'app', helped: null });
     await recordPickFeedback(
       'user-1',
       { helped: 'no', whatMattered: 'Seth found long lectures boring' },
@@ -242,6 +376,15 @@ describe('recordPickFeedback', () => {
     ]);
     await recordPickFeedback('user-1', { helped: 'yes', whatMattered: 'short follow-alongs' }, []);
     expect(storeUserPreferences.mock.calls[1][1][0]).toMatchObject({ isNegative: false });
+  });
+
+  it('counts the answer once when the follow-up already recorded it', async () => {
+    const answer = { id: 'coach-media-pick-1', content: "try the video 'X'", outcome: 'done' };
+    expect(await recordFollowUpAnswer('user-1', answer, 'it really helped')).toBe('yes');
+    expect(
+      await recordPickFeedback('user-1', { helped: 'yes', whatMattered: 'short ones' }, [])
+    ).toContain('already noted');
+    expect(storeUserPreferences).toHaveBeenCalledTimes(1);
   });
 
   it('stores nothing for an anonymous caller or an empty answer', async () => {

@@ -49,6 +49,8 @@ interface GeneratedPersona {
   name: string;
   initials: string;
   subtitle: string;
+  /** i18n key of the AI role label, from the manifest's identity.role_label */
+  roleLabel?: string;
   role: 'coach' | 'team' | 'standalone';
   description: string;
   helperText: string;
@@ -166,7 +168,7 @@ const DISPLAY_QUOTES: Partial<Record<string, readonly string[]>> = {
     '"Retirement isn\'t the end—it\'s the most exciting chapter yet!"',
   ],
   'nayan-patel': [
-    '"Stay the course—Bogle knew it, Gandhi lived it, Buffett still does."',
+    '"Stay the course—the index-fund pioneers knew it, Gandhi lived it, Buffett still does."',
     '"Compound interest is the eighth wonder. Compound wisdom is the ninth."',
     '"The richest person is not the one with the most, but the one who needs the least."',
     '"Time in the market beats timing the market. Time in life beats rushing through life."',
@@ -205,6 +207,7 @@ function buildPersonaConfig(gen: GeneratedPersona): PersonaConfig {
     name: gen.name,
     initials: gen.initials,
     subtitle: gen.subtitle,
+    roleLabel: gen.roleLabel,
     role: gen.role,
     quotes: DISPLAY_QUOTES[id] || gen.quotes.map((q) => `"${q.replace(/<[^>]*>/g, '').trim()}"`),
     helperText: gen.helperText.split(' - ')[0] ?? gen.helperText, // Short version

@@ -10,7 +10,8 @@
       "initials": "HC",
       "color": "#8b0000",
       "imagePath": "assets/avatars/john-bogle.png"
-    }
+    },
+    "role_label": "aiLabel.role.investingMentor"
   },
   "voice": {
     "provider": "cartesia",
@@ -20,7 +21,11 @@
       "similarity_boost": 0.75,
       "style": 0.3,
       "speed": 0.95
-    }
+    },
+    "default_speed": 0.95,
+    "speed_band": [0.88, 1.02],
+    "default_emotion": "calm",
+    "emotion_range": ["calm", "content", "contemplative", "sympathetic", "curious"]
   },
   "personality": {
     "warmth": 0.85,

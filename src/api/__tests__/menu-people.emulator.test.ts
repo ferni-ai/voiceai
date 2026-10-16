@@ -12,10 +12,14 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import admin from 'firebase-admin';
+import type { DocumentData, Firestore } from 'firebase-admin/firestore';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
+
+// src/tests/setup.ts fakes firebase-admin for every test; this file reads the emulator
+vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
 if (emulator) {
   // Both contact services pick their project from these; the test's admin client must match
   process.env.GOOGLE_CLOUD_PROJECT = 'demo-menu-people';
@@ -33,7 +37,7 @@ vi.mock('../auth-middleware.js', () => ({
 
 let server: Server;
 let base: string;
-let db: admin.firestore.Firestore;
+let db: Firestore;
 const newUser = () => `menu-people-${Math.random().toString(36).slice(2)}`;
 
 beforeAll(async () => {
@@ -49,8 +53,8 @@ beforeAll(async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
-  db = admin.firestore();
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  db = getAdminFirestore();
 });
 
 afterAll(() => server?.close());
@@ -104,8 +108,8 @@ async function agentAddContact(userId: string, args: Record<string, string>): Pr
 /** The user's saved contact once the store has it in the shape `ready` expects */
 async function savedContact(
   userId: string,
-  ready: (c: admin.firestore.DocumentData) => boolean
-): Promise<admin.firestore.DocumentData> {
+  ready: (c: DocumentData) => boolean
+): Promise<DocumentData> {
   for (let i = 0; i < 50; i++) {
     const saved = await db.collection('user_contacts').where('userId', '==', userId).get();
     const match = saved.docs.map((d) => d.data()).find(ready);

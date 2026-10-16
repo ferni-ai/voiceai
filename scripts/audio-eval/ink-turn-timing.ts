@@ -147,7 +147,7 @@ async function run(
     turn_end_timeout_ms: '4500',
   });
   const ws = new WebSocket(`wss://api.cartesia.ai/stt/turns/websocket?${q}`, {
-    headers: { 'X-API-Key': apiKey!, 'Cartesia-Version': '2026-03-01' },
+    headers: { 'X-API-Key': apiKey!, 'Cartesia-Version': '2026-08-14' },
   });
   const ends: number[] = []; // ms since stream start
   let t0 = 0;

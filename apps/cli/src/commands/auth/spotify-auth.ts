@@ -99,7 +99,7 @@ async function getTokens(code: string, clientId: string, clientSecret: string): 
 
 export async function spotifyAuth(): Promise<boolean> {
   console.log('');
-  console.log('🎵 Spotify OAuth Helper for Jack Bogle');
+  console.log('🎵 Spotify OAuth Helper');
   console.log('='.repeat(50));
   console.log('');
   console.log('⚠️  IMPORTANT: In Spotify Dashboard, set Redirect URI to:');

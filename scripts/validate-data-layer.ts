@@ -51,9 +51,7 @@ const validations: Array<{
     check: async () => {
       try {
         // Check financial-store.ts imports hooks
-        const financialStore = await import('../src/services/stores/financial-store.js');
-        const hasSetBudget = typeof financialStore.FinancialStore?.prototype?.setBudget === 'function' ||
-          (financialStore.default && typeof financialStore.default.prototype?.setBudget === 'function');
+        await import('../src/services/stores/financial-store.js');
 
         return {
           name: 'Store hooks are wired',
