@@ -35,6 +35,7 @@ export interface FlagSpec {
 
 export const FLAG_MANIFEST = {
   ACTION_CLAIM_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  ACTION_CLAIM_STREAM: { default: 'off', owner: 'voice', kind: 'experiment' },
   AFTER_CALL_EXTRACTION: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // set by the job runner for its child processes
   AGENT_JOB_CHILD: { default: 'off', owner: 'voice', kind: 'config' },
@@ -192,6 +193,8 @@ export const FLAG_MANIFEST = {
   LIFE_MOVES_ON: { default: 'off', owner: 'voice', kind: 'experiment' },
   LISTEN_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
   LIVE_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // the cascade's prompt-cache settings in one switch (llm-context-cache-flag.ts)
+  LLM_CONTEXT_CACHE: { default: 'off', owner: 'voice', kind: 'experiment' },
   LLM_DYNAMIC_CONTENT_ENABLED: { default: 'on', owner: 'platform', kind: 'config' },
   // a caller's retry429 option overrides it
   LLM_RETRY_429: { default: 'off', owner: 'platform', kind: 'experiment' },

@@ -25,7 +25,7 @@ const FILLED_PAUSE = /\b(uh|um|uhm|erm|er)\b/gi;
 // Marks the voice rules ban or that read as broken text: a doubled comma
 // ("Cats are,, I mean"), an ellipsis or a dash.
 const MARKUP_ARTIFACT = /,\s*,|\.\.|…|[—–]/;
-const LAUGHTER = /\[laughter\]|\b(haha+|ha|heh|hah)\b/i;
+export const LAUGHTER = /\[laughter\]|\b(haha+|ha|heh|hah)\b/i;
 // Ferni sharing something of its own life or view, not only asking.
 const SELF_DISCLOSURE =
   /\b(i (was|went|got|had|used to|tried|made|did|spent|ended up|finally)|my (wife|day|week|morning|weekend|neighbou?r|dog|cat|coffee|garden|dad|mom|brother|sister|friend|kitchen))\b/i;
