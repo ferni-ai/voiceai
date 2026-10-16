@@ -49,6 +49,7 @@ import { isFtisEnabled } from '../../config/tool-config.js';
 // TTS Gateway integration
 import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
 import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
+import { recordQuirk } from '../../services/session/quirk-log.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -1111,6 +1112,8 @@ export async function wrappedTtsNode(
       personaId,
       emotion,
       turnContext: sessionContext,
+      // A laugh or breath the director added never reaches the history: log it (QUIRK_AWARENESS).
+      onNonverbal: (added) => recordQuirk(sessionContext?.sessionId, added),
       sampleRate: 24000,
       frameDurationMs: 20,
       enableCache: true,

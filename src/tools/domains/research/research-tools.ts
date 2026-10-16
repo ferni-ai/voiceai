@@ -2,10 +2,10 @@
  * Stock Picking & Research Tools
  *
  * Tools for "invest in what you know" philosophy:
- * - Find stocks in everyday life
- * - P/E ratio analysis
+ * - Live price for a ticker, with research steps
+ * - PEG ratio from numbers the user gives
  * - Company classification (stalwarts, fast growers, turnarounds, etc.)
- * - Ten-bagger potential analysis
+ * - Ten-bagger ideas, when live fundamentals are connected (they are not yet)
  */
 
 import { llm } from '@livekit/agents';
@@ -13,6 +13,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { getStockQuote } from './stock-quote-provider.js';
 // ============================================================================
 // PETER JOHN'S STOCK CATEGORIES
 // ============================================================================
@@ -25,238 +26,41 @@ export type StockCategory =
   | 'turnaround' // Companies recovering from problems
   | 'asset_play'; // Companies with undervalued assets
 
-const CATEGORY_DESCRIPTIONS: Record<StockCategory, string> = {
-  slow_grower: 'Large, mature companies growing at 2-4% annually. Good for dividends, not growth.',
-  stalwart: 'Big, solid companies growing at 10-12%. Not exciting, but reliable. Think Coca-Cola.',
-  fast_grower: 'Small, aggressive companies growing 20-25%+. This is where ten-baggers come from!',
-  cyclical: 'Companies that rise and fall with the economy. Timing is everything here.',
-  turnaround: 'Companies bouncing back from near-death. High risk, high reward.',
-  asset_play:
-    'Companies with hidden assets worth more than the stock price. The market missed something!',
-};
-
-// ============================================================================
-// MOCK DATA (In production, use real APIs)
-// ============================================================================
-
-interface StockData {
-  symbol: string;
-  name: string;
-  price: number;
-  peRatio: number;
-  growthRate: number;
-  category: StockCategory;
-  peterScore: number; // 1-10 growth-stock rating
-  story: string;
-}
-
-const SAMPLE_STOCKS: StockData[] = [
-  {
-    symbol: 'COST',
-    name: 'Costco',
-    price: 892,
-    peRatio: 52,
-    growthRate: 12,
-    category: 'stalwart',
-    peterScore: 7,
-    story: "Everyone I know shops there. The $1.50 hot dog hasn't changed in 40 years!",
-  },
-  {
-    symbol: 'CMG',
-    name: 'Chipotle',
-    price: 3200,
-    peRatio: 65,
-    growthRate: 25,
-    category: 'fast_grower',
-    peterScore: 8,
-    story: 'My kids eat there every week. The line is always out the door!',
-  },
-  {
-    symbol: 'LULU',
-    name: 'Lululemon',
-    price: 480,
-    peRatio: 38,
-    growthRate: 18,
-    category: 'fast_grower',
-    peterScore: 7,
-    story: 'Every mom at the mall is wearing these yoga pants.',
-  },
-  {
-    symbol: 'TJX',
-    name: 'TJ Maxx',
-    price: 115,
-    peRatio: 28,
-    growthRate: 8,
-    category: 'stalwart',
-    peterScore: 6,
-    story: 'Treasure hunting for bargains - people love it!',
-  },
-  {
-    symbol: 'F',
-    name: 'Ford',
-    price: 11,
-    peRatio: 12,
-    growthRate: 3,
-    category: 'cyclical',
-    peterScore: 5,
-    story: 'Everyone needs trucks. Wait for the next recession to buy.',
-  },
-  {
-    symbol: 'AAL',
-    name: 'American Airlines',
-    price: 15,
-    peRatio: 8,
-    growthRate: -2,
-    category: 'turnaround',
-    peterScore: 4,
-    story: 'Airlines are tough. But if they turn around...',
-  },
-];
-
 // ============================================================================
 // TOOL IMPLEMENTATIONS
 // ============================================================================
 
-/**
- * Get real stock quote using market data API
- */
-async function getRealStockQuote(symbol: string): Promise<{
-  price: number;
-  change: number;
-  changePercent: number;
-  name: string;
-} | null> {
-  try {
-    const response = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol.toUpperCase()}?interval=1d&range=1d`,
-      {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-        signal: AbortSignal.timeout(8000),
-      }
-    );
+/** Shown whenever a reply would otherwise need company numbers we don't have. */
+const NO_FUNDAMENTALS =
+  "I don't have live company numbers (P/E, growth, earnings) connected, so I won't rank stocks or quote figures for them.";
 
-    if (!response.ok) return null;
-
-    const data = (await response.json()) as {
-      chart?: {
-        result?: Array<{
-          meta?: {
-            regularMarketPrice?: number;
-            previousClose?: number;
-            shortName?: string;
-            longName?: string;
-          };
-        }>;
-      };
-    };
-
-    const meta = data?.chart?.result?.[0]?.meta;
-    if (!meta?.regularMarketPrice) return null;
-
-    const price = meta.regularMarketPrice;
-    const prevClose = meta.previousClose || price;
-    const change = price - prevClose;
-    const changePercent = (change / prevClose) * 100;
-
-    return {
-      price,
-      change,
-      changePercent,
-      name: meta.longName || meta.shortName || symbol,
-    };
-  } catch (error) {
-    getLogger().warn(`Stock quote failed for ${symbol}: ${error}`);
-    return null;
-  }
-}
+const RESEARCH_STEPS = `🤔 **Research it yourself:**
+1. **Know the business.** Can you explain what they do to a fifth grader?
+2. **Find the story.** What is driving their growth, and is it sustainable?
+3. **Look for an edge.** Do you use their products, or work in their industry?
+4. **Check the valuation.** Compare the P/E to the growth rate. If you give me both numbers, I can run the PEG calculation.`;
 
 /**
- * Analyze a stock Peter John style
+ * Analyze a stock the way Peter John would: the live price and the research
+ * steps. Without a live quote, say so and give no price.
  */
 async function analyzeStockLynchStyle(symbol: string): Promise<string> {
   const upperSymbol = symbol.toUpperCase();
+  const quote = await getStockQuote(upperSymbol);
 
-  // Check if we have Peter's curated analysis for this stock
-  const curatedStock = SAMPLE_STOCKS.find((s) => s.symbol === upperSymbol);
-
-  // Always try to get real market data
-  const realQuote = await getRealStockQuote(upperSymbol);
-
-  if (!realQuote) {
-    return `Hmm, I couldn't find ${upperSymbol} in the market. Double-check that ticker symbol? Make sure it's a US-listed stock. And hey - if it's a company you know and love, sometimes the ticker isn't what you'd expect!`;
+  if (!quote) {
+    return `I can't get a live quote for ${upperSymbol} right now, so I won't guess at its price. It may be a ticker I don't recognize, or the quote service may be down. Check the symbol, or look it up in your broker's app.\n\n${RESEARCH_STEPS}`;
   }
 
-  const direction = realQuote.change >= 0 ? 'up' : 'down';
-
-  // If we have curated data, combine it with real prices
-  if (curatedStock) {
-    const pegRatio = curatedStock.peRatio / curatedStock.growthRate;
-    const pegAnalysis = pegRatio < 1 ? 'undervalued' : pegRatio < 2 ? 'fairly valued' : 'expensive';
-
-    return `
-**${realQuote.name} (${upperSymbol})** - ${CATEGORY_DESCRIPTIONS[curatedStock.category]}
-
-📊 **The Numbers (Real-time!):**
-- Current Price: $${realQuote.price.toFixed(2)} (${direction} ${Math.abs(realQuote.changePercent).toFixed(2)}% today)
-- P/E Ratio: ${curatedStock.peRatio}
-- Growth Rate: ${curatedStock.growthRate}%
-- PEG Ratio: ${pegRatio.toFixed(2)} (${pegAnalysis})
-- Peter's Score: ${curatedStock.peterScore}/10
-
-📖 **The Story:**
-${curatedStock.story}
-
-💡 **My Take:**
-${
-  curatedStock.peterScore >= 7
-    ? 'This could be interesting! Do your homework - visit the stores, try the product.'
-    : curatedStock.peterScore >= 5
-      ? "Not bad, but I'd want to see better growth or a lower price."
-      : "I'd pass on this one. The story isn't compelling enough."
-}
-`;
-  }
-
-  // For stocks without curated data, give Peter-style guidance with real data
+  const direction = quote.change >= 0 ? 'up' : 'down';
   return `
-**${realQuote.name} (${upperSymbol})**
+**${quote.name} (${upperSymbol})**
 
-📊 **Current Price:** $${realQuote.price.toFixed(2)} (${direction} ${Math.abs(realQuote.changePercent).toFixed(2)}% today)
+📊 **Latest quote:** $${quote.price.toFixed(2)} (${direction} ${Math.abs(quote.changePercent).toFixed(2)}% on the day, from ${quote.source})
 
-🤔 **Peter's Homework Assignment:**
-I don't have this one in my watchlist yet, but here's what I'd do:
+${NO_FUNDAMENTALS}
 
-1. **Know the business** - Can you explain what they do to a fifth grader?
-2. **Find the story** - What's driving their growth? Is it sustainable?
-3. **Look for an edge** - Do you use their products? See their stores busy? Work in their industry?
-4. **Check the P/E** - Compare it to their growth rate. PEG under 1? Now we're talking!
-
-The best research doesn't happen on Wall Street - it happens at the mall, in your neighborhood, at your workplace. What do YOU know about this company that the big analysts might miss?
-`;
-}
-
-/**
- * Find stocks in a category
- */
-function findStocksByCategory(category: StockCategory): string {
-  const stocks = SAMPLE_STOCKS.filter((s) => s.category === category);
-
-  if (stocks.length === 0) {
-    return `I don't have any ${category.replace('_', ' ')} stocks in my watch list right now.`;
-  }
-
-  const list = stocks
-    .map((s) => `- **${s.symbol}** (${s.name}): P/E ${s.peRatio}, Growth ${s.growthRate}%`)
-    .join('\n');
-
-  return `
-**${category.replace('_', ' ').toUpperCase()} STOCKS:**
-
-${CATEGORY_DESCRIPTIONS[category]}
-
-${list}
-
-Remember: The best investment is one you understand. Go visit these companies!
+${RESEARCH_STEPS}
 `;
 }
 
@@ -293,26 +97,37 @@ Rule of thumb: PEG under 1.0 suggests the stock might be undervalued relative to
 }
 
 /**
- * Find potential ten-baggers
+ * What each category means, without figures or company names: the definitions
+ * above quote growth rates, and this reply must quote none.
+ */
+const CATEGORY_TRAITS: Record<StockCategory, string> = {
+  slow_grower: 'Large, mature companies that grow slowly and often pay dividends.',
+  stalwart: 'Large, established companies with steadier growth.',
+  fast_grower: 'Smaller companies that are expanding quickly.',
+  cyclical: 'Companies whose results follow the economic cycle.',
+  turnaround: 'Companies recovering from a rough patch.',
+  asset_play: 'Companies whose assets may be worth more than the market price suggests.',
+};
+
+/**
+ * List the companies that fit a category. There is no live screen behind
+ * this, so it explains the category and says how to find companies.
+ */
+function findStocksByCategory(category: StockCategory): string {
+  return `
+**${category.replace('_', ' ').toUpperCase()} STOCKS:**
+
+${CATEGORY_TRAITS[category]}
+
+${NO_FUNDAMENTALS} So I can't name which companies fit this category today. To find them yourself, use a stock screener to filter on growth and valuation, then check each business story.
+`;
+}
+
+/**
+ * Ten-baggers need growth and valuation data to screen for, which isn't here.
  */
 function findTenBaggers(): string {
-  const candidates = SAMPLE_STOCKS.filter((s) => s.category === 'fast_grower' && s.peterScore >= 7);
-
-  if (candidates.length === 0) {
-    return "I don't see any obvious ten-bagger candidates right now. But keep your eyes open! The next one might be at your local mall.";
-  }
-
-  const list = candidates.map((s) => `**${s.symbol}** - ${s.story}`).join('\n\n');
-
-  return `
-🎯 **POTENTIAL TEN-BAGGERS:**
-
-These are fast growers with compelling stories. Could they go up 10x? Maybe!
-
-${list}
-
-**Remember:** Ten-baggers don't happen overnight. The great ones take years to play out. Patience is key!
-`;
+  return `${NO_FUNDAMENTALS} I can't screen for ten-baggers, so I won't name candidates. A good place to start is a company you use every day and understand well, then check its growth against its valuation.`;
 }
 
 // ============================================================================
@@ -377,7 +192,7 @@ export function createResearchTools() {
         return `
 **${category.replace('_', ' ').toUpperCase()}:**
 
-${CATEGORY_DESCRIPTIONS[category as StockCategory]}
+${CATEGORY_TRAITS[category as StockCategory]}
 
 ${
   category === 'fast_grower'
@@ -385,7 +200,7 @@ ${
     : category === 'turnaround'
       ? '\n⚠️ Turnarounds are tricky. Most fail. But when they work, the returns are spectacular.'
       : category === 'cyclical'
-        ? '\n⏰ Timing is everything with cyclicals. Buy when they look terrible, sell when they look great.'
+        ? '\n⏰ Timing is everything with cyclicals. They can look cheapest near a cycle peak and most expensive near the bottom.'
         : ''
 }
 `;

@@ -202,7 +202,7 @@
       "_original": "Analyze the user"
     },
     "analyzeStock": {
-      "description": "Analyze a stock Peter John style. Looks at P/E ratio, PEG ratio, growth rate, and most importantly - THE STORY. Peter believes you should understand what you own. Use when user asks about a specific stock.",
+      "description": "Analyze a stock Peter John style: the live price (when a quote is available) and the research steps. It does not carry P/E, growth or other company figures. Peter believes you should understand what you own. Use when user asks about a specific stock.",
       "file": "src/tools/research-tools.ts",
       "_original": "Analyze a stock Peter John style. Looks at P/E ratio, PEG ratio, growth rate,  and most importantly - THE STORY. Peter believes you should understand what you own. Use when user asks about a specific stock."
     },
@@ -1557,7 +1557,7 @@
       "_original": "Find areas where the user might be overspending or wasting money. Use when the user wants to: - Cut expenses - Find savings opportunities - Audit their spending"
     },
     "findStockCategory": {
-      "description": "Find stocks by Peter John.",
+      "description": "Explain a stock category (fast grower, stalwart, cyclical and so on) and how to find companies in it. It names no companies, because live data is not connected.",
       "file": "src/tools/research-tools.ts",
       "_original": "Find stocks by Peter John"
     },
@@ -1566,7 +1566,7 @@
       "file": "src/tools/domains/habit-persistence/index.ts"
     },
     "findTenBaggers": {
-      "description": "Find potential ten-baggers (stocks that could go up 10x). These are fast-growing companies with compelling stories and room to grow. Use when user asks about finding big winners or growth stocks.",
+      "description": "Explain how to look for ten-baggers (stocks that could go up 10x). It names no candidates, because live growth and valuation data are not connected. Use when user asks about finding big winners.",
       "file": "src/tools/research-tools.ts"
     },
     "findTheLessons": {

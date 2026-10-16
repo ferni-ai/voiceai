@@ -114,7 +114,7 @@ Evaluate this response on the following dimensions (0-100 scale):
 
 6. **CONTEXT_USE** (0-100): Did it use available context well?
    - Did it reference relevant past information naturally?
-   - Did it use the user's name appropriately (if known)?
+   - Did it keep the user's name for hello and goodbye, not every reply?
    - Did it build on the conversation history?
 
 7. **TRUST_BUILDING** (0-100): Does this strengthen the relationship?

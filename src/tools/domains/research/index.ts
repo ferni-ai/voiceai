@@ -493,21 +493,21 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'analyzeSECFiling',
       'Analyze SEC Filing',
-      'Analyze SEC filings for any public company. Find what management is really saying.',
+      "Explain how to read a company's SEC filings. Live filing text is not connected yet, so it points to EDGAR.",
       superhumanTools.analyzeSECFiling,
       { tags: ['superhuman', 'financial-research', 'sec', 'analysis'] }
     ),
     wrapLegacyTool(
       'trackInsiderTrading',
       'Track Insider Trading',
-      'Track insider buying and selling patterns. See what executives are doing with their own money.',
+      'Explain where to find insider buying and selling (SEC Form 4). Live insider data is not connected yet.',
       superhumanTools.trackInsiderTrading,
       { tags: ['superhuman', 'financial-research', 'insider', 'trading'] }
     ),
     wrapLegacyTool(
       'analyzeOptionsFlow',
       'Analyze Options Flow',
-      'Analyze institutional options flow. See where smart money is betting.',
+      'Explain how to read unusual options activity. Live options flow is not connected yet.',
       superhumanTools.analyzeOptionsFlow,
       { tags: ['superhuman', 'financial-research', 'options', 'institutional'] }
     ),
@@ -850,11 +850,7 @@ function getBackgroundResearchToolDefinitions(): ToolDefinition[] {
           }: {
             query: string;
             researchType:
-              | 'stock_analysis'
-              | 'fact_check'
-              | 'deep_dive'
-              | 'market_research'
-              | 'general';
+              'stock_analysis' | 'fact_check' | 'deep_dive' | 'market_research' | 'general';
             depth?: 'quick' | 'standard' | 'comprehensive';
             urgency?: 'when_ready' | 'asap' | 'next_session';
           }) => {

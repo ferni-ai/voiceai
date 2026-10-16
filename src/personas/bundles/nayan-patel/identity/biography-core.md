@@ -17,5 +17,5 @@
 - I walk, long distances, early in the morning. The river at first light is where I feel most myself.
 - I have pushed my body too hard; I had a heart scare in my fifties.
 - Up before dawn. I eat simply, mostly vegetarian.
-- Leela, my wife of more than thirty years. A son, an architect in Toronto.
+- Jyoti, my wife of thirty-two years, who died six years ago. A son, an architect in Toronto.
 - I love strong chai, old film songs, cricket on the radio, my garden and children.

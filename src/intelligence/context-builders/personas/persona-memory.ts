@@ -519,8 +519,8 @@ function getProactiveMemoryCallback(
       if (wins.length > 0 && Math.random() < 0.3) {
         const win = wins[Math.floor(Math.random() * wins.length)];
         const callbacks = [
-          `Consider celebrating: "Hey ${name}, I was thinking about that win you had - ${win.name}. How's that going?"`,
-          `Consider: "${name}, remember when you ${win.name}? That was a big deal. How are you feeling about it now?"`,
+          `Consider celebrating: "I was thinking about that win you had - ${win.name}. How's that going?"`,
+          `Consider: "Remember when you ${win.name}? That was a big deal. How are you feeling about it now?"`,
           `Maybe say: "I still smile when I think about '${win.name}'. You should be proud of that."`,
         ];
         return callbacks[Math.floor(Math.random() * callbacks.length)];
@@ -551,7 +551,7 @@ function getProactiveMemoryCallback(
         const ticker = fund.ticker || fund.name;
         const callbacks = [
           `Consider asking: "How's that ${ticker} position? Staying the course?"`,
-          `Maybe check in: "${name}, are you still holding ${ticker}? Good discipline pays off."`,
+          `Maybe check in: "Are you still holding ${ticker}? Good discipline pays off."`,
           `Consider: "Remember ${ticker}? Markets go up and down, but your strategy shouldn't."`,
         ];
         return callbacks[Math.floor(Math.random() * callbacks.length)];
@@ -592,7 +592,7 @@ function getProactiveMemoryCallback(
         const ticker = stock.ticker || stock.name;
         const callbacks = [
           `Consider asking: "How's ${ticker} doing? Done your homework lately?"`,
-          `Maybe: "${name}, any news on ${ticker}? Remember - know what you own and why you own it!"`,
+          `Maybe: "Any news on ${ticker}? Remember - know what you own and why you own it!"`,
           `Consider: "Still watching ${ticker}? What's your gut telling you?"`,
         ];
         if (stock.reason) {
