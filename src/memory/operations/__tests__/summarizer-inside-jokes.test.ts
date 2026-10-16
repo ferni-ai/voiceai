@@ -36,12 +36,18 @@ describe('summarizeWithLLM inside jokes', () => {
     expect(prompt).toContain('"insideJokes"');
     expect(prompt).toContain('Use [] if nothing was');
     expect(prompt).toContain('Never invent one');
+    expect(prompt).toContain('copied word for word');
     expect(prompt).toContain('Leave out stock jokes');
   });
 
   it('stores the jokes on the summary when the model reports some', async () => {
-    const summary = await summarize({ ...base, insideJokes: ['the mushroom police'] });
-    expect(summary.insideJokes).toEqual(['the mushroom police']);
+    const summary = await summarize({
+      ...base,
+      insideJokes: [{ bit: 'the mushroom police', quote: 'the mushroom police', speaker: 'user' }],
+    });
+    expect(summary.insideJokes).toEqual([
+      { bit: 'the mushroom police', quote: 'the mushroom police', speaker: 'user' },
+    ]);
     expect(summary.followUpItems).toEqual(['ask how the next risotto goes']);
   });
 
@@ -54,17 +60,56 @@ describe('summarizeWithLLM inside jokes', () => {
 });
 
 describe('parseInsideJokes', () => {
-  it('keeps trimmed, deduped strings, at most 3, each short', () => {
-    const long = 'x'.repeat(300);
-    expect(parseInsideJokes(['  a  ', 'A', 7, { joke: 'b' }, '', 'c', long, 'd'])).toEqual([
-      'a',
-      'c',
-      'x'.repeat(140),
+  const ok = (bit: string, quote: string) => ({ bit, quote, speaker: 'user' });
+
+  it('keeps a bit only when its quote is in the conversation, with the speaker who said it', () => {
+    expect(
+      parseInsideJokes(
+        [
+          ok('the mushroom police', 'the mushroom police'),
+          { bit: 'the risotto', quote: 'Should I alert the authorities', speaker: 'user' },
+        ],
+        turns
+      )
+    ).toEqual([
+      { bit: 'the mushroom police', quote: 'the mushroom police', speaker: 'user' },
+      { bit: 'the risotto', quote: 'Should I alert the authorities', speaker: 'assistant' },
     ]);
   });
 
+  it('drops bare strings, invented quotes, short quotes and duplicate bits', () => {
+    expect(
+      parseInsideJokes(
+        [
+          'the mushroom police',
+          ok('made up', 'Ferni went skydiving last week'),
+          ok('too short', 'the mushroom'),
+          ok('the Mushroom Police', 'the mushroom police'),
+          ok('keep', 'the mushroom police'),
+        ],
+        turns
+      )
+    ).toEqual([
+      { bit: 'the Mushroom Police', quote: 'the mushroom police', speaker: 'user' },
+      { bit: 'keep', quote: 'the mushroom police', speaker: 'user' },
+    ]);
+  });
+
+  it('caps at three bits and trims each to 140 characters', () => {
+    const long = 'x'.repeat(300);
+    const more = [
+      ok(long, 'a fungus incident'),
+      ok('b', 'the mushroom police'),
+      ok('c', 'haha yes, the mushroom police'),
+      ok('d', 'the fungus incident'),
+    ];
+    const kept = parseInsideJokes(more, turns);
+    expect(kept).toHaveLength(3);
+    expect(kept[0].bit).toHaveLength(140);
+  });
+
   it('treats anything that is not a list as no jokes', () => {
-    expect(parseInsideJokes(undefined)).toEqual([]);
-    expect(parseInsideJokes('the mushroom thing')).toEqual([]);
+    expect(parseInsideJokes(undefined, turns)).toEqual([]);
+    expect(parseInsideJokes('the mushroom thing', turns)).toEqual([]);
   });
 });
