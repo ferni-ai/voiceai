@@ -200,7 +200,8 @@ describe('withNameGate', () => {
     expect(await run(['Talk soon', ', Sam.'], callWith(2, 'Alright, bye!'))).toBe(
       'Talk soon, Sam.'
     );
-    expect(await run(['Sam, ', 'take care. ', 'Bye!'], callWith(2))).toBe('Sam, take care. Bye!');
+    // A name before Ferni's own goodbye isn't waited on (that held first audio): it goes.
+    expect(await run(['Sam, ', 'take care. ', 'Bye!'], callWith(2))).toBe('Take care. Bye!');
     expect(await run(['That is rough, Sam. ', 'Talk soon, Sam.'], callWith(2))).toBe(
       'That is rough. Talk soon, Sam.'
     );
@@ -295,5 +296,166 @@ describe('withNameGate', () => {
 
   it('says a reply that was only the name as it came', async () => {
     expect(await run(['Sam?'], callWith(2))).toBe('Sam?');
+  });
+});
+
+describe('withNameGate timing (#1413: under 50 ms to first audio)', () => {
+  /** Stream `chunks` at virtual times; returns what came out, when, and the gate's own timing. */
+  async function timed(chunks: Array<[number, string]>, history: HistoryItem[]) {
+    let clock = 0;
+    let push!: (s: string | null) => void;
+    const input = new ReadableStream<string>({
+      start(c) {
+        push = (s) => (s === null ? c.close() : c.enqueue(s));
+      },
+    });
+    let timing: { firstHoldMs: number; maxHoldMs: number } | undefined;
+    const out: Array<[number, string]> = [];
+    const timers: Array<[number, () => void]> = [];
+    const gated = withNameGate(input as never, {
+      name: 'Sam',
+      history,
+      env: {},
+      now: () => clock,
+      onTiming: (t) => (timing = t),
+    });
+    const reading = (async () => {
+      for await (const ch of gated as unknown as AsyncIterable<string>) out.push([clock, ch]);
+    })();
+    const settle = () => new Promise((r) => setImmediate(r));
+    const until = async (t: number) => {
+      for (let due = timers.find(([d]) => d <= t); due; due = timers.find(([d]) => d <= t)) {
+        timers.splice(timers.indexOf(due), 1);
+        clock = due[0];
+        due[1]();
+        await settle();
+      }
+    };
+    for (const [t, s] of chunks) {
+      await until(t);
+      clock = t;
+      push(s);
+      await settle();
+    }
+    push(null);
+    await reading;
+    return { out, timing: timing! };
+  }
+
+  it('sends ordinary first words the moment they arrive', async () => {
+    for (const first of ['That', 'Oh,', 'Yeah', 'So', 'Honestly', '[laughter]', 'I']) {
+      const { out, timing } = await timed(
+        [
+          [0, first],
+          [200, ' that sounds'],
+          [240, ' rough. How'],
+        ],
+        callWith(2)
+      );
+      expect(out[0], first).toEqual([0, first.replace(/,$/, '')]);
+      expect(timing.firstHoldMs, first).toBe(0);
+    }
+  });
+
+  it('never holds what first audio waits on: a first-clause comma or a hello word', async () => {
+    // continuation-tts cuts its first piece on "...brutal," (12+ letters): it goes at once.
+    const slow = await timed(
+      [
+        [0, 'That deadline is just brutal,'],
+        [200, ' honestly. What now?'],
+      ],
+      callWith(2)
+    );
+    expect(slow.out[0]).toEqual([0, 'That deadline is just brutal,']);
+    expect(slow.timing.firstHoldMs).toBe(0);
+    // Mid-call "Hey" goes at once; the name after it still goes.
+    const hey = await timed(
+      [
+        [0, 'Hey'],
+        [200, ' Sam, good to hear you.'],
+      ],
+      callWith(2)
+    );
+    expect(hey.out[0]).toEqual([0, 'Hey']);
+    expect(hey.out.map(([, t]) => t).join('')).toBe('Hey, good to hear you.');
+    const heySpace = await timed(
+      [
+        [0, 'Hey'],
+        [100, ' '],
+        [200, 'Sam, how are you?'],
+      ],
+      callWith(2)
+    );
+    expect(heySpace.out.map(([, t]) => t).join('')).toBe('Hey, how are you?');
+    const oh = await timed(
+      [
+        [0, 'Oh '],
+        [100, 'Sam, that is awful.'],
+      ],
+      callWith(2)
+    );
+    expect(oh.out.map(([, t]) => t).join('')).toBe('Oh that is awful.');
+    // A short opening ("Yes,") isn't a first piece yet: it waits, and the name goes cleanly.
+    const yes = await timed(
+      [
+        [0, 'Yes,'],
+        [200, ' Sam, I am sure.'],
+      ],
+      callWith(2)
+    );
+    expect(yes.out.map(([, t]) => t).join('')).toBe('Yes, I am sure.');
+    // After a first-piece comma went out, a sentence-final name still goes; the comma stays.
+    const up = await timed(
+      [
+        [0, 'How is your evening shaping up,'],
+        [100, ' Sam?'],
+      ],
+      callWith(2)
+    );
+    expect(up.out.map(([, t]) => t).join('')).toBe('How is your evening shaping up,?');
+    // Released text is never re-said or garbled, whatever the chunking.
+    const hello2 = await timed(
+      [
+        [0, 'Hello '],
+        [100, 'Sam, welcome back.'],
+      ],
+      callWith(2)
+    );
+    expect(hello2.out.map(([, t]) => t).join('')).toBe('Hello welcome back.');
+    const semi = await timed(
+      [
+        [0, 'I hear you,'],
+        [100, ' Sam; that is hard.'],
+      ],
+      callWith(2)
+    );
+    expect(semi.out.map(([, t]) => t).join('')).toBe('I hear you; that is hard.');
+    // At hello the first name is kept, so nothing before it waits.
+    const hello = await timed(
+      [
+        [0, 'Morning,'],
+        [100, ' Sam. How are you?'],
+      ],
+      []
+    );
+    expect(hello.out[0]).toEqual([0, 'Morning,']);
+    expect(hello.out.map(([, t]) => t).join('')).toBe('Morning, Sam. How are you?');
+  });
+
+  it('holds only the few characters a name could start in, until the next chunk', async () => {
+    const { out, timing } = await timed(
+      [
+        [0, 'I hear you about the week. That is rough'],
+        [30, ','],
+        [50, ' Sam'],
+        [80, '. How was it?'],
+      ],
+      callWith(2)
+    );
+    expect(out.map(([, s]) => s).join('')).toBe(
+      'I hear you about the week. That is rough. How was it?'
+    );
+    expect(out[0]).toEqual([0, 'I hear you about the week. That is rough']);
+    expect(timing.maxHoldMs).toBe(50); // a later comma, then the name itself until its next letter
   });
 });

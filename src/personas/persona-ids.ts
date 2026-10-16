@@ -128,7 +128,7 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
 
   // Peter John (Researcher)
   'peter-john': 'peter-john',
-  peter: 'peter-john', // Ferni's Peter; Peter Lynch is "peter lynch" / "lynch"
+  peter: 'peter-john', // Ferni's Peter; the Financial Legend peter-lynch is Tom Brannigan
   'peter john': 'peter-john',
   john: 'peter-john', // Last name alias
   researcher: 'peter-john',
@@ -186,25 +186,28 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   'lifetime-advisor': 'nayan-patel',
   'spiritual-guide': 'nayan-patel',
 
-  // Joel Dickson (Life Mentor - Financial Legends)
+  // Nate Holloway (Life Mentor - Financial Legends)
   'joel-dickson': 'joel-dickson',
   joel: 'joel-dickson',
+  'nate holloway': 'joel-dickson',
   dickson: 'joel-dickson',
   'dr-dickson': 'joel-dickson',
   'vanguard-mentor': 'joel-dickson',
   'life-mentor': 'joel-dickson',
 
-  // Peter Lynch (Stock Picker - Financial Legends)
+  // Tom Brannigan (Stock Picker - Financial Legends)
   'peter-lynch': 'peter-lynch',
   'peter lynch': 'peter-lynch',
+  'tom brannigan': 'peter-lynch',
   lynch: 'peter-lynch',
   'stock-picker': 'peter-lynch',
   magellan: 'peter-lynch',
   'fidelity-legend': 'peter-lynch',
 
-  // John Bogle (Index Pioneer - Financial Legends)
+  // Henry Caldwell (Index Pioneer - Financial Legends)
   'john-bogle': 'john-bogle',
   bogle: 'john-bogle',
+  'henry caldwell': 'john-bogle',
   'jack-bogle': 'john-bogle',
   jack: 'john-bogle',
   'vanguard-founder': 'john-bogle',
@@ -280,9 +283,9 @@ export const DISPLAY_NAMES: Record<CanonicalPersonaId, string> = {
   'maya-santos': 'Maya',
   'jordan-taylor': 'Jordan',
   'nayan-patel': 'Nayan',
-  'joel-dickson': 'Joel',
-  'peter-lynch': 'Peter Lynch',
-  'john-bogle': 'John Bogle',
+  'joel-dickson': 'Nate Holloway',
+  'peter-lynch': 'Tom Brannigan',
+  'john-bogle': 'Henry Caldwell',
 };
 
 export function getDisplayName(id: string): string {
