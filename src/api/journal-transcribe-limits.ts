@@ -104,11 +104,9 @@ async function overSharedPool(
 }
 
 /**
- * True, with a 429 or 503 sent, when this call is over any limit. In order:
- * the IP's minute and hour, the person's minute and hour (uid, or the IP for
- * an anonymous caller), the anonymous pool for anonymous callers only, then
- * the breaker for everyone. A call refused earlier never counts toward a
- * later pool, so per-key abuse can't trip the breaker by itself.
+ * True, with a 429 sent, when this caller is over a per-key limit: the IP's
+ * minute and hour, then the person's minute and hour (uid, or the IP for an
+ * anonymous caller). Checked before the body is read.
  */
 export async function refusedByTranscribeLimits(
   res: ServerResponse,
@@ -123,10 +121,22 @@ export async function refusedByTranscribeLimits(
   const tier = anonymous ? TRANSCRIBE_LIMITS.anon : TRANSCRIBE_LIMITS.user;
   const personKey = `expensive:journal-transcribe:${anonymous ? `anon-ip:${ip}` : `user:${caller.userId}`}`;
   if (await overLimit(res, personKey, tier.perMinute, MINUTE_MS)) return true;
-  if (await overLimit(res, `${personKey}:hour`, tier.perHour, HOUR_MS)) return true;
+  return overLimit(res, `${personKey}:hour`, tier.perHour, HOUR_MS);
+}
 
+/**
+ * True, with a 503 sent, when a shared hourly pool is spent: the anonymous
+ * pool for anonymous callers, then the breaker for everyone. Call it only once
+ * the request is valid and about to reach the paid transcriber, so a call the
+ * per-key limits or validation refused never counts, and junk requests can't
+ * trip the breaker for real people.
+ */
+export async function refusedBySharedPools(
+  res: ServerResponse,
+  caller: { isAnonymous?: boolean }
+): Promise<boolean> {
   if (
-    anonymous &&
+    caller.isAnonymous === true &&
     (await overSharedPool(
       res,
       ANON_POOL_KEY,

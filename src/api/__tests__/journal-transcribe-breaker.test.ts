@@ -49,9 +49,13 @@ const limits = await import('../journal-transcribe-limits.js');
 const PATH = '/api/journal/transcribe';
 const AUDIO = Buffer.from('a short journal clip').toString('base64');
 
-async function post(token: string, ip: string): Promise<number | undefined> {
+async function post(
+  token: string,
+  ip: string,
+  body: unknown = { audioBase64: AUDIO }
+): Promise<number | undefined> {
   const stream = new PassThrough();
-  stream.end(JSON.stringify({ audioBase64: AUDIO }));
+  stream.end(JSON.stringify(body));
   const req = stream as unknown as IncomingMessage;
   req.method = 'POST';
   req.url = PATH;
@@ -142,5 +146,27 @@ describe('global breaker', () => {
     const others = await burst(5, (i) => [`tok-quiet${i}`, `192.0.2.${110 + i}`]);
     expect(others).toEqual([200, 200, 200, 200, 200]);
     expect(await post('tok-quiet-last', '192.0.2.120')).toBe(503);
+  });
+
+  it('does not count requests refused for a missing or unreadable body', async () => {
+    vi.stubEnv('TRANSCRIBE_MAX_PER_HOUR', '3');
+    now += 4 * 60 * 60_000;
+    vi.setSystemTime(now);
+
+    // Eight requests with no audio, from eight identities: each refused before the pools.
+    const empty: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      empty.push(
+        (await post(`tok-empty${i}`, `192.0.2.${130 + i}`, { mimeType: 'audio/webm' })) ?? 0
+      );
+    }
+    expect(empty).toEqual(Array<number>(8).fill(400));
+    expect(transcribe).not.toHaveBeenCalled();
+
+    // The breaker still has all 3 of its calls for real people.
+    const real = await burst(3, (i) => [`tok-real${i}`, `192.0.2.${140 + i}`]);
+    expect(real).toEqual([200, 200, 200]);
+    expect(await post('tok-real-last', '192.0.2.150')).toBe(503);
+    expect(transcribe).toHaveBeenCalledTimes(3);
   });
 });
