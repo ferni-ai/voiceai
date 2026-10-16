@@ -92,10 +92,16 @@ export async function forgetTopic(
   if (matched.length > MAX_UNASKED && matched.length > live.length * MAX_SHARE) {
     return { kind: 'too-broad', matched: matched.length };
   }
+  // Facts about the topic forgotten one by one earlier go through again, so
+  // any index copy they still have is removed (markForgotten keeps their date).
+  const earlier = facts.filter(
+    (f) => typeof f.data.forgottenAt === 'string' && isForgotten(factText(f.data), [tokens])
+  );
   await store.addTopic(userId, tokens, topic.trim());
   noteForgotten(userId, tokens);
   bumpForgetGeneration(userId);
-  if (matched.length > 0) await store.markForgotten(userId, matched, now.toISOString());
+  const marking = [...matched, ...earlier];
+  if (marking.length > 0) await store.markForgotten(userId, marking, now.toISOString());
   bumpForgetGeneration(userId);
   log.info({ userId: userId.slice(0, 8), marked: matched.length }, 'Forgot a topic');
   return { kind: 'forgotten', marked: matched.length };
@@ -172,6 +178,25 @@ export function parseTopics(raw: unknown): string[] | null {
   return raw;
 }
 
+/**
+ * Take forgotten dynamic facts out of the indexes recall searches: the memory
+ * tool's (now, not at the next re-index, user-memory-indexer.ts;
+ * recallFromMemory also checks by id meanwhile) and the graph sync's copy
+ * (spanner-graph insertFact), read by per-turn memory search. Call after the
+ * facts are marked forgotten with syncedToSpanner: false.
+ */
+export async function removeIndexCopies(userId: string, factIds: string[]): Promise<void> {
+  if (factIds.length === 0) return;
+  const { removeConversationDocument } = await import('../retrieval/conversation-index.js');
+  const { removeIndexedMemory } = await import('../retrieval/semantic-memory-search.js');
+  for (const id of factIds) {
+    await removeConversationDocument(`fact_${id}`).catch((error: unknown) =>
+      log.warn({ error: String(error) }, 'Forgotten fact not removed from the index')
+    );
+    await removeIndexedMemory('fact', `fact_${userId}_${id}`);
+  }
+}
+
 /** bogle_users/{uid}/{dynamic_facts,extracted_facts}, and memory_state/forgotten. */
 export const firestoreForgetStore: ForgetStore = {
   async facts(userId) {
@@ -199,21 +224,16 @@ export const firestoreForgetStore: ForgetStore = {
         // A fact already copied to the graph store is picked up by the next
         // sync again (firestore-spanner-sync.ts), which removes the copy.
         const resync = r.collection === 'dynamic_facts' ? { syncedToSpanner: false } : {};
-        batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: at, ...resync });
+        // Already forgotten (one by one, or an earlier topic): keep when.
+        const when = typeof r.data.forgottenAt === 'string' ? r.data.forgottenAt : at;
+        batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: when, ...resync });
       }
       await batch.commit();
     }
-    // Their copies in the memory tool's index go now, not at the next re-index
-    // (user-memory-indexer.ts); recallFromMemory also checks by id meanwhile.
-    const { removeConversationDocument } = await import('../retrieval/conversation-index.js');
-    const { removeIndexedMemory } = await import('../retrieval/semantic-memory-search.js');
-    for (const r of refs.filter((x) => x.collection === 'dynamic_facts')) {
-      await removeConversationDocument(`fact_${r.id}`).catch((error: unknown) =>
-        log.warn({ error: String(error) }, 'Forgotten fact not removed from the index')
-      );
-      // The graph sync's copy (spanner-graph insertFact), read by per-turn memory search.
-      await removeIndexedMemory('fact', `fact_${userId}_${r.id}`);
-    }
+    await removeIndexCopies(
+      userId,
+      refs.filter((x) => x.collection === 'dynamic_facts').map((x) => x.id)
+    );
   },
   async addTopic(userId, topic, asked) {
     const db = getFirestoreDb();
