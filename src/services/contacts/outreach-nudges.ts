@@ -86,7 +86,7 @@ export interface NudgeContext {
     dateType: string;
     date: string;
     daysAway: number;
-    /** A memorial date: someone to remember together, never someone to send to */
+    /** Someone the user has lost: to remember together, never someone to send to */
     remembered: boolean;
   }>;
 
@@ -342,7 +342,7 @@ export async function buildNudgeContext(userId: string): Promise<NudgeContext> {
   // Build upcoming dates list
   const upcomingDates: NudgeContext['upcomingDates'] = [];
   for (const contact of contacts) {
-    for (const date of datesToNudge(contact)) {
+    for (const date of datesToNudge(contact, 'remember')) {
       const daysAway = getDaysUntilDate(date.date, now);
       if (daysAway >= 0 && daysAway <= 14) {
         upcomingDates.push({
@@ -350,7 +350,7 @@ export async function buildNudgeContext(userId: string): Promise<NudgeContext> {
           dateType: date.label || date.type,
           date: date.date,
           daysAway,
-          remembered: date.type === 'memorial',
+          remembered: isRememberedContact(contact),
         });
       }
     }
