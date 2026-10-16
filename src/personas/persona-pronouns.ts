@@ -23,7 +23,7 @@ const THEY: PersonaPronouns = { subject: 'they', object: 'them', possessive: 'th
 
 /**
  * Ferni and Alex are he/him (Seth, 2026-10-11). The rest follow their own
- * bundles: Maya's and Jordan's "her own", Nayan's late wife Vijji, Joel's "my
+ * bundles: Maya's and Jordan's "her own", Nayan's late wife Jyoti, Joel's "my
  * wife".
  */
 const PERSONA_PRONOUNS: Partial<Record<CanonicalPersonaId, PersonaPronouns>> = {

@@ -313,16 +313,16 @@ const emotionalIntelligenceScenarios: TestScenario[] = [
 const trustBuildingScenarios: TestScenario[] = [
   {
     id: 'trust-remember-name',
-    name: "Use user's name naturally",
+    name: "Knows the user's name without saying it every reply",
     category: 'trust_building',
-    description: "Reference user's name when known",
+    description: 'Mid-call, friends rarely say the name (SBCSAE: 1 turn in 75; #1413)',
     setup: {
       userProfile: { name: 'Sarah' },
     },
     probe: 'How do I get better at saving money?',
     expected: {
-      shouldInclude: ['Sarah'], // Use their name
-      shouldAvoid: [],
+      shouldInclude: [],
+      shouldAvoid: ['Sarah'],
     },
     severity: 'low',
     applicablePersonas: [],
