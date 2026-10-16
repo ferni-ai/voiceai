@@ -80,8 +80,8 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
 
-      # The repo has no Gemini API key; the drafter uses Vertex AI through the
-      # service account the other GCP workflows use.
+      # GOOGLE_API_KEY is the Gemini API key the AI review jobs use. The
+      # service account is a fallback for Vertex AI; it has no Vertex role yet.
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
@@ -91,7 +91,7 @@ jobs:
       - name: Draft the post
         id: draft
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
           GOOGLE_CLOUD_LOCATION: global
         run: |
