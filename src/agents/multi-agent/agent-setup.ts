@@ -137,6 +137,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
+import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
@@ -426,22 +427,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // A human friend might not notice you were struggling last time
       // Ferni remembers and checks in
       // =========================================================================
-      if (userProfile.humanizingState?.lastMood) {
-        const { lastMood } = userProfile.humanizingState;
-        // Map moods to emotional context
-        const moodContext: Record<string, string> = {
-          tired_but_present: 'Last time they seemed a bit tired - be gentle.',
-          reflective: 'Last time they were in a reflective mood.',
-          philosophical: 'Last time they were in a thoughtful, philosophical space.',
-          energized: 'Last time they were full of energy!',
-          grounded: 'Last time they seemed calm and grounded.',
-          playful: 'Last time they were in a playful mood.',
-          nostalgic: 'Last time they were feeling nostalgic.',
-        };
-        if (moodContext[lastMood]) {
-          userAwareness.push(moodContext[lastMood]);
-        }
-      }
+      userAwareness.push(...lastMoodNote(userProfile.humanizingState?.lastMood)); // his own mood, not theirs
 
       // =========================================================================
       // BETTER THAN HUMAN #3: Key Life Events Awareness
