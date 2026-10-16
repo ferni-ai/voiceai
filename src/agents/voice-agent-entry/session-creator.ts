@@ -362,6 +362,14 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   const endCallTool = createEndCallTool(sessionId);
   if (endCallTool) sessionTools = { ...(sessionTools ?? {}), [END_CALL]: endCallTool };
 
+  // TOOL_CORE_STATIC: the call's core set, findTools included, not the uncapped gateway set
+  const { staticCoreToolsEnabled } = await import('../../config/tool-config.js');
+  if (staticCoreToolsEnabled()) {
+    const { staticCoreCallTools } = await import('../shared/static-core-tools.js');
+    sessionTools = await staticCoreCallTools(sessionTools ?? {}, userId, sessionId, sessionPersona);
+    toolCount = Object.keys(sessionTools).length;
+  }
+
   // Create agent
   const { FerniAgent } = ferniAgentModule;
   const toolNames = Object.keys(sessionTools || {});

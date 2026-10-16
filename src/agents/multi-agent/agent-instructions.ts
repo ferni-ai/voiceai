@@ -17,12 +17,13 @@
  * @module agents/multi-agent/agent-instructions
  */
 
+import { llmContextCacheEnabled } from '../../config/llm-context-cache-flag.js';
 import type { PromptModuleConfig } from '../model-provider/types.js';
 
 type Env = Record<string, string | undefined>;
 
 export function stablePrefixEnabled(env: Env = process.env): boolean {
-  return env.PROMPT_STABLE_PREFIX === 'on';
+  return env.PROMPT_STABLE_PREFIX === 'on' || llmContextCacheEnabled(env);
 }
 
 /**

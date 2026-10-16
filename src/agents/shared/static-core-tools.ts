@@ -96,6 +96,29 @@ export async function staticCoreTools(
   return core;
 }
 
+/**
+ * The static core for a call's session, with findTools added: without it the
+ * agent has no way to reach a tool outside the core (agent-setup.ts does the same).
+ * Used by every path that builds a call's tools under TOOL_CORE_STATIC, so the
+ * eval measures what runtime sends.
+ */
+export async function staticCoreCallTools(
+  tools: Record<string, unknown>,
+  userId: string | null | undefined,
+  sessionId: string | null | undefined,
+  persona: { id: string; name?: string }
+): Promise<Record<string, unknown>> {
+  const { createFindToolsTool, FIND_TOOLS } =
+    await import('../../tools/retrieval/find-tools-tool.js');
+  const ctx = {
+    userId: userId || 'anonymous',
+    sessionId: sessionId ?? undefined,
+    agentId: persona.id,
+    agentDisplayName: persona.name || persona.id,
+  };
+  return staticCoreTools({ ...tools, [FIND_TOOLS]: createFindToolsTool() }, ctx);
+}
+
 interface ToolHolder {
   readonly toolCtx: { readonly functionTools: Record<string, { description?: string }> };
 }
