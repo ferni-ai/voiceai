@@ -495,9 +495,24 @@ describe('no hold at the head of the reply (dev latency, increment 3)', () => {
       'Loop in my sister.',
       'Holler at my brother.',
       'Ask my sister to pick me up.',
+      'Can you get in touch with my mom?',
+      'Could you give my mom a shout?',
+      'Give my brother a bell.',
+      'Patch me through to my sister.',
+      'Can you notify my sister?',
+      'Drop my mom a line.',
+      'Can you check in on my mom for me?',
+      'Video chat my sister.',
+      'Can you hook me up with my brother?',
+      'Order me a pizza.',
+      'Can you buy me tickets?',
+      'Get me an ambulance.',
+      'Can you order a taxi?',
+      'Can you pay my bill?',
     ])
       expect([ask, actionInPlay(ctx(user(ask)))]).toEqual([ask, true]);
     expect(actionInPlay(ctx(user('Tell me something interesting.')))).toBe(false);
+    expect(actionInPlay(ctx(user("Hey Ferni, how's it going?")))).toBe(false);
     expect(actionInPlay(ctx(user('How was it?'), said("That's on this call, so I'm here.")))).toBe(
       false
     );

@@ -97,7 +97,14 @@ function sentenceEnd(text: string): number {
 
 /** What a caller says when they want Ferni to do something: call, text, book, remind, save. */
 const ACTION_TALK =
-  /\b(?:call\w*|cal|ring\w*|rang|rung|phon\w*|dial\w*|buzz|face ?time|whats ?app|text\w*|tex|txt|messag\w*|msg|dm|e-?mail\w*|send\w*|sent|ping\w*|contact\w*|reach\w*|hit (?:up|her|him|them)|holler|connect\w*|put (?:me )?through|loop (?:in|\w+ in)|get (?:my|her|him|them|\w+ for me)|(?:talk|speak) (?:to|with) (?:my|her|him|them)|ask (?:my|her|him|them)\b|hold of|ahold|on the line|tell (?!me\b)\w+|let (?:her|him|them|my \w+|\w+) know|book\w*|schedul\w*|set up|reserv\w*|appointment\w*|meeting|calendar|remind\w*|wake me|alarm\w*|timer\w*|sav\w*|remember\w*|write (?:that|it|this) down|jot|note\w*|number\w*|llam\w*|appel\w*|anruf\w*|ruf|chiam\w*|liga\w*)\b|\d{3}/i;
+  /\b(?:call\w*|cal|ring\w*|rang|rung|phon\w*|dial\w*|buzz|face ?time|whats ?app|text\w*|tex|txt|messag\w*|msg|dm|e-?mail\w*|send\w*|sent|ping\w*|contact\w*|reach\w*|hit (?:up|her|him|them)|holler|connect\w*|put (?:me )?through|loop (?:in|\w+ in)|get (?:my|her|him|them|\w+ for me)|(?:talk|speak) (?:to|with) (?:my|her|him|them)|ask (?:my|her|him|them)\b|hold of|ahold|on the line|tell (?!me\b)\w+|let (?:her|him|them|my \w+|\w+) know|order\w*|buy\w*|bought|pay\w*|purchas\w*|book\w*|schedul\w*|set up|reserv\w*|appointment\w*|meeting|calendar|remind\w*|wake me|alarm\w*|timer\w*|sav\w*|remember\w*|write (?:that|it|this) down|jot|note\w*|number\w*|llam\w*|appel\w*|anruf\w*|ruf|chiam\w*|liga\w*)\b|\d{3}/i;
+/**
+ * The fallback when the ask's wording is new: any request, anyone named in it, or an
+ * emergency. A wrong match only costs a held sentence; a missed ask speaks a claim.
+ */
+const ASK_SHAPE =
+  /\b(?:(?:can|could|would|will) you|please|i need you to|i want you to|go ahead|for me|ambulance|911|police|emergency|fire department|(?:my|your|our) (?:\w+ )?(?:mom|mum|mother|mama|dad|father|papa|sister|sis|brother|bro|grandma|grandmother|gran|nana|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|friend|bestie|boss|doctor|dentist|therapist|landlord|teacher|neighbou?r|family|roommate)|her|him|them)\b|\s(?!(?:Ferni|Fern)\b)[A-Z][a-z]+/;
+
 /** How many of the caller's (and Ferni's) latest messages can put an action in play. */
 const ASK_WINDOW = 6;
 
@@ -146,7 +153,7 @@ export function actionInPlay(chatCtx: { items: readonly unknown[] }): boolean {
     .map(spokenOf)
     .filter(Boolean)
     .slice(-ASK_WINDOW)
-    .some((text) => ACTION_TALK.test(text));
+    .some((text) => ACTION_TALK.test(text) || ASK_SHAPE.test(text));
 }
 
 /**
