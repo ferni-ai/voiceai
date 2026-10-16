@@ -174,7 +174,7 @@ export async function handleIntegrationsRoutes(
 
   // Only the provider's redirect back (/<x>/callback[/platform]) skips auth. Matching
   // '/connect' too left auth null on the OAuth start routes, which then threw (500).
-  const isOAuthCallback = /^\/[a-z]+\/callback(\/[a-z]+)?$/.test(subPath) || subPath.includes('/connect');
+  const isOAuthCallback = /^\/[a-z]+\/callback(\/[a-z]+)?$/.test(subPath);
 
   // SECURITY: Require authentication for all non-OAuth routes
   let auth: AuthContext | null = null;
