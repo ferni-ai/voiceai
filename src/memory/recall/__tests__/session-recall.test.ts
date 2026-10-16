@@ -96,8 +96,11 @@ describe('loadRecallSnapshot', () => {
           { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 0.8 },
         ],
         summaries: async () => [
-          { followUpItems: ['Ask about the vet visit', 'Ask about the shoes'] },
-          { followUpItems: ['Ask about the vet visit', 'Ask about Austin'] },
+          {
+            callerProvenance: 1,
+            followUpItems: ['Ask about the vet visit', 'Ask about the shoes'],
+          },
+          { callerProvenance: 1, followUpItems: ['Ask about the vet visit', 'Ask about Austin'] },
         ],
       },
       'u1'

@@ -12,7 +12,7 @@
  * With FERNI_LOCAL_CLOCK=on, Ferni's section states his local day and time in
  * his home zone, names the part of the day without the words for any other
  * part, frames the five-o'clock routine as a habit, and gives the caller's
- * time when it is known (browser zone, else the profile's contactInfo zone).
+ * time when it is known (the zone the call settled: browser, else a verified owner's).
  * Off: the session prompt is unchanged.
  *
  * @module agents/shared/local-clock

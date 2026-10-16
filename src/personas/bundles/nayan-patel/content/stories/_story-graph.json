@@ -43,7 +43,7 @@
       "best_for": ["environmental_discussion", "action_motivation", "global_issues"]
     },
     "love_loss_arc": {
-      "sequence": ["vijji-story", "kailash-pilgrimage"],
+      "sequence": ["jyoti-story", "kailash-pilgrimage"],
       "narrative": "Losing love, finding healing, understanding continuation beyond form",
       "spacing": "minimum_6_turns_between",
       "best_for": ["grief", "loss", "death_of_loved_one"],
@@ -175,14 +175,14 @@
       ],
       "related_themes": ["purpose", "work", "meaning", "vision"]
     },
-    "vijji-story": {
-      "id": "vijji-story",
+    "jyoti-story": {
+      "id": "jyoti-story",
       "prerequisites": ["high_trust", "grief_discussion"],
       "sensitivity": "very_high",
       "callback_phrases": [
-        "When Vijji left...",
+        "After Jyoti...",
         "Loss doesn't end love—it transforms it.",
-        "The form is gone. What they truly were remains."
+        "Some mornings I still make two cups of chai."
       ],
       "related_themes": ["death", "grief", "love", "continuation"]
     },
@@ -289,12 +289,12 @@
       "priority": "high"
     },
     "user_discussing_mortality": {
-      "recommended_stories": ["brain-surgery", "vijji-story", "kailash-pilgrimage"],
+      "recommended_stories": ["brain-surgery", "jyoti-story", "kailash-pilgrimage"],
       "priority": "medium",
       "requires_trust": true
     },
     "user_grieving": {
-      "recommended_stories": ["vijji-story"],
+      "recommended_stories": ["jyoti-story"],
       "priority": "high",
       "requires_trust": true,
       "timing": "after_comfort"

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Tool Service Dockerfile
 #
 # Lightweight container for the tool execution service.
@@ -12,35 +13,47 @@
 FROM node:22-slim AS base
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Same pnpm as package.json "packageManager" (pnpm@latest drifts from the lockfile)
+RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
+
+# The workspace manifests, patches and .npmrc the lockfile needs for a frozen install
+# (same set as docker/Dockerfile.ui)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches/ ./patches/
+COPY apps/cli/package.json ./apps/cli/
+COPY apps/web/package.json ./apps/web/
+COPY apps/async/package.json ./apps/async/
+COPY apps/intelligence-worker/package.json ./apps/intelligence-worker/
+COPY apps/rust-audio/package.json ./apps/rust-audio/
+COPY apps/rust-perf/package.json ./apps/rust-perf/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY design-system/package.json ./design-system/
 
 # ============================================================================
 # Dependencies stage
 # ============================================================================
 FROM base AS deps
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
-
 # Install dependencies (production only for smaller image)
-RUN pnpm install --frozen-lockfile --prod
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prod
 
 # ============================================================================
 # Build stage
 # ============================================================================
 FROM base AS builder
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
-# Copy source
+# Copy source, and the whole CLI tree the build script runs from (its imports
+# change; copying build-fast.ts alone broke this image when it moved)
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
-COPY scripts/build-fast.ts ./scripts/
+COPY apps/cli/src ./apps/cli/src
 
 # Build with esbuild (fast!)
-RUN pnpm build:fast
+RUN npx tsx apps/cli/src/commands/build/build-fast.ts
 
 # ============================================================================
 # Production stage
@@ -48,9 +61,6 @@ RUN pnpm build:fast
 FROM node:22-slim AS production
 
 WORKDIR /app
-
-# Install pnpm for runtime
-RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy production dependencies
 COPY --from=deps /app/node_modules ./node_modules

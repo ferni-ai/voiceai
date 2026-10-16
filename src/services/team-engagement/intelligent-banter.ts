@@ -1068,7 +1068,7 @@ export function buildLLMArrivingInstructions(
   // Relationship depth
   const relationshipHint =
     context.relationshipStage === 'deep'
-      ? 'You have a deep relationship - be warm, maybe use their name.'
+      ? 'You have a deep relationship - be warm.'
       : context.relationshipStage === 'new'
         ? 'Newer relationship - be welcoming and open.'
         : '';

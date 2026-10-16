@@ -16,6 +16,8 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appleIAPService, type SubscriptionStatus } from '../services/apple-iap.service.js';
+import { isPaywallOn } from '../services/paywall.service.js';
+import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
 import { openBillingPortal } from '../utils/billing.js';
 import { asModalDialog } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
@@ -202,7 +204,9 @@ class ManageSubscriptionUI {
   private renderActions(): string {
     const { tier, provider } = this.status || { tier: 'free', provider: 'none' };
 
-    // Free tier - warm invitation to join
+    // Free tier without a paywall: no Join button; the Venmo note only when chip-in is on
+    const note = t(`manageSubscription.${isVenmoChipInEnabled() ? 'freeNote' : 'noBilling'}`);
+    if (tier === 'free' && !isPaywallOn()) return `<p class="manage-sub__footer-note">${note}</p>`;
     if (tier === 'free') {
       return `
         <div class="manage-sub__actions">
@@ -256,17 +260,13 @@ class ManageSubscriptionUI {
     `;
   }
 
-  /**
-   * Open Stripe billing portal
-   */
+  /** Open Stripe billing portal */
   private async handleOpenBillingPortal(): Promise<void> {
     // Portal for the Bearer-token user (same tab, for the redirect flow)
     await openBillingPortal({ openInNewTab: false });
   }
 
-  /**
-   * Open Apple subscription management
-   */
+  /** Open Apple subscription management */
   private openAppleManagement(): void {
     appleIAPService.openSubscriptionManagement();
   }

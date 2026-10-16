@@ -78,10 +78,9 @@ async function test(): Promise<void> {
   const genStart = Date.now();
   
   try {
-    const handle = session.generateReply({
-      instructions: 'Say "Hello"',
-      allowInterruptions: true,
-    });
+    // RealtimeSession.generateReply takes the instructions and resolves when the
+    // generation is created.
+    const generation = session.generateReply('Say "Hello"');
     
     console.log(`   📤 generateReply called: ${Date.now() - genStart}ms`);
     
@@ -96,8 +95,8 @@ async function test(): Promise<void> {
       process.exit(1);
     }, 30000);
     
-    console.log('   ⏳ Waiting for waitForPlayout()...');
-    await handle.waitForPlayout();
+    console.log('   ⏳ Waiting for the generation...');
+    await generation;
     
     clearInterval(warnInterval);
     clearTimeout(hardTimeout);

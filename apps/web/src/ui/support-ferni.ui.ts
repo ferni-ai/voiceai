@@ -19,6 +19,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { formatCurrency, t } from '../i18n/index.js';
 import { openSubscriptionManagement } from '../services/apple-iap.service.js';
+import { isPaywallOn } from '../services/paywall.service.js';
 import { payForSeed, seedPaymentFailureMessage } from '../services/seed-payment.js';
 import { collectCardPayment } from './seed-payment-form.ui.js';
 import { appState } from '../state/app.state.js';
@@ -158,21 +159,17 @@ function prefersReducedMotion(): boolean {
 // ============================================================================
 
 export async function openSupportFerni(): Promise<void> {
-  log.info('Opening Support Ferni modal');
-  saveFocus();
-  log.info('Focus saved');
-
-  injectStyles();
-  log.info('Styles injected');
-
-  cleanupOrphanedElements();
-  log.info('Orphaned elements cleaned up');
-
-  // Load subscription status
-  log.info('Loading subscription status...');
+  // The status fetch also tells us whether the server has a paywall on
   await loadStatus();
+  if (!isPaywallOn()) {
+    log.info('Support Ferni not opened: Ferni is free (no paywall)');
+    return;
+  }
   const status = getStatus();
-  log.info('Subscription status loaded', { tier: status?.tier });
+  log.info('Opening Support Ferni modal', { tier: status?.tier });
+  saveFocus();
+  injectStyles();
+  cleanupOrphanedElements();
 
   log.info('Creating overlay...');
   overlay = createOverlay(status);

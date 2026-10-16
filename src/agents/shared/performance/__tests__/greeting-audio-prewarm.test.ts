@@ -16,7 +16,8 @@ vi.mock('../../../../config/voice-ids.js', () => ({
     };
     return voiceMap[personaId] || null;
   }),
-  CARTESIA_MODEL: 'sonic-3-latest',
+  CARTESIA_MODEL: 'sonic-3.6-2026-08-27',
+  CARTESIA_API_VERSION: '2026-08-14',
 }));
 
 vi.mock('../../../shared/warm-greeting.js', () => ({

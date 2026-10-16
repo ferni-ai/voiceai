@@ -22,7 +22,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 
 /** The base note on every reply of a first call. */
 export const FIRST_CALL_NOTE =
-  "This is your first call with them: you're getting to know a new person, not taking down their details. Learn a little at their pace, what their day is like and something they care about, and give back a take or a small preference of your own. Once you know their name, use it now and then, not every reply.";
+  "This is your first call with them: you're getting to know a new person, not taking down their details. Learn a little at their pace, what their day is like and something they care about, and give back a take or a small preference of your own. Once you know their name, save it for hello and goodbye; friends rarely say it mid-call.";
 
 /** Early in the call, until a name has been asked for. */
 export const NAME_SWAP_NOTE =

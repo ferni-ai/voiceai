@@ -19,6 +19,7 @@ describe('cold start in a non-English locale', () => {
     await i18n.initI18n();
     expect(i18n.getLocale()).toBe(locale);
     // "" in every non-English locale today: the runtime treats it as missing
-    expect(i18n.t('aiLabel.companion')).toBe('AI companion');
+    // (aiLabel.companion, the key that showed raw, became aiLabel.role.* in #1122)
+    expect(i18n.t('aiLabel.role.lifeCoach')).toBe('Life coach');
   });
 });

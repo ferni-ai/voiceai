@@ -18,6 +18,7 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { callQuietHours } from './quiet-hours.js';
+import { toTwilioSsml } from './twilio-ssml.js';
 
 const log = createLogger({ module: 'ConversationalCalls' });
 
@@ -158,7 +159,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     ssml,
     personaId,
     reason,
-    scheduledFor = new Date(),
+    scheduledFor: requestedFor = new Date(),
     maxDuration = 120,
     enableConversation = false,
     voicemailFallback = true,
@@ -176,17 +177,16 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
     const held = { recipientPhone: normalizedPhone, recipientUserId: userId };
     const call = { kind: 'proactive' as const, request: { ...request, scheduledFor: undefined } };
-    const deferral = scheduledFor <= new Date() && (await holdForCallHours(userId, call, held));
+    const due = requestedFor <= new Date();
+    const deferral = due && (await holdForCallHours(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
-    // The guard covers quiet hours, in the user's own time zone. Only a call due
-    // now is checked: the rescheduled one is in the future, so this can't loop.
+    // The guard covers quiet hours, in the user's own time zone. callQuietHours reads
+    // the clock, not scheduledFor, so a quiet call is stored for later, never re-checked.
     const now = new Date();
-    const quiet =
-      !isCallHoursGuardOn() && scheduledFor <= now && (await callQuietHours(userId, now));
-    if (quiet && quiet.quiet) {
-      log.info({ userId, callId }, 'Call delayed due to quiet hours');
-      return scheduleProactiveCall({ ...request, scheduledFor: quiet.until });
-    }
+    const hours = due && !isCallHoursGuardOn() ? await callQuietHours(userId, now) : null;
+    const quiet = !!hours?.quiet;
+    if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
+    const scheduledFor = quiet && hours ? hours.until : requestedFor;
 
     // Enhance SSML for natural delivery
     const enhancedSSML = enhanceSSMLForCall(ssml, personaId);
@@ -210,7 +210,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     await saveScheduledCall(scheduledCall);
 
     // If scheduled for now or past, initiate immediately
-    if (scheduledFor.getTime() <= Date.now()) {
+    if (!quiet && scheduledFor.getTime() <= Date.now()) {
       return await initiateCall(scheduledCall, {
         maxDuration,
         enableConversation,
@@ -357,17 +357,8 @@ function buildCallTwiML(
  * Convert our SSML to Twilio-compatible format
  */
 function convertToTwilioSSML(ssml: string): string {
-  // Remove outer <speak> tags (Twilio adds its own)
-  let converted = ssml.replace(/<speak>/g, '').replace(/<\/speak>/g, '');
-
-  // Convert voice tags to prosody (Twilio doesn't support <voice>)
-  converted = converted.replace(/<voice[^>]*>/g, '');
-  converted = converted.replace(/<\/voice>/g, '');
-
-  // Keep prosody and break tags (Twilio supports these)
-  // Remove any unsupported tags
-
-  return converted;
+  // Escapes all text and keeps only checked speech tags (no TwiML injection).
+  return toTwilioSsml(ssml);
 }
 
 // ============================================================================
