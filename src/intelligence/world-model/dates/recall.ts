@@ -54,11 +54,15 @@ const YEARLY_AHEAD_DAYS = 7;
 /** Raised once; a yearly date may come back next year. */
 const QUIET_DAYS = 20;
 
+/** Stored words as one short line: no newlines or long text reach the note. */
+const oneLine = (s: string | undefined, max = 60): string =>
+  (s ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+
 /** "their sister Kate's", "their mom's", "their": named by the relation the caller gave. */
 function whose(f: RaisableDate): string {
   if (f.subjectKind === 'self' || /^self$/i.test(f.subject)) return 'their';
-  const rel = f.relation?.trim();
-  const name = f.subject.trim();
+  const rel = oneLine(f.relation, 30);
+  const name = oneLine(f.subject, 40);
   // "Kate" is a name; "mom" is a relation said as the name.
   if (!rel || rel.toLowerCase() === name.toLowerCase())
     return /^[A-Z]/.test(name) ? `${name}'s` : `their ${name}'s`;
@@ -80,7 +84,7 @@ function dueOne(f: RaisableDate, today: string): DueDate | null {
     return null;
   }
   const moment: DateMoment = days < 0 ? 'passed' : days === 0 ? 'today' : 'soon';
-  return { id: f.id, moment, what: `${whose(f)} ${f.value.trim()}`, days };
+  return { id: f.id, moment, what: `${whose(f)} ${oneLine(f.value)}`, days };
 }
 
 const RANK: Record<DateMoment, number> = { today: 0, passed: 1, soon: 2 };
