@@ -562,7 +562,7 @@ export class UserTriggerProfileService {
     }
 
     const profile: UserTriggerProfile = {
-      ...DEFAULT_USER_TRIGGER_PROFILE,
+      ...structuredClone(DEFAULT_USER_TRIGGER_PROFILE),
       userId,
       createdAt: new Date(),
       updatedAt: new Date(),
