@@ -122,6 +122,24 @@ describe('recall fails closed when the topics are unreadable', () => {
     expect(snapshot).toEqual({ facts: [], followUps: [], insideJokes: [] });
   });
 
+  it('leaves out an inside joke whose line is about a forgotten topic', async () => {
+    const snapshot = await loadRecallSnapshot(
+      {
+        facts: async () => [],
+        summaries: async () => [
+          {
+            insideJokes: [
+              { bit: 'the cat bit', quote: 'she guards the treat cabinet', speaker: 'user' },
+            ],
+          },
+        ],
+        forgotten: async () => ['cabinet'],
+      },
+      'u'
+    );
+    expect(snapshot.insideJokes).toEqual([]);
+  });
+
   it('leaves out an inside joke about a forgotten topic', async () => {
     const snapshot = await loadRecallSnapshot(
       {

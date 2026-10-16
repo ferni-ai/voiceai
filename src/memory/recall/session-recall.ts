@@ -17,6 +17,7 @@
 
 import type { InsideJokeRef } from '../../types/profile/inside-joke.js';
 import { insideJokesEnabled } from './inside-jokes-recall.js';
+import { lineKey } from '../operations/inside-jokes.js';
 import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
 import { MIN_WEIGHTED_OVERLAP, rareWordsEnabled, weighWords } from './rare-words.js';
 export { rareWordsEnabled } from './rare-words.js';
@@ -481,9 +482,10 @@ export async function loadRecallSnapshot(
       if (quote.trim().split(/\s+/).length < 3) continue;
       const text = bit.trim();
       const seen = insideJokes.some(
-        (j) => j.bit.toLowerCase() === text.toLowerCase() || j.quote.toLowerCase() === quote.trim().toLowerCase()
+        (j) => j.bit.toLowerCase() === text.toLowerCase() || lineKey(j.quote) === lineKey(quote)
       );
-      if (text && !seen && !isForgotten(text, forgotten))
+      // A forgotten topic keeps a bit out whether it's in the bit's words or its line.
+      if (text && !seen && !isForgotten(`${text} ${quote}`, forgotten))
         insideJokes.push({ bit: text, quote: quote.trim(), speaker });
       if (insideJokes.length >= MAX_INSIDE_JOKES) break;
     }

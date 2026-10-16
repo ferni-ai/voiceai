@@ -323,6 +323,20 @@ describe('inside jokes', () => {
     expect(snap.insideJokes).toEqual([]);
   });
 
+  it('does not bring a bit back on a greeting that shares one filler word', () => {
+    const j = [ref('the mushroom police', 'I am pretty sure the mushroom police exist')];
+    expect(jokesForTurn(j, 'Hey, pretty good, thanks!')).toEqual([]);
+    const morning = [ref('morning person', 'I am not a morning person honestly')];
+    expect(jokesForTurn(morning, 'Good morning!')).toEqual([]);
+  });
+
+  it('brings a bit back on two shared words, or one the bit itself names', () => {
+    const line = 'she has been staring at the treat cabinet';
+    expect(jokesForTurn([ref('the mastermind', line)], 'the cabinet is open')).toEqual([]);
+    expect(jokesForTurn([ref('treat cabinet heist', line)], 'the cabinet is open')).toHaveLength(1);
+    expect(jokesForTurn([ref('the mastermind', line)], 'she was staring at the cabinet')).toHaveLength(1);
+  });
+
   it('does not bring a bit back on filler words like "really" alone', () => {
     const j = [ref('the mushroom police', 'I really love the mushroom police')];
     expect(jokesForTurn(j, 'Hi, really good to hear you')).toEqual([]);

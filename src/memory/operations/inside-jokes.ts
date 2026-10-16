@@ -32,7 +32,13 @@ const FILLER = new Set([
   'really', 'should', 'though', 'because', 'people', 'actually', 'about', 'think', 'would',
   'could', 'going', 'something', 'things', 'there', 'their', 'where', 'which', 'these', 'those',
   'right', 'thing', 'still', 'maybe', 'anyway', 'always', 'never', 'every', 'before', 'after',
+  'thanks', 'honestly', 'pretty', 'having', 'feeling', 'morning', 'evening', 'afternoon',
+  'anything', 'everything', 'tonight', 'talking', 'calling', 'single', 'today', 'weekend',
+  'hearing', 'friend', 'telling', 'good', 'great', 'doing', 'seeing', 'coming',
 ]);
+
+/** A line as compared for sameness: its words, case and punctuation dropped. */
+export const lineKey = (text: string): string => normalise(text);
 
 /** The distinctive words in a text: at least six letters, not filler. */
 export const jokeWords = (text: string): Set<string> =>
@@ -62,7 +68,7 @@ export function parseInsideJokes(
     // The line must be said by the speaker the model named, and the bit must name a word in it.
     const line = said.find((s) => s.speaker === speaker && s.text.includes(` ${needle} `));
     if (!line || [...jokeWords(text)].every((w) => !jokeWords(quote).has(w))) continue;
-    if (refs.some((r) => r.bit.toLowerCase() === text.toLowerCase() || r.quote.toLowerCase() === quote.trim().toLowerCase())) continue;
+    if (refs.some((r) => r.bit.toLowerCase() === text.toLowerCase() || lineKey(r.quote) === lineKey(quote))) continue;
     refs.push({ bit: text, quote: quote.trim(), speaker });
     if (refs.length >= MAX_INSIDE_JOKES) break;
   }

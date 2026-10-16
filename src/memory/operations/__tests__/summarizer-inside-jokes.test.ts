@@ -107,6 +107,19 @@ describe('parseInsideJokes', () => {
     ).toEqual([]);
   });
 
+  it('dedupes quotes that differ only by case and punctuation', () => {
+    const cat = [{ role: 'user' as const, content: 'My cat, Bartholomew judges everyone' }];
+    expect(
+      parseInsideJokes(
+        [
+          { bit: 'the cat judges', quote: 'my cat Bartholomew judges', speaker: 'user' },
+          { bit: 'the cat again', quote: 'My cat, Bartholomew judges', speaker: 'user' },
+        ],
+        cat
+      )
+    ).toHaveLength(1);
+  });
+
   it('caps at three bits and trims each to 140 characters', () => {
     const long = `fungus ${'x'.repeat(300)}`;
     const more = [

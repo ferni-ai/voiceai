@@ -16,11 +16,14 @@ export function insideJokesEnabled(env: Record<string, string | undefined> = pro
 }
 
 /**
- * The bits whose line shares a word with what the caller is saying now, so a
- * bit comes back on a turn that touches it and not at the greeting. Bits with
- * no shared word stay out of this turn.
+ * The bits to bring back on this turn: the turn shares two distinctive words
+ * with the bit's line, or one word that the bit itself names. One shared word
+ * alone is how a greeting would match, so it doesn't count.
  */
 export function jokesForTurn(jokes: InsideJokeRef[], text: string): InsideJokeRef[] {
   const said = jokeWords(text);
-  return jokes.filter((j) => [...jokeWords(j.quote)].some((w) => said.has(w)));
+  return jokes.filter((j) => {
+    const shared = [...jokeWords(j.quote)].filter((w) => said.has(w));
+    return shared.length >= 2 || shared.some((w) => jokeWords(j.bit).has(w));
+  });
 }
