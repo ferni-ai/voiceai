@@ -101,9 +101,12 @@ const ACTION_TALK =
 /**
  * The fallback when the ask's wording is new: any request, anyone named in it, or an
  * emergency. A wrong match only costs a held sentence; a missed ask speaks a claim.
+ * Case-blind, since speech-to-text capitalises the start of every sentence.
  */
 const ASK_SHAPE =
-  /\b(?:(?:can|could|would|will) you|please|i need you to|i want you to|go ahead|for me|ambulance|911|police|emergency|fire department|(?:my|your|our) (?:\w+ )?(?:mom|mum|mother|mama|dad|father|papa|sister|sis|brother|bro|grandma|grandmother|gran|nana|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|friend|bestie|boss|doctor|dentist|therapist|landlord|teacher|neighbou?r|family|roommate)|her|him|them)\b|\s(?!(?:Ferni|Fern)\b)[A-Z][a-z]+/;
+  /\b(?:(?:can|could|would|will) you|please|i need you to|i want you to|go ahead|for me|ambulance|911|police|emergency|fire department|help|hurt\w*|fell|fallen|can'?t breathe|heart attack|chest|bleed\w*|breaking in|broke in|overdos\w*|suicid\w*|(?:my|your|our) (?:\w+ )?(?:mom|mum|mother|mama|dad|father|papa|sister|sis|brother|bro|grandma|grandmother|gran|nana|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|friend|bestie|boss|doctor|dentist|therapist|landlord|teacher|neighbou?r|family|roommate)|her|him|them)\b/i;
+/** Someone named mid-sentence: a capitalised word other than Ferni's name (case matters here). */
+const NAMED = /\s(?!(?:Ferni|Fern)\b)[A-Z][a-z]+/;
 
 /** How many of the caller's (and Ferni's) latest messages can put an action in play. */
 const ASK_WINDOW = 6;
@@ -129,9 +132,13 @@ const spokenOf = (item: Item): string => {
 
 /** Ferni's own line claimed an action or said honestly he couldn't: the action is still in play. */
 const HONEST_SAID = /\b(?:can't actually|didn't go through)\b/i;
+/** Ferni offered to act ("Should I text your sister?"), so the caller's "Yes." asks for it. */
+const OFFER = /\b(?:want me to|should i|shall i|i can|i could|would you like me to|like me to)\b/i;
 const actedOn = (text: string): boolean =>
   HONEST_SAID.test(text) ||
-  text.split(/(?<=[.!?])\s+/).some((part) => claimedAction(part) !== null);
+  text
+    .split(/(?<=[.!?])\s+/)
+    .some((part) => claimedAction(part) !== null || (OFFER.test(part) && ACTION_TALK.test(part)));
 
 /** The caller asked for an action lately, or an action tool ran on this call. */
 export function actionInPlay(chatCtx: { items: readonly unknown[] }): boolean {
@@ -153,7 +160,7 @@ export function actionInPlay(chatCtx: { items: readonly unknown[] }): boolean {
     .map(spokenOf)
     .filter(Boolean)
     .slice(-ASK_WINDOW)
-    .some((text) => ACTION_TALK.test(text) || ASK_SHAPE.test(text));
+    .some((text) => ACTION_TALK.test(text) || ASK_SHAPE.test(text) || NAMED.test(text));
 }
 
 /**

@@ -456,7 +456,7 @@ describe('no hold at the head of the reply (dev latency, increment 3)', () => {
   const SMALL_TALK = [
     user('I had a long day.'),
     said('Oh no.'),
-    user('My boss kept piling it on.'),
+    user('Work kept piling it on.'),
   ];
 
   it('an action is in play when the caller asked for one lately or an action tool ran', () => {
@@ -511,6 +511,36 @@ describe('no hold at the head of the reply (dev latency, increment 3)', () => {
       'Can you pay my bill?',
     ])
       expect([ask, actionInPlay(ctx(user(ask)))]).toEqual([ask, true]);
+    // Speech-to-text capitalises each sentence, so a request or emergency holds at the start too
+    for (const ask of [
+      'Can you get the vet?',
+      'Please get the vet.',
+      "Can you help me? I can't breathe.",
+      'Get help!',
+      'Help me, I fell.',
+      'I need help, my chest hurts.',
+      'I think it is a heart attack.',
+      "I can't breathe.",
+      'Someone is breaking in.',
+      'She is bleeding a lot.',
+      'He took an overdose.',
+      'I keep thinking about suicide.',
+      'My boss kept piling it on.',
+      'Her phone is off.',
+    ])
+      expect([ask, actionInPlay(ctx(user(ask)))]).toEqual([ask, true]);
+    // Ferni offered to act, so the caller's yes is the ask
+    for (const offer of [
+      'Should I text your sister?',
+      'Want me to book a table?',
+      'Shall I call her for you?',
+      'I can send that to him now if you like.',
+      'Would you like me to set a reminder?',
+    ])
+      for (const yes of ['Yes.', 'Do it.', 'Sure, go for it.'])
+        expect([offer, yes, actionInPlay(ctx(said(offer), user(yes)))]).toEqual([offer, yes, true]);
+    // An offer with no action in it doesn't hold
+    expect(actionInPlay(ctx(said('Want me to keep going?'), user('Yes.')))).toBe(false);
     expect(actionInPlay(ctx(user('Tell me something interesting.')))).toBe(false);
     expect(actionInPlay(ctx(user("Hey Ferni, how's it going?")))).toBe(false);
     expect(actionInPlay(ctx(user('How was it?'), said("That's on this call, so I'm here.")))).toBe(
@@ -521,7 +551,7 @@ describe('no hold at the head of the reply (dev latency, increment 3)', () => {
 
   it("reads only the caller's spoken words, never the turn reminder after them", () => {
     const chat = llm.ChatContext.empty();
-    chat.addMessage({ role: 'user', content: 'My boss kept piling it on.' });
+    chat.addMessage({ role: 'user', content: 'Work kept piling it on.' });
     const reminded = withTurnStyleReminder(chat);
     expect(JSON.stringify(reminded.items)).toMatch(/on a call/);
     expect(actionInPlay(reminded)).toBe(false);
