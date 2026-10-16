@@ -68,6 +68,8 @@
       const flagPromises = Object.entries(FLAG_MAP).map(async ([flagId, configKey]) => {
         try {
           const variant = await window.FerniExperiments.getVariant(flagId, { skipExposure: true });
+          // No assignment (no cookie consent yet, or the service is down): keep the default
+          if (variant === null) return;
           // Variant is either the percentage bucket or 'control'/'enabled'
           CONFIG[configKey] = variant !== 'control' && variant !== '0';
           if (CONFIG.debugMode) {
@@ -530,6 +532,9 @@
   const PersonaPreviews = {
     init() {
       if (!CONFIG.enablePersonaPreviews) return;
+      // ai-copy-magic.js adds its own "ask me" input to every team card (with
+      // offline sample replies), so a second one here would double it up.
+      if (window.FerniAICopyMagic) return;
 
       this.enhanceTeamCards();
     },

@@ -41,6 +41,21 @@
   const MAX_QUEUE_SIZE = 20;
 
   // ============================================================================
+  // CONSENT
+  // ============================================================================
+
+  // No anonymous ID is made or sent until the visitor accepts the cookie
+  // banner (story-brand.njk stores the choice). Without it every experiment
+  // reads as unassigned, so callers keep their defaults.
+  function hasConsent() {
+    try {
+      return localStorage.getItem('ferni_cookies') === 'accepted';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ============================================================================
   // USER ID
   // ============================================================================
 
@@ -86,6 +101,7 @@
 
   async function getVariant(experimentId, options) {
     options = options || {};
+    if (!hasConsent()) return null;
     const userId = getUserId();
 
     // Check cache
@@ -154,6 +170,7 @@
   // ============================================================================
 
   function queueEvent(experimentId, variantId, userId, eventType, goalId, value) {
+    if (!hasConsent()) return;
     eventQueue.push({
       experimentId: experimentId,
       variantId: variantId,
@@ -201,6 +218,7 @@
   }
 
   function trackConversion(experimentId, goalId, value) {
+    if (!hasConsent()) return;
     const cache = getCache();
     const assignment = cache[experimentId];
 
@@ -215,6 +233,7 @@
   }
 
   function trackConversionForAll(goalId, value) {
+    if (!hasConsent()) return;
     const cache = getCache();
     const userId = getUserId();
 
