@@ -56,6 +56,7 @@ import {
   type LedgerStore,
 } from '../personas/life-ledger.js';
 import { loadCanon, selfRecallEnabled, selfRecallNote } from '../personas/self-recall.js';
+import { datesRecallFor, type DatesRecall } from '../../intelligence/world-model/dates/recall.js';
 import {
   formatLifeUpdates,
   loadLifeUpdates,
@@ -135,6 +136,8 @@ export interface MemoryRecallDeps {
   checkIns?: () => Promise<OpenCommitment[]>;
   /** What the two of them both know (common-ground.ts, COMMON_GROUND). */
   groundStore?: GroundStore;
+  /** A date they told Ferni about, asked once (dates/recall.ts, FRIEND_FOLLOWUPS). */
+  dates?: DatesRecall;
   /** FERNI_SELF_RECALL=on; read from the environment when not given. */
   selfRecall?: boolean;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
@@ -322,7 +325,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         canon = c;
       })
     : Promise.resolve();
-  const ready = Promise.all([loaded, since, checkedIn, ground, canonLoaded]).then(() => undefined);
+  const dates = deps.dates ?? datesRecallFor(deps.userId);
+  const loading = [loaded, since, checkedIn, ground, canonLoaded, dates.ready];
+  const ready = Promise.all(loading).then(() => undefined);
 
   return {
     ready,
@@ -388,12 +393,14 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       // What the two of them both know (COMMON_GROUND), once, with the first note.
       const groundNow = followUpsOffered ? null : groundNote;
       const checkIn = checkInOffered ? null : checkInNote;
-      // One follow-up per call opener (opener-claim.ts): a check-in in this
-      // note, or one the greeting already asked, leaves the thread line out.
+      const dateNow = followUpsOffered || checkIn ? null : dates.note();
+      // One follow-up per call opener (opener-claim.ts): a check-in or a date
+      // in this note, or one the greeting already asked, leaves the thread line out.
       const greetingAsked = followUpsOffered ? undefined : takeOpenerClaim(deps.userId);
       const opener =
         !followUpsOffered &&
         !checkIn &&
+        !dateNow &&
         !greetingAsked &&
         threadsNow.length > 0 &&
         (deps.opener ?? openerFollowUpEnabled())
@@ -410,6 +417,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const noteWith = (shown: RecallFact[]): string | null =>
         [
           checkIn,
+          dateNow,
           formatRecall(shown, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
           opener,
           summary,
@@ -431,6 +439,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       if (told) toldOffered = true;
       threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));
       if (checkIn) checkInOffered = true;
+      if (dateNow) dates.raised();
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);
       factsThisTurn += facts.length;
