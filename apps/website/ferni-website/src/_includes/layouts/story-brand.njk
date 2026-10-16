@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title }} | Ferni</title>
+  <title>{{ title }}{% if not (title and (title.startsWith('Ferni') or title.endsWith('Ferni'))) %} | Ferni{% endif %}</title>
   <meta name="description" content="{{ description or site.tagline }}">
   
   {# ====== PRECONNECT (Performance) ====== #}
