@@ -161,6 +161,18 @@ Each lane maps to an agent in `.claude/agents/`.
   (`temporal-commitment-engine-design.md`). PR 4 onward needs Seth's
   Temporal Cloud account.
 
+## Cost (GCP budget hit on 2026-10-16)
+
+- **#1531:** eval judges default to Pro, the main cost driver (a single eval
+  day cost about 12.8M Pro output tokens). Move them to flash and cap runs.
+  **Until that lands, never run Pro-judged evals in loops.**
+- **#1532:** finish the Redis and runner cleanup. Done so far: the runner VMs and
+  Redis are deleted, REDIS_URL is removed from john-bogle-ui, and the
+  `redis-url` secret points at a fast-refusing local address.
+- Ask Seth to turn on billing export to the `billing_export` BigQuery
+  dataset, which exists but is empty, so costs can be attributed exactly.
+- `aim-platform` stays; Seth needs it.
+
 ## Practice upgrades to adopt
 
 #1526 lists the SDLC and AI product-lifecycle practices the repo doesn't have
