@@ -17,6 +17,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { generateTwinResponse, hasTwinProfile } from '../services/custom-agent/twin-reply.js';
+import { withOwnTwin, type TwinRequestBody } from '../services/custom-agent/twin-request.js';
 import { handleJournalTranscribe } from './journal-transcribe-route.js';
 import {
   generatePrompts,
@@ -488,30 +489,20 @@ export async function handleJournalRoutes(
     if (method === 'POST' && pathname === '/api/journal/twin-response') {
       const auth = await requireAuth(req, res); // SECURITY: not an open LLM endpoint
       if (!auth) return true;
-      const body = await parseBody<{
-        userMessage: string;
-        profile: {
-          name: string;
-          mannerisms: string[];
-          values: string[];
-          communicationStyle: string;
-          philosophy: string;
-          passions: string[];
-        };
-        relevantJournals: Array<{
-          content: string;
-          mood?: string;
-          date: string;
-        }>;
-        keyThemes: string[];
-      }>(req);
+      // The Chronicle sends no profile: it is built from the caller's own twin
+      const body = await withOwnTwin(auth.userId, await parseBody<TwinRequestBody>(req));
 
       if (!body.userMessage || !hasTwinProfile(body.profile)) {
         sendJson(res, 400, { error: body.userMessage ? 'Missing profile' : 'Missing userMessage' });
         return true;
       }
       try {
-        const response = await generateTwinResponse(body);
+        const response = await generateTwinResponse({
+          userMessage: body.userMessage,
+          profile: body.profile,
+          relevantJournals: body.relevantJournals ?? [],
+          keyThemes: body.keyThemes ?? [],
+        });
         if (!response) {
           sendJson(res, 503, { error: 'Twin response unavailable' });
           return true;
