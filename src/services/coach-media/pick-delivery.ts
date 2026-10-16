@@ -8,8 +8,10 @@
  *   because they asked for it, at most MAX_TEXTS_PER_CALL per call and
  *   TEXTS_PER_USER_PER_DAY a day (the tool also turns away test accounts and a
  *   speaker who isn't the owner, as the outbound confirm gate does). The app
- *   copy goes to the in-app inbox (saveInAppMessage) with its card
- *   (answer-card.ts) either way.
+ *   copy goes to the in-app inbox (saveInAppMessage) either way.
+ * - Every send links the pick's answer card (answer-card.ts), the page at
+ *   /a/:id that shows its sources and Google's search suggestions, which the
+ *   grounding terms ask be shown. Without a saved card nothing is sent.
  * - Sending saves a trust-systems commitment due in a few days, so the
  *   follow-up builder (commitment-follow-up.ts) has Ferni ask once how it went.
  * - Their answer is stored once per pick (feedback.ts recordHelped) as a
@@ -20,6 +22,8 @@
  * @module services/coach-media/pick-delivery
  */
 
+import { createAnswerCard } from '../approvals/answer-cards.js';
+import { isApprovalsPageEnabled } from '../approvals/flag.js';
 import { sendSMS } from '../communication-service.js';
 import { callerText } from '../outreach/caller-text.js';
 import { saveInAppMessage } from '../outreach/unified-delivery.js';
@@ -89,14 +93,18 @@ export function plainTitle(title: string, max: number): string {
   return words.length > max ? `${words.slice(0, max - 1).trimEnd()}…` : words;
 }
 
-/** The text a pick goes out as: a fixed template, the plain title and exactly one checked link. */
-export function smsBody(c: Candidate, link: string): string {
+/**
+ * The text a pick goes out as: a fixed template, the plain title, the one
+ * checked link and, in a text, the link to its card (our own /a/:id page).
+ */
+export function smsBody(c: Candidate, link: string, cardUrl?: string): string {
   const short = plainTitle(c.title, 60);
   // Length is ours (spokenLength or a page count), but only its known shape goes out.
   const length = /^\d+(\.\d)? (seconds|minutes|hours|pages)$/.test(c.length ?? '')
     ? ` (${c.length})`
     : '';
-  return `From Ferni, the ${c.kind} we talked about: "${short || 'this one'}"${length} ${link}`;
+  const card = cardUrl ? ` Why I picked it: ${cardUrl}` : '';
+  return `From Ferni, the ${c.kind} we talked about: "${short || 'this one'}"${length} ${link}${card}`;
 }
 
 /**
@@ -106,6 +114,21 @@ export function smsBody(c: Candidate, link: string): string {
 export function commitmentText(c: Candidate): string {
   const title = plainTitle(c.title, 40);
   return title ? `try the ${c.kind} '${title}'` : `try the ${c.kind} Ferni sent`;
+}
+
+/** The pick's card, saved for its page; null when that page is off or the save fails. */
+async function saveCard(
+  userId: string,
+  sent: SentPick,
+  personaId: string
+): Promise<{ id: string; url: string } | null> {
+  if (!isApprovalsPageEnabled()) return null;
+  return createAnswerCard(userId, pickCard(sent.topic, sent.candidate, sent.why, personaId)).catch(
+    (error: unknown) => {
+      getLogger().warn({ error: String(error) }, 'coach-media: answer card not saved');
+      return null;
+    }
+  );
 }
 
 async function followUpLater(userId: string, sent: SentPick): Promise<Date> {
@@ -149,17 +172,7 @@ export async function deliverPick(
   const c = sent.candidate;
   const link = sendableLink(c);
   if (!link) return "That link isn't one Ferni can send; describe it instead.";
-  const body = smsBody(c, link);
   const log = getLogger();
-  // The app copy carries the card (sources, Search suggestions) either way: a
-  // grounded pick's sources must be visible somewhere the user can see.
-  const inApp = {
-    type: 'coaching_resource',
-    personaId,
-    text: body,
-    reason: 'coach-media pick',
-    card: { ...pickCard(sent.topic, c, sent.why, personaId) },
-  };
 
   // Take a slot before the first await: parallel calls in one model step would
   // otherwise all pass the check. Given back if nothing is sent.
@@ -178,14 +191,33 @@ export async function deliverPick(
     return "That's as many texts as Ferni sends someone in a day; offer the app instead.";
   }
 
-  if (how === 'text') {
-    const reach = await userReach(userId, 'sms', { standingOptIn: false }).catch(() => null);
-    if (!reach?.phone) {
-      release();
-      return "There's no verified number on their account, so it can't be texted. Offer to put it in the app.";
-    }
+  const phone =
+    how === 'text'
+      ? (await userReach(userId, 'sms', { standingOptIn: false }).catch(() => null))?.phone
+      : undefined;
+  if (how === 'text' && !phone) {
+    release();
+    return "There's no verified number on their account, so it can't be texted. Offer to put it in the app.";
+  }
+  // A grounded pick's sources and Search suggestions must be visible where
+  // they read it: the card page. No card, no send.
+  const card = await saveCard(userId, sent, personaId);
+  if (!card) {
+    release();
+    return "Couldn't send it just now. Describe it instead.";
+  }
+  // The inbox shows the card as a link of its own (proactive-messages.ui.ts).
+  const inApp = {
+    type: 'coaching_resource',
+    personaId,
+    text: smsBody(c, link),
+    reason: 'coach-media pick',
+    answerCardId: card.id,
+  };
+
+  if (phone) {
     try {
-      await sendSMS(reach.phone, body);
+      await sendSMS(phone, smsBody(c, link, card.url));
     } catch (error) {
       release();
       log.warn({ error: String(error) }, 'coach-media: text failed');
