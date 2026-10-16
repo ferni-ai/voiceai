@@ -18,9 +18,12 @@
  * @module intelligence/world-model/dates/recall
  */
 import { flagOn } from '../../../config/env-flag.js';
-import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { createFirestoreWorldFactStore, type WorldFactStore } from '../temporal/store.js';
+import {
+  createFirestoreWorldFactStore,
+  markFactRaised,
+  type WorldFactStore,
+} from '../temporal/store.js';
 import type { DateFact } from './store.js';
 import { daysBetween, nextOccurrence } from './timex.js';
 
@@ -120,17 +123,6 @@ export interface DatesRecall {
   raised: () => void;
 }
 
-async function markRaisedOn(userId: string, factId: string, day: string): Promise<void> {
-  const db = getFirestoreDb();
-  if (!db) return;
-  await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('world_facts')
-    .doc(factId)
-    .update({ raisedOn: day });
-}
-
 /** Loads the caller's dates at call start. Never rejects. */
 export function createDatesRecall(deps: DatesRecallDeps): DatesRecall {
   const today = (deps.now?.() ?? new Date()).toISOString().slice(0, 10);
@@ -149,7 +141,7 @@ export function createDatesRecall(deps: DatesRecallDeps): DatesRecall {
     raised() {
       if (!due || given) return;
       given = true;
-      (deps.mark ?? markRaisedOn)(deps.userId, due.id, today).catch((error: unknown) =>
+      (deps.mark ?? markFactRaised)(deps.userId, due.id, today).catch((error: unknown) =>
         log.warn({ error: String(error) }, 'Date not marked raised')
       );
     },
