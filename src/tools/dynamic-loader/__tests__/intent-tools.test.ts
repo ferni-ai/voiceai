@@ -47,7 +47,7 @@ vi.mock('../../registry/loader.js', () => ({
   autoRegisterAllDomains: async () => undefined,
   loadToolDomainsLazy: async (domains: string[]) =>
     registryMode.hangDomain && domains.includes(registryMode.hangDomain)
-      ? new Promise<number>(() => undefined)
+      ? new Promise<number>(() => {})
       : 0,
 }));
 
