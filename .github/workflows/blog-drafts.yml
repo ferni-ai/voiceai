@@ -80,11 +80,20 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
 
+      # The repo has no Gemini API key; the drafter uses Vertex AI through the
+      # service account the other GCP workflows use.
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
       # Exits 1 when the draft still fails the brand gate after one retry.
       - name: Draft the post
         id: draft
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GOOGLE_CLOUD_LOCATION: global
         run: |
           META="$RUNNER_TEMP/draft-meta.json"
           pnpm tsx scripts/blog/draft-post.ts --type "$TYPE" --meta-out "$META"
