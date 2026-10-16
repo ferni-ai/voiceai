@@ -145,9 +145,12 @@ Each lane maps to an agent in `.claude/agents/`.
 
 ### best-friend (`ferni-bestfriend`)
 - #1522, the friendship rubric: verified and queued. Then a dev baseline (the lead schedules dev).
+- #1529, #1513 inside jokes: verified and queued. It deletes the in-memory joke Map.
+  Follow-ups listed in its body:
+  - `persona-memory.ts` and `callback-opportunities.ts` still inject jokes outside the INSIDE_JOKES flag;
+  - two more joke stores remain (superhuman-memory and the human-signal extractor).
 - **Waves:**
-  1. #1513 inside jokes: consolidate onto the durable INSIDE_JOKES path and
-     retire the in-memory Map in `superhuman/inside-jokes.ts`.
+  1. Done: #1522 rubric and #1529 inside jokes.
   2. #1511 Ferni's life from canon, plus #1512 repair.
   3. #1518 and #1520.
   4. #1515 and #1517.
