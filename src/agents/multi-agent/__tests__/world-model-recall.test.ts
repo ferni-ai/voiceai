@@ -344,7 +344,18 @@ describe('world model in the live recall hook', () => {
       summaries: async () => [
         {
           followUpItems: [],
-          insideJokes: ['the time her ex sang karaoke', 'Biscuit vs the vacuum'],
+          insideJokes: [
+            {
+              bit: 'the time her ex sang karaoke',
+              quote: 'my ex sang karaoke all night',
+              speaker: 'user',
+            },
+            {
+              bit: 'Biscuit vs the vacuum',
+              quote: 'Biscuit lost a fight with the vacuum',
+              speaker: 'user',
+            },
+          ],
         },
       ],
     };
@@ -355,7 +366,8 @@ describe('world model in the live recall hook', () => {
       world: { env, load: loadWorldModel(worldSources()) },
     });
     await recall.ready;
-    const first = recall.noteFor(turns[0] ?? '') ?? '';
+    // A turn that touches both lines, so only the world model can leave a bit out.
+    const first = recall.noteFor('Biscuit and the vacuum again, like karaoke all night.') ?? '';
     expect(first).toContain('Biscuit vs the vacuum');
     expect(first).not.toContain('karaoke');
   });

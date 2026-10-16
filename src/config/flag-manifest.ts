@@ -183,6 +183,8 @@ export const FLAG_MANIFEST = {
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   INTERRUPT_TRACE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   IN_PROCESS_SCHEDULERS: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // every journal surface reads and writes bogle_users/{uid}/journal (old twin arrays merged in)
+  JOURNAL_ONE_STORE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // voice journal speech-to-text through Gemini on Vertex when Deepgram and Whisper have no key
   JOURNAL_TRANSCRIBE_VERTEX: { default: 'off', owner: 'memory', kind: 'experiment' },
   // public landing-page Gemini calls; off until the chat has per-IP and daily limits
@@ -210,7 +212,8 @@ export const FLAG_MANIFEST = {
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
   MULTI_AGENT_ESSENTIAL_TOOLS_FIRST: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MULTI_AGENT_MODE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  MULTI_AGENT_SINGLE_SESSION: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // off: a handoff closes the call's session and starts another, as before (agents/multi-agent/persona-swap.ts)
+  MULTI_AGENT_SINGLE_SESSION: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MUSIC_CONTINUE_AS_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
   MUSIC_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   NAME_CORRECTION: { default: 'off', owner: 'memory', kind: 'experiment' },

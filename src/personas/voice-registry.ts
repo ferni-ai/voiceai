@@ -46,18 +46,13 @@ const logger = getLogger();
 // Re-export for backwards compatibility
 export { VOICE_IDS, isValidVoiceId };
 
-// FIX BUG #11: Build fallback map from single source of truth - include all personas
+// Every canonical persona gets its own voice, from the canonical ID list rather than
+// a hand list: the registry is never built from bundles on the call path, so a persona
+// missing here spoke in Ferni's voice (the john-bogle and peter-lynch legends did).
 const FALLBACK_VOICE_IDS: Record<string, string> = {
-  ferni: getVoiceIdForPersona('ferni'),
+  ...Object.fromEntries(ALL_CANONICAL_IDS.map((id) => [id, getVoiceIdForPersona(id)])),
   'jack-b': getVoiceIdForPersona('jack-b'),
-  'peter-john': getVoiceIdForPersona('peter-john'),
-  'alex-chen': getVoiceIdForPersona('alex-chen'),
-  'maya-santos': getVoiceIdForPersona('maya-santos'),
-  'jordan-taylor': getVoiceIdForPersona('jordan-taylor'),
-  'nayan-patel': getVoiceIdForPersona('nayan-patel'),
   'generic-advisor': getVoiceIdForPersona('generic-advisor'),
-  // Standalone personas
-  'joel-dickson': getVoiceIdForPersona('joel-dickson'),
 };
 
 // Default fallback voice (Ferni)

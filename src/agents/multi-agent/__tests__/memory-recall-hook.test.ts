@@ -242,22 +242,29 @@ describe('createMemoryRecall', () => {
     expect(off.noteFor("What's my daughter's name?")).not.toMatch(/People in their life|never guess/i);
   });
 
-  it('offers shared inside jokes once per call, only with INSIDE_JOKES=on', async () => {
+  it('offers a shared inside joke once per call, on a turn that touches its line, only with INSIDE_JOKES=on', async () => {
     const withJokes = {
       facts: store.facts,
-      summaries: async () => [{ insideJokes: ['the mushroom thing'] }],
+      summaries: async () => [
+        {
+          insideJokes: [
+            { bit: 'the mushroom thing', quote: 'the fungus incident in the risotto', speaker: 'user' },
+          ],
+        },
+      ],
     };
     vi.stubEnv('INSIDE_JOKES', 'on');
     try {
       const recall = createMemoryRecall({ userId: 'u1', store: withJokes });
       await recall.ready;
-      expect(recall.noteFor('Hey, how are you?')).toContain('- the mushroom thing');
-      expect(recall.noteFor('Biscuit chewed my shoes again')).not.toContain('mushroom');
+      expect(recall.noteFor('Hey, how are you?') ?? '').not.toContain('mushroom');
+      expect(recall.noteFor('The fungus is back in my risotto')).toContain('- the mushroom thing');
+      expect(recall.noteFor('The risotto fungus again') ?? '').not.toContain('mushroom');
 
       vi.stubEnv('INSIDE_JOKES', 'off');
       const off = createMemoryRecall({ userId: 'u1', store: withJokes });
       await off.ready;
-      expect(off.noteFor('Hey, how are you?')).toBeNull();
+      expect(off.noteFor('The fungus is back in my risotto') ?? '').not.toContain('mushroom');
     } finally {
       vi.unstubAllEnvs();
     }

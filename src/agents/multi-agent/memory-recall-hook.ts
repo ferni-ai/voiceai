@@ -35,6 +35,7 @@ import {
   type RecallSnapshot,
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
+import { jokesForTurn } from '../../memory/recall/inside-jokes-recall.js';
 import {
   createSemanticIndex,
   estimateTokens,
@@ -194,6 +195,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let snapshot: RecallSnapshot | undefined;
   const surfaced = new Set<string>();
   let followUpsOffered = false;
+  // A shared bit comes once a call (INSIDE_JOKES), on a turn that touches its line.
+  let jokeOffered = false;
   const bridge = deps.bridge ?? recallBridgeEnabled();
   // RECALL_BRIDGE: open threads not yet offered, and which caller turn this is.
   let threadsLeft: string[] = [];
@@ -371,8 +374,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           ? []
           : snapshot.followUps.filter(world.keep);
       const followUps = [...threadsNow, ...extras.flatMap((id) => laterFollowUps.get(id) ?? [])];
-      // Shared bits, like the follow-ups, come once (shown only with INSIDE_JOKES=on).
-      const insideJokes = followUpsOffered ? [] : (snapshot.insideJokes ?? []).filter(world.keep);
+      // Shared bits come once a call, and only on a turn that touches the line they came from.
+      const insideJokes = jokeOffered ? [] : jokesForTurn(snapshot.insideJokes ?? [], text);
       // The ledger, like the follow-ups, comes once, with the first note. With
       // RECALL_BRIDGE it waits like the threads, unless they ask about him: on
       // "Still on there." alone it was read as his mail pile (6/8 replies).
@@ -430,6 +433,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       if (!note) return null;
       lastPick = { facts, userName: deps.userName, rest: noteWith([]) };
       followUpsOffered = true;
+      if (insideJokes.length > 0) jokeOffered = true;
       if (told) toldOffered = true;
       threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));
       if (checkIn) checkInOffered = true;

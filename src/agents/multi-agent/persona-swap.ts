@@ -8,16 +8,17 @@
  * released at the end of a completed close), and the next persona's session could not
  * start. No voice handoff could succeed on a live call (dev, 2026-10-10 15:12Z).
  *
- * Off unless MULTI_AGENT_SINGLE_SESSION=on.
+ * On by default; MULTI_AGENT_SINGLE_SESSION=off goes back to a session per persona.
  */
 import type { llm, voice } from '@livekit/agents';
 import type { UserData } from '../shared/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { flagOn } from '../../config/env-flag.js';
 
 const log = getLogger();
 
 export function singleSessionHandoffs(): boolean {
-  return process.env['MULTI_AGENT_SINGLE_SESSION'] === 'on';
+  return flagOn('MULTI_AGENT_SINGLE_SESSION');
 }
 
 /** The talk so far, for the next persona: not the outgoing persona's instructions or tools */

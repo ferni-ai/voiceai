@@ -53,7 +53,7 @@ export interface WorldRecall {
   readonly loading: boolean;
   /** The facts per-turn recall may pick from: the snapshot without what the note already says. */
   pool(snapshot: RecallSnapshot): RecallSnapshot;
-  /** False for a thread or inside joke about a topic they asked not to bring up. */
+  /** False for a thread about a topic they asked not to bring up (screen covers shared bits). */
   keep(text: string): boolean;
   /** The world note, once a call, with the first note after it loads; else null. */
   note(): string | null;

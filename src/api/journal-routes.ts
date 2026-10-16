@@ -33,6 +33,8 @@ import { parseBody, sendJSON } from './helpers.js';
 import { requireAuth } from './auth-middleware.js';
 import { refuseOtherUsersJournal } from './journal-owner.js';
 import { getVerifiedUserId } from '../servers/api/request-identity.js';
+import { useJournalEntryStore } from '../services/journal/journal-ports.js';
+import { firestoreJournalStore } from '../services/stores/journal-store.js';
 
 const log = getLogger();
 
@@ -40,7 +42,8 @@ const log = getLogger();
 // HELPERS
 // ============================================================================
 
-// parseBody and sendJSON imported from './helpers.js'
+// JOURNAL_ONE_STORE: the journal service reads and writes through this adapter
+useJournalEntryStore(firestoreJournalStore);
 
 /** Alias for sendJSON with status-first signature for backward compat */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
@@ -51,13 +54,7 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 // ROUTE HANDLER
 // ============================================================================
 
-/**
- * Handle journal API routes
- *
- * Endpoints:
- * - POST /api/journal/prompt - Get a single personalized prompt
- * - POST /api/journal/prompts - Get multiple prompts
- */
+/** Handle /api/journal/* (the endpoints are listed in the module header). */
 export async function handleJournalRoutes(
   req: IncomingMessage,
   res: ServerResponse,
