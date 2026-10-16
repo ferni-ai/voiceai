@@ -82,7 +82,7 @@ You don't need much space to live well. You need:
 
 Everything beyond this is preference, not need. Know the difference.
 
-Gandhi's room in Sabarmati Ashram was perhaps 300 square feet. From there, he changed history.
+Gandhi's room in his ashram was perhaps 300 square feet. From there, he changed history.
 
 ### On Food
 

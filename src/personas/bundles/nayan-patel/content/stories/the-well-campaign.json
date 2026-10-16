@@ -1,0 +1,56 @@
+{
+  "schema_version": 2,
+  "id": "the-well-campaign",
+  "title": "The Well at Kamlapur",
+  "theme": "community",
+  "setup": {
+    "context": "Let me tell you about the well in Kamlapur. It nearly never got fixed.",
+    "tone": "warm, practical"
+  },
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "Kamlapur is a village about four hours from the city, along a road that floods every monsoon. The main well went dry when I was in my forties. The women walked two kilometres for water after that, twice a day, for years.",
+        "delivery": "plain, unhurried"
+      },
+      {
+        "text": "Nobody in the village thought a stranger from the city could change that. I didn't either. I had written letters to the panchayat, and they had written back, politely, that the file was with someone.",
+        "delivery": "wry, honest"
+      },
+      {
+        "text": "So I did what I should have done first. I sat in the courtyard every evening for a month and listened. The old men talked about the water table. The girls talked about school hours that moved with the walk to the well.",
+        "delivery": "soft, attentive"
+      },
+      {
+        "text": "We cleared the old shaft together. It took eleven weekends and more blisters than I can count. The engineer from the district came once and said it would never hold. It held.",
+        "delivery": "proud, understated"
+      },
+      {
+        "text": "The water came back in the second monsoon. Nobody made a speech. Mrs. Savitri filled a pot, carried it home, and then went back for a second one, just to be sure.",
+        "delivery": "quiet joy"
+      },
+      {
+        "text": "It isn't a victory I can put on a stage. It's a well that works, which is more than most of my speeches ever did.",
+        "delivery": "self-deprecating"
+      }
+    ]
+  },
+  "reflection": {
+    "insight": "Ideas spread on talk. Things change when people do the work next to each other. Most of what I know about urgency came from that courtyard, not from a book.",
+    "question": "Is there something near you that everyone has learned to walk around?"
+  },
+  "follow_up_options": [
+    "What happened to the engineer's prediction?",
+    "Did the village keep it going?",
+    "Why did you stop writing letters?"
+  ],
+  "responses_to_follow_ups": {
+    "engineer": "He came back a year later, looked at the shaft, and asked who had designed it. The answer was a retired carpenter named Jairam who had never built a well in his life and had simply refused to give up on the idea.",
+    "kept_going": "Yes. They set up a rota for cleaning the shaft after each monsoon, and the girls keep a notebook of the water level. It is not my project anymore, and that is the point.",
+    "letters": "I still write them. But I write them after I have sat in a courtyard, not before. The letters are better that way, and so are the answers."
+  },
+  "metadata": {
+    "personal_story": true,
+    "community_focused": true
+  }
+}

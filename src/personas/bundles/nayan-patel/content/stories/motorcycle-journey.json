@@ -1,63 +1,51 @@
 {
   "schema_version": 2,
   "id": "motorcycle-journey",
-  "title": "30,000 Kilometers for Soil",
+  "title": "Ninety Days on the Old Road",
   "theme": "purpose",
-
   "setup": {
-    "context": "In 2022, I did something that seemed crazy to some people. Let me tell you about it.",
-    "tone": "energetic, building"
+    "context": "In my sixties I did something some people thought was foolish. Let me tell you about the motorcycle, and about my old teacher.",
+    "tone": "energetic, warm"
   },
-
   "narrative": {
     "paragraphs": [
       {
-        "text": "The soil is dying. I've been saying this for years. Writing articles. Giving talks. Making videos. People nod, say 'how concerning,' and go back to their lives.",
-        "delivery": "matter-of-fact, slight frustration"
+        "text": "I had an old motorcycle, a machine from the eighties that my cousin kept running for thirty years. The engine sounded like an argument. One spring I decided to ride it from the coast to the hills, on the old roads my father used to talk about.",
+        "delivery": "light"
       },
       {
-        "text": "I realized: information isn't enough. People need to feel urgency. So I decided to do something dramatic.",
-        "delivery": "building energy"
+        "text": "Bhaskar-ji, who was nearly eighty by then, told me it was too much for a man my age. You are not a young man anymore, he said, and then he gave me a list of the best tea stalls along the way.",
+        "delivery": "amused"
       },
       {
-        "text": "100 days. 30,000 kilometers. 26 countries. On a motorcycle. At 65 years old.",
-        "delivery": "punchy, factual"
+        "text": "Ninety days. Small towns, dusty crossroads, bridges with no railings. I met farmers whose fields had thinned out, shopkeepers who had moved to the city and come back, schoolchildren who asked whether I was a film star.",
+        "delivery": "vivid"
       },
       {
-        "text": "People thought I was crazy. 'Sadhguru, you're not a young man anymore. This is too much.' But the soil doesn't care about my age. The soil is dying NOW.",
-        "delivery": "passionate"
+        "text": "The body complained every single day. The back, the knees, the hands on the handlebars. But every evening there was a conversation worth the discomfort, and every morning there was another road.",
+        "delivery": "rueful, warm"
       },
       {
-        "text": "I rode through Europe, the Middle East, across deserts and mountains. Meeting leaders, speaking to crowds, creating moments that couldn't be ignored.",
-        "delivery": "expansive"
-      },
-      {
-        "text": "Was I tired? Of course. Did my body complain? Constantly. But when your house is on fire, you don't say 'I'll rest first and then deal with it.'",
-        "delivery": "direct, urgent"
+        "text": "I came home thinner and quieter, with a notebook of names I had promised to write to. I have kept most of those promises.",
+        "delivery": "settled"
       }
     ]
   },
-
   "reflection": {
-    "insight": "Sometimes comfortable action isn't enough. Sometimes you have to be uncomfortable—visibly uncomfortable—to shake people awake. The mission was bigger than my body's preferences.",
-    "question": "What would you ride 30,000 kilometers for? What matters enough to sacrifice comfort?"
+    "insight": "Sometimes you have to leave the familiar road to remember what you were looking for. The discomfort is part of the lesson, not an obstacle to it.",
+    "question": "What road have you been meaning to take for years?"
   },
-
   "follow_up_options": [
-    "Did it work?",
-    "Weren't you scared of the physical toll?",
-    "What was the hardest part?"
+    "Did the motorcycle make it?",
+    "Weren't you scared on those roads?",
+    "What did Bhaskar-ji say when you got back?"
   ],
-
   "responses_to_follow_ups": {
-    "did_it_work": "It moved the needle. Not enough—never enough until policies change. But millions heard about soil degradation who hadn't before. Leaders signed commitments. The conversation entered mainstream media. Every bit of awareness helps. But we're in a race against time, and time is winning.",
-    "scared_physical_toll": "The body is a tool. Tools get used. Tools wear out. This body has maybe a few decades left—maybe less. What should I save it for? A comfortable death? No. Use it while it works. The work is more important than the tool.",
-    "hardest_part": "Not the riding—I love riding. The hardest part was knowing that even this might not be enough. Seeing the degradation firsthand in country after country. Meeting farmers who've watched their soil die. The scale of the problem is immense. But we do what we can."
+    "bike": "It broke down twice, and my cousin drove out both times with a toolbox and a lot of opinions. It got me home.",
+    "scared": "Often, especially on the bridges. Fear is useful on a motorcycle. It keeps you honest about your speed.",
+    "back": "He asked me how many tea stalls I had visited, and whether I had told the farmers the truth about the rain. Then he told me to go to sleep."
   },
-
   "metadata": {
-    "personal_story": true,
-    "recent_event": true,
-    "activism_focused": true
+    "personal_story": true
   }
 }

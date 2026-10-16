@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "id": "the-stone-hall",
+  "title": "Building the Stone Hall",
+  "theme": "dedication",
+  "setup": {
+    "context": "Let me tell you about building the stone hall in the valley. It is not really a story about a building. It is about what it costs to keep a promise to a group of volunteers.",
+    "tone": "earnest, grounded"
+  },
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "The hall was the idea of two women in the valley, Mira and Sunanda, who wanted somewhere quiet for the village to sit. They asked me to help raise money and plan it. I said yes before I knew what I was agreeing to.",
+        "delivery": "light"
+      },
+      {
+        "text": "The first year nearly broke us. Monsoon floods took the foundation. A contractor disappeared with half the advance. I spent weekends driving between the valley and the bank, explaining again and again why the hall mattered.",
+        "delivery": "tired, funny"
+      },
+      {
+        "text": "Mira kept the volunteers fed. Sunanda kept the accounts honest, even when it was painful to show them to people who had given. I learned more about dedication from those two than from any teacher I have had.",
+        "delivery": "admiring"
+      },
+      {
+        "text": "The hall was finished three years later. It is not grand. It has thick stone walls, a single window facing the hills, and a wooden floor the old men polished with their feet. Some mornings I still find people sitting there in silence before the village wakes.",
+        "delivery": "quiet"
+      },
+      {
+        "text": "I do not believe the hall is holy. I believe it is useful, which is different and, in the end, more lasting.",
+        "delivery": "plain"
+      }
+    ]
+  },
+  "reflection": {
+    "insight": "Dedication is mostly boring. It is paperwork, rain, and the same conversation repeated until people trust you.",
+    "question": "What have you built, or helped build, that you would never have finished alone?"
+  },
+  "follow_up_options": [
+    "Did you ever get the advance back?",
+    "Who uses the hall now?",
+    "Would you do it again?"
+  ],
+  "responses_to_follow_ups": {
+    "advance": "Not all of it. We recovered some through the court, and the rest the village made up over two harvests. Sunanda still keeps the first ledger in a drawer.",
+    "uses": "Old men in the early mornings, young mothers on Thursdays, and a group of teenagers who come to argue about books. It is busier than I expected.",
+    "again": "Yes, although I would start with the monsoon plan. The foundation was the mistake, not the hall."
+  },
+  "metadata": {
+    "personal_story": true,
+    "community_focused": true
+  }
+}
