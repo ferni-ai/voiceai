@@ -50,7 +50,7 @@ function injectStyles(): void {
     .theme-language-settings {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal-backdrop, 2000);
+      z-index: var(--z-modal-backdrop);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -74,7 +74,7 @@ function injectStyles(): void {
 
     .theme-language-settings__panel {
       position: relative;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       width: 100%;
       max-width: 480px;
       max-height: 85vh;

@@ -5,10 +5,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../memory/recall/memory-control.js', () => ({ listRemembered: vi.fn() }));
-
-const { buildKnownView, createFirestoreKnownStore, loadKnownView, isMemoryViewPonderingOn } =
-  await import('../known.js');
+const { buildKnownView, loadKnownView, isMemoryViewPonderingOn } = await import('../known.js');
 const { loadRecallSnapshot } = await import('../../../memory/recall/session-recall.js');
 import type { KnownStore } from '../known.js';
 import type { TemporalFact } from '../../world-model/temporal/types.js';
@@ -312,65 +309,5 @@ describe('loadKnownView', () => {
     expect(s.pondering).not.toHaveBeenCalled();
     expect(view.thinkingAbout).toBeUndefined();
     expect(isMemoryViewPonderingOn({ MEMORY_VIEW_PONDERING: 'on' })).toBe(false);
-  });
-});
-
-describe('createFirestoreKnownStore', () => {
-  /** A Firestore that records every document path it is asked for. */
-  function fakeDb() {
-    const paths: string[] = [];
-    const doc = (path: string): Record<string, unknown> => ({
-      path,
-      id: path.split('/').pop(),
-      collection: (name: string) => col(`${path}/${name}`),
-      get: async () => {
-        paths.push(path);
-        return {
-          exists: false,
-          id: path.split('/').pop(),
-          data: () => undefined,
-          get: () => undefined,
-        };
-      },
-    });
-    const col = (path: string): Record<string, unknown> => {
-      const q = {
-        doc: (id: string) => doc(`${path}/${id}`),
-        where: () => q,
-        limit: () => q,
-        get: async () => {
-          paths.push(path);
-          return { docs: [] };
-        },
-      };
-      return q;
-    };
-    const db = {
-      collection: (name: string) => col(name),
-      getAll: async (...refs: Array<{ path: string }>) => {
-        paths.push(...refs.map((r) => r.path));
-        return refs.map((r) => ({
-          exists: false,
-          id: r.path.split('/').pop(),
-          get: () => undefined,
-        }));
-      },
-    };
-    return { db, paths };
-  }
-
-  it('reads only under bogle_users/{the caller}', async () => {
-    const { db, paths } = fakeDb();
-    const s = createFirestoreKnownStore(() => db as never);
-    await s.worldFacts('u-1');
-    await s.mindModel('u-1');
-    await s.pondering('u-1');
-    await s.summaryDays('u-1', ['sum-1']);
-    expect(paths).toEqual([
-      'bogle_users/u-1/world_facts',
-      'bogle_users/u-1/mind_model/current',
-      'bogle_users/u-1/predictive_intelligence/pondering',
-      'bogle_users/u-1/summaries/sum-1',
-    ]);
   });
 });

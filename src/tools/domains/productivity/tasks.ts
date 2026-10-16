@@ -20,7 +20,8 @@ import {
   type TaskData,
 } from '../../../services/stores/productivity-store.js';
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
-
+import { formatStoredLocalTime, WallClock } from '../../../utils/time-zone.js';
+import { runContextTimeZone } from '../../../utils/caller-time-zone.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import {
   syncTaskToCalendar,
@@ -204,56 +205,50 @@ export function getUserTasks(userId: string): Task[] {
     });
 }
 
-function parseNaturalDueDate(expression: string): Date | null {
-  const now = new Date();
+/** A due date in the user's zone ("tomorrow" ends at 23:59 where they are); unknown zone = UTC. */
+function parseNaturalDueDate(expression: string, zone?: string, now = new Date()): Date | null {
   const lower = expression.toLowerCase().trim();
 
-  if (lower === 'today') {
-    const today = new Date(now);
-    today.setHours(23, 59, 0, 0);
-    return today;
-  }
-
-  if (lower === 'tomorrow') {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(23, 59, 0, 0);
-    return tomorrow;
+  if (lower === 'today' || lower === 'tomorrow') {
+    const day = new WallClock(now, zone);
+    day.setDate(day.getDate() + (lower === 'tomorrow' ? 1 : 0));
+    day.setHours(23, 59, 0, 0);
+    return day.toDate();
   }
 
   if (lower === 'this week' || lower === 'end of week') {
-    const endOfWeek = new Date(now);
-    const daysUntilSunday = 7 - now.getDay();
+    const endOfWeek = new WallClock(now, zone);
+    const daysUntilSunday = 7 - endOfWeek.getDay();
     endOfWeek.setDate(endOfWeek.getDate() + daysUntilSunday);
     endOfWeek.setHours(23, 59, 0, 0);
-    return endOfWeek;
+    return endOfWeek.toDate();
   }
 
   if (lower === 'next week') {
-    const nextWeek = new Date(now);
+    const nextWeek = new WallClock(now, zone);
     nextWeek.setDate(nextWeek.getDate() + 7);
-    return nextWeek;
+    return nextWeek.toDate();
   }
 
   // Handle "in X days"
   const inDaysMatch = lower.match(/in\s+(\d+)\s+days?/);
   if (inDaysMatch) {
     const days = parseInt(inDaysMatch[1]);
-    const target = new Date(now);
+    const target = new WallClock(now, zone);
     target.setDate(target.getDate() + days);
-    return target;
+    return target.toDate();
   }
 
   // Handle day names
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   for (let i = 0; i < days.length; i++) {
     if (lower.includes(days[i])) {
-      const target = new Date(now);
-      const currentDay = now.getDay();
+      const target = new WallClock(now, zone);
+      const currentDay = target.getDay();
       const daysUntil = (i - currentDay + 7) % 7 || 7;
       target.setDate(target.getDate() + daysUntil);
       target.setHours(23, 59, 0, 0);
-      return target;
+      return target.toDate();
     }
   }
 
@@ -363,6 +358,8 @@ export async function createTask(params: {
   recurrenceEndDate?: Date;
   linkedGoalId?: string;
   reminderMinutesBefore?: number;
+  /** The user's IANA zone: due dates and the calendar entry use their wall clock. */
+  timeZone?: string;
 }): Promise<Task> {
   const sanitizedTitle = sanitizePlainText(params.title, 200);
   const sanitizedDesc = params.description
@@ -370,7 +367,9 @@ export async function createTask(params: {
     : undefined;
 
   const dueDate =
-    typeof params.dueDate === 'string' ? parseNaturalDueDate(params.dueDate) : params.dueDate;
+    typeof params.dueDate === 'string'
+      ? parseNaturalDueDate(params.dueDate, params.timeZone)
+      : params.dueDate;
 
   const task: Task = {
     id: generateId('task'),
@@ -400,7 +399,7 @@ export async function createTask(params: {
   if (dueDate) {
     try {
       // If there's a specific time, use it; otherwise use end of day
-      const scheduledFor = new Date(dueDate);
+      const scheduledFor = new WallClock(dueDate, params.timeZone);
       if (params.dueTime) {
         const [hours, minutes] = params.dueTime.split(':').map(Number);
         scheduledFor.setHours(hours, minutes, 0, 0);
@@ -413,7 +412,7 @@ export async function createTask(params: {
         params.userId,
         task.id,
         sanitizedTitle,
-        scheduledFor,
+        scheduledFor.toDate(),
         30 // Default 30 min duration
       );
     } catch (calendarError) {
@@ -605,20 +604,19 @@ export function createTaskTools() {
           category,
           isRecurring,
           recurrencePattern,
+          timeZone: runContextTimeZone(ctx),
         });
 
-        let response = `Added: "${task.title}"`;
+        // Say what was stored: a to-do due on the user's day. Nothing reminds them of a
+        // task, and a repeating task only comes back once the last one is checked off.
+        let response = `Added to the to-do list: "${task.title}"`;
         if (task.dueDate) {
-          const dateStr = task.dueDate.toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'short',
-            day: 'numeric',
-          });
-          response += ` - Due ${dateStr} (added to calendar)`;
+          response += `, due by ${formatStoredLocalTime(task.dueDate, runContextTimeZone(ctx))}`;
         }
         if (task.isRecurring && task.recurrencePattern) {
-          response += ` (repeats ${task.recurrencePattern})`;
+          response += `. Checking it off adds the next one (${task.recurrencePattern})`;
         }
+        response += `. A task is a to-do, not a reminder: nothing will ping them. If they wanted a reminder, offer a one-time one (setReminder); repeating reminders aren't supported yet.`;
         if (task.priority === 'urgent' || task.priority === 'high') {
           response += ` [HIGH PRIORITY]`;
         }

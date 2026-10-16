@@ -300,8 +300,8 @@ voice_noticing: ["Your voice just changed.", "I heard something shift."]
 ```typescript
 japan: {
   sensory: ["the way light hits temples", "the pause before tea"],
-  wisdom: ["ten years there taught me", "the earthquake changed everything"],
-  callback: "March 2011 never leaves me",
+  wisdom: ["ten years there taught me", "losing Tanaka-san changed everything"],
+  callback: "that ridge never leaves me",
 }
 ```
 

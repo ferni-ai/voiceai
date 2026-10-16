@@ -467,7 +467,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal-backdrop, 2000);
+      z-index: var(--z-modal-backdrop);
       opacity: 0;
       visibility: hidden;
       transition: opacity ${DURATION.SLOW}ms ${EASING.OUT_EXPO}, visibility ${DURATION.SLOW}ms;
@@ -517,7 +517,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-ferni, #3D5A45);
+      color: var(--persona-text);
     }
 
     .vibe-header__title {
@@ -651,7 +651,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--color-ferni-tint, rgba(61, 90, 69, 0.1));
       border-radius: var(--radius-md, 8px);
-      color: var(--color-ferni, #3D5A45);
+      color: var(--persona-text);
     }
 
     .vibe-section__icon svg {
@@ -748,7 +748,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni, #3D5A45);
+      color: var(--persona-text);
     }
 
     .vibe-music__cover svg {
@@ -1001,7 +1001,7 @@ function injectStyles(): void {
     }
 
     .vibe-activity--active .vibe-activity__icon {
-      color: var(--color-ferni, #3D5A45);
+      color: var(--persona-text);
     }
 
     .vibe-activity__icon svg {
@@ -1017,7 +1017,7 @@ function injectStyles(): void {
     }
 
     .vibe-activity--active .vibe-activity__name {
-      color: var(--color-ferni, #3D5A45);
+      color: var(--persona-text);
     }
 
     /* Setup Flow */
@@ -1037,7 +1037,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni, #3D5A45);
+      color: var(--persona-text);
     }
 
     .vibe-setup__icon svg {
@@ -1194,7 +1194,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       background: rgba(44, 37, 32, 0.75);
     }
 
@@ -1223,7 +1223,7 @@ function injectStyles(): void {
       font-size: 2.5rem;
       font-weight: 700;
       letter-spacing: 0.5rem;
-      color: var(--color-ferni, #3D5A45);
+      color: var(--persona-text);
       padding: var(--space-md, 16px);
       background: var(--color-bg-secondary, rgba(44, 37, 32, 0.03));
       border-radius: var(--radius-lg, 12px);

@@ -9,6 +9,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -165,7 +166,8 @@ class EngagementTriggerUI {
       if (count > 0) {
         engagementBadge.textContent = count.toString();
         engagementBadge.classList.add('engagement-trigger-btn__badge--visible');
-        if (this.badgeState.streakAtRisk) {
+        // "Streak at risk" urgency is streak guilt; never shown under VITE_NO_STREAKS.
+        if (this.badgeState.streakAtRisk && !isNoStreaksOn()) {
           engagementBadge.classList.add('engagement-trigger-btn__badge--urgent');
         }
       } else {
@@ -301,7 +303,7 @@ class EngagementTriggerUI {
         font-weight: var(--font-weight-bold, 700);
         line-height: 16px;
         text-align: center;
-        color: white;
+        color: var(--color-text-on-accent);
         background: var(--color-accent-primary, #2d5a3d);
         border-radius: var(--radius-full, 9999px);
         opacity: 0;
@@ -391,7 +393,7 @@ class EngagementTriggerUI {
       }
 
       /* Mobile adjustments */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .engagement-trigger-btn {
           width: 48px;
           height: 48px;

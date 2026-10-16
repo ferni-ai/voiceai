@@ -77,7 +77,6 @@ export interface CognitiveInsightsData {
   memories: CognitiveMemory[];
   patterns: LearningPattern[];
   totalInteractions: number;
-  knowledgeScore: number;
   // Superhuman Memory Insights
   superhumanInsights?: SuperhumanInsight[];
   temporalContext?: {
@@ -281,15 +280,8 @@ class CognitiveInsightsUI {
     const groupedMemories = this.groupMemoriesByType(data.memories);
 
     content.innerHTML = `
-      <!-- Understanding Score -->
       <div class="cognitive-insights__score">
-        <div class="cognitive-insights__score-ring" style="--progress: ${data.knowledgeScore}">
-          <span>${data.knowledgeScore}%</span>
-        </div>
-        <div class="cognitive-insights__score-info">
-          <span class="cognitive-insights__score-label">${t('cognitive.understanding')}</span>
-          <span class="cognitive-insights__score-detail">${tp('cognitive.conversationsCount', data.totalInteractions)}</span>
-        </div>
+        <span class="cognitive-insights__score-detail">${tp('cognitive.conversationsCount', data.totalInteractions)}</span>
       </div>
 
       <!-- Memory Sections -->
@@ -655,7 +647,7 @@ class CognitiveInsightsUI {
       .cognitive-insights {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -682,7 +674,7 @@ class CognitiveInsightsUI {
       .cognitive-insights__card {
         position: relative;
         width: 100%;
-        max-width: clamp(308px, 90vw, 440px);
+        max-width: var(--modal-width, clamp(336px, 90vw, 480px));
         max-height: 80vh;
         background: var(--color-bg-elevated, #FFFDFB);
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
@@ -730,7 +722,7 @@ class CognitiveInsightsUI {
         gap: var(--space-5, 20px);
       }
 
-      /* Score Ring */
+      /* Conversation count */
       .cognitive-insights__score {
         display: flex;
         align-items: center;
@@ -738,49 +730,6 @@ class CognitiveInsightsUI {
         padding: var(--space-4, 16px);
         background: var(--color-background-secondary);
         border-radius: var(--radius-xl, 1.25rem);
-      }
-
-      .cognitive-insights__score-ring {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        background: conic-gradient(
-          var(--persona-primary, var(--color-accent-primary)) calc(var(--progress, 0) * 1%),
-          var(--color-border-medium) calc(var(--progress, 0) * 1%)
-        );
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        flex-shrink: 0;
-      }
-
-      .cognitive-insights__score-ring::before {
-        content: '';
-        position: absolute;
-        inset: 6px;
-        background: var(--color-background-secondary);
-        border-radius: 50%;
-      }
-
-      .cognitive-insights__score-ring span {
-        position: relative;
-        font-family: var(--font-display);
-        font-size: var(--text-base);
-        font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary);
-      }
-
-      .cognitive-insights__score-info {
-        flex: 1;
-      }
-
-      .cognitive-insights__score-label {
-        display: block;
-        font-family: var(--font-display);
-        font-size: var(--text-base);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary);
       }
 
       .cognitive-insights__score-detail {
@@ -1274,10 +1223,6 @@ class CognitiveInsightsUI {
         background: var(--color-background-tertiary);
       }
 
-      [data-theme="midnight"] .cognitive-insights__score-ring::before {
-        background: var(--color-background-tertiary);
-      }
-
       [data-theme="midnight"] .cognitive-insights__memory {
         background: var(--color-background-secondary);
         border-color: var(--color-border-subtle);
@@ -1314,7 +1259,7 @@ class CognitiveInsightsUI {
       }
 
       /* Responsive */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .cognitive-insights {
           padding: var(--space-4, 16px);
         }

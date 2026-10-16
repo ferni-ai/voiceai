@@ -152,7 +152,7 @@ function getStyles(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       opacity: 0;
       transition: opacity ${DURATION.NORMAL}ms ${EASING.OUT_EXPO};
     }
@@ -431,7 +431,7 @@ function getStyles(): string {
 
     .eightsleep-btn-primary {
       background: var(--color-accent-primary, #4a9eff);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
     }
 

@@ -8,9 +8,11 @@
  * computed while they are still talking, from interim transcripts, so the
  * ~200 ms embedding call is off the reply's critical path.
  *
- * Modes (TOOL_RETRIEVAL): off (the default under tests); shadow (default) = pick and log, but send the
+ * Modes (TOOL_RETRIEVAL): off (default); shadow = pick and log, but send the
  * tools as before, then log whether each tool the model called was in the
- * pick; live = send only the pick. Selection happens inside llmNode on a copy:
+ * pick; live = send only the pick. Live lost its A/B (2026-09-30: reply p50
+ * 2.47 -> 2.90 s, p90 3.3 -> 4.5 s, 2x worker memory), so shadow, which still
+ * embedded every prod turn, is opt-in now too. Selection happens inside llmNode on a copy:
  * the agent's own tool list never changes, so the SDK's preemptive reply is
  * kept and any tool the model calls can still be executed.
  *
@@ -18,6 +20,7 @@
  */
 
 import { llm } from '@livekit/agents';
+import { isFindableTool } from '../dynamic-loader/findable-domains.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { DenseToolIndex, Embedder } from './dense-index.js';
 import { RetrievalStats, isLiveCovered } from './retrieval-stats.js';
@@ -41,7 +44,7 @@ export function toolRetrievalMode(
 ): ToolRetrievalMode {
   const v = env.TOOL_RETRIEVAL?.trim().toLowerCase();
   if (v === 'off' || v === 'shadow' || v === 'live') return v;
-  return env.VITEST || env.NODE_ENV === 'test' ? 'off' : 'shadow';
+  return 'off';
 }
 
 /** Never left to retrieval: handoffs and every safety tool. */
@@ -62,6 +65,8 @@ export const CORE_TOOLS = [
   // The game scorekeeper (GAME_STATE=on): a game spans many turns whose words
   // ("is it bigger than a car?") don't point to it.
   'gameState',
+  'findCoachingResources', // Coaching resources (COACH_MEDIA=on): not in the intent index.
+  'coachingPick',
   // Hanging up an on-behalf phone call (agents/outbound-call/call-control.ts); a
   // goodbye's words never point retrieval at it.
   'endCall',
@@ -377,15 +382,23 @@ export class TurnToolRetrieval {
    * findTools: search the whole index for what the model says it needs and
    * make the best matches the agent has part of every request for the next
    * few turns, starting with the model's next step in this same reply.
+   * `anyTool` (TOOL_CORE_STATIC) searches the whole catalog's findable
+   * domains (findable-domains.ts), loaded or not: the caller adds what it finds.
    */
-  async find(need: string, n = 5): Promise<Array<{ name: string; description: string }>> {
+  async find(
+    need: string,
+    n = 5,
+    opts: { anyTool?: boolean } = {}
+  ): Promise<Array<{ name: string; description: string }>> {
     const started = Date.now();
     const [index, vector] = await Promise.all([this.opts.index(), this.embed(need)]);
-    const available = this.available;
+    const available = opts.anyTool ? null : this.available;
     const found: Array<{ name: string; description: string }> = [];
     for (const t of index.search(vector, n * CANDIDATES_PER_SLOT * 2)) {
       if (found.length >= n) break;
       if (available && !(t.tool in available)) continue;
+      // The whole catalog holds tools no caller may reach (runBash, webhooks).
+      if (opts.anyTool && !isFindableTool(t.tool, this.opts.domainOf(t.tool))) continue;
       this.sticky.set(t.tool, this.turn);
       const description = (available?.[t.tool]?.description ?? '').split(/(?<=[.!?])\s/)[0];
       found.push({ name: t.tool, description: description.slice(0, 140) });

@@ -1,22 +1,22 @@
 {
   "topics": [
     {
-      "id": "vanguard-philosophy",
-      "topic": "Vanguard Philosophy & Culture",
-      "file": "vanguard-philosophy.md",
-      "domains": ["vanguard", "investing", "philosophy"]
+      "id": "low-cost-investing-philosophy",
+      "topic": "Low-Cost Investing Philosophy & Culture",
+      "file": "low-cost-investing-philosophy.md",
+      "domains": ["low-cost-investing", "investing", "philosophy"]
     },
     {
-      "id": "vfam-personalized-advice",
-      "topic": "The Value of Personalized Advice (VFAM & Advisor's Alpha)",
-      "file": "vfam-personalized-advice.md",
+      "id": "advice-math-research",
+      "topic": "The Value of Personalized Advice (the Advice Math)",
+      "file": "advice-math-research.md",
       "domains": [
         "advice",
-        "vfam",
+        "advice-math",
         "financial-planning",
         "personalization",
         "behavioral-coaching",
-        "advisors-alpha"
+        "value-of-advice"
       ]
     },
     {
@@ -39,10 +39,10 @@
       "domains": ["life", "mentorship", "wisdom"]
     },
     {
-      "id": "bogle-wisdom",
-      "topic": "Jack Bogle's Wisdom",
-      "file": "bogle-wisdom.md",
-      "domains": ["vanguard", "bogle", "investing"]
+      "id": "index-investing-wisdom",
+      "topic": "Index Investing Wisdom",
+      "file": "index-investing-wisdom.md",
+      "domains": ["index-investing", "low-cost-investing", "investing"]
     }
   ]
 }

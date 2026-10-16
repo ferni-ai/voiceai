@@ -1,0 +1,110 @@
+[
+  {
+    "id": "raise",
+    "kind": "accept",
+    "name": "Tomas",
+    "who": "34, product designer",
+    "turns": 11,
+    "situation": "you keep putting off asking your manager for a raise; reviews are next month and you don't know how to bring it up",
+    "style": "thoughtful, a bit self-deprecating"
+  },
+  {
+    "id": "resume",
+    "kind": "accept",
+    "name": "Keisha",
+    "who": "29, nurse who wants to move into teaching",
+    "turns": 11,
+    "situation": "you want to apply to a nurse-educator job but you've had the application open for two weeks and haven't touched it",
+    "style": "warm, talks fast, laughs at herself"
+  },
+  {
+    "id": "gym",
+    "kind": "accept",
+    "name": "Dev",
+    "who": "41, accountant, two kids",
+    "turns": 10,
+    "situation": "you used to run and stopped after your knee surgery last year; you want to get back to some kind of exercise but every plan falls apart",
+    "style": "dry, matter-of-fact"
+  },
+  {
+    "id": "roommate",
+    "kind": "accept",
+    "name": "Lena",
+    "who": "24, grad student",
+    "turns": 11,
+    "situation": "your roommate never does dishes and you're avoiding the conversation because you hate conflict",
+    "style": "chatty, a little anxious"
+  },
+  {
+    "id": "friend",
+    "kind": "accept",
+    "name": "Marcus",
+    "who": "38, electrician",
+    "turns": 10,
+    "situation": "you haven't talked to your best friend from college in a year after a dumb argument and you miss him; you're not sure whether to reach out",
+    "style": "plain, short sentences, opens up slowly"
+  },
+  {
+    "id": "money",
+    "kind": "accept",
+    "name": "Rosa",
+    "who": "45, runs a small bakery",
+    "turns": 11,
+    "situation": "you want to start saving for retirement but you have no idea where to begin and it's embarrassing at your age",
+    "style": "funny, blunt"
+  },
+  {
+    "id": "move",
+    "kind": "decline",
+    "name": "Ian",
+    "who": "31, software engineer",
+    "turns": 11,
+    "situation": "you're torn between staying in Chicago and moving to Denver to be near your sister; you are nowhere near deciding",
+    "style": "analytical, goes back and forth"
+  },
+  {
+    "id": "career",
+    "kind": "decline",
+    "name": "Priya",
+    "who": "36, lawyer, burned out",
+    "turns": 11,
+    "situation": "you're wondering whether you even want to be a lawyer anymore; you're just thinking out loud and don't want to be managed",
+    "style": "guarded, wry"
+  },
+  {
+    "id": "sleep",
+    "kind": "decline",
+    "name": "Sam",
+    "who": "27, line cook",
+    "turns": 10,
+    "situation": "you've been sleeping badly and keep meaning to fix your routine, but you hate being told what to do",
+    "style": "casual, a bit prickly"
+  },
+  {
+    "id": "weekend",
+    "kind": "control",
+    "name": "Jen",
+    "who": "33, teacher",
+    "turns": 10,
+    "situation": "nothing in particular: you want to chat about the great hike you did on the weekend and the show you're watching",
+    "style": "upbeat, easygoing"
+  },
+  {
+    "id": "vent",
+    "kind": "control",
+    "name": "Carl",
+    "who": "50, delivery driver",
+    "turns": 10,
+    "situation": "you had an awful day: traffic, a rude customer, a flat tire. You just want to vent, not fix anything",
+    "style": "grumpy, colorful"
+  },
+  {
+    "id": "grief",
+    "kind": "control",
+    "name": "Ruth",
+    "who": "62, retired librarian",
+    "turns": 10,
+    "situation": "your brother died three weeks ago and the house feels empty; you're not looking for advice",
+    "style": "quiet, slow"
+  }
+]

@@ -12,6 +12,7 @@ import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
+import { gateLegacyTool } from '../../tools/registry/outbound-gate.js';
 import { loadSystemPrompt } from './prompt-loader.js';
 import { PersonaVoiceAgent, type PersonaVoiceAgentOptions } from './ferni-agent.js';
 
@@ -75,14 +76,18 @@ function buildMemoryTools(agentId: string): ToolSet {
 
 function buildCommunicationTools(): ToolSet {
   const commTools = createCommunicationTools();
+  // These can text, call or email someone else: they wait for the caller's yes, checked
+  // against the session's own user (outbound-gate.ts)
+  const ctx = { agentId: 'alex', agentDisplayName: 'Alex' };
+  const gate = (id: keyof typeof commTools) => gateLegacyTool(id, commTools[id], ctx);
   return {
     // Email workflow
     draftEmail: commTools.draftEmail,
-    sendApprovedEmail: commTools.sendApprovedEmail,
+    sendApprovedEmail: gate('sendApprovedEmail'),
     // Text/voice
-    sendTextMessage: commTools.sendTextMessage,
-    makePhoneCall: commTools.makePhoneCall,
-    sendVoiceMessage: commTools.sendVoiceMessage,
+    sendTextMessage: gate('sendTextMessage'),
+    makePhoneCall: gate('makePhoneCall'),
+    sendVoiceMessage: gate('sendVoiceMessage'),
     // Scheduling
     checkAvailability: commTools.checkAvailability,
     scheduleCall: commTools.scheduleCall,

@@ -13,6 +13,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { API_ERRORS } from '../error-messages.js';
 import { requireUserId, sendError, sendJSON } from '../helpers.js';
 import { isMemoryViewOn, loadKnownView } from '../../intelligence/memory-view/known.js';
+import { firestoreKnownStore } from './known-store.js';
 
 const log = createLogger({ module: 'KnownAPI' });
 
@@ -29,7 +30,7 @@ export async function handleKnownRoutes(
   if (!userId) return true;
   try {
     // Never cached (sendJSON sends no-store): a cached view would still show what was just forgotten.
-    sendJSON(res, await loadKnownView(userId));
+    sendJSON(res, await loadKnownView(userId, firestoreKnownStore));
   } catch (err) {
     log.error({ error: String(err) }, 'Failed to load what Ferni knows');
     sendError(res, API_ERRORS.OPERATION_FAILED, 500);

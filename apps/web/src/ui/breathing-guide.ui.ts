@@ -75,12 +75,12 @@ const BREATHING_PATTERNS: Record<BreathingPattern, BreathingConfig> = {
   },
 };
 
-const PHASE_INSTRUCTIONS: Record<BreathingPhase, string> = {
+const phaseInstructions = (): Record<BreathingPhase, string> => ({
   inhale: t('breathing.phases.inhale', 'Breathe in...'),
   hold: t('breathing.phases.hold', 'Hold...'),
   exhale: t('breathing.phases.exhale', 'Breathe out...'),
   pause: t('breathing.phases.pause', 'Rest...'),
-};
+});
 
 const PHASE_COLORS: Record<BreathingPhase, string> = {
   inhale: 'var(--persona-tint)',
@@ -226,7 +226,7 @@ const BREATHING_STYLES = `
 
   .ferni-breathing-controls__button--primary {
     background: var(--color-accent, #4A7C59);
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .ferni-breathing-controls__button--secondary {
@@ -619,7 +619,7 @@ export class BreathingGuide {
 
     this.updateOrbScale(targetScale);
     this.updateProgressRing(progress);
-    this.updateInstruction(PHASE_INSTRUCTIONS[this.currentPhase]);
+    this.updateInstruction(phaseInstructions()[this.currentPhase]);
     this.updateTimer();
 
     // Update color based on phase
