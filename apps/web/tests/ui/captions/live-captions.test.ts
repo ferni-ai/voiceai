@@ -497,6 +497,14 @@ describe('breath words', () => {
     expect(line.textContent).toBe('Then lets');
   });
 
+  it('swaps a correction in quietly, without a second rise', () => {
+    const line = agentLine();
+    revealWords(line, '', 'Then let us', true);
+    revealWords(line, 'Then let us', 'Than let us', true);
+    expect(words(line).map((w) => w.textContent)).toEqual(['Than', 'let', 'us']);
+    expect(words(line).every((w) => w.classList.contains('ferni-caption-word--quiet'))).toBe(true);
+  });
+
   it('leaves the caller line as plain text', () => {
     const line = renderLine({ speaker: 'user', text: '', final: false }, false);
     revealWords(line, '', 'I think so', true);

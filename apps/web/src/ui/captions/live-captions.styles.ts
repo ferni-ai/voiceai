@@ -131,9 +131,15 @@ const BREATH_STYLE_ID = 'ferni-captions-breath-styles';
  */
 const BREATH_CSS = `
 .ferni-caption-word { display: inline-block; }
-.ferni-caption-line[data-speaker='agent'] .ferni-caption-word {
+/* Only the line still arriving rises: a settled line is redrawn with the same
+   spans, and must not replay its words. */
+.ferni-caption-line[data-speaker='agent']:not(.ferni-caption-line--settled) .ferni-caption-word {
   animation: ferni-breath-word ${DURATION.SLOW * 2}ms ${EASING.DECELERATE} both;
   animation-delay: var(--ferni-word-delay, 0ms);
+}
+/* A correction swaps words in without a second rise, as the plain path does. */
+.ferni-caption-line[data-speaker='agent'] .ferni-caption-word.ferni-caption-word--quiet {
+  animation: none;
 }
 @keyframes ferni-breath-word {
   from { opacity: 0; filter: blur(3px); transform: translateY(6px); }
@@ -150,7 +156,7 @@ const BREATH_CSS = `
   border-radius: var(--radius-full); background: var(--persona-primary);
   box-shadow: calc(var(--space-sm) + var(--space-2xs)) 0 0 var(--persona-primary),
     calc(2 * (var(--space-sm) + var(--space-2xs))) 0 0 var(--persona-primary);
-  animation: ferni-breath-dots ${DURATION.SLOW * 6}ms ease-in-out infinite;
+  animation: ferni-breath-dots ${DURATION.SLOW * 6}ms ${EASING.STANDARD} infinite;
 }
 @keyframes ferni-breath-dots { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {

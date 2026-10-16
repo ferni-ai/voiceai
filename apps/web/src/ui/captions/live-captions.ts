@@ -136,9 +136,9 @@ export function breathDelay(index: number): number {
  * Word spans for Breath, staggered by breathDelay. The spaces stay plain text,
  * so the line's text (and what a screen reader reads) is unchanged. A word
  * still being spoken (`partial`) grows in its own span rather than starting a
- * new one.
+ * new one. `quiet` words (a correction) do not rise.
  */
-function breathWords(text: string, partial: Element | null): Node[] {
+function breathWords(text: string, partial: Element | null, quiet = false): Node[] {
   const tokens = text.split(/(\s+)/).filter(Boolean);
   if (partial && /^\S/.test(text)) partial.textContent += tokens.shift() ?? '';
   let word = 0;
@@ -146,6 +146,7 @@ function breathWords(text: string, partial: Element | null): Node[] {
     if (/^\s/.test(token)) return document.createTextNode(token);
     const span = document.createElement('span');
     span.className = 'ferni-caption-word';
+    span.classList.toggle('ferni-caption-word--quiet', quiet);
     span.style.setProperty('--ferni-word-delay', `${breathDelay(word++)}ms`);
     span.textContent = token;
     return span;
@@ -172,7 +173,8 @@ export function revealWords(
         !/\s$/.test(before) && last?.classList.contains('ferni-caption-word') ? last : null;
       line.append(...breathWords(after.slice(before.length), partial));
     } else {
-      line.replaceChildren(...breathWords(after, null));
+      // A fresh line (no `before`) rises; a correction to a line on screen does not.
+      line.replaceChildren(...breathWords(after, null, before !== ''));
     }
     line.dataset.text = after;
     return;
@@ -284,7 +286,6 @@ class LiveCaptions {
     this.entries = [];
     this.chips?.clear();
     this.hide();
-    this.breathe(false);
     document.body.classList.remove(CAPTIONS_CALL_CLASS);
     if (this.viewport) this.viewport.replaceChildren();
   }
