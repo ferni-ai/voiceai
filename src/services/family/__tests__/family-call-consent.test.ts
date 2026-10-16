@@ -1,6 +1,7 @@
 /**
  * A family check-in call rings only when FAMILY_CHECKIN_CALLS is on and the
- * family member agreed themselves. The sponsor's schedule alone is not enough.
+ * family member's yes is on record (their own, or confirmed by the sponsor).
+ * A schedule alone is not enough.
  * The Firestore adapter runs against an in-memory map; the job test mocks the
  * schedule store and counts dial attempts at the identity lookup.
  */
@@ -62,6 +63,18 @@ describe('a family check-in call with FAMILY_CHECKIN_CALLS on', () => {
     expect(await familyCallBlockReason(schedule, mom, store)).toBe(
       'No consent from the family member'
     );
+  });
+
+  it('rings when the sponsor confirmed she agreed', async () => {
+    await store.record('mom-id', 'sponsor_confirmed', now);
+    expect(await familyCallBlockReason(schedule, mom, store)).toBeNull();
+  });
+
+  it('rings again when she says yes after saying stop', async () => {
+    await store.record('mom-id', 'own_call', now);
+    await store.withdraw('mom-id', now);
+    await store.record('mom-id', 'own_call', now);
+    expect(await familyCallBlockReason(schedule, mom, store)).toBeNull();
   });
 
   it('does not ring with no consent store at all', async () => {

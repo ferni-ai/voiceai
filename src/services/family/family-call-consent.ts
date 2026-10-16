@@ -1,12 +1,13 @@
 /**
- * A family member's own yes to Ferni calling them.
+ * A family member's yes to Ferni calling them.
  *
  * Ferni rings a family member for a check-in only when FAMILY_CHECKIN_CALLS is
- * on and that person agreed themselves, on a call they made. The sponsor's
- * say-so is not their consent: an AI voice is an "artificial voice" under the
- * TCPA (FCC declaratory ruling, Feb 2024), so the called person's prior
- * express consent is what counts. It is also what makes the call a gift
- * rather than a robocall.
+ * on and that person's agreement is on record and not withdrawn. An AI voice
+ * is an "artificial voice" under the TCPA (FCC declaratory ruling, Feb 2024),
+ * so the called person's prior express consent is what counts. It may be
+ * given on their own call to Ferni, or passed on by the sponsor, who confirms
+ * that this person agreed (Seth's call, 2026-10-16, #1558). Either way they
+ * can say stop at any time, and a withdrawn record is no consent.
  *
  * Consent is kept apart from the identity record, behind FamilyConsentStore
  * (the Firestore adapter is services/stores/family-call-consent-store.ts). No
@@ -21,8 +22,8 @@ import type { SponsoredIdentity } from '../identity/sponsored-identity.js';
 
 const log = createLogger({ module: 'FamilyCallConsent' });
 
-/** Where the yes was given. Only the family member's own call counts today. */
-export type FamilyCallConsentSource = 'own_call';
+/** Where the yes came from: their own call, or the sponsor confirming they agreed. */
+export type FamilyCallConsentSource = 'own_call' | 'sponsor_confirmed';
 
 export interface FamilyCallConsent {
   sponsoredIdentityId: string;
