@@ -135,7 +135,8 @@ export function callerHistory(
   profile: {
     totalConversations?: number;
     lastContact?: string | number | Date;
-    lastConversationSummary?: string;
+    /** Only a last-call summary checked for who said what (caller-assertions.ts). */
+    lastCallerSummary?: string;
   },
   now: Date = new Date()
 ): CallerHistory | undefined {
@@ -146,7 +147,7 @@ export function callerHistory(
     const ms = now.getTime() - new Date(profile.lastContact).getTime();
     if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
   }
-  const topic = profile.lastConversationSummary?.trim();
+  const topic = profile.lastCallerSummary?.trim();
   if (topic) history.lastTopic = topic.slice(0, MAX_TOPIC_CHARS);
   return history;
 }

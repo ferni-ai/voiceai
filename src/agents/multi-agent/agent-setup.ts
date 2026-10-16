@@ -26,6 +26,7 @@ import { diag } from '../../services/diagnostic-logger.js';
 import { modelConfig } from '../../services/model-config.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import type { UserData } from '../shared/types.js';
 import { getRealtimeModel } from '../../config/gemini-config.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
@@ -68,12 +69,9 @@ import {
   createTurnIntelligenceHook,
   resolveTurnIntelligenceMode,
 } from './turn-intelligence.js';
-import {
-  addRecallNote,
-  createMemoryRecall,
-  memoryRecallMode,
-  type RecallAgent,
-} from './memory-recall-hook.js';
+import { createMemoryRecall, memoryRecallMode, type RecallAgent } from './memory-recall-hook.js';
+import { startNameLift } from '../realtime/name-lift.js';
+import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
@@ -347,15 +345,11 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
     // Append date/time to model base instructions (session-specific, not cached)
     const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
-    // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's
-    // (browser zone, else the profile zone: a phone call may carry no browser zone).
+    // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's: the zone the
+    // call settled (browser, else a verified owner's profile zone, never a sponsor's).
     const dateTimeContext =
       localClockEnabled() && persona.id === 'ferni'
-        ? localClockContext(
-            new Date(),
-            userData?.callerTimezone ??
-              (outboundAwareness ? undefined : services.userProfile?.contactInfo?.timezone)
-          )
+        ? localClockContext(new Date(), userData?.callerTimezone ?? callerTimeZoneFor(sessionId))
         : timeContext(new Date(), userData?.callerTimezone);
     // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
     const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
@@ -423,8 +417,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // A human friend might vaguely remember "oh we talked recently"
       // Ferni remembers EXACTLY what you talked about
       // =========================================================================
-      if (isReturningUser && userProfile.lastConversationSummary) {
-        userAwareness.push(lastTalkedAbout(!!teammate, userProfile.lastConversationSummary));
+      if (isReturningUser && userProfile.lastCallerSummary) {
+        userAwareness.push(lastTalkedAbout(!!teammate, userProfile.lastCallerSummary));
       }
 
       // =========================================================================
@@ -1615,22 +1609,22 @@ Reference past context when relevant, but don't force it. Let the conversation f
     ...(callSession && { voice: { llm: llmModel, tts } }),
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
 
-  // Memory recall: add what Ferni remembers as soon as the user's words are
-  // transcribed, before the SDK starts preemptive generation (see
-  // memory-recall-hook.ts for why it must not wait for onUserTurnCompleted).
-  // Interim events count: with STT turn detection the SDK starts preemptive
-  // generation from the preflight transcript, which arrives as an interim.
+  // Memory recall, added as the user's words are transcribed (interims too), before the
+  // SDK's preemptive generation; memory-recall-hook.ts says why. The name lift rides along.
   if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
     const recall = createMemoryRecall({
       userId,
       userName: userData.userName,
       personaId: persona.id,
     });
+    const nameLift = startNameLift(recall, createDataMessageSender(room)); // NAME_LIFT=on
     const onRecallTranscript = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       if (!evt.transcript) return;
+      nameLift?.(evt.transcript);
       const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
-      if (note) addRecallNote(agent as unknown as RecallAgent, note);
+      // CONTEXT_PACKET=on: what it picked rides the turn's packet, labelled (turn-packet.ts).
+      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note);
     };
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();

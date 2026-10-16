@@ -17,6 +17,7 @@
 import {
   getVoiceIdForPersona,
   CARTESIA_MODEL,
+  CARTESIA_API_VERSION,
   cartesiaPronunciation,
 } from '../../config/voice-ids.js';
 import { ARRIVING_OPENERS } from '../../services/team-engagement/banter.js';
@@ -195,8 +196,6 @@ const ARRIVING_BANTER = ARRIVING_OPENERS;
 // ============================================================================
 
 const CARTESIA_API_URL = 'https://api.cartesia.ai/tts/bytes';
-const CARTESIA_API_VERSION = '2024-06-10';
-// CARTESIA_MODEL imported from config/voice-ids.ts for consistency
 
 /**
  * Generate TTS audio directly via Cartesia API.

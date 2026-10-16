@@ -164,6 +164,22 @@ describe('the history a teammate is handed (DIRECTOR_PERSONA_AWARE)', () => {
     ]);
   });
 
+  it('hands Ferni her own lines back unmarked when the call swaps back to her', async () => {
+    vi.stubEnv('DIRECTOR_PERSONA_AWARE', 'on');
+    const ctx = ferniCall();
+    const session = callWith(ctx);
+    const peter = persona('peter-john', session);
+    await swapPersona(persona('ferni', session, ctx) as never, peter, () => undefined);
+    peter.agent.heard!.addMessage({ role: 'assistant', content: 'Peter here. Coffee spend!' });
+    session.currentAgent = { chatCtx: peter.agent.heard };
+    const ferni = persona('ferni', session);
+    await swapPersona(peter as never, ferni, () => undefined);
+    expect(texts(ferni.agent.heard).filter((t) => t.startsWith('assistant'))).toEqual([
+      "assistant: Oh, the usual. Wyoming's getting cold already.",
+      'assistant: (Peter said:) Peter here. Coffee spend!',
+    ]);
+  });
+
   it('hands over the talk unchanged with the flag off', async () => {
     vi.stubEnv('DIRECTOR_PERSONA_AWARE', 'off');
     const ctx = ferniCall();
@@ -184,7 +200,7 @@ const SAM = {
   preferredName: 'Sam',
   totalConversations: 654,
   relationshipStage: 'trusted_advisor',
-  lastConversationSummary: "her sister's wedding plans",
+  lastCallerSummary: "her sister's wedding plans",
 };
 
 async function modelInstructions(
@@ -266,6 +282,31 @@ describe("the teammate's prompt (DIRECTOR_PERSONA_AWARE)", () => {
       humanizingState: { perPersonaMeetingCounts: { 'peter-john': 3 } },
     });
     expect(out).toContain("You've talked with them 3 times yourself.");
+  });
+
+  it("reads Peter's count where session end saves it (customData.meetingCounts)", async () => {
+    vi.stubEnv('DIRECTOR_PERSONA_AWARE', 'on');
+    const out = await modelInstructions('peter-john', {
+      ...SAM,
+      customData: { meetingCounts: { ferni: 650, 'peter-john': 4 } },
+    });
+    expect(out).toContain("You've talked with them 4 times yourself.");
+    expect(out).not.toContain('meeting them through');
+  });
+
+  it('names an unknown previous persona by its id, never "undefined"', async () => {
+    vi.stubEnv('DIRECTOR_PERSONA_AWARE', 'on');
+    const out = await modelInstructions('peter-john', SAM, 'guest-coach');
+    expect(out).toContain("You're meeting them through guest-coach:");
+    expect(out).not.toContain('undefined');
+    const intro = await buildHandoffContext({
+      persona: { id: 'peter-john' },
+      isHandoff: true,
+      previousPersonaId: 'guest-coach',
+      userData: {},
+    } as never);
+    expect(intro).toContain('guest-coach was talking with them before you.');
+    expect(intro).not.toContain('undefined');
   });
 
   it('keeps the old lines when the caller opened the call on Peter (no handoff)', async () => {

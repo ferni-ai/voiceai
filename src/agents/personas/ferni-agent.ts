@@ -29,42 +29,20 @@ import {
 import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { filterSilenceReply } from '../voice-agent/presence-check.js';
+import { dropLeadingSaidBy } from './said-by.js';
 import { getModelProvider } from '../model-provider/index.js';
-import { filterCaptionStream } from './caption-filter.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
+import { emergencyTruncate, estimateTokens } from './emergency-truncate.js';
+import { withActionClaimCheck } from './action-claim-guard.js';
+import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
-import { tapSpokenText, toolsForTurn, withTeammateTool } from './turn-request.js';
+import { spokenCaptions, toolsForTurn, withTeammateTool } from './turn-request.js';
 import { noteRequest } from '../shared/turn-receipt.js';
 
 const log = createLogger({ module: 'FerniAgent' });
-
-/** Estimate token count (~4 chars per token for English) */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
-
-/**
- * Emergency truncation for system prompt if it exceeds token limit.
- * This is a last-resort defense - should rarely trigger if prompt-loader works correctly.
- */
-function emergencyTruncate(prompt: string, maxTokens: number): string {
-  const tokens = estimateTokens(prompt);
-  if (tokens <= maxTokens) return prompt;
-
-  log.warn(
-    { currentTokens: tokens, maxTokens, promptLength: prompt.length },
-    '🚨 EMERGENCY: System prompt still exceeds token limit after prompt-loader truncation!'
-  );
-
-  // Simple character-based truncation (prompt-loader should have done smart truncation)
-  const maxChars = maxTokens * 4;
-  return (
-    prompt.slice(0, maxChars) + '\n\n[EMERGENCY TRUNCATION - prompt exceeded OpenAI Realtime limit]'
-  );
-}
 
 // ============================================================================
 // TYPES
@@ -684,27 +662,29 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     text: Parameters<voice.Agent<PersonaSessionData>['transcriptionNode']>[0],
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['transcriptionNode']> {
-    const captions = tapSpokenText(filterCaptionStream(text), this.session as object);
+    const captions = spokenCaptions(text, this.session as object);
     return super.transcriptionNode(captions, modelSettings);
   }
 
   /**
-   * Every LLM request (preemptive or not) goes through here, gated for crisis with the turn
-   * reminder and director's notes (crisis-gate.ts), with this turn's tools. A long-silence
-   * remark is held and dropped when it is a capped "you still there?" (presence-check.ts).
+   * Every LLM request goes through here: crisis-gated with the turn reminder (crisis-gate.ts),
+   * this turn's tools, no empty tool result (tool-output-guard.ts), no claimed action no tool
+   * did (action-claim-guard.ts), no capped "you still there?" (presence-check.ts), and no
+   * leading "(Name said:)" copied off a handoff's marked history (said-by.ts).
    */
   async llmNode(
     chatCtx: llm.ChatContext,
     toolCtx: llm.ToolContext,
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
+    fillEmptyToolOutputs(chatCtx, this.session);
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
     const model = async (ctx: llm.ChatContext) => {
       noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
-      return super.llmNode(ctx, tools, modelSettings) as never;
+      return withActionClaimCheck(super.llmNode(ctx, tools, modelSettings), ctx, tools) as never;
     };
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
-    return filterSilenceReply(this.session, reply) as never;
+    return dropLeadingSaidBy(filterSilenceReply(this.session, reply)) as never;
   }
 
   private readonly turnTools = { loggedLockedHandoffs: false, agent: this };
@@ -715,9 +695,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   /**
    * Override ttsNode to filter out JSON function calls BEFORE they reach TTS.
    *
-   * WORKAROUND (Dec 2024): Gemini Live API has a known bug where it "narrates"
-   * tool calls instead of executing them. We instruct Gemini to output JSON like
-   * {"fn":"playMusic","args":{"query":"jazz"}} and intercept it here before TTS.
+   * WORKAROUND (Dec 2024, retired Gemini Live setup): narrated JSON tool calls stop here.
    *
    * The key insight: transcriptionNode filters a DIFFERENT stream than TTS reads from!
    * The LiveKit SDK does baseStream.tee() and sends one to transcription, one to TTS.

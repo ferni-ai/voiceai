@@ -92,6 +92,8 @@ const ALIASES: Readonly<Record<string, string>> = {
   joking: 'happy',
   comedic: 'happy',
   thoughtful: 'contemplative',
+  wise: 'contemplative',
+  profound: 'contemplative',
   reflective: 'contemplative',
   gentle: 'calm',
   hopeful: 'anticipation',

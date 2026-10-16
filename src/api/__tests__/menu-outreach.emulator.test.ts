@@ -10,12 +10,12 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import admin from 'firebase-admin';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 // src/tests/setup.ts mocks firebase-admin/firestore for every test; this one needs the
 // real client so the writer and the route both talk to the emulator.
 vi.unmock('firebase-admin/firestore');
+vi.unmock('firebase-admin/app');
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-menu-outreach';
@@ -35,7 +35,8 @@ let server: Server;
 let base = '';
 beforeAll(async () => {
   if (!emulator) return;
-  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
+  const { getAdminApp } = await import('../../utils/firebase-admin-app.js');
+  getAdminApp();
   const { handleOutreachRoutes } = await import('../outreach.routes.js');
   server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');

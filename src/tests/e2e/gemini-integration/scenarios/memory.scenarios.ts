@@ -61,8 +61,8 @@ export const memoryRecallScenarios: MemoryScenario[] = [
   },
   {
     id: 'recall-user-name',
-    name: 'Use users name naturally',
-    description: 'Should use the users name when known',
+    name: 'Knows the users name without saying it every reply',
+    description: 'Mid-call, friends rarely say the name (SBCSAE: 1 turn in 75; #1413)',
     category: 'recall',
     personaId: 'ferni',
     userProfile: {
@@ -70,7 +70,7 @@ export const memoryRecallScenarios: MemoryScenario[] = [
     },
     probe: 'How do I get better at saving money?',
     expected: {
-      shouldInclude: ['sarah'],
+      shouldAvoid: ['sarah'],
     },
     severity: 'medium',
   },

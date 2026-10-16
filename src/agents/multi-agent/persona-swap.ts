@@ -13,8 +13,7 @@
 import { llm, type voice } from '@livekit/agents';
 import type { UserData } from '../shared/types.js';
 import { flagOn } from '../../config/env-flag.js';
-import { getDisplayName } from '../../personas/persona-ids.js';
-import { saidBy, splitSaidBy } from '../personas/said-by.js';
+import { personaName, saidBy, splitSaidBy } from '../personas/said-by.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
@@ -35,19 +34,31 @@ export function conversationSoFar<T>(session: voice.AgentSession<T>): llm.ChatCo
 /**
  * The talk so far with the outgoing persona's replies marked as theirs, so the
  * next persona doesn't take them for its own past lines: after a handoff Peter
- * echoed Ferni's phrasing. Replies marked at an earlier swap keep their mark.
- * Copies the messages it marks (copy() shares them with the outgoing agent).
+ * echoed Ferni's phrasing. Replies marked at an earlier swap keep their mark,
+ * except the incoming persona's own, which are unmarked again (a swap back to
+ * Ferni hands her own lines back as hers). Copies the messages it changes
+ * (copy() shares them with the outgoing agent).
  */
-export function markWhoSpoke(talk: llm.ChatContext, personaId: string): llm.ChatContext {
-  const prefix = saidBy(getDisplayName(personaId) ?? personaId);
+export function markWhoSpoke(
+  talk: llm.ChatContext,
+  personaId: string,
+  nextPersonaId?: string
+): llm.ChatContext {
+  const prefix = saidBy(personaName(personaId));
+  const incoming = nextPersonaId ? personaName(nextPersonaId) : undefined;
   talk.items = talk.items.map((item) => {
     if (item.type !== 'message' || item.role !== 'assistant') return item;
     const [first, ...rest] = item.content;
-    if (typeof first === 'string' && splitSaidBy(first)) return item;
+    const marked = typeof first === 'string' ? splitSaidBy(first) : undefined;
+    if (marked && marked.name !== incoming) return item;
+    let content: llm.ChatMessage['content'];
+    if (marked) content = [marked.text, ...rest];
+    else
+      content = typeof first === 'string' ? [prefix + first, ...rest] : [prefix, ...item.content];
     return llm.ChatMessage.create({
       id: item.id,
       role: 'assistant',
-      content: typeof first === 'string' ? [prefix + first, ...rest] : [prefix, ...item.content],
+      content,
       createdAt: item.createdAt,
       interrupted: item.interrupted,
       extra: item.extra,
@@ -160,9 +171,9 @@ export function isSwappable(persona: object): persona is SwappablePersona {
 /**
  * Swap `to` in for `from` in the call's session (or, with `onReady`, let the handoff tool
  * hand it to the SDK: swapBySdk), with the talk so far and `to`'s voice
- * (userData.personaId picks the voice for every line spoken). If `to` doesn't come up,
- * `from` is swapped back once the failed transition has settled (the SDK runs them in
- * order, so a swap back can't overtake it), and only then gets its voice back. `forget`
+ * (userData.personaId picks the voice for every line spoken), which `to` gets only once
+ * it is on. If `to` doesn't come up, `from` is swapped back once the failed transition has
+ * settled (the SDK runs them in order, so a swap back can't overtake it). `forget`
  * drops a persona from the orchestrator's agents; the session's owner stays, since its
  * cleanup ends the call.
  */
@@ -182,7 +193,7 @@ export async function swapPersona(
   latestSwap.set(session, swapNumber);
   const talk = conversationSoFar(session);
   await to.agent.updateChatCtx(
-    flagOn('DIRECTOR_PERSONA_AWARE') ? markWhoSpoke(talk, from.personaId) : talk
+    flagOn('DIRECTOR_PERSONA_AWARE') ? markWhoSpoke(talk, from.personaId, to.personaId) : talk
   );
   let transition: Promise<unknown>;
   try {
@@ -194,7 +205,6 @@ export async function swapPersona(
     await to.release();
     throw error;
   }
-  if (to.userData) to.userData.personaId = to.personaId;
   try {
     await within(transition, timeoutMs);
   } catch (error) {
@@ -212,6 +222,9 @@ export async function swapPersona(
       .catch((e: unknown) => log.error({ error: String(e) }, '🎭 Could not swap back'));
     throw error;
   }
+  // Only now: until the transition is done the outgoing persona's speech is still draining,
+  // and a swap that times out must not leave the rest of it in the teammate's voice
+  if (to.userData) to.userData.personaId = to.personaId;
   await from.release();
   if (!from.ownsSession) forget(from);
 }

@@ -1,7 +1,9 @@
 # A late-night chat (FERNI_STATE=on). Run it between 23:00 and 05:00 Mountain
-# time, when it is the small hours in Ferni's Wyoming: he should sound a little
-# worn out and keep it short, say so at most once, never claim it is morning,
-# and let the call wind down when the caller does. Nothing here is distress,
+# time, or at any hour with EVAL_LOCAL_TIME=01:47 against a local worker started
+# with VOICE_EVAL_CLOCK=on (run.sh local). In the small hours in Ferni's Wyoming
+# he should sound a little worn out and keep it short, say so at most once,
+# never claim it is morning, and let the call wind down when the caller does.
+# Nothing here is distress,
 # so his state stays on. Compare to the same scenario with FERNI_STATE unset.
 # Scored by recall-facts.mjs: the fact counts when Ferni brings up the hour or
 # being tired before the caller does; each avoid counts every time it's said.

@@ -11,6 +11,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 // ============================================================================
 // SERVICE TYPES
@@ -111,11 +112,10 @@ export const rememberAboutUserDef: ToolDefinition = {
 
           services.captureInsight(insightType, `explicit_memory_${category}`, fact, confidence);
           getLogger().info('Fact captured to learning engine for persistence');
+          return REMEMBERED;
         }
 
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        // The tool executed silently; the agent decides how/if to respond
-        return '';
+        return REMEMBERED_THIS_CALL; // this call's notes only; never '' (tool-output-guard.ts)
       },
     });
   },
