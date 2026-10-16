@@ -315,8 +315,13 @@ const CLAIM = [
   ' him right now. ',
   "I'll let you know as soon as I get ahold of him.",
 ];
-const check = (stream: ReadableStream<llm.ChatChunk>, items: unknown[], tools = toolsWith()) =>
-  withActionClaimCheck(Promise.resolve(stream), ctx(...items), tools, {});
+const STREAM = { ACTION_CLAIM_STREAM: 'on' };
+const check = (
+  stream: ReadableStream<llm.ChatChunk>,
+  items: unknown[],
+  tools = toolsWith(),
+  env: Record<string, string> = STREAM
+) => withActionClaimCheck(Promise.resolve(stream), ctx(...items), tools, env);
 
 describe('withActionClaimCheck', () => {
   it('no call tool: the claim is dropped and Ferni says he cannot make calls', async () => {
@@ -453,11 +458,7 @@ async function firstOut(stream: ReadableStream<llm.ChatChunk>): Promise<string |
 }
 
 describe('no hold at the head of the reply (dev latency, increment 3)', () => {
-  const SMALL_TALK = [
-    user('I had a long day.'),
-    said('Oh no.'),
-    user('Work kept piling it on.'),
-  ];
+  const SMALL_TALK = [user('I had a long day.'), said('Oh no.'), user('Work kept piling it on.')];
 
   it('an action is in play when the caller asked for one lately or an action tool ran', () => {
     expect(actionInPlay(ctx(ASK))).toBe(true);
@@ -539,6 +540,61 @@ describe('no hold at the head of the reply (dev latency, increment 3)', () => {
     ])
       for (const yes of ['Yes.', 'Do it.', 'Sure, go for it.'])
         expect([offer, yes, actionInPlay(ctx(said(offer), user(yes)))]).toEqual([offer, yes, true]);
+    // Verifier round 5: more emergencies, asks and offer wordings
+    for (const ask of [
+      "He's not breathing!",
+      'She collapsed.',
+      'He passed out.',
+      'She is unconscious',
+      "i think he's having a stroke",
+      "she's choking",
+      "he's having a seizure",
+      "There's a fire!",
+      "i've been in a car accident",
+      "he's got a gun",
+      'i need the cops',
+      'I want to kill myself.',
+      "I don't want to live anymore.",
+      'i want to end it all',
+      'ayuda',
+      'I can\u2019t breathe.',
+      'can not breathe',
+      'Get me a cab.',
+      'Find me a cab.',
+      'I need a ride to the airport.',
+      'Get us a table.',
+      'Sort me out a table for two.',
+      'Get me in at the dentist.',
+      'Notify the landlord.',
+    ])
+      expect([ask, actionInPlay(ctx(user(ask)))]).toEqual([ask, true]);
+    for (const offer of [
+      'Want me to set that up?',
+      'Can I call her for you?',
+      'Is it okay if I call her?',
+      'Mind if I text her?',
+      'How about I text her?',
+      'Happy to text her if you like.',
+      'Do you need me to call someone?',
+      "Say the word and I'll call her.",
+      "I'll text her if you want.",
+      'Want me to get you a cab?',
+      'Should I get you a table?',
+      'Shall I get an ambulance?',
+      'Want me to get help?',
+      'I can sort that out for you.',
+    ])
+      expect([offer, actionInPlay(ctx(said(offer), user('Go on then.')))]).toEqual([offer, true]);
+    for (const bare of [
+      'Want me to do that?',
+      'Should I go ahead?',
+      'Want me to handle it?',
+      'Should I?',
+    ])
+      expect([
+        bare,
+        actionInPlay(ctx(said('Your sister would love a message.'), said(bare), user('Yes.'))),
+      ]).toEqual([bare, true]);
     // An offer with no action in it doesn't hold
     expect(actionInPlay(ctx(said('Want me to keep going?'), user('Yes.')))).toBe(false);
     expect(actionInPlay(ctx(user('Tell me something interesting.')))).toBe(false);
@@ -562,6 +618,16 @@ describe('no hold at the head of the reply (dev latency, increment 3)', () => {
   it('with no action in play, each chunk goes out as it comes, before the sentence ends', async () => {
     const out = await check(openStreamOf('Oh,'), SMALL_TALK);
     expect(await firstOut(out)).toBe('Oh,');
+  });
+
+  it('ACTION_CLAIM_STREAM off (the default): small talk holds and a claim is never spoken', async () => {
+    expect(await firstOut(await check(openStreamOf('Oh,'), SMALL_TALK, toolsWith(), {}))).toBe(
+      undefined
+    );
+    const parts = ["I've texted her for you. ", 'Anything else?'];
+    expect(await textOf(await check(streamOf(...parts), SMALL_TALK, toolsWith(), {}))).toBe(
+      "I can't actually send messages for you, so nothing's gone out. I can help you word it, though. Anything else?"
+    );
   });
 
   it('with no action in play, the words come out exactly as the model wrote them', async () => {

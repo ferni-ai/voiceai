@@ -22,8 +22,8 @@
  * and the reason, never words.
  *
  * Holding a sentence delays the first audio (dev A/B, increment 3: about
- * 0.2-0.5 s, a whole model chunk), so sentences are held only when an action
- * is in play: the caller asked for one in their last few turns, or a tool of
+ * 0.2-0.5 s, a whole model chunk). With ACTION_CLAIM_STREAM=on (off by default,
+ * so every turn holds as before), sentences are held only when an action is in play: the caller asked for one in their last few turns, or a tool of
  * that kind ran on this call. A sentence ending a chunk goes out at once. On
  * every other turn the words stream as they come and a claim, rare there, is
  * corrected by the honest line straight after it.
@@ -45,6 +45,11 @@ export type MissReason = 'no_tool' | 'failed';
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
+}
+
+/** Stream turns with no action in play (off: every turn holds, as before). */
+export function actionClaimStreamEnabled(env: Env = process.env): boolean {
+  return flagOn('ACTION_CLAIM_STREAM', env);
 }
 
 const DID_NOT_GO: Record<ActionKind, string> = {
@@ -97,14 +102,14 @@ function sentenceEnd(text: string): number {
 
 /** What a caller says when they want Ferni to do something: call, text, book, remind, save. */
 const ACTION_TALK =
-  /\b(?:call\w*|cal|ring\w*|rang|rung|phon\w*|dial\w*|buzz|face ?time|whats ?app|text\w*|tex|txt|messag\w*|msg|dm|e-?mail\w*|send\w*|sent|ping\w*|contact\w*|reach\w*|hit (?:up|her|him|them)|holler|connect\w*|put (?:me )?through|loop (?:in|\w+ in)|get (?:my|her|him|them|\w+ for me)|(?:talk|speak) (?:to|with) (?:my|her|him|them)|ask (?:my|her|him|them)\b|hold of|ahold|on the line|tell (?!me\b)\w+|let (?:her|him|them|my \w+|\w+) know|order\w*|buy\w*|bought|pay\w*|purchas\w*|book\w*|schedul\w*|set up|reserv\w*|appointment\w*|meeting|calendar|remind\w*|wake me|alarm\w*|timer\w*|sav\w*|remember\w*|write (?:that|it|this) down|jot|note\w*|number\w*|llam\w*|appel\w*|anruf\w*|ruf|chiam\w*|liga\w*)\b|\d{3}/i;
+  /\b(?:call\w*|cal|ring\w*|rang|rung|phon\w*|dial\w*|buzz|face ?time|whats ?app|text\w*|tex|txt|messag\w*|msg|dm|e-?mail\w*|send\w*|sent|ping\w*|contact\w*|reach\w*|hit (?:up|her|him|them)|holler|connect\w*|put (?:me )?through|loop (?:in|\w+ in)|get (?:my|her|him|them|\w+ for me)|(?:talk|speak) (?:to|with) (?:my|her|him|them)|ask (?:my|her|him|them)\b|hold of|ahold|on the line|tell (?!me\b)\w+|let (?:her|him|them|my \w+|\w+) know|order\w*|buy\w*|bought|pay\w*|purchas\w*|book\w*|schedul\w*|set (?:\w+ ){0,2}up|sort (?:\w+ ){0,2}out|cab|taxi|uber|lyft|ride|table|get (?:me|us) in|notify|inform\w*|needs? to know|reserv\w*|appointment\w*|meeting|calendar|remind\w*|wake me|alarm\w*|timer\w*|sav\w*|remember\w*|write (?:that|it|this) down|jot|note\w*|number\w*|llam\w*|appel\w*|anruf\w*|ruf|chiam\w*|liga\w*)\b|\d{3}/i;
 /**
  * The fallback when the ask's wording is new: any request, anyone named in it, or an
  * emergency. A wrong match only costs a held sentence; a missed ask speaks a claim.
  * Case-blind, since speech-to-text capitalises the start of every sentence.
  */
 const ASK_SHAPE =
-  /\b(?:(?:can|could|would|will) you|please|i need you to|i want you to|go ahead|for me|ambulance|911|police|emergency|fire department|help|hurt\w*|fell|fallen|can'?t breathe|heart attack|chest|bleed\w*|breaking in|broke in|overdos\w*|suicid\w*|(?:my|your|our) (?:\w+ )?(?:mom|mum|mother|mama|dad|father|papa|sister|sis|brother|bro|grandma|grandmother|gran|nana|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|friend|bestie|boss|doctor|dentist|therapist|landlord|teacher|neighbou?r|family|roommate)|her|him|them)\b/i;
+  /\b(?:(?:can|could|would|will) you|please|i need you to|i want you to|go ahead|for me|ambulance|911|police|emergency|fire department|help|hurt\w*|fell|fallen|(?:can'?t|cannot|can not) breathe|heart attack|chest|bleed\w*|breaking in|broke in|overdos\w*|suicid\w*|not breathing|collaps\w*|passed out|unconscious|stroke|chok\w*|seizure|fire|accident|gun|knife|cops|kill (?:my|him|her)sel(?:f|ves)|end it all|(?:don'?t|do not) want to (?:live|be here)|ayuda|hilfe|socorro|aiuto|au secours|(?:my|your|our) (?:\w+ )?(?:mom|mum|mother|mama|dad|father|papa|sister|sis|brother|bro|grandma|grandmother|gran|nana|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|friend|bestie|boss|doctor|dentist|therapist|landlord|teacher|neighbou?r|family|roommate)|her|him|them)\b/i;
 /** Someone named mid-sentence: a capitalised word other than Ferni's name (case matters here). */
 const NAMED = /\s(?!(?:Ferni|Fern)\b)[A-Z][a-z]+/;
 
@@ -133,12 +138,22 @@ const spokenOf = (item: Item): string => {
 /** Ferni's own line claimed an action or said honestly he couldn't: the action is still in play. */
 const HONEST_SAID = /\b(?:can't actually|didn't go through)\b/i;
 /** Ferni offered to act ("Should I text your sister?"), so the caller's "Yes." asks for it. */
-const OFFER = /\b(?:want me to|should i|shall i|i can|i could|would you like me to|like me to)\b/i;
+const OFFER =
+  /\b(?:want me to|should i|shall i|can i|could i|i can|i could|i'll|i will|would you like|like me to|do you want|need me to|is it ok(?:ay)? if i|mind if i|how about i|happy to|say the word|let me know if|if you (?:want|like))\b/i;
+/** A bare offer ("Want me to do that?") points at an action Ferni named a line or two before. */
+const BARE_OFFER =
+  /\b(?:want me to|should i|shall i|can i|do you want|need me to|happy to)\b.*\?|^(?:should i|want me to)\??$/i;
 const actedOn = (text: string): boolean =>
   HONEST_SAID.test(text) ||
   text
     .split(/(?<=[.!?])\s+/)
-    .some((part) => claimedAction(part) !== null || (OFFER.test(part) && ACTION_TALK.test(part)));
+    .some(
+      (part) =>
+        claimedAction(part) !== null ||
+        (OFFER.test(part) && (ACTION_TALK.test(part) || ASK_SHAPE.test(part)))
+    );
+/** Curly apostrophes from speech-to-text read as straight ones. */
+const plain = (text: string): string => text.replace(/[\u2018\u2019]/g, "'");
 
 /** The caller asked for an action lately, or an action tool ran on this call. */
 export function actionInPlay(chatCtx: { items: readonly unknown[] }): boolean {
@@ -153,11 +168,22 @@ export function actionInPlay(chatCtx: { items: readonly unknown[] }): boolean {
     return true;
   // Ferni's own last replies too: after "yes" and "hello?" the ask can be four messages back,
   // but his "dialing her now" or honest line keeps the action in play (prod, 2026-10-15).
-  const said = items.filter((item) => item.type === 'message' && item.role === 'assistant');
-  if (said.slice(-ASK_WINDOW).some((item) => actedOn(spokenOf(item)))) return true;
+  const said = items
+    .filter((item) => item.type === 'message' && item.role === 'assistant')
+    .map((item) => plain(spokenOf(item)));
+  const recent = said.slice(-ASK_WINDOW);
+  if (recent.some(actedOn)) return true;
+  if (
+    recent.some(
+      (line, i) =>
+        BARE_OFFER.test(line) &&
+        recent.slice(Math.max(0, i - 2), i + 1).some((l) => ACTION_TALK.test(l))
+    )
+  )
+    return true;
   const asks = items.filter((item) => item.type === 'message' && item.role === 'user');
   return asks
-    .map(spokenOf)
+    .map((item) => plain(spokenOf(item)))
     .filter(Boolean)
     .slice(-ASK_WINDOW)
     .some((text) => ACTION_TALK.test(text) || ASK_SHAPE.test(text) || NAMED.test(text));
@@ -178,7 +204,7 @@ export async function withActionClaimCheck<T>(
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
   const { failed } = callActions(chatCtx);
   const open = new Set(Object.keys(tools.functionTools ?? {}).flatMap(kindsOfTool));
-  const hold = actionInPlay(chatCtx);
+  const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind): MissReason | null =>
     !open.has(kind) ? 'no_tool' : failed.has(kind) ? 'failed' : null;
