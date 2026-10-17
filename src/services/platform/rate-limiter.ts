@@ -13,6 +13,7 @@
 import Redis from 'ioredis';
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval } from '../../utils/interval-manager.js';
+import { checkSharedInFirestore, wantsFirestoreSharedLimits } from './firestore-rate-limit.js';
 
 const log = createLogger({ module: 'RateLimiter' });
 
@@ -308,10 +309,12 @@ export const rateLimiter = {
   },
 
   /**
-   * Like `check`, but for limits that must hold across instances (spend caps):
-   * when Redis is configured and unreachable it returns null instead of
-   * counting in this instance's memory, so the caller can fail closed. Uses
-   * memory only when no Redis is configured at all (local development).
+   * Like `check`, but for limits that must hold across instances (spend caps).
+   * The count lives in Redis when it is configured, otherwise in Firestore
+   * (firestore-rate-limit.ts); either way it returns null instead of counting in
+   * this instance's memory when the store is unreachable, so the caller can fail
+   * closed. Uses memory only in local development with neither (no Google Cloud,
+   * no emulator).
    */
   async checkShared(
     key: string,
@@ -319,7 +322,11 @@ export const rateLimiter = {
     windowMs: number,
     cost = 1
   ): Promise<RateLimitResult | null> {
-    if (!redisClient) return checkMemoryRateLimit(key, maxRequests, windowMs, cost);
+    if (!redisClient) {
+      return wantsFirestoreSharedLimits()
+        ? checkSharedInFirestore(key, maxRequests, windowMs, cost)
+        : checkMemoryRateLimit(key, maxRequests, windowMs, cost);
+    }
     // Fail closed until 'connect' fires; rate_limit_redis_down reports it once per window.
     if (!redisAvailable) {
       reviveRedisIfGivenUp(key);
