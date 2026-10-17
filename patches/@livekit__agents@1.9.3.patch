@@ -82,8 +82,66 @@ index 9920f2c7d37504a433f04c8b148c386dabb800db..c50fc365e0e12b1cf9a8ea0e6e2ce432
      turns.push({ role: "user", parts: [{ text: "." }] });
    }
    return [
+diff --git a/dist/stt/stt.cjs b/dist/stt/stt.cjs
+index 0c3bbab906a45829c8d2a26326fb7c0bd39f1792..2c308e1fb58ebba21e966f4a1000e29eca9d0645 100644
+--- a/dist/stt/stt.cjs
++++ b/dist/stt/stt.cjs
+@@ -200,7 +200,14 @@ class SpeechStream {
+         if (this.abortController.signal.aborted) {
+           return;
+         }
+-        if (Date.now() - lastStartTime > this._connOptions.timeoutMs) {
++        // PATCHED(ferni): STT_RETRY_MIN_UPTIME. #2494 resets the count after any attempt longer
++        // than timeoutMs (10 s, timed from before run()), so a socket the provider accepts and
++        // drops 11-29 s in, or a ~10 s connect hang, retried forever at attempt 1: a deaf agent
++        // with no alert. Reset only after 60 s up; Cartesia's ~3-5 min idle recycle still resets.
++        const __ferniUptimeMs = Date.now() - lastStartTime;
++        const __ferniResetAfterMs = process.env.STT_RETRY_MIN_UPTIME === "off" ? this._connOptions.timeoutMs : Math.max(this._connOptions.timeoutMs, 6e4);
++        const __ferniRetriesBefore = this._numRetries;
++        if (__ferniUptimeMs > __ferniResetAfterMs) {
+           this._numRetries = 0;
+         }
+         if (error instanceof import_exceptions.APIError) {
+@@ -216,7 +223,7 @@ class SpeechStream {
+             });
+           } else {
+             this.logger.warn(
+-              { stt: this.#stt.label, attempt: this._numRetries + 1, error },
++              { stt: this.#stt.label, attempt: this._numRetries + 1, retriesBefore: __ferniRetriesBefore, uptimeMs: __ferniUptimeMs, error },
+               `failed to recognize speech, retrying in ${retryInterval}ms`
+             );
+           }
+diff --git a/dist/stt/stt.js b/dist/stt/stt.js
+index 6012dbba6bcff20ff321ee2e2db75f2d6473b929..b06dee1b38e3f0e69697cd71c48099c4961474b6 100644
+--- a/dist/stt/stt.js
++++ b/dist/stt/stt.js
+@@ -175,7 +175,14 @@ class SpeechStream {
+         if (this.abortController.signal.aborted) {
+           return;
+         }
+-        if (Date.now() - lastStartTime > this._connOptions.timeoutMs) {
++        // PATCHED(ferni): STT_RETRY_MIN_UPTIME. #2494 resets the count after any attempt longer
++        // than timeoutMs (10 s, timed from before run()), so a socket the provider accepts and
++        // drops 11-29 s in, or a ~10 s connect hang, retried forever at attempt 1: a deaf agent
++        // with no alert. Reset only after 60 s up; Cartesia's ~3-5 min idle recycle still resets.
++        const __ferniUptimeMs = Date.now() - lastStartTime;
++        const __ferniResetAfterMs = process.env.STT_RETRY_MIN_UPTIME === "off" ? this._connOptions.timeoutMs : Math.max(this._connOptions.timeoutMs, 6e4);
++        const __ferniRetriesBefore = this._numRetries;
++        if (__ferniUptimeMs > __ferniResetAfterMs) {
+           this._numRetries = 0;
+         }
+         if (error instanceof APIError) {
+@@ -191,7 +198,7 @@ class SpeechStream {
+             });
+           } else {
+             this.logger.warn(
+-              { stt: this.#stt.label, attempt: this._numRetries + 1, error },
++              { stt: this.#stt.label, attempt: this._numRetries + 1, retriesBefore: __ferniRetriesBefore, uptimeMs: __ferniUptimeMs, error },
+               `failed to recognize speech, retrying in ${retryInterval}ms`
+             );
+           }
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index f8d71967401e60955d2144a8c57ff2eaa1340e3c..2f604d180bcdcb2cca3e8af2c3b33a1504124cf0 100644
+index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2ab01c77f7 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
 @@ -240,6 +240,12 @@ class AutoToolReplyTurnHold {
@@ -178,7 +236,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..2f604d180bcdcb2cca3e8af2c3b33a15
      if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords) > 0) {
        const wordCount = (0, import_word.splitWords)(info.newTranscript, true).length;
        if (wordCount < ((_d = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _d.minWords)) {
-@@ -2368,7 +2423,13 @@ class AgentActivity {
+@@ -2368,7 +2423,15 @@ class AgentActivity {
      let discardedPreemptive;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -189,11 +247,13 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..2f604d180bcdcb2cca3e8af2c3b33a15
 +      const __pSameTools = preemptive.tools.equals(this.tools);
 +      const __pSameChoice = (0, import_tool_context.isSameToolChoice)(preemptive.toolChoice, this.toolChoice);
 +      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight: String(preemptive.info.newTranscript).slice(0, 60), final: String(userMessage == null ? void 0 : userMessage.rawTextContent).slice(0, 60) }, 'PREEMPTIVE_DECISION');
++      // PATCHED(ferni): the same decision as an event, for the TURN_RECEIPT (turn-receipt.ts)
++      this.agentSession.emit("ferni_preemptive_decision", { type: "ferni_preemptive_decision", used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice });
 +      if (__pSameText && __pSameCtx && __pSameTools && __pSameChoice) {
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -4183,10 +4244,34 @@ class AgentActivity {
+@@ -4183,10 +4246,34 @@ class AgentActivity {
      if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
        this.updatePausedSpeech(speechHandle, 0);
        audioOutput.pause();
@@ -228,7 +288,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..2f604d180bcdcb2cca3e8af2c3b33a15
    cancelFalseInterruptionTimer() {
      if (this.falseInterruptionTimer !== void 0) {
        clearTimeout(this.falseInterruptionTimer);
-@@ -4279,8 +4364,16 @@ class AgentActivity {
+@@ -4279,8 +4366,16 @@ class AgentActivity {
      if (!this.pausedSpeech) {
        return;
      }
@@ -245,7 +305,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..2f604d180bcdcb2cca3e8af2c3b33a15
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -4289,7 +4382,7 @@ class AgentActivity {
+@@ -4289,7 +4384,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
@@ -255,7 +315,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..2f604d180bcdcb2cca3e8af2c3b33a15
      }
    }
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index a345f90082ca2e5de031c4bfe940b021d218bc30..34d3c2b4384cb90933047e5d664914c3cb245ef8 100644
+index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6a72a5636 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
 @@ -293,6 +293,12 @@ class AutoToolReplyTurnHold {
@@ -350,7 +410,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..34d3c2b4384cb90933047e5d664914c3
      if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords) > 0) {
        const wordCount = splitWords(info.newTranscript, true).length;
        if (wordCount < ((_d = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _d.minWords)) {
-@@ -2421,7 +2476,13 @@ class AgentActivity {
+@@ -2421,7 +2476,15 @@ class AgentActivity {
      let discardedPreemptive;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -361,11 +421,13 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..34d3c2b4384cb90933047e5d664914c3
 +      const __pSameTools = preemptive.tools.equals(this.tools);
 +      const __pSameChoice = isSameToolChoice(preemptive.toolChoice, this.toolChoice);
 +      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight: String(preemptive.info.newTranscript).slice(0, 60), final: String(userMessage == null ? void 0 : userMessage.rawTextContent).slice(0, 60) }, 'PREEMPTIVE_DECISION');
++      // PATCHED(ferni): the same decision as an event, for the TURN_RECEIPT (turn-receipt.ts)
++      this.agentSession.emit("ferni_preemptive_decision", { type: "ferni_preemptive_decision", used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice });
 +      if (__pSameText && __pSameCtx && __pSameTools && __pSameChoice) {
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -4236,10 +4297,34 @@ class AgentActivity {
+@@ -4236,10 +4299,34 @@ class AgentActivity {
      if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
        this.updatePausedSpeech(speechHandle, 0);
        audioOutput.pause();
@@ -400,7 +462,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..34d3c2b4384cb90933047e5d664914c3
    cancelFalseInterruptionTimer() {
      if (this.falseInterruptionTimer !== void 0) {
        clearTimeout(this.falseInterruptionTimer);
-@@ -4332,8 +4417,16 @@ class AgentActivity {
+@@ -4332,8 +4419,16 @@ class AgentActivity {
      if (!this.pausedSpeech) {
        return;
      }
@@ -417,7 +479,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..34d3c2b4384cb90933047e5d664914c3
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -4342,7 +4435,7 @@ class AgentActivity {
+@@ -4342,7 +4437,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
