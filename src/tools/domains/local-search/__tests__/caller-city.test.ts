@@ -1,0 +1,254 @@
+/**
+ * Where "near me" searches look (PLACES_LOCATION). Order: the city said on
+ * this call, then the city the caller agreed to have remembered, then the
+ * phone's city, then ask. Only a city is ever stored, and only after a yes.
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../../../utils/safe-logger.js', () => {
+  const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+  return {
+    getLogger: () => ({ ...logger, child: vi.fn(() => logger) }),
+    createLogger: () => ({ ...logger, child: vi.fn(() => logger) }),
+    safeLog: () => logger,
+  };
+});
+vi.mock('@livekit/agents', () => ({
+  llm: {
+    tool: vi.fn((config) => ({
+      description: config.description,
+      parameters: config.parameters,
+      execute: config.execute,
+    })),
+  },
+  log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
+const places = vi.hoisted(() => ({
+  searchRestaurants: vi.fn(async (_opts: { query: string; location: string }) => []),
+}));
+vi.mock('../../../../services/google-places.js', () => ({
+  searchRestaurants: places.searchRestaurants,
+  getPlaceDetails: vi.fn(),
+  findNearbyRestaurants: vi.fn(),
+  formatRestaurantListForSpeech: vi.fn(),
+  isGooglePlacesConfigured: () => true,
+}));
+vi.mock('../../../../services/yelp.js', () => ({
+  searchBusinesses: vi.fn(async () => []),
+  searchRestaurants: vi.fn(async () => []),
+  getBusinessDetails: vi.fn(),
+  getBusinessReviews: vi.fn(),
+  getBusinessByPhone: vi.fn(),
+  formatBusinessForSpeech: vi.fn(),
+  formatReviewForSpeech: vi.fn(),
+  isYelpConfigured: () => false,
+}));
+
+// Stands in for Firestore-backed preferences. updateUserPreferences merges like the real one.
+type SavedCity = { city: string; regionCode?: string; savedAt: string };
+const store = vi.hoisted(() => ({
+  prefs: new Map<string, { callerCity?: SavedCity | undefined }>(),
+  failWrites: false,
+}));
+vi.mock('../../information/preferences/storage.js', () => ({
+  getUserPreferences: async (userId: string) => ({
+    callerCity: store.prefs.get(userId)?.callerCity,
+  }),
+  updateUserPreferences: async (userId: string, update: { callerCity?: SavedCity | undefined }) => {
+    if (store.failWrites) return { success: false, message: 'Could not save preferences.' };
+    store.prefs.set(userId, { ...store.prefs.get(userId), ...update });
+    return { success: true, message: 'Preferences updated!' };
+  },
+}));
+
+import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
+import type { ToolContext } from '../../../registry/types.js';
+
+type UserLocation = { city?: string; regionCode?: string; countryCode?: string };
+type Executable = {
+  execute: (args: Record<string, unknown>, opts?: unknown) => Promise<string>;
+};
+
+/** The shared fast-path context: no userId of a caller, like buildEssentialTools({ userId: 'shared' }). */
+const sharedCtx = {
+  userId: 'shared',
+  agentId: 'ferni',
+  agentDisplayName: 'Ferni',
+  services: { has: () => false, get: () => undefined, getOptional: () => undefined },
+} as unknown as ToolContext;
+
+/** What LiveKit passes as the tool's second argument for a call from this caller. */
+const callFrom = (userId?: string, userLocation?: UserLocation) => ({
+  ctx: { userData: { userId, userLocation } },
+});
+const phoneInStGeorge = callFrom('u1', { city: 'St. George', regionCode: 'UT' });
+
+async function domainTool(id: string): Promise<Executable> {
+  const mod = await import('../index.js');
+  const def = (await mod.getToolDefinitions()).find((d) => d.id === id);
+  if (!def) throw new Error(`${id} not registered`);
+  return def.create(sharedCtx) as Executable;
+}
+
+const findRestaurants = () => domainTool('findRestaurants');
+const rememberCity = () => domainTool('rememberCallerCity');
+const forgetCity = () => domainTool('forgetCallerCity');
+
+beforeEach(() => {
+  process.env.PLACES_LOCATION = 'on';
+  store.prefs.clear();
+  store.failWrites = false;
+  places.searchRestaurants.mockClear();
+});
+
+afterEach(() => {
+  delete process.env.PLACES_LOCATION;
+});
+
+describe('PLACES_LOCATION off', () => {
+  beforeEach(() => {
+    process.env.PLACES_LOCATION = 'off';
+  });
+
+  it('does not register the caller-city tools', async () => {
+    const mod = await import('../index.js');
+    const ids = (await mod.getToolDefinitions()).map((d) => d.id);
+    expect(ids).not.toContain('rememberCallerCity');
+    expect(ids).not.toContain('forgetCallerCity');
+  });
+
+  it('ignores a saved city and searches the phone city, as before', async () => {
+    store.prefs.set('u1', { callerCity: { city: 'Philadelphia', regionCode: 'PA', savedAt: 'x' } });
+    await (await findRestaurants()).execute({ cuisine: 'tacos' }, phoneInStGeorge);
+    expect(places.searchRestaurants.mock.calls[0][0].location).toBe('St. George, UT');
+  });
+});
+
+describe('source order (PLACES_LOCATION on)', () => {
+  it('the city said on this call wins over a saved city and the phone city', async () => {
+    store.prefs.set('u1', { callerCity: { city: 'Philadelphia', regionCode: 'PA', savedAt: 'x' } });
+    await (await findRestaurants()).execute({ location: 'Las Vegas' }, phoneInStGeorge);
+    expect(places.searchRestaurants.mock.calls[0][0].location).toBe('Las Vegas');
+  });
+
+  it('a saved city wins over the phone city', async () => {
+    store.prefs.set('u1', { callerCity: { city: 'Philadelphia', regionCode: 'PA', savedAt: 'x' } });
+    await (await findRestaurants()).execute({ cuisine: 'coffee' }, phoneInStGeorge);
+    expect(places.searchRestaurants.mock.calls[0][0].location).toBe('Philadelphia, PA');
+  });
+
+  it('falls back to the phone city when nothing is saved', async () => {
+    await (await findRestaurants()).execute({ cuisine: 'coffee' }, phoneInStGeorge);
+    expect(places.searchRestaurants.mock.calls[0][0].location).toBe('St. George, UT');
+  });
+
+  it('asks where when no source knows the city, and does not search', async () => {
+    const result = await (await findRestaurants()).execute(
+      { cuisine: 'coffee' },
+      callFrom('u1', undefined)
+    );
+    expect(result).toMatch(/Where should I look/);
+    expect(places.searchRestaurants).not.toHaveBeenCalled();
+  });
+
+  it('never reads the shared context as a caller', async () => {
+    store.prefs.set('shared', { callerCity: { city: 'Dallas', savedAt: 'x' } });
+    const result = await (await findRestaurants()).execute(
+      { cuisine: 'coffee' },
+      callFrom(undefined)
+    );
+    expect(result).toMatch(/Where should I look/);
+    expect(places.searchRestaurants).not.toHaveBeenCalled();
+  });
+});
+
+describe('saving the city', () => {
+  it('stores the city and region only, with no coordinates or address fields', async () => {
+    const result = await (await rememberCity()).execute(
+      { city: 'Philadelphia', region: 'PA', callerSaidYes: true },
+      phoneInStGeorge
+    );
+    expect(result).toMatch(/Saved/);
+    const saved = store.prefs.get('u1')?.callerCity;
+    expect(Object.keys(saved ?? {}).sort()).toEqual(['city', 'regionCode', 'savedAt']);
+    expect(saved?.city).toBe('Philadelphia');
+    expect(saved?.regionCode).toBe('PA');
+  });
+
+  it('refuses a street address or coordinates and stores nothing', async () => {
+    const remember = await rememberCity();
+    const street = await remember.execute(
+      { city: '1600 Pennsylvania Ave', callerSaidYes: true },
+      phoneInStGeorge
+    );
+    const point = await remember.execute(
+      { city: '39.95, -75.16', callerSaidYes: true },
+      phoneInStGeorge
+    );
+    expect(street).toMatch(/city or town name/);
+    expect(point).toMatch(/city or town name/);
+    expect(store.prefs.get('u1')?.callerCity).toBeUndefined();
+  });
+
+  it('saves nothing without the caller saying yes', async () => {
+    const result = await (await rememberCity()).execute(
+      { city: 'Philadelphia', callerSaidYes: false },
+      phoneInStGeorge
+    );
+    expect(result).toMatch(/haven't saved/);
+    expect(store.prefs.get('u1')?.callerCity).toBeUndefined();
+  });
+
+  it('says so honestly when the write fails', async () => {
+    store.failWrites = true;
+    const result = await (await rememberCity()).execute(
+      { city: 'Philadelphia', region: 'PA', callerSaidYes: true },
+      phoneInStGeorge
+    );
+    expect(result).toMatch(/couldn't save/);
+    expect(result).not.toMatch(/Saved\./);
+  });
+
+  it('will not save for the shared context, which has no caller', async () => {
+    const tool = (await import('../index.js')).getToolDefinitions;
+    const def = (await tool()).find((d) => d.id === 'rememberCallerCity');
+    const bound = def?.create(sharedCtx) as Executable;
+    const result = await bound.execute({ city: 'Philadelphia', callerSaidYes: true }, callFrom());
+    expect(result).toMatch(/can't save a city/);
+    expect(store.prefs.size).toBe(0);
+  });
+});
+
+describe('forgetting the city', () => {
+  it('removes the saved city, and the stored record no longer carries it', async () => {
+    await (
+      await rememberCity()
+    ).execute({ city: 'Philadelphia', region: 'PA', callerSaidYes: true }, phoneInStGeorge);
+    const result = await (await forgetCity()).execute({}, phoneInStGeorge);
+    expect(result).toMatch(/forgotten/);
+
+    const written = cleanForFirestore(store.prefs.get('u1') ?? {});
+    expect(written).not.toHaveProperty('callerCity');
+
+    await (await findRestaurants()).execute({ cuisine: 'coffee' }, phoneInStGeorge);
+    expect(places.searchRestaurants.mock.calls[0][0].location).toBe('St. George, UT');
+  });
+
+  it('says so honestly when the forget write fails', async () => {
+    store.prefs.set('u1', { callerCity: { city: 'Philadelphia', regionCode: 'PA', savedAt: 'x' } });
+    store.failWrites = true;
+    const result = await (await forgetCity()).execute({}, phoneInStGeorge);
+    expect(result).toMatch(/couldn't forget/);
+    expect(store.prefs.get('u1')?.callerCity?.city).toBe('Philadelphia');
+  });
+});
+
+describe('a failed search', () => {
+  it('says it had trouble rather than listing places it did not get', async () => {
+    places.searchRestaurants.mockRejectedValueOnce(new Error('Places quota exceeded'));
+    const result = await (await findRestaurants()).execute({ cuisine: 'coffee' }, phoneInStGeorge);
+    expect(result).toMatch(/trouble finding restaurants/);
+    expect(result).not.toMatch(/Options near/);
+  });
+});
