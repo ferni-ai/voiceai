@@ -6,7 +6,6 @@
  *
  * Usage:
  *   ferni                          # Interactive mode
- *   ferni deploy ui                # Deploy UI
  *   ferni test quick               # Run quick tests
  *   ferni setup local              # Setup local dev
  *   ferni agents list              # List AI agents
@@ -17,7 +16,7 @@
  *   ferni env diff                 # Compare environments
  *
  * Or via npm:
- *   npm run ferni deploy ui
+ *   npm run ferni status
  */
 
 import { execFileSync, execSync, spawn, spawnSync } from 'child_process';
@@ -265,8 +264,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Deploy services to cloud',
     icon: icons.rocket,
     script: 'apps/cli/src/commands/deploy/deploy.ts',
-    subcommands: ['ui', 'frontend', 'landing', 'all'],
-    examples: ['ferni deploy ui', 'ferni deploy all --dry-run'],
+    subcommands: ['async'],
+    examples: ['ferni deploy async --dry-run'],
   },
   agents: {
     name: 'Agents',
@@ -4231,7 +4230,7 @@ async function handleVoices(args: string[]): Promise<void> {
     console.log();
     log.info('Next steps:');
     console.log(`  1. Review samples: ${colors.cyan}open ${outputDir}${colors.reset}`);
-    console.log(`  2. Deploy landing page: ${colors.cyan}npm run deploy:landing${colors.reset}`);
+    console.log(`  2. Merge to main; deploy-firebase.yml deploys the landing page`);
   }
 }
 
@@ -5588,7 +5587,7 @@ async function handleRelease(args: string[]): Promise<void> {
     log.info('Next steps:');
     console.log(`  1. Review: ${colors.cyan}git show ${version}${colors.reset}`);
     console.log(`  2. Push: ${colors.cyan}git push origin main --tags${colors.reset}`);
-    console.log(`  3. Deploy: ${colors.cyan}ferni deploy all${colors.reset}`);
+    console.log(`  3. Deploy: merging to main runs the deploy workflows`);
   }
 
   if (subcommand === 'tag') {
@@ -7043,7 +7042,9 @@ async function handleSecrets(args: string[]): Promise<void> {
     if (secrets) {
       log.success('Secrets available for sync');
       console.log(`\n  To sync to Cloud Run, redeploy the service:`);
-      console.log(`    ${colors.cyan}ferni deploy ui${colors.reset}`);
+      console.log(
+        `    ${colors.cyan}gh workflow run deploy-production.yml --ref main -f service=ui-server${colors.reset}`
+      );
     } else {
       log.warn('No secrets found in Secret Manager');
     }
@@ -11273,7 +11274,6 @@ ${colors.bold}Examples - Platform Operations:${colors.reset}
   ferni platform                 # Platform operations hub
   ferni platform logs agent      # Stream agent logs
   ferni platform status          # Check all services
-  ferni deploy ui                # Deploy UI (also works directly)
   ferni status                   # Check status (also works directly)
   ferni doctor                   # Run diagnostics
 
