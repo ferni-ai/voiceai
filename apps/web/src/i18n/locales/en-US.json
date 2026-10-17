@@ -1411,6 +1411,11 @@
     "channelTexts": "Texts",
     "channelCalls": "Calls",
     "errorChannels": "Couldn't save how I check in. Try again?",
+    "resendCode": "Send a new code",
+    "changeNumber": "Use a different number",
+    "verifyToTurnOn": "Verify your number to turn texts or calls on.",
+    "errorPhoneNotLinked": "That code worked, but I couldn't connect the number to your account just now. Try again in a bit?",
+    "phoneChannelsOff": "Done. I won't text or call you now.",
     "verify": {
       "sending": "Sending code...",
       "withCode": "Verify with code"

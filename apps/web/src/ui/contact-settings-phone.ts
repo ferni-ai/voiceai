@@ -6,6 +6,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { outreachService } from '../services/outreach.service.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { formatPhone, toE164 } from '../utils/phone.js';
@@ -86,11 +87,18 @@ export async function loadPhoneAndChannels(s: State): Promise<void> {
   s.channels = Array.isArray(allowed) ? allowed : [];
 }
 
+const PHONE_CHANNELS = ['sms', 'call'];
+
 /** Under the phone input: the format hint, "Send me a code", the code field, or check-in channels. */
 export function phoneActionsHtml(s: State): string {
   const { e164, verified } = phoneStatus(s);
   const invalid = s.phoneInvalid && !e164 && field(s, 'phone').trim() !== '';
-  const on = (channel: string): string => (s.channels.includes(channel) ? 'checked' : '');
+  // Shown while texts or calls are on even without a verified number, so they can always be turned off.
+  const showChannels = verified || s.channels.some((c) => PHONE_CHANNELS.includes(c));
+  const box = (channel: string, label: string): string => {
+    const on = s.channels.includes(channel);
+    return `<label class="contact-settings-channel"><input type="checkbox" data-channel="${channel}" ${on ? 'checked' : ''} ${!on && !verified ? 'disabled' : ''} /> ${label}</label>`;
+  };
   return `
     ${invalid ? `<p class="contact-settings-field-error" role="alert">${t('contactSettings.errorPhoneFormat', "Hmm, that number doesn't look quite right. Mind adding the area code?")}</p>` : ''}
     ${
@@ -112,18 +120,21 @@ export function phoneActionsHtml(s: State): string {
         <input type="text" inputmode="numeric" autocomplete="one-time-code" class="contact-settings-code-input"
           id="verification-code" placeholder="• • • • • •" maxlength="6"
           aria-label="${t('contactSettings.codeLabel', 'Your 6-digit code')}" value="${escapeAttr(s.verificationCode)}" />
+        <button type="button" class="contact-settings-verify-btn" id="resend-code-btn">${t('contactSettings.resendCode', 'Send a new code')}</button>
+        <button type="button" class="contact-settings-verify-btn" id="change-number-btn">${t('contactSettings.changeNumber', 'Use a different number')}</button>
       </div>
     `
         : ''
     }
     ${
-      verified
+      showChannels
         ? `
       <fieldset class="contact-settings-channels" id="checkin-channels">
         <legend class="contact-settings-label">${t('contactSettings.checkInHow', 'How should I check in?')}</legend>
         <label class="contact-settings-channel"><input type="checkbox" checked disabled /> ${t('contactSettings.channelApp', 'Right here in the app')}</label>
-        <label class="contact-settings-channel"><input type="checkbox" data-channel="sms" ${on('sms')} /> ${t('contactSettings.channelTexts', 'Texts')}</label>
-        <label class="contact-settings-channel"><input type="checkbox" data-channel="call" ${on('call')} /> ${t('contactSettings.channelCalls', 'Calls')}</label>
+        ${box('sms', t('contactSettings.channelTexts', 'Texts'))}
+        ${box('call', t('contactSettings.channelCalls', 'Calls'))}
+        ${verified ? '' : `<p class="contact-settings-quiet-note">${t('contactSettings.verifyToTurnOn', 'Verify your number to turn texts or calls on.')}</p>`}
       </fieldset>
     `
         : ''
@@ -132,28 +143,134 @@ export function phoneActionsHtml(s: State): string {
 }
 
 /** Re-draw just the phone area (typing never loses focus), then re-bind its controls. */
-export function refreshPhone(container: HTMLElement | null, s: State, bind: () => void): void {
-  const actions = container?.querySelector('#phone-actions');
+function refreshPhone(container: HTMLElement, s: State, rerender: Rerender): void {
+  const actions = container.querySelector('#phone-actions');
   if (!actions) return;
   actions.innerHTML = phoneActionsHtml(s);
   container
-    ?.querySelector('#phone-verified-badge')
+    .querySelector('#phone-verified-badge')
     ?.toggleAttribute('hidden', !phoneStatus(s).verified);
-  bind();
+  bindPhoneActions(container, s, rerender);
 }
 
 /** Keep the typed number in state; the hint shows on blur, the code button once it's valid. */
-export function bindPhoneInput(container: HTMLElement, s: State, refresh: () => void): void {
+export function bindPhoneInput(container: HTMLElement, s: State, rerender: Rerender): void {
   const input = container.querySelector<HTMLInputElement>('#phone-input');
   input?.addEventListener('input', () => {
     s.drafts.phone = input.value;
     if (toE164(input.value)) s.phoneInvalid = false;
-    refresh();
+    refreshPhone(container, s, rerender);
   });
   input?.addEventListener('blur', () => {
     s.phoneInvalid = input.value.trim() !== '' && !toE164(input.value);
-    refresh();
+    refreshPhone(container, s, rerender);
   });
+}
+
+/** The code button, the code field (with resend / change number), and the channel switches. */
+export function bindPhoneActions(container: HTMLElement, s: State, rerender: Rerender): void {
+  const click = (id: string, fn: () => void): void =>
+    container.querySelector(id)?.addEventListener('click', fn);
+  click('#verify-phone-btn', () => void sendCode(s, rerender));
+  click('#resend-code-btn', () => void sendCode(s, rerender, s.pendingPhone));
+  click('#change-number-btn', () => {
+    s.isVerifying = false;
+    s.verificationCode = '';
+    s.error = undefined;
+    s.success = undefined;
+    rerender();
+    container.querySelector<HTMLInputElement>('#phone-input')?.focus();
+  });
+  const codeInput = container.querySelector<HTMLInputElement>('#verification-code');
+  codeInput?.addEventListener('input', () => {
+    const value = codeInput.value.replace(/\D/g, '');
+    s.verificationCode = value;
+    if (value.length === 6) void confirmCode(s, value, rerender);
+  });
+  container.querySelectorAll<HTMLInputElement>('[data-channel]').forEach((box) => {
+    box.addEventListener(
+      'change',
+      () => void toggleChannel(s, box.dataset.channel ?? '', box.checked, rerender)
+    );
+  });
+}
+
+/** Text a code to this number (default: the one in the input). True once it's on its way. */
+export async function sendCode(
+  s: State,
+  rerender: Rerender,
+  e164: string | null = phoneStatus(s).e164
+): Promise<boolean> {
+  s.success = undefined;
+  if (!e164) {
+    s.phoneInvalid = field(s, 'phone').trim() !== '';
+    s.error = s.phoneInvalid
+      ? undefined
+      : t('contactSettings.errorNoPhone', 'Add a phone number first');
+    rerender();
+    return false;
+  }
+  s.isVerifying = true;
+  s.pendingPhone = e164;
+  s.verificationCode = '';
+  s.error = undefined;
+  rerender();
+  try {
+    const result = await outreachService.sendVerificationCode(e164);
+    if (!result.success) throw new Error(result.error || 'Failed to send verification');
+    log.info('Verification code sent');
+  } catch (error) {
+    s.error = t('contactSettings.errorSendCode', "Couldn't send the code. Try again?");
+    s.isVerifying = false;
+    log.error({ error }, 'Failed to send verification');
+  }
+  rerender();
+  return s.isVerifying;
+}
+
+/**
+ * Check the code. Verified only when the server put the number on the account
+ * (phoneLinked); a code that checks out but couldn't be linked isn't verified.
+ */
+async function confirmCode(s: State, code: string, rerender: Rerender): Promise<void> {
+  try {
+    const result = await outreachService.verifyPhone(s.pendingPhone, code);
+    const linked = (result as { phoneLinked?: boolean }).phoneLinked !== false;
+    if (result.success && linked) {
+      s.contactInfo.phone = s.pendingPhone;
+      s.contactInfo.phoneVerified = true;
+      s.drafts.phone = undefined;
+      s.isVerifying = false;
+      s.verificationCode = '';
+      s.success = t('contactSettings.phoneVerified', "Got it! I'll know your number now.");
+      log.info('Phone verified');
+      // Only now does the number go on the profile, normalized and proven.
+      const saved = await apiPost('/api/user/contact', { phone: s.pendingPhone }).catch(() => null);
+      if (!saved?.ok) log.warn('Verified number not copied to contact info');
+    } else if (result.success) {
+      s.isVerifying = false;
+      s.verificationCode = '';
+      s.error = t(
+        'contactSettings.errorPhoneNotLinked',
+        "That code worked, but I couldn't connect the number to your account just now. Try again in a bit?"
+      );
+      log.warn('Code accepted but number not linked to the account');
+    } else {
+      s.verificationCode = '';
+      s.error = t('contactSettings.errorInvalidCode', "That code didn't work. Try again?");
+    }
+  } catch (error) {
+    s.error = t('contactSettings.errorVerifyFailed', "Couldn't verify. Want another code?");
+    log.error({ error }, 'Phone verification failed');
+  }
+  rerender();
+}
+
+/** After a save that cleared the phone: the server turned texts and calls off too. */
+export function afterPhoneCleared(s: State, channelsOff: boolean | undefined): string | undefined {
+  if (!channelsOff) return undefined;
+  s.channels = s.channels.filter((c) => !PHONE_CHANNELS.includes(c));
+  return t('contactSettings.phoneChannelsOff', "Done. I won't text or call you now.");
 }
 
 /** Save which channels check-ins may use, besides in-app (always on). */

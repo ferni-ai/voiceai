@@ -17,11 +17,10 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getUserTimezone } from '../services/timezone.service.js';
 import { apiGet, apiPost } from '../utils/api.js';
-import { outreachService } from '../services/outreach.service.js';
 import { formatPhone } from '../utils/phone.js';
 import {
-  type Drafts, PHONE_STYLES, bindPhoneInput, escapeAttr, field, loadPhoneAndChannels,
-  phoneActionsHtml, phoneStatus, planPhoneSave, refreshPhone, toggleChannel,
+  type Drafts, PHONE_STYLES, afterPhoneCleared, bindPhoneActions, bindPhoneInput, escapeAttr,
+  field, loadPhoneAndChannels, phoneActionsHtml, phoneStatus, planPhoneSave, sendCode,
 } from './contact-settings-phone.js';
 
 const log = createLogger('ContactSettingsUI');
@@ -793,19 +792,6 @@ function render(): void {
   bindEvents();
 }
 
-function bindPhoneActions(): void {
-  modalContainer?.querySelector('#verify-phone-btn')?.addEventListener('click', () => void handleSendVerification());
-  const codeInput = modalContainer?.querySelector<HTMLInputElement>('#verification-code');
-  codeInput?.addEventListener('input', () => {
-    const value = codeInput.value.replace(/\D/g, '');
-    state.verificationCode = value;
-    if (value.length === 6) void handleVerifyCode(value);
-  });
-  modalContainer?.querySelectorAll<HTMLInputElement>('[data-channel]').forEach((box) => {
-    box.addEventListener('change', () => void toggleChannel(state, box.dataset.channel ?? '', box.checked, render));
-  });
-}
-
 function bindEvents(): void {
   if (!modalContainer) return;
 
@@ -820,8 +806,8 @@ function bindEvents(): void {
   modalContainer.querySelector('#save-btn')?.addEventListener('click', handleSave);
 
   // Typed values live in state, so a re-render (load finishing, an error) never wipes them.
-  bindPhoneInput(modalContainer, state, () => refreshPhone(modalContainer, state, bindPhoneActions));
-  bindPhoneActions();
+  bindPhoneInput(modalContainer, state, render);
+  bindPhoneActions(modalContainer, state, render);
   const email = modalContainer.querySelector<HTMLInputElement>('#email-input');
   email?.addEventListener('input', () => (state.drafts.email = email.value));
   const name = modalContainer.querySelector<HTMLInputElement>('#name-input');
@@ -953,7 +939,7 @@ async function handleSave(): Promise<void> {
 
   try {
     // Save contact info
-    const personalResponse = await apiPost<{ error?: string }>('/api/user/contact', {
+    const personalResponse = await apiPost<{ error?: string; phoneChannelsOff?: boolean }>('/api/user/contact', {
       ...(verified && e164 && { phone: e164 }),
       ...(clearPhone && { clearPhone: true }),
       ...(clearEmail && { clearEmail: true }),
@@ -993,7 +979,7 @@ async function handleSave(): Promise<void> {
     if (needsCode && e164) {
       // A new number is stored only once its code checks out, so don't claim it's saved.
       state.isSaving = false;
-      if (await handleSendVerification(e164)) {
+      if (await sendCode(state, render, e164)) {
         state.success = t('contactSettings.savedCodeSent', 'Almost there! I texted a code to {phone}. Pop it in below and I can reach you there.', { phone: formatPhone(e164) });
       }
       return;
@@ -1001,6 +987,8 @@ async function handleSave(): Promise<void> {
     state.success = quietHoursEnabled 
       ? t('contactSettings.successWithQuiet', `Saved! I'll stay quiet ${formatHour(parseInt(quietHoursStart))} - ${formatHour(parseInt(quietHoursEnd))}.`)
       : t('contactSettings.success', "Saved! I'll use this to stay in touch.");
+    // Clearing the phone turned texts and calls off server-side: say so.
+    state.success = afterPhoneCleared(state, clearPhone && personalResponse.data?.phoneChannelsOff) ?? state.success;
     log.info({ quietHoursEnabled, quietHoursStart, quietHoursEnd }, 'Contact info and preferences saved');
   } catch (error) {
     state.error = t('contactSettings.errorSave', "Couldn't save that. Try again?");
@@ -1009,64 +997,6 @@ async function handleSave(): Promise<void> {
     state.isSaving = false;
     render();
   }
-}
-
-async function handleSendVerification(e164 = phoneStatus(state).e164): Promise<boolean> {
-  state.success = undefined;
-  if (!e164) {
-    state.phoneInvalid = field(state, 'phone').trim() !== '';
-    state.error = state.phoneInvalid ? undefined : t('contactSettings.errorNoPhone', 'Add a phone number first');
-    render();
-    return false;
-  }
-
-  state.isVerifying = true;
-  state.pendingPhone = e164;
-  state.error = undefined;
-  render();
-
-  try {
-    const result = await outreachService.sendVerificationCode(e164);
-
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to send verification');
-    }
-
-    log.info('Verification code sent');
-  } catch (error) {
-    state.error = t('contactSettings.errorSendCode', "Couldn't send the code. Try again?");
-    state.isVerifying = false;
-    log.error({ error }, 'Failed to send verification');
-  }
-
-  render();
-  return state.isVerifying;
-}
-
-async function handleVerifyCode(code: string): Promise<void> {
-  try {
-    const result = await outreachService.verifyPhone(state.pendingPhone, code);
-
-    if (result.success) {
-      state.contactInfo.phone = state.pendingPhone;
-      state.contactInfo.phoneVerified = true;
-      state.drafts.phone = undefined;
-      state.isVerifying = false;
-      state.verificationCode = '';
-      state.success = t('contactSettings.phoneVerified', "Got it! I'll know your number now.");
-      log.info('Phone verified');
-      // Only now does the number go on the profile, normalized and proven.
-      const saved = await apiPost('/api/user/contact', { phone: state.pendingPhone }).catch(() => null);
-      if (!saved?.ok) log.warn('Verified number not copied to contact info');
-    } else {
-      state.error = t('contactSettings.errorInvalidCode', "That code didn't work. Try again?");
-    }
-  } catch (error) {
-    state.error = t('contactSettings.errorVerifyFailed', "Couldn't verify. Want another code?");
-    log.error({ error }, 'Phone verification failed');
-  }
-
-  render();
 }
 
 // ============================================================================
