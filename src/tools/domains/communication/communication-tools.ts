@@ -739,35 +739,20 @@ export function createCommunicationTools() {
         date: z.string().describe('Date to check (e.g., "tomorrow", "next Monday", "December 15")'),
         durationMinutes: z.number().default(30).describe('Duration in minutes'),
       }),
-      execute: async ({ date, durationMinutes }, { ctx }) => {
+      execute: async ({ date }, { ctx }) => {
         const targetDate = parseNaturalTime(date, runContextTimeZone(ctx));
         if (!targetDate) {
           return `I couldn't understand that date. Try "tomorrow", "next Tuesday", or a specific date?`;
         }
 
-        // Simulate checking calendar (production would use Google Calendar API)
+        // Nothing here reads a calendar, so there are no real free slots to report.
+        // Say so rather than inventing availability.
         const dateStr = targetDate.toLocaleDateString('en-US', {
           weekday: 'long',
           month: 'long',
           day: 'numeric',
         });
-
-        // Generate some realistic-looking availability
-        const slots = [
-          { time: '9:00 AM - 9:30 AM', available: Math.random() > 0.3 },
-          { time: '10:00 AM - 10:30 AM', available: Math.random() > 0.4 },
-          { time: '11:00 AM - 11:30 AM', available: Math.random() > 0.5 },
-          { time: '2:00 PM - 2:30 PM', available: Math.random() > 0.3 },
-          { time: '3:00 PM - 3:30 PM', available: Math.random() > 0.4 },
-          { time: '4:00 PM - 4:30 PM', available: Math.random() > 0.5 },
-        ].filter((s) => s.available);
-
-        if (slots.length === 0) {
-          return `Hmm, ${dateStr} looks pretty packed. Want me to check another day?`;
-        }
-
-        const slotList = slots.map((s) => `• ${s.time}`).join('\n');
-        return `📅 Available slots for ${dateStr}:\n\n${slotList}\n\nWhich works best?`;
+        return `I can't see your calendar right now, so I can't tell you what's free on ${dateStr}. Your calendar app will show the real openings. Tell me the time you have in mind and I can help you think it through.`;
       },
     }),
 

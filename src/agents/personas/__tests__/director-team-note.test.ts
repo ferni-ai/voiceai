@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { Director } from '../director-notes.js';
 import { teamNote } from '../director-persona.js';
+import { getPersonaDisplayName } from '../../../personas/voice-registry.js';
 import { toldThisCall } from '../told-this-call.js';
 import {
   TurnUnderstander,
@@ -44,8 +45,12 @@ describe('director team note', () => {
   });
 
   it('a financial legend gets the legends, not the core team', () => {
-    expect(teamNote('Peter Lynch')).toContain('John Bogle and Joel');
-    expect(teamNote('Peter Lynch')).not.toContain('Ferni');
+    // The legends' fictional names (#1491): Tom Brannigan, Henry Caldwell, Nate Holloway
+    const [brannigan, caldwell, holloway] = ['peter-lynch', 'john-bogle', 'joel-dickson'].map(
+      getPersonaDisplayName
+    );
+    expect(teamNote(brannigan)).toContain(`${caldwell} and ${holloway}`);
+    expect(teamNote(brannigan)).not.toContain('Ferni');
   });
 
   it('reaches the director on a Ferni call with the flag on, and not with it off', async () => {

@@ -220,7 +220,11 @@ describe('semantic recall across calls', () => {
         'Ask about the new job',
         'Check on the sore knee',
         'Ask how the pottery class went',
-      ].map((item, i) => ({ timestamp: `2026-10-0${9 - i}T10:00:00Z`, followUpItems: [item] }))
+      ].map((item, i) => ({
+        timestamp: `2026-10-0${9 - i}T10:00:00Z`,
+        callerProvenance: 1,
+        followUpItems: [item],
+      }))
     );
     const recall = createMemoryRecall({ userId: 'u-threads', semantic: true, embed });
     await recall.ready;

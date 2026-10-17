@@ -3,6 +3,7 @@
  */
 
 import type { ServerResponse } from 'http';
+import { getClientIp as resolveClientIp } from '../../utils/client-ip.js';
 
 /**
  * Safe pattern for IDs (alphanumeric, dash, underscore, max 128 chars)
@@ -169,20 +170,9 @@ export function getClientIp(req: {
 }): string {
   const socketIp = req.socket?.remoteAddress;
 
-  // Only trust proxy headers if the direct connection is from a trusted proxy
-  if (isTrustedProxy(socketIp)) {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) {
-      const first = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
-      const ip = first?.trim();
-      if (ip) return ip;
-    }
-
-    const realIp = req.headers['x-real-ip'];
-    if (realIp) {
-      return Array.isArray(realIp) ? realIp[0] : realIp;
-    }
-  }
+  // Only trust proxy headers if the direct connection is from a trusted proxy, and then
+  // only the entry that proxy appended (utils/client-ip), never the caller-set first one.
+  if (isTrustedProxy(socketIp)) return resolveClientIp(req);
 
   // Fallback to direct socket IP (or unknown if not available)
   return socketIp || 'unknown';

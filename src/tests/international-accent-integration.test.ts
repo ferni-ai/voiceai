@@ -17,6 +17,7 @@ vi.stubEnv('CARTESIA_API_KEY', 'test-api-key');
 
 // Mock voice-ids
 vi.mock('../config/voice-ids.js', () => ({
+  CARTESIA_API_VERSION: '2026-08-14',
   VOICE_IDS: { FERNI: 'ferni-original-voice-id' },
   getVoiceIdForPersona: vi.fn(() => 'ferni-original-voice-id'),
 }));
@@ -94,10 +95,11 @@ describe('International Accent Integration', () => {
       expect(voiceResult.voiceId).toBe('localized-british-ferni-voice');
       expect(voiceResult.isLocalized).toBe(true);
 
-      // Verify API was called with correct dialect
+      // Verify API was called with the Cartesia accent id (2026-08-14: no dialect or language)
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(requestBody.dialect).toBe('uk');
+      expect(requestBody.accent).toBe('british');
+      expect(requestBody).not.toHaveProperty('dialect');
     });
 
     it('should detect Australian accent from cloud header and get localized voice', async () => {
@@ -127,9 +129,9 @@ describe('International Accent Integration', () => {
       const voiceResult = await getLocalizedVoiceId('ferni', geoResult.accent);
       expect(voiceResult.voiceId).toBe('localized-australian-ferni-voice');
 
-      // Verify dialect
+      // Verify the Cartesia accent id
       const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(requestBody.dialect).toBe('au');
+      expect(requestBody.accent).toBe('australian');
     });
 
     it('should detect Indian accent and get localized voice', async () => {
@@ -155,7 +157,7 @@ describe('International Accent Integration', () => {
       expect(voiceResult.voiceId).toBe('localized-indian-ferni-voice');
 
       const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(requestBody.dialect).toBe('in');
+      expect(requestBody.accent).toBe('indian-english');
     });
 
     it('should use original voice for American accent (no API call)', async () => {

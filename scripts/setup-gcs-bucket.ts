@@ -9,7 +9,7 @@
  *   npx ts-node scripts/setup-gcs-bucket.ts --dry-run
  */
 
-import { Storage } from '@google-cloud/storage';
+import { Storage, type LifecycleRule } from '@google-cloud/storage';
 
 const BUCKET_NAME = process.env.CUSTOM_AGENT_BUCKET || 'voiceai-custom-agents';
 const PROJECT_ID = process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
@@ -19,10 +19,7 @@ interface BucketConfig {
   location: string;
   storageClass: string;
   lifecycle: {
-    rule: Array<{
-      action: { type: string };
-      condition: { age?: number; matchesPrefix?: string[] };
-    }>;
+    rule: LifecycleRule[];
   };
   cors: Array<{
     origin: string[];
