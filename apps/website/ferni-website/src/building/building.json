@@ -3,7 +3,7 @@
   "tags": "buildStories",
   "permalink": "/building/{{ page.fileSlug }}/",
   "eleventyComputed": {
-    "ogImage": "{{ '/images/building/' + (image or 'building-og.jpg') }}"
+    "ogImage": "{{ ('/images/building/' + image) if image else '/images/og-image.jpg' }}"
   }
 }
 

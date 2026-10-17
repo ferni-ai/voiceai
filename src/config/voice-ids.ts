@@ -98,11 +98,14 @@ export const CARTESIA_API_URL = process.env.CARTESIA_API_URL || 'https://api.car
  * Bundle manifests are the primary source of truth.
  */
 export const VOICE_IDS = {
-  // Ferni (life coach) - "First Principal 2", a Cartesia instant clone. Back from
-  // Lester's Pro clone (2026-10-03 to 10-04): the Pro clone ignores <emotion> and
-  // <speed>, so the reply's tone could not follow the conversation; the founder
-  // picked this voice with emotion tags in a side-by-side listen (2026-10-04).
-  FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+  // Ferni (life coach) - "Ferni calm B", a Cartesia instant clone re-cloned
+  // (2026-10-16) from the calmest takes of his previous voice, "First Principal
+  // 2" (LEGACY_FERNI_IVC_VOICE_ID), so he is still the same person (speaker
+  // similarity 0.98 of take-to-take) at a slightly lower, slower pitch. Blind
+  // listen: calmer and kinder in 6 of 8 same-words pairs, "same person" 3 of 3.
+  // Prod since 2026-10-17 via the FERNI_VOICE_ID secret, which overrides this.
+  // Instant clones only: a Pro clone ignores <emotion> and <speed>.
+  FERNI: '2e7f8a26-1627-4d66-88dc-293c297c1619',
 
   // Peter John (insights quant) - Synced from .env Dec 2024
   PETER_JOHN: '3f04e815-3260-4f50-8fd9-af9c657be4c2',
@@ -131,7 +134,8 @@ export const VOICE_IDS = {
 } as const;
 
 /**
- * Ferni's previous voice (Cartesia instant clone, Dec 2024 → 2026-10-03). Not in
+ * Ferni's previous voice, "First Principal 2" (Cartesia instant clone, Dec 2024
+ * → 2026-10-03, and again 2026-10-04 → 10-17; rollback for FERNI_VOICE_ID). Not in
  * VOICE_IDS: no persona speaks with it now. It stays the default for new template
  * agents and the developer voice catalog (literals in .templates manifests,
  * cli/agent-manager.ts, api/v1/developers/voice-routes.ts) so those never default

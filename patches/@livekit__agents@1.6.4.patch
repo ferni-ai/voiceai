@@ -133,7 +133,7 @@ index 0ebb807b6f2a2536013b0728bf714b5fd3c7efc0..a0f68b2e2969c6ae1e616557bd1b441b
            const retryInterval = intervalForRetry(this._connOptions, i);
            if (this._connOptions.maxRetry === 0 || !error.retryable) {
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..31dea7155ee2bf070f7b9d6c5174ca42579ff9bd 100644
+index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..9de448e827095c342cd82f214970f04ceae527a8 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
 @@ -116,6 +116,12 @@ async function raceWithAbort(p, signal) {
@@ -227,7 +227,7 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..31dea7155ee2bf070f7b9d6c5174ca42
      if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_b = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _b.minWords) > 0) {
        const wordCount = (0, import_word.splitWords)(info.newTranscript, true).length;
        if (wordCount < ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords)) {
-@@ -1840,7 +1895,13 @@ class AgentActivity {
+@@ -1840,7 +1895,15 @@ class AgentActivity {
      let speechHandle;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -238,11 +238,13 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..31dea7155ee2bf070f7b9d6c5174ca42
 +      const __pSameTools = preemptive.tools.equals(this.tools);
 +      const __pSameChoice = (0, import_tool_context.isSameToolChoice)(preemptive.toolChoice, this.toolChoice);
 +      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight: String(preemptive.info.newTranscript).slice(0, 60), final: String(userMessage == null ? void 0 : userMessage.rawTextContent).slice(0, 60) }, 'PREEMPTIVE_DECISION');
++      // PATCHED(ferni): the same decision as an event, for the TURN_RECEIPT (turn-receipt.ts)
++      this.agentSession.emit("ferni_preemptive_decision", { type: "ferni_preemptive_decision", used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice });
 +      if (__pSameText && __pSameCtx && __pSameTools && __pSameChoice) {
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -3442,10 +3503,34 @@ class AgentActivity {
+@@ -3442,10 +3505,34 @@ class AgentActivity {
      if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
        this.updatePausedSpeech(speechHandle, 0);
        audioOutput.pause();
@@ -277,7 +279,7 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..31dea7155ee2bf070f7b9d6c5174ca42
    cancelFalseInterruptionTimer() {
      if (this.falseInterruptionTimer !== void 0) {
        clearTimeout(this.falseInterruptionTimer);
-@@ -3537,8 +3622,16 @@ class AgentActivity {
+@@ -3537,8 +3624,16 @@ class AgentActivity {
          (error) => this.logger.warn({ error }, "failed to report end of agent speech on pause cancel")
        );
      }
@@ -294,7 +296,7 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..31dea7155ee2bf070f7b9d6c5174ca42
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -3547,7 +3640,7 @@ class AgentActivity {
+@@ -3547,7 +3642,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
@@ -304,7 +306,7 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..31dea7155ee2bf070f7b9d6c5174ca42
      }
    }
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index 431882ec37d768f8ba0b0e732d0e346b6757ac67..0cf1c2518df69de606856ae6cf6d3c35a8410c35 100644
+index 431882ec37d768f8ba0b0e732d0e346b6757ac67..8f665a21823008a7db86ccd1a704a06b5d192fc9 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
 @@ -160,6 +160,12 @@ async function raceWithAbort(p, signal) {
@@ -398,7 +400,7 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..0cf1c2518df69de606856ae6cf6d3c35
      if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_b = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _b.minWords) > 0) {
        const wordCount = splitWords(info.newTranscript, true).length;
        if (wordCount < ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords)) {
-@@ -1884,7 +1939,13 @@ class AgentActivity {
+@@ -1884,7 +1939,15 @@ class AgentActivity {
      let speechHandle;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -409,11 +411,13 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..0cf1c2518df69de606856ae6cf6d3c35
 +      const __pSameTools = preemptive.tools.equals(this.tools);
 +      const __pSameChoice = isSameToolChoice(preemptive.toolChoice, this.toolChoice);
 +      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight: String(preemptive.info.newTranscript).slice(0, 60), final: String(userMessage == null ? void 0 : userMessage.rawTextContent).slice(0, 60) }, 'PREEMPTIVE_DECISION');
++      // PATCHED(ferni): the same decision as an event, for the TURN_RECEIPT (turn-receipt.ts)
++      this.agentSession.emit("ferni_preemptive_decision", { type: "ferni_preemptive_decision", used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice });
 +      if (__pSameText && __pSameCtx && __pSameTools && __pSameChoice) {
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -3486,10 +3547,34 @@ class AgentActivity {
+@@ -3486,10 +3549,34 @@ class AgentActivity {
      if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
        this.updatePausedSpeech(speechHandle, 0);
        audioOutput.pause();
@@ -448,7 +452,7 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..0cf1c2518df69de606856ae6cf6d3c35
    cancelFalseInterruptionTimer() {
      if (this.falseInterruptionTimer !== void 0) {
        clearTimeout(this.falseInterruptionTimer);
-@@ -3581,8 +3666,16 @@ class AgentActivity {
+@@ -3581,8 +3668,16 @@ class AgentActivity {
          (error) => this.logger.warn({ error }, "failed to report end of agent speech on pause cancel")
        );
      }
@@ -465,7 +469,7 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..0cf1c2518df69de606856ae6cf6d3c35
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -3591,7 +3684,7 @@ class AgentActivity {
+@@ -3591,7 +3686,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
