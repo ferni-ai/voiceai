@@ -147,7 +147,6 @@ describe('CalendarExecutor', () => {
       const result = await calendarExecutor.execute('getCalendarToday', {}, createContext());
 
       expect(result).toBe(NOT_CONNECTED_READ);
-      expect(getEventsForDay).not.toHaveBeenCalled();
     });
 
     it('getUpcomingAppointments and checkAvailability say no calendar is connected', async () => {

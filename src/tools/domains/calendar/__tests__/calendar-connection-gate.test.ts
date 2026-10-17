@@ -105,7 +105,7 @@ const standup = {
   createdAt: new Date('2026-10-16T00:00:00Z'),
   updatedAt: new Date('2026-10-16T00:00:00Z'),
 } as unknown as CalendarEvent;
-const emptyDay: DayOverview = {
+const busyDay: DayOverview = {
   date: new Date('2026-10-17T00:00:00Z'),
   events: [standup],
   totalMeetings: 1,
@@ -113,6 +113,17 @@ const emptyDay: DayOverview = {
   freeTimeMinutes: 450,
   firstEvent: standup,
   lastEvent: standup,
+  isOverloaded: false,
+  hasBackToBack: false,
+};
+const emptyDay: DayOverview = {
+  date: new Date('2026-10-17T00:00:00Z'),
+  events: [],
+  totalMeetings: 0,
+  totalMeetingMinutes: 0,
+  freeTimeMinutes: 480,
+  firstEvent: undefined,
+  lastEvent: undefined,
   isOverloaded: false,
   hasBackToBack: false,
 };
@@ -177,8 +188,16 @@ describe('calendar tools with no calendar connected', () => {
     expect(String(out)).not.toMatch(/quite full/);
   });
 
+  it("getCalendarToday with nothing connected names Ferni's own list when it has items", async () => {
+    vi.mocked(getDayOverview).mockResolvedValue(busyDay);
+    const out = String(await toolFor('getCalendarToday').execute({}, {}));
+    expect(out).toMatch(/No calendar is connected, but on Ferni's own list you have: .*Standup with Priya/);
+    expect(out).not.toMatch(/clear/i);
+  });
+
   it('a connected calendar gets the real read, not the not-connected line', async () => {
     vi.mocked(isConnected).mockResolvedValue(true);
+    vi.mocked(getDayOverview).mockResolvedValue(busyDay);
     const out = await toolFor('getCalendarToday').execute({}, {});
     expect(out).not.toBe(NOT_CONNECTED_READ);
     expect(String(out)).toMatch(/Standup with Priya|meeting/);

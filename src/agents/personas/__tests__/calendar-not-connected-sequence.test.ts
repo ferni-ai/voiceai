@@ -19,7 +19,7 @@ vi.mock('../../../services/calendar/calendar-service.js', async (importOriginal)
 }));
 vi.mock('../../../services/calendar/index.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  getDayOverview: vi.fn(),
+  getDayOverview: vi.fn(async () => ({ events: [], totalMeetings: 0 })),
   createEvent: vi.fn(async () => ({ id: 'e1' })),
 }));
 

@@ -9,13 +9,16 @@
  *
  * @module tools/domains/calendar/calendar-connection-gate
  */
+import { getDayOverview } from '../../../services/calendar/index.js';
 import { isConnected } from '../../../services/calendar/calendar-service.js';
+import { describeFerniList } from '../../../services/calendar/ferni-list.js';
 import {
   NOT_CONNECTED_CHANGE,
   NOT_CONNECTED_CHANGE_FAILED,
   NOT_CONNECTED_CREATE_FAILED,
   NOT_CONNECTED_READ,
   notConnectedCreate,
+  notConnectedWithList,
 } from '../../../services/calendar/not-connected-copy.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 import { smartCalendarTools as rawSmartCalendarTools } from './smart-calendar-tools.js';
@@ -52,6 +55,13 @@ const WRITE_TOOLS = new Map<string, 'create' | 'change'>([
 /** A write's own refusal, which says nothing was saved (the success text is left alone). */
 const FAILED_WRITE = /^(?:I couldn't|Couldn't|I need)/;
 
+/** Today's read with nothing connected: Ferni's own list is named if it has items (#1547). */
+async function notConnectedRead(id: string, userId: string): Promise<string> {
+  if (id !== 'getCalendarToday') return NOT_CONNECTED_READ;
+  const list = describeFerniList((await getDayOverview(userId, new Date())).events);
+  return list ? notConnectedWithList(list) : NOT_CONNECTED_READ;
+}
+
 /** The title, date and time the caller asked for, for the create line. */
 function whatWasAsked(params: unknown): string | undefined {
   if (typeof params !== 'object' || params === null) return undefined;
@@ -74,7 +84,7 @@ function gate(def: ToolDefinition): ToolDefinition {
         execute: async (params: unknown, options: unknown) => {
           const { userId } = ctx;
           if (!userId || (await isConnected(userId))) return original(params, options);
-          if (mode === 'read') return NOT_CONNECTED_READ;
+          if (mode === 'read') return notConnectedRead(def.id, userId);
 
           // A write still runs: it lands in Ferni's own list. Only the reply changes.
           const result: unknown = await original(params, options);

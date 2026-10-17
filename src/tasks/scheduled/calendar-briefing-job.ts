@@ -10,6 +10,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { isConnected, getDayOverview } from '../../services/calendar/calendar-service.js';
+import { describeFerniList } from '../../services/calendar/ferni-list.js';
 import {
   generateDailyBriefing,
   type DailyBriefing,
@@ -253,12 +254,6 @@ export async function checkAndSendMorningBriefings(): Promise<{
         }
 
         const connected = await isConnected(userId);
-        if (!connected) {
-          await store.release(userId, dateKey);
-          skipped++;
-          continue;
-        }
-
         const overview = await getDayOverview(userId, nowProvider());
         if (overview.totalMeetings === 0) {
           await store.release(userId, dateKey);
@@ -266,8 +261,9 @@ export async function checkAndSendMorningBriefings(): Promise<{
           continue;
         }
 
-        const briefing = await generateDailyBriefing(userId, nowProvider());
-        if (!briefing) {
+        // With no calendar connected the meetings are Ferni's own list: name them, labelled (#1547).
+        const briefing = connected ? await generateDailyBriefing(userId, nowProvider()) : null;
+        if (connected && !briefing) {
           await store.release(userId, dateKey);
           skipped++;
           continue;
@@ -275,7 +271,9 @@ export async function checkAndSendMorningBriefings(): Promise<{
 
         const notificationSent = await sendCalendarBriefingNotification(userId, {
           title: formatBriefingTitle(overview.totalMeetings),
-          body: formatBriefingBody(briefing),
+          body: briefing
+            ? formatBriefingBody(briefing)
+            : `No calendar is connected. On Ferni's own list today: ${describeFerniList(overview.events ?? [])}.`,
           type: 'general',
           personaId: 'alex-chen',
           data: { action: 'open_calendar', meetingCount: overview.totalMeetings },

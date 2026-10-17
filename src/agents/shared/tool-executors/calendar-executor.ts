@@ -14,7 +14,12 @@ import {
   isConnected,
   isTimeSlotAvailable,
 } from '../../../services/calendar/calendar-service.js';
-import { NOT_CONNECTED_READ, notConnectedCreate } from '../../../services/calendar/not-connected-copy.js';
+import { describeFerniList } from '../../../services/calendar/ferni-list.js';
+import {
+  NOT_CONNECTED_READ,
+  notConnectedCreate,
+  notConnectedWithList,
+} from '../../../services/calendar/not-connected-copy.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
@@ -93,7 +98,10 @@ async function execute(
     if (ctx.userId) {
       try {
         // Try to get real calendar data from Google Calendar integration
-        if (!(await isConnected(ctx.userId))) return NOT_CONNECTED_READ;
+        if (!(await isConnected(ctx.userId))) {
+          const onList = describeFerniList(await getEventsForDay(ctx.userId, new Date()));
+          return onList ? notConnectedWithList(onList) : NOT_CONNECTED_READ;
+        }
         const events = await getEventsForDay(ctx.userId, new Date());
 
         if (events.length === 0) {
