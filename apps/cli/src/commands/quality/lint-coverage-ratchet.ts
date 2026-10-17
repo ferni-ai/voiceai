@@ -85,15 +85,17 @@ function productionFiles(): string[] {
 
 /** Runs ESLint over every production file and returns per-file results. */
 function lint(files: string[]): EslintFile[] {
+  // Run ESLint's binary directly, not through `npx`: npx joins the paths into one shell
+  // argument (about 214 KB), which Linux rejects (E2BIG). Spawned directly, each path is its own argument.
   const cache = join(ROOT, 'node_modules/.cache/eslint-coverage');
+  const eslint = join(ROOT, 'node_modules/eslint/bin/eslint.js');
   const run = spawnSync(
-    'npx',
-    ['eslint', '--cache', '--cache-location', cache, '--format', 'json', ...files],
-    { cwd: ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' } }
+    process.execPath,
+    [eslint, '--cache', '--cache-location', cache, '--format', 'json', ...files],
+    { cwd: ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' } }
   );
   // ESLint exits 1 when it finds errors; that is the data we want, so only a missing stdout is fatal.
   if (!run.stdout) {
-    // Usually the process was killed (out of memory): a CI runner has about 7 GB.
     throw new Error(`eslint produced no output (status ${run.status}, signal ${run.signal}): ${run.error?.message ?? run.stderr}`);
   }
   return JSON.parse(run.stdout) as EslintFile[];
