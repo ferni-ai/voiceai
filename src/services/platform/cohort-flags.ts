@@ -51,6 +51,8 @@ export const COHORT_FLAGS = [
   'FOLLOW_THROUGH_TEXTS',
   'OUTREACH_PONDERED_NOTES',
   'PROACTIVE_CHANNELS',
+  // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
+  'TOOLS_REAL_CALL_USER',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
