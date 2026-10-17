@@ -481,7 +481,7 @@ test.describe('heard, in the browser', () => {
                 ),
               REPLIES[turn++ % REPLIES.length]
             );
-            await page.waitForTimeout(600);
+            await page.waitForTimeout(900); // let the resize settle before measuring
             const result = await page.evaluate(() => {
               const viewEl = document.querySelector<HTMLElement>('.ferni-captions__viewport');
               const view = viewEl?.getBoundingClientRect();
@@ -523,7 +523,26 @@ test.describe('heard, in the browser', () => {
               }
               const root = document.querySelector('.ferni-captions');
               const padding = root ? getComputedStyle(root).paddingTop : null;
-              return { visible, shown: shown.length, cut, callerSet, callerRows, padding };
+              const reply = lines.find((l) => l.dataset.speaker === 'agent');
+              const fontOf = (el: HTMLElement | undefined) =>
+                el ? parseFloat(getComputedStyle(el).fontSize) : null;
+              const callerFont = callerSet ? null : fontOf(caller);
+              // The step-down size, read from the token in the page.
+              const probe = document.createElement('span');
+              probe.style.fontSize = 'var(--text-base)';
+              document.body.append(probe);
+              const textBase = parseFloat(getComputedStyle(probe).fontSize);
+              probe.remove();
+              return {
+                visible,
+                shown: shown.length,
+                cut,
+                callerSet,
+                callerRows,
+                padding,
+                callerFont,
+                textBase,
+              };
             });
             const label = `${width}x${height} dark=${dark} large=${large} reduced=${reduced}`;
             if (!result.visible || result.shown === 0)
@@ -534,6 +553,11 @@ test.describe('heard, in the browser', () => {
             // A roomy size shows the caller's line whole, with the region padding dropped.
             if (width === 1440 && !dark && !large && result.callerSet)
               failures.push(`${label}: caller set aside at a roomy size`);
+            // The caller's line steps down to the --text-base size when it is shown.
+            if (result.callerFont !== null && Math.abs(result.callerFont - result.textBase) > 0.5)
+              failures.push(
+                `${label}: caller font ${result.callerFont}px, expected --text-base ${result.textBase}px`
+              );
             if (width === 1440 && !dark && !large && result.padding !== '0px')
               failures.push(`${label}: caller-mode padding not dropped (${result.padding})`);
           }
