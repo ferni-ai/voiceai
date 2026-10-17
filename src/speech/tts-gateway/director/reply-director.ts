@@ -25,7 +25,7 @@ import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.j
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
 import { LATE_NIGHT, voiceAttuneOn, type Delivery } from './attune.js';
-import { DirectorEngine } from './engine.js';
+import { DirectorEngine, emotionLift } from './engine.js';
 import { ferniSpeedNudge, porchLightOn } from './ferni-energy.js';
 import { personaLayer, restingToneTags } from './ferni-resting-voice.js';
 import { carriedPace } from './key-phrase.js';
@@ -188,13 +188,15 @@ class DirectedReply implements ReplyStream {
   ) {
     const sessions = opts.sessions ?? directorSessions;
     this.stripProsody = mode === 'live' && !voiceHonorsProsodyTags(opts.voiceId);
+    const lift = emotionLift(opts.personaId, opts.env); // EMOTION_LIFT (emotion-lift.ts)
     this.engine = new DirectorEngine({
       modes,
       voiceId: opts.voiceId,
       sessionHint: opts.emotion,
       carry: opts.sessionId ? sessions.get(opts.sessionId, opts.personaId) : { speed: 1 },
       cues,
-      renderTags: restingToneTags(prosodyTags, opts.personaId, modes.emotion, opts.env),
+      renderTags: restingToneTags(prosodyTags, opts.personaId, modes.emotion, opts.env, lift),
+      lift,
       stripProsody: this.stripProsody,
       userText: opts.turnContext?.userRequest,
       callerProsody:

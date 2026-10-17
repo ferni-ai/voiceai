@@ -14,13 +14,8 @@ import { callerState, decideAttune, layerDelivery, SPEED_EPSILON } from './attun
 import type { Attunement, Delivery, Shift } from './attune.js';
 import { pacesOf, planKeyPhrase, type KeyPhrase, type KeyPhraseStep } from './key-phrase.js';
 import type { SSMLProsodyConfig } from '../types.js';
-import {
-  decideEmotion,
-  readValence,
-  type EmotionDecision,
-  type StableEmotion,
-  type Valence,
-} from './emotion.js';
+import { decideTone, liftedDelivery, liftedValence, type EmotionLift } from './emotion-lift.js';
+import { type EmotionDecision, type StableEmotion, type Valence } from './emotion.js';
 import { decideReplyLaughter, placeLaughter, type LaughPlacement } from './laughter.js';
 import type { LaughterWho } from './laughter.js';
 import {
@@ -52,6 +47,7 @@ import {
   wordCount,
 } from './engine-tags.js';
 export { composeSpeed, composeVolume } from './engine-tags.js';
+export { emotionLift } from './emotion-lift.js'; // builds EngineContext.lift
 import type { Lever, LeverModes, RustEvent, SpeechPlan, SpeechSegment } from './types.js';
 
 /**
@@ -92,6 +88,7 @@ export interface EngineContext {
    */
   attune?: { userEmotion?: string };
   persona?: PersonaDelivery; // TEAM_VOICES=on: resting voice and tones (persona-delivery.ts)
+  lift?: EmotionLift; // EMOTION_LIFT=on: Ferni lifts on bright words (emotion-lift.ts)
   lateNight?: Shift; // PORCH_LIGHT=on: the late-night resting shift (attune.ts LATE_NIGHT)
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
@@ -341,12 +338,12 @@ export class DirectorEngine {
   /** One emotion and one speed for the whole reply, from its opening phrase. */
   private open(openingText: string, leadSpeed: number | undefined): void {
     this.opened = true;
-    this.replyValence = readValence(openingText);
+    this.replyValence = liftedValence(this.ctx.lift, openingText);
     // Decided in shadow too, so the plan log shows what it would do.
     this.prosody = respondToProsody(this.ctx.callerProsody, this.replyValence);
     const answerVoice = this.live('prosody');
     this.attunement = this.attune(answerVoice);
-    this.emotion = decideEmotion({
+    this.emotion = decideTone(this.ctx.lift, {
       authored: this.ctx.cues.authoredEmotion,
       sessionHint: this.ctx.sessionHint,
       openingText,
@@ -356,15 +353,15 @@ export class DirectorEngine {
     // A sympathetic reply is hard news even when its first phrase ("Ah, hell.") doesn't say so.
     if (this.emotion.emotion === 'sympathetic') this.attunement = this.attune(answerVoice, 'heavy');
     const pace = decideSpeed({
-      valence: readValence(openingText),
+      valence: this.replyValence,
       emotion: this.emotion.emotion,
       voiceId: this.ctx.voiceId,
       previous: this.ctx.carry.speed,
       nudge: (answerVoice ? this.prosody.speedNudge : 0) + (this.ctx.ferniNudge ?? 0),
     });
-    const { persona, lateNight } = this.ctx; // attune's alone: persona, late night, caller
+    const { persona, lateNight, lift } = this.ctx; // attune's: persona, late night, caller
     const caller = this.attunement ?? { speed: pace.speed, volume: 1 };
-    this.delivery = layerDelivery({ persona, lateNight, caller }, this.live('pacing'));
+    this.delivery = liftedDelivery(lift, { persona, lateNight, caller }, this.live('pacing'));
     ({ speed: this.speed, volume: this.replyVolume } = this.delivery);
     this.directorEmotion = this.emotion.emotion;
     this.emotion = personaTone(this.ctx.persona, this.emotion, this.replyValence);
