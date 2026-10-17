@@ -35,7 +35,7 @@ vi.mock('livekit-server-sdk', () => ({
 }));
 vi.mock('../../../../services/contacts/contact-relationship-service.js', () => ({
   searchContacts: vi.fn(async () => [
-    { id: 'c-lee', name: 'Dr. Lee', phone: '(801) 898-3312', relationship: 'doctor' },
+    { id: 'c-lee', name: 'Dr. Lee', phone: '(801) 555-0163', relationship: 'doctor' },
   ]),
   upsertContact: vi.fn(async () => undefined),
 }));
@@ -106,7 +106,7 @@ describe('calls on behalf wait for the caller', () => {
     const call = liveCall();
     const preview = await call.call('callOnBehalf', CALL_DR_LEE, 'c1');
     expect(preview).toContain('NOT SENT YET');
-    expect(preview).toContain('Dr. Lee at 801-898-3312');
+    expect(preview).toContain('Dr. Lee at 801-555-0163');
     call.caller('hmm, what was that?');
     await call.call('callOnBehalf', CALL_DR_LEE, 'c2');
     expect(dials()).toBe(0);
@@ -146,7 +146,7 @@ describe('calls on behalf wait for the caller', () => {
     );
     expect(placed).toContain('calling Dr. Lee');
     expect(sip.createSipParticipant).toHaveBeenCalledTimes(1);
-    expect(sip.createSipParticipant.mock.calls[0][1]).toBe('+18018983312');
+    expect(sip.createSipParticipant.mock.calls[0][1]).toBe('+18015550163');
     // A repeat is a new request: another read-back, not a second call.
     expect(await call.call('callOnBehalf', CALL_DR_LEE, 'c3')).toContain('NOT SENT YET');
     expect(sip.createSipParticipant).toHaveBeenCalledTimes(1);
@@ -167,7 +167,7 @@ describe('calls on behalf wait for the caller', () => {
       const out = await liveCall().call('callOnBehalf', { ...CALL_DR_LEE, phoneNumber }, 'c1');
       expect(out).toMatch(/^Nothing was dialed/);
     }
-    expect(checkDialableNumber('(801) 898-3312')).toMatchObject({ ok: true, e164: '+18018983312' });
+    expect(checkDialableNumber('(801) 555-0163')).toMatchObject({ ok: true, e164: '+18015550163' });
     expect(checkDialableNumber('+1 801 976 1234').ok).toBe(false);
     expect(checkDialableNumber('411').ok).toBe(false);
     expect(dials()).toBe(0);

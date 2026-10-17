@@ -76,7 +76,10 @@ export interface OAuthStateData {
  */
 export interface TokenOptions {
   roomName: string;
+  /** The display name; also the identity when `identity` is not given */
   participantName: string;
+  /** The participant identity, when it should be a verified id rather than the display name */
+  identity?: string;
   metadata?: Record<string, unknown>;
   ttl?: string;
 }

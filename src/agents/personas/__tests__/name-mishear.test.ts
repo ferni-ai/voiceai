@@ -95,6 +95,45 @@ describe('normalizeNameMishear', () => {
   });
 });
 
+describe('a transfer to Ferni (prod call 2026-10-17)', () => {
+  const transfers = { vocatives: false, transfers: true };
+
+  it('puts the name right when the caller asks to be put through to Ferni', () => {
+    const cases: Array<[string, string]> = [
+      // From the call, said to Alex.
+      ['transfer me to Fern.', 'transfer me to Ferni.'],
+      ['Now transfer me to Fern.', 'Now transfer me to Ferni.'],
+      ['Transfer me to Fern.', 'Transfer me to Ferni.'],
+      ['Can you transfer me back to Fern?', 'Can you transfer me back to Ferni?'],
+      ['Switch me over to Fern please.', 'Switch me over to Ferni please.'],
+      ['Okay, back to Fern.', 'Okay, back to Ferni.'],
+      ['Can I talk to Fern', 'Can I talk to Ferni'],
+      ['Let me speak with Freddy, please.', 'Let me speak with Ferni, please.'],
+      ['Put me through to... pass me to Ferny now.', 'Put me through to... pass me to Ferni now.'],
+    ];
+    for (const [heard, fixed] of cases) {
+      expect(normalizeNameMishear(heard, transfers), heard).toBe(fixed);
+    }
+  });
+
+  it('leaves plants, places and other people alone', () => {
+    for (const text of [
+      'The ferns in my garden are dying.',
+      'I gave water to the fern.',
+      'We drove to Fern Creek last summer.',
+      'Talk to Fern Gully about it.',
+      'I want to talk to Fernando.',
+      'Send it to Fern.',
+      'I talked to Fern about her garden.',
+      'Hey Fern',
+      'How are you doing, Freddy?',
+      'transfer me to Ferni.',
+    ]) {
+      expect(normalizeNameMishear(text, transfers), text).toBe(text);
+    }
+  });
+});
+
 describe('sttWithNameFix', () => {
   const events = () => Promise.resolve(streamOf([final('How are you doing, Freddy?')]));
 
@@ -126,10 +165,23 @@ describe('sttWithNameFix', () => {
     ]);
   });
 
-  it('changes nothing when another persona is speaking', async () => {
+  it("leaves a teammate's own vocatives alone", async () => {
     const session = { userData: { personaId: 'peter-john' } };
     expect(await texts(await sttWithNameFix(session, events(), ON))).toEqual([
       'How are you doing, Freddy?',
+    ]);
+  });
+
+  it('fixes a transfer to Ferni while a teammate is on the call', async () => {
+    const session = { userData: { personaId: 'alex-chen' } };
+    const asked = () => Promise.resolve(streamOf([final('transfer me to Fern.')]));
+    expect(await texts(await sttWithNameFix(session, asked(), ON))).toEqual([
+      'transfer me to Ferni.',
+    ]);
+    // NAME_MISHEAR_HANDOFF=off is the kill switch.
+    const off = { ...ON, NAME_MISHEAR_HANDOFF: 'off' };
+    expect(await texts(await sttWithNameFix(session, asked(), off))).toEqual([
+      'transfer me to Fern.',
     ]);
   });
 });

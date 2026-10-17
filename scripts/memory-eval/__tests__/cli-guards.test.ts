@@ -80,5 +80,7 @@ describe('score-live', () => {
     expect(report.models.judge).toMatch(/\S/);
     expect(report.models.fallback).toMatch(/\S/);
     expect(report.prompts.judge).toMatch(/^[0-9a-f]{12}$/);
+    expect(report.prompts.live).toMatch(/^[0-9a-f]{12}$/);
+    expect(report.prompts.live).not.toBe(report.prompts.judge);
   }, 30_000);
 });

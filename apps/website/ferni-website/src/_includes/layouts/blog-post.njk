@@ -24,7 +24,9 @@
   {# ====== OPEN GRAPH ====== #}
   <meta property="og:title" content="{{ title }} | Ferni Blog">
   <meta property="og:description" content="{{ description or excerpt or site.tagline }}">
-  <meta property="og:image" content="https://ferni.ai{{ ogImage or '/images/og-blog.jpg' }}">
+  <meta property="og:image" content="{% if image %}{% blogOgImage image %}{% else %}https://ferni.ai{{ ogImage or '/images/og-blog.jpg' }}{% endif %}">
+  {% if image %}<meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">{% endif %}
   <meta property="og:url" content="https://ferni.ai{{ page.url }}">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Ferni">
@@ -34,21 +36,13 @@
   <meta name="twitter:site" content="@ferniAI">
   <meta name="twitter:title" content="{{ title }} | Ferni Blog">
   <meta name="twitter:description" content="{{ description or excerpt }}">
-  <meta name="twitter:image" content="https://ferni.ai{{ ogImage or '/images/og-blog.jpg' }}">
+  <meta name="twitter:image" content="{% if image %}{% blogOgImage image %}{% else %}https://ferni.ai{{ ogImage or '/images/og-blog.jpg' }}{% endif %}">
 
   {# ====== CANONICAL ====== #}
   <link rel="canonical" href="https://ferni.ai{{ page.url }}">
 
   {# ====== ANALYTICS ====== #}
-  {% if site.analytics.gaId %}
-  <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '{{ site.analytics.gaId }}');
-  </script>
-  {% endif %}
+  {% include "partials/analytics.njk" %}
 </head>
 <body class="blog-page blog-post-page">
   {# ====== SKIP LINK ====== #}
@@ -148,7 +142,7 @@
       {% if image %}
       <div class="blog-post__hero">
         <div class="container">
-          <img src="/images/blog/{{ image }}" alt="{{ imageAlt or title }}" class="blog-post__hero-image" loading="lazy">
+          {% blogImage image, imageAlt or title, "hero", true, "blog-post__hero-image" %}
         </div>
       </div>
       {% endif %}

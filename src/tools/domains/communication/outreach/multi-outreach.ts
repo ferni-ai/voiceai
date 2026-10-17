@@ -30,7 +30,7 @@ import { getGroups } from '../../../../services/contacts/contact-groups.js';
 import type { ContactGroup } from '../../../../types/contacts.js';
 
 // Outreach services
-import { sendSMS } from '../../../../services/outreach/delivery/sms-delivery.js';
+import { onBehalfNotSent, textOnBehalf } from '../../../../services/outreach/guarded-text.js';
 import { sendEmail } from '../../../../services/outreach/delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 import { makeConversationalCall } from '../../../../services/outreach/conversational-calls.js';
@@ -351,21 +351,21 @@ async function executeOutreach(
         };
       }
 
-      const result = await sendSMS({
-        to: contact.phone,
+      const result = await textOnBehalf({
+        senderUserId: userId,
+        toPhone: contact.phone,
         body: message,
+        refId: outreachId,
         personaId,
-        userId,
-        outreachId,
       });
 
       return {
         contact: target.contact,
         resolvedName: contact.name,
-        success: result.success,
+        success: result.sent,
         channel,
-        message: result.success ? `Texted ${contact.name}: "${message}"` : undefined,
-        error: result.success ? undefined : result.error,
+        message: result.sent ? `Texted ${contact.name}: "${message}"` : undefined,
+        error: result.sent ? undefined : onBehalfNotSent(contact.name, result.reason),
       };
     }
 

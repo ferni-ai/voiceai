@@ -7,10 +7,9 @@
  * Needs a built site: cd apps/website/ferni-website && npm run build
  */
 
-import { spawn, type ChildProcess } from 'node:child_process';
-import { createServer } from 'node:net';
-
 import { expect, test, type Page } from '@playwright/test';
+
+import { serveBuiltSite, type BuiltSite } from './built-site-server';
 
 const PORT = 8767;
 const SITE = `http://127.0.0.1:${PORT}`;
@@ -40,31 +39,25 @@ const PAGES = [
   '/use-cases/',
 ];
 
-let server: ChildProcess | undefined;
+let site: BuiltSite | undefined;
 
-function portOpen(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const probe = createServer();
-    probe.once('error', () => resolve(true));
-    probe.once('listening', () => {
-      probe.close(() => resolve(false));
-    });
-    probe.listen(port, '127.0.0.1');
+/**
+ * The cookie banner appears 1.5 to 2 seconds after load, and its link is
+ * measured in whatever state it's in. Wait until the banner has settled
+ * (shown, or dismissed by a stored choice) and the fonts have loaded, so the
+ * reading never depends on when the banner happened to appear.
+ */
+async function settle(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const banner = document.getElementById('cookieBanner');
+    return (
+      !banner ||
+      ['visible', 'is-visible', 'hidden', 'is-hidden'].some((name) =>
+        banner.classList.contains(name)
+      )
+    );
   });
-}
-
-async function waitForSite(): Promise<void> {
-  const deadline = Date.now() + 20000;
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(SITE);
-      if (response.ok) return;
-    } catch {
-      // Server is still starting.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  }
-  throw new Error(`Site did not answer on ${SITE}`);
+  await page.evaluate(() => document.fonts.ready);
 }
 
 interface LowContrast {
@@ -162,16 +155,11 @@ async function lowContrastText(page: Page): Promise<LowContrast[]> {
 
 test.describe('ferni.ai in dark mode', () => {
   test.beforeAll(async () => {
-    if (await portOpen(PORT)) return;
-    server = spawn('python3', ['-m', 'http.server', String(PORT), '--bind', '127.0.0.1'], {
-      cwd: 'apps/website/ferni-website/_site',
-      stdio: 'ignore',
-    });
-    await waitForSite();
+    site = await serveBuiltSite(PORT);
   });
 
   test.afterAll(() => {
-    server?.kill();
+    site?.stop();
   });
 
   for (const path of PAGES) {
@@ -185,6 +173,7 @@ test.describe('ferni.ai in dark mode', () => {
           '*{animation:none!important;transition:none!important}' +
           '.reveal,[data-animate],[class*="fade"]{opacity:1!important;transform:none!important}',
       });
+      await settle(page);
       expect(await lowContrastText(page)).toEqual([]);
     });
   }

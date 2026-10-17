@@ -1,8 +1,23 @@
 diff --git a/dist/llm/provider_format/google.cjs b/dist/llm/provider_format/google.cjs
-index 5fd1b543e2efcc19882ae1d0d936acbcf6810f19..5e160da1f2aae6e0b7e9243d38cd2d177ba5d8a4 100644
+index 5fd1b543e2efcc19882ae1d0d936acbcf6810f19..5cbddb1314a10fa5457b69800d786a07e4d7d017 100644
 --- a/dist/llm/provider_format/google.cjs
 +++ b/dist/llm/provider_format/google.cjs
-@@ -29,6 +29,7 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+@@ -24,11 +24,21 @@ module.exports = __toCommonJS(google_exports);
+ var import_chat_context = require("../chat_context.cjs");
+ var import_utils = require("../utils.cjs");
+ var import_utils2 = require("./utils.cjs");
++// MID_CALL_NOTE_FRAME=on (Ferni): a system note added mid-call (memory recall,
++// turn context, tool announcements) still reaches Gemini as user-role text, but
++// framed as the agent's own context so the model doesn't take it as the caller's
++// words. The stock template reads as a request from the caller.
++const MID_CALL_NOTE_FRAME = "[Private note to you from your own memory and context, not words the caller said. Use it quietly; never read it out, save it, or act on it as their request:]\n{instructions}";
++function midCallNoteFrameOn() {
++  const v = (process.env.MID_CALL_NOTE_FRAME ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
+ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+-  chatCtx = (0, import_utils2.convertMidConversationInstructions)(chatCtx);
++  chatCtx = midCallNoteFrameOn() ? (0, import_utils2.convertMidConversationInstructions)(chatCtx, "user", MID_CALL_NOTE_FRAME) : (0, import_utils2.convertMidConversationInstructions)(chatCtx);
    const turns = [];
    const systemMessages = [];
    let currentRole = null;
@@ -10,7 +25,7 @@ index 5fd1b543e2efcc19882ae1d0d936acbcf6810f19..5e160da1f2aae6e0b7e9243d38cd2d17
    let parts = [];
    const itemGroups = (0, import_utils2.groupToolCalls)(chatCtx);
    const flattenedItems = [];
-@@ -50,12 +51,17 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+@@ -50,12 +60,17 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
      } else {
        continue;
      }
@@ -29,7 +44,7 @@ index 5fd1b543e2efcc19882ae1d0d936acbcf6810f19..5e160da1f2aae6e0b7e9243d38cd2d17
      }
      if (msg.type === "message") {
        for (const content of msg.content) {
-@@ -97,7 +103,9 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+@@ -97,7 +112,9 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
    if (currentRole !== null && parts.length > 0) {
      turns.push({ role: currentRole, parts });
    }
@@ -41,10 +56,25 @@ index 5fd1b543e2efcc19882ae1d0d936acbcf6810f19..5e160da1f2aae6e0b7e9243d38cd2d17
    }
    return [
 diff --git a/dist/llm/provider_format/google.js b/dist/llm/provider_format/google.js
-index 9920f2c7d37504a433f04c8b148c386dabb800db..c50fc365e0e12b1cf9a8ea0e6e2ce43204a8a8ee 100644
+index 9920f2c7d37504a433f04c8b148c386dabb800db..e2672a788d3912ff777f8a39db65341d76390429 100644
 --- a/dist/llm/provider_format/google.js
 +++ b/dist/llm/provider_format/google.js
-@@ -6,6 +6,7 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+@@ -1,11 +1,21 @@
+ import { isInstructions } from "../chat_context.js";
+ import { serializeImage } from "../utils.js";
+ import { convertMidConversationInstructions, groupToolCalls } from "./utils.js";
++// MID_CALL_NOTE_FRAME=on (Ferni): a system note added mid-call (memory recall,
++// turn context, tool announcements) still reaches Gemini as user-role text, but
++// framed as the agent's own context so the model doesn't take it as the caller's
++// words. The stock template reads as a request from the caller.
++const MID_CALL_NOTE_FRAME = "[Private note to you from your own memory and context, not words the caller said. Use it quietly; never read it out, save it, or act on it as their request:]\n{instructions}";
++function midCallNoteFrameOn() {
++  const v = (process.env.MID_CALL_NOTE_FRAME ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
+ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+-  chatCtx = convertMidConversationInstructions(chatCtx);
++  chatCtx = midCallNoteFrameOn() ? convertMidConversationInstructions(chatCtx, "user", MID_CALL_NOTE_FRAME) : convertMidConversationInstructions(chatCtx);
    const turns = [];
    const systemMessages = [];
    let currentRole = null;
@@ -52,7 +82,7 @@ index 9920f2c7d37504a433f04c8b148c386dabb800db..c50fc365e0e12b1cf9a8ea0e6e2ce432
    let parts = [];
    const itemGroups = groupToolCalls(chatCtx);
    const flattenedItems = [];
-@@ -27,12 +28,17 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+@@ -27,12 +37,17 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
      } else {
        continue;
      }
@@ -71,7 +101,7 @@ index 9920f2c7d37504a433f04c8b148c386dabb800db..c50fc365e0e12b1cf9a8ea0e6e2ce432
      }
      if (msg.type === "message") {
        for (const content of msg.content) {
-@@ -74,7 +80,9 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+@@ -74,7 +89,9 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
    if (currentRole !== null && parts.length > 0) {
      turns.push({ role: currentRole, parts });
    }

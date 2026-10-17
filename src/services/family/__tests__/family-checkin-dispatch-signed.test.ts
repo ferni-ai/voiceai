@@ -6,6 +6,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { createDispatch } = vi.hoisted(() => ({ createDispatch: vi.fn(async () => ({})) }));
+// The consent gate has its own tests; here the family member has said yes.
+vi.mock('../family-call-consent.js', () => ({
+  familyCheckinCallsOn: () => true,
+  familyCallBlockReason: async () => null,
+}));
 vi.mock('livekit-server-sdk', () => ({
   RoomServiceClient: class {
     createRoom = vi.fn(async () => ({}));
@@ -76,6 +81,9 @@ describe('a family check-in dispatch', () => {
       type: 'family_checkin',
       sponsorName: 'Seth',
       sponsorUserId: 'seth-uid',
+      // what a "stop calling" on the call needs: whose consent, which number
+      sponsoredIdentityId: 'doug-id',
+      familyMemberPhone: '8015550100',
     });
   });
 });

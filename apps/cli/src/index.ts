@@ -48,6 +48,7 @@ import {
   winsService,
 } from '../../../src/services/ceo/index.js';
 import {
+  AGENT_DEPLOY_MOVED,
   LIVEKIT_AGENTS,
   isLkInstalled,
   lkAgentArgs,
@@ -55,6 +56,10 @@ import {
   resolveAgentEnv,
   runLkAgent,
 } from './utils/livekit-agent.js';
+import {
+  handleUsers as handleUsersCommand,
+  handleWaitlist as handleWaitlistCommand,
+} from './commands/users/users-admin.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -259,8 +264,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Deploy services to cloud',
     icon: icons.rocket,
     script: 'apps/cli/src/commands/deploy/deploy.ts',
-    subcommands: ['ui', 'agent', 'frontend', 'landing', 'all'],
-    examples: ['ferni deploy ui', 'ferni deploy agent --prod', 'ferni deploy all --dry-run'],
+    subcommands: ['ui', 'frontend', 'landing', 'all'],
+    examples: ['ferni deploy ui', 'ferni deploy all --dry-run'],
   },
   agents: {
     name: 'Agents',
@@ -538,18 +543,18 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni commands validate --all',
     ],
   },
-  api: {
-    name: 'API',
-    description: 'Manage and validate API endpoints (200+ routes)',
+  // Was a second `api` entry, silently overridden by the contract-testing `api` below.
+  routes: {
+    name: 'Routes',
+    description: 'List, call and validate API endpoints (200+ routes)',
     icon: '🌐',
     handler: handleApi,
     subcommands: ['list', 'call', 'validate'],
     examples: [
-      'ferni api list',
-      'ferni api list --category calendar',
-      'ferni api call GET /api/health',
-      'ferni api call POST /api/habits --body \'{"name": "Morning run"}\'',
-      'ferni api validate --all',
+      'ferni routes list',
+      'ferni routes list --category calendar',
+      'ferni routes call GET /api/health',
+      'ferni routes validate --all',
     ],
   },
   ftis: {
@@ -897,11 +902,7 @@ const COMMANDS: Record<string, CliCommand> = {
     icon: '🏥',
     handler: handleSelfHeal,
     subcommands: ['health', 'circuits', 'restart', 'diagnose', 'anomalies'],
-    examples: [
-      'ferni self-heal health',
-      'ferni self-heal circuits',
-      'ferni self-heal restart agent',
-    ],
+    examples: ['ferni self-heal health', 'ferni self-heal circuits', 'ferni self-heal restart ui'],
   },
   circuits: {
     name: 'Circuits',
@@ -916,8 +917,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Restart Cloud Run services',
     icon: '🔄',
     handler: handleRestartService,
-    subcommands: ['agent', 'ui', 'status', 'history'],
-    examples: ['ferni restart agent', 'ferni restart ui --force', 'ferni restart history'],
+    subcommands: ['ui', 'status', 'history'],
+    examples: ['ferni restart ui --force', 'ferni restart history'],
   },
   diagnose: {
     name: 'Diagnose',
@@ -1093,8 +1094,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Rollback deployments to previous version',
     icon: '⏪',
     handler: handleRollback,
-    subcommands: ['agent', 'ui', 'status', 'history'],
-    examples: ['ferni rollback agent', 'ferni rollback ui', 'ferni rollback status'],
+    subcommands: ['ui', 'status', 'history'],
+    examples: ['ferni rollback ui', 'ferni rollback status'],
   },
   metrics: {
     name: 'Metrics',
@@ -1252,66 +1253,7 @@ const COMMANDS: Record<string, CliCommand> = {
   // ============================================================================
   // CEO COMMANDS - Ferni as your Personal CEO
   // ============================================================================
-  goals: {
-    name: 'Goals',
-    description: 'Track and manage your goals (CEO feature)',
-    icon: '🎯',
-    handler: handleCEOGoals,
-    subcommands: ['list', 'add', 'complete', 'progress'],
-    examples: ['ferni goals', 'ferni goals add "Morning routine"', 'ferni goals progress'],
-  },
-  brain: {
-    name: 'Brain',
-    description: 'What Ferni knows about you (CEO feature)',
-    icon: '🧠',
-    handler: handleCEOContext,
-    subcommands: ['show', 'summary', 'delete'],
-    examples: ['ferni brain', 'ferni brain --summary'],
-  },
-  remember: {
-    name: 'Remember',
-    description: 'Add a note for Ferni to remember (CEO feature)',
-    icon: '📝',
-    handler: handleCEORemember,
-    subcommands: [],
-    examples: [
-      'ferni remember "Big presentation on Friday"',
-      'ferni remember --important "Job interview Monday"',
-    ],
-  },
-  roster: {
-    name: 'Roster',
-    description: 'Deep dive on the leadership team (CEO feature)',
-    icon: '👥',
-    handler: handleCEORoster,
-    subcommands: ['show', 'maya', 'alex', 'jordan', 'peter', 'nayan', 'ferni'],
-    examples: ['ferni roster', 'ferni roster maya', 'ferni roster alex'],
-  },
   // Daily Workflow
-  briefing: {
-    name: 'Briefing',
-    description: 'Morning briefing - calendar, priorities, reminders (CEO feature)',
-    icon: '☀️',
-    handler: handleCEOBriefing,
-    subcommands: ['today', 'tomorrow', 'week'],
-    examples: ['ferni briefing', 'ferni briefing today', 'ferni briefing week'],
-  },
-  focus: {
-    name: 'Focus',
-    description: 'Start a focus session with timer (CEO feature)',
-    icon: '🎯',
-    handler: handleCEOFocus,
-    subcommands: ['start', 'stop', 'status', 'stats'],
-    examples: ['ferni focus start 25', 'ferni focus start "Deep work"', 'ferni focus stats'],
-  },
-  reflect: {
-    name: 'Reflect',
-    description: 'End-of-day reflection prompts (CEO feature)',
-    icon: '🌙',
-    handler: handleCEOReflect,
-    subcommands: ['today', 'prompt', 'history'],
-    examples: ['ferni reflect', 'ferni reflect today', 'ferni reflect history'],
-  },
   weekly: {
     name: 'Weekly',
     description: 'Weekly review & planning (CEO feature)',
@@ -1541,36 +1483,6 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['login', 'logout', 'status'],
     examples: ['ferni auth login', 'ferni auth status', 'ferni auth logout'],
   },
-  agent: {
-    name: 'Agent',
-    description: 'Create & manage custom agents',
-    icon: '🤖',
-    handler: handleAgent,
-    subcommands: ['create', 'list', 'show', 'voice', 'memory', 'test', 'deploy', 'delete'],
-    examples: [
-      'ferni agent create',
-      'ferni agent create --template legacy',
-      'ferni agent list',
-      'ferni agent voice upload <id> <file>',
-      'ferni agent memory add <id>',
-      'ferni agent test <id>',
-      'ferni agent deploy <id>',
-    ],
-  },
-  site: {
-    name: 'Site',
-    description: 'Generate & deploy agent websites',
-    icon: '🌐',
-    handler: handleSite,
-    subcommands: ['create', 'preview', 'deploy', 'status'],
-    examples: [
-      'ferni site create --agent <id>',
-      'ferni site create --agent <id> --template memorial',
-      'ferni site preview',
-      'ferni site deploy',
-      'ferni site deploy --ferni',
-    ],
-  },
   launch: {
     name: 'Launch',
     description: 'Product launch automation (checklist, social, analytics)',
@@ -1590,139 +1502,6 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   // ============================================================================
   // EXECUTIVE SUITE - Autonomous Company Operations
-  // ============================================================================
-  ceo: {
-    name: 'CEO',
-    description: 'Strategic operations dashboard (vision, OKRs, investor updates)',
-    icon: '👔',
-    handler: handleCEO,
-    subcommands: ['dashboard', 'metrics', 'decisions', 'board-prep', 'investor-update', 'okrs'],
-    examples: [
-      'ferni ceo dashboard',
-      'ferni ceo metrics --period weekly',
-      'ferni ceo decisions --pending',
-      'ferni ceo okrs --q1',
-    ],
-  },
-  cto: {
-    name: 'CTO',
-    description: 'Technical leadership (architecture, debt, incidents, security)',
-    icon: '🔧',
-    handler: handleCTO,
-    subcommands: ['health', 'debt', 'incidents', 'security', 'dependencies', 'performance'],
-    examples: [
-      'ferni cto health',
-      'ferni cto debt --prioritize',
-      'ferni cto incidents --recent',
-      'ferni cto security --scan',
-    ],
-  },
-  cio: {
-    name: 'CIO',
-    description: 'Information governance (compliance, data catalog, access, risk)',
-    icon: '🛡️',
-    handler: handleCIO,
-    subcommands: ['compliance', 'data-catalog', 'access-review', 'risk', 'vendors'],
-    examples: [
-      'ferni cio compliance --soc2',
-      'ferni cio data-catalog --pii',
-      'ferni cio access-review --stale',
-      'ferni cio risk --matrix',
-    ],
-  },
-  cpo: {
-    name: 'CPO',
-    description: 'Product intelligence (roadmap, feedback, experiments, personas)',
-    icon: '📊',
-    handler: handleCPO,
-    subcommands: ['roadmap', 'feedback', 'experiments', 'prioritize', 'personas', 'churn'],
-    examples: [
-      'ferni cpo roadmap --auto',
-      'ferni cpo feedback --sentiment',
-      'ferni cpo experiments --winners',
-      'ferni cpo prioritize --rice',
-    ],
-  },
-  cmo: {
-    name: 'CMO',
-    description: 'Marketing intelligence (campaigns, SEO, social, attribution)',
-    icon: '📢',
-    handler: handleCMO,
-    subcommands: ['campaigns', 'content', 'seo', 'social', 'attribution', 'competitors'],
-    examples: [
-      'ferni cmo campaigns --active',
-      'ferni cmo seo --audit',
-      'ferni cmo attribution --model linear',
-      'ferni cmo competitors --track',
-    ],
-  },
-  csco: {
-    name: 'CSCO',
-    description: 'Supply chain operations (costs, vendors, SLAs, capacity)',
-    icon: '⚙️',
-    handler: handleCSCO,
-    subcommands: ['costs', 'vendors', 'slas', 'capacity', 'automation'],
-    examples: [
-      'ferni csco costs --optimize',
-      'ferni csco vendors --audit',
-      'ferni csco slas --status',
-      'ferni csco capacity --forecast',
-    ],
-  },
-  exec: {
-    name: 'Exec',
-    description: 'Unified executive dashboard across all C-suite functions',
-    icon: '📊',
-    handler: handleExec,
-    subcommands: ['--quick', '--alerts', '--role', 'schedule', 'bth', 'outreach', 'knowledge'],
-    examples: [
-      'ferni exec',
-      'ferni exec --quick',
-      'ferni exec --alerts',
-      'ferni exec --role cto',
-      'ferni exec schedule',
-      'ferni exec bth',
-      'ferni exec outreach --trigger morning',
-      'ferni exec knowledge --patterns',
-    ],
-  },
-  bth: {
-    name: 'Better Than Human',
-    description:
-      'Superhuman executive intelligence - cross-functional insights, proactive coaching',
-    icon: '🧠',
-    handler: (args: string[]) => handleExec(['bth', ...args]),
-    subcommands: ['--insights', '--coaching', '--decisions', '--energy'],
-    examples: ['ferni bth', 'ferni bth --insights', 'ferni bth --coaching', 'ferni bth --energy 8'],
-  },
-  outreach: {
-    name: 'Proactive Outreach',
-    description: 'Anticipatory system that reaches out before you know you need it',
-    icon: '📬',
-    handler: (args: string[]) => handleExec(['outreach', ...args]),
-    subcommands: ['--trigger', '--check', '--queue', '--configure'],
-    examples: [
-      'ferni outreach',
-      'ferni outreach --trigger morning',
-      'ferni outreach --trigger evening',
-      'ferni outreach --check',
-    ],
-  },
-  knowledge: {
-    name: 'Unified Knowledge',
-    description: 'Total recall across all executive functions - decisions, commitments, patterns',
-    icon: '📚',
-    handler: (args: string[]) => handleExec(['knowledge', ...args]),
-    subcommands: ['--add', '--search', '--patterns', '--commitments', '--timeline'],
-    examples: [
-      'ferni knowledge',
-      'ferni knowledge --patterns',
-      'ferni knowledge --commitments',
-      'ferni knowledge --add "Decision here" --type decision',
-    ],
-  },
-  // ============================================================================
-  // PLATFORM OPERATIONS - Infrastructure and DevOps namespace
   // ============================================================================
   platform: {
     name: 'Platform',
@@ -1750,7 +1529,6 @@ const COMMANDS: Record<string, CliCommand> = {
     ],
     examples: [
       'ferni platform',
-      'ferni platform deploy agent',
       'ferni platform logs agent --tail',
       'ferni platform status',
       'ferni platform metrics live',
@@ -1845,7 +1623,6 @@ async function handlePlatform(args: string[]): Promise<void> {
     console.log(`    ${colors.green}experiments${colors.reset}  A/B tests & rollouts`);
     console.log();
     console.log(`  ${colors.dim}Examples:${colors.reset}`);
-    console.log(`    ferni platform deploy agent`);
     console.log(`    ferni platform logs agent --tail`);
     console.log(`    ferni platform metrics live`);
     return;
@@ -2060,76 +1837,6 @@ async function handleAgents(args: string[]): Promise<void> {
   // For all other subcommands, delegate to agent-manager.ts
   const agentManagerScript = join(PROJECT_ROOT, 'src', 'cli', 'agent-manager.ts');
   runCommand(agentManagerScript, args);
-}
-
-// ============================================================================
-// CUSTOM AGENT COMMAND (ferni agent - for user-created agents)
-// ============================================================================
-
-async function handleAgent(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'list';
-  const subcommandArgs = args.slice(1);
-
-  // Route to appropriate script based on subcommand
-  const scriptMap: Record<string, string> = {
-    create: 'apps/cli/src/commands/agent/agent-create.ts',
-    list: 'apps/cli/src/commands/agent/agent-list.ts',
-    show: 'apps/cli/src/commands/agent/agent-show.ts',
-    voice: 'apps/cli/src/commands/agent/agent-voice.ts',
-    memory: 'apps/cli/src/commands/agent/agent-memory.ts',
-    test: 'apps/cli/src/commands/agent/agent-test.ts',
-    deploy: 'apps/cli/src/commands/agent/agent-deploy.ts',
-    delete: 'apps/cli/src/commands/agent/agent-delete.ts',
-  };
-
-  const script = scriptMap[subcommand];
-  if (!script) {
-    log.error(messages.unknownCommand(subcommand));
-    console.log(`\n  Available: ${Object.keys(scriptMap).join(', ')}`);
-    console.log(`\n  Examples:`);
-    console.log(`    ferni agent create                    Create new agent`);
-    console.log(`    ferni agent create --template legacy  From template`);
-    console.log(`    ferni agent list                      List your agents`);
-    console.log(`    ferni agent voice upload <id> <file>  Upload voice`);
-    console.log(`    ferni agent memory add <id>           Add memory`);
-    console.log(`    ferni agent test <id>                 Test agent`);
-    console.log(`    ferni agent deploy <id>               Deploy agent`);
-    return;
-  }
-
-  runCommand(join(PROJECT_ROOT, script), subcommandArgs);
-}
-
-// ============================================================================
-// SITE COMMAND (ferni site - for agent website generation/deployment)
-// ============================================================================
-
-async function handleSite(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'help';
-  const subcommandArgs = args.slice(1);
-
-  // Route to appropriate script based on subcommand
-  const scriptMap: Record<string, string> = {
-    create: 'apps/cli/src/commands/site/site-create.ts',
-    preview: 'apps/cli/src/commands/site/site-preview.ts',
-    deploy: 'apps/cli/src/commands/site/site-deploy.ts',
-    status: 'apps/cli/src/commands/site/site-status.ts',
-  };
-
-  const script = scriptMap[subcommand];
-  if (!script) {
-    log.error(messages.unknownCommand(subcommand));
-    console.log(`\n  Available: ${Object.keys(scriptMap).join(', ')}`);
-    console.log(`\n  Examples:`);
-    console.log(`    ferni site create --agent <id>          Generate from template`);
-    console.log(`    ferni site create --agent <id> --template memorial`);
-    console.log(`    ferni site preview                      Local preview`);
-    console.log(`    ferni site deploy                       Deploy to Firebase`);
-    console.log(`    ferni site deploy --ferni               Deploy to ferni.ai`);
-    return;
-  }
-
-  runCommand(join(PROJECT_ROOT, script), subcommandArgs);
 }
 
 // ============================================================================
@@ -4628,292 +4335,7 @@ async function handleVoice(args: string[]): Promise<void> {
 // CEO COMMANDS - Ferni as your Personal CEO
 // ============================================================================
 
-async function handleCEOGoals(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'list';
-  const userId = process.env.FERNI_USER_ID || 'cli-user';
-
-  log.header('🎯 Goals');
-
-  try {
-    if (subcommand === 'list' || !args[0]) {
-      // List all active goals
-      const goals = await goalsService.getGoals(userId, 'active');
-
-      if (goals.length === 0) {
-        console.log(`\n${colors.dim}No active goals yet.${colors.reset}`);
-        console.log(`${colors.dim}Add one with: ferni goals add "Your goal here"${colors.reset}\n`);
-        return;
-      }
-
-      console.log(`\n${colors.bold}Active Goals${colors.reset}\n`);
-      for (const goal of goals) {
-        const progress = goal.progress || 0;
-        const progressBar =
-          '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));
-        console.log(`  ${colors.bold}${goal.title}${colors.reset}`);
-        if (goal.description) {
-          console.log(`  ${colors.dim}${goal.description}${colors.reset}`);
-        }
-        console.log(`  ${colors.green}${progressBar}${colors.reset} ${progress}%`);
-        console.log(`  ${colors.dim}ID: ${goal.id} • Category: ${goal.category}${colors.reset}\n`);
-      }
-    } else if (subcommand === 'add') {
-      // Add a new goal - everything after "add" is the title
-      const title = args
-        .slice(1)
-        .join(' ')
-        .replace(/^["']|["']$/g, '');
-      if (!title) {
-        console.log(`${colors.red}Please provide a goal title.${colors.reset}`);
-        console.log(
-          `${colors.dim}Example: ferni goals add "Build morning routine"${colors.reset}\n`
-        );
-        return;
-      }
-
-      const goal = await goalsService.createGoal(userId, { title, category: 'personal' });
-      console.log(`\n${colors.green}✓ Goal created!${colors.reset}`);
-      console.log(`  ${colors.bold}${goal.title}${colors.reset}`);
-      console.log(`  ${colors.dim}ID: ${goal.id}${colors.reset}\n`);
-    } else if (subcommand === 'complete') {
-      // Complete a goal by ID
-      const goalId = args[1];
-      if (!goalId) {
-        console.log(`${colors.red}Please provide a goal ID.${colors.reset}`);
-        console.log(`${colors.dim}Example: ferni goals complete goal_12345${colors.reset}\n`);
-        return;
-      }
-
-      await goalsService.updateGoal(userId, goalId, { status: 'completed', progress: 100 });
-      console.log(`\n${colors.green}✓ Goal completed!${colors.reset}\n`);
-    } else if (subcommand === 'progress') {
-      // Show progress overview across all goals
-      const activeGoals = await goalsService.getGoals(userId, 'active');
-      const completedGoals = await goalsService.getGoals(userId, 'completed');
-
-      console.log(`\n${colors.bold}Progress Overview${colors.reset}\n`);
-      console.log(`  ${colors.cyan}Active Goals:${colors.reset}    ${activeGoals.length}`);
-      console.log(`  ${colors.green}Completed:${colors.reset}       ${completedGoals.length}`);
-
-      if (activeGoals.length > 0) {
-        const avgProgress = Math.round(
-          activeGoals.reduce((sum, g) => sum + (g.progress || 0), 0) / activeGoals.length
-        );
-        console.log(`  ${colors.yellow}Avg Progress:${colors.reset}    ${avgProgress}%\n`);
-      }
-    } else if (subcommand === 'all') {
-      // List all goals including completed
-      const goals = await goalsService.getGoals(userId);
-
-      if (goals.length === 0) {
-        console.log(`\n${colors.dim}No goals yet.${colors.reset}\n`);
-        return;
-      }
-
-      console.log(`\n${colors.bold}All Goals${colors.reset}\n`);
-      for (const goal of goals) {
-        const statusIcon = goal.status === 'completed' ? '✓' : goal.status === 'paused' ? '⏸' : '○';
-        const statusColor =
-          goal.status === 'completed'
-            ? colors.green
-            : goal.status === 'paused'
-              ? colors.yellow
-              : colors.white;
-        console.log(
-          `  ${statusColor}${statusIcon}${colors.reset} ${goal.title} ${colors.dim}(${goal.status})${colors.reset}`
-        );
-      }
-      console.log();
-    } else {
-      console.log(`${colors.red}Unknown subcommand: ${subcommand}${colors.reset}`);
-      console.log(`${colors.dim}Available: list, add, complete, progress, all${colors.reset}\n`);
-    }
-  } catch (error) {
-    log.error(`Goals operation failed: ${String(error)}`);
-    console.log(`\n${colors.red}Couldn't access goals.${colors.reset}`);
-    console.log(`${colors.dim}Make sure the service is running.${colors.reset}\n`);
-  }
-}
-
-async function handleCEOContext(args: string[]): Promise<void> {
-  const { handleContext } = await import('./features/ceo.js');
-  await handleContext(args);
-}
-
-async function handleCEORemember(args: string[]): Promise<void> {
-  const { handleRemember } = await import('./features/ceo.js');
-  await handleRemember(args);
-}
-
-async function handleCEORoster(args: string[]): Promise<void> {
-  const { handleTeam } = await import('./features/ceo.js');
-  await handleTeam(args);
-}
-
 // Daily Workflow Handlers
-async function handleCEOBriefing(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'today';
-  const userId = process.env.FERNI_USER_ID || 'cli-user';
-
-  try {
-    if (subcommand === 'today' || !args[0]) {
-      // Generate and display the full briefing using the service
-      const briefing = await briefingService.generateBriefing(userId);
-      const formatted = briefingService.formatForTerminal(briefing);
-      console.log(formatted);
-    } else if (subcommand === 'tomorrow') {
-      console.log(`\n${colors.bold}Tomorrow's Preview${colors.reset}`);
-      console.log(`${colors.dim}Calendar integration coming soon...${colors.reset}`);
-    } else if (subcommand === 'week') {
-      // Generate weekly review using weeklyReviewService
-      try {
-        const review = await weeklyReviewService.generateWeeklyReview(userId);
-        const formatted = weeklyReviewService.formatForTerminal(review);
-        console.log(formatted);
-      } catch (err) {
-        console.log(`\n${colors.bold}Week at a Glance${colors.reset}`);
-        console.log(`${colors.dim}Run 'ferni weekly' for full weekly review${colors.reset}`);
-      }
-    } else {
-      log.error(`Unknown subcommand: ${subcommand}`);
-      console.log(`Available: today, tomorrow, week`);
-    }
-  } catch (error) {
-    log.error(`Briefing failed: ${String(error)}`);
-    // Fallback to basic output
-    const today = new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    });
-    console.log(`\n${colors.bold}Good morning! Here's your briefing for ${today}${colors.reset}\n`);
-    console.log(`${colors.cyan}📅 Calendar${colors.reset}`);
-    console.log(
-      `   Run ${colors.dim}ferni briefing${colors.reset} with calendar integration for full view\n`
-    );
-    console.log(`${colors.cyan}📌 Top Priorities${colors.reset}`);
-    console.log(`   Run ${colors.dim}ferni goals${colors.reset} to see your goals\n`);
-  }
-}
-
-async function handleCEOFocus(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-  const userId = process.env.FERNI_USER_ID || 'cli-user';
-
-  log.header('🎯 Focus Session');
-
-  try {
-    if (subcommand === 'start') {
-      const duration = parseInt(args[1]) || 25;
-      const task = args.slice(2).join(' ') || undefined;
-
-      const session = await focusService.startSession(userId, { duration, task });
-      const endTime = new Date(session.startTime.getTime() + session.plannedDuration * 60 * 1000);
-
-      console.log(`\n${colors.green}✓ Focus session started!${colors.reset}`);
-      console.log(
-        `  ${colors.bold}${session.task || 'Focus session'}${colors.reset} - ${duration} minutes`
-      );
-      console.log(`  Ends at: ${endTime.toLocaleTimeString()}`);
-      console.log(`\n${colors.dim}Run 'ferni focus status' to check progress${colors.reset}`);
-    } else if (subcommand === 'stop') {
-      const session = await focusService.endSession(userId);
-      if (session) {
-        console.log(`\n${colors.green}✓ Focus session ended${colors.reset}`);
-        if (session.actualDuration) {
-          console.log(`  Duration: ${session.actualDuration} minutes`);
-        }
-      } else {
-        console.log(`\n${colors.yellow}No active focus session${colors.reset}`);
-      }
-    } else if (subcommand === 'status') {
-      const session = await focusService.getCurrentSession(userId);
-      if (session) {
-        const endTime = new Date(session.startTime.getTime() + session.plannedDuration * 60 * 1000);
-        const remaining = Math.max(0, (endTime.getTime() - Date.now()) / 1000 / 60);
-
-        if (remaining > 0) {
-          console.log(`\n${colors.green}🎯 Active Focus Session${colors.reset}`);
-          console.log(`  ${colors.bold}${session.task || 'Focus session'}${colors.reset}`);
-          console.log(`  ${Math.ceil(remaining)} minutes remaining`);
-          console.log(
-            `  ${colors.dim}Started: ${session.startTime.toLocaleTimeString()}${colors.reset}`
-          );
-        } else {
-          // Session complete, end it
-          await focusService.endSession(userId);
-          console.log(`\n${colors.green}✓ Focus session completed!${colors.reset}`);
-          console.log(`  ${session.task || 'Focus session'} - Great work!`);
-        }
-      } else {
-        console.log(`\n${colors.dim}No active focus session${colors.reset}`);
-        console.log(`Start one with: ${colors.cyan}ferni focus start 25${colors.reset}`);
-      }
-    } else if (subcommand === 'stats') {
-      const stats = await focusService.getStats(userId, 'week');
-      console.log(`\n${colors.bold}Focus Statistics (This Week)${colors.reset}\n`);
-      console.log(`  ${colors.cyan}Total Sessions:${colors.reset}    ${stats.totalSessions}`);
-      console.log(`  ${colors.cyan}Total Minutes:${colors.reset}     ${stats.totalMinutes}`);
-      console.log(`  ${colors.cyan}Average Duration:${colors.reset}  ${stats.averageDuration} min`);
-      console.log(`  ${colors.cyan}Completion Rate:${colors.reset}   ${stats.completionRate}%`);
-      console.log(`  ${colors.cyan}Streak:${colors.reset}            ${stats.streakDays} days\n`);
-    } else if (subcommand === 'history') {
-      const sessions = await focusService.getSessionHistory(userId, 10);
-      if (sessions.length === 0) {
-        console.log(`\n${colors.dim}No focus sessions yet.${colors.reset}\n`);
-        return;
-      }
-      console.log(`\n${colors.bold}Recent Focus Sessions${colors.reset}\n`);
-      for (const session of sessions) {
-        const date = session.startTime.toLocaleDateString();
-        const duration = session.actualDuration || session.plannedDuration;
-        const status = session.interrupted ? '⚠️ interrupted' : '✓ completed';
-        console.log(
-          `  ${colors.dim}${date}${colors.reset} ${session.task || 'Focus'} (${duration} min) ${status}`
-        );
-      }
-      console.log();
-    } else {
-      console.log(`${colors.red}Unknown subcommand: ${subcommand}${colors.reset}`);
-      console.log(`${colors.dim}Available: start, stop, status, stats, history${colors.reset}\n`);
-    }
-  } catch (error) {
-    log.error(`Focus operation failed: ${String(error)}`);
-    console.log(`\n${colors.red}Couldn't access focus sessions.${colors.reset}`);
-    console.log(`${colors.dim}Make sure the service is running.${colors.reset}\n`);
-  }
-}
-
-async function handleCEOReflect(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'prompt';
-  log.header(`🌙 Daily Reflection`);
-
-  const prompts = [
-    'What went well today?',
-    'What could have gone better?',
-    'What did you learn?',
-    'What are you grateful for?',
-    'What will you do differently tomorrow?',
-  ];
-
-  if (subcommand === 'prompt' || !args[0]) {
-    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
-    console.log(`\n${colors.bold}Reflection Prompt:${colors.reset}`);
-    console.log(`\n  ${colors.cyan}"${randomPrompt}"${colors.reset}\n`);
-    console.log(
-      `${colors.dim}Record your reflection with: ferni journal "your thoughts..."${colors.reset}`
-    );
-  } else if (subcommand === 'today') {
-    console.log(`\n${colors.bold}Today's Reflections${colors.reset}`);
-    console.log(`${colors.dim}Run 'ferni journal today' to see today's entries${colors.reset}`);
-  } else if (subcommand === 'history') {
-    console.log(`\n${colors.bold}Reflection History${colors.reset}`);
-    console.log(
-      `${colors.dim}Run 'ferni journal search' to browse past reflections${colors.reset}`
-    );
-  }
-}
-
 async function handleCEOWeekly(args: string[]): Promise<void> {
   const subcommand = args[0] || 'review';
   const userId = process.env.FERNI_USER_ID || 'cli-user';
@@ -7430,172 +6852,19 @@ async function handleOps(args: string[]): Promise<void> {
 }
 
 // ============================================================================
-// WAITLIST COMMAND
+// WAITLIST + USERS COMMANDS (no shell; deletions dry-run by default)
 // ============================================================================
+
+const usersAdminDeps = () => ({ scriptsDir: join(PROJECT_ROOT, 'scripts'), ask: prompt });
 
 async function handleWaitlist(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
   log.header(`📋 Waitlist Management`);
-
-  const scriptsDir = join(PROJECT_ROOT, 'scripts');
-
-  if (!subcommand || subcommand === 'status') {
-    console.log(`${colors.bold}Waitlist Commands:${colors.reset}\n`);
-    console.log(
-      `  ${colors.cyan}ferni waitlist list${colors.reset}           - List pending waitlist users`
-    );
-    console.log(`  ${colors.cyan}ferni waitlist approve <email>${colors.reset} - Approve a user`);
-    console.log(
-      `  ${colors.cyan}ferni waitlist stats${colors.reset}          - Show waitlist statistics`
-    );
-    console.log(
-      `  ${colors.cyan}ferni waitlist export${colors.reset}         - Export waitlist to CSV`
-    );
-    return;
-  }
-
-  if (subcommand === 'list') {
-    const limit = args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '20';
-    console.log(`${colors.cyan}Fetching waitlist...${colors.reset}\n`);
-    spawnSync(
-      'sh',
-      ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --list --limit=${limit}`],
-      { stdio: 'inherit' }
-    );
-  }
-
-  if (subcommand === 'approve') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni waitlist approve user@example.com');
-      return;
-    }
-
-    console.log(`${colors.cyan}Approving ${email}...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'stats') {
-    console.log(`${colors.cyan}Fetching waitlist stats...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --stats`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'export') {
-    const output =
-      args.find((a) => a.startsWith('--output='))?.split('=')[1] || 'waitlist-export.csv';
-    console.log(`${colors.cyan}Exporting waitlist to ${output}...${colors.reset}\n`);
-    spawnSync(
-      'sh',
-      ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --export --output=${output}`],
-      { stdio: 'inherit' }
-    );
-  }
+  await handleWaitlistCommand(args, usersAdminDeps());
 }
 
-// ============================================================================
-// USERS COMMAND
-// ============================================================================
-
 async function handleUsers(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
   log.header(`👤 User Management`);
-
-  const scriptsDir = join(PROJECT_ROOT, 'scripts');
-
-  if (!subcommand || subcommand === 'status') {
-    console.log(`${colors.bold}User Management Commands:${colors.reset}\n`);
-    console.log(`  ${colors.cyan}ferni users list${colors.reset}              - List all users`);
-    console.log(`  ${colors.cyan}ferni users show <email>${colors.reset}      - Show user details`);
-    console.log(
-      `  ${colors.cyan}ferni users dump <userId>${colors.reset}     - Full user data dump`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users cleanup${colors.reset}           - Clean up anonymous users`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users grant <email>${colors.reset}     - Grant access to user`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users find-rich${colors.reset}         - Find users with rich data`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users delete-stale${colors.reset}      - Delete stale profiles`
-    );
-    return;
-  }
-
-  if (subcommand === 'list') {
-    const limit = args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '50';
-    console.log(`${colors.cyan}Listing users...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/list-all-users.ts --limit=${limit}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'show') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni users show user@example.com');
-      return;
-    }
-    console.log(`${colors.cyan}Fetching user data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/check-my-data.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'dump') {
-    const userId = args[1];
-    if (!userId) {
-      log.error('User ID required. Usage: ferni users dump <userId>');
-      return;
-    }
-    console.log(`${colors.cyan}Dumping full user data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/full-user-dump.ts --user=${userId}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'cleanup') {
-    const dryRun = args.includes('--dry-run');
-    console.log(`${colors.cyan}Cleaning up anonymous users...${colors.reset}\n`);
-    const cmd = dryRun
-      ? `npx tsx ${scriptsDir}/cleanup-anonymous-users.ts --dry-run`
-      : `npx tsx ${scriptsDir}/cleanup-anonymous-users.ts`;
-    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'grant') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni users grant user@example.com');
-      return;
-    }
-    console.log(`${colors.cyan}Granting access...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/grant-access.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'find-rich') {
-    console.log(`${colors.cyan}Finding users with rich data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/find-rich-users.ts`], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'delete-stale') {
-    const dryRun = args.includes('--dry-run');
-    console.log(`${colors.cyan}Deleting stale profiles...${colors.reset}\n`);
-    const cmd = dryRun
-      ? `npx tsx ${scriptsDir}/delete-stale-profiles.ts --dry-run`
-      : `npx tsx ${scriptsDir}/delete-stale-profiles.ts`;
-    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
-  }
+  await handleUsersCommand(args, usersAdminDeps());
 }
 
 // ============================================================================
@@ -8503,8 +7772,7 @@ async function handleSecrets(args: string[]): Promise<void> {
     console.log(
       `     ${colors.cyan}gcloud secrets versions add ${secretName} --data-file=-${colors.reset}`
     );
-    console.log(`  3. Update Cloud Run service:`);
-    console.log(`     ${colors.cyan}ferni deploy agent${colors.reset}`);
+    console.log(`  3. Redeploy: agent via .claude/skills/deploy-agent/SKILL.md`);
     console.log(`  4. Update local .env file`);
     console.log(`  5. Revoke old secret from provider`);
   }
@@ -8524,7 +7792,6 @@ async function handleSecrets(args: string[]): Promise<void> {
     if (secrets) {
       log.success('Secrets available for sync');
       console.log(`\n  To sync to Cloud Run, redeploy the service:`);
-      console.log(`    ${colors.cyan}ferni deploy agent${colors.reset}`);
       console.log(`    ${colors.cyan}ferni deploy ui${colors.reset}`);
     } else {
       log.warn('No secrets found in Secret Manager');
@@ -9085,33 +8352,10 @@ async function handleCircuits(args: string[]): Promise<void> {
   console.log();
 }
 
-/**
- * Restart or roll back the LiveKit Cloud agent. Like `ferni deploy agent`, this
- * targets the dev agent unless --prod is given, and asks before acting.
- */
-async function runAgentMutation(action: 'restart' | 'rollback', args: string[]): Promise<void> {
-  const target = LIVEKIT_AGENTS[resolveAgentEnv(args, 'dev')];
-  if (!isLkInstalled()) {
-    log.error(messages.missingTool('lk', 'brew install livekit-cli'));
-    return;
-  }
-  if (action === 'rollback') runLkAgent(PROJECT_ROOT, 'versions', target);
-  console.log(`\n  Agent: ${colors.cyan}${target.project} ${target.agentId}${colors.reset}`);
-  console.log(`  Command: ${colors.dim}lk ${lkAgentArgs(action, target).join(' ')}${colors.reset}`);
-  if (!args.includes('--force') && !args.includes('-f')) {
-    const answer = await prompt(
-      `\n${colors.yellow}${action} ${target.env} agent? [y/N]:${colors.reset} `
-    );
-    if (answer.toLowerCase() !== 'y') {
-      console.log('\nAborted.');
-      return;
-    }
-  }
-  const version = args.find((a) => a.startsWith('--version='))?.split('=')[1];
-  const extra = action === 'rollback' && version ? ['--version', version, '--yes'] : ['--yes'];
-  const ok = runLkAgent(PROJECT_ROOT, action, target, { extra }).ok;
-  if (ok) log.success(`Agent ${action} done. Check: ferni status agent`);
-  else log.error(`lk agent ${action} failed`);
+/** The CLI no longer changes the voice agent; the deploy-agent skill does. */
+function refuseAgentMutation(): never {
+  log.error(AGENT_DEPLOY_MOVED);
+  process.exit(1);
 }
 
 async function handleRestartService(args: string[]): Promise<void> {
@@ -9151,17 +8395,14 @@ async function handleRestartService(args: string[]): Promise<void> {
     return;
   }
 
-  if (subcommand === 'agent') {
-    await runAgentMutation('restart', args);
-    return;
-  }
+  if (subcommand === 'agent') refuseAgentMutation();
 
   // Restart a specific service
   const serviceName = subcommand === 'ui' ? SERVICES.ui : null;
 
   if (!serviceName) {
     log.error(`Unknown service: ${subcommand}`);
-    console.log(`\n  Available: agent, ui`);
+    console.log(`\n  Available: ui`);
     return;
   }
 
@@ -9387,7 +8628,7 @@ async function diagnoseError(errorMessage: string): Promise<void> {
           `    ${colors.dim}The system will automatically retry this operation${colors.reset}`
         );
       } else if (type === 'restart') {
-        console.log(`    ${colors.cyan}ferni restart agent${colors.reset}`);
+        console.log(`    ${colors.cyan}.claude/skills/deploy-agent/SKILL.md${colors.reset}`);
       } else {
         console.log(`    ${colors.cyan}Check logs: ferni logs agent --errors${colors.reset}`);
       }
@@ -10569,10 +9810,7 @@ async function handleRollback(args: string[]): Promise<void> {
     return;
   }
 
-  if (subcommand === 'agent') {
-    await runAgentMutation('rollback', args);
-    return;
-  }
+  if (subcommand === 'agent') refuseAgentMutation();
 
   if (subcommand === 'ui') {
     const service = SERVICES.ui;
@@ -10616,7 +9854,7 @@ async function handleRollback(args: string[]): Promise<void> {
   }
 
   log.error(`Unknown rollback target: ${subcommand}`);
-  console.log(`\n  Available: agent, ui, status, history`);
+  console.log(`\n  Available: ui, status, history`);
 }
 
 async function handleMetrics(args: string[]): Promise<void> {
@@ -12384,388 +11622,6 @@ async function handleReplay(args: string[]): Promise<void> {
 }
 
 // ============================================================================
-// EXECUTIVE SUITE HANDLERS - Autonomous Company Operations
-// Note: Uses npx tsx to run dedicated command files. No user input is interpolated
-// into shell commands - only validated subcommand names are used.
-// ============================================================================
-
-async function handleCEO(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'dashboard';
-  const validSubcommands = [
-    'dashboard',
-    'metrics',
-    'decisions',
-    'board-prep',
-    'investor-update',
-    'okrs',
-    'help',
-  ];
-
-  if (!validSubcommands.includes(subcommand)) {
-    log.error(`Unknown CEO subcommand: ${subcommand}`);
-    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
-    return;
-  }
-
-  log.header('👔 CEO Strategic Operations');
-
-  const scriptArgs = [subcommand];
-  // Pass through safe boolean flags
-  if (args.includes('--json')) scriptArgs.push('--json');
-  if (args.includes('--compare')) scriptArgs.push('--compare');
-  if (args.includes('--pending')) scriptArgs.push('--pending');
-  if (args.includes('--full')) scriptArgs.push('--full');
-
-  // Handle --period option (validated)
-  const periodIdx = args.findIndex((a) => a === '--period');
-  if (periodIdx >= 0 && args[periodIdx + 1]) {
-    const period = args[periodIdx + 1];
-    if (['daily', 'weekly', 'monthly', 'quarterly'].includes(period)) {
-      scriptArgs.push('--period', period);
-    }
-  }
-
-  const cmd = `npx tsx apps/cli/src/commands/ceo/ceo.ts ${scriptArgs.join(' ')}`;
-  try {
-    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-  } catch {
-    log.error('CEO operation failed');
-  }
-}
-
-async function handleCTO(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'health';
-  const validSubcommands = [
-    'health',
-    'debt',
-    'incidents',
-    'security',
-    'dependencies',
-    'performance',
-    'help',
-  ];
-
-  if (!validSubcommands.includes(subcommand)) {
-    log.error(`Unknown CTO subcommand: ${subcommand}`);
-    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
-    return;
-  }
-
-  log.header('🔧 CTO Technical Leadership');
-
-  const scriptArgs = [subcommand];
-  if (args.includes('--json')) scriptArgs.push('--json');
-  if (args.includes('--prioritize')) scriptArgs.push('--prioritize');
-  if (args.includes('--recent')) scriptArgs.push('--recent');
-  if (args.includes('--scan')) scriptArgs.push('--scan');
-  if (args.includes('--critical')) scriptArgs.push('--critical');
-  if (args.includes('--outdated')) scriptArgs.push('--outdated');
-
-  const cmd = `npx tsx apps/cli/src/commands/cto/cto.ts ${scriptArgs.join(' ')}`;
-  try {
-    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-  } catch {
-    log.error('CTO operation failed');
-  }
-}
-
-async function handleCIO(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'compliance';
-  const validSubcommands = [
-    'compliance',
-    'data-catalog',
-    'access-review',
-    'risk',
-    'vendors',
-    'help',
-  ];
-
-  if (!validSubcommands.includes(subcommand)) {
-    log.error(`Unknown CIO subcommand: ${subcommand}`);
-    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
-    return;
-  }
-
-  log.header('🛡️ CIO Information Governance');
-
-  const scriptArgs = [subcommand];
-  if (args.includes('--json')) scriptArgs.push('--json');
-  if (args.includes('--soc2')) scriptArgs.push('--soc2');
-  if (args.includes('--gdpr')) scriptArgs.push('--gdpr');
-  if (args.includes('--hipaa')) scriptArgs.push('--hipaa');
-  if (args.includes('--pii')) scriptArgs.push('--pii');
-  if (args.includes('--stale')) scriptArgs.push('--stale');
-  if (args.includes('--elevated')) scriptArgs.push('--elevated');
-  if (args.includes('--matrix')) scriptArgs.push('--matrix');
-  if (args.includes('--expiring')) scriptArgs.push('--expiring');
-
-  const cmd = `npx tsx apps/cli/src/commands/cio/cio.ts ${scriptArgs.join(' ')}`;
-  try {
-    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-  } catch {
-    log.error('CIO operation failed');
-  }
-}
-
-async function handleCPO(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'roadmap';
-  const validSubcommands = [
-    'roadmap',
-    'feedback',
-    'experiments',
-    'prioritize',
-    'personas',
-    'churn',
-    'help',
-  ];
-
-  if (!validSubcommands.includes(subcommand)) {
-    log.error(`Unknown CPO subcommand: ${subcommand}`);
-    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
-    return;
-  }
-
-  log.header('📊 CPO Product Intelligence');
-
-  const scriptArgs = [subcommand];
-  if (args.includes('--json')) scriptArgs.push('--json');
-  if (args.includes('--auto')) scriptArgs.push('--auto');
-  if (args.includes('--sentiment')) scriptArgs.push('--sentiment');
-  if (args.includes('--winners')) scriptArgs.push('--winners');
-  if (args.includes('--rice')) scriptArgs.push('--rice');
-  if (args.includes('--journeys')) scriptArgs.push('--journeys');
-  if (args.includes('--at-risk')) scriptArgs.push('--at-risk');
-
-  const cmd = `npx tsx apps/cli/src/commands/cpo/cpo.ts ${scriptArgs.join(' ')}`;
-  try {
-    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-  } catch {
-    log.error('CPO operation failed');
-  }
-}
-
-async function handleCMO(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'campaigns';
-  const validSubcommands = [
-    'campaigns',
-    'content',
-    'seo',
-    'social',
-    'attribution',
-    'competitors',
-    'help',
-  ];
-
-  if (!validSubcommands.includes(subcommand)) {
-    log.error(`Unknown CMO subcommand: ${subcommand}`);
-    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
-    return;
-  }
-
-  log.header('📢 CMO Marketing Intelligence');
-
-  const scriptArgs = [subcommand];
-  if (args.includes('--json')) scriptArgs.push('--json');
-  if (args.includes('--active')) scriptArgs.push('--active');
-  if (args.includes('--roas')) scriptArgs.push('--roas');
-  if (args.includes('--calendar')) scriptArgs.push('--calendar');
-  if (args.includes('--audit')) scriptArgs.push('--audit');
-  if (args.includes('--keywords')) scriptArgs.push('--keywords');
-  if (args.includes('--analytics')) scriptArgs.push('--analytics');
-  if (args.includes('--engagement')) scriptArgs.push('--engagement');
-  if (args.includes('--journey')) scriptArgs.push('--journey');
-  if (args.includes('--report')) scriptArgs.push('--report');
-  if (args.includes('--track')) scriptArgs.push('--track');
-
-  // Handle --model option
-  const modelIdx = args.findIndex((a) => a === '--model');
-  if (modelIdx >= 0 && args[modelIdx + 1]) {
-    const model = args[modelIdx + 1];
-    if (['linear', 'first-touch', 'last-touch', 'time-decay'].includes(model)) {
-      scriptArgs.push('--model', model);
-    }
-  }
-
-  const cmd = `npx tsx apps/cli/src/commands/cmo/cmo.ts ${scriptArgs.join(' ')}`;
-  try {
-    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-  } catch {
-    log.error('CMO operation failed');
-  }
-}
-
-async function handleCSCO(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'costs';
-  const validSubcommands = ['costs', 'vendors', 'slas', 'capacity', 'automation', 'help'];
-
-  if (!validSubcommands.includes(subcommand)) {
-    log.error(`Unknown CSCO subcommand: ${subcommand}`);
-    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
-    return;
-  }
-
-  log.header('⚙️ CSCO Operations Intelligence');
-
-  const scriptArgs = [subcommand];
-  if (args.includes('--json')) scriptArgs.push('--json');
-  if (args.includes('--breakdown')) scriptArgs.push('--breakdown');
-  if (args.includes('--optimize')) scriptArgs.push('--optimize');
-  if (args.includes('--forecast')) scriptArgs.push('--forecast');
-  if (args.includes('--audit')) scriptArgs.push('--audit');
-  if (args.includes('--renewals')) scriptArgs.push('--renewals');
-  if (args.includes('--risks')) scriptArgs.push('--risks');
-  if (args.includes('--breaches')) scriptArgs.push('--breaches');
-  if (args.includes('--alerts')) scriptArgs.push('--alerts');
-  if (args.includes('--plan')) scriptArgs.push('--plan');
-  if (args.includes('--opportunities')) scriptArgs.push('--opportunities');
-  if (args.includes('--metrics')) scriptArgs.push('--metrics');
-
-  const cmd = `npx tsx apps/cli/src/commands/csco/csco.ts ${scriptArgs.join(' ')}`;
-  try {
-    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-  } catch {
-    log.error('CSCO operation failed');
-  }
-}
-
-async function handleExec(args: string[]): Promise<void> {
-  // Check for schedule subcommand
-  if (args[0] === 'schedule') {
-    log.header('📅 Executive Scheduler');
-    const scheduleArgs: string[] = [];
-    if (args.includes('--enable')) scheduleArgs.push('--enable');
-    if (args.includes('--disable')) scheduleArgs.push('--disable');
-    if (args.includes('--alerts')) scheduleArgs.push('--alerts');
-    if (args.includes('--json')) scheduleArgs.push('--json');
-
-    const runNowIdx = args.findIndex((a) => a === '--run-now');
-    if (runNowIdx >= 0 && args[runNowIdx + 1]) {
-      scheduleArgs.push('--run-now', args[runNowIdx + 1]);
-    }
-
-    const cmd = `npx tsx apps/cli/src/commands/exec/scheduler.ts ${scheduleArgs.join(' ')}`;
-    try {
-      execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-    } catch {
-      log.error('Scheduler command failed');
-    }
-    return;
-  }
-
-  // Better Than Human - Superhuman Executive Intelligence
-  if (args[0] === 'bth' || args[0] === 'better-than-human') {
-    log.header('🧠 Better Than Human Intelligence');
-    const bthArgs: string[] = [];
-    if (args.includes('--insights')) bthArgs.push('--insights');
-    if (args.includes('--coaching')) bthArgs.push('--coaching');
-    if (args.includes('--decisions')) bthArgs.push('--decisions');
-    if (args.includes('--json')) bthArgs.push('--json');
-
-    const energyIdx = args.findIndex((a) => a === '--energy');
-    if (energyIdx >= 0 && args[energyIdx + 1]) {
-      bthArgs.push('--energy', args[energyIdx + 1]);
-    }
-
-    const cmd = `npx tsx apps/cli/src/commands/exec/better-than-human.ts ${bthArgs.join(' ')}`;
-    try {
-      execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-    } catch {
-      log.error('Better Than Human command failed');
-    }
-    return;
-  }
-
-  // Proactive Outreach System
-  if (args[0] === 'outreach') {
-    log.header('📬 Proactive Outreach');
-    const outreachArgs: string[] = [];
-    if (args.includes('--configure')) outreachArgs.push('--configure');
-    if (args.includes('--check')) outreachArgs.push('--check');
-    if (args.includes('--queue')) outreachArgs.push('--queue');
-    if (args.includes('--json')) outreachArgs.push('--json');
-
-    const triggerIdx = args.findIndex((a) => a === '--trigger');
-    if (triggerIdx >= 0 && args[triggerIdx + 1]) {
-      outreachArgs.push('--trigger', args[triggerIdx + 1]);
-    }
-
-    const cmd = `npx tsx apps/cli/src/commands/exec/proactive-outreach.ts ${outreachArgs.join(' ')}`;
-    try {
-      execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-    } catch {
-      log.error('Proactive outreach command failed');
-    }
-    return;
-  }
-
-  // Unified Knowledge Context
-  if (args[0] === 'knowledge' || args[0] === 'kb') {
-    log.header('📚 Unified Knowledge Context');
-    const kbArgs: string[] = [];
-    if (args.includes('--commitments')) kbArgs.push('--commitments');
-    if (args.includes('--patterns')) kbArgs.push('--patterns');
-    if (args.includes('--timeline')) kbArgs.push('--timeline');
-    if (args.includes('--json')) kbArgs.push('--json');
-
-    const addIdx = args.findIndex((a) => a === '--add');
-    if (addIdx >= 0 && args[addIdx + 1]) {
-      kbArgs.push('--add', `"${args[addIdx + 1]}"`);
-    }
-
-    const searchIdx = args.findIndex((a) => a === '--search');
-    if (searchIdx >= 0 && args[searchIdx + 1]) {
-      kbArgs.push('--search', `"${args[searchIdx + 1]}"`);
-    }
-
-    const typeIdx = args.findIndex((a) => a === '--type');
-    if (typeIdx >= 0 && args[typeIdx + 1]) {
-      kbArgs.push('--type', args[typeIdx + 1]);
-    }
-
-    const tagsIdx = args.findIndex((a) => a === '--tags');
-    if (tagsIdx >= 0 && args[tagsIdx + 1]) {
-      kbArgs.push('--tags', args[tagsIdx + 1]);
-    }
-
-    const stakeholderIdx = args.findIndex((a) => a === '--stakeholder');
-    if (stakeholderIdx >= 0 && args[stakeholderIdx + 1]) {
-      kbArgs.push('--stakeholder', `"${args[stakeholderIdx + 1]}"`);
-    }
-
-    const cmd = `npx tsx apps/cli/src/commands/exec/unified-knowledge-context.ts ${kbArgs.join(' ')}`;
-    try {
-      execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-    } catch {
-      log.error('Knowledge command failed');
-    }
-    return;
-  }
-
-  log.header('📊 Executive Dashboard');
-
-  const scriptArgs: string[] = [];
-  if (args.includes('--json')) scriptArgs.push('--json');
-  if (args.includes('--quick')) scriptArgs.push('--quick');
-  if (args.includes('--alerts')) scriptArgs.push('--alerts');
-  if (args.includes('--export')) scriptArgs.push('--export');
-
-  const roleIdx = args.findIndex((a) => a === '--role');
-  if (roleIdx >= 0 && args[roleIdx + 1]) {
-    const role = args[roleIdx + 1].toLowerCase();
-    if (['ceo', 'cto', 'cio', 'cpo', 'cmo', 'csco'].includes(role)) {
-      scriptArgs.push('--role', role);
-    }
-  }
-
-  const cmd = `npx tsx apps/cli/src/commands/exec/exec.ts ${scriptArgs.join(' ')}`;
-  try {
-    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-  } catch {
-    log.error('Executive dashboard failed');
-  }
-}
-
-// ============================================================================
 // INTERACTIVE MODE
 // ============================================================================
 
@@ -12867,17 +11723,7 @@ ${colors.bold}What would you like to do?${colors.reset}
     'deps',
     'auth',
   ];
-  const agentCommands = [
-    'agents',
-    'agent',
-    'site',
-    'personas',
-    'tools',
-    'voices',
-    'validate',
-    'audit',
-    'tokens',
-  ];
+  const agentCommands = ['agents', 'personas', 'tools', 'voices', 'validate', 'audit', 'tokens'];
   const infraCommands = ['doctor', 'db', 'env', 'secrets', 'ops', 'oncall'];
   const selfHealCommands = ['self-heal', 'circuits', 'restart', 'diagnose'];
 
@@ -13096,8 +11942,6 @@ ${colors.bold}Commands:${colors.reset}
     ],
     'Agents & Quality': [
       'agents',
-      'agent',
-      'site',
       'personas',
       'tools',
       'voices',
@@ -13179,7 +12023,6 @@ ${colors.bold}Commands:${colors.reset}
 
 ${colors.bold}Examples - Platform Operations:${colors.reset}
   ferni platform                 # Platform operations hub
-  ferni platform deploy agent    # Deploy voice agent to LiveKit Cloud
   ferni platform logs agent      # Stream agent logs
   ferni platform status          # Check all services
   ferni deploy ui                # Deploy UI (also works directly)

@@ -5,6 +5,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import * as teammate from './teammate-moment.js';
 import type { UserProfile, KeyMoment, EmotionalPattern } from '../../types/user-profile.js';
 import type { EmotionResult } from '../emotion-detector.js';
 import type { IntentResult } from '../intent-classifier.js';
@@ -297,8 +298,8 @@ export class UserLearningEngine {
       state: ConversationState;
     }
   ): KeyMoment | null {
+    message = teammate.ownWords(message); // not a teammate (teammate-moment.ts)
     const messageLower = message.toLowerCase();
-
     // Shared vulnerability patterns
     const vulnerabilityPatterns = [
       /i('m| am) (scared|afraid|terrified|worried sick)/i,
@@ -395,15 +396,14 @@ export class UserLearningEngine {
       }
     }
 
-    // High distress without pattern match = concern
-    if (!type && analysis.emotion.distressLevel > 0.7) {
+    const toTeammate = teammate.saidTo(message, this.conversationHistory); // not a concern
+    if (!type && !toTeammate && analysis.emotion.distressLevel > 0.7) {
       type = 'concern';
       emotionalWeight = 'heavy';
     }
 
     if (!type) return null;
 
-    // Generate summary
     const summary = this.generateMomentSummary(message, type);
 
     return {
@@ -1029,7 +1029,7 @@ export class UserLearningEngine {
    * Capture an external key moment (from tasks, conversation manager, etc.)
    */
   captureExternalKeyMoment(moment: KeyMoment): void {
-    this.sessionKeyMoments.push(moment);
+    if (teammate.keepsMoment(moment)) this.sessionKeyMoments.push(moment);
     getLogger().info(
       { type: moment.type, summary: moment.summary },
       'Captured external key moment'
@@ -1079,7 +1079,7 @@ export class UserLearningEngine {
     if (profile?.keyMoments && profile.keyMoments.length > 0) {
       const recentMoments = profile.keyMoments.filter((km) => {
         const daysSince = (Date.now() - new Date(km.timestamp).getTime()) / (1000 * 60 * 60 * 24);
-        return daysSince < 30 && km.followUpNeeded;
+        return daysSince < 30 && km.followUpNeeded && !teammate.isTalk(km.summary);
       });
 
       if (recentMoments.length > 0 && Math.random() < 0.3) {

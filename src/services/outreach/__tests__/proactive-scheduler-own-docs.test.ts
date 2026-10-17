@@ -71,11 +71,14 @@ async function freshScheduler() {
 }
 
 beforeEach(() => {
+  // The multi-outreach fixture is a send to a contact later, which needs the founder's opt-in.
+  vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'on');
   rows.length = 0;
   vi.clearAllMocks();
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   (await import('../proactive-scheduler.js')).stopScheduler();
 });
 
