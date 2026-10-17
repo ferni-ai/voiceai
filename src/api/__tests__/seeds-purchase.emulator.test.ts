@@ -7,8 +7,12 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import admin from 'firebase-admin';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
+import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+// src/tests/setup.ts fakes firebase-admin for every test; this file reads the emulator
+vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
 
 /** The buyer's plan by uid (default partner, which may buy anything); 'throw' fails the lookup. */
 const plans = new Map<string, string>();
@@ -28,7 +32,7 @@ process.env.GCLOUD_PROJECT ??= 'demo-seed-ledger';
 
 let server: Server;
 let base: string;
-let db: admin.firestore.Firestore;
+let db: Firestore;
 const id = () => `u-${Math.random().toString(36).slice(2)}`;
 const DEFAULTS = ['skin-default', 'theme-default', 'voice-default'];
 
@@ -46,8 +50,7 @@ beforeAll(async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
-  db = admin.firestore();
+  db = getAdminFirestore();
 });
 
 afterAll(() => server?.close());
@@ -105,10 +108,7 @@ describe.skipIf(!emulator)('POST /api/seeds/purchase (Firestore emulator)', () =
   it('a retry whose ownership was lost re-grants the item without charging again', async () => {
     await db.collection('user_seeds').doc(a).set({ balance: 400 });
     await buy(a, 'voice-calm'); // 400 -> 100
-    await db
-      .collection('user_seeds')
-      .doc(a)
-      .update({ ownedCosmetics: admin.firestore.FieldValue.delete() });
+    await db.collection('user_seeds').doc(a).update({ ownedCosmetics: FieldValue.delete() });
 
     expect((await buy(a, 'voice-calm')).body).toMatchObject({ charged: false, balance: 100 });
     expect(await account(a)).toMatchObject({ balance: 100, ownedCosmetics: ['voice-calm'] });

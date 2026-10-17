@@ -24,9 +24,10 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
-import { voiceAttuneOn, type Delivery } from './attune.js';
+import { LATE_NIGHT, voiceAttuneOn, type Delivery } from './attune.js';
 import { DirectorEngine } from './engine.js';
-import { ferniSpeedNudge } from './ferni-energy.js';
+import { ferniSpeedNudge, porchLightOn } from './ferni-energy.js';
+import { carriedPace } from './key-phrase.js';
 import { leverModes, speechDirectorMode } from './gate.js';
 import { personaDelivery, teamVoicesOn } from './persona-delivery.js';
 import { RawCues } from './raw-cues.js';
@@ -203,6 +204,7 @@ class DirectedReply implements ReplyStream {
       ferniNudge: ferniSpeedNudge(opts.sessionId),
       attune: attuneContext(opts),
       persona: teamVoicesOn(opts.env) ? personaDelivery(opts.personaId) : undefined,
+      lateNight: porchLightOn(opts.sessionId) ? LATE_NIGHT : undefined,
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,
@@ -404,8 +406,7 @@ class DirectedReply implements ReplyStream {
         // The Director's own picks: the persona's tone and rest are reapplied each reply.
         emotion: engine.directorEmotion ?? engine.emotion.emotion,
         // The caller layer only: the resting layers are reapplied each reply, never compounded.
-        speed: engine.delivery?.relativeSpeed ?? engine.speed,
-        volume: engine.attunement?.volume,
+        ...carriedPace(engine),
         ...engine.nonverbalCarry(),
       });
     }

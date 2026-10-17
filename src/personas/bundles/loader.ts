@@ -11,6 +11,7 @@
 import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
+import { normalizeBundleStory } from './story-normalizer.js';
 
 import type {
   BundleBehaviors,
@@ -307,19 +308,12 @@ export async function loadBundle(
       const storyPath = join(bundlePath, storiesDir, storyFile);
       if (!(await fileExists(storyPath))) return null;
 
-      let story: BundleStory;
-      if (storyFile.endsWith('.json')) {
-        story = await loadJsonFile<BundleStory>(storyPath);
-      } else {
-        // Markdown file - wrap in story object
-        const content = await loadMarkdownFile(storyPath);
-        story = {
-          id,
-          content,
-          triggers: ref.triggers,
-          category: ref.category as BundleStory['category'],
-        };
-      }
+      // Stories come in several file shapes; normalize so triggers/content always exist.
+      // A Markdown file is the story text, with triggers and category from its index entry.
+      const raw = storyFile.endsWith('.json')
+        ? await loadJsonFile<unknown>(storyPath)
+        : { id, content: await loadMarkdownFile(storyPath) };
+      const story = normalizeBundleStory(raw, ref);
 
       if (cacheStories) {
         storyCache.set(id, story);

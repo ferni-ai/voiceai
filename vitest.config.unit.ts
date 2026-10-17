@@ -38,12 +38,11 @@ export default defineConfig({
       'apps/web/**',
       'apps/cli/**',
       'e2e/**',
-      // Exclude integration tests (by naming convention)
+      // *.integration.test.ts runs in vitest.config.integration.ts. Broader name
+      // patterns ('*integration*', '*-integration', 'integration/**', '*.e2e.test.ts')
+      // used to sit here too, and 40 mocked tests matched them and ran nowhere.
       '**/*.integration.test.ts',
-      '**/*.e2e.test.ts',
-      '**/*-integration.test.ts',
-      '**/*integration*.test.ts',
-      '**/integration/**',
+      // src/api/__tests__/e2e needs the Firestore emulator (and skips without it).
       '**/e2e/**',
       // No name-based Firestore exclusion: '*firebase*' and '*firestore*' also matched
       // mocked unit tests and the firebase-admin guard, which then never ran in CI.

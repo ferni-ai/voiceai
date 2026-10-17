@@ -312,6 +312,8 @@ export const SCENES: Readonly<Record<string, Scene>> = {
   'coach-mark': coachMark,
   captions,
   'caption-moments': captionMoments,
+  // The captions scene with the captions-breath flag on (set by the spec).
+  'caption-breath': captions,
 };
 
 // Probe: measurements of every visible fixed overlay, for the screenshot report.

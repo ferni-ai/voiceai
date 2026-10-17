@@ -34,7 +34,7 @@ export type StockCategory =
 const NO_FUNDAMENTALS =
   "I don't have live company numbers (P/E, growth, earnings) connected, so I won't rank stocks or quote figures for them.";
 
-const RESEARCH_STEPS = `🤔 **Research it yourself, Lynch-style:**
+const RESEARCH_STEPS = `🤔 **Research it yourself:**
 1. **Know the business.** Can you explain what they do to a fifth grader?
 2. **Find the story.** What is driving their growth, and is it sustainable?
 3. **Look for an edge.** Do you use their products, or work in their industry?

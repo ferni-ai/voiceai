@@ -395,7 +395,7 @@ ${INSIDE_JOKES_PROMPT_TAIL}`;
       },
       turns
     );
-    const insideJokes = parseInsideJokes(llmResult.insideJokes);
+    const insideJokes = parseInsideJokes(llmResult.insideJokes, turns);
     if (insideJokes.length > 0) summary.insideJokes = insideJokes; // none: summary as before
 
     // Generate embedding

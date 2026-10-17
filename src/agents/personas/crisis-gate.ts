@@ -27,6 +27,7 @@ import {
   resolveCrisisAgreementGate,
   SOFT_CRISIS_CHECK,
 } from '../../services/safety/crisis-agreement.js';
+import { relaySoftGuidance } from '../../services/safety/crisis-relay.js';
 import {
   startCrisisClassifier,
   turnVerdicts,
@@ -51,6 +52,7 @@ import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { getDeliberator } from './deliberation.js';
+import { noteTurn } from './move-log.js';
 import { firstNameOf, withNameGate, type HistoryItem } from './name-gate.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
@@ -167,6 +169,19 @@ export function startCrisisGate(
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
+    // A bare request to reach someone, or a goodbye, with no risk anywhere (crisis-relay.ts).
+    const soft = relaySoftGuidance({
+      pattern,
+      verdicts: [verdict],
+      latest,
+      earlier,
+      companion,
+      env,
+    });
+    if (soft) {
+      log.info({ action: 'guide', source: 'relay_soft' }, 'CRISIS_GATE');
+      return { action: 'guide', guidance: soft };
+    }
     if (scope) {
       // Fail closed: a failed lookup counts as a missing read, which escalates.
       const verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [
@@ -299,7 +314,11 @@ export async function gatedReply(
     ?.then((decision) => signalCrisisDecision(session, decision?.action))
     .catch(() => undefined);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
-  if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
+  if (gate?.decision.action === 'replace') {
+    // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
+    noteTurn(session, callerWords(chatCtx).latest, undefined);
+    return textReply(gate.decision.script);
+  }
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
   // shape ("six words at most") must never hold it back, and no goodbye

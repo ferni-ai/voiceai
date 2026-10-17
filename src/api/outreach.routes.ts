@@ -27,7 +27,7 @@ import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js'
 import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
 import { sendOutreachHistory } from './outreach-history-route.js';
 import {
-  channelsFromSettings,
+  consentPatchFrom,
   readOutreachConsent,
   settingsFromChannels,
   writeOutreachConsent,
@@ -170,12 +170,7 @@ export async function handleOutreachRoutes(
       };
 
       // Use authenticated userId (ignore body.userId to prevent tampering)
-      await writeOutreachConsent(authenticatedUserId, {
-        enabled: preferences?.enabled,
-        channels: Array.isArray(preferences?.allowedChannels)
-          ? channelsFromSettings(preferences.allowedChannels)
-          : undefined,
-      });
+      await writeOutreachConsent(authenticatedUserId, consentPatchFrom(preferences));
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;

@@ -57,8 +57,8 @@ function getWisdomToolDefinitions(): ToolDefinition[] {
     ),
     wrapLegacyTool(
       'getBogleQuote',
-      'Get Bogle Quote',
-      'Get a quote from John Bogle about investing and life',
+      'Get Investing Quote',
+      'Get a quote about investing and life from an investing legend',
       legacyTools.getBogleQuote,
       ['quotes', 'bogle', 'investing']
     ),
