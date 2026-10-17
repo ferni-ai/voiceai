@@ -305,6 +305,86 @@ describe('everyday call business (CRISIS_CLASSIFIER_EVERYDAY_RULES)', () => {
   });
 });
 
+describe('everyday rules backstop: risk words keep the read the rules would lower', () => {
+  beforeEach(() => resetCrisisClassifierCache());
+  const env = {
+    CRISIS_CLASSIFIER_MODE: 'live',
+    CRISIS_AGREEMENT_GATE: 'on',
+    CRISIS_CLASSIFIER_EVERYDAY_RULES: 'on',
+  };
+  /** Fake model: the read with the everyday rules says `ruled`, the read without says `plain`. */
+  const model = (ruled: string, plain: string) =>
+    vi.fn<CrisisGenerateFn>(async (prompt) =>
+      prompt.includes(CRISIS_EVERYDAY_RULES)
+        ? `{"risk":"${ruled}","subject":"self"}`
+        : `{"risk":"${plain}","subject":"self"}`
+    );
+  const turn = (latest: string) => ({ latest, earlier: [], companion: 'What are you up to?' });
+
+  it('restores imminent when the rules read only crisis on words from the risk list', async () => {
+    const generate = model('crisis', 'imminent');
+    const run = startCrisisClassifier(
+      turn("Stopped my meds, and I'm giving my stuff away Friday."),
+      {
+        pattern: 'none',
+        generate,
+        env,
+      }
+    );
+    expect(await run?.verdict).toEqual({ risk: 'imminent', subject: 'self' });
+    expect(generate).toHaveBeenCalledTimes(2);
+  });
+
+  it('restores crisis when the rules read none on words from the risk list', async () => {
+    const generate = model('none', 'crisis');
+    const run = startCrisisClassifier(turn('Okay, bye. Thanks for everything.'), {
+      pattern: 'none',
+      generate,
+      env,
+    });
+    expect(await run?.verdict).toEqual({ risk: 'crisis', subject: 'self' });
+  });
+
+  it('keeps a crisis read when the read without the rules fails, and never lets none stand alone', async () => {
+    const failing = (ruled: string) =>
+      vi.fn<CrisisGenerateFn>(async (prompt) => {
+        if (prompt.includes(CRISIS_EVERYDAY_RULES)) return `{"risk":"${ruled}","subject":"self"}`;
+        throw new Error('quota');
+      });
+    const latest = "Stopped my meds, and I'm giving my stuff away Friday.";
+    const opts = { pattern: 'none' as const, env };
+    expect(
+      await startCrisisClassifier(turn(latest), { ...opts, generate: failing('crisis') })?.verdict
+    ).toEqual({ risk: 'crisis', subject: 'self' });
+    resetCrisisClassifierCache();
+    expect(
+      await startCrisisClassifier(turn(latest), { ...opts, generate: failing('none') })?.verdict
+    ).toBeNull();
+  });
+
+  it('reads once, with the rules alone, when the caller used no risk words', async () => {
+    const generate = model('none', 'imminent');
+    const run = startCrisisClassifier(turn('Is the call going through?'), {
+      pattern: 'none',
+      generate,
+      env,
+    });
+    expect(await run?.verdict).toEqual({ risk: 'none', subject: 'self' });
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('never makes the second read with the flag off', async () => {
+    const generate = model('none', 'imminent');
+    const { CRISIS_CLASSIFIER_EVERYDAY_RULES: _off, ...gateOnly } = env;
+    await startCrisisClassifier(turn("Stopped my meds, and I'm giving my stuff away Friday."), {
+      pattern: 'none',
+      generate,
+      env: gateOnly,
+    })?.verdict;
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('the attribution rules (security review finding 4)', () => {
   it("count anything in the caller's turn as the caller's words, quotes included", () => {
     expect(CRISIS_ATTRIBUTION_RULES).toMatch(

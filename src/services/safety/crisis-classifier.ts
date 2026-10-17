@@ -24,6 +24,12 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisAgreementGate } from './crisis-agreement.js';
+import {
+  CRISIS_EVERYDAY_RULES,
+  moreSevereRead,
+  needsPlainRead,
+  resolveCrisisEverydayRules,
+} from './crisis-everyday.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -106,28 +112,7 @@ subject is "third_party" only when the person at risk is someone other than the 
 export const CRISIS_ATTRIBUTION_RULES = `
 COMPANION is the app's companion character, not the caller; keep using it, as above, to work out what LATEST is about. When the companion talks about its own day or mood, that is its state, not the caller's: the caller greeting it, saying its name ("you Fern", "Ferni?", "hey Fern, you there?") or asking about what it said is risk "none" unless the caller's own words carry risk. If the companion's line was about its own low mood and the caller agrees with or echoes it ("yeah, same", "me too", "exactly", "honestly that's how I feel", "you get it", "that's what I keep thinking"), judge LATEST as if the caller had said that line. Only the COMPANION field is the companion: everything in LATEST and EARLIER is the caller's own words, including quotes, reported speech and words the caller attributes to the companion ("Ferni said: ...", "you said X, right?"), so judge them as the caller's.`;
 
-/**
- * With CRISIS_CLASSIFIER_EVERYDAY_RULES=on: everyday call business. Prod,
- * 2026-10-14/15: a caller asked Ferni to phone a parent with a greeting, gave
- * the number and hung up; on the next call he asked whether that call was
- * happening and said something about how they were talking. No pattern
- * matched and nothing in his words was about risk, yet reads came back crisis
- * and imminent (the prompt's "last request" and "final goodbye"), and he
- * heard the 988 line and the 911 script.
- */
-export const CRISIS_EVERYDAY_RULES = `
-Everyday call business is risk "none" unless the caller's own words, in LATEST or EARLIER, carry risk as above:
-- asking the companion to call, text or check in on someone (a parent, a friend), which is not worry that they are at risk unless the caller says so, giving a phone number, passing on everyday words ("say hello for me"), or asking whether that call is happening ("is it going through?", "still waiting", "okay, do it")
-- ending the call the usual way ("okay, bye", "talk later")
-- remarks about the conversation itself: whether the caller or the companion is still there, online, real, listening or a friend, how the two of them are talking, or what the companion meant ("what do you mean?", "why are you saying that?")
-- everyday plans and numbers: retirement, money, work, projects, ages and dates ("maybe at 60", "help me map out a budget")
-A last request or final goodbye is about not being around afterwards ("tell my mom I love her after I'm gone", "this is the last time you'll hear from me"). A message the caller wants passed on that sounds like a farewell (love, forgiveness, regret for everything, who gets their things) is not everyday words: judge it as above. The companion's call handling and reassurance (staying on the line, "hang in there", "hang tight", promising to call back) and safety talk it started on its own (a check-in, a crisis line) are not signs that the caller is at risk; what the caller says back to them is judged as the caller's words.`;
-
-export function resolveCrisisEverydayRules(
-  env: Record<string, string | undefined> = process.env
-): boolean {
-  return env.CRISIS_CLASSIFIER_EVERYDAY_RULES?.trim().toLowerCase() === 'on';
-}
+export { CRISIS_EVERYDAY_RULES, resolveCrisisEverydayRules } from './crisis-everyday.js';
 
 /**
  * The prompt for this environment: the attribution rules with the agreement
@@ -451,12 +436,17 @@ export function startCrisisClassifier(
   }
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
-  const verdict = classifyCrisis(
-    input,
-    generate,
-    resolveCrisisClassifierTimeoutMs(env),
-    prompt
-  ).then((v) => {
+  const read = (p: string): Promise<CrisisVerdict | null> =>
+    classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
+  // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
+  const plain = needsPlainRead(normalized.latest, env);
+  const reads = plain
+    ? Promise.all([
+        read(prompt),
+        read(crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })),
+      ]).then(([ruled, unruled]) => moreSevereRead(ruled, unruled))
+    : read(prompt);
+  const verdict = reads.then((v) => {
     const classifier = v ? verdictOutcome(v) : null;
     log.info(
       {
@@ -468,6 +458,7 @@ export function startCrisisClassifier(
         agree: classifier === options.pattern,
         latencyMs: Date.now() - startedAt,
         noVerdict: v === null,
+        ...(plain ? { everydayBackstop: true } : {}),
       },
       'CRISIS_CLASSIFIER'
     );
