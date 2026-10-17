@@ -7,7 +7,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { ConciergeDomain, DiscoveryOptions, DiscoveredBusiness } from '../types.js';
-import { PLACES_API_NEW, priceLevelToNumber } from '../../external-apis/google-places.js';
+import { PLACES_API_NEW, priceLevelToNumber } from '../../google-places.js';
 
 const log = createLogger({ module: 'concierge-discovery' });
 
