@@ -20,6 +20,13 @@ const cli = read('apps/cli/src/commands/deploy/deploy.ts');
 /** Server flags prod's web server runs with (Seth, 2026-10-17). */
 const SERVER_FLAGS = ['MEMORY_VIEW=on', 'JOURNAL_ONE_STORE=on'];
 
+/**
+ * The key the server signs its call dispatches with. The voice agent refuses an
+ * unsigned or wrongly signed proactive check-in (#854), so without this mount
+ * Ferni wouldn't know why she called (#1706).
+ */
+const DISPATCH_SECRET = 'DISPATCH_SIGNING_SECRET=dispatch-signing-secret:latest';
+
 /** The `--set-env-vars` value of the workflow's john-bogle-ui deploy, split on its `::` delimiter. */
 function workflowEnv(): string[] {
   const start = workflow.search(/run deploy john-bogle-ui\b/);
@@ -27,6 +34,14 @@ function workflowEnv(): string[] {
   const m = /--set-env-vars "\^::\^([^"]*)"/.exec(workflow.slice(start));
   expect(m).not.toBeNull();
   return m![1].split('::');
+}
+
+/** The `--set-secrets` value after `from` (the UI deploy command), split on commas. */
+function secretsAfter(text: string, from: number): string[] {
+  expect(from).toBeGreaterThan(-1);
+  const m = /--set-secrets "([^"]*)"/.exec(text.slice(from));
+  expect(m).not.toBeNull();
+  return m![1].split(',');
 }
 
 /** The CLI's `--set-env-vars` value, split on its `@` delimiter. */
@@ -43,6 +58,19 @@ describe('web-server flags survive a deploy', () => {
 
   it.each(SERVER_FLAGS)('the ferni CLI ui deploy sets %s', (flag) => {
     expect(cliEnv()).toContain(flag);
+  });
+
+  it('both deploys mount the dispatch signing secret from Secret Manager', () => {
+    expect(secretsAfter(workflow, workflow.search(/run deploy john-bogle-ui\b/))).toContain(
+      DISPATCH_SECRET
+    );
+    expect(secretsAfter(cli, 0)).toContain(DISPATCH_SECRET);
+  });
+
+  it('never puts the dispatch signing secret in plain env', () => {
+    for (const env of [workflowEnv(), cliEnv()]) {
+      expect(env.filter((v) => v.startsWith('DISPATCH_SIGNING_SECRET='))).toEqual([]);
+    }
   });
 
   it('the What Ferni Knows build flag reaches both web builds', () => {
