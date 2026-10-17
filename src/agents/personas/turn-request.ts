@@ -129,9 +129,8 @@ export function withTurnReminder(
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
-    // A teammate is not Ferni, and a request for him is a handoff call (teammate-identity.ts)
+    // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
     teammateIdentityNote(view.currentAgentId),
-    // WORLD_NOW=on: the caller's time this reply, not the call's start (world-now.ts).
     worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
