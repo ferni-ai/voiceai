@@ -52,6 +52,8 @@ import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { getDeliberator } from './deliberation.js';
+import { noteTurn } from './move-log.js';
+import { firstNameOf, withNameGate, type HistoryItem } from './name-gate.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
@@ -312,7 +314,11 @@ export async function gatedReply(
     ?.then((decision) => signalCrisisDecision(session, decision?.action))
     .catch(() => undefined);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
-  if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
+  if (gate?.decision.action === 'replace') {
+    // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
+    noteTurn(session, callerWords(chatCtx).latest, undefined);
+    return textReply(gate.decision.script);
+  }
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
   // shape ("six words at most") must never hold it back, and no goodbye
@@ -331,8 +337,14 @@ export async function gatedReply(
   ): Promise<ReadableStream<Chunk> | null> => {
     const stream = tapToolCalls(await model(request), session);
     if (!stream) return stream;
-    const trimmed =
+    const opened =
       env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound, mayBurst) : stream;
+    // NAME_GATE: the caller's name at hello, goodbye, and rarely between (name-gate.ts).
+    const trimmed = withNameGate(opened, {
+      name: firstNameOf((session.userData as { userName?: unknown } | undefined)?.userName),
+      history: chatCtx.items as readonly HistoryItem[],
+      env,
+    });
     // COMMITMENT_INVITE: on the invite turn, no step named for them (commitment-invite-reply.ts).
     return withToolLeadIn(withInviteReplyCheck(trimmed, session), chatCtx, session, env);
   };

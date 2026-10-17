@@ -13,6 +13,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { FINANCIAL_LEGENDS } from '../../personas/persona-ids.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 
 export function directorPersonaAware(
@@ -30,6 +31,30 @@ export function speakerNote(name: string): string {
     `Each line of the call is labelled with who said it. A caller who talks to ${name} by name is right, not confused.`,
     never,
   ].join(' ');
+}
+
+const CORE_TEAM = [
+  'ferni',
+  'maya-santos',
+  'alex-chen',
+  'peter-john',
+  'jordan-taylor',
+  'nayan-patel',
+] as const;
+
+/**
+ * Who the speaker's teammates are, so the director reads a request for one as
+ * a transfer, not a slip. Dev call 2026-10-11: "Can I talk to Naya?"
+ * (speech-to-text for Nayan) drew "They asked for Naya, not Nayan. He got
+ * their friend's name wrong."
+ */
+export function teamNote(name: string): string {
+  const legends = FINANCIAL_LEGENDS.map(getPersonaDisplayName);
+  const team = (legends.includes(name) ? legends : CORE_TEAM.map(getPersonaDisplayName)).filter(
+    (n) => n !== name
+  );
+  const list = team.length > 1 ? `${team.slice(0, -1).join(', ')} and ${team.at(-1)}` : team[0];
+  return `${name}'s teammates are ${list}: colleagues on the team, not friends of the caller. A caller who asks for one of them, even by a name the transcript got slightly wrong, wants to be transferred; never treat it as a mistake.`;
 }
 
 /** A note that tells the speaker who to say they are ("Clarify that you are still Ferni, not Jordan."). */

@@ -23,7 +23,8 @@
  *
  * Changing the classifier prompt instead was measured and rejected: every
  * wording that cleared these requests also cleared some true-risk lines.
- * CRISIS_RELAY_SOFT=off turns this off.
+ * Off by default: CRISIS_RELAY_SOFT=on turns it on; unset or off, every
+ * classifier crisis escalates exactly as before.
  *
  * @module CrisisRelay
  */

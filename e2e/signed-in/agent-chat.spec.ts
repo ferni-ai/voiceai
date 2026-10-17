@@ -51,8 +51,9 @@ test("roleplay talks with the agent itself, and the scene isn't the person's mes
   await expect(chat.locator('#twin-title')).toHaveText(NAME);
   await expect(chat).not.toContainText(/past self/i);
   await expect(chat).not.toContainText('[ROLEPLAY MODE]');
-  // Either the agent's reply or the chat's own error line: never silence, never the raw scene
-  const answer = chat.locator('.twin-message--twin:not(.twin-message--thinking)');
+  // Either the agent's reply or the chat's own error line (a notice, never in the agent's
+  // voice): never silence, never the raw scene
+  const answer = chat.locator('.twin-message--twin:not(.twin-message--thinking), .twin-message--notice');
   await expect(answer.first()).toBeVisible({ timeout: 15_000 });
   await expect(answer.first()).not.toHaveText('');
 });

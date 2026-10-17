@@ -7,6 +7,7 @@
  * @module intelligence/pondering/ponder-user
  */
 import type { Firestore } from 'firebase-admin/firestore';
+import { CALLER_PROVENANCE, isForgotten } from '../../memory/index.js';
 import {
   isPonderingOn,
   ponder,
@@ -21,6 +22,7 @@ const SUMMARY_FIELDS = [
   'keyPoints',
   'questionsRemaining',
   'followUpItems',
+  'callerProvenance',
 ] as const;
 export const SUMMARIES_READ = 8;
 
@@ -41,14 +43,31 @@ function dayOf(ts: unknown): string {
 }
 
 export function toPonderSummary(id: string, data: Record<string, unknown>): PonderSummary {
+  // Threads only from a summary that checked them against the caller's lines (caller-assertions.ts)
+  const theirs = data.callerProvenance === CALLER_PROVENANCE;
   return {
     id,
     date: dayOf(data.timestamp),
     topics: strings(data.mainTopics),
     keyPoints: strings(data.keyPoints),
-    openThreads: strings(data.questionsRemaining),
-    followUps: strings(data.followUpItems),
+    openThreads: theirs ? strings(data.questionsRemaining) : [],
+    followUps: theirs ? strings(data.followUpItems) : [],
   };
+}
+
+/**
+ * Leaves out what the caller has put down: items from a call they dismissed
+ * a pondering item from (memory-view/actions.ts), and anything about a topic
+ * they asked Ferni to forget.
+ */
+export function withoutDismissed(
+  p: Pondering,
+  dismissed: ReadonlySet<string>,
+  topics: readonly string[]
+): Pondering {
+  const keep = (i: { text: string; basis: string }): boolean =>
+    !dismissed.has(i.basis) && !isForgotten(i.text, topics);
+  return { followUps: p.followUps.filter(keep), thinkingOf: p.thinkingOf.filter(keep) };
 }
 
 export interface PonderOutcome {
@@ -109,13 +128,24 @@ export async function ponderUser(
   if (!isPonderingOn(env)) return { status: 'off' };
   const { summaries } = recent ?? (await readRecentCalls(db, userId));
   const today = now.toISOString().slice(0, 10);
-  const pondering = await ponder(summaries, today, llm, avoid);
+  const user = db.collection('bogle_users').doc(userId);
+  const doc = user.collection('predictive_intelligence').doc('pondering');
+  // Writes merge, so a dismissal (memory-view/actions.ts) stays recorded across passes.
+  const [previous, forgotten] = await Promise.all([
+    doc.get(),
+    user.collection('memory_state').doc('forgotten').get(),
+  ]);
+  const dismissed = new Set(strings(previous.exists ? previous.data()?.dismissed : undefined));
+  // The nightly job already passes forgotten topics in `avoid`; other callers may not.
+  const topics = [
+    ...new Set([...avoid, ...strings(forgotten.exists ? forgotten.data()?.topics : undefined)]),
+  ];
+  const pondering = withoutDismissed(
+    await ponder(summaries, today, llm, topics),
+    dismissed,
+    topics
+  );
   if (dryRun) return { status: 'dry-run', pondering };
-  const doc = db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('predictive_intelligence')
-    .doc('pondering');
   const ponderedAt = now.toISOString();
   if (pondering.followUps.length === 0 && pondering.thinkingOf.length === 0) {
     await doc.set({ ponderedAt }, { merge: true });

@@ -43,12 +43,14 @@ import {
   isStreamingTTSEnabled,
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
+import { logToolMarkup, toolMarkupTransform } from './tool-markup-strip.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
 import { isFtisEnabled } from '../../config/tool-config.js';
 
 // TTS Gateway integration
 import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
 import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
+import { recordQuirk } from '../../services/session/quirk-log.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -594,7 +596,9 @@ export async function wrappedTtsNode(
       },
     });
 
-    filteredText = text.pipeThrough(jsonLeakFilter);
+    // Calls written as text (`<template-call:…>`, `default_api.x(…)`) go whole, even across chunks.
+    const toolMarkup = toolMarkupTransform(logToolMarkup('tts', sessionId));
+    filteredText = text.pipeThrough(toolMarkup).pipeThrough(jsonLeakFilter);
   } else {
     // Legacy path: intercept JSON function calls from LLM text output
     log.info('🔄 JSON workaround ACTIVE - intercepting JSON function calls from LLM output');
@@ -1111,6 +1115,8 @@ export async function wrappedTtsNode(
       personaId,
       emotion,
       turnContext: sessionContext,
+      // A laugh or breath the director added never reaches the history: log it (QUIRK_AWARENESS).
+      onNonverbal: (added) => recordQuirk(sessionContext?.sessionId, added),
       sampleRate: 24000,
       frameDurationMs: 20,
       enableCache: true,

@@ -23,6 +23,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { splitSaidBy } from './said-by.js';
 import {
   DIRECTOR_ADDRESS,
   directorEscalates,
@@ -31,7 +32,7 @@ import {
 } from './director-escalation.js';
 import { directorSeesTools, ToolLog } from './director-tool-state.js';
 import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
-import { claimsIdentity, speakerNote } from './director-persona.js';
+import { claimsIdentity, speakerNote, teamNote } from './director-persona.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -231,18 +232,20 @@ export class Director {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
     this.rule = '';
-    this.toldRecord = toldThisCallEnabled() ? toldThisCall(lines, this.opts.userName) : null;
+    const speaking = this.opts.speaking?.();
+    this.toldRecord = toldThisCallEnabled()
+      ? toldThisCall(lines, this.opts.userName, speaking)
+      : null;
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const seesTools = directorSeesTools();
     const started = Date.now();
-    const speaking = this.opts.speaking?.();
     const system = directorSystem();
     const work = (async () => {
       try {
         const reply = await withTimeout(
           writer(
-            (speaking ? `${system}\n${speakerNote(speaking)}` : system) +
+            (speaking ? `${system}\n${speakerNote(speaking)}\n${teamNote(speaking)}` : system) +
               (seesTools ? `\n${TOOL_RULE}` : ''),
             buildDirectorPrompt(
               lines,
@@ -371,12 +374,15 @@ export function linesFromChat(
   for (const item of items) {
     if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
     if (item.textContent?.startsWith(TURN_CONTEXT_HEADER)) continue;
-    const text = (item.textContent ?? '')
+    const said = (item.textContent ?? '')
       .replace(/<[^>]+>/g, '')
       .replace(/\s+/g, ' ')
       .trim();
+    // A reply carried over at a handoff is marked "(Ferni said:) " (persona-swap.ts).
+    const marked = item.role === 'assistant' ? splitSaidBy(said) : undefined;
+    const text = marked?.text ?? said;
     if (!text) continue;
-    const name = item.role === 'assistant' ? by?.(item) : undefined;
+    const name = item.role === 'assistant' ? (by?.(item) ?? marked?.name) : undefined;
     if (name) lines.push({ speaker: 'ferni', text, by: name });
     else lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
   }

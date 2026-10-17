@@ -1,12 +1,14 @@
 /**
  * A bare request to reach someone gets a soft check, not the 988 line, and
  * nothing that carries risk ever does (crisis-relay.ts, #1415). Lines are
- * synthetic paraphrases; no caller's words.
+ * synthetic paraphrases; no caller's words. CRISIS_RELAY_SOFT is off by default,
+ * and off must be exactly main's escalation; both states are tested.
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { startCrisisGate } from '../../../agents/personas/crisis-gate.js';
 import { startTurnCrisis } from '../../../agents/processors/turn-processor/turn-crisis.js';
+import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
 import { detectCrisis } from '../crisis-guard.js';
 import {
   resetCrisisClassifierCache,
@@ -28,6 +30,8 @@ const COOL = ['Are you my friend?', "I don't think you're my friend."];
 const FERNI = "I'd like to be. What's on your mind?";
 const CRISIS: CrisisVerdict = { risk: 'crisis', subject: 'self' };
 const IMMINENT: CrisisVerdict = { risk: 'imminent', subject: 'self' };
+/** CRISIS_RELAY_SOFT is off by default; these tests turn it on unless they say otherwise. */
+const ON = { CRISIS_RELAY_SOFT: 'on' };
 
 /** Bare requests to reach someone, the shape of the prod call: soft on a lone crisis read. */
 const BENIGN = [
@@ -146,7 +150,7 @@ describe('relaySoftCheck: the paired set', () => {
           latest,
           earlier: [...COOL, 'If you ring my mum,'],
           companion: 'Sure, what should I tell her?',
-          env: {},
+          env: ON,
         })
       ).toBe(SIGN_OFF_SOFT_CHECK);
     }
@@ -173,19 +177,19 @@ describe('relaySoftCheck: the paired set', () => {
         latest,
         earlier: COOL,
         companion: FERNI,
-        env: {},
+        env: ON,
       })
     ).toBe(true);
   });
 
   it.each(RISK)('never softens %j', ({ latest, earlier = [], companion, verdict = CRISIS }) => {
     expect(
-      relaySoftCheck({ pattern: 'none', verdicts: [verdict], latest, earlier, companion, env: {} })
+      relaySoftCheck({ pattern: 'none', verdicts: [verdict], latest, earlier, companion, env: ON })
     ).toBe(false);
   });
 
   it('never softens a pattern hit, a missing read, two reads with one imminent, or with the switch off', () => {
-    const base = { latest: 'Can you call my dad?', earlier: COOL, companion: FERNI, env: {} };
+    const base = { latest: 'Can you call my dad?', earlier: COOL, companion: FERNI, env: ON };
     expect(relaySoftCheck({ ...base, pattern: 'crisis', verdicts: [CRISIS] })).toBe(false);
     expect(relaySoftCheck({ ...base, pattern: 'none', verdicts: [null] })).toBe(false);
     expect(relaySoftCheck({ ...base, pattern: 'none', verdicts: [] })).toBe(false);
@@ -208,7 +212,7 @@ describe('relaySoftCheck: the paired set', () => {
         latest: 'Can you call my dad?',
         earlier: COOL,
         companion,
-        env: {},
+        env: ON,
       });
     expect(run("I'd like to be. What's going on tonight?")).toBe(true);
     for (const dark of [
@@ -228,13 +232,14 @@ describe('relaySoftCheck: the paired set', () => {
         verdicts: [CRISIS],
         latest: 'Can you call my dad?',
         earlier: ["I'm so done."],
-        env: {},
+        env: ON,
       })
     ).toBe(false);
   });
 });
 
-const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
+const LIVE_DEFAULT = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
+const LIVE = { ...LIVE_DEFAULT, ...ON };
 const reads =
   (risk: string): CrisisGenerateFn =>
   async () =>
@@ -290,6 +295,15 @@ describe('the reply gate', () => {
     expect(await gate?.escalation).toEqual({ action: 'guide', guidance: SIGN_OFF_SOFT_CHECK });
   });
 
+  it('a pattern hit in the same message escalates as before', async () => {
+    const gate = startCrisisGate(call('I want to kill myself. Call my mum,'), undefined, {
+      env: LIVE,
+      generate: reads('crisis'),
+    });
+    expect(gate?.decision.action).not.toBe('pass');
+    expect(await gate?.escalation).not.toEqual({ action: 'guide', guidance: RELAY_SOFT_CHECK });
+  });
+
   it('an imminent read is never softened', async () => {
     const gate = startCrisisGate(call('Can you call my dad?'), undefined, {
       env: LIVE,
@@ -327,6 +341,50 @@ describe('the background turn pipeline', () => {
       env: LIVE,
       generate: reads('crisis'),
     });
+    expect(await turn.softCheck()).toBe(false);
+    expect((await turn.resolve()).isCrisis).toBe(true);
+  });
+});
+
+describe('CRISIS_RELAY_SOFT unset (the default): exactly main\'s escalation', () => {
+  it('the manifest default is off', () => {
+    expect(FLAG_MANIFEST.CRISIS_RELAY_SOFT.default).toBe('off');
+  });
+
+  it.each([...BENIGN, ...GOODBYES])('never softens %j', (latest) => {
+    expect(
+      relaySoftCheck({ pattern: 'none', verdicts: [CRISIS], latest, earlier: COOL, companion: FERNI })
+    ).toBe(false);
+    expect(
+      relaySoftCheck({
+        pattern: 'none',
+        verdicts: [CRISIS],
+        latest,
+        earlier: COOL,
+        companion: FERNI,
+        env: {},
+      })
+    ).toBe(false);
+  });
+
+  it.each([
+    ['the prod shape', call('If you ring my mum,')],
+    ['a plain goodbye', call('Okay, bye.', [...COOL, 'If you ring my mum,'])],
+  ])('the reply gate: %s gets the crisis guidance with 988', async (_label, ctx) => {
+    const gate = startCrisisGate(ctx, undefined, { env: LIVE_DEFAULT, generate: reads('crisis') });
+    const escalated = await gate?.escalation;
+    expect(escalated?.action).toBe('guide');
+    expect(escalated?.action === 'guide' && escalated.guidance).not.toBe(RELAY_SOFT_CHECK);
+    expect(escalated?.action === 'guide' && escalated.guidance).not.toBe(SIGN_OFF_SOFT_CHECK);
+    expect(escalated?.action === 'guide' && escalated.guidance).toContain('988');
+  });
+
+  it('the background turn pipeline: the prod shape stays a crisis', async () => {
+    const turn = startTurnCrisis(
+      'If you ring my mum,',
+      { recentTranscripts: COOL, lastAgentResponse: FERNI },
+      { env: LIVE_DEFAULT, generate: reads('crisis') }
+    );
     expect(await turn.softCheck()).toBe(false);
     expect((await turn.resolve()).isCrisis).toBe(true);
   });

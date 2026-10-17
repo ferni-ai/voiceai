@@ -271,20 +271,8 @@ export function formatNamingGuidance(userId: string, context: NamingContext): st
     return null;
   }
 
-  if (decision.useName && naming.preferredName) {
-    return [
-      '[👤 NAME MOMENT]',
-      '',
-      `Use their name "${naming.preferredName}" in this response.`,
-      '',
-      'Examples:',
-      `- "${naming.preferredName}, I'm really proud of you."`,
-      `- "You know what, ${naming.preferredName}?"`,
-      `- "I hear you, ${naming.preferredName}."`,
-      '',
-      'Use it naturally, not awkwardly.',
-    ].join('\n');
-  }
+  // No "use their name" moment: friends say it at hello and goodbye, rarely
+  // between, and name-gate.ts drops the rest (#1413).
 
   if (decision.useEndearment && decision.suggestion) {
     return [

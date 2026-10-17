@@ -26,11 +26,10 @@ import { appleMusicTools } from './apple-music-tools.js';
 // Import Spotify Connect multi-room tools
 import { spotifyConnectTools } from './spotify-connect.js';
 
-// Import movie tools
 import { createMovieTools } from './movies.js';
-
-// Import Sonos music tools
 import { createSonosMusicTools } from './sonos-music.js';
+import { requiringEnv } from '../../registry/tool-availability.js';
+const SONOS_ENV = ['SONOS_CLIENT_ID', 'SONOS_CLIENT_SECRET'];
 
 const log = getLogger();
 
@@ -552,7 +551,8 @@ try {
 }
 
 try {
-  const sonosTools = getSonosMusicToolDefinitions();
+  // No one can link Sonos without its OAuth client: offered only with it (tool-availability.ts)
+  const sonosTools = requiringEnv(SONOS_ENV, getSonosMusicToolDefinitions());
   entertainmentTools.push(...sonosTools);
   log.debug({ count: sonosTools.length }, '🎵 Sonos tools loaded');
 } catch (err) {
@@ -560,7 +560,7 @@ try {
 }
 
 try {
-  const movieTools = getMovieToolDefinitions();
+  const movieTools = requiringEnv(['TMDB_API_KEY'], getMovieToolDefinitions()); // TMDB is their only source
   entertainmentTools.push(...movieTools);
   log.debug({ count: movieTools.length }, '🎵 Movie tools loaded');
 } catch (err) {

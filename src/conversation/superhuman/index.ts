@@ -47,16 +47,6 @@ export {
   type SpeechModification,
 } from './natural-speech.js';
 
-// Inside Jokes - Shared humor
-export {
-  captureJoke,
-  findRelevantJoke,
-  formatJokeForPrompt,
-  markJokeReferenced,
-  type InsideJoke,
-  type JokeReference,
-} from './inside-jokes.js';
-
 // Nicknames - Personal touch
 export {
   addNickname,

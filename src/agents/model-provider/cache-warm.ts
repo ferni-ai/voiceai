@@ -24,6 +24,7 @@
  */
 
 import { llm } from '@livekit/agents';
+import { llmContextCacheEnabled } from '../../config/llm-context-cache-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { FastLaneLLM } from './fast-lane.js';
 
@@ -37,7 +38,9 @@ const MAX_WARMS = 6;
 
 export function cacheWarmEnabled(env: Record<string, string | undefined> = process.env): boolean {
   // FIRST_TURN_FAST covers every part of the first reply that is slow because it is first.
-  return env.CASCADE_CACHE_WARM === 'on' || env.FIRST_TURN_FAST === 'on';
+  return (
+    env.CASCADE_CACHE_WARM === 'on' || env.FIRST_TURN_FAST === 'on' || llmContextCacheEnabled(env)
+  );
 }
 
 interface AgentView {
@@ -83,13 +86,37 @@ async function turnTools(session: SessionView, agent: AgentView): Promise<llm.To
   return toolsForTurn(session, llm.ChatContext.empty(), agent.toolCtx, state);
 }
 
+/**
+ * A copy of the chat without a tool call still waiting for its output (or an output
+ * whose call is gone). A warm can land mid-tool: a handoff loads the next persona's
+ * tools, the settle timer fires while handoffToMaya is still running, and the copy
+ * carried the call alone. Prod call 2026-10-17: "function call missing the
+ * corresponding function output, ignoring" twice, once per hedged model. The call and
+ * its output stay in the real chat; only the throwaway warm request drops them.
+ */
+export function withPairedToolCalls(chatCtx: llm.ChatContext): llm.ChatContext {
+  const calls = new Set<string>();
+  const outputs = new Set<string>();
+  for (const item of chatCtx.items) {
+    if (item.type === 'function_call') calls.add(item.callId);
+    if (item.type === 'function_call_output') outputs.add(item.callId);
+  }
+  const copy = chatCtx.copy();
+  copy.items = copy.items.filter((item) => {
+    if (item.type === 'function_call') return outputs.has(item.callId);
+    if (item.type === 'function_call_output') return calls.has(item.callId);
+    return true;
+  });
+  return copy;
+}
+
 async function warmOne(
   model: llm.LLM,
   agent: AgentView,
   toolCtx: llm.ToolContext,
   timeoutMs: number
 ): Promise<void> {
-  const chatCtx = agent.chatCtx.copy();
+  const chatCtx = withPairedToolCalls(agent.chatCtx);
   chatCtx.addMessage({ role: 'user', content: 'Hey.' });
   const started = Date.now();
   const stream = model.chat({

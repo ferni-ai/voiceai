@@ -14,6 +14,10 @@
  *
  * @module memory/recall/session-recall
  */
+
+import type { InsideJokeRef } from '../../types/profile/inside-joke.js';
+import { insideJokesEnabled } from './inside-jokes-recall.js';
+import { lineKey } from '../operations/inside-jokes.js';
 import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
 import { MIN_WEIGHTED_OVERLAP, rareWordsEnabled, weighWords } from './rare-words.js';
 export { rareWordsEnabled } from './rare-words.js';
@@ -40,20 +44,11 @@ export interface RecallSnapshot {
   followUps: string[];
   /** With RECALL_RARE_WORDS=on: how much a shared word counts (rareWordWeights). */
   wordWeights?: ReadonlyMap<string, number>;
-  /** Bits that were genuinely funny between them on recent calls (summaries' insideJokes). */
-  insideJokes?: string[];
+  /** Bits that were genuinely funny between them on recent calls, each with its line (summaries' insideJokes). */
+  insideJokes?: InsideJokeRef[];
 }
 
 export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [], insideJokes: [] };
-
-/**
- * INSIDE_JOKES=on lets Ferni bring back a bit the two of them really shared
- * (off by default). Only things the summarizer saw land in a past call qualify,
- * never stock jokes, so Ferni can't fake a history it doesn't have.
- */
-export function insideJokesEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  return env.INSIDE_JOKES === 'on';
-}
 
 /**
  * RECALL_BRIDGE=on (off by default): open threads from earlier calls wait for
@@ -290,7 +285,7 @@ function age(extractedAt: string | undefined, now: number): string {
 
 export interface RecallExtras {
   /** Shared bits from past calls; shown only with INSIDE_JOKES=on. */
-  insideJokes?: string[];
+  insideJokes?: InsideJokeRef[];
   env?: Record<string, string | undefined>;
   /** RECALL_BRIDGE: say how to bring an open thread up. */
   bridge?: boolean;
@@ -379,7 +374,7 @@ export function formatRecall(
     lines.push(
       'Bits you two actually share from past calls. Bring one back only if it fits naturally, at most once this call, and never explain it:'
     );
-    for (const joke of jokes) lines.push(`- ${joke}`);
+    for (const joke of jokes) lines.push(`- ${joke.bit}`);
   }
   lines.push(RECALL_RULE);
   return lines.join('\n');
@@ -399,7 +394,7 @@ const WORD_CONFIDENCE: Record<string, number> = { high: 0.9, medium: 0.6, low: 0
 /** Facts the extractor itself marked low are left out of recall. */
 const MIN_RECALL_CONFIDENCE = 0.4;
 
-function confidenceOf(raw: unknown): number {
+export function confidenceOf(raw: unknown): number {
   if (typeof raw === 'number') return raw;
   if (typeof raw === 'string') return WORD_CONFIDENCE[raw.trim().toLowerCase()] ?? 0.5;
   return 0.5;
@@ -407,16 +402,21 @@ function confidenceOf(raw: unknown): number {
 export const MAX_FOLLOW_UPS = 3;
 const MAX_INSIDE_JOKES = 3;
 
+/** Set on a summary whose items were checked against the caller's lines (caller-assertions.ts). */
+export const CALLER_PROVENANCE = 1;
+const LABELLED = ['disputedItems', 'assistantRaisedItems'];
+
 /**
- * A summary without the items the caller disputed (dispute.ts: disputedItems)
- * and without that list itself, so no reader serves or matches them.
+ * A summary without the items the caller disputed (dispute.ts: disputedItems) or that
+ * only the assistant said (assistantRaisedItems), and without those lists, so no reader
+ * serves or matches them.
  */
 export function undisputed(s: Record<string, unknown>): Record<string, unknown> {
-  if (!Array.isArray(s.disputedItems)) return s;
-  const gone = new Set(s.disputedItems.map(String));
+  const gone = new Set(LABELLED.flatMap((k) => (Array.isArray(s[k]) ? s[k].map(String) : [])));
+  if (!LABELLED.some((k) => k in s)) return s;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(s)) {
-    if (k === 'disputedItems') continue;
+    if (LABELLED.includes(k)) continue;
     out[k] = Array.isArray(v) ? v.filter((x) => typeof x !== 'string' || !gone.has(x)) : v;
   }
   return out;
@@ -461,6 +461,8 @@ export async function loadRecallSnapshot(
   );
   const followUps: string[] = [];
   for (const s of rawSummaries) {
+    // A thread is theirs only if the summary checked it against their own lines
+    if (s.callerProvenance !== CALLER_PROVENANCE) continue;
     for (const item of Array.isArray(s.followUpItems) ? s.followUpItems : []) {
       const text = String(item).trim();
       if (text && !followUps.includes(text) && !isForgotten(text, forgotten)) followUps.push(text);
@@ -468,14 +470,23 @@ export async function loadRecallSnapshot(
     }
     if (followUps.length >= maxFollowUps) break;
   }
-  // Summaries come newest first, so these are the most recent bits.
-  const insideJokes: string[] = [];
+  // Summaries come newest first, so these are the most recent bits. Only a bit
+  // with its line on file counts; bare strings from older summaries don't.
+  const insideJokes: InsideJokeRef[] = [];
   for (const s of rawSummaries) {
     for (const item of Array.isArray(s.insideJokes) ? s.insideJokes : []) {
-      if (typeof item !== 'string') continue;
-      const text = item.trim();
-      const seen = insideJokes.some((j) => j.toLowerCase() === text.toLowerCase());
-      if (text && !seen && !isForgotten(text, forgotten)) insideJokes.push(text);
+      if (!item || typeof item !== 'object') continue;
+      const { bit, quote, speaker } = item as Partial<InsideJokeRef>;
+      if (typeof bit !== 'string' || typeof quote !== 'string') continue;
+      if (speaker !== 'user' && speaker !== 'assistant') continue;
+      if (quote.trim().split(/\s+/).length < 3) continue;
+      const text = bit.trim();
+      const seen = insideJokes.some(
+        (j) => j.bit.toLowerCase() === text.toLowerCase() || lineKey(j.quote) === lineKey(quote)
+      );
+      // A forgotten topic keeps a bit out whether it's in the bit's words or its line.
+      if (text && !seen && !isForgotten(`${text} ${quote}`, forgotten))
+        insideJokes.push({ bit: text, quote: quote.trim(), speaker });
       if (insideJokes.length >= MAX_INSIDE_JOKES) break;
     }
     if (insideJokes.length >= MAX_INSIDE_JOKES) break;

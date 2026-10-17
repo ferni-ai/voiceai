@@ -20,7 +20,9 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { flagOn } from './env-flag.js';
 import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
+import { llmContextCacheEnabled } from './llm-context-cache-flag.js';
 
 const log = createLogger({ module: 'ToolConfig' });
 
@@ -302,7 +304,11 @@ export function getMaxTools(): number {
  * caches a request's prefix). See tool-updater.ts and gemini-declarations.ts.
  */
 export function appendOnlyToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.CASCADE_APPEND_ONLY_TOOLS === 'on' || staticCoreToolsEnabled(env);
+  return (
+    env.CASCADE_APPEND_ONLY_TOOLS === 'on' ||
+    staticCoreToolsEnabled(env) ||
+    llmContextCacheEnabled(env)
+  );
 }
 
 /**
@@ -370,6 +376,10 @@ export function isStaticCoreTool(name: string): boolean {
 export const APPEND_ONLY_TOOL_CAP = 128;
 export const APPEND_ONLY_EVICT_BLOCK = 32;
 
+/** On every persona while CALL_JOURNAL is on (agents/multi-agent/call-journal-tools.ts). */
+export const CALL_JOURNAL_TOOLS: readonly string[] = ['journal', 'addGratitude'];
+const callJournalToolsOn = (): boolean => flagOn('CALL_JOURNAL') && flagOn('JOURNAL_ONE_STORE');
+
 /**
  * Check if a tool is in the essential tools list
  */
@@ -377,6 +387,7 @@ export function isEssentialTool(toolName: string): boolean {
   const config = getToolConfig();
   return (
     config.essentialTools.includes(toolName) ||
+    (CALL_JOURNAL_TOOLS.includes(toolName) && callJournalToolsOn()) ||
     toolName.startsWith('handoffTo') ||
     toolName === 'endCall' ||
     toolName === 'askForTeammate' // stands in for locked handoffs (locked-teammates.ts)
