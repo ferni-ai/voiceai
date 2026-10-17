@@ -14,7 +14,11 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
-import type { Firestore } from '@google-cloud/firestore';
+import {
+  flagForUser,
+  usersWithFlag,
+  type FlagLookupOptions,
+} from '../../services/platform/cohort-flags.js';
 import type { FollowUpTextDeps } from '../../services/outreach/follow-up-texts.js';
 
 const log = createLogger({ module: 'BackgroundDeliveryJobs' });
@@ -121,47 +125,31 @@ export async function handleCalendarBriefing(res: ServerResponse): Promise<void>
   });
 }
 
-type FlagDb = Pick<Firestore, 'collection'>;
-
 /**
- * Who may have FOLLOW_THROUGH_TEXTS on: members of enabled cohorts that set
- * it, plus anyone whose own override sets it. resolveCallerFlags still decides
- * for each (an override can turn it off). To be replaced by cohort-flags'
- * usersWithFlag once #1669 lands.
+ * Who gets follow-up texts and whether this person does, from the shared
+ * cohort lookups. Both come back empty unless COHORT_FLAGS=on, so turning
+ * cohort flags off stops follow-up texts too.
  */
-export async function optedInToFollowUpTexts(db: FlagDb): Promise<string[]> {
-  const withFlag = async (name: string) =>
-    (await db.collection(name).where('flags.FOLLOW_THROUGH_TEXTS', '==', 'on').get()).docs;
-  const [cohorts, overrides] = await Promise.all([
-    withFlag('feature_cohorts'),
-    withFlag('feature_flag_overrides'),
-  ]);
-  const members = cohorts
-    .filter((d) => d.data().enabled !== false)
-    .flatMap((d) => {
-      const m: unknown = d.data().members;
-      return Array.isArray(m) ? m.filter((x): x is string => typeof x === 'string') : [];
-    });
-  return [...new Set([...members, ...overrides.map((d) => d.id)])];
+export function followThroughFlags(
+  opts: FlagLookupOptions = {}
+): Pick<FollowUpTextDeps, 'optedIn' | 'resolveFlags'> {
+  return {
+    optedIn: async () => usersWithFlag('FOLLOW_THROUGH_TEXTS', opts),
+    resolveFlags: async (userId) => ({
+      FOLLOW_THROUGH_TEXTS: (await flagForUser(userId, 'FOLLOW_THROUGH_TEXTS', opts)) ?? '',
+    }),
+  };
 }
 
 /** The real follow-through deps: the Firestore store, cohort flags, the guarded sender. Null without Firestore. */
 async function defaultFollowThroughDeps(): Promise<FollowUpTextDeps | null> {
-  const [{ getFirestoreDb }, { createFollowUpStore }, { resolveCallerFlags }, { sendGuardedText }] =
-    await Promise.all([
-      import('../../utils/firestore-utils.js'),
-      import('../../services/stores/follow-through-store.js'),
-      import('../../services/platform/cohort-flags.js'),
-      import('../../services/outreach/guarded-text.js'),
-    ]);
-  const db = getFirestoreDb();
-  if (!db) return null;
-  return {
-    store: createFollowUpStore(db),
-    optedIn: async () => optedInToFollowUpTexts(db),
-    resolveFlags: async (userId) => resolveCallerFlags(userId),
-    sendText: async (t) => sendGuardedText(t),
-  };
+  const [{ firestoreFollowUpStore }, { sendGuardedText }] = await Promise.all([
+    import('../../services/stores/follow-through-store.js'),
+    import('../../services/outreach/guarded-text.js'),
+  ]);
+  const store = firestoreFollowUpStore();
+  if (!store) return null;
+  return { store, ...followThroughFlags(), sendText: async (t) => sendGuardedText(t) };
 }
 
 /**

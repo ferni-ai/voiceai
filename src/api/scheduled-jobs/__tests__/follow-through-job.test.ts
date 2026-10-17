@@ -16,11 +16,12 @@ import {
 } from '../../../services/outreach/guarded-text.js';
 import { readFileSync } from 'fs';
 import {
+  followThroughFlags,
   handleFollowThrough,
-  optedInToFollowUpTexts,
   runFollowThroughJob,
 } from '../background-delivery-jobs.js';
 import { JOB_PATHS } from '../index.js';
+import { forgetFlagCache } from '../../../services/platform/cohort-flags.js';
 
 const NOW = new Date('2026-10-13T16:10:00Z'); // 12:10 in New York; the fixture is due at 12:00
 const ON = { FOLLOW_THROUGH_JOB: 'on' };
@@ -160,45 +161,66 @@ describe('POST /api/jobs/follow-through', () => {
   });
 });
 
-describe('optedInToFollowUpTexts', () => {
-  /** Just enough Firestore: collection(name).where('flags.FOLLOW_THROUGH_TEXTS', '==', 'on').get(). */
-  function fakeDb(rows: Record<string, Array<{ id: string; data: Record<string, unknown> }>>) {
-    const where = vi.fn();
-    const db = {
-      collection: (name: string) => ({
-        where: (field: string, op: string, value: string) => {
-          where(name, field, op, value);
-          const docs = (rows[name] ?? [])
-            .filter((r) => (r.data.flags as Record<string, string>)?.FOLLOW_THROUGH_TEXTS === value)
-            .map((r) => ({ id: r.id, data: () => r.data }));
-          return { get: async () => ({ docs }) };
-        },
-      }),
-    };
-    return { db: db as never, where };
+describe('follow-up texts follow the shared cohort lookups', () => {
+  afterEach(() => forgetFlagCache());
+
+  /** u1 has an override turning FOLLOW_THROUGH_TEXTS on; the job runs the real cohort lookups. */
+  async function runWithCohortFlags(cohortFlags: string | undefined) {
+    forgetFlagCache();
+    const w = world([followUp()]);
+    const env = cohortFlags === undefined ? {} : { COHORT_FLAGS: cohortFlags };
+    const flags = followThroughFlags({
+      env,
+      store: {
+        cohortsFor: async () => [],
+        overridesFor: async (u): Promise<Record<string, string>> =>
+          u === 'u1' ? { FOLLOW_THROUGH_TEXTS: 'on' } : {},
+      },
+      holders: { candidatesFor: async () => ['u1'] },
+    });
+    const deps = { ...w.deps, ...flags };
+    const report = await runFollowThroughJob({
+      dryRun: false,
+      env: ON,
+      deps: async () => deps,
+      now: NOW,
+    });
+    return { w, report };
   }
 
-  it('lists members of enabled cohorts that turn it on, plus people whose override does', async () => {
-    const { db, where } = fakeDb({
-      feature_cohorts: [
-        {
-          id: 'ff',
-          data: { enabled: true, members: ['a', 'b'], flags: { FOLLOW_THROUGH_TEXTS: 'on' } },
-        },
-        {
-          id: 'paused',
-          data: { enabled: false, members: ['c'], flags: { FOLLOW_THROUGH_TEXTS: 'on' } },
-        },
-        { id: 'other', data: { members: ['d'], flags: { CANDOR: 'on' } } },
-      ],
-      feature_flag_overrides: [
-        { id: 'b', data: { flags: { FOLLOW_THROUGH_TEXTS: 'on' } } },
-        { id: 'e', data: { flags: { FOLLOW_THROUGH_TEXTS: 'on' } } },
-        { id: 'f', data: { flags: { FOLLOW_THROUGH_TEXTS: 'off' } } },
-      ],
+  it.each([
+    ['unset', undefined],
+    ['off', 'off'],
+  ])(
+    'with COHORT_FLAGS %s nobody gets a follow-up text, even with an override on',
+    async (_label, value) => {
+      const { w, report } = await runWithCohortFlags(value);
+      expect(report).toMatchObject({ people: 0, sent: 0 });
+      expect(w.texts.textDeps.send).not.toHaveBeenCalled();
+      expect(w.mem.store.save).not.toHaveBeenCalled();
+    }
+  );
+
+  it('with COHORT_FLAGS on, the override reaches the person', async () => {
+    const { w, report } = await runWithCohortFlags('on');
+    expect(report).toMatchObject({ people: 1, sent: 1 });
+    expect(w.texts.textDeps.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('an override turning it off beats being a candidate', async () => {
+    forgetFlagCache();
+    const flags = followThroughFlags({
+      env: { COHORT_FLAGS: 'on' },
+      store: {
+        cohortsFor: async () => [
+          { id: 'ff', enabled: true, flags: { FOLLOW_THROUGH_TEXTS: 'on' } },
+        ],
+        overridesFor: async () => ({ FOLLOW_THROUGH_TEXTS: 'off' }),
+      },
+      holders: { candidatesFor: async () => ['u1'] },
     });
-    expect((await optedInToFollowUpTexts(db)).sort()).toEqual(['a', 'b', 'e']);
-    expect(where).toHaveBeenCalledWith('feature_cohorts', 'flags.FOLLOW_THROUGH_TEXTS', '==', 'on');
+    expect(await flags.optedIn()).toEqual([]);
+    expect(await flags.resolveFlags('u1')).toEqual({ FOLLOW_THROUGH_TEXTS: 'off' });
   });
 });
 
