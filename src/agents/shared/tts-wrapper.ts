@@ -463,7 +463,8 @@ export async function wrappedTtsNode(
       transform(rawChunk, controller) {
         const { kept: chunk, cut } = cutToolArgs?.(rawChunk) ?? { kept: rawChunk, cut: '' };
         if (cut) {
-          jsonLeakBuffer += cut;
+          // Length only: the cut can carry the model's reasoning about the caller, so it never
+          // joins jsonLeakBuffer (logged and sent to telemetry at flush).
           log.warn(
             { cutLength: cut.length, sessionId },
             '🚨 [TOOL-ARGS-FILTER] Tool arguments written as text - cut from TTS'
