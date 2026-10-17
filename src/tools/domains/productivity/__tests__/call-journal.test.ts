@@ -196,3 +196,56 @@ describe('CALL_JOURNAL off', () => {
     expect(await chronicle()).toEqual([]);
   });
 });
+
+describe('MID_CALL_NOTE_FRAME: our own context notes are never saved as their words', () => {
+  // What the model copied on dev, and what the framed note opens with.
+  const STOCK = 'New instructions received: Never guess how someone is related to them.';
+  const FRAMED =
+    '[Private note to you from your own memory and context, not words the caller said.] Never guess.';
+
+  beforeEach(() => vi.stubEnv('MID_CALL_NOTE_FRAME', 'on'));
+
+  it('journal write refuses a framed or stock note and saves nothing', async () => {
+    for (const entry of [STOCK, FRAMED]) {
+      expect(await runTool('journal', { action: 'write', entry })).toMatch(
+        /^Not saved: that text was your own/
+      );
+    }
+    expect(await chronicle()).toEqual([]);
+    expect(journalWrites()).toEqual([]);
+  });
+
+  it('addGratitude refuses a note among the items', async () => {
+    const reply = await runTool('addGratitude', { gratitudes: ['my sister', STOCK] });
+
+    expect(reply).toMatch(/^Not saved: that text was your own/);
+    expect(await chronicle()).toEqual([]);
+  });
+
+  it('saveNote (journal or legacy store) refuses a note', async () => {
+    expect(await runTool('saveNote', { content: STOCK, type: 'reflection' })).toMatch(/^Not saved/);
+    vi.stubEnv('CALL_JOURNAL', 'off');
+    expect(await runTool('saveNote', { content: FRAMED, type: 'quick' })).toMatch(/^Not saved/);
+
+    expect(await chronicle()).toEqual([]);
+    expect(h.productivityWrites).toEqual([]);
+  });
+
+  it("the caller's own words still save with the flag on", async () => {
+    const reply = await runTool('journal', {
+      action: 'write',
+      entry: 'Talked to my sister today.',
+    });
+
+    expect(reply).toMatch(/^Saved to their journal/);
+    expect((await chronicle()).map((e) => e.content)).toEqual(['Talked to my sister today.']);
+  });
+
+  it('flag off: the same text saves as before', async () => {
+    vi.stubEnv('MID_CALL_NOTE_FRAME', 'off');
+    const reply = await runTool('journal', { action: 'write', entry: STOCK });
+
+    expect(reply).toMatch(/^Saved to their journal/);
+    expect(await chronicle()).toHaveLength(1);
+  });
+});
