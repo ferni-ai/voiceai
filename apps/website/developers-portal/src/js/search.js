@@ -1,12 +1,12 @@
 /**
  * Search functionality for the developer portal
- * Uses Pagefind for static site search
+ * Matches page titles and keywords from a fixed list. The build has never run
+ * Pagefind, so loading its index only produced a 404 on every page load.
  */
 
 (function () {
   'use strict';
 
-  let pagefind = null;
   let searchModal = null;
   let searchInput = null;
   let searchResults = null;
@@ -20,15 +20,6 @@
     searchResults = document.querySelector('.search-results');
 
     if (!searchModal || !searchInput || !searchResults) return;
-
-    // Try to load Pagefind
-    try {
-      pagefind = await import('/pagefind/pagefind.js');
-      await pagefind.init();
-    } catch (e) {
-      console.log('Pagefind not available, using fallback search');
-      // Fallback: show a message that search is being indexed
-    }
 
     // Set up search input handler
     let debounceTimer;
@@ -59,55 +50,14 @@
   }
 
   /**
-   * Perform search using Pagefind or fallback
+   * Perform search over the page list
    */
-  async function performSearch(query) {
+  function performSearch(query) {
     if (!query.trim()) {
       searchResults.innerHTML = '<p class="search-hint">Start typing to search...</p>';
       return;
     }
-
-    if (pagefind) {
-      // Use Pagefind
-      try {
-        const search = await pagefind.search(query);
-        const results = await Promise.all(search.results.slice(0, 10).map((r) => r.data()));
-        renderResults(results, query);
-      } catch (e) {
-        renderFallbackResults(query);
-      }
-    } else {
-      renderFallbackResults(query);
-    }
-  }
-
-  /**
-   * Render search results
-   */
-  function renderResults(results, query) {
-    if (!results || results.length === 0) {
-      searchResults.innerHTML = `
-        <div class="search-no-results">
-          <p>No results found for "<strong>${escapeHtml(query)}</strong>"</p>
-          <p class="search-hint">Try searching for something else, or browse the documentation.</p>
-        </div>
-      `;
-      return;
-    }
-
-    const html = results
-      .map(
-        (result) => `
-      <a href="${result.url}" class="search-result-item" onclick="closeSearch()">
-        <div class="search-result-title">${highlightMatch(result.meta?.title || 'Untitled', query)}</div>
-        <div class="search-result-breadcrumb">${getBreadcrumb(result.url)}</div>
-        ${result.excerpt ? `<div class="search-result-excerpt">${result.excerpt}</div>` : ''}
-      </a>
-    `
-      )
-      .join('');
-
-    searchResults.innerHTML = html;
+    renderFallbackResults(query);
   }
 
   /**
@@ -121,8 +71,11 @@
       { url: '/sdk/', title: 'SDK Overview', tags: 'sdk javascript typescript python' },
       { url: '/examples/', title: 'Examples', tags: 'examples demo sample code' },
       { url: '/blog/', title: 'Developer Blog', tags: 'blog articles posts' },
-      { url: '/community/', title: 'Community', tags: 'discord github support' },
-      { url: '/pages/api/explorer', title: 'API Explorer', tags: 'api test playground' },
+      { url: '/community/', title: 'Community', tags: 'github support help' },
+      { url: '/api/explorer/', title: 'API Explorer', tags: 'api test playground openapi swagger' },
+      { url: '/console/', title: 'Developer Console', tags: 'console api keys account dashboard' },
+      { url: '/personas/create/', title: 'Create a Persona', tags: 'persona create wizard voice publish' },
+      { url: '/personas/', title: 'Your Personas', tags: 'personas manage' },
     ];
 
     const lowerQuery = query.toLowerCase();
@@ -134,7 +87,7 @@
       searchResults.innerHTML = `
         <div class="search-no-results">
           <p>No results found for "<strong>${escapeHtml(query)}</strong>"</p>
-          <p class="search-hint">Full-text search will be available after the next build.</p>
+          <p class="search-hint">Search matches page titles and topics. Try "api", "persona" or "blog".</p>
         </div>
       `;
       return;

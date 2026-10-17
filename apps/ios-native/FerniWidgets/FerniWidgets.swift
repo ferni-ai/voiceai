@@ -25,7 +25,7 @@ struct FerniEntry: TimelineEntry {
     let date: Date
     let greeting: String
     let insight: String
-    let moodEmoji: String
+    let moodSymbol: String  // SF Symbol name; the brand puts no emojis in UI
     let streakDays: Int
     let lastCheckIn: String
 }
@@ -36,7 +36,7 @@ struct FerniProvider: TimelineProvider {
             date: Date(),
             greeting: "Hey there",
             insight: "Take a moment to check in with yourself.",
-            moodEmoji: "😊",
+            moodSymbol: "sun.max.fill",
             streakDays: 0,
             lastCheckIn: "Tap to chat"
         )
@@ -68,7 +68,7 @@ struct FerniProvider: TimelineProvider {
             date: Date(),
             greeting: greeting,
             insight: insight,
-            moodEmoji: "😊",
+            moodSymbol: "sun.max.fill",
             streakDays: streak,
             lastCheckIn: lastCheckIn
         )
@@ -191,17 +191,7 @@ struct MoodCheckInView: View {
                     Spacer()
 
                     HStack {
-                        // Streak badge
-                        if entry.streakDays > 0 {
-                            HStack(spacing: 4) {
-                                Image(systemName: "flame.fill")
-                                    .foregroundColor(.orange)
-                                Text("\(entry.streakDays) day streak")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.8))
-                            }
-                        }
-
+                        // No streak badge (the brand doesn't count streaks).
                         Spacer()
 
                         // Last check-in
@@ -370,7 +360,7 @@ struct FerniWidgets_Previews: PreviewProvider {
             date: Date(),
             greeting: "Good morning",
             insight: "Take a moment to breathe.",
-            moodEmoji: "😊",
+            moodSymbol: "sun.max.fill",
             streakDays: 5,
             lastCheckIn: "2h ago"
         )

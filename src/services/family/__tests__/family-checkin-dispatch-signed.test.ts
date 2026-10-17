@@ -6,6 +6,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { createDispatch } = vi.hoisted(() => ({ createDispatch: vi.fn(async () => ({})) }));
+// The consent gate has its own tests; here the family member has said yes.
+vi.mock('../family-call-consent.js', () => ({
+  familyCheckinCallsOn: () => true,
+  familyCallBlockReason: async () => null,
+}));
 vi.mock('livekit-server-sdk', () => ({
   RoomServiceClient: class {
     createRoom = vi.fn(async () => ({}));

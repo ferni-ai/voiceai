@@ -96,8 +96,9 @@ describe('updateAgentTools on a real SDK agent', () => {
   });
 
   it("makes room for a topic domain's tools when must-keep tools fill the initial cap", async () => {
-    // The real first agent: 64 tools, 62 of them must-keep (the essential list
-    // plus handoffs). Loading `information` mid-call kept 7 of its 57 tools.
+    // The real first agent with every flag on: 64 tools, all must-keep (the
+    // essential list plus handoffs; findCoachingResources joined it in #867,
+    // coachingPick in #1362). Loading `information` mid-call kept 7 of its 57 tools.
     const mustKeep = [
       ...new Set([
         ...getEssentialTools(),
@@ -108,10 +109,8 @@ describe('updateAgentTools on a real SDK agent', () => {
         'handoffToJordan',
       ]),
     ];
-    expect(mustKeep).toHaveLength(62);
-    const initial = Object.fromEntries(
-      [...mustKeep, 'getSports', 'getDirections'].map((n) => [n, makeTool(n)])
-    );
+    expect(mustKeep).toHaveLength(DEFAULT_INITIAL_TOOL_LIMIT);
+    const initial = Object.fromEntries(mustKeep.map((n) => [n, makeTool(n)]));
     const agent = makeAgent(initial);
     expect(getAgentToolCount(agent)).toBe(DEFAULT_INITIAL_TOOL_LIMIT);
 

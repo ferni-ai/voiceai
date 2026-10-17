@@ -214,19 +214,6 @@ export {
 } from './streak-celebrations.ui.js';
 export type { StreakCelebration } from './streak-celebrations.ui.js';
 
-// Team Huddles UI
-export {
-  getTeamHuddleUI,
-  hideTeamHuddle,
-  initTeamHuddleUI,
-  showTeamHuddle as showTeamHuddlePanel,
-} from './team-huddle.ui.js';
-export type {
-  TeamHuddleData,
-  TeamHuddleParticipant,
-  TeamHuddleUICallbacks,
-} from './team-huddle.ui.js';
-
 // Conversation History UI
 export {
   getConversationHistoryUI,
@@ -516,7 +503,7 @@ export {
   dismissHint,
   dismissAllHints,
   featureHints,
-  FEATURE_HINTS,
+  getFeatureHints,
 } from './feature-hints.ui.js';
 export type { FeatureHint, HintType } from './feature-hints.ui.js';
 
@@ -553,13 +540,6 @@ export {
   hideCalendarSelection,
 } from './calendar-selection.ui.js';
 export type { CalendarItem, CalendarProvider } from './calendar-selection.ui.js';
-
-// Team Observations Panel - Cross-persona coordination visibility
-export {
-  show as showTeamObservations,
-  hide as hideTeamObservations,
-  refresh as refreshTeamObservations,
-} from './team-observations-panel.ui.js';
 
 // Agent Page Builder - Self-serve landing page creation
 export { pageBuilder, showPageBuilder } from './agent-page-builder.ui.js';

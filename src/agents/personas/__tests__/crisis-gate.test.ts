@@ -29,6 +29,9 @@ import {
 } from '../../../services/safety/crisis-classifier.js';
 import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-intelligence.js';
 import { buildCrisisGuidance, detectCrisis } from '../../safety/crisis-guard.js';
+import { EventEmitter } from 'node:events';
+import { attachTurnOpeningSound } from '../../integrations/turn-opening-sound.js';
+import { OpenerGate } from '../opener-gate.js';
 import {
   gatedReply,
   holdUntilCleared,
@@ -371,5 +374,62 @@ describe('gatedReply', () => {
     });
     expect(model).toHaveBeenCalledTimes(2);
     expect(out).toEqual(['~second']);
+  });
+
+  it('drops the reply opener when a turn-opening clip played while it was coming', async () => {
+    // A slow reply: the clip fires 0 ms after the commit, before its first words.
+    const session = Object.assign(new EventEmitter(), { userData: undefined });
+    attachTurnOpeningSound(
+      session,
+      { playClip: () => true, lastPlayedAt: () => 0 },
+      () => 'Work was rough, I am exhausted.',
+      () => false,
+      { waitMs: 0, replyTextSince: () => false, clipMs: () => 400, holdReply: () => undefined }
+    );
+    const gate = new OpenerGate(3);
+    const model = vi.fn(async () => streamOf(['Mm, that sounds like a long one.'], 30));
+    const pending = gatedReply(
+      request(['user', 'Work was rough, I am exhausted.']),
+      session,
+      model as never,
+      gate,
+      {
+        env: PATTERNS_ONLY,
+      }
+    );
+    session.emit('agent_state_changed', { newState: 'thinking' });
+    const out = await collect((await pending) as never);
+    expect(out.join('')).toBe('That sounds like a long one.');
+  });
+
+  it('keeps the reply opener when no clip played', async () => {
+    const session = { userData: undefined };
+    const gate = new OpenerGate(3);
+    const model = vi.fn(async () => streamOf(['Mm, that sounds like a long one.'], 30));
+    const out = await collect(
+      (await gatedReply(request(['user', 'Work was rough.']), session, model as never, gate, {
+        env: PATTERNS_ONLY,
+      })) as never
+    );
+    expect(out.join('')).toBe('Mm, that sounds like a long one.');
+  });
+});
+
+describe('the caller name in a reply (name-gate.ts)', () => {
+  it("drops a mid-call vocative of the caller's name from the reply", async () => {
+    const session = { userData: { userName: 'Sam' } };
+    const model = vi.fn(async () => streamOf(['Yes, Sam, ', "I'm sure. That's rough, Sam."], 5));
+    const ctx = request(
+      ['assistant', 'Hey Sam. How was the day?'],
+      ['user', 'Long.'],
+      ['assistant', 'Long how?'],
+      ['user', 'Are you sure?']
+    );
+    const out = await collect(
+      (await gatedReply(ctx, session, model as never, new OpenerGate(3), {
+        env: PATTERNS_ONLY,
+      })) as never
+    );
+    expect(out.join('')).toBe("Yes, I'm sure. That's rough.");
   });
 });

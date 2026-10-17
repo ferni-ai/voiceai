@@ -8,6 +8,8 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ 'src/css': 'css' });
   eleventyConfig.addPassthroughCopy({ 'src/js': 'js' });
   eleventyConfig.addPassthroughCopy({ 'src/images': 'images' });
+  // The API explorer loads and offers this spec for download at /api/openapi.yaml
+  eleventyConfig.addPassthroughCopy({ 'src/api/openapi.yaml': 'api/openapi.yaml' });
 
   // Watch for changes
   eleventyConfig.addWatchTarget('src/css/');

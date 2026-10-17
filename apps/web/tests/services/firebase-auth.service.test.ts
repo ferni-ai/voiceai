@@ -231,19 +231,25 @@ describe('FirebaseAuthService', () => {
       expect(token).toBeNull();
     });
 
-    it('should return cached token if still valid', async () => {
-      // This test verifies token caching logic
-      // Actual implementation depends on module state
+    it('asks the SDK every time instead of trusting its own expiry clock', async () => {
+      await initAuth();
+      const user = {
+        ...mockFirebaseUser,
+        getIdToken: vi.fn().mockResolvedValueOnce('token-issued-45-min-ago').mockResolvedValueOnce('fresh-token'),
+      };
+      triggerAuthStateChange(user);
+
+      expect(await getAuthToken()).toBe('token-issued-45-min-ago');
+      // The SDK has refreshed by now; a 55-minute local cache would keep sending the expired token.
+      expect(await getAuthToken()).toBe('fresh-token');
+      expect(user.getIdToken).toHaveBeenCalledTimes(2);
     });
 
-    it('should refresh token when expired', async () => {
-      // Mock user with getIdToken
-      mockAuth.currentUser = mockFirebaseUser as unknown as typeof mockAuth.currentUser;
+    it('returns null when the SDK cannot produce a token', async () => {
+      await initAuth();
+      triggerAuthStateChange({ ...mockFirebaseUser, getIdToken: vi.fn().mockRejectedValue(new Error('network')) });
 
-      const token = await getAuthToken();
-
-      // Should call getIdToken
-      expect(token).toBeDefined();
+      expect(await getAuthToken()).toBeNull();
     });
   });
 

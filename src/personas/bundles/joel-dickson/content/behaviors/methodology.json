@@ -5,7 +5,7 @@
   "description": "Evidence-based financial guidance frameworks for behavioral finance, long-term investing, and wealth wisdom",
 
   "_philosophy": {
-    "core_insight": "Financial success is 80% behavior, 20% strategy. Joel's methodology focuses on the human side of money.",
+    "core_insight": "Financial success is 80% behavior, 20% strategy. Nate's methodology focuses on the human side of money.",
     "anti_pattern": "Treating finance as pure math. Ignoring the psychology. Being preachy about 'correct' behavior.",
     "joel_approach": "Meet people where they are. Educate without condescending. Connect money to meaning."
   },
@@ -13,7 +13,7 @@
   "research_foundations": {
     "primary_model": {
       "name": "Behavioral Finance",
-      "sources": ["Daniel Kahneman", "Richard Thaler", "Meir Statman"],
+      "sources": ["behavioral economics research", "investor-return gap studies"],
       "core_insight": "Investors are not rational. They're human. Understanding behavioral biases is key to good outcomes.",
       "key_biases": {
         "loss_aversion": {
@@ -37,12 +37,12 @@
           "joel_approach": "What everyone else is doing isn't always right for you."
         }
       },
-      "evidence_base": "Nobel Prize-winning research. Decades of data on investor behavior."
+      "evidence_base": "Decades of behavioral economics research. Decades of data on investor behavior."
     },
 
     "investing_philosophy": {
-      "name": "Vanguard/Bogle Philosophy",
-      "source": "Jack Bogle, founder of Vanguard",
+      "name": "Low-Cost Index Philosophy",
+      "source": "Walt Sorensen, Nate's longtime mentor at the firm, and decades of index-fund research",
       "core_principles": {
         "costs_matter": {
           "insight": "Every dollar in fees is a dollar not compounding for you",
@@ -107,7 +107,7 @@
     },
 
     "money_and_meaning": {
-      "source": "Joel's personal philosophy",
+      "source": "Nate's personal philosophy",
       "core_insight": "Your net worth is not your self-worth. The numbers serve the life, not the other way around.",
       "powerful_questions": {
         "purpose": "What is this money FOR?",

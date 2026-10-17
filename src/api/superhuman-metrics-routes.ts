@@ -8,25 +8,9 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { getFirestoreDb } from '../utils/firestore-utils.js';
+import { requireVerifiedSubject } from './verified-subject.js';
 
 const log = createLogger({ module: 'SuperhumanMetricsRoutes' });
-
-/**
- * Extract user ID from request headers or query params
- */
-function extractUserIdFromRequest(req: IncomingMessage, parsedUrl?: URL): string | undefined {
-  // SECURITY: Use Firebase auth only
-  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
-  if (firebaseUid) return firebaseUid;
-
-  // Check query params
-  if (parsedUrl) {
-    const urlUserId = parsedUrl.searchParams.get('userId');
-    if (urlUserId) return urlUserId;
-  }
-
-  return undefined;
-}
 
 // ============================================================================
 // TYPES
@@ -253,18 +237,13 @@ export async function handleSuperhumanMetricsRoutes(
   req: IncomingMessage,
   res: ServerResponse,
   pathname: string,
-  parsedUrl: URL
+  _parsedUrl: URL
 ): Promise<boolean> {
   // GET /api/superhuman/metrics
   if (pathname === '/api/superhuman/metrics' && req.method === 'GET') {
     try {
-      const userId = extractUserIdFromRequest(req, parsedUrl);
-
-      if (!userId) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return true;
-      }
+      const userId = await requireVerifiedSubject(req, res); // never ?userId= alone
+      if (userId === null) return true;
 
       // Fetch all metrics in parallel
       const [commitments, capacity, values, narrative, dreams] = await Promise.all([

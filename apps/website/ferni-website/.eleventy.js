@@ -131,6 +131,14 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('images/building');
   eleventyConfig.addPassthroughCopy('images/dev-blog');
 
+  // Brand icons and logo live in src/images/ (favicons, touch icon, logo, PWA icons).
+  // Copied by extension so the moodboard .html files there stay templates.
+  eleventyConfig.addPassthroughCopy({'src/images/*.ico': 'images'});
+  eleventyConfig.addPassthroughCopy({'src/images/*.png': 'images'});
+  eleventyConfig.addPassthroughCopy({'src/images/*.svg': 'images'});
+  // Alias for the Organization logo path in the story-brand JSON-LD.
+  eleventyConfig.addPassthroughCopy({'src/images/logo.png': 'images/ferni-logo.png'});
+
   // Developers directory
   eleventyConfig.addPassthroughCopy('developers');
 
@@ -140,6 +148,10 @@ module.exports = function (eleventyConfig) {
   // SEO files
   eleventyConfig.addPassthroughCopy('robots.txt');
   eleventyConfig.addPassthroughCopy('sitemap.xml');
+
+  // UCP agent profile (Shopify catalog search), served at /.well-known/ucp/agent-profile.json
+  // by a firebase.json rewrite: hosting's ignore list drops dotfiles like .well-known/.
+  eleventyConfig.addPassthroughCopy('ucp/agent-profile.json');
 
   // PWA files
   eleventyConfig.addPassthroughCopy('manifest.json');
@@ -186,6 +198,9 @@ module.exports = function (eleventyConfig) {
       return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     } else if (format === 'MMM d, yyyy') {
       return `${monthsShort[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    } else if (format === 'Y-m-d' || format === 'yyyy-MM-dd') {
+      // W3C date for sitemap <lastmod>, in UTC so it matches the source date
+      return date.toISOString().slice(0, 10);
     }
     return date.toLocaleDateString();
   });

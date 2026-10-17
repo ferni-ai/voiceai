@@ -34,6 +34,11 @@ const CHARACTERS: Record<string, { name: string; brief: string }> = {
   'nayan-patel': { name: 'Nayan', brief: 'A gentle, reflective guide. Unhurried and wise.' },
 };
 
+/** A persona's name and how they talk, for a line written in their voice (Ferni's if unknown). */
+export function characterOf(personaId: string): { name: string; brief: string } {
+  return CHARACTERS[personaId] ?? CHARACTERS.ferni;
+}
+
 interface HistoryItem {
   type?: string;
   role?: string;
@@ -47,7 +52,7 @@ export function sceneForSession(sessionId: string): Scene {
     userData?: { personaId?: string; userName?: string };
   } | null;
   const personaId = session?.userData?.personaId ?? 'ferni';
-  const character = CHARACTERS[personaId] ?? CHARACTERS.ferni;
+  const character = characterOf(personaId);
 
   const recentTurns = (session?.history?.items ?? [])
     .filter(

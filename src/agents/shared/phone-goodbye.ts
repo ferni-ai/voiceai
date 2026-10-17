@@ -36,7 +36,8 @@ export function phoneGoodbyeEnabled(env: Env = process.env): boolean {
   return env.PHONE_GOODBYE === 'on';
 }
 
-async function deleteRoom(roomName: string): Promise<void> {
+/** Deletes the call's room, which drops every participant and ends the session. */
+export async function deleteRoom(roomName: string): Promise<void> {
   const { RoomServiceClient } = await import('livekit-server-sdk');
   const url = process.env.LIVEKIT_URL;
   const key = process.env.LIVEKIT_API_KEY;
@@ -88,9 +89,17 @@ export async function attachPhoneHangUp(
     hangUp?: HangUp;
   }
 ): Promise<boolean> {
-  const holder = agent as ToolHolder;
   if (!phoneGoodbyeEnabled(call.env) || call.onBehalf) return false;
   if (call.participant?.kind !== ParticipantKind.SIP) return false;
+  return addEndCallTool(agent, () => createEndCallTool(call.roomName, call.hangUp));
+}
+
+/** Adds an endCall tool to the agent's tools, unless it already has one. */
+export async function addEndCallTool(
+  agent: object,
+  create: () => llm.ToolContext['functionTools'][string]
+): Promise<boolean> {
+  const holder = agent as ToolHolder;
   const current = holder.toolCtx;
   if (END_CALL in current.functionTools) return false;
   await holder.updateTools(
@@ -98,7 +107,7 @@ export async function attachPhoneHangUp(
       ...Object.values(current.functionTools),
       ...current.providerTools,
       ...current.toolsets,
-      createEndCallTool(call.roomName, call.hangUp),
+      create(),
     ])
   );
   return true;

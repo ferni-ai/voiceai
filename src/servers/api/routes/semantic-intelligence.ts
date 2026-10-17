@@ -9,6 +9,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { requireVerifiedSubject } from '../../../api/verified-subject.js';
 import {
   buildSemanticIntelligenceContext,
   formatSemanticIntelligenceContext,
@@ -78,20 +79,6 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.end(JSON.stringify(data));
 }
 
-// Helper to get userId from headers or query
-function getUserId(req: IncomingMessage, _pathname: string): string | null {
-  // Check header first
-  const headerUserId = req.headers['x-user-id'] as string | undefined;
-  if (headerUserId) return headerUserId;
-
-  // Check query param (use req.url which includes query string)
-  const url = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
-  const queryUserId = url.searchParams.get('userId');
-  if (queryUserId) return queryUserId;
-
-  return null;
-}
-
 /**
  * Handle semantic intelligence routes
  */
@@ -100,12 +87,16 @@ export async function handleSemanticIntelligenceRoutes(
   res: ServerResponse,
   pathname: string
 ): Promise<boolean> {
+  if (!pathname.startsWith('/api/semantic-intelligence')) return false;
+  // SECURITY: every route here reads one user's data; only the verified caller's
+  const caller = await requireVerifiedSubject(req, res);
+  if (caller === null) return true;
   // =========================================================================
   // GET /api/semantic-intelligence/summary
   // Quick overview of semantic intelligence state
   // =========================================================================
   if (pathname === '/api/semantic-intelligence/summary' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -129,7 +120,7 @@ export async function handleSemanticIntelligenceRoutes(
   // Get full formatted context for LLM injection
   // =========================================================================
   if (pathname === '/api/semantic-intelligence/context' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -168,7 +159,7 @@ export async function handleSemanticIntelligenceRoutes(
 
   // GET /api/semantic-intelligence/insights
   if (pathname === '/api/semantic-intelligence/insights' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -202,7 +193,7 @@ export async function handleSemanticIntelligenceRoutes(
     pathname.match(/^\/api\/semantic-intelligence\/insights\/[^/]+\/surfaced$/) &&
     req.method === 'POST'
   ) {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -225,7 +216,7 @@ export async function handleSemanticIntelligenceRoutes(
     pathname.match(/^\/api\/semantic-intelligence\/insights\/[^/]+\/dismiss$/) &&
     req.method === 'POST'
   ) {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -249,7 +240,7 @@ export async function handleSemanticIntelligenceRoutes(
 
   // GET /api/semantic-intelligence/open-loops
   if (pathname === '/api/semantic-intelligence/open-loops' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -274,7 +265,7 @@ export async function handleSemanticIntelligenceRoutes(
     pathname.match(/^\/api\/semantic-intelligence\/open-loops\/[^/]+\/resolve$/) &&
     req.method === 'POST'
   ) {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -299,7 +290,7 @@ export async function handleSemanticIntelligenceRoutes(
 
   // GET /api/semantic-intelligence/commitments
   if (pathname === '/api/semantic-intelligence/commitments' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -330,7 +321,7 @@ export async function handleSemanticIntelligenceRoutes(
     pathname.match(/^\/api\/semantic-intelligence\/commitments\/[^/]+\/fulfill$/) &&
     req.method === 'POST'
   ) {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -354,7 +345,7 @@ export async function handleSemanticIntelligenceRoutes(
 
   // GET /api/semantic-intelligence/relationships
   if (pathname === '/api/semantic-intelligence/relationships' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -382,7 +373,7 @@ export async function handleSemanticIntelligenceRoutes(
 
   // GET /api/semantic-intelligence/temporal
   if (pathname === '/api/semantic-intelligence/temporal' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -407,7 +398,7 @@ export async function handleSemanticIntelligenceRoutes(
 
   // GET /api/semantic-intelligence/behavioral
   if (pathname === '/api/semantic-intelligence/behavioral' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -437,7 +428,7 @@ export async function handleSemanticIntelligenceRoutes(
 
   // GET /api/semantic-intelligence/coaching
   if (pathname === '/api/semantic-intelligence/coaching' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -469,7 +460,7 @@ export async function handleSemanticIntelligenceRoutes(
 
   // GET /api/semantic-intelligence/self-awareness
   if (pathname === '/api/semantic-intelligence/self-awareness' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -501,7 +492,7 @@ export async function handleSemanticIntelligenceRoutes(
 
   // GET /api/semantic-intelligence/deep-analysis
   if (pathname === '/api/semantic-intelligence/deep-analysis' && req.method === 'GET') {
-    const userId = getUserId(req, pathname);
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
       return true;
@@ -541,8 +532,7 @@ export async function handleSemanticIntelligenceRoutes(
   // Returns real-time observations from cross-persona coordination
   // ============================================================================
   if (pathname === '/api/semantic-intelligence/team-observations' && req.method === 'GET') {
-    const parsedUrl = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
-    const userId = parsedUrl.searchParams.get('userId');
+    const userId = caller;
     if (!userId) {
       sendJson(res, 400, { error: 'userId is required' });
       return true;

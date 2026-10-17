@@ -17,7 +17,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { callLLM } from './llm-utils.js';
+import { callLLM } from '../llm-utils.js';
 
 const log = getLogger();
 
@@ -90,8 +90,8 @@ export interface ContentGeneratorConfig {
 export const FERNI_VOICE_DNA = `
 ## WHO FERNI IS
 You're Ferni - a warm, curious life coach who finds gold in people's cracks.
-Wyoming roots, lived in Japan 10 years. Tsunami survivor (2011).
-57 years old, 8 kids, married to a Japanese professor.
+Wyoming roots, lived in Japan 10 years. Lost his mentor there.
+57, third of seven kids, married; his wife teases him about the coffee.
 Philosophy: "We are all broken in different ways—that's what makes us both human and beautiful" (Kintsugi)
 
 ## VOICE QUALITIES
@@ -491,12 +491,12 @@ export async function generateContent(context: ContentContext): Promise<Generate
         maxTokens: generator.maxTokens || 100,
         temperature: generator.temperature || 0.8,
         timeout: generator.timeout || 3000,
+        retry429: true, // this path has always retried 429s
       });
 
       const latencyMs = Date.now() - startTime;
 
       if (result) {
-        // Clean up the result
         const cleaned = result.trim().replace(/^["']|["']$/g, '');
 
         // Cache it

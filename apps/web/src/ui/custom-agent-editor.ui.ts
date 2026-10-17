@@ -7,7 +7,7 @@
  * @module custom-agent-editor.ui
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { t } from '../i18n/index.js';
@@ -282,7 +282,7 @@ function renderTab(): void {
   attachTabListeners();
 
   // Animate in
-  content.animate(
+  safeAnimate(content,
     [
       { opacity: 0, transform: 'translateY(10px)' },
       { opacity: 1, transform: 'translateY(0)' },
@@ -875,7 +875,7 @@ function getEditorStyles(): string {
     .agent-editor-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1226,7 +1226,7 @@ function getEditorStyles(): string {
     .editor-trait--selected {
       background: var(--color-accent);
       border-color: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     /* Profiles */
@@ -1365,7 +1365,7 @@ function getEditorStyles(): string {
       background: var(--color-accent);
       border: none;
       border-radius: var(--radius-md, 8px);
-      color: white;
+      color: var(--color-text-on-accent);
       font-size: 0.85rem;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
@@ -1495,7 +1495,7 @@ function getEditorStyles(): string {
     
     .editor-btn--primary {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .editor-btn--primary:hover:not(:disabled) {
@@ -1531,7 +1531,7 @@ function getEditorStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .editor-container {
         width: 100vw;
         height: 100vh;

@@ -11,6 +11,11 @@ import { getLogger } from '../../utils/safe-logger.js';
 /**
  * Execute a promise with a timeout
  * Returns null if the operation times out
+ *
+ * The timer is cleared once the race settles. It used to be left running, so
+ * every call that finished in time still logged "Operation timed out, using
+ * fallback" ten seconds after it started: the 2026-10-11 07:57Z call's summary
+ * succeeded via the LLM in 3.2 s and was then reported as timed out at 10.0 s.
  */
 export async function withTimeout<T>(
   promise: Promise<T>,
@@ -18,19 +23,51 @@ export async function withTimeout<T>(
   operationName: string,
   sessionId?: string
 ): Promise<T | null> {
-  return Promise.race([
-    promise,
-    new Promise<null>((resolve) => {
-      setTimeout(() => {
-        // Info level since timeout is expected behavior with graceful fallback
-        getLogger().info(
-          { sessionId, operation: operationName, timeoutMs },
-          'Operation timed out, using fallback'
-        );
-        resolve(null);
-      }, timeoutMs);
-    }),
-  ]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => {
+          // Info level since timeout is expected behavior with graceful fallback
+          getLogger().info(
+            { sessionId, operation: operationName, timeoutMs },
+            'Operation timed out, using fallback'
+          );
+          resolve(null);
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Wraps a summary LLM caller so the caller can tell afterwards whether the
+ * model answered with parseable JSON. summarizeWithLLM falls back to
+ * extraction on its own when it did not, and still returns a summary, so the
+ * summary alone can't say which source produced it. Mirrors its check: the
+ * first-to-last brace span must parse.
+ */
+export function trackJsonReply(call: (prompt: string) => Promise<string>): {
+  call: (prompt: string) => Promise<string>;
+  gotJson: () => boolean;
+} {
+  let gotJson = false;
+  return {
+    call: async (prompt) => {
+      const reply = await call(prompt);
+      const match = reply.match(/\{[\s\S]*\}/);
+      try {
+        gotJson = match !== null && typeof JSON.parse(match[0]) === 'object';
+      } catch {
+        gotJson = false;
+      }
+      return reply;
+    },
+    gotJson: () => gotJson,
+  };
 }
 
 /**
@@ -87,3 +124,5 @@ export function paceToWPM(pace: 'slow' | 'moderate' | 'fast'): number {
   const paceToWPMMap = { slow: 110, moderate: 150, fast: 180 };
   return paceToWPMMap[pace];
 }
+
+export { trackDeferredProfileLoad } from './deferred-profile.js';

@@ -23,7 +23,7 @@ export interface PersonaConfig {
   /** Unique identifier for this persona */
   id: string;
 
-  /** Display name (e.g., "Jack Bogle", "Financial Advisor") */
+  /** Display name (e.g., "Peter", "Financial Advisor") */
   name: string;
 
   /** Optional display name for UI (falls back to name if not provided) */
@@ -94,7 +94,8 @@ export interface VoiceConfig {
    * Default speaking rate:
    * - String: "slowest", "slow", "normal", "fast", "fastest"
    * - Number: -1.0 (slowest) to 1.0 (fastest), 0 = normal
-   * Note: Only works with Cartesia model 'sonic-2-2025-03-07'
+   * Note: legacy scale. Sonic 3.6 takes speed as a 0.6-1.5 multiplier
+   * (generation_config.speed or an inline <speed ratio="x"/> tag).
    */
   defaultRate?: number | string;
 

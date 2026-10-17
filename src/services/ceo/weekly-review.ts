@@ -12,7 +12,7 @@
  * @module services/ceo/weekly-review
  */
 
-import chalk from 'chalk';
+import { tint } from '../../utils/terminal-tint.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, toSafeDate } from '../../utils/firestore-utils.js';
 import { goalsService, type Goal } from './goals.js';
@@ -114,7 +114,7 @@ function formatShortDate(date: Date): string {
 function createProgressBar(percent: number, width = 10): string {
   const filled = Math.round((percent / 100) * width);
   const empty = width - filled;
-  return chalk.green('\u2588'.repeat(filled)) + chalk.gray('\u2591'.repeat(empty));
+  return tint.green('\u2588'.repeat(filled)) + tint.gray('\u2591'.repeat(empty));
 }
 
 /**
@@ -122,11 +122,11 @@ function createProgressBar(percent: number, width = 10): string {
  */
 function formatChange(change: number, unit = '%'): string {
   if (change > 0) {
-    return chalk.green(`+${change}${unit}`);
+    return tint.green(`+${change}${unit}`);
   } else if (change < 0) {
-    return chalk.red(`${change}${unit}`);
+    return tint.red(`${change}${unit}`);
   }
-  return chalk.gray(`0${unit}`);
+  return tint.gray(`0${unit}`);
 }
 
 /**
@@ -431,19 +431,19 @@ async function generateReview(userId: string, weekOffset = 0): Promise<WeeklyRev
  */
 function formatForTerminal(review: WeeklyReview): string {
   const lines: string[] = [];
-  const divider = chalk.gray('\u2500'.repeat(60));
+  const divider = tint.gray('\u2500'.repeat(60));
 
   // Header
   const dateRange = `${formatShortDate(review.weekStart)} - ${formatShortDate(review.weekEnd)}, ${review.weekStart.getFullYear()}`;
   lines.push('');
-  lines.push(chalk.bold.cyan(`\u{1F4CA} WEEKLY REVIEW (${dateRange})`));
+  lines.push(tint.cyan.bold(`\u{1F4CA} WEEKLY REVIEW (${dateRange})`));
   lines.push(divider);
 
   // Goals Progress
   lines.push('');
-  lines.push(chalk.bold('\u{1F3AF} GOALS PROGRESS'));
+  lines.push(tint.bold('\u{1F3AF} GOALS PROGRESS'));
   if (review.goalsProgress.length === 0) {
-    lines.push(chalk.gray('   No active goals. Use `ferni goals add` to create one.'));
+    lines.push(tint.gray('   No active goals. Use `ferni goals add` to create one.'));
   } else {
     for (const gp of review.goalsProgress) {
       const title = gp.goal.title.length > 22 ? `${gp.goal.title.slice(0, 22)}...` : gp.goal.title;
@@ -455,13 +455,13 @@ function formatForTerminal(review: WeeklyReview): string {
 
   // Time Allocation
   lines.push('');
-  lines.push(chalk.bold('\u23F1\uFE0F  TIME ALLOCATION'));
+  lines.push(tint.bold('\u23F1\uFE0F  TIME ALLOCATION'));
   const deepWorkTarget = 15; // hours
   const deepWorkBar = createProgressBar(
     Math.min(100, (review.timeAllocation.deepWork / deepWorkTarget) * 100)
   );
   lines.push(
-    `   Deep Work:    ${deepWorkBar} ${formatHours(review.timeAllocation.deepWork)} ${chalk.gray(`(target: ${formatHours(deepWorkTarget)})`)}`
+    `   Deep Work:    ${deepWorkBar} ${formatHours(review.timeAllocation.deepWork)} ${tint.gray(`(target: ${formatHours(deepWorkTarget)})`)}`
   );
   if (review.timeAllocation.meetings > 0) {
     lines.push(`   Meetings:     ${formatHours(review.timeAllocation.meetings)}`);
@@ -472,9 +472,9 @@ function formatForTerminal(review: WeeklyReview): string {
 
   // Focus Summary
   lines.push('');
-  lines.push(chalk.bold('\u{1F9D8} FOCUS SESSIONS'));
+  lines.push(tint.bold('\u{1F9D8} FOCUS SESSIONS'));
   if (review.focusSummary.totalSessions === 0) {
-    lines.push(chalk.gray('   No focus sessions this week.'));
+    lines.push(tint.gray('   No focus sessions this week.'));
   } else {
     const totalHours = Math.round((review.focusSummary.totalMinutes / 60) * 10) / 10;
     lines.push(`   Sessions:     ${review.focusSummary.totalSessions}`);
@@ -484,16 +484,16 @@ function formatForTerminal(review: WeeklyReview): string {
 
   // Wins
   lines.push('');
-  lines.push(chalk.bold('\u{1F3C6} WINS THIS WEEK'));
+  lines.push(tint.bold('\u{1F3C6} WINS THIS WEEK'));
   if (review.wins.length === 0) {
-    lines.push(chalk.gray('   No wins logged. Use `ferni wins` to celebrate your achievements!'));
+    lines.push(tint.gray('   No wins logged. Use `ferni wins` to celebrate your achievements!'));
   } else {
     for (const win of review.wins.slice(0, 5)) {
       const text = win.text.length > 50 ? `${win.text.slice(0, 50)}...` : win.text;
-      lines.push(`   ${chalk.green('\u2022')} ${text}`);
+      lines.push(`   ${tint.green('\u2022')} ${text}`);
     }
     if (review.wins.length > 5) {
-      lines.push(chalk.gray(`   ... and ${review.wins.length - 5} more`));
+      lines.push(tint.gray(`   ... and ${review.wins.length - 5} more`));
     }
   }
 
@@ -505,7 +505,7 @@ function formatForTerminal(review: WeeklyReview): string {
 
   if (hasMetrics) {
     lines.push('');
-    lines.push(chalk.bold('\u{1F4C8} METRICS TREND'));
+    lines.push(tint.bold('\u{1F4C8} METRICS TREND'));
     if (review.metrics.activeUsers.current > 0) {
       lines.push(
         `   Active Users:  ${review.metrics.activeUsers.current} ${formatChange(review.metrics.activeUsers.change)} ${review.metrics.activeUsers.change > 0 ? '\u2191' : review.metrics.activeUsers.change < 0 ? '\u2193' : ''}`
@@ -513,7 +513,7 @@ function formatForTerminal(review: WeeklyReview): string {
     }
     if (review.metrics.callQuality.current > 0) {
       lines.push(
-        `   Call Quality:  ${review.metrics.callQuality.current}% ${chalk.gray('(stable)')}`
+        `   Call Quality:  ${review.metrics.callQuality.current}% ${tint.gray('(stable)')}`
       );
     }
     if (review.metrics.revenue.current > 0) {
@@ -525,9 +525,9 @@ function formatForTerminal(review: WeeklyReview): string {
 
   // Recommendations
   lines.push('');
-  lines.push(chalk.bold('\u{1F4A1} RECOMMENDATIONS'));
+  lines.push(tint.bold('\u{1F4A1} RECOMMENDATIONS'));
   for (const rec of review.recommendations) {
-    lines.push(`   ${chalk.yellow('\u2022')} ${rec}`);
+    lines.push(`   ${tint.yellow('\u2022')} ${rec}`);
   }
 
   lines.push('');

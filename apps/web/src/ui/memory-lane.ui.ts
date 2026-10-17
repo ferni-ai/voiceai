@@ -715,7 +715,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       opacity: 0;
       pointer-events: none;
       transition: opacity ${DURATION.NORMAL}ms ${EASING.EXPO_OUT};
@@ -1058,7 +1058,7 @@ function injectStyles(): void {
       max-width: min(400px, 90vw);
       cursor: pointer;
       opacity: 0;
-      z-index: var(--z-toast, 9000);
+      z-index: var(--z-toast);
       transition: opacity ${DURATION.SLOW}ms ${EASING.EXPO_OUT},
                   transform ${DURATION.SLOW}ms ${EASING.SPRING};
     }

@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "جارٍ التبديل إلى {language}",
+    "seeYou": "إلى اللقاء في المرة القادمة!",
+    "callVoicemail": "تركتُ رسالة صوتية لـ{name}",
+    "callNoAnswer": "لم أتمكن من الوصول إلى {name}. هل أحاول لاحقاً؟",
+    "callFailed": "لم تنجح المكالمة مع {name}",
+    "callBack": "{name} بانتظار اتصالكم",
+    "followUp": "{name} بانتظار ردّكم"
+  },
   "accessibility": {
     "accountMenu": "قائمة الحساب",
     "accountSettings": "إعدادات الحساب",
@@ -10,7 +19,6 @@
     "closeDashboard": "إغلاق لوحة التحكم",
     "closeDetails": "إغلاق التفاصيل",
     "closeHistory": "إغلاق السجل",
-    "closeHuddle": "إغلاق اللقاء السريع",
     "closeMenu": "إغلاق القائمة",
     "closePublisher": "إغلاق بوابة الناشر",
     "closeSettings": "إغلاق الإعدادات",
@@ -545,7 +553,6 @@
     "target": "الهدف",
     "tasks": "المهام",
     "teachings": "الدروس",
-    "teamHuddle": "تجمع الفريق",
     "teamMembersUnlocked": "تم إلغاء قفل أعضاء الفريق",
     "teamUnlock": "إلغاء قفل الفريق",
     "testCall": "مكالمة تجريبية",
@@ -1168,7 +1175,7 @@
       "upgrade": "الانضمام إلى الرحلة"
     },
     "expiresLabel": "نشط حتى",
-    "freeNote": "يحصل المؤسسون على وقت غير محدود مع الفريق بأكمله — ويساعدون في إبقاء Ferni مجانيًا للجميع",
+    "freeNote": "Ferni مجاني. إذا أردت المساعدة في استمراره، يمكنك المساهمة عبر Venmo.",
     "label": "ننمو معًا",
     "renewsLabel": "يتجدد في",
     "restore": {
@@ -1225,7 +1232,6 @@
       "supportFerni": "دعم Ferni",
       "supportFerniExpanded": "دعم Ferni",
       "takeTour": "خذني في جولة",
-      "teamHuddles": "لقاء الفريق السريع",
       "teamInsights": "ما يلاحظه الفريق",
       "toggleTheme": "فاتح / داكن",
       "trustDetails": "كيف كبرنا معاً",
@@ -1268,8 +1274,7 @@
       "growthJournal": "مذكرات النمو",
       "knowledgeQuiz": "ما مدى معرفتك بي؟",
       "soundEffects": "المؤثرات الصوتية",
-      "sleepSchedule": "جدول النوم",
-      "teamObservations": "ملاحظات الفريق"
+      "sleepSchedule": "جدول النوم"
     },
     "keepChatting": "كلما تحدثنا أكثر، اقتربنا أكثر",
     "maxLevel": "شركاء الحياة",
@@ -1331,7 +1336,7 @@
         "calendar": "التقويم",
         "history": "المحادثات السابقة",
         "people": "المقربون منك",
-        "insights": "كيف حالك"
+        "insights": "ما تعلمته"
       }
     },
     "ariaLabel": "قائمة الإعدادات",
@@ -1437,8 +1442,6 @@
     "dailyChallenge": {
       "title": "تحدي اليوم",
       "xpReward": "+{xp} XP",
-      "completion": "نسبة الإنجاز {percent}%",
-      "playing": "{count} يشاركون",
       "start": "بدء التحدي",
       "dayStreak": {
         "zero": "سلسلة من {count} يوم!",
@@ -1810,10 +1813,10 @@
       "plant": "زراعة البذور في الميزات التي ترغبون في رؤيتها تُبنى",
       "suggest": "اقتراح أفكار جديدة مقابل 5 بذور",
       "title": "آلية عمل البذور",
-      "conversation": "إجراء محادثة: +1 بذرة",
+      "conversation": "أول محادثة في اليوم: +5 بذور",
       "note": "تساعدنا البذور في تحديد أولويات ما نبنيه لاحقًا!",
-      "streak30": "سلسلة 30 يومًا: +15 بذرة",
-      "streak7": "سلسلة 7 أيام: +5 بذور",
+      "streak30": "سلسلة 30 يومًا: +100 بذرة",
+      "streak7": "سلسلة 7 أيام: +25 بذرة",
       "vote": "التصويت على الميزات: 1-10 بذور"
     },
     "intro": "لكل علاقة رائعة فصولها. هذه بذور نزرعها معاً.",
@@ -2158,8 +2161,7 @@
     "couldNotDisconnect": "تعذر قطع الاتصال. هل تودون المحاولة مجدداً؟",
     "sonosConnected": "تم ربط Sonos!",
     "transcribing": "جاري تحويل الصوت إلى نص...",
-    "transcriptionUnavailable": "تحويل الصوت إلى نص غير متاح. سيتم حفظ الصوت فقط.",
-    "audioSaved": "تم حفظ التسجيل الصوتي!",
+    "transcriptionUnavailable": "لم أتمكن من التقاط الكلمات هذه المرة، لذلك لم يُحفظ شيء. هل نحاول مرة أخرى؟",
     "entrySaved": "تم حفظ المدخلة!",
     "couldNotSaveEntry": "لم نتمكن من حفظ المدخلة. هل تود المحاولة مجددًا؟",
     "profileSaved": "تم حفظ الملف الشخصي!",
@@ -2281,7 +2283,6 @@
       "many": "تم استيراد {count} جهة اتصال!"
     },
     "integrationNowConnected": "تم ربط {integration}!",
-    "inviteSentTo": "تم إرسال الدعوة إلى {email}!",
     "householdMemberRemoved": "تمت إزالة {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "تمت إضافة {name} إلى فريقكم",
@@ -3388,8 +3389,8 @@
     "categorySweet": "لحظات لطيفة",
     "connectionConnected": "متصلون",
     "connectionConnecting": "جاري الاتصال...",
-    "connectionDisconnected": "غير متصلين",
-    "connectionDisconnectedMessage": "حدث خطأ ما، ولكن يمكن المحاولة مجددًا.",
+    "connectionIdle": "نحن جاهزون متى شئت",
+    "connectionIdleMessage": "كلما أردت الحديث، أنا هنا.",
     "connectionError": "انقطع الاتصال",
     "connectionErrorMessage": "حدث خطأ ما، ولكن يمكن المحاولة مجددًا.",
     "connectionReconnect": "إعادة الاتصال",
@@ -3819,8 +3820,7 @@
       "disabled": "لا توجد أحداث في التقويم",
       "loadingSuggestions": "البحث عن أفضل الأوقات...",
       "noSuggestions": "لم يتم العثور على مقترحات",
-      "suggestion": "يظهر التقويم أن هذا الوقت متاحٌ عادةً",
-      "suggestedTime": "الوقت المقترح"
+      "suggestion": "يظهر التقويم أن هذا الوقت متاحٌ عادةً"
     },
     "validation": {
       "nameRequired": "كل ممارسة تحتاج إلى اسم"
@@ -3863,7 +3863,6 @@
         "name": "اطمئنان الصباح",
         "humanName": "لحظة صباحية",
         "description": "بدء اليوم بنية واضحة",
-        "scienceNote": "تحديد النوايا الصباحية يحسن التركيز بنسبة 31% (Harvard Business Review)",
         "cue": "بمجرد ملامسة القدمين للأرض",
         "routine": "وقفة قصيرة، تنفس، وتحديد نية واحدة",
         "reward": "شعور بالوضوح والسيطرة",
@@ -3877,7 +3876,6 @@
         "name": "لحظة امتنان",
         "humanName": "وقفة امتنان",
         "description": "تسمية ثلاثة أشياء تقدرونها",
-        "scienceNote": "ممارسات الامتنان تزيد من السعادة بنسبة 25% (UC Berkeley)",
         "cue": "عند وضع الهاتف على الشاحن ليلاً",
         "routine": "تسمية ثلاثة أشياء—كبيرة أو صغيرة—كانت جميلة اليوم",
         "reward": "شعور دافئ بالتقدير",
@@ -3891,7 +3889,6 @@
         "name": "مراجعة أسبوعية",
         "humanName": "تأمل أسبوعي",
         "description": "التأمل في الإنجازات والدروس المستفادة",
-        "scienceNote": "التأمل الأسبوعي يحسن تحقيق الأهداف بنسبة 42% (Dominican University)",
         "cue": "صباح الأحد مع القهوة أو الشاي",
         "routine": "مراجعة الإنجازات، تدوين الدروس المستفادة، وتحديد نوايا الأسبوع",
         "reward": "شعور بالتقدم والوضوح في الاتجاه",
@@ -3904,7 +3901,6 @@
       "custom": {
         "name": "مخصص",
         "humanName": "البدء من جديد",
-        "scienceNote": "الممارسات المخصصة المصممة لتناسب حياتكم تزيد احتمالية الاستمرار عليها بمعدل 3 أضعاف",
         "cue": "أنتم تختارون المحفز",
         "routine": "أنتم تصممون الممارسة",
         "reward": "أنتم تحددون كيف يبدو شعور النجاح",
@@ -3960,10 +3956,12 @@
       "create": "إنشاء مساعد",
       "empty": "لا يوجد مساعدون بعد",
       "emptyHint": "يمكن إنشاء أول مساعد مخصص للاحتفاظ بصوت شخص عزيز، أو بناء مرشد ملهم، أو تصميم رفيق خاص.",
+      "emptyHintWithoutVoice": "يمكن إنشاء أول مساعد مخصص للاحتفاظ بقصص شخص عزيز، أو بناء مرشد ملهم، أو تصميم رفيق خاص.",
       "createFirst": "إنشاء المساعد الأول",
       "whatYouCan": "ما يمكن ابتكاره",
       "legacy": "الإرث",
       "legacyDesc": "حفظ صوت وحكمة شخص عزيز",
+      "legacyDescWithoutVoice": "حفظ قصص وحكمة شخص عزيز",
       "mentor": "المرشد",
       "mentorDesc": "إنشاء موجّه مستوحى من شخصية ملهمة",
       "twin": "التوأم الرقمي",
@@ -4000,6 +3998,8 @@
     "loadingCoaches": "البحث عن موجّهين...",
     "noMatches": "لا توجد نتائج مطابقة بعد",
     "noMatchesHint": "يمكن تجربة بحث آخر أو استكشاف جميع الموجّهين.",
+    "nobodyYet": "لا يوجد أحد جديد للتعرف عليه بعد.",
+    "nobodyYetHint": "عندما يصبح بإمكان شخص جديد الانضمام إلى مكالماتك، ستتعرف عليه هنا. أما الآن، فتحدث مع فريقك.",
     "becomeCreator": "الانضمام إلى المبتكرين",
     "poweredBy": "بدعم من Ferni",
     "teamLocked": {
@@ -4663,7 +4663,7 @@
     "successDeployed": "تم نشر الصفحة!",
     "title": "إنشاء صفحة الوكيل",
     "nameLabel": "اسم الوكيل",
-    "namePlaceholder": "مثل Joel Dickson",
+    "namePlaceholder": "مثل Nate Holloway",
     "nameHint": "الاسم الكامل لوكيل الذكاء الاصطناعي الخاص بك",
     "initialsLabel": "الحروف الأولى",
     "initialsPlaceholder": "مثل JD",
@@ -4744,7 +4744,8 @@
     "sourceInferred": "لاحظتُ",
     "correctButton": "تعديل",
     "memoriesCount": "{count} ذكريات",
-    "confidence": "بنسبة ثقة {confidence}%"
+    "confidence": "بنسبة ثقة {confidence}%",
+    "earlier": "سابقًا"
   },
   "memoryCorrection": {
     "modalTitle": "تصحيح هذه الذكرى",
@@ -5195,7 +5196,8 @@
     },
     "voiceStep": {
       "title": "كيف تريدون أن يبدو صوتهم؟",
-      "subtitle": "اختيار صوت أو استنساخه"
+      "subtitle": "اختيار صوت أو استنساخه",
+      "subtitleWithoutClone": "اختيار صوت"
     },
     "voiceOption": {
       "cloneTitle": "استنساخ صوت",
@@ -5450,11 +5452,8 @@
     "upcomingIntro": "أنا هنا من أجلكم. إليكم الأوقات التي سأطمئن فيها عليكم.",
     "learningTitle": "أتعلم متى تحتاجون إليّ",
     "learningDesc": "كلما تحدثنا أكثر، فهمتُ إيقاعكم وأنماطكم واحتياجاتكم بشكل أفضل.",
-    "whatThisWillLook": "كيف سيبدو هذا",
-    "noticedConcern": "قلق ملحوظ",
-    "streakSupport": "دعم السلسلة",
-    "nextMonday": "الإثنين القادم",
-    "calendarAware": "مراعاة التقويم",
+    "upcomingEmptyNote": "لا شيء مخطط بعد، ولا بأس. عندما أخطط للاطمئنان عليك، ستراه هنا.",
+    "upcomingLoadFailed": "همم، لم يتم تحميل مواعيد التواصل. المشكلة عندي، لا عندك. انتظر قليلًا ثم افتح هذا مرة أخرى.",
     "perfectTiming": "التوقيت المثالي",
     "perfectTimingDesc": "أتعلم متى تكونون أكثر تقبلًا واستعدادًا",
     "patternDetection": "رصد الأنماط",
@@ -5472,10 +5471,6 @@
     "streakMilestonesDesc": "الاحتفاء بالاستمرارية—أتذكر كل خطوة في رحلتك",
     "to": "إلى",
     "quietNote": "عند الاستيقاظ في الثانية صباحاً والرغبة في التواصل، سأكون هنا بكامل حضوري تماماً كما في منتصف النهار.",
-    "sampleFriday": "الجمعة عند {time}",
-    "sampleOverwhelmed": "\"تحدثنا بالأمس عن الشعور بالإرهاق. كيف هي الأحوال اليوم؟\"",
-    "sampleMeditation": "\"سلسلة التأمل وصلت إلى 6 أيام! هل هناك استعداد لليوم السابع؟\"",
-    "samplePresentation": "\"العرض التقديمي الكبير يقترب. هل نتحضر معاً؟\"",
     "guardianDesc": "رعاية مستمرة على مدار الساعة",
     "emptyCta": "لنواصل الحديث. كل محادثة تساعدني على فهم متى وكيف يمكنني تقديم أفضل دعم.",
     "emptyTip": "تفعيل \"{feature}\" في الإعدادات للحصول على دعم استباقي"
@@ -6403,20 +6398,6 @@
       },
       "empty": "مرحباً. أنا هنا - حسناً، أنا أنتم بطريقة ما. ابدأوا بالكتابة وسيكون لديّ المزيد للتأمل فيه. في الوقت الحالي، ما الذي يشغل البال؟"
     },
-    "fallback": {
-      "option1": "هذا أمر مثير للاهتمام. ما الذي يطرح هذا الموضوع الآن؟",
-      "option2": "أتفهم ذلك تماماً. ما الذي يشغل البال أيضاً؟",
-      "option3": "يمكن التحدث أكثر عن ذلك. ما الذي يكمن وراء هذا الشعور؟",
-      "option4": "هذا أمر كنتُ أفكر فيه أيضاً. ما السؤال الحقيقي وراء هذا السؤال؟",
-      "advice": "تعلمتُ أن أفضل النصائح تأتي عادةً من التمهل مع السؤال لفترة أطول. ما الذي يمليه عليكم حدسكم؟",
-      "feeling": "هذا حمل ثقيل. لقد شعرتُ بذلك أيضاً. ما الذي قد يساعد الآن - الحديث عنه أم مجرد التعايش معه بهدوء؟",
-      "remember": "أتذكر أكثر مما قد تظنون. تحتوي اليوميات على الكثير. عن ماذا تبحثون تحديداً؟"
-    },
-    "fallbackKeywords": {
-      "advice": "نصيحة،يجب",
-      "feeling": "شعور،أشعر",
-      "remember": "تذكر،أتذكر"
-    },
     "dialogLabel": "سجلّكم",
     "switchToVoice": "الانتقال إلى الصوت",
     "captured": "تم الحفظ!",
@@ -6431,7 +6412,8 @@
       }
     },
     "emptyDescription": "سجلّكم فارغ حالياً، ولكن كل قصة عظيمة تبدأ من مكان ما. دونوا فكرتكم الأولى، وشاهدوا حكمتكم وهي تنمو.",
-    "quoted": "\"{text}\""
+    "quoted": "\"{text}\"",
+    "replyFailed": "لم يصل ذلك. المشكلة عندي، لا عندك. حاول إرساله مرة أخرى."
   },
   "marketplacePermissionConsent": {
     "required": "الأذونات المطلوبة",
@@ -6497,12 +6479,17 @@
     "categoryConnectDescription": "رعاية العلاقات",
     "categoryGrow": "نمو",
     "categoryGrowDescription": "تقدّم لطيف",
-    "insightYourMorningsSetTone": "الصباح يحدد وتيرة اليوم",
-    "insightYourMorningsDesc": "المحادثات التي يبدأ بها اليوم غالبًا ما ترسم ملامح بقية الساعات.",
-    "insightEveningReflectionsHelp": "التفكّر المسائي يساعد",
-    "insightEveningReflectionsDesc": "تخصيص لحظة للتفكّر قبل النوم يمنح وضوحًا لليوم التالي.",
-    "insightIRememberEverything": "أتذكر كل شيء",
-    "insightIRememberEverythingDesc": "كل محادثة، كل تفصيل، كل لحظة نمو. أحتفظ بقصتكم كاملة.",
+    "noInsightsYetTitle": "لا شيء هنا بعد.",
+    "noInsightsYetDesc": "بعد بضع محادثات سأبدأ بملاحظة أشياء: أنماطك، والخطط التي تذكرها، واللحظات المهمة. ستظهر هنا. أما الآن، فلنتحدث فقط.",
+    "insightsUnavailableTitle": "لم أتمكن من تحميل ما لاحظته.",
+    "insightsUnavailableDesc": "الخطأ مني، لا منك. حاول مرة أخرى بعد قليل. سأبقى هنا.",
+    "practicePrompt": {
+      "dailyCheckin": "يسعدني لقاؤكم. كيف تشعرون الآن حقاً؟",
+      "gratitude": "لنأخذ استراحة ونعبّر عن تقديرنا. ما هو الشيء الوحيد الذي تشعرون بالامتنان له الآن؟",
+      "brainstorm": "لنقم بعصف ذهني معاً. ما التحدي أو القرار الذي يشغل بالكم؟",
+      "weeklyReview": "لنلقِ نظرة على أسبوعكم. ما الذي يسترعي انتباهكم؟",
+      "windDown": "لنسترخِ معاً. ما هو الشيء الوحيد الذي تفخرون به اليوم؟"
+    },
     "practiceSetYourIntention": "تحديد النية",
     "practiceSetYourIntentionDesc": "البدء بوضوح. ما هو الأكثر أهمية اليوم؟",
     "practiceGratitudeMoment": "لحظة امتنان",
@@ -7399,19 +7386,6 @@
       "other": "{active} من أصل {count} قدرة نشطة"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "خلاصة الفريق",
-    "assessment": "التقييم العام",
-    "connections": "الروابط المشتركة بين المجالات",
-    "recommendations": "توصيات الفريق",
-    "loading": "جاري تحميل ملاحظات الفريق...",
-    "empty": {
-      "title": "لا توجد ملاحظات من الفريق بعد",
-      "description": "بينما تتحدثون مع الفريق، سيشاركون الإضاءات مع بعضهم البعض."
-    },
-    "recent": "الملاحظات الأخيرة",
-    "title": "ملاحظات الفريق"
-  },
   "observationTypes": {
     "insight": "إضاءة",
     "concern": "مبعث قلق",
@@ -7456,6 +7430,7 @@
     "legacy": {
       "name": "إرث",
       "description": "الحفاظ على صوت وحكمة شخص تعزّونه",
+      "descriptionWithoutVoice": "الحفاظ على قصص وحكمة شخص تعزّونه",
       "feature1": "استنساخ الصوت من التسجيلات",
       "feature2": "توثيق القصص والذكريات",
       "feature3": "حفظ الحكمة والأقوال المفضلة",
@@ -8158,7 +8133,9 @@
     "emptyVision": "مع مرور الوقت، <strong>ستظهر الأنماط</strong>. ستترابط الأيام لتصبح أسابيع. وسترون أنفسكم <strong>بوضوح أكبر</strong>.",
     "last4Weeks": "الأسابيع الأربعة الماضية",
     "stable": "مستقر",
-    "fromLastMonth": "{change}٪ من الشهر الماضي",
+    "improving": "في ارتفاع",
+    "declining": "أقل قليلًا مؤخرًا",
+    "trendUnavailable": "لم يتم تحميل هذا الاتجاه. حاول مرة أخرى بعد قليل.",
     "trendUp": "ارتفاع",
     "trendDown": "انخفاض",
     "trendStable": "مستقر",
@@ -8201,7 +8178,6 @@
     "loading": "جاري التحميل...",
     "whatIveLearned": "ما تعلمته",
     "loadingInsights": "جاري تحميل الإضاءات...",
-    "understanding": "الفهم",
     "thingsIWantToRemember": "أشياء أود تذكرها",
     "proactive": "مبادرة",
     "patternsIveNoticed": "أنماط لاحظتها",
@@ -8468,8 +8444,7 @@
     "growthDesc": "تقدم قد لا تلاحظونه بأنفسكم.",
     "guardianPresence": "حضور حارس",
     "guardianDesc": "ألتقط ما لا تبوحون به.",
-    "whatMightLook": "كيف قد تبدو الإضاءات",
-    "keepTalking": "واصلوا التحدث فقط. أنا دائماً أصغي، دائماً أتعلم، ودائماً هنا بجانبكم.",
+    "keepTalking": "الآن، فقط تحدّث. أنا منتبه لك.",
     "betterThanMemory": "أفضل من الذاكرة البشرية، تعمل من أجلكم.",
     "chapter": {
       "default": {
@@ -8709,23 +8684,17 @@
   },
   "predictions": {
     "promise": "وعد",
-    "title": "بلورتك السحرية",
-    "description": "سأتعلم توقع احتياجاتك قبل طلبها.",
-    "preview": "معاينة",
+    "title": "توقّع أسبوعك",
+    "description": "لعبة تلعبها مع Peter خلال مكالمة. توقّع كيف سيكون أسبوعك، ثم انظر مدى قرب توقّعك.",
     "accurate": "دقيق",
-    "exampleStress": "تم ذكر التوتر يوم الثلاثاء",
     "watching": "متابعة",
-    "checkIn": "سأقوم بالاطمئنان عليك",
     "accuracy": "دقة التوقعات",
     "keepTalking": "لنواصل الحديث. نحن نبني شيئًا رائعًا معًا.",
     "accuracyLabel": "الدقة",
+    "loadFailed": "همم، لم يتم تحميل توقّعاتك. المشكلة عندي، لا عندك. انتظر قليلًا ثم افتح هذا مرة أخرى.",
     "resolved": "تم حلها",
     "streak": "سلسلة",
-    "sampleOverwhelmed": "\"سيكون هناك شعور بالإرهاق هذا الأسبوع\"",
-    "sampleGym": "\"ستواجه عادة الذهاب إلى النادي الرياضي بعض الصعوبة\"",
-    "sampleSunday": "\"سيبدو مساء الأحد ثقيلًا بعض الشيء\"",
-    "exampleGym": "تم تخطي جلستين",
-    "ctaText": "التحدث مع Peter حول وضع التوقعات. بناء الوعي الذاتي من خلال لعبة التوقعات.",
+    "ctaText": "اطلب من Peter أن تلعبا في المرة القادمة التي تتحدثان فيها. ستظهر هنا توقّعاتك وما آلت إليه.",
     "activePredictions": "التوقعات النشطة",
     "recentResults": "النتائج الأخيرة"
   },
@@ -8800,6 +8769,10 @@
   },
   "engagementPanel": {
     "title": "الاطمئنان اليومي",
+    "emptyTitle": "هنا ستكون لقاءاتنا اليومية",
+    "emptyMessage": "لا يوجد شيء هنا بعد، ولا بأس. عندما نقوم بلقاء يومي خلال مكالمة، سيظهر هنا كيف كنت تشعر. في المرة القادمة التي نتحدث فيها، فقط اطلب مني ذلك.",
+    "loadFailedTitle": "همم، لم يتم التحميل",
+    "loadFailedMessage": "المشكلة عندي، لا عندك. انتظر قليلًا ثم افتح هذا مرة أخرى.",
     "yourWeek": "أسبوعك",
     "weatherTrend": "مؤشر الطقس العاطفي",
     "howYouFeel": "كيف تبدو مشاعرك",
@@ -9054,6 +9027,7 @@
     }
   },
   "conversationHistory": {
+    "title": "المحادثات السابقة",
     "loadError": "تعذر تحميل البيانات.",
     "tryAgain": "هل تودون المحاولة مجدداً؟",
     "ariaLabel": "سجل المحادثات",
@@ -9252,9 +9226,6 @@
     "he": "العبرية"
   },
   "featureHints": {
-    "teamHuddlesTitle": "لقاءات الفريق السريعة أصبحت هنا!",
-    "teamHuddlesMessage": "الآن بعد أن أصبحنا نعرف بعضنا بشكل أفضل، يمكنك الاستماع إلى عدة أعضاء من الفريق في وقت واحد.",
-    "teamHuddlesCta": "تجربة لقاء سريع",
     "createRitualsTitle": "ابتكار طقوسك الخاصة",
     "createRitualsMessage": "يمكنك الآن إنشاء ممارسات يومية مخصصة. ما هي العادة الصغيرة التي قد تساعدك أكثر؟",
     "createRitualsCta": "إنشاء طقس",
@@ -9827,11 +9798,14 @@
     "nextStepTitle": "خطوة تالية لطيفة",
     "invitation": "عد متى شئت. سأكون هنا.",
     "close": "إغلاق",
-    "seeCost": "تكلفة هذه المكالمة"
+    "seeCost": "تكلفة هذه المكالمة",
+    "feedbackQuestion": "كيف كانت المكالمة؟",
+    "feedbackThanks": "شكرًا، هذا يساعدني."
   },
   "moments": {
     "teamUnlockTitle": "تعرف على {name}",
     "niceWork": "عمل رائع",
+    "remembered": "سأتذكّر هذا: {summary}",
     "streakSubtitle": "حضورك مستمر، وهذا أمر رائع.",
     "streakTitle": {
       "zero": "سلسلة من {count} يوم",
@@ -10276,6 +10250,7 @@
     "timeout": "استغرق الأمر وقتاً طويلاً. هل يمكن التحقق من الاتصال والمحاولة مجدداً؟",
     "network": "تعذر الاتصال بـ Ferni. هل يمكن التحقق من الإنترنت والمحاولة مجدداً؟",
     "dropped": "انقطع الاتصال. هل نُعيد الاتصال؟",
+    "agentLeft": "انقطع Ferni عن المكالمة. هل نُعيد الاتصال؟",
     "unknown": "تعذر الاتصال. هل نجرّب مجدداً؟"
   },
   "ambientSounds": {
@@ -10487,7 +10462,12 @@
     "getIdeas": "الحصول على أفكار",
     "emptyTitle": "لا توجد اقتراحات بعد",
     "emptyText": "جرّبوا إضافة المزيد من التفاصيل عن علاقتكم.",
-    "generateError": "تعذر ابتكار أفكار. هل تودون المحاولة مجدداً؟"
+    "generateError": "تعذر ابتكار أفكار. هل تودون المحاولة مجدداً؟",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "ما أقدمه لكم",
@@ -10599,8 +10579,6 @@
     "allDataDeleted": "تم حذف جميع البيانات",
     "deletingAccount": "جاري حذف الحساب...",
     "accountDeleted": "تم حذف الحساب. رافقتك السلامة.",
-    "couldNotStartHuddle": "تعذّر بدء اجتماع الفريق السريع. هل تودّ المحاولة مجدداً؟",
-    "defaultHuddleTopic": "اطمئنان أسبوعي على التقدم المحرز",
     "conversationsLeft": {
       "zero": "لم تتبقَّ أي محادثة ({count}). أنا هنا دائمًا عند الحاجة.",
       "one": "تبقت محادثة واحدة ({count}). أنا هنا دائمًا عند الحاجة.",
@@ -10624,7 +10602,9 @@
       "few": "لقد كسبت {count} بذور!",
       "many": "لقد كسبت {count} بذرة!",
       "other": "لقد كسبت {count} بذرة!"
-    }
+    },
+    "couldNotLoadMemories": "لم أتمكن من تحميل ما أتذكره. هل نحاول مرة أخرى؟",
+    "memoryCorrected": "فهمت. سأتذكره هكذا."
   },
   "trustSignals": {
     "prefix": {
@@ -10782,22 +10762,7 @@
         "other": "لديّ وجهات نظر تستند إلى {count} تدوينة يوميات لأشاركها."
       }
     },
-    "error": "أواجه صعوبة في التفكير حالياً. هل يمكنك إمهالي لحظة والمحاولة مجدداً؟",
-    "fallback": {
-      "advicePhilosophy": "هل تعلم ما تعلمته؟ \"{philosophy}\" أياً كان ما تواجهه، تذكّر ذلك.",
-      "adviceValues": "لنفكّر في ما يهمنا: {values}. لنجعلها مرشدنا.",
-      "feelRecent": "لقد شعرتُ بذلك أيضاً. كتبتُ في يومياتي: \"{excerpt}...\" لقد تجاوزنا ذلك من قبل.",
-      "feelDefault": "أشعر بك. لقد مررنا بأوقات عصيبة من قبل ووجدنا طريقنا. ما الذي يضايقك حقاً؟",
-      "rememberIntro": "أجل، أتذكر ذلك.",
-      "rememberEntry": "كان هناك ذلك الوقت الذي كتبتُ فيه: \"{excerpt}...\"",
-      "mannerism": "{phrase} هذا أمر كنتُ أفكر فيه أيضاً. ما الذي جعلك تطرح هذا الموضوع؟",
-      "default": "هذا سؤال جيد. ما الذي جعلك تفكر في ذلك؟"
-    },
-    "fallbackKeywords": {
-      "advice": "نصيحة، هل يجب أن",
-      "feeling": "شعور، أشعر",
-      "remember": "تذكر، الماضي"
-    }
+    "error": "لم يصل ذلك. المشكلة عندي، لا عندك. حاول إرساله مرة أخرى."
   },
   "mood": {
     "holiday": {
@@ -10821,6 +10786,12 @@
       "fair": "مقبول",
       "poor": "اتصال ضعيف",
       "disconnected": "غير متصل"
+    },
+    "island": {
+      "offline": "لا يوجد اتصال بالإنترنت. سأعيد الاتصال عند عودتك.",
+      "reconnecting": "جارٍ إعادة الاتصال…",
+      "weak": "اتصال ضعيف",
+      "backOnline": "عاد الاتصال"
     }
   },
   "ideasGallery": {
@@ -11043,6 +11014,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "تقدم العلاقة",
+    "emptyInvite": "قصتنا تبدأ مع أول محادثة بيننا.",
     "progress": "التقدم",
     "next": "التالي: {stage}",
     "stages": {
@@ -11286,11 +11258,6 @@
     "endTalk": "إنهاء",
     "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء"
   },
-  "teamHuddle": {
-    "typeWeekly": "اطمئنان أسبوعي",
-    "typeMilestone": "احتفاء بمحطة مهمة",
-    "typeSpecial": "لحظة خاصة"
-  },
   "analyticsDashboard": {
     "title": "رحلتك",
     "loading": "جاري تحميل التقدم...",
@@ -11341,6 +11308,9 @@
       "many": "{count} يوماً",
       "other": "{count} يوم"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "يم يم!"
   },
   "avatarTapReactions": {
     "tickles": "ههه، هذا يثير الدغدغة!"
@@ -11482,23 +11452,6 @@
       "roomToGrow": "مساحة للنمو",
       "insight": "\"تنخفض طاقتكم في منتصف الأسبوع. يبدو أن الأربعاء هو اليوم الأكثر صعوبة بالنسبة لكم.\""
     },
-    "predictions": {
-      "title": "توقعاتي",
-      "message": "سأتعلم توقع ما تحتاجون إليه قبل أن تطلبوه.",
-      "guessOverwhelmed": "\"ستشعرون بالإرهاق هذا الأسبوع\"",
-      "resultStress": "لقد ذكرتم التوتر يومي الثلاثاء والخميس",
-      "guessGym": "\"ستواجه عادة الذهاب إلى النادي الرياضي بعض الصعوبة\"",
-      "guessSunday": "\"سيبدو مساء الأحد ثقيلاً\"",
-      "resultCheckIn": "سأطمئن عليكم",
-      "skipped": {
-        "zero": "فاتتك {count} جلسة هذا الأسبوع",
-        "one": "فاتتك جلسة واحدة هذا الأسبوع",
-        "two": "فاتتك جلستان هذا الأسبوع",
-        "few": "فاتتك {count} جلسات هذا الأسبوع",
-        "many": "فاتتك {count} جلسة هذا الأسبوع",
-        "other": "فاتتك {count} جلسة هذا الأسبوع"
-      }
-    },
     "team": {
       "title": "ما نلاحظه",
       "message": "يشارك فريقكم بأكمله الملاحظات لمساعدتكم على النمو.",
@@ -11560,9 +11513,9 @@
   },
   "x": "صديق • ذُكر 12 مرة",
   "insightsView": {
-    "samplePattern": "\"تبدو أمسيات الآحاد صعبة عليك...\"",
-    "sampleInsight": "\"لقد ذكرت الشعور بالتعب 8 مرات هذا الأسبوع. ويبدو أن هذا التعب مرتبط بتحديات وضع الحدود في العمل.\"",
-    "sampleEvidence": "بناءً على {count} من المحادثات"
+    "patternDesc": "ما يتكرر عندما نتحدث.",
+    "emptyNote": "لا يوجد شيء هنا بعد، ولا بأس. بعد بضع محادثات سأبدأ بملاحظة أنماط، وستظهر هنا.",
+    "loadFailed": "همم، لم يتم تحميل ما لاحظته. المشكلة عندي، لا عندك. انتظر قليلًا ثم افتح هذا مرة أخرى."
   },
   "agentAcks": {
     "gameStartFailed": "لم تبدأ اللعبة. جرّبوا أن تطلبوا من Ferni اللعب بصوتٍ عالٍ.",
@@ -11572,6 +11525,80 @@
     "ferniSpeaking": "فيرني يتحدث",
     "youSpeaking": "أنت تتحدث",
     "ferniThinking": "فيرني يفكر",
-    "tapToInterrupt": "انقر للمقاطعة"
+    "tapToInterrupt": "انقر للمقاطعة",
+    "tapToHear": "اضغط لسماع فيرني"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": "",
+    "seeSources": ""
+  },
+  "aiLabel": {
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "ساهم",
+    "title": "دولار واحد يُبقي الحديث مستمرًا",
+    "body": "Ferni مجاني حاليًا. إن ساعدك حديث، يمكنك إرسال دولار عبر Venmo. المزيد مرحَّب به، ولكنه غير متوقَّع أبدًا.",
+    "qrAlt": "رمز QR على Venmo للحساب @{handle}",
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "openVenmo": "افتح Venmo",
+    "helper": "امسحه بكاميرا هاتفك، أو اضغط على افتح Venmo. يمكنك تغيير المبلغ.",
+    "maybeLater": "ربما لاحقًا",
+    "close": "إغلاق"
   }
 }

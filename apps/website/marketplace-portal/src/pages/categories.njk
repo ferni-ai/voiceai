@@ -4,7 +4,7 @@ title: Categories
 description: Browse AI personas by category - Health, Life, Career, Creative, and more
 ---
 
-{% from "partials/icons.njk" import heart, users, briefcase, palette, wallet, book, starFilled, star, arrowRight %}
+{% from "partials/icons.njk" import heart, users, briefcase, palette, wallet, book %}
 
 <section class="hero" style="padding-bottom: var(--space-12);">
   <div class="container">
@@ -20,8 +20,15 @@ description: Browse AI personas by category - Health, Life, Career, Creative, an
   <div class="container">
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: var(--space-6);">
       
+      {# No per-category pages exist, so a card lists its personas instead of
+         linking to a category page. Categories with no personas yet are hidden. #}
       {% for category in personas.categories %}
-      <a href="/category/{{ category.id }}/" class="card" style="padding: var(--space-8); text-align: center; text-decoration: none;">
+      {% set members = [] %}
+      {% for persona in personas.personas %}
+        {% if persona.category == category.id %}{% set members = (members.push(persona), members) %}{% endif %}
+      {% endfor %}
+      {% if members.length %}
+      <div class="card" style="padding: var(--space-8); text-align: center;">
         <div style="width: 80px; height: 80px; background: var(--bg-secondary); border-radius: var(--radius-2xl); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-4); color: var(--accent-primary);">
           {% if category.id == 'health' %}{{ heart(32) }}{% endif %}
           {% if category.id == 'life' %}{{ users(32) }}{% endif %}
@@ -32,16 +39,12 @@ description: Browse AI personas by category - Health, Life, Career, Creative, an
         </div>
         <h3 style="margin-bottom: var(--space-2);">{{ category.name }}</h3>
         <p style="color: var(--text-secondary); font-size: var(--text-sm);">{{ category.description }}</p>
-        <div style="margin-top: var(--space-4); font-size: var(--text-sm); color: var(--accent-primary); display: flex; align-items: center; justify-content: center; gap: var(--space-1);">
-          {% set count = 0 %}
-          {% for persona in personas.personas %}
-            {% if persona.category == category.id %}
-              {% set count = count + 1 %}
-            {% endif %}
-          {% endfor %}
-          {{ count }} personas {{ arrowRight(16) }}
-        </div>
-      </a>
+        <p style="margin-top: var(--space-4); font-size: var(--text-sm); color: var(--text-muted);">
+          {{ members.length }} {{ "persona" if members.length == 1 else "personas" }}:
+          {% for persona in members %}<a href="/pages/persona/{{ persona.id }}/" style="color: var(--accent-primary); font-weight: 600;">{{ persona.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+        </p>
+      </div>
+      {% endif %}
       {% endfor %}
       
     </div>
@@ -52,13 +55,14 @@ description: Browse AI personas by category - Health, Life, Career, Creative, an
 <section class="section section-alt">
   <div class="container">
     <div class="section-header">
-      <h2>Popular Picks</h2>
-      <p>Top-rated personas across categories</p>
+      <h2>A Few to Start With</h2>
+      <p>Personas from across the categories</p>
     </div>
     
     <div class="persona-grid">
-      {% for persona in personas.personas | slice(0, 4) %}
-      <a href="/persona/{{ persona.id }}/" class="persona-card" style="--persona-color: {{ persona.colors.primary }}; --persona-secondary: {{ persona.colors.secondary }};">
+      {# .slice(), not the | slice filter: that one splits a list into columns and left this grid empty #}
+      {% for persona in personas.personas.slice(0, 4) %}
+      <a href="/pages/persona/{{ persona.id }}/" class="persona-card{% if persona.tone == 'light' %} persona-tone-light{% endif %}" style="--persona-color: {{ persona.colors.primary }}; --persona-secondary: {{ persona.colors.secondary }};">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">{{ persona.name | first }}</span>
@@ -69,21 +73,13 @@ description: Browse AI personas by category - Health, Life, Career, Creative, an
         <div class="persona-body">
           <p class="persona-description">{{ persona.description }}</p>
           <div class="persona-tags">
-            {% for tag in persona.tags | slice(0, 3) %}
+            {% for tag in persona.tags.slice(0, 3) %}
             <span class="persona-tag">{{ tag }}</span>
             {% endfor %}
           </div>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {% for i in range(5) %}
-                  {% if i < (persona.rating | round) %}{{ starFilled(14) }}{% else %}{{ star(14) }}{% endif %}
-                {% endfor %}
-              </span>
-              <span class="persona-rating-count">{{ persona.rating }}</span>
-            </div>
-            <span class="persona-price {% if persona.pricing.model == 'free' or persona.pricing.model == 'freemium' %}free{% endif %}">
-              {% if persona.pricing.model == 'free' %}
+            <span class="persona-price {% if not pricing.showPrices or persona.pricing.model == 'free' or persona.pricing.model == 'freemium' %}free{% endif %}">
+              {% if not pricing.showPrices or persona.pricing.model == 'free' %}
                 Free
               {% elif persona.pricing.model == 'freemium' %}
                 Free+

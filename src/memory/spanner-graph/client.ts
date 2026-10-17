@@ -13,7 +13,7 @@
  * @module memory/spanner-graph/client
  */
 
-import { Spanner, Database } from '@google-cloud/spanner';
+import { Spanner, type Database } from '@google-cloud/spanner';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   SPANNER_CONFIG,
@@ -37,9 +37,7 @@ let spannerInstance: Spanner | null = null;
 let databaseInstance: Database | null = null;
 let initialized = false;
 
-/**
- * Get or create the Spanner client instance
- */
+/** Get or create the Spanner client instance */
 function getSpannerClient(): Spanner {
   if (!spannerInstance) {
     spannerInstance = new Spanner({
@@ -53,7 +51,7 @@ function getSpannerClient(): Spanner {
 /**
  * Get or create the Database instance
  */
-function getDatabase(): Database {
+export function getDatabase(): Database {
   if (!databaseInstance) {
     const spanner = getSpannerClient();
     const instance = spanner.instance(SPANNER_CONFIG.instanceId);
@@ -63,9 +61,7 @@ function getDatabase(): Database {
   return databaseInstance;
 }
 
-/**
- * Check if Spanner is ready
- */
+/** Check if Spanner is ready */
 export function isSpannerReady(): boolean {
   return initialized;
 }
@@ -92,6 +88,9 @@ export async function initializeSpanner(): Promise<boolean> {
 
   return false;
 }
+
+// The graph sync's fact queue (forget-safe), for firestore-spanner-sync.ts.
+export { firestoreFactSyncOps, getUnsyncedFactDocs, RETRIES_PER_CYCLE } from './fact-sync-ops.js';
 
 // ============================================================================
 // WRITE OPERATIONS
@@ -164,7 +163,7 @@ export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<vo
     await db.runTransactionAsync(async (transaction) => {
       await transaction.runUpdate({
         sql: `
-          INSERT INTO facts 
+          INSERT OR UPDATE INTO facts 
           (fact_id, user_id, fact_type, key, value, domain, confidence, source_session, extracted_at, created_at)
           VALUES 
           (@factId, @userId, @factType, @key, @value, @domain, @confidence, @sourceSession, @extractedAt, @createdAt)
@@ -662,16 +661,14 @@ export async function markAnchorRecalled(userId: string, anchorId: string): Prom
 // CLEANUP
 // ============================================================================
 
-/**
- * Close Spanner connections
- */
+/** Close Spanner connections. Spanner 9's close() is async, so a failed close rejects here. */
 export async function closeSpanner(): Promise<void> {
   if (databaseInstance) {
     await databaseInstance.close();
     databaseInstance = null;
   }
   if (spannerInstance) {
-    spannerInstance.close();
+    await spannerInstance.close();
     spannerInstance = null;
   }
   initialized = false;
