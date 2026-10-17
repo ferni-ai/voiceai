@@ -1,5 +1,5 @@
 diff --git a/dist/stt.cjs b/dist/stt.cjs
-index 095338a81743b0a59e52f4529c2e70e37c00a7a2..40f5022ef01fd3ffc25601729e47d6b61adab7ca 100644
+index c071212ccc652ead44317358693aaaeb90c48f81..23a210dbe0de165d4a212a1d4c17638f96249cf5 100644
 --- a/dist/stt.cjs
 +++ b/dist/stt.cjs
 @@ -54,7 +54,11 @@ function mergeSTTOptions(base, override) {
@@ -59,7 +59,7 @@ index 095338a81743b0a59e52f4529c2e70e37c00a7a2..40f5022ef01fd3ffc25601729e47d6b6
            this.queue.put({
              type: import_agents.stt.SpeechEventType.RECOGNITION_USAGE,
 @@ -425,6 +440,22 @@ class SpeechStream extends import_agents.stt.SpeechStream {
-         this.#logger.warn("received unexpected message from Cartesia STT", { data });
+         this.#logger.warn({ "lk.pii.data": data }, "received unexpected message from Cartesia STT");
      }
    }
 +  #trackVoice(frame, frameSec) {
@@ -148,7 +148,7 @@ index 9fff59b2fa92f3875a830266aa7012963f01ab12..470d9538ef34ea09216fcd234731075b
  /**
   * Cartesia speech to text.
 diff --git a/dist/stt.js b/dist/stt.js
-index ebbae430b770745be927249eb4a03ebf3a9ffd98..bb64a317a6f30fb3ca17d8ab613a09cebacc197f 100644
+index 0515e4650ffdcda2c6ae1e2862f24b2889047b66..13cfa38dbb2f399658e9fb5915e20e5f5ea6cc70 100644
 --- a/dist/stt.js
 +++ b/dist/stt.js
 @@ -43,7 +43,11 @@ function mergeSTTOptions(base, override) {
@@ -211,7 +211,7 @@ index ebbae430b770745be927249eb4a03ebf3a9ffd98..bb64a317a6f30fb3ca17d8ab613a09ce
            this.queue.put({
              type: stt.SpeechEventType.RECOGNITION_USAGE,
 @@ -414,6 +432,23 @@ class SpeechStream extends stt.SpeechStream {
-         this.#logger.warn("received unexpected message from Cartesia STT", { data });
+         this.#logger.warn({ "lk.pii.data": data }, "received unexpected message from Cartesia STT");
      }
    }
 +  #trackVoice(frame, frameSec) {

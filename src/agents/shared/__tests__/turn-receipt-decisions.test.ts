@@ -82,6 +82,8 @@ function activityWithPreemptive(agentSession: EventEmitter, sameContext: boolean
     schedulingPaused: false,
     newTurnsBlocked: false,
     _currentSpeech: undefined,
+    // 1.8: a finished user turn first drops queued replies
+    interruptQueuedSpeeches: vi.fn(),
     tools: { equals: () => true },
     toolChoice: undefined,
     agent: {
@@ -106,7 +108,7 @@ function activityWithPreemptive(agentSession: EventEmitter, sameContext: boolean
 }
 
 describe('preemptive: LiveKit kept or dropped the reply it started early', () => {
-  // The PREEMPTIVE_DECISION line is ours (patches/@livekit__agents@1.6.4.patch); the
+  // The PREEMPTIVE_DECISION line is ours (patches/@livekit__agents@1.8.1.patch); the
   // patch also emits it on the session, just before the commit's eou_metrics.
   it.each([
     [true, 'reused'],

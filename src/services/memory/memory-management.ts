@@ -18,6 +18,7 @@ import { cosineSimilarity } from '../../memory/embeddings.js';
 import type { ConversationSummary, UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { lifeMoments } from '../../utils/teammate-talk.js';
 
 // ============================================================================
 // PHONE CACHE PERSISTENCE
@@ -490,8 +491,7 @@ export async function getProactiveMemories(
     }
   }
 
-  // 3. Check for meaningful key moments to reference
-  const recentMoments = profile.keyMoments
+  const recentMoments = lifeMoments(profile.keyMoments) // 3. not "decided to talk to Jordan"
     .filter((m) => m.emotionalWeight === 'heavy' || m.emotionalWeight === 'medium')
     .slice(-5);
 
