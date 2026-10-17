@@ -51,6 +51,9 @@ export const DAY_KEY = 'web-search:day';
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const DEFAULT_MAX_PER_PERSON_HOUR = 20;
+const DEFAULT_MAX_ANON_PER_HOUR = 10;
+/** Every anonymous caller together: one bucket, so a fresh anon:<uuid> session can't reset it. */
+export const ANONYMOUS = 'anonymous';
 // 150 a day is at most 4,650 a month: inside the 5,000 free Grounding Queries, so a capped month costs nothing.
 const DEFAULT_MAX_PER_DAY = 150;
 const REDIRECT_HOST = 'vertexaisearch.cloud.google.com';
@@ -112,6 +115,11 @@ function positiveIntEnv(env: NodeJS.ProcessEnv, name: string, fallback: number):
 /** Searches one caller may run in an hour. */
 export function maxSearchesPerPersonHour(env: NodeJS.ProcessEnv = process.env): number {
   return positiveIntEnv(env, 'SEARCH_MAX_PER_PERSON_HOUR', DEFAULT_MAX_PER_PERSON_HOUR);
+}
+
+/** Searches all anonymous callers together may run in an hour. */
+export function maxAnonSearchesPerHour(env: NodeJS.ProcessEnv = process.env): number {
+  return positiveIntEnv(env, 'SEARCH_MAX_ANON_PER_HOUR', DEFAULT_MAX_ANON_PER_HOUR);
 }
 
 /** Google queries everyone together may spend in a day (the billed unit). */
@@ -220,7 +228,7 @@ async function reserveSearch(principal: string): Promise<number | null> {
   const log = getLogger();
   const person = await rateLimiter.checkShared(
     `${PERSON_KEY}:${principal}`,
-    maxSearchesPerPersonHour(),
+    principal === ANONYMOUS ? maxAnonSearchesPerHour() : maxSearchesPerPersonHour(),
     HOUR_MS
   );
   if (!person?.allowed) {
@@ -287,10 +295,14 @@ export async function runWebSearch(query: string, principal: string): Promise<st
   return formatSearchResult(answer, sources);
 }
 
-/** Who a search is charged to: the call's signed-in user. */
+/**
+ * Who a search is charged to: the call's signed-in user, else ANONYMOUS.
+ * An anonymous call gets a fresh anon:<uuid> per session (anonymous-session-id.ts),
+ * so keying on it would hand every new session its own hour.
+ */
 export function searchPrincipal(opts: unknown): string {
   const userId = (opts as { ctx?: { userData?: { userId?: string } } } | undefined)?.ctx?.userData
     ?.userId;
-  // Anonymous callers share one hour between them, which errs toward spending less.
-  return userId && userId !== 'anonymous' ? `user:${userId}` : 'anonymous';
+  if (!userId || userId === ANONYMOUS || userId.startsWith('anon:')) return ANONYMOUS;
+  return `user:${userId}`;
 }

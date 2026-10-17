@@ -23,7 +23,10 @@ import {
   NEEDS_DETAIL,
   NOT_FOUND,
   WEB_SEARCH_TIMEOUT_MS,
+  ANONYMOUS,
+  PERSON_KEY,
   formatSearchResult,
+  maxAnonSearchesPerHour,
   maxSearchQueriesPerDay,
   maxSearchesPerPersonHour,
   runWebSearch,
@@ -287,8 +290,32 @@ describe('spend caps', () => {
 
   it('charges the call’s signed-in user, and anonymous callers one shared bucket', () => {
     expect(searchPrincipal({ ctx: { userData: { userId: 'u1' } } })).toBe('user:u1');
-    expect(searchPrincipal({ ctx: { userData: {} } })).toBe('anonymous');
-    expect(searchPrincipal({ ctx: { userData: { userId: 'anonymous' } } })).toBe('anonymous');
-    expect(searchPrincipal(undefined)).toBe('anonymous');
+    expect(searchPrincipal({ ctx: { userData: {} } })).toBe(ANONYMOUS);
+    expect(searchPrincipal({ ctx: { userData: { userId: 'anonymous' } } })).toBe(ANONYMOUS);
+    expect(searchPrincipal({ ctx: { userData: { userId: 'anon:1f0c' } } })).toBe(ANONYMOUS);
+    expect(searchPrincipal(undefined)).toBe(ANONYMOUS);
+  });
+
+  it('makes two anon:<uuid> sessions share one smaller hourly bucket', async () => {
+    vi.stubEnv('SEARCH_MAX_ANON_PER_HOUR', '2');
+    // The shared anonymous bucket lives on its own key here so reruns start empty.
+    const original = rateLimiter.checkShared.bind(rateLimiter);
+    const anonKey = `${PERSON_KEY}:${ANONYMOUS}`;
+    const isolated = `${anonKey}:isolated-${Date.now()}`;
+    const anonLimits: number[] = [];
+    vi.spyOn(rateLimiter, 'checkShared').mockImplementation(async (key, max, windowMs, cost) => {
+      if (key === anonKey) anonLimits.push(max);
+      return original(key === anonKey ? isolated : key, max, windowMs, cost);
+    });
+    generateContent.mockResolvedValue(
+      grounded('An answer.', [{ title: 'a', to: 'https://a.com/' }])
+    );
+    const session = (id: string) => searchPrincipal({ ctx: { userData: { userId: id } } });
+    expect(await runWebSearch('one', session('anon:11111111-aaaa'))).toContain('An answer.');
+    expect(await runWebSearch('two', session('anon:22222222-bbbb'))).toContain('An answer.');
+    expect(await runWebSearch('three', session('anon:33333333-cccc'))).toBe(CAPPED);
+    expect(anonLimits).toEqual([2, 2, 2]);
+    expect(generateContent).toHaveBeenCalledTimes(2);
+    expect(maxAnonSearchesPerHour({})).toBe(10);
   });
 });
