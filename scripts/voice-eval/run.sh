@@ -98,12 +98,13 @@ caller=${CALLER_VOICE:-say}
 if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} && -z ${EVAL_DRY_RUN:-} ]]; then
   export CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret=cartesia-api-key --project=johnb-2025 2>/dev/null)
 fi
-# The agent takes user_id only from a dispatch signed with its LiveKit API secret
-# (#1212), so job_meta signs it the way our server does (eval-dispatch.ts).
+# The agent takes user_id only from a signed dispatch (#1212), and on LiveKit
+# Cloud only dispatch-signing-secret verifies (#1706), so job_meta signs with it
+# the way our server does (eval-dispatch.ts).
 # Unsigned, every call is a new anonymous caller and EVAL_SEED proves nothing.
 # EVAL_DISPATCH_SECRET skips the lookup. The secret is never printed.
 if [[ $env != phone && -z ${EVAL_DRY_RUN:-} && -z ${EVAL_DISPATCH_SECRET:-} ]]; then
-  if [[ $env == prod ]]; then dsecret=livekit-api-secret; else dsecret=livekit-dev-api-secret; fi
+  dsecret=dispatch-signing-secret
   export EVAL_DISPATCH_SECRET=$(gcloud secrets versions access latest --secret=$dsecret --project=johnb-2025 2>/dev/null || true)
   [[ -n $EVAL_DISPATCH_SECRET ]] ||
     print -u2 "run.sh: can't read $dsecret, so the call goes unsigned and the agent takes $uid as a stranger"
