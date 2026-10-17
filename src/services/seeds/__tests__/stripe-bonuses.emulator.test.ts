@@ -5,22 +5,25 @@
  *
  * Runs when FIRESTORE_EMULATOR_HOST is set (CI: data-layer-e2e.yml).
  */
-import admin from 'firebase-admin';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
+import type { Firestore } from 'firebase-admin/firestore';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+// src/tests/setup.ts fakes firebase-admin for every test; this file reads the emulator
+vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
 import { handleWebhookEvent } from '../../billing/stripe-subscription.js';
 import { STARTER_SEEDS } from '../ledger.js';
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
-let db: admin.firestore.Firestore;
+let db: Firestore;
 let uid: string;
 
 beforeAll(() => {
   if (!emulator) return;
-  // The handler uses the default app, as in production
-  if (!admin.apps.some((a) => a?.name === '[DEFAULT]')) {
-    admin.initializeApp({ projectId: 'demo-seed-ledger' });
-  }
-  db = admin.firestore();
+  // The handler uses the default app, as in production. The helper takes the
+  // project from env, so pin this file's emulator project the way it was before.
+  process.env.GCP_PROJECT_ID ??= 'demo-seed-ledger';
+  db = getAdminFirestore();
 });
 
 beforeEach(() => {
