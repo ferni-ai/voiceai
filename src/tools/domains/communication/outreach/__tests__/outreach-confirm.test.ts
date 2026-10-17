@@ -388,6 +388,30 @@ describe('isClearYes', () => {
     }
   });
 
+  it('takes a yes that restates the same action (owner call 2026-10-17)', () => {
+    for (const yes of [
+      'Uh, yeah, go ahead. Go ahead and give her a call.',
+      'Yes, you, you need to call her.',
+      'Yeah, call her now.',
+      'Go ahead and call him.',
+    ]) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+    // A restatement that adds anything (someone else, a time, a different action) is not plain.
+    for (const notYes of [
+      'Yes, and call Bob.',
+      'Go ahead and give her a call tomorrow.',
+      'Yes, you need to call her mom.',
+      'Go ahead and text her.',
+      'and',
+      'you need to',
+      'give her a call',
+      'now',
+    ]) {
+      expect(isClearYes(notYes), notYes).toBe(false);
+    }
+  });
+
   it('a name, a filler or an echo alone is not a yes, and a yes with words to send is not plain', () => {
     for (const notYes of ['Ferni.', 'she should', 'um', 'hey buddy', 'of course?']) {
       expect(isClearYes(notYes), notYes).toBe(false);
