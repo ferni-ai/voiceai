@@ -31,7 +31,17 @@ import {
   startCrisisClassifier,
   turnVerdicts,
   type CrisisGenerateFn,
+  type CrisisVerdict,
 } from '../../services/safety/crisis-classifier.js';
+import {
+  CHECK_IN_CLEARED,
+  CHECK_IN_LINE,
+  checkInAnswer,
+  checkInEligible,
+  claimCheckIn,
+  resolveCrisisSoftCheck,
+  type CheckInTurn,
+} from '../../services/safety/crisis-soft-check.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
@@ -48,6 +58,7 @@ import {
 } from '../safety/crisis-shadow.js';
 import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
 import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { followCheckInSilence } from '../safety/crisis-check-in-silence.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { getDeliberator } from './deliberation.js';
@@ -62,7 +73,7 @@ const log = createLogger({ module: 'CrisisGate' });
 export type CrisisGateDecision =
   | { action: 'pass' }
   | { action: 'guide'; guidance: string }
-  | { action: 'replace'; script: string };
+  | { action: 'replace'; script: string; checkIn?: true };
 
 export interface CrisisGateTurn {
   /** What the patterns decided, before the LLM is asked. */
@@ -126,6 +137,51 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
 }
 
 /**
+ * A turn answering the check-in (crisis-soft-check.ts): a clear yes adds a
+ * note; anything else gets the crisis response the check-in stood in for.
+ * `floor` is what the classifier must beat: a clear yes is a note, not a
+ * crisis decision, so the classifier may still escalate past it.
+ */
+function answeredDecision(
+  patterns: CrisisGateDecision,
+  answer: ReturnType<typeof checkInAnswer>
+): { decision: CrisisGateDecision; floor: CrisisGateDecision } {
+  if (!answer) return { decision: patterns, floor: patterns };
+  const held = decisionFor(answer.crisis);
+  const decision: CrisisGateDecision =
+    answer.outcome === 'safe'
+      ? { action: 'guide', guidance: CHECK_IN_CLEARED }
+      : RANK[held.action] > RANK[patterns.action]
+        ? held
+        : patterns;
+  log.info({ action: decision.action, source: 'check_in', answer: answer.outcome }, 'CRISIS_GATE');
+  return { decision, floor: answer.outcome === 'safe' ? patterns : decision };
+}
+
+/** CRISIS_IMMINENT_SOFT_CHECK: the call's id, and this turn's answer if it answers a check-in. */
+function checkInState(
+  env: Record<string, string | undefined>,
+  userData: unknown,
+  turn: { latest: string; companion?: string; pattern: CheckInTurn['pattern'] }
+): { checkIn?: string; answer: ReturnType<typeof checkInAnswer> } {
+  const checkIn = resolveCrisisSoftCheck(env) ? sessionScope(userData) : undefined;
+  return { checkIn, answer: checkIn ? checkInAnswer(checkIn, turn) : null };
+}
+
+/** The call's one check-in in place of a classifier-only escalation, or null. */
+function checkInInstead(
+  checkIn: string | undefined,
+  turn: CheckInTurn,
+  detection: CrisisDetectionResult,
+  merged: CrisisDetectionResult
+): CrisisGateDecision | null {
+  if (!checkIn || !checkInEligible(turn, detection)) return null;
+  if (!claimCheckIn(checkIn, turn.latest, merged, true)) return null;
+  log.info({ action: 'check_in', source: 'classifier' }, 'CRISIS_GATE');
+  return { action: 'replace', script: CHECK_IN_LINE, checkIn: true };
+}
+
+/**
  * Decide this reply's crisis handling from the request about to go to the LLM.
  * Null when the gate is off or in shadow, or there are no caller words.
  */
@@ -144,16 +200,18 @@ export function startCrisisGate(
   const detection = detectCrisis(latest, toGuardVoiceEmotion(voiceEmotion), {
     recentMessages: earlier,
   });
-  const decision = decisionFor(detection);
-  if (decision.action !== 'pass') {
+  const patterns = decisionFor(detection);
+  if (patterns.action !== 'pass') {
     log.info(
-      { action: decision.action, source: 'patterns', indicators: detection.indicators },
+      { action: patterns.action, source: 'patterns', indicators: detection.indicators },
       'CRISIS_GATE'
     );
   }
 
   const pattern =
-    decision.action === 'replace' ? 'block' : decision.action === 'guide' ? 'crisis' : 'none';
+    patterns.action === 'replace' ? 'block' : patterns.action === 'guide' ? 'crisis' : 'none';
+  const { checkIn, answer } = checkInState(env, userData, { latest, companion, pattern });
+  const { decision, floor } = answeredDecision(patterns, answer);
   // The agreement gate weighs this read against the turn pipeline's (crisis-agreement.ts).
   const scope = resolveCrisisAgreementGate(env) ? sessionScope(userData) : undefined;
   const run = startCrisisClassifier(
@@ -166,18 +224,20 @@ export function startCrisisGate(
     const merged = applyClassifierVerdict(detection, verdict);
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
-    if (RANK[stronger.action] <= RANK[decision.action]) return null;
+    if (RANK[stronger.action] <= RANK[floor.action]) return null;
+    let verdicts: Array<CrisisVerdict | null> = [verdict];
     if (scope) {
       // Fail closed: a failed lookup counts as a missing read, which escalates.
-      const verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [
-        null,
-      ]);
+      verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [null]);
       const outcome = agreementOutcome({ pattern, verdicts, latest, earlier, companion });
       if (outcome !== 'escalate') {
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
         return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
       }
     }
+    const turn = { pattern, verdicts, latest, earlier, companion } as const;
+    const instead = answer ? null : checkInInstead(checkIn, turn, detection, merged);
+    if (instead) return instead;
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
@@ -257,6 +317,15 @@ export function holdUntilCleared(
   });
 }
 
+/** A fixed reply; after the check-in, its silence is followed (crisis-check-in-silence.ts). */
+function scripted(
+  decision: { script: string; checkIn?: true },
+  session: object
+): ReadableStream<Chunk> {
+  if (decision.checkIn) followCheckInSilence(session);
+  return textReply(decision.script);
+}
+
 /**
  * A crisis turn: no background thought now or for the next few turns
  * (deliberation.ts), and no small-step invite for the rest of the call
@@ -333,7 +402,7 @@ export async function gatedReply(
   if (!reply || !gate?.escalation) return reply;
   return holdUntilCleared(reply, gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
-    if (decision.action === 'replace') return textReply(decision.script);
+    if (decision.action === 'replace') return scripted(decision, session);
     if (decision.action === 'pass') return null;
     return ask(
       withTurnStyleReminder(plain(), decision.guidance),
