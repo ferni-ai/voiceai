@@ -78,6 +78,8 @@ jobs:
           # Caption flags (apps/web/src/ui/captions/captions-flag.ts); off unless exactly "true".
           VITE_CAPTIONS_V2: ${{ vars.VITE_CAPTIONS_V2 }}
           VITE_CAPTIONS_BREATH: ${{ vars.VITE_CAPTIONS_BREATH }}
+          # What Ferni Knows (apps/web/src/ui/memory/known.ts); off unless exactly "true".
+          VITE_MEMORY_VIEW: ${{ vars.VITE_MEMORY_VIEW }}
 
       - name: Deploy to Firebase (ferni-prod)
         id: deploy-ferni
