@@ -28,6 +28,7 @@ import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
 import { limitApiRequest } from '../../api/global-rate-limit.js';
 import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
+import { bindBodyLimitResponse } from '../../api/bounded-body.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { parseRawBody } from '../../api/helpers.js';
 
@@ -261,10 +262,9 @@ if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
   process.exit(1);
 }
 
-/**
- * Create the HTTP server
- */
-const server = http.createServer((req, res) => respondOnRejection(res, handleRequest(req, res)));
+const server = http.createServer((req, res) =>
+  respondOnRejection(res, handleRequest(bindBodyLimitResponse(req, res), res))
+);
 async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   addRequestId(req, res); // request ID for tracing
 

@@ -8,6 +8,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { readCappedJsonBody, type BodyLimitOptions } from './bounded-body.js';
 import { API_ERRORS } from './error-messages.js';
 import { isVerifiedAdmin } from './rate-limit-identity.js';
 import {
@@ -23,27 +24,18 @@ import {
 import { z, type ZodSchema, type ZodError } from 'zod';
 
 /**
- * Parse JSON body from incoming request
+ * Parse a JSON request body ({} when empty). The body is capped while it
+ * streams: API_MAX_BODY_BYTES (1 MB by default), or `options.maxBytes` for a
+ * route that takes more. Over the cap the request is answered 413 for the
+ * caller (bounded-body.ts).
  *
- * @param req - Incoming HTTP request
- * @returns Parsed JSON body
- * @throws Error if body is invalid JSON
+ * @throws BodyTooLargeError over the cap, Error if body is invalid JSON
  */
-export async function parseBody<T = unknown>(req: IncomingMessage): Promise<T> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk: Buffer) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        resolve(body ? (JSON.parse(body) as T) : ({} as T));
-      } catch {
-        reject(new Error('Invalid JSON body'));
-      }
-    });
-    req.on('error', reject);
-  });
+export async function parseBody<T = unknown>(
+  req: IncomingMessage,
+  options: BodyLimitOptions = {}
+): Promise<T> {
+  return readCappedJsonBody<T>(req, options);
 }
 
 /**

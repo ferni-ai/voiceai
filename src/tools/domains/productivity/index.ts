@@ -18,6 +18,12 @@ import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 // Import legacy tool creators
 import { createTaskTools } from './tasks.js';
 import { createNotesTools } from './notes.js';
+import {
+  callJournalGratitude,
+  callJournalOn,
+  callJournalSaveNote,
+  callJournalTool,
+} from './call-journal.js';
 import { createRoutineTools } from './routines.js';
 import { createShoppingTools } from '../home/shopping.js';
 import { createBillTools } from '../finance/bills.js';
@@ -90,6 +96,7 @@ function getTaskToolDefinitions(): ToolDefinition[] {
 
 function getNotesToolDefinitions(): ToolDefinition[] {
   const legacyTools = createNotesTools();
+  const callJournal = callJournalOn(); // CALL_JOURNAL: journal writes go to the person's journal
 
   // Consolidated: saveNote handles notes/gratitude/mood, getNotes combines recent+search,
   // journal combines start/complete/history/prompts into one tool
@@ -98,7 +105,7 @@ function getNotesToolDefinitions(): ToolDefinition[] {
       'saveNote',
       'Save Note',
       'Save a note, thought, gratitude, or mood entry. Specify type: "note", "gratitude", or "mood".',
-      legacyTools.saveNote,
+      callJournal ? callJournalSaveNote(legacyTools.saveNote) : legacyTools.saveNote,
       ['notes', 'create', 'gratitude', 'mood']
     ),
     wrapLegacyTool(
@@ -112,9 +119,20 @@ function getNotesToolDefinitions(): ToolDefinition[] {
       'journal',
       'Journal',
       'Start a journaling session, record entries, get prompts, or view journal history. Action: "start", "write", "prompt", or "history".',
-      legacyTools.startJournal,
+      callJournal ? callJournalTool(legacyTools.startJournal) : legacyTools.startJournal,
       ['notes', 'journal']
     ),
+    ...(callJournal
+      ? [
+          wrapLegacyTool(
+            'addGratitude',
+            'Add Gratitude',
+            'Save what the person is grateful for to their journal, in their own words.',
+            callJournalGratitude(),
+            ['notes', 'journal', 'gratitude']
+          ),
+        ]
+      : []),
   ];
 }
 

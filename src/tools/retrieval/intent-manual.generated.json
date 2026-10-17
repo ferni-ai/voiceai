@@ -9513,18 +9513,18 @@
       ],
       "descriptionHash": "2a258bb1c2"
     },
-    "handoffToJohn": {
+    "handoffToHenry": {
       "domain": "handoff",
-      "description": "Transfer conversation to Henry Caldwell, who specializes in undefined.",
+      "description": "Transfer conversation to Henry Caldwell, who specializes in Index investing and long-term wealth - low-cost funds, staying the course, and putting investors first.",
       "queries": [
-        "I want to get some classic, straightforward advice on low-cost investing from John.",
-        "Put me on the line with John Bogle please.",
-        "I have been thinking about index funds and long-term investing, is John Bogle around to talk?",
-        "I want to speak with John Bogle because I need to understand the basic philosophy of long-term index investing without all the Wall Street noise.",
-        "Can you transfer me to John Bogle?",
-        "Talk to John Bogle."
+        "I want to get some classic, straightforward advice on low-cost investing from Henry.",
+        "Put me on the line with Henry Caldwell please.",
+        "I have been thinking about index funds and long-term investing, is Henry Caldwell around to talk?",
+        "I want to speak with Henry Caldwell because I need to understand the basic philosophy of long-term index investing without all the Wall Street noise.",
+        "Can you transfer me to Henry Caldwell?",
+        "Talk to Henry Caldwell."
       ],
-      "descriptionHash": "bd8900d96c"
+      "descriptionHash": "e570fc3ab8"
     },
     "handoffToJordan": {
       "domain": "handoff",
@@ -9598,7 +9598,7 @@
     },
     "handoffToPeter": {
       "domain": "handoff",
-      "description": "Transfer conversation to Peter, who specializes in undefined.",
+      "description": "Transfer conversation to Peter John, who specializes in Research & insights - synthesizes patterns across all domains to drive action and goal setting.",
       "queries": [
         "Peter is clearly the one who should be in charge here.",
         "I definitely need Peter's input on this situation.",
@@ -9613,7 +9613,20 @@
         "sometime, I mean, Peter's expertise is precisely what I require here.",
         "Transfer directly to Peter, please and thank you."
       ],
-      "descriptionHash": "49075e5e65"
+      "descriptionHash": "6fbf3bbf1d"
+    },
+    "handoffToTom": {
+      "domain": "handoff",
+      "description": "Transfer conversation to Tom Brannigan, who specializes in Stock picking and investment education - finding great companies by investing in what you know.",
+      "queries": [
+        "I want to talk to Tom about picking individual stocks.",
+        "Put me on the line with Tom Brannigan please.",
+        "I keep noticing a store that's always packed, is Tom Brannigan around to help me research the company?",
+        "Can you transfer me to Tom Brannigan?",
+        "I need the stock picker, the one who finds companies by paying attention.",
+        "Talk to Tom Brannigan."
+      ],
+      "descriptionHash": "b19a53ffb2"
     },
     "headlineWriter": {
       "domain": "reflection-games",

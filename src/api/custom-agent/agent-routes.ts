@@ -16,6 +16,7 @@ import {
 } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CreateCustomAgentRequest, CustomAgent } from '../../types/custom-agent-api.js';
 import { sendJson } from './helpers.js';
+import { withoutJournalEcho, withStoreJournal } from './journal-view.js';
 
 const log = createLogger({ module: 'CustomAgentRoutes' });
 
@@ -57,7 +58,7 @@ export async function handleListAgents(
   userId: string
 ): Promise<boolean> {
   const agents = await listCustomAgents(userId);
-  sendJson(res, 200, agents);
+  sendJson(res, 200, await Promise.all(agents.map((agent) => withStoreJournal(userId, agent))));
   return true;
 }
 
@@ -77,7 +78,7 @@ export async function handleGetAgent(
     return true;
   }
 
-  sendJson(res, 200, agent);
+  sendJson(res, 200, await withStoreJournal(userId, agent));
   return true;
 }
 
@@ -92,14 +93,14 @@ export async function handleUpdateAgent(
 ): Promise<boolean> {
   const body = await parseBody<Partial<CustomAgent>>(req);
 
-  const agent = await updateCustomAgent(userId, agentId, body);
+  const agent = await updateCustomAgent(userId, agentId, withoutJournalEcho(body));
   if (!agent) {
     sendJson(res, 404, { error: 'Agent not found' });
     return true;
   }
 
   log.info({ userId, agentId }, 'Custom agent updated');
-  sendJson(res, 200, agent);
+  sendJson(res, 200, await withStoreJournal(userId, agent));
   return true;
 }
 

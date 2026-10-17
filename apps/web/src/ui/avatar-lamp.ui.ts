@@ -30,6 +30,7 @@ import { gsap } from '../utils/gsap-setup.js';
 import { prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { disposePorchLight, initPorchLight } from './porch-light.ui.js';
 
 const log = createLogger('AvatarLamp');
 
@@ -104,14 +105,11 @@ export function initAvatarLamp(): void {
     return;
   }
 
-  // Inject styles
   injectLampStyles();
-
-  // Start breathing
   startBreathing();
-
-  // Set up event listeners
   setupEventListeners();
+  // The lamp's light: warm, on calls started in the caller's small hours (VITE_PORCH_LIGHT).
+  initPorchLight();
 
   state.isInitialized = true;
   log.info('🎬 Avatar Lamp initialized - Luxo Jr. mode activated!');
@@ -126,6 +124,7 @@ export function disposeAvatarLamp(): void {
 
   stopBreathing();
   emotionTimeline?.kill();
+  disposePorchLight();
 
   avatarContainer = null;
   coachAvatar = null;

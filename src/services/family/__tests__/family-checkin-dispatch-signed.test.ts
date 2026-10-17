@@ -81,6 +81,9 @@ describe('a family check-in dispatch', () => {
       type: 'family_checkin',
       sponsorName: 'Seth',
       sponsorUserId: 'seth-uid',
+      // what a "stop calling" on the call needs: whose consent, which number
+      sponsoredIdentityId: 'doug-id',
+      familyMemberPhone: '8015550100',
     });
   });
 });

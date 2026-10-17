@@ -15,6 +15,7 @@ import {
   registerBargeInJudge,
 } from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
+import { installMoveLog, noteMove } from '../personas/move-log.js';
 import {
   createBargeInFastPath,
   installBackchannelHook,
@@ -98,6 +99,9 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       { event: 'user_state_changed', handler: bargeIn.onUserState }
     );
   }
+
+  // MOVE_OUTCOMES=on: which moves each reply made, for the after-call record (move-log.ts).
+  installMoveLog(session, sessionId, sessionWithEvents, sessionEventHandlers);
 
   // callUser rings the caller's verified phone through outreach (call-user-port.ts).
   installCallUserPort();
@@ -292,6 +296,16 @@ export async function startTurnSounds(input: TurnSoundsInput) {
         )
       );
     }
+    // A backchannel is a move too, on the reply whose answer it is heard in.
+    const play = clips.playClip;
+    return {
+      ...clips,
+      playClip: (text: string) => {
+        const played = play(text);
+        if (played) noteMove(session, 'backchannel');
+        return played;
+      },
+    };
   }
   return clips;
 }

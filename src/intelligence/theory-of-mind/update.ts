@@ -15,6 +15,7 @@ import {
   type Moment,
   type Pattern,
   type ToldItem,
+  sensitivityKey,
 } from './types.js';
 
 export const ESTABLISHED_MOMENTS = 2;
@@ -56,10 +57,13 @@ function mergePatterns(
   patterns: Pattern[],
   reading: CallReading,
   sessionId: string,
-  at: string
+  at: string,
+  rejected: ReadonlySet<string>
 ): Pattern[] {
   const byKey = new Map(patterns.map((p) => [p.key, { ...p, moments: [...p.moments] }]));
   for (const o of reading.observations) {
+    // The caller said this reading is wrong; a friend doesn't keep believing it.
+    if (rejected.has(o.key)) continue;
     const moment: Moment = { sessionId, at, cue: o.cue };
     const prev = byKey.get(o.key);
     if (prev) {
@@ -109,18 +113,25 @@ export function applyCallReading(
       ? model.current
       : undefined;
 
+  // A sensitivity the caller asked Ferni to forget isn't re-added by a later call.
+  const forgotten = new Set(model.rejectedSensitivities ?? []);
+  const heard = reading.sensitivities.filter((s) => !forgotten.has(sensitivityKey(s.topic)));
   const sensitivities = [
-    ...reading.sensitivities.map((s) => ({ ...s, at })),
-    ...model.sensitivities.filter(
-      (s) => !reading.sensitivities.some((n) => norm(n.topic) === norm(s.topic))
-    ),
+    ...heard.map((s) => ({ ...s, at })),
+    ...model.sensitivities.filter((s) => !heard.some((n) => norm(n.topic) === norm(s.topic))),
   ].slice(0, MAX_SENSITIVITIES);
 
   const next: MindModel = {
     ...model,
     calls: model.calls + 1,
     toldFerni: mergeTold(model.toldFerni, reading.told, at),
-    patterns: mergePatterns(model.patterns, reading, sessionId, at),
+    patterns: mergePatterns(
+      model.patterns,
+      reading,
+      sessionId,
+      at,
+      new Set((model.rejected ?? []).map((r) => r.key))
+    ),
     sensitivities,
     updatedAt: at,
   };

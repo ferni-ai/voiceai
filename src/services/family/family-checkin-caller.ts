@@ -209,11 +209,7 @@ export async function initiateCheckinCall(
       return { success: false, callId: callRecord.id, error: callResult.error };
     }
 
-    return {
-      success: true,
-      callId: callRecord.id,
-      status: 'in_progress',
-    };
+    return { success: true, callId: callRecord.id, status: 'in_progress' };
   } catch (error) {
     log.error(
       { scheduleId: schedule.id, error: String(error) },
@@ -329,6 +325,9 @@ async function initiateViaLiveKitSip(
       callId,
       sponsorUserId: schedule.sponsorUserId,
       sponsorName,
+      // Whose consent a "stop calling" withdraws, and the number put on the do-not-call list
+      sponsoredIdentityId: schedule.sponsoredIdentityId,
+      familyMemberPhone: schedule.phoneNumber,
       familyMemberName: schedule.familyMemberName,
       relationship: schedule.relationship,
       systemPrompt,
