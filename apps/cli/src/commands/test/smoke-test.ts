@@ -79,13 +79,18 @@ async function testAgentsEndpoint(): Promise<void> {
   const response = await fetchWithTimeout(`${BASE_URL}/api/agents`);
   if (!response.ok) throw new Error(`Agents endpoint failed: ${response.status}`);
   // The endpoint answers { agents: [...] }; older builds sent the bare array
-  const body = (await response.json()) as { agents?: unknown } | unknown[];
-  const data = Array.isArray(body) ? body : body.agents;
+  const body: unknown = await response.json();
+  const data: unknown =
+    typeof body === 'object' && body !== null && !Array.isArray(body) && 'agents' in body
+      ? body.agents
+      : body;
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error('No agents returned');
   }
   // Verify required agent exists
-  const ferni = (data as { id: string }[]).find((a) => a.id === 'ferni');
+  const ferni = data.find(
+    (a: unknown) => typeof a === 'object' && a !== null && 'id' in a && a.id === 'ferni'
+  );
   if (!ferni) throw new Error('Ferni agent not found');
 }
 
