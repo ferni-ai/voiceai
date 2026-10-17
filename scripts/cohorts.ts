@@ -143,9 +143,9 @@ export function planWrites(a: Args, uid: string | undefined, now: string): Write
     case 'disable':
       return cohort({ enabled: a.cmd === 'enable' });
     case 'override':
-      return [{ collection: 'feature_flag_overrides', doc: needUid(), kind: 'merge', fields: { flags: { [cohortFlag(second)]: onOff(third) }, updatedAt: now } }]; // prettier-ignore
+      return [{ collection: 'feature_flag_overrides', doc: needUid(), kind: 'merge', fields: { flags: { [cohortFlag(first)]: onOff(second) }, updatedAt: now } }]; // prettier-ignore
     case 'clear-override':
-      return [{ collection: 'feature_flag_overrides', doc: needUid(), kind: 'update', fields: { updatedAt: now }, deleteFields: [`flags.${cohortFlag(second)}`] }]; // prettier-ignore
+      return [{ collection: 'feature_flag_overrides', doc: needUid(), kind: 'update', fields: { updatedAt: now }, deleteFields: [`flags.${cohortFlag(first)}`] }]; // prettier-ignore
     default:
       return [];
   }
@@ -177,7 +177,9 @@ export async function run(argv: string[], deps: RunDeps): Promise<number> {
   const a = parseArgs(argv);
   const store = a.project ? await deps.store(a.project) : null;
   const person = a.cmd === 'override' || a.cmd === 'clear-override' || a.cmd === 'who';
-  const lookup = person ? a.positional.shift() : undefined; // <uid|email>
+  // The person comes first (`override <uid|email> FLAG on|off`) unless --uid / --email named
+  // them; either way the flag and its value are then positional[0] and [1].
+  const lookup = person && !a.uid && !a.email ? a.positional.shift() : undefined;
   const email = a.email ?? (lookup?.includes('@') ? lookup : undefined);
   let uid = a.uid ?? (lookup && !lookup.includes('@') ? lookup : undefined);
   if (email) {
