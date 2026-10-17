@@ -644,10 +644,10 @@ class SettingsMenuUI {
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory'))}
             ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
-            ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane'), t('common.new'))}
+            ${this.renderMenuItem('memory-lane', ICONS.book, t('menu.items.memoryLane'))}
             ${isPatternInsightsOn() ? this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights')) : ''}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
-            ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear'), t('common.new'))}
+            ${this.renderMenuItem('your-year', ICONS.sparkles, t('menu.items.yourYear'))}
           `
           )}
 
@@ -658,7 +658,7 @@ class SettingsMenuUI {
             expandedSections.has('waysToConnect'),
             `
             ${this.renderMenuItem('journal', ICONS.journal, t('menu.items.journaling'))}
-            ${this.renderMenuItemWithBadge('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz'), t('common.new'))}
+            ${this.renderMenuItem('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz'))}
             ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
             ${this.renderMenuItem('vibe-controller', ICONS.sparkles, t('menu.items.setTheVibe'))}

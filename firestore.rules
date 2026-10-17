@@ -35,52 +35,62 @@ service cloud.firestore {
     // ============================================================================
     
     match /bogle_users/{userId} {
-      // Users can only read/write their OWN profile
-      // Admin/service accounts can read any profile for support
+      // Owners read their own profile; admin/service accounts read any (support).
       allow read: if isOwner(userId) || isAdmin() || isServiceAccount();
-      
-      // Users can only write their own profile
-      // Service accounts (backend) can write any profile
-      allow create: if isOwner(userId) || isServiceAccount();
-      allow update: if isOwner(userId) || isServiceAccount();
-      
+
+      // No client writes, ever. Every write goes through the server (Admin SDK,
+      // which bypasses these rules), which checks what it writes. This doc holds
+      // whom we may text or call (linkedIdentifiers, outreachPreferences) and
+      // billing state (tier, subscription*): a client writing
+      // linkedIdentifiers: ['phone:+1<someone>'] plus sms consent would have
+      // gotten that person texted. No first-party client uses the Firestore SDK
+      // (web is auth-only; native apps have none), so nothing breaks.
+      // isAdmin here grants nothing: the server reads admin from Firebase
+      // custom claims (request.auth.token.admin), not from this document.
+      allow create, update: if isServiceAccount();
+
       // Only admins can delete profiles (GDPR requests go through admin)
       allow delete: if isAdmin();
-      
-      // Subcollections under user profile
+
+      // Subcollections: owner reads, server writes. Any subcollection not
+      // listed here is denied to clients entirely (the default).
       match /summaries/{summaryId} {
-        allow read, write: if isOwner(userId) || isServiceAccount();
+        allow read: if isOwner(userId) || isServiceAccount();
+        allow write: if isServiceAccount();
       }
-      
+
       match /moments/{momentId} {
-        allow read, write: if isOwner(userId) || isServiceAccount();
+        allow read: if isOwner(userId) || isServiceAccount();
+        allow write: if isServiceAccount();
       }
-      
+
       match /goals/{goalId} {
-        allow read, write: if isOwner(userId) || isServiceAccount();
+        allow read: if isOwner(userId) || isServiceAccount();
+        allow write: if isServiceAccount();
       }
-      
+
       // Trust profiles (boundaries, growth, inside jokes, etc.)
       match /trust_profiles/{profileId} {
-        allow read, write: if isOwner(userId) || isServiceAccount();
+        allow read: if isOwner(userId) || isServiceAccount();
+        allow write: if isServiceAccount();
       }
-      
+
       // Utility preferences (timers, tips, timezone patterns, etc.)
-      // "Better than human" everyday helpers with cross-session memory
       match /utility_preferences/{prefId} {
-        allow read, write: if isOwner(userId) || isServiceAccount();
+        allow read: if isOwner(userId) || isServiceAccount();
+        allow write: if isServiceAccount();
       }
-      
+
       // Group conversation sessions (Team Roundtables, Conference Calls)
-      // Stores session metadata, participants, and transcripts
       match /group_sessions/{sessionId} {
-        allow read, write: if isOwner(userId) || isServiceAccount();
+        allow read: if isOwner(userId) || isServiceAccount();
+        allow write: if isServiceAccount();
       }
-      
+
       // Social graph (people mentioned in conversations)
-      // "Better than Human" - relationship network intelligence
       match /social_graph/{docId} {
-        allow read, write: if isOwner(userId) || isServiceAccount();
+        allow read: if isOwner(userId) || isServiceAccount();
+        allow write: if isServiceAccount();
       }
     }
     
