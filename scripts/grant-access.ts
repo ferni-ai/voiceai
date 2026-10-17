@@ -10,7 +10,7 @@
  * - Press/media accounts
  *
  * Usage:
- *   npx tsx scripts/grant-access.ts --email=jack.sneddon@gmail.com --tier=partner
+ *   npx tsx scripts/grant-access.ts --email=someone@example.com --tier=partner
  *   npx tsx scripts/grant-access.ts --email=test@example.com --tier=friend --name="Test User"
  */
 

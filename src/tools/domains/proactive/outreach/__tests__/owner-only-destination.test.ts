@@ -61,17 +61,28 @@ afterEach(() => vi.clearAllMocks());
 
 describe('owner-only tools ignore a destination in their arguments', () => {
   it('sendMessageNow texts the owner, not the supplied number', async () => {
+    setCallUserPort({ verifiedPhone: async () => OWNER.phone, call: vi.fn() });
     await run('sendMessageNow', { message: 'hi' });
+    setCallUserPort(undefined);
     expect(sent.sms.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
   });
 
   it('sendImmediateOutreach texts, emails and calls only the owner', async () => {
-    await run('sendImmediateOutreach', { message: 'hi', method: 'sms' });
-    await run('sendImmediateOutreach', { message: 'hi', method: 'email' });
-    await run('sendImmediateOutreach', { message: 'hi', method: 'call' });
+    // Texts and calls go to the verified phone (call-user port), like callUser.
+    const placed = vi.fn(async (..._a: unknown[]) => ({ success: true, status: 'initiated' }));
+    setCallUserPort({ verifiedPhone: async () => OWNER.phone, call: placed });
+    try {
+      await run('sendImmediateOutreach', { message: 'hi', method: 'sms' });
+      await run('sendImmediateOutreach', { message: 'hi', method: 'email' });
+      await run('sendImmediateOutreach', { message: 'hi', method: 'call' });
+    } finally {
+      setCallUserPort(undefined);
+    }
     expect(sent.sms.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
     expect(sent.email.mock.calls.map((c) => c[0])).toEqual([OWNER.email]);
-    expect(sent.call.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
+    expect(placed.mock.calls.map((c) => (c[0] as { phoneNumber: string }).phoneNumber)).toEqual([
+      OWNER.phone,
+    ]);
   });
 
   it('callUser calls only the owner, at the verified phone on the account', async () => {
@@ -93,9 +104,11 @@ describe('owner-only tools ignore a destination in their arguments', () => {
   });
 
   it('scheduleMessage / scheduleCall / scheduleEmail deliver only to the owner', async () => {
+    setCallUserPort({ verifiedPhone: async () => OWNER.phone, call: vi.fn() });
     await run('scheduleMessage', { message: 'hi', when: 'in 2 hours' });
     await run('scheduleCall', { message: 'hi', when: 'in 2 hours' });
     await run('scheduleEmail', { subject: 's', message: 'hi', when: 'in 2 hours' });
+    setCallUserPort(undefined);
     const addresses = sent.reminder.mock.calls.map(
       (c) => (c[0] as { deliveryAddress: string }).deliveryAddress
     );

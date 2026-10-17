@@ -15,7 +15,7 @@ import { factDocId } from '../extraction-firestore-docs.js';
 const call = [
   'Hey, could you call my brother?',
   'His name is Pete.',
-  "Uh, yes. It's uh 435 339 7687.",
+  "Uh, yes. It's uh 435 555 0188.",
 ];
 
 function memoryStore(rows: StoredFactRow[] = []) {
@@ -42,7 +42,7 @@ const pete = JSON.stringify([
     entityName: 'Pete',
     factType: 'attribute',
     key: 'phone number',
-    value: '435-339-7687',
+    value: '435-555-0188',
     confidence: 0.9,
   },
 ]);
@@ -73,7 +73,7 @@ describe('sweepPrompt and parseSweep', () => {
       ['Biscuit | breed = golden retriever'],
       'This call took place on Monday.'
     );
-    expect(prompt).toContain("- Uh, yes. It's uh 435 339 7687.");
+    expect(prompt).toContain("- Uh, yes. It's uh 435 555 0188.");
     expect(prompt).toContain('- Biscuit | breed = golden retriever');
     expect(prompt).toContain('This call took place on Monday.');
     expect(prompt).toMatch(/never "he", "she", "him"/);
@@ -83,7 +83,7 @@ describe('sweepPrompt and parseSweep', () => {
     const facts = parseSweep(`Here you go:\n${pete}`);
     expect(facts.map((f) => `${f.entityName} | ${f.key} = ${f.value}`)).toEqual([
       "Pete | relation to user = User's brother",
-      'Pete | phone number = 435-339-7687',
+      'Pete | phone number = 435-555-0188',
     ]);
     expect(
       parseSweep(
@@ -110,22 +110,22 @@ describe('sweepCall', () => {
 
   it('stores what was said across lines as one named fact', async () => {
     const { store, added } = memoryStore([
-      { entityName: 'him', key: 'phone number', value: '435-339-7687' },
+      { entityName: 'him', key: 'phone number', value: '435-555-0188' },
     ]);
     const prompts: string[] = [];
     const n = await sweepCall(at, { store, llm: async (p) => (prompts.push(p), pete) });
     expect(n).toBe(2);
     expect(added.map((d) => d.data.entityName)).toEqual(['Pete', 'Pete']);
     expect(added[1]).toMatchObject({
-      id: factDocId('Pete', 'phone number', '435-339-7687'),
-      data: { source: 'call_sweep', sessionId: 's1', value: '435-339-7687' },
+      id: factDocId('Pete', 'phone number', '435-555-0188'),
+      data: { source: 'call_sweep', sessionId: 's1', value: '435-555-0188' },
     });
-    expect(prompts[0]).toContain('- him | phone number = 435-339-7687'); // known facts shown
+    expect(prompts[0]).toContain('- him | phone number = 435-555-0188'); // known facts shown
   });
 
   it('never adds a fact already stored', async () => {
     const { store, added } = memoryStore([
-      { entityName: 'Pete', key: 'phone number', value: '435-339-7687' },
+      { entityName: 'Pete', key: 'phone number', value: '435-555-0188' },
     ]);
     expect(await sweepCall(at, { store, llm: async () => pete })).toBe(1);
     expect(added.map((d) => d.data.key)).toEqual(['relation to user']);
