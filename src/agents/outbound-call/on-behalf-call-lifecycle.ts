@@ -59,6 +59,12 @@ const VOICEMAIL_CUES =
 /** The person asked not to be called again: never retried, and the number is put on the do-not-call list. */
 const OPT_OUT_CUES =
   /\b((don'?t|do not|never) (ever )?call (me|us|here|this number)( again)?|(don'?t|do not|never) (ever )?call (again|back|anymore)|(stop|quit) calling|do not call|lose (this|my) number|(remove|take) (me|us|this number) off)\b/i;
+/** Transcripts may carry typographic apostrophes ("don’t"); match them as straight ones. */
+const straightApostrophes = (said: string): string =>
+  said.replace(/[\u2018\u2019\u02bc`\u2032]/g, "'");
+/** True when the words ask Ferni not to call again (OPT_OUT_CUES). Shared with family check-ins. */
+export const isOptOutPhrase = (said: string): boolean =>
+  OPT_OUT_CUES.test(straightApostrophes(said));
 /** The person said no: never retried. */
 const DECLINE_CUES = /\b(not interested|wrong number|no thank(s| you)|leave me alone)\b/i;
 /** A real conversation has at least two replies from the person and lasts a little while. */
@@ -74,10 +80,9 @@ export function classifyAnsweredCall(
   heard: string[],
   durationSeconds: number
 ): 'opted_out' | 'declined' | 'voicemail' | 'hung_up_early' | 'answered' {
-  // Transcripts may carry typographic apostrophes ("don’t"); match them as straight ones.
-  heard = heard.map((h) => h.replace(/[\u2018\u2019\u02bc`\u2032]/g, "'"));
+  heard = heard.map(straightApostrophes);
   // A person saying no outranks anything that looks like a voicemail greeting.
-  if (heard.some((h) => OPT_OUT_CUES.test(h))) return 'opted_out';
+  if (heard.some(isOptOutPhrase)) return 'opted_out';
   if (heard.some((h) => DECLINE_CUES.test(h))) return 'declined';
   if (heard.length <= 2 && heard.some((h) => VOICEMAIL_CUES.test(h))) return 'voicemail';
   if (heard.length < MIN_REPLIES || durationSeconds < MIN_TALK_SECONDS) return 'hung_up_early';

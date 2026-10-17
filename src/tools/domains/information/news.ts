@@ -15,11 +15,9 @@
  * - Timeout: Serve cached data with apology
  */
 
-import { llm } from '@livekit/agents';
-import { z } from 'zod';
+import { flagOn } from '../../../config/env-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
-import { getToolDescription } from '../../utils/tool-descriptions.js';
 import {
   executeWithProgressiveFeedback,
   fetchWithPriority,
@@ -175,20 +173,6 @@ function formatNewsWithSSML(
   return parts.join('');
 }
 
-/**
- * Format a single news result with natural pacing
- */
-function formatSingleNewsResult(content: string): string {
-  // Add natural pacing for longer content
-  let result = content;
-
-  // Add pauses after sentence-ending punctuation followed by capital letter
-  result = result.replace(/([.!?])\s+([A-Z])/g, '$1<break time="400ms"/> $2');
-
-  // Slightly slower for clarity
-  return `<speed ratio="0.94"/>${result}`;
-}
-
 // ============================================================================
 // NEWS SOURCE CONFIGURATIONS
 // ============================================================================
@@ -291,6 +275,18 @@ function createNewsSources(topic: string): SourceConfig[] {
 // NEWS FETCHING FUNCTIONS
 // ============================================================================
 
+/** What getGeneralNews says when no feed answered. */
+const HEADLINES_UNAVAILABLE = "I couldn't fetch the latest news right now. Check back later.";
+
+/** Honest about the missing topic search, and still useful: the top headlines. */
+async function headlinesInstead(topic: string): Promise<string> {
+  const headlines = await getGeneralNews();
+  if (headlines === HEADLINES_UNAVAILABLE) {
+    return `I can't look up news about "${topic}" right now, and the headlines aren't loading either. Try again in a bit?`;
+  }
+  return `I can't search the news for "${topic}" right now, so here are today's top headlines instead. ${headlines}`;
+}
+
 /**
  * Search news by topic using NewsData.io (primary) or fallbacks
  * Supports any topic: "Christmas", "AI", "sports", etc.
@@ -316,6 +312,15 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
       '🔍 [DIAG] Returning fresh cache'
     );
     return formatNewsWithSSML(cached.data, `Here's what's happening with ${topic}`);
+  }
+
+  // Without a NewsData or GNews key nothing here searches news by topic (the
+  // keyless DuckDuckGo answer is an encyclopedia abstract, not news), so say so
+  // and give the day's headlines, which come keyless over RSS.
+  // NEWS_HEADLINES_FALLBACK=off goes back to the DuckDuckGo answer.
+  if (!NEWSDATA_KEY && !GNEWS_KEY && flagOn('NEWS_HEADLINES_FALLBACK')) {
+    logger.warn({ topic }, '📰 No topic news key: answering with top headlines');
+    return headlinesInstead(topic);
   }
 
   // Create sources for this topic
@@ -374,8 +379,7 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
       { topic, elapsed: Date.now() - startTime },
       '🔍 [DIAG] All sources failed, trying general news'
     );
-    const generalNews = await getGeneralNews();
-    return `I couldn't find specific news about "${topic}", but here's what's happening: ${generalNews.replace(/^Top news from \w+: /, '')}`;
+    return headlinesInstead(topic);
   } catch (error) {
     logger.warn(
       { topic, error: String(error), elapsed: Date.now() - startTime },
@@ -615,7 +619,7 @@ export async function getGeneralNews(): Promise<string> {
       { elapsed: Date.now() - startTime },
       '📰 [DIAG] getGeneralNews: All sources failed'
     );
-    return "I couldn't fetch the latest news right now. Check back later.";
+    return HEADLINES_UNAVAILABLE;
   } catch (error) {
     logger.warn(
       { error: String(error), elapsed: Date.now() - startTime },
@@ -627,7 +631,7 @@ export async function getGeneralNews(): Promise<string> {
       return formatNewsWithSSML(cached.data, "Here's the news", true);
     }
 
-    return "I couldn't fetch the latest news right now. Check back later.";
+    return HEADLINES_UNAVAILABLE;
   }
 }
 
@@ -709,57 +713,3 @@ function extractRSSHeadlines(xml: string, limit: number): string[] {
 
   return headlines;
 }
-
-// ============================================================================
-// TOOL DEFINITIONS
-// ============================================================================
-
-export function createNewsTools() {
-  return {
-    getFinancialNews: llm.tool({
-      description:
-        "EXECUTE SILENTLY to get financial news. DO NOT say 'let me check the news' - call and share the headlines naturally.",
-      parameters: z.object({
-        category: z
-          .enum(['general', 'forex', 'crypto', 'merger'])
-          .optional()
-          .describe('News category, defaults to general'),
-      }),
-      execute: async ({ category = 'general' }) => {
-        getLogger().info(`Getting financial news: ${category}`);
-        return getFinancialNews(category);
-      },
-    }),
-
-    getStockNews: llm.tool({
-      description: getToolDescription('getStockNews'),
-      parameters: z.object({
-        symbol: z.string().describe('Stock ticker symbol (e.g., AAPL, TSLA)'),
-      }),
-      execute: async ({ symbol }) => {
-        getLogger().info(`Getting news for: ${symbol}`);
-        return getStockNews(symbol.toUpperCase());
-      },
-    }),
-
-    getGeneralNews: llm.tool({
-      description: getToolDescription('getGeneralNews'),
-      parameters: z.object({}),
-      execute: async () => {
-        getLogger().info('Getting general news');
-        return getGeneralNews();
-      },
-    }),
-
-    getTechNews: llm.tool({
-      description: getToolDescription('getTechNews'),
-      parameters: z.object({}),
-      execute: async () => {
-        getLogger().info('Getting tech news');
-        return getTechNews();
-      },
-    }),
-  };
-}
-
-export default createNewsTools;

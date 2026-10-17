@@ -41,6 +41,7 @@ import { handleGroupCoachingRoutes } from './routes/group-coaching.js';
 import { handleGrowthRoutes } from './routes/growth.js';
 import { handleMemoriesRoutes } from './routes/memories.js';
 import { handleRememberedRoutes } from './routes/remembered.js';
+import { handleKnownRoutes } from './routes/known.js';
 import { handlePredictionsRoutes } from './routes/predictions.js';
 import { handleRelationshipRoutes } from './routes/relationship.js';
 import { handleRitualsRoutes } from './routes/rituals.js';
@@ -170,6 +171,11 @@ export async function handleEngagementRoutes(
 
   // What Ferni remembers: the facts recall reads, to see, forget or correct
   if (await handleRememberedRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // What Ferni knows, every store in one view (MEMORY_VIEW=on)
+  if (await handleKnownRoutes(req, res, pathname, parsedUrl)) {
     return true;
   }
 
