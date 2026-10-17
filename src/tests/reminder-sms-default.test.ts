@@ -14,6 +14,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFirestore, type Row } from '../services/scheduling/__tests__/fake-firestore.js';
+import { atomicLocks } from '../services/outreach/__tests__/atomic-locks.js';
 
 const state = vi.hoisted(() => ({
   rows: [] as Array<{
@@ -40,10 +41,12 @@ const state = vi.hoisted(() => ({
   extended: [] as Array<{ reminderId: string; at: string }>,
   /** Reminders delivered to the app's message panel. */
   inApp: [] as string[],
-  /** The guarded sender's env (ON_BEHALF_TEXTS gates texts to someone else). */
+  /** The guarded sender's env (SCHEDULED_OUTREACH_THIRD_PARTY gates texts to someone else). */
   env: { LOG_HASH_SECRET: 'test-secret' } as Record<string, string>,
   /** The guarded sender's clock: noon in New York unless a test moves it. */
   now: new Date('2026-10-14T16:00:00.000Z'),
+  /** The guarded sender's send locks (TextStore lock/lockedAt/unlock), fresh per test. */
+  locks: {} as ReturnType<typeof atomicLocks>,
 }));
 
 vi.mock('../services/superhuman/firestore-utils.js', async () => {
@@ -82,6 +85,7 @@ vi.mock('../services/outreach/guarded-text.js', async (importOriginal) => {
         legacySmsChannels: async () => undefined,
         forPhoneHash: async (h: string) => state.records.filter((r) => r.phoneHash === h),
         isOptedOut: async () => state.optedOut,
+        ...state.locks,
       },
       authPhone: async () => undefined,
       send: async (m: { to: string; body: string }) => {
@@ -174,6 +178,7 @@ beforeEach(() => {
   state.extended = [];
   state.env = { LOG_HASH_SECRET: 'test-secret' };
   state.now = new Date('2026-10-14T16:00:00.000Z');
+  state.locks = atomicLocks();
   installReminderTexts(); // what the job route and the in-process scheduler's startup do
 });
 afterEach(() => {
@@ -285,7 +290,7 @@ describe('REMINDER_SMS_DEFAULT on', () => {
   it('when the verified phone changed since, the old number is never texted', async () => {
     await setReminder({ deliveryMethod: 'sms' });
     state.users[WEB_USER] = { linkedIdentifiers: ['phone:+15550001111'] };
-    state.env.ON_BEHALF_TEXTS = 'on'; // even with texts to others allowed
+    state.env.SCHEDULED_OUTREACH_THIRD_PARTY = 'on'; // even with texts to others allowed
     await deliverDueReminders({ now: soon() });
     noTexts();
     expect(state.inApp).toEqual(['take the bread out']);
@@ -294,13 +299,13 @@ describe('REMINDER_SMS_DEFAULT on', () => {
   it('a text to someone else goes through the guarded on-behalf sender, never the old one', async () => {
     await setReminder({ deliveryMethod: 'sms' });
     Object.assign(stored()[0], { deliveryAddress: MODEL_NUMBER, addressSource: undefined });
-    await deliverDueReminders({ now: soon() }); // ON_BEHALF_TEXTS off: held
+    await deliverDueReminders({ now: soon() }); // SCHEDULED_OUTREACH_THIRD_PARTY off: held
     noTexts();
     expect(state.inApp).toEqual(['take the bread out']);
 
     state.inApp = [];
     Object.assign(stored()[0], { status: 'pending' });
-    state.env.ON_BEHALF_TEXTS = 'on';
+    state.env.SCHEDULED_OUTREACH_THIRD_PARTY = 'on';
     await deliverDueReminders({ now: soon() });
     expect(state.guarded).toEqual([{ to: MODEL_NUMBER, body: BODY }]);
     expect(state.legacyTexts).toEqual([]);
