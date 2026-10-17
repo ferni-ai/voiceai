@@ -1037,6 +1037,12 @@ jobs:
         if: steps.nm-cache.outputs.cache-hit != 'true'
         run: pnpm install --no-frozen-lockfile
 
+      # Fails when a committed generated file (tokens.css, animation constants,
+      # expressions, iOS expressions.json...) is not what the generators produce
+      # from design-system/tokens/*.json. Fix: pnpm tokens:drift --fix, commit.
+      - name: Design-system drift gate
+        run: pnpm tokens:drift
+
       - name: Build design-system
         run: pnpm build:design-system
 
