@@ -51,7 +51,8 @@ export const DAY_KEY = 'web-search:day';
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const DEFAULT_MAX_PER_PERSON_HOUR = 20;
-const DEFAULT_MAX_PER_DAY = 500;
+// 150 a day is at most 4,650 a month: inside the 5,000 free Grounding Queries, so a capped month costs nothing.
+const DEFAULT_MAX_PER_DAY = 150;
 const REDIRECT_HOST = 'vertexaisearch.cloud.google.com';
 
 const NO_GUESS = "don't guess at anything live like a score, a price or today's news.";

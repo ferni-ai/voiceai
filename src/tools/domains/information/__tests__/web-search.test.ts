@@ -24,6 +24,8 @@ import {
   NOT_FOUND,
   WEB_SEARCH_TIMEOUT_MS,
   formatSearchResult,
+  maxSearchQueriesPerDay,
+  maxSearchesPerPersonHour,
   runWebSearch,
   safeAnswer,
   searchPrincipal,
@@ -258,6 +260,14 @@ describe('spend caps', () => {
     expect(await runWebSearch('second', nextCaller())).toContain('An answer.');
     expect(await runWebSearch('third', nextCaller())).toBe(CAPPED);
     expect(generateContent).toHaveBeenCalledTimes(2);
+  });
+
+  it('defaults to 20 an hour per caller and 150 queries a day, inside the 5,000 free a month', () => {
+    expect(maxSearchesPerPersonHour({})).toBe(20);
+    expect(maxSearchQueriesPerDay({})).toBe(150);
+    expect(maxSearchQueriesPerDay({}) * 31).toBeLessThanOrEqual(5000);
+    expect(maxSearchQueriesPerDay({ SEARCH_MAX_PER_DAY: '40' })).toBe(40);
+    expect(maxSearchQueriesPerDay({ SEARCH_MAX_PER_DAY: 'lots' })).toBe(150);
   });
 
   it('fails closed when the shared count is unreachable', async () => {
