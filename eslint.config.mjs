@@ -36,6 +36,8 @@ export default [
       'apps/web/**',
       'design-system/**',
       'apps/**',
+      // The CLI deploy commands are production code: lint them (typed, against apps/cli/tsconfig.json).
+      '!apps/cli/src/commands/deploy/**',
       'marketplace-agents/**',
       'e2e/**',
       'promo/**',
@@ -548,6 +550,16 @@ export default [
     rules: {
       '@typescript-eslint/no-misused-promises': ['error', { checksConditionals: true }],
       '@typescript-eslint/no-floating-promises': 'error',
+    },
+  },
+
+  // apps/cli deploy commands: typed linting against the CLI's own tsconfig (root tsconfig only covers src/).
+  {
+    files: ['apps/cli/src/commands/deploy/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: './apps/cli/tsconfig.json',
+      },
     },
   },
 ];

@@ -215,6 +215,10 @@ jobs:
       - name: Lint check
         run: pnpm lint
 
+      # Blocking ratchet: every production file's ESLint errors may not grow (baseline: lint-coverage-baseline.json).
+      - name: Lint coverage ratchet
+        run: pnpm quality:lint-coverage
+
       - name: Tool schema validation
         run: pnpm tools:schemas:validate
 
