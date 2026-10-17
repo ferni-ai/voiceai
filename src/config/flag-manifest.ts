@@ -345,6 +345,8 @@ export const FLAG_MANIFEST = {
   TTS_FORWARD_ERRORS: { default: 'off', owner: 'voice', kind: 'experiment' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // troubles talk: no shift to his own life during a trouble, replies no longer than what they told (troubles-talk.ts)
+  TROUBLES_TALK: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_INTELLIGENCE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_KEEPER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_KEEPER_SPOKE: { default: 'off', owner: 'voice', kind: 'experiment' },

@@ -25,8 +25,8 @@ import { SELF_VOICED_NOTE, SPARSE_MARKUP_NOTE, adaptSpeechMarkup } from './speec
 import { getModelProvider } from '../model-provider/index.js';
 import { withOwnLife } from '../../personas/persona-slip-guard.js';
 import { withStoryHonesty } from './ai-honesty.js';
-// Use centralized FTIS mode check - single source of truth
-import { isFtisEnabled } from '../../config/tool-config.js';
+import { isFtisEnabled } from '../../config/tool-config.js'; // centralized FTIS mode check
+import { withReflection } from './troubles-talk.js';
 
 const log = createLogger({ module: 'PromptLoader' });
 
@@ -505,7 +505,7 @@ export async function loadSystemPrompt(
 ): Promise<string> {
   if (promptMode() === 'character' && mode === 'voice_agent') {
     const character = await loadCharacterPrompt(personaId);
-    if (character) return adaptSpeechMarkup(character);
+    if (character) return adaptSpeechMarkup(withReflection(character));
   }
   return adaptSpeechMarkup(await loadSystemPromptForTTS(personaId, mode));
 }
