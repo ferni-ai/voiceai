@@ -11,23 +11,31 @@
  * - Have no meaningful profile data
  * - Have no conversation history
  *
- * Usage:
+ * Usage (dry run by default; see scripts/destructive-gate.ts):
  *   pnpm ops:profiles:clean
  *   npx tsx scripts/delete-stale-profiles.ts
- *   npx tsx scripts/delete-stale-profiles.ts --dry-run
+ *   npx tsx scripts/delete-stale-profiles.ts --execute --confirm-project=johnb-2025
  *
  * SAFETY: Real user profiles are NEVER deleted.
  */
 
 import 'dotenv/config';
 import admin from 'firebase-admin';
+import { pathToFileURL } from 'node:url';
 import { getLogger } from '../src/utils/safe-logger.js';
+import { destructiveMode, refusalMessage } from './destructive-gate.js';
 
 const log = getLogger();
 
-const DRY_RUN = process.argv.includes('--dry-run');
-
-async function deleteStaleProfiles(): Promise<void> {
+export async function main(argv: readonly string[] = process.argv): Promise<void> {
+  const projectId = process.env.GCLOUD_PROJECT || 'johnb-2025';
+  const mode = destructiveMode(argv, projectId);
+  if (mode === 'refused') {
+    console.error(refusalMessage(projectId));
+    process.exitCode = 1;
+    return;
+  }
+  const DRY_RUN = mode === 'dry-run';
   if (DRY_RUN) {
     console.log('🧪 DRY RUN MODE - No profiles will be deleted\n');
   }
@@ -36,7 +44,6 @@ async function deleteStaleProfiles(): Promise<void> {
 
   // Initialize Firebase Admin
   if (!admin.apps.length) {
-    const projectId = process.env.GCLOUD_PROJECT || 'johnb-2025';
     admin.initializeApp({ projectId });
     log.info({ projectId }, 'Firebase Admin initialized');
   }
@@ -115,7 +122,9 @@ async function deleteStaleProfiles(): Promise<void> {
   console.log(`   Remaining: ${afterSnapshot.size} profiles`);
 }
 
-deleteStaleProfiles().catch((err) => {
-  log.error({ error: String(err) }, 'Profile cleanup failed');
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    log.error({ error: String(err) }, 'Profile cleanup failed');
+    process.exit(1);
+  });
+}

@@ -18,6 +18,7 @@ import { onBodyEnd } from '../request-failure.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 import { refuseUnownedRoom } from './token-room-owner.js';
+import { handleDemoClaim } from './demo-claim.js';
 
 // Import shared rate limiting from token server module (single source of truth)
 import {
@@ -311,67 +312,9 @@ export async function handleTokenRoutes(
     return true;
   }
 
-  // Demo session claim endpoint - rate limit: 10/min (one-time operation)
+  // Demo session claim endpoint: the account comes from the verified Firebase ID token
   if (pathname === '/demo-claim' && req.method === 'POST') {
-    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
-      return true;
-    }
-    let body = '';
-    req.on('data', (chunk: Buffer) => (body += chunk.toString()));
-
-    // FIX BUG: Add error handler to prevent hanging promises on request errors
-    return new Promise((resolve) => {
-      req.on('error', (err) => {
-        log.error({ error: err.message }, 'Request error in demo claim');
-        if (!res.headersSent) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Request error' }));
-        }
-        resolve(true);
-      });
-
-      onBodyEnd(req, res, resolve, async () => {
-        try {
-          const { claim_token, firebase_uid } = JSON.parse(body) as {
-            claim_token: string;
-            firebase_uid: string;
-          };
-
-          if (!claim_token || !firebase_uid) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing claim_token or firebase_uid' }));
-            resolve(true);
-            return;
-          }
-
-          // Async - loads from Firestore if needed
-          const result = await demoSessions.claimDemoSession(claim_token, firebase_uid);
-
-          if (!result.success) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: result.error }));
-            resolve(true);
-            return;
-          }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(
-            JSON.stringify({
-              success: true,
-              already_claimed: result.alreadyClaimed,
-              conversation: result.session?.conversation,
-            })
-          );
-        } catch (err) {
-          log.error({ error: String(err) }, 'Demo claim error');
-          if (!res.headersSent) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Internal server error' }));
-          }
-        }
-        resolve(true);
-      });
-    });
+    return handleDemoClaim(req, res);
   }
 
   // Demo session update endpoint (called by voice agent) - rate limit: 30/min (frequent updates)
