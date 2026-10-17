@@ -6,7 +6,9 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { base64JsonBodyBytes } from '../bounded-body.js';
 import { parseBody } from '../helpers.js';
+import { MAX_TRANSCRIBE_BYTES } from '../../services/custom-agent/vertex-transcribe.js';
 import {
   getCustomAgent,
   addMemoryToAgent,
@@ -38,7 +40,10 @@ export async function handleCreateJournalEntry(
   const ip = rateLimitIpKey(getClientIp(req));
   const caller = { userId, isAnonymous };
   if (await refusedByTranscribeLimits(res, ip, caller)) return true;
-  const body = await parseBody<JournalEntryBody>(req);
+  // base64 audio up to the transcriber's cap; anything bigger it would refuse anyway.
+  const body = await parseBody<JournalEntryBody>(req, {
+    maxBytes: base64JsonBodyBytes(MAX_TRANSCRIBE_BYTES),
+  });
 
   if (!body.audio) {
     sendJson(res, 400, { error: 'Audio data is required' });
