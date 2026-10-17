@@ -86,10 +86,14 @@ describe('anniversaryFor', () => {
 describe('the greeting side', () => {
   it('the direction names exactly the number, and a line saying it counts as said', () => {
     expect(anniversaryDirection({ key: '1y', words: 'a year' })).toContain('Say exactly "a year"');
-    expect(lineSaysAnniversary("Hey Sam. Can't believe it's been a year of these talks.")).toBe(
+    const year = { key: '1y', words: 'a year' };
+    const three = { key: '3m', words: 'three months' };
+    expect(lineSaysAnniversary("Hey Sam. Can't believe it's been a year of these.", year)).toBe(
       true
     );
-    expect(lineSaysAnniversary('Hey Sam. How was the run?')).toBe(false);
+    expect(lineSaysAnniversary("Hey Sam. It's been three  months of this.", three)).toBe(true);
+    expect(lineSaysAnniversary('Hey Sam. How was your month?', three)).toBe(false);
+    expect(lineSaysAnniversary('Hey Sam. Big year for you at work.', year)).toBe(false);
   });
 
   it('callerHistory carries the first call, from a date or a Firestore timestamp', () => {

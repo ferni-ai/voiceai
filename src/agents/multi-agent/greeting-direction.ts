@@ -379,7 +379,7 @@ export async function directedGreeting(
     maxChars: 140,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
-  if (anniversary && !unknown && directed.source === 'actor' && lineSaysAnniversary(spoken))
+  if (anniversary && !unknown && directed.source === 'actor' && lineSaysAnniversary(spoken, anniversary))
     anniversary.mark();
   // One follow-up per call opener (opener-claim.ts): having asked, the greeting
   // keeps the first recall note from asking about a thread too.

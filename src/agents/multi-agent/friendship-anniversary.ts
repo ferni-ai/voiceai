@@ -94,9 +94,10 @@ export function anniversaryDirection(a: Anniversary): string {
   return ` It has been ${a.words} since you first talked. You may say so once, lightly, the way a friend notices ("Hey Sam. Hard to believe it's been ${a.words} of these talks."). Say exactly "${a.words}", no other number or date, no fuss, and never make it about how often they call.`;
 }
 
-/** True when the spoken line mentions it (so it counts as said). */
-export function lineSaysAnniversary(line: string): boolean {
-  return /\b(?:months?|years?)\b/i.test(line);
+/** True when the spoken line says this anniversary ("three months", "a year"), so it counts as said. */
+export function lineSaysAnniversary(line: string, a: Anniversary): boolean {
+  const words = a.words.replace(/^(?:a|one) /, '(?:a|one) ').replace(/ /g, '\\s+');
+  return new RegExp(`\\b${words}\\b`, 'i').test(line);
 }
 
 export interface AnniversaryStore {
