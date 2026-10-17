@@ -74,7 +74,7 @@ export interface KnownView {
   thinkingAbout?: KnownItem[];
 }
 
-/** The pondering document; dismissed: calls the caller put an item from down. */
+/** The pondering document; dismissed: calls the caller put an item from down (actions.ts). */
 export type StoredPondering = Pondering & { generatedAt?: string; dismissed?: string[] };
 
 /** A fact recall uses, as memory/recall/memory-control.ts lists it. */
