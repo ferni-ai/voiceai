@@ -14,6 +14,11 @@
  * Prompt tokens per section are estimates (chars/4, labelled), over the chat
  * context only; `tokens` carries the model's own counts, tool schemas included.
  *
+ * `eot` is LiveKit's end-of-turn model's last call before the commit
+ * (TURN_DETECTOR, turn-patience.ts): the model that made it (v1-mini after a
+ * cloud fallback), its probability and the threshold below which LiveKit
+ * waited its maximum. Absent when no model ran or its prediction timed out.
+ *
  * @module agents/shared/turn-receipt
  */
 import { onGatewayFirstAudio } from '../../speech/tts-gateway/first-audio-observer.js';
@@ -70,7 +75,23 @@ interface OpenTurn {
   called: string[];
   toolErrors: number;
   reply: { messages: number; chars: number; sentences: number; interrupted: boolean };
+  eot: EotCall | null;
 }
+
+/** LiveKit's end-of-turn prediction (its eot_prediction event) with the model that made it. */
+export interface EotCall {
+  model: string;
+  probability: number;
+  threshold: number;
+  /** The caller's last speech to the prediction. */
+  delayMs: number;
+}
+
+/**
+ * A prediction this old at the commit belongs to an earlier pause. The commit
+ * follows within the maximum wait (2 s) plus an unfinished-turn hold (2 s).
+ */
+const EOT_MAX_AGE_MS = 6000;
 
 export interface TurnReceiptOptions {
   sessionId: string;
@@ -93,6 +114,8 @@ export class TurnReceiptRecorder {
   private turn: OpenTurn | null = null;
   private count = 0;
   private reminder: ReminderNote | null = null;
+  /** The latest end-of-turn prediction, made before the commit it belongs to. */
+  private eot: { call: EotCall; at: number } | null = null;
   private readonly userKind: UserKind;
   private readonly now: () => number;
 
@@ -115,6 +138,7 @@ export class TurnReceiptRecorder {
       called: [],
       toolErrors: 0,
       reply: { messages: 0, chars: 0, sentences: 0, interrupted: false },
+      eot: null,
     };
     return this.turn;
   }
@@ -125,6 +149,14 @@ export class TurnReceiptRecorder {
     const turn = this.open();
     if (!turn.user) turn.personaAtStart = this.opts.persona() ?? null;
     turn.user = true;
+    const eot = this.eot;
+    this.eot = null;
+    if (eot && this.now() - eot.at <= EOT_MAX_AGE_MS) turn.eot ??= eot.call;
+  }
+
+  /** LiveKit's end-of-turn model judged the caller's pause (eot_prediction); the last one counts. */
+  onEot(call: EotCall): void {
+    this.eot = { call, at: this.now() };
   }
 
   onMetric(metric: { type?: string } & Record<string, unknown>): void {
@@ -304,6 +336,15 @@ export class TurnReceiptRecorder {
         unrecorded:
           endedBy === 'listening' && turn.speakingAt !== undefined && turn.reply.messages === 0,
       },
+      // Only with a model on, so receipts without one are unchanged.
+      ...(turn.eot && {
+        eot: {
+          ...turn.eot,
+          probability: Math.round(turn.eot.probability * 1000) / 1000,
+          threshold: Math.round(turn.eot.threshold * 1000) / 1000,
+          delayMs: Math.round(turn.eot.delayMs),
+        },
+      }),
     };
   }
 }
@@ -349,6 +390,21 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     ],
     ['conversation_item_added', (ev) => rec.onItem((ev as { item?: never } | undefined)?.item)],
     ['function_tools_executed', (ev) => rec.onToolsExecuted((ev ?? {}) as never)],
+    [
+      'eot_prediction',
+      (ev) => {
+        const p = (ev ?? {}) as { probability?: number; threshold?: number; delayMs?: number };
+        if (typeof p.probability !== 'number' || typeof p.threshold !== 'number') return;
+        // The session's detector; its model flips to v1-mini after a cloud fallback.
+        const model = (session as { turnDetection?: { model?: unknown } }).turnDetection?.model;
+        rec.onEot({
+          model: typeof model === 'string' ? model : 'unknown',
+          probability: p.probability,
+          threshold: p.threshold,
+          delayMs: p.delayMs ?? 0,
+        });
+      },
+    ],
     [
       'agent_state_changed',
       (ev) => rec.onAgentState((ev as { newState?: string } | undefined)?.newState),
