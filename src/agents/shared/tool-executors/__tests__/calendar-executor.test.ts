@@ -12,12 +12,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { calendarExecutor } from '../calendar-executor.js';
 import type { ToolExecutionContext } from '../types.js';
 
+import {
+  NOT_CONNECTED_CREATE,
+  NOT_CONNECTED_READ,
+} from '../../../../services/calendar/not-connected-copy.js';
+
 // Mock calendar service
 vi.mock('../../../../services/calendar/calendar-service.js', () => ({
   getEventsForDay: vi.fn().mockResolvedValue([]),
   getEventsForWeek: vi.fn().mockResolvedValue([]),
   createEvent: vi.fn().mockResolvedValue({ id: 'event-123' }),
   isTimeSlotAvailable: vi.fn().mockResolvedValue(true),
+  isGoogleCalendarConnected: vi.fn().mockResolvedValue(true),
 }));
 
 describe('CalendarExecutor', () => {
@@ -123,6 +129,36 @@ describe('CalendarExecutor', () => {
 
       expect(result).toContain('Team standup');
       expect(result).toContain('Lunch');
+    });
+  });
+
+  describe('with no Google Calendar connected (#1547)', () => {
+    it('getCalendarToday says no calendar is connected and reads nothing', async () => {
+      const { isGoogleCalendarConnected, getEventsForDay } = await import(
+        '../../../../services/calendar/calendar-service.js'
+      );
+      (isGoogleCalendarConnected as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
+
+      const result = await calendarExecutor.execute('getCalendarToday', {}, createContext());
+
+      expect(result).toBe(NOT_CONNECTED_READ);
+      expect(getEventsForDay).not.toHaveBeenCalled();
+    });
+
+    it('createCalendarEvent says nothing went to a calendar and names Ferni\'s own list', async () => {
+      const { isGoogleCalendarConnected } = await import(
+        '../../../../services/calendar/calendar-service.js'
+      );
+      (isGoogleCalendarConnected as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
+
+      const result = await calendarExecutor.execute(
+        'createCalendarEvent',
+        { title: 'Lunch with Sam', date: '2026-10-18', time: '12:00' },
+        createContext()
+      );
+
+      expect(result).toBe(NOT_CONNECTED_CREATE);
+      expect(result).toMatch(/Ferni's own list/);
     });
   });
 

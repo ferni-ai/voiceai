@@ -258,6 +258,8 @@ export async function withActionClaimCheck<T>(
       let lineLast = false; // the last thing out was an honest line
       // `text` is the held sentence, kept until the reply shows whether the claim came true.
       let deferred: { kind: ActionKind; reason: MissReason; text?: string } | undefined;
+      // Held sentences that follow an uncalled claim, released in order once the claim resolves.
+      const queued: string[] = [];
       const calling = new Set<ActionKind>();
       const emit = (raw: string): void => {
         const text = !last || /\s$/.test(last) ? raw.trimStart() : raw;
@@ -279,13 +281,16 @@ export async function withActionClaimCheck<T>(
         const kind = claimedAction(text);
         const reason = kind ? missing(kind, calling) : null;
         if (!kind || !reason) {
-          if (hold) emit(text);
+          if (!hold) return;
+          if (deferred?.reason === 'uncalled') queued.push(text);
+          else emit(text);
           return;
         }
         log.warn({ kind, reason, held: hold }, 'ACTION_CLAIM_DROPPED');
         if (said || deferred) return;
-        // A call of the kind later in this reply makes the claim true: hold it until the reply shows.
-        if (reason === 'failed' || reason === 'uncalled') {
+        // A call of the kind later in this reply makes the claim true, so a held claim waits for the
+        // reply to show. Streamed words cannot wait, so they are corrected at once.
+        if (reason === 'failed' || (reason === 'uncalled' && hold)) {
           deferred = { kind, reason, text: hold ? text : undefined };
           return;
         }
@@ -309,9 +314,10 @@ export async function withActionClaimCheck<T>(
               passed = 0;
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
-            // The create came after the claim: the held sentence was true, so it goes out first.
+            // The create came after the claim: the held sentence was true, so it and what followed go out first.
             if (deferred?.reason === 'uncalled' && calling.has(deferred.kind)) {
               if (deferred.text) emit(deferred.text);
+              for (const text of queued.splice(0)) emit(text);
               deferred = undefined;
             }
             controller.enqueue(chunk);
@@ -337,6 +343,7 @@ export async function withActionClaimCheck<T>(
         if (deferred && !said && !calling.has(deferred.kind)) {
           emit(honestLine(deferred.kind, deferred.reason, open.has('reminder')));
         }
+        for (const text of queued.splice(0)) emit(text);
         controller.close();
       } catch (error) {
         controller.error(error);

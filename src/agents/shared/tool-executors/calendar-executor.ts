@@ -11,8 +11,13 @@ import {
   createEvent,
   getEventsForDay,
   getEventsForWeek,
+  isGoogleCalendarConnected,
   isTimeSlotAvailable,
 } from '../../../services/calendar/calendar-service.js';
+import {
+  NOT_CONNECTED_CREATE,
+  NOT_CONNECTED_READ,
+} from '../../../services/calendar/not-connected-copy.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
@@ -91,6 +96,7 @@ async function execute(
     if (ctx.userId) {
       try {
         // Try to get real calendar data from Google Calendar integration
+        if (!(await isGoogleCalendarConnected(ctx.userId))) return NOT_CONNECTED_READ;
         const events = await getEventsForDay(ctx.userId, new Date());
 
         if (events.length === 0) {
@@ -152,6 +158,7 @@ async function execute(
         });
 
         if (event) {
+          if (!(await isGoogleCalendarConnected(ctx.userId))) return NOT_CONNECTED_CREATE;
           return `Done! I've added "${title}" to your calendar${date ? ` for ${date}` : ''}${time ? ` at ${time}` : ''}.`;
         }
       } catch (err: unknown) {

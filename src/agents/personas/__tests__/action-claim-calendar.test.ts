@@ -71,16 +71,23 @@ describe('calendar claims', () => {
       await check(streamOf(...parts), [ASK], toolsWith('createCalendarEvent'))
     );
     expect(text).not.toMatch(/on your calendar/);
-    expect(text).toContain("It isn't booked yet, though. Should I go ahead and book it?");
+    expect(text).toBe("It isn't booked yet, though. Should I go ahead and book it? Anything else?");
   });
 
-  it('a create called later in the same reply makes the claim stand', async () => {
-    const parts = [chunk("I've got that on your calendar. "), toolCall('createCalendarEvent')];
+  it('a create called later in the same reply makes the claim stand, in order', async () => {
+    const parts = [
+      chunk('Sure. '),
+      chunk("I've got that on your calendar. "),
+      chunk('Enjoy. '),
+      toolCall('createCalendarEvent'),
+    ];
     const text = await textOf(
       await check(streamOf(...parts), [ASK], toolsWith('createCalendarEvent'))
     );
     expect(text).toContain("I've got that on your calendar.");
     expect(text).not.toContain("isn't booked yet");
+    expect(text.indexOf('Sure.')).toBeLessThan(text.indexOf("I've got that"));
+    expect(text.indexOf("I've got that")).toBeLessThan(text.indexOf('Enjoy.'));
   });
 
   it('a create that saved only to Ferni\'s own list (not connected) is reported as not booked', async () => {

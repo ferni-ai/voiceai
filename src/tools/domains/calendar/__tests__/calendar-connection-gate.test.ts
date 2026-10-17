@@ -43,10 +43,12 @@ vi.mock('../../../../services/calendar/index.js', async (importOriginal) => ({
   getDayOverview: vi.fn(),
   getWeekOverview: vi.fn(),
   createEvent: vi.fn(),
+  deleteEvent: vi.fn(),
 }));
 
 import {
   createEvent,
+  deleteEvent,
   getDayOverview,
   getEventsForDay,
   getEventsForWeek,
@@ -57,10 +59,11 @@ import {
 } from '../../../../services/calendar/index.js';
 import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
 import {
+  NOT_CONNECTED_CHANGE,
   NOT_CONNECTED_CREATE,
   NOT_CONNECTED_READ,
-  smartCalendarTools,
-} from '../calendar-connection-gate.js';
+} from '../../../../services/calendar/not-connected-copy.js';
+import { smartCalendarTools } from '../calendar-connection-gate.js';
 
 const READS = [
   'getCalendarToday',
@@ -149,6 +152,14 @@ describe('calendar tools with no calendar connected', () => {
     expect(out).toBe(NOT_CONNECTED_CREATE);
     expect(String(out)).toMatch(/Nothing was added to a calendar/);
     expect(String(out)).toMatch(/Ferni's own list/);
+  });
+
+  it('deleteCalendarEvent deletes from Ferni\'s own list and says the calendar was not changed', async () => {
+    vi.mocked(deleteEvent).mockResolvedValue(true);
+    const out = await toolFor('deleteCalendarEvent').execute({ eventId: 'e1' }, {});
+    expect(deleteEvent).toHaveBeenCalledWith('user-1', 'e1');
+    expect(out).toBe(NOT_CONNECTED_CHANGE);
+    expect(String(out)).not.toMatch(/removed from your calendar/);
   });
 
   it('a create that failed keeps its own refusal, not the saved-to-list line', async () => {
