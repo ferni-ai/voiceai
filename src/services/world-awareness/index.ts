@@ -29,6 +29,7 @@ import {
 import { getTeamScore } from '../../tools/domains/information/sports.js';
 import { getCurrentWeather, getWeatherForecast } from '../../tools/domains/information/weather.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { generateWeatherHook, homeWeatherFrom, refreshHomeWeather } from './home-weather.js';
 
 const log = createLogger({ module: 'WorldAwareness' });
 
@@ -483,46 +484,17 @@ function getSeasonalContext(): string {
 }
 
 // ============================================================================
-// WEATHER CONVERSATION HOOKS
-// ============================================================================
-
-function generateWeatherHook(weatherText: string): string | undefined {
-  const lower = weatherText.toLowerCase();
-
-  if (lower.includes('rain') || lower.includes('storm')) {
-    return "It's rainy out there - good day to stay cozy.";
-  }
-  if (lower.includes('snow')) {
-    return 'Snow outside! Perfect weather for hot cocoa.';
-  }
-  if (lower.includes('sunny') || lower.includes('clear')) {
-    return 'Beautiful weather today - hope you can enjoy some of it.';
-  }
-  if (
-    lower.includes('hot') ||
-    (lower.includes('°f') && parseInt(lower.match(/(\d+)°f/)?.[1] || '0') > 85)
-  ) {
-    return "It's hot out there - stay hydrated!";
-  }
-  if (
-    lower.includes('cold') ||
-    (lower.includes('°f') && parseInt(lower.match(/(\d+)°f/)?.[1] || '100') < 40)
-  ) {
-    return 'Pretty cold today - bundle up if you go out.';
-  }
-
-  return undefined;
-}
-
-// ============================================================================
 // DATA FETCHING (Background)
 // ============================================================================
 
-async function fetchWeatherData(location: string): Promise<WeatherContext | undefined> {
+async function fetchWeatherData(
+  location: string,
+  withForecast = true
+): Promise<WeatherContext | undefined> {
   try {
     const [current, forecast] = await Promise.all([
       getCurrentWeather(location),
-      getWeatherForecast(location, 3),
+      withForecast ? getWeatherForecast(location, 3) : Promise.resolve(undefined),
     ]);
 
     const weatherContext: WeatherContext = {
@@ -540,6 +512,9 @@ async function fetchWeatherData(location: string): Promise<WeatherContext | unde
     return undefined;
   }
 }
+
+/** WORLD_NOW's home report: today's weather only (home-weather.ts). */
+const fetchHomeWeather = (location: string) => fetchWeatherData(location, false);
 
 async function fetchNewsData(): Promise<NewsContext | undefined> {
   try {
@@ -676,7 +651,8 @@ async function fetchCulturalData(): Promise<CulturalContext> {
  */
 export async function warmWorldCache(
   userId: string,
-  interests: Partial<UserInterests> = {}
+  interests: Partial<UserInterests> = {},
+  options: { weatherOnly?: boolean } = {}
 ): Promise<void> {
   const fullInterests: UserInterests = {
     favoriteTeams: interests.favoriteTeams || [],
@@ -696,6 +672,15 @@ export async function warmWorldCache(
   userCaches.set(userId, cache);
 
   log.info({ userId, hasLocation: !!fullInterests.location }, 'Warming world cache');
+
+  // WORLD_NOW: only the home weather is read live (cachedHomeWeather); news,
+  // games and the forecast are looked up by tool when the talk goes there.
+  if (options.weatherOnly) {
+    const location = fullInterests.location;
+    cache.isRefreshing = Boolean(location);
+    if (location) void refreshHomeWeather(userId, cache, location, fetchHomeWeather);
+    return;
+  }
 
   // Fetch everything in parallel (don't await - this runs in background)
   const fetchPromise = Promise.all([
@@ -814,7 +799,10 @@ export function updateUserInterests(userId: string, interests: Partial<UserInter
           }
         })
         .catch((err) => {
-          log.warn({ error: String(err), teams: newTeams }, 'Failed to fetch sports data for new teams');
+          log.warn(
+            { error: String(err), teams: newTeams },
+            'Failed to fetch sports data for new teams'
+          );
         });
     }
   }
@@ -829,7 +817,10 @@ export function updateUserInterests(userId: string, interests: Partial<UserInter
         }
       })
       .catch((err) => {
-        log.warn({ error: String(err), location: interests.location }, 'Failed to fetch weather for new location');
+        log.warn(
+          { error: String(err), location: interests.location },
+          'Failed to fetch weather for new location'
+        );
       });
   }
 
@@ -935,6 +926,14 @@ export function clearUserCache(userId: string): void {
 // ============================================================================
 // BACKGROUND REFRESH
 // ============================================================================
+
+/** The cached weather report for the caller's home (WORLD_NOW): home-weather.ts. */
+export function cachedHomeWeather(userId: string, now: number = Date.now()): string | undefined {
+  const cache = userCaches.get(userId);
+  return cache
+    ? homeWeatherFrom(userId, cache, CACHE_TTL.weather, now, fetchHomeWeather)
+    : undefined;
+}
 
 async function refreshStaleData(
   userId: string,

@@ -109,7 +109,16 @@ const YES_PHRASES = [
   ...'call them|call her|call him|make the call'.split('|'),
   ...'yes yeah yep yup ya sure ok okay correct absolutely definitely'.split(' '),
 ];
-const FILLERS = ['thank you', 'please', 'thanks'];
+// Words a yes may carry that add nothing to send: a name for whoever is speaking, a filler, or an
+// echo of the question ("Should I call her?" "Yes, she should."). Never a yes on their own.
+// Owner calls 10-14..10-16 placed nothing on "Go ahead, Ferni." and "Yes, she should."
+const FILLERS = [
+  ...'thank you|that works|you can|for sure|of course'.split('|'),
+  ...'she should|he should|they should|you should|she can|he can|they can'.split('|'),
+  ...'please thanks ferni fern maya jordan peter alex nayan buddy bud man dude pal um uh oh hey'.split(
+    ' '
+  ),
+];
 const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
 
 const words = (text: string): string[] =>

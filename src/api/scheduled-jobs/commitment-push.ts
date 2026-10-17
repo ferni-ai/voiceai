@@ -15,6 +15,7 @@ import {
   type CommitmentStore,
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
+import { proactiveUserIds } from '../../services/outreach/proactive-channels/proactive-tick.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -81,8 +82,11 @@ export async function sendCommitmentPushes(
     log.warn({ error: String(error) }, 'Commitment scan failed');
     return [];
   });
+  // Proactive check-ins (PROACTIVE_CHANNELS) ask these users themselves.
+  const proactive = new Set(due.length > 0 ? await proactiveUserIds() : []);
   let sent = 0;
   for (const { userId, commitment } of due) {
+    if (proactive.has(userId)) continue;
     try {
       if (!(await deps.send(userId, pushMessage(commitment), commitment.id))) continue;
       sent++;

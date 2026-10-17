@@ -22,6 +22,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { toast } from './whisper.ui.js';
+import { mountCallConsent, renderCallConsent } from './family-call-consent.ui.js';
 
 const log = createLogger('FamilyIdentities');
 
@@ -698,6 +699,7 @@ function renderEditForm(): string {
         <label class="family-form__label">${t('familyIdentities.fieldNotesForFerni')}</label>
         <textarea class="family-form__textarea" id="family-notes" placeholder="${t('forms.optionalField')}">${identity.notes || ''}</textarea>
       </div>
+      ${renderCallConsent(identity.id)}
     </div>
 
     <div class="family-actions">
@@ -719,19 +721,16 @@ function renderEditForm(): string {
 function handleClick(e: Event): void {
   const target = e.target as HTMLElement;
 
-  // Close button
   if (target.closest('.family-modal__close')) {
     hide();
     return;
   }
 
-  // Backdrop click
   if (target.classList.contains('family-modal-backdrop')) {
     hide();
     return;
   }
 
-  // Action buttons
   const action = (target.closest('[data-action]') as HTMLElement)?.dataset.action;
   if (action) {
     handleAction(action, target);
@@ -866,6 +865,7 @@ function refresh(): void {
   const content = modal.querySelector('.family-modal__content');
   if (content) {
     content.innerHTML = renderContent();
+    void mountCallConsent(content);
   }
 }
 

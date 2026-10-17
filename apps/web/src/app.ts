@@ -277,6 +277,7 @@ import { growthJourneyService } from './services/growth-journey.service.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
 import { announceMonthlyGiftPaid } from './services/seed-payment.js';
+import { installSoundDirector, noteCallDropped, type SpeechRoom } from './services/sound-director.js';
 // Toast for notifications (legacy - use moments.whisper() for new code)
 import { toast } from './ui/whisper.ui.js';
 import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
@@ -1232,6 +1233,10 @@ class VoiceAIApp {
     // Essential extras - load after 100ms (needed early but not for first paint)
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
+      installSoundDirector({
+        getRoom: () => connectionService.getRoom() as unknown as SpeechRoom | null,
+        onConnectionState: (callback) => appState.subscribe('connection', callback),
+      }); // gates every engine only when ferni:sound-director is on
     });
     // ⌨️ Global shortcuts (M mute, R reconnect, Enter start/end call, ? help) + ⌘K quick actions
     this.deferredInit('KeyboardShortcuts', 100, async () => {
@@ -2729,7 +2734,7 @@ class VoiceAIApp {
         presenceUI.bounce();
 
         // 🎵 Play dramatic entrance sound when Ferni joins
-        soundUI.play('enter');
+        soundUI.play('enter', 'arrival');
 
         // 🎬 Expression: Excited greeting expression
         ferniExpressions.heldPose('happy', 400);
@@ -2914,16 +2919,19 @@ class VoiceAIApp {
       onUnexpectedDisconnect: (reason) => {
         if (afterConversationEnd()) return void this.disconnect();
         log.warn('Call dropped unexpectedly', { reason });
+        noteCallDropped();
         void this.performStandardDisconnect().then(() =>
           showCallNotice(connectFailure('dropped'), { onRetry: () => void this.connect() })
         );
       },
       // Ferni's side ended with the caller still here (services/agent-drop-watch.ts)
-      onAgentLost: () =>
+      onAgentLost: () => {
+        noteCallDropped();
         showAgentLostPrompt({
           endCall: () => this.performStandardDisconnect(),
           connect: () => this.connect(),
-        }),
+        });
+      },
     });
 
     // Handoff service callbacks

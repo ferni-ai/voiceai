@@ -370,7 +370,11 @@ describe('withActionClaimCheck', () => {
     ];
     expect(await textOf(await check(streamOf(...readBack), items, tools))).toBe(readBack.join(''));
     const yes = await chunksOf(
-      await check(streamOf('Great, sending it now. ', toolCall('quickText')), items, tools)
+      await check(
+        streamOf('Great, sending it now. ', toolCall('quickText')),
+        [...items, said(readBack.join('')), user('Yes.')],
+        tools
+      )
     );
     expect(yes[0].delta?.content).toBe('Great, sending it now. ');
     expect(yes[1].delta?.toolCalls?.[0].name).toBe('quickText');
@@ -430,9 +434,9 @@ describe('withActionClaimCheck', () => {
     expect(await textOf(await check(streamOf(...parts), [ASK]))).toBe(parts.join(''));
   });
 
-  it('ACTION_CLAIM_GUARD=off returns the very same stream', async () => {
+  it('ACTION_CLAIM_GUARD=off (and the announced-check log off) returns the very same stream', async () => {
     const stream = streamOf(...CLAIM);
-    const off = { ACTION_CLAIM_GUARD: 'off' };
+    const off = { ACTION_CLAIM_GUARD: 'off', ANNOUNCED_CHECK_LOG: 'off' };
     expect(await withActionClaimCheck(Promise.resolve(stream), ctx(ASK), toolsWith(), off)).toBe(
       stream
     );
@@ -721,6 +725,70 @@ describe('prod call 2026-10-15: "dialing her now" turn after turn, no dial tool'
     const text = await textOf(await check(streamOf(...REPLY), items));
     expect(text).not.toMatch(/dialing|call you right back/i);
     expect(text).toBe(HONEST);
+  });
+});
+
+describe('prod call 2026-10-16: "dialing her now" while the call waits for a yes', () => {
+  const tools = toolsWith('callOnBehalf');
+  const preview = () =>
+    result('callOnBehalf', JSON.stringify('NOT SENT YET. Read this to the caller word for word'));
+  const NOT_YET = "I haven't actually dialed yet, though. Should I go ahead and call?";
+  const asked = [
+    user('Hey, have you called my mom recently?'),
+    said("I haven't called her yet. Shall I go ahead and make that check-in call right now?"),
+    user("Yeah, check in, tell her I said hi and I'll call her tomorrow."),
+    preview(),
+  ];
+
+  it('"I\'ll take care of that call right now" claims a call; with a condition it does not', () => {
+    expect(claimedAction("I'll take care of that call to your mom right now.")).toBe('call');
+    expect(claimedAction("I'll take care of that call once you say yes.")).toBeNull();
+    expect(claimedAction("I'll take care of it, don't worry.")).toBeNull();
+  });
+
+  it('the turn after the read-back: the claim goes, and Ferni asks instead', async () => {
+    const reply = [
+      'Well, I am dialing her now to let her know you say hello. ',
+      "I'll let you know how it goes.",
+    ];
+    const text = await textOf(await check(streamOf(...reply), asked, tools));
+    expect(text).not.toMatch(/dialing/i);
+    expect(text).toBe(`${NOT_YET} I'll let you know how it goes.`);
+  });
+
+  it('"Thanks, buddy" is not a yes: the next claim goes too', async () => {
+    const items = [...asked, said(NOT_YET), user('Thanks, buddy.')];
+    const reply = [
+      "You've got it. ",
+      "I'll take care of that call to your mom right now, and then you can get back to relaxing.",
+    ];
+    const text = await textOf(await check(streamOf(...reply), items, tools));
+    expect(text).not.toMatch(/take care of that call/i);
+    expect(text).toBe(`You've got it. ${NOT_YET}`);
+  });
+
+  it('a plain yes: the confirming tool call goes out; the claim waits for its result', async () => {
+    // Prod 2026-10-17: the call this claim ran ahead of was held for later (held-call-claim.test.ts).
+    const items = [...asked, said(NOT_YET), user('Yeah, go ahead.')];
+    const out = await chunksOf(
+      await check(streamOf('Calling her now. ', toolCall('callOnBehalf')), items, tools)
+    );
+    expect(out.map((c) => c.delta?.content ?? '').join('')).toBe('');
+    expect(out[0].delta?.toolCalls?.[0].name).toBe('callOnBehalf');
+  });
+
+  it('once the call went through, the claim stands', async () => {
+    const items = [...asked, user('Yes.'), result('callOnBehalf', JSON.stringify('Calling now.'))];
+    const text = await textOf(await check(streamOf("I'm calling her now."), items, tools));
+    expect(text).toBe("I'm calling her now.");
+  });
+
+  it('ACTION_CLAIM_GUARD=off leaves the claim alone', async () => {
+    const reply = ['Well, I am dialing her now.'];
+    const stream = await withActionClaimCheck(streamOf(...reply), ctx(...asked), tools, {
+      ACTION_CLAIM_GUARD: 'off',
+    });
+    expect(await textOf(stream)).toBe(reply[0]);
   });
 });
 

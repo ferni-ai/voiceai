@@ -80,11 +80,20 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
 
+      # GOOGLE_API_KEY is the Gemini API key the AI review jobs use. The
+      # service account is a fallback for Vertex AI; it has no Vertex role yet.
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
       # Exits 1 when the draft still fails the brand gate after one retry.
       - name: Draft the post
         id: draft
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GOOGLE_CLOUD_LOCATION: global
         run: |
           META="$RUNNER_TEMP/draft-meta.json"
           pnpm tsx scripts/blog/draft-post.ts --type "$TYPE" --meta-out "$META"
@@ -115,9 +124,12 @@ jobs:
             branch="$branch-$GITHUB_RUN_ID"
           fi
 
+          # The draft jobs run in parallel, so another job may create the label
+          # between the check and the create; only fail if it still doesn't exist.
           gh api "repos/$REPO/labels/blog-draft" > /dev/null 2>&1 ||
             gh api -X POST "repos/$REPO/labels" -f name=blog-draft -f color=4a6741 \
-              -f description='A drafted blog post waiting for review' > /dev/null
+              -f description='A drafted blog post waiting for review' > /dev/null 2>&1 ||
+            gh api "repos/$REPO/labels/blog-draft" > /dev/null
 
           base=$(gh api "repos/$REPO/git/ref/heads/main" -q .object.sha)
           gh api -X POST "repos/$REPO/git/refs" -f ref="refs/heads/$branch" -f sha="$base" > /dev/null
@@ -141,8 +153,16 @@ jobs:
             echo "_Drafted by [Blog Drafts]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID)._"
           } > "$RUNNER_TEMP/body.md"
 
-          pr=$(gh api -X POST "repos/$REPO/pulls" -f base=main -f head="$branch" \
-            -f title="docs(blog): draft $TYPE post for $day" -F body=@"$RUNNER_TEMP/body.md" -q .number)
+          # Needs "Allow GitHub Actions to create and approve pull requests"
+          # (Settings > Actions > General). Without it the branch is pushed but
+          # the PR can't be opened, so say where the draft is.
+          if ! pr=$(gh api -X POST "repos/$REPO/pulls" -f base=main -f head="$branch" \
+            -f title="docs(blog): draft $TYPE post for $day" -F body=@"$RUNNER_TEMP/body.md" -q .number); then
+            compare="$GITHUB_SERVER_URL/$REPO/compare/main...$branch?expand=1"
+            echo "::error::Drafted $branch but couldn't open the PR. Allow GitHub Actions to create pull requests in the repo settings, or open it by hand: $compare"
+            echo "Drafted \`$file\` on \`$branch\`; open the PR by hand: $compare" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
           gh api -X POST "repos/$REPO/issues/$pr/labels" -f 'labels[]=blog-draft' > /dev/null
           echo "Opened #$pr from $branch" | tee -a "$GITHUB_STEP_SUMMARY"
 

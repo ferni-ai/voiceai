@@ -4,6 +4,11 @@
  * it a touch. The turn reminder writes the level each turn, before the reply's
  * audio opens; the pacing lever still smooths and clamps the result.
  *
+ * Whether the porch light is on is kept here too (PORCH_LIGHT=on,
+ * agents/personas/porch-light.ts): a call the caller started in their small
+ * hours. Only the on/off state: how much slower and softer that is belongs to
+ * attune.ts (LATE_NIGHT), the single owner of pace and loudness.
+ *
  * Keyed by session, bounded, and cleared when the session ends
  * (session-mgmt/session-cleanup.ts). Same pattern as caller-prosody.ts.
  *
@@ -17,17 +22,22 @@ const SPEED_NUDGE: Record<FerniEnergyLevel, number> = { low: -0.03, steady: 0, h
 const MAX_SESSIONS = 1000;
 
 const levels = new Map<string, FerniEnergyLevel>();
+const porchLit = new Set<string>();
+
+function bound(keys: Map<string, unknown> | Set<string>): void {
+  while (keys.size > MAX_SESSIONS) {
+    const oldest = keys.keys().next().value;
+    if (oldest === undefined) break;
+    keys.delete(oldest);
+  }
+}
 
 /** Set this session's level, or forget it (undefined: the flag is off, or another persona speaks). */
 export function setFerniEnergy(sessionId: string, level: FerniEnergyLevel | undefined): void {
   levels.delete(sessionId);
   if (!level) return;
   levels.set(sessionId, level);
-  while (levels.size > MAX_SESSIONS) {
-    const oldest = levels.keys().next().value;
-    if (oldest === undefined) break;
-    levels.delete(oldest);
-  }
+  bound(levels);
 }
 
 export function ferniEnergyFor(sessionId: string | undefined): FerniEnergyLevel | undefined {
@@ -40,6 +50,19 @@ export function ferniSpeedNudge(sessionId: string | undefined): number {
   return level ? SPEED_NUDGE[level] : 0;
 }
 
+/** Turn this session's porch light on or off. */
+export function setPorchLight(sessionId: string, on: boolean): void {
+  porchLit.delete(sessionId);
+  if (!on) return;
+  porchLit.add(sessionId);
+  bound(porchLit);
+}
+
+export function porchLightOn(sessionId: string | undefined): boolean {
+  return sessionId !== undefined && porchLit.has(sessionId);
+}
+
 export function clearFerniEnergy(sessionId: string): void {
   levels.delete(sessionId);
+  porchLit.delete(sessionId);
 }
