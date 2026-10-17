@@ -44,7 +44,14 @@ function obs(
 async function seeded(userId = 'u1'): Promise<ReturnType<typeof createMemoryWorldFactStore>> {
   const store = createMemoryWorldFactStore();
   let n = 0;
-  const deps = { store, env: ON, judge: async () => [], newId: () => `wf${++n}` };
+  // Ingest fails closed on unreadable forgotten topics, so the seed says there are none.
+  const deps = {
+    store,
+    env: ON,
+    judge: async () => [],
+    newId: () => `wf${++n}`,
+    forgotten: noTopics,
+  };
   await recordWorldObservations(
     userId,
     'call-1',
@@ -133,7 +140,7 @@ describe('worldFactLines', () => {
       'u1',
       'call-3',
       [obs('Mindy', 'thread', 'avoid: the knee surgery', '2026-10-10T18:00:00.000Z')],
-      { store, env: ON, judge: async () => [] }
+      { store, env: ON, judge: async () => [], forgotten: noTopics }
     );
     const lines = worldFactLines(await store.listOpen('u1'), opts({ forgotten: ['stripe'] }));
     const all = lines.join(' ');

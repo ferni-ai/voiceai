@@ -97,7 +97,7 @@ export interface KnownStore {
   /** YYYY-MM-DD of the caller's summaries with these ids, for pondering's provenance. */
   summaryDays: (userId: string, ids: string[]) => Promise<Map<string, string>>;
   /** Topics the caller asked Ferni to forget (memory/recall/forget.ts). Throws if unreadable. */
-  forgotten: (userId: string) => Promise<string[]>;
+  forgotten: (userId: string) => Promise<string[] | null>;
 }
 
 const PREFERENCE =
@@ -250,17 +250,42 @@ function unread<T>(source: string, empty: T): (error: unknown) => T {
   };
 }
 
-/** The caller's view. Each source is read independently; one failing leaves its section empty. */
+/**
+ * What the caller asked Ferni to forget couldn't be read (a throw, or the
+ * forget store's null): the view is refused (503), never shown unfiltered.
+ */
+export class ForgottenTopicsUnreadable extends Error {
+  constructor(cause?: unknown) {
+    super('Forgotten topics unreadable', { cause });
+    this.name = 'ForgottenTopicsUnreadable';
+  }
+}
+
+/** The topics, or ForgottenTopicsUnreadable; never [] standing in for a failed read. */
+async function readForgotten(store: KnownStore, userId: string): Promise<string[]> {
+  const topics = await store.forgotten(userId).catch((error: unknown) => {
+    throw new ForgottenTopicsUnreadable(error);
+  });
+  if (!Array.isArray(topics) || !topics.every((t) => typeof t === 'string')) {
+    throw new ForgottenTopicsUnreadable();
+  }
+  return topics;
+}
+
+/**
+ * The caller's view. The forgotten topics must be read or nothing is shown;
+ * otherwise each source is read independently, one failing leaving its section empty.
+ */
 export async function loadKnownView(
   userId: string,
   store: KnownStore,
   { now = new Date(), env = process.env }: { now?: Date; env?: Env } = {}
 ): Promise<KnownView> {
   const withPondering = isMemoryViewPonderingOn(env);
-  // Unreadable forgotten topics fail the view: showing what was forgotten is worse than nothing.
-  const [facts, forgotten, world, mind, pondering] = await Promise.all([
+  // Read first and alone: if it fails, nothing else is read or returned.
+  const forgotten = await readForgotten(store, userId);
+  const [facts, world, mind, pondering] = await Promise.all([
     store.facts(userId),
-    store.forgotten(userId),
     store.worldFacts(userId).catch(unread('world facts', [])),
     store.mindModel(userId).catch(unread('mind model', null)),
     withPondering

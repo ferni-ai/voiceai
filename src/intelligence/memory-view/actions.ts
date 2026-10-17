@@ -25,7 +25,7 @@ import { createHash } from 'node:crypto';
 import { forgetTokens } from '../../memory/index.js';
 import type { WorldFactStore } from '../world-model/temporal/store.js';
 import type { TemporalFact } from '../world-model/temporal/types.js';
-import type { MindModel } from '../theory-of-mind/types.js';
+import { sensitivityKey, type MindModel } from '../theory-of-mind/types.js';
 import { hashId, type KnownKind, type StoredPondering } from './known.js';
 
 export type KnownAction = 'forget' | 'wrong' | 'correct';
@@ -36,7 +36,8 @@ export type ActionResult =
   | { kind: 'invalid'; reason: string };
 
 export interface ActionStore {
-  forgetFact: (userId: string, id: string) => Promise<boolean>;
+  /** Forget one fact; its words (entity, key, value) when it was the caller's, else null. */
+  forgetFact: (userId: string, id: string) => Promise<string | null>;
   correctFact: (userId: string, id: string, value: string) => Promise<ActionResult>;
   world: WorldFactStore & {
     get: (userId: string, id: string) => Promise<TemporalFact | null>;
@@ -48,7 +49,8 @@ export interface ActionStore {
     userId: string,
     change: (p: StoredPondering) => StoredPondering | null
   ) => Promise<boolean>;
-  addForgottenTopic: (userId: string, topic: string) => Promise<void>;
+  /** forget.ts forgetTopic: records the topic unless it is too broad. Never throws. */
+  forgetTopic: (userId: string, topic: string) => Promise<{ kind: string }>;
 }
 
 /** A correction is a short fact, not an essay (as memory-control.ts caps a fact's). */
@@ -68,6 +70,21 @@ export function cleanCorrection(value: unknown): string | { reason: string } {
     return { reason: `value is over ${MAX_CORRECTION_CHARS} characters` };
   }
   return clean;
+}
+
+/** Fewer distinct words than this (of 3+ letters) is a name, not a topic: "Mom is ok" is just "mom". */
+const MIN_TOPIC_WORDS = 2;
+
+/**
+ * Keep one forgotten item from coming back in other words: record its words
+ * as a forgotten topic, but only when they are specific (two real words or
+ * more) and forget.ts doesn't find them too broad. Otherwise only the item
+ * itself is forgotten, so "Mom: is ok" never silences everything about Mom.
+ */
+async function forgetNarrowTopic(store: ActionStore, userId: string, words: string): Promise<void> {
+  const specific = forgetTokens(words).filter((w) => w.length >= 3);
+  if (specific.length < MIN_TOPIC_WORDS) return;
+  await store.forgetTopic(userId, specific.join(' '));
 }
 
 /** One action on one of the caller's items, with the time it happens. */
@@ -114,13 +131,19 @@ async function worldAction(store: ActionStore, r: ActionRequest): Promise<Action
   if (!old || old.validTo !== null) return NOT_FOUND;
   if (r.action === 'correct') return correctWorld(store, old, r);
   await store.world.forget(r.userId, r.id, r.at, r.action === 'wrong');
-  const topic = forgetTokens(`${old.subject} ${old.value}`).join(' ');
-  if (topic !== '') await store.addForgottenTopic(r.userId, topic);
+  await forgetNarrowTopic(store, r.userId, `${old.subject} ${old.value}`);
   return DONE;
 }
 
 async function factAction(store: ActionStore, r: ActionRequest): Promise<ActionResult> {
-  if (r.action !== 'correct') return (await store.forgetFact(r.userId, r.id)) ? DONE : NOT_FOUND;
+  if (r.action !== 'correct') {
+    // Re-extraction of the same words lands on the same (forgotten) document; the topic
+    // keeps the same fact said slightly differently out too.
+    const words = await store.forgetFact(r.userId, r.id);
+    if (words === null) return NOT_FOUND;
+    await forgetNarrowTopic(store, r.userId, words);
+    return DONE;
+  }
   const clean = cleanCorrection(r.value);
   if (typeof clean !== 'string') return { kind: 'invalid', reason: clean.reason };
   return store.correctFact(r.userId, r.id, clean);
@@ -132,8 +155,15 @@ function mindChange(
 ): (m: MindModel) => MindModel | null {
   return (m: MindModel): MindModel | null => {
     if (kind === 'sensitivity') {
-      const left = m.sensitivities.filter((s) => hashId(s.topic) !== id);
-      return left.length === m.sensitivities.length ? null : { ...m, sensitivities: left };
+      const gone = m.sensitivities.find((s) => hashId(s.topic) === id);
+      if (!gone) return null;
+      return {
+        ...m,
+        sensitivities: m.sensitivities.filter((s) => s !== gone),
+        rejectedSensitivities: [
+          ...new Set([...(m.rejectedSensitivities ?? []), sensitivityKey(gone.topic)]),
+        ],
+      };
     }
     const pattern = m.patterns.find((p) => p.key === id);
     if (!pattern) return null;

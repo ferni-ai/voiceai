@@ -5,7 +5,8 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
-const { buildKnownView, loadKnownView, isMemoryViewPonderingOn } = await import('../known.js');
+const { buildKnownView, ForgottenTopicsUnreadable, loadKnownView, isMemoryViewPonderingOn } =
+  await import('../known.js');
 const { loadRecallSnapshot } = await import('../../../memory/recall/session-recall.js');
 import type { KnownStore } from '../known.js';
 import type { TemporalFact } from '../../world-model/temporal/types.js';
@@ -337,12 +338,26 @@ describe('loadKnownView', () => {
     expect(view.thinkingAbout).toHaveLength(2);
   });
 
-  it('fails rather than show what may have been forgotten when the topics are unreadable', async () => {
-    const s = store();
-    vi.mocked(s.forgotten).mockRejectedValueOnce(new Error('firestore down'));
-    await expect(
-      loadKnownView('u-1', s, { now: NOW, env: { MEMORY_VIEW: 'on' } })
-    ).rejects.toThrow();
+  it('returns no items, and reads nothing else, when the forgotten topics are unreadable', async () => {
+    const failures: Array<() => Promise<string[] | null>> = [
+      async () => {
+        throw new Error('firestore down');
+      },
+      async () => null, // the forget store's "unreadable or malformed" (#1094)
+      async () => [42] as unknown as string[],
+    ];
+    for (const failure of failures) {
+      const s = store();
+      vi.mocked(s.forgotten).mockImplementationOnce(failure);
+      const result = loadKnownView('u-1', s, {
+        now: NOW,
+        env: { MEMORY_VIEW: 'on', MEMORY_VIEW_PONDERING: 'on' },
+      });
+      await expect(result).rejects.toBeInstanceOf(ForgottenTopicsUnreadable);
+      for (const fn of [s.facts, s.worldFacts, s.mindModel, s.pondering]) {
+        expect(fn).not.toHaveBeenCalled();
+      }
+    }
   });
 
   it('never reads pondering unless its own flag is on', async () => {
