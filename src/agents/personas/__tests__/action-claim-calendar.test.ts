@@ -96,6 +96,21 @@ describe('calendar claims', () => {
     expect(text).toContain("It isn't booked yet, though.");
   });
 
+  it('a not-connected read under any calendar tool name is a refusal, not a booking', async () => {
+    const reply = JSON.stringify(
+      "No calendar is connected yet, so I can't see your calendar. Want me to help you connect one?"
+    );
+    for (const name of ['calendar_list_events', 'quickCalendar']) {
+      const items = [ASK, result(name, reply)];
+      const parts = ["I've got that on your calendar for tomorrow at noon. "];
+      const text = await textOf(
+        await check(streamOf(...parts), items, toolsWith(name, 'createCalendarEvent'))
+      );
+      expect(text).not.toMatch(/on your calendar/);
+      expect(text).toContain("That didn't go through, so it isn't booked.");
+    }
+  });
+
   it('a create called later in the same reply makes the claim stand, in order', async () => {
     const parts = [
       chunk('Sure. '),
