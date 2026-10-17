@@ -13,9 +13,10 @@ import {
   getPendingOutreach,
   updateOutreachStatus,
   incrementRetry,
+  rescheduleOutreach,
   type ScheduledOutreach,
 } from './scheduled-multi-outreach.js';
-import { sendSMS } from './delivery/sms-delivery.js';
+import { textOnBehalf } from './guarded-text.js';
 import { sendEmail } from './delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../voice/voice-call.js';
 import { makeConversationalCall } from './conversational-calls.js';
@@ -48,6 +49,9 @@ const DEFAULT_CONFIG: ExecutorConfig = {
 
 let isRunning = false;
 let config = DEFAULT_CONFIG;
+
+/** Guard skips that end a scheduled text rather than fail it. */
+const FINAL_SKIPS: ReadonlySet<string> = new Set(['opted-out', 'bad-number', 'recently-sent']);
 
 // Track active users to process
 const activeUserIds = new Set<string>();
@@ -135,15 +139,31 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
         throw new Error(`No phone number for ${target.resolvedContactName}`);
       }
 
-      const result = await sendSMS({
-        to: target.resolvedPhone,
+      const sent = await textOnBehalf({
+        senderUserId: userId,
+        toPhone: target.resolvedPhone,
         body: target.message || target.purpose,
+        refId: outreachId,
         personaId,
-        userId,
-        outreachId,
       });
-      success = result.success;
-      errorMsg = result.error;
+      if (!sent.sent && sent.reason === 'quiet-hours') {
+        // Held, not dropped: it goes out when their morning starts.
+        await rescheduleOutreach(userId, id, sent.until);
+        log.info({ userId, id, until: sent.until.toISOString() }, 'Scheduled text held');
+        return;
+      }
+      if (!sent.sent && FINAL_SKIPS.has(sent.reason)) {
+        // A STOP, a bad number or a text just sent: trying again would be wrong, not unlucky.
+        await updateOutreachStatus(userId, id, 'cancelled', {
+          success: false,
+          channel: channelUsed,
+          error: `skipped: ${sent.reason}`,
+        });
+        log.info({ userId, id, reason: sent.reason }, 'Scheduled text skipped');
+        return;
+      }
+      success = sent.sent;
+      errorMsg = sent.sent ? undefined : sent.reason;
     } else if (channelUsed === 'email') {
       if (!target.resolvedEmail) {
         throw new Error(`No email for ${target.resolvedContactName}`);

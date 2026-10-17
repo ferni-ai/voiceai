@@ -273,6 +273,8 @@ export const FLAG_MANIFEST = {
   NEWS_HEADLINES_FALLBACK: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   ON_BEHALF_TEXTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // off: texts to someone else skip the STOP, quiet-hours and 10-minute guards (guarded-text.ts); rollback only
+  ON_BEHALF_TEXT_GUARD: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
   OPENER_FOLLOW_UP: { default: 'off', owner: 'memory', kind: 'experiment' },
   OPENER_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },

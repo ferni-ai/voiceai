@@ -12,6 +12,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetMemoryTexts } from '../../../services/outreach/__tests__/memory-text-store.js';
 
 const edge = vi.hoisted(() => ({
   queueCall: vi.fn(async (..._a: unknown[]) => 'task-12345678'),
@@ -20,6 +21,12 @@ const edge = vi.hoisted(() => ({
   legacySend: vi.fn(async (..._a: unknown[]) => 'sent'),
   createReminder: vi.fn(async (..._a: unknown[]) => ({ id: 'reminder-123456' })),
 }));
+// The real text guards over an in-memory store (no Firestore).
+vi.mock('../../../services/outreach/guarded-text.js', async (orig) =>
+  (await import('../../../services/outreach/__tests__/memory-text-store.js')).withMemoryTextStore(
+    await orig()
+  )
+);
 vi.mock('../../../services/scheduling/reminder-scheduler.js', async (orig) => ({
   ...(await orig<object>()),
   createReminder: edge.createReminder,
@@ -80,6 +87,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
+
+beforeEach(() => resetMemoryTexts());
 
 describe('tools built straight from a domain export are gated', () => {
   it("backgroundCall from proactive's definitions (as ferni-agent builds it) queues nothing without a yes", async () => {

@@ -281,6 +281,22 @@ export async function updateOutreachStatus(
   }
 }
 
+/** Put an item back to pending at a later time (a text held for the recipient's quiet hours). */
+export async function rescheduleOutreach(
+  userId: string,
+  outreachId: string,
+  scheduledFor: Date
+): Promise<void> {
+  const firestore = await getFirestore();
+  if (!firestore) throw new Error('Firestore not available');
+  await firestore
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('scheduled_outreach')
+    .doc(outreachId)
+    .update(forFirestore({ status: 'pending', scheduledFor, updatedAt: new Date() }));
+}
+
 /**
  * Increment retry count and optionally mark as failed
  */

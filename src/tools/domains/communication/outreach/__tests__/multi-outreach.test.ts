@@ -8,8 +8,15 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { resetMemoryTexts } from '../../../../../services/outreach/__tests__/memory-text-store.js';
 
 // Mock all external dependencies
+// The real text guards over an in-memory store (no Firestore).
+vi.mock('../../../../../services/outreach/guarded-text.js', async (orig) =>
+  (
+    await import('../../../../../services/outreach/__tests__/memory-text-store.js')
+  ).withMemoryTextStore(await orig())
+);
 vi.mock('../../../../../services/contacts/contact-relationship-service.js', () => ({
   searchContacts: vi.fn(),
 }));
@@ -133,6 +140,8 @@ const mockBoss = {
   createdAt: new Date(),
   updatedAt: new Date(),
 };
+
+beforeEach(() => resetMemoryTexts());
 
 describe('Multi-Outreach Tool', () => {
   beforeEach(() => {

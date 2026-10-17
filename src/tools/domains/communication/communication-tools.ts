@@ -171,13 +171,39 @@ async function sendApprovedEmailReal(to: string, subject: string, body: string):
 /**
  * Send a text message via Twilio
  */
-async function sendTextReal(to: string, message: string): Promise<string> {
+async function sendTextReal(to: string, message: string, userId: string): Promise<string> {
   const validation = validatePhone(to);
   if (!validation.valid) {
     return `I need a valid phone number to send a text. "${to}" doesn't look right. Can you provide a number like 555-123-4567?`;
   }
+  const phone = validation.sanitized as string;
+  return guardedSend(phone, message, userId, () => sendSMS(phone, message));
+}
 
-  return sendSMS(validation.sanitized as string, message);
+/**
+ * A text to someone else, guarded (STOP, quiet hours, 10-minute gap) and sent
+ * the way this tool always sent it. Says plainly when it was not sent.
+ */
+async function guardedSend(
+  phone: string,
+  body: string,
+  userId: string,
+  send: () => Promise<string>
+): Promise<string> {
+  const { defaultTextDeps, onBehalfNotSent, textOnBehalf } =
+    await import('../../../services/outreach/guarded-text.js');
+  let reply = '';
+  const sent = await textOnBehalf(
+    { senderUserId: userId, toPhone: phone, body, refId: `text_${Date.now()}` },
+    {
+      ...defaultTextDeps(),
+      send: async () => {
+        reply = await send();
+        return { success: true };
+      },
+    }
+  );
+  return sent.sent ? reply : onBehalfNotSent(sanitizePhoneForLog(phone), sent.reason);
 }
 
 // ============================================================================
@@ -273,7 +299,7 @@ async function sendVoiceMessageRealWithUserId(
   if (!CARTESIA_API_KEY) {
     getLogger().warn('Cartesia not configured for voice messages');
     // Fallback to text with voice message indicator
-    return sendTextReal(to, `🎤 Voice message from Alex: "${message}"`);
+    return sendTextReal(to, `🎤 Voice message from Alex: "${message}"`, userId);
   }
 
   try {
@@ -284,12 +310,12 @@ async function sendVoiceMessageRealWithUserId(
       voiceId: getAlexVoiceId(),
     });
 
-    // Send it
-    return sendVoiceMessage(voiceMsg.id, validation.sanitized as string);
+    const phone = validation.sanitized as string;
+    return guardedSend(phone, message, userId, () => sendVoiceMessage(voiceMsg.id, phone));
   } catch (error) {
     getLogger().error({ error }, 'Voice message error');
     // Fallback to text
-    return sendTextReal(to, `🎤 (Voice message) ${message}`);
+    return sendTextReal(to, `🎤 (Voice message) ${message}`, userId);
   }
 }
 
@@ -508,8 +534,9 @@ export function createCommunicationTools() {
         to: z.string().describe('Phone number (e.g., "555-123-4567" or "+15551234567")'),
         message: z.string().describe('Message to send'),
       }),
-      execute: async ({ to, message }) => {
-        return sendTextReal(to, message);
+      execute: async ({ to, message }, { ctx }) => {
+        const userData = ctx?.userData as { userId?: string } | undefined;
+        return sendTextReal(to, message, userData?.userId || 'unknown');
       },
     }),
 

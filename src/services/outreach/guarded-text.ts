@@ -40,6 +40,9 @@ import { verifiedPhoneOf } from './user-reach.js';
 import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
+import { QUIET_END_HOUR, QUIET_START_HOUR } from '../follow-through/right-moment.js';
+import { flagOn } from '../../config/env-flag.js';
+import { hoursWindow, quietEndsAt, quietZonesOf, type QuietHoursUser } from './quiet-hours.js';
 
 const log = createLogger({ module: 'guarded-text' });
 
@@ -210,8 +213,12 @@ export async function sendGuardedText(
 // Texts a member asks Ferni to send to someone else
 // ---------------------------------------------------------------------------
 
-export function onBehalfTextsOn(env: Env = process.env): boolean {
-  return env.ON_BEHALF_TEXTS === 'on';
+/**
+ * The guards are safety, not a feature, so they run unless ops turn them off:
+ * ON_BEHALF_TEXT_GUARD=off restores the unguarded send (rollback only).
+ */
+export function onBehalfGuardOn(env: Env = process.env): boolean {
+  return flagOn('ON_BEHALF_TEXT_GUARD', env);
 }
 
 /** No more than one text to the same person every 10 minutes: a loop can't spam them. */
@@ -226,44 +233,58 @@ export interface OnBehalfText {
   readonly refId: string;
   /** The recipient's IANA zone when known; else the member's. */
   readonly zone?: string;
+  /** The persona it is sent as (SMS signature); Ferni when unset. */
+  readonly personaId?: string;
 }
 
 export type OnBehalfSkip =
-  | 'flag-off'
-  | 'no-hash-secret'
-  | 'bad-number'
-  | 'opted-out'
-  | 'recently-sent'
-  | 'quiet-hours'
-  | 'send-failed';
-export type OnBehalfOutcome = { sent: true } | { sent: false; reason: OnBehalfSkip };
+  'no-hash-secret' | 'bad-number' | 'opted-out' | 'recently-sent' | 'quiet-hours' | 'send-failed';
+export type OnBehalfOutcome =
+  | { sent: true }
+  | { sent: false; reason: Exclude<OnBehalfSkip, 'quiet-hours'> }
+  /** `until`: when quiet hours end (08:00 in the zone used), for a sender that can wait. */
+  | { sent: false; reason: 'quiet-hours'; until: Date };
 
-/** Quiet hours (21:00 to 08:00, follow-through's) in their zone, else the member's; none when unknown. */
-function quietFor(now: Date, zone: string | undefined): boolean {
-  return zone !== undefined && isValidTimeZone(zone) && isQuietHour(now, zone);
+const QUIET_WINDOW = hoursWindow(QUIET_START_HOUR, QUIET_END_HOUR);
+
+/**
+ * Their zone when known, else the member's: the call's (in a call), else the
+ * one on their account (a scheduled job runs outside any call). None if unknown.
+ */
+async function quietZone(t: OnBehalfText, deps: TextDeps): Promise<string | undefined> {
+  const zone = t.zone ?? userTimeZone({ userId: t.senderUserId });
+  if (zone !== undefined) return isValidTimeZone(zone) ? zone : undefined;
+  const doc = await deps.store.userDoc(t.senderUserId).catch(() => undefined);
+  // quietZonesOf gives both US coasts for an account without a zone; that is "unknown" here.
+  const own = quietZonesOf(doc as QuietHoursUser | undefined);
+  return own.length === 1 ? own[0] : undefined;
 }
 
 /**
  * Sends a text to someone else for a member (the caller has already said yes,
  * outreach-confirm.ts): only to a valid number, never after that number sent
  * STOP (any STOP to our number is recorded, checkin-replies.ts), not twice in
- * ten minutes, not in their quiet hours. Off unless ON_BEHALF_TEXTS=on.
+ * ten minutes, not in quiet hours (follow-through's 21:00 to 08:00).
  */
 export async function sendOnBehalfText(
   t: OnBehalfText,
   deps: TextDeps = defaultTextDeps()
 ): Promise<OnBehalfOutcome> {
-  const skip = (reason: OnBehalfSkip): OnBehalfOutcome => {
+  const skip = (reason: Exclude<OnBehalfSkip, 'quiet-hours'>): OnBehalfOutcome => {
     log.info({ kind: 'on-behalf', refId: t.refId, reason }, 'Text skipped');
     return { sent: false, reason };
   };
-  if (!onBehalfTextsOn(deps.env)) return skip('flag-off');
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
   const to = toE164(t.toPhone);
   const hash = to ? phoneHash(to, deps.env) : null;
   if (!to || !hash) return skip('bad-number');
   const now = deps.now();
-  if (quietFor(now, t.zone ?? userTimeZone({ userId: t.senderUserId }))) return skip('quiet-hours');
+  const zone = await quietZone(t, deps);
+  if (zone && isQuietHour(now, zone)) {
+    const until = quietEndsAt(now, QUIET_WINDOW, [zone]);
+    log.info({ kind: 'on-behalf', refId: t.refId, reason: 'quiet-hours' }, 'Text skipped');
+    return { sent: false, reason: 'quiet-hours', until };
+  }
   const [optedOut, toPhone] = await Promise.all([
     deps.store.isOptedOut(hash),
     deps.store.forPhoneHash(hash),
@@ -276,7 +297,7 @@ export async function sendOnBehalfText(
   const result = await deps.send({
     to,
     body: t.body,
-    personaId: 'ferni',
+    personaId: t.personaId ?? 'ferni',
     userId: storedId,
     outreachId: t.refId,
   });
@@ -299,6 +320,38 @@ export async function sendOnBehalfText(
     return { sent: false, reason: 'send-failed' };
   }
   return { sent: true };
+}
+
+/**
+ * Every text to someone other than the member goes through here: the guards
+ * above, or with ON_BEHALF_TEXT_GUARD=off the plain send it replaced.
+ */
+export async function textOnBehalf(
+  t: OnBehalfText,
+  deps: TextDeps = defaultTextDeps()
+): Promise<OnBehalfOutcome> {
+  if (onBehalfGuardOn(deps.env)) return sendOnBehalfText(t, deps);
+  const result = await deps.send({
+    to: t.toPhone,
+    body: t.body,
+    personaId: t.personaId ?? 'ferni',
+    userId: t.senderUserId,
+    outreachId: t.refId,
+  });
+  return result.success ? { sent: true } : { sent: false, reason: 'send-failed' };
+}
+
+/** What a tool tells the model when a text to `name` didn't go, so Ferni says so honestly. */
+export function onBehalfNotSent(name: string, reason: OnBehalfSkip): string {
+  const why: Record<OnBehalfSkip, string> = {
+    'opted-out': "that number replied STOP to our texts, so I can't text it",
+    'quiet-hours': "it's quiet hours where they are (9pm to 8am), so I held it",
+    'recently-sent': 'I already texted that number in the last ten minutes',
+    'bad-number': "that doesn't look like a valid phone number",
+    'no-hash-secret': "texting isn't set up right now",
+    'send-failed': "the text didn't go through",
+  };
+  return `The text to ${name} was NOT sent: ${why[reason]}.`;
 }
 
 export const firestoreTextStore: TextStore = {

@@ -6,11 +6,16 @@
  * Real write, real job, one fake Firestore behind both clients.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetMemoryTexts } from './memory-text-store.js';
 import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firestore.js';
 
 let rows: Row[] = [];
-const sendSMS = vi.fn(async () => ({ success: true }));
+const sendSMS = vi.hoisted(() => vi.fn(async () => ({ success: true })));
 
+// The real text guards over an in-memory store (no Firestore).
+vi.mock('../guarded-text.js', async (orig) =>
+  (await import('./memory-text-store.js')).withMemoryTextStore(await orig())
+);
 vi.mock('@google-cloud/firestore', () => ({
   Firestore: class {
     constructor() {
@@ -35,6 +40,8 @@ beforeEach(() => {
   rows = [];
   vi.clearAllMocks();
 });
+
+beforeEach(() => resetMemoryTexts());
 
 describe('scheduleOutreach write shape', () => {
   it('stores scheduledFor as a Date, and the job finds and sends it when due', async () => {

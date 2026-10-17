@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   ON_BEHALF_GAP_MS,
+  onBehalfNotSent,
   sendOnBehalfText,
+  textOnBehalf,
   type OnBehalfText,
   type TextDeps,
   type TextStore,
@@ -9,18 +11,19 @@ import {
 import { phoneHash, type CheckinRecord, type StoredCheckin } from '../checkin-replies.js';
 
 const NOW = new Date('2026-10-12T16:00:00Z'); // 10:00 in Denver, 01:00 in Tokyo
-const ENV = { LOG_HASH_SECRET: 'test-secret', ON_BEHALF_TEXTS: 'on' };
+const ENV = { LOG_HASH_SECRET: 'test-secret' };
 const MOM = '+15557654321';
 const HASH = phoneHash(MOM, ENV) ?? '';
 
 function deps(
   existing: StoredCheckin[] = [],
-  opts: { optedOut?: boolean; env?: Record<string, string> } = {}
+  opts: { optedOut?: boolean; env?: Record<string, string>; account?: Record<string, unknown> } = {}
 ) {
   const added: CheckinRecord[] = [];
   const store = {
     forPhoneHash: vi.fn(async (h: string) => existing.filter((r) => r.phoneHash === h)),
     isOptedOut: vi.fn(async () => opts.optedOut === true),
+    userDoc: vi.fn(async () => opts.account),
     add: vi.fn(async (r: CheckinRecord) => {
       added.push(r);
       return 'new';
@@ -71,11 +74,9 @@ describe('sendOnBehalfText', () => {
     expect(JSON.stringify(added[0])).not.toContain(MOM);
   });
 
-  it('sends nothing while ON_BEHALF_TEXTS is off', async () => {
-    const { d, added } = deps([], { env: { LOG_HASH_SECRET: 'test-secret' } });
-    expect(await sendOnBehalfText(text(), d)).toEqual({ sent: false, reason: 'flag-off' });
-    expect(d.send).not.toHaveBeenCalled();
-    expect(added).toHaveLength(0);
+  it('guards by default: no flag needs to be set', async () => {
+    const { d } = deps([], { optedOut: true, env: { LOG_HASH_SECRET: 'test-secret' } });
+    expect(await sendOnBehalfText(text(), d)).toEqual({ sent: false, reason: 'opted-out' });
   });
 
   it('never texts a number that sent STOP', async () => {
@@ -99,7 +100,16 @@ describe('sendOnBehalfText', () => {
     expect(await sendOnBehalfText(text({ zone: 'Asia/Tokyo' }), d)).toEqual({
       sent: false,
       reason: 'quiet-hours',
+      until: new Date('2026-10-12T23:00:00Z'), // 08:00 in Tokyo
     });
+    expect(d.send).not.toHaveBeenCalled();
+  });
+
+  it("with no zone in hand, reads quiet hours in the member's zone from their account", async () => {
+    const { d } = deps([], { account: { contactInfo: { timezone: 'Asia/Tokyo' } } });
+    const outcome = await sendOnBehalfText(text({ zone: undefined, senderUserId: 'job-u' }), d);
+    expect(outcome).toMatchObject({ sent: false, reason: 'quiet-hours' });
+    expect(d.store.userDoc).toHaveBeenCalledWith('job-u');
     expect(d.send).not.toHaveBeenCalled();
   });
 
@@ -119,5 +129,40 @@ describe('sendOnBehalfText', () => {
     }));
     expect(await sendOnBehalfText(text(), d)).toEqual({ sent: false, reason: 'send-failed' });
     expect(added[0]?.status).toBe('failed');
+  });
+});
+
+describe('textOnBehalf', () => {
+  it('goes through the guards by default', async () => {
+    const { d, added } = deps([], { optedOut: true });
+    expect(await textOnBehalf(text(), d)).toEqual({ sent: false, reason: 'opted-out' });
+    expect(d.send).not.toHaveBeenCalled();
+    expect(added).toHaveLength(0);
+  });
+
+  it('with ON_BEHALF_TEXT_GUARD=off sends the old unguarded way', async () => {
+    const env = { ...ENV, ON_BEHALF_TEXT_GUARD: 'off' };
+    const { d, added } = deps([sentToMom(60_000)], { optedOut: true, env });
+    expect(await textOnBehalf(text({ zone: 'Asia/Tokyo', personaId: 'maya' }), d)).toEqual({
+      sent: true,
+    });
+    expect(d.send).toHaveBeenCalledWith({
+      to: '(555) 765-4321',
+      body: 'Seth says happy birthday!',
+      personaId: 'maya',
+      userId: 'u1',
+      outreachId: 'out_1',
+    });
+    expect(d.store.isOptedOut).not.toHaveBeenCalled();
+    expect(added).toHaveLength(0);
+  });
+});
+
+describe('onBehalfNotSent', () => {
+  it('says plainly that nothing was sent, and why', () => {
+    expect(onBehalfNotSent('Mom', 'opted-out')).toBe(
+      "The text to Mom was NOT sent: that number replied STOP to our texts, so I can't text it."
+    );
+    expect(onBehalfNotSent('Mom', 'quiet-hours')).toMatch(/NOT sent: .*quiet hours/);
   });
 });
