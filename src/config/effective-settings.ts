@@ -1,5 +1,5 @@
 /**
- * The effective settings this process runs with, as one greppable line.
+ * The effective settings this process runs with, as numbered greppable lines.
  *
  * The agent logs `EFFECTIVE_SETTINGS {...}` lines at boot, so two deployments can
  * be compared by the hash of their non-secret settings instead of by hand. Every
