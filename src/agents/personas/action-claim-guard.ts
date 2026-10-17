@@ -37,6 +37,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { callActions, claimedAction, kindsOfTool, type ActionKind } from './action-claims.js';
+import { withAnnouncedCheckLog } from './announced-check.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -200,7 +201,9 @@ export async function withActionClaimCheck<T>(
   env: Env = process.env
 ): Promise<T> {
   const stream = await reply;
-  if (stream === null || stream === undefined || !actionClaimGuardEnabled(env)) return stream;
+  // Either way the reply is also tapped for "I'll check" with no tool call (announced-check.ts).
+  if (stream === null || stream === undefined) return stream;
+  if (!actionClaimGuardEnabled(env)) return withAnnouncedCheckLog(stream, tools, env);
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
   const { failed } = callActions(chatCtx);
   const open = new Set(Object.keys(tools.functionTools ?? {}).flatMap(kindsOfTool));
@@ -299,5 +302,5 @@ export async function withActionClaimCheck<T>(
       });
     },
   });
-  return guarded as unknown as T;
+  return withAnnouncedCheckLog(guarded as unknown as T, tools, env);
 }
