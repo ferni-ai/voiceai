@@ -28,6 +28,16 @@ const state = vi.hoisted(() => ({
   /** Through the guarded sender's Twilio send. */
   guarded: [] as Array<{ to: string; body: string }>,
   optedOut: false,
+  /** What the guarded sender recorded (its gap reads these back). */
+  records: [] as Array<{
+    userId: string;
+    phoneHash: string;
+    kind?: string;
+    sentAt: string;
+    status: string;
+  }>,
+  /** Promises moved to a held reminder's new time. */
+  extended: [] as Array<{ reminderId: string; at: string }>,
   /** Reminders delivered to the app's message panel. */
   inApp: [] as string[],
   /** The guarded sender's env (ON_BEHALF_TEXTS gates texts to someone else). */
@@ -62,12 +72,15 @@ vi.mock('../services/outreach/guarded-text.js', async (importOriginal) => {
     defaultTextDeps: () => ({
       env: state.env,
       store: {
-        forUser: async () => [],
-        add: async () => 'rec-1',
+        forUser: async (id: string) => state.records.filter((r) => r.userId === id),
+        add: async (rec: (typeof state.records)[number]) => {
+          state.records.push(rec);
+          return `rec-${state.records.length}`;
+        },
         sponsoredPhone: async () => undefined,
         userDoc: async (uid: string) => state.users[uid],
         legacySmsChannels: async () => undefined,
-        forPhoneHash: async () => [],
+        forPhoneHash: async (h: string) => state.records.filter((r) => r.phoneHash === h),
         isOptedOut: async () => state.optedOut,
       },
       authPhone: async () => undefined,
@@ -100,6 +113,9 @@ vi.mock('../services/calendar/calendar-bridge.js', () => {
 vi.mock('../services/data-layer/hooks/index.js', () => ({ onReminderChange: async () => {} }));
 vi.mock('../services/superhuman/semantic-intelligence/promise-keeper.js', () => ({
   recordReminderPromise: async () => {},
+  extendReminderPromise: async (_owner: string, reminderId: string, at: Date) => {
+    state.extended.push({ reminderId, at: at.toISOString() });
+  },
   settleReminderPromise: async () => {},
   sweepOverduePromises: async () => ({}),
 }));
@@ -154,6 +170,8 @@ beforeEach(() => {
   state.guarded = [];
   state.inApp = [];
   state.optedOut = false;
+  state.records = [];
+  state.extended = [];
   state.env = { LOG_HASH_SECRET: 'test-secret' };
   state.now = new Date('2026-10-14T16:00:00.000Z');
   installReminderTexts(); // what the job route and the in-process scheduler's startup do
@@ -197,11 +215,69 @@ describe('REMINDER_SMS_DEFAULT on', () => {
     expect(state.inApp).toEqual(['take the bread out']);
   });
 
-  it('in quiet hours it is not texted, and goes to the app instead', async () => {
+  /** A stored sms reminder due at `due` (ISO, UTC) in New York. */
+  async function dueAt(due: string): Promise<Record<string, unknown>> {
     await setReminder({ deliveryMethod: 'sms' });
-    state.now = new Date('2026-10-14T07:00:00.000Z'); // 3 AM in New York
-    stored()[0].timezone = 'America/New_York';
-    await deliverDueReminders({ now: soon() });
+    const row = stored()[stored().length - 1];
+    Object.assign(row, { scheduledFor: due, timezone: 'America/New_York' });
+    return row;
+  }
+  /** One job run at `iso`, with the guarded sender's clock at the same moment. */
+  async function runAt(iso: string) {
+    state.now = new Date(iso);
+    return deliverDueReminders({ now: state.now });
+  }
+
+  it('due 23:00 in quiet hours: held, then texted at 08:00 the next morning', async () => {
+    const row = await dueAt('2026-10-15T03:00:00.000Z'); // 23:00 New York (EDT)
+    const run = await runAt('2026-10-15T03:00:00.000Z');
+    expect(run).toMatchObject({ held: 1, delivered: 0 });
+    noTexts();
+    expect(state.inApp).toEqual([]);
+    expect(row).toMatchObject({ status: 'pending', scheduledFor: '2026-10-15T12:00:00.000Z' });
+    expect(state.extended).toEqual([
+      { reminderId: storedRows()[0].id, at: '2026-10-15T12:00:00.000Z' },
+    ]);
+
+    await runAt('2026-10-15T11:59:00.000Z'); // 07:59: not yet
+    expect(state.guarded).toEqual([]);
+    await runAt('2026-10-15T12:00:00.000Z'); // 08:00
+    expect(state.guarded).toEqual([{ to: VERIFIED, body: BODY }]);
+    expect(row.status).toBe('delivered');
+  });
+
+  it('due 07:59: held to 08:00 the same morning', async () => {
+    const row = await dueAt('2026-10-15T11:59:00.000Z');
+    await runAt('2026-10-15T11:59:00.000Z');
+    noTexts();
+    expect(row).toMatchObject({ status: 'pending', scheduledFor: '2026-10-15T12:00:00.000Z' });
+  });
+
+  it('due 08:01: texted right away', async () => {
+    await dueAt('2026-10-15T12:01:00.000Z');
+    const run = await runAt('2026-10-15T12:01:00.000Z');
+    expect(run).toMatchObject({ held: 0, delivered: 1 });
+    expect(state.guarded).toEqual([{ to: VERIFIED, body: BODY }]);
+  });
+
+  it('several held to 08:00 go out spaced by the guard gap, not dropped', async () => {
+    const a = await dueAt('2026-10-15T03:00:00.000Z');
+    const b = await dueAt('2026-10-15T04:00:00.000Z');
+    await runAt('2026-10-15T04:00:00.000Z');
+    await runAt('2026-10-15T12:00:00.000Z');
+    expect(state.guarded).toHaveLength(1);
+    expect(b).toMatchObject({ status: 'pending', scheduledFor: '2026-10-15T12:01:00.000Z' });
+    expect(a.status).toBe('delivered');
+    await runAt('2026-10-15T12:01:00.000Z');
+    expect(state.guarded).toHaveLength(2);
+    expect(state.inApp).toEqual([]);
+  });
+
+  it('STOP sent while it was held: it goes to the app at 08:00, not by text', async () => {
+    await dueAt('2026-10-15T03:00:00.000Z');
+    await runAt('2026-10-15T03:00:00.000Z');
+    state.optedOut = true;
+    await runAt('2026-10-15T12:00:00.000Z');
     noTexts();
     expect(state.inApp).toEqual(['take the bread out']);
   });

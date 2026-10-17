@@ -26,7 +26,7 @@ import { recordOutcome } from '../contacts/optimal-timing.js';
 import { WallClock, zonedWallTimeToUtc } from '../../utils/time-zone.js';
 export { userTimeZone } from '../../utils/caller-time-zone.js';
 import { clockTime } from './clock-time.js';
-import { textThroughGuard } from './reminder-text-guard.js';
+import { settleGuardedText, textThroughGuard } from './reminder-text-guard.js';
 
 // Logger instance for use throughout this module
 const logger = getLogger();
@@ -560,8 +560,8 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
 
   try {
     const guarded = await textThroughGuard(reminder); // REMINDER_SMS_DEFAULT: texts only via the guard
-    if (guarded === 'in-app')
-      return await deliverReminder({ ...reminder, deliveryMethod: 'in_app' });
+    if (guarded && guarded !== 'sent')
+      return await settleGuardedText(reminder, guarded, deliverReminder);
     switch (guarded === 'sent' ? 'guarded' : reminder.deliveryMethod) {
       case 'guarded':
         break;
