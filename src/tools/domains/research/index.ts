@@ -599,7 +599,7 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'synthesizeIndustryTrends',
       'Synthesize Industry Trends',
-      'Synthesize trends for any industry. Know where sectors are heading.',
+      'Talk about an industry: no current market views, sentiment calls or company picks.',
       superhumanTools.synthesizeIndustryTrends,
       { tags: ['superhuman', 'external-data', 'industry', 'trends'] }
     ),

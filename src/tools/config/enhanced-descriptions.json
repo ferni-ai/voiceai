@@ -911,7 +911,7 @@
       }
     },
     "synthesizeIndustryTrends": {
-      "description": "Synthesize trends in a specific industry.",
+      "description": "Talk about an industry. Gives no current market views, sentiment calls or company picks.",
       "parameters": {
         "industry": "Industry to analyze (e.g., 'technology', 'healthcare')"
       }
