@@ -130,8 +130,11 @@ describe('transcript segment rotated after a late text flush (patched)', () => {
     await interruptWithLateTextFlush(synchronizer, downstream);
     const second = await playTurn(synchronizer, downstream, 'turn-two-text', false);
     const third = await playTurn(synchronizer, downstream, 'turn-three-text', true);
+    const fourth = await playTurn(synchronizer, downstream, 'turn-four-text', false);
     expect(second.synchronizedTranscript).toBe('turn-two-text');
-    expect(third.synchronizedTranscript ?? '').not.toContain('turn-two');
+    // cut before any of its words were paced out: nothing of it was spoken
+    expect(third.synchronizedTranscript).toBe('');
+    expect(fourth.synchronizedTranscript).toBe('turn-four-text');
     await synchronizer.close();
   });
 
@@ -141,8 +144,10 @@ describe('transcript segment rotated after a late text flush (patched)', () => {
     await interruptWithLateTextFlush(synchronizer, downstream);
     await playTurn(synchronizer, downstream, 'turn-two-text', false);
     const third = await playTurn(synchronizer, downstream, 'turn-three-text', true);
+    const fourth = await playTurn(synchronizer, downstream, 'turn-four-text', false);
     // When this fails, upstream has fixed #2566: drop the hunk and this flag.
-    expect(third.synchronizedTranscript).toContain('turn-two');
+    expect(third.synchronizedTranscript).toBe('turn-two-text');
+    expect(fourth.synchronizedTranscript).toBe('turn-three-text');
     await synchronizer.close();
   });
 });
