@@ -54,7 +54,7 @@ import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { journalAskFor } from './journal-ask.js';
-import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
+import { callerTurnsOf, goodbyeNoteOn, happyExitNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
@@ -242,9 +242,9 @@ function thoughtFor(session: object, said: string): string {
   return deliberator.noteFor(said, held);
 }
 
-/** HAPPY_EXITS=on: the goodbye note when they are wrapping up (happy-exits.ts). */
+/** HAPPY_EXITS or SHORT_GOODBYE: the goodbye note when they are wrapping up (happy-exits.ts). */
 function exitFor(chatCtx: llm.ChatContext, session: object, said: string): string {
-  if (!happyExitsEnabled() || !said) return '';
+  if (!goodbyeNoteOn() || !said) return '';
   const { signals } = signalsFor(session, said);
   return happyExitNote(session, {
     said,

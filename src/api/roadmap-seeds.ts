@@ -9,7 +9,7 @@
  * @module api/roadmap-seeds
  */
 import { randomUUID } from 'node:crypto';
-import admin from 'firebase-admin';
+import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 import {
   commitSeeds,
   InsufficientSeedsError,
@@ -23,8 +23,8 @@ export const UNVOTE_REFUND_PERCENT = 0.5;
 export const RITUAL_STREAK_REWARDS: Readonly<Record<number, number>> = { 7: 5, 30: 15 };
 
 type Failure = { success: false; error: string; balance?: number };
-const inc = admin.firestore.FieldValue.increment;
-const now = () => admin.firestore.FieldValue.serverTimestamp();
+const inc = FieldValue.increment;
+const now = () => FieldValue.serverTimestamp();
 
 /** A client request id makes a retried vote free; otherwise each call is its own vote. */
 function requestKey(requestId: unknown): string {
@@ -34,7 +34,7 @@ function requestKey(requestId: unknown): string {
 }
 
 /** Balance and totals for GET /api/roadmap/seeds, without creating an account. */
-export async function readSeedSummary(db: admin.firestore.Firestore, userId: string) {
+export async function readSeedSummary(db: Firestore, userId: string) {
   const data = (await db.collection('user_seeds').doc(userId).get()).data() ?? {};
   return {
     userId,
@@ -48,7 +48,7 @@ export async function readSeedSummary(db: admin.firestore.Firestore, userId: str
 
 /** Plant seeds on a feature (adds to an existing vote). */
 export async function voteWithSeeds(
-  db: admin.firestore.Firestore,
+  db: Firestore,
   userId: string,
   vote: { featureId: string; seeds: number; reason?: string; requestId?: unknown }
 ): Promise<
@@ -118,7 +118,7 @@ export async function voteWithSeeds(
 
 /** Remove a vote and refund half its seeds. */
 export async function unvoteWithRefund(
-  db: admin.firestore.Firestore,
+  db: Firestore,
   userId: string,
   featureId: string
 ): Promise<{ success: true; seedsRefunded: number; seedsLost: number } | Failure> {
@@ -148,7 +148,7 @@ export async function unvoteWithRefund(
 
 /** Submit a suggestion, which costs SUGGESTION_COST seeds. */
 export async function suggestWithSeeds(
-  db: admin.firestore.Firestore,
+  db: Firestore,
   userId: string,
   suggestion: { title: string; description: string; category: string }
 ): Promise<{ success: true; suggestionId: string; newBalance: number } | Failure> {
@@ -187,7 +187,7 @@ export async function suggestWithSeeds(
  * person; ones claimed before the ledger (user_streak_rewards) aren't paid again.
  */
 export async function claimRitualStreakRewards(
-  db: admin.firestore.Firestore,
+  db: Firestore,
   userId: string,
   longestCurrentStreak: number
 ): Promise<{ awarded: boolean; milestone?: number; seeds?: number; newBalance?: number }> {
