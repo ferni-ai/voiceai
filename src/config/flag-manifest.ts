@@ -46,6 +46,8 @@ export const FLAG_MANIFEST = {
   // every persona starts with getNews, getWeather, getWeatherForecast, searchWeb (multi-agent/always-on-info-tools.ts)
   ALWAYS_ON_INFO_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
   AMBIENT_MUSIC_ENABLED: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // logs ANNOUNCED_CHECK_NO_TOOL: a reply said "I'll check" and called no tool (announced-check.ts)
+  ANNOUNCED_CHECK_LOG: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   APPLE_ONLINE_CHECKS: { default: 'on', owner: 'billing', kind: 'kill-switch' },
   APPROVALS_PAGE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // only with APPROVALS_PAGE=on
@@ -214,6 +216,8 @@ export const FLAG_MANIFEST = {
   LIFE_LEDGER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIFE_MOVES_ON: { default: 'off', owner: 'voice', kind: 'experiment' },
   LISTEN_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // the look-up rule rides the two replies after a live-data question (turn-shape.ts)
+  LIVE_DATA_CARRYOVER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIVE_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   // the cascade's prompt-cache settings in one switch (llm-context-cache-flag.ts)
   LLM_CONTEXT_CACHE: { default: 'off', owner: 'voice', kind: 'experiment' },
