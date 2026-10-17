@@ -288,6 +288,8 @@ export function hideAfterCallCard(immediate = false): void {
 
   const closing = card;
   card = null;
+  // Held toasts wait for this (AFTER_CALL_CARD_CLOSED_EVENT in app/call-end-paths.ts).
+  document.dispatchEvent(new CustomEvent('ferni:after-call-card-closed'));
   const hadFocus = closing.contains(document.activeElement);
   closing.classList.remove('visible');
   if (immediate || prefersReducedMotion()) closing.remove();

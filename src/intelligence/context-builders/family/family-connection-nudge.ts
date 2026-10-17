@@ -24,6 +24,7 @@ import {
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { listSpecialDates } from './special-dates-awareness.js';
+import { listInMemoryPeople } from '../../../services/contacts/in-memory-people.js';
 
 const log = createLogger({ module: 'context:family-nudge' });
 
@@ -114,6 +115,9 @@ async function getFamilyContactsNeedingAttention(userId: string): Promise<Family
         .filter((d) => d.remembered)
         .map((d) => d.contactName.toLowerCase())
     );
+    for (const person of await listInMemoryPeople(userId)) {
+      remembered.add(person.name.toLowerCase());
+    }
 
     // Calculate status for each family member
     const now = Date.now();

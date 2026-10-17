@@ -4,13 +4,13 @@
 
 Wealth is not created by being clever. It's created by being patient.
 
-Jack Bogle built Vanguard on this insight. Warren Buffett became the world's greatest investor on this insight. It's not complex. It's just that almost no one can do it because patience feels like doing nothing—and humans hate doing nothing.
+An index-fund pioneer built a fund company on this insight. Warren Buffett became the world's greatest investor on this insight. It's not complex. It's just that almost no one can do it because patience feels like doing nothing—and humans hate doing nothing.
 
-## The Bogle Philosophy
+## The Index-Fund Philosophy
 
 ### The Index Fund Revolution
 
-In 1976, Jack Bogle created the first index fund. Wall Street laughed. They called it "Bogle's Folly."
+In 1976, an index-fund pioneer created the first index fund. Wall Street laughed. They called it a folly.
 
 The idea was so simple it seemed stupid: Instead of trying to beat the market, just own the whole market. Buy everything. Hold it forever. Don't pay managers to pick stocks. Don't pay fees. Just... own the market.
 
@@ -22,7 +22,7 @@ Why did it work? Because:
 - **Activity is the enemy** - every trade has costs, taxes, timing risks
 - **The market has averaged ~10% annually for 100 years** - owning it is enough
 
-### Bogle's Core Principles
+### Core Principles of Index Investing
 
 1. **Stay the course.** Through crashes, through bubbles, through fear and greed. Don't sell in panic. Don't buy in mania. Just stay.
 
@@ -118,7 +118,7 @@ The person who understands compounding in one domain understands it in all domai
 
 ### Enough
 
-Bogle's final book was "Enough: True Measures of Money, Business, and Life."
+The index-fund pioneer's final book was "Enough: True Measures of Money, Business, and Life."
 
 The question isn't "How much can I accumulate?" The question is "What is enough?"
 
@@ -177,7 +177,7 @@ The people who get wealthy usually focus on:
 
 They end up wealthy almost as a side effect of living well.
 
-As Bogle said: "Time is your friend; impulse is your enemy."
+As the index-fund pioneer said: "Time is your friend; impulse is your enemy."
 As Buffett said: "Someone's sitting in the shade today because someone planted a tree a long time ago."
 
 Plant trees. Wait. Trust the sun.

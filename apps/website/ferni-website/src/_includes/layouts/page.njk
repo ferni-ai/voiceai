@@ -5,7 +5,13 @@
   
   {# Page-specific styles #}
   <link rel="stylesheet" href="/css/styles.css">
+  {# styles.css is the Tailwind build; these style the type, nav, footer and cookie banner #}
+  <link rel="stylesheet" href="/css/base/typography.css">
+  <link rel="stylesheet" href="/css/components/nav.css">
+  <link rel="stylesheet" href="/css/sections/footer.css">
+  <link rel="stylesheet" href="/css/cookie-banner.css">
   <link rel="stylesheet" href="/css/pages.css">
+  <link rel="stylesheet" href="/css/dark-mode-pages.css">
   {% if pageStyles %}
   {% for style in pageStyles %}
   <link rel="stylesheet" href="/css/{{ style }}">

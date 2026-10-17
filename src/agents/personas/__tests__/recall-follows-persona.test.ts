@@ -103,7 +103,7 @@ describe('persona display names', () => {
     expect(personaDisplayName(PETER)).toBe('Peter');
     expect(personaDisplayName(MAYA)).toBe('Maya');
     expect(personaDisplayName(CANONICAL_IDS.COACH)).toBe('Ferni');
-    expect(personaDisplayName(CANONICAL_IDS.JOHN_BOGLE)).toBe('John Bogle');
+    expect(personaDisplayName(CANONICAL_IDS.JOHN_BOGLE)).toBe('Henry Caldwell');
     // An id the registry doesn't know still reads as a name.
     expect(personaDisplayName('zoe-quinn')).toBe('Zoe');
   });

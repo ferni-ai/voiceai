@@ -24,6 +24,7 @@
  */
 
 import { llm } from '@livekit/agents';
+import { llmContextCacheEnabled } from '../../config/llm-context-cache-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { FastLaneLLM } from './fast-lane.js';
 
@@ -37,7 +38,9 @@ const MAX_WARMS = 6;
 
 export function cacheWarmEnabled(env: Record<string, string | undefined> = process.env): boolean {
   // FIRST_TURN_FAST covers every part of the first reply that is slow because it is first.
-  return env.CASCADE_CACHE_WARM === 'on' || env.FIRST_TURN_FAST === 'on';
+  return (
+    env.CASCADE_CACHE_WARM === 'on' || env.FIRST_TURN_FAST === 'on' || llmContextCacheEnabled(env)
+  );
 }
 
 interface AgentView {

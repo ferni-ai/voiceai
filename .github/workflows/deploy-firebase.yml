@@ -75,6 +75,9 @@ jobs:
           # Venmo chip-in card (#1014): off unless both repo variables are set.
           VITE_VENMO_CHIP_IN: ${{ vars.VITE_VENMO_CHIP_IN }}
           VITE_VENMO_HANDLE: ${{ vars.VITE_VENMO_HANDLE }}
+          # Caption flags (apps/web/src/ui/captions/captions-flag.ts); off unless exactly "true".
+          VITE_CAPTIONS_V2: ${{ vars.VITE_CAPTIONS_V2 }}
+          VITE_CAPTIONS_BREATH: ${{ vars.VITE_CAPTIONS_BREATH }}
 
       - name: Deploy to Firebase (ferni-prod)
         id: deploy-ferni
@@ -190,7 +193,10 @@ jobs:
   deploy-landing:
     name: Deploy Landing
     runs-on: ubuntu-latest
-    if: ${{ inputs.target == 'landing' || inputs.target == 'both' }}
+    # Every push to main, like the app, plus a manual landing or both
+    # dispatch. A push-only "did the site change" check would miss site
+    # merges whose queued run the concurrency group replaced with a newer one.
+    if: ${{ github.event_name == 'push' || inputs.target == 'landing' || inputs.target == 'both' }}
 
     steps:
       - name: Checkout
@@ -212,6 +218,13 @@ jobs:
       - name: Build landing page
         working-directory: apps/website/ferni-website
         run: npm run build:prod
+
+      - name: Install Playwright chromium
+        run: pnpm playwright install --with-deps --only-shell chromium
+
+      # Fails the deploy if dark mode leaves any text under 3:1 again.
+      - name: Check light and dark mode on the built site
+        run: pnpm playwright test -c apps/website/ferni-website/playwright.config.ts
 
       - name: Deploy landing to Firebase
         id: deploy-landing

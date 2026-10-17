@@ -35,6 +35,7 @@ import {
   type RecallSnapshot,
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
+import { jokesForTurn } from '../../memory/recall/inside-jokes-recall.js';
 import { formatPeople, peopleOf, recallPeopleEnabled } from '../../memory/recall/people.js';
 import { formatPets, petsOf } from '../../memory/recall/pets.js';
 import {
@@ -56,11 +57,14 @@ import {
   type LedgerStore,
 } from '../personas/life-ledger.js';
 import { loadCanon, selfRecallEnabled, selfRecallNote } from '../personas/self-recall.js';
+import { datesRecallFor, type DatesRecall } from '../../intelligence/world-model/dates/recall.js';
 import {
   formatLifeUpdates,
   loadLifeUpdates,
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
+import { commonGroundEnabled, formatCommonGround } from '../personas/common-ground.js';
+import { firestoreGroundStore, type GroundStore } from '../personas/common-ground-after-call.js';
 import {
   callCheckIns,
   coachFollowThroughMode,
@@ -68,7 +72,6 @@ import {
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { RECALL_NOTE_ID_PREFIX } from './turn-context-header.js';
 import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
 import { takeOpenerClaim } from '../../memory/recall/opener-claim.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
@@ -79,6 +82,7 @@ import {
 } from '../../memory/recall/episodes.js';
 import { firestoreEpisodeStore } from '../../memory/storage/episode-store.js';
 import { createSummaryRecall, summaryRecallEnabled } from '../../memory/recall/call-summaries.js';
+import type { RecallPick } from '../personas/context-packet/turn-packet.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -130,6 +134,10 @@ export interface MemoryRecallDeps {
   lifeUpdates?: LifeUpdateDeps;
   /** What they said they'd do, asked about early (COACH_FOLLOW_THROUGH). */
   checkIns?: () => Promise<OpenCommitment[]>;
+  /** What the two of them both know (common-ground.ts, COMMON_GROUND). */
+  groundStore?: GroundStore;
+  /** A date they told Ferni about, asked once (dates/recall.ts, FRIEND_FOLLOWUPS). */
+  dates?: DatesRecall;
   /** FERNI_SELF_RECALL=on; read from the environment when not given. */
   selfRecall?: boolean;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
@@ -158,6 +166,10 @@ export interface MemoryRecall {
   noteFor(transcript: string, opts?: { final?: boolean }): string | null;
   /** The agent started replying: the next transcript belongs to a new user turn. */
   newTurn(): void;
+  /** The last note split for the context packet (CONTEXT_PACKET); null before any. */
+  lastPick(): RecallPick | null;
+  /** What was loaded at call start, once it is (for the name lift); undefined before. */
+  snapshot(): RecallSnapshot | undefined;
 }
 
 /**
@@ -185,6 +197,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let snapshot: RecallSnapshot | undefined;
   const surfaced = new Set<string>();
   let followUpsOffered = false;
+  // A shared bit comes once a call (INSIDE_JOKES), on a turn that touches its line.
+  let jokeOffered = false;
   const bridge = deps.bridge ?? recallBridgeEnabled();
   // RECALL_BRIDGE: open threads not yet offered, and which caller turn this is.
   let threadsLeft: string[] = [];
@@ -200,8 +214,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let ledgerNote: string | null = null;
   let peopleNote: string | null = null;
   let sinceNote: string | null = null;
+  let groundNote: string | null = null;
   let checkInNote: string | null = null;
   let checkInOffered = false;
+  let lastPick: RecallPick | null = null;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
   // Key points of earlier calls' summaries; loaded apart so the snapshot never waits.
   const summaryRecall =
@@ -297,12 +313,23 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       checkInNote = formatCheckIn(open, Date.now());
     })
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Check-ins not loaded'));
+  // Like the life updates: joins the first note only if loaded by then.
+  const ground = commonGroundEnabled()
+    ? (deps.groundStore ?? firestoreGroundStore)
+        .load(deps.userId)
+        .then((g) => {
+          groundNote = formatCommonGround(g, deps.userName);
+        })
+        .catch((error: unknown) => log.warn({ error: String(error) }, 'Common ground not loaded'))
+    : Promise.resolve();
   const canonLoaded = selfRecall
     ? loadCanon(personaId).then((c) => {
         canon = c;
       })
     : Promise.resolve();
-  const ready = Promise.all([loaded, since, checkedIn, canonLoaded]).then(() => undefined);
+  const dates = deps.dates ?? datesRecallFor(deps.userId);
+  const loading = [loaded, since, checkedIn, ground, canonLoaded, dates.ready];
+  const ready = Promise.all(loading).then(() => undefined);
 
   return {
     ready,
@@ -353,8 +380,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           ? []
           : snapshot.followUps;
       const followUps = [...threadsNow, ...extras.flatMap((id) => laterFollowUps.get(id) ?? [])];
-      // Shared bits, like the follow-ups, come once (shown only with INSIDE_JOKES=on).
-      const insideJokes = followUpsOffered ? [] : (snapshot.insideJokes ?? []);
+      // Shared bits come once a call, and only on a turn that touches the line they came from.
+      const insideJokes = jokeOffered ? [] : jokesForTurn(snapshot.insideJokes ?? [], text);
       // The ledger, like the follow-ups, comes once, with the first note. With
       // RECALL_BRIDGE it waits like the threads, unless they ask about him: on
       // "Still on there." alone it was read as his mail pile (6/8 replies).
@@ -365,13 +392,17 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const told = tellNow ? [ledgerNote, sinceNote].filter(Boolean).join('\n') || null : null;
       // Who is who (RECALL_PEOPLE), once, with the first note.
       const people = followUpsOffered ? null : peopleNote;
+      // What the two of them both know (COMMON_GROUND), once, with the first note.
+      const groundNow = followUpsOffered ? null : groundNote;
       const checkIn = checkInOffered ? null : checkInNote;
-      // One follow-up per call opener (opener-claim.ts): a check-in in this
-      // note, or one the greeting already asked, leaves the thread line out.
+      const dateNow = followUpsOffered || checkIn ? null : dates.note();
+      // One follow-up per call opener (opener-claim.ts): a check-in or a date
+      // in this note, or one the greeting already asked, leaves the thread line out.
       const greetingAsked = followUpsOffered ? undefined : takeOpenerClaim(deps.userId);
       const opener =
         !followUpsOffered &&
         !checkIn &&
+        !dateNow &&
         !greetingAsked &&
         threadsNow.length > 0 &&
         (deps.opener ?? openerFollowUpEnabled())
@@ -383,27 +414,35 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           ? selfRecallNote(text, allTold, canon, { name: personaDisplayName(personaId) })
           : null;
       if (self) selfNoteGiven = true;
-      const note =
+      const [summary, episode] = [summaryRecall?.take(text) ?? null, episodes?.take() ?? null];
+      // The same note with or without the facts: CONTEXT_PACKET labels those in the packet.
+      const noteWith = (shown: RecallFact[]): string | null =>
         [
           checkIn,
-          formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
+          dateNow,
+          formatRecall(shown, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
           opener,
-          summaryRecall?.take(text) ?? null,
+          summary,
           people,
           told,
+          groundNow,
           extraTold.length > 0
             ? formatLedger(extraTold, deps.userName, Date.now(), { bridge })
             : null,
-          episodes?.take() ?? null,
+          episode,
           self,
         ]
           .filter(Boolean)
           .join('\n\n') || null;
+      const note = noteWith(facts);
       if (!note) return null;
+      lastPick = { facts, userName: deps.userName, rest: noteWith([]) };
       followUpsOffered = true;
+      if (insideJokes.length > 0) jokeOffered = true;
       if (told) toldOffered = true;
       threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));
       if (checkIn) checkInOffered = true;
+      if (dateNow) dates.raised();
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);
       factsThisTurn += facts.length;
@@ -424,6 +463,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       );
       return note;
     },
+    lastPick: () => lastPick,
     newTurn() {
       turnCounted = false;
       episodes?.newTurn();
@@ -434,29 +474,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       index?.newTurn();
       summaryRecall?.newTurn();
     },
+    snapshot: () => snapshot,
   };
 }
 
-/** Recall notes added so far, for their ids (RECALL_NOTE_ID_PREFIX). */
-let recallNotes = 0;
-
-/** The slice of the SDK Agent this needs. */
-export interface RecallAgent {
-  readonly chatCtx: {
-    copy(): { addMessage(msg: { role: 'system'; content: string; id?: string }): unknown };
-  };
-  updateChatCtx(chatCtx: unknown): Promise<void>;
-}
-
-/**
- * Add a recall note to the agent's context now. updateChatCtx assigns the
- * context before its first await, so the note is in place for the preemptive
- * generation the SDK starts right after the transcript event.
- */
-export function addRecallNote(agent: RecallAgent, note: string): void {
-  const ctx = agent.chatCtx.copy();
-  ctx.addMessage({ role: 'system', content: note, id: `${RECALL_NOTE_ID_PREFIX}${++recallNotes}` });
-  agent.updateChatCtx(ctx).catch((error: unknown) => {
-    log.warn({ error: String(error) }, 'Recall note not added');
-  });
-}
+export { addRecallNote, type RecallAgent } from './recall-note.js';
