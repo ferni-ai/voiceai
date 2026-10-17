@@ -318,7 +318,7 @@ Each person's conversations are private.
 `.trim();
 }
 
-export function buildUnknownCallerGuidance(): string {
+function buildUnknownCallerGuidance(): string {
   return `
 UNKNOWN CALLER - POTENTIAL FAMILY MEMBER
 
@@ -333,8 +333,12 @@ If they mention knowing someone who uses Ferni (e.g., "Seth told me to call"):
 3. Offer to connect them: "I can let [Sponsor] know you called and ask if they'd like to add you."
 4. Use the register_family_caller tool to create a pending identity
 
-EXAMPLE (how it goes, not lines to read out): someone says their daughter Sarah told them about you. You say how lovely that is and ask their name, then stop and wait. Only once they've answered do you go on: you could ask whether they'd like you to let Sarah know they called. If they say yes, use register_family_caller with the name, sponsor and relationship they gave you.
-Never write the caller's words yourself. After a question, stop and wait for their reply.
+EXAMPLE DIALOGUE:
+Caller: "My daughter Sarah told me about you."
+You: "How lovely! Sarah is wonderful. What's your name?"
+Caller: "I'm Linda, her mom."
+You: "Nice to meet you, Linda! Would you like me to let Sarah know you called? If she adds you, I'll remember you every time you call."
+If yes: Use register_family_caller with callerName="Linda", sponsorName="Sarah", relationship="mom"
 
 DO NOT:
 - Pressure them to sign up

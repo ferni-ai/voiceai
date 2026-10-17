@@ -3,7 +3,11 @@
  * On dev 2026-10-17 he asked "Whereabouts are you?" and went on with "I'm in
  * Manhattan, New York. 10011." Synthetic lines only.
  */
-import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
+import {
+  ReadableStream,
+  type ReadableStreamDefaultController,
+  type ReadableStreamReadResult as ReadResult,
+} from 'node:stream/web';
 import { describe, expect, it } from 'vitest';
 
 import { answerShapeOf, withCallerVoiceGuard } from '../caller-voice-guard.js';
@@ -274,5 +278,80 @@ describe('caller voice guard modes and personas', () => {
     expect(answerShapeOf('Manhattan, New York, 10011.')).toBe('city-state');
     expect(answerShapeOf('Yes, I have three options.')).toBeUndefined();
     expect(answerShapeOf("I'm Linda, her mom.", 'maya-santos')).toBe('name-intro');
+  });
+});
+
+describe('caller voice guard streams as the model writes it', () => {
+  /** Feeds chunks one at a time; reads what has come out before feeding the next. */
+  async function streamedBeforeEachFeed(
+    chunks: Chunk[],
+    env: Record<string, string>
+  ): Promise<Chunk[][]> {
+    let feed!: ReadableStreamDefaultController<Chunk>;
+    const source = new ReadableStream<Chunk>({
+      start(controller) {
+        feed = controller;
+      },
+    });
+    const reader = (
+      (await withCallerVoiceGuard(source, env)) as unknown as ReadableStream<Chunk>
+    ).getReader();
+    const seen: Chunk[][] = [];
+    let outstanding: Promise<ReadResult<Chunk>> | undefined; // one read at a time, reused until it lands
+    const wait = (ms: number): Promise<null> =>
+      new Promise((resolve) => {
+        setTimeout(() => resolve(null), ms);
+      });
+    for (const chunk of chunks) {
+      feed.enqueue(chunk);
+      const got: Chunk[] = [];
+      for (;;) {
+        outstanding ??= reader.read();
+        const landed = await Promise.race([outstanding, wait(5)]);
+        if (landed === null || landed.done) break;
+        got.push(landed.value);
+        outstanding = undefined;
+      }
+      seen.push(got);
+    }
+    feed.close();
+    return seen;
+  }
+
+  it('shadow hands the model its own chunk objects, untouched and in order', async () => {
+    const chunks = [
+      { id: 'r', delta: { role: 'assistant', content: 'Whereabouts are you?' } },
+      { id: 'r', delta: { role: 'assistant', content: " I'm in Manhattan." } },
+    ];
+    const stream = new ReadableStream<Chunk>({
+      start(controller) {
+        for (const chunk of chunks) controller.enqueue(chunk);
+        controller.close();
+      },
+    });
+    const reader = (
+      (await withCallerVoiceGuard(stream, {
+        CALLER_VOICE_GUARD: 'shadow',
+      })) as unknown as ReadableStream<Chunk>
+    ).getReader();
+    const out: Chunk[] = [];
+    for (let next = await reader.read(); !next.done; next = await reader.read())
+      out.push(next.value);
+    expect(out).toHaveLength(chunks.length);
+    out.forEach((chunk, i) => expect(chunk).toBe(chunks[i]));
+  });
+
+  it('shadow streams a question that ends a chunk before the next chunk arrives', async () => {
+    const seen = await streamedBeforeEachFeed(['How was your day?', ' Tell me.'], {
+      CALLER_VOICE_GUARD: 'shadow',
+    });
+    expect(seen[0]).toEqual(['How was your day?']);
+  });
+
+  it('on streams a non-caller question that ends a chunk, holding nothing', async () => {
+    const seen = await streamedBeforeEachFeed(['How was your day?', ' Tell me.'], {
+      CALLER_VOICE_GUARD: 'on',
+    });
+    expect(seen[0]).toEqual(['How was your day?']);
   });
 });

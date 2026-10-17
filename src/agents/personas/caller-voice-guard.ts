@@ -102,9 +102,9 @@ const SELF_ANSWER: readonly Shape[] = [
  */
 const OWN_CANON: Readonly<Record<string, readonly string[]>> = {
   ferni: ['Wyoming', 'Big Sky', 'Jackson Hole', 'Yellowstone', 'Japan', 'Kyoto'],
-  'maya-santos': ['Stockton'],
+  'maya-santos': ['Stockton', 'Philippines'],
   'nayan-patel': ['Vadodara', 'Gujarat', 'India'],
-  'alex-chen': ['Oakland', "Chen's Garden"],
+  'alex-chen': ['Oakland', "Chen's Garden", 'Rockridge'],
   'peter-john': ['Pawtucket', 'Rhode Island'],
   'jordan-taylor': [],
 };
@@ -190,8 +190,9 @@ export async function withCallerVoiceGuard<T>(
       let passed = 0; // how much of pending already streamed out
       let window = 0; // sentences left in which the caller's answer can land
       let held: string[] = []; // sentences held while the window is open (on mode only)
+      // Shadow never emits: the model's own chunks go out untouched (below).
       const emit = (text: string): void => {
-        if (text) controller.enqueue(out(text));
+        if (hold && text) controller.enqueue(out(text));
       };
       const release = (): void => {
         emit(held.join(''));
@@ -241,6 +242,7 @@ export async function withCallerVoiceGuard<T>(
             controller.enqueue(chunk);
             continue;
           }
+          if (!hold) controller.enqueue(chunk); // shadow: the model's own chunk, untouched
           if (typeof chunk !== 'string') {
             stringChunks = false;
             id = (chunk as llm.ChatChunk).id ?? id;
@@ -256,8 +258,8 @@ export async function withCallerVoiceGuard<T>(
               return;
             }
           }
-          // A question still open ("...are you?") waits for its boundary, so its end is never streamed early.
-          if ((window === 0 || !hold) && !isQuestion(pending)) {
+          // With no caller question open, the unfinished sentence streams as it arrives.
+          if (hold && window === 0) {
             emit(pending.slice(passed));
             passed = pending.length;
           }
