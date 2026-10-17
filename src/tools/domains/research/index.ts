@@ -401,14 +401,14 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'scoreEvidenceQuality',
       'Score Evidence Quality',
-      'Score the quality of evidence behind any claim. Separate fact from anecdote from opinion.',
+      'Say how well-supported a claim is, from short built-in research notes. Not a live literature search.',
       superhumanTools.scoreEvidenceQuality,
       { tags: ['superhuman', 'research', 'evidence', 'critical-thinking'] }
     ),
     wrapLegacyTool(
       'synthesizeResearch',
       'Synthesize Research',
-      'Synthesize research on any topic in seconds. Get the real consensus, not pop science headlines.',
+      'Summarize what is generally known on a few life topics from built-in research notes. Not a live literature search.',
       superhumanTools.synthesizeResearch,
       { tags: ['superhuman', 'research', 'synthesis', 'evidence'] }
     ),
@@ -422,14 +422,14 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'verifyClaim',
       'Verify Claim',
-      'Verify any claim against evidence. Get a truth rating from verified to false.',
+      'Check advice against well-known myths and built-in research notes. Says when it cannot verify a claim.',
       superhumanTools.verifyClaim,
       { tags: ['superhuman', 'research', 'fact-check', 'evidence'] }
     ),
     wrapLegacyTool(
       'getBaseRate',
       'Get Base Rate',
-      'Get the base rate for any situation. Combat probability blindness with real statistics.',
+      'Base-rate context for a few common scenarios. Quotes a figure only where a sourced one exists.',
       superhumanTools.getBaseRate,
       { tags: ['superhuman', 'research', 'statistics', 'probability'] }
     ),

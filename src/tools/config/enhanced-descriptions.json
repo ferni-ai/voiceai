@@ -732,7 +732,7 @@
       }
     },
     "scoreEvidenceQuality": {
-      "description": "Evaluate evidence quality using scientific methodology. BETTER THAN HUMAN: Applies rigorous research standards.",
+      "description": "Say how well-supported a claim is, from short built-in research notes. Not a live literature search.",
       "parameters": {
         "claim": "The claim being evaluated",
         "source": "Source of the evidence",
@@ -740,7 +740,7 @@
       }
     },
     "synthesizeResearch": {
-      "description": "Synthesize multiple research sources into coherent findings. Like having a research assistant.",
+      "description": "Summarize what is generally known on a few life topics from built-in research notes. Not a live literature search.",
       "parameters": {
         "topic": "Topic to synthesize research on",
         "sources": "Array of sources/studies to synthesize"
@@ -760,7 +760,7 @@
       }
     },
     "getBaseRate": {
-      "description": "Get base rate statistics for a scenario. BETTER THAN HUMAN: Provides objective probabilities.",
+      "description": "Base-rate context for a few common scenarios. Quotes a figure only where a sourced one exists.",
       "parameters": {
         "scenario": "The scenario to get base rates for. Examples: 'startup success', 'marriage lasting'"
       }
