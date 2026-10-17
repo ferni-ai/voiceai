@@ -50,7 +50,7 @@ const OUTREACH_PREFIX = '/api/outreach';
 type Named = { userId?: unknown };
 
 import { handleVerifyPhone } from './verify-phone-routes.js';
-import { verifiedPhoneFor } from './user-contact.js';
+import { phoneChannelRefusal } from './user-contact.js';
 
 // Helper to get persona display name
 function getPersonaName(personaId: string): string {
@@ -162,10 +162,9 @@ export async function handleOutreachRoutes(
       };
       const patch = consentPatchFrom(preferences);
       // Texts and calls only to a number the user proved is theirs (a texted code).
-      const phoneChannel = patch.channels?.some((c) => c === 'sms' || c === 'voice_call');
-      if (phoneChannel && !(await verifiedPhoneFor(auth))) {
-        const error = 'Verify your phone number before turning on texts or calls.';
-        sendJsonResponse(res, 409, { success: false, error });
+      const refusal = await phoneChannelRefusal(auth, patch.channels);
+      if (refusal) {
+        sendJsonResponse(res, 409, { success: false, error: refusal });
         return true;
       }
       // Use authenticated userId (ignore body.userId to prevent tampering)

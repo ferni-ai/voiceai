@@ -9,6 +9,11 @@
  */
 import { getFirebaseUser } from '../services/identity/firebase-auth.js';
 import { toE164 } from '../services/outreach/checkin-replies.js';
+import {
+  readOutreachConsent,
+  writeOutreachConsent,
+} from '../services/outreach/outreach-consent.js';
+import type { DeliveryChannel } from '../services/outreach/unified-delivery.js';
 import { verifiedPhoneOf } from '../services/outreach/user-reach.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
 import type { UserProfile } from '../types/user-profile.js';
@@ -54,6 +59,37 @@ export function nextContactInfo(
  * account id / linked identifier. Never contactInfo.phone, which anyone (the
  * model, this route) can write. Gates texts/calls consent and the "Verified" badge.
  */
+const PHONE_CHANNELS: readonly DeliveryChannel[] = ['sms', 'voice_call'];
+const isPhoneChannel = (c: DeliveryChannel): boolean => PHONE_CHANNELS.includes(c);
+
+/**
+ * Why turning on these check-in channels is refused, or null. Only channels
+ * being ADDED count, so opting out is never refused; adding texts or calls
+ * needs a verified number. An unreadable consent counts as nothing on (fails closed).
+ */
+export async function phoneChannelRefusal(
+  auth: AuthContext,
+  requested: DeliveryChannel[] | undefined
+): Promise<string | null> {
+  if (!requested?.some(isPhoneChannel)) return null;
+  const current = (await readOutreachConsent(auth.userId)).channels;
+  const added = requested.filter((c) => isPhoneChannel(c) && !current.includes(c));
+  if (added.length === 0 || (await verifiedPhoneFor(auth))) return null;
+  return 'Verify your phone number before turning on texts or calls.';
+}
+
+/**
+ * Clearing the phone also withdraws text and call consent, in the same request,
+ * so nothing keeps texting a number the user took away (the verified number on
+ * the account stays for sign-in and caller recognition). True if any was on.
+ */
+export async function dropPhoneChannels(userId: string): Promise<boolean> {
+  const { channels } = await readOutreachConsent(userId);
+  if (!channels.some(isPhoneChannel)) return false;
+  await writeOutreachConsent(userId, { channels: channels.filter((c) => !isPhoneChannel(c)) });
+  return true;
+}
+
 export async function verifiedPhoneFor(auth: AuthContext): Promise<string | null> {
   const user = auth.authMethod === 'firebase' ? await getFirebaseUser(auth.userId) : null;
   if (user?.phoneNumber) return user.phoneNumber;

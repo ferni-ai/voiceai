@@ -21,12 +21,7 @@ import {
 import { getLogger } from '../utils/safe-logger.js';
 import { isValidTimeZone } from '../utils/time-zone.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import {
-  type ContactInfoUpdate,
-  hasInvalidPhone,
-  nextContactInfo,
-  verifiedPhoneFor,
-} from './user-contact.js';
+import * as contact from './user-contact.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import type { UserProfile } from '../types/user-profile.js';
 
@@ -721,10 +716,10 @@ export async function handleUserRoutes(
   // POST /api/user/contact - Update contact info
   // ============================================================================
   if (route === '/contact' && method === 'POST') {
-    const body = await parseBody<ContactInfoUpdate>(req);
+    const body = await parseBody<contact.ContactInfoUpdate>(req);
     // Use authenticated userId
     const userId = authenticatedUserId;
-    if (hasInvalidPhone(body)) {
+    if (contact.hasInvalidPhone(body)) {
       sendJson(res, 400, { success: false, error: "That doesn't look like a phone number" });
       return true;
     }
@@ -738,7 +733,7 @@ export async function handleUserRoutes(
         profile = await store.getOrCreateProfile(userId);
       }
 
-      profile.contactInfo = nextContactInfo(body, profile.contactInfo);
+      profile.contactInfo = contact.nextContactInfo(body, profile.contactInfo);
 
       // Update preferred name if provided
       if (body?.preferredName) {
@@ -762,6 +757,8 @@ export async function handleUserRoutes(
           hasPhone: !!profile.contactInfo?.phone,
           hasEmail: !!profile.contactInfo?.email,
         },
+        // Clearing the phone turns off text/call check-ins too ("I won't text or call you now").
+        phoneChannelsOff: body?.clearPhone === true && (await contact.dropPhoneChannels(userId)),
       });
     } catch (error) {
       log.error({ error, userId }, 'Failed to update contact info');
@@ -780,7 +777,7 @@ export async function handleUserRoutes(
     try {
       const store = await getStore();
       const profile = await store.getProfile(userId);
-      const verifiedPhone = await verifiedPhoneFor(auth);
+      const verifiedPhone = await contact.verifiedPhoneFor(auth);
 
       if (!profile) {
         sendJson(res, 200, {
