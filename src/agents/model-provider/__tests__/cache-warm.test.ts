@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { llm } from '@livekit/agents';
-import { modelsToWarm, warmPromptCache } from '../cache-warm.js';
+import { modelsToWarm, warmPromptCache, withPairedToolCalls } from '../cache-warm.js';
 import { FastLaneLLM } from '../fast-lane.js';
 
 class FakeStream extends llm.LLMStream {
@@ -88,5 +88,39 @@ describe('cache warm', () => {
     ).resolves.toBeTypeOf('string');
     await expect(warmPromptCache({}, { CASCADE_CACHE_WARM: 'on' })).resolves.toBeNull();
     await expect(warmPromptCache(undefined, { CASCADE_CACHE_WARM: 'on' })).resolves.toBeNull();
+  });
+});
+
+describe('a warm during a tool call (prod call 2026-10-17)', () => {
+  const call = (callId: string) =>
+    llm.FunctionCall.create({ callId, name: 'handoffToMaya', args: '{}' });
+  const output = (callId: string) =>
+    llm.FunctionCallOutput.create({ callId, name: 'handoffToMaya', output: '', isError: false });
+
+  it('leaves out a tool call still waiting for its output, and keeps a finished one', async () => {
+    const model = new FakeLLM('main');
+    const sent: llm.ChatContext[] = [];
+    const chat = model.chat.bind(model);
+    model.chat = (opts) => {
+      sent.push(opts.chatCtx);
+      return chat(opts);
+    };
+    const session = sessionWith(model);
+    session.currentAgent.chatCtx.insert([call('done'), output('done'), call('running')]);
+    await warmPromptCache(session, { CASCADE_CACHE_WARM: 'on' });
+    const kinds = (sent[0]?.items ?? []).map((i) => `${i.type}:${'callId' in i ? i.callId : ''}`);
+    expect(kinds).toContain('function_call:done');
+    expect(kinds).toContain('function_call_output:done');
+    expect(kinds).not.toContain('function_call:running');
+    // The call's own chat keeps the running call: its output comes when the tool returns.
+    expect(
+      session.currentAgent.chatCtx.items.some((i) => 'callId' in i && i.callId === 'running')
+    ).toBe(true);
+  });
+
+  it('drops an output whose call is gone', () => {
+    const chat = llm.ChatContext.empty();
+    chat.insert(output('orphan'));
+    expect(withPairedToolCalls(chat).items).toHaveLength(0);
   });
 });

@@ -133,6 +133,8 @@ export interface TurnParts {
    * style, exit, self-share, invite, hard rule. Never reordered or dropped.
    */
   notes: readonly string[];
+  /** Where their life stands now, labelled (world-model/temporal/in-call.ts); none when empty. */
+  life?: readonly string[];
   now: number;
 }
 
@@ -159,6 +161,7 @@ export function turnPacket(session: object, p: TurnParts): ContextPacket {
     persona,
     caller: { name: p.userName },
     rightNow: { localTime: localTime(p.now, p.timeZone) },
+    life: p.life,
     // Recall budgets its facts per turn; once picked they stay, like its notes in the chat.
     memories,
     memoriesWhole: true,
@@ -173,7 +176,12 @@ export function turnPacket(session: object, p: TurnParts): ContextPacket {
  * CONTEXT_PACKET=on: the turn's reminder as one labelled packet, for
  * withTurnReminder. Logged as counts only (packetLogFields): no text, ids or names.
  */
-export function packetReminder(session: object, words: string, notes: readonly string[]): string {
+export function packetReminder(
+  session: object,
+  words: string,
+  notes: readonly string[],
+  life?: readonly string[]
+): string {
   const userData = (session as { userData?: unknown }).userData as
     { personaId?: string; userName?: string; callerTimezone?: string } | undefined;
   const { text, accounting } = turnPacket(session, {
@@ -182,6 +190,7 @@ export function packetReminder(session: object, words: string, notes: readonly s
     timeZone: userData?.callerTimezone,
     words,
     notes,
+    life,
     now: Date.now(),
   });
   log.info(packetLogFields(accounting), 'CONTEXT_PACKET'); // counts only, never text

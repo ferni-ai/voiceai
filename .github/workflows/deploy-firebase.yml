@@ -75,6 +75,9 @@ jobs:
           # Venmo chip-in card (#1014): off unless both repo variables are set.
           VITE_VENMO_CHIP_IN: ${{ vars.VITE_VENMO_CHIP_IN }}
           VITE_VENMO_HANDLE: ${{ vars.VITE_VENMO_HANDLE }}
+          # Caption flags (apps/web/src/ui/captions/captions-flag.ts); off unless exactly "true".
+          VITE_CAPTIONS_V2: ${{ vars.VITE_CAPTIONS_V2 }}
+          VITE_CAPTIONS_BREATH: ${{ vars.VITE_CAPTIONS_BREATH }}
 
       - name: Deploy to Firebase (ferni-prod)
         id: deploy-ferni

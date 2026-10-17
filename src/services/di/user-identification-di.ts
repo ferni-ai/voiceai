@@ -15,6 +15,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { newAnonymousId } from '../identity/anonymous-session-id.js';
 
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { Tokens, type Factory, type Container } from './container.js';
@@ -216,7 +217,7 @@ export class UserIdentificationService {
 
       if (!userId) {
         return success({
-          userId: `anon:${Date.now()}`,
+          userId: newAnonymousId(),
           profile: null,
           source: 'anonymous',
           isNew: true,
