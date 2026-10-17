@@ -192,13 +192,13 @@
   --duration-instant: 0ms;
   --duration-fastest: 50ms;
   --duration-faster: 100ms;
-  --duration-fast: 100ms;
+  --duration-fast: 150ms;
   --duration-normal: 200ms;
   --duration-slow: 300ms;
   --duration-slower: 400ms;
   --duration-slowest: 500ms;
-  --duration-deliberate: 500ms;
-  --duration-dramatic: 600ms;
+  --duration-deliberate: 700ms;
+  --duration-dramatic: 1000ms;
   --duration-glacial: 1500ms;
 
   /* ========================================

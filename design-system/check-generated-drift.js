@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Design-system drift gate: runs `pnpm build:design-system` and exits 1 when any
- * file it writes differs from what was on disk, i.e. a committed generated file
- * is not what the generators produce from design-system/tokens/*.json.
+ * Design-system drift gate: runs `pnpm tokens:sync` (build:design-system plus the
+ * website/brand token copies) and exits 1 when any file it writes differs from
+ * what was on disk, i.e. a committed generated file is not what the generators
+ * produce from design-system/tokens/*.json.
  *
  * `tokens:check` compares mtimes, which a git checkout makes equal, so it can't
  * fail in CI; this compares content. Timestamps are blanked first (generators
@@ -58,11 +59,11 @@ function same(a, b) {
 // Files already differing from HEAD keep their on-disk content as the baseline.
 const before = new Map([...changedPaths()].map((file) => [file, read(file)]));
 
-const build = spawnSync('pnpm', ['run', '--silent', 'build:design-system'], { cwd: ROOT, encoding: 'utf8', maxBuffer: MAX });
+const build = spawnSync('pnpm', ['run', '--silent', 'tokens:sync'], { cwd: ROOT, encoding: 'utf8', maxBuffer: MAX });
 if (build.status !== 0) {
   process.stdout.write(build.stdout ?? '');
   process.stderr.write(build.stderr ?? '');
-  console.error(`\n❌ build:design-system failed (exit ${build.status}); cannot check drift.`);
+  console.error(`\n❌ tokens:sync failed (exit ${build.status}); cannot check drift.`);
   process.exit(build.status ?? 1);
 }
 

@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-10-17T14:01:42.642Z
+ * Generated: 2026-10-17T14:06:58.630Z
  */
 
 :root {
@@ -512,15 +512,17 @@
   --duration-instant: 0ms;
   --duration-micro: 50ms;
   --duration-fast-press: 80ms;
-  --duration-fast: 100ms;
+  --duration-faster: 100ms;
+  --duration-fast: 150ms;
   --duration-fast-release: 150ms;
   --duration-normal: 200ms;
   --duration-standard: 250ms;
   --duration-slow: 300ms;
   --duration-moderate: 400ms;
-  --duration-deliberate: 500ms;
-  --duration-dramatic: 600ms;
+  --duration-slowest: 500ms;
+  --duration-deliberate: 700ms;
   --duration-celebration: 800ms;
+  --duration-dramatic: 1000ms;
   --duration-entrance: 1000ms;
   --duration-glacial: 1500ms;
   --duration-epic: 2000ms;
@@ -528,9 +530,7 @@
   --duration-ambient-slow: 5000ms;
   --duration-ambient-glacial: 8000ms;
   --duration-fastest: 50ms;
-  --duration-faster: 100ms;
   --duration-slower: 400ms;
-  --duration-slowest: 500ms;
   --duration-meditative: 3000ms;
   --duration-ambient: 8000ms;
 

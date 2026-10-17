@@ -234,6 +234,7 @@
     }
   },
 
+  "_easingsNote": "spring is the one spring curve (peaks at 1.10 of the target). springGentle peaks at 1.02: use it for ambient loops and anything on screen while the user may be upset (character: warm & unhurried, never bouncy).",
   "easings": {
     "linear": "linear",
     "standard": "cubic-bezier(0.4, 0, 0.2, 1)",
@@ -261,20 +262,22 @@
     "organic": "cubic-bezier(0.4, 0.2, 0.2, 1.1)"
   },
 
-  "_durationsNote": "The one duration scale for web CSS (--duration-*) and TS (DURATION). Names come from apps/web DURATION; where the old CSS scale used the same name for a different value (fast 150, deliberate 700, dramatic 1000) the value with more call sites won. motion.json no longer has its own scale.",
+  "_durationsNote": "The one duration scale for web CSS (--duration-*) and TS (DURATION). Names come from apps/web DURATION. Where CSS and TS used one name for two values, the character direction (warm & unhurried) picked the slower one: fast 150, deliberate 700, dramatic 1000. faster (100) and slowest (500) are the old TS FAST and DELIBERATE values under their old CSS names.",
   "durations": {
     "instant": "0ms",
     "micro": "50ms",
     "fastPress": "80ms",
-    "fast": "100ms",
+    "faster": "100ms",
+    "fast": "150ms",
     "fastRelease": "150ms",
     "normal": "200ms",
     "standard": "250ms",
     "slow": "300ms",
     "moderate": "400ms",
-    "deliberate": "500ms",
-    "dramatic": "600ms",
+    "slowest": "500ms",
+    "deliberate": "700ms",
     "celebration": "800ms",
+    "dramatic": "1000ms",
     "entrance": "1000ms",
     "glacial": "1500ms",
     "epic": "2000ms",
@@ -286,9 +289,7 @@
   "_durationAliasesNote": "Older CSS names kept so existing var(--duration-*) users and the website Tailwind config keep resolving. Each points at a step in durations; CSS only, not exported to TS. Prefer the target name in new code.",
   "durationAliases": {
     "fastest": "micro",
-    "faster": "fast",
     "slower": "moderate",
-    "slowest": "deliberate",
     "meditative": "ambientFast",
     "ambient": "ambientGlacial"
   },

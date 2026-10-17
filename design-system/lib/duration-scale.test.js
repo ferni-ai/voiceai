@@ -21,13 +21,30 @@ test('an alias naming a missing step fails the build instead of emitting nothing
 test('animation.json: CSS and TS share one value per name', () => {
   const css = cssDurations(animation);
   for (const [name, value] of Object.entries(animation.durations)) assert.equal(css[name], value);
-  // the names CSS used to define with a different value now carry the TS value
-  assert.equal(css.fast, '100ms');
-  assert.equal(css.deliberate, '500ms');
-  assert.equal(css.dramatic, '600ms');
+  // warm & unhurried: where CSS and TS disagreed, the slower value won
+  assert.equal(css.fast, '150ms');
+  assert.equal(css.deliberate, '700ms');
+  assert.equal(css.dramatic, '1000ms');
   // the four vars celebrations.ui.ts used without a definition
   assert.equal(css.entrance, '1000ms');
   assert.equal(css.celebration, '800ms');
   assert.equal(css.epic, '2000ms');
   assert.ok(animation.easings.expoOut);
+});
+
+/** Highest output value of a cubic-bezier(x1, y1, x2, y2) curve. */
+function peak(curve) {
+  const [, y1, , y2] = curve.match(/-?[\d.]+/g).map(Number);
+  let max = 0;
+  for (let i = 0; i <= 1000; i++) {
+    const t = i / 1000;
+    max = Math.max(max, 3 * (1 - t) ** 2 * t * y1 + 3 * (1 - t) * t ** 2 * y2 + t ** 3);
+  }
+  return max;
+}
+
+test('springGentle overshoots at most ~1.2 and less than spring', () => {
+  const gentle = peak(animation.easings.springGentle);
+  assert.ok(gentle > 1 && gentle <= 1.2, `springGentle peaks at ${gentle}`);
+  assert.ok(gentle < peak(animation.easings.spring));
 });

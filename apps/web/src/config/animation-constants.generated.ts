@@ -3,7 +3,7 @@
  * 
  * 🎬 AUTO-GENERATED FROM design-system/tokens/animation.json
  * Do not edit directly - run: npm run build:animation-constants
- * Generated: 2026-10-17T13:15:18.175Z
+ * Generated: 2026-10-17T14:06:54.304Z
  * 
  * This file contains the generated constants. The main animation-constants.ts
  * imports and re-exports these along with manual additions.
@@ -17,15 +17,17 @@ export const DURATION_GENERATED = {
   INSTANT: 0,
   MICRO: 50,
   FAST_PRESS: 80,
-  FAST: 100,
+  FASTER: 100,
+  FAST: 150,
   FAST_RELEASE: 150,
   NORMAL: 200,
   STANDARD: 250,
   SLOW: 300,
   MODERATE: 400,
-  DELIBERATE: 500,
-  DRAMATIC: 600,
+  SLOWEST: 500,
+  DELIBERATE: 700,
   CELEBRATION: 800,
+  DRAMATIC: 1000,
   ENTRANCE: 1000,
   GLACIAL: 1500,
   EPIC: 2000,
