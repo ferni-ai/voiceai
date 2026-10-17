@@ -15,6 +15,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
+import { WHERE_TO_ADD_NUMBER } from '../../../tools/shared/where-to-add-number.js';
 
 const log = createLogger({ module: 'SchedulingExecutor' });
 
@@ -166,11 +167,10 @@ async function execute(
 
         await recordPromise(userId, result.reminderId, scheduledFor, 'sms', message);
         await addToCalendar(userId, 'text', recipient || 'you', message, scheduledFor);
-
         return `Got it! I'll text ${recipient || 'you'} on ${timeStr}: "${message}"`;
       } else {
         if (result.error?.includes('phone')) {
-          return "I don't have a phone number on file. What's the best number to reach you at?";
+          return `I can't text you yet: there's no verified phone number on your account. ${WHERE_TO_ADD_NUMBER}`;
         }
         return `I couldn't schedule that: ${result.error}`;
       }
@@ -312,7 +312,7 @@ async function execute(
         return `Done! I just texted ${recipient || 'you'}: "${message}"`;
       } else {
         if (result.error?.includes('phone')) {
-          return "I don't have a phone number on file. What's your number?";
+          return `I can't text you yet: there's no verified phone number on your account. ${WHERE_TO_ADD_NUMBER}`;
         }
         return `I couldn't send that: ${result.error}. Want me to schedule it instead?`;
       }
