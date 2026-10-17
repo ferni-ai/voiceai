@@ -62,8 +62,19 @@ export function familyCheckinCallsOn(): boolean {
 type IdentityForGate = Pick<SponsoredIdentity, 'sponsorUserId' | 'status'>;
 
 /**
+ * Sponsors whose family may be rung, from FAMILY_CHECKIN_SPONSORS (comma
+ * separated user ids). Unset means every sponsor, so the first real calls can
+ * be limited to one family before the feature opens to everyone.
+ */
+function sponsorAllowed(sponsorUserId: string): boolean {
+  const list = process.env.FAMILY_CHECKIN_SPONSORS?.trim();
+  if (!list) return true;
+  return list.split(',').some((id) => id.trim() === sponsorUserId);
+}
+
+/**
  * Why this check-in call must not ring, or null when it may. Checks the flag,
- * that the identity exists, belongs to the schedule's sponsor and is active,
+ * the sponsor allowlist, that the identity exists, belongs to the schedule's sponsor and is active,
  * and that the family member's own consent is on record and not withdrawn.
  * With FAMILY_CHECKIN_STOP on, a number on the do-not-call list is refused too
  * (no list wired means no call).
@@ -74,6 +85,7 @@ export async function familyCallBlockReason(
   store: FamilyConsentStore | undefined
 ): Promise<string | null> {
   if (!flagOn('FAMILY_CHECKIN_CALLS')) return 'Family check-in calls are off';
+  if (!sponsorAllowed(schedule.sponsorUserId)) return 'Sponsor not in FAMILY_CHECKIN_SPONSORS';
   if (!identity) return 'Sponsored identity not found';
   if (identity.sponsorUserId !== schedule.sponsorUserId) return 'Sponsor mismatch';
   if (identity.status !== 'active') return `Identity is ${identity.status}`;

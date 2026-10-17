@@ -8,20 +8,12 @@
  *   - Clean, organized navigation
  *   - Quick access to all panels
  *   - Visual indicators for new features
- *   - Locked feature indicators based on relationship stage
+ *   - Everything is open from the first call: no relationship-stage locks
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { memoryControlEnabled } from './memory/remembered.js';
 import { LINKEDIN_ENABLED } from '../config/linkedin.js';
-import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-// Relationship stage service - used for feature unlocking and progress display
-import {
-  getTranslatedStageName,
-  relationshipStageService,
-  UNLOCKABLE_FEATURES,
-  type RelationshipStage,
-} from '../services/relationship-stage.service.js';
 // Team unlock service - for gating marketplace behind full team unlock
 import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
 import { signOutOfThisBrowser } from './sign-out.js';
@@ -29,8 +21,6 @@ import { signOutOfThisBrowser } from './sign-out.js';
 import { roadmapService } from '../services/roadmap.service.js';
 import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
 
-// Track setTimeout calls for memory leak prevention
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 import { transcriptUI } from './transcript.ui.js';
 import { canOpenSupport } from './support/open-support.js';
 import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
@@ -140,7 +130,6 @@ const ICONS = {
   menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>',
   chevronRight:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>',
-  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
 
   // Journey & Growth (natural metaphors)
@@ -290,43 +279,6 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
   gamepad:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>',
-};
-
-// ============================================================================
-// FEATURE LOCK MAPPING: menu actions to features that unlock as the relationship deepens
-// ============================================================================
-
-const FEATURE_LOCK_MAP: Record<string, string> = {
-  // Getting Started stage (2+ conversations)
-  ritual: 'custom-rituals',
-  analytics: 'progress-analytics',
-
-  // Building Trust stage (7+ convos, 3+ days)
-  'conversation-memory': 'memory-browser',
-  wellbeing: 'wellbeing-dashboard',
-  predictions: 'prediction-accuracy',
-  'group-coaching': 'group-coaching',
-  'video-call-settings': 'video-sessions',
-  // Established stage (20+ convos, 14+ days). What Ferni remembers is open from the first call.
-  ...(memoryControlEnabled() ? {} : { cognitive: 'deep-insights' }),
-  history: 'conversation-history',
-};
-
-// ============================================================================
-// STAGE-BASED SECTION VISIBILITY
-// Progressive disclosure: show sections as relationship deepens
-// ============================================================================
-
-type SectionVisibility = Record<string, RelationshipStage>;
-
-const SECTION_VISIBILITY: SectionVisibility = {
-  // New warm structure
-  yourPractices: 'first-meeting', // Always visible - habit loop
-  understandingYou: 'getting-started', // After 2+ conversations - needs data
-  waysToConnect: 'first-meeting', // Always visible - engagement
-  yourPeople: 'first-meeting', // Always visible - relationships
-  connectedLife: 'first-meeting', // Always visible - integrations
-  settings: 'first-meeting', // Always visible - preferences & account
 };
 
 // ============================================================================
@@ -569,47 +521,6 @@ class SettingsMenuUI {
     return t('menu.greeting.night');
   }
 
-  /** Check if a feature is locked based on relationship stage */
-  private isFeatureLocked(action: string): boolean {
-    const featureId = FEATURE_LOCK_MAP[action];
-    if (!featureId) return false; // Not a lockable feature
-    return !relationshipStageService.isFeatureUnlocked(featureId);
-  }
-
-  /** Get the required stage for a locked feature */
-  private getRequiredStage(action: string): RelationshipStage | null {
-    const featureId = FEATURE_LOCK_MAP[action];
-    if (!featureId) return null;
-    return UNLOCKABLE_FEATURES[featureId] || null;
-  }
-
-  /** Get unlock progress hint for a feature */
-  private getUnlockHint(action: string): string {
-    const featureId = FEATURE_LOCK_MAP[action];
-    if (!featureId) return '';
-    const progress = relationshipStageService.getFeatureUnlockProgress(featureId);
-    return progress.hint || t('menu.keepChatting');
-  }
-
-  /** Check if a section should be visible based on relationship stage */
-  private isSectionVisible(sectionId: string): boolean {
-    const requiredStage = SECTION_VISIBILITY[sectionId];
-    if (!requiredStage) return true;
-
-    const stageOrder: RelationshipStage[] = [
-      'first-meeting',
-      'getting-started',
-      'building-trust',
-      'established',
-      'deep-partnership',
-    ];
-    const currentStage = relationshipStageService.getStage();
-    const currentIndex = stageOrder.indexOf(currentStage);
-    const requiredIndex = stageOrder.indexOf(requiredStage);
-
-    return currentIndex >= requiredIndex;
-  }
-
   /**
    * Toggle pinned state for an item
    */
@@ -624,7 +535,7 @@ class SettingsMenuUI {
   }
 
   /**
-   * Render a menu item with optional locked state or progress hint
+   * Render a menu item. Nothing is locked: every item is open from the first call.
    * Roadmap features are hidden from the menu - they only appear in the Roadmap Panel
    */
   private renderMenuItem(action: string, icon: string, label: string, extraClasses = ''): string {
@@ -638,24 +549,7 @@ class SettingsMenuUI {
       return '';
     }
 
-    const isLocked = this.isFeatureLocked(action);
-    const isPinned = this.pinnedItems.has(action);
-    const lockedClass = isLocked ? 'settings-menu__item--locked' : '';
-    const pinnedClass = isPinned ? 'settings-menu__item--pinned' : '';
-
-    if (isLocked) {
-      const hint = this.getUnlockHint(action);
-      return `
-        <button aria-label="${label}, ${hint}" aria-disabled="true" class="settings-menu__item ${lockedClass} ${extraClasses}" data-action="${action}" data-locked="true">
-          <span class="settings-menu__icon">${icon}</span>
-          <span class="settings-menu__label-wrap">
-            <span class="settings-menu__label">${label}</span>
-            <span class="settings-menu__unlock-hint">${hint}</span>
-          </span>
-          <span class="settings-menu__lock-icon">${ICONS.lock}</span>
-        </button>
-      `;
-    }
+    const pinnedClass = this.pinnedItems.has(action) ? 'settings-menu__item--pinned' : '';
 
     return `
       <button aria-label="${label}" class="settings-menu__item ${pinnedClass} ${extraClasses}" data-action="${action}" data-pinnable="true">
@@ -687,10 +581,6 @@ class SettingsMenuUI {
     // Free, with the Venmo chip-in configured: "Chip in" (Venmo card) replaces Account & Billing
     const chipIn = isVenmoChipInEnabled() && !isPaywallOn();
 
-    // Get current relationship stage for progress display
-    const currentStage = relationshipStageService.getStage();
-    const progress = relationshipStageService.getProgressToNextStage();
-
     // Track which sections are expanded
     const expandedSections = this.expandedSections || new Set(['connect', 'personalize']);
     this.expandedSections = expandedSections;
@@ -708,28 +598,6 @@ class SettingsMenuUI {
           </div>
           <button class="settings-menu__close" aria-label="${t('accessibility.closeMenu')}">${ICONS.close}</button>
         </header>
-
-        <!-- Relationship Stage Banner (compact) -->
-        <div class="settings-menu__stage-banner">
-          <div class="settings-menu__stage-info">
-            <span class="settings-menu__stage-label">${t('menu.yourStage')}</span>
-            <span class="settings-menu__stage-name">${getTranslatedStageName(currentStage)}</span>
-          </div>
-          ${
-            progress.nextStage
-              ? `
-            <div class="settings-menu__stage-progress">
-              <div class="settings-menu__stage-bar">
-                <div class="settings-menu__stage-fill" style="width: ${Math.round(progress.progress * 100)}%"></div>
-              </div>
-              <span class="settings-menu__stage-next">${t('menu.nextStage', { stage: getTranslatedStageName(progress.nextStage) })}</span>
-            </div>
-          `
-              : `
-            <span class="settings-menu__stage-max">${t('menu.maxLevel')}</span>
-          `
-          }
-        </div>
 
         <nav class="settings-menu__nav">
           <!-- PINNED ITEMS (Your Favorites) -->
@@ -750,13 +618,11 @@ class SettingsMenuUI {
                ============================================================ -->
 
           <!-- SECTION 1: Let's Practice - Daily rituals and guided moments -->
-          ${
-            this.isSectionVisible('yourPractices')
-              ? this.renderCollapsibleSection(
-                  'yourPractices',
-                  t('menu.sections.yourPractices'),
-                  expandedSections.has('yourPractices'),
-                  `
+          ${this.renderCollapsibleSection(
+            'yourPractices',
+            t('menu.sections.yourPractices'),
+            expandedSections.has('yourPractices'),
+            `
             ${this.renderMenuItem('hub', ICONS.hub, t('ui.yourDay'))}
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
             ${this.renderMenuItem('what-i-do-for-you', ICONS.care, t('ferniCare.whatIDoForYou'))}
@@ -766,18 +632,14 @@ class SettingsMenuUI {
             ${this.renderMenuItem('outreach-schedule', ICONS.calendar, t('menu.items.outreachSchedule'))}
             ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
           `
-                )
-              : ''
-          }
+          )}
 
           <!-- SECTION 2: Our Story - Memories, reflections, insights (consolidated) -->
-          ${
-            this.isSectionVisible('understandingYou')
-              ? this.renderCollapsibleSection(
-                  'understandingYou',
-                  t('menu.sections.ourStory'),
-                  expandedSections.has('understandingYou'),
-                  `
+          ${this.renderCollapsibleSection(
+            'understandingYou',
+            t('menu.sections.ourStory'),
+            expandedSections.has('understandingYou'),
+            `
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory'))}
             ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
@@ -786,18 +648,14 @@ class SettingsMenuUI {
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
             ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear'), t('common.new'))}
           `
-                )
-              : ''
-          }
+          )}
 
           <!-- SECTION 3: Let's Do Something - Active engagement & play (trimmed) -->
-          ${
-            this.isSectionVisible('waysToConnect')
-              ? this.renderCollapsibleSection(
-                  'waysToConnect',
-                  t('menu.sections.waysToConnect'),
-                  expandedSections.has('waysToConnect'),
-                  `
+          ${this.renderCollapsibleSection(
+            'waysToConnect',
+            t('menu.sections.waysToConnect'),
+            expandedSections.has('waysToConnect'),
+            `
             ${this.renderMenuItem('journal', ICONS.journal, t('menu.items.journaling'))}
             ${this.renderMenuItemWithBadge('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz'), t('common.new'))}
             ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
@@ -805,35 +663,27 @@ class SettingsMenuUI {
             ${this.renderMenuItem('vibe-controller', ICONS.sparkles, t('menu.items.setTheVibe'))}
             ${this.renderMenuItem('discover-agents', ICONS.compass, t('menu.items.discoverAgents'))}
           `
-                )
-              : ''
-          }
+          )}
 
           <!-- SECTION 4: Your World - People and connections (merged with integrations) -->
-          ${
-            this.isSectionVisible('yourPeople')
-              ? this.renderCollapsibleSection(
-                  'yourPeople',
-                  t('menu.sections.yourPeople'),
-                  expandedSections.has('yourPeople'),
-                  `
+          ${this.renderCollapsibleSection(
+            'yourPeople',
+            t('menu.sections.yourPeople'),
+            expandedSections.has('yourPeople'),
+            `
             ${this.renderMenuItem('contacts', ICONS.users, t('menu.items.contacts'))}
             ${this.renderMenuItem('household-members', ICONS.home, t('menu.items.householdMembers'))}
             ${this.renderMenuItem('family-callers', ICONS.phone, t('menu.items.familyCallers'))}
             ${this.renderMenuItem('all-connections', ICONS.link, t('menu.items.allConnections'))}
           `
-                )
-              : ''
-          }
+          )}
 
           <!-- SECTION 5: Settings - Preferences and account (streamlined) -->
-          ${(() => {
-            return this.isSectionVisible('settings')
-              ? this.renderCollapsibleSection(
-                  'settings',
-                  t('menu.sections.settings'),
-                  expandedSections.has('settings'),
-                  `
+          ${this.renderCollapsibleSection(
+            'settings',
+            t('menu.sections.settings'),
+            expandedSections.has('settings'),
+            `
             ${this.renderMenuItem('personal-settings', ICONS.palette, t('menu.items.personalize'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.themeLanguage'))}
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript'), transcriptUI.isEnabled())}
@@ -843,9 +693,7 @@ class SettingsMenuUI {
             ${memoryControlEnabled() ? this.renderMenuItem('cognitive', ICONS.brain, t('ferniKnows.panelTitle')) : ''}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
-                )
-              : '';
-          })()}
+          )}
 
           <!-- SECTION: Admin (only visible for admins) -->
           ${this.renderAdminSection(expandedSections)}
@@ -889,15 +737,7 @@ class SettingsMenuUI {
         const htmlBtn = btn as HTMLElement;
         const action = htmlBtn.dataset.action;
         log.info('Menu item clicked', { action });
-        const isLocked = htmlBtn.dataset.locked === 'true';
         const isToggle = htmlBtn.dataset.toggle === 'true';
-
-        if (isLocked) {
-          // Show a gentle animation indicating it's locked
-          htmlBtn.classList.add('settings-menu__item--shake');
-          trackedTimeout(() => htmlBtn.classList.remove('settings-menu__item--shake'), 400);
-          return;
-        }
 
         // Toggle items don't close menu - just toggle state
         if (isToggle && action) {
@@ -1080,7 +920,7 @@ class SettingsMenuUI {
     if (!canOpenSupport()) delete menuItems['support-ferni'];
 
     const pinnedItemsHtml = [...this.pinnedItems]
-      .filter((action) => menuItems[action] && !this.isFeatureLocked(action))
+      .filter((action) => menuItems[action])
       .map((action) => {
         const item = menuItems[action];
         if (!item) return '';
@@ -1139,24 +979,6 @@ class SettingsMenuUI {
     label: string,
     badge: string
   ): string {
-    const isLocked = this.isFeatureLocked(action);
-    const requiredStage = this.getRequiredStage(action);
-    const lockedClass = isLocked ? 'settings-menu__item--locked' : '';
-    const stageName = requiredStage ? getTranslatedStageName(requiredStage) : '';
-
-    if (isLocked) {
-      return `
-        <button aria-label="${label}" class="settings-menu__item ${lockedClass}" data-action="${action}" data-locked="true">
-          <span class="settings-menu__icon">${icon}</span>
-          <span class="settings-menu__label-wrap">
-            <span class="settings-menu__label">${label}</span>
-            <span class="settings-menu__unlock-hint">${t('menu.unlockHint', { remaining: stageName })}</span>
-          </span>
-          <span class="settings-menu__lock-icon">${ICONS.lock}</span>
-        </button>
-      `;
-    }
-
     return `
       <button aria-label="${label}" class="settings-menu__item" data-action="${action}">
         <span class="settings-menu__icon">${icon}</span>
