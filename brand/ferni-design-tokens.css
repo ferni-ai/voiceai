@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-10-12T10:57:16.750Z
+ * Generated: 2026-10-17T14:01:42.642Z
  */
 
 :root {
@@ -482,36 +482,55 @@
      ANIMATION - Easings
      ============================================ */
   --ease-linear: linear;
-  --ease-ease-in: cubic-bezier(0.4, 0, 1, 1);
-  --ease-ease-out: cubic-bezier(0, 0, 0.2, 1);
-  --ease-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
-  --ease-spring: cubic-bezier(0.5, 1.5, 0.5, 1);
-  --ease-spring-bouncy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  --ease-smooth: cubic-bezier(0.45, 0, 0.55, 1);
-  --ease-organic: cubic-bezier(0.4, 0.2, 0.2, 1.1);
-  --ease-elastic: cubic-bezier(0.68, -0.6, 0.32, 1.6);
-  --ease-anticipate: cubic-bezier(0.38, -0.4, 0.88, 0.65);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
-  --ease-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --ease-ease-in: ease-in;
+  --ease-ease-out: ease-out;
+  --ease-ease-in-out: ease-in-out;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring-gentle: cubic-bezier(0.25, 1.25, 0.5, 1);
+  --ease-spring-strong: cubic-bezier(0.5, 1.8, 0.5, 1);
+  --ease-spring-bouncy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-elastic: cubic-bezier(0.68, -0.6, 0.32, 1.6);
   --ease-playful: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-anticipate: cubic-bezier(0.38, -0.4, 0.88, 0.65);
+  --ease-anticipate-gentle: cubic-bezier(0.6, -0.28, 0.735, 0.045);
+  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-expo-in-out: cubic-bezier(0.87, 0, 0.13, 1);
+  --ease-ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
+  --ease-smooth: cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-organic: cubic-bezier(0.4, 0.2, 0.2, 1.1);
 
   /* ============================================
      ANIMATION - Durations
      ============================================ */
   --duration-instant: 0ms;
+  --duration-micro: 50ms;
+  --duration-fast-press: 80ms;
+  --duration-fast: 100ms;
+  --duration-fast-release: 150ms;
+  --duration-normal: 200ms;
+  --duration-standard: 250ms;
+  --duration-slow: 300ms;
+  --duration-moderate: 400ms;
+  --duration-deliberate: 500ms;
+  --duration-dramatic: 600ms;
+  --duration-celebration: 800ms;
+  --duration-entrance: 1000ms;
+  --duration-glacial: 1500ms;
+  --duration-epic: 2000ms;
+  --duration-ambient-fast: 3000ms;
+  --duration-ambient-slow: 5000ms;
+  --duration-ambient-glacial: 8000ms;
   --duration-fastest: 50ms;
   --duration-faster: 100ms;
-  --duration-fast: 150ms;
-  --duration-normal: 200ms;
-  --duration-slow: 300ms;
   --duration-slower: 400ms;
   --duration-slowest: 500ms;
-  --duration-deliberate: 700ms;
-  --duration-dramatic: 1000ms;
-  --duration-glacial: 1500ms;
   --duration-meditative: 3000ms;
   --duration-ambient: 8000ms;
 

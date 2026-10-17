@@ -129,13 +129,13 @@ z-index literals of 100 or more in `src/ui` TS files.
 
 ```css
 /* Durations */
---duration-fast: 150ms;
+--duration-fast: 100ms;   /* scale: design-system/tokens/animation.json */
 --duration-normal: 200ms;
 --duration-slow: 300ms;
 
 /* Easing */
 --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
---ease-spring: cubic-bezier(0.5, 1.5, 0.5, 1);
+--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 ```
 
 ---

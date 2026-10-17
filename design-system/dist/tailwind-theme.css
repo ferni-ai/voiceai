@@ -185,20 +185,20 @@
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
-  --ease-spring: cubic-bezier(0.5, 1.5, 0.5, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-spring-bouncy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --ease-smooth: cubic-bezier(0.45, 0, 0.55, 1);
 
   --duration-instant: 0ms;
   --duration-fastest: 50ms;
   --duration-faster: 100ms;
-  --duration-fast: 150ms;
+  --duration-fast: 100ms;
   --duration-normal: 200ms;
   --duration-slow: 300ms;
   --duration-slower: 400ms;
   --duration-slowest: 500ms;
-  --duration-deliberate: 700ms;
-  --duration-dramatic: 1000ms;
+  --duration-deliberate: 500ms;
+  --duration-dramatic: 600ms;
   --duration-glacial: 1500ms;
 
   /* ========================================
