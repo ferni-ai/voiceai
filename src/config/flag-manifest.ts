@@ -87,6 +87,8 @@ export const FLAG_MANIFEST = {
   // on: the after-call extraction keeps the caller's own commitments (needs AFTER_CALL_EXTRACTION)
   COACH_COMMITMENT_CAPTURE: { default: 'on', owner: 'intelligence', kind: 'kill-switch' },
   COACH_FOLLOW_THROUGH: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: a commitment marked done is stored as a win the next greeting names once
+  COACH_WINS: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   COACH_MEDIA: { default: 'off', owner: 'tools', kind: 'experiment' },
   COHORT_FLAGS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: once a call, invite one small caller-owned next step (agents/personas/commitment-invite.ts)
@@ -94,6 +96,8 @@ export const FLAG_MANIFEST = {
   // adds what Ferni and the caller both know to the first recall note
   COMMON_GROUND: { default: 'off', owner: 'memory', kind: 'experiment' },
   CONDITIONAL_BUILDERS: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // The user's own "in memory" mark on a contact (services/contacts/in-memory.ts)
+  CONTACT_IN_MEMORY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CONTEXT_PACKET: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -143,6 +147,8 @@ export const FLAG_MANIFEST = {
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // scheduled family check-in calls; each also needs the family member's own consent
+  FAMILY_CHECKIN_CALLS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // never on when NODE_ENV=production
   FERNI_DEVELOPER_TOOLS: { default: 'off', owner: 'tools', kind: 'config' },
   FERNI_LOCAL_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -246,6 +252,7 @@ export const FLAG_MANIFEST = {
   PAYWALL: { default: 'off', owner: 'billing', kind: 'kill-switch' },
   PERSONA_BEATS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  PERSONA_MOOD_NOT_CALLERS: { default: 'on', owner: 'memory', kind: 'kill-switch' },
   PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },

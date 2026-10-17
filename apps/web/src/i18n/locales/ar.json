@@ -3555,6 +3555,11 @@
     "fieldRelationship": "صلة القرابة",
     "fieldWhatShouldFerniCallThem": "ماذا يجب أن يناديهم Ferni؟",
     "fieldNotesForFerni": "ملاحظات لـ Ferni",
+    "callConsentLabel": "يسعده أن يتصل به Ferni",
+    "callConsentHint": "وافق على أن يتصل به Ferni من حين لآخر للاطمئنان عليه. ويمكنه أن يطلب منه التوقف في أي وقت.",
+    "callConsentSaved": "تم الحفظ",
+    "callConsentFailed": "تعذّر الحفظ. حاول مرة أخرى.",
+    "callConsentLoadFailed": "تعذّر تحميل ما إذا كان يسعده أن يتصل به Ferni. أعد الفتح للمحاولة مرة أخرى.",
     "cancel": "إلغاء",
     "addToFamily": "إضافة إلى العائلة",
     "relationshipMother": "الأم",
@@ -11537,7 +11542,8 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
     "role": {

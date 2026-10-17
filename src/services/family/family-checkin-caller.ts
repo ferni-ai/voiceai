@@ -27,6 +27,8 @@ import { analyzeCheckinCall, generateUrgentNotification } from './family-checkin
 import { getSponsoredIdentity } from '../identity/sponsored-identity.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deferredOutsideCallHours } from './checkin-call-hours.js';
+import { familyCallBlockReason, familyCheckinCallsOn } from './family-call-consent.js';
+import type { FamilyConsentStore } from './family-call-consent.js';
 
 const log = createLogger({ module: 'FamilyCheckinCaller' });
 
@@ -61,7 +63,9 @@ export interface SingleCallResult {
  * Process all due family check-in schedules
  * Called by Cloud Scheduler via /api/jobs/family-checkin-calls
  */
-export async function runFamilyCheckinJob(): Promise<FamilyCheckinJobResult> {
+export async function runFamilyCheckinJob(
+  consent?: FamilyConsentStore
+): Promise<FamilyCheckinJobResult> {
   const startTime = Date.now();
   const result: FamilyCheckinJobResult = {
     success: true,
@@ -76,7 +80,7 @@ export async function runFamilyCheckinJob(): Promise<FamilyCheckinJobResult> {
   };
 
   try {
-    log.info('📞 Starting family check-in job');
+    if (!familyCheckinCallsOn()) return { ...result, durationMs: Date.now() - startTime };
 
     // Get all schedules that are due
     const dueSchedules = await getDueSchedules();
@@ -92,7 +96,7 @@ export async function runFamilyCheckinJob(): Promise<FamilyCheckinJobResult> {
       result.schedulesProcessed++;
       if (await deferredOutsideCallHours(schedule, result)) continue;
       try {
-        const callResult = await initiateCheckinCall(schedule);
+        const callResult = await initiateCheckinCall(schedule, consent);
 
         if (callResult.success) {
           result.callsInitiated++;
@@ -161,21 +165,17 @@ export async function runFamilyCheckinJob(): Promise<FamilyCheckinJobResult> {
  * Initiate a single family check-in call
  */
 export async function initiateCheckinCall(
-  schedule: FamilyCheckinSchedule
+  schedule: FamilyCheckinSchedule,
+  consent?: FamilyConsentStore
 ): Promise<SingleCallResult> {
   try {
     // Test accounts never ring anyone; never dial emergency, premium or malformed numbers
     const number = checkDialableNumber(schedule.phoneNumber);
     if (isSyntheticUserId(schedule.sponsorUserId) || !number.ok)
       return { success: false, error: number.ok ? 'Test account' : number.reason };
-    // 1. Get the sponsored identity, and verify sponsor ownership
     const identity = await getSponsoredIdentity(schedule.sponsoredIdentityId);
-    if (!identity) {
-      return { success: false, error: 'Sponsored identity not found' };
-    }
-    if (identity.sponsorUserId !== schedule.sponsorUserId) {
-      return { success: false, error: 'Sponsor mismatch' };
-    }
+    const blocked = await familyCallBlockReason(schedule, identity, consent);
+    if (blocked || !identity) return { success: false, error: blocked ?? 'No identity' };
 
     // 2. Get recent call records for context
     const recentCalls = await getRecentCallRecords(schedule.sponsorUserId, schedule.id, 5);

@@ -297,6 +297,15 @@
   // ============================================================================
 
   function handleBeforeUnload() {
+    // Nothing tied to a visitor ID leaves the page before cookie consent.
+    let consented = false;
+    try {
+      consented = localStorage.getItem('ferni_cookies') === 'accepted';
+    } catch (e) {
+      consented = false;
+    }
+    if (!consented) return;
+
     const signals = collectBehaviorSignals();
     signals.converted = state.ctaClicked;
 

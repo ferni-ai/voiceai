@@ -328,6 +328,8 @@ jobs:
             --build-arg NODE_VERSION=22 \
             --build-arg VITE_VENMO_CHIP_IN="${{ vars.VITE_VENMO_CHIP_IN }}" \
             --build-arg VITE_VENMO_HANDLE="${{ vars.VITE_VENMO_HANDLE }}" \
+            --build-arg VITE_CAPTIONS_V2="${{ vars.VITE_CAPTIONS_V2 }}" \
+            --build-arg VITE_CAPTIONS_BREATH="${{ vars.VITE_CAPTIONS_BREATH }}" \
             .
 
           # Push all tags
