@@ -18,6 +18,11 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getUserTimezone } from '../services/timezone.service.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { outreachService } from '../services/outreach.service.js';
+import { formatPhone } from '../utils/phone.js';
+import {
+  type Drafts, PHONE_STYLES, bindPhoneInput, escapeAttr, field, loadPhoneAndChannels,
+  phoneActionsHtml, phoneStatus, planPhoneSave, refreshPhone, toggleChannel,
+} from './contact-settings-phone.js';
 
 const log = createLogger('ContactSettingsUI');
 
@@ -88,7 +93,7 @@ interface ContactInfo {
   quietHoursEnabled?: boolean;
 }
 
-interface ContactSettingsState {
+export interface ContactSettingsState {
   isOpen: boolean;
   isLoading: boolean;
   isSaving: boolean;
@@ -96,6 +101,9 @@ interface ContactSettingsState {
   verificationCode: string;
   pendingPhone: string;
   contactInfo: ContactInfo;
+  drafts: Drafts;
+  phoneInvalid: boolean;
+  channels: string[]; // check-in channels besides in-app: 'sms' | 'call' | 'email'
   error?: string;
   success?: string;
 }
@@ -104,15 +112,12 @@ interface ContactSettingsState {
 // STATE
 // ============================================================================
 
-let state: ContactSettingsState = {
-  isOpen: false,
-  isLoading: false,
-  isSaving: false,
-  isVerifying: false,
-  verificationCode: '',
-  pendingPhone: '',
-  contactInfo: {},
-};
+const freshState = (): ContactSettingsState => ({
+  isOpen: false, isLoading: false, isSaving: false, isVerifying: false, verificationCode: '',
+  pendingPhone: '', contactInfo: {}, drafts: {}, phoneInvalid: false, channels: [],
+});
+
+let state: ContactSettingsState = freshState();
 
 let modalContainer: HTMLElement | null = null;
 
@@ -393,6 +398,7 @@ function injectStyles(): void {
       box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
     }
 
+    ${PHONE_STYLES}
     .contact-settings-privacy {
       display: flex;
       align-items: flex-start;
@@ -679,35 +685,14 @@ function render(): void {
               class="contact-settings-input" 
               id="phone-input"
               placeholder="${t('placeholders.phoneExample')}"
-              value="${state.contactInfo.phone || ''}"
+              value="${escapeAttr(field(state, 'phone'))}"
               ${state.isVerifying ? 'disabled' : ''}
             />
-            ${state.contactInfo.phoneVerified ? `
-              <span class="contact-settings-verified">
-                ${ICONS.check} ${t('contactSettings.verified', 'Verified')}
-              </span>
-            ` : ''}
+            <span class="contact-settings-verified" id="phone-verified-badge" ${phoneStatus(state).verified ? '' : 'hidden'}>
+              ${ICONS.check} ${t('contactSettings.verified', 'Verified')}
+            </span>
           </div>
-          ${!state.contactInfo.phoneVerified && state.contactInfo.phone ? `
-            <button aria-label="${t('accessibility.verifyPhone', 'Verify phone number')}" type="button" class="contact-settings-verify-btn" id="verify-phone-btn" ${state.isVerifying ? 'disabled' : ''}>
-              ${state.isVerifying ? t('contactSettings.sendingCode', 'Sending code...') : t('contactSettings.sendCode', 'Send me a code')}
-            </button>
-          ` : ''}
-          ${state.isVerifying ? `
-            <div class="contact-settings-verification">
-              <p class="contact-settings-verification-text">
-                ${t('contactSettings.codeSent', 'I sent a 6-digit code to')} ${state.pendingPhone}
-              </p>
-              <input 
-                type="text" 
-                class="contact-settings-code-input" 
-                id="verification-code"
-                placeholder="• • • • • •"
-                maxlength="6"
-                value="${state.verificationCode}"
-              />
-            </div>
-          ` : ''}
+          <div id="phone-actions">${phoneActionsHtml(state)}</div>
         </div>
         
         <div class="contact-settings-field">
@@ -721,7 +706,7 @@ function render(): void {
               class="contact-settings-input" 
               id="email-input"
               placeholder="${t('placeholders.emailExample')}"
-              value="${state.contactInfo.email || ''}"
+              value="${escapeAttr(field(state, 'email'))}"
             />
             ${state.contactInfo.emailVerified ? `
               <span class="contact-settings-verified">
@@ -740,7 +725,7 @@ function render(): void {
             class="contact-settings-input" 
             id="name-input"
             placeholder="${t('placeholders.displayName')}"
-            value="${state.contactInfo.preferredName || ''}"
+            value="${escapeAttr(field(state, 'preferredName'))}"
           />
         </div>
         
@@ -808,6 +793,19 @@ function render(): void {
   bindEvents();
 }
 
+function bindPhoneActions(): void {
+  modalContainer?.querySelector('#verify-phone-btn')?.addEventListener('click', () => void handleSendVerification());
+  const codeInput = modalContainer?.querySelector<HTMLInputElement>('#verification-code');
+  codeInput?.addEventListener('input', () => {
+    const value = codeInput.value.replace(/\D/g, '');
+    state.verificationCode = value;
+    if (value.length === 6) void handleVerifyCode(value);
+  });
+  modalContainer?.querySelectorAll<HTMLInputElement>('[data-channel]').forEach((box) => {
+    box.addEventListener('change', () => void toggleChannel(state, box.dataset.channel ?? '', box.checked, render));
+  });
+}
+
 function bindEvents(): void {
   if (!modalContainer) return;
 
@@ -821,18 +819,13 @@ function bindEvents(): void {
   // Save button
   modalContainer.querySelector('#save-btn')?.addEventListener('click', handleSave);
 
-  // Verify phone button
-  modalContainer.querySelector('#verify-phone-btn')?.addEventListener('click', handleSendVerification);
-
-  // Verification code input
-  const codeInput = modalContainer.querySelector('#verification-code') as HTMLInputElement;
-  codeInput?.addEventListener('input', (e) => {
-    const value = (e.target as HTMLInputElement).value.replace(/\D/g, '');
-    state.verificationCode = value;
-    if (value.length === 6) {
-      handleVerifyCode(value);
-    }
-  });
+  // Typed values live in state, so a re-render (load finishing, an error) never wipes them.
+  bindPhoneInput(modalContainer, state, () => refreshPhone(modalContainer, state, bindPhoneActions));
+  bindPhoneActions();
+  const email = modalContainer.querySelector<HTMLInputElement>('#email-input');
+  email?.addEventListener('input', () => (state.drafts.email = email.value));
+  const name = modalContainer.querySelector<HTMLInputElement>('#name-input');
+  name?.addEventListener('input', () => (state.drafts.preferredName = name.value));
 
   // Quiet hours toggle
   const quietToggle = modalContainer.querySelector('#quiet-hours-toggle');
@@ -877,6 +870,7 @@ function handleEscape(e: KeyboardEvent): void {
 
 async function loadContactInfo(): Promise<void> {
   state.isLoading = true;
+  const opened = state;
 
   try {
     // Load contact info
@@ -902,6 +896,7 @@ async function loadContactInfo(): Promise<void> {
         emailVerified: response.data.context.personal.emailVerified,
       };
     }
+    await loadPhoneAndChannels(opened);
 
     // Load user preferences (timezone, quiet hours)
     try {
@@ -933,24 +928,23 @@ async function loadContactInfo(): Promise<void> {
     // Still show detected timezone
     state.contactInfo.timezone = getUserTimezone();
   } finally {
-    state.isLoading = false;
-    render();
+    opened.isLoading = false;
+    if (state === opened) render(); // not after a close
   }
 }
 
 async function handleSave(): Promise<void> {
-  state.isSaving = true;
   state.error = undefined;
   state.success = undefined;
+  // Read from state, not the DOM: render() rebuilds the inputs.
+  const { invalid, e164, verified, needsCode, clearPhone } = planPhoneSave(state);
+  state.phoneInvalid = invalid;
+  const email = field(state, 'email').trim();
+  const clearEmail = !email && state.drafts.email !== undefined && !!state.contactInfo.email;
+  const preferredName = field(state, 'preferredName').trim();
+  state.isSaving = !invalid;
   render();
-
-  const phoneInput = modalContainer?.querySelector('#phone-input') as HTMLInputElement;
-  const emailInput = modalContainer?.querySelector('#email-input') as HTMLInputElement;
-  const nameInput = modalContainer?.querySelector('#name-input') as HTMLInputElement;
-
-  const phone = phoneInput?.value.trim();
-  const email = emailInput?.value.trim();
-  const preferredName = nameInput?.value.trim();
+  if (invalid) return;
 
   // Get quiet hours values
   const quietHoursStart = state.contactInfo.quietHoursStart || '22:00';
@@ -960,7 +954,9 @@ async function handleSave(): Promise<void> {
   try {
     // Save contact info
     const personalResponse = await apiPost<{ error?: string }>('/api/user/contact', {
-      phone,
+      ...(verified && e164 && { phone: e164 }),
+      ...(clearPhone && { clearPhone: true }),
+      ...(clearEmail && { clearEmail: true }),
       email,
       preferredName,
       timezone: state.contactInfo.timezone || getUserTimezone(),
@@ -984,15 +980,24 @@ async function handleSave(): Promise<void> {
       }
     }
 
-    state.contactInfo = { 
-      ...state.contactInfo, 
-      phone, 
-      email, 
+    state.contactInfo = {
+      ...state.contactInfo,
+      ...(clearPhone && { phone: '', phoneVerified: false }),
+      email,
       preferredName,
       quietHoursStart,
       quietHoursEnd,
       quietHoursEnabled,
     };
+    state.drafts = { phone: state.drafts.phone };
+    if (needsCode && e164) {
+      // A new number is stored only once its code checks out, so don't claim it's saved.
+      state.isSaving = false;
+      if (await handleSendVerification(e164)) {
+        state.success = t('contactSettings.savedCodeSent', 'Almost there! I texted a code to {phone}. Pop it in below and I can reach you there.', { phone: formatPhone(e164) });
+      }
+      return;
+    }
     state.success = quietHoursEnabled 
       ? t('contactSettings.successWithQuiet', `Saved! I'll stay quiet ${formatHour(parseInt(quietHoursStart))} - ${formatHour(parseInt(quietHoursEnd))}.`)
       : t('contactSettings.success', "Saved! I'll use this to stay in touch.");
@@ -1006,29 +1011,28 @@ async function handleSave(): Promise<void> {
   }
 }
 
-async function handleSendVerification(): Promise<void> {
-  const phoneInput = modalContainer?.querySelector('#phone-input') as HTMLInputElement;
-  const phone = phoneInput?.value.trim();
-
-  if (!phone) {
-    state.error = t('contactSettings.errorNoPhone', 'Add a phone number first');
+async function handleSendVerification(e164 = phoneStatus(state).e164): Promise<boolean> {
+  state.success = undefined;
+  if (!e164) {
+    state.phoneInvalid = field(state, 'phone').trim() !== '';
+    state.error = state.phoneInvalid ? undefined : t('contactSettings.errorNoPhone', 'Add a phone number first');
     render();
-    return;
+    return false;
   }
 
   state.isVerifying = true;
-  state.pendingPhone = phone;
+  state.pendingPhone = e164;
   state.error = undefined;
   render();
 
   try {
-    const result = await outreachService.sendVerificationCode(phone);
+    const result = await outreachService.sendVerificationCode(e164);
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to send verification');
     }
 
-    log.info({ phone }, 'Verification code sent');
+    log.info('Verification code sent');
   } catch (error) {
     state.error = t('contactSettings.errorSendCode', "Couldn't send the code. Try again?");
     state.isVerifying = false;
@@ -1036,6 +1040,7 @@ async function handleSendVerification(): Promise<void> {
   }
 
   render();
+  return state.isVerifying;
 }
 
 async function handleVerifyCode(code: string): Promise<void> {
@@ -1045,10 +1050,14 @@ async function handleVerifyCode(code: string): Promise<void> {
     if (result.success) {
       state.contactInfo.phone = state.pendingPhone;
       state.contactInfo.phoneVerified = true;
+      state.drafts.phone = undefined;
       state.isVerifying = false;
       state.verificationCode = '';
       state.success = t('contactSettings.phoneVerified', "Got it! I'll know your number now.");
       log.info('Phone verified');
+      // Only now does the number go on the profile, normalized and proven.
+      const saved = await apiPost('/api/user/contact', { phone: state.pendingPhone }).catch(() => null);
+      if (!saved?.ok) log.warn('Verified number not copied to contact info');
     } else {
       state.error = t('contactSettings.errorInvalidCode', "That code didn't work. Try again?");
     }
@@ -1082,16 +1091,15 @@ export async function openContactSettings(): Promise<void> {
   `;
 
   document.body.appendChild(modalContainer);
-
-  // Load existing data
-  await loadContactInfo();
+  state.isOpen = true;
+  render(); // usable right away; the load fills in only what the user hasn't typed
 
   // Animate in
   requestAnimationFrame(() => {
     modalContainer?.classList.add('open');
   });
 
-  state.isOpen = true;
+  await loadContactInfo();
   log.info('Opened contact settings');
 }
 
@@ -1110,15 +1118,7 @@ export function close(): void {
   }, DURATION.NORMAL);
 
   // Reset state
-  state = {
-    isOpen: false,
-    isLoading: false,
-    isSaving: false,
-    isVerifying: false,
-    verificationCode: '',
-    pendingPhone: '',
-    contactInfo: {},
-  };
+  state = freshState();
 
   log.info('Closed contact settings');
 }
