@@ -8,7 +8,7 @@
  * paraphrases; Ferni can quote. The live pipeline already stores every turn
  * (bogle_users/{uid}/conversations/{id}/turns); this reads the caller's lines
  * from their last few calls, in short overlapping passages so a fact spread
- * over lines ("call my brother", "his name is Pete", "it's 435 339 7687")
+ * over lines ("call my brother", "his name is Pete", "it's 435 555 0188")
  * stays together, and embeds them once when the call starts. A turn that
  * means the same thing as a passage gets it quoted, within its own small
  * budget. Nothing on the turn path waits for any of it.

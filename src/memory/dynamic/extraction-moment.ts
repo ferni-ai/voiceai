@@ -6,7 +6,7 @@
  * The extractor saw one line at a time. Real speech spreads a fact over
  * several: "could you call my brother?", "his name is Pete", "it's uh 435
  * 339 7687". On Seth's real calls (memory benchmark, 2026-10-11) the number
- * was stored as "him | phone number = 435-339-7687", which no question
+ * was stored as "him | phone number = 435-555-0188", which no question
  * about Pete could find. Scripted histories put each fact in one sentence,
  * so they never showed it.
  *
