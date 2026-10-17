@@ -179,6 +179,8 @@ export const FLAG_MANIFEST = {
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_DEFER_BACKGROUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: after a call, the verified owner's reminders, commitments and threads become follow-ups (agents/follow-through-import.ts)
+  FOLLOW_THROUGH_IMPORT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
   // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
   FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
