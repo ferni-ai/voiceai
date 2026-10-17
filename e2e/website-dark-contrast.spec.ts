@@ -41,6 +41,25 @@ const PAGES = [
 
 let site: BuiltSite | undefined;
 
+/**
+ * The cookie banner appears 1.5 to 2 seconds after load, and its link is
+ * measured in whatever state it's in. Wait until the banner has settled
+ * (shown, or dismissed by a stored choice) and the fonts have loaded, so the
+ * reading never depends on when the banner happened to appear.
+ */
+async function settle(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const banner = document.getElementById('cookieBanner');
+    return (
+      !banner ||
+      ['visible', 'is-visible', 'hidden', 'is-hidden'].some((name) =>
+        banner.classList.contains(name)
+      )
+    );
+  });
+  await page.evaluate(() => document.fonts.ready);
+}
+
 interface LowContrast {
   ratio: number;
   selector: string;
@@ -154,6 +173,7 @@ test.describe('ferni.ai in dark mode', () => {
           '*{animation:none!important;transition:none!important}' +
           '.reveal,[data-animate],[class*="fade"]{opacity:1!important;transform:none!important}',
       });
+      await settle(page);
       expect(await lowContrastText(page)).toEqual([]);
     });
   }
