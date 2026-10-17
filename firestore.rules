@@ -26,6 +26,24 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.service_account == true;
     }
     
+    // True when a write to bogle_users/{uid} adds, changes or removes a field
+    // that says which phone is the user's (verified) or what they agreed to
+    // hear from us. A client writing linkedIdentifiers: ['phone:+1<someone>']
+    // plus outreachPreferences.channels: ['sms'] would otherwise get that
+    // person texted or called by the scheduler.
+    function touchesProtectedUserFields() {
+      let before = resource == null ? {} : resource.data;
+      let after = request.resource.data;
+      let beforeContact = before.get('contactInfo', {});
+      let afterContact = after.get('contactInfo', {});
+      return after.diff(before).affectedKeys().hasAny([
+          'linkedIdentifiers', 'outreachPreferences', 'outreachPreferencesUpdatedAt',
+          'phoneNumber', 'phone', 'verifiedPhone', 'phoneVerified', 'emailVerified'
+        ])
+        || afterContact.get('phone', null) != beforeContact.get('phone', null)
+        || afterContact.get('phoneVerified', null) != beforeContact.get('phoneVerified', null);
+    }
+
     // Rate limiting check (max 100 writes per hour per user)
     // Note: This is a soft limit - real rate limiting is in auth-middleware.ts
     
@@ -39,10 +57,12 @@ service cloud.firestore {
       // Admin/service accounts can read any profile for support
       allow read: if isOwner(userId) || isAdmin() || isServiceAccount();
       
-      // Users can only write their own profile
-      // Service accounts (backend) can write any profile
-      allow create: if isOwner(userId) || isServiceAccount();
-      allow update: if isOwner(userId) || isServiceAccount();
+      // Users can only write their own profile, and never the identity and
+      // consent fields: those decide whom we text or call, so only the server
+      // sets them (Admin SDK, which bypasses these rules), after a texted code
+      // or an explicit opt-in. Service accounts (backend) can write any profile.
+      allow create: if isServiceAccount() || (isOwner(userId) && !touchesProtectedUserFields());
+      allow update: if isServiceAccount() || (isOwner(userId) && !touchesProtectedUserFields());
       
       // Only admins can delete profiles (GDPR requests go through admin)
       allow delete: if isAdmin();
