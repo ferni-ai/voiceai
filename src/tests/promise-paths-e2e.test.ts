@@ -210,7 +210,11 @@ beforeEach(async () => {
   vi.setSystemTime(START);
   await setUserContactInfo(UID, { phone: PHONE, email: 'sam@example.com', timezone: 'Etc/UTC' });
   // Texts and calls to the user go to the verified phone on the account (call-user port).
-  setCallUserPort({ verifiedPhone: async () => PHONE, call: async () => ({ success: true }) });
+  setCallUserPort({
+    verifiedPhone: async () => PHONE,
+    verifiedEmail: async () => 'sam@example.com',
+    call: async () => ({ success: true }),
+  });
 });
 
 describe('every scheduled promise ends kept or missed', () => {

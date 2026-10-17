@@ -280,7 +280,7 @@ Use when the user says things like:
           return `Email scheduled for ${timeStr} with subject: "${params.subject}"`;
         } else {
           if (result.error?.includes('email')) {
-            return "I don't have your email address. What's your email?";
+            return `I can't email you yet: there's no verified email address on your account.`;
           }
           return `I couldn't schedule that email: ${result.error}`;
         }
@@ -315,7 +315,7 @@ Use when the user says:
 
         log.info({ userId }, '📱 Sending immediate text');
 
-        const result = await textUser(userId, params.message, personaId);
+        const result = await textUser(userId, params.message, personaId, { askedNow: true });
 
         if (result.success) {
           return `Done! I just texted you: "${params.message}"`;
@@ -709,7 +709,7 @@ Reminder: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' 
               return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
             }
             if (result.error?.includes('email')) {
-              return "I don't have an email address on file. What's your email?";
+              return `I can't email you yet: there's no verified email address on your account.`;
             }
             return `Couldn't schedule that: ${result.error}`;
           }

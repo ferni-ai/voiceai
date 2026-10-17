@@ -29,7 +29,7 @@ import {
   startReminderScheduler,
   type ReminderDeliveryMethod,
 } from '../../../../services/scheduling/reminder-scheduler.js';
-import { sendEmail, sendSMS } from '../../../../services/communication-service.js';
+import { sendEmail } from '../../../../services/communication-service.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 import {
   getPersonaDisplayName,
@@ -46,7 +46,11 @@ import { getCallUserPort } from './call-user-port.js';
  */
 const verifiedPhone = async (userId: string): Promise<string | undefined> =>
   getCallUserPort()?.verifiedPhone(userId);
+/** The same for email: only the address Firebase verified, never contactInfo.email. */
+const verifiedEmail = async (userId: string): Promise<string | undefined> =>
+  getCallUserPort()?.verifiedEmail?.(userId);
 export const NO_VERIFIED_PHONE = 'No verified phone number on this account';
+export const NO_VERIFIED_EMAIL = 'No verified email address on this account';
 
 /** A Twilio call in the persona's voice (Cartesia TTS, Twilio's own voice as fallback). */
 async function makePhoneCall(
@@ -193,11 +197,11 @@ export async function canReachUser(
     return !!(await verifiedPhone(userId));
   }
   if (method === 'email') {
-    return !!info.email;
+    return !!(await verifiedEmail(userId));
   }
 
   // Any method - check if we have any contact info
-  return !!info.phone || !!info.email;
+  return !!(await verifiedPhone(userId)) || !!(await verifiedEmail(userId));
 }
 
 // ============================================================================
@@ -210,10 +214,12 @@ export interface ImmediateContactOptions {
   contactId?: string;
   /** If true, this is a direct message TO the contact (not to user about contact) */
   isDirectToContact?: boolean;
+  /** They asked for this text just now ("text me that"), so quiet hours don't hold it. */
+  askedNow?: boolean;
 }
 
 /**
- * Send an immediate text message to the user
+ * Send an immediate text message to the user, through the guarded sender (STOP, texts off)
  */
 export async function textUser(
   userId: string,
@@ -230,12 +236,10 @@ export async function textUser(
     const displayName = getPersonaDisplayName(canonicalId);
     const firstName = displayName.split(' ')[0];
 
-    const fullMessage = `${message}\n\n— ${firstName}`;
-    const result = await sendSMS(phone, fullMessage);
-
-    if (result.includes('trouble') || result.includes('error')) {
-      return { success: false, error: result };
-    }
+    const body = `${message}\n\n— ${firstName}`;
+    const askedNow = options?.askedNow === true;
+    const text = await getCallUserPort()?.textOwner?.(userId, body, { askedNow });
+    if (!text?.sent) return { success: false, error: text?.reason ?? 'no guarded sender here' };
 
     getLogger().info({ userId, personaId: canonicalId }, '📱 Text sent to user');
 
@@ -275,11 +279,8 @@ export async function emailUser(
   personaId = 'ferni',
   options?: ImmediateContactOptions
 ): Promise<{ success: boolean; error?: string }> {
-  const contact = await getUserContactInfo(userId);
-
-  if (!contact?.email) {
-    return { success: false, error: 'No email address on file for this user' };
-  }
+  const email = await verifiedEmail(userId);
+  if (!email) return { success: false, error: NO_VERIFIED_EMAIL };
 
   try {
     // Get the persona's display name for the signature
@@ -288,7 +289,7 @@ export async function emailUser(
     const firstName = displayName.split(' ')[0];
 
     const fullMessage = `${message}\n\n— ${firstName}`;
-    const result = await sendEmail(contact.email, subject, fullMessage);
+    const result = await sendEmail(email, subject, fullMessage);
 
     if (result.includes('trouble') || result.includes('error')) {
       return { success: false, error: result };
@@ -386,8 +387,6 @@ export interface ScheduleContactOptions {
   contactName?: string;
   /** If true, message goes directly TO the contact (not as reminder to self) */
   isDirectToContact?: boolean;
-  /** Email to send to (overrides user's saved contact) */
-  toEmail?: string;
 }
 
 /**
@@ -456,11 +455,11 @@ export async function scheduleEmail(
   personaId = 'ferni',
   options?: ScheduleContactOptions
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
-  const deliveryEmail = options?.toEmail || (await getUserContactInfo(userId))?.email;
+  const deliveryEmail = await verifiedEmail(userId);
   const contact = await getUserContactInfo(userId);
 
   if (!deliveryEmail) {
-    return { success: false, error: 'No email address on file. Ask for their email first!' };
+    return { success: false, error: NO_VERIFIED_EMAIL };
   }
 
   try {

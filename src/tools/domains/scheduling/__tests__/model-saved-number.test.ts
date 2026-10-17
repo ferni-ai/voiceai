@@ -57,6 +57,13 @@ const run = async (id: string, args: Record<string, unknown>): Promise<string> =
       .create(ctx)
       .execute(args, {})
   );
+const guarded = vi.fn(async (..._a: unknown[]) => ({ sent: true }));
+const port = (phone?: string, email?: string) => ({
+  verifiedPhone: async () => phone,
+  verifiedEmail: async () => email,
+  textOwner: guarded,
+  call: vi.fn(),
+});
 const addresses = (): string[] =>
   sent.reminder.mock.calls.map((c) => (c[0] as { deliveryAddress: string }).deliveryAddress);
 
@@ -68,7 +75,7 @@ afterEach(() => {
 describe('a number the model saved is never texted or rung', () => {
   it('no verified phone: nothing is sent or scheduled, and it says so', async () => {
     await run('saveContactInfo', { phone: STRANGER });
-    setCallUserPort({ verifiedPhone: async () => undefined, call: vi.fn() });
+    setCallUserPort(port(undefined));
     const replies = [
       await run('sendMessageNow', { message: 'hi' }),
       await run('scheduleMessage', { message: 'hi', when: 'in 2 hours' }),
@@ -82,11 +89,13 @@ describe('a number the model saved is never texted or rung', () => {
 
   it('with a verified phone it goes there, not to the saved number', async () => {
     await run('saveContactInfo', { phone: STRANGER });
-    setCallUserPort({ verifiedPhone: async () => OWNER, call: vi.fn() });
+    setCallUserPort(port(OWNER));
     await run('sendMessageNow', { message: 'hi' });
     await run('scheduleMessage', { message: 'hi', when: 'in 2 hours' });
     await run('scheduleCall', { message: 'hi', when: 'in 2 hours' });
-    expect(sent.sms.mock.calls.map((c) => c[0])).toEqual([OWNER]);
+    // Through the guarded sender (STOP, texts off); they just asked, so quiet hours don't hold it.
+    expect(guarded.mock.calls.map((c) => [c[0], c[2]])).toEqual([[ctx.userId, { askedNow: true }]]);
+    expect(sent.sms).not.toHaveBeenCalled();
     expect(addresses()).toEqual([OWNER, OWNER]);
   });
 
@@ -94,5 +103,16 @@ describe('a number the model saved is never texted or rung', () => {
     await run('saveContactInfo', { phone: STRANGER });
     await run('sendMessageNow', { message: 'hi' });
     expect(sent.sms).not.toHaveBeenCalled();
+  });
+
+  it('an email address the model saved is never used', async () => {
+    await run('saveContactInfo', { email: 'stranger@example.com' });
+    setCallUserPort(port(OWNER, undefined));
+    const reply = await run('scheduleEmail', { subject: 's', message: 'hi', when: 'in 2 hours' });
+    expect(reply).toContain('no verified email address');
+    expect(sent.reminder).not.toHaveBeenCalled();
+    setCallUserPort(port(OWNER, 'owner@example.com'));
+    await run('scheduleEmail', { subject: 's', message: 'hi', when: 'in 2 hours' });
+    expect(addresses()).toEqual(['owner@example.com']);
   });
 });

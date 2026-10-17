@@ -44,8 +44,8 @@ const keyword = (body: string): string =>
 
 export type Env = Record<string, string | undefined>;
 
-/** What a text was: the after-call check-in, a follow-up (reminder, commitment, thread), or one sent for a member to someone else. */
-export type TextKind = 'checkin' | 'follow-up' | 'on-behalf';
+/** What a text was: the after-call check-in, a follow-up (reminder, commitment, thread), a text the member got right away ("text me that"), or one sent for a member to someone else. */
+export type TextKind = 'checkin' | 'follow-up' | 'message' | 'on-behalf';
 
 export interface CheckinRecord {
   userId: string;

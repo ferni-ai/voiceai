@@ -57,8 +57,14 @@ const run = async (id: string, args: Record<string, unknown>) =>
       .execute(args, {})
   );
 const portCall = vi.fn(async (..._a: unknown[]) => ({ success: true, status: 'initiated' }));
-const withVerified = (phone: string | undefined) =>
-  setCallUserPort({ verifiedPhone: async () => phone, call: portCall });
+const guarded = vi.fn(async (..._a: unknown[]) => ({ sent: true }));
+const withVerified = (phone: string | undefined, email?: string) =>
+  setCallUserPort({
+    verifiedPhone: async () => phone,
+    verifiedEmail: async () => email,
+    textOwner: guarded,
+    call: portCall,
+  });
 
 afterEach(() => {
   setCallUserPort(undefined);
@@ -85,7 +91,11 @@ describe('a number the model saved is never texted or rung', () => {
     await run('sendImmediateOutreach', { message: 'hi', method: 'sms' });
     await run('sendImmediateOutreach', { message: 'hi', method: 'call' });
     await run('scheduleProactiveReminder', { message: 'hi', when: 'in 2 hours' });
-    expect(sent.sms.mock.calls.map((c) => c[0])).toEqual([OWNER]);
+    // The text goes through the guarded sender (STOP, quiet hours), never straight to Twilio.
+    expect(guarded.mock.calls.map((c) => [c[0], c[2]])).toEqual([
+      [ctx.userId, { askedNow: false }],
+    ]);
+    expect(sent.sms).not.toHaveBeenCalled();
     expect(portCall.mock.calls.map((c) => (c[0] as { phoneNumber: string }).phoneNumber)).toEqual([
       OWNER,
     ]);
@@ -93,5 +103,40 @@ describe('a number the model saved is never texted or rung', () => {
     expect(
       sent.reminder.mock.calls.map((c) => (c[0] as { deliveryAddress: string }).deliveryAddress)
     ).toEqual([OWNER]);
+  });
+
+  it('a held text says why, and nothing goes out', async () => {
+    withVerified(OWNER);
+    guarded.mockResolvedValueOnce({ sent: false, reason: 'you replied STOP to my texts' } as never);
+    const reply = await run('sendImmediateOutreach', { message: 'hi', method: 'sms' });
+    expect(reply).toBe("I didn't text you: you replied STOP to my texts.");
+    expect(sent.sms).not.toHaveBeenCalled();
+  });
+});
+
+describe('an email address the model saved is never used', () => {
+  it('no verified email: nothing is sent or scheduled, and it says so', async () => {
+    await run('saveContactInfo', { email: 'stranger@example.com', preferredMethod: 'email' });
+    withVerified(OWNER, undefined);
+    const now = await run('sendImmediateOutreach', { message: 'hi', method: 'email' });
+    const later = await run('scheduleProactiveReminder', {
+      message: 'hi',
+      when: 'in 2 hours',
+      method: 'email',
+    });
+    expect(sent.email).not.toHaveBeenCalled();
+    expect(sent.reminder).not.toHaveBeenCalled();
+    for (const reply of [now, later]) expect(reply).toContain('no verified email address');
+  });
+
+  it('with a verified email it goes there, not to the saved address', async () => {
+    await run('saveContactInfo', { email: 'stranger@example.com', preferredMethod: 'email' });
+    withVerified(OWNER, 'owner@example.com');
+    await run('sendImmediateOutreach', { message: 'hi', method: 'email' });
+    await run('scheduleProactiveReminder', { message: 'hi', when: 'in 2 hours', method: 'email' });
+    expect(sent.email.mock.calls.map((c) => c[0])).toEqual(['owner@example.com']);
+    expect(
+      sent.reminder.mock.calls.map((c) => (c[0] as { deliveryAddress: string }).deliveryAddress)
+    ).toEqual(['owner@example.com']);
   });
 });

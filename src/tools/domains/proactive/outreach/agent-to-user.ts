@@ -27,7 +27,7 @@ import {
   type ReminderDeliveryMethod,
 } from '../../../../services/scheduling/reminder-scheduler.js';
 import { recordReminderPromise } from '../../../../services/superhuman/semantic-intelligence/promise-keeper.js';
-import { sendEmail, sendSMS } from '../../../../services/communication-service.js';
+import { sendEmail } from '../../../../services/communication-service.js';
 import { getCallUserPort } from './call-user-port.js';
 import {
   getPersonaDisplayName,
@@ -220,21 +220,20 @@ Use for: follow-ups, accountability check-ins, celebrations, and scheduled remin
           return "I'd need to know who you are to send you reminders.";
         }
 
-        // Get user's contact info
-        const contactInfo = await getUserContactInfo(ctx.userId);
-        if (!contactInfo || (!contactInfo.phone && !contactInfo.email)) {
-          return "I don't have your contact info yet. Share your phone number or email first?";
-        }
-
-        // Determine delivery method (voice → call for API compatibility)
+        // Delivery method (voice → call for API compatibility); their saved preference, else a text
+        const preferred = (await getUserContactInfo(ctx.userId))?.preferredMethod;
         const deliveryMethod: ReminderDeliveryMethod =
-          method === 'voice' ? 'call' : method || (contactInfo.phone ? 'sms' : 'email');
-        // A text or call goes to the verified phone only, never the model-written contactInfo.phone.
+          method === 'voice' ? 'call' : method || (preferred === 'email' ? 'email' : 'sms');
+        // Only the verified phone or email, never the model-written contactInfo.
         const port = getCallUserPort();
-        const phone =
-          port && deliveryMethod !== 'email' ? await port.verifiedPhone(ctx.userId) : undefined;
-        if (deliveryMethod !== 'email' && !phone) {
-          return "I can't text or call you yet: there's no verified phone number on your account, so I didn't schedule it.";
+        const byEmail = deliveryMethod === 'email';
+        const address = byEmail
+          ? await port?.verifiedEmail?.(ctx.userId)
+          : await port?.verifiedPhone(ctx.userId);
+        if (!address) {
+          const what = byEmail ? 'email you' : 'text or call you';
+          const which = byEmail ? 'email address' : 'phone number';
+          return `I can't ${what} yet: there's no verified ${which} on your account, so I didn't schedule it.`;
         }
 
         // Parse the time
@@ -282,7 +281,7 @@ Use for: follow-ups, accountability check-ins, celebrations, and scheduled remin
           message: `${personaName}: ${message}`,
           scheduledFor,
           deliveryMethod,
-          deliveryAddress: (deliveryMethod === 'email' ? contactInfo.email : phone) || '',
+          deliveryAddress: address,
         });
 
         if (!reminder?.id) {
@@ -336,18 +335,17 @@ Use when you need to reach them right now outside of the conversation.`,
         const personaName = getPersonaDisplayName(personaId);
 
         try {
+          // Only the account's verified email, phone (as callUser does) and guarded
+          // texts: saveContactInfo writes contactInfo from whatever the model heard.
+          const port = getCallUserPort();
           if (deliveryMethod === 'email') {
-            if (!contactInfo?.email) {
-              return "I don't have an email address for you.";
-            }
-            await sendEmail(contactInfo.email, `Message from ${personaName}`, message);
+            const email = await port?.verifiedEmail?.(ctx.userId);
+            if (!email)
+              return "I can't email you yet: there's no verified email address on your account.";
+            await sendEmail(email, `Message from ${personaName}`, message);
             return `📧 Email sent!`;
           }
 
-          // A text or a call goes only to the verified phone on the account (as
-          // callUser does), never contactInfo.phone: the model writes that through
-          // saveContactInfo, so it may be anyone's number.
-          const port = getCallUserPort();
           const phone = port ? await port.verifiedPhone(ctx.userId) : undefined;
           const how = deliveryMethod === 'call' ? 'call' : 'text';
           if (!port || !phone) {
@@ -369,8 +367,13 @@ Use when you need to reach them right now outside of the conversation.`,
               : 'Calling you now.';
           }
 
-          await sendSMS(phone, `${personaName}: ${message}`);
-          return `📱 Text sent!`;
+          // Ferni reaching out unasked: STOP, texts off and quiet hours all hold it.
+          const text = await port.textOwner?.(ctx.userId, `${personaName}: ${message}`, {
+            askedNow: false,
+          });
+          return text?.sent
+            ? `📱 Text sent!`
+            : `I didn't text you: ${text?.reason ?? "texting isn't set up here"}.`;
         } catch (error) {
           log.error({ error: String(error), method: deliveryMethod }, 'Outreach failed');
           return `I couldn't send that message: ${error instanceof Error ? error.message : 'Unknown error'}`;
