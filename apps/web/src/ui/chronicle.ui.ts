@@ -55,6 +55,7 @@ interface ChronicleData {
   memories: JournalEntry[]; // Featured memories to resurface
   streak: number;
   totalEntries: number;
+  loadFailed?: boolean; // the journal couldn't be loaded: show that, not an empty Chronicle
 }
 
 type TimeContext = 'morning' | 'afternoon' | 'evening' | 'night';
@@ -1131,6 +1132,7 @@ function getGreeting(timeContext: TimeContext): string {
 async function loadData(): Promise<ChronicleData> {
   const timeContext = getTimeContext();
   const greeting = getGreeting(timeContext);
+  let loadFailed = false;
 
   try {
     // Try to load real journal data
@@ -1167,6 +1169,7 @@ async function loadData(): Promise<ChronicleData> {
           topThemes: string[];
         };
       }>(`/api/journal/chronicle?userId=${encodeURIComponent(userId)}`);
+      loadFailed = !result.ok;
 
       if (result.ok && result.data) {
         // Transform API response to ChronicleData format
@@ -1203,18 +1206,20 @@ async function loadData(): Promise<ChronicleData> {
       }
     }
   } catch (error) {
-    log.warn({ error }, 'Failed to load chronicle data, using defaults');
+    log.warn({ error }, 'Failed to load chronicle data');
+    loadFailed = true;
   }
 
-  // Return defaults if API fails
+  // Signed out: an empty Chronicle. A failed load: say so, with no stand-in insights.
   return {
     greeting,
     timeContext,
     entries: [],
-    insights: getDefaultInsights(),
+    insights: loadFailed ? [] : getDefaultInsights(),
     memories: [],
     streak: 0,
     totalEntries: 0,
+    loadFailed,
   };
 }
 
@@ -1252,7 +1257,16 @@ function render(): void {
   const content = container.querySelector('#chronicle-content');
   if (!content) return;
 
-  const { greeting, entries, insights, memories, streak, totalEntries } = state.data;
+  const { greeting, entries, insights, memories, totalEntries } = state.data;
+
+  if (state.data.loadFailed) {
+    content.innerHTML = `
+      <div class="chronicle-empty" role="alert" data-state="error">
+        <div class="chronicle-empty-icon">${ICONS.book}</div>
+        <p class="chronicle-empty-description">${t('chronicle.loadFailed')}</p>
+      </div>`;
+    return;
+  }
 
   // If no entries yet, show empty state
   if (totalEntries === 0) {
@@ -1264,13 +1278,6 @@ function render(): void {
   content.innerHTML = `
     <!-- Stats Row -->
     <div class="chronicle-stats">
-      <div class="chronicle-stat">
-        <div class="chronicle-stat-icon">${ICONS.flame}</div>
-        <div>
-          <div class="chronicle-stat-value">${streak}</div>
-          <div class="chronicle-stat-label">${t('chronicle.dayStreak')}</div>
-        </div>
-      </div>
       <div class="chronicle-stat">
         <div class="chronicle-stat-icon">${ICONS.book}</div>
         <div>
