@@ -74,7 +74,7 @@ async function replay(item: Item, end: number): Promise<Result> {
     turn_end_timeout_ms: String(base.endTimeoutMs),
   });
   const ws = new WebSocket(`wss://api.cartesia.ai/stt/turns/websocket?${params}`, {
-    headers: { 'X-API-Key': process.env.CARTESIA_API_KEY!, 'Cartesia-Version': '2026-03-01' },
+    headers: { 'X-API-Key': process.env.CARTESIA_API_KEY!, 'Cartesia-Version': '2026-08-14' },
   });
   await new Promise<void>((resolve, reject) => {
     ws.once('open', () => resolve());

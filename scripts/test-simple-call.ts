@@ -10,7 +10,7 @@
  */
 
 import { config } from 'dotenv';
-config();
+config({ quiet: true });
 
 const args = process.argv.slice(2);
 
@@ -39,7 +39,7 @@ Example:
   process.exit(1);
 }
 
-async function main() {
+async function main(phoneNumber: string) {
   console.log('\n📞 SIMPLE CALL TEST');
   console.log('='.repeat(50));
   console.log(`Phone: ${phoneNumber}`);
@@ -69,7 +69,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main(phoneNumber).catch(err => {
   console.error('Fatal error:', err);
   process.exit(1);
 });

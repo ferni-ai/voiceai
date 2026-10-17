@@ -14,6 +14,7 @@
 
 import type { IncomingMessage } from 'http';
 import { detectAccentFromLocales, type EnglishAccent } from '../../config/voice-accents.js';
+import { getClientIp } from '../../utils/client-ip.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'GeoDetection' });
@@ -205,23 +206,8 @@ const ipGeoCache = new Map<
 >();
 const IP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-/**
- * Get client IP from request headers.
- */
-export function getClientIP(req: IncomingMessage): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    const ips = typeof forwarded === 'string' ? forwarded.split(',') : forwarded;
-    return ips[0].trim();
-  }
-
-  const realIP = req.headers['x-real-ip'];
-  if (realIP) {
-    return typeof realIP === 'string' ? realIP : realIP[0];
-  }
-
-  return req.socket?.remoteAddress || 'unknown';
-}
+/** Kept for existing importers; resolution lives in utils/client-ip. */
+export const getClientIP = getClientIp;
 
 /**
  * Lookup country from IP using free ip-api.com service.

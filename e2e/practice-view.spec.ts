@@ -23,8 +23,22 @@
 
 import { expect, test } from '@playwright/test';
 
+import { createUser, idTokenFor } from './signed-in/support';
+
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-practice-view-test-user';
+
+/**
+ * Semantic intelligence answers only a verified caller (X-User-ID alone is 401),
+ * so those calls sign in a real user through the Firebase Auth emulator, as the
+ * signed-in specs do; the API must be started against the emulator
+ * (scripts/e2e/start-signed-in-stack.sh).
+ */
+async function semanticCaller(): Promise<{ query: string; headers: Record<string, string> }> {
+  const user = await createUser();
+  const token = await idTokenFor(user);
+  return { query: `?userId=${user.uid}`, headers: { Authorization: `Bearer ${token}` } };
+}
 
 test.describe('Practice View API', () => {
   test.describe('GET /api/practice-view', () => {
@@ -339,14 +353,26 @@ test.describe('Predictions API Integration', () => {
 });
 
 test.describe('Semantic Intelligence API', () => {
-  test('GET /api/semantic-intelligence/summary returns overview', async ({ request }) => {
+  let caller: Awaited<ReturnType<typeof semanticCaller>>;
+  test.beforeAll(async () => {
+    caller = await semanticCaller();
+  });
+
+  test('GET /api/semantic-intelligence/summary refuses X-User-ID without a token', async ({
+    request,
+  }) => {
     const response = await request.get(
       `${BASE_URL}/api/semantic-intelligence/summary?userId=${TEST_USER_ID}`,
-      {
-        headers: {
-          'X-User-ID': TEST_USER_ID,
-        },
-      }
+      { headers: { 'X-User-ID': TEST_USER_ID } }
+    );
+
+    expect(response.status()).toBe(401);
+  });
+
+  test('GET /api/semantic-intelligence/summary returns overview', async ({ request }) => {
+    const response = await request.get(
+      `${BASE_URL}/api/semantic-intelligence/summary${caller.query}`,
+      { headers: caller.headers }
     );
 
     expect(response.status()).toBe(200);
@@ -356,12 +382,8 @@ test.describe('Semantic Intelligence API', () => {
 
   test('GET /api/semantic-intelligence/insights returns proactive insights', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/semantic-intelligence/insights?userId=${TEST_USER_ID}`,
-      {
-        headers: {
-          'X-User-ID': TEST_USER_ID,
-        },
-      }
+      `${BASE_URL}/api/semantic-intelligence/insights${caller.query}`,
+      { headers: caller.headers }
     );
 
     expect(response.status()).toBe(200);
@@ -374,12 +396,8 @@ test.describe('Semantic Intelligence API', () => {
 
   test('GET /api/semantic-intelligence/open-loops returns open loops', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/semantic-intelligence/open-loops?userId=${TEST_USER_ID}`,
-      {
-        headers: {
-          'X-User-ID': TEST_USER_ID,
-        },
-      }
+      `${BASE_URL}/api/semantic-intelligence/open-loops${caller.query}`,
+      { headers: caller.headers }
     );
 
     expect(response.status()).toBe(200);
@@ -390,12 +408,8 @@ test.describe('Semantic Intelligence API', () => {
 
   test('GET /api/semantic-intelligence/commitments returns Ferni commitments', async ({ request }) => {
     const response = await request.get(
-      `${BASE_URL}/api/semantic-intelligence/commitments?userId=${TEST_USER_ID}`,
-      {
-        headers: {
-          'X-User-ID': TEST_USER_ID,
-        },
-      }
+      `${BASE_URL}/api/semantic-intelligence/commitments${caller.query}`,
+      { headers: caller.headers }
     );
 
     expect(response.status()).toBe(200);
@@ -502,12 +516,13 @@ test.describe('Full E2E Data Flow', () => {
 
   test('semantic intelligence powers practice view insights', async ({ request }) => {
     // Verify semantic intelligence is feeding into cross-persona insights
+    const caller = await semanticCaller();
     const [practiceResponse, semanticResponse] = await Promise.all([
       request.get(`${BASE_URL}/api/practice-view?userId=${TEST_USER_ID}`, {
         headers: { 'X-User-ID': TEST_USER_ID },
       }),
-      request.get(`${BASE_URL}/api/semantic-intelligence/summary?userId=${TEST_USER_ID}`, {
-        headers: { 'X-User-ID': TEST_USER_ID },
+      request.get(`${BASE_URL}/api/semantic-intelligence/summary${caller.query}`, {
+        headers: caller.headers,
       }),
     ]);
 

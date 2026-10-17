@@ -16,9 +16,18 @@ export default defineConfig({
     include: [
       // Unit tests in __tests__ directories
       'src/**/__tests__/**/*.test.ts',
-      // The memory eval's pure logic (scripts/memory-eval); other scripts stay out.
-      'scripts/memory-eval/**/__tests__/**/*.test.ts',
-      // Exclude integration and e2e patterns
+      // Pure logic of the eval harnesses and ops scripts (scripts/**). They import no
+      // services, so they run here rather than in the integration config.
+      'scripts/**/__tests__/**/*.test.{ts,mjs}',
+      'scripts/**/*.test.mjs',
+      // Design-system build helpers (node:assert, no browser). design-system/tests is
+      // Playwright and stays out (see #1375).
+      'design-system/*.test.js',
+      'design-system/lib/**/*.test.js',
+      // Mocked smart-home flows; no devices or network.
+      'tests/synthetic/**/*.test.ts',
+      // apps/async has its own vitest.config.ts, but nothing in CI runs it.
+      'apps/async/src/**/__tests__/**/*.test.ts',
     ],
     exclude: [
       'node_modules/**',
@@ -26,9 +35,9 @@ export default defineConfig({
       'dist/**',
       // Frontend tests have their own config (apps/web/vitest.config.ts)
       // Run them with: pnpm test:frontend
-      'apps/**',
+      'apps/web/**',
+      'apps/cli/**',
       'e2e/**',
-      'design-system/**',
       // Exclude integration tests (by naming convention)
       '**/*.integration.test.ts',
       '**/*.e2e.test.ts',
@@ -36,9 +45,10 @@ export default defineConfig({
       '**/*integration*.test.ts',
       '**/integration/**',
       '**/e2e/**',
-      // Exclude tests that need Firestore
-      '**/*firestore*.test.ts',
-      '**/*firebase*.test.ts',
+      // No name-based Firestore exclusion: '*firebase*' and '*firestore*' also matched
+      // mocked unit tests and the firebase-admin guard, which then never ran in CI.
+      // Tests that need the emulator are named *.emulator.test.ts and skip without
+      // FIRESTORE_EMULATOR_HOST.
       // Exclude src/tests directory (mixed unit/integration)
       'src/tests/**',
     ],

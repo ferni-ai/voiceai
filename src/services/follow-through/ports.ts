@@ -29,3 +29,22 @@ export interface FollowUpStore {
    */
   save: (next: FollowUp, expectedUpdatedAt: string) => Promise<boolean>;
 }
+
+/**
+ * Something an existing store says Ferni should follow through on: a pending
+ * reminder, an open commitment, a thread from the last call. `zone` is the
+ * source's own zone when it has one (a reminder's), else the caller's applies.
+ */
+export interface SourceItem {
+  readonly kind: NewFollowUp['kind'];
+  readonly text: string;
+  readonly dueAt: string | null;
+  readonly repeat: NewFollowUp['repeat'];
+  readonly source: NewFollowUp['source'];
+  readonly zone?: string;
+}
+
+export interface FollowUpSources {
+  /** What the existing stores hold for one person, minus anything they asked Ferni to forget. */
+  itemsFor: (userId: string, now: Date) => Promise<SourceItem[]>;
+}

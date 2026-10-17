@@ -21,3 +21,23 @@ export function isCaptionsV2Enabled(): boolean {
   }
   return import.meta.env.VITE_CAPTIONS_V2 === 'true';
 }
+
+export const CAPTIONS_BREATH_STORAGE_KEY = 'ferni:flag:captions-breath';
+
+/**
+ * Breath sub-flag: Ferni's words rise in as they are spoken, with the current
+ * word underlined and breath dots at a pause. Needs captions v2 on. Off by
+ * default. Turn it on for a build with VITE_CAPTIONS_BREATH=true, or for one
+ * browser with localStorage `ferni:flag:captions-breath` = 'true'.
+ */
+export function isCaptionsBreathEnabled(): boolean {
+  if (!isCaptionsV2Enabled()) return false;
+  try {
+    const override = localStorage.getItem(CAPTIONS_BREATH_STORAGE_KEY);
+    if (override === 'true') return true;
+    if (override === 'false') return false;
+  } catch {
+    // Storage can throw in private mode; fall back to the build default.
+  }
+  return import.meta.env.VITE_CAPTIONS_BREATH === 'true';
+}

@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "עוברים ל־{language}",
+    "seeYou": "נתראה בפעם הבאה!",
+    "callVoicemail": "השארתי ל־{name} הודעה קולית",
+    "callNoAnswer": "לא הצלחתי להשיג את {name}. לנסות שוב אחר כך?",
+    "callFailed": "השיחה ל־{name} לא עברה",
+    "callBack": "{name} מחכה לשיחה חוזרת מכם",
+    "followUp": "{name} מחכה לשמוע מכם"
+  },
   "accessibility": {
     "accountMenu": "תפריט חשבון",
     "accountSettings": "הגדרות חשבון",
@@ -2114,6 +2123,7 @@
     "sonosConnected": "Sonos מחובר!",
     "transcribing": "מתמללים...",
     "transcriptionUnavailable": "הפעם לא הצלחתי לקלוט את המילים, ולכן שום דבר לא נשמר. לנסות שוב?",
+    "journalTooLong": "זה קצת ארוך. נסו הקלטה קצרה יותר, עד {count} דקות.",
     "entrySaved": "הרשומה נשמרה!",
     "couldNotSaveEntry": "לא הצלחנו לשמור את הרשומה. לנסות שוב?",
     "profileSaved": "הפרופיל נשמר!",
@@ -3480,6 +3490,11 @@
     "fieldRelationship": "קשר משפחתי",
     "fieldWhatShouldFerniCallThem": "איך כדאי ל-Ferni לקרוא להם?",
     "fieldNotesForFerni": "הערות עבור Ferni",
+    "callConsentLabel": "שמחים לשמוע מ-Ferni",
+    "callConsentHint": "הסכימו ש-Ferni יתקשר מדי פעם לשאול מה שלומם. אפשר לבקש ממנו להפסיק בכל רגע.",
+    "callConsentSaved": "נשמר",
+    "callConsentFailed": "לא הצלחנו לשמור. נסו שוב.",
+    "callConsentLoadFailed": "לא הצלחנו לטעון אם הם שמחים לשמוע מ-Ferni. פתחו שוב כדי לנסות שוב.",
     "cancel": "ביטול",
     "addToFamily": "הוספה למשפחה",
     "relationshipMother": "אמא",
@@ -9548,11 +9563,15 @@
     "rememberEmpty": "אין משהו חדש לשמור הפעם. תודה על החברה.",
     "nextStepTitle": "צעד הבא עדין",
     "invitation": "חזור מתי שתרצה. אני כאן.",
-    "close": "סגור"
+    "close": "סגור",
+    "seeCost": "כמה עלתה השיחה הזו",
+    "feedbackQuestion": "איך זה הרגיש?",
+    "feedbackThanks": "תודה, זה עוזר."
   },
   "moments": {
     "teamUnlockTitle": "להכיר את {name}",
     "niceWork": "עבודה יפה",
+    "remembered": "אזכור את זה: {summary}",
     "streakSubtitle": "ההתמדה שלך. זה מה שחשוב.",
     "streakTitle": {
       "one": "רצף של {count} יום",
@@ -11152,10 +11171,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

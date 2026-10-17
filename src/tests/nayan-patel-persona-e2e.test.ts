@@ -4,7 +4,7 @@
  * Comprehensive tests to validate:
  * 1. All behavior files load correctly
  * 2. 200% superhuman behaviors exist and have content
- * 3. Nayan's unique personality is captured (Vadodara, Leela, Gita, wisdom)
+ * 3. Nayan's unique personality is captured (Vadodara, Jyoti, Gita, wisdom)
  * 4. Trust phrases are Nayan-voiced (not generic)
  * 5. Wisdom/meaning-specific content is present
  * 6. Critical: emotional-intelligence.json exists (was missing!)
@@ -282,10 +282,10 @@ describe('Nayan Patel Persona E2E Tests', () => {
   // ==========================================================================
 
   describe('Persona Consistency', () => {
-    it('should reference his fictional life (Vadodara and Leela)', () => {
+    it('should reference his fictional life (Vadodara and Jyoti)', () => {
       const allBehaviors = JSON.stringify(behaviors).toLowerCase();
       expect(allBehaviors).toContain('vadodara');
-      expect(allBehaviors).toContain('leela');
+      expect(allBehaviors).toContain('jyoti');
     });
 
     it('should reference the Gita or dharma', () => {

@@ -1,0 +1,6 @@
+# bh: {"to": "alex-chen", "path": "ask", "facts": ["jake", "roommate", "dishes", "week", "fight"]}
+Hey Ferni. My roommate Jake never does his dishes, and they've been piling up for a week. I'm about to snap.
+I want to bring it up without it turning into a fight. Can you put Alex on?
+@pause 9000 -
+Hi Alex.
+So, what do you think?

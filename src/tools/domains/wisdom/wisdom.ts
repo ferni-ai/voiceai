@@ -57,7 +57,7 @@ const WISDOM_QUOTES = [
     quote:
       "In the short run, the market is a voting machine. In the long run, it's a weighing machine.",
   },
-  { author: 'Peter Lynch', quote: 'Know what you own, and know why you own it.' },
+  { author: 'An investing legend', quote: 'Know what you own, and know why you own it.' },
   {
     author: 'Charlie Munger',
     quote: 'The big money is not in the buying and selling, but in the waiting.',
@@ -72,7 +72,7 @@ const WISDOM_QUOTES = [
   },
   { author: 'Warren Buffett', quote: "Risk comes from not knowing what you're doing." },
   {
-    author: 'Peter Lynch',
+    author: 'An investing legend',
     quote:
       'Far more money has been lost by investors preparing for corrections, or trying to anticipate corrections, than has been lost in corrections themselves.',
   },
@@ -100,7 +100,7 @@ const WISDOM_QUOTES = [
     quote: 'Be fearful when others are greedy, and greedy when others are fearful.',
   },
   {
-    author: 'Peter Lynch',
+    author: 'An investing legend',
     quote:
       'In the long run, a portfolio of well-chosen stocks and/or equity mutual funds will always outperform a portfolio of bonds or a money-market account.',
   },
@@ -774,18 +774,18 @@ const GENERIC_HISTORY = [
 // ============================================================================
 
 /**
- * Get a random Bogle quote
+ * Get a random index-investing quote
  */
 export function getBogleQuote(): string {
   const quote = BOGLE_QUOTES[Math.floor(Math.random() * BOGLE_QUOTES.length)];
-  return `John Bogle once put it this way: "${quote}"`;
+  return `An investing legend once put it this way: "${quote}"`;
 }
 
 /**
- * Get a wisdom quote (Bogle or other legends)
+ * Get a wisdom quote (index-investing or other legends)
  */
 export function getWisdomQuote(): string {
-  // 70% chance of Bogle, 30% other legends
+  // 70% chance of an index-investing quote, 30% other legends
   if (Math.random() < 0.7) {
     return getBogleQuote();
   } else {
@@ -938,7 +938,7 @@ export function createWisdomTools() {
       description: getToolDescription('getBogleQuote'),
       parameters: z.object({}),
       execute: async () => {
-        getLogger().info('Getting Bogle quote');
+        getLogger().info('Getting index-investing quote');
         return getBogleQuote();
       },
     }),

@@ -5,6 +5,11 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// The consent gate has its own tests; here the family member has said yes.
+vi.mock('../family-call-consent.js', () => ({
+  familyCheckinCallsOn: () => true,
+  familyCallBlockReason: async () => null,
+}));
 vi.mock('../../outreach/user-contact.js', () => ({
   getUserContactInfo: vi.fn(async () => ({ timezone: 'America/New_York' })),
 }));

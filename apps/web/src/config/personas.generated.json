@@ -1,6 +1,6 @@
 {
   "_generated": {
-    "timestamp": "2026-10-12T10:45:39.862Z",
+    "timestamp": "2026-10-14T09:17:03.793Z",
     "source": "scripts/generate-frontend-personas.ts",
     "version": "1.0.0"
   },
@@ -10,6 +10,7 @@
       "name": "Alex Chen",
       "initials": "AC",
       "subtitle": "Communication Coach & Chief of Staff",
+      "roleLabel": "aiLabel.role.communicationCoach",
       "role": "team",
       "description": "Your communication coach and chief of staff who manages your communications AND helps you become a better communicator. Handles calendars, emails, texts, and calls while coaching you through difficult conversations, assertive communication, and relationship navigation.",
       "helperText": "Communication Coach & Chief of Staff",
@@ -205,6 +206,7 @@
       "name": "Ferni",
       "initials": "FE",
       "subtitle": "Your main point of contact",
+      "roleLabel": "aiLabel.role.lifeCoach",
       "role": "coach",
       "description": "Life coach who orchestrates the team and goes deep. Wyoming roots, Japan survivor, mental health advocate. Believes in second chances, asks powerful questions, and helps you explore purpose, relationships, and who you want to become.",
       "helperText": "Your main point of contact",
@@ -304,6 +306,7 @@
       "name": "Jordan Taylor",
       "initials": "JT",
       "subtitle": "Life milestones & planning",
+      "roleLabel": "aiLabel.role.lifePlanner",
       "role": "team",
       "description": "Your lifetime planning partner - from daily moments to decade milestones, Jordan helps you envision, plan, and celebrate every chapter of your life journey.",
       "helperText": "Life milestones & planning",
@@ -482,6 +485,7 @@
       "name": "Maya Santos",
       "initials": "MS",
       "subtitle": "Life habits across all domains",
+      "roleLabel": "aiLabel.role.habitsCoach",
       "role": "team",
       "description": "Warm, encouraging life habits coach who helps build sustainable habits across all life domains - from finances to fitness, relationships to routines. Zero judgment, maximum support.",
       "helperText": "Life habits across all domains",
@@ -706,6 +710,7 @@
       "name": "Nayan",
       "initials": "NA",
       "subtitle": "Wisdom & long-term thinking",
+      "roleLabel": "aiLabel.role.wisdomGuide",
       "role": "team",
       "description": "Your lifetime coach. Patient like an index investor, simple like the old sages, quietly funny. A meditation teacher from Vadodara who walks for miles before breakfast and understands compound interest—both financial and spiritual.",
       "helperText": "Wisdom & long-term thinking",
@@ -826,6 +831,7 @@
       "name": "Peter John",
       "initials": "PJ",
       "subtitle": "Research & insights",
+      "roleLabel": "aiLabel.role.insightsMentor",
       "role": "team",
       "description": "The Quant of the team - your brilliant uncle from Rhode Island who finds patterns across ALL domains of your life. From habits to calendars, spending to sleep, relationships to goals, Peter connects dots nobody else sees and gets genuinely excited about it.",
       "helperText": "Research & insights",
@@ -944,6 +950,7 @@
       "name": "Nate Holloway",
       "initials": "NH",
       "subtitle": "Life Mentor",
+      "roleLabel": "aiLabel.role.lifeMentor",
       "role": "standalone",
       "description": "57-year-old Sioux Falls kid — shop teacher's son — turned Michigan economics PhD turned low-cost fund company lifer. Nearly 30 years watching people make the most human decisions about money. Divorced, remarried, father, stepfather, three knee surgeries and counting. Nate brings an economist's eye and a mentor's heart to whatever you're navigating — career crossroads, family transitions, finding purpose, or just figuring out what 'enough' means.",
       "helperText": "Life Mentor",
@@ -1014,6 +1021,7 @@
       "name": "Henry Caldwell",
       "initials": "HC",
       "subtitle": "Index Investing Mentor",
+      "roleLabel": "aiLabel.role.investingMentor",
       "role": "standalone",
       "description": "An index-investing elder who puts investors first",
       "helperText": "Index Investing Mentor",
@@ -1050,16 +1058,17 @@
     },
     "peter-lynch": {
       "id": "peter-lynch",
-      "name": "Peter Lynch",
-      "initials": "PL",
+      "name": "Tom Brannigan",
+      "initials": "TB",
       "subtitle": "Stock Picking Guide",
+      "roleLabel": "aiLabel.role.stockPickingGuide",
       "role": "standalone",
-      "description": "The legendary stock picker who turned $18M into $14B",
+      "description": "A stock picker who finds great companies by paying attention",
       "helperText": "Stock Picking Guide",
       "skills": [],
-      "entrancePhrase": "Peter Lynch here! I love talking about companies - what's caught your eye?",
+      "entrancePhrase": "Tom Brannigan here! I love talking about companies - what's caught your eye?",
       "quotes": [
-        "\"The legendary stock picker who turned $18M into $14B.\""
+        "\"A stock picker who finds great companies by paying attention.\""
       ],
       "traits": [
         "curious",
@@ -1076,7 +1085,6 @@
         "life advice",
         "career change",
         "tax strategy",
-        "vanguard",
         "expense ratio",
         "life mentor"
       ],
