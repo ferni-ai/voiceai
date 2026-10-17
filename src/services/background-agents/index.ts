@@ -117,7 +117,6 @@ export {
 export {
   // Research (Peter's domain)
   executeResearchTask,
-  queueResearchTask,
   type ResearchRequest,
   type ResearchResult as ExecutorResearchResult,
   type ResearchFinding,
