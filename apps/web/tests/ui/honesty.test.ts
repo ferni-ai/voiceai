@@ -214,6 +214,29 @@ describe('a failed request shows an honest error, never stand-in content', () =>
     close();
   });
 
+  it('The Chronicle: no patterns yet says so, with no stand-in tips', async () => {
+    api.apiGet.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        recentEntries: [{ id: 'e1', content: 'Walked by the river', type: 'text', createdAt: '2026-10-16T10:00:00Z' }],
+        insights: [],
+        prompts: [],
+        stats: { totalEntries: 1, currentStreak: 0, entriesThisWeek: 1, topThemes: [] },
+      },
+    });
+    const { openChronicle, close } = await import('../../src/ui/chronicle.ui.js');
+    openChronicle();
+    await vi.waitFor(() => expect(document.querySelector('.chronicle-stats')).not.toBeNull());
+
+    expect(document.querySelector('#chronicle-content [data-state="empty"]')?.textContent).toBe(
+      t('chronicle.noPatternsYet')
+    );
+    expect(document.body.textContent).not.toContain(t('chronicle.defaultInsights.startJourney.title'));
+    expect(document.body.textContent).not.toContain(t('chronicle.defaultInsights.twoPaths.title'));
+    close();
+  });
+
   it('The Chronicle: entries show no day streak', async () => {
     api.apiGet.mockResolvedValue({
       ok: true,

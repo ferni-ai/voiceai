@@ -2137,48 +2137,6 @@ class SettingsMenuUI {
       }
 
       /* ========================================================================
-         LOCKED FEATURE STATE
-         ======================================================================== */
-      .settings-menu__item--locked {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-
-      .settings-menu__item--locked:hover {
-        background: transparent;
-      }
-
-      .settings-menu__item--locked .settings-menu__icon {
-        color: var(--color-text-muted, #756a5e);
-      }
-
-      .settings-menu__label-wrap {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-
-      .settings-menu__unlock-hint {
-        font-family: var(--font-body);
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
-        font-style: italic;
-      }
-
-      .settings-menu__lock-icon {
-        width: 16px;
-        height: 16px;
-        color: var(--color-text-muted, #756a5e);
-        flex-shrink: 0;
-      }
-
-      .settings-menu__lock-icon svg {
-        width: 100%;
-        height: 100%;
-      }
-
-      /* ========================================================================
          ROADMAP FEATURE STATE (Coming Soon / What's Growing)
          ======================================================================== */
       .settings-menu__item--roadmap {
@@ -2251,146 +2209,6 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__roadmap-badge {
         background: linear-gradient(135deg, var(--persona-primary, #5a7a51), var(--persona-secondary, #4a6a41));
-      }
-
-      /* Shake animation for locked items */
-      @keyframes menuItemShake {
-        0%, 100% { transform: translateX(0); }
-        20% { transform: translateX(-4px); }
-        40% { transform: translateX(4px); }
-        60% { transform: translateX(-4px); }
-        80% { transform: translateX(4px); }
-      }
-
-      .settings-menu__item--shake {
-        animation: menuItemShake 0.4s ease;
-      }
-
-      /* ========================================================================
-         RELATIONSHIP STAGE BANNER - Inspiring journey visualization
-         ======================================================================== */
-      .settings-menu__stage-banner {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--space-4, 16px);
-        padding: var(--space-5, 20px) var(--space-6, 24px);
-        background: linear-gradient(135deg, 
-          var(--persona-tint, rgba(74, 103, 65, 0.1)) 0%,
-          transparent 60%
-        );
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        position: relative;
-        overflow: hidden;
-      }
-
-      /* Subtle decorative elements */
-      .settings-menu__stage-banner::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -20%;
-        width: 180px;
-        height: 180px;
-        background: radial-gradient(circle, var(--persona-tint, rgba(74, 103, 65, 0.06)) 0%, transparent 70%);
-        pointer-events: none;
-      }
-
-      .settings-menu__stage-info {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        z-index: 1;
-      }
-
-      .settings-menu__stage-label {
-        font-family: var(--font-body);
-        font-size: 10px;
-        font-weight: 600;
-        color: var(--color-text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-      }
-
-      .settings-menu__stage-name {
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-lg, 1.125rem);
-        font-weight: 700;
-        color: var(--persona-primary, #4a6741);
-        letter-spacing: -0.01em;
-      }
-
-      .settings-menu__stage-progress {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 6px;
-        min-width: 120px;
-        z-index: 1;
-      }
-
-      .settings-menu__stage-bar {
-        width: 100%;
-        height: 8px;
-        background: var(--color-background-tertiary, #ebe6df);
-        border-radius: var(--radius-full, 9999px);
-        overflow: hidden;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
-      }
-
-      .settings-menu__stage-fill {
-        height: 100%;
-        background: linear-gradient(90deg, 
-          var(--persona-secondary, #3d5a35) 0%,
-          var(--persona-primary, #4a6741) 100%
-        );
-        border-radius: var(--radius-full, 9999px);
-        transition: width ${DURATION.MODERATE}ms ${EASING.EXPO_OUT};
-        position: relative;
-      }
-
-      /* Animated shimmer on progress bar */
-      .settings-menu__stage-fill::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(90deg, 
-          transparent 0%,
-          rgba(255, 255, 255, 0.3) 50%,
-          transparent 100%
-        );
-        animation: progressShimmer 2s ease-in-out infinite;
-      }
-
-      @keyframes progressShimmer {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(200%); }
-      }
-
-      .settings-menu__stage-next {
-        font-family: var(--font-body);
-        font-size: 11px;
-        font-weight: 500;
-        color: var(--color-text-secondary);
-      }
-
-      .settings-menu__stage-max {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2, 8px);
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-sm, 0.875rem);
-        font-weight: 600;
-        color: var(--persona-primary, #4a6741);
-      }
-
-      .settings-menu__stage-max::before {
-        content: '✦';
-        font-size: 10px;
-        opacity: 0.7;
       }
 
       /* ========================================================================
@@ -2520,46 +2338,6 @@ class SettingsMenuUI {
         border-top-color: rgba(255, 255, 255, 0.06);
       }
 
-      /* Stage Banner */
-      [data-theme="midnight"] .settings-menu__stage-banner {
-        background: linear-gradient(135deg, 
-          var(--persona-tint, rgba(124, 179, 107, 0.12)) 0%,
-          transparent 60%
-        );
-        border-bottom-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-banner::before {
-        background: radial-gradient(circle, var(--persona-tint, rgba(124, 179, 107, 0.08)) 0%, transparent 70%);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-label {
-        color: var(--color-text-muted, #ddd6cc);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-name {
-        color: var(--color-accent-secondary, #7cb36b);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-bar {
-        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.08));
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-fill {
-        background: linear-gradient(90deg, 
-          var(--persona-secondary, #5a8a4a) 0%,
-          var(--color-accent-secondary, #7cb36b) 100%
-        );
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-next {
-        color: var(--color-text-muted, #ddd6cc);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-max {
-        color: var(--color-accent-secondary, #7cb36b);
-      }
-
       /* Badges */
       [data-theme="midnight"] .settings-menu__badge {
         background: linear-gradient(135deg, 
@@ -2611,16 +2389,6 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__unpin-btn {
         color: var(--color-text-muted, #e8e2da);
-      }
-
-      /* Locked items */
-      [data-theme="midnight"] .settings-menu__item--locked {
-        opacity: 0.5;
-      }
-
-      [data-theme="midnight"] .settings-menu__unlock-hint,
-      [data-theme="midnight"] .settings-menu__lock-icon {
-        color: var(--color-text-muted, #ddd6cc);
       }
 
       /* Active items */
