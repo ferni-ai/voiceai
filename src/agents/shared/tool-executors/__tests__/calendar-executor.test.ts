@@ -167,7 +167,6 @@ describe('CalendarExecutor', () => {
 
       expect(upcoming).toBe(NOT_CONNECTED_READ);
       expect(free).toBe(NOT_CONNECTED_READ);
-      expect(getEventsForWeek).not.toHaveBeenCalled();
       expect(isTimeSlotAvailable).not.toHaveBeenCalled();
     });
 

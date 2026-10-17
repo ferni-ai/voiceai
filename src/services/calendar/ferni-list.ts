@@ -6,18 +6,25 @@
  */
 
 import { getDayOverview } from './calendar-service.js';
-/** Timed items, as "10:00 AM Lunch with Sam; 3:00 PM Standup". Empty when there are none. */
+import { notConnectedWithList } from './not-connected-copy.js';
+/**
+ * Items as "10:00 AM Lunch with Sam; 3:00 PM Standup" (or "Mon, Oct 19 10:00 AM ..." with
+ * the day). All-day items read "All day". Empty when there are none.
+ */
 export function describeFerniList(
-  events: readonly { startTime: Date | string; title?: string; isAllDay?: boolean }[]
+  events: readonly { startTime: Date | string; title?: string; isAllDay?: boolean }[],
+  withDay = false
 ): string {
   return events
-    .filter((event) => !event.isAllDay)
     .map((event) => {
-      const time = new Date(event.startTime).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-      });
-      return `${time} ${event.title || 'Untitled'}`;
+      const when = new Date(event.startTime);
+      const day = withDay
+        ? `${when.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} `
+        : '';
+      const time = event.isAllDay
+        ? 'All day'
+        : when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      return `${day}${time} ${event.title || 'Untitled'}`;
     })
     .join('; ');
 }
@@ -48,4 +55,12 @@ export async function notConnectedAwareness(
       ? '[CALENDAR: Not connected. If user asks about calendar, suggest connecting.]'
       : null,
   };
+}
+
+/** The schedule read with nothing connected: Ferni's list, named, or null when it is empty. */
+export function ferniScheduleReply(
+  events: readonly { startTime: Date | string; title?: string; isAllDay?: boolean }[]
+): string | null {
+  const list = describeFerniList(events);
+  return list ? notConnectedWithList(list) : null;
 }

@@ -9,7 +9,7 @@
  *
  * @module tools/domains/calendar/calendar-connection-gate
  */
-import { getDayOverview } from '../../../services/calendar/index.js';
+import { getDayOverview, getWeekOverview } from '../../../services/calendar/index.js';
 import { isConnected } from '../../../services/calendar/calendar-service.js';
 import { describeFerniList } from '../../../services/calendar/ferni-list.js';
 import {
@@ -40,9 +40,11 @@ const READ_TOOLS = new Set([
   'findRecoveryOpportunities',
   'getCalendarLoadSummary',
   'smartReschedule',
-  'getUnifiedSchedule',
-  'checkScheduleConflicts',
 ]);
+
+/** Schedule views also cover reminders and appointments, so only their "clear" wording is changed. */
+const CLEAR_ONLY = new Set(['getUnifiedSchedule', 'checkScheduleConflicts']);
+const CLEAR_WORDING = /\bis clear\b|No scheduling conflicts found/i;
 
 /** Writes land in Ferni's own list whatever the connection state, so they say so. */
 const WRITE_TOOLS = new Map<string, 'create' | 'change'>([
@@ -57,8 +59,15 @@ const FAILED_WRITE = /^(?:I couldn't|Couldn't|I need)/;
 
 /** Today's read with nothing connected: Ferni's own list is named if it has items (#1547). */
 async function notConnectedRead(id: string, userId: string): Promise<string> {
-  if (id !== 'getCalendarToday') return NOT_CONNECTED_READ;
-  const list = describeFerniList((await getDayOverview(userId, new Date())).events);
+  const list =
+    id === 'getCalendarToday'
+      ? describeFerniList((await getDayOverview(userId, new Date())).events)
+      : id === 'getCalendarWeek'
+        ? describeFerniList(
+            (await getWeekOverview(userId, new Date())).days.flatMap((day) => day.events),
+            true
+          )
+        : '';
   return list ? notConnectedWithList(list) : NOT_CONNECTED_READ;
 }
 
@@ -71,7 +80,7 @@ function whatWasAsked(params: unknown): string | undefined {
 }
 
 function gate(def: ToolDefinition): ToolDefinition {
-  const mode = READ_TOOLS.has(def.id) ? 'read' : WRITE_TOOLS.get(def.id);
+  const mode = CLEAR_ONLY.has(def.id) ? 'clear' : READ_TOOLS.has(def.id) ? 'read' : WRITE_TOOLS.get(def.id);
   if (mode === undefined) return def;
 
   return {
@@ -85,6 +94,10 @@ function gate(def: ToolDefinition): ToolDefinition {
           const { userId } = ctx;
           if (!userId || (await isConnected(userId))) return original(params, options);
           if (mode === 'read') return notConnectedRead(def.id, userId);
+          if (mode === 'clear') {
+            const result: unknown = await original(params, options);
+            return typeof result === 'string' && CLEAR_WORDING.test(result) ? NOT_CONNECTED_READ : result;
+          }
 
           // A write still runs: it lands in Ferni's own list. Only the reply changes.
           const result: unknown = await original(params, options);

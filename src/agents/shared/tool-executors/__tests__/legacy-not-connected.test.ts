@@ -4,6 +4,7 @@
  * empty list as "clear".
  */
 import { describe, expect, it, vi } from 'vitest';
+import { getEventsForDay } from '../../../../services/calendar/calendar-service.js';
 
 const connected = vi.hoisted(() => ({ value: false }));
 
@@ -26,11 +27,18 @@ import { executeLegacyFallback } from '../legacy-fallback-executor.js';
 const ctx = { userId: 'user-1', sessionId: 's-1', personaId: 'ferni' } as never;
 
 describe('legacy schedule read with no calendar connected', () => {
-  it('says no calendar is connected and quotes no events', async () => {
+  it("says the calendar isn't connected when Ferni's list is empty, never clear", async () => {
     connected.value = false;
+    vi.mocked(getEventsForDay).mockResolvedValueOnce([]);
     const out = String(await executeLegacyFallback('getSchedule', {}, ctx));
     expect(out).toMatch(/isn't connected/);
-    expect(out).not.toMatch(/Standup|clear/i);
+    expect(out).not.toMatch(/clear/i);
+  });
+
+  it("names Ferni's own list, labelled, when it has items", async () => {
+    connected.value = false;
+    const out = String(await executeLegacyFallback('getSchedule', {}, ctx));
+    expect(out).toMatch(/No calendar is connected, but on Ferni's own list you have: .*Standup with Priya/);
   });
 
   it('reads the calendar once one is connected', async () => {

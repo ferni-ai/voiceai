@@ -67,7 +67,7 @@ import {
   NOT_CONNECTED_READ,
   notConnectedCreate,
 } from '../../../../services/calendar/not-connected-copy.js';
-import { smartCalendarTools } from '../calendar-connection-gate.js';
+import { gateCalendarTools, smartCalendarTools } from '../calendar-connection-gate.js';
 
 const READS = [
   'getCalendarToday',
@@ -202,4 +202,31 @@ describe('calendar tools with no calendar connected', () => {
     expect(out).not.toBe(NOT_CONNECTED_READ);
     expect(String(out)).toMatch(/Standup with Priya|meeting/);
   });
+
+  it("getCalendarWeek with nothing connected names Ferni's own list by day", async () => {
+    vi.mocked(getWeekOverview).mockResolvedValueOnce({ days: [busyDay] } as never);
+    const out = String(await toolFor('getCalendarWeek').execute({}, {}));
+    expect(out).toMatch(/No calendar is connected, but on Ferni's own list you have: .*Standup with Priya/);
+  });
+
+  it('schedule views with nothing connected only change the "clear" wording', async () => {
+    vi.mocked(isConnected).mockResolvedValue(false);
+    const [clear, reminder] = gateCalendarTools([
+      scheduleView('getUnifiedSchedule', 'Monday is clear. No scheduled items.'),
+      scheduleView('getUnifiedSchedule', 'Reminder: call mom at 9.'),
+    ]).map((def) => def.create({ userId: 'user-1' } as never) as { execute: (p: unknown, o: unknown) => Promise<unknown> });
+    expect(await clear.execute({}, {})).toBe(NOT_CONNECTED_READ);
+    expect(await reminder.execute({}, {})).toBe('Reminder: call mom at 9.');
+  });
 });
+
+function scheduleView(id: string, text: string): ToolDefinition {
+  return {
+    id,
+    name: id,
+    description: id,
+    domain: 'scheduling',
+    tags: [],
+    create: () => ({ execute: async () => text }),
+  } as unknown as ToolDefinition;
+}

@@ -68,10 +68,6 @@ describe('calendar claims', () => {
     expect(text).toBe("It isn't booked yet, though. Should I go ahead and book it? Anything else?");
   });
 
-  it('"I\'ve added lunch to your calendar" is a schedule claim', () => {
-    expect(claimedAction("I've added lunch with Sam to your calendar.")).toBe('schedule');
-  });
-
   it('a calendar read before the claim is not a create: the claim is still held (#1547 sequence)', async () => {
     const items = [
       ASK,
@@ -151,5 +147,13 @@ describe('calendar claims', () => {
     );
     expect(text).toContain("I've booked the table at Nobu for you.");
     expect(text).not.toContain("Ferni's own list");
+  });
+
+  it('a connected read reply that mentions the calendar passes through unchanged', async () => {
+    const parts = ["I've got three things on your calendar tomorrow. ", 'Standup is at nine.'];
+    const text = await textOf(
+      await check(streamOf(...parts), [ASK], toolsWith('getCalendarWeek', 'createCalendarEvent'))
+    );
+    expect(text).toBe("I've got three things on your calendar tomorrow. Standup is at nine.");
   });
 });

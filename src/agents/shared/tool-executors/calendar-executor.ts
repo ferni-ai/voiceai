@@ -206,7 +206,10 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        if (!(await isConnected(ctx.userId))) return NOT_CONNECTED_READ;
+        if (!(await isConnected(ctx.userId))) {
+          const onList = describeFerniList(await getEventsForWeek(ctx.userId, new Date()), true);
+          return onList ? notConnectedWithList(onList) : NOT_CONNECTED_READ;
+        }
         // Get events for the week
         const overview = await getEventsForWeek(ctx.userId, new Date());
 
