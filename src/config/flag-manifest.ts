@@ -278,6 +278,8 @@ export const FLAG_MANIFEST = {
   // getNews topic search with no NewsData/GNews key says so and gives RSS headlines (news.ts)
   NEWS_HEADLINES_FALLBACK: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  // First on-behalf dial checks the do-not-call list (first-dial-opt-out.ts)
+  ON_BEHALF_DNC_CHECK: { default: 'off', owner: 'outreach', kind: 'experiment' },
   ON_BEHALF_TEXTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // off: texts to someone else skip the STOP, quiet-hours and 10-minute guards (guarded-text.ts); rollback only
   ON_BEHALF_TEXT_GUARD: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
