@@ -434,9 +434,9 @@ describe('withActionClaimCheck', () => {
     expect(await textOf(await check(streamOf(...parts), [ASK]))).toBe(parts.join(''));
   });
 
-  it('ACTION_CLAIM_GUARD=off (and the announced-check log off) returns the very same stream', async () => {
+  it('ACTION_CLAIM_GUARD=off (and the announced-check log and caller voice guard off) returns the very same stream', async () => {
     const stream = streamOf(...CLAIM);
-    const off = { ACTION_CLAIM_GUARD: 'off', ANNOUNCED_CHECK_LOG: 'off' };
+    const off = { ACTION_CLAIM_GUARD: 'off', ANNOUNCED_CHECK_LOG: 'off', CALLER_VOICE_GUARD: 'off' };
     expect(await withActionClaimCheck(Promise.resolve(stream), ctx(ASK), toolsWith(), off)).toBe(
       stream
     );
