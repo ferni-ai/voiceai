@@ -56,8 +56,8 @@ function normalizePersonaId(id: string | undefined): NormalizedPersonaId | null 
   // Ferni aliases
   if ([CANONICAL_IDS.COACH, 'jack-b', 'jackie', 'life-coach'].includes(lower)) return 'ferni';
 
-  // Bogle aliases. 'nayan-patel' used to land here, giving Nayan index-fund
-  // callbacks while the real John Bogle got none.
+  // Index-fund legend aliases. 'nayan-patel' used to land here, giving Nayan index-fund
+  // callbacks while the index-fund legend got none.
   if ([CANONICAL_IDS.JOHN_BOGLE, 'bogle', 'index-investor'].includes(lower)) return 'bogle';
 
   // Nayan aliases

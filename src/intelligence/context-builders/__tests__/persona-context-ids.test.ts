@@ -130,7 +130,7 @@ describe('persona memory by canonical persona id', () => {
     expect(normalizePersonaId(CANONICAL_IDS.COMMUNICATOR)).toBe('alex');
   });
 
-  it('gives John Bogle the fund memories', async () => {
+  it('gives Henry Caldwell the fund memories', async () => {
     const out = await buildPersonaMemoryContext(input(CANONICAL_IDS.JOHN_BOGLE));
     expect(getBogleMemories).toHaveBeenCalledWith('u1');
     expect(out.map((i) => i.content).join('\n')).toContain('VTSAX');

@@ -104,6 +104,7 @@ function webFinds(...ids: string[]) {
 afterEach(() => vi.unstubAllEnvs());
 beforeEach(() => {
   vi.stubEnv('COACH_MEDIA', 'on');
+  vi.stubEnv('APPROVALS_PAGE', 'on');
   store.clear();
   generateContent.mockReset();
 });
@@ -129,6 +130,14 @@ describe('taste loop', () => {
     );
     const commitment = saveCommitment.mock.calls[0][0];
     expect(store.get(logged[0][0])?.sentVia).toBe('text');
+    // The text links an answer card written through the real card store.
+    const cards = [...store.entries()].filter(([k]) => k.startsWith('answer_cards/'));
+    expect(cards).toHaveLength(1);
+    expect(cards[0][1]).toMatchObject({
+      userId: 'u1',
+      kind: 'recommendation',
+      pick: { by: 'Physio Pat' },
+    });
 
     await recordFollowUpAnswer('u1', { ...commitment, outcome: 'done' }, 'it really helped');
     expect(store.get(logged[0][0])).toMatchObject({

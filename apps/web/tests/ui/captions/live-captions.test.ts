@@ -7,9 +7,15 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CAPTIONS_V2_STORAGE_KEY, isCaptionsV2Enabled } from '@/ui/captions/captions-flag.js';
+import {
+  CAPTIONS_BREATH_STORAGE_KEY,
+  CAPTIONS_V2_STORAGE_KEY,
+  isCaptionsBreathEnabled,
+  isCaptionsV2Enabled,
+} from '@/ui/captions/captions-flag.js';
 import {
   applyTranscript,
+  breathDelay,
   captionsLayout,
   currentTurn,
   initLiveCaptions,
@@ -428,5 +434,88 @@ describe('live captions region', () => {
     expect(showModal).toHaveBeenCalledTimes(1);
     const items = [...document.querySelectorAll('.ferni-transcript-sheet li')];
     expect(items.map((li) => li.textContent)).toEqual(['YouFirst thing', 'FerniSecond thing']);
+  });
+});
+
+describe('captions-breath flag', () => {
+  afterEach(() => {
+    localStorage.removeItem(CAPTIONS_BREATH_STORAGE_KEY);
+    localStorage.removeItem(CAPTIONS_V2_STORAGE_KEY);
+    vi.unstubAllEnvs();
+  });
+
+  it('is off by default, and needs captions v2 on as well', () => {
+    expect(isCaptionsBreathEnabled()).toBe(false);
+    vi.stubEnv('VITE_CAPTIONS_BREATH', 'true');
+    expect(isCaptionsBreathEnabled()).toBe(false);
+  });
+
+  it('turns on with captions v2 and the breath flag', () => {
+    localStorage.setItem(CAPTIONS_V2_STORAGE_KEY, 'true');
+    vi.stubEnv('VITE_CAPTIONS_BREATH', 'true');
+    expect(isCaptionsBreathEnabled()).toBe(true);
+  });
+
+  it('lets one browser switch it off again', () => {
+    localStorage.setItem(CAPTIONS_V2_STORAGE_KEY, 'true');
+    vi.stubEnv('VITE_CAPTIONS_BREATH', 'true');
+    localStorage.setItem(CAPTIONS_BREATH_STORAGE_KEY, 'false');
+    expect(isCaptionsBreathEnabled()).toBe(false);
+  });
+});
+
+describe('breath words', () => {
+  const agentLine = (): HTMLElement =>
+    renderLine({ speaker: 'agent', text: '', final: false }, false);
+  const words = (line: HTMLElement): HTMLElement[] => [
+    ...line.querySelectorAll<HTMLElement>('.ferni-caption-word'),
+  ];
+
+  it('caps the stagger so a long burst still lands quickly', () => {
+    expect(breathDelay(0)).toBe(0);
+    expect(breathDelay(3)).toBe(420);
+    expect(breathDelay(40)).toBe(breathDelay(8));
+  });
+
+  it('staggers each word and keeps the text a screen reader reads', () => {
+    const line = agentLine();
+    revealWords(line, '', 'Then let us', true);
+    expect(words(line).map((w) => w.textContent)).toEqual(['Then', 'let', 'us']);
+    expect(words(line).map((w) => w.style.getPropertyValue('--ferni-word-delay'))).toEqual([
+      '0ms',
+      '140ms',
+      '280ms',
+    ]);
+    expect(line.textContent).toBe('Then let us');
+  });
+
+  it('grows a word that is still being spoken in its own span', () => {
+    const line = agentLine();
+    revealWords(line, '', 'Then let', true);
+    revealWords(line, 'Then let', 'Then lets', true);
+    expect(words(line).map((w) => w.textContent)).toEqual(['Then', 'lets']);
+    expect(line.textContent).toBe('Then lets');
+  });
+
+  it('swaps a correction in quietly, without a second rise', () => {
+    const line = agentLine();
+    revealWords(line, '', 'Then let us', true);
+    revealWords(line, 'Then let us', 'Than let us', true);
+    expect(words(line).map((w) => w.textContent)).toEqual(['Than', 'let', 'us']);
+    expect(words(line).every((w) => w.classList.contains('ferni-caption-word--quiet'))).toBe(true);
+  });
+
+  it('leaves the caller line as plain text', () => {
+    const line = renderLine({ speaker: 'user', text: '', final: false }, false);
+    revealWords(line, '', 'I think so', true);
+    expect(words(line)).toEqual([]);
+    expect(line.textContent).toBe('I think so');
+  });
+
+  it('without breath, the words arrive as one run, as before', () => {
+    const line = agentLine();
+    revealWords(line, '', 'Then let us');
+    expect(words(line)).toEqual([]);
+    expect(line.querySelector('.ferni-caption-words')?.textContent).toBe('Then let us');
   });
 });

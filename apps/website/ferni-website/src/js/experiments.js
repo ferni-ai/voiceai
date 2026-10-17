@@ -81,6 +81,37 @@
   }
 
   // ============================================================================
+  // NETWORK TIMING
+  // ============================================================================
+
+  // There is no batch variant endpoint, so a page view makes one request per
+  // experiment or flag (about a dozen). Hold them until the page has loaded
+  // and the main thread is idle, so they never compete with first paint.
+  let idlePromise = null;
+
+  function whenIdle() {
+    if (idlePromise) return idlePromise;
+    idlePromise = new Promise(function (resolve) {
+      const schedule = function () {
+        if (typeof window.requestIdleCallback === 'function') {
+          window.requestIdleCallback(resolve, { timeout: 2000 });
+        } else {
+          setTimeout(resolve, 200);
+        }
+      };
+      if (document.readyState === 'complete') {
+        schedule();
+      } else {
+        window.addEventListener('load', schedule, { once: true });
+      }
+    });
+    return idlePromise;
+  }
+
+  // One in-flight request per experiment, shared by every caller.
+  const pending = {};
+
+  // ============================================================================
   // VARIANT ASSIGNMENT
   // ============================================================================
 
@@ -100,6 +131,22 @@
       return variantId;
     }
 
+    if (!pending[experimentId]) {
+      pending[experimentId] = whenIdle().then(function () {
+        return fetchVariant(experimentId, userId, cache);
+      });
+    }
+    const variantId = await pending[experimentId];
+
+    // Track exposure
+    if (variantId && !options.skipExposure) {
+      queueEvent(experimentId, variantId, userId, 'exposure');
+    }
+
+    return variantId;
+  }
+
+  async function fetchVariant(experimentId, userId, cache) {
     // Fetch from API
     try {
       const device =
@@ -135,11 +182,6 @@
 
       // Cache assignment
       setCache(experimentId, data.variantId);
-
-      // Track exposure
-      if (!options.skipExposure) {
-        queueEvent(experimentId, data.variantId, userId, 'exposure');
-      }
 
       return data.variantId;
     } catch (error) {
