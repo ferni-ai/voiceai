@@ -40,6 +40,10 @@ import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { roomGuestsNote } from './room-guests.js';
+import {
+  worldFactLinesFor,
+  worldFactsNoteFor,
+} from '../../intelligence/world-model/temporal/in-call-load.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { quirkTurnNote } from './quirk-note.js';
 import { honestFriendNote } from './honest-friend.js';
@@ -173,9 +177,17 @@ export function withTurnReminder(
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
     options.shape !== false && !answering ? repairNoteFor(chatCtx, session) : '',
   ].filter(Boolean);
+  // WORLD_FACTS_IN_CALL=on: where their life stands (in-call-load.ts); nothing when off.
+  const caller = callerOf(session);
+  const lifeAt = {
+    now: Date.now(),
+    timeZone: caller?.callerTimezone,
+    userName: caller?.userName,
+    words,
+  };
   const reminder = contextPacketEnabled()
-    ? packetReminder(session, words, turnNotes)
-    : turnNotes.join(' ');
+    ? packetReminder(session, words, turnNotes, worldFactLinesFor(caller, lifeAt))
+    : [worldFactsNoteFor(caller, lifeAt), ...turnNotes].filter(Boolean).join(' ');
   // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
   noteReminder(session, {
     reminder,
@@ -195,6 +207,14 @@ function closeLoopNote(session: object, words: string): string {
   if (!wrapUp || !words) return '';
   return wrapUp.noteFor(words, understandingFor(session, words)?.wantsToEnd === true);
 }
+
+interface CallerData {
+  personaId?: string;
+  userName?: string;
+  callerTimezone?: string;
+}
+const callerOf = (session: object): CallerData | undefined =>
+  (session as { userData?: unknown }).userData as CallerData | undefined;
 
 /**
  * DELIBERATION=on: a thought from the background deliberator, if one is ready
