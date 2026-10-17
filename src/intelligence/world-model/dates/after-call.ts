@@ -14,6 +14,7 @@
  * @module intelligence/world-model/dates/after-call
  */
 import { forgottenTopicsOrNull, isForgotten } from '../../../memory/index.js';
+import { envForCaller, type CohortStore } from '../../../services/platform/cohort-flags.js';
 import { callLLM } from '../../../services/llm-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
@@ -54,6 +55,8 @@ export interface DatesDeps {
   /** Forgotten topics; null when they can't be read. */
   topics?: (userId: string) => Promise<string[] | null>;
   env?: Record<string, string | undefined>;
+  /** Where the caller's cohort flags are read (cohort-flags.ts); Firestore by default. */
+  cohorts?: CohortStore;
 }
 
 /** The call's dates, resolved against its date in the caller's timezone. */
@@ -73,7 +76,10 @@ export async function datesFromCall(
 
 /** The task body; exported so tests can run it with a fake model and store. */
 export async function extractDatesAfterCall(ctx: DatesCall, deps: DatesDeps = {}): Promise<void> {
-  if (!datesThatMatterOn(deps.env) || !ctx.userId || ctx.userId === 'anonymous') return;
+  if (!ctx.userId || ctx.userId === 'anonymous') return;
+  // DATES_THAT_MATTER as this caller's call had it: process.env may hold the next caller's.
+  const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
+  if (!datesThatMatterOn(env)) return;
   const dates = await datesFromCall(ctx, deps.llm);
   if (dates.length === 0) return;
   // What they asked Ferni to forget on this call is not written down after it.
