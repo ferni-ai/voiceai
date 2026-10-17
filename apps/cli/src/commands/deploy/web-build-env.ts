@@ -19,16 +19,22 @@ export function parseViteVars(json: string): Record<string, string> {
   return vars;
 }
 
+/** The repo CI builds from; named so a shell in another repo can't change it. */
+export const REPO = 'ferni-ai/voiceai';
+
 /**
  * Read the repo's VITE_* variables with the gh CLI. Throws when gh can't read
- * them: building without them would quietly turn those flags off in prod.
+ * them or finds none: building without them would quietly turn those flags
+ * off in prod. Repo values win over a local VITE_* env, so a manual deploy
+ * matches CI.
  */
 export function repoViteVars(
   run: (cmd: string) => string = (cmd) =>
     execSync(cmd, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] })
 ): Record<string, string> {
+  let vars: Record<string, string>;
   try {
-    return parseViteVars(run('gh variable list --json name,value'));
+    vars = parseViteVars(run(`gh variable list --repo ${REPO} --json name,value`));
   } catch (error) {
     throw new Error(
       'Could not read the repo VITE_* variables with `gh variable list` (run `gh auth login`). ' +
@@ -36,6 +42,12 @@ export function repoViteVars(
         `Cause: ${error instanceof Error ? error.message : String(error)}`
     );
   }
+  if (Object.keys(vars).length === 0) {
+    throw new Error(
+      `No VITE_* variables found in ${REPO}; refusing to build the frontend with every flag off.`
+    );
+  }
+  return vars;
 }
 
 /** Build apps/web the way CI does: with the repo VITE_* variables in its env. */

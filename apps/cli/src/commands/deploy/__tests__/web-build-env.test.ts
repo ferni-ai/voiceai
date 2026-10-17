@@ -32,7 +32,7 @@ describe('repoViteVars', () => {
       ran = cmd;
       return LIST;
     });
-    expect(ran).toBe('gh variable list --json name,value');
+    expect(ran).toBe('gh variable list --repo ferni-ai/voiceai --json name,value');
     expect(vars.VITE_CAPTIONS_V2).toBe('true');
   });
 
@@ -42,6 +42,14 @@ describe('repoViteVars', () => {
         throw new Error('not logged in');
       })
     ).toThrow(/caption and Venmo flags ship as off.*not logged in/);
+  });
+});
+
+describe('repoViteVars with no VITE_* variables', () => {
+  it('throws rather than building with every flag off', () => {
+    expect(() => repoViteVars(() => JSON.stringify([{ name: 'CI_RUNNER', value: 'x' }]))).toThrow(
+      /No VITE_\* variables/
+    );
   });
 });
 
