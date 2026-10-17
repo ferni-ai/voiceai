@@ -60,14 +60,19 @@ describe('structural defences hold for every bypass variant', () => {
   });
 
   it('caps a reported block however long its lines are', () => {
-    const block = reportedFromCall('Mom', Array.from({ length: 20 }, () => 'x'.repeat(500)));
+    const block = reportedFromCall(
+      'Mom',
+      Array.from({ length: 20 }, () => 'x'.repeat(500))
+    );
     expect(block.slice(1, -1).join('').length).toBeLessThan(1300);
   });
 });
 
 describe('email body', () => {
   it('escapes HTML instead of rendering it', () => {
-    const html = formatEmailBody('Hi\n\n<script>alert(1)</script> <a href="https://evil.example">x</a> & "q"');
+    const html = formatEmailBody(
+      'Hi\n\n<script>alert(1)</script> <a href="https://evil.example">x</a> & "q"'
+    );
     expect(html).not.toContain('<script>');
     expect(html).not.toContain('<a href');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');

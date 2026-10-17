@@ -65,7 +65,7 @@ const facts: Array<[string, Record<string, unknown>]> = [
     {
       entityName: 'Pete',
       key: 'phone',
-      value: '435-339-7687 is his',
+      value: '435-555-0188 is his',
       extractedAt: at,
       forgottenAt: '2026-01-07',
     },

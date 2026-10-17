@@ -4,6 +4,7 @@
  * or none. Used by prompt-loader.ts.
  */
 
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { stripSpeechMarkupGuidance } from './strip-speech-markup.js';
 
@@ -70,6 +71,24 @@ Cartesia Sonic voices your text. It takes its pitch, emphasis and pauses from yo
 - Never write pause, speed or volume tags, asterisks or stage directions. The one sound you can make is [laughter]: write it where you'd really laugh, because something they said is genuinely funny or you're laughing with them. At most once in a reply, never when they're upset or the topic is heavy, and not every time something's light. No other brackets.
 - Never write words in capitals for emphasis ("SO good"): the voice spells capitalised words out letter by letter. Let the words and punctuation carry it.
 - Don't open with a stock reaction ("Ha!", "Oh!", "Hmm.") out of habit, and vary how you begin.` + conversationNote();
+
+const HABIT_OPENER = 'out of habit, and vary how you begin.';
+/**
+ * PERSONA_SPARK=on: a "Ha!" or "Oh!" up front is allowed when it's real. The
+ * ban fought the persona manifests (Maya's, Jordan's and Peter John's
+ * nonverbals are exactly these) and took the cheapest audible sign of delight
+ * off every persona (persona-range report, 2026-10-17). The opener gate
+ * (opener-gate.ts) still thins habitual ones at runtime.
+ */
+export const SPARK_OPENER =
+  "out of habit: rarely, and only when it's real (something genuinely good or funny), and vary how you begin.";
+
+/** The sparse-markup note, with the opener rule PERSONA_SPARK asks for when it's on. */
+export function sparseMarkupNote(env: Env = process.env): string {
+  return flagOn('PERSONA_SPARK', env)
+    ? SPARSE_MARKUP_NOTE.replace(HABIT_OPENER, SPARK_OPENER)
+    : SPARSE_MARKUP_NOTE;
+}
 
 /** Fit a prompt's speech-markup guidance to what voices the provider's text. */
 export function adaptSpeechMarkup(prompt: string): string {
