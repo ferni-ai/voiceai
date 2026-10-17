@@ -433,13 +433,9 @@ class LiveCaptions {
       'ferni-captions--overflowing',
       lines > 1 && this.viewport.scrollHeight > this.viewport.clientHeight
     );
-    // Heard: a caller line that cannot show whole above the reply is set aside
-    // for this turn, so the reply stays whole and no line is cut. Then re-lay out.
-    if (
-      this.callerShown &&
-      !this.callerAside &&
-      this.viewport.scrollHeight > this.viewport.clientHeight
-    ) {
+    // Heard: a caller line that cannot show whole is set aside, then re-laid out.
+    const overflow = this.viewport.scrollHeight > this.viewport.clientHeight;
+    if (this.callerShown && !this.callerAside && overflow) {
       this.callerAside = true;
       this.layout();
     }
