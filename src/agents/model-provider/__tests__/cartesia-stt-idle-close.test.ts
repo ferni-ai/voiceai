@@ -43,13 +43,46 @@ const builds: Record<string, () => Promise<PluginModule>> = {
     createRequire(import.meta.url)('@livekit/agents-plugin-cartesia') as PluginModule,
 };
 
-/** Opens one plugin stream (no retries), lets the server end it, returns the stream-error log call. */
-async function streamErrorLog(build: keyof typeof builds) {
-  const logger = log();
-  const warn = vi.spyOn(logger, 'warn');
-  const error = vi.spyOn(logger, 'error');
-  const isStreamError = (args: unknown[]) => args.includes('Cartesia STT stream error');
+/** One JSON record the SDK's pino logger wrote. */
+interface LogRecord {
+  level: number;
+  msg: string;
+  closeCode?: number;
+  expectedIdleClose?: boolean;
+  error?: { type?: string; message?: string; stack?: string; closeCode?: number };
+}
 
+/**
+ * The records pino actually writes, read off the SDK logger's output stream. Reading the
+ * output (not the logger call's arguments) is the point: pino drops an object passed after
+ * the message, so a call can carry the error and the line still lose it.
+ */
+function captureLogRecords(): LogRecord[] {
+  const logger = log() as unknown as object;
+  const chain = [logger, Object.getPrototypeOf(logger) as object];
+  const sym = chain
+    .flatMap((o) => Object.getOwnPropertySymbols(o))
+    .find((s) => String(s) === 'Symbol(pino.stream)');
+  if (!sym) throw new Error('SDK logger has no pino stream');
+  const out = (logger as Record<symbol, { write: (chunk: string) => unknown }>)[sym];
+  const records: LogRecord[] = [];
+  const write = out.write.bind(out);
+  vi.spyOn(out, 'write').mockImplementation((chunk: string) => {
+    for (const line of String(chunk).split('\n').filter(Boolean)) {
+      try {
+        records.push(JSON.parse(line) as LogRecord);
+      } catch {
+        // not a JSON record; leave it out
+      }
+    }
+    return write(chunk);
+  });
+  return records;
+}
+
+/** Opens one plugin stream (no retries), lets the server end it, returns the stream-error records. */
+async function streamErrorRecords(build: keyof typeof builds): Promise<LogRecord[]> {
+  const records = captureLogRecords();
   const { STT } = await builds[build]();
   const stt = new STT({
     apiKey: 'test-key',
@@ -59,49 +92,33 @@ async function streamErrorLog(build: keyof typeof builds) {
   stt.on('error', () => undefined); // the SDK emits the give-up; the test reads the log
   const stream = stt.stream({ connOptions: { maxRetry: 0, retryIntervalMs: 0, timeoutMs: 5000 } });
 
-  let level: 'warn' | 'error' | undefined;
-  let args: unknown[] = [];
-  await vi.waitFor(
-    () => {
-      const w = warn.mock.calls.find(isStreamError);
-      const e = error.mock.calls.find(isStreamError);
-      if (w) [level, args] = ['warn', w];
-      if (e) [level, args] = ['error', e];
-      expect(level).toBeDefined();
-    },
-    { timeout: 5000 }
-  );
+  const streamErrors = () => records.filter((r) => r.msg === 'Cartesia STT stream error');
+  await vi.waitFor(() => expect(streamErrors().length).toBeGreaterThan(0), { timeout: 5000 });
   stream.close();
-  return {
-    level,
-    fields: args.find((a) => typeof a === 'object' && a !== null) as Record<string, unknown>,
-    warnedStreamError: warn.mock.calls.some(isStreamError),
-    erroredStreamError: error.mock.calls.some(isStreamError),
-  };
+  return streamErrors();
 }
 
 describe.each(['esm', 'cjs'] as const)('Cartesia STT idle close (%s build)', (build) => {
   it('logs the expected 1006 idle close at warn, not error', async () => {
     move = 'drop';
-    const got = await streamErrorLog(build);
+    const lines = await streamErrorRecords(build);
 
-    expect(got.level).toBe('warn');
-    expect(got.erroredStreamError).toBe(false);
-    expect(got.fields.expectedIdleClose).toBe(true);
-    expect(got.fields.closeCode).toBe(1006);
-    expect(String((got.fields.error as Error).message)).toBe(
-      'Cartesia STT connection closed unexpectedly (code=1006)'
-    );
+    expect(lines.map((r) => r.level)).toEqual([40]); // warn, and no error line
+    const [line] = lines;
+    expect(line.expectedIdleClose).toBe(true);
+    expect(line.closeCode).toBe(1006);
+    expect(line.error?.message).toBe('Cartesia STT connection closed unexpectedly (code=1006)');
   });
 
-  it('still logs any other close code at error', async () => {
+  it('still logs any other close code at error, with the error details', async () => {
     move = 'close-1011';
-    const got = await streamErrorLog(build);
+    const lines = await streamErrorRecords(build);
 
-    expect(got.level).toBe('error');
-    expect(got.warnedStreamError).toBe(false);
-    const fields = got.fields as { error: Error };
-    expect(fields.error.message).toBe('Cartesia STT connection closed unexpectedly (code=1011)');
-    expect(fields).not.toHaveProperty('expectedIdleClose');
+    expect(lines.map((r) => r.level)).toEqual([50]); // error, and no warn line
+    const [line] = lines;
+    expect(line).not.toHaveProperty('expectedIdleClose');
+    expect(line.error?.message).toBe('Cartesia STT connection closed unexpectedly (code=1011)');
+    expect(line.error?.stack).toContain('APIConnectionError: Cartesia STT connection closed');
+    expect(line.closeCode).toBe(1011);
   });
 });

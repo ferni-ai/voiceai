@@ -73,7 +73,7 @@ packageExtensionsChecksum: sha256-QBgkTpEkqkapQyLhV6lZZW+VpnIF95kZMSWbG6i9ZBA=
 
 patchedDependencies:
   '@livekit/agents-plugin-cartesia@1.9.3':
-    hash: afb2ffbcb72eea61f162f3dbb0e1c3eb5aa2bef401c0cb2a74710c180aaf7aed
+    hash: de305f26f8cb5ba92d67fe7cc45d38fea0aba249b6e831c09de5ee74114d327f
     path: patches/@livekit__agents-plugin-cartesia@1.9.3.patch
   '@livekit/agents-plugin-google@1.9.3':
     hash: c1ba53b53dbab48aea4c649177151f6333043954cba3bf903b8e17700f7ef17e
@@ -124,7 +124,7 @@ importers:
         version: 1.9.3(patch_hash=7335bf9104cae7abeb4d38ccd0d117c79f0e4f71bc7fb28e7b871e3839dd43d6)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/agents-plugin-cartesia':
         specifier: 1.9.3
-        version: 1.9.3(patch_hash=afb2ffbcb72eea61f162f3dbb0e1c3eb5aa2bef401c0cb2a74710c180aaf7aed)(@livekit/agents@1.9.3(patch_hash=7335bf9104cae7abeb4d38ccd0d117c79f0e4f71bc7fb28e7b871e3839dd43d6)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(zod@4.6.5)
+        version: 1.9.3(patch_hash=de305f26f8cb5ba92d67fe7cc45d38fea0aba249b6e831c09de5ee74114d327f)(@livekit/agents@1.9.3(patch_hash=7335bf9104cae7abeb4d38ccd0d117c79f0e4f71bc7fb28e7b871e3839dd43d6)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(zod@4.6.5)
       '@livekit/agents-plugin-google':
         specifier: 1.9.3
         version: 1.9.3(patch_hash=c1ba53b53dbab48aea4c649177151f6333043954cba3bf903b8e17700f7ef17e)(@livekit/agents@1.9.3(patch_hash=7335bf9104cae7abeb4d38ccd0d117c79f0e4f71bc7fb28e7b871e3839dd43d6)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)
@@ -8860,7 +8860,7 @@ snapshots:
 
   '@levischuck/tiny-cbor@0.2.11': {}
 
-  '@livekit/agents-plugin-cartesia@1.9.3(patch_hash=afb2ffbcb72eea61f162f3dbb0e1c3eb5aa2bef401c0cb2a74710c180aaf7aed)(@livekit/agents@1.9.3(patch_hash=7335bf9104cae7abeb4d38ccd0d117c79f0e4f71bc7fb28e7b871e3839dd43d6)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(zod@4.6.5)':
+  '@livekit/agents-plugin-cartesia@1.9.3(patch_hash=de305f26f8cb5ba92d67fe7cc45d38fea0aba249b6e831c09de5ee74114d327f)(@livekit/agents@1.9.3(patch_hash=7335bf9104cae7abeb4d38ccd0d117c79f0e4f71bc7fb28e7b871e3839dd43d6)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(zod@4.6.5)':
     dependencies:
       '@livekit/agents': 1.9.3(patch_hash=7335bf9104cae7abeb4d38ccd0d117c79f0e4f71bc7fb28e7b871e3839dd43d6)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/rtc-node': 1.1.0
