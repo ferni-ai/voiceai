@@ -1,5 +1,5 @@
 diff --git a/dist/stt.cjs b/dist/stt.cjs
-index ecc10f4b0ce652614efe1e0f4c09eb8f981ff869..5a462e12fd77d94159d43714591351c91c72de37 100644
+index ecc10f4b0ce652614efe1e0f4c09eb8f981ff869..c687183780d151ad21a25c3bf8487d54b3798d83 100644
 --- a/dist/stt.cjs
 +++ b/dist/stt.cjs
 @@ -54,7 +54,11 @@ function mergeSTTOptions(base, override) {
@@ -38,7 +38,26 @@ index ecc10f4b0ce652614efe1e0f4c09eb8f981ff869..5a462e12fd77d94159d43714591351c9
    #closingWs = false;
    #connectTimeout;
    constructor(sttInstance, opts, connOptions) {
-@@ -253,7 +264,9 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+@@ -214,7 +225,17 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+       await Promise.all([sendPromise, recvPromise]);
+       if (firstError !== void 0) throw firstError;
+     } catch (error) {
+-      this.#logger.error("Cartesia STT stream error", { error });
++      // PATCHED(ferni): Cartesia drops the socket with 1006 ~300 s after the caller's last
++      // words and the SDK reconnects; that expected idle close logs at warn, not error.
++      if ((error == null ? void 0 : error.closeCode) === 1006) {
++        this.#logger.warn({ error, closeCode: 1006, expectedIdleClose: true }, "Cartesia STT stream error");
++      } else {
++        // PATCHED(ferni): merge object first, or pino drops it and the line carries no error.
++        this.#logger.error(
++          { error, closeCode: error == null ? void 0 : error.closeCode },
++          "Cartesia STT stream error"
++        );
++      }
+       throw error;
+     } finally {
+       abortController.abort();
+@@ -253,7 +274,9 @@ class SpeechStream extends import_agents.stt.SpeechStream {
            frames.push(...audioBstream.write(data.data));
          }
          for (const frame of frames) {
@@ -49,7 +68,27 @@ index ecc10f4b0ce652614efe1e0f4c09eb8f981ff869..5a462e12fd77d94159d43714591351c9
            if (ws.readyState === import_ws.WebSocket.OPEN) {
              ws.send(frame.data);
            }
-@@ -417,6 +430,8 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+@@ -349,12 +372,13 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+           return;
+         }
+         this.#logger.warn(`Cartesia STT WebSocket closed: ${code} ${reason.toString()}`);
+-        settle(
+-          new import_agents.APIConnectionError({
+-            message: `Cartesia STT connection closed unexpectedly (code=${code})`,
+-            options: { retryable: true }
+-          })
+-        );
++        const closeError = new import_agents.APIConnectionError({
++          message: `Cartesia STT connection closed unexpectedly (code=${code})`,
++          options: { retryable: true }
++        });
++        // PATCHED(ferni): keep the close code so run() can tell Cartesia's idle recycle from a failure.
++        closeError.closeCode = code;
++        settle(closeError);
+       });
+       ws.on("error", (err) => {
+         if (this.closed) {
+@@ -417,6 +441,8 @@ class SpeechStream extends import_agents.stt.SpeechStream {
            });
          this.#logger.debug("Cartesia STT END_OF_SPEECH");
          this.#currentTranscript = "";
@@ -58,7 +97,7 @@ index ecc10f4b0ce652614efe1e0f4c09eb8f981ff869..5a462e12fd77d94159d43714591351c9
          if (this.#speechDuration > 0 && !this.queue.closed) {
            this.queue.put({
              type: import_agents.stt.SpeechEventType.RECOGNITION_USAGE,
-@@ -431,6 +446,22 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+@@ -431,6 +457,22 @@ class SpeechStream extends import_agents.stt.SpeechStream {
          this.#logger.warn({ "lk.pii.data": data }, "received unexpected message from Cartesia STT");
      }
    }
@@ -81,7 +120,7 @@ index ecc10f4b0ce652614efe1e0f4c09eb8f981ff869..5a462e12fd77d94159d43714591351c9
    #sendTranscriptEvent(eventType, transcript) {
      if (this.queue.closed) return;
      this.queue.put({
-@@ -440,8 +471,8 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+@@ -440,8 +482,8 @@ class SpeechStream extends import_agents.stt.SpeechStream {
          {
            language: (0, import_agents.asLanguageCode)(this.#opts.language),
            text: transcript,
@@ -92,7 +131,7 @@ index ecc10f4b0ce652614efe1e0f4c09eb8f981ff869..5a462e12fd77d94159d43714591351c9
            confidence: 0
          }
        ]
-@@ -453,6 +484,14 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+@@ -453,6 +495,14 @@ class SpeechStream extends import_agents.stt.SpeechStream {
        sample_rate: this.#opts.sampleRate.toString(),
        encoding: import_models.AUDIO_ENCODING
      });
@@ -148,7 +187,7 @@ index 9fff59b2fa92f3875a830266aa7012963f01ab12..470d9538ef34ea09216fcd234731075b
  /**
   * Cartesia speech to text.
 diff --git a/dist/stt.js b/dist/stt.js
-index a64c27ea3b1c5713f397ce4e8800651ab0553282..6281be975970cee45de8db2acd4057e4381013ad 100644
+index a64c27ea3b1c5713f397ce4e8800651ab0553282..3a9a3a9e46c6447afcc30f88bc579be08f23da3e 100644
 --- a/dist/stt.js
 +++ b/dist/stt.js
 @@ -42,7 +42,11 @@ function mergeSTTOptions(base, override) {
@@ -190,7 +229,26 @@ index a64c27ea3b1c5713f397ce4e8800651ab0553282..6281be975970cee45de8db2acd4057e4
    #closingWs = false;
    #connectTimeout;
    constructor(sttInstance, opts, connOptions) {
-@@ -241,7 +255,9 @@ class SpeechStream extends stt.SpeechStream {
+@@ -202,7 +216,17 @@ class SpeechStream extends stt.SpeechStream {
+       await Promise.all([sendPromise, recvPromise]);
+       if (firstError !== void 0) throw firstError;
+     } catch (error) {
+-      this.#logger.error("Cartesia STT stream error", { error });
++      // PATCHED(ferni): Cartesia drops the socket with 1006 ~300 s after the caller's last
++      // words and the SDK reconnects; that expected idle close logs at warn, not error.
++      if ((error == null ? void 0 : error.closeCode) === 1006) {
++        this.#logger.warn({ error, closeCode: 1006, expectedIdleClose: true }, "Cartesia STT stream error");
++      } else {
++        // PATCHED(ferni): merge object first, or pino drops it and the line carries no error.
++        this.#logger.error(
++          { error, closeCode: error == null ? void 0 : error.closeCode },
++          "Cartesia STT stream error"
++        );
++      }
+       throw error;
+     } finally {
+       abortController.abort();
+@@ -241,7 +265,9 @@ class SpeechStream extends stt.SpeechStream {
            frames.push(...audioBstream.write(data.data));
          }
          for (const frame of frames) {
@@ -201,7 +259,27 @@ index a64c27ea3b1c5713f397ce4e8800651ab0553282..6281be975970cee45de8db2acd4057e4
            if (ws.readyState === WebSocket.OPEN) {
              ws.send(frame.data);
            }
-@@ -405,6 +421,8 @@ class SpeechStream extends stt.SpeechStream {
+@@ -337,12 +363,13 @@ class SpeechStream extends stt.SpeechStream {
+           return;
+         }
+         this.#logger.warn(`Cartesia STT WebSocket closed: ${code} ${reason.toString()}`);
+-        settle(
+-          new APIConnectionError({
+-            message: `Cartesia STT connection closed unexpectedly (code=${code})`,
+-            options: { retryable: true }
+-          })
+-        );
++        const closeError = new APIConnectionError({
++          message: `Cartesia STT connection closed unexpectedly (code=${code})`,
++          options: { retryable: true }
++        });
++        // PATCHED(ferni): keep the close code so run() can tell Cartesia's idle recycle from a failure.
++        closeError.closeCode = code;
++        settle(closeError);
+       });
+       ws.on("error", (err) => {
+         if (this.closed) {
+@@ -405,6 +432,8 @@ class SpeechStream extends stt.SpeechStream {
            });
          this.#logger.debug("Cartesia STT END_OF_SPEECH");
          this.#currentTranscript = "";
@@ -210,7 +288,7 @@ index a64c27ea3b1c5713f397ce4e8800651ab0553282..6281be975970cee45de8db2acd4057e4
          if (this.#speechDuration > 0 && !this.queue.closed) {
            this.queue.put({
              type: stt.SpeechEventType.RECOGNITION_USAGE,
-@@ -419,6 +437,23 @@ class SpeechStream extends stt.SpeechStream {
+@@ -419,6 +448,23 @@ class SpeechStream extends stt.SpeechStream {
          this.#logger.warn({ "lk.pii.data": data }, "received unexpected message from Cartesia STT");
      }
    }
@@ -234,7 +312,7 @@ index a64c27ea3b1c5713f397ce4e8800651ab0553282..6281be975970cee45de8db2acd4057e4
    #sendTranscriptEvent(eventType, transcript) {
      if (this.queue.closed) return;
      this.queue.put({
-@@ -428,8 +463,8 @@ class SpeechStream extends stt.SpeechStream {
+@@ -428,8 +474,8 @@ class SpeechStream extends stt.SpeechStream {
          {
            language: asLanguageCode(this.#opts.language),
            text: transcript,
@@ -245,7 +323,7 @@ index a64c27ea3b1c5713f397ce4e8800651ab0553282..6281be975970cee45de8db2acd4057e4
            confidence: 0
          }
        ]
-@@ -441,6 +476,14 @@ class SpeechStream extends stt.SpeechStream {
+@@ -441,6 +487,14 @@ class SpeechStream extends stt.SpeechStream {
        sample_rate: this.#opts.sampleRate.toString(),
        encoding: AUDIO_ENCODING
      });
