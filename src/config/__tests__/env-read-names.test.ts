@@ -31,6 +31,12 @@ const DIRECT = new RegExp(
 );
 // Named reads: env[CONST] where CONST = 'NAME' in the same file.
 const INDEXED = /\benv\[([A-Za-z_]\w*)\]/g;
+// Local helpers that take an env and a name: positiveIntEnv(env, 'X'), parseEnvNumber('X'), on(env, 'X').
+const HELPER_CALL = new RegExp(
+  String.raw`\b\w*[Ee]nv\w*\(\s*(?:[^()'"]*,\s*)?['"](${NAME})['"]`,
+  'g'
+);
+const ON_ENV = new RegExp(String.raw`\bon\(\s*env,\s*['"](${NAME})['"]`, 'g');
 const CONST = (ident: string) => new RegExp(String.raw`\bconst\s+${ident}\s*=\s*['"](${NAME})['"]`);
 // Config objects: envVar: 'NAME' and requiresEnv: ['NAME', ...].
 const ENV_VAR = new RegExp(String.raw`\benvVar:\s*['"](${NAME})['"]`, 'g');
@@ -49,6 +55,8 @@ function namesRead(): Map<string, string> {
     const text = readFileSync(file, 'utf8');
     for (const m of text.matchAll(DIRECT)) add(m[1], file, m.index, text);
     for (const m of text.matchAll(ENV_VAR)) add(m[1], file, m.index, text);
+    for (const m of text.matchAll(HELPER_CALL)) add(m[1], file, m.index, text);
+    for (const m of text.matchAll(ON_ENV)) add(m[1], file, m.index, text);
     for (const m of text.matchAll(REQUIRES_ENV)) {
       for (const q of m[1].matchAll(QUOTED)) add(q[1], file, m.index, text);
     }
@@ -69,9 +77,11 @@ const HEADER = `/**
  *   UPDATE_ENV_READ_NAMES=1 pnpm vitest run src/config/__tests__/env-read-names.test.ts
  *
  * The scan covers env.X, env['X'], helper calls (getEnv, requireEnv, flagOn,
- * envEnabled), env[CONST] for a string constant in the same file, envVar: 'X' and
- * requiresEnv: [...]. It cannot see destructured reads, or names built at run time
- * such as GEMINI_API_KEY_\${i}.
+ * envEnabled), any call whose name contains "env" with a name literal (positiveIntEnv,
+ * parseEnvNumber), on(env, 'X'), env[CONST] for a string constant in the same file,
+ * envVar: 'X' and requiresEnv: [...]. It cannot see destructured reads, a helper whose
+ * name has no "env" in it, or a name built at run time such as GEMINI_API_KEY_\${i} or
+ * \${envPrefix}_CLIENT_SECRET.
  *
  * @module config/env-read-names.generated
  */
