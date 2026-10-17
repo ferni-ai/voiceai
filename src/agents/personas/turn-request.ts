@@ -31,6 +31,7 @@ import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-n
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
+import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt.js';
 import { repairNoteFor } from './repair-check.js';
@@ -116,6 +117,8 @@ export function withTurnReminder(
   const notes = answering
     ? ''
     : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
+  // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
+  const corrected = options.shape !== false ? correctionNotesFor(chatCtx, session) : '';
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
@@ -132,6 +135,7 @@ export function withTurnReminder(
     // "Naya" in the transcript is Nayan (teammate-names.ts)
     heardTeammateNote(words),
     notes,
+    corrected,
     options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
