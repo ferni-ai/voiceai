@@ -8,6 +8,7 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const known = vi.hoisted(() => ({
+  ForgottenTopicsUnreadable: class ForgottenTopicsUnreadable extends Error {},
   isMemoryViewOn: vi.fn(() => true),
   isMemoryViewPonderingOn: vi.fn(() => false),
   loadKnownView: vi.fn(async (userId: string) => ({
@@ -83,6 +84,16 @@ describe('GET /api/memories/known', () => {
     known.isMemoryViewOn.mockReturnValue(false);
     expect((await fetch(`${base}/api/memories/known`, { headers: asUser })).status).toBe(418);
     expect(known.loadKnownView).not.toHaveBeenCalled();
+  });
+
+  it('refuses with 503 and no items when what was forgotten cannot be read', async () => {
+    known.loadKnownView.mockRejectedValueOnce(new known.ForgottenTopicsUnreadable());
+    const res = await fetch(`${base}/api/memories/known`, { headers: asUser });
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as Record<string, unknown>;
+    for (const section of ['people', 'lifeNow', 'dates', 'preferences', 'readsYou']) {
+      expect(body[section]).toBeUndefined();
+    }
   });
 
   it('says it failed rather than showing an empty memory', async () => {

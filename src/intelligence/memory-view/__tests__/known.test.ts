@@ -5,7 +5,8 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
-const { buildKnownView, loadKnownView, isMemoryViewPonderingOn } = await import('../known.js');
+const { buildKnownView, ForgottenTopicsUnreadable, loadKnownView, isMemoryViewPonderingOn } =
+  await import('../known.js');
 const { loadRecallSnapshot } = await import('../../../memory/recall/session-recall.js');
 import type { KnownStore } from '../known.js';
 import type { TemporalFact } from '../../world-model/temporal/types.js';
@@ -234,6 +235,48 @@ describe('what the caller asked Ferni to forget', () => {
     expect(ids).toEqual(['f1', 'f2', 'w2']);
   });
 
+  it("drops a kept item's quote when the quote names a forgotten topic", () => {
+    const view = buildKnownView(
+      {
+        ...empty,
+        // Kept by subject/attribute/value, but the quote names the forgotten topic.
+        world: [
+          world({
+            id: 'w4',
+            value: 'back at work',
+            source: { kind: 'summary', sessionId: 's1', quote: 'after the knee surgery' },
+          }),
+        ],
+        mind: {
+          ...mind,
+          patterns: [
+            {
+              ...mind.patterns[0],
+              moments: [
+                ...mind.patterns[0].moments,
+                { sessionId: 's3', at: '2026-10-09T00:00:00.000Z', cue: 'joked about the layoff' },
+              ],
+            },
+          ],
+          sensitivities: [],
+        },
+        forgotten: ['knee surgery', 'layoff'],
+      },
+      NOW,
+      false
+    );
+    const items = Object.values(view).flatMap(
+      (list) => list as Array<{ id: string; quote?: string }>
+    );
+    const w4 = items.find((i) => i.id === 'w4');
+    const pattern = items.find((i) => i.id === 'jokes-when-anxious');
+    expect(w4).toBeDefined();
+    expect(w4?.quote).toBeUndefined();
+    expect(pattern).toBeDefined();
+    expect(pattern?.quote).toBeUndefined();
+    expect(JSON.stringify(view)).not.toMatch(/knee surgery|layoff/i);
+  });
+
   it('matches recall: a forgotten fact is in neither, a kept one in both', async () => {
     const docs = [
       { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 0.9 },
@@ -295,12 +338,26 @@ describe('loadKnownView', () => {
     expect(view.thinkingAbout).toHaveLength(2);
   });
 
-  it('fails rather than show what may have been forgotten when the topics are unreadable', async () => {
-    const s = store();
-    vi.mocked(s.forgotten).mockRejectedValueOnce(new Error('firestore down'));
-    await expect(
-      loadKnownView('u-1', s, { now: NOW, env: { MEMORY_VIEW: 'on' } })
-    ).rejects.toThrow();
+  it('returns no items, and reads nothing else, when the forgotten topics are unreadable', async () => {
+    const failures: Array<() => Promise<string[] | null>> = [
+      async () => {
+        throw new Error('firestore down');
+      },
+      async () => null, // the forget store's "unreadable or malformed" (#1094)
+      async () => [42] as unknown as string[],
+    ];
+    for (const failure of failures) {
+      const s = store();
+      vi.mocked(s.forgotten).mockImplementationOnce(failure);
+      const result = loadKnownView('u-1', s, {
+        now: NOW,
+        env: { MEMORY_VIEW: 'on', MEMORY_VIEW_PONDERING: 'on' },
+      });
+      await expect(result).rejects.toBeInstanceOf(ForgottenTopicsUnreadable);
+      for (const fn of [s.facts, s.worldFacts, s.mindModel, s.pondering]) {
+        expect(fn).not.toHaveBeenCalled();
+      }
+    }
   });
 
   it('never reads pondering unless its own flag is on', async () => {

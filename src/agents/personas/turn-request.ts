@@ -41,6 +41,7 @@ import { listeningNotes, listeningReply } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
+import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
 import {
   worldFactLinesFor,
@@ -149,6 +150,8 @@ export function withTurnReminder(
     // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
     quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
     state.note,
+    // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
+    porchLightNote(chatCtx, session, { careful: options.shape === false }),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
       said: words,

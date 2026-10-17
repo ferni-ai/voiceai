@@ -23,7 +23,8 @@ const lastText = (ctx: llm.ChatContext): string =>
 
 async function store() {
   const s = createMemoryWorldFactStore();
-  const deps = { store: s, env: ON, judge: async () => [] };
+  // Ingest fails closed on unreadable forgotten topics, so the seed says there are none.
+  const deps = { store: s, env: ON, judge: async () => [], forgotten: async () => [] };
   const self = (value: string, at: string, extra = {}) => ({
     subject: 'self',
     subjectKind: 'self',

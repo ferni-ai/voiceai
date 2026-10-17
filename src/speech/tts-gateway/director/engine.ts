@@ -11,7 +11,7 @@
 
 import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
 import { callerState, decideAttune, layerDelivery, SPEED_EPSILON } from './attune.js';
-import type { Attunement, Delivery } from './attune.js';
+import type { Attunement, Delivery, Shift } from './attune.js';
 import { pacesOf, planKeyPhrase, type KeyPhrase, type KeyPhraseStep } from './key-phrase.js';
 import type { SSMLProsodyConfig } from '../types.js';
 import {
@@ -92,6 +92,7 @@ export interface EngineContext {
    */
   attune?: { userEmotion?: string };
   persona?: PersonaDelivery; // TEAM_VOICES=on: resting voice and tones (persona-delivery.ts)
+  lateNight?: Shift; // PORCH_LIGHT=on: the late-night resting shift (attune.ts LATE_NIGHT)
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
   /**
@@ -361,9 +362,9 @@ export class DirectorEngine {
       previous: this.ctx.carry.speed,
       nudge: (answerVoice ? this.prosody.speedNudge : 0) + (this.ctx.ferniNudge ?? 0),
     });
-    // Pace and loudness are attune's alone: the persona's rest, then the caller's answer.
+    const { persona, lateNight } = this.ctx; // attune's alone: persona, late night, caller
     const caller = this.attunement ?? { speed: pace.speed, volume: 1 };
-    this.delivery = layerDelivery({ persona: this.ctx.persona, caller }, this.live('pacing'));
+    this.delivery = layerDelivery({ persona, lateNight, caller }, this.live('pacing'));
     ({ speed: this.speed, volume: this.replyVolume } = this.delivery);
     this.directorEmotion = this.emotion.emotion;
     this.emotion = personaTone(this.ctx.persona, this.emotion, this.replyValence);
