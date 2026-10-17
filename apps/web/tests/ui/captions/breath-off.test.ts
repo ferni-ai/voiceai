@@ -33,6 +33,9 @@ describe('captions without breath or heard', () => {
     expect(document.querySelectorAll('.ferni-caption-line--ticked')).toHaveLength(0);
     expect(document.querySelectorAll('.ferni-caption-check')).toHaveLength(0);
     expect(document.querySelector('.ferni-captions--breathing')).toBeNull();
+    const root = document.querySelector('.ferni-captions');
+    expect(root?.classList.contains('ferni-captions--caller')).toBe(false);
+    expect(root?.classList.contains('ferni-captions--caller-aside')).toBe(false);
     const runs = [...document.querySelectorAll('.ferni-caption-words')];
     expect(runs.map((run) => run.textContent).join('')).toBe('Then let us protect it.');
   });

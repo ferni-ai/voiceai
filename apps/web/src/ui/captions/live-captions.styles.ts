@@ -192,15 +192,16 @@ const HEARD_CSS = `
   border-radius: var(--radius-full); background: var(--persona-primary); color: var(--color-bg-elevated);
 }
 .ferni-caption-check svg { display: block; }
+/* Layout, not motion: applies with reduced motion too, so the fallback always holds. */
+/* Caller's line one size down, and no region padding, so more of it fits. */
+.ferni-captions.ferni-captions--caller { padding-block: 0; }
+.ferni-captions--caller .ferni-caption-line[data-speaker='user'] { font-size: var(--text-base); }
+/* The fallback: the caller's line is set aside, the reply stays whole. */
+.ferni-captions--caller-aside .ferni-caption-line[data-speaker='user'] { display: none; }
 @media (prefers-reduced-motion: no-preference) {
   .ferni-caption-line[data-speaker='user'] {
     transition: opacity ${DURATION.SLOW}ms ${EASING.DECELERATE}, filter ${DURATION.SLOW}ms ${EASING.DECELERATE};
   }
-  /* Caller's line one size down, and no region padding, so more of it fits. */
-  .ferni-captions.ferni-captions--caller { padding-block: 0; }
-  .ferni-captions--caller .ferni-caption-line[data-speaker='user'] { font-size: var(--text-base); }
-  /* The fallback: the caller's line is set aside, the reply stays whole. */
-  .ferni-captions--caller-aside .ferni-caption-line[data-speaker='user'] { display: none; }
   .ferni-caption-check--pop {
     animation: ferni-heard-pop ${DURATION.SLOW}ms ${EASING.SPRING} both;
   }

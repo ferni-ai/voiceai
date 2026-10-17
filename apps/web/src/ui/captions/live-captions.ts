@@ -393,6 +393,12 @@ class LiveCaptions {
 
   private layout(): void {
     if (!this.root || !this.viewport) return;
+    // Set first, so chrome() measures the padding this pass will show.
+    this.root.classList.toggle('ferni-captions--caller', this.callerShown && !this.callerAside);
+    this.root.classList.toggle(
+      'ferni-captions--caller-aside',
+      this.callerShown && this.callerAside
+    );
     const rectOf = (selector: string): DOMRect | null => {
       const rect = document.querySelector(selector)?.getBoundingClientRect();
       return rect && rect.height > 0 ? rect : null;
@@ -423,11 +429,6 @@ class LiveCaptions {
     this.root.style.setProperty('--ferni-captions-lines', String(Math.max(1, lines)));
     this.root.classList.toggle('ferni-captions--moments-aside', chipsAside);
     this.root.classList.toggle('ferni-captions--no-room', this.wordsShown ? lines < 1 : chipsAside);
-    this.root.classList.toggle('ferni-captions--caller', this.callerShown && !this.callerAside);
-    this.root.classList.toggle(
-      'ferni-captions--caller-aside',
-      this.callerShown && this.callerAside
-    );
     this.viewport.scrollTop = this.viewport.scrollHeight;
     this.root.classList.toggle(
       'ferni-captions--overflowing',
