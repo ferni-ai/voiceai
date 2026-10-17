@@ -53,6 +53,7 @@ import { honestFriendNote } from './honest-friend.js';
 import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
+import { journalAskFor } from './journal-ask.js';
 import { callerTurnsOf, goodbyeNoteOn, happyExitNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
@@ -254,7 +255,7 @@ function exitFor(chatCtx: llm.ChatContext, session: object, said: string): strin
   });
 }
 
-/** COMMITMENT_INVITE=on: the once-a-call invite, or saying back what they named (commitment-invite.ts). */
+/** COMMITMENT_INVITE=on: the once-a-call invite or its say-back; then the journal ask (journal-ask.ts). */
 function inviteFor(
   chatCtx: llm.ChatContext,
   session: object,
@@ -263,20 +264,19 @@ function inviteFor(
 ): string {
   if (!said) return '';
   const { signals } = signalsFor(session, said);
-  return commitmentInviteNote(
-    session,
-    {
-      said,
-      callerTurns: callerTurnsOf(chatCtx),
-      ferniLines: chatCtx.items.flatMap((i) =>
-        i.type === 'message' && i.role === 'assistant' ? [i.textContent ?? ''] : []
-      ),
-      careful: (signals ?? regexSignals(said, callerMove(said))).careful,
-      wantsToEnd: understandingFor(session, said)?.wantsToEnd,
-      firstCall: isFirstCall((session as { userData?: unknown }).userData),
-    },
-    { crisis }
-  );
+  const turn = {
+    said,
+    callerTurns: callerTurnsOf(chatCtx),
+    ferniLines: chatCtx.items.flatMap((i) =>
+      i.type === 'message' && i.role === 'assistant' ? [i.textContent ?? ''] : []
+    ),
+    careful: (signals ?? regexSignals(said, callerMove(said))).careful,
+    wantsToEnd: understandingFor(session, said)?.wantsToEnd,
+    firstCall: isFirstCall((session as { userData?: unknown }).userData),
+  };
+  const invite = commitmentInviteNote(session, turn, { crisis });
+  const ask = journalAskFor(session, turn, { crisis, invite, phoneOnlyIdentity });
+  return [invite, ask].join(' ').trim();
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
