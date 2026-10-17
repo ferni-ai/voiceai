@@ -71,6 +71,8 @@ export const FLAG_MANIFEST = {
   CALLER_ASSERTED_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_RECOGNITION: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a reply the caller didn't prompt ends on a caller turn, not the SDK's "." (caller-turn.ts)
+  CALLER_TURN_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
