@@ -18,7 +18,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { callerCityTools } from './caller-city-tools.js';
-import { placesLocationOn, resolveSearchLocation } from './caller-city.js';
+import { callerCityMemoryOn, resolveSearchLocation } from './caller-city.js';
 
 import { detectExplicitSource, formatResults, unifiedSearch } from './unified-search.js';
 import { pickRestaurantDef } from './restaurant-pick.js';
@@ -384,7 +384,7 @@ export const getToolDefinitions = (): Promise<ToolDefinition[]> =>
     definitions.filter(
       (d) =>
         (d !== pickRestaurantDef || isCoachLocalEnabled()) &&
-        (!callerCityTools.includes(d) || placesLocationOn())
+        (!callerCityTools.includes(d) || callerCityMemoryOn())
     )
   );
 

@@ -3,17 +3,22 @@
  *
  * Order, behind PLACES_LOCATION (off: resolveCallerLocation, unchanged):
  *   1. the place the model got from this call (the caller said it);
- *   2. the city the caller agreed to have remembered (saveCallerCity);
+ *   2. the city the caller agreed to have remembered (saveCallerCity), read
+ *      only while REQUIRE_FIX_MEMORY is on, the switch that makes the
+ *      preferences store persist and account deletion erase it;
  *   3. the city their phone shows (userData.userLocation, from dispatch metadata).
  * Nothing known: undefined, and the tool asks where they are.
  *
  * City level only. Nothing here stores a street, a postcode, GPS or
- * coordinates: a value with a digit in it is refused, not trimmed.
+ * coordinates. A value with a digit, a street or unit word, or two number
+ * words is refused, not trimmed. This is a list of words, not a check against
+ * real places, so it is a backstop for the caller's own words, not a guarantee.
  *
  * @module tools/domains/local-search/caller-city
  */
 
 import { flagOn } from '../../../config/env-flag.js';
+import { isRequireFixMemoryEnabled } from '../../../config/require-fix-memory-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext } from '../../registry/types.js';
 import {
@@ -29,11 +34,84 @@ const MAX_CHARS = 40;
 const MAX_WORDS = 4;
 /** Letters and the punctuation place names use. No digits: those mean a street, a postcode or coordinates. */
 const CITY_CHARS = /^[\p{L}\p{M} .'’-]+$/u;
+/** Street or unit words that only mean a street at the end of a name ("Main St", "Baker Street"); "St. George" stays. */
+const STREET_ENDINGS = new Set([
+  'street',
+  'st',
+  'avenue',
+  'ave',
+  'road',
+  'rd',
+  'boulevard',
+  'blvd',
+  'drive',
+  'dr',
+  'lane',
+  'ln',
+  'way',
+  'court',
+  'ct',
+  'place',
+  'pl',
+  'square',
+]);
+/** Words no city name needs, anywhere in the name: units, homes, "my", "point", foreign street words. */
+const NOT_A_CITY_WORDS = new Set([
+  'apt',
+  'apartment',
+  'suite',
+  'unit',
+  'floor',
+  'building',
+  'house',
+  'home',
+  'my',
+  'point',
+  'rue',
+  'strasse',
+  'calle',
+]);
+const NUMBER_WORDS = new Set([
+  'zero',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+  'eleven',
+  'twelve',
+  'twenty',
+  'thirty',
+  'forty',
+  'fifty',
+  'sixty',
+  'seventy',
+  'eighty',
+  'ninety',
+  'hundred',
+  'thousand',
+]);
+
+/** Ids that name no one: the fast-path shared ctx, and the placeholder handler-setup gives a call with no user. */
+const NO_CALLER_IDS = new Set(['shared', 'anonymous', 'default', 'unknown']);
 
 export type SaveCityResult = 'saved' | 'not-a-city' | 'failed';
 
 export function placesLocationOn(env = process.env): boolean {
   return flagOn('PLACES_LOCATION', env);
+}
+
+/**
+ * Remembering a city needs the caller's yes and a store that persists. Off
+ * otherwise, and the remember and forget tools are not offered.
+ */
+export function callerCityMemoryOn(env = process.env): boolean {
+  return placesLocationOn(env) && isRequireFixMemoryEnabled();
 }
 
 /** A city or region name as the caller said it, or undefined for anything that is not one. */
@@ -43,18 +121,28 @@ export function cityOnly(value: string | undefined): string | undefined {
     return undefined;
   }
   if (!CITY_CHARS.test(cleaned) || !/\p{L}/u.test(cleaned)) return undefined;
+
+  const words = cleaned
+    .toLowerCase()
+    .split(/[\s.'’-]+/)
+    .filter(Boolean);
+  if (words.some((w) => NOT_A_CITY_WORDS.has(w))) return undefined;
+  if (STREET_ENDINGS.has(words[words.length - 1])) return undefined;
+  if (words.filter((w) => NUMBER_WORDS.has(w)).length >= 2) return undefined;
   return cleaned;
 }
 
 /**
- * The caller on this call. Fast-path tools share one ctx (userId 'shared'), so
- * the call's own userData decides; never 'shared' as a caller.
+ * The caller on this call: only the call's own userData.userId. A fast-path
+ * tool's ctx is shared, and handler-setup gives a call with no user the
+ * placeholder 'anonymous'; neither names a caller, so neither is read or written.
  */
-export function callerUserId(opts: unknown, ctx?: ToolContext): string | undefined {
-  const fromCall = (opts as { ctx?: { userData?: { userId?: unknown } } } | undefined)?.ctx
-    ?.userData?.userId;
-  if (typeof fromCall === 'string' && fromCall && fromCall !== 'shared') return fromCall;
-  return ctx?.userId && ctx.userId !== 'shared' ? ctx.userId : undefined;
+export function callerUserId(opts: unknown): string | undefined {
+  const id = (opts as { ctx?: { userData?: { userId?: unknown } } } | undefined)?.ctx?.userData
+    ?.userId;
+  if (typeof id !== 'string') return undefined;
+  const trimmed = id.trim();
+  return trimmed && !NO_CALLER_IDS.has(trimmed.toLowerCase()) ? trimmed : undefined;
 }
 
 /** "Philadelphia, PA" for the caller's saved city; undefined when none is saved or the read fails. */
@@ -77,8 +165,9 @@ export async function resolveSearchLocation(
 ): Promise<string | undefined> {
   if (!placesLocationOn()) return resolveCallerLocation(requested, opts, ctx);
   if (!isUnspecifiedLocation(requested)) return requested?.trim();
-  const userId = callerUserId(opts, ctx);
-  const remembered = userId ? await savedCallerLocation(userId) : undefined;
+  const userId = callerUserId(opts);
+  const remembered =
+    userId && callerCityMemoryOn() ? await savedCallerLocation(userId) : undefined;
   return remembered ?? callerLocation(opts, ctx);
 }
 
@@ -95,11 +184,15 @@ export async function saveCallerCity(
   const result = await updateUserPreferences(userId, {
     callerCity: { city: cityName, regionCode, savedAt: new Date().toISOString() },
   });
-  return result.success ? 'saved' : 'failed';
+  if (result.success) return 'saved';
+  // The preferences cache takes the city before the Firestore write fails, so take it back out.
+  await forgetCallerCity(userId);
+  return 'failed';
 }
 
 /** Forget the saved city. The phone's city, if it has one, is still used. */
 export async function forgetCallerCity(userId: string): Promise<boolean> {
   const result = await updateUserPreferences(userId, { callerCity: undefined });
+  if (!result.success) log.warn({ userId }, '📍 Could not clear the saved city');
   return result.success;
 }

@@ -10,7 +10,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import type { ToolDefinition, Tool } from '../../registry/types.js';
 import { callerUserId, forgetCallerCity, saveCallerCity } from './caller-city.js';
 
 const rememberCallerCityDef: ToolDefinition = {
@@ -20,10 +20,10 @@ const rememberCallerCityDef: ToolDefinition = {
   domain: 'local-search',
   tags: ['location', 'city', 'remember', 'near me'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (): Tool => {
     return llm.tool({
       description:
-        'Remember the caller\'s city for "near me" searches. Offer first ("Want me to remember you\'re in Philly for next time?"). ' +
+        'Remember the caller\'s city for "near me" searches, until they ask you to forget it. Offer first ("Want me to remember you\'re in Philly for next time?"). ' +
         'Call this only after they say yes. City or region only: never a street, postcode or coordinates.',
       parameters: z.object({
         city: z.string().describe('The city or town, e.g. "Philadelphia"'),
@@ -36,7 +36,7 @@ const rememberCallerCityDef: ToolDefinition = {
         if (!callerSaidYes) {
           return "I haven't saved that. Ask whether they want me to remember their city first.";
         }
-        const userId = callerUserId(opts, ctx);
+        const userId = callerUserId(opts);
         if (!userId) return "I can't save a city on this call.";
 
         const result = await saveCallerCity(userId, city, region);
@@ -57,13 +57,13 @@ const forgetCallerCityDef: ToolDefinition = {
   domain: 'local-search',
   tags: ['location', 'city', 'forget', 'privacy'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (): Tool => {
     return llm.tool({
       description:
         'Forget the city the caller asked you to remember ("forget where I live", "forget my city").',
       parameters: z.object({}),
       execute: async (_args, opts) => {
-        const userId = callerUserId(opts, ctx);
+        const userId = callerUserId(opts);
         if (!userId) return "I can't change saved places on this call.";
 
         const forgotten = await forgetCallerCity(userId);
@@ -75,5 +75,5 @@ const forgetCallerCityDef: ToolDefinition = {
   },
 };
 
-/** Registered only while PLACES_LOCATION is on. */
+/** Offered only while PLACES_LOCATION and REQUIRE_FIX_MEMORY are on (callerCityMemoryOn). */
 export const callerCityTools: ToolDefinition[] = [rememberCallerCityDef, forgetCallerCityDef];
