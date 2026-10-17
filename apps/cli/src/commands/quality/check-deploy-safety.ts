@@ -49,7 +49,6 @@ const UNSAFE_PATTERNS = [
       'scripts/deploy.ts',
       'scripts/deploy-worker.sh',
       'apps/cli/src/commands/deploy/',
-      'apps/cli/src/commands/agent/',
       '.github/workflows/',
       'docs/',
       '.md',
