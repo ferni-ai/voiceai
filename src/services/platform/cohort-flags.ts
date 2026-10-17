@@ -22,6 +22,10 @@
  * infrastructure or secrets. Reading cohorts never holds a call up for more
  * than READ_TIMEOUT_MS. Off unless COHORT_FLAGS=on.
  *
+ * Servers that act for many users in one process (the UI server's scheduled
+ * jobs) must never write process.env; they ask per person instead, with
+ * flagForUser and usersWithFlag below.
+ *
  * @module services/platform/cohort-flags
  */
 import { createLogger } from '../../utils/safe-logger.js';
@@ -46,6 +50,7 @@ export const COHORT_FLAGS = [
   'POST_CALL_CHECKIN',
   'FOLLOW_THROUGH_TEXTS',
   'OUTREACH_PONDERED_NOTES',
+  'PROACTIVE_CHANNELS',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
@@ -196,5 +201,107 @@ export const firestoreCohortStore: CohortStore = {
     const doc = await db.collection('feature_flag_overrides').doc(userId).get();
     const flags = doc.exists ? doc.data()?.flags : undefined;
     return flags && typeof flags === 'object' ? (flags as Record<string, string>) : {};
+  },
+};
+
+/** Finds who might have a flag on, without reading every user. */
+export interface FlagHolderStore {
+  /** Members of cohorts setting `flag` to 'on', and users whose own override sets it 'on'. */
+  candidatesFor: (flag: CohortFlag) => Promise<string[]>;
+}
+
+/** How long a per-user or per-flag read is reused. The scheduled jobs run every minute. */
+export const FLAG_CACHE_TTL_MS = 60_000;
+const MAX_CACHED_USERS = 1000;
+const userCache = new Map<string, { at: number; flags: Record<string, string> }>();
+const holderCache = new Map<string, { at: number; users: string[] }>();
+
+/** For tests: forget cached per-user and per-flag reads. */
+export function forgetFlagCache(): void {
+  userCache.clear();
+  holderCache.clear();
+}
+
+export interface FlagLookupOptions {
+  store?: CohortStore;
+  holders?: FlagHolderStore;
+  env?: Record<string, string | undefined>;
+  now?: () => number;
+}
+
+const isCohortFlag = (flag: string): flag is CohortFlag => ALLOWED.has(flag);
+
+/**
+ * This person's own value of `flag` from their cohorts and override (the
+ * override wins), for servers that serve many users at once. Read-only:
+ * never touches process.env. Undefined when COHORT_FLAGS is not on, the flag
+ * is not one cohorts may set, the person has no value, or the read failed
+ * (a failed read reuses the last value if there is one). Cached for
+ * FLAG_CACHE_TTL_MS. Never throws.
+ */
+export async function flagForUser(
+  userId: string,
+  flag: string,
+  opts: FlagLookupOptions = {}
+): Promise<'on' | 'off' | undefined> {
+  if (!cohortFlagsEnabled(opts.env) || !isCohortFlag(flag)) return undefined;
+  const now = (opts.now ?? Date.now)();
+  const cached = userCache.get(userId);
+  let flags = cached && now - cached.at < FLAG_CACHE_TTL_MS ? cached.flags : undefined;
+  if (!flags) {
+    try {
+      flags = await resolveCallerFlags(userId, opts.store);
+      if (userCache.size >= MAX_CACHED_USERS) userCache.clear();
+      userCache.set(userId, { at: now, flags });
+    } catch (error) {
+      log.warn({ error: String(error), userId: userId.slice(0, 8) }, 'Cohort flags not read');
+      flags = cached?.flags ?? {};
+    }
+  }
+  const value = flags[flag];
+  return value === 'on' || value === 'off' ? value : undefined;
+}
+
+/**
+ * Everyone whose own flags turn `flag` on: cohort members and overrides set
+ * to 'on', each checked with flagForUser, so an override 'off' beats a cohort
+ * 'on' and cohort order matches the call-start resolution. Empty unless
+ * COHORT_FLAGS=on. Read-only, cached for FLAG_CACHE_TTL_MS, never throws (a
+ * failed read reuses the last list, else none).
+ */
+export async function usersWithFlag(flag: string, opts: FlagLookupOptions = {}): Promise<string[]> {
+  if (!cohortFlagsEnabled(opts.env) || !isCohortFlag(flag)) return [];
+  const now = (opts.now ?? Date.now)();
+  const cached = holderCache.get(flag);
+  if (cached && now - cached.at < FLAG_CACHE_TTL_MS) return cached.users;
+  try {
+    const candidates = [
+      ...new Set(await (opts.holders ?? firestoreFlagHolders).candidatesFor(flag)),
+    ];
+    const values = await Promise.all(candidates.map(async (u) => flagForUser(u, flag, opts)));
+    const users = candidates.filter((_, i) => values[i] === 'on').sort();
+    holderCache.set(flag, { at: now, users });
+    return users;
+  } catch (error) {
+    log.warn({ error: String(error), flag }, 'Cohort flag holders not read');
+    return cached?.users ?? [];
+  }
+}
+
+export const firestoreFlagHolders: FlagHolderStore = {
+  async candidatesFor(flag) {
+    const db = getFirestoreDb();
+    if (!db) return [];
+    // `flag` is from COHORT_FLAGS, so the field path is one of ours.
+    const [cohorts, overrides] = await Promise.all([
+      db.collection('feature_cohorts').where(`flags.${flag}`, '==', 'on').get(),
+      db.collection('feature_flag_overrides').where(`flags.${flag}`, '==', 'on').get(),
+    ]);
+    const members = cohorts.docs.flatMap((d) => {
+      const x = d.data();
+      if (x.enabled === false || !Array.isArray(x.members)) return [];
+      return (x.members as unknown[]).filter((m): m is string => typeof m === 'string');
+    });
+    return [...members, ...overrides.docs.map((d) => d.id)];
   },
 };
