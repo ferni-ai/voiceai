@@ -38,6 +38,7 @@ const { isJournalPlaceholder } =
 function post(body: unknown) {
   const req = new EventEmitter() as IncomingMessage;
   req.method = 'POST';
+  req.headers = {};
   let status = 0;
   let raw = '';
   const res = {

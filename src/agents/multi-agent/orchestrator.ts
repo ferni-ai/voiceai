@@ -21,10 +21,12 @@ import type { JobContext, voice } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import type { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
+import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { wireDeferredHandlers } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
+import { isProactiveCall } from './greeting-direction.js';
 import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 import {
@@ -243,9 +245,10 @@ export class AgentOrchestrator {
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
-      // A call Ferni placed for someone opens with who it is and who it's
-      // for, once the phone is picked up: never the app's "hey <user>" hello.
-      const { outboundOpener, outboundPartiesFor } = await import('../shared/outbound-opener.js');
+      // A call Ferni placed waits for the phone to be picked up. One for someone opens
+      // with who it is and who it's for, never the app's "hey <user>" hello.
+      const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
+        await import('../shared/outbound-opener.js');
       const parties = outboundPartiesFor(this.sessionId);
       let greeting: string;
       if (parties) {
@@ -257,6 +260,14 @@ export class AgentOrchestrator {
         if (!(await personAnswered(room, phone, agent, parties, sessionId))) return;
         greeting = outboundOpener(parties);
       } else {
+        // A proactive call to Ferni's own user waits for the pickup too.
+        if (await isProactiveCall(this.sessionId)) {
+          const answered = await waitForCallAnswered(this.room, this.userParticipant);
+          if (!answered) {
+            log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
+            return;
+          }
+        }
         const userData = agent.userData as UserData | undefined;
         greeting = await greetingOrResume(this.sessionId, agent, userData); // RESUME_AFTER_DROP
       }
@@ -360,7 +371,9 @@ export class AgentOrchestrator {
     diag.entry(`🎭 Handoff starting: ${previousPersonaId} → ${request.targetPersonaId}`);
 
     // BRIEFED_HANDOFF: the teammate's brief and first line, written while the goodbye plays
-    const briefing = briefedHandoffs() ? briefingFor(currentAgent, request) : null;
+    const briefing = briefedHandoffs()
+      ? briefingFor(currentAgent, request, callerTimeZoneFor(this.sessionId))
+      : null;
     try {
       // STEP 1: Let old agent say goodbye naturally
       const step1Start = Date.now();

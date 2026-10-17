@@ -447,7 +447,7 @@ export async function handleTokenRoutes(
     const timezone = isValidTimeZone(timezoneParam) ? timezoneParam : undefined;
     // 🐛 FIX: Read firebase_uid from query params (frontend sends this!)
     const firebase_uid_param = parsedUrl.searchParams.get('firebase_uid');
-    const user_email_param = parsedUrl.searchParams.get('user_email');
+    let verifiedEmail: string | undefined; // from the verified token, never the query string
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -502,6 +502,7 @@ export async function handleTokenRoutes(
           return true;
         }
         firebaseUid = verified.uid;
+        verifiedEmail = verified.emailVerified ? verified.email : undefined;
         log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
       } catch (firebaseErr) {
         log.error({ error: String(firebaseErr) }, 'Firebase auth verification failed for /token');
@@ -665,8 +666,7 @@ export async function handleTokenRoutes(
       const roomMetadata: RoomMetadata = {
         user_name: username,
         firebase_uid: firebaseUid || undefined,
-        // 🐛 FIX: Include user_email for granted profile linking
-        user_email: user_email_param || undefined,
+        user_email: verifiedEmail,
         device_id: device_id || undefined,
         persona_id: selectedPersona,
         // 🔗 Developer Platform: publisher ID for custom/marketplace personas
@@ -682,10 +682,10 @@ export async function handleTokenRoutes(
         timezone,
       };
 
-      // Generate token with shared helper
       const token = await createToken({
         roomName: room,
         participantName: username,
+        identity: firebaseUid, // the verified uid; the client's username is only the display name
         metadata: { device_id, firebase_uid: firebaseUid, persona_id: selectedPersona },
       });
 

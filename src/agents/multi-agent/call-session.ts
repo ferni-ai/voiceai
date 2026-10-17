@@ -5,6 +5,7 @@
  * swapped in later joins this session instead of building one of its own.
  */
 import { voice } from '@livekit/agents';
+import { loadWorldFactsForCall } from '../../intelligence/world-model/temporal/in-call-load.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import type { SessionServices } from '../../services/types.js';
@@ -31,6 +32,8 @@ export async function createCallSession(parts: {
   sessionId: string;
   services: SessionServices;
   userData: UserData;
+  /** The caller's account, when known: their world facts load for the call (WORLD_FACTS_IN_CALL). */
+  userId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   llmModel: any;
   tts: Awaited<ReturnType<typeof createPersonaTTS>>;
@@ -38,6 +41,9 @@ export async function createCallSession(parts: {
   phone?: boolean;
 }): Promise<voice.AgentSession<UserData>> {
   const { persona, sessionId, services, userData, llmModel, tts, phone } = parts;
+  // WORLD_FACTS_IN_CALL=on: where their life stands now, read once per call while
+  // the session is built; each turn's request picks from it (turn-request.ts).
+  void loadWorldFactsForCall(userData, parts.userId);
   const modelProvider = getModelProvider();
 
   // =========================================================================

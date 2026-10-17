@@ -23,6 +23,9 @@
 // Make this file a module for top-level await
 export {};
 
+// Mask phone numbers in everything this process logs, before anything can log.
+await import('./utils/log-redaction-install.js');
+
 // Refuse to touch production data from a non-production process (no emulator, no opt-in).
 await import('./config/refuse-production-data.js'); // loads dotenv, then the guard
 

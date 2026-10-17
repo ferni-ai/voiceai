@@ -210,9 +210,8 @@
       }
     }
 
-    // Apply visual mode. The server sends 'dark' for late night too, so a light
-    // system still gets the paper page (see the time-aware check above).
-    if (content.visualMode === 'dark' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    // Apply visual mode: a dark system only, or paper gets a dark hero under paper-ink type
+    if (content.visualMode === 'dark' && matchMedia('(prefers-color-scheme: dark)').matches) {
       document.body.classList.add('theme--dark', 'time-mode--night');
     }
 
@@ -413,11 +412,8 @@
     // Quick time-aware content (no network call needed for basic version)
     if (CONFIG.enableTimeAware) {
       const hour = new Date().getHours();
-      // The late-night treatment is a dark palette, so it only applies when the
-      // system asks for dark. On paper (light) it would leave ink text on night ink.
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (hour >= 0 && hour < 5 && systemDark) {
-        // Late night - immediate local treatment
+      if (hour < 5 && matchMedia('(prefers-color-scheme: dark)').matches) {
+        // Late night on a dark system only: on paper it painted the hero dark under dark ink
         document.body.classList.add('time-mode--late-night');
       }
     }

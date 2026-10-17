@@ -230,6 +230,8 @@ export interface CaseResult {
   /** The judge's raw reply, kept so a report can be re-graded by hand. */
   judgeReply?: string | null;
   evidenceReply?: string | null;
+  /** The benchmark's own judge on the same answer, where a live judge is also used. */
+  strict?: boolean | null;
 }
 
 export interface Tally {
@@ -323,6 +325,15 @@ export function formatReport(results: readonly CaseResult[]): string {
     'Accuracy is correct / (judged + no answer): a missing answer counts as wrong, ' +
       'a judge failure is left out. Failures counts both.',
   ].join('\n');
+}
+
+/**
+ * The benchmark's strict judge on the same answers, to read beside the table's
+ * judge. Where they differ, the difference is the judging standard, not the answers.
+ */
+export function formatStrict(results: readonly CaseResult[]): string {
+  const t = tally(results.map((r) => ({ ...r, correct: r.strict ?? null })));
+  return `strict judge (benchmark prompt): ${t.n > 0 ? `${t.correct}/${t.n} ${pct(t.accuracy)}` : '–'}`;
 }
 
 /**
