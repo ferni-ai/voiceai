@@ -32,7 +32,10 @@
       : '/api/landing/ai',
     
     // Feature toggles
-    enablePersonalizedHero: true,
+    // Off: it rewrote the H1 on every story-brand page (broad selectors) and
+    // counted page views as visits, so a first-time visitor's second page said
+    // "Missed you... I still remember where we left off". Fix both before enabling.
+    enablePersonalizedHero: false,
     enableAdaptiveCTA: true,
     enableHoverInsights: true,
     enablePersonaVoices: true,

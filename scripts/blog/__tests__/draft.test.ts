@@ -182,3 +182,15 @@ describe('isoWeek', () => {
     expect(isoWeek('2026-01-01')).toBe(1);
   });
 });
+
+describe('a failed model call', () => {
+  it('throws instead of reporting a brand-gate failure, and writes nothing', async () => {
+    const { d, writes, generate } = deps(() => {
+      throw new Error('403 permission denied');
+    });
+
+    await expect(draftPost({ type: 'whats-new' }, d)).rejects.toThrow('403 permission denied');
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(writes).toHaveLength(0);
+  });
+});

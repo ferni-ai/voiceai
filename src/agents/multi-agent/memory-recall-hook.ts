@@ -35,6 +35,7 @@ import {
   type RecallSnapshot,
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
+import { jokesForTurn } from '../../memory/recall/inside-jokes-recall.js';
 import { formatPeople, peopleOf, recallPeopleEnabled } from '../../memory/recall/people.js';
 import { formatPets, petsOf } from '../../memory/recall/pets.js';
 import {
@@ -71,7 +72,6 @@ import {
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { RECALL_NOTE_ID_PREFIX } from './turn-context-header.js';
 import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
 import { takeOpenerClaim } from '../../memory/recall/opener-claim.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
@@ -197,6 +197,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let snapshot: RecallSnapshot | undefined;
   const surfaced = new Set<string>();
   let followUpsOffered = false;
+  // A shared bit comes once a call (INSIDE_JOKES), on a turn that touches its line.
+  let jokeOffered = false;
   const bridge = deps.bridge ?? recallBridgeEnabled();
   // RECALL_BRIDGE: open threads not yet offered, and which caller turn this is.
   let threadsLeft: string[] = [];
@@ -378,8 +380,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           ? []
           : snapshot.followUps;
       const followUps = [...threadsNow, ...extras.flatMap((id) => laterFollowUps.get(id) ?? [])];
-      // Shared bits, like the follow-ups, come once (shown only with INSIDE_JOKES=on).
-      const insideJokes = followUpsOffered ? [] : (snapshot.insideJokes ?? []);
+      // Shared bits come once a call, and only on a turn that touches the line they came from.
+      const insideJokes = jokeOffered ? [] : jokesForTurn(snapshot.insideJokes ?? [], text);
       // The ledger, like the follow-ups, comes once, with the first note. With
       // RECALL_BRIDGE it waits like the threads, unless they ask about him: on
       // "Still on there." alone it was read as his mail pile (6/8 replies).
@@ -436,6 +438,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       if (!note) return null;
       lastPick = { facts, userName: deps.userName, rest: noteWith([]) };
       followUpsOffered = true;
+      if (insideJokes.length > 0) jokeOffered = true;
       if (told) toldOffered = true;
       threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));
       if (checkIn) checkInOffered = true;
@@ -475,26 +478,4 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   };
 }
 
-/** Recall notes added so far, for their ids (RECALL_NOTE_ID_PREFIX). */
-let recallNotes = 0;
-
-/** The slice of the SDK Agent this needs. */
-export interface RecallAgent {
-  readonly chatCtx: {
-    copy(): { addMessage(msg: { role: 'system'; content: string; id?: string }): unknown };
-  };
-  updateChatCtx(chatCtx: unknown): Promise<void>;
-}
-
-/**
- * Add a recall note to the agent's context now. updateChatCtx assigns the
- * context before its first await, so the note is in place for the preemptive
- * generation the SDK starts right after the transcript event.
- */
-export function addRecallNote(agent: RecallAgent, note: string): void {
-  const ctx = agent.chatCtx.copy();
-  ctx.addMessage({ role: 'system', content: note, id: `${RECALL_NOTE_ID_PREFIX}${++recallNotes}` });
-  agent.updateChatCtx(ctx).catch((error: unknown) => {
-    log.warn({ error: String(error) }, 'Recall note not added');
-  });
-}
+export { addRecallNote, type RecallAgent } from './recall-note.js';
