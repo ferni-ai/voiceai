@@ -172,11 +172,19 @@ async function preferencesForWrite(userId: string): Promise<UserInfoPreferences 
 }
 
 /**
- * Update specific preference fields
+ * What an edit decides from the stored preferences: a change to write, or an
+ * answer that needs no write ("already on your list").
  */
-export async function updateUserPreferences(
+export type PreferenceEdit = { update: PreferenceUpdate } | { done: PreferenceOperationResult };
+
+/**
+ * Edit preferences from the stored document. The edit sees the fresh read, so
+ * the field it changes is built from what is stored, not from this worker's
+ * cache. If the read fails (Firestore on), nothing is written.
+ */
+export async function editUserPreferences(
   userId: string,
-  update: PreferenceUpdate
+  edit: (current: UserInfoPreferences) => PreferenceEdit
 ): Promise<PreferenceOperationResult> {
   try {
     const current = await preferencesForWrite(userId);
@@ -186,9 +194,12 @@ export async function updateUserPreferences(
         message: "I couldn't read your preferences just now, so nothing was changed.",
       };
     }
+    const decided = edit(current);
+    if ('done' in decided) return decided.done;
+
     const updated: UserInfoPreferences = {
       ...current,
-      ...update,
+      ...decided.update,
       updatedAt: new Date(),
       version: current.version,
     };
@@ -208,6 +219,16 @@ export async function updateUserPreferences(
   }
 }
 
+/**
+ * Update specific preference fields
+ */
+export async function updateUserPreferences(
+  userId: string,
+  update: PreferenceUpdate
+): Promise<PreferenceOperationResult> {
+  return editUserPreferences(userId, () => ({ update }));
+}
+
 // ============================================================================
 // CONVENIENCE METHODS
 // ============================================================================
@@ -219,17 +240,14 @@ export async function addFavoriteTeam(
   userId: string,
   team: TeamPreference
 ): Promise<PreferenceOperationResult> {
-  const prefs = await getUserPreferences(userId);
-
-  // Check if already exists
-  const exists = prefs.favoriteTeams.some((t) => t.name.toLowerCase() === team.name.toLowerCase());
-
-  if (exists) {
-    return { success: true, message: `${team.name} is already in your favorites!` };
-  }
-
-  return updateUserPreferences(userId, {
-    favoriteTeams: [...prefs.favoriteTeams, team],
+  return editUserPreferences(userId, (prefs) => {
+    const exists = prefs.favoriteTeams.some(
+      (t) => t.name.toLowerCase() === team.name.toLowerCase()
+    );
+    if (exists) {
+      return { done: { success: true, message: `${team.name} is already in your favorites!` } };
+    }
+    return { update: { favoriteTeams: [...prefs.favoriteTeams, team] } };
   });
 }
 
@@ -240,17 +258,15 @@ export async function removeFavoriteTeam(
   userId: string,
   teamName: string
 ): Promise<PreferenceOperationResult> {
-  const prefs = await getUserPreferences(userId);
-
-  const updated = prefs.favoriteTeams.filter(
-    (t) => t.name.toLowerCase() !== teamName.toLowerCase()
-  );
-
-  if (updated.length === prefs.favoriteTeams.length) {
-    return { success: true, message: `${teamName} wasn't in your favorites.` };
-  }
-
-  return updateUserPreferences(userId, { favoriteTeams: updated });
+  return editUserPreferences(userId, (prefs) => {
+    const updated = prefs.favoriteTeams.filter(
+      (t) => t.name.toLowerCase() !== teamName.toLowerCase()
+    );
+    if (updated.length === prefs.favoriteTeams.length) {
+      return { done: { success: true, message: `${teamName} wasn't in your favorites.` } };
+    }
+    return { update: { favoriteTeams: updated } };
+  });
 }
 
 /**
@@ -268,15 +284,12 @@ export async function addToWatchlist(
   userId: string,
   symbol: string
 ): Promise<PreferenceOperationResult> {
-  const prefs = await getUserPreferences(userId);
   const normalized = symbol.toUpperCase();
-
-  if (prefs.stockWatchlist.includes(normalized)) {
-    return { success: true, message: `${normalized} is already on your watchlist!` };
-  }
-
-  return updateUserPreferences(userId, {
-    stockWatchlist: [...prefs.stockWatchlist, normalized],
+  return editUserPreferences(userId, (prefs) => {
+    if (prefs.stockWatchlist.includes(normalized)) {
+      return { done: { success: true, message: `${normalized} is already on your watchlist!` } };
+    }
+    return { update: { stockWatchlist: [...prefs.stockWatchlist, normalized] } };
   });
 }
 
@@ -287,16 +300,14 @@ export async function removeFromWatchlist(
   userId: string,
   symbol: string
 ): Promise<PreferenceOperationResult> {
-  const prefs = await getUserPreferences(userId);
   const normalized = symbol.toUpperCase();
-
-  const updated = prefs.stockWatchlist.filter((s) => s !== normalized);
-
-  if (updated.length === prefs.stockWatchlist.length) {
-    return { success: true, message: `${normalized} wasn't on your watchlist.` };
-  }
-
-  return updateUserPreferences(userId, { stockWatchlist: updated });
+  return editUserPreferences(userId, (prefs) => {
+    const updated = prefs.stockWatchlist.filter((s) => s !== normalized);
+    if (updated.length === prefs.stockWatchlist.length) {
+      return { done: { success: true, message: `${normalized} wasn't on your watchlist.` } };
+    }
+    return { update: { stockWatchlist: updated } };
+  });
 }
 
 /**
@@ -314,29 +325,20 @@ export async function saveLocation(
   userId: string,
   location: LocationPreference
 ): Promise<PreferenceOperationResult> {
-  const prefs = await getUserPreferences(userId);
   const name = location.name.toLowerCase();
+  return editUserPreferences(userId, (prefs) => {
+    // Special handling for home/work
+    if (name === 'home') return { update: { homeLocation: location } };
+    if (name === 'work') return { update: { workLocation: location } };
 
-  // Special handling for home/work
-  if (name === 'home') {
-    return updateUserPreferences(userId, { homeLocation: location });
-  }
-  if (name === 'work') {
-    return updateUserPreferences(userId, { workLocation: location });
-  }
-
-  // Check if updating existing
-  const existingIndex = prefs.savedLocations.findIndex((l) => l.name.toLowerCase() === name);
-
-  let updatedLocations: LocationPreference[];
-  if (existingIndex >= 0) {
-    updatedLocations = [...prefs.savedLocations];
-    updatedLocations[existingIndex] = location;
-  } else {
-    updatedLocations = [...prefs.savedLocations, location];
-  }
-
-  return updateUserPreferences(userId, { savedLocations: updatedLocations });
+    // Update the existing entry, or add one
+    const existingIndex = prefs.savedLocations.findIndex((l) => l.name.toLowerCase() === name);
+    const updatedLocations =
+      existingIndex >= 0
+        ? prefs.savedLocations.map((l, i) => (i === existingIndex ? location : l))
+        : [...prefs.savedLocations, location];
+    return { update: { savedLocations: updatedLocations } };
+  });
 }
 
 /**
@@ -362,15 +364,12 @@ export async function addNewsInterest(
   userId: string,
   topic: string
 ): Promise<PreferenceOperationResult> {
-  const prefs = await getUserPreferences(userId);
   const normalized = topic.toLowerCase();
-
-  if (prefs.newsInterests.some((t) => t.toLowerCase() === normalized)) {
-    return { success: true, message: `${topic} is already in your interests!` };
-  }
-
-  return updateUserPreferences(userId, {
-    newsInterests: [...prefs.newsInterests, topic],
+  return editUserPreferences(userId, (prefs) => {
+    if (prefs.newsInterests.some((t) => t.toLowerCase() === normalized)) {
+      return { done: { success: true, message: `${topic} is already in your interests!` } };
+    }
+    return { update: { newsInterests: [...prefs.newsInterests, topic] } };
   });
 }
 
@@ -381,15 +380,12 @@ export async function addAvoidTopic(
   userId: string,
   topic: string
 ): Promise<PreferenceOperationResult> {
-  const prefs = await getUserPreferences(userId);
   const normalized = topic.toLowerCase();
-
-  if (prefs.avoidTopics.some((t) => t.toLowerCase() === normalized)) {
-    return { success: true, message: `${topic} is already on your avoid list.` };
-  }
-
-  return updateUserPreferences(userId, {
-    avoidTopics: [...prefs.avoidTopics, topic],
+  return editUserPreferences(userId, (prefs) => {
+    if (prefs.avoidTopics.some((t) => t.toLowerCase() === normalized)) {
+      return { done: { success: true, message: `${topic} is already on your avoid list.` } };
+    }
+    return { update: { avoidTopics: [...prefs.avoidTopics, topic] } };
   });
 }
 
@@ -402,24 +398,18 @@ export async function setAllergies(
   allergies: string[],
   mode: 'replace' | 'add' = 'replace'
 ): Promise<PreferenceOperationResult> {
-  if (mode === 'add') {
-    const prefs = await getUserPreferences(userId);
-    const normalized = allergies.map((a) => a.toLowerCase().trim());
-    const existingNormalized = prefs.allergies.map((a) => a.toLowerCase());
+  if (mode !== 'add') return updateUserPreferences(userId, { allergies });
 
+  const normalized = allergies.map((a) => a.toLowerCase().trim());
+  return editUserPreferences(userId, (prefs) => {
+    const existingNormalized = prefs.allergies.map((a) => a.toLowerCase());
     // Only add new allergies (deduped)
     const newAllergies = normalized.filter((a) => !existingNormalized.includes(a));
-
     if (newAllergies.length === 0) {
-      return { success: true, message: 'Already knew about these allergies.' };
+      return { done: { success: true, message: 'Already knew about these allergies.' } };
     }
-
-    return updateUserPreferences(userId, {
-      allergies: [...prefs.allergies, ...newAllergies],
-    });
-  }
-
-  return updateUserPreferences(userId, { allergies });
+    return { update: { allergies: [...prefs.allergies, ...newAllergies] } };
+  });
 }
 
 /**

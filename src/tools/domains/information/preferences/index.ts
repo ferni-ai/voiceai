@@ -390,25 +390,35 @@ export const preferencesToolDefinitions: ToolDefinition[] = [
           const updates: Record<string, unknown> = {};
           const messages: string[] = [];
 
+          // A refused write is reported, not called a success
+          const failures: string[] = [];
+
           if (interests && interests.length > 0) {
             // Add each interest
             for (const topic of interests) {
-              await addNewsInterest(ctx.userId, topic);
+              const saved = await addNewsInterest(ctx.userId, topic);
+              if (!saved.success) failures.push(saved.message);
             }
-            messages.push(`Added interests: ${interests.join(', ')}`);
+            if (failures.length === 0) messages.push(`Added interests: ${interests.join(', ')}`);
           }
 
           if (avoid && avoid.length > 0) {
             // Add topics to avoid
             for (const topic of avoid) {
-              await addAvoidTopic(ctx.userId, topic);
+              const saved = await addAvoidTopic(ctx.userId, topic);
+              if (!saved.success) failures.push(saved.message);
             }
-            messages.push(`Will minimize: ${avoid.join(', ')}`);
+            if (failures.length === 0) messages.push(`Will minimize: ${avoid.join(', ')}`);
           }
 
           if (frequency) {
-            await updateUserPreferences(ctx.userId, { newsFrequency: frequency });
-            messages.push(`News frequency set to: ${frequency}`);
+            const saved = await updateUserPreferences(ctx.userId, { newsFrequency: frequency });
+            if (saved.success) messages.push(`News frequency set to: ${frequency}`);
+            else failures.push(saved.message);
+          }
+
+          if (failures.length > 0) {
+            return `I couldn't save everything. ${failures[0]}`;
           }
 
           log.info(

@@ -41,7 +41,12 @@ vi.mock('../../../../../utils/firebase-admin-app.js', () => ({
 }));
 
 import { DEFAULT_PREFERENCES } from '../types.js';
-import { getUserPreferences, updateUserPreferences } from '../storage.js';
+import {
+  addFavoriteTeam,
+  getUserPreferences,
+  setAllergies,
+  updateUserPreferences,
+} from '../storage.js';
 
 const docPath = (userId: string) => `bogle_users/${userId}/info_preferences/current`;
 const stored = (userId: string) => fake.docs.get(docPath(userId)) as Record<string, unknown>;
@@ -96,6 +101,42 @@ describe('preferences writes', () => {
     await updateUserPreferences(uid, { sportAlerts: true });
 
     expect(stored(uid).allergies).toEqual(['cats']);
+  });
+
+  it('an allergy added during a failed read is refused, not replaced by defaults', async () => {
+    const uid = 'u-add-allergy-read-fails';
+    fake.docs.set(docPath(uid), { ...DEFAULT_PREFERENCES, allergies: ['peanuts'] });
+    fake.readFails = true;
+
+    const result = await setAllergies(uid, ['pollen'], 'add');
+
+    expect(result.success).toBe(false);
+    expect(fake.writes).toEqual([]);
+    expect(stored(uid).allergies).toEqual(['peanuts']);
+  });
+
+  it('a team added from a stale cache keeps the team another worker added', async () => {
+    const uid = 'u-stale-team';
+    fake.docs.set(docPath(uid), {
+      ...DEFAULT_PREFERENCES,
+      favoriteTeams: [{ name: 'Eagles', league: 'NFL', priority: 'primary' }],
+    });
+    await getUserPreferences(uid); // this worker caches Eagles only
+    fake.docs.set(docPath(uid), {
+      ...DEFAULT_PREFERENCES,
+      favoriteTeams: [
+        { name: 'Eagles', league: 'NFL', priority: 'primary' },
+        { name: 'Phillies', league: 'MLB', priority: 'secondary' },
+      ],
+    }); // another worker added Phillies
+
+    await addFavoriteTeam(uid, { name: 'Sixers', league: 'NBA', priority: 'secondary' });
+
+    expect((stored(uid).favoriteTeams as Array<{ name: string }>).map((t) => t.name)).toEqual([
+      'Eagles',
+      'Phillies',
+      'Sixers',
+    ]);
   });
 
   it('stops serving a cached copy after 60 seconds', async () => {
