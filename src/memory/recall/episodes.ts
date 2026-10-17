@@ -67,8 +67,8 @@ export const MIN_TURNS = 4;
 
 /**
  * True when a raw passage is about a forgotten topic. Speech rarely uses the
- * topic's own words ("forget my brother's number" vs "it's uh 435 339
- * 7687"), so a passage goes if it has any distinctive word of the topic
+ * topic's own words ("forget my brother's number" vs "it's uh 435 555
+ * 0188"), so a passage goes if it has any distinctive word of the topic
  * (five letters or more, or a number of four digits or more); otherwise it
  * needs all the topic's words, as facts do. One tokenizer (forgetTokens) on
  * both sides, so a request can't match one way and slip past the other. A

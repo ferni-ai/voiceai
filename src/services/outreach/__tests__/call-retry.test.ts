@@ -151,7 +151,7 @@ describe('toE164 (one normalization for every do-not-call read and write)', () =
     expect(toE164(input)).toBe(e164);
   });
 
-  it.each(['+442071234567', '8285260', '1234567890', '801-555-0177 ext 12', '', undefined])(
+  it.each(['+442071234567', '5550177', '1234567890', '801-555-0177 ext 12', '', undefined])(
     'rejects %j rather than guess',
     (input) => {
       expect(toE164(input)).toBeNull();
