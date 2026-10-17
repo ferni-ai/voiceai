@@ -3,7 +3,6 @@ import {
   dedupeFacts,
   factId,
   formatRecall,
-  insideJokesEnabled,
   loadRecallSnapshot,
   mentions,
   rareWordWeights,
@@ -12,6 +11,7 @@ import {
   type RecallSnapshot,
   type RecallFact,
 } from '../session-recall.js';
+import { insideJokesEnabled, jokesForTurn } from '../inside-jokes-recall.js';
 
 // Shapes as written by deep extraction (bogle_users/{id}/dynamic_facts), 2026-09-27.
 const biscuitBreed = { entity: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 1 };
@@ -96,8 +96,11 @@ describe('loadRecallSnapshot', () => {
           { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 0.8 },
         ],
         summaries: async () => [
-          { followUpItems: ['Ask about the vet visit', 'Ask about the shoes'] },
-          { followUpItems: ['Ask about the vet visit', 'Ask about Austin'] },
+          {
+            callerProvenance: 1,
+            followUpItems: ['Ask about the vet visit', 'Ask about the shoes'],
+          },
+          { callerProvenance: 1, followUpItems: ['Ask about the vet visit', 'Ask about Austin'] },
         ],
       },
       'u1'
@@ -268,12 +271,20 @@ describe('superseded facts', () => {
   });
 });
 
+const ref = (bit: string, quote = 'the fungus incident') => ({ bit, quote, speaker: 'user' as const });
+
 // Inside jokes (INSIDE_JOKES=on): bits the summarizer saw land between the
 // caller and Ferni on past calls. Ferni once said "Classic Biscuit" about a dog
 // first mentioned seconds earlier; shared history has to be real.
 describe('inside jokes', () => {
   const ON = { INSIDE_JOKES: 'on' };
-  const jokes = ['the mushroom thing: Sam calls the risotto "the fungus incident"'];
+  const jokes = [
+    {
+      bit: 'the mushroom thing: Sam calls the risotto "the fungus incident"',
+      quote: 'the fungus incident',
+      speaker: 'user' as const,
+    },
+  ];
 
   it('is off unless INSIDE_JOKES=on', () => {
     expect(insideJokesEnabled({})).toBe(false);
@@ -286,19 +297,56 @@ describe('inside jokes', () => {
       {
         facts: async () => [],
         summaries: async () => [
-          { insideJokes: ['the mushroom thing', '  '] },
+          { insideJokes: [ref('the mushroom thing', 'the fungus incident'), { bit: '  ', quote: 'x y z' }] },
           {},
-          { insideJokes: ['The Mushroom Thing', 'Biscuit vs the vacuum', 42] },
-          { insideJokes: ['the "accountant voice" bit', 'the parking-lot saga'] },
+          { insideJokes: [ref('The Mushroom Thing', 'other line here'), ref('Biscuit vs the vacuum', 'the vacuum roared'), 42] },
+          { insideJokes: [ref('the "accountant voice" bit', 'the accountant voice'), 'the parking-lot saga'] },
         ],
       },
       'u1'
     );
-    expect(snap.insideJokes).toEqual([
+    expect(snap.insideJokes?.map((j) => j.bit)).toEqual([
       'the mushroom thing',
       'Biscuit vs the vacuum',
       'the "accountant voice" bit',
     ]);
+  });
+
+  it('keeps bits only with their line on file (bare strings from old summaries are dropped)', async () => {
+    const snap = await loadRecallSnapshot(
+      {
+        facts: async () => [],
+        summaries: async () => [{ insideJokes: ['an old bare string', { bit: 'no line', quote: '' }] }],
+      },
+      'u2'
+    );
+    expect(snap.insideJokes).toEqual([]);
+  });
+
+  it('does not bring a bit back on a greeting that shares one filler word', () => {
+    const j = [ref('the mushroom police', 'I am pretty sure the mushroom police exist')];
+    expect(jokesForTurn(j, 'Hey, pretty good, thanks!')).toEqual([]);
+    const morning = [ref('morning person', 'I am not a morning person honestly')];
+    expect(jokesForTurn(morning, 'Good morning!')).toEqual([]);
+  });
+
+  it('brings a bit back on two shared words, or one the bit itself names', () => {
+    const line = 'she has been staring at the treat cabinet';
+    expect(jokesForTurn([ref('the mastermind', line)], 'the cabinet is open')).toEqual([]);
+    expect(jokesForTurn([ref('treat cabinet heist', line)], 'the cabinet is open')).toHaveLength(1);
+    expect(jokesForTurn([ref('the mastermind', line)], 'she was staring at the cabinet')).toHaveLength(1);
+  });
+
+  it('does not bring a bit back on filler words like "really" alone', () => {
+    const j = [ref('the mushroom police', 'I really love the mushroom police')];
+    expect(jokesForTurn(j, 'Hi, really good to hear you')).toEqual([]);
+    expect(jokesForTurn(j, 'the mushroom police came back')).toHaveLength(1);
+  });
+
+  it('brings a bit back only on a turn that touches its line', () => {
+    const j = [ref('the mushroom thing', 'the fungus incident in the risotto')];
+    expect(jokesForTurn(j, 'the weather is nice today')).toEqual([]);
+    expect(jokesForTurn(j, 'the fungus is back in my risotto')).toHaveLength(1);
   });
 
   it('adds the shared-bits section only with the flag on', () => {

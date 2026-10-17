@@ -14,10 +14,10 @@
  * @module agents/voice-agent-entry
  */
 
-import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
+import { settleCallerZone } from './phone-parity.js';
 import { injectUserAwareness } from './user-awareness-injection.js';
 
 // Event cleanup registry for proper memory management
@@ -68,7 +68,6 @@ import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
 import { devStage, MULTI_AGENT_MODE } from './constants.js';
 import type { FinOpsTier, SessionPhase } from './types.js';
-import { rememberCallerTimeZone } from '../../memory/operations/call-moment.js';
 
 // ============================================================================
 // MODULE-LEVEL SIDE EFFECTS (executed once at import)
@@ -366,14 +365,14 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     services = initResult.services;
     if (callType === 'on_behalf_call') {
-      const { wrapServicesForOnBehalfCapture } =
-        await import('../integrations/on-behalf-transcript-capture.js');
-      wrapServicesForOnBehalfCapture(sessionId, services);
-    }
+      const capture = await import('../integrations/on-behalf-transcript-capture.js');
+      capture.wrapServicesForOnBehalfCapture(sessionId, services);
+    } else if (callType === 'family_checkin')
+      (await import('../outbound-call/family-checkin-stop.js')).listenForStop(sessionId, services);
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
-    if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
-    rememberCallerTimeZone(isValidTimeZone(metadata.timezone) || callType === 'on_behalf_call' ? metadata.timezone : services?.userProfile?.contactInfo?.timezone, sessionId, services?.realtimeConversationId, userId); // no browser zone (phone): the profile's
+    // The browser's zone, else (once the profile loads) only a verified owner's (phone-parity.ts).
+    void settleCallerZone({ sessionId, userId, onBehalf: callType === 'on_behalf_call' }, metadata.timezone, services, userData);
     if (userData) userData.evalLocalTime = evalLocalTime(userId, metadata);
     // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {

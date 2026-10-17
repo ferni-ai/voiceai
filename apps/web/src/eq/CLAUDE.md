@@ -36,11 +36,6 @@ eq/
 │   ├── breath-sync.ts         # Neural mirroring
 │   ├── concern-detection.ts   # Protective care
 │   └── anticipation.ts        # Predictive empathy
-├── state/                # EQ state management
-│   ├── index.ts          # State exports
-│   ├── emotion-machine.ts # Emotion state machine
-│   ├── emotion-groups.ts  # Emotion group definitions
-│   └── emotion-interpolator.ts # Emotion interpolation
 └── utils/                # Utilities
     └── avatar-soul-loader.ts # Avatar soul lazy loader
 ```

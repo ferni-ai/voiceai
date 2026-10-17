@@ -4,7 +4,7 @@
  * follow-up answered "it really helped", and the next ask on another topic
  * ranks the same creator's short video first and says why.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Doc = Record<string, unknown>;
 const store = new Map<string, Doc>();
@@ -36,7 +36,7 @@ const db = {
   runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
     fn({
       get: async (r: ReturnType<typeof docRef>) => r.get(),
-      set: (r: ReturnType<typeof docRef>, d: Doc) => void r.set(d),
+      set: (r: ReturnType<typeof docRef>, d: Doc, o?: { merge?: boolean }) => void r.set(d, o),
     }),
 };
 vi.mock('../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => db }));
@@ -76,6 +76,8 @@ vi.mock('../../services/outreach/unified-delivery.js', () => ({
 const { runFindCoachingResources, runCoachingPick } =
   await import('../../tools/domains/learning/coaching-resources-tool.js');
 const { recordFollowUpAnswer } = await import('../../services/coach-media/feedback.js');
+const { outreachConfirmListeners } =
+  await import('../../tools/domains/communication/outreach/outreach-confirm.js');
 
 /** Grounding returns these YouTube ids; every check says fits, quality 4. */
 function webFinds(...ids: string[]) {
@@ -99,7 +101,10 @@ function webFinds(...ids: string[]) {
   );
 }
 
+afterEach(() => vi.unstubAllEnvs());
 beforeEach(() => {
+  vi.stubEnv('COACH_MEDIA', 'on');
+  vi.stubEnv('APPROVALS_PAGE', 'on');
   store.clear();
   generateContent.mockReset();
 });
@@ -107,6 +112,7 @@ beforeEach(() => {
 describe('taste loop', () => {
   it('learns from "it really helped" and prefers the same creator next time, saying why', async () => {
     const call1 = { session: {}, userData: {} };
+    outreachConfirmListeners(call1.session, () => true); // the owner, as a live call registers it
     webFinds('vidPatShort');
     await runFindCoachingResources({ topic: 'shin splints', format: 'video' }, call1, 'u1');
     const logged = [...store.entries()].filter(([k]) => k.includes('/coach_media_picks/'));
@@ -124,6 +130,14 @@ describe('taste loop', () => {
     );
     const commitment = saveCommitment.mock.calls[0][0];
     expect(store.get(logged[0][0])?.sentVia).toBe('text');
+    // The text links an answer card written through the real card store.
+    const cards = [...store.entries()].filter(([k]) => k.startsWith('answer_cards/'));
+    expect(cards).toHaveLength(1);
+    expect(cards[0][1]).toMatchObject({
+      userId: 'u1',
+      kind: 'recommendation',
+      pick: { by: 'Physio Pat' },
+    });
 
     await recordFollowUpAnswer('u1', { ...commitment, outcome: 'done' }, 'it really helped');
     expect(store.get(logged[0][0])).toMatchObject({

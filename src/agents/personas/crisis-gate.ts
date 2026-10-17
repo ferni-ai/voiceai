@@ -51,9 +51,11 @@ import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { getDeliberator } from './deliberation.js';
+import { firstNameOf, withNameGate, type HistoryItem } from './name-gate.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
+import { burstAllowed } from './vocal-bursts.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -278,7 +280,11 @@ export async function gatedReply(
   session: { userData: unknown },
   model: (ctx: llm.ChatContext) => Promise<ReadableStream<Chunk> | null>,
   openerGate: {
-    wrap(stream: ReadableStream<Chunk>, openedBySound?: () => boolean): ReadableStream<Chunk>;
+    wrap(
+      stream: ReadableStream<Chunk>,
+      openedBySound?: () => boolean,
+      burst?: boolean
+    ): ReadableStream<Chunk>;
   },
   options: { env?: Record<string, string | undefined>; generate?: CrisisGenerateFn } = {}
 ): Promise<ReadableStream<Chunk> | null> {
@@ -304,10 +310,22 @@ export async function gatedReply(
     gate?.decision.action === 'guide'
       ? withTurnStyleReminder(plain(), gate.decision.guidance)
       : withTurnReminder(chatCtx, session);
-  const ask = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
+  // A vocal burst only where this request invited one, never with crisis guidance.
+  const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
+  const ask = async (
+    request: llm.ChatContext,
+    mayBurst = burst
+  ): Promise<ReadableStream<Chunk> | null> => {
     const stream = tapToolCalls(await model(request), session);
     if (!stream) return stream;
-    const trimmed = env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound) : stream;
+    const opened =
+      env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound, mayBurst) : stream;
+    // NAME_GATE: the caller's name at hello, goodbye, and rarely between (name-gate.ts).
+    const trimmed = withNameGate(opened, {
+      name: firstNameOf((session.userData as { userName?: unknown } | undefined)?.userName),
+      history: chatCtx.items as readonly HistoryItem[],
+      env,
+    });
     // COMMITMENT_INVITE: on the invite turn, no step named for them (commitment-invite-reply.ts).
     return withToolLeadIn(withInviteReplyCheck(trimmed, session), chatCtx, session, env);
   };
@@ -317,6 +335,9 @@ export async function gatedReply(
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
-    return ask(withTurnStyleReminder(plain(), decision.guidance));
+    return ask(
+      withTurnStyleReminder(plain(), decision.guidance),
+      burst === undefined ? undefined : false
+    );
   });
 }

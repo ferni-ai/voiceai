@@ -9,7 +9,14 @@
  * second step, as the live agent would. Recall numbers (RESULTS.md) say
  * whether the right tool was *sent*; this says whether it was *called*.
  *
- * usage: npx tsx scripts/tool-retrieval/eval-choice.ts <n> [seed] [label]
+ * TOOL_SET picks the request's tools: retrieval (default, the above); today
+ * (what a live call sends now: the first agent's 64 essentials, then the
+ * post-greeting update to 88, both through the production cap code); core
+ * (TOOL_CORE_STATIC: the static core, findTools searching the whole catalog
+ * and appending what it finds, as the pinner does). EVAL_LABELS=head keeps
+ * only requests for the 20 tools prod and dev calls used (2026-10-04..11).
+ *
+ * usage: [TOOL_SET=today|core] npx tsx scripts/tool-retrieval/eval-choice.ts <n> [seed] [label]
  * Writes scripts/tool-retrieval/out/choice-<label>.json and prints a summary.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -31,23 +38,34 @@ import { TurnToolRetrieval } from '../../src/tools/retrieval/turn-tool-retrieval
 import { createFindToolsTool, FIND_TOOLS } from '../../src/tools/retrieval/find-tools-tool.js';
 import { loadSystemPrompt } from '../../src/agents/personas/prompt-loader.js';
 import { cascadeThinking } from '../../src/agents/model-provider/cartesia-cascade.js';
+import { capToolsToLimit, getEssentialTools } from '../../src/config/tool-config.js';
+import { DEFAULT_ESSENTIAL_DOMAINS } from '../../src/tools/dynamic-loader/index.js';
+import { updateAgentTools } from '../../src/agents/shared/tool-updater.js';
+import { staticCoreCallTools } from '../../src/agents/shared/static-core-tools.js';
 
 const [nArg, seedArg, label = 'live'] = process.argv.slice(2);
 const n = Number(nArg || 100);
 const seed = Number(seedArg || 1);
 const MODEL = process.env.CASCADE_LLM_MODEL || 'gemini-3.5-flash';
+const TOOL_SETS = ['retrieval', 'today', 'core'] as const;
+const TOOL_SET = (process.env.TOOL_SET || 'retrieval') as (typeof TOOL_SETS)[number];
+if (!TOOL_SETS.includes(TOOL_SET))
+  throw new Error(`TOOL_SET must be one of ${TOOL_SETS.join(', ')}`);
 const CONCURRENCY = 6;
 const MAX_STEPS = 3;
 /** Look-up tools the model often calls before acting, with a plausible answer. */
 const LOOKUPS: Record<string, string> = {
-  getCurrentContext: 'It is Wednesday, September 30, 2026, 3:12 pm in Denver, Colorado. Weather: 64F, clear.',
+  getCurrentContext:
+    'It is Wednesday, September 30, 2026, 3:12 pm in Denver, Colorado. Weather: 64F, clear.',
   recallFromMemory: 'No stored memories match that.',
   [FIND_TOOLS]: '',
 };
 
 // The plugin's own conversion, so declarations match what a live call sends.
 const pluginDist = dirname(createRequire(import.meta.url).resolve('@livekit/agents-plugin-google'));
-const { toFunctionDeclarations } = (await import(pathToFileURL(join(pluginDist, 'utils.js')).href)) as {
+const { toFunctionDeclarations } = (await import(
+  pathToFileURL(join(pluginDist, 'utils.js')).href
+)) as {
   toFunctionDeclarations: (ctx: llm.ToolContext) => object[];
 };
 
@@ -67,6 +85,63 @@ const catalog = new llm.ToolContext({
   [FIND_TOOLS]: createFindToolsTool() as unknown as llm.FunctionTool,
 } as unknown as Record<string, llm.AnonFunctionTool>);
 
+// The tool set a live turn sends without retrieval (TOOL_SET today|core): the
+// same for every request, built with the production code.
+const asTools = (r: Record<string, unknown>) =>
+  r as unknown as Record<string, llm.AnonFunctionTool>;
+async function fixedSet(): Promise<llm.ToolContext | null> {
+  if (TOOL_SET === 'retrieval') return null;
+  const essentialDomains = DEFAULT_ESSENTIAL_DOMAINS as ToolDomain[];
+  if (TOOL_SET === 'core') {
+    const core = await staticCoreCallTools(built.tools, 'eval', undefined, {
+      id: 'ferni',
+      name: 'Ferni',
+    });
+    return new llm.ToolContext(asTools(core));
+  }
+  // today: the first agent's capped essentials, then the post-greeting update.
+  const essentials = toolRegistry.buildToolSet({ domains: essentialDomains }, ctx).tools;
+  const loaderNow = toolRegistry.buildToolSet(
+    { domains: essentialDomains, optional: [...getEssentialTools()] },
+    ctx
+  ).tools;
+  let current: Record<string, unknown> = capToolsToLimit(essentials, 64);
+  const agent = {
+    get toolCtx() {
+      return { functionTools: current };
+    },
+    async updateTools(tools: Record<string, unknown>) {
+      current = tools;
+    },
+  };
+  await updateAgentTools(agent as never, loaderNow);
+  return new llm.ToolContext(asTools(current));
+}
+const fixed = await fixedSet();
+/** The tools prod and dev calls used, 2026-10-04..11 (tool-surface.md). */
+const HEAD = new Set([
+  'quickTimer',
+  'getFunFact',
+  'setTimer',
+  'playMusic',
+  'setReminder',
+  'tellJoke',
+  'rememberAboutUser',
+  'getWeatherForecast',
+  'prepareForDifficultConversation',
+  'askForTeammate',
+  'handoffToPeter',
+  'getWeather',
+  'callOnBehalf',
+  'handoffToMaya',
+  'musicControl',
+  'quickWeather',
+  'searchWeb',
+  'getTodaySignificance',
+  'connectToHumanExpert',
+  'addRelationship',
+]);
+
 process.env.PROMPT_MODE ??= 'character';
 const system = await loadSystemPrompt('ferni');
 const embedder = createVertexEmbedder();
@@ -79,11 +154,14 @@ const genai = new GoogleGenAI({
 });
 
 // Deterministic sample.
-const all = JSON.parse(
-  readFileSync('scripts/tool-retrieval/out/generated-test.json', 'utf8')
-) as Array<{ query: string; tool: string }>;
+const all = (
+  JSON.parse(readFileSync('scripts/tool-retrieval/out/generated-test.json', 'utf8')) as Array<{
+    query: string;
+    tool: string;
+  }>
+).filter((item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool));
 let s = seed;
-const rand = (): number => ((s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+const rand = (): number => (s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
 const sample = [...all].sort(() => rand() - 0.5).slice(0, n);
 
 interface Row {
@@ -96,6 +174,9 @@ interface Row {
   labelSent: boolean;
   promptTokens: number;
   ms: number;
+  /** findTools: its lookup, and the model step after it (the extra step's cost). */
+  findMs?: number;
+  afterFindMs?: number;
   /** A different tool than the label that does the user's job about as well (judged). */
   sufficient?: boolean;
   error?: string;
@@ -155,8 +236,8 @@ async function run(item: { query: string; tool: string }): Promise<Row> {
     ms: 0,
   };
   try {
-    const pick = await retrieval.pick(item.query);
-    const sent = pick ? retrieval.select(catalog, pick) : retrieval.withoutPick(catalog);
+    const pick = fixed ? null : await retrieval.pick(item.query);
+    const sent = fixed ?? (pick ? retrieval.select(catalog, pick) : retrieval.withoutPick(catalog));
     row.sent = Object.keys(sent.functionTools).length;
     row.labelSent = item.tool in sent.functionTools;
     const contents: Content[] = [{ role: 'user', parts: [{ text: item.query }] }];
@@ -164,8 +245,11 @@ async function run(item: { query: string; tool: string }): Promise<Row> {
     // findTools) get a plausible answer and the model goes on; the first
     // action it takes is its choice. Up to MAX_STEPS model calls.
     let tools = sent;
+    let findDone = 0;
     for (let step = 0; step < MAX_STEPS; step++) {
+      const stepStarted = Date.now();
       const r = await ask(contents, tools);
+      if (findDone && row.afterFindMs === undefined) row.afterFindMs = Date.now() - stepStarted;
       if (step === 0) row.promptTokens = r.usageMetadata?.promptTokenCount ?? 0;
       const call = r.functionCalls?.[0];
       if (step === 0) row.first = call?.name ?? null;
@@ -175,14 +259,34 @@ async function run(item: { query: string; tool: string }): Promise<Row> {
       if (call.name === FIND_TOOLS) {
         row.usedFind = true;
         const need = String((call.args as { need?: string })?.need ?? item.query);
-        const found = await retrieval.find(need);
-        output = found.length
-          ? `These tools are now available; call the one that fits: ${found.map((f) => f.name).join('; ')}`
-          : "No tool matches that. Tell the user plainly that you can't do it yet.";
-        tools = pick ? retrieval.select(catalog, pick) : retrieval.withoutPick(catalog);
+        const findStarted = Date.now();
+        if (TOOL_SET === 'core') {
+          // The pinner: what it finds is appended to the call's set.
+          const found = (await retrieval.find(need, 5, { anyTool: true })).filter(
+            (f) => f.name in catalog.functionTools
+          );
+          const added = found.filter((f) => !(f.name in tools.functionTools));
+          tools = new llm.ToolContext([
+            ...Object.values(tools.functionTools),
+            ...added.map((f) => catalog.functionTools[f.name]),
+          ]);
+          output = found.length
+            ? `These tools are now available; call the one that fits: ${found.map((f) => f.name).join('; ')}`
+            : "No tool matches that. Tell the user plainly that you can't do it yet.";
+        } else {
+          const found = await retrieval.find(need);
+          output = found.length
+            ? `These tools are now available; call the one that fits: ${found.map((f) => f.name).join('; ')}`
+            : "No tool matches that. Tell the user plainly that you can't do it yet.";
+          tools =
+            fixed ?? (pick ? retrieval.select(catalog, pick) : retrieval.withoutPick(catalog));
+        }
+        row.findMs = Date.now() - findStarted;
+        findDone = step + 1;
       }
       contents.push(
-        { role: 'model', parts: [{ functionCall: call }] },
+        // The model's own turn: gemini-3.5 rejects a function call without its thought signature.
+        r.candidates?.[0]?.content ?? { role: 'model', parts: [{ functionCall: call }] },
         { role: 'user', parts: [{ functionResponse: { name: call.name, response: { output } } }] }
       );
     }
@@ -223,6 +327,11 @@ console.log(
       findRescued: ok.filter((r) => r.usedFind && r.final === r.label).length,
       toolsSentMedian: med(ok.map((r) => r.sent)),
       promptTokensMedian: med(ok.map((r) => r.promptTokens)),
+      toolSet: TOOL_SET,
+      findMsMedian: med(ok.flatMap((r) => (r.findMs === undefined ? [] : [r.findMs]))),
+      afterFindStepMsMedian: med(
+        ok.flatMap((r) => (r.afterFindMs === undefined ? [] : [r.afterFindMs]))
+      ),
     },
     null,
     1

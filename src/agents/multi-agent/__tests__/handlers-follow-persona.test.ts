@@ -20,6 +20,7 @@ afterEach(() => {
 
 describe('the persona on the call', () => {
   it('without single-session handoffs is the first persona itself', () => {
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'off');
     const session = {};
     expect(personaOnCall(session, { personaId: 'maya-santos' }, ferni)).toBe(ferni);
   });
@@ -68,6 +69,7 @@ describe('the agent on the call', () => {
   });
 
   it('without single-session handoffs is always the first agent', () => {
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'off');
     const first = { name: 'ferni-agent' };
     const session = { currentAgent: { name: 'maya-agent' } };
     expect(agentOnCall(session as never, first)()).toBe(first);

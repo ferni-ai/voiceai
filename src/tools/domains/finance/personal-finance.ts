@@ -4,7 +4,7 @@
  * Domain: Banking, home loans, budgeting, debt management, savings goals.
  * Single responsibility: Personal financial planning and advice tools.
  *
- * Jack Bogle believed in simple, practical financial wisdom -
+ * Index-investing pioneers believed in simple, practical financial wisdom -
  * these tools help people manage their daily financial lives.
  */
 

@@ -18,6 +18,7 @@
  * @module agents/personas/turn-shape
  */
 
+import { listeningLines, type ListeningCues } from './listen-first.js';
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
@@ -28,6 +29,7 @@ import {
   textureLearned,
   textureLine,
 } from './turn-length.js';
+import { quietLineFor } from './quiet-caller.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -266,6 +268,7 @@ function modelChosenShape(
   const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
   parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
   if (learn.length) parts.push(lengthLine(target));
+  if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
   parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory)));
   const learned = [
     learn.length ? `length_${target}` : '',
@@ -321,6 +324,7 @@ export function turnShapeFor(
   const asks = questionAllowed(shape, rng);
   const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig, style);
   parts.push(...extras.lines);
+  if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
   parts.push(
     extras.shapeLine ?? SHAPE_LINE[shape],
     extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory))
@@ -367,4 +371,18 @@ export function rngFor(text: string): () => number {
 /** The replay harness's entry point (scripts/humanness-eval/replay.ts). */
 export function reminderForTurn(userText: string): string {
   return turnShapeFor(userText).reminder;
+}
+
+/**
+ * LISTEN_FIRST=on, caller low on energy (listen-first.ts): no second story, no
+ * stance, no rough self-correction to dress up a monologue; a few words, an
+ * easy question every other turn at most, or just company.
+ */
+export function listeningShapeFor(
+  userText: string,
+  cues: Omit<ListeningCues, 'aboutFerni'>
+): TurnShape {
+  const move = callerMove(userText);
+  const lines = listeningLines({ ...cues, aboutFerni: move === 'about_ferni' });
+  return { move, shape: 'one', reminder: [REGISTER, ...lines].join(' '), extras: ['listen_first'] };
 }

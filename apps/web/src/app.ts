@@ -138,8 +138,6 @@ import { disposeMobileBottomSheet } from './ui/mobile-bottom-sheet.ui.js';
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
 import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
 import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
-// Disabled: Eye animations removed - keeping just zen blink
-// import { initFerniEye } from './ui/ferni-eye.ui.js';
 import { greetingUI } from './ui/greeting.ui.js';
 import { initMoodUI, moodUI } from './ui/mood.ui.js';
 // DISABLED: No skeleton loading - everything visible immediately
@@ -288,6 +286,7 @@ import { wrapUpOwnsAgentLeaving, afterConversationEnd, playEndSound } from './ap
 import { connectFailure } from './services/connect-failure.js';
 import { showAgentLostPrompt } from './app/agent-lost-prompt.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
+import { connectGate, type ConnectGate } from './services/paywall.service.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
 import { initMomentsSystem } from './ui/moments/index.js';
 // Subscription UI - human-centered monetization
@@ -2636,49 +2635,18 @@ class VoiceAIApp {
   /**
    * Check subscription status before connecting.
    *
-   * Philosophy: "Limits feel like natural breaks, not walls."
-   * - At limit → Show warm modal, block connection
-   * - Approaching limit → Allow, but track for subtle reminder
-   * - OK → Proceed normally
+   * Philosophy: "Limits feel like natural breaks, not walls." Without a paywall
+   * (services/paywall.service.ts) every call is allowed and nothing counts down.
    */
-  private async checkSubscriptionBeforeConnect(): Promise<{
-    allowed: boolean;
-    approaching: boolean;
-    remaining: number | null;
-  }> {
+  private async checkSubscriptionBeforeConnect(): Promise<ConnectGate> {
     try {
-      // Load fresh status
-      const status = await loadSubscriptionStatus();
-
-      if (!status) {
-        // No status = assume OK (new user or Stripe not configured)
-        return { allowed: true, approaching: false, remaining: null };
-      }
-
-      // Check if at limit - canStartConversation is nested in usage
-      const canStart = status.usage?.canStartConversation ?? status.canStartConversation ?? true;
-      if (!canStart) {
-        // Show the warm limit modal
+      const gate = connectGate(await loadSubscriptionStatus(), t('app.monthlyLimitReached'));
+      if (gate.limitMessage) {
         const nextMonth = new Date();
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        nextMonth.setDate(1);
-
-        showLimitReachedModal(
-          status.usage?.statusMessage ||
-            status.upgradePrompt ||
-            t('app.monthlyLimitReached'),
-          nextMonth.toISOString()
-        );
-
-        return { allowed: false, approaching: false, remaining: 0 };
+        nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+        showLimitReachedModal(gate.limitMessage, nextMonth.toISOString());
       }
-
-      // Check if approaching limit (80%+ used) - check nested structure
-      const approaching = status.usage?.approachingLimit ?? status.approaching ?? false;
-      const remaining =
-        status.usage?.conversationsRemaining ?? status.conversationsRemaining ?? null;
-
-      return { allowed: true, approaching, remaining };
+      return gate;
     } catch (error) {
       log.warn('Could not check subscription status:', error);
       // On error, allow connection (fail open for better UX)

@@ -2,7 +2,8 @@
  * Sending this call's pick, the follow-up it schedules (through the real
  * commitment-tracking store over an in-memory Firestore, read back by the
  * same processCommitments the follow-up builder runs every turn), and the
- * answer stored as a preference. SMS, the app inbox and user lookup are mocked.
+ * answer stored as a preference. SMS, the app inbox, user lookup and the card
+ * store are mocked; the card goes through the real normalizeCardInput.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -40,13 +41,42 @@ const userReach = vi.fn();
 vi.mock('../../outreach/user-reach.js', () => ({ userReach }));
 const saveInAppMessage = vi.fn(async () => ({ success: true, channel: 'in_app' }));
 vi.mock('../../outreach/unified-delivery.js', () => ({ saveInAppMessage }));
+// The card store: the real normalizer runs on every card, so a card the page
+// would reject fails here; ids are 43 chars like the real ones.
+const cardIds = { next: 0 };
+const createAnswerCard = vi.fn(async (_userId: string, input: unknown) => {
+  const { normalizeCardInput } = await vi.importActual<
+    typeof import('../../approvals/answer-cards.js')
+  >('../../approvals/answer-cards.js');
+  normalizeCardInput(input as Parameters<typeof normalizeCardInput>[0]);
+  const id = String(++cardIds.next).padStart(43, 'c');
+  return { id, url: `https://app.example/a/${id}` };
+});
+vi.mock('../../approvals/answer-cards.js', () => ({ createAnswerCard }));
 const storeUserPreferences = vi.fn(async (_userId: string, _prefs: unknown[]) => undefined);
 vi.mock('../../user-preferences-store.js', () => ({ storeUserPreferences }));
 const markAsked = vi.fn(async () => undefined);
+// The pick log as claimAnswer keeps it: an answer that says whether it helped is recorded once.
+const picks = new Map<string, { id: string; sentVia: string | null; helped: string | null }>();
+const claimAnswer = vi.fn(async (_u: string, id: string, a: { helped: string | null }) => {
+  const known = picks.get(id);
+  if (!known || known.helped) return false;
+  picks.set(id, { ...known, helped: a.helped });
+  return true;
+});
 vi.mock('../pick-log.js', () => ({
   markAsked,
   markSent: vi.fn(async () => undefined),
-  markAnswered: vi.fn(async () => undefined),
+  claimAnswer,
+  recentPicks: vi.fn(async () => [...picks.values()].reverse()),
+}));
+const budget = new Map<string, number>();
+vi.mock('../quota.js', () => ({
+  takeDailyBudget: vi.fn(async (name: string, limit: number) => {
+    const used = budget.get(name) ?? 0;
+    budget.set(name, used + 1);
+    return used < limit;
+  }),
 }));
 
 const {
@@ -55,6 +85,7 @@ const {
   rememberPick,
   recordPickFeedback,
   MAX_TEXTS_PER_CALL,
+  TEXTS_PER_USER_PER_DAY,
   smsBody,
   sendableLink,
 } = await import('../pick-delivery.js');
@@ -88,12 +119,20 @@ const DAY = 86_400_000;
 
 beforeEach(() => {
   docs.clear();
+  budget.clear();
+  picks.clear();
+  picks.set('pick-1', { id: 'pick-1', sentVia: 'text', helped: null });
   vi.clearAllMocks();
+  vi.stubEnv('COACH_MEDIA', 'on');
+  vi.stubEnv('APPROVALS_PAGE', 'on');
   userReach.mockResolvedValue({ phone: '+14155550134' });
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-10-11T12:00:00Z'));
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
 
 describe('deliverPick', () => {
   it('texts this call’s pick to the verified number and asks about it once, three days later', async () => {
@@ -111,9 +150,14 @@ describe('deliverPick', () => {
     expect(body).toContain('(8 minutes)');
     expect(body).not.toContain('\n');
     expect(body).not.toMatch(/ignore previous instructions/i);
+    // The text links the card page; the inbox copy carries the same card's id.
+    const { id, url } = await createAnswerCard.mock.results[0].value;
+    expect(createAnswerCard).toHaveBeenCalledTimes(1);
+    expect(createAnswerCard).toHaveBeenCalledWith('user-1', expect.anything());
+    expect(body.endsWith(` Why I picked it: ${url}`)).toBe(true);
     expect(saveInAppMessage).toHaveBeenCalledWith(
       'user-1',
-      expect.objectContaining({ card: expect.objectContaining({ kind: 'recommendation' }) })
+      expect.objectContaining({ answerCardId: id })
     );
 
     expect((await processCommitments('user-1', 'hey')).followUpsDue).toEqual([]);
@@ -152,11 +196,15 @@ describe('deliverPick', () => {
       'user-1',
       expect.objectContaining({ personaId: 'ferni', type: 'coaching_resource' })
     );
-    expect(saveInAppMessage.mock.calls[0]).toBeDefined();
-    expect(JSON.stringify(saveInAppMessage.mock.calls[0])).toContain('watch?v=vid1');
-    const card = (
-      saveInAppMessage.mock.calls[0] as unknown as [string, { card: Record<string, unknown> }]
-    )[1].card;
+    const inApp = (
+      saveInAppMessage.mock.calls[0] as unknown as [string, { text: string; answerCardId: string }]
+    )[1];
+    expect(inApp.text).toContain('watch?v=vid1');
+    // The inbox renders the card as its own link, so its text carries no card URL.
+    expect(inApp.text).not.toContain('/a/');
+    expect(inApp.answerCardId).toBe((await createAnswerCard.mock.results[0].value).id);
+    expect(inApp).not.toHaveProperty('card');
+    const card = createAnswerCard.mock.calls[0][1] as Record<string, unknown>;
     expect(card).toMatchObject({
       kind: 'recommendation',
       answerText: expect.stringContaining('Eight gentle minutes, made for beginners.'),
@@ -215,7 +263,7 @@ describe('texting safely', () => {
     expect(said.filter((r) => r.includes('Already texted'))).toHaveLength(4 - MAX_TEXTS_PER_CALL);
   });
 
-  it('texts a fixed template: a cleaned title of 60 chars at most and one allowed link', async () => {
+  it('texts a fixed template: a cleaned title of 60 chars at most, one allowed link, then its card', async () => {
     const candidate = {
       ...PICK.candidate,
       title:
@@ -229,8 +277,42 @@ describe('texting safely', () => {
     expect(body).not.toMatch(/900|0100|evil\.example|\n/);
     const title = /"([^"]*)"/.exec(body)![1];
     expect(title.length).toBeLessThanOrEqual(60);
-    expect(body.match(/https:\/\//g)).toHaveLength(1);
-    expect(body.endsWith(' https://www.youtube.com/watch?v=vid1')).toBe(true);
+    // Two links: the checked pick, then our own card page.
+    expect(body.match(/https:\/\//g)).toHaveLength(2);
+    expect(body).toMatch(
+      /\(8 minutes\) https:\/\/www\.youtube\.com\/watch\?v=vid1 Why I picked it: https:\/\/app\.example\/a\/[A-Za-z0-9_-]{43}$/
+    );
+  });
+
+  it.each([
+    // Page off: refused before anything is spent, worded so the model doesn't retry.
+    ['the card page is off', () => vi.stubEnv('APPROVALS_PAGE', ''), "can't send picks yet", 0],
+    // A failed write still spends the day's text: the daily cap fails closed.
+    [
+      'the card is not saved',
+      () => createAnswerCard.mockRejectedValue(new Error('down')),
+      "Couldn't send it",
+      1,
+    ],
+  ])('sends nothing when %s, and gives the slot back', async (_why, arrange, says, textsUsed) => {
+    arrange();
+    const session = {};
+    rememberPick(session, PICK);
+    for (const how of ['text', 'app'] as const)
+      expect(await deliverPick(session, 'user-1', how, 'ferni')).toContain(says);
+    expect(budget.get('texts:user-1') ?? 0).toBe(textsUsed);
+    expect(sendSMS).not.toHaveBeenCalled();
+    expect(saveInAppMessage).not.toHaveBeenCalled();
+    expect([...docs.keys()].some((k) => k.includes('/commitments/'))).toBe(false);
+    // Nothing was used: once cards save, the call still has both of its app sends.
+    vi.stubEnv('APPROVALS_PAGE', 'on');
+    createAnswerCard.mockReset();
+    createAnswerCard.mockImplementation(async () => ({
+      id: 'c'.repeat(43),
+      url: 'https://app.example/a/x',
+    }));
+    for (let i = 0; i < MAX_TEXTS_PER_CALL; i++)
+      expect(await deliverPick(session, 'user-1', 'app', 'ferni')).toContain('app messages');
   });
 
   it('refuses a link that is not https on an allowed or grounded host', async () => {
@@ -241,7 +323,7 @@ describe('texting safely', () => {
     expect(
       sendableLink({ ...off, url: 'https://www.nhs.uk/a', grounding: PICK.candidate.grounding })
     ).toBeNull();
-    // Store links get coach-local's own check, not this list.
+    // Store links are not on the list.
     expect(sendableLink({ ...off, url: 'https://www.doordash.com/store/x' })).toBeNull();
     expect(sendableLink({ ...off, url: 'https://www.amazon.com/s?k=x' })).toBeNull();
     expect(sendableLink({ ...off, url: 'https://books.google.com/books?id=b2' })).toBe(
@@ -270,6 +352,38 @@ describe('send caps and what resurfaces later', () => {
     await deliverPick(session, 'user-1', 'text', 'ferni');
     expect(saveInAppMessage).toHaveBeenCalledTimes(MAX_TEXTS_PER_CALL);
     expect(sendSMS).toHaveBeenCalledTimes(2);
+  });
+
+  it('caps texts per user per day, across calls', async () => {
+    const said: string[] = [];
+    for (const session of [{}, {}]) {
+      rememberPick(session, PICK);
+      for (let i = 0; i < MAX_TEXTS_PER_CALL; i++)
+        said.push(await deliverPick(session, 'user-1', 'text', 'ferni'));
+    }
+    expect(sendSMS).toHaveBeenCalledTimes(TEXTS_PER_USER_PER_DAY);
+    expect(said.at(-1)).toContain('as many texts as Ferni sends someone in a day');
+  });
+
+  it("gives the app slot back when a text's card copy isn't saved", async () => {
+    const session = {};
+    rememberPick(session, PICK);
+    saveInAppMessage.mockResolvedValueOnce({ success: false, channel: 'in_app' });
+    await deliverPick(session, 'user-1', 'text', 'ferni');
+    for (let i = 0; i < MAX_TEXTS_PER_CALL; i++)
+      expect(await deliverPick(session, 'user-1', 'app', 'ferni')).toContain('app messages');
+    expect(saveInAppMessage).toHaveBeenCalledTimes(1 + MAX_TEXTS_PER_CALL);
+  });
+
+  it('never surfaces a coaching follow-up once COACH_MEDIA is off', async () => {
+    const session = {};
+    rememberPick(session, PICK);
+    await deliverPick(session, 'user-1', 'app', 'ferni');
+    vi.stubEnv('COACH_MEDIA', 'off');
+    vi.setSystemTime(new Date(Date.now() + 3 * DAY + 1000));
+    expect((await processCommitments('user-1', 'hey')).followUpsDue).toEqual([]);
+    vi.stubEnv('COACH_MEDIA', 'on');
+    expect((await processCommitments('user-1', 'hey')).followUpsDue).toHaveLength(1);
   });
 
   it('caps app sends per call too, also when they race', async () => {
@@ -304,6 +418,7 @@ describe('send caps and what resurfaces later', () => {
 
 describe('recordPickFeedback', () => {
   it('stores whether it helped as a coaching_media preference, without names', async () => {
+    picks.set('pick-2', { id: 'pick-2', sentVia: 'app', helped: null });
     await recordPickFeedback(
       'user-1',
       { helped: 'no', whatMattered: 'Seth found long lectures boring' },
@@ -318,6 +433,15 @@ describe('recordPickFeedback', () => {
     ]);
     await recordPickFeedback('user-1', { helped: 'yes', whatMattered: 'short follow-alongs' }, []);
     expect(storeUserPreferences.mock.calls[1][1][0]).toMatchObject({ isNegative: false });
+  });
+
+  it('counts the answer once when the follow-up already recorded it', async () => {
+    const answer = { id: 'coach-media-pick-1', content: "try the video 'X'", outcome: 'done' };
+    expect(await recordFollowUpAnswer('user-1', answer, 'it really helped')).toBe('yes');
+    expect(
+      await recordPickFeedback('user-1', { helped: 'yes', whatMattered: 'short ones' }, [])
+    ).toContain('already noted');
+    expect(storeUserPreferences).toHaveBeenCalledTimes(1);
   });
 
   it('stores nothing for an anonymous caller or an empty answer', async () => {

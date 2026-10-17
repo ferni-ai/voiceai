@@ -1,8 +1,16 @@
 /**
- * The card a sent pick lands as in the app: what the signed-in sources page
- * (approvals-page, `answer_cards`) renders. Google's grounding terms ask that a
- * grounded result's sources and Search suggestions be shown to the user; voice
- * can't, so they travel with the card, never in the model's text.
+ * The card a sent pick carries: its sources and Google Search suggestions,
+ * which Google's grounding terms ask be shown to the user; voice can't, so
+ * they travel with the card, never in the model's text.
+ *
+ * Sending a pick saves it to `answer_cards` (approvals/answer-cards.ts); the
+ * text and the in-app message (proactive-messages.ui.ts) link its page,
+ * /a/:id (answer-card-page.ui.ts). That page and its API are behind
+ * APPROVALS_PAGE, and pick-delivery.ts sends nothing without a saved card, so
+ * COACH_MEDIA needs APPROVALS_PAGE=on to send anything: set on BOTH the voice
+ * agent (which writes the card and texts the link) and the UI server (which
+ * serves it), with APP_URL pointing at that environment's app, or the link
+ * reads as "couldn't find that one".
  *
  * Shape agreed with approvals-page: answerText is plain text (400 chars),
  * sources are https only, searchSuggestionsHtml is Google's renderedContent

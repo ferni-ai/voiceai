@@ -83,6 +83,20 @@ function logFor(session: object): SessionLog {
   return entry;
 }
 
+/** Whether the person on this call is known not to be the account owner (outreachConfirmListeners). */
+export function speakerIsNotOwner(session: object): boolean {
+  return sessions.get(session)?.speakerIsOwner?.() === false;
+}
+
+/**
+ * Whether the person on this call is known to be the account owner. Unknown is
+ * false: no session, or no owner check registered (a session built without
+ * outreachConfirmListeners, or OUTBOUND_CONFIRM=off outside production).
+ */
+export function ownerKnown(session: object | undefined): boolean {
+  return session !== undefined && sessions.get(session)?.speakerIsOwner?.() === true;
+}
+
 function record(session: object, event: SessionEvent): void {
   const entry = logFor(session);
   entry.events.push({ ...event, seq: ++entry.seq });
@@ -95,7 +109,16 @@ const YES_PHRASES = [
   ...'call them|call her|call him|make the call'.split('|'),
   ...'yes yeah yep yup ya sure ok okay correct absolutely definitely'.split(' '),
 ];
-const FILLERS = ['thank you', 'please', 'thanks'];
+// Words a yes may carry that add nothing to send: a name for whoever is speaking, a filler, or an
+// echo of the question ("Should I call her?" "Yes, she should."). Never a yes on their own.
+// Owner calls 10-14..10-16 placed nothing on "Go ahead, Ferni." and "Yes, she should."
+const FILLERS = [
+  ...'thank you|that works|you can|for sure|of course'.split('|'),
+  ...'she should|he should|they should|you should|she can|he can|they can'.split('|'),
+  ...'please thanks ferni fern maya jordan peter alex nayan buddy bud man dude pal um uh oh hey'.split(
+    ' '
+  ),
+];
 const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
 
 const words = (text: string): string[] =>
@@ -214,7 +237,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           return 'Nothing was sent: I can only send this after the caller says yes on a call.';
         }
         const entry = logFor(session);
-        if (entry.speakerIsOwner?.() === false) {
+        if (speakerIsNotOwner(session)) {
           log.warn({ toolId: def.id }, 'OUTREACH_CONFIRM: speaker is not the owner, nothing sent');
           return "Nothing was sent: only the account owner can confirm this, and they aren't on the line.";
         }

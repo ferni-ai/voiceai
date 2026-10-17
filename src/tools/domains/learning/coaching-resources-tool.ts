@@ -32,14 +32,24 @@ import {
   takeDailyBudget,
 } from '../../../services/coach-media/quota.js';
 import { groundedAnswer } from '../../../services/coach-media/grounded-search.js';
-import { groundedResultText, pickResultText } from '../../../services/coach-media/result-text.js';
+import {
+  groundedResultText,
+  pickResultText,
+  useRegisteredToolNames,
+} from '../../../services/coach-media/result-text.js';
 import {
   coachMediaEnabled,
   sessionIdentifiers,
   topicOnlyQuery,
 } from '../../../services/coach-media/topic-query.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { isSyntheticUserId } from '../../../utils/synthetic-user.js';
+import { ownerKnown, testAccountReply } from '../communication/outreach/outreach-confirm.js';
+import { toolRegistry } from '../../registry/index.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
+
+// Brands like iPhone may stay in web text; registered tool names never do.
+useRegisteredToolNames(() => toolRegistry.getAllIds());
 
 export const FIND_COACHING_RESOURCES = 'findCoachingResources';
 
@@ -192,7 +202,13 @@ export async function runCoachingPick(
       sessionIdentifiers(call.userData)
     );
   }
-  return deliverPick(call.session, userId, args.action === 'send_text' ? 'text' : 'app', personaId);
+  const how = args.action === 'send_text' ? 'text' : 'app';
+  // A text reaches the owner's phone: only when the speaker is known to be the
+  // owner. Unknown counts as no, whatever session path built this call.
+  if (how === 'text' && isSyntheticUserId(userId)) return testAccountReply(COACHING_PICK);
+  if (how === 'text' && !ownerKnown(call.session))
+    return "Nothing was sent: a text goes only to the account owner, and I can't tell they're the one on the line. Offer the app instead.";
+  return deliverPick(call.session, userId, how, personaId);
 }
 
 const coachingPickDefinition: ToolDefinition = {

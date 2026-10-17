@@ -173,22 +173,10 @@ The person will receive a phone call and be connected to our conversation.`,
             return "That phone number doesn't look right. Could you give me the number again? For example: 555-123-4567 or +1 555 123 4567";
           }
 
-          // Send message to voice agent to initiate call
-          const result = {
-            action: 'INVITE_PARTICIPANT',
-            phoneNumber: cleanPhone.startsWith('+') ? cleanPhone : `+1${cleanPhone}`,
-            name: params.name,
-            relationship: params.relationship,
-            introduction: params.introduction,
-          };
-
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const intro = params.introduction || `${ctx.userId} wants to talk`;
-
-          return JSON.stringify({
-            ...result,
-            voiceResponse: `Got it! I'm calling ${params.name} now. When they answer, I'll let them know you wanted to chat${params.relationship ? ` - I'll mention you're ${params.relationship === 'friend' ? 'friends' : params.relationship}` : ''}. One moment...`,
-          });
+          // Nothing consumes an INVITE_PARTICIPANT action, so no call is ever placed:
+          // say so instead of "I'm calling them now" (prod call 2026-10-14, #1415).
+          log.warn({ agentId: ctx.agentId }, 'inviteParticipant: no dialer, nothing placed');
+          return `Nothing was dialed: I can't add ${params.name} to this call by phone yet.`;
         } catch (error) {
           log.error({ error: String(error) }, 'Failed to invite participant');
           return "I couldn't place that call. Would you like me to try again?";

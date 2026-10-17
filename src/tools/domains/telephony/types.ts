@@ -94,6 +94,9 @@ export interface OnBehalfCallRequest {
   // Compliance
   recordingConsent: boolean;
   requiresHIPAA?: boolean;
+
+  /** Set on the one retry of a missed call: the call it retries. */
+  retryOf?: string;
 }
 
 export interface CallOutcome {

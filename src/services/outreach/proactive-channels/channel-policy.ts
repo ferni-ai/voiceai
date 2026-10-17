@@ -7,9 +7,9 @@
  * - A call is for something meaningful (a promised call) when they turned calls
  *   on: at most one a day, inside the call window (call-hours-guard), never in
  *   their quiet hours.
- * - Quiet hours (nothing goes out): the same rules as quiet-hours.ts (#802,
- *   QUIET_HOURS_UNIFIED); swap inQuietHours for its isUserQuiet once that is
- *   on main. Without a time zone there are no texts or calls.
+ * - Quiet hours (nothing goes out): 21:00 to 08:00 always, plus the user's
+ *   own window (read as quiet-hours.ts, #802, does), in their own time zone.
+ *   Without a time zone there are no texts or calls.
  * - Backing off: two texts in a row with no conversation since means no more
  *   texts until they talk to Ferni again; a call that wasn't picked up (or was
  *   a "not now") means no calls for three days; a snooze holds everything.
@@ -36,7 +36,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const CALL_BACKOFF_MS = 3 * DAY_MS;
 /** Texts in a row without a conversation since, before texts stop. */
 const MAX_UNANSWERED_TEXTS = 2;
-const DEFAULT_QUIET: QuietWindow = { startMin: 22 * 60, endMin: 8 * 60 };
+const QUIET_FLOOR: QuietWindow = { startMin: 21 * 60, endMin: 8 * 60 };
 
 export type ProactiveFrequency = 'normal' | 'gentle' | 'light' | 'off';
 
@@ -65,11 +65,14 @@ export function frequencyOf(prefs: unknown): ProactiveFrequency {
   return FREQUENCIES.includes(f as ProactiveFrequency) ? (f as ProactiveFrequency) : 'gentle';
 }
 
-/** Their quiet window, or null when they turned quiet hours off. */
-function quietWindow(prefs: unknown): QuietWindow | null {
+/**
+ * 21:00 to 08:00 always, plus their own window if they set one (quiet-hours.ts
+ * rules: quietHours when enabled, else quietHoursStart/End). Theirs can add
+ * quiet time, never take it away.
+ */
+function quietWindows(prefs: unknown): QuietWindow[] {
   const p = prefs as ProactivePrefs | undefined;
   const q = p?.quietHours;
-  if (q?.enabled === false) return null;
   const own =
     q && Boolean(q.enabled) ? parseQuietWindow(String(q.start), String(q.end)) : undefined;
   const { quietHoursStart: hs, quietHoursEnd: he } = p ?? {};
@@ -77,16 +80,20 @@ function quietWindow(prefs: unknown): QuietWindow | null {
     Number.isInteger(hs) && Number.isInteger(he) && hs !== he
       ? { startMin: Number(hs) * 60, endMin: Number(he) * 60 }
       : undefined;
-  return own ?? hours ?? DEFAULT_QUIET;
+  const theirs = own ?? hours;
+  return theirs ? [QUIET_FLOOR, theirs] : [QUIET_FLOOR];
 }
 
 /** True during the user's quiet hours in their own time zone. */
 export function inQuietHours(prefs: unknown, timezone: string, now: Date): boolean {
-  const w = quietWindow(prefs);
-  if (!w) return false;
-  const [min, s, e] = [localMinutes(now, timezone), w.startMin, w.endMin];
-  return s <= e ? min >= s && min < e : min >= s || min < e;
+  const min = localMinutes(now, timezone);
+  return quietWindows(prefs).some(({ startMin: s, endMin: e }) =>
+    s <= e ? min >= s && min < e : min >= s || min < e
+  );
 }
+
+/** A text went out: sent as one, or as the stand-in for a call that couldn't be placed. */
+const isText = (e: OutreachLogEntry): boolean => e.channel === 'sms' || e.fallbackChannel === 'sms';
 
 export interface PolicyInput {
   trigger: Pick<ProactiveTrigger, 'weight' | 'timely' | 'promisedCall'>;
@@ -123,8 +130,8 @@ function callBlocked(
     .filter((e) => e.channel === 'voice_call' && CALL_MISSED.has(e.outcome))
     .find((e) => now - Date.parse(e.outcomeAt ?? e.at) < CALL_BACKOFF_MS);
   if (missed) return `backing off calls after a ${missed.outcome.replace('_', ' ')}`;
-  const quiet = [quietWindow(input.prefs)].filter((w): w is QuietWindow => w !== null);
-  if (nextCallableTime(input.now, [tz], quiet).getTime() !== now) return 'outside call hours';
+  if (nextCallableTime(input.now, [tz], quietWindows(input.prefs)).getTime() !== now)
+    return 'outside call hours';
   return null;
 }
 
@@ -132,7 +139,7 @@ function callBlocked(
 function unansweredTexts(input: PolicyInput): number {
   const since = input.lastTalkedAt ?? 0;
   return input.recent.filter(
-    (e) => e.channel === 'sms' && Date.parse(e.at) > since && e.outcome !== 'replied'
+    (e) => isText(e) && Date.parse(e.at) > since && e.outcome !== 'replied'
   ).length;
 }
 
@@ -177,7 +184,7 @@ function textOrNote(input: PolicyInput, sentToday: OutreachLogEntry[], caps: Cap
   if (!consentFromPrefs(input.prefs).channels.includes('sms')) {
     return { channel: 'in_app', why: 'texts not turned on' };
   }
-  if (sentToday.filter((e) => e.channel === 'sms').length >= caps.sms) {
+  if (sentToday.filter(isText).length >= caps.sms) {
     return { channel: 'in_app', why: 'text limit reached today' };
   }
   if (unansweredTexts(input) >= MAX_UNANSWERED_TEXTS) {

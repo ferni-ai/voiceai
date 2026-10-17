@@ -86,7 +86,6 @@ const KNOWN_STUBS: Record<string, number> = {
   'src/services/background-agents/executors/followup-executor.ts': 1, // "queued" with no send
   'src/tools/domains/home/packages.ts': 1, // made-up tracking events
   'src/tools/domains/smart-home/index.ts': 1, // "Message sent!" to speakers
-  'src/tools/domains/travel/travel.ts': 2, // made-up flights and hotels
   'src/tools/scheduling/appointment-core.ts': 3, // "I'm calling X now" without Twilio
   'src/tools/scheduling/appointments-tools.ts': 1, // checkAvailability "I'm calling X"
 };

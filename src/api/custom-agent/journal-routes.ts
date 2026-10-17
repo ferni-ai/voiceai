@@ -14,6 +14,11 @@ import {
 import { isJournalPlaceholder } from '../../services/custom-agent/journal-placeholder.js';
 import type { JournalEntryBody } from './types.js';
 import { sendJson } from './helpers.js';
+import { getClientIp } from '../../utils/client-ip.js';
+import { rateLimitIpKey } from '../../utils/rate-limit-ip-key.js';
+import { withTranscribeCaller } from '../../services/custom-agent/transcribe-budget.js';
+import { refusedBySharedPools, refusedByTranscribeLimits } from '../journal-transcribe-limits.js';
+import { sentTranscribeRefusal, transcribePrincipal } from '../transcribe-refusal.js';
 
 const log = createLogger({ module: 'CustomAgentJournalRoutes' });
 
@@ -24,8 +29,13 @@ export async function handleCreateJournalEntry(
   req: IncomingMessage,
   res: ServerResponse,
   userId: string,
-  agentId: string
+  agentId: string,
+  isAnonymous = false
 ): Promise<boolean> {
+  // It transcribes too, so the transcribe limits apply: per key before the body is read.
+  const ip = rateLimitIpKey(getClientIp(req));
+  const caller = { userId, isAnonymous };
+  if (await refusedByTranscribeLimits(res, ip, caller)) return true;
   const body = await parseBody<JournalEntryBody>(req);
 
   if (!body.audio) {
@@ -57,12 +67,13 @@ export async function handleCreateJournalEntry(
     const timestamp = new Date().toISOString();
 
     // Transcribe first: with no words there is no entry, and no audio is stored.
-    const transcript = await transcribeAudioBuffer(
-      audioBuffer.buffer.slice(
-        audioBuffer.byteOffset,
-        audioBuffer.byteOffset + audioBuffer.byteLength
-      ),
-      mimeType
+    const audio = audioBuffer.buffer.slice(
+      audioBuffer.byteOffset,
+      audioBuffer.byteOffset + audioBuffer.byteLength
+    );
+    if (await refusedBySharedPools(res, caller)) return true; // 503 already sent
+    const transcript = await withTranscribeCaller(transcribePrincipal(ip, caller), () =>
+      transcribeAudioBuffer(audio, mimeType)
     );
     if (isJournalPlaceholder(transcript)) {
       log.warn({ userId, agentId }, 'No transcript, journal entry not saved');
@@ -121,6 +132,7 @@ export async function handleCreateJournalEntry(
       transcriptLength: transcript.length,
     });
   } catch (error) {
+    if (sentTranscribeRefusal(res, error)) return true; // 413 too long, or 503 budget spent
     log.error({ error: String(error), userId, agentId }, 'Journal entry creation failed');
     sendJson(res, 500, { error: 'Failed to create journal entry' });
   }

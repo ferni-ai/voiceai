@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildOnBehalfDispatch,
+  onBehalfDispatchFor,
   parseOnBehalfDispatch,
   signOnBehalfDispatch,
   verifyOnBehalfDispatch,
@@ -108,6 +109,34 @@ describe('on-behalf dispatch contract', () => {
       verifyOnBehalfDispatch(JSON.stringify(buildOnBehalfDispatch(input)), 'server-secret')
     ).toBe(false);
     expect(verifyOnBehalfDispatch('not json', 'server-secret')).toBe(false);
+  });
+
+  it('carries the missed call a retry is for, under the signature', () => {
+    const request = {
+      contactQuery: 'Mom',
+      resolvedContact: input.contact,
+      purpose: input.purpose,
+      objective: input.objective,
+      callType: input.callType,
+      originalSessionId: 'session-orig',
+      userId: 'user-1',
+      userTimezone: 'America/New_York',
+      userName: 'Seth',
+      recordingConsent: false,
+    };
+    const retry = signOnBehalfDispatch(
+      onBehalfDispatchFor('call-2', { ...request, retryOf: 'call-1' }),
+      'server-secret'
+    );
+    const wire = JSON.parse(JSON.stringify(retry));
+    expect(parseOnBehalfDispatch(wire)?.retryOf).toBe('call-1');
+    expect(verifyOnBehalfDispatch(JSON.stringify(wire), 'server-secret')).toBe(true);
+    // Dropping retryOf (so the retry could be retried again) breaks the signature.
+    const { retryOf: _dropped, ...stripped } = wire;
+    expect(verifyOnBehalfDispatch(JSON.stringify(stripped), 'server-secret')).toBe(false);
+    expect(
+      parseOnBehalfDispatch(JSON.parse(JSON.stringify(onBehalfDispatchFor('c', request))))?.retryOf
+    ).toBeUndefined();
   });
 
   it('rejects a signed payload with any field changed', () => {

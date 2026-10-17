@@ -5,19 +5,25 @@
  * - Only the pick findCoachingResources made on this call can be sent; the
  *   model never supplies a link, so web text can't get a link sent.
  * - A text goes only to the verified number on the account (userReach), only
- *   because they asked for it, at most MAX_TEXTS_PER_CALL per call. The app
- *   copy goes to the in-app inbox (saveInAppMessage) with its card
- *   (answer-card.ts) either way.
+ *   because they asked for it, at most MAX_TEXTS_PER_CALL per call and
+ *   TEXTS_PER_USER_PER_DAY a day (the tool also turns away test accounts and a
+ *   speaker who isn't the owner, as the outbound confirm gate does). The app
+ *   copy goes to the in-app inbox (saveInAppMessage) either way.
+ * - Every send links the pick's answer card (answer-card.ts), the page at
+ *   /a/:id that shows its sources and Google's search suggestions, which the
+ *   grounding terms ask be shown. Without a saved card nothing is sent.
  * - Sending saves a trust-systems commitment due in a few days, so the
  *   follow-up builder (commitment-follow-up.ts) has Ferni ask once how it went.
- * - Their answer is stored as a coaching_media preference, which fit.ts reads
- *   for the next pick.
+ * - Their answer is stored once per pick (feedback.ts recordHelped) as a
+ *   coaching_media preference, which fit.ts reads for the next pick.
  *
  * Keyed by the AgentSession object, like the call's game state. Behind COACH_MEDIA=on.
  *
  * @module services/coach-media/pick-delivery
  */
 
+import { createAnswerCard } from '../approvals/answer-cards.js';
+import { isApprovalsPageEnabled } from '../approvals/flag.js';
 import { sendSMS } from '../communication-service.js';
 import { callerText } from '../outreach/caller-text.js';
 import { saveInAppMessage } from '../outreach/unified-delivery.js';
@@ -29,8 +35,9 @@ import { pickCard } from './answer-card.js';
 import { safeHttpsUrl } from './grounded-search.js';
 import { webData } from './result-text.js';
 import type { Candidate } from './checked-pick.js';
-import { COACH_MEDIA_COMMITMENT_PREFIX } from './feedback.js';
-import { markSent } from './pick-log.js';
+import { COACH_MEDIA_COMMITMENT_PREFIX, recordHelped } from './feedback.js';
+import { markSent, recentPicks } from './pick-log.js';
+import { takeDailyBudget } from './quota.js';
 import { topicOnlyQuery } from './topic-query.js';
 
 export interface SentPick {
@@ -44,6 +51,8 @@ export interface SentPick {
 
 /** Sends per call, per channel (text, app). */
 export const MAX_TEXTS_PER_CALL = 2;
+/** Texts per user per day, across calls. */
+export const TEXTS_PER_USER_PER_DAY = 3;
 export const FOLLOW_UP_DAYS = 3;
 
 const lastPicks = new WeakMap<object, SentPick>();
@@ -84,14 +93,18 @@ export function plainTitle(title: string, max: number): string {
   return words.length > max ? `${words.slice(0, max - 1).trimEnd()}…` : words;
 }
 
-/** The text a pick goes out as: a fixed template, the plain title and exactly one checked link. */
-export function smsBody(c: Candidate, link: string): string {
+/**
+ * The text a pick goes out as: a fixed template, the plain title, the one
+ * checked link and, in a text, the link to its card (our own /a/:id page).
+ */
+export function smsBody(c: Candidate, link: string, cardUrl?: string): string {
   const short = plainTitle(c.title, 60);
   // Length is ours (spokenLength or a page count), but only its known shape goes out.
   const length = /^\d+(\.\d)? (seconds|minutes|hours|pages)$/.test(c.length ?? '')
     ? ` (${c.length})`
     : '';
-  return `From Ferni, the ${c.kind === 'product' ? 'pick' : c.kind} we talked about: "${short || 'this one'}"${length} ${link}`;
+  const card = cardUrl ? ` Why I picked it: ${cardUrl}` : '';
+  return `From Ferni, the ${c.kind} we talked about: "${short || 'this one'}"${length} ${link}${card}`;
 }
 
 /**
@@ -101,6 +114,20 @@ export function smsBody(c: Candidate, link: string): string {
 export function commitmentText(c: Candidate): string {
   const title = plainTitle(c.title, 40);
   return title ? `try the ${c.kind} '${title}'` : `try the ${c.kind} Ferni sent`;
+}
+
+/** The pick's card, saved for its page; null when the save fails. */
+async function saveCard(
+  userId: string,
+  sent: SentPick,
+  personaId: string
+): Promise<{ id: string; url: string } | null> {
+  return createAnswerCard(userId, pickCard(sent.topic, sent.candidate, sent.why, personaId)).catch(
+    (error: unknown) => {
+      getLogger().warn({ error: String(error) }, 'coach-media: answer card not saved');
+      return null;
+    }
+  );
 }
 
 async function followUpLater(userId: string, sent: SentPick): Promise<Date> {
@@ -144,17 +171,12 @@ export async function deliverPick(
   const c = sent.candidate;
   const link = sendableLink(c);
   if (!link) return "That link isn't one Ferni can send; describe it instead.";
-  const body = smsBody(c, link);
   const log = getLogger();
-  // The app copy carries the card (sources, Search suggestions) either way: a
-  // grounded pick's sources must be visible somewhere the user can see.
-  const inApp = {
-    type: 'coaching_resource',
-    personaId,
-    text: body,
-    reason: 'coach-media pick',
-    card: { ...pickCard(sent.topic, c, sent.why, personaId) },
-  };
+  // Every send links its card page (/a/:id). That page is the UI server's
+  // APPROVALS_PAGE, so this agent needs the same flag (and APP_URL) as the
+  // UI server; with it off, refuse before any slot or daily text is used.
+  if (!isApprovalsPageEnabled())
+    return "Ferni can't send picks yet. Describe it instead, and don't offer to send it again.";
 
   // Take a slot before the first await: parallel calls in one model step would
   // otherwise all pass the check. Given back if nothing is sent.
@@ -167,15 +189,39 @@ export async function deliverPick(
   counts[how] += 1;
   sends.set(session!, counts);
   const release = (): void => void (counts[how] -= 1);
+  // Shared by every worker; a failed send still uses it, so the cap fails closed.
+  if (how === 'text' && !(await takeDailyBudget(`texts:${userId}`, TEXTS_PER_USER_PER_DAY))) {
+    release();
+    return "That's as many texts as Ferni sends someone in a day; offer the app instead.";
+  }
 
-  if (how === 'text') {
-    const reach = await userReach(userId, 'sms', { standingOptIn: false }).catch(() => null);
-    if (!reach?.phone) {
-      release();
-      return "There's no verified number on their account, so it can't be texted. Offer to put it in the app.";
-    }
+  const phone =
+    how === 'text'
+      ? (await userReach(userId, 'sms', { standingOptIn: false }).catch(() => null))?.phone
+      : undefined;
+  if (how === 'text' && !phone) {
+    release();
+    return "There's no verified number on their account, so it can't be texted. Offer to put it in the app.";
+  }
+  // A grounded pick's sources and Search suggestions must be visible where
+  // they read it: the card page. No card, no send.
+  const card = await saveCard(userId, sent, personaId);
+  if (!card) {
+    release();
+    return "Couldn't send it just now. Describe it instead.";
+  }
+  // The inbox shows the card as a link of its own (proactive-messages.ui.ts).
+  const inApp = {
+    type: 'coaching_resource',
+    personaId,
+    text: smsBody(c, link),
+    reason: 'coach-media pick',
+    answerCardId: card.id,
+  };
+
+  if (phone) {
     try {
-      await sendSMS(reach.phone, body);
+      await sendSMS(phone, smsBody(c, link, card.url));
     } catch (error) {
       release();
       log.warn({ error: String(error) }, 'coach-media: text failed');
@@ -184,7 +230,8 @@ export async function deliverPick(
     // The card copy saved with a text counts against the app cap too.
     if (counts.app < MAX_TEXTS_PER_CALL) {
       counts.app += 1;
-      await saveInAppMessage(userId, inApp);
+      const saved = await saveInAppMessage(userId, inApp);
+      if (!saved.success) counts.app -= 1;
     }
   } else {
     const saved = await saveInAppMessage(userId, inApp);
@@ -205,7 +252,12 @@ export async function deliverPick(
     : "It's in their app messages. In a few days, ask once whether it helped.";
 }
 
-/** Stores their answer to "did it help?" as a coaching_media preference. */
+/**
+ * Their answer to "did it help?" from the coachingPick feedback action, for
+ * their latest sent pick that doesn't say yet. Recorded once per pick: the
+ * follow-up reader may hear the same answer (feedback.ts recordHelped). With
+ * no such pick in the log nothing is stored.
+ */
 export async function recordPickFeedback(
   userId: string | undefined,
   feedback: { helped: 'yes' | 'somewhat' | 'no'; whatMattered?: string },
@@ -214,14 +266,11 @@ export async function recordPickFeedback(
   if (!userId || userId === 'anonymous') return 'Noted for this call only.';
   const value = topicOnlyQuery(feedback.whatMattered ?? '', names);
   if (!value) return 'Ask what made it work or not, in a few words, then record that.';
-  await storeUserPreferences(userId, [
-    {
-      category: 'coaching_media',
-      value,
-      confidence: feedback.helped === 'somewhat' ? 0.6 : 0.9,
-      isNegative: feedback.helped === 'no',
-      rawText: value,
-    },
-  ]);
-  return "Got it; the next pick will take that into account. Don't mention saving it.";
+  const pick = (await recentPicks(userId)).find((p) => p.sentVia && !p.helped);
+  const stored =
+    pick &&
+    (await recordHelped(userId, pick.id, { outcome: 'done', helped: feedback.helped }, value));
+  return stored
+    ? "Got it; the next pick will take that into account. Don't mention saving it."
+    : "That's already noted (or there's no sent pick to attach it to). Don't mention it.";
 }

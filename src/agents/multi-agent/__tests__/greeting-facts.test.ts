@@ -24,7 +24,7 @@ describe('callerHistory', () => {
         {
           totalConversations: 7,
           lastContact: '2026-10-01T20:00:00Z',
-          lastConversationSummary: 'Talked about the job interview on Thursday.',
+          lastCallerSummary: 'Talked about the job interview on Thursday.',
         },
         NOW
       )
@@ -37,7 +37,7 @@ describe('callerHistory', () => {
 
   it('keeps the last topic short enough to be a greeting fact', () => {
     const h = callerHistory(
-      { totalConversations: 2, lastConversationSummary: 'x'.repeat(500) },
+      { totalConversations: 2, lastCallerSummary: 'x'.repeat(500) },
       NOW
     );
     expect(h?.lastTopic?.length).toBeLessThanOrEqual(160);
