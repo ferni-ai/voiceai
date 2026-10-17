@@ -43,6 +43,8 @@ export const FLAG_MANIFEST = {
   ALLOW_CLIENT_DEV_MODE: { default: 'off', owner: 'voice', kind: 'kill-switch' },
   ALLOW_PRODUCTION_DATA: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   ALLOW_SOTA_SEED: { default: 'off', owner: 'voice', kind: 'config' },
+  // every persona starts with getNews, getWeather, getWeatherForecast, searchWeb (multi-agent/always-on-info-tools.ts)
+  ALWAYS_ON_INFO_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
   AMBIENT_MUSIC_ENABLED: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   APPLE_ONLINE_CHECKS: { default: 'on', owner: 'billing', kind: 'kill-switch' },
   APPROVALS_PAGE: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -236,6 +238,8 @@ export const FLAG_MANIFEST = {
   NAME_MISHEAR_NORMALIZE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a mode: on speaks a fallback when a reply fails, shadow only logs it
   NEVER_SILENT: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // getNews topic search with no NewsData/GNews key says so and gives RSS headlines (news.ts)
+  NEWS_HEADLINES_FALLBACK: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   ON_BEHALF_TEXTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OPENER_FOLLOW_UP: { default: 'off', owner: 'memory', kind: 'experiment' },
