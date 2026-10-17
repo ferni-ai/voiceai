@@ -280,6 +280,14 @@ export interface Delivery extends Shift {
   trace: Array<{ layer: DeliveryLayer } & Shift>;
 }
 
+/**
+ * Late night (PORCH_LIGHT=on): the resting point on a call the caller started
+ * in their small hours, a touch slower and a little quieter, never a whisper.
+ * 0.97 is FERNI_STATE's low-energy step (-0.03) as a ratio; <volume ratio="0.85"/>
+ * takes ~2 dB off Ferni's voice (measured, see the module note).
+ */
+export const LATE_NIGHT: Readonly<Shift> = { speed: 0.97, volume: 0.85 };
+
 /** Below this distance from 1 a speed is not worth a tag. */
 export const SPEED_EPSILON = 0.015;
 const CARTESIA_SPEED = [0.6, 1.5] as const;

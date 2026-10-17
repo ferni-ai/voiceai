@@ -289,6 +289,8 @@ export const FLAG_MANIFEST = {
   // read in patches/@livekit__agents@1.6.4.patch
   PLAYOUT_LAUNCH_RESUME: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PONDERING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // late-night calls: a softer reply line and the LATE_NIGHT layer in attune.ts (porch-light.ts)
+  PORCH_LIGHT: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_ADAPTIVE_PACING: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_ENHANCEMENT_ENABLED: { default: 'off', owner: 'voice', kind: 'experiment' },
   PREDICTIONS_USE_ASYNC: { default: 'off', owner: 'voice', kind: 'experiment' },

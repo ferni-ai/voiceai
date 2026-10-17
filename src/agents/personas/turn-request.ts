@@ -41,6 +41,7 @@ import { listeningNotes, listeningReply } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
+import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
 import {
   worldFactLinesFor,
@@ -122,11 +123,9 @@ export function withTurnReminder(
   const corrected = options.shape !== false ? correctionNotesFor(chatCtx, session) : '';
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
-  // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
-  // It also decides whether a story of his own may ride this reply.
+  // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
-  // The style goes last, nearest the reply: the per-turn shape is followed
-  // best there (turn-shape.ts), and live it otherwise sat behind the notes.
+  // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
     // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
@@ -145,6 +144,8 @@ export function withTurnReminder(
     // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
     quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
     state.note,
+    // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
+    porchLightNote(chatCtx, session, { careful: options.shape === false }),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
       said: words,
@@ -180,8 +181,7 @@ export function withTurnReminder(
     // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
     // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),
-    // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
-    // for this reply, last but the repair check; never with crisis guidance.
+    // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
