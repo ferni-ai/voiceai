@@ -2123,6 +2123,7 @@
     "sonosConnected": "Sonos מחובר!",
     "transcribing": "מתמללים...",
     "transcriptionUnavailable": "הפעם לא הצלחתי לקלוט את המילים, ולכן שום דבר לא נשמר. לנסות שוב?",
+    "journalTooLong": "זה קצת ארוך. נסו הקלטה קצרה יותר, עד {count} דקות.",
     "entrySaved": "הרשומה נשמרה!",
     "couldNotSaveEntry": "לא הצלחנו לשמור את הרשומה. לנסות שוב?",
     "profileSaved": "הפרופיל נשמר!",
@@ -3489,6 +3490,11 @@
     "fieldRelationship": "קשר משפחתי",
     "fieldWhatShouldFerniCallThem": "איך כדאי ל-Ferni לקרוא להם?",
     "fieldNotesForFerni": "הערות עבור Ferni",
+    "callConsentLabel": "שמחים לשמוע מ-Ferni",
+    "callConsentHint": "הסכימו ש-Ferni יתקשר מדי פעם לשאול מה שלומם. אפשר לבקש ממנו להפסיק בכל רגע.",
+    "callConsentSaved": "נשמר",
+    "callConsentFailed": "לא הצלחנו לשמור. נסו שוב.",
+    "callConsentLoadFailed": "לא הצלחנו לטעון אם הם שמחים לשמוע מ-Ferni. פתחו שוב כדי לנסות שוב.",
     "cancel": "ביטול",
     "addToFamily": "הוספה למשפחה",
     "relationshipMother": "אמא",
@@ -11165,7 +11171,8 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
     "role": {

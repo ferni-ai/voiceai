@@ -375,8 +375,9 @@
 
     init() {
       this.setupKonamiCode();
-      this.setupScrollLove();
-      this.setupIdleDetection();
+      // Scroll-love and idle toasts are off: an unprompted "You're doing
+      // great." while someone is reading felt like being watched. Only the
+      // easter eggs a visitor asks for (Konami code, console) stay on.
       this.setupConsoleEasterEgg();
     },
 

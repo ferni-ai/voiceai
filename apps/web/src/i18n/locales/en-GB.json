@@ -2153,6 +2153,7 @@
     "sonosConnected": "Sonos connected!",
     "transcribing": "Transcribing...",
     "transcriptionUnavailable": "Couldn't catch the words this time, so nothing was saved. Want to try again?",
+    "journalTooLong": "That one's long. Try a shorter one, under {count} minutes.",
     "entrySaved": "Entry saved!",
     "couldNotSaveEntry": "Couldn't save entry. Try again?",
     "profileSaved": "Profile saved!",
@@ -3467,6 +3468,11 @@
     "fieldRelationship": "Relationship",
     "fieldWhatShouldFerniCallThem": "What should Ferni call them?",
     "fieldNotesForFerni": "Notes for Ferni",
+    "callConsentLabel": "They're happy to hear from Ferni",
+    "callConsentHint": "They agreed to Ferni ringing now and then to check in. They can tell him to stop at any time.",
+    "callConsentSaved": "Saved",
+    "callConsentFailed": "Couldn't save that. Try again.",
+    "callConsentLoadFailed": "Couldn't load whether they're happy to hear from Ferni. Reopen to try again.",
     "cancel": "Cancel",
     "addToFamily": "Add to Family",
     "relationshipMother": "Mother",
@@ -11056,7 +11062,8 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "approvePage": {
     "kind": {

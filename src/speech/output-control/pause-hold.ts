@@ -107,6 +107,16 @@ interface Gate {
 
 const gates = new Map<string, Gate>();
 
+/** A held reply was released: how long its first audio waited (ms). */
+export type PauseHoldListener = (sessionId: string, heldMs: number) => void;
+const releaseListeners = new Set<PauseHoldListener>();
+
+/** Hear each held reply's release (turn-receipt.ts records it). Returns an unsubscribe. */
+export function onPauseHoldReleased(listener: PauseHoldListener): () => void {
+  releaseListeners.add(listener);
+  return () => void releaseListeners.delete(listener);
+}
+
 /** Wait for the session's pause hold, if one is installed and holding. */
 export async function waitForPauseHold(sessionId: string | undefined): Promise<void> {
   if (!sessionId) return;
@@ -157,10 +167,15 @@ async function holdFirstAudio(
     held.stoppedAt = turn.stoppedAt;
     ms = pauseHoldWaitMs(held, st.callerSpeaking, Date.now(), cfg);
   }
-  log.info(
-    { sessionId, heldMs: Date.now() - start, quietMs: Date.now() - turn.stoppedAt },
-    'PAUSE_HOLD_RELEASED'
-  );
+  const heldMs = Date.now() - start;
+  log.info({ sessionId, heldMs, quietMs: Date.now() - turn.stoppedAt }, 'PAUSE_HOLD_RELEASED');
+  for (const listener of releaseListeners) {
+    try {
+      listener(sessionId, heldMs);
+    } catch {
+      // Observability only: never in the way of the reply's audio.
+    }
+  }
 }
 
 /** At the commit: hold this turn's reply if ink hesitated over it. */
