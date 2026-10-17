@@ -412,7 +412,10 @@
     // Quick time-aware content (no network call needed for basic version)
     if (CONFIG.enableTimeAware) {
       const hour = new Date().getHours();
-      if (hour >= 0 && hour < 5) {
+      // The late-night treatment is a dark palette, so it only applies when the
+      // system asks for dark. On paper (light) it would leave ink text on night ink.
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (hour >= 0 && hour < 5 && systemDark) {
         // Late night - immediate local treatment
         document.body.classList.add('time-mode--late-night');
       }
