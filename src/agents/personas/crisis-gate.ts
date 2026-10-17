@@ -36,9 +36,13 @@ import {
 import {
   CHECK_IN_CLEARED,
   CHECK_IN_LINE,
+  CHECK_IN_REPEAT,
+  CHECK_IN_RESOURCES_NOTE,
   checkInAnswer,
+  checkInCleared,
   checkInEligible,
   claimCheckIn,
+  noteCallerTurn,
   resolveCrisisSoftCheck,
   type CheckInTurn,
 } from '../../services/safety/crisis-soft-check.js';
@@ -73,13 +77,15 @@ const log = createLogger({ module: 'CrisisGate' });
 export type CrisisGateDecision =
   | { action: 'pass' }
   | { action: 'guide'; guidance: string }
-  | { action: 'replace'; script: string; checkIn?: true };
+  | { action: 'replace'; script: string; checkIn?: 'ask' | 'repeat' };
 
 export interface CrisisGateTurn {
   /** What the patterns decided, before the LLM is asked. */
   decision: CrisisGateDecision;
   /** A stronger decision from the classifier, or null; absent when it cannot escalate. */
   escalation: Promise<CrisisGateDecision | null> | null;
+  /** A note for this request when no crisis decision applies (CHECK_IN_RESOURCES_NOTE). */
+  note?: string;
 }
 
 type Chunk = llm.ChatChunk | string | object;
@@ -90,6 +96,7 @@ interface MessageView {
   type?: string;
   role?: string;
   textContent?: string;
+  interrupted?: boolean;
 }
 
 /**
@@ -100,16 +107,19 @@ function callerWords(chatCtx: llm.ChatContext): {
   latest: string;
   earlier: string[];
   companion?: string;
+  /** The caller cut Ferni's line off. */
+  cut: boolean;
 } {
   const said: string[] = [];
   const latest: string[] = [];
   let companion: string | undefined;
+  let cut = false;
   let answering = true;
   for (let i = chatCtx.items.length - 1; i >= 0; i--) {
     const item = chatCtx.items[i] as MessageView;
     if (item.type !== 'message') continue;
     if (item.role === 'assistant') {
-      if (answering) companion = item.textContent?.trim() || undefined;
+      if (answering) [companion, cut] = [item.textContent?.trim() || undefined, !!item.interrupted];
       answering = false;
       continue;
     }
@@ -117,7 +127,7 @@ function callerWords(chatCtx: llm.ChatContext): {
     if (item.role !== 'user' || !text || text.startsWith(TURN_CONTEXT_HEADER)) continue;
     (answering ? latest : said).unshift(text);
   }
-  return { latest: latest.join(' '), earlier: said, companion };
+  return { latest: latest.join(' '), earlier: said, companion, cut };
 }
 
 /** The call's session id, which the reply gate and the turn pipeline share. */
@@ -138,34 +148,42 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
 
 /**
  * A turn answering the check-in (crisis-soft-check.ts): a clear yes adds a
- * note; anything else gets the crisis response the check-in stood in for.
- * `floor` is what the classifier must beat: a clear yes is a note, not a
+ * note; a question cut off is asked again (`fallback`, unless the classifier
+ * escalates); anything else gets the crisis response the check-in stood in
+ * for. `floor` is what the classifier must beat: a clear yes is a note, not a
  * crisis decision, so the classifier may still escalate past it.
  */
 function answeredDecision(
   patterns: CrisisGateDecision,
   answer: ReturnType<typeof checkInAnswer>
-): { decision: CrisisGateDecision; floor: CrisisGateDecision } {
+): { decision: CrisisGateDecision; floor: CrisisGateDecision; fallback?: CrisisGateDecision } {
   if (!answer) return { decision: patterns, floor: patterns };
+  log.info({ source: 'check_in', answer: answer.outcome }, 'CRISIS_GATE');
+  if (answer.outcome === 'repeat') {
+    const fallback = { action: 'replace', script: CHECK_IN_REPEAT, checkIn: 'repeat' } as const;
+    return { decision: patterns, floor: patterns, fallback };
+  }
+  if (answer.outcome === 'safe') {
+    return { decision: { action: 'guide', guidance: CHECK_IN_CLEARED }, floor: patterns };
+  }
   const held = decisionFor(answer.crisis);
-  const decision: CrisisGateDecision =
-    answer.outcome === 'safe'
-      ? { action: 'guide', guidance: CHECK_IN_CLEARED }
-      : RANK[held.action] > RANK[patterns.action]
-        ? held
-        : patterns;
-  log.info({ action: decision.action, source: 'check_in', answer: answer.outcome }, 'CRISIS_GATE');
-  return { decision, floor: answer.outcome === 'safe' ? patterns : decision };
+  const decision = RANK[held.action] > RANK[patterns.action] ? held : patterns;
+  return { decision, floor: decision };
 }
 
 /** CRISIS_IMMINENT_SOFT_CHECK: the call's id, and this turn's answer if it answers a check-in. */
 function checkInState(
   env: Record<string, string | undefined>,
   userData: unknown,
-  turn: { latest: string; companion?: string; pattern: CheckInTurn['pattern'] }
-): { checkIn?: string; answer: ReturnType<typeof checkInAnswer> } {
+  turn: { latest: string; companion?: string; pattern: CheckInTurn['pattern']; cut: boolean }
+): { checkIn?: string; answer: ReturnType<typeof checkInAnswer>; note?: string } {
   const checkIn = resolveCrisisSoftCheck(env) ? sessionScope(userData) : undefined;
-  return { checkIn, answer: checkIn ? checkInAnswer(checkIn, turn) : null };
+  if (!checkIn) return { answer: null };
+  noteCallerTurn(checkIn, turn.latest);
+  const answer = checkInAnswer(checkIn, turn);
+  // After a clear yes, help stays on offer for the rest of the call.
+  const quiet = !answer && turn.pattern === 'none' && checkInCleared(checkIn);
+  return { checkIn, answer, note: quiet ? CHECK_IN_RESOURCES_NOTE : undefined };
 }
 
 /** The call's one check-in in place of a classifier-only escalation, or null. */
@@ -176,9 +194,9 @@ function checkInInstead(
   merged: CrisisDetectionResult
 ): CrisisGateDecision | null {
   if (!checkIn || !checkInEligible(turn, detection)) return null;
-  if (!claimCheckIn(checkIn, turn.latest, merged, true)) return null;
+  if (!claimCheckIn(checkIn, turn.latest, merged)) return null;
   log.info({ action: 'check_in', source: 'classifier' }, 'CRISIS_GATE');
-  return { action: 'replace', script: CHECK_IN_LINE, checkIn: true };
+  return { action: 'replace', script: CHECK_IN_LINE, checkIn: 'ask' };
 }
 
 /**
@@ -192,7 +210,7 @@ export function startCrisisGate(
 ): CrisisGateTurn | null {
   const { env = process.env, generate } = options;
   if (resolveCrisisGuardMode(env) !== 'live') return null;
-  const { latest, earlier, companion } = callerWords(chatCtx);
+  const { latest, earlier, companion, cut } = callerWords(chatCtx);
   if (!latest) return null;
 
   const voiceEmotion = (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)
@@ -210,15 +228,22 @@ export function startCrisisGate(
 
   const pattern =
     patterns.action === 'replace' ? 'block' : patterns.action === 'guide' ? 'crisis' : 'none';
-  const { checkIn, answer } = checkInState(env, userData, { latest, companion, pattern });
-  const { decision, floor } = answeredDecision(patterns, answer);
+  const { checkIn, answer, note } = checkInState(env, userData, {
+    latest,
+    companion,
+    pattern,
+    cut,
+  });
+  const { decision, floor, fallback } = answeredDecision(patterns, answer);
   // The agreement gate weighs this read against the turn pipeline's (crisis-agreement.ts).
   const scope = resolveCrisisAgreementGate(env) ? sessionScope(userData) : undefined;
   const run = startCrisisClassifier(
     { latest, earlier, companion },
     { pattern, env, generate, scope }
   );
-  if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
+  if (run?.mode !== 'live' || decision.action === 'replace') {
+    return { decision: fallback ?? decision, escalation: null, note };
+  }
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
     const merged = applyClassifierVerdict(detection, verdict);
@@ -244,7 +269,17 @@ export function startCrisisGate(
     );
     return stronger;
   });
-  return { decision, escalation };
+  return { decision, escalation: fallback ? orAskAgain(escalation, fallback) : escalation, note };
+}
+
+/** A cut-off check-in is asked again unless the classifier escalates past it. */
+async function orAskAgain(
+  escalation: Promise<CrisisGateDecision | null>,
+  fallback: CrisisGateDecision
+): Promise<CrisisGateDecision> {
+  const decided = await escalation;
+  if (decided?.action === 'replace') return decided;
+  return decided?.action === 'guide' && decided.guidance !== SOFT_CRISIS_CHECK ? decided : fallback;
 }
 
 /** A reply stream that speaks one fixed text. */
@@ -317,12 +352,23 @@ export function holdUntilCleared(
   });
 }
 
+/** The first request: crisis guidance if any, else the turn reminder plus any safety note. */
+function firstRequest(
+  gate: CrisisGateTurn | null,
+  plain: () => llm.ChatContext,
+  reminded: () => llm.ChatContext
+): llm.ChatContext {
+  if (gate?.decision.action === 'guide')
+    return withTurnStyleReminder(plain(), gate.decision.guidance);
+  return gate?.note ? withTurnStyleReminder(reminded(), gate.note) : reminded();
+}
+
 /** A fixed reply; after the check-in, its silence is followed (crisis-check-in-silence.ts). */
 function scripted(
-  decision: { script: string; checkIn?: true },
+  decision: { script: string; checkIn?: 'ask' | 'repeat' },
   session: object
 ): ReadableStream<Chunk> {
-  if (decision.checkIn) followCheckInSilence(session);
+  if (decision.checkIn) followCheckInSilence(session, { repeat: decision.checkIn === 'ask' });
   return textReply(decision.script);
 }
 
@@ -368,17 +414,14 @@ export async function gatedReply(
     ?.then((decision) => signalCrisisDecision(session, decision?.action))
     .catch(() => undefined);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
-  if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
+  if (gate?.decision.action === 'replace') return scripted(gate.decision, session);
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
   // shape ("six words at most") must never hold it back, and no goodbye
   // closes the loop on a plan (wrap-up.ts).
   const plain = (): llm.ChatContext =>
     withTurnReminder(chatCtx, session, { shape: false, closeLoop: false });
-  const ctx =
-    gate?.decision.action === 'guide'
-      ? withTurnStyleReminder(plain(), gate.decision.guidance)
-      : withTurnReminder(chatCtx, session);
+  const ctx = firstRequest(gate, plain, () => withTurnReminder(chatCtx, session));
   // A vocal burst only where this request invited one, never with crisis guidance.
   const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
   const ask = async (

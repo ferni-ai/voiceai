@@ -19,9 +19,10 @@ import {
   type CrisisVerdict,
 } from '../../../services/safety/crisis-classifier.js';
 import {
+  askedThisTurn,
   checkInAnswer,
   checkInEligible,
-  claimCheckIn,
+  noteCallerTurn,
   resolveCrisisSoftCheck,
 } from '../../../services/safety/crisis-soft-check.js';
 import {
@@ -78,6 +79,7 @@ export function startTurnCrisis(
   };
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope });
   const checkIn = resolveCrisisSoftCheck(env) ? options.sessionId || undefined : undefined;
+  if (checkIn) noteCallerTurn(checkIn, userText);
   let settled: Promise<{ crisis: CrisisDetectionResult; soft: boolean }> | null = null;
   const settle = (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> =>
     (settled ??=
@@ -100,10 +102,10 @@ export function startTurnCrisis(
                 return { crisis: patterns, soft: outcome === 'soft' };
               }
             }
+            // Soft only where the reply gate asked "are you safe?" on this turn.
             const turn = { pattern, verdicts, ...input } as const;
             if (checkIn && !answer && checkInEligible(turn, patterns)) {
-              if (claimCheckIn(checkIn, userText, crisis, false))
-                return { crisis: patterns, soft: true };
+              if (askedThisTurn(checkIn, userText)) return { crisis: patterns, soft: true };
             }
             return { crisis, soft: false };
           })

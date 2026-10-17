@@ -23,7 +23,10 @@ import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../../services/safety/crisis-classifier.js';
-import { resetCrisisSoftCheck } from '../../../../services/safety/crisis-soft-check.js';
+import {
+  checkInEligible,
+  resetCrisisSoftCheck,
+} from '../../../../services/safety/crisis-soft-check.js';
 import { CRISIS_TEST_CASES } from '../../../../services/superhuman/validation/crisis-test-cases.js';
 import { decisionFor, startCrisisGate } from '../../../personas/crisis-gate.js';
 import { detectCrisis } from '../../../safety/crisis-guard.js';
@@ -137,13 +140,32 @@ describe('CRISIS_IMMINENT_SOFT_CHECK replay over every crisis corpus', () => {
       positives: CASES.filter((c) => c.positive).length,
       realPositives: CASES.filter((c) => c.positive || realPositive(c)).length,
     }).toEqual({ cases: 490, positives: 307, realPositives: 427 });
-    // Of the 63 classifier-only false alarms, the ones about the call get the check-in.
-    expect(softened).toEqual({
-      'on/imminent': 12,
-      'on/crisis': 12,
-      'agreementOn/imminent': 12,
-      // The agreement gate already softens or passes the rest of these crisis reads.
-      'agreementOn/crisis': 1,
-    });
+    // Of the 63 classifier-only false alarms, those about the call in a call that was only
+    // about the call get the check-in (most corpus cases have earlier lines of their own).
+    expect(softened).toEqual({ 'on/imminent': 1, 'on/crisis': 1, 'agreementOn/imminent': 1 });
   }, 120_000);
+
+  it('no real positive is ever eligible, for any read combination the gate can see', () => {
+    const imminent = { risk: 'imminent', subject: 'self' } as const;
+    const crisis = { risk: 'crisis', subject: 'self' } as const;
+    const none = { risk: 'none', subject: 'self' } as const;
+    const combos = [[imminent], [crisis], [imminent, none], [crisis, none], [crisis, crisis]];
+    const taken = CASES.filter((c) => c.positive || realPositive(c)).flatMap((c) =>
+      combos
+        .filter((verdicts) =>
+          checkInEligible(
+            {
+              pattern: 'none',
+              verdicts,
+              latest: c.text,
+              earlier: c.earlier,
+              companion: c.companion,
+            },
+            detectCrisis(c.text)
+          )
+        )
+        .map((v) => `${c.set}: ${c.text} (${v.map((r) => r.risk).join('+')})`)
+    );
+    expect(taken).toEqual([]);
+  });
 });

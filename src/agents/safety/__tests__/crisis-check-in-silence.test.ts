@@ -32,14 +32,41 @@ describe('followCheckInSilence', () => {
     expect(session.listenerCount('agent_state_changed')).toBe(0);
   });
 
-  it('the caller speaking stops it: their words are the answer', () => {
+  it("only the caller's words stop it: a final transcript", () => {
     const session = caller();
     followCheckInSilence(session);
     session.emit('agent_state_changed', { newState: 'listening' });
-    session.emit('user_state_changed', { newState: 'speaking' });
+    session.emit('user_input_transcribed', { transcript: 'I', isFinal: false });
+    session.emit('user_input_transcribed', { transcript: '  ', isFinal: true });
+    vi.advanceTimersByTime(CHECK_IN_QUIET_MS);
+    expect(session.say).toHaveBeenCalledTimes(1);
+    session.emit('user_input_transcribed', { transcript: "I'm fine", isFinal: true });
+    session.emit('agent_state_changed', { newState: 'listening' });
     vi.advanceTimersByTime(CHECK_IN_QUIET_MS * 5);
+    expect(session.say).toHaveBeenCalledTimes(1);
+    expect(session.listenerCount('user_input_transcribed')).toBe(0);
+  });
+
+  it('voice activity with no words (a cough, the TV) pauses the quiet spell, never ends it', () => {
+    const session = caller();
+    followCheckInSilence(session);
+    session.emit('agent_state_changed', { newState: 'listening' });
+    vi.advanceTimersByTime(CHECK_IN_QUIET_MS - 1_000);
+    session.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(CHECK_IN_QUIET_MS * 2);
     expect(session.say).not.toHaveBeenCalled();
-    expect(session.listenerCount('user_state_changed')).toBe(0);
+    session.emit('user_state_changed', { newState: 'listening' });
+    vi.advanceTimersByTime(CHECK_IN_QUIET_MS);
+    expect(session.say).toHaveBeenLastCalledWith(CHECK_IN_REPEAT, { allowInterruptions: true });
+  });
+
+  it('after a question asked again, silence gets the numbers, not a third question', () => {
+    const session = caller();
+    followCheckInSilence(session, { repeat: false });
+    session.emit('agent_state_changed', { newState: 'listening' });
+    vi.advanceTimersByTime(CHECK_IN_QUIET_MS);
+    expect(session.say).toHaveBeenCalledWith(CHECK_IN_RESOURCES, { allowInterruptions: true });
+    expect(session.say).toHaveBeenCalledTimes(1);
   });
 
   it('a quiet spell counts from when Ferni stops speaking', () => {

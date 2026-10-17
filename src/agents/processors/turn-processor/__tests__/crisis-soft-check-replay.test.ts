@@ -17,6 +17,9 @@ import {
 import {
   CHECK_IN_CLEARED,
   CHECK_IN_LINE,
+  CHECK_IN_REPEAT,
+  CHECK_IN_RESOURCES,
+  CHECK_IN_RESOURCES_NOTE,
   resetCrisisSoftCheck,
 } from '../../../../services/safety/crisis-soft-check.js';
 import { gatedReply, startCrisisGate } from '../../../personas/crisis-gate.js';
@@ -84,7 +87,7 @@ const gate = async (
 /** Ferni has asked the check-in on the 19:25:52 turn. */
 async function askedOnline(env: Record<string, string> = SOFT) {
   const asked = await gate(online(), reads('imminent'), env);
-  expect(asked.escalation).toEqual({ action: 'replace', script: CHECK_IN_LINE, checkIn: true });
+  expect(asked.escalation).toEqual({ action: 'replace', script: CHECK_IN_LINE, checkIn: 'ask' });
   return (answer: string, generate = reads('none')) =>
     gate(online(['assistant', CHECK_IN_LINE], ['user', answer]), generate, env);
 }
@@ -101,7 +104,7 @@ describe('the prod false alarms', () => {
       resetCrisisSoftCheck();
       resetCrisisClassifierCache();
       const { escalation } = await gate(online(), reads('imminent'), env);
-      expect(escalation).toEqual({ action: 'replace', script: CHECK_IN_LINE, checkIn: true });
+      expect(escalation).toEqual({ action: 'replace', script: CHECK_IN_LINE, checkIn: 'ask' });
     }
   });
 
@@ -115,34 +118,34 @@ describe('the prod false alarms', () => {
       resetCrisisSoftCheck();
       resetCrisisClassifierCache();
       const { escalation } = await gate(mom(), reads('crisis'), env);
-      expect(escalation).toEqual({ action: 'replace', script: CHECK_IN_LINE, checkIn: true });
+      expect(escalation).toEqual({ action: 'replace', script: CHECK_IN_LINE, checkIn: 'ask' });
     }
   });
 
-  it('on: the turn pipeline gives soft guidance instead of the override for the same turn', async () => {
-    const run = (env: Record<string, string>) =>
-      startTurnCrisis(
-        ONLINE,
-        { recentTranscripts: ['Okay.', "I'm waiting."], lastAgentResponse: DIALING },
-        { sessionId: session.services.sessionId, env, generate: reads('imminent') }
-      );
-    const off = run(LIVE);
+  const pipelineRun = (env: Record<string, string>) =>
+    startTurnCrisis(
+      ONLINE,
+      { recentTranscripts: ['Okay.', "I'm waiting."], lastAgentResponse: DIALING },
+      { sessionId: session.services.sessionId, env, generate: reads('imminent') }
+    );
+
+  it('on: the turn pipeline gives soft guidance, not the override, once the gate asked', async () => {
+    const off = pipelineRun(LIVE);
     expect(crisisSummary(await off.resolve(), await off.softCheck()).shouldOverrideLLM).toBe(true);
     resetCrisisClassifierCache();
-    const on = run(SOFT);
+    await gate(online(), reads('imminent'));
+    const on = pipelineRun(SOFT);
     expect((await on.resolve()).isCrisis).toBe(false);
     expect(await on.softCheck()).toBe(true);
   });
 
-  it('on: the pipeline lets the reply gate keep the one check-in for this turn', async () => {
-    const pipeline = startTurnCrisis(
-      ONLINE,
-      { recentTranscripts: ['Okay.', "I'm waiting."], lastAgentResponse: DIALING },
-      { sessionId: session.services.sessionId, env: SOFT, generate: reads('imminent') }
-    );
-    expect(await pipeline.softCheck()).toBe(true);
+  it('on: the pipeline alone never softens: no gate check-in, the override as on main', async () => {
+    const pipeline = pipelineRun(SOFT);
+    expect(await pipeline.softCheck()).toBe(false);
+    expect(crisisSummary(await pipeline.resolve()).shouldOverrideLLM).toBe(true);
+    // ...and it never takes the call's check-in from the gate.
     const { escalation } = await gate(online(), reads('imminent'));
-    expect(escalation).toEqual({ action: 'replace', script: CHECK_IN_LINE, checkIn: true });
+    expect(escalation).toEqual({ action: 'replace', script: CHECK_IN_LINE, checkIn: 'ask' });
   });
 });
 
@@ -158,7 +161,7 @@ describe('what never gets the check-in', () => {
   it('risk content in the caller words, now or earlier, keeps the script', async () => {
     const now = request(['assistant', DIALING], ['user', "I'm not online, I'm on the bridge."]);
     expect((await gate(now, reads('imminent'))).escalation).toMatchObject({ action: 'replace' });
-    expect((await gate(now, reads('imminent'))).escalation).not.toMatchObject({ checkIn: true });
+    expect((await gate(now, reads('imminent'))).escalation).not.toMatchObject({ checkIn: 'ask' });
     resetCrisisClassifierCache();
     const earlier = request(
       ['user', 'nobody would miss me'],
@@ -174,7 +177,7 @@ describe('what never gets the check-in', () => {
   it('a read about someone else keeps full handling', async () => {
     const { escalation } = await gate(mom(), reads('crisis', 'third_party'));
     expect(escalation?.action).toBe('guide');
-    expect(escalation).not.toMatchObject({ checkIn: true });
+    expect(escalation).not.toMatchObject({ checkIn: 'ask' });
   });
 
   it('a second classifier-only read in the same call escalates as on main', async () => {
@@ -186,7 +189,7 @@ describe('what never gets the check-in', () => {
     );
     const { escalation } = await gate(later, reads('imminent'));
     expect(escalation?.action).toBe('replace');
-    expect(escalation).not.toMatchObject({ checkIn: true });
+    expect(escalation).not.toMatchObject({ checkIn: 'ask' });
   });
 });
 
@@ -229,7 +232,7 @@ describe('the caller answers the check-in', () => {
     const answer = await askedOnline();
     const { escalation } = await answer("Yeah, I'm fine.", reads('imminent'));
     expect(escalation?.action).toBe('replace');
-    expect(escalation).not.toMatchObject({ checkIn: true });
+    expect(escalation).not.toMatchObject({ checkIn: 'ask' });
   });
 
   it('the turn pipeline escalates an unclear answer too', async () => {
@@ -249,6 +252,115 @@ describe('the caller answers the check-in', () => {
     const { decision, escalation } = await gate(ctx, reads('none'), LIVE);
     expect(decision).toEqual({ action: 'pass' });
     expect(escalation).toBeNull();
+  });
+});
+
+describe('the safety review findings, through the real gate', () => {
+  const BOTH_ON = { ...BOTH };
+
+  it('two reads agreeing on imminent never reach the check-in', async () => {
+    // The pipeline's read (different earlier lines: a separate classifier call) and the gate's.
+    const pipeline = startTurnCrisis(
+      ONLINE,
+      { recentTranscripts: ["I'm waiting."], lastAgentResponse: DIALING },
+      { sessionId: session.services.sessionId, env: BOTH_ON, generate: reads('imminent') }
+    );
+    const { escalation } = await gate(online(), reads('imminent'), BOTH_ON);
+    expect(escalation).toEqual({ action: 'replace', script: SCRIPT });
+    expect((await pipeline.resolve()).isCrisis).toBe(true);
+  });
+
+  it.each([
+    'cancelled therapy, stopped my meds, giving my stuff away Friday',
+    "here's her number… I won't be able to be there",
+  ])('a warning sign escalates as on main for every read level: %s', async (said) => {
+    for (const [env, generate] of [
+      [BOTH_ON, reads('crisis')],
+      [SOFT, reads('crisis')],
+      [SOFT, reads('imminent')],
+    ] as const) {
+      for (const ctx of [
+        request(['assistant', DIALING], ['user', said]),
+        request(['user', said], ['assistant', DIALING], ['user', 'Can you call my mom?']),
+      ]) {
+        resetCrisisClassifierCache();
+        resetCrisisSoftCheck();
+        const turn = await gate(ctx, generate, env);
+        const main = await (async () => {
+          resetCrisisClassifierCache();
+          return gate(
+            ctx,
+            generate,
+            env === BOTH_ON ? { ...LIVE, CRISIS_AGREEMENT_GATE: 'on' } : LIVE
+          );
+        })();
+        expect(turn, said).toEqual(main);
+        expect(JSON.stringify(turn)).not.toContain(CHECK_IN_LINE);
+      }
+    }
+  });
+
+  it.each([
+    ['I took them all.', ONLINE],
+    ['I took all of them an hour ago', 'Call my dad'],
+    ['I wrote everyone a message', 'Can you call my mom'],
+    ['she will find me in the morning', 'call my mom'],
+    ["I can't breathe", 'Can you hear me'],
+  ])('an earlier unvetted turn keeps the script: "%s" then "%s"', async (before, latest) => {
+    const ctx = request(['user', before], ['assistant', DIALING], ['user', latest]);
+    const { escalation } = await gate(ctx, reads('imminent'));
+    expect(escalation?.action).toBe('replace');
+    expect(escalation).not.toMatchObject({ checkIn: 'ask' });
+  });
+
+  it('a yes after the 988 and 911 line is not a clear yes', async () => {
+    await askedOnline();
+    const ctx = online(
+      ['assistant', CHECK_IN_LINE],
+      ['assistant', CHECK_IN_REPEAT],
+      ['assistant', CHECK_IN_RESOURCES],
+      ['user', 'Yeah.']
+    );
+    const { decision } = await gate(ctx, reads('none'));
+    expect(decision).not.toEqual({ action: 'guide', guidance: CHECK_IN_CLEARED });
+  });
+
+  it('a check-in the caller cut off is asked again, never read as safe', async () => {
+    await askedOnline();
+    const ctx = online();
+    ctx.addMessage({ role: 'assistant', content: CHECK_IN_LINE, interrupted: true });
+    ctx.addMessage({ role: 'user', content: "I'm fine." });
+    const { escalation } = await gate(ctx, reads('none'));
+    expect(escalation).toEqual({ action: 'replace', script: CHECK_IN_REPEAT, checkIn: 'repeat' });
+  });
+
+  it('a cut-off check-in still escalates when the classifier reads the reply as risky', async () => {
+    await askedOnline();
+    const ctx = online();
+    ctx.addMessage({ role: 'assistant', content: 'Hey, I want', interrupted: true });
+    ctx.addMessage({ role: 'user', content: 'Can you call my mom?' });
+    const { escalation } = await gate(ctx, reads('imminent'));
+    expect(escalation).toMatchObject({ action: 'replace', script: SCRIPT });
+  });
+
+  it('after a clear yes, later replies carry the resources note; before, none do', async () => {
+    expect(startCrisisGate(online(), session, { env: SOFT, generate: reads('none') })?.note).toBe(
+      undefined
+    );
+    resetCrisisClassifierCache();
+    const answer = await askedOnline();
+    await answer("Yeah, I'm fine.");
+    const later = startCrisisGate(
+      online(
+        ['assistant', CHECK_IN_LINE],
+        ['user', "Yeah, I'm fine."],
+        ['assistant', 'Okay, good.'],
+        ['user', 'Can you call my dad?']
+      ),
+      session,
+      { env: SOFT, generate: reads('none') }
+    );
+    expect(later?.note).toBe(CHECK_IN_RESOURCES_NOTE);
   });
 });
 
@@ -284,9 +396,65 @@ describe('gatedReply', () => {
       expect(out).toBe(CHECK_IN_LINE);
       voice.emit('agent_state_changed', { newState: 'listening' });
       await vi.advanceTimersByTimeAsync(8_000);
-      expect(voice.say).toHaveBeenCalledTimes(1);
+      expect(voice.say).toHaveBeenLastCalledWith(CHECK_IN_REPEAT, { allowInterruptions: true });
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  const modelSaying = (text: string) =>
+    vi.fn(async (_ctx: llm.ChatContext) => {
+      return new ReadableStream<unknown>({
+        start(controller) {
+          controller.enqueue(text);
+          controller.close();
+        },
+      });
+    });
+
+  it('asks a cut-off check-in again, then silence gets the numbers, not a third question', async () => {
+    await askedOnline();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const voice = Object.assign(new EventEmitter(), { userData: session, say: vi.fn() });
+      const ctx = online();
+      ctx.addMessage({ role: 'assistant', content: 'Hey, I want', interrupted: true });
+      ctx.addMessage({ role: 'user', content: 'Can you call my mom?' });
+      const out = await collect(
+        (await gatedReply(ctx, voice, modelSaying('Sure.') as never, passThrough as never, {
+          env: SOFT,
+          generate: reads('none'),
+        })) as never
+      );
+      expect(out).toBe(CHECK_IN_REPEAT);
+      voice.emit('agent_state_changed', { newState: 'listening' });
+      await vi.advanceTimersByTimeAsync(8_000);
+      expect(voice.say).toHaveBeenCalledTimes(1);
+      expect(voice.say).toHaveBeenLastCalledWith(CHECK_IN_RESOURCES, { allowInterruptions: true });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('after a clear yes, the model is asked with the resources note', async () => {
+    const answer = await askedOnline();
+    await answer("Yeah, I'm fine.");
+    const model = modelSaying('Okay.');
+    const ctx = online(
+      ['assistant', CHECK_IN_LINE],
+      ['user', "Yeah, I'm fine."],
+      ['assistant', 'Okay, good.'],
+      ['user', 'Can you call my dad?']
+    );
+    await collect(
+      (await gatedReply(ctx, { userData: session }, model as never, passThrough as never, {
+        env: SOFT,
+        generate: reads('none'),
+      })) as never
+    );
+    const sent = model.mock.calls[0]![0].items.map(
+      (item) => (item as llm.ChatMessage).textContent ?? ''
+    );
+    expect(sent.at(-1)).toContain(CHECK_IN_RESOURCES_NOTE);
   });
 });
