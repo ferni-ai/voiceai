@@ -253,7 +253,7 @@ const styles = `
   .practice-experience-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-system, 10000);
+    z-index: var(--z-system);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -548,7 +548,7 @@ const styles = `
     height: 48px;
     border: none;
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
     border-radius: var(--radius-full, 9999px);
     cursor: pointer;
     display: flex;
@@ -689,7 +689,7 @@ const styles = `
 
   .practice-nav-btn.primary {
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .practice-nav-btn.primary:hover {

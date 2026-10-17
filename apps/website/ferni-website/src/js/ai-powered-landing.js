@@ -9,10 +9,9 @@
  * 3. PERSONA PREVIEW CARDS - Interactive team member demos
  * 4. MEMORY VISUALIZATION - Interactive memory demonstration
  * 5. HOVER PREVIEWS - "What would Ferni say?" tooltips
- * 6. AI SOCIAL PROOF - Dynamic testimonial snippets
- * 7. SENTIMENT-REACTIVE COPY - Dynamic copy based on engagement
- * 8. SMART FAQ - Ask anything, AI answers
- * 9. MICRO-EXPRESSIONS - Orb reactions to user behavior
+ * 6. SENTIMENT-REACTIVE COPY - Dynamic copy based on engagement
+ * 7. SMART FAQ - Ask anything, AI answers
+ * 8. MICRO-EXPRESSIONS - Orb reactions to user behavior
  *
  * @module ai-powered-landing
  */
@@ -32,7 +31,6 @@
     enablePersonalizedHero: false, // Requires backend API
     enablePersonaPreviews: false, // Requires backend API
     enableSmartFAQ: false, // Requires backend API
-    enableSocialProof: false, // Requires backend API
     enableHoverPreviews: false, // Requires backend API
     enableSentimentCopy: false, // Requires backend API
     enableMicroExpressions: true, // Client-side only - ENABLED
@@ -47,7 +45,6 @@
     'landing-ai-personalized-hero': 'enablePersonalizedHero',
     'landing-ai-persona-previews': 'enablePersonaPreviews',
     'landing-ai-smart-faq': 'enableSmartFAQ',
-    'landing-ai-social-proof': 'enableSocialProof',
     'landing-ai-hover-previews': 'enableHoverPreviews',
     'landing-ai-sentiment-copy': 'enableSentimentCopy',
     'landing-ai-micro-expressions': 'enableMicroExpressions',
@@ -136,13 +133,6 @@
       persona: body?.personaId || 'ferni',
       greeting: getPersonaGreeting(body?.personaId || 'ferni'),
       traits: ['Empathetic', 'Present', 'Wise']
-    }),
-    '/social-proof': () => ({
-      stats: [
-        { label: 'Conversations this week', value: '2,847+' },
-        { label: 'People supported', value: '12k+' },
-        { label: 'Average session', value: '23 min' }
-      ]
     }),
     '/sentiment-copy': () => ({
       headline: 'We hear you.',
@@ -260,7 +250,7 @@
       const widget = document.createElement('div');
       widget.id = 'ferni-live-chat';
       widget.innerHTML = `
-        <button class="ferni-chat-trigger" aria-label="Chat with Ferni">
+        <button class="ferni-chat-trigger" aria-label="Chat with Ferni AI">
           <div class="ferni-chat-trigger__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <span class="ferni-chat-trigger__text">Chat with Ferni</span>
           <span class="ferni-chat-trigger__badge">AI</span>
@@ -540,6 +530,9 @@
   const PersonaPreviews = {
     init() {
       if (!CONFIG.enablePersonaPreviews) return;
+      // ai-copy-magic.js adds its own "ask me" input to every team card (with
+      // offline sample replies), so a second one here would double it up.
+      if (window.FerniAICopyMagic) return;
 
       this.enhanceTeamCards();
     },
@@ -864,84 +857,7 @@
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 6. AI SOCIAL PROOF
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const SocialProof = {
-    container: null,
-    snippets: [],
-    currentIndex: 0,
-    interval: null,
-
-    async init() {
-      if (!CONFIG.enableSocialProof) return;
-
-      // Find or create container
-      this.container = document.querySelector('.social-proof-dynamic');
-
-      if (!this.container) {
-        this.createContainer();
-      }
-
-      // Fetch snippets
-      const result = await apiCall('/social-proof?count=5', { method: 'GET' });
-
-      if (result && result.length) {
-        this.snippets = result;
-        this.render();
-        this.startRotation();
-      }
-    },
-
-    createContainer() {
-      const statsBar = document.querySelector('.stats-bar');
-      if (!statsBar) return;
-
-      this.container = document.createElement('div');
-      this.container.className = 'social-proof-dynamic';
-      statsBar.parentNode.insertBefore(this.container, statsBar.nextSibling);
-    },
-
-    render() {
-      if (!this.container || !this.snippets.length) return;
-
-      this.container.innerHTML = `
-        <div class="social-proof-dynamic__inner">
-          <div class="social-proof-dynamic__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
-          <div class="social-proof-dynamic__content">
-            <p class="social-proof-dynamic__text">${this.snippets[0].content}</p>
-          </div>
-        </div>
-      `;
-    },
-
-    startRotation() {
-      if (this.snippets.length <= 1) return;
-
-      this.interval = setInterval(() => {
-        this.currentIndex = (this.currentIndex + 1) % this.snippets.length;
-        this.animateToNext();
-      }, 8000);
-    },
-
-    animateToNext() {
-      const textEl = this.container.querySelector('.social-proof-dynamic__text');
-      if (!textEl) return;
-
-      // Fade out
-      textEl.style.opacity = '0';
-      textEl.style.transform = 'translateY(-10px)';
-
-      setTimeout(() => {
-        textEl.textContent = this.snippets[this.currentIndex].content;
-        textEl.style.opacity = '1';
-        textEl.style.transform = 'translateY(0)';
-      }, 300);
-    },
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 7. SENTIMENT-REACTIVE COPY
+  // 6. SENTIMENT-REACTIVE COPY
   // ═══════════════════════════════════════════════════════════════════════════
 
   const SentimentCopy = {
@@ -1022,7 +938,7 @@
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 8. SMART FAQ
+  // 7. SMART FAQ
   // ═══════════════════════════════════════════════════════════════════════════
 
   const SmartFAQ = {
@@ -1043,7 +959,7 @@
       askBox.innerHTML = `
         <div class="smart-faq__header">
           <div class="smart-faq__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
-          <h4 class="smart-faq__title">Ask me anything</h4>
+          <h3 class="smart-faq__title">Ask me anything</h3>
         </div>
         <div class="smart-faq__input-area">
           <input 
@@ -1135,7 +1051,7 @@
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 9. MICRO-EXPRESSIONS
+  // 8. MICRO-EXPRESSIONS
   // ═══════════════════════════════════════════════════════════════════════════
 
   const MicroExpressions = {
@@ -1695,49 +1611,6 @@
       }
       
       /* ═══════════════════════════════════════════════════════════════════════════
-         SOCIAL PROOF DYNAMIC
-         ═══════════════════════════════════════════════════════════════════════════ */
-      
-      .social-proof-dynamic {
-        padding: var(--space-6, 24px) 0;
-        background: var(--color-ferni-glow, rgba(74, 103, 65, 0.05));
-        border-top: 1px solid rgba(74, 103, 65, 0.1);
-        border-bottom: 1px solid rgba(74, 103, 65, 0.1);
-      }
-      
-      .social-proof-dynamic__inner {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 0 var(--space-6, 24px);
-        display: flex;
-        align-items: center;
-        gap: var(--space-4, 16px);
-      }
-      
-      .social-proof-dynamic__avatar {
-        width: 48px;
-        height: 48px;
-        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
-        border-radius: var(--radius-full, 50%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--color-text-inverse, white);
-        font-size: var(--text-sm, 14px);
-        font-weight: 700;
-        flex-shrink: 0;
-      }
-      
-      .social-proof-dynamic__text {
-        margin: 0;
-        font-size: var(--text-base, 15px);
-        color: var(--color-text-primary, #2c2520);
-        line-height: 1.6;
-        font-style: italic;
-        transition: opacity 0.3s, transform 0.3s;
-      }
-      
-      /* ═══════════════════════════════════════════════════════════════════════════
          SMART FAQ
          ═══════════════════════════════════════════════════════════════════════════ */
       
@@ -2171,10 +2044,6 @@
       PersonalizedHero.init();
       enabledFeatures.push('Personalized Hero');
     }
-    if (CONFIG.enableSocialProof) {
-      SocialProof.init();
-      enabledFeatures.push('AI Social Proof');
-    }
 
     state.initialized = true;
   }
@@ -2190,7 +2059,6 @@
     personas: PersonaPreviews,
     memory: MemoryDemo,
     hover: HoverPreviews,
-    socialProof: SocialProof,
     sentimentCopy: SentimentCopy,
     faq: SmartFAQ,
     expressions: MicroExpressions,

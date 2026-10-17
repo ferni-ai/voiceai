@@ -2,9 +2,10 @@
  * Wisdom Tools
  *
  * Domain: Quotes, financial history, research-backed insights.
- * Single responsibility: Jack Bogle's wisdom and Vanguard research perspective.
+ * Single responsibility: index-investing wisdom and published fund-industry research.
  *
- * This is where Jack's personality and evidence-based wisdom shines.
+ * Quotes are attributed to their real authors in the third person; the persona
+ * speaking them never claims to be those people.
  * Includes insights from Vanguard whitepapers, academic research, and
  * decades of industry experience.
  */
@@ -56,7 +57,7 @@ const WISDOM_QUOTES = [
     quote:
       "In the short run, the market is a voting machine. In the long run, it's a weighing machine.",
   },
-  { author: 'Peter John', quote: 'Know what you own, and know why you own it.' },
+  { author: 'An investing legend', quote: 'Know what you own, and know why you own it.' },
   {
     author: 'Charlie Munger',
     quote: 'The big money is not in the buying and selling, but in the waiting.',
@@ -71,7 +72,7 @@ const WISDOM_QUOTES = [
   },
   { author: 'Warren Buffett', quote: "Risk comes from not knowing what you're doing." },
   {
-    author: 'Peter John',
+    author: 'An investing legend',
     quote:
       'Far more money has been lost by investors preparing for corrections, or trying to anticipate corrections, than has been lost in corrections themselves.',
   },
@@ -99,7 +100,7 @@ const WISDOM_QUOTES = [
     quote: 'Be fearful when others are greedy, and greedy when others are fearful.',
   },
   {
-    author: 'Peter John',
+    author: 'An investing legend',
     quote:
       'In the long run, a portfolio of well-chosen stocks and/or equity mutual funds will always outperform a portfolio of bonds or a money-market account.',
   },
@@ -127,7 +128,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       "Vanguard's four timeless principles: 1) Create clear, appropriate investment goals, 2) Keep a balanced and diversified mix, 3) Minimize costs, 4) Maintain perspective and long-term discipline.",
     jackSays:
-      "At Vanguard, we boiled down everything we know into four principles: Have clear goals. Stay balanced and diversified. Minimize costs. Maintain discipline. That's it. Four things. Get those right, and you'll outperform most investors.",
+      "The whole field boils down to four principles: Have clear goals. Stay balanced and diversified. Minimize costs. Maintain discipline. That's it. Four things. Get those right, and you'll outperform most investors.",
     source: "Vanguard's Principles for Investing Success",
   },
   {
@@ -143,7 +144,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       "Asset allocation explains approximately 88% of a portfolio's return variability over time. Diversification reduces risk without proportionally reducing expected returns.",
     jackSays:
-      "Balance and diversification—our second principle—isn't about being timid. It's about mathematics. About 88% of your portfolio's behavior comes from your mix of stocks and bonds. Not which stocks. The mix.",
+      "Balance and diversification—the second principle—isn't about being timid. It's about mathematics. About 88% of your portfolio's behavior comes from your mix of stocks and bonds. Not which stocks. The mix.",
     source: "Vanguard's Principles for Investing Success",
   },
   {
@@ -172,7 +173,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       "Vanguard's Advisor's Alpha framework identifies seven areas where advisors add value: suitable asset allocation, cost-effective implementation, rebalancing, behavioral coaching, asset location, spending strategy, and total-return vs income investing.",
     jackSays:
-      "We created something called Advisor's Alpha—seven specific ways good advice adds value. Asset allocation. Low costs. Rebalancing. Tax efficiency. Withdrawal strategy. And the big one? Behavioral coaching. Keeping you from your worst instincts.",
+      "There's a framework called Advisor's Alpha—seven specific ways good advice adds value. Asset allocation. Low costs. Rebalancing. Tax efficiency. Withdrawal strategy. And the big one? Behavioral coaching. Keeping you from your worst instincts.",
     source: "Vanguard Advisor's Alpha",
   },
   {
@@ -180,7 +181,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       "Behavioral coaching alone can add about 1-2% annually to investor returns by helping them avoid emotional decisions during market volatility. It's typically the largest component of Advisor's Alpha.",
     jackSays:
-      "Here's something fascinating from our research: just having someone to talk you off the ledge during market panics can add one to two percent to your annual returns. That's not stock picking. That's not timing. That's just... staying calm.",
+      "Here's something fascinating from the research: just having someone to talk you off the ledge during market panics can add one to two percent to your annual returns. That's not stock picking. That's not timing. That's just... staying calm.",
     source: "Vanguard Advisor's Alpha",
   },
   {
@@ -188,7 +189,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       "Vanguard's Advisor's Alpha research shows good financial guidance can add about 3% in net returns over time through behavioral coaching, tax efficiency, and proper asset allocation.",
     jackSays:
-      "Our research found that thoughtful financial guidance—not hot stock tips, but real guidance—can add about 3% annually. Most of that comes from keeping you from doing something foolish when you're scared.",
+      "The research found that thoughtful financial guidance—not hot stock tips, but real guidance—can add about 3% annually. Most of that comes from keeping you from doing something foolish when you're scared.",
     source: "Vanguard Advisor's Alpha",
   },
   {
@@ -204,7 +205,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'A dynamic spending strategy that adjusts withdrawals based on market performance can add approximately 0.70% annually compared to rigid withdrawal rules.',
     jackSays:
-      'Most people follow a rigid withdrawal rule—take 4% every year regardless. Our research shows a dynamic approach—taking a bit less after bad years, a bit more after good—adds about 0.70% annually and dramatically improves retirement outcomes.',
+      'Most people follow a rigid withdrawal rule—take 4% every year regardless. The research shows a dynamic approach—taking a bit less after bad years, a bit more after good—adds about 0.70% annually and dramatically improves retirement outcomes.',
     source: "Vanguard Advisor's Alpha",
   },
   {
@@ -233,7 +234,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Direct indexing can generate 20 to over 100 basis points of after-tax alpha annually through daily tax-loss harvesting, depending on the investor situation.',
     jackSays:
-      "Our research on direct indexing shows it can add 20 to over 100 basis points annually after taxes—that's real money—by systematically harvesting losses every single day. For investors with significant taxable accounts, that compounds dramatically.",
+      "The research on direct indexing shows it can add 20 to over 100 basis points annually after taxes—that's real money—by systematically harvesting losses every single day. For investors with significant taxable accounts, that compounds dramatically.",
     source: 'Vanguard Personalized Indexing Research',
   },
   {
@@ -278,7 +279,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'The Vanguard Financial Advice Model (VFAM) measures advice value across three dimensions: portfolio outcomes, financial outcomes (probability of meeting goals), and emotional outcomes (peace of mind).',
     jackSays:
-      'We created something called VFAM—the Vanguard Financial Advice Model—to measure advice properly. Not just returns, but three things: portfolio outcomes, goal success probability, and emotional outcomes. Peace of mind has value too.',
+      "There's a model built to measure advice properly. Not just returns, but three things: portfolio outcomes, goal success probability, and emotional outcomes. Peace of mind has value too.",
     source: 'Vanguard Financial Advice Model',
   },
   {
@@ -302,7 +303,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Research shows investors place significant value on the emotional aspects of advice: peace of mind, confidence, and reduced anxiety about financial decisions.',
     jackSays:
-      "People underestimate the emotional value of good advice. Sleeping better at night, not worrying about every market wiggle, having confidence in your plan—that's worth something. Our research confirms investors value peace of mind highly.",
+      "People underestimate the emotional value of good advice. Sleeping better at night, not worrying about every market wiggle, having confidence in your plan—that's worth something. The research confirms investors value peace of mind highly.",
     source: 'Vanguard Financial Advice Model',
   },
 
@@ -352,7 +353,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       "Target-date fund glide paths should balance accumulation-phase growth with retirement-phase income stability. Vanguard's research supports a 'through' glide path that continues reducing equity exposure into retirement.",
     jackSays:
-      "The glide path—how your target-date fund shifts from stocks to bonds—is crucial. Our research supports continuing to reduce stock exposure even after retirement, not stopping at retirement. The sequence-of-returns risk doesn't disappear when you stop working.",
+      "The glide path—how your target-date fund shifts from stocks to bonds—is crucial. The research supports continuing to reduce stock exposure even after retirement, not stopping at retirement. The sequence-of-returns risk doesn't disappear when you stop working.",
     source: 'Vanguard Glide Path Research',
   },
   {
@@ -381,7 +382,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Vanguard research suggests 20-40% of equity allocation should be international. This range provides diversification benefits while accounting for U.S. home bias and currency considerations.',
     jackSays:
-      "How much international? Our research points to 20-40% of your stock allocation. That's the sweet spot—enough diversification to matter, not so much that you're betting against America. The U.S. won't always be the best performer.",
+      "How much international? The research points to 20-40% of your stock allocation. That's the sweet spot—enough diversification to matter, not so much that you're betting against America. The U.S. won't always be the best performer.",
     source: 'Vanguard International Allocation Research',
   },
   {
@@ -484,7 +485,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Vanguard recommends 20-40% international allocation in equity portfolios to reduce volatility while maintaining similar expected returns.',
     jackSays:
-      "We found that holding 20 to 40 percent of your stocks in international markets smooths the ride without hurting returns. The American market won't always be the best performer. Diversify globally.",
+      "The research found that holding 20 to 40 percent of your stocks in international markets smooths the ride without hurting returns. The American market won't always be the best performer. Diversify globally.",
   },
   {
     topic: 'bond_allocation',
@@ -500,7 +501,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'The traditional 4% withdrawal rule has been refined—dynamic strategies that adjust spending based on market performance can improve outcomes by 15-20%.',
     jackSays:
-      'The old 4% rule? Good start, but rigid. Our research shows flexible spending—taking a bit less after bad years, a bit more after good years—can improve your retirement odds by 15 to 20 percent.',
+      'The old 4% rule? Good start, but rigid. The research shows flexible spending—taking a bit less after bad years, a bit more after good years—can improve your retirement odds by 15 to 20 percent.',
   },
   {
     topic: 'sequence_of_returns_risk',
@@ -651,7 +652,7 @@ const LIFE_WISDOM = [
   {
     topic: 'enough',
     wisdom:
-      "Kurt Vonnegut told me the secret to happiness is knowing you have enough. If you can't answer 'What is enough?', you'll never find peace.",
+      "Someone wise once told me the secret to happiness is knowing you have enough. If you can't answer 'What is enough?', you'll never find peace.",
   },
   {
     topic: 'time',
@@ -674,12 +675,12 @@ const LIFE_WISDOM = [
   {
     topic: 'failure',
     wisdom:
-      'Getting fired in 1974 was the best thing that happened to me. Sometimes destruction is the prerequisite for creation.',
+      'The worst setback of a career is sometimes the best thing that happens to it. Sometimes destruction is the prerequisite for creation.',
   },
   {
     topic: 'mortality',
     wisdom:
-      "I've lived 23 years on a borrowed heart. Every day is a gift I didn't earn. That changes how you think about everything.",
+      "People who survive a close call say every day afterward is a gift they didn't earn. That changes how you think about everything.",
   },
   {
     topic: 'legacy',
@@ -688,7 +689,8 @@ const LIFE_WISDOM = [
   },
   {
     topic: 'humility',
-    wisdom: "I'm not nearly as smart as I used to be. But I'm much wiser. There's a difference.",
+    wisdom:
+      "Age took a little speed off my thinking and added a lot of judgment. There's a difference.",
   },
   {
     topic: 'persistence',
@@ -715,16 +717,7 @@ const FINANCIAL_HISTORY: Record<string, string[]> = {
   '01-01': [
     'On this day in 1863, the Emancipation Proclamation took effect. Freedom—in all its forms—is the foundation of prosperity.',
   ],
-  '01-16': [
-    'On this day in 2019, I passed away at 89. But I like to think my ideas live on. Stay the course, friends.',
-  ],
-  '01-19': [
-    "Happy birthday to me! I was born on this day in 1929. The same year as the crash. Maybe that's why I understand market cycles!",
-  ],
   '02-05': ['On this day in 1971, NASDAQ started trading. Technology meets finance.'],
-  '02-21': [
-    "On this day in 1996, I received my heart transplant. A 26-year-old young man's gift gave me 23 more years. I tried to use them well.",
-  ],
   '03-09': [
     'On this day in 2009, the market hit its low during the financial crisis. Those who stayed invested saw a 400% gain over the next decade.',
   ],
@@ -732,13 +725,13 @@ const FINANCIAL_HISTORY: Record<string, string[]> = {
     'Tax day. Remember: tax-efficient investing can add half a percent annually. It adds up.',
   ],
   '05-01': [
-    'On this day in 1975, I founded Vanguard. We started with a simple idea: put investors first.',
+    'On this day in 1975, a fund company owned by its own investors was born. A simple idea: put investors first.',
   ],
   '05-06': [
     'On this day in 2010, the Flash Crash happened. Markets dropped 9% in minutes, then recovered. Patience prevailed.',
   ],
   '08-31': [
-    "On this day in 1976, we launched the First Index Investment Trust—the first index fund for individual investors. They called it 'Bogle's Folly.' Turned out okay!",
+    'On this day in 1976, the first index fund for individual investors launched. Critics called it a folly. Turned out okay!',
   ],
   '09-17': [
     'On this day in 1787, the Constitution was signed. Strong institutions make strong markets.',
@@ -763,7 +756,7 @@ const FINANCIAL_HISTORY: Record<string, string[]> = {
 
 const GENERIC_HISTORY = [
   "History shows us that markets always recover from crashes. Patience is the investor's greatest virtue.",
-  'Did you know the first index fund was created in 1976? That was my baby!',
+  'Did you know the first index fund for regular investors was created in 1976? Wall Street laughed.',
   "The Dow Jones was created in 1896 with just 12 stocks. Look how far we've come.",
   'In every decade of history, there have been reasons to panic and sell. And in every decade, staying invested has paid off.',
   'The S&P 500 has delivered about 10% annual returns since 1926. Through wars, depressions, panics, and everything else.',
@@ -781,23 +774,23 @@ const GENERIC_HISTORY = [
 // ============================================================================
 
 /**
- * Get a random Bogle quote
+ * Get a random index-investing quote
  */
 export function getBogleQuote(): string {
   const quote = BOGLE_QUOTES[Math.floor(Math.random() * BOGLE_QUOTES.length)];
-  return `Here's something I've said before: "${quote}"`;
+  return `An investing legend once put it this way: "${quote}"`;
 }
 
 /**
- * Get a wisdom quote (Bogle or other legends)
+ * Get a wisdom quote (index-investing or other legends)
  */
 export function getWisdomQuote(): string {
-  // 70% chance of Bogle, 30% other legends
+  // 70% chance of an index-investing quote, 30% other legends
   if (Math.random() < 0.7) {
     return getBogleQuote();
   } else {
     const wisdom = WISDOM_QUOTES[Math.floor(Math.random() * WISDOM_QUOTES.length)];
-    return `My friend ${wisdom.author} once said: "${wisdom.quote}" Wise words.`;
+    return `${wisdom.author} once said: "${wisdom.quote}" Wise words.`;
   }
 }
 
@@ -945,7 +938,7 @@ export function createWisdomTools() {
       description: getToolDescription('getBogleQuote'),
       parameters: z.object({}),
       execute: async () => {
-        getLogger().info('Getting Bogle quote');
+        getLogger().info('Getting index-investing quote');
         return getBogleQuote();
       },
     }),
@@ -969,7 +962,7 @@ export function createWisdomTools() {
 
     getLifeWisdom: llm.tool({
       description:
-        "Get Jack's wisdom about life beyond money—family, mortality, character, meaning. Use for deeper conversations.",
+        'Get wisdom about life beyond money—family, mortality, character, meaning. Use for deeper conversations.',
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting life wisdom');
@@ -979,7 +972,7 @@ export function createWisdomTools() {
 
     getThisDayInHistory: llm.tool({
       description:
-        "Get interesting financial history for today—market crashes, milestones, Jack's birthday. Great for adding context.",
+        'Get interesting financial history for today—market crashes, milestones, anniversaries. Great for adding context.',
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting this day in history');

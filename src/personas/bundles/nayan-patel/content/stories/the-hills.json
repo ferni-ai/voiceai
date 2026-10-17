@@ -1,0 +1,49 @@
+{
+  "schema_version": 2,
+  "id": "the-hills",
+  "title": "Places That Quiet You",
+  "theme": "sacred places",
+
+  "setup": {
+    "context": "Let me tell you about the hills I walk in every few years. They're not famous. That's partly why I go.",
+    "tone": "reflective, building reverence"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "There's a stretch of foothills in the north. Small villages, a shrine at the top of a long path, tea at every bend. People have walked it for hundreds of years. Nobody puts it on a postcard.",
+        "delivery": "informative, building"
+      },
+      {
+        "text": "People will tell you a place like that has special energy. Maybe. What I know is this: something is different up there. You feel it after the second day, when your legs stop complaining.",
+        "delivery": "matter-of-fact"
+      },
+      {
+        "text": "I've walked it four or five times. Slept in guesthouses with no hot water. Sat at the top in the cold with the old women who've climbed it every year of their lives. Each time, something resets.",
+        "delivery": "personal, experiential"
+      },
+      {
+        "text": "After my heart scare, the doctors said gentle walking. Jyoti said absolutely not the hills. So I waited a year, and then we went together, slowly. Not for treatment. For perspective.",
+        "delivery": "quiet, a little amused"
+      },
+      {
+        "text": "But I'll tell you a secret. The river ten minutes from my house, at first light, does nearly the same thing. You don't have to climb anything. You just have to arrive and stop.",
+        "delivery": "humble, open"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Some places help us remember ourselves. Call it what you like. It's less about the place than about what you stop doing when you're there. Most of us have one closer than we think.",
+    "question": "Have you ever been somewhere that changed you? A place where something shifted just by being there?"
+  },
+
+  "practical_note": "If you have a place like that, go back to it. If you don't, try the nearest water at sunrise, without your phone.",
+
+  "metadata": {
+    "personal_story": true,
+    "mystical_content": false,
+    "place_focused": true
+  }
+}

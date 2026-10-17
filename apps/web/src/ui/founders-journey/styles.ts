@@ -20,7 +20,7 @@ export function getFoundersJourneyStyles(): string {
     .founders-journey {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 9999);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -70,7 +70,7 @@ export function getFoundersJourneyStyles(): string {
       justify-content: center;
       color: var(--color-text-secondary, #5a5048);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-      z-index: var(--z-content, 10);
+      z-index: var(--z-content);
     }
 
     .founders-journey-close:hover {

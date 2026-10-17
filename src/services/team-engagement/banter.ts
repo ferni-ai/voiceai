@@ -7,7 +7,6 @@
  * @module team-engagement/banter
  */
 
-import type { CanonicalPersonaId } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'banter' });
@@ -377,145 +376,79 @@ export function getHandoffBanter(fromPersonaId: string, toPersonaId: string): st
 export const getSoftOpenBanter = getHandoffBanter;
 
 // ============================================================================
-// ARRIVING BANTER - Warm welcomes spoken by NEW persona AFTER voice switch
-// KEEP THESE SHORT - users do multiple transfers per session
-// NOTE: Alex uses they/them pronouns
+// ARRIVING OPENERS - the new persona's first words AFTER the voice switch
 // ============================================================================
 
-export const ARRIVING_BANTER: Record<string, Record<string, string[]>> = {
-  // When arriving FROM another persona, these are spoken by the NEW persona
-  // Key structure: newPersona -> { previousPersona -> welcomes[] }
-  // NOTE: Keep these WARM and WELCOMING - not jumping straight to business!
-
-  ferni: {
-    'alex-chen': ['Hey, good to see you!', "Hey! I'm here.", "Hey, I've got you."],
-    'maya-santos': ['Hey! Good to be back.', "Hey, I'm here for you.", "Hey! What's going on?"],
-    'jordan-taylor': ['Hey! Good to see you.', "Hey, I'm back!", 'Hey! How are you?'],
-    'nayan-patel': [
-      "Hey. <break time='150ms'/> Good to be here.",
-      "Hey, I'm back with you.",
-      "Hey! I'm here.",
-    ],
-    'peter-john': ['Hey! Good to see you.', "Hey, I'm here!", "Hey! What's happening?"],
-  },
-
-  'alex-chen': {
-    ferni: ['Hey! Good to meet you.', 'Hey there! Alex here.', "Hey! I'm here to help."],
-    'maya-santos': ['Hey! Alex here.', 'Hey there! Good to see you.', "Hey! I've got you."],
-    'jordan-taylor': ["Hey! I'm Alex.", "Hey there! Let's do this.", 'Hey! Good to be here.'],
-    'nayan-patel': ['Hey! Alex here.', "Hey there! I'm here.", 'Hey! Good to meet you.'],
-    'peter-john': ["Hey! I'm Alex.", 'Hey there! Good to see you.', "Hey! I've got you."],
-  },
-
-  'maya-santos': {
-    ferni: [
-      "Hey! Maya here. <break time='100ms'/> Good to meet you!",
-      "Hey there! I'm Maya.",
-      'Hey! Good to be here.',
-    ],
-    'alex-chen': ['Hey! Maya here.', 'Hey there! Good to see you.', "Hey! I'm here for you."],
-    'jordan-taylor': ['Hey! Maya here.', 'Hey there! Good to connect.', "Hey! I've got you."],
-    'nayan-patel': [
-      "Hey! Maya here. <break time='100ms'/> Nice to meet you.",
-      "Hey there! I'm here.",
-      'Hey! Good to be here.',
-    ],
-    'peter-john': ['Hey! Maya here.', 'Hey there! Good to connect.', "Hey! I'm here to help."],
-  },
-
-  'jordan-taylor': {
-    ferni: ['Hey hey! Jordan here!', 'Hey! So good to meet you!', "Hey there! I'm Jordan."],
-    'alex-chen': ['Hey! Jordan here!', 'Hey hey! Good to see you!', "Hey! I'm here!"],
-    'maya-santos': ['Hey! Jordan here!', 'Hey hey! Good to connect!', "Hey! Let's go!"],
-    'nayan-patel': ['Hey! Jordan here!', 'Hey hey! Nice to meet you!', 'Hey! Good to be here!'],
-    'peter-john': ['Hey! Jordan here!', 'Hey hey! Good to see you!', "Hey! I'm here!"],
-  },
-
-  // Nayan - warm but grounded
-  'nayan-patel': {
-    ferni: [
-      "Hello. <break time='200ms'/> Nayan here.",
-      "Namaste. <break time='200ms'/> I'm here.",
-      "Hello. <break time='150ms'/> Good to meet you.",
-    ],
-    'alex-chen': [
-      "Hello. <break time='200ms'/> Nayan here.",
-      "Namaste. <break time='150ms'/> I'm here for you.",
-      "Hello. <break time='150ms'/> Good to connect.",
-    ],
-    'maya-santos': [
-      "Hello. <break time='200ms'/> Nayan here.",
-      "Namaste. <break time='150ms'/> I'm here.",
-      "Hello. <break time='150ms'/> Good to be here.",
-    ],
-    'jordan-taylor': [
-      "Hello. <break time='200ms'/> Nayan here.",
-      "Namaste. <break time='150ms'/> Good to meet you.",
-      "Hello. <break time='150ms'/> I'm here.",
-    ],
-    'peter-john': [
-      "Hello. <break time='200ms'/> Nayan here.",
-      "Namaste. <break time='150ms'/> I'm here for you.",
-      "Hello. <break time='150ms'/> Good to connect.",
-    ],
-  },
-
-  // Peter - warm and friendly
-  'peter-john': {
-    ferni: ['Hey there! Peter here.', 'Hey! Good to meet you.', "Hey! I'm Peter."],
-    'maya-santos': ['Hey! Peter here.', 'Hey there! Good to connect.', "Hey! I'm here."],
-    'alex-chen': ['Hey! Peter here.', 'Hey there! Good to see you.', "Hey! I've got you."],
-    'jordan-taylor': ['Hey! Peter here.', 'Hey there! Good to connect.', "Hey! I'm here to help."],
-    'nayan-patel': ['Hey! Peter here.', 'Hey there! Good to meet you.', "Hey! I'm here."],
-  },
-
-  // The financial legends hand off among themselves; '*' is any previous persona.
-  'joel-dickson': {
-    '*': ['Hey! Nate here.', "Hey there! <break time='150ms'/> Good to see you.", "Hey! I'm here."],
-  },
-  'john-bogle': {
-    '*': [
-      "Hello, friend. <break time='250ms'/> Henry Caldwell here.",
-      "Well, hello. <break time='250ms'/> Take your time.",
-      "Hello there. <break time='250ms'/> Henry here.",
-    ],
-  },
-  'peter-lynch': {
-    '*': [
-      'Hey! Tom Brannigan here.',
-      "Hey there! <break time='150ms'/> Tom here.",
-      'Hey! Good to meet you.',
-    ],
-  },
-} satisfies Record<CanonicalPersonaId, Record<string, string[]>>;
+/**
+ * Each persona opens in their own voice. Before, Peter, Maya and Jordan all
+ * opened "Hey there!" (dev 2026-10-04..12), so the first two seconds of every
+ * teammate sounded the same, and the legends had no line at all ("Hey! What's
+ * up?"). Short: callers transfer more than once a call. These are the canned
+ * line; BRIEFED_HANDOFF writes a briefed first line in front of it when it can
+ * (agents/multi-agent/handoff-brief.ts). Alex uses they/them.
+ */
+export const ARRIVING_OPENERS: Readonly<Record<string, readonly string[]>> = {
+  ferni: [
+    "Hey, I'm back with you.",
+    'Hey! Good to see you again.',
+    "Hey, I'm here. What's going on?",
+  ],
+  'maya-santos': [
+    "Hi, it's Maya! I'm really glad you're here.",
+    "Maya here! Okay, let's figure this out together.",
+    "Hi! Maya. Tell me where you're at.",
+  ],
+  'jordan-taylor': [
+    'Jordan here! Ooh, I love a plan.',
+    "Yes! Jordan here. Let's make something happen.",
+    "Hi hi! It's Jordan. Tell me everything.",
+  ],
+  'alex-chen': [
+    "Alex here. Okay, let's sort this out.",
+    "Alex speaking. We'll take it one piece at a time.",
+    "Alex here. Let's get the words right.",
+  ],
+  'peter-john': [
+    'Peter here. Ooh, what are we digging into?',
+    "Okay, it's Peter. I'm curious already.",
+    "Peter here! Let's look at this together.",
+  ],
+  'nayan-patel': [
+    "Hello. <break time='200ms'/> Nayan here.",
+    "Namaste. <break time='200ms'/> I'm here.",
+    "Hello. <break time='150ms'/> Good to sit with you.",
+  ],
+  'john-bogle': [
+    'Hello, friend. Pull up a chair.',
+    "Good to meet you. Let's take this slowly.",
+    "Well, hello. Tell me what's on your mind.",
+  ],
+  'peter-lynch': [
+    "Hi! Tell me what you've been noticing out there.",
+    "Okay, I'm all ears. What caught your eye?",
+    "Glad you're here. Let's talk about what you know.",
+  ],
+  'joel-dickson': [
+    "Nate here! Ha, okay, what've we got?",
+    "Hi! It's Nate. I've heard a little, tell me more.",
+    'Nate here. I love this already.',
+  ],
+};
 
 /**
- * Get arriving banter when a persona takes over (WARM WELCOME - spoken AFTER voice switch)
- * This is the arriving persona's warm greeting acknowledging the handoff
+ * The arriving persona's opener after a handoff (spoken AFTER the voice
+ * switch), or null for a persona without one.
  */
 export function getArrivingBanter(toPersonaId: string, fromPersonaId: string): string | null {
-  const toBanter = ARRIVING_BANTER[toPersonaId];
-  if (!toBanter) {
-    log.debug(
-      { toPersonaId, available: Object.keys(ARRIVING_BANTER) },
-      'No arriving banter found for toPersona'
-    );
+  const options = ARRIVING_OPENERS[toPersonaId];
+  if (!options || options.length === 0) {
+    log.debug({ toPersonaId, fromPersonaId }, 'No arriving opener for this persona');
     return null;
   }
-
-  const banterOptions = toBanter[fromPersonaId] ?? toBanter['*'];
-  if (!banterOptions || banterOptions.length === 0) {
-    log.debug(
-      { toPersonaId, fromPersonaId, available: Object.keys(toBanter) },
-      'No arriving banter for transition'
-    );
-    return null;
-  }
-
-  const selected = banterOptions[Math.floor(Math.random() * banterOptions.length)];
+  const selected = options[Math.floor(Math.random() * options.length)];
   log.debug(
     { toPersonaId, fromPersonaId, banter: selected.slice(0, 50) },
-    'Arriving banter selected'
+    'Arriving opener selected'
   );
   return selected;
 }

@@ -1,0 +1,22 @@
+{#
+  Chip-in block, used on /give/.
+  Ferni is free right now; this asks for a dollar on Venmo. It only links out
+  to Venmo, so the page never knows whether anyone paid. Keep the copy that way:
+  no "thank you for your gift" here.
+#}
+<div class="chip-in">
+  <div class="chip-in__text">
+    <p class="chip-in__eyebrow">Chip in</p>
+    <h2 class="chip-in__title">Want to help keep me around?</h2>
+    <p class="chip-in__body">Ferni is free right now. If he's helped, a dollar on Venmo keeps him going. Send more if you like.</p>
+    <a href="https://venmo.com/Seth-Ford-38?txn=pay&amp;amount=1&amp;note=Ferni" class="btn btn--primary chip-in__cta" target="_blank" rel="noopener">
+      Open Venmo
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <p class="chip-in__fine">Opens Venmo in a new tab. It's a one-time payment, and you pick the amount.</p>
+  </div>
+  <figure class="chip-in__qr">
+    <img src="/images/venmo-qr.png" width="720" height="637" loading="lazy" decoding="async" alt="Venmo QR code for @Seth-Ford-38. Scan it with your phone camera to open Venmo.">
+    <figcaption class="chip-in__handle">Venmo <strong>@Seth-Ford-38</strong></figcaption>
+  </figure>
+</div>

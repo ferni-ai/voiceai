@@ -38,20 +38,20 @@ const mockAgentsResponse = {
       },
     },
     {
-      id: 'jack-bogle',
-      name: 'Jack Bogle',
-      initials: 'JB',
+      id: 'henry-caldwell',
+      name: 'Henry Caldwell',
+      initials: 'HC',
       subtitle: 'Investment sage',
       role: 'team',
       roleId: 'sage-mentor',
       isCoordinator: false,
       canHandoff: true,
-      handoffToolName: 'handoffToJack',
-      entrancePhrase: 'Jack here.',
-      themeClass: 'persona-jack-bogle',
-      voiceId: 'test-voice-jack',
+      handoffToolName: 'handoffToHenry',
+      entrancePhrase: 'Henry here.',
+      themeClass: 'persona-henry-caldwell',
+      voiceId: 'test-voice-henry',
       colors: null,
-      aliases: ['jack', 'sage'],
+      aliases: ['henry', 'sage'],
     },
   ],
   count: 2,
@@ -115,7 +115,7 @@ describe('Agents Service', () => {
         json: () =>
           Promise.resolve({
             error: 'Internal error',
-            fallback: ['ferni', 'jack-bogle'],
+            fallback: ['ferni', 'henry-caldwell'],
           }),
       });
 
@@ -150,10 +150,10 @@ describe('Agents Service', () => {
     });
 
     it('should find agent by alias', async () => {
-      const agent = await getAgentById('jack');
+      const agent = await getAgentById('henry');
 
       expect(agent).not.toBeNull();
-      expect(agent?.id).toBe('jack-bogle');
+      expect(agent?.id).toBe('henry-caldwell');
     });
 
     it('should return null for unknown agent', async () => {
@@ -195,7 +195,7 @@ describe('Agents Service', () => {
       const members = await getTeamMemberAgents();
 
       expect(members).toHaveLength(1);
-      expect(members[0].id).toBe('jack-bogle');
+      expect(members[0].id).toBe('henry-caldwell');
       expect(members[0].isCoordinator).toBe(false);
     });
   });

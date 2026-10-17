@@ -38,7 +38,7 @@ import { findChunkEnd } from './chunk-boundary.js';
 import { sessionSpeed } from '../output-control/pace-matching.js';
 import { createContinuationTTS } from './continuation-tts.js';
 import { createFirstAudioObserver, type FirstAudioObserver } from './first-audio-observer.js';
-import { directSpeech, type TurnContext } from './director/index.js';
+import { directSpeech, type DirectSpeechOptions, type TurnContext } from './director/index.js';
 import { prosodyTags } from './providers/cartesia.js';
 import { tagReplyAudioId } from './reply-audio-id.js';
 import type { SSMLProsodyConfig } from './types.js';
@@ -112,6 +112,8 @@ export interface GatewayTTSNodeConfig {
   emotion?: string;
   /** The turn being answered (tts-wrapper's session context): keys the Stage 2 plan. */
   turnContext?: TurnContext;
+  /** A laugh or breath/sigh the Speech Director added (see DirectSpeechOptions). */
+  onNonverbal?: DirectSpeechOptions['onNonverbal'];
   /** Sample rate for audio frames (default: 24000) */
   sampleRate?: number;
   /** Frame duration in ms (default: 20) */
@@ -126,8 +128,6 @@ export interface GatewayTTSNodeConfig {
    * When enabled, synthesis starts in parallel with cache lookup.
    * This reduces latency on cache misses but increases API costs on cache hits.
    * Recommended only for latency-critical scenarios with low cache hit rates.
-   *
-   * Speculative synthesis starts in parallel with cache lookup (cost vs latency tradeoff).
    * Cartesia WebSocket per-chunk streaming is enabled when CARTESIA_STREAMING_TTS !== 'false'.
    */
   enableSpeculativeSynthesis?: boolean;
@@ -305,13 +305,10 @@ function sanitizeChunkForTTS(
   };
 }
 
-interface StreamingOverlapOptions {
+type ReplyFields = 'sessionId' | 'personaId' | 'emotion' | 'turnContext' | 'onNonverbal';
+interface StreamingOverlapOptions extends Pick<GatewayTTSNodeConfig, ReplyFields> {
   textStream: NodeReadableStream<string>;
   voiceId: string;
-  sessionId?: string;
-  personaId?: string;
-  emotion?: string;
-  turnContext?: TurnContext;
   /** Keys this reply's Stage 2 plan (review H2); see reply-audio-id.ts. */
   replyId: string;
   sampleRate: number;
@@ -387,6 +384,7 @@ async function createStreamingOverlapTTS(
       openingTags: prosodyTags,
       emotion,
       baseSpeed: sessionSpeed(sessionId),
+      sessionId,
       toFrames: (pcm) => splitIntoFrames(pcm, sampleRate, frameDurationMs),
       onFirstAudio: markFirstAudio,
       onStage: markFirstAudio.stage,
@@ -395,8 +393,7 @@ async function createStreamingOverlapTTS(
     });
   }
 
-  // Prefer sentence-overlap for all streaming providers (Sonata + Cartesia).
-  // Whole-text drain delayed first audio until the full LLM reply finished — opt in only for debug.
+  // Sentence overlap by default; whole-text drain holds first audio to the reply's end (debug).
   const useWholeTextStreaming =
     process.env.TTS_WHOLE_TEXT_STREAMING === 'true' &&
     !!provider.synthesizeStreaming &&
@@ -683,6 +680,7 @@ export function createGatewayTTSNode(
     personaId,
     emotion,
     turnContext,
+    onNonverbal,
     sampleRate = 24000,
     frameDurationMs = 20,
     enableCache = true,
@@ -717,6 +715,7 @@ export function createGatewayTTSNode(
         personaId,
         emotion,
         turnContext,
+        onNonverbal,
         replyId,
         sampleRate,
         frameDurationMs,

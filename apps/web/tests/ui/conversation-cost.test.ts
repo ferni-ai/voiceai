@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { recordPaywallFlag } from '../../src/services/paywall.service.js';
 
 // ============================================================================
 // ============================================================================
@@ -94,6 +95,7 @@ describe('Conversation Cost UI', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     document.body.innerHTML = '';
+    recordPaywallFlag({ paywall: true }); // the tip card shows only while the server has a paywall on
 
     mockApiGet.mockResolvedValue({
       ok: true,

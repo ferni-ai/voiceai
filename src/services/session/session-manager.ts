@@ -41,7 +41,7 @@ import {
   stopSessionCleanup as stopCleanup,
 } from './cleanup.js';
 import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
-import { withTimeout } from './utils.js';
+import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.js';
 import { validateUserId } from './validation.js';
 
 // Real-time memory - persist turns as they happen, never lose data
@@ -328,7 +328,7 @@ export async function createSessionServices(
       realtimeMemory
         .getLastConversationContext(validatedUserId)
         .then((lastContext) => {
-          if (lastContext && userProfile && !userProfile.lastConversationSummary) {
+          if (lastContext && userProfile && userProfile.lastConversationSummary === undefined) {
             const summary =
               lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
             if (summary) userProfile.lastConversationSummary = summary;
@@ -1082,7 +1082,7 @@ export async function createSessionServices(
       const textLower = text.toLowerCase();
 
       const storyPatterns =
-        /\b(i remember|back in|when i was|years ago|one time|there was|let me tell you|i'll never forget|i once|my father|at vanguard|in 1974|in 1975|in 2008)\b/i;
+        /\b(i remember|back in|when i was|years ago|one time|there was|let me tell you|i'll never forget|i once|my father|back at the firm|in 1987|in 2008)\b/i;
       const isStory = storyPatterns.test(textLower);
 
       if (isStory) {
@@ -1667,6 +1667,8 @@ export async function createSessionServices(
 
           let summary = null;
           if (turns.length > 0) {
+            // Start of the summary attempt, for latencyMs on the outcome logs below.
+            const summaryStartedAt = Date.now();
             getLogger().info(
               { sessionId, turnCount: turns.length, userId: validatedUserId },
               '📝 Starting conversation summarization'
@@ -1677,10 +1679,10 @@ export async function createSessionServices(
             try {
               const { createSummarizationLLMCaller } = await import('../llm-utils.js');
               const { summarizeWithLLM } = await import('../../memory/index.js');
-              const llmCaller = createSummarizationLLMCaller();
+              const llmCaller = trackJsonReply(createSummarizationLLMCaller());
 
               summary = await withTimeout(
-                summarizeWithLLM(sessionId, turns, llmCaller),
+                summarizeWithLLM(sessionId, turns, llmCaller.call),
                 SUMMARIZE_TIMEOUT_MS,
                 'summarizeWithLLM',
                 sessionId
@@ -1688,7 +1690,13 @@ export async function createSessionServices(
 
               if (summary) {
                 getLogger().info(
-                  { sessionId, keyPoints: summary.keyPoints?.length || 0 },
+                  {
+                    sessionId,
+                    keyPoints: summary.keyPoints?.length || 0,
+                    // summarizeWithLLM falls back to extraction itself on a non-JSON reply
+                    source: llmCaller.gotJson() ? 'llm' : 'fallback',
+                    latencyMs: Date.now() - summaryStartedAt,
+                  },
                   '✅ LLM summarization succeeded'
                 );
               }
@@ -1711,7 +1719,12 @@ export async function createSessionServices(
                 );
                 if (summary) {
                   getLogger().info(
-                    { sessionId, keyPoints: summary.keyPoints?.length || 0 },
+                    {
+                      sessionId,
+                      keyPoints: summary.keyPoints?.length || 0,
+                      source: 'fallback',
+                      latencyMs: Date.now() - summaryStartedAt,
+                    },
                     '✅ Extraction summarization succeeded'
                   );
                 }
@@ -1725,12 +1738,17 @@ export async function createSessionServices(
 
             if (!summary) {
               getLogger().warn(
-                { sessionId, turnCount: turns.length },
+                {
+                  sessionId,
+                  turnCount: turns.length,
+                  source: 'none',
+                  latencyMs: Date.now() - summaryStartedAt,
+                },
                 '❌ All summarization methods failed - will use fallback'
               );
             } else {
               await global.store.saveSummary(validatedUserId, summary);
-              runAfterCall(validatedUserId, sessionId, turns, summary, historyTracker, userProfile);
+              runAfterCall(validatedUserId, sessionId, turns, summary, historyTracker);
 
               // Index for semantic retrieval
               try {
@@ -1821,11 +1839,11 @@ export async function createSessionServices(
             }
           }
 
-          if (summary?.keyPoints && summary.keyPoints.length > 0) {
+          if (summary?.callerProvenance || summary?.keyPoints?.length) {
             updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
+            if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
           } else if (turns.length > 0) {
-            // FIX: Always save at least a basic summary from turns
-            // This ensures returning users are recognized even if LLM summarization fails
+            // Always save a basic summary, so a returning user is recognized without the LLM
             const userTurns = turns.filter((t) => t.role === 'user');
             if (userTurns.length > 0) {
               const topics = userTurns
@@ -2307,7 +2325,7 @@ export async function createSessionServices(
   activeSessions.set(sessionId, services);
 
   if (validatedUserId && deferProfileLoad) {
-    void (async () => {
+    trackDeferredProfileLoad(services, (async () => {
       try {
         const loadedProfile = await loadProfileForSession(validatedUserId);
         if (!loadedProfile) return;
@@ -2374,7 +2392,7 @@ export async function createSessionServices(
           'Deferred profile load failed (session continues with generic context)'
         );
       }
-    })();
+    })());
   }
 
   // Memory pipeline diagnostics - track session start

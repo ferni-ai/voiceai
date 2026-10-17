@@ -28,7 +28,9 @@ vi.mock('../../persistence/index.js', () => ({
     load: async () => null,
   }),
 }));
-vi.mock('../insights-broadcast.js', () => ({ insightsBroadcast: { publishInsight: () => {} } }));
+vi.mock('../../communication/insights-broadcast.js', () => ({
+  getInsightsBroadcast: () => ({ publishInsight: () => {} }),
+}));
 vi.mock('../../superhuman/index.js', () => ({
   loadUserCommitments: async () => [],
   assessBurnoutRisk: async () => null,

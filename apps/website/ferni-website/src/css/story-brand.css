@@ -283,6 +283,13 @@ button {
   background: var(--color-ferni-green);
 }
 
+/* A ring that stands apart from the green pill, in both themes */
+.nav__cta:focus-visible {
+  outline: 3px solid var(--color-text-primary);
+  outline-offset: 3px;
+  transition: background var(--duration-normal) ease;
+}
+
 .nav__cta svg {
   width: 16px;
   height: 16px;
@@ -972,7 +979,7 @@ button {
    ============================================ */
 .team-card {
   padding: var(--space-8);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.06);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1474,7 +1481,7 @@ button {
 .feature {
   text-align: center;
   padding: var(--space-8);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.06);
   box-shadow:
@@ -1952,7 +1959,7 @@ button {
 /* Base pricing card */
 .pricing-card {
   padding: var(--space-10);
-  background: white;
+  background: var(--page-card, white);
   border-radius: 28px;
   border: 1px solid rgba(44, 37, 32, 0.08);
   text-align: center;
@@ -2101,7 +2108,7 @@ button {
 }
 
 .pricing-card--featured .btn--primary {
-  background: white;
+  background: var(--page-card, white);
   color: var(--color-natural-ink);
 }
 
@@ -2112,14 +2119,9 @@ button {
 /* ============================================
    FERNI FUND SECTION - Gift Forward Model
    ============================================ */
-.ferni-fund {
-  background: linear-gradient(180deg, var(--color-paper-sand) 0%, var(--color-paper-cream) 100%);
-  padding: clamp(80px, 12vh, 120px) var(--space-6);
-}
-
 /* Fund Explainer - How it Works */
 .fund-explainer {
-  background: white;
+  background: var(--page-card, white);
   border-radius: 28px;
   padding: var(--space-10) var(--space-8);
   margin-bottom: var(--space-12);
@@ -2205,7 +2207,7 @@ button {
 /* Gift Card */
 .gift-card {
   padding: var(--space-8);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.08);
   text-align: center;
@@ -2225,7 +2227,7 @@ button {
 
 /* Featured Gift Card */
 .gift-card--featured {
-  background: white;
+  background: var(--page-card, white);
   border: 2px solid var(--color-ferni-green);
   position: relative;
   box-shadow:
@@ -2348,6 +2350,109 @@ button {
 }
 
 /* ============================================
+   CHIP IN - a dollar on Venmo (partials/chip-in.njk)
+   Shared by the home page (#founders) and /give/
+   ============================================ */
+.chip-in {
+  display: grid;
+  gap: var(--space-8);
+  align-items: center;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 28px;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+
+.chip-in__eyebrow {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin: 0 0 var(--space-3);
+}
+
+.chip-in__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
+}
+
+.chip-in__body {
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  max-width: 46ch;
+  margin: 0 auto var(--space-6);
+}
+
+.chip-in__cta {
+  min-height: 48px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.chip-in__fine {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: var(--space-3) 0 0;
+}
+
+.chip-in__qr {
+  width: 100%;
+  max-width: 240px;
+  margin: 0 auto;
+}
+
+.chip-in__qr img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.chip-in__handle {
+  margin-top: var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.chip-in__handle strong {
+  color: var(--color-text-primary);
+}
+
+@media (min-width: 768px) {
+  .chip-in {
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: var(--space-12);
+    padding: var(--space-12);
+    text-align: left;
+  }
+
+  .chip-in__body {
+    margin-left: 0;
+  }
+
+  .chip-in__cta {
+    width: auto;
+  }
+}
+
+/* ============================================
    FINAL CTA
    ============================================ */
 
@@ -2462,7 +2567,7 @@ button {
   flex-direction: column;
   align-items: center;
   padding: var(--space-8) clamp(32px, 8vw, 64px);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   text-decoration: none;
   position: relative;
@@ -2531,7 +2636,7 @@ button {
 }
 
 .final-cta .btn--primary {
-  background: white;
+  background: var(--page-card, white);
   color: var(--color-natural-ink);
 }
 
@@ -4475,6 +4580,17 @@ html {
   transform: translateY(100%);
 }
 
+/* Lift the floating chat pill above the banner so it never covers Accept */
+body:has(.cookie-banner.is-visible) #ferni-live-chat {
+  bottom: calc(81px + var(--space-6));
+}
+
+@media (max-width: 768px) {
+  body:has(.cookie-banner.is-visible) #ferni-live-chat {
+    bottom: calc(145px + var(--space-4));
+  }
+}
+
 .cookie-banner__content {
   max-width: 1120px;
   margin: 0 auto;
@@ -5289,7 +5405,7 @@ img[loading='lazy']:not([data-src]) {
 
 /* Speech bubble - elevated glass */
 .two-am__bubble {
-  background: white;
+  background: var(--page-card, white);
   padding: var(--space-8) var(--space-10);
   border-radius: 28px;
   box-shadow:
@@ -5346,7 +5462,7 @@ img[loading='lazy']:not([data-src]) {
   margin-top: clamp(40px, 6vh, 64px);
   -webkit-overflow-scrolling: touch;
   padding: var(--space-4);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   box-shadow:
     0 1px 2px rgba(44, 37, 32, 0.04),
@@ -5413,7 +5529,7 @@ img[loading='lazy']:not([data-src]) {
 .proof-table__icon {
   width: 48px;
   height: 48px;
-  background: white;
+  background: var(--page-card, white);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -6162,7 +6278,7 @@ img[loading='lazy']:not([data-src]) {
 /* Card Styling */
 .story__card {
   padding: var(--space-8);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.06);
   box-shadow: 0 1px 2px rgba(44, 37, 32, 0.04),
@@ -6804,7 +6920,7 @@ body[data-time-of-day='early-morning'] {
      Cards are "islands of light" in dark mode
      =========================================== */
   .feature {
-    background: white !important;
+    background: var(--page-card, white) !important;
     border-color: rgba(44, 37, 32, 0.1);
   }
 
@@ -6879,7 +6995,7 @@ body[data-time-of-day='early-morning'] {
 /* Feature Cards - "Islands of light" with dark readable text */
 .theme--dark .feature,
 body.theme--dark .feature {
-  background: white !important;
+  background: var(--page-card, white) !important;
   border-color: rgba(44, 37, 32, 0.1) !important;
 }
 
@@ -6950,7 +7066,7 @@ body.theme--dark .journey__stage-badge {
 /* Use-Case Cards - "Islands of light" in YOUR MOMENTS section */
 .theme--dark .use-case,
 body.theme--dark .use-case {
-  background: white !important;
+  background: var(--page-card, white) !important;
   border-color: var(--color-border-medium) !important;
 }
 
@@ -7486,7 +7602,7 @@ body:not(.theme--dark) .chat-demo__label,
   font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-inverse);
   min-width: 120px;
 }
 

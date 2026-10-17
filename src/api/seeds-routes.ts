@@ -18,7 +18,12 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { getUserId, parseBody, sendJSON, sendError } from './helpers.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
-import { awardDailyConversation, DAILY_SEEDS, dailyStatus } from '../services/seeds/earn.js';
+import {
+  awardDailyConversation,
+  DAILY_SEEDS,
+  dailyEarnsSeeds,
+  dailyStatus,
+} from '../services/seeds/earn.js';
 import {
   commitSeeds,
   ENTRIES_SUBCOLLECTION,
@@ -29,6 +34,7 @@ import {
 import { ownedCosmetics } from '../services/seeds/cosmetics-catalog.js';
 import { purchaseCosmetic } from './seeds-purchase.js';
 import { importLocalSeeds, serverLedgerEnabled } from './seeds-import.js';
+import { APP_URL } from '../config/api-urls.js';
 
 const log = createLogger({ module: 'SeedsRoutes' });
 
@@ -122,6 +128,14 @@ const REFERRAL_WORDS = [
   'fern',
   'moss',
 ];
+
+/**
+ * The link a friend opens. The app redeems /grow/<code> (apps/web referral.service.ts);
+ * ferni.ai/grow/ is the website, which has no such page, so nobody was ever referred.
+ */
+export function referralLink(code: string): string {
+  return `${APP_URL}/grow/${code}`;
+}
 
 function generateReferralCode(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -268,9 +282,9 @@ export async function handleSeedsRoutes(
         balance: userSeeds.balance,
         lifetimeEarned: userSeeds.lifetimeEarned,
         currentStreak: day.currentStreak,
-        dailyBonusAvailable: day.dailyBonusAvailable,
+        dailyBonusAvailable: day.dailyBonusAvailable && dailyEarnsSeeds(),
         referralCode: userSeeds.referralCode,
-        referralUrl: `https://ferni.ai/grow/${userSeeds.referralCode}`,
+        referralUrl: referralLink(userSeeds.referralCode),
         garden: {
           title: userSeeds.gardenTitle,
           totalReferrals: userSeeds.referrals.length,
@@ -313,7 +327,10 @@ export async function handleSeedsRoutes(
               amount: DAILY_SEEDS + (result.milestone?.seeds ?? 0),
               newBalance: result.daily.balance,
             }
-          : { claimed: false, reason: 'Already claimed today' }
+          : {
+              claimed: false,
+              reason: dailyEarnsSeeds() ? 'Already claimed today' : 'No daily seeds',
+            }
       );
       return true;
     }
@@ -394,7 +411,7 @@ export async function handleSeedsRoutes(
         totalReferrals: userSeeds.referrals.length,
         totalEarnedFromReferrals: userSeeds.earnedFrom.referrals,
         referralCode: userSeeds.referralCode,
-        referralUrl: `https://ferni.ai/grow/${userSeeds.referralCode}`,
+        referralUrl: referralLink(userSeeds.referralCode),
       });
       return true;
     }

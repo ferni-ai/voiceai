@@ -139,7 +139,7 @@ describe('garden: the shared link is the registered one', () => {
 
     expect(first.referralCode).toMatch(/^[a-z0-9]{6}-[a-z]+$/);
     expect(second.referralCode).toBe(first.referralCode);
-    expect(first.referralUrl).toBe(`https://ferni.ai/grow/${first.referralCode}`);
+    expect(first.referralUrl).toBe(`https://app.ferni.ai/grow/${first.referralCode}`);
     expect(fs.docs.get('alice')?.referralCode).toBe(first.referralCode); // persisted, not just returned
   });
 

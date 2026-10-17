@@ -326,7 +326,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
   // ============================================================================
 
   contemplative: {
-    // BRAND: Deep thought - wise, measured energy (like Jack Bogle)
+    // BRAND: Deep thought - wise, measured energy (like a wise elder)
     id: 'contemplative',
     color: {
       primary: 'var(--color-jack, #9a7b5a)',

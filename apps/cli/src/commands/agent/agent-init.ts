@@ -813,7 +813,7 @@ async function runWizard(agentId?: string, options?: { template?: string; quick?
 
   const nameInput = await p.text({
     message: "What's your agent's name?",
-    placeholder: 'Joel Dickson',
+    placeholder: 'Nate Holloway',
     validate: (value) => {
       if (!value) return 'Name is required';
       if (value.length < 2) return 'At least 2 characters';
@@ -849,7 +849,7 @@ async function runWizard(agentId?: string, options?: { template?: string; quick?
 
   const descriptionInput = await p.text({
     message: 'Longer description (for landing page):',
-    placeholder: 'Meet Joel - your guide to smart investing and financial wisdom.',
+    placeholder: 'Meet Nate - your guide to smart investing and financial wisdom.',
     validate: (value) => {
       if (!value) return 'Description is required';
       if (value.length < 20) return 'A bit more detail helps users connect';

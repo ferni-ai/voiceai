@@ -18,11 +18,14 @@ const DISAGREE =
 // Self-repair: a dash restart, a correction marker, or a repeated word ("I, I").
 const SELF_REPAIR =
   /[—–]|--|\b(i mean|wait,? no|or,? actually|well,? actually|let me put it|sorry,? i mean|what i meant)\b|\b([a-z']+),? \2\b/i;
+// A goodbye that closes its sentence ("Take care, Sam."), as name-gate.ts reads one.
+const CLOSING =
+  /\b(?:bye(?:-bye)?|goodbye|good ?night|talk (?:to you )?(?:soon|later|tomorrow)|(?<!\bi )see (?:you|ya)(?: (?:soon|later|tomorrow|then|next time|around))?|take care(?: of yourself)?|(?:gotta|got to|have to|need to) (?:go|run|hop off)|catch you later|let you go)\s*(?:,\s*[\p{L}'’-]+\s*)?(?:[.!?…]|$)/iu;
 const FILLED_PAUSE = /\b(uh|um|uhm|erm|er)\b/gi;
 // Marks the voice rules ban or that read as broken text: a doubled comma
 // ("Cats are,, I mean"), an ellipsis or a dash.
 const MARKUP_ARTIFACT = /,\s*,|\.\.|…|[—–]/;
-const LAUGHTER = /\[laughter\]|\b(haha+|ha|heh|hah)\b/i;
+export const LAUGHTER = /\[laughter\]|\b(haha+|ha|heh|hah)\b/i;
 // Ferni sharing something of its own life or view, not only asking.
 const SELF_DISCLOSURE =
   /\b(i (was|went|got|had|used to|tried|made|did|spent|ended up|finally)|my (wife|day|week|morning|weekend|neighbou?r|dog|cat|coffee|garden|dad|mom|brother|sister|friend|kitchen))\b/i;
@@ -48,13 +51,19 @@ function sameUtterance(prev, next) {
   return i > 0 && i >= Math.min(a.length, b.length) / 2;
 }
 
-/** The call as alternating turns: [{ who: 'agent'|'user', text, t }], greeting dropped. */
-export function turnsOf(run) {
+/**
+ * The call as alternating turns: [{ who: 'agent'|'user', text, t }].
+ * What Ferni says before the caller speaks is dropped, since it would skew the
+ * per-turn numbers; pass { greeting: true } to keep it as a turn marked
+ * greeting (the judge needs it: COACH_FOLLOW_THROUGH asks its question there).
+ */
+export function turnsOf(run, { greeting = false } = {}) {
   const firstUserAt = run.userSpeech?.[0]?.[0] ?? 0;
   const turns = [];
   let segs = []; // the current caller turn's separate utterances
   for (const e of run.events ?? []) {
-    if (e.who === 'agent' && e.t <= firstUserAt) continue; // greeting
+    const isGreeting = e.who === 'agent' && e.t <= firstUserAt;
+    if (isGreeting && !greeting) continue;
     const last = turns[turns.length - 1];
     if (last && last.who === e.who) {
       if (e.who === 'agent') last.text = `${last.text} ${e.text}`;
@@ -67,7 +76,11 @@ export function turnsOf(run) {
         last.text = segs.join(' ');
       }
     } else {
-      turns.push({ who: e.who, text: e.text, t: e.t });
+      turns.push(
+        isGreeting
+          ? { who: e.who, text: e.text, t: e.t, greeting: true }
+          : { who: e.who, text: e.text, t: e.t }
+      );
       segs = [e.text];
     }
   }
@@ -82,15 +95,28 @@ const pct = (xs, p) => {
   return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
 };
 
-/** Humanness metrics pooled over one or more recorded runs. */
-export function computeHumanness(runs) {
+/** The caller's name as a capitalized word of its own ("Sam," yes; "Samantha" no; "will" is not "Will"). */
+const nameIn = (name) =>
+  new RegExp(`(?<![\\p{L}'])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}'])`, 'u');
+
+/**
+ * Humanness metrics pooled over one or more recorded runs. callerName is who
+ * the eval calls as (run.sh: Sam): nameUseRate is the share of Ferni's turns
+ * that say it. Friends say each other's name in about 1 turn in 75 (SBCSAE,
+ * score-targets.json nameUseRate); Ferni said it in 16 of 24 on a prod call.
+ */
+export function computeHumanness(runs, { callerName = 'Sam' } = {}) {
   const agent = [];
   for (const run of runs) {
     const turns = turnsOf(run);
+    // On a call the caller often says hello first: Ferni's first turn is then its hello.
+    const greetedFirst = turnsOf(run, { greeting: true }).some((t) => t.greeting);
+    let firstAgent = !greetedFirst;
     turns.forEach((turn, i) => {
       if (turn.who !== 'agent') return;
       const before = turns[i - 1]?.who === 'user' ? turns[i - 1].text : '';
-      agent.push({ text: turn.text, before });
+      agent.push({ text: turn.text, before, hello: firstAgent });
+      firstAgent = false;
     });
   }
   const lens = agent.map((a) => words(a.text).length);
@@ -114,6 +140,14 @@ export function computeHumanness(runs) {
     selfRepairRate: rate(agent, (a) => SELF_REPAIR.test(a.text)),
     filledPausesPer100Words: totalWords ? Math.round((filled / totalWords) * 1000) / 10 : null,
     laughterRate: rate(agent, (a) => LAUGHTER.test(a.text)),
+    // Hello and goodbye aside (name-gate.ts keeps the name there; the SBCSAE
+    // target is mid-conversation talk).
+    nameUseRate: callerName
+      ? rate(
+          agent.filter((a) => !a.hello && !CLOSING.test(a.text) && !CLOSING.test(a.before)),
+          (a) => nameIn(callerName).test(a.text)
+        )
+      : null,
     markupArtifactRate: rate(agent, (a) => MARKUP_ARTIFACT.test(a.text)),
     selfDisclosureRate: rate(agent, (a) => SELF_DISCLOSURE.test(a.text)),
     // Picks up one of the caller's own content words, the way people echo.

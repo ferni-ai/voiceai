@@ -1,12 +1,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ title }}{% if title %} | {% endif %}{{ site.name }}</title>
+<title>{{ title }}{% if title and not (title.startsWith(site.name) or title.endsWith(site.name)) %} | {{ site.name }}{% elif not title %}{{ site.name }}{% endif %}</title>
 <meta name="description" content="{{ description or site.tagline }}">
 
 <!-- Canonical URL -->
 <link rel="canonical" href="{{ site.url }}{{ page.url }}">
 
 <!-- Hreflang Tags for International SEO -->
+{# Only the home page has translations (src/locale-index.njk); other pages get no alternates. #}
+{% if page.url == "/" %}
 {% for localeItem in locales %}
 {% if localeItem.default %}
 <link rel="alternate" hreflang="{{ localeItem.code }}" href="{{ site.url }}{{ page.url }}">
@@ -15,6 +17,7 @@
 <link rel="alternate" hreflang="{{ localeItem.code }}" href="{{ site.url }}/{{ localeItem.code }}{{ page.url }}">
 {% endif %}
 {% endfor %}
+{% endif %}
 
 <!-- Open Graph -->
 <meta property="og:title" content="{{ title or site.name }}">
@@ -26,7 +29,7 @@
 {% if ogImage %}
 <meta property="og:image" content="{{ site.url }}{{ ogImage }}">
 {% else %}
-<meta property="og:image" content="{{ site.url }}/images/og-default.png">
+<meta property="og:image" content="{{ site.url }}/images/og-image.jpg">
 {% endif %}
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -39,7 +42,7 @@
 {% if ogImage %}
 <meta name="twitter:image" content="{{ site.url }}{{ ogImage }}">
 {% else %}
-<meta name="twitter:image" content="{{ site.url }}/images/og-default.png">
+<meta name="twitter:image" content="{{ site.url }}/images/og-image.jpg">
 {% endif %}
 
 <!-- Additional SEO -->
@@ -68,12 +71,5 @@
 <!-- Design Tokens (auto-generated from design-system/tokens/) -->
 <link rel="stylesheet" href="/css/_tokens.css">
 
-<!-- Google Analytics (graceful failure) -->
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){try{dataLayer.push(arguments)}catch(e){}}
-  gtag('js', new Date());
-  gtag('config', '{{ site.analytics.gaId }}', { 'send_page_view': true });
-</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}" 
-        onerror="console.log('Analytics blocked')"></script>
+<!-- Google Analytics, denied until the visitor accepts cookies -->
+{% include "partials/analytics.njk" %}

@@ -221,7 +221,7 @@ class PredictionTrackerUI {
       .pred-tracker {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -469,7 +469,7 @@ class PredictionTrackerUI {
 
       .pred-tracker__btn--primary {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .pred-tracker__btn--primary:hover { background: var(--color-accent-hover, #3a7050); }
