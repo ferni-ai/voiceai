@@ -159,31 +159,49 @@ describe('effectiveSettings: contents and hash', () => {
     expect(a).toBe(c);
   });
 
-  it('logs numbered parts, each a single EFFECTIVE_SETTINGS line under the length limit', () => {
+  /** Joins the parts back into one settings object, as the snapshot script will. */
+  const reassemble = (lines: string[]) => {
+    const flags: Record<string, string> = {};
+    const env: Record<string, string> = {};
+    lines.forEach((line, i) => {
+      const body = JSON.parse(line.slice('EFFECTIVE_SETTINGS '.length));
+      expect(body.part).toBe(i + 1);
+      expect(body.parts).toBe(lines.length);
+      Object.assign(flags, body.flags);
+      Object.assign(env, body.env);
+    });
+    return { flags, env };
+  };
+
+  it('splits into numbered parts under the limit that reassemble to the full settings', () => {
     const env: Record<string, string> = {};
     for (const name of ENV_READ_NAMES) {
       if (!PRINTABLE_NAMES.includes(name) && !(name in FLAG_MANIFEST)) env[name] = fake(name);
     }
+    for (const name of Object.keys(FLAG_MANIFEST)) env[name] = 'learned';
     const lines = effectiveSettingsLines(env);
     expect(lines.length).toBeGreaterThan(1);
-    lines.forEach((line, i) => {
+    for (const line of lines) {
       expect(line.startsWith('EFFECTIVE_SETTINGS {'), line.slice(0, 40)).toBe(true);
       expect(line.includes('\n')).toBe(false);
       expect(line.length).toBeLessThanOrEqual(PART_MAX_CHARS);
-      const body = JSON.parse(line.slice('EFFECTIVE_SETTINGS '.length));
-      expect(body.part).toBe(i + 1);
-      expect(body.parts).toBe(lines.length);
-    });
+    }
+    const settings = effectiveSettings(env);
+    const joined = reassemble(lines);
+    expect(joined.flags).toEqual(settings.flags);
+    expect(joined.env).toEqual(settings.env);
     const first = JSON.parse(lines[0].slice('EFFECTIVE_SETTINGS '.length));
-    expect(first.flags.ATTUNE).toBe('off');
-    expect(first.hash).toBe(effectiveSettings(env).hash);
+    expect(first.hash).toBe(settings.hash);
+    expect(first.commit).toBe(settings.commit);
   });
 
-  it('puts the commit and every flag in part 1', () => {
-    const [first] = effectiveSettingsLines({ ATTUNE: 'on', BUILD_SHA: 'abc1234' });
-    const body = JSON.parse(first.slice('EFFECTIVE_SETTINGS '.length));
-    expect(body.commit).toBe('abc1234');
-    expect(body.flags.ATTUNE).toBe('on');
-    expect(body.env).toBeUndefined();
+  it('keeps the commit and hash in every part', () => {
+    const lines = effectiveSettingsLines({ ATTUNE: 'on', BUILD_SHA: 'abc1234' });
+    for (const line of lines) {
+      const body = JSON.parse(line.slice('EFFECTIVE_SETTINGS '.length));
+      expect(body.commit).toBe('abc1234');
+      expect(body.hash).toBe(effectiveSettings({ ATTUNE: 'on', BUILD_SHA: 'abc1234' }).hash);
+    }
+    expect(reassemble(lines).flags.ATTUNE).toBe('on');
   });
 });

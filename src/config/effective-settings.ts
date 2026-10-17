@@ -1,7 +1,7 @@
 /**
  * The effective settings this process runs with, as one greppable line.
  *
- * The agent logs `EFFECTIVE_SETTINGS {...}` once at boot, so two deployments can
+ * The agent logs `EFFECTIVE_SETTINGS {...}` lines at boot, so two deployments can
  * be compared by the hash of their non-secret settings instead of by hand. Every
  * manifest flag is listed with its resolved value. Every other env name the code
  * reads is listed too, but its value is printed only when it matches a strict
@@ -124,37 +124,56 @@ export function effectiveSettings(env: Env = process.env): EffectiveSettings {
 
 const PREFIX = 'EFFECTIVE_SETTINGS ';
 
-/** Longest line the agent logs. Log pipelines may truncate a long line, so the env names are split across parts. */
+/** Longest line the agent logs. A log pipeline may truncate a long line, so the settings are split into parts. */
 export const PART_MAX_CHARS = 12_000;
 
-function partLine(part: number, body: Record<string, unknown>): string {
-  return `${PREFIX}${JSON.stringify({ part, ...body })}`;
+/** Room kept free in each part for its `part`, `parts`, commit and hash fields. */
+const PART_ROOM = 300;
+
+type Section = Record<string, string>;
+interface Chunk {
+  readonly flags: Section;
+  readonly env: Section;
 }
 
 /**
- * The lines the agent logs at boot, each `EFFECTIVE_SETTINGS {...}`. Part 1 holds the
- * parts count, the commit, the hash and every flag. The env names follow in parts
- * of at most PART_MAX_CHARS. The snapshot script joins the parts by `part` and `parts`.
+ * The lines the agent logs at boot, each `EFFECTIVE_SETTINGS {...}`. Every part repeats the
+ * commit and hash and holds a slice of the flags and env names, in order, so no part is
+ * dependent on another and each stays under PART_MAX_CHARS. PR 2's snapshot script joins
+ * the flags and env of all parts (by `part` and `parts`) back into one settings object.
  */
 export function effectiveSettingsLines(env: Env = process.env): string[] {
   const settings = effectiveSettings(env);
-  const groups: Record<string, string>[] = [];
-  let current: Record<string, string> = {};
-  for (const [name, value] of Object.entries(settings.env)) {
-    const grown = { ...current, [name]: value };
-    if (Object.keys(current).length && JSON.stringify(grown).length > PART_MAX_CHARS - 200) {
-      groups.push(current);
-      current = { [name]: value };
-    } else {
-      current = grown;
+  const measure = (chunk: Chunk): number =>
+    JSON.stringify({ part: 0, parts: 0, commit: settings.commit, hash: settings.hash, ...chunk })
+      .length;
+
+  const chunks: Chunk[] = [];
+  let current: Chunk = { flags: {}, env: {} };
+  for (const section of ['flags', 'env'] as const) {
+    for (const [name, value] of Object.entries(settings[section])) {
+      const grown: Chunk = { ...current, [section]: { ...current[section], [name]: value } };
+      const full = Object.keys(current.flags).length + Object.keys(current.env).length > 0;
+      if (full && measure(grown) > PART_MAX_CHARS - PART_ROOM) {
+        chunks.push(current);
+        current = { flags: {}, env: {} };
+        current[section][name] = value;
+      } else {
+        current = grown;
+      }
     }
   }
-  if (Object.keys(current).length) groups.push(current);
+  chunks.push(current);
 
-  const parts = 1 + groups.length;
-  const lines = [
-    partLine(1, { parts, commit: settings.commit, hash: settings.hash, flags: settings.flags }),
-  ];
-  groups.forEach((group, i) => lines.push(partLine(i + 2, { parts, env: group })));
-  return lines;
+  return chunks.map(
+    (chunk, i) =>
+      `${PREFIX}${JSON.stringify({
+        part: i + 1,
+        parts: chunks.length,
+        commit: settings.commit,
+        hash: settings.hash,
+        flags: chunk.flags,
+        env: chunk.env,
+      })}`
+  );
 }
