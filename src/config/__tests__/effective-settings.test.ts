@@ -5,9 +5,18 @@
 import { describe, expect, it } from 'vitest';
 import { ENV_READ_NAMES } from '../env-read-names.generated.js';
 import { FLAG_MANIFEST } from '../flag-manifest.js';
-import { SET, effectiveSettings, formatEffectiveSettings } from '../effective-settings.js';
+import {
+  PART_MAX_CHARS,
+  SET,
+  effectiveSettings,
+  effectiveSettingsLines,
+} from '../effective-settings.js';
 
 const MARK = 'LEAKMARK';
+
+/** Everything the agent logs at boot, as one text, for leak checks. */
+const bootText = (env: Record<string, string | undefined>) =>
+  effectiveSettingsLines(env).join('\n');
 
 /** Names that print their value by design; the leak test must not plant a fake under them. */
 const PRINTABLE_NAMES = [
@@ -48,7 +57,7 @@ function fake(name: string): string {
 
 describe('effectiveSettings: no secret value leaks', () => {
   it.each(SECRET_SHAPES)('hides a fake secret set under %s', (name) => {
-    const line = formatEffectiveSettings({ [name]: fake(name) });
+    const line = bootText({ [name]: fake(name) });
     expect(line).not.toContain(MARK);
   });
 
@@ -66,7 +75,7 @@ describe('effectiveSettings: no secret value leaks', () => {
     ['SCHEDULED_JOBS_AUTH', `${MARK}secretword`],
     ['ACTION_CLAIM_GUARD', `${MARK}password`],
   ])('hides %s set to a value shaped like a secret (%s)', (name, value) => {
-    const line = formatEffectiveSettings({ [name]: value });
+    const line = bootText({ [name]: value });
     expect(line).not.toContain(MARK);
   });
 
@@ -78,7 +87,7 @@ describe('effectiveSettings: no secret value leaks', () => {
     const env: Record<string, string> = {};
     for (const name of ENV_READ_NAMES) if (!PRINTABLE_NAMES.includes(name)) env[name] = fake(name);
     for (const name of Object.keys(FLAG_MANIFEST)) env[name] = fake(name);
-    const line = formatEffectiveSettings(env);
+    const line = bootText(env);
     expect(line).not.toContain(MARK);
   });
 
@@ -150,10 +159,31 @@ describe('effectiveSettings: contents and hash', () => {
     expect(a).toBe(c);
   });
 
-  it('writes exactly one EFFECTIVE_SETTINGS line with no newline inside', () => {
-    const line = formatEffectiveSettings({ ATTUNE: 'on' });
-    expect(line.startsWith('EFFECTIVE_SETTINGS {')).toBe(true);
-    expect(line.includes('\n')).toBe(false);
-    expect(JSON.parse(line.slice('EFFECTIVE_SETTINGS '.length)).flags.ATTUNE).toBe('on');
+  it('logs numbered parts, each a single EFFECTIVE_SETTINGS line under the length limit', () => {
+    const env: Record<string, string> = {};
+    for (const name of ENV_READ_NAMES) {
+      if (!PRINTABLE_NAMES.includes(name) && !(name in FLAG_MANIFEST)) env[name] = fake(name);
+    }
+    const lines = effectiveSettingsLines(env);
+    expect(lines.length).toBeGreaterThan(1);
+    lines.forEach((line, i) => {
+      expect(line.startsWith('EFFECTIVE_SETTINGS {'), line.slice(0, 40)).toBe(true);
+      expect(line.includes('\n')).toBe(false);
+      expect(line.length).toBeLessThanOrEqual(PART_MAX_CHARS);
+      const body = JSON.parse(line.slice('EFFECTIVE_SETTINGS '.length));
+      expect(body.part).toBe(i + 1);
+      expect(body.parts).toBe(lines.length);
+    });
+    const first = JSON.parse(lines[0].slice('EFFECTIVE_SETTINGS '.length));
+    expect(first.flags.ATTUNE).toBe('off');
+    expect(first.hash).toBe(effectiveSettings(env).hash);
+  });
+
+  it('puts the commit and every flag in part 1', () => {
+    const [first] = effectiveSettingsLines({ ATTUNE: 'on', BUILD_SHA: 'abc1234' });
+    const body = JSON.parse(first.slice('EFFECTIVE_SETTINGS '.length));
+    expect(body.commit).toBe('abc1234');
+    expect(body.flags.ATTUNE).toBe('on');
+    expect(body.env).toBeUndefined();
   });
 });

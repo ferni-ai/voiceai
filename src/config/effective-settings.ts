@@ -122,7 +122,39 @@ export function effectiveSettings(env: Env = process.env): EffectiveSettings {
   };
 }
 
-/** The one line the agent logs at boot. */
-export function formatEffectiveSettings(env: Env = process.env): string {
-  return `EFFECTIVE_SETTINGS ${JSON.stringify(effectiveSettings(env))}`;
+const PREFIX = 'EFFECTIVE_SETTINGS ';
+
+/** Longest line the agent logs. Log pipelines may truncate a long line, so the env names are split across parts. */
+export const PART_MAX_CHARS = 12_000;
+
+function partLine(part: number, body: Record<string, unknown>): string {
+  return `${PREFIX}${JSON.stringify({ part, ...body })}`;
+}
+
+/**
+ * The lines the agent logs at boot, each `EFFECTIVE_SETTINGS {...}`. Part 1 holds the
+ * parts count, the commit, the hash and every flag. The env names follow in parts
+ * of at most PART_MAX_CHARS. The snapshot script joins the parts by `part` and `parts`.
+ */
+export function effectiveSettingsLines(env: Env = process.env): string[] {
+  const settings = effectiveSettings(env);
+  const groups: Record<string, string>[] = [];
+  let current: Record<string, string> = {};
+  for (const [name, value] of Object.entries(settings.env)) {
+    const grown = { ...current, [name]: value };
+    if (Object.keys(current).length && JSON.stringify(grown).length > PART_MAX_CHARS - 200) {
+      groups.push(current);
+      current = { [name]: value };
+    } else {
+      current = grown;
+    }
+  }
+  if (Object.keys(current).length) groups.push(current);
+
+  const parts = 1 + groups.length;
+  const lines = [
+    partLine(1, { parts, commit: settings.commit, hash: settings.hash, flags: settings.flags }),
+  ];
+  groups.forEach((group, i) => lines.push(partLine(i + 2, { parts, env: group })));
+  return lines;
 }
