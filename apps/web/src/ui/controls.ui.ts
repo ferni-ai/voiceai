@@ -196,14 +196,34 @@ function updateButtonVisibility(state: ConnectionState): void {
   }
 }
 
-/** Show (or clear) the button's one connecting status, tappable to cancel. */
+/**
+ * Show (or clear) the button's one connecting status, tappable to cancel: two
+ * lines in the pill, "Connecting…" over a smaller "Tap to cancel", beside the
+ * spinner. A label drawn over the button used to wrap under the spinner and
+ * clip at large text sizes. Screen readers get one sentence (aria-label).
+ */
 function showConnectingStatus(btn: HTMLButtonElement, on: boolean, cancellable = false): void {
   btn.disabled = on && !cancellable;
   btn.setAttribute('aria-busy', String(on));
+  btn.querySelector('.btn-status')?.remove();
   if (on) {
     addClass(btn, 'btn-connecting');
-    btn.dataset.status = cancellable ? t('entrance.connectingCancel') : t('app.connecting');
-    btn.setAttribute('aria-label', btn.dataset.status);
+    btn.dataset.status = t('entrance.connectingNow');
+    const status = document.createElement('span');
+    status.className = 'btn-status';
+    status.setAttribute('aria-hidden', 'true');
+    const main = document.createElement('span');
+    main.className = 'btn-status-main';
+    main.textContent = t('entrance.connectingNow');
+    status.append(main);
+    if (cancellable) {
+      const hint = document.createElement('span');
+      hint.className = 'btn-status-hint';
+      hint.textContent = t('entrance.tapToCancel');
+      status.append(hint);
+    }
+    btn.append(status);
+    btn.setAttribute('aria-label', cancellable ? t('entrance.connectingCancel') : t('app.connecting'));
   } else {
     removeClass(btn, 'btn-connecting');
     delete btn.dataset.status;

@@ -81,6 +81,7 @@ function createMockRequest(
       }
       return req;
     }),
+    removeListener: vi.fn(() => req),
   } as unknown as IncomingMessage;
   return req;
 }

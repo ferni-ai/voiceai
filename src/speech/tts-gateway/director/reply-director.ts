@@ -24,9 +24,9 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
-import { voiceAttuneOn, type Delivery } from './attune.js';
+import { LATE_NIGHT, voiceAttuneOn, type Delivery } from './attune.js';
 import { DirectorEngine } from './engine.js';
-import { ferniSpeedNudge } from './ferni-energy.js';
+import { ferniSpeedNudge, porchLightOn } from './ferni-energy.js';
 import { carriedPace } from './key-phrase.js';
 import { leverModes, speechDirectorMode } from './gate.js';
 import { personaDelivery, teamVoicesOn } from './persona-delivery.js';
@@ -204,6 +204,7 @@ class DirectedReply implements ReplyStream {
       ferniNudge: ferniSpeedNudge(opts.sessionId),
       attune: attuneContext(opts),
       persona: teamVoicesOn(opts.env) ? personaDelivery(opts.personaId) : undefined,
+      lateNight: porchLightOn(opts.sessionId) ? LATE_NIGHT : undefined,
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,

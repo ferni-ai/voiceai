@@ -10920,7 +10920,9 @@
     "helper": "Tu guía personal",
     "connectToTalk": "Hablar",
     "endTalk": "Desconectar",
-    "connectingCancel": "Conectando. Toca para cancelar"
+    "connectingCancel": "Conectando. Toca para cancelar",
+    "connectingNow": "Conectando…",
+    "tapToCancel": "Toca para cancelar"
   },
   "analyticsDashboard": {
     "title": "Tu camino",
