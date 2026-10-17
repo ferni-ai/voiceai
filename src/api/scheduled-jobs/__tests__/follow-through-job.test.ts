@@ -14,6 +14,7 @@ import {
   type TextDeps,
   type TextStore,
 } from '../../../services/outreach/guarded-text.js';
+import { atomicLocks } from '../../../services/outreach/__tests__/atomic-locks.js';
 import { readFileSync } from 'fs';
 import {
   followThroughFlags,
@@ -50,7 +51,8 @@ function memoryStore(initial: FollowUp[]) {
 /** The guarded sender over an in-memory feature_checkins; `now` is shared with the job. */
 function textWorld(clock: { now: Date }) {
   const records: StoredCheckin[] = [];
-  const store = {
+  const store: TextStore = {
+    ...atomicLocks(),
     forUser: async (u: string) => records.filter((r) => r.userId === u),
     forPhoneHash: async (h: string) => records.filter((r) => r.phoneHash === h),
     add: async (r: CheckinRecord) => {
@@ -61,7 +63,7 @@ function textWorld(clock: { now: Date }) {
     isOptedOut: async () => false,
     userDoc: async () => undefined,
     legacySmsChannels: async () => undefined,
-  } as unknown as TextStore;
+  };
   const textDeps: TextDeps = {
     env: { LOG_HASH_SECRET: 'test-secret' },
     store,
