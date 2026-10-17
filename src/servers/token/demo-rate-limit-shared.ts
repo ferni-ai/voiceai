@@ -22,6 +22,7 @@ import {
   demoDayStart,
   evaluateDemoLimit,
   recordDemoSession,
+  releaseDemoSession as releaseInMemory,
   type DemoLimitCounters,
 } from './demo-rate-limit.js';
 
@@ -98,6 +99,8 @@ export interface DemoLimiter {
   peek: (ip: string) => Promise<RateLimitResult>;
   /** Use one demo if allowed; `sessionsRemaining` is what is left after it. */
   reserve: (ip: string) => Promise<RateLimitResult>;
+  /** Give back a reserved demo that never started: one count, and the cooldown. */
+  release: (ip: string) => Promise<void>;
 }
 
 /** The in-memory limit: this instance only. */
@@ -145,6 +148,18 @@ export function createSharedDemoLimiter(store: DemoLimitStore, config = DEMO_CON
         return reserveInMemory(ip, config);
       }
     },
+    async release(ip) {
+      try {
+        await store.change(keyOf(ip), (current) => {
+          const counters = today(current, Date.now());
+          const sessionCount = Math.max(0, counters.sessionCount - 1);
+          return { next: { ...counters, sessionCount, lastSession: 0 }, result: undefined };
+        });
+      } catch (error) {
+        fallBack('release', error);
+        releaseInMemory(ip);
+      }
+    },
   };
 }
 
@@ -164,4 +179,11 @@ export async function peekDemoAllowance(ip: string): Promise<RateLimitResult> {
 /** Use one of this IP's demos if allowed (shared when the flag is on). */
 export async function reserveDemoSession(ip: string): Promise<RateLimitResult> {
   return limiter()?.reserve(ip) ?? reserveInMemory(ip);
+}
+
+/** Give back a demo reserved by reserveDemoSession that never started. */
+export async function releaseDemoSession(ip: string): Promise<void> {
+  const shared = limiter();
+  if (shared) await shared.release(ip);
+  else releaseInMemory(ip);
 }

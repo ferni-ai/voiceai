@@ -156,6 +156,16 @@ export function recordDemoSession(ip: string): string {
 }
 
 /**
+ * Give back an IP's most recent demo (it never started): one count, and the cooldown.
+ */
+export function releaseDemoSession(ip: string): void {
+  const data = getDemoRateLimit(ip);
+  data.sessionCount = Math.max(0, data.sessionCount - 1);
+  data.lastSession = 0;
+  data.sessions.pop();
+}
+
+/**
  * Get demo statistics for monitoring
  */
 export function getDemoStats(): {

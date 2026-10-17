@@ -7,13 +7,16 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { reserveDemoSession, createDemoSession, createRoomWithAgent } = vi.hoisted(() => ({
-  reserveDemoSession: vi.fn(),
-  createDemoSession: vi.fn(async () => ({ claimToken: 'ct', roomName: 'r', expiresAt: 1 })),
-  createRoomWithAgent: vi.fn(async () => ({ roomReady: true, agentDispatched: true })),
-}));
+const { reserveDemoSession, releaseDemoSession, createDemoSession, createRoomWithAgent } =
+  vi.hoisted(() => ({
+    reserveDemoSession: vi.fn(),
+    releaseDemoSession: vi.fn(async () => undefined),
+    createDemoSession: vi.fn(async () => ({ claimToken: 'ct', roomName: 'r', expiresAt: 1 })),
+    createRoomWithAgent: vi.fn(async () => ({ roomReady: true, agentDispatched: true })),
+  }));
 vi.mock('../../../token/demo-rate-limit-shared.js', () => ({
   reserveDemoSession,
+  releaseDemoSession,
   peekDemoAllowance: vi.fn(),
 }));
 vi.mock('../../../token/demo-rate-limit.js', () => ({
@@ -69,6 +72,7 @@ async function demoToken(
 describe('/demo-token limit ignores persona_id', () => {
   beforeEach(() => {
     reserveDemoSession.mockReset();
+    releaseDemoSession.mockClear();
     createDemoSession.mockClear();
     createRoomWithAgent.mockClear();
   });
@@ -95,5 +99,25 @@ describe('/demo-token limit ignores persona_id', () => {
     expect(reply.status).toBe(200);
     expect(reserveDemoSession).toHaveBeenCalledTimes(1);
     expect(reply.body['sessions_remaining']).toBe(2);
+  });
+
+  it('keeps the demo when the request succeeds', async () => {
+    reserveDemoSession.mockResolvedValue({ allowed: true, sessionsRemaining: 2 });
+    expect((await demoToken('')).status).toBe(200);
+    expect(releaseDemoSession).not.toHaveBeenCalled();
+  });
+
+  it('gives the demo back when the session cannot be created', async () => {
+    reserveDemoSession.mockResolvedValue({ allowed: true, sessionsRemaining: 2 });
+    createDemoSession.mockRejectedValueOnce(new Error('firestore down'));
+    expect((await demoToken('')).status).toBe(500);
+    expect(releaseDemoSession).toHaveBeenCalledWith('203.0.113.7');
+  });
+
+  it('gives the demo back when the room cannot be created', async () => {
+    reserveDemoSession.mockResolvedValue({ allowed: true, sessionsRemaining: 2 });
+    createRoomWithAgent.mockRejectedValueOnce(new Error('livekit down'));
+    expect((await demoToken('')).status).toBe(500);
+    expect(releaseDemoSession).toHaveBeenCalledWith('203.0.113.7');
   });
 });

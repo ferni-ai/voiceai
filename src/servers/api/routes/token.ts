@@ -26,7 +26,11 @@ import {
   startRateLimitCleanup as startSharedRateLimitCleanup,
   stopRateLimitCleanup as stopSharedRateLimitCleanup,
 } from '../../token/demo-rate-limit.js';
-import { peekDemoAllowance, reserveDemoSession } from '../../token/demo-rate-limit-shared.js';
+import {
+  peekDemoAllowance,
+  releaseDemoSession,
+  reserveDemoSession,
+} from '../../token/demo-rate-limit-shared.js';
 
 // Developer Platform: marketplace registry for persona→publisher lookup
 import { getAgentAsync } from '../../../marketplace/registry.js';
@@ -286,6 +290,7 @@ export async function handleTokenRoutes(
       );
     } catch (error) {
       log.error({ error: String(error) }, 'Demo token error');
+      await releaseDemoSession(ip); // a server error doesn't cost the visitor a demo
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to create demo session' }));
     }

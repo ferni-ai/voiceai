@@ -61,7 +61,8 @@ function parseBody(body: string): UpdateBody {
 }
 
 /** True when `given` is the demo's claim token (constant-time). */
-export function claimTokenMatches(given: string, expected: string): boolean {
+export function claimTokenMatches(given: string, expected: unknown): boolean {
+  if (typeof expected !== 'string' || expected.length === 0) return false;
   const a = Buffer.from(given);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
@@ -106,28 +107,36 @@ export async function handleDemoSessionUpdate(
   if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000 })) {
     return true;
   }
-  let body = '';
-  let tooLarge = false;
-  req.on('data', (chunk: Buffer) => {
-    if (tooLarge) return;
-    body += chunk.toString();
-    if (body.length > MAX_BODY_BYTES) {
-      tooLarge = true;
-      body = '';
-    }
-  });
-
   return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    let bytes = 0;
+    let tooLarge = false;
+    req.on('data', (chunk: Buffer) => {
+      if (tooLarge) return;
+      bytes += chunk.length;
+      if (bytes > MAX_BODY_BYTES) {
+        // Answer once and stop reading; 'end' never comes after destroy()
+        tooLarge = true;
+        chunks.length = 0;
+        sendJson(res, 413, { error: 'Request body too large' });
+        req.destroy();
+        resolve(true);
+        return;
+      }
+      chunks.push(chunk);
+    });
+
     req.on('error', (err) => {
+      if (tooLarge) return; // already answered 413
       log.error({ error: err.message }, 'Request error in demo session update');
       if (!res.headersSent) sendJson(res, 500, { error: 'Request error' });
       resolve(true);
     });
 
     onBodyEnd(req, res, resolve, async () => {
+      if (tooLarge) return;
       try {
-        if (tooLarge) sendJson(res, 413, { error: 'Request body too large' });
-        else await update(body, res);
+        await update(Buffer.concat(chunks).toString('utf8'), res);
       } catch (err) {
         log.error({ error: String(err) }, 'Demo session update error');
         if (!res.headersSent) sendJson(res, 500, { error: 'Failed to update demo session' });

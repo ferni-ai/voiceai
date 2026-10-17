@@ -9,8 +9,13 @@ import type { DemoLimitCounters } from '../demo-rate-limit.js';
 
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
-const { createSharedDemoLimiter, isSharedDemoLimitOn, peekDemoAllowance, reserveDemoSession } =
-  await import('../demo-rate-limit-shared.js');
+const {
+  createSharedDemoLimiter,
+  isSharedDemoLimitOn,
+  peekDemoAllowance,
+  releaseDemoSession,
+  reserveDemoSession,
+} = await import('../demo-rate-limit-shared.js');
 type DemoLimitStore = Parameters<typeof createSharedDemoLimiter>[0];
 
 /** One shared document map, as Firestore would be for every instance. */
@@ -99,6 +104,30 @@ describe('shared demo limiter', () => {
   });
 });
 
+describe('giving a demo back', () => {
+  it('returns the count and the cooldown to the shared store', async () => {
+    const store = fakeStore();
+    const cooled = { ...config, cooldownMinutes: 5 };
+    const instanceA = createSharedDemoLimiter(store, cooled);
+    const instanceB = createSharedDemoLimiter(store, cooled);
+    expect((await instanceA.reserve('4.4.4.4')).sessionsRemaining).toBe(2);
+    expect((await instanceB.peek('4.4.4.4')).reason).toBe('cooldown');
+
+    await instanceA.release('4.4.4.4');
+    // Another instance sees the demo back, with no cooldown
+    const again = await instanceB.reserve('4.4.4.4');
+    expect(again.allowed).toBe(true);
+    expect(again.sessionsRemaining).toBe(2);
+  });
+
+  it('never counts below zero', async () => {
+    const store = fakeStore();
+    const limiter = createSharedDemoLimiter(store, config);
+    await limiter.release('6.6.6.6');
+    expect([...store.docs.values()][0].sessionCount).toBe(0);
+  });
+});
+
 describe('DEMO_RATE_LIMIT_SHARED flag', () => {
   const saved = process.env.DEMO_RATE_LIMIT_SHARED;
   beforeEach(() => {
@@ -114,6 +143,15 @@ describe('DEMO_RATE_LIMIT_SHARED flag', () => {
     expect((await reserveDemoSession('10.0.0.1')).allowed).toBe(true);
     expect((await reserveDemoSession('10.0.0.1')).reason).toBe('cooldown');
     expect((await peekDemoAllowance('10.0.0.1')).allowed).toBe(false);
+  });
+
+  it('off: giving a demo back clears the in-memory count and cooldown', async () => {
+    expect((await reserveDemoSession('10.0.0.3')).allowed).toBe(true);
+    expect((await peekDemoAllowance('10.0.0.3')).reason).toBe('cooldown');
+    await releaseDemoSession('10.0.0.3');
+    const again = await peekDemoAllowance('10.0.0.3');
+    expect(again.allowed).toBe(true);
+    expect(again.sessionsRemaining).toBe(3);
   });
 
   it('on, with Firestore unavailable, still limits (in-memory fallback)', async () => {
