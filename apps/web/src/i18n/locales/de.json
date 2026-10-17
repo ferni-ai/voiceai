@@ -3471,6 +3471,7 @@
     "callConsentHint": "Hat zugestimmt, dass Ferni ab und zu anruft, um nachzufragen. Kann jederzeit sagen, dass er aufhören soll.",
     "callConsentSaved": "Gespeichert",
     "callConsentFailed": "Speichern fehlgeschlagen. Versuch es noch einmal.",
+    "callConsentLoadFailed": "Konnte nicht laden, ob Anrufe von Ferni willkommen sind. Öffne es erneut, um es noch einmal zu versuchen.",
     "cancel": "Abbrechen",
     "addToFamily": "Zur Familie hinzufügen",
     "relationshipMother": "Mutter",

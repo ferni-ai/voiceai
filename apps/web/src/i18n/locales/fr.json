@@ -3493,6 +3493,7 @@
     "callConsentHint": "Elle a accepté que Ferni l'appelle de temps en temps pour prendre des nouvelles. Elle peut lui demander d'arrêter à tout moment.",
     "callConsentSaved": "Enregistré",
     "callConsentFailed": "Enregistrement impossible. Réessaie.",
+    "callConsentLoadFailed": "Impossible de savoir si cette personne est d'accord pour que Ferni l'appelle. Rouvre pour réessayer.",
     "cancel": "Annuler",
     "addToFamily": "Ajouter à la famille",
     "relationshipMother": "Mère",

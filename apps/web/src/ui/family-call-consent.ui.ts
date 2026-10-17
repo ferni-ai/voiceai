@@ -49,6 +49,7 @@ export async function mountCallConsent(root: ParentNode): Promise<void> {
   const response = await apiGet<ConsentState>(path(identityId));
   if (!response.ok || !response.data) {
     log.warn('Could not load call consent', { identityId, error: response.error });
+    toast.error(t('familyIdentities.callConsentLoadFailed'));
     return;
   }
   input.checked = response.data.agreed;

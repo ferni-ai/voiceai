@@ -3471,6 +3471,7 @@
     "callConsentHint": "Ferni がときどき様子をうかがう電話をかけることに同意しています。いつでもやめるよう伝えられます。",
     "callConsentSaved": "保存しました",
     "callConsentFailed": "保存できませんでした。もう一度お試しください。",
+    "callConsentLoadFailed": "Ferni からの電話を歓迎しているか読み込めませんでした。開き直してもう一度お試しください。",
     "cancel": "キャンセル",
     "addToFamily": "ファミリーに追加",
     "relationshipMother": "お母さん",

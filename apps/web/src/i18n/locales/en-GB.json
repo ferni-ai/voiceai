@@ -3471,6 +3471,7 @@
     "callConsentHint": "They agreed to Ferni ringing now and then to check in. They can tell him to stop at any time.",
     "callConsentSaved": "Saved",
     "callConsentFailed": "Couldn't save that. Try again.",
+    "callConsentLoadFailed": "Couldn't load whether they're happy to hear from Ferni. Reopen to try again.",
     "cancel": "Cancel",
     "addToFamily": "Add to Family",
     "relationshipMother": "Mother",
