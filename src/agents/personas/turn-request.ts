@@ -264,7 +264,6 @@ function inviteFor(
 ): string {
   if (!said) return '';
   const { signals } = signalsFor(session, said);
-  const userData = (session as { userData?: unknown }).userData;
   const turn = {
     said,
     callerTurns: callerTurnsOf(chatCtx),
@@ -273,12 +272,11 @@ function inviteFor(
     ),
     careful: (signals ?? regexSignals(said, callerMove(said))).careful,
     wantsToEnd: understandingFor(session, said)?.wantsToEnd,
-    firstCall: isFirstCall(userData),
+    firstCall: isFirstCall((session as { userData?: unknown }).userData),
   };
   const invite = commitmentInviteNote(session, turn, { crisis });
-  // CALL_JOURNAL_ASK=on: once a meaningful call, never on the invite's reply (journal-ask.ts).
-  const phoneOnly = phoneOnlyIdentity(sessionIdOf(userData));
-  return [invite, journalAskFor(session, turn, { crisis, invite, phoneOnly })].join(' ').trim();
+  const ask = journalAskFor(session, turn, { crisis, invite, phoneOnlyIdentity });
+  return [invite, ask].join(' ').trim();
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */

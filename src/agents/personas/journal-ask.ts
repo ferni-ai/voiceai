@@ -154,7 +154,12 @@ export type JournalAskTurn = Pick<
 export function journalAskFor(
   session: object,
   turn: JournalAskTurn,
-  options: { crisis: boolean; invite: string; phoneOnly: boolean }
+  options: {
+    crisis: boolean;
+    invite: string;
+    /** caller-recognition.ts's check, passed in: this layer can't import the entry layer. */
+    phoneOnlyIdentity: (sessionId: string | undefined) => boolean;
+  }
 ): string {
   const userData = (session as { userData?: unknown }).userData;
   const sessionId = sessionIdOf(userData) ?? '';
@@ -163,7 +168,7 @@ export function journalAskFor(
     {
       ...turn,
       userData,
-      phoneOnly: options.phoneOnly,
+      phoneOnly: options.phoneOnlyIdentity(sessionIdOf(userData)),
       outbound: outboundPartiesFor(sessionId) !== undefined,
       closing: isSessionClosing(sessionId),
       inviting: options.invite !== '',
