@@ -299,6 +299,7 @@ export const FLAG_MANIFEST = {
   PRESENCE_SOUNDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRE_STT_SIP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PROACTIVE_CHANNELS: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   PUBSUB_ENABLED: { default: 'off', owner: 'voice', kind: 'config' },
   QUIET_CALLER: { default: 'off', owner: 'voice', kind: 'experiment' },
