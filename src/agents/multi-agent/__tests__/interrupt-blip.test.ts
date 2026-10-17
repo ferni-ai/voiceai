@@ -1,6 +1,6 @@
 /**
  * Cutting a paused reply drops its held audio unplayed (PATCHED(ferni) in
- * cancelSpeechPause, patches/@livekit__agents@1.6.4.patch).
+ * cancelSpeechPause, patches/@livekit__agents@1.8.1.patch).
  *
  * Dev talk-over runs, 2026-10-05: after every real interruption the caller
  * heard a 20-40 ms blip of the reply they had cut off. The caller's voice
@@ -19,9 +19,9 @@ const load = <T>(rel: string) => import(pathToFileURL(join(agentsDist, rel)).hre
 type CancelSpeechPause = (this: unknown, options?: { interrupt?: boolean }) => Promise<void>;
 
 async function cancelSpeechPause(): Promise<CancelSpeechPause> {
-  const mod = await load<{ AgentActivity: { prototype: { cancelSpeechPause: CancelSpeechPause } } }>(
-    'voice/agent_activity.js'
-  );
+  const mod = await load<{
+    AgentActivity: { prototype: { cancelSpeechPause: CancelSpeechPause } };
+  }>('voice/agent_activity.js');
   return mod.AgentActivity.prototype.cancelSpeechPause;
 }
 
@@ -95,24 +95,47 @@ describe('the room output gate', () => {
     captureFrame(frame: Frame): Promise<void>;
   }
 
-  /** A ParticipantAudioOutput with a fake audio source (no native track). */
+  /**
+   * A ParticipantAudioOutput with a fake audio source (no native track). Only the base
+   * AudioOutput constructor runs, so its own fields are real; the subclass constructor
+   * would publish a native track, so its fields are set here (1.8.1's ParticipantAudioOutput).
+   */
   async function roomOutput() {
-    const [{ ParticipantAudioOutput }, { Future }] = await Promise.all([
-      load<{ ParticipantAudioOutput: { prototype: RoomAudio } }>('voice/room_io/_output.js'),
+    const [{ ParticipantAudioOutput }, { AudioOutput }, { Future }] = await Promise.all([
+      load<{ ParticipantAudioOutput: new (...args: never[]) => RoomAudio }>(
+        'voice/room_io/_output.js'
+      ),
+      load<{ AudioOutput: new (...args: unknown[]) => object }>('voice/io.js'),
       load<{ Future: new () => { resolve(): void } }>('utils.js'),
     ]);
+    const resolved = () => {
+      const f = new Future();
+      f.resolve();
+      return f;
+    };
     const pushed: Frame[] = [];
-    const started = new Future();
-    started.resolve();
-    const out = Object.assign(Object.create(ParticipantAudioOutput.prototype) as RoomAudio, {
-      _capturing: false,
-      playbackSegmentsCount: 0,
+    const base = Reflect.construct(
+      AudioOutput,
+      [24000, undefined, { pause: true }],
+      ParticipantAudioOutput
+    );
+    const out = Object.assign(base as RoomAudio, {
       pushedDuration: 0,
+      sourcePushedDuration: 0,
+      sourceDiscardedDuration: 0,
+      interruptionGeneration: 0,
+      forwardingCount: 0,
+      forwardingIdleFuture: resolved(),
       firstFrameEmitted: false,
-      startedFuture: started,
+      startedFuture: resolved(),
       interruptedFuture: new Future(),
-      playbackEnabledFuture: new Future(),
-      audioSource: { clearQueue: vi.fn(), captureFrame: vi.fn(async (f: Frame) => void pushed.push(f)) },
+      playbackEnabledFuture: resolved(),
+      audioSource: {
+        queuedDuration: 0,
+        clearQueue: vi.fn(),
+        waitForPlayout: vi.fn(async () => undefined),
+        captureFrame: vi.fn(async (f: Frame) => void pushed.push(f)),
+      },
     });
     return { out, pushed };
   }
