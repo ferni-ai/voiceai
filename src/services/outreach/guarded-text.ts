@@ -173,13 +173,11 @@ export function recordUserId(userId: string, env: Env = process.env): string | n
 }
 
 /**
- * Lock, send, record. The gap checks read the records and then send, so two
- * runs at once (the job overlapping itself, a scheduler retry, a tool firing
- * with the job) could both pass them. Each run takes two locks, its gap
- * window's and the one before (ids fixed by kind and number), so any two runs
- * less than a gap apart want one lock in common and only one gets it. The
- * window-before lock left by a text more than a gap ago doesn't count. Locks
- * stay after a send; a failed send drops them so a retry may go.
+ * Lock, send, record. Two runs at once (the job overlapping itself, a retry, a
+ * tool firing with the job) could both pass the gap checks. Each run locks its
+ * gap window and the one before (by kind and number), so two runs less than a
+ * gap apart share a lock and one loses; a window-before lock from more than a
+ * gap ago doesn't count. Locks stay; a failed send drops them for a retry.
  */
 async function lockedSend(
   deps: TextDeps,
@@ -318,9 +316,8 @@ export type OnBehalfOutcome =
 const QUIET_WINDOW = hoursWindow(QUIET_START_HOUR, QUIET_END_HOUR);
 
 /**
- * The zones to read quiet hours in: the recipient's (given, else their area
- * code's), else the member's (the call's, else their account's: a scheduled
- * job runs outside any call), else both US coasts (quiet-hours.ts).
+ * Quiet-hours zones: the recipient's (given, else their area code's), else the
+ * member's (the call's, else their account's), else both US coasts.
  */
 async function quietZonesFor(t: OnBehalfText, to: string, deps: TextDeps): Promise<string[]> {
   const zone = [t.zone, timezoneFromPhone(to), userTimeZone({ userId: t.senderUserId })].find(

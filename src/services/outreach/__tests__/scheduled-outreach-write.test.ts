@@ -45,8 +45,26 @@ beforeEach(() => resetMemoryTexts());
 
 afterEach(() => vi.unstubAllEnvs());
 describe('scheduleOutreach write shape', () => {
+  // Sends to a contact later need the founder's opt-in.
+  beforeEach(() => vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'on'));
+
+  it('refuses while later sends to other people are paused, and writes nothing', async () => {
+    vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'off');
+    const target = {
+      contact: 'mom',
+      purpose: 'p',
+      channel: 'text' as const,
+      resolvedContactId: 'c1',
+      resolvedContactName: 'Mom',
+      resolvedPhone: '+18015550123',
+    };
+    await expect(scheduleOutreach('u1', 'ferni', target, NOW)).rejects.toThrow(
+      'messages to other people at a later time are paused for now'
+    );
+    expect(rows).toEqual([]);
+  });
+
   it('stores scheduledFor as a Date, and the job finds and sends it when due', async () => {
-    vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'on'); // a text to a contact: founder opt-in
     const id = await scheduleOutreach(
       'u1',
       'ferni',

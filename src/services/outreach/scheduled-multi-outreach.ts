@@ -12,6 +12,11 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { MAX_RETRIES } from '../../config/resilience-config.js';
+import { flagOn } from '../../config/env-flag.js';
+
+/** Why scheduleOutreach refused: sends to other people later wait for the founder's opt-in. */
+export const SCHEDULING_PAUSED =
+  'messages to other people at a later time are paused for now, so nothing was scheduled';
 
 const log = createLogger({ module: 'ScheduledMultiOutreach' });
 
@@ -127,6 +132,10 @@ export async function scheduleOutreach(
   scheduledFor: Date,
   batchId?: string
 ): Promise<string> {
+  if (!flagOn('SCHEDULED_OUTREACH_THIRD_PARTY')) {
+    // The job would hold it (scheduled-outreach-executor.ts), so say so now rather than promise it.
+    throw new Error(SCHEDULING_PAUSED);
+  }
   const firestore = await getFirestore();
   if (!firestore) {
     throw new Error('Firestore not available');

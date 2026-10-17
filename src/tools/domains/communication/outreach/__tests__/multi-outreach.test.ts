@@ -321,7 +321,6 @@ describe('Multi-Outreach Tool', () => {
     });
 
     it('should handle scheduled outreach', async () => {
-      vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'on'); // founder opt-in to later sends
       vi.mocked(parseNaturalDate).mockReturnValue({
         date: new Date(Date.now() + 3600000), // 1 hour from now
         confidence: 'high',
@@ -342,7 +341,10 @@ describe('Multi-Outreach Tool', () => {
       expect(result).toContain('scheduled');
     });
 
-    it('while later sends to others are paused, says so and schedules nothing', async () => {
+    it('while later sends to others are paused, says so and promises nothing', async () => {
+      const paused =
+        'messages to other people at a later time are paused for now, so nothing was scheduled';
+      vi.mocked(scheduleOutreach).mockRejectedValueOnce(new Error(paused));
       vi.mocked(parseNaturalDate).mockReturnValue({
         date: new Date(Date.now() + 3600000),
         confidence: 'high',
@@ -356,9 +358,8 @@ describe('Multi-Outreach Tool', () => {
         targets: [{ contact: 'Mom', channel: 'text', scheduledFor: 'tomorrow' }],
       });
 
-      expect(scheduleOutreach).not.toHaveBeenCalled();
       expect(sendSMS).not.toHaveBeenCalled();
-      expect(result).toContain('messages to other people at a later time are paused for now');
+      expect(result).toContain(paused);
       expect(result).not.toMatch(/Scheduled for/);
     });
 
@@ -495,7 +496,6 @@ describe('Multi-Outreach Integration', () => {
   });
 
   it('should handle mixed immediate and scheduled: "Text Sarah now, call Mom in an hour"', async () => {
-    vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'on'); // founder opt-in to later sends
     // Sarah (immediate)
     const mockSarah = { ...mockMom, id: 'contact-sarah', name: 'Sarah' };
     vi.mocked(searchContacts).mockImplementation(async (_userId, query) => {

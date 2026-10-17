@@ -19,7 +19,6 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { createLogger } from '../../../../utils/safe-logger.js';
-import { flagOn } from '../../../../config/env-flag.js';
 import type { ToolContext, ToolDefinition, Tool } from '../../../registry/types.js';
 
 // Contact & relationship services
@@ -529,19 +528,8 @@ async function executeMultiOutreach(
   );
   results.push(...immediateResults);
 
-  // 5. Store scheduled outreach. Sends to other people later wait for the founder's opt-in
-  // (the scheduled job holds them), so say so now rather than promise them.
+  // 5. Store scheduled outreach
   for (const { target, contact, date } of scheduled) {
-    if (!flagOn('SCHEDULED_OUTREACH_THIRD_PARTY')) {
-      results.push({
-        contact: target.contact,
-        resolvedName: contact.name,
-        success: false,
-        scheduled: true,
-        error: 'Not scheduled: messages to other people at a later time are paused for now',
-      });
-      continue;
-    }
     try {
       const scheduledTarget: ScheduledOutreachTarget = {
         contact: target.contact,
