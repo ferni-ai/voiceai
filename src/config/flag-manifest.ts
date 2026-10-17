@@ -187,6 +187,8 @@ export const FLAG_MANIFEST = {
   GTM_REQUIRE_APPROVAL: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   HANDOFF_ARRIVAL_CONTEXT: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   HANDOFF_ASK_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a handed-to persona gets the first agent's essential tool set, not Tier 0 (essential-tool-set.ts)
+  HANDOFF_FULL_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
   HAPPY_EXITS: { default: 'off', owner: 'voice', kind: 'experiment' },
   HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
