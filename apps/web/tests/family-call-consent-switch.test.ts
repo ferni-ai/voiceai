@@ -70,6 +70,15 @@ describe('the call-consent switch', () => {
     expect(toast.error).toHaveBeenCalledWith(t('familyIdentities.callConsentFailed'));
   });
 
+  it('keeps an odd id inside its attribute', () => {
+    const root = document.createElement('div');
+    root.innerHTML = renderCallConsent('a"><img src=x>');
+    expect(root.querySelector('img')).toBeNull();
+    expect(root.querySelector<HTMLElement>('[data-call-consent]')?.dataset.callConsent).toBe(
+      'a"><img src=x>'
+    );
+  });
+
   it('stays off and says so when loading fails', async () => {
     const input = await mount(null);
     expect(input.disabled).toBe(true);

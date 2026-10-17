@@ -19,13 +19,19 @@ interface ConsentState {
   agreed: boolean;
 }
 
+const attr = (value: string): string =>
+  value.replace(
+    /[&"<>]/g,
+    (c) => ({ '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' })[c] ?? c
+  );
+
 const path = (identityId: string): string =>
   `/api/sponsored-identities/${encodeURIComponent(identityId)}/call-consent`;
 
 /** The switch, disabled until mountCallConsent has loaded its state. */
 export function renderCallConsent(identityId: string): string {
   return `
-      <div class="family-form__group" data-call-consent="${identityId}">
+      <div class="family-form__group" data-call-consent="${attr(identityId)}">
         <label style="display: flex; gap: var(--space-2, 8px); align-items: flex-start; cursor: pointer;">
           <input type="checkbox" role="switch" class="family-call-consent__switch" disabled>
           <span>
