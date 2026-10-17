@@ -403,7 +403,7 @@ function injectStyles(): void {
     .bth-dashboard-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       background: var(--backdrop-heavy, rgba(0, 0, 0, 0.7));
       display: flex;
       align-items: center;

@@ -6,7 +6,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import { AgentOrchestrator } from '../orchestrator.js';
-import { getArrivingBanter, getHandoffBanter } from '../../../services/team-engagement/banter.js';
+import {
+  HANDOFF_BANTER,
+  getArrivingBanter,
+  getHandoffBanter,
+} from '../../../services/team-engagement/banter.js';
+import { getPersonaPronouns } from '../../../personas/persona-pronouns.js';
 
 type Phrases = {
   getGoodbyePhrase(from: string, to: string): string | null;
@@ -34,5 +39,24 @@ describe('handoff banter in a multi-agent call', () => {
       /^Let me hand you off to/
     );
     expect(orchestrator.getGreetingPhrase('maya-santos', 'ferni', {})).not.toBe("Hey! What's up?");
+  });
+});
+
+describe('handoff banter pronouns', () => {
+  // Prod call 2026-10-17: "Let me get Ferni for you. They're great at this." Ferni is he/him.
+  const THIRD_PERSON = /\b(he|him|his|she|her|hers|they|them|their)\b|\b(he|she|they)'/gi;
+
+  it('refers to the teammate being brought in by their own pronouns', () => {
+    for (const [from, targets] of Object.entries(HANDOFF_BANTER)) {
+      for (const [to, lines] of Object.entries(targets)) {
+        const own = Object.values(getPersonaPronouns(to));
+        for (const line of lines) {
+          for (const m of line.matchAll(THIRD_PERSON)) {
+            const word = (m[1] ?? m[2]).toLowerCase();
+            expect(own, `${from} → ${to}: ${line}`).toContain(word);
+          }
+        }
+      }
+    }
   });
 });

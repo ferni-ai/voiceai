@@ -18,12 +18,29 @@
 import type { llm } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { SessionServices } from '../../services/index.js';
+import { resolveCrisisAgreementGate } from '../../services/safety/crisis-agreement.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import type { UserData } from '../shared/types.js';
 import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
 import { getUserResponseGapMs } from '../voice-agent/user-response-gap.js';
-import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
+import {
+  startRevivedIntelligence,
+  type RevivedStore,
+} from '../../intelligence/revived/revived-intelligence.js';
+import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { firestoreRevivedStore } from '../../memory/storage/revived-store.js';
+import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/forget.js';
+import { isForgottenPassage } from '../../memory/recall/episodes.js';
+import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
+import {
+  deferFirstTurn,
+  firstTurnDeferEnabled,
+  hadUserTurn,
+  noteUserTurn,
+  turnPipelineWarm,
+} from './first-turn-defer.js';
+import { MAX_PUSHED_CONTEXT_CHARS, TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
 
@@ -44,11 +61,36 @@ export interface TurnIntelligenceDeps {
   room?: TurnHandlerContext['room'];
   /** Injected for tests; defaults to the real turn handler. */
   handle?: (ctx: TurnHandlerContext) => Promise<void>;
+  /** Injected for tests; defaults to Firestore. */
+  revivedStore?: RevivedStore;
 }
 
 export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurnHook {
   // Frontend signals are best-effort; a dropped one must not affect the turn.
   const sendDataMessage = createDataMessageSender(deps.room);
+  // What Ferni knows from earlier calls, loaded now so no turn waits for it
+  // (REVIVED_INTELLIGENCE). Never on a call placed for the user to someone else.
+  const { sessionId, userId, userProfile: profile } = deps.services;
+  if (!outboundPartiesFor(sessionId)) {
+    void startRevivedIntelligence({
+      sessionId,
+      userId,
+      userName: profile?.preferredName || profile?.name || deps.userData.userName,
+      lastContact: profile?.lastContact,
+      lastConversationSummary: profile?.lastConversationSummary,
+      store: deps.revivedStore ?? firestoreRevivedStore,
+      // Earlier calls' words never bring back what they asked Ferni to forget,
+      // before this call or during it.
+      forgotten: async () => {
+        const topics = userId ? await forgottenTopicsOrNull(userId) : null;
+        return topics && ((text: string) => isForgottenPassage(text, topics));
+      },
+      forgottenNow: () => {
+        const topics = userId ? forgottenInProcess(userId) : [];
+        return (text: string) => isForgottenPassage(text, topics);
+      },
+    });
+  }
 
   return async (turnCtx, newMessage) => {
     const userText = newMessage.textContent?.trim();
@@ -93,6 +135,14 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
           speechRateWPM: getAverageSpeechRate(deps.services.sessionId),
           totalConversations: state?.user?.totalConversations,
           sharedVulnerabilities: state?.user?.sharedVulnerabilities,
+          // Without these the turn's crisis read saw the caller's words alone,
+          // while the reply's gate saw them with Ferni's line (crisis-agreement.ts).
+          ...(resolveCrisisAgreementGate()
+            ? {
+                recentTranscripts: userData.recentTranscripts?.slice(),
+                lastAgentResponse: userData.lastAgentResponse,
+              }
+            : {}),
         },
         voiceEmotion: userData.voiceEmotion
           ? {
@@ -238,9 +288,6 @@ function afterTheirWords(
   return undefined;
 }
 
-/** Keeps a pushed context note from growing the session's context unboundedly. */
-const MAX_PUSHED_CONTEXT_CHARS = 2000;
-
 interface ContextAgent {
   readonly chatCtx: {
     copy(): {
@@ -327,7 +374,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
       const mine = ++run;
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
-      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: turnText }));
+      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: forText }));
       if (mine !== run) return; // a later segment of this turn superseded it
       const notes = scratch.items
         .map((item) => (item as { textContent?: string }).textContent?.trim())
@@ -348,5 +395,61 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
       userSpeaking = newState === 'speaking';
       await tryPush();
     },
+  };
+}
+
+interface SessionEvents {
+  on?: (event: string, handler: (...args: unknown[]) => void) => void;
+  off?: (event: string, handler: (...args: unknown[]) => void) => void;
+}
+
+/**
+ * Feeds a pusher from the session's events; returns the function that detaches it.
+ * FIRST_TURN_DEFER_BACKGROUND=on holds turn 1's build until Ferni speaks, never
+ * on a turn with a crisis signal (first-turn-defer.ts).
+ */
+export function attachTurnContextPusher(
+  hook: UserTurnHook,
+  agent: ContextAgent,
+  session: SessionEvents,
+  options: { env?: Record<string, string | undefined>; userData?: unknown } = {}
+): () => Promise<void> {
+  const { env = process.env, userData } = options;
+  const deferral =
+    firstTurnDeferEnabled(env) && !hadUserTurn(session) && !turnPipelineWarm()
+      ? deferFirstTurn(hook, {
+          voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
+        })
+      : undefined;
+  const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent);
+  const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
+  const onTranscript = (event: unknown) => {
+    const evt = event as { transcript?: string; isFinal?: boolean };
+    if (!evt.isFinal || !evt.transcript?.trim()) return;
+    deferral?.onFinalTranscript(evt.transcript);
+    noteUserTurn(session);
+    pusher.onFinalTranscript(evt.transcript).catch(failed);
+  };
+  const onAgentState = (event: unknown) => {
+    const state = (event as { newState?: string }).newState;
+    deferral?.onAgentState(state);
+    pusher.onAgentState(state).catch(failed);
+  };
+  const onUserState = (event: unknown) => {
+    pusher.onUserState((event as { newState?: string }).newState).catch(failed);
+  };
+  const onCrisis = (event: unknown) => {
+    deferral?.onCrisisDecision((event as { action?: string } | undefined)?.action);
+  };
+  session.on?.('user_input_transcribed', onTranscript);
+  session.on?.('agent_state_changed', onAgentState);
+  session.on?.('user_state_changed', onUserState);
+  if (deferral) session.on?.(CRISIS_GATE_SIGNAL, onCrisis);
+  return async () => {
+    session.off?.('user_input_transcribed', onTranscript);
+    session.off?.('agent_state_changed', onAgentState);
+    session.off?.('user_state_changed', onUserState);
+    if (deferral) session.off?.(CRISIS_GATE_SIGNAL, onCrisis);
+    await deferral?.dispose();
   };
 }

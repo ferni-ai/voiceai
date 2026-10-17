@@ -1,5 +1,5 @@
 /**
- * Pins our @livekit/agents patch (patches/@livekit__agents@1.5.1.patch): a
+ * Pins our @livekit/agents patch (patches/@livekit__agents@1.8.1.patch): a
  * caller's "mm-hmm" over Ferni's reply doesn't end the reply.
  *
  * Dev, 2026-09-30 (rounds 6 and 8, playful scenario): the caller's "mm-hmm"
@@ -39,6 +39,7 @@ function activity(paused: boolean) {
     logger: { info: vi.fn(), warn: vi.fn(), debug: vi.fn() },
     cancelPreemptiveGeneration: vi.fn(),
     startFalseInterruptionTimer: vi.fn(),
+    cancelFalseInterruptionTimer: vi.fn(),
     createSpeechTask: vi.fn(() => ({ done: false })),
     userTurnCompleted: vi.fn(),
   };

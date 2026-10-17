@@ -23,6 +23,10 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onReminderChange } from '../data-layer/hooks/index.js';
 import { sendEmail, sendReminder as sendReminderSMS, sendSMS } from '../communication-service.js';
 import { recordOutcome } from '../contacts/optimal-timing.js';
+import { WallClock, zonedWallTimeToUtc } from '../../utils/time-zone.js';
+export { userTimeZone } from '../../utils/caller-time-zone.js';
+import { clockTime } from './clock-time.js';
+import { settleGuardedText, textThroughGuard } from './reminder-text-guard.js';
 
 // Logger instance for use throughout this module
 const logger = getLogger();
@@ -49,6 +53,8 @@ export interface ScheduledReminder {
   // Delivery
   deliveryMethod: ReminderDeliveryMethod;
   deliveryAddress: string; // Phone or email
+  /** 'verified-own': the account's verified phone at creation; never texted once it stops matching. */
+  addressSource?: 'verified-own';
 
   // Contact tracking (for ML timing learning)
   /** If this reminder is about reaching out to a contact, track their ID */
@@ -117,6 +123,7 @@ export async function createReminder(params: {
   timezone?: string;
   deliveryMethod: ReminderDeliveryMethod;
   deliveryAddress: string;
+  addressSource?: 'verified-own';
   createdBy?: string;
   personaId?: string;
   // Contact tracking for ML timing
@@ -138,6 +145,7 @@ export async function createReminder(params: {
     timezone: params.timezone || 'Etc/UTC',
     deliveryMethod: params.deliveryMethod,
     deliveryAddress: params.deliveryAddress,
+    addressSource: params.addressSource,
     // Contact tracking for ML
     contactId: params.contactId,
     contactName: params.contactName,
@@ -327,6 +335,7 @@ export function reminderFromDoc(id: string, data: Record<string, unknown>): Sche
     timezone: str(data.timezone) || 'Etc/UTC',
     deliveryMethod: (data.deliveryMethod as ReminderDeliveryMethod) || 'in_app',
     deliveryAddress: str(data.deliveryAddress) ?? '',
+    addressSource: data.addressSource === 'verified-own' ? 'verified-own' : undefined,
     contactId: str(data.contactId),
     contactName: str(data.contactName),
     isDirectToContact: data.isDirectToContact === true,
@@ -550,7 +559,12 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
   }
 
   try {
-    switch (reminder.deliveryMethod) {
+    const guarded = await textThroughGuard(reminder); // REMINDER_SMS_DEFAULT: texts only via the guard
+    if (guarded && guarded !== 'sent')
+      return await settleGuardedText(reminder, guarded, deliverReminder);
+    switch (guarded === 'sent' ? 'guarded' : reminder.deliveryMethod) {
+      case 'guarded':
+        break;
       case 'sms': {
         const smsResult = await sendReminderSMS(
           reminder.deliveryAddress,
@@ -640,22 +654,11 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
           if (GCS_BUCKET) {
             try {
               const gcs = await import('@google-cloud/storage');
-              interface GcsModule {
-                Storage?: new () => {
-                  bucket: (name: string) => {
-                    file: (path: string) => { save: (data: Buffer, opts: object) => Promise<void> };
-                  };
-                };
-                default?: {
-                  Storage?: new () => {
-                    bucket: (name: string) => {
-                      file: (path: string) => {
-                        save: (data: Buffer, opts: object) => Promise<void>;
-                      };
-                    };
-                  };
-                };
-              }
+              type GcsFile = { save: (data: Buffer, opts: object) => Promise<void> };
+              type GcsStorage = new () => {
+                bucket: (name: string) => { file: (path: string) => GcsFile };
+              };
+              type GcsModule = { Storage?: GcsStorage; default?: { Storage?: GcsStorage } };
               const Storage = (gcs as GcsModule).Storage || (gcs as GcsModule).default?.Storage;
               if (Storage) {
                 const storage = new Storage();
@@ -1054,10 +1057,15 @@ export function cleanupOldReminders(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000):
 // ============================================================================
 
 /**
- * Parse natural language time expressions
+ * Parse natural language time expressions as wall-clock times in the user's
+ * zone: "tomorrow at noon" is noon where they are (DST included), stored as
+ * that UTC instant. Unknown zone = UTC. Tools pass userTimeZone(ctx).
  */
-export function parseNaturalTime(expression: string, timezone = 'Etc/UTC'): Date | null {
-  const now = new Date();
+export function parseNaturalTime(
+  expression: string,
+  timezone?: string,
+  now = new Date()
+): Date | null {
   const lower = expression.toLowerCase().trim();
 
   // Handle relative time expressions
@@ -1065,17 +1073,15 @@ export function parseNaturalTime(expression: string, timezone = 'Etc/UTC'): Date
   if (inMatch) {
     const amount = parseInt(inMatch[1]);
     const unit = inMatch[2];
-    const result = new Date(now);
+    const result = new WallClock(now, timezone);
 
     switch (unit) {
       case 'minute':
       case 'min':
-        result.setMinutes(result.getMinutes() + amount);
-        break;
+        return new Date(now.getTime() + amount * 60_000);
       case 'hour':
       case 'hr':
-        result.setHours(result.getHours() + amount);
-        break;
+        return new Date(now.getTime() + amount * 3_600_000);
       case 'day':
         result.setDate(result.getDate() + amount);
         break;
@@ -1083,99 +1089,93 @@ export function parseNaturalTime(expression: string, timezone = 'Etc/UTC'): Date
         result.setDate(result.getDate() + amount * 7);
         break;
     }
-    return result;
+    return result.toDate();
   }
 
   // Handle "tomorrow at X"
   if (lower.includes('tomorrow')) {
-    const result = new Date(now);
+    const result = new WallClock(now, timezone);
     result.setDate(result.getDate() + 1);
 
-    const timeMatch = lower.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
-    if (timeMatch) {
-      let hour = parseInt(timeMatch[1]);
-      const minute = parseInt(timeMatch[2] || '0');
-      const meridiem = timeMatch[3];
-
-      if (meridiem === 'pm' && hour < 12) hour += 12;
-      if (meridiem === 'am' && hour === 12) hour = 0;
-
-      result.setHours(hour, minute, 0, 0);
-    } else {
-      result.setHours(9, 0, 0, 0); // Default to 9 AM
-    }
-    return result;
+    const [hour, minute] = clockTime(lower) ?? [9, 0]; // Default to 9 AM
+    result.setHours(hour, minute, 0, 0);
+    return result.toDate();
   }
 
   // Handle day names
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   for (let i = 0; i < days.length; i++) {
     if (lower.includes(days[i])) {
-      const result = new Date(now);
-      const currentDay = now.getDay();
+      const result = new WallClock(now, timezone);
+      const currentDay = result.getDay();
       const daysUntil = (i - currentDay + 7) % 7 || 7;
       result.setDate(result.getDate() + daysUntil);
 
-      const timeMatch = lower.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
-      if (timeMatch) {
-        let hour = parseInt(timeMatch[1]);
-        const minute = parseInt(timeMatch[2] || '0');
-        const meridiem = timeMatch[3];
-
-        if (meridiem === 'pm' && hour < 12) hour += 12;
-        if (meridiem === 'am' && hour === 12) hour = 0;
-
-        result.setHours(hour, minute, 0, 0);
-      } else {
-        result.setHours(9, 0, 0, 0);
-      }
-      return result;
+      const [hour, minute] = clockTime(lower) ?? [9, 0];
+      result.setHours(hour, minute, 0, 0);
+      return result.toDate();
     }
   }
 
   // Handle "next week", "next month"
   if (lower.includes('next week')) {
-    const result = new Date(now);
+    const result = new WallClock(now, timezone);
     result.setDate(result.getDate() + 7);
     result.setHours(9, 0, 0, 0);
-    return result;
+    return result.toDate();
   }
 
   if (lower.includes('next month')) {
-    const result = new Date(now);
+    const result = new WallClock(now, timezone);
     result.setMonth(result.getMonth() + 1);
     result.setHours(9, 0, 0, 0);
-    return result;
+    return result.toDate();
   }
 
   // Handle "end of day", "this evening"
   if (lower.includes('end of day') || lower.includes('this evening')) {
-    const result = new Date(now);
+    const result = new WallClock(now, timezone);
     result.setHours(18, 0, 0, 0);
-    if (result <= now) {
+    if (result.toDate() <= now) {
       result.setDate(result.getDate() + 1);
     }
-    return result;
+    return result.toDate();
   }
 
   // Handle "this afternoon"
   if (lower.includes('this afternoon')) {
-    const result = new Date(now);
+    const result = new WallClock(now, timezone);
     result.setHours(14, 0, 0, 0);
-    if (result <= now) {
+    if (result.toDate() <= now) {
       result.setDate(result.getDate() + 1);
     }
-    return result;
+    return result.toDate();
   }
 
   // Handle "this morning"
   if (lower.includes('this morning') || lower.includes('morning')) {
-    const result = new Date(now);
+    const result = new WallClock(now, timezone);
     result.setHours(9, 0, 0, 0);
-    if (result <= now) {
+    if (result.toDate() <= now) {
       result.setDate(result.getDate() + 1);
     }
-    return result;
+    return result.toDate();
+  }
+
+  // An ISO time with no offset ("2026-10-13T08:00") is the user's wall time
+  const iso = expression.trim().match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::00)?$/);
+  if (iso) {
+    const [year, month, day, hour, minute] = iso.slice(1).map(Number);
+    return zonedWallTimeToUtc({ year, month, day, hour, minute }, timezone);
+  }
+
+  // A bare clock time ("at 3pm", "9:30"): today, or tomorrow once it has passed
+  const bare = clockTime(lower);
+  if (bare) {
+    const result = new WallClock(now, timezone);
+    result.setHours(bare[0], bare[1], 0, 0);
+    if (result.toDate() <= now) result.setDate(result.getDate() + 1);
+    return result.toDate();
   }
 
   // Try parsing as a date string

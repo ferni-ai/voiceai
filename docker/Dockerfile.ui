@@ -27,6 +27,11 @@
 
 ARG NODE_VERSION=22
 
+# Registry prefix for the node base image. Empty pulls from Docker Hub; CI passes
+# mirror.gcr.io/library/ so self-hosted runners, which skip the daemon mirror, do
+# not hit Docker Hub's anonymous pull limit (429).
+ARG BASE_REGISTRY=
+
 # LiveKit agents SDK version - update this when upgrading @livekit/agents packages
 # Check latest: https://www.npmjs.com/package/@livekit/agents
 ARG LIVEKIT_AGENTS_VERSION=1.0.31
@@ -39,7 +44,7 @@ ARG LIVEKIT_AGENTS_VERSION=1.0.31
 # apps/web/package-lock.json, a second lockfile nothing kept in sync: when a
 # PR added a dev dependency to apps/web/package.json (archunit, #392), npm ci
 # refused and every UI deploy from main failed.
-FROM node:${NODE_VERSION}-slim AS workspace-deps
+FROM ${BASE_REGISTRY}node:${NODE_VERSION}-slim AS workspace-deps
 
 # Install git and enable pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends git \
@@ -124,12 +129,22 @@ COPY apps/web/ ./
 ARG BUILD_TIMESTAMP=default
 RUN echo "Build: ${BUILD_TIMESTAMP}" && rm -rf public/design-system/brand 2>/dev/null || true && mkdir -p public/design-system/brand
 
+# Vite bakes VITE_* in at build time. Venmo chip-in (#1014) stays off when these are empty.
+ARG VITE_VENMO_CHIP_IN=""
+ARG VITE_VENMO_HANDLE=""
+ENV VITE_VENMO_CHIP_IN=$VITE_VENMO_CHIP_IN VITE_VENMO_HANDLE=$VITE_VENMO_HANDLE
+# Caption flags (apps/web/src/ui/captions/captions-flag.ts); off unless set to "true".
+ARG VITE_CAPTIONS_V2=""
+ARG VITE_CAPTIONS_BREATH=""
+ENV VITE_CAPTIONS_V2=$VITE_CAPTIONS_V2 VITE_CAPTIONS_BREATH=$VITE_CAPTIONS_BREATH
+ARG VITE_MEMORY_VIEW=""
+ENV VITE_MEMORY_VIEW=$VITE_MEMORY_VIEW
 RUN pnpm run build
 
 # ============================================================================
 # Stage 4: Production Server
 # ============================================================================
-FROM node:${NODE_VERSION}-slim AS production
+FROM ${BASE_REGISTRY}node:${NODE_VERSION}-slim AS production
 
 WORKDIR /app
 
@@ -182,7 +197,9 @@ COPY --from=backend-builder /app/packages/shared-types/package.json ./packages/s
 # chain with the cleanup, so an out-of-disk install (ERR_PNPM_ENOSPC on the CI
 # runner, 2026-09-27) was swallowed and the image shipped without dotenv. The
 # cleanup stays in the same layer (so it still shrinks the image) but runs in a
-# subshell whose failures cannot mask the install.
+# subshell whose failures cannot mask the install. suffix-thumb (via compromise)
+# imports its own src/test/index.js at runtime, so it is exempt from the test-dir
+# prune, as in Dockerfile.agent (#989); without it the UI server crashed on start.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --prefer-offline --prod --frozen-lockfile && \
     test -f node_modules/dotenv/package.json && \
@@ -190,7 +207,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
       find node_modules -name "*.map" -delete; \
       find node_modules -name "*.ts" ! -name "*.d.ts" -delete; \
       find node_modules -name "CHANGELOG*" -delete; \
-      find node_modules -type d \( -name test -o -name tests -o -name __tests__ \) -prune -exec rm -rf {} +; \
+      find node_modules -type d \( -name test -o -name tests -o -name __tests__ \) ! -path "*/suffix-thumb/*" -prune -exec rm -rf {} +; \
       true ) 2>/dev/null
 
 # UI server is compiled from TypeScript (src/servers/api/index.ts → dist/servers/api/index.js)

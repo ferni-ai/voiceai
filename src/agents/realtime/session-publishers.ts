@@ -1,5 +1,6 @@
 import { createSessionBindings } from '../../utils/session-bindings.js';
 import { FrontendPublisher, type PublisherConfig, type RoomRef } from './frontend-publisher.js';
+import { wireRememberMoment } from './remember-moment-ports.js';
 
 const publishers = createSessionBindings<FrontendPublisher>();
 
@@ -25,6 +26,8 @@ export function initializeFrontendPublisher(
 ): FrontendPublisher {
   const publisher = new FrontendPublisher(room, config);
   publishers.bind(sessionId, publisher);
+  // A call's room is reachable from here on, so tools may announce to it (REMEMBER_MOMENT).
+  wireRememberMoment(getFrontendPublisher);
   return publisher;
 }
 

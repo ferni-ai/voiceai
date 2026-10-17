@@ -11,6 +11,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { z } from 'zod';
 import { validatePhone, sanitizePhoneForLog } from '../validation.js';
 import { parseNaturalTime, createReminder } from '../../services/scheduling/reminder-scheduler.js';
+import { runContextTimeZone } from '../../utils/caller-time-zone.js';
+import { formatStoredLocalTime } from '../../utils/time-zone.js';
 import {
   searchRestaurants,
   bookReservation,
@@ -21,8 +23,8 @@ import { getAppointmentFollowUpService } from '../../services/scheduling/appoint
 import {
   createAppointmentRequest,
   updateAppointmentStatus,
-  makeAppointmentCall,
-  generateCallScript,
+  businessCallReply,
+  BUSINESS_CALL_OFFER,
   getAppointment,
   getUserAppointments,
 } from './appointment-core.js';
@@ -67,7 +69,7 @@ export function createAppointmentTools() {
         },
         { ctx }
       ) => {
-        const requestedTime = parseNaturalTime(dateTime);
+        const requestedTime = parseNaturalTime(dateTime, runContextTimeZone(ctx));
         if (!requestedTime) {
           return `When would you like the reservation? Give me a date and time like "tomorrow at 7pm" or "Saturday at 6:30".`;
         }
@@ -181,11 +183,7 @@ export function createAppointmentTools() {
           specialRequests,
         });
 
-        if (restaurantPhone) {
-          return makeAppointmentCall(apt);
-        } else {
-          return `I couldn't find ${restaurantName} for online booking. I can call them to make the reservation - do you have their phone number?`;
-        }
+        return businessCallReply(apt);
       },
     }),
 
@@ -258,7 +256,7 @@ export function createAppointmentTools() {
         },
         { ctx }
       ) => {
-        const requestedTime = parseNaturalTime(dateTime);
+        const requestedTime = parseNaturalTime(dateTime, runContextTimeZone(ctx));
         if (!requestedTime) {
           return `When would you like the appointment? Something like "next Tuesday at 2pm" or "tomorrow morning"?`;
         }
@@ -275,18 +273,7 @@ export function createAppointmentTools() {
           forPerson,
           specialRequests: [reason, specialRequests].filter(Boolean).join('. '),
         });
-
-        const dateStr = requestedTime.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-        });
-
-        if (businessPhone) {
-          return makeAppointmentCall(apt);
-        } else {
-          return `Perfect! I'll call ${businessName} to schedule ${forPerson ? `${forPerson}'s` : 'your'} ${appointmentType} appointment for ${dateStr}. What's their phone number?`;
-        }
+        return businessCallReply(apt);
       },
     }),
 
@@ -321,17 +308,17 @@ export function createAppointmentTools() {
           minute: '2-digit',
         });
 
-        // For now, simulate the call
+        // No call is placed: say so, and offer the gated call (BUSINESS_CALL_OFFER).
         getLogger().info(
           {
             business: businessName,
             dateTime: requestedTime.toISOString(),
             service: serviceType,
           },
-          '📞 Checking availability'
+          '📞 Availability check needs a call; none placed'
         );
 
-        return `I'm calling ${businessName} to check availability for ${dateStr} around ${timeStr}. Give me just a moment... ${serviceType ? `(checking for ${serviceType})` : ''}`;
+        return `I haven't called ${businessName}, so I don't know if they're open ${dateStr} around ${timeStr}. ${BUSINESS_CALL_OFFER}`;
       },
     }),
 
@@ -370,7 +357,7 @@ export function createAppointmentTools() {
           '📞 Confirming appointment'
         );
 
-        return `Calling ${businessName} now to confirm ${personName ? `${personName}'s` : 'your'} appointment on ${dateStr}. One moment...`;
+        return `I haven't called ${businessName} to confirm ${personName ? `${personName}'s` : 'your'} appointment on ${dateStr}. ${BUSINESS_CALL_OFFER}`;
       },
     }),
 
@@ -406,7 +393,7 @@ export function createAppointmentTools() {
           '📞 Cancelling appointment'
         );
 
-        return `I'll call ${businessName} to cancel your appointment on ${dateStr}. ${reason ? `I'll mention that: ${reason}` : ''} Give me a moment...`;
+        return `I haven't called ${businessName}, so your appointment on ${dateStr} isn't cancelled yet. ${BUSINESS_CALL_OFFER}`;
       },
     }),
 
@@ -498,7 +485,7 @@ export function createAppointmentTools() {
         },
         { ctx }
       ) => {
-        const requestedTime = parseNaturalTime(preferredDate);
+        const requestedTime = parseNaturalTime(preferredDate, runContextTimeZone(ctx));
         if (!requestedTime) {
           return `When should I schedule the ${appointmentType} for ${eventName}? Give me a date like "next Saturday" or "December 15th".`;
         }
@@ -516,18 +503,7 @@ export function createAppointmentTools() {
           linkedMilestoneId: milestoneId,
           linkedEventName: eventName,
         });
-
-        const dateStr = requestedTime.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-        });
-
-        if (businessPhone) {
-          return makeAppointmentCall(apt);
-        } else {
-          return `Perfect! I'll schedule the ${appointmentType} at ${businessName} for your ${eventName} on ${dateStr}. What's their phone number so I can call?`;
-        }
+        return businessCallReply(apt);
       },
     }),
 
@@ -555,8 +531,7 @@ export function createAppointmentTools() {
           '📞 Quick call'
         );
 
-        const who = businessName || 'that number';
-        return `Calling ${who} now to ask: "${purpose}". Give me just a moment...`;
+        return `I haven't called ${businessName || 'that number'}. ${BUSINESS_CALL_OFFER}`;
       },
     }),
 
@@ -588,7 +563,7 @@ export function createAppointmentTools() {
         // Parse confirmed time if provided
         let confirmedDateTime: Date | undefined;
         if (confirmedTime) {
-          const parsed = parseNaturalTime(confirmedTime);
+          const parsed = parseNaturalTime(confirmedTime, runContextTimeZone(ctx));
           if (parsed) {
             confirmedDateTime = parsed;
           }
@@ -653,11 +628,7 @@ export function createAppointmentTools() {
           return `I don't see a pending appointment for ${businessName}. Would you like me to create a new one?`;
         }
 
-        if (!apt.businessPhone) {
-          return `I still need the phone number for ${businessName}. Do you have it?`;
-        }
-
-        return makeAppointmentCall(apt);
+        return businessCallReply(apt);
       },
     }),
 
@@ -721,7 +692,7 @@ export function createAppointmentTools() {
         { appointmentDescription, appointmentDateTime, reminderTime, deliveryMethod, contact },
         { ctx }
       ) => {
-        const aptTime = parseNaturalTime(appointmentDateTime);
+        const aptTime = parseNaturalTime(appointmentDateTime, runContextTimeZone(ctx));
         if (!aptTime) {
           return `When is the appointment? I need to know so I can set the reminder.`;
         }
@@ -768,15 +739,9 @@ export function createAppointmentTools() {
             createdBy: 'alex',
           });
 
-          const aptDateStr = aptTime.toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
-
-          return `Got it! I'll remind you about "${appointmentDescription}" via ${deliveryMethod} before your appointment on ${aptDateStr}. You're all set!`;
+          // Read back both times in the user's zone: when the reminder goes out, and the appointment.
+          const at = (d: Date): string => formatStoredLocalTime(d, runContextTimeZone(ctx));
+          return `Saved: I'll remind you about "${appointmentDescription}" by ${deliveryMethod} ${at(reminderDate)}, before your appointment ${at(aptTime)}.`;
         } catch (error) {
           getLogger().error({ error }, 'Failed to set appointment reminder');
           return `I had trouble setting that reminder. Let me try again.`;

@@ -1,3 +1,4 @@
+import type { InsideJokeRef } from './inside-joke.js';
 /**
  * Conversation Memory Aggregate
  *
@@ -23,6 +24,8 @@ export interface ConversationSummary {
   decisionsReached?: string[];
   questionsRemaining?: string[];
   followUpItems?: string[];
+  /** Bits that were genuinely funny between the caller and Ferni in this call. */
+  insideJokes?: InsideJokeRef[];
   embedding?: number[];
 }
 

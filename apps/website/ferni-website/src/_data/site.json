@@ -1,7 +1,7 @@
 {
   "name": "Ferni",
   "tagline": "The coach that actually listens",
-  "description": "Six brilliant minds who remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon. Better than human.",
+  "description": "Six brilliant minds who remember what matters to you, hear what you're not saying, and show up at 2am with the same presence as noon. Better than human.",
   "url": "https://ferni.ai",
   "appUrl": "https://app.ferni.ai",
   "phone": "1 (888) 598-3952",
@@ -51,9 +51,9 @@
   "superpowers": [
     {
       "id": "memory",
-      "title": "Perfect Memory",
+      "title": "Remembers What Matters",
       "tagline": "That thing you mentioned six months ago? We remember.",
-      "description": "Your best friend forgets. Your therapist has other patients. We remember everything—every conversation, every goal, every detail that matters to you."
+      "description": "Your best friend forgets. Your therapist has other patients. We remember what you share, like your goals and the people who matter to you, and you can see, correct or forget any of it."
     },
     {
       "id": "presence",
@@ -91,9 +91,9 @@
   ],
 
   "stats": [
-    { "value": "10,000+", "label": "Conversations" },
-    { "value": "<500ms", "label": "Response Time" },
-    { "value": "∞", "label": "Memory" },
+    { "value": "Free", "label": "Right Now" },
+    { "value": "6", "label": "Specialists" },
+    { "value": "You", "label": "In Control" },
     { "value": "24/7", "label": "Always There" }
   ],
 
@@ -160,38 +160,11 @@
     }
   ],
 
-  "testimonials": [
-    {
-      "quote": "I called Ferni at 2am when I couldn't sleep because of work stress. Having someone to talk through my thoughts with—no judgment, just guidance—was exactly what I needed.",
-      "author": "Sarah K.",
-      "role": "Product Manager",
-      "initials": "SK"
-    },
-    {
-      "quote": "The fact that Ferni remembers our previous conversations makes it feel like talking to a friend who actually knows my situation. Game changer.",
-      "author": "Michael R.",
-      "role": "Entrepreneur",
-      "initials": "MR"
-    },
-    {
-      "quote": "I was skeptical at first, but Ferni helped me work through a career decision I'd been stuck on for months. The team approach is brilliant.",
-      "author": "Jessica L.",
-      "role": "Designer",
-      "initials": "JL"
-    },
-    {
-      "quote": "Being able to call a number and just talk—no app download, no login—is so refreshing. I use Ferni during my commute and it's become my favorite part of the day.",
-      "author": "David W.",
-      "role": "Sales Director",
-      "initials": "DW",
-      "featured": true
-    }
-  ],
 
   "faq": [
     {
       "question": "Is Ferni really free?",
-      "answer": "Yes! Ferni is completely free to use. We believe everyone deserves access to quality life coaching. Our premium features are coming soon, but the core experience will always be free."
+      "answer": "Yes! Ferni is completely free to use. We believe everyone deserves access to quality life coaching. It's free while we're in early access."
     },
     {
       "question": "How does the phone calling work?",
@@ -305,7 +278,7 @@
 
   "seo": {
     "title": "Ferni - Your AI Life Coach | Better Than Human",
-    "description": "Meet Ferni: six brilliant AI minds who remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon. Free forever.",
+    "description": "Meet Ferni: six brilliant AI minds who remember what matters to you, hear what you're not saying, and show up at 2am with the same presence as noon. Free while in early access.",
     "keywords": [
       "AI life coach",
       "personal coach",

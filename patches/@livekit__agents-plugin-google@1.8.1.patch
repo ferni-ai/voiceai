@@ -1,0 +1,122 @@
+diff --git a/dist/llm.cjs b/dist/llm.cjs
+index 31d4bd8ec8708326976d7c8db6ed93c935338bfc..a85a5bb1d1e9bb65f5a0727b0a387cf4ea2a4e52 100644
+--- a/dist/llm.cjs
++++ b/dist/llm.cjs
+@@ -457,6 +457,9 @@ class LLMStream extends import_agents.llm.LLMStream {
+         }
+       }
+     } catch (error) {
++      if (this.abortController.signal.aborted) {
++        return;
++      }
+       if (error instanceof import_agents.APIStatusError || error instanceof import_agents.APIConnectionError) {
+         throw error;
+       }
+diff --git a/dist/llm.js b/dist/llm.js
+index 36e6d9fd30c323cc881e2f648923e3dda6232a5d..3ff6c52a254f3642fcbb71614fe33286979c44d7 100644
+--- a/dist/llm.js
++++ b/dist/llm.js
+@@ -444,6 +444,9 @@ class LLMStream extends llm.LLMStream {
+         }
+       }
+     } catch (error) {
++      if (this.abortController.signal.aborted) {
++        return;
++      }
+       if (error instanceof APIStatusError || error instanceof APIConnectionError) {
+         throw error;
+       }
+diff --git a/dist/realtime/realtime_api.cjs b/dist/realtime/realtime_api.cjs
+index 696e3345e9d4d2db45f1a964ae654ed47d780696..626c771380fc2145735b2f10c3c2df7f5a4cc0eb 100644
+--- a/dist/realtime/realtime_api.cjs
++++ b/dist/realtime/realtime_api.cjs
+@@ -109,6 +109,8 @@ class RealtimeModel extends import_agents.llm.RealtimeModel {
+       model,
+       apiKey,
+       voice: options.voice || "Puck",
++      // PATCHED(ferni): custom voice config, e.g. replicatedVoiceConfig
++      voiceConfig: options.voiceConfig,
+       language: options.language ? (0, import_agents.normalizeLanguage)(options.language) : void 0,
+       responseModalities: options.modalities || [import_genai.Modality.AUDIO],
+       vertexai,
+@@ -1011,7 +1013,8 @@ class RealtimeSession extends import_agents.llm.RealtimeSession {
+         parts: [{ text: opts.instructions }]
+       } : void 0,
+       speechConfig: {
+-        voiceConfig: {
++        // PATCHED(ferni): prefer an explicit voiceConfig (e.g. replicatedVoiceConfig)
++        voiceConfig: opts.voiceConfig ?? {
+           prebuiltVoiceConfig: {
+             voiceName: opts.voice
+           }
+diff --git a/dist/realtime/realtime_api.d.cts b/dist/realtime/realtime_api.d.cts
+index 9bf37b14d7a58fc5d18edf4956359d7859651a00..362ae5d2580e2c1d5194ca9f747ca0f91ed341a0 100644
+--- a/dist/realtime/realtime_api.d.cts
++++ b/dist/realtime/realtime_api.d.cts
+@@ -31,6 +31,7 @@ interface RealtimeOptions {
+     model: LiveAPIModels | string;
+     apiKey?: string;
+     voice: Voice | string;
++    voiceConfig?: types.VoiceConfig;
+     language?: string;
+     responseModalities: Modality[];
+     vertexai: boolean;
+@@ -86,6 +87,11 @@ export declare class RealtimeModel extends llm.RealtimeModel {
+          * Voice setting for audio outputs
+          */
+         voice?: Voice | string;
++        /**
++         * Full voice config; overrides `voice`. Use for replicatedVoiceConfig
++         * (custom voice from a 10-20s sample). PATCHED(ferni).
++         */
++        voiceConfig?: types.VoiceConfig;
+         /**
+          * The language (BCP-47 Code) to use for the API
+          * See https://ai.google.dev/gemini-api/docs/live#supported-languages
+diff --git a/dist/realtime/realtime_api.d.ts b/dist/realtime/realtime_api.d.ts
+index 9bf37b14d7a58fc5d18edf4956359d7859651a00..362ae5d2580e2c1d5194ca9f747ca0f91ed341a0 100644
+--- a/dist/realtime/realtime_api.d.ts
++++ b/dist/realtime/realtime_api.d.ts
+@@ -31,6 +31,7 @@ interface RealtimeOptions {
+     model: LiveAPIModels | string;
+     apiKey?: string;
+     voice: Voice | string;
++    voiceConfig?: types.VoiceConfig;
+     language?: string;
+     responseModalities: Modality[];
+     vertexai: boolean;
+@@ -86,6 +87,11 @@ export declare class RealtimeModel extends llm.RealtimeModel {
+          * Voice setting for audio outputs
+          */
+         voice?: Voice | string;
++        /**
++         * Full voice config; overrides `voice`. Use for replicatedVoiceConfig
++         * (custom voice from a 10-20s sample). PATCHED(ferni).
++         */
++        voiceConfig?: types.VoiceConfig;
+         /**
+          * The language (BCP-47 Code) to use for the API
+          * See https://ai.google.dev/gemini-api/docs/live#supported-languages
+diff --git a/dist/realtime/realtime_api.js b/dist/realtime/realtime_api.js
+index dd16090dab9b766b14a655ee400c8cdf7305122d..ce8e636aa88b80e77eb71a9b702264eec688d781 100644
+--- a/dist/realtime/realtime_api.js
++++ b/dist/realtime/realtime_api.js
+@@ -97,6 +97,8 @@ class RealtimeModel extends llm.RealtimeModel {
+       model,
+       apiKey,
+       voice: options.voice || "Puck",
++      // PATCHED(ferni): custom voice config, e.g. replicatedVoiceConfig
++      voiceConfig: options.voiceConfig,
+       language: options.language ? normalizeLanguage(options.language) : void 0,
+       responseModalities: options.modalities || [Modality.AUDIO],
+       vertexai,
+@@ -999,7 +1001,8 @@ class RealtimeSession extends llm.RealtimeSession {
+         parts: [{ text: opts.instructions }]
+       } : void 0,
+       speechConfig: {
+-        voiceConfig: {
++        // PATCHED(ferni): prefer an explicit voiceConfig (e.g. replicatedVoiceConfig)
++        voiceConfig: opts.voiceConfig ?? {
+           prebuiltVoiceConfig: {
+             voiceName: opts.voice
+           }

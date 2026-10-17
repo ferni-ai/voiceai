@@ -3,7 +3,7 @@
  * optional replicated (custom) voice from a 10-20s sample.
  *
  * The last describe block runs the real, patched plugin code
- * (patches/@livekit__agents-plugin-google@1.5.1.patch). It fails on an
+ * (patches/@livekit__agents-plugin-google@1.8.1.patch). It fails on an
  * unpatched install, which is the point: an SDK upgrade that drops the patch
  * must break this test, not silently fall back to a prebuilt voice.
  */

@@ -31,6 +31,8 @@
 import type { log } from '@livekit/agents';
 import pino from 'pino';
 
+import { redactLogDestination, redactPinoLogger } from './log-redaction.js';
+
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
  */
@@ -180,13 +182,30 @@ export function safeLog(): FallbackLogger {
  */
 let appSink: pino.Logger | null = null;
 
+/**
+ * stderr, written off the event loop. A pipe write is synchronous on Linux, and
+ * a call's logs were the largest CPU owner left on a worker's first call (2.6 s
+ * of 18.7 s busy, dev 2026-10-12): every line blocked the loop the VAD and the
+ * reply's audio share. SonicBoom writes from libuv and batches what queues up
+ * meanwhile; maxWrite stays at PIPE_BUF so a batch can't interleave with a line
+ * another writer puts on fd 2. pino flushes it synchronously on exit. Tests keep
+ * process.stderr, which they spy on.
+ */
+function appStream(): pino.DestinationStream {
+  if (process.env.VITEST) return process.stderr;
+  // Writes to fd 2 itself, past process.stderr, so it needs the phone redaction of its own
+  return redactLogDestination(pino.destination({ dest: 2, sync: false, maxWrite: 4096 }));
+}
+
 function appLogger(): pino.Logger {
-  appSink ??= pino(
-    {
-      level: process.env.LOG_LEVEL || 'info',
-      serializers: { error: pino.stdSerializers.err },
-    },
-    process.stderr
+  appSink ??= redactPinoLogger(
+    pino(
+      {
+        level: process.env.LOG_LEVEL || 'info',
+        serializers: { error: pino.stdSerializers.err },
+      },
+      appStream()
+    )
   );
   return appSink;
 }
@@ -227,6 +246,15 @@ function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
  */
 export const getLogger = safeLog;
 
+/** Receives the raw arguments of every error-level call (error reporting registers here). */
+type ErrorLogSink = (args: unknown[]) => void;
+let errorLogSink: ErrorLogSink | null = null;
+
+/** Registers (or clears, with null) the sink that sees every error-level log call. */
+export function setErrorLogSink(sink: ErrorLogSink | null): void {
+  errorLogSink = sink;
+}
+
 /**
  * Wrap a pino-style logger to automatically serialize Error objects.
  *
@@ -238,6 +266,13 @@ function wrapLoggerWithErrorSerialization(pinoLogger: ReturnType<typeof log>): F
   const wrapMethod =
     (method: 'debug' | 'info' | 'warn' | 'error') =>
     (...args: unknown[]) => {
+      if (method === 'error' && errorLogSink) {
+        try {
+          errorLogSink(args);
+        } catch {
+          // A failing sink must not stop the log line.
+        }
+      }
       // If first arg is an object (bindings), process it for error serialization
       if (args.length > 0 && args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) {
         const processedBindings = processBindings(args[0] as Record<string, unknown>);

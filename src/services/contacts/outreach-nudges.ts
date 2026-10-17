@@ -21,13 +21,9 @@ import {
   type ContactRelationship,
 } from './contact-relationship-service.js';
 import { getGroups } from './contact-groups.js';
+import { datesToNudge, isRememberedContact, memorialSuggestion } from './remembered-contacts.js';
 
-// Local type for important dates (matches ContactRelationship.importantDates structure)
-interface ImportantDate {
-  date: string; // MM-DD or YYYY-MM-DD
-  type: 'birthday' | 'anniversary' | 'memorial' | 'custom';
-  label?: string;
-}
+type ImportantDate = NonNullable<ContactRelationship['importantDates']>[number];
 
 const log = createLogger({ module: 'outreach-nudges' });
 
@@ -90,6 +86,8 @@ export interface NudgeContext {
     dateType: string;
     date: string;
     daysAway: number;
+    /** Someone the user has lost: to remember together, never someone to send to */
+    remembered: boolean;
   }>;
 
   /** Contacts that could use attention */
@@ -144,9 +142,8 @@ export async function generateNudges(userId: string): Promise<OutreachNudge[]> {
 
     // 1. Check for upcoming important dates
     for (const contact of contacts) {
-      if (!contact.importantDates) continue;
-
-      for (const date of contact.importantDates) {
+      // Someone who has died only ever gets their memorial date, never a "send" nudge
+      for (const date of datesToNudge(contact)) {
         const daysUntil = getDaysUntilDate(date.date, now);
 
         // Only nudge for dates within the next 14 days
@@ -299,40 +296,34 @@ function getDaysUntilDate(dateStr: string, now: Date): number {
     day = parts[2];
   }
 
+  return daysUntilMonthDay(month, day, now);
+}
+
+/**
+ * Whole days from today to the next time this month and day comes round. Counted
+ * from the start of today, so a date that falls today is 0, not a year away.
+ */
+function daysUntilMonthDay(month: number, day: number, now: Date): number {
+  const target = getNextMonthDay(month, day, now);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // Rounded, so a daylight-saving change between today and the date doesn't shift a day
+  return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/** The next time this month and day comes round, today included */
+function getNextMonthDay(month: number, day: number, now: Date): Date {
   const thisYear = now.getFullYear();
-  let targetDate = new Date(thisYear, month - 1, day);
-
-  // If the date has passed this year, check next year
-  if (targetDate < now) {
-    targetDate = new Date(thisYear + 1, month - 1, day);
-  }
-
-  const diffTime = targetDate.getTime() - now.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const today = new Date(thisYear, now.getMonth(), now.getDate());
+  const targetDate = new Date(thisYear, month - 1, day);
+  return targetDate < today ? new Date(thisYear + 1, month - 1, day) : targetDate;
 }
 
 function getDaysUntilHoliday(holiday: Holiday, now: Date): number {
-  const thisYear = now.getFullYear();
-  let targetDate = new Date(thisYear, holiday.month - 1, holiday.day);
-
-  // If the date has passed this year, check next year
-  if (targetDate < now) {
-    targetDate = new Date(thisYear + 1, holiday.month - 1, holiday.day);
-  }
-
-  const diffTime = targetDate.getTime() - now.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return daysUntilMonthDay(holiday.month, holiday.day, now);
 }
 
 function getHolidayDate(holiday: Holiday, now: Date): Date {
-  const thisYear = now.getFullYear();
-  let targetDate = new Date(thisYear, holiday.month - 1, holiday.day);
-
-  if (targetDate < now) {
-    targetDate = new Date(thisYear + 1, holiday.month - 1, holiday.day);
-  }
-
-  return targetDate;
+  return getNextMonthDay(holiday.month, holiday.day, now);
 }
 
 // ============================================================================
@@ -351,8 +342,7 @@ export async function buildNudgeContext(userId: string): Promise<NudgeContext> {
   // Build upcoming dates list
   const upcomingDates: NudgeContext['upcomingDates'] = [];
   for (const contact of contacts) {
-    if (!contact.importantDates) continue;
-    for (const date of contact.importantDates) {
+    for (const date of datesToNudge(contact, 'remember')) {
       const daysAway = getDaysUntilDate(date.date, now);
       if (daysAway >= 0 && daysAway <= 14) {
         upcomingDates.push({
@@ -360,6 +350,7 @@ export async function buildNudgeContext(userId: string): Promise<NudgeContext> {
           dateType: date.label || date.type,
           date: date.date,
           daysAway,
+          remembered: isRememberedContact(contact),
         });
       }
     }
@@ -442,7 +433,7 @@ export function formatNudgeAsSuggestion(nudge: OutreachNudge): string {
       return `${nudge.contactName}'s anniversary is ${nudge.daysUntilEvent === 0 ? 'today' : nudge.daysUntilEvent === 1 ? 'tomorrow' : `in ${nudge.daysUntilEvent} days`}. Should I help you send them a message?`;
 
     case 'upcoming_memorial':
-      return `I noticed ${nudge.contactName} has a memorial date coming up. Would you like to reach out to them?`;
+      return memorialSuggestion(nudge.contactName, nudge.daysUntilEvent);
 
     case 'holiday_opportunity':
       return `${nudge.reason}`;
@@ -507,8 +498,8 @@ export async function getOverdueFrequentContacts(userId: string): Promise<Freque
   const overdue: FrequentContactData[] = [];
 
   for (const contact of contacts) {
-    // Need enough interaction history
-    if (contact.interactionCount < 5) continue;
+    // Need enough interaction history, and never someone the user has lost
+    if (contact.interactionCount < 5 || isRememberedContact(contact)) continue;
 
     const firstDate = new Date(contact.firstInteraction);
     const lastDate = new Date(contact.lastInteraction);

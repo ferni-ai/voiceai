@@ -8,6 +8,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { shownStreak } from '../config/no-streaks.js';
 import { getSeedBalance } from '../services/cosmetics.service.js';
 import { formatNumber, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
@@ -17,6 +18,7 @@ import {
   getNextStreakMilestone,
   isDailyBonusAvailable,
 } from '../services/seeds-economy.service.js';
+import { claimDailyOnServer, serverSeeds } from '../services/seeds-ledger.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { moments } from './moments/index.js';
@@ -160,7 +162,7 @@ function injectStyles(): void {
     .seeds-daily-bonus-text {
       font-size: 0.8125rem;
       font-weight: 500;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text, #4a6741);
     }
 
     /* Compact variant for header */
@@ -304,7 +306,7 @@ function injectStyles(): void {
 
     .seeds-action-btn--primary {
       background: var(--persona-tint, rgba(74, 103, 65, 0.08));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text, #4a6741);
     }
 
     .seeds-action-btn--primary:hover {
@@ -318,12 +320,10 @@ function injectStyles(): void {
 // RENDER FUNCTIONS
 // ============================================================================
 
-/**
- * Render compact seeds display (for header/nav)
- */
+/** Render compact seeds display (for header/nav) */
 export function renderCompactSeedsDisplay(): string {
   const balance = getSeedBalance();
-  const streak = getCurrentStreak();
+  const streak = shownStreak(getCurrentStreak());
 
   return `
     <div class="seeds-display compact" data-seeds-display>
@@ -350,7 +350,7 @@ export function renderCompactSeedsDisplay(): string {
  */
 export function renderSeedsSettingsCard(): string {
   const balance = getSeedBalance();
-  const streak = getCurrentStreak();
+  const streak = shownStreak(getCurrentStreak());
   const dailyAvailable = isDailyBonusAvailable();
   const nextMilestone = getNextStreakMilestone();
 
@@ -469,14 +469,9 @@ export function animateSeedsAdded(amount: number): void {
 // INITIALIZATION
 // ============================================================================
 
-/**
- * Handle daily bonus click - claim seeds immediately
- */
-function handleDailyBonusClick(e: Event): void {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const result = claimDailyBonus();
+/** Claim the daily bonus: on the server once it keeps seeds, else in this browser */
+async function handleDailyBonusClick(): Promise<void> {
+  const result = serverSeeds() ? await claimDailyOnServer() : claimDailyBonus();
   if (result.claimed) {
     moments.whisper(tp('toasts.seedsEarned', result.amount ?? 0), { type: 'success' });
     updateSeedsDisplay();
@@ -493,19 +488,22 @@ function handleDailyBonusClick(e: Event): void {
   }
 }
 
-/**
- * Bind click handler to daily bonus button
- */
+/** One listener reference, so re-binding on every DOM change adds it only once */
+function onDailyBonusClick(e: Event): void {
+  e.preventDefault();
+  e.stopPropagation();
+  void handleDailyBonusClick();
+}
+
+/** Bind click handler to daily bonus button */
 function bindDailyBonusHandler(): void {
   const dailyBonusBtn = document.querySelector('[data-daily-bonus]');
   if (dailyBonusBtn) {
-    dailyBonusBtn.addEventListener('click', handleDailyBonusClick);
+    dailyBonusBtn.addEventListener('click', onDailyBonusClick);
   }
 }
 
-/**
- * Bind click handlers to action buttons
- */
+/** Bind click handlers to action buttons */
 function bindActionHandlers(): void {
   // Garden button
   const gardenBtn = document.querySelector('[data-action="garden"]');

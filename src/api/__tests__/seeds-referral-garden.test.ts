@@ -71,13 +71,11 @@ const fs = vi.hoisted(() => {
   return { docs, db, inc, union };
 });
 
-vi.mock('firebase-admin', () => {
-  const firestore = Object.assign(() => fs.db, {
-    Timestamp: { now: () => new Date(0) },
-    FieldValue: { increment: fs.inc, arrayUnion: fs.union },
-  });
-  return { default: { apps: [{}], initializeApp: () => ({}), firestore } };
-});
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: () => fs.db,
+  Timestamp: { now: () => new Date(0) },
+  FieldValue: { increment: fs.inc, arrayUnion: fs.union },
+}));
 
 const { handleSeedsRoutes } = await import('../seeds-routes.js');
 
@@ -139,7 +137,7 @@ describe('garden: the shared link is the registered one', () => {
 
     expect(first.referralCode).toMatch(/^[a-z0-9]{6}-[a-z]+$/);
     expect(second.referralCode).toBe(first.referralCode);
-    expect(first.referralUrl).toBe(`https://ferni.ai/grow/${first.referralCode}`);
+    expect(first.referralUrl).toBe(`https://app.ferni.ai/grow/${first.referralCode}`);
     expect(fs.docs.get('alice')?.referralCode).toBe(first.referralCode); // persisted, not just returned
   });
 

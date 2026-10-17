@@ -18,11 +18,17 @@ import {
   getPendingReminders,
   cancelReminder,
   parseNaturalTime,
+  userTimeZone,
   type ReminderDeliveryMethod,
 } from '../../../services/scheduling/reminder-scheduler.js';
 import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { userReach } from '../../../services/outreach/user-reach.js';
 import { isAssistantActionsReal } from '../../../config/assistant-actions-flag.js';
+import { isReminderSmsDefaultOn } from '../../../config/reminder-sms-flag.js';
+import { formatStoredLocalTime } from '../../../utils/time-zone.js';
+import { asksToRepeat, NO_REPEAT_YET } from '../../utils/honest-schedule.js';
+import { withOutreachConfirmation } from '../communication/outreach/outreach-confirm.js';
+import { reminderConfirm } from '../communication/outreach/outreach-confirm-specs.js';
 
 const log = getLogger();
 
@@ -33,6 +39,10 @@ const log = getLogger();
 /** The user asked for a text but there's no verified number to send it to. */
 export const NO_NUMBER_TO_TEXT =
   "I don't have a verified number for you, so I can't text this one. I can keep it in the app instead. Want that?";
+
+/** REMINDER_SMS_DEFAULT: they asked for a text, there's no verified number, so it was kept in the app. */
+export const KEPT_IN_APP_NO_NUMBER =
+  "I don't have a verified number for you, so I'll leave this one in the Ferni app instead of texting it.";
 
 /**
  * With ASSISTANT_ACTIONS_REAL on, where a reminder for the user is texted: only
@@ -95,18 +105,30 @@ const setReminderDef: ToolDefinition = {
         log.info({ userId: ctx.userId, message, when, deliveryMethod }, 'Setting reminder');
 
         // Parse the natural language time
-        const scheduledFor = parseNaturalTime(when);
+        const zone = userTimeZone(ctx);
+        const scheduledFor = parseNaturalTime(when, zone);
         if (!scheduledFor) {
           return `I couldn't understand "${when}" as a time. Try something like "in 30 minutes", "tomorrow at 2pm", or "next Monday morning".`;
         }
 
         let method: ReminderDeliveryMethod = deliveryMethod;
         let address = deliveryAddress || '';
-        if (isAssistantActionsReal() && deliveryMethod !== 'email') {
+        let keptInApp = '';
+        // A number from textAddress is the account's verified phone; delivery checks it still is.
+        let addressSource: 'verified-own' | undefined;
+        if (!isAssistantActionsReal() && isReminderSmsDefaultOn() && deliveryMethod === 'sms') {
+          // Only the account's verified number, never deliveryAddress from the model.
+          const phone = await textAddress(ctx.userId, true);
+          method = phone ? 'sms' : 'voice_message';
+          address = phone ?? '';
+          addressSource = phone ? 'verified-own' : undefined;
+          keptInApp = phone ? '' : ` ${KEPT_IN_APP_NO_NUMBER}`;
+        } else if (isAssistantActionsReal() && deliveryMethod !== 'email') {
           const phone = await textAddress(ctx.userId, deliveryMethod === 'sms');
           if (phone) {
             method = 'sms';
             address = phone;
+            addressSource = 'verified-own';
           } else if (deliveryMethod === 'sms') {
             return NO_NUMBER_TO_TEXT;
           }
@@ -128,31 +150,32 @@ const setReminderDef: ToolDefinition = {
             userId: ctx.userId,
             message,
             scheduledFor,
+            timezone: zone,
             deliveryMethod: method,
             deliveryAddress: address,
+            addressSource,
             createdBy: ctx.agentId || 'ferni',
             personaId: ctx.agentId,
           });
           // Ferni just said "I'll remind you": the delivery job keeps or misses it.
           await recordReminderPromise(ctx.userId, reminder);
 
-          // Format a human-friendly confirmation
-          const timeStr = formatReminderTime(scheduledFor);
-          const methodStr =
+          // Read back exactly what was stored: the user's local time, one
+          // occurrence, and where it lands (a voice reminder is an app message).
+          const how =
             method === 'voice_message'
-              ? "I'll remind you"
+              ? 'as a message in the Ferni app'
               : method === 'sms'
-                ? "I'll text you"
-                : "I'll email you";
-          // It lands in the app inbox, so say so rather than imply a ping.
-          const where = method === 'voice_message' && isAssistantActionsReal() ? ' in the app' : '';
+                ? 'by text'
+                : 'by email';
 
           log.info(
             { reminderId: reminder.id, scheduledFor: scheduledFor.toISOString() },
             'Reminder created'
           );
 
-          return `Got it! ${methodStr}${where} ${timeStr} to "${message}".`;
+          const repeat = asksToRepeat(message, when) ? NO_REPEAT_YET : '';
+          return `Saved: ${formatStoredLocalTime(scheduledFor, zone)}, one reminder to "${message}", sent ${how}.${keptInApp}${repeat}`;
         } catch (error) {
           log.error({ error: String(error), userId: ctx.userId }, 'Failed to create reminder');
           return "I couldn't set that reminder. Let me try again in a moment.";
@@ -187,8 +210,9 @@ const getRemindersDef: ToolDefinition = {
           return "You don't have any pending reminders right now.";
         }
 
+        const zone = userTimeZone(ctx);
         const reminderList = reminders.map((r, i) => {
-          const timeStr = formatReminderTime(r.scheduledFor);
+          const timeStr = formatStoredLocalTime(r.scheduledFor, zone);
           return `${i + 1}. "${r.message}" - ${timeStr}`;
         });
 
@@ -260,76 +284,22 @@ const cancelReminderDef: ToolDefinition = {
 };
 
 // ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Format a reminder time in a human-friendly way
- */
-function formatReminderTime(date: Date): string {
-  const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
-  const diffMins = Math.round(diffMs / 60000);
-  const diffHours = Math.round(diffMs / 3600000);
-  const diffDays = Math.round(diffMs / 86400000);
-
-  // Very soon
-  if (diffMins < 1) {
-    return 'in less than a minute';
-  }
-  if (diffMins < 60) {
-    return `in ${diffMins} minute${diffMins !== 1 ? 's' : ''}`;
-  }
-  if (diffHours < 24) {
-    const hours = Math.floor(diffMins / 60);
-    const mins = diffMins % 60;
-    if (mins === 0) {
-      return `in ${hours} hour${hours !== 1 ? 's' : ''}`;
-    }
-    return `in about ${hours} hour${hours !== 1 ? 's' : ''}`;
-  }
-
-  // Tomorrow
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-  const dayAfterTomorrow = new Date(tomorrow);
-  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
-
-  if (date >= tomorrow && date < dayAfterTomorrow) {
-    return `tomorrow at ${formatTime(date)}`;
-  }
-
-  // This week (within 7 days)
-  if (diffDays < 7) {
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-    return `on ${dayName} at ${formatTime(date)}`;
-  }
-
-  // Further out
-  const dateStr = date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-  return `on ${dateStr} at ${formatTime(date)}`;
-}
-
-/**
- * Format time in 12-hour format
- */
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
-
-// ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const reminderTools: ToolDefinition[] = [setReminderDef, getRemindersDef, cancelReminderDef];
+/**
+ * A reminder to an address the model named waits for a yes. With either flag
+ * on, a text ignores that address (verified phone only), so only email uses it.
+ */
+const toNamedAddress = withOutreachConfirmation(setReminderDef, {
+  ...reminderConfirm,
+  applies: (a) =>
+    reminderConfirm.applies!(a) &&
+    (a.deliveryMethod === 'email' ||
+      !(isAssistantActionsReal() || (isReminderSmsDefaultOn() && a.deliveryMethod === 'sms'))),
+});
+
+export const reminderTools: ToolDefinition[] = [toNamedAddress, getRemindersDef, cancelReminderDef];
 
 export function createReminderTools(): ToolDefinition[] {
   return reminderTools;

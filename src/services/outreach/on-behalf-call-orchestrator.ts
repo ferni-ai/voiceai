@@ -212,8 +212,8 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       preferredTimes: request.userPreferences?.preferredTimes,
     });
 
-    // Check compliance
     const compliance = checkCallCompliance(request);
+    if (!compliance.passed) throw new Error(`Call refused: ${compliance.issues.join(', ')}`);
     const complianceScript = generateComplianceScript(request, compliance);
 
     // Create call record
@@ -355,10 +355,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       // The agent will read this metadata and behave as an outbound caller
       await agentDispatch.createDispatch(roomName, agentName, {
         metadata: JSON.stringify(
-          signOnBehalfDispatch(
-            onBehalfDispatchFor(callId, request, script),
-            this.config.livekitApiSecret
-          )
+          signOnBehalfDispatch(onBehalfDispatchFor(callId, request, script))
         ),
       });
 

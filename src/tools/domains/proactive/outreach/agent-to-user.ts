@@ -28,7 +28,7 @@ import {
 } from '../../../../services/scheduling/reminder-scheduler.js';
 import { recordReminderPromise } from '../../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { sendEmail, sendSMS } from '../../../../services/communication-service.js';
-import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
+import { getCallUserPort } from './call-user-port.js';
 import {
   getPersonaDisplayName,
   getCanonicalPersonaId,
@@ -138,29 +138,6 @@ export async function getUserContactInfo(userId: string): Promise<UserContactInf
 }
 
 // ============================================================================
-// PHONE CALL HELPER
-// ============================================================================
-
-async function makePhoneCall(
-  phone: string,
-  message: string,
-  personaId = 'ferni'
-): Promise<{ success: boolean; callSid?: string; error?: string }> {
-  try {
-    const result = await callWithPersonaVoice(phone, message, personaId, {
-      fallbackToTwilioVoice: true,
-    });
-    if (result.success) {
-      return { success: true, callSid: result.callSid };
-    }
-    return { success: false, error: result.message };
-  } catch (error) {
-    log.error({ error: String(error), personaId }, 'makePhoneCall failed');
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-  }
-}
-
-// ============================================================================
 // TOOL DEFINITIONS
 // ============================================================================
 
@@ -252,6 +229,13 @@ Use for: follow-ups, accountability check-ins, celebrations, and scheduled remin
         // Determine delivery method (voice → call for API compatibility)
         const deliveryMethod: ReminderDeliveryMethod =
           method === 'voice' ? 'call' : method || (contactInfo.phone ? 'sms' : 'email');
+        // A text or call goes to the verified phone only, never the model-written contactInfo.phone.
+        const port = getCallUserPort();
+        const phone =
+          port && deliveryMethod !== 'email' ? await port.verifiedPhone(ctx.userId) : undefined;
+        if (deliveryMethod !== 'email' && !phone) {
+          return "I can't text or call you yet: there's no verified phone number on your account, so I didn't schedule it.";
+        }
 
         // Parse the time
         const now = new Date();
@@ -298,8 +282,7 @@ Use for: follow-ups, accountability check-ins, celebrations, and scheduled remin
           message: `${personaName}: ${message}`,
           scheduledFor,
           deliveryMethod,
-          deliveryAddress:
-            (deliveryMethod === 'email' ? contactInfo.email : contactInfo.phone) || '',
+          deliveryAddress: (deliveryMethod === 'email' ? contactInfo.email : phone) || '',
         });
 
         if (!reminder?.id) {
@@ -348,39 +331,45 @@ Use when you need to reach them right now outside of the conversation.`,
         }
 
         const contactInfo = await getUserContactInfo(ctx.userId);
-        if (!contactInfo) {
-          return "I don't have your contact info. Share your phone or email first?";
-        }
-
-        const deliveryMethod = method || contactInfo.preferredMethod || 'sms';
+        const deliveryMethod = method || contactInfo?.preferredMethod || 'sms';
         const personaId = getCanonicalPersonaId(ctx.agentId || 'ferni');
         const personaName = getPersonaDisplayName(personaId);
 
         try {
-          if (deliveryMethod === 'call') {
-            if (!contactInfo.phone) {
-              return "I don't have a phone number to call you.";
-            }
-            const result = await makePhoneCall(contactInfo.phone, message, personaId);
-            if (result.success) {
-              return `📞 Calling you now...`;
-            }
-            return `I couldn't connect the call: ${result.error}`;
-          }
-
           if (deliveryMethod === 'email') {
-            if (!contactInfo.email) {
+            if (!contactInfo?.email) {
               return "I don't have an email address for you.";
             }
             await sendEmail(contactInfo.email, `Message from ${personaName}`, message);
             return `📧 Email sent!`;
           }
 
-          // SMS
-          if (!contactInfo.phone) {
-            return "I don't have a phone number to text you.";
+          // A text or a call goes only to the verified phone on the account (as
+          // callUser does), never contactInfo.phone: the model writes that through
+          // saveContactInfo, so it may be anyone's number.
+          const port = getCallUserPort();
+          const phone = port ? await port.verifiedPhone(ctx.userId) : undefined;
+          const how = deliveryMethod === 'call' ? 'call' : 'text';
+          if (!port || !phone) {
+            return `I can't ${how} you yet: there's no verified phone number on your account, so nothing was sent.`;
           }
-          await sendSMS(contactInfo.phone, `${personaName}: ${message}`);
+
+          if (deliveryMethod === 'call') {
+            const result = await port.call({
+              userId: ctx.userId,
+              phoneNumber: phone,
+              message,
+              personaId,
+            });
+            if (!result.success) {
+              return `I couldn't place the call, so no call is coming: ${result.error ?? 'unknown error'}`;
+            }
+            return result.status === 'scheduled'
+              ? "It's outside your calling hours right now, so I'll call you once they open."
+              : 'Calling you now.';
+          }
+
+          await sendSMS(phone, `${personaName}: ${message}`);
           return `📱 Text sent!`;
         } catch (error) {
           log.error({ error: String(error), method: deliveryMethod }, 'Outreach failed');
@@ -392,7 +381,12 @@ Use when you need to reach them right now outside of the conversation.`,
 };
 
 /**
- * Call the user
+ * Call the user. Registered by the telephony domain (behind
+ * TOOLS_REAL_CALL_USER), not here, so there is one callUser.
+ *
+ * It only rings the verified phone on the account, never the model-written
+ * contactInfo.phone, and calling hours and quiet hours decide when it rings
+ * (call-user-port.ts; the call session installs the outreach adapter).
  */
 export const callUserDef: ToolDefinition = {
   id: 'callUser',
@@ -413,18 +407,29 @@ Use for important check-ins or when a phone call is more personal than text.`,
           return "I'd need to know who you are to call you.";
         }
 
-        const contactInfo = await getUserContactInfo(ctx.userId);
-        if (!contactInfo?.phone) {
-          return "I don't have a phone number for you. Share it first?";
+        const port = getCallUserPort();
+        if (!port) {
+          return "I can't place calls from here, so no call is coming.";
+        }
+        const phone = await port.verifiedPhone(ctx.userId);
+        if (!phone) {
+          return "I can't call you yet: there's no verified phone number on your account, so no call is coming.";
         }
 
-        const personaId = getCanonicalPersonaId(ctx.agentId || 'ferni');
-        const result = await makePhoneCall(contactInfo.phone, message, personaId);
+        const result = await port.call({
+          userId: ctx.userId,
+          phoneNumber: phone,
+          message,
+          personaId: getCanonicalPersonaId(ctx.agentId || 'ferni'),
+        });
 
-        if (result.success) {
-          return '📞 Calling you now...';
+        if (!result.success) {
+          return `I couldn't place the call, so no call is coming: ${result.error ?? 'unknown error'}`;
         }
-        return `I couldn't connect the call: ${result.error}`;
+        if (result.status === 'scheduled') {
+          return "It's outside your calling hours right now, so I'll call you once they open.";
+        }
+        return 'Calling you now.';
       },
     });
   },
@@ -435,7 +440,7 @@ Use for important check-ins or when a phone call is more personal than text.`,
 // ============================================================================
 
 export function getAgentToUserOutreachDefinitions(): ToolDefinition[] {
-  return [saveContactInfoDef, scheduleReminderDef, sendImmediateOutreachDef, callUserDef];
+  return [saveContactInfoDef, scheduleReminderDef, sendImmediateOutreachDef];
 }
 
 export default getAgentToUserOutreachDefinitions;

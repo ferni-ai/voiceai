@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
+import { commitmentCache, loadActiveCommitmentsOrThrow } from './commitment-store.js';
 import {
   validateCommitmentFeasibility,
   createCalendarBlocksForCommitment,
@@ -21,6 +22,7 @@ import {
 import { syncCommitmentToCalendar } from '../calendar/calendar-bridge.js';
 import { onCommitmentKeeperChange } from '../data-layer/hooks/superhuman-hooks.js';
 import { onCommitmentMade, onCommitmentAtRisk } from '../outreach/superhuman-outreach-bridge.js';
+import { recordWinFromCommitment } from './wins.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
@@ -361,8 +363,6 @@ export function detectCommitment(
 // STORAGE
 // ============================================================================
 
-const commitmentCache = new Map<string, Commitment[]>();
-
 export async function saveCommitment(
   commitment: Omit<Commitment, 'id'>,
   options?: { validateCalendar?: boolean; createCalendarBlocks?: boolean }
@@ -483,10 +483,8 @@ export async function saveCommitment(
       }
     }
 
-    // Update cache
-    const userCommitments = commitmentCache.get(commitment.userId) || [];
-    userCommitments.push(fullCommitment);
-    commitmentCache.set(commitment.userId, userCommitments);
+    // Only a list read from the store is cached: seeding one with just this commitment hid the rest
+    commitmentCache.get(commitment.userId)?.push(fullCommitment);
 
     // Better Than Human: Schedule proactive follow-up via outreach system
     try {
@@ -526,31 +524,10 @@ export async function saveCommitment(
   }
 }
 
+/** Active commitments, or [] when the store can't be read (callers degrade quietly). */
 export async function loadUserCommitments(userId: string): Promise<Commitment[]> {
-  if (commitmentCache.has(userId)) {
-    return commitmentCache.get(userId) || [];
-  }
-
   try {
-    const db = getFirestoreDb();
-    if (!db) {
-      recordDegradation('commitment-keeper');
-      return [];
-    }
-
-    const snapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('commitments')
-      .where('status', '==', 'active')
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
-
-    const commitments = snapshot.docs.map((doc) => doc.data() as Commitment);
-    commitmentCache.set(userId, commitments);
-
-    return commitments;
+    return await loadActiveCommitmentsOrThrow(userId);
   } catch (error) {
     const errorStr = String(error);
     // Check if this is a Firestore index building error - suppress warning and gracefully degrade
@@ -588,21 +565,18 @@ export async function updateCommitmentStatus(
           })
         );
     }
+    // Every "done" passes here: a win the next call can name once (wins.ts).
+    if (status === 'completed') void recordWinFromCommitment(userId, commitmentId);
 
-    // Update cache
     const userCommitments = commitmentCache.get(userId) || [];
     const idx = userCommitments.findIndex((c) => c.id === commitmentId);
     if (idx >= 0) {
-      userCommitments[idx].status = status;
-      if (reaction) userCommitments[idx].userReactionToFollowUp = reaction;
-
-      // 🎭 TRIGGER GROUP OUTREACH: When a commitment is completed, celebrate with the team!
-      if (status === 'completed') {
-        const commitment = userCommitments[idx];
-        // Only trigger for emotionally significant commitments
-        if (commitment.emotionalWeight > 0.5) {
-          void triggerCommitmentCelebration(userId, commitment);
-        }
+      const commitment = userCommitments[idx];
+      commitment.status = status;
+      if (reaction) commitment.userReactionToFollowUp = reaction;
+      // Group outreach celebrates an emotionally significant one with the team.
+      if (status === 'completed' && commitment.emotionalWeight > 0.5) {
+        void triggerCommitmentCelebration(userId, commitment);
       }
     }
 

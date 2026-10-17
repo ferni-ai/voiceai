@@ -109,7 +109,9 @@ async function runAllTests(): Promise<void> {
 
       if (available) {
         // Test parsing a tool call
-        const result = parseJsonFast('{"fn":"play_music","args":{"query":"jazz"}}');
+        const result = parseJsonFast<{ fn?: string; args?: { query?: string } }>(
+          '{"fn":"play_music","args":{"query":"jazz"}}'
+        );
         const valid = result?.fn === 'play_music' && result?.args?.query === 'jazz';
         logJsonParserStatus();
         return {
@@ -247,7 +249,7 @@ async function runAllTests(): Promise<void> {
   await test('Tool-call-sanitizer native registration', async () => {
     try {
       // Import the sanitizer module - this should trigger native registration
-      const sanitizer = await import('../src/agents/shared/tool-call-sanitizer.js');
+      const sanitizer = await import('../src/agents/shared/sanitizer/index.js');
       const { isNativeJsonParserAvailable, getToolCount } = await import('../src/agents/shared/native-json-parser.js');
 
       const nativeActive = isNativeJsonParserAvailable();

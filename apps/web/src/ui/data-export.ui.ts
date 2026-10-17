@@ -208,7 +208,7 @@ class DataExportUI {
       .data-export {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -357,7 +357,7 @@ class DataExportUI {
 
       .data-export__format-btn--active {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
         border-color: var(--color-accent-primary, #2d5a3d);
       }
 
@@ -381,7 +381,7 @@ class DataExportUI {
 
       .data-export__btn--primary {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .data-export__btn--primary:hover { background: var(--color-accent-hover, #3a7050); }
@@ -425,7 +425,6 @@ class DataExportUI {
       [data-theme="midnight"] .data-export__header h2,
       [data-theme="midnight"] .data-export__category-name,
       [data-theme="midnight"] .data-export__format label { color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .data-export__format-btn { background: var(--color-background-secondary, #1e1a16); }
       [data-theme="midnight"] .data-export__footer { background: var(--color-background-secondary, #1e1a16); }
       [data-theme="midnight"] .data-export__close { background: var(--color-background-tertiary, #2a241f); color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .data-export__category-description,

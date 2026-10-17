@@ -55,6 +55,10 @@ import {
   resolveAgentEnv,
   runLkAgent,
 } from './utils/livekit-agent.js';
+import {
+  handleUsers as handleUsersCommand,
+  handleWaitlist as handleWaitlistCommand,
+} from './commands/users/users-admin.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -73,7 +77,7 @@ const PROJECT_ROOT =
   (isSEABinary ? process.cwd() : join(__dirname, '..', '..', '..'));
 
 // Load .env file from project root
-dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
+dotenvConfig({ path: join(PROJECT_ROOT, '.env'), quiet: true });
 const GCP_PROJECT = 'johnb-2025';
 const GCP_REGION = 'us-central1';
 
@@ -4395,7 +4399,7 @@ async function handleVoices(args: string[]): Promise<void> {
 
     // Import the full persona platform
     // Note: Path is relative to apps/cli/src/
-    const { getVoiceIdForPersona, CARTESIA_MODEL } =
+    const { getVoiceIdForPersona, CARTESIA_MODEL, CARTESIA_API_VERSION } =
       await import('../../../src/config/voice-ids.js');
     const { humanizeText, addBreathGroupPauses } =
       await import('../../../src/speech/advanced-humanization/index.js');
@@ -4508,7 +4512,7 @@ async function handleVoices(args: string[]): Promise<void> {
     console.log(`  ${icons.bullet} Voice IDs from persona registry`);
     console.log(`  ${icons.bullet} Advanced humanization pipeline`);
     console.log(`  ${icons.bullet} Breath group pauses`);
-    console.log(`  ${icons.bullet} Cartesia sonic-english model`);
+    console.log(`  ${icons.bullet} Cartesia ${CARTESIA_MODEL}`);
 
     console.log(`\n${colors.bold}Personas:${colors.reset}`);
     for (const [shortName, config] of Object.entries(PERSONA_CONFIG)) {
@@ -4550,7 +4554,7 @@ async function handleVoices(args: string[]): Promise<void> {
           method: 'POST',
           headers: {
             'X-API-Key': apiKey,
-            'Cartesia-Version': '2024-06-10',
+            'Cartesia-Version': CARTESIA_API_VERSION,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -4562,8 +4566,8 @@ async function handleVoices(args: string[]): Promise<void> {
             },
             output_format: {
               container: 'mp3',
-              encoding: 'mp3',
               sample_rate: 44100,
+              bit_rate: 128000,
             },
             language: 'en',
           }),
@@ -7430,172 +7434,19 @@ async function handleOps(args: string[]): Promise<void> {
 }
 
 // ============================================================================
-// WAITLIST COMMAND
+// WAITLIST + USERS COMMANDS (no shell; deletions dry-run by default)
 // ============================================================================
+
+const usersAdminDeps = () => ({ scriptsDir: join(PROJECT_ROOT, 'scripts'), ask: prompt });
 
 async function handleWaitlist(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
   log.header(`📋 Waitlist Management`);
-
-  const scriptsDir = join(PROJECT_ROOT, 'scripts');
-
-  if (!subcommand || subcommand === 'status') {
-    console.log(`${colors.bold}Waitlist Commands:${colors.reset}\n`);
-    console.log(
-      `  ${colors.cyan}ferni waitlist list${colors.reset}           - List pending waitlist users`
-    );
-    console.log(`  ${colors.cyan}ferni waitlist approve <email>${colors.reset} - Approve a user`);
-    console.log(
-      `  ${colors.cyan}ferni waitlist stats${colors.reset}          - Show waitlist statistics`
-    );
-    console.log(
-      `  ${colors.cyan}ferni waitlist export${colors.reset}         - Export waitlist to CSV`
-    );
-    return;
-  }
-
-  if (subcommand === 'list') {
-    const limit = args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '20';
-    console.log(`${colors.cyan}Fetching waitlist...${colors.reset}\n`);
-    spawnSync(
-      'sh',
-      ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --list --limit=${limit}`],
-      { stdio: 'inherit' }
-    );
-  }
-
-  if (subcommand === 'approve') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni waitlist approve user@example.com');
-      return;
-    }
-
-    console.log(`${colors.cyan}Approving ${email}...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'stats') {
-    console.log(`${colors.cyan}Fetching waitlist stats...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --stats`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'export') {
-    const output =
-      args.find((a) => a.startsWith('--output='))?.split('=')[1] || 'waitlist-export.csv';
-    console.log(`${colors.cyan}Exporting waitlist to ${output}...${colors.reset}\n`);
-    spawnSync(
-      'sh',
-      ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --export --output=${output}`],
-      { stdio: 'inherit' }
-    );
-  }
+  await handleWaitlistCommand(args, usersAdminDeps());
 }
 
-// ============================================================================
-// USERS COMMAND
-// ============================================================================
-
 async function handleUsers(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
   log.header(`👤 User Management`);
-
-  const scriptsDir = join(PROJECT_ROOT, 'scripts');
-
-  if (!subcommand || subcommand === 'status') {
-    console.log(`${colors.bold}User Management Commands:${colors.reset}\n`);
-    console.log(`  ${colors.cyan}ferni users list${colors.reset}              - List all users`);
-    console.log(`  ${colors.cyan}ferni users show <email>${colors.reset}      - Show user details`);
-    console.log(
-      `  ${colors.cyan}ferni users dump <userId>${colors.reset}     - Full user data dump`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users cleanup${colors.reset}           - Clean up anonymous users`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users grant <email>${colors.reset}     - Grant access to user`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users find-rich${colors.reset}         - Find users with rich data`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users delete-stale${colors.reset}      - Delete stale profiles`
-    );
-    return;
-  }
-
-  if (subcommand === 'list') {
-    const limit = args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '50';
-    console.log(`${colors.cyan}Listing users...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/list-all-users.ts --limit=${limit}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'show') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni users show user@example.com');
-      return;
-    }
-    console.log(`${colors.cyan}Fetching user data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/check-my-data.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'dump') {
-    const userId = args[1];
-    if (!userId) {
-      log.error('User ID required. Usage: ferni users dump <userId>');
-      return;
-    }
-    console.log(`${colors.cyan}Dumping full user data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/full-user-dump.ts --user=${userId}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'cleanup') {
-    const dryRun = args.includes('--dry-run');
-    console.log(`${colors.cyan}Cleaning up anonymous users...${colors.reset}\n`);
-    const cmd = dryRun
-      ? `npx tsx ${scriptsDir}/cleanup-anonymous-users.ts --dry-run`
-      : `npx tsx ${scriptsDir}/cleanup-anonymous-users.ts`;
-    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'grant') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni users grant user@example.com');
-      return;
-    }
-    console.log(`${colors.cyan}Granting access...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/grant-access.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'find-rich') {
-    console.log(`${colors.cyan}Finding users with rich data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/find-rich-users.ts`], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'delete-stale') {
-    const dryRun = args.includes('--dry-run');
-    console.log(`${colors.cyan}Deleting stale profiles...${colors.reset}\n`);
-    const cmd = dryRun
-      ? `npx tsx ${scriptsDir}/delete-stale-profiles.ts --dry-run`
-      : `npx tsx ${scriptsDir}/delete-stale-profiles.ts`;
-    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
-  }
+  await handleUsersCommand(args, usersAdminDeps());
 }
 
 // ============================================================================
@@ -9571,9 +9422,6 @@ async function handleRuntimeStatus(isContainer: boolean): Promise<void> {
   console.log(`\n${colors.bold}Agent Config:${colors.reset}\n`);
   console.log(`  ${colors.cyan}${icons.info}${colors.reset} Persona: ${personaId}`);
   console.log(
-    `  ${colors.cyan}${icons.info}${colors.reset} Single Process: ${process.env.USE_SINGLE_PROCESS || 'false'}`
-  );
-  console.log(
     `  ${colors.cyan}${icons.info}${colors.reset} Node Options: ${process.env.NODE_OPTIONS || 'default'}`
   );
 
@@ -9688,7 +9536,7 @@ async function handleRuntimeEnv(): Promise<void> {
 
   // Group environment variables by category
   const categories: Record<string, string[]> = {
-    'Agent Config': ['PERSONA_ID', 'AGENT_ID', 'USE_SINGLE_PROCESS', 'NODE_ENV'],
+    'Agent Config': ['PERSONA_ID', 'AGENT_ID', 'NODE_ENV'],
     LiveKit: ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET'],
     'AI Services': [
       'GOOGLE_API_KEY',
@@ -9853,7 +9701,6 @@ async function handleRuntimeAnalyze(isContainer: boolean): Promise<void> {
     platform: `${process.platform} ${process.arch}`,
     nodeEnv: process.env.NODE_ENV || 'not set',
     personaId: process.env.PERSONA_ID || process.env.AGENT_ID || 'not set',
-    singleProcess: process.env.USE_SINGLE_PROCESS || 'false',
     livekitConfigured: !!process.env.LIVEKIT_URL,
     geminiConfigured: !!process.env.GOOGLE_API_KEY,
     cartesiaConfigured: !!process.env.CARTESIA_API_KEY,
@@ -9899,8 +9746,7 @@ ${JSON.stringify(runtimeData, null, 2)}
 
 Context:
 - This is a LiveKit voice agent using Gemini for LLM, Cartesia/Deepgram for TTS/STT
-- Running in ${isContainer ? 'Docker container (Cloud Run or LiveKit Cloud)' : 'local development mode'}
-- Single process mode ${envSummary.singleProcess === 'true' ? 'is enabled (good for containers)' : 'is disabled (uses child processes)'}`;
+- Running in ${isContainer ? 'Docker container (Cloud Run or LiveKit Cloud)' : 'local development mode'}`;
 
   try {
     const analysis = await callGeminiRuntime(prompt);

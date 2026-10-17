@@ -8,16 +8,16 @@
  * @module services/seed-economy
  */
 
-import admin from 'firebase-admin';
+import { getFirestore as getDefaultFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { awardDailyConversation } from '../seeds/earn.js';
 
 /**
  * Get Firestore instance, returns null if not initialized.
  */
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   try {
-    return admin.firestore();
+    return getDefaultFirestore();
   } catch {
     return null;
   }
@@ -62,7 +62,10 @@ export interface SeedAwardResult {
  *
  * @param timeZone - the caller's IANA zone, so "today" is their day (UTC when unknown)
  */
-export async function awardSeedsForConversation(userId: string, timeZone?: string): Promise<SeedAwardResult> {
+export async function awardSeedsForConversation(
+  userId: string,
+  timeZone?: string
+): Promise<SeedAwardResult> {
   if (!userId) return { success: false, error: 'User ID required' };
   const db = getFirestore();
   if (!db) {
@@ -76,23 +79,5 @@ export async function awardSeedsForConversation(userId: string, timeZone?: strin
   } catch (error) {
     log.error({ error, userId }, 'Failed to award seeds');
     return { success: false, error: 'Database error' };
-  }
-}
-
-/**
- * Get a user's current seed balance.
- */
-export async function getUserSeedBalance(userId: string): Promise<UserSeeds | null> {
-  if (!userId) return null;
-
-  try {
-    const db = getFirestore();
-    if (!db) return null;
-
-    const doc = await db.collection('user_seeds').doc(userId).get();
-    return doc.exists ? (doc.data() as UserSeeds) : null;
-  } catch (error) {
-    log.error({ error, userId }, 'Failed to get seed balance');
-    return null;
   }
 }

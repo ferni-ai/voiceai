@@ -8,11 +8,9 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
   calculateOptimalTime,
-  cancelOutreach,
   getChannelProfile,
   getConversationalCallService,
   getOutreachDecisionEngine,
-  getOutreachHistory,
   getPendingOutreach,
   getTimingProfile,
   getUserContext,
@@ -26,8 +24,10 @@ import {
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
+import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
+import { sendOutreachHistory } from './outreach-history-route.js';
 import {
-  channelsFromSettings,
+  consentPatchFrom,
   readOutreachConsent,
   settingsFromChannels,
   writeOutreachConsent,
@@ -50,6 +50,7 @@ const OUTREACH_PREFIX = '/api/outreach';
 type Named = { userId?: unknown };
 
 import { handleVerifyPhone } from './verify-phone-routes.js';
+import { phoneChannelRefusal } from './user-contact.js';
 
 // Helper to get persona display name
 function getPersonaName(personaId: string): string {
@@ -157,25 +158,17 @@ export async function handleOutreachRoutes(
     if (route === '/preferences' && method === 'POST') {
       const body = await parseRequestBody(req);
       const { preferences } = body as {
-        preferences: {
-          enabled?: boolean;
-          allowedChannels?: Array<'sms' | 'email' | 'call'>;
-          preferredChannel?: 'sms' | 'email' | 'call';
-          disabledChannels?: Array<'sms' | 'email' | 'call'>;
-          quietHours?: { start: number; end: number };
-          timezone?: string;
-          maxOutreachPerDay?: number;
-          maxOutreachPerWeek?: number;
-        };
+        preferences: Parameters<typeof updateOutreachPreferences>[1];
       };
-
+      const patch = consentPatchFrom(preferences);
+      // Texts and calls only to a number the user proved is theirs (a texted code).
+      const refusal = await phoneChannelRefusal(auth, patch.channels);
+      if (refusal) {
+        sendJsonResponse(res, 409, { success: false, error: refusal });
+        return true;
+      }
       // Use authenticated userId (ignore body.userId to prevent tampering)
-      await writeOutreachConsent(authenticatedUserId, {
-        enabled: preferences?.enabled,
-        channels: Array.isArray(preferences?.allowedChannels)
-          ? channelsFromSettings(preferences.allowedChannels)
-          : undefined,
-      });
+      await writeOutreachConsent(authenticatedUserId, patch);
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;
@@ -398,7 +391,7 @@ export async function handleOutreachRoutes(
     if (route.startsWith('/pending/') && method === 'DELETE') {
       const triggerId = route.replace('/pending/', '');
 
-      const cancelled = cancelOutreach(triggerId);
+      const cancelled = cancelOwnedOutreach(authenticatedUserId, triggerId);
       if (cancelled) {
         sendJsonResponse(res, 200, { success: true, message: 'Outreach cancelled' });
       } else {
@@ -417,8 +410,8 @@ export async function handleOutreachRoutes(
         return true;
       }
 
-      const engine = getOutreachDecisionEngine();
-      const trigger = engine.getTrigger(triggerId);
+      // Only the caller's own trigger; someone else's id is "not found", not "forbidden".
+      const trigger = findOwnedOutreach(authenticatedUserId, triggerId);
 
       if (!trigger) {
         sendJsonResponse(res, 404, { success: false, error: 'Trigger not found' });
@@ -426,7 +419,7 @@ export async function handleOutreachRoutes(
       }
 
       // Cancel the old trigger and create a new one with the updated time
-      cancelOutreach(triggerId);
+      cancelOwnedOutreach(authenticatedUserId, triggerId);
 
       const newTriggerId = triggerOutreach({
         ...trigger,
@@ -442,19 +435,9 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // GET /api/outreach/history
+    // GET /api/outreach/history: what was actually sent (outreach_attempts), caller only
     if (route === '/history' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      // Use authenticated userId
-      const userId = authenticatedUserId;
-      const limit = parseInt(url.searchParams.get('limit') || '20');
-
-      const history = getOutreachHistory(userId, limit);
-      sendJsonResponse(res, 200, {
-        success: true,
-        history,
-        count: history.length,
-      });
+      await sendOutreachHistory(res, authenticatedUserId, new URL(req.url || '', 'http://x'));
       return true;
     }
 

@@ -8,7 +8,7 @@
  * TOOLS:
  *   Goals: setLearningGoal, trackLearningProgress, reflectOnLearning
  *   Study: planStudySession, scheduleSpacedRepetition, testKnowledge
- *   Resources: recommendResource, trackBooksRead
+ *   Resources: recommendResource, trackBooksRead, findCoachingResources (COACH_MEDIA=on)
  *   Blocks: overcomeLearningBlock
  */
 
@@ -19,6 +19,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { coachingResourceTools } from './coaching-resources-tool.js';
 // ============================================================================
 // LEARNING SCIENCE INSIGHTS
 // ============================================================================
@@ -494,9 +495,7 @@ const recommendResourceDef: ToolDefinition = {
           response += `• Best for overview, not deep learning\n\n`;
         }
 
-        response += `---\n\n`;
-
-        response += `**Evaluating Resources:**\n`;
+        response += `---\n\n**Evaluating Resources:**\n`;
         response += `• Who created it? What's their expertise?\n`;
         response += `• When was it made? Is it current?\n`;
         response += `• What do reviews/ratings say?\n`;
@@ -708,6 +707,7 @@ const learningTools: ToolDefinition[] = [
   trackBooksReadDef,
   // Blocks
   overcomeLearningBlockDef,
+  ...coachingResourceTools(),
 ];
 
 // ============================================================================

@@ -325,8 +325,9 @@ export const SIGNATURE_MOMENTS: Record<string, SignatureMoment> = {
 
   /**
    * HANDOFF MOMENT
-   * When transitioning between personas
-   * Fluid color and character morphing
+   * When transitioning between personas.
+   * Runs alongside the persona swap, so the whole moment stays under ~400 ms
+   * and animates opacity only (a blur filter repainted every frame).
    */
   handoff: {
     name: 'handoff',
@@ -335,7 +336,7 @@ export const SIGNATURE_MOMENTS: Record<string, SignatureMoment> = {
     phases: [
       {
         name: 'acknowledge',
-        duration: 300,
+        duration: 60,
         actions: [
           { type: 'expression', name: 'understanding' },
           { type: 'css-class', target: '.avatar-container', add: ['handoff-out'] },
@@ -343,17 +344,14 @@ export const SIGNATURE_MOMENTS: Record<string, SignatureMoment> = {
       },
       {
         name: 'fade-merge',
-        duration: 400,
+        duration: 120,
         actions: [
           { type: 'css-class', target: '.avatar-container', add: ['morphing'] },
           {
             type: 'animate',
             target: '.avatar-body',
-            keyframes: [
-              { opacity: '1', filter: 'blur(0)' },
-              { opacity: '0.5', filter: 'blur(4px)' },
-            ],
-            options: { duration: 200, easing: 'ease-out', fill: 'forwards' },
+            keyframes: [{ opacity: '1' }, { opacity: '0.6' }],
+            options: { duration: 120, easing: 'ease-out', fill: 'forwards' },
           },
           // Color blend happens via CSS custom properties
           // The persona change triggers color update externally
@@ -362,23 +360,20 @@ export const SIGNATURE_MOMENTS: Record<string, SignatureMoment> = {
       },
       {
         name: 'emerge',
-        duration: 400,
+        duration: 180,
         actions: [
           { type: 'css-class', target: '.avatar-container', remove: ['handoff-out'], add: ['handoff-in'] },
           {
             type: 'animate',
             target: '.avatar-body',
-            keyframes: [
-              { opacity: '0.5', filter: 'blur(4px)' },
-              { opacity: '1', filter: 'blur(0)' },
-            ],
-            options: { duration: 400, easing: 'ease-out', fill: 'forwards' },
+            keyframes: [{ opacity: '0.6' }, { opacity: '1' }],
+            options: { duration: 180, easing: 'ease-out', fill: 'forwards' },
           },
         ],
       },
       {
         name: 'greet',
-        duration: 400,
+        duration: 0,
         actions: [
           { type: 'expression', name: 'greeting' },
           { type: 'css-class', target: '.avatar-container', remove: ['morphing', 'handoff-in'] },

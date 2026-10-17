@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title }} | Ferni</title>
+  <title>{{ title }}{% if not (title and (title.startsWith('Ferni') or title.endsWith('Ferni'))) %} | Ferni{% endif %}</title>
   <meta name="description" content="{{ description or site.tagline }}">
   
   {# ====== PRECONNECT (Performance) ====== #}
@@ -22,18 +22,34 @@
   {# ====== STYLES (with cache-busting) ====== #}
   {# CRITICAL: tokens.css MUST come first - defines all CSS variables #}
   <link rel="stylesheet" href="/css/tokens.css?v=20261005">
-  <link rel="stylesheet" href="/css/story-brand.css?v=20260103">
+  <link rel="stylesheet" href="/css/story-brand.css?v=20261011">
   <link rel="stylesheet" href="/css/components.css?v=20251224">
   <link rel="stylesheet" href="/css/sections/footer.css?v=20251231">
-  <link rel="stylesheet" href="/css/landing-intelligence.css?v=20251224">
-  <link rel="stylesheet" href="/css/ai-copy-magic.css?v=20251224">
-  <link rel="stylesheet" href="/css/ai-storytelling.css?v=20251224">
-  <link rel="stylesheet" href="/css/dark-mode.css?v=20261005">
+  {# Non-critical sheets load without blocking first paint: they style
+     below-the-fold sections, JS-added states or the hidden waitlist modal.
+     media="print" + onload swaps them in once loaded; they keep their place
+     in the cascade. Sheets that style the hero (pixar-animations,
+     better-than-human .reveal, ferni-showcase avatar) stay blocking. #}
+  <link rel="stylesheet" href="/css/landing-intelligence.css?v=20251224" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="/css/ai-copy-magic.css?v=20251224" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="/css/ai-storytelling.css?v=20251224" media="print" onload="this.media='all'">
+  {# Blocks only for dark-scheme visitors (no light flash for them); for light
+     visitors it loads quietly, then applies its .theme--dark rules. #}
+  <link rel="stylesheet" href="/css/dark-mode.css?v=20261005" media="(prefers-color-scheme: dark)" onload="this.media='all'">
   <link rel="stylesheet" href="/css/pixar-animations.css?v=20251231">
   <link rel="stylesheet" href="/css/better-than-human.css?v=20260103">
-  <link rel="stylesheet" href="/css/ferni-eq.css?v=20251231">
+  <link rel="stylesheet" href="/css/ferni-eq.css?v=20251231" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="/css/ferni-showcase.css?v=20251230">
-  <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225">
+  <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225" media="print" onload="this.media='all'">
+  {# Every rule in this file sits inside @media (prefers-color-scheme: dark). #}
+  <link rel="stylesheet" href="/css/dark-mode-surfaces.css?v=20261011" media="(prefers-color-scheme: dark)">
+  <noscript>
+    <link rel="stylesheet" href="/css/landing-intelligence.css?v=20251224">
+    <link rel="stylesheet" href="/css/ai-copy-magic.css?v=20251224">
+    <link rel="stylesheet" href="/css/ai-storytelling.css?v=20251224">
+    <link rel="stylesheet" href="/css/ferni-eq.css?v=20251231">
+    <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225">
+  </noscript>
   
   {# ====== OPEN GRAPH ====== #}
   <meta property="og:title" content="{{ title }} | Ferni">
@@ -105,28 +121,8 @@
             "name": "Free",
             "price": "0",
             "priceCurrency": "USD"
-          },
-          {
-            "@type": "Offer",
-            "name": "Friend",
-            "price": "9.99",
-            "priceCurrency": "USD",
-            "billingIncrement": "P1M"
-          },
-          {
-            "@type": "Offer",
-            "name": "Partner",
-            "price": "19.99",
-            "priceCurrency": "USD",
-            "billingIncrement": "P1M"
           }
         ],
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": "4.9",
-          "ratingCount": "1247",
-          "bestRating": "5"
-        },
         "description": "Six AI specialists who actually listen, remember everything, and help you grow. Available 24/7 via voice, text, or app."
       },
       {
@@ -151,10 +147,10 @@
           },
           {
             "@type": "Question",
-            "name": "What does infinite memory mean?",
+            "name": "What does Ferni remember?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Unlike other AI, Ferni remembers every conversation you've had. This creates continuity—like talking to a friend who actually knows your story."
+              "text": "Ferni remembers what you share across conversations, like your goals and the people in your life. You can see what Ferni remembers, correct it, or ask Ferni to forget any of it."
             }
           },
           {
@@ -172,18 +168,7 @@
   </script>
   
   {# ====== ANALYTICS ====== #}
-  {% if site.analytics.gaId %}
-  <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '{{ site.analytics.gaId }}', {
-      page_title: '{{ title }}',
-      page_path: '{{ page.url }}'
-    });
-  </script>
-  {% endif %}
+  {% include "partials/analytics.njk" %}
 </head>
 <body>
   {{ content | safe }}
@@ -203,57 +188,57 @@
   </div>
   
   {# ====== ANIMATION SYSTEM ====== #}
-  <script src="/js/landing-animations.js"></script>
-  <script src="/js/memory-story-animations.js"></script>
-  <script src="/js/hero-sequence.js"></script>
+  <script defer src="/js/landing-animations.js"></script>
+  <script defer src="/js/memory-story-animations.js"></script>
+  <script defer src="/js/hero-sequence.js"></script>
 
   {# ====== FERNI CHARACTER & POLISH ====== #}
-  <script src="/js/ferni-character.js"></script>
+  <script defer src="/js/ferni-character.js"></script>
   
   {# ====== FERNI AWAKENING SEQUENCE (Cinematic Intro) ====== #}
-  <script src="/js/ferni-awakens.js"></script>
+  <script defer src="/js/ferni-awakens.js"></script>
   
   {# ====== FERNI EQ SYSTEM (Superhuman Emotional Intelligence) ====== #}
-  <script src="/js/better-than-human.js"></script>
-  <script src="/js/ferni-sentience.js"></script>
-  <script src="/js/ferni-sounds.js"></script>
+  <script defer src="/js/better-than-human.js"></script>
+  <script defer src="/js/ferni-sentience.js"></script>
+  <script defer src="/js/ferni-sounds.js"></script>
   
   {# ====== FERNI SHOWCASE (Landing Page Magic) ====== #}
-  <script src="/js/ferni-showcase.js"></script>
+  <script defer src="/js/ferni-showcase.js"></script>
   
   {# ====== DEMO WIDGET DISABLED - user complained about floating box #}
   {# <script src="/js/demo-widget.js"></script> #}
   
   {# ====== A/B TESTING & EXPERIMENTS ====== #}
-  <script src="/js/experiments.js"></script>
-  <script src="/js/experiment-variants.js"></script>
-  <script src="/js/conversion-tracking.js"></script>
+  <script defer src="/js/experiments.js"></script>
+  <script defer src="/js/experiment-variants.js"></script>
+  <script defer src="/js/conversion-tracking.js"></script>
   
   {# ====== LANDING INTELLIGENCE (Gemini-powered optimization) ====== #}
-  <script src="/js/behavior-tracker.js"></script>
+  <script defer src="/js/behavior-tracker.js"></script>
   {# chat-widget.js removed - using demo-widget.js instead #}
-  <script src="/js/landing-intelligence.js"></script>
-  <script src="/js/superpowers-demo.js"></script>
+  <script defer src="/js/landing-intelligence.js"></script>
+  <script defer src="/js/superpowers-demo.js"></script>
   
   {# ====== AI-POWERED LANDING FEATURES ====== #}
   {# Live chat, personalized hero, persona previews, smart FAQ, etc. #}
-  <script src="/js/ai-powered-landing.js"></script>
-  <script src="/js/voice-samples.js"></script>
-  <script src="/js/persona-quiz.js"></script>
+  <script defer src="/js/ai-powered-landing.js"></script>
+  <script defer src="/js/voice-samples.js"></script>
+  <script defer src="/js/persona-quiz.js"></script>
   
   {# ====== AI COPY MAGIC - Gemini-powered dynamic copy ====== #}
-  {# Time-aware hero, smart social proof, adaptive CTAs, hover insights #}
-  <script src="/js/ai-copy-magic.js"></script>
+  {# Time-aware hero, adaptive CTAs, hover insights, persona voices #}
+  <script defer src="/js/ai-copy-magic.js"></script>
   
   {# ====== AI STORYTELLING - Superhuman narrative generation ====== #}
   {# Memory timeline, showcase chat, use case voices, journey stories #}
-  <script src="/js/ai-storytelling.js"></script>
+  <script defer src="/js/ai-storytelling.js"></script>
   
   {# ====== VOICE DEMO - Live AI Interaction ====== #}
-  <script src="/js/voice-demo.js"></script>
+  <script defer src="/js/voice-demo.js"></script>
 
   {# ====== WAITLIST MODAL (Integrated Gate) ====== #}
-  <script src="/js/waitlist-modal.js"></script>
+  <script defer src="/js/waitlist-modal.js"></script>
 
   <script>
   (function() {
@@ -382,24 +367,31 @@
     });
     
     // ========== COOKIE CONSENT ==========
+    // Analytics stays denied (partials/analytics.njk) until Accept.
     window.handleCookies = function(accepted) {
-      localStorage.setItem('ferni_cookies', accepted ? 'accepted' : 'declined');
+      try {
+        localStorage.setItem('ferni_cookies', accepted ? 'accepted' : 'declined');
+      } catch (e) {
+        // Storage blocked: the choice holds for this page only.
+      }
       var banner = document.getElementById('cookieBanner');
-      banner.classList.remove('is-visible');
-      banner.classList.add('is-hidden');
-      
-      if (accepted && typeof gtag === 'function') {
-        gtag('consent', 'update', {
-          'analytics_storage': 'granted'
-        });
+      if (banner) {
+        banner.classList.remove('is-visible');
+        banner.classList.add('is-hidden');
+      }
+
+      if (accepted && typeof window.ferniGrantAnalytics === 'function') {
+        window.ferniGrantAnalytics();
       }
     };
-    
+
     // Show banner if not decided
-    const cookieChoice = localStorage.getItem('ferni_cookies');
+    let cookieChoice = null;
+    try { cookieChoice = localStorage.getItem('ferni_cookies'); } catch (e) { cookieChoice = null; }
     if (!cookieChoice) {
       setTimeout(() => {
-        document.getElementById('cookieBanner').classList.add('is-visible');
+        var pending = document.getElementById('cookieBanner');
+        if (pending) pending.classList.add('is-visible');
       }, 2000);
     }
     

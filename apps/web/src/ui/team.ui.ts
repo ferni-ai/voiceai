@@ -1,7 +1,7 @@
 /**
  * Team UI Component
  *
- * Manages the team roster display (Ferni, Jack Bogle, Peter Lynch, etc).
+ * Manages the team roster display (Ferni and the team, plus the financial legends).
  * Shows which team member is currently active.
  *
  * 🎬 PIXAR ANIMATION ENHANCEMENTS:
@@ -12,7 +12,7 @@
  * - Energy transfer animation on handoff
  */
 
-import { ANIMATION_PRESET, DURATION, EASING } from '../config/animation-constants.js';
+import { ANIMATION_PRESET, DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { HANDOFF_TIMING } from '../config/index.js';
 import { getPersonaColorConfig } from '../config/persona-colors.js';
@@ -39,7 +39,10 @@ import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
 import { initHandoffPresence } from './handoff-presence.ui.js';
 import { openMarketplace } from './lazy-screens.js';
+import { applyLockState } from './team-lock-state.js';
 import { toast } from './whisper.ui.js';
+import { captureRosterLayout, playRosterFlip } from './roster-motion.js';
+import { isRosterStable, orderRoster } from './roster-order.js';
 
 const log = createLogger('TeamUI');
 
@@ -634,50 +637,15 @@ function buildTeamRoster(): void {
 }
 
 /**
- * Render unlocked members that are NOT in the roster as "addable" ghost cards.
- * These appear with a dashed border and + icon, allowing quick addition to the roster.
- *
- * This gives visibility to unlocked members the user hasn't added yet,
- * without cluttering the roster with everyone by default.
+ * Unlocked teammates who are NOT in the roster: shown as "addable" ghost cards
+ * (dashed border, + icon) so they're visible without crowding the roster.
  */
-function renderAddableUnlockedMembers(agents: ApiAgent[]): void {
-  if (!rosterContainer) return;
-
+function getAddableMemberIds(): string[] {
   const unlockState = teamUnlockService.getState();
-  if (!unlockState) return;
-
-  // Find unlocked members that are NOT in the visible roster
-  const visibleMemberIds = rosterPreferences.getVisibleMembers();
-  const addableMembers = TEAM_MEMBERS.filter((member) => {
-    // Skip Ferni - always visible
-    if (member.id === 'ferni') return false;
-    // Must be unlocked
-    if (!unlockState.unlockedMembers.has(member.id)) return false;
-    // Must NOT be in visible roster already
-    return !visibleMemberIds.includes(member.id as TeamMemberId);
-  });
-
-  if (addableMembers.length === 0) {
-    log.debug('No addable unlocked members');
-    return;
-  }
-
-  log.debug(
-    'Rendering addable unlocked members:',
-    addableMembers.map((m) => m.displayName)
-  );
-
-  // Find corresponding API agent data for colors
-  const agentMap = new Map(agents.map((a) => [a.id, a]));
-
-  for (const member of addableMembers) {
-    const agent = agentMap.get(member.id);
-    const element = createAddableTeamMemberElement(member, agent);
-    rosterContainer.appendChild(element);
-
-    // Attach add listener
-    attachAddableMemberListener(element, member);
-  }
+  if (!unlockState) return [];
+  return TEAM_MEMBERS.filter(
+    (m) => m.id !== 'ferni' && unlockState.unlockedMembers.has(m.id) && !rosterPreferences.isMemberVisible(m.id as TeamMemberId)
+  ).map((m) => m.id);
 }
 
 /**
@@ -787,67 +755,49 @@ async function loadDynamicAgents(): Promise<void> {
       throw new Error('No agents returned from API');
     }
 
-    // Filter agents by roster preferences ("Get to Know Ferni First" UX pattern)
-    // Only show agents that are visible in the user's roster
-    const visibleMemberIds = rosterPreferences.getVisibleMembers();
-    const visibleAgents = agents.filter((agent) => {
-      // Coordinator (Ferni) always visible
-      if (agent.isCoordinator) return true;
-      // Other team members only if in visible roster
-      return visibleMemberIds.includes(agent.id as TeamMemberId);
+    // One order for the whole bar (roster-order.ts): Ferni, then TEAM_MEMBERS order.
+    // Members are in the user's roster ("Get to Know Ferni First"); addable are
+    // unlocked teammates not in it yet. The stable roster gives each one a fixed slot.
+    const stable = isRosterStable();
+    const agentById = new Map(agents.map((a) => [a.id, a]));
+    const coordinator = agents.find((a) => a.isCoordinator)?.id ?? 'ferni';
+    const visible = [coordinator, ...rosterPreferences.getVisibleMembers()].filter((id) => agentById.has(id));
+    const slots = orderRoster({
+      canonical: [coordinator, ...TEAM_MEMBERS.map((m) => m.id)],
+      visible,
+      addable: getAddableMemberIds(),
+      stable,
     });
+    const layoutBefore = stable && rosterContainer.childElementCount > 0 ? captureRosterLayout(rosterContainer) : null;
 
-    // Sort agents to ensure consistent order regardless of API response
-    // Order: Ferni (coordinator) first, then team members in canonical order
-    const CANONICAL_ORDER = [
-      'ferni',
-      'peter-john',
-      'maya-santos',
-      'jordan-taylor',
-      'alex-chen',
-      'nayan-patel',
-    ];
-    const sortedAgents = [...visibleAgents].sort((a, b) => {
-      // Coordinator always first
-      if (a.isCoordinator && !b.isCoordinator) return -1;
-      if (!a.isCoordinator && b.isCoordinator) return 1;
-
-      // Then by canonical order
-      const aIndex = CANONICAL_ORDER.indexOf(a.id);
-      const bIndex = CANONICAL_ORDER.indexOf(b.id);
-
-      // Unknown agents go to the end
-      if (aIndex === -1 && bIndex === -1) return 0;
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-
-      return aIndex - bIndex;
-    });
-
-    // Clear existing roster
     teamMemberElements.clear();
     rosterContainer.innerHTML = '';
-
-    // Render core agents dynamically (using sorted order)
-    for (const agent of sortedAgents) {
-      const element = createTeamMemberElement(agent);
-
-      // Add divider after coordinator (first agent)
-      if (agent.isCoordinator && sortedAgents.length > 1) {
+    for (const [i, slot] of slots.entries()) {
+      const agent = agentById.get(slot.id);
+      const member = TEAM_MEMBERS.find((m) => m.id === slot.id);
+      if (slot.state === 'addable') {
+        if (!member) continue;
+        const element = createAddableTeamMemberElement(member, agent);
         rosterContainer.appendChild(element);
+        attachAddableMemberListener(element, member);
+      } else if (agent) {
+        const element = createTeamMemberElement(agent);
+        rosterContainer.appendChild(element);
+        teamMemberElements.set(agent.id as PersonaId, element);
+        attachEventListenersToElement(element, agent.id as PersonaId, agent.name);
+      }
+      if (i === 0 && slots.length > 1) {
         const divider = document.createElement('span');
         divider.className = 'team-divider';
         rosterContainer.appendChild(divider);
-      } else {
-        rosterContainer.appendChild(element);
       }
-
-      teamMemberElements.set(agent.id as PersonaId, element);
-      attachEventListenersToElement(element, agent.id as PersonaId, agent.name);
     }
-
-    // ➕ Render unlocked-but-not-in-roster members as addable
-    renderAddableUnlockedMembers(agents);
+    // The bar was rebuilt from scratch, so show who is speaking again.
+    markActiveTeamMember(appState.get('activePersona').id);
+    if (layoutBefore) {
+      rosterContainer.classList.add('roster-settled');
+      playRosterFlip(rosterContainer, layoutBefore);
+    }
 
     // 🏪 Load and render installed marketplace agents
     await loadInstalledMarketplaceAgents();
@@ -856,7 +806,7 @@ async function loadDynamicAgents(): Promise<void> {
     addMarketplaceButton();
 
     usingDynamicAgents = true;
-    log.debug('Rendered agents dynamically (sorted):', sortedAgents.length);
+    log.debug('Rendered roster:', slots.map((x) => `${x.id}:${x.state}`).join(' '));
 
     // Hide loading shimmer - FIX BUG: was only called in error case
     hideRosterLoading();
@@ -1179,6 +1129,7 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   nameSpan.className = 'team-name';
   nameSpan.textContent = displayName;
   element.appendChild(nameSpan);
+  applyLockState(element, agent.id as UnlockTeamMemberId, isLocked, agent.isCoordinator);
 
   return element;
 }
@@ -1531,7 +1482,7 @@ function showLockedMemberFeedback(
   // Get the teaser message or fallback
   const name = memberConfig?.displayName || personaId;
   const message =
-    memberConfig?.teaserMessage || t('teamRoster.notAvailableYet', { name });
+    status.lockReason || memberConfig?.teaserMessage || t('teamRoster.notAvailableYet', { name });
 
   // Announce to screen readers
   announceToScreenReader(message);
@@ -1569,12 +1520,11 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
         removeClass(element, 'team-member--almost-unlocked');
       }
     } else {
-      removeClass(element, 'team-member--locked');
-      removeClass(element, 'team-member--almost-unlocked');
+      removeClass(element, 'team-member--locked', 'team-member--almost-unlocked');
     }
 
-    // Update data attribute
-    element.setAttribute('data-locked', isLocked.toString());
+    // data-locked, the state classes and the lock reason (the server's words) as tooltip
+    applyLockState(element, personaId as UnlockTeamMemberId, isLocked, personaId === 'ferni');
 
     // Update aria-label
     const memberConfig = getTeamMember(personaId as UnlockTeamMemberId);
@@ -1677,7 +1627,7 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
     box-shadow: 0 4px 20px rgba(74, 103, 65, 0.2), 0 2px 8px rgba(0, 0, 0, 0.2);
     font-size: 12px;
     font-weight: 500;
-    z-index: var(--z-toast, 1700);
+    z-index: var(--z-toast);
     opacity: 0;
     transition: opacity 0.2s ease, transform 0.2s ease;
     display: flex;
@@ -1713,8 +1663,7 @@ function clearSwitchingFeedback(targetPersonaId: SpeakerId): void {
   // Clear switching-to from target
   const targetElement = teamMemberElements.get(targetPersonaId);
   if (targetElement) {
-    removeClass(targetElement, 'switching-to');
-    removeClass(targetElement, 'send-failed');
+    removeClass(targetElement, 'switching-to', 'team-member--switching', 'send-failed');
   }
 
   // Clear switching-from from all elements (in case we don't know which one)
@@ -1746,7 +1695,7 @@ function showSwitchingFeedback(fromId: SpeakerId, toId: PersonaId): void {
 
   // Highlight the target persona with a subtle glow
   if (toElement) {
-    addClass(toElement, 'switching-to');
+    addClass(toElement, 'switching-to', 'team-member--switching');
   }
 
   // 🎬 Energy transfer animation - magical pulse travels from one to the other
@@ -2052,39 +2001,35 @@ function updateActiveTeamMember(persona: PersonaConfig): void {
  * 🎬 Now with Pixar step-forward animation!
  */
 export function setActiveTeamMember(personaId: SpeakerId): void {
-  // Track previous active for step-back animation
-  let previousActiveId: SpeakerId | null = null;
-
-  // Activate the matching team member, deactivate others
-  for (const [id, element] of teamMemberElements.entries()) {
-    if (element.classList.contains('active') && id !== personaId) {
-      previousActiveId = id;
-    }
-
-    if (id === personaId) {
-      addClass(element, 'active');
-      // FIX BUG #56: Update aria-pressed for screen readers
-      element.setAttribute('aria-pressed', 'true');
-      element.setAttribute('aria-current', 'true');
-    } else {
-      removeClass(element, 'active');
-      element.setAttribute('aria-pressed', 'false');
-      element.removeAttribute('aria-current');
-    }
+  // Stable roster: a teammate who starts speaking from a "+" slot joins the
+  // roster in that same slot, so the speaker is always shown (the rebuild marks them).
+  if (isRosterStable() && !teamMemberElements.has(personaId) && getAddableMemberIds().includes(personaId)) {
+    rosterPreferences.addMember(personaId as TeamMemberId);
   }
+  const previousActiveId = markActiveTeamMember(personaId);
 
-  // 🎬 Pixar animations for persona transition
+  // 🎬 Persona transition: step back, step forward and cheer overlap, so the
+  // roster settles within DURATION.MODERATE instead of chaining timeouts.
   if (previousActiveId && previousActiveId !== personaId) {
-    // Step back the previous persona
     playStepBack(previousActiveId);
-
-    // Step forward the new persona with slight delay
-    trackedTimeout(() => {
-      playStepForward(personaId);
-      // Team cheer after the new persona steps forward
-      trackedTimeout(() => playTeamCheer(personaId), DURATION.NORMAL);
-    }, DURATION.FAST_RELEASE);
+    playStepForward(personaId);
+    playTeamCheer(personaId);
   }
+}
+
+/** Mark who is speaking in place (ring, lift), never by moving them. Returns who was. */
+function markActiveTeamMember(personaId: SpeakerId): SpeakerId | null {
+  let previousActiveId: SpeakerId | null = null;
+  for (const [id, element] of teamMemberElements.entries()) {
+    if (element.classList.contains('active') && id !== personaId) previousActiveId = id;
+    const isActive = id === personaId;
+    element.classList.toggle('active', isActive);
+    // FIX BUG #56: aria-pressed / aria-current for screen readers
+    element.setAttribute('aria-pressed', String(isActive));
+    if (isActive) element.setAttribute('aria-current', 'true');
+    else element.removeAttribute('aria-current');
+  }
+  return previousActiveId;
 }
 
 /**
@@ -2270,7 +2215,7 @@ export function playStepForward(personaId: SpeakerId): void {
       { transform: 'scale(1) translateY(0)', offset: 1 },
     ],
     {
-      duration: ANIMATION_PRESET.TEAM_SELECT.duration + DURATION.FAST,
+      duration: ANIMATION_PRESET.TEAM_SELECT.duration,
       easing: EASING.SPRING,
       fill: 'forwards',
     }
@@ -2296,14 +2241,10 @@ export function playStepBack(personaId: SpeakerId): void {
     return;
   }
 
-  // Get current transform
-  const computedStyle = getComputedStyle(element);
-  const currentTransform = computedStyle.transform || 'none';
-
-  // Step back to line
+  // Step back to line. The first keyframe is implicit (starts from the current
+  // transform), which avoids a forced style recalc from getComputedStyle.
   const animation = element.animate(
     [
-      { transform: currentTransform, offset: 0 },
       { transform: 'scale(1.02) translateY(-4px)', offset: 0.3 },
       { transform: 'scale(0.98) translateY(1px)', offset: 0.6 },
       { transform: 'scale(1) translateY(0)', offset: 1 },
@@ -2330,9 +2271,10 @@ export function playTeamCheer(selectedId: SpeakerId): void {
     return;
   }
 
-  // Animate all other team members with staggered timing
+  // Animate all other team members with a stagger capped so the last cheer
+  // starts within DURATION.FAST_RELEASE however long the roster is
   let delay = 0;
-  const staggerMs = 80;
+  const staggerMs = Math.min(STAGGER.TIGHT, DURATION.FAST_RELEASE / Math.max(1, teamMemberElements.size - 2));
 
   for (const [id, element] of teamMemberElements.entries()) {
     if (id === selectedId) continue;
@@ -2347,7 +2289,7 @@ export function playTeamCheer(selectedId: SpeakerId): void {
           { transform: 'scale(1) translateY(0)', offset: 1 },
         ],
         {
-          duration: DURATION.SLOW,
+          duration: DURATION.STANDARD,
           easing: EASING.SPRING,
         }
       );

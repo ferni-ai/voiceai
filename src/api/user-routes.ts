@@ -19,7 +19,9 @@ import {
   updateTimingPreferences,
 } from '../services/outreach/timing-intelligence.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { isValidTimeZone } from '../utils/time-zone.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
+import * as contact from './user-contact.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import type { UserProfile } from '../types/user-profile.js';
 
@@ -33,13 +35,6 @@ interface UserPreferencesUpdate {
   timezone?: string;
   quietHoursStart?: string; // "22:00"
   quietHoursEnd?: string; // "08:00"
-}
-
-interface ContactInfoUpdate {
-  phone?: string;
-  email?: string;
-  preferredName?: string;
-  timezone?: string;
 }
 
 /**
@@ -112,18 +107,6 @@ function isValidAccent(accent: unknown): accent is EnglishAccent {
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
-}
-
-/**
- * Validate timezone string using Intl API
- */
-function isValidTimezone(tz: string): boolean {
-  try {
-    Intl.DateTimeFormat(undefined, { timeZone: tz });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -464,7 +447,7 @@ export async function handleUserRoutes(
       return true;
     }
 
-    if (!isValidTimezone(body.timezone)) {
+    if (!isValidTimeZone(body.timezone)) {
       sendJson(res, 400, { success: false, error: 'Invalid timezone' });
       return true;
     }
@@ -640,7 +623,7 @@ export async function handleUserRoutes(
 
       // Validate and apply timezone
       if (body?.timezone) {
-        if (!isValidTimezone(body.timezone)) {
+        if (!isValidTimeZone(body.timezone)) {
           sendJson(res, 400, { success: false, error: 'Invalid timezone' });
           return true;
         }
@@ -733,9 +716,13 @@ export async function handleUserRoutes(
   // POST /api/user/contact - Update contact info
   // ============================================================================
   if (route === '/contact' && method === 'POST') {
-    const body = await parseBody<ContactInfoUpdate>(req);
+    const body = await parseBody<contact.ContactInfoUpdate>(req);
     // Use authenticated userId
     const userId = authenticatedUserId;
+    if (contact.hasInvalidPhone(body)) {
+      sendJson(res, 400, { success: false, error: "That doesn't look like a phone number" });
+      return true;
+    }
 
     try {
       const store = await getStore();
@@ -746,13 +733,7 @@ export async function handleUserRoutes(
         profile = await store.getOrCreateProfile(userId);
       }
 
-      // Update contact info
-      profile.contactInfo = {
-        ...profile.contactInfo,
-        phone: body?.phone ?? profile.contactInfo?.phone,
-        email: body?.email ?? profile.contactInfo?.email,
-        timezone: body?.timezone ?? profile.contactInfo?.timezone,
-      };
+      profile.contactInfo = contact.nextContactInfo(body, profile.contactInfo);
 
       // Update preferred name if provided
       if (body?.preferredName) {
@@ -760,7 +741,7 @@ export async function handleUserRoutes(
       }
 
       // If timezone provided, also update timing preferences
-      if (body?.timezone && isValidTimezone(body.timezone)) {
+      if (body?.timezone && isValidTimeZone(body.timezone)) {
         updateTimingPreferences(userId, { timezone: body.timezone });
       }
 
@@ -776,6 +757,8 @@ export async function handleUserRoutes(
           hasPhone: !!profile.contactInfo?.phone,
           hasEmail: !!profile.contactInfo?.email,
         },
+        // Clearing the phone turns off text/call check-ins too ("I won't text or call you now").
+        phoneChannelsOff: body?.clearPhone === true && (await contact.dropPhoneChannels(userId)),
       });
     } catch (error) {
       log.error({ error, userId }, 'Failed to update contact info');
@@ -794,11 +777,12 @@ export async function handleUserRoutes(
     try {
       const store = await getStore();
       const profile = await store.getProfile(userId);
+      const verifiedPhone = await contact.verifiedPhoneFor(auth);
 
       if (!profile) {
         sendJson(res, 200, {
           success: true,
-          contactInfo: null,
+          contactInfo: verifiedPhone ? { verifiedPhone } : null,
         });
         return true;
       }
@@ -811,6 +795,7 @@ export async function handleUserRoutes(
           timezone: profile.contactInfo?.timezone,
           hasPhone: !!profile.contactInfo?.phone,
           hasEmail: !!profile.contactInfo?.email,
+          verifiedPhone,
         },
       });
     } catch (error) {

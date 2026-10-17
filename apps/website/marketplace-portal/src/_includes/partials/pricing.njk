@@ -1,0 +1,21 @@
+{#
+  Price display, gated on pricing.showPrices (src/_data/pricing.json).
+  Ferni is free for now, so prices are hidden. The paid labels stay in the
+  templates (and priceInCents in personas.json) so flipping the flag back to
+  true restores them. Import with context so the macros can read the flag:
+    {% from "partials/pricing.njk" import priced, priceBadge with context %}
+#}
+
+{# Paid copy when prices are shown, free copy otherwise. #}
+{% macro priced(paid, free) -%}
+{%- if pricing.showPrices %}{{ paid }}{% else %}{{ free }}{% endif -%}
+{%- endmacro %}
+
+{# Card price badge: the given label when prices are shown, "Free" otherwise. #}
+{% macro priceBadge(label) -%}
+{%- if pricing.showPrices -%}
+<span class="persona-price{% if label.indexOf('Free') == 0 %} free{% endif %}">{{ label }}</span>
+{%- else -%}
+<span class="persona-price free">Free</span>
+{%- endif -%}
+{%- endmacro %}

@@ -1337,7 +1337,7 @@ function getProfileStyles(): string {
     .twin-profile-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1459,7 +1459,7 @@ function getProfileStyles(): string {
     
     .progress-step--complete {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .progress-step--current {
@@ -1494,7 +1494,7 @@ function getProfileStyles(): string {
     
     .profile-btn--primary {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
     }
     
@@ -2056,7 +2056,7 @@ function getProfileStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .profile-container {
         width: 100vw;
         height: 100vh;

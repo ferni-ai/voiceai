@@ -5,7 +5,8 @@
  *
  * Each persona remembers things their own way:
  * - Ferni: preferences, wins, topics, inside jokes
- * - Bogle: funds, investing philosophy, allocations
+ * - Henry Caldwell (john-bogle, 'bogle' type): funds, investing philosophy, allocations
+ * - Nayan: what matters in their life, held with the long view
  * - Peter: watchlist, companies they know, ten-baggers
  * - Maya: merchants, bills, savings goals, spending triggers
  * - Jordan: important dates, venues, dream destinations
@@ -14,6 +15,7 @@
  * This makes conversations feel like talking to a friend who ACTUALLY remembers you.
  */
 
+import { CANONICAL_IDS } from '../../../personas/persona-ids.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
@@ -45,29 +47,35 @@ import type { UserProfile } from '../../../types/user-profile.js';
 // PERSONA ID NORMALIZATION
 // ============================================================================
 
-type NormalizedPersonaId = 'ferni' | 'bogle' | 'peter' | 'maya' | 'jordan' | 'alex';
+type NormalizedPersonaId = 'ferni' | 'bogle' | 'nayan' | 'peter' | 'maya' | 'jordan' | 'alex';
 
 function normalizePersonaId(id: string | undefined): NormalizedPersonaId | null {
   if (!id) return null;
   const lower = id.toLowerCase();
 
   // Ferni aliases
-  if (['ferni', 'jack-b', 'jackie', 'life-coach'].includes(lower)) return 'ferni';
+  if ([CANONICAL_IDS.COACH, 'jack-b', 'jackie', 'life-coach'].includes(lower)) return 'ferni';
 
-  // Bogle aliases
-  if (['nayan-patel', 'bogle', 'index-investor'].includes(lower)) return 'bogle';
+  // Index-fund legend aliases. 'nayan-patel' used to land here, giving Nayan index-fund
+  // callbacks while the index-fund legend got none.
+  if ([CANONICAL_IDS.JOHN_BOGLE, 'bogle', 'index-investor'].includes(lower)) return 'bogle';
+
+  // Nayan aliases
+  if ([CANONICAL_IDS.SAGE, 'nayan'].includes(lower)) return 'nayan';
 
   // Peter aliases
-  if (['peter-john', 'peter', 'stock-picker'].includes(lower)) return 'peter';
+  if ([CANONICAL_IDS.RESEARCHER, 'peter', 'stock-picker'].includes(lower)) return 'peter';
 
   // Maya aliases
-  if (['maya', 'spend-save', 'maya-santos', 'budgeting'].includes(lower)) return 'maya';
+  if (['maya', 'spend-save', CANONICAL_IDS.BUDGETER, 'budgeting'].includes(lower)) return 'maya';
 
   // Jordan aliases
-  if (['jordan', 'event-planner', 'jordan-taylor', 'lifes-firsts'].includes(lower)) return 'jordan';
+  if (['jordan', 'event-planner', CANONICAL_IDS.PLANNER, 'lifes-firsts'].includes(lower))
+    return 'jordan';
 
   // Alex aliases
-  if (['alex', 'comm-specialist', 'alex-chen', 'communications'].includes(lower)) return 'alex';
+  if (['alex', 'comm-specialist', CANONICAL_IDS.COMMUNICATOR, 'communications'].includes(lower))
+    return 'alex';
 
   return null;
 }
@@ -105,6 +113,41 @@ function formatFerniMemories(memories: FerniMemory[], userName?: string): string
     sections.push(`**Inside jokes between you:** ${insideJokes.map((j) => j.name).join('; ')}`);
   }
 
+  return sections.join('\n');
+}
+
+/**
+ * Nayan has no memory store of his own: he holds what the user has shared
+ * about their life (the general memories) with the long view. Inside jokes,
+ * music and style belong to Ferni's friendship, not his.
+ */
+const NAYAN_MEMORY_TYPES = new Set<FerniMemory['type']>(['win', 'topic', 'preference']);
+
+function nayanMemoriesFrom(memories: FerniMemory[]): FerniMemory[] {
+  return memories.filter((m) => NAYAN_MEMORY_TYPES.has(m.type));
+}
+
+function formatNayanMemories(memories: FerniMemory[], userName?: string): string {
+  if (memories.length === 0) return '';
+  const name = userName || 'they';
+  const sections: string[] = [];
+  const wins = memories.filter((m) => m.type === 'win');
+  const topics = memories.filter((m) => m.type === 'topic');
+  const preferences = memories.filter((m) => m.type === 'preference');
+  if (wins.length > 0) {
+    sections.push(
+      `**Moments ${name} has grown through:** ${wins
+        .slice(0, 3)
+        .map((w) => w.name)
+        .join('; ')}`
+    );
+  }
+  if (topics.length > 0) {
+    sections.push(`**What ${name} keeps returning to:** ${topics.map((t) => t.name).join(', ')}`);
+  }
+  if (preferences.length > 0) {
+    sections.push(`**What brings ${name} joy:** ${preferences.map((p) => p.name).join(', ')}`);
+  }
   return sections.join('\n');
 }
 
@@ -388,6 +431,16 @@ async function getPersonaMemories(
           count: memories.length,
         };
       }
+      case 'nayan': {
+        const allMemories = nayanMemoriesFrom(await getFerniMemories(userId));
+        const memories = filterMemoriesByRelationshipStage(allMemories, relationshipStage);
+        return {
+          personaId,
+          memories,
+          formatted: formatNayanMemories(memories as FerniMemory[], userName),
+          count: memories.length,
+        };
+      }
       case 'peter': {
         const allMemories = await getPeterMemories(userId);
         const memories = filterMemoriesByRelationshipStage(allMemories, relationshipStage);
@@ -466,8 +519,8 @@ function getProactiveMemoryCallback(
       if (wins.length > 0 && Math.random() < 0.3) {
         const win = wins[Math.floor(Math.random() * wins.length)];
         const callbacks = [
-          `Consider celebrating: "Hey ${name}, I was thinking about that win you had - ${win.name}. How's that going?"`,
-          `Consider: "${name}, remember when you ${win.name}? That was a big deal. How are you feeling about it now?"`,
+          `Consider celebrating: "I was thinking about that win you had - ${win.name}. How's that going?"`,
+          `Consider: "Remember when you ${win.name}? That was a big deal. How are you feeling about it now?"`,
           `Maybe say: "I still smile when I think about '${win.name}'. You should be proud of that."`,
         ];
         return callbacks[Math.floor(Math.random() * callbacks.length)];
@@ -488,7 +541,7 @@ function getProactiveMemoryCallback(
     }
 
     case 'bogle': {
-      // Jack Bogle remembers funds, philosophy, expense ratios
+      // Index-investing memories: funds, philosophy, expense ratios
       const funds = result.memories.filter((m) => (m as BogleMemory).type === 'fund');
       const philosophies = result.memories.filter((m) => (m as BogleMemory).type === 'philosophy');
 
@@ -498,7 +551,7 @@ function getProactiveMemoryCallback(
         const ticker = fund.ticker || fund.name;
         const callbacks = [
           `Consider asking: "How's that ${ticker} position? Staying the course?"`,
-          `Maybe check in: "${name}, are you still holding ${ticker}? Good discipline pays off."`,
+          `Maybe check in: "Are you still holding ${ticker}? Good discipline pays off."`,
           `Consider: "Remember ${ticker}? Markets go up and down, but your strategy shouldn't."`,
         ];
         return callbacks[Math.floor(Math.random() * callbacks.length)];
@@ -508,6 +561,21 @@ function getProactiveMemoryCallback(
       if (philosophies.length > 0 && Math.random() < 0.25) {
         const phil = philosophies[0];
         return `Reference their principle: "${phil.name}" - they said this before, remind them of their own wisdom.`;
+      }
+      break;
+    }
+
+    case 'nayan': {
+      // Nayan holds what they've shared with the long view, not as a checklist
+      const wins = result.memories.filter((m) => (m as FerniMemory).type === 'win');
+      const topics = result.memories.filter((m) => (m as FerniMemory).type === 'topic');
+      if (wins.length > 0 && Math.random() < 0.25) {
+        const win = wins[Math.floor(Math.random() * wins.length)];
+        return `Long view: ${name} once shared "${win.name}". If it fits, wonder aloud what that moment will mean to them in ten years.`;
+      }
+      if (topics.length > 0 && Math.random() < 0.2) {
+        const topic = topics[Math.floor(Math.random() * topics.length)];
+        return `${name} keeps returning to "${topic.name}". If the moment is right, ask what it is really asking of them.`;
       }
       break;
     }
@@ -524,7 +592,7 @@ function getProactiveMemoryCallback(
         const ticker = stock.ticker || stock.name;
         const callbacks = [
           `Consider asking: "How's ${ticker} doing? Done your homework lately?"`,
-          `Maybe: "${name}, any news on ${ticker}? Remember - know what you own and why you own it!"`,
+          `Maybe: "Any news on ${ticker}? Remember - know what you own and why you own it!"`,
           `Consider: "Still watching ${ticker}? What's your gut telling you?"`,
         ];
         if (stock.reason) {
@@ -690,6 +758,13 @@ function getMemoryAcknowledgmentPhrases(personaId: NormalizedPersonaId): string[
         'I remember your principle about...',
         'As we discussed previously...',
       ];
+    case 'nayan':
+      return [
+        "I've been sitting with what you said about...",
+        'You once told me...',
+        'Something you shared stayed with me...',
+        'Last time, you spoke of...',
+      ];
     case 'peter':
       return [
         'You mentioned you know...',
@@ -824,6 +899,7 @@ export {
   normalizePersonaId,
   formatFerniMemories,
   formatBogleMemories,
+  formatNayanMemories,
   formatPeterMemories,
   formatMayaMemories,
   formatJordanMemories,

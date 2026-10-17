@@ -18,8 +18,19 @@
  * @module agents/personas/turn-shape
  */
 
+import { flagOn } from '../../config/env-flag.js';
+import { listeningLines, type ListeningCues } from './listen-first.js';
+import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
+import {
+  lengthLearned,
+  lengthLine,
+  targetWords,
+  textureLearned,
+  textureLine,
+} from './turn-length.js';
+import { quietLineFor } from './quiet-caller.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -94,13 +105,18 @@ const SHAPE_LINE: Record<Shape, string> = {
   full: 'THIS REPLY: they asked for it, so give it properly, still spoken and plain, not a list or a speech.',
 };
 
-export function pickShape(move: CallerMove, rng: () => number = Math.random): Shape {
+export function pickShape(
+  move: CallerMove,
+  rng: () => number = Math.random,
+  lengthBias = NEUTRAL_STYLE.replyLength
+): Shape {
+  const odds = biasShapeOdds(SHAPE_ODDS[move], lengthBias);
   let r = rng();
-  for (const [shape, p] of SHAPE_ODDS[move]) {
+  for (const [shape, p] of odds) {
     if (r < p) return shape;
     r -= p;
   }
-  return SHAPE_ODDS[move][SHAPE_ODDS[move].length - 1][0];
+  return odds[odds.length - 1][0];
 }
 
 /**
@@ -109,7 +125,7 @@ export function pickShape(move: CallerMove, rng: () => number = Math.random): Sh
  * off limits (speech-markup-notes.ts), and without a written form the model
  * marked a restart ",," ("Cats are,, I mean", dev 2026-10-06).
  */
-const ROUGH_FORMS = [
+export const ROUGH_FORMS = [
   'Let one thought come out unpolished: start it, then restart it differently, joined with a comma ("I was, well, we were going to").',
   'Correct yourself once halfway through a thought, set off with commas ("it\'s, I mean, not exactly that").',
   'Hesitate once where you are actually working something out, with a comma either side ("it\'s, um, Thursday").',
@@ -119,10 +135,17 @@ const ROUGH_FORMS = [
  * of their own, and that trade is how closeness builds. Replayed, only 3-6% of
  * Ferni's replies said anything of his own.
  */
-const SECOND_STORY =
+export const SECOND_STORY =
   'If something from your own life comes to mind, share a small piece of it (a sentence), the way a friend trades a story, rather than asking about theirs.';
-const ABOUT_YOU =
+export const ABOUT_YOU =
   'They asked about you: answer about yourself, something specific from your own life, before anything else.';
+/**
+ * DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question. "I did." to
+ * "did you tackle that mail yet?" read as something shared and got a story
+ * about his own morning (prod, 2026-10-12; answer-turn.ts).
+ */
+const TAKE_UP_ANSWER =
+  'They just answered what you asked: take up their answer first, the way a friend would, rather than anything from your own life.';
 
 const REGISTER =
   'Start with the substance, not a stock reaction word like Oh, Ugh, Yeah or Hmm. ' +
@@ -139,6 +162,24 @@ const REGISTER =
   'You are their friend, not an assistant: never offer to set up, remind or do things for them unless they ask.';
 
 /**
+ * PERSONA_SPARK=on, on a genuinely bright turn (good news, a win, a joke; never
+ * a careful one): the register without its ban on exclamation marks, and leave
+ * for one "!" and one reaction word. Sonic takes its emphasis from punctuation,
+ * so the ban took away the cheapest audible sign of joy, and with it every
+ * persona sounded the same on good news as on a quiet remark (persona-range
+ * report, 2026-10-17). Everything else in the register stays.
+ */
+export const SPARK_BRIGHT =
+  'This moment is genuinely bright: let it show. This once, if you really feel it, you may use one reaction word and at most one exclamation mark in the whole reply.';
+const REGISTER_BRIGHT = `${REGISTER.replace('no generic cheerleading or exclamation marks', 'no generic cheerleading')} ${SPARK_BRIGHT}`;
+
+/** The register for this reply: the bright one only for a bright, uncareful turn with PERSONA_SPARK on. */
+function registerFor(sig: TurnSignals): string {
+  const bright = sig.bright === true && !sig.careful && !sig.supportFirst;
+  return bright && flagOn('PERSONA_SPARK') ? REGISTER_BRIGHT : REGISTER;
+}
+
+/**
  * Questions: people ask in a minority of turns (questions are ~6% of
  * Switchboard utterances), and a one-question allowance on every longer reply
  * was taken almost every time (replay: 35% of replies ended on one). So a
@@ -148,11 +189,25 @@ function questionAllowed(shape: Shape, rng: () => number): boolean {
   return shape !== 'react' && shape !== 'one' && rng() < 0.25;
 }
 
-const QUESTION_LINE = {
+export const QUESTION_LINE = {
   allowed:
     'You may ask one question if you really want to know something; otherwise end on a thought.',
   none: 'No question this time: end on a thought, a reaction or something of your own.',
+  /** FERNI_STATE=on, his stories held back this turn: "something of your own" invited one. */
+  noneOnThem: 'No question this time: end on a thought or a reaction.',
+  /** FERNI_STATE=on: a word about himself is followed by turning to them. */
+  noneUnlessOwn:
+    'No question this time, unless you said something about yourself: then end by asking them one about their world.',
 };
+
+/**
+ * The no-question line. ownStory is Ferni's own state's say on this turn
+ * (ferni-state.ts): undefined when FERNI_STATE is off, and then as before.
+ */
+function noQuestion(ownStory: boolean | undefined): string {
+  if (ownStory === undefined) return QUESTION_LINE.none;
+  return ownStory ? QUESTION_LINE.noneUnlessOwn : QUESTION_LINE.noneOnThem;
+}
 
 export interface TurnShape {
   move: CallerMove;
@@ -167,9 +222,38 @@ export interface TurnShape {
  * no stance, no rough self-correction (that is how "wait, no, they lost" came
  * out), no question.
  */
-const LOOKUP =
-  'They asked about something live that you have to look up: if you have no tool result for it yet, call the tool for it now and answer from what it returns. ' +
+const NEVER_MADE_UP =
   "Never state a forecast, score, headline, price, opening hour or travel time that you didn't get from a tool on this call; if no tool can get it, say you can't check that right now.";
+const LOOKUP = `They asked about something live that you have to look up: if you have no tool result for it yet, call the tool for it now and answer from what it returns. ${NEVER_MADE_UP}`;
+
+/**
+ * The rule rides the next replies too. Prod 2026-10-17: "can you check the
+ * weather?" got the look-up rule, the agent asked which city, and the answer
+ * ("<city>.") read as a share, with no rule: it said "I'll check" with no tool
+ * call, then gave a temperature it made up. LIVE_DATA_CARRYOVER=off: the rule
+ * rides only the asking turn, as before.
+ */
+export const LOOKUP_FOLLOW_UP = `They asked about something live a moment ago: if you still have no tool result for it, call the tool now (don't just say you'll check) and answer only from what it returns. ${NEVER_MADE_UP}`;
+
+/** The follow-up rule when either of the caller's last two turns asked for live data and this reply has no look-up rule yet. */
+export function liveDataCarryover(
+  callerTurns: readonly string[],
+  style: string,
+  env: Record<string, string | undefined> = process.env
+): string {
+  if (!flagOn('LIVE_DATA_CARRYOVER', env) || style.includes(NEVER_MADE_UP)) return '';
+  const recent = callerTurns.slice(-2).map((t) => t.split('\n')[0]);
+  return recent.some(isLookup) ? LOOKUP_FOLLOW_UP : '';
+}
+
+/** The style reminder, then the follow-up rule if it applies (turn-request.ts). */
+export function withLiveData(
+  style: string,
+  callerTurns: readonly string[],
+  env: Record<string, string | undefined> = process.env
+): [string, string] {
+  return [style, liveDataCarryover(callerTurns, style, env)];
+}
 
 /**
  * TURN_SHAPE=model: the shape is the model's call, not a dice roll. Drawn at
@@ -186,8 +270,15 @@ const FIT_THE_MOMENT =
   'Anything that matters to them, good or bad (news, something they are proud of, worried about or hurt by), gets a real response to that specific thing, with the feeling it deserves, not a remark that would fit anything. ' +
   'When they ask you something or ask for help, actually answer it; when they ask about you, talk about yourself, something specific. ' +
   'Most replies are a sentence or two, some only a few words; go longer only when they asked for it.';
+/** FIT_THE_MOMENT without its fixed length rule, for TURN_LENGTH=learned (the length line says it). */
+const FIT_THE_MOMENT_LEARNED = FIT_THE_MOMENT.replace(/ Most replies are .*$/, '');
 
-function modelChosenShape(userText: string, rng: () => number, sig: TurnSignals): TurnShape {
+function modelChosenShape(
+  userText: string,
+  rng: () => number,
+  sig: TurnSignals,
+  style: StyleProfile
+): TurnShape {
   const { move } = sig;
   if (move === 'lookup') {
     const reminder = [REGISTER, LOOKUP, SHAPE_LINE.answer, QUESTION_LINE.none].join(' ');
@@ -197,21 +288,45 @@ function modelChosenShape(userText: string, rng: () => number, sig: TurnSignals)
   // Without it (v1: one OWN_SELF line) quirks fell 2.80 -> 2.17 and endearing
   // 2.87 -> 2.63, replies grew 17 -> 24 words and question endings 13% -> 21%
   // (dev A/B, 15 calls per arm, judge.mjs, 2026-10-10).
-  const parts = [REGISTER];
+  const parts = [registerFor(sig)];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
-  else if (move === 'share' && !sig.careful && rng() < 0.3) parts.push(SECOND_STORY);
-  const stance = stanceFor(userText, move, sig, move !== 'ack' && rng() < 0.3);
+  else if (sig.answered) parts.push(TAKE_UP_ANSWER);
+  else if (move === 'share' && !sig.careful && rng() < 0.3 && sig.ownStory !== false)
+    parts.push(SECOND_STORY);
+  const stance = stanceFor(
+    userText,
+    move,
+    sig,
+    move !== 'ack' && rng() < scaled(0.3, style.opinion)
+  );
   parts.push(...stance.lines);
-  if (rng() < 0.5) parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
+  // TURN_LENGTH / TURN_TEXTURE=learned (turn-length.ts): length and roughness drawn from friends'
+  // next turns; a question or request still gets a real answer.
+  const learn = { length: lengthLearned() && move !== 'request', texture: textureLearned() };
+  // Off, nothing is drawn, so the rest of the reminder is the same as before.
+  const target =
+    learn.length || learn.texture
+      ? targetWords(userText, sig.recent, rng, sig.careful || move !== 'share')
+      : 0;
+  const texture = learn.texture ? textureLine(target, rng) : null;
+  if (texture) parts.push(texture.line);
+  else if (rng() < scaled(0.5, style.filler))
+    parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
   const asks = rng() < 0.25;
-  const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig);
-  parts.push(...extras.lines, FIT_THE_MOMENT);
-  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none));
+  const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
+  parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
+  if (learn.length) parts.push(lengthLine(target));
+  if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
+  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory)));
+  const learned = [
+    learn.length ? `length_${target}` : '',
+    texture ? `texture_${texture.kind}` : '',
+  ];
   return {
     move,
     shape: 'answer',
     reminder: parts.join(' '),
-    extras: ['model_shape', ...stance.fired, ...extras.fired],
+    extras: ['model_shape', ...stance.fired, ...extras.fired, ...learned.filter(Boolean)],
   };
 }
 
@@ -220,33 +335,47 @@ export function turnShapeFor(
   userText: string,
   rng: () => number = Math.random,
   mode: TurnShapeMode = turnShapeMode(),
-  signals?: TurnSignals
+  signals?: TurnSignals,
+  style: StyleProfile = NEUTRAL_STYLE
 ): TurnShape {
   const sig = signals ?? regexSignals(userText, callerMove(userText));
-  if (mode === 'model') return modelChosenShape(userText, rng, sig);
+  if (mode === 'model') return modelChosenShape(userText, rng, sig, style);
   const move = sig.move;
-  const shape = pickShape(move, rng);
+  const shape = pickShape(move, rng, style.replyLength);
   if (move === 'lookup') {
     const reminder = [REGISTER, LOOKUP, SHAPE_LINE[shape], QUESTION_LINE.none].join(' ');
     return { move, shape, reminder, extras: [] };
   }
   // The shape goes last, nearest the reply: first, behind the register lines,
   // it was diluted (replay: 5% of replies 6 words or fewer).
-  const parts = [REGISTER];
+  const parts = [registerFor(sig)];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
+  else if (sig.answered) parts.push(TAKE_UP_ANSWER);
   // Not while they're venting: a friend stays with them instead of telling a story.
-  else if (move === 'share' && shape !== 'react' && !sig.careful && rng() < 0.3)
+  else if (
+    move === 'share' &&
+    shape !== 'react' &&
+    !sig.careful &&
+    rng() < 0.3 &&
+    sig.ownStory !== false
+  )
     parts.push(SECOND_STORY);
-  const stance = stanceFor(userText, move, sig, move !== 'ack' && rng() < 0.3);
+  const stance = stanceFor(
+    userText,
+    move,
+    sig,
+    move !== 'ack' && rng() < scaled(0.3, style.opinion)
+  );
   parts.push(...stance.lines);
-  if (shape !== 'react' && rng() < 0.5)
+  if (shape !== 'react' && rng() < scaled(0.5, style.filler))
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
   const asks = questionAllowed(shape, rng);
-  const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig);
+  const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig, style);
   parts.push(...extras.lines);
+  if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
   parts.push(
     extras.shapeLine ?? SHAPE_LINE[shape],
-    extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none)
+    extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory))
   );
   return {
     move,
@@ -290,4 +419,18 @@ export function rngFor(text: string): () => number {
 /** The replay harness's entry point (scripts/humanness-eval/replay.ts). */
 export function reminderForTurn(userText: string): string {
   return turnShapeFor(userText).reminder;
+}
+
+/**
+ * LISTEN_FIRST=on, caller low on energy (listen-first.ts): no second story, no
+ * stance, no rough self-correction to dress up a monologue; a few words, an
+ * easy question every other turn at most, or just company.
+ */
+export function listeningShapeFor(
+  userText: string,
+  cues: Omit<ListeningCues, 'aboutFerni'>
+): TurnShape {
+  const move = callerMove(userText);
+  const lines = listeningLines({ ...cues, aboutFerni: move === 'about_ferni' });
+  return { move, shape: 'one', reminder: [REGISTER, ...lines].join(' '), extras: ['listen_first'] };
 }

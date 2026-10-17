@@ -5,6 +5,10 @@
   
   <!-- Main Styles -->
   <link rel="stylesheet" href="/css/styles.css">
+  {# styles.css is the Tailwind build; these style the header and footer partials #}
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/sections/footer.css">
+  <link rel="stylesheet" href="/css/dark-mode-pages.css">
   
   <!-- Structured Data -->
   <script type="application/ld+json">
@@ -48,9 +52,9 @@
   {% endblock %}
   
   <!-- Scripts -->
-  <script src="/js/better-than-human.js"></script>
-  <script src="/js/ferni-awakens.js"></script>
-  <script src="/js/apple-interactions.js"></script>
+  <script defer src="/js/better-than-human.js"></script>
+  <script defer src="/js/ferni-awakens.js"></script>
+  <script defer src="/js/apple-interactions.js"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

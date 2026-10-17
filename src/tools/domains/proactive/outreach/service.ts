@@ -37,11 +37,18 @@ import {
 } from '../../../../personas/voice-registry.js';
 import { recordOutcome } from '../../../../services/contacts/optimal-timing.js';
 import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
+import { getCallUserPort } from './call-user-port.js';
 
 /**
- * Make a phone call using Twilio with persona voice (via Cartesia TTS)
- * Falls back to Twilio's built-in voice if Cartesia is not configured
+ * The number we text or ring the user on: the verified phone on the account (the
+ * call-user port, as callUser uses), never contactInfo.phone, which saveContactInfo
+ * writes from whatever the model heard. No port installed in this process: none.
  */
+const verifiedPhone = async (userId: string): Promise<string | undefined> =>
+  getCallUserPort()?.verifiedPhone(userId);
+export const NO_VERIFIED_PHONE = 'No verified phone number on this account';
+
+/** A Twilio call in the persona's voice (Cartesia TTS, Twilio's own voice as fallback). */
 async function makePhoneCall(
   phone: string,
   message: string,
@@ -183,7 +190,7 @@ export async function canReachUser(
   if (!info) return false;
 
   if (method === 'sms' || method === 'call' || method === 'voice_message') {
-    return !!info.phone;
+    return !!(await verifiedPhone(userId));
   }
   if (method === 'email') {
     return !!info.email;
@@ -214,11 +221,8 @@ export async function textUser(
   personaId = 'ferni',
   options?: ImmediateContactOptions
 ): Promise<{ success: boolean; error?: string }> {
-  const contact = await getUserContactInfo(userId);
-
-  if (!contact?.phone) {
-    return { success: false, error: 'No phone number on file for this user' };
-  }
+  const phone = await verifiedPhone(userId);
+  if (!phone) return { success: false, error: NO_VERIFIED_PHONE };
 
   try {
     // Get the persona's display name for the signature
@@ -227,7 +231,7 @@ export async function textUser(
     const firstName = displayName.split(' ')[0];
 
     const fullMessage = `${message}\n\n— ${firstName}`;
-    const result = await sendSMS(contact.phone, fullMessage);
+    const result = await sendSMS(phone, fullMessage);
 
     if (result.includes('trouble') || result.includes('error')) {
       return { success: false, error: result };
@@ -327,16 +331,13 @@ export async function callUser(
   personaId = 'ferni',
   options?: ImmediateContactOptions
 ): Promise<{ success: boolean; callSid?: string; error?: string }> {
-  const contact = await getUserContactInfo(userId);
-
-  if (!contact?.phone) {
-    return { success: false, error: 'No phone number on file for this user' };
-  }
+  const phone = await verifiedPhone(userId);
+  if (!phone) return { success: false, error: NO_VERIFIED_PHONE };
 
   try {
     // Normalize persona ID and use for voice
     const canonicalPersonaId = getCanonicalPersonaId(personaId);
-    const result = await makePhoneCall(contact.phone, message, canonicalPersonaId);
+    const result = await makePhoneCall(phone, message, canonicalPersonaId);
 
     if ('error' in result) {
       return { success: false, error: result.error };
@@ -385,8 +386,6 @@ export interface ScheduleContactOptions {
   contactName?: string;
   /** If true, message goes directly TO the contact (not as reminder to self) */
   isDirectToContact?: boolean;
-  /** Phone number to send to (overrides user's saved contact) */
-  toPhone?: string;
   /** Email to send to (overrides user's saved contact) */
   toEmail?: string;
 }
@@ -401,12 +400,11 @@ export async function scheduleText(
   personaId = 'ferni',
   options?: ScheduleContactOptions
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
-  // Use provided phone or fall back to user's saved contact
-  const deliveryPhone = options?.toPhone || (await getUserContactInfo(userId))?.phone;
+  const deliveryPhone = await verifiedPhone(userId);
   const contact = await getUserContactInfo(userId);
 
   if (!deliveryPhone) {
-    return { success: false, error: 'No phone number on file. Ask for their number first!' };
+    return { success: false, error: NO_VERIFIED_PHONE };
   }
 
   try {
@@ -514,11 +512,11 @@ export async function scheduleCall(
   personaId = 'ferni',
   options?: ScheduleContactOptions
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
-  const deliveryPhone = options?.toPhone || (await getUserContactInfo(userId))?.phone;
+  const deliveryPhone = await verifiedPhone(userId);
   const contact = await getUserContactInfo(userId);
 
   if (!deliveryPhone) {
-    return { success: false, error: 'No phone number on file. Ask for their number first!' };
+    return { success: false, error: NO_VERIFIED_PHONE };
   }
 
   try {

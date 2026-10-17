@@ -586,7 +586,7 @@ class GroupCoachingUI {
       .group-coaching {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -706,7 +706,7 @@ class GroupCoachingUI {
 
       .group-coaching__create-btn {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .group-coaching__create-btn:hover {
@@ -791,7 +791,7 @@ class GroupCoachingUI {
         font-size: var(--text-xs);
         font-weight: var(--font-weight-medium, 500);
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md);
         cursor: pointer;
@@ -959,7 +959,7 @@ class GroupCoachingUI {
         width: 36px;
         height: 36px;
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md);
         cursor: pointer;
@@ -1012,7 +1012,7 @@ class GroupCoachingUI {
         font-size: var(--text-sm);
         font-weight: var(--font-weight-medium, 500);
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-lg);
         cursor: pointer;
@@ -1080,7 +1080,7 @@ class GroupCoachingUI {
         background: var(--color-background-secondary, #1e1a16);
       }
 
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .group-coaching__wrapper {
           max-width: 100%;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0;

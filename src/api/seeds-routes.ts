@@ -13,12 +13,18 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import admin from 'firebase-admin';
+import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { getUserId, parseBody, sendJSON, sendError } from './helpers.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
-import { awardDailyConversation, DAILY_SEEDS, dailyStatus } from '../services/seeds/earn.js';
+import {
+  awardDailyConversation,
+  DAILY_SEEDS,
+  dailyEarnsSeeds,
+  dailyStatus,
+} from '../services/seeds/earn.js';
 import {
   commitSeeds,
   ENTRIES_SUBCOLLECTION,
@@ -29,6 +35,7 @@ import {
 import { ownedCosmetics } from '../services/seeds/cosmetics-catalog.js';
 import { purchaseCosmetic } from './seeds-purchase.js';
 import { importLocalSeeds, serverLedgerEnabled } from './seeds-import.js';
+import { APP_URL } from '../config/api-urls.js';
 
 const log = createLogger({ module: 'SeedsRoutes' });
 
@@ -70,28 +77,16 @@ interface UserSeeds {
 // FIRESTORE
 // =============================================================================
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
   initAttempted = true;
 
   try {
-    const { apps } = admin;
-    if (!apps || apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firebase not available for seeds routes');
@@ -123,6 +118,14 @@ const REFERRAL_WORDS = [
   'moss',
 ];
 
+/**
+ * The link a friend opens. The app redeems /grow/<code> (apps/web referral.service.ts);
+ * ferni.ai/grow/ is the website, which has no such page, so nobody was ever referred.
+ */
+export function referralLink(code: string): string {
+  return `${APP_URL}/grow/${code}`;
+}
+
 function generateReferralCode(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let prefix = '';
@@ -140,10 +143,7 @@ function getGardenTitle(referralCount: number): UserSeeds['gardenTitle'] {
   return 'seedling';
 }
 
-async function getOrCreateUserSeeds(
-  db: admin.firestore.Firestore,
-  userId: string
-): Promise<UserSeeds> {
+async function getOrCreateUserSeeds(db: Firestore, userId: string): Promise<UserSeeds> {
   const userSeedsRef = db.collection('user_seeds').doc(userId);
   const doc = await userSeedsRef.get();
 
@@ -184,7 +184,7 @@ async function getOrCreateUserSeeds(
   }
 
   // Create new user
-  const now = admin.firestore.Timestamp.now();
+  const now = Timestamp.now();
   const newUser: Omit<UserSeeds, 'userId' | 'ownedCosmetics'> = {
     balance: STARTER_SEEDS,
     lifetimeEarned: STARTER_SEEDS,
@@ -268,9 +268,9 @@ export async function handleSeedsRoutes(
         balance: userSeeds.balance,
         lifetimeEarned: userSeeds.lifetimeEarned,
         currentStreak: day.currentStreak,
-        dailyBonusAvailable: day.dailyBonusAvailable,
+        dailyBonusAvailable: day.dailyBonusAvailable && dailyEarnsSeeds(),
         referralCode: userSeeds.referralCode,
-        referralUrl: `https://ferni.ai/grow/${userSeeds.referralCode}`,
+        referralUrl: referralLink(userSeeds.referralCode),
         garden: {
           title: userSeeds.gardenTitle,
           totalReferrals: userSeeds.referrals.length,
@@ -313,7 +313,10 @@ export async function handleSeedsRoutes(
               amount: DAILY_SEEDS + (result.milestone?.seeds ?? 0),
               newBalance: result.daily.balance,
             }
-          : { claimed: false, reason: 'Already claimed today' }
+          : {
+              claimed: false,
+              reason: dailyEarnsSeeds() ? 'Already claimed today' : 'No daily seeds',
+            }
       );
       return true;
     }
@@ -364,7 +367,7 @@ export async function handleSeedsRoutes(
           });
           tx.set(
             sender.accountRef,
-            { lifetimePlanted: admin.firestore.FieldValue.increment(amount) },
+            { lifetimePlanted: FieldValue.increment(amount) },
             { merge: true }
           );
           return {
@@ -394,7 +397,7 @@ export async function handleSeedsRoutes(
         totalReferrals: userSeeds.referrals.length,
         totalEarnedFromReferrals: userSeeds.earnedFrom.referrals,
         referralCode: userSeeds.referralCode,
-        referralUrl: `https://ferni.ai/grow/${userSeeds.referralCode}`,
+        referralUrl: referralLink(userSeeds.referralCode),
       });
       return true;
     }
@@ -444,7 +447,7 @@ export async function handleSeedsRoutes(
         tx.set(
           referrer.accountRef,
           {
-            referrals: admin.firestore.FieldValue.arrayUnion(userId),
+            referrals: FieldValue.arrayUnion(userId),
             gardenTitle: getGardenTitle(new Set(referrals).size),
           },
           { merge: true }

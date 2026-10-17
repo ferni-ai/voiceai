@@ -236,11 +236,11 @@ export async function startup(): Promise<AppConfig> {
 
   // Start schedulers (synchronous, just sets up intervals)
   logger.info('Starting schedulers...');
-  // startup() runs inside voice-call processes. Due reminders are delivered by
-  // the deliver-reminders job (Cloud Scheduler → /api/jobs/deliver-reminders)
-  // from Firestore; this in-memory interval only saw reminders created in the
-  // same process and would double-send alongside the job. Local dev only.
+  // startup() runs inside voice-call processes. Due reminders are delivered by the
+  // deliver-reminders job (Cloud Scheduler → /api/jobs/deliver-reminders) from Firestore;
+  // this in-memory interval would double-send alongside the job. Local dev only.
   if (process.env.REMINDER_SCHEDULER_IN_PROCESS === 'on') {
+    (await import('./services/outreach/reminder-texts.js')).installReminderTexts(); // guarded texts
     startReminderScheduler(60000); // Check every minute
   }
   // The polling schedulers below ran inside every voice-call process (startup()
@@ -303,7 +303,7 @@ export async function startup(): Promise<AppConfig> {
 
   // Outreach: voice agent is PRODUCER only (Pub/Sub + Firestore).
   // Trigger processing / scheduled drain runs in apps/async — never load 300k triggers here.
-  // Enable processing on the agent only when OUTREACH_TRIGGER_PROCESSING=true (dev/debug).
+  // outreach.triggerProcessing is off in config/feature-flags.ts, so this branch is off.
   try {
     const { isOutreachFeatureEnabled } = await import('./config/feature-flags.js');
     if (isOutreachFeatureEnabled('triggerProcessing')) {

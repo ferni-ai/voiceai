@@ -40,9 +40,9 @@ import {
   scheduleEmail,
   scheduleCall,
   textUser,
-  getUserContactInfo,
   setUserContactInfo,
 } from '../proactive/outreach/index.js';
+import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
   getPendingReminders,
   cancelReminder,
@@ -144,8 +144,8 @@ If no recipient specified, sends to the user themselves.`,
         );
 
         // Parse the time
-        const contact = await getUserContactInfo(userId);
-        const scheduledFor = parseScheduleTime(params.when, contact?.timezone);
+        const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+        const scheduledFor = parseScheduleTime(params.when, zone);
 
         if (!scheduledFor) {
           return "I couldn't understand that time. Could you say it differently? Like 'tomorrow at 9am' or 'in 2 hours'?";
@@ -161,7 +161,7 @@ If no recipient specified, sends to the user themselves.`,
           return `Got it! I'll text you on ${timeStr}: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return "I don't have your phone number yet. What's a good number to reach you at?";
+            return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
           }
           return `I couldn't schedule that: ${result.error}`;
         }
@@ -203,8 +203,8 @@ The call will play a voice message when answered.`,
 
         log.info({ userId, when: params.when }, '📞 Scheduling phone call');
 
-        const contact = await getUserContactInfo(userId);
-        const scheduledFor = parseScheduleTime(params.when, contact?.timezone);
+        const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+        const scheduledFor = parseScheduleTime(params.when, zone);
 
         if (!scheduledFor) {
           return "I couldn't understand that time. Try something like 'at 2pm' or 'tomorrow morning'.";
@@ -218,7 +218,7 @@ The call will play a voice message when answered.`,
           return `I'll call you on ${timeStr}. When you answer, you'll hear: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return "I don't have your phone number yet. What's your number?";
+            return `I can't call you yet: there's no verified phone number on your account. You can add one in Settings.`;
           }
           return `I couldn't schedule that call: ${result.error}`;
         }
@@ -259,8 +259,8 @@ Use when the user says things like:
 
         log.info({ userId, when: params.when, subject: params.subject }, '📧 Scheduling email');
 
-        const contact = await getUserContactInfo(userId);
-        const scheduledFor = parseScheduleTime(params.when, contact?.timezone);
+        const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+        const scheduledFor = parseScheduleTime(params.when, zone);
 
         if (!scheduledFor) {
           return "I couldn't parse that time. Try 'Friday morning' or 'in 3 days'.";
@@ -321,7 +321,7 @@ Use when the user says:
           return `Done! I just texted you: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return "I don't have your phone number. What's your number?";
+            return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
           }
           return `I couldn't send that text: ${result.error}`;
         }
@@ -592,7 +592,7 @@ const scheduleAtBestTimeTool: ToolDefinition = {
   id: 'scheduleAtBestTime',
   name: 'Schedule At Best Time',
   description:
-    'Remind the user to reach someone at the time that person usually responds. Ferni texts, emails or calls the user; she never messages the contact.',
+    'Remind the user to reach someone at the time that person usually responds. Ferni texts, emails or calls the user; he never messages the contact.',
   domain: 'scheduling',
   tags: ['scheduling', 'optimal', 'best-time', 'intelligent', 'smart', 'ml'],
 
@@ -706,7 +706,7 @@ Picks the time from the contact's learned response patterns.`,
 Reminder: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' : ''}"`;
           } else {
             if (result.error?.includes('phone')) {
-              return "I don't have your phone number yet. What's a good number?";
+              return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
             }
             if (result.error?.includes('email')) {
               return "I don't have an email address on file. What's your email?";

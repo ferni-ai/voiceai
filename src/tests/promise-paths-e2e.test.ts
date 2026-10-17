@@ -73,6 +73,7 @@ const { createCommunicationTools } =
 const { quickCaptureDef } = await import('../tools/domains/simple-utilities/essentials-tools.js');
 const { scheduleFollowUpDef } = await import('../tools/domains/proactive/index.js');
 const { setUserContactInfo } = await import('../tools/domains/proactive/outreach/index.js');
+const { setCallUserPort } = await import('../tools/domains/proactive/outreach/call-user-port.js');
 const { deliverDueReminders } = await import('../services/scheduling/reminder-delivery-job.js');
 const { trackFerniCommitments } =
   await import('../services/superhuman/semantic-intelligence/integration.js');
@@ -208,6 +209,8 @@ beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(START);
   await setUserContactInfo(UID, { phone: PHONE, email: 'sam@example.com', timezone: 'Etc/UTC' });
+  // Texts and calls to the user go to the verified phone on the account (call-user port).
+  setCallUserPort({ verifiedPhone: async () => PHONE, call: async () => ({ success: true }) });
 });
 
 describe('every scheduled promise ends kept or missed', () => {
@@ -267,7 +270,7 @@ describe('"I\'ll circle back tomorrow" (scheduleFollowUp) is a check-in promise'
 describe('scheduleAtBestTime says what it actually does', () => {
   it('reminds the user (not the contact), and says so in its description and reply', async () => {
     const def = (await scheduling.getToolDefinitions()).find((d) => d.id === 'scheduleAtBestTime');
-    expect(def?.description).toMatch(/calls the user; she never messages the contact/);
+    expect(def?.description).toMatch(/calls the user; he never messages the contact/);
 
     const tool = await domainTool('scheduleAtBestTime');
     const said = await tool.execute({ message: 'dinner?', contactName: 'Sarah', channel: 'text' });

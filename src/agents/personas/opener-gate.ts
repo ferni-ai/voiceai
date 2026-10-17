@@ -14,6 +14,8 @@
 import type { llm } from '@livekit/agents';
 import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 
+import { leadingBurst, withoutBurst, withRenderedBurst } from './vocal-bursts.js';
+
 export const OPENER_EVERY = 3;
 /** Characters of a reply to see before deciding (enough for "Ha! Oh, well,"). */
 const DECIDE_AFTER = 24;
@@ -105,9 +107,26 @@ export class OpenerGate {
     this.repliesSinceKept = every; // the first reply may keep one
   }
 
-  /** Decide for one reply's opening text. */
-  decide(opening: string): string {
+  /**
+   * Decide for one reply's opening text. `openedBySound`: a turn-opening clip
+   * already said "Mm" (turn-opening-sound.ts), so the reply's own reaction word
+   * goes, and the clip counts as this reply's kept opener. `burst`
+   * (VOCAL_BURSTS=on) is whether this reply may open with a vocal burst: one it
+   * may is kept, in the spelling that renders; one it may not is dropped, as is
+   * any burst after a turn-opening clip. Undefined: as before.
+   */
+  decide(opening: string, openedBySound = false, burst?: boolean): string {
+    const found = burst === undefined ? null : leadingBurst(opening);
+    if (found && burst && !openedBySound) {
+      this.repliesSinceKept = 0;
+      return capitalizeStart(withRenderedBurst(opening, found));
+    }
+    if (found) opening = capitalizeStart(withoutBurst(opening, found));
     const { text, stripped } = stripStockOpener(opening);
+    if (openedBySound) {
+      this.repliesSinceKept = 0;
+      return stripped ? text : capitalizeStart(opening);
+    }
     if (!stripped) return capitalizeStart(opening);
     if (this.repliesSinceKept >= this.every) {
       this.repliesSinceKept = 0;
@@ -117,9 +136,16 @@ export class OpenerGate {
     return text;
   }
 
-  /** Wrap one reply's LLM stream. */
-  wrap(input: ReadableStream<Chunk>): ReadableStream<Chunk> {
-    const decide = (opening: string): string => this.decide(opening);
+  /**
+   * Wrap one reply's LLM stream; `openedBySound` is asked when the opening is
+   * decided; `burst` as in decide.
+   */
+  wrap(
+    input: ReadableStream<Chunk>,
+    openedBySound: () => boolean = () => false,
+    burst?: boolean
+  ): ReadableStream<Chunk> {
+    const decide = (opening: string): string => this.decide(opening, openedBySound(), burst);
     const early = this.early;
     let buffered = '';
     let template: Chunk | null = null;

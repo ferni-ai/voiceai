@@ -4,9 +4,11 @@
  * the close never finished, and the next persona's session couldn't start: no voice
  * handoff succeeded on a live call (dev, 2026-10-10).
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentOrchestrator, createAgentOrchestrator } from '../orchestrator.js';
-import { swapPersona } from '../persona-swap.js';
+import { SWAP_TIMEOUT_MS, swapPersona } from '../persona-swap.js';
+import { handleHandoffFromDataChannel } from '../multi-agent-entry.js';
+import { AgentDirectory } from '../../../personas/agent-directory.js';
 
 type FakeAgent = {
   name: string;
@@ -301,13 +303,29 @@ describe('when the next persona does not come up', () => {
     const failed = expect(swap).rejects.toThrow(/didn't start within 20ms/);
     await vi.advanceTimersByTimeAsync(20);
     await failed;
-    expect(userData.personaId).toBe('maya-santos'); // Maya is still coming up: her voice for now
+    // The app has been told it failed: whatever Ferni still says is in his voice, not Maya's
+    expect(userData.personaId).toBe('ferni');
 
     await vi.advanceTimersByTimeAsync(40);
     expect(session.swappedTo).toEqual(['maya-santos', 'ferni']);
     expect(session.live?.name).toBe('ferni');
     expect(userData.personaId).toBe('ferni');
     expect(maya.released).toBe(true);
+  });
+
+  it("while Ferni's speech drains, it stays in his voice; Maya's starts once she is on", async () => {
+    vi.useFakeTimers();
+    const session = callSession(slowMaya);
+    const userData: { personaId?: string } = { personaId: 'ferni' };
+    const ferni = persona(session, 'ferni', userData, true);
+    const maya = persona(session, 'maya-santos', userData, false);
+    const swap = swapPersona(ferni as never, maya, () => undefined, undefined, 1000);
+    await vi.advanceTimersByTimeAsync(30);
+    expect(userData.personaId).toBe('ferni');
+
+    await vi.advanceTimersByTimeAsync(40);
+    await swap;
+    expect(userData.personaId).toBe('maya-santos');
   });
 
   it('a late swap back does not undo a newer handoff', async () => {
@@ -346,7 +364,70 @@ describe('when the next persona does not come up', () => {
   });
 });
 
+describe('a tap on a teammate while Ferni is mid-reply', () => {
+  const subscriber = { id: 'u1', subscription: { tier: 'friend' } };
+  const services = { sessionId: 's1', userId: 'u1', userProfile: subscriber } as never;
+  beforeAll(async () => {
+    await AgentDirectory.getEntry('maya-santos'); // the alias table, for canonical ids
+  });
+  beforeEach(() => {
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'on');
+  });
+
+  it('stops the reply, so Maya comes on now instead of the swap timing out first', async () => {
+    vi.useFakeTimers();
+    // The SDK swaps only once Ferni's speech has drained: a 20s reply, unless interrupted
+    let stopReply = (): void => undefined;
+    const replyDone = new Promise<void>((resolve) => {
+      stopReply = resolve;
+      setTimeout(resolve, 20_000);
+    });
+    const session = callSession(async () => replyDone);
+    const { o, made, userData } = orchestrator(session);
+    await o.start('ferni');
+    made[0].interrupt.mockImplementation(() => stopReply());
+
+    const tap = handleHandoffFromDataChannel(o, 'maya-santos', 'tap', services);
+    await vi.advanceTimersByTimeAsync(SWAP_TIMEOUT_MS + 1_000);
+
+    expect(made[0].interrupt).toHaveBeenCalled();
+    expect(await tap).toEqual({ success: true, error: undefined });
+    expect(o.getCurrentPersonaId()).toBe('maya-santos');
+    expect(userData.personaId).toBe('maya-santos');
+  });
+
+  it("a handoff the LLM asked for doesn't cut its own reply short", async () => {
+    const interrupt = vi.fn();
+    const o = {
+      isHandoffInProgress: () => false,
+      getCurrentPersonaId: () => 'ferni',
+      getActiveAgent: () => ({ interrupt }),
+      handoff: vi.fn(async () => ({ success: true })),
+    } as never;
+    await handleHandoffFromDataChannel(o, 'maya-santos', 'llm', services, () => undefined);
+    expect(interrupt).not.toHaveBeenCalled();
+  });
+});
+
+describe('with the flag unset', () => {
+  it("a handoff swaps inside the call's one session", async () => {
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', '');
+    const session = callSession();
+    const { o, made } = orchestrator(session);
+    await o.start('ferni');
+
+    await o.handoff({ targetPersonaId: 'maya-santos', reason: 'test' });
+
+    expect(session.closes).toBe(0);
+    expect(made[1].callSession).toBe(session);
+  });
+});
+
 describe('with the flag off', () => {
+  beforeEach(() => {
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'off');
+  });
+
   it('a handoff still closes the old session and starts a new one, as before', async () => {
     const session = callSession();
     const { o, made } = orchestrator(session);

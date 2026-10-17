@@ -41,6 +41,10 @@ export interface OnBehalfDispatch {
   callType: CallType;
   script?: string;
   userPreferences?: unknown;
+  /** The missed call this one retries; a retry is never retried. Signed with the rest. */
+  retryOf?: string;
+  /** When signDispatch signed it (epoch ms); covered by the signature. */
+  signedAt?: number;
   /** HMAC from a trusted dispatcher; see signOnBehalfDispatch. */
   requesterSignature?: string;
 }
@@ -63,6 +67,17 @@ function canonical(value: unknown): string {
   return JSON.stringify(value) ?? 'null';
 }
 
+/**
+ * The key every dispatch is signed and verified with: DISPATCH_SIGNING_SECRET
+ * when set, else the LiveKit API secret. LiveKit Cloud agents get an injected
+ * LiveKit key that no signer outside the agent holds, so on Cloud a shared
+ * DISPATCH_SIGNING_SECRET (on the agents and the server alike) is the only way
+ * a signed dispatch verifies. Unset, nothing changes.
+ */
+export function dispatchSigningSecret(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return env.DISPATCH_SIGNING_SECRET || env.LIVEKIT_API_SECRET || undefined;
+}
+
 function signatureFor(payload: Record<string, unknown>, secret: string): string {
   const { requesterSignature: _omit, ...signed } = payload;
   return createHmac('sha256', secret).update(canonical(signed)).digest('base64url');
@@ -71,17 +86,30 @@ function signatureFor(payload: Record<string, unknown>, secret: string): string 
 /**
  * Sign a dispatch the server itself created, over every field, so no part of a
  * signed payload (who hears the result, which room it goes to, what was said
- * about the call) can be changed. Use the LiveKit API secret. Any outbound
+ * about the call) can be changed. Use dispatchSigningSecret(). Any outbound
  * call the server places is signed this way (on-behalf and family check-in).
+ *
+ * `signedAt` (epoch ms) is stamped in and signed with the rest, so a reader
+ * that acts on the payload as an identity claim can refuse a replayed old one
+ * (signed-dispatch-identity.ts). verifyOnBehalfDispatch itself does not check it.
  */
 export function signDispatch<T extends object>(
   d: T,
-  secret: string
-): T & { requesterSignature: string } {
-  return { ...d, requesterSignature: signatureFor({ ...d } as Record<string, unknown>, secret) };
+  secret: string = dispatchSigningSecret() ?? '',
+  signedAt: number = Date.now()
+): T & { signedAt: number; requesterSignature: string } {
+  if (!secret) throw new Error('No dispatch signing secret: set DISPATCH_SIGNING_SECRET');
+  const stamped = { ...d, signedAt };
+  return {
+    ...stamped,
+    requesterSignature: signatureFor(stamped as Record<string, unknown>, secret),
+  };
 }
 
-export function signOnBehalfDispatch(d: OnBehalfDispatch, secret: string): OnBehalfDispatch {
+export function signOnBehalfDispatch(
+  d: OnBehalfDispatch,
+  secret: string = dispatchSigningSecret() ?? ''
+): OnBehalfDispatch {
   return signDispatch(d, secret);
 }
 
@@ -133,7 +161,25 @@ export function onBehalfDispatchFor(
     callType: request.callType,
     script,
     userPreferences: request.userPreferences,
+    retryOf: request.retryOf,
   });
+}
+
+/** The on-behalf request a dispatch describes (the inverse of onBehalfDispatchFor). */
+export function onBehalfRequestFromDispatch(call: OnBehalfDispatch): OnBehalfCallRequest {
+  return {
+    contactQuery: call.contact.name,
+    resolvedContact: { ...call.contact },
+    purpose: call.purpose,
+    objective: call.objective,
+    callType: call.callType,
+    originalSessionId: call.requester.originalSessionId,
+    userId: call.requester.userId,
+    userTimezone: call.requester.timezone,
+    userName: call.requester.name,
+    recordingConsent: false,
+    retryOf: call.retryOf,
+  };
 }
 
 /** The dispatch for a call bridged in from a Twilio media stream's parameters. */
@@ -211,5 +257,6 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
     objective: oneOf(metadata.objective, OBJECTIVES, 'general'),
     callType: oneOf(metadata.callType, CALL_TYPES, 'personal'),
     script: str(metadata.script) || undefined,
+    retryOf: str(metadata.retryOf) || undefined,
   });
 }

@@ -25,7 +25,7 @@ async function render(part) {
     method: 'POST',
     headers: {
       'X-API-Key': key,
-      'Cartesia-Version': '2024-06-10',
+      'Cartesia-Version': '2026-08-14',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({

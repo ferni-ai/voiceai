@@ -1,6 +1,7 @@
 /**
  * Just enough Firestore for collection-group "due items" queries and claim
- * transactions: where ==/<=, orderBy, limit, runTransaction(get/update).
+ * transactions: where ==/<=, orderBy, limit, runTransaction(get/update), and
+ * bogle_users/{uid}/{collection}/{id} set/create/update.
  */
 export type Row = { id: string; userId: string; collection: string; data: Record<string, unknown> };
 
@@ -45,11 +46,33 @@ export function fakeFirestore(rows: Row[]) {
           if (existing) existing.data = { ...data };
           else rows.push({ id, userId: uid, collection: c, data: { ...data } });
         },
+        // Like Firestore's update(): merges into an existing document, else NOT_FOUND.
+        update: async (patch: Record<string, unknown>) => {
+          const existing = rows.find((r) => r.collection === c && r.id === id && r.userId === uid);
+          if (!existing) throw new Error(`NOT_FOUND: ${c}/${id}`);
+          Object.assign(existing.data, patch);
+        },
+        // Like Firestore's create(): fails when the document already exists.
+        create: async (data: Record<string, unknown>) => {
+          if (rows.some((r) => r.collection === c && r.id === id && r.userId === uid)) {
+            throw new Error(`ALREADY_EXISTS: ${c}/${id}`);
+          }
+          rows.push({ id, userId: uid, collection: c, data: { ...data } });
+        },
       }),
     }),
   });
+  // Top-level documents (e.g. call_opt_outs/{id}) are rows with an empty userId.
+  const topDoc = (c: string) => (id: string) => ({
+    ...userDoc(id),
+    get: async () => ({ exists: rows.some((r) => r.collection === c && r.id === id && !r.userId) }),
+    set: async (data: Record<string, unknown>) => {
+      rows.push({ id, userId: '', collection: c, data: { ...data } });
+    },
+  });
   return {
-    collection: () => ({ doc: userDoc }),
+    // No name: the user docs, as callers written before top-level docs existed expect.
+    collection: (c?: string) => ({ doc: !c || c === 'bogle_users' ? userDoc : topDoc(c) }),
     collectionGroup: (c: string) => query(c),
     runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
       fn({

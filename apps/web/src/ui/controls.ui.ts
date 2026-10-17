@@ -19,6 +19,9 @@ import { t } from '../i18n/index.js';
 
 const log = createLogger('ControlsUI');
 
+/** The span holding a button's visible label (index.html `.btn-content`) */
+const LABEL_SELECTOR = '.btn-content';
+
 
 // ============================================================================
 // TYPES
@@ -193,14 +196,34 @@ function updateButtonVisibility(state: ConnectionState): void {
   }
 }
 
-/** Show (or clear) the button's one connecting status, tappable to cancel. */
+/**
+ * Show (or clear) the button's one connecting status, tappable to cancel: two
+ * lines in the pill, "Connecting…" over a smaller "Tap to cancel", beside the
+ * spinner. A label drawn over the button used to wrap under the spinner and
+ * clip at large text sizes. Screen readers get one sentence (aria-label).
+ */
 function showConnectingStatus(btn: HTMLButtonElement, on: boolean, cancellable = false): void {
   btn.disabled = on && !cancellable;
   btn.setAttribute('aria-busy', String(on));
+  btn.querySelector('.btn-status')?.remove();
   if (on) {
     addClass(btn, 'btn-connecting');
-    btn.dataset.status = cancellable ? t('entrance.connectingCancel') : t('app.connecting');
-    btn.setAttribute('aria-label', btn.dataset.status);
+    btn.dataset.status = t('entrance.connectingNow');
+    const status = document.createElement('span');
+    status.className = 'btn-status';
+    status.setAttribute('aria-hidden', 'true');
+    const main = document.createElement('span');
+    main.className = 'btn-status-main';
+    main.textContent = t('entrance.connectingNow');
+    status.append(main);
+    if (cancellable) {
+      const hint = document.createElement('span');
+      hint.className = 'btn-status-hint';
+      hint.textContent = t('entrance.tapToCancel');
+      status.append(hint);
+    }
+    btn.append(status);
+    btn.setAttribute('aria-label', cancellable ? t('entrance.connectingCancel') : t('app.connecting'));
   } else {
     removeClass(btn, 'btn-connecting');
     delete btn.dataset.status;
@@ -237,11 +260,11 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     addClass(elements.disconnectBtn, 'btn-wrap-up');
 
     // Update button text to be warmer
-    const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+    const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
     if (textSpan) {
       textSpan.textContent = t('session.goodbye');
     } else {
-      // Fallback for buttons without .btn-text
+      // Fallback for buttons without a label span
       elements.disconnectBtn.setAttribute('data-wrap-up-text', t('session.goodbye'));
     }
 
@@ -258,9 +281,9 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     removeClass(elements.disconnectBtn, 'btn-agent-hangup'); // Clear agent hangup state too
 
     // Reset button text
-    const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+    const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
     if (textSpan) {
-      textSpan.textContent = t('session.end');
+      textSpan.textContent = t('entrance.endTalk');
     }
     elements.disconnectBtn.removeAttribute('data-wrap-up-text');
     elements.disconnectBtn.setAttribute('aria-label', t('session.endConversation'));
@@ -279,7 +302,7 @@ export function showClosingState(): void {
   addClass(elements.disconnectBtn, 'btn-closing');
 
   // Change text to show it's happening
-  const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+  const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
   if (textSpan) {
     textSpan.textContent = t('session.untilNextTime');
   }
@@ -304,7 +327,7 @@ export function showAgentHangupState(): void {
   addClass(elements.disconnectBtn, 'btn-agent-hangup');
 
   // Brief text change
-  const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+  const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
   if (textSpan) {
     textSpan.textContent = t('session.ending');
   }

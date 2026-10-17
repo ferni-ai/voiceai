@@ -1,5 +1,5 @@
 /**
- * Pins our @livekit/agents patch (patches/@livekit__agents@1.5.1.patch): a caller
+ * Pins our @livekit/agents patch (patches/@livekit__agents@1.8.1.patch): a caller
  * who finishes just as Ferni's reply starts still gets a turn.
  *
  * Dev, 2026-09-30 ("Oh, and Biscuit chewed up my phone charger... So, that was
