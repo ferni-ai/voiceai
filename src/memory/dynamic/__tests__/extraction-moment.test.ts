@@ -11,10 +11,10 @@ describe('extractionMoment', () => {
   it('shows the lines said before this one, so "it" can be resolved', () => {
     extractionMoment(line('call-1', 'Hey, could you call my brother?'), on);
     extractionMoment(line('call-1', 'His name is Pete.'), on);
-    const moment = extractionMoment(line('call-1', "It's uh 435 339 7687."), on);
+    const moment = extractionMoment(line('call-1', "It's uh 435 555 0188."), on);
     expect(moment).toContain('This call took place on');
     expect(moment).toContain('- "Hey, could you call my brother?"\n- "His name is Pete."');
-    expect(moment).not.toContain('435 339 7687'); // the line itself is the transcript, not context
+    expect(moment).not.toContain('435 555 0188'); // the line itself is the transcript, not context
     expect(moment).toMatch(/never as "him"/);
   });
 
@@ -35,7 +35,7 @@ describe('extractionMoment', () => {
 
   it('is only the call date unless EXTRACTION_CONTEXT=on', () => {
     extractionMoment(line('call-1', 'His name is Pete.'), {});
-    const moment = extractionMoment(line('call-1', "It's 435 339 7687."), {});
+    const moment = extractionMoment(line('call-1', "It's 435 555 0188."), {});
     expect(moment).toContain('This call took place on');
     expect(moment).not.toContain('Earlier in this call');
   });
