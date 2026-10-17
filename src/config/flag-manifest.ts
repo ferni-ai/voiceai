@@ -180,6 +180,10 @@ export const FLAG_MANIFEST = {
   FERNI_TASK_SCRIPTED_TRANSITIONS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on (with FERNI_STATE): his day holds this week's beat of a written life thread (ferni-life-threads.ts)
   FERNI_THREADS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // unset: the Director's tones. A Sonic 3 emotion: Ferni's resting tone (director/ferni-resting-voice.ts)
+  FERNI_VOICE_EMOTION: { default: 'off', owner: 'voice', kind: 'config' },
+  // unset: resting pace 1. A number, clamped to 0.85-1.2: Ferni's resting pace (same module)
+  FERNI_VOICE_SPEED: { default: 'off', owner: 'voice', kind: 'config' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_DEFER_BACKGROUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
