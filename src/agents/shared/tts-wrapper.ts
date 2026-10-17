@@ -43,7 +43,7 @@ import {
   isStreamingTTSEnabled,
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
-import { toolArgsCutter, toolArgsGuardEnabled } from './tts-tool-args-filter.js';
+import { toolArgsStage } from './tts-tool-args-filter.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
 import { isFtisEnabled } from '../../config/tool-config.js';
 
@@ -448,7 +448,6 @@ export async function wrappedTtsNode(
     // BUG FIX: Even with native function calling, OpenAI Realtime can sometimes
     // leak function call JSON into the text stream (race condition in SDK or model).
     // Add a lightweight filter to strip JSON-like content that shouldn't be spoken.
-    //
     // Observed pattern: When model outputs BOTH text AND function call in same response,
     // part of the function call args leak into text:
     //   'tomorrow",  \n  "category": "personal",  \n  "importance": "medium" \n}'
@@ -456,20 +455,11 @@ export async function wrappedTtsNode(
     // This filter catches and strips such leaks without the full JSON workaround overhead.
     // We also capture telemetry to track this SDK/model behavior.
     let jsonLeakBuffer = ''; // Accumulate leaked chunks for analysis
-    // Tool arguments written as text, cut across chunks (tts-tool-args-filter.ts).
-    const cutToolArgs = toolArgsGuardEnabled() ? toolArgsCutter() : undefined;
+    const toolArgs = toolArgsStage(sessionId); // tool arguments written as text, cut first
 
     const jsonLeakFilter = new NodeTransformStream<string, string>({
       transform(rawChunk, controller) {
-        const { kept: chunk, cut } = cutToolArgs?.(rawChunk) ?? { kept: rawChunk, cut: '' };
-        if (cut) {
-          // Length only: the cut can carry the model's reasoning about the caller, so it never
-          // joins jsonLeakBuffer (logged and sent to telemetry at flush).
-          log.warn(
-            { cutLength: cut.length, sessionId },
-            '🚨 [TOOL-ARGS-FILTER] Tool arguments written as text - cut from TTS'
-          );
-        }
+        const chunk = toolArgs.cut(rawChunk);
         if (!chunk) return;
         // Patterns that indicate leaked function call JSON (not natural speech)
         // These are structural JSON patterns that would never appear in speech
@@ -486,12 +476,9 @@ export async function wrappedTtsNode(
           /^\s*"[a-z_]+"\s*:\s*"[^"]+"\s*,?\s*$/i,
           // Function call argument patterns (category, importance, fact, etc.)
           /"\s*(category|importance|fact|medium|high|low|personal)"\s*[:,]/i,
-
-          // ========================================================================
           // CURSOR/CLAUDE CODE EDIT FORMAT PATTERNS (STRENGTHENED Jan 2026)
           // These catch IDE edit commands that should NEVER be spoken
           // Known issue: LLM sometimes hallucinates code editing format
-          // ========================================================================
           // Edit object format: {"edits or [{"edits (with or without colon)
           /^\s*\[?\s*\{\s*"?edits/i,
           // Any content containing "edits" followed by bracket/brace
@@ -545,12 +532,10 @@ export async function wrappedTtsNode(
           // Malformed JSON-like start
           /^\s*\{"?\w/.test(chunk);
 
-        // ========================================================================
         // META-INSTRUCTION LEAKAGE PATTERNS (Feb 2026)
         // Catch LLM echoing generateReply() instructions as speech.
         // In Gemini Live, instructions are sent as MODEL ROLE turns and the
         // model treats them as its own prior output, echoing them verbatim.
-        // ========================================================================
         const isMetaInstruction = isMetaInstructionChunk(chunk); // tts-meta-filter.ts
 
         if (isMetaInstruction) {
@@ -582,8 +567,7 @@ export async function wrappedTtsNode(
         controller.enqueue(chunk);
       },
       flush(controller) {
-        // A possible "<template-call" start held back at the very end of the reply.
-        const held = cutToolArgs?.flush();
+        const held = toolArgs.flush(); // a lone "<" held back at the end of the reply
         if (held) controller.enqueue(held);
         // Analyze accumulated leaked JSON at end of stream
         if (jsonLeakBuffer.length > 0) {

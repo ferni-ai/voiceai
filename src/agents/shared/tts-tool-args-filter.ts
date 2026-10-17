@@ -19,6 +19,9 @@
  * @module agents/shared/tts-tool-args-filter
  */
 
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'tts-tool-args-filter' });
 const START = /<template-call\b|\{|\b[a-z]+(?:_[a-z]+)+\s*[:=]/i;
 const MARKER = '<template-call';
 export const MAX_CUT = 300;
@@ -101,4 +104,29 @@ export function toolArgsCutter(): ToolArgsCutter {
       return rest.length === 1 ? rest : '';
     },
   });
+}
+
+/**
+ * The TTS stage for one reply: each chunk's kept text, and at the end what was held. Cuts are
+ * logged by length only, since they can carry the model's reasoning about the caller.
+ */
+export function toolArgsStage(
+  sessionId?: string,
+  env: NodeJS.ProcessEnv = process.env
+): { cut: (chunk: string) => string; flush: () => string } {
+  if (!toolArgsGuardEnabled(env)) return { cut: (chunk) => chunk, flush: () => '' };
+  const cutter = toolArgsCutter();
+  return {
+    cut: (chunk) => {
+      const { kept, cut } = cutter(chunk);
+      if (cut) {
+        log.warn(
+          { cutLength: cut.length, sessionId },
+          '🚨 [TOOL-ARGS-FILTER] Tool arguments written as text - cut from TTS'
+        );
+      }
+      return kept;
+    },
+    flush: cutter.flush,
+  };
 }
