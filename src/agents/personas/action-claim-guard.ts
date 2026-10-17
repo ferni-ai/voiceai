@@ -260,11 +260,16 @@ export async function withActionClaimCheck<T>(
           const chunk = next.value;
           const content = contentOf(chunk);
           if (content === undefined) {
-            // A tool call goes out after the words before it, as the model wrote them.
-            if (pending) flush(pending);
-            pending = '';
-            passed = 0;
-            for (const name of toolNamesOf(chunk)) kindsOfTool(name).forEach((k) => calling.add(k));
+            // A tool call goes out after the words before it, as the model wrote them. Other
+            // chunks with no text (the Google plugin's usage chunk after every piece) pass by:
+            // flushing on them cut words at the piece break ("cr ickets", "don' t").
+            const names = toolNamesOf(chunk);
+            if (names.length > 0) {
+              if (pending) flush(pending);
+              pending = '';
+              passed = 0;
+            }
+            for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
             controller.enqueue(chunk);
             continue;
           }
