@@ -44,28 +44,50 @@ export function callerVoiceGuardEnabled(env: Env = process.env): boolean {
  * and so does "Who told you about me?"; "Did I find anything?" does not.
  */
 const ASKS_CALLER =
-  /\b(?:where|whereabouts|your name|who are you|who (?:told|sent|referred|gave) you|who am i (?:talking|speaking) (?:to|with)|who'?s (?:this|calling)|your city|what city|which city|what town|zip|postcode|post code|(?:do|are|did) you (?:still )?(?:live|located|from|in|at|near|staying)|your (?:area|town|home|address))\b/i;
+  /\b(?:where (?:are|do|did|were|have|is) you|where (?:you|your)|whereabouts|your name|what'?s your name|what should i call you|who are you|who (?:told|sent|referred|gave) you|who (?:is|'s) (?:this|calling|speaking)|who am i (?:talking|speaking) (?:to|with)|who do i have|and (?:you|who) are\??|your city|what city|which city|what town|zip|postcode|post code|(?:do|are|did) you (?:still )?(?:live|located|from|in|at|near|staying)|your (?:area|town|home|address))\b/i;
+
+/** A lead-in a person says before the answer: "Hi,", "Um,", "Okay,". */
+const LEAD_IN =
+  '(?:(?:[Hh]i|[Hh]ey|[Oo]h|[Uu]m|[Uu]h|[Oo]kay|[Oo]k|[Ww]ell|[Yy]eah|[Yy]es|[Ss]ure|[Ss]o|[Aa]ctually|[Hh]onestly)[,.!]?\\s+)?';
+const NOT_FERNI = '(?!Ferni\\b)';
 
 /**
  * Ferni answering for the caller, in the first person, as a caller would. Narrow on
- * purpose: "Yes, I have three options" and "I grew up in Wyoming" never match.
+ * purpose: "Yes, I have three options" never matches, and neither does "I grew up in ...".
+ * Case-sensitive on purpose: a lowercase "I'm in the garden" is never a place answer.
  */
 const SELF_ANSWER: readonly RegExp[] = [
-  /^I(?:'m|’m| am) (?:in|from|at|near) (?:the )?[A-Z]/, // I'm in Manhattan, I'm from the Bronx
-  /^I(?:'m|’m| am) (?!Ferni\b|Sorry|Glad|Happy|Sure|Good|Fine|Ready|Here|Okay|Not|Really|Afraid|Curious|Thrilled|Excited|Thinking|Honestly|Sad|Tired|Busy|Also|Just|So|Very|Still|Going|Trying|Hoping)[A-Z][a-z]+(?=[,.!]|$)/, // I'm Linda, her mom.
-  /^(?:My name(?:'s| is)|This is|Call me) (?!Ferni\b)[A-Z][a-z]+/, // My name is Linda; This is Linda.
-  /^I (?:live|am living) (?:in|at|on|near) [A-Z\d]/, // I live in Ohio
-  /^(?:[Yy]eah|[Yy]es|[Yy]ep|[Ss]ure)[,.!]? I(?:'m| am| live) (?:in|from|at|near) (?:the )?[A-Z]/, // Yeah, I live in Ohio
+  new RegExp(`^${LEAD_IN}I(?:'m|’m| am)(?: (?:currently|just|calling|over|originally|right now))* (?:in|from|at|near|over in|calling from) (?:downtown |the )?[A-Z]`), // I'm in Manhattan
+  new RegExp(`^${LEAD_IN}I(?:'m|’m| am) ${NOT_FERNI}(?!Sorry|Glad|Happy|Sure|Good|Fine|Ready|Here|Okay|Not|Really|Afraid|Curious|Thrilled|Excited|Thinking|Honestly|Sad|Tired|Busy|Also|Just|So|Very|Still|Going|Trying|Hoping)[A-Z][a-z]+(?=[,.!]|$)`), // I'm Linda, her mom.
+  new RegExp(`^${LEAD_IN}(?:My name(?:'s| is)|Name's|This is|Call me) ${NOT_FERNI}[A-Z][a-z]+`), // My name is Linda; This is Linda.
+  new RegExp(`^${LEAD_IN}I (?:live|am living) (?:in|at|on|near) [A-Z\\d]`), // I live in Ohio
+  /^In [A-Z][a-z]+\.?$/, // In Manhattan.
   /^\d{5}(?:-\d{4})?[.!]?$/, // a bare zip code
-  /^[A-Z][a-z]+(?: [A-Z][a-z]+)*,? (?:[A-Z]{2}|New York|New Jersey|Pennsylvania|California|Massachusetts|Florida|Texas|Ohio|Illinois|Colorado|Oregon|Washington|Michigan|Georgia|Virginia|Wyoming)\.?$/, // Manhattan, New York.
+  /^[A-Z][a-z]+(?: [A-Z][a-z]+)*,? (?:[A-Z]{2}|New York|New Jersey|Pennsylvania|California|Massachusetts|Florida|Texas|Ohio|Illinois|Colorado|Oregon|Washington|Michigan|Georgia|Virginia)(?:,? \d{5}(?:-\d{4})?)?\.?$/, // Manhattan, New York, 10011.
 ];
 
-const isSelfAnswer = (sentence: string): boolean =>
-  SELF_ANSWER.some((pattern) => pattern.test(sentence.trim()));
+/**
+ * Ferni's own canon places (identity/biography-core.md: "I grew up in Wyoming"). An answer
+ * that names one is his own life, so it is never a caller's answer. Keep this in step with
+ * his biography.
+ */
+const FERNI_OWN_PLACE = /\bWyoming\b/;
+
+/** Quotes and a "Caller:" label a transcript puts in front of the words. */
+const SPEAKER_FRAME = /^(?:["“‘']+\s*|(?:caller|user)\s*:\s*)+/i;
+
+const isSelfAnswer = (sentence: string): boolean => {
+  const text = sentence.trim().replace(SPEAKER_FRAME, '');
+  if (FERNI_OWN_PLACE.test(text)) return false;
+  return SELF_ANSWER.some((pattern) => pattern.test(text));
+};
 
 /** A sentence that asks something: a question mark, then any closing quote or bracket. */
 const QUESTION_END = /\?[!.]*["”’')\]]*$/;
 const isQuestion = (sentence: string): boolean => QUESTION_END.test(sentence.trim());
+
+/** A question that asks the caller for something: the only kind that opens the answer window. */
+const isCallerQuestion = (sentence: string): boolean => isQuestion(sentence) && ASKS_CALLER.test(sentence);
 
 /**
  * Length of the first whole sentence in the text, with its trailing space; 0 if none yet.
@@ -107,7 +129,6 @@ export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = 
       let passed = 0; // how much of pending already streamed out (only while no window is open)
       let window = 0; // sentences left in which the caller's answer can land
       let held: string[] = []; // sentences held while the window is open
-      let askedCaller = false; // the question that opened the window asks for the caller's whereabouts or name
       const emit = (text: string): void => {
         if (text) controller.enqueue(out(text));
       };
@@ -117,7 +138,7 @@ export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = 
       };
       /** Decides one sentence (or the unfinished tail). True when the reply was cut. */
       const decide = (sentence: string): boolean => {
-        if (window > 0 && askedCaller && isSelfAnswer(sentence)) {
+        if (window > 0 && isSelfAnswer(sentence)) {
           log.warn({ reason: 'self_answer' }, 'CALLER_VOICE_CUT');
           release(); // the held sentences are Ferni's own words, before the answer
           return true;
@@ -128,10 +149,7 @@ export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = 
           held.push(sentence);
           window -= 1;
         }
-        if (isQuestion(sentence)) {
-          window = ANSWER_WINDOW;
-          askedCaller = ASKS_CALLER.test(sentence);
-        }
+        if (isCallerQuestion(sentence)) window = ANSWER_WINDOW;
         if (window === 0) release();
         return false;
       };

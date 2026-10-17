@@ -78,6 +78,21 @@ describe('withCallerVoiceGuard', () => {
     expect(await spoken(chunks)).toBe(chunks.join(''));
   });
 
+  it('does not hold the sentences after a question that asks the caller nothing', async () => {
+    let feed!: ReadableStreamDefaultController<string>;
+    const source = new ReadableStream<string>({
+      start(controller) {
+        feed = controller;
+      },
+    });
+    const reader = ((await withCallerVoiceGuard(source)) as unknown as ReadableStream<string>).getReader();
+    feed.enqueue('Did I find anything? Yes, I have three options. ');
+    let text = '';
+    while (!text.includes('three options')) text += (await reader.read()).value ?? '';
+    expect(text).toContain('Yes, I have three options.');
+    feed.close();
+  });
+
   it('streams a reply with no question as it arrives, without holding a chunk', async () => {
     let feed: ReadableStreamDefaultController<string> | undefined;
     const source = new ReadableStream<string>({
@@ -110,6 +125,16 @@ describe('withCallerVoiceGuard', () => {
     ['Whereabouts are you? Manhattan, New York.', 'Manhattan'],
     ['Are you in Boston?” I’m in Boston.', 'I’m in Boston'],
     ['Are you near St. Louis? I ask because Dr. Smith said so. I’m in St. Louis.', 'in St. Louis.'],
+    ['Who is calling? This is Linda.', 'Linda'],
+    ['What should I call you? I’m Linda.', 'Linda'],
+    ["What's your name? Hi, I'm Linda.", 'Linda'],
+    ["Where are you calling from? I'm calling from Ohio.", 'Ohio'],
+    ['Where are you? Is that okay to ask? I live in Ohio.', 'Ohio'],
+    ['Whereabouts are you? Manhattan, New York, 10011.', 'Manhattan'],
+    ['Where are you? Caller: I’m in Manhattan.', 'Manhattan'],
+    ['Where are you? "I’m in Manhattan."', 'Manhattan'],
+    ["What's your name? Name's Linda.", 'Linda'],
+    ['Where are you? In Manhattan.', 'Manhattan'],
   ])('cuts the caller-voiced answer in %j', async (reply, leaked) => {
     expect(await spoken([reply])).not.toContain(leaked);
   });
@@ -138,6 +163,10 @@ describe('withCallerVoiceGuard', () => {
     ['Is it doable? Yes, I am confident it is.'],
     ['Was I worried? No, I was curious.'],
     ['Can I tell you about me? My name is Ferni, and I am a companion.'],
+    ["Where did you grow up? I'm from Wyoming, myself."],
+    ['Where are you from? I am from Wyoming originally. Big sky country.'],
+    ["Where are you calling from today? I'm in Wyoming in spirit, ha."],
+    ['Where were we? I am in the middle of a thought, sorry.'],
   ])('does not cut Ferni speaking for himself in %j', async (reply) => {
     expect(await spoken([reply])).toBe(reply);
   });
