@@ -28,6 +28,8 @@
  * @module speech/graceful-interrupt/barge-in-judge
  */
 
+import { whenReplyPlays } from '../../utils/reply-side-effects.js';
+
 /**
  * Caller speech over Ferni longer than a backchannel, as the voice detector
  * reports it (with its 350 ms hangover). Same measurement as
@@ -122,9 +124,9 @@ export function registerBargeInJudge(sessionId: string, judge: BargeInJudge): ()
   };
 }
 
-/** A reply's opening lead (breath/sigh) for this session's judge, if any. */
+/** A reply's opening lead (breath/sigh) for this session's judge, once the reply plays. */
 export function noteReplyLead(sessionId: string, leadMs: number): void {
-  judges.get(sessionId)?.onReplyLead(leadMs);
+  whenReplyPlays(() => judges.get(sessionId)?.onReplyLead(leadMs));
 }
 
 /**

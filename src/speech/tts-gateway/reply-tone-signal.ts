@@ -15,6 +15,7 @@
 
 import { sendFrontendSignal } from '../../services/frontend-signal.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { whenReplyPlays } from '../../utils/reply-side-effects.js';
 
 const log = createLogger({ module: 'ReplyToneSignal' });
 
@@ -31,7 +32,8 @@ export function replyToneEnabled(env: Record<string, string | undefined> = proce
 
 /**
  * Send the reply's tone to the session's client when the flag is on. Never
- * throws and never delays the reply: the send runs in the background.
+ * throws and never delays the reply: the send runs in the background. A
+ * preemptive reply's tone waits for the commit, and a dropped one never goes.
  */
 export function sendReplyTone(
   tone: ReplyTone,
@@ -41,10 +43,12 @@ export function sendReplyTone(
   // Without a session the signal could reach the wrong call's client.
   if (!sessionId || !replyToneEnabled(env)) return;
   const payload = { emotion: tone.emotion ?? null, speed: tone.speed };
-  sendFrontendSignal(REPLY_TONE_MESSAGE, payload, sessionId).then(
-    (sent) => {
-      if (!sent) log.debug({ sessionId }, 'reply_tone not sent: no frontend signal for session');
-    },
-    (err: unknown) => log.warn({ err: String(err), sessionId }, 'reply_tone send failed')
-  );
+  whenReplyPlays(() => {
+    sendFrontendSignal(REPLY_TONE_MESSAGE, payload, sessionId).then(
+      (sent) => {
+        if (!sent) log.debug({ sessionId }, 'reply_tone not sent: no frontend signal for session');
+      },
+      (err: unknown) => log.warn({ err: String(err), sessionId }, 'reply_tone send failed')
+    );
+  }, env);
 }

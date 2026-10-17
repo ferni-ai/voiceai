@@ -15,6 +15,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { whenReplyPlays } from '../../utils/reply-side-effects.js';
 
 const log = getLogger().child({ module: 'ContextualLaughter' });
 
@@ -307,9 +308,7 @@ const sessionLaughHistory = new Map<
   }
 >();
 
-/**
- * Get or create session laugh history.
- */
+/** Get or create session laugh history. */
 export function getSessionHistory(sessionId: string): {
   lastLaughTurn: number;
   laughCount: number;
@@ -325,13 +324,13 @@ export function getSessionHistory(sessionId: string): {
   return sessionLaughHistory.get(sessionId)!;
 }
 
-/**
- * Record that a laugh was added.
- */
+/** Record that a laugh was added; a preemptive reply's, once it plays (preemptive-reply-gate.ts). */
 export function recordLaugh(sessionId: string, turnCount: number): void {
-  const history = getSessionHistory(sessionId);
-  history.lastLaughTurn = turnCount;
-  history.laughCount++;
+  whenReplyPlays(() => {
+    const history = getSessionHistory(sessionId);
+    history.lastLaughTurn = turnCount;
+    history.laughCount++;
+  });
 }
 
 /**

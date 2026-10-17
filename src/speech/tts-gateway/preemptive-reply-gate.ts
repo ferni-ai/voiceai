@@ -24,6 +24,7 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { setReplySideEffectGate } from '../../utils/reply-side-effects.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PreemptiveReplyGate' });
@@ -63,6 +64,9 @@ export async function loadReplySpeech(): Promise<void> {
 
 if (flagOn('PREEMPTIVE_TTS')) void loadReplySpeech();
 
+/** One gate per reply, however many side effects wait on it. */
+const gates = new WeakMap<ReplySpeech, Promise<boolean>>();
+
 /**
  * For the reply this async context is voicing: null when it is already
  * scheduled (or PREEMPTIVE_TTS is off), else a promise that resolves true
@@ -72,9 +76,37 @@ export function preemptiveReplyGate(env: Env = process.env): Promise<boolean> | 
   if (!flagOn('PREEMPTIVE_TTS', env)) return null;
   const speech = storage?.getStore();
   if (!speech || speech.scheduled) return null;
-  return new Promise<boolean>((resolve) => {
-    const settle = (): void => resolve(speech.scheduled && !speech.interrupted);
-    speech.addDoneCallback(settle);
-    speech.waitIfNotInterrupted([speech._waitForScheduled()]).then(settle, settle);
+  let gate = gates.get(speech);
+  if (!gate) {
+    gate = new Promise<boolean>((resolve) => {
+      const settle = (): void => resolve(speech.scheduled && !speech.interrupted);
+      speech.addDoneCallback(settle);
+      speech.waitIfNotInterrupted([speech._waitForScheduled()]).then(settle, settle);
+    });
+    gates.set(speech, gate);
+  }
+  return gate;
+}
+
+/**
+ * Run a side effect of voicing a reply: now, or for a preemptive reply once
+ * LiveKit schedules it, and never if LiveKit drops it. Installed behind the
+ * utils/reply-side-effects.ts port, which speech code calls.
+ */
+export function gateReplySideEffect(effect: () => void, env: Env = process.env): void {
+  const gate = preemptiveReplyGate(env);
+  if (!gate) {
+    effect();
+    return;
+  }
+  void gate.then((plays) => {
+    if (!plays) return;
+    try {
+      effect();
+    } catch (error) {
+      log.warn({ error: String(error) }, 'deferred reply side effect failed');
+    }
   });
 }
+
+setReplySideEffectGate(gateReplySideEffect);

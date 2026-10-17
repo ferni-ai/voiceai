@@ -15,6 +15,7 @@
  * @module performance/turn-profiler
  */
 
+import { whenReplyPlays } from '../../utils/reply-side-effects.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 // Note: This file was moved from agents/shared/performance/ to services/performance/
@@ -171,12 +172,13 @@ class TurnProfiler {
   mark(
     sessionId: string,
     turnNumber: number,
-    checkpoint: keyof Omit<TurnTimings, 'turnStart'>
+    checkpoint: keyof Omit<TurnTimings, 'turnStart'>,
+    at = Date.now()
   ): void {
     const key = this.getTurnKey(sessionId, turnNumber);
     const timings = this.activeTurns.get(key);
     if (timings) {
-      timings[checkpoint] = Date.now();
+      timings[checkpoint] = at;
     }
   }
 
@@ -458,15 +460,14 @@ export function startTurnProfiling(sessionId: string, turnNumber: number): void 
   getTurnProfiler().startTurn(sessionId, turnNumber);
 }
 
-/**
- * Mark a checkpoint
- */
+/** Mark a checkpoint, timed now; a preemptive reply's lands once it plays (preemptive-reply-gate.ts). */
 export function markTurnCheckpoint(
   sessionId: string,
   turnNumber: number,
   checkpoint: keyof Omit<TurnTimings, 'turnStart'>
 ): void {
-  getTurnProfiler().mark(sessionId, turnNumber, checkpoint);
+  const at = Date.now();
+  whenReplyPlays(() => getTurnProfiler().mark(sessionId, turnNumber, checkpoint, at));
 }
 
 /**

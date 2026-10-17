@@ -49,6 +49,7 @@ import { isFtisEnabled } from '../../config/tool-config.js';
 // TTS Gateway integration
 import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
 import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
+import { whenReplyPlays } from '../../utils/reply-side-effects.js';
 import { recordQuirk } from '../../services/session/quirk-log.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
@@ -1334,18 +1335,15 @@ export function extractTtsSessionContext(
   };
 }
 
-/**
- * Clear interrupt flags in agent's session userData.
- * Safe to call even if session or userData is undefined.
- */
+/** Clear the agent's interrupt flags (no-op without userData); a preemptive reply's, once it plays. */
 export function clearInterruptFlags(agent: voice.Agent): void {
-  const { session } = agent;
-  const userData = session?.userData as Record<string, unknown> | undefined;
+  const userData = agent.session?.userData as Record<string, unknown> | undefined;
+  if (!userData) return;
 
-  if (userData) {
+  whenReplyPlays(() => {
     userData.wasInterrupted = false;
     userData.interruptType = undefined;
-  }
+  });
 }
 
 export default wrappedTtsNode;

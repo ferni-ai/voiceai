@@ -31,6 +31,7 @@ import { carriedPace } from './key-phrase.js';
 import { leverModes, speechDirectorMode } from './gate.js';
 import { personaDelivery, teamVoicesOn } from './persona-delivery.js';
 import { RawCues } from './raw-cues.js';
+import { whenReplyPlays } from '../../../utils/reply-side-effects.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
 import type { DirectorMode, LeverModes, SpeechPlan, TurnContext } from './types.js';
 
@@ -400,16 +401,19 @@ class DirectedReply implements ReplyStream {
       cancelled,
       failed: this.failed,
     };
-    if (opts.sessionId && engine.stats.pushesIn > 0) {
-      (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
-        // The Director's own picks: the persona's tone and rest are reapplied each reply.
-        emotion: engine.directorEmotion ?? engine.emotion.emotion,
-        // The caller layer only: the resting layers are reapplied each reply, never compounded.
-        ...carriedPace(engine),
-        ...engine.nonverbalCarry(),
-      });
-    }
-    this.recordNonverbals(cancelled);
+    // A preemptive reply carries over and records its sounds only once it plays.
+    whenReplyPlays(() => {
+      if (opts.sessionId && engine.stats.pushesIn > 0) {
+        (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
+          // The Director's own picks: the persona's tone and rest are reapplied each reply.
+          emotion: engine.directorEmotion ?? engine.emotion.emotion,
+          // The caller layer only: the resting layers are reapplied each reply, never compounded.
+          ...carriedPace(engine),
+          ...engine.nonverbalCarry(),
+        });
+      }
+      this.recordNonverbals(cancelled);
+    }, opts.env);
     if (opts.onPlan) opts.onPlan(summary, engine.plan);
     else log.info(summary, 'Speech director plan');
   }
