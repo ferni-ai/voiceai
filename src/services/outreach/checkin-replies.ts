@@ -53,8 +53,7 @@ export interface CheckinRecord {
   /** ISO time. */
   sentAt: string;
   question: string;
-  /** 'sending': claimed by a send in flight (guarded-text.ts); only 'sent' counts as sent. */
-  status: 'sent' | 'failed' | 'sending';
+  status: 'sent' | 'failed';
   phoneLast4: string;
   /** phoneHash() of the number, so a reply can be matched without storing the number. */
   phoneHash: string;

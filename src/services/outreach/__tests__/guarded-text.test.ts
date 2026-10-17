@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { atomicClaims } from './atomic-claims.js';
+import { atomicLocks } from './atomic-locks.js';
 import {
   lastSentAt,
   sendGuardedText,
@@ -38,7 +38,7 @@ function deps(existing: StoredCheckin[] = [], opts: { optedOut?: boolean } = {})
       added.push(r);
       return 'new';
     }),
-    ...atomicClaims(added),
+    ...atomicLocks(),
     sponsoredPhone: vi.fn(async () => undefined),
     isOptedOut: vi.fn(async () => opts.optedOut === true),
     userDoc: vi.fn(async () => undefined),
@@ -97,7 +97,7 @@ describe('sendGuardedText', () => {
     });
   });
 
-  it('two sends at once (both past the gap check) text once: the claim decides', async () => {
+  it('two sends at once (both past the gap check) text once: the lock decides', async () => {
     const { d, added } = deps();
     const both = await Promise.all([
       sendGuardedText(followUp(), d),
@@ -108,7 +108,7 @@ describe('sendGuardedText', () => {
     expect(added.map((r) => r.status)).toEqual(['sent']);
   });
 
-  it('a failed send releases its claim, so a retry may go', async () => {
+  it('a failed send drops its locks, so a retry may go', async () => {
     const { d, added } = deps();
     d.send = vi.fn(async () => ({ success: false, error: 'down' }));
     expect(await sendGuardedText(followUp(), d)).toEqual({ sent: false, reason: 'send-failed' });

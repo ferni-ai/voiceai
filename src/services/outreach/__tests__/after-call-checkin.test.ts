@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { atomicClaims } from './atomic-claims.js';
+import { atomicLocks } from './atomic-locks.js';
 import {
   CHECKIN_QUESTION,
   decideCheckin,
@@ -59,7 +59,7 @@ function deps(
       added.push(r);
       return `new${added.length}`;
     }),
-    ...atomicClaims(added),
+    ...atomicLocks(),
     sponsoredPhone: vi.fn(async (): Promise<string | undefined> => '+15559990000'),
     isOptedOut: vi.fn(async (h: string) => optedOut.includes(h)),
     userDoc: vi.fn(async (): Promise<Record<string, unknown> | undefined> => undefined),

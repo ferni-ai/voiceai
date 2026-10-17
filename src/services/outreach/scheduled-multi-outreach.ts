@@ -309,7 +309,8 @@ export async function claimPendingOutreach(userId: string, outreachId: string): 
   const ref = outreachDoc(firestore, userId, outreachId);
   return firestore.runTransaction(async (tx) => {
     if ((await tx.get(ref)).data()?.status !== 'pending') return false;
-    tx.update(ref, { status: 'executing', updatedAt: new Date() });
+    // claimedAt lets a sweeper find items stuck in 'executing'.
+    tx.update(ref, { status: 'executing', claimedAt: new Date(), updatedAt: new Date() });
     return true;
   });
 }

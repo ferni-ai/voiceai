@@ -40,22 +40,30 @@ import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
 import { verifiedPhoneOf } from './user-reach.js';
 import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
-import { isQuietHour } from '../follow-through/index.js';
 import { QUIET_END_HOUR, QUIET_START_HOUR } from '../follow-through/right-moment.js';
 import { flagOn } from '../../config/env-flag.js';
-import { hoursWindow, quietEndsAt, quietZonesOf, type QuietHoursUser } from './quiet-hours.js';
+import {
+  hoursWindow,
+  isQuietAt,
+  quietEndsAt,
+  quietZones,
+  quietZonesOf,
+  type QuietHoursUser,
+} from './quiet-hours.js';
+import { timezoneFromPhone } from './area-code-timezones.js';
 
 const log = createLogger({ module: 'guarded-text' });
+/** Send locks (lockedSend), kept apart from the records so no query reads them. */
+const TEXT_LOCKS = 'feature_checkin_locks';
 
 export interface TextStore extends Pick<ReplyStore, 'forPhoneHash' | 'isOptedOut'> {
   forUser: (userId: string) => Promise<StoredCheckin[]>;
   add: (record: CheckinRecord) => Promise<string>;
-  /** Writes `record` under `id` only if no record has that id (atomic); false if one does. */
-  claim: (id: string, record: CheckinRecord) => Promise<boolean>;
-  /** The claimed send went: mark it sent. */
-  markSent: (id: string) => Promise<void>;
-  /** The claimed send failed: drop the claim so a retry may go. */
-  release: (id: string) => Promise<void>;
+  /** Takes lock `id`, stamped `at`, only if nobody holds it (atomic); false if someone does. */
+  lock: (id: string, at: string) => Promise<boolean>;
+  /** When lock `id` was taken, if it is held. */
+  lockedAt: (id: string) => Promise<string | undefined>;
+  unlock: (id: string) => Promise<void>;
   sponsoredPhone: (userId: string) => Promise<string | undefined>;
   userDoc: (userId: string) => Promise<Record<string, unknown> | undefined>;
   /** outreach_profiles/{userId}.state.allowedChannels, where the webhook's global STOP lands. */
@@ -165,35 +173,45 @@ export function recordUserId(userId: string, env: Env = process.env): string | n
 }
 
 /**
- * Claim, send, settle. The gap checks read the records and then send, so two
+ * Lock, send, record. The gap checks read the records and then send, so two
  * runs at once (the job overlapping itself, a scheduler retry, a tool firing
- * with the job) could both pass them. The claim closes that: a record created
- * under an id fixed by kind, number and gap window, which only one run can
- * create. A failed send releases the claim, so a retry may go, and is kept as
- * a failed record of its own.
+ * with the job) could both pass them. Each run takes two locks, its gap
+ * window's and the one before (ids fixed by kind and number), so any two runs
+ * less than a gap apart want one lock in common and only one gets it. The
+ * window-before lock left by a text more than a gap ago doesn't count. Locks
+ * stay after a send; a failed send drops them so a retry may go.
  */
-async function claimedSend(
+async function lockedSend(
   deps: TextDeps,
   gapMs: number,
   record: CheckinRecord,
   message: SMSMessage
-): Promise<SMSDeliveryResult | 'claimed'> {
-  const window = gapMs > 0 ? Math.floor(Date.parse(record.sentAt) / gapMs) : record.sentAt;
-  const id = `${record.kind}:${record.phoneHash}:${window}`;
-  if (!(await deps.store.claim(id, { ...record, status: 'sending' }))) return 'claimed';
+): Promise<SMSDeliveryResult | 'locked'> {
+  const at = Date.parse(record.sentAt);
+  const window = Math.floor(at / Math.max(gapMs, 1));
+  const [mine, before] = [window, window - 1].map((w) => `${record.kind}:${record.phoneHash}:${w}`);
+  if (!(await deps.store.lock(mine, record.sentAt))) return 'locked';
+  const held = [mine];
+  if (await deps.store.lock(before, record.sentAt)) held.push(before);
+  else if (at - Date.parse((await deps.store.lockedAt(before)) ?? '') < gapMs) {
+    await deps.store.unlock(mine);
+    return 'locked';
+  }
+  const unlock = () => Promise.all(held.map((id) => deps.store.unlock(id)));
   let result: SMSDeliveryResult;
   try {
     result = await deps.send(message);
   } catch (error) {
-    await deps.store.release(id);
+    await unlock();
     throw error;
   }
-  if (result.success) {
-    await deps.store.markSent(id);
-  } else {
-    await deps.store.release(id);
-    await deps.store.add({ ...record, status: 'failed' });
-  }
+  if (!result.success) await unlock();
+  // A text that went is sent: a failed write must not make anyone send it again.
+  await deps.store
+    .add({ ...record, status: result.success ? 'sent' : 'failed' })
+    .catch((error: unknown) => {
+      log.warn({ kind: record.kind, refId: record.refId, error: String(error) }, 'Not recorded');
+    });
   return result;
 }
 
@@ -245,14 +263,14 @@ export async function sendGuardedText(
     kind: t.kind,
     refId: t.refId,
   };
-  const result = await claimedSend(deps, t.minGapMs, record, {
+  const result = await lockedSend(deps, t.minGapMs, record, {
     to: phone,
     body: t.body,
     personaId: 'ferni',
     userId: storedId,
     outreachId: `${t.kind}_${t.refId}`,
   });
-  if (result === 'claimed') return skip('recently-sent');
+  if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
     log.warn({ ...logCtx, phoneLast4, error: redactNumbers(result.error) }, 'Text not sent');
     return { sent: false, reason: 'send-failed' };
@@ -300,23 +318,24 @@ export type OnBehalfOutcome =
 const QUIET_WINDOW = hoursWindow(QUIET_START_HOUR, QUIET_END_HOUR);
 
 /**
- * Their zone when known, else the member's: the call's (in a call), else the
- * one on their account (a scheduled job runs outside any call). None if unknown.
+ * The zones to read quiet hours in: the recipient's (given, else their area
+ * code's), else the member's (the call's, else their account's: a scheduled
+ * job runs outside any call), else both US coasts (quiet-hours.ts).
  */
-async function quietZone(t: OnBehalfText, deps: TextDeps): Promise<string | undefined> {
-  const zone = t.zone ?? userTimeZone({ userId: t.senderUserId });
-  if (zone !== undefined) return isValidTimeZone(zone) ? zone : undefined;
+async function quietZonesFor(t: OnBehalfText, to: string, deps: TextDeps): Promise<string[]> {
+  const zone = [t.zone, timezoneFromPhone(to), userTimeZone({ userId: t.senderUserId })].find(
+    (z) => z !== undefined && isValidTimeZone(z)
+  );
+  if (zone) return [zone];
   const doc = await deps.store.userDoc(t.senderUserId).catch(() => undefined);
-  // quietZonesOf gives both US coasts for an account without a zone; that is "unknown" here.
-  const own = quietZonesOf(doc as QuietHoursUser | undefined);
-  return own.length === 1 ? own[0] : undefined;
+  return doc ? quietZonesOf(doc as QuietHoursUser) : quietZones(undefined);
 }
 
 /**
  * Sends a text to someone else for a member (the caller has already said yes,
  * outreach-confirm.ts): only to a valid number, never after that number sent
  * STOP (any STOP to our number is recorded, checkin-replies.ts), not twice in
- * ten minutes, not in quiet hours (follow-through's 21:00 to 08:00).
+ * ten minutes, not in their quiet hours (follow-through's 21:00 to 08:00).
  */
 export async function sendOnBehalfText(
   t: OnBehalfText,
@@ -331,9 +350,9 @@ export async function sendOnBehalfText(
   const hash = to ? phoneHash(to, deps.env) : null;
   if (!to || !hash) return skip('bad-number');
   const now = deps.now();
-  const zone = await quietZone(t, deps);
-  if (zone && isQuietHour(now, zone)) {
-    const until = quietEndsAt(now, QUIET_WINDOW, [zone]);
+  const zones = await quietZonesFor(t, to, deps);
+  if (isQuietAt(now, QUIET_WINDOW, zones)) {
+    const until = quietEndsAt(now, QUIET_WINDOW, zones);
     log.info({ kind: 'on-behalf', refId: t.refId, reason: 'quiet-hours' }, 'Text skipped');
     return { sent: false, reason: 'quiet-hours', until };
   }
@@ -357,14 +376,14 @@ export async function sendOnBehalfText(
     kind: 'on-behalf',
     refId: t.refId,
   };
-  const result = await claimedSend(deps, ON_BEHALF_GAP_MS, record, {
+  const result = await lockedSend(deps, ON_BEHALF_GAP_MS, record, {
     to,
     body: t.body,
     personaId: t.personaId ?? 'ferni',
     userId: storedId,
     outreachId: t.refId,
   });
-  if (result === 'claimed') return skip('recently-sent');
+  if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
     log.warn(
       { kind: 'on-behalf', refId: t.refId, error: redactNumbers(result.error) },
@@ -398,7 +417,7 @@ export async function textOnBehalf(
 export function onBehalfNotSent(name: string, reason: OnBehalfSkip): string {
   const why: Record<OnBehalfSkip, string> = {
     'opted-out': "that number replied STOP to our texts, so I can't text it",
-    'quiet-hours': "it's quiet hours where they are (9pm to 8am), so I held it",
+    'quiet-hours': "it's late where they are (9pm to 8am their time). Nothing is queued",
     'recently-sent': 'I already texted that number in the last ten minutes',
     'bad-number': "that doesn't look like a valid phone number",
     'no-hash-secret': "texting isn't set up right now",
@@ -417,20 +436,22 @@ export const firestoreTextStore: TextStore = {
   async add(record) {
     return (await checkinDb().collection(CHECKINS).add(record)).id;
   },
-  async claim(id, record) {
+  async lock(id, at) {
     try {
-      await checkinDb().collection(CHECKINS).doc(id).create(record);
+      await checkinDb().collection(TEXT_LOCKS).doc(id).create({ at });
       return true;
     } catch (error) {
       if ((error as { code?: unknown }).code === ALREADY_EXISTS) return false;
       throw error;
     }
   },
-  async markSent(id) {
-    await checkinDb().collection(CHECKINS).doc(id).update({ status: 'sent' });
+  async lockedAt(id) {
+    const doc = await checkinDb().collection(TEXT_LOCKS).doc(id).get();
+    const at: unknown = doc.exists ? doc.data()?.at : undefined;
+    return typeof at === 'string' ? at : undefined;
   },
-  async release(id) {
-    await checkinDb().collection(CHECKINS).doc(id).delete();
+  async unlock(id) {
+    await checkinDb().collection(TEXT_LOCKS).doc(id).delete();
   },
   async userDoc(userId) {
     const doc = await checkinDb().collection('bogle_users').doc(userId).get();

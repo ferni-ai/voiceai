@@ -12,17 +12,19 @@ import type * as GuardedText from '../guarded-text.js';
 import { phoneHash, toE164, type CheckinRecord, type StoredCheckin } from '../checkin-replies.js';
 // Static: concurrent dynamic imports of a mocked module can resolve the real one.
 import { sendSMS } from '../delivery/sms-delivery.js';
-import { atomicClaims } from './atomic-claims.js';
+import { atomicLocks } from './atomic-locks.js';
 
 const ENV = { LOG_HASH_SECRET: 'test-secret' };
+/** 14:00 in New York, 11:00 in Los Angeles: outside quiet hours on both coasts, whatever the wall clock says. */
+const MIDDAY = new Date('2026-10-12T18:00:00Z');
 const sent: StoredCheckin[] = [];
 const optedOut = new Set<string>();
-let claims = atomicClaims(sent);
+let claims = atomicLocks();
 
 export function resetMemoryTexts(): void {
   sent.length = 0;
   optedOut.clear();
-  claims = atomicClaims(sent);
+  claims = atomicLocks();
 }
 
 /** As if `phone` had replied STOP. */
@@ -48,7 +50,7 @@ function memoryDeps(send?: GuardedText.TextDeps['send']): GuardedText.TextDeps {
     } as unknown as GuardedText.TextStore,
     authPhone: async () => undefined,
     send: send ?? ((m) => sendSMS(m)),
-    now: () => new Date(),
+    now: () => MIDDAY,
   };
 }
 

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firestore.js';
 import type { CheckinRecord, StoredCheckin } from '../checkin-replies.js';
 import type { TextDeps, TextStore } from '../guarded-text.js';
-import { atomicClaims } from './atomic-claims.js';
+import { atomicLocks } from './atomic-locks.js';
 import { sendEmail } from '../delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../../voice/voice-call.js';
 
@@ -23,7 +23,7 @@ const guard = {
   /** The member's own verified phone (Firebase Auth's). */
   ownPhone: undefined as string | undefined,
   env: { LOG_HASH_SECRET: 'test-secret' } as Record<string, string>,
-  claims: atomicClaims([]),
+  claims: atomicLocks(),
 };
 
 vi.mock('../../superhuman/firestore-utils.js', () => ({
@@ -65,9 +65,12 @@ vi.mock('../guarded-text.js', async (importOriginal) => {
   };
 });
 
-const { executeDueScheduledOutreach } = await import('../scheduled-outreach-executor.js');
+const { executeDueScheduledOutreach, executeScheduledOutreach } =
+  await import('../scheduled-outreach-executor.js');
 
 const NOW = new Date('2026-09-30T16:00:00.000Z');
+const { outreachFromDoc } = await import('../scheduled-multi-outreach.js');
+const outreachFromRow = (r: Row) => ({ ...outreachFromDoc(r.id, r.data), userId: r.userId });
 const outreach = (id: string, minutesAgo: number): Row => ({
   id,
   userId: 'u1',
@@ -98,7 +101,7 @@ beforeEach(() => {
   Object.assign(guard, {
     optedOut: false,
     sent,
-    claims: atomicClaims(sent),
+    claims: atomicLocks(),
     account: undefined,
     ownPhone: undefined,
     env: { LOG_HASH_SECRET: 'test-secret' },
@@ -173,7 +176,8 @@ describe('scheduled texts to a contact go through the guards', () => {
 
   it("holds a text due in the recipient's quiet hours until 08:00 there, still pending", async () => {
     rows = [outreach('o1', 1)];
-    guard.account = { contactInfo: { timezone: 'Asia/Tokyo' } }; // 16:00Z is 01:00 in Tokyo
+    rows[0].data.target = { ...(rows[0].data.target as object), resolvedPhone: '+15555550123' };
+    guard.account = { contactInfo: { timezone: 'Asia/Tokyo' } }; // no area-code zone; 01:00 in Tokyo
     await executeDueScheduledOutreach({ now: NOW });
 
     expect(sendSMS).not.toHaveBeenCalled();
@@ -189,16 +193,23 @@ describe('scheduled texts to a contact go through the guards', () => {
     );
   });
 
-  it('skips a second text to the same number within ten minutes', async () => {
+  it('a second text to the same number within ten minutes waits out the gap, still pending', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
     rows = [outreach('o1', 1), outreach('o2', 1)];
     await executeDueScheduledOutreach({ now: NOW });
+    vi.useRealTimers();
 
     expect(sendSMS).toHaveBeenCalledTimes(1);
-    expect(updateOutreachStatus).toHaveBeenCalledWith(
+    expect(patchOutreach).toHaveBeenCalledWith('u1', 'o2', {
+      status: 'pending',
+      scheduledFor: new Date(NOW.getTime() + 10 * 60_000),
+    });
+    expect(updateOutreachStatus).not.toHaveBeenCalledWith(
       'u1',
       'o2',
       'cancelled',
-      expect.objectContaining({ error: 'skipped: recently-sent' })
+      expect.anything()
     );
   });
 
@@ -278,6 +289,31 @@ describe("an 'auto' scheduled outreach", () => {
     await executeDueScheduledOutreach({ now: NOW });
 
     expect(callWithPersonaVoice).not.toHaveBeenCalled();
+    expect(sendSMS).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('a held item released later', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('is cancelled as expired-while-held once it is more than a day past its time, never sent', async () => {
+    const stale = outreachFromRow(outreach('o1', 30 * 60));
+    await executeScheduledOutreach({ ...stale, heldAt: new Date() });
+
+    expect(sendSMS).not.toHaveBeenCalled();
+    expect(updateOutreachStatus).toHaveBeenCalledWith('u1', 'o1', 'cancelled', {
+      success: false,
+      error: 'expired-while-held',
+    });
+  });
+
+  it('still goes when released within a day of its time', async () => {
+    const recent = outreachFromRow(outreach('o1', 60));
+    await executeScheduledOutreach({ ...recent, heldAt: new Date() });
     expect(sendSMS).toHaveBeenCalledTimes(1);
   });
 });

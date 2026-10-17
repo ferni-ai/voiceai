@@ -110,7 +110,10 @@ describe('scheduleOutreach write shape', () => {
     );
     expect(await claimPendingOutreach('u1', id)).toBe(true);
     expect(await claimPendingOutreach('u1', id)).toBe(false);
-    expect(rows.find((r) => r.id === id)?.data.status).toBe('executing');
+    expect(rows.find((r) => r.id === id)?.data).toMatchObject({
+      status: 'executing',
+      claimedAt: expect.any(Date),
+    });
     // The job claims the same way (due-items.ts), so it skips an item the poller took.
     expect(await executeDueScheduledOutreach({ now: NOW })).toMatchObject({ executed: 0 });
   });

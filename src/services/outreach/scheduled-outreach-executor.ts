@@ -18,7 +18,7 @@ import {
   type ScheduledOutreach,
   type ScheduledOutreachTarget,
 } from './scheduled-multi-outreach.js';
-import { isOwnVerifiedPhone, textOnBehalf } from './guarded-text.js';
+import { isOwnVerifiedPhone, ON_BEHALF_GAP_MS, textOnBehalf } from './guarded-text.js';
 import { flagOn } from '../../config/env-flag.js';
 import { sendEmail } from './delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../voice/voice-call.js';
@@ -54,7 +54,9 @@ let isRunning = false;
 let config = DEFAULT_CONFIG;
 
 /** Guard skips that end a scheduled text rather than fail it. */
-const FINAL_SKIPS: ReadonlySet<string> = new Set(['opted-out', 'bad-number', 'recently-sent']);
+const FINAL_SKIPS: ReadonlySet<string> = new Set(['opted-out', 'bad-number']);
+/** A held item released this long after its time is stale: cancelled, never sent as a backlog. */
+const HELD_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 // Track active users to process
 const activeUserIds = new Set<string>();
@@ -84,6 +86,15 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
     { userId, contact: target.resolvedContactName, channel: target.channel },
     '⏰ Executing scheduled outreach'
   );
+
+  if (outreach.heldAt && Date.now() - outreach.scheduledFor.getTime() > HELD_EXPIRY_MS) {
+    await updateOutreachStatus(userId, id, 'cancelled', {
+      success: false,
+      error: 'expired-while-held',
+    });
+    log.info({ userId, id }, 'Held scheduled outreach expired');
+    return;
+  }
 
   // Mark as executing
   await updateOutreachStatus(userId, id, 'executing');
@@ -159,8 +170,14 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
         log.info({ userId, id, until: sent.until.toISOString() }, 'Scheduled text held');
         return;
       }
+      if (!sent.sent && sent.reason === 'recently-sent') {
+        // Another text to them just went (or is going): this one waits out the gap.
+        const scheduledFor = new Date(Date.now() + ON_BEHALF_GAP_MS);
+        await patchOutreach(userId, id, { status: 'pending', scheduledFor });
+        return;
+      }
       if (!sent.sent && FINAL_SKIPS.has(sent.reason)) {
-        // A STOP, a bad number or a text just sent: trying again would be wrong, not unlucky.
+        // A STOP or a bad number: trying again would be wrong, not unlucky.
         await updateOutreachStatus(userId, id, 'cancelled', {
           success: false,
           channel: channelUsed,

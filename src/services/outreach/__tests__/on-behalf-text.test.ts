@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { atomicClaims } from './atomic-claims.js';
+import { atomicLocks } from './atomic-locks.js';
 import {
   ON_BEHALF_GAP_MS,
   onBehalfNotSent,
@@ -29,7 +29,7 @@ function deps(
       added.push(r);
       return 'new';
     }),
-    ...atomicClaims(added),
+    ...atomicLocks(),
   } as unknown as TextStore;
   const d: TextDeps = {
     env: opts.env ?? ENV,
@@ -97,7 +97,7 @@ describe('sendOnBehalfText', () => {
     expect(await sendOnBehalfText(text(), later.d)).toEqual({ sent: true });
   });
 
-  it('two texts to the same number at once send one: the claim decides', async () => {
+  it('two texts to the same number at once send one: the lock decides', async () => {
     const { d } = deps();
     const both = await Promise.all([
       sendOnBehalfText(text(), d),
@@ -105,6 +105,58 @@ describe('sendOnBehalfText', () => {
     ]);
     expect(d.send).toHaveBeenCalledTimes(1);
     expect(both).toContainEqual({ sent: false, reason: 'recently-sent' });
+  });
+
+  it("reads quiet hours in the recipient's area-code zone before the member's", async () => {
+    const { d } = deps([], { account: { contactInfo: { timezone: 'Asia/Tokyo' } } });
+    // 16:00Z: 06:00 in Honolulu (quiet), 10:00 in Denver (not), 01:00 in the member's Tokyo.
+    const hawaii = text({ zone: undefined, toPhone: '+18085550123' });
+    expect(await sendOnBehalfText(hawaii, d)).toMatchObject({ reason: 'quiet-hours' });
+    const utah = text({ zone: undefined, toPhone: '+18015550123' });
+    expect(await sendOnBehalfText(utah, d)).toEqual({ sent: true });
+  });
+
+  it('with no zone anywhere, it is quiet while it is quiet on either US coast', async () => {
+    const { d } = deps();
+    d.now = () => new Date('2026-10-12T13:30:00Z'); // 09:30 in New York, 06:30 in Los Angeles
+    expect(await sendOnBehalfText(text({ zone: undefined }), d)).toEqual({
+      sent: false,
+      reason: 'quiet-hours',
+      until: new Date('2026-10-12T15:00:00Z'), // 08:00 in Los Angeles
+    });
+  });
+
+  it('two texts either side of a gap-window edge send once: they share a lock', async () => {
+    const shared: StoredCheckin[] = [];
+    const store = {
+      isOptedOut: async () => false,
+      forPhoneHash: async (h: string) => shared.filter((r) => r.phoneHash === h),
+      add: async () => 'x',
+      ...atomicLocks(),
+    } as unknown as TextStore;
+    const send = vi.fn(async () => ({ success: true }));
+    const at = (ms: number): TextDeps => ({
+      env: ENV,
+      store,
+      authPhone: async () => undefined,
+      send,
+      now: () => new Date(NOW.getTime() + ms), // NOW sits on a 10-minute window edge
+    });
+    const both = await Promise.all([
+      sendOnBehalfText(text({ refId: 'a' }), at(-60_000)),
+      sendOnBehalfText(text({ refId: 'b' }), at(60_000)),
+    ]);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(both).toContainEqual({ sent: true });
+    expect(both).toContainEqual({ sent: false, reason: 'recently-sent' });
+  });
+
+  it('a text that went counts as sent even if recording it fails', async () => {
+    const { d } = deps();
+    d.store.add = vi.fn(async () => {
+      throw new Error('firestore down');
+    });
+    expect(await sendOnBehalfText(text(), d)).toEqual({ sent: true });
   });
 
   it('holds texts between 21:00 and 08:00 in the zone it is given', async () => {
@@ -175,6 +227,10 @@ describe('onBehalfNotSent', () => {
     expect(onBehalfNotSent('Mom', 'opted-out')).toBe(
       "The text to Mom was NOT sent: that number replied STOP to our texts, so I can't text it."
     );
-    expect(onBehalfNotSent('Mom', 'quiet-hours')).toMatch(/NOT sent: .*quiet hours/);
+    const late = onBehalfNotSent('Mom', 'quiet-hours');
+    expect(late).toBe(
+      "The text to Mom was NOT sent: it's late where they are (9pm to 8am their time). Nothing is queued."
+    );
+    expect(late).not.toMatch(/held|will send|in the morning/i);
   });
 });
