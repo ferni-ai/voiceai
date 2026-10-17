@@ -39,26 +39,40 @@ export function callerVoiceGuardEnabled(env: Env = process.env): boolean {
 }
 
 /**
- * Ferni answering for the caller, in the first person. Each pattern is narrow on
- * purpose: a lowercase "I'm in the garden" never matches, and neither does a
- * feeling after "Yeah, I'm".
+ * A question that asks the caller where they are or who they are. Only after one of
+ * these is a first-person answer a caller's answer. "Where did you grow up?" counts,
+ * and so does "Who told you about me?"; "Did I find anything?" does not.
+ */
+const ASKS_CALLER =
+  /\b(?:where|whereabouts|your name|who are you|who (?:told|sent|referred|gave) you|who am i (?:talking|speaking) (?:to|with)|who'?s (?:this|calling)|your city|what city|which city|what town|zip|postcode|post code|(?:do|are|did) you (?:still )?(?:live|located|from|in|at|near|staying)|your (?:area|town|home|address))\b/i;
+
+/**
+ * Ferni answering for the caller, in the first person, as a caller would. Narrow on
+ * purpose: "Yes, I have three options" and "I grew up in Wyoming" never match.
  */
 const SELF_ANSWER: readonly RegExp[] = [
-  /^I(?:'m|’m| am) (?:in|from|at) [A-Z]/,
-  /^My name(?:'s| is) [A-Z]/,
-  /^I (?:live|grew up|work) (?:in|at|on|near|up) [A-Z\d]/,
-  /^(?:yeah|yes|yep|yup|sure|no|nope)[,.!]? I(?:'m| am| live| lived| work| grew| have| was)\b(?! (?:glad|happy|sorry|here|good|sure|not|really|too|so|fine|ready|down|up)\b)/i,
-  /^\d{5}(?:-\d{4})?[.!]?$/,
+  /^I(?:'m|’m| am) (?:in|from|at|near) (?:the )?[A-Z]/, // I'm in Manhattan, I'm from the Bronx
+  /^I(?:'m|’m| am) (?!Ferni\b|Sorry|Glad|Happy|Sure|Good|Fine|Ready|Here|Okay|Not|Really|Afraid|Curious|Thrilled|Excited|Thinking|Honestly|Sad|Tired|Busy|Also|Just|So|Very|Still|Going|Trying|Hoping)[A-Z][a-z]+(?=[,.!]|$)/, // I'm Linda, her mom.
+  /^(?:My name(?:'s| is)|This is|Call me) (?!Ferni\b)[A-Z][a-z]+/, // My name is Linda; This is Linda.
+  /^I (?:live|am living) (?:in|at|on|near) [A-Z\d]/, // I live in Ohio
+  /^(?:[Yy]eah|[Yy]es|[Yy]ep|[Ss]ure)[,.!]? I(?:'m| am| live) (?:in|from|at|near) (?:the )?[A-Z]/, // Yeah, I live in Ohio
+  /^\d{5}(?:-\d{4})?[.!]?$/, // a bare zip code
+  /^[A-Z][a-z]+(?: [A-Z][a-z]+)*,? (?:[A-Z]{2}|New York|New Jersey|Pennsylvania|California|Massachusetts|Florida|Texas|Ohio|Illinois|Colorado|Oregon|Washington|Michigan|Georgia|Virginia|Wyoming)\.?$/, // Manhattan, New York.
 ];
 
 const isSelfAnswer = (sentence: string): boolean =>
   SELF_ANSWER.some((pattern) => pattern.test(sentence.trim()));
 
-const isQuestion = (sentence: string): boolean => sentence.trim().endsWith('?');
+/** A sentence that asks something: a question mark, then any closing quote or bracket. */
+const QUESTION_END = /\?[!.]*["”’')\]]*$/;
+const isQuestion = (sentence: string): boolean => QUESTION_END.test(sentence.trim());
 
-/** Length of the first whole sentence in the text, with its trailing space; 0 if none yet. */
+/**
+ * Length of the first whole sentence in the text, with its trailing space; 0 if none yet.
+ * "St." and "Dr." do not end a sentence, so they cannot use up the answer window.
+ */
 function sentenceEnd(text: string): number {
-  const m = text.match(/[.!?]+(?:\s|(?=[A-Z]))/);
+  const m = text.match(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|vs|etc))[.!?]+["”’')\]]*(?:\s|(?=[A-Z]))/);
   return m?.index === undefined ? 0 : m.index + m[0].length;
 }
 
@@ -93,6 +107,7 @@ export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = 
       let passed = 0; // how much of pending already streamed out (only while no window is open)
       let window = 0; // sentences left in which the caller's answer can land
       let held: string[] = []; // sentences held while the window is open
+      let askedCaller = false; // the question that opened the window asks for the caller's whereabouts or name
       const emit = (text: string): void => {
         if (text) controller.enqueue(out(text));
       };
@@ -102,19 +117,21 @@ export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = 
       };
       /** Decides one sentence (or the unfinished tail). True when the reply was cut. */
       const decide = (sentence: string): boolean => {
-        if (window === 0) {
-          emit(sentence.slice(passed));
-          if (isQuestion(sentence)) window = ANSWER_WINDOW;
-          return false;
-        }
-        if (isSelfAnswer(sentence)) {
+        if (window > 0 && askedCaller && isSelfAnswer(sentence)) {
           log.warn({ reason: 'self_answer' }, 'CALLER_VOICE_CUT');
           release(); // the held sentences are Ferni's own words, before the answer
           return true;
         }
-        held.push(sentence);
-        window -= 1;
-        if (isQuestion(sentence)) window = ANSWER_WINDOW;
+        if (window === 0) {
+          emit(sentence.slice(passed));
+        } else {
+          held.push(sentence);
+          window -= 1;
+        }
+        if (isQuestion(sentence)) {
+          window = ANSWER_WINDOW;
+          askedCaller = ASKS_CALLER.test(sentence);
+        }
         if (window === 0) release();
         return false;
       };
@@ -129,13 +146,15 @@ export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = 
           const chunk = next.value;
           const content = contentOf(chunk);
           if (content === undefined) {
-            // A tool call goes out after the words before it, and no text is held across it.
+            // A tool call goes out after the words before it, checked like any sentence.
             if (hasToolCall(chunk)) {
-              emit(held.join(''));
-              held = [];
-              emit(pending.slice(passed));
+              if (pending && decide(pending)) {
+                await stop();
+                return;
+              }
               pending = '';
               passed = 0;
+              release();
               window = 0;
             }
             controller.enqueue(chunk);
@@ -157,7 +176,7 @@ export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = 
             }
           }
           // A question still open ("...are you?") waits for its boundary, so its end is never streamed early.
-          if (window === 0 && !pending.trimEnd().endsWith('?')) {
+          if (window === 0 && !isQuestion(pending)) {
             emit(pending.slice(passed));
             passed = pending.length;
           }

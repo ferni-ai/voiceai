@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest';
 
 import { withCallerVoiceGuard } from '../caller-voice-guard.js';
 
+type Chunk = string | object;
+
 /** A reply stream from string chunks, as the model writes them. */
 function replyOf(chunks: string[]): ReadableStream<string> {
   return new ReadableStream<string>({
@@ -100,6 +102,44 @@ describe('withCallerVoiceGuard', () => {
   it("passes a question followed by Ferni's own next line", async () => {
     const text = await spoken(['Where are you? ', 'Let me check.']);
     expect(text).toBe('Where are you? Let me check.');
+  });
+
+  it.each([
+    ["What's your name? This is Linda.", 'Linda'],
+    ["Where are you from? I'm from the Bronx.", 'Bronx'],
+    ['Whereabouts are you? Manhattan, New York.', 'Manhattan'],
+    ['Are you in Boston?” I’m in Boston.', 'I’m in Boston'],
+    ['Are you near St. Louis? I ask because Dr. Smith said so. I’m in St. Louis.', 'in St. Louis.'],
+  ])('cuts the caller-voiced answer in %j', async (reply, leaked) => {
+    expect(await spoken([reply])).not.toContain(leaked);
+  });
+
+  it('cuts a caller answer that comes just before a tool call', async () => {
+    const stream = new ReadableStream<Chunk>({
+      start(controller) {
+        controller.enqueue('Where are you? ');
+        controller.enqueue("I'm in Boston");
+        controller.enqueue({ id: 'r', delta: { role: 'assistant', toolCalls: [{ name: 'searchLocalBusinesses' }] } });
+        controller.close();
+      },
+    });
+    const reader = ((await withCallerVoiceGuard(stream)) as unknown as ReadableStream<Chunk>).getReader();
+    let text = '';
+    for (let next = await reader.read(); !next.done; next = await reader.read()) {
+      if (typeof next.value === 'string') text += next.value;
+    }
+    expect(text).toBe('Where are you? ');
+  });
+
+  it.each([
+    ['Remember the first computer you used? I grew up in Wyoming with a Commodore 64.'],
+    ['Where did you grow up? I grew up in Wyoming, myself.'],
+    ['Did I find anything? Yes, I have three options for you.'],
+    ['Is it doable? Yes, I am confident it is.'],
+    ['Was I worried? No, I was curious.'],
+    ['Can I tell you about me? My name is Ferni, and I am a companion.'],
+  ])('does not cut Ferni speaking for himself in %j', async (reply) => {
+    expect(await spoken([reply])).toBe(reply);
   });
 
   it('keeps false positives at zero across realistic synthetic replies', async () => {
