@@ -170,6 +170,8 @@ export const FLAG_MANIFEST = {
   FERNI_SELF_MEMORY: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_SELF_RECALL: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_STATE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on (with FERNI_STATE): his day holds this week's beat of a written life thread (ferni-life-threads.ts)
+  FERNI_THREADS: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_TASK_MOOD_ALONE_TRIGGERS: { default: 'off', owner: 'platform', kind: 'config' },
   FERNI_TASK_SCRIPTED_TRANSITIONS: { default: 'off', owner: 'platform', kind: 'experiment' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -356,6 +358,8 @@ export const FLAG_MANIFEST = {
   SESSION_CONTINUITY_WRITE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: tell the caller's app when the agent session ends without them (session-ended-signal.ts)
   SESSION_ENDED_SIGNAL: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // once the caller said bye, Ferni's goodbye is one or two short sentences (short-goodbye.ts)
+  SHORT_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
