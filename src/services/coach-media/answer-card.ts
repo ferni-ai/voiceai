@@ -3,11 +3,14 @@
  * which Google's grounding terms ask be shown to the user; voice can't, so
  * they travel with the card, never in the model's text.
  *
- * Today the card is saved with the in-app message (pending_messages), and no
- * client shows it: the web inbox (proactive-messages.ui.ts) shows the text
- * only. The page that renders these sources (/a/:id, answer-card-page.ui.ts)
- * reads `answer_cards`, which nothing here writes yet. Until it does,
- * COACH_MEDIA must stay off.
+ * Sending a pick saves it to `answer_cards` (approvals/answer-cards.ts); the
+ * text and the in-app message (proactive-messages.ui.ts) link its page,
+ * /a/:id (answer-card-page.ui.ts). That page and its API are behind
+ * APPROVALS_PAGE, and pick-delivery.ts sends nothing without a saved card, so
+ * COACH_MEDIA needs APPROVALS_PAGE=on to send anything: set on BOTH the voice
+ * agent (which writes the card and texts the link) and the UI server (which
+ * serves it), with APP_URL pointing at that environment's app, or the link
+ * reads as "couldn't find that one".
  *
  * Shape agreed with approvals-page: answerText is plain text (400 chars),
  * sources are https only, searchSuggestionsHtml is Google's renderedContent

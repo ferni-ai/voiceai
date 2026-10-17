@@ -110,7 +110,10 @@ describe('recall fails closed when the topics are unreadable', () => {
       {
         facts: async () => [{ entityName: 'User', key: 'job', value: 'nurse', confidence: 0.9 }],
         summaries: async () => [
-          { followUpItems: ['Ask about the move'], insideJokes: ['the fungus incident'] },
+          {
+            followUpItems: ['Ask about the move'],
+            insideJokes: [{ bit: 'the fungus incident', quote: 'the fungus incident', speaker: 'user' }],
+          },
         ],
         forgotten: async () => null,
       },
@@ -119,16 +122,41 @@ describe('recall fails closed when the topics are unreadable', () => {
     expect(snapshot).toEqual({ facts: [], followUps: [], insideJokes: [] });
   });
 
+  it('leaves out an inside joke whose line is about a forgotten topic', async () => {
+    const snapshot = await loadRecallSnapshot(
+      {
+        facts: async () => [],
+        summaries: async () => [
+          {
+            insideJokes: [
+              { bit: 'the cat bit', quote: 'she guards the treat cabinet', speaker: 'user' },
+            ],
+          },
+        ],
+        forgotten: async () => ['cabinet'],
+      },
+      'u'
+    );
+    expect(snapshot.insideJokes).toEqual([]);
+  });
+
   it('leaves out an inside joke about a forgotten topic', async () => {
     const snapshot = await loadRecallSnapshot(
       {
         facts: async () => [],
-        summaries: async () => [{ insideJokes: ['the divorce lawyer bit', 'the fungus incident'] }],
+        summaries: async () => [
+          {
+            insideJokes: [
+              { bit: 'the divorce lawyer bit', quote: 'the divorce lawyer bit', speaker: 'user' },
+              { bit: 'the fungus incident', quote: 'the fungus incident', speaker: 'user' },
+            ],
+          },
+        ],
         forgotten: async () => ['divorce'],
       },
       'u'
     );
-    expect(snapshot.insideJokes).toEqual(['the fungus incident']);
+    expect(snapshot.insideJokes?.map((j) => j.bit)).toEqual(['the fungus incident']);
   });
 });
 

@@ -2110,6 +2110,7 @@
     "sonosConnected": "Sonos verbunden!",
     "transcribing": "Wird transkribiert...",
     "transcriptionUnavailable": "Diesmal konnte ich die Worte nicht verstehen, daher wurde nichts gespeichert. Noch einmal versuchen?",
+    "journalTooLong": "Die ist lang. Versuch es kürzer, unter {count} Minuten.",
     "entrySaved": "Eintrag gespeichert!",
     "couldNotSaveEntry": "Eintrag konnte nicht gespeichert werden. Versuchst du es noch mal?",
     "profileSaved": "Profil gespeichert!",
@@ -3467,6 +3468,11 @@
     "fieldRelationship": "Beziehung",
     "fieldWhatShouldFerniCallThem": "Wie soll Ferni sie nennen?",
     "fieldNotesForFerni": "Notizen für Ferni",
+    "callConsentLabel": "Freut sich über Anrufe von Ferni",
+    "callConsentHint": "Hat zugestimmt, dass Ferni ab und zu anruft, um nachzufragen. Kann jederzeit sagen, dass er aufhören soll.",
+    "callConsentSaved": "Gespeichert",
+    "callConsentFailed": "Speichern fehlgeschlagen. Versuch es noch einmal.",
+    "callConsentLoadFailed": "Konnte nicht laden, ob Anrufe von Ferni willkommen sind. Öffne es erneut, um es noch einmal zu versuchen.",
     "cancel": "Abbrechen",
     "addToFamily": "Zur Familie hinzufügen",
     "relationshipMother": "Mutter",
@@ -11041,7 +11047,8 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
     "role": {

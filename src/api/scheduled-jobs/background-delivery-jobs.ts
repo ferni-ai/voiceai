@@ -32,6 +32,32 @@ async function run(
   }
 }
 
+interface WorldDue {
+  factId: string;
+  text: string;
+}
+type LoadTemporalWorld = (
+  userId: string,
+  opts: { timeZone?: string }
+) => Promise<{ sinceLastCall: Array<WorldDue & { kind: string }> } | null>;
+
+/**
+ * What comes due today in the user's world (the temporal world model's
+ * loadTemporalWorld, WORLD_MODEL_TEMPORAL). The module isn't on every
+ * branch yet, so it is looked up at run time: without it, no world items.
+ */
+export async function worldDue(userId: string, timeZone?: string): Promise<WorldDue[]> {
+  const spec = '../../intelligence/world-model/temporal/load.js';
+  const mod = (await import(spec).catch((error: unknown) => {
+    log.debug({ error: String(error) }, 'No temporal world model on this server');
+    return null;
+  })) as { loadTemporalWorld?: LoadTemporalWorld } | null;
+  const world = await mod?.loadTemporalWorld?.(userId, { timeZone });
+  return (world?.sinceLastCall ?? [])
+    .filter((i) => i.kind === 'due')
+    .map(({ factId, text }) => ({ factId, text }));
+}
+
 export async function handleDeliverScheduledActions(
   req: IncomingMessage,
   res: ServerResponse
@@ -46,7 +72,8 @@ export async function handleDeliverScheduledActions(
       await import('../../services/outreach/proactive-channels/proactive-tick.js');
     const { defaultProactiveDeps } =
       await import('../../services/outreach/proactive-channels/default-deps.js');
-    const proactive = await runProactiveChannelsTick(defaultProactiveDeps(), {
+    const deps = { ...defaultProactiveDeps(), worldDue };
+    const proactive = await runProactiveChannelsTick(deps, {
       dryRun: isDryRun(req),
     }).catch((error: unknown) => ({ enabled: true, error: String(error) }));
     return { ...actions, ...(proactive.enabled ? { proactive } : {}) };
