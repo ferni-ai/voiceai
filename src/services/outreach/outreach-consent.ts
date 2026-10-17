@@ -24,6 +24,36 @@ export interface OutreachConsent {
   channels: DeliveryChannel[];
 }
 
+/** Settings only the proactive check-ins read (proactive-channels/channel-policy.ts). */
+export interface ProactiveSettings {
+  proactiveFrequency?: 'normal' | 'gentle' | 'light' | 'off';
+  /** Local "HH:MM" times, the user's own time zone. */
+  quietHours?: { start: string; end: string };
+}
+
+const HHMM = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
+/** Accepts an hour (21) or "HH:MM"; anything else is dropped. */
+function toHhmm(v: unknown): string | undefined {
+  if (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v < 24) {
+    return `${String(v).padStart(2, '0')}:00`;
+  }
+  return typeof v === 'string' && HHMM.test(v) ? v : undefined;
+}
+
+/** Validate proactive settings from a request body; unknown values are dropped. */
+export function proactiveSettingsFrom(body: unknown): ProactiveSettings {
+  const b = (body ?? {}) as { proactiveFrequency?: unknown; quietHours?: unknown };
+  const out: ProactiveSettings = {};
+  const f = b.proactiveFrequency;
+  if (f === 'normal' || f === 'gentle' || f === 'light' || f === 'off') out.proactiveFrequency = f;
+  const q = (b.quietHours ?? {}) as { start?: unknown; end?: unknown };
+  const start = toHhmm(q.start);
+  const end = toHhmm(q.end);
+  if (start && end && start !== end) out.quietHours = { start, end };
+  return out;
+}
+
 const FROM_SETTINGS: Record<SettingsChannel, DeliveryChannel> = {
   sms: 'sms',
   email: 'email',
@@ -62,6 +92,16 @@ export function settingsFromChannels(channels: DeliveryChannel[]): SettingsChann
   );
 }
 
+/** What a settings body (POST /api/outreach/preferences) asks to save. */
+export function consentPatchFrom(body: unknown): Partial<OutreachConsent> & ProactiveSettings {
+  const b = (body ?? {}) as { enabled?: unknown; allowedChannels?: unknown };
+  return {
+    ...(typeof b.enabled === 'boolean' && { enabled: b.enabled }),
+    ...(Array.isArray(b.allowedChannels) && { channels: channelsFromSettings(b.allowedChannels) }),
+    ...proactiveSettingsFrom(body),
+  };
+}
+
 export async function readOutreachConsent(userId: string): Promise<OutreachConsent> {
   const db = getFirestoreDb();
   if (!db) return consentFromPrefs(undefined);
@@ -75,7 +115,7 @@ export async function readOutreachConsent(userId: string): Promise<OutreachConse
  */
 export async function writeOutreachConsent(
   userId: string,
-  patch: Partial<OutreachConsent>
+  patch: Partial<OutreachConsent> & ProactiveSettings
 ): Promise<void> {
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore not available');
@@ -83,6 +123,8 @@ export async function writeOutreachConsent(
   if (typeof patch.enabled === 'boolean') outreachPreferences.enabled = patch.enabled;
   const chosen = patch.channels;
   if (chosen) outreachPreferences.channels = OPT_IN_CHANNELS.filter((c) => chosen.includes(c));
+  if (patch.proactiveFrequency) outreachPreferences.proactiveFrequency = patch.proactiveFrequency;
+  if (patch.quietHours) outreachPreferences.quietHours = { enabled: true, ...patch.quietHours };
   if (Object.keys(outreachPreferences).length === 0) return;
   await db
     .collection('bogle_users')

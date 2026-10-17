@@ -135,8 +135,11 @@ export async function ponderUser(
     doc.get(),
     user.collection('memory_state').doc('forgotten').get(),
   ]);
-  const dismissed = new Set(strings(previous.exists ? previous.get('dismissed') : undefined));
-  const topics = [...avoid, ...strings(forgotten.exists ? forgotten.get('topics') : undefined)];
+  const dismissed = new Set(strings(previous.exists ? previous.data()?.dismissed : undefined));
+  // The nightly job already passes forgotten topics in `avoid`; other callers may not.
+  const topics = [
+    ...new Set([...avoid, ...strings(forgotten.exists ? forgotten.data()?.topics : undefined)]),
+  ];
   const pondering = withoutDismissed(
     await ponder(summaries, today, llm, topics),
     dismissed,

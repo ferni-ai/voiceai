@@ -294,8 +294,9 @@ export function formatAwarenessFacts(facts: AwarenessFacts): string {
   lines.push('## Current Awareness');
   lines.push('');
 
-  // Date and Time
-  if (facts.currentDate || facts.currentTime) {
+  // Date and Time. Server time unless a zone was found, which the call never
+  // sets here: WORLD_NOW=on gives each reply the caller's time instead.
+  if ((facts.currentDate || facts.currentTime) && process.env.WORLD_NOW !== 'on') {
     let dateTimeStr = '**Date/Time:** ';
     if (facts.currentDate) {
       dateTimeStr += facts.currentDate;

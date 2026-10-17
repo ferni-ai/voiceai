@@ -53,6 +53,7 @@ const PANEL_FIELDS = [
   'preferredChannel',
   'bestTimeToReach',
   'photo',
+  'inMemory',
 ];
 
 /** A contact the voice agent saved, in the shape the panel reads */

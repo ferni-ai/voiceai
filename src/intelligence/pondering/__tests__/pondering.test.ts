@@ -288,7 +288,7 @@ describe('ponderUser', () => {
     const set = vi.fn(async () => undefined);
     const doc = (name: string) => ({
       set,
-      get: async () => ({ exists: name in stored, get: (field: string) => stored[name]?.[field] }),
+      get: async () => ({ exists: name in stored, data: () => stored[name] }),
     });
     const get = vi.fn(async () => ({
       docs: summaries.map((s) => ({ id: s.id, data: () => s.data })),
@@ -389,7 +389,7 @@ describe('ponderUser after the caller put an item down', () => {
     };
     const doc = (name: string) => ({
       set,
-      get: async () => ({ exists: name in stored, get: (f: string) => stored[name]?.[f] }),
+      get: async () => ({ exists: name in stored, data: () => stored[name] }),
     });
     const fake = {
       collection: () => ({
