@@ -10,6 +10,7 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { quickNotes } from './shared-state.js';
+import { OWN_NOTE_REFUSAL, refuseOwnNote } from '../../utils/own-note.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { callJournalOn } from '../productivity/call-journal.js';
@@ -33,6 +34,7 @@ const quickNoteDef: ToolDefinition = {
         note: z.string().describe('The note to remember'),
       }),
       execute: async ({ note }, { ctx: toolCtx }) => {
+        if (refuseOwnNote(note)) return OWN_NOTE_REFUSAL;
         const userData = toolCtx.userData as { userId?: string };
         const userId = userData?.userId || 'session';
 
