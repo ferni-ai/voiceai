@@ -6,7 +6,7 @@
  * which never returns contact details, and GET /api/user/contact masked them as '***',
  * so the form always opened blank.
  */
-import { createServer, type Server } from 'node:http';
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -23,15 +23,20 @@ vi.mock('../../memory/storage/store-factory.js', async () => {
   const { getFirestoreStore } = await import('../../memory/storage/firestore-store.js');
   return { getStore: async () => getFirestoreStore() };
 });
-// Signed in as the user named by the test header; no Firebase account (no verified phone).
-vi.mock('../auth-middleware.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../auth-middleware.js')>()),
-  requireAuth: vi.fn(async (req: { headers: Record<string, string> }) => ({
-    userId: req.headers['x-test-uid'],
-    isAdmin: false,
-    authMethod: 'api_key',
-  })),
-}));
+// A request carrying x-test-uid is signed in as that user (a verified token's uid; no
+// Firebase account, so no verified phone). Any other request goes through the real
+// requireAuth, so a request with no token is refused as it is in production.
+vi.mock('../auth-middleware.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../auth-middleware.js')>();
+  return {
+    ...actual,
+    requireAuth: vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
+      const uid = req.headers['x-test-uid'];
+      if (typeof uid !== 'string') return actual.requireAuth(req, res);
+      return { userId: uid, isAdmin: false, isDevMode: false, authMethod: 'firebase' as const };
+    }),
+  };
+});
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-menu-contact';
@@ -93,6 +98,46 @@ describe.skipIf(!emulator)('Staying in Touch, call to panel (Firestore emulator)
       phone: '+15552017400',
       email: 'alex@example.com',
       preferredName: 'Alex',
+    });
+  });
+
+  describe('owner only: unmasked details go to the verified uid, never one the request names', () => {
+    async function victimWithContact(): Promise<string> {
+      const uid = newUser();
+      await fetch(`${base}/api/user/contact`, {
+        method: 'POST',
+        headers: { 'x-test-uid': uid, 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: '(555) 201-7411', email: 'victim@example.com' }),
+      });
+      return uid;
+    }
+
+    it('a request with no token is refused, whatever user id it names', async () => {
+      const victim = await victimWithContact();
+      const res = await fetch(`${base}/api/user/contact?userId=${victim}`, {
+        headers: { 'X-User-Id': victim },
+      });
+      const text = await res.text();
+      expect(res.status).toBe(401);
+      expect(text).not.toContain('2017411');
+      expect(text).not.toContain('victim@example.com');
+    });
+
+    it("another signed-in user naming the victim gets their own details, not the victim's", async () => {
+      const victim = await victimWithContact();
+      const other = newUser();
+      const res = await fetch(`${base}/api/user/contact?userId=${victim}`, {
+        headers: { 'x-test-uid': other, 'X-User-Id': victim },
+      });
+      const text = await res.text();
+      expect(res.status).toBe(200);
+      expect(text).not.toContain('2017411');
+      expect(text).not.toContain('victim@example.com');
+      // and the victim, signed in, still sees them
+      expect((await panelRead(victim)).body.contactInfo).toMatchObject({
+        phone: '+15552017411',
+        email: 'victim@example.com',
+      });
     });
   });
 });
