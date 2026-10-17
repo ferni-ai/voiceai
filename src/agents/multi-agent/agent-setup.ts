@@ -74,7 +74,11 @@ import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
-import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
+import {
+  buildEssentialToolSet,
+  handoffGetsEssentialSet,
+  type EssentialToolSetInput,
+} from './essential-tool-set.js';
 import { attachSessionEventLog } from './session-event-log.js';
 import { buildEmergencyToolset } from './emergency-toolset.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
@@ -833,6 +837,20 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // For handoffs, use the fast path which loads from session cache + essential tools.
       // This typically completes in <500ms vs 5-20 seconds for full orchestrator.
       // =========================================================================
+      if (isHandoff && handoffGetsEssentialSet()) {
+        // The first agent's set and cap, not the gateway's Tier 0 (essential-tool-set.ts)
+        const handoffStart = Date.now();
+        const essential = await loadEssentialToolsFallback(initialToolPolicy);
+        log.info(
+          {
+            personaId: persona.id,
+            toolCount: Object.keys(essential).length,
+            elapsedMs: Date.now() - handoffStart,
+          },
+          '🎭 Handoff tools: essential set (HANDOFF_FULL_TOOLS)'
+        );
+        return essential;
+      }
       if (isHandoff) {
         log.info({ personaId: persona.id }, '⚡ Using FAST PATH for handoff tool loading');
 
