@@ -55,6 +55,10 @@ import {
   resolveAgentEnv,
   runLkAgent,
 } from './utils/livekit-agent.js';
+import {
+  handleUsers as handleUsersCommand,
+  handleWaitlist as handleWaitlistCommand,
+} from './commands/users/users-admin.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -7430,172 +7434,19 @@ async function handleOps(args: string[]): Promise<void> {
 }
 
 // ============================================================================
-// WAITLIST COMMAND
+// WAITLIST + USERS COMMANDS (no shell; deletions dry-run by default)
 // ============================================================================
+
+const usersAdminDeps = () => ({ scriptsDir: join(PROJECT_ROOT, 'scripts'), ask: prompt });
 
 async function handleWaitlist(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
   log.header(`📋 Waitlist Management`);
-
-  const scriptsDir = join(PROJECT_ROOT, 'scripts');
-
-  if (!subcommand || subcommand === 'status') {
-    console.log(`${colors.bold}Waitlist Commands:${colors.reset}\n`);
-    console.log(
-      `  ${colors.cyan}ferni waitlist list${colors.reset}           - List pending waitlist users`
-    );
-    console.log(`  ${colors.cyan}ferni waitlist approve <email>${colors.reset} - Approve a user`);
-    console.log(
-      `  ${colors.cyan}ferni waitlist stats${colors.reset}          - Show waitlist statistics`
-    );
-    console.log(
-      `  ${colors.cyan}ferni waitlist export${colors.reset}         - Export waitlist to CSV`
-    );
-    return;
-  }
-
-  if (subcommand === 'list') {
-    const limit = args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '20';
-    console.log(`${colors.cyan}Fetching waitlist...${colors.reset}\n`);
-    spawnSync(
-      'sh',
-      ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --list --limit=${limit}`],
-      { stdio: 'inherit' }
-    );
-  }
-
-  if (subcommand === 'approve') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni waitlist approve user@example.com');
-      return;
-    }
-
-    console.log(`${colors.cyan}Approving ${email}...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'stats') {
-    console.log(`${colors.cyan}Fetching waitlist stats...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --stats`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'export') {
-    const output =
-      args.find((a) => a.startsWith('--output='))?.split('=')[1] || 'waitlist-export.csv';
-    console.log(`${colors.cyan}Exporting waitlist to ${output}...${colors.reset}\n`);
-    spawnSync(
-      'sh',
-      ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --export --output=${output}`],
-      { stdio: 'inherit' }
-    );
-  }
+  await handleWaitlistCommand(args, usersAdminDeps());
 }
 
-// ============================================================================
-// USERS COMMAND
-// ============================================================================
-
 async function handleUsers(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
   log.header(`👤 User Management`);
-
-  const scriptsDir = join(PROJECT_ROOT, 'scripts');
-
-  if (!subcommand || subcommand === 'status') {
-    console.log(`${colors.bold}User Management Commands:${colors.reset}\n`);
-    console.log(`  ${colors.cyan}ferni users list${colors.reset}              - List all users`);
-    console.log(`  ${colors.cyan}ferni users show <email>${colors.reset}      - Show user details`);
-    console.log(
-      `  ${colors.cyan}ferni users dump <userId>${colors.reset}     - Full user data dump`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users cleanup${colors.reset}           - Clean up anonymous users`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users grant <email>${colors.reset}     - Grant access to user`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users find-rich${colors.reset}         - Find users with rich data`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users delete-stale${colors.reset}      - Delete stale profiles`
-    );
-    return;
-  }
-
-  if (subcommand === 'list') {
-    const limit = args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '50';
-    console.log(`${colors.cyan}Listing users...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/list-all-users.ts --limit=${limit}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'show') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni users show user@example.com');
-      return;
-    }
-    console.log(`${colors.cyan}Fetching user data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/check-my-data.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'dump') {
-    const userId = args[1];
-    if (!userId) {
-      log.error('User ID required. Usage: ferni users dump <userId>');
-      return;
-    }
-    console.log(`${colors.cyan}Dumping full user data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/full-user-dump.ts --user=${userId}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'cleanup') {
-    const dryRun = args.includes('--dry-run');
-    console.log(`${colors.cyan}Cleaning up anonymous users...${colors.reset}\n`);
-    const cmd = dryRun
-      ? `npx tsx ${scriptsDir}/cleanup-anonymous-users.ts --dry-run`
-      : `npx tsx ${scriptsDir}/cleanup-anonymous-users.ts`;
-    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'grant') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni users grant user@example.com');
-      return;
-    }
-    console.log(`${colors.cyan}Granting access...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/grant-access.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'find-rich') {
-    console.log(`${colors.cyan}Finding users with rich data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/find-rich-users.ts`], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'delete-stale') {
-    const dryRun = args.includes('--dry-run');
-    console.log(`${colors.cyan}Deleting stale profiles...${colors.reset}\n`);
-    const cmd = dryRun
-      ? `npx tsx ${scriptsDir}/delete-stale-profiles.ts --dry-run`
-      : `npx tsx ${scriptsDir}/delete-stale-profiles.ts`;
-    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
-  }
+  await handleUsersCommand(args, usersAdminDeps());
 }
 
 // ============================================================================

@@ -335,7 +335,7 @@ async function initiateViaLiveKitSip(
       maxDurationMinutes: schedule.maxDurationMinutes,
     };
     await agentDispatch.createDispatch(roomName, agentName, {
-      metadata: JSON.stringify(signDispatch(dispatch, livekitApiSecret)),
+      metadata: JSON.stringify(signDispatch(dispatch)),
     });
 
     // 3. Initiate the SIP call to the family member's phone

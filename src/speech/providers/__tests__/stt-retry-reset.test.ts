@@ -1,10 +1,13 @@
 /**
- * The patched SDK SpeechStream (patches/@livekit__agents@1.5.1.patch, STT_RETRY_RESET):
+ * The patched SDK SpeechStream (patches/@livekit__agents@1.8.1.patch, STT_RETRY_RESET):
  * a connection that stayed up 30 s starts a fresh retry count when it drops.
  *
  * Prod 2026-10-13: Cartesia closed the STT socket every ~5 min (code 1006). The SDK counted
  * every reconnect against maxRetry (3) for the whole call, so the 4th routine reconnect,
  * 20 minutes in, ended the session and left the caller alone in the room.
+ *
+ * 1.7.1 (#2352) resets the count on a final transcript only, so a quiet caller still ran
+ * out; these drops carry no transcript, as on such a call. Upstream fixes that in 1.9.x (#2494).
  */
 import { APIConnectionError, stt } from '@livekit/agents';
 import { afterEach, describe, expect, it, vi } from 'vitest';

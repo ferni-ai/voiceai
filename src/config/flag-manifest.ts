@@ -65,6 +65,8 @@ export const FLAG_MANIFEST = {
   // getCurrentContext / getTodaySignificance in the caller's zone, with the cached weather
   AWARENESS_CALLER_TIME: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   BACKCHANNELS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: live backchannels time the caller's pause on the audio clock and skip stale frames
+  BACKCHANNEL_AUDIO_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKCHANNEL_CLIPS: { default: 'on', owner: 'voice', kind: 'config' },
   BACKCHANNEL_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKGROUND_TURN_LATENCY_WARNINGS: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -83,6 +85,7 @@ export const FLAG_MANIFEST = {
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
+  CALL_JOURNAL_ASK: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
   CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
   CARTESIA_STREAMING_TTS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -130,6 +133,7 @@ export const FLAG_MANIFEST = {
   DEEP_ANALYSIS_IN_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   DEFER_TOOL_UPDATES: { default: 'on', owner: 'voice', kind: 'config' },
   DELIBERATION: { default: 'off', owner: 'voice', kind: 'experiment' },
+  DEMO_CALL_CAP: { default: 'off', owner: 'voice', kind: 'experiment' },
   DEV_TELEMETRY: { default: 'off', owner: 'voice', kind: 'config' },
   DEV_TELEMETRY_VERBOSE: { default: 'off', owner: 'voice', kind: 'config' },
   DIRECTOR_ANSWER_TURN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -250,7 +254,7 @@ export const FLAG_MANIFEST = {
   // on (with MEMORY_VIEW): the memory view also shows what Ferni has been pondering.
   MEMORY_VIEW_PONDERING: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: mid-call system notes reach Gemini framed as private, not the caller's words
-  // (patches/@livekit__agents@1.6.4.patch), and save tools refuse them (tools/utils/own-note.ts)
+  // (patches/@livekit__agents@1.8.1.patch), and save tools refuse them (tools/utils/own-note.ts)
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: log which moves each reply made and what followed, saved after the call (move-log.ts)
   MOVE_OUTCOMES: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -293,6 +297,8 @@ export const FLAG_MANIFEST = {
   PAUSE_HOLD: { default: 'off', owner: 'voice', kind: 'experiment' },
   PAYWALL: { default: 'off', owner: 'billing', kind: 'kill-switch' },
   PERSONA_BEATS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // character-spark.md after the character sheet, one "!" on bright turns (agents/personas/prompt-loader.ts, turn-shape.ts)
+  PERSONA_SPARK: { default: 'off', owner: 'voice', kind: 'experiment' },
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PERSONA_MOOD_NOT_CALLERS: { default: 'on', owner: 'memory', kind: 'kill-switch' },
   PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -302,7 +308,7 @@ export const FLAG_MANIFEST = {
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // read in patches/@livekit__agents@1.6.4.patch
+  // read in patches/@livekit__agents@1.8.1.patch
   PLAYOUT_LAUNCH_RESUME: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PONDERING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // late-night calls: a softer reply line and the LATE_NIGHT layer in attune.ts (porch-light.ts)
@@ -334,6 +340,8 @@ export const FLAG_MANIFEST = {
   // shows "I'll remember" in the app after a fact is stored
   REMEMBER_MOMENT: { default: 'off', owner: 'memory', kind: 'experiment' },
   REMINDER_SCHEDULER_IN_PROCESS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: a reminder asked for by text goes to the verified phone, via guarded-text (reminder-sms-flag.ts)
+  REMINDER_SMS_DEFAULT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   REPAIR_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH_NAME: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -377,7 +385,7 @@ export const FLAG_MANIFEST = {
   STREAK_FROM_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   STT_REFRESH_AFTER_GREETING: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // read in patches/@livekit__agents@1.6.4.patch
+  // read in patches/@livekit__agents@1.8.1.patch
   STT_RETRY_RESET: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TAP_INTERRUPT: { default: 'off', owner: 'voice', kind: 'experiment' },
