@@ -2110,6 +2110,7 @@
     "sonosConnected": "Sonos 已连接！",
     "transcribing": "正在转录...",
     "transcriptionUnavailable": "这次没能听清内容，所以什么都没有保存。要再试一次吗？",
+    "journalTooLong": "这段有点长。试试短一点的，{count} 分钟以内。",
     "entrySaved": "记录已保存！",
     "couldNotSaveEntry": "无法保存记录。要再试一次吗？",
     "profileSaved": "个人资料已保存！",

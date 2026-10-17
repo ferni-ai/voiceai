@@ -2123,6 +2123,7 @@
     "sonosConnected": "¡Sonos conectado!",
     "transcribing": "Transcribiendo...",
     "transcriptionUnavailable": "Esta vez no pude entender las palabras, así que no se guardó nada. ¿Lo intentamos de nuevo?",
+    "journalTooLong": "Esa es larga. Prueba con una más corta, de menos de {count} minutos.",
     "entrySaved": "¡Entrada guardada!",
     "couldNotSaveEntry": "No se pudo guardar la entrada. ¿Lo intentas otra vez?",
     "profileSaved": "¡Perfil guardado!",

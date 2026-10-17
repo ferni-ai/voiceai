@@ -2123,6 +2123,7 @@
     "sonosConnected": "Sonos מחובר!",
     "transcribing": "מתמללים...",
     "transcriptionUnavailable": "הפעם לא הצלחתי לקלוט את המילים, ולכן שום דבר לא נשמר. לנסות שוב?",
+    "journalTooLong": "זה קצת ארוך. נסו הקלטה קצרה יותר, עד {count} דקות.",
     "entrySaved": "הרשומה נשמרה!",
     "couldNotSaveEntry": "לא הצלחנו לשמור את הרשומה. לנסות שוב?",
     "profileSaved": "הפרופיל נשמר!",

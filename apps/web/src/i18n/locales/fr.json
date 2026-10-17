@@ -2123,6 +2123,7 @@
     "sonosConnected": "Sonos connecté !",
     "transcribing": "Transcription en cours...",
     "transcriptionUnavailable": "Je n'ai pas pu saisir les mots cette fois, donc rien n'a été enregistré. On réessaie ?",
+    "journalTooLong": "Celle-ci est longue. Essaie plus court, moins de {count} minutes.",
     "entrySaved": "Entrée enregistrée !",
     "couldNotSaveEntry": "Impossible d'enregistrer l'entrée. Tu veux réessayer ?",
     "profileSaved": "Profil enregistré !",
