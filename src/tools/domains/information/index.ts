@@ -4,6 +4,8 @@
  * Tools for accessing information: news, weather, sports scores.
  * This domain provides properly-routed consolidated tools for the LLM.
  *
+ * Web search: searchWeb (search.ts), grounded in Google Search with WEB_SEARCH=on.
+ *
  * DOMAIN: information
  * TOOLS:
  *   News: getNews (routes to general/finance/tech/stock based on category)
@@ -223,13 +225,6 @@ function getSportsToolDefinitions(): ToolDefinition[] {
     },
   ];
 }
-
-// ============================================================================
-// SEARCH TOOLS - REMOVED
-// ============================================================================
-// Web search is now handled by Gemini's built-in Google Search tool.
-// See: https://ai.google.dev/gemini-api/docs/live-tools#google-search
-// Configured in voice-agent-entry.ts: tools: [{ googleSearch: {} }]
 
 // ============================================================================
 // TRAFFIC TOOLS (Directions and commute times)
