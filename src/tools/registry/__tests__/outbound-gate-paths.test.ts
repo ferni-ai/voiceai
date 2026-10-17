@@ -36,7 +36,8 @@ vi.mock('../../../services/background-agents/executors/call-executor.js', () => 
   cantCallReply: async () => null,
   queueCall: edge.queueCall,
 }));
-vi.mock('../../../services/communication-service.js', () => ({
+vi.mock('../../../services/communication-service.js', async (orig) => ({
+  ...(await orig<typeof import('../../../services/communication-service.js')>()),
   sendSMS: edge.legacySend,
   sendEmail: edge.legacySend,
 }));

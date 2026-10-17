@@ -12,14 +12,17 @@ import type * as GuardedText from '../guarded-text.js';
 import { phoneHash, toE164, type CheckinRecord, type StoredCheckin } from '../checkin-replies.js';
 // Static: concurrent dynamic imports of a mocked module can resolve the real one.
 import { sendSMS } from '../delivery/sms-delivery.js';
+import { atomicClaims } from './atomic-claims.js';
 
 const ENV = { LOG_HASH_SECRET: 'test-secret' };
 const sent: StoredCheckin[] = [];
 const optedOut = new Set<string>();
+let claims = atomicClaims(sent);
 
 export function resetMemoryTexts(): void {
   sent.length = 0;
   optedOut.clear();
+  claims = atomicClaims(sent);
 }
 
 /** As if `phone` had replied STOP. */
@@ -41,6 +44,7 @@ function memoryDeps(send?: GuardedText.TextDeps['send']): GuardedText.TextDeps {
         sent.push({ ...r, id: `t${sent.length}` });
         return `t${sent.length}`;
       },
+      ...claims,
     } as unknown as GuardedText.TextStore,
     authPhone: async () => undefined,
     send: send ?? ((m) => sendSMS(m)),

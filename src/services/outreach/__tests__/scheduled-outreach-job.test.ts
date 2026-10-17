@@ -2,22 +2,28 @@
  * Due scheduled outreach (messages to a user's contacts at a set time) is
  * executed from Firestore by a scheduled job, whichever process scheduled it.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firestore.js';
 import type { CheckinRecord, StoredCheckin } from '../checkin-replies.js';
 import type { TextDeps, TextStore } from '../guarded-text.js';
+import { atomicClaims } from './atomic-claims.js';
+import { sendEmail } from '../delivery/email-delivery.js';
+import { callWithPersonaVoice } from '../../voice/voice-call.js';
 
 let rows: Row[] = [];
 const sendSMS = vi.fn(async () => ({ success: true }));
 const updateOutreachStatus = vi.fn(async () => undefined);
-const rescheduleOutreach = vi.fn(async () => undefined);
+const patchOutreach = vi.fn(async () => undefined);
 const incrementRetry = vi.fn(async () => ({ shouldRetry: true, retryCount: 1 }));
 /** The guarded sender's store: what the recipient's number has done and the member's account. */
 const guard = {
   optedOut: false,
   sent: [] as StoredCheckin[],
   account: undefined as Record<string, unknown> | undefined,
+  /** The member's own verified phone (Firebase Auth's). */
+  ownPhone: undefined as string | undefined,
   env: { LOG_HASH_SECRET: 'test-secret' } as Record<string, string>,
+  claims: atomicClaims([]),
 };
 
 vi.mock('../../superhuman/firestore-utils.js', () => ({
@@ -30,7 +36,7 @@ vi.mock('../conversational-calls.js', () => ({ makeConversationalCall: vi.fn() }
 vi.mock('../scheduled-multi-outreach.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../scheduled-multi-outreach.js')>()),
   updateOutreachStatus,
-  rescheduleOutreach,
+  patchOutreach,
   incrementRetry,
 }));
 // The real guards, over an in-memory store; the send is the mocked sendSMS.
@@ -46,14 +52,16 @@ vi.mock('../guarded-text.js', async (importOriginal) => {
         guard.sent.push({ ...r, id: `r${guard.sent.length}` });
         return 'r';
       },
+      ...guard.claims,
     } as unknown as TextStore,
-    authPhone: async () => undefined,
+    authPhone: async () => guard.ownPhone,
     send: sendSMS,
     now: () => NOW,
   });
   return {
     ...real,
     textOnBehalf: (t: Parameters<typeof real.textOnBehalf>[0]) => real.textOnBehalf(t, deps()),
+    isOwnVerifiedPhone: (u: string, p: string) => real.isOwnVerifiedPhone(u, p, deps()),
   };
 });
 
@@ -86,14 +94,19 @@ const outreach = (id: string, minutesAgo: number): Row => ({
 beforeEach(() => {
   rows = [];
   vi.clearAllMocks();
+  const sent: StoredCheckin[] = [];
   Object.assign(guard, {
     optedOut: false,
-    sent: [],
+    sent,
+    claims: atomicClaims(sent),
     account: undefined,
+    ownPhone: undefined,
     env: { LOG_HASH_SECRET: 'test-secret' },
   });
+  vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'on');
 });
 
+afterEach(() => vi.unstubAllEnvs());
 describe('executeDueScheduledOutreach', () => {
   it('sends outreach that is due and records the result', async () => {
     rows = [outreach('o1', 1)];
@@ -164,11 +177,10 @@ describe('scheduled texts to a contact go through the guards', () => {
     await executeDueScheduledOutreach({ now: NOW });
 
     expect(sendSMS).not.toHaveBeenCalled();
-    expect(rescheduleOutreach).toHaveBeenCalledWith(
-      'u1',
-      'o1',
-      new Date('2026-09-30T23:00:00.000Z')
-    );
+    expect(patchOutreach).toHaveBeenCalledWith('u1', 'o1', {
+      status: 'pending',
+      scheduledFor: new Date('2026-09-30T23:00:00.000Z'),
+    });
     expect(updateOutreachStatus).not.toHaveBeenCalledWith(
       'u1',
       'o1',
@@ -205,5 +217,67 @@ describe('scheduled texts to a contact go through the guards', () => {
       'completed',
       expect.anything()
     );
+  });
+});
+
+describe('scheduled outreach to someone else waits for the founder (SCHEDULED_OUTREACH_THIRD_PARTY)', () => {
+  beforeEach(() => vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'off'));
+
+  it('off: a text to a contact is held for approval, not sent and not retried', async () => {
+    rows = [outreach('o1', 1)];
+    await executeDueScheduledOutreach({ now: NOW });
+
+    expect(sendSMS).not.toHaveBeenCalled();
+    expect(patchOutreach).toHaveBeenCalledWith('u1', 'o1', {
+      status: 'held',
+      heldReason: 'awaiting-approval',
+      heldAt: expect.any(Date),
+    });
+    expect(incrementRetry).not.toHaveBeenCalled();
+    expect(updateOutreachStatus).not.toHaveBeenCalledWith(
+      'u1',
+      'o1',
+      expect.stringMatching(/completed|failed|cancelled/),
+      expect.anything()
+    );
+  });
+
+  it('off: calls and emails to a contact are held too', async () => {
+    rows = [outreach('o1', 1), outreach('o2', 1)];
+    rows[0].data.target = { ...(rows[0].data.target as object), channel: 'call' };
+    rows[1].data.target = {
+      ...(rows[1].data.target as object),
+      channel: 'email',
+      resolvedEmail: 'mom@example.com',
+    };
+    await executeDueScheduledOutreach({ now: NOW });
+
+    expect(callWithPersonaVoice).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(patchOutreach).toHaveBeenCalledTimes(2);
+  });
+
+  it("off: a text to the member's own verified phone still goes", async () => {
+    rows = [outreach('o1', 1)];
+    guard.ownPhone = '+18015550123';
+    await executeDueScheduledOutreach({ now: NOW });
+
+    expect(sendSMS).toHaveBeenCalledTimes(1);
+    expect(patchOutreach).not.toHaveBeenCalled();
+  });
+});
+
+describe("an 'auto' scheduled outreach", () => {
+  it('is a text even when the purpose says "check in" (no keyword upgrade to a call)', async () => {
+    rows = [outreach('o1', 1)];
+    rows[0].data.target = {
+      ...(rows[0].data.target as object),
+      channel: 'auto',
+      purpose: 'check in on her, important',
+    };
+    await executeDueScheduledOutreach({ now: NOW });
+
+    expect(callWithPersonaVoice).not.toHaveBeenCalled();
+    expect(sendSMS).toHaveBeenCalledTimes(1);
   });
 });

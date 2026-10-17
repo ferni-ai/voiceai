@@ -5,11 +5,11 @@
  * write must keep scheduledFor (and updatedAt) as Dates, not ISO strings.
  * Real write, real job, one fake Firestore behind both clients.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetMemoryTexts } from './memory-text-store.js';
 import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firestore.js';
 
-let rows: Row[] = [];
+const rows: Row[] = [];
 const sendSMS = vi.hoisted(() => vi.fn(async () => ({ success: true })));
 
 // The real text guards over an in-memory store (no Firestore).
@@ -31,20 +31,22 @@ vi.mock('../delivery/email-delivery.js', () => ({ sendEmail: vi.fn() }));
 vi.mock('../../voice/voice-call.js', () => ({ callWithPersonaVoice: vi.fn() }));
 vi.mock('../conversational-calls.js', () => ({ makeConversationalCall: vi.fn() }));
 
-const { scheduleOutreach } = await import('../scheduled-multi-outreach.js');
+const { scheduleOutreach, claimPendingOutreach } = await import('../scheduled-multi-outreach.js');
 const { executeDueScheduledOutreach } = await import('../scheduled-outreach-executor.js');
 
 const NOW = new Date('2026-10-10T16:00:00.000Z');
 
 beforeEach(() => {
-  rows = [];
+  rows.length = 0; // the module keeps its first Firestore client, so keep the same array
   vi.clearAllMocks();
 });
 
 beforeEach(() => resetMemoryTexts());
 
+afterEach(() => vi.unstubAllEnvs());
 describe('scheduleOutreach write shape', () => {
   it('stores scheduledFor as a Date, and the job finds and sends it when due', async () => {
+    vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'on'); // a text to a contact: founder opt-in
     const id = await scheduleOutreach(
       'u1',
       'ferni',
@@ -90,5 +92,26 @@ describe('scheduleOutreach write shape', () => {
     );
     expect(await executeDueScheduledOutreach({ now: NOW })).toMatchObject({ due: 0, executed: 0 });
     expect(sendSMS).not.toHaveBeenCalled();
+  });
+
+  it('the in-process poller claims pending → executing once; a second claim gets nothing', async () => {
+    const id = await scheduleOutreach(
+      'u1',
+      'ferni',
+      {
+        contact: 'mom',
+        purpose: 'p',
+        channel: 'text',
+        resolvedContactId: 'c1',
+        resolvedContactName: 'Mom',
+        resolvedPhone: '+18015550123',
+      },
+      new Date(NOW.getTime() - 60_000)
+    );
+    expect(await claimPendingOutreach('u1', id)).toBe(true);
+    expect(await claimPendingOutreach('u1', id)).toBe(false);
+    expect(rows.find((r) => r.id === id)?.data.status).toBe('executing');
+    // The job claims the same way (due-items.ts), so it skips an item the poller took.
+    expect(await executeDueScheduledOutreach({ now: NOW })).toMatchObject({ executed: 0 });
   });
 });

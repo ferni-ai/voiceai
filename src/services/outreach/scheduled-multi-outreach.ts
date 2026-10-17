@@ -52,8 +52,13 @@ export interface ScheduledOutreach {
   personaId: string;
   target: ScheduledOutreachTarget;
   scheduledFor: Date;
-  /** 'missed' = found by the delivery job too late to send. */
-  status: 'pending' | 'executing' | 'completed' | 'failed' | 'cancelled' | 'missed';
+  /**
+   * 'missed' = found by the delivery job too late to send. 'held' = waiting for
+   * approval to reach someone other than the member (SCHEDULED_OUTREACH_THIRD_PARTY).
+   */
+  status: 'pending' | 'executing' | 'completed' | 'failed' | 'cancelled' | 'missed' | 'held';
+  heldReason?: string;
+  heldAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   batchId?: string;
@@ -281,21 +286,36 @@ export async function updateOutreachStatus(
   }
 }
 
-/** Put an item back to pending at a later time (a text held for the recipient's quiet hours). */
-export async function rescheduleOutreach(
+/** Set fields on an item: back to pending at a later time (quiet hours), or held. */
+export async function patchOutreach(
   userId: string,
   outreachId: string,
-  scheduledFor: Date
+  fields: Partial<Pick<ScheduledOutreach, 'status' | 'scheduledFor' | 'heldReason' | 'heldAt'>>
 ): Promise<void> {
   const firestore = await getFirestore();
   if (!firestore) throw new Error('Firestore not available');
-  await firestore
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('scheduled_outreach')
-    .doc(outreachId)
-    .update(forFirestore({ status: 'pending', scheduledFor, updatedAt: new Date() }));
+  await outreachDoc(firestore, userId, outreachId).update(
+    forFirestore({ ...fields, updatedAt: new Date() })
+  );
 }
+
+/**
+ * pending → executing in a transaction, so this poller and the scheduled job
+ * (which claims the same way, due-items.ts) never both send one item.
+ */
+export async function claimPendingOutreach(userId: string, outreachId: string): Promise<boolean> {
+  const firestore = await getFirestore();
+  if (!firestore) return false;
+  const ref = outreachDoc(firestore, userId, outreachId);
+  return firestore.runTransaction(async (tx) => {
+    if ((await tx.get(ref)).data()?.status !== 'pending') return false;
+    tx.update(ref, { status: 'executing', updatedAt: new Date() });
+    return true;
+  });
+}
+
+const outreachDoc = (db: FirebaseFirestore.Firestore, userId: string, id: string) =>
+  db.collection('bogle_users').doc(userId).collection('scheduled_outreach').doc(id);
 
 /**
  * Increment retry count and optionally mark as failed

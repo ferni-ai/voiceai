@@ -21,6 +21,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
 import {
+  ALREADY_EXISTS,
   CHECKINS,
   checkinDb,
   firestoreReplyStore,
@@ -49,6 +50,12 @@ const log = createLogger({ module: 'guarded-text' });
 export interface TextStore extends Pick<ReplyStore, 'forPhoneHash' | 'isOptedOut'> {
   forUser: (userId: string) => Promise<StoredCheckin[]>;
   add: (record: CheckinRecord) => Promise<string>;
+  /** Writes `record` under `id` only if no record has that id (atomic); false if one does. */
+  claim: (id: string, record: CheckinRecord) => Promise<boolean>;
+  /** The claimed send went: mark it sent. */
+  markSent: (id: string) => Promise<void>;
+  /** The claimed send failed: drop the claim so a retry may go. */
+  release: (id: string) => Promise<void>;
   sponsoredPhone: (userId: string) => Promise<string | undefined>;
   userDoc: (userId: string) => Promise<Record<string, unknown> | undefined>;
   /** outreach_profiles/{userId}.state.allowedChannels, where the webhook's global STOP lands. */
@@ -121,6 +128,17 @@ export async function resolveCheckinPhone(
   return phone === undefined ? undefined : (toE164(phone) ?? undefined);
 }
 
+/** True when `phone` is the member's own verified number, so a text or call to it is to them. */
+export async function isOwnVerifiedPhone(
+  userId: string,
+  phone: string,
+  deps: Pick<TextDeps, 'store' | 'authPhone'> = defaultTextDeps()
+): Promise<boolean> {
+  const doc = userId.startsWith('sponsored_') ? undefined : await deps.store.userDoc(userId);
+  const own = await resolveCheckinPhone(userId, doc, deps);
+  return own !== undefined && own === toE164(phone);
+}
+
 /** The member explicitly turned texts off, in outreach settings or by a STOP to the webhook. */
 export function smsTurnedOff(
   userDoc: Record<string, unknown> | undefined,
@@ -144,6 +162,39 @@ export function recordUserId(userId: string, env: Env = process.env): string | n
   if (!userId.startsWith('phone:')) return userId;
   const hash = phoneHash(userId.slice('phone:'.length), env);
   return hash ? `phone#${hash}` : null;
+}
+
+/**
+ * Claim, send, settle. The gap checks read the records and then send, so two
+ * runs at once (the job overlapping itself, a scheduler retry, a tool firing
+ * with the job) could both pass them. The claim closes that: a record created
+ * under an id fixed by kind, number and gap window, which only one run can
+ * create. A failed send releases the claim, so a retry may go, and is kept as
+ * a failed record of its own.
+ */
+async function claimedSend(
+  deps: TextDeps,
+  gapMs: number,
+  record: CheckinRecord,
+  message: SMSMessage
+): Promise<SMSDeliveryResult | 'claimed'> {
+  const window = gapMs > 0 ? Math.floor(Date.parse(record.sentAt) / gapMs) : record.sentAt;
+  const id = `${record.kind}:${record.phoneHash}:${window}`;
+  if (!(await deps.store.claim(id, { ...record, status: 'sending' }))) return 'claimed';
+  let result: SMSDeliveryResult;
+  try {
+    result = await deps.send(message);
+  } catch (error) {
+    await deps.store.release(id);
+    throw error;
+  }
+  if (result.success) {
+    await deps.store.markSent(id);
+  } else {
+    await deps.store.release(id);
+    await deps.store.add({ ...record, status: 'failed' });
+  }
+  return result;
 }
 
 /** Sends `t` if every guard allows it, and records the attempt. Never throws for a skip. */
@@ -183,24 +234,25 @@ export async function sendGuardedText(
   if (sentWithin(lastSentAt(toPhone, t.kind), now, t.minGapMs)) return skip('recently-sent');
 
   const phoneLast4 = last4(phone);
-  const result = await deps.send({
+  const record: CheckinRecord = {
+    userId: storedId,
+    sessionId: t.refId,
+    sentAt: now.toISOString(),
+    question: t.body,
+    status: 'sent',
+    phoneLast4,
+    phoneHash: hash,
+    kind: t.kind,
+    refId: t.refId,
+  };
+  const result = await claimedSend(deps, t.minGapMs, record, {
     to: phone,
     body: t.body,
     personaId: 'ferni',
     userId: storedId,
     outreachId: `${t.kind}_${t.refId}`,
   });
-  await deps.store.add({
-    userId: storedId,
-    sessionId: t.refId,
-    sentAt: now.toISOString(),
-    question: t.body,
-    status: result.success ? 'sent' : 'failed',
-    phoneLast4,
-    phoneHash: hash,
-    kind: t.kind,
-    refId: t.refId,
-  });
+  if (result === 'claimed') return skip('recently-sent');
   if (!result.success) {
     log.warn({ ...logCtx, phoneLast4, error: redactNumbers(result.error) }, 'Text not sent');
     return { sent: false, reason: 'send-failed' };
@@ -294,24 +346,25 @@ export async function sendOnBehalfText(
     return skip('recently-sent');
 
   const storedId = recordUserId(t.senderUserId, deps.env) ?? 'unknown';
-  const result = await deps.send({
+  const record: CheckinRecord = {
+    userId: storedId,
+    sessionId: t.refId,
+    sentAt: now.toISOString(),
+    question: t.body,
+    status: 'sent',
+    phoneLast4: last4(to),
+    phoneHash: hash,
+    kind: 'on-behalf',
+    refId: t.refId,
+  };
+  const result = await claimedSend(deps, ON_BEHALF_GAP_MS, record, {
     to,
     body: t.body,
     personaId: t.personaId ?? 'ferni',
     userId: storedId,
     outreachId: t.refId,
   });
-  await deps.store.add({
-    userId: storedId,
-    sessionId: t.refId,
-    sentAt: now.toISOString(),
-    question: t.body,
-    status: result.success ? 'sent' : 'failed',
-    phoneLast4: last4(to),
-    phoneHash: hash,
-    kind: 'on-behalf',
-    refId: t.refId,
-  });
+  if (result === 'claimed') return skip('recently-sent');
   if (!result.success) {
     log.warn(
       { kind: 'on-behalf', refId: t.refId, error: redactNumbers(result.error) },
@@ -363,6 +416,21 @@ export const firestoreTextStore: TextStore = {
   },
   async add(record) {
     return (await checkinDb().collection(CHECKINS).add(record)).id;
+  },
+  async claim(id, record) {
+    try {
+      await checkinDb().collection(CHECKINS).doc(id).create(record);
+      return true;
+    } catch (error) {
+      if ((error as { code?: unknown }).code === ALREADY_EXISTS) return false;
+      throw error;
+    }
+  },
+  async markSent(id) {
+    await checkinDb().collection(CHECKINS).doc(id).update({ status: 'sent' });
+  },
+  async release(id) {
+    await checkinDb().collection(CHECKINS).doc(id).delete();
   },
   async userDoc(userId) {
     const doc = await checkinDb().collection('bogle_users').doc(userId).get();

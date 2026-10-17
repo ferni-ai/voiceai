@@ -37,7 +37,8 @@ vi.mock('../../services/scheduling/reminder-scheduler.js', () => ({
   parseNaturalTime: vi.fn(() => null),
 }));
 
-vi.mock('../../services/communication-service.js', () => ({
+vi.mock('../../services/communication-service.js', async (orig) => ({
+  ...(await orig<typeof import('../../services/communication-service.js')>()),
   sendEmail: vi.fn(),
   sendSMS: vi.fn(),
 }));

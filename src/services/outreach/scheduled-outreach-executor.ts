@@ -13,10 +13,13 @@ import {
   getPendingOutreach,
   updateOutreachStatus,
   incrementRetry,
-  rescheduleOutreach,
+  patchOutreach,
+  claimPendingOutreach,
   type ScheduledOutreach,
+  type ScheduledOutreachTarget,
 } from './scheduled-multi-outreach.js';
-import { textOnBehalf } from './guarded-text.js';
+import { isOwnVerifiedPhone, textOnBehalf } from './guarded-text.js';
+import { flagOn } from '../../config/env-flag.js';
 import { sendEmail } from './delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../voice/voice-call.js';
 import { makeConversationalCall } from './conversational-calls.js';
@@ -60,6 +63,16 @@ const activeUserIds = new Set<string>();
 // EXECUTION
 // ============================================================================
 
+/** Only a text or call to the member's own verified phone is to them; every other send is to someone else. */
+async function toMemberThemself(
+  userId: string,
+  channel: string,
+  target: ScheduledOutreachTarget
+): Promise<boolean> {
+  if (!['text', 'call', 'conversation'].includes(channel) || !target.resolvedPhone) return false;
+  return isOwnVerifiedPhone(userId, target.resolvedPhone).catch(() => false);
+}
+
 /**
  * Execute a single scheduled outreach
  */
@@ -78,28 +91,22 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
   try {
     let success = false;
     let errorMsg: string | undefined;
-    let channelUsed = target.channel === 'auto' ? 'text' : target.channel;
+    // 'auto' means a text (an email without a phone); a call only when one was asked for.
+    const auto = target.resolvedPhone || !target.resolvedEmail ? 'text' : 'email';
+    const channelUsed = target.channel === 'auto' ? auto : target.channel;
 
-    // Determine channel if auto
-    if (target.channel === 'auto') {
-      // Default: text if phone available, else email
-      if (target.resolvedPhone) {
-        channelUsed = 'text';
-      } else if (target.resolvedEmail) {
-        channelUsed = 'email';
-      }
-
-      // Upgrade to call for certain purposes
-      const purposeLower = target.purpose.toLowerCase();
-      if (
-        purposeLower.includes('check in') ||
-        purposeLower.includes('talk') ||
-        purposeLower.includes('important')
-      ) {
-        if (target.resolvedPhone) {
-          channelUsed = 'call';
-        }
-      }
+    if (
+      !flagOn('SCHEDULED_OUTREACH_THIRD_PARTY') &&
+      !(await toMemberThemself(userId, channelUsed, target))
+    ) {
+      // Kept, not dropped and not retried every minute, until the founder opts in.
+      await patchOutreach(userId, id, {
+        status: 'held',
+        heldReason: 'awaiting-approval',
+        heldAt: new Date(),
+      });
+      log.info({ userId, id, channel: channelUsed }, 'Scheduled outreach to someone else held');
+      return;
     }
 
     // Execute based on channel
@@ -148,7 +155,7 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
       });
       if (!sent.sent && sent.reason === 'quiet-hours') {
         // Held, not dropped: it goes out when their morning starts.
-        await rescheduleOutreach(userId, id, sent.until);
+        await patchOutreach(userId, id, { status: 'pending', scheduledFor: sent.until });
         log.info({ userId, id, until: sent.until.toISOString() }, 'Scheduled text held');
         return;
       }
@@ -240,7 +247,11 @@ async function processUserOutreach(userId: string): Promise<number> {
 
     // Process in parallel (up to batch size)
     const batch = pending.slice(0, config.batchSize);
-    await Promise.all(batch.map(executeScheduledOutreach));
+    await Promise.all(
+      batch.map(async (o) => {
+        if (await claimPendingOutreach(userId, o.id)) await executeScheduledOutreach(o);
+      })
+    );
 
     return batch.length;
   } catch (error) {

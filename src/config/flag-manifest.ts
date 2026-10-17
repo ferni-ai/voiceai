@@ -343,6 +343,8 @@ export const FLAG_MANIFEST = {
   ROUNDTABLE_VOICE: { default: 'off', owner: 'voice', kind: 'config' },
   SAVED_INTERESTS: { default: 'off', owner: 'platform', kind: 'experiment' },
   SCHEDULED_JOBS_AUTH: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  // on: the scheduled-outreach job may text, call or email a member's contacts (founder opt-in); off holds them
+  SCHEDULED_OUTREACH_THIRD_PARTY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   SEEDS_SERVER_LEDGER: { default: 'off', owner: 'platform', kind: 'experiment' },
   SEMANTIC_RECALL: { default: 'off', owner: 'memory', kind: 'experiment' },
   SEMANTIC_ROUTER_AUTO_EXECUTE_ENABLED: { default: 'on', owner: 'tools', kind: 'config' },

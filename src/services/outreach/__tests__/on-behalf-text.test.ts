@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { atomicClaims } from './atomic-claims.js';
 import {
   ON_BEHALF_GAP_MS,
   onBehalfNotSent,
@@ -28,6 +29,7 @@ function deps(
       added.push(r);
       return 'new';
     }),
+    ...atomicClaims(added),
   } as unknown as TextStore;
   const d: TextDeps = {
     env: opts.env ?? ENV,
@@ -93,6 +95,16 @@ describe('sendOnBehalfText', () => {
     });
     const later = deps([sentToMom(ON_BEHALF_GAP_MS + 60_000)]);
     expect(await sendOnBehalfText(text(), later.d)).toEqual({ sent: true });
+  });
+
+  it('two texts to the same number at once send one: the claim decides', async () => {
+    const { d } = deps();
+    const both = await Promise.all([
+      sendOnBehalfText(text(), d),
+      sendOnBehalfText(text({ refId: 'out_2' }), d),
+    ]);
+    expect(d.send).toHaveBeenCalledTimes(1);
+    expect(both).toContainEqual({ sent: false, reason: 'recently-sent' });
   });
 
   it('holds texts between 21:00 and 08:00 in the zone it is given', async () => {

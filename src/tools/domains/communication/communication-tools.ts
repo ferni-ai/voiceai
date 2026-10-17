@@ -25,7 +25,11 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { sendEmail, sendSMS } from '../../../services/communication-service.js';
+import {
+  guardedThirdPartySend,
+  sendEmail,
+  sendSMS,
+} from '../../../services/communication-service.js';
 import {
   cancelReminder,
   createReminder,
@@ -177,33 +181,7 @@ async function sendTextReal(to: string, message: string, userId: string): Promis
     return `I need a valid phone number to send a text. "${to}" doesn't look right. Can you provide a number like 555-123-4567?`;
   }
   const phone = validation.sanitized as string;
-  return guardedSend(phone, message, userId, () => sendSMS(phone, message));
-}
-
-/**
- * A text to someone else, guarded (STOP, quiet hours, 10-minute gap) and sent
- * the way this tool always sent it. Says plainly when it was not sent.
- */
-async function guardedSend(
-  phone: string,
-  body: string,
-  userId: string,
-  send: () => Promise<string>
-): Promise<string> {
-  const { defaultTextDeps, onBehalfNotSent, textOnBehalf } =
-    await import('../../../services/outreach/guarded-text.js');
-  let reply = '';
-  const sent = await textOnBehalf(
-    { senderUserId: userId, toPhone: phone, body, refId: `text_${Date.now()}` },
-    {
-      ...defaultTextDeps(),
-      send: async () => {
-        reply = await send();
-        return { success: true };
-      },
-    }
-  );
-  return sent.sent ? reply : onBehalfNotSent(sanitizePhoneForLog(phone), sent.reason);
+  return guardedThirdPartySend(phone, message, userId, () => sendSMS(phone, message));
 }
 
 // ============================================================================
@@ -311,7 +289,9 @@ async function sendVoiceMessageRealWithUserId(
     });
 
     const phone = validation.sanitized as string;
-    return guardedSend(phone, message, userId, () => sendVoiceMessage(voiceMsg.id, phone));
+    return guardedThirdPartySend(phone, message, userId, () =>
+      sendVoiceMessage(voiceMsg.id, phone)
+    );
   } catch (error) {
     getLogger().error({ error }, 'Voice message error');
     // Fallback to text

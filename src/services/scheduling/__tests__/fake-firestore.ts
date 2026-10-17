@@ -40,6 +40,10 @@ export function fakeFirestore(rows: Row[]) {
   const userDoc = (uid: string) => ({
     collection: (c: string) => ({
       doc: (id: string) => ({
+        // So a transaction can read and update this document by its ref.
+        get _row() {
+          return rows.find((r) => r.collection === c && r.id === id && r.userId === uid);
+        },
         set: async (data: Record<string, unknown>) => {
           const existing = rows.find((r) => r.collection === c && r.id === id);
           if (existing) existing.data = { ...data };
