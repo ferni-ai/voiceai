@@ -396,6 +396,9 @@ export const FLAG_MANIFEST = {
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   // on: web callers' audio gets BVC noise cancellation (multi-agent/room-input-options.ts)
   WEB_NOISE_CANCEL: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: searchWeb answers from Vertex grounded search and every persona gets it and getNews
+  // (information/web-search.ts); caps SEARCH_MAX_PER_PERSON_HOUR (20), SEARCH_MAX_PER_DAY (500)
+  WEB_SEARCH: { default: 'off', owner: 'tools', kind: 'experiment' },
   WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
   WORKER_DRAIN_TIMEOUT_MS: { default: '1800000', owner: 'platform', kind: 'config' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },

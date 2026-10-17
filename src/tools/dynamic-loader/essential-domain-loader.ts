@@ -3,8 +3,25 @@
  * outside a session loader (job entry, timeout fallback).
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { DEFAULT_ESSENTIAL_DOMAINS } from './essential-domains.js';
+
+/**
+ * WEB_SEARCH=on: every persona's first agent gets these, not only the personas
+ * whose manifest lists them. They live in the information domain, which loads
+ * only on a topic mention, so without this a persona had no way to look
+ * anything up ("I don't have a tool to pull up current news", prod call).
+ * Both are must-keep tools (tool-config.ts), so the initial cap keeps them.
+ */
+export const ALWAYS_OFFERED_LOOKUP_TOOLS = ['searchWeb', 'getNews'] as const;
+
+async function alwaysOfferedTools(): Promise<string[]> {
+  if (!flagOn('WEB_SEARCH')) return [];
+  const { loadToolDomainsLazy } = await import('../registry/loader.js');
+  await loadToolDomainsLazy(['information']);
+  return [...ALWAYS_OFFERED_LOOKUP_TOOLS];
+}
 
 let essentialDomainsReady: Promise<void> | null = null;
 
@@ -44,6 +61,7 @@ export async function loadEssentialDomains(
   const log = getLogger();
 
   await ensureEssentialDomainsLoaded();
+  const required = await alwaysOfferedTools();
 
   // Import registry and build tools for essential domains
   const { toolRegistry, EnvironmentServiceRegistry } = await import('../registry/index.js');
@@ -65,7 +83,7 @@ export async function loadEssentialDomains(
 
   // Build tools from essential domains
   const result = toolRegistry.buildToolSet(
-    { domains },
+    { domains, required },
     ctx as import('../registry/types.js').ToolContext
   );
 

@@ -4,9 +4,7 @@
  * Tools for accessing information: news, weather, sports scores.
  * This domain provides properly-routed consolidated tools for the LLM.
  *
- * NOTE: Web search is handled by Gemini's built-in Google Search tool
- * (configured via `tools: [{ googleSearch: {} }]` in RealtimeModel).
- * We removed our custom searchWeb/lookupInfo tools to avoid redundancy.
+ * Web search: searchWeb, grounded in Google Search with WEB_SEARCH=on (web-search.ts).
  *
  * DOMAIN: information
  * TOOLS:
@@ -35,6 +33,7 @@ import { getSportScores, getTeamScore } from './sports.js';
 import { createTrafficTools } from './traffic.js';
 import { createNutritionTools } from './nutrition.js';
 import { createSearchTools } from './search.js';
+import { withGroundedSearch } from './web-search.js';
 import { createDailyBriefingTools } from './daily-briefing.js';
 
 // Import new "Better Than Human" tool systems
@@ -325,13 +324,6 @@ function getSportsToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
-// SEARCH TOOLS - REMOVED
-// ============================================================================
-// Web search is now handled by Gemini's built-in Google Search tool.
-// See: https://ai.google.dev/gemini-api/docs/live-tools#google-search
-// Configured in voice-agent-entry.ts: tools: [{ googleSearch: {} }]
-
-// ============================================================================
 // TRAFFIC TOOLS (Directions and commute times)
 // ============================================================================
 
@@ -396,12 +388,14 @@ function getSearchToolDefinitions(): ToolDefinition[] {
   const legacyTools = createSearchTools();
 
   return [
-    wrapLegacyTool(
-      'searchWeb',
-      'Search Web',
-      'Search the web using DuckDuckGo for general information. Use when user asks about facts, definitions, or wants to look something up.',
-      legacyTools.searchWeb,
-      ['search', 'web', 'lookup', 'information']
+    withGroundedSearch(
+      wrapLegacyTool(
+        'searchWeb',
+        'Search Web',
+        'Search the web using DuckDuckGo for general information. Use when user asks about facts, definitions, or wants to look something up.',
+        legacyTools.searchWeb,
+        ['search', 'web', 'lookup', 'information']
+      )
     ),
     wrapLegacyTool(
       'searchWikipedia',
