@@ -43,6 +43,7 @@ import {
   isStreamingTTSEnabled,
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
+import { toolArgsCutter, toolArgsGuardEnabled } from './tts-tool-args-filter.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
 import { isFtisEnabled } from '../../config/tool-config.js';
 
@@ -455,9 +456,20 @@ export async function wrappedTtsNode(
     // This filter catches and strips such leaks without the full JSON workaround overhead.
     // We also capture telemetry to track this SDK/model behavior.
     let jsonLeakBuffer = ''; // Accumulate leaked chunks for analysis
+    // Tool arguments written as text, cut across chunks (tts-tool-args-filter.ts).
+    const cutToolArgs = toolArgsGuardEnabled() ? toolArgsCutter() : undefined;
 
     const jsonLeakFilter = new NodeTransformStream<string, string>({
-      transform(chunk, controller) {
+      transform(rawChunk, controller) {
+        const { kept: chunk, cut } = cutToolArgs?.(rawChunk) ?? { kept: rawChunk, cut: '' };
+        if (cut) {
+          jsonLeakBuffer += cut;
+          log.warn(
+            { cutLength: cut.length, sessionId },
+            '🚨 [TOOL-ARGS-FILTER] Tool arguments written as text - cut from TTS'
+          );
+        }
+        if (!chunk) return;
         // Patterns that indicate leaked function call JSON (not natural speech)
         // These are structural JSON patterns that would never appear in speech
         const jsonLeakPatterns = [
