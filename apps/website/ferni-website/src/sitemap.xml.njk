@@ -2,10 +2,15 @@
 permalink: /sitemap.xml
 eleventyExcludeFromCollections: true
 ---
+{#- Leave out internal, utility and duplicate pages. /developers and /dev-blog 301 to developers.ferni.ai (firebase.json). -#}
+{%- set excludedUrls = ["/404.html", "/offline/", "/waitlist-index/", "/story-brand/", "/pages/animation-guide/"] -%}
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   {%- for page in collections.all %}
-  {%- if page.url and not page.data.draft and not page.data.eleventyExcludeFromCollections %}
+  {%- if page.url and not page.data.draft and not page.data.eleventyExcludeFromCollections
+      and not (page.url in excludedUrls)
+      and not r/^\/(developers|dev-blog|admin|images|preview)\//.test(page.url)
+      and not r/\/README\/$/.test(page.url) %}
   <url>
     <loc>https://ferni.ai{{ page.url }}</loc>
     <lastmod>{{ page.date | date("Y-m-d") }}</lastmod>
@@ -14,5 +19,12 @@ eleventyExcludeFromCollections: true
   </url>
   {%- endif %}
   {%- endfor %}
+  {#- Translated home pages (src/locale-index.njk) are excluded from collections, so list them here. -#}
+  {%- for localeItem in locales %}{% if not localeItem.default %}
+  <url>
+    <loc>https://ferni.ai/{{ localeItem.code }}/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  {%- endif %}{% endfor %}
 </urlset>
-

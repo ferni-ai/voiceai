@@ -11,6 +11,7 @@
  * @module agents/multi-agent/handoff-brief
  */
 
+import type { Env } from '../../config/env-flag.js';
 import { getGenerativeModel } from '../../config/generative-model.js';
 import { contentWords } from '../../memory/recall/session-recall.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
@@ -20,6 +21,13 @@ import { directLine, type Actor } from '../../speech/direction/director.js';
 import { handoffAskFirstEnabled } from '../../tools/handoff/handoff-consent.js';
 import { teammateHeardAs } from '../../tools/handoff/teammate-names.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  ARRIVAL_DIRECTION,
+  ARRIVAL_DIRECTION_PLAIN,
+  arrivalContextEnabled,
+  momentFacts,
+  withoutStockOpener,
+} from './handoff-arrival.js';
 
 const log = createLogger({ module: 'HandoffBrief' });
 
@@ -78,6 +86,8 @@ export interface BriefInput {
   /** Lines from the outgoing persona's recall notes ("Sam: sister = Ana"). */
   remembered: string[];
   userName?: string;
+  /** The caller's IANA zone, when the call knows it: the first line fits their hour. */
+  timeZone?: string;
 }
 
 export interface Briefing {
@@ -368,18 +378,31 @@ export function formatBrief(brief: HandoffBrief, fromName: string): string {
 }
 
 /**
- * Director's cue for the teammate's first line. It used to carry a copyable example
- * ("{from} said you're weighing the offer"), and in prod the teammate said exactly that
- * to a caller who had only asked for them by name.
+ * What the director is told for the first line: why they came (this call's caller lines
+ * only: a fact from past calls is not why they came today) and, with the arrival context
+ * on, the moment (handoff-arrival.ts).
  */
-export const ARRIVAL_DIRECTION =
-  "You've just been brought onto this call by {from}. Open like a friend who was filled in: a quick hello, then, only if the facts say what they want, name it in a few of their own words. If they only asked for you by name, just say hi warmly and ask what they'd like to get into. Never say {from} told you anything that is not in the facts. At most one question, never one they already answered; don't introduce your job or make them repeat themselves. Two short sentences at most.";
+function arrivalFacts(
+  input: BriefInput,
+  plain: HandoffBrief,
+  context: boolean,
+  now: Date
+): Record<string, string> {
+  const facts: Record<string, string> = { 'why they came': plain.why };
+  if (plain.discussed && plain.why !== NO_TOPIC) {
+    facts[`what they told ${input.fromName}`] = plain.discussed;
+  }
+  if (!context) return facts;
+  const turns = callerLinesOf(input).length;
+  return { ...facts, ...momentFacts(input.fromName, turns, input.timeZone, now) };
+}
 
 export async function prepareBriefing(
   raw: BriefInput,
   fallbackLine: string,
-  opts: { writer?: BriefWriter; actor?: Actor; budgetMs?: number } = {}
+  opts: { writer?: BriefWriter; actor?: Actor; budgetMs?: number; env?: Env; now?: Date } = {}
 ): Promise<Briefing> {
+  const context = arrivalContextEnabled(opts.env);
   const input = groundedInput(raw);
   const callerLines = callerLinesOf(input);
   const started = Date.now();
@@ -397,16 +420,12 @@ export async function prepareBriefing(
       return null;
     });
   const character = characterOf(input.toPersonaId);
-  // Only this call's caller lines: a fact from past calls is not why they came today
-  const facts: Record<string, string> = { 'why they came': plain.why };
-  if (plain.discussed && plain.why !== NO_TOPIC) {
-    facts[`what they told ${input.fromName}`] = plain.discussed;
-  }
+  const direction = context ? ARRIVAL_DIRECTION : ARRIVAL_DIRECTION_PLAIN;
   const line = directLine(
     {
       moment: 'handoff_arrival',
-      direction: ARRIVAL_DIRECTION.replaceAll('{from}', input.fromName),
-      facts,
+      direction: direction.replaceAll('{from}', input.fromName),
+      facts: arrivalFacts(input, plain, context, opts.now ?? new Date()),
       fallback: fallbackLine,
       urgency: 'soon',
       maxChars: 200,
@@ -422,26 +441,30 @@ export async function prepareBriefing(
   );
   const [brief, spoken] = await Promise.all([Promise.race([written, late]), line]);
   const invented = spoken.source === 'actor' && ungroundedClaim(spoken.text, callerLines);
+  const said = spoken.source === 'actor' && !invented ? spoken.text : undefined;
+  const firstLine = said !== undefined && context ? withoutStockOpener(said) : said;
   log.info(
     {
       to: input.toPersonaId,
       written: Boolean(brief),
       line: spoken.source,
       invented,
+      stockCut: firstLine !== said,
       ms: Date.now() - started,
     },
     'Handoff brief ready'
   );
   return {
     brief: formatBrief(brief ?? plain, input.fromName),
-    firstLine: spoken.source === 'actor' && !invented ? spoken.text : undefined,
+    firstLine: firstLine || undefined,
   };
 }
 
 /** The talk the outgoing persona's session holds, and what the handoff request knows. */
 export async function briefingFor(
   from: { personaId: string; session: unknown },
-  request: { targetPersonaId: string; reason: string; userName?: string; userEmotion?: string }
+  request: { targetPersonaId: string; reason: string; userName?: string; userEmotion?: string },
+  timeZone?: string
 ): Promise<Briefing | null> {
   try {
     const { turns, remembered } = readConversation(from.session);
@@ -456,6 +479,7 @@ export async function briefingFor(
         reason: request.reason,
         emotion: request.userEmotion,
         userName: request.userName,
+        timeZone,
       },
       arrivalLine(to, from.personaId)
     );

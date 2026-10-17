@@ -15,6 +15,7 @@
  */
 
 import { getExtractionModel, vertexOptions } from '../../config/gemini-config.js';
+import { chargeAudioBudget } from './transcribe-budget.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { minimalThinkingFor } from '../../config/thinking-defaults.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -53,6 +54,12 @@ interface Part {
 }
 
 interface AudioModel {
+  countTokens: (params: {
+    contents: Array<{
+      role: string;
+      parts: Array<{ inlineData: { mimeType: string; data: string } }>;
+    }>;
+  }) => Promise<{ totalTokens?: number }>;
   generateContent: (params: {
     contents: Array<{
       role: string;
@@ -181,12 +188,59 @@ export async function transcribeWithVertex(
   }
 }
 
-/** transcribeWithVertex when JOURNAL_TRANSCRIBE_VERTEX is on; null, with no call, when it is off. */
+export const MEASURE_TIMEOUT_MS = 10_000;
+
+/**
+ * The audio tokens Vertex will bill for `audio`, from countTokens (free; no
+ * transcription runs). Null when it can't be measured: unsupported type,
+ * empty or too big, timeout or a Vertex error. Callers refuse what they can't measure.
+ */
+export async function measureAudioTokens(audio: Buffer, mimeType: string): Promise<number | null> {
+  const mime = vertexAudioMime(mimeType);
+  if (!mime || audio.byteLength === 0 || audio.byteLength > MAX_TRANSCRIBE_BYTES) return null;
+  const model = getExtractionModel();
+  try {
+    const vertex = await getClient();
+    const counted = await withTimeout(
+      vertex.getGenerativeModel({ model }, { timeout: MEASURE_TIMEOUT_MS }).countTokens({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ inlineData: { mimeType: mime, data: audio.toString('base64') } }],
+          },
+        ],
+      }),
+      MEASURE_TIMEOUT_MS
+    );
+    const tokens = counted.totalTokens;
+    return typeof tokens === 'number' && Number.isFinite(tokens) && tokens > 0 ? tokens : null;
+  } catch (error) {
+    log.warn({ error: String(error), model, bytes: audio.byteLength }, 'Audio length check failed');
+    return null;
+  }
+}
+
+/**
+ * transcribeWithVertex when JOURNAL_TRANSCRIBE_VERTEX is on; null, with no
+ * call, when it is off. The clip is measured and charged to the shared audio
+ * budget first (transcribe-budget.ts): null when it can't be measured, and
+ * ClipTooLongError or TranscribeBudgetSpentError thrown for the caller to answer.
+ */
 export async function vertexJournalFallback(
   audio: ArrayBuffer,
   mimeType: string,
   env: Env = process.env
 ): Promise<string | null> {
   if (!flagOn('JOURNAL_TRANSCRIBE_VERTEX', env)) return null;
-  return transcribeWithVertex(Buffer.from(audio), mimeType);
+  const buffer = Buffer.from(audio);
+  const tokens = await measureAudioTokens(buffer, mimeType);
+  if (tokens === null) {
+    log.warn(
+      { bytes: buffer.byteLength, mimeType },
+      'Journal clip refused: its length could not be measured'
+    );
+    return null;
+  }
+  await chargeAudioBudget(tokens);
+  return transcribeWithVertex(buffer, mimeType);
 }

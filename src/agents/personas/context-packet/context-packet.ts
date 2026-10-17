@@ -13,6 +13,7 @@
  * @module agents/personas/context-packet/context-packet
  */
 
+import { WORLD_FACTS_RULE } from '../../../intelligence/world-model/temporal/in-call.js';
 import { rankGuidance, type DroppedNote, type GuidanceNote } from './guidance-ranker.js';
 
 const HEADINGS = {
@@ -20,6 +21,7 @@ const HEADINGS = {
   who_you_are: '## Who you are',
   right_now: '## Right now',
   what_i_remember: '## What I remember',
+  your_life: '## Your life right now',
   what_ive_promised: "## What I've promised",
   this_turn: '## This turn',
   team: "## Who's on the team",
@@ -33,6 +35,8 @@ export const SECTION_BUDGETS: Readonly<Record<SectionName, number>> = {
   who_you_are: 120,
   right_now: 80,
   what_i_remember: 300,
+  // WORLD_FACTS_IN_CALL: in-call.ts keeps its block (rule included) under this.
+  your_life: 250,
   what_ive_promised: 100,
   // The per-turn shape reminder alone is ~575 tokens (turn-shape.ts) and must fit.
   this_turn: 800,
@@ -91,6 +95,8 @@ export interface PacketInput {
   memoriesWhole?: boolean;
   /** The rule for using memories, verbatim from recall (session-recall.ts RECALL_RULE); none when the chat note carries it. */
   memoryRule?: string;
+  /** Their life now, each line one dated, labelled fact (world-model/temporal/in-call.ts). */
+  life?: readonly string[];
   commitments?: Commitment[];
   guidance?: GuidanceNote[];
   /**
@@ -264,6 +270,10 @@ export function assembleContextPacket(input: PacketInput): ContextPacket {
       ...(at.justHappened ?? []).flatMap((t) => opt(t)),
     ],
     what_i_remember: withRule(input.memoryRule, facts(input.memories, 'what_i_remember')),
+    your_life: withRule(
+      WORLD_FACTS_RULE,
+      (input.life ?? []).map((text) => ({ text: bullet(text) }))
+    ),
     what_ive_promised: withRule(PROMISE_RULE, (input.commitments ?? []).map(promise)),
     this_turn: ranked.kept.map((n) => ({ text: bullet(n.text), id: n.id })),
     team: team?.relevant ? teamLines.map((text) => ({ text })) : [],

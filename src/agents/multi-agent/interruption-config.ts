@@ -64,3 +64,32 @@ export function interruptionOverrides(
     falseInterruptionTimeout: GUARD_RESUME_AFTER_MS,
   };
 }
+
+/** The parts of LiveKit's live AgentActivity (session._activity) that say how barge-in works. */
+interface ActivityInterruptionView {
+  _activity?: {
+    interruptionDetector?: unknown;
+    isInterruptionByAudioActivityEnabled?: boolean;
+    pausedSpeech?: unknown;
+  };
+}
+
+const activityOf = (session: unknown) =>
+  (session as ActivityInterruptionView | undefined)?._activity;
+
+/**
+ * The barge-in mode LiveKit resolved for this session (it drops 'adaptive'
+ * when the STT or VAD can't support it): 'adaptive', 'vad', 'none', or
+ * 'unknown' with no activity running.
+ */
+export function interruptionModeInUse(session: unknown): string {
+  const activity = activityOf(session);
+  if (!activity) return 'unknown';
+  if (activity.interruptionDetector) return 'adaptive';
+  return activity.isInterruptionByAudioActivityEnabled === false ? 'none' : 'vad';
+}
+
+/** Ferni's reply is paused for the caller's voice (LiveKit's interruptByAudioActivity). */
+export function speechPausedForCaller(session: unknown): boolean {
+  return Boolean(activityOf(session)?.pausedSpeech);
+}

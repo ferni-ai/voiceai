@@ -2,7 +2,8 @@
 /**
  * Scores the live memory eval (run-live.sh): Ferni's first line of each quiz
  * call is graded as the opener, and his reply to each quiz line against the
- * persona's gold answer, with the benchmark's judge. Two labels compare runs
+ * persona's gold answer, with the benchmark's judge plus a rule for spoken
+ * answers (live-judge.ts). Two labels compare runs
  * (e.g. flags off and on), paired by question. A missing quiz file or start
  * time fails the run unless --allow-missing is passed.
  *
@@ -19,6 +20,7 @@ import {
   failureCount,
   formatPaired,
   formatReport,
+  formatStrict,
   judgePrompt,
   localDay,
   paired,
@@ -27,6 +29,12 @@ import {
   type CaseResult,
 } from '../longmem-lib.js';
 import { PERSONAS } from '../fixtures/live-personas.js';
+import {
+  LIVE_JUDGE_MAX_TOKENS,
+  liveJudgeHash,
+  liveJudgePrompt,
+  parseLiveVerdict,
+} from './live-judge.js';
 import { agentLines, repliesAfter, type EvalRun } from './transcript.js';
 
 const OUT = join(import.meta.dirname, '../../voice-eval/out');
@@ -66,11 +74,20 @@ async function score(label: string, allowMissing: boolean): Promise<CaseResult[]
       const noAnswer = response.trim() === '';
       const judgeReply = noAnswer
         ? null
-        : await callLLM(judgePrompt(category, ask, gold, response), {
+        : await callLLM(liveJudgePrompt(category, ask, gold, response, days.today()), {
             temperature: 0,
-            maxTokens: 10,
+            maxTokens: LIVE_JUDGE_MAX_TOKENS,
           });
-      const correct = parseYesNo(judgeReply);
+      const correct = parseLiveVerdict(judgeReply);
+      // The benchmark's own judge too, so the report shows both standards.
+      const strict = noAnswer
+        ? null
+        : parseYesNo(
+            await callLLM(judgePrompt(category, ask, gold, response), {
+              temperature: 0,
+              maxTokens: 10,
+            })
+          );
       results.push({
         history: p.id,
         category,
@@ -82,6 +99,7 @@ async function score(label: string, allowMissing: boolean): Promise<CaseResult[]
         correct,
         retrieved: null,
         judgeReply,
+        strict,
       });
       const mark = noAnswer ? '!' : correct ? '✓' : correct === false ? '✗' : '?';
       console.log(`${mark} ${label} ${p.id} [${category}] ${ask} → ${response}`);
@@ -103,14 +121,23 @@ async function main(): Promise<void> {
     throw new Error('usage: score-live.ts <label> [label2] [--allow-missing]');
   const runs: CaseResult[][] = [];
   for (const label of labels) runs.push(await score(label, allowMissing));
-  const sections = labels.map((l, i) => `== ${l}\n${formatReport(runs[i]!)}`);
+  const sections = labels.map(
+    (l, i) => `== ${l}\n${formatReport(runs[i]!)}\n${formatStrict(runs[i]!)}`
+  );
   if (runs.length === 2)
     sections.push(formatPaired(labels[0]!, labels[1]!, paired(runs[0]!, runs[1]!)));
   const dir = join(tmpdir(), 'longmem');
   mkdirSync(dir, { recursive: true });
   const file = join(dir, `live-${labels.join('-vs-')}.json`);
   const models = { judge: getExtractionModel(), fallback: getOpenAIFallbackModel() };
-  writeFileSync(file, JSON.stringify({ labels, models, prompts: promptHashes(), runs }, null, 2));
+  writeFileSync(
+    file,
+    JSON.stringify(
+      { labels, models, prompts: { ...promptHashes(), live: liveJudgeHash() }, runs },
+      null,
+      2
+    )
+  );
   console.log(`\n${sections.join('\n\n')}\n\nReport: ${file}`);
   const failures = runs.reduce((sum, run) => sum + failureCount(run), 0);
   if (failures > 0) {

@@ -25,7 +25,8 @@ permalink: /blog/
       <a href="{{ featuredPost.url }}" class="featured-post__link">
         <div class="featured-post__image">
           {% if featuredPost.data.image %}
-          <img src="/images/blog/{{ featuredPost.data.image }}" alt="{{ featuredPost.data.imageAlt or featuredPost.data.title }}" loading="lazy">
+          {# The featured image is the LCP: eager, high priority #}
+          {% blogImage featuredPost.data.image, featuredPost.data.imageAlt or featuredPost.data.title, "featured", true %}
           {% else %}
           <div class="featured-post__placeholder">
             {% if featuredPost.data.category == "Building in Public" %}
@@ -68,7 +69,7 @@ permalink: /blog/
         <a href="{{ post.url }}" class="post-card__link">
           <div class="post-card__image">
             {% if post.data.image %}
-            <img src="/images/blog/{{ post.data.image }}" alt="{{ post.data.imageAlt or post.data.title }}" loading="lazy">
+            {% blogImage post.data.image, post.data.imageAlt or post.data.title, "card" %}
             {% else %}
             <div class="post-card__placeholder">
               {% if post.data.category == "Building in Public" %}
