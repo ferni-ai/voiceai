@@ -30,7 +30,7 @@ function geminiStream(...pieces: string[]): ReadableStream<llm.ChatChunk> {
 }
 
 async function spoken(stream: ReadableStream<llm.ChatChunk>, env: Record<string, string>) {
-  const out = await withActionClaimCheck(Promise.resolve(stream), { items: [] }, {}, env);
+  const out = await withActionClaimCheck(Promise.resolve(stream), { items: [] }, {}, undefined, env);
   let said = '';
   for await (const c of out as unknown as AsyncIterable<llm.ChatChunk>)
     said += c.delta?.content ?? '';
@@ -61,6 +61,7 @@ describe('claim guard keeps words whole across usage chunks', () => {
       Promise.resolve(geminiStream('Hi there.')),
       { items: [] },
       {},
+      undefined,
       { ACTION_CLAIM_GUARD: 'on' }
     );
     const chunks: llm.ChatChunk[] = [];

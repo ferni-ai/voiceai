@@ -3,10 +3,10 @@
  * On dev 2026-10-17 he asked "Whereabouts are you?" and went on with "I'm in
  * Manhattan, New York. 10011." Synthetic lines only.
  */
-import { ReadableStream } from 'node:stream/web';
+import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 import { describe, expect, it } from 'vitest';
 
-import { withCallerVoiceGuard } from '../caller-voice-guard.js';
+import { answerShapeOf, withCallerVoiceGuard } from '../caller-voice-guard.js';
 
 type Chunk = string | object;
 
@@ -21,8 +21,12 @@ function replyOf(chunks: string[]): ReadableStream<string> {
 }
 
 /** Everything the guard lets out, joined. */
-async function spoken(chunks: string[], env: Record<string, string> = {}): Promise<string> {
-  const out = await withCallerVoiceGuard(replyOf(chunks), env);
+async function spoken(
+  chunks: string[],
+  env: Record<string, string> = { CALLER_VOICE_GUARD: 'on' },
+  persona = 'ferni'
+): Promise<string> {
+  const out = await withCallerVoiceGuard(replyOf(chunks), env, persona);
   const reader = (out as unknown as ReadableStream<string>).getReader();
   let text = '';
   for (let next = await reader.read(); !next.done; next = await reader.read()) {
@@ -46,7 +50,12 @@ describe('withCallerVoiceGuard', () => {
   });
 
   it('cuts an answer split across chunks', async () => {
-    const text = await spoken(['Whereabouts are you?', ' I need', ' your city. I', "'m in Philadelphia."]);
+    const text = await spoken([
+      'Whereabouts are you?',
+      ' I need',
+      ' your city. I',
+      "'m in Philadelphia.",
+    ]);
     expect(text).toContain('Whereabouts are you?');
     expect(text).not.toContain('Philadelphia');
   });
@@ -85,7 +94,11 @@ describe('withCallerVoiceGuard', () => {
         feed = controller;
       },
     });
-    const reader = ((await withCallerVoiceGuard(source)) as unknown as ReadableStream<string>).getReader();
+    const reader = (
+      (await withCallerVoiceGuard(source, {
+        CALLER_VOICE_GUARD: 'on',
+      })) as unknown as ReadableStream<string>
+    ).getReader();
     feed.enqueue('Did I find anything? Yes, I have three options. ');
     let text = '';
     while (!text.includes('three options')) text += (await reader.read()).value ?? '';
@@ -101,7 +114,9 @@ describe('withCallerVoiceGuard', () => {
       },
     });
     const reader = (
-      (await withCallerVoiceGuard(source)) as unknown as ReadableStream<string>
+      (await withCallerVoiceGuard(source, {
+        CALLER_VOICE_GUARD: 'on',
+      })) as unknown as ReadableStream<string>
     ).getReader();
     feed?.enqueue('Sure thing, ');
     // The first words are out before the model has finished the reply.
@@ -144,11 +159,18 @@ describe('withCallerVoiceGuard', () => {
       start(controller) {
         controller.enqueue('Where are you? ');
         controller.enqueue("I'm in Boston");
-        controller.enqueue({ id: 'r', delta: { role: 'assistant', toolCalls: [{ name: 'searchLocalBusinesses' }] } });
+        controller.enqueue({
+          id: 'r',
+          delta: { role: 'assistant', toolCalls: [{ name: 'searchLocalBusinesses' }] },
+        });
         controller.close();
       },
     });
-    const reader = ((await withCallerVoiceGuard(stream)) as unknown as ReadableStream<Chunk>).getReader();
+    const reader = (
+      (await withCallerVoiceGuard(stream, {
+        CALLER_VOICE_GUARD: 'on',
+      })) as unknown as ReadableStream<Chunk>
+    ).getReader();
     let text = '';
     for (let next = await reader.read(); !next.done; next = await reader.read()) {
       if (typeof next.value === 'string') text += next.value;
@@ -198,5 +220,59 @@ describe('withCallerVoiceGuard', () => {
       replies.map(async (chunks) => (await spoken(chunks)) !== chunks.join(''))
     );
     expect(cut.filter(Boolean)).toHaveLength(0);
+  });
+});
+
+describe('caller voice guard modes and personas', () => {
+  it('is off by default', async () => {
+    const chunks = ['Whereabouts are you?', " I'm in Manhattan, New York."];
+    expect(await spoken(chunks, {})).toBe(chunks.join(''));
+  });
+
+  it('shadow mode streams the whole reply and cuts nothing', async () => {
+    const chunks = ['Whereabouts are you?', " I'm in Manhattan, New York.", ' 10011.'];
+    expect(await spoken(chunks, { CALLER_VOICE_GUARD: 'shadow' })).toBe(chunks.join(''));
+  });
+
+  it.each([
+    ["May I ask who's speaking? I'm Linda.", 'Linda'],
+    ["Who's this? I'm Linda.", 'Linda'],
+    ['Who is this? Hi, this is Linda.', 'Linda'],
+    ["What's your name? Hi, my name is Linda.", 'Linda'],
+    ["What's your name? Oh, my name's Linda.", 'Linda'],
+    ['Who is calling? Manhattan, New York, 10011.', 'Manhattan'],
+  ])('cuts the round-3 miss in %j', async (reply, leaked) => {
+    expect(await spoken([reply])).not.toContain(leaked);
+  });
+
+  it.each([
+    ["Where did you grow up? I'm from Big Sky country, myself.", 'ferni'],
+    ['Where did you grow up? I grew up in Kyoto in my memories.', 'ferni'],
+    ["Where are you from? I'm from Stockton, myself.", 'maya-santos'],
+    ["What's your name? I'm Maya, by the way.", 'maya-santos'],
+    ["What should I call you? I'm Jordan, by the way.", 'jordan-taylor'],
+    ["Where did you grow up? I'm from Vadodara, originally.", 'nayan-patel'],
+    ["Where are you from? I'm from Pawtucket, Rhode Island.", 'peter-john'],
+  ])('passes a persona speaking for itself in %j (%s)', async (reply, persona) => {
+    expect(await spoken([reply], { CALLER_VOICE_GUARD: 'on' }, persona)).toBe(reply);
+  });
+
+  it('still cuts a caller answer in a teammate persona', async () => {
+    expect(
+      await spoken(
+        ["Where are you? I'm in Manhattan."],
+        { CALLER_VOICE_GUARD: 'on' },
+        'maya-santos'
+      )
+    ).not.toContain('Manhattan');
+  });
+
+  it('names the shape of a caller answer and never the words', () => {
+    expect(answerShapeOf("I'm in Manhattan.")).toBe('place');
+    expect(answerShapeOf("I'm Linda, her mom.")).toBe('name-intro');
+    expect(answerShapeOf('Hi, this is Linda.')).toBe('my-name');
+    expect(answerShapeOf('Manhattan, New York, 10011.')).toBe('city-state');
+    expect(answerShapeOf('Yes, I have three options.')).toBeUndefined();
+    expect(answerShapeOf("I'm Linda, her mom.", 'maya-santos')).toBe('name-intro');
   });
 });

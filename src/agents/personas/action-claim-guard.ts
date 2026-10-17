@@ -222,9 +222,10 @@ export async function withActionClaimCheck<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },
   tools: { functionTools?: Record<string, unknown> },
+  persona = 'ferni',
   env: Env = process.env
 ): Promise<T> {
-  return withCallerVoiceGuard(await checkActionClaims(reply, chatCtx, tools, env), env);
+  return withCallerVoiceGuard(await checkActionClaims(reply, chatCtx, tools, env), env, persona);
 }
 
 /** The claim check alone; withActionClaimCheck also runs the caller voice guard after it. */

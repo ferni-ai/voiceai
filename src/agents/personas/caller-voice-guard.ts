@@ -1,41 +1,48 @@
 /**
  * Ferni never speaks the caller's side of the call.
  *
- * Dev 2026-10-17 (keys-check, synthetic caller): Ferni asked "Whereabouts are
- * you? I need your city..." and, in the same reply, went on as if the caller
- * had answered: "I'm in Manhattan, New York. 10011." The scenario never gave a
- * location, so the model wrote the caller's turn and the voice spoke it. The
- * cause was in the prompt: the unknown-caller guidance (inbound-call-context.ts)
- * carried a Caller:/You: example, and the model copied its shape. That is fixed
- * there. This guard is the backstop on every reply (withActionClaimCheck in
+ * Dev 2026-10-17 (synthetic caller): Ferni asked where the caller was and, in the
+ * same reply, went on as if they had answered with a made-up city and zip code.
+ * The cause was in the prompt: the unknown-caller guidance carried a Caller:/You:
+ * example, which the model copied (fixed in inbound-call-context.ts). This guard
+ * is the backstop, on every persona's reply (withActionClaimCheck in
  * action-claim-guard.ts).
  *
- * After a sentence that asks the caller something, the next ANSWER_WINDOW
- * sentences are held. If one of them answers that question in Ferni's own voice
- * ("I'm in Manhattan", "My name is Linda", "Yeah, I live in...", a bare zip
- * code), the reply is cut there: the sentences before it go out, the answer and
- * everything after it do not. Otherwise the held sentences go out as written.
- * A reply with no question streams untouched and holds nothing, so normal turns
- * add no latency. CALLER_VOICE_GUARD=off turns it off. Logs carry the reason,
- * never words.
+ * Modes, from CALLER_VOICE_GUARD (flag-manifest.ts):
+ * - off (default): nothing.
+ * - shadow: the reply streams untouched. Where a sentence would have been cut,
+ *   the log says so (persona, the shape id, never the words), so the rate can be
+ *   measured on dev before anyone turns the guard into a cut.
+ * - on: after a sentence that asks the caller where they are or who they are,
+ *   the next ANSWER_WINDOW sentences are held. If one of them answers in the
+ *   speaker's own voice ("I'm in Manhattan", "My name is Linda", a bare zip code),
+ *   the reply is cut there: the sentences before it go out, the answer and what
+ *   follows do not.
+ *
+ * A reply with no caller question streams untouched and holds nothing, so normal
+ * turns add no latency. Each persona's own name and canon places are exempt, so
+ * a teammate's intro or hometown is never a would-cut. Logs carry the persona and
+ * the shape id, never words.
  *
  * @module agents/personas/caller-voice-guard
  */
 import type { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 
-import { flagOn, type Env } from '../../config/env-flag.js';
+import { flagModeOf, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CallerVoiceGuard' });
 
 type Chunk = llm.ChatChunk | string | object;
 
-/** Sentences after a question in which the caller's answer can land. */
+export type CallerVoiceMode = 'off' | 'shadow' | 'on';
+
+/** Sentences after a caller question in which the caller's answer can land. */
 const ANSWER_WINDOW = 2;
 
-export function callerVoiceGuardEnabled(env: Env = process.env): boolean {
-  return flagOn('CALLER_VOICE_GUARD', env);
+export function callerVoiceGuardMode(env: Env = process.env): CallerVoiceMode {
+  return flagModeOf('CALLER_VOICE_GUARD', env);
 }
 
 /**
@@ -44,50 +51,98 @@ export function callerVoiceGuardEnabled(env: Env = process.env): boolean {
  * and so does "Who told you about me?"; "Did I find anything?" does not.
  */
 const ASKS_CALLER =
-  /\b(?:where (?:are|do|did|were|have|is) you|where (?:you|your)|whereabouts|your name|what'?s your name|what should i call you|who are you|who (?:told|sent|referred|gave) you|who (?:is|'s) (?:this|calling|speaking)|who am i (?:talking|speaking) (?:to|with)|who do i have|and (?:you|who) are\??|your city|what city|which city|what town|zip|postcode|post code|(?:do|are|did) you (?:still )?(?:live|located|from|in|at|near|staying)|your (?:area|town|home|address))\b/i;
+  /\b(?:where (?:are|do|did|were|have|is) you|where (?:you|your)|whereabouts|your name|what'?s your name|what should i call you|who are you|who (?:told|sent|referred|gave) you|who(?: is|'s|’s) (?:this|calling|speaking)|who am i (?:talking|speaking) (?:to|with)|who do i have|and (?:you|who) are\??|your city|what city|which city|what town|zip|postcode|post code|(?:do|are|did) you (?:still )?(?:live|located|from|in|at|near|staying)|your (?:area|town|home|address))\b/i;
 
 /** A lead-in a person says before the answer: "Hi,", "Um,", "Okay,". */
 const LEAD_IN =
   '(?:(?:[Hh]i|[Hh]ey|[Oo]h|[Uu]m|[Uu]h|[Oo]kay|[Oo]k|[Ww]ell|[Yy]eah|[Yy]es|[Ss]ure|[Ss]o|[Aa]ctually|[Hh]onestly)[,.!]?\\s+)?';
-const NOT_FERNI = '(?!Ferni\\b)';
+const NOT_AN_INTRO =
+  'Sorry|Glad|Happy|Sure|Good|Fine|Ready|Here|Okay|Not|Really|Afraid|Curious|Thrilled|Excited|Thinking|Honestly|Sad|Tired|Busy|Also|Just|So|Very|Still|Going|Trying|Hoping';
+
+interface Shape {
+  id: string;
+  re: RegExp;
+}
 
 /**
- * Ferni answering for the caller, in the first person, as a caller would. Narrow on
- * purpose: "Yes, I have three options" never matches, and neither does "I grew up in ...".
- * Case-sensitive on purpose: a lowercase "I'm in the garden" is never a place answer.
+ * A first-person answer in a speaker's own voice, by shape. Narrow on purpose: "Yes, I
+ * have three options" never matches, and neither does "I grew up in ...". Case-sensitive
+ * on purpose: a lowercase "I'm in the garden" is never a place answer.
  */
-const SELF_ANSWER: readonly RegExp[] = [
-  new RegExp(`^${LEAD_IN}I(?:'m|’m| am)(?: (?:currently|just|calling|over|originally|right now))* (?:in|from|at|near|over in|calling from) (?:downtown |the )?[A-Z]`), // I'm in Manhattan
-  new RegExp(`^${LEAD_IN}I(?:'m|’m| am) ${NOT_FERNI}(?!Sorry|Glad|Happy|Sure|Good|Fine|Ready|Here|Okay|Not|Really|Afraid|Curious|Thrilled|Excited|Thinking|Honestly|Sad|Tired|Busy|Also|Just|So|Very|Still|Going|Trying|Hoping)[A-Z][a-z]+(?=[,.!]|$)`), // I'm Linda, her mom.
-  new RegExp(`^${LEAD_IN}(?:My name(?:'s| is)|Name's|This is|Call me) ${NOT_FERNI}[A-Z][a-z]+`), // My name is Linda; This is Linda.
-  new RegExp(`^${LEAD_IN}I (?:live|am living) (?:in|at|on|near) [A-Z\\d]`), // I live in Ohio
-  /^In [A-Z][a-z]+\.?$/, // In Manhattan.
-  /^\d{5}(?:-\d{4})?[.!]?$/, // a bare zip code
-  /^[A-Z][a-z]+(?: [A-Z][a-z]+)*,? (?:[A-Z]{2}|New York|New Jersey|Pennsylvania|California|Massachusetts|Florida|Texas|Ohio|Illinois|Colorado|Oregon|Washington|Michigan|Georgia|Virginia)(?:,? \d{5}(?:-\d{4})?)?\.?$/, // Manhattan, New York, 10011.
+const SELF_ANSWER: readonly Shape[] = [
+  {
+    id: 'place',
+    re: new RegExp(
+      `^${LEAD_IN}I(?:'m|’m| am)(?: (?:currently|just|calling|over|originally|right now))* (?:in|from|at|near|over in|calling from) (?:downtown |the )?[A-Z]`
+    ),
+  },
+  {
+    id: 'name-intro',
+    re: new RegExp(`^${LEAD_IN}I(?:'m|’m| am) (?!(?:${NOT_AN_INTRO})\\b)[A-Z][a-z]+(?=[,.!]|$)`),
+  },
+  {
+    id: 'my-name',
+    re: new RegExp(
+      `^${LEAD_IN}(?:[Mm]y name(?:'s| is)|[Nn]ame's|[Tt]his is|[Cc]all me) [A-Z][a-z]+`
+    ),
+  },
+  { id: 'lives-in', re: new RegExp(`^${LEAD_IN}I (?:live|am living) (?:in|at|on|near) [A-Z\\d]`) },
+  { id: 'in-place', re: /^In [A-Z][a-z]+\.?$/ },
+  { id: 'zip', re: /^\d{5}(?:-\d{4})?[.!]?$/ },
+  {
+    id: 'city-state',
+    re: /^[A-Z][a-z]+(?: [A-Z][a-z]+)*,? (?:[A-Z]{2}|New York|New Jersey|Pennsylvania|California|Massachusetts|Florida|Texas|Ohio|Illinois|Colorado|Oregon|Washington|Michigan|Georgia|Virginia)(?:,? \d{5}(?:-\d{4})?)?\.?$/,
+  },
 ];
 
 /**
- * Ferni's own canon places (identity/biography-core.md: "I grew up in Wyoming"). An answer
- * that names one is his own life, so it is never a caller's answer. Keep this in step with
- * his biography.
+ * Each persona's canon places (src/personas/bundles/<persona>/identity). An answer that
+ * names one is that persona's own life, so it is never a caller's answer. Keep in step
+ * with the bundles.
  */
-const FERNI_OWN_PLACE = /\bWyoming\b/;
+const OWN_CANON: Readonly<Record<string, readonly string[]>> = {
+  ferni: ['Wyoming', 'Big Sky', 'Jackson Hole', 'Yellowstone', 'Japan', 'Kyoto'],
+  'maya-santos': ['Stockton'],
+  'nayan-patel': ['Vadodara', 'Gujarat', 'India'],
+  'alex-chen': ['Oakland', "Chen's Garden"],
+  'peter-john': ['Pawtucket', 'Rhode Island'],
+  'jordan-taylor': [],
+};
+
+const ownWordsCache = new Map<string, RegExp>();
+
+/** The persona's own first name and canon places: an answer naming them is not the caller's. */
+function ownWords(persona: string): RegExp {
+  let re = ownWordsCache.get(persona);
+  if (!re) {
+    const first = persona.split('-')[0];
+    const names = [first.charAt(0).toUpperCase() + first.slice(1), ...(OWN_CANON[persona] ?? [])];
+    re = new RegExp(`\\b(?:${names.join('|')})\\b`);
+    ownWordsCache.set(persona, re);
+  }
+  return re;
+}
 
 /** Quotes and a "Caller:" label a transcript puts in front of the words. */
 const SPEAKER_FRAME = /^(?:["“‘']+\s*|(?:caller|user)\s*:\s*)+/i;
 
-const isSelfAnswer = (sentence: string): boolean => {
+/**
+ * The shape id of a sentence that answers a caller question in the speaker's own voice,
+ * or undefined. Exported for the tests and the shadow log.
+ */
+export function answerShapeOf(sentence: string, persona = 'ferni'): string | undefined {
   const text = sentence.trim().replace(SPEAKER_FRAME, '');
-  if (FERNI_OWN_PLACE.test(text)) return false;
-  return SELF_ANSWER.some((pattern) => pattern.test(text));
-};
+  if (ownWords(persona).test(text)) return undefined;
+  return SELF_ANSWER.find((shape) => shape.re.test(text))?.id;
+}
 
 /** A sentence that asks something: a question mark, then any closing quote or bracket. */
 const QUESTION_END = /\?[!.]*["”’')\]]*$/;
 const isQuestion = (sentence: string): boolean => QUESTION_END.test(sentence.trim());
 
 /** A question that asks the caller for something: the only kind that opens the answer window. */
-const isCallerQuestion = (sentence: string): boolean => isQuestion(sentence) && ASKS_CALLER.test(sentence);
+const isCallerQuestion = (sentence: string): boolean =>
+  isQuestion(sentence) && ASKS_CALLER.test(sentence);
 
 /**
  * Length of the first whole sentence in the text, with its trailing space; 0 if none yet.
@@ -111,13 +166,19 @@ function hasToolCall(chunk: Chunk): boolean {
 }
 
 /**
- * The model's reply, cut where it starts speaking for the caller. Text streams as it
- * arrives until a question is complete; then the next sentences are held until the window
- * closes.
+ * The model's reply, checked for a caller's answer in the speaker's voice. In `on` mode
+ * the sentences after a caller question are held until the window closes; in `shadow`
+ * mode nothing is held and a would-be cut is only logged.
  */
-export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = process.env): Promise<T> {
+export async function withCallerVoiceGuard<T>(
+  reply: Promise<T> | T,
+  env: Env = process.env,
+  persona = 'ferni'
+): Promise<T> {
   const stream = await reply;
-  if (stream === null || stream === undefined || !callerVoiceGuardEnabled(env)) return stream;
+  const mode = callerVoiceGuardMode(env);
+  if (stream === null || stream === undefined || mode === 'off') return stream;
+  const hold = mode === 'on';
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
   let id = '';
   let stringChunks = true;
@@ -126,9 +187,9 @@ export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = 
   const guarded = new ReadableStream<Chunk>({
     async start(controller) {
       let pending = ''; // the sentence being read, not yet decided
-      let passed = 0; // how much of pending already streamed out (only while no window is open)
+      let passed = 0; // how much of pending already streamed out
       let window = 0; // sentences left in which the caller's answer can land
-      let held: string[] = []; // sentences held while the window is open
+      let held: string[] = []; // sentences held while the window is open (on mode only)
       const emit = (text: string): void => {
         if (text) controller.enqueue(out(text));
       };
@@ -138,17 +199,19 @@ export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = 
       };
       /** Decides one sentence (or the unfinished tail). True when the reply was cut. */
       const decide = (sentence: string): boolean => {
-        if (window > 0 && isSelfAnswer(sentence)) {
-          log.warn({ reason: 'self_answer' }, 'CALLER_VOICE_CUT');
-          release(); // the held sentences are Ferni's own words, before the answer
+        const shape = window > 0 ? answerShapeOf(sentence, persona) : undefined;
+        if (shape && hold) {
+          log.warn({ reason: 'self_answer', persona, shape }, 'CALLER_VOICE_CUT');
+          release(); // the held sentences are the speaker's own words, before the answer
           return true;
         }
-        if (window === 0) {
+        if (shape) log.info({ persona, shape, mode }, 'CALLER_VOICE_WOULD_CUT');
+        if (window === 0 || !hold) {
           emit(sentence.slice(passed));
         } else {
           held.push(sentence);
-          window -= 1;
         }
+        if (window > 0) window -= 1;
         if (isCallerQuestion(sentence)) window = ANSWER_WINDOW;
         if (window === 0) release();
         return false;
@@ -194,7 +257,7 @@ export async function withCallerVoiceGuard<T>(reply: Promise<T> | T, env: Env = 
             }
           }
           // A question still open ("...are you?") waits for its boundary, so its end is never streamed early.
-          if (window === 0 && !isQuestion(pending)) {
+          if ((window === 0 || !hold) && !isQuestion(pending)) {
             emit(pending.slice(passed));
             passed = pending.length;
           }
