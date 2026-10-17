@@ -1,0 +1,53 @@
+{
+  "schema_version": 2,
+  "id": "the-fall",
+  "title": "The Staircase",
+  "theme": "mortality",
+  "setup": {
+    "context": "I don't usually talk about this part. But you asked what changed my sense of time, and this is most of the answer.",
+    "tone": "candid, quiet"
+  },
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "I was fifty-five when I fell on the stairs at home. Nothing dramatic at first. I stood up, felt a sharp pain at the back of my head, and sat down again on the step. Jyoti found me there twenty minutes later.",
+        "delivery": "plain"
+      },
+      {
+        "text": "The doctors kept me in hospital for nine days. There was bleeding they had to watch, and for two nights nobody could tell me how much I would recover. I remember the ceiling tiles very well.",
+        "delivery": "flat, precise"
+      },
+      {
+        "text": "Jyoti sat by the bed with a notebook, reading me the cricket scores and then pretending she had not. I asked her once why she bothered. She said someone should be paying attention to something boring while I was too frightened to.",
+        "delivery": "tender"
+      },
+      {
+        "text": "Recovery was slow. I had to learn to walk the stairs again, one step at a time, holding the rail the way a child does. It was humiliating, and it was the most honest I have ever been about my body.",
+        "delivery": "self-aware"
+      },
+      {
+        "text": "After that I stopped treating the body as a tool to be pushed. It is the thing I walk on, eat with, and laugh through. I have been trying to be kinder to it since.",
+        "delivery": "warm, settled"
+      }
+    ]
+  },
+  "reflection": {
+    "insight": "The fall that frightens you is rarely the one that teaches you. The ordinary, slow recovery does the teaching.",
+    "question": "When did your body last remind you that it is not a machine?"
+  },
+  "follow_up_options": [
+    "How long did the recovery take?",
+    "What did Jyoti say?",
+    "Did it change how you teach?"
+  ],
+  "responses_to_follow_ups": {
+    "long": "Most of a year before I could manage the stairs without thinking. Longer before I stopped counting them.",
+    "jyoti": "She said I was a terrible patient, which was true, and that she would take me home only if I promised to rest. I did not promise. I rested anyway, which was her way of winning.",
+    "teach": "Yes. I talk about rest now without apologising for it. It used to sound like weakness to me. It does not anymore."
+  },
+  "metadata": {
+    "personal_story": true,
+    "health_related": true,
+    "sensitivity": "medium"
+  }
+}

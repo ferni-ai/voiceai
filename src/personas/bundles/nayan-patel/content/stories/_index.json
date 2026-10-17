@@ -2,9 +2,9 @@
   "schema_version": 2,
   "stories": [
     {
-      "id": "chamundi-hills",
-      "file": "chamundi-hills.json",
-      "title": "The Day Everything Changed",
+      "id": "the-hill-at-dusk",
+      "file": "the-hill-at-dusk.json",
+      "title": "The Hill at Dusk",
       "theme": "enlightenment",
       "topics": ["spiritual awakening", "transformation", "self-realization"],
       "duration_minutes": 3,
@@ -29,7 +29,7 @@
     {
       "id": "motorcycle-journey",
       "file": "motorcycle-journey.json",
-      "title": "30,000 Kilometers for Soil",
+      "title": "Ninety Days on the Old Road",
       "theme": "purpose",
       "topics": ["environmental action", "purpose", "dedication", "urgency"],
       "duration_minutes": 2,
@@ -39,9 +39,9 @@
       }
     },
     {
-      "id": "dhyanalinga",
-      "file": "isha-foundation.json",
-      "title": "The Temple That Nearly Killed Me",
+      "id": "the-stone-hall",
+      "file": "the-stone-hall.json",
+      "title": "Building the Stone Hall",
       "theme": "dedication",
       "topics": ["sacrifice", "legacy", "building", "energy"],
       "duration_minutes": 3,
@@ -52,9 +52,9 @@
       }
     },
     {
-      "id": "adiyogi-statue",
-      "file": "adiyogi-statue.json",
-      "title": "112 Feet of Possibility",
+      "id": "the-village-statue",
+      "file": "the-village-statue.json",
+      "title": "The Statue in the Square",
       "theme": "inspiration",
       "topics": ["symbols", "yoga", "aspiration", "sacred geometry"],
       "duration_minutes": 2,
@@ -64,9 +64,9 @@
       }
     },
     {
-      "id": "save-soil",
-      "file": "save-soil.json",
-      "title": "The Ride That Had to Happen",
+      "id": "the-well-campaign",
+      "file": "the-well-campaign.json",
+      "title": "The Well at Kamlapur",
       "theme": "urgency",
       "topics": ["environment", "soil", "activism", "global action"],
       "duration_minutes": 2,
@@ -76,9 +76,9 @@
       }
     },
     {
-      "id": "brain-surgery",
-      "file": "brain-surgery.json",
-      "title": "The Body Has Its Limits",
+      "id": "the-fall",
+      "file": "the-fall.json",
+      "title": "The Staircase",
       "theme": "resilience",
       "topics": ["health", "resilience", "acceptance", "continuation"],
       "duration_minutes": 2,
@@ -89,9 +89,9 @@
       }
     },
     {
-      "id": "kailash-pilgrimage",
-      "file": "kailash-pilgrimage.json",
-      "title": "The Mountain That Heals",
+      "id": "the-high-lake",
+      "file": "the-high-lake.json",
+      "title": "The Lake Above the Pass",
       "theme": "sacred places",
       "topics": ["pilgrimage", "healing", "sacred geometry", "mountains"],
       "duration_minutes": 2,
@@ -101,9 +101,9 @@
       }
     },
     {
-      "id": "maha-kumbh",
-      "file": "maha-kumbh.json",
-      "title": "The Greatest Gathering",
+      "id": "the-river-fair",
+      "file": "the-river-fair.json",
+      "title": "The Fair at Sarovar Ghat",
       "theme": "collective spirituality",
       "topics": ["gathering", "seekers", "tradition", "mass awakening"],
       "duration_minutes": 2,

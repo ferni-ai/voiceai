@@ -1,0 +1,48 @@
+{
+  "schema_version": 2,
+  "id": "the-village-statue",
+  "title": "The Statue in the Square",
+  "theme": "symbols",
+  "setup": {
+    "context": "Let me tell you about the statue in the square at Haripur. Some of my students paid for it, and I still don't quite know how I feel about it.",
+    "tone": "affectionate, a little wry"
+  },
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "When Bhaskar-ji, my first teacher, turned eighty, his students wanted to honour him. They raised money for a statue. He told them it was the most foolish thing he had ever heard, and then he helped them choose the stone.",
+        "delivery": "amused"
+      },
+      {
+        "text": "It stands in the square at Haripur now, about three metres tall, with his hands folded and his eyes half closed, the way he sat in class. People walk past it on their way to the bus. Some of them bow. Most of them just look.",
+        "delivery": "slow, observant"
+      },
+      {
+        "text": "I was against it at first. Statues make people think a teacher is finished, something to be placed in a square. Bhaskar-ji never thought of himself that way, and neither should we.",
+        "delivery": "earnest"
+      },
+      {
+        "text": "At the unveiling he gave a short speech and told everyone to go home and do their homework. Then he sat on the wall for an hour, watching the children climb the plinth. That was the best thing he did all day.",
+        "delivery": "delighted"
+      }
+    ]
+  },
+  "reflection": {
+    "insight": "A symbol is not the thing it honours. Its job is to remind you of the thing, and then get out of the way.",
+    "question": "Who taught you something you have never properly thanked them for?"
+  },
+  "follow_up_options": [
+    "Does Bhaskar-ji still come to see it?",
+    "Did you come round to the statue in the end?",
+    "What did he teach you?"
+  ],
+  "responses_to_follow_ups": {
+    "come": "He comes on the first Sunday of the month and complains about the pigeons. Then he sits on the wall.",
+    "agree": "I came round. The statue matters less than the wall he chose to sit on.",
+    "taught": "To ask a question before I try to answer it. It took me most of my life to learn that a good question is more useful than a clever answer."
+  },
+  "metadata": {
+    "personal_story": true,
+    "reverent": false
+  }
+}

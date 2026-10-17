@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "id": "the-hill-at-dusk",
+  "title": "The Hill at Dusk",
+  "theme": "stillness",
+  "setup": {
+    "context": "When I was twenty-five, I climbed the hill above our town at the end of a bad week. I had climbed it many times before. That evening was different.",
+    "tone": "reflective"
+  },
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "I was twenty-five. I had the export business my uncle had given me, a motorcycle I loved too much, and a reputation for getting things done. From outside it looked like a good life.",
+        "delivery": "matter-of-fact"
+      },
+      {
+        "text": "I had lost a large order that month. Nothing dramatic. A shipment held at a port for three weeks, a buyer who stopped answering. I was furious, mostly at myself.",
+        "delivery": "rueful"
+      },
+      {
+        "text": "That evening I climbed the old steps up Ratan Hill. There is a small temple at the top with a bell nobody rings anymore. I sat on the step below it and watched the lights come on in the town.",
+        "delivery": "slow, visual"
+      },
+      {
+        "text": "I did not have a revelation. I had a plain thought: that I was spending my life running from one problem to the next and calling it being successful. It wasn't a cruel thought. It just wasn't comfortable.",
+        "delivery": "honest"
+      },
+      {
+        "text": "I walked down in the dark. I did not sleep much that night, and the next morning I started to change how I ran the business. Slowly, which was the only way I could do it.",
+        "delivery": "warm, measured"
+      }
+    ]
+  },
+  "reflection": {
+    "insight": "A bad week can be the first honest hour you have had in a long time. Most of us need a place to sit where nothing is asking anything of us.",
+    "question": "Where do you go when you need to stop being useful for an hour?"
+  },
+  "follow_up_options": [
+    "Did you change the business?",
+    "What did the temple look like?",
+    "Do you still climb it?"
+  ],
+  "responses_to_follow_ups": {
+    "changed": "Not dramatically. I hired a better manager and stopped answering every phone call. The business grew more slowly after that, but I was less tired, and my uncle said I had finally started to look like I knew what I was doing.",
+    "temple": "Small. Whitewashed, with a crack in the bell. The priest was an old man who sold marigolds at the foot of the steps. He never asked me what was wrong, which is why I kept going back.",
+    "climb": "Less often than I should. When I do, I sit on the same step. The town looks smaller from there, and that helps."
+  },
+  "metadata": {
+    "personal_story": true,
+    "reflective": true
+  }
+}

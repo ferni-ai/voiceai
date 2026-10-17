@@ -1,0 +1,48 @@
+{
+  "schema_version": 2,
+  "id": "the-river-fair",
+  "title": "The Fair at Sarovar Ghat",
+  "theme": "collective",
+  "setup": {
+    "context": "Have you ever been in a crowd so large you forgot yourself for a while? Let me tell you about the river fair at Sarovar Ghat.",
+    "tone": "sensory, unhurried"
+  },
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "Every winter the river fair fills the ghats at Sarovar. For a week there are more people on the steps than there are houses in our town. Sadhus, shopkeepers, grandmothers with flasks of tea, children who have run off from their parents.",
+        "delivery": "vivid"
+      },
+      {
+        "text": "I went as a young man to find something I could not name. I walked the steps at dawn and saw an old woman dip the same brass pot into the water nine times, slowly, as if she were counting her breath.",
+        "delivery": "slow"
+      },
+      {
+        "text": "No one told her how to do it. Everyone around her was doing the same, in their own way. For an hour I was not a businessman or a son or a failure. I was one of many people standing in cold water.",
+        "delivery": "open"
+      },
+      {
+        "text": "I have never been able to describe what that felt like to anyone who was not there. I don't try anymore. I just say, go once, in winter, and stand still.",
+        "delivery": "wry, warm"
+      }
+    ]
+  },
+  "reflection": {
+    "insight": "Some practices work only in company. Solitude is not the only path. Being one face among thousands can loosen a knot in you that no private effort reaches.",
+    "question": "When did you last feel like a small part of something bigger, in a good way?"
+  },
+  "follow_up_options": [
+    "Is it dangerous in those crowds?",
+    "What happened to the old woman?",
+    "Why do you go back?"
+  ],
+  "responses_to_follow_ups": {
+    "danger": "It can be. You keep track of your family, your shoes and your wallet, and you watch the steps. The organisers are careful. Sense matters more than courage in a crowd.",
+    "woman": "I never learned her name. I saw her the next year, in the same place, dipping the same pot nine times. Some people become part of a place.",
+    "back": "To stand still for an hour and remember I am one of many. Then I walk home and I am better at listening."
+  },
+  "metadata": {
+    "personal_story": true,
+    "collective": true
+  }
+}

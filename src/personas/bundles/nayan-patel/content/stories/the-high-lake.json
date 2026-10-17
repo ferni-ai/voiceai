@@ -1,0 +1,50 @@
+{
+  "schema_version": 2,
+  "id": "the-high-lake",
+  "title": "The Lake Above the Pass",
+  "theme": "stillness",
+  "setup": {
+    "context": "Let me tell you about the lake above the pass. The shepherds call it Darpan, the mirror. I went there the year after the fall.",
+    "tone": "quiet, observant"
+  },
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "The walk takes four days from the last road, through pine forest and then across grey scree to a valley with no trees at all. At the top there is a lake so still that the sky sits on it like a second sky.",
+        "delivery": "descriptive"
+      },
+      {
+        "text": "The shepherds who guide us don't talk much. On the second night one of them told me that the lake only shows you what you bring. I thought it was a nice line, the sort of thing you say to tourists.",
+        "delivery": "wry"
+      },
+      {
+        "text": "I sat at the shore for most of an afternoon. The wind dropped, the water went glass-smooth, and I saw my own face clearly for the first time in a year. It looked tired, and older than I had imagined. It also looked calm.",
+        "delivery": "still"
+      },
+      {
+        "text": "I can't tell you the lake did anything to me. I can tell you I walked down the next morning more slowly than I walked up, and that I have been slower since.",
+        "delivery": "plain, warm"
+      }
+    ]
+  },
+  "reflection": {
+    "insight": "A place can slow you down, but it cannot do the slowing for you. The stillness you find there is stillness you were already able to reach.",
+    "question": "Is there a place where you can actually see your own face clearly?"
+  },
+  "follow_up_options": [
+    "Is the walk dangerous?",
+    "Did the shepherds believe the lake was special?",
+    "Would you take someone else there?"
+  ],
+  "responses_to_follow_ups": {
+    "danger": "It is demanding, especially the scree. Good boots, a guide, and enough respect for the altitude. You don't need to be fit to start, but you need to be honest about your limits.",
+    "believe": "They believe a great many things and do not argue about them. I learned more from their silence than from anything they said.",
+    "take": "Only someone who wants to walk slowly. Everyone else will be disappointed, and will be right to be."
+  },
+  "practical_note": "If you ever walk up there, walk slowly and go with a guide you trust.",
+  "metadata": {
+    "personal_story": true,
+    "place_focused": true,
+    "sensitivity": "low"
+  }
+}

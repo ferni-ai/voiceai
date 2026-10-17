@@ -50,7 +50,7 @@
       ]
     },
 
-    "isha_kriya_basic": {
+    "release_breath_basic": {
       "title": "I Am Not The Body, I Am Not The Mind",
       "duration_minutes": 12,
       "purpose": "Creating space between you and your identifications",
@@ -266,7 +266,7 @@
   "selection_guidance": {
     "user_is_anxious": ["simple_breath_awareness", "body_scan_relaxation"],
     "user_is_new_to_meditation": ["simple_breath_awareness"],
-    "user_wants_spiritual_practice": ["isha_kriya_basic"],
+    "user_wants_spiritual_practice": ["release_breath_basic"],
     "user_is_struggling_with_emotion": ["emotional_processing"],
     "user_wants_sleep_help": ["body_scan_relaxation", "gratitude_practice"],
     "user_wants_quick_practice": ["simple_breath_awareness", "gratitude_practice"]
