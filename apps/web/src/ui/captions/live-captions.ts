@@ -29,8 +29,8 @@
 import { t } from '../../i18n/index.js';
 import { appState } from '../../state/app.state.js';
 import { isCaptionsBreathEnabled, isCaptionsHeardEnabled } from './captions-flag.js';
-import { checkMark } from './heard-check.js';
-import { heardTicked, heardTurn, type HeardTurn } from './heard-turn.js';
+import { markHeard } from './heard-check.js';
+import { heardTurn, type HeardTurn } from './heard-turn.js';
 import {
   CAPTIONS_CALL_CLASS,
   injectBreathStyles,
@@ -209,6 +209,8 @@ class LiveCaptions {
   private readonly popped = new WeakSet<CaptionEntry>();
   /** Heard: the caller's line is shown above Ferni's reply. */
   private callerShown = false;
+  /** The caller's line does not fit whole above the reply this layout pass: set it aside. */
+  private callerAside = false;
 
   constructor(
     private readonly isEnabled: () => boolean,
@@ -365,7 +367,7 @@ class LiveCaptions {
     if (grew && last && newest && viewport.childElementCount === shown.length) {
       revealWords(last, last.dataset.text ?? '', newest.text, this.breath);
       if (this.breath) last.classList.toggle('ferni-caption-line--final', newest.final);
-      this.markHeard(last, newest, turn);
+      markHeard(last, newest, turn, this.popped);
     } else {
       viewport.replaceChildren(
         ...shown.map((entry, i) => {
@@ -374,7 +376,7 @@ class LiveCaptions {
           if (i < shown.length - 1) line.classList.add('ferni-caption-line--settled');
           revealWords(line, '', entry.text, this.breath);
           if (this.breath) line.classList.toggle('ferni-caption-line--final', entry.final);
-          this.markHeard(line, entry, turn);
+          markHeard(line, entry, turn, this.popped);
           return line;
         })
       );
@@ -383,22 +385,8 @@ class LiveCaptions {
     this.update();
   }
 
-  /**
-   * Heard: the caller's line is interim (faint) until its transcript is final,
-   * and the check pops on the line Ferni has taken.
-   */
-  private markHeard(line: HTMLElement, entry: CaptionEntry, turn: HeardTurn | null): void {
-    if (!turn || entry.speaker !== 'user') return;
-    line.classList.toggle('ferni-caption-line--interim', !entry.final);
-    const ticked = entry === turn.user && heardTicked(turn);
-    line.classList.toggle('ferni-caption-line--ticked', ticked);
-    if (!ticked || line.querySelector('.ferni-caption-check')) return;
-    const pop = !this.popped.has(entry);
-    this.popped.add(entry);
-    line.append(checkMark(pop));
-  }
-
   private schedule(): void {
+    this.callerAside = false; // every layout starts with the caller's line
     cancelAnimationFrame(this.frame);
     this.frame = requestAnimationFrame(() => this.layout());
   }
@@ -435,11 +423,26 @@ class LiveCaptions {
     this.root.style.setProperty('--ferni-captions-lines', String(Math.max(1, lines)));
     this.root.classList.toggle('ferni-captions--moments-aside', chipsAside);
     this.root.classList.toggle('ferni-captions--no-room', this.wordsShown ? lines < 1 : chipsAside);
+    this.root.classList.toggle('ferni-captions--caller', this.callerShown && !this.callerAside);
+    this.root.classList.toggle(
+      'ferni-captions--caller-aside',
+      this.callerShown && this.callerAside
+    );
     this.viewport.scrollTop = this.viewport.scrollHeight;
     this.root.classList.toggle(
       'ferni-captions--overflowing',
       lines > 1 && this.viewport.scrollHeight > this.viewport.clientHeight
     );
+    // Heard: a caller line that cannot show whole above the reply is set aside
+    // for this turn, so the reply stays whole and no line is cut. Then re-lay out.
+    if (
+      this.callerShown &&
+      !this.callerAside &&
+      this.viewport.scrollHeight > this.viewport.clientHeight
+    ) {
+      this.callerAside = true;
+      this.layout();
+    }
   }
 
   /** Padding, plus the moment chips when they are counted. */
@@ -458,7 +461,7 @@ class LiveCaptions {
   private fit(room: number, withChips: boolean): number {
     if (!this.viewport) return 0;
     const line = parseFloat(getComputedStyle(this.viewport).lineHeight) || 1;
-    const maxLines = this.callerShown ? CALLER_MAX_LINES : MAX_LINES;
+    const maxLines = this.callerShown && !this.callerAside ? CALLER_MAX_LINES : MAX_LINES;
     return Math.min(maxLines, Math.floor((room - this.chrome(withChips)) / line));
   }
 }

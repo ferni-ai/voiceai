@@ -427,21 +427,70 @@ test.describe('heard, in the browser', () => {
     expect(inside).toBe(true);
   });
 
-  test('a two-line caller line and its reply fit: the caller line is fully inside the caption area', async ({
+  test('at every size, the caller line shows whole with the reply, or is set aside: no line is cut', async ({
     page,
   }) => {
     await openScene(page, 'caption-heard-reply');
-    const fits = await page.evaluate(() => {
-      const caller = document.querySelector(
-        ".ferni-captions__viewport > .ferni-caption-line[data-speaker='user']"
-      );
-      const view = document.querySelector('.ferni-captions__viewport');
-      if (!caller || !view) return false;
-      const c = caller.getBoundingClientRect();
-      const v = view.getBoundingClientRect();
-      return c.top >= v.top - 1 && c.bottom <= v.bottom + 1;
-    });
-    expect(fits).toBe(true);
+    const SIZES = [
+      [1280, 800],
+      [1440, 900],
+      [1366, 768],
+      [390, 844],
+      [360, 640],
+    ] as const;
+    const failures: string[] = [];
+    for (const dark of [false, true]) {
+      for (const large of [false, true]) {
+        for (const [width, height] of SIZES) {
+          await page.setViewportSize({ width, height });
+          await page.emulateMedia({ colorScheme: dark ? 'dark' : 'light' });
+          await page.evaluate(
+            ([d, l]) => {
+              document.documentElement.setAttribute('data-theme', d ? 'midnight' : 'zen');
+              document.documentElement.style.fontSize = l ? '24px' : '';
+              window.dispatchEvent(new Event('resize'));
+            },
+            [dark, large] as const
+          );
+          await page.waitForTimeout(400);
+          const result = await page.evaluate(() => {
+            const view = document
+              .querySelector('.ferni-captions__viewport')
+              ?.getBoundingClientRect();
+            const lines = [
+              ...document.querySelectorAll('.ferni-captions__viewport > .ferni-caption-line'),
+            ] as HTMLElement[];
+            const shown = lines.filter((l) => getComputedStyle(l).display !== 'none');
+            // Check each visual line of each shown line: one that straddles the
+            // viewport edge is cut; one scrolled away whole is not.
+            const cut: string[] = [];
+            for (const l of shown) {
+              const range = document.createRange();
+              range.selectNodeContents(l);
+              for (const b of Array.from(range.getClientRects())) {
+                if (
+                  view &&
+                  b.bottom > view.top &&
+                  b.top < view.bottom &&
+                  (b.top < view.top - 1 || b.bottom > view.bottom + 1)
+                ) {
+                  cut.push(l.textContent?.slice(0, 24) ?? '');
+                  break;
+                }
+              }
+            }
+            const caller = lines.find((l) => l.dataset.speaker === 'user');
+            const callerSet = !caller || getComputedStyle(caller).display === 'none';
+            return { cut, callerSet };
+          });
+          const label = `${width}x${height} dark=${dark} large=${large}`;
+          if (result.cut.length) failures.push(`${label}: cut ${result.cut.join(' | ')}`);
+          if (!result.callerSet && result.cut.includes('My sister Ana starts her'))
+            failures.push(`${label}: caller cut`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
   });
 
   test('reduced motion settles the caller line with no transition', async ({ page }) => {

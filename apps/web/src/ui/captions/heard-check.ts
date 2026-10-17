@@ -6,8 +6,10 @@
  * @module ui/captions/heard-check
  */
 
-/** `pop`: the first time this line settles. A redraw re-adds the check without it. */
-export function checkMark(pop: boolean): HTMLSpanElement {
+import type { CaptionEntry } from './live-captions.js';
+import { heardTicked, type HeardTurn } from './heard-turn.js';
+
+function checkMark(pop: boolean): HTMLSpanElement {
   const mark = document.createElement('span');
   mark.className = pop ? 'ferni-caption-check ferni-caption-check--pop' : 'ferni-caption-check';
   mark.setAttribute('aria-hidden', 'true');
@@ -25,4 +27,25 @@ export function checkMark(pop: boolean): HTMLSpanElement {
   svg.append(path);
   mark.append(svg);
   return mark;
+}
+
+/**
+ * Heard: the caller's line is interim (faint) until its transcript is final, and
+ * the check pops on the line Ferni has taken. `popped` remembers the lines whose
+ * check has popped, so a redraw re-adds the check without the pop.
+ */
+export function markHeard(
+  line: HTMLElement,
+  entry: CaptionEntry,
+  turn: HeardTurn | null,
+  popped: WeakSet<CaptionEntry>
+): void {
+  if (!turn || entry.speaker !== 'user') return;
+  line.classList.toggle('ferni-caption-line--interim', !entry.final);
+  const ticked = entry === turn.user && heardTicked(turn);
+  line.classList.toggle('ferni-caption-line--ticked', ticked);
+  if (!ticked || line.querySelector('.ferni-caption-check')) return;
+  const pop = !popped.has(entry);
+  popped.add(entry);
+  line.append(checkMark(pop));
 }
