@@ -21,7 +21,7 @@ describe('captions without breath or heard', () => {
     initLiveCaptions(() => true);
   });
 
-  it('injects no breath or heard rules and renders no word spans or extra classes', () => {
+  it('injects no breath or heard rules and renders no word spans or extra classes', async () => {
     say('user', 'Yes I think so', true);
     say('agent', 'Then let us', false);
     say('agent', 'Then let us protect it.', true);
@@ -33,6 +33,8 @@ describe('captions without breath or heard', () => {
     expect(document.querySelectorAll('.ferni-caption-line--ticked')).toHaveLength(0);
     expect(document.querySelectorAll('.ferni-caption-check')).toHaveLength(0);
     expect(document.querySelector('.ferni-captions--breathing')).toBeNull();
+    // The layout runs on the next frames; let it run before checking the root.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
     const root = document.querySelector('.ferni-captions');
     expect(root?.classList.contains('ferni-captions--caller')).toBe(false);
     expect(root?.classList.contains('ferni-captions--caller-aside')).toBe(false);

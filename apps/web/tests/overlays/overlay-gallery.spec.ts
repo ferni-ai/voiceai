@@ -485,7 +485,21 @@ test.describe('heard, in the browser', () => {
               }
               const caller = lines.find((l) => l.dataset.speaker === 'user');
               const callerSet = !caller || getComputedStyle(caller).display === 'none';
-              return { cut, callerSet };
+              // A shown caller line must be whole in the viewport: not cut, and not scrolled out.
+              let callerRows = 'n/a';
+              if (caller && !callerSet && view) {
+                const range = document.createRange();
+                range.selectNodeContents(caller);
+                const rows = Array.from(range.getClientRects());
+                const inside = rows.every(
+                  (b) => b.top >= view.top - 1 && b.bottom <= view.bottom + 1
+                );
+                const touches = rows.some((b) => b.bottom > view.top && b.top < view.bottom);
+                callerRows = inside ? 'whole' : touches ? 'cut' : 'out';
+              }
+              const root = document.querySelector('.ferni-captions');
+              const padding = root ? getComputedStyle(root).paddingTop : null;
+              return { cut, callerSet, callerRows, padding };
             });
             const label = `${width}x${height} dark=${dark} large=${large} reduced=${reduced}`;
             // A roomy size shows the caller's line whole, so setting it aside everywhere fails.
@@ -494,6 +508,10 @@ test.describe('heard, in the browser', () => {
             if (result.cut.length) failures.push(`${label}: cut ${result.cut.join(' | ')}`);
             if (!result.callerSet && result.cut.includes('My sister Ana starts her'))
               failures.push(`${label}: caller cut`);
+            if (result.callerRows === 'cut' || result.callerRows === 'out')
+              failures.push(`${label}: caller line ${result.callerRows}`);
+            if (width === 1440 && !dark && !large && result.padding !== '0px')
+              failures.push(`${label}: caller-mode padding not dropped (${result.padding})`);
           }
         }
       }
