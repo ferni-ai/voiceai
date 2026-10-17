@@ -114,17 +114,21 @@ const setReminderDef: ToolDefinition = {
         let method: ReminderDeliveryMethod = deliveryMethod;
         let address = deliveryAddress || '';
         let keptInApp = '';
+        // A number from textAddress is the account's verified phone; delivery checks it still is.
+        let addressSource: 'verified-own' | undefined;
         if (!isAssistantActionsReal() && isReminderSmsDefaultOn() && deliveryMethod === 'sms') {
           // Only the account's verified number, never deliveryAddress from the model.
           const phone = await textAddress(ctx.userId, true);
           method = phone ? 'sms' : 'voice_message';
           address = phone ?? '';
+          addressSource = phone ? 'verified-own' : undefined;
           keptInApp = phone ? '' : ` ${KEPT_IN_APP_NO_NUMBER}`;
         } else if (isAssistantActionsReal() && deliveryMethod !== 'email') {
           const phone = await textAddress(ctx.userId, deliveryMethod === 'sms');
           if (phone) {
             method = 'sms';
             address = phone;
+            addressSource = 'verified-own';
           } else if (deliveryMethod === 'sms') {
             return NO_NUMBER_TO_TEXT;
           }
@@ -149,6 +153,7 @@ const setReminderDef: ToolDefinition = {
             timezone: zone,
             deliveryMethod: method,
             deliveryAddress: address,
+            addressSource,
             createdBy: ctx.agentId || 'ferni',
             personaId: ctx.agentId,
           });

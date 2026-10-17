@@ -26,6 +26,7 @@ import { recordOutcome } from '../contacts/optimal-timing.js';
 import { WallClock, zonedWallTimeToUtc } from '../../utils/time-zone.js';
 export { userTimeZone } from '../../utils/caller-time-zone.js';
 import { clockTime } from './clock-time.js';
+import { textThroughGuard } from './reminder-text-guard.js';
 
 // Logger instance for use throughout this module
 const logger = getLogger();
@@ -52,6 +53,8 @@ export interface ScheduledReminder {
   // Delivery
   deliveryMethod: ReminderDeliveryMethod;
   deliveryAddress: string; // Phone or email
+  /** 'verified-own': the account's verified phone at creation; never texted once it stops matching. */
+  addressSource?: 'verified-own';
 
   // Contact tracking (for ML timing learning)
   /** If this reminder is about reaching out to a contact, track their ID */
@@ -120,6 +123,7 @@ export async function createReminder(params: {
   timezone?: string;
   deliveryMethod: ReminderDeliveryMethod;
   deliveryAddress: string;
+  addressSource?: 'verified-own';
   createdBy?: string;
   personaId?: string;
   // Contact tracking for ML timing
@@ -141,6 +145,7 @@ export async function createReminder(params: {
     timezone: params.timezone || 'Etc/UTC',
     deliveryMethod: params.deliveryMethod,
     deliveryAddress: params.deliveryAddress,
+    addressSource: params.addressSource,
     // Contact tracking for ML
     contactId: params.contactId,
     contactName: params.contactName,
@@ -330,6 +335,7 @@ export function reminderFromDoc(id: string, data: Record<string, unknown>): Sche
     timezone: str(data.timezone) || 'Etc/UTC',
     deliveryMethod: (data.deliveryMethod as ReminderDeliveryMethod) || 'in_app',
     deliveryAddress: str(data.deliveryAddress) ?? '',
+    addressSource: data.addressSource === 'verified-own' ? 'verified-own' : undefined,
     contactId: str(data.contactId),
     contactName: str(data.contactName),
     isDirectToContact: data.isDirectToContact === true,
@@ -553,7 +559,12 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
   }
 
   try {
-    switch (reminder.deliveryMethod) {
+    const guarded = await textThroughGuard(reminder); // REMINDER_SMS_DEFAULT: texts only via the guard
+    if (guarded === 'in-app')
+      return await deliverReminder({ ...reminder, deliveryMethod: 'in_app' });
+    switch (guarded === 'sent' ? 'guarded' : reminder.deliveryMethod) {
+      case 'guarded':
+        break;
       case 'sms': {
         const smsResult = await sendReminderSMS(
           reminder.deliveryAddress,
@@ -643,22 +654,11 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
           if (GCS_BUCKET) {
             try {
               const gcs = await import('@google-cloud/storage');
-              interface GcsModule {
-                Storage?: new () => {
-                  bucket: (name: string) => {
-                    file: (path: string) => { save: (data: Buffer, opts: object) => Promise<void> };
-                  };
-                };
-                default?: {
-                  Storage?: new () => {
-                    bucket: (name: string) => {
-                      file: (path: string) => {
-                        save: (data: Buffer, opts: object) => Promise<void>;
-                      };
-                    };
-                  };
-                };
-              }
+              type GcsFile = { save: (data: Buffer, opts: object) => Promise<void> };
+              type GcsStorage = new () => {
+                bucket: (name: string) => { file: (path: string) => GcsFile };
+              };
+              type GcsModule = { Storage?: GcsStorage; default?: { Storage?: GcsStorage } };
               const Storage = (gcs as GcsModule).Storage || (gcs as GcsModule).default?.Storage;
               if (Storage) {
                 const storage = new Storage();

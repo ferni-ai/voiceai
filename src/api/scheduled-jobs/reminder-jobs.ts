@@ -21,8 +21,10 @@ export async function handleDeliverReminders(
   try {
     const { deliverDueReminders } =
       await import('../../services/scheduling/reminder-delivery-job.js');
-    const { reminderTextSender } = await import('../../services/outreach/reminder-texts.js');
-    const result = await deliverDueReminders({ dryRun, textOwnReminder: reminderTextSender() });
+    // With REMINDER_SMS_DEFAULT on, reminder texts go only through the guarded sender.
+    const { installReminderTexts } = await import('../../services/outreach/reminder-texts.js');
+    installReminderTexts();
+    const result = await deliverDueReminders({ dryRun });
     sendJson(res, 200, { success: true, job: 'deliver-reminders', ...result });
   } catch (error) {
     log.error({ error: String(error) }, 'Reminder delivery job failed');

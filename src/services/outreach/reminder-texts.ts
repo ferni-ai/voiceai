@@ -1,15 +1,17 @@
 /**
- * A reminder texted to the account owner's own verified number goes through
- * the guarded sender (guarded-text.ts), the one path that honours STOP and
- * texts turned off in settings, and is held in the owner's quiet hours.
- * Anything it won't text is delivered in the app instead, so the reminder is
- * never lost.
+ * The guarded sender for reminder texts (REMINDER_SMS_DEFAULT=on). deliverReminder
+ * hands every reminder text here (scheduling/reminder-text-guard.ts) and delivers
+ * it in the app unless this says 'sent':
  *
- * A text reminder to any other number (one the caller said yes to) is not
- * this module's: the delivery job sends it the way it always has.
+ * - to the owner's own verified number: sendGuardedText, so STOP and texts
+ *   turned off apply, and it is held in the owner's quiet hours;
+ * - stored as the owner's verified phone ('verified-own') but no longer matching
+ *   it (they changed or removed their number): never texted;
+ * - to anyone else (a reminder the caller said yes to): sendOnBehalfText, so
+ *   STOP, quiet hours, the 10-minute gap and ON_BEHALF_TEXTS apply.
  *
- * The delivery job sits a layer below outreach, so the job route hands this
- * in (reminderTextSender), and only with REMINDER_SMS_DEFAULT=on.
+ * Installed per process by installReminderTexts: the job route, and startup
+ * when the in-process scheduler runs.
  *
  * @module services/outreach/reminder-texts
  */
@@ -17,16 +19,18 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
-import { isReminderSmsDefaultOn } from '../../config/reminder-sms-flag.js';
-import type { OwnReminderText } from '../scheduling/reminder-delivery-job.js';
 import type { ScheduledReminder } from '../scheduling/reminder-scheduler.js';
+import {
+  installReminderTextGuard,
+  type GuardedTextOutcome,
+} from '../scheduling/reminder-text-guard.js';
 import { toE164 } from './checkin-replies.js';
 import {
   defaultTextDeps,
   resolveCheckinPhone,
   sendGuardedText,
+  sendOnBehalfText,
   type TextDeps,
-  type TextOutcome,
 } from './guarded-text.js';
 
 const log = createLogger({ module: 'reminder-texts' });
@@ -42,46 +46,57 @@ export function reminderText(r: ScheduledReminder): string {
   return `It's Ferni. You asked me to remind you: ${r.message}`;
 }
 
-export interface ReminderSmsDeps {
+export interface ReminderTextDeps {
   text: TextDeps;
-  send: (t: Parameters<typeof sendGuardedText>[0], deps: TextDeps) => Promise<TextOutcome>;
+  sendOwn: typeof sendGuardedText;
+  sendOther: typeof sendOnBehalfText;
 }
 
-const defaultDeps = (): ReminderSmsDeps => ({ text: defaultTextDeps(), send: sendGuardedText });
+const defaultDeps = (): ReminderTextDeps => ({
+  text: defaultTextDeps(),
+  sendOwn: sendGuardedText,
+  sendOther: sendOnBehalfText,
+});
 
-/** Texts `r` to its owner through the guarded sender, if it is addressed to their own verified number. */
-export async function textOwnReminder(
+const held = (r: ScheduledReminder, reason: string): GuardedTextOutcome => {
+  log.info({ reminderId: r.id, reason }, 'Reminder text held; delivering in app');
+  return 'in-app';
+};
+
+/** Sends one reminder text through the guarded senders, or says to deliver it in the app. */
+export async function guardReminderText(
   r: ScheduledReminder,
-  deps: ReminderSmsDeps = defaultDeps()
-): Promise<OwnReminderText> {
+  deps: ReminderTextDeps = defaultDeps()
+): Promise<GuardedTextOutcome> {
   const to = toE164(r.deliveryAddress);
+  if (!to) return held(r, 'not-a-phone');
   const userDoc = await deps.text.store.userDoc(r.userId);
   const own = await resolveCheckinPhone(r.userId, userDoc, deps.text);
-  if (!to || to !== own) return 'not-owner';
 
-  const zone = r.timezone;
-  if (isValidTimeZone(zone) && isQuietHour(deps.text.now(), zone)) {
-    log.info({ reminderId: r.id, reason: 'quiet-hours' }, 'Reminder text held; delivering in app');
-    return 'in-app';
+  if (to === own) {
+    if (isValidTimeZone(r.timezone) && isQuietHour(deps.text.now(), r.timezone)) {
+      return held(r, 'quiet-hours');
+    }
+    const t = { userId: r.userId, body: reminderText(r), kind: 'reminder' as const };
+    const outcome = await deps.sendOwn(
+      { ...t, refId: r.id, minGapMs: REMINDER_TEXT_GAP_MS },
+      deps.text
+    );
+    return outcome.sent ? 'sent' : held(r, outcome.reason);
   }
-  const outcome = await deps.send(
-    {
-      userId: r.userId,
-      body: reminderText(r),
-      kind: 'reminder',
-      refId: r.id,
-      minGapMs: REMINDER_TEXT_GAP_MS,
-    },
+  // Stored as their verified phone, which it no longer is: never text the old number.
+  if (r.addressSource === 'verified-own') return held(r, 'verified-phone-changed');
+
+  const zone = isValidTimeZone(r.timezone) ? r.timezone : undefined;
+  const body = reminderText(r);
+  const outcome = await deps.sendOther(
+    { senderUserId: r.userId, toPhone: to, body, refId: r.id, zone },
     deps.text
   );
-  if (outcome.sent) return 'sent';
-  log.info({ reminderId: r.id, reason: outcome.reason }, 'Reminder text held; delivering in app');
-  return 'in-app';
+  return outcome.sent ? 'sent' : held(r, outcome.reason);
 }
 
-/** What the job route hands the delivery job: the guarded sender with the flag on, else nothing. */
-export function reminderTextSender(
-  env: Record<string, string | undefined> = process.env
-): ((r: ScheduledReminder) => Promise<OwnReminderText>) | undefined {
-  return isReminderSmsDefaultOn(env) ? (r) => textOwnReminder(r) : undefined;
+/** Install the guarded sender in this process; deliverReminder uses it when REMINDER_SMS_DEFAULT is on. */
+export function installReminderTexts(): void {
+  installReminderTextGuard((r) => guardReminderText(r));
 }

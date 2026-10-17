@@ -18,11 +18,6 @@
  *
  * A reminder Ferni promised ("I'll remind you Sunday") settles that promise:
  * kept when it goes out, missed when it is found too late or can't be sent.
- * With REMINDER_SMS_DEFAULT=on the job route passes `textOwnReminder`
- * (outreach/reminder-texts.ts): a text to the owner's own verified number goes
- * through the guarded sender, where STOP, texts off and quiet hours hold it, and
- * a held text is delivered in the app instead.
- *
  * After sending, the run also settles every other overdue promise
  * (sweepOverduePromises), so Trust's "I follow through" reads real outcomes.
  *
@@ -78,11 +73,6 @@ export function deliveryChannelFor(
   return reminder.deliveryMethod;
 }
 
-/** How the guarded sender handled a text reminder: not the owner's number (send as before), sent, or held for the app. */
-export type OwnReminderText = 'not-owner' | 'sent' | 'in-app';
-
-export type TextOwnReminder = (reminder: ScheduledReminder) => Promise<OwnReminderText>;
-
 export interface ReminderRunResult {
   due: number;
   delivered: number;
@@ -129,25 +119,8 @@ async function sweepPromises(result: ReminderRunResult, now: Date): Promise<void
   }
 }
 
-/** Sends one claimed reminder on `channel`, or in the app when its text is held. */
-async function sendReminder(
-  reminder: ScheduledReminder,
-  channel: ReminderDeliveryMethod,
-  result: ReminderRunResult,
-  textOwnReminder?: TextOwnReminder
-): Promise<{ ok: boolean; via: ReminderDeliveryMethod }> {
-  let via = channel;
-  if (channel === 'sms' && textOwnReminder) {
-    const texted = await textOwnReminder(reminder);
-    if (texted === 'sent') return { ok: true, via };
-    if (texted === 'in-app') via = 'in_app';
-  }
-  if (via !== reminder.deliveryMethod) result.rerouted++;
-  return { ok: await deliverReminder({ ...reminder, deliveryMethod: via }), via };
-}
-
 export async function deliverDueReminders(
-  opts: { now?: Date; limit?: number; dryRun?: boolean; textOwnReminder?: TextOwnReminder } = {}
+  opts: { now?: Date; limit?: number; dryRun?: boolean } = {}
 ): Promise<ReminderRunResult> {
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore not available');
@@ -219,10 +192,11 @@ export async function deliverDueReminders(
       continue;
     }
 
-    const { ok, via } = await sendReminder(reminder, channel, result, opts.textOwnReminder);
+    if (channel !== reminder.deliveryMethod) result.rerouted++;
+    const ok = await deliverReminder({ ...reminder, deliveryMethod: channel });
     if (ok) result.delivered++;
     else result.failed++;
-    const how = ok ? `reminder delivered (${via})` : 'reminder could not be delivered';
+    const how = ok ? `reminder delivered (${channel})` : 'reminder could not be delivered';
     await settlePromise(result, { owner, reminderId: reminder.id, kept: ok, how, now });
   }
 

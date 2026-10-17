@@ -4,8 +4,10 @@
  * and delivered through the guarded sender, so STOP and quiet hours hold it.
  * No verified number: it stays in the app and Ferni says so. Off: unchanged.
  *
- * Runs setReminder → createReminder → Firestore → the deliver-reminders job →
- * reminder-texts → sendGuardedText, with only the outside world stubbed:
+ * Runs setReminder → createReminder → Firestore → the deliver-reminders job (or
+ * the in-process scheduler's deliverReminder) → reminder-text-guard →
+ * reminder-texts → sendGuardedText / sendOnBehalfText, with only the outside
+ * world stubbed:
  * Firestore (in memory), the guarded sender's store and Twilio, the legacy
  * SMS sender, calendar sync and the promise ledger.
  */
@@ -26,6 +28,10 @@ const state = vi.hoisted(() => ({
   /** Through the guarded sender's Twilio send. */
   guarded: [] as Array<{ to: string; body: string }>,
   optedOut: false,
+  /** Reminders delivered to the app's message panel. */
+  inApp: [] as string[],
+  /** The guarded sender's env (ON_BEHALF_TEXTS gates texts to someone else). */
+  env: { LOG_HASH_SECRET: 'test-secret' } as Record<string, string>,
   /** The guarded sender's clock: noon in New York unless a test moves it. */
   now: new Date('2026-10-14T16:00:00.000Z'),
 }));
@@ -54,7 +60,7 @@ vi.mock('../services/outreach/guarded-text.js', async (importOriginal) => {
   return {
     ...real,
     defaultTextDeps: () => ({
-      env: { LOG_HASH_SECRET: 'test-secret' },
+      env: state.env,
       store: {
         forUser: async () => [],
         add: async () => 'rec-1',
@@ -105,18 +111,24 @@ vi.mock('../services/outreach/unified-delivery.js', () => ({
     push: { available: false },
     in_app: { available: true },
   }),
-  saveInAppMessage: async () => ({ success: true }),
+  saveInAppMessage: async (_uid: string, m: { text: string }) => {
+    state.inApp.push(m.text);
+    return { success: true };
+  },
 }));
 
 import { getToolDefinitions } from '../tools/domains/productivity/index.js';
 import { KEPT_IN_APP_NO_NUMBER } from '../tools/domains/productivity/reminders.js';
-import { deliverDueReminders as runJob } from '../services/scheduling/reminder-delivery-job.js';
-import { reminderTextSender } from '../services/outreach/reminder-texts.js';
+import { deliverDueReminders } from '../services/scheduling/reminder-delivery-job.js';
+import { deliverReminder, reminderFromDoc } from '../services/scheduling/reminder-scheduler.js';
+import { installReminderTextGuard } from '../services/scheduling/reminder-text-guard.js';
+import { installReminderTexts } from '../services/outreach/reminder-texts.js';
 import type { ToolContext } from '../tools/registry/types.js';
 
 const WEB_USER = 'web-user-1';
 const VERIFIED = '+15557654321';
 const MODEL_NUMBER = '+19998887777';
+const BODY = "It's Ferni. You asked me to remind you: take the bread out";
 
 async function setReminder(args: Record<string, unknown>): Promise<string> {
   const def = (await getToolDefinitions()).find((d) => d.id === 'setReminder')!;
@@ -126,25 +138,29 @@ async function setReminder(args: Record<string, unknown>): Promise<string> {
   return tool.execute({ message: 'take the bread out', when: 'in 30 minutes', ...args }, {});
 }
 
-const stored = () =>
-  state.rows
-    .filter((r) => r.collection === 'reminders' && r.userId === WEB_USER)
-    .map((r) => r.data);
+const storedRows = () =>
+  state.rows.filter((r) => r.collection === 'reminders' && r.userId === WEB_USER);
+const stored = () => storedRows().map((r) => r.data);
 const soon = () => new Date(Date.now() + 31 * 60_000);
-/** The job as its route runs it (reminder-jobs.ts): the guarded sender only when the flag is on. */
-const deliverDueReminders = (opts: { now: Date }) =>
-  runJob({ ...opts, textOwnReminder: reminderTextSender() });
+const noTexts = () => {
+  expect(state.guarded).toEqual([]);
+  expect(state.legacyTexts).toEqual([]);
+};
 
 beforeEach(() => {
   state.rows = [];
   state.users = { [WEB_USER]: { linkedIdentifiers: [`phone:${VERIFIED}`] } };
   state.legacyTexts = [];
   state.guarded = [];
+  state.inApp = [];
   state.optedOut = false;
+  state.env = { LOG_HASH_SECRET: 'test-secret' };
   state.now = new Date('2026-10-14T16:00:00.000Z');
+  installReminderTexts(); // what the job route and the in-process scheduler's startup do
 });
 afterEach(() => {
   delete process.env.REMINDER_SMS_DEFAULT;
+  installReminderTextGuard(undefined);
 });
 
 describe('REMINDER_SMS_DEFAULT on', () => {
@@ -156,36 +172,80 @@ describe('REMINDER_SMS_DEFAULT on', () => {
     const reply = await setReminder({ deliveryMethod: 'sms', deliveryAddress: MODEL_NUMBER });
     expect(reply).toMatch(/sent by text\./);
     expect(stored()).toEqual([
-      expect.objectContaining({ deliveryMethod: 'sms', deliveryAddress: VERIFIED }),
+      expect.objectContaining({
+        deliveryMethod: 'sms',
+        deliveryAddress: VERIFIED,
+        addressSource: 'verified-own',
+      }),
     ]);
   });
 
   it('it is delivered through the guarded sender, not the old one', async () => {
     await setReminder({ deliveryMethod: 'sms' });
     const run = await deliverDueReminders({ now: soon() });
-    expect(run).toMatchObject({ delivered: 1, rerouted: 0 });
-    expect(state.guarded).toEqual([
-      { to: VERIFIED, body: "It's Ferni. You asked me to remind you: take the bread out" },
-    ]);
+    expect(run).toMatchObject({ delivered: 1 });
+    expect(state.guarded).toEqual([{ to: VERIFIED, body: BODY }]);
     expect(state.legacyTexts).toEqual([]);
+    expect(state.inApp).toEqual([]);
   });
 
   it('after STOP it is not texted, and goes to the app instead', async () => {
     await setReminder({ deliveryMethod: 'sms' });
     state.optedOut = true;
-    const run = await deliverDueReminders({ now: soon() });
-    expect(run).toMatchObject({ delivered: 1, rerouted: 1 });
-    expect(state.guarded).toEqual([]);
-    expect(state.legacyTexts).toEqual([]);
+    await deliverDueReminders({ now: soon() });
+    noTexts();
+    expect(state.inApp).toEqual(['take the bread out']);
   });
 
   it('in quiet hours it is not texted, and goes to the app instead', async () => {
     await setReminder({ deliveryMethod: 'sms' });
     state.now = new Date('2026-10-14T07:00:00.000Z'); // 3 AM in New York
     stored()[0].timezone = 'America/New_York';
-    const run = await deliverDueReminders({ now: soon() });
-    expect(run).toMatchObject({ delivered: 1, rerouted: 1 });
-    expect(state.guarded).toEqual([]);
+    await deliverDueReminders({ now: soon() });
+    noTexts();
+    expect(state.inApp).toEqual(['take the bread out']);
+  });
+
+  it('when the verified phone changed since, the old number is never texted', async () => {
+    await setReminder({ deliveryMethod: 'sms' });
+    state.users[WEB_USER] = { linkedIdentifiers: ['phone:+15550001111'] };
+    state.env.ON_BEHALF_TEXTS = 'on'; // even with texts to others allowed
+    await deliverDueReminders({ now: soon() });
+    noTexts();
+    expect(state.inApp).toEqual(['take the bread out']);
+  });
+
+  it('a text to someone else goes through the guarded on-behalf sender, never the old one', async () => {
+    await setReminder({ deliveryMethod: 'sms' });
+    Object.assign(stored()[0], { deliveryAddress: MODEL_NUMBER, addressSource: undefined });
+    await deliverDueReminders({ now: soon() }); // ON_BEHALF_TEXTS off: held
+    noTexts();
+    expect(state.inApp).toEqual(['take the bread out']);
+
+    state.inApp = [];
+    Object.assign(stored()[0], { status: 'pending' });
+    state.env.ON_BEHALF_TEXTS = 'on';
+    await deliverDueReminders({ now: soon() });
+    expect(state.guarded).toEqual([{ to: MODEL_NUMBER, body: BODY }]);
+    expect(state.legacyTexts).toEqual([]);
+  });
+
+  it('the in-process scheduler path (deliverReminder) takes the guard too', async () => {
+    await setReminder({ deliveryMethod: 'sms' });
+    const row = storedRows()[0];
+    const reminder = { ...reminderFromDoc(row.id, row.data), userId: WEB_USER };
+    await deliverReminder(reminder);
+    expect(state.guarded).toEqual([{ to: VERIFIED, body: BODY }]);
+    expect(state.legacyTexts).toEqual([]);
+  });
+
+  it('a process with no guarded sender installed delivers in the app (fail closed)', async () => {
+    await setReminder({ deliveryMethod: 'sms' });
+    installReminderTextGuard(undefined);
+    const row = storedRows()[0];
+    await deliverReminder({ ...reminderFromDoc(row.id, row.data), userId: WEB_USER });
+    noTexts();
+    expect(state.inApp).toEqual(['take the bread out']);
   });
 
   it('with no verified phone it stays in the app and says so honestly', async () => {
@@ -201,14 +261,6 @@ describe('REMINDER_SMS_DEFAULT on', () => {
       }),
     ]);
   });
-
-  it('a text reminder to someone else (already said yes to) is not redirected to the owner', async () => {
-    await setReminder({ deliveryMethod: 'sms' });
-    stored()[0].deliveryAddress = MODEL_NUMBER;
-    await deliverDueReminders({ now: soon() });
-    expect(state.guarded).toEqual([]);
-    expect(state.legacyTexts).toEqual([{ to: MODEL_NUMBER, message: 'take the bread out' }]);
-  });
 });
 
 describe('REMINDER_SMS_DEFAULT off (today)', () => {
@@ -223,7 +275,14 @@ describe('REMINDER_SMS_DEFAULT off (today)', () => {
     expect(reply).toMatch(/sent as a message in the Ferni app\./);
     expect(reply).not.toContain(KEPT_IN_APP_NO_NUMBER);
     await deliverDueReminders({ now: soon() });
+    noTexts();
+  });
+
+  it('a text to a confirmed number still goes the old way', async () => {
+    await setReminder({});
+    Object.assign(stored()[0], { deliveryMethod: 'sms', deliveryAddress: MODEL_NUMBER });
+    await deliverDueReminders({ now: soon() });
     expect(state.guarded).toEqual([]);
-    expect(state.legacyTexts).toEqual([]);
+    expect(state.legacyTexts).toEqual([{ to: MODEL_NUMBER, message: 'take the bread out' }]);
   });
 });
