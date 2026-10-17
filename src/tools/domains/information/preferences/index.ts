@@ -390,26 +390,26 @@ export const preferencesToolDefinitions: ToolDefinition[] = [
           const updates: Record<string, unknown> = {};
           const messages: string[] = [];
 
+          const failures: string[] = [];
+          const keep = (saved: { success: boolean; message: string }) =>
+            saved.success || failures.push(saved.message);
+
           if (interests && interests.length > 0) {
-            // Add each interest
-            for (const topic of interests) {
-              await addNewsInterest(ctx.userId, topic);
-            }
+            for (const topic of interests) keep(await addNewsInterest(ctx.userId, topic));
             messages.push(`Added interests: ${interests.join(', ')}`);
           }
 
           if (avoid && avoid.length > 0) {
-            // Add topics to avoid
-            for (const topic of avoid) {
-              await addAvoidTopic(ctx.userId, topic);
-            }
+            for (const topic of avoid) keep(await addAvoidTopic(ctx.userId, topic));
             messages.push(`Will minimize: ${avoid.join(', ')}`);
           }
 
           if (frequency) {
-            await updateUserPreferences(ctx.userId, { newsFrequency: frequency });
+            keep(await updateUserPreferences(ctx.userId, { newsFrequency: frequency }));
             messages.push(`News frequency set to: ${frequency}`);
           }
+
+          if (failures.length > 0) return `I couldn't save everything. ${failures[0]}`;
 
           log.info(
             { userId: ctx.userId, interests, avoid, frequency },
