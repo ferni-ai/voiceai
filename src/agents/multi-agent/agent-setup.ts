@@ -1399,6 +1399,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         sessionId,
         userId,
         persona: () => userData.personaId ?? persona.id,
+        phoneCaller: config.phoneCaller,
       })
     );
 
