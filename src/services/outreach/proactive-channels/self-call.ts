@@ -6,7 +6,7 @@
  * The dispatch carries why Ferni is calling (triggerReason). The agent turns
  * it into the call's check-in context, and with PROACTIVE_REASON_OPENER (#631)
  * Ferni opens by saying why she called instead of a generic hello. It is
- * signed with the LiveKit API secret like every call the server places
+ * signed with dispatchSigningSecret() like every call the server places
  * (on-behalf-dispatch.ts), so the agent can tell it came from us.
  *
  * Nothing is placed without SIP_TRUNK_ID. The call waits up to 30s for an
@@ -18,7 +18,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { signDispatch } from '../on-behalf-dispatch.js';
+import { dispatchSigningSecret, signDispatch } from '../on-behalf-dispatch.js';
 import type { OutreachOutcome } from './outreach-log.js';
 import type { ProactiveTrigger } from './types.js';
 
@@ -109,7 +109,7 @@ export async function placeSelfCall(
   sip?: SipApi
 ): Promise<CallOutcome> {
   const trunkId = process.env.SIP_TRUNK_ID;
-  const secret = process.env.LIVEKIT_API_SECRET;
+  const secret = dispatchSigningSecret();
   if (!canPlaceCalls() || !trunkId || !secret) {
     log.info({ userId }, 'No SIP trunk or LiveKit credentials; not calling');
     return 'failed';

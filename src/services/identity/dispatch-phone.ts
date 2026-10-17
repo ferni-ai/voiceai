@@ -8,16 +8,16 @@
  * puts a caller-controlled number there (the inbound SIP rules send fixed
  * metadata, 2026-10-10), but if one ever did, a spoofed caller ID would load
  * another user's account. So a number in metadata counts only on a dispatch
- * signed with the LiveKit API secret (verifyOnBehalfDispatch, over the whole
+ * signed with dispatchSigningSecret() (verifyOnBehalfDispatch, over the whole
  * payload); anything else stays anonymous.
  *
  * @module services/identity/dispatch-phone
  */
-import { verifyOnBehalfDispatch } from '../outreach/on-behalf-dispatch.js';
+import { dispatchSigningSecret, verifyOnBehalfDispatch } from '../outreach/on-behalf-dispatch.js';
 
 export function phoneFromSignedDispatch(
   metadata: Record<string, unknown>,
-  secret: string | undefined = process.env.LIVEKIT_API_SECRET
+  secret: string | undefined = dispatchSigningSecret()
 ): string | null {
   const phone = metadata.caller_id ?? metadata.phone ?? metadata.from;
   if (typeof phone !== 'string' || !phone) return null;
