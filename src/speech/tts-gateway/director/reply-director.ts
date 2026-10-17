@@ -212,6 +212,7 @@ class DirectedReply implements ReplyStream {
         userEmotion: opts.turnContext?.userEmotion?.primary,
         comfortLevel: opts.comfortLevel ?? opts.turnContext?.comfortLevel,
         teamVoices: flagOn('TEAM_VOICES', opts.env),
+        lightTouch: flagOn('FERNI_LIGHT_TOUCH', opts.env),
       },
     });
   }
