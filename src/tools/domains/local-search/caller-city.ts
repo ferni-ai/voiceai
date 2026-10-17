@@ -34,43 +34,43 @@ const MAX_CHARS = 40;
 const MAX_WORDS = 4;
 /** Letters and the punctuation place names use. No digits: those mean a street, a postcode or coordinates. */
 const CITY_CHARS = /^[\p{L}\p{M} .'’-]+$/u;
-/** Street or unit words that only mean a street at the end of a name ("Main St", "Baker Street"); "St. George" stays. */
-const STREET_ENDINGS = new Set([
-  'street',
-  'st',
-  'avenue',
-  'ave',
-  'road',
-  'rd',
-  'boulevard',
-  'blvd',
-  'drive',
-  'dr',
-  'lane',
-  'ln',
-  'way',
-  'court',
-  'ct',
-  'place',
-  'pl',
-  'square',
-]);
-/** Words no city name needs, anywhere in the name: units, homes, "my", "point", foreign street words. */
+/** Street and place words: no city name needs them, anywhere in the name. */
 const NOT_A_CITY_WORDS = new Set([
+  'street',
+  'avenue',
+  'road',
+  'boulevard',
+  'drive',
+  'lane',
+  'court',
+  'square',
+  'parkway',
+  'highway',
+  'terrace',
+  'route',
+  'alley',
+  'rue',
+  'strasse',
+  'straße',
+  'calle',
+  'via',
+  'rua',
+  'avenida',
   'apt',
   'apartment',
   'suite',
   'unit',
+  'flat',
   'floor',
   'building',
   'house',
   'home',
   'my',
-  'point',
-  'rue',
-  'strasse',
-  'calle',
+  'near',
+  'and',
 ]);
+/** Short street words that only mean a street at the end ("Main St"); "St. George" stays. */
+const STREET_ENDINGS = new Set(['st', 'ave', 'rd', 'blvd', 'dr', 'ln', 'ct', 'pl', 'way', 'place']);
 const NUMBER_WORDS = new Set([
   'zero',
   'one',
@@ -97,8 +97,14 @@ const NUMBER_WORDS = new Set([
   'thousand',
 ]);
 
-/** Ids that name no one: the fast-path shared ctx, and the placeholder handler-setup gives a call with no user. */
+/**
+ * Ids that name no one: the fast-path shared ctx, the placeholder handler-setup
+ * gives a call with no user, and the ids of unknown or on-behalf callers
+ * (isMemberCall in services/outreach/after-call-checkin.ts). Only a member's
+ * own id is reused on a later call, so only that one can be remembered.
+ */
 const NO_CALLER_IDS = new Set(['shared', 'anonymous', 'default', 'unknown']);
+const NO_CALLER_PREFIXES = ['anon:', 'onbehalf:'];
 
 export type SaveCityResult = 'saved' | 'not-a-city' | 'failed';
 
@@ -142,7 +148,8 @@ export function callerUserId(opts: unknown): string | undefined {
     ?.userId;
   if (typeof id !== 'string') return undefined;
   const trimmed = id.trim();
-  return trimmed && !NO_CALLER_IDS.has(trimmed.toLowerCase()) ? trimmed : undefined;
+  if (!trimmed || NO_CALLER_IDS.has(trimmed.toLowerCase())) return undefined;
+  return NO_CALLER_PREFIXES.some((prefix) => trimmed.startsWith(prefix)) ? undefined : trimmed;
 }
 
 /** "Philadelphia, PA" for the caller's saved city; undefined when none is saved or the read fails. */
@@ -181,12 +188,13 @@ export async function saveCallerCity(
   const regionCode = region === undefined ? undefined : cityOnly(region);
   if (!cityName || (region !== undefined && !regionCode)) return 'not-a-city';
 
+  const previous = (await getUserPreferences(userId)).callerCity;
   const result = await updateUserPreferences(userId, {
     callerCity: { city: cityName, regionCode, savedAt: new Date().toISOString() },
   });
   if (result.success) return 'saved';
-  // The preferences cache takes the city before the Firestore write fails, so take it back out.
-  await forgetCallerCity(userId);
+  // The preferences cache takes the new city before the Firestore write fails: put the old one back.
+  await updateUserPreferences(userId, { callerCity: previous });
   return 'failed';
 }
 

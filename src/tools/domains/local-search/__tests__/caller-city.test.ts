@@ -244,6 +244,14 @@ describe('saving the city', () => {
     'My house',
     'Thirty Nine Point Nine',
     'Thirty Nine',
+    'Baker Street London',
+    'Abbey Road London',
+    'Ocean Parkway',
+    'Fifth and Main',
+    'Elm Terrace',
+    'Flat B',
+    'Philly 19103',
+    'Wall Street area',
   ])('refuses "%s", which names a street, a unit, a home or a coordinate', async (name) => {
     const result = await (await rememberCity()).execute(
       { city: name, callerSaidYes: true },
@@ -253,7 +261,7 @@ describe('saving the city', () => {
     expect(store.prefs.get('u1')?.callerCity).toBeUndefined();
   });
 
-  it.each(['St. George', 'St. Louis', 'Two Harbors', 'Dade City', 'Philadelphia'])(
+  it.each(['St. George', 'St. Louis', 'Two Harbors', 'High Point', 'West Point', 'Dade City', 'Philadelphia'])(
     'accepts "%s" as a city name',
     async (name) => {
       const result = await (await rememberCity()).execute(
@@ -264,6 +272,28 @@ describe('saving the city', () => {
       expect(store.prefs.get('u1')?.callerCity?.city).toBe(name);
     }
   );
+
+  it('does not save for a placeholder or on-behalf caller, whose id is never read again', async () => {
+    for (const userId of ['anon:3f2a', 'onbehalf:call-9']) {
+      const result = await (await rememberCity()).execute(
+        { city: 'Philadelphia', region: 'PA', callerSaidYes: true },
+        callFrom(userId)
+      );
+      expect(result).toMatch(/can't save a city/);
+    }
+    expect(store.prefs.size).toBe(0);
+  });
+
+  it('a failed save puts the previously saved city back', async () => {
+    store.prefs.set('u1', { callerCity: { city: 'Philadelphia', regionCode: 'PA', savedAt: 'x' } });
+    store.failWrites = true;
+    const result = await (await rememberCity()).execute(
+      { city: 'Boston', region: 'MA', callerSaidYes: true },
+      phoneInStGeorge
+    );
+    expect(result).toMatch(/couldn't save/);
+    expect(store.prefs.get('u1')?.callerCity?.city).toBe('Philadelphia');
+  });
 
   it('saves nothing without the caller saying yes', async () => {
     const result = await (await rememberCity()).execute(
@@ -316,6 +346,22 @@ describe('forgetting the city', () => {
     const result = await (await forgetCity()).execute({}, phoneInStGeorge);
     expect(result).toMatch(/couldn't forget/);
     expect(result).not.toMatch(/forgotten\./);
+  });
+});
+
+describe('forget phrases load local-search only while city memory is on', () => {
+  it('maps them while PLACES_LOCATION and REQUIRE_FIX_MEMORY are on', async () => {
+    vi.resetModules();
+    const { LOCAL_PLACE_TOPICS } = await import('../../../dynamic-loader/local-place-topics.js');
+    expect(LOCAL_PLACE_TOPICS['forget where i live']).toEqual(['local-search']);
+  });
+
+  it('does not map them while REQUIRE_FIX_MEMORY is off', async () => {
+    process.env.REQUIRE_FIX_MEMORY = 'off';
+    vi.resetModules();
+    const { LOCAL_PLACE_TOPICS } = await import('../../../dynamic-loader/local-place-topics.js');
+    expect(LOCAL_PLACE_TOPICS['forget where i live']).toBeUndefined();
+    expect(LOCAL_PLACE_TOPICS['coffee shop']).toEqual(['local-search']);
   });
 });
 

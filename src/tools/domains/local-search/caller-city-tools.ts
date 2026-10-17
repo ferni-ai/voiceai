@@ -41,7 +41,7 @@ const rememberCallerCityDef: ToolDefinition = {
 
         const result = await saveCallerCity(userId, city, region);
         if (result === 'not-a-city') {
-          return "That needs to be a city or town name. I can't keep a street, a postcode or a map point.";
+          return "That needs to be just a city or town name, with no street or number. Say the city, and the state if you like.";
         }
         if (result === 'failed') return "I couldn't save that just now. Let's try again later.";
         return "Saved. I'll use that city for 'near me' searches until they ask me to forget it.";
@@ -68,7 +68,7 @@ const forgetCallerCityDef: ToolDefinition = {
 
         const forgotten = await forgetCallerCity(userId);
         return forgotten
-          ? "Done, I've forgotten the city you asked me to remember."
+          ? "Done, I've forgotten the city you asked me to remember. I may still go by the city your phone shows."
           : "I couldn't forget it just now. Let's try again in a moment.";
       },
     });
