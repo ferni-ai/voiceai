@@ -17,7 +17,8 @@
     "notFound": "Couldn't find that one. It may be on the account I texted.",
     "loadFailed": "Couldn't load that. Try again?",
     "retry": "Try again",
-    "switchAccount": "Use another account"
+    "switchAccount": "Use another account",
+    "seeSources": "Why I picked it, and where I found it"
   },
   "meta": {
     "locale": "en-US",

@@ -94,6 +94,8 @@ export const FLAG_MANIFEST = {
   // adds what Ferni and the caller both know to the first recall note
   COMMON_GROUND: { default: 'off', owner: 'memory', kind: 'experiment' },
   CONDITIONAL_BUILDERS: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // The user's own "in memory" mark on a contact (services/contacts/in-memory.ts)
+  CONTACT_IN_MEMORY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CONTEXT_PACKET: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -143,6 +145,8 @@ export const FLAG_MANIFEST = {
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // scheduled family check-in calls; each also needs the family member's own consent
+  FAMILY_CHECKIN_CALLS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // never on when NODE_ENV=production
   FERNI_DEVELOPER_TOOLS: { default: 'off', owner: 'tools', kind: 'config' },
   FERNI_LOCAL_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
