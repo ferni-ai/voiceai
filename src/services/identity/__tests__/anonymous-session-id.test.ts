@@ -79,3 +79,21 @@ describe('DI identifyByWebSession anonymous ids', () => {
     expect(a.data.userId).not.toBe(b.data.userId);
   });
 });
+
+describe('a dispatch session_id is only ever anonymous', () => {
+  it('prefixes a session_id that could name a real account', async () => {
+    const result = await identifyFromMetadata({ session_id: 'victim-uid-0000000000000000' });
+    expect(result.userId).toBe('anon:victim-uid-0000000000000000');
+    expect(result.profile).toBeNull();
+  });
+
+  it('keeps session ids that already name no account', async () => {
+    expect((await identifyFromMetadata({ session_id: 'anon:abc' })).userId).toBe('anon:abc');
+    expect((await identifyFromMetadata({ session_id: 'onbehalf:c1' })).userId).toBe('onbehalf:c1');
+  });
+
+  it('mints an id when session_id is not a usable string', async () => {
+    const { userId } = await identifyFromMetadata({ session_id: 42 });
+    expect(userId).toMatch(/^anon:[0-9a-f-]{36}$/);
+  });
+});
