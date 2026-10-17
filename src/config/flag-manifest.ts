@@ -150,6 +150,8 @@ export const FLAG_MANIFEST = {
   FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },
   // scheduled family check-in calls; each also needs the family member's own consent
   FAMILY_CHECKIN_CALLS: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // agent: a family member's "stop calling" withdraws their consent; server: refuses do-not-call numbers
+  FAMILY_CHECKIN_STOP: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // never on when NODE_ENV=production
   FERNI_DEVELOPER_TOOLS: { default: 'off', owner: 'tools', kind: 'config' },
   FERNI_LOCAL_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
