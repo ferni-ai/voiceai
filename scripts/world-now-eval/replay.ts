@@ -337,7 +337,8 @@ async function qwenJudge(r: Row): Promise<Record<string, unknown> | null> {
   return parseVerdict(json?.message?.content ?? '');
 }
 
-const judged = [];
+type Verdict = Record<string, unknown> | null;
+const judged: Array<Row & { gemini: Verdict; qwen: Verdict }> = [];
 for (const r of rows) {
   const use = (values.judges ?? '').split(',');
   const [gemini, qwen] = await Promise.all([

@@ -21,7 +21,6 @@
 
 import { cachedHomeWeather } from '../../services/world-awareness/index.js';
 import { FERNI_HOME_TIME_ZONE, localClockEnabled } from './local-clock.js';
-import { outboundPartiesFor } from './outbound-opener.js';
 import { callerHour, isValidTimeZone, partOfDay } from './time-context.js';
 
 export function worldNowEnabled(env: Record<string, string | undefined> = process.env): boolean {
@@ -125,24 +124,18 @@ export function rightNowLine(p: RightNowInputs): string {
 interface SessionView {
   userData?: {
     callerTimezone?: string;
-    services?: {
-      sessionId?: string;
-      userId?: string;
-      userProfile?: { contactInfo?: { timezone?: string } };
-    };
+    services?: { userId?: string };
   };
 }
 
 /**
- * The caller's zone for this call: the browser's, else their profile's (a
- * phone call carries none), never the sponsor's on a call placed for them.
+ * The caller's zone for this call: the one the call already reads a time in.
+ * That is the browser's, or a verified owner's profile zone that phone-parity.ts
+ * hands the call (PHONE_PARITY=on); never an unverified caller's or a sponsor's.
+ * A profile zone reaches a call only through phone-parity.ts.
  */
 export function callerZoneOf(session: object): string | undefined {
-  const userData = (session as SessionView).userData;
-  if (userData?.callerTimezone) return userData.callerTimezone;
-  const sessionId = userData?.services?.sessionId;
-  if (sessionId && outboundPartiesFor(sessionId)) return undefined;
-  return userData?.services?.userProfile?.contactInfo?.timezone;
+  return (session as SessionView).userData?.callerTimezone;
 }
 
 /** The turn reminder's line; '' when WORLD_NOW is off. No I/O: the weather is read from the cache. */

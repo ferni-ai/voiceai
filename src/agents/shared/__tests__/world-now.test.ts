@@ -99,9 +99,12 @@ describe('holidays and weather', () => {
 
 describe('worldNowNote', () => {
   const web = { userData: { callerTimezone: 'America/New_York', services: { sessionId: 's1' } } };
-  const phone = {
+  // A verified owner's phone call: phone-parity.ts set their profile zone on userData.
+  const phone = { userData: { callerTimezone: 'America/Denver', services: { sessionId: 's2' } } };
+  // A profile loaded on the session is never read here: only phone-parity.ts may pass it on.
+  const unverified = {
     userData: {
-      services: { sessionId: 's2', userProfile: { contactInfo: { timezone: 'America/Denver' } } },
+      services: { sessionId: 's3', userProfile: { contactInfo: { timezone: 'America/Denver' } } },
     },
   };
 
@@ -111,10 +114,15 @@ describe('worldNowNote', () => {
     expect(worldNowNote(web, AT)).toBe('');
   });
 
-  it("uses the browser's zone on the web and the profile's on a phone call", () => {
+  it("uses the zone the call reads time in: the browser's, or the verified owner's", () => {
     vi.stubEnv('WORLD_NOW', 'on');
     expect(worldNowNote(web, AT)).toContain('3:18 PM EDT');
     expect(worldNowNote(phone, AT)).toContain('1:18 PM MDT');
+  });
+
+  it("never reads a loaded profile's zone itself (phone-parity.ts decides)", () => {
+    vi.stubEnv('WORLD_NOW', 'on');
+    expect(worldNowNote(unverified, AT)).not.toContain('MDT');
   });
 
   it('gives a fresh time each reply', () => {
