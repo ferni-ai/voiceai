@@ -76,4 +76,21 @@ describe('heard in the live region', () => {
     expect(document.querySelector('.ferni-caption-check')).toBeNull();
     expect(callerLine()?.classList.contains('ferni-caption-line--interim')).toBe(true);
   });
+
+  it('pops the check once, and a new Ferni segment does not pop it again', () => {
+    say('user', 'My sister Ana starts Monday.', true);
+    say('agent', 'Nervous for someone', false);
+    expect(document.querySelector('.ferni-caption-check--pop')).not.toBeNull();
+    say('agent', 'Nervous for someone is love in disguise.', true);
+    say('agent', 'What is she walking into?', false);
+    expect(document.querySelector('.ferni-caption-check')).not.toBeNull();
+    expect(document.querySelector('.ferni-caption-check--pop')).toBeNull();
+  });
+
+  it('never marks Ferni lines as interim, even while she is still speaking', () => {
+    say('agent', 'Nervous for someone', false);
+    expect(
+      document.querySelectorAll("[data-speaker='agent'].ferni-caption-line--interim")
+    ).toHaveLength(0);
+  });
 });

@@ -204,6 +204,10 @@ class LiveCaptions {
   private wordsShown = false;
   private chips: MomentChips | null = null;
   private breathTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Caller lines whose check has popped: a redraw must not pop it again. */
+  private readonly popped = new WeakSet<CaptionEntry>();
+  /** Heard shows the caller line above Ferni's reply (one more line of room). */
+  private callerShown = false;
 
   constructor(
     private readonly isEnabled: () => boolean,
@@ -354,6 +358,7 @@ class LiveCaptions {
       turn?.user && turn.agentTookTurn
         ? [turn.user, ...currentTurn(this.entries)]
         : currentTurn(this.entries);
+    this.callerShown = Boolean(turn?.user && turn.agentTookTurn);
     const last = viewport.lastElementChild as HTMLElement | null;
     const newest = shown[shown.length - 1];
     if (grew && last && newest && viewport.childElementCount === shown.length) {
@@ -386,7 +391,10 @@ class LiveCaptions {
     line.classList.toggle('ferni-caption-line--interim', !entry.final);
     const ticked = entry === turn.user && heardTicked(turn);
     line.classList.toggle('ferni-caption-line--ticked', ticked);
-    if (ticked && !line.querySelector('.ferni-caption-check')) line.append(checkMark());
+    if (!ticked || line.querySelector('.ferni-caption-check')) return;
+    const pop = !this.popped.has(entry);
+    this.popped.add(entry);
+    line.append(checkMark(pop));
   }
 
   private schedule(): void {
@@ -442,14 +450,14 @@ class LiveCaptions {
   }
 
   /**
-   * Whole caption lines that fit in `room` px. Heard keeps the caller's line
-   * above Ferni's reply, so it gets one more line of room (the caller's line is
-   * set smaller than Ferni's, so it takes less than a full line).
+   * Whole caption lines that fit in `room` px. With the caller's line shown
+   * above Ferni's reply, one more line of room; the caller's line can wrap, so
+   * on a phone its first line may sit under the overflow fade.
    */
   private fit(room: number, withChips: boolean): number {
     if (!this.viewport) return 0;
     const line = parseFloat(getComputedStyle(this.viewport).lineHeight) || 1;
-    const maxLines = this.heard ? MAX_LINES + 1 : MAX_LINES;
+    const maxLines = this.callerShown ? MAX_LINES + 1 : MAX_LINES;
     return Math.min(maxLines, Math.floor((room - this.chrome(withChips)) / line));
   }
 }

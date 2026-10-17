@@ -414,6 +414,19 @@ test.describe('heard, in the browser', () => {
     expect(await page.$$eval('.ferni-caption-line--interim', (els) => els.length)).toBe(0);
   });
 
+  test('the check sits inside the caption area in the reply scene', async ({ page }) => {
+    await openScene(page, 'caption-heard-reply');
+    const inside = await page.evaluate(() => {
+      const check = document.querySelector('.ferni-caption-check');
+      const view = document.querySelector('.ferni-captions__viewport');
+      if (!check || !view) return false;
+      const c = check.getBoundingClientRect();
+      const v = view.getBoundingClientRect();
+      return c.top >= v.top - 1 && c.bottom <= v.bottom + 1;
+    });
+    expect(inside).toBe(true);
+  });
+
   test('reduced motion settles the caller line with no transition', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openScene(page, 'caption-heard');

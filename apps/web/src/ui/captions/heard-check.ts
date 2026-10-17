@@ -6,9 +6,10 @@
  * @module ui/captions/heard-check
  */
 
-export function checkMark(): HTMLSpanElement {
+/** `pop`: the first time this line settles. A redraw re-adds the check without it. */
+export function checkMark(pop: boolean): HTMLSpanElement {
   const mark = document.createElement('span');
-  mark.className = 'ferni-caption-check';
+  mark.className = pop ? 'ferni-caption-check ferni-caption-check--pop' : 'ferni-caption-check';
   mark.setAttribute('aria-hidden', 'true');
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');

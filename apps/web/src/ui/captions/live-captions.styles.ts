@@ -196,7 +196,7 @@ const HEARD_CSS = `
   .ferni-caption-line[data-speaker='user'] {
     transition: opacity ${DURATION.SLOW}ms ${EASING.DECELERATE}, filter ${DURATION.SLOW}ms ${EASING.DECELERATE};
   }
-  .ferni-caption-line--ticked .ferni-caption-check {
+  .ferni-caption-check--pop {
     animation: ferni-heard-pop ${DURATION.SLOW}ms ${EASING.SPRING} both;
   }
 }
