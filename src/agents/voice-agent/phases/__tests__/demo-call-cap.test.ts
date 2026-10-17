@@ -160,6 +160,20 @@ describe('a demo call end to end, with fake timers', () => {
     expect(await ended).toBe(DEMO_END_REASON);
     cap.stop();
   });
+
+  it('a say that rejects is caught, not left unhandled', async () => {
+    const room = new FakeRoom();
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    const cap = startDemoCallCap(MINUTE, () => Promise.reject(new Error('tts down')));
+    const ended = waitForSessionEnd(room, cap.endOptions);
+    await talkFor(room, MINUTE);
+    expect(await ended).toBe(DEMO_END_REASON);
+    await vi.advanceTimersByTimeAsync(0);
+    process.off('unhandledRejection', unhandled);
+    expect(unhandled).not.toHaveBeenCalled();
+    cap.stop();
+  });
 });
 
 describe('spoken lines follow the voice text rules', () => {

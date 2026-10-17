@@ -356,11 +356,12 @@ export async function runMultiAgentMode(
         : startDemoCallCap(demoLimitMs, (text) =>
             multiAgentResult.orchestrator.getActiveAgent()?.say(text, { allowInterruptions: false })
           );
-    const endReason = await waitForSessionEnd(
-      ctx.room as unknown as WatchedRoom,
-      demoCap?.endOptions
-    );
-    demoCap?.stop();
+    let endReason: Awaited<ReturnType<typeof waitForSessionEnd>>;
+    try {
+      endReason = await waitForSessionEnd(ctx.room as unknown as WatchedRoom, demoCap?.endOptions);
+    } finally {
+      demoCap?.stop();
+    }
     process.stderr.write(`[multi-agent-mode] 🎭 Ending session wait (${endReason})\n`);
 
     // Cleanup

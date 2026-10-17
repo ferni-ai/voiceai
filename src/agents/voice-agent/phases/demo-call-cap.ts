@@ -83,13 +83,20 @@ export interface DemoCallCap {
  * Schedules the warning and the goodbye for a capped call. `say` speaks a
  * line on whichever agent is live; a throw from it is logged, not raised.
  */
-export function startDemoCallCap(limitMs: number, say: (text: string) => void): DemoCallCap {
+export function startDemoCallCap(
+  limitMs: number,
+  say: (text: string) => unknown
+): DemoCallCap {
   const speak = (line: string, which: string): void => {
+    const fail = (err: unknown): void => {
+      log.warn({ which, err: String(err) }, 'DEMO_CALL_CAP could not speak line');
+    };
     try {
-      say(line);
+      // say may return a promise or a speech handle; a rejection is logged too
+      Promise.resolve(say(line)).catch(fail);
       log.info({ which }, 'DEMO_CALL_CAP line spoken');
     } catch (err) {
-      log.warn({ which, err: String(err) }, 'DEMO_CALL_CAP could not speak line');
+      fail(err);
     }
   };
   const warning = setTimeout(
