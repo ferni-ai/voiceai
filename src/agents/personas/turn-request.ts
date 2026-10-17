@@ -176,8 +176,7 @@ export function withTurnReminder(
     // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
     // self-share so "no stories of your own" wins for a tired caller. No length (TURN_LENGTH's).
     attunementNote(chatCtx, session, { careful: options.shape === false }),
-    // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
-    // Last, so on its one turn the invite wins over the self-share.
+    // COMMITMENT_INVITE=on: one small step, once a call; after the self-share, so it wins.
     inviteFor(chatCtx, session, words, options.shape === false),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
