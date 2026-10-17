@@ -1375,6 +1375,14 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   // Decision Support
   // Direct Interaction
+  ask: {
+    name: 'Ask',
+    description: 'Ask Ferni anything (CEO feature)',
+    icon: '💬',
+    handler: handleCEOAsk,
+    subcommands: [],
+    examples: ['ferni ask "What should I focus on today?"', 'ferni ask "Summarize my week"'],
+  },
   coach: {
     name: 'Coach',
     description: 'Get AI coaching on a topic (CEO feature)',
@@ -5383,6 +5391,68 @@ async function handleCEOGratitude(args: string[]): Promise<void> {
 // Blockers Handler - Now Firestore-backed!
 // Ideas Handler - Now Firestore-backed!
 // Direct Interaction Handlers
+async function handleCEOAsk(args: string[]): Promise<void> {
+  const question = args.join(' ');
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
+  log.header(`💬 Ask Ferni`);
+
+  if (!question) {
+    console.log(`\n${colors.bold}Ask Ferni Anything:${colors.reset}`);
+    console.log(`\n${colors.cyan}Usage:${colors.reset} ferni ask "Your question here"`);
+    console.log(`\n${colors.bold}Example questions:${colors.reset}`);
+    console.log(`  • "What should I focus on today?"`);
+    console.log(`  • "Summarize my wins this week"`);
+    console.log(`  • "What habits am I building?"`);
+    console.log(`  • "Help me think through this decision..."`);
+    return;
+  }
+
+  console.log(`\n${colors.cyan}Question:${colors.reset} "${question}"`);
+  console.log(`\n${colors.bold}Ferni:${colors.reset}\n`);
+
+  try {
+    // Stream the response from the ask service
+    const responseGenerator = askService.ask(userId, question);
+    let result;
+
+    // Print chunks as they stream in
+    for await (const chunk of responseGenerator) {
+      process.stdout.write(chunk);
+    }
+
+    // Get the final result (sources and follow-up questions)
+    result = await responseGenerator.next();
+    const response = result.value;
+
+    // Add newline after streaming
+    console.log('\n');
+
+    // Show sources if any were used
+    if (response && response.sources && response.sources.length > 0) {
+      console.log(`${colors.dim}Sources: ${response.sources.join(', ')}${colors.reset}`);
+    }
+
+    // Show follow-up questions if any
+    if (response && response.followUpQuestions && response.followUpQuestions.length > 0) {
+      console.log(`\n${colors.bold}Follow-up questions:${colors.reset}`);
+      response.followUpQuestions.forEach((q, i) => {
+        console.log(`  ${colors.cyan}${i + 1}.${colors.reset} ${q}`);
+      });
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('OPENAI_API_KEY')) {
+      console.log(`${colors.yellow}Note:${colors.reset} Ask requires OPENAI_API_KEY to be set.`);
+      console.log(`\n${colors.dim}In the meantime, try:${colors.reset}`);
+      console.log(`  • ${colors.cyan}ferni briefing${colors.reset} for your daily summary`);
+      console.log(`  • ${colors.cyan}ferni priorities${colors.reset} to see your focus areas`);
+      console.log(`  • ${colors.cyan}ferni wins${colors.reset} to review achievements`);
+    } else {
+      console.log(`\n${colors.red}Error:${colors.reset} Couldn't get a response. ${errorMessage}`);
+    }
+  }
+}
+
 async function handleCEOCoach(args: string[]): Promise<void> {
   const topic = args[0] || 'menu';
   log.header(`🎓 AI Coaching`);
