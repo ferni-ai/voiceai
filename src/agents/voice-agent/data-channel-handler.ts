@@ -20,6 +20,7 @@ import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { handleDevModeSync } from './dev-mode-sync.js';
+import { fromSessionUser, type CallerChecks } from './data-sender.js';
 import { advertiseTapInterrupt, handleTapInterrupt } from './tap-interrupt.js';
 // Unified handoff module (Phase 3 migration)
 import {
@@ -76,6 +77,8 @@ export interface DataChannelContext {
   };
   /** Multi-agent calls handle handoff_request / handoff_cancel themselves */
   skipHandoffs?: boolean;
+  /** Who is on the call, from the entrypoint; without it account actions are refused */
+  callerChecks?: CallerChecks;
 }
 
 export interface DataChannelResult {
@@ -197,9 +200,13 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
         await handleUserFeedback(message, ctx);
       }
 
-      // 🎯 ACTION RESPONSE: Handle approve/reject from UI action confirmation cards
+      // 🎯 ACTION RESPONSE: approve/reject from UI cards, only from the session's own user
       if (message.type === 'action_response') {
-        await handleActionResponse(message, ctx);
+        if (fromSessionUser(room, theirIdentity, ctx)) {
+          await handleActionResponse(message, ctx);
+        } else {
+          getLogger().warn({ sessionId: ctx.sessionId }, 'action_response: not the session user');
+        }
       }
     } catch {
       // Not JSON or not a valid request - this is expected for non-data-channel uses
@@ -1138,18 +1145,9 @@ async function handleUserFeedback(
 // ============================================================================
 
 /**
- * Handle action_response messages from frontend action confirmation cards.
- *
- * This enables the AGI-like experience where users can approve/reject
- * autonomous actions via the UI. The voice agent will confirm the action
- * and execute it (or acknowledge the rejection).
- *
- * Message format:
- * {
- *   type: 'action_response',
- *   actionId: string,
- *   approved: boolean
- * }
+ * `{ type: 'action_response', actionId, approved }`: the user approved or rejected a
+ * pending action on a UI card; the agent confirms it and runs it, or acknowledges the
+ * no. Only the session's own user reaches here (data-sender.ts).
  */
 async function handleActionResponse(
   message: {
