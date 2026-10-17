@@ -157,6 +157,21 @@ describe('createDatesRecall', () => {
     expect(none.note()).toBeNull();
   });
 
+  it("counts days from the caller's own day, not the UTC one", async () => {
+    // 9:30 pm in New York on the 16th is already the 17th in UTC.
+    const store = {
+      listOpen: async () => [fact({ eventDate: '2026-10-17' })],
+      apply: async () => undefined,
+    };
+    const now = () => new Date('2026-10-17T01:30:00Z');
+    const local = createDatesRecall({ userId: 'u1', store, now, timezone: 'America/New_York' });
+    await local.ready;
+    expect(local.note()).toContain('job interview is tomorrow');
+    const utc = createDatesRecall({ userId: 'u1', store, now });
+    await utc.ready;
+    expect(utc.note()).toContain('job interview is today');
+  });
+
   it('is off unless FRIEND_FOLLOWUPS=on', () => {
     vi.stubEnv('FRIEND_FOLLOWUPS', 'off');
     expect(datesRecallFor('u1').note()).toBeNull();
