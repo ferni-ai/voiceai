@@ -70,7 +70,7 @@ export interface RestaurantSearchOptions {
   query?: string;
   location?: string; // Address or "lat,lng"
   radius?: number; // meters, max 50000
-  type?: 'restaurant' | 'cafe' | 'bar' | 'bakery' | 'meal_delivery' | 'meal_takeaway';
+  type?: 'restaurant' | 'cafe' | 'bar' | 'bakery' | 'meal_delivery' | 'meal_takeaway' | null; // null: any type
   minPrice?: number; // 0-4
   maxPrice?: number; // 0-4
   openNow?: boolean;
@@ -108,7 +108,7 @@ export async function searchRestaurants(
     // Use the new Places API format
     const requestBody: Record<string, unknown> = {
       textQuery: searchQuery,
-      includedType: type,
+      ...(type ? { includedType: type } : {}),
       languageCode: 'en',
     };
 
