@@ -17,7 +17,7 @@
  */
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
-import { attachTurnReceipts } from '../shared/turn-receipt.js';
+import { attachTurnReceipts } from '../shared/turn-receipt-session.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
