@@ -112,6 +112,31 @@ describe('parseBody size cap', () => {
     expect(await parseBody(req)).toEqual({ name: 'test', value: 123 });
   });
 
+  it('keeps the old answers for empty, null, blank and invalid bodies', async () => {
+    const send = (text?: string): PassThrough & IncomingMessage => {
+      const req = request();
+      req.end(text);
+      return req;
+    };
+    // Routes read an absent body as {} (POST with no body, GET, DELETE).
+    expect(await parseBody(send())).toEqual({});
+    const declaredEmpty = request({ 'content-length': '0' });
+    declaredEmpty.end();
+    expect(await parseBody(declaredEmpty)).toEqual({});
+    expect(await parseBody(send('null'))).toBeNull();
+    await expect(parseBody(send('   '))).rejects.toThrow('Invalid JSON body');
+    await expect(parseBody(send('CallStatus=completed'))).rejects.toThrow('Invalid JSON body');
+  });
+
+  it('decodes a character split across chunks', async () => {
+    const body = Buffer.from(JSON.stringify({ s: '€€€' }));
+    const req = request();
+    const reading = parseBody(req);
+    req.write(body.subarray(0, 7)); // inside the first €
+    req.end(body.subarray(7));
+    expect(await reading).toEqual({ s: '€€€' });
+  });
+
   it('caps a body at 1 MB by default', async () => {
     const fits = request();
     fits.end(JSON.stringify({ s: 'x'.repeat(DEFAULT_MAX_BODY_BYTES - 20) }));
