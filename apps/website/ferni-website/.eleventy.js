@@ -1,4 +1,5 @@
 const syntaxHighlight = require('@11ty/eleventy-plugin-syntaxhighlight');
+const { registerBlogImages } = require('./lib/blog-images');
 
 // ============================================
 // I18N CONFIGURATION
@@ -52,6 +53,9 @@ function getNestedValue(obj, path) {
 module.exports = function (eleventyConfig) {
   // Syntax highlighting for code blocks
   eleventyConfig.addPlugin(syntaxHighlight);
+
+  // Responsive AVIF/WebP blog images and og:image crops (lib/blog-images.js)
+  registerBlogImages(eleventyConfig);
 
   // ============================================
   // I18N FILTERS AND GLOBALS
@@ -122,7 +126,7 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('images/*.jpg');
   eleventyConfig.addPassthroughCopy('images/*.png');
   eleventyConfig.addPassthroughCopy('images/*.svg');
-  eleventyConfig.addPassthroughCopy('images/generated');
+  eleventyConfig.addPassthroughCopy('images/generated/hero/hero-zen-garden.jpg'); // the one generated image a page uses; drafts stay out
   eleventyConfig.addPassthroughCopy('images/avatars');
   eleventyConfig.addPassthroughCopy('images/stock-lifestyle');
   eleventyConfig.addPassthroughCopy('images/testimonials');
