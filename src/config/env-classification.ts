@@ -36,7 +36,7 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   JORDAN_TAYLOR_VOICE_ID: 'config',
   LOGS_ENABLE_GCP: 'unread',
   MAYA_SANTOS_VOICE_ID: 'config',
-  MEMORY_STORE_TYPE: 'config',
+  MEMORY_STORE_TYPE: 'behavior',
   NATIVE_AUDIO_PROJECT: 'config',
   NAYAN_PATEL_VOICE_ID: 'config',
   NEWSDATA_API_KEY: 'secret',

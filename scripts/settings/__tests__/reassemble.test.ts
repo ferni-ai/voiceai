@@ -89,6 +89,29 @@ describe('latestSettings', () => {
     expect(latestSettings(log)).toBeNull();
   });
 
+  it('does not let a cut-off line hand a later part 2 to an earlier boot', () => {
+    const log = [
+      part(1, 2, 'h1', { commit: 'A', flags: { F1: 'A' } }),
+      '[worker] EFFECTIVE_SETTINGS {"part":2,"parts":2,"commit":"A","hash":"h1","env":{"K":"a"',
+      part(2, 2, 'h1', { commit: 'A', env: { K: 'b' } }),
+    ].join('\n');
+    expect(latestSettings(log)).toBeNull();
+  });
+
+  it('ends a run at a malformed part rather than continuing it', () => {
+    const log = [
+      part(1, 2, 'h1', { commit: 'A', flags: {} }),
+      part(0, 2, 'h1', { commit: 'A', env: {} }),
+      part(2, 2, 'h1', { commit: 'A', env: {} }),
+    ].join('\n');
+    expect(latestSettings(log)).toBeNull();
+  });
+
+  it('rejects a settings line whose values are not strings', () => {
+    const log = [part(1, 1, 'h1', { flags: { ATTUNE: 1 } })].join('\n');
+    expect(latestSettings(log)).toBeNull();
+  });
+
   it('takes the most recent complete set when a worker restarted', () => {
     const log = [
       part(1, 1, 'old', { flags: { ATTUNE: 'off' } }),
@@ -123,6 +146,12 @@ describe('secretLeaks', () => {
 
   it('names a secret-classed name whose value is not a marker', () => {
     expect(secretLeaks({ ...base, env: { SPOTIFY_CLIENT_SECRET: 'sk_live_x' } })).toEqual([
+      'SPOTIFY_CLIENT_SECRET',
+    ]);
+  });
+
+  it('names a secret-classed name under flags too', () => {
+    expect(secretLeaks({ ...base, flags: { SPOTIFY_CLIENT_SECRET: 'sk_live_x' } })).toEqual([
       'SPOTIFY_CLIENT_SECRET',
     ]);
   });

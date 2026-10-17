@@ -63,7 +63,14 @@ function sortedJson(settings: Settings): string {
 
 function readSettingsFile(env: Env): Settings | null {
   const path = settingsPath(env);
-  return existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as Settings) : null;
+  if (!existsSync(path)) return null;
+  const settings = JSON.parse(readFileSync(path, 'utf8')) as Settings;
+  const leaks = secretLeaks(settings);
+  if (leaks.length)
+    throw new Error(
+      `refusing to diff config/settings/${env}.json: secret names carry values: ${leaks.join(', ')}`
+    );
+  return settings;
 }
 
 async function main(): Promise<void> {
