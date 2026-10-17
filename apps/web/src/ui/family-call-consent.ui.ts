@@ -11,6 +11,11 @@
 import { t } from '../i18n/index.js';
 import { apiDelete, apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import {
+  CALL_CONSENT_EVENT,
+  mountCheckinSchedule,
+  renderCheckinSchedule,
+} from './family-checkin-schedule.ui.js';
 import { toast } from './whisper.ui.js';
 
 const log = createLogger('FamilyCallConsent');
@@ -28,7 +33,7 @@ const attr = (value: string): string =>
 const path = (identityId: string): string =>
   `/api/sponsored-identities/${encodeURIComponent(identityId)}/call-consent`;
 
-/** The switch, disabled until mountCallConsent has loaded its state. */
+/** The switch (disabled until mountCallConsent loads its state), then the check-in schedule. */
 export function renderCallConsent(identityId: string): string {
   return `
       <div class="family-form__group" data-call-consent="${attr(identityId)}">
@@ -41,7 +46,7 @@ export function renderCallConsent(identityId: string): string {
             </small>
           </span>
         </label>
-      </div>`;
+      </div>${renderCheckinSchedule(identityId)}`;
 }
 
 /** Load the switch's state and save each change. Safe to call after every render. */
@@ -51,6 +56,7 @@ export async function mountCallConsent(root: ParentNode): Promise<void> {
   const identityId = section?.dataset.callConsent;
   if (!section || !input || !identityId || section.dataset.mounted) return;
   section.dataset.mounted = 'true';
+  mountCheckinSchedule(root);
 
   const response = await apiGet<ConsentState>(path(identityId));
   if (!response.ok || !response.data) {
@@ -60,9 +66,10 @@ export async function mountCallConsent(root: ParentNode): Promise<void> {
   }
   input.checked = response.data.agreed;
   input.disabled = false;
+  announce(section, input.checked);
 
   input.addEventListener('change', () => {
-    void save(identityId, input);
+    void save(identityId, input).then(() => announce(section, input.checked));
   });
 }
 
@@ -80,4 +87,9 @@ async function save(identityId: string, input: HTMLInputElement): Promise<void> 
     return;
   }
   toast.success(t('familyIdentities.callConsentSaved'));
+}
+
+/** Tell the check-in schedule beside the switch whether to show. */
+function announce(section: HTMLElement, agreed: boolean): void {
+  section.dispatchEvent(new CustomEvent(CALL_CONSENT_EVENT, { bubbles: true, detail: { agreed } }));
 }

@@ -40,7 +40,7 @@ And here's the thing that changes everything: **Ferni remembers**. Your goals, y
 
 Your conversations are yours. Always.
 
-- End-to-end encrypted
+- Encrypted in transit and at rest
 - Never used for training
 - Delete anytime with one click
 

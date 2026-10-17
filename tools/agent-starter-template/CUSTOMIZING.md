@@ -57,7 +57,7 @@ Pick a voice that matches your agent's personality:
 | Warm Female | `c2ac25f9-ecc0-43f4-aaf5-e0f482e5f478` | Friendly, approachable |
 | Calm British Man | `bf991597-aacf-4b1a-96fe-4c0cb7fecf96` | Professional, trustworthy |
 | Energetic Coach | `41534e16-2966-4c6b-9670-111411def906` | Motivating, upbeat |
-| Thoughtful Elder | `3ebcd114-d280-4eed-a238-b9323a6b8e52` | Wise, measured |
+| Thoughtful Elder | `921034a2-aace-4ef7-87b1-b9bc455c9a15` | Wise, measured |
 
 Update in manifest:
 ```json

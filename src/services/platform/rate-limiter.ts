@@ -42,6 +42,46 @@ let redisClient: Redis | null = null;
 let redisAvailable = false;
 
 /**
+ * retryStrategy gives up after 5 tries, and ioredis then ends the connection for good:
+ * the client stays set, nothing reconnects, and checkShared fails closed (journal
+ * transcription refuses every clip) until the instance restarts. So the next check
+ * after a backoff connects again: 30 s at first, doubling up to 5 min.
+ */
+const REVIVE_MIN_MS = 30_000;
+const REVIVE_MAX_MS = 5 * 60_000;
+let reviveDelayMs = REVIVE_MIN_MS;
+let nextReviveAt = 0;
+/** When ioredis gave up, while it stays given up. */
+let gaveUpAt: number | null = null;
+
+/**
+ * Reconnect a client ioredis has given up on, at most once per backoff window, with
+ * one alertable error per window. A client still retrying on its own is left alone.
+ */
+function reviveRedisIfGivenUp(key: string): void {
+  if (!redisClient || redisAvailable || redisClient.status !== 'end') return;
+  const now = Date.now();
+  if (now < nextReviveAt) return;
+  gaveUpAt ??= now;
+  log.error(
+    { keyPrefix: key.split(':')[0], downForMs: now - gaveUpAt, nextTryInMs: reviveDelayMs },
+    'rate_limit_redis_down'
+  );
+  nextReviveAt = now + reviveDelayMs;
+  reviveDelayMs = Math.min(reviveDelayMs * 2, REVIVE_MAX_MS);
+  redisClient.connect().catch((error: unknown) => {
+    // The window's error is logged above; ioredis logs the connection error itself.
+    log.debug({ error: String(error) }, 'Redis reconnect attempt failed');
+  });
+}
+
+function resetRevival(): void {
+  reviveDelayMs = REVIVE_MIN_MS;
+  nextReviveAt = 0;
+  gaveUpAt = null;
+}
+
+/**
  * Initialize Redis connection if REDIS_URL is configured.
  * Automatically reconnects on failure.
  */
@@ -60,6 +100,7 @@ function initializeRedis(): void {
         if (times > 5) {
           log.warn('Redis retry limit reached, falling back to in-memory');
           redisAvailable = false;
+          gaveUpAt ??= Date.now();
           return null; // Stop retrying
         }
         return Math.min(times * 200, 2000);
@@ -70,6 +111,10 @@ function initializeRedis(): void {
 
     redisClient.on('connect', () => {
       log.info('Redis connected for rate limiting');
+      if (gaveUpAt !== null) {
+        log.info({ downForMs: Date.now() - gaveUpAt }, 'rate_limit_redis_recovered');
+      }
+      resetRevival();
       redisAvailable = true;
     });
 
@@ -258,6 +303,7 @@ export const rateLimiter = {
     if (redisAvailable && redisClient) {
       return checkRedisRateLimit(key, maxRequests, windowMs, cost);
     }
+    reviveRedisIfGivenUp(key);
     return checkMemoryRateLimit(key, maxRequests, windowMs, cost);
   },
 
@@ -274,6 +320,11 @@ export const rateLimiter = {
     cost = 1
   ): Promise<RateLimitResult | null> {
     if (!redisClient) return checkMemoryRateLimit(key, maxRequests, windowMs, cost);
+    // Fail closed until 'connect' fires; rate_limit_redis_down reports it once per window.
+    if (!redisAvailable) {
+      reviveRedisIfGivenUp(key);
+      return null;
+    }
     try {
       return await evalRedisRateLimit(key, maxRequests, windowMs, cost);
     } catch (error) {
@@ -315,6 +366,7 @@ export const rateLimiter = {
       await redisClient.quit();
       redisClient = null;
       redisAvailable = false;
+      resetRevival();
     }
   },
 };
