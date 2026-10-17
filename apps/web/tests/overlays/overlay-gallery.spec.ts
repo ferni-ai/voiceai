@@ -546,6 +546,14 @@ test.describe('heard, in the browser', () => {
   test('reduced motion settles the caller line with no transition', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openScene(page, 'caption-heard');
+    // openScene freezes transitions. Take that override out, so only the app's own
+    // reduced-motion rule decides the transition here.
+    await page.evaluate(() => {
+      for (const style of Array.from(document.querySelectorAll('style'))) {
+        if (style.textContent?.trim() === '*, *::before, *::after { transition: none !important; }')
+          style.remove();
+      }
+    });
     const durations = await page.$$eval(".ferni-caption-line[data-speaker='user']", (els) =>
       els.map((el) => getComputedStyle(el).transitionDuration)
     );
