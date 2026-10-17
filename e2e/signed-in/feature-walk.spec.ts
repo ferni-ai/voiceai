@@ -21,9 +21,6 @@ import {
 
 /** data-action of each settings-menu row that opens a panel */
 const PANELS = [
-  'garden',
-  'gift',
-  'invite',
   'commands',
   'calendar-settings',
   'notifications',

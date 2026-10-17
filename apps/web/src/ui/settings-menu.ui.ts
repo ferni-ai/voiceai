@@ -31,10 +31,10 @@ import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
-// Seeds display for personalization economy
-import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 import { transcriptUI } from './transcript.ui.js';
 import { canOpenSupport } from './support/open-support.js';
+import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
+import { isPaywallOn } from '../services/paywall.service.js';
 import { soundUI } from './sound.ui.js';
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
@@ -666,6 +666,15 @@ class SettingsMenuUI {
   }
 
   /**
+   * While Ferni is free and the Venmo chip-in is configured (VITE_VENMO_CHIP_IN +
+   * VITE_VENMO_HANDLE), "Account & Billing" has nothing to manage: the footer
+   * offers "Chip in" (the Venmo card) instead. With a paywall on, billing stays.
+   */
+  private chipsInOnVenmo(): boolean {
+    return isVenmoChipInEnabled() && !isPaywallOn();
+  }
+
+  /**
    * Render a toggle menu item (for on/off settings)
    */
   private renderToggleItem(action: string, icon: string, label: string, isOn: boolean): string {
@@ -728,9 +737,6 @@ class SettingsMenuUI {
           `
           }
         </div>
-
-        <!-- Seeds Balance Card -->
-        ${renderSeedsSettingsCard()}
 
         <nav class="settings-menu__nav">
           <!-- PINNED ITEMS (Your Favorites) -->
@@ -840,7 +846,7 @@ class SettingsMenuUI {
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript'), transcriptUI.isEnabled())}
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
+            ${this.chipsInOnVenmo() ? '' : this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${memoryControlEnabled() ? this.renderMenuItem('cognitive', ICONS.brain, t('ferniKnows.panelTitle')) : ''}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -855,6 +861,7 @@ class SettingsMenuUI {
           <div class="settings-menu__quick-actions" role="group" aria-label="${t('menu.sections.connect')}">
             ${this.renderMenuItem('whats-growing', ICONS.seedling, t('menu.items.whatsGrowing'))}
             ${this.renderMenuItem('share-ferni', ICONS.share, t('menu.items.shareFerni'))}
+            ${this.chipsInOnVenmo() ? this.renderMenuItem('support-ferni', ICONS.heart, t('buttons.chipIn')) : ''}
             ${this.renderMenuItem('help', ICONS.help, t('menu.items.takeTour'))}
             ${this.renderMenuItem('sign-out', ICONS.signOut, t('buttons.signOut'))}
           </div>
