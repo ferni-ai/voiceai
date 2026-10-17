@@ -4571,6 +4571,7 @@
     "tabTimeline": "Timeline",
     "emptyOnThisDay": "No memories on this day",
     "emptyOnThisDaySubtext": "Check back on another date!",
+    "loadError": "I couldn't load your memories just now. Try again in a moment.",
     "withPersona": "with {personaName}",
     "loveLabel": "Love this memory",
     "loveTitle": "Love",
