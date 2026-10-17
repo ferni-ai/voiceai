@@ -19,6 +19,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { listeningLines, type ListeningCues } from './listen-first.js';
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
@@ -64,14 +65,42 @@ const ABOUT_FERNI =
 const ACK =
   /^(yeah|yep|yes|ok(ay)?|right|sure|true|totally|haha+|ha|mm+|hm+|no|nope|got it|i guess|maybe|thanks?( you)?|cool|nice|wow)[.!?,\s]*$/i;
 
+/**
+ * About their own things or what he can do for them, not about him: "do you
+ * have my number?" read as about_ferni ("do you have"), so the turn asked
+ * for his day and he answered "I do have your number, but ... I was just
+ * about to head out and try to find a replacement houseplant" (prod,
+ * 2026-10-17).
+ */
+const ABOUT_THEIR_THINGS =
+  /\b(?:do|did|can|could|would|will) you (?:still |even |actually )?(?:have|know|remember|keep|save|store|see|get|call|text|reach|ring|phone|message|email|send)\b(?:\s+\w+)?\s+(?:my|me|mine|our|us)\b/i;
+
 export function callerMove(text: string): CallerMove {
   const t = text.trim();
   const words = t.split(/\s+/).filter(Boolean).length;
   if (words <= 3 && ACK.test(t)) return 'ack';
   if (isLookup(t)) return 'lookup';
-  if (ASKS_FOR_MORE.test(t)) return 'request';
+  if (ASKS_FOR_MORE.test(t) || ABOUT_THEIR_THINGS.test(t)) return 'request';
   if (ABOUT_FERNI.test(t)) return 'about_ferni';
   return 'share';
+}
+
+/** Asked of him, not told: a question, or "can you", "could you", "please". */
+const ASKS_HIM = /\?|\b(?:can|could|would|will) you\b|\bplease\b/i;
+
+/**
+ * A turn about getting something done or found out: a look-up, a request
+ * that isn't about him, a tool request put to him ("can you set a timer?"),
+ * or the reply after a tool ran. His own day has no place in it.
+ */
+export function taskTurn(said: string, toolRan = false): boolean {
+  if (toolRan) return true;
+  const move = callerMove(said);
+  if (move === 'lookup') return true;
+  // "Tell me about your trip" is a request about him.
+  const aboutHim = ABOUT_FERNI.test(said) || /\byour(?:self)?\b/i.test(said);
+  if (aboutHim && !ABOUT_THEIR_THINGS.test(said)) return false;
+  return move === 'request' || (mayNeedTool(said) && ASKS_HIM.test(said));
 }
 
 /** How often each shape follows each kind of caller turn. */
