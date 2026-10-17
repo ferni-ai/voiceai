@@ -343,7 +343,7 @@ const callOnBehalfSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Phone number if provided by user (e.g., "8018983303", "+1-801-898-3303"). Use this if the user explicitly provides a number.'
+      'Phone number if provided by user (e.g., "8015550142", "+1-801-555-0142"). Use this if the user explicitly provides a number.'
     ),
   purpose: z
     .string()
@@ -372,7 +372,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
       'Call a third party (doctor, restaurant, family member, etc.) on behalf of the user. ' +
       'Use this when the user asks you to make a call to someone else. ' +
       'IMPORTANT: If the user provides a phone number, extract it into the phoneNumber parameter. ' +
-      'Example: "call my mom at 801-898-3303" → contactQuery: "my mom", phoneNumber: "8018983303". ' +
+      'Example: "call my mom at 801-555-0142" → contactQuery: "my mom", phoneNumber: "8015550142". ' +
       'You will handle the entire conversation autonomously and report back the outcome.',
 
     parameters: callOnBehalfSchema,
