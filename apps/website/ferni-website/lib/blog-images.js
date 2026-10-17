@@ -7,7 +7,8 @@
 // outputs that already exist), so warm rebuilds stay fast.
 
 const path = require('path');
-const Image = require('@11ty/eleventy-img');
+// v7 is ESM-only, so require() returns its namespace; the image function is `default`.
+const Image = require('@11ty/eleventy-img').default;
 
 const SOURCE_DIR = path.join(__dirname, '..', 'images', 'blog');
 const OUTPUT_DIR = path.join(__dirname, '..', '_site', 'images', 'blog', 'opt');
