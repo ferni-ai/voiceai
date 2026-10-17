@@ -15,6 +15,7 @@ import {
 import {
   adjudicatedCheckin,
   resolveCrisisAdjudicatorMode,
+  shadowAdjudication,
   startCrisisAdjudicator,
   transcriptFrom,
 } from '../../../services/safety/crisis-adjudicator.js';
@@ -71,9 +72,13 @@ export function startTurnCrisis(
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   const pattern = shouldBlock ? 'block' : patterns.isCrisis ? 'crisis' : 'none';
   const { env = process.env, generate } = options;
+  // Only the agreement gate and a live adjudicator hold the turn for the turn's
+  // other reads; a shadow adjudicator runs beside it and never delays it.
   const agreementGate = resolveCrisisAgreementGate(env);
-  const adjudicating = resolveCrisisAdjudicatorMode(env) !== 'off';
-  const scope = agreementGate || adjudicating ? options.sessionId || undefined : undefined;
+  const adjudicatorMode = resolveCrisisAdjudicatorMode(env);
+  const scope =
+    agreementGate || adjudicatorMode !== 'off' ? options.sessionId || undefined : undefined;
+  const holdForReads = agreementGate || adjudicatorMode === 'live';
   const input = {
     latest: userText,
     earlier: userData?.recentTranscripts ?? [],
@@ -87,6 +92,16 @@ export function startTurnCrisis(
         ? classifier.verdict.then(async (verdict) => {
             const crisis = applyClassifierVerdict(patterns, verdict);
             if (!scope || crisis === patterns) return { crisis, soft: false };
+            if (!holdForReads) {
+              shadowAdjudication(turnVerdicts(scope, input), transcriptFrom(input), {
+                pattern,
+                env,
+                scope,
+                source: 'pipeline',
+                generate: options.adjudicate,
+              });
+              return { crisis, soft: false };
+            }
             // Fail closed: a failed lookup counts as a missing read, which escalates.
             const verdicts = await turnVerdicts(scope, input).catch(() => [null]);
             const outcome = agreementGate
@@ -103,6 +118,7 @@ export function startTurnCrisis(
               env,
               generate: options.adjudicate,
               source: 'pipeline',
+              scope,
             });
             if (!(await adjudicatedCheckin(adjudicator))) return { crisis, soft: false };
             log.info({ outcome: 'soft', source: 'adjudicator' }, 'CRISIS_AGREEMENT');

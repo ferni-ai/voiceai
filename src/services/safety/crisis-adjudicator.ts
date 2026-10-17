@@ -263,13 +263,15 @@ export function startCrisisAdjudicator(
     env?: Record<string, string | undefined>;
     generate?: CrisisGenerateFn;
     source: 'gate' | 'pipeline';
+    /** The call's session id: runs are shared within one call only. */
+    scope?: string;
   }
 ): CrisisAdjudicatorRun | null {
   const env = options.env ?? process.env;
   const mode = resolveCrisisAdjudicatorMode(env);
   if (mode === 'off' || !adjudicatorEligible(options.pattern, options.verdicts)) return null;
   const startedAt = Date.now();
-  const key = JSON.stringify([mode, normalizeTranscript(lines)]);
+  const key = JSON.stringify([options.scope ?? '', mode, normalizeTranscript(lines)]);
   for (const [k, v] of recent) if (startedAt - v.at > RECENT_TTL_MS) recent.delete(k);
   const shared = recent.get(key)?.run;
   if (shared) return shared;
@@ -290,6 +292,26 @@ export function startCrisisAdjudicator(
   }
   recent.set(key, { at: startedAt, run });
   return run;
+}
+
+/**
+ * Shadow with nothing else holding the turn for its reads (no agreement gate):
+ * gather the reads and adjudicate off the escalation path, for the log only.
+ * The caller escalates without waiting. Never rejects.
+ */
+export function shadowAdjudication(
+  reads: Promise<ReadonlyArray<CrisisVerdict | null>>,
+  lines: readonly AdjudicatorLine[],
+  options: Omit<Parameters<typeof startCrisisAdjudicator>[1], 'verdicts'>
+): void {
+  reads
+    .then((verdicts) => adjudicatedCheckin(startCrisisAdjudicator(lines, { ...options, verdicts })))
+    .catch((error: unknown) => {
+      log.warn(
+        { source: options.source, error: String(error) },
+        'CRISIS_ADJUDICATOR shadow failed'
+      );
+    });
 }
 
 /** Live and a checkin: the turn gets the soft check. Anything else escalates as before. */

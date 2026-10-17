@@ -61,6 +61,11 @@ const CALL: AdjudicatorLine[] = [
   { speaker: 'ferni', text: "Sure, I don't have her number yet." },
   { speaker: 'caller', text: 'Can I give you her number?' },
 ];
+/** A model call that never answers. */
+const never: CrisisGenerateFn = () =>
+  new Promise<string>(() => {
+    // never settles
+  });
 const reply =
   (text: string): CrisisGenerateFn =>
   async () =>
@@ -191,7 +196,6 @@ describe('adjudicateCrisis fails closed', () => {
   });
 
   it('timeout', async () => {
-    const never: CrisisGenerateFn = () => new Promise(() => undefined);
     expect(await adjudicateCrisis(CALL, never, 20)).toEqual({
       decision: 'escalate',
       why: 'timeout',
@@ -333,7 +337,8 @@ describe('reply gate (crisis-gate.ts)', () => {
     const shadow = await gate({ CRISIS_ADJUDICATOR: 'shadow' }, adjudicate)?.escalation;
     expect(off?.action).toBe('guide');
     expect(shadow).toEqual(off);
-    expect(adjudicate).toHaveBeenCalledTimes(1);
+    // Off the escalation path: the adjudicator runs after the reply is decided.
+    await vi.waitFor(() => expect(adjudicate).toHaveBeenCalledTimes(1));
   });
 
   it('live held back (production): checkin is only logged, the reply is unchanged', async () => {
@@ -341,8 +346,10 @@ describe('reply gate (crisis-gate.ts)', () => {
     const escalation = await gate({ CRISIS_ADJUDICATOR: 'live' }, reply(CHECKIN))?.escalation;
     expect(escalation?.action).toBe('guide');
     expect(escalation?.action === 'guide' && escalation.guidance).not.toBe(SOFT_CRISIS_CHECK);
-    const record = logInfo.mock.calls.find((c) => c[1] === 'CRISIS_ADJUDICATOR');
-    expect(record?.[0]).toMatchObject({ mode: 'shadow', decision: 'checkin', liveHeld: true });
+    await vi.waitFor(() => {
+      const record = logInfo.mock.calls.find((c) => c[1] === 'CRISIS_ADJUDICATOR');
+      expect(record?.[0]).toMatchObject({ mode: 'shadow', decision: 'checkin', liveHeld: true });
+    });
   });
 
   it.each([
@@ -361,7 +368,6 @@ describe('reply gate (crisis-gate.ts)', () => {
   });
 
   it('live + timeout: crisis guidance as before', async () => {
-    const never: CrisisGenerateFn = () => new Promise(() => undefined);
     const turn = gate({ CRISIS_ADJUDICATOR: 'live', CRISIS_ADJUDICATOR_TIMEOUT_MS: '20' }, never);
     const escalation = await turn?.escalation;
     expect(escalation?.action === 'guide' && escalation.guidance).not.toBe(SOFT_CRISIS_CHECK);
@@ -402,7 +408,7 @@ describe('reply gate (crisis-gate.ts)', () => {
       {
         sessionId: 'call-1',
         env: { ...env, CRISIS_CLASSIFIER_TIMEOUT_MS: '10' },
-        generate: () => new Promise(() => undefined),
+        generate: never,
       }
     );
     const escalation = await gate({ CRISIS_ADJUDICATOR: 'live' }, adjudicate)?.escalation;
@@ -456,7 +462,7 @@ describe('turn pipeline (turn-crisis.ts)', () => {
     const t = turn({ CRISIS_ADJUDICATOR: 'shadow' }, adjudicate);
     expect(await t.softCheck()).toBe(false);
     expect((await t.resolve()).isCrisis).toBe(true);
-    expect(adjudicate).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(adjudicate).toHaveBeenCalledTimes(1));
   });
 
   it('live + escalate, or the flag off: crisis as before', async () => {
@@ -484,7 +490,7 @@ describe('turn pipeline (turn-crisis.ts)', () => {
       { services: { sessionId: 'call-2' } },
       {
         env: { ...LIVE_CLASSIFIER, CRISIS_ADJUDICATOR: 'live', CRISIS_CLASSIFIER_TIMEOUT_MS: '10' },
-        generate: () => new Promise(() => undefined),
+        generate: never,
         adjudicate,
       }
     );
