@@ -40,9 +40,14 @@ export async function embedCallers(
   );
 }
 
-function flag(args: string[], name: string): number | undefined {
+/** A threshold flag's value, 0 to 1; a missing or malformed one is an error, never a silent pass. */
+export function flag(args: string[], name: string): number | undefined {
   const i = args.indexOf(name);
-  return i >= 0 ? Number(args[i + 1]) : undefined;
+  if (i < 0) return undefined;
+  const v = Number(args[i + 1]);
+  if (args[i + 1] === undefined || !Number.isFinite(v) || v < 0 || v > 1)
+    throw new Error(`${name} needs a number from 0 to 1, not ${args[i + 1] ?? '(none)'}`);
+  return v;
 }
 
 async function main(args: string[]): Promise<number> {

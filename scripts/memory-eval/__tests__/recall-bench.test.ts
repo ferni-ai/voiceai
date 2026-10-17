@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { embedCallers } from '../recall-bench.js';
+import { embedCallers, flag } from '../recall-bench.js';
 import { scoreAt, sweepTable, type BenchCaller } from '../recall-bench-lib.js';
 
 const VOCAB = [
@@ -80,5 +80,14 @@ describe('recall bench scoring', () => {
       for (const [, expectIds] of c.turns) for (const id of expectIds) expect(ids).toContain(id);
       expect(c.turns.filter(([, e]) => e.length === 0).length).toBeGreaterThanOrEqual(5);
     }
+  });
+});
+
+describe('threshold flags', () => {
+  it('reads 0 to 1 and rejects a missing or malformed value instead of passing silently', () => {
+    expect(flag(['--min-hit', '0.8'], '--min-hit')).toBe(0.8);
+    expect(flag([], '--min-hit')).toBeUndefined();
+    for (const bad of [['--min-hit'], ['--min-hit', 'x'], ['--min-hit', '80']])
+      expect(() => flag(bad, '--min-hit')).toThrow(/0 to 1/);
   });
 });
