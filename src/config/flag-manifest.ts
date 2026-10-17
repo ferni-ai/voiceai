@@ -358,6 +358,7 @@ export const FLAG_MANIFEST = {
   STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TAP_INTERRUPT: { default: 'off', owner: 'voice', kind: 'experiment' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
+  THEORY_OF_MIND: { default: 'off', owner: 'memory', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // topic tools go to the agent on the call now, and a handed-to agent gets the call's
