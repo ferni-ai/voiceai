@@ -330,6 +330,7 @@ jobs:
             --build-arg VITE_VENMO_HANDLE="${{ vars.VITE_VENMO_HANDLE }}" \
             --build-arg VITE_CAPTIONS_V2="${{ vars.VITE_CAPTIONS_V2 }}" \
             --build-arg VITE_CAPTIONS_BREATH="${{ vars.VITE_CAPTIONS_BREATH }}" \
+            --build-arg VITE_CAPTIONS_HEARD="${{ vars.VITE_CAPTIONS_HEARD }}" \
             .
 
           # Push all tags
