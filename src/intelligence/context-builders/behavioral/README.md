@@ -1,5 +1,7 @@
 # Behavioral Context Builder System
 
+> **Status (2026-10):** no behavioral builder runs. The ten `builders/*.behavioral.ts` files were never imported on the live path, so they were deleted along with the builder registry. `buildBehavioralContext()` returns the aggregator's default style ("Be warm. Validate and support."). Awareness facts and tool guidance below are live. Bringing a builder back means wiring it into `orchestrator.ts` behind a flag and running a voice eval, because it changes prompt text.
+
 ## The Three Systems
 
 This architecture splits context into THREE separate systems:
@@ -227,49 +229,7 @@ const prompt = `${result.directive}\n\n${systemPrompt}`;
 
 ## Creating a New Behavioral Builder
 
-```typescript
-// src/intelligence/context-builders/behavioral/builders/my-feature.behavioral.ts
-
-import type { ContextBuilderInput } from '../../core/types.js';
-import type { BehavioralSignals } from '../signals.js';
-import { registerBehavioralBuilder } from '../orchestrator.js';
-
-async function buildMyFeatureBehavior(input: ContextBuilderInput): Promise<BehavioralSignals> {
-  const { userText, analysis, userData, persona } = input;
-
-  // Analyze context...
-  // Return behavioral signals, NOT facts
-
-  return {
-    source: 'my-feature',
-    confidence: 0.8,
-    priority: 50,
-
-    tone: 'warm',
-    style: 'exploratory',
-
-    // GOOD: Behavioral hint
-    callbacks: [{
-      type: 'pattern',
-      hint: 'They seem interested in exploring this further.',
-      strength: 'natural',
-    }],
-
-    // BAD: Would be a fact leak
-    // callbacks: [{
-    //   hint: 'They asked about hiking last Tuesday at 3pm',
-    // }],
-  };
-}
-
-registerBehavioralBuilder({
-  name: 'my-feature',
-  description: 'What this builder does',
-  priority: 50, // 0=runs first, 100=runs last
-  category: 'category-name',
-  build: buildMyFeatureBehavior,
-});
-```
+There is no builder registry any more (see the status note at the top). A new builder's signals have to be passed to `aggregateBehavior()` in `orchestrator.ts` directly.
 
 ## Testing
 
@@ -320,11 +280,10 @@ describe('Behavioral Context', () => {
 | `signals.ts` | Type definitions for behavioral signals |
 | `aggregator.ts` | Combines signals from multiple builders |
 | `translator.ts` | Converts legacy context → behavioral signals |
-| `orchestrator.ts` | Runs all builders, produces final directive |
+| `orchestrator.ts` | Produces the final directive (default style today) |
 | `awareness.ts` | Facts the model should know (time, user, session) |
 | `tool-guidance.ts` | When to call tools for more information |
 | `integration.ts` | Combines all three systems |
-| `builders/*.behavioral.ts` | Individual behavioral builders |
 
 ## Awareness Facts (What to Know)
 

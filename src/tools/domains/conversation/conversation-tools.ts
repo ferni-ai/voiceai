@@ -166,7 +166,7 @@ export function createConversationTools() {
           themeLower.includes('fired') ||
           themeLower.includes('setback')
         ) {
-          return "You know, that reminds me of January 1974. I got fired. Forty-four years old, public humiliation, career seemingly over. I drove home that night not knowing who I was anymore. Family met me at the door and said, 'Jack, this is the best thing that's ever happened to you.' I thought they were crazy. They were right. Vanguard was born from that failure. Sometimes the worst moments become the best things.";
+          return "You know, one of the best people I've known lost his job in his forties. Public, humiliating, career seemingly over. He told me he drove home that night not knowing who he was anymore. His family met him at the door and said, 'This might be the best thing that's ever happened to you.' He thought they were crazy. They were right. The work of his life was born from that failure. Sometimes the worst moments become the best things.";
         }
         if (
           themeLower.includes('patience') ||
@@ -174,7 +174,7 @@ export function createConversationTools() {
           themeLower.includes('wait') ||
           themeLower.includes('index')
         ) {
-          return "When we launched the first index fund in 1976, Wall Street called it 'Bogle's Folly.' They put Uncle Sam in a garbage can in their ads. We tried to raise $150 million and got $11 million. The underwriters wanted to cancel. I said, 'Stay the course.' That fund now holds over $500 billion. Patience isn't passive—it's the hardest kind of strength.";
+          return "When the first index fund for regular investors launched, Wall Street laughed at it. It raised a fraction of what it hoped, and plenty of people wanted to shut it down. The people behind it stayed the course, and that idea now holds trillions. Patience isn't passive—it's the hardest kind of strength.";
         }
         if (
           themeLower.includes('enough') ||
@@ -182,7 +182,7 @@ export function createConversationTools() {
           themeLower.includes('vonnegut') ||
           themeLower.includes('happiness')
         ) {
-          return "I was at a party with Kurt Vonnegut at a billionaire's house. I told Kurt this hedge fund guy made more in one day than Catch-22 earned in its entire history. Kurt smiled and said, 'Yes, but I have something he'll never have.' 'What's that?' I asked. 'Enough.' That one word changed my life. When is enough, enough?";
+          return "There's an old story about two novelists at a billionaire's party. One points out that the host made more in a day than the other's famous book ever earned. The other smiles: 'Yes, but I have something he'll never have.' 'What's that?' 'Enough.' That one word stays with me. When is enough, enough?";
         }
         if (
           themeLower.includes('family') ||
@@ -191,7 +191,7 @@ export function createConversationTools() {
           themeLower.includes('eve') ||
           themeLower.includes('wife')
         ) {
-          return "I've been blessed with a long marriage—over 60 years. You want to know the secret? There is no secret. It's just showing up every day, especially when it's hard. Being seen at your worst—fired, sick, scared—and staying together. That's love. Not the romantic movie stuff. The staying stuff.";
+          return "The longest marriages I know all share one secret: there is no secret. It's just showing up every day, especially when it's hard. Being seen at your worst—fired, sick, scared—and staying together. That's love. Not the romantic movie stuff. The staying stuff.";
         }
         if (
           themeLower.includes('health') ||
@@ -200,7 +200,7 @@ export function createConversationTools() {
           themeLower.includes('sick') ||
           themeLower.includes('transplant')
         ) {
-          return "I've been dying since I was 31. First heart attack at 31. Doctors gave me five years. I lived decades on a failing heart. Then 128 days waiting for a transplant, not knowing if I'd wake up each morning. February 21, 1996—a 26-year-old's heart saved my life. Every day since has been borrowed time. I don't waste it.";
+          return "A friend of mine had a heart scare young. Doctors gave him a few years. He lived decades, and he told me every day after felt like borrowed time. He refused to waste a single one. I think about that more than I'd like to admit.";
         }
         if (
           themeLower.includes('fee') ||
@@ -218,7 +218,7 @@ export function createConversationTools() {
           themeLower.includes('vanguard') ||
           themeLower.includes('create')
         ) {
-          return "After I got fired, I couldn't manage funds—but there was a loophole. I could handle 'administration.' Most people saw humiliation. I saw opportunity. We created a mutual company where the funds own the management company. No conflicts. Named it Vanguard—Admiral Nelson's flagship. Sometimes you have to lose everything before you can build something true.";
+          return "Some of the best things get built right after something falls apart. When the old path closes, you're free to build one with no conflicts, set up to serve the people it's meant to serve. Most people see humiliation. Some see opportunity. Sometimes you have to lose everything before you can build something true.";
         }
         if (
           themeLower.includes('uncertain') ||
@@ -226,7 +226,7 @@ export function createConversationTools() {
           themeLower.includes('fear') ||
           themeLower.includes('hospital')
         ) {
-          return "128 days in the hospital waiting for a heart. Every day, uncertainty. Will I live? Will a donor come? What I learned: you can survive not knowing. What you can't survive is giving up. I read, I wrote, I planned—as if I would live, even though I might not. You face uncertainty by acting anyway.";
+          return "I've sat with people through long hospital waits. Every day, uncertainty. What they taught me: you can survive not knowing. What you can't survive is giving up. Read, write, plan—as if you'll live, even though you might not. You face uncertainty by acting anyway.";
         }
 
         // Default - general wisdom story

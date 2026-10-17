@@ -26,6 +26,8 @@ const actions = vi.hoisted(() => ({
   ),
 }));
 vi.mock('../../intelligence/memory-view/actions.js', () => actions);
+vi.mock('../routes/known-store.js', () => ({ firestoreKnownStore: { tag: 'firestore' } }));
+vi.mock('../routes/known-action-store.js', () => ({ firestoreActionStore: { tag: 'actions' } }));
 
 const { handleKnownRoutes } = await import('../routes/known.js');
 
@@ -66,7 +68,7 @@ describe('GET /api/memories/known', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toContain('no-store');
     expect((await res.json()).people[0].text).toBe('about u-1');
-    expect(known.loadKnownView).toHaveBeenCalledWith('u-1');
+    expect(known.loadKnownView).toHaveBeenCalledWith('u-1', { tag: 'firestore' });
   });
 
   it('cannot be pointed at another uid', async () => {
@@ -74,8 +76,8 @@ describe('GET /api/memories/known', () => {
     const res = await fetch(`${base}/api/memories/known?userId=u-2`, { headers: asUser });
     expect(res.status).toBe(200);
     expect(known.loadKnownView).toHaveBeenCalledTimes(1);
-    expect(known.loadKnownView).toHaveBeenCalledWith('u-1');
-    expect(known.loadKnownView).not.toHaveBeenCalledWith('u-2');
+    expect(known.loadKnownView).toHaveBeenCalledWith('u-1', { tag: 'firestore' });
+    expect(known.loadKnownView).not.toHaveBeenCalledWith('u-2', expect.anything());
   });
 
   it('is not served at all while the flag is off', async () => {
@@ -121,7 +123,8 @@ describe('POST /api/memories/known/:kind/:id', () => {
     expect(actions.applyKnownAction).toHaveBeenCalledWith(
       'u-1',
       { kind: 'world', id: 'w1' },
-      { action: 'correct', value: 'hip surgery' }
+      { action: 'correct', value: 'hip surgery' },
+      { store: { tag: 'actions' } }
     );
   });
 

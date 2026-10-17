@@ -5,7 +5,8 @@
  * a slow breath, no text. Screen readers hear one polite announcement per
  * settled change of speaker.
  *
- * Off by default. Turn on: localStorage.setItem('ferni:speaker-cues', 'true')
+ * Off by default. Turn on for a build with VITE_SPEAKER_CUES=true, or for one
+ * browser with localStorage 'ferni:speaker-cues' = 'true' ('false' forces it off).
  */
 
 import { t } from '../i18n/index.js';
@@ -29,10 +30,12 @@ export type Speaker = 'ferni' | 'user' | 'thinking' | 'none';
 
 export function isSpeakerCuesEnabled(): boolean {
   try {
-    return localStorage.getItem(SPEAKER_CUES_FLAG_KEY) === 'true';
+    const override = localStorage.getItem(SPEAKER_CUES_FLAG_KEY);
+    if (override === 'true' || override === 'false') return override === 'true';
   } catch {
-    return false;
+    // Storage unavailable: fall back to the build flag
   }
+  return import.meta.env.VITE_SPEAKER_CUES === 'true';
 }
 
 export function speakerFrom(signals: SpeakerSignals): Speaker {

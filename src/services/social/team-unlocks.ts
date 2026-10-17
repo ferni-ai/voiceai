@@ -19,6 +19,8 @@
  * 5. Deep Partnership → +Nayan (the sage, earned through commitment)
  */
 
+import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
+import { distinctDays } from '../../utils/conversation-day.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { withUpgradePath } from '../billing/paywall.js';
@@ -37,6 +39,8 @@ const log = createLogger({ module: 'TeamUnlocks' });
  * - "1", "2", "3", etc. → Unlock first N team members (after Ferni)
  * - "maya"              → Unlock specific member by first name
  * - "maya,peter,alex"   → Comma-separated list of members
+ * - "off", "false", "0", "none" or empty → no bypass (dev had "off", which was
+ *   read as a member name and logged "Unknown team member" on every parse)
  *
  * @returns Set of member IDs to bypass, or null if no bypass
  */
@@ -47,13 +51,16 @@ let cachedBypassConfig: { value: Set<TeamMemberId> | 'all' | null; parsed: boole
   parsed: false,
 };
 
+const BYPASS_OFF = new Set(['off', 'false', '0', 'none']);
+
 export function parseBypassConfig(): Set<TeamMemberId> | 'all' | null {
   // Return cached value if already parsed
   if (cachedBypassConfig.parsed) {
     return cachedBypassConfig.value;
   }
 
-  const bypassValue = process.env['BYPASS_TEAM_UNLOCKS'];
+  const raw = process.env['BYPASS_TEAM_UNLOCKS'];
+  const bypassValue = raw && !BYPASS_OFF.has(raw.trim().toLowerCase()) ? raw : undefined;
 
   // Log ONCE during parsing (cached result prevents duplicate logs)
   if (bypassValue) {
@@ -168,18 +175,15 @@ export function calculateStreaks(profile: UserProfile | null): {
   currentStreak: number;
   longestStreak: number;
 } {
-  if (!profile || !profile.conversationSummaries || profile.conversationSummaries.length === 0) {
-    return { currentStreak: 0, longestStreak: 0 };
-  }
+  if (!profile) return { currentStreak: 0, longestStreak: 0 };
 
-  // Get all conversation dates (normalize to date strings)
-  const conversationDates = profile.conversationSummaries
-    .map((s) => {
-      const timestamp = s.timestamp instanceof Date ? s.timestamp : new Date(s.timestamp);
-      return timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
-    })
-    .filter((d) => d && d !== 'Invalid Date')
-    .sort();
+  // Calls save their summaries to a subcollection, not conversationSummaries, so the
+  // days come from there (conversationDays, read with the profile); the old field is
+  // kept for profiles that still carry it.
+  const conversationDates = [
+    ...(profile.conversationDays ?? []),
+    ...distinctDays((profile.conversationSummaries ?? []).map((s) => s.timestamp)),
+  ].sort();
 
   // Deduplicate dates (multiple conversations per day count as one day)
   const uniqueDates = [...new Set(conversationDates)];
@@ -575,7 +579,8 @@ export function getTeamUnlockState(
 ): TeamUnlockState {
   // BYPASS: Check for flexible team unlock bypass (for testing/demo)
   // Supports: "all", "true", "1", "2", "3", "maya", "maya,peter", etc.
-  const bypass = parseBypassConfig();
+  const byNeed = isTeamByNeedEnabled(); // the whole team: a partial bypass can't close part of it
+  const bypass = byNeed ? null : parseBypassConfig();
 
   if (bypass === 'all') {
     // Full bypass - all members unlocked (logged once in parseBypassConfig)
@@ -629,6 +634,8 @@ export function getTeamUnlockState(
     : { totalConversations: 0, daysSinceFirstMeeting: 0, currentStreak: 0, longestStreak: 0 };
 
   const stage = calculateRelationshipStage(metrics);
+  // TEAM_BY_NEED: everyone from the first call, introduced by need (team-by-need-note.ts)
+  if (byNeed) return { stage, tier, unlockedMembers: TEAM_MEMBERS.map((m) => m.memberId) };
 
   // Determine unlocked members
   const unlockedMembers: TeamMemberId[] = [];
@@ -684,12 +691,7 @@ export function isFullTeamUnlocked(
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): boolean {
-  // BYPASS: When env var is set to "all" or "true", full team is considered unlocked
-  const bypass = parseBypassConfig();
-  if (bypass === 'all') {
-    return true;
-  }
-
+  // BYPASS_TEAM_UNLOCKS=all and TEAM_BY_NEED both unlock everyone in getTeamUnlockState
   const state = getTeamUnlockState(profile, tier);
 
   // Check that all team members are unlocked

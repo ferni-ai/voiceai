@@ -27,20 +27,28 @@ const NOW = new Date('2026-10-11T15:00:00.000Z');
 function harness() {
   const facts = new Map<string, Map<string, Record<string, unknown>>>();
   const userFacts = (u: string) => facts.get(u) ?? facts.set(u, new Map()).get(u)!;
+  const topics = new Map<string, string[]>();
   const control: MemoryControlStore = {
     facts: async (u) => [...userFacts(u)].map(([id, data]) => ({ id, data: { ...data } })),
     fact: async (u, id) => userFacts(u).get(id) ?? null,
-    update: async (u, id, patch) => {
-      userFacts(u).set(id, { ...userFacts(u).get(id), ...patch });
+    copies: async (u, d) =>
+      [...userFacts(u)]
+        .filter(([, r]) => r.entityName === d.entityName && r.key === d.key && r.value === d.value)
+        .map(([id, data]) => ({ id, data })),
+    forgotten: async (u) => topics.get(u) ?? [],
+    forget: async (u, id, _d, at) => {
+      userFacts(u).set(id, { ...userFacts(u).get(id), forgottenAt: at });
     },
-    create: async (u, id, data) => {
-      userFacts(u).set(id, data);
+    correct: async (u, wrongIds, right, at) => {
+      userFacts(u).set(right.id, right.data);
+      for (const id of wrongIds) {
+        userFacts(u).set(id, { ...userFacts(u).get(id), forgottenAt: at, correctedBy: right.id });
+      }
     },
   };
   const world = createMemoryWorldFactStore();
   const minds = new Map<string, MindModel>();
   const ponderings = new Map<string, StoredPondering>();
-  const topics = new Map<string, string[]>();
   const store: ActionStore = {
     async forgetFact(u, id) {
       const d = userFacts(u).get(id);

@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { ponderUser, toPonderSummary } from '../ponder-user.js';
 import {
   buildPonderingPrompt,
+  callerOnly,
+  isFerniLine,
   isSubstantive,
+  friendWorthy,
   parsePondering,
   ponder,
   validWhen,
@@ -38,6 +41,10 @@ describe('buildPonderingPrompt', () => {
     expect(p).toContain('Today is 2026-10-10');
     expect(p).toContain('[s1] 2026-10-09');
     expect(p).toContain('Never attribute your own stories to them');
+    expect(p).toContain('never refer to them in the third person');
+    expect(p).toMatch(/setback or disappointment is never a thinkingOf note/);
+    expect(p).toMatch(/Never routine daily life/);
+    expect(p).toMatch(/Never ask how something went unless you know it has happened/);
   });
 });
 
@@ -51,19 +58,35 @@ describe('validWhen', () => {
   });
 });
 
+describe('friendWorthy', () => {
+  it('keeps what a friend would say', () => {
+    expect(friendWorthy({ text: "How's the sourdough coming along?" })).toBe(true);
+    expect(friendWorthy({ text: 'How did the bake sale go?', when: '2026-10-17' })).toBe(true);
+    expect(friendWorthy({ text: 'Is the all-hands still on for next month?' })).toBe(true);
+  });
+
+  it('drops notes to self, routine trivia and "how did it go" before the event', () => {
+    expect(friendWorthy({ text: 'Ask how the bake sale went', when: '2026-10-17' })).toBe(false);
+    expect(friendWorthy({ text: 'Check if they used the banneton' })).toBe(false);
+    expect(friendWorthy({ text: 'Did you get to bed early like you planned?' })).toBe(false);
+    expect(friendWorthy({ text: 'How did the all-hands presentation go?' })).toBe(false);
+    expect(friendWorthy({ text: 'How was the trip?' })).toBe(false);
+  });
+});
+
 describe('parsePondering', () => {
-  const ids = new Set(['s1']);
+  const ids = new Set(['s1', 's2']);
 
   it('drops anything that does not cite a summary it was given', () => {
     const p = parsePondering(
       reply({
         followUps: [
-          { text: 'Ask how the surgery went', when: '2026-10-14', basis: 's1' },
-          { text: 'Ask about the promotion', basis: 'made-up' },
+          { text: 'How did the surgery go?', when: '2026-10-14', basis: 's1' },
+          { text: 'How is the promotion going?', basis: 'made-up' },
           { text: 'No basis at all' },
         ],
         thinkingOf: [
-          { text: 'your mom', basis: 's1' },
+          { text: 'your mom', basis: 's2' },
           { text: 'invented', basis: 'x' },
         ],
       }),
@@ -71,23 +94,56 @@ describe('parsePondering', () => {
       today
     );
     expect(p.followUps).toEqual([
-      { text: 'Ask how the surgery went', when: '2026-10-14', basis: 's1' },
+      { text: 'How did the surgery go?', when: '2026-10-14', basis: 's1' },
     ]);
-    expect(p.thinkingOf).toEqual([{ text: 'your mom', basis: 's1' }]);
+    expect(p.thinkingOf).toEqual([{ text: 'your mom', basis: 's2' }]);
+  });
+
+  it('drops a note drawn from the same call as a follow-up: one thought, not two', () => {
+    const p = parsePondering(
+      reply({
+        followUps: [{ text: 'Did skipping the snooze button stick?', basis: 's1' }],
+        thinkingOf: [
+          { text: 'your chaotic mornings and the snooze button', basis: 's1' },
+          { text: "your grandmother's bread", basis: 's2' },
+        ],
+      }),
+      ids,
+      today
+    );
+    expect(p.followUps).toHaveLength(1);
+    expect(p.thinkingOf).toEqual([{ text: "your grandmother's bread", basis: 's2' }]);
   });
 
   it('keeps a follow-up but drops a date in the past', () => {
     const p = parsePondering(
-      reply({ followUps: [{ text: 'Ask', when: '2026-01-01', basis: 's1' }] }),
+      reply({ followUps: [{ text: 'How is your mom?', when: '2026-01-01', basis: 's1' }] }),
       ids,
       today
     );
-    expect(p.followUps).toEqual([{ text: 'Ask', basis: 's1' }]);
+    expect(p.followUps).toEqual([{ text: 'How is your mom?', basis: 's1' }]);
+  });
+
+  it('keeps only follow-ups a friend would say', () => {
+    const p = parsePondering(
+      reply({
+        followUps: [
+          { text: 'Ask how the late-night run went', basis: 's1' },
+          { text: 'Did you get to bed early?', basis: 's1' },
+          { text: 'How did the all-hands go?', basis: 's2' },
+          { text: "How's your dad feeling after the surgery?", when: '2026-10-14', basis: 's2' },
+        ],
+      }),
+      ids,
+      today
+    );
+    expect(p.followUps.map((f) => f.text)).toEqual(["How's your dad feeling after the surgery?"]);
   });
 
   it('caps follow-ups at 3 and notes at 2', () => {
-    const many = Array.from({ length: 6 }, (_, i) => ({ text: `item ${i}`, basis: 's1' }));
-    const p = parsePondering(reply({ followUps: many, thinkingOf: many }), ids, today);
+    const many = (basis: string) =>
+      Array.from({ length: 6 }, (_, i) => ({ text: `item ${i}`, basis }));
+    const p = parsePondering(reply({ followUps: many('s1'), thinkingOf: many('s2') }), ids, today);
     expect(p.followUps).toHaveLength(3);
     expect(p.thinkingOf).toHaveLength(2);
   });
@@ -110,7 +166,7 @@ describe('ponder', () => {
     const llm = vi.fn().mockResolvedValue(
       reply({
         followUps: [
-          { text: 'Ask about mom', basis: 'a' },
+          { text: 'How is your mom doing?', basis: 'a' },
           { text: 'x', basis: 'junk' },
         ],
         thinkingOf: [],
@@ -121,8 +177,78 @@ describe('ponder', () => {
       today,
       llm
     );
-    expect(out.followUps).toEqual([{ text: 'Ask about mom', basis: 'a' }]);
+    expect(out.followUps).toEqual([{ text: 'How is your mom doing?', basis: 'a' }]);
     expect(llm.mock.calls[0]?.[0]).not.toContain('[junk]');
+  });
+});
+
+describe("only the caller's own lines", () => {
+  // The 2026-10-10 dry run credited Ferni's own Silk Road story to the caller.
+  const silk = call('a', {
+    topics: ['Silk Road', 'knee surgery'],
+    keyPoints: [
+      'The assistant shared a story about walking the Silk Road',
+      'Mom has knee surgery Tuesday',
+      'Seth is driving her',
+    ],
+  });
+
+  it('recognises lines about Ferni in the shapes summaries write them', () => {
+    expect(isFerniLine('The assistant shared observations of horses in the pasture')).toBe(true);
+    expect(isFerniLine('Assistant is a proud parent.')).toBe(true);
+    expect(isFerniLine('Share more about myself (the AI) as requested.')).toBe(true);
+    expect(isFerniLine('Seth addressed the assistant as Fern')).toBe(false);
+    expect(isFerniLine("Seth's sister is moving to Boise")).toBe(false);
+  });
+
+  it("never shows the model Ferni's story, and drops a note it invents from the topics", async () => {
+    const llm = vi.fn().mockResolvedValue(
+      reply({
+        followUps: [{ text: 'How did the Silk Road walk go?', when: '2026-10-12', basis: 'a' }],
+        thinkingOf: [
+          { text: 'your Silk Road trip', basis: 'b' },
+          { text: "your mom's knee surgery", basis: 'b' },
+        ],
+      })
+    );
+    const out = await ponder([silk, call('b')], today, llm);
+    const prompt = String(llm.mock.calls[0]?.[0]);
+    expect(prompt).not.toContain('The assistant shared');
+    expect(out.followUps).toEqual([]);
+    expect(out.thinkingOf).toEqual([{ text: "your mom's knee surgery", basis: 'b' }]);
+  });
+
+  it('drops items about Ferni, and items drawn only from the follow-up notes', async () => {
+    const jack = call('a', {
+      keyPoints: ['Seth switched to a faster model', 'The new model is slower at night'],
+      followUps: ["Ask about Jack's impression of the AI"],
+    });
+    const llm = vi.fn().mockResolvedValue(
+      reply({
+        followUps: [
+          { text: 'What did Jack think of me when you introduced us?', basis: 'a' },
+          { text: 'How did your mom react when I called her?', when: '2026-10-11', basis: 'b' },
+          { text: "How's Jack doing?", basis: 'a' },
+        ],
+        thinkingOf: [{ text: 'how we both grew up with six siblings', basis: 'b' }],
+      })
+    );
+    const out = await ponder([jack, call('b')], today, llm);
+    expect(out).toEqual({ followUps: [], thinkingOf: [] });
+  });
+
+  it('leaves calls older than a month out', async () => {
+    const llm = vi.fn();
+    const old = await ponder([call('a', { date: '2026-08-01' }), call('b')], today, llm);
+    expect(old).toEqual({ followUps: [], thinkingOf: [] });
+    expect(llm).not.toHaveBeenCalled();
+  });
+
+  it('keeps a call whose only real lines were Ferni talking out of the pass', () => {
+    const ferniOnly = call('c', {
+      keyPoints: ['The assistant talked about jazz', 'Assistant expressed affection'],
+    });
+    expect(isSubstantive(callerOnly(ferniOnly))).toBe(false);
   });
 });
 
@@ -134,6 +260,7 @@ describe('toPonderSummary', () => {
       keyPoints: ['k1', 'k2'],
       questionsRemaining: ['q'],
       followUpItems: ['f'],
+      callerProvenance: 1,
     });
     expect(iso).toEqual({
       id: 'x',
@@ -143,6 +270,9 @@ describe('toPonderSummary', () => {
       openThreads: ['q'],
       followUps: ['f'],
     });
+    // A summary written before provenance: its threads aren't served as the caller's
+    const legacy = toPonderSummary('z', { questionsRemaining: ['q'], followUpItems: ['f'] });
+    expect([legacy.openThreads, legacy.followUps]).toEqual([[], []]);
     const ts = toPonderSummary('y', {
       timestamp: { toDate: () => new Date('2026-06-08T03:48:48Z') },
     });
@@ -158,7 +288,7 @@ describe('ponderUser', () => {
     const set = vi.fn(async () => undefined);
     const doc = (name: string) => ({
       set,
-      get: async () => ({ exists: name in stored, get: (field: string) => stored[name]?.[field] }),
+      get: async () => ({ exists: name in stored, data: () => stored[name] }),
     });
     const get = vi.fn(async () => ({
       docs: summaries.map((s) => ({ id: s.id, data: () => s.data })),
@@ -190,13 +320,26 @@ describe('ponderUser', () => {
     expect(set).not.toHaveBeenCalled();
   });
 
-  it('writes nothing when there is nothing worth saying', async () => {
+  it('with nothing worth saying, records only when it pondered, keeping earlier items', async () => {
     const { db, set } = fakeDb([live('a'), live('b')]);
     const out = await ponderUser(db, 'u1', async () => reply({ followUps: [], thinkingOf: [] }), {
       now,
       env: { PONDERING: 'on' },
     });
     expect(out.status).toBe('nothing');
+    expect(set).toHaveBeenCalledWith({ ponderedAt: now.toISOString() }, { merge: true });
+  });
+
+  it('writes nothing in a dry run', async () => {
+    const { db, set } = fakeDb([live('a'), live('b')]);
+    const out = await ponderUser(
+      db,
+      'u1',
+      async () => reply({ followUps: [{ text: 'How is your mom doing?', basis: 'a' }] }),
+      { now, env: { PONDERING: 'on' }, dryRun: true }
+    );
+    expect(out.status).toBe('dry-run');
+    expect(out.pondering?.followUps).toHaveLength(1);
     expect(set).not.toHaveBeenCalled();
   });
 
@@ -207,18 +350,23 @@ describe('ponderUser', () => {
       'u1',
       async () =>
         reply({
-          followUps: [{ text: 'Ask about mom', when: '2026-10-14', basis: 'a' }],
+          followUps: [{ text: 'How is your mom doing?', when: '2026-10-14', basis: 'a' }],
           thinkingOf: [],
         }),
       { now, env: { PONDERING: 'on' } }
     );
     expect(out.status).toBe('stored');
-    expect(set).toHaveBeenCalledWith({
-      followUps: [{ text: 'Ask about mom', when: '2026-10-14', basis: 'a' }],
-      thinkingOf: [],
-      generatedAt: now.toISOString(),
-      basedOn: ['a', 'b'],
-    });
+    // Merged, so the record of items already raised survives a new pass.
+    expect(set).toHaveBeenCalledWith(
+      {
+        followUps: [{ text: 'How is your mom doing?', when: '2026-10-14', basis: 'a' }],
+        thinkingOf: [],
+        generatedAt: now.toISOString(),
+        ponderedAt: now.toISOString(),
+        basedOn: ['a', 'b'],
+      },
+      { merge: true }
+    );
   });
 });
 
@@ -228,7 +376,7 @@ describe('ponderUser after the caller put an item down', () => {
     data: {
       timestamp: '2026-10-09T12:00:00Z',
       mainTopics: ['family'],
-      keyPoints: ['Sister moving to Denver', 'Stripe interview Friday'],
+      keyPoints: ['Sister moving to Denver', 'Stripe interview Friday', 'Packing boxes for Denver'],
     },
   }));
   function db(stored: Record<string, Record<string, unknown>>) {
@@ -241,7 +389,7 @@ describe('ponderUser after the caller put an item down', () => {
     };
     const doc = (name: string) => ({
       set,
-      get: async () => ({ exists: name in stored, get: (f: string) => stored[name]?.[f] }),
+      get: async () => ({ exists: name in stored, data: () => stored[name] }),
     });
     const fake = {
       collection: () => ({
@@ -263,12 +411,13 @@ describe('ponderUser after the caller put an item down', () => {
   it('never brings back an item from a call they dismissed, and keeps the dismissal', async () => {
     const { db: fake, set } = db({ pondering: { dismissed: ['a'] } });
     await ponderUser(fake, 'u1', llm, opts);
-    expect(set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        followUps: [{ text: 'Is the Denver move still on for November?', basis: 'b' }],
-        dismissed: ['a'],
-      })
-    );
+    const [written, options] = set.mock.calls[0] as unknown as [Record<string, unknown>, unknown];
+    expect(written.followUps).toEqual([
+      { text: 'Is the Denver move still on for November?', basis: 'b' },
+    ]);
+    // Merged without a dismissed field, so the recorded dismissal stays as it was.
+    expect(written).not.toHaveProperty('dismissed');
+    expect(options).toEqual({ merge: true });
   });
 
   it('leaves out anything about a topic they asked Ferni to forget', async () => {
@@ -280,9 +429,9 @@ describe('ponderUser after the caller put an item down', () => {
     ]);
   });
 
-  it('writes nothing when everything left was put down', async () => {
+  it('stores no items when everything left was put down', async () => {
     const { db: fake, set } = db({ pondering: { dismissed: ['a', 'b'] } });
     expect((await ponderUser(fake, 'u1', llm, opts)).status).toBe('nothing');
-    expect(set).not.toHaveBeenCalled();
+    expect(set).toHaveBeenCalledWith({ ponderedAt: opts.now.toISOString() }, { merge: true });
   });
 });

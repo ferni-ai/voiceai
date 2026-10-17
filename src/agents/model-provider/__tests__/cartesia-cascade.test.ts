@@ -9,6 +9,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { getProviderIdSync as configProviderId } from '../../../config/model-provider-config.js';
+import { clearModelProvider, getProviderIdSync as factoryProviderId } from '../factory.js';
 import {
   CartesiaCascadeProvider,
   buildCascadeHedge,
@@ -194,9 +195,30 @@ describe('config-layer provider id agrees with the factory', () => {
     expect(configProviderId()).toBe('gemini-live');
   });
 
-  it('keeps USE_OPENAI_REALTIME working', () => {
-    process.env.USE_OPENAI_REALTIME = 'true';
+  it('selects OpenAI Realtime with VOICE_PIPELINE=openai-realtime', () => {
+    process.env.VOICE_PIPELINE = 'openai-realtime';
     expect(configProviderId()).toBe('openai-realtime');
+  });
+
+  it('no longer reads USE_OPENAI_REALTIME (prod and dev set it; both run the cascade)', () => {
+    process.env.USE_OPENAI_REALTIME = 'true';
+    expect(configProviderId()).toBe('cartesia-cascade');
+  });
+
+  it('agrees with the factory for every pipeline value', () => {
+    clearModelProvider();
+    for (const value of [
+      undefined,
+      'cartesia-cascade',
+      'openai-realtime',
+      'gemini-live',
+      'gemini-native-audio',
+      'bogus',
+    ]) {
+      if (value === undefined) delete process.env.VOICE_PIPELINE;
+      else process.env.VOICE_PIPELINE = value;
+      expect(configProviderId(), String(value)).toBe(factoryProviderId());
+    }
   });
 });
 
@@ -262,6 +284,18 @@ describe('ink-2 turn detection', () => {
       endThreshold: 0.2,
       eagerEndThreshold: 0.25,
     });
+  });
+
+  it('ignores a CASCADE_TURN_END ink would reject (outside 0.05-0.5), which leaves a call deaf', async () => {
+    const { inkTurnProfile, INK_TURN_PROFILES } = await import('../cartesia-cascade.js');
+    // 0.55 is below the eager threshold (0.6) but ink closes the socket with 1008
+    for (const bad of ['0.55', '0.51', '0.04']) {
+      expect(inkTurnProfile({ CASCADE_TURN_END: bad }).endThreshold).toBe(
+        INK_TURN_PROFILES.responsive.endThreshold
+      );
+    }
+    expect(inkTurnProfile({ CASCADE_TURN_END: '0.5' }).endThreshold).toBe(0.5);
+    expect(inkTurnProfile({ CASCADE_TURN_END: '0.05' }).endThreshold).toBe(0.05);
   });
 
   it('keeps each profile in the order ink requires (start > eager end > end)', async () => {

@@ -2,7 +2,7 @@
  * Outreach reaches everyone by default, in-app only. A user who switched it
  * off gets nothing, and texts/email/calls go only to users who chose them.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Doc = { id: string; data: Record<string, unknown> };
 let users: Doc[] = [];
@@ -64,6 +64,7 @@ vi.mock('../intelligent-onboarding-arc.js', () => ({
 vi.mock('../llm-content-generator.js', () => ({ generatePersonalizedContent: vi.fn() }));
 
 const consent = await import('../outreach-consent.js');
+const { deliver } = await import('../unified-delivery.js');
 const { runDailyOutreach } = await import('../automated-scheduler.js');
 
 const longAgo = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString();
@@ -110,6 +111,26 @@ describe('outreach consent mapping', () => {
     });
   });
 
+  it('saves proactive frequency and quiet hours from the settings body, dropping junk', async () => {
+    const body = {
+      enabled: true,
+      allowedChannels: ['sms', 'call'],
+      proactiveFrequency: 'gentle',
+      quietHours: { start: 21, end: '08:00' },
+    };
+    await consent.writeOutreachConsent('u1', consent.consentPatchFrom(body));
+    expect(setCalls[0].value).toMatchObject({
+      outreachPreferences: {
+        enabled: true,
+        channels: ['sms', 'voice_call'],
+        proactiveFrequency: 'gentle',
+        quietHours: { enabled: true, start: '21:00', end: '08:00' },
+      },
+    });
+    const junk = { proactiveFrequency: 'always', quietHours: { start: 25, end: 'noon' } };
+    expect(consent.proactiveSettingsFrom(junk)).toEqual({});
+  });
+
   it('fails loudly when the opt-out cannot be saved', async () => {
     dbAvailable = false;
     await expect(consent.writeOutreachConsent('u1', { enabled: false })).rejects.toThrow();
@@ -117,11 +138,22 @@ describe('outreach consent mapping', () => {
 });
 
 describe('daily outreach selection', () => {
+  // Selection is only reached on the legacy path, with grounded check-ins off.
+  beforeEach(() => {
+    process.env.OUTREACH_GROUNDED_CHECKINS = 'off';
+  });
+  afterEach(() => {
+    delete process.env.OUTREACH_GROUNDED_CHECKINS;
+  });
+
   it('includes users with no preference, in-app only; skips users who switched off', async () => {
     users = [
       user('a-no-prefs'),
       user('b-off', { outreachPreferences: { enabled: false } }),
-      user('c-sms', { outreachPreferences: { enabled: true, channels: ['sms'] } }),
+      user('c-sms', {
+        outreachPreferences: { enabled: true, channels: ['sms'] },
+        linkedIdentifiers: ['phone:+15555550100'],
+      }),
       user('d-recent', { lastOutreachDate: new Date().toISOString() }),
     ];
     const result = await runDailyOutreach({ dryRun: true, respectQuietHours: false });
@@ -173,5 +205,70 @@ describe('daily outreach selection', () => {
     );
     const result = await runDailyOutreach({ dryRun: true, respectQuietHours: false });
     expect(result.details.map((d) => d.userId)).toEqual(['u200']);
+  });
+});
+
+describe('daily outreach reaches only the verified phone', () => {
+  const smsOptIn = { outreachPreferences: { enabled: true, channels: ['sms'] } };
+  // Channel choice and delivery are only reached with grounded check-ins off.
+  beforeEach(() => {
+    process.env.OUTREACH_GROUNDED_CHECKINS = 'off';
+    vi.mocked(deliver)
+      .mockReset()
+      .mockResolvedValue({ success: true, channel: 'sms' } as never);
+  });
+  afterEach(() => {
+    delete process.env.OUTREACH_GROUNDED_CHECKINS;
+  });
+
+  it('texts the account phone, not a profile phone the model wrote', async () => {
+    // `phone` is what saveContactInfo writes; the id carries the caller ID the account was made from.
+    users = [user('phone:+15555550199', { ...smsOptIn, phone: '+15555550100' })];
+    const result = await runDailyOutreach({ respectQuietHours: false });
+    expect(result.details[0]).toMatchObject({ status: 'sent', channel: 'sms' });
+    expect(vi.mocked(deliver).mock.calls[0][0]).toMatchObject({ phone: '+15555550199' });
+  });
+
+  it('uses a phone the user verified on a web account', async () => {
+    users = [user('web-1', { ...smsOptIn, linkedIdentifiers: ['phone:+15555550177'] })];
+    await runDailyOutreach({ respectQuietHours: false });
+    expect(vi.mocked(deliver).mock.calls[0][0]).toMatchObject({ phone: '+15555550177' });
+  });
+
+  it('with no verified phone, no text or call: in-app instead', async () => {
+    users = [user('web-2', { ...smsOptIn, phone: '+15555550100', phoneNumber: '+15555550101' })];
+    const result = await runDailyOutreach({ respectQuietHours: false });
+    expect(result.details[0]).toMatchObject({ status: 'sent', channel: 'in_app' });
+    const sent = vi.mocked(deliver).mock.calls.map((c) => c[0]);
+    expect(sent.some((d) => d.channel === 'sms' || d.channel === 'voice_call')).toBe(false);
+    expect(sent.every((d) => d.phone === undefined)).toBe(true);
+  });
+});
+
+describe('daily outreach quiet hours', () => {
+  // A user outside quiet hours is only reached with grounded check-ins off.
+  beforeEach(() => {
+    process.env.OUTREACH_GROUNDED_CHECKINS = 'off';
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    delete process.env.OUTREACH_GROUNDED_CHECKINS;
+  });
+
+  it('a time zone that cannot be read counts as quiet', async () => {
+    users = [user('bad-tz', { outreachPreferences: { timezone: 'Not/AZone' } })];
+    const result = await runDailyOutreach({ dryRun: true });
+    expect(result.details[0]).toMatchObject({ status: 'skipped', reason: 'In quiet hours' });
+  });
+
+  it('defaults to 21:00-08:00 Eastern', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    users = [user('no-tz')];
+    vi.setSystemTime(new Date('2026-10-12T01:30:00Z')); // 21:30 in New York, 18:30 in LA
+    expect((await runDailyOutreach({ dryRun: true })).details[0]).toMatchObject({
+      reason: 'In quiet hours',
+    });
+    vi.setSystemTime(new Date('2026-10-11T16:00:00Z')); // noon in New York
+    expect((await runDailyOutreach({ dryRun: true })).details[0]).toMatchObject({ status: 'sent' });
   });
 });

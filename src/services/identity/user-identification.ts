@@ -17,7 +17,9 @@ import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
 import { createUserId, type UserId } from '../../types/branded.js';
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { anonymousIdFor } from './anonymous-session-id.js';
 import { phoneFromSignedDispatch } from './dispatch-phone.js';
+import { isSignedDispatch, signedClaim, trustedDeviceId } from './signed-dispatch-identity.js';
 import {
   authenticateNaturally,
   generateContextForLLM,
@@ -336,9 +338,9 @@ export async function identifyByWebAuth(
 export async function identifyFromMetadata(
   metadata: Record<string, unknown>
 ): Promise<IdentificationResult> {
-  // Priority 1: Explicit user ID
-  const explicitUserId = metadata.user_id || metadata.userId;
-  if (explicitUserId && typeof explicitUserId === 'string') {
+  // Priority 1: Explicit user ID, signed dispatch only (signed-dispatch-identity.ts)
+  const explicitUserId = signedClaim(metadata, ['user_id', 'userId']);
+  if (explicitUserId) {
     const store = getStore();
     const profile = await store.getProfile(explicitUserId);
 
@@ -359,10 +361,9 @@ export async function identifyFromMetadata(
     const store = getStore();
     let profile = await store.getProfile(firebaseUid);
 
-    // AUTO-MIGRATION: If Firebase UID has no profile but device ID exists,
-    // migrate the device profile to Firebase UID for seamless continuity
+    // AUTO-MIGRATION, signed dispatch only: /token copies device_id from its query string
     const deviceId = metadata.device_id || metadata.deviceId;
-    if (!profile && deviceId && typeof deviceId === 'string') {
+    if (!profile && deviceId && typeof deviceId === 'string' && isSignedDispatch(metadata)) {
       const deviceUserId = `device:${deviceId}`;
       const deviceProfile = await store.getProfile(deviceUserId);
 
@@ -441,16 +442,16 @@ export async function identifyFromMetadata(
     return identifyByPhone(phoneNumber);
   }
 
-  // Priority 4: Auth token (legacy)
-  const authToken = metadata.auth_token || metadata.token;
-  if (authToken && typeof authToken === 'string') {
+  // Priority 4: Auth token (legacy), signed dispatch only
+  const authToken = signedClaim(metadata, ['auth_token', 'token']);
+  if (authToken) {
     return identifyByWebAuth(authToken, 'token');
   }
 
-  // Priority 5: Device ID (for anonymous but persistent identification)
+  // Priority 5: Device ID (anonymous but persistent), gated by TRUST_UNSIGNED_DEVICE_ID
   // This is the fallback during the Firebase migration period
-  const deviceId = metadata.device_id || metadata.deviceId;
-  if (deviceId && typeof deviceId === 'string') {
+  const deviceId = trustedDeviceId(metadata);
+  if (deviceId) {
     const userIdStr = `device:${deviceId}`;
     const store = getStore();
     const profile = await store.getProfile(userIdStr);
@@ -465,9 +466,8 @@ export async function identifyFromMetadata(
     };
   }
 
-  // Priority 6: Anonymous session (truly unknown users)
-  const sessionId = (metadata.session_id as string) || `anon:${Date.now()}`;
-
+  // Priority 6: Anonymous session (truly unknown users), one id per session
+  const sessionId = (metadata.session_id as string) || anonymousIdFor(metadata);
   return {
     userId: createUserId(sessionId),
     isNew: true,

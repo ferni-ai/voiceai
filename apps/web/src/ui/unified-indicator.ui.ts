@@ -20,7 +20,7 @@
  * @module ui/unified-indicator
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -297,7 +297,8 @@ function updateIndicator(): void {
       playErrorPulse();
       break;
     case 'disconnected':
-      startDisconnectedPulse();
+      // At rest, as before the first call: an infinite heartbeat here ran
+      // forever after every hang-up (animation standard 5)
       break;
   }
 
@@ -453,26 +454,6 @@ function handleVoiceVerifyEnd(): void {
 // ANIMATIONS
 // ============================================================================
 
-function startDisconnectedPulse(): void {
-  if (!indicator || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return;
-  }
-
-  // Gentle heartbeat - waiting to connect
-  pulseAnimation = indicator.animate(
-    [
-      { transform: 'scale(1)', opacity: 0.75 },
-      { transform: 'scale(1.08)', opacity: 1 },
-      { transform: 'scale(1)', opacity: 0.75 },
-    ],
-    {
-      duration: 2000,
-      easing: 'ease-in-out',
-      iterations: Infinity,
-    }
-  );
-}
-
 function startConnectedPulse(): void {
   if (!indicator || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return;
@@ -495,8 +476,8 @@ function startConnectedPulse(): void {
 
 function playConnectingAnimation(): void {
   if (!indicator) return;
-
-  pulseAnimation = indicator.animate(
+  // Reduced motion: safeAnimate keeps the fade and drops the scale and the loop
+  pulseAnimation = safeAnimate(indicator,
     [
       { transform: 'scale(1)', opacity: 0.7 },
       { transform: 'scale(1.1)', opacity: 1 },
@@ -675,7 +656,7 @@ function injectStyles(): void {
       position: absolute;
       bottom: -4px;
       right: -4px;
-      z-index: var(--z-docked, 100);
+      z-index: var(--z-docked);
       
       display: flex;
       align-items: center;

@@ -23,6 +23,8 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { listSpecialDates } from './special-dates-awareness.js';
+import { listInMemoryPeople } from '../../../services/contacts/in-memory-people.js';
 
 const log = createLogger({ module: 'context:family-nudge' });
 
@@ -107,12 +109,23 @@ async function getFamilyContactsNeedingAttention(userId: string): Promise<Family
       }
     }
 
+    // Someone the user has lost is remembered on their own day, never "overdue" for a call
+    const remembered = new Set(
+      (await listSpecialDates(userId))
+        .filter((d) => d.remembered)
+        .map((d) => d.contactName.toLowerCase())
+    );
+    for (const person of await listInMemoryPeople(userId)) {
+      remembered.add(person.name.toLowerCase());
+    }
+
     // Calculate status for each family member
     const now = Date.now();
     for (const doc of entitiesSnapshot.docs) {
       const entity = doc.data();
       const name = entity.canonicalName || entity.name;
       const lowerName = name.toLowerCase();
+      if (remembered.has(lowerName)) continue;
 
       const lastContact = lastContactMap.get(lowerName);
       const daysSinceContact = lastContact

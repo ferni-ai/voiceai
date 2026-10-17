@@ -1,0 +1,82 @@
+name: 'Did this pull request change matching files?'
+description: >
+  Sets `matched` to 'true' when the pull request changes at least one file that
+  matches `include` and does not match `exclude` (both extended regexes, tested
+  against repo-relative paths; a rename counts its old path too). With
+  `merge-group: 'true'` a merge-queue run is scoped the same way, from the files
+  between the group's base and head. Every other event (push, schedule,
+  workflow_dispatch) gets 'true', and so does any failure to list the files or a
+  diff of 300+ files: a gate built on this skips work only when it knows the
+  change cannot need it. Use it from a job-level `if:` so the skipped job still
+  reports its check (a skipped job reports success). A workflow-level `paths:`
+  filter on a required check never reports, and the PR waits forever.
+
+inputs:
+  include:
+    description: 'Extended regex a changed path must match to count'
+    required: false
+    default: '.'
+  exclude:
+    description: 'Extended regex that stops a changed path from counting'
+    required: false
+    default: '^$'
+  merge-group:
+    description: "'true' to scope merge_group runs too (else they always match)"
+    required: false
+    default: 'false'
+
+outputs:
+  matched:
+    description: "'true' or 'false'"
+    value: ${{ steps.match.outputs.matched }}
+
+runs:
+  using: composite
+  steps:
+    - id: match
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        EVENT: ${{ github.event_name }}
+        REPO: ${{ github.repository }}
+        PR: ${{ github.event.pull_request.number }}
+        SCOPE_QUEUE: ${{ inputs.merge-group }}
+        MG_BASE: ${{ github.event.merge_group.base_sha }}
+        MG_HEAD: ${{ github.event.merge_group.head_sha }}
+        INCLUDE: ${{ inputs.include }}
+        EXCLUDE: ${{ inputs.exclude }}
+      run: |
+        if [ "$EVENT" = "merge_group" ] && [ "$SCOPE_QUEUE" = "true" ]; then
+          # The compare API lists at most 300 files; at that size, run everything.
+          if ! diff=$(gh api "repos/$REPO/compare/$MG_BASE...$MG_HEAD" \
+              --jq '[.files | length] + [.files[] | .filename, (.previous_filename // empty)] | .[]') \
+              || [ -z "$diff" ] || [ "$(printf '%s\n' "$diff" | head -1)" -ge 300 ]; then
+            echo "matched=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Could not scope merge group $MG_BASE...$MG_HEAD, so everything runs"
+            exit 0
+          fi
+          files=$(printf '%s\n' "$diff" | tail -n +2)
+        elif [ "$EVENT" != "pull_request" ]; then
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          echo "$EVENT: not a pull request, so everything runs"
+          exit 0
+        elif ! files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate \
+            --jq '.[] | .filename, (.previous_filename // empty)') || [ -z "$files" ]; then
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          echo "::warning::Could not list the files of PR #$PR, so everything runs"
+          exit 0
+        fi
+        if [ -z "$files" ]; then
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          echo "::warning::No changed files listed, so everything runs"
+          exit 0
+        fi
+        hits=$(printf '%s\n' "$files" | grep -E -- "$INCLUDE" | grep -Ev -- "$EXCLUDE" || true)
+        if [ -n "$hits" ]; then
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          echo "Matched $(printf '%s\n' "$hits" | wc -l) of $(printf '%s\n' "$files" | wc -l) changed paths, e.g.:"
+          printf '%s\n' "$hits" | head -5
+        else
+          echo "matched=false" >> "$GITHUB_OUTPUT"
+          echo "None of the $(printf '%s\n' "$files" | wc -l) changed paths match include='$INCLUDE' exclude='$EXCLUDE'"
+        fi

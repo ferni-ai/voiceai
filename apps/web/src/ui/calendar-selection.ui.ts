@@ -431,7 +431,7 @@ class CalendarSelectionUI {
       .calendar-selection {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -626,7 +626,7 @@ class CalendarSelectionUI {
       .calendar-selection__checkbox-label input:checked + .calendar-selection__checkmark {
         background: var(--color-accent-primary, #2d5a3d);
         border-color: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .calendar-selection__checkbox-label input:focus-visible + .calendar-selection__checkmark {
@@ -684,7 +684,7 @@ class CalendarSelectionUI {
         font-weight: var(--font-weight-medium, 500);
         padding: 2px 8px;
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
         border-radius: var(--radius-full, 9999px);
       }
 
@@ -788,7 +788,7 @@ class CalendarSelectionUI {
 
       .calendar-selection__btn--primary {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .calendar-selection__btn--primary:hover {
@@ -840,7 +840,7 @@ class CalendarSelectionUI {
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.2));
       }
 
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .calendar-selection__wrapper {
           max-width: 100%;
           max-height: 90vh;

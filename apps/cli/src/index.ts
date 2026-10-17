@@ -73,7 +73,7 @@ const PROJECT_ROOT =
   (isSEABinary ? process.cwd() : join(__dirname, '..', '..', '..'));
 
 // Load .env file from project root
-dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
+dotenvConfig({ path: join(PROJECT_ROOT, '.env'), quiet: true });
 const GCP_PROJECT = 'johnb-2025';
 const GCP_REGION = 'us-central1';
 
@@ -4395,7 +4395,7 @@ async function handleVoices(args: string[]): Promise<void> {
 
     // Import the full persona platform
     // Note: Path is relative to apps/cli/src/
-    const { getVoiceIdForPersona, CARTESIA_MODEL } =
+    const { getVoiceIdForPersona, CARTESIA_MODEL, CARTESIA_API_VERSION } =
       await import('../../../src/config/voice-ids.js');
     const { humanizeText, addBreathGroupPauses } =
       await import('../../../src/speech/advanced-humanization/index.js');
@@ -4508,7 +4508,7 @@ async function handleVoices(args: string[]): Promise<void> {
     console.log(`  ${icons.bullet} Voice IDs from persona registry`);
     console.log(`  ${icons.bullet} Advanced humanization pipeline`);
     console.log(`  ${icons.bullet} Breath group pauses`);
-    console.log(`  ${icons.bullet} Cartesia sonic-english model`);
+    console.log(`  ${icons.bullet} Cartesia ${CARTESIA_MODEL}`);
 
     console.log(`\n${colors.bold}Personas:${colors.reset}`);
     for (const [shortName, config] of Object.entries(PERSONA_CONFIG)) {
@@ -4550,7 +4550,7 @@ async function handleVoices(args: string[]): Promise<void> {
           method: 'POST',
           headers: {
             'X-API-Key': apiKey,
-            'Cartesia-Version': '2024-06-10',
+            'Cartesia-Version': CARTESIA_API_VERSION,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -4562,8 +4562,8 @@ async function handleVoices(args: string[]): Promise<void> {
             },
             output_format: {
               container: 'mp3',
-              encoding: 'mp3',
               sample_rate: 44100,
+              bit_rate: 128000,
             },
             language: 'en',
           }),
@@ -9571,9 +9571,6 @@ async function handleRuntimeStatus(isContainer: boolean): Promise<void> {
   console.log(`\n${colors.bold}Agent Config:${colors.reset}\n`);
   console.log(`  ${colors.cyan}${icons.info}${colors.reset} Persona: ${personaId}`);
   console.log(
-    `  ${colors.cyan}${icons.info}${colors.reset} Single Process: ${process.env.USE_SINGLE_PROCESS || 'false'}`
-  );
-  console.log(
     `  ${colors.cyan}${icons.info}${colors.reset} Node Options: ${process.env.NODE_OPTIONS || 'default'}`
   );
 
@@ -9688,7 +9685,7 @@ async function handleRuntimeEnv(): Promise<void> {
 
   // Group environment variables by category
   const categories: Record<string, string[]> = {
-    'Agent Config': ['PERSONA_ID', 'AGENT_ID', 'USE_SINGLE_PROCESS', 'NODE_ENV'],
+    'Agent Config': ['PERSONA_ID', 'AGENT_ID', 'NODE_ENV'],
     LiveKit: ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET'],
     'AI Services': [
       'GOOGLE_API_KEY',
@@ -9853,7 +9850,6 @@ async function handleRuntimeAnalyze(isContainer: boolean): Promise<void> {
     platform: `${process.platform} ${process.arch}`,
     nodeEnv: process.env.NODE_ENV || 'not set',
     personaId: process.env.PERSONA_ID || process.env.AGENT_ID || 'not set',
-    singleProcess: process.env.USE_SINGLE_PROCESS || 'false',
     livekitConfigured: !!process.env.LIVEKIT_URL,
     geminiConfigured: !!process.env.GOOGLE_API_KEY,
     cartesiaConfigured: !!process.env.CARTESIA_API_KEY,
@@ -9899,8 +9895,7 @@ ${JSON.stringify(runtimeData, null, 2)}
 
 Context:
 - This is a LiveKit voice agent using Gemini for LLM, Cartesia/Deepgram for TTS/STT
-- Running in ${isContainer ? 'Docker container (Cloud Run or LiveKit Cloud)' : 'local development mode'}
-- Single process mode ${envSummary.singleProcess === 'true' ? 'is enabled (good for containers)' : 'is disabled (uses child processes)'}`;
+- Running in ${isContainer ? 'Docker container (Cloud Run or LiveKit Cloud)' : 'local development mode'}`;
 
   try {
     const analysis = await callGeminiRuntime(prompt);

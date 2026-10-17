@@ -17,7 +17,11 @@
 
 import { ReadableStream } from 'node:stream/web';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getVoiceIdForPersona, CARTESIA_MODEL } from '../../config/voice-ids.js';
+import {
+  getVoiceIdForPersona,
+  CARTESIA_MODEL,
+  CARTESIA_API_VERSION,
+} from '../../config/voice-ids.js';
 
 const log = createLogger({ module: 'GreetingAudioCache' });
 
@@ -136,8 +140,6 @@ const COMMON_GREETINGS: Record<string, string[]> = {
 // ============================================================================
 
 const CARTESIA_API_URL = 'https://api.cartesia.ai/tts/bytes';
-const CARTESIA_API_VERSION = '2024-06-10';
-// CARTESIA_MODEL imported from config/voice-ids.ts for consistency
 
 /**
  * Generate TTS audio directly via Cartesia API.

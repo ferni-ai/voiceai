@@ -39,6 +39,8 @@ export interface WorldObservation {
   confidence: number;
   /** app: the caller corrected it themselves in the app (memory-view/actions.ts). */
   source: { kind: 'summary' | 'turn' | 'app'; sessionId: string; quote?: string };
+  /** Whose commitment or claim this is: the caller's (default) or a promise Ferni made. */
+  by?: 'caller' | 'ferni';
   /**
    * Extraction's hint that this ends an earlier value of the same subject
    * ("moved", "broke up", "quit"): closes the open facts in that attribute

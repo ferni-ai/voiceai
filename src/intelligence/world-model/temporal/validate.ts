@@ -48,6 +48,8 @@ export function validObservation(raw: unknown, sessionId: string): WorldObservat
   const hint = (o.replaces ?? null) as { attribute?: unknown; priorValue?: unknown } | null;
   const hintAttribute = hint ? text(hint.attribute, MAX_ATTRIBUTE_CHARS)?.toLowerCase() : null;
   const priorValue = hint ? text(hint.priorValue, MAX_VALUE_CHARS) : null;
+  // Anything but the two known owners means the default, the caller.
+  const by = o.by === 'ferni' || o.by === 'caller' ? o.by : undefined;
 
   return {
     subject,
@@ -64,6 +66,7 @@ export function validObservation(raw: unknown, sessionId: string): WorldObservat
       sessionId: text(source.sessionId, MAX_SUBJECT_CHARS) ?? sessionId,
       ...(quote && !isCrisisText(quote) ? { quote } : {}),
     },
+    ...(by ? { by } : {}),
     ...(hintAttribute
       ? { replaces: { attribute: hintAttribute, ...(priorValue ? { priorValue } : {}) } }
       : {}),

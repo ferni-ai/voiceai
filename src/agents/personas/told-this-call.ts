@@ -117,21 +117,29 @@ function quote(sentence: string): string {
     : sentence;
 }
 
-/** The record for a call so far, from its spoken lines (oldest first). */
-export function toldThisCall(lines: Line[], userName?: string): Told {
+/**
+ * The record for a call so far, from its spoken lines (oldest first).
+ * `speaking` (DIRECTOR_PERSONA_AWARE) is the persona on the call: a persona
+ * saying its own name (a line's `by`, else `speaking`) isn't bringing someone up.
+ */
+export function toldThisCall(lines: Line[], userName?: string, speaking?: string): Told {
   const userWords = new Set(
     lines
       .filter((l) => l.speaker === 'user')
       .flatMap((l) => wordsOf(l.text.toLowerCase()))
       .concat(userName ? wordsOf(userName.toLowerCase()) : [])
   );
-  const replies = lines.filter((l) => l.speaker === 'ferni').map((l) => sentencesOf(l.text));
+  const said = lines.filter((l) => l.speaker === 'ferni');
+  const replies = said.map((l) => sentencesOf(l.text));
 
   const counts = new Map<string, number>();
-  namesBySentence(replies).forEach((reply) => {
+  namesBySentence(replies).forEach((reply, i) => {
+    // "Jordan" in a line by "Jordan Taylor" is her own name.
+    const self = speaking ? (said[i].by ?? speaking).split(' ') : [];
     const inReply = new Set(
       reply.flat().filter(
         (n) =>
+          !(self.length && n.split(' ').every((w) => self.includes(w))) &&
           !n
             .toLowerCase()
             .split(' ')

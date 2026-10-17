@@ -206,7 +206,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'nayan-wisdom-insights', // Nayan-specific: big-picture wisdom synthesis on entry/handoff
     'alex-communication-insights', // Alex-specific: communication coaching on entry/handoff
     'cross-cultural-wisdom', // WIRED: Japanese philosophy, poetry, multicultural wisdom (Better Than Human)
-    'joel-dickson-insights', // Joel-specific: investing wisdom, Bogle principles (STANDALONE persona)
+    'joel-dickson-insights', // Nate-specific: investing wisdom, index-investing principles (STANDALONE persona)
     'better-than-human-direct', // Direct surfacing of Better Than Human curated phrases
     'conversational-superpowers', // Quote memory, milestones, micro-wins, jokes, names
     'conversation-forward', // Better Than Human: keep conversations moving, follow-ups
@@ -611,59 +611,6 @@ export function getLoadingStatus(): {
 }
 
 // ============================================================================
-// PRE-WARMING (SESSION START OPTIMIZATION)
-// ============================================================================
-
-/**
- * Pre-warm context builders in background at session start.
- * Fire-and-forget - doesn't block session startup.
- *
- * Call this early in session initialization to ensure builders
- * are loaded before the first conversation turn.
- *
- * @example
- * // In session initialization
- * prewarmBuildersInBackground(); // Non-blocking
- */
-export function prewarmBuildersInBackground(): void {
-  if (!isFeatureEnabled('experimental.contextBuilderPrewarm')) {
-    log.debug('Context builder pre-warm disabled by feature flag');
-    return;
-  }
-
-  // Already loaded, nothing to do
-  if (buildersLoaded) {
-    log.debug('Context builders already loaded, skipping pre-warm');
-    return;
-  }
-
-  // Fire-and-forget - don't await
-  log.info('🔥 Pre-warming context builders in background');
-  ensureBuildersLoaded().catch((error) => {
-    log.warn({ error: String(error) }, 'Context builder pre-warm failed');
-  });
-}
-
-/**
- * Pre-warm with conditional loading config.
- * Allows session-specific optimization based on session context.
- *
- * @param config - Conditional loading configuration
- */
-export function prewarmBuildersWithConfig(config: Partial<ConditionalLoadingConfig>): void {
-  if (!isFeatureEnabled('experimental.contextBuilderPrewarm')) {
-    log.debug('Context builder pre-warm disabled by feature flag');
-    return;
-  }
-
-  // Configure conditional loading
-  configureConditionalLoading(config);
-
-  // Trigger pre-warm
-  prewarmBuildersInBackground();
-}
-
-// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -675,7 +622,5 @@ export default {
   getAllBuilderModules,
   getBuilderModulesByCategory,
   configureConditionalLoading,
-  prewarmBuildersInBackground,
-  prewarmBuildersWithConfig,
   BUILDER_MANIFEST,
 };

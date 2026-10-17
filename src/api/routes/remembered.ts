@@ -7,9 +7,11 @@
  * PATCH  /api/memories/remembered/:id   - correct one ({ value })
  *
  * Always the verified caller's own facts (requireUserId); a fact id is only
- * ever looked up under their path.
+ * ever looked up under their path. Off (no such routes, 404) unless
+ * MEMORY_VIEW=on.
  */
 import type { IncomingMessage, ServerResponse } from 'http';
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { API_ERRORS } from '../error-messages.js';
 import { parseBody, requireUserId, sendError, sendJSON } from '../helpers.js';
@@ -18,6 +20,7 @@ import {
   forgetRemembered,
   listRemembered,
 } from '../../memory/recall/memory-control.js';
+import { firestoreMemoryControlStore as store } from '../../memory/storage/memory-control-store.js';
 
 const log = createLogger({ module: 'RememberedAPI' });
 const FACT_ID = /^[A-Za-z0-9_-]{1,200}$/;
@@ -28,12 +31,13 @@ export async function handleRememberedRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
+  if (!flagOn('MEMORY_VIEW')) return false;
   if (pathname === '/api/memories/remembered' && req.method === 'GET') {
     const userId = requireUserId(req, res, parsedUrl);
     if (!userId) return true;
     try {
       // Never cached: a cached list would still show a fact the caller just forgot.
-      sendJSON(res, { facts: await listRemembered(userId) });
+      sendJSON(res, { facts: await listRemembered(userId, store) });
     } catch (err) {
       log.error({ error: String(err) }, 'Failed to list remembered facts');
       sendError(res, API_ERRORS.OPERATION_FAILED, 500);
@@ -53,12 +57,12 @@ export async function handleRememberedRoutes(
   }
   try {
     if (req.method === 'DELETE') {
-      if (await forgetRemembered(userId, id)) sendJSON(res, { success: true, id });
+      if (await forgetRemembered(userId, id, store)) sendJSON(res, { success: true, id });
       else sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
       return true;
     }
     const body = await parseBody<{ value?: unknown }>(req);
-    const result = await correctRemembered(userId, id, body?.value);
+    const result = await correctRemembered(userId, id, body?.value, store);
     if (result.kind === 'corrected') sendJSON(res, { success: true, fact: result.fact });
     else if (result.kind === 'not-found') sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
     else sendError(res, result.reason, 400);

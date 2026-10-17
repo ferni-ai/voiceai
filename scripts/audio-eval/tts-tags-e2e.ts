@@ -93,7 +93,7 @@ async function transcribe(pcm24: Int16Array): Promise<string> {
   const pcm = Int16Array.from({ length: n }, (_, i) => pcm24[Math.floor((i * 3) / 2)]);
   const ws = new WebSocket(
     'wss://api.cartesia.ai/stt/turns/websocket?model=ink-2&sample_rate=16000&encoding=pcm_s16le',
-    { headers: { 'X-API-Key': process.env.CARTESIA_API_KEY!, 'Cartesia-Version': '2026-03-01' } }
+    { headers: { 'X-API-Key': process.env.CARTESIA_API_KEY!, 'Cartesia-Version': '2026-08-14' } }
   );
   const finals: string[] = [];
   let current = '';

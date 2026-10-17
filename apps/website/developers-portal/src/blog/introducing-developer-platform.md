@@ -1,5 +1,5 @@
 ---
-title: 'Why Ferni Is Free Forever'
+title: 'Why Ferni Is Free'
 excerpt: "Everyone deserves someone who truly pays attention. We're building AI that embodies the best parts of human connection—and keeping it free for everyone who needs it."
 author: 'Seth Ford'
 authorInitials: 'SF'
@@ -23,8 +23,7 @@ That's what Ferni exists to be. And we believe it should be free for everyone.
 
 The people who need support most often can't afford it.
 
-- Therapy costs $150-300 per hour
-- Life coaching costs $100-500 per session
+- Therapy and life coaching often cost hundreds of dollars a session
 - Good friends are busy with their own lives
 - Family has their own baggage
 
@@ -34,15 +33,15 @@ AI can change this. Not by replacing human connection—by filling the gaps when
 
 ---
 
-## Why Free Forever?
+## Why Free?
 
 We could charge subscription fees. We could gate features behind paywalls. We could optimize for revenue.
 
 But that would mean the people who need Ferni most couldn't access it.
 
-**So we made a choice: Ferni is free forever.**
+**So we made a choice: Ferni is free right now.**
 
-Not "free trial." Not "limited free tier." Free. Really free.
+No paid tiers. No subscriptions. No upsells. Free.
 
 - Unlimited conversations with Ferni
 - Full memory across sessions
@@ -55,15 +54,9 @@ Not "free trial." Not "limited free tier." Free. Really free.
 
 If Ferni is free, how does it exist?
 
-**Founders.**
+**People who chip in.**
 
-People who believe in what we're building chip in to keep it free for everyone:
-
-| Tier                | Contribution | What You Get                                  |
-| ------------------- | ------------ | --------------------------------------------- |
-| **Community**       | Free forever | Ferni, full memory, all personas              |
-| **Founding Member** | $10/month    | Unlimited session time, helps keep Ferni free |
-| **Founding Patron** | $20/month    | Premium features + Nayan (our sage mentor)    |
+If a conversation with Ferni helped, you can send a dollar on Venmo. More is welcome, but it's never expected, and it doesn't unlock anything. Everyone gets the same Ferni.
 
 This isn't charity. It's community.
 

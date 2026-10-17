@@ -17,6 +17,7 @@
  */
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
+import { attachTurnReceipts } from '../shared/turn-receipt.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
@@ -25,12 +26,13 @@ import { diag } from '../../services/diagnostic-logger.js';
 import { modelConfig } from '../../services/model-config.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import type { UserData } from '../shared/types.js';
 import { getRealtimeModel } from '../../config/gemini-config.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 // Centralized tool configuration (Jan 2026)
-import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
+import { capToolsToLimit, getMaxTools, staticCoreToolsEnabled } from '../../config/tool-config.js';
 
 // Model provider abstraction - centralizes all model-specific behavior
 import { getModelProvider, isUsingOpenAI } from '../model-provider/index.js';
@@ -63,19 +65,21 @@ import {
 // ============================================================================
 import { FerniAgent } from '../personas/ferni-agent.js';
 import {
-  createTurnContextPusher,
+  attachTurnContextPusher,
   createTurnIntelligenceHook,
   resolveTurnIntelligenceMode,
 } from './turn-intelligence.js';
-import {
-  addRecallNote,
-  createMemoryRecall,
-  memoryRecallMode,
-  type RecallAgent,
-} from './memory-recall-hook.js';
+import { createMemoryRecall, memoryRecallMode, type RecallAgent } from './memory-recall-hook.js';
+import { startNameLift } from '../realtime/name-lift.js';
+import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
-import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
+import {
+  buildEssentialToolSet,
+  handoffGetsEssentialSet,
+  type EssentialToolSetInput,
+} from './essential-tool-set.js';
+import { attachSessionEventLog } from './session-event-log.js';
 import { buildEmergencyToolset } from './emergency-toolset.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
@@ -97,7 +101,13 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
-import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
+import { withAlwaysOnInfoTools } from './always-on-info-tools.js';
+import {
+  createFindToolsTool,
+  FIND_TOOLS,
+  setToolPinner,
+} from '../../tools/retrieval/find-tools-tool.js';
+import { createToolPinner, staticCoreTools } from '../shared/static-core-tools.js';
 import { amdOpensCall, createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
 import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
@@ -106,9 +116,11 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
+import { giveLoadedDomainsToNewAgents } from '../voice-agent/deferred-tool-update.js';
 import { createPersonaTTS } from './persona-tts.js';
 import { createCallSession } from './call-session.js';
 import { agentOnCall, personaOnCall, rememberPersona } from './persona-swap.js';
+import { handoffIntro, lastTalkedAbout, teammateRelationship } from './teammate-relationship.js';
 import { installLiveCallBehaviors, startTurnSounds } from './live-call-behaviors.js';
 import {
   installDirectorNotes,
@@ -116,7 +128,10 @@ import {
   installTurnListeners,
   recordAssistantTurns,
 } from './turn-observers.js';
+import { callerCityContext } from '../shared/caller-city.js';
+import { localClockContext, localClockEnabled } from '../shared/local-clock.js';
 import { timeContext } from '../shared/time-context.js';
+import { WORLD_NOW_RULE, worldNowEnabled } from '../shared/world-now.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
@@ -130,6 +145,8 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
+import { lastMoodNote } from '../../services/session/last-mood-note.js';
+import { lastTalkedAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
 const log = getLogger();
@@ -334,11 +351,20 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // the date/time from the VERY FIRST MOMENT (including greeting)
     // =========================================================================
     // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
-    const dateTimeContext = timeContext(new Date(), userData?.callerTimezone);
-
     // Append date/time to model base instructions (session-specific, not cached)
     const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
-    modelBaseInstructions = baseInstructions + dateTimeContext + outboundAwareness;
+    // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's: the zone the
+    // call settled (browser, else a verified owner's profile zone, never a sponsor's).
+    const dateTimeContext =
+      localClockEnabled() && persona.id === 'ferni'
+        ? localClockContext(new Date(), userData?.callerTimezone ?? callerTimeZoneFor(sessionId))
+        : timeContext(new Date(), userData?.callerTimezone);
+    // WORLD_NOW=on: each reply gets the time now, and news, games and weather come from tools.
+    const worldNowRule = worldNowEnabled() ? `${WORLD_NOW_RULE}\n` : '';
+    // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
+    const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
+    modelBaseInstructions =
+      baseInstructions + dateTimeContext + worldNowRule + cityContext + outboundAwareness;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : services.userProfile;
@@ -348,14 +374,13 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       const sessionStartTime = new Date();
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
 
-      // User's name
-      if (displayName) {
-        userAwareness.push(`You're talking to ${displayName}.`);
-      }
+      if (displayName) userAwareness.push(`You're talking to ${displayName}.`);
 
-      // Relationship context
+      // Relationship context: a teammate's own after a handoff (teammate-relationship.ts)
       const isReturningUser = (userProfile.totalConversations ?? 0) > 0;
-      if (isReturningUser && userProfile.totalConversations) {
+      const teammate = teammateRelationship(config, userProfile);
+      if (teammate) userAwareness.push(...teammate);
+      else if (isReturningUser && userProfile.totalConversations) {
         const convCount = userProfile.totalConversations;
         if (convCount === 1) {
           userAwareness.push("You've talked once before.");
@@ -377,21 +402,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           const daysSince = Math.floor(
             (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
           );
-          if (daysSince === 0) {
-            userAwareness.push('You talked earlier today.');
-          } else if (daysSince === 1) {
-            userAwareness.push('You talked yesterday.');
-          } else if (daysSince < 7) {
-            userAwareness.push(`Last talked ${daysSince} days ago.`);
-          } else if (daysSince < 30) {
-            userAwareness.push(
-              `It's been about ${Math.round(daysSince / 7)} weeks since you last talked.`
-            );
-          } else {
-            userAwareness.push(
-              `It's been a while - about ${Math.round(daysSince / 30)} month${daysSince > 45 ? 's' : ''} since you last talked.`
-            );
-          }
+          userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
         userAwareness.push(
@@ -401,7 +412,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
       // Key relationship facts (if available)
       const { relationshipStage } = userProfile;
-      if (relationshipStage && relationshipStage !== 'new_acquaintance') {
+      if (!teammate && relationshipStage && relationshipStage !== 'new_acquaintance') {
         const stageDescriptions: Record<string, string> = {
           getting_to_know: "You're still getting to know each other.",
           trusted_advisor: 'They trust you and share openly.',
@@ -417,8 +428,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // A human friend might vaguely remember "oh we talked recently"
       // Ferni remembers EXACTLY what you talked about
       // =========================================================================
-      if (isReturningUser && userProfile.lastConversationSummary) {
-        userAwareness.push(`Last time you talked about: ${userProfile.lastConversationSummary}`);
+      if (isReturningUser && userProfile.lastCallerSummary) {
+        userAwareness.push(lastTalkedAbout(!!teammate, userProfile.lastCallerSummary));
       }
 
       // =========================================================================
@@ -426,22 +437,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // A human friend might not notice you were struggling last time
       // Ferni remembers and checks in
       // =========================================================================
-      if (userProfile.humanizingState?.lastMood) {
-        const { lastMood } = userProfile.humanizingState;
-        // Map moods to emotional context
-        const moodContext: Record<string, string> = {
-          tired_but_present: 'Last time they seemed a bit tired - be gentle.',
-          reflective: 'Last time they were in a reflective mood.',
-          philosophical: 'Last time they were in a thoughtful, philosophical space.',
-          energized: 'Last time they were full of energy!',
-          grounded: 'Last time they seemed calm and grounded.',
-          playful: 'Last time they were in a playful mood.',
-          nostalgic: 'Last time they were feeling nostalgic.',
-        };
-        if (moodContext[lastMood]) {
-          userAwareness.push(moodContext[lastMood]);
-        }
-      }
+      userAwareness.push(...lastMoodNote(userProfile.humanizingState?.lastMood)); // his own mood, not theirs
 
       // =========================================================================
       // BETTER THAN HUMAN #3: Key Life Events Awareness
@@ -715,7 +711,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
     const fastStart = Date.now();
     try {
-      // getToolsForAgent now hoisted to module level
       const subscriptionTier =
         (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
@@ -810,7 +805,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const gatewayTools = loadToolsFromGateway();
     if (gatewayTools) return gatewayTools;
 
-    // Tool orchestrator imports now hoisted to module level
     mark('tools_orchestrator_check');
 
     // Initialize orchestrator if needed
@@ -845,6 +839,20 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // For handoffs, use the fast path which loads from session cache + essential tools.
       // This typically completes in <500ms vs 5-20 seconds for full orchestrator.
       // =========================================================================
+      if (isHandoff && handoffGetsEssentialSet()) {
+        // The first agent's set and cap, not the gateway's Tier 0 (essential-tool-set.ts)
+        const handoffStart = Date.now();
+        const essential = await loadEssentialToolsFallback(initialToolPolicy);
+        log.info(
+          {
+            personaId: persona.id,
+            toolCount: Object.keys(essential).length,
+            elapsedMs: Date.now() - handoffStart,
+          },
+          '🎭 Handoff tools: essential set (HANDOFF_FULL_TOOLS)'
+        );
+        return essential;
+      }
       if (isHandoff) {
         log.info({ personaId: persona.id }, '⚡ Using FAST PATH for handoff tool loading');
 
@@ -944,7 +952,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
       // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
       // This ensures handoff tools are ready BEFORE any handoff request
-      // warmupHandoffToolsForSession now hoisted to module level
       try {
         const cacheStart = Date.now();
         const tier =
@@ -978,7 +985,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
   })();
 
   // Wait for TTS and tools (LLM is created below in parallel section)
-  const [tts, orchestratorTools] = await Promise.all([ttsPromise, toolsPromise]);
+  const [tts, loadedTools] = await Promise.all([ttsPromise, toolsPromise]);
+  // Before the cap, so it keeps them: every path above (handoff, first agent, fallback)
+  const orchestratorTools = await withAlwaysOnInfoTools(loadedTools, {
+    userId: userId || 'anonymous',
+    sessionId,
+    agentId: persona.id,
+    agentDisplayName: persona.name || persona.id,
+  });
 
   // =========================================================================
   // 🔍 CRITICAL VISIBILITY: Log exactly what tools are available to LLM
@@ -1039,7 +1053,19 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Every provider gets a cap: the essential domains alone are ~340 tools.
   const effectiveLimit = resolveInitialToolLimit(configuredLimit);
 
-  if (effectiveLimit > 0 && toolCount > effectiveLimit) {
+  const endCallTool = createEndCallTool(sessionId);
+  const coreCtx = {
+    userId: userId || 'anonymous',
+    sessionId,
+    agentId: persona.id,
+    agentDisplayName: persona.name || persona.id,
+  };
+  if (staticCoreToolsEnabled()) {
+    // TOOL_CORE_STATIC: one set for the whole call, findTools for the rest.
+    const have = { ...orchestratorTools, [FIND_TOOLS]: createFindToolsTool() };
+    if (endCallTool) Object.assign(have, { [END_CALL]: endCallTool });
+    finalTools = (await staticCoreTools(have, coreCtx)) as typeof finalTools;
+  } else if (effectiveLimit > 0 && toolCount > effectiveLimit) {
     // Use centralized tool capping which handles essential tool prioritization
     finalTools = capToolsToLimit(orchestratorTools, effectiveLimit);
     const cappedCount = Object.keys(finalTools).length;
@@ -1073,13 +1099,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   // Live tool retrieval sends each request only the tools its words point to;
   // findTools lets the model reach one retrieval ranked too low.
-  if (retrievalModeNow() === 'live') {
+  if (retrievalModeNow() === 'live' && !staticCoreToolsEnabled()) {
     finalTools = { ...finalTools, [FIND_TOOLS]: createFindToolsTool() } as typeof finalTools;
   }
 
   // On-behalf phone call: Ferni can hang up after a goodbye or a voicemail
-  const endCallTool = createEndCallTool(sessionId);
-  if (endCallTool) {
+  if (endCallTool && !staticCoreToolsEnabled()) {
     finalTools = { ...finalTools, [END_CALL]: endCallTool } as typeof finalTools;
   }
 
@@ -1143,7 +1168,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   mark('session_create_start');
   // A persona swapped into a running call joins its session (persona-swap.ts)
-  const parts = { persona, sessionId, services, userData, llmModel, tts };
+  const parts = { persona, sessionId, services, userData, userId, llmModel, tts };
   const session = callSession ?? (await createCallSession({ ...parts, phone: config.phoneCaller }));
 
   mark('session_created');
@@ -1396,33 +1421,21 @@ Reference past context when relevant, but don't force it. Let the conversation f
       event: TURN_METRICS_EVENT,
       handler: turnMetricsHandler as (...args: unknown[]) => void,
     });
-
-    // 🔊 COMPREHENSIVE SESSION DEBUG: Track ALL session events during startup
-    // This helps us understand what's happening during prewarm
-    process.stderr.write(
-      `\n🔊 [SESSION DEBUG] Attaching comprehensive session event listeners...\n`
+    // One TURN_RECEIPT line per caller turn: what the model was given and did, no words.
+    cleanupFunctions.push(
+      attachTurnReceipts(session as never, {
+        sessionId,
+        userId,
+        persona: () => userData.personaId ?? persona.id,
+        phoneCaller: config.phoneCaller,
+      })
     );
 
-    // Track user state changes (when user starts/stops speaking)
-    const userStateHandler = (event: unknown) => {
-      process.stderr.write(`\n👤 [USER STATE] ${JSON.stringify(event, null, 2)}\n`);
-    };
-    sessionWithEvents.on('user_state_changed', userStateHandler);
-    sessionEventHandlers.push({ event: 'user_state_changed', handler: userStateHandler });
-
-    // Track agent state changes (when agent starts/stops speaking)
-    const agentStateHandler = (event: unknown) => {
-      process.stderr.write(`\n🤖 [AGENT STATE] ${JSON.stringify(event, null, 2)}\n`);
-    };
-    sessionWithEvents.on('agent_state_changed', agentStateHandler);
-    sessionEventHandlers.push({ event: 'agent_state_changed', handler: agentStateHandler });
-
-    // Track speech creation (SDK auto-generating responses)
-    const speechCreatedHandler = (event: unknown) => {
-      process.stderr.write(`\n🎙️ [SPEECH CREATED] ${JSON.stringify(event, null, 2)}\n`);
-    };
-    sessionWithEvents.on('speech_created', speechCreatedHandler);
-    sessionEventHandlers.push({ event: 'speech_created', handler: speechCreatedHandler });
+    // One compact line per state event, not a pretty JSON dump (session-event-log.ts)
+    attachSessionEventLog(
+      sessionWithEvents as { on: (e: string, h: (...a: unknown[]) => void) => void },
+      sessionEventHandlers
+    );
 
     // Track user input transcription
     // Crisis guard in SHADOW + per-turn voice/delivery: same observers as the
@@ -1585,9 +1598,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   log.info({ personaId: persona.id }, '🔍 Enhanced error logging attached to LLM and session');
 
   // Create agent wrapper WITH TOOLS using FerniAgent (has ttsNode override for JSON sanitizer)
-  // FIX: Previously used voice.Agent which BYPASSED the JSON function call sanitizer!
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
-  // FerniAgent now hoisted to module level for faster startup
   // Per-turn intelligence (context builders, memory retrieval, emotional
   // guidance). On unless TURN_INTELLIGENCE=off; see turn-intelligence.ts.
   const turnContextHook =
@@ -1611,18 +1622,22 @@ Reference past context when relevant, but don't force it. Let the conversation f
     ...(callSession && { voice: { llm: llmModel, tts } }),
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
 
-  // Memory recall: add what Ferni remembers as soon as the user's words are
-  // transcribed, before the SDK starts preemptive generation (see
-  // memory-recall-hook.ts for why it must not wait for onUserTurnCompleted).
-  // Interim events count: with STT turn detection the SDK starts preemptive
-  // generation from the preflight transcript, which arrives as an interim.
+  // Memory recall, added as the user's words are transcribed (interims too), before the
+  // SDK's preemptive generation; memory-recall-hook.ts says why. The name lift rides along.
   if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
-    const recall = createMemoryRecall({ userId, userName: userData.userName });
+    const recall = createMemoryRecall({
+      userId,
+      userName: userData.userName,
+      personaId: persona.id,
+    });
+    const nameLift = startNameLift(recall, createDataMessageSender(room)); // NAME_LIFT=on
     const onRecallTranscript = (event: unknown) => {
-      const evt = event as { transcript?: string };
+      const evt = event as { transcript?: string; isFinal?: boolean };
       if (!evt.transcript) return;
-      const note = recall.noteFor(evt.transcript);
-      if (note) addRecallNote(agent as unknown as RecallAgent, note);
+      nameLift?.(evt.transcript);
+      const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
+      // CONTEXT_PACKET=on: what it picked rides the turn's packet, labelled (turn-packet.ts).
+      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note);
     };
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();
@@ -1639,27 +1654,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // turns for the next reply: never in onUserTurnCompleted, where changing the
   // chat context throws away the SDK's preemptive generation (turn-intelligence.ts).
   if (turnContextHook && sessionWithEvents.on) {
-    const pusher = createTurnContextPusher(
-      turnContextHook,
-      agent as unknown as Parameters<typeof createTurnContextPusher>[1]
+    forPersona(
+      attachTurnContextPusher(
+        turnContextHook,
+        agent as unknown as Parameters<typeof attachTurnContextPusher>[1],
+        sessionWithEvents,
+        { userData }
+      )
     );
-    const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
-    const onTranscript = (event: unknown) => {
-      const evt = event as { transcript?: string; isFinal?: boolean };
-      if (evt.isFinal && evt.transcript) pusher.onFinalTranscript(evt.transcript).catch(failed);
-    };
-    const onAgentState = (event: unknown) =>
-      pusher.onAgentState((event as { newState?: string }).newState).catch(failed);
-    const onUserState = (event: unknown) =>
-      pusher.onUserState((event as { newState?: string }).newState).catch(failed);
-    sessionWithEvents.on('user_input_transcribed', onTranscript);
-    sessionWithEvents.on('agent_state_changed', onAgentState);
-    sessionWithEvents.on('user_state_changed', onUserState);
-    forPersona(() => {
-      sessionWithEvents.off?.('user_input_transcribed', onTranscript);
-      sessionWithEvents.off?.('agent_state_changed', onAgentState);
-      sessionWithEvents.off?.('user_state_changed', onUserState);
-    });
   }
 
   // Track handler status
@@ -1820,6 +1822,11 @@ Reference past context when relevant, but don't force it. Let the conversation f
           dynamicToolLoader,
           cleanupFunctions,
         });
+        if (staticCoreToolsEnabled()) {
+          // findTools appends what it finds to the agent on the call now.
+          setToolPinner(session, createToolPinner(agentNow, coreCtx));
+          cleanupFunctions.push(() => setToolPinner(session, null));
+        }
         await installDirectorNotes({
           session,
           sessionId,
@@ -1958,6 +1965,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
           autoOptimizer,
           agent,
         });
+        // A handed-to agent gets this call's loaded domains (TOOLS_FOLLOW_AGENT)
+        cleanupFunctions.push(giveLoadedDomainsToNewAgents(session, agent, dynamicToolLoader, log));
 
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {
@@ -2307,7 +2316,7 @@ function buildAgentSystemPrompt(config: AgentSetupConfig): string {
  * Build handoff-specific context to append to system prompt.
  * Includes both conversation context AND trust context (boundaries, sensitive topics, etc.)
  */
-async function buildHandoffContext(config: AgentSetupConfig): Promise<string | null> {
+export async function buildHandoffContext(config: AgentSetupConfig): Promise<string | null> {
   const { isHandoff, previousPersonaId, conversationSummary, recentMessages, userData } = config;
 
   if (!isHandoff || !previousPersonaId) {
@@ -2316,8 +2325,7 @@ async function buildHandoffContext(config: AgentSetupConfig): Promise<string | n
 
   const parts: string[] = [];
   parts.push('[HANDOFF CONTEXT]');
-  parts.push(`You just received this conversation from ${previousPersonaId}.`);
-  parts.push('Continue naturally - acknowledge the handoff briefly but focus on helping.');
+  parts.push(...handoffIntro(previousPersonaId)); // teammate-relationship.ts
 
   if (conversationSummary) {
     parts.push(`\nConversation summary: ${conversationSummary}`);

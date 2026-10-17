@@ -7,7 +7,7 @@
  * @module intelligence/world-model/temporal/ingest
  */
 
-import { firestoreForgetStore, isForgotten } from '../../../memory/recall/forget.js';
+import { forgottenTopicsOrNull, isForgotten } from '../../../memory/index.js';
 import { callLLMForJSON } from '../../../services/llm-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { planResolution, type SupersedeJudge } from './resolve.js';
@@ -57,6 +57,7 @@ Answer as JSON only: {"replaces": [numbers]}`;
     maxTokens: 60,
     temperature: 0,
     timeout: 8000,
+    task: 'memory',
   });
   if (!out || !Array.isArray(out.replaces)) return [];
   return out.replaces
@@ -73,7 +74,7 @@ export async function recordWorldObservations(
   if (!isWorldModelTemporalOn(deps.env) || !userId) return null;
   // Fail closed: if what they asked Ferni to forget can't be read, write nothing this time
   // rather than write a forgotten fact back.
-  const topics = await (deps.forgotten ?? firestoreForgetStore.topics)(userId).catch(
+  const topics = await (deps.forgotten ?? forgottenTopicsOrNull)(userId).catch(
     (error: unknown) => {
       log.warn({ userId, sessionId, error: String(error) }, 'Forgotten topics unreadable');
       return null;

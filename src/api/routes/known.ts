@@ -23,6 +23,8 @@ import {
   type KnownKind,
 } from '../../intelligence/memory-view/known.js';
 import { applyKnownAction, type KnownAction } from '../../intelligence/memory-view/actions.js';
+import { firestoreActionStore } from './known-action-store.js';
+import { firestoreKnownStore } from './known-store.js';
 
 const log = createLogger({ module: 'KnownAPI' });
 
@@ -69,7 +71,8 @@ async function act(
     const result = await applyKnownAction(
       userId,
       { kind: kind as KnownKind, id },
-      { action: action as KnownAction, value: body?.value }
+      { action: action as KnownAction, value: body?.value },
+      { store: firestoreActionStore }
     );
     if (result.kind === 'done') sendJSON(res, { success: true, ...result });
     else if (result.kind === 'not-found') sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
@@ -86,7 +89,7 @@ async function view(req: IncomingMessage, res: ServerResponse, parsedUrl: URL): 
   if (!userId) return true;
   try {
     // Never cached (sendJSON sends no-store): a cached view would still show what was just forgotten.
-    sendJSON(res, await loadKnownView(userId));
+    sendJSON(res, await loadKnownView(userId, firestoreKnownStore));
   } catch (err) {
     log.error({ error: String(err) }, 'Failed to load what Ferni knows');
     // Can't tell what was forgotten: refuse (retryable), never a view that might show it.

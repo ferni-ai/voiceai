@@ -21,6 +21,8 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { soundUI } from './sound.ui.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { showToast } from './overlay/toast-region.js';
 
 // Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -76,8 +78,6 @@ const achievements: Achievement[] = [
   { id: 'petting', nameKey: 'easterEggs.achievements.petting.name', descriptionKey: 'easterEggs.achievements.petting.description', unlocked: false },
   { id: 'stretch', nameKey: 'easterEggs.achievements.stretch.name', descriptionKey: 'easterEggs.achievements.stretch.description', unlocked: false },
   { id: 'tilt', nameKey: 'easterEggs.achievements.tilt.name', descriptionKey: 'easterEggs.achievements.tilt.description', unlocked: false },
-  { id: 'night-owl', nameKey: 'easterEggs.achievements.nightOwl.name', descriptionKey: 'easterEggs.achievements.nightOwl.description', unlocked: false },
-  { id: 'early-bird', nameKey: 'easterEggs.achievements.earlyBird.name', descriptionKey: 'easterEggs.achievements.earlyBird.description', unlocked: false },
 ];
 
 // 🎬 Personality quirks
@@ -195,9 +195,6 @@ export function initEasterEggsUI(): void {
   // 😴 Check for sleepy mode (late night)
   checkSleepyMode();
   sleepyCheckInterval = setInterval(checkSleepyMode, 60000); // Check every minute
-
-  // 🌅 Check for morning stretch (first interaction of day)
-  checkMorningStretch();
 
   // 💭 Start idle/daydreaming detection
   startIdleDetection();
@@ -1138,8 +1135,14 @@ function showAchievementNotification(achievement: Achievement): void {
   notification.className = 'achievement-notification';
   const achievementName = t(achievement.nameKey);
   const achievementDesc = t(achievement.descriptionKey);
+  if (isOverlayHostEnabled()) {
+    // The toast region: the top lane, clear of the call controls, queued.
+    showToast({ kind: 'achievement', title: achievementName, message: achievementDesc });
+    soundUI.play('success');
+    return;
+  }
   notification.innerHTML = `
-    <div class="achievement-icon" style="font-size: 24px; font-weight: 600; color: var(--persona-text, #ffffff);">★</div>
+    <div class="achievement-icon" style="font-size: 24px; font-weight: 600;">★</div>
     <div class="achievement-content">
       <div class="achievement-title">${achievementName}</div>
       <div class="achievement-desc">${achievementDesc}</div>
@@ -1147,10 +1150,13 @@ function showAchievementNotification(achievement: Achievement): void {
   `;
   notification.style.cssText = `
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    top: calc(env(safe-area-inset-top, 0px) + 4.5rem); /* below the status island, clear of the controls band */
+    right: 1rem; max-width: calc(100vw - 2rem);
     background: linear-gradient(135deg, var(--persona-primary, #4a6741) 0%, var(--persona-secondary, #3d5a35) 100%);
-    color: var(--persona-text, #ffffff);
+    /* White, like every other persona-gradient surface. --persona-text is the
+       persona colour for text on LIGHT backgrounds, so it painted this text the
+       same green as the card and the white fallback never applied. */
+    color: white;
     padding: 16px 20px;
     border-radius: 12px;
     display: flex;
@@ -1454,7 +1460,6 @@ function checkSleepyMode(): void {
 
   if (shouldBeSleepy && !sleepyModeActive) {
     sleepyModeActive = true;
-    unlockAchievement('night-owl');
     // Increase yawn frequency in quirks
   } else if (!shouldBeSleepy && sleepyModeActive) {
     sleepyModeActive = false;
@@ -1487,56 +1492,6 @@ function triggerSleepyBehavior(): void {
       easing: EASING.EASE_IN_OUT,
     }
   );
-}
-
-// ============================================================================
-// 🌅 MORNING STRETCH - First interaction of day
-// ============================================================================
-
-function checkMorningStretch(): void {
-  const today = new Date().toDateString();
-  const storedDate = localStorage.getItem('ferni-last-interaction-date');
-
-  if (storedDate !== today) {
-    // First interaction of the day!
-    localStorage.setItem('ferni-last-interaction-date', today);
-
-    // Small delay to let app initialize
-    trackedTimeout(() => {
-      triggerMorningStretch();
-    }, 1500);
-  }
-}
-
-function triggerMorningStretch(): void {
-  const avatar = document.querySelector('.avatar-container');
-  if (!avatar || !(avatar instanceof HTMLElement)) return;
-
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return;
-  }
-
-  unlockAchievement('early-bird');
-
-  // Wake-up stretch animation
-  avatar.animate(
-    [
-      { transform: 'scale(0.95) translateY(5px)', offset: 0 }, // Sleepy
-      { transform: 'scale(0.97) translateY(3px)', offset: 0.1 },
-      { transform: 'scale(1) translateY(0)', offset: 0.2 },
-      { transform: 'scale(1.08, 0.94) translateY(-8px)', offset: 0.4 }, // Big stretch up
-      { transform: 'scale(1.1, 0.92) translateY(-12px)', offset: 0.5 }, // Peak stretch
-      { transform: 'scale(0.95, 1.05) translateY(3px)', offset: 0.7 }, // Settle down
-      { transform: 'scale(1.02) translateY(-2px)', offset: 0.85 }, // Little bounce
-      { transform: 'scale(1) translateY(0)', offset: 1 },
-    ],
-    {
-      duration: DURATION.GLACIAL,
-      easing: EASING.SPRING,
-    }
-  );
-
-  soundUI.play('success');
 }
 
 // ============================================================================
@@ -1820,6 +1775,7 @@ export function dispose(): void {
   document.removeEventListener('touchstart', recordActivity);
   document.removeEventListener('keydown', recordActivity);
 
+
   // Remove speech event listeners
   window.removeEventListener(
     'ferni:transcript',
@@ -1898,6 +1854,6 @@ export const easterEggsUI = {
   triggerSighEmpathy,
   triggerThankYouBeam,
   // Manual triggers for testing
-  triggerMorningStretch,
+  triggerKonamiCode,
   triggerSleepyBehavior,
 };

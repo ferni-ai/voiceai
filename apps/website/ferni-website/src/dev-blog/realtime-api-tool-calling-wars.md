@@ -204,7 +204,7 @@ This worked better than native function calling, but it was fragile:
 
 - Depended on exact JSON formatting
 - Required regex maintenance as we added tools
-- Still had ~10% leakage rate (LLM talking about tools instead of outputting JSON)
+- Still leaked regularly (LLM talking about tools instead of outputting JSON)
 
 ## Chapter 3: The Leakage Problem
 
@@ -290,12 +290,7 @@ Google made significant progress. From their [January 2026 announcement](https:/
 
 ### The Reality Check
 
-| Metric | OpenAI Realtime | Gemini 2.5 Native Audio | Our FTIS V2 |
-|--------|-----------------|-------------------------|-------------|
-| Simple tool calls | ~90% | ~85% | **99%+** |
-| Complex/multi-step | ~75% | ~71.5% | **93%** |
-| Leakage rate | ~12% | ~15% | **<0.5%** |
-| Latency | 300-500ms | 250-400ms | **~20ms** |
+The 71.5% above is a published benchmark. We don't have comparable published numbers for the rest, so we won't make them up. What we can say from our own testing is qualitative: tool calls that work for a few turns and then stop, and models that talk about a tool instead of calling it.
 
 Native function calling is improving, but it's still not reliable enough for production voice AI.
 
@@ -353,9 +348,9 @@ The LLM is now **liberated from tool selection**. It just needs to be conversati
 
 | Before (Native FC) | After (FTIS V2) |
 |--------------------|-----------------|
-| 80% tool call success | **99%+ success** |
-| 15% leakage rate | **<0.5% leakage** |
-| 500ms tool selection | **20ms classification** |
+| The LLM decides whether to call a tool | **A classifier decides** |
+| The LLM can talk about a tool instead of calling it | **No tool schemas in the prompt, nothing to leak** |
+| 300-500ms tool selection | **~20ms classification** |
 | Unpredictable failures | **Predictable behavior** |
 
 ## Lessons Learned
@@ -423,4 +418,4 @@ The result? When you ask Ferni to play music, music plays. No filler. No perform
 
 ---
 
-*Read more about [FTIS V2 and how we trained 11 models](/dev-blog/ftis-v2-small-models-tool-selection) or our [half-cascade architecture](/dev-blog/half-cascade-architecture).*
+*Read more about [FTIS V2 and how we trained 11 models](/developers/blog/ftis-v2-small-models-tool-selection/) or our [half-cascade architecture](/developers/blog/half-cascade-architecture/).*
