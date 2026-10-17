@@ -16,6 +16,7 @@ import {
   phoneOnlyIdentity,
   sessionIsVerifiedOwner,
 } from '../voice-agent-entry/caller-recognition.js';
+import { worldNowNote } from '../shared/world-now.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import { latestUserText } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
@@ -120,6 +121,8 @@ export function withTurnReminder(
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
+    // WORLD_NOW=on: the caller's time this reply, not the call's start (world-now.ts).
+    worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     // "Naya" in the transcript is Nayan (teammate-names.ts)

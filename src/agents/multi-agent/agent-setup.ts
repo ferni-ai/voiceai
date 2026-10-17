@@ -124,6 +124,7 @@ import {
 import { callerCityContext } from '../shared/caller-city.js';
 import { localClockContext, localClockEnabled } from '../shared/local-clock.js';
 import { timeContext } from '../shared/time-context.js';
+import { WORLD_NOW_RULE, worldNowEnabled } from '../shared/world-now.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
@@ -351,9 +352,12 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       localClockEnabled() && persona.id === 'ferni'
         ? localClockContext(new Date(), userData?.callerTimezone ?? callerTimeZoneFor(sessionId))
         : timeContext(new Date(), userData?.callerTimezone);
+    // WORLD_NOW=on: each reply gets the time now, and news, games and weather come from tools.
+    const worldNowRule = worldNowEnabled() ? `${WORLD_NOW_RULE}\n` : '';
     // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
     const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
-    modelBaseInstructions = baseInstructions + dateTimeContext + cityContext + outboundAwareness;
+    modelBaseInstructions =
+      baseInstructions + dateTimeContext + worldNowRule + cityContext + outboundAwareness;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : services.userProfile;
