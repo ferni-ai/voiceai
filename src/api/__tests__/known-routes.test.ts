@@ -9,6 +9,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 const known = vi.hoisted(() => ({
   isMemoryViewOn: vi.fn(() => true),
+  isMemoryViewPonderingOn: vi.fn(() => false),
   loadKnownView: vi.fn(async (userId: string) => ({
     people: [{ id: 'w1', kind: 'world', text: `about ${userId}`, source: 'told' }],
     lifeNow: [],
@@ -18,7 +19,14 @@ const known = vi.hoisted(() => ({
   })),
 }));
 vi.mock('../../intelligence/memory-view/known.js', () => known);
+const actions = vi.hoisted(() => ({
+  applyKnownAction: vi.fn(async (_u: string, item: { id: string }) =>
+    item.id === 'missing' ? { kind: 'not-found' as const } : { kind: 'done' as const }
+  ),
+}));
+vi.mock('../../intelligence/memory-view/actions.js', () => actions);
 vi.mock('../routes/known-store.js', () => ({ firestoreKnownStore: { tag: 'firestore' } }));
+vi.mock('../routes/known-action-store.js', () => ({ firestoreActionStore: { tag: 'actions' } }));
 
 const { handleKnownRoutes } = await import('../routes/known.js');
 
@@ -43,7 +51,10 @@ afterAll(
       server.close(() => r());
     })
 );
-beforeEach(() => known.loadKnownView.mockClear());
+beforeEach(() => {
+  known.loadKnownView.mockClear();
+  actions.applyKnownAction.mockClear();
+});
 afterEach(() => known.isMemoryViewOn.mockReturnValue(true));
 
 // The verified identity header (set by bindVerifiedIdentity from a checked token).
@@ -83,5 +94,49 @@ describe('GET /api/memories/known', () => {
     const post = await fetch(`${base}/api/memories/known`, { method: 'POST', headers: asUser });
     expect(post.status).toBe(418);
     expect((await fetch(`${base}/api/memories/remembered`, { headers: asUser })).status).toBe(418);
+  });
+});
+
+describe('POST /api/memories/known/:kind/:id', () => {
+  const post = (path: string, body: unknown, headers: Record<string, string> = asUser) =>
+    fetch(`${base}/api/memories/known/${path}`, {
+      method: 'POST',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  it('acts only for a verified caller, on their own record', async () => {
+    expect((await post('world/w1', { action: 'forget' }, {})).status).toBe(401);
+    expect(actions.applyKnownAction).not.toHaveBeenCalled();
+    expect((await post('world/w1', { action: 'correct', value: 'hip surgery' })).status).toBe(200);
+    expect(actions.applyKnownAction).toHaveBeenCalledWith(
+      'u-1',
+      { kind: 'world', id: 'w1' },
+      { action: 'correct', value: 'hip surgery' },
+      { store: { tag: 'actions' } }
+    );
+  });
+
+  it('says when the caller has no such item', async () => {
+    expect((await post('fact/missing', { action: 'forget' })).status).toBe(404);
+  });
+
+  it('refuses unknown kinds, malformed ids and unknown actions without acting', async () => {
+    expect((await post('profile/x', { action: 'forget' })).status).toBe(404);
+    expect((await post('fact/a%2Fb', { action: 'forget' })).status).toBe(404);
+    expect((await post('fact/f1', { action: 'delete' })).status).toBe(400);
+    expect(actions.applyKnownAction).not.toHaveBeenCalled();
+  });
+
+  it('hides pondering items unless their own flag is on', async () => {
+    expect((await post('ponder/abc', { action: 'forget' })).status).toBe(404);
+    known.isMemoryViewPonderingOn.mockReturnValueOnce(true);
+    expect((await post('ponder/abc', { action: 'forget' })).status).toBe(200);
+  });
+
+  it('is not served while the view is off', async () => {
+    known.isMemoryViewOn.mockReturnValue(false);
+    expect((await post('fact/f1', { action: 'forget' })).status).toBe(418);
+    expect(actions.applyKnownAction).not.toHaveBeenCalled();
   });
 });
