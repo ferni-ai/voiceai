@@ -9,13 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
 import { BUDGET_TOKENS, MAX_LINES, WORLD_FACTS_RULE, worldFactLines } from '../in-call.js';
-import {
-  forgetForCallerAndCall,
-  forgetWorldFactsInCall,
-  loadWorldFactsForCall,
-  worldFactLinesFor,
-  worldFactsNoteFor,
-} from '../in-call-load.js';
+import { forgetForCaller } from '../../../../memory/recall/forget.js';
+import { loadWorldFactsForCall, worldFactLinesFor, worldFactsNoteFor } from '../in-call-load.js';
 import { recordWorldObservations } from '../ingest.js';
 import type { WorldFactStore } from '../store.js';
 import type { WorldObservation } from '../types.js';
@@ -46,12 +41,12 @@ function obs(
 }
 
 /** Two calls through the real sink: a job on Oct 1, then a new job and some dates on Oct 9. */
-async function seeded(): Promise<ReturnType<typeof createMemoryWorldFactStore>> {
+async function seeded(userId = 'u1'): Promise<ReturnType<typeof createMemoryWorldFactStore>> {
   const store = createMemoryWorldFactStore();
   let n = 0;
   const deps = { store, env: ON, judge: async () => [], newId: () => `wf${++n}` };
   await recordWorldObservations(
-    'u1',
+    userId,
     'call-1',
     [
       obs('self', 'job', 'works at Acme', '2026-10-01T18:00:00.000Z'),
@@ -64,7 +59,7 @@ async function seeded(): Promise<ReturnType<typeof createMemoryWorldFactStore>> 
   );
   const oct9 = '2026-10-09T18:00:00.000Z';
   await recordWorldObservations(
-    'u1',
+    userId,
     'call-2',
     [
       obs('self', 'job', 'started at Beta', oct9, { since: '2026-10-05' }),
@@ -198,24 +193,25 @@ describe('loadWorldFactsForCall', () => {
     await loadWorldFactsForCall(call, 'u1', { store, forgotten: async () => ['beta'], env: ON });
     expect(worldFactsNoteFor(call, opts())).not.toContain('Beta');
     expect(worldFactsNoteFor(call, opts())).toContain('Stripe');
-    forgetWorldFactsInCall(call, 'the Stripe interview');
+    expect((await forgetForCaller('u1', 'the Stripe interview')).kind).toBe('forgotten');
     expect(worldFactsNoteFor(call, opts())).not.toContain('Stripe');
   });
 
   it('forgetMemory drops the topic from the call when the stored forget went through', async () => {
     const call = {};
-    await loadWorldFactsForCall(call, 'u1', {
-      store: await seeded(),
+    await loadWorldFactsForCall(call, 'u3', {
+      store: await seeded('u3'),
       forgotten: noTopics,
       env: ON,
     });
     expect(worldFactsNoteFor(call, opts())).toContain('Stripe');
     // No caller account: nothing was forgotten, so nothing changes on the call either.
-    expect((await forgetForCallerAndCall(call, 'anonymous', 'Stripe')).kind).toBe('failed');
+    expect((await forgetForCaller('anonymous', 'Stripe')).kind).toBe('failed');
     expect(worldFactsNoteFor(call, opts())).toContain('Stripe');
-    expect((await forgetForCallerAndCall(call, 'u1', 'the Stripe interview')).kind).toBe(
-      'forgotten'
-    );
+    // Another caller's forget never reaches this call.
+    expect((await forgetForCaller('u2', 'the Stripe interview')).kind).toBe('forgotten');
+    expect(worldFactsNoteFor(call, opts())).toContain('Stripe');
+    expect((await forgetForCaller('u3', 'the Stripe interview')).kind).toBe('forgotten');
     expect(worldFactsNoteFor(call, opts())).not.toContain('Stripe');
   });
 

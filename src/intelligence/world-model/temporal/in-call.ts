@@ -19,7 +19,7 @@
  * @module intelligence/world-model/temporal/in-call
  */
 
-import { forgetTokens, isForgotten } from '../../../memory/recall/session-recall.js';
+import { forgetTokens, isForgotten } from '../../../memory/index.js';
 import type { TemporalFact } from './types.js';
 
 /** True when WORLD_FACTS_IN_CALL=on. Off by default. */

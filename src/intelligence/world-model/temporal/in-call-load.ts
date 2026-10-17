@@ -1,19 +1,15 @@
 /**
  * The caller's open world facts, loaded once when the call starts
  * (WORLD_FACTS_IN_CALL=on) and kept per call for every turn's note
- * (in-call.ts). Keyed by the call's userData, which the turn request, the
- * agent setup and the forgetMemory tool all hold. A slow or failed load means
- * no block on this call, never an error; a forget during the call applies at
- * once.
+ * (in-call.ts). Keyed by the call's userData, which the turn request and
+ * the agent setup both hold. A slow or failed load means no block on this
+ * call, never an error; a forget during the call (forgetMemory) applies at
+ * once, through forget.ts's in-process record.
  *
  * @module intelligence/world-model/temporal/in-call-load
  */
 
-import {
-  forgetForCaller,
-  forgottenTopics,
-  type ForgetResult,
-} from '../../../memory/recall/forget.js';
+import { forgottenInProcess, forgottenTopicsOrNull } from '../../../memory/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   isWorldFactsInCallOn,
@@ -32,6 +28,7 @@ export const LOAD_TIMEOUT_MS = 2_000;
 interface CallFacts {
   facts: TemporalFact[];
   forgotten: string[];
+  userId: string;
 }
 const calls = new WeakMap<object, CallFacts>();
 
@@ -58,51 +55,38 @@ export async function loadWorldFactsForCall(
 ): Promise<void> {
   if (!isWorldFactsInCallOn(deps.env) || !userId || userId === 'anonymous') return;
   const store = deps.store ?? createFirestoreWorldFactStore();
-  const topics = deps.forgotten ?? ((id: string) => forgottenTopics(id));
+  const topics = deps.forgotten ?? (async (id: string) => (await forgottenTopicsOrNull(id)) ?? []);
   try {
     const [facts, forgotten] = await within(
       Promise.all([store.listOpen(userId), topics(userId)]),
       deps.timeoutMs ?? LOAD_TIMEOUT_MS
     );
-    const known = calls.get(call)?.forgotten ?? []; // forgotten while loading
-    calls.set(call, { facts, forgotten: [...forgotten, ...known] });
+    calls.set(call, { facts, forgotten, userId });
     log.info({ facts: facts.length }, 'WORLD_FACTS_LOADED'); // counts only
   } catch (error) {
     log.warn({ error: String(error) }, 'World facts not loaded for this call');
   }
 }
 
-/** The caller asked to forget `topic` on this call: no fact about it shows again. */
-export function forgetWorldFactsInCall(call: object | undefined, topic: string): void {
-  if (!call) return;
-  const known = calls.get(call) ?? { facts: [], forgotten: [] };
-  calls.set(call, { ...known, forgotten: [...known.forgotten, topic] });
-}
-
 /**
- * forgetForCaller (forget.ts: stored memory, so no later call recalls it), and
- * this call's loaded world facts at once.
+ * Topics recorded before the call, and any forgotten since in this process
+ * (forget.ts forgottenInProcess), so a forget asked on this call applies at once.
  */
-export async function forgetForCallerAndCall(
-  call: object | undefined,
-  userId: string | undefined,
-  topic: string
-): Promise<ForgetResult> {
-  const result = await forgetForCaller(userId, topic);
-  if (result.kind === 'forgotten') forgetWorldFactsInCall(call, topic);
-  return result;
-}
+const forgottenNow = (known: CallFacts): string[] => [
+  ...known.forgotten,
+  ...forgottenInProcess(known.userId),
+];
 
 type TurnOptions = Omit<InCallOptions, 'forgotten'>;
 
 /** This turn's lines (CONTEXT_PACKET on); [] when off, not loaded or nothing is timely. */
 export function worldFactLinesFor(call: object | undefined, opts: TurnOptions): string[] {
   const known = call && isWorldFactsInCallOn() ? calls.get(call) : undefined;
-  return known ? worldFactLines(known.facts, { ...opts, forgotten: known.forgotten }) : [];
+  return known ? worldFactLines(known.facts, { ...opts, forgotten: forgottenNow(known) }) : [];
 }
 
 /** This turn's legacy note (CONTEXT_PACKET off); '' when off, not loaded or nothing is timely. */
 export function worldFactsNoteFor(call: object | undefined, opts: TurnOptions): string {
   const known = call && isWorldFactsInCallOn() ? calls.get(call) : undefined;
-  return known ? worldFactsNote(known.facts, { ...opts, forgotten: known.forgotten }) : '';
+  return known ? worldFactsNote(known.facts, { ...opts, forgotten: forgottenNow(known) }) : '';
 }
