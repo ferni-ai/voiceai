@@ -374,4 +374,31 @@ describe('REMINDER_SMS_DEFAULT off (today)', () => {
     expect(state.guarded).toEqual([]);
     expect(state.legacyTexts).toEqual([{ to: MODEL_NUMBER, message: 'take the bread out' }]);
   });
+
+  it("a 'verified-own' text still takes the guarded sender, never the old one", async () => {
+    // Maya's notifications and the Alex tools store these whatever the flag says.
+    await setReminder({});
+    Object.assign(stored()[0], {
+      deliveryMethod: 'sms',
+      deliveryAddress: VERIFIED,
+      addressSource: 'verified-own',
+    });
+    await deliverDueReminders({ now: soon() });
+    expect(state.guarded).toEqual([{ to: VERIFIED, body: BODY }]);
+    expect(state.legacyTexts).toEqual([]);
+  });
+
+  it("a held 'verified-own' text (STOP) goes to the app, never the old sender", async () => {
+    await setReminder({});
+    Object.assign(stored()[0], {
+      deliveryMethod: 'sms',
+      deliveryAddress: VERIFIED,
+      addressSource: 'verified-own',
+    });
+    state.optedOut = true;
+    await deliverDueReminders({ now: soon() });
+    expect(state.guarded).toEqual([]);
+    expect(state.legacyTexts).toEqual([]);
+    expect(state.inApp).toEqual(['take the bread out']);
+  });
 });

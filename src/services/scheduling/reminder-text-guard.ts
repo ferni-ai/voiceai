@@ -40,12 +40,18 @@ export function installReminderTextGuard(next: ReminderTextGuard | undefined): v
 /** True when deliverReminder held this reminder to a later time instead of delivering it. */
 export const wasHeld = (reminder: ScheduledReminder): boolean => held.has(reminder);
 
-/** null: not a text, or the flag is off, so deliver it as before. */
+/**
+ * null: not a text, or the flag is off and the reminder isn't 'verified-own', so deliver it
+ * as before. A 'verified-own' text (stored for the account's verified phone: setReminder,
+ * Maya's notifications, the Alex tools) always takes the guard, flag or not: those writers
+ * chose that number so it could be texted safely, never through the old sender.
+ */
 export async function textThroughGuard(
   reminder: ScheduledReminder,
   env: Record<string, string | undefined> = process.env
 ): Promise<GuardedTextOutcome | null> {
-  if (!isReminderSmsDefaultOn(env) || !TEXT_METHODS.includes(reminder.deliveryMethod)) return null;
+  if (!TEXT_METHODS.includes(reminder.deliveryMethod)) return null;
+  if (!isReminderSmsDefaultOn(env) && reminder.addressSource !== 'verified-own') return null;
   if (!guard) {
     log.warn(
       { reminderId: reminder.id },
