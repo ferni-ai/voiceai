@@ -79,8 +79,8 @@ function agent(): PersonaVoiceAgent {
   });
 }
 
-/** An app call wired the way persona-agent-factory wires it, with a manual clock. */
-async function appCall(env: Record<string, string>) {
+/** An app (or phone) call wired the way persona-agent-factory wires it, with a manual clock. */
+async function appCall(env: Record<string, string>, kind = ParticipantKind.STANDARD) {
   const sessionId = newId();
   const session = new EventEmitter();
   const events: string[] = [];
@@ -89,11 +89,12 @@ async function appCall(env: Record<string, string>) {
   initFrontendSignal(sessionId, async (type, data) => {
     events.push(`${type} ${String(data?.reason)}`);
   });
-  await attachCallWrapUp(agent(), {
+  const a = agent();
+  const added = await attachCallWrapUp(a, {
     sessionId,
     room: { name: `room-${sessionId}`, remoteParticipants: { size: 1 } },
     session,
-    participant: { kind: ParticipantKind.STANDARD },
+    participant: { kind },
     onBehalf: false,
     env,
     hangUp: async (room) => void events.push(`deleted ${room}`),
@@ -113,7 +114,7 @@ async function appCall(env: Record<string, string>) {
       setTimeout(r, 0);
     });
   };
-  return { sessionId, session, events, timers, fire };
+  return { sessionId, session, events, timers, fire, a, added };
 }
 
 describe('idle window after the goodbyes', () => {
@@ -142,6 +143,40 @@ describe('idle window after the goodbyes', () => {
     expect(c.session.listenerCount(voice.AgentSessionEventTypes.ConversationItemAdded)).toBe(0);
     expect(stayQuietOn(c.session, { CALL_WRAP_UP: 'on' })).toBe(false);
     expect(c.events).toEqual([]);
+  });
+});
+
+describe('phone calls after the goodbyes', () => {
+  const { SIP } = ParticipantKind;
+  const blocked = (id: string) =>
+    silenceResponseBlocked(id, undefined, 30, { lastUserMessage: 'bye' });
+
+  it('CALL_WRAP_UP on: quiet after the goodbyes, then the idle end hangs up the line', async () => {
+    vi.stubEnv('CALL_WRAP_UP', 'on');
+    const c = await appCall({ CALL_WRAP_UP: 'on', PHONE_GOODBYE: 'on' }, SIP);
+    expect(c.added).toBe(true); // PHONE_GOODBYE's endCall, kept
+    expect(c.a.toolCtx.functionTools.endCall?.description).toMatch(/Hang up this phone call/);
+    expect(blocked(c.sessionId)).toBe(false);
+
+    goodbyes(c.session);
+    expect(stayQuietOn(c.session)).toBe(true);
+    expect(blocked(c.sessionId)).toBe(true); // no silence remark after "bye"
+    expect([...c.timers.values()].map((t) => t.ms)).toEqual([IDLE_AFTER_GOODBYE_MS]);
+
+    await c.fire(IDLE_AFTER_GOODBYE_MS);
+    expect(isSessionClosing(c.sessionId)).toBe(true);
+    await c.fire(0); // no app to leave on its own: the line drops at once
+    expect(c.events.at(-1)).toBe(`deleted room-${c.sessionId}`);
+  });
+
+  it('CALL_WRAP_UP off: a phone call watches nothing, as before', async () => {
+    const c = await appCall({ PHONE_GOODBYE: 'on' }, SIP);
+    expect(c.added).toBe(true);
+    goodbyes(c.session);
+    expect(c.session.listenerCount(voice.AgentSessionEventTypes.ConversationItemAdded)).toBe(0);
+    expect(c.timers.size).toBe(0);
+    expect(stayQuietOn(c.session, { CALL_WRAP_UP: 'on' })).toBe(false);
+    expect(blocked(c.sessionId)).toBe(false);
   });
 });
 
