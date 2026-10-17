@@ -32,6 +32,10 @@ vi.mock('@livekit/agents', () => ({
 vi.mock('../weather.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../weather.js')>()),
   getCurrentWeather: vi.fn(async (location: string) => `current weather for ${location}`),
+  currentWeatherWithin: vi.fn(async (location: string) => ({
+    text: `current weather for ${location}`,
+    timedOut: false,
+  })),
   getWeatherForecast: vi.fn(async (location: string) => `forecast for ${location}`),
 }));
 

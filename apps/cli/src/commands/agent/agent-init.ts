@@ -404,8 +404,8 @@ const VOICE_LIBRARY: VoiceOption[] = [
     accent: 'american',
   },
   {
-    id: '3ebcd114-d280-4eed-a238-b9323a6b8e52',
-    name: 'Joel',
+    id: '921034a2-aace-4ef7-87b1-b9bc455c9a15',
+    name: 'Edric',
     description: 'Professional, knowledgeable, clear',
     gender: 'male',
     accent: 'american',

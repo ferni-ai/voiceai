@@ -27,6 +27,7 @@ import { ChildProcess, execSync, spawn } from 'child_process';
 import { createWriteStream, existsSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { healthCheck, smokeTestFrontend } from './url-checks.js';
+import { buildFrontend } from './web-build-env.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -513,10 +514,9 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
     return true;
   }
 
-  // Build frontend first
   if (!options.skipBuild) {
-    log.info('Building frontend...');
-    exec(`cd ${frontendDir} && npm run build`);
+    log.info('Building frontend with the repo VITE_* variables CI uses...');
+    buildFrontend(frontendDir);
   }
 
   // Step 1: Deploy to preview channel (blue-green)

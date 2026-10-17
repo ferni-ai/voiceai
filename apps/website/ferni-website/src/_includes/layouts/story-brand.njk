@@ -168,18 +168,7 @@
   </script>
   
   {# ====== ANALYTICS ====== #}
-  {% if site.analytics.gaId %}
-  <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '{{ site.analytics.gaId }}', {
-      page_title: '{{ title }}',
-      page_path: '{{ page.url }}'
-    });
-  </script>
-  {% endif %}
+  {% include "partials/analytics.njk" %}
 </head>
 <body>
   {{ content | safe }}
@@ -378,24 +367,31 @@
     });
     
     // ========== COOKIE CONSENT ==========
+    // Analytics stays denied (partials/analytics.njk) until Accept.
     window.handleCookies = function(accepted) {
-      localStorage.setItem('ferni_cookies', accepted ? 'accepted' : 'declined');
+      try {
+        localStorage.setItem('ferni_cookies', accepted ? 'accepted' : 'declined');
+      } catch (e) {
+        // Storage blocked: the choice holds for this page only.
+      }
       var banner = document.getElementById('cookieBanner');
-      banner.classList.remove('is-visible');
-      banner.classList.add('is-hidden');
-      
-      if (accepted && typeof gtag === 'function') {
-        gtag('consent', 'update', {
-          'analytics_storage': 'granted'
-        });
+      if (banner) {
+        banner.classList.remove('is-visible');
+        banner.classList.add('is-hidden');
+      }
+
+      if (accepted && typeof window.ferniGrantAnalytics === 'function') {
+        window.ferniGrantAnalytics();
       }
     };
-    
+
     // Show banner if not decided
-    const cookieChoice = localStorage.getItem('ferni_cookies');
+    let cookieChoice = null;
+    try { cookieChoice = localStorage.getItem('ferni_cookies'); } catch (e) { cookieChoice = null; }
     if (!cookieChoice) {
       setTimeout(() => {
-        document.getElementById('cookieBanner').classList.add('is-visible');
+        var pending = document.getElementById('cookieBanner');
+        if (pending) pending.classList.add('is-visible');
       }, 2000);
     }
     

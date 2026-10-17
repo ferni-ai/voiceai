@@ -17,6 +17,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { saveWin, logEnergy, logGratitude, saveJournalEntry, getEnergyTrend } from './storage.js';
 import { checkImmediateTrigger } from '../../../services/ceo-coaching/proactive-triggers.js';
+import { OWN_NOTE_REFUSAL, refuseOwnNote } from '../../utils/own-note.js';
 
 const log = getLogger();
 
@@ -268,6 +269,7 @@ export const quickJournalDef: ToolDefinition = {
         mood: z.enum(['great', 'good', 'okay', 'low', 'rough']).optional().describe('Current mood'),
       }),
       execute: async ({ text, mood }) => {
+        if (refuseOwnNote(text)) return OWN_NOTE_REFUSAL;
         const userId = ctx.userId;
         if (!userId) {
           return 'I need to know who you are to save your journal entry.';

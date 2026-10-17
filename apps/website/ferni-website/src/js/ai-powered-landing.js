@@ -530,6 +530,9 @@
   const PersonaPreviews = {
     init() {
       if (!CONFIG.enablePersonaPreviews) return;
+      // ai-copy-magic.js adds its own "ask me" input to every team card (with
+      // offline sample replies), so a second one here would double it up.
+      if (window.FerniAICopyMagic) return;
 
       this.enhanceTeamCards();
     },

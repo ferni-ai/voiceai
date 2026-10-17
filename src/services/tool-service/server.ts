@@ -10,6 +10,7 @@
  *   pnpm service:tools
  */
 
+import '../../utils/log-redaction-install.js'; // mask phone numbers in all logs, first
 import express from 'express';
 import { getLogger } from '../../utils/safe-logger.js';
 import { toolRegistry } from '../../tools/registry/index.js';

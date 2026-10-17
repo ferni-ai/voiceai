@@ -10,10 +10,9 @@
  * spend a day's budget a minute at a time. Anonymous callers, whose uids are
  * free to mint, share one hourly pool (TRANSCRIBE_ANON_MAX_PER_HOUR, default
  * 200). Above that, one emergency breaker caps everyone together
- * (TRANSCRIBE_MAX_PER_HOUR, default 2000). It is set far above real use: it
- * exists to bound the bill if many accounts on many addresses spend at once,
- * and tripping it pauses transcription for an hour rather than letting the
- * spend run. Pair it with a billing budget alert.
+ * (TRANSCRIBE_MAX_PER_HOUR, default 2000 calls). Calls don't bound the bill,
+ * since Vertex bills by audio length: that bound is the audio-minute budget
+ * every transcription is charged to (services/custom-agent/transcribe-budget.ts).
  *
  * @module api/journal-transcribe-limits
  */

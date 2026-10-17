@@ -75,6 +75,17 @@ describe('PUT /api/contacts/:id', () => {
     expect(saved).toMatchObject({ userId: 'u1', strengthScore: 50, id: 'doc1', notes: 'still friends' });
   });
 
+  it('a photo too big for the contact document is refused with a 413, and nothing is saved', async () => {
+    // 800 KB: under #1575's 1 MB body cap, over the 1 MiB document once the rest is added.
+    expect(await put({ photo: `data:image/jpeg;base64,${'A'.repeat(800 * 1024)}` })).toBe(413);
+    expect(upsertContact).not.toHaveBeenCalled();
+  });
+
+  it('a resized photo is saved', async () => {
+    expect(await put({ photo: `data:image/jpeg;base64,${'A'.repeat(200 * 1024)}` })).toBe(200);
+    expect(upsertContact.mock.calls[0][1]).toHaveProperty('photo');
+  });
+
   it('a blank name is refused, and nothing is saved', async () => {
     expect(await put({ name: '  ' })).toBe(400);
     expect(upsertContact).not.toHaveBeenCalled();
