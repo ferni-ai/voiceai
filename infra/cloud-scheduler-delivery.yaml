@@ -62,3 +62,16 @@ jobs:
       retryCount: 1
       minBackoffDuration: 30s
       maxBackoffDuration: 120s
+
+  - name: follow-through
+    description: Text each person the follow-up due for them now (FOLLOW_THROUGH_JOB)
+    schedule: "*/5 * * * *"
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/follow-through
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 0

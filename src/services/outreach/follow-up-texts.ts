@@ -59,6 +59,8 @@ export interface FollowUpTextReport {
   sent: number;
   /** Would have been sent, in a dry run. */
   wouldSend: number;
+  /** The follow-up ids a dry run would have texted (hashed ids, never text or numbers). */
+  wouldSendIds: string[];
   expired: number;
   notInCohort: number;
   held: Record<string, number>;
@@ -101,6 +103,7 @@ export async function sendDueFollowUpTexts(
     people: people.size,
     sent: 0,
     wouldSend: 0,
+    wouldSendIds: [],
     expired: 0,
     notInCohort: 0,
     held: {},
@@ -122,6 +125,7 @@ export async function sendDueFollowUpTexts(
     }
     if (dryRun) {
       report.wouldSend++;
+      report.wouldSendIds.push(pick.id);
       continue;
     }
     const outcome = await deps.sendText({
