@@ -126,7 +126,7 @@ function fromFact(f: KnownFact): KnownItem {
   };
 }
 
-function fromWorld(f: TemporalFact): KnownItem {
+function fromWorld(f: TemporalFact, kept: Kept): KnownItem {
   const attribute = f.attribute.replace(/_/g, ' ');
   return {
     id: f.id,
@@ -135,20 +135,21 @@ function fromWorld(f: TemporalFact): KnownItem {
     ...(f.subjectKind === 'person' && { about: f.subject }),
     ...(f.relation && { relation: f.relation }),
     source: 'told',
-    ...(f.source?.quote && { quote: f.source.quote }),
+    // The quote is shown words too: it goes when it names a forgotten topic.
+    ...(f.source?.quote && kept(f.source.quote) && { quote: f.source.quote }),
     at: f.observedAt,
     ...(f.eventDate && { day: f.eventDate }),
   };
 }
 
-function fromPattern(p: Pattern): KnownItem {
+function fromPattern(p: Pattern, kept: Kept): KnownItem {
   const latest = p.moments[p.moments.length - 1];
   return {
     id: p.key,
     kind: 'pattern',
     text: p.statement,
     source: 'noticed',
-    ...(latest?.cue && { quote: latest.cue }),
+    ...(latest?.cue && kept(latest.cue) && { quote: latest.cue }),
     at: p.lastSeen,
   };
 }
@@ -194,7 +195,7 @@ function readings(mind: MindModel | null, kept: Kept): KnownItem[] {
   );
   const sensitivities = (mind?.sensitivities ?? []).filter((x) => kept(`${x.topic} ${x.how}`));
   return [
-    ...established.map(fromPattern),
+    ...established.map((p) => fromPattern(p, kept)),
     ...sensitivities.map((s): KnownItem => ({
       id: hashId(s.topic),
       kind: 'sensitivity',
@@ -231,7 +232,7 @@ export function buildKnownView(parts: KnownParts, now: Date, withPondering: bool
       f.validTo === null && SAFE_ID.test(f.id) && kept(`${f.subject} ${f.attribute} ${f.value}`)
   );
   for (const w of current) {
-    const item = fromWorld(w);
+    const item = fromWorld(w, kept);
     if (item.day === undefined) fileLife(view, item);
     else if (item.day >= earliest) view.dates.push(item);
   }
