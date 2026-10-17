@@ -18,7 +18,7 @@
  * Not wired yet: nothing constructs a conductor outside tests.
  */
 
-import type { Sequence, SequenceStep } from '../../config/sequences.generated.js';
+import type { Sequence, SequenceStep } from '../../config/motion-sequences.js';
 import type { CallState, Mood, Transition } from './call-types.js';
 import { createTrace, type ChannelId, type TraceEntry } from './conductor-trace.js';
 
