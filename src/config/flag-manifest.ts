@@ -229,6 +229,7 @@ export const FLAG_MANIFEST = {
   LOG_BUILDER_CATEGORIES: { default: 'off', owner: 'intelligence', kind: 'config' },
   LOG_CONTEXT_BUILDS: { default: 'off', owner: 'voice', kind: 'config' },
   LOG_FULL_RESPONSES: { default: 'off', owner: 'platform', kind: 'config' },
+  LOG_PHONE_REDACTION: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   MAYA_PROACTIVE_CHECKS: { default: 'off', owner: 'platform', kind: 'experiment' },
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
