@@ -41,7 +41,7 @@ vi.mock('../../../../../services/superhuman/semantic-intelligence/promise-keeper
 }));
 
 import type { ToolContext } from '../../../../registry/types.js';
-import { getAgentToUserOutreachDefinitions } from '../agent-to-user.js';
+import { getAgentToUserOutreachDefinitions, getUserContactInfo } from '../agent-to-user.js';
 import { setCallUserPort } from '../call-user-port.js';
 
 const ctx: ToolContext = {
@@ -139,5 +139,15 @@ describe('an email address the model saved is never used', () => {
     expect(
       sent.reminder.mock.calls.map((c) => (c[0] as { deliveryAddress: string }).deliveryAddress)
     ).toEqual(['owner@example.com']);
+  });
+});
+
+describe('the saved contact info', () => {
+  it('hands out only preferences, never the saved phone or email', async () => {
+    await run('saveContactInfo', { phone: STRANGER, email: 'stranger@example.com' });
+    const info = await getUserContactInfo(ctx.userId);
+    expect(info?.preferredMethod).toBe('sms');
+    expect(info?.phone).toBeUndefined();
+    expect(info?.email).toBeUndefined();
   });
 });

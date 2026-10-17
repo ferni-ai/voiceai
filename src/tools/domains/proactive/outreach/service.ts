@@ -40,9 +40,8 @@ import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 import { getCallUserPort } from './call-user-port.js';
 
 /**
- * The number we text or ring the user on: the verified phone on the account (the
- * call-user port, as callUser uses), never contactInfo.phone, which saveContactInfo
- * writes from whatever the model heard. No port installed in this process: none.
+ * The number we text or ring the user on: the verified phone (the call-user port, as callUser
+ * uses), never contactInfo.phone, which saveContactInfo writes from whatever the model heard.
  */
 const verifiedPhone = async (userId: string): Promise<string | undefined> =>
   getCallUserPort()?.verifiedPhone(userId);
@@ -55,7 +54,7 @@ export const NO_VERIFIED_EMAIL = 'No verified email address on this account';
 export const SAVED_NOT_VERIFIED =
   'I only text, call or email the phone number and email verified on your account, so if this is new, verify it in Settings first.';
 
-/** A Twilio call in the persona's voice (Cartesia TTS, Twilio's own voice as fallback). */
+/** A Twilio call in the persona's voice (Cartesia TTS, else Twilio's voice). */
 async function makePhoneCall(
   phone: string,
   message: string,
@@ -65,9 +64,7 @@ async function makePhoneCall(
     const result = await callWithPersonaVoice(phone, message, personaId, {
       fallbackToTwilioVoice: true,
     });
-    if (result.success) {
-      return { success: true, callSid: result.callSid };
-    }
+    if (result.success) return { success: true, callSid: result.callSid };
     return { success: false, error: result.message };
   } catch (error) {
     getLogger().error({ error, personaId }, 'makePhoneCall failed');
@@ -83,10 +80,7 @@ interface SimpleToolDefinition {
   handler: (params: Record<string, unknown>, context: ToolContext) => Promise<string>;
 }
 
-interface ToolContext {
-  userId?: string;
-  personaId?: string;
-}
+type ToolContext = { userId?: string; personaId?: string };
 
 // ============================================================================
 // TYPES
@@ -157,11 +151,17 @@ export async function setUserContactInfo(
 }
 
 /**
- * Get user's contact information.
- * Checks cache first, then loads from profile if not found.
+ * The user's contact info: the verified phone and email (the call-user port), with the
+ * saved preferred method and timezone. The saved phone and email are never handed out.
  */
 export async function getUserContactInfo(userId: string): Promise<UserContactInfo | undefined> {
-  // Check cache first
+  const saved = await savedContactInfo(userId);
+  const [phone, email] = await Promise.all([verifiedPhone(userId), verifiedEmail(userId)]);
+  return saved || phone || email ? { ...saved, phone, email } : undefined;
+}
+
+/** What saveContactInfo stored (cached); only its preferred method and timezone are used. */
+async function savedContactInfo(userId: string): Promise<UserContactInfo | undefined> {
   const cached = userContactCache.get(userId);
   if (cached) return cached;
 

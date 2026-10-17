@@ -107,13 +107,20 @@ export async function setUserContactInfo(
   }
 }
 
+/** The saved phone and email were written from whatever the model heard: never handed out. */
+const withoutAddresses = ({ preferredMethod, timezone }: UserContactInfo): UserContactInfo => ({
+  preferredMethod,
+  timezone,
+});
+
 /**
- * Get user's contact info
+ * The user's saved outreach preferences (preferred method, timezone). Their phone and
+ * email for reaching them come only from the call-user port's verified ones.
  */
 export async function getUserContactInfo(userId: string): Promise<UserContactInfo | null> {
   // Check cache first
   if (userContactCache.has(userId)) {
-    return userContactCache.get(userId)!;
+    return withoutAddresses(userContactCache.get(userId)!);
   }
 
   // Try to load from Firestore
@@ -129,7 +136,7 @@ export async function getUserContactInfo(userId: string): Promise<UserContactInf
 
     if (contactInfo) {
       userContactCache.set(userId, contactInfo);
-      return contactInfo;
+      return withoutAddresses(contactInfo);
     }
   } catch (error) {
     log.warn({ userId, error: String(error) }, 'Failed to load contact info');
