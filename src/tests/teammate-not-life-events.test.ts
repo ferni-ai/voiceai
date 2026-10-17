@@ -210,3 +210,83 @@ describe("a teammate's notes in another persona's prompt", () => {
     );
   });
 });
+
+/**
+ * Verifier round 4 (2026-10-16): with Jordan the persona on the call, summary threads that
+ * make Jordan the subject ("Has Jordan helped with the planning?") passed every wording
+ * rule, because "Jordan has/was/got" also reads as a friend's news. The call's own
+ * evidence decides: a teammate who spoke as themself, or was spoken to, was on the call.
+ */
+describe('a teammate who was on this call', () => {
+  const CALL = [
+    { role: 'user', content: "I'm going to talk to Jordan." },
+    { role: 'assistant', content: "Hi, I'm Jordan. What are we planning?" },
+    { role: 'user', content: 'Hey Jordan, can you help me do some planning' },
+    { role: 'assistant', content: 'Of course. Where to?' },
+    { role: 'user', content: 'My trip to Denver in May' },
+  ];
+  const SIX = [
+    'Has Jordan helped with the planning?',
+    'Did Jordan plan the trip to Denver?',
+    'Follow up with Jordan on the trip',
+    'Jordan was going to help plan the Denver trip',
+    'Jordan has the Denver trip plan',
+    'Check whether Jordan got the trip to Denver together',
+  ];
+
+  it('is never a thread, key point, follow-up or topic of theirs, however it is worded', () => {
+    const summary = withCallerProvenance(
+      {
+        mainTopics: ['Planning with Jordan', 'Trip to Denver'],
+        keyPoints: SIX,
+        questionsRemaining: SIX,
+        followUpItems: [...SIX, 'Ask about the trip to Denver in May'],
+      },
+      CALL
+    );
+    expect(summary.keyPoints).toEqual([]);
+    expect(summary.questionsRemaining).toEqual([]);
+    expect(summary.followUpItems).toEqual(['Ask about the trip to Denver in May']);
+    expect(summary.mainTopics).toEqual(['Trip to Denver']);
+    for (const item of SIX) expect(summary.assistantRaisedItems).toContain(item);
+  });
+
+  it('still counts someone they know by that name, said as theirs', () => {
+    const summary = withCallerProvenance(
+      { mainTopics: ["Jordan's wedding", 'Their sister Jordan moving'], keyPoints: [] },
+      [
+        ...CALL,
+        { role: 'user', content: "My sister Jordan is moving, and Jordan's wedding is soon" },
+      ]
+    );
+    expect(summary.mainTopics).toEqual(["Jordan's wedding", 'Their sister Jordan moving']);
+  });
+
+  it('changes nothing when that teammate was not on the call', () => {
+    const summary = withCallerProvenance({ mainTopics: ['Jordan got a new job'], keyPoints: [] }, [
+      { role: 'user', content: 'Jordan got a new job and I am happy for him' },
+    ]);
+    expect(summary.mainTopics).toEqual(['Jordan got a new job']);
+  });
+
+  const momentsAfter = (assistant: string | null, line: string) => {
+    const engine = new UserLearningEngine();
+    if (assistant) engine.processAssistantTurn(assistant);
+    engine.processUserTurn(line, analysis(0.9), profile());
+    return engine.finalizeSession(profile()).keyMoments;
+  };
+
+  it('gives the distress fallback no concern for a line naming them', () => {
+    for (const line of [
+      'Jordan will help me plan the wedding',
+      'Jordan please help me plan all of this',
+    ]) {
+      expect(momentsAfter("Hi, I'm Jordan.", line), line).toEqual([]);
+    }
+  });
+
+  it('leaves the fallback for their own news, and for that name when the teammate is not there', () => {
+    expect(momentsAfter("Hi, I'm Jordan.", 'My mom is in the hospital again')).toHaveLength(1);
+    expect(momentsAfter(null, 'Jordan will help me plan the wedding')).toHaveLength(1);
+  });
+});

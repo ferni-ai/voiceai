@@ -5,7 +5,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { isTeammateTalk, onlyTeammateTalk, withoutTeammateTalk } from '../../utils/teammate-talk.js';
+import { callerOwnWords, isTeammateTalk, namesTeammateOnCall } from '../../utils/teammate-talk.js';
 import type { UserProfile, KeyMoment, EmotionalPattern } from '../../types/user-profile.js';
 import type { EmotionResult } from '../emotion-detector.js';
 import type { IntentResult } from '../intent-classifier.js';
@@ -298,7 +298,7 @@ export class UserLearningEngine {
       state: ConversationState;
     }
   ): KeyMoment | null {
-    message = onlyTeammateTalk(message) ? '' : withoutTeammateTalk(message); // not a teammate
+    message = callerOwnWords(message); // not a teammate
 
     const messageLower = message.toLowerCase();
     const vulnerabilityPatterns = [
@@ -396,8 +396,8 @@ export class UserLearningEngine {
       }
     }
 
-    // High distress without pattern match = concern
-    if (!type && message && analysis.emotion.distressLevel > 0.7) {
+    const toTeammate = namesTeammateOnCall(message, this.conversationHistory); // not a concern
+    if (!type && message && !toTeammate && analysis.emotion.distressLevel > 0.7) {
       type = 'concern';
       emotionalWeight = 'heavy';
     }

@@ -20,7 +20,11 @@
  * @module memory/caller-assertions
  */
 import { flagOn, type Env } from '../config/env-flag.js';
-import { TEAM_FIRST_NAMES as TEAM_NAMES, isTeammateTalk } from '../utils/teammate-talk.js';
+import {
+  TEAM_FIRST_NAMES as TEAM_NAMES,
+  isTeammateTalk,
+  namesTeammateOnCall,
+} from '../utils/teammate-talk.js';
 import { CALLER_PROVENANCE, contentWords } from './recall/session-recall.js';
 
 export { CALLER_PROVENANCE };
@@ -238,6 +242,12 @@ export function withCallerProvenance<T extends ProvenanceSummary>(
     const items = summary[field];
     if (!Array.isArray(items)) continue;
     const kept = items.filter((item) => {
+      // "Has Jordan helped with the planning?" when Jordan was on this call: the call
+      // itself, whatever the wording. Only "my friend Jordan" or "Jordan's" keeps it.
+      if (namesTeammateOnCall(item, turns)) {
+        raised.add(item);
+        return false;
+      }
       // "Did you ever talk to Jordan about those plans?": a teammate, not their life
       const theirs = THREAD_FIELDS.has(field)
         ? backedBy(item, said) && !isTeammateTalk(item)

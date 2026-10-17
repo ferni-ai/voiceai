@@ -12,6 +12,7 @@ import {
   isTeammateTalk,
   lifeMoments,
   withoutTeammateTalk,
+  teammatesOnCall,
 } from '../teammate-talk.js';
 
 describe('withoutTeammateTalk', () => {
@@ -152,5 +153,22 @@ describe('the roster', () => {
     expect(HANDOFF_SPELLINGS).toBe(HEARD_AS);
     const ids = new Set(TEAM_MEMBERS.map((m) => m.memberId as string));
     for (const id of Object.values(HEARD_AS)) expect(ids.has(id), id).toBe(true);
+  });
+});
+
+describe('teammatesOnCall', () => {
+  const on = (role: string, content: string) => [...teammatesOnCall([{ role, content }])];
+
+  it('hears a teammate speaking as themself, or spoken to by name', () => {
+    expect(on('assistant', "Hi, I'm Jordan. What are we planning?")).toEqual(['jordan']);
+    expect(on('assistant', 'Peter here, what can I do?')).toEqual(['peter']);
+    expect(on('user', 'hey jorden can you help')).toEqual(['jordan']);
+    expect(on('user', 'That is all for today, thanks Maya')).toEqual(['maya']);
+  });
+
+  it('does not take a name said about someone for a teammate on the call', () => {
+    expect(on('assistant', "It's Maya's birthday soon, right?")).toEqual([]);
+    expect(on('user', 'Jordan got a new job')).toEqual([]);
+    expect(on('assistant', 'Jordan would know more about that.')).toEqual([]);
   });
 });

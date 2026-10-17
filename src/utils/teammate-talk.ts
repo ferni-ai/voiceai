@@ -132,6 +132,11 @@ export function withoutTeammateTalk(line: string): string {
     .trim();
 }
 
+/** A live caller line for an extractor: '' when it is only teammate talk, else without it. */
+export function callerOwnWords(line: string): string {
+  return onlyTeammateTalk(line) ? '' : withoutTeammateTalk(line);
+}
+
 /** What a stored moment wraps a quote in ("Made a decision to "…""). */
 const WRAPPER =
   /^\s*(?:user\s+)?(?:made a decision to|decided to|expressed concern about|opened up about|had a breakthrough:?|celebrated|reached a milestone:?)\s*/i;
@@ -193,4 +198,62 @@ const FILLER = new Set(
  */
 export function lifeMoments<T extends { summary: string }>(moments: readonly T[] | undefined): T[] {
   return (moments ?? []).filter((m) => !isTeammateTalk(m.summary));
+}
+
+/** First name for a spelling: "jorden" is Jordan (HEARD_AS), a team name is itself. */
+const firstName = (spelling: string): string =>
+  (HEARD_AS[spelling] ?? spelling).split('-')[0] ?? spelling;
+
+/** Every spelling of one teammate's first name, as a regex alternation. */
+const spellingsOf = (name: string): string =>
+  [...NAMES].filter((s) => firstName(s) === name).join('|');
+
+/** A teammate speaking as themself: "I'm Jordan", "this is Maya", "Peter here". */
+const SPEAKS_AS = re(
+  `\\b(?:i'm|i am|this is|it's|my name is)\\s+${N}\\b(?!'s)|^\\W*${N}\\s+here\\b`
+);
+
+export interface CallTurn {
+  role: string;
+  content: string;
+}
+
+/**
+ * The teammates this call itself shows were on it: one speaking as themself, or the
+ * caller saying their name to them ("Hey Jordan, ...", "..., thanks Maya"). The call's
+ * own evidence, not a guess from a name: with it, "Jordan" in a summary of this call is
+ * the persona, whatever the wording.
+ */
+export function teammatesOnCall(turns: readonly CallTurn[]): Set<string> {
+  const on = new Set<string>();
+  for (const { role, content } of turns) {
+    const heard =
+      role === 'user'
+        ? [VOCATIVE_START.exec(content), VOCATIVE_END.exec(content)]
+        : [SPEAKS_AS.exec(content)];
+    for (const m of heard) {
+      const spoken = m?.[0].match(re(N))?.[0];
+      if (spoken) on.add(firstName(spoken.toLowerCase()));
+    }
+  }
+  return on;
+}
+
+/**
+ * True when `text` names a teammate who was on this call (teammatesOnCall), with no
+ * relation or possessive that makes the name someone they know ("my friend Jordan",
+ * "Jordan's wedding"). "Has Jordan helped with the planning?" is then about the call.
+ * The cost: a friend who shares an on-call teammate's name, named bare, is not kept.
+ */
+export function namesTeammateOnCall(text: string, turns: readonly CallTurn[]): boolean {
+  return [...teammatesOnCall(turns)].some((name) => {
+    const n = `(?:${spellingsOf(name)})`;
+    if (!re(`\\b${n}\\b`).test(text)) return false;
+    const theirs = [
+      re(`\\b(?:my|our|his|her|their|a)\\s+(?:\\w+\\s+)?(?:${RELATION})s?\\s*,?\\s+${n}\\b`),
+      re(`\\b${n},?\\s+(?:my|our)\\s+(?:${RELATION})\\b`),
+      re(`\\b${n}'s\\b`),
+    ];
+    return !theirs.some((p) => p.test(text));
+  });
 }
