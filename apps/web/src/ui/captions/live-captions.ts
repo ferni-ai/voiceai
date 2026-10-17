@@ -28,11 +28,14 @@
 
 import { t } from '../../i18n/index.js';
 import { appState } from '../../state/app.state.js';
-import { isCaptionsBreathEnabled } from './captions-flag.js';
+import { isCaptionsBreathEnabled, isCaptionsHeardEnabled } from './captions-flag.js';
+import { markHeard } from './heard-check.js';
+import { heardTurn, type HeardTurn } from './heard-turn.js';
 import {
   CAPTIONS_CALL_CLASS,
   injectBreathStyles,
   injectCaptionStyles,
+  injectHeardStyles,
 } from './live-captions.styles.js';
 import { captionsOn, mountCaptionsToggle } from './captions-toggle.js';
 import {
@@ -54,6 +57,7 @@ export interface CaptionEntry {
 const HISTORY_LIMIT = 200; // utterances kept in the history
 const RENDERED = 3; // utterances rendered in the live region
 const MAX_LINES = 2; // the last line or two; the sheet keeps the rest
+const CALLER_MAX_LINES = 5; // Heard: the caller's line above the reply; the room decides
 const IDLE_MS = 6000; // captions fade after this long without speech
 const BREATH_STEP_MS = 140; // Breath: delay between the words of one burst
 const BREATH_MAX_STEPS = 8; // later words share the last step, so a long burst lands quickly
@@ -201,11 +205,19 @@ class LiveCaptions {
   private wordsShown = false;
   private chips: MomentChips | null = null;
   private breathTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Caller lines whose check has popped: a redraw must not pop it again. */
+  private readonly popped = new WeakSet<CaptionEntry>();
+  /** Heard: the caller's line is shown above Ferni's reply. */
+  private callerShown = false;
+  /** The caller's line does not fit whole above the reply this layout pass: set it aside. */
+  private callerAside = false;
 
   constructor(
     private readonly isEnabled: () => boolean,
     /** captions-breath: words rise as spoken (see BREATH_CSS). */
-    private readonly breath = false
+    private readonly breath = false,
+    /** captions-heard: the caller's line settles, and a check pops (see HEARD_CSS). */
+    private readonly heard = false
   ) {}
 
   /** A moment chip (see moment-chips.ts); shows even with captions off. */
@@ -343,12 +355,19 @@ class LiveCaptions {
     const root = this.mount();
     const viewport = this.viewport;
     if (!viewport) return;
-    const shown = currentTurn(this.entries);
+    const turn = this.heard ? heardTurn(this.entries) : null;
+    // Heard: once Ferni answers, the caller's line stays above her reply.
+    const shown =
+      turn?.user && turn.agentTookTurn
+        ? [turn.user, ...currentTurn(this.entries)]
+        : currentTurn(this.entries);
+    this.callerShown = Boolean(turn?.user && turn.agentTookTurn);
     const last = viewport.lastElementChild as HTMLElement | null;
     const newest = shown[shown.length - 1];
     if (grew && last && newest && viewport.childElementCount === shown.length) {
       revealWords(last, last.dataset.text ?? '', newest.text, this.breath);
       if (this.breath) last.classList.toggle('ferni-caption-line--final', newest.final);
+      markHeard(last, newest, turn, this.popped);
     } else {
       viewport.replaceChildren(
         ...shown.map((entry, i) => {
@@ -357,6 +376,7 @@ class LiveCaptions {
           if (i < shown.length - 1) line.classList.add('ferni-caption-line--settled');
           revealWords(line, '', entry.text, this.breath);
           if (this.breath) line.classList.toggle('ferni-caption-line--final', entry.final);
+          markHeard(line, entry, turn, this.popped);
           return line;
         })
       );
@@ -366,12 +386,19 @@ class LiveCaptions {
   }
 
   private schedule(): void {
+    this.callerAside = false; // every layout starts with the caller's line
     cancelAnimationFrame(this.frame);
     this.frame = requestAnimationFrame(() => this.layout());
   }
 
   private layout(): void {
     if (!this.root || !this.viewport) return;
+    // Set first, so chrome() measures the padding this pass will show.
+    this.root.classList.toggle('ferni-captions--caller', this.callerShown && !this.callerAside);
+    this.root.classList.toggle(
+      'ferni-captions--caller-aside',
+      this.callerShown && this.callerAside
+    );
     const rectOf = (selector: string): DOMRect | null => {
       const rect = document.querySelector(selector)?.getBoundingClientRect();
       return rect && rect.height > 0 ? rect : null;
@@ -407,6 +434,12 @@ class LiveCaptions {
       'ferni-captions--overflowing',
       lines > 1 && this.viewport.scrollHeight > this.viewport.clientHeight
     );
+    // Heard: a caller line that cannot show whole is set aside, then re-laid out.
+    const overflow = this.viewport.scrollHeight > this.viewport.clientHeight;
+    if (this.callerShown && !this.callerAside && overflow) {
+      this.callerAside = true;
+      this.layout();
+    }
   }
 
   /** Padding, plus the moment chips when they are counted. */
@@ -417,11 +450,16 @@ class LiveCaptions {
     return parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + chips;
   }
 
-  /** Whole caption lines (at most MAX_LINES) that fit in `room` px. */
+  /**
+   * Whole caption lines that fit in `room` px. With the caller's line shown
+   * above Ferni's reply (Heard), the room decides, up to CALLER_MAX_LINES, so a
+   * two-line caller line and a two-line reply both fit.
+   */
   private fit(room: number, withChips: boolean): number {
     if (!this.viewport) return 0;
     const line = parseFloat(getComputedStyle(this.viewport).lineHeight) || 1;
-    return Math.min(MAX_LINES, Math.floor((room - this.chrome(withChips)) / line));
+    const maxLines = this.callerShown && !this.callerAside ? CALLER_MAX_LINES : MAX_LINES;
+    return Math.min(maxLines, Math.floor((room - this.chrome(withChips)) / line));
   }
 }
 
@@ -435,7 +473,9 @@ export function initLiveCaptions(isEnabled: () => boolean = captionsOn): LiveCap
   injectTranscriptSheetStyles();
   const breath = isCaptionsBreathEnabled();
   if (breath) injectBreathStyles();
-  const captions = new LiveCaptions(isEnabled, breath);
+  const heard = isCaptionsHeardEnabled();
+  if (heard) injectHeardStyles();
+  const captions = new LiveCaptions(isEnabled, breath, heard);
   mountCaptionsToggle(() => captions.refresh());
   window.addEventListener('ferni:transcript', ((e: CustomEvent) => {
     const { type, text, isFinal } = e.detail as { type: string; text: string; isFinal?: boolean };
