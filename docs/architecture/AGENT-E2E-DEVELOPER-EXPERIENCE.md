@@ -104,7 +104,7 @@ $ ferni agent init joel-advisor
 ◆  Choose a voice:
 │  ○ Browse Cartesia Library...
 │  ○ Clone from audio file...
-│  ● Use voice ID: 3ebcd114-d280-4eed-a238-b9323a6b8e52
+│  ● Use voice ID: 921034a2-aace-4ef7-87b1-b9bc455c9a15
 │
 ◆  Brand colors:
 │  Primary: #96151D (Vanguard Red)
@@ -327,7 +327,7 @@ src/personas/bundles/joel-advisor/
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "3ebcd114-d280-4eed-a238-b9323a6b8e52",
+    "voice_id": "921034a2-aace-4ef7-87b1-b9bc455c9a15",
     "default_rate": "medium"
   },
 

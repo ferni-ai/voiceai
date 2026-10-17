@@ -378,4 +378,27 @@ describe('isClearYes', () => {
       expect(isClearYes(notYes), notYes).toBe(false);
     }
   });
+
+  it("takes a yes with a name, a filler or an echo of the question (the owner's real replies)", () => {
+    for (const yes of ['Go ahead, Ferni.', 'Yes, she should.', 'Um, yeah, go ahead buddy.']) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+    for (const yes of ['Oh yes, of course.', 'Yeah, that works.', 'Sure, Maya, you can.']) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+  });
+
+  it('a name, a filler or an echo alone is not a yes, and a yes with words to send is not plain', () => {
+    for (const notYes of ['Ferni.', 'she should', 'um', 'hey buddy', 'of course?']) {
+      expect(isClearYes(notYes), notYes).toBe(false);
+    }
+    // New words for the message: the read-back no longer matches, so it is read back again.
+    for (const notYes of [
+      "Yeah, check in, tell her I said hi and I'll call her tomorrow.",
+      'Yes, she should call me back.',
+      'Go ahead Ferni but not tonight',
+    ]) {
+      expect(isClearYes(notYes), notYes).toBe(false);
+    }
+  });
 });

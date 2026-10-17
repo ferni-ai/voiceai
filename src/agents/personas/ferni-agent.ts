@@ -29,6 +29,7 @@ import {
 import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { filterSilenceReply } from '../voice-agent/presence-check.js';
+import { dropLeadingSaidBy } from './said-by.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
@@ -36,6 +37,8 @@ import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
 import { emergencyTruncate, estimateTokens } from './emergency-truncate.js';
 import { withActionClaimCheck } from './action-claim-guard.js';
+import { withCallerTurn } from './caller-turn.js';
+import { logToolMarkup, withToolMarkupStrip } from '../shared/tool-markup-strip.js';
 import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
 import { spokenCaptions, toolsForTurn, withTeammateTool } from './turn-request.js';
@@ -668,7 +671,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   /**
    * Every LLM request goes through here: crisis-gated with the turn reminder (crisis-gate.ts),
    * this turn's tools, no empty tool result (tool-output-guard.ts), no claimed action no tool
-   * did (action-claim-guard.ts), and no capped "you still there?" (presence-check.ts).
+   * did (action-claim-guard.ts), no capped "you still there?" (presence-check.ts), no
+   * leading "(Name said:)" copied off a handoff's marked history (said-by.ts). An
+   * unprompted reply gets a caller turn, not the SDK's "." (caller-turn.ts), and a tool
+   * call written as text is never spoken, captioned or saved (tool-markup-strip.ts).
    */
   async llmNode(
     chatCtx: llm.ChatContext,
@@ -677,12 +683,19 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
     fillEmptyToolOutputs(chatCtx, this.session);
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
-    const model = async (ctx: llm.ChatContext) => {
+    const sessionId = (this.session.userData?.services as { sessionId?: string } | undefined)
+      ?.sessionId;
+    const model = async (request: llm.ChatContext) => {
+      const ctx = withCallerTurn(request);
       noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
-      return withActionClaimCheck(super.llmNode(ctx, tools, modelSettings), ctx, tools) as never;
+      const text = withToolMarkupStrip(
+        super.llmNode(ctx, tools, modelSettings),
+        logToolMarkup('llm', sessionId)
+      );
+      return withActionClaimCheck(text, ctx, tools) as never;
     };
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
-    return filterSilenceReply(this.session, reply) as never;
+    return dropLeadingSaidBy(filterSilenceReply(this.session, reply)) as never;
   }
 
   private readonly turnTools = { loggedLockedHandoffs: false, agent: this };
@@ -693,9 +706,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   /**
    * Override ttsNode to filter out JSON function calls BEFORE they reach TTS.
    *
-   * WORKAROUND (Dec 2024): Gemini Live API has a known bug where it "narrates"
-   * tool calls instead of executing them. We instruct Gemini to output JSON like
-   * {"fn":"playMusic","args":{"query":"jazz"}} and intercept it here before TTS.
+   * WORKAROUND (Dec 2024, retired Gemini Live setup): narrated JSON tool calls stop here.
    *
    * The key insight: transcriptionNode filters a DIFFERENT stream than TTS reads from!
    * The LiveKit SDK does baseStream.tee() and sends one to transcription, one to TTS.

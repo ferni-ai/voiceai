@@ -3323,6 +3323,12 @@
     box-shadow: 0 0 20px rgba(157, 192, 130, 0.15);
   }
 
+  /* The hero avatar is a square box around a round SVG face, and it tilts.
+     A box-shadow there draws a rotated square; the SVG has its own glow ring. */
+  .ferni-avatar.breathing {
+    box-shadow: none;
+  }
+
   /* Testimonial quote marks — boost opacity for visibility */
   .testimonial__quote::before,
   .testimonial__quote::after {
@@ -3359,6 +3365,10 @@
 [data-theme="dark"] .breathing,
 [data-theme="dark"] [class*="breathing-"] {
   box-shadow: 0 0 20px rgba(157, 192, 130, 0.15);
+}
+
+[data-theme="dark"] .ferni-avatar.breathing {
+  box-shadow: none;
 }
 
 [data-theme="dark"] .testimonial__quote::before,

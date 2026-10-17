@@ -4,10 +4,6 @@
  * Tools for accessing information: news, weather, sports scores.
  * This domain provides properly-routed consolidated tools for the LLM.
  *
- * NOTE: Web search is handled by Gemini's built-in Google Search tool
- * (configured via `tools: [{ googleSearch: {} }]` in RealtimeModel).
- * We removed our custom searchWeb/lookupInfo tools to avoid redundancy.
- *
  * DOMAIN: information
  * TOOLS:
  *   News: getNews (routes to general/finance/tech/stock based on category)
