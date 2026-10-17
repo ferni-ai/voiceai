@@ -174,6 +174,15 @@ describe('Your Story header, real persisted conversation count', () => {
     expect(stats).not.toMatch(/streak/i);
   });
 
+  it('shows the milestones the server says were reached (20 days in: first hello, one week)', async () => {
+    await renderStory();
+
+    const badges = [...document.querySelectorAll('.your-story__milestone')].map((b) =>
+      b.textContent?.trim()
+    );
+    expect(badges).toEqual(['First Hello', 'One Week Together']);
+  });
+
   it('a user with no saved conversations has an empty story, not a fake count', async () => {
     store.conversations = 0;
     let payload = '';
