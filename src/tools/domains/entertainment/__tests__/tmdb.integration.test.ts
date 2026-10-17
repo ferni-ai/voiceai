@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { getMovieInfo, getMoviesNowPlaying, getUpcomingMoviesList } from '../movies.js';
+import { whereToWatch } from '../watch-providers.js';
 
 const UNREACHABLE = "I can't reach the movie database right now.";
 
@@ -19,5 +20,12 @@ describe.skipIf(!process.env.TMDB_API_KEY)('TMDB, live', () => {
   it('lists what is in theaters and coming, in the US', async () => {
     expect(await getMoviesNowPlaying('US')).toMatch(/^Movies in theaters now: /);
     expect(await getUpcomingMoviesList('US')).not.toBe(UNREACHABLE);
+  }, 20_000);
+
+  it('says where a show streams, crediting JustWatch', async () => {
+    const reply = await whereToWatch('Severance', 'US');
+    expect(reply).toMatch(
+      /^Severance is streaming on .+ in the United States, according to JustWatch\./
+    );
   }, 20_000);
 });

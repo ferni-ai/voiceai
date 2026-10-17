@@ -1,16 +1,22 @@
 /**
  * Movie Information Tools
  *
- * Domain: Movie information, now playing, and showtimes, from The Movie
- * Database (TMDB, tmdb-client.ts). No showtimes source: getMovieShowtimes says
- * so and never names a time.
+ * Domain: Movie information, now playing, showtimes, and where to watch
+ * (watch-providers.ts), from The Movie Database (TMDB). No showtimes source:
+ * getMovieShowtimes says so and never names a time.
+ *
+ * Registered in the video domain, which a movie or TV topic loads mid-call
+ * (dynamic-loader/screen-topics.ts). In entertainment, loaded up front on every
+ * call, no topic re-offered them and the first agent's 64-tool cap cut them.
  */
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
-import type { ToolContext } from '../../registry/types.js';
+import { requiringEnv } from '../../registry/tool-availability.js';
+import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 import { callerRegion, spokenDate, spokenList, tmdbGet, todayIso } from './tmdb-client.js';
+import { whereToWatchTool } from './watch-providers.js';
 
 // ============================================================================
 // TMDB API (Movie Database)
@@ -310,7 +316,31 @@ export function createMovieTools(ctx?: Pick<ToolContext, 'userLocation'>) {
         return getMovieShowtimes(title, location);
       },
     }),
+
+    getWhereToWatch: whereToWatchTool(region),
   };
+}
+
+const NAMES = {
+  getMovieInfo: 'Get Movie Info',
+  getMoviesNowPlaying: 'Movies Now Playing',
+  getUpcomingMovies: 'Upcoming Movies',
+  getMovieShowtimes: 'Movie Showtimes',
+  getWhereToWatch: 'Where to Watch',
+} as const;
+
+/** The movie and where-to-watch tools for the video domain; none without TMDB_API_KEY. */
+export function getMovieToolDefinitions(): ToolDefinition[] {
+  const tools = createMovieTools();
+  const defs = (Object.keys(NAMES) as Array<keyof typeof NAMES>).map((id) => ({
+    id,
+    name: NAMES[id],
+    description: tools[id].description,
+    domain: 'video' as const,
+    tags: ['movie', 'film', 'tv', 'watch'],
+    create: (ctx: ToolContext) => createMovieTools(ctx)[id],
+  }));
+  return requiringEnv(['TMDB_API_KEY'], defs);
 }
 
 export default createMovieTools;
