@@ -52,13 +52,7 @@ const check = (
   stream: ReadableStream<llm.ChatChunk>,
   items: unknown[],
   tools: { functionTools: Record<string, unknown> }
-) =>
-  withActionClaimCheck(
-    Promise.resolve(stream),
-    { items },
-    tools,
-    { ACTION_CLAIM_STREAM: 'on' }
-  );
+) => withActionClaimCheck(Promise.resolve(stream), { items }, tools, { ACTION_CLAIM_STREAM: 'on' });
 
 describe('calendar claims', () => {
   it('"I\'ve got that on your calendar" is a schedule claim', () => {
@@ -127,13 +121,13 @@ describe('calendar claims', () => {
     expect(text.indexOf("It's saved")).toBeLessThan(text.indexOf('Enjoy.'));
   });
 
-  it('a create that saved only to Ferni\'s own list (not connected) is reported as not booked', async () => {
+  it("a create that saved only to Ferni's own list (not connected) is reported as not booked", async () => {
     const items = [
       ASK,
       result(
         'createCalendarEvent',
         JSON.stringify(
-          "Saved \"Lunch with Sam, 2026-10-18, 12:00\" to Ferni's own list. It isn't on your calendar, since none is connected."
+          'Saved "Lunch with Sam, 2026-10-18, 12:00" to Ferni\'s own list. It isn\'t on your calendar, since none is connected.'
         )
       ),
     ];
@@ -144,5 +138,18 @@ describe('calendar claims', () => {
     expect(text).not.toMatch(/on your calendar/);
     expect(text).toContain("It's saved to Ferni's own list, not your calendar.");
     expect(text).not.toContain("That didn't go through");
+  });
+
+  it('a booking tool that is not a calendar create releases its claim, not the calendar line', async () => {
+    const parts = [
+      chunk("I've booked the table at Nobu for you. "),
+      toolCall('bookRestaurant'),
+      chunk('Enjoy. '),
+    ];
+    const text = await textOf(
+      await check(streamOf(...parts), [ASK], toolsWith('bookRestaurant', 'createCalendarEvent'))
+    );
+    expect(text).toContain("I've booked the table at Nobu for you.");
+    expect(text).not.toContain("Ferni's own list");
   });
 });

@@ -47,6 +47,10 @@ import { withAnnouncedCheckLog } from './announced-check.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
+/** A calendar tool that books a schedule item, so it saves to Ferni's own list here (#1547). */
+const isCalendarCreate = (name: string): boolean =>
+  /calendar/i.test(name) && kindsOfTool(name).includes('schedule');
+
 type Chunk = llm.ChatChunk | string | object;
 /** 'uncalled': a create tool is open, but no create ran on this call for this claim (#1547). */
 export type MissReason = 'no_tool' | 'failed' | 'awaiting' | 'uncalled' | 'elsewhere';
@@ -233,7 +237,10 @@ export async function withActionClaimCheck<T>(
   const { done, failed, awaiting, elsewhere } = callActions(chatCtx);
   // A plain yes to the read-back: the tool sends on its next call, so the claim may stand.
   const yesTurn = isClearYes(lastCallerWords(chatCtx));
-  const open = new Set(Object.keys(tools.functionTools ?? {}).flatMap(kindsOfTool));
+  const toolNames = Object.keys(tools.functionTools ?? {});
+  const open = new Set(toolNames.flatMap(kindsOfTool));
+  // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
+  const calendarCreateOpen = toolNames.some(isCalendarCreate);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
@@ -243,11 +250,11 @@ export async function withActionClaimCheck<T>(
         ? 'failed'
         : elsewhere.has(kind)
           ? 'elsewhere'
-        : awaiting.has(kind) && !yesTurn
-          ? 'awaiting'
-          : kind === 'schedule' && !done.has(kind) && !calling.has(kind)
-            ? 'uncalled'
-            : null;
+          : awaiting.has(kind) && !yesTurn
+            ? 'awaiting'
+            : kind === 'schedule' && calendarCreateOpen && !done.has(kind) && !calling.has(kind)
+              ? 'uncalled'
+              : null;
   let id = '';
   let stringChunks = true;
   const out = (text: string): Chunk =>
@@ -264,6 +271,7 @@ export async function withActionClaimCheck<T>(
       // Held sentences that follow an uncalled claim, released in order once the claim resolves.
       const queued: string[] = [];
       const calling = new Set<ActionKind>();
+      let calendarCalled = false; // a calendar create ran in this reply
       const emit = (raw: string): void => {
         const text = !last || /\s$/.test(last) ? raw.trimStart() : raw;
         if (!text) return;
@@ -317,10 +325,15 @@ export async function withActionClaimCheck<T>(
               passed = 0;
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
+            if (names.some(isCalendarCreate)) calendarCalled = true;
             // A create came after the claim. A create only saves to Ferni's own list (#1547), so the
             // claim is still false: the honest line replaces it, and what followed goes out after.
             if (deferred?.reason === 'uncalled' && calling.has(deferred.kind)) {
-              if (deferred.text) emit(honestLine(deferred.kind, 'elsewhere', false));
+              if (deferred.text) {
+                emit(
+                  calendarCalled ? honestLine(deferred.kind, 'elsewhere', false) : deferred.text
+                );
+              }
               for (const text of queued.splice(0)) emit(text);
               deferred = undefined;
             }
