@@ -1,0 +1,8 @@
+# CALL_JOURNAL: an explicit journal request in a call. Ferni should save the
+# caller's own words (journal write) and confirm in one short line, without
+# reading the entry back or adding anything the caller didn't say.
+Hey Ferni, quick one before bed.
+I walked by the river after work and saw a heron just standing there in the shallows.
+It made me feel calm for the first time all week.
+Can you put that in my journal for me?
+Thanks. Goodnight.

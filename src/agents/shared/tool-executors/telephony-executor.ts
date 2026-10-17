@@ -98,7 +98,8 @@ async function execute(
       const { searchContacts } =
         await import('../../../services/contacts/contact-relationship-service.js');
       const { callWithPersonaVoice } = await import('../../../services/voice/voice-call.js');
-      const { sendSMS } = await import('../../../services/outreach/delivery/sms-delivery.js');
+      const { onBehalfNotSent, textOnBehalf } =
+        await import('../../../services/outreach/guarded-text.js');
       const { sendEmail } = await import('../../../services/outreach/delivery/email-delivery.js');
 
       // Resolve contact info
@@ -158,17 +159,17 @@ async function execute(
         if (!contactInfo.phone) {
           return `I don't have ${contactInfo.name}'s phone number. Should I send an email instead?`;
         }
-        const result = await sendSMS({
-          to: contactInfo.phone,
+        const result = await textOnBehalf({
+          senderUserId: userId,
+          toPhone: contactInfo.phone,
           body: messageToSend,
+          refId: outreachId,
           personaId,
-          userId,
-          outreachId,
         });
-        if (result.success) {
+        if (result.sent) {
           return `📱 Texted ${contactInfo.name}: "${messageToSend}"`;
         }
-        return `I couldn't text ${contactInfo.name}. ${result.error || 'Want me to try email?'}`;
+        return onBehalfNotSent(contactInfo.name, result.reason);
       }
 
       if (selectedChannel === 'email') {

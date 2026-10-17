@@ -216,7 +216,7 @@ describe('the agent leaves', () => {
     expect(room.disconnect).toHaveBeenCalledTimes(1); // LiveKit stops the local mic track
     expect(appState.get('connection')).toBe('disconnected'); // controls show Call again
     expect(showPostCallCard).toHaveBeenCalledTimes(1);
-    expect(play.mock.calls).toEqual([['goodbye']]);
+    expect(play.mock.calls).toEqual([['goodbye', 'goodbye']]);
     expect(reconnectPrompt).not.toHaveBeenCalled();
     expect(oldAgentLeft).not.toHaveBeenCalled();
     expect(notice).not.toHaveBeenCalled();
@@ -411,7 +411,7 @@ describe('conversation_end', () => {
     conversationEnd('goodbye_complete');
     await settle(2000 + HELD_TOAST_RELEASE_MS);
 
-    expect(play.mock.calls).toEqual([['goodbye']]);
+    expect(play.mock.calls).toEqual([['goodbye', 'goodbye']]);
     expect(ceremony).toBe(true);
     expect(room.disconnect).toHaveBeenCalledTimes(1);
     expect(appState.get('connection')).toBe('disconnected');
@@ -427,7 +427,7 @@ describe('conversation_end', () => {
     expect(appState.get('isWrappingUp')).toBe(false);
     await settle(2000 + HELD_TOAST_RELEASE_MS);
 
-    expect(play.mock.calls).toEqual([['goodbye']]);
+    expect(play.mock.calls).toEqual([['goodbye', 'goodbye']]);
   });
 
   it("the agent's hang-up: the phone click is the only sound", async () => {
@@ -439,7 +439,7 @@ describe('conversation_end', () => {
     conversationEnd('agent_exit');
     await settle(1500 + HELD_TOAST_RELEASE_MS);
 
-    expect(play.mock.calls).toEqual([['phoneClick']]);
+    expect(play.mock.calls).toEqual([['phoneClick', 'goodbye']]);
   });
 
   it('says goodbye with the translated string, not hardcoded English', async () => {
@@ -461,7 +461,7 @@ describe('conversation_end', () => {
 
     await appDisconnect();
 
-    expect(play.mock.calls).toEqual([['disconnect']]);
+    expect(play.mock.calls).toEqual([['disconnect', 'goodbye']]);
   });
 });
 
@@ -569,7 +569,7 @@ describe('app.ts runs these paths (what appGlue mirrors)', () => {
     expect(app).toMatch(
       /onAgentDisconnected: \(\) => \{\s*if \(wrapUpOwnsAgentLeaving\(\)\) return presenceUI\.setSpeaking\(false\);/
     );
-    expect(app).toMatch(/onAgentLost: \(\) =>\s*showAgentLostPrompt\(/);
+    expect(app).toMatch(/onAgentLost: \(\) => \{\s*noteCallDropped\(\);\s*showAgentLostPrompt\(/);
     expect(app).toMatch(
       /onUnexpectedDisconnect: \(reason\) => \{\s*if \(afterConversationEnd\(\)\) return void this\.disconnect\(\);/
     );

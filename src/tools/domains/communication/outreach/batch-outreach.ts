@@ -41,7 +41,7 @@ import { craftPersonalizedMessage, type MessageCraftingContext } from './message
 import type { OutreachIntent } from './unified-outreach.js';
 
 // Delivery services
-import { sendSMS } from '../../../../services/outreach/delivery/sms-delivery.js';
+import { onBehalfNotSent, textOnBehalf } from '../../../../services/outreach/guarded-text.js';
 import { sendEmail } from '../../../../services/outreach/delivery/email-delivery.js';
 
 const log = createLogger({ module: 'batch-outreach' });
@@ -385,15 +385,15 @@ export function createSendBatchTool(ctx: ToolContext): Tool {
           const outreachId = `batch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
           if (preview.channel === 'text') {
-            const result = await sendSMS({
-              to: preview.channelValue,
+            const result = await textOnBehalf({
+              senderUserId: userId,
+              toPhone: preview.channelValue,
               body: preview.message,
+              refId: outreachId,
               personaId,
-              userId,
-              outreachId,
             });
 
-            if (result.success) {
+            if (result.sent) {
               results.sent++;
               results.results.push({ contactName: preview.contactName, success: true });
             } else {
@@ -401,7 +401,7 @@ export function createSendBatchTool(ctx: ToolContext): Tool {
               results.results.push({
                 contactName: preview.contactName,
                 success: false,
-                error: result.error,
+                error: onBehalfNotSent(preview.contactName, result.reason),
               });
             }
           } else {
