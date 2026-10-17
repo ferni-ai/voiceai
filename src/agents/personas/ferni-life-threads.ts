@@ -105,17 +105,18 @@ function hash(key: string): number {
 }
 
 /**
- * The current beat of this caller's thread, or undefined when no thread is
- * running. `key` is the caller's id when known (same thread every call),
- * else any per-call seed.
+ * The current beat of this caller's thread, or undefined when it isn't
+ * running. `key` is the caller's id when known, else any per-call seed. The
+ * thread comes from the whole list, not the running ones, so a caller keeps
+ * the same thread when others start or end.
  */
 export function threadDetailFor(
   key: string,
   now: Date,
   threads: readonly LifeThread[] = LIFE_THREADS
 ): string | undefined {
-  const running = threads.filter((t) => beatIndex(t, now) >= 0);
-  if (running.length === 0) return undefined;
-  const thread = running[hash(key) % running.length];
-  return thread.beats[beatIndex(thread, now)];
+  if (threads.length === 0) return undefined;
+  const thread = threads[hash(key) % threads.length];
+  const beat = beatIndex(thread, now);
+  return beat < 0 ? undefined : thread.beats[beat];
 }
