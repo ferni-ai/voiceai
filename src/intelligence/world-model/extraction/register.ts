@@ -7,12 +7,15 @@
  * AFTER_CALL_EXTRACTION must be on to read the call. The reading then feeds
  * two sinks: the temporal store (WORLD_MODEL_TEMPORAL=on) and the caller's
  * commitments (COACH_COMMITMENT_CAPTURE, on unless =off). With no sink on,
- * the task returns before any model call.
+ * the task returns before any model call. Both switches are read as the
+ * caller's own call had them (cohort-flags.ts callerEnv), since the next call
+ * may already have put its caller's flags in process.env.
  *
  * @module intelligence/world-model/extraction/register
  */
 
 import { callLLM } from '../../../services/llm-utils.js';
+import { callerEnv } from '../../../services/platform/cohort-flags.js';
 import {
   isCommitmentCaptureOn,
   recordCallerCommitments,
@@ -32,7 +35,7 @@ import {
 
 export const WORLD_EXTRACTION_TASK = 'world-extraction';
 
-const llm: ExtractionLlm = (prompt) =>
+const llm: ExtractionLlm = async (prompt) =>
   callLLM(prompt, { maxTokens: 2000, temperature: 0.1, timeout: 20_000, task: 'memory' });
 
 /** The task body; exported so tests can run it with a fake model and store. */
@@ -40,9 +43,10 @@ export async function extractWorldAfterCall(
   ctx: AfterCallContext,
   deps: IngestDeps & { llm?: ExtractionLlm; commitments?: CaptureDeps } = {}
 ): Promise<void> {
-  if (!isAfterCallExtractionOn(deps.env)) return;
-  const world = isWorldModelTemporalOn(deps.env);
-  const capture = isCommitmentCaptureOn(deps.env);
+  const env = deps.env ?? (await callerEnv(ctx.userId));
+  if (!isAfterCallExtractionOn(env)) return;
+  const world = isWorldModelTemporalOn(env);
+  const capture = isCommitmentCaptureOn(env);
   if (!world && !capture) return;
   const observations = await extractWorldObservations(
     [...ctx.turns],
@@ -60,13 +64,15 @@ export async function extractWorldAfterCall(
             now: Date.now(),
             ...(ctx.timezone && { timezone: ctx.timezone }),
           },
-          { env: deps.env, ...deps.commitments }
+          { env, ...deps.commitments }
         )
       : null,
-    world ? recordWorldObservations(ctx.userId, ctx.sessionId, observations, deps) : null,
+    world
+      ? recordWorldObservations(ctx.userId, ctx.sessionId, observations, { ...deps, env })
+      : null,
   ]);
 }
 
-registerAfterCallTask(WORLD_EXTRACTION_TASK, (ctx) => extractWorldAfterCall(ctx), {
+registerAfterCallTask(WORLD_EXTRACTION_TASK, async (ctx) => extractWorldAfterCall(ctx), {
   timeoutMs: 30_000,
 });

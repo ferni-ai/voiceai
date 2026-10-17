@@ -14,6 +14,8 @@ const { registeredAfterCallTasks } =
   await import('../../../../services/session/after-call-tasks.js');
 const registeredByEntry = registeredAfterCallTasks();
 const { extractWorldAfterCall, WORLD_EXTRACTION_TASK } = await import('../register.js');
+const { applyFlags, forgetAgentValues } =
+  await import('../../../../services/platform/cohort-flags.js');
 
 const ON = { AFTER_CALL_EXTRACTION: 'on', WORLD_MODEL_TEMPORAL: 'on' };
 const call = {
@@ -44,6 +46,21 @@ describe('world extraction after a call', () => {
   it('is registered by the agent entry', () => {
     expect(registeredByEntry).toContain(WORLD_EXTRACTION_TASK);
     expect(WORLD_EXTRACTION_TASK).toBe('world-extraction');
+  });
+
+  it("never reads the call on the next caller's cohort flags", async () => {
+    const store = createMemoryWorldFactStore();
+    const llm = vi.fn(async (_prompt: string) => reply);
+    applyFlags({ AFTER_CALL_EXTRACTION: 'on', WORLD_MODEL_TEMPORAL: 'on' }); // the next call starts
+    try {
+      expect(process.env.WORLD_MODEL_TEMPORAL).toBe('on');
+      await extractWorldAfterCall(call, { store, llm, newId: () => 'f1' });
+      expect(llm).not.toHaveBeenCalled();
+      expect(store.all('u1')).toEqual([]);
+    } finally {
+      applyFlags({});
+      forgetAgentValues();
+    }
   });
 
   it('with both flags on: reads the call once and stores what the caller said', async () => {

@@ -11,6 +11,7 @@
  *   set <cohort> FLAG=on|off [...]       set flags for a cohort
  *   unset <cohort> FLAG [...]            drop flags from a cohort
  *   enable|disable <cohort>              turn a whole cohort on or off
+ *   percent <cohort> <0-100>             also a stable sample of every known caller (0: members only)
  *   override <uid> FLAG=on|off [...]     one person's own override
  *   clear <uid> FLAG [...]               drop one person's override
  *   who <uid>                            the flags a call from this person gets
@@ -23,7 +24,11 @@
  */
 import { FieldValue } from 'firebase-admin/firestore';
 import { getFirestoreDb } from '../../src/utils/firestore-utils.js';
-import { COHORT_FLAGS, resolveCallerFlags } from '../../src/services/platform/cohort-flags.js';
+import {
+  COHORT_FLAGS,
+  missingPrerequisites,
+  resolveCallerFlags,
+} from '../../src/services/platform/cohort-flags.js';
 
 const ALLOWED = new Set<string>(COHORT_FLAGS);
 
@@ -64,6 +69,7 @@ async function main(): Promise<void> {
         const x = d.data();
         console.log(`${d.id} (${x.name ?? ''}) ${x.enabled === false ? 'DISABLED' : 'enabled'}`);
         console.log(`  members: ${(x.members ?? []).join(', ') || '(none)'}`);
+        if (typeof x.percent === 'number') console.log(`  sample:  ${x.percent}% of callers`);
         console.log(`  flags:   ${JSON.stringify(x.flags ?? {})}`);
       }
       return;
@@ -87,8 +93,22 @@ async function main(): Promise<void> {
     }
     case 'set': {
       const flags = parseFlags(rest);
-      await cohort(need(target, 'cohort')).update({
+      const ref = cohort(need(target, 'cohort'));
+      await ref.update({
         ...Object.fromEntries(Object.entries(flags).map(([k, v]) => [`flags.${k}`, v])),
+        updatedAt: now,
+      });
+      const after = (await ref.get()).data()?.flags ?? {};
+      for (const m of missingPrerequisites(after))
+        console.warn(`warning: ${m} (on in this cohort or on the agent)`);
+      break;
+    }
+    case 'percent': {
+      const p = Number(rest[0]);
+      if (!Number.isInteger(p) || p < 0 || p > 100)
+        throw new Error('percent: a whole number 0-100');
+      await cohort(need(target, 'cohort')).update({
+        percent: p === 0 ? FieldValue.delete() : p,
         updatedAt: now,
       });
       break;
@@ -120,7 +140,7 @@ async function main(): Promise<void> {
       return;
     default:
       throw new Error(
-        'usage: cohorts.ts list|create|add|remove|set|unset|enable|disable|override|clear|who ...'
+        'usage: cohorts.ts list|create|add|remove|set|unset|enable|disable|percent|override|clear|who ...'
       );
   }
   console.log(`done: ${cmd} ${target}`);
