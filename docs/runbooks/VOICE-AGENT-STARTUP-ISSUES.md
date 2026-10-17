@@ -252,7 +252,7 @@ npx vitest run src/agents/__tests__/voice-agent-e2e.test.ts
 pnpm ops:zombies
 
 # 2. Deploy with blue-green
-npm run deploy:agent:async
+# redeploy: follow .claude/skills/deploy-agent/SKILL.md
 
 # 3. Monitor logs
 gcloud logging read 'resource.labels.service_name="voiceai-agent"' --limit=50 --freshness=5m
