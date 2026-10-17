@@ -37,6 +37,8 @@ export default defineConfig({
       // Exclude tests that need real external APIs
       'src/tests/integration/**',
       'src/tests/e2e/gemini-integration/**',
+      // Runs in the unit config, so voice-eval-only changes test it too
+      'src/tests/voice-eval/**',
       // Firestore tests need emulator
       '**/*firestore*.test.ts',
     ],
