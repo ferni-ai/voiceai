@@ -10,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 const writeOutreachConsent = vi.fn(async () => undefined);
 const readOutreachConsent = vi.fn(async () => ({ enabled: true, channels: [] as string[] }));
 const requireAuth = vi.fn();
+const verifiedPhoneFor = vi.fn(async (): Promise<string | null> => '+15552017497');
 
 vi.mock('../../services/outreach/outreach-consent.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/outreach/outreach-consent.js')>()),
@@ -21,6 +22,8 @@ vi.mock('../auth-middleware.js', async (importOriginal) => ({
   rateLimit: vi.fn(() => false),
   requireAuth,
 }));
+
+vi.mock('../user-contact.js', () => ({ verifiedPhoneFor }));
 
 const { handleOutreachRoutes } = await import('../outreach.routes.js');
 
@@ -45,6 +48,7 @@ afterAll(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  verifiedPhoneFor.mockResolvedValue('+15552017497');
   requireAuth.mockResolvedValue({
     userId: 'u1',
     isAdmin: false,
@@ -61,6 +65,33 @@ const call = (method: string, path: string, body?: unknown) =>
   });
 
 describe('outreach consent routes', () => {
+  it('refuses texts or calls for a user without a verified phone, and saves nothing', async () => {
+    verifiedPhoneFor.mockResolvedValue(null);
+    for (const channel of ['sms', 'call']) {
+      const res = await call('POST', '/preferences', {
+        preferences: { allowedChannels: [channel] },
+      });
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { error: string }).error).toMatch(/verify your phone/i);
+    }
+    expect(writeOutreachConsent).not.toHaveBeenCalled();
+    // In-app only (or turning channels off) never needs a phone.
+    expect(
+      (await call('POST', '/preferences', { preferences: { allowedChannels: [] } })).status
+    ).toBe(200);
+    expect(verifiedPhoneFor).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u1' }));
+  });
+
+  it('accepts texts for a user with a verified phone', async () => {
+    verifiedPhoneFor.mockResolvedValue('+15552017497');
+    const res = await call('POST', '/preferences', { preferences: { allowedChannels: ['sms'] } });
+    expect(res.status).toBe(200);
+    expect(writeOutreachConsent).toHaveBeenCalledWith(
+      'u1',
+      expect.objectContaining({ channels: ['sms'] })
+    );
+  });
+
   it('saves switching outreach off for the logged-in user', async () => {
     const res = await call('POST', '/preferences', {
       userId: 'someone-else',
