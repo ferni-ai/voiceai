@@ -1,8 +1,8 @@
 /**
- * How each env name that prod sets, and that the flag manifest does not list, is classified.
- * Names in FLAG_MANIFEST are not repeated here.
+ * How each env name that prod sets, and that the flag manifest did not list when it was written, is
+ * classified. Behaviour names are also in FLAG_MANIFEST; the others are not.
  *
- * - secret: credentials, tokens, account ids, phone numbers and user ids. Shown as `<set>` only.
+ * - secret: credentials, tokens, account, client and trunk ids, phone numbers and user ids. Shown as `<set>` only.
  * - config: an identifier, project, or model name that does not switch behaviour.
  * - behavior: changes what a caller hears or what the agent does, including which provider or pipeline runs. Listed in FLAG_MANIFEST.
  * - unread: set on prod, but no code under src/ reads it. A candidate to remove from prod.
