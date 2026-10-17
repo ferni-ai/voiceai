@@ -166,15 +166,17 @@ describe('Non-Handoff Tool Descriptions', () => {
 
   describe('Information Tools', () => {
     it('should have action-oriented descriptions', async () => {
-      const informationPath = path.join(process.cwd(), 'src/tools/domains/information/index.ts');
-      const content = fs.readFileSync(informationPath, 'utf-8');
+      // The weather tools live in their own file next to the domain index.
+      const content = ['index.ts', 'weather-tools.ts']
+        .map((file) =>
+          fs.readFileSync(path.join(process.cwd(), 'src/tools/domains/information', file), 'utf-8')
+        )
+        .join('\n');
 
       // Information tools should be action-oriented
       expect(content).toContain('Get current weather');
       expect(content).toContain('Get News'); // Updated to match actual tool name
       expect(content).toContain('Get Weather'); // Updated to match actual tool name
-      // NOTE: Search tool removed - Gemini's built-in Google Search is used instead
-      // (configured via `tools: [{ googleSearch: {} }]` in RealtimeModel)
 
       // Should NOT have first-person language that suggests speaking
       expect(content.toLowerCase()).not.toContain("i'll search");

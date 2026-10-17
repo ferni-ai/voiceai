@@ -60,6 +60,8 @@ export interface PresenceDeps {
   stop: () => void;
   /** The caller's voice this turn (userData.voiceEmotion), if read. */
   mood: () => string | undefined;
+  /** The call has said its goodbyes or is closing: no sounds (call-farewell.ts). */
+  quiet?: () => boolean;
   /** What they last said was heavy (venting, bad news): a serious silence, not an easy one. */
   serious?: () => boolean;
   rng?: () => number;
@@ -90,7 +92,7 @@ export function createPresenceWatcher(deps: PresenceDeps, timing: PresenceTiming
     timer = setT(() => {
       timer = null;
       if (whistled || agent !== 'listening' || user === 'speaking') return;
-      if (isHeavyMood(deps.mood()) || deps.serious?.()) return;
+      if (isHeavyMood(deps.mood()) || deps.serious?.() || deps.quiet?.()) return;
       if (rng() >= chance) return;
       if (deps.play(wait)) {
         whistled = true;
