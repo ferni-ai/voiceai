@@ -666,15 +666,6 @@ class SettingsMenuUI {
   }
 
   /**
-   * While Ferni is free and the Venmo chip-in is configured (VITE_VENMO_CHIP_IN +
-   * VITE_VENMO_HANDLE), "Account & Billing" has nothing to manage: the footer
-   * offers "Chip in" (the Venmo card) instead. With a paywall on, billing stays.
-   */
-  private chipsInOnVenmo(): boolean {
-    return isVenmoChipInEnabled() && !isPaywallOn();
-  }
-
-  /**
    * Render a toggle menu item (for on/off settings)
    */
   private renderToggleItem(action: string, icon: string, label: string, isOn: boolean): string {
@@ -693,6 +684,8 @@ class SettingsMenuUI {
 
   private renderContent(): void {
     if (!this.panel) return;
+    // Free, with the Venmo chip-in configured: "Chip in" (Venmo card) replaces Account & Billing
+    const chipIn = isVenmoChipInEnabled() && !isPaywallOn();
 
     // Get current relationship stage for progress display
     const currentStage = relationshipStageService.getStage();
@@ -846,7 +839,7 @@ class SettingsMenuUI {
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript'), transcriptUI.isEnabled())}
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${this.chipsInOnVenmo() ? '' : this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
+            ${chipIn ? '' : this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${memoryControlEnabled() ? this.renderMenuItem('cognitive', ICONS.brain, t('ferniKnows.panelTitle')) : ''}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -861,7 +854,7 @@ class SettingsMenuUI {
           <div class="settings-menu__quick-actions" role="group" aria-label="${t('menu.sections.connect')}">
             ${this.renderMenuItem('whats-growing', ICONS.seedling, t('menu.items.whatsGrowing'))}
             ${this.renderMenuItem('share-ferni', ICONS.share, t('menu.items.shareFerni'))}
-            ${this.chipsInOnVenmo() ? this.renderMenuItem('support-ferni', ICONS.heart, t('buttons.chipIn')) : ''}
+            ${chipIn ? this.renderMenuItem('support-ferni', ICONS.heart, t('buttons.chipIn')) : ''}
             ${this.renderMenuItem('help', ICONS.help, t('menu.items.takeTour'))}
             ${this.renderMenuItem('sign-out', ICONS.signOut, t('buttons.signOut'))}
           </div>
