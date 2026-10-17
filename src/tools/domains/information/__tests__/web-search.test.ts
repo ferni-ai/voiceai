@@ -293,7 +293,32 @@ describe('spend caps', () => {
     expect(searchPrincipal({ ctx: { userData: {} } })).toBe(ANONYMOUS);
     expect(searchPrincipal({ ctx: { userData: { userId: 'anonymous' } } })).toBe(ANONYMOUS);
     expect(searchPrincipal({ ctx: { userData: { userId: 'anon:1f0c' } } })).toBe(ANONYMOUS);
+    expect(searchPrincipal({ ctx: { userData: { userId: 'device:abc123' } } })).toBe(ANONYMOUS);
+    expect(searchPrincipal({ ctx: { userData: { userId: 'phone:+14155550134' } } })).toBe(
+      ANONYMOUS
+    );
     expect(searchPrincipal(undefined)).toBe(ANONYMOUS);
+  });
+
+  it('gives a verified uid its own hour while anon: and device: callers share one', async () => {
+    vi.stubEnv('SEARCH_MAX_ANON_PER_HOUR', '2');
+    vi.stubEnv('SEARCH_MAX_PER_PERSON_HOUR', '5');
+    const original = rateLimiter.checkShared.bind(rateLimiter);
+    const anonKey = `${PERSON_KEY}:${ANONYMOUS}`;
+    const isolated = `${anonKey}:isolated-${Date.now()}`;
+    vi.spyOn(rateLimiter, 'checkShared').mockImplementation(async (key, max, windowMs, cost) =>
+      original(key === anonKey ? isolated : key, max, windowMs, cost)
+    );
+    generateContent.mockResolvedValue(
+      grounded('An answer.', [{ title: 'a', to: 'https://a.com/' }])
+    );
+    const as = (id: string) => searchPrincipal({ ctx: { userData: { userId: id } } });
+    expect(await runWebSearch('one', as('anon:11111111-aaaa'))).toContain('An answer.');
+    expect(await runWebSearch('two', as('device:client-chosen-1'))).toContain('An answer.');
+    expect(await runWebSearch('three', as('device:client-chosen-2'))).toBe(CAPPED);
+    const verified = as(`Kx9fQ2firebaseUid${Date.now()}`);
+    expect(verified).toMatch(/^user:Kx9fQ2firebaseUid/);
+    expect(await runWebSearch('four', verified)).toContain('An answer.');
   });
 
   it('makes two anon:<uuid> sessions share one smaller hourly bucket', async () => {

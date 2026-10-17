@@ -22,6 +22,7 @@
  */
 
 import { flagOn } from '../../../config/env-flag.js';
+import { isUnverifiedUserId } from '../../../services/identity/unverified-user-id.js';
 import {
   groundedSearch,
   resolveSourceUrl,
@@ -52,7 +53,7 @@ const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const DEFAULT_MAX_PER_PERSON_HOUR = 20;
 const DEFAULT_MAX_ANON_PER_HOUR = 10;
-/** Every anonymous caller together: one bucket, so a fresh anon:<uuid> session can't reset it. */
+/** Every unverified caller together: one bucket, so a fresh id can't reset it. */
 export const ANONYMOUS = 'anonymous';
 // 150 a day is at most 4,650 a month: inside the 5,000 free Grounding Queries, so a capped month costs nothing.
 const DEFAULT_MAX_PER_DAY = 150;
@@ -296,13 +297,13 @@ export async function runWebSearch(query: string, principal: string): Promise<st
 }
 
 /**
- * Who a search is charged to: the call's signed-in user, else ANONYMOUS.
- * An anonymous call gets a fresh anon:<uuid> per session (anonymous-session-id.ts),
- * so keying on it would hand every new session its own hour.
+ * Who a search is charged to: a verified account gets its own hour, and every
+ * unverified id (anon:, device:, phone:, none) shares ANONYMOUS's smaller one.
+ * Those ids are minted per session or supplied by the caller, so keying on one
+ * would hand a fresh hour to anyone who changes it.
  */
 export function searchPrincipal(opts: unknown): string {
   const userId = (opts as { ctx?: { userData?: { userId?: string } } } | undefined)?.ctx?.userData
     ?.userId;
-  if (!userId || userId === ANONYMOUS || userId.startsWith('anon:')) return ANONYMOUS;
-  return `user:${userId}`;
+  return userId && !isUnverifiedUserId(userId) ? `user:${userId}` : ANONYMOUS;
 }
