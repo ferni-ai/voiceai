@@ -145,6 +145,25 @@ describe('CalendarExecutor', () => {
       expect(getEventsForDay).not.toHaveBeenCalled();
     });
 
+    it('getUpcomingAppointments and checkAvailability say no calendar is connected', async () => {
+      const { isGoogleCalendarConnected, getEventsForWeek, isTimeSlotAvailable } = await import(
+        '../../../../services/calendar/calendar-service.js'
+      );
+      (isGoogleCalendarConnected as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false).mockResolvedValueOnce(false);
+
+      const upcoming = await calendarExecutor.execute('getUpcomingAppointments', {}, createContext());
+      const free = await calendarExecutor.execute(
+        'checkAvailability',
+        { date: '2026-10-18', time: '12:00' },
+        createContext()
+      );
+
+      expect(upcoming).toBe(NOT_CONNECTED_READ);
+      expect(free).toBe(NOT_CONNECTED_READ);
+      expect(getEventsForWeek).not.toHaveBeenCalled();
+      expect(isTimeSlotAvailable).not.toHaveBeenCalled();
+    });
+
     it('createCalendarEvent says nothing went to a calendar and names Ferni\'s own list', async () => {
       const { isGoogleCalendarConnected } = await import(
         '../../../../services/calendar/calendar-service.js'

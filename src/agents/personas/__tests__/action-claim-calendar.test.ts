@@ -74,6 +74,28 @@ describe('calendar claims', () => {
     expect(text).toBe("It isn't booked yet, though. Should I go ahead and book it? Anything else?");
   });
 
+  it('"I\'ve added lunch to your calendar" is a schedule claim', () => {
+    expect(claimedAction("I've added lunch with Sam to your calendar.")).toBe('schedule');
+  });
+
+  it('a calendar read before the claim is not a create: the claim is still held (#1547 sequence)', async () => {
+    const items = [
+      ASK,
+      result(
+        'getCalendarToday',
+        JSON.stringify(
+          "No calendar is connected yet, so I can't see your calendar. Want me to help you connect one?"
+        )
+      ),
+    ];
+    const parts = ["I've got that on your calendar for tomorrow at noon. ", 'Anything else?'];
+    const text = await textOf(
+      await check(streamOf(...parts), items, toolsWith('getCalendarToday', 'createCalendarEvent'))
+    );
+    expect(text).not.toMatch(/on your calendar/);
+    expect(text).toContain("It isn't booked yet, though.");
+  });
+
   it('a create called later in the same reply makes the claim stand, in order', async () => {
     const parts = [
       chunk('Sure. '),

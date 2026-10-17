@@ -34,6 +34,7 @@ const READ_TOOLS = new Set([
   'detectRecoveryNeeds',
   'findRecoveryOpportunities',
   'getCalendarLoadSummary',
+  'smartReschedule',
 ]);
 
 /** Writes land in Ferni's own list whatever the connection state, so they say so. */

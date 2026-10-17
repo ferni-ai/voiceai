@@ -85,6 +85,9 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
       `${HAVE} (?:put|added|got|have) (?:it|that|this|the \\w+) (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
     ),
     new RegExp(
+      `${HAVE} (?:put|added|got|have) .{1,40}? (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
+    ),
+    new RegExp(
       `${DOING} (?:booking|scheduling|reserving) (?:it|that|this|the|a|an|your|you)\\b(?! to\\b)`
     ),
     /\bgot you (?:a|the) (?:table|booking|reservation|appointment|spot)\b/,
@@ -158,7 +161,8 @@ const TOOL_KINDS: Record<ActionKind, RegExp> = {
   call: /^(?:callonbehalf|callandconverse|quickcall|reachout|multioutreach|makephonecall|backgroundcall|invitefriendbycall|calluser|callcontact|haveferni?call|callforconversation|call_make|telephony_call)$/,
   send: /^(?:reachout|multioutreach|quicktext|quickemail|send\w*|backgroundfollowup|post\w*|sms_send|message_send)$/,
   schedule:
-    /^(?:\w*calendar\w*|\w*event\w*|\w*appointment\w*|\w*reservation\w*|book\w*|schedule(?!reminder)\w*)$/,
+    // A read (getCalendarToday, getUpcomingAppointments) is not a schedule action, so its reply never counts as one (#1547).
+    /^(?!(?:get|detect|check|find|suggest|list|view)\w*$)(?:\w*calendar\w*|\w*event\w*|\w*appointment\w*|\w*reservation\w*|book\w*|schedule(?!reminder)\w*)$/,
   reminder: /^\w*(?:remind|timer|alarm)\w*$/,
   save: /^(?:remember\w*|save\w*|addtask|addnote|\w*journal\w*|loghabit\w*|createhabit)$/,
 };

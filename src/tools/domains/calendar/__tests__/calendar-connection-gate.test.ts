@@ -80,6 +80,7 @@ const READS = [
   'detectRecoveryNeeds',
   'findRecoveryOpportunities',
   'getCalendarLoadSummary',
+  'smartReschedule',
 ];
 
 const ctx = { userId: 'user-1', userTimeZone: 'UTC' } as unknown as ToolContext;

@@ -199,6 +199,7 @@ async function execute(
 
     if (ctx.userId) {
       try {
+        if (!(await isGoogleCalendarConnected(ctx.userId))) return NOT_CONNECTED_READ;
         // Get events for the week
         const overview = await getEventsForWeek(ctx.userId, new Date());
 
@@ -238,6 +239,7 @@ async function execute(
 
     if (ctx.userId) {
       try {
+        if (!(await isGoogleCalendarConnected(ctx.userId))) return NOT_CONNECTED_READ;
         // Build time slot from date and time strings
         const startTime = date && time ? new Date(`${date} ${time}`) : new Date();
         const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour slot
