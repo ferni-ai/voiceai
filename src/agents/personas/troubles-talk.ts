@@ -86,9 +86,15 @@ export function tellingLengthLine(cap: number): string {
  * The character sheet's line (ferni and the coaches) with the feelings ban
  * swapped for REFLECT. A sheet without the line (Maya's) is returned as is.
  */
-const FEELINGS_BAN = / or name their feelings for them;(.*?you let them lead\.)/;
+const FEELINGS_BAN = /(don't [^;.]*?) or name their feelings for them;(.*?you let them lead\.)/;
+/** Nayan "doesn't rush to make meaning of it": "say back the meaning" would contradict that. */
+const REFLECT_HEARD =
+  'You say back what you heard underneath it, in your own words, as a statement: not a feelings label, and not a stock frame like "has a way of" or "the hardest part".';
 
 export function withReflection(sheet: string, env: Env = process.env): string {
   if (!troublesTalkEnabled(env)) return sheet;
-  return sheet.replace(FEELINGS_BAN, `;$1 You s${REFLECT.slice(1)}`);
+  return sheet.replace(FEELINGS_BAN, (_line, dont: string, rest: string) => {
+    const reflect = /\bmeaning\b/.test(dont) ? REFLECT_HEARD : `You s${REFLECT.slice(1)}`;
+    return `${dont};${rest} ${reflect}`;
+  });
 }

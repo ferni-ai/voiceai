@@ -180,7 +180,7 @@ describe('TROUBLES_TALK length', () => {
 describe('TROUBLES_TALK reflections in the character sheet', () => {
   it('swaps the feelings ban for saying back the meaning, for Ferni and the coaches', async () => {
     process.env.PROMPT_MODE = 'character';
-    for (const persona of ['ferni', 'peter-john', 'jordan-taylor', 'nayan-patel', 'alex-chen']) {
+    for (const persona of ['ferni', 'peter-john', 'jordan-taylor', 'alex-chen']) {
       const off = await loadSystemPrompt(persona);
       process.env.TROUBLES_TALK = 'on';
       const on = await loadSystemPrompt(persona);
@@ -191,6 +191,19 @@ describe('TROUBLES_TALK reflections in the character sheet', () => {
         'you let them lead. You say back the meaning under what they said'
       );
     }
+  });
+
+  it('words Nayan\'s line without "meaning", since he doesn\'t rush to make meaning', async () => {
+    process.env.PROMPT_MODE = 'character';
+    const off = await loadSystemPrompt('nayan-patel');
+    process.env.TROUBLES_TALK = 'on';
+    const on = await loadSystemPrompt('nayan-patel');
+    expect(off).toMatch(/name their feelings for them/);
+    expect(on).not.toMatch(/name their feelings/);
+    expect(on).toContain("don't rush to make meaning of it;");
+    expect(on).toContain('you let them lead. You say back what you heard underneath it');
+    const both = on.includes("don't rush to make meaning") && on.includes('say back the meaning');
+    expect(both).toBe(false);
   });
 
   it("leaves Maya's sheet, which has no such line, as it is", async () => {
