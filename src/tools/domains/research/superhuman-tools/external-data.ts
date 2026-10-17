@@ -16,7 +16,6 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import type {
   LocalEconomicIndicators,
-  IndustryTrendSynthesis,
   NewsSentiment,
   PersonalInflationRate,
   SpendingRecord,
@@ -219,251 +218,27 @@ export const getLocalEconomics = llm.tool({
 // INDUSTRY TREND SYNTHESIZER
 // ============================================================================
 
-function getIndustryTrends(industry: string): IndustryTrendSynthesis {
-  const industries: Record<string, IndustryTrendSynthesis> = {
-    technology: {
-      industry: 'Technology',
-      overallSentiment: 'neutral',
-      keyTrends: [
-        'AI is reshaping every segment - companies without AI strategy at risk',
-        'Cloud growth moderating but still strong',
-        'Cybersecurity spending increasing despite budget cuts elsewhere',
-        'Remote/hybrid work has permanently changed enterprise software needs',
-      ],
-      disruptionRisks: [
-        'AI automation of knowledge work',
-        'Commoditization of cloud services',
-        'Regulatory pressure on big tech',
-        'Open source eating into proprietary software',
-      ],
-      opportunities: [
-        'AI tooling and infrastructure',
-        'Security and compliance automation',
-        'Vertical SaaS in underserved industries',
-        'Data infrastructure for AI workloads',
-      ],
-      topCompanies: [
-        { name: 'Microsoft', ticker: 'MSFT', position: 'AI infrastructure leader via OpenAI' },
-        { name: 'NVIDIA', ticker: 'NVDA', position: 'AI chip monopoly (for now)' },
-        {
-          name: 'Google',
-          ticker: 'GOOGL',
-          position: 'Search disruption risk but strong AI capabilities',
-        },
-      ],
-      outlook:
-        'Bifurcated market - AI winners gaining while others struggle. Focus on companies with clear AI advantage.',
-    },
-    healthcare: {
-      industry: 'Healthcare',
-      overallSentiment: 'bullish',
-      keyTrends: [
-        'GLP-1 drugs revolutionizing obesity and diabetes treatment',
-        'AI diagnostic tools gaining FDA approvals',
-        'Virtual care adoption remains elevated post-COVID',
-        'Aging population driving demand across all segments',
-      ],
-      disruptionRisks: [
-        'Drug pricing legislation',
-        'Medicare reimbursement cuts',
-        'Big tech entry into healthcare',
-        'Patent cliffs for major drugs',
-      ],
-      opportunities: [
-        'Obesity/metabolic disease treatments',
-        'AI-assisted diagnostics',
-        'Senior care and aging-in-place',
-        'Mental health services',
-      ],
-      topCompanies: [
-        { name: 'Eli Lilly', ticker: 'LLY', position: 'GLP-1 leader with Mounjaro' },
-        { name: 'UnitedHealth', ticker: 'UNH', position: 'Diversified healthcare giant' },
-        { name: 'Novo Nordisk', ticker: 'NVO', position: 'Ozempic dominance' },
-      ],
-      outlook:
-        'Secular growth driven by demographics and innovation. GLP-1 drugs are generational change.',
-    },
-    finance: {
-      industry: 'Financial Services',
-      overallSentiment: 'neutral',
-      keyTrends: [
-        'Higher rates boost net interest margins but hurt loan growth',
-        'Fintech consolidation after 2021-2022 bubble',
-        'Embedded finance expanding into non-financial products',
-        'Regulatory pressure on crypto and digital assets',
-      ],
-      disruptionRisks: [
-        'Interest rate volatility',
-        'Commercial real estate exposure',
-        'Fintech competition in payments',
-        'Credit quality deterioration',
-      ],
-      opportunities: [
-        'Wealth management for aging population',
-        'Small business lending (SBA loans)',
-        'Insurance technology',
-        'Financial wellness for employees',
-      ],
-      topCompanies: [
-        { name: 'JPMorgan', ticker: 'JPM', position: 'Scale and technology leader' },
-        { name: 'Visa', ticker: 'V', position: 'Payments network effect' },
-        { name: 'Blackstone', ticker: 'BX', position: 'Alternative assets leader' },
-      ],
-      outlook:
-        'Mature industry with steady returns. Winners have scale, technology, and diversification.',
-    },
-    realestate: {
-      industry: 'Real Estate',
-      overallSentiment: 'bearish',
-      keyTrends: [
-        'Office sector in structural decline due to remote work',
-        'Industrial/logistics still strong but moderating',
-        'Residential affordability at crisis levels',
-        'Data center demand exploding for AI',
-      ],
-      disruptionRisks: [
-        'Interest rate impact on valuations',
-        'Office vacancy rates',
-        'Construction cost inflation',
-        'Climate risk in coastal markets',
-      ],
-      opportunities: [
-        'Data centers and AI infrastructure',
-        'Build-to-rent residential',
-        'Senior housing',
-        'Office-to-residential conversions',
-      ],
-      topCompanies: [
-        { name: 'Prologis', ticker: 'PLD', position: 'Industrial/logistics REIT leader' },
-        { name: 'Equinix', ticker: 'EQIX', position: 'Data center REIT' },
-        { name: 'AvalonBay', ticker: 'AVB', position: 'Quality residential REIT' },
-      ],
-      outlook: 'Highly bifurcated. Avoid office, overweight data centers and industrial.',
-    },
-    energy: {
-      industry: 'Energy',
-      overallSentiment: 'neutral',
-      keyTrends: [
-        'Oil demand peak debate - transport declining, petrochemicals growing',
-        'Natural gas as transition fuel gaining support',
-        'Solar/wind costs continue falling',
-        'Grid infrastructure needs massive investment',
-      ],
-      disruptionRisks: [
-        'Faster-than-expected EV adoption',
-        'Regulatory/ESG pressure',
-        'Commodity price volatility',
-        'Geopolitical supply disruptions',
-      ],
-      opportunities: [
-        'Grid infrastructure and storage',
-        'LNG export facilities',
-        'Carbon capture technology',
-        'Nuclear renaissance',
-      ],
-      topCompanies: [
-        {
-          name: 'ExxonMobil',
-          ticker: 'XOM',
-          position: 'Integrated major with strong balance sheet',
-        },
-        { name: 'NextEra', ticker: 'NEE', position: 'Renewable energy leader' },
-        { name: 'Schlumberger', ticker: 'SLB', position: 'Oilfield services leader' },
-      ],
-      outlook: 'Transition creates both risks and opportunities. Diversification is key.',
-    },
-  };
-
-  const normalizedIndustry = industry.toLowerCase().replace(/\s+/g, '');
-  for (const [key, data] of Object.entries(industries)) {
-    if (normalizedIndustry.includes(key) || key.includes(normalizedIndustry)) {
-      return data;
-    }
-  }
-
-  // Default
-  return {
-    industry: industry,
-    overallSentiment: 'neutral',
-    keyTrends: ['Data not available for this specific industry'],
-    disruptionRisks: ['Industry-specific analysis required'],
-    opportunities: ['Consult industry-specific sources'],
-    topCompanies: [],
-    outlook: 'Unable to provide specific outlook. Consider consulting industry reports.',
-  };
-}
+/**
+ * What synthesizeIndustryTrends says. It used to answer from a hardcoded,
+ * dated table with a BULLISH/BEARISH call, stock tickers and lines like
+ * "overweight data centers": investment views Ferni doesn't give, presented
+ * as current.
+ */
+export const INDUSTRY_VIEWS_UNAVAILABLE =
+  "I can't give current market views on an industry, and I don't recommend sectors or stocks. What I can do is talk through how changes in that field might affect your work, your skills or a decision you're weighing.";
 
 export const synthesizeIndustryTrends = llm.tool({
   description:
-    'Get a synthesis of trends in any industry. Key developments, disruption risks, opportunities, and leading companies.',
+    "Talk about an industry. It gives no current market views, sentiment calls or company picks; it says so and offers to talk through what the field's changes mean for the user's work or decisions.",
   parameters: z.object({
     industry: z
       .string()
-      .describe('Industry to analyze (e.g., "technology", "healthcare", "finance")'),
+      .describe('Industry to talk about (e.g., "technology", "healthcare", "finance")'),
   }),
   execute: async (params: { industry: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
-    log.info({ userId, industry: params.industry }, '📈 Synthesizing industry trends');
-
-    const data = getIndustryTrends(params.industry);
-
-    const sentimentEmoji =
-      data.overallSentiment === 'bullish'
-        ? '🟢'
-        : data.overallSentiment === 'bearish'
-          ? '🔴'
-          : '🟡';
-
-    return [
-      `📈 **INDUSTRY TREND SYNTHESIS: ${data.industry.toUpperCase()}**`,
-      '',
-      `═══════════════════════════════════`,
-      `${sentimentEmoji} **OVERALL SENTIMENT: ${data.overallSentiment.toUpperCase()}**`,
-      `═══════════════════════════════════`,
-      '',
-      `═══════════════════════════════════`,
-      `🔑 **KEY TRENDS**`,
-      `═══════════════════════════════════`,
-      '',
-      ...data.keyTrends.map((t) => `• ${t}`),
-      '',
-      `═══════════════════════════════════`,
-      `⚠️ **DISRUPTION RISKS**`,
-      `═══════════════════════════════════`,
-      '',
-      ...data.disruptionRisks.map((r) => `• ${r}`),
-      '',
-      `═══════════════════════════════════`,
-      `✅ **OPPORTUNITIES**`,
-      `═══════════════════════════════════`,
-      '',
-      ...data.opportunities.map((o) => `• ${o}`),
-      '',
-      data.topCompanies.length > 0 ? `═══════════════════════════════════` : '',
-      data.topCompanies.length > 0 ? `🏢 **LEADING COMPANIES**` : '',
-      data.topCompanies.length > 0 ? `═══════════════════════════════════` : '',
-      data.topCompanies.length > 0 ? '' : '',
-      ...data.topCompanies.map((c) => `• **${c.name}** (${c.ticker}): ${c.position}`),
-      '',
-      `═══════════════════════════════════`,
-      `🔮 **OUTLOOK**`,
-      `═══════════════════════════════════`,
-      '',
-      data.outlook,
-      '',
-      `═══════════════════════════════════`,
-      `💡 **PETER'S TAKE**`,
-      `═══════════════════════════════════`,
-      '',
-      `Industry trends affect your career, investments, and opportunities.`,
-      ``,
-      `**Questions to ask yourself:**`,
-      `• Is my career aligned with industry tailwinds?`,
-      `• Am I exposed to disruption risks?`,
-      `• Should I be building skills for the emerging opportunities?`,
-    ]
-      .filter(Boolean)
-      .join('\n');
+    log.info({ userId, industry: params.industry }, '📈 Industry views requested; none given');
+    return INDUSTRY_VIEWS_UNAVAILABLE;
   },
 });
 
