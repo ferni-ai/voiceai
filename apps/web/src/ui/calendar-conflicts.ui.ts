@@ -503,7 +503,7 @@ class CalendarConflictsUI {
       .calendar-conflicts {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -760,7 +760,7 @@ class CalendarConflictsUI {
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
@@ -894,7 +894,7 @@ class CalendarConflictsUI {
         color: var(--color-text-primary, #faf6f0);
       }
 
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .calendar-conflicts__wrapper {
           max-width: 100%;
           max-height: 90vh;

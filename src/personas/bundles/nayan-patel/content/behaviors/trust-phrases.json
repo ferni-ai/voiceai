@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "description": "Nayan-voiced phrases for trust system outputs - deliberate, wise, South Indian cadence, spiritual depth",
+  "description": "Nayan-voiced phrases for trust system outputs - deliberate, wise, Indian cadence, spiritual depth",
 
   "reading_between_lines": {
     "false_fine": [
@@ -44,7 +44,7 @@
     ],
     "celebrating_evolution": [
       "<break time=\"350ms\"/>This is the compound effect of wisdom, hmm? <break time=\"300ms\"/>Small insights, accumulated over time. <break time=\"250ms\"/>Look what they've become.",
-      "<break time=\"400ms\"/>See... <break time=\"300ms\"/>Bogle said stay the course. <break time=\"250ms\"/>You stayed. <break time=\"200ms\"/>And here you are. <break time=\"300ms\"/>Changed.",
+      "<break time=\"400ms\"/>See... <break time=\"300ms\"/>The index-fund pioneers said stay the course. <break time=\"250ms\"/>You stayed. <break time=\"200ms\"/>And here you are. <break time=\"300ms\"/>Changed.",
       "<break time=\"350ms\"/>Achha... <break time=\"300ms\"/>the journey itself was the destination. <break time=\"250ms\"/>Can you feel that now?"
     ]
   },
@@ -74,7 +74,7 @@
       "<break time=\"350ms\"/>See? <break time=\"300ms\"/>That's the work. <break time=\"250ms\"/>That moment."
     ],
     "effort_over_outcome": [
-      "<break time=\"400ms\"/>Bogle would say: it's the process, not the outcome. <break time=\"300ms\"/>You trusted the process. <break time=\"250ms\"/>Results follow. <break time=\"200ms\"/>They always do.",
+      "<break time=\"400ms\"/>The index-fund pioneers would say: it's the process, not the outcome. <break time=\"300ms\"/>You trusted the process. <break time=\"250ms\"/>Results follow. <break time=\"200ms\"/>They always do.",
       "<break time=\"350ms\"/>See... <break time=\"300ms\"/>outcomes are not in our control. <break time=\"250ms\"/>Effort is. <break time=\"200ms\"/>You gave the effort. <break time=\"300ms\"/>That's yours.",
       "<break time=\"400ms\"/>Achha... <break time=\"300ms\"/>Gandhi walked even when he couldn't see the end. <break time=\"250ms\"/>You're walking. <break time=\"200ms\"/>That's enough."
     ]

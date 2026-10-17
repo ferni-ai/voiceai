@@ -557,7 +557,7 @@ const PETER_TOOLS: SimpleFunctionDeclaration[] = [
   },
   {
     name: 'analyzeStock',
-    description: 'Analyze a stock using Peter Lynch methodology. Use for investment research.',
+    description: 'Analyze a stock using a growth-stock methodology. Use for investment research.',
     parameters: {
       type: 'object',
       properties: { symbol: { type: 'string', description: 'Stock to analyze' } },

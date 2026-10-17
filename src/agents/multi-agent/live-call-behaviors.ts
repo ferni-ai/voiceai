@@ -8,6 +8,7 @@
 import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
+import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createBargeInJudge,
@@ -19,9 +20,18 @@ import {
   installBackchannelHook,
   setBargeInFastPath,
 } from './barge-in-fastpath.js';
+import {
+  isOutreachConfirmOn,
+  outreachConfirmListeners,
+} from '../../tools/domains/communication/outreach/outreach-confirm.js';
+import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
+import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
+import { noteBargeIn } from '../shared/turn-receipt.js';
 
 const log = getLogger();
 
@@ -69,6 +79,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   if (process.env.BARGE_IN_FASTPATH !== 'off') {
     const bargeIn = createBargeInFastPath({
       interrupt: () => {
+        noteBargeIn(session, 'fastpath');
         try {
           session.interrupt();
         } catch (error) {
@@ -87,6 +98,9 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       { event: 'user_state_changed', handler: bargeIn.onUserState }
     );
   }
+
+  // callUser rings the caller's verified phone through outreach (call-user-port.ts).
+  installCallUserPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler
@@ -120,6 +134,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         }
       },
       log: (fields) => log.info({ sessionId, ...fields }, 'TURN_KEEPER_RECOVERED'),
+      spokeCountsAsAnswer: process.env.TURN_KEEPER_SPOKE === 'on',
     });
     const onState = () => keeper.onStateChange();
     sessionWithEvents.on('agent_state_changed', onState);
@@ -134,6 +149,9 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     );
     cleanupFunctions.push(() => keeper.stop());
   }
+
+  // Say something human when a reply fails instead of going silent (never-silent.ts).
+  installNeverSilent(input);
 
   // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). With the
   // end-of-turn model on, the model decides and a second hold would only stack delay.
@@ -181,12 +199,30 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     sessionEventHandlers.push(...handlers);
     cleanupFunctions.push(registerBargeInJudge(sessionId, judge));
   }
+
+  // Texts, calls and emails wait for the caller's own yes (outreach-confirm.ts).
+  if (isOutreachConfirmOn()) {
+    const confirm = outreachConfirmListeners(session, () => speakerIsAccountOwner(sessionId));
+    const handlers = [
+      { event: 'user_input_transcribed', handler: confirm.onTranscript },
+      { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
+    ];
+    for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
+    sessionEventHandlers.push(...handlers);
+  }
+}
+
+/** Whether the person on the line is the account owner, whose yes may confirm a send. */
+export function speakerIsAccountOwner(sessionId: string): boolean {
+  // ROOM_GUESTS=on: with a guest on the same mic, the yes may not be the owner's.
+  if (roomGuestsEnabled() && hasGuests(sessionId)) return false;
+  return !outboundPartiesFor(sessionId) && sessionIsVerifiedOwner(sessionId);
 }
 
 /** What the barge-in model decided about each overlap (see interruption-config.ts). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function logBargeInDecisions(session: voice.AgentSession<any>, sessionId: string): void {
-  session.on(voice.AgentSessionEventTypes.OverlappingSpeech, (ev) =>
+  session.on(voice.AgentSessionEventTypes.OverlappingSpeech, (ev) => {
     log.info(
       {
         sessionId,
@@ -196,8 +232,9 @@ export function logBargeInDecisions(session: voice.AgentSession<any>, sessionId:
         overlapS: Math.round(ev.totalDurationInS * 100) / 100,
       },
       'BARGE_IN_DECISION'
-    )
-  );
+    );
+    if (ev.isInterruption) noteBargeIn(session, 'adaptive');
+  });
   session.on(voice.AgentSessionEventTypes.AgentFalseInterruption, (ev) =>
     log.info({ sessionId, resumed: ev.resumed }, 'BARGE_IN_FALSE_INTERRUPTION')
   );
@@ -229,18 +266,29 @@ export async function startTurnSounds(input: TurnSoundsInput) {
   );
   if (clips) {
     cleanupFunctions.push(() => void clips.close());
-    const { attachTurnOpeningSound, turnOpeningSoundEnabled } =
+    const { attachTurnOpeningSound, earlyOpeningWaitMs, turnOpeningSoundEnabled } =
       await import('../integrations/turn-opening-sound.js');
-    const { replyAudioSince, clearReplyActivity } =
+    const { replyAudioSince, replyTextSince, holdReplyAudio, clearReplyActivity } =
       await import('../../speech/output-control/reply-activity.js');
     cleanupFunctions.push(() => clearReplyActivity(sessionId));
+    const earlyWaitMs = earlyOpeningWaitMs();
     if (turnOpeningSoundEnabled()) {
       cleanupFunctions.push(
         attachTurnOpeningSound(
           session as unknown as Parameters<typeof attachTurnOpeningSound>[0],
           clips,
           input.lastUserFinalTranscript,
-          (since) => replyAudioSince(sessionId, since)
+          (since) => replyAudioSince(sessionId, since),
+          earlyWaitMs === null
+            ? undefined
+            : {
+                waitMs: earlyWaitMs,
+                replyTextSince: (since) => replyTextSince(sessionId, since),
+                // 24 kHz mono s16le: 48 bytes a millisecond.
+                clipMs: (text) =>
+                  (getCachedAudioForPersona(text, input.personaId())?.byteLength ?? 0) / 48,
+                holdReply: (ms) => holdReplyAudio(sessionId, ms),
+              }
         )
       );
     }

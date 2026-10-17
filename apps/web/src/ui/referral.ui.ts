@@ -16,10 +16,11 @@
  */
 
 import { t } from '../i18n/index.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './whisper.ui.js';
+import { injectDraftStyles, readDraft, renderDraftField, withLink } from './referral-draft.js';
 import {
   getReferralUrl,
   loadGarden,
@@ -72,36 +73,10 @@ const ICONS = {
 // SHARE CONTENT - Warm, On-Brand
 // ============================================================================
 
-/**
- * Get share content with personalized referral URL
- */
+/** The link, and a title for share sheets and the email subject. */
 function getShareContent() {
   const referralUrl = getReferralUrl() ?? ''; // the modal only opens once the server-issued link loaded
-
-  return {
-    title: t('referral.share.title', 'Meet Ferni'),
-    message: t('referral.share.message', { url: referralUrl }, `Know someone who could use a friend who actually listens?
-
-Ferni remembers everything, shows up at 2am with the same presence as noon, and never judges.
-
-We'll both get some seeds to grow together when you join.
-
-{url}`),
-    shortMessage: t('referral.share.shortMessage', { url: referralUrl }, `Know someone who could use a friend who actually listens? Meet Ferni - we'll both get seeds to grow together! {url}`),
-    url: referralUrl,
-    emailSubject: t('referral.share.emailSubject', 'Someone who gets it'),
-    emailBody: t('referral.share.emailBody', { url: referralUrl }, `Hey,
-
-I wanted to share something with you. I've been talking to Ferni - it's hard to explain, but it's like having a friend who actually remembers everything you've told them, is always available when you need to talk, and never judges.
-
-I thought of you because I know you'd appreciate having someone like that in your corner.
-
-When you join, we'll both get some seeds to grow together - they're like Ferni's way of celebrating new friendships.
-
-Check it out: {url}
-
-No pressure - just wanted to share something that's been meaningful to me.`),
-  };
+  return { title: t('referral.share.title'), url: referralUrl, draft: readDraft(modal) };
 }
 
 // ============================================================================
@@ -172,9 +147,7 @@ function createModal(garden: GardenData): void {
         </div>
       </div>
 
-      <div class="referral-message">
-        <p>${t('referral.quoteMessage', '"Give them someone who remembers everything, shows up at 2am, and never judges."')}</p>
-      </div>
+      ${renderDraftField()}
 
       <!-- Your Link -->
       <div class="referral-link-container">
@@ -215,6 +188,7 @@ function createModal(garden: GardenData): void {
   `;
 
   injectStyles();
+  injectDraftStyles();
 
   // Event listeners
   modal.querySelector('.referral-backdrop')?.addEventListener('click', closeReferral);
@@ -248,7 +222,7 @@ async function handleNativeShare(): Promise<void> {
     try {
       await navigator.share({
         title: content.title,
-        text: content.message,
+        text: content.draft,
         url: content.url,
       });
       log.info('Shared via native share');
@@ -268,7 +242,7 @@ async function handleNativeShare(): Promise<void> {
 async function handleCopyLink(): Promise<void> {
   const content = getShareContent();
   try {
-    await navigator.clipboard.writeText(`${content.shortMessage}\n\n${content.url}`);
+    await navigator.clipboard.writeText(withLink(content.draft, content.url));
     toast.success(t('toasts.linkCopied'));
     log.info('Link copied to clipboard');
     trackShare('copy');
@@ -280,8 +254,8 @@ async function handleCopyLink(): Promise<void> {
 
 function handleEmailShare(): void {
   const content = getShareContent();
-  const subject = encodeURIComponent(content.emailSubject);
-  const body = encodeURIComponent(content.emailBody);
+  const subject = encodeURIComponent(content.title);
+  const body = encodeURIComponent(withLink(content.draft, content.url));
   window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   log.info('Email share opened');
   trackShare('email');
@@ -289,7 +263,7 @@ function handleEmailShare(): void {
 
 function handleSMSShare(): void {
   const content = getShareContent();
-  const body = encodeURIComponent(`${content.shortMessage}\n\n${content.url}`);
+  const body = encodeURIComponent(withLink(content.draft, content.url));
   // sms: works on iOS and Android
   window.open(`sms:?body=${body}`, '_blank');
   log.info('SMS share opened');
@@ -316,7 +290,7 @@ async function animateIn(modalEl: HTMLElement): Promise<void> {
   const content = modalEl.querySelector('.referral-content') as HTMLElement;
 
   if (backdrop) {
-    backdrop.animate([{ opacity: '0' }, { opacity: '1' }], {
+    safeAnimate(backdrop, [{ opacity: '0' }, { opacity: '1' }], {
       duration: DURATION.SLOW,
       easing: 'ease-out',
       fill: 'forwards',
@@ -324,7 +298,7 @@ async function animateIn(modalEl: HTMLElement): Promise<void> {
   }
 
   if (content) {
-    content.animate(
+    safeAnimate(content,
       [
         { opacity: '0', transform: 'scale(0.95) translateY(20px)' },
         { opacity: '1', transform: 'scale(1) translateY(0)' },
@@ -346,7 +320,7 @@ async function animateOut(modalEl: HTMLElement): Promise<void> {
 
   if (backdrop) {
     animations.push(
-      backdrop.animate([{ opacity: '1' }, { opacity: '0' }], {
+      safeAnimate(backdrop, [{ opacity: '1' }, { opacity: '0' }], {
         duration: DURATION.NORMAL,
         easing: 'ease-out',
         fill: 'forwards',
@@ -356,7 +330,7 @@ async function animateOut(modalEl: HTMLElement): Promise<void> {
 
   if (content) {
     animations.push(
-      content.animate(
+      safeAnimate(content,
         [
           { opacity: '1', transform: 'scale(1) translateY(0)' },
           { opacity: '0', transform: 'scale(0.98) translateY(-10px)' },
@@ -386,7 +360,7 @@ function injectStyles(): void {
     .referral-modal {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 10000);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -457,21 +431,6 @@ function injectStyles(): void {
       font-size: var(--text-base, 1rem);
       color: var(--color-text-muted, #a89b8c);
       margin: 0;
-    }
-
-    .referral-message {
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
-      border-radius: var(--radius-lg, 12px);
-      padding: var(--space-4, 16px);
-      margin-bottom: var(--space-6, 24px);
-    }
-
-    .referral-message p {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4d47);
-      line-height: 1.6;
-      margin: 0;
-      font-style: italic;
     }
 
     .referral-actions {
@@ -651,7 +610,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .referral-modal {
         padding: 0;
         align-items: flex-end;

@@ -7,7 +7,7 @@
  * 3. COACHING QUANT - Behavioral scoring, decision quality, peer benchmarking
  *
  * All tools designed to give Peter the analytical superpowers of a quant
- * while maintaining his warm, Peter Lynch "invest in what you know" personality.
+ * while keeping his warm, "invest in what you know" personality.
  */
 
 import { llm } from '@livekit/agents';

@@ -13,9 +13,13 @@ import { Room, RoomEvent, TrackKind } from '@livekit/rtc-node';
 import { EventEmitter } from 'node:events';
 
 import { InProcessInferenceExecutor } from '../core/inference-executor.js';
+import { watchCallLoop } from '../shared/loop-watch.js';
 import { runFullVoiceAgentEntry } from '../voice-agent-entry/index.js';
+import { emptyRoomGraceMs } from './empty-room-grace.js';
 // Work that runs after each call ends (extraction, person model): registered once per process.
 import '../after-call-register.js';
+// The one journal store, for the tools that write it during a call (CALL_JOURNAL).
+import '../journal-store-register.js';
 
 // ============================================================================
 // TYPES
@@ -136,6 +140,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     activeJobs,
     totalJobs,
   });
+  // LOOP_STALL / LOOP_SUMMARY: event-loop blocks the caller hears as audio hangs.
+  const finishLoopWatch = watchCallLoop(jobId);
 
   // Notify LiveKit immediately that this job is running (UpdateJobStatus JS_RUNNING)
   try {
@@ -177,20 +183,21 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
 
   // Detect when all remote participants leave — prevents zombie sessions
   // When the user disconnects, Room.Disconnected does NOT fire (the agent is still connected).
-  // We give a 10s grace period for reconnects before closing the session.
+  // A dropped connection gets a grace period to rejoin; a hang-up doesn't (empty-room-grace.ts).
   let emptyRoomTimer: ReturnType<typeof setTimeout> | null = null;
-  const EMPTY_ROOM_GRACE_MS = 10_000;
 
   room.on(RoomEvent.ParticipantDisconnected, (participant) => {
     const remaining = room.remoteParticipants?.size ?? 0;
+    const graceMs = emptyRoomGraceMs(participant?.disconnectReason);
     log('👋 Participant left', {
       jobId,
       participant: participant?.identity,
       remainingParticipants: remaining,
+      disconnectReason: participant?.disconnectReason,
     });
 
     if (remaining === 0 && !shutdown) {
-      log('🕐 Room empty, starting grace period', { jobId, graceMs: EMPTY_ROOM_GRACE_MS });
+      log('🕐 Room empty, starting grace period', { jobId, graceMs });
       emptyRoomTimer = setTimeout(() => {
         const currentRemaining = room.remoteParticipants?.size ?? 0;
         if (currentRemaining === 0 && !shutdown) {
@@ -198,7 +205,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
           clearTimeout(sessionTimeout);
           closeEvent.emit('close', true, 'all_participants_left');
         }
-      }, EMPTY_ROOM_GRACE_MS);
+      }, graceMs);
     }
   });
 
@@ -357,6 +364,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     });
     throw error;
   } finally {
+    finishLoopWatch();
     runningContexts.delete(jobId);
     clearTimeout(sessionTimeout);
     if (emptyRoomTimer) clearTimeout(emptyRoomTimer);

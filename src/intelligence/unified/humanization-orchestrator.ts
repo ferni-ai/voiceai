@@ -516,11 +516,6 @@ export class HumanizationOrchestrator {
       `Length: ${lengthGuidance.min}-${lengthGuidance.max} words. ${lengthGuidance.note}`
     );
 
-    // Name usage
-    if (nameUsage.shouldUse) {
-      sections.push('Use their name naturally once.');
-    }
-
     // Spontaneous elements
     const usableElements = spontaneousElements.filter((e) => e.shouldUse);
     if (usableElements.length > 0) {

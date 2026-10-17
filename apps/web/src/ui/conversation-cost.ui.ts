@@ -19,6 +19,8 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { formatCurrency, formatNumber, t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
+import { anchorAboveControls, anchoredCardCss } from './after-call/anchor-above-controls.js';
+import { canOpenSupport, openSupport } from './support/open-support.js';
 
 const log = createLogger('ConversationCostUI');
 
@@ -53,6 +55,8 @@ interface ConversationCostResponse {
 let container: HTMLElement | null = null;
 let isVisible = false;
 let dismissTimeout: ReturnType<typeof setTimeout> | null = null;
+/** Stops the card following the controls when the viewport changes. */
+let stopAnchor: (() => void) | null = null;
 
 // ============================================================================
 // STYLES
@@ -66,7 +70,6 @@ function injectStyles(): void {
   style.textContent = `
     .ferni-cost-card {
       position: fixed;
-      bottom: 120px;
       left: 50%;
       transform: translateX(-50%) translateY(20px) scale(0.95);
       opacity: 0;
@@ -75,7 +78,7 @@ function injectStyles(): void {
       padding: var(--space-md, 16px) var(--space-lg, 24px);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-      z-index: var(--z-notification, 3000);
+      z-index: var(--z-notification);
       max-width: min(320px, 100%);
       text-align: center;
       pointer-events: auto;
@@ -181,6 +184,8 @@ function injectStyles(): void {
       color: var(--color-text-primary);
     }
 
+    ${anchoredCardCss('.ferni-cost-card')}
+
     @media (prefers-reduced-motion: reduce) {
       .ferni-cost-card {
         transition: opacity ${DURATION.FAST}ms;
@@ -232,7 +237,10 @@ function createCostCard(data: ConversationCostResponse): HTMLElement {
   const costDisplay =
     data.totalCost < 0.01
       ? t('conversationCost.cents', {
-          amount: formatNumber(data.totalCost * 100, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          amount: formatNumber(data.totalCost * 100, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
         })
       : formatCurrency(data.totalCost, 'USD');
 
@@ -281,10 +289,10 @@ function handleTipClick(_amount: string): void {
   // Hide the cost card first
   hide();
 
-  // Open the Support Ferni modal which has proper payment integration
-  import('./support-ferni.ui.js').then(({ supportFerniUI }) => {
-    void supportFerniUI.open();
-  });
+  // Venmo chip-in when configured, otherwise the Stripe Support Ferni modal
+  openSupport().catch((error: unknown) =>
+    log.warn('Support failed to open', { error: String(error) })
+  );
 }
 
 // ============================================================================
@@ -292,9 +300,11 @@ function handleTipClick(_amount: string): void {
 // ============================================================================
 
 /**
- * Fetch and show the conversation cost card
+ * Fetch and show the conversation cost card. Resolves to the card, or null when none was shown.
  */
-export async function showConversationCost(): Promise<void> {
+export async function showConversationCost(): Promise<HTMLElement | null> {
+  // A tip card: only when its Support button has something to open (Venmo chip-in, or Stripe with a paywall)
+  if (!canOpenSupport()) return null;
   injectStyles();
   cleanupExisting();
 
@@ -304,7 +314,7 @@ export async function showConversationCost(): Promise<void> {
 
     if (!response.ok || !response.data) {
       log.debug('No cost data available');
-      return;
+      return null;
     }
 
     const data = response.data;
@@ -312,12 +322,13 @@ export async function showConversationCost(): Promise<void> {
     // Don't show if cost is essentially zero or no session
     if (!data.sessionId || data.totalCost < 0.0001) {
       log.debug('Skipping cost display - no meaningful cost', { cost: data.totalCost });
-      return;
+      return null;
     }
 
     // Create and show the card
     container = createCostCard(data);
     document.body.appendChild(container);
+    stopAnchor = anchorAboveControls(container);
 
     // Animate in
     requestAnimationFrame(() => {
@@ -333,8 +344,10 @@ export async function showConversationCost(): Promise<void> {
     dismissTimeout = setTimeout(() => {
       hide();
     }, 30000);
+    return container;
   } catch (error) {
     log.error('Failed to fetch conversation cost', error);
+    return null;
   }
 }
 
@@ -343,6 +356,8 @@ export async function showConversationCost(): Promise<void> {
  */
 export function hide(): void {
   if (!container || !isVisible) return;
+  stopAnchor?.();
+  stopAnchor = null;
 
   if (dismissTimeout) {
     clearTimeout(dismissTimeout);
@@ -363,6 +378,8 @@ export function hide(): void {
  * Cleanup any existing cost cards (HMR protection)
  */
 function cleanupExisting(): void {
+  stopAnchor?.();
+  stopAnchor = null;
   document.querySelectorAll('.ferni-cost-card').forEach((el) => el.remove());
   if (dismissTimeout) {
     clearTimeout(dismissTimeout);
@@ -387,4 +404,3 @@ export const conversationCostUI = {
 };
 
 export default conversationCostUI;
-

@@ -76,21 +76,6 @@ function buildPersonalContext(input: ContextBuilderInput): ContextInjection[] {
   const injections: ContextInjection[] = [];
   const turnCount = userData.turnCount || 0;
   // -----------------------------------------------
-  // NAME USAGE PACING
-  // Use their name naturally - not every turn, but every 4-5 turns
-  // -----------------------------------------------
-  const userName = userData.name || userProfile?.name;
-  const lastNameTurn = userData.lastNameUsed || 0;
-  if (userName && turnCount - lastNameTurn >= 4 && Math.random() < 0.4) {
-    injections.push(
-      createHintInjection(
-        'name_usage',
-        `[NAME: Use their name "${userName}" naturally in this response to build connection.]`
-      )
-    );
-    if (userData) userData.lastNameUsed = turnCount;
-  }
-  // -----------------------------------------------
   // SMALL DETAIL EXTRACTION & MEMORY
   // Extract specific details (pet names, family names, places)
   // -----------------------------------------------

@@ -45,7 +45,8 @@ export interface VoiceConfig {
 /**
  * Voice configuration from PersonaConfig
  *
- * Speed values for Cartesia sonic-2-2025-03-07:
+ * Legacy speed scale (Sonic 2 experimental controls, removed by Cartesia;
+ * Sonic 3.6 takes a 0.6-1.5 multiplier instead):
  * - String: "slowest", "slow", "normal", "fast", "fastest"
  * - Number: -1.0 (slowest) to 1.0 (fastest), 0 = normal
  */

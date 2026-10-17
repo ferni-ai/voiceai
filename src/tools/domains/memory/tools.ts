@@ -11,6 +11,8 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
+import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -110,11 +112,10 @@ export const rememberAboutUserDef: ToolDefinition = {
 
           services.captureInsight(insightType, `explicit_memory_${category}`, fact, confidence);
           getLogger().info('Fact captured to learning engine for persistence');
+          return REMEMBERED;
         }
 
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        // The tool executed silently; the agent decides how/if to respond
-        return '';
+        return REMEMBERED_THIS_CALL; // this call's notes only; never '' (tool-output-guard.ts)
       },
     });
   },
@@ -484,7 +485,7 @@ export const forgetMemoryDef: ToolDefinition = {
       }),
       execute: async ({ whatToForget, confirmDeletion }, { ctx: toolCtx }) => {
         getLogger().info(
-          { agentId: ctx.agentId, whatToForget, confirmDeletion },
+          { agentId: ctx.agentId, confirmDeletion }, // never log what to forget
           'Forgetting memory'
         );
 
@@ -494,13 +495,11 @@ export const forgetMemoryDef: ToolDefinition = {
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
-
-        // Remove from session memory
-        if (userData.keyMoments) {
-          userData.keyMoments = userData.keyMoments.filter(
-            (m) => !m.toLowerCase().includes(whatToForget.toLowerCase())
-          );
-        }
+        const forget = whatToForget.toLowerCase();
+        userData.keyMoments = userData.keyMoments?.filter((m) => !m.toLowerCase().includes(forget));
+        // And from stored memory, so no later call recalls it (forget.ts).
+        const forgot = await forgetForCaller(userData.userId, whatToForget);
+        if (forgot.kind !== 'forgotten') return forgetProblem(forgot);
 
         // Log the deletion for audit purposes (but don't persist the deleted content)
         if (services?.captureInsight) {

@@ -3,8 +3,12 @@
 Ferni is a voice AI companion ("making AI human"). This file is the one set of
 instructions for every coding agent (Claude Code reads it through `CLAUDE.md`;
 Codex, Cursor and others read it directly). It holds only what the code can't
-tell you: how work ships here, and the traps that have cost us before. For
-anything else, read the code, and `docs/agent/` on demand.
+tell you: how work ships here, and the traps that have cost us before. How
+the work around a change is organised (issues, the board, how much is in
+flight, review by risk) is in `docs/agent/operating-model.md`: read it before
+opening an issue or a PR. For anything else, read the code, and `docs/agent/`
+on demand. Reviews are adversarial and answer the six questions in the
+operating model's Review section; the reviewer is never the author.
 
 ## The stack today (verified 2026-10-08)
 
@@ -41,12 +45,24 @@ function-call workaround or Sonata are describing retired setups.
 6. **Deploy only commits that are on `origin/main`** (skill: `deploy-agent`).
    Prod deploys only what has run on dev.
 7. Delete your worktree when its PR merges.
+8. **Start from an issue, and finish before you start.** Put `Closes #N` in
+   the PR. Before opening a new PR, check `gh pr list --state open`: past 25
+   open, help land those instead, because every merge makes the rest conflict.
+9. **A check failing on many PRs is one problem on main.** Fix it once in its
+   own PR (CI Health files a `ci-health` issue for it), then update the
+   affected branches. Don't retry it PR by PR.
+
+The repo enforces 1, 2 and 9 (`.husky/pre-push`, the PR Flow and CI Health
+checks; reviewable lines are counted by `scripts/ci/reviewable.sh`).
 
 ## Hard rules (each one cost us before)
 
 - **Never print, log or commit secrets.** Read them into env vars from Secret
   Manager (`gcloud secrets versions access latest --secret=<name> --project=johnb-2025`).
 - **Never skip git hooks** (`--no-verify`, `core.hooksPath`), not even for local commits.
+- **Never use `git stash`.** The stash list is shared by every worktree of this
+  repo; on 2026-10-14 one session's pop dropped another's work. Set work aside
+  by committing on a throwaway branch.
 - **Commit subjects**: conventional type (`feat fix refactor docs test chore
   style perf ci revert`) and entirely lower-case. A camelCase word in the
   subject fails commitlint.
@@ -74,9 +90,9 @@ function-call workaround or Sonata are describing retired setups.
 - **Logging**: `createLogger` from `src/utils/logger.js`, never `console.*`.
   Never swallow an error (`.catch(() => {})`); log it with context.
 - **Types**: no `any`, no `as any`. Use `unknown` and narrow.
-- **Layers**: `agents/` and `api/` → `personas/ intelligence/ tools/
-  conversation/ speech/` → `services/` → `memory/` → `config/ utils/ types/`.
-  Lower layers never import higher ones (`pnpm quality:arch`).
+- **Layers** point inward: L5 entrypoints → L4 orchestration → L3 (ten capability
+  contexts, via each other's index.ts) → L2 shared kernel; L1 adapters implement L2/L3 ports.
+  Map: `apps/cli/src/commands/quality/architecture-layers.ts`; `pnpm quality:arch` fails new violations.
 - **Names**: files are kebab-case. Name by function, not acronym or version
   (`tool-classifier.ts`, not `ftis-v2.ts`). No persona names in tool files.
 - **Classifiers on user text** match whole words, never substrings
@@ -101,9 +117,9 @@ pnpm build:fast              # esbuild
 
 ## Where to look (load on demand)
 
-- `docs/agent/reference.md`: the former 2,000-line CLAUDE.md. Subsystem
-  overviews (memory, personas, tools, design system, CLI). **Partly outdated:
-  verify against the code.**
+- `docs/archive/2026-10-08-former-claude-md.md`: the former 2,000-line
+  CLAUDE.md, archived. Subsystem overviews (memory, personas, tools, design
+  system, CLI). **Partly outdated: verify against the code.**
 - `src/**/CLAUDE.md`: notes for a subsystem, read when you work in it.
 - `docs/DEFINITION-OF-CLEAN.md`: what "clean" means here.
 - `scripts/voice-eval/`: the live-call eval harness and its scenarios.

@@ -129,7 +129,7 @@ const styles = `
   .life-context-modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-modal-backdrop, 2000);
+    z-index: var(--z-modal-backdrop);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -921,7 +921,7 @@ function renderDomainCard(indicator: DomainStressIndicator): string {
         </span>
       </div>
       <div class="life-context-domain-card__reason">${indicator.reason}</div>
-      <div class="life-context-domain-card__persona">${t('lifeContext.noticedBy', 'noticed by {name}').replace('{name}', config.persona)}</div>
+      <div class="life-context-domain-card__persona">${t('lifeContext.noticedBy', { name: config.persona }, 'noticed by {name}')}</div>
     </div>
   `;
 }
@@ -1004,7 +1004,7 @@ function renderTrigger(trigger: SynthesisTrigger): string {
       </div>
       <div class="life-context-trigger__message" role="button" tabindex="0">${trigger.message}</div>
       <div class="life-context-trigger__response" role="button" tabindex="0">"${trigger.suggestedResponse}"</div>
-      ${trigger.recommendedPersona ? `<div class="life-context-trigger__persona" role="button" tabindex="0">${t('lifeContext.personaHint').replace('{name}', trigger.recommendedPersona)}</div>` : ''}
+      ${trigger.recommendedPersona ? `<div class="life-context-trigger__persona" role="button" tabindex="0">${t('lifeContext.personaHint', { name: trigger.recommendedPersona })}</div>` : ''}
     </div>
   `;
 }
@@ -1161,7 +1161,7 @@ function renderModal(): string {
       </div>
       <div class="life-context-modal__footer">
         <span class="life-context-modal__footer-info">
-          ${timestampText ? t('lifeContext.footer.updated', 'Updated {time}').replace('{time}', timestampText) : t('lifeContext.footer.watching', 'Keeping an eye on things')}
+          ${timestampText ? t('lifeContext.footer.updated', { time: timestampText }, 'Updated {time}') : t('lifeContext.footer.watching', 'Keeping an eye on things')}
         </span>
       </div>
     </div>

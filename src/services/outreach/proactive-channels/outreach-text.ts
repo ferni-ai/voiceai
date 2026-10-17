@@ -1,7 +1,8 @@
 /**
  * The words of a proactive check-in: written by Gemini (Vertex, with the
  * server's own credentials, no API key) from the reason Ferni is reaching
- * out, and nothing else. When that fails, or the result doesn't pass the
+ * out, and nothing else. A trigger with finalText (a grounded follow-up,
+ * already planned and checked) is sent as written. When that fails, or the result doesn't pass the
  * checks below, a prepared line is used, never the same line twice in a row.
  *
  * text_source in the outreach log says which: 'llm', 'template' (the
@@ -11,7 +12,7 @@
  * @module services/outreach/proactive-channels/outreach-text
  */
 
-import { callLLM } from '../../llm/llm-utils.js';
+import { callLLM } from '../../llm-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
@@ -33,7 +34,7 @@ export const FALLBACK_LINES = [
 const REJECT = /\bassistant\b|\bAI\b|language model|as an a\.?i\b|[{}<>]|\bhttps?:/i;
 
 export interface TextInput {
-  trigger: Pick<ProactiveTrigger, 'kind' | 'reason' | 'text'>;
+  trigger: Pick<ProactiveTrigger, 'kind' | 'reason' | 'text' | 'finalText'>;
   channel: ProactiveChannel;
   /** The last check-in text they got; never sent again back to back. */
   lastText?: string;
@@ -86,6 +87,8 @@ function fallback(input: TextInput): { text: string; source: TextSource } {
 export async function writeOutreachText(
   input: TextInput
 ): Promise<{ text: string; source: TextSource }> {
+  // The model sees only the reason, so it would lose a planned question's timing.
+  if (input.trigger.finalText) return { text: input.trigger.text, source: 'template' };
   try {
     const raw = await callLLM(promptFor(input), {
       maxTokens: 120,

@@ -27,7 +27,7 @@ permalink: /marketplace/
       {% for member in site.team %}
       <div class="persona-card persona-card--core reveal reveal-delay-{{ loop.index0 % 3 }}">
         <div class="persona-card__header">
-          <div class="persona-card__avatar" style="background: {{ member.color }}">
+          <div class="persona-card__avatar" data-persona="{{ member.id }}" style="background: {{ member.color }}">
             {{ member.initials }}
           </div>
           <div class="persona-card__badges">

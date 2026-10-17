@@ -17,6 +17,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
+import { callQuietHours } from './quiet-hours.js';
+import { toTwilioSsml } from './twilio-ssml.js';
 
 const log = createLogger({ module: 'ConversationalCalls' });
 
@@ -157,7 +159,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     ssml,
     personaId,
     reason,
-    scheduledFor = new Date(),
+    scheduledFor: requestedFor = new Date(),
     maxDuration = 120,
     enableConversation = false,
     voicemailFallback = true,
@@ -175,19 +177,16 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
     const held = { recipientPhone: normalizedPhone, recipientUserId: userId };
     const call = { kind: 'proactive' as const, request: { ...request, scheduledFor: undefined } };
-    const deferral = scheduledFor <= new Date() && (await holdForCallHours(userId, call, held));
+    const due = requestedFor <= new Date();
+    const deferral = due && (await holdForCallHours(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
-    // The guard covers quiet hours, in the user's own time zone.
-    const inQuietHours = !isCallHoursGuardOn() && (await isInQuietHours(userId));
-    if (inQuietHours) {
-      log.info({ userId, callId }, 'Call delayed due to quiet hours');
-      // Reschedule for next available window
-      const nextWindow = await getNextAvailableWindow(userId);
-      return scheduleProactiveCall({
-        ...request,
-        scheduledFor: nextWindow,
-      });
-    }
+    // The guard covers quiet hours, in the user's own time zone. callQuietHours reads
+    // the clock, not scheduledFor, so a quiet call is stored for later, never re-checked.
+    const now = new Date();
+    const hours = due && !isCallHoursGuardOn() ? await callQuietHours(userId, now) : null;
+    const quiet = !!hours?.quiet;
+    if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
+    const scheduledFor = quiet && hours ? hours.until : requestedFor;
 
     // Enhance SSML for natural delivery
     const enhancedSSML = enhanceSSMLForCall(ssml, personaId);
@@ -211,7 +210,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     await saveScheduledCall(scheduledCall);
 
     // If scheduled for now or past, initiate immediately
-    if (scheduledFor.getTime() <= Date.now()) {
+    if (!quiet && scheduledFor.getTime() <= Date.now()) {
       return await initiateCall(scheduledCall, {
         maxDuration,
         enableConversation,
@@ -358,17 +357,8 @@ function buildCallTwiML(
  * Convert our SSML to Twilio-compatible format
  */
 function convertToTwilioSSML(ssml: string): string {
-  // Remove outer <speak> tags (Twilio adds its own)
-  let converted = ssml.replace(/<speak>/g, '').replace(/<\/speak>/g, '');
-
-  // Convert voice tags to prosody (Twilio doesn't support <voice>)
-  converted = converted.replace(/<voice[^>]*>/g, '');
-  converted = converted.replace(/<\/voice>/g, '');
-
-  // Keep prosody and break tags (Twilio supports these)
-  // Remove any unsupported tags
-
-  return converted;
+  // Escapes all text and keeps only checked speech tags (no TwiML injection).
+  return toTwilioSsml(ssml);
 }
 
 // ============================================================================
@@ -442,76 +432,6 @@ function normalizePhoneNumber(phone: string): string | null {
   }
 
   return null;
-}
-
-async function isInQuietHours(userId: string): Promise<boolean> {
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (!db) return false;
-
-    const doc = await db.collection('bogle_users').doc(userId).get();
-    if (!doc.exists) return false;
-
-    const data = doc.data();
-    const preferences = data?.outreachPreferences;
-    if (!preferences?.quietHours?.enabled) return false;
-
-    // Parse quiet hours (e.g., "22:00" to "08:00")
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTime = currentHour * 60 + currentMinute;
-
-    const startParts = preferences.quietHours.start.split(':').map(Number);
-    const endParts = preferences.quietHours.end.split(':').map(Number);
-    const startTime = startParts[0] * 60 + startParts[1];
-    const endTime = endParts[0] * 60 + endParts[1];
-
-    // Handle overnight quiet hours (e.g., 22:00 to 08:00)
-    if (startTime > endTime) {
-      return currentTime >= startTime || currentTime < endTime;
-    }
-
-    return currentTime >= startTime && currentTime < endTime;
-  } catch {
-    return false;
-  }
-}
-
-async function getNextAvailableWindow(userId: string): Promise<Date> {
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (!db) {
-      // Default: 9 AM tomorrow
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(9, 0, 0, 0);
-      return tomorrow;
-    }
-
-    const doc = await db.collection('bogle_users').doc(userId).get();
-    const preferences = doc.exists ? doc.data()?.outreachPreferences : null;
-
-    // Default quiet hours end at 8 AM
-    const endHour = preferences?.quietHours?.end
-      ? parseInt(preferences.quietHours.end.split(':')[0], 10)
-      : 8;
-
-    const next = new Date();
-    if (next.getHours() >= endHour) {
-      next.setDate(next.getDate() + 1);
-    }
-    next.setHours(endHour, 0, 0, 0);
-
-    return next;
-  } catch {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0);
-    return tomorrow;
-  }
 }
 
 // ============================================================================

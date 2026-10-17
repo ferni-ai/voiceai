@@ -482,12 +482,12 @@ export async function saveInAppMessage(
     ssml?: string;
     reason?: string;
     triggerId?: string;
+    answerCardId?: string; // Its answer card (/a/:id), e.g. a coaching pick's sources.
   }
 ): Promise<DeliveryResult> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
     const db = getFirestoreDb();
-
     if (!db) {
       return { success: false, channel: 'in_app', error: 'Firestore not available' };
     }

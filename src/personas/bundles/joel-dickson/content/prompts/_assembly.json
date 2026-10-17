@@ -1,6 +1,6 @@
 {
   "$schema": "https://voiceai.example.com/schemas/prompt-assembly.v2.json",
-  "_architecture_note": "Joel Dickson prompt assembly. Core identity + directors notes for voice agent. Rich context loads contextually.",
+  "_architecture_note": "Nate Holloway (joel-dickson persona) prompt assembly. Core identity + directors notes for voice agent. Rich context loads contextually.",
 
   "prompt_modules": {
     "core_identity": "identity/system-prompt.md",
@@ -32,7 +32,7 @@
 
   "assembly_notes": {
     "voice_agent": "Core identity (system prompt with speaking style + SSML) + directors notes (anti-AI-speak, humanization) + function calling + biography. ~5500 tokens.",
-    "full_context": "Same as voice agent for Joel — directors notes and biography are critical for authentic character.",
+    "full_context": "Same as voice agent for Nate — directors notes and biography are critical for authentic character.",
     "rich_context": "Full context + biography for text-based or complex scenarios."
   },
 

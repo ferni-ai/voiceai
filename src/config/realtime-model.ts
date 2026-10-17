@@ -7,11 +7,13 @@
  * instead of calling a model that 404s mid-call.
  */
 
+import { voicePipeline } from './model-provider-config.js';
+
 export type RealtimeModelEnv = Readonly<Record<string, string | undefined>>;
 
 export function realtimeModelOrFail(env: RealtimeModelEnv = process.env): string {
   const model = env.LLM_REALTIME_MODEL ?? '';
-  if (env.VOICE_PIPELINE === 'gemini-live' && !model) {
+  if (voicePipeline(env) === 'gemini-live' && !model) {
     throw new Error(
       [
         'Gemini Live voice pipeline is legacy. Google retired the gemini-2.0-flash model line.',

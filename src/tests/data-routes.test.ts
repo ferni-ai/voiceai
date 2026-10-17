@@ -25,6 +25,9 @@ vi.mock('../services/data-export.js', () => ({
   getDataExportService: vi.fn(() => mockExportService),
 }));
 
+// The export rate limit is pinned by src/api/__tests__/menu-export.emulator.test.ts
+vi.mock('../api/auth-middleware.js', () => ({ rateLimit: vi.fn(() => false) }));
+
 // Mock logger
 vi.mock('../utils/safe-logger.js', () => ({
   createLogger: vi.fn(() => ({

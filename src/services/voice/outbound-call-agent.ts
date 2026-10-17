@@ -24,7 +24,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getRealtimeModel } from '../../config/gemini-config.js';
 import { getVoiceId } from '../../personas/voice-registry.js';
-import { CARTESIA_MODEL } from '../../config/voice-ids.js';
+import { CARTESIA_API_VERSION, CARTESIA_MODEL } from '../../config/voice-ids.js';
 import type { TwilioStreamBridge } from './twilio-stream-bridge.js';
 
 const log = createLogger({ module: 'outbound-call-agent' });
@@ -248,7 +248,7 @@ async function speakToCaller(
     const response = await fetch('https://api.cartesia.ai/tts/bytes', {
       method: 'POST',
       headers: {
-        'Cartesia-Version': '2024-06-10',
+        'Cartesia-Version': CARTESIA_API_VERSION,
         'X-API-Key': CARTESIA_API_KEY,
         'Content-Type': 'application/json',
       },
@@ -411,7 +411,7 @@ YOUR VOICE & PERSONALITY:
 - Uses natural pauses ("...")
 - Occasional filler words ("um", "so", "well", "anyway")
 - Reacts to what they say before responding
-- Uses their name occasionally
+- Says their name at hello and goodbye, rarely between
 - Sounds like you're smiling!
 
 PHONE CONVERSATION RULES:

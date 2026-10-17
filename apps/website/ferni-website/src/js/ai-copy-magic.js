@@ -5,11 +5,10 @@
  * Unlocks the full power of Gemini AI for landing page copy:
  * 
  * 1. PERSONALIZED HERO - Headlines that adapt to visitor context
- * 2. SMART SOCIAL PROOF - AI-generated dynamic testimonials  
- * 3. ADAPTIVE CTAs - Copy changes based on visitor behavior
- * 4. LIVE CHAT PREVIEW - Real AI responses in the demo widget
- * 5. HOVER INSIGHTS - "What would Ferni say?" on any element
- * 6. PERSONA VOICES - Each team member speaks in their voice
+ * 2. ADAPTIVE CTAs - Copy changes based on visitor behavior
+ * 3. LIVE CHAT PREVIEW - Real AI responses in the demo widget
+ * 4. HOVER INSIGHTS - "What would Ferni say?" on any element
+ * 5. PERSONA VOICES - Each team member speaks in their voice
  * 
  * @module ai-copy-magic
  */
@@ -33,8 +32,10 @@
       : '/api/landing/ai',
     
     // Feature toggles
-    enablePersonalizedHero: true,
-    enableSmartSocialProof: true,
+    // Off: it rewrote the H1 on every story-brand page (broad selectors) and
+    // counted page views as visits, so a first-time visitor's second page said
+    // "Missed you... I still remember where we left off". Fix both before enabling.
+    enablePersonalizedHero: false,
     enableAdaptiveCTA: true,
     enableHoverInsights: true,
     enablePersonaVoices: true,
@@ -364,185 +365,6 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SMART SOCIAL PROOF
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  const SOCIAL_PROOF_MESSAGES = [
-    // Memory superpowers
-    { text: "That thing you mentioned six months ago? We remember.", type: 'memory' },
-    { text: "Last night at 2:47am, someone had a breakthrough. I was there.", type: 'presence' },
-    { text: "Someone said 'I'm fine' three times this week. So I asked what was really going on.", type: 'insight' },
-    
-    // Presence superpowers
-    { text: "2am panic? Same warmth as noon. No tired sighs.", type: 'presence' },
-    { text: "47 minutes talking about a decision. No 'we need to wrap up.'", type: 'presence' },
-    
-    // Team superpowers
-    { text: "Six perspectives. One conversation. No referrals.", type: 'team' },
-    { text: "You mention stress to Ferni. Maya already knows to ask about your sleep.", type: 'team' },
-    
-    // Better than human
-    { text: "Your therapist has 47 other patients. We have just you.", type: 'human' },
-    { text: "Friends forget. Best friends mostly remember. We never forget. Ever.", type: 'memory' },
-    { text: "Zero judgment. Not reduced judgment. Zero.", type: 'human' },
-  ];
-
-  let socialProofIndex = 0;
-  let socialProofInterval = null;
-
-  // Merged messages - static + AI-generated
-  let mergedSocialProofMessages = [...SOCIAL_PROOF_MESSAGES];
-  
-  function initSocialProof() {
-    if (!CONFIG.enableSmartSocialProof) return;
-    
-    // Fetch AI-generated social proof from backend (non-blocking)
-    fetch(`${CONFIG.aiApiBase}/social-proof`)
-      .then(res => res.json())
-      .then(aiMessages => {
-        if (Array.isArray(aiMessages) && aiMessages.length > 0) {
-          log('AI social proof received:', aiMessages);
-          
-          // Add AI-generated messages to the rotation
-          aiMessages.forEach((msg, i) => {
-            if (msg.content || msg.text) {
-              mergedSocialProofMessages.splice(
-                i * 3, // Intersperse AI messages throughout
-                0,
-                { 
-                  text: msg.content || msg.text, 
-                  type: msg.type || 'ai', 
-                  isAI: true
-                }
-              );
-            }
-          });
-          
-          log('Social proof now includes AI messages:', mergedSocialProofMessages.length);
-        }
-      })
-      .catch(err => log('AI social proof fetch failed:', err));
-    
-    // Find or create social proof element
-    let container = document.querySelector('.social-proof-dynamic, .social-proof-ticker');
-    
-    if (!container) {
-      // Create one after the hero section
-      const hero = document.querySelector('.hero, [class*="hero"]');
-      if (!hero) return;
-      
-      container = document.createElement('div');
-      container.className = 'social-proof-dynamic ai-social-proof';
-      container.innerHTML = `
-        <div class="social-proof-dynamic__inner">
-          <div class="social-proof-dynamic__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
-          <p class="social-proof-dynamic__text"></p>
-        </div>
-      `;
-      hero.after(container);
-      
-      // Add styles
-      injectSocialProofStyles();
-    }
-    
-    const textEl = container.querySelector('.social-proof-dynamic__text, p');
-    if (!textEl) return;
-    
-    // Start rotation
-    function updateSocialProof() {
-      const message = mergedSocialProofMessages[socialProofIndex % mergedSocialProofMessages.length];
-      
-      textEl.style.opacity = '0';
-      textEl.style.transform = 'translateY(10px)';
-      
-      setTimeout(() => {
-        textEl.textContent = message.text;
-        textEl.style.opacity = '1';
-        textEl.style.transform = 'translateY(0)';
-        
-        // Add visual indicator for AI-generated messages
-        if (message.isAI) {
-          textEl.classList.add('ai-generated');
-        } else {
-          textEl.classList.remove('ai-generated');
-        }
-      }, 300);
-      
-      socialProofIndex = (socialProofIndex + 1) % mergedSocialProofMessages.length;
-    }
-    
-    // Initial update
-    updateSocialProof();
-    
-    // Rotate every 8 seconds
-    socialProofInterval = setInterval(updateSocialProof, 8000);
-    
-    log('Social proof initialized');
-  }
-
-  function injectSocialProofStyles() {
-    if (document.getElementById('ai-social-proof-styles')) return;
-    
-    const style = document.createElement('style');
-    style.id = 'ai-social-proof-styles';
-    style.textContent = `
-      .ai-social-proof {
-        padding: 16px 0;
-        background: linear-gradient(
-          90deg, 
-          transparent 0%, 
-          rgba(74, 103, 65, 0.05) 20%, 
-          rgba(74, 103, 65, 0.05) 80%, 
-          transparent 100%
-        );
-        border-top: 1px solid rgba(74, 103, 65, 0.1);
-        border-bottom: 1px solid rgba(74, 103, 65, 0.1);
-        overflow: hidden;
-      }
-      
-      .ai-social-proof .social-proof-dynamic__inner {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 0 24px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
-      
-      .ai-social-proof .social-proof-dynamic__avatar {
-        width: 40px;
-        height: 40px;
-        background: linear-gradient(135deg, #5a7751, #4a6741);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 12px;
-        font-weight: 700;
-        flex-shrink: 0;
-      }
-      
-      .ai-social-proof .social-proof-dynamic__text {
-        margin: 0;
-        font-size: 15px;
-        color: #2c2520;
-        line-height: 1.6;
-        font-style: italic;
-        transition: opacity 0.3s ease, transform 0.3s ease;
-      }
-      
-      @media (max-width: 768px) {
-        .ai-social-proof .social-proof-dynamic__inner {
-          flex-direction: column;
-          text-align: center;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // 2AM MOMENT - Dynamic Late Night Scenarios
   // ═══════════════════════════════════════════════════════════════════════════
   
@@ -764,7 +586,7 @@
     // Engaged (scrolled, spent time)
     engaged: {
       text: 'Talk to Ferni',
-      subtext: 'Join 50,000+ finding clarity',
+      subtext: 'Free to start',
       style: 'btn--primary',
     },
     // Very engaged (lots of interaction)
@@ -844,9 +666,9 @@
     ],
     // Testimonials
     'testimonial': [
-      "Stories like this happen every day.",
-      "This could be you in a few weeks.",
-      "Real people. Real breakthroughs.",
+      "Want to hear how this works? Just ask.",
+      "Every conversation starts with listening.",
+      "Curious? Try talking to me.",
     ],
     // FAQ
     'faq': [
@@ -1263,7 +1085,6 @@
     
     // Initialize features
     setTimeout(() => personalizeHero(), 100);
-    setTimeout(() => initSocialProof(), 500);
     setTimeout(() => initHoverInsights(), 300);
     setTimeout(() => initPersonaVoices(), 800);
     setTimeout(() => init2AMMoment(), 1000); // Start 2AM moment rotation

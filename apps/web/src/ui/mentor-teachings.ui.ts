@@ -26,7 +26,7 @@ const STYLES = `
   .mentor-teachings-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
+    z-index: var(--z-modal); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -147,7 +147,7 @@ const STYLES = `
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-lg);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-text-on-accent);
     border: none;
     cursor: pointer;
     display: flex;
@@ -300,7 +300,7 @@ const STYLES = `
   }
 
   /* Mobile Responsiveness */
-  @media (max-width: clamp(448px, 90vw, 640px)) {
+  @media (max-width: 640px) {
     .mentor-teachings-overlay {
       padding: 0;
     }

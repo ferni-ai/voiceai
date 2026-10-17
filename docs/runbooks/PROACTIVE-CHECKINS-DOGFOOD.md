@@ -66,9 +66,9 @@ Or use the same curl with `"proactiveFrequency":"light"` or `"off"`.
 
 ## Turning it on (lead)
 
-1. Merge #803 → #833 → #841 → #848 in order, and #854. For calls, also #631
-   (`PROACTIVE_REASON_OPENER=on` on the voice agent), so Ferni waits for him
-   to pick up and says why she called.
+1. #803, #833, #841, #848 and #854 are on main. For calls, #631 must also
+   merge (`PROACTIVE_REASON_OPENER=on` on the voice agent), so Ferni waits
+   for him to pick up and says why she called. It is not on main yet.
 2. On the UI service: `PROACTIVE_CHANNELS=on`, `PROACTIVE_CHANNELS_USERS=<Seth's
    uid>`, optionally `COACH_FOLLOW_THROUGH=on`. `deploy-production.yml` uses
    `--set-env-vars`, which replaces every variable on each deploy, so these

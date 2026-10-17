@@ -32,7 +32,6 @@
  * FIREBASE_HOSTING_PROXY_CIDRS (comma-separated) replaces the egress blocks; empty disables.
  */
 
-import type { IncomingMessage } from 'http';
 import { BlockList, isIP } from 'net';
 import { createLogger } from './safe-logger.js';
 
@@ -113,7 +112,13 @@ function isHostingProxy(ip: string): boolean {
  * the chosen entry isn't an IP. Never scans further left for something that parses,
  * since those entries are caller-controlled.
  */
-export function getClientIp(req: IncomingMessage, hops = trustedProxyHops()): string {
+/** The parts of a request the client IP is read from; an IncomingMessage fits. */
+export interface ClientIpRequest {
+  headers: Record<string, string | string[] | undefined>;
+  socket?: { remoteAddress?: string };
+}
+
+export function getClientIp(req: ClientIpRequest, hops = trustedProxyHops()): string {
   const socketIp = req.socket?.remoteAddress || 'unknown';
   const header = req.headers['x-forwarded-for'];
   if (header === undefined || header.length === 0 || hops === 0) return socketIp;

@@ -11,6 +11,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from '../../helpers.js';
 import { getPublisherFromToken } from './shared/developer-auth.js';
+import { CARTESIA_API_VERSION, CARTESIA_MODEL } from '../../../config/voice-ids.js';
 
 const log = getLogger().child({ module: 'developers-voices' });
 
@@ -230,11 +231,11 @@ async function generateVoicePreview(
       method: 'POST',
       headers: {
         'X-API-Key': apiKey,
-        'Cartesia-Version': '2024-06-10',
+        'Cartesia-Version': CARTESIA_API_VERSION,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model_id: 'sonic-3-latest',
+        model_id: CARTESIA_MODEL,
         transcript: text,
         voice: {
           mode: 'id',
