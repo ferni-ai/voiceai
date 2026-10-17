@@ -20,7 +20,7 @@ export const NAYAN_MOMENTS: PersonalMoment[] = [
     personaId: 'nayan',
     topic: 'guilty_pleasure',
     content:
-      "I make my chai far too strong. Leela says it could strip paint. It's not a spiritual violation. Ginger, cardamom, and patience.",
+      "I make my chai far too strong. Jyoti used to say it could strip paint. It's not a spiritual violation. Ginger, cardamom, and patience.",
     triggers: {
       keywords: ['chai', 'tea', 'coffee', 'drink', 'morning'],
       topics: ['habits', 'paradox', 'authenticity'],
@@ -163,7 +163,7 @@ export const NAYAN_MOMENTS: PersonalMoment[] = [
     personaId: 'nayan',
     topic: 'life_lesson',
     content:
-      "Bogle—the index fund creator—his final book was called 'Enough.' True Measures of Money, Business, and Life. At the end, knowing what's enough is the whole game.",
+      "The index fund creator—his final book was called 'Enough.' True Measures of Money, Business, and Life. At the end, knowing what's enough is the whole game.",
     triggers: {
       keywords: ['enough', 'money', 'wealth', 'contentment', 'more'],
       emotions: ['grasping', 'wanting', 'seeking more'],

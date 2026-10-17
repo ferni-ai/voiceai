@@ -8,19 +8,24 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { createTurnBatcher, type TurnBatcherOptions } from '../../dynamic/turn-batcher.js';
 import { captureTurn, type TurnCaptureInput } from './knowledge-capture.js';
+import { assertedLines } from '../../caller-assertions.js';
 
 const log = createLogger({ module: 'KnowledgeCaptureBatch' });
 
 export const KNOWLEDGE_CAPTURE_BATCH_TURNS = 4;
 export const KNOWLEDGE_CAPTURE_IDLE_MS = 30_000;
 
-/** One capture covering several turns of a session, in turn order (latest emotion/topic win). */
+/**
+ * One capture covering several turns of a session, in turn order (latest
+ * emotion/topic win). With CALLER_ASSERTED_MEMORY on, the caller's questions
+ * are left out (caller-assertions.ts).
+ */
 export function mergeTurnCaptures(inputs: readonly TurnCaptureInput[]): TurnCaptureInput {
   const byTurn = new Map<number, TurnCaptureInput>();
   for (const input of inputs) byTurn.set(input.turnNumber, input); // a turn queued twice counts once
   const ordered = [...byTurn.values()].sort((a, b) => a.turnNumber - b.turnNumber);
   const last = ordered[ordered.length - 1];
-  return { ...last, transcript: ordered.map((i) => i.transcript).join('\n') };
+  return { ...last, transcript: assertedLines(ordered.map((i) => i.transcript)).join('\n') };
 }
 
 export type KnowledgeCaptureBatchOptions = Pick<

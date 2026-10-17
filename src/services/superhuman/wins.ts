@@ -16,16 +16,15 @@
  *
  * Written from commitment-keeper.ts updateCommitmentStatus('completed'), the
  * one path every "done" goes through (tools, API, turn-path progress check).
- * Read by the greeting (agents/multi-agent/greeting-direction.ts). On unless
- * COACH_WINS=off.
+ * Read by the greeting (agents/multi-agent/greeting-direction.ts). Off unless
+ * COACH_WINS=on.
  *
  * @module services/superhuman/wins
  */
 
 import { flagOn } from '../../config/env-flag.js';
-import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
-import { isForgotten } from '../../memory/recall/session-recall.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { forgottenTopicsOrNull, isForgotten } from '../../memory/index.js';
+import { getFirestoreDb } from './firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'Wins' });

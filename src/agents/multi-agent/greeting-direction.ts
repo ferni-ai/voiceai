@@ -10,6 +10,13 @@ import {
   coachFollowThroughMode,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
+import { contentWords } from '../../memory/recall/session-recall.js';
+import { claimOpenerFollowUp } from '../../memory/recall/opener-claim.js';
+import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
+import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
+import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { callerHour } from '../shared/time-context.js';
 import {
   callerRecognitionFor,
@@ -40,6 +47,16 @@ export const CHECK_IN_DIRECTION =
  */
 export const WIN_DIRECTION =
   ' They did something they told you they would do: say hello, then name it once, glad with them, in a few plain words and the past tense ("Hey Sam. You called your sister, that\'s great."). Then let them talk; do not ask for a report or make a big speech of it.';
+
+/** Added when the nightly pondering pass left one thing to ask about (PONDERING). */
+export const PONDER_DIRECTION =
+  ' There is one thing from an earlier call you could ask about: you may say hello, then ask how it is going as an open question, naming it in their words ("Hey Sam. How\'s the martial arts going?"). Not a yes-or-no question. Never say you were thinking about them, had them on your mind, or were wondering about it.';
+
+/** "I was just thinking about you": warm once, a tic when it opens every call. */
+const THINKING_OF_YOU =
+  /\b(?:thinking (?:about|of) you|on my mind|been wondering|was (?:just )?wondering)\b/i;
+
+const log = createLogger({ module: 'greeting-direction' });
 
 /** How long the greeting waits for the caller's open commitments and wins before going without. */
 const CHECK_IN_WAIT_MS = 400;
@@ -79,6 +96,45 @@ export function openingThread(
   return checkIn ? { checkIn } : {};
 }
 
+interface PonderAsk {
+  text: string;
+  /** Records it as raised, so no later call asks it again. */
+  mark: () => Promise<void>;
+}
+
+/**
+ * The pondered thing to open on, or undefined: flag off, nothing due, a recent
+ * crisis, a first call, or too slow. The pass writes nothing before a caller's
+ * second call, and a profile that says this is their first or second call
+ * keeps it out too.
+ */
+async function ponderFor(
+  userId: string | undefined,
+  history: CallerHistory | undefined
+): Promise<PonderAsk | undefined> {
+  if (!userId || userId === 'anonymous' || !isPonderingOn()) return undefined;
+  if (history && history.calls < 2) return undefined;
+  const db = getFirestoreDb();
+  if (!db) return undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), CHECK_IN_WAIT_MS);
+  });
+  const read = ponderingForOpener(db, userId).catch((error: unknown) => {
+    log.warn({ error: String(error) }, 'Pondering not read for the greeting');
+    return undefined;
+  });
+  const found = await Promise.race([read, late]);
+  clearTimeout(timer);
+  return found && { text: found.text, mark: async () => markSurfaced(db, userId, found.item) };
+}
+
+/** True when the spoken line is about the item: they share a real word. */
+export function lineAsks(line: string, item: string): boolean {
+  const said = contentWords(line);
+  return [...contentWords(item)].some((w) => said.has(w));
+}
+
 /** The "time of day" fact for an hour of the day (0-23). */
 export function partOfDayFor(hour: number): string {
   if (hour < 5) return 'late night';
@@ -110,7 +166,8 @@ export function callerHistory(
   profile: {
     totalConversations?: number;
     lastContact?: string | number | Date;
-    lastConversationSummary?: string;
+    /** Only a last-call summary checked for who said what (caller-assertions.ts). */
+    lastCallerSummary?: string;
   },
   now: Date = new Date()
 ): CallerHistory | undefined {
@@ -121,7 +178,7 @@ export function callerHistory(
     const ms = now.getTime() - new Date(profile.lastContact).getTime();
     if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
   }
-  const topic = profile.lastConversationSummary?.trim();
+  const topic = profile.lastCallerSummary?.trim();
   if (topic) history.lastTopic = topic.slice(0, MAX_TOPIC_CHARS);
   return history;
 }
@@ -143,6 +200,7 @@ export function greetingFacts(
   userName: string | undefined,
   history: CallerHistory | undefined,
   checkIn?: string,
+  ponder?: string,
   win?: string
 ): Record<string, string> {
   // No time zone, no time of day: guessing it wrong is worse than leaving it out.
@@ -150,6 +208,8 @@ export function greetingFacts(
   if (userName) facts['their name'] = userName;
   if (checkIn) facts['something they said they would do'] = checkIn.slice(0, MAX_TOPIC_CHARS);
   if (win) facts['something they said they would do, and did'] = win.slice(0, MAX_TOPIC_CHARS);
+  if (ponder)
+    facts['something to ask about from an earlier call'] = ponder.slice(0, MAX_TOPIC_CHARS);
   if (!history) return facts;
   facts['how well you know each other'] = `${history.calls} calls so far`;
   if (history.daysSince !== undefined)
@@ -190,34 +250,83 @@ export async function directedGreeting(
   const { directedText } = await import('../../speech/direction/index.js');
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, welcome] = await Promise.all([
+  const [openCheckIn, openWin, pondered, welcome] = await Promise.all([
     checkInFor(userData?.userId),
     winFor(userData?.userId),
+    ponderFor(userData?.userId, history),
     loadWelcomeBack(userData?.userId, personaId, history),
   ]);
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
   const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
   const { win, checkIn } = unknown ? {} : openingThread(openWin, openCheckIn);
+  // One thread per call: a win or what they said they'd do comes before a pondered ask.
+  const ask = win || checkIn ? undefined : pondered;
   // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
   const back =
-    welcome && !unknown ? planWelcomeBack(welcome, { checkIn: checkIn ?? win?.text }) : undefined;
+    welcome && !unknown
+      ? planWelcomeBack(welcome, { checkIn: checkIn ?? win?.text, pondered: ask?.text })
+      : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const direction =
     GREETING_DIRECTION +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
+    (ask && !unknown ? PONDER_DIRECTION : '') +
     (back?.direction ?? '') +
     (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
     direction,
     facts: welcomeBackFacts(
-      greetingFacts(partOfDay, userData?.userName, history, checkIn, win?.text),
+      greetingFacts(
+        partOfDay,
+        userData?.userName,
+        history,
+        checkIn,
+        unknown ? undefined : ask?.text,
+        win?.text
+      ),
       back
     ),
     fallback: scripted,
     urgency: 'now',
     maxChars: 140,
   });
-  return calmGreeting(directed.text);
+  const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
+  // One follow-up per call opener (opener-claim.ts): having asked, the greeting
+  // keeps the first recall note from asking about a thread too.
+  const topic = checkIn ?? ask?.text;
+  if (
+    !unknown &&
+    userData?.userId &&
+    directed.source === 'actor' &&
+    topic &&
+    spoken === directed.text &&
+    lineAsks(spoken, topic)
+  ) {
+    claimOpenerFollowUp(userData.userId, 'greeting');
+  }
+  return calmGreeting(spoken);
+}
+
+/**
+ * The line to speak when a pondered item was offered: the scripted greeting
+ * instead of a "thinking about you" line, and the item marked as raised only
+ * when the model's line actually asked it (otherwise it waits for another call).
+ */
+function afterAsking(
+  directed: { text: string; source: string },
+  scripted: string,
+  ask: PonderAsk | undefined
+): string {
+  if (!ask || directed.source !== 'actor') return directed.text;
+  if (THINKING_OF_YOU.test(directed.text)) return scripted;
+  if (lineAsks(directed.text, ask.text)) {
+    ask
+      .mark()
+      .catch((error: unknown) =>
+        log.warn({ error: String(error) }, 'Pondered item not marked as raised')
+      );
+  }
+  return directed.text;
 }

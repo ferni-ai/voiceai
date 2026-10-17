@@ -256,11 +256,11 @@ interface TestResult {
 
 async function loadRouter() {
   try {
-    const { initializeVoiceRouter, getVoiceRouter, processVoiceInput } = await import(
+    const { initializeVoiceRouter, getVoiceRouter, routeVoiceInput } = await import(
       '../src/tools/semantic-router/voice-integration.js'
     );
     await initializeVoiceRouter();
-    return { router: getVoiceRouter(), processVoiceInput };
+    return { router: getVoiceRouter(), processVoiceInput: routeVoiceInput };
   } catch (err) {
     console.log(`⚠️ Router not available: ${err}`);
     return { router: null, processVoiceInput: null };

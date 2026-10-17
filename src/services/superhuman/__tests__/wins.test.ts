@@ -3,7 +3,7 @@
  * opener. Only the store and the forgotten-topics read are fakes, plus one
  * test that drives the real updateCommitmentStatus with a fake Firestore.
  */
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   isWinsOn,
   markWinSurfaced,
@@ -39,10 +39,29 @@ function memoryStore(commitments: Record<string, Record<string, unknown>> = {}, 
 }
 const none = async () => [] as string[];
 
+// The behaviour below runs with the flag on; 'the flag' checks both states.
+beforeEach(() => {
+  vi.stubEnv('COACH_WINS', 'on');
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe('the flag', () => {
-  it('is on by default; COACH_WINS=off stops it', () => {
-    expect(isWinsOn({})).toBe(true);
+  it('is off by default; COACH_WINS=on turns it on', () => {
+    expect(isWinsOn({})).toBe(false);
     expect(isWinsOn({ COACH_WINS: 'off' })).toBe(false);
+    expect(isWinsOn({ COACH_WINS: 'on' })).toBe(true);
+  });
+
+  it('with the flag unset, nothing is written or offered', async () => {
+    const { store, wins } = memoryStore({ c1: promise }, [
+      { id: 'c0', commitmentId: 'c0', text: 'went for a run', doneAt: NOW.toISOString() },
+    ]);
+    const env = {};
+    expect(await recordWinFromCommitment('u', 'c1', { store, forgotten: none, env })).toBe(false);
+    expect(wins).toHaveLength(1);
+    expect(await winForOpener('u', { store, forgotten: none, env, now: NOW })).toBeUndefined();
   });
 });
 

@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "Wechsle zu {language}",
+    "seeYou": "Bis zum nächsten Mal!",
+    "callVoicemail": "Ich hab {name} auf die Mailbox gesprochen",
+    "callNoAnswer": "Ich hab {name} nicht erreicht. Soll ich's später noch mal versuchen?",
+    "callFailed": "Der Anruf bei {name} hat nicht geklappt",
+    "callBack": "{name} möchte, dass du zurückrufst",
+    "followUp": "{name} wartet auf deine Antwort"
+  },
   "accessibility": {
     "accountMenu": "Konto-Menü",
     "accountSettings": "Konto-Einstellungen",
@@ -9468,11 +9477,15 @@
     "rememberEmpty": "Diesmal gibt es nichts Neues festzuhalten. Danke für deine Gesellschaft.",
     "nextStepTitle": "Ein sanfter nächster Schritt",
     "invitation": "Komm wieder, wann immer du magst. Ich bin da.",
-    "close": "Schließen"
+    "close": "Schließen",
+    "seeCost": "Was dieser Anruf gekostet hat",
+    "feedbackQuestion": "Wie war das Gespräch?",
+    "feedbackThanks": "Danke, das hilft mir."
   },
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",
     "niceWork": "Schön gemacht",
+    "remembered": "Merk ich mir: {summary}",
     "streakSubtitle": "Du bist da. Das zählt.",
     "streakTitle": {
       "one": "{count}-Tage-Serie",
@@ -11031,7 +11044,18 @@
     "switchAccount": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

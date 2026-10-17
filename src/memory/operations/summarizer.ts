@@ -10,6 +10,7 @@ import type { ConversationSummary } from '../../types/user-profile.js';
 import { embed } from '../embeddings.js';
 import { callMomentLine, callerTimeZoneFor } from './call-moment.js';
 import { INSIDE_JOKES_PROMPT_TAIL, parseInsideJokes } from './inside-jokes.js';
+import * as caller from '../caller-assertions.js';
 
 // ============================================================================
 // TYPES
@@ -207,6 +208,13 @@ function generateTextSummary(
 // MAIN SUMMARIZATION FUNCTION
 // ============================================================================
 
+/** Seconds from the first turn to the last, or ~30 seconds a turn without timestamps. */
+function durationOf(turns: ConversationTurn[]): number {
+  const first = turns[0]?.timestamp;
+  const last = turns.at(-1)?.timestamp;
+  return first && last ? Math.floor((last.getTime() - first.getTime()) / 1000) : turns.length * 30;
+}
+
 /**
  * Generate a conversation summary
  */
@@ -224,36 +232,33 @@ export async function summarizeConversation(
     ...options,
   };
 
-  // Extract information
-  const mainTopics = opts.includeKeyTopics ? extractTopics(turns) : [];
+  // Topics from the caller's lines only: what Ferni or a teammate said is not theirs
+  const mainTopics = opts.includeKeyTopics
+    ? extractTopics(turns.filter((t) => t.role === 'user'))
+    : [];
   const keyPoints = extractKeyPoints(turns);
   const emotionalArc = opts.includeEmotionalArc ? detectEmotionalArc(turns) : '';
 
   // Generate text summary
   const textSummary = generateTextSummary(turns, mainTopics, keyPoints);
 
-  // Calculate duration (estimate if no timestamps)
-  let duration = 0;
-  if (turns.length > 0 && turns[0].timestamp && turns[turns.length - 1].timestamp) {
-    duration = Math.floor(
-      (turns[turns.length - 1].timestamp!.getTime() - turns[0].timestamp!.getTime()) / 1000
-    );
-  } else {
-    // Estimate: ~30 seconds per turn
-    duration = turns.length * 30;
-  }
+  const duration = durationOf(turns);
 
-  // Build summary object
-  const summary: ConversationSummary = {
-    id: `summary_${sessionId}_${now.getTime()}`,
-    sessionId,
-    timestamp: now,
-    duration,
-    turnCount: turns.length,
-    mainTopics,
-    keyPoints,
-    emotionalArc,
-  };
+  // Ferni's own key sentences are kept, labelled as hers (assistantRaisedItems)
+  const summary = caller.withCallerProvenance<ConversationSummary>(
+    {
+      id: `summary_${sessionId}_${now.getTime()}`,
+      sessionId,
+      timestamp: now,
+      duration,
+      turnCount: turns.length,
+      mainTopics,
+      keyPoints,
+      emotionalArc,
+    },
+    turns,
+    ['keyPoints']
+  );
 
   // Generate embedding for semantic search
   // CRITICAL: This enables future retrieval of past conversations
@@ -342,8 +347,7 @@ export async function summarizeWithLLM(
     transcript = `${firstPart}\n\n[... middle portion truncated ...]\n\n${lastPart}`;
   }
 
-  // Build LLM prompt
-  const prompt = `Summarize this conversation for future reference. Focus on what matters for continuing the relationship.
+  const prompt = `Summarize this conversation for future reference. Focus on what matters for continuing the relationship.${caller.summaryAssertionRule()}
 ${callMomentLine(turns[0]?.timestamp ?? now, opts.timeZone ?? callerTimeZoneFor(sessionId))}
 
 CONVERSATION:
@@ -373,30 +377,24 @@ ${INSIDE_JOKES_PROMPT_TAIL}`;
 
     const llmResult = JSON.parse(jsonMatch[0]) as LLMSummaryResult;
 
-    // Calculate duration
-    let duration = 0;
-    if (turns.length > 0 && turns[0].timestamp && turns[turns.length - 1].timestamp) {
-      duration = Math.floor(
-        (turns[turns.length - 1].timestamp!.getTime() - turns[0].timestamp!.getTime()) / 1000
-      );
-    } else {
-      duration = turns.length * 30;
-    }
+    const duration = durationOf(turns);
 
-    // Build enhanced summary
-    const summary: ConversationSummary = {
-      id: `summary_${sessionId}_${now.getTime()}`,
-      sessionId,
-      timestamp: now,
-      duration,
-      turnCount: turns.length,
-      mainTopics: llmResult.mainTopics || [],
-      keyPoints: llmResult.keyPoints || [],
-      emotionalArc: llmResult.emotionalArc || '',
-      // Store additional LLM insights
-      questionsRemaining: llmResult.openThreads,
-      followUpItems: llmResult.followUps,
-    };
+    // Each item the caller's own lines don't back is moved to assistantRaisedItems
+    const summary = caller.withCallerProvenance<ConversationSummary>(
+      {
+        id: `summary_${sessionId}_${now.getTime()}`,
+        sessionId,
+        timestamp: now,
+        duration,
+        turnCount: turns.length,
+        mainTopics: llmResult.mainTopics || [],
+        keyPoints: llmResult.keyPoints || [],
+        emotionalArc: llmResult.emotionalArc || '',
+        questionsRemaining: llmResult.openThreads,
+        followUpItems: llmResult.followUps,
+      },
+      turns
+    );
     const insideJokes = parseInsideJokes(llmResult.insideJokes);
     if (insideJokes.length > 0) summary.insideJokes = insideJokes; // none: summary as before
 
@@ -407,7 +405,7 @@ ${INSIDE_JOKES_PROMPT_TAIL}`;
           ...summary.mainTopics,
           ...summary.keyPoints,
           summary.emotionalArc,
-          ...(llmResult.userConcerns || []),
+          ...caller.theirs(llmResult.userConcerns ?? [], turns),
         ].join(' ');
         summary.embedding = await embed(embeddingText);
 

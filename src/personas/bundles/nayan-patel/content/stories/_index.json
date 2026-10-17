@@ -185,9 +185,9 @@
       }
     },
     {
-      "id": "vijji-story",
-      "file": "vijji-story.json",
-      "title": "When Vijji Left",
+      "id": "jyoti-story",
+      "file": "jyoti-story.json",
+      "title": "After Jyoti",
       "theme": "love and loss",
       "topics": ["death", "love", "grief", "continuation"],
       "duration_minutes": 3,

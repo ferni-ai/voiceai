@@ -50,11 +50,6 @@ apps/marketing/
 │   ├── content-calendar.ts
 │   └── schedule-buffer.ts
 │
-├── site/                       # Static marketing site
-│   ├── blog/                   # HTML blog posts
-│   ├── css/                    # Marketing CSS
-│   └── screenshots/            # Screenshot generator
-│
 └── config/                     # Configuration
     ├── CALENDAR.md
     └── schedule.json
