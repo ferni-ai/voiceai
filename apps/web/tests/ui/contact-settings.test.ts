@@ -57,12 +57,20 @@ vi.mock('../../src/utils/api.js', () => ({
 // TEST DATA
 // ============================================================================
 
+/** What GET /api/user/contact returns for a saved, verified contact (user-routes.ts). */
 const mockContactInfo = {
-  phone: '+1 555-123-4567',
+  phone: '+15551234567',
   email: 'test@example.com',
   preferredName: 'Alex',
-  phoneVerified: true,
+  timezone: 'America/New_York',
+  verifiedPhone: '+15551234567' as string | null,
 };
+const UNVERIFIED = { ...mockContactInfo, verifiedPhone: null };
+
+/** The real route's answer shape: `{ success, contactInfo }`, never `context.personal`. */
+function contactRoute(contactInfo: Record<string, unknown> | null) {
+  return { ok: true, status: 200, data: { success: true, contactInfo } };
+}
 
 const mockPreferences = {
   quietHours: {
@@ -149,17 +157,8 @@ describe('Contact Settings UI', () => {
 
     // Default API responses - format matches what contact-settings.ui.ts expects
     mockApiGet.mockImplementation((url: string) => {
-      if (url.includes('/api/outreach/context')) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          data: {
-            success: true,
-            context: {
-              personal: mockContactInfo,
-            },
-          },
-        });
+      if (url.includes('/api/user/contact')) {
+        return Promise.resolve(contactRoute(mockContactInfo));
       }
       if (url.includes('/api/user/preferences')) {
         return Promise.resolve({
@@ -275,27 +274,36 @@ describe('Contact Settings UI', () => {
       const emailInput = findEmailInput();
       const nameInput = findNameInput();
 
-      // Should be populated with mock data
-      expect(phoneInput?.value || '').toContain('555');
+      // Should be populated with what GET /api/user/contact returned
+      expect(phoneInput?.value).toBe(mockContactInfo.phone);
       expect(emailInput?.value).toBe(mockContactInfo.email);
       expect(nameInput?.value).toBe(mockContactInfo.preferredName);
+      expect(mockApiGet).toHaveBeenCalledWith('/api/user/contact');
+    });
+
+    it('a failed load says so instead of showing a blank form', async () => {
+      mockApiGet.mockImplementation((url: string) =>
+        Promise.resolve(
+          url.includes('/api/user/contact')
+            ? { ok: false, status: 500, error: 'Failed to get contact info' }
+            : { ok: true, status: 200, data: {} }
+        )
+      );
+
+      await openContactSettings();
+      await new Promise((r) => setTimeout(r, 200));
+
+      expect(document.querySelector('.contact-settings-error')?.textContent).toBe(
+        "Couldn't load your contact details. Try again?"
+      );
     });
   });
 
   describe('Phone Verification', () => {
     it('should show verify button for unverified phone', async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes('/api/outreach/context')) {
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            data: {
-              success: true,
-              context: {
-                personal: { ...mockContactInfo, phoneVerified: false },
-              },
-            },
-          });
+        if (url.includes('/api/user/contact')) {
+          return Promise.resolve(contactRoute(UNVERIFIED));
         }
         return Promise.resolve({ ok: true, status: 200, data: {} });
       });
@@ -309,17 +317,8 @@ describe('Contact Settings UI', () => {
 
     it('should call verify API on button click', async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes('/api/outreach/context')) {
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            data: {
-              success: true,
-              context: {
-                personal: { ...mockContactInfo, phoneVerified: false },
-              },
-            },
-          });
+        if (url.includes('/api/user/contact')) {
+          return Promise.resolve(contactRoute(UNVERIFIED));
         }
         return Promise.resolve({ ok: true, status: 200, data: {} });
       });
@@ -340,12 +339,8 @@ describe('Contact Settings UI', () => {
 
     it('sends the code and confirms it through the outreach service', async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes('/api/outreach/context')) {
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            data: { success: true, context: { personal: { ...mockContactInfo, phoneVerified: false } } },
-          });
+        if (url.includes('/api/user/contact')) {
+          return Promise.resolve(contactRoute(UNVERIFIED));
         }
         return Promise.resolve({ ok: true, status: 200, data: {} });
       });
@@ -373,17 +368,8 @@ describe('Contact Settings UI', () => {
 
     it('should show verification code input after sending SMS', async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes('/api/outreach/context')) {
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            data: {
-              success: true,
-              context: {
-                personal: { ...mockContactInfo, phoneVerified: false },
-              },
-            },
-          });
+        if (url.includes('/api/user/contact')) {
+          return Promise.resolve(contactRoute(UNVERIFIED));
         }
         return Promise.resolve({ ok: true, status: 200, data: {} });
       });
@@ -406,10 +392,9 @@ describe('Contact Settings UI', () => {
       await openContactSettings();
       await new Promise((r) => setTimeout(r, 200));
 
-      // Should show verified indicator (implementation dependent)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const verifiedBadge = document.querySelector('.phone-verified, [data-verified="true"]');
-      // May or may not exist depending on implementation
+      // The account's verified number matches the saved one
+      expect(document.querySelector('.contact-settings-verified')).not.toBeNull();
+      expect(findVerifyPhoneButton()).toBeNull();
     });
   });
 
@@ -548,12 +533,9 @@ describe('Contact Settings UI', () => {
       await openContactSettings();
       await new Promise((r) => setTimeout(r, 200));
 
-      // Source logs errors but doesn't show toast - check modal opens without crashing
-      // The overlay should still be created even with API error
-      const modal = findContactModal();
-      // Modal may be null if the component handles errors by not opening,
-      // or it may open with an error state - both are valid graceful handling
-      expect(modal === null || modal instanceof HTMLElement).toBe(true);
+      // The modal opens and says the load failed
+      expect(findContactModal()).not.toBeNull();
+      expect(document.querySelector('.contact-settings-error')).not.toBeNull();
     });
   });
 

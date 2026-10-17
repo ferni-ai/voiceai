@@ -877,29 +877,29 @@ function handleEscape(e: KeyboardEvent): void {
 
 async function loadContactInfo(): Promise<void> {
   state.isLoading = true;
-
+  state.error = undefined; // a failed earlier open must not linger
   try {
-    // Load contact info
+    // Load contact info from where Save (and the voice agent) store it. It read
+    // /api/outreach/context, which never returns contact details, so the form was always blank.
     const response = await apiGet<{
       success?: boolean;
-      context?: {
-        personal?: {
-          phone?: string;
-          email?: string;
-          preferredName?: string;
-          phoneVerified?: boolean;
-          emailVerified?: boolean;
-        };
-      };
-    }>('/api/outreach/context');
-
-    if (response.ok && response.data?.success && response.data.context?.personal) {
+      contactInfo?: {
+        phone?: string;
+        email?: string;
+        preferredName?: string;
+        timezone?: string;
+        verifiedPhone?: string | null;
+      } | null;
+    }>('/api/user/contact');
+    if (!response.ok) throw new Error(response.error || `HTTP ${response.status}`);
+    const saved = response.data?.contactInfo;
+    if (saved) {
       state.contactInfo = {
-        phone: response.data.context.personal.phone,
-        email: response.data.context.personal.email,
-        preferredName: response.data.context.personal.preferredName,
-        phoneVerified: response.data.context.personal.phoneVerified,
-        emailVerified: response.data.context.personal.emailVerified,
+        phone: saved.phone ?? saved.verifiedPhone ?? undefined,
+        email: saved.email,
+        preferredName: saved.preferredName,
+        phoneVerified: !!saved.verifiedPhone && saved.verifiedPhone === (saved.phone ?? saved.verifiedPhone),
+        timezone: saved.timezone,
       };
     }
 
@@ -930,7 +930,7 @@ async function loadContactInfo(): Promise<void> {
     }
   } catch (error) {
     log.error({ error }, 'Failed to load contact info');
-    // Still show detected timezone
+    state.error = t('contactSettings.errorLoad', "Couldn't load your contact details. Try again?");
     state.contactInfo.timezone = getUserTimezone();
   } finally {
     state.isLoading = false;

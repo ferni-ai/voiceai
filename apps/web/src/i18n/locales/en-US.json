@@ -1403,6 +1403,7 @@
     "errorInvalidCode": "That code didn't work. Try again?",
     "errorVerifyFailed": "Couldn't verify. Want another code?",
     "errorSave": "Couldn't save that. Try again?",
+    "errorLoad": "Couldn't load your contact details. Try again?",
     "verify": {
       "sending": "Sending code...",
       "withCode": "Verify with code"
