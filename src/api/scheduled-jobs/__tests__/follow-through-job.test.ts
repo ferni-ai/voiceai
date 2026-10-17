@@ -14,25 +14,27 @@ import {
   type TextDeps,
   type TextStore,
 } from '../../../services/outreach/guarded-text.js';
-import { handleFollowThrough, runFollowThroughJob } from '../background-delivery-jobs.js';
+import { readFileSync } from 'fs';
+import {
+  handleFollowThrough,
+  optedInToFollowUpTexts,
+  runFollowThroughJob,
+} from '../background-delivery-jobs.js';
 import { JOB_PATHS } from '../index.js';
 
 const NOW = new Date('2026-10-13T16:10:00Z'); // 12:10 in New York; the fixture is due at 12:00
 const ON = { FOLLOW_THROUGH_JOB: 'on' };
 const PHONE = '+15550000000'; // fictional
 
-/** Follow-ups in memory, with the real store's due() and compare-and-set save(). */
+/** Follow-ups in memory, with the real store's live() and compare-and-set save(). */
 function memoryStore(initial: FollowUp[]) {
   const docs = new Map(initial.map((f) => [f.id, f]));
   return {
     docs,
     store: {
-      due: vi.fn(async (now: Date) =>
+      live: vi.fn(async (u: string) =>
         [...docs.values()].filter(
-          (f) =>
-            (f.status === 'open' || f.status === 'surfaced') &&
-            f.dueAt !== null &&
-            f.dueAt <= now.toISOString()
+          (f) => f.userId === u && (f.status === 'open' || f.status === 'surfaced')
         )
       ),
       save: vi.fn(async (next: FollowUp, expected: string) => {
@@ -75,6 +77,7 @@ function world(due: FollowUp[], cohort: string[] = ['u1']) {
   const texts = textWorld(clock);
   const deps: FollowUpTextDeps = {
     store: mem.store,
+    optedIn: async () => [...new Set([...mem.docs.values()].map((f) => f.userId))],
     resolveFlags: vi.fn(async (u: string): Promise<Record<string, string>> =>
       cohort.includes(u) ? { FOLLOW_THROUGH_TEXTS: 'on' } : {}
     ),
@@ -154,5 +157,66 @@ describe('POST /api/jobs/follow-through', () => {
     expect(await runFollowThroughJob({ dryRun: false, env: ON, deps: async () => null })).toEqual({
       skipped: 'no-firestore',
     });
+  });
+});
+
+describe('optedInToFollowUpTexts', () => {
+  /** Just enough Firestore: collection(name).where('flags.FOLLOW_THROUGH_TEXTS', '==', 'on').get(). */
+  function fakeDb(rows: Record<string, Array<{ id: string; data: Record<string, unknown> }>>) {
+    const where = vi.fn();
+    const db = {
+      collection: (name: string) => ({
+        where: (field: string, op: string, value: string) => {
+          where(name, field, op, value);
+          const docs = (rows[name] ?? [])
+            .filter((r) => (r.data.flags as Record<string, string>)?.FOLLOW_THROUGH_TEXTS === value)
+            .map((r) => ({ id: r.id, data: () => r.data }));
+          return { get: async () => ({ docs }) };
+        },
+      }),
+    };
+    return { db: db as never, where };
+  }
+
+  it('lists members of enabled cohorts that turn it on, plus people whose override does', async () => {
+    const { db, where } = fakeDb({
+      feature_cohorts: [
+        {
+          id: 'ff',
+          data: { enabled: true, members: ['a', 'b'], flags: { FOLLOW_THROUGH_TEXTS: 'on' } },
+        },
+        {
+          id: 'paused',
+          data: { enabled: false, members: ['c'], flags: { FOLLOW_THROUGH_TEXTS: 'on' } },
+        },
+        { id: 'other', data: { members: ['d'], flags: { CANDOR: 'on' } } },
+      ],
+      feature_flag_overrides: [
+        { id: 'b', data: { flags: { FOLLOW_THROUGH_TEXTS: 'on' } } },
+        { id: 'e', data: { flags: { FOLLOW_THROUGH_TEXTS: 'on' } } },
+        { id: 'f', data: { flags: { FOLLOW_THROUGH_TEXTS: 'off' } } },
+      ],
+    });
+    expect((await optedInToFollowUpTexts(db)).sort()).toEqual(['a', 'b', 'e']);
+    expect(where).toHaveBeenCalledWith('feature_cohorts', 'flags.FOLLOW_THROUGH_TEXTS', '==', 'on');
+  });
+});
+
+describe('infra/cloud-scheduler-delivery.yaml', () => {
+  it('gives every job a scheduler OIDC token for its own URL, or it would 401 forever', () => {
+    const yaml = readFileSync(
+      new URL('../../../../infra/cloud-scheduler-delivery.yaml', import.meta.url),
+      'utf8'
+    );
+    const jobs = yaml.split(/\n {2}- name: /).slice(1);
+    expect(jobs.map((j) => j.split('\n')[0])).toContain('follow-through');
+    for (const job of jobs) {
+      const uri = /\n {6}uri: (\S+)/.exec(job)?.[1];
+      expect(uri, job).toBeDefined();
+      expect(job).toContain(
+        '      oidcToken:\n        serviceAccountEmail: scheduler-invoker@johnb-2025.iam.gserviceaccount.com\n' +
+          `        audience: ${uri}\n`
+      );
+    }
   });
 });

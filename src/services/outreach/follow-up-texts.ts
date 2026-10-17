@@ -2,11 +2,15 @@
  * The follow-up delivery job: texts a person the one follow-up that is due
  * for them now, through the guarded sender every member text takes.
  *
- * Each run reads the follow-ups due across everyone, then per person:
- * expires the stale ones, and if their own FOLLOW_THROUGH_TEXTS cohort flag
- * is on, texts the oldest one whose right moment is `text-now` and marks it
- * surfaced. One text per person per run; a lost save (a call surfaced it
- * first) is reported, not retried. With `dryRun` nothing is sent or saved.
+ * Each run asks who may have FOLLOW_THROUGH_TEXTS on, then per person:
+ * reads their own flags first (nothing is read or written for anyone who
+ * isn't opted in), expires their stale follow-ups, and texts the oldest one
+ * whose right moment is `text-now`. It claims the follow-up (saves it
+ * surfaced, compare-and-set) before sending, so a call that raised it a
+ * moment earlier wins and no text goes; if the sender holds the text, the
+ * claim is put back so a later run can try again. One text per person per
+ * run; one person's failure doesn't stop the rest. With `dryRun` nothing is
+ * sent or saved.
  *
  * Off unless the UI server has FOLLOW_THROUGH_JOB=on.
  * Plan: docs/plans/2026-10-12-follow-through.md (PR 7).
@@ -24,8 +28,6 @@ import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'follow-up-texts' });
 
-/** Follow-ups read per run, oldest due first. */
-export const DUE_SCAN_LIMIT = 200;
 /** No second follow-up text to one person within this window, whatever it's about. */
 export const FOLLOW_UP_GAP_MS = 20 * 60 * 60 * 1000;
 
@@ -40,7 +42,9 @@ export function followUpText(f: FollowUp): string {
 }
 
 export interface FollowUpTextDeps {
-  store: Pick<FollowUpStore, 'due' | 'save'>;
+  store: Pick<FollowUpStore, 'live' | 'save'>;
+  /** People who may have FOLLOW_THROUGH_TEXTS on. resolveFlags still decides for each. */
+  optedIn: () => Promise<string[]>;
   /** The person's cohort flags, from Firestore (never process env). */
   resolveFlags: (userId: string) => Promise<Record<string, string>>;
   /** The guarded sender (guarded-text.ts sendGuardedText). */
@@ -65,15 +69,8 @@ export interface FollowUpTextReport {
   notInCohort: number;
   held: Record<string, number>;
   lostSaves: number;
-}
-
-/** Oldest-due first, grouped by person, keeping that order within each. */
-function byPerson(due: readonly FollowUp[]): Map<string, FollowUp[]> {
-  const people = new Map<string, FollowUp[]>();
-  for (const f of [...due].sort((a, b) => (a.dueAt ?? '').localeCompare(b.dueAt ?? ''))) {
-    people.set(f.userId, [...(people.get(f.userId) ?? []), f]);
-  }
-  return people;
+  /** People whose turn failed (a flag or store read threw); the run went on. */
+  errors: number;
 }
 
 async function record(
@@ -90,17 +87,89 @@ async function record(
   return store.save(next.data, f.updatedAt);
 }
 
+/** Their follow-ups due at or before now, oldest first. */
+async function dueFor(
+  store: FollowUpTextDeps['store'],
+  userId: string,
+  now: Date
+): Promise<FollowUp[]> {
+  const at = now.toISOString();
+  return (await store.live(userId))
+    .filter((f) => f.dueAt !== null && f.dueAt <= at)
+    .sort((a, b) => (a.dueAt ?? '').localeCompare(b.dueAt ?? ''));
+}
+
+/** Claim, send, and put the claim back if the sender held the text. */
+async function textOne(
+  deps: FollowUpTextDeps,
+  pick: FollowUp,
+  now: Date,
+  report: FollowUpTextReport
+): Promise<void> {
+  const claimed = apply(pick, { type: 'surface', via: 'text' }, now);
+  if (!claimed.success) {
+    log.warn({ followUpId: pick.id, error: claimed.error }, 'Follow-up event refused');
+    return;
+  }
+  if (!(await deps.store.save(claimed.data, pick.updatedAt))) {
+    report.lostSaves++; // a call raised it first: no text
+    return;
+  }
+  // A send that throws may still have gone out, so its claim stays.
+  const outcome = await deps.sendText({
+    userId: pick.userId,
+    body: followUpText(pick),
+    kind: 'follow-up',
+    refId: pick.id,
+    minGapMs: FOLLOW_UP_GAP_MS,
+  });
+  if (outcome.sent) {
+    report.sent++;
+    return;
+  }
+  const reason = outcome.reason ?? 'unknown';
+  report.held[reason] = (report.held[reason] ?? 0) + 1;
+  if (!(await deps.store.save(pick, claimed.data.updatedAt))) report.lostSaves++;
+}
+
+async function forPerson(
+  deps: FollowUpTextDeps,
+  userId: string,
+  opts: { now: Date; dryRun: boolean },
+  report: FollowUpTextReport
+): Promise<void> {
+  const flags = await deps.resolveFlags(userId);
+  if (flags.FOLLOW_THROUGH_TEXTS !== 'on') {
+    report.notInCohort++;
+    return;
+  }
+  const { now, dryRun } = opts;
+  const due = await dueFor(deps.store, userId, now);
+  report.scanned += due.length;
+  const moments = due.map((f) => ({ f, moment: rightMoment(f, now) }));
+  for (const { f } of moments.filter((m) => m.moment === 'expire')) {
+    if (dryRun || (await record(deps.store, f, { type: 'expire' }, now))) report.expired++;
+    else report.lostSaves++;
+  }
+  const pick = moments.find((m) => m.moment === 'text-now')?.f;
+  if (!pick) return;
+  if (dryRun) {
+    report.wouldSend++;
+    report.wouldSendIds.push(pick.id);
+    return;
+  }
+  await textOne(deps, pick, now, report);
+}
+
 export async function sendDueFollowUpTexts(
   deps: FollowUpTextDeps,
   opts: { dryRun?: boolean; now?: Date } = {}
 ): Promise<FollowUpTextReport> {
-  const now = opts.now ?? new Date();
-  const dryRun = opts.dryRun === true;
-  const due = await deps.store.due(now, DUE_SCAN_LIMIT);
-  const people = byPerson(due);
+  const run = { now: opts.now ?? new Date(), dryRun: opts.dryRun === true };
+  const people = [...new Set(await deps.optedIn())];
   const report: FollowUpTextReport = {
-    scanned: due.length,
-    people: people.size,
+    scanned: 0,
+    people: people.length,
     sent: 0,
     wouldSend: 0,
     wouldSendIds: [],
@@ -108,43 +177,16 @@ export async function sendDueFollowUpTexts(
     notInCohort: 0,
     held: {},
     lostSaves: 0,
+    errors: 0,
   };
-
-  for (const [userId, theirs] of people) {
-    const moments = theirs.map((f) => ({ f, moment: rightMoment(f, now) }));
-    for (const { f } of moments.filter((m) => m.moment === 'expire')) {
-      if (dryRun || (await record(deps.store, f, { type: 'expire' }, now))) report.expired++;
-      else report.lostSaves++;
-    }
-    const pick = moments.find((m) => m.moment === 'text-now')?.f;
-    if (!pick) continue;
-    const flags = await deps.resolveFlags(userId);
-    if (flags.FOLLOW_THROUGH_TEXTS !== 'on') {
-      report.notInCohort++;
-      continue;
-    }
-    if (dryRun) {
-      report.wouldSend++;
-      report.wouldSendIds.push(pick.id);
-      continue;
-    }
-    const outcome = await deps.sendText({
-      userId,
-      body: followUpText(pick),
-      kind: 'follow-up',
-      refId: pick.id,
-      minGapMs: FOLLOW_UP_GAP_MS,
-    });
-    if (!outcome.sent) {
-      const reason = outcome.reason ?? 'unknown';
-      report.held[reason] = (report.held[reason] ?? 0) + 1;
-      continue;
-    }
-    report.sent++;
-    if (!(await record(deps.store, pick, { type: 'surface', via: 'text' }, now))) {
-      report.lostSaves++;
+  for (const userId of people) {
+    try {
+      await forPerson(deps, userId, run, report);
+    } catch (error) {
+      report.errors++;
+      log.warn({ error: String(error) }, 'Follow-up texts: one person failed, run continues');
     }
   }
-  log.info({ ...report, dryRun }, 'Follow-up texts run');
+  log.info({ ...report, dryRun: run.dryRun }, 'Follow-up texts run');
   return report;
 }

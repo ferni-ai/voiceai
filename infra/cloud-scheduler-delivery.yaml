@@ -1,6 +1,9 @@
 # Delivery jobs the voice process used to run in-memory.
 # startup() leaves them off (REMINDER_SCHEDULER_IN_PROCESS / IN_PROCESS_SCHEDULERS).
-# Deploy with: ferni ops memory:deploy-scheduler
+# Deploy with: ferni ops memory:deploy-scheduler (apps/cli/src/commands/ops/delivery-jobs.ts
+# is the source it deploys; keep this file in step). Every job needs the
+# oidcToken block: /api/jobs/* refuses (401) a request without a scheduler
+# OIDC token whose audience is the job URL (scheduler-auth.ts).
 #
 jobs:
   - name: deliver-reminders
@@ -13,6 +16,9 @@ jobs:
       headers:
         Content-Type: application/json
         X-CloudScheduler: "true"
+      oidcToken:
+        serviceAccountEmail: scheduler-invoker@johnb-2025.iam.gserviceaccount.com
+        audience: https://app.ferni.ai/api/jobs/deliver-reminders
     retryConfig:
       retryCount: 2
       minBackoffDuration: 15s
@@ -28,6 +34,9 @@ jobs:
       headers:
         Content-Type: application/json
         X-CloudScheduler: "true"
+      oidcToken:
+        serviceAccountEmail: scheduler-invoker@johnb-2025.iam.gserviceaccount.com
+        audience: https://app.ferni.ai/api/jobs/deliver-scheduled-actions
     retryConfig:
       retryCount: 2
       minBackoffDuration: 15s
@@ -43,6 +52,9 @@ jobs:
       headers:
         Content-Type: application/json
         X-CloudScheduler: "true"
+      oidcToken:
+        serviceAccountEmail: scheduler-invoker@johnb-2025.iam.gserviceaccount.com
+        audience: https://app.ferni.ai/api/jobs/execute-scheduled-outreach
     retryConfig:
       retryCount: 2
       minBackoffDuration: 15s
@@ -58,6 +70,9 @@ jobs:
       headers:
         Content-Type: application/json
         X-CloudScheduler: "true"
+      oidcToken:
+        serviceAccountEmail: scheduler-invoker@johnb-2025.iam.gserviceaccount.com
+        audience: https://app.ferni.ai/api/jobs/calendar-triggers
     retryConfig:
       retryCount: 1
       minBackoffDuration: 30s
@@ -73,5 +88,8 @@ jobs:
       headers:
         Content-Type: application/json
         X-CloudScheduler: "true"
+      oidcToken:
+        serviceAccountEmail: scheduler-invoker@johnb-2025.iam.gserviceaccount.com
+        audience: https://app.ferni.ai/api/jobs/follow-through
     retryConfig:
       retryCount: 0
