@@ -169,24 +169,50 @@ describe('precedence: one opening thread per call', () => {
 });
 
 describe('system prompt line for when they last talked', () => {
-  it('flag off: the same lines as before', () => {
-    expect(wb.lastTalkedAwareness(0, {})).toEqual(['You talked earlier today.']);
-    expect(wb.lastTalkedAwareness(1, {})).toEqual(['You talked yesterday.']);
-    expect(wb.lastTalkedAwareness(3, {})).toEqual(['Last talked 3 days ago.']);
-    expect(wb.lastTalkedAwareness(12, {})).toEqual([
+  const off = { RECENT_CALL_RESTRAINT: 'off' };
+
+  it('flags off: the same lines as before', () => {
+    expect(wb.lastTalkedAwareness(0, off)).toEqual(['You talked earlier today.']);
+    expect(wb.lastTalkedAwareness(1, off)).toEqual(['You talked yesterday.']);
+    expect(wb.lastTalkedAwareness(3, off)).toEqual(['Last talked 3 days ago.']);
+    expect(wb.lastTalkedAwareness(12, off)).toEqual([
       "It's been about 2 weeks since you last talked.",
     ]);
-    expect(wb.lastTalkedAwareness(60, {})).toEqual([
+    expect(wb.lastTalkedAwareness(60, off)).toEqual([
       "It's been a while - about 2 months since you last talked.",
     ]);
   });
 
-  it('flag on after 5+ days: adds never bring up the gap', () => {
-    const on = { WELCOME_BACK_BOTH_SIDES: 'on' };
+  it('welcome back on after 5+ days: adds never bring up the gap', () => {
+    const on = { WELCOME_BACK_BOTH_SIDES: 'on', ...off };
     expect(wb.lastTalkedAwareness(4, on)).toHaveLength(1);
     const lines = wb.lastTalkedAwareness(12, on);
     expect(lines).toHaveLength(2);
     expect(lines[1]).toMatch(/Never bring up how long it has been, that you missed them/);
+  });
+
+  // Live call 10-17, second call that day: the first reply led with the earlier call's
+  // people and assumed an outcome ("how things went with Clayton and Brent after you
+  // talked with Jordan"). Seth: "You did jump the gun."
+  it('by default a same-day call is told to let them lead, one light open question at most', () => {
+    expect(wb.recentCallRestraintEnabled({})).toBe(true);
+    const [line, rule] = wb.lastTalkedAwareness(0, {});
+    expect(line).toBe('You talked earlier today.');
+    expect(rule).toMatch(/already talked today/);
+    expect(rule).toMatch(/do not open with what you talked about last time/);
+    expect(rule).toMatch(/one light thing as a short open question/);
+    expect(rule).toMatch(/Never guess how something went/);
+    expect(rule).toMatch(/never string several people's names together/);
+  });
+
+  it('other returning calls get the let-them-lead rule without the same-day line', () => {
+    const lines = wb.lastTalkedAwareness(3, {});
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toMatch(/^Let them lead/);
+    // A welcome back keeps its own one-thread rules instead.
+    const back = wb.lastTalkedAwareness(12, { WELCOME_BACK_BOTH_SIDES: 'on' });
+    expect(back[1]).toMatch(/Never bring up how long/);
+    expect(back).toHaveLength(2);
   });
 });
 

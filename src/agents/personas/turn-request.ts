@@ -56,7 +56,7 @@ import { candorEnabled, supportHeld } from './turn-candor.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
-import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
+import { callerMove, rngFor, turnShapeEnabled, turnShapeFor, withLiveData } from './turn-shape.js';
 import {
   understandingFor,
   understandingMode,
@@ -161,9 +161,13 @@ export function withTurnReminder(
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
-    turnStyleReminderEnabled()
-      ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
-      : '',
+    // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
+    ...withLiveData(
+      turnStyleReminderEnabled()
+        ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
+        : '',
+      callerTurnsOf(chatCtx)
+    ),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).

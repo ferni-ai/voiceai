@@ -13,6 +13,7 @@
 import { voice } from '@livekit/agents';
 import { AudioFrame, AudioResampler, type Room } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
+import { stayQuietOn } from '../shared/call-farewell.js';
 import { synthHum, synthSnore, synthWhistle } from './presence-sounds.js';
 import {
   createPresenceWatcher,
@@ -296,6 +297,7 @@ function startPresenceSounds(
   const stop = () => player.stop();
   // PRESENCE_SOUND_ASSETS: a recorded whistle or snore when one loaded, else the synthesized one
   const recorded = presenceClipPickers();
+  const quiet = () => stayQuietOn(session);
   const watchers = [
     createPresenceWatcher({
       play: (quietMs) =>
@@ -305,13 +307,14 @@ function startPresenceSounds(
       stop,
       mood,
       serious,
+      quiet,
     }),
   ];
   if (presenceSnoreEnabled()) {
     const snore = () => recorded?.snore.next() ?? synthSnore();
     watchers.push(
       createPresenceWatcher(
-        { play: (quietMs) => playing('snore', snore(), quietMs), stop, mood, serious },
+        { play: (quietMs) => playing('snore', snore(), quietMs), stop, mood, serious, quiet },
         LONG_QUIET
       )
     );
