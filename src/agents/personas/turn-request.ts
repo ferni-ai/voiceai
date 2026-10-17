@@ -54,11 +54,13 @@ import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
+import { noteTurn } from './move-log.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor, withLiveData } from './turn-shape.js';
+import type { TurnShape } from './turn-shape.js';
 import {
   understandingFor,
   understandingMode,
@@ -125,6 +127,10 @@ export function withTurnReminder(
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
+  const style = turnStyleReminderEnabled()
+    ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
+    : undefined;
+  noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
   // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
@@ -165,12 +171,7 @@ export function withTurnReminder(
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
     // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
-    ...withLiveData(
-      turnStyleReminderEnabled()
-        ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
-        : '',
-      callerTurnsOf(chatCtx)
-    ),
+    ...withLiveData(style?.text ?? '', callerTurnsOf(chatCtx)),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
@@ -178,8 +179,7 @@ export function withTurnReminder(
     // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
     // self-share so "no stories of your own" wins for a tired caller. No length (TURN_LENGTH's).
     attunementNote(chatCtx, session, { careful: options.shape === false }),
-    // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
-    // Last, so on its one turn the invite wins over the self-share.
+    // COMMITMENT_INVITE=on: one small step, once a call; after the self-share, so it wins.
     inviteFor(chatCtx, session, words, options.shape === false),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
@@ -303,11 +303,11 @@ function styleFor(
   shape: boolean,
   ownStory?: boolean,
   answering = false
-): string {
+): { text: string; turn?: TurnShape } {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
-  if (!said) return TURN_STYLE_REMINDER;
+  if (!said) return { text: TURN_STYLE_REMINDER };
   const listening = listeningReply(said, chatCtx, session);
-  if (listening) return listening;
+  if (listening) return { text: listening };
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
@@ -338,7 +338,7 @@ function styleFor(
     },
     'TURN_SHAPE'
   );
-  return burst ? `${turn.reminder} ${burst}` : turn.reminder;
+  return { text: burst ? `${turn.reminder} ${burst}` : turn.reminder, turn };
 }
 
 /**
