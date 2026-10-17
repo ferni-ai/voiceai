@@ -35,7 +35,7 @@ const OPT_OUT_ANYWHERE =
 const OPT_OUT_SHORT = /\b(stop|cancel|quit|end)\b/i;
 const SHORT_WORDS = 4;
 const MESSAGE_SID = /^[A-Za-z0-9]{10,64}$/;
-const ALREADY_EXISTS = 6; // Firestore/gRPC status for create() on an existing doc
+export const ALREADY_EXISTS = 6; // Firestore/gRPC status for create() on an existing doc
 const keyword = (body: string): string =>
   body
     .trim()
