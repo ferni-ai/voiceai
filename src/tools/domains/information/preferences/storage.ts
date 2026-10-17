@@ -30,7 +30,8 @@ const log = getLogger();
  */
 const preferencesCache = new Map<string, { preferences: UserInfoPreferences; timestamp: number }>();
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// Short, so a worker holding a stale copy stops serving it (and stops writing it back) quickly.
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds
 
 // ============================================================================
 // FIRESTORE HELPERS
@@ -70,6 +71,15 @@ function getPreferencesPath(userId: string): string {
 // CRUD OPERATIONS
 // ============================================================================
 
+/** A Firestore document as preferences: stored fields over the defaults. */
+function preferencesFromDocument(data: UserInfoPreferences): UserInfoPreferences {
+  return {
+    ...DEFAULT_PREFERENCES,
+    ...data,
+    updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(),
+  };
+}
+
 /**
  * Get user preferences (from cache, then Firestore, then defaults)
  */
@@ -87,13 +97,7 @@ export async function getUserPreferences(userId: string): Promise<UserInfoPrefer
     try {
       const doc = await firestore.collection(getPreferencesPath(userId)).doc('current').get();
       if (doc.exists) {
-        const data = doc.data() as UserInfoPreferences;
-        // Convert Firestore timestamp to Date
-        const preferences = {
-          ...DEFAULT_PREFERENCES,
-          ...data,
-          updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(),
-        };
+        const preferences = preferencesFromDocument(doc.data() as UserInfoPreferences);
 
         // Update cache
         preferencesCache.set(userId, { preferences, timestamp: Date.now() });
@@ -149,6 +153,25 @@ export async function saveUserPreferences(
 }
 
 /**
+ * The base for a write, read from Firestore rather than the cache. Null when
+ * Firestore is on and the read failed: a write built on defaults would replace
+ * the whole stored document and wipe every other field.
+ */
+async function preferencesForWrite(userId: string): Promise<UserInfoPreferences | null> {
+  const firestore = getFirestoreDb();
+  if (!firestore) return getUserPreferences(userId); // memory-only mode: the cache is the store
+  try {
+    const doc = await firestore.collection(getPreferencesPath(userId)).doc('current').get();
+    return doc.exists
+      ? preferencesFromDocument(doc.data() as UserInfoPreferences)
+      : { ...DEFAULT_PREFERENCES };
+  } catch (error) {
+    log.error({ userId, error: String(error) }, '📋 Could not read preferences before a write');
+    return null;
+  }
+}
+
+/**
  * Update specific preference fields
  */
 export async function updateUserPreferences(
@@ -156,7 +179,13 @@ export async function updateUserPreferences(
   update: PreferenceUpdate
 ): Promise<PreferenceOperationResult> {
   try {
-    const current = await getUserPreferences(userId);
+    const current = await preferencesForWrite(userId);
+    if (!current) {
+      return {
+        success: false,
+        message: "I couldn't read your preferences just now, so nothing was changed.",
+      };
+    }
     const updated: UserInfoPreferences = {
       ...current,
       ...update,
