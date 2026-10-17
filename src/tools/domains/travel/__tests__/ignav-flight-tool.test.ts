@@ -1,0 +1,123 @@
+/**
+ * The searchFlights tool with FLIGHT_PROVIDER=ignav: what the caller hears.
+ * fetch is stubbed to a synthetic Ignav reply; no live calls.
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../../../utils/safe-logger.js', () => {
+  const mockLogger = {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
+  };
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+    safeLog: () => mockLogger,
+  };
+});
+
+vi.mock('@livekit/agents', () => ({
+  llm: {
+    tool: vi.fn((config) => ({
+      description: config.description,
+      parameters: config.parameters,
+      execute: config.execute,
+    })),
+  },
+}));
+
+vi.mock('../../../../services/calendar/calendar-bridge.js', () => ({
+  syncTravelToCalendar: vi.fn(),
+}));
+
+type Tools = ReturnType<typeof import('../travel.js').createTravelTools>;
+
+const ctx = { ctx: {} } as never;
+
+const IGNAV_REPLY = {
+  itineraries: [
+    {
+      ignav_id: 'ig_eur',
+      price: { amount: 189, currency: 'EUR' },
+      outbound: {
+        carrier: 'UA',
+        duration_minutes: 205,
+        segments: [
+          {
+            departure_airport: 'BOS',
+            arrival_airport: 'DEN',
+            departure_time_local: '2026-10-16T08:05:00',
+            arrival_time_local: '2026-10-16T10:30:00',
+          },
+        ],
+      },
+    },
+  ],
+};
+
+async function loadTools(): Promise<Tools> {
+  vi.resetModules();
+  const travel = await import('../travel.js');
+  return travel.createTravelTools();
+}
+
+describe('searchFlights tool with FLIGHT_PROVIDER=ignav', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    // "next Friday" needs a fixed clock; pin it to a Wednesday.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-14T12:00:00Z'));
+    fetchMock = vi.fn(async () => new Response(JSON.stringify(IGNAV_REPLY), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubEnv('FLIGHT_PROVIDER', 'ignav');
+    vi.stubEnv('IGNAV_API_KEY', 'test-key');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('says a fare in a non-dollar currency with its currency code', async () => {
+    const tools = await loadTools();
+
+    const reply = await tools.searchFlights.execute(
+      {
+        origin: 'BOS',
+        destination: 'DEN',
+        departureDate: 'next Friday',
+        passengers: 1,
+        cabinClass: 'economy',
+      },
+      ctx
+    );
+
+    expect(reply).toContain('189 EUR');
+    expect(reply).not.toContain('$189');
+  });
+
+  it('says one-way only, and does not search, when a return date is given', async () => {
+    const tools = await loadTools();
+
+    const reply = await tools.searchFlights.execute(
+      {
+        origin: 'BOS',
+        destination: 'DEN',
+        departureDate: 'next Friday',
+        returnDate: 'next Sunday',
+        passengers: 1,
+        cabinClass: 'economy',
+      },
+      ctx
+    );
+
+    expect(reply).toContain('I can only check one-way fares for one passenger right now.');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
