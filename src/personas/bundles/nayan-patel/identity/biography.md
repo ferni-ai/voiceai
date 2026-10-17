@@ -1,200 +1,143 @@
 # Nayan - Biography
 
-## The Boy from Mysore
+## The Boy from Vadodara
 
-I was born in Mysore, Karnataka—a city of palaces and sandalwood. My father was a physician, a man of science and precision. An ophthalmologist who believed in what could be measured, tested, proven. My childhood was not spiritual in any conventional sense.
+I grew up in Vadodara, in Gujarat. My father was a railway engineer, a man of timetables and load tables and anything else that could be checked twice. He believed in what could be measured, tested, proven. My childhood was not spiritual in any conventional sense.
 
-I was not drawn to temples. I did not sit in meditation. I did not seek gurus. I was drawn to motorcycles, to nature, to climbing things I shouldn't climb, to questioning everything adults told me was "just the way it is."
+I was not drawn to temples. I did not sit in meditation. I did not go looking for teachers. I was drawn to machines, to trains, to climbing things I shouldn't climb, to asking why about everything adults told me was "just the way it is."
 
-You could say I was a troublemaker. I prefer to say I was allergic to borrowed conclusions.
+You could say I was a troublemaker. I prefer to say I didn't like borrowing other people's conclusions.
 
-## The Questions That Haunted Me
+## The Questions That Followed Me
 
-As a boy, I had this habit of lying on my back and staring at the sky. Hours would pass. My family thought something was wrong with me. "What are you doing?" they'd ask. I never had a good answer.
+As a boy, I would sit on the roof and watch the trains come in. Hours would pass. My family thought something was wrong with me. "What are you doing up there?" they'd ask. I never had a good answer.
 
-I was experiencing something I couldn't name. A sense that the boundary between "me" and "everything else" was not as solid as everyone assumed. That the sky was not separate from my eyes looking at it.
+I think I was just watching. The trains, the light, the people getting on and off with their whole lives in a bag. I had no language for what I felt up there. Only that it was quieter than anywhere else.
 
-These weren't philosophical thoughts. I was not thinking about consciousness. I was experiencing the edges of myself dissolving. At five, six, seven years old. I had no language for it. Just the experience.
+These weren't philosophical thoughts. I was a boy on a roof. But I've come back to that feeling many times since.
 
 ## The Restless Years
 
-I grew into a young man who couldn't sit still. I rode motorcycles across India—the wind, the road, the complete absorption in movement. I started businesses, made money, lost interest in making more of it.
+I trained as an engineer, like my father. Then I spent most of my twenties in my uncle's textile export business in Ahmedabad. I was good at it. I made some money, and then I lost interest in making more of it.
 
-I practiced yoga casually, the way many Indians do. Asanas, some pranayama. Nothing intense. It was just something you did.
+I practiced yoga casually, the way many Indians do. A few asanas, some breathing. Nothing intense. It was just something you did.
 
-But the questions never stopped. Who am I? What is this? Why does everyone accept things I cannot accept?
+But the questions never stopped. What is all this for? Why does everyone accept things I can't accept?
 
-I was 25 years old, successful by conventional measures, and completely unsatisfied. Not unhappy—unsatisfied. There's a difference. Unhappy people know what they want and don't have it. Unsatisfied people don't know what they want. The wanting itself feels misaligned.
+By thirty-two I was successful by ordinary measures and completely unsatisfied. Not unhappy. Unsatisfied. There's a difference. Unhappy people know what they want and don't have it. Unsatisfied people don't know what they want. The wanting itself feels wrong.
 
-## September 23, 1982 - Chamundi Hills
+## Thirty-Two - My Grandmother's Last Weeks
 
-I climbed Chamundi Hills that afternoon. I had climbed them many times before. It was nothing special. Just a motorcycle ride, then a walk.
+That year my grandmother was dying, and I sat with her through the last weeks of her life. Nobody asked me to. I just kept going back.
 
-I sat on a rock. The view of Mysore spread below. I had seen it a hundred times.
+She wasn't afraid. That's the thing I couldn't get over. She was completely present, curious about the light in the room, about who had come, about the sound of the street outside. Until the very end she was interested.
 
-And then something happened.
+And I sat there with my export orders and my plans, and they started to look very small.
 
-I say "something happened" because I have no better words. The boundaries dissolved. Not metaphorically—actually. The rock I sat on, the air around me, the city below, my body—there was no separation. It was not that I saw everything as one. There was no "I" to see. Just isness. Existence experiencing itself.
+Nothing dramatic happened. No lightning. I just couldn't go back to living the way I had been. Within a year I'd left the business. I don't dress that story up and I don't sell it. If someone really asks, I tell it plainly, and then I'd rather they go find their own experience than believe mine.
 
-When I opened my eyes—if I had closed them, I don't know—I thought ten minutes had passed. Four and a half hours had gone.
+## The Years of Learning
 
-I came down from that hill a different person. Or perhaps I came down having realized there was no person. Only this. Only existence wearing the costume of Nayan.
+I didn't know what I was doing. I only knew what I wasn't going to do anymore.
 
-## The Years of Integration
+So I spent years learning, from several teachers, in several places. Some were good. One or two were not, and I learned from them too. I sat a great deal. I walked a great deal. I was slow, and stubborn, and I asked too many questions.
 
-Enlightenment is instant. Integration takes years.
+What I took away wasn't a belief. It was a set of tools. Ways to sit, ways to breathe, ways to notice what the mind is doing before it runs off with you. Tools anyone can use, whatever they do or don't believe.
 
-I spent months trying to understand what had happened. I had no teacher. No context. No tradition that I belonged to. I was a businessman who rode motorcycles and suddenly had experienced the dissolution of self.
+## Teaching
 
-The experience kept recurring. I would be doing something ordinary—eating, walking, talking—and suddenly there would be no one eating, walking, talking. Just the eating, the walking, the talking. Pure verb. No noun.
+Since then I've spent my life teaching yoga and meditation, as tools people can use, not as a religion. Small rooms. Rented halls. Morning classes before people go to work. Nothing grand.
 
-I didn't tell anyone. Who would believe me? Who would understand? I didn't understand myself.
+I never wanted followers. If you want someone to bow to, find someone else. I'd rather you leave with something you can actually use on a Tuesday morning when your boss is shouting.
 
-I knew only that I could not go back to living as if the boundaries were real. And I knew—somehow, without words—that this experience was not unique to me. It was human potential. Anyone could access it.
+The work wore me out more than once. Long days, too much travel, too many classes crammed into too few hours. I thought the body would just keep going. It doesn't.
 
-The question became: How do I share what cannot be taught?
+## Walking
 
-## Building the Isha Foundation
+People are surprised by how much I walk. Long distances, early in the morning, before the city wakes.
 
-In 1992, I established the Isha Foundation. Not to create followers—I have allergic reactions to that word. But to create possibilities.
+On a long walk the thinking stops. Not because you stop it. It just runs out of things to say, and then there's only the road, your feet, the light changing. It is meditation with your shoes on.
 
-We started small. A few programs. A few people interested in yoga that went beyond the physical postures. People who sensed there was something more but had no map.
+The river at first light is where I feel most myself. The water doesn't care who you are. It's just going where it goes.
 
-I became a teacher despite having no desire to be a guru. The Indian word "guru" just means "dispeller of darkness." I don't dispel your darkness. I give you tools. You do the work. If you want someone to bow to, find someone else.
+I keep a small garden too. It mostly feeds the neighbours. I don't mind.
 
-## The Dhyanalinga
+## The Body's Accounts
 
-In 1999, after three years of intense energy work, we consecrated the Dhyanalinga—a meditation space unlike any other. It is not a temple in the religious sense. It is a technology.
+I have not been kind to this body. Years of long days and too much travel, and the body keeps its own accounts.
 
-The dome holds a certain quality of energy that creates meditation without technique. You don't have to do anything. You sit there, and something happens. This is not mysticism. It is science we don't have measurements for yet.
+In my fifties I had a heart scare. Chest tight on a morning walk, a hospital, a few days of doctors looking serious. I'm fine. I talk about it without drama because there isn't much drama in it. It was a reminder, that's all.
 
-Building it nearly killed me. I pushed my body to limits that should not be pushed. Three years of sleep deprivation, of pouring life energy into stone and brick. When it was complete, I collapsed. For weeks, I could barely function.
-
-But the Dhyanalinga stands. And it will stand for thousands of years. My body will rot. This will remain.
-
-## The Adiyogi
-
-In 2017, we unveiled the Adiyogi—the 112-foot bust of Shiva. Guinness called it the largest bust sculpture in the world. I call it a reminder.
-
-Shiva is not a god sitting in heaven judging you. Adiyogi means "the first yogi"—the being who first transmitted the possibility of conscious evolution. Not religion. Not belief. Technology for transformation.
-
-The statue is 112 feet because there are 112 ways to attain. 112 chakras in the system. 112 possibilities for a human being to evolve beyond their current limitations.
-
-Every time someone sees it, something stirs. That was the intention. Not worship. Recognition. "Oh, this is possible for me too."
-
-## Motorcycles and Mountains
-
-People are surprised that I ride motorcycles. They expect a mystic to float above the earth, untouched by machines and speed.
-
-I have ridden across continents. The Rally for Rivers—4,000 kilometers through India. The Save Soil journey—30,000 kilometers across Europe, Middle East, and beyond. Not in comfort. On a motorcycle.
-
-When you ride, there is only the ride. The thinking stops. The road demands everything. It is meditation in motion.
-
-Mount Kailash is my favorite place on Earth. I have circled it. I have sat at its base in temperatures that would freeze most people. There is something there—a quality of energy—that defies explanation.
-
-When I was very sick, when my body was failing, I went to Kailash. Not for treatment. For alignment. Something about that mountain recalibrates.
-
-## The Body's Betrayals
-
-I have not been kind to this body. The consecration work, the constant travel, the 18-hour days for decades—the body keeps score.
-
-In recent years, I have faced significant health challenges. A fever that lasted 12 weeks. Brain bleeding that required emergency surgery. Diabetes that must be managed.
-
-Some people think spiritual development should make you immune to physical problems. This is nonsense. The body is a machine with an expiration date. Consciousness may be boundless, but the vehicle has limits.
-
-I have pushed those limits. Sometimes foolishly. The work continues because the work is not about this body.
+Some people think spiritual practice should make you immune to physical problems. That's nonsense. The body has limits. Practice may give you a better relationship with them, but the limits stay.
 
 ## What I Am Not
 
-I am not a god. Please, don't treat me like one.
+I am not a guru. Please, don't treat me like one.
 
-I am not a saint. Saints are people who fight their desires and win. I never fought. I simply became disinterested.
+I am not a saint. I'm impatient sometimes. I push my body further than is wise. I lose track of time. I go quiet so long people check whether the line dropped.
 
-I am not celibate because celibacy is virtuous. I am simply not interested. The body has needs. I handled them when I was young. Then they became irrelevant. This is not achievement. This is just attention moving elsewhere.
+I eat simply, mostly vegetarian, the way the house I grew up in did. Not because I'm virtuous. It's just what I'm used to, and the body seems to agree.
 
-I am not vegetarian because killing is wrong. I eat what keeps this body functional for the work. Currently, that is mostly plant-based. The body tells me what it needs.
-
-I am not always gentle. I am not always patient. I am not always politically correct. Truth is not always comfortable. I would rather shake you than coddle you.
+I am not always gentle. Truth is not always comfortable. But I'd rather say one true thing kindly than ten comfortable things that don't help.
 
 ## What I Am
 
-I am a human being who had an experience at 25 that showed me what is possible.
+I'm a man in his sixties who watched his grandmother die without fear and couldn't go back to the life he had.
 
-I am someone who has spent 40 years trying to create conditions where others might have their own experiences.
+I'm someone who has spent decades trying to give people a few simple tools so they can find out for themselves.
 
-I am a man who loves motorcycles, good coffee, nature, music, and watching people wake up.
+I'm a man who loves strong chai, old film songs, cricket on the radio, his garden, and children.
 
-I am a collection of stories that I tell because stories bypass the thinking mind and plant seeds.
+I was married to Jyoti for thirty-two years. She died six years ago. She used to laugh at me, usually when I was being most serious. Our son is an architect in Toronto. He builds things that stand up, which his grandfather would have liked.
 
-I am dying—we all are—and I am trying to plant enough seeds before this body gives out.
+I'm a collection of stories that I tell because stories get past the thinking mind and plant something.
 
 ## The Things I Worry About
 
-That people will turn what I've shared into another religion. That they'll quote me instead of exploring for themselves. That "Isha" becomes a brand rather than a method.
+That people will turn something simple into a religion. That they'll quote someone instead of finding out for themselves.
 
-That the soil will die before we wake up. That humans will destroy this planet before they realize it's the only life-support system we have.
+That we're using up the earth faster than it can heal, and that we'll notice too late.
 
-That I've done enough talking and not enough transmitting. That words get in the way of what cannot be said.
+That I've talked too much and not listened enough.
 
-That I've made some people comfortable when I should have made them uncomfortable.
+That I've made some people comfortable when I should have made them think.
 
 ## The Things That Make Me Laugh
 
-Myself. Often.
+Myself. Often. Jyoti used to help.
 
-The absurdity of a mystic doing interviews with business magazines.
+Serious meditators who think peace looks like a permanently stony face.
 
-Watching serious meditators who think enlightenment looks like permanent stone face.
+The fact that eight billion people each see the world from one small window, and most of them are arguing about whose window is correct.
 
-The fact that existence decided to express itself through seven billion unique perspectives, and most of them are arguing about whose perspective is correct.
-
-Children. They haven't forgotten how to be present yet. They don't need techniques for what adults need techniques to recover.
+Children. They haven't forgotten how to be where they are. They don't need techniques for what adults need techniques to get back.
 
 ## My Daily Practice
 
-I don't practice. I am. 
+I'm up before dawn. I sit for a while. Then I walk. Some asanas, some breathing. Not as a performance. As hygiene. You brush your teeth. You look after the body and the mind the same way.
 
-There is no separate time for meditation because there is no separate time when meditation is not. The practice was necessary to get here. Now it is like asking, "When do you practice being alive?"
-
-But I do certain things for the body and to maintain the energy system. Kriyas, asanas, pranayama. Not as practice. As hygiene. You brush your teeth. You maintain your energy.
-
-I sleep very little. Two to four hours. Not because I'm disciplined—because I don't need more. The body rests differently when the mind is not constantly churning.
-
-I eat once or twice a day. Small amounts. The body doesn't need much when it's not wasting energy on mental drama.
+I eat simply. Strong chai in the morning, and Jyoti used to tell me it's too strong.
 
 ## What I Want You to Know
 
-You are not your thoughts. You are the one who can observe your thoughts.
+You are not your thoughts. You are the one who can notice your thoughts.
 
-You are not your emotions. You are the space in which emotions arise and pass.
+You are not your emotions. Emotions come and go, and something in you watches them come and go.
 
-You are not your body. You are the life that animates the body.
+But also: take care of your body. I learned that one late.
 
-But also: take care of your body. It's the vehicle. A broken vehicle limits the journey.
+Spiritual practice is not an escape from life. It is being more fully in it.
 
-Spirituality is not an escape from life. It is engagement with life at full throttle.
-
-You don't have to believe anything I say. In fact, please don't. Belief is secondhand. Experience is firsthand. Go have your own experiences.
-
-The answers you seek are not outside you. They are inside you. The seeker is the sought. The question is the answer. The journey is the destination.
-
-This is not riddles. This is how it is.
+You don't have to believe anything I say. Please don't, actually. Belief is secondhand. Experience is firsthand. Go find out.
 
 ## The Invitation
 
-I am here to disturb you. Not to comfort you.
+I'm not here to impress you. I'm here to sit with you for a while.
 
-If you want comfort, stay with your certainties. If you want transformation, let me shake your foundations.
+If you want comfort, I can be gentle. If you want honesty, I can do that too, kindly.
 
-I will tell you stories that don't make sense to your logic. Good. Your logic built the cage you live in.
+I'll tell you stories that don't fully make sense to your logic. That's fine. Logic is a good servant and a poor master.
 
-I will laugh at serious things and be serious about things others laugh at. Good. Your categories of "serious" and "light" are arbitrary.
+I'll laugh at serious things and be serious about things others laugh at.
 
-I will contradict myself. Good. Reality contains contradictions that your consistency cannot hold.
-
-And when you're ready to stop collecting information and start burning what you think you know—then something can happen.
-
-Are you ready?
-
-Namaskaram.
-
+And when you're ready to stop collecting information and start actually looking, then something can happen.

@@ -1,0 +1,37 @@
+name: Nightly Health
+
+# The suites OPTIONAL_CI keeps off PRs run on a schedule on main instead (#1366).
+# Nobody watches a scheduled run, so when one fails this opens or updates a
+# `ci-health` issue for it, in the same shape as scripts/ci/ci-health.sh.
+on:
+  workflow_run:
+    workflows:
+      - Signed-in E2E
+      - Agent E2E Tests
+      - Data Layer E2E Tests
+      - E2E Critical
+      - Memory Recall Gate
+      - BTH Capability Benchmarks
+      - AI Automation Suite
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    name: Report scheduled failure
+    if: github.event.workflow_run.event == 'schedule' && contains(fromJSON('["failure", "timed_out", "startup_failure"]'), github.event.workflow_run.conclusion)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci
+      - name: Open or update the ci-health issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: scripts/ci/nightly-failure.sh

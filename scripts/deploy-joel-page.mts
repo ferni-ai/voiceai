@@ -1,8 +1,8 @@
 #!/usr/bin/env npx tsx
 /**
- * Deploy Joel Dickson Page to Production
+ * Deploy the Nate Holloway (joel-dickson) Page to Production
  *
- * Generates and deploys the Joel Dickson landing page
+ * Generates and deploys the Nate Holloway landing page
  * to ferni.ai/sites/{siteId}
  */
 
@@ -21,50 +21,39 @@ if (getApps().length === 0) {
   }
 }
 
-// Joel Dickson configuration
+// Nate Holloway (persona id: joel-dickson) configuration.
+// Nate is a fictional character: no real person's name, employer, branding or fonts.
 const joelConfig: AgentPageConfig = {
   agent: {
     id: 'joel-dickson',
-    name: 'Joel Dickson',
-    displayName: 'Joel',
-    initials: 'JD',
-    tagline: 'Global Head of Investment Strategy',
-    description: 'Meet Joel Dickson - Global Head of Enterprise Advice Methodology at Vanguard. Ask Joel about investment strategy, retirement planning, and financial wisdom.',
+    name: 'Nate Holloway',
+    displayName: 'Nate',
+    initials: 'NH',
+    tagline: 'Life Mentor',
+    description: 'Meet Nate Holloway - a fictional economist and life mentor with nearly 30 years at a low-cost fund company. Ask Nate about retirement planning, index investing, and what "enough" means for you.',
     quote: {
-      text: "The investor's chief problem — and even his worst enemy — is likely to be himself.",
-      context: 'A principle Joel has seen proven across 30 years of working with real investors',
+      text: 'Most of the time, the biggest risk to your money is the person looking at it in a panic.',
+      context: 'A principle Nate has seen proven across nearly 30 years of working with real investors',
     },
     credentials: [
-      { label: 'Experience', value: '30+ Years' },
-      { label: 'Education', value: 'Stanford PhD' },
-      { label: 'Role', value: 'Head of Strategy' },
+      { label: 'Experience', value: '30 Years' },
+      { label: 'Education', value: 'PhD, Economics' },
+      { label: 'Role', value: 'Life Mentor' },
     ],
     conversationStarters: [
       'How should I think about retirement planning?',
       "What's your view on index funds vs. active?",
       'How do I stay disciplined during market drops?',
-      'What would Jack Bogle say about my portfolio?',
+      'How do I know when I have enough?',
     ],
     ctaHeadline: 'Have a real conversation',
-    ctaDescription: 'Joel brings 30 years of Vanguard wisdom and a genuine love of helping people think clearly about money and life.',
+    ctaDescription: 'Nate brings nearly 30 years of low-cost investing wisdom and a genuine love of helping people think clearly about money and life.',
   },
   brand: {
-    primary: '#96151D', // Vanguard Red
-    secondary: '#B41E28',
-    fonts: {
-      display: {
-        family: 'Mark Pro',
-        urls: [
-          { url: 'https://constellation-static.web.vanguard.com/v1/fonts/dc1646ea-4041-4648-9540-0bd7cbd10dc1.woff2', weight: 400 },
-          { url: 'https://constellation-static.web.vanguard.com/v1/fonts/30274a56-042d-447a-aff9-6da0dae01586.woff2', weight: 500 },
-          { url: 'https://constellation-static.web.vanguard.com/v1/fonts/31b07b3f-1c2f-4320-90e5-bc52e0ed0b65.woff2', weight: 700 },
-        ],
-        fallback: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-      },
-    },
+    primary: '#2F5D50',
   },
   voice: {
-    voiceId: '3ebcd114-d280-4eed-a238-b9323a6b8e52', // Joel's Cartesia voice ID
+    voiceId: 'bbee10a8-4f08-4c5c-8282-e69299115055',
     provider: 'cartesia',
   },
   theme: 'zen',
@@ -72,17 +61,17 @@ const joelConfig: AgentPageConfig = {
     environment: process.env.NODE_ENV === 'development' ? 'development' : 'production',
   },
   seo: {
-    title: 'Meet Joel Dickson — Vanguard AI Advisor',
-    description: 'Meet Joel Dickson - Global Head of Enterprise Advice Methodology at Vanguard',
+    title: 'Meet Nate Holloway — AI Life Mentor',
+    description: 'Meet Nate Holloway - a fictional economist and life mentor powered by Ferni',
     twitterCard: 'summary_large_image',
   },
   footer: {
-    disclaimer: 'Joel is an AI advisor powered by Ferni. This is a technology demonstration and does not constitute financial advice.',
+    disclaimer: 'Nate is a fictional AI character powered by Ferni. This is a technology demonstration and does not constitute financial advice.',
   },
 };
 
 async function deploy() {
-  console.log('🚀 Deploying Joel Dickson Page\n');
+  console.log('🚀 Deploying Nate Holloway Page\n');
   console.log('=' .repeat(60));
 
   // Generate page
@@ -91,10 +80,11 @@ async function deploy() {
   console.log(`   Size: ${Math.round(result.size / 1024)} KB`);
 
   // The subdomain-based doc is what Cloud Run's serveStaticSite() resolves first.
-  // The original deploy created doc 'site_1767458603826_o2t4b8' with subdomain: 'meet-joel'.
-  // We MUST update that doc, not create a new one with a different ID.
+  // The original deploy created doc 'site_1767458603826_o2t4b8' for this persona's page.
+  // We MUST update that doc, not create a new one with a different ID. Its subdomain moves to
+  // 'meet-nate' now that the character is fictional; the old direct-ID doc must be deleted separately.
   const subdomainDocId = 'site_1767458603826_o2t4b8';
-  const siteId = 'meet-joel';
+  const siteId = 'meet-nate';
   const url = `https://ferni.ai/sites/${siteId}`;
 
   // Check if we can deploy to Firestore
@@ -105,7 +95,7 @@ async function deploy() {
     const siteData = {
       userId: 'system',
       agentId: 'joel-dickson',
-      agentName: 'Joel Dickson',
+      agentName: 'Nate Holloway',
       url,
       subdomain: siteId,
       tier: 'premium',

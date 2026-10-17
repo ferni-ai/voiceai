@@ -286,25 +286,6 @@ permalink: /preview/personalization/
     box-shadow: 0 4px 20px rgba(0,0,0,0.2);
   }
 
-  /* Social Proof - Adaptive */
-  .adaptive-proof {
-    padding: var(--space-16) var(--space-6);
-    text-align: center;
-  }
-
-  .adaptive-proof__stat {
-    font-family: var(--font-display);
-    font-size: var(--text-4xl);
-    font-weight: 700;
-    color: var(--color-ferni);
-    margin-bottom: var(--space-2);
-  }
-
-  .adaptive-proof__label {
-    color: var(--color-text-secondary);
-    font-size: var(--text-lg);
-  }
-
   /* Preview Labels */
   .preview-label {
     position: fixed;
@@ -437,11 +418,6 @@ permalink: /preview/personalization/
       </a>
     </div>
   </section>
-
-  <section class="adaptive-proof">
-    <div class="adaptive-proof__stat" id="proofStat">2,847</div>
-    <div class="adaptive-proof__label" id="proofLabel">people like you started this week</div>
-  </section>
 </div>
 
 <!-- Simulation Control Panel -->
@@ -479,7 +455,6 @@ permalink: /preview/personalization/
       personaWhy: "You've shown interest in emotional clarity",
       personaDescription: "Ferni is your thoughtful companion for life's deeper questions. When you need someone who truly listens—not just responds—Ferni creates space for insight to emerge.",
       personaQuote: '"What would it feel like to trust yourself fully on this decision?"',
-      proof: { stat: '2,847', label: 'people like you started this week' },
       adaptation: 'Watching your behavior to personalize the page...',
       mode: 'default'
     },
@@ -494,7 +469,6 @@ permalink: /preview/personalization/
       personaWhy: "Your browsing suggests analytical thinking",
       personaDescription: "Peter helps you see patterns you can't see yourself. Using data from your calendar, habits, and goals, he surfaces insights that drive better decisions.",
       personaQuote: '"The data shows you spend 34% of your week in reactive mode. Let\'s fix that."',
-      proof: { stat: '892', label: 'executives optimized their week this month' },
       adaptation: 'Detected: Professional browsing pattern. Adapting to analytical frame.',
       mode: 'professional'
     },
@@ -509,7 +483,6 @@ permalink: /preview/personalization/
       personaWhy: "We noticed you might need support",
       personaDescription: "When stress builds up, Ferni helps you slow down and breathe. Not to solve everything at once, but to find one small step forward.",
       personaQuote: '"Take a breath. Nothing needs to be figured out in the next five minutes."',
-      proof: { stat: '156', label: 'people found calm today' },
       adaptation: 'Detected: Signs of stress (late night, fast scrolling). Adapting to supportive tone.',
       mode: 'calm'
     },
@@ -524,7 +497,6 @@ permalink: /preview/personalization/
       personaWhy: "You're exploring—we respect that",
       personaDescription: "Nayan offers the long view. When you're curious about meaning, purpose, and the bigger picture of your life, he's the guide who helps you zoom out.",
       personaQuote: '"The question isn\'t what you want to do—it\'s who you want to become."',
-      proof: { stat: '423', label: 'seekers found clarity this week' },
       adaptation: 'Detected: Exploratory behavior (multiple pages, longer reads). Showing wisdom content.',
       mode: 'default'
     },
@@ -539,7 +511,6 @@ permalink: /preview/personalization/
       personaWhy: "Based on your last session focus",
       personaDescription: "Maya helped you design a 10-minute morning ritual last time. Today, let's check in on how it's going and make adjustments.",
       personaQuote: '"Small wins compound. How did the morning go this week?"',
-      proof: { stat: '78%', label: 'of returning users report lasting habit changes' },
       adaptation: 'Recognized: Returning visitor. Loading your personalized experience.',
       mode: 'energy'
     }
@@ -559,8 +530,6 @@ permalink: /preview/personalization/
   const personaDescription = document.getElementById('personaDescription');
   const personaQuote = document.getElementById('personaQuote');
   const personaCta = document.getElementById('personaCta');
-  const proofStat = document.getElementById('proofStat');
-  const proofLabel = document.getElementById('proofLabel');
   const adaptationText = document.getElementById('adaptationText');
   const controlBtns = document.querySelectorAll('.control-btn');
 
@@ -591,10 +560,6 @@ permalink: /preview/personalization/
     personaQuote.textContent = profile.personaQuote;
     personaCta.textContent = `Meet ${persona.name}`;
     personaCta.href = `https://app.ferni.ai?persona=${profile.persona}`;
-
-    // Update proof
-    proofStat.textContent = profile.proof.stat;
-    proofLabel.textContent = profile.proof.label;
 
     // Update adaptation indicator
     adaptationText.textContent = profile.adaptation;

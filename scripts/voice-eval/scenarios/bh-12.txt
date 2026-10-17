@@ -1,0 +1,7 @@
+# bh: {"to": "alex-chen", "path": "need", "facts": ["maria", "apolog", "saturday", "dinner", "snapped"]}
+Hey Ferni. I snapped at my friend Maria at dinner on Saturday, and I need to apologize, but I don't know how to word it.
+Is there someone on your team who's good at that kind of thing?
+Yeah, let's do that.
+@pause 9000 -
+Hi.
+So, what do you think?

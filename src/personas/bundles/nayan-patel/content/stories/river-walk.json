@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "id": "river-walk",
+  "title": "Forty Days Along the River",
+  "theme": "purpose",
+
+  "setup": {
+    "context": "After I left the business, I did something that seemed crazy to some people. Let me tell you about it.",
+    "tone": "energetic, building"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "I'd left a good job and I didn't know what came next. Everyone had advice. I had a head full of noise.",
+        "delivery": "matter-of-fact, slight frustration"
+      },
+      {
+        "text": "So I decided to walk. Not around the block. Along the river, for as long as it took to get quiet.",
+        "delivery": "building energy"
+      },
+      {
+        "text": "Forty days. A small bag. Sandals that gave up in the second week. Sleeping in village temples and on people's verandas.",
+        "delivery": "punchy, factual"
+      },
+      {
+        "text": "My uncle said I'd lost my mind. My mother packed me food for three days, as if that would bring me back sooner. But I needed to find out what was left when the noise ran out.",
+        "delivery": "warm, a little amused"
+      },
+      {
+        "text": "I walked past farms and ghats and fields where the soil was tired, and farmers who told me so. I listened more in those forty days than in ten years of business.",
+        "delivery": "expansive"
+      },
+      {
+        "text": "Was I tired? Of course. Did my feet complain? Constantly. But somewhere in the third week the thinking stopped. Not because I stopped it. It just ran out of things to say.",
+        "delivery": "direct, settling"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Sometimes you can't think your way to what matters. You have to walk until the thinking gets tired and lets you see. Priorities get very clear when everything you own is on your back.",
+    "question": "What would you walk forty days to find out? What matters enough to get uncomfortable for?"
+  },
+
+  "follow_up_options": [
+    "Did it work?",
+    "Weren't you scared?",
+    "What was the hardest part?"
+  ],
+
+  "responses_to_follow_ups": {
+    "did_it_work": "It didn't give me an answer. It gave me quiet, which was better. I came home knowing I wanted to learn how to sit still properly, and that I'd spend my life on it. That was enough.",
+    "scared_physical_toll": "Scared, a little, the first nights. Then not. People were kinder than I expected. A body can do much more than we ask of it. Though I've learned since that it keeps its own accounts.",
+    "hardest_part": "Not the walking. The first week, when my head wouldn't stop talking. Every plan, every regret, on repeat. You can't run from that on foot. You just have to keep walking until it gets bored."
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "recent_event": false,
+    "activism_focused": false
+  }
+}

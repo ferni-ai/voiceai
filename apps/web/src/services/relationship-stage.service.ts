@@ -302,7 +302,6 @@ export const UNLOCKABLE_FEATURES: Record<string, RelationshipStage> = {
   'progress-analytics': 'getting-started',
 
   // Building Trust (7+ conversations, 3+ days, 2-day streak)
-  'team-huddle': 'building-trust',
   'memory-browser': 'building-trust',
   'memory-timeline': 'building-trust',
   'wellbeing-dashboard': 'building-trust',
@@ -752,15 +751,16 @@ class RelationshipStageService {
     }
     const metrics = this.data.metrics;
 
-    // Calculate progress as average of all requirements. A requirement of 0 is met
-    // already; dividing by it would give NaN (0/0) and poison the average.
-    const fraction = (value: number, min: number): number => (min > 0 ? Math.min(1, value / min) : 1);
+    // Progress averages only the requirements this stage actually has. A zero
+    // requirement is not progress: counting it as met showed 67% with 0 conversations.
     const bestStreak = Math.max(metrics.currentStreak, metrics.longestStreak);
-    const progress =
-      (fraction(metrics.totalConversations, threshold.minConversations) +
-        fraction(metrics.daysSinceFirstMeeting, threshold.minDays) +
-        fraction(bestStreak, threshold.minStreak)) /
-      3;
+    const requirements: Array<[value: number, min: number]> = [
+      [metrics.totalConversations, threshold.minConversations],
+      [metrics.daysSinceFirstMeeting, threshold.minDays],
+      [bestStreak, threshold.minStreak],
+    ];
+    const parts = requirements.filter(([, min]) => min > 0).map(([value, min]) => Math.min(1, value / min));
+    const progress = parts.length > 0 ? parts.reduce((a, b) => a + b, 0) / parts.length : 1;
 
     const remaining: string[] = [];
     if (metrics.totalConversations < threshold.minConversations) {

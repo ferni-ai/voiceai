@@ -1,8 +1,8 @@
 /**
- * Joel Dickson Insights - Data Fetchers
+ * Nate Holloway (joel-dickson) Insights - Data Fetchers
  *
  * Fetches user data from financial store, productivity store, and profile
- * for Joel's life-mentorship context. Graceful degradation when data is missing.
+ * for Nate's life-mentorship context. Graceful degradation when data is missing.
  *
  * @module intelligence/context-builders/personas/joel-dickson-insights/data-fetchers
  */
@@ -17,7 +17,7 @@ import type {
   JoelInsightData,
 } from './types.js';
 
-const log = createLogger({ module: 'joel:data-fetchers' });
+const log = createLogger({ module: 'joel-dickson-insights:data-fetchers' });
 
 // ============================================================================
 // FINANCIAL DATA
@@ -66,7 +66,7 @@ export async function fetchFinancialData(userId: string): Promise<JoelFinancialD
       savingsGoalsCount: goals.length,
     };
   } catch (e) {
-    log.debug({ error: String(e), userId }, 'Failed to fetch financial data for Joel');
+    log.debug({ error: String(e), userId }, 'Failed to fetch financial data for Nate');
     return defaultData;
   }
 }
@@ -107,7 +107,7 @@ export async function fetchCareerData(userId: string): Promise<JoelCareerData> {
       stressSignals: false,
     };
   } catch (e) {
-    log.debug({ error: String(e), userId }, 'Failed to fetch career data for Joel');
+    log.debug({ error: String(e), userId }, 'Failed to fetch career data for Nate');
     return defaultData;
   }
 }

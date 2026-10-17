@@ -98,7 +98,7 @@ async function callLlmForEvaluation(prompt: string, model: string): Promise<stri
   // Try to load .env if not already loaded
   try {
     const { config } = await import('dotenv');
-    config();
+    config({ quiet: true });
   } catch {
     // dotenv not available, continue with process.env
   }

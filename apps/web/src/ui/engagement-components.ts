@@ -330,7 +330,7 @@ export const SHARED_STYLES = `
   .ferni-modal {
     position: fixed;
     inset: 0;
-    z-index: var(--z-modal, 1400);
+    z-index: var(--z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -379,8 +379,8 @@ export const SHARED_STYLES = `
     opacity: 1;
   }
 
-  /* Modal Header */
-  .ferni-modal__header {
+  /* Modal Header (base Modal in components/base/modal.ts styles its own) */
+  .ferni-modal__header:not(.ferni-modal-wrapper *) {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -424,7 +424,7 @@ export const SHARED_STYLES = `
   .ferni-menu {
     position: fixed;
     inset: 0;
-    z-index: var(--z-overlay, 1300);
+    z-index: var(--z-overlay);
     pointer-events: none;
     visibility: hidden;
   }
@@ -471,7 +471,7 @@ export const SHARED_STYLES = `
   /* ========================================
      RESPONSIVE - Modal/Menu adjustments
      ======================================== */
-  @media (max-width: clamp(336px, 90vw, 480px)) {
+  @media (max-width: 480px) {
     .ferni-modal {
       /* Respect safe areas on notched devices */
       padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
@@ -508,7 +508,7 @@ export const SHARED_STYLES = `
   
   /* iOS Safari specific fixes */
   @supports (-webkit-touch-callout: none) {
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .ferni-modal__card {
         max-height: -webkit-fill-available;
       }
@@ -560,7 +560,7 @@ export const SHARED_STYLES = `
      ------------------------------------- */
   .engagement-panel-base {
     position: fixed;
-    z-index: var(--z-overlay, 1300);
+    z-index: var(--z-overlay);
     background: var(--color-background-elevated);
     border: 1px solid var(--color-border-subtle);
     box-shadow: var(--shadow-xl);
@@ -573,8 +573,8 @@ export const SHARED_STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--ma-silence, 34px);
-    height: var(--ma-silence, 34px);
+    width: var(--space-11, 44px);
+    height: var(--space-11, 44px);
     padding: 0;
     background: var(--color-background-secondary);
     border: 1px solid var(--color-border-subtle);

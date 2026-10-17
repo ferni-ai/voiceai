@@ -1,0 +1,6 @@
+# bh: {"to": "alex-chen", "path": "ask", "facts": ["linda", "raise", "email", "two years", "onboarding", "boss"]}
+Hey Ferni. I need to email my boss, Linda, to ask for a raise. I've been there two years and I took on the whole onboarding project.
+I keep starting the email and deleting it. Can I talk to Alex?
+@pause 9000 -
+Hi Alex.
+So, what do you think?

@@ -13,6 +13,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { outreachService } from '../services/outreach.service.js';
 import { showNotification } from '../services/push-notifications.service.js';
 import { createLogger } from '../utils/logger.js';
@@ -20,7 +21,11 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { haptics } from '../utils/haptics.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { ferniMoments } from './ferni-moments.ui.js';
+import * as placement from './milestone-placement.js';
 import { soundUI } from './sound.ui.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { showToast } from './overlay/toast-region.js';
+import { getCategoryIcon } from './ferni-milestone-icons.js';
 
 const log = createLogger('FerniMilestones');
 
@@ -43,10 +48,6 @@ export type MilestoneType =
   | 'full-circle'
   | 'found-your-person'
   | 'team-player'
-  | 'deep-dive'
-  | 'quick-checkin'
-  | 'night-talk'
-  | 'early-riser'
   | 'hundred-conversations'
   | 'explorer'
   | 'secret-keeper'
@@ -63,11 +64,8 @@ export type MilestoneType =
   | 'jordan-planner'
   | 'nayan-sage'
   // Time & seasons
-  | 'weekend-warrior'
-  | 'midnight-friend'
   | 'three-month'
   | 'six-month'
-  | 'marathon-talk'
   | 'fifty-talks';
 
 interface Milestone {
@@ -105,12 +103,6 @@ interface MilestoneProgress {
 
   // Conversation tracking
   totalConversations: number;
-  longestConversationMinutes: number;
-  shortMeaningfulChats: number;
-  lateNightChats: number;
-  earlyMorningChats: number;
-  weekendChats: number;
-  midnightChats: number;
 
   // Discovery tracking
   easterEggsFound: Set<string>;
@@ -228,38 +220,6 @@ const MILESTONES: Milestone[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   // CONVERSATION DEPTH
   // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: 'deep-dive',
-    category: 'conversation',
-    name: 'ferniMilestones.deepDive.name',
-    message: 'ferniMilestones.deepDive.message',
-    subtitle: 'ferniMilestones.deepDive.subtitle',
-    celebrated: false,
-  },
-  {
-    id: 'quick-checkin',
-    category: 'conversation',
-    name: 'ferniMilestones.quickCheckin.name',
-    message: 'ferniMilestones.quickCheckin.message',
-    subtitle: 'ferniMilestones.quickCheckin.subtitle',
-    celebrated: false,
-  },
-  {
-    id: 'night-talk',
-    category: 'conversation',
-    name: 'ferniMilestones.nightTalk.name',
-    message: 'ferniMilestones.nightTalk.message',
-    subtitle: 'ferniMilestones.nightTalk.subtitle',
-    celebrated: false,
-  },
-  {
-    id: 'early-riser',
-    category: 'conversation',
-    name: 'ferniMilestones.earlyRiser.name',
-    message: 'ferniMilestones.earlyRiser.message',
-    subtitle: 'ferniMilestones.earlyRiser.subtitle',
-    celebrated: false,
-  },
   {
     id: 'hundred-conversations',
     category: 'conversation',
@@ -413,26 +373,6 @@ const MILESTONES: Milestone[] = [
   // TIME & SEASONS - Better than human: we remember every moment
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: 'weekend-warrior',
-    category: 'conversation',
-    name: 'ferniMilestones.weekendWarrior.name',
-    message: 'ferniMilestones.weekendWarrior.message',
-    subtitle: 'ferniMilestones.weekendWarrior.subtitle',
-    celebrated: false,
-    progress: 0,
-    target: 5,
-  },
-  {
-    id: 'midnight-friend',
-    category: 'conversation',
-    name: 'ferniMilestones.midnightFriend.name',
-    message: 'ferniMilestones.midnightFriend.message',
-    subtitle: 'ferniMilestones.midnightFriend.subtitle',
-    celebrated: false,
-    progress: 0,
-    target: 5,
-  },
-  {
     id: 'three-month',
     category: 'relationship',
     name: 'ferniMilestones.threeMonth.name',
@@ -451,14 +391,6 @@ const MILESTONES: Milestone[] = [
     celebrated: false,
     progress: 0,
     target: 180,
-  },
-  {
-    id: 'marathon-talk',
-    category: 'conversation',
-    name: 'ferniMilestones.marathonTalk.name',
-    message: 'ferniMilestones.marathonTalk.message',
-    subtitle: 'ferniMilestones.marathonTalk.subtitle',
-    celebrated: false,
   },
   {
     id: 'fifty-talks',
@@ -485,12 +417,6 @@ let progress: MilestoneProgress = {
   personaConversations: {},
   naturalHandoffs: 0,
   totalConversations: 0,
-  longestConversationMinutes: 0,
-  shortMeaningfulChats: 0,
-  lateNightChats: 0,
-  earlyMorningChats: 0,
-  weekendChats: 0,
-  midnightChats: 0,
   easterEggsFound: new Set(),
   themesUsed: new Set(),
   thankYouCount: 0,
@@ -537,6 +463,7 @@ export function initFerniMilestones(): void {
 function setupEventListeners(): void {
   // Track conversation starts
   window.addEventListener('ferni:connection-state', ((e: CustomEvent) => {
+    placement.noteConnectionState(e.detail?.state);
     if (e.detail?.state === 'connected') {
       trackConversationStart();
     }
@@ -593,8 +520,6 @@ function setupEventListeners(): void {
 function trackConversationStart(): void {
   const now = new Date();
   const today = now.toISOString().split('T')[0] ?? '';
-  const hour = now.getHours();
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
 
   // First conversation ever? - This is special!
   if (!progress.firstConversation) {
@@ -609,29 +534,8 @@ function trackConversationStart(): void {
     updateStreaks();
   }
 
-  // Time-based tracking
-  if (hour >= 22 || hour < 4) {
-    progress.lateNightChats++;
-    checkAndCelebrate('night-talk');
-  }
-
-  // Midnight friend (midnight to 4am specifically)
-  if (hour >= 0 && hour < 4) {
-    progress.midnightChats++;
-    updateMilestoneProgress('midnight-friend', progress.midnightChats);
-  }
-
-  if (hour >= 5 && hour < 7) {
-    progress.earlyMorningChats++;
-    checkAndCelebrate('early-riser');
-  }
-
-  // Weekend warrior (Saturday or Sunday)
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    progress.weekendChats++;
-    updateMilestoneProgress('weekend-warrior', progress.weekendChats);
-  }
-
+  // No milestones for when or how long someone talks: Ferni doesn't comment on
+  // the hour, the weekday or the length of a call.
   progress.totalConversations++;
 
   // Check conversation count milestones
@@ -651,30 +555,7 @@ function trackConversationStart(): void {
   saveState();
 }
 
-function trackConversationEnd(durationMinutes: number): void {
-  // Track longest conversation
-  if (durationMinutes > progress.longestConversationMinutes) {
-    progress.longestConversationMinutes = durationMinutes;
-  }
-
-  // Deep dive (10+ minutes)
-  if (durationMinutes >= 10) {
-    checkAndCelebrate('deep-dive');
-  }
-
-  // Marathon talk (60+ minutes) - Better than human: we have all the time you need
-  if (durationMinutes >= 60) {
-    checkAndCelebrate('marathon-talk');
-  }
-
-  // Quick check-in (1-3 minutes, meaningful)
-  if (durationMinutes >= 1 && durationMinutes <= 3) {
-    progress.shortMeaningfulChats++;
-    if (progress.shortMeaningfulChats >= 5) {
-      checkAndCelebrate('quick-checkin');
-    }
-  }
-
+function trackConversationEnd(_durationMinutes: number): void {
   // Consistent check-ins
   updateMilestoneProgress('consistent', progress.totalConversations);
 
@@ -706,9 +587,8 @@ function updateStreaks(): void {
   progress.currentStreak = streak;
   progress.longestStreak = Math.max(progress.longestStreak, streak);
 
-  // Check streak achievements
-  if (streak >= 7) checkAndCelebrate('streak-7');
-  if (streak >= 30) checkAndCelebrate('streak-30');
+  if (!isNoStreaksOn() && streak >= 7) checkAndCelebrate('streak-7'); // off under VITE_NO_STREAKS
+  if (!isNoStreaksOn() && streak >= 30) checkAndCelebrate('streak-30');
 
   // Check total days - tracking every milestone of our relationship
   const totalDays = progress.conversationDays.length;
@@ -883,7 +763,6 @@ function sendMilestoneOutreach(milestone: Milestone): void {
     'streak-30',
     'hundred-conversations',
     'fifty-talks',
-    'marathon-talk',
   ];
 
   if (!emailMilestones.includes(milestone.id)) return;
@@ -923,7 +802,6 @@ function sendMilestoneNotification(milestone: Milestone): void {
     'full-circle',
     'hundred-conversations',
     'fifty-talks',
-    'marathon-talk',
   ];
 
   if (!notifyMilestones.includes(milestone.id)) return;
@@ -946,13 +824,10 @@ function sendMilestoneNotification(milestone: Milestone): void {
 function processQueue(): void {
   if (isCelebrating || celebrationQueue.length === 0) return;
 
-  // Don't interrupt active conversations
-  const isConnected = document.body.classList.contains('connected');
-  const isSpeaking = document.body.classList.contains('speaking');
-
-  if (isConnected && isSpeaking) {
-    // Wait and try again
-    trackedTimeout(processQueue, 3000);
+  // Don't land on the call's opening or while Ferni speaks: wait and try again
+  const holdMs = placement.celebrationHoldMs();
+  if (holdMs > 0) {
+    trackedTimeout(processQueue, holdMs);
     return;
   }
 
@@ -971,8 +846,21 @@ function processQueue(): void {
 // ============================================================================
 
 async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const inToastRegion = isOverlayHostEnabled();
+  if (inToastRegion) {
+    // Shown (and announced) under Reduce Motion too; only the flourishes below are skipped.
+    const message = t(milestone.message);
+    const subtitle = milestone.subtitle ? t(milestone.subtitle) : '';
+    showToast(
+      subtitle
+        ? { kind: 'achievement', title: message, message: subtitle }
+        : { kind: 'achievement', message }
+    );
+  }
+
   // Check reduced motion
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (reducedMotion) {
     return;
   }
 
@@ -984,7 +872,6 @@ async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
     'hundred-conversations',
     'full-circle',
     'secret-keeper',
-    'marathon-talk',
   ].includes(milestone.id);
 
   // Play appropriate sound
@@ -1004,9 +891,11 @@ async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
   // Avatar reaction based on category
   triggerAvatarReaction(milestone.category);
 
-  // Create the celebration display
+  if (inToastRegion) return;
+
+  // Create the celebration display, above the call controls (never over them)
   const display = createCelebrationDisplay(milestone);
-  document.body.appendChild(display);
+  placement.placeMilestoneCard(display);
 
   // Animate in
   await animateCelebrationIn(display);
@@ -1051,15 +940,8 @@ function triggerMilestoneExpression(milestone: Milestone, isBig: boolean): void 
     'nayan-sage': 'thinking',
 
     // Conversation milestones
-    'deep-dive': 'thinking',
-    'quick-checkin': 'nod',
-    'night-talk': 'moonlight',
-    'early-riser': 'coffee',
     'hundred-conversations': 'trophy',
     'fifty-talks': 'warmGlow',
-    'weekend-warrior': 'cozy',
-    'midnight-friend': 'moonlight',
-    'marathon-talk': 'celebration',
 
     // Discovery milestones
     explorer: 'sparkle',
@@ -1118,31 +1000,6 @@ function createCelebrationDisplay(milestone: Milestone): HTMLElement {
   injectMilestoneStyles();
 
   return display;
-}
-
-function getCategoryIcon(category: string): string {
-  const icons: Record<string, string> = {
-    relationship: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-    </svg>`,
-    team: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>`,
-    conversation: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>`,
-    discovery: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>`,
-    sweet: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>
-    </svg>`,
-  };
-
-  return icons[category] ?? icons.relationship ?? '';
 }
 
 function triggerAvatarReaction(category: string): void {
@@ -1234,9 +1091,12 @@ function injectMilestoneStyles(): void {
     .ferni-milestone {
       position: fixed;
       bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: var(--z-notification, 9000);
+      /* Centred with margins, not a transform: the animation sets transform */
+      left: 0;
+      right: 0;
+      width: min(340px, calc(100vw - 2 * var(--space-4, 16px)));
+      margin-inline: auto;
+      z-index: var(--z-notification);
       pointer-events: none;
     }
 
@@ -1274,9 +1134,7 @@ function injectMilestoneStyles(): void {
       padding: var(--space-4, 16px) var(--space-6, 24px);
       background: var(--color-background-elevated, #faf8f5);
       border-radius: var(--radius-2xl, 20px);
-      box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.12),
-        0 2px 8px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
       max-width: min(340px, 100%);
     }
 
@@ -1330,12 +1188,12 @@ function injectMilestoneStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .ferni-milestone {
         bottom: 80px;
         left: var(--space-4, 16px);
         right: var(--space-4, 16px);
-        transform: none;
+        width: auto;
       }
 
       .ferni-milestone__content {
@@ -1474,12 +1332,6 @@ export function resetMilestones(): void {
     personaConversations: {},
     naturalHandoffs: 0,
     totalConversations: 0,
-    longestConversationMinutes: 0,
-    shortMeaningfulChats: 0,
-    lateNightChats: 0,
-    earlyMorningChats: 0,
-    weekendChats: 0,
-    midnightChats: 0,
     easterEggsFound: new Set(),
     themesUsed: new Set(),
     thankYouCount: 0,

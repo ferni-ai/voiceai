@@ -189,6 +189,63 @@ export async function loadCallCheckIns(
 }
 
 /**
+ * A plan the caller named on their way out ("dinner with my sister"), as a
+ * commitment, so the next call's check-in can ask how it went (HAPPY_EXITS,
+ * agents/personas/happy-exits.ts). Stored one short of MAX_FOLLOW_UPS, so the
+ * one check-in that asks about it retires it, and with its follow-up date past
+ * STALE_AFTER_MS, so the between-call push never nags about it. Null when the
+ * check-in would skip it anyway (too short to name).
+ */
+export function goodbyePlanDoc(
+  userId: string,
+  plan: string,
+  now: number
+): Record<string, unknown> | null {
+  const statement = `off to ${plan.trim()}`;
+  const doc = {
+    userId,
+    statement,
+    summary: statement,
+    text: statement,
+    type: 'intention',
+    source: 'goodbye_plan',
+    emotionalWeight: 0.3,
+    status: 'active',
+    createdAt: now,
+    lastMentioned: now,
+    // Past the stale cutoff (askableOnCall is > STALE_AFTER_MS), so never due for a push.
+    followUpAfter: now + STALE_AFTER_MS + 1,
+    followUpCount: MAX_FOLLOW_UPS - 1,
+  };
+  return toOpenCommitment('new', doc) ? doc : null;
+}
+
+export type PlanWriter = (userId: string, doc: Record<string, unknown>) => Promise<void>;
+
+const firestorePlanWriter: PlanWriter = async (userId, doc) => {
+  await commitments(userId)?.add(doc);
+};
+
+/** Keeps a goodbye plan for the next call's check-in. Never throws. */
+export async function rememberGoodbyePlan(
+  userId: string,
+  plan: string,
+  write: PlanWriter = firestorePlanWriter,
+  now: number = Date.now()
+): Promise<boolean> {
+  const doc = goodbyePlanDoc(userId, plan, now);
+  if (!doc) return false;
+  try {
+    await write(userId, doc);
+    log.info({ userId }, 'Goodbye plan kept for the next call');
+    return true;
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Goodbye plan not kept');
+    return false;
+  }
+}
+
+/**
  * One load per caller per call, shared by the greeting and the first recall
  * note (both start within a second of each other). Entries expire so a later
  * call on the same process loads afresh.

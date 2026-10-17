@@ -30,6 +30,7 @@ import {
 } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 
 // ============================================================================
 // LUCIDE ICONS (SVG) - Per Brand Guidelines Section 7
@@ -160,7 +161,7 @@ function injectStyles(): void {
     .relationship-celebration {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 9999);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -475,7 +476,7 @@ function injectStyles(): void {
     .journey-panel {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 9999);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1075,7 +1076,7 @@ function injectStyles(): void {
     /* ========================================================================
        RESPONSIVE - Mobile-first adjustments
        ======================================================================== */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .celebration-card,
       .journey-card {
         margin: var(--space-4, 16px);
@@ -1311,13 +1312,12 @@ function createProgressPanel(): void {
             <p class="stat-value days-together">0</p>
             <p class="stat-label">${t('stages.daysTogether')}</p>
           </div>
-          <div class="stat-card">
+          ${isNoStreaksOn() ? '' : `<div class="stat-card">
             <div class="stat-icon">${ICONS.trophy}</div>
             <p class="stat-value current-streak">0</p>
             <p class="stat-label">${t('stages.dayStreak')}</p>
-          </div>
+          </div>`}
         </div>
-        
         <!-- Memories -->
         <section class="memories-section">
           <div class="memories-header">
@@ -1327,7 +1327,7 @@ function createProgressPanel(): void {
           <div class="memories-filters">
             <button aria-label="${t('stages.all')}" class="memory-filter memory-filter--active" data-filter="all">${t('stages.all')}</button>
             <button aria-label="${t('stages.celebrationMilestones')}" class="memory-filter" data-filter="stage-up">${t('stages.celebrationMilestones')}</button>
-            <button aria-label="${t('stages.streaks')}" class="memory-filter" data-filter="streak-milestone">${t('stages.streaks')}</button>
+            ${isNoStreaksOn() ? '' : `<button aria-label="${t('stages.streaks')}" class="memory-filter" data-filter="streak-milestone">${t('stages.streaks')}</button>`}
             <button aria-label="${t('stages.celebrationInsights')}" class="memory-filter" data-filter="insight">${t('stages.celebrationInsights')}</button>
           </div>
           <div class="memories-list"></div>

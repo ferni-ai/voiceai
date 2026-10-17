@@ -122,6 +122,14 @@ export class ProtectionEngine {
   }
 
   /**
+   * IDs of the user's memories that are protected now (expired ones excluded)
+   */
+  async getProtectedMemoryIds(userId: string): Promise<Set<string>> {
+    const protections = await this.getProtections(userId);
+    return new Set(protections.filter((p) => !this.isExpired(p)).map((p) => p.memoryId));
+  }
+
+  /**
    * Get protection level for a memory (null if not protected)
    */
   async getProtectionLevel(userId: string, memoryId: string): Promise<ProtectionLevel | null> {

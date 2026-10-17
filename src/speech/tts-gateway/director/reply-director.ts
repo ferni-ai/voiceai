@@ -18,13 +18,17 @@
 import { readCallerProsody, type CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
+import { flagOn } from '../../../config/env-flag.js';
 import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
+import { voiceAttuneOn, type Delivery } from './attune.js';
 import { DirectorEngine } from './engine.js';
+import { ferniSpeedNudge } from './ferni-energy.js';
 import { leverModes, speechDirectorMode } from './gate.js';
+import { personaDelivery, teamVoicesOn } from './persona-delivery.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
 import type { DirectorMode, LeverModes, SpeechPlan, TurnContext } from './types.js';
@@ -74,9 +78,17 @@ export interface PlanSummary {
   callerPitchRelSt?: number;
   callerEnergyRelDb?: number;
   callerRateRel?: number;
+  callerWordsPerSec?: number;
   callerPitchSlope?: number;
   callerVoicedMs?: number;
   speed: number;
+  /** VOICE_ATTUNE: the caller state answered and the reply's loudness (attune.ts). */
+  attune?: string;
+  volume?: number;
+  /** The caller layer's pace under the resting layers (attune.ts layerDelivery), when it differs. */
+  relativeSpeed?: number;
+  /** Pace/loudness after each layer, in order, when a resting layer applies: "persona 0.85/0.92 > ...". */
+  layers?: string;
   /** Stage 2 tempo planned for this turn (a voice that ignores <speed>). */
   tempo?: number;
   /** Prosody tags were taken off every push (the voice ignores them). */
@@ -93,6 +105,15 @@ export interface PlanSummary {
   latencyUs: number;
   cancelled: boolean;
   failed: boolean;
+}
+
+/** A sound the director added to the reply, for whoever keeps track of them. */
+export interface DirectorNonverbal {
+  kind: 'laugh' | 'breath' | 'sigh';
+  source: 'director';
+  personaId?: string;
+  /** Where in the reply, for a laugh. */
+  where?: 'before' | 'after';
 }
 
 export interface DirectSpeechOptions {
@@ -117,6 +138,12 @@ export interface DirectSpeechOptions {
   env?: Record<string, string | undefined>;
   sessions?: DirectorSessions;
   onPlan?: (summary: PlanSummary, plan: SpeechPlan) => void;
+  /**
+   * A laugh or opening breath/sigh the director really added (live levers only).
+   * It reaches Cartesia but never the chat history, so the session layer hands in
+   * where to record it (tts-wrapper.ts passes the quirk log, QUIRK_AWARENESS).
+   */
+  onNonverbal?: (added: DirectorNonverbal) => void;
   /** Defaults to setTimeout; tests inject a manual timer. */
   holdTimer?: HoldTimer;
 }
@@ -173,12 +200,16 @@ class DirectedReply implements ReplyStream {
         opts.sessionId && modes.prosody !== 'off'
           ? readCallerProsody(opts.sessionId, wordCount(opts.turnContext?.userRequest))
           : undefined,
+      ferniNudge: ferniSpeedNudge(opts.sessionId),
+      attune: attuneContext(opts),
+      persona: teamVoicesOn(opts.env) ? personaDelivery(opts.personaId) : undefined,
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,
         turn: opts.turnContext?.turnNumber,
         userEmotion: opts.turnContext?.userEmotion?.primary,
         comfortLevel: opts.comfortLevel ?? opts.turnContext?.comfortLevel,
+        teamVoices: flagOn('TEAM_VOICES', opts.env),
       },
     });
   }
@@ -353,6 +384,9 @@ class DirectedReply implements ReplyStream {
       prosodyEmotion: engine.prosody.emotion,
       ...callerReading(engine.callerProsody),
       speed: engine.speed,
+      attune: engine.attunement?.state,
+      volume: engine.attunement?.volume,
+      ...layered(engine.delivery),
       tempo: engine.tempo,
       tagsStripped: this.stripProsody,
       opening: engine.opening.opening?.kind,
@@ -367,13 +401,38 @@ class DirectedReply implements ReplyStream {
     };
     if (opts.sessionId && engine.stats.pushesIn > 0) {
       (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
-        emotion: engine.emotion.emotion,
-        speed: engine.speed,
+        // The Director's own picks: the persona's tone and rest are reapplied each reply.
+        emotion: engine.directorEmotion ?? engine.emotion.emotion,
+        // The caller layer only: the resting layers are reapplied each reply, never compounded.
+        speed: engine.delivery?.relativeSpeed ?? engine.speed,
+        volume: engine.attunement?.volume,
         ...engine.nonverbalCarry(),
       });
     }
+    this.recordNonverbals(cancelled);
     if (opts.onPlan) opts.onPlan(summary, engine.plan);
     else log.info(summary, 'Speech director plan');
+  }
+
+  /** The laugh and opening breath/sigh added (live levers), to opts.onNonverbal: never in the history. */
+  private recordNonverbals(cancelled: boolean): void {
+    const { engine, opts } = this;
+    const report = opts.onNonverbal;
+    if (!report || this.mode !== 'live') return;
+    const at = { source: 'director' as const, personaId: opts.personaId };
+    const added: DirectorNonverbal[] = [];
+    const opening = engine.opening.opening;
+    if (opening && this.modes.nonverbal === 'live') added.push({ ...at, kind: opening.kind });
+    const laugh = engine.laughter;
+    if (laugh && this.modes.laughter === 'live' && !(cancelled && laugh === 'after')) {
+      added.push({ ...at, kind: 'laugh', where: laugh });
+    }
+    try {
+      for (const n of added) report(n);
+    } catch (err) {
+      // The caller's bookkeeping must never cost the reply its plan.
+      log.warn({ err: String(err), sessionId: opts.sessionId }, 'onNonverbal failed');
+    }
   }
 }
 
@@ -401,6 +460,13 @@ export function directSpeech(
   return { reply: directed, textStream };
 }
 
+/** The caller's mood for attunement, when VOICE_ATTUNE is on (attune.ts). */
+function attuneContext(opts: DirectSpeechOptions): { userEmotion?: string } | undefined {
+  return voiceAttuneOn(opts.env)
+    ? { userEmotion: opts.turnContext?.userEmotion?.primary }
+    : undefined;
+}
+
 /** Words in what the caller said, for their speaking rate. */
 function wordCount(text: string | undefined): number | undefined {
   const n = text?.trim().split(/\s+/).filter(Boolean).length ?? 0;
@@ -409,6 +475,13 @@ function wordCount(text: string | undefined): number | undefined {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/** The layered delivery for the plan log, only when a resting layer (persona, late night) applies. */
+function layered(d: Delivery | undefined): Partial<PlanSummary> {
+  if (!d || d.trace.length < 2) return {};
+  const layers = d.trace.map((t) => `${t.layer} ${t.speed}/${t.volume}`).join(' > ');
+  return { layers, relativeSpeed: d.relativeSpeed === d.speed ? undefined : d.relativeSpeed };
+}
+
 /** The raw reading behind the prosody decision, rounded for the plan log. */
 function callerReading(p: CallerProsody | undefined): Partial<PlanSummary> {
   if (!p) return {};
@@ -416,6 +489,7 @@ function callerReading(p: CallerProsody | undefined): Partial<PlanSummary> {
     callerPitchRelSt: round1(p.pitchRelSt),
     callerEnergyRelDb: round1(p.energyRelDb),
     callerRateRel: Math.round(p.rateRel * 100) / 100,
+    callerWordsPerSec: p.wordsPerSec === undefined ? undefined : round1(p.wordsPerSec),
     callerPitchSlope: round1(p.pitchSlopeStPerS),
     callerVoicedMs: p.voicedMs,
   };

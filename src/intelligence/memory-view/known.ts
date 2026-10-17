@@ -13,17 +13,19 @@
  * Off unless MEMORY_VIEW=on; pondering also needs MEMORY_VIEW_PONDERING=on,
  * since it is the private side of a feature still being tuned.
  *
+ * The Firestore side lives with the route (api/routes/known-store.ts), so this
+ * module reads no store itself.
+ *
  * @module intelligence/memory-view/known
  */
 import { createHash } from 'node:crypto';
-import type { Firestore } from '@google-cloud/firestore';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { firestoreForgetStore, isForgotten } from '../../memory/recall/forget.js';
-import { listRemembered, type RememberedFact } from '../../memory/recall/memory-control.js';
-import { MAX_OPEN_FACTS } from '../world-model/temporal/store.js';
+import { isForgotten } from '../../memory/index.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import type { TemporalFact } from '../world-model/temporal/types.js';
 import type { MindModel, Pattern } from '../theory-of-mind/types.js';
-import type { Pondering } from '../pondering/pondering.js';
+import type { Pondering } from '../pondering/index.js';
+
+const log = createLogger({ module: 'MemoryView' });
 
 type Env = Record<string, string | undefined>;
 
@@ -75,9 +77,20 @@ export interface KnownView {
 /** The pondering document; dismissed: calls the caller put an item from down (actions.ts). */
 export type StoredPondering = Pondering & { generatedAt?: string; dismissed?: string[] };
 
+/** A fact recall uses, as memory/recall/memory-control.ts lists it. */
+export interface KnownFact {
+  id: string;
+  /** Who or what the fact is about; "you" for the caller. */
+  subject: string;
+  detail: string;
+  learnedAt?: string;
+  earlier?: boolean;
+  fromYou?: boolean;
+}
+
 /** The slices of the caller's record the view reads; each only ever for one uid. */
 export interface KnownStore {
-  facts: (userId: string) => Promise<RememberedFact[]>;
+  facts: (userId: string) => Promise<KnownFact[]>;
   worldFacts: (userId: string) => Promise<TemporalFact[]>;
   mindModel: (userId: string) => Promise<MindModel | null>;
   pondering: (userId: string) => Promise<StoredPondering | null>;
@@ -100,7 +113,7 @@ export const hashId = (text: string): string =>
 
 const SAFE_ID = /^[A-Za-z0-9_-]{1,200}$/;
 
-function fromFact(f: RememberedFact): KnownItem {
+function fromFact(f: KnownFact): KnownItem {
   return {
     id: f.id,
     kind: 'fact',
@@ -159,7 +172,7 @@ function fileLife(view: KnownView, item: KnownItem): void {
 }
 
 export interface KnownParts {
-  facts: RememberedFact[];
+  facts: KnownFact[];
   world: TemporalFact[];
   mind: MindModel | null;
   pondering: StoredPondering | null;
@@ -228,10 +241,18 @@ export function buildKnownView(parts: KnownParts, now: Date, withPondering: bool
   return view;
 }
 
+/** A source that can't be read leaves its section empty, and says so in the log. */
+function unread<T>(source: string, empty: T): (error: unknown) => T {
+  return (error) => {
+    log.warn({ source, error: String(error) }, 'Memory view source not read');
+    return empty;
+  };
+}
+
 /** The caller's view. Each source is read independently; one failing leaves its section empty. */
 export async function loadKnownView(
   userId: string,
-  store: KnownStore = firestoreKnownStore,
+  store: KnownStore,
   { now = new Date(), env = process.env }: { now?: Date; env?: Env } = {}
 ): Promise<KnownView> {
   const withPondering = isMemoryViewPonderingOn(env);
@@ -239,73 +260,20 @@ export async function loadKnownView(
   const [facts, forgotten, world, mind, pondering] = await Promise.all([
     store.facts(userId),
     store.forgotten(userId),
-    store.worldFacts(userId).catch(() => []),
-    store.mindModel(userId).catch(() => null),
-    withPondering ? store.pondering(userId).catch(() => null) : Promise.resolve(null),
+    store.worldFacts(userId).catch(unread('world facts', [])),
+    store.mindModel(userId).catch(unread('mind model', null)),
+    withPondering
+      ? store.pondering(userId).catch(unread('pondering', null))
+      : Promise.resolve(null),
   ]);
   const bases = [...(pondering?.followUps ?? []), ...(pondering?.thinkingOf ?? [])].map(
     (i) => i.basis
   );
   const summaryDays = bases.length
-    ? await store.summaryDays(userId, [...new Set(bases)]).catch(() => new Map<string, string>())
+    ? await store
+        .summaryDays(userId, [...new Set(bases)])
+        .catch(unread('summary days', new Map<string, string>()))
     : new Map<string, string>();
   const parts = { facts, world, mind, pondering, summaryDays, forgotten };
   return buildKnownView(parts, now, withPondering);
 }
-
-function asMindModel(data: unknown): MindModel | null {
-  const d = data as Partial<MindModel> | undefined;
-  if (!d || d.version !== 1 || !Array.isArray(d.patterns) || !Array.isArray(d.sensitivities)) {
-    return null;
-  }
-  return d as MindModel;
-}
-
-function dayOf(ts: unknown): string | undefined {
-  if (typeof ts === 'string' && !Number.isNaN(Date.parse(ts))) {
-    return new Date(ts).toISOString().slice(0, 10);
-  }
-  const toDate = (ts as { toDate?: () => Date } | null)?.toDate;
-  return typeof toDate === 'function' ? toDate.call(ts).toISOString().slice(0, 10) : undefined;
-}
-
-export function createFirestoreKnownStore(
-  getDb: () => Firestore | null = getFirestoreDb
-): KnownStore {
-  const user = (userId: string): FirebaseFirestore.DocumentReference | null =>
-    getDb()?.collection('bogle_users').doc(userId) ?? null;
-  return {
-    facts: async (userId) => listRemembered(userId),
-    forgotten: async (userId) => firestoreForgetStore.topics(userId),
-    async worldFacts(userId) {
-      const snap = await user(userId)
-        ?.collection('world_facts')
-        .where('validTo', '==', null)
-        .limit(MAX_OPEN_FACTS)
-        .get();
-      return snap ? snap.docs.map((d) => ({ ...(d.data() as TemporalFact), id: d.id })) : [];
-    },
-    async mindModel(userId) {
-      const doc = await user(userId)?.collection('mind_model').doc('current').get();
-      return doc?.exists ? asMindModel(doc.data()) : null;
-    },
-    async pondering(userId) {
-      const doc = await user(userId)?.collection('predictive_intelligence').doc('pondering').get();
-      return doc?.exists ? ((doc.data() as StoredPondering | undefined) ?? null) : null;
-    },
-    async summaryDays(userId, ids) {
-      const root = user(userId);
-      const db = getDb();
-      const days = new Map<string, string>();
-      if (!root || !db) return days;
-      const docs = await db.getAll(...ids.map((id) => root.collection('summaries').doc(id)));
-      for (const d of docs) {
-        const day = d.exists ? dayOf(d.get('timestamp')) : undefined;
-        if (day) days.set(d.id, day);
-      }
-      return days;
-    },
-  };
-}
-
-export const firestoreKnownStore: KnownStore = createFirestoreKnownStore();

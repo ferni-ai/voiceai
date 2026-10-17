@@ -16,7 +16,9 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { createCircuitBreaker } from './circuit-breaker.js';
 import { recordLatency, recordSuccessRate } from './anomaly-detection.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { CARTESIA_API_VERSION } from '../../config/voice-ids.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
+import { useVertexAI } from '../../config/vertex-flag.js';
 
 const log = createLogger({ module: 'health-monitors' });
 
@@ -143,12 +145,11 @@ async function checkCartesia(): Promise<HealthCheckResult> {
     try {
       // Cartesia voices endpoint as health check
       // Note: Cartesia API returns 405 for HEAD requests, so we use GET
-      // As of 2024, Cartesia requires a version header in YYYY-MM-DD format
       const response = await fetch('https://api.cartesia.ai/voices', {
         method: 'GET',
         headers: {
           'X-API-Key': apiKey,
-          'Cartesia-Version': '2024-06-10', // Required version header
+          'Cartesia-Version': CARTESIA_API_VERSION,
         },
         signal: controller.signal,
       });
@@ -175,9 +176,7 @@ async function checkCartesia(): Promise<HealthCheckResult> {
   }
 }
 
-/**
- * Gemini AI health check - verify API connectivity
- */
+/** Gemini AI health check - verify API connectivity */
 async function checkGemini(): Promise<HealthCheckResult> {
   const start = Date.now();
 
@@ -185,7 +184,7 @@ async function checkGemini(): Promise<HealthCheckResult> {
   // reported Gemini down (every check, with Slack alerts) while every reply
   // was being served. Ask the client the agent actually uses for the model's
   // metadata instead: no tokens spent.
-  if (process.env.USE_VERTEX_AI === 'true') {
+  if (useVertexAI()) {
     try {
       const { getGeminiClient, GEMINI_MODEL } = await import('../../config/gemini-config.js');
       const client = (await getGeminiClient()) as {

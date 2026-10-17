@@ -32,7 +32,7 @@ _ferni() {
         'agent:Deploy voice agent'
         'brand:Deploy brand assets'
         'landing:Deploy landing page'
-        'joel:Deploy Joel variant'
+        'joel:Deploy the joel-dickson (Nate Holloway) page'
         'evolution:Deploy evolution service'
         'all:Deploy everything'
     )

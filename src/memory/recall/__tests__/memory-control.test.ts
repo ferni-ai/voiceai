@@ -8,7 +8,10 @@ import {
 } from '../memory-control.js';
 import { loadRecallSnapshot } from '../session-recall.js';
 
-function memoryStore(rows: Record<string, Record<string, unknown>>) {
+function memoryStore(
+  rows: Record<string, Record<string, unknown>>,
+  forgotten: string[] | null = []
+) {
   const state = { rows: structuredClone(rows) };
   const store: MemoryControlStore = {
     facts: async () =>
@@ -18,12 +21,20 @@ function memoryStore(rows: Record<string, Record<string, unknown>>) {
           String(b.data.extractedAt ?? '').localeCompare(String(a.data.extractedAt ?? ''))
         ),
     fact: async (_u, id) => state.rows[id] ?? null,
-    update: async (_u, id, patch) => {
-      state.rows[id] = { ...state.rows[id], ...patch };
+    copies: async (_u, d) =>
+      Object.entries(state.rows)
+        .filter(([, r]) => r.entityName === d.entityName && r.key === d.key && r.value === d.value)
+        .map(([id, data]) => ({ id, data })),
+    forgotten: async () => forgotten,
+    forget: async (_u, id, _d, at) => {
+      state.rows[id] = { ...state.rows[id], forgottenAt: at };
     },
-    create: async (_u, id, data) => {
-      if (state.rows[id]) throw new Error('exists');
-      state.rows[id] = data;
+    correct: async (_u, wrongIds, right, at) => {
+      if (state.rows[right.id]) throw new Error('exists');
+      state.rows[right.id] = right.data;
+      for (const wrongId of wrongIds) {
+        state.rows[wrongId] = { ...state.rows[wrongId], forgottenAt: at, correctedBy: right.id };
+      }
     },
   };
   return { store, state };
@@ -83,6 +94,98 @@ describe('listRemembered', () => {
   });
 });
 
+describe('listRemembered, with the filters recall applies', () => {
+  const copy = { ...rows.dog, confidence: 0.6, extractedAt: '2026-10-01T18:00:00Z' };
+
+  it('leaves out a fact about a topic they asked to forget', async () => {
+    const { store } = memoryStore(rows, ['biscuit']);
+    expect((await listRemembered('u', store)).map((f) => f.id)).toEqual(['job']);
+  });
+
+  it('shows nothing when the forgotten topics cannot be read, as recall does', async () => {
+    const { store } = memoryStore(rows, null);
+    expect(await listRemembered('u', store)).toEqual([]);
+  });
+
+  it('shows a fact extracted twice once, the most confident copy', async () => {
+    const { store } = memoryStore({ ...rows, dogCopy: copy });
+    expect((await listRemembered('u', store)).map((f) => f.id)).toEqual(['dog', 'job']);
+  });
+
+  it('forgets every copy of a fact, so none comes back on the next call', async () => {
+    const { store, state } = memoryStore({ ...rows, dogCopy: copy });
+    expect(await forgetRemembered('u', 'dog', store)).toBe(true);
+    expect(state.rows.dogCopy!.forgottenAt).toBeDefined();
+    expect((await listRemembered('u', store)).map((f) => f.id)).toEqual(['job']);
+  });
+});
+
+describe('correcting a fact stored more than once', () => {
+  const copy = { ...rows.dog, confidence: 0.6, extractedAt: '2026-10-01T18:00:00Z' };
+
+  it('recall never serves the old value next to the new one', async () => {
+    const { store, state } = memoryStore({ ...rows, dogCopy: copy });
+    await correctRemembered('u', 'dogCopy', 'labradoodle', store); // even through the hidden copy
+    const snapshot = await loadRecallSnapshot(
+      { facts: async () => Object.values(state.rows), summaries: async () => [] },
+      'u'
+    );
+    const values = snapshot.facts.map((f) => f.value);
+    expect(values).toContain('labradoodle');
+    expect(values).not.toContain('golden retriever');
+  });
+
+  it('refuses a fact the list hides for a forgotten topic', async () => {
+    const { store } = memoryStore(rows, ['biscuit']);
+    expect(await correctRemembered('u', 'dog', 'labradoodle', store)).toEqual({
+      kind: 'not-found',
+    });
+  });
+
+  it('reads word confidences the way recall does ("Low" is unsure)', async () => {
+    const { store } = memoryStore({ shy: { ...rows.dog, confidence: ' Low ' } });
+    expect(await listRemembered('u', store)).toEqual([]);
+  });
+});
+
+describe('copies recall counts as the same fact (case apart, a missing key)', () => {
+  const recallValues = async (state: { rows: Record<string, Record<string, unknown>> }) =>
+    (
+      await loadRecallSnapshot(
+        { facts: async () => Object.values(state.rows), summaries: async () => [] },
+        'u'
+      )
+    ).facts.map((f) => f.value);
+  const older = { ...rows.dog, extractedAt: '2026-09-01T18:00:00Z' };
+
+  it('forgets a copy that differs only in case', async () => {
+    const { store, state } = memoryStore({
+      ...rows,
+      legacy: { ...older, value: 'Golden Retriever' },
+    });
+    await forgetRemembered('u', 'dog', store);
+    expect((await recallValues(state)).map((v) => v.toLowerCase())).not.toContain(
+      'golden retriever'
+    );
+  });
+
+  it('corrects a copy whose name differs only in case', async () => {
+    const { store, state } = memoryStore({ ...rows, legacy: { ...older, entityName: 'biscuit' } });
+    await correctRemembered('u', 'dog', 'labradoodle', store);
+    expect(await recallValues(state)).not.toContain('golden retriever');
+  });
+
+  it('forgets a copy with no key next to one with an empty key', async () => {
+    const vegan = { entityName: 'User', value: 'vegan', confidence: 0.9 };
+    const { store, state } = memoryStore({
+      a: { ...vegan, key: '', extractedAt: '2026-10-02T00:00:00Z' },
+      b: { ...vegan, extractedAt: '2026-10-01T00:00:00Z' },
+    });
+    await forgetRemembered('u', 'a', store);
+    expect(await recallValues(state)).not.toContain('vegan');
+  });
+});
+
 describe('forgetRemembered', () => {
   it('marks the fact forgotten, so recall leaves it out from the next call', async () => {
     const { store, state } = memoryStore(rows);
@@ -136,6 +239,8 @@ describe('correctRemembered', () => {
       (await correctRemembered('u', 'dog', 'x'.repeat(MAX_CORRECTION_CHARS + 1), store)).kind
     ).toBe('invalid');
     expect(await correctRemembered('u', 'gone', 'new', store)).toEqual({ kind: 'not-found' });
+    // a fact the list hides (recall doesn't use it) can't be corrected either
+    expect(await correctRemembered('u', 'unsure', 'new', store)).toEqual({ kind: 'not-found' });
     expect(state.rows.dog!.forgottenAt).toBeUndefined();
   });
 });
