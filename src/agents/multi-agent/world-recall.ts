@@ -26,7 +26,6 @@ import {
   touchesAvoided,
   withoutWorldDuplicates,
 } from '../../intelligence/world-model/recall-note.js';
-import { buildWorldModelSnapshot } from '../../intelligence/world-model/snapshot.js';
 import type { WorldModelSnapshot } from '../../intelligence/world-model/types.js';
 import { formatPeople, peopleOf, recallPeopleEnabled } from '../../memory/recall/people.js';
 import { formatPets, petsOf } from '../../memory/recall/pets.js';
@@ -66,9 +65,18 @@ export interface WorldRecall {
   screen(note: string): string | null;
 }
 
+/**
+ * The real snapshot, imported on first use: its sources load the entity store
+ * and Firestore, which recall (and the eval CLIs that import it) must not pull
+ * in while WORLD_MODEL_SNAPSHOT is off.
+ */
+const loadSnapshot: LoadWorldModel = async (userId) => {
+  const { buildWorldModelSnapshot } = await import('../../intelligence/world-model/snapshot.js');
+  return buildWorldModelSnapshot({ userId });
+};
+
 export function createWorldRecall(userId: string, deps: WorldRecallDeps = {}): WorldRecall {
-  const { load = (id: string) => buildWorldModelSnapshot({ userId: id }), env = process.env } =
-    deps;
+  const { load = loadSnapshot, env = process.env } = deps;
   const on = isWorldModelSnapshotOn(env);
   let pending = on;
   let world: { snapshot: WorldModelSnapshot; note: string; counts: object } | null = null;
