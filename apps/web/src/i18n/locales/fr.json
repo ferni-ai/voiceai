@@ -10920,7 +10920,9 @@
     "helper": "Ton guide personnel",
     "connectToTalk": "Discuter",
     "endTalk": "Raccrocher",
-    "connectingCancel": "Connexion en cours. Touchez pour annuler"
+    "connectingCancel": "Connexion en cours. Touchez pour annuler",
+    "connectingNow": "Connexion…",
+    "tapToCancel": "Touchez pour annuler"
   },
   "analyticsDashboard": {
     "title": "Ton parcours",
