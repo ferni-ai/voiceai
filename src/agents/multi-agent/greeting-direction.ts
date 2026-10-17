@@ -23,6 +23,11 @@ import {
   callerRecognitionFor,
   unrecognisedCallerGreeting,
 } from '../voice-agent-entry/caller-recognition.js';
+import {
+  anniversaryDirection,
+  anniversaryFor,
+  lineSaysAnniversary,
+} from './friendship-anniversary.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
@@ -158,6 +163,8 @@ export interface CallerHistory {
   calls: number;
   daysSince?: number;
   lastTopic?: string;
+  /** Their first call (ISO), for the friendship anniversary. */
+  firstContact?: string;
 }
 
 const MAX_TOPIC_CHARS = 160;
@@ -167,6 +174,8 @@ export function callerHistory(
   profile: {
     totalConversations?: number;
     lastContact?: string | number | Date;
+    /** A Firestore Timestamp when read straight from the profile. */
+    firstContact?: string | number | Date | { toDate: () => Date };
     /** Only a last-call summary checked for who said what (caller-assertions.ts). */
     lastCallerSummary?: string;
   },
@@ -179,6 +188,9 @@ export function callerHistory(
     const ms = now.getTime() - new Date(profile.lastContact).getTime();
     if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
   }
+  const fc = profile.firstContact;
+  const first = fc && typeof fc === 'object' && 'toDate' in fc ? fc.toDate() : fc && new Date(fc);
+  if (first && Number.isFinite(first.getTime())) history.firstContact = first.toISOString();
   const topic = profile.lastCallerSummary?.trim();
   if (topic) history.lastTopic = topic.slice(0, MAX_TOPIC_CHARS);
   return history;
@@ -322,11 +334,12 @@ export async function directedGreeting(
   }
   const scripted = generateWarmGreeting(personaId, ctx);
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome] = await Promise.all([
+  const [openCheckIn, openWin, pondered, welcome, anniversary] = await Promise.all([
     checkInFor(userData?.userId),
     winFor(userData?.userId),
     ponderFor(userData?.userId, history),
     loadWelcomeBack(userData?.userId, personaId, history),
+    anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
   ]);
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
   const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
@@ -345,6 +358,7 @@ export async function directedGreeting(
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
     (back?.direction ?? '') +
+    (anniversary && !unknown ? anniversaryDirection(anniversary) : '') +
     (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
@@ -365,6 +379,8 @@ export async function directedGreeting(
     maxChars: 140,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
+  if (anniversary && !unknown && directed.source === 'actor' && lineSaysAnniversary(spoken))
+    anniversary.mark();
   // One follow-up per call opener (opener-claim.ts): having asked, the greeting
   // keeps the first recall note from asking about a thread too.
   const topic = checkIn ?? ask?.text;

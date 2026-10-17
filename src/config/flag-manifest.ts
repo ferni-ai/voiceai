@@ -176,6 +176,8 @@ export const FLAG_MANIFEST = {
   FIRST_TURN_DEFER_BACKGROUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
+  // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
+  FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: at call start, ask once about a date the caller told us (dates/recall.ts; needs DATES_THAT_MATTER)
   FRIEND_FOLLOWUPS: { default: 'off', owner: 'memory', kind: 'experiment' },
   FTIS_COLLECT_TRAINING_DATA: { default: 'off', owner: 'tools', kind: 'experiment' },
