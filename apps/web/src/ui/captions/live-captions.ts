@@ -57,8 +57,7 @@ export interface CaptionEntry {
 const HISTORY_LIMIT = 200; // utterances kept in the history
 const RENDERED = 3; // utterances rendered in the live region
 const MAX_LINES = 2; // the last line or two; the sheet keeps the rest
-// With the caller's line shown above Ferni's reply (Heard), the room decides, up to this many lines.
-const CALLER_MAX_LINES = 5;
+const CALLER_MAX_LINES = 5; // Heard: the caller's line above the reply; the room decides
 const IDLE_MS = 6000; // captions fade after this long without speech
 const BREATH_STEP_MS = 140; // Breath: delay between the words of one burst
 const BREATH_MAX_STEPS = 8; // later words share the last step, so a long burst lands quickly
@@ -208,7 +207,7 @@ class LiveCaptions {
   private breathTimer: ReturnType<typeof setTimeout> | null = null;
   /** Caller lines whose check has popped: a redraw must not pop it again. */
   private readonly popped = new WeakSet<CaptionEntry>();
-  /** Heard shows the caller line above Ferni's reply (one more line of room). */
+  /** Heard: the caller's line is shown above Ferni's reply. */
   private callerShown = false;
 
   constructor(
