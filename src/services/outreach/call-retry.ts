@@ -25,6 +25,7 @@ import {
   onBehalfDispatchFor,
   onBehalfRequestFromDispatch,
   parseOnBehalfDispatch,
+  dispatchSigningSecret,
   signOnBehalfDispatch,
   verifyOnBehalfDispatch,
   type OnBehalfDispatch,
@@ -206,7 +207,7 @@ export async function scheduleCallRetry(
   call: OnBehalfDispatch,
   deps: CallRetryDeps = {}
 ): Promise<Date | null> {
-  const secret = process.env.LIVEKIT_API_SECRET;
+  const secret = dispatchSigningSecret();
   const recipient = toE164(call.contact.phone);
   if (call.retryOf || !recipient || !secret) return null;
   if (await isCallOptedOut(recipient)) return null;
@@ -300,7 +301,7 @@ export async function placeCallRetry(
 ): Promise<{ success: boolean; error?: string }> {
   if (!isCallFollowthroughEnabled()) return { success: false, error: 'CALL_FOLLOWTHROUGH is off' };
   const raw = JSON.stringify(signedDispatch ?? null);
-  if (!verifyOnBehalfDispatch(raw, process.env.LIVEKIT_API_SECRET)) {
+  if (!verifyOnBehalfDispatch(raw, dispatchSigningSecret())) {
     return { success: false, error: 'Retry is not signed by the server' };
   }
   const call = parseOnBehalfDispatch(signedDispatch as Record<string, unknown>);

@@ -113,60 +113,64 @@ index 9920f2c7d37504a433f04c8b148c386dabb800db..e2672a788d3912ff777f8a39db65341d
    }
    return [
 diff --git a/dist/stt/stt.cjs b/dist/stt/stt.cjs
-index 3b81d824e15592f4cd4da74f4bf9619f90515785..63d4385cfab2a7c73d996accf72447e141872570 100644
+index fe8ef423d2c6c6198499deb358b1fea0a47639af..16cdd5aa3de8b78975ab4e9d2852519ffd7e3d0c 100644
 --- a/dist/stt/stt.cjs
 +++ b/dist/stt/stt.cjs
-@@ -177,6 +177,7 @@ class SpeechStream {
+@@ -181,6 +181,7 @@ class SpeechStream {
    async mainTask() {
      let lastStartTime = Date.now();
-     for (let i = 0; i < this._connOptions.maxRetry + 1; i++) {
+     while (this._numRetries <= this._connOptions.maxRetry) {
 +      const runStartedAt = Date.now(); // PATCHED (Ferni): STT_RETRY_RESET
        try {
          this._startTimeOffset += (Date.now() - lastStartTime) / 1e3;
          lastStartTime = Date.now();
-@@ -185,6 +186,12 @@ class SpeechStream {
+@@ -189,6 +190,14 @@ class SpeechStream {
          if (this.abortController.signal.aborted) {
            return;
          }
 +        // PATCHED (Ferni): a connection that stayed up 30 s was healthy, so its drop starts a
 +        // fresh retry count. Cartesia closes the socket every ~5 min; without this the 4th
-+        // routine reconnect ended the session (prod 2026-10-13, a 20-minute call).
++        // routine reconnect ended the session (prod 2026-10-13, a 20-minute call). 1.7.1
++        // (#2352) resets only on a final transcript, so a quiet caller still ran out;
++        // upstream covers that in 1.9.x (#2494).
 +        if (process.env.STT_RETRY_RESET !== "off" && Date.now() - runStartedAt >= 30000) {
-+          i = 0;
++          this._numRetries = 0;
 +        }
          if (error instanceof import_exceptions.APIError) {
-           const retryInterval = (0, import_types.intervalForRetry)(this._connOptions, i);
+           const retryInterval = (0, import_types.intervalForRetry)(this._connOptions, this._numRetries);
            if (this._connOptions.maxRetry === 0 || !error.retryable) {
 diff --git a/dist/stt/stt.js b/dist/stt/stt.js
-index 0ebb807b6f2a2536013b0728bf714b5fd3c7efc0..a0f68b2e2969c6ae1e616557bd1b441b1e864050 100644
+index 9cf5d04055c3b959db4a83f78cf4feea9f87700d..c4145120dc4ebb295fdec506f39255edcb31f054 100644
 --- a/dist/stt/stt.js
 +++ b/dist/stt/stt.js
-@@ -152,6 +152,7 @@ class SpeechStream {
+@@ -156,6 +156,7 @@ class SpeechStream {
    async mainTask() {
      let lastStartTime = Date.now();
-     for (let i = 0; i < this._connOptions.maxRetry + 1; i++) {
+     while (this._numRetries <= this._connOptions.maxRetry) {
 +      const runStartedAt = Date.now(); // PATCHED (Ferni): STT_RETRY_RESET
        try {
          this._startTimeOffset += (Date.now() - lastStartTime) / 1e3;
          lastStartTime = Date.now();
-@@ -160,6 +161,12 @@ class SpeechStream {
+@@ -164,6 +165,14 @@ class SpeechStream {
          if (this.abortController.signal.aborted) {
            return;
          }
 +        // PATCHED (Ferni): a connection that stayed up 30 s was healthy, so its drop starts a
 +        // fresh retry count. Cartesia closes the socket every ~5 min; without this the 4th
-+        // routine reconnect ended the session (prod 2026-10-13, a 20-minute call).
++        // routine reconnect ended the session (prod 2026-10-13, a 20-minute call). 1.7.1
++        // (#2352) resets only on a final transcript, so a quiet caller still ran out;
++        // upstream covers that in 1.9.x (#2494).
 +        if (process.env.STT_RETRY_RESET !== "off" && Date.now() - runStartedAt >= 30000) {
-+          i = 0;
++          this._numRetries = 0;
 +        }
          if (error instanceof APIError) {
-           const retryInterval = intervalForRetry(this._connOptions, i);
+           const retryInterval = intervalForRetry(this._connOptions, this._numRetries);
            if (this._connOptions.maxRetry === 0 || !error.retryable) {
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..9de448e827095c342cd82f214970f04ceae527a8 100644
+index a11af90ba69e7d61b6f5a7abd2e26f09cd21a81d..d65c6dc7d97cf8f1100d302d7ab628e5b8370b26 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
-@@ -116,6 +116,12 @@ async function raceWithAbort(p, signal) {
+@@ -117,6 +117,12 @@ async function raceWithAbort(p, signal) {
      import_throws.ThrowsPromise.fromPromise((0, import_utils.waitForAbort)(signal).then(() => void 0))
    ]);
  }
@@ -179,7 +183,7 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..9de448e827095c342cd82f214970f04c
  class AgentActivity {
    agent;
    agentSession;
-@@ -1193,6 +1199,12 @@ class AgentActivity {
+@@ -1428,6 +1434,12 @@ class AgentActivity {
          );
        }
      }
@@ -192,7 +196,7 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..9de448e827095c342cd82f214970f04c
      this.cancelSpeechPauseTask = this.cancelSpeechPause();
    }
    onTranscriptionTimeout(speechDuration, turnStart) {
-@@ -1216,13 +1228,22 @@ class AgentActivity {
+@@ -1451,13 +1463,22 @@ class AgentActivity {
      if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof import_llm2.LLM)) {
        return;
      }
@@ -216,8 +220,8 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..9de448e827095c342cd82f214970f04c
      this._preemptiveGenerationCount++;
      this.logger.info(
        {
-@@ -1383,6 +1404,40 @@ class AgentActivity {
-       );
+@@ -1645,6 +1666,40 @@ class AgentActivity {
+       }
        return true;
      }
 +    // PATCHED(ferni): "mm-hmm" over Ferni's reply paused it; the adaptive model
@@ -254,10 +258,10 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..9de448e827095c342cd82f214970f04c
 +      }, __holdMs);
 +      return false;
 +    }
-     if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_b = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _b.minWords) > 0) {
+     if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords) > 0) {
        const wordCount = (0, import_word.splitWords)(info.newTranscript, true).length;
-       if (wordCount < ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords)) {
-@@ -1840,7 +1895,15 @@ class AgentActivity {
+       if (wordCount < ((_d = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _d.minWords)) {
+@@ -2128,7 +2183,15 @@ class AgentActivity {
      let speechHandle;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -274,7 +278,7 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..9de448e827095c342cd82f214970f04c
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -3442,10 +3505,34 @@ class AgentActivity {
+@@ -3843,10 +3906,34 @@ class AgentActivity {
      if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
        this.updatePausedSpeech(speechHandle, 0);
        audioOutput.pause();
@@ -309,9 +313,9 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..9de448e827095c342cd82f214970f04c
    cancelFalseInterruptionTimer() {
      if (this.falseInterruptionTimer !== void 0) {
        clearTimeout(this.falseInterruptionTimer);
-@@ -3537,8 +3624,16 @@ class AgentActivity {
-         (error) => this.logger.warn({ error }, "failed to report end of agent speech on pause cancel")
-       );
+@@ -3936,8 +4023,16 @@ class AgentActivity {
+     if (!this.pausedSpeech) {
+       return;
      }
 +    let __ferniDropped = false;
      if (interrupt && !this.pausedSpeech.handle.interrupted && this.pausedSpeech.handle.allowInterruptions) {
@@ -326,7 +330,7 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..9de448e827095c342cd82f214970f04c
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -3547,7 +3642,7 @@ class AgentActivity {
+@@ -3946,7 +4041,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
@@ -336,10 +340,10 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..9de448e827095c342cd82f214970f04c
      }
    }
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index 431882ec37d768f8ba0b0e732d0e346b6757ac67..8f665a21823008a7db86ccd1a704a06b5d192fc9 100644
+index 193c62d0b59a365fc7f10279bad0846dc422e663..fb1fa50749aaddf990a9829d8c39494639ada077 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
-@@ -160,6 +160,12 @@ async function raceWithAbort(p, signal) {
+@@ -162,6 +162,12 @@ async function raceWithAbort(p, signal) {
      ThrowsPromise.fromPromise(waitForAbort(signal).then(() => void 0))
    ]);
  }
@@ -352,7 +356,7 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..8f665a21823008a7db86ccd1a704a06b
  class AgentActivity {
    agent;
    agentSession;
-@@ -1237,6 +1243,12 @@ class AgentActivity {
+@@ -1473,6 +1479,12 @@ class AgentActivity {
          );
        }
      }
@@ -365,7 +369,7 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..8f665a21823008a7db86ccd1a704a06b
      this.cancelSpeechPauseTask = this.cancelSpeechPause();
    }
    onTranscriptionTimeout(speechDuration, turnStart) {
-@@ -1260,13 +1272,22 @@ class AgentActivity {
+@@ -1496,13 +1508,22 @@ class AgentActivity {
      if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof LLM)) {
        return;
      }
@@ -389,8 +393,8 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..8f665a21823008a7db86ccd1a704a06b
      this._preemptiveGenerationCount++;
      this.logger.info(
        {
-@@ -1427,6 +1448,40 @@ class AgentActivity {
-       );
+@@ -1690,6 +1711,40 @@ class AgentActivity {
+       }
        return true;
      }
 +    // PATCHED(ferni): "mm-hmm" over Ferni's reply paused it; the adaptive model
@@ -427,10 +431,10 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..8f665a21823008a7db86ccd1a704a06b
 +      }, __holdMs);
 +      return false;
 +    }
-     if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_b = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _b.minWords) > 0) {
+     if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords) > 0) {
        const wordCount = splitWords(info.newTranscript, true).length;
-       if (wordCount < ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords)) {
-@@ -1884,7 +1939,15 @@ class AgentActivity {
+       if (wordCount < ((_d = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _d.minWords)) {
+@@ -2173,7 +2228,15 @@ class AgentActivity {
      let speechHandle;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -447,7 +451,7 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..8f665a21823008a7db86ccd1a704a06b
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -3486,10 +3549,34 @@ class AgentActivity {
+@@ -3888,10 +3951,34 @@ class AgentActivity {
      if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
        this.updatePausedSpeech(speechHandle, 0);
        audioOutput.pause();
@@ -482,9 +486,9 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..8f665a21823008a7db86ccd1a704a06b
    cancelFalseInterruptionTimer() {
      if (this.falseInterruptionTimer !== void 0) {
        clearTimeout(this.falseInterruptionTimer);
-@@ -3581,8 +3668,16 @@ class AgentActivity {
-         (error) => this.logger.warn({ error }, "failed to report end of agent speech on pause cancel")
-       );
+@@ -3981,8 +4068,16 @@ class AgentActivity {
+     if (!this.pausedSpeech) {
+       return;
      }
 +    let __ferniDropped = false;
      if (interrupt && !this.pausedSpeech.handle.interrupted && this.pausedSpeech.handle.allowInterruptions) {
@@ -499,7 +503,7 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..8f665a21823008a7db86ccd1a704a06b
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -3591,7 +3686,7 @@ class AgentActivity {
+@@ -3991,7 +4086,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
@@ -509,10 +513,10 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..8f665a21823008a7db86ccd1a704a06b
      }
    }
 diff --git a/dist/voice/audio_recognition.cjs b/dist/voice/audio_recognition.cjs
-index 065e62784d582981775ee263125ab23fc46bc088..98efd657db18b556960b3e0ef8a8a02b6c8832f8 100644
+index 3fa25192020ac222054e8cec01d44dce9efdd8fe..c80262070fe1a41a13b09dc7fe8e0e1b1d7b8796 100644
 --- a/dist/voice/audio_recognition.cjs
 +++ b/dist/voice/audio_recognition.cjs
-@@ -623,6 +623,10 @@ class AudioRecognition {
+@@ -693,6 +693,10 @@ class AudioRecognition {
        }
      }
      const eventsToEmit = emitFromIndex !== null && shouldFlush ? this.transcriptBuffer.slice(emitFromIndex) : [];
@@ -523,7 +527,7 @@ index 065e62784d582981775ee263125ab23fc46bc088..98efd657db18b556960b3e0ef8a8a02b
      const prevIgnoreUserTranscriptUntil = this.ignoreUserTranscriptUntil;
      const prevInputStartedAt = this.inputStartedAt;
      this.resetInterruptionDetection();
-@@ -664,6 +668,14 @@ class AudioRecognition {
+@@ -734,6 +738,14 @@ class AudioRecognition {
      if (!this.isInterruptionEnabled) {
        return false;
      }
@@ -539,10 +543,10 @@ index 065e62784d582981775ee263125ab23fc46bc088..98efd657db18b556960b3e0ef8a8a02b
        return true;
      }
 diff --git a/dist/voice/audio_recognition.js b/dist/voice/audio_recognition.js
-index ed1f31f0d7c2ac04225863afc5abbd76e482f025..ca1fdd3e2be7b6a46db49a9e36642503387e324b 100644
+index da6a7b6983c59fa557c8f64064a7c15a075e085c..a3112450f6e5ec644f32d34ce899a4eb3553e58d 100644
 --- a/dist/voice/audio_recognition.js
 +++ b/dist/voice/audio_recognition.js
-@@ -619,6 +619,10 @@ class AudioRecognition {
+@@ -688,6 +688,10 @@ class AudioRecognition {
        }
      }
      const eventsToEmit = emitFromIndex !== null && shouldFlush ? this.transcriptBuffer.slice(emitFromIndex) : [];
@@ -553,7 +557,7 @@ index ed1f31f0d7c2ac04225863afc5abbd76e482f025..ca1fdd3e2be7b6a46db49a9e36642503
      const prevIgnoreUserTranscriptUntil = this.ignoreUserTranscriptUntil;
      const prevInputStartedAt = this.inputStartedAt;
      this.resetInterruptionDetection();
-@@ -660,6 +664,14 @@ class AudioRecognition {
+@@ -729,6 +733,14 @@ class AudioRecognition {
      if (!this.isInterruptionEnabled) {
        return false;
      }
