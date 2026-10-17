@@ -178,6 +178,16 @@ export async function initWorldAwareness(
 
   // Teams and topics the caller saved ("add the Eagles to my teams"), when SAVED_INTERESTS=on
   const saved = await loadSavedInterests(userId);
+
+  // WORLD_NOW=on: nothing but the weather at the home the caller saved is
+  // read live (agents/shared/world-now.ts), so only that is fetched, and
+  // never for a location guessed from their IP address.
+  if (process.env.WORLD_NOW === 'on') {
+    log.info({ userId, hasHome: Boolean(saved.home) }, '🌍 World awareness: home weather only');
+    await warmWorldCache(userId, { location: saved.home }, { weatherOnly: true });
+    return;
+  }
+
   if (saved.topics.length > 0) interests.topics = saved.topics;
 
   // Get favorite teams if stored

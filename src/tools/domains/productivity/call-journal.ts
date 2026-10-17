@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { flagOn } from '../../../config/env-flag.js';
 import { getJournalService } from '../../../services/journal/index.js';
 import { sanitizePlainText } from '../../validation.js';
+import { OWN_NOTE_REFUSAL, refuseOwnNote } from '../../utils/own-note.js';
 import { getLogger, getSessionId } from '../../utils/tool-helpers.js';
 import type { createNotesTools } from './notes.js';
 
@@ -61,6 +62,7 @@ export async function saveCallJournalEntry(
   text: string,
   momentType: 'journal' | 'reflection' | 'gratitude'
 ): Promise<string> {
+  if (refuseOwnNote(text)) return OWN_NOTE_REFUSAL;
   const uid = callerUid(opts);
   if (!uid) return NO_CALLER;
   const content = sanitizePlainText(text, MAX_ENTRY_CHARS).trim();
