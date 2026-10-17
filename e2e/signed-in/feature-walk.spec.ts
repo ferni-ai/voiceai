@@ -96,18 +96,39 @@ test.describe('every settings feature', () => {
   }
 });
 
-// Hidden on purpose (apps/web/src/config/menu-visibility.ts, Seth 2026-10-17)
-const HIDDEN = ['ritual', 'knowledge-quiz', 'music-dashboard', 'vibe-controller', 'discover-agents',
-  'household-members', 'voice-id-settings', 'whats-growing'];
+// Seth, 2026-10-17: no relationship-stage locks. Everything is open from the first call.
+test.describe('a first-call user', () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, user);
+    await expectHome(page);
+  });
 
-test('the menu shows no hidden row', async ({ page }) => {
-  await signIn(page, user);
-  await expectHome(page);
-  await openMenu(page);
-  await expect(page.locator('.settings-menu [data-action="journal"]')).toBeVisible();
-  for (const action of HIDDEN) {
-    await expect(page.locator(`.settings-menu [data-action="${action}"]`), action).toHaveCount(0);
-  }
+  test('sees nothing locked and no stage bar, and History opens', async ({ page }) => {
+    const problems = watchProblems(page);
+    await openMenu(page);
+    await expect(page.locator('.settings-menu [data-locked], .settings-menu [aria-disabled="true"]')).toHaveCount(0);
+    await expect(page.locator('.settings-menu__stage-banner')).toHaveCount(0);
+
+    const before = await shownDialogs(page);
+    await page.locator('.settings-menu [data-action="history"]').click();
+    const panel = await newPanel(page, before, 'history');
+    const id = (await panel.getAttribute('data-e2e-dialog')) as string;
+    await page.keyboard.press('Escape');
+    await expect.poll(() => isGone(page, id), { message: 'history did not close on Escape', timeout: 5_000 }).toBe(true);
+    expect(problems.take(), 'history raised problems').toEqual([]);
+  });
+
+  // Hidden on purpose (apps/web/src/config/menu-visibility.ts, Seth 2026-10-17)
+  const HIDDEN = ['ritual', 'knowledge-quiz', 'music-dashboard', 'vibe-controller', 'discover-agents',
+    'household-members', 'voice-id-settings', 'whats-growing'];
+
+  test('the menu shows no hidden row', async ({ page }) => {
+    await openMenu(page);
+    await expect(page.locator('.settings-menu [data-action="journal"]')).toBeVisible();
+    for (const action of HIDDEN) {
+      await expect(page.locator(`.settings-menu [data-action="${action}"]`), action).toHaveCount(0);
+    }
+  });
 });
 
 test('home screen loads without errors', async ({ page }) => {

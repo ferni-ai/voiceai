@@ -15,6 +15,7 @@ import { AUDIO } from '../config/index.js';
 import { createLogger } from '../utils/logger.js';
 import { computeGatedRms } from './audio-rms.js';
 import { proceduralSounds, playProceduralSound, type ProceduralSoundEffect } from './procedural-sounds.service.js';
+import { soundGate, type Earcon } from './sound-director.js';
 
 export { computeGatedRms, RMS_GAIN, RMS_NOISE_GATE } from './audio-rms.js';
 
@@ -141,6 +142,7 @@ class AudioService {
    * Falls back to MP3 if procedural unavailable.
    */
   async playSound(effect: SoundEffect): Promise<void> {
+    if (!soundGate('effects', effect)) return;
     // Try procedural sound first (preferred)
     if (this.canPlayProcedurally(effect)) {
       try {
@@ -190,7 +192,8 @@ class AudioService {
     return Math.min(1.0, Math.max(0.0, baseVolume * multiplier));
   }
 
-  async playSoundAndWait(effect: SoundEffect): Promise<void> {
+  async playSoundAndWait(effect: SoundEffect, earcon?: Earcon): Promise<void> {
+    if (!soundGate('effects', effect, earcon)) return;
     // Try procedural sound first (preferred)
     if (this.canPlayProcedurally(effect)) {
       try {
@@ -286,7 +289,7 @@ class AudioService {
         this.currentHandoffSound = audio;
       }
 
-      await this.playSoundAndWait(effect);
+      await this.playSoundAndWait(effect, 'handoff'); // the moment is the earcon, any sound
 
       // Clear reference after sound completes
       this.currentHandoffSound = null;

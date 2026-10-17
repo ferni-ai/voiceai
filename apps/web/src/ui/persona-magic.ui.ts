@@ -15,6 +15,7 @@
  * - Competing visual effects
  */
 
+import { soundGate } from '../services/sound-director.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
@@ -153,6 +154,7 @@ export async function performMagicalHandoff(options: MagicalHandoffOptions): Pro
 // ============================================================================
 
 async function playHandoffSound(personaId: string): Promise<void> {
+  if (!soundGate('magic', `handoff-to-${personaId}`)) return;
   try {
     // Try persona-specific sound first, fall back to generic
     const paths = [

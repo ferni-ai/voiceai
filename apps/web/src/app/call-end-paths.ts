@@ -53,13 +53,13 @@ appState.subscribe('connection', (state) => {
 
 /** The agent's goodbye: the one end sound of an agent-ended call. */
 export function playGoodbyeSound(sound: 'goodbye' | 'phoneClick'): void {
-  soundUI.play(sound);
+  soundUI.play(sound, 'goodbye');
   goodbyeDone = true;
 }
 
 /** A hang-up sound (ceremony or disconnect): silent once the agent's goodbye has played the one end sound. */
 export function playEndSound(sound: 'goodbye' | 'hangup' | 'disconnect'): void {
-  if (!goodbyeDone) soundUI.play(sound);
+  if (!goodbyeDone) soundUI.play(sound, 'goodbye');
 }
 
 /** `conversation_end` arrived. With wrap-up on, a warm planned goodbye gets the goodbye ceremony. */

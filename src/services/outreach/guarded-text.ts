@@ -36,7 +36,7 @@ import {
   type TextKind,
 } from './checkin-replies.js';
 import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
-import { verifiedPhoneOf } from './user-reach.js';
+import { resolveVerifiedPhone } from './user-reach.js';
 import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
@@ -108,14 +108,10 @@ export async function resolveCheckinPhone(
   userDoc: Record<string, unknown> | undefined,
   deps: Pick<TextDeps, 'store' | 'authPhone'>
 ): Promise<string | undefined> {
-  let phone: string | undefined;
-  if (userId.startsWith('sponsored_')) phone = await deps.store.sponsoredPhone(userId);
-  else phone = verifiedPhoneOf(userId, userDoc);
-  // A phone: id that isn't E.164 is not a Firebase uid; don't look it up (and log it) as one.
-  if (!phone && !userId.startsWith('sponsored_') && !userId.startsWith('phone:')) {
-    phone = await deps.authPhone(userId);
-  }
-  return phone === undefined ? undefined : (toE164(phone) ?? undefined);
+  return resolveVerifiedPhone(userId, userDoc, {
+    sponsoredPhone: async (id) => deps.store.sponsoredPhone(id),
+    authPhone: deps.authPhone,
+  });
 }
 
 /** The member explicitly turned texts off, in outreach settings or by a STOP to the webhook. */
