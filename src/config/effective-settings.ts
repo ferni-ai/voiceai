@@ -18,7 +18,10 @@ export type Env = Readonly<Record<string, string | undefined>>;
 
 export interface EffectiveSettings {
   readonly commit: string;
-  /** Hash of the printed non-secret map (flags and printable names). Equal hashes mean equal settings. */
+  /**
+   * Hash of the printed values only (flags and printable names). A value shown as `<set>` is not
+   * in it, so equal hashes mean equal printed settings, not equal settings.
+   */
   readonly hash: string;
   readonly flags: Readonly<Record<string, string>>;
   readonly env: Readonly<Record<string, string>>;
