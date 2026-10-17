@@ -74,7 +74,8 @@ afterEach(() => {
 
 describe('a number the model saved is never texted or rung', () => {
   it('no verified phone: nothing is sent or scheduled, and it says so', async () => {
-    await run('saveContactInfo', { phone: STRANGER });
+    const saved = await run('saveContactInfo', { phone: STRANGER });
+    expect(saved).toContain('verified on your account'); // no promise to use the saved number
     setCallUserPort(port(undefined));
     const replies = [
       await run('sendMessageNow', { message: 'hi' }),

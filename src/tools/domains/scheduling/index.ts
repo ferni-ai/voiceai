@@ -34,13 +34,13 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
-// Import proactive outreach functions
 import {
   scheduleText,
   scheduleEmail,
   scheduleCall,
   textUser,
   setUserContactInfo,
+  SAVED_NOT_VERIFIED,
 } from '../proactive/outreach/index.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
@@ -500,7 +500,7 @@ Use when the user shares their phone or email:
         if (params.phone) saved.push('phone number');
         if (params.email) saved.push('email');
 
-        return `Got it! I saved your ${saved.join(' and ')}. Now I can send you texts, emails, or calls.`;
+        return `Saved your ${saved.join(' and ')}. ${SAVED_NOT_VERIFIED}`;
       },
     }),
 };

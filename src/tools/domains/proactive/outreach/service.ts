@@ -51,6 +51,9 @@ const verifiedEmail = async (userId: string): Promise<string | undefined> =>
   getCallUserPort()?.verifiedEmail?.(userId);
 export const NO_VERIFIED_PHONE = 'No verified phone number on this account';
 export const NO_VERIFIED_EMAIL = 'No verified email address on this account';
+/** What saveContactInfo says: a saved number or address is never used to reach them. */
+export const SAVED_NOT_VERIFIED =
+  'I only text, call or email the phone number and email verified on your account, so if this is new, verify it in Settings first.';
 
 /** A Twilio call in the persona's voice (Cartesia TTS, Twilio's own voice as fallback). */
 async function makePhoneCall(
@@ -654,7 +657,7 @@ Example: "Email me at john@example.com" → save their email`,
       if (params.phone) saved.push('phone number');
       if (params.email) saved.push('email');
 
-      return `Got it! I've saved your ${saved.join(' and ')}. Now I can text, email, or call you for reminders and follow-ups.`;
+      return `Saved your ${saved.join(' and ')}. ${SAVED_NOT_VERIFIED}`;
     },
   },
 

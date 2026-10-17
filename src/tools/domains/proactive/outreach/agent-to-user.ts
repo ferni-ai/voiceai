@@ -29,6 +29,7 @@ import {
 import { recordReminderPromise } from '../../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { sendEmail } from '../../../../services/communication-service.js';
 import { getCallUserPort } from './call-user-port.js';
+import { SAVED_NOT_VERIFIED } from './service.js';
 import {
   getPersonaDisplayName,
   getCanonicalPersonaId,
@@ -182,8 +183,7 @@ follow-ups, and celebrations. Only ask for this when they want to receive messag
 
         await setUserContactInfo(ctx.userId, contactInfo);
 
-        const method = preferredMethod || (phone ? 'text' : 'email');
-        return `Got it! I'll ${method} you when I need to reach out. You can update this anytime.`;
+        return `Saved. ${SAVED_NOT_VERIFIED}`;
       },
     });
   },

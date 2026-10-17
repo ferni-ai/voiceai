@@ -73,7 +73,8 @@ afterEach(() => {
 
 describe('a number the model saved is never texted or rung', () => {
   it('no verified phone: nothing is texted or called, and it says so', async () => {
-    await run('saveContactInfo', { phone: STRANGER, preferredMethod: 'call' });
+    const saved = await run('saveContactInfo', { phone: STRANGER, preferredMethod: 'call' });
+    expect(saved).toContain('verified on your account'); // no promise to use the saved number
     withVerified(undefined);
     const text = await run('sendImmediateOutreach', { message: 'hi', method: 'sms' });
     const call = await run('sendImmediateOutreach', { message: 'hi', method: 'call' });
