@@ -112,7 +112,7 @@ const ARMS = [
   },
 ];
 
-async function replay(c: Case, env: Record<string, string>, scope: string): Promise<Level> {
+async function replay(c: Case, env: Record<string, string | undefined>, scope: string): Promise<Level> {
   const turns = c.variants.map((v) =>
     startTurnCrisis(
       v.latest,
