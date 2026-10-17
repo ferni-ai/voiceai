@@ -7,7 +7,7 @@
  * - behavior: changes what a caller hears or what the agent does, including which provider or pipeline runs. Listed in FLAG_MANIFEST.
  * - unread: set on prod, but no code under src/ reads it. A candidate to remove from prod.
  *
- * Checked by env-classification.test.ts, which also holds the ratchet on reads that remain unclassified.
+ * Checked by env-classification.test.ts: every behaviour name is in FLAG_MANIFEST.
  *
  * @module config/env-classification
  */
