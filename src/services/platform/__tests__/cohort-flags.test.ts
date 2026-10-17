@@ -1,11 +1,16 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applyCallerFlags,
   applyFlags,
-  callerEnv,
+  FLAG_CACHE_TTL_MS,
+  FLAG_STALE_MAX_MS,
+  flagForUser,
   forgetAgentValues,
   inSample,
   missingPrerequisites,
+  forgetFlagCache,
+  usersWithFlag,
+  type FlagHolderStore,
   oneCallPerProcess,
   resolveCallerFlags,
   type Cohort,
@@ -125,7 +130,10 @@ describe('applyCallerFlags', () => {
     const env = on();
     await applyCallerFlags('mindy', { store: store({ mindy: [family] }), env });
     const slow: CohortStore = {
-      cohortsFor: () => new Promise(() => undefined),
+      cohortsFor: async () =>
+        new Promise<Cohort[]>(() => {
+          /* never settles */
+        }),
       overridesFor: async () => ({}),
     };
     expect(await applyCallerFlags('mom', { store: slow, env, timeoutMs: 20 })).toEqual([]);
@@ -142,6 +150,148 @@ describe('applyCallerFlags', () => {
     expect(env.OPENER_FOLLOW_UP).toBeUndefined();
   });
 });
+
+describe('per-user lookup for servers that serve many users (flagForUser, usersWithFlag)', () => {
+  const ON = { COHORT_FLAGS: 'on' };
+  const proactive: Cohort = { id: 'family', enabled: true, flags: { PROACTIVE_CHANNELS: 'on' } };
+  const paused: Cohort = { id: 'paused', enabled: false, flags: { PROACTIVE_CHANNELS: 'on' } };
+  const data = store(
+    { mindy: [proactive], mom: [proactive], dad: [paused] },
+    { mom: { PROACTIVE_CHANNELS: 'off' }, solo: { PROACTIVE_CHANNELS: 'on' } }
+  );
+  // What the Firestore queries return: anyone a cohort or override names, before resolution.
+  const holders: FlagHolderStore = { candidatesFor: async () => ['mindy', 'mom', 'dad', 'solo'] };
+
+  beforeEach(() => forgetFlagCache());
+
+  it("an override 'off' beats a cohort 'on'", async () => {
+    expect(await flagForUser('mindy', 'PROACTIVE_CHANNELS', { store: data, env: ON })).toBe('on');
+    expect(await flagForUser('mom', 'PROACTIVE_CHANNELS', { store: data, env: ON })).toBe('off');
+    expect(
+      await flagForUser('dad', 'PROACTIVE_CHANNELS', { store: data, env: ON })
+    ).toBeUndefined();
+  });
+
+  it('usersWithFlag: cohort members and overrides that are on, minus overrides that are off', async () => {
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', { store: data, holders, env: ON })).toEqual([
+      'mindy',
+      'solo',
+    ]);
+  });
+
+  it('reads nothing and finds no one unless COHORT_FLAGS=on', async () => {
+    const reads = { cohortsFor: vi.fn(data.cohortsFor), overridesFor: vi.fn(data.overridesFor) };
+    const find = { candidatesFor: vi.fn(holders.candidatesFor) };
+    expect(await flagForUser('mindy', 'PROACTIVE_CHANNELS', { store: reads, env: {} })).toBe(
+      undefined
+    );
+    expect(
+      await usersWithFlag('PROACTIVE_CHANNELS', { store: reads, holders: find, env: {} })
+    ).toEqual([]);
+    expect(reads.cohortsFor).not.toHaveBeenCalled();
+    expect(find.candidatesFor).not.toHaveBeenCalled();
+  });
+
+  it('only allowlisted flags', async () => {
+    const s = store({ u: [{ id: 'c', enabled: true, flags: { AGENT_JOB_EXECUTOR: 'on' } }] });
+    expect(await flagForUser('u', 'AGENT_JOB_EXECUTOR', { store: s, env: ON })).toBeUndefined();
+    expect(await usersWithFlag('AGENT_JOB_EXECUTOR', { store: s, holders, env: ON })).toEqual([]);
+  });
+
+  it('never writes process.env', async () => {
+    const had = process.env.COHORT_FLAGS;
+    process.env.COHORT_FLAGS = 'on';
+    const before = { ...process.env };
+    try {
+      expect(await usersWithFlag('PROACTIVE_CHANNELS', { store: data, holders })).toContain(
+        'mindy'
+      );
+      expect(await flagForUser('mindy', 'PROACTIVE_CHANNELS', { store: data })).toBe('on');
+      expect({ ...process.env }).toEqual(before);
+      expect(process.env.PROACTIVE_CHANNELS).toBeUndefined();
+    } finally {
+      if (had === undefined) delete process.env.COHORT_FLAGS;
+      else process.env.COHORT_FLAGS = had;
+    }
+  });
+
+  it('reuses a read for a minute, then reads again; a failed read keeps the last value', async () => {
+    let t = 1_000_000;
+    const overrides = vi.fn(async () => ({ PROACTIVE_CHANNELS: 'on' }));
+    const s: CohortStore = { cohortsFor: async () => [], overridesFor: overrides };
+    const opts = { store: s, env: ON, now: () => t };
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    t += FLAG_CACHE_TTL_MS - 1;
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    expect(overrides).toHaveBeenCalledTimes(1);
+    t += 1;
+    overrides.mockRejectedValueOnce(new Error('down'));
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    expect(overrides).toHaveBeenCalledTimes(2);
+    expect(
+      await flagForUser('never-read', 'PROACTIVE_CHANNELS', { ...opts, store: failing() })
+    ).toBe(undefined);
+  });
+
+  it("an override turned 'off' drops them on the next rebuild, within one cache period", async () => {
+    let t = 1_000_000;
+    let value = 'on';
+    const s: CohortStore = {
+      cohortsFor: async () => [],
+      overridesFor: async () => ({ PROACTIVE_CHANNELS: value }),
+    };
+    const one: FlagHolderStore = { candidatesFor: async () => ['solo'] };
+    const opts = { store: s, holders: one, env: ON, now: () => t };
+    // Another path (flagForUser) has their 'on' in the per-user cache.
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    t += 1_000;
+    value = 'off';
+    t += 30_000; // first holder rebuild, 30s after the flip, per-user cache still warm
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual([]);
+  });
+
+  it('a stale list stands in for a failed read for at most 5 minutes, then no one', async () => {
+    let t = 1_000_000;
+    let down = false;
+    const one: FlagHolderStore = {
+      candidatesFor: async () => (down ? Promise.reject(new Error('down')) : ['solo']),
+    };
+    const opts = { store: data, holders: one, env: ON, now: () => t };
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual(['solo']);
+    down = true;
+    t += FLAG_STALE_MAX_MS - 1;
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual(['solo']);
+    t += 1;
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual([]);
+  });
+
+  it("a person's cached flags stand in for a failed read for at most 5 minutes", async () => {
+    let t = 1_000_000;
+    const overrides = vi.fn(async () => ({ PROACTIVE_CHANNELS: 'on' }));
+    const s: CohortStore = { cohortsFor: async () => [], overridesFor: overrides };
+    const opts = { store: s, env: ON, now: () => t };
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    overrides.mockRejectedValue(new Error('down'));
+    t += FLAG_STALE_MAX_MS - 1;
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    t += 1;
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBeUndefined();
+  });
+
+  it('a failed holder read finds no one rather than throwing', async () => {
+    const down: FlagHolderStore = { candidatesFor: async () => Promise.reject(new Error('down')) };
+    expect(
+      await usersWithFlag('PROACTIVE_CHANNELS', { store: data, holders: down, env: ON })
+    ).toEqual([]);
+  });
+});
+
+function failing(): CohortStore {
+  return {
+    cohortsFor: async () => Promise.reject(new Error('down')),
+    overridesFor: async () => ({}),
+  };
+}
 
 describe('sampled cohorts', () => {
   const memory = (percent: number, enabled = true): Cohort => ({
@@ -192,59 +342,30 @@ describe('sampled cohorts', () => {
   });
 });
 
+describe('memory flags', () => {
+  it('a cohort can set the in-call world facts', async () => {
+    const world: Cohort = { id: 'world', enabled: true, flags: { WORLD_FACTS_IN_CALL: 'on' } };
+    expect(await resolveCallerFlags('u', store({ u: [world] }))).toEqual({
+      WORLD_FACTS_IN_CALL: 'on',
+    });
+  });
+});
+
 describe('missingPrerequisites', () => {
   it('names a memory switch turned on without what it builds on', () => {
     expect(missingPrerequisites({ RECALL_EPISODES: 'on' })).toEqual([
       'RECALL_EPISODES needs SEMANTIC_RECALL',
     ]);
-    expect(missingPrerequisites({ WORLD_FACTS_IN_CALL: 'on', WORLD_MODEL_TEMPORAL: 'on' })).toEqual(
-      [
-        'WORLD_MODEL_TEMPORAL needs AFTER_CALL_EXTRACTION',
-        'WORLD_FACTS_IN_CALL needs AFTER_CALL_EXTRACTION',
-      ]
-    );
+    expect(missingPrerequisites({ WORLD_FACTS_IN_CALL: 'on' })).toEqual([
+      'WORLD_FACTS_IN_CALL needs WORLD_MODEL_TEMPORAL',
+    ]);
     expect(
       missingPrerequisites({
         SEMANTIC_RECALL: 'on',
         RECALL_EPISODES: 'on',
-        AFTER_CALL_EXTRACTION: 'on',
         WORLD_MODEL_TEMPORAL: 'on',
         WORLD_FACTS_IN_CALL: 'on',
       })
     ).toEqual([]);
-  });
-});
-
-describe('callerEnv', () => {
-  const stack: Cohort = {
-    id: 'world',
-    enabled: true,
-    flags: { AFTER_CALL_EXTRACTION: 'on', WORLD_MODEL_TEMPORAL: 'on' },
-  };
-
-  it("gives after-call work this caller's flags, not the next caller's", async () => {
-    const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on', WORLD_MODEL_TEMPORAL: 'off' };
-    const s = store({ mindy: [stack] });
-    await applyCallerFlags('mindy', { store: s, env });
-    await applyCallerFlags('stranger', { store: s, env }); // the next call starts
-    expect(env.AFTER_CALL_EXTRACTION).toBeUndefined();
-    const mindy = await callerEnv('mindy', { store: s, env });
-    expect(mindy).toMatchObject({ AFTER_CALL_EXTRACTION: 'on', WORLD_MODEL_TEMPORAL: 'on' });
-    expect(env.AFTER_CALL_EXTRACTION).toBeUndefined();
-  });
-
-  it("gives the agent's own values when cohorts are off, the caller is anonymous, or the read fails", async () => {
-    const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on', WORLD_MODEL_TEMPORAL: 'off' };
-    await applyCallerFlags('mindy', { store: store({ mindy: [stack] }), env });
-    expect(env.WORLD_MODEL_TEMPORAL).toBe('on'); // mindy's call is running
-    expect((await callerEnv('anonymous', { env })).WORLD_MODEL_TEMPORAL).toBe('off');
-    const failing: CohortStore = {
-      cohortsFor: async () => Promise.reject(new Error('down')),
-      overridesFor: async () => ({}),
-    };
-    expect((await callerEnv('mindy', { store: failing, env })).WORLD_MODEL_TEMPORAL).toBe('off');
-    const off = { ...env, COHORT_FLAGS: 'off' };
-    const s = store({ mindy: [stack] });
-    expect((await callerEnv('mindy', { store: s, env: off })).WORLD_MODEL_TEMPORAL).toBe('off');
   });
 });

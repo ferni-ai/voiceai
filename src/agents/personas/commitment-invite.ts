@@ -80,11 +80,11 @@ const NO_PLANS =
 const LOSS = /\b(?:my|our|his|her) (?:\w+ ){0,2}(?:passed|is gone|went into hospice)\b/i;
 
 /** The talk is winding down. */
-const WINDING =
+export const WINDING =
   /\b(?:anyway|anyways|(?:alright|all right|okay|ok),? well|that'?s (?:all|it) (?:really|for now)|i think that'?s (?:it|all)|enough about me|thanks? (?:you )?for (?:listening|letting me|hearing me|talking)|i feel (?:a (?:bit|little|lot) )?better)\b/i;
 
 /** Leaving, which the goodbye words miss: "I should probably head out". */
-const LEAVING =
+export const LEAVING =
   /\bi (?:should|need to|have to|gotta|better) (?:probably |really |just )?(?:go|get going|head (?:out|off)|let you go|get back|run|hop off)\b/i;
 
 /** A step's verb: any, but not a state, a feeling or call talk ("I'll be fine", "I'll talk to you"). */
