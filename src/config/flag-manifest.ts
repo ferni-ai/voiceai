@@ -170,10 +170,10 @@ export const FLAG_MANIFEST = {
   FERNI_SELF_MEMORY: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_SELF_RECALL: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_STATE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on (with FERNI_STATE): his day holds this week's beat of a written life thread (ferni-life-threads.ts)
-  FERNI_THREADS: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_TASK_MOOD_ALONE_TRIGGERS: { default: 'off', owner: 'platform', kind: 'config' },
   FERNI_TASK_SCRIPTED_TRANSITIONS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on (with FERNI_STATE): his day holds this week's beat of a written life thread (ferni-life-threads.ts)
+  FERNI_THREADS: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_DEFER_BACKGROUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
