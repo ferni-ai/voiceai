@@ -2,7 +2,8 @@
  * Offline replay for the crisis adjudicator (crisis-adjudicator.ts) with the
  * real model. Vertex AI, global endpoint, ADC.
  *
- *   GOOGLE_CLOUD_PROJECT=<project> npx tsx scripts/crisis-eval/adjudicator-eval.ts [private.jsonl]
+ *   GOOGLE_CLOUD_PROJECT=<project> npx tsx scripts/crisis-eval/adjudicator-eval.ts \
+ *     [--timeout-ms=<ms>] [private.jsonl]
  *
  * Strict on purpose: every labelled case is adjudicated as if the patterns
  * had passed it and the classifier had flagged it crisis, which is the only
@@ -15,8 +16,11 @@
  * The optional JSONL holds real false alarms kept outside the repo
  * ({"id", "variants": [{latest, earlier, companion}]}); they are reported by
  * id only, never by their words. Each case is read CRISIS_EVAL_REPS times
- * (default 3), each read with a 10 s timeout so a slow read is measured, not
- * escalated; reads over the production budget are counted separately.
+ * (default 3). Each read has the production timeout (1.2 s), so a slow read
+ * escalates exactly as it would on a call (why "timeout"); pass
+ * --timeout-ms=10000 to measure the model's decisions without the budget.
+ * The fixture's schema and the replay's plumbing are checked in CI with a
+ * stub model (__tests__/adjudicator-fixture.test.ts).
  */
 
 import { execFileSync } from 'node:child_process';
@@ -41,12 +45,12 @@ import {
   type CrisisGenerateFn,
 } from '../../src/services/safety/crisis-classifier.js';
 import { CRISIS_TEST_CASES } from '../../src/services/superhuman/validation/crisis-test-cases.js';
-
-interface Turn {
-  latest: string;
-  earlier: string[];
-  companion?: string;
-}
+import {
+  loadAdjudicatorFixture,
+  parseEvalArgs,
+  withEverydayContext,
+  type EvalTurn as Turn,
+} from './adjudicator-cases.js';
 interface Case {
   id: string;
   set: string;
@@ -65,18 +69,12 @@ const token = execFileSync('gcloud', ['auth', 'application-default', 'print-acce
   .trim();
 const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`;
 const REPS = Number(process.env.CRISIS_EVAL_REPS) || 3;
-/** For cases with no earlier caller line: everyday openers, the call-my-mom shape among them. */
-const NEUTRAL_EARLIER = ['hey ferni', 'Can you call my mom for me?', 'work was fine today'];
-const NEUTRAL = [
-  "Hey, good to hear from you. What's going on today?",
-  'Sure, I can do that. Who should I call?',
-  'Got it. Anything else?',
-];
+const args = parseEvalArgs(process.argv.slice(2));
 
 let transportFailures = 0;
 const latencies: number[] = [];
 /** The production request shape, over REST; retries 429/5xx so they never count as answers. */
-const generate: CrisisGenerateFn = async (systemPrompt, userContent) => {
+const generate: CrisisGenerateFn = async (systemPrompt, userContent, signal) => {
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: systemPrompt }] },
     contents: [{ role: 'user', parts: [{ text: userContent }] }],
@@ -93,8 +91,11 @@ const generate: CrisisGenerateFn = async (systemPrompt, userContent) => {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body,
-      signal: AbortSignal.timeout(10_000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(10_000)])
+        : AbortSignal.timeout(10_000),
     }).catch(() => null);
+    if (signal?.aborted) throw new Error('aborted');
     if (!res || res.status === 429 || res.status >= 500) {
       await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
       continue;
@@ -146,12 +147,12 @@ const cases: Case[] = [
     )
   ),
 ];
-for (const row of json('src/agents/__tests__/fixtures/crisis-adjudicator-2026-10-17.json')) {
+for (const row of loadAdjudicatorFixture()) {
   const set = String(row.kind).startsWith('relay1484') ? 'relay1484' : `adj-${row.kind}`;
   cases.push(...labelled(set, [row]).map((c) => ({ ...c, id: `${set}-${cases.length}` })));
 }
-if (process.argv[2]) {
-  for (const line of readFileSync(process.argv[2], 'utf8').split('\n').filter(Boolean)) {
+if (args.privateFile) {
+  for (const line of readFileSync(args.privateFile, 'utf8').split('\n').filter(Boolean)) {
     const row = JSON.parse(line) as { id: string; variants: Turn[] };
     cases.push({
       id: row.id,
@@ -170,17 +171,16 @@ const reads = new Map<string, Array<{ decision: string; why: string }>>();
 const jobs = cases.flatMap((c) =>
   Array.from({ length: REPS }, (_, rep) =>
     c.variants.map((v) => async () => {
-      const turn = c.private
-        ? v
-        : {
-            latest: v.latest,
-            earlier: v.earlier.length ? v.earlier : [NEUTRAL_EARLIER[rep % 3]],
-            companion: v.companion || NEUTRAL[rep % 3],
-          };
+      const turn = c.private ? v : withEverydayContext(v, rep);
       // The production gate: an imminent read is never adjudicated, it escalates.
       const eligible = adjudicatorEligible('none', [{ risk: c.read ?? 'crisis', subject: 'self' }]);
       const r: { decision: string; why: string } = eligible
-        ? await adjudicateCrisis(transcriptFrom(turn), generate, 30_000, CRISIS_ADJUDICATOR_PROMPT)
+        ? await adjudicateCrisis(
+            transcriptFrom(turn),
+            generate,
+            args.timeoutMs,
+            CRISIS_ADJUDICATOR_PROMPT
+          )
         : { decision: 'escalate', why: 'ineligible' };
       reads.set(c.id, [...(reads.get(c.id) ?? []), r]);
     })
@@ -190,7 +190,9 @@ for (let i = 0; i < jobs.length; i += 40) await Promise.all(jobs.slice(i, i + 40
 
 const pct = (xs: number[], p: number) =>
   [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor((p / 100) * xs.length))];
-console.log(`model ${model}; reads per case: ${REPS}; counts are reads (case x variant x rep)`);
+console.log(
+  `model ${model}; reads per case: ${REPS}; timeout ${args.timeoutMs} ms; counts are reads (case x variant x rep)`
+);
 console.log(
   '| set | pos / neg cases | positives softened | negatives softened | escalate why (non-model) |'
 );
@@ -256,12 +258,7 @@ async function classify(turn: Turn): Promise<string> {
 console.log('\nReachability of softened positives (pattern; classifier reads):');
 for (const c of cases.filter((x) => x.positive)) {
   if (!(reads.get(c.id) ?? []).some((r) => r.decision === 'checkin')) continue;
-  const v = c.variants[0];
-  const turn = {
-    latest: v.latest,
-    earlier: v.earlier.length ? v.earlier : [NEUTRAL_EARLIER[0]],
-    companion: v.companion || NEUTRAL[0],
-  };
+  const turn = withEverydayContext(c.variants[0], 0);
   const detection = detectCrisis(turn.latest, undefined, { recentMessages: turn.earlier });
   const pattern = guardFromDetection(detection).shouldBlock
     ? 'block'
