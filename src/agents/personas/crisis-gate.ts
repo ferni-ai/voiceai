@@ -30,6 +30,7 @@ import {
 import {
   adjudicatedCheckin,
   resolveCrisisAdjudicatorMode,
+  shadowAdjudication,
   startCrisisAdjudicator,
   type AdjudicatorLine,
 } from '../../services/safety/crisis-adjudicator.js';
@@ -184,9 +185,12 @@ export function startCrisisGate(
   const pattern =
     decision.action === 'replace' ? 'block' : decision.action === 'guide' ? 'crisis' : 'none';
   // The agreement gate and the adjudicator weigh this read with the turn pipeline's.
+  // Only the agreement gate and a live adjudicator hold the escalation for those
+  // reads; a shadow adjudicator runs beside it and never delays the 988 line.
   const agreementGate = resolveCrisisAgreementGate(env);
-  const adjudicating = resolveCrisisAdjudicatorMode(env) !== 'off';
-  const scope = agreementGate || adjudicating ? sessionScope(userData) : undefined;
+  const adjudicatorMode = resolveCrisisAdjudicatorMode(env);
+  const scope = agreementGate || adjudicatorMode !== 'off' ? sessionScope(userData) : undefined;
+  const holdForReads = agreementGate || adjudicatorMode === 'live';
   const run = startCrisisClassifier(
     { latest, earlier, companion },
     { pattern, env, generate, scope }
@@ -198,7 +202,16 @@ export function startCrisisGate(
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
-    if (scope) {
+    if (scope && !holdForReads) {
+      const reads = turnVerdicts(scope, { latest, earlier, companion });
+      shadowAdjudication(reads, callTranscript(chatCtx), {
+        pattern,
+        env,
+        scope,
+        source: 'gate',
+        generate: options.adjudicate,
+      });
+    } else if (scope) {
       // Fail closed: a failed lookup counts as a missing read, which escalates.
       const verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [
         null,
@@ -217,6 +230,7 @@ export function startCrisisGate(
         env,
         generate: options.adjudicate,
         source: 'gate',
+        scope,
       });
       if (await adjudicatedCheckin(adjudicator)) {
         log.info({ action: 'guide', source: 'adjudicator' }, 'CRISIS_GATE');
