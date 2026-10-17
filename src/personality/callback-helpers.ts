@@ -10,7 +10,7 @@
 
 import type { KeyMoment, UserProfile } from '../types/user-profile.js';
 import { flagOn } from '../config/env-flag.js';
-import { isTeammateTalk, withoutTeammateTalk } from '../utils/teammate-talk.js';
+import { hiddenAsTeammateTalk, withoutTeammateTalk } from '../utils/teammate-talk.js';
 
 // ============================================================================
 // CALLBACK CREATION
@@ -127,7 +127,7 @@ export function getPendingCallbacksFromProfile(
 
   for (const moment of keyMoments) {
     // Stored before teammate talk was told apart ("Made a decision to talk to Jordan")
-    if (!moment.followUpNeeded || isTeammateTalk(moment.summary)) continue;
+    if (!moment.followUpNeeded || hiddenAsTeammateTalk(moment.summary)) continue;
 
     // Check if follow-up date has passed
     if (moment.followUpDate && new Date(moment.followUpDate) > new Date()) {

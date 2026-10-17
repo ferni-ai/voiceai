@@ -13,6 +13,7 @@ import { lifeMoments } from '../utils/teammate-talk.js';
 import type { EmotionResult } from '../intelligence/detectors/emotion.js';
 import type { IntentResult } from '../intelligence/intent-classifier.js';
 import type { ConversationState } from '../intelligence/state/conversation.js';
+import { buildRelationshipContext } from '../context/context-builders.js';
 import { withCallerProvenance } from '../memory/caller-assertions.js';
 import { insightText, teammateNote } from '../memory/cross-persona/teammate-note.js';
 import {
@@ -387,5 +388,51 @@ describe('with TEAMMATE_TALK_FILTER off (the default), the write paths are as on
     expect(insightText(i, () => 'x', { TEAMMATE_TALK_FILTER: 'on' })).toBe(
       "- From the caller's call with your teammate Jordan: Planning a move"
     );
+  });
+});
+
+/** Verifier round 6: the read-time filters are behind the flag too; life news is never hidden. */
+describe('stored moments with life news, read with the flag off and on', () => {
+  const SIX = [
+    moment('Expressed concern about "can I talk to Peter, my mom is in hospital"', 'concern'),
+    moment('Celebrated "Maya, my sister, had a baby girl yesterday"', 'celebration'),
+    moment(
+      'Opened up about "I need to talk to Jordan because my wife left me"',
+      'shared_vulnerability'
+    ),
+    moment('Expressed concern about "can I speak with Peter? my father passed last night"'),
+    moment('Opened up about "My mom had a stroke. I want to talk to Maya about it"'),
+    moment('my mom is in hospital', 'concern'),
+  ].map((m, i) => ({ ...m, id: `km-${i}` }));
+  const readAll = () => {
+    const p = { ...profile(SIX), name: 'Sam', totalConversations: 1 } as UserProfile;
+    return {
+      pending: getPendingCallbacksFromProfile(p).map((x) => x.moment.summary),
+      context: buildRelationshipContext(p),
+    };
+  };
+
+  it.each(['off', 'on'])('flag %s: every reader returns all six, as main does', (flag) => {
+    vi.stubEnv('TEAMMATE_TALK_FILTER', flag);
+    const { pending, context } = readAll();
+    expect(pending).toEqual(SIX.map((m) => m.summary));
+    // buildRelationshipContext shows the first two follow-ups, as on main
+    expect(context).toContain(`Key moments: ${SIX[0]?.summary}; ${SIX[1]?.summary}`);
+  });
+
+  it('keeps "Jordan, their brother," with Jordan the teammate on the call', () => {
+    const item = 'Ask how Jordan, their brother, is doing';
+    const summary = withCallerProvenance({ mainTopics: [], followUpItems: [item] }, [
+      { role: 'assistant', content: "Hi, I'm Jordan." },
+      { role: 'user', content: 'Jordan, my brother, is doing badly. Ask me how he is doing' },
+    ]);
+    expect(summary.followUpItems).toEqual([item]);
+  });
+
+  it('flag off: a stored teammate-only moment is read as on main', () => {
+    vi.stubEnv('TEAMMATE_TALK_FILTER', 'off');
+    const stored = [moment('Made a decision to talk to Jordan')];
+    expect(getPendingCallbacksFromProfile(profile(stored))).toHaveLength(1);
+    expect(lifeMoments(stored)).toHaveLength(1);
   });
 });

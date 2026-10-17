@@ -1,6 +1,6 @@
 /**
  * Talk to a teammate ("Can I talk to Jordan?") is the call, not a key moment. The write
- * checks are behind TEAMMATE_TALK_FILTER (off: as before); isTalk (read time) is always on.
+ * and read checks are behind TEAMMATE_TALK_FILTER (off: as before).
  * @module intelligence/user-learning-engine/teammate-moment
  */
 import { flagOn } from '../../config/env-flag.js';
@@ -20,5 +20,5 @@ export const saidTo = (message: string, turns: readonly talk.CallTurn[]): boolea
 export const keepsMoment = (m: { summary: string }): boolean =>
   !filterOn() || !talk.isTeammateTalk(m.summary);
 
-/** Read time: a stored moment about going to a teammate. */
-export const isTalk = talk.isTeammateTalk;
+/** Read time, flag on: a stored moment about going to a teammate. */
+export const isTalk = (summary: string): boolean => talk.hiddenAsTeammateTalk(summary);

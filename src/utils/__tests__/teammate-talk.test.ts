@@ -2,7 +2,7 @@
  * Talk to a teammate is not the caller's life; talk about someone they know who shares
  * a teammate's name is. Synthetic lines in the prod shape of 2026-10-13.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DISPLAY_NAMES } from '../../personas/persona-ids.js';
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import { HEARD_AS as HANDOFF_SPELLINGS } from '../../tools/handoff/teammate-names.js';
@@ -135,14 +135,39 @@ describe('isTeammateTalk', () => {
       'Expressed concern about "Hey Jordan, my mom is in the hospital"',
       'Celebrated "I asked Alex out and she said yes"',
       "Follow up on Jordan's wedding",
+      'Ask how Jordan, their brother, is doing',
     ]) {
+      expect(isTeammateTalk(text), text).toBe(false);
+    }
+  });
+
+  it('is never teammate talk when life news is anywhere in it', () => {
+    for (const news of [
+      'my mom had a stroke',
+      'my wife left me',
+      'my brother relapsed',
+      'she was abused as a kid',
+      'we lost an embryo in IVF',
+      'she had a miscarriage',
+      'the breakup is hard',
+      'I lost my job',
+      'I had a panic attack',
+      "I've been depressed",
+      "I'm struggling",
+      'my dad is losing his job',
+      'my sister is losing her job',
+    ]) {
+      const text = `Decided to talk to Jordan. ${news}`;
       expect(isTeammateTalk(text), text).toBe(false);
     }
   });
 
   it('filters moments only when read: the stored list is left as it was', () => {
     const stored = [{ summary: 'Made a decision to talk to Jordan' }, { summary: 'Quit the job' }];
+    expect(lifeMoments(stored), 'flag off: as on main').toEqual(stored);
+    vi.stubEnv('TEAMMATE_TALK_FILTER', 'on');
     expect(lifeMoments(stored)).toEqual([{ summary: 'Quit the job' }]);
+    vi.unstubAllEnvs();
     expect(stored).toHaveLength(2);
   });
 });

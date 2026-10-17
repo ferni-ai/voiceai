@@ -27,6 +27,8 @@
  * @module utils/teammate-talk
  */
 
+import { flagOn, type Env } from '../config/env-flag.js';
+
 /** The team's first names: Ferni and the teammates. */
 export const TEAM_FIRST_NAMES = ['ferni', 'peter', 'alex', 'maya', 'jordan', 'nayan'] as const;
 
@@ -86,7 +88,7 @@ const SOMEONE_THEY_KNOW = [
   re(
     `\\b(?:my|our|his|her|their|a)\\s+(?:best\\s+|old\\s+|little\\s+|big\\s+|older\\s+|younger\\s+)?(?:${RELATION})s?\\s*,?\\s+${N}\\b`
   ),
-  re(`\\b${N},?\\s+(?:my|our)\\s+(?:${RELATION})\\b`),
+  re(`\\b${N},?\\s+(?:my|our|his|her|their)\\s+(?:${RELATION})\\b`),
   re(`\\b${N}'s\\b`),
   re(
     `\\b${N}\\s+(?:(?:has|had|have|hasn't|hadn't|is|isn't|was|wasn't|will|won't|would|did|didn't|does|doesn't|just|finally|still|never|always)\\s+)?(?:said|says|told|tells|texted|texts|called|calls|lives|works|died|passed|moved|broke|got|gets|left|leaves|lost|loses|cheated|wants|wanted|misses|missed|drinks|drinking|drank|had|has|have|hit|yelled|hates|loves|needs|spoken|been|gone|started|quit|is|was|isn't|wasn't|will|won't|hasn't|and\\s+i)\\b`
@@ -102,7 +104,7 @@ const SOMEONE_THEY_KNOW = [
 
 /** Life news ("I got laid off, can I talk to Peter", "Peter died"): never dropped as the call. */
 const LIFE_NEWS = re(
-  `\\b(?:died|dies|dying|passed\\s+away|death|funeral|laid\\s+off|got\\s+fired|lost\\s+(?:my|his|her|their|our)\\s+(?:job|mom|dad|mother|father|baby|husband|wife|son|daughter)|in\\s+the\\s+hospital|hospitali[sz]ed|surgery|cancer|diagnosed|divorce|divorcing|pregnant|miscarriage|had\\s+(?:a|the|her|their|our)\\s+baby|gave\\s+birth|baby\\s+(?:girl|boy)|was\\s+born|broke\\s+up|dumped|arrested|evicted|overdosed?|heart\\s+attack|car\\s+accident)\\b`
+  `\\b(?:died|dies|dying|passed\\s+(?:away|on|last|yesterday|today|this)|death|funeral|laid\\s+off|got\\s+fired|(?:lost|losing)\\s+(?:my|his|her|their|our)\\s+(?:job|mom|dad|mother|father|baby|husband|wife|son|daughter)|in\\s+(?:the\\s+)?hospital|hospitali[sz]ed|surgery|cancer|stroke|diagnosed|divorce|divorcing|pregnant|miscarriages?|miscarried|embryos?|ivf|had\\s+(?:a|the|her|their|our)\\s+baby|gave\\s+birth|baby\\s+(?:girl|boy)|was\\s+born|broke\\s+up|break\\s*ups?|dumped|left\\s+me|relapsed?|abused?|abusive|abuse|panic\\s+attacks?|depressed|depression|struggling|arrested|evicted|overdosed?|heart\\s+attack|car\\s+accident)\\b`
 );
 
 /** The teammate in an ask ("to Jordan", "Peter"), for cutting it and keeping the rest. */
@@ -189,6 +191,7 @@ export function onlyTeammateTalk(text: string): boolean {
  * name alone is not enough: "Alex left me" and "Alex has cancer" are their life.
  */
 export function isTeammateTalk(text: string): boolean {
+  if (LIFE_NEWS.test(text)) return false; // life news anywhere in it is their life
   if (onlyTeammateTalk(text)) return true;
   const plain = text.replace(/["“”]/g, ' ').replace(WRAPPER, '').trim();
   return clauses(plain).some(
@@ -209,13 +212,17 @@ const FILLER = new Set(
   )
 );
 
+/** Read time, behind TEAMMATE_TALK_FILTER (off: every stored moment is read as before). */
+export function hiddenAsTeammateTalk(text: string, env: Env = process.env): boolean {
+  return flagOn('TEAMMATE_TALK_FILTER', env) && isTeammateTalk(text);
+}
+
 /**
- * Key moments without those that are only teammate talk: for every reader of
- * profile.keyMoments (callbacks, proactive insights, memory context, retrieval). Read-time
- * only: the stored profile keeps them, so a wrong guess deletes nothing.
+ * Key moments without those that are only teammate talk, for every reader of
+ * profile.keyMoments. Read time only and behind the flag: nothing stored is deleted.
  */
 export function lifeMoments<T extends { summary: string }>(moments: readonly T[] | undefined): T[] {
-  return (moments ?? []).filter((m) => !isTeammateTalk(m.summary));
+  return (moments ?? []).filter((m) => !hiddenAsTeammateTalk(m.summary));
 }
 
 /** First name for a spelling: "jorden" is Jordan (HEARD_AS), a team name is itself. */
@@ -266,7 +273,7 @@ export function namesTeammateOnCall(text: string, turns: readonly CallTurn[]): b
     if (!re(`\\b${n}\\b`).test(text)) return false;
     const theirs = [
       re(`\\b(?:my|our|his|her|their|a)\\s+(?:\\w+\\s+)?(?:${RELATION})s?\\s*,?\\s+${n}\\b`),
-      re(`\\b${n},?\\s+(?:my|our)\\s+(?:${RELATION})\\b`),
+      re(`\\b${n},?\\s+(?:my|our|his|her|their)\\s+(?:${RELATION})\\b`),
       re(`\\b${n}'s\\b`),
     ];
     return !theirs.some((p) => p.test(text));
