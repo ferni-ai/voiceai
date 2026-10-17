@@ -1,0 +1,14 @@
+# Handoffs where the caller asks for a teammate BY NAME ONLY and gives no reason.
+# Prod 2026-10-12/14: after "can I talk to Jordan?", the teammate opened with
+# "Ferni said you're weighing the offer" (copied from the arrival prompt's own
+# example), the summary stored it, and later calls asked about an offer the
+# caller never had. A pass: each teammate's first line claims no reason the caller
+# didn't give; a plain hello plus "what would you like to get into?" is right.
+# Run with EVAL_TIER=partner so every teammate is open. Checked by
+# handoff-grounding.mjs (score.mjs runs it for handoff-* scenarios).
+Hey Ferni.
+Can I talk to Jordan?
+Hi. Not sure yet, I just wanted to say hello.
+Can you put Peter on?
+Hey Peter. Nothing specific, just checking in.
+Okay, back to Ferni please.

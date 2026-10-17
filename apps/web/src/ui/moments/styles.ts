@@ -35,10 +35,7 @@ export function removeMomentStyles(): void {
 // ============================================================================
 
 const MOMENT_STYLES = `
-/* ============================================================================
-   MOMENTS CONTAINER
-   Positioned near the avatar for conversational feel
-   ============================================================================ */
+/* MOMENTS CONTAINER: toasts, centred at the bottom of the screen */
 
 .moments-container {
   position: fixed;
@@ -52,9 +49,12 @@ const MOMENT_STYLES = `
   align-items: center;
 }
 
+/* Phones: inset past the menu button (16px + 44px wide, mobile-bottom-sheet.styles.ts) */
 @media (max-width: 480px) {
   .moments-container {
     bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    left: calc(var(--space-md) + 44px + var(--space-sm));
+    right: calc(var(--space-md) + 44px + var(--space-sm));
   }
 }
 

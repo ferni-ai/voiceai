@@ -425,7 +425,7 @@ export function createVoiceReferralTools(userId: string, userName: string) {
         });
 
         if (result.success) {
-          return `I'm calling ${friendName} right now! I'll introduce myself and let them know you were thinking of them. It's such a thoughtful way to share something meaningful with someone you care about. 💚`;
+          return `The call to ${friendName} has gone out. If they pick up, they'll hear a short hello from me saying you were thinking of them.`;
         } else {
           return `I tried to call ${friendName}, but something went wrong: ${result.error}. Could you double-check the phone number?`;
         }

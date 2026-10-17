@@ -1,12 +1,12 @@
 # Stories from the 2am Hour
 
-**Subtitle**: Real conversations from real people, when the world is asleep.
+**Subtitle**: What the 2am hour can sound like, when the world is asleep.
 
 **Reading time**: 5 minutes
 
 ---
 
-These are real stories from real people who talked to Ferni. Names and details have been changed, but the experiences are genuine. Each person gave permission to share.
+The people in these stories are invented composites, not real callers. They are drawn from the kinds of moments people bring to Ferni late at night.
 
 ---
 

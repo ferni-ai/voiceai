@@ -60,8 +60,13 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
     // The audio itself is never uploaded, so the words are the entry. Without
     // them nothing is saved: no "[Voice recording - N seconds]" stand-in.
     const transcript = await transcribe(audioBase64, audioBlob.type || 'audio/webm');
-    if (!transcript) {
-      toast.warning(t('toasts.transcriptionUnavailable'));
+    if (typeof transcript !== 'string') {
+      const tooLong = transcript?.tooLongMinutes;
+      toast.warning(
+        tooLong
+          ? t('toasts.journalTooLong', { count: tooLong })
+          : t('toasts.transcriptionUnavailable')
+      );
       return;
     }
 
@@ -109,15 +114,16 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
     toast.success(t('toasts.entrySaved'));
 
     // 🤲 Sidekick: Dispatch journal entry event for avatar sidekick
-    document.dispatchEvent(new CustomEvent('ferni:journal-entry', {
-      detail: { mood, hasTranscript: true, durationSeconds: recordingDuration }
-    }));
+    document.dispatchEvent(
+      new CustomEvent('ferni:journal-entry', {
+        detail: { mood, hasTranscript: true, durationSeconds: recordingDuration },
+      })
+    );
   } catch (error) {
     log.error('Failed to save entry:', error);
     toast.error("Couldn't save entry. Try again?");
   }
 }
-
 
 // ============================================================================
 // TRANSCRIBE
@@ -128,10 +134,13 @@ const UNAVAILABLE = '[Transcription unavailable]';
 
 /**
  * Transcribe through the authenticated helper (a bare fetch got 401 on prod).
- * Returns the words, or null when there are none to keep.
+ * Returns the words; or, when there are none to keep, the clip cap if it was too long.
  */
-async function transcribe(audioBase64: string, mimeType: string): Promise<string | null> {
-  const response = await apiPost<{ transcript?: string; success?: boolean }>(
+async function transcribe(
+  audioBase64: string,
+  mimeType: string
+): Promise<string | { tooLongMinutes?: number }> {
+  const response = await apiPost<{ transcript?: string; success?: boolean; maxMinutes?: number }>(
     '/api/journal/transcribe',
     { audioBase64, mimeType },
     // One try: re-sending a whole recording on a 5xx is not worth the wait.
@@ -140,7 +149,7 @@ async function transcribe(audioBase64: string, mimeType: string): Promise<string
   const words = response.data?.transcript?.trim() ?? '';
   if (!response.ok || response.data?.success !== true || !words || words === UNAVAILABLE) {
     log.warn('No transcript, nothing saved:', response.status, response.error);
-    return null;
+    return response.status === 413 ? { tooLongMinutes: response.data?.maxMinutes ?? 10 } : {};
   }
   return words;
 }

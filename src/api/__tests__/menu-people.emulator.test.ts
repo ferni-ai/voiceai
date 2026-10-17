@@ -12,10 +12,14 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import admin from 'firebase-admin';
+import type { DocumentData, Firestore } from 'firebase-admin/firestore';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
+
+// src/tests/setup.ts fakes firebase-admin for every test; this file reads the emulator
+vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
 if (emulator) {
   // Both contact services pick their project from these; the test's admin client must match
   process.env.GOOGLE_CLOUD_PROJECT = 'demo-menu-people';
@@ -33,7 +37,7 @@ vi.mock('../auth-middleware.js', () => ({
 
 let server: Server;
 let base: string;
-let db: admin.firestore.Firestore;
+let db: Firestore;
 const newUser = () => `menu-people-${Math.random().toString(36).slice(2)}`;
 
 beforeAll(async () => {
@@ -49,8 +53,8 @@ beforeAll(async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
-  db = admin.firestore();
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  db = getAdminFirestore();
 });
 
 afterAll(() => server?.close());
@@ -99,6 +103,22 @@ async function agentAddContact(userId: string, args: Record<string, string>): Pr
     });
   }
   throw new Error(`addContact never saved ${args.name}`);
+}
+
+/** The user's saved contact once the store has it in the shape `ready` expects */
+async function savedContact(
+  userId: string,
+  ready: (c: DocumentData) => boolean
+): Promise<DocumentData> {
+  for (let i = 0; i < 50; i++) {
+    const saved = await db.collection('user_contacts').where('userId', '==', userId).get();
+    const match = saved.docs.map((d) => d.data()).find(ready);
+    if (match) return match;
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100);
+    });
+  }
+  throw new Error('the edit never reached user_contacts');
 }
 
 describe.skipIf(!emulator)(
@@ -200,6 +220,58 @@ describe.skipIf(!emulator)(
       vi.setSystemTime(Date.now() + 61_000);
 
       expect((await agent.getContacts(uid)).map((p) => p.name)).toEqual(['Aunt May']);
+    });
+
+    it('an edit to someone saved in a call is saved where the agent reads it', async () => {
+      const uid = newUser();
+      await agentAddContact(uid, {
+        name: 'Rosa Diaz',
+        phone: '555-201-3344',
+        relationship: 'mother',
+        notes: 'Calls on Sundays',
+      });
+      const [rosa] = await people(uid);
+
+      // The edit form sends every field, emptied ones too
+      const edited = await call(uid, 'PUT', `/api/contacts/${rosa.contactId}`, {
+        name: 'Rosa Diaz',
+        relationship: 'family',
+        phone: '555-201-9999',
+        email: '',
+        notes: '',
+        howWeMet: 'She is my mom',
+      });
+      expect(edited.status).toBe(200);
+
+      const stored = await savedContact(uid, (c) => c.phones?.[0]?.number === '+15552019999');
+      // A fresh agent graph: what the agent's findMyContact and calling tools read
+      vi.resetModules();
+      const agent = await import('../../services/identity/contacts/contacts-management.js');
+      const [heard] = await agent.getUserContacts(uid);
+
+      expect(heard).toMatchObject({
+        phones: [{ number: '+15552019999' }],
+        howWeMet: 'She is my mom',
+      });
+      expect(heard.relationship).toBe('mother'); // the group didn't change, so the word Ferni heard stays
+      expect(stored.notes).toBeNull(); // emptied in the panel, cleared in the store
+      expect((await people(uid))[0]).toMatchObject({
+        relationship: 'family',
+        phone: '+15552019999',
+        howWeMet: 'She is my mom',
+      });
+    });
+
+    it('an edit to nobody this person has is still not found', async () => {
+      const other = newUser();
+      await agentAddContact(other, { name: 'Not Yours', phone: '555-000-1111' });
+      const [theirs] = await people(other);
+
+      const edit = await call(newUser(), 'PUT', `/api/contacts/${theirs.contactId}`, {
+        name: 'Mine now',
+      });
+
+      expect(edit.status).toBe(404);
     });
   }
 );

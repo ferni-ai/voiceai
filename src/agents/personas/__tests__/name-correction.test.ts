@@ -227,11 +227,11 @@ describe('withTurnReminder', () => {
     try {
       delete process.env.NAME_CORRECTION;
       const off = samCall();
-      expect(text(off)).not.toContain('Call them Jess');
+      expect(text(off)).not.toContain('their name is Jess');
       expect(off.userData.userName).toBe('Sam');
       process.env.NAME_CORRECTION = 'on';
       const on = samCall();
-      expect(text(on)).toContain('Call them Jess');
+      expect(text(on)).toContain('their name is Jess, not Sam');
       expect(on.userData.userName).toBe('Jess');
     } finally {
       if (before === undefined) delete process.env.NAME_CORRECTION;

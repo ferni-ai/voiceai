@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "{language}に切り替えます",
+    "seeYou": "またね！",
+    "callVoicemail": "{name}さんに留守電を残しました",
+    "callNoAnswer": "{name}さんにつながりませんでした。あとでかけ直しましょうか？",
+    "callFailed": "{name}さんへの発信がうまくいきませんでした",
+    "callBack": "{name}さんが折り返しの電話を待っています",
+    "followUp": "{name}さんが連絡を待っています"
+  },
   "accessibility": {
     "accountMenu": "アカウントメニュー",
     "accountSettings": "アカウント設定",
@@ -2101,6 +2110,7 @@
     "sonosConnected": "Sonosに接続しました！",
     "transcribing": "文字起こし中...",
     "transcriptionUnavailable": "今回は言葉を聞き取れなかったので、何も保存していません。もう一度試しますか？",
+    "journalTooLong": "少し長いみたい。{count}分以内でもう一度どうぞ。",
     "entrySaved": "エントリーを保存しました！",
     "couldNotSaveEntry": "エントリーを保存できませんでした。もう一度試してみてくださいね。",
     "profileSaved": "プロフィールを保存しました！",
@@ -3458,6 +3468,11 @@
     "fieldRelationship": "間柄",
     "fieldWhatShouldFerniCallThem": "Ferni はその方を何とお呼びすればいいですか？",
     "fieldNotesForFerni": "Ferni へのメモ",
+    "callConsentLabel": "Ferni からの電話を歓迎しています",
+    "callConsentHint": "Ferni がときどき様子をうかがう電話をかけることに同意しています。いつでもやめるよう伝えられます。",
+    "callConsentSaved": "保存しました",
+    "callConsentFailed": "保存できませんでした。もう一度お試しください。",
+    "callConsentLoadFailed": "Ferni からの電話を歓迎しているか読み込めませんでした。開き直してもう一度お試しください。",
     "cancel": "キャンセル",
     "addToFamily": "ファミリーに追加",
     "relationshipMother": "お母さん",
@@ -9468,11 +9483,15 @@
     "rememberEmpty": "今回は新しく覚えておくことはありません。一緒に過ごしてくれてありがとう。",
     "nextStepTitle": "次のやさしい一歩",
     "invitation": "いつでも戻ってきてください。ここで待っています。",
-    "close": "閉じる"
+    "close": "閉じる",
+    "seeCost": "この通話の費用",
+    "feedbackQuestion": "今回の会話はどうでしたか？",
+    "feedbackThanks": "ありがとう、参考になります。"
   },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",
     "niceWork": "よく頑張りましたね",
+    "remembered": "覚えておきますね：{summary}",
     "streakSubtitle": "続けてお話できていますね。それが何より大切です。",
     "streakTitle": {
       "other": "{count}日連続のストリーク",
@@ -11028,10 +11047,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

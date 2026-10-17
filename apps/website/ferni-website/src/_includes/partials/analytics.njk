@@ -1,0 +1,35 @@
+{#
+  Google Analytics behind Consent Mode v2, shared by every layout that loads gtag.
+  Everything is denied by default. gtag('config') runs, and so GA sends its
+  first hit, only once the visitor has accepted the cookie banner, on this
+  visit (window.ferniGrantAnalytics, called by the banner) or an earlier one
+  (localStorage 'ferni_cookies' === 'accepted'). Declining leaves it denied.
+  Only analytics_storage is granted: the site shows no ads, so the ad_* signals
+  stay denied even after Accept.
+#}
+{% if site.analytics.gaId %}
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    analytics_storage: 'denied',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied'
+  });
+  (function () {
+    var configured = false;
+    window.ferniGrantAnalytics = function () {
+      if (configured) return;
+      configured = true;
+      gtag('consent', 'update', { analytics_storage: 'granted' });
+      gtag('js', new Date());
+      gtag('config', '{{ site.analytics.gaId }}');
+    };
+    var choice = null;
+    try { choice = localStorage.getItem('ferni_cookies'); } catch (e) { choice = null; }
+    if (choice === 'accepted') window.ferniGrantAnalytics();
+  })();
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}"></script>
+{% endif %}
