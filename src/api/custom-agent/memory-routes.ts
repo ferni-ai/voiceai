@@ -149,10 +149,12 @@ export async function handleDeleteMemory(
   memoryId: string,
   parsedUrl: URL
 ): Promise<boolean> {
-  const memoryType = parsedUrl.searchParams.get('type');
+  // The web client used to send no ?type= (so every delete was a 400); find it then.
+  const memoryType =
+    parsedUrl.searchParams.get('type') ?? (await findMemoryType(userId, agentId, memoryId));
 
   if (!memoryType) {
-    sendJson(res, 400, { error: 'Memory type is required' });
+    sendJson(res, 404, { error: 'Agent or memory not found' });
     return true;
   }
 
@@ -177,4 +179,24 @@ export async function handleDeleteMemory(
   res.writeHead(204);
   res.end();
   return true;
+}
+
+/**
+ * Which memory type holds `memoryId` on the caller's own agent, or null. With
+ * JOURNAL_ONE_STORE on, an id in none of the agent's arrays may be a journal
+ * entry that lives only in the journal store.
+ */
+async function findMemoryType(
+  userId: string,
+  agentId: string,
+  memoryId: string
+): Promise<string | null> {
+  const agent = await getCustomAgent(userId, agentId);
+  if (!agent) return null;
+  const memories = agent.memories as unknown as Record<string, Array<{ id?: unknown }> | undefined>;
+  const found = Object.entries(TYPE_MAP).find(([, key]) =>
+    (memories?.[key] ?? []).some((m) => m?.id === memoryId)
+  );
+  if (found) return found[0];
+  return journalOneStoreOn() ? 'journalEntry' : null;
 }
