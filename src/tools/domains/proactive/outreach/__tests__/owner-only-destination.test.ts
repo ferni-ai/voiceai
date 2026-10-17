@@ -61,7 +61,9 @@ afterEach(() => vi.clearAllMocks());
 
 describe('owner-only tools ignore a destination in their arguments', () => {
   it('sendMessageNow texts the owner, not the supplied number', async () => {
+    setCallUserPort({ verifiedPhone: async () => OWNER.phone, call: vi.fn() });
     await run('sendMessageNow', { message: 'hi' });
+    setCallUserPort(undefined);
     expect(sent.sms.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
   });
 
@@ -93,9 +95,11 @@ describe('owner-only tools ignore a destination in their arguments', () => {
   });
 
   it('scheduleMessage / scheduleCall / scheduleEmail deliver only to the owner', async () => {
+    setCallUserPort({ verifiedPhone: async () => OWNER.phone, call: vi.fn() });
     await run('scheduleMessage', { message: 'hi', when: 'in 2 hours' });
     await run('scheduleCall', { message: 'hi', when: 'in 2 hours' });
     await run('scheduleEmail', { subject: 's', message: 'hi', when: 'in 2 hours' });
+    setCallUserPort(undefined);
     const addresses = sent.reminder.mock.calls.map(
       (c) => (c[0] as { deliveryAddress: string }).deliveryAddress
     );
