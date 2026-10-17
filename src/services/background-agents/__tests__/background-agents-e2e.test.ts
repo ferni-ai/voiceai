@@ -41,8 +41,7 @@ const mockFirestoreDb = {
       })),
       update: vi.fn(async (data: unknown) => {
         const existing = mockFirestoreData.get(name)?.get(id) as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         if (existing) {
           mockFirestoreData
             .get(name)!
@@ -168,7 +167,7 @@ import {
 
 import {
   executeResearchTask,
-  queueResearchTask,
+  RESEARCH_UNAVAILABLE_SUMMARY,
   type ResearchRequest,
 } from '../executors/research-executor.js';
 
@@ -382,67 +381,25 @@ describe('Background Agents E2E', () => {
   // ==========================================================================
 
   describe('Research Executor', () => {
-    it('should execute a stock research task', async () => {
-      const request: ResearchRequest = {
-        userId: 'research-user',
-        query: 'Analyze NVDA',
-        type: 'stock_analysis',
-        depth: 'standard',
-        initiatedBy: 'peter',
-      };
+    // No research source is connected; see executors/__tests__/research-executor-unavailable.test.ts.
+    it.each(['stock_analysis', 'deep_dive', 'fact_check'] as const)(
+      'returns no findings for a %s request',
+      async (type) => {
+        const request: ResearchRequest = {
+          userId: 'research-user',
+          query: 'Analyze NVDA',
+          type,
+          depth: 'comprehensive',
+          initiatedBy: 'peter',
+        };
 
-      const result = await executeResearchTask(request);
+        const result = await executeResearchTask(request);
 
-      expect(result.query).toBe('Analyze NVDA');
-      expect(result.findings.length).toBeGreaterThan(0);
-      expect(result.summary).toContain('NVDA');
-      expect(result.completedAt).toBeDefined();
-    });
-
-    it('should execute a comprehensive deep dive', async () => {
-      const request: ResearchRequest = {
-        userId: 'deep-dive-user',
-        query: 'Retirement planning strategies',
-        type: 'deep_dive',
-        depth: 'comprehensive',
-        context: 'for someone in their 40s',
-        initiatedBy: 'peter',
-      };
-
-      const result = await executeResearchTask(request);
-
-      expect(result.findings.length).toBeGreaterThanOrEqual(2);
-      expect(result.methodology?.toLowerCase()).toContain('comprehensive');
-    });
-
-    it('should execute a fact check', async () => {
-      const request: ResearchRequest = {
-        userId: 'fact-check-user',
-        query: 'S&P 500 returns 10% on average',
-        type: 'fact_check',
-        depth: 'standard',
-        initiatedBy: 'peter',
-      };
-
-      const result = await executeResearchTask(request);
-
-      expect(result.findings.length).toBeGreaterThan(0);
-      expect(result.findings[0].title).toContain('Fact Check');
-    });
-
-    it('should queue research for background execution', async () => {
-      const request: ResearchRequest = {
-        userId: 'queue-user',
-        query: 'Market research',
-        type: 'market_research',
-        depth: 'quick',
-        initiatedBy: 'peter',
-      };
-
-      const taskId = await queueResearchTask(request);
-
-      expect(taskId).toMatch(/^research_/);
-    });
+        expect(result.query).toBe('Analyze NVDA');
+        expect(result.findings).toEqual([]);
+        expect(result.summary).toBe(RESEARCH_UNAVAILABLE_SUMMARY);
+      }
+    );
   });
 
   // ==========================================================================
@@ -524,23 +481,17 @@ describe('Background Agents E2E', () => {
   // ==========================================================================
 
   describe('E2E Flows', () => {
-    it('should complete full research → capture → pending flow', async () => {
-      const userId = 'e2e-research-user';
-
-      // 1. Execute research task
+    it('captures nothing for a research request', async () => {
       const researchResult = await executeResearchTask({
-        userId,
+        userId: 'e2e-research-user',
         query: 'Investment strategies',
         type: 'general',
         depth: 'standard',
         initiatedBy: 'peter',
       });
 
-      expect(researchResult.findings.length).toBeGreaterThan(0);
-
-      // 2. Result should have been captured (via executeResearchTask internal call)
-      // 3. Pending results should include it
-      // (In real flow, Firestore would have the result)
+      expect(researchResult.findings).toEqual([]);
+      expect(mockFirestoreData.size).toBe(0);
     });
 
     it('should complete full reservation → capture → pending flow', async () => {
