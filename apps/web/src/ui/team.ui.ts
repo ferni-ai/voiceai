@@ -1305,14 +1305,12 @@ function revealRosterWhenReady(container: HTMLElement): void {
 
 /**
  * 🏪 Add marketplace button to the roster.
- * Opens the agent marketplace modal for browsing/installing external agents.
+ * Opens the agent marketplace modal. None while Meet More Friends is hidden (config/menu-visibility.ts).
  */
 function addMarketplaceButton(): void {
-  if (!rosterContainer) return;
-  if (!isPanelVisible('marketplace')) return; // Meet More Friends is hidden: config/menu-visibility.ts
+  if (!rosterContainer || !isPanelVisible('marketplace')) return;
 
-  // Don't add if already exists
-  if (document.getElementById('marketplaceBtn')) return;
+  if (document.getElementById('marketplaceBtn')) return; // already added
 
   const marketplaceBtn = document.createElement('button');
   marketplaceBtn.id = 'marketplaceBtn';

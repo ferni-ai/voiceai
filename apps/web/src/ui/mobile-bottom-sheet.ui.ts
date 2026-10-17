@@ -304,7 +304,6 @@ function handleKeyDown(e: KeyboardEvent): void {
 // ACTIONS
 // ============================================================================
 
-/** The sheet's actions, minus the hidden ones (config/menu-visibility.ts). */
 function getDefaultActions(): BottomSheetAction[] {
   return [
     {
@@ -370,13 +369,12 @@ function getDefaultActions(): BottomSheetAction[] {
         window.dispatchEvent(new CustomEvent('ferni:open-insights'));
       },
     },
-  ].filter((action) => isSheetActionVisible(action.id));
+  ].filter((action) => isSheetActionVisible(action.id)); // hides: config/menu-visibility.ts
 }
 
 function populateActions(actions: BottomSheetAction[]): void {
   if (!actionsContainer) return;
 
-  // Clear existing actions
   while (actionsContainer.firstChild) {
     actionsContainer.removeChild(actionsContainer.firstChild);
   }
