@@ -21,9 +21,9 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { SELF_VOICED_NOTE, SPARSE_MARKUP_NOTE, adaptSpeechMarkup } from './speech-markup-notes.js';
+import { SELF_VOICED_NOTE, adaptSpeechMarkup, sparseMarkupNote } from './speech-markup-notes.js';
 import { getModelProvider } from '../model-provider/index.js';
-import { withOwnLife } from '../../personas/persona-slip-guard.js';
+import { characterSheet } from './character-spark.js';
 import { withStoryHonesty } from './ai-honesty.js';
 // Use centralized FTIS mode check - single source of truth
 import { isFtisEnabled } from '../../config/tool-config.js';
@@ -510,10 +510,10 @@ export async function loadSystemPrompt(
   return adaptSpeechMarkup(await loadSystemPromptForTTS(personaId, mode));
 }
 
-/** identity/character.md (+ own life, persona-slip-guard.ts) and tool-usage guidance, or null. */
+/** identity/character.md (+ spark and own life, character-spark.ts) and tool-usage guidance, or null. */
 async function loadCharacterPrompt(personaId: string): Promise<string | null> {
   const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
-  const character = await withOwnLife(await loadFile(bundleDir, 'identity/character.md'), bundleDir);
+  const character = await characterSheet(bundleDir);
   if (!character) return null;
   const tools = await loadToolUsageGuidance(bundleDir);
   const prompt = tools ? `${character}\n\n---\n\n${tools}` : character;
@@ -845,7 +845,7 @@ export async function loadModelBaseInstructions(): Promise<string> {
       promptConfig.includeSpeechMarkup === false
         ? `${adaptSpeechMarkup(combined)}\n\n${SELF_VOICED_NOTE}`
         : promptConfig.sparseSpeechMarkup
-          ? `${adaptSpeechMarkup(combined)}\n\n${SPARSE_MARKUP_NOTE}`
+          ? `${adaptSpeechMarkup(combined)}\n\n${sparseMarkupNote()}`
           : combined;
 
     // Cache it

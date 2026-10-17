@@ -38,6 +38,7 @@ const { handleDeliverScheduledActions, worldDue } =
 const { runProactiveChannelsTick } = await import('../proactive-tick.js');
 const { defaultProactiveDeps } = await import('../default-deps.js');
 const { sendCommitmentPushes } = await import('../../../../api/scheduled-jobs/commitment-push.js');
+const { forgetFlagCache } = await import('../../../platform/cohort-flags.js');
 
 const SETH = 'seth-uid';
 const HOUR = 3600_000;
@@ -57,6 +58,7 @@ const logOf = (id: string) => docs.get(`bogle_users/${SETH}/proactive_outreach_l
 beforeEach(() => {
   docs.clear();
   texts.length = 0;
+  forgetFlagCache();
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
   process.env.PROACTIVE_CHANNELS = 'on';
@@ -72,6 +74,7 @@ afterEach(() => {
   delete process.env.PROACTIVE_CHANNELS;
   delete process.env.PROACTIVE_CHANNELS_USERS;
   delete process.env.COACH_FOLLOW_THROUGH;
+  delete process.env.COHORT_FLAGS;
 });
 
 function seedReminder(id: string, r: Record<string, unknown>) {
@@ -146,6 +149,41 @@ describe('what they said they would do (COACH_FOLLOW_THROUGH)', () => {
     });
     await runHandler();
     expect(texts).toHaveLength(1);
+  });
+
+  it("on for one person through their cohort flags, read per user (the server's env stays off)", async () => {
+    seedCommitment();
+    docs.set(`feature_flag_overrides/${SETH}`, { flags: { COACH_FOLLOW_THROUGH: 'on' } });
+    await runHandler();
+    expect(texts).toHaveLength(0); // COHORT_FLAGS off on this server: not read
+    process.env.COHORT_FLAGS = 'on';
+    await runHandler();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toContain('How did it go?');
+    expect(process.env.COACH_FOLLOW_THROUGH).toBeUndefined();
+  });
+
+  it('the between-call push leaves cohort-listed proactive users to the proactive run', async () => {
+    delete process.env.PROACTIVE_CHANNELS_USERS;
+    process.env.COHORT_FLAGS = 'on';
+    docs.set('feature_flag_overrides/cohort-uid', { flags: { PROACTIVE_CHANNELS: 'on' } });
+    const commitment = {
+      id: 'c1',
+      statement: 'x',
+      createdAt: 0,
+      followUpAfter: 0,
+      followUpCount: 0,
+    };
+    const pushed: string[] = [];
+    await sendCommitmentPushes({
+      scan: async () => [
+        { userId: 'cohort-uid', commitment },
+        { userId: 'other', commitment },
+      ],
+      send: async (userId) => (pushed.push(userId), true),
+      store: { active: async () => [], markFollowedUp: async () => undefined },
+    });
+    expect(pushed).toEqual(['other']);
   });
 
   it('the between-call push leaves allowlisted users to the proactive run', async () => {

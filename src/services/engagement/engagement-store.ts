@@ -320,28 +320,26 @@ export class EngagementStore {
     }
   }
 
-  /**
-   * Save prediction
-   */
-  async savePrediction(userId: string, prediction: StoredPrediction): Promise<void> {
-    if (this.db) {
-      try {
-        await this.db
-          .collection(this.COLLECTION)
-          .doc(userId)
-          .collection('predictions')
-          .doc(prediction.id)
-          .set(cleanForFirestore(prediction), { merge: true });
-
-        if (!prediction.completedAt) {
-          const profile = await this.getProfile(userId);
-          profile.stats.totalPredictions++;
-          await this.saveProfile(profile);
-        }
-      } catch (error) {
-        getLogger().warn({ error, userId }, 'Failed to save prediction');
-      }
+  /** Saves a prediction. False when it wasn't written: no Firestore, or the write failed. */
+  async savePrediction(userId: string, prediction: StoredPrediction): Promise<boolean> {
+    if (!this.db) return false;
+    try {
+      await this.db
+        .collection(this.COLLECTION)
+        .doc(userId)
+        .collection('predictions')
+        .doc(prediction.id)
+        .set(cleanForFirestore(prediction), { merge: true });
+    } catch (error) {
+      getLogger().warn({ error, userId }, 'Failed to save prediction');
+      return false;
     }
+    if (!prediction.completedAt) {
+      const profile = await this.getProfile(userId);
+      profile.stats.totalPredictions++;
+      await this.saveProfile(profile);
+    }
+    return true;
   }
 
   /**
