@@ -34,3 +34,18 @@ export function anonymousIdFor(metadata: object): string {
   minted.set(metadata, id);
   return id;
 }
+
+/** Prefixes that already name no account, kept as the dispatch gave them */
+const NON_ACCOUNT_PREFIXES = ['anon:', 'onbehalf:'];
+
+/**
+ * The anonymous id for a caller nobody recognised. A `session_id` the dispatch
+ * carries is kept, but this is the last-resort ANONYMOUS fallback, so it can
+ * never name a real account: without a non-account prefix it gets `anon:`.
+ * With no `session_id`, the session's minted id (anonymousIdFor).
+ */
+export function anonymousSessionId(metadata: Record<string, unknown>): string {
+  const given = metadata.session_id;
+  if (typeof given !== 'string' || !given) return anonymousIdFor(metadata);
+  return NON_ACCOUNT_PREFIXES.some((p) => given.startsWith(p)) ? given : `anon:${given}`;
+}
