@@ -7,7 +7,7 @@
  * calls (memory benchmark, 2026-10-11) that kept the fact a question needed
  * for 5 to 10 of 29 questions, though he had said it for 24. Of the misses,
  * most were a fact spread over several lines ("could you call my brother?",
- * "his name is Pete", "it's uh 435 339 7687"), then lines the gate dropped,
+ * "his name is Pete", "it's uh 435 555 0188"), then lines the gate dropped,
  * then a line that names its subject only as "he" or "that". Showing the
  * extractor earlier lines (EXTRACTION_CONTEXT) still extracts per line.
  *
@@ -63,7 +63,7 @@ export function sweepWindows(lines: readonly string[]): SweepWindow[] {
 
 export function sweepPrompt(window: SweepWindow, known: readonly string[], moment: string): string {
   return [
-    'Below is what a caller said on one phone call with an AI friend, transcribed by speech-to-text. It has fillers, restarts and transcription slips, and one thing is often said over several lines ("could you call my brother?" / "his name is Pete" / "it\'s uh 435 339 7687").',
+    'Below is what a caller said on one phone call with an AI friend, transcribed by speech-to-text. It has fillers, restarts and transcription slips, and one thing is often said over several lines ("could you call my brother?" / "his name is Pete" / "it\'s uh 435 555 0188").',
     moment,
     "List every specific detail about the caller's life a friend would want to remember on a later call, even one said in passing: people (by name, and how they relate to the caller), numbers, places, work, plans and when, health, pets, things that happened, opinions and preferences.",
     '- Read through fillers, restarts and slips; join a fact said across lines into one fact.',

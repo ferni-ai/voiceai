@@ -2324,7 +2324,7 @@
     },
     "callAndConverse": {
       "domain": "telephony",
-      "description": "Call a third party (doctor, restaurant, family member, etc.) on behalf of the user. Use this when the user asks you to make a call to someone else. IMPORTANT: If the user provides a phone number, extract it into the phoneNumber parameter. Example: \"call my mom at 801-898-3303\" \u2192 contactQuery: \"my mo",
+      "description": "Call a third party (doctor, restaurant, family member, etc.) on behalf of the user. Use this when the user asks you to make a call to someone else. IMPORTANT: If the user provides a phone number, extract it into the phoneNumber parameter. Example: \"call my mom at 801-555-0142\" \u2192 contactQuery: \"my mo",
       "queries": [
         "Phone my crush.",
         "Call Lyft. hurry",
@@ -2356,7 +2356,7 @@
     },
     "callOnBehalf": {
       "domain": "telephony",
-      "description": "Call a third party (doctor, restaurant, family member, etc.) on behalf of the user. Use this when the user asks you to make a call to someone else. IMPORTANT: If the user provides a phone number, extract it into the phoneNumber parameter. Example: \"call my mom at 801-898-3303\" \u2192 contactQuery: \"my mo",
+      "description": "Call a third party (doctor, restaurant, family member, etc.) on behalf of the user. Use this when the user asks you to make a call to someone else. IMPORTANT: If the user provides a phone number, extract it into the phoneNumber parameter. Example: \"call my mom at 801-555-0142\" \u2192 contactQuery: \"my mo",
       "queries": [
         "Call my dentist and say I have a toothache",
         "basically, Tell Aunt Mary that I'll visit tomorrow",
