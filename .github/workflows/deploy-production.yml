@@ -199,8 +199,13 @@ jobs:
         run: |
           start=$SECONDS
           while :; do
-            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SHA&per_page=20" \
-              --jq '.workflow_runs[] | "\(.status) \(.conclusion // "-") \(.event) \(.html_url)"')
+            # A transient API error (5xx, rate limit) retries next round; the time
+            # limits below still fail closed if it persists.
+            if ! runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SHA&per_page=20" \
+              --jq '.workflow_runs[] | "\(.status) \(.conclusion // "-") \(.event) \(.html_url)"'); then
+              echo "::warning::Could not read CI runs for $SHA, retrying"
+              runs=""
+            fi
             echo "$runs"
             if grep -q '^completed success ' <<<"$runs"; then
               echo "✅ CI passed on $SHA"
@@ -212,7 +217,7 @@ jobs:
             fi
             elapsed=$((SECONDS - start))
             if [ -z "$runs" ] && [ "$elapsed" -gt 600 ]; then
-              echo "❌ No CI run exists for $SHA after 10 minutes. Not deploying."
+              echo "❌ No CI run found for $SHA after 10 minutes. Not deploying."
               exit 1
             fi
             if [ "$elapsed" -gt 3600 ]; then
