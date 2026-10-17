@@ -90,7 +90,10 @@ describe('a family check-in call', () => {
   });
 
   it('dials a real number for a real sponsor (control)', async () => {
-    expect((await initiateCheckinCall(schedule('seth-uid', '8015550100'))).success).toBe(true);
+    const store = { setNextCall: async () => true };
+    expect(
+      (await initiateCheckinCall(schedule('seth-uid', '8015550100'), undefined, store)).success
+    ).toBe(true);
     expect(sip.createSipParticipant.mock.calls[0][1]).toBe('+18015550100');
   });
 });

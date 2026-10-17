@@ -430,15 +430,4 @@ describe('Family Check-in Caller', () => {
       expect(result.error).toContain('not found');
     });
   });
-
-  describe('default export', () => {
-    it('should export familyCheckinCaller object with all methods', async () => {
-      const { default: familyCheckinCaller } = await import('../family-checkin-caller.js');
-
-      expect(familyCheckinCaller).toBeDefined();
-      expect(familyCheckinCaller.runJob).toBeDefined();
-      expect(familyCheckinCaller.initiateCall).toBeDefined();
-      expect(familyCheckinCaller.handleComplete).toBeDefined();
-    });
-  });
 });

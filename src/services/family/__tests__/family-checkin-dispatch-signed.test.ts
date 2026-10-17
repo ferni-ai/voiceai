@@ -64,15 +64,19 @@ describe('a family check-in dispatch', () => {
   });
 
   it('is signed so the agent will honour it, and names the sponsor', async () => {
-    const result = await initiateCheckinCall({
-      id: 'sched-1',
-      sponsorUserId: 'seth-uid',
-      sponsoredIdentityId: 'doug-id',
-      familyMemberName: 'Doug',
-      relationship: 'father',
-      phoneNumber: '8015550100',
-      maxDurationMinutes: 10,
-    } as never);
+    const result = await initiateCheckinCall(
+      {
+        id: 'sched-1',
+        sponsorUserId: 'seth-uid',
+        sponsoredIdentityId: 'doug-id',
+        familyMemberName: 'Doug',
+        relationship: 'father',
+        phoneNumber: '8015550100',
+        maxDurationMinutes: 10,
+      } as never,
+      undefined,
+      { setNextCall: async () => true }
+    );
     expect(result.success).toBe(true);
 
     const raw = (createDispatch.mock.calls[0] as unknown[])[2] as { metadata: string };

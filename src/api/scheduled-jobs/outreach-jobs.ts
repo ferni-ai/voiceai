@@ -233,7 +233,9 @@ export async function handleFamilyCheckinCalls(res: ServerResponse): Promise<voi
       await import('../../services/stores/family-call-consent-store.js');
     const { isCallOptedOut } = await import('../../services/outreach/call-retry.js');
     const consent = { ...createFamilyConsentStore(), isNumberOptedOut: isCallOptedOut };
-    const result = await runFamilyCheckinJob(consent);
+    const { createCheckinScheduleWriter } =
+      await import('../../services/stores/checkin-schedule-store.js');
+    const result = await runFamilyCheckinJob(consent, createCheckinScheduleWriter());
     const durationMs = Date.now() - startTime;
 
     log.info({ ...result, durationMs }, 'Family check-in calls job completed');

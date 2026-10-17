@@ -285,7 +285,7 @@ export interface CheckinCallContext {
 // FIRESTORE PATHS
 // ============================================================================
 
-const CHECKIN_SCHEDULES_COLLECTION = 'family_checkin_schedules';
+export const CHECKIN_SCHEDULES_COLLECTION = 'family_checkin_schedules';
 const CHECKIN_CALLS_COLLECTION = 'family_checkin_calls';
 
 // ============================================================================

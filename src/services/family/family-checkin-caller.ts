@@ -29,6 +29,10 @@ import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deferredOutsideCallHours } from './checkin-call-hours.js';
 import { familyCallBlockReason, familyCheckinCallsOn } from './family-call-consent.js';
 import type { FamilyConsentStore } from './family-call-consent.js';
+import {
+  advanceScheduleAfterDial,
+  type CheckinScheduleWriter,
+} from './advance-checkin-schedule.js';
 
 const log = createLogger({ module: 'FamilyCheckinCaller' });
 
@@ -64,7 +68,8 @@ export interface SingleCallResult {
  * Called by Cloud Scheduler via /api/jobs/family-checkin-calls
  */
 export async function runFamilyCheckinJob(
-  consent?: FamilyConsentStore
+  consent?: FamilyConsentStore,
+  schedules?: CheckinScheduleWriter
 ): Promise<FamilyCheckinJobResult> {
   const startTime = Date.now();
   const result: FamilyCheckinJobResult = {
@@ -96,7 +101,7 @@ export async function runFamilyCheckinJob(
       result.schedulesProcessed++;
       if (await deferredOutsideCallHours(schedule, result)) continue;
       try {
-        const callResult = await initiateCheckinCall(schedule, consent);
+        const callResult = await initiateCheckinCall(schedule, consent, schedules);
 
         if (callResult.success) {
           result.callsInitiated++;
@@ -166,7 +171,8 @@ export async function runFamilyCheckinJob(
  */
 export async function initiateCheckinCall(
   schedule: FamilyCheckinSchedule,
-  consent?: FamilyConsentStore
+  consent?: FamilyConsentStore,
+  schedules?: CheckinScheduleWriter
 ): Promise<SingleCallResult> {
   try {
     // Test accounts never ring anyone; never dial emergency, premium or malformed numbers
@@ -176,6 +182,8 @@ export async function initiateCheckinCall(
     const identity = await getSponsoredIdentity(schedule.sponsoredIdentityId);
     const blocked = await familyCallBlockReason(schedule, identity, consent);
     if (blocked || !identity) return { success: false, error: blocked ?? 'No identity' };
+    // Without a way to move the schedule on, the next run would ring them again
+    if (!schedules) return { success: false, error: 'No schedule store' };
 
     // 2. Get recent call records for context
     const recentCalls = await getRecentCallRecords(schedule.sponsorUserId, schedule.id, 5);
@@ -209,6 +217,8 @@ export async function initiateCheckinCall(
       return { success: false, callId: callRecord.id, error: callResult.error };
     }
 
+    // Nothing reports a SIP call's end back here, so move the schedule on now
+    await advanceScheduleAfterDial(schedule, schedules);
     return { success: true, callId: callRecord.id, status: 'in_progress' };
   } catch (error) {
     log.error(
@@ -599,15 +609,3 @@ async function sendUrgentNotificationToSponsor(
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export const familyCheckinCaller = {
-  runJob: runFamilyCheckinJob,
-  initiateCall: initiateCheckinCall,
-  handleComplete: handleCheckinCallComplete,
-};
-
-export default familyCheckinCaller;
