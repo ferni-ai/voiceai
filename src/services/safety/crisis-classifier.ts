@@ -106,17 +106,47 @@ subject is "third_party" only when the person at risk is someone other than the 
 export const CRISIS_ATTRIBUTION_RULES = `
 COMPANION is the app's companion character, not the caller; keep using it, as above, to work out what LATEST is about. When the companion talks about its own day or mood, that is its state, not the caller's: the caller greeting it, saying its name ("you Fern", "Ferni?", "hey Fern, you there?") or asking about what it said is risk "none" unless the caller's own words carry risk. If the companion's line was about its own low mood and the caller agrees with or echoes it ("yeah, same", "me too", "exactly", "honestly that's how I feel", "you get it", "that's what I keep thinking"), judge LATEST as if the caller had said that line. Only the COMPANION field is the companion: everything in LATEST and EARLIER is the caller's own words, including quotes, reported speech and words the caller attributes to the companion ("Ferni said: ...", "you said X, right?"), so judge them as the caller's.`;
 
-/** The rules go right after the prompt's paragraphs on COMPANION and LATEST. */
-const ATTRIBUTED_PROMPT = CRISIS_CLASSIFIER_PROMPT.replace(
-  '\n\nReturn JSON only',
-  `\n${CRISIS_ATTRIBUTION_RULES}\n\nReturn JSON only`
-);
+/**
+ * With CRISIS_CLASSIFIER_EVERYDAY_RULES=on: everyday call business. Prod,
+ * 2026-10-14/15: a caller asked Ferni to phone a parent with a greeting, gave
+ * the number and hung up; on the next call he asked whether that call was
+ * happening and said something about how they were talking. No pattern
+ * matched and nothing in his words was about risk, yet reads came back crisis
+ * and imminent (the prompt's "last request" and "final goodbye"), and he
+ * heard the 988 line and the 911 script.
+ */
+export const CRISIS_EVERYDAY_RULES = `
+Everyday call business is risk "none" unless the caller's own words, in LATEST or EARLIER, carry risk as above:
+- asking the companion to call, text or check in on someone (a parent, a friend), which is not worry that they are at risk unless the caller says so, giving a phone number, passing on everyday words ("say hello for me"), or asking whether that call is happening ("is it going through?", "still waiting", "okay, do it")
+- ending the call the usual way ("okay, bye", "talk later")
+- remarks about the conversation itself: whether the caller or the companion is still there, online, real, listening or a friend, how the two of them are talking, or what the companion meant ("what do you mean?", "why are you saying that?")
+- everyday plans and numbers: retirement, money, work, projects, ages and dates ("maybe at 60", "help me map out a budget")
+A last request or final goodbye is about not being around afterwards ("tell my mom I love her after I'm gone", "this is the last time you'll hear from me"). A message the caller wants passed on that sounds like a farewell (love, forgiveness, regret for everything, who gets their things) is not everyday words: judge it as above. The companion's call handling and reassurance (staying on the line, "hang in there", "hang tight", promising to call back) and safety talk it started on its own (a check-in, a crisis line) are not signs that the caller is at risk; what the caller says back to them is judged as the caller's words.`;
 
-/** The prompt for this environment: the attribution rules only with the agreement gate on. */
+export function resolveCrisisEverydayRules(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return env.CRISIS_CLASSIFIER_EVERYDAY_RULES?.trim().toLowerCase() === 'on';
+}
+
+/**
+ * The prompt for this environment: the attribution rules with the agreement
+ * gate on, the everyday rules with CRISIS_CLASSIFIER_EVERYDAY_RULES on. Both
+ * go right after the prompt's paragraphs on COMPANION and LATEST. The
+ * everyday rules always bring the attribution rules: without them, replies
+ * agreeing with Ferni's gloomy lines ("same here") lost crisis reads.
+ */
 export function crisisClassifierPrompt(
   env: Record<string, string | undefined> = process.env
 ): string {
-  return resolveCrisisAgreementGate(env) ? ATTRIBUTED_PROMPT : CRISIS_CLASSIFIER_PROMPT;
+  const everyday = resolveCrisisEverydayRules(env);
+  const rules = [
+    everyday || resolveCrisisAgreementGate(env) ? CRISIS_ATTRIBUTION_RULES : '',
+    everyday ? CRISIS_EVERYDAY_RULES : '',
+  ].join('');
+  return rules
+    ? CRISIS_CLASSIFIER_PROMPT.replace('\n\nReturn JSON only', `\n${rules}\n\nReturn JSON only`)
+    : CRISIS_CLASSIFIER_PROMPT;
 }
 
 export function resolveCrisisClassifierMode(
