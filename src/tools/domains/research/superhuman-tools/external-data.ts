@@ -196,7 +196,7 @@ function getLocalEconomicData(location: string): LocalEconomicIndicators {
 
 export const getLocalEconomics = llm.tool({
   description:
-    'Get local economic conditions for your area. Housing market, job market, cost of living - contextualized for your location.',
+    'Talk about the economy in a city or area. Live local data (home prices, jobs, incomes) is not connected, so this says so and points to public sources instead of quoting figures.',
   parameters: z.object({
     location: z
       .string()
@@ -204,67 +204,13 @@ export const getLocalEconomics = llm.tool({
   }),
   execute: async (params: { location: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
-    log.info({ userId, location: params.location }, '🏙️ Getting local economics');
+    log.info({ userId, location: params.location }, '🏙️ Local economics requested; no live source');
 
-    const data = getLocalEconomicData(params.location);
-
+    const place = params.location?.trim() || 'your area';
     return [
-      `🏙️ **LOCAL ECONOMIC CONDITIONS: ${data.location.toUpperCase()}**`,
-      '',
-      `═══════════════════════════════════`,
-      `📊 **KEY INDICATORS**`,
-      `═══════════════════════════════════`,
-      '',
-      ...data.indicators.map((i) => {
-        const trendEmoji = i.trend === 'up' ? '📈' : i.trend === 'down' ? '📉' : '➡️';
-        return `${trendEmoji} **${i.name}:** ${typeof i.value === 'number' && i.value > 100 ? i.value.toLocaleString() : i.value}${typeof i.value === 'number' && i.value < 10 ? '%' : ''}\n   ${i.comparison}`;
-      }),
-      '',
-      `═══════════════════════════════════`,
-      `🏠 **HOUSING MARKET**`,
-      `═══════════════════════════════════`,
-      '',
-      `• Median Price: $${data.housingMarket.medianPrice.toLocaleString()}`,
-      `• YoY Change: ${data.housingMarket.priceChange > 0 ? '+' : ''}${data.housingMarket.priceChange}%`,
-      `• Inventory: ${data.housingMarket.inventory} months supply`,
-      `• Days on Market: ${data.housingMarket.daysOnMarket}`,
-      '',
-      data.housingMarket.inventory < 3
-        ? `⚠️ Seller's market - low inventory favors sellers`
-        : data.housingMarket.inventory > 6
-          ? `📉 Buyer's market - high inventory gives buyers leverage`
-          : `➡️ Balanced market`,
-      '',
-      `═══════════════════════════════════`,
-      `💼 **JOB MARKET**`,
-      `═══════════════════════════════════`,
-      '',
-      `• Unemployment: ${data.jobMarket.unemploymentRate}%`,
-      `• Job Growth: ${data.jobMarket.jobGrowth > 0 ? '+' : ''}${data.jobMarket.jobGrowth}%`,
-      `• Top Industries: ${data.jobMarket.topIndustries.join(', ')}`,
-      '',
-      `═══════════════════════════════════`,
-      `💡 **LOCAL INSIGHTS**`,
-      `═══════════════════════════════════`,
-      '',
-      ...data.insights.map((i) => `• ${i}`),
-      '',
-      `═══════════════════════════════════`,
-      `🎯 **WHAT THIS MEANS FOR YOU**`,
-      `═══════════════════════════════════`,
-      '',
-      data.housingMarket.priceChange < 0
-        ? `• Housing: Prices falling - patience may pay off for buyers`
-        : `• Housing: Prices rising - factor into your timeline`,
-      data.jobMarket.jobGrowth > 2
-        ? `• Jobs: Strong market - good time for career moves`
-        : data.jobMarket.jobGrowth < 0
-          ? `• Jobs: Contracting market - strengthen your position`
-          : `• Jobs: Stable market - steady employment conditions`,
-      '',
-      `**Peter's Take:**`,
-      `Local conditions matter more than national headlines.`,
-      `Your career, housing, and financial decisions should account for YOUR market.`,
+      `I can't look up live economic data for ${place} right now, so I won't quote home prices, job numbers or incomes there.`,
+      `For current figures, the Bureau of Labor Statistics (bls.gov) has local unemployment and wages, the Census Bureau (data.census.gov) has incomes, and a listings site shows recent home sales.`,
+      `What I can do is help you think through how a move, a job change or a home purchase fits your own numbers.`,
     ].join('\n');
   },
 });
@@ -623,72 +569,18 @@ function getNewsSentiment(topic: string): NewsSentiment {
 
 export const analyzeNewsSentiment = llm.tool({
   description:
-    'Analyze news sentiment on any topic. See if coverage is positive/negative and trending up/down. Useful for timing decisions.',
+    'Talk about news coverage of a topic. Live news is not connected, so this says it cannot score current coverage instead of guessing whether it is positive or negative.',
   parameters: z.object({
     topic: z.string().describe('Topic to analyze (e.g., "economy", "AI", "housing", "crypto")'),
   }),
   execute: async (params: { topic: string }, { ctx }: { ctx: unknown }) => {
     const userId = getUserIdFromContext(ctx);
-    log.info({ userId, topic: params.topic }, '📰 Analyzing news sentiment');
+    log.info({ userId, topic: params.topic }, '📰 News sentiment requested; no live source');
 
-    const data = getNewsSentiment(params.topic);
-
-    const sentimentBar = (score: number) => {
-      const normalized = (score + 1) / 2; // Convert -1 to 1 → 0 to 1
-      const filled = Math.round(normalized * 10);
-      return (
-        '░'.repeat(5 - Math.min(5, Math.max(0, 5 - filled))) +
-        '█'.repeat(Math.min(10, Math.max(0, filled))) +
-        '░'.repeat(Math.max(0, 5 - filled))
-      );
-    };
-
-    const sentimentLabel =
-      data.sentimentScore > 0.3 ? 'POSITIVE' : data.sentimentScore < -0.3 ? 'NEGATIVE' : 'NEUTRAL';
-    const sentimentEmoji =
-      data.sentimentScore > 0.3 ? '🟢' : data.sentimentScore < -0.3 ? '🔴' : '🟡';
-
+    const topic = params.topic?.trim() || 'that topic';
     return [
-      `📰 **NEWS SENTIMENT ANALYSIS: ${data.topic.toUpperCase()}**`,
-      '',
-      `Period: ${data.period}`,
-      '',
-      `═══════════════════════════════════`,
-      `${sentimentEmoji} **SENTIMENT: ${sentimentLabel}**`,
-      `═══════════════════════════════════`,
-      '',
-      `Score: ${data.sentimentScore > 0 ? '+' : ''}${(data.sentimentScore * 100).toFixed(0)}%`,
-      `Negative ▓${sentimentBar(data.sentimentScore)}▓ Positive`,
-      '',
-      `Trend: ${data.sentimentTrend === 'improving' ? '📈 Improving' : data.sentimentTrend === 'declining' ? '📉 Declining' : '➡️ Stable'}`,
-      `Volume: ${data.volumeTrend === 'increasing' ? '📈 More coverage' : data.volumeTrend === 'decreasing' ? '📉 Less coverage' : '➡️ Stable'}`,
-      '',
-      `═══════════════════════════════════`,
-      `📋 **KEY NARRATIVES**`,
-      `═══════════════════════════════════`,
-      '',
-      ...data.keyNarratives.map((n) => `• ${n}`),
-      '',
-      `═══════════════════════════════════`,
-      `🎯 **SENTIMENT DRIVERS**`,
-      `═══════════════════════════════════`,
-      '',
-      ...data.sentimentDrivers.map((d) => `• ${d}`),
-      '',
-      `═══════════════════════════════════`,
-      `💡 **WHAT THIS MEANS**`,
-      `═══════════════════════════════════`,
-      '',
-      data.sentimentTrend === 'improving'
-        ? `Sentiment is improving. May not yet be reflected in prices/behavior.`
-        : data.sentimentTrend === 'declining'
-          ? `Sentiment is deteriorating. Caution warranted.`
-          : `Sentiment is stable. Current expectations likely priced in.`,
-      '',
-      `**Peter's Take:**`,
-      `News sentiment is a lagging indicator of reality but a leading indicator of behavior.`,
-      `When everyone is negative, opportunities often emerge.`,
-      `When everyone is positive, risks often hide.`,
+      `I can't read current news right now, so I can't tell you whether coverage of ${topic} is positive or negative, or which way it's moving.`,
+      `I'm glad to talk through what you've been reading about it and how it affects your plans.`,
     ].join('\n');
   },
 });
@@ -699,7 +591,7 @@ export const analyzeNewsSentiment = llm.tool({
 
 export const recordSpending = llm.tool({
   description:
-    'Record spending data to calculate your personal inflation rate. Track how YOUR costs compare to official CPI.',
+    'Record a spending entry (category and amount) so the user can see a summary of their own spending by category.',
   parameters: z.object({
     category: z
       .enum([
@@ -754,7 +646,7 @@ export const recordSpending = llm.tool({
       '',
       `${params.category} this month: $${categoryTotal.toFixed(2)}`,
       '',
-      `Track more spending to calculate your personal inflation rate!`,
+      `Keep recording and I can show you where your money goes by category.`,
     ]
       .filter(Boolean)
       .join('\n');
@@ -763,7 +655,7 @@ export const recordSpending = llm.tool({
 
 export const calculatePersonalInflation = llm.tool({
   description:
-    'Calculate YOUR personal inflation rate vs official CPI. See how your actual cost increases compare to government statistics.',
+    'Summarize the spending the user has recorded in the last 30 days by category. Live inflation data is not connected, so this does not compute a personal inflation rate or compare against CPI.',
   parameters: z.object({
     monthlyIncome: z.number().optional().describe('Your monthly income (for context)'),
   }),
@@ -772,138 +664,39 @@ export const calculatePersonalInflation = llm.tool({
     if (!userId) return 'I need to know who you are.';
 
     const userSpending = spendingStore.get(userId) || [];
-
-    // Get spending from last 30 days
     const recentSpending = userSpending.filter(
       (s) => Date.now() - s.date.getTime() < 30 * 24 * 60 * 60 * 1000
     );
 
-    if (recentSpending.length < 10) {
+    const unavailable = `I can't look up current inflation rates right now, so I can't give you a personal inflation rate or compare it with CPI.`;
+
+    if (recentSpending.length === 0) {
       return [
-        `📊 **PERSONAL INFLATION CALCULATOR**`,
-        '',
-        `⚠️ **Need more data**`,
-        '',
-        `You have ${recentSpending.length} spending records this month.`,
-        `I need at least 10 to calculate meaningful inflation.`,
-        '',
-        `**Track your spending:**`,
-        `• Housing (rent/mortgage)`,
-        `• Food (groceries & dining)`,
-        `• Transportation (gas, maintenance, transit)`,
-        `• Utilities (electric, water, internet)`,
-        `• Healthcare`,
-        '',
-        `Say "Record spending: [category] [amount]" to add data.`,
+        unavailable,
+        `You haven't recorded any spending in the last 30 days. Tell me a category and an amount, like "groceries, 120 dollars", and I'll keep track.`,
       ].join('\n');
     }
 
-    // Calculate spending by category
     const byCategory: Record<string, number> = {};
     for (const s of recentSpending) {
       byCategory[s.category] = (byCategory[s.category] || 0) + s.amount;
     }
-
     const totalSpending = Object.values(byCategory).reduce((a, b) => a + b, 0);
-
-    // Simulated category-level inflation rates (would use BLS data in production)
-    const categoryInflation: Record<string, number> = {
-      housing: 5.2,
-      food: 3.8,
-      transportation: 1.2,
-      healthcare: 4.5,
-      utilities: 3.1,
-      entertainment: 2.8,
-      education: 4.2,
-      childcare: 6.1,
-      clothing: 1.5,
-      other: 3.0,
-    };
-
-    // Calculate weighted personal inflation
-    let personalInflation = 0;
-    const categoryBreakdown: {
-      category: string;
-      weight: number;
-      inflation: number;
-      contribution: number;
-    }[] = [];
-
-    for (const [category, amount] of Object.entries(byCategory)) {
-      const weight = amount / totalSpending;
-      const inflation = categoryInflation[category] || 3.0;
-      const contribution = weight * inflation;
-      personalInflation += contribution;
-
-      categoryBreakdown.push({
-        category,
-        weight: weight * 100,
-        inflation,
-        contribution,
-      });
-    }
-
-    // Sort by contribution
-    categoryBreakdown.sort((a, b) => b.contribution - a.contribution);
-
-    const officialCPI = 3.2;
-    const difference = personalInflation - officialCPI;
+    const breakdown = Object.entries(byCategory)
+      .sort(([, a], [, b]) => b - a)
+      .map(
+        ([category, amount]) =>
+          `• ${category}: $${amount.toFixed(2)} (${totalSpending > 0 ? Math.round((amount / totalSpending) * 100) : 0}% of what you recorded)`
+      );
 
     return [
-      `📊 **YOUR PERSONAL INFLATION RATE**`,
-      '',
-      `═══════════════════════════════════`,
-      `📈 **YOUR RATE: ${personalInflation.toFixed(1)}%**`,
-      `═══════════════════════════════════`,
-      '',
-      `Official CPI: ${officialCPI}%`,
-      `Your rate: ${personalInflation.toFixed(1)}%`,
-      `Difference: ${difference > 0 ? '+' : ''}${difference.toFixed(1)}%`,
-      '',
-      difference > 1
-        ? `⚠️ Your inflation is HIGHER than average. Your costs are rising faster than most.`
-        : difference < -1
-          ? `✅ Your inflation is LOWER than average. You're beating inflation.`
-          : `➡️ Your inflation is close to average.`,
-      '',
-      `═══════════════════════════════════`,
-      `📋 **BREAKDOWN BY CATEGORY**`,
-      `═══════════════════════════════════`,
-      '',
-      ...categoryBreakdown.map(
-        (c) =>
-          `**${c.category.charAt(0).toUpperCase() + c.category.slice(1)}**\n` +
-          `• Your weight: ${c.weight.toFixed(0)}% of spending\n` +
-          `• Category inflation: ${c.inflation}%\n` +
-          `• Contribution: ${c.contribution.toFixed(2)}%\n`
-      ),
-      `═══════════════════════════════════`,
-      `🎯 **BIGGEST INFLATION DRIVERS**`,
-      `═══════════════════════════════════`,
-      '',
-      ...categoryBreakdown
-        .slice(0, 3)
-        .map((c, i) => `${i + 1}. ${c.category} (${c.contribution.toFixed(1)}% contribution)`),
-      '',
-      `═══════════════════════════════════`,
-      `💡 **HEDGING STRATEGIES**`,
-      `═══════════════════════════════════`,
-      '',
-      categoryBreakdown[0].category === 'housing'
-        ? `• Housing: Fixed-rate mortgage locks in costs. Renting exposes you to rent inflation.`
+      unavailable,
+      `Here's what you've recorded over the last 30 days: $${totalSpending.toFixed(2)} across ${recentSpending.length} entries.`,
+      ...breakdown,
+      params.monthlyIncome !== undefined && params.monthlyIncome > 0
+        ? `That's about ${Math.round((totalSpending / params.monthlyIncome) * 100)}% of the monthly income you mentioned.`
         : '',
-      categoryBreakdown.find((c) => c.category === 'food')
-        ? `• Food: Meal planning and bulk buying can reduce impact.`
-        : '',
-      categoryBreakdown.find((c) => c.category === 'healthcare')
-        ? `• Healthcare: HSA contributions hedge against future costs.`
-        : '',
-      '',
-      `**Peter's Take:**`,
-      `Official CPI doesn't reflect YOUR life.`,
-      `Wealthy people with paid-off houses experience low inflation.`,
-      `Young renters in cities experience much higher inflation.`,
-      `Know YOUR number, not the government's.`,
+      `Keep recording and I'll keep this summary up to date.`,
     ]
       .filter(Boolean)
       .join('\n');
