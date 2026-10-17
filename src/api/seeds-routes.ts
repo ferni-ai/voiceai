@@ -13,7 +13,8 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import admin from 'firebase-admin';
+import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { getUserId, parseBody, sendJSON, sendError } from './helpers.js';
@@ -76,28 +77,16 @@ interface UserSeeds {
 // FIRESTORE
 // =============================================================================
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) return firestoreInstance;
   if (initAttempted) return null;
   initAttempted = true;
 
   try {
-    const { apps } = admin;
-    if (!apps || apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firebase not available for seeds routes');
@@ -154,10 +143,7 @@ function getGardenTitle(referralCount: number): UserSeeds['gardenTitle'] {
   return 'seedling';
 }
 
-async function getOrCreateUserSeeds(
-  db: admin.firestore.Firestore,
-  userId: string
-): Promise<UserSeeds> {
+async function getOrCreateUserSeeds(db: Firestore, userId: string): Promise<UserSeeds> {
   const userSeedsRef = db.collection('user_seeds').doc(userId);
   const doc = await userSeedsRef.get();
 
@@ -198,7 +184,7 @@ async function getOrCreateUserSeeds(
   }
 
   // Create new user
-  const now = admin.firestore.Timestamp.now();
+  const now = Timestamp.now();
   const newUser: Omit<UserSeeds, 'userId' | 'ownedCosmetics'> = {
     balance: STARTER_SEEDS,
     lifetimeEarned: STARTER_SEEDS,
@@ -381,7 +367,7 @@ export async function handleSeedsRoutes(
           });
           tx.set(
             sender.accountRef,
-            { lifetimePlanted: admin.firestore.FieldValue.increment(amount) },
+            { lifetimePlanted: FieldValue.increment(amount) },
             { merge: true }
           );
           return {
@@ -461,7 +447,7 @@ export async function handleSeedsRoutes(
         tx.set(
           referrer.accountRef,
           {
-            referrals: admin.firestore.FieldValue.arrayUnion(userId),
+            referrals: FieldValue.arrayUnion(userId),
             gardenTitle: getGardenTitle(new Set(referrals).size),
           },
           { merge: true }
