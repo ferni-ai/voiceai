@@ -74,7 +74,7 @@ describe('panel methods use the authenticated API', () => {
     apiGet.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      data: { memories: [{ id: 'm1' }], patterns: [], totalInteractions: 7, knowledgeScore: 40 },
+      data: { memories: [{ id: 'm1' }], patterns: [], totalInteractions: 7 },
     });
 
     await panels.showCognitiveInsights();
@@ -84,7 +84,6 @@ describe('panel methods use the authenticated API', () => {
       memories: [{ id: 'm1' }],
       patterns: [],
       totalInteractions: 7,
-      knowledgeScore: 40,
     });
   });
 

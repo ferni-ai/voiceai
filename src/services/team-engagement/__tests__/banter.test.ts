@@ -1,14 +1,14 @@
 /**
  * Banter System Tests
  *
- * Tests for complete coverage of HANDOFF_BANTER and ARRIVING_BANTER.
+ * Tests for complete coverage of HANDOFF_BANTER and ARRIVING_OPENERS.
  * Ensures all persona combinations have banter for delightful handoffs.
  */
 
 import { describe, expect, it } from 'vitest';
 import {
   HANDOFF_BANTER,
-  ARRIVING_BANTER,
+  ARRIVING_OPENERS,
   CROSS_PERSONA_REFERENCES,
   getHandoffBanter,
   getArrivingBanter,
@@ -71,44 +71,34 @@ describe('Banter System', () => {
     });
   });
 
-  describe('ARRIVING_BANTER Coverage', () => {
-    it('should have arriving banter for Ferni from all team members', () => {
-      for (const source of TEAM_MEMBER_IDS) {
-        expect(ARRIVING_BANTER.ferni[source]).toBeDefined();
-        expect(ARRIVING_BANTER.ferni[source].length).toBeGreaterThanOrEqual(3);
+  describe('ARRIVING_OPENERS Coverage', () => {
+    it('gives every persona and legend at least 3 openers, from any teammate', () => {
+      for (const id of [...PERSONA_IDS, 'john-bogle', 'peter-lynch', 'joel-dickson']) {
+        expect(ARRIVING_OPENERS[id]?.length, id).toBeGreaterThanOrEqual(3);
+        for (const from of PERSONA_IDS)
+          expect(getArrivingBanter(id, from), `${id} <- ${from}`).toBeTruthy();
       }
     });
 
-    it('should have arriving banter for all team members from Ferni', () => {
-      for (const target of TEAM_MEMBER_IDS) {
-        expect(ARRIVING_BANTER[target].ferni).toBeDefined();
-        expect(ARRIVING_BANTER[target].ferni.length).toBeGreaterThanOrEqual(3);
-      }
-    });
-
-    it('should have complete peer-to-peer arriving banter coverage', () => {
-      const missing: string[] = [];
-
-      for (const to of TEAM_MEMBER_IDS) {
-        for (const from of TEAM_MEMBER_IDS) {
-          if (from === to) continue;
-          if (!ARRIVING_BANTER[to]?.[from] || ARRIVING_BANTER[to][from].length === 0) {
-            missing.push(`${to} <- ${from}`);
-          }
-        }
-      }
-
-      // All ARRIVING_BANTER combinations must be present
-      expect(missing).toHaveLength(0);
-    });
-
-    it('should have at least 3 variations per combination', () => {
-      for (const to of PERSONA_IDS) {
-        const toBanter = ARRIVING_BANTER[to];
-        if (!toBanter) continue;
-
-        for (const [from, banterList] of Object.entries(toBanter)) {
-          expect(banterList.length).toBeGreaterThanOrEqual(3);
+    it('opens each teammate in their own voice, never the shared "Hey there!"', () => {
+      const firstWords = (line: string) =>
+        line
+          .replace(/<[^>]+>/g, '')
+          .toLowerCase()
+          .split(/\s+/)
+          .slice(0, 2)
+          .join(' ');
+      const owner = new Map<string, string>();
+      for (const [id, openers] of Object.entries(ARRIVING_OPENERS)) {
+        for (const line of openers) {
+          expect(line, id).not.toMatch(/^hey there/i);
+          const start = firstWords(line);
+          const other = owner.get(start);
+          expect(
+            other === undefined || other === id,
+            `${id} and ${other} both open "${start}"`
+          ).toBe(true);
+          owner.set(start, id);
         }
       }
     });
@@ -128,7 +118,7 @@ describe('Banter System', () => {
     it('should not contain placeholder text', () => {
       const allBanter = [
         ...Object.values(HANDOFF_BANTER).flatMap((t) => Object.values(t).flat()),
-        ...Object.values(ARRIVING_BANTER).flatMap((t) => Object.values(t).flat()),
+        ...Object.values(ARRIVING_OPENERS).flat(),
       ];
 
       for (const banter of allBanter) {
@@ -146,8 +136,8 @@ describe('Banter System', () => {
 
       // Arriving banter is the NEW persona greeting - doesn't mention previous persona
       // (e.g., Alex says "Hey! I'm here to help" not "Ferni sent me")
-      const alexFromFerni = ARRIVING_BANTER['alex-chen'].ferni;
-      expect(alexFromFerni.every((b) => typeof b === 'string' && b.length > 0)).toBe(true);
+      const alexOpeners = ARRIVING_OPENERS['alex-chen'];
+      expect(alexOpeners.every((b) => typeof b === 'string' && b.length > 0)).toBe(true);
     });
 
     it('should have distinct personality per persona', () => {
@@ -330,36 +320,6 @@ describe('Banter System', () => {
 
       const coverage = (covered / total) * 100;
       // HANDOFF_BANTER Coverage must be 100%
-      expect(coverage).toBe(100);
-    });
-
-    it('should have 100% ARRIVING_BANTER coverage', () => {
-      let total = 0;
-      let covered = 0;
-
-      // Ferni ← all team members
-      for (const source of TEAM_MEMBER_IDS) {
-        total++;
-        if (ARRIVING_BANTER.ferni?.[source]?.length > 0) covered++;
-      }
-
-      // All team members ← Ferni
-      for (const target of TEAM_MEMBER_IDS) {
-        total++;
-        if (ARRIVING_BANTER[target]?.ferni?.length > 0) covered++;
-      }
-
-      // Peer-to-peer
-      for (const to of TEAM_MEMBER_IDS) {
-        for (const from of TEAM_MEMBER_IDS) {
-          if (from === to) continue;
-          total++;
-          if (ARRIVING_BANTER[to]?.[from]?.length > 0) covered++;
-        }
-      }
-
-      const coverage = (covered / total) * 100;
-      // ARRIVING_BANTER Coverage must be 100%
       expect(coverage).toBe(100);
     });
   });

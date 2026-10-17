@@ -18,6 +18,9 @@
   <!-- Styles -->
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/persona-tone.css">
+  
+  <link rel="stylesheet" href="/css/persona-detail.css">
   
   
   
@@ -49,7 +52,7 @@
     
     <ul class="nav-links">
       <li><a href="/" >Browse</a></li>
-      <li><a href="/categories/" >Categories</a></li>
+      <li><a href="/pages/categories/" >Categories</a></li>
       <li><a href="https://app.ferni.ai" class="nav-cta-link">My Team</a></li>
     </ul>
     
@@ -66,7 +69,7 @@
 
 
 <!-- Hero -->
-<section class="persona-detail-hero" style="--persona-color: #D4A373; --persona-secondary: #A67B5B;">
+<section class="persona-detail-hero persona-tone-light" style="--persona-color: #D4A373; --persona-secondary: #A67B5B;">
   <div class="container">
     <div class="persona-detail-content">
       <div class="persona-detail-avatar">
@@ -87,7 +90,7 @@
         <h1>Carmen</h1>
         <p class="persona-detail-tagline">Parenting Partner</p>
         <div class="persona-detail-meta">
-          <span>by Ferni Labs</span>
+          <span>by Ferni</span>
         </div>
         <div class="persona-detail-actions">
           <a href="https://app.ferni.ai" class="btn btn-add-team btn-lg">
@@ -116,7 +119,7 @@
 <!-- Main Content -->
 <section class="section">
   <div class="container">
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-8); align-items: start;">
+    <div class="persona-detail-layout">
 
       <!-- Left Column -->
       <div>
@@ -138,7 +141,7 @@
         <!-- What Carmen Helps With -->
         <div style="margin-bottom: var(--space-12);">
           <h2 style="margin-bottom: var(--space-4);">What I Help With</h2>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4);">
+          <div class="persona-help-grid">
             <div style="background: var(--bg-elevated); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
               <h4 style="margin-bottom: var(--space-2);">Child Development</h4>
               <p style="font-size: var(--text-sm); color: var(--text-muted);">
@@ -246,27 +249,18 @@
           <div style="display: flex; align-items: center; gap: var(--space-3);">
             <div style="width: 48px; height: 48px; background: var(--accent-primary); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">F</div>
             <div>
-              <div style="font-weight: 600;">Ferni Labs</div>
-              <div style="font-size: var(--text-sm); color: var(--success); display: flex; align-items: center; gap: var(--space-1);">
-                
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-  <path d="m9 12 2 2 4-4"/>
-</svg>
-
-                Verified Publisher
-              </div>
+              <div style="font-weight: 600;">Ferni</div>
             </div>
           </div>
         </div>
 
         <!-- CTA -->
-        <div style="background: linear-gradient(135deg, #D4A373, #A67B5B); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
+        <div class="persona-cta-card persona-tone-light" style="--cta-from: #D4A373; --cta-to: #A67B5B;">
           <h3 style="margin-bottom: var(--space-2); color: white;">Ready to get started?</h3>
-          <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
+          <p>
             Your village is waiting
           </p>
-          <a href="https://app.ferni.ai" class="btn" style="background: white; color: #A67B5B; width: 100%;">
+          <a href="https://app.ferni.ai" class="btn persona-cta-btn">
             Add to Team
           </a>
         </div>
@@ -285,7 +279,7 @@
     </div>
 
     <div class="persona-grid" style="max-width: 900px; margin: 0 auto;">
-      <a href="/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
+      <a href="/pages/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">E</span>
@@ -301,7 +295,7 @@
         </div>
       </a>
 
-      <a href="/persona/kenji/" class="persona-card" style="--persona-color: #2C3E50; --persona-secondary: #1A252F;">
+      <a href="/pages/persona/kenji/" class="persona-card" style="--persona-color: #2C3E50; --persona-secondary: #1A252F;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">K</span>
@@ -317,7 +311,7 @@
         </div>
       </a>
 
-      <a href="/persona/sasha/" class="persona-card" style="--persona-color: #E07B53; --persona-secondary: #B85C3C;">
+      <a href="/pages/persona/sasha/" class="persona-card persona-tone-light" style="--persona-color: #E07B53; --persona-secondary: #B85C3C;">
         <div class="persona-header">
           <div class="persona-avatar">
             <span class="persona-initial">S</span>
@@ -358,7 +352,7 @@
         <h4>Explore</h4>
         <ul class="footer-links">
           <li><a href="/">All Personas</a></li>
-          <li><a href="/categories/">Categories</a></li>
+          <li><a href="/pages/categories/">Categories</a></li>
         </ul>
       </div>
 
@@ -366,8 +360,8 @@
         <h4>For Publishers</h4>
         <ul class="footer-links">
           <li><a href="https://developers.ferni.ai">Developer Portal</a></li>
-          <li><a href="https://developers.ferni.ai/pages/getting-started/">Create a Persona</a></li>
-          <li><a href="https://developers.ferni.ai/pages/api/">API Reference</a></li>
+          <li><a href="https://developers.ferni.ai/getting-started/">Create a Persona</a></li>
+          <li><a href="https://developers.ferni.ai/api/">API Reference</a></li>
         </ul>
       </div>
       

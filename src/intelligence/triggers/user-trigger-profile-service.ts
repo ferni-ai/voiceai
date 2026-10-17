@@ -28,6 +28,7 @@ import {
   TriggerEffectiveness,
   DEFAULT_USER_TRIGGER_PROFILE,
 } from './user-trigger-profile.types.js';
+import { daysUntilRecurringDate } from './temporal-pattern-detector.js';
 
 const log = createLogger({ module: 'user-trigger-profile-service' });
 
@@ -562,7 +563,7 @@ export class UserTriggerProfileService {
     }
 
     const profile: UserTriggerProfile = {
-      ...DEFAULT_USER_TRIGGER_PROFILE,
+      ...structuredClone(DEFAULT_USER_TRIGGER_PROFILE),
       userId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -773,19 +774,17 @@ export class UserTriggerProfileService {
     return Math.min(1, confidence);
   }
 
+  /** Whole calendar days from today, so a date that falls today is 0 (not -1, or next year) */
   private getDaysUntilDate(date: SignificantDate, now: Date): number {
-    if (!date.isRecurring) {
-      const target = new Date(date.date);
-      return Math.floor((target.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
-    }
+    if (date.isRecurring) return daysUntilRecurringDate(date, now);
 
-    // For recurring dates, find the next occurrence
-    const [, month, day] = date.date.split('-').map(Number);
-    const thisYear = new Date(now.getFullYear(), month - 1, day);
-    const nextYear = new Date(now.getFullYear() + 1, month - 1, day);
-
-    const target = thisYear >= now ? thisYear : nextYear;
-    return Math.floor((target.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    // A date-only string is a local day; new Date('YYYY-MM-DD') would read it as UTC midnight
+    const target = new Date(
+      /^\d{4}-\d{2}-\d{2}$/.test(date.date) ? `${date.date}T00:00` : date.date
+    );
+    const startOfDay = (d: Date): number =>
+      new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    return Math.round((startOfDay(target) - startOfDay(now)) / (24 * 60 * 60 * 1000));
   }
 
   private formatDateContext(date: SignificantDate, daysUntil: number): string {

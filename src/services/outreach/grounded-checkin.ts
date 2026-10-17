@@ -15,15 +15,18 @@
  *   you" (PR 898 flagged that phrase becoming a tic).
  *
  * Pure: the Firestore reads live in proactive-channels/pondered-triggers.ts.
- * Off unless OUTREACH_GROUNDED_CHECKINS=on.
+ * On by default; OUTREACH_GROUNDED_CHECKINS=off brings back the generic
+ * daily check-ins (kill switch only, not a recommended setting).
  *
  * @module services/outreach/grounded-checkin
  */
 
+import { flagOn } from '../../config/env-flag.js';
+
 export function isGroundedCheckInsOn(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return env.OUTREACH_GROUNDED_CHECKINS === 'on';
+  return flagOn('OUTREACH_GROUNDED_CHECKINS', env);
 }
 
 /**
@@ -31,7 +34,7 @@ export function isGroundedCheckInsOn(
  * picks is generic: nothing the user said backs it up, and in production it is
  * the same "Thinking of you. How are things going?" for everyone. With grounded
  * check-ins on, only the proactive run's quote-backed follow-ups reach out
- * (proactive-channels/pondered-triggers.ts).
+ * (proactive-channels/pondered-triggers.ts, behind OUTREACH_PONDERED_NOTES).
  */
 export function blocksGenericCheckIns(
   env: Record<string, string | undefined> = process.env

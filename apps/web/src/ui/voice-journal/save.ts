@@ -7,6 +7,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { apiPost } from '../../utils/api.js';
 import { addMemory, listMemories } from '../../services/custom-agent.service.js';
 import { t } from '../../i18n/index.js';
 import {
@@ -56,46 +57,19 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
     // Convert blob to base64 for API
     const audioBase64 = await blobToBase64(audioBlob);
 
-    // Transcribe the audio
-    let transcript = '';
-    let transcriptionFailed = false;
-    
-    try {
-      const response = await fetch('/api/journal/transcribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          audioBase64,
-          mimeType: audioBlob.type || 'audio/webm',
-        }),
-      });
-
-      if (response.ok) {
-        const result = (await response.json()) as { transcript: string; success: boolean };
-        if (result.success && result.transcript) {
-          transcript = result.transcript;
-        } else {
-          // API returned but transcription was unsuccessful
-          transcriptionFailed = true;
-          log.warn('Transcription returned empty or unsuccessful');
-        }
-      } else {
-        // API error (non-200 response)
-        transcriptionFailed = true;
-        log.warn('Transcription API returned:', response.status);
-      }
-    } catch (transcribeError) {
-      // Network error or other failure
-      transcriptionFailed = true;
-      log.warn('Transcription failed:', transcribeError);
+    // The audio itself is never uploaded, so the words are the entry. Without
+    // them nothing is saved: no "[Voice recording - N seconds]" stand-in.
+    const transcript = await transcribe(audioBase64, audioBlob.type || 'audio/webm');
+    if (typeof transcript !== 'string') {
+      const tooLong = transcript?.tooLongMinutes;
+      toast.warning(
+        tooLong
+          ? t('toasts.journalTooLong', { count: tooLong })
+          : t('toasts.transcriptionUnavailable')
+      );
+      return;
     }
 
-    // Notify user if transcription failed but we're still saving
-    if (transcriptionFailed) {
-      toast.warning(t('toasts.transcriptionUnavailable'));
-    }
-
-    // Build entry content
     let content = '';
     const currentPrompt = getCurrentPrompt();
     const recordingDuration = getRecordingDuration();
@@ -104,13 +78,7 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
     if (currentPrompt) {
       content += `Prompt: "${currentPrompt.prompt}"\n\n`;
     }
-
-    // Add transcript or placeholder
-    if (transcript) {
-      content += transcript;
-    } else {
-      content += `[Voice recording - ${recordingDuration} seconds]`;
-    }
+    content += transcript;
 
     const mood = getSelectedMood();
 
@@ -120,8 +88,6 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
       mood,
       transcript, // Store transcript separately for analysis
       durationSeconds: recordingDuration,
-      transcriptionFailed, // Track if transcription was unavailable
-      // audioUrl would be set after uploading to storage
     });
 
     // Reload entries
@@ -145,20 +111,45 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
     setCurrentPrompt(newPrompt);
     renderPromptSection();
 
-    // Show appropriate success message
-    if (transcriptionFailed) {
-      toast.success(t('toasts.audioSaved'));
-    } else {
-      toast.success(t('toasts.entrySaved'));
-    }
-    
+    toast.success(t('toasts.entrySaved'));
+
     // 🤲 Sidekick: Dispatch journal entry event for avatar sidekick
-    document.dispatchEvent(new CustomEvent('ferni:journal-entry', {
-      detail: { mood, hasTranscript: !transcriptionFailed, durationSeconds: recordingDuration }
-    }));
+    document.dispatchEvent(
+      new CustomEvent('ferni:journal-entry', {
+        detail: { mood, hasTranscript: true, durationSeconds: recordingDuration },
+      })
+    );
   } catch (error) {
     log.error('Failed to save entry:', error);
     toast.error("Couldn't save entry. Try again?");
   }
 }
 
+// ============================================================================
+// TRANSCRIBE
+// ============================================================================
+
+/** The server's stand-in when it has no speech-to-text provider. Never an entry. */
+const UNAVAILABLE = '[Transcription unavailable]';
+
+/**
+ * Transcribe through the authenticated helper (a bare fetch got 401 on prod).
+ * Returns the words; or, when there are none to keep, the clip cap if it was too long.
+ */
+async function transcribe(
+  audioBase64: string,
+  mimeType: string
+): Promise<string | { tooLongMinutes?: number }> {
+  const response = await apiPost<{ transcript?: string; success?: boolean; maxMinutes?: number }>(
+    '/api/journal/transcribe',
+    { audioBase64, mimeType },
+    // One try: re-sending a whole recording on a 5xx is not worth the wait.
+    { maxRetries: 0, timeout: 60000 }
+  );
+  const words = response.data?.transcript?.trim() ?? '';
+  if (!response.ok || response.data?.success !== true || !words || words === UNAVAILABLE) {
+    log.warn('No transcript, nothing saved:', response.status, response.error);
+    return response.status === 413 ? { tooLongMinutes: response.data?.maxMinutes ?? 10 } : {};
+  }
+  return words;
+}

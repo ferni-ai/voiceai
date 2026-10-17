@@ -10,8 +10,8 @@
  * 3. Streaming: Start TTS on first LLM chunk, don't wait for complete response
  * 4. Cache: Keep frequently used phrases in audio form
  *
- * SPECULATIVE_TTS=off skips the warmup and pre-renders: the live reply path
- * (gateway TTS) never reads this cache (0 hits on dev, 2026-10-11).
+ * Off by default; SPECULATIVE_TTS=on runs the warmup and pre-renders. The live
+ * reply path (gateway TTS) never reads this cache (0 hits on dev, 2026-10-11).
  * @module agents/shared/performance/speculative-tts
  */
 
@@ -19,7 +19,7 @@ import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
-import { CARTESIA_MODEL } from '../../config/voice-ids.js';
+import { CARTESIA_API_VERSION, CARTESIA_MODEL } from '../../config/voice-ids.js';
 import { resolveSpeculativeVoiceId } from './speculative-voice.js';
 
 // Note: This file was moved from agents/shared/performance/ to services/performance/
@@ -33,8 +33,6 @@ const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 // ============================================================================
 
 const CARTESIA_API_URL = 'https://api.cartesia.ai/tts/bytes';
-const CARTESIA_API_VERSION = '2024-06-10';
-// CARTESIA_MODEL imported from config/voice-ids.ts for consistency
 
 /**
  * Get Cartesia API key from environment
@@ -684,10 +682,7 @@ class SpeculativeTTSEngine {
         body: JSON.stringify({
           model_id: CARTESIA_MODEL,
           transcript: plainText, // Use stripped text
-          voice: {
-            mode: 'id',
-            id: resolvedVoiceId,
-          },
+          voice: { mode: 'id', id: resolvedVoiceId },
           output_format: {
             container: 'raw',
             encoding: 'pcm_s16le',

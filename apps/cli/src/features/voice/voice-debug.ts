@@ -23,7 +23,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = findProjectRoot();
 
 // Load environment
-dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
+dotenvConfig({ path: join(PROJECT_ROOT, '.env'), quiet: true });
 
 // ============================================================================
 // COLORS & FORMATTING
@@ -196,11 +196,11 @@ async function callCartesia(
     method: 'POST',
     headers: {
       'X-API-Key': apiKey,
-      'Cartesia-Version': '2024-06-10',
+      'Cartesia-Version': '2026-08-14',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model_id: 'sonic-english',
+      model_id: 'sonic-3.6-2026-08-27',
       transcript: text,
       voice: {
         mode: 'id',
@@ -208,8 +208,8 @@ async function callCartesia(
       },
       output_format: {
         container: 'mp3',
-        encoding: 'mp3',
         sample_rate: 44100,
+        bit_rate: 128000,
       },
     }),
   });

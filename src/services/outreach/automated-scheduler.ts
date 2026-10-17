@@ -16,6 +16,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isSyntheticUserId } from '../../utils/synthetic-user.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deliver, getChannelStatus, type DeliveryChannel } from './unified-delivery.js';
 import {
@@ -26,6 +27,7 @@ import {
 import { getOnboardingState, getPendingCheckIns } from './intelligent-onboarding-arc.js';
 import { getOptimalOutreachTime, getPreferredChannel } from './engagement-tracking.js';
 import { allowedDeliveryChannels } from './outreach-consent.js';
+import { verifiedPhoneOf } from './user-reach.js';
 import { isValidTimezone } from './call-hours-guard.js';
 import { hoursWindow, isQuietAt, isQuietHoursUnified, isUserQuiet } from './quiet-hours.js';
 import {
@@ -34,7 +36,7 @@ import {
   lastTalkedAt,
   unansweredCount,
 } from './outreach-cadence.js';
-import { dailyCheckInChannel, logDailyCheckIn } from './proactive-channels/daily-checkin.js';
+import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
 import { blocksGenericCheckIns } from './grounded-checkin.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
@@ -42,12 +44,6 @@ const log = createLogger({ module: 'AutomatedScheduler' });
 const CANDIDATE_PAGE_SIZE = 200;
 /** Bound one run's reads; users past this are reached on later days. */
 const MAX_USERS_SCANNED = 5000;
-/**
- * Accounts made by test harnesses (voice-eval callers, e2e runs, local
- * devices). They share production Firestore and look active, so without this
- * they'd be the main recipients of "thinking of you" messages.
- */
-const SYNTHETIC_USER_ID = /^(voice-eval-|e2e-|device:(test|local-dev|debug))/;
 
 // ============================================================================
 // TYPES
@@ -195,7 +191,7 @@ async function processCandidate(
   // Proactive dogfood users (PROACTIVE_CHANNELS): channel, quiet hours (in
   // their own time zone) and caps come from the proactive channel policy.
   const now = new Date();
-  const proactive = await dailyCheckInChannel(userId, now);
+  const proactive = await dailyCheckIn(userId, now);
 
   // Check quiet hours
   if (!proactive && config.respectQuietHours && isInQuietHours(candidate)) {
@@ -239,8 +235,10 @@ async function processCandidate(
     return { sent: true, channel, outreachType, reason: 'Dry run' };
   }
 
-  // Generate personalized content
-  const content = await generatePersonalizedContent(userContext, outreachType, channel);
+  // Generate personalized content (allowlisted users: the proactive writer)
+  const content = proactive
+    ? await proactive.content()
+    : await generatePersonalizedContent(userContext, outreachType, channel);
 
   // Send the outreach
   const deliveryResult = await deliver({
@@ -252,9 +250,7 @@ async function processCandidate(
     outreachType,
   });
 
-  if (proactive) {
-    await logDailyCheckIn(userId, now, proactive, outreachType, deliveryResult.success);
-  }
+  await proactive?.done(outreachType, deliveryResult.success);
 
   if (deliveryResult.success) {
     // Record that we sent outreach
@@ -303,7 +299,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         const data = doc.data();
         const userId = doc.id;
         if (data.outreachPreferences?.enabled === false) continue;
-        if (SYNTHETIC_USER_ID.test(userId)) continue;
+        if (isSyntheticUserId(userId)) continue; // test harness accounts
 
         const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
         const engagementLevel = engagementLevelOf(data, now.getTime());
@@ -320,7 +316,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         candidates.push({
           userId,
           email: data.email,
-          phone: data.phone || data.phoneNumber,
+          phone: verifiedPhoneOf(userId, data), // never the model-written profile phone
           name: data.displayName || data.name,
           daysSinceSignup,
           lastConversationDate: talkedAt === undefined ? undefined : new Date(talkedAt),
@@ -450,15 +446,18 @@ async function determineBestChannel(
 // ============================================================================
 
 /**
- * Check if user is in quiet hours
+ * Is it quiet hours for this user now? QUIET_HOURS_UNIFIED=on uses the shared
+ * predicate (quiet-hours.ts): 22:00-08:00 and both US coasts when the zone is
+ * unknown. Off, this scheduler keeps its own window: 21:00-08:00 Eastern unless
+ * the user set one. A zone that cannot be read fails closed.
  */
 function isInQuietHours(candidate: UserOutreachCandidate): boolean {
   if (isQuietHoursUnified()) return isUserQuiet(candidate);
-  // Off: the hour fields only, default 22-8, in the user's zone or Los Angeles.
   const prefs = candidate.outreachPreferences;
-  const zone = prefs?.timezone || 'America/Los_Angeles';
-  const window = hoursWindow(prefs?.quietHoursStart ?? 22, prefs?.quietHoursEnd ?? 8);
-  return isValidTimezone(zone) && isQuietAt(new Date(), window, [zone]);
+  const zone = prefs?.timezone || 'America/New_York';
+  if (!isValidTimezone(zone)) return true;
+  const window = hoursWindow(prefs?.quietHoursStart ?? 21, prefs?.quietHoursEnd ?? 8);
+  return isQuietAt(new Date(), window, [zone]);
 }
 
 // ============================================================================

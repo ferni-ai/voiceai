@@ -453,5 +453,5 @@ After 5 failed attempts, the event is marked as failed and logged.
 
 ## Related
 
-- [Webhook Security Guide](/dev-blog/webhook-security/) — Full security tutorial
+- [Webhook Security Guide](/developers/blog/webhook-security/) — Full security tutorial
 - [Workflow Events](/developers/api/workflows/) — Trigger workflows from webhooks

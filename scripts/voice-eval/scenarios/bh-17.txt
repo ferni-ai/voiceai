@@ -1,0 +1,6 @@
+# bh: {"to": "nayan-patel", "path": "ask", "facts": ["lawyer", "law", "ten years", "10 years", "mean", "quit", "whim"]}
+Hey Ferni. I've been a lawyer for ten years, and lately I feel like none of it means anything.
+I don't want to quit on a whim. I just want to think it through. Can I talk to Nayan?
+@pause 9000 -
+Hi Nayan.
+So, what do you think?

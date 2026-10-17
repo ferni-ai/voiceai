@@ -18,6 +18,13 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import {
+  awarenessCallerTimeEnabled,
+  cachedWeather,
+  currentContext,
+  todayIn,
+  zoneFor,
+} from './current-context.js';
 // ============================================================================
 // TIME AWARENESS
 // ============================================================================
@@ -34,146 +41,26 @@ const getCurrentContextDef: ToolDefinition = {
       description: getToolDescription('getCurrentContext'),
       parameters: z.object({
         includeWeather: z.boolean().optional().describe('Include weather context if available'),
-        timezone: z
-          .string()
-          .optional()
-          .describe('Override timezone (default: user profile or UTC)'),
+        timezone: z.string().optional().describe("Override timezone (default: the caller's own)"),
       }),
-      execute: async ({ includeWeather, timezone }) => {
+      // The caller's clock, never the server's; includeWeather reads the call's cache (current-context.ts).
+      execute: async ({ includeWeather, timezone }, opts?: { ctx?: unknown }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Getting current context');
-
         const now = new Date();
-        const userTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-        // Format time in user's timezone
-        const timeFormatter = new Intl.DateTimeFormat('en-US', {
-          timeZone: userTimezone,
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
+        const zone = zoneFor({
+          explicit: timezone,
+          runCtx: opts?.ctx,
+          sessionId: ctx.sessionId,
+          userId: ctx.userId,
         });
-        const dateFormatter = new Intl.DateTimeFormat('en-US', {
-          timeZone: userTimezone,
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric',
-        });
-
-        const time = timeFormatter.format(now);
-        const date = dateFormatter.format(now);
-        const hour = now.getHours();
-
-        // Time of day
-        let timeOfDay = 'night';
-        let greeting = 'Good evening';
-        if (hour >= 5 && hour < 12) {
-          timeOfDay = 'morning';
-          greeting = 'Good morning';
-        } else if (hour >= 12 && hour < 17) {
-          timeOfDay = 'afternoon';
-          greeting = 'Good afternoon';
-        } else if (hour >= 17 && hour < 21) {
-          timeOfDay = 'evening';
-          greeting = 'Good evening';
-        }
-
-        // Day context
-        const dayOfWeek = now.getDay();
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        const isFriday = dayOfWeek === 5;
-        const isMonday = dayOfWeek === 1;
-
-        // Season (Northern Hemisphere approximation)
-        const month = now.getMonth();
-        let season = 'winter';
-        if (month >= 2 && month <= 4) season = 'spring';
-        else if (month >= 5 && month <= 7) season = 'summer';
-        else if (month >= 8 && month <= 10) season = 'fall';
-
-        // Special day awareness
-        const specialDays: string[] = [];
-        const monthDay = `${month + 1}-${now.getDate()}`;
-
-        // Common holidays (expand as needed)
-        const holidays: Record<string, string> = {
-          '1-1': "New Year's Day",
-          '2-14': "Valentine's Day",
-          '7-4': 'Independence Day (US)',
-          '10-31': 'Halloween',
-          '12-25': 'Christmas',
-          '12-31': "New Year's Eve",
-        };
-
-        if (holidays[monthDay]) {
-          specialDays.push(holidays[monthDay]);
-        }
-
-        // Build context object
-        const context = {
-          current_time: time,
-          current_date: date,
-          timezone: userTimezone,
-          time_of_day: timeOfDay,
-          greeting,
-          is_weekend: isWeekend,
-          is_friday: isFriday,
-          is_monday: isMonday,
-          season,
-          special_days: specialDays,
-          contextual_awareness: buildContextualAwareness(
-            timeOfDay,
-            isWeekend,
-            isFriday,
-            isMonday,
-            season
-          ),
-        };
-
+        const withWeather = includeWeather === true && awarenessCallerTimeEnabled();
+        const weather = withWeather ? cachedWeather(ctx.userId, now) : undefined;
+        const context = currentContext({ now, zone, includeWeather: withWeather, weather });
         return JSON.stringify(context, null, 2);
       },
     });
   },
 };
-
-function buildContextualAwareness(
-  timeOfDay: string,
-  isWeekend: boolean,
-  isFriday: boolean,
-  isMonday: boolean,
-  season: string
-): string {
-  const insights: string[] = [];
-
-  // Time-based insights
-  if (timeOfDay === 'morning') {
-    insights.push('User is starting their day - energy may be fresh, goals setting is natural');
-  } else if (timeOfDay === 'evening') {
-    insights.push('User is winding down - reflection and next-day planning fit well');
-  } else if (timeOfDay === 'night') {
-    insights.push('Late hour - keep conversation calming, avoid stimulating topics');
-  }
-
-  // Day-based insights
-  if (isMonday) {
-    insights.push('Monday energy - week planning, goal setting, fresh starts');
-  } else if (isFriday) {
-    insights.push('Friday energy - week review, celebration of wins, weekend planning');
-  } else if (isWeekend) {
-    insights.push('Weekend - more relaxed pace, personal time, reflection');
-  }
-
-  // Season-based insights
-  const seasonInsights: Record<string, string> = {
-    spring: 'Spring - themes of renewal, growth, new beginnings',
-    summer: 'Summer - energy, activity, abundance, outdoor time',
-    fall: 'Fall - harvest, reflection, preparation, cozy settling',
-    winter: 'Winter - introspection, rest, planning, warmth-seeking',
-  };
-  insights.push(seasonInsights[season]);
-
-  return insights.join('. ');
-}
 
 // ============================================================================
 // USER CONTEXT
@@ -373,17 +260,21 @@ const getTodaySignificanceDef: ToolDefinition = {
         includeHistorical: z.boolean().optional().describe('Include historical events on this day'),
         includeQuirky: z.boolean().optional().describe('Include fun/quirky observances'),
       }),
-      execute: async ({ includeHistorical = false, includeQuirky = false }) => {
+      execute: async (_args, opts?: { ctx?: unknown }) => {
         getLogger().info({ agentId: ctx.agentId }, "Getting today's significance");
 
-        const now = new Date();
-        const month = now.getMonth() + 1;
-        const day = now.getDate();
-        const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+        // The caller's date (current-context.ts): their Friday night isn't the server's Saturday.
+        const zone = zoneFor({ runCtx: opts?.ctx, sessionId: ctx.sessionId, userId: ctx.userId });
+        const today = todayIn(new Date(), zone);
+        const { month, day } = today;
+        const dayOfWeek = today.weekday;
 
         const significance: Record<string, unknown> = {
-          date: now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+          date: today.date,
           day_of_week: dayOfWeek,
+          ...(today.known
+            ? {}
+            : { note: "This is the UTC date; the caller's own date is unknown." }),
           holidays: [],
           observances: [],
           conversation_openers: [],

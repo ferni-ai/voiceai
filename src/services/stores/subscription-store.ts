@@ -23,7 +23,7 @@ import {
 const log = createLogger({ module: 'subscription-store' });
 
 // In-memory fallback when Firestore is unavailable
-const subscriptionStorage: Map<string, UserSubscriptionData> = new Map();
+const subscriptionStorage = new Map<string, UserSubscriptionData>();
 
 // ============================================================================
 // TYPES
@@ -199,7 +199,7 @@ export async function getSubscriptionData(userId: string): Promise<UserSubscript
     };
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get subscription data');
-    return createDefaultSubscriptionData(userId);
+    throw error; // a default here would be saved over the person's data
   }
 }
 
@@ -344,10 +344,7 @@ export async function getSubscriptionsByCategory(
 /**
  * Get upcoming renewals
  */
-export async function getUpcomingRenewals(
-  userId: string,
-  daysAhead: number = 7
-): Promise<Subscription[]> {
+export async function getUpcomingRenewals(userId: string, daysAhead = 7): Promise<Subscription[]> {
   const data = await getSubscriptionData(userId);
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() + daysAhead);

@@ -236,9 +236,7 @@ export {
   type RetrievedMemory,
 } from './advanced-retrieval.js';
 
-// ============================================================================
-// NEW v2 MODULES
-// ============================================================================
+// --- NEW v2 MODULES ---
 
 // Result Type Pattern (error handling)
 export {
@@ -1289,3 +1287,5 @@ export default {
   initializeRedisCache,
   rehydrateConversationEmbeddings,
 };
+export { forgottenInProcess, forgottenTopicsOrNull } from './recall/forget.js';
+export { CALLER_PROVENANCE, contentWords, forgetTokens, isForgotten } from './recall/session-recall.js';

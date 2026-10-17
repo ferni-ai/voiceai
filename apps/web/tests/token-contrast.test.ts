@@ -240,14 +240,20 @@ const OVERLAY_PAIRS: OverlayPair[] = [
     surface: '--color-background-elevated',
     scriptVars: {
       '--notification-icon': {
-        file: 'src/ui/notifications.ui.ts',
+        file: 'src/ui/notifications-copy.ts',
         pattern: /ritual_reminder:\s*\{[^}]*icon:\s*'([^']+)'/,
       },
       '--notification-bg': {
-        file: 'src/ui/notifications.ui.ts',
+        file: 'src/ui/notifications-copy.ts',
         pattern: /ritual_reminder:\s*\{[^}]*bg:\s*'([^']+)'/,
       },
     },
+  },
+  {
+    name: 'dialog primary button',
+    file: 'src/ui/overlay/dialog.styles.ts',
+    selector: '.ferni-dialog__button--primary',
+    surface: '--color-background-elevated',
   },
   {
     name: 'outreach persona name',

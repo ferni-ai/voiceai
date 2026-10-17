@@ -92,11 +92,12 @@ export async function resolveSourceUrl(url: string): Promise<string | null> {
 /**
  * One grounded request for `prompt`: the answer, its deduped sources (with the
  * answer sentence each supports) and Google's display metadata. Null when
- * Gemini is not configured, the search failed or timed out, or nothing came back.
+ * Gemini is not configured, the search failed or timed out (`timeoutMs`, 9 s
+ * unless given), or nothing came back.
  */
 export async function groundedSearch(
   prompt: string,
-  opts: { maxOutputTokens?: number } = {}
+  opts: { maxOutputTokens?: number; timeoutMs?: number; resolveSources?: boolean } = {}
 ): Promise<GroundedAnswer | null> {
   const client = (await getGeminiClient()) as SearchClient | null;
   if (!client) return null;
@@ -110,7 +111,7 @@ export async function groundedSearch(
         tools: [{ googleSearch: {} }],
         temperature: 0.2,
         maxOutputTokens: opts.maxOutputTokens ?? 400,
-        abortSignal: AbortSignal.timeout(TIMEOUT_MS),
+        abortSignal: AbortSignal.timeout(opts.timeoutMs ?? TIMEOUT_MS),
       },
     });
     const answer = (response.text ?? '').trim();
@@ -121,7 +122,11 @@ export async function groundedSearch(
       .flatMap((c) => (c.web?.uri ? [{ uri: c.web.uri, title: c.web.title }] : []))
       .filter((w) => !seen.has(w.uri) && Boolean(seen.add(w.uri)))
       .slice(0, MAX_SOURCES);
-    const resolved = await Promise.all(raw.map(async (w) => resolveSourceUrl(w.uri)));
+    // A spoken answer names its sources and never reads a link, so it skips the redirects.
+    const resolved =
+      opts.resolveSources === false
+        ? raw.map((w) => safeHttpsUrl(w.uri))
+        : await Promise.all(raw.map(async (w) => resolveSourceUrl(w.uri)));
     const sources = raw.flatMap((w, i) => {
       const url = resolved[i];
       return url ? [{ title: (w.title ?? '').trim(), url }] : [];

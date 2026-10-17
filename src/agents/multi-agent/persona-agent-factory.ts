@@ -32,14 +32,13 @@ import {
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
 import { registerAgentReplyRecorder } from '../voice-agent/agent-reply-recorder.js';
-import {
-  createPreSTTFrameProcessor,
-  isPhoneParticipant,
-  wantsPhonePreStt,
-} from '../integrations/pre-stt-frame-processor.js';
+import { isPhoneParticipant } from '../integrations/pre-stt-frame-processor.js';
+import { roomInputOptions } from './room-input-options.js';
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
-import { attachPhoneHangUp } from '../shared/phone-goodbye.js';
+import { attachCallWrapUp } from '../shared/call-wrap-up.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { roomOutputOptions } from './room-output-options.js';
+import { registerSessionEndedSignal } from './session-ended-signal.js';
 
 const log = getLogger();
 
@@ -164,9 +163,12 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       phoneCaller: isPhoneParticipant(context.userParticipant),
     });
     mark('setup_persona_agent_done');
-    // A phone caller: Ferni hangs up after a real goodbye (PHONE_GOODBYE, phone-goodbye.ts).
-    await attachPhoneHangUp(agentSetup.agent, {
-      roomName: context.room.name ?? '',
+    // Ferni ends the call after a mutual goodbye: phone callers with PHONE_GOODBYE
+    // (phone-goodbye.ts), app callers with CALL_WRAP_UP (call-wrap-up.ts).
+    await attachCallWrapUp(agentSetup.agent, {
+      sessionId,
+      room: context.room,
+      session: agentSetup.session,
       participant: context.userParticipant,
       onBehalf: outboundPartiesFor(sessionId) !== undefined,
     }).catch((error: unknown) =>
@@ -229,23 +231,24 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
         '🎭 Starting agent session in room...'
       );
       mark('session_start_call');
-      // Phone callers: AGC + high-pass before STT (see pre-stt-frame-processor.ts).
-      const phoneInput = wantsPhonePreStt(context.userParticipant)
-        ? await createPreSTTFrameProcessor(sessionId)
-        : null;
+      // Phone: AGC + high-pass; web: BVC under WEB_NOISE_CANCEL (room-input-options.ts).
+      const input = await roomInputOptions(context.userParticipant, sessionId);
       await agentSetup.session.start({
         room: context.room,
         agent: agentSetup.agent,
-        ...(phoneInput ? { inputOptions: { noiseCancellation: phoneInput } } : {}),
+        ...input,
         // For handoffs, don't claim primary status - the old session may still be releasing
         // For initial agent, be primary (record: true is default)
         ...(context.isHandoff ? { record: false } : {}),
+        ...roomOutputOptions(), // OUTPUT_QUEUE_MS: the room audio queue (room-output-options.ts)
       });
       mark('session_started');
       log.info({ personaId, agentInstanceId }, '🎭 Agent session started successfully');
 
       // Register session for gateway access (enables generateReplyBySessionId)
       registerSessionForReconnection(sessionId, agentSetup.session);
+      // Session closes on an error: tell the caller's app before we leave (SESSION_ENDED_SIGNAL)
+      registerSessionEndedSignal(agentSetup.session, context.room, sessionId);
 
       // Speech coordination BEFORE prewarm — greeting (TTS) needs it and must
       // not wait for Gemini. Overlap: user hears greeting while prewarm runs.

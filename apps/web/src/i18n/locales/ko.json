@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "{language}(으)로 바꿀게요",
+    "seeYou": "다음에 또 봐요!",
+    "callVoicemail": "{name}님께 음성 메시지를 남겼어요",
+    "callNoAnswer": "{name}님과 연결되지 않았어요. 나중에 다시 걸어 볼까요?",
+    "callFailed": "{name}님께 전화를 걸지 못했어요",
+    "callBack": "{name}님이 다시 전화해 달래요",
+    "followUp": "{name}님이 연락을 기다리고 있어요"
+  },
   "accessibility": {
     "accountMenu": "계정 메뉴",
     "accountSettings": "계정 설정",
@@ -10,7 +19,6 @@
     "closeDashboard": "대시보드 닫기",
     "closeDetails": "상세 정보 닫기",
     "closeHistory": "히스토리 닫기",
-    "closeHuddle": "허들 닫기",
     "closeMenu": "메뉴 닫기",
     "closePublisher": "퍼블리셔 포털 닫기",
     "closeSettings": "설정 닫기",
@@ -545,7 +553,6 @@
     "target": "목표",
     "tasks": "할 일",
     "teachings": "가르침",
-    "teamHuddle": "팀 허들",
     "teamMembersUnlocked": "잠금 해제된 팀원들",
     "teamUnlock": "팀 잠금 해제",
     "testCall": "테스트 통화",
@@ -1156,7 +1163,7 @@
       "upgrade": "여정에 동참하기"
     },
     "expiresLabel": "만료일",
-    "freeNote": "파운더분들은 전체 팀과 무제한으로 대화하실 수 있으며, Ferni가 모두를 위해 무료로 유지될 수 있도록 도와주시는 역할을 합니다",
+    "freeNote": "Ferni는 무료예요. 계속 운영되도록 돕고 싶다면 Venmo로 후원할 수 있어요.",
     "label": "함께 성장하기",
     "renewsLabel": "갱신일",
     "restore": {
@@ -1241,7 +1248,6 @@
       "gifts": "선물과 특별한 날들",
       "videoSessions": "영상 통화",
       "groupCoaching": "친구들과 함께",
-      "teamHuddles": "팀과 도란도란",
       "teamSessions": "팀과 함께하는 시간",
       "conferenceCalls": "그룹 통화",
       "concierge": "일상 속 도우미",
@@ -1296,8 +1302,7 @@
       "growthJournal": "성장 일지",
       "knowledgeQuiz": "나를 얼마나 잘 아시나요?",
       "soundEffects": "효과음",
-      "sleepSchedule": "수면 일정",
-      "teamObservations": "팀의 관찰 기록"
+      "sleepSchedule": "수면 일정"
     },
     "quickAdd": {
       "person": "새로운 사람",
@@ -1417,8 +1422,6 @@
     "dailyChallenge": {
       "title": "오늘의 챌린지",
       "xpReward": "+{xp} XP",
-      "completion": "{percent}% 완료",
-      "playing": "{count}명 참여 중",
       "start": "챌린지 시작하기",
       "dayStreak": {
         "other": "{count}일 연속 기록!",
@@ -1758,10 +1761,10 @@
       "plant": "만들어지길 원하는 기능에 씨앗을 심어주세요",
       "suggest": "씨앗 5개로 새로운 아이디어를 제안해 보세요",
       "title": "씨앗 사용법",
-      "conversation": "대화 나누기: 씨앗 +1개",
+      "conversation": "하루 첫 대화: 씨앗 +5개",
       "note": "씨앗은 다음에 무엇을 만들지 결정하는 데 큰 도움이 돼요!",
-      "streak30": "30일 연속 기록: 씨앗 +15개",
-      "streak7": "7일 연속 기록: 씨앗 +5개",
+      "streak30": "30일 연속 기록: 씨앗 +100개",
+      "streak7": "7일 연속 기록: 씨앗 +25개",
       "vote": "기능에 투표하기: 씨앗 1~10개"
     },
     "intro": "모든 좋은 관계에는 계절이 있죠. 이들은 우리가 함께 심고 있는 씨앗들이에요.",
@@ -2106,8 +2109,8 @@
     "couldNotDisconnect": "연결을 해제할 수 없었어요. 다시 시도해 보시겠어요?",
     "sonosConnected": "Sonos가 연결되었어요!",
     "transcribing": "텍스트로 변환하는 중이에요...",
-    "transcriptionUnavailable": "텍스트 변환을 사용할 수 없어요. 오디오만 저장할게요.",
-    "audioSaved": "오디오가 저장되었어요!",
+    "transcriptionUnavailable": "이번에는 말을 알아듣지 못해서 아무것도 저장하지 않았어요. 다시 해볼까요?",
+    "journalTooLong": "조금 길어요. {count}분 이내로 다시 해볼까요?",
     "entrySaved": "항목이 저장되었어요!",
     "couldNotSaveEntry": "항목을 저장할 수 없었어요. 다시 시도해 보시겠어요?",
     "profileSaved": "프로필이 저장되었어요!",
@@ -2225,7 +2228,6 @@
       "other": "연락처 {count}개를 가져왔어요!"
     },
     "integrationNowConnected": "{integration}이(가) 연결되었어요!",
-    "inviteSentTo": "{email}(으)로 초대장을 보냈어요!",
     "householdMemberRemoved": "{name} 님이 삭제되었어요",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} 님이 팀에 추가되었어요",
@@ -3466,6 +3468,25 @@
     "fieldRelationship": "관계",
     "fieldWhatShouldFerniCallThem": "Ferni가 이분을 뭐라고 부르면 좋을까요?",
     "fieldNotesForFerni": "Ferni를 위한 메모",
+    "callConsentLabel": "Ferni의 전화를 반겨요",
+    "callConsentHint": "Ferni가 가끔 안부 전화를 거는 데 동의했어요. 언제든 그만해 달라고 말할 수 있어요.",
+    "callConsentSaved": "저장했어요",
+    "callConsentFailed": "저장하지 못했어요. 다시 시도해 주세요.",
+    "callConsentLoadFailed": "Ferni의 전화를 반기는지 불러오지 못했어요. 다시 열어 주세요.",
+    "checkinTitle": "Ferni가 언제 안부 전화를 할까요?",
+    "checkinHint": "이 시간에 Ferni가 짧게 전화해서 잘 지내는지 물어봐요.",
+    "checkinFrequencyLabel": "얼마나 자주",
+    "checkinDaily": "매일",
+    "checkinWeekly": "일주일에 한 번",
+    "checkinDayLabel": "무슨 요일",
+    "checkinTimeLabel": "몇 시",
+    "checkinTimezone": "시간은 {zone} 기준이에요.",
+    "checkinSave": "전화 시간 저장",
+    "checkinRemove": "정기 안부 전화 그만하기",
+    "checkinSaved": "저장했어요. 그 시간에 Ferni가 전화할게요.",
+    "checkinRemoved": "정기 안부 전화가 꺼져 있어요.",
+    "checkinFailed": "저장하지 못했어요. 다시 시도해 주세요.",
+    "checkinLoadFailed": "전화 시간을 불러오지 못했어요. 다시 열어 주세요.",
     "cancel": "취소",
     "addToFamily": "가족에 추가하기",
     "relationshipMother": "어머니",
@@ -3727,8 +3748,7 @@
       "disabled": "캘린더 일정 없음",
       "loadingSuggestions": "가장 좋은 시간을 찾는 중...",
       "noSuggestions": "추천 시간을 찾지 못했어요",
-      "suggestion": "캘린더를 보니 보통 이 시간이 비어 있네요",
-      "suggestedTime": "추천 시간"
+      "suggestion": "캘린더를 보니 보통 이 시간이 비어 있네요"
     },
     "validation": {
       "nameRequired": "모든 실천에는 이름이 필요해요"
@@ -3771,7 +3791,6 @@
         "name": "아침 체크인",
         "humanName": "아침의 순간",
         "description": "의도를 품고 하루를 시작해 보세요",
-        "scienceNote": "아침에 의도를 세우면 집중력이 31% 향상됩니다 (Harvard Business Review)",
         "cue": "침대에서 일어나 발이 바닥에 닿을 때",
         "routine": "잠시 멈추고, 숨을 쉬고, 한 가지 의도를 세웁니다",
         "reward": "명확함과 스스로 통제하고 있다는 느낌",
@@ -3785,7 +3804,6 @@
         "name": "감사의 순간",
         "humanName": "잠시 감사하기",
         "description": "감사한 일 세 가지 떠올리기",
-        "scienceNote": "감사 실천은 행복감을 25% 높여줘요 (UC 버클리 연구)",
         "cue": "밤에 휴대폰을 충전기에 꽂을 때",
         "routine": "오늘 좋았던 일 세 가지(크든 작든)를 떠올려 보세요",
         "reward": "마음이 따뜻해지는 감사함",
@@ -3799,7 +3817,6 @@
         "name": "주간 리뷰",
         "humanName": "한 주 돌아보기",
         "description": "성취와 배운 점 돌아보기",
-        "scienceNote": "한 주를 돌아보는 것은 목표 달성률을 42% 높여줘요 (도미니칸 대학교 연구)",
         "cue": "일요일 아침, 커피나 차 한 잔과 함께",
         "routine": "성취한 일을 돌아보고, 배운 점을 기록하며, 새로운 한 주의 다짐을 세워보세요",
         "reward": "성장하고 있다는 느낌과 나아갈 방향성",
@@ -3812,7 +3829,6 @@
       "custom": {
         "name": "직접 만들기",
         "humanName": "새롭게 시작하기",
-        "scienceNote": "내 일상에 맞춰 직접 만든 실천은 지속될 확률이 3배나 더 높아요",
         "cue": "시작할 신호를 직접 정해보세요",
         "routine": "나만의 실천을 직접 설계해 보세요",
         "reward": "나에게 성공이 어떤 느낌인지 직접 정의해 보세요",
@@ -3868,10 +3884,12 @@
       "create": "에이전트 만들기",
       "empty": "아직 에이전트가 없어요",
       "emptyHint": "소중한 사람의 목소리를 간직하거나, 멘토를 만들거나, 나만의 동반자를 디자인하는 첫 번째 에이전트를 만들어 보세요.",
+      "emptyHintWithoutVoice": "소중한 사람의 이야기를 간직하거나, 멘토를 만들거나, 나만의 동반자를 디자인하는 첫 번째 에이전트를 만들어 보세요.",
       "createFirst": "첫 번째 에이전트 만들기",
       "whatYouCan": "이런 에이전트를 만들 수 있어요",
       "legacy": "소중한 유산",
       "legacyDesc": "소중한 사람의 목소리와 지혜를 고스란히 간직해 보세요",
+      "legacyDescWithoutVoice": "소중한 사람의 이야기와 지혜를 고스란히 간직해 보세요",
       "mentor": "멘토",
       "mentorDesc": "나에게 영감을 주는 인물을 바탕으로 코치를 만들어 보세요",
       "twin": "디지털 트윈",
@@ -3908,6 +3926,8 @@
     "loadingCoaches": "코치들을 찾는 중...",
     "noMatches": "일치하는 결과가 없어요",
     "noMatchesHint": "다른 단어로 검색하거나 모든 코치를 둘러보세요.",
+    "nobodyYet": "아직 새로 만날 친구가 없어요.",
+    "nobodyYetHint": "새로운 친구가 통화에 함께할 수 있게 되면 여기에서 만날 수 있어요. 지금은 팀과 이야기해 보세요.",
     "becomeCreator": "크리에이터 되기",
     "teamLocked": {
       "title": "먼저 팀을 만나보세요",
@@ -4543,7 +4563,7 @@
     "successDeployed": "페이지가 배포되었어요!",
     "title": "에이전트 페이지 만들기",
     "nameLabel": "에이전트 이름",
-    "namePlaceholder": "예: Joel Dickson",
+    "namePlaceholder": "예: Nate Holloway",
     "nameHint": "AI 에이전트의 전체 이름",
     "initialsLabel": "이니셜",
     "initialsPlaceholder": "예: JD",
@@ -5072,7 +5092,8 @@
     },
     "voiceStep": {
       "title": "어떤 목소리가 좋을까요?",
-      "subtitle": "목소리를 선택하거나 직접 클론해 보세요"
+      "subtitle": "목소리를 선택하거나 직접 클론해 보세요",
+      "subtitleWithoutClone": "목소리를 선택해 보세요"
     },
     "voiceOption": {
       "cloneTitle": "목소리 클론하기",
@@ -5327,11 +5348,8 @@
     "upcomingIntro": "늘 당신을 신경 쓰고 있어요. 다음 체크인 일정을 확인해 보세요.",
     "learningTitle": "당신에게 제가 필요한 순간을 배우고 있어요",
     "learningDesc": "대화를 나눌수록 당신의 생활 리듬과 패턴, 필요한 것들을 더 잘 이해하게 돼요.",
-    "whatThisWillLook": "이런 모습일 거예요",
-    "noticedConcern": "감지된 걱정거리",
-    "streakSupport": "연속 기록 유지 응원",
-    "nextMonday": "다음 주 월요일",
-    "calendarAware": "일정 인지",
+    "upcomingEmptyNote": "아직 계획된 건 없어요. 괜찮아요. 안부를 물을 계획이 생기면 여기에서 볼 수 있어요.",
+    "upcomingLoadFailed": "음, 예정된 연락을 불러오지 못했어요. 당신 탓이 아니에요. 잠시 후에 다시 열어 주세요.",
     "perfectTiming": "완벽한 타이밍",
     "perfectTimingDesc": "당신이 가장 마음을 열어주는 시간을 배워요",
     "patternDetection": "패턴 감지",
@@ -5349,10 +5367,6 @@
     "streakMilestonesDesc": "꾸준함을 축하해요 — 여정의 모든 발걸음을 기억하고 있어요",
     "to": "~까지",
     "quietNote": "새벽 2시에 깨어 말을 걸어주셔도, 낮 12시와 똑같이 따뜻하게 곁에 있을게요.",
-    "sampleFriday": "금요일 {time}",
-    "sampleOverwhelmed": "\"어제 마음이 많이 버겁다고 하셨는데, 오늘은 좀 어떠세요?\"",
-    "sampleMeditation": "\"명상 연속 기록이 벌써 6일째예요! 7일 차도 함께 시작해 볼까요?\"",
-    "samplePresentation": "\"곧 중요한 발표가 있네요. 같이 준비해 볼까요?\"",
     "guardianDesc": "24시간 내내 곁에서 지켜줄게요",
     "emptyCta": "저와 계속 대화해 주세요. 대화가 쌓일수록 언제, 어떻게 가장 잘 도와드릴 수 있을지 더 잘 알게 돼요.",
     "emptyTip": "설정에서 \"{feature}\"을 활성화하면 먼저 다가가는 지원을 받을 수 있어요"
@@ -6256,20 +6270,6 @@
       },
       "empty": "안녕하세요. 저는 여기에 있어요. 음, 사실 저는 당신이에요. 일기를 쓰기 시작하면 제가 더 많은 것을 돌아볼 수 있을 거예요. 지금은 어떤 생각을 하고 계시나요?"
     },
-    "fallback": {
-      "option1": "흥미롭네요. 지금 그 이야기를 꺼내신 특별한 이유가 있나요?",
-      "option2": "그렇군요. 또 어떤 이야기가 있나요?",
-      "option3": "더 자세히 들려주세요. 그 마음 밑바탕에는 무엇이 있나요?",
-      "option4": "저도 고민해 보던 부분이에요. 그 질문 이면에는 어떤 진짜 질문이 숨어 있을까요?",
-      "advice": "가장 좋은 조언은 대개 질문을 더 깊이 들여다볼 때 나온다는 걸 배웠어요. 당신의 직감은 뭐라고 하나요?",
-      "feeling": "마음의 짐이 참 무겁겠어요. 저도 그렇게 느낀 적이 있답니다. 지금은 어떤 게 도움이 될까요? 이야기를 나누는 것, 아니면 그냥 가만히 있어 보는 것 중에요?",
-      "remember": "저는 생각보다 많은 것을 기억하고 있어요. 일기 기록에 많은 것들이 담겨 있거든요. 구체적으로 어떤 기억을 찾고 계시나요?"
-    },
-    "fallbackKeywords": {
-      "advice": "조언,해야",
-      "feeling": "느낌,감정",
-      "remember": "기억"
-    },
     "dialogLabel": "나의 연대기",
     "switchToVoice": "음성으로 전환",
     "captured": "기록 완료!",
@@ -6284,7 +6284,8 @@
       }
     },
     "emptyDescription": "연대기가 비어 있지만, 모든 위대한 이야기는 어딘가에서 시작돼요. 첫 생각을 기록하고 지혜가 자라나는 모습을 지켜보세요.",
-    "quoted": "\"{text}\""
+    "quoted": "\"{text}\"",
+    "replyFailed": "전달되지 않았어요. 당신 탓이 아니에요. 다시 보내 보세요."
   },
   "marketplacePermissionConsent": {
     "required": "필수 권한",
@@ -6350,12 +6351,17 @@
     "categoryConnectDescription": "소중한 관계를 가꾸어보세요",
     "categoryGrow": "성장하기",
     "categoryGrowDescription": "조금씩 부드럽게 나아가요",
-    "insightYourMorningsSetTone": "아침이 하루의 분위기를 결정해요",
-    "insightYourMorningsDesc": "하루를 시작하는 대화가 오늘 하루 전체의 흐름을 만들어가곤 해요.",
-    "insightEveningReflectionsHelp": "저녁에 나누는 돌아보기가 도움이 돼요",
-    "insightEveningReflectionsDesc": "쉬기 전에 잠시 돌아보는 시간을 가지면 다음 날이 한결 더 선명해져요.",
-    "insightIRememberEverything": "저는 전부 기억하고 있어요",
-    "insightIRememberEverythingDesc": "모든 대화, 작은 디테일, 그리고 성장의 순간들까지요. 당신의 소중한 이야기를 온전히 품고 있을게요.",
+    "noInsightsYetTitle": "아직 아무것도 없어요.",
+    "noInsightsYetDesc": "몇 번 대화를 나누다 보면 당신의 패턴, 말해 준 계획, 소중한 순간들을 알아차리게 될 거예요. 그게 여기에 나타나요. 지금은 그냥 이야기해요.",
+    "insightsUnavailableTitle": "제가 알아차린 것을 불러오지 못했어요.",
+    "insightsUnavailableDesc": "당신 탓이 아니라 제 문제예요. 잠시 후에 다시 시도해 주세요. 저는 여기 있을게요.",
+    "practicePrompt": {
+      "dailyCheckin": "만나서 반가워요. 지금 기분이 정말 어떠신가요?",
+      "gratitude": "잠시 멈추어 감사함을 느껴봐요. 지금 이 순간 감사한 일 한 가지는 무엇인가요?",
+      "brainstorm": "함께 아이디어를 모아봐요. 지금 어떤 고민이나 결정을 앞두고 계신가요?",
+      "weeklyReview": "지난 한 주를 돌아봐요. 어떤 기억이 가장 먼저 떠오르시나요?",
+      "windDown": "함께 하루를 마무리해 봐요. 오늘 스스로 자랑스러웠던 일 한 가지는 무엇인가요?"
+    },
     "practiceSetYourIntention": "오늘의 의도 세우기",
     "practiceSetYourIntentionDesc": "선명하게 시작해 봐요. 오늘 가장 중요한 것은 무엇인가요?",
     "practiceGratitudeMoment": "감사의 순간",
@@ -7216,19 +7222,6 @@
       "one": "활성화된 기능 {count}개 중 {active}개"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "팀 종합 분석",
-    "assessment": "종합 평가",
-    "connections": "영역 간 연결",
-    "recommendations": "팀 추천 사항",
-    "loading": "팀 관찰 내용을 불러오는 중이에요...",
-    "empty": {
-      "title": "아직 팀 관찰 내용이 없어요",
-      "description": "팀과 대화를 나누면, 서로 인사이트를 공유하게 될 거예요."
-    },
-    "recent": "최근 관찰 내용",
-    "title": "팀 관찰 내용"
-  },
   "observationTypes": {
     "insight": "인사이트",
     "concern": "우려 사항",
@@ -7273,6 +7266,7 @@
     "legacy": {
       "name": "레거시",
       "description": "소중한 사람의 목소리와 지혜를 간직해 보세요",
+      "descriptionWithoutVoice": "소중한 사람의 이야기와 지혜를 간직해 보세요",
       "feature1": "녹음 파일로 목소리 복제하기",
       "feature2": "이야기와 기억들 기록하기",
       "feature3": "지혜와 자주 하던 말 저장하기",
@@ -7971,7 +7965,9 @@
     "emptyVision": "시간이 흐르면서 <strong>패턴이 나타나기 시작할 거예요</strong>. 하루하루가 모여 한 주가 되고, 스스로를 <strong>더 명확하게</strong> 바라볼 수 있게 될 거예요.",
     "last4Weeks": "지난 4주",
     "stable": "안정적임",
-    "fromLastMonth": "지난달 대비 {change}%",
+    "improving": "올라가는 중",
+    "declining": "요즘 조금 낮아요",
+    "trendUnavailable": "이 추이를 불러오지 못했어요. 조금 있다가 다시 해 보세요.",
     "trendUp": "상승",
     "trendDown": "하락",
     "trendStable": "안정",
@@ -8014,7 +8010,6 @@
     "loading": "불러오는 중...",
     "whatIveLearned": "내가 알게 된 것들",
     "loadingInsights": "인사이트를 불러오는 중...",
-    "understanding": "이해",
     "thingsIWantToRemember": "기억하고 싶은 것들",
     "proactive": "먼저 챙겨줄 것들",
     "patternsIveNoticed": "내가 발견한 패턴들",
@@ -8277,8 +8272,7 @@
     "growthDesc": "스스로는 미처 알아차리지 못한 변화들을 짚어드릴게요.",
     "guardianPresence": "곁을 지켜주는 존재",
     "guardianDesc": "말하지 않은 마음까지도 제가 알아차릴게요.",
-    "whatMightLook": "인사이트는 이런 모습일 거예요",
-    "keepTalking": "그저 편하게 계속 이야기해 주세요. 전 언제나 듣고 있고, 배우고 있으며, 늘 여기에 있으니까요.",
+    "keepTalking": "지금은 그냥 이야기해 주세요. 잘 듣고 있어요.",
     "betterThanMemory": "사람의 기억력보다 더 꼼꼼하게, 오직 당신만을 위해 작동해요.",
     "chapter": {
       "default": {
@@ -8502,23 +8496,17 @@
   },
   "predictions": {
     "promise": "약속",
-    "title": "당신의 수정구슬",
-    "description": "당신이 먼저 말하기 전에 필요한 것을 미리 헤아릴 수 있도록 배울게요.",
-    "preview": "미리보기",
+    "title": "이번 주 예측하기",
+    "description": "통화 중에 Peter와 하는 게임이에요. 한 주가 어떻게 될지 예측하고, 얼마나 가까웠는지 확인해 보세요.",
     "accurate": "정확함",
-    "exampleStress": "화요일에 스트레스에 대해 이야기하셨어요",
     "watching": "지켜보는 중",
-    "checkIn": "제가 체크인해 드릴게요",
     "accuracy": "예측 정확도",
     "keepTalking": "계속 대화해 봐요. 우리는 무언가를 함께 만들어가고 있어요.",
     "accuracyLabel": "정확도",
+    "loadFailed": "음, 예측을 불러오지 못했어요. 당신 탓이 아니에요. 잠시 후에 다시 열어 주세요.",
     "resolved": "해결됨",
     "streak": "연속 기록",
-    "sampleOverwhelmed": "\"이번 주에 마음이 버겁다고 느끼실 것 같아요\"",
-    "sampleGym": "\"운동 습관을 지키기 조금 힘드실 것 같아요\"",
-    "sampleSunday": "\"일요일 저녁은 마음이 조금 무거울 것 같아요\"",
-    "exampleGym": "운동을 2번 거르셨어요",
-    "ctaText": "Peter와 예측하기에 대해 대화해 보세요. 예측 게임을 통해 스스로를 더 깊이 이해할 수 있어요.",
+    "ctaText": "다음에 이야기할 때 Peter에게 같이 하자고 해 보세요. 예측과 그 결과가 여기에 표시돼요.",
     "activePredictions": "진행 중인 예측",
     "recentResults": "최근 결과"
   },
@@ -8589,6 +8577,10 @@
   },
   "engagementPanel": {
     "title": "일일 체크인",
+    "emptyTitle": "우리의 체크인이 여기에 담겨요",
+    "emptyMessage": "아직 아무것도 없어요. 괜찮아요. 통화 중에 하루 체크인을 하면 그때 기분이 여기에 표시돼요. 다음에 이야기할 때 체크인하자고 말해 주세요.",
+    "loadFailedTitle": "음, 불러오지 못했어요",
+    "loadFailedMessage": "당신 탓이 아니에요. 잠시 후에 다시 열어 주세요.",
     "yourWeek": "나의 한 주",
     "weatherTrend": "감정 날씨 흐름",
     "howYouFeel": "지금 느끼는 기분",
@@ -8978,9 +8970,6 @@
     "he": "히브리어"
   },
   "featureHints": {
-    "teamHuddlesTitle": "팀 허들이 시작되었어요!",
-    "teamHuddlesMessage": "서로에 대해 더 잘 알게 되었으니, 이제 여러 팀 멤버들의 이야기를 한 번에 들어보세요.",
-    "teamHuddlesCta": "허들 시작해 보기",
     "createRitualsTitle": "나만의 리추얼 만들기",
     "createRitualsMessage": "이제 나만의 일일 실천을 직접 만들 수 있어요. 어떤 작은 습관이 가장 도움이 될까요?",
     "createRitualsCta": "리추얼 만들기",
@@ -9508,11 +9497,15 @@
     "rememberEmpty": "이번에는 새로 기억할 것이 없어요. 함께해 줘서 고마워요.",
     "nextStepTitle": "부드러운 다음 걸음",
     "invitation": "언제든 다시 와요. 여기 있을게요.",
-    "close": "닫기"
+    "close": "닫기",
+    "seeCost": "이번 통화 비용",
+    "feedbackQuestion": "이번 대화는 어땠어요?",
+    "feedbackThanks": "고마워요, 도움이 돼요."
   },
   "moments": {
     "teamUnlockTitle": "{name} 님 만나기",
     "niceWork": "멋져요",
+    "remembered": "기억해 둘게요: {summary}",
     "streakSubtitle": "꾸준히 찾아오고 계시네요. 그것만으로도 큰 의미가 있어요.",
     "streakTitle": {
       "other": "{count}일 연속 기록",
@@ -9933,6 +9926,7 @@
     "timeout": "시간이 너무 오래 걸리네요. 네트워크 연결을 확인하고 다시 시도해 볼까요?",
     "network": "Ferni에게 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 볼까요?",
     "dropped": "연결이 끊어졌어요. 다시 연결해 볼까요?",
+    "agentLeft": "Ferni와의 통화가 끊어졌어요. 다시 연결해 볼까요?",
     "unknown": "연결할 수 없었어요. 다시 시도해 볼까요?"
   },
   "ambientSounds": {
@@ -10228,8 +10222,6 @@
     "allDataDeleted": "모든 데이터가 삭제되었어요",
     "deletingAccount": "계정을 삭제하는 중...",
     "accountDeleted": "계정이 삭제되었어요. 늘 건강하고 행복하세요.",
-    "couldNotStartHuddle": "팀 허들을 시작하지 못했어요. 다시 시도해 볼까요?",
-    "defaultHuddleTopic": "이번 주 진행 상황 체크인",
     "outlookCalendar": "Outlook 캘린더",
     "conversationsLeft": {
       "other": "남은 대화가 {count}회 있어요. 도움이 필요하실 때 언제든 찾아주세요.",
@@ -10370,22 +10362,7 @@
         "one": "{count}개의 일기 기록에서 얻은 생각들을 나누고 싶어요."
       }
     },
-    "error": "지금은 생각 정리가 조금 어렵네. 잠시만 기다렸다가 다시 시도해 줄래?",
-    "fallback": {
-      "advicePhilosophy": "내가 뭘 배웠는지 알아? 바로 \"{philosophy}\"라는 거야. 어떤 상황에 마주하든 이걸 꼭 기억해 줘.",
-      "adviceValues": "우리에게 중요한 가치들을 생각해 봐: {values}. 그 가치들이 너를 이끌어 줄 거야.",
-      "feelRecent": "나도 그렇게 느낀 적이 있어. 일기장에 이렇게 썼더라고: \"{excerpt}...\" 우리 전에도 잘 이겨냈잖아.",
-      "feelDefault": "무슨 말인지 알아. 우리 전에도 힘든 시기를 거쳐 길을 찾아냈잖아. 진짜 마음을 힘들게 하는 게 뭐야?",
-      "rememberIntro": "응, 기억나.",
-      "rememberEntry": "일기에 이렇게 썼던 적이 있었지: \"{excerpt}...\"",
-      "mannerism": "{phrase} 나도 마침 그 생각을 하고 있었어. 왜 이 이야기를 꺼내게 됐어?",
-      "default": "좋은 질문이네. 왜 그 생각이 났어?"
-    },
-    "fallbackKeywords": {
-      "advice": "조언,해야 할까,어떡하지",
-      "feeling": "감정,느낌,기분",
-      "remember": "기억,과거,예전"
-    }
+    "error": "전달되지 않았어요. 당신 탓이 아니에요. 다시 보내 보세요."
   },
   "mood": {
     "holiday": {
@@ -10823,12 +10800,9 @@
     "helper": "나만을 위한 다정한 가이드",
     "connectToTalk": "대화해요",
     "endTalk": "대화 종료",
-    "connectingCancel": "연결 중입니다. 탭하여 취소"
-  },
-  "teamHuddle": {
-    "typeWeekly": "주간 체크인",
-    "typeMilestone": "마일스톤 축하",
-    "typeSpecial": "특별한 순간"
+    "connectingCancel": "연결 중입니다. 탭하여 취소",
+    "connectingNow": "연결 중…",
+    "tapToCancel": "탭하여 취소"
   },
   "analyticsDashboard": {
     "title": "나의 여정",
@@ -11012,19 +10986,6 @@
       "roomToGrow": "성장할 수 있는 여지",
       "insight": "\"주중에 에너지가 조금 떨어지시네요. 수요일이 가장 힘든 요일인 것 같아요.\""
     },
-    "predictions": {
-      "title": "나의 예측",
-      "message": "당신이 먼저 말하기 전에 필요한 것을 미리 헤아릴 수 있도록 배울게요.",
-      "guessOverwhelmed": "\"이번 주에 마음이 조금 버거우실 것 같아요\"",
-      "resultStress": "화요일과 목요일에 스트레스에 대해 이야기하셨어요",
-      "guessGym": "\"운동 습관을 지키기 조금 힘드실 것 같아요\"",
-      "guessSunday": "\"일요일 저녁이 조금 무겁게 느껴지실 거예요\"",
-      "resultCheckIn": "제가 체크인해 드릴게요",
-      "skipped": {
-        "other": "이번 주에 세션을 {count}번 건너뛰셨어요",
-        "one": "이번 주에 세션을 {count}번 건너뛰셨어요"
-      }
-    },
     "team": {
       "title": "우리 팀이 발견한 것",
       "message": "당신의 성장을 돕기 위해 온 팀이 관찰한 내용을 함께 나누어요.",
@@ -11078,9 +11039,9 @@
   },
   "x": "친구 • 12번 언급됨",
   "insightsView": {
-    "samplePattern": "\"일요일 저녁을 조금 힘들어하시는 것 같아요...\"",
-    "sampleInsight": "\"이번 주에 피곤하다는 말씀을 8번 하셨어요. 이 피로감은 직장에서의 경계 세우기에 어려움을 느끼는 부분과 관련이 있어 보여요.\"",
-    "sampleEvidence": "{count}번의 대화 기준"
+    "patternDesc": "우리가 이야기할 때 자꾸 나오는 것들.",
+    "emptyNote": "아직 아무것도 없어요. 괜찮아요. 몇 번 이야기하다 보면 패턴이 보이기 시작하고, 여기에 표시돼요.",
+    "loadFailed": "음, 제가 발견한 내용을 불러오지 못했어요. 당신 탓이 아니에요. 잠시 후에 다시 열어 주세요."
   },
   "agentAcks": {
     "gameStartFailed": "게임을 시작하지 못했어요. Ferni에게 말로 요청해 보세요.",
@@ -11090,7 +11051,8 @@
     "ferniSpeaking": "Ferni가 말하고 있어요",
     "youSpeaking": "내가 말하고 있어요",
     "ferniThinking": "Ferni가 생각하고 있어요",
-    "tapToInterrupt": "탭해서 끼어들기"
+    "tapToInterrupt": "탭해서 끼어들기",
+    "tapToHear": "탭해서 Ferni 목소리 듣기"
   },
   "answerCard": {
     "answer": "",
@@ -11101,10 +11063,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {
@@ -11125,6 +11099,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "응원하기",

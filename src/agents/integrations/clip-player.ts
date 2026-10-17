@@ -13,6 +13,7 @@
 import { voice } from '@livekit/agents';
 import { AudioFrame, AudioResampler, type Room } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
+import { stayQuietOn } from '../shared/call-farewell.js';
 import { synthHum, synthSnore, synthWhistle } from './presence-sounds.js';
 import {
   createPresenceWatcher,
@@ -22,7 +23,12 @@ import {
   presenceSoundsEnabled,
 } from './presence-watcher.js';
 import { startToolHum } from './tool-hum.js';
+import { startVoicedPresence, voicedPresenceEnabled } from './voiced-presence.js';
+import { presenceClipPickers } from './presence-clips.js';
 import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
+import { LAUGH_CLIP } from './backchannel-policy.js';
+import { callerVenting } from '../personas/turn-extras.js';
+import { quirkAwarenessEnabled, recordQuirk } from '../../services/session/quirk-log.js';
 import { withBackchannelSignal } from './backchannel-signal.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { avatarListenSignalsEnabled } from '../realtime/listen-turn-signals.js';
@@ -156,8 +162,9 @@ const BACKCHANNEL_VOLUME = 0.75;
  *
  * REACTION_SIDETRACK=direct: backchannel, laugh and opening clips play on a
  * mixer-free track (direct-clip-track.ts, ~56 ms to the wire instead of
- * ~650); presence sounds and the tool hum stay on the mixer track. One clip
- * at a time across both, and one lastPlayedAt for all of them.
+ * ~650); presence sounds and the tool hum stay on the mixer track, except
+ * VOICED_PRESENCE takes (voiced-presence.ts), which play direct. One clip at a
+ * time across both, and one lastPlayedAt for all of them.
  */
 export async function startBackchannelClips(
   room: Room,
@@ -191,8 +198,20 @@ export async function startBackchannelClips(
   }
   let lastPlayedAt = 0;
   const direct = reactionSidetrackDirect() ? await startDirectClips(room, session) : null;
-  const stopPresence = startPresenceSounds(session, player, () => direct?.playing ?? false);
+  const stopPresence = startPresenceSounds(
+    session,
+    player,
+    () => direct?.playing ?? false,
+    personaId
+  );
   const stopToolHum = startToolHum(session, player);
+  const voiced = startVoicedPresence({
+    session,
+    direct,
+    mixerBusy: () => player.playing,
+    getClip,
+    personaId,
+  });
   const playClip = (text: string, opts?: { pauseStartedAt?: number }): boolean => {
     const pcm = getClip(text, personaId());
     if (pcm === null) return false;
@@ -201,15 +220,23 @@ export async function startBackchannelClips(
       : player.play(pcm, BACKCHANNEL_VOLUME);
     if (!played) return false;
     lastPlayedAt = Date.now();
+    recordQuirk(sessionIdOf(session), {
+      kind: text === LAUGH_CLIP ? 'laugh' : 'backchannel',
+      source: 'clip',
+      personaId: personaId(),
+    });
     return true;
   };
   const cancelFresh = (): boolean => direct?.cancelIfFresh() ?? false;
   const wireDelayMs = (): number =>
     direct ? (direct.lastWireMs ?? 60) : process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650;
   // Live backchannels and laughs (not the turn-opening "Mm") tell the avatar they played.
+  // VOICED_PRESENCE varies the live picks; the signal wraps the variation so
+  // its kind follows the requested clip (a laugh take still signals 'laugh').
+  const variedPlayClip = voiced?.vary(playClip) ?? playClip;
   const livePlayClip = avatarListenSignalsEnabled()
-    ? withBackchannelSignal(playClip, createDataMessageSender(room), wireDelayMs)
-    : playClip;
+    ? withBackchannelSignal(variedPlayClip, createDataMessageSender(room), wireDelayMs)
+    : variedPlayClip;
   return {
     playClip,
     lastPlayedAt: () => lastPlayedAt,
@@ -219,6 +246,7 @@ export async function startBackchannelClips(
     close: async () => {
       stopPresence();
       stopToolHum();
+      voiced?.close();
       await direct?.close();
       await player.close();
     },
@@ -237,31 +265,58 @@ const WHISTLE_VOLUME = 0.5;
 function startPresenceSounds(
   session: voice.AgentSession,
   player: ClipPlayer,
-  otherTrackBusy: () => boolean = () => false
+  otherTrackBusy: () => boolean = () => false,
+  personaId: () => string = () => 'ferni'
 ): () => void {
-  if (!presenceSoundsEnabled()) return () => {};
+  // VOICED_PRESENCE: no whistle or snore until researched; voiced-presence.ts fills the quiet.
+  if (!presenceSoundsEnabled() || voicedPresenceEnabled()) return () => {};
   const mood = () =>
     (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
       ?.primary;
-  const playing = (kind: string, pcm: ArrayBuffer): boolean => {
+  // QUIRK_AWARENESS: what they last said counts too, not only how their voice read.
+  const serious = (): boolean => quirkAwarenessEnabled() && callerVenting(lastCallerWords(session));
+  const playing = (
+    kind: 'hum' | 'whistle' | 'snore',
+    pcm: ArrayBuffer,
+    quietMs: number
+  ): boolean => {
     const ok = !otherTrackBusy() && player.play(pcm, WHISTLE_VOLUME);
-    if (ok) log.info({ kind }, `PRESENCE_SOUND ${kind}`);
+    if (ok) {
+      log.info({ kind }, `PRESENCE_SOUND ${kind}`);
+      const secs = Math.round(quietMs / 1000);
+      const voice = mood() ? `, their voice sounding ${mood()}` : '';
+      recordQuirk(sessionIdOf(session), {
+        kind,
+        source: 'clip',
+        personaId: personaId(),
+        reason: `the line went quiet for about ${secs} seconds on an easy, light call${voice}`,
+      });
+    }
     return ok;
   };
   const stop = () => player.stop();
+  // PRESENCE_SOUND_ASSETS: a recorded whistle or snore when one loaded, else the synthesized one
+  const recorded = presenceClipPickers();
+  const quiet = () => stayQuietOn(session);
   const watchers = [
     createPresenceWatcher({
-      play: () =>
+      play: (quietMs) =>
         presenceHumEnabled() && Math.random() < 0.5
-          ? playing('hum', synthHum())
-          : playing('whistle', synthWhistle()),
+          ? playing('hum', synthHum(), quietMs)
+          : playing('whistle', recorded?.whistle.next() ?? synthWhistle(), quietMs),
       stop,
       mood,
+      serious,
+      quiet,
     }),
   ];
   if (presenceSnoreEnabled()) {
+    const snore = () => recorded?.snore.next() ?? synthSnore();
     watchers.push(
-      createPresenceWatcher({ play: () => playing('snore', synthSnore()), stop, mood }, LONG_QUIET)
+      createPresenceWatcher(
+        { play: (quietMs) => playing('snore', snore(), quietMs), stop, mood, serious, quiet },
+        LONG_QUIET
+      )
     );
   }
   const onAgent = (ev: { newState?: string }) =>
@@ -275,4 +330,20 @@ function startPresenceSounds(
     session.off(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
     session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser);
   };
+}
+
+/** The call's id (userData.services.sessionId), read when needed: userData is set after start. */
+function sessionIdOf(session: voice.AgentSession): string | undefined {
+  return (session.userData as { services?: { sessionId?: string } } | undefined)?.services
+    ?.sessionId;
+}
+
+/** The caller's latest words in the session history, or ''. */
+function lastCallerWords(session: voice.AgentSession): string {
+  const items = (session as { history?: { items?: unknown[] } }).history?.items ?? [];
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i] as { type?: string; role?: string; textContent?: string };
+    if (item.type === 'message' && item.role === 'user') return item.textContent ?? '';
+  }
+  return '';
 }

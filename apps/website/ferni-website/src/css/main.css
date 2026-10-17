@@ -476,7 +476,9 @@
     @apply transition-all duration-700 ease-expo-out;
   }
 
-  .reveal.is-visible {
+  /* better-than-human.js and main.js add .visible */
+  .reveal.is-visible,
+  .reveal.visible {
     @apply opacity-100 translate-y-0;
   }
 

@@ -9,6 +9,7 @@
 import { createLogger } from '../../utils/logger.js';
 import { getModal, getEntries, setEntries, getCurrentAgent, getFilteredEntries, getFilterDate, getSearchQuery } from './state.js';
 import { getMoodIcon } from './mood-icons.js';
+import { escapeAttr, escapeHtml } from '../engagement-components.js';
 import { deleteMemory, listMemories } from '../../services/custom-agent.service.js';
 import { renderStats } from './render-stats.js';
 import { renderCalendar } from './calendar.js';
@@ -89,7 +90,7 @@ export async function deleteEntry(entryId: string): Promise<boolean> {
   }
 
   try {
-    await deleteMemory(currentAgent.id, entryId);
+    await deleteMemory(currentAgent.id, entryId, 'journalEntry');
 
     // Reload entries
     const entries = (await listMemories(currentAgent.id, 'journalEntry')) || [];
@@ -139,7 +140,7 @@ export function renderEntries(): void {
     const filterMessage = filterDate 
       ? t('voiceJournal.noEntriesForDate')
       : searchQuery
-        ? t('voiceJournal.noEntriesMatching', { query: searchQuery })
+        ? t('voiceJournal.noEntriesMatching', { query: escapeHtml(searchQuery) })
         : t('voiceJournal.noEntriesFound');
     
     list.innerHTML = `
@@ -173,20 +174,20 @@ export function renderEntries(): void {
           ? `<span class="entry-source">${getMomentLabel(entry.momentType)}</span>` 
           : '';
         
-        // Highlight search matches
-        let displayContent = entry.content;
+        // Highlight search matches in the escaped text: an entry is words, never markup.
+        let displayContent = escapeHtml(entry.content);
         if (searchQuery) {
-          const regex = new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi');
-          displayContent = entry.content.replace(regex, '<mark class="search-highlight">$1</mark>');
+          const regex = new RegExp(`(${escapeRegExp(escapeHtml(searchQuery))})`, 'gi');
+          displayContent = displayContent.replace(regex, '<mark class="search-highlight">$1</mark>');
         }
         
         return `
-    <article class="${entryClass}" data-entry-id="${entry.id}">
+    <article class="${entryClass}" data-entry-id="${escapeAttr(entry.id)}">
       <header class="entry-header">
         <time class="entry-date">${formatDate(entry.createdAt)}</time>
         ${sourceLabel}
         ${entry.mood ? `<span class="entry-mood">${getMoodIcon(entry.mood)}</span>` : ''}
-        <button class="entry-delete" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="${t('accessibility.deleteEntry')}" title="${t('accessibility.deleteEntry')}">
+        <button class="entry-delete" data-action="delete-entry" data-entry-id="${escapeAttr(entry.id)}" aria-label="${t('accessibility.deleteEntry')}" title="${t('accessibility.deleteEntry')}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -196,7 +197,7 @@ export function renderEntries(): void {
       <p class="entry-content">${displayContent}</p>
       ${
         entry.audioUrl
-          ? `<audio class="entry-audio" controls src="${entry.audioUrl}" preload="metadata"></audio>`
+          ? `<audio class="entry-audio" controls src="${escapeAttr(entry.audioUrl)}" preload="metadata"></audio>`
           : ''
       }
     </article>

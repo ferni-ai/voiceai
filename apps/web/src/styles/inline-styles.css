@@ -340,6 +340,13 @@ body {
   --z-celebration: 9999;    /* Full-screen celebration canvas */
   --z-system: 9999;         /* Critical system UI (splash) */
 
+  /* Overlay spacing and radii (8-pt grid, rem so text size scales them) */
+  --overlay-gutter: 1rem;      /* Edge gutter on phones; 1.5rem on desktop */
+  --overlay-gap: 0.5rem;       /* Between stacked toasts, between actions */
+  --overlay-radius-sm: 0.75rem; /* Toast, tooltip */
+  --overlay-radius-md: 1rem;    /* Popover, card */
+  --overlay-radius-lg: 1.5rem;  /* Dialog, sheet */
+
   /* Backdrop overlays */
   --backdrop-light: rgba(20, 16, 14, 0.4);
   --backdrop-medium: rgba(20, 16, 14, 0.6);
@@ -531,22 +538,16 @@ body {
 [data-persona='peter-john'] {
   --persona-primary: #3a6b73;
   --persona-secondary: #2d5359;
+  --persona-on-primary: var(--color-peter-on-primary);
   --persona-glow: rgba(58, 107, 115, 0.32);
   --persona-bg-tint: rgba(58, 107, 115, 0.08);
 }
 
-/* Nayan Patel - Golden Amber (wisdom, long-term thinking) */
-[data-persona='nayan-patel'] {
-  --persona-primary: #b8956a;
-  --persona-secondary: #9a7a52;
-  --persona-glow: rgba(184, 149, 106, 0.35);
-  --persona-bg-tint: rgba(184, 149, 106, 0.08);
-}
-
-/* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy, financial wisdom) */
+/* Nate Holloway (joel-dickson) - Burgundy (distinguished, trustworthy, financial wisdom) */
 [data-persona='joel-dickson'] {
   --persona-primary: #9A0718;
   --persona-secondary: #7A0514;
+  --persona-on-primary: var(--color-joel-on-primary);
   --persona-glow: rgba(154, 7, 24, 0.28);
   --persona-bg-tint: rgba(154, 7, 24, 0.06);
 }
@@ -555,6 +556,7 @@ body {
 [data-persona='alex-chen'] {
   --persona-primary: #5a6b8a;
   --persona-secondary: #4a5a73;
+  --persona-on-primary: var(--color-alex-on-primary);
   --persona-glow: rgba(90, 107, 138, 0.32);
   --persona-bg-tint: rgba(90, 107, 138, 0.08);
 }
@@ -563,6 +565,7 @@ body {
 [data-persona='maya-santos'] {
   --persona-primary: #a67a6a;
   --persona-secondary: #8a635a;
+  --persona-on-primary: var(--color-maya-on-primary);
   --persona-glow: rgba(166, 122, 106, 0.32);
   --persona-bg-tint: rgba(166, 122, 106, 0.08);
 }
@@ -571,6 +574,7 @@ body {
 [data-persona='jordan-taylor'] {
   --persona-primary: #c4856a;
   --persona-secondary: #a86d55;
+  --persona-on-primary: var(--color-jordan-on-primary);
   --persona-glow: rgba(196, 133, 106, 0.32);
   --persona-bg-tint: rgba(196, 133, 106, 0.08);
 }
@@ -580,6 +584,7 @@ body {
 [data-persona='lifetime-advisor'] {
   --persona-primary: #b8956a;
   --persona-secondary: #9a7a52;
+  --persona-on-primary: var(--color-nayan-on-primary);
   --persona-glow: rgba(184, 149, 106, 0.35);
   --persona-bg-tint: rgba(184, 149, 106, 0.1);
 }
@@ -665,6 +670,9 @@ body {
 /* Zen header styling - clean, extends to top */
 [data-theme='zen'] .header {
   background: transparent;
+  /* No bottom border: the frosted panel below fades out instead. A hard
+     1px line plus a white-to-beige step cut the page in two at the end of
+     the header (2026-10-11 audit). */
   /* Padding at top instead of margin so frosted glass covers full area */
   margin-top: 0;
   padding-top: calc(32px + env(safe-area-inset-top, 0px));
@@ -679,11 +687,12 @@ body {
   right: -50vw;
   bottom: 0;
   background: rgba(255, 255, 255, 0.75);
-  /* Fade out at the bottom: a hard edge read as a seam across the screen */
-  mask-image: linear-gradient(to bottom, black 70%, transparent);
   backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   z-index: -1;
+  /* Fade the panel's bottom edge into the page instead of ending it on a line. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
 }
 
 /* Zen avatar styling: the face carries the persona color. The eyes are
@@ -924,7 +933,7 @@ body {
   );
 }
 
-/* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy) */
+/* Nate Holloway (joel-dickson) - Burgundy (distinguished, trustworthy) */
 [data-theme='zen'][data-persona='joel-dickson'] .btn-primary {
   background: linear-gradient(
     145deg,
@@ -1811,6 +1820,13 @@ html.theme-transitioning *::after {
 .app-loaded .entrance-roster.entrance-complete .team-member {
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+/* Stable roster: the entrance plays once. Rebuilding the bar after a tap, add or
+   handoff must not replay it on every avatar; roster-motion.ts moves only what changed. */
+.app-loaded .entrance-roster.roster-settled .team-member {
+  animation: none;
+  opacity: 1;
 }
 
 /* CRITICAL: Marketplace "More" button must ALWAYS be visible and clickable.
@@ -3834,14 +3850,6 @@ body {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
 }
 
-/* Dark theme adjustments for lid overlay */
-[data-theme='dark'] .avatar-lid-overlay .lid-top,
-[data-theme='dark'] .avatar-lid-overlay .lid-bottom,
-[data-theme='dark'] .avatar-lid-overlay .brow-left,
-[data-theme='dark'] .avatar-lid-overlay .brow-right {
-  fill: var(--color-background-primary, #352e28);
-}
-
 /* Reduced motion - disable lid transitions */
 @media (prefers-reduced-motion: reduce) {
   .avatar-lid-overlay .lid-top,
@@ -3856,320 +3864,6 @@ body {
 
   .emotion-sparkle {
     display: none;
-  }
-}
-
-/* ========================================================================
-       🎬 FERNI AWARENESS - Three testable presence modes
-       1. PUPIL: Simple dark circle + catchlight (Pixar lamp)
-       2. SPARKLE: Just a sparkle/star (ultra minimal)
-       3. AWARE GLOW: Original orb with glow changes (Apple style)
-       ======================================================================== */
-
-/* ---- BASE STYLES ---- */
-.ferni-eye {
-  position: absolute;
-  inset: 20%;
-  pointer-events: none;
-  opacity: 0;
-  transform: scale(0.7);
-  transition:
-    opacity 0.35s ease,
-    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: var(--z-docked);
-}
-
-.ferni-eye__svg {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
-}
-
-.ferni-eye__pupil-group {
-  transition: transform 0.12s ease-out;
-}
-
-/* ---- MODE 1: PUPIL (default) ---- */
-.ferni-eye[data-style='pupil'] .ferni-eye__glow {
-  opacity: 0.6;
-}
-.ferni-eye[data-style='pupil'] .ferni-eye__pupil {
-  opacity: 1;
-}
-.ferni-eye[data-style='pupil'] .ferni-eye__catchlight {
-  opacity: 0.95;
-}
-.ferni-eye[data-style='pupil'] .ferni-eye__sparkle-center {
-  opacity: 0;
-}
-.ferni-eye[data-style='pupil'] .ferni-eye__sparkle-core {
-  opacity: 0;
-}
-
-/* ---- MODE 2: SPARKLE ONLY (ultra minimal) ---- */
-.ferni-eye[data-style='sparkle'] .ferni-eye__glow {
-  opacity: 0;
-}
-.ferni-eye[data-style='sparkle'] .ferni-eye__pupil {
-  opacity: 0;
-}
-.ferni-eye[data-style='sparkle'] .ferni-eye__catchlight {
-  opacity: 0;
-}
-.ferni-eye[data-style='sparkle'] .ferni-eye__sparkle-center {
-  opacity: 0.4;
-  filter: blur(3px);
-}
-.ferni-eye[data-style='sparkle'] .ferni-eye__sparkle-core {
-  opacity: 1;
-  filter: drop-shadow(0 0 6px white);
-}
-
-.ferni-eye[data-style='sparkle'].eye-visible .ferni-eye__sparkle-core,
-.ferni-eye[data-style='sparkle'].eye-peek .ferni-eye__sparkle-core {
-  animation: sparkleBreath 1.5s ease-in-out infinite;
-}
-
-@keyframes sparkleBreath {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.4);
-    opacity: 0.8;
-  }
-}
-
-/* Sparkle 4-point star effect */
-.ferni-eye[data-style='sparkle'].eye-curious .ferni-eye__sparkle-core {
-  animation: sparkleFlare 0.6s ease-out;
-}
-
-@keyframes sparkleFlare {
-  0% {
-    transform: scale(1) rotate(0deg);
-  }
-  50% {
-    transform: scale(2) rotate(45deg);
-    filter: drop-shadow(0 0 12px white);
-  }
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-/* ---- MODE 3: AWARE GLOW (no eye, just orb enhancement) ---- */
-.ferni-aware-glow {
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(
-    circle at 35% 35%,
-    rgba(255, 255, 255, 0.25) 0%,
-    rgba(255, 255, 255, 0.1) 30%,
-    transparent 60%
-  );
-  transition: opacity 0.4s ease;
-  z-index: var(--z-docked);
-}
-
-.ferni-aware-glow.glow-visible {
-  opacity: 1;
-  animation: awareGlowPulse 2s ease-in-out infinite;
-}
-
-.ferni-aware-glow.glow-peek {
-  animation: awareGlowPeek 2.2s ease-out forwards;
-}
-
-@keyframes awareGlowPulse {
-  0%,
-  100% {
-    opacity: 0.7;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.03);
-  }
-}
-
-@keyframes awareGlowPeek {
-  0% {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  15% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-  25%,
-  75% {
-    opacity: 0.9;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.98);
-  }
-}
-
-/* Aware glow cursor tracking - glow position shifts */
-.ferni-aware-glow[data-offset] {
-  transition:
-    background 0.15s ease-out,
-    opacity 0.4s ease;
-}
-
-/* Aware glow curious - brighter flash */
-.ferni-aware-glow.glow-curious {
-  animation: awareGlowFlash 0.5s ease-out;
-}
-
-@keyframes awareGlowFlash {
-  0%,
-  100% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-    background: radial-gradient(
-      circle at 35% 35%,
-      rgba(255, 255, 255, 0.4) 0%,
-      rgba(255, 255, 255, 0.2) 40%,
-      transparent 70%
-    );
-  }
-}
-
-/* ---- SHARED ANIMATIONS ---- */
-
-/* Eye visible state */
-.ferni-eye.eye-visible {
-  opacity: 1;
-  transform: scale(1);
-}
-
-/* Peek animation */
-.ferni-eye.eye-peek {
-  animation: awarenessPeek 2.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes awarenessPeek {
-  0% {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  12% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-  20% {
-    transform: scale(0.95);
-  }
-  28%,
-  72% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  85% {
-    opacity: 0.8;
-    transform: scale(1.03);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-}
-
-/* Looking around */
-.ferni-eye.eye-look-around .ferni-eye__pupil-group {
-  animation: awarenessLook 2s ease-in-out;
-}
-
-@keyframes awarenessLook {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  25% {
-    transform: translate(6px, -2px);
-  }
-  50% {
-    transform: translate(-4px, 3px);
-  }
-  75% {
-    transform: translate(3px, -1px);
-  }
-}
-
-/* Curious - mode-specific above */
-.ferni-eye[data-style='pupil'].eye-curious .ferni-eye__catchlight {
-  animation: catchlightBrighten 0.5s ease-out;
-}
-
-@keyframes catchlightBrighten {
-  0%,
-  100% {
-    opacity: 0.95;
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.5);
-  }
-}
-
-/* Wink */
-.ferni-eye.eye-wink .ferni-eye__pupil-group {
-  animation: awarenessWink 0.35s ease-in-out;
-}
-
-@keyframes awarenessWink {
-  0%,
-  100% {
-    transform: scaleY(1);
-  }
-  40%,
-  60% {
-    transform: scaleY(0.1);
-  }
-}
-
-/* Blink */
-.ferni-eye.eye-blink .ferni-eye__pupil-group {
-  animation: awarenessBlink 0.12s ease-in-out;
-}
-
-@keyframes awarenessBlink {
-  0%,
-  100% {
-    transform: scaleY(1);
-  }
-  50% {
-    transform: scaleY(0.05);
-  }
-}
-
-/* Hide initials when eye/sparkle is visible (not for glow mode) */
-.ferni-eye.eye-visible ~ #avatarText,
-.ferni-eye.eye-peek ~ #avatarText {
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .ferni-eye,
-  .ferni-eye.eye-peek,
-  .ferni-eye__pupil-group,
-  .ferni-aware-glow,
-  .ferni-aware-glow.glow-peek {
-    animation: none !important;
-    transition: opacity 0.3s ease !important;
   }
 }
 
@@ -5154,14 +4848,36 @@ body {
   height: 56px;
 }
 
-/* Individual bar */
+/* Individual bar. waveform.ui.ts lays each bar out once at full height and
+   sets its height per frame with transform: scaleY (from the bottom), so a
+   frame never re-lays out the page; writing height did, ~60 times a second
+   for the whole call. */
 .waveform-bar {
+  position: relative;
   width: 4px;
   min-height: 6px;
   background: var(--waveform-color);
-  border-radius: 100px;
+  /* Round caps that stay round under scaleY: the vertical radius is divided
+     by the bar's scale (--bar-sy, set with the transform) */
+  border-radius: 2px / calc(2px / var(--bar-sy, 1));
+  transform-origin: 50% 100%;
   transition: background 0.3s ease;
-  will-change: height;
+  will-change: transform;
+}
+
+/* Depth shadow, pre-rendered at full height: it fades in as the bar grows
+   (--bar-lift, 0..1) and scales with the bar, instead of a box-shadow
+   rewritten every frame. */
+.waveform-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    0 8px 10px rgba(0, 0, 0, 0.3),
+    inset 0 3px 0 rgba(255, 255, 255, 0.1);
+  opacity: var(--bar-lift, 0);
+  pointer-events: none;
 }
 
 /* 🫁 IDLE BREATHING - Ferni is alive even when quiet
@@ -5230,18 +4946,19 @@ body {
   animation-delay: 0s;
 }
 
+/* On `scale`, not `transform`: transform carries the bar's height (inline) */
 @keyframes waveformIdleBreath {
   0%,
   100% {
-    transform: scaleY(1);
+    scale: 1 1;
     opacity: 0.5;
   }
   40% {
-    transform: scaleY(1.08);
+    scale: 1 1.08;
     opacity: 0.6;
   }
   60% {
-    transform: scaleY(1.08);
+    scale: 1 1.08;
     opacity: 0.6;
   }
 }
@@ -5762,26 +5479,42 @@ body {
 }
 
 .btn-connecting .btn-content {
-  opacity: 0;
-  transform: scale(0.9);
+  display: none;
 }
 
-/* Connecting label over the button. Undo the .btn-primary::after glow
-   (behind the button, blurred, fill colour) or the label is invisible. */
-.btn.btn-connecting::after {
-  content: attr(data-status);
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: none;
-  filter: none;
+/* Connecting status: "Connecting…" over a smaller "Tap to cancel", a flex
+   item beside the spinner, so a long or enlarged label wraps at word breaks
+   inside the pill (which grows) instead of clipping or running under the
+   spinner (controls.ui.ts showConnectingStatus). */
+.btn-connecting .btn-status {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding-inline-start: 28px; /* Space for spinner */
+  min-width: 0;
+  text-align: center;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+  animation: connectTextFade 0.3s ease-out forwards;
+}
+
+.btn-connecting .btn-status-main {
   font-weight: 500;
   letter-spacing: 0.01em;
-  animation: connectTextFade 0.3s ease-out forwards;
+}
+
+.btn-connecting .btn-status-hint {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+/* Room for the two lines inside the button's usual 52px (no height jump)
+   and for "Connecting…" unbroken at 200% zoom. !important only to beat the
+   global `.btn:not(.btn-mute)` paddings, which are themselves !important
+   (hence the matching :not, for one more class of specificity). */
+.btn.btn-connecting:not(.btn-mute) {
+  padding-block: var(--space-xs) !important;
+  padding-inline: var(--space-md) !important;
 }
 
 @keyframes connectTextFade {
@@ -5795,15 +5528,13 @@ body {
   }
 }
 
-/* Spinning indicator - Apple-style minimal */
+/* Spinning indicator - Apple-style minimal, the label's leading flex item */
 .btn-connecting::before {
   content: '';
-  position: absolute;
-  inset-inline-start: 24px;
-  top: 50%;
+  position: static;
+  flex: none;
   width: 14px;
   height: 14px;
-  margin-top: -7px;
   border: 2px solid rgba(255, 255, 255, 0.25);
   border-top-color: rgba(255, 255, 255, 0.95);
   border-radius: 50%;
@@ -5848,6 +5579,10 @@ body {
   .btn-connecting::before {
     animation: none;
     opacity: 0.7;
+  }
+
+  .btn-connecting .btn-status {
+    animation: none;
   }
 
   /* Disable spring entrances */
@@ -5947,7 +5682,7 @@ body {
   ) !important;
 }
 
-/* Joel Dickson - Vanguard Burgundy (financial wisdom) */
+/* Nate Holloway (joel-dickson) - Burgundy (financial wisdom) */
 [data-persona='joel-dickson'] .btn-primary {
   background: linear-gradient(
     145deg,
@@ -6619,20 +6354,10 @@ body {
   color: var(--color-text-primary);
 }
 
-/* 🌬️ ACTIVE MEMBER BREATHING - Very subtle idle animation */
-.team-member.active:not(.switching-to):not(.switching-from) {
-  animation: teamMemberBreathing 6s ease-in-out infinite;
-}
-
-@keyframes teamMemberBreathing {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-1px);
-  }
-}
+/* The active member used to "breathe" with a transform loop here, but the
+   rule above pins transform with !important, so it never moved: it only ran
+   on the main thread every frame (Chrome can't composite a property that an
+   !important declaration overrides). Removed. */
 
 /* ✨ ACTIVE RING SHIMMER - Very subtle glow pulse on selected member */
 .team-member.active .team-avatar-ring {
@@ -6693,7 +6418,7 @@ body {
 } /* Golden amber - wisdom */
 .team-member[data-persona-id='joel-dickson'] {
   --member-color: #9A0718;
-} /* Vanguard burgundy - financial wisdom */
+} /* burgundy - financial wisdom */
 .team-member[data-persona-id='peter-john'] {
   --member-color: #3a6b73;
 } /* Ocean teal - research */
@@ -10129,8 +9854,8 @@ body {
 
 /* 🆕 CONVERSATIONAL AVATAR - Natural head movements while speaking
        Like Ferni is actually engaged in conversation, not a pulsing orb */
-#coach.is-speaking .avatar-container,
-#coach.is-speaking #coachAvatar {
+#coach.is-speaking:not([data-speech-beats]) .avatar-container,
+#coach.is-speaking:not([data-speech-beats]) #coachAvatar {
   animation: conversationalSpeaking 3.5s ease-in-out infinite;
 }
 
@@ -10645,10 +10370,10 @@ body {
   opacity: 1;
 }
 
-/* Ensure roster has room for hint */
+/* Room for the hint. Not !important: it beat the phone row's scrolling. */
 #teamRoster {
   padding-bottom: 16px;
-  overflow: visible !important;
+  overflow: visible;
 }
 
 /* Full coach section becomes drop zone */

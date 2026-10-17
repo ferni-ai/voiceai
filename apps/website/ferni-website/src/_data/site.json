@@ -1,7 +1,7 @@
 {
   "name": "Ferni",
   "tagline": "The coach that actually listens",
-  "description": "Six brilliant minds who remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon. Better than human.",
+  "description": "Six brilliant minds who remember what matters to you, hear what you're not saying, and show up at 2am with the same presence as noon. Better than human.",
   "url": "https://ferni.ai",
   "appUrl": "https://app.ferni.ai",
   "phone": "1 (888) 598-3952",
@@ -51,9 +51,9 @@
   "superpowers": [
     {
       "id": "memory",
-      "title": "Perfect Memory",
+      "title": "Remembers What Matters",
       "tagline": "That thing you mentioned six months ago? We remember.",
-      "description": "Your best friend forgets. Your therapist has other patients. We remember everything—every conversation, every goal, every detail that matters to you."
+      "description": "Your best friend forgets. Your therapist has other patients. We remember what you share, like your goals and the people who matter to you, and you can see, correct or forget any of it."
     },
     {
       "id": "presence",
@@ -91,9 +91,9 @@
   ],
 
   "stats": [
-    { "value": "10,000+", "label": "Conversations" },
-    { "value": "<500ms", "label": "Response Time" },
-    { "value": "∞", "label": "Memory" },
+    { "value": "Free", "label": "Right Now" },
+    { "value": "6", "label": "Specialists" },
+    { "value": "You", "label": "In Control" },
     { "value": "24/7", "label": "Always There" }
   ],
 
@@ -164,7 +164,7 @@
   "faq": [
     {
       "question": "Is Ferni really free?",
-      "answer": "Yes! Ferni is completely free to use. We believe everyone deserves access to quality life coaching. Our premium features are coming soon, but the core experience will always be free."
+      "answer": "Yes! Ferni is completely free to use. We believe everyone deserves access to quality life coaching. It's free while we're in early access."
     },
     {
       "question": "How does the phone calling work?",
@@ -278,7 +278,7 @@
 
   "seo": {
     "title": "Ferni - Your AI Life Coach | Better Than Human",
-    "description": "Meet Ferni: six brilliant AI minds who remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon. Free forever.",
+    "description": "Meet Ferni: six brilliant AI minds who remember what matters to you, hear what you're not saying, and show up at 2am with the same presence as noon. Free while in early access.",
     "keywords": [
       "AI life coach",
       "personal coach",

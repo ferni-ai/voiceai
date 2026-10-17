@@ -1,0 +1,49 @@
+name: 'Did the merge queue already test this tree?'
+description: >
+  On a push to main, sets `tested` to 'true' only when a SUCCESSFUL merge-queue run
+  of the CI workflow tested a commit with exactly this commit's tree. A queue merge
+  lands that tree on main (sometimes as a new commit SHA), so running the suite
+  again proves nothing new. Anything else is 'false', and everything runs: any
+  other event or branch, an admin merge or direct push (no queue run for this
+  tree), a failed or cancelled run, or any API error. On 2026-10-11, admin merges
+  that skipped the queue left main red, so that path must always get full CI.
+
+outputs:
+  tested:
+    description: "'true' or 'false'"
+    value: ${{ steps.check.outputs.tested }}
+  run-id:
+    description: 'The matching merge-queue run, when tested is true'
+    value: ${{ steps.check.outputs.run_id }}
+
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        EVENT: ${{ github.event_name }}
+        REF: ${{ github.ref }}
+        SHA: ${{ github.sha }}
+        REPO: ${{ github.repository }}
+        SERVER: ${{ github.server_url }}
+      run: |
+        full() { echo "tested=false" >> "$GITHUB_OUTPUT"; echo "Full suite: $1"; exit 0; }
+        [ "$EVENT" = push ] && [ "$REF" = refs/heads/main ] || full "$EVENT on $REF is not a push to main"
+        tree=$(gh api "repos/$REPO/git/commits/$SHA" --jq .tree.sha) && [ -n "$tree" ] \
+          || full "could not read the tree of $SHA"
+        # The newest successful queue runs; a queue merge's run is among the latest.
+        runs=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?event=merge_group&status=success&per_page=30" \
+          --jq '.workflow_runs[] | select(.conclusion == "success") | "\(.id) \(.head_sha)"') \
+          || full "could not list merge-queue runs"
+        while read -r id head; do
+          [ -n "$id" ] || continue
+          if [ "$head" = "$SHA" ]; then match=$id; break; fi
+          t=$(gh api "repos/$REPO/git/commits/$head" --jq .tree.sha 2>/dev/null) || continue
+          if [ "$t" = "$tree" ]; then match=$id; break; fi
+        done <<< "$runs"
+        [ -n "${match:-}" ] || full "no successful merge-queue run tested tree $tree (admin merge or direct push?)"
+        echo "tested=true" >> "$GITHUB_OUTPUT"
+        echo "run_id=$match" >> "$GITHUB_OUTPUT"
+        echo "::notice::Skipping the full suite: merge-queue run $SERVER/$REPO/actions/runs/$match passed on tree $tree, which is this commit's tree"

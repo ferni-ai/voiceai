@@ -1,15 +1,14 @@
 name: Deploy Staging / Preview
 
-# Deploy to staging environment for testing before production
-# Also creates preview deployments for PRs
-
+# Previews only: a PR gets one when it carries the `preview` label (adding the label
+# deploys; later pushes redeploy), or by dispatch. Nothing required lives here; the
+# build check is in build.yml. Every UI-touching PR used to get a preview: a second
+# image build plus a Cloud Run deploy per push, which held the hosted runners the
+# prod web deploy needed.
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened]
-  # Build & Test is a required check, so the merge queue needs it. Queue runs
-  # build and test only; they never deploy a preview.
-  merge_group:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
     inputs:
       branch:
@@ -17,10 +16,10 @@ on:
         required: false
         type: string
 
-# A new push to a PR supersedes its running build and preview deploy. Merge-queue
-# runs always finish (cancelling one drops the queue entry).
+# A new push to a PR supersedes its running preview deploy. Adding some other label
+# runs nothing, so it gets its own group instead of cancelling a deploy.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{ github.workflow }}-${{ (github.event.action == 'labeled' && github.event.label.name != 'preview' && github.run_id) || github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -34,6 +33,11 @@ jobs:
   # ============================================================================
   context:
     name: Determine Context
+    # Unlabelled PRs, and label events for other labels, run nothing.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (contains(github.event.pull_request.labels.*.name, 'preview') &&
+       (github.event.action != 'labeled' || github.event.label.name == 'preview'))
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     outputs:
       branch: ${{ steps.branch.outputs.name }}
@@ -41,14 +45,6 @@ jobs:
       is_pr: ${{ steps.branch.outputs.is_pr }}
       env_name: ${{ steps.branch.outputs.env_name }}
       service_name: ${{ steps.branch.outputs.service_name }}
-      # 'false' on a PR or queue group that touches nothing the UI image or backend
-      # build can see: docs, or only apps/website, ios-native, android-native or
-      # macos-menubar (see ci.yml's setup job; CI_SCOPED_QUEUE=off scopes PRs only)
-      code: ${{ steps.code.outputs.matched }}
-      # A preview is for clicking through the web app, so a PR gets one only when it
-      # changes what the UI server image serves, or carries the `preview` label
-      # (read when the PR is pushed: add the label, then push). Never in the queue.
-      preview: ${{ github.event_name != 'pull_request' || steps.ui.outputs.matched == 'true' || contains(github.event.pull_request.labels.*.name, 'preview') }}
     permissions:
       contents: read
       pull-requests: read
@@ -97,92 +93,6 @@ jobs:
           echo "Safe name: $SAFE_BRANCH"
           echo "Environment: staging-$SAFE_BRANCH"
 
-      - id: code
-        uses: ./.github/actions/pr-changes
-        with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
-          merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
-
-      - id: ui
-        uses: ./.github/actions/pr-changes
-        with:
-          include: '^(apps/web/|src/servers/|src/api/|design-system/|docker/Dockerfile\.ui$|\.github/workflows/staging\.yml$)'
-
-  # ============================================================================
-  # BUILD & TEST
-  # ============================================================================
-  build:
-    name: Build & Test
-    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    needs: context
-    # Required check: skipped (which reports success) when `code` is false, never
-    # filtered out by `paths:`, which would leave it pending forever.
-    if: needs.context.outputs.code != 'false'
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      # No test run here: it took 11-17 minutes per PR and per queue entry under
-      # continue-on-error, so its result never decided anything. CI's Unit Tests
-      # and Integration Tests are the blocking test checks.
-
-      - name: Build backend
-        run: pnpm build
-
-      - name: Build design-system
-        run: node design-system/build.js
-
-      - name: Build frontend
-        run: |
-          cd apps/web
-          pnpm build
-        env:
-          NODE_ENV: staging
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: staging-build-${{ needs.context.outputs.short_sha }}
-          path: |
-            dist/
-            apps/web/dist/
-          retention-days: 3
-
-      # This job is a required check and runs in the merge queue; Deploy Staging, the
-      # only other build of this image, is skipped there. So a Dockerfile.ui that cannot
-      # build (#392: an npm lockfile out of sync) merged and failed every UI deploy from
-      # main. Build the production image here. No push, no credentials.
-      - name: Pull Docker Hub images through a mirror
-        uses: ./.github/actions/docker-hub-mirror
-
-      # Self-hosted runners skip the mirror step above, so name the mirror in the
-      # build itself: the base image and the Dockerfile frontend both come from
-      # mirror.gcr.io instead of Docker Hub, whose anonymous pull limit (429) they share.
-      # One tag per run attempt: the 8 runners on a VM share one Docker daemon, so two
-      # queue entries building at once collided on a fixed tag ("already exists",
-      # 2026-10-11), and a cancelled run left its tag behind for the next one.
-      - name: Build UI image (no push)
-        env:
-          IMAGE: john-bogle-ui:merge-check-${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          trap 'docker image rm "$IMAGE" >/dev/null 2>&1 || echo "::warning::could not remove $IMAGE"' EXIT
-          docker build -f docker/Dockerfile.ui -t "$IMAGE" \
-            --build-arg BASE_REGISTRY=mirror.gcr.io/library/ \
-            --build-arg BUILDKIT_SYNTAX=mirror.gcr.io/docker/dockerfile:1.4 .
-
   # ============================================================================
   # DEPLOY STAGING
   # ============================================================================
@@ -195,14 +105,12 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    needs: [context, build]
+    needs: context
     # Pull requests from Dependabot and from forks run without repository secrets, so
     # GCP_SA_KEY is empty and auth fails ("must specify exactly one of ...credentials_json").
     # Skip instead of failing; smoke-tests needs this job and skips with it.
     if: >-
       github.actor != 'dependabot[bot]' &&
-      github.event_name != 'merge_group' &&
-      needs.context.outputs.preview == 'true' &&
       (github.event_name != 'pull_request' ||
        github.event.pull_request.head.repo.full_name == github.repository)
     environment:

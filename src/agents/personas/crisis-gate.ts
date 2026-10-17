@@ -48,10 +48,15 @@ import {
 } from '../safety/crisis-shadow.js';
 import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
 import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { holdCommitmentInvite } from './commitment-invite.js';
+import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { getDeliberator } from './deliberation.js';
+import { noteTurn } from './move-log.js';
+import { firstNameOf, withNameGate, type HistoryItem } from './name-gate.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
+import { burstAllowed } from './vocal-bursts.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -254,6 +259,16 @@ export function holdUntilCleared(
 }
 
 /**
+ * A crisis turn: no background thought now or for the next few turns
+ * (deliberation.ts), and no small-step invite for the rest of the call
+ * (commitment-invite.ts).
+ */
+function holdAfterCrisis(session: object): void {
+  getDeliberator(session)?.hold();
+  holdCommitmentInvite(session);
+}
+
+/**
  * One persona reply through the gate: the crisis script instead of the model,
  * or the model asked with the turn reminder (plus crisis guidance when the
  * patterns call for it) and held until the classifier clears it. The opener
@@ -266,7 +281,11 @@ export async function gatedReply(
   session: { userData: unknown },
   model: (ctx: llm.ChatContext) => Promise<ReadableStream<Chunk> | null>,
   openerGate: {
-    wrap(stream: ReadableStream<Chunk>, openedBySound?: () => boolean): ReadableStream<Chunk>;
+    wrap(
+      stream: ReadableStream<Chunk>,
+      openedBySound?: () => boolean,
+      burst?: boolean
+    ): ReadableStream<Chunk>;
   },
   options: { env?: Record<string, string | undefined>; generate?: CrisisGenerateFn } = {}
 ): Promise<ReadableStream<Chunk> | null> {
@@ -280,29 +299,50 @@ export async function gatedReply(
   gate?.escalation
     ?.then((decision) => signalCrisisDecision(session, decision?.action))
     .catch(() => undefined);
-  // A crisis turn: no background thought now or for the next few turns (deliberation.ts).
-  if (gate && gate.decision.action !== 'pass') getDeliberator(session)?.hold();
-  if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
+  if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
+  if (gate?.decision.action === 'replace') {
+    // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
+    noteTurn(session, callerWords(chatCtx).latest, undefined);
+    return textReply(gate.decision.script);
+  }
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
-  // shape ("six words at most") must never hold it back.
-  const plain = (): llm.ChatContext => withTurnReminder(chatCtx, session, { shape: false });
+  // shape ("six words at most") must never hold it back, and no goodbye
+  // closes the loop on a plan (wrap-up.ts).
+  const plain = (): llm.ChatContext =>
+    withTurnReminder(chatCtx, session, { shape: false, closeLoop: false });
   const ctx =
     gate?.decision.action === 'guide'
       ? withTurnStyleReminder(plain(), gate.decision.guidance)
       : withTurnReminder(chatCtx, session);
-  const ask = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
+  // A vocal burst only where this request invited one, never with crisis guidance.
+  const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
+  const ask = async (
+    request: llm.ChatContext,
+    mayBurst = burst
+  ): Promise<ReadableStream<Chunk> | null> => {
     const stream = tapToolCalls(await model(request), session);
     if (!stream) return stream;
-    const trimmed = env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound) : stream;
-    return withToolLeadIn(trimmed, chatCtx, session, env);
+    const opened =
+      env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound, mayBurst) : stream;
+    // NAME_GATE: the caller's name at hello, goodbye, and rarely between (name-gate.ts).
+    const trimmed = withNameGate(opened, {
+      name: firstNameOf((session.userData as { userName?: unknown } | undefined)?.userName),
+      history: chatCtx.items as readonly HistoryItem[],
+      env,
+    });
+    // COMMITMENT_INVITE: on the invite turn, no step named for them (commitment-invite-reply.ts).
+    return withToolLeadIn(withInviteReplyCheck(trimmed, session), chatCtx, session, env);
   };
   const reply = await ask(ctx);
   if (!reply || !gate?.escalation) return reply;
   return holdUntilCleared(reply, gate.escalation, async (decision) => {
-    if (decision.action !== 'pass') getDeliberator(session)?.hold();
+    if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
-    return ask(withTurnStyleReminder(plain(), decision.guidance));
+    return ask(
+      withTurnStyleReminder(plain(), decision.guidance),
+      burst === undefined ? undefined : false
+    );
   });
 }

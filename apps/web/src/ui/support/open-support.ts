@@ -3,24 +3,25 @@
  *
  * With VITE_VENMO_CHIP_IN=true and VITE_VENMO_HANDLE set, it opens the Venmo
  * chip-in card (ask for a dollar, show the QR). Otherwise it opens the Stripe
- * Support Ferni modal exactly as before. Stripe stays in the code for later.
+ * Support Ferni modal, but only while the server has a paywall on
+ * (services/paywall.service.ts). Stripe stays in the code for later.
+ *
+ * The Venmo card is a voluntary chip-in, so it stays reachable from voluntary
+ * entry points (Ferni Fund, the support/tip link) even with the paywall off.
+ * It is never the answer to an upgrade or limit prompt while the paywall is
+ * off: showUpgradeModal returns before it gets here.
  *
  * @module ui/support/open-support
  */
 
-/** Venmo usernames: letters, digits, hyphens and underscores. */
-const HANDLE_PATTERN = /^[A-Za-z0-9_-]{1,30}$/;
+import { getVenmoHandle, isVenmoChipInEnabled } from '../../config/venmo-chip-in.js';
+import { isPaywallOn } from '../../services/paywall.service.js';
 
-/** The configured Venmo handle without the @, or null when unset or malformed. */
-export function getVenmoHandle(): string | null {
-  const raw = String(import.meta.env.VITE_VENMO_HANDLE ?? '')
-    .trim()
-    .replace(/^@/, '');
-  return HANDLE_PATTERN.test(raw) ? raw : null;
-}
+export { getVenmoHandle, isVenmoChipInEnabled };
 
-export function isVenmoChipInEnabled(): boolean {
-  return import.meta.env.VITE_VENMO_CHIP_IN === 'true' && getVenmoHandle() !== null;
+/** Whether a voluntary support/tip entry point has anything to open. */
+export function canOpenSupport(): boolean {
+  return isVenmoChipInEnabled() || isPaywallOn();
 }
 
 export async function openSupport(): Promise<void> {
@@ -30,6 +31,7 @@ export async function openSupport(): Promise<void> {
     openVenmoChipIn(handle);
     return;
   }
+  if (!isPaywallOn()) return; // Ferni is free and Venmo is off: nothing to ask for
   const { supportFerniUI } = await import('../support-ferni.ui.js');
   await supportFerniUI.open();
 }

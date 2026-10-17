@@ -37,7 +37,8 @@ export interface WorldObservation {
   observedAt: string;
   /** 0..1 */
   confidence: number;
-  source: { kind: 'summary' | 'turn'; sessionId: string; quote?: string };
+  /** app: the caller corrected it themselves in the app (memory-view/actions.ts). */
+  source: { kind: 'summary' | 'turn' | 'app'; sessionId: string; quote?: string };
   /** Whose commitment or claim this is: the caller's (default) or a promise Ferni made. */
   by?: 'caller' | 'ferni';
   /**
@@ -64,6 +65,10 @@ export interface TemporalFact extends WorldObservation {
   supersedes?: string[];
   /** The value it replaced in the same slot ("works at Acme"). */
   replaced?: string;
+  /** The caller asked Ferni to forget it (closed at the same time). */
+  forgottenAt?: string;
+  /** The caller said it was never true. */
+  wrong?: boolean;
 }
 
 /**

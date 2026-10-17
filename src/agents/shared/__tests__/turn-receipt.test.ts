@@ -5,13 +5,17 @@
 import { EventEmitter } from 'node:events';
 import { llm } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
+import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-context-header.js';
 import {
   attachTurnReceipts,
+  noteReminder,
   noteRequest,
   sentenceCount,
   userKindOf,
   type TurnReceipt,
 } from '../turn-receipt.js';
+import { createFirstAudioObserver } from '../../../speech/tts-gateway/first-audio-observer.js';
+import { promptSections } from '../prompt-sections.js';
 
 const INSTRUCTIONS = 'You are Ferni, a warm friend on a call.';
 const RECALL = '[WHAT YOU REMEMBER ABOUT JANE]\n- Jane Doe: phone = +1 555 867 5309';
@@ -36,6 +40,7 @@ function request(): llm.ChatContext {
   ctx.addMessage({ role: 'system', content: INSTRUCTIONS, id: 'lk.agent_task.instructions' });
   ctx.addMessage({ role: 'system', content: RECALL, id: 'recall_1' });
   ctx.addMessage({ role: 'user', content: 'hi there' });
+  ctx.addMessage({ role: 'user', content: `${TURN_CONTEXT_HEADER}\nJane sounds tired.` });
   ctx.insert(
     llm.FunctionCall.create({ callId: 'c1', name: 'getWeather', args: '{"city":"Jane town"}' })
   );
@@ -54,6 +59,50 @@ function request(): llm.ChatContext {
   });
   return ctx;
 }
+
+describe('promptSections', () => {
+  it('accounts for every character of the request, by source', () => {
+    const items = request().items;
+    const sections = promptSections(items as never, {
+      reminder: REMINDER,
+      directorNotes: DIRECTOR,
+      offered: 2,
+      droppedIdx: [1],
+    });
+    const by = Object.fromEntries(sections.map((s) => [s.name, s]));
+    expect(by.instructions.chars).toBe(INSTRUCTIONS.length);
+    expect(by.instructions.source).toBe('agent-instructions.ts');
+    expect(by.memory_recall.chars).toBe(RECALL.length);
+    expect(by.turn_context.items).toBe(1);
+    expect(by.history_user.chars).toBe('hi there'.length);
+    expect(by.history_assistant.chars).toBe('hey you'.length);
+    expect(by.tool_io.chars).toBe(
+      'getWeather'.length + '{"city":"Jane town"}'.length + 'sunny'.length
+    );
+    expect(by.caller_turn.chars).toBe(CALLER.length);
+    expect(by.director_notes.chars).toBe(DIRECTOR.length);
+    expect(by.turn_reminder.chars).toBe(`\n\n(${REMINDER})`.length - DIRECTOR.length);
+    expect(by.crisis_guidance.chars).toBe('\n\n(Crisis: be gentle.)'.length);
+
+    // Sums: sections cover the whole request, and each estimate is chars/4.
+    const allText = items.reduce((n, item) => {
+      if (item.type === 'message')
+        return n + item.content.reduce((m, c) => m + (typeof c === 'string' ? c.length : 0), 0);
+      if (item.type === 'function_call') return n + item.name.length + item.args.length;
+      if (item.type === 'function_call_output') return n + item.output.length;
+      return n;
+    }, 0);
+    expect(sections.reduce((n, s) => n + s.chars, 0)).toBe(allText);
+    for (const s of sections) expect(s.tokensEst).toBe(Math.ceil(s.chars / 4));
+  });
+
+  it('without a reminder note, the appended reminder counts as guidance, never as caller words', () => {
+    const sections = promptSections(request().items as never);
+    const by = Object.fromEntries(sections.map((s) => [s.name, s]));
+    expect(by.caller_turn.chars).toBe(CALLER.length);
+    expect(by.director_notes).toBeUndefined();
+  });
+});
 
 describe('helpers', () => {
   it('buckets the caller without exposing them', () => {
@@ -90,7 +139,9 @@ function call(opts: { userId?: string } = {}) {
     session.emit('conversation_item_added', {
       item: llm.ChatMessage.create({ role: role as 'user', content: text, interrupted }),
     });
-  const turn = (o: { tools?: string[]; swapTo?: string; interrupted?: boolean } = {}) => {
+  const turn = (
+    o: { tools?: string[]; swapTo?: string; interrupted?: boolean; unrecorded?: boolean } = {}
+  ) => {
     const stoppedAt = t;
     t += 300;
     metric({
@@ -101,6 +152,12 @@ function call(opts: { userId?: string } = {}) {
     });
     item('user', CALLER);
     state('thinking');
+    noteReminder(session, {
+      reminder: REMINDER,
+      directorNotes: DIRECTOR,
+      offered: 2,
+      droppedIdx: [1],
+    });
     noteRequest(session, request(), {
       functionTools: { getWeather: {}, handoffToMaya: {}, endCall: {} },
     });
@@ -134,7 +191,7 @@ function call(opts: { userId?: string } = {}) {
     t += 200;
     state('speaking');
     t += 1500;
-    item('assistant', REPLY, Boolean(o.interrupted));
+    if (!o.unrecorded) item('assistant', REPLY, Boolean(o.interrupted));
     state('listening');
   };
   return {
@@ -150,6 +207,30 @@ function call(opts: { userId?: string } = {}) {
 }
 
 describe('attachTurnReceipts', () => {
+  it('reports a handoff as switched when the swap lands after the turn ends', () => {
+    // Prod: the swap waits for the goodbye, so the turn ended with the old persona still on.
+    const c = call();
+    c.turn({ tools: ['handoffToMaya'] });
+    expect(c.receipts).toHaveLength(0); // held until the outcome is known
+    c.setPersona('maya');
+    c.turn();
+    expect(c.receipts[0]).toMatchObject({
+      turn: 1,
+      personaId: 'maya',
+      tools: { handoff: { attempted: true, tool: 'handoffToMaya', result: 'switched' } },
+    });
+    expect(c.receipts[0].timing.replyDoneMs).toBe(c.receipts[1].timing.replyDoneMs);
+  });
+
+  it('reports a handoff that never swapped as stayed, at the latest when the call ends', () => {
+    const c = call();
+    c.turn({ tools: ['handoffToMaya'] });
+    c.detach();
+    expect(c.receipts).toHaveLength(1);
+    expect(c.receipts[0].tools.handoff.result).toBe('stayed');
+    expect(c.receipts[0].personaId).toBe('ferni');
+  });
+
   it('emits one receipt per caller turn, with timings, prompt, tools and reply', () => {
     const c = call();
     c.turn({ tools: ['getWeather', 'handoffToMaya'], swapTo: 'maya' });
@@ -173,6 +254,7 @@ describe('attachTurnReceipts', () => {
         replyDoneMs: 2500,
       },
       tokens: { prompt: 4000, promptCached: 3000, completion: 20 },
+      director: { offered: 2, kept: 1, droppedIdx: [1] },
       tools: {
         offered: 3,
         called: ['getWeather', 'handoffToMaya'],
@@ -185,11 +267,48 @@ describe('attachTurnReceipts', () => {
         sentences: 3,
         interrupted: false,
         ttsCancelled: false,
+        unrecorded: false,
       },
     });
     // First token: request start (timestamp - duration) + TTFT, from the end of speech.
     expect(r.timing.llmReadyMs).toBe(750);
-    expect(r.prompt).toEqual({ requests: 1, lane: null });
+    expect(r.prompt.estimate).toBe('chars/4');
+    expect(r.prompt.requests).toBe(1);
+    expect(r.prompt.totalTokensEst).toBe(r.prompt.sections.reduce((n, s) => n + s.tokensEst, 0));
+    expect(r.prompt.totalTokensEst).toBeGreaterThan(0);
+  });
+
+  // Prod 2026-10-12: from turn 8 of one call no reply reached the history, and the
+  // model answered the same questions again ("Gujarati is what I grew up with" x4).
+  it('flags a turn where Ferni spoke but no reply reached the chat history', () => {
+    const c = call();
+    c.turn();
+    c.turn({ unrecorded: true });
+    expect(c.receipts.map((r) => [r.reply.messages, r.reply.unrecorded])).toEqual([
+      [1, false],
+      [0, true],
+    ]);
+  });
+
+  // Prod speaks through the TTS gateway, which never emits the SDK's tts_metrics:
+  // ttsTtfbMs was null in 135/135 receipts (SDK speech audit 2026-10-13).
+  it("records the TTS gateway's first audio for this session's reply only", () => {
+    const c = call();
+    c.metric({ type: 'eou_metrics', endOfUtteranceDelayMs: 300, lastSpeakingTimeMs: 1 });
+    c.item('user', CALLER);
+    c.state('thinking');
+    const theirs = createFirstAudioObserver({ sessionId: 'RM_other', startTime: Date.now() - 50 });
+    theirs();
+    const ours = createFirstAudioObserver({ sessionId: 'RM_test', startTime: Date.now() - 420 });
+    ours.stage('push');
+    ours();
+    c.state('speaking');
+    c.item('assistant', REPLY);
+    c.state('listening');
+    const timing = c.receipts[0]?.timing;
+    expect(timing?.ttsTtfbMs).toBeGreaterThanOrEqual(420);
+    expect(timing?.ttsTtfbMs).toBeLessThan(2000);
+    expect(timing?.ttsPushMs).not.toBeNull();
   });
 
   it('carries no transcript, reply, tool argument, note, name, number or uid', () => {
@@ -243,7 +362,10 @@ describe('attachTurnReceipts', () => {
     expect(c.receipts).toHaveLength(2);
   });
 
-  it('needs a recorder: a request on a session without one does nothing', () => {
+  it('needs a recorder: notes on a session without one do nothing', () => {
     expect(() => noteRequest({}, request(), {})).not.toThrow();
+    expect(() =>
+      noteReminder({}, { reminder: '', directorNotes: '', offered: 0, droppedIdx: [] })
+    ).not.toThrow();
   });
 });

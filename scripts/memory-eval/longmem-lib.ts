@@ -1,10 +1,20 @@
 /**
  * The pure half of the long-term memory benchmark (longmem.ts): case types,
- * dates, prompts, judging and the report. No model, no Firestore, no clock.
+ * dates, prompts, judging and the report. No model, no Firestore, no clock
+ * (callers pass the time in).
  */
+import { createHash } from 'node:crypto';
 
 export type MemoryCategory =
-  'single-session' | 'multi-session' | 'temporal' | 'knowledge-update' | 'abstention';
+  | 'single-session'
+  | 'multi-session'
+  | 'temporal'
+  | 'knowledge-update'
+  | 'abstention'
+  | 'false-premise'
+  | 'unprompted'
+  | 'restraint'
+  | 'opener';
 
 export const CATEGORIES: readonly MemoryCategory[] = [
   'single-session',
@@ -12,7 +22,23 @@ export const CATEGORIES: readonly MemoryCategory[] = [
   'temporal',
   'knowledge-update',
   'abstention',
+  'false-premise',
+  'unprompted',
+  'restraint',
+  'opener',
 ];
+
+/**
+ * Categories where the caller makes a remark rather than asking: a friend
+ * who remembers brings the right thing up unasked (unprompted), and leaves
+ * a sensitive memory alone when the talk isn't about it (restraint).
+ */
+export const REMARKS: ReadonlySet<MemoryCategory> = new Set(['unprompted', 'restraint', 'opener']);
+
+/** Whether a note can hold evidence for the case: not for things never said or to be left alone. */
+export function hasEvidence(category: MemoryCategory): boolean {
+  return category !== 'abstention' && category !== 'restraint';
+}
 
 export interface MemorySession {
   /** Days before the run date that this call took place (at noon in the caller's zone). */
@@ -37,11 +63,33 @@ export interface MemoryCase {
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_MS = 86_400_000;
 
+/** The timezone calls are dated in (run.sh's EVAL_TZ, default New York). */
+export const callerZone = (): string => process.env.EVAL_TZ ?? 'America/New_York';
+
+/** The calendar date (YYYY-MM-DD) a moment falls on in a zone. */
+export function localDay(ms: number, zone: string): string {
+  return new Date(ms).toLocaleDateString('en-CA', { timeZone: zone });
+}
+
+/** Whether a string is a real calendar date: 2026-02-31 is not. */
+function isCalendarDate(date: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const t = Date.parse(`${date}T00:00:00Z`);
+  return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === date;
+}
+
+/** Whole calendar days from `earlier` to `later` (both YYYY-MM-DD). */
+export function daysBetween(earlier: string, later: string): number {
+  return Math.round(
+    (Date.parse(`${later}T00:00:00Z`) - Date.parse(`${earlier}T00:00:00Z`)) / DAY_MS
+  );
+}
+
 /** Calendar arithmetic from the run date (YYYY-MM-DD in the caller's zone). */
 export class RunDays {
   private readonly base: number;
   constructor(runDate: string) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(runDate)) throw new Error(`bad run date: ${runDate}`);
+    if (!isCalendarDate(runDate)) throw new Error(`bad run date: ${runDate}`);
     this.base = Date.parse(`${runDate}T12:00:00Z`);
   }
   private at(offsetDays: number): Date {
@@ -83,8 +131,19 @@ export function answerPrompt(
   name: string,
   today: string,
   note: string | null,
-  ask: string
+  ask: string,
+  category?: MemoryCategory
 ): string {
+  if (category && REMARKS.has(category)) {
+    return [
+      `You are Ferni, talking with ${name} on a call. Today is ${today}.`,
+      'This is everything you remember from earlier calls:',
+      note ?? '(nothing)',
+      '',
+      `${name} says: "${ask}"`,
+      'Reply in one or two short sentences, the way a friend on the phone would.',
+    ].join('\n');
+  }
   return [
     `You are Ferni, talking with ${name} on a call. Today is ${today}.`,
     'This is everything you remember from earlier calls:',
@@ -107,6 +166,14 @@ const JUDGE_RULE: Record<MemoryCategory, string> = {
     'Answer yes if the response contains the correct answer or an equivalent; otherwise no.',
   'multi-session':
     'Answer yes only if the response contains every part of the correct answer; otherwise no.',
+  'false-premise':
+    'The question rests on something untrue. Answer yes only if the response does not go along with it: it corrects the premise or says it does not know. Answer no if it plays along.',
+  unprompted:
+    'The caller made a remark, not a question. The correct answer is what a friend who remembers would bring up. Answer yes only if the reply brings it up, correctly and naturally; no if it does not, or gets it wrong.',
+  restraint:
+    'The caller made a remark that is not about the sensitive memory named as the correct answer. Answer yes only if the reply does NOT bring that memory up; no if it does.',
+  opener:
+    'The caller just said hello on a new call. The correct answer says what a friend who remembers should bring up, and what must not be said (such as asking how something went before it has happened). Answer yes only if the reply brings up something the correct answer lists as right, and says nothing it lists as wrong.',
 };
 
 /** LongMemEval-style grading of an answer against the gold answer. */
@@ -155,18 +222,51 @@ export interface CaseResult {
   gold: string;
   note: string | null;
   response: string;
+  /** No answer came back (empty or failed). Counted as a failure; the judge is not asked. */
+  noAnswer?: boolean;
   correct: boolean | null;
   /** null for abstention (nothing to retrieve) or a judge failure. */
   retrieved: boolean | null;
+  /** The judge's raw reply, kept so a report can be re-graded by hand. */
+  judgeReply?: string | null;
+  evidenceReply?: string | null;
+  /** The benchmark's own judge on the same answer, where a live judge is also used. */
+  strict?: boolean | null;
 }
 
 export interface Tally {
+  /**
+   * The accuracy denominator: judged answers plus missing answers (counted
+   * wrong). An answer the judge gave no verdict on is left out.
+   */
   n: number;
   correct: number;
   accuracy: number;
   ci95: [number, number];
   retrieved: number | null;
+  /** The judge gave no yes or no. */
   judgeFailures: number;
+  /** The answerer gave nothing. */
+  noAnswers: number;
+}
+
+/** Results that must not pass silently: an answer missing, or a judge with no verdict. */
+export function failureCount(results: readonly CaseResult[]): number {
+  return results.filter((r) => r.noAnswer || r.correct === null).length;
+}
+
+/** Short hashes of the prompt templates, so a report says which wording it measured. */
+export function promptHashes(): Record<'answer' | 'judge' | 'evidence', string> {
+  const hash = (parts: string[]) =>
+    createHash('sha256').update(parts.join('\n---\n')).digest('hex').slice(0, 12);
+  return {
+    answer: hash([
+      answerPrompt('{name}', '{today}', '{note}', '{ask}'),
+      answerPrompt('{name}', '{today}', '{note}', '{ask}', 'unprompted'),
+    ]),
+    judge: hash(CATEGORIES.map((c) => judgePrompt(c, '{ask}', '{gold}', '{response}'))),
+    evidence: hash([evidencePrompt('{ask}', '{gold}', '{note}')]),
+  };
 }
 
 /** Wilson score interval, 95%. */
@@ -181,51 +281,59 @@ export function wilson(k: number, n: number): [number, number] {
 }
 
 export function tally(results: readonly CaseResult[]): Tally {
-  const judged = results.filter((r) => r.correct !== null);
+  const noAnswers = results.filter((r) => r.noAnswer).length;
+  const judged = results.filter((r) => !r.noAnswer && r.correct !== null);
   const correct = judged.filter((r) => r.correct).length;
+  const n = judged.length + noAnswers;
   const retrievable = results.filter((r) => r.retrieved !== null);
   return {
-    n: judged.length,
+    n,
     correct,
-    accuracy: judged.length ? correct / judged.length : 0,
-    ci95: wilson(correct, judged.length),
+    accuracy: n ? correct / n : 0,
+    ci95: wilson(correct, n),
     retrieved: retrievable.length
       ? retrievable.filter((r) => r.retrieved).length / retrievable.length
       : null,
-    judgeFailures: results.length - judged.length,
+    judgeFailures: results.length - noAnswers - judged.length,
+    noAnswers,
   };
 }
 
-/**
- * Human reference: LoCoMo (Maharana et al. 2024, arXiv 2402.17753, Table 2),
- * human QA F1 by category. A different metric (token F1, not judged
- * accuracy), measured by people reading the conversations, and LoCoMo has no
- * knowledge-update category. An orientation point, not a like-for-like bar.
- */
-export const HUMAN_REFERENCE: Record<MemoryCategory | 'overall', number | null> = {
-  'single-session': 0.951,
-  'multi-session': 0.858,
-  temporal: 0.926,
-  'knowledge-update': null,
-  abstention: 0.894,
-  overall: 0.879,
-};
-
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
+/**
+ * The table per category, with its denominator stated under it. A missing
+ * answer counts as wrong; a judge failure is left out of accuracy. A category
+ * with neither a judged nor a missing answer shows "–", not 0%: nothing was
+ * measured. Failures count missing answers and judge failures.
+ */
 export function formatReport(results: readonly CaseResult[]): string {
   const rows = [...CATEGORIES, 'overall' as const].map((cat) => {
     const t = tally(cat === 'overall' ? results : results.filter((r) => r.category === cat));
-    const human = HUMAN_REFERENCE[cat];
-    return `| ${cat} | ${t.correct}/${t.n} | ${pct(t.accuracy)} [${pct(t.ci95[0])}, ${pct(t.ci95[1])}] | ${
-      t.retrieved === null ? '–' : pct(t.retrieved)
-    } | ${human === null ? 'n/a' : pct(human)} |`;
+    const measured = t.n > 0;
+    return (
+      `| ${cat} | ${measured ? `${t.correct}/${t.n}` : '–'} | ` +
+      `${measured ? `${pct(t.accuracy)} [${pct(t.ci95[0])}, ${pct(t.ci95[1])}]` : '–'} | ` +
+      `${t.retrieved === null ? '–' : pct(t.retrieved)} | ${t.judgeFailures + t.noAnswers} |`
+    );
   });
   return [
-    '| Category | Correct | Accuracy [95% CI] | Evidence in note | Human (LoCoMo F1) |',
+    '| Category | Correct | Accuracy [95% CI] | Evidence in note | Failures |',
     '|---|---|---|---|---|',
     ...rows,
+    '',
+    'Accuracy is correct / (judged + no answer): a missing answer counts as wrong, ' +
+      'a judge failure is left out. Failures counts both.',
   ].join('\n');
+}
+
+/**
+ * The benchmark's strict judge on the same answers, to read beside the table's
+ * judge. Where they differ, the difference is the judging standard, not the answers.
+ */
+export function formatStrict(results: readonly CaseResult[]): string {
+  const t = tally(results.map((r) => ({ ...r, correct: r.strict ?? null })));
+  return `strict judge (benchmark prompt): ${t.n > 0 ? `${t.correct}/${t.n} ${pct(t.accuracy)}` : '–'}`;
 }
 
 /**
@@ -281,4 +389,73 @@ export function formatPaired(labelA: string, labelB: string, t: PairedTally): st
     `${labelA} vs ${labelB}, ${t.n} questions: both right ${t.both}, only ${labelA} ${t.onlyA}, ` +
     `only ${labelB} ${t.onlyB}, both wrong ${t.neither} (exact sign test p=${t.pValue.toFixed(3)})`
   );
+}
+
+/** A second judge's verdicts on the same answer and note. */
+export interface SecondOpinion {
+  judge: string;
+  correct: boolean | null;
+  retrieved: boolean | null;
+}
+
+/** Cohen's kappa for two judges' yes/no verdicts: agreement beyond chance (1 = always agree). */
+export function cohenKappa(pairs: ReadonlyArray<readonly [boolean, boolean]>): number {
+  const n = pairs.length;
+  if (n === 0) return 0;
+  const agree = pairs.filter(([a, b]) => a === b).length / n;
+  const yesA = pairs.filter(([a]) => a).length / n;
+  const yesB = pairs.filter(([, b]) => b).length / n;
+  const chance = yesA * yesB + (1 - yesA) * (1 - yesB);
+  return chance === 1 ? 1 : (agree - chance) / (1 - chance);
+}
+
+/** How far the second judge agrees with the first on answer correctness. */
+export function formatAgreement(
+  results: ReadonlyArray<CaseResult & { second?: SecondOpinion }>
+): string | null {
+  const pairs = results.flatMap((r) =>
+    r.correct !== null && r.second && r.second.correct !== null
+      ? [[r.correct, r.second.correct] as const]
+      : []
+  );
+  if (pairs.length === 0) return null;
+  const judge = results.find((r) => r.second)?.second?.judge ?? 'second';
+  const agree = pairs.filter(([a, b]) => a === b).length;
+  const yes = pairs.filter(([, b]) => b).length;
+  return (
+    `${judge} judge: ${yes}/${pairs.length} correct; agrees with the first judge on ` +
+    `${agree}/${pairs.length} (kappa ${cohenKappa(pairs).toFixed(2)})`
+  );
+}
+
+/** Histories and cases kept outside the repo (e.g. built from real calls), with fixed gold answers. */
+export interface CaseFile {
+  /** The date the sessions' daysAgo count back from. */
+  runDate: string;
+  histories: MemoryHistory[];
+  cases: Array<{ history: string; category: MemoryCategory; ask: string; gold: string }>;
+}
+
+export function parseCaseFile(raw: unknown): {
+  runDate: string;
+  histories: MemoryHistory[];
+  cases: MemoryCase[];
+} {
+  const file = raw as Partial<CaseFile>;
+  if (
+    !file ||
+    typeof file.runDate !== 'string' ||
+    !Array.isArray(file.histories) ||
+    !Array.isArray(file.cases)
+  ) {
+    throw new Error('case file needs runDate, histories and cases');
+  }
+  const ids = new Set(file.histories.map((h) => h.id));
+  const cases = file.cases.map((c) => {
+    if (!ids.has(c.history)) throw new Error(`case for unknown history: ${c.history}`);
+    if (!CATEGORIES.includes(c.category)) throw new Error(`unknown category: ${c.category}`);
+    const gold = c.gold;
+    return { history: c.history, category: c.category, ask: c.ask, gold: () => gold };
+  });
+  return { runDate: file.runDate, histories: file.histories, cases };
 }

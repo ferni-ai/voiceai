@@ -66,9 +66,9 @@ export const BY_NEED_TEAMMATES: readonly Teammate[] = [
 ];
 
 const LEGENDS: readonly Teammate[] = [
-  { id: 'john-bogle', name: 'John Bogle', when: 'index funds and staying the course' },
-  { id: 'peter-lynch', name: 'Peter Lynch', when: 'picking companies' },
-  { id: 'joel-dickson', name: 'Joel Dickson', when: 'money and life decisions' },
+  { id: 'john-bogle', name: 'Henry Caldwell', when: 'index funds and staying the course' },
+  { id: 'peter-lynch', name: 'Tom Brannigan', when: 'picking companies' },
+  { id: 'joel-dickson', name: 'Nate Holloway', when: 'money and life decisions' },
 ];
 
 const INVESTING =

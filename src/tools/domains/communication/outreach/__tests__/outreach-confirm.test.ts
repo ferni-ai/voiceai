@@ -1,5 +1,6 @@
 /**
- * With OUTREACH_CONFIRM=on, outreach tools send only after the caller's own yes.
+ * Outreach tools send only after the caller's own yes (on by default; OUTBOUND_CONFIRM=off
+ * turns it off in tests only).
  *
  * Before: reachOut and multiOutreach texted and called people as soon as the
  * model called them, and sendBatchMessages trusted a `confirm` flag the model
@@ -99,7 +100,6 @@ function textsSent(): Array<[string, string]> {
 
 describe('outreach waits for the caller', () => {
   beforeEach(() => {
-    vi.stubEnv('OUTREACH_CONFIRM', 'on');
     vi.mocked(searchContacts).mockImplementation(async (_u, q) => {
       const c = contacts[q.toLowerCase()];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,8 +115,8 @@ describe('outreach waits for the caller', () => {
     vi.clearAllMocks();
   });
 
-  it('with the flag off, multiOutreach sends at once (unchanged behavior)', async () => {
-    vi.stubEnv('OUTREACH_CONFIRM', '');
+  it('with the test-only escape hatch, multiOutreach sends at once', async () => {
+    vi.stubEnv('OUTBOUND_CONFIRM', 'off');
     const call = liveCall();
 
     await call.call('multiOutreach', MULTI_TO_MOM, 'c1');
@@ -375,6 +375,29 @@ describe('isClearYes', () => {
       expect(isClearYes(yes), yes).toBe(true);
     }
     for (const notYes of ['yesterday', 'no', 'yes but wait', 'not yet', 'maybe', '', 'thanks']) {
+      expect(isClearYes(notYes), notYes).toBe(false);
+    }
+  });
+
+  it("takes a yes with a name, a filler or an echo of the question (the owner's real replies)", () => {
+    for (const yes of ['Go ahead, Ferni.', 'Yes, she should.', 'Um, yeah, go ahead buddy.']) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+    for (const yes of ['Oh yes, of course.', 'Yeah, that works.', 'Sure, Maya, you can.']) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+  });
+
+  it('a name, a filler or an echo alone is not a yes, and a yes with words to send is not plain', () => {
+    for (const notYes of ['Ferni.', 'she should', 'um', 'hey buddy', 'of course?']) {
+      expect(isClearYes(notYes), notYes).toBe(false);
+    }
+    // New words for the message: the read-back no longer matches, so it is read back again.
+    for (const notYes of [
+      "Yeah, check in, tell her I said hi and I'll call her tomorrow.",
+      'Yes, she should call me back.',
+      'Go ahead Ferni but not tonight',
+    ]) {
       expect(isClearYes(notYes), notYes).toBe(false);
     }
   });
