@@ -22,6 +22,7 @@
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
+import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
 
 const log = getLogger();
 
@@ -101,6 +102,8 @@ function record(session: object, event: SessionEvent): void {
   const entry = logFor(session);
   entry.events.push({ ...event, seq: ++entry.seq });
   if (entry.events.length > MAX_EVENTS) entry.events.shift();
+  if (event.kind === 'caller' && entry.pending && isClearNo(event.text))
+    dropConfirmThread(entry.pending);
 }
 
 // Replies made only of these count as a yes. Longest first, so "yes please" beats "yes".
@@ -249,8 +252,9 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         ) {
           entry.pending = undefined; // taken before sending, so a second call can't repeat it
           log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: caller said yes, sending');
-          return execute(pending.args, opts);
+          return sentConfirmThread(pending, execute(pending.args, opts));
         }
+        if (entry.pending) dropConfirmThread(entry.pending); // replaced or discarded, never sent
         entry.pending = undefined;
         const prepared = await spec.prepare(args, ctx.userId, async (a) =>
           execute({ ...a, [PLAN_ONLY]: true }, opts)
@@ -264,6 +268,13 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           createdSeq: entry.seq,
           expiresAt: Date.now() + CONFIRM_WINDOW_MS,
         };
+        openConfirmThread(entry.pending, {
+          userId: ctx.userId,
+          toolId: def.id,
+          args: prepared.args,
+          planned: (prepared.args as { [PLANNED]?: Planned })[PLANNED],
+          ownerVerified: ownerKnown(session),
+        });
         log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: preview stored, waiting for caller');
         return (
           `NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: ` +

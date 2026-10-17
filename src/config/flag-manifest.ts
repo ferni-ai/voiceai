@@ -376,6 +376,8 @@ export const FLAG_MANIFEST = {
   TEAMMATE_IDENTITY_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a call or text read back and waiting for the owner's yes is kept as a follow-up (outreach/confirm-thread.ts)
+  THREADS_PENDING_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
   TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // topic tools go to the agent on the call now, and a handed-to agent gets the call's
   // loaded domains (voice-agent/deferred-tool-update.ts)
