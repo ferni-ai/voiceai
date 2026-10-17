@@ -112,8 +112,12 @@ const YES_PHRASES = [
 // Words a yes may carry that add nothing to send: a name for whoever is speaking, a filler, or an
 // echo of the question ("Should I call her?" "Yes, she should."). Never a yes on their own.
 // Owner calls 10-14..10-16 placed nothing on "Go ahead, Ferni." and "Yes, she should."
+// Owner call 10-17 placed nothing on "Uh, yeah, go ahead. Go ahead and give her a call." and
+// "Yes, you, you need to call her.": a yes may restate the same action, never add to it.
 const FILLERS = [
   ...'thank you|that works|you can|for sure|of course'.split('|'),
+  ...'give her a call|give him a call|give them a call|you need to|need to|right now'.split('|'),
+  ...'and you now'.split(' '),
   ...'she should|he should|they should|you should|she can|he can|they can'.split('|'),
   ...'please thanks ferni fern maya jordan peter alex nayan buddy bud man dude pal um uh oh hey'.split(
     ' '
