@@ -65,6 +65,8 @@ export const FLAG_MANIFEST = {
   // getCurrentContext / getTodaySignificance in the caller's zone, with the cached weather
   AWARENESS_CALLER_TIME: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   BACKCHANNELS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: live backchannels time the caller's pause on the audio clock and skip stale frames
+  BACKCHANNEL_AUDIO_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKCHANNEL_CLIPS: { default: 'on', owner: 'voice', kind: 'config' },
   BACKCHANNEL_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKGROUND_TURN_LATENCY_WARNINGS: { default: 'off', owner: 'voice', kind: 'experiment' },
