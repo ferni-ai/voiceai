@@ -31,6 +31,7 @@ import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-n
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
+import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt.js';
 import { repairNoteFor } from './repair-check.js';
@@ -56,7 +57,7 @@ import { candorEnabled, supportHeld } from './turn-candor.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
-import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
+import { callerMove, rngFor, turnShapeEnabled, turnShapeFor, withLiveData } from './turn-shape.js';
 import type { TurnShape } from './turn-shape.js';
 import {
   understandingFor,
@@ -118,6 +119,8 @@ export function withTurnReminder(
   const notes = answering
     ? ''
     : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
+  // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
+  const corrected = options.shape !== false ? correctionNotesFor(chatCtx, session) : '';
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
@@ -138,6 +141,7 @@ export function withTurnReminder(
     // "Naya" in the transcript is Nayan (teammate-names.ts)
     heardTeammateNote(words),
     notes,
+    corrected,
     options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
@@ -163,7 +167,8 @@ export function withTurnReminder(
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
-    style?.text ?? '',
+    // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
+    ...withLiveData(style?.text ?? '', callerTurnsOf(chatCtx)),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
@@ -286,8 +291,6 @@ function callerWords(chatCtx: llm.ChatContext): string {
   return said.join(' ');
 }
 
-type Style = { text: string; turn?: TurnShape };
-
 /**
  * This reply's shape (turn-shape.ts) from the caller's latest words, or the
  * single style reminder when shaping is off, there are no words, or the
@@ -299,7 +302,7 @@ function styleFor(
   shape: boolean,
   ownStory?: boolean,
   answering = false
-): Style {
+): { text: string; turn?: TurnShape } {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return { text: TURN_STYLE_REMINDER };
   const listening = listeningReply(said, chatCtx, session);

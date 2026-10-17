@@ -182,10 +182,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     text: string,
     options?: { allowInterruptions?: boolean }
   ): Promise<void> => {
-    // CRITICAL: Check if session is closing before trying to speak
-    const { isSessionClosing } = await import('../shared/session-closing-tracker.js');
-    if (isSessionClosing(sessionId)) {
-      diag.state('🚪 Skipping speech - session is closing');
+    // CRITICAL: Check if session is closing (or both said goodbye) before trying to speak
+    const { stayQuiet } = await import('../shared/call-farewell.js');
+    if (stayQuiet(sessionId)) {
+      diag.state('🚪 Skipping speech - session is closing or goodbyes said');
       return;
     }
 
@@ -1110,9 +1110,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           }
           // CRITICAL: Check if session is closing before trying to speak
           // This prevents errors during handoffs when the old agent's session is draining
-          const { isSessionClosing } = await import('../shared/session-closing-tracker.js');
-          if (isSessionClosing(sessionId)) {
-            diag.state('Early dead air skipped - session is closing');
+          const { stayQuiet } = await import('../shared/call-farewell.js');
+          if (stayQuiet(sessionId)) {
+            diag.state('Early dead air skipped - session is closing or goodbyes said');
             earlyAckTimer = null;
             return;
           }
@@ -1193,7 +1193,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
               // RACE CONDITION FIX: Re-check session closing state just before action
               // Session could have started closing during the async operations above
-              if (isSessionClosing(sessionId)) {
+              if (stayQuiet(sessionId)) {
                 diag.state('Early dead air skipped - session closing (re-check)');
                 earlyAckTimer = null;
                 return;

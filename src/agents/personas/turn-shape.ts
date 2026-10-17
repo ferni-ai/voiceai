@@ -18,6 +18,7 @@
  * @module agents/personas/turn-shape
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { listeningLines, type ListeningCues } from './listen-first.js';
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
@@ -203,9 +204,38 @@ export interface TurnShape {
  * no stance, no rough self-correction (that is how "wait, no, they lost" came
  * out), no question.
  */
-const LOOKUP =
-  'They asked about something live that you have to look up: if you have no tool result for it yet, call the tool for it now and answer from what it returns. ' +
+const NEVER_MADE_UP =
   "Never state a forecast, score, headline, price, opening hour or travel time that you didn't get from a tool on this call; if no tool can get it, say you can't check that right now.";
+const LOOKUP = `They asked about something live that you have to look up: if you have no tool result for it yet, call the tool for it now and answer from what it returns. ${NEVER_MADE_UP}`;
+
+/**
+ * The rule rides the next replies too. Prod 2026-10-17: "can you check the
+ * weather?" got the look-up rule, the agent asked which city, and the answer
+ * ("<city>.") read as a share, with no rule: it said "I'll check" with no tool
+ * call, then gave a temperature it made up. LIVE_DATA_CARRYOVER=off: the rule
+ * rides only the asking turn, as before.
+ */
+export const LOOKUP_FOLLOW_UP = `They asked about something live a moment ago: if you still have no tool result for it, call the tool now (don't just say you'll check) and answer only from what it returns. ${NEVER_MADE_UP}`;
+
+/** The follow-up rule when either of the caller's last two turns asked for live data and this reply has no look-up rule yet. */
+export function liveDataCarryover(
+  callerTurns: readonly string[],
+  style: string,
+  env: Record<string, string | undefined> = process.env
+): string {
+  if (!flagOn('LIVE_DATA_CARRYOVER', env) || style.includes(NEVER_MADE_UP)) return '';
+  const recent = callerTurns.slice(-2).map((t) => t.split('\n')[0]);
+  return recent.some(isLookup) ? LOOKUP_FOLLOW_UP : '';
+}
+
+/** The style reminder, then the follow-up rule if it applies (turn-request.ts). */
+export function withLiveData(
+  style: string,
+  callerTurns: readonly string[],
+  env: Record<string, string | undefined> = process.env
+): [string, string] {
+  return [style, liveDataCarryover(callerTurns, style, env)];
+}
 
 /**
  * TURN_SHAPE=model: the shape is the model's call, not a dice roll. Drawn at

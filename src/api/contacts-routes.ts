@@ -43,7 +43,7 @@ import {
   updateGroup,
   deleteGroup,
 } from '../services/contacts/contact-groups.js';
-import { contactEdits } from './contact-edits.js';
+import { acceptedContactEdits, contactEdits } from './contact-edits.js';
 import { groupEdits } from './contact-group-edits.js';
 import { findPerson, listPeople } from '../services/contacts/people-list.js';
 import { editSavedContact } from '../services/contacts/saved-contact-edits.js';
@@ -171,7 +171,7 @@ async function updateContact(
 
   // Only what a person may edit; an emptied field is removed
   const edits = contactEdits(await parseBody<unknown>(req).catch(() => null));
-  if (!edits) return sendError(res, 'Invalid request body', 400);
+  if (!acceptedContactEdits(res, edits)) return;
 
   try {
     const existing = await getContact(userId, contactId);

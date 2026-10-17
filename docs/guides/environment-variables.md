@@ -410,7 +410,7 @@ TWILIO_PHONE_NUMBER=+1234567890
 
 # Voice IDs (defaults in manifests)
 # JACK_B_VOICE_ID / FERNI_VOICE_ID override Ferni's voice; leave unset to use VOICE_IDS.FERNI
-JACK_BOGLE_VOICE_ID=9c10dc48-8799-42f9-a72a-0c7dfe13a06d
+PETER_JOHN_VOICE_ID=3f04e815-3260-4f50-8fd9-af9c657be4c2
 
 # Database
 DATABASE_URL=postgresql://user:pass@localhost:5432/voiceai

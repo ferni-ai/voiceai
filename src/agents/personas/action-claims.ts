@@ -58,6 +58,9 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
       `\\b(?:let me|i'm going to|i'm gonna|i'll) (?:call|ring|dial|phone) ${DIALED}.*${NOW}`
     ),
     new RegExp(`\\b(?:let me|i'm going to|i'm gonna) give ${WHO} a (?:ring|call|buzz)`),
+    new RegExp(
+      `\\b(?:i'll|let me|i'm going to|i'm gonna) (?:take care of|handle|make) (?:that|the|this) call\\b.*${NOW}`
+    ),
     new RegExp(`\\b(?:i'm giving|i'll give) ${WHO} a (?:ring|call|buzz).*${NOW}`),
     new RegExp(`\\bwhile i (?:call|ring|dial|phone|reach) ${DIALED}`),
     /\bi'll (?:call|ring|phone) you (?:right |straight )?back (?:on this (?:line|number)|once|when|as soon as|after)\b/,
