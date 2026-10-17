@@ -14,7 +14,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { diffSettings, latestSettings, type Settings } from './reassemble.js';
+import { diffSettings, latestSettings, secretLeaks, type Settings } from './reassemble.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const TARGETS = {
@@ -70,11 +70,15 @@ async function main(): Promise<void> {
   const env = process.argv[2] as Env;
   if (!(env in TARGETS)) throw new Error('usage: snapshot.ts dev|prod [--from-file <log.txt>]');
   const fromFile = process.argv.indexOf('--from-file');
+  if (fromFile > -1 && !process.argv[fromFile + 1]) throw new Error('--from-file needs a log path');
   const logText =
     fromFile > -1 ? readFileSync(process.argv[fromFile + 1], 'utf8') : await readLogs(env);
 
   const settings = latestSettings(logText);
   if (!settings) throw new Error(`no complete EFFECTIVE_SETTINGS set in the ${env} logs`);
+  const leaks = secretLeaks(settings);
+  if (leaks.length)
+    throw new Error(`refusing to write: secret names carry values: ${leaks.join(', ')}`);
   mkdirSync(join(ROOT, 'config', 'settings'), { recursive: true });
   writeFileSync(settingsPath(env), sortedJson(settings));
   console.log(

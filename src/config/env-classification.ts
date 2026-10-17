@@ -3,8 +3,8 @@
  * Names in FLAG_MANIFEST are not repeated here.
  *
  * - secret: credentials, tokens, account ids, phone numbers and user ids. Shown as `<set>` only.
- * - config: an identifier or a provider or model choice that does not switch behaviour.
- * - behavior: changes what a caller hears or what the agent does. Listed in FLAG_MANIFEST.
+ * - config: an identifier, project, or model name that does not switch behaviour.
+ * - behavior: changes what a caller hears or what the agent does, including which provider or pipeline runs. Listed in FLAG_MANIFEST.
  * - unread: set on prod, but no code under src/ reads it. A candidate to remove from prod.
  *
  * Checked by env-classification.test.ts, which also holds the ratchet on reads that remain unclassified.

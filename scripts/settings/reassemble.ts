@@ -6,6 +6,8 @@
  * @module scripts/settings/reassemble
  */
 
+import { ENV_CLASSIFICATION } from '../../src/config/env-classification.js';
+
 export interface Settings {
   readonly commit: string;
   readonly hash: string;
@@ -36,32 +38,40 @@ function parsePart(line: string): Part | null {
 
 /**
  * The most recent complete settings in the log text, or null when no complete set was logged.
- * A set is one boot's parts: the same hash and part count, each part number once. A part
- * number that is already in the set starts a new set (a restart with identical printed
- * settings logs the same hash again), so parts from two boots never mix.
+ * A set is one boot's parts, read as one run: part 1 starts it, and each following part must
+ * be the next number with the same hash, part count and commit. Any break drops the run, so
+ * parts from two boots (or from two replicas during a rolling deploy) never combine.
  */
 export function latestSettings(logText: string): Settings | null {
-  const sets = new Map<string, Map<number, Part>>();
   let latest: Settings | null = null;
+  let run: { hash: string; parts: number; commit: string; got: Part[] } | null = null;
   for (const line of logText.split('\n')) {
     const part = parsePart(line);
-    if (!part || typeof part.hash !== 'string' || !Number.isInteger(part.part)) continue;
-    if (!Number.isInteger(part.parts) || part.part < 1 || part.part > part.parts) continue;
-    const key = `${part.hash}:${part.parts}`;
-    let got = sets.get(key);
-    if (!got || got.has(part.part)) {
-      got = new Map<number, Part>();
-      sets.set(key, got);
+    if (!part || typeof part.hash !== 'string' || typeof part.commit !== 'string') continue;
+    if (!Number.isInteger(part.part) || !Number.isInteger(part.parts)) continue;
+    if (part.part < 1 || part.part > part.parts) continue;
+    if (part.part === 1) {
+      run = { hash: part.hash, parts: part.parts, commit: part.commit, got: [part] };
+    } else if (
+      run &&
+      part.part === run.got.length + 1 &&
+      part.hash === run.hash &&
+      part.parts === run.parts &&
+      part.commit === run.commit
+    ) {
+      run.got.push(part);
+    } else {
+      run = null;
+      continue;
     }
-    got.set(part.part, part);
-    if (got.size !== part.parts) continue;
-    const ordered = [...got.values()].sort((a, b) => a.part - b.part);
+    if (run.got.length !== run.parts) continue;
     latest = {
-      commit: ordered[0].commit,
-      hash: part.hash,
-      flags: Object.assign({}, ...ordered.map((p) => p.flags ?? {})),
-      env: Object.assign({}, ...ordered.map((p) => p.env ?? {})),
+      commit: run.commit,
+      hash: run.hash,
+      flags: Object.assign({}, ...run.got.map((p) => p.flags ?? {})),
+      env: Object.assign({}, ...run.got.map((p) => p.env ?? {})),
     };
+    run = null;
   }
   return latest;
 }
@@ -84,4 +94,14 @@ export function diffSettings(
     if (left !== right) out.push([name, left, right]);
   }
   return out;
+}
+
+/** Secret-classed names whose logged value is not a `<set>` or `<unset>` marker. Their names only, never values. */
+export function secretLeaks(settings: Settings): string[] {
+  return Object.entries(settings.env)
+    .filter(
+      ([name, value]) =>
+        ENV_CLASSIFICATION[name] === 'secret' && value !== '<set>' && value !== '<unset>'
+    )
+    .map(([name]) => name);
 }

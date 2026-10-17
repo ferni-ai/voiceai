@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diffSettings, latestSettings } from '../reassemble.js';
+import { diffSettings, latestSettings, secretLeaks } from '../reassemble.js';
 
 const part = (p: number, parts: number, hash: string, body: Record<string, unknown>) =>
   `[2026-10-17T10:00:00.000Z] [worker] EFFECTIVE_SETTINGS ${JSON.stringify({
@@ -11,10 +11,10 @@ const part = (p: number, parts: number, hash: string, body: Record<string, unkno
   })}`;
 
 describe('latestSettings', () => {
-  it('rejoins a complete set of parts, whatever their order', () => {
+  it('rejoins a complete set of parts in the order one boot logs them', () => {
     const log = [
-      part(2, 2, 'h1', { env: { PERSONA_ID: 'ferni' } }),
       part(1, 2, 'h1', { flags: { ATTUNE: 'on' } }),
+      part(2, 2, 'h1', { env: { PERSONA_ID: 'ferni' } }),
     ].join('\n');
     expect(latestSettings(log)).toEqual({
       commit: 'abc1234',
@@ -36,7 +36,7 @@ describe('latestSettings', () => {
     // Boot A logged both parts; boot B logged part 1, then was cut off before part 2.
     const log = [
       part(1, 2, 'same', { commit: 'A', flags: { ATTUNE: 'on' } }),
-      part(2, 2, 'same', { env: { K: '<set>' } }),
+      part(2, 2, 'same', { commit: 'A', env: { K: '<set>' } }),
       part(1, 2, 'same', { commit: 'B', flags: { ATTUNE: 'on' } }),
     ].join('\n');
     expect(latestSettings(log)?.commit).toBe('A');
@@ -52,6 +52,39 @@ describe('latestSettings', () => {
       part(1, 2, 'h1', { flags: { ATTUNE: 'on' } }),
       part(1, 3, 'h1', { flags: { ATTUNE: 'on' } }),
       part(2, 3, 'h1', { env: {} }),
+    ].join('\n');
+    expect(latestSettings(log)).toBeNull();
+  });
+
+  it('drops a run when an earlier boot was cut off, so A2 A3 then B1 is not a set', () => {
+    const log = [
+      part(2, 3, 'same', { env: { K: '<set>' } }),
+      part(3, 3, 'same', { env: { K: '<set>' } }),
+      part(1, 3, 'same', { commit: 'B', flags: { ATTUNE: 'on' } }),
+    ].join('\n');
+    expect(latestSettings(log)).toBeNull();
+  });
+
+  it('does not combine interleaved lines from two boots with the same hash', () => {
+    const log = [
+      part(1, 2, 'same', { commit: 'A', flags: { F1: 'A' } }),
+      part(1, 2, 'same', { commit: 'B', flags: { F1: 'B' } }),
+      part(2, 2, 'same', { commit: 'A', env: { K: 'a' } }),
+      part(1, 2, 'same', { commit: 'B', flags: { F1: 'B' } }),
+      part(2, 2, 'same', { commit: 'B', env: { K: 'b' } }),
+    ].join('\n');
+    expect(latestSettings(log)).toEqual({
+      commit: 'B',
+      hash: 'same',
+      flags: { F1: 'B' },
+      env: { K: 'b' },
+    });
+  });
+
+  it('drops a set whose parts carry different commits', () => {
+    const log = [
+      part(1, 2, 'h1', { commit: 'A', flags: {} }),
+      part(2, 2, 'h1', { commit: 'B', env: {} }),
     ].join('\n');
     expect(latestSettings(log)).toBeNull();
   });
@@ -82,5 +115,21 @@ describe('diffSettings', () => {
 
   it('reports nothing for identical settings', () => {
     expect(diffSettings(base, { ...base })).toEqual([]);
+  });
+});
+
+describe('secretLeaks', () => {
+  const base = { commit: 'c', hash: 'h', flags: {}, env: {} };
+
+  it('names a secret-classed name whose value is not a marker', () => {
+    expect(secretLeaks({ ...base, env: { SPOTIFY_CLIENT_SECRET: 'sk_live_x' } })).toEqual([
+      'SPOTIFY_CLIENT_SECRET',
+    ]);
+  });
+
+  it('passes markers and non-secret names', () => {
+    expect(
+      secretLeaks({ ...base, env: { SPOTIFY_CLIENT_SECRET: '<set>', PERSONA_ID: 'ferni' } })
+    ).toEqual([]);
   });
 });
