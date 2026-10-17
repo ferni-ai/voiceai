@@ -108,7 +108,7 @@ describe('renderVoicedTake', () => {
   it('asks for the approved model and API version at 24 kHz, tags intact for an instant clone', async () => {
     const pcm = await renderVoicedTake('<emotion value="excited"/>Ah!', INSTANT);
     const { headers, body } = sent();
-    expect(headers['Cartesia-Version']).toBe('2025-04-16');
+    expect(headers['Cartesia-Version']).toBe('2026-08-14');
     expect(body.model_id).toBe('sonic-3.6-2026-08-27');
     expect(body.output_format.sample_rate).toBe(24000);
     expect(body.transcript).toBe('<emotion value="excited"/>Ah!');

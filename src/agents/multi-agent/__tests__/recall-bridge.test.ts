@@ -21,7 +21,7 @@ const MAIL = "the pile of mail he's been avoiding";
 const SISTER = "his sister's visit next weekend";
 const store = {
   facts: async () => [],
-  summaries: async () => [{ followUpItems: [MAIL, SISTER] }],
+  summaries: async () => [{ callerProvenance: 1, followUpItems: [MAIL, SISTER] }],
 };
 const OWN_MAIL: LedgerFact = {
   personaId: 'ferni',

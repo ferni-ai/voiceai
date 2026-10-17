@@ -19,6 +19,12 @@ vi.mock('../../config/gemini-config.js', async (importOriginal) => ({
   getGeminiClient: async () => ({ models: { generateContent } }),
 }));
 
+const sendSMS = vi.fn(async () => 'SM1');
+vi.mock('../../services/communication-service.js', () => ({ sendSMS }));
+vi.mock('../../services/outreach/user-reach.js', () => ({
+  userReach: async () => ({ phone: '+14155550134' }),
+}));
+
 const profile = { subscription: { tier: 'free' } };
 
 /** The first agent's tools for a call, capped like agent-setup.ts, with COACH_MEDIA as given. */
@@ -39,7 +45,8 @@ async function firstAgentTools(coachMedia: string): Promise<Record<string, unkno
 async function dispatch(
   session: object,
   toolCtx: Record<string, unknown>,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  name = 'findCoachingResources'
 ): Promise<string> {
   const dist = dirname(createRequire(import.meta.url).resolve('@livekit/agents'));
   const { performToolExecutions } = (await import(
@@ -51,7 +58,7 @@ async function dispatch(
   };
   const call = llm.FunctionCall.create({
     callId: `call-${Math.random()}`,
-    name: 'findCoachingResources',
+    name,
     args: JSON.stringify(args),
   });
   const [task, out] = performToolExecutions({
@@ -82,7 +89,9 @@ afterEach(() => {
 
 describe('findCoachingResources on the live path', () => {
   it('is not in a call’s tools with the flag off', async () => {
-    expect(Object.keys(await firstAgentTools(''))).not.toContain('findCoachingResources');
+    const names = Object.keys(await firstAgentTools(''));
+    expect(names).not.toContain('findCoachingResources');
+    expect(names).not.toContain('coachingPick');
   }, 60_000);
 
   it('is in a call’s tools with COACH_MEDIA=on and searches the topic, not the caller', async () => {
@@ -171,15 +180,32 @@ describe('findCoachingResources on the live path', () => {
                   },
                   contentDetails: { duration: 'PT7M30S' },
                   statistics: { viewCount: '1', likeCount: '1' },
+                  status: { privacyStatus: 'public', embeddable: true },
                 },
               ],
             };
         return { ok: true, status: 200, json: async () => body };
       })
     );
-    generateContent.mockResolvedValue({
-      text: '{"fits":true,"quality":5,"evidence":"solid","why":"Seven minutes, made for beginners."}',
-    });
+    // Grounding finds the video; the check (no tools) judges it.
+    generateContent.mockImplementation(async (req: { config?: { tools?: unknown } }) =>
+      req.config?.tools
+        ? {
+            text: 'A gentle routine.',
+            candidates: [
+              {
+                groundingMetadata: {
+                  groundingChunks: [
+                    { web: { uri: 'https://www.youtube.com/watch?v=vid1aaaaaaa' } },
+                  ],
+                },
+              },
+            ],
+          }
+        : {
+            text: '{"fits":true,"safe":true,"quality":5,"evidence":"solid","why":"Seven minutes, made for beginners."}',
+          }
+    );
 
     const { PersonaVoiceAgent } = await import('../../agents/personas/ferni-agent.js');
     const agent = new PersonaVoiceAgent('You are Ferni.', {
@@ -187,6 +213,10 @@ describe('findCoachingResources on the live path', () => {
       skipGreeting: true,
     });
     const session = { userData: { name: 'Seth Ford' }, currentAgent: agent };
+    // A live call registers the owner check (live-call-behaviors.ts); this caller is the owner.
+    const { outreachConfirmListeners } =
+      await import('../../tools/domains/communication/outreach/outreach-confirm.js');
+    outreachConfirmListeners(session, () => true);
     const output = await dispatch(session, agent.toolCtx as unknown as Record<string, unknown>, {
       topic: 'Seth shin splint stretches',
       format: 'video',
@@ -194,18 +224,39 @@ describe('findCoachingResources on the live path', () => {
       fit: 'beginner, Seth has 10 minutes',
     });
 
-    const search = youtube.find((u) => u.pathname.endsWith('/search'));
-    expect(search?.searchParams.get('q')).toBe('shin splint stretches');
-    const check = generateContent.mock.calls[0][0] as { contents: Array<{ parts: unknown[] }> };
+    // Grounding found it: no 100-unit search.list, one videos.list.
+    expect(youtube.some((u) => u.pathname.endsWith('/search'))).toBe(false);
+    expect(youtube.map((u) => u.searchParams.get('id'))).toEqual(['vid1aaaaaaa']);
+    const grounding = JSON.stringify(generateContent.mock.calls[0][0]);
+    expect(grounding).toContain('shin splint stretches');
+    expect(grounding.toLowerCase()).not.toContain('seth');
+    const check = generateContent.mock.calls[1][0] as { contents: Array<{ parts: unknown[] }> };
     expect(JSON.stringify(check)).toContain('What fits them: beginner, has 10 minutes');
     expect(JSON.stringify(check).toLowerCase()).not.toContain('seth');
     expect(check.contents[0].parts[0]).toMatchObject({
-      fileData: { fileUri: 'https://www.youtube.com/watch?v=vid1' },
+      fileData: { fileUri: 'https://www.youtube.com/watch?v=vid1aaaaaaa' },
     });
     expect(output).toContain('Shin Splint Rehab');
     expect(output).toContain('8 minutes');
     expect(output).not.toContain('https://');
     expect(output).toContain('Seven minutes, made for beginners.');
     expect(output).toContain('General info, not personal advice');
+
+    // They ask for it by text: the same call's pick goes to their verified number.
+    expect(Object.keys(tools)).toContain('coachingPick');
+    const toolCtx = agent.toolCtx as unknown as Record<string, unknown>;
+    const sent = await dispatch(session, toolCtx, { action: 'send_text' }, 'coachingPick');
+    expect(sent).toContain('Texted it');
+    expect(sendSMS).toHaveBeenCalledWith(
+      '+14155550134',
+      expect.stringContaining('https://www.youtube.com/watch?v=vid1')
+    );
+    // Another call has no pick to send.
+    const other = { userData: {}, currentAgent: agent };
+    outreachConfirmListeners(other, () => true);
+    expect(await dispatch(other, toolCtx, { action: 'send_text' }, 'coachingPick')).toContain(
+      'no checked pick'
+    );
+    expect(sendSMS).toHaveBeenCalledTimes(1);
   }, 60_000);
 });

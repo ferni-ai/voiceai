@@ -12,6 +12,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { getOpenAIFallbackModel, TEMP_EXTRACTION } from '../../config/gemini-config.js';
+import { vertexJournalFallback } from './vertex-transcribe.js';
 // Centralized embedding operations - cosineSimilarity uses SIMD-ready implementation
 import { embed, cosineSimilarity } from '../../memory/embeddings.js';
 import type {
@@ -311,9 +312,7 @@ async function transcribeWithWhisper(audioUrl: string): Promise<string> {
   }
 }
 
-/**
- * Transcribe audio from buffer directly (without URL)
- */
+/** Transcribe a buffer: Deepgram, then Whisper, then Vertex (JOURNAL_TRANSCRIBE_VERTEX). */
 export async function transcribeAudioBuffer(
   audioBuffer: ArrayBuffer,
   mimeType = 'audio/webm'
@@ -369,7 +368,7 @@ export async function transcribeAudioBuffer(
     }
   }
 
-  return '[Transcription unavailable]';
+  return (await vertexJournalFallback(audioBuffer, mimeType)) ?? '[Transcription unavailable]';
 }
 
 // ============================================================================

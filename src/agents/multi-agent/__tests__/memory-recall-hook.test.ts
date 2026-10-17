@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { voice } from '@livekit/agents';
+import { claimOpenerFollowUp } from '../../../memory/recall/opener-claim.js';
+import type { OpenCommitment } from '../../../services/superhuman/commitment-follow-up.js';
 
 // A fake Firestore that records how dynamic_facts is queried.
 const fake = vi.hoisted(() => {
@@ -60,7 +62,9 @@ const store = {
   facts: async () => [
     { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 1 },
   ],
-  summaries: async () => [{ followUpItems: ['Ask how Biscuit is settling in'] }],
+  summaries: async () => [
+    { callerProvenance: 1, followUpItems: ['Ask how Biscuit is settling in'] },
+  ],
 };
 
 describe('createMemoryRecall', () => {
@@ -153,6 +157,65 @@ describe('createMemoryRecall', () => {
     expect(recall.noteFor('Biscuit is great')).toBeNull();
   });
 
+  it('with OPENER_FOLLOW_UP, the first note asks Ferni to follow up on a thread, once', async () => {
+    const on = createMemoryRecall({ userId: 'u1', userName: 'Maya', store, opener: true });
+    await on.ready;
+    const first = on.noteFor("Hey Ferni, it's me!");
+    expect(first).toContain('Ask how Biscuit is settling in');
+    expect(first).toMatch(/start of the call\. After saying hello, ask about the one open thread/);
+    expect(on.noteFor('Biscuit chewed my shoes again')).not.toMatch(/start of the call/);
+
+    const off = createMemoryRecall({ userId: 'u1', userName: 'Maya', store, opener: false });
+    await off.ready;
+    expect(off.noteFor("Hey Ferni, it's me!")).not.toMatch(/start of the call/);
+
+    const noThreads = createMemoryRecall({
+      userId: 'u1',
+      store: { ...store, summaries: async () => [] },
+      opener: true,
+    });
+    await noThreads.ready;
+    expect(noThreads.noteFor('Biscuit is asleep')).not.toMatch(/start of the call/);
+  });
+
+  it('asks one follow-up per call opener: a greeting check-in or pondered item, or a check-in note, wins', async () => {
+    const opening = (userId: string, checkIns?: () => Promise<OpenCommitment[]>) =>
+      createMemoryRecall({
+        userId,
+        userName: 'Maya',
+        store,
+        opener: true,
+        ...(checkIns && { checkIns }),
+      });
+    const THREAD = /start of the call\. After saying hello/;
+
+    // The greeting already asked about something: the note leaves the thread line out.
+    claimOpenerFollowUp('u-greeted', 'greeting');
+    const greeted = opening('u-greeted');
+    await greeted.ready;
+    expect(greeted.noteFor("Hey Ferni, it's me!")).not.toMatch(THREAD);
+
+    // The claim was taken with that call's first note: the next call asks as usual.
+    const next = opening('u-greeted');
+    await next.ready;
+    expect(next.noteFor("Hey Ferni, it's me!")).toMatch(THREAD);
+
+    // A check-in in the first note is the one follow-up.
+    const withCheckIn = opening('u-check', async () => [
+      {
+        id: 'c1',
+        statement: "I'm going to send my resume to Dana by Thursday.",
+        createdAt: Date.now() - 3 * 86_400_000,
+        followUpAfter: Date.now(),
+        followUpCount: 0,
+      },
+    ]);
+    await withCheckIn.ready;
+    const first = withCheckIn.noteFor("Hey Ferni, it's me!");
+    expect(first).toContain('send my resume to Dana');
+    expect(first).not.toMatch(THREAD);
+  });
+
   it('with RECALL_PEOPLE, the first note says who is who and forbids guessing', async () => {
     // The benchmark miss: asked for a daughter's name, Ferni said "Joan", the
     // sister, named only in an open thread.
@@ -160,13 +223,17 @@ describe('createMemoryRecall', () => {
       facts: async () => [
         { entityName: 'Joan', key: 'sister of speaker', value: "The speaker's sister is named Joan", confidence: 0.9 },
         { entityName: 'Walt', key: 'spouse of', value: 'User', confidence: 0.9 },
+        { entityName: 'Walt', key: 'pet owned', value: 'Pepper (cat)', confidence: 0.9 },
       ],
-      summaries: async () => [{ followUpItems: ["Ask how Joan's Thanksgiving visit went"] }],
+      summaries: async () => [
+        { callerProvenance: 1, followUpItems: ["Ask how Joan's Thanksgiving visit went"] },
+      ],
     };
     const on = createMemoryRecall({ userId: 'u-fam', userName: 'Ruth', store: family, people: true });
     await on.ready;
     const first = on.noteFor("What's my daughter's name?");
     expect(first).toContain('People in their life: Joan (sister), Walt (spouse).');
+    expect(first).toContain("Animals: Pepper (Walt's cat).");
     expect(first).toMatch(/never guess how someone is related/i);
     expect(on.noteFor('And how is Walt?')).not.toContain('People in their life'); // once a call
 
@@ -175,22 +242,29 @@ describe('createMemoryRecall', () => {
     expect(off.noteFor("What's my daughter's name?")).not.toMatch(/People in their life|never guess/i);
   });
 
-  it('offers shared inside jokes once per call, only with INSIDE_JOKES=on', async () => {
+  it('offers a shared inside joke once per call, on a turn that touches its line, only with INSIDE_JOKES=on', async () => {
     const withJokes = {
       facts: store.facts,
-      summaries: async () => [{ insideJokes: ['the mushroom thing'] }],
+      summaries: async () => [
+        {
+          insideJokes: [
+            { bit: 'the mushroom thing', quote: 'the fungus incident in the risotto', speaker: 'user' },
+          ],
+        },
+      ],
     };
     vi.stubEnv('INSIDE_JOKES', 'on');
     try {
       const recall = createMemoryRecall({ userId: 'u1', store: withJokes });
       await recall.ready;
-      expect(recall.noteFor('Hey, how are you?')).toContain('- the mushroom thing');
-      expect(recall.noteFor('Biscuit chewed my shoes again')).not.toContain('mushroom');
+      expect(recall.noteFor('Hey, how are you?') ?? '').not.toContain('mushroom');
+      expect(recall.noteFor('The fungus is back in my risotto')).toContain('- the mushroom thing');
+      expect(recall.noteFor('The risotto fungus again') ?? '').not.toContain('mushroom');
 
       vi.stubEnv('INSIDE_JOKES', 'off');
       const off = createMemoryRecall({ userId: 'u1', store: withJokes });
       await off.ready;
-      expect(off.noteFor('Hey, how are you?')).toBeNull();
+      expect(off.noteFor('The fungus is back in my risotto') ?? '').not.toContain('mushroom');
     } finally {
       vi.unstubAllEnvs();
     }

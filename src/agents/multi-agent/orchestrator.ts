@@ -25,7 +25,7 @@ import { wireDeferredHandlers } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { directedGreeting } from './greeting-direction.js';
+import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 import {
   arrivalLine,
@@ -258,7 +258,7 @@ export class AgentOrchestrator {
         greeting = outboundOpener(parties);
       } else {
         const userData = agent.userData as UserData | undefined;
-        greeting = await directedGreeting(this.sessionId, agent.personaId, userData);
+        greeting = await greetingOrResume(this.sessionId, agent, userData); // RESUME_AFTER_DROP
       }
 
       // Greeting awareness: the turn handler tells the LLM on turn 0 what it said.
@@ -618,7 +618,6 @@ export class AgentOrchestrator {
         isHandoff: context.isHandoff,
         previousPersonaId: context.previousPersonaId,
         hasConversationSummary: !!context.conversationSummary,
-        recentMessageCount: context.recentMessages?.length || 0,
       },
       '🎭 [spawnAgent] Starting agent creation...'
     );

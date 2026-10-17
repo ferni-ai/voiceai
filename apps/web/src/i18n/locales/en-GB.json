@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "Switching to {language}",
+    "seeYou": "See you next time!",
+    "callVoicemail": "Left {name} a voicemail",
+    "callNoAnswer": "Couldn't reach {name}. Want me to try again later?",
+    "callFailed": "The call to {name} didn't go through",
+    "callBack": "{name} wants you to ring back",
+    "followUp": "{name} wants to hear back from you"
+  },
   "accessibility": {
     "accountMenu": "Account menu",
     "accountSettings": "Account settings",
@@ -2143,8 +2152,7 @@
     "couldNotDisconnect": "Couldn't disconnect. Try again?",
     "sonosConnected": "Sonos connected!",
     "transcribing": "Transcribing...",
-    "transcriptionUnavailable": "Transcription unavailable. Saving audio only.",
-    "audioSaved": "Audio saved!",
+    "transcriptionUnavailable": "Couldn't catch the words this time, so nothing was saved. Want to try again?",
     "entrySaved": "Entry saved!",
     "couldNotSaveEntry": "Couldn't save entry. Try again?",
     "profileSaved": "Profile saved!",
@@ -2262,7 +2270,6 @@
       "other": "Imported {count} contacts!"
     },
     "integrationNowConnected": "{integration} connected!",
-    "inviteSentTo": "Invite sent to {email}!",
     "householdMemberRemoved": "{name} removed",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} added to your team",
@@ -3549,7 +3556,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "Your Personal AI Companion",
+        "role": "Your life coach",
         "description": "I'm here for whatever you need — from daily check-ins to deep conversations.",
         "unlockHint": "Always by your side",
         "unlockedMessage": "We've been through a lot together.",
@@ -3620,11 +3627,11 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — Your AI Life Companion",
+      "title": "Ferni — Your AI Life Coach",
       "message": "I've been using Ferni and it's genuinely changed how I approach my day. Join me! {url}",
       "shortMessage": "Join me on Ferni! {url}",
       "emailSubject": "You should try Ferni",
-      "emailBody": "Hey! I've been using Ferni — it's an AI companion that actually feels human. Thought you'd love it. {url}"
+      "emailBody": "Hey! I've been using Ferni — it's an AI life coach that actually feels human. Thought you'd love it. {url}"
     },
     "modal": {
       "title": "Share the Growth",
@@ -3857,10 +3864,12 @@
       "create": "Create Agent",
       "empty": "No agents yet",
       "emptyHint": "Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.",
+      "emptyHintWithoutVoice": "Create your first custom agent to keep a loved one's stories, build a mentor, or design your own companion.",
       "createFirst": "Create Your First Agent",
       "whatYouCan": "What you can create",
       "legacy": "Legacy",
       "legacyDesc": "Preserve the voice and wisdom of someone you cherish",
+      "legacyDescWithoutVoice": "Preserve the stories and wisdom of someone you cherish",
       "mentor": "Mentor",
       "mentorDesc": "Create a coach based on an inspiring figure",
       "twin": "Digital Twin",
@@ -5063,7 +5072,8 @@
     },
     "voiceStep": {
       "title": "How should they sound?",
-      "subtitle": "Choose a voice or clone one"
+      "subtitle": "Choose a voice or clone one",
+      "subtitleWithoutClone": "Choose a voice"
     },
     "voiceOption": {
       "cloneTitle": "Clone a Voice",
@@ -7236,6 +7246,7 @@
     "legacy": {
       "name": "Legacy",
       "description": "Preserve the voice and wisdom of someone you cherish",
+      "descriptionWithoutVoice": "Preserve the stories and wisdom of someone you cherish",
       "feature1": "Voice cloning from recordings",
       "feature2": "Capture stories and memories",
       "feature3": "Store wisdom and favourite sayings",
@@ -8546,6 +8557,10 @@
   },
   "engagementPanel": {
     "title": "Daily Check-in",
+    "emptyTitle": "Our check-ins will live here",
+    "emptyMessage": "Nothing here yet, and that's okay. When we do a daily check-in on a call, how you were feeling shows up here. Next time we talk, just ask me to check in.",
+    "loadFailedTitle": "Hmm, this didn't load",
+    "loadFailedMessage": "That's on me, not you. Give it a moment, then open this again.",
     "yourWeek": "Your Week",
     "weatherTrend": "Emotional weather trend",
     "howYouFeel": "How you're feeling",
@@ -9303,7 +9318,8 @@
     "sharedWith": "Shared With ({count})",
     "joined": "Joined",
     "pendingInvite": "Pending invite",
-    "notFound": "Couldn't find this legacy"
+    "notFound": "Couldn't find this legacy",
+    "invitesNotReady": "Family sharing isn't ready yet, so no invite was sent."
   },
   "dataExport": {
     "title": "Your Data",
@@ -9457,7 +9473,18 @@
     "dismiss": "Just happy to chat"
   },
   "aiLabel": {
-    "companion": "AI companion"
+    "role": {
+      "lifeCoach": "Life coach",
+      "habitsCoach": "Habits coach",
+      "insightsMentor": "Insights mentor",
+      "lifePlanner": "Life planner",
+      "communicationCoach": "Communication coach",
+      "wisdomGuide": "Wisdom guide",
+      "investingMentor": "Investing mentor",
+      "stockPickingGuide": "Stock-picking guide",
+      "lifeMentor": "Life mentor",
+      "friend": "Friend"
+    }
   },
   "afterCall": {
     "ariaLabel": "After your call",
@@ -9465,11 +9492,15 @@
     "rememberEmpty": "Nothing new to hold onto this time. Thanks for the company.",
     "nextStepTitle": "A gentle next step",
     "invitation": "Come back whenever you like. I'll be here.",
-    "close": "Close"
+    "close": "Close",
+    "seeCost": "What this call cost",
+    "feedbackQuestion": "How did that feel?",
+    "feedbackThanks": "Thanks, that helps."
   },
   "moments": {
     "teamUnlockTitle": "Meet {name}",
     "niceWork": "Nice work",
+    "remembered": "I'll remember: {summary}",
     "streakSubtitle": "You're showing up. That matters.",
     "streakTitle": {
       "one": "{count} day streak",
@@ -9890,6 +9921,7 @@
     "timeout": "That took too long. Check your connection and retry?",
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
+    "agentLeft": "Ferni dropped off the line. Reconnect?",
     "unknown": "Couldn't connect. Try again?"
   },
   "ambientSounds": {
@@ -10325,22 +10357,7 @@
         "other": "I've got {count} journal entries worth of perspective to share."
       }
     },
-    "error": "I'm having trouble thinking right now. Give me a moment and try again?",
-    "fallback": {
-      "advicePhilosophy": "You know what I've learned? \"{philosophy}\" Whatever you're facing, remember that.",
-      "adviceValues": "Think about what matters to us: {values}. Let those guide you.",
-      "feelRecent": "I've felt that too. In my journal I wrote: \"{excerpt}...\" We got through it before.",
-      "feelDefault": "I hear you. We've been through tough times before and found our way. What's really bothering you?",
-      "rememberIntro": "Yeah, I remember.",
-      "rememberEntry": "There was that time I wrote: \"{excerpt}...\"",
-      "mannerism": "{phrase} That's something I've been thinking about too. What made you bring this up?",
-      "default": "That's a good question. What made you think of that?"
-    },
-    "fallbackKeywords": {
-      "advice": "advice,should i",
-      "feeling": "feeling,feel",
-      "remember": "remember,past"
-    }
+    "error": "That didn't go through. It's on my end, not yours. Try sending it again."
   },
   "mood": {
     "holiday": {

@@ -2,8 +2,10 @@
  * Ferni's presence sounds in his own voice (VOICED_PRESENCE=on), from the takes
  * Seth kept (VOICED_TAKES, rendered per voice by warmPersonaReactions): the
  * tool hum, the quiet-window hum (a yawn on a 05:00-08:59 call, once) and extra
- * live-reaction variants. Whistle and snore stay off until researched; the
- * surprised and sigh takes have no trigger yet. All on the direct track (~56 ms
+ * live-reaction variants. With PRESENCE_SOUND_ASSETS too, the quiet window can
+ * draw one of the human whistles Seth picked (presence-clips.ts) in place of a
+ * hum; the snore stays off here (no long-quiet slot). The surprised and sigh
+ * takes have no trigger yet. All on the direct track (~56 ms
  * to the wire, against ~640 ms through the mixer), on the existing rules.
  *
  * @module agents/integrations/voiced-presence
@@ -16,6 +18,7 @@ import { callerHour } from '../shared/time-context.js';
 import { voicedPresenceEnabled } from '../shared/voiced-take-render.js';
 import type { DirectClipTrack } from './direct-clip-track.js';
 import { createPresenceWatcher, isHeavyMood, presenceSoundsEnabled } from './presence-watcher.js';
+import { presenceClipName, presenceClipPickers, type ClipPicker } from './presence-clips.js';
 import type { HumPlayer } from './tool-hum.js';
 
 export { voicedPresenceEnabled };
@@ -34,10 +37,21 @@ export const REACTION_VARIANTS: Readonly<Record<string, VoicedCategory>> = {
 /** Heard in the room, not said to them: as loud as the idle whistle. */
 const IDLE_VOLUME = 0.5;
 const SUNG_SHARE = 0.25;
+/** Of the quiet-window sounds (one a call), how many are a recorded whistle. */
+const WHISTLE_SHARE = 0.5;
+const RECORDED = 'recorded-whistle:';
 
 /** One VOICED_PRESENCE line per kept take that reaches the wire (direct-clip-track.ts). */
 export function logVoicedTake(label: string, playToWireMs: number): void {
   if (!voicedPresenceEnabled()) return;
+  if (label.startsWith(RECORDED)) {
+    const file = label.slice(RECORDED.length);
+    log.info(
+      { category: 'recorded-whistle', file, latencyMs: Math.round(playToWireMs) },
+      'VOICED_PRESENCE'
+    );
+    return;
+  }
   for (const [category, takes] of Object.entries(VOICED_TAKES)) {
     const take = takes.indexOf(label);
     if (take < 0) continue;
@@ -84,7 +98,6 @@ type PlayClip = (text: string, opts?: { pauseStartedAt?: number }) => boolean;
 type CallerData = {
   voiceEmotion?: { primary?: string };
   callerTimezone?: string;
-  services?: { userProfile?: { contactInfo?: { timezone?: string } } };
 };
 
 export interface VoicedPresenceOptions {
@@ -105,7 +118,9 @@ export function startVoicedPresence(opts: VoicedPresenceOptions) {
   if (!voicedPresenceEnabled(env) || !direct) return null;
   const v = shared(opts, direct);
   hums.set(session, toolHum(v));
-  const stopIdle = presenceSoundsEnabled(env) ? startIdle(v, opts.now ?? (() => new Date())) : null;
+  const now = opts.now ?? (() => new Date());
+  const whistles = presenceClipPickers(env)?.whistle ?? null;
+  const stopIdle = presenceSoundsEnabled(env) ? startIdle(v, now, whistles) : null;
   return {
     /** Wrap the live backchannel player so its reactions draw from the takes. */
     vary: variants(v),
@@ -127,7 +142,7 @@ function shared(opts: VoicedPresenceOptions, direct: VoicedTrack) {
     return true;
   };
   const mood = (): string | undefined => caller()?.voiceEmotion?.primary;
-  return { session, direct, picker, rng, caller, play, mood };
+  return { session, direct, picker, rng, caller, play, mood, mixerBusy: opts.mixerBusy };
 }
 type Voiced = ReturnType<typeof shared>;
 
@@ -148,14 +163,27 @@ function toolHum(v: Voiced): VoicedHum {
 }
 
 /** The quiet window, on presence-watcher.ts's rules. */
-function startIdle(v: Voiced, now: () => Date): () => void {
+function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () => void {
   let yawned = false;
   let endsAt = 0;
+  /** A recorded whistle on the direct track; false if none is ready or a clip is playing. */
+  const whistle = (): boolean => {
+    const pcm = whistles?.next();
+    if (!pcm || v.mixerBusy()) return false;
+    if (!v.direct.play(pcm, IDLE_VOLUME, RECORDED + (presenceClipName(pcm) ?? 'unknown')))
+      return false;
+    endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
+    return true;
+  };
   const watcher = createPresenceWatcher({
     play: () => {
-      const tz =
-        v.caller()?.callerTimezone ?? v.caller()?.services?.userProfile?.contactInfo?.timezone;
-      const pick = v.picker.take(idleCategory(callerHour(now(), tz), yawned, v.rng));
+      // Never the profile's own zone: a phone caller gets one only as its verified owner (phone-parity.ts).
+      const tz = v.caller()?.callerTimezone;
+      const category = idleCategory(callerHour(now(), tz), yawned, v.rng);
+      // The morning yawn keeps its slot; otherwise, sometimes one of Seth's whistles
+      if (whistles && category !== 'morning-yawn' && v.rng() < WHISTLE_SHARE && whistle())
+        return true;
+      const pick = v.picker.take(category);
       const take = pick ?? v.picker.take('thinking-hum');
       if (!take || !v.play(take, IDLE_VOLUME)) return false;
       if (take.category === 'morning-yawn') yawned = true;

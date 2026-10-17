@@ -138,8 +138,6 @@ import { disposeMobileBottomSheet } from './ui/mobile-bottom-sheet.ui.js';
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
 import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
 import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
-// Disabled: Eye animations removed - keeping just zen blink
-// import { initFerniEye } from './ui/ferni-eye.ui.js';
 import { greetingUI } from './ui/greeting.ui.js';
 import { initMoodUI, moodUI } from './ui/mood.ui.js';
 // DISABLED: No skeleton loading - everything visible immediately
@@ -284,8 +282,11 @@ import { toast } from './ui/whisper.ui.js';
 import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
 import { cancelConnectAttempt, connectWithTimeout } from './app/call-connect.js';
 import { onCallEnded, onCallStarted } from './app/call-end.js';
+import { wrapUpOwnsAgentLeaving, afterConversationEnd, playEndSound } from './app/call-end-paths.js';
 import { connectFailure } from './services/connect-failure.js';
+import { showAgentLostPrompt } from './app/agent-lost-prompt.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
+import { connectGate, type ConnectGate } from './services/paywall.service.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
 import { initMomentsSystem } from './ui/moments/index.js';
 // Subscription UI - human-centered monetization
@@ -302,7 +303,7 @@ import { initCosmeticsService } from './services/cosmetics.service.js';
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
 import { watchServerSeeds } from './services/seeds-ledger.service.js';
 // Referral Service - network effect seeds system
-import { initReferralService, processPendingReferral } from './services/referral.service.js';
+import { checkReferralFromUrl, initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
 import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
@@ -339,7 +340,7 @@ import { playBeat, updateNarrativeContext } from './narrative/narrative-director
 // 🧪 Soul test utilities (available as window.testSoul in dev)
 // NOTE: Test file imported dynamically to avoid build errors
 if (import.meta.env.DEV) {
-  void import('./ui/soul.test.js');
+  void import('./ui/soul-console.js');
 }
 
 // 🧪 First-time user testing utilities (available as window.testFirstTimeUser in dev)
@@ -511,6 +512,7 @@ class VoiceAIApp {
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
+      checkReferralFromUrl(); // before the sign-in gate and the waitlist: a friend who waits keeps the code
       // Require sign-in, like iOS; await it so an existing session is restored
       const authState = await initializeAuth();
       // The dev server accepts ?e2e=1 so Playwright can reach the settings
@@ -695,11 +697,6 @@ class VoiceAIApp {
 
     // Update all UI systems
     presenceUI.setConnected(true);
-    // keyboardUI.setConnected(true);
-
-    // Connection quality indicator disabled for clean UI
-    // connectionQualityUI.show();
-    // connectionQualityUI.setQuality('good');
 
     // Start session stats
     statsUI.startSession();
@@ -784,27 +781,23 @@ class VoiceAIApp {
     // Step 1: Update button to show ceremony is happening
     controlsUI.showClosingState();
 
-    // Step 2: Play warm goodbye sound (resolving chord progression)
-    // This sound is 2s and sets the emotional tone
-    soundUI.play('goodbye');
+    // Step 2: Warm goodbye sound (~2s resolving chord), unless the agent's goodbye already played it
+    playEndSound('goodbye');
 
     // Step 3: Gentle haptic for the farewell moment
     delightService.haptic('medium');
 
-    // Step 4: Avatar settling animation - peaceful close
-    // This runs alongside the sound for 1.5s
+    // Step 4: Avatar settling animation (peaceful close), alongside the sound for 1.5s
     const settlingPromise = presenceUI.settling();
 
-    // Step 5: Wait for both sound and animation
-    // Sound is ~2s, settling is ~1.5s - we wait for settling then add a pause
+    // Step 5: Wait for the ~1.5s settling (the ~2s sound overlaps), then add a pause
     await settlingPromise;
 
     // Step 6: Brief pause to appreciate the moment (the goodbye "hangs")
     await new Promise((resolve) => setTimeout(resolve, 400));
 
-    // Step 7: Satisfying phone "click" at the moment of disconnect
-    // Like gently placing down a receiver - tactile finality
-    soundUI.play('hangup');
+    // Step 7: Phone "click" at the moment of disconnect, like placing down a receiver (one end sound)
+    playEndSound('hangup');
     delightService.haptic('light'); // Subtle haptic for the click
 
     // Step 8: Now perform the actual disconnect (gracefully); it also brings up the after-call card
@@ -873,9 +866,9 @@ class VoiceAIApp {
     // FIX BUG: Reset handoff service to clear stuck transition states
     handoffService.resetSession();
 
-    // Play disconnect sound (unless ceremony already played goodbye sound)
+    // Play disconnect sound (unless the ceremony or the agent's goodbye already played one)
     if (!skipSound) {
-      soundUI.play('disconnect');
+      playEndSound('disconnect');
     }
 
     // Reset audio state
@@ -1250,7 +1243,7 @@ class VoiceAIApp {
     });
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
-      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
+      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless VITE_SPEAKER_CUES or ferni:speaker-cues
       (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // turns on unless ferni:avatar-turns=off; gestures need ferni:turn-gestures
       (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
@@ -1771,7 +1764,6 @@ class VoiceAIApp {
     // 🌱 Server seed ledger - one balance from the server once it keeps seeds
     this.safeInit('SeedsLedger', () => watchServerSeeds());
 
-    // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
     this.safeInit('ReferralService', () => initReferralService());
 
     // 🌱 Seeds UI - Display balance and toast notifications
@@ -2257,8 +2249,6 @@ class VoiceAIApp {
 
     // 🔊 Check for voice profile re-enrollment needs
     void this.checkVoiceReEnrollment();
-    // Agent particles disabled for cleaner professional UI
-    // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
 
     // 💚 Connection Heart - Listen for connect requests
     this.addTrackedListener(window, 'ferni:request-connect', () => {
@@ -2645,49 +2635,18 @@ class VoiceAIApp {
   /**
    * Check subscription status before connecting.
    *
-   * Philosophy: "Limits feel like natural breaks, not walls."
-   * - At limit → Show warm modal, block connection
-   * - Approaching limit → Allow, but track for subtle reminder
-   * - OK → Proceed normally
+   * Philosophy: "Limits feel like natural breaks, not walls." Without a paywall
+   * (services/paywall.service.ts) every call is allowed and nothing counts down.
    */
-  private async checkSubscriptionBeforeConnect(): Promise<{
-    allowed: boolean;
-    approaching: boolean;
-    remaining: number | null;
-  }> {
+  private async checkSubscriptionBeforeConnect(): Promise<ConnectGate> {
     try {
-      // Load fresh status
-      const status = await loadSubscriptionStatus();
-
-      if (!status) {
-        // No status = assume OK (new user or Stripe not configured)
-        return { allowed: true, approaching: false, remaining: null };
-      }
-
-      // Check if at limit - canStartConversation is nested in usage
-      const canStart = status.usage?.canStartConversation ?? status.canStartConversation ?? true;
-      if (!canStart) {
-        // Show the warm limit modal
+      const gate = connectGate(await loadSubscriptionStatus(), t('app.monthlyLimitReached'));
+      if (gate.limitMessage) {
         const nextMonth = new Date();
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        nextMonth.setDate(1);
-
-        showLimitReachedModal(
-          status.usage?.statusMessage ||
-            status.upgradePrompt ||
-            t('app.monthlyLimitReached'),
-          nextMonth.toISOString()
-        );
-
-        return { allowed: false, approaching: false, remaining: 0 };
+        nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+        showLimitReachedModal(gate.limitMessage, nextMonth.toISOString());
       }
-
-      // Check if approaching limit (80%+ used) - check nested structure
-      const approaching = status.usage?.approachingLimit ?? status.approaching ?? false;
-      const remaining =
-        status.usage?.conversationsRemaining ?? status.conversationsRemaining ?? null;
-
-      return { allowed: true, approaching, remaining };
+      return gate;
     } catch (error) {
       log.warn('Could not check subscription status:', error);
       // On error, allow connection (fail open for better UX)
@@ -2759,7 +2718,6 @@ class VoiceAIApp {
           presenceUI.setConnected(false);
           connectionQualityUI.hide();
           waveformUI.stop();
-          // agentParticlesUI.stop();
         }
       },
 
@@ -2806,6 +2764,7 @@ class VoiceAIApp {
       },
 
       onAgentDisconnected: () => {
+        if (wrapUpOwnsAgentLeaving()) return presenceUI.setSpeaking(false); // the goodbye or the reconnect prompt
         messageUI.show(t('app.seeYouNextTime'), 'info', 2000);
         presenceUI.setSpeaking(false);
 
@@ -2951,12 +2910,20 @@ class VoiceAIApp {
       },
 
       // The call dropped on its own: same cleanup as hang-up, then offer to reconnect.
+      // After a planned goodbye (wrap-up on) it's the planned end: the goodbye, no notice.
       onUnexpectedDisconnect: (reason) => {
+        if (afterConversationEnd()) return void this.disconnect();
         log.warn('Call dropped unexpectedly', { reason });
         void this.performStandardDisconnect().then(() =>
           showCallNotice(connectFailure('dropped'), { onRetry: () => void this.connect() })
         );
       },
+      // Ferni's side ended with the caller still here (services/agent-drop-watch.ts)
+      onAgentLost: () =>
+        showAgentLostPrompt({
+          endCall: () => this.performStandardDisconnect(),
+          connect: () => this.connect(),
+        }),
     });
 
     // Handoff service callbacks

@@ -32,6 +32,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { runBackground } from '../../utils/background-task.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { guestsPresent } from './room-guests.js';
 
 const log = createLogger({ module: 'NameCorrection' });
 
@@ -105,8 +106,8 @@ export function statedName(words: string, current?: string, agentLast = ''): str
 
 export const nameNote = (name: string, was?: string): string =>
   was
-    ? `They told you their name is ${name}, not ${was}. Call them ${name} from now on; ${name} is them, not someone else.`
-    : `They told you their name is ${name}. Call them ${name} now and then; ${name} is them, not someone else.`;
+    ? `They told you their name is ${name}, not ${was}; ${name} is them, not someone else.`
+    : `They told you their name is ${name}; ${name} is them, not someone else.`;
 
 interface Corrected {
   name: string;
@@ -203,7 +204,9 @@ export function nameCorrectionNote(
   if (!user) return '';
   const known = corrected.get(session);
   const current = known?.name ?? user.userName;
-  const name = callerWords ? statedName(callerWords, current, lastAgentLine(chatCtx)) : null;
+  // With a guest in the room, "I'm David" may be the guest (room-guests.ts).
+  const listen = callerWords && !guestsPresent(session, env);
+  const name = listen ? statedName(callerWords, current, lastAgentLine(chatCtx)) : null;
   if (name && !sameName(name, current)) {
     corrected.set(session, { name, was: known?.was ?? current });
     rename(user, name, deps);

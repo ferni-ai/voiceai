@@ -21,6 +21,7 @@ import { endpointingDelays, sessionTurnDetection } from '../shared/turn-patience
 import type { UserData } from '../shared/types.js';
 import { interruptionOverrides } from './interruption-config.js';
 import { logBargeInDecisions } from './live-call-behaviors.js';
+import { preemptiveGenerationOverrides } from './preemptive-tts.js';
 import type { createPersonaTTS } from './persona-tts.js';
 
 const log = getLogger();
@@ -109,7 +110,10 @@ export async function createCallSession(parts: {
     tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
     userData,
     // Barge-in vs "mm-hmm": see interruption-config.ts. Overrides voiceOptions.
-    turnHandling: { interruption: interruptionOverrides() },
+    // PREEMPTIVE_TTS=on also synthesizes the preemptive reply (preemptive-tts.ts).
+    turnHandling: { interruption: interruptionOverrides(), ...preemptiveGenerationOverrides() },
+    // Not dead: the SDK still takes the endpointing delays and the interruption
+    // duration (and minWords under INTERRUPTION_MODE=vad) from here.
     voiceOptions: {
       allowInterruptions: true,
       ...endpointingDelays(), // waits through thinking pauses: see turn-patience.ts

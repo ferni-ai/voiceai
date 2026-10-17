@@ -1,0 +1,7 @@
+# bh: {"to": "jordan-taylor", "path": "tap", "facts": ["chris", "bachelor", "best man", "twelve", "12", "camping", "clubs"]}
+Hey Ferni. I'm the best man for my buddy Chris, and I have to plan his bachelor party for twelve guys.
+He hates clubs. He's more of a camping guy.
+@data 4000 {"type":"handoff_request","target":"jordan-taylor","timestamp":0,"attempt":1}
+@pause 9000 -
+Hi Jordan.
+So, what do you think?
