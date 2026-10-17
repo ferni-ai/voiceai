@@ -7,8 +7,8 @@
  */
 
 import type { llm } from '@livekit/agents';
-import { TransformStream, type ReadableStream } from 'node:stream/web';
 
+import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
@@ -16,13 +16,9 @@ import {
   phoneOnlyIdentity,
   sessionIsVerifiedOwner,
 } from '../voice-agent-entry/caller-recognition.js';
-import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
+import { worldNowNote } from '../shared/world-now.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
-import {
-  getTurnToolRetrieval,
-  latestUserText,
-  toolRetrievalMode,
-} from '../../tools/retrieval/turn-tool-retrieval.js';
+import { latestUserText } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
 import {
   teamStatusNote,
@@ -32,22 +28,32 @@ import {
 } from '../../tools/handoff/locked-teammates.js';
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
-import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
-import type { Caption } from './caption-filter.js';
+import { packetReminder } from './context-packet/turn-packet.js';
+import { retrievedTools } from './turn-request-tools.js';
+import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt.js';
+import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
+import { listeningNotes, listeningReply } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { roomGuestsNote } from './room-guests.js';
+import {
+  worldFactLinesFor,
+  worldFactsNoteFor,
+} from '../../intelligence/world-model/temporal/in-call-load.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
+import { quirkTurnNote } from './quirk-note.js';
 import { honestFriendNote } from './honest-friend.js';
+import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
+import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
@@ -56,14 +62,16 @@ import {
   understandingMode,
   understandingStatusFor,
 } from './turn-understanding.js';
+import { getWrapUp } from './wrap-up.js';
 import {
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
   withTurnStyleReminder,
 } from './turn-style.js';
+import { burstLine, clearBurstOffer } from './vocal-bursts.js';
 
-/** Live tool retrieval waits this long for the pick before falling back (see toolsForTurn). */
-const LIVE_PICK_WAIT_MS = 150;
+// Moved to turn-request-tools.ts; re-exported for existing importers.
+export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -91,9 +99,11 @@ const sessionIdOf = (userData: unknown): string | undefined =>
 export function withTurnReminder(
   request: llm.ChatContext,
   session: object,
-  options: { shape?: boolean } = {}
+  options: { shape?: boolean; closeLoop?: boolean } = {}
 ): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
+  // An invitation to open with a sound is for one request only (vocal-bursts.ts).
+  clearBurstOffer(session);
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
@@ -103,7 +113,12 @@ export function withTurnReminder(
   const offered = director?.current() ?? [];
   // DIRECTOR_ANSWER_TURN_GUARD=on: notes written before they answered Ferni's question are stale.
   const answering = isAnswerTurn(chatCtx.items, words);
-  const notes = answering ? '' : formatNotes(offered.filter(keep));
+  // LISTEN_FIRST=on: a caller low on energy gets no note pushing Ferni to share.
+  const notes = answering
+    ? ''
+    : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
+  // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
+  const corrected = options.shape !== false ? correctionNotesFor(chatCtx, session) : '';
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
@@ -111,15 +126,22 @@ export function withTurnReminder(
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
-  const reminder = [
+  // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
+  const turnNotes = [
+    // WORLD_NOW=on: the caller's time this reply, not the call's start (world-now.ts).
+    worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     // "Naya" in the transcript is Nayan (teammate-names.ts)
     heardTeammateNote(words),
     notes,
+    corrected,
+    options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
+    // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
+    quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
     state.note,
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
@@ -146,15 +168,30 @@ export function withTurnReminder(
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
+    // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
+    // self-share so "no stories of your own" wins for a tired caller. No length (TURN_LENGTH's).
+    attunementNote(chatCtx, session, { careful: options.shape === false }),
     // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
     // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),
     // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
-    // for this reply, last of all; never with crisis guidance.
+    // for this reply, last but the repair check; never with crisis guidance.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+    // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
+    // note above cancels it; none with crisis guidance or when they answered Ferni's question.
+    options.shape !== false && !answering ? repairNoteFor(chatCtx, session) : '',
+  ].filter(Boolean);
+  // WORLD_FACTS_IN_CALL=on: where their life stands (in-call-load.ts); nothing when off.
+  const caller = callerOf(session);
+  const lifeAt = {
+    now: Date.now(),
+    timeZone: caller?.callerTimezone,
+    userName: caller?.userName,
+    words,
+  };
+  const reminder = contextPacketEnabled()
+    ? packetReminder(session, words, turnNotes, worldFactLinesFor(caller, lifeAt))
+    : [worldFactsNoteFor(caller, lifeAt), ...turnNotes].filter(Boolean).join(' ');
   // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
   noteReminder(session, {
     reminder,
@@ -164,6 +201,24 @@ export function withTurnReminder(
   });
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
 }
+
+/**
+ * WRAP_UP=on: the caller is signing off after something was settled, so the
+ * goodbye closes the loop (wrap-up.ts). Read in code, nothing awaited.
+ */
+function closeLoopNote(session: object, words: string): string {
+  const wrapUp = getWrapUp(session);
+  if (!wrapUp || !words) return '';
+  return wrapUp.noteFor(words, understandingFor(session, words)?.wantsToEnd === true);
+}
+
+interface CallerData {
+  personaId?: string;
+  userName?: string;
+  callerTimezone?: string;
+}
+const callerOf = (session: object): CallerData | undefined =>
+  (session as { userData?: unknown }).userData as CallerData | undefined;
 
 /**
  * DELIBERATION=on: a thought from the background deliberator, if one is ready
@@ -245,24 +300,39 @@ function styleFor(
 ): string {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return TURN_STYLE_REMINDER;
+  const listening = listeningReply(said, chatCtx, session);
+  if (listening) return listening;
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const turn = turnShapeFor(
+  const shaped = withQuiet(
+    withRecent(withOwnStory(sig, said, ownStory), said, chatCtx),
     said,
-    rngFor(`${callSeed(session)}:${said}`),
-    undefined,
-    withRecent(withOwnStory(sig, said, ownStory), said, chatCtx)
+    chatCtx
+  );
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
+  // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
+  const burst = burstLine(
+    session,
+    shaped ?? regexSignals(said, callerMove(said)),
+    rngFor(`${callSeed(session)}:${said}:burst`)
   );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
   log.info(
-    { move: turn.move, shape: turn.shape, extras: turn.extras, source, understood, answering },
+    {
+      move: turn.move,
+      shape: turn.shape,
+      extras: burst ? [...turn.extras, 'vocal_burst'] : turn.extras,
+      source,
+      understood,
+      answering,
+    },
     'TURN_SHAPE'
   );
-  return turn.reminder;
+  return burst ? `${turn.reminder} ${burst}` : turn.reminder;
 }
 
 /**
@@ -325,6 +395,22 @@ function withOwnStory(
 ): TurnSignals | undefined {
   if (ownStory === undefined) return signals;
   return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory };
+}
+
+/**
+ * QUIET_CALLER=on: a caller saying very little gets room, not advice
+ * (quiet-caller.ts); "I'm still here" reads as an ack.
+ */
+function withQuiet(
+  signals: TurnSignals | undefined,
+  said: string,
+  chatCtx: llm.ChatContext
+): TurnSignals | undefined {
+  if (!quietCallerEnabled()) return signals;
+  const sig = signals ?? regexSignals(said, callerMove(said));
+  const quiet = isQuietCaller(callerTurnsOf(chatCtx));
+  const move = presentAck(said) ? 'ack' : sig.move;
+  return quiet || move !== sig.move ? { ...sig, move, quiet } : sig;
 }
 
 const callSeeds = new WeakMap<object, string>();
@@ -405,80 +491,4 @@ export function withPinnedTools(toolCtx: llm.ToolContext, agent: object | undefi
     .filter(([name]) => !(name in toolCtx.functionTools))
     .map(([, tool]) => tool);
   if (added.length > 0) toolCtx.updateTools([...toolCtx.tools, ...added]);
-}
-
-/**
- * Shadow mode only logs what would be picked (nothing awaited); live mode sends
- * core + recent + retrieved tools, waiting at most LIVE_PICK_WAIT_MS for the
- * pick, then using a close pick from this turn, and otherwise sending them all.
- * See tools/retrieval/turn-tool-retrieval.ts.
- */
-async function retrievedTools(
-  session: object,
-  chatCtx: llm.ChatContext,
-  toolCtx: llm.ToolContext
-): Promise<llm.ToolContext> {
-  // TOOL_CORE_STATIC keeps one set per call: retrieval may only observe.
-  const mode = staticCoreToolsEnabled() ? 'shadow' : toolRetrievalMode();
-  if (toolRetrievalMode() === 'off') return toolCtx;
-  const retrieval = getTurnToolRetrieval(session);
-  if (!retrieval) return toolCtx; // the full catalog is only loaded with retrieval
-  const text = latestUserText(chatCtx);
-  if (!text) {
-    // Greetings, check-ins, recovered turns: no words to retrieve for. In
-    // live mode the agent may hold the whole catalog; don't send all of it.
-    return mode === 'live' ? retrieval.withoutPick(toolCtx) : toolCtx;
-  }
-  if (mode === 'shadow') {
-    retrieval.observe(text, toolCtx);
-    return toolCtx;
-  }
-  return retrieval.selectLive(text, toolCtx, LIVE_PICK_WAIT_MS);
-}
-
-/** Captions, reporting what Ferni is saying to the barge-in echo guard (barge-in-fastpath.ts). */
-export function tapSpokenText(
-  captions: ReadableStream<Caption>,
-  session: object
-): ReadableStream<Caption> {
-  const fastPath = getBargeInFastPath(session);
-  if (!fastPath) return captions;
-  return captions.pipeThrough(
-    new TransformStream<Caption, Caption>({
-      transform(chunk, controller) {
-        fastPath.onSpokenText(typeof chunk === 'string' ? chunk : chunk.text);
-        controller.enqueue(chunk);
-      },
-    })
-  );
-}
-
-/**
- * The LLM reply, reporting its first tool call to the empty-response watchdog
- * so a tool lookup isn't mistaken for a turn with no reply (empty-response-watchdog.ts).
- */
-export function tapToolCalls<T>(
-  reply: ReadableStream<T> | null,
-  session: object
-): ReadableStream<T> | null {
-  if (!reply) return reply;
-  let signalled = false;
-  return reply.pipeThrough(
-    new TransformStream<T, T>({
-      transform(chunk, controller) {
-        if (!signalled && hasToolCalls(chunk)) {
-          signalled = true;
-          signalToolCallRequested(session);
-        }
-        controller.enqueue(chunk);
-      },
-    })
-  );
-}
-
-/** LiveKit runs only `function_call` entries (generation.js), so only those count. */
-function hasToolCalls(chunk: unknown): boolean {
-  if (typeof chunk !== 'object') return false;
-  const delta = (chunk as { delta?: { toolCalls?: Array<{ type?: string }> } } | null)?.delta;
-  return delta?.toolCalls?.some((call) => call.type === 'function_call') ?? false;
 }

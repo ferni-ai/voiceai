@@ -39,6 +39,11 @@ export interface Deferral {
 // The on-behalf tool reads this back to tell the user when the call will happen.
 const recent = new Map<string, Deferral>();
 
+/** A held call whose time is no longer known here: nothing dialed, never "calling now" (#1415). */
+export function heldCallReply(contactName: string): string {
+  return `Nothing was dialed yet: it's not a good hour to call ${contactName}, so the call is held for a better time.`;
+}
+
 /** What to tell the user when their call was deferred; undefined when it was placed. */
 export function deferredCallReply(
   callId: string,
@@ -47,7 +52,8 @@ export function deferredCallReply(
   now = new Date()
 ): string | undefined {
   const deferral = recent.get(callId);
-  if (!deferral) return undefined;
+  // deferCall's ids: a held call, even when its time has left this process's memory.
+  if (!deferral) return callId.startsWith('deferred_') ? heldCallReply(contactName) : undefined;
   const timeZone = deferral.timezone;
   const day = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone }).format(d);
   const time = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit' });

@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "Passage à {language}",
+    "seeYou": "À la prochaine !",
+    "callVoicemail": "J'ai laissé un message vocal à {name}",
+    "callNoAnswer": "Je n'ai pas pu joindre {name}. Je réessaie plus tard ?",
+    "callFailed": "L'appel à {name} n'est pas passé",
+    "callBack": "{name} attend ton rappel",
+    "followUp": "{name} attend de tes nouvelles"
+  },
   "accessibility": {
     "accountMenu": "Menu du compte",
     "accountSettings": "Paramètres du compte",
@@ -2114,6 +2123,7 @@
     "sonosConnected": "Sonos connecté !",
     "transcribing": "Transcription en cours...",
     "transcriptionUnavailable": "Je n'ai pas pu saisir les mots cette fois, donc rien n'a été enregistré. On réessaie ?",
+    "journalTooLong": "Celle-ci est longue. Essaie plus court, moins de {count} minutes.",
     "entrySaved": "Entrée enregistrée !",
     "couldNotSaveEntry": "Impossible d'enregistrer l'entrée. Tu veux réessayer ?",
     "profileSaved": "Profil enregistré !",
@@ -3480,6 +3490,25 @@
     "fieldRelationship": "Relation",
     "fieldWhatShouldFerniCallThem": "Comment Ferni doit-il l'appeler ?",
     "fieldNotesForFerni": "Notes pour Ferni",
+    "callConsentLabel": "Cette personne est d'accord pour que Ferni l'appelle",
+    "callConsentHint": "Elle a accepté que Ferni l'appelle de temps en temps pour prendre des nouvelles. Elle peut lui demander d'arrêter à tout moment.",
+    "callConsentSaved": "Enregistré",
+    "callConsentFailed": "Enregistrement impossible. Réessaie.",
+    "callConsentLoadFailed": "Impossible de savoir si cette personne est d'accord pour que Ferni l'appelle. Rouvre pour réessayer.",
+    "checkinTitle": "Quand Ferni doit-il prendre des nouvelles ?",
+    "checkinHint": "Ferni passera un petit coup de fil à cette heure-là pour voir comment ça va.",
+    "checkinFrequencyLabel": "À quelle fréquence",
+    "checkinDaily": "Tous les jours",
+    "checkinWeekly": "Une fois par semaine",
+    "checkinDayLabel": "Quel jour",
+    "checkinTimeLabel": "À quelle heure",
+    "checkinTimezone": "Les heures sont en {zone}.",
+    "checkinSave": "Enregistrer l'heure d'appel",
+    "checkinRemove": "Arrêter les appels réguliers",
+    "checkinSaved": "C'est noté. Ferni appellera à ce moment-là.",
+    "checkinRemoved": "Les appels réguliers sont désactivés.",
+    "checkinFailed": "Impossible d'enregistrer. Réessaie.",
+    "checkinLoadFailed": "Impossible de charger l'heure d'appel. Rouvre pour réessayer.",
     "cancel": "Annuler",
     "addToFamily": "Ajouter à la famille",
     "relationshipMother": "Mère",
@@ -9549,11 +9578,15 @@
     "rememberEmpty": "Rien de nouveau à retenir cette fois. Merci pour ce moment.",
     "nextStepTitle": "Une prochaine étape en douceur",
     "invitation": "Revenez quand vous voulez. Je serai là.",
-    "close": "Fermer"
+    "close": "Fermer",
+    "seeCost": "Ce qu'a coûté cet appel",
+    "feedbackQuestion": "Comment c'était ?",
+    "feedbackThanks": "Merci, ça m'aide."
   },
   "moments": {
     "teamUnlockTitle": "Fais la connaissance de {name}",
     "niceWork": "Beau travail",
+    "remembered": "Je m'en souviendrai : {summary}",
     "streakSubtitle": "Tu es là, fidèle au rendez-vous. C'est ça qui compte.",
     "streakTitle": {
       "one": "Série de {count} jour",
@@ -11153,10 +11186,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

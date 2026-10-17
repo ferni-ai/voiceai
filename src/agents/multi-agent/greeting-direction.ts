@@ -9,6 +9,7 @@ import {
   callCheckIns,
   coachFollowThroughMode,
 } from '../../services/superhuman/commitment-follow-up.js';
+import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
 import { contentWords } from '../../memory/recall/session-recall.js';
 import { claimOpenerFollowUp } from '../../memory/recall/opener-claim.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
@@ -16,6 +17,7 @@ import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { callerHour } from '../shared/time-context.js';
 import {
   callerRecognitionFor,
@@ -40,6 +42,13 @@ export const GREETING_DIRECTION =
 export const CHECK_IN_DIRECTION =
   ' They told you they meant to do something: you may say hello, then ask how it went as an open question, naming it in their words ("Hey Sam. How did the running go this week?"). Not a yes-or-no question and not "did you actually", which sound like checking up on them. Skip it if it was painful.';
 
+/**
+ * Added when they did something they said they would (a win, wins.ts). Named
+ * once, glad with them, and the call is theirs: not a report or a lecture.
+ */
+export const WIN_DIRECTION =
+  ' They did something they told you they would do: say hello, then name it once, glad with them, in a few plain words and the past tense ("Hey Sam. You called your sister, that\'s great."). Then let them talk; do not ask for a report or make a big speech of it.';
+
 /** Added when the nightly pondering pass left one thing to ask about (PONDERING). */
 export const PONDER_DIRECTION =
   ' There is one thing from an earlier call you could ask about: you may say hello, then ask how it is going as an open question, naming it in their words ("Hey Sam. How\'s the martial arts going?"). Not a yes-or-no question. Never say you were thinking about them, had them on your mind, or were wondering about it.';
@@ -50,19 +59,42 @@ const THINKING_OF_YOU =
 
 const log = createLogger({ module: 'greeting-direction' });
 
-/** How long the greeting waits for the caller's open commitments before going without. */
+/** How long the greeting waits for the caller's open commitments and wins before going without. */
 const CHECK_IN_WAIT_MS = 400;
 
-/** The commitment to open on, or undefined (flag off, none open, or too slow). */
-async function checkInFor(userId: string | undefined): Promise<string | undefined> {
-  if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
+async function inTime<T>(work: Promise<T>): Promise<T | undefined> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<undefined>((resolve) => {
     timer = setTimeout(() => resolve(undefined), CHECK_IN_WAIT_MS);
   });
-  const open = await Promise.race([callCheckIns(userId), late]);
+  const result = await Promise.race([work, late]);
   clearTimeout(timer);
-  return open?.[0]?.statement;
+  return result;
+}
+
+/** The commitment to open on, or undefined (flag off, none open, or too slow). */
+async function checkInFor(userId: string | undefined): Promise<string | undefined> {
+  if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
+  return (await inTime(callCheckIns(userId)))?.[0]?.statement;
+}
+
+/** A win not yet named, or undefined (COACH_WINS off, none, or too slow). */
+async function winFor(userId: string | undefined): Promise<Win | undefined> {
+  if (!userId || userId === 'anonymous') return undefined;
+  return inTime(winForOpener(userId));
+}
+
+/**
+ * One opening thread per call: a win first (it is news since last time and is
+ * named only once), else what they said they'd do. A future one-thread arbiter
+ * replaces this choice; welcome-back and pondering then defer to the thread.
+ */
+export function openingThread(
+  win: Win | undefined,
+  checkIn: string | undefined
+): { win?: Win; checkIn?: string } {
+  if (win) return { win };
+  return checkIn ? { checkIn } : {};
 }
 
 interface PonderAsk {
@@ -135,7 +167,8 @@ export function callerHistory(
   profile: {
     totalConversations?: number;
     lastContact?: string | number | Date;
-    lastConversationSummary?: string;
+    /** Only a last-call summary checked for who said what (caller-assertions.ts). */
+    lastCallerSummary?: string;
   },
   now: Date = new Date()
 ): CallerHistory | undefined {
@@ -146,7 +179,7 @@ export function callerHistory(
     const ms = now.getTime() - new Date(profile.lastContact).getTime();
     if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
   }
-  const topic = profile.lastConversationSummary?.trim();
+  const topic = profile.lastCallerSummary?.trim();
   if (topic) history.lastTopic = topic.slice(0, MAX_TOPIC_CHARS);
   return history;
 }
@@ -168,12 +201,14 @@ export function greetingFacts(
   userName: string | undefined,
   history: CallerHistory | undefined,
   checkIn?: string,
-  ponder?: string
+  ponder?: string,
+  win?: string
 ): Record<string, string> {
   // No time zone, no time of day: guessing it wrong is worse than leaving it out.
   const facts: Record<string, string> = partOfDay ? { 'time of day': partOfDay } : {};
   if (userName) facts['their name'] = userName;
   if (checkIn) facts['something they said they would do'] = checkIn.slice(0, MAX_TOPIC_CHARS);
+  if (win) facts['something they said they would do, and did'] = win.slice(0, MAX_TOPIC_CHARS);
   if (ponder)
     facts['something to ask about from an earlier call'] = ponder.slice(0, MAX_TOPIC_CHARS);
   if (!history) return facts;
@@ -215,10 +250,8 @@ export interface ProactiveReason {
 const PLACEHOLDER_REASONS = new Set(['proactive check-in']);
 
 /** PROACTIVE_REASON_OPENER=on: a proactive call's opener says why Ferni called. */
-export function proactiveReasonOpenerEnabled(
-  env: Record<string, string | undefined> = process.env
-): boolean {
-  return env.PROACTIVE_REASON_OPENER === 'on';
+export function proactiveReasonOpenerEnabled(env: Env = process.env): boolean {
+  return flagOn('PROACTIVE_REASON_OPENER', env);
 }
 
 /** The reasons the opener may give, as director facts. Empty when the job gave none. */
@@ -289,20 +322,26 @@ export async function directedGreeting(
   }
   const scripted = generateWarmGreeting(personaId, ctx);
   // Not gated on history: the profile behind it can still be loading.
-  const [checkIn, pondered, welcome] = await Promise.all([
+  const [openCheckIn, openWin, pondered, welcome] = await Promise.all([
     checkInFor(userData?.userId),
+    winFor(userData?.userId),
     ponderFor(userData?.userId, history),
     loadWelcomeBack(userData?.userId, personaId, history),
   ]);
-  // One thing to ask about per call: what they said they'd do comes first.
-  const ask = checkIn ? undefined : pondered;
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
   const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
+  const { win, checkIn } = unknown ? {} : openingThread(openWin, openCheckIn);
+  // One thread per call: a win or what they said they'd do comes before a pondered ask.
+  const ask = win || checkIn ? undefined : pondered;
   // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
   const back =
-    welcome && !unknown ? planWelcomeBack(welcome, { checkIn, pondered: ask?.text }) : undefined;
+    welcome && !unknown
+      ? planWelcomeBack(welcome, { checkIn: checkIn ?? win?.text, pondered: ask?.text })
+      : undefined;
+  if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const direction =
     GREETING_DIRECTION +
+    (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
     (back?.direction ?? '') +
@@ -316,7 +355,8 @@ export async function directedGreeting(
         userData?.userName,
         history,
         checkIn,
-        unknown ? undefined : ask?.text
+        unknown ? undefined : ask?.text,
+        win?.text
       ),
       back
     ),

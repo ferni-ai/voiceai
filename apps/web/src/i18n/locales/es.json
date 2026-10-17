@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "Cambiando a {language}",
+    "seeYou": "¡Hasta la próxima!",
+    "callVoicemail": "Le dejé un mensaje de voz a {name}",
+    "callNoAnswer": "No pude localizar a {name}. ¿Lo intento más tarde?",
+    "callFailed": "La llamada a {name} no se pudo completar",
+    "callBack": "{name} quiere que le devuelvas la llamada",
+    "followUp": "{name} espera noticias tuyas"
+  },
   "accessibility": {
     "accountMenu": "Menú de cuenta",
     "accountSettings": "Ajustes de cuenta",
@@ -2114,6 +2123,7 @@
     "sonosConnected": "¡Sonos conectado!",
     "transcribing": "Transcribiendo...",
     "transcriptionUnavailable": "Esta vez no pude entender las palabras, así que no se guardó nada. ¿Lo intentamos de nuevo?",
+    "journalTooLong": "Esa es larga. Prueba con una más corta, de menos de {count} minutos.",
     "entrySaved": "¡Entrada guardada!",
     "couldNotSaveEntry": "No se pudo guardar la entrada. ¿Lo intentas otra vez?",
     "profileSaved": "¡Perfil guardado!",
@@ -3480,6 +3490,25 @@
     "fieldRelationship": "Relación",
     "fieldWhatShouldFerniCallThem": "¿Cómo debería llamarles Ferni?",
     "fieldNotesForFerni": "Notas para Ferni",
+    "callConsentLabel": "Le parece bien que Ferni le llame",
+    "callConsentHint": "Ha aceptado que Ferni le llame de vez en cuando para saludar. Puede pedirle que pare cuando quiera.",
+    "callConsentSaved": "Guardado",
+    "callConsentFailed": "No se pudo guardar. Inténtalo de nuevo.",
+    "callConsentLoadFailed": "No se pudo cargar si le parece bien que Ferni le llame. Vuelve a abrir para intentarlo.",
+    "checkinTitle": "¿Cuándo debería llamar Ferni?",
+    "checkinHint": "Ferni le hará una llamada corta a esta hora para saber cómo está.",
+    "checkinFrequencyLabel": "Con qué frecuencia",
+    "checkinDaily": "Todos los días",
+    "checkinWeekly": "Una vez a la semana",
+    "checkinDayLabel": "Qué día",
+    "checkinTimeLabel": "A qué hora",
+    "checkinTimezone": "Las horas están en {zone}.",
+    "checkinSave": "Guardar hora de llamada",
+    "checkinRemove": "Dejar las llamadas regulares",
+    "checkinSaved": "Guardado. Ferni llamará a esa hora.",
+    "checkinRemoved": "Las llamadas regulares están desactivadas.",
+    "checkinFailed": "No se pudo guardar. Inténtalo de nuevo.",
+    "checkinLoadFailed": "No se pudo cargar la hora de llamada. Vuelve a abrir para intentarlo.",
     "cancel": "Cancelar",
     "addToFamily": "Añadir a la familia",
     "relationshipMother": "Madre",
@@ -9549,11 +9578,15 @@
     "rememberEmpty": "Nada nuevo que guardar esta vez. Gracias por la compañía.",
     "nextStepTitle": "Un pequeño siguiente paso",
     "invitation": "Vuelve cuando quieras. Aquí estaré.",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "seeCost": "Lo que costó esta llamada",
+    "feedbackQuestion": "¿Qué tal te sentó?",
+    "feedbackThanks": "Gracias, eso me ayuda."
   },
   "moments": {
     "teamUnlockTitle": "Conoce a {name}",
     "niceWork": "Buen trabajo",
+    "remembered": "Lo recordaré: {summary}",
     "streakSubtitle": "Estás aquí. Eso es lo que importa.",
     "streakTitle": {
       "one": "racha de {count} día",
@@ -11153,10 +11186,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

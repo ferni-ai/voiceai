@@ -21,6 +21,7 @@ import type { JobContext, voice } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import type { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
+import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { wireDeferredHandlers } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
@@ -370,7 +371,9 @@ export class AgentOrchestrator {
     diag.entry(`🎭 Handoff starting: ${previousPersonaId} → ${request.targetPersonaId}`);
 
     // BRIEFED_HANDOFF: the teammate's brief and first line, written while the goodbye plays
-    const briefing = briefedHandoffs() ? briefingFor(currentAgent, request) : null;
+    const briefing = briefedHandoffs()
+      ? briefingFor(currentAgent, request, callerTimeZoneFor(this.sessionId))
+      : null;
     try {
       // STEP 1: Let old agent say goodbye naturally
       const step1Start = Date.now();

@@ -215,7 +215,8 @@ const score = {
   })(),
   // Turn shape and stance against human conversation (humanness.mjs). Targets:
   // HUMAN_TARGETS, or the research file when present.
-  humanness: computeHumanness(runs),
+  // nameUseRate: the caller's name (EVAL_CALLER_NAME, default Sam) in Ferni's turns.
+  humanness: computeHumanness(runs, { callerName: process.env.EVAL_CALLER_NAME ?? 'Sam' }),
   // Mid-turn backchannels against the caller's pauses (presence.mjs).
   presence: presenceOfRuns(runs),
   replyTexts: replies,

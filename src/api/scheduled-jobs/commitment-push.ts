@@ -15,6 +15,7 @@ import {
   type CommitmentStore,
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
+import { isProactiveChannelsUser } from '../../services/outreach/proactive-channels/proactive-tick.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -83,6 +84,8 @@ export async function sendCommitmentPushes(
   });
   let sent = 0;
   for (const { userId, commitment } of due) {
+    // Proactive check-ins (PROACTIVE_CHANNELS) ask these users themselves.
+    if (isProactiveChannelsUser(userId)) continue;
     try {
       if (!(await deps.send(userId, pushMessage(commitment), commitment.id))) continue;
       sent++;

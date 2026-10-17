@@ -1,6 +1,6 @@
 /**
  * Per-turn observers installed on a live call's AgentSession: pace matching,
- * per-turn tool retrieval and the director's notes. Each returns what the
+ * per-turn tool retrieval, the director's notes and the wrap-up reading. Each returns what the
  * session's transcript handler feeds it.
  *
  * @module agents/multi-agent/turn-observers
@@ -175,7 +175,12 @@ export async function installTurnUnderstanding(
     import('../model-provider/fast-lane.js'),
     import('../integrations/backchannel-context.js'),
   ]);
-  const understander = new TurnUnderstander(geminiUnderstand());
+  const understander = new TurnUnderstander(
+    geminiUnderstand(),
+    undefined,
+    undefined,
+    await promptOnCall(session)
+  );
   setTurnUnderstander(session, understander);
   const finals: string[] = [];
   const onState = (ev: unknown): void => {
@@ -289,10 +294,11 @@ export interface DirectorNotesInput {
 /**
  * The director: after each reply, the record of what Ferni has already told on
  * the call (unless TOLD_THIS_CALL=off) and, with DIRECTOR_NOTES=on, a model's
- * notes that nudge the next reply.
+ * notes that nudge the next reply. Installs the wrap-up reading beside it.
  */
 export async function installDirectorNotes(input: DirectorNotesInput): Promise<void> {
   const { session, sessionId, userName, agent, cleanupFunctions } = input;
+  await installWrapUp(input);
   // The deliberator reads the call at the same moment the director does.
   await installDeliberation(input);
   const { directorNotesEnabled, Director, setDirector, linesFromChat } =
@@ -327,19 +333,64 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
 }
 
 /**
+ * WRAP_UP=on: after each reply, read what the call has settled so far, for a
+ * goodbye that closes the loop (personas/wrap-up.ts). Off the reply path.
+ */
+export async function installWrapUp(input: {
+  session: Session;
+  agent: ChatAgent | (() => ChatAgent);
+  cleanupFunctions: Cleanup;
+}): Promise<void> {
+  const { session, agent, cleanupFunctions } = input;
+  const { wrapUpEnabled, WrapUp, setWrapUp } = await import('../personas/wrap-up.js');
+  if (!wrapUpEnabled()) return;
+  const { linesFromChat } = await import('../personas/director-notes.js');
+  const wrapUp = new WrapUp();
+  setWrapUp(session, wrapUp);
+  let spoke = false;
+  const onState = (ev: unknown): void => {
+    const state = (ev as { newState?: string }).newState;
+    if (state === 'speaking') spoke = true;
+    if (state !== 'listening' || !spoke) return;
+    spoke = false;
+    void wrapUp.observe(linesFromChat(now(agent).chatCtx.items as never));
+  };
+  session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+  cleanupFunctions.push(() => {
+    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+    setWrapUp(session, null);
+  });
+  log.info('wrap-up on');
+}
+
+/**
+ * With DIRECTOR_PERSONA_AWARE=on, the understanding prompt names the persona
+ * on the call now (a swap changes it); undefined when off.
+ */
+async function promptOnCall(session: Session): Promise<(() => string) | undefined> {
+  const { directorPersonaAware, SpeakerLog } = await import('../personas/director-persona.js');
+  if (!directorPersonaAware()) return undefined;
+  const { understandingPrompt } = await import('../personas/turn-understanding.js');
+  const { now } = new SpeakerLog(() => personaIdOf(session));
+  return () => understandingPrompt(now());
+}
+
+function personaIdOf(session: Session): string | undefined {
+  try {
+    return (session.userData as { personaId?: string } | undefined)?.personaId;
+  } catch {
+    return undefined; // a session started without userData: Ferni
+  }
+}
+
+/**
  * With DIRECTOR_PERSONA_AWARE=on, the log of which persona said each assistant
  * line, read from userData.personaId (a swap sets it); null when off.
  */
 async function speakerLog(session: Session, cleanupFunctions: Cleanup): Promise<SpeakerLog | null> {
   const { directorPersonaAware, SpeakerLog } = await import('../personas/director-persona.js');
   if (!directorPersonaAware()) return null;
-  const speakers = new SpeakerLog(() => {
-    try {
-      return (session.userData as { personaId?: string } | undefined)?.personaId;
-    } catch {
-      return undefined; // a session started without userData: Ferni
-    }
-  });
+  const speakers = new SpeakerLog(() => personaIdOf(session));
   session.on(voice.AgentSessionEventTypes.ConversationItemAdded, speakers.onItemAdded);
   cleanupFunctions.push(() => {
     session.off(voice.AgentSessionEventTypes.ConversationItemAdded, speakers.onItemAdded);

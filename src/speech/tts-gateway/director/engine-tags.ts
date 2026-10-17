@@ -63,3 +63,31 @@ export function composeSpeed(incoming: number, reply: number): number {
 export function composeVolume(incoming: number, reply: number): number {
   return Math.round(Math.min(2, Math.max(0.5, incoming * reply)) * 100) / 100;
 }
+
+/**
+ * Tags on a push after the opening. A speed there (continuation-tts's reset
+ * after a soft start, or per-sentence pace matching) is composed with the
+ * reply's speed, not replaced; with the emotion lever live, a later emotion
+ * is dropped so one emotion holds for the whole reply (review H1). `reply` is
+ * the pace this push is spoken at: the reply's, or a heavy reply's eased step
+ * (key-phrase.ts).
+ */
+export function laterTags(
+  original: string,
+  lead: SSMLProsodyConfig,
+  reply: { speed: number; volume: number },
+  live: { pacing: boolean; emotion: boolean }
+): string {
+  let tags = original;
+  if (live.pacing && lead.speed !== undefined) {
+    tags = tags.replace(SPEED_TAG, `<speed ratio="${composeSpeed(lead.speed, reply.speed)}"/>`);
+  }
+  if (reply.volume !== 1 && lead.volume !== undefined) {
+    tags = tags.replace(
+      VOLUME_TAG,
+      `<volume ratio="${composeVolume(lead.volume, reply.volume)}"/>`
+    );
+  }
+  if (live.emotion) tags = tags.replace(ANY_EMOTION_TAG, '');
+  return tags;
+}

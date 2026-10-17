@@ -45,6 +45,7 @@ export const COHORT_FLAGS = [
   'WORLD_MODEL_TEMPORAL',
   'POST_CALL_CHECKIN',
   'FOLLOW_THROUGH_TEXTS',
+  'OUTREACH_PONDERED_NOTES',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);

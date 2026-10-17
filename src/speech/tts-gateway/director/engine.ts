@@ -10,7 +10,9 @@
  */
 
 import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
-import { callerState, decideAttune, type Attunement } from './attune.js';
+import { callerState, decideAttune, layerDelivery, SPEED_EPSILON } from './attune.js';
+import type { Attunement, Delivery } from './attune.js';
+import { pacesOf, planKeyPhrase, type KeyPhrase, type KeyPhraseStep } from './key-phrase.js';
 import type { SSMLProsodyConfig } from '../types.js';
 import {
   decideEmotion,
@@ -33,6 +35,7 @@ import {
 } from './nonverbal.js';
 import { normalizeForSpeech } from './normalize.js';
 import { decideSpeed } from './pacing.js';
+import { personaTone, type PersonaDelivery } from './persona-delivery.js';
 import { respondToProsody, type ProsodyResponse } from './prosody-response.js';
 import type { CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { commaDensity, planPauses, removeMidSentenceEllipses } from './pauses.js';
@@ -42,10 +45,9 @@ import {
   ANY_EMOTION_TAG,
   composeSpeed,
   composeVolume,
+  laterTags,
   parseLead,
   PROSODY_TAG,
-  SPEED_TAG,
-  VOLUME_TAG,
   volumeOnly,
   wordCount,
 } from './engine-tags.js';
@@ -61,8 +63,6 @@ export const STAGE2_TEMPO_MAX = 1.15;
 /** A breath before a phrase this long, at most every other segment. */
 const BREATH_MIN_WORDS = 10;
 const BREATH_FULL_WORDS = 18;
-/** Below this distance from 1 a speed is not worth a tag. */
-const SPEED_EPSILON = 0.015;
 
 export interface EngineContext {
   modes: LeverModes;
@@ -91,6 +91,7 @@ export interface EngineContext {
    * answered with pace, loudness and tone (attune.ts). Absent: attunement off.
    */
   attune?: { userEmotion?: string };
+  persona?: PersonaDelivery; // TEAM_VOICES=on: resting voice and tones (persona-delivery.ts)
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
   /**
@@ -130,6 +131,9 @@ export class DirectorEngine {
   prosody: ProsodyResponse = { speedNudge: 0, reason: 'no-reading' };
   /** How this reply answers the caller's mood, when VOICE_ATTUNE is on. */
   attunement: Attunement | undefined;
+  delivery: Delivery | undefined; // pace and loudness, layered by attune.ts (layerDelivery)
+  directorEmotion: StableEmotion | undefined; // decided in Ferni's space, before the persona's tone
+  keyPhrase: KeyPhrase | undefined; // a heavy reply's ease back after its first sentence (key-phrase.ts)
 
   /** The caller's voice reading this reply answers, for the plan log. */
   get callerProsody(): CallerProsody | undefined {
@@ -203,6 +207,7 @@ export class DirectorEngine {
 
       const planned = this.planPhrases.accept(normalized.text, first);
       if (first) this.open(planned[0] ?? normalized.text, prosody.speed);
+      const step = this.keyPhrase?.take(normalized.text, prosody, first);
       this.readFirstSentence(normalized.text, first);
       this.planSegments(planned);
 
@@ -213,8 +218,11 @@ export class DirectorEngine {
       // never voiced with them (review LOW: tags one phrase early).
       const strip = this.ctx.stripProsody === true;
       if (strip) spokenBody = spokenBody.replace(PROSODY_TAG, '');
-      if (first) this.pendingTags += strip ? volumeOnly(tags) : this.openingTags(tags, prosody);
-      else spokenBody = `${strip ? volumeOnly(tags) : this.laterTags(tags, prosody)}${spokenBody}`;
+      const lead = first ? this.openingTags(tags, prosody) : this.laterTags(tags, prosody, step);
+      // A voice that ignores the rest still takes the reply's loudness (attune.ts layerDelivery).
+      const own = strip ? volumeOnly(this.replyVolume === 1 ? tags : lead) : lead;
+      if (first) this.pendingTags += own;
+      else spokenBody = `${own}${spokenBody}`;
       const spoken = this.spokenPhrases.accept(spokenBody, first);
       if (spoken.length === 0) this.stats.held++;
       return this.emit(spoken);
@@ -353,8 +361,14 @@ export class DirectorEngine {
       previous: this.ctx.carry.speed,
       nudge: (answerVoice ? this.prosody.speedNudge : 0) + (this.ctx.ferniNudge ?? 0),
     });
-    this.settlePace(pace.speed);
+    // Pace and loudness are attune's alone: the persona's rest, then the caller's answer.
+    const caller = this.attunement ?? { speed: pace.speed, volume: 1 };
+    this.delivery = layerDelivery({ persona: this.ctx.persona, caller }, this.live('pacing'));
+    ({ speed: this.speed, volume: this.replyVolume } = this.delivery);
+    this.directorEmotion = this.emotion.emotion;
+    this.emotion = personaTone(this.ctx.persona, this.emotion, this.replyValence);
     this.replySpeed = this.live('pacing') && pace.supported ? this.speed : 1;
+    this.planKeyPhrase(pace.supported);
     if (this.ctx.modes.nonverbal !== 'off') {
       this.opening = decideOpening({
         openingText,
@@ -375,13 +389,6 @@ export class DirectorEngine {
   /** A tone answering the caller: their mood when attuned, else their voice (prosody lever). */
   private toneCandidate(answerVoice: boolean): StableEmotion | undefined {
     return this.attunement?.emotion ?? (answerVoice ? this.prosody.emotion : undefined);
-  }
-
-  /** The reply's speed (attunement owns it when on: its own targets, smoothing, bounds) and loudness. */
-  private settlePace(directorSpeed: number): void {
-    const speed = this.attunement?.speed ?? directorSpeed;
-    this.speed = Math.abs(speed - 1) < SPEED_EPSILON ? 1 : speed;
-    this.replyVolume = this.live('pacing') ? (this.attunement?.volume ?? 1) : 1;
   }
 
   /** VOICE_ATTUNE: how this reply answers the caller's mood (attune.ts), else undefined. */
@@ -407,28 +414,24 @@ export class DirectorEngine {
     });
   }
 
-  /**
-   * Tags on a push after the opening. A speed there (continuation-tts's reset
-   * after a soft start, or per-sentence pace matching) is composed with the
-   * reply's speed, not replaced; with the emotion lever live, a later emotion
-   * is dropped so one emotion holds for the whole reply (review H1).
-   */
-  private laterTags(original: string, lead: SSMLProsodyConfig): string {
-    let tags = original;
-    if (this.live('pacing') && lead.speed !== undefined) {
-      tags = tags.replace(
-        SPEED_TAG,
-        `<speed ratio="${composeSpeed(lead.speed, this.replySpeed)}"/>`
-      );
-    }
-    if (this.replyVolume !== 1 && lead.volume !== undefined) {
-      tags = tags.replace(
-        VOLUME_TAG,
-        `<volume ratio="${composeVolume(lead.volume, this.replyVolume)}"/>`
-      );
-    }
-    if (this.live('emotion')) tags = tags.replace(ANY_EMOTION_TAG, '');
-    return tags;
+  /** Tags on a later push (engine-tags.ts laterTags), led by a heavy reply's easing step if any. */
+  private laterTags(original: string, lead: SSMLProsodyConfig, step?: KeyPhraseStep): string {
+    const pace = step ?? { speed: this.replySpeed, volume: this.replyVolume };
+    const live = { pacing: this.live('pacing'), emotion: this.live('emotion') };
+    return `${step?.tags ?? ''}${laterTags(original, lead, pace, live)}`;
+  }
+
+  /** A heavy reply keeps its slow, soft delivery for the key phrase only (key-phrase.ts). */
+  private planKeyPhrase(supported: boolean): void {
+    const caller = this.attunement?.ease;
+    if (!this.attunement || !caller || !this.delivery) return;
+    // The eased pace goes through the same resting layers as the reply's own.
+    const eased = layerDelivery({ persona: this.ctx.persona, caller }, this.live('pacing'));
+    const tagSpeed = this.live('pacing') && supported; // as replySpeed
+    this.keyPhrase = planKeyPhrase(
+      pacesOf(this.delivery, this.attunement.volume, tagSpeed),
+      pacesOf(eased, caller.volume, tagSpeed)
+    );
   }
 
   /** Ask the laughter rules once, on the reply's first phrase. */

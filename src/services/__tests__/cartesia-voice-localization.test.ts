@@ -17,6 +17,7 @@ global.fetch = mockFetch;
 
 // Mock the voice-ids module
 vi.mock('../../config/voice-ids.js', () => ({
+  CARTESIA_API_VERSION: '2026-08-14',
   VOICE_IDS: {
     FERNI: 'ferni-voice-id-123',
     PETER_JOHN: 'peter-voice-id-456',
@@ -84,6 +85,7 @@ describe('Cartesia Voice Localization Service', () => {
           method: 'POST',
           headers: expect.objectContaining({
             'X-API-Key': 'test-api-key-12345',
+            'Cartesia-Version': '2026-08-14',
           }),
         })
       );
@@ -92,8 +94,10 @@ describe('Cartesia Voice Localization Service', () => {
       const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
       expect(body.voice_id).toBe('ferni-voice-id-123');
-      expect(body.dialect).toBe('uk');
-      expect(body.language).toBe('en');
+      // Cartesia-Version 2026-08-14 takes one accent id; language and dialect were dropped.
+      expect(body.accent).toBe('british');
+      expect(body).not.toHaveProperty('dialect');
+      expect(body).not.toHaveProperty('language');
     });
 
     it('should cache localized voice and return from cache on second call', async () => {
@@ -131,14 +135,14 @@ describe('Cartesia Voice Localization Service', () => {
       expect(result.accent).toBe('american'); // Fallback to american
     });
 
-    it('should use correct dialect codes for each accent', async () => {
-      const accentsToDialects = [
-        { accent: 'british', dialect: 'uk' },
-        { accent: 'australian', dialect: 'au' },
-        { accent: 'indian', dialect: 'in' },
+    it('should send the Cartesia accent id for each accent', async () => {
+      const accentsToCartesia = [
+        { accent: 'british', cartesiaAccent: 'british' },
+        { accent: 'australian', cartesiaAccent: 'australian' },
+        { accent: 'indian', cartesiaAccent: 'indian-english' },
       ] as const;
 
-      for (const { accent, dialect } of accentsToDialects) {
+      for (const { accent, cartesiaAccent } of accentsToCartesia) {
         await clearLocalizationCache();
         mockFetch.mockResolvedValueOnce({
           ok: true,
@@ -155,7 +159,7 @@ describe('Cartesia Voice Localization Service', () => {
 
         const callArgs = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
         const body = JSON.parse(callArgs[1].body);
-        expect(body.dialect).toBe(dialect);
+        expect(body.accent).toBe(cartesiaAccent);
       }
     });
   });

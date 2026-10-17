@@ -96,6 +96,31 @@ export async function staticCoreTools(
   return core;
 }
 
+/**
+ * The static core for a call's session, with findTools added: without it the
+ * agent has no way to reach a tool outside the core. The tool-choice eval uses
+ * it to mirror the multi-agent path (agent-setup.ts), where findTools can pin a
+ * tool. The single-agent fallback (session-creator.ts) has no tool pinner, so it
+ * keeps the gateway set and does not use this.
+ */
+export async function staticCoreCallTools(
+  tools: Record<string, unknown>,
+  userId: string | null | undefined,
+  sessionId: string | null | undefined,
+  persona: { id: string; name?: string },
+  build: BuildToolsByName = buildToolsByName
+): Promise<Record<string, unknown>> {
+  const { createFindToolsTool, FIND_TOOLS } =
+    await import('../../tools/retrieval/find-tools-tool.js');
+  const ctx = {
+    userId: userId || 'anonymous',
+    sessionId: sessionId ?? undefined,
+    agentId: persona.id,
+    agentDisplayName: persona.name || persona.id,
+  };
+  return staticCoreTools({ ...tools, [FIND_TOOLS]: createFindToolsTool() }, ctx, build);
+}
+
 interface ToolHolder {
   readonly toolCtx: { readonly functionTools: Record<string, { description?: string }> };
 }
