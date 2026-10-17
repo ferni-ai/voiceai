@@ -27,6 +27,7 @@ import {
   withTeammateAsk,
 } from '../../tools/handoff/locked-teammates.js';
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
+import { teammateIdentityNote } from './teammate-identity.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
@@ -128,7 +129,8 @@ export function withTurnReminder(
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
-    // WORLD_NOW=on: the caller's time this reply, not the call's start (world-now.ts).
+    // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
+    teammateIdentityNote(view.currentAgentId),
     worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
