@@ -592,7 +592,7 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'getLocalEconomics',
       'Get Local Economics',
-      'Get local economic indicators for your area. See how YOUR local economy is doing.',
+      'Talk about the local economy. Live local data is not connected, so this points to public sources instead of quoting figures.',
       superhumanTools.getLocalEconomics,
       { tags: ['superhuman', 'external-data', 'economics', 'local'] }
     ),
@@ -606,21 +606,21 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'analyzeNewsSentiment',
       'Analyze News Sentiment',
-      'Analyze news sentiment for any topic. Cut through noise to see the real narrative.',
+      'Talk about news coverage of a topic. Live news is not connected, so this does not score current coverage.',
       superhumanTools.analyzeNewsSentiment,
       { tags: ['superhuman', 'external-data', 'news', 'sentiment'] }
     ),
     wrapLegacyTool(
       'recordSpending',
       'Record Spending',
-      'Record spending for personal inflation calculation.',
+      "Record a spending entry for the user's own spending summary.",
       superhumanTools.recordSpending,
       { tags: ['superhuman', 'external-data', 'spending', 'inflation'] }
     ),
     wrapLegacyTool(
       'calculatePersonalInflation',
       'Calculate Personal Inflation',
-      'Calculate YOUR personal inflation rate. See how inflation actually affects YOU.',
+      "Summarize the user's recorded spending by category. Live inflation data is not connected, so this gives no personal inflation rate.",
       superhumanTools.calculatePersonalInflation,
       { tags: ['superhuman', 'external-data', 'inflation', 'personal'] }
     ),

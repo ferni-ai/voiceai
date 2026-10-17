@@ -905,7 +905,7 @@
       }
     },
     "getLocalEconomics": {
-      "description": "Get local economic indicators for your area.",
+      "description": "Talk about the local economy. Live local data is not connected, so this points to public sources instead of quoting figures.",
       "parameters": {
         "location": "Your location (city or zip)"
       }
@@ -917,13 +917,13 @@
       }
     },
     "analyzeNewsSentiment": {
-      "description": "Analyze sentiment in news about a topic or company.",
+      "description": "Talk about news coverage of a topic. Live news is not connected, so this does not score current coverage.",
       "parameters": {
         "topic": "Topic or company to analyze"
       }
     },
     "recordSpending": {
-      "description": "Record spending to calculate YOUR personal inflation rate.",
+      "description": "Record a spending entry for the user's own spending summary.",
       "parameters": {
         "category": "Category: 'housing', 'food', 'transportation', 'healthcare', 'utilities', etc.",
         "amount": "Amount spent",
@@ -931,7 +931,7 @@
       }
     },
     "calculatePersonalInflation": {
-      "description": "Calculate YOUR personal inflation rate vs official CPI. See how YOUR costs compare."
+      "description": "Summarize the user's recorded spending by category. Live inflation data is not connected, so this gives no personal inflation rate."
     },
     "trackRelationship": {
       "description": "Track a relationship for network analysis.",
