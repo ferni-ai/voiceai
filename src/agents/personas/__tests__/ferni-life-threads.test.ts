@@ -50,6 +50,19 @@ describe('threadDetailFor', () => {
     expect(heard.size).toBe(LIFE_THREADS.length);
   });
 
+  it('keeps a caller on their thread when another thread starts later', () => {
+    const later: LifeThread = { ...THREAD, id: 'later', startsOn: '2026-11-02', beats: ['x', 'y'] };
+    const pair = [THREAD, later];
+    const callers = Array.from({ length: 20 }, (_, i) => `caller-${i}`);
+    const before = callers.map((c) => threadDetailFor(c, at('2026-10-27'), pair));
+    const after = callers.map((c) => threadDetailFor(c, at('2026-11-03'), pair));
+    callers.forEach((_, i) => {
+      if (before[i] === 'two') expect(after[i]).toBe('three');
+      else expect(before[i]).toBeUndefined();
+    });
+    expect(before).toContain('two');
+  });
+
   it('is undefined when no thread is running', () => {
     expect(threadDetailFor('caller-1', at('2026-10-01'))).toBeUndefined();
     expect(threadDetailFor('caller-1', at('2027-06-01'))).toBeUndefined();
