@@ -34,18 +34,28 @@ function parsePart(line: string): Part | null {
   }
 }
 
-/** The most recent complete settings in the log text, or null when no complete set was logged. */
+/**
+ * The most recent complete settings in the log text, or null when no complete set was logged.
+ * A set is one boot's parts: the same hash and part count, each part number once. A part
+ * number that is already in the set starts a new set (a restart with identical printed
+ * settings logs the same hash again), so parts from two boots never mix.
+ */
 export function latestSettings(logText: string): Settings | null {
-  const sets = new Map<string, { parts: number; got: Map<number, Part> }>();
+  const sets = new Map<string, Map<number, Part>>();
   let latest: Settings | null = null;
   for (const line of logText.split('\n')) {
     const part = parsePart(line);
-    if (!part || typeof part.hash !== 'string') continue;
-    const set = sets.get(part.hash) ?? { parts: part.parts, got: new Map<number, Part>() };
-    set.got.set(part.part, part);
-    sets.set(part.hash, set);
-    if (set.got.size !== set.parts) continue;
-    const ordered = [...set.got.values()].sort((a, b) => a.part - b.part);
+    if (!part || typeof part.hash !== 'string' || !Number.isInteger(part.part)) continue;
+    if (!Number.isInteger(part.parts) || part.part < 1 || part.part > part.parts) continue;
+    const key = `${part.hash}:${part.parts}`;
+    let got = sets.get(key);
+    if (!got || got.has(part.part)) {
+      got = new Map<number, Part>();
+      sets.set(key, got);
+    }
+    got.set(part.part, part);
+    if (got.size !== part.parts) continue;
+    const ordered = [...got.values()].sort((a, b) => a.part - b.part);
     latest = {
       commit: ordered[0].commit,
       hash: part.hash,

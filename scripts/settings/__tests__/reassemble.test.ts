@@ -32,6 +32,30 @@ describe('latestSettings', () => {
     expect(latestSettings(log)).toBeNull();
   });
 
+  it('does not mix parts from two boots that logged the same hash', () => {
+    // Boot A logged both parts; boot B logged part 1, then was cut off before part 2.
+    const log = [
+      part(1, 2, 'same', { commit: 'A', flags: { ATTUNE: 'on' } }),
+      part(2, 2, 'same', { env: { K: '<set>' } }),
+      part(1, 2, 'same', { commit: 'B', flags: { ATTUNE: 'on' } }),
+    ].join('\n');
+    expect(latestSettings(log)?.commit).toBe('A');
+  });
+
+  it('does not accept a set whose part numbers run past its part count', () => {
+    const log = [part(1, 2, 'h1', { flags: {} }), part(3, 2, 'h1', { env: {} })].join('\n');
+    expect(latestSettings(log)).toBeNull();
+  });
+
+  it('keeps a set apart when the part count differs', () => {
+    const log = [
+      part(1, 2, 'h1', { flags: { ATTUNE: 'on' } }),
+      part(1, 3, 'h1', { flags: { ATTUNE: 'on' } }),
+      part(2, 3, 'h1', { env: {} }),
+    ].join('\n');
+    expect(latestSettings(log)).toBeNull();
+  });
+
   it('takes the most recent complete set when a worker restarted', () => {
     const log = [
       part(1, 1, 'old', { flags: { ATTUNE: 'off' } }),

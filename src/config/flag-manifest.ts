@@ -91,9 +91,9 @@ export const FLAG_MANIFEST = {
   CASCADE_CACHE_WARM: { default: 'off', owner: 'voice', kind: 'experiment' },
   CASCADE_FAST_LANE: { default: 'off', owner: 'voice', kind: 'kill-switch' },
   CASCADE_TRIM_LEAD_SILENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // set by CI runners, not by us
   // vad restores the silence timer; anything else is the STT end-of-turn (cartesia-cascade.ts)
   CASCADE_TURN_DETECTION: { default: 'stt', owner: 'voice', kind: 'config' },
+  // set by CI runners, not by us
   CI: { default: 'off', owner: 'tools', kind: 'config' },
   CLIP_TRACK_PACED: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: the after-call extraction keeps the caller's own commitments (needs AFTER_CALL_EXTRACTION)
@@ -298,6 +298,8 @@ export const FLAG_MANIFEST = {
   PAUSE_HOLD: { default: 'off', owner: 'voice', kind: 'experiment' },
   PAYWALL: { default: 'off', owner: 'billing', kind: 'kill-switch' },
   PERSONA_BEATS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // character-spark.md after the character sheet, one "!" on bright turns (agents/personas/prompt-loader.ts, turn-shape.ts)
+  PERSONA_SPARK: { default: 'off', owner: 'voice', kind: 'experiment' },
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PERSONA_MOOD_NOT_CALLERS: { default: 'on', owner: 'memory', kind: 'kill-switch' },
   PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -384,11 +386,11 @@ export const FLAG_MANIFEST = {
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
   SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // streaks count days from the summaries subcollection (up to 400 reads per profile load)
   // off, shadow or live; the default is off under tests (speech/tts-gateway/director/gate.ts)
   SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
   // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
   SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // streaks count days from the summaries subcollection (up to 400 reads per profile load)
   STREAK_FROM_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   STT_REFRESH_AFTER_GREETING: { default: 'off', owner: 'voice', kind: 'experiment' },

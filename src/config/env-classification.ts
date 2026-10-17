@@ -18,7 +18,7 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   AGENT_NAME: 'config',
   ALEX_CHEN_VOICE_ID: 'config',
   ALPHA_VANTAGE_API_KEY: 'secret',
-  ALPHA_VANTAGE_KEY: 'secret',
+  ALPHA_VANTAGE_KEY: 'unread',
   ARRIVAL_GROUNDED: 'unread',
   CARTESIA_API_KEY: 'secret',
   CARTESIA_MODEL: 'config',
