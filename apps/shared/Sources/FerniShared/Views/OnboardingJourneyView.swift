@@ -164,7 +164,7 @@ public struct OnboardingJourneyView: View {
                     .font(.system(size: 32, weight: .light, design: .rounded))
                     .foregroundColor(.white)
 
-                Text("I'm Ferni, your AI companion.\nI'm here to help you think, plan, and grow.")
+                Text("I'm Ferni.\nI'm here to help you think, plan, and grow.")
                     .font(.system(size: 16, weight: .regular, design: .rounded))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
