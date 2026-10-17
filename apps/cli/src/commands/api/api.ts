@@ -4,13 +4,13 @@
  * Call and validate Ferni API endpoints.
  *
  * Usage:
- *   ferni api list                           # List all API endpoints
- *   ferni api list --category <category>     # List endpoints in category
- *   ferni api call <method> <path>           # Call an API endpoint
- *   ferni api call GET /api/health           # Example GET call
- *   ferni api call POST /api/contacts --body '{}' # Example POST call
- *   ferni api validate <path>                # Validate an endpoint
- *   ferni api validate --all                 # Validate all endpoints
+ *   ferni routes list                           # List all API endpoints
+ *   ferni routes list --category <category>     # List endpoints in category
+ *   ferni routes call <method> <path>           # Call an API endpoint
+ *   ferni routes call GET /api/health           # Example GET call
+ *   ferni routes call POST /api/contacts --body '{}' # Example POST call
+ *   ferni routes validate <path>                # Validate an endpoint
+ *   ferni routes validate --all                 # Validate all endpoints
  */
 
 import { join } from 'path';
@@ -240,7 +240,7 @@ async function listEndpoints(categoryFilter?: string): Promise<void> {
     }
 
     console.log(`\n${colors.bold}Total: ${allEndpoints.length} endpoints${colors.reset}`);
-    console.log(`\n  Use ${colors.cyan}ferni api list --category <category>${colors.reset} to see endpoints`);
+    console.log(`\n  Use ${colors.cyan}ferni routes list --category <category>${colors.reset} to see endpoints`);
   }
 }
 
@@ -335,11 +335,11 @@ async function handleCall(args: string[]): Promise<void> {
 
   if (!method || !path) {
     log.error('Missing method or path');
-    console.log(`\n  Usage: ${colors.cyan}ferni api call <METHOD> <PATH> [options]${colors.reset}`);
+    console.log(`\n  Usage: ${colors.cyan}ferni routes call <METHOD> <PATH> [options]${colors.reset}`);
     console.log(`\n  Examples:`);
-    console.log(`    ferni api call GET /api/health`);
-    console.log(`    ferni api call POST /api/contacts --body '{"name": "Test"}'`);
-    console.log(`    ferni api call GET /api/contacts --userId test-user`);
+    console.log(`    ferni routes call GET /api/health`);
+    console.log(`    ferni routes call POST /api/contacts --body '{"name": "Test"}'`);
+    console.log(`    ferni routes call GET /api/contacts --userId test-user`);
     process.exit(1);
   }
 
@@ -474,9 +474,9 @@ async function handleValidate(args: string[]): Promise<void> {
   if (!pathFilter && !categoryFilter && !validateAll) {
     log.error('Specify a path, --category, or --all');
     console.log(`\n  Usage:`);
-    console.log(`    ${colors.cyan}ferni api validate /api/contacts${colors.reset}     # Single endpoint`);
-    console.log(`    ${colors.cyan}ferni api validate --category contacts${colors.reset} # All in category`);
-    console.log(`    ${colors.cyan}ferni api validate --all${colors.reset}               # All endpoints`);
+    console.log(`    ${colors.cyan}ferni routes validate /api/contacts${colors.reset}     # Single endpoint`);
+    console.log(`    ${colors.cyan}ferni routes validate --category contacts${colors.reset} # All in category`);
+    console.log(`    ${colors.cyan}ferni routes validate --all${colors.reset}               # All endpoints`);
     process.exit(1);
   }
 
@@ -575,10 +575,10 @@ export async function handleApi(args: string[]): Promise<void> {
       console.log(`    ${colors.cyan}call${colors.reset}      Call an API endpoint`);
       console.log(`    ${colors.cyan}validate${colors.reset}  Validate endpoints`);
       console.log(`\n  Examples:`);
-      console.log(`    ferni api list --category contacts`);
-      console.log(`    ferni api call GET /api/health`);
-      console.log(`    ferni api call POST /api/contacts --body '{"name": "Test"}'`);
-      console.log(`    ferni api validate --all`);
+      console.log(`    ferni routes list --category contacts`);
+      console.log(`    ferni routes call GET /api/health`);
+      console.log(`    ferni routes call POST /api/contacts --body '{"name": "Test"}'`);
+      console.log(`    ferni routes validate --all`);
       process.exit(1);
   }
 }
