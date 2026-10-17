@@ -191,7 +191,7 @@ function preStt(x: Int16Array, phone: boolean, stages: Record<string, boolean>):
 async function transcribe(pcm: Int16Array, rate = 16000): Promise<string> {
   const url = `wss://api.cartesia.ai/stt/turns/websocket?model=ink-2&sample_rate=${rate}&encoding=pcm_s16le`;
   const ws = new WebSocket(url, {
-    headers: { 'X-API-Key': apiKey!, 'Cartesia-Version': '2026-03-01' },
+    headers: { 'X-API-Key': apiKey!, 'Cartesia-Version': '2026-08-14' },
   });
   const finals: string[] = [];
   let current = '';

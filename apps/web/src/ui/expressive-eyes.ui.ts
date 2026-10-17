@@ -230,7 +230,6 @@ export function setVoiceState(voiceState: VoiceState): void {
   if (voiceState !== 'idle') {
     state.coachElement.classList.add(`is-${voiceState}`);
   }
-  state.coachElement.classList.add('is-connected'); // Always show connected when active
 
   log.debug({ voiceState }, 'Set voice state');
 }

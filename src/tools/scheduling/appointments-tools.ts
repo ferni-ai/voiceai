@@ -11,6 +11,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { z } from 'zod';
 import { validatePhone, sanitizePhoneForLog } from '../validation.js';
 import { parseNaturalTime, createReminder } from '../../services/scheduling/reminder-scheduler.js';
+import { runContextTimeZone } from '../../utils/caller-time-zone.js';
+import { formatStoredLocalTime } from '../../utils/time-zone.js';
 import {
   searchRestaurants,
   bookReservation,
@@ -67,7 +69,7 @@ export function createAppointmentTools() {
         },
         { ctx }
       ) => {
-        const requestedTime = parseNaturalTime(dateTime);
+        const requestedTime = parseNaturalTime(dateTime, runContextTimeZone(ctx));
         if (!requestedTime) {
           return `When would you like the reservation? Give me a date and time like "tomorrow at 7pm" or "Saturday at 6:30".`;
         }
@@ -258,7 +260,7 @@ export function createAppointmentTools() {
         },
         { ctx }
       ) => {
-        const requestedTime = parseNaturalTime(dateTime);
+        const requestedTime = parseNaturalTime(dateTime, runContextTimeZone(ctx));
         if (!requestedTime) {
           return `When would you like the appointment? Something like "next Tuesday at 2pm" or "tomorrow morning"?`;
         }
@@ -498,7 +500,7 @@ export function createAppointmentTools() {
         },
         { ctx }
       ) => {
-        const requestedTime = parseNaturalTime(preferredDate);
+        const requestedTime = parseNaturalTime(preferredDate, runContextTimeZone(ctx));
         if (!requestedTime) {
           return `When should I schedule the ${appointmentType} for ${eventName}? Give me a date like "next Saturday" or "December 15th".`;
         }
@@ -588,7 +590,7 @@ export function createAppointmentTools() {
         // Parse confirmed time if provided
         let confirmedDateTime: Date | undefined;
         if (confirmedTime) {
-          const parsed = parseNaturalTime(confirmedTime);
+          const parsed = parseNaturalTime(confirmedTime, runContextTimeZone(ctx));
           if (parsed) {
             confirmedDateTime = parsed;
           }
@@ -721,7 +723,7 @@ export function createAppointmentTools() {
         { appointmentDescription, appointmentDateTime, reminderTime, deliveryMethod, contact },
         { ctx }
       ) => {
-        const aptTime = parseNaturalTime(appointmentDateTime);
+        const aptTime = parseNaturalTime(appointmentDateTime, runContextTimeZone(ctx));
         if (!aptTime) {
           return `When is the appointment? I need to know so I can set the reminder.`;
         }
@@ -768,15 +770,9 @@ export function createAppointmentTools() {
             createdBy: 'alex',
           });
 
-          const aptDateStr = aptTime.toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
-
-          return `Got it! I'll remind you about "${appointmentDescription}" via ${deliveryMethod} before your appointment on ${aptDateStr}. You're all set!`;
+          // Read back both times in the user's zone: when the reminder goes out, and the appointment.
+          const at = (d: Date): string => formatStoredLocalTime(d, runContextTimeZone(ctx));
+          return `Saved: I'll remind you about "${appointmentDescription}" by ${deliveryMethod} ${at(reminderDate)}, before your appointment ${at(aptTime)}.`;
         } catch (error) {
           getLogger().error({ error }, 'Failed to set appointment reminder');
           return `I had trouble setting that reminder. Let me try again.`;

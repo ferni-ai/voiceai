@@ -10,6 +10,7 @@
  */
 
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import type { TextSource } from './outreach-text.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
 export const LOG_COLLECTION = 'proactive_outreach_log';
@@ -34,6 +35,14 @@ export interface OutreachLogEntry {
   outcomeAt?: string;
   /** The channel the policy chose when delivery fell back from it (a text that failed). */
   fallbackFrom?: ProactiveChannel;
+  /** What was sent, and who wrote it (outreach-text.ts). */
+  text?: string;
+  textSource?: TextSource;
+}
+
+/** The newest text in the log, so the same words don't go out twice in a row. */
+export function lastTextOf(entries: OutreachLogEntry[]): string | undefined {
+  return [...entries].filter((e) => e.text).sort((a, b) => b.at.localeCompare(a.at))[0]?.text;
 }
 
 function logOf(userId: string): FirebaseFirestore.CollectionReference {

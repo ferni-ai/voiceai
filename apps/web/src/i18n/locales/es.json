@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "Cambiando a {language}",
+    "seeYou": "¡Hasta la próxima!",
+    "callVoicemail": "Le dejé un mensaje de voz a {name}",
+    "callNoAnswer": "No pude localizar a {name}. ¿Lo intento más tarde?",
+    "callFailed": "La llamada a {name} no se pudo completar",
+    "callBack": "{name} quiere que le devuelvas la llamada",
+    "followUp": "{name} espera noticias tuyas"
+  },
   "accessibility": {
     "accountMenu": "Menú de cuenta",
     "accountSettings": "Ajustes de cuenta",
@@ -10,7 +19,6 @@
     "closeDashboard": "Cerrar panel",
     "closeDetails": "Cerrar detalles",
     "closeHistory": "Cerrar historial",
-    "closeHuddle": "Cerrar reunión",
     "closeMenu": "Cerrar menú",
     "closePublisher": "Cerrar portal de publicación",
     "closeSettings": "Cerrar ajustes",
@@ -545,7 +553,6 @@
     "target": "Objetivo",
     "tasks": "Tareas",
     "teachings": "Enseñanzas",
-    "teamHuddle": "Reunión de equipo",
     "teamMembersUnlocked": "Miembros del equipo desbloqueados",
     "teamUnlock": "Desbloqueo de equipo",
     "testCall": "Llamada de prueba",
@@ -1159,7 +1166,7 @@
       "upgrade": "Únete al camino"
     },
     "expiresLabel": "Activa hasta el",
-    "freeNote": "Como miembro fundador, tienes tiempo ilimitado con todo el equipo, y nos ayudas a que Ferni siga siendo gratis para todo el mundo",
+    "freeNote": "Ferni es gratis. Si quieres ayudar a que siga, puedes aportar por Venmo.",
     "label": "CRECIENDO EN CONJUNTO",
     "renewsLabel": "Se renueva el",
     "restore": {
@@ -1224,7 +1231,6 @@
       "supportFerni": "Apoya a Ferni",
       "supportFerniExpanded": "Apoya a Ferni",
       "takeTour": "Dame un recorrido",
-      "teamHuddles": "Ponerse al día con el equipo",
       "teamInsights": "Lo que nota el equipo",
       "toggleTheme": "Claro / Oscuro",
       "trustDetails": "Cómo hemos crecido",
@@ -1266,8 +1272,7 @@
       "growthJournal": "Diario de crecimiento",
       "knowledgeQuiz": "¿Qué tan bien me conoces?",
       "soundEffects": "Efectos de sonido",
-      "sleepSchedule": "Horario de sueño",
-      "teamObservations": "Observaciones del equipo"
+      "sleepSchedule": "Horario de sueño"
     },
     "keepChatting": "Mientras más hablemos, más nos acercaremos",
     "maxLevel": "Compañeros de vida",
@@ -1322,7 +1327,7 @@
         "calendar": "Calendario",
         "history": "Charlas anteriores",
         "people": "Tu gente",
-        "insights": "Cómo te va"
+        "insights": "Lo que he aprendido"
       }
     },
     "ariaLabel": "Menú de configuración",
@@ -1422,8 +1427,6 @@
     "dailyChallenge": {
       "title": "Desafío de hoy",
       "xpReward": "+{xp} XP",
-      "completion": "{percent}% completado",
-      "playing": "{count} participando",
       "start": "Empezar desafío",
       "dayStreak": {
         "one": "¡Racha de {count} día!",
@@ -1771,10 +1774,10 @@
       "plant": "Planta semillas en las funciones que quieras que construyamos",
       "suggest": "Sugiere nuevas ideas por 5 semillas",
       "title": "Cómo funcionan las semillas",
-      "conversation": "Ten una conversación: +1 semilla",
+      "conversation": "Primera conversación del día: +5 semillas",
       "note": "¡Las semillas nos ayudan a priorizar qué construir después!",
-      "streak30": "Racha de 30 días: +15 semillas",
-      "streak7": "Racha de 7 días: +5 semillas",
+      "streak30": "Racha de 30 días: +100 semillas",
+      "streak7": "Racha de 7 días: +25 semillas",
       "vote": "Vota por funciones: de 1 a 10 semillas"
     },
     "intro": "Cada gran relación tiene sus estaciones. Estas son las semillas que estamos sembrando en conjunto.",
@@ -2119,8 +2122,8 @@
     "couldNotDisconnect": "No se pudo desconectar. ¿Lo intentas de nuevo?",
     "sonosConnected": "¡Sonos conectado!",
     "transcribing": "Transcribiendo...",
-    "transcriptionUnavailable": "Transcripción no disponible. Guardando solo el audio.",
-    "audioSaved": "¡Audio guardado!",
+    "transcriptionUnavailable": "Esta vez no pude entender las palabras, así que no se guardó nada. ¿Lo intentamos de nuevo?",
+    "journalTooLong": "Esa es larga. Prueba con una más corta, de menos de {count} minutos.",
     "entrySaved": "¡Entrada guardada!",
     "couldNotSaveEntry": "No se pudo guardar la entrada. ¿Lo intentas otra vez?",
     "profileSaved": "¡Perfil guardado!",
@@ -2239,7 +2242,6 @@
       "many": "¡Se importaron {count} contactos!"
     },
     "integrationNowConnected": "¡Se conectó {integration}!",
-    "inviteSentTo": "¡Invitación enviada a {email}!",
     "householdMemberRemoved": "Se eliminó a {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "Se añadió a {name} a tu equipo",
@@ -3488,6 +3490,11 @@
     "fieldRelationship": "Relación",
     "fieldWhatShouldFerniCallThem": "¿Cómo debería llamarles Ferni?",
     "fieldNotesForFerni": "Notas para Ferni",
+    "callConsentLabel": "Le parece bien que Ferni le llame",
+    "callConsentHint": "Ha aceptado que Ferni le llame de vez en cuando para saludar. Puede pedirle que pare cuando quiera.",
+    "callConsentSaved": "Guardado",
+    "callConsentFailed": "No se pudo guardar. Inténtalo de nuevo.",
+    "callConsentLoadFailed": "No se pudo cargar si le parece bien que Ferni le llame. Vuelve a abrir para intentarlo.",
     "cancel": "Cancelar",
     "addToFamily": "Añadir a la familia",
     "relationshipMother": "Madre",
@@ -3750,8 +3757,7 @@
       "disabled": "Sin eventos en el calendario",
       "loadingSuggestions": "Buscando los mejores momentos...",
       "noSuggestions": "No se encontraron sugerencias",
-      "suggestion": "Tu calendario muestra que esta hora suele estar libre",
-      "suggestedTime": "Hora sugerida"
+      "suggestion": "Tu calendario muestra que esta hora suele estar libre"
     },
     "validation": {
       "nameRequired": "Cada práctica necesita un nombre"
@@ -3794,7 +3800,6 @@
         "name": "Registro matutino",
         "humanName": "Momento de la mañana",
         "description": "Empieza el día con intención",
-        "scienceNote": "Las intenciones matutinas mejoran la concentración en un 31% (Harvard Business Review)",
         "cue": "En cuanto pongas un pie en el suelo",
         "routine": "Haz una pausa, respira, define una intención",
         "reward": "Sensación de claridad y control",
@@ -3808,7 +3813,6 @@
         "name": "Momento de gratitud",
         "humanName": "Pausa de gratitud",
         "description": "Nombra tres cosas que agradezcas",
-        "scienceNote": "Las prácticas de gratitud aumentan la felicidad en un 25% (UC Berkeley)",
         "cue": "Al poner a cargar tu teléfono por la noche",
         "routine": "Nombra tres cosas, grandes o pequeñas, que hayan sido buenas hoy",
         "reward": "Una cálida sensación de aprecio",
@@ -3822,7 +3826,6 @@
         "name": "Revisión semanal",
         "humanName": "Reflexión semanal",
         "description": "Reflexiona sobre tus logros y aprendizajes",
-        "scienceNote": "La reflexión semanal mejora el logro de objetivos en un 42% (Dominican University)",
         "cue": "El domingo por la mañana con un café o té",
         "routine": "Revisa tus logros, anota tus aprendizajes y define tus intenciones para la semana",
         "reward": "Sensación de progreso y dirección",
@@ -3835,7 +3838,6 @@
       "custom": {
         "name": "Personalizado",
         "humanName": "Empezar de cero",
-        "scienceNote": "Las prácticas personalizadas adaptadas a tu vida tienen 3 veces más probabilidades de mantenerse",
         "cue": "Tú eliges el detonante",
         "routine": "Tú diseñas la práctica",
         "reward": "Tú defines cómo se siente el éxito",
@@ -3891,10 +3893,12 @@
       "create": "Crear agente",
       "empty": "Aún no hay agentes",
       "emptyHint": "Crea tu primer agente personalizado para preservar la voz de un ser querido, diseñar un mentor o crear tu propio compañero.",
+      "emptyHintWithoutVoice": "Crea tu primer agente personalizado para preservar las historias de un ser querido, diseñar un mentor o crear tu propio compañero.",
       "createFirst": "Crea tu primer agente",
       "whatYouCan": "Qué puedes crear",
       "legacy": "Legado",
       "legacyDesc": "Preserva la voz y la sabiduría de alguien a quien aprecias",
+      "legacyDescWithoutVoice": "Preserva las historias y la sabiduría de alguien a quien aprecias",
       "mentor": "Mentor",
       "mentorDesc": "Crea un coach basado en una figura inspiradora",
       "twin": "Gemelo digital",
@@ -3931,6 +3935,8 @@
     "loadingCoaches": "Buscando coaches...",
     "noMatches": "Sin resultados aún",
     "noMatchesHint": "Prueba con otra búsqueda o explora todos los coaches.",
+    "nobodyYet": "Todavía no hay nadie nuevo que conocer.",
+    "nobodyYetHint": "Cuando alguien nuevo pueda unirse a tus llamadas, lo conocerás aquí. Por ahora, habla con tu equipo.",
     "becomeCreator": "Conviértete en creador",
     "poweredBy": "Con la tecnología de Ferni",
     "teamLocked": {
@@ -4574,7 +4580,7 @@
     "successDeployed": "¡Página publicada!",
     "title": "Crear página del agente",
     "nameLabel": "Nombre del agente",
-    "namePlaceholder": "ej. Joel Dickson",
+    "namePlaceholder": "ej. Nate Holloway",
     "nameHint": "El nombre completo de tu agente de IA",
     "initialsLabel": "Iniciales",
     "initialsPlaceholder": "ej. JD",
@@ -4652,7 +4658,8 @@
     "sourceInferred": "Me di cuenta",
     "correctButton": "Corregir",
     "memoriesCount": "{count} recuerdos",
-    "confidence": "{confidence}% de seguridad"
+    "confidence": "{confidence}% de seguridad",
+    "earlier": "antes"
   },
   "memoryCorrection": {
     "modalTitle": "Corregir este recuerdo",
@@ -5103,7 +5110,8 @@
     },
     "voiceStep": {
       "title": "¿Cómo debería sonar?",
-      "subtitle": "Elige una voz o clona una"
+      "subtitle": "Elige una voz o clona una",
+      "subtitleWithoutClone": "Elige una voz"
     },
     "voiceOption": {
       "cloneTitle": "Clonar una voz",
@@ -5358,11 +5366,8 @@
     "upcomingIntro": "Estoy pendiente de ti. Aquí tienes cuándo haré un registro.",
     "learningTitle": "Estoy aprendiendo cuándo me necesitas",
     "learningDesc": "Mientras más hablemos, mejor entenderé tus ritmos, patrones y necesidades.",
-    "whatThisWillLook": "Cómo se verá esto",
-    "noticedConcern": "Preocupación detectada",
-    "streakSupport": "Apoyo para tu racha",
-    "nextMonday": "El próximo lunes",
-    "calendarAware": "Sincronía con tu calendario",
+    "upcomingEmptyNote": "Todavía no hay nada planeado, y está bien. Cuando planee escribirte, lo verás aquí.",
+    "upcomingLoadFailed": "Mmm, tus mensajes programados no se cargaron. Es cosa mía, no tuya. Espera un momento y vuelve a abrir esto.",
     "perfectTiming": "El momento perfecto",
     "perfectTimingDesc": "Aprendo cuándo tienes mayor receptividad",
     "patternDetection": "Detección de patrones",
@@ -5380,10 +5385,6 @@
     "streakMilestonesDesc": "Celebra la constancia: recuerdo cada paso de tu camino",
     "to": "A",
     "quietNote": "Si te despiertas a las 2 a. m. y me escribes, estaré aquí con la misma presencia que a mediodía.",
-    "sampleFriday": "Viernes a las {time}",
-    "sampleOverwhelmed": "\"Ayer mencionaste que sentías agobio. ¿Cómo lo vas llevando?\"",
-    "sampleMeditation": "\"¡Tu racha de meditación es de 6 días! ¿Todo listo para el día 7?\"",
-    "samplePresentation": "\"Se acerca esa gran presentación. ¿Quieres que nos preparemos en equipo?\"",
     "guardianDesc": "Cuidando de ti las 24 horas, los 7 días de la semana",
     "emptyCta": "Sigue conversando conmigo. Cada conversación me ayuda a entender cuándo y cómo darte el mejor apoyo.",
     "emptyTip": "Activa \"{feature}\" en los Ajustes para desbloquear el apoyo proactivo"
@@ -6293,20 +6294,6 @@
       },
       "empty": "Hola. Estoy aquí... bueno, soy tú. Empieza a escribir en tu diario y tendré más sobre lo que reflexionar. Por ahora, ¿qué tienes en mente?"
     },
-    "fallback": {
-      "option1": "Qué interesante. ¿Qué te hace pensar en eso ahora?",
-      "option2": "Te escucho. ¿Qué más hay ahí?",
-      "option3": "Cuéntame más. ¿Qué hay detrás de eso?",
-      "option4": "Eso es algo en lo que también he estado pensando. ¿Cuál es la pregunta detrás de la pregunta?",
-      "advice": "He aprendido que el mejor consejo suele venir de quedarse un rato más con la pregunta. ¿Qué te dice tu intuición?",
-      "feeling": "Es mucho peso para cargar. Yo también he sentido eso. ¿Qué te ayudaría más ahora: hablarlo o simplemente quedarte un momento con ello?",
-      "remember": "Recuerdo más de lo que crees. Las entradas del diario guardan mucho. ¿Qué buscas específicamente?"
-    },
-    "fallbackKeywords": {
-      "advice": "consejo,debería",
-      "feeling": "sentir,sentimiento",
-      "remember": "recordar"
-    },
     "dialogLabel": "Tu crónica",
     "switchToVoice": "Cambiar a voz",
     "captured": "¡Capturado!",
@@ -6321,7 +6308,8 @@
       }
     },
     "emptyDescription": "Tu crónica está vacía, pero toda gran historia comienza en algún lugar. Captura tu primer pensamiento y mira cómo crece tu sabiduría.",
-    "quoted": "\"{text}\""
+    "quoted": "\"{text}\"",
+    "replyFailed": "Eso no se envió. Es cosa mía, no tuya. Intenta enviarlo otra vez."
   },
   "marketplacePermissionConsent": {
     "required": "Permisos requeridos",
@@ -6387,12 +6375,17 @@
     "categoryConnectDescription": "Nutre tus relaciones",
     "categoryGrow": "Crecer",
     "categoryGrowDescription": "Progreso amable",
-    "insightYourMorningsSetTone": "Tus mañanas marcan el rumbo",
-    "insightYourMorningsDesc": "Las conversaciones con las que empiezas el día suelen definir cómo transcurre el resto.",
-    "insightEveningReflectionsHelp": "Las reflexiones de la noche ayudan",
-    "insightEveningReflectionsDesc": "Tomarte un momento para reflexionar antes de descansar suele traer claridad para el día siguiente.",
-    "insightIRememberEverything": "Lo recuerdo todo",
-    "insightIRememberEverythingDesc": "Cada conversación, cada detalle, cada momento de crecimiento. Guardo tu historia completa.",
+    "noInsightsYetTitle": "Todavía no hay nada aquí.",
+    "noInsightsYetDesc": "Después de algunas conversaciones empezaré a notar cosas: tus patrones, los planes que mencionas, los momentos que importan. Aparecerán aquí. Por ahora, solo hablemos.",
+    "insightsUnavailableTitle": "No pude cargar lo que he notado.",
+    "insightsUnavailableDesc": "Es cosa mía, no tuya. Inténtalo de nuevo en un rato. Seguiré aquí.",
+    "practicePrompt": {
+      "dailyCheckin": "Qué alegría verte. ¿Cómo te sientes en este momento, de verdad?",
+      "gratitude": "Hagamos una pausa para agradecer. ¿De qué sientes gratitud en este momento?",
+      "brainstorm": "Hagamos una lluvia de ideas. ¿Qué desafío o decisión tienes en mente?",
+      "weeklyReview": "Repasemos tu semana. ¿Qué es lo que más destaca para ti?",
+      "windDown": "Bajemos el ritmo juntos. ¿De qué sientes orgullo hoy?"
+    },
     "practiceSetYourIntention": "Define tu intención",
     "practiceSetYourIntentionDesc": "Empieza con claridad. ¿Qué es lo que más importa hoy?",
     "practiceGratitudeMoment": "Momento de gratitud",
@@ -7262,19 +7255,6 @@
       "other": "{active} de {count} capacidades activas"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "Síntesis del equipo",
-    "assessment": "Evaluación general",
-    "connections": "Conexiones entre áreas",
-    "recommendations": "Recomendaciones del equipo",
-    "loading": "Cargando las observaciones del equipo...",
-    "empty": {
-      "title": "Aún no hay observaciones del equipo",
-      "description": "A medida que hables con el equipo, compartirán sus reflexiones entre sí."
-    },
-    "recent": "Observaciones recientes",
-    "title": "Observaciones del equipo"
-  },
   "observationTypes": {
     "insight": "Reflexión",
     "concern": "Inquietud",
@@ -7319,6 +7299,7 @@
     "legacy": {
       "name": "Legado",
       "description": "Conserva la voz y la sabiduría de alguien a quien aprecias",
+      "descriptionWithoutVoice": "Conserva las historias y la sabiduría de alguien a quien aprecias",
       "feature1": "Clonación de voz a partir de grabaciones",
       "feature2": "Captura de historias y recuerdos",
       "feature3": "Guarda su sabiduría y frases favoritas",
@@ -8018,7 +7999,9 @@
     "emptyVision": "Con el tiempo, <strong>surgirán patrones</strong>. Los días se conectarán con las semanas. Te verás <strong>con más claridad</strong>.",
     "last4Weeks": "Últimas 4 semanas",
     "stable": "Estable",
-    "fromLastMonth": "{change}% respecto al mes pasado",
+    "improving": "Va en aumento",
+    "declining": "Un poco más bajo últimamente",
+    "trendUnavailable": "Esta tendencia no se cargó. Inténtalo de nuevo en un rato.",
     "trendUp": "en alza",
     "trendDown": "en baja",
     "trendStable": "estable",
@@ -8061,7 +8044,6 @@
     "loading": "Cargando...",
     "whatIveLearned": "Lo que he aprendido",
     "loadingInsights": "Cargando reflexiones...",
-    "understanding": "Comprensión",
     "thingsIWantToRemember": "Cosas que quiero recordar",
     "proactive": "Proactividad",
     "patternsIveNoticed": "Patrones que he notado",
@@ -8325,8 +8307,7 @@
     "growthDesc": "Avances que quizás tú no notes.",
     "guardianPresence": "Presencia protectora",
     "guardianDesc": "Capto lo que dejas sin decir.",
-    "whatMightLook": "Cómo podrían verse las reflexiones",
-    "keepTalking": "Solo sigue hablando. Siempre te escucho, siempre aprendo, siempre estoy aquí.",
+    "keepTalking": "Por ahora, solo habla. Te estoy prestando atención.",
     "betterThanMemory": "Mejor que la memoria humana, a tu servicio.",
     "chapter": {
       "default": {
@@ -8554,23 +8535,17 @@
   },
   "predictions": {
     "promise": "Promesa",
-    "title": "Tu bola de cristal",
-    "description": "Aprenderé a anticipar lo que necesitas antes de que lo pidas.",
-    "preview": "Vista previa",
+    "title": "Predice tu semana",
+    "description": "Un juego con Peter durante una llamada. Adivina cómo irá tu semana y luego mira cuánto te acercaste.",
     "accurate": "Preciso",
-    "exampleStress": "Mencionaste que tenías estrés el martes",
     "watching": "Observando",
-    "checkIn": "Haré un registro contigo",
     "accuracy": "Precisión de las predicciones",
     "keepTalking": "Sigue conversando. Estamos construyendo algo especial.",
     "accuracyLabel": "Precisión",
+    "loadFailed": "Mmm, tus predicciones no se cargaron. Es cosa mía, no tuya. Espera un momento y vuelve a abrir esto.",
     "resolved": "Resuelto",
     "streak": "Racha",
-    "sampleOverwhelmed": "\"Sentirías agobio esta semana\"",
-    "sampleGym": "\"Te costaría mantener el hábito del gimnasio\"",
-    "sampleSunday": "\"La tarde del domingo se sentiría pesada\"",
-    "exampleGym": "Te saltaste 2 sesiones",
-    "ctaText": "Habla con Peter sobre cómo hacer predicciones. Desarrolla tu autoconocimiento con el juego de las predicciones.",
+    "ctaText": "Pídele a Peter jugar la próxima vez que hablen. Tus predicciones, y cómo resultaron, aparecerán aquí.",
     "activePredictions": "Predicciones activas",
     "recentResults": "Resultados recientes"
   },
@@ -8642,6 +8617,10 @@
   },
   "engagementPanel": {
     "title": "Registro diario",
+    "emptyTitle": "Aquí vivirán nuestros check-ins",
+    "emptyMessage": "Aún no hay nada, y está bien. Cuando hagamos un check-in diario en una llamada, aquí verás cómo te sentías. La próxima vez que hablemos, pídeme que hagamos uno.",
+    "loadFailedTitle": "Mmm, esto no se cargó",
+    "loadFailedMessage": "Es cosa mía, no tuya. Espera un momento y vuelve a abrir esto.",
     "yourWeek": "Tu semana",
     "weatherTrend": "Tendencia del clima emocional",
     "howYouFeel": "Cómo te sientes",
@@ -8857,6 +8836,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Charlas anteriores",
     "loadError": "No se pudieron cargar los datos.",
     "tryAgain": "¿Quieres volver a intentarlo?",
     "ariaLabel": "Historial de conversaciones",
@@ -9046,9 +9026,6 @@
     "he": "Hebreo"
   },
   "featureHints": {
-    "teamHuddlesTitle": "¡Ya están aquí las reuniones de equipo!",
-    "teamHuddlesMessage": "Ahora que nos conocemos mejor, puedes escuchar a varios miembros del equipo a la vez.",
-    "teamHuddlesCta": "Probar una reunión",
     "createRitualsTitle": "Crea tus propios rituales",
     "createRitualsMessage": "Ahora puedes crear prácticas diarias personalizadas. ¿Qué pequeño hábito te ayudaría más?",
     "createRitualsCta": "Crear un ritual",
@@ -9587,11 +9564,15 @@
     "rememberEmpty": "Nada nuevo que guardar esta vez. Gracias por la compañía.",
     "nextStepTitle": "Un pequeño siguiente paso",
     "invitation": "Vuelve cuando quieras. Aquí estaré.",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "seeCost": "Lo que costó esta llamada",
+    "feedbackQuestion": "¿Qué tal te sentó?",
+    "feedbackThanks": "Gracias, eso me ayuda."
   },
   "moments": {
     "teamUnlockTitle": "Conoce a {name}",
     "niceWork": "Buen trabajo",
+    "remembered": "Lo recordaré: {summary}",
     "streakSubtitle": "Estás aquí. Eso es lo que importa.",
     "streakTitle": {
       "one": "racha de {count} día",
@@ -10018,6 +9999,7 @@
     "timeout": "Eso tardó demasiado. ¿Revisas tu conexión e intentas de nuevo?",
     "network": "No se pudo conectar con Ferni. ¿Revisas tu internet e intentas de nuevo?",
     "dropped": "Se perdió la conexión. ¿Quieres volver a conectar?",
+    "agentLeft": "Ferni se cayó de la llamada. ¿Quieres volver a conectar?",
     "unknown": "No se pudo conectar. ¿Quieres volver a intentarlo?"
   },
   "ambientSounds": {
@@ -10205,7 +10187,12 @@
     "getIdeas": "Ver ideas",
     "emptyTitle": "Aún no hay sugerencias",
     "emptyText": "Prueba a añadir más contexto sobre tu relación.",
-    "generateError": "No se pudieron generar ideas. ¿Quieres volver a intentarlo?"
+    "generateError": "No se pudieron generar ideas. ¿Quieres volver a intentarlo?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "LO QUE HAGO POR TI",
@@ -10317,8 +10304,6 @@
     "allDataDeleted": "Todos los datos fueron eliminados",
     "deletingAccount": "Eliminando tu cuenta...",
     "accountDeleted": "Tu cuenta ha sido eliminada. Cuídate mucho.",
-    "couldNotStartHuddle": "No se pudo iniciar la reunión de equipo. ¿Lo intentamos de nuevo?",
-    "defaultHuddleTopic": "Registro semanal de tu progreso",
     "conversationsLeft": {
       "one": "Te queda {count} conversación. Aquí estoy siempre que me necesites.",
       "many": "Te quedan {count} conversaciones. Aquí estoy siempre que me necesites.",
@@ -10333,7 +10318,9 @@
       "one": "¡Has ganado {count} semilla!",
       "many": "¡Has ganado {count} semillas!",
       "other": "¡Has ganado {count} semillas!"
-    }
+    },
+    "couldNotLoadMemories": "No pude cargar lo que recuerdo. ¿Lo intentamos de nuevo?",
+    "memoryCorrected": "Entendido. Lo recordaré así."
   },
   "trustSignals": {
     "prefix": {
@@ -10467,22 +10454,7 @@
         "other": "Tengo la perspectiva de {count} entradas de diario para compartir contigo."
       }
     },
-    "error": "Me cuesta un poco pensar en este momento. ¿Me das un momento y lo volvemos a intentar?",
-    "fallback": {
-      "advicePhilosophy": "¿Sabes qué he aprendido? \"{philosophy}\" Te enfrentes a lo que te enfrentes, recuerda eso.",
-      "adviceValues": "Piensa en lo que nos importa: {values}. Deja que eso te guíe.",
-      "feelRecent": "Yo también me he sentido así. En mi diario escribí: \"{excerpt}...\" Ya lo superamos antes.",
-      "feelDefault": "Te escucho. Ya hemos pasado por momentos difíciles antes y encontramos el camino. ¿Qué es lo que realmente te preocupa?",
-      "rememberIntro": "Sí, me acuerdo.",
-      "rememberEntry": "Hubo una vez que escribí: \"{excerpt}...\"",
-      "mannerism": "{phrase} En eso también he estado pensando. ¿Qué te hizo sacar el tema?",
-      "default": "Es una buena pregunta. ¿Qué te hizo pensar en eso?"
-    },
-    "fallbackKeywords": {
-      "advice": "consejo,debería",
-      "feeling": "sentimiento,sentir",
-      "remember": "recordar,pasado"
-    }
+    "error": "Eso no se envió. Es cosa mía, no tuya. Intenta enviarlo otra vez."
   },
   "mood": {
     "holiday": {
@@ -10506,6 +10478,12 @@
       "fair": "Regular",
       "poor": "Conexión débil",
       "disconnected": "Sin conexión"
+    },
+    "island": {
+      "offline": "No tienes conexión. Me reconecto en cuanto vuelvas.",
+      "reconnecting": "Reconectando…",
+      "weak": "Conexión débil",
+      "backOnline": "De nuevo en línea"
     }
   },
   "ideasGallery": {
@@ -10930,11 +10908,6 @@
     "endTalk": "Desconectar",
     "connectingCancel": "Conectando. Toca para cancelar"
   },
-  "teamHuddle": {
-    "typeWeekly": "Registro semanal",
-    "typeMilestone": "Celebración de hito",
-    "typeSpecial": "Momento especial"
-  },
   "analyticsDashboard": {
     "title": "Tu camino",
     "loading": "Cargando tu progreso...",
@@ -10979,6 +10952,9 @@
       "many": "{count} días",
       "other": "{count} días"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "¡Ñam, ñam!"
   },
   "avatarTapReactions": {
     "tickles": "¡Jeje, eso me da cosquillas!"
@@ -11117,20 +11093,6 @@
       "roomToGrow": "Espacio para crecer",
       "insight": "\"Tu energía baja a mitad de semana. El miércoles parece ser tu día más difícil.\""
     },
-    "predictions": {
-      "title": "Mis predicciones",
-      "message": "Aprenderé a anticipar lo que necesitas antes de que lo pidas.",
-      "guessOverwhelmed": "\"Sentirías agobio esta semana\"",
-      "resultStress": "Mencionaste tener estrés el martes y el jueves",
-      "guessGym": "\"El hábito del gimnasio se vería afectado\"",
-      "guessSunday": "\"El domingo por la tarde se sentirá pesado\"",
-      "resultCheckIn": "Haré un registro contigo",
-      "skipped": {
-        "one": "Te saltaste {count} sesión esta semana",
-        "many": "Te saltaste {count} sesiones esta semana",
-        "other": "Te saltaste {count} sesiones esta semana"
-      }
-    },
     "team": {
       "title": "Lo que notamos",
       "message": "Todo tu equipo comparte observaciones para ayudarte a crecer.",
@@ -11186,9 +11148,9 @@
   },
   "x": "Amistad • Mención: 12 veces",
   "insightsView": {
-    "samplePattern": "\"Las tardes de domingo parecen ser difíciles para ti...\"",
-    "sampleInsight": "\"Has mencionado sentir cansancio 8 veces esta semana. Este cansancio parece estar relacionado con la dificultad para poner límites en el trabajo.\"",
-    "sampleEvidence": "Según {count} conversaciones"
+    "patternDesc": "Lo que sale una y otra vez cuando hablamos.",
+    "emptyNote": "Aún no hay nada, y está bien. Después de algunas conversaciones empezaré a notar patrones, y aparecerán aquí.",
+    "loadFailed": "Mmm, lo que he notado no se cargó. Es cosa mía, no tuya. Espera un momento y vuelve a abrir esto."
   },
   "agentAcks": {
     "gameStartFailed": "El juego no arrancó. Pídele a Ferni en voz alta que lo juegue contigo.",
@@ -11198,6 +11160,80 @@
     "ferniSpeaking": "Ferni está hablando",
     "youSpeaking": "Estás hablando",
     "ferniThinking": "Ferni está pensando",
-    "tapToInterrupt": "Toca para interrumpir"
+    "tapToInterrupt": "Toca para interrumpir",
+    "tapToHear": "Toca para escuchar a Ferni"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": "",
+    "seeSources": ""
+  },
+  "aiLabel": {
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Aporta",
+    "title": "Un dólar mantiene viva la conversación",
+    "body": "Ferni es gratis por ahora. Si una charla te ayudó, puedes enviar un dólar por Venmo. Más es bienvenido, nunca esperado.",
+    "qrAlt": "Código QR de Venmo para @{handle}",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "openVenmo": "Abrir Venmo",
+    "helper": "Escanéalo con la cámara de tu teléfono o toca Abrir Venmo. Puedes cambiar el importe.",
+    "maybeLater": "Quizás después",
+    "close": "Cerrar"
   }
 }

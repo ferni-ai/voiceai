@@ -149,7 +149,26 @@ export interface EmotionInput {
 
 export interface EmotionDecision {
   emotion: StableEmotion | undefined;
-  source: 'authored' | 'mapped' | 'session' | 'prosody' | 'words' | 'previous' | 'bridge' | 'none';
+  source:
+    | 'authored'
+    | 'mapped'
+    | 'session'
+    | 'prosody'
+    | 'words'
+    | 'previous'
+    | 'bridge'
+    | 'persona'
+    | 'none';
+}
+
+/** Whether the reply's opening words can carry this emotion (Cartesia honours only a fitting one). */
+export function fitsWords(emotion: StableEmotion, valence: Valence): boolean {
+  return FITS[valence].has(emotion);
+}
+
+/** The stable emotion for any emotion name (exact or nearest), or undefined. */
+export function toStableEmotion(value: string | undefined): StableEmotion | undefined {
+  return toStable(value).emotion;
 }
 
 function toStable(value: string | undefined): { emotion?: StableEmotion; mapped: boolean } {

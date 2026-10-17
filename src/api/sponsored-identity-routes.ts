@@ -13,6 +13,7 @@
  * - POST   /api/sponsored-identities/:id/revoke   - Revoke identity
  * - GET    /api/sponsored-identities/pending      - List pending self-registrations
  * - POST   /api/sponsored-identities/:id/approve  - Approve pending identity
+ * - GET|POST|DELETE /api/sponsored-identities/:id/call-consent - see family-call-consent-routes
  *
  * @module api/sponsored-identity-routes
  */
@@ -21,6 +22,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
 import { PhoneInUseError } from '../services/identity/phone-in-use-error.js';
 import { requireAuth } from './auth-middleware.js';
+import { handleCallConsentRoute } from './family-call-consent-routes.js';
 import {
   createSponsoredIdentity,
   getSponsoredIdentity,
@@ -176,6 +178,8 @@ export async function handleSponsoredIdentityRoutes(
       });
       return true;
     }
+
+    if (await handleCallConsentRoute(req, res, route, userId, sendJSON)) return true;
 
     // Routes with :id parameter
     const idMatch = route.match(/^\/([^/]+)$/);

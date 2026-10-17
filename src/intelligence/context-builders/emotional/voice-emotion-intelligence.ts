@@ -464,7 +464,7 @@ function createDefaultResponse(): VoiceEmotionIntelligence {
  * Format voice intelligence for prompt injection
  *
  * NOTE: We no longer inject static "CONSIDER PHRASES LIKE" because:
- * 1. Static phrases don't fit all personas (Joel shouldn't say "spill it!")
+ * 1. Static phrases don't fit all personas (Nate shouldn't say "spill it!")
  * 2. The guidance section already tells the LLM HOW to behave
  * 3. LLM should generate persona-appropriate phrasing based on behavioral guidance
  */

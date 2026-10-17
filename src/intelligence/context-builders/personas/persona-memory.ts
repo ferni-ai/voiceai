@@ -5,7 +5,7 @@
  *
  * Each persona remembers things their own way:
  * - Ferni: preferences, wins, topics, inside jokes
- * - Bogle: funds, investing philosophy, allocations
+ * - Henry Caldwell (john-bogle, 'bogle' type): funds, investing philosophy, allocations
  * - Nayan: what matters in their life, held with the long view
  * - Peter: watchlist, companies they know, ten-baggers
  * - Maya: merchants, bills, savings goals, spending triggers
@@ -56,8 +56,8 @@ function normalizePersonaId(id: string | undefined): NormalizedPersonaId | null 
   // Ferni aliases
   if ([CANONICAL_IDS.COACH, 'jack-b', 'jackie', 'life-coach'].includes(lower)) return 'ferni';
 
-  // Bogle aliases. 'nayan-patel' used to land here, giving Nayan index-fund
-  // callbacks while the real John Bogle got none.
+  // Index-fund legend aliases. 'nayan-patel' used to land here, giving Nayan index-fund
+  // callbacks while the index-fund legend got none.
   if ([CANONICAL_IDS.JOHN_BOGLE, 'bogle', 'index-investor'].includes(lower)) return 'bogle';
 
   // Nayan aliases
@@ -519,8 +519,8 @@ function getProactiveMemoryCallback(
       if (wins.length > 0 && Math.random() < 0.3) {
         const win = wins[Math.floor(Math.random() * wins.length)];
         const callbacks = [
-          `Consider celebrating: "Hey ${name}, I was thinking about that win you had - ${win.name}. How's that going?"`,
-          `Consider: "${name}, remember when you ${win.name}? That was a big deal. How are you feeling about it now?"`,
+          `Consider celebrating: "I was thinking about that win you had - ${win.name}. How's that going?"`,
+          `Consider: "Remember when you ${win.name}? That was a big deal. How are you feeling about it now?"`,
           `Maybe say: "I still smile when I think about '${win.name}'. You should be proud of that."`,
         ];
         return callbacks[Math.floor(Math.random() * callbacks.length)];
@@ -541,7 +541,7 @@ function getProactiveMemoryCallback(
     }
 
     case 'bogle': {
-      // Jack Bogle remembers funds, philosophy, expense ratios
+      // Index-investing memories: funds, philosophy, expense ratios
       const funds = result.memories.filter((m) => (m as BogleMemory).type === 'fund');
       const philosophies = result.memories.filter((m) => (m as BogleMemory).type === 'philosophy');
 
@@ -551,7 +551,7 @@ function getProactiveMemoryCallback(
         const ticker = fund.ticker || fund.name;
         const callbacks = [
           `Consider asking: "How's that ${ticker} position? Staying the course?"`,
-          `Maybe check in: "${name}, are you still holding ${ticker}? Good discipline pays off."`,
+          `Maybe check in: "Are you still holding ${ticker}? Good discipline pays off."`,
           `Consider: "Remember ${ticker}? Markets go up and down, but your strategy shouldn't."`,
         ];
         return callbacks[Math.floor(Math.random() * callbacks.length)];
@@ -592,7 +592,7 @@ function getProactiveMemoryCallback(
         const ticker = stock.ticker || stock.name;
         const callbacks = [
           `Consider asking: "How's ${ticker} doing? Done your homework lately?"`,
-          `Maybe: "${name}, any news on ${ticker}? Remember - know what you own and why you own it!"`,
+          `Maybe: "Any news on ${ticker}? Remember - know what you own and why you own it!"`,
           `Consider: "Still watching ${ticker}? What's your gut telling you?"`,
         ];
         if (stock.reason) {

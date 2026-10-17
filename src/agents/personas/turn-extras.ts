@@ -23,6 +23,7 @@
 import { classifyBackchannelContext } from '../integrations/backchannel-context.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
+import type { RecentTurns } from './turn-length.js';
 import type { CallerMove, Shape } from './turn-shape.js';
 import type { Understanding } from './turn-understanding.js';
 
@@ -77,6 +78,17 @@ export interface TurnSignals {
   laughed: boolean;
   laughFits: boolean;
   adviceFits: boolean;
+  /**
+   * FERNI_STATE=on: whether a story of his own may ride this reply
+   * (ferni-state.ts). Undefined when his state has no say.
+   */
+  ownStory?: boolean;
+  /** TURN_LENGTH / TURN_TEXTURE=learned: the turns before this reply (turn-length.ts). */
+  recent?: RecentTurns;
+  /** DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question (answer-turn.ts). */
+  answered?: boolean;
+  /** QUIET_CALLER=on: their last turns were a few words each (quiet-caller.ts). */
+  quiet?: boolean;
 }
 
 /** The model's understanding as signals. */
@@ -141,7 +153,16 @@ export function extrasFor(
     out.fired.push('laugh_along');
   }
   const venting = signals.careful;
-  if (on(env, 'THINK_ALOUD') && shape !== 'react') {
+  // TURN_TEXTURE=learned sets roughness itself (turn-length.ts): no fixed filler or thinking
+  // aloud on chit-chat, where friends rarely do either.
+  const learnedTexture = env.TURN_TEXTURE === 'learned';
+  const chat = move === 'share' || move === 'ack';
+  if (
+    on(env, 'THINK_ALOUD') &&
+    shape !== 'react' &&
+    !(learnedTexture && chat) &&
+    !signals.quiet
+  ) {
     // Live, request turns are rare: also think aloud on some longer answers.
     const p =
       move === 'request' || move === 'about_ferni'
@@ -183,7 +204,11 @@ export function extrasFor(
   }
   if (on(env, 'HUMAN_TEXTURE')) {
     // Live: 0 fillers per 100 words (people: 1-4), 0% laughter, ~5% opinions.
-    if ((shape === 'answer' || shape === 'full') && rng() < scaled(0.35, style.filler)) {
+    if (
+      !learnedTexture &&
+      (shape === 'answer' || shape === 'full') &&
+      rng() < scaled(0.35, style.filler)
+    ) {
       out.lines.push(FILLER);
       out.fired.push('filler');
     }
@@ -200,7 +225,13 @@ export function extrasFor(
       out.lines.push(LAUGH_SPONTANEOUS);
       out.fired.push('laugh_spontaneous');
     }
-    if (move !== 'ack' && !venting && shape !== 'react' && rng() < scaled(0.25, style.opinion)) {
+    if (
+      move !== 'ack' &&
+      !venting &&
+      !signals.quiet &&
+      shape !== 'react' &&
+      rng() < scaled(0.25, style.opinion)
+    ) {
       out.lines.push(OPINION);
       out.fired.push('opinion');
     }

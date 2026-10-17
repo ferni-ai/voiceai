@@ -19,6 +19,7 @@ import {
   getGameSuggestion,
 } from '../../services/games/game-insights.js';
 import type { GameMemory } from '../../types/user-profile.js';
+import { getClientIp } from '../../utils/client-ip.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON } from '../helpers.js';
 
@@ -185,27 +186,6 @@ const RATE_LIMIT_MAX_REQUESTS_USER = 30; // 30 requests per minute for authentic
 const RATE_LIMIT_MAX_REQUESTS_IP = 10; // 10 requests per minute per IP (stricter for anonymous)
 
 /**
- * Get client IP from request
- */
-function getClientIP(req: IncomingMessage): string {
-  // Check for forwarded IP (from proxy/load balancer)
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
-    return ips.trim();
-  }
-
-  // Check for Cloud Run forwarded IP
-  const realIp = req.headers['x-real-ip'];
-  if (realIp) {
-    return Array.isArray(realIp) ? realIp[0] : realIp;
-  }
-
-  // Fallback to direct connection
-  return req.socket?.remoteAddress || 'unknown';
-}
-
-/**
  * Check if request is rate limited (user-based)
  */
 function isUserRateLimited(userId: string): boolean {
@@ -259,7 +239,7 @@ function isIPRateLimited(ip: string): boolean {
  * Check if request is rate limited (combined user + IP)
  */
 function isRateLimited(req: IncomingMessage, userId?: string): boolean {
-  const ip = getClientIP(req);
+  const ip = getClientIp(req);
 
   // Always check IP-based limiting
   if (isIPRateLimited(ip)) {
@@ -319,7 +299,7 @@ export async function handleGamesRoutes(
 ): Promise<boolean> {
   // GET /api/games - List all available games
   if (pathname === '/api/games' && req.method === 'GET') {
-    const ip = getClientIP(req);
+    const ip = getClientIp(req);
 
     // Rate limit check (IP only - no auth required)
     if (isIPRateLimited(ip)) {

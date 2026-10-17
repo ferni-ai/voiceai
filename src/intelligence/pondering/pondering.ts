@@ -15,7 +15,7 @@
  *
  * @module intelligence/pondering/pondering
  */
-import { contentWords, isForgotten } from '../../memory/recall/session-recall.js';
+import { contentWords, isForgotten } from '../../memory/index.js';
 
 export function isPonderingOn(env: Record<string, string | undefined> = process.env): boolean {
   return env.PONDERING === 'on';

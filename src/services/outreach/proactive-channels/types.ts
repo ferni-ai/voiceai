@@ -19,8 +19,12 @@ export interface ProactiveTrigger {
   promisedCall?: boolean;
   /** What Ferni says, in her words. */
   text: string;
+  /** The text is final (grounded-checkin.ts planned and checked it): no model rewrites it. */
+  finalText?: boolean;
   /** Why Ferni reached out, for the call opener and the log. */
   reason: string;
   /** After this the moment has passed (a missed promise, a stale follow-up). */
   expiresAt?: Date;
+  /** Run once it has gone out (e.g. record a commitment as followed up). */
+  afterSend?: () => Promise<void>;
 }

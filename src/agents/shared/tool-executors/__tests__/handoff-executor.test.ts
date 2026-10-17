@@ -169,12 +169,12 @@ describe('HandoffExecutor', () => {
       });
     });
 
-    // Peter Lynch (Financial Legends) is his own persona; "peter" is Peter John (#264).
-    it('sends peter-lynch to Peter Lynch, not to Peter John', async () => {
+    // Tom Brannigan (Financial Legends) is his own persona; "peter" is Peter John (#264).
+    it('sends peter-lynch to Tom Brannigan, not to Peter John', async () => {
       const { executeHandoff } = await import('../../../../tools/handoff/executor.js');
       const { getCanonicalPersonaId } = await import('../../../../personas/voice-registry.js');
       const ctx = createContext();
-      for (const target of ['peter-lynch', 'Peter Lynch']) {
+      for (const target of ['peter-lynch', 'Tom Brannigan']) {
         vi.mocked(executeHandoff).mockClear();
         await handoffExecutor.execute('handoffTo', { target }, ctx);
         const sent = vi.mocked(executeHandoff).mock.calls[0]?.[0] ?? '';

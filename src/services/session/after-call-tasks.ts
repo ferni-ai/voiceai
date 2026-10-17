@@ -14,6 +14,7 @@
  *
  * @module services/session/after-call-tasks
  */
+import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'after-call-tasks' });
@@ -134,8 +135,7 @@ export function runAfterCall(
   sessionId: string,
   turns: readonly AfterCallTurn[],
   summary: unknown,
-  tracker: { getDurationSeconds: () => number },
-  profile: { contactInfo?: { timezone?: string } } | null | undefined
+  tracker: { getDurationSeconds: () => number }
 ): void {
   runAfterCallTasks({
     userId,
@@ -143,6 +143,8 @@ export function runAfterCall(
     turns,
     summary,
     startedAt: new Date(Date.now() - tracker.getDurationSeconds() * 1000),
-    timezone: profile?.contactInfo?.timezone,
+    // The zone the call settled (phone-parity.ts): never the raw profile's, which
+    // belongs to a sponsor on a call placed for someone, or to an unverified caller's account.
+    timezone: callerTimeZoneFor(sessionId),
   });
 }

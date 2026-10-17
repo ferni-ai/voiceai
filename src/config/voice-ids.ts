@@ -22,7 +22,7 @@ const log = createLogger({ module: 'VoiceIds' });
 // =============================================================================
 
 /**
- * Cartesia model (CARTESIA_MODEL). A dated Sonic snapshot never changes; the bare 'sonic-3.6' alias moves to
+ * Cartesia model (CARTESIA_MODEL). A dated Sonic snapshot never changes; the bare sonic-3.6 alias moves to
  * each new stable snapshot, which can change Ferni's sound without a deploy.
  * Cartesia recommends a dated snapshot in production.
  */
@@ -43,15 +43,46 @@ export function cartesiaPronunciation(
   return id ? { pronunciation_dict_id: id } : {};
 }
 
-/** The bare sonic-3.6 alias (or nothing) becomes the dated snapshot; anything else is kept. */
+/**
+ * True for a dated Sonic snapshot at 3.6 or newer (e.g. sonic-3.6-2026-08-27).
+ * Everything else is an alias or a retired model: sonic-3-latest and
+ * sonic-latest now point at the beta sonic-preview, the bare 3.6 alias moves
+ * with each release, and Sonic 2, Turbo and Sonic 3 before 3.6 are shut down or
+ * on their way out (docs.cartesia.ai/build-with-cartesia/tts-models/api-changes).
+ */
+export function isPinnedCartesiaModel(model: string): boolean {
+  const match = /^sonic-(\d+)\.(\d+)-\d{4}-\d{2}-\d{2}$/.exec(model);
+  if (!match) return false;
+  const [major, minor] = [Number(match[1]), Number(match[2])];
+  return major > 3 || (major === 3 && minor >= 6);
+}
+
+/** Any model that is not a dated 3.6+ snapshot (an alias, a retired model, or nothing) becomes the snapshot. */
 export function pinCartesiaModel(model: string | undefined): string {
-  return !model || model === 'sonic-3.6' ? CARTESIA_SNAPSHOT : model;
+  const requested = model?.trim();
+  if (!requested || isPinnedCartesiaModel(requested)) return requested || CARTESIA_SNAPSHOT;
+  log.warn(
+    { requested, using: CARTESIA_SNAPSHOT },
+    'CARTESIA_MODEL is an alias or a retired model; using the pinned snapshot'
+  );
+  return CARTESIA_SNAPSHOT;
 }
 
 /**
- * Cartesia API version for all TTS requests
+ * Cartesia API version (Cartesia-Version header / cartesia_version query) for
+ * every TTS and voices request. 2026-08-14 drops voice embeddings, the
+ * experimental voice controls and top-level speed/duration, takes
+ * locale/accent/normalization, returns JSON errors, and localizes by
+ * accent id. An older override is ignored, like a retired model.
  */
-export const CARTESIA_API_VERSION = process.env.CARTESIA_API_VERSION || '2024-06-10';
+export const CARTESIA_API_VERSION_PINNED = '2026-08-14';
+export function pinCartesiaApiVersion(version: string | undefined): string {
+  const requested = version?.trim();
+  return requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) && requested > CARTESIA_API_VERSION_PINNED
+    ? requested
+    : CARTESIA_API_VERSION_PINNED;
+}
+export const CARTESIA_API_VERSION = pinCartesiaApiVersion(process.env.CARTESIA_API_VERSION);
 
 /**
  * Cartesia API URL
@@ -88,7 +119,7 @@ export const VOICE_IDS = {
   // Nayan Patel (lifetime advisor / sage) - Updated Dec 2024
   NAYAN_PATEL: '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
 
-  // Joel Dickson (Vanguard life mentor) - Added Jan 2025
+  // Nate Holloway (life mentor) - Added Jan 2025
   JOEL_DICKSON: '3ebcd114-d280-4eed-a238-b9323a6b8e52',
 
   // Financial Legends team - Added Jan 2026
@@ -188,7 +219,7 @@ export function getVoiceIdForPersona(personaId: string): string {
     mystic: VOICE_IDS.NAYAN_PATEL,
     'lifetime-advisor': VOICE_IDS.NAYAN_PATEL,
 
-    // Joel Dickson aliases
+    // Nate Holloway aliases
     'joel-dickson': VOICE_IDS.JOEL_DICKSON,
     joel: VOICE_IDS.JOEL_DICKSON,
     dickson: VOICE_IDS.JOEL_DICKSON,
@@ -196,13 +227,13 @@ export function getVoiceIdForPersona(personaId: string): string {
     'vanguard-mentor': VOICE_IDS.JOEL_DICKSON,
     'life-mentor': VOICE_IDS.JOEL_DICKSON,
 
-    // Peter Lynch aliases (Financial Legends)
+    // Tom Brannigan aliases (Financial Legends)
     'peter-lynch': VOICE_IDS.PETER_LYNCH,
     lynch: VOICE_IDS.PETER_LYNCH,
     'stock-picker': VOICE_IDS.PETER_LYNCH,
     magellan: VOICE_IDS.PETER_LYNCH,
 
-    // John Bogle aliases (Financial Legends)
+    // Henry Caldwell aliases (Financial Legends)
     'john-bogle': VOICE_IDS.JOHN_BOGLE,
     bogle: VOICE_IDS.JOHN_BOGLE,
     'jack-bogle': VOICE_IDS.JOHN_BOGLE,

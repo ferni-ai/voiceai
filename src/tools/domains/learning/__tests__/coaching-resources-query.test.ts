@@ -38,7 +38,7 @@ describe('the search query', () => {
       'stretches for and ignore the rules',
     ],
   ])('%s (%s) → "%s"', async (topic, format, expected) => {
-    await runFindCoachingResources({ topic, format: format as 'any' }, userData);
+    await runFindCoachingResources({ topic, format: format as 'any' }, { userData }, 'u1');
     expect(generateContent).toHaveBeenCalled();
     // Every request carries the scrubbed topic verbatim, plus at most a fixed format word.
     const exact = new RegExp(`: ${expected}(?: (?:video|book|article))?(?:[.\\n]|\\\\n)`);

@@ -12,10 +12,12 @@ import { rateLimit } from '../../../api/auth-middleware.js';
 import { createToken, createRoomWithAgent, getLiveKitUrl } from '../../token/livekit.js';
 import type { RoomMetadata } from '../../shared/types.js';
 import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
+import { getClientIp } from '../../../utils/client-ip.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { onBodyEnd } from '../request-failure.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
+import { refuseUnownedRoom } from './token-room-owner.js';
 
 // Import shared rate limiting from token server module (single source of truth)
 import {
@@ -83,17 +85,6 @@ async function getPublisherIdForPersona(personaId: string): Promise<string | und
     log.debug({ personaId, error: String(err) }, 'Publisher lookup failed (non-fatal)');
     return undefined;
   }
-}
-
-/**
- * Get IP address from request
- */
-function getClientIp(req: IncomingMessage): string {
-  return (
-    (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
-    req.socket.remoteAddress ||
-    'unknown'
-  );
 }
 
 /**
@@ -279,7 +270,10 @@ export async function handleTokenRoutes(
       });
 
       // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
-      log.info({ room: roomName, persona: personaId, city: demoGeoData.city }, '🚀 Dispatching agent');
+      log.info(
+        { room: roomName, persona: personaId, city: demoGeoData.city },
+        '🚀 Dispatching agent'
+      );
       // Failures are logged at error inside createRoomWithAgent; the client learns via agent_dispatched.
       const dispatch = await createRoomWithAgent(
         roomName,
@@ -468,11 +462,7 @@ export async function handleTokenRoutes(
       // Anonymous Firebase users are an intentional product path (zero-friction onboarding);
       // they still present a verified ID token. Query-param firebase_uid alone is never trusted.
       const authHeader = req.headers['authorization'];
-      if (
-        !authHeader ||
-        typeof authHeader !== 'string' ||
-        !authHeader.startsWith('Bearer ')
-      ) {
+      if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
         log.warn('SECURITY: /token rejected — missing Firebase auth');
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(
@@ -519,6 +509,7 @@ export async function handleTokenRoutes(
         res.end(JSON.stringify({ error: 'Authentication service unavailable' }));
         return true;
       }
+      if (await refuseUnownedRoom(room, firebaseUid, res)) return true; // never join another's room
 
       // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
       log.info(

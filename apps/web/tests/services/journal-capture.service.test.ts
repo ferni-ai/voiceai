@@ -16,7 +16,6 @@ import {
   queueMoment,
   getPendingMoments,
   clearPendingMoments,
-  loadPendingMoments,
   getMomentTypeLabel,
   getMomentTypeIcon,
   initJournalCapture,
@@ -283,7 +282,8 @@ describe('Capture Settings', () => {
       expect(isCaptureEnabled()).toBe(false);
     });
 
-    it('should return true after enabling', () => {
+    it('should return true after enabling, with VITE_JOURNAL_CAPTURE on', () => {
+      vi.stubEnv('VITE_JOURNAL_CAPTURE', 'true');
       enableJournalCapture();
       expect(isCaptureEnabled()).toBe(true);
     });
@@ -295,7 +295,12 @@ describe('Capture Settings', () => {
 // ============================================================================
 
 describe('Moment Queue', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
+    vi.stubEnv('VITE_JOURNAL_CAPTURE', 'true');
     localStorageMock.clear();
     clearPendingMoments();
     vi.clearAllMocks();
@@ -321,14 +326,10 @@ describe('Moment Queue', () => {
       expect(pending[0]).toEqual(moment);
     });
 
-    it('should persist to localStorage', () => {
-      const moment = createMockMoment();
-      queueMoment(moment);
+    it('should never persist the moment to localStorage', () => {
+      queueMoment(createMockMoment());
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'ferni_pending_moments',
-        expect.any(String)
-      );
+      expect(localStorageMock.setItem).not.toHaveBeenCalled();
     });
 
     it('should allow multiple moments', () => {
@@ -369,33 +370,6 @@ describe('Moment Queue', () => {
       clearPendingMoments();
 
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('ferni_pending_moments');
-    });
-  });
-
-  describe('loadPendingMoments', () => {
-    it('should load moments from localStorage', () => {
-      const moments = [createMockMoment(), createMockMoment()];
-      
-      // Set up localStorage with moments AFTER clearing state
-      // (clearPendingMoments removes from localStorage too)
-      localStorageMock.clear();
-      vi.clearAllMocks();
-      localStorageMock.setItem('ferni_pending_moments', JSON.stringify(moments));
-
-      loadPendingMoments();
-
-      expect(getPendingMoments()).toHaveLength(2);
-    });
-
-    it('should handle missing localStorage gracefully', () => {
-      loadPendingMoments();
-      expect(getPendingMoments()).toEqual([]);
-    });
-
-    it('should handle corrupted localStorage gracefully', () => {
-      localStorageMock.setItem('ferni_pending_moments', 'not valid json');
-      loadPendingMoments();
-      // Should not throw, moments remain unchanged
     });
   });
 });
@@ -480,7 +454,7 @@ describe('Initialization', () => {
     vi.clearAllMocks();
   });
 
-  it('should load pending moments on init', () => {
+  it('should delete, not load, a queue left in localStorage', () => {
     const moments = [
       {
         id: 'test-1',
@@ -495,7 +469,8 @@ describe('Initialization', () => {
 
     initJournalCapture();
 
-    expect(getPendingMoments()).toHaveLength(1);
+    expect(getPendingMoments()).toHaveLength(0);
+    expect(localStorageMock.getItem('ferni_pending_moments')).toBeNull();
   });
 
   it('should not throw when localStorage is empty', () => {

@@ -124,6 +124,11 @@ export function runningAccuracy(predictions: readonly PredictionData[]): number 
 /** A scored prediction at or above this accuracy keeps a streak going. */
 export const STREAK_ACCURACY = 70;
 
+/** The Predictions badge: predictions still waiting for how the week turned out. */
+export function pendingPredictionCount(predictions: readonly PredictionData[]): number {
+  return predictions.filter((p) => p.status === 'pending').length;
+}
+
 /** Consecutive scored predictions, newest first, at or above STREAK_ACCURACY. */
 export function scoredStreak(predictions: readonly PredictionData[]): number {
   const scored = predictions

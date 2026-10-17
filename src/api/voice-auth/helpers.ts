@@ -15,6 +15,7 @@ import { checkLiveness } from '../../services/voice/voice-liveness.js';
 import { checkRateLimit } from '../../services/voice/voice-rate-limit.js';
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { parseBody as parseBodyHelper } from '../helpers.js';
+import { getClientIp } from '../../utils/client-ip.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { isVerifiedAdmin } from '../rate-limit-identity.js';
 import {
@@ -263,21 +264,8 @@ export function getVerifiedUserId(req: IncomingMessage): {
   return { userId: null, verified: false };
 }
 
-/**
- * Get client IP from request.
- */
-export function getClientIP(req: IncomingMessage): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    const ips = typeof forwarded === 'string' ? forwarded.split(',') : forwarded;
-    return ips[0].trim();
-  }
-  const realIP = req.headers['x-real-ip'];
-  if (realIP) {
-    return typeof realIP === 'string' ? realIP : realIP[0];
-  }
-  return req.socket?.remoteAddress || 'unknown';
-}
+/** Kept for existing importers; resolution lives in utils/client-ip. */
+export const getClientIP = getClientIp;
 
 /**
  * Get device info from request.
