@@ -173,7 +173,7 @@ jobs:
   lint:
     name: Lint & Type Check
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     needs: setup
     if: needs.setup.outputs.node != 'false'
     steps:

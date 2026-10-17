@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lowered, regressions } from '../lint-coverage-ratchet.js';
+import { ignoredFiles, lowered, regressions } from '../lint-coverage-ratchet.js';
 
 describe('lint-coverage ratchet', () => {
   it('fails a file whose error count grew', () => {
@@ -25,5 +25,11 @@ describe('lint-coverage ratchet', () => {
 
   it('never raises a baseline in --update', () => {
     expect(lowered({ 'src/a.ts': 2 }, { 'src/a.ts': 9 })).toEqual({ 'src/a.ts': 2 });
+  });
+
+  it('reports files ESLint skipped, since a skipped file reads as clean', () => {
+    const skipped = { filePath: '/repo/apps/cli/src/commands/deploy/x.ts', errorCount: 0, warningCount: 1, messages: [{ message: 'File ignored because of a matching ignore pattern. Use "--no-ignore".' }] };
+    const checked = { filePath: '/repo/src/a.ts', errorCount: 0, warningCount: 0, messages: [] };
+    expect(ignoredFiles([skipped, checked])).toEqual([skipped.filePath]);
   });
 });

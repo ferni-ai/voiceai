@@ -27,16 +27,25 @@ const ROOT = process.cwd();
 const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'lint-coverage-baseline.json');
 /** Production trees linted by this ratchet (`pnpm lint` covers only part of src/). */
 const ROOTS = ['src', 'apps/cli/src/commands/deploy'];
-const TEST = /(__tests__|__mocks__|\.(test|spec)\.tsx?$|\/(tests|e2e)\/)/;
+const TEST = /(__tests__|__mocks__|\.(test|spec)\.tsx?$|(^|\/)(tests|e2e)\/)/;
 
 export interface EslintFile {
   filePath: string;
   errorCount: number;
   warningCount: number;
+  messages: Array<{ message: string }>;
 }
 
 /** Relative path → error count, for files with errors only. */
 export type ErrorBaseline = Record<string, number>;
+
+/** ESLint reports a file it skipped as a warning with this message; the file was never checked. */
+const IGNORED = 'File ignored because of a matching ignore pattern';
+
+/** Files ESLint skipped. A skipped file reads as clean, so it must fail the ratchet. */
+export function ignoredFiles(results: EslintFile[]): string[] {
+  return results.filter((file) => file.messages.some((m) => m.message.startsWith(IGNORED))).map((file) => file.filePath);
+}
 
 export function regressions(base: ErrorBaseline, now: ErrorBaseline): string[] {
   return Object.keys(now)
@@ -87,7 +96,7 @@ function lint(files: string[]): EslintFile[] {
   return JSON.parse(run.stdout) as EslintFile[];
 }
 
-function measure(): { errors: ErrorBaseline; warnings: number } {
+function measure(): { errors: ErrorBaseline; warnings: number; ignored: string[] } {
   const results = lint(productionFiles());
   const errors: ErrorBaseline = {};
   let warnings = 0;
@@ -95,12 +104,12 @@ function measure(): { errors: ErrorBaseline; warnings: number } {
     warnings += file.warningCount;
     if (file.errorCount > 0) errors[relative(ROOT, file.filePath)] = file.errorCount;
   }
-  return { errors, warnings };
+  return { errors, warnings, ignored: ignoredFiles(results).map((file) => relative(ROOT, file)) };
 }
 
 function main(): void {
   const args = process.argv.slice(2);
-  const { errors, warnings } = measure();
+  const { errors, warnings, ignored } = measure();
   const total = Object.values(errors).reduce((sum, n) => sum + n, 0);
   const baseline: ErrorBaseline = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')) : {};
 
@@ -111,7 +120,10 @@ function main(): void {
     return;
   }
 
-  const problems = regressions(baseline, errors);
+  const problems = [
+    ...ignored.map((file) => `${file}: eslint skipped this file (matched an ignore pattern), so it is not checked. Remove the ignore or move the file.`),
+    ...regressions(baseline, errors),
+  ];
   console.log(`Lint coverage: ${Object.keys(errors).length} files with ${total} errors (baseline ${Object.values(baseline).reduce((s, n) => s + n, 0)}), ${warnings} warnings (not gated).`);
   if (problems.length > 0) {
     console.error(`\n❌ ${problems.length} lint regression(s):`);

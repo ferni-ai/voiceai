@@ -1,4 +1,8 @@
 {
+  "apps/cli/src/commands/deploy/deploy-intelligence.ts": 1,
+  "apps/cli/src/commands/deploy/deploy.ts": 1,
+  "apps/cli/src/commands/deploy/rollout.ts": 2,
+  "apps/cli/src/commands/deploy/url-checks.ts": 1,
   "src/agents/integrations/developer-tool-integration.ts": 4,
   "src/agents/integrations/pre-stt-audio-integration.ts": 5,
   "src/agents/integrations/predictive-intelligence-integration.ts": 1,
