@@ -45,6 +45,7 @@ import {
   type MemoryCategory,
   PERSONA_MEMORY_INTERESTS,
 } from './shared-memory-api.js';
+import { insightText } from './teammate-note.js';
 
 const log = createLogger({ module: 'PersonaMemoryContext' });
 
@@ -146,43 +147,45 @@ const PERSONA_CONTEXT_TEMPLATES: Record<
   ferni: {
     prefix: 'As their life coach, you know:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: teammateNote,
+    insightFormat: (i) => `- [From ${formatPersonaName(i.fromPersona)}] ${i.content}`,
   },
   peter: {
     prefix: 'Relevant background for research:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: teammateNote,
+    insightFormat: (i) => `- Insight from ${formatPersonaName(i.fromPersona)}: ${i.content}`,
   },
   maya: {
     prefix: 'For habit coaching, remember:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: teammateNote,
+    insightFormat: (i) => `- ${formatPersonaName(i.fromPersona)} noted: ${i.content}`,
   },
   jordan: {
     prefix: 'For event planning, key details:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: teammateNote,
+    insightFormat: (i) => `- From ${formatPersonaName(i.fromPersona)}: ${i.content}`,
   },
   alex: {
     prefix: 'Communication context:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: teammateNote,
+    insightFormat: (i) => `- ${formatPersonaName(i.fromPersona)} shared: ${i.content}`,
   },
   nayan: {
     prefix: 'For wisdom and reflection:',
     memoryFormat: (m) => `- ${m.content}`,
-    insightFormat: teammateNote,
+    insightFormat: (i) => `- ${formatPersonaName(i.fromPersona)} observed: ${i.content}`,
   },
 };
 
 function formatPersonaName(personaId: PersonaId): string {
-  return personaId.charAt(0).toUpperCase() + personaId.slice(1);
-}
-
-/** A teammate's insight as what came up on the caller's call WITH them ("From Jordan" read as news). */
-export function teammateNote(i: CrossPersonaInsight): string {
-  const name = formatPersonaName(i.fromPersona);
-  return `- From the caller's call with your teammate ${name}: ${i.content}`;
+  const names: Record<PersonaId, string> = {
+    ferni: 'Ferni',
+    peter: 'Peter',
+    maya: 'Maya',
+    jordan: 'Jordan',
+    alex: 'Alex',
+    nayan: 'Nayan',
+  };
+  return names[personaId] || personaId;
 }
 
 // ============================================================================
@@ -246,10 +249,9 @@ export async function buildPersonaMemoryContext(
       shouldSurface: m.score > 0.7,
     }));
 
-    // 6. Format insights for context
     const formattedInsights: FormattedInsight[] = insights.map((i) => ({
       id: i.id,
-      text: template.insightFormat(i),
+      text: insightText(i, template.insightFormat), // 6. Format insights (teammate-note.ts)
       fromPersona: i.fromPersona,
       priority: i.priority,
       shouldSurface: i.priority > 50,

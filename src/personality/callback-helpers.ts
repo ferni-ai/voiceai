@@ -9,6 +9,7 @@
  */
 
 import type { KeyMoment, UserProfile } from '../types/user-profile.js';
+import { flagOn } from '../config/env-flag.js';
 import { isTeammateTalk, withoutTeammateTalk } from '../utils/teammate-talk.js';
 
 // ============================================================================
@@ -47,7 +48,7 @@ export function createCallbackKeyMoment(
 export function extractCallbackKeyMoments(said: string): KeyMoment[] {
   const keyMoments: KeyMoment[] = [];
   // "I'm going to talk to Jordan" is a teammate on this call, not a hard conversation ahead
-  const userMessage = withoutTeammateTalk(said);
+  const userMessage = flagOn('TEAMMATE_TALK_FILTER') ? withoutTeammateTalk(said) : said;
   if (!userMessage) return keyMoments;
 
   // Upcoming events

@@ -157,7 +157,7 @@ export function callerCommitmentDocs(
     if (o.confidence < MIN_CONFIDENCE) continue;
     const quote = o.source.quote?.trim();
     if (!quote || quote.split(/\s+/).length < 3 || !SAYS_WILL.test(quote)) continue;
-    if (isTeammateTalk(quote)) continue; // "I'm going to talk to Jordan": a teammate, not a plan
+    if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(quote)) continue; // "I'm going to talk to Jordan": a teammate, not a plan
     if (docs.some((d) => sameCommitment(String(d.statement), quote))) continue;
     const tz = ctx.timezone ?? 'UTC';
     // A day already past when they said it ("I called her Monday") is not a plan.

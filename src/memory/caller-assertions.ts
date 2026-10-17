@@ -230,7 +230,8 @@ export interface ProvenanceSummary {
 export function withCallerProvenance<T extends ProvenanceSummary>(
   summary: T,
   turns: readonly Turn[],
-  fields: ReadonlyArray<(typeof PROVENANCE_FIELDS)[number]> = PROVENANCE_FIELDS
+  fields: ReadonlyArray<(typeof PROVENANCE_FIELDS)[number]> = PROVENANCE_FIELDS,
+  env: Env = process.env
 ): T & Pick<ProvenanceSummary, 'assistantRaisedItems' | 'callerProvenance'> {
   const said = callerWords(turns);
   const raisedWords = turns
@@ -238,19 +239,20 @@ export function withCallerProvenance<T extends ProvenanceSummary>(
     .flatMap((t) => topicWordsOf(t.content));
   const raised = new Set(summary.assistantRaisedItems ?? []);
   const out: T = { ...summary, callerProvenance: CALLER_PROVENANCE };
+  const teammate = flagOn('TEAMMATE_TALK_FILTER', env);
   for (const field of fields) {
     const items = summary[field];
     if (!Array.isArray(items)) continue;
     const kept = items.filter((item) => {
       // "Has Jordan helped with the planning?" when Jordan was on this call: the call
       // itself, whatever the wording. Only "my friend Jordan" or "Jordan's" keeps it.
-      if (namesTeammateOnCall(item, turns)) {
+      if (teammate && namesTeammateOnCall(item, turns)) {
         raised.add(item);
         return false;
       }
       // "Did you ever talk to Jordan about those plans?": a teammate, not their life
       const theirs = THREAD_FIELDS.has(field)
-        ? backedBy(item, said) && !isTeammateTalk(item)
+        ? backedBy(item, said) && !(teammate && isTeammateTalk(item))
         : !fromTheirSide(item, said, raisedWords);
       if (!theirs) raised.add(item);
       return theirs;

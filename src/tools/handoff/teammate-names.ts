@@ -16,10 +16,23 @@
  */
 
 import { TEAM_MEMBERS, type TeamMemberId } from '../../services/team-unlocks.js';
-import { HEARD_AS as SPELLINGS } from '../../utils/teammate-talk.js';
 
 /** STT spellings of each teammate's first name (lowercase), the name itself aside. */
-export const HEARD_AS = SPELLINGS as Readonly<Record<string, TeamMemberId>>;
+export const HEARD_AS: Readonly<Record<string, TeamMemberId>> = {
+  naya: 'nayan-patel',
+  nyan: 'nayan-patel',
+  nian: 'nayan-patel',
+  nayon: 'nayan-patel',
+  niyan: 'nayan-patel',
+  nayun: 'nayan-patel',
+  nyon: 'nayan-patel',
+  mya: 'maya-santos',
+  maia: 'maya-santos',
+  maiya: 'maya-santos',
+  jordon: 'jordan-taylor',
+  jorden: 'jordan-taylor',
+  pete: 'peter-john',
+};
 
 const firstNameOf = (id: TeamMemberId): string =>
   TEAM_MEMBERS.find((m) => m.memberId === id)?.displayName ?? id;

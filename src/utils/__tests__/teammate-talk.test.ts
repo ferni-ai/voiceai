@@ -68,6 +68,16 @@ describe('withoutTeammateTalk', () => {
     );
   });
 
+  it('cuts only the teammate from an ask that carries life news', () => {
+    expect(withoutTeammateTalk('I got laid off today, can I talk to Peter about my budget?')).toBe(
+      'I got laid off today, can I talk about my budget?'
+    );
+    expect(withoutTeammateTalk("I want to talk to Jordan about my dad's funeral")).toBe(
+      "I want to talk about my dad's funeral"
+    );
+    expect(isTeammateTalk("Decided to talk to Jordan about my dad's funeral")).toBe(false);
+  });
+
   it('keeps someone in their life who shares a teammate name', () => {
     for (const line of [
       'My friend Jordan is moving to Denver.',
@@ -150,7 +160,7 @@ describe('the roster', () => {
     expect([...TEAM_FIRST_NAMES]).toEqual(
       team.map((id) => DISPLAY_NAMES[id as keyof typeof DISPLAY_NAMES].toLowerCase())
     );
-    expect(HANDOFF_SPELLINGS).toBe(HEARD_AS);
+    expect(HANDOFF_SPELLINGS).toEqual(HEARD_AS);
     const ids = new Set(TEAM_MEMBERS.map((m) => m.memberId as string));
     for (const id of Object.values(HEARD_AS)) expect(ids.has(id), id).toBe(true);
   });
@@ -159,11 +169,15 @@ describe('the roster', () => {
 describe('teammatesOnCall', () => {
   const on = (role: string, content: string) => [...teammatesOnCall([{ role, content }])];
 
-  it('hears a teammate speaking as themself, or spoken to by name', () => {
+  it('hears a teammate speaking as themself', () => {
     expect(on('assistant', "Hi, I'm Jordan. What are we planning?")).toEqual(['jordan']);
     expect(on('assistant', 'Peter here, what can I do?')).toEqual(['peter']);
-    expect(on('user', 'hey jorden can you help')).toEqual(['jordan']);
-    expect(on('user', 'That is all for today, thanks Maya')).toEqual(['maya']);
+  });
+
+  it("never takes presence from the caller's own line, a name and a comma included", () => {
+    expect(on('user', 'Maya, my sister, had a baby girl yesterday')).toEqual([]);
+    expect(on('user', 'hey jorden can you help')).toEqual([]);
+    expect(on('user', "I'm Jordan")).toEqual([]);
   });
 
   it('does not take a name said about someone for a teammate on the call', () => {

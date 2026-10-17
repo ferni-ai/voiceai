@@ -6,7 +6,7 @@
  * that heard those lines, and every reader of what was stored, is checked here. A real
  * person who shares a teammate's name still counts.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProactiveInsightEngine } from '../intelligence/proactive-insight-engine.js';
 import { UserLearningEngine } from '../intelligence/user-learning-engine.js';
 import { lifeMoments } from '../utils/teammate-talk.js';
@@ -14,13 +14,18 @@ import type { EmotionResult } from '../intelligence/detectors/emotion.js';
 import type { IntentResult } from '../intelligence/intent-classifier.js';
 import type { ConversationState } from '../intelligence/state/conversation.js';
 import { withCallerProvenance } from '../memory/caller-assertions.js';
-import { teammateNote } from '../memory/cross-persona/persona-memory-context.js';
+import { insightText, teammateNote } from '../memory/cross-persona/teammate-note.js';
 import {
   extractCallbackKeyMoments,
   getPendingCallbacksFromProfile,
 } from '../personality/callback-helpers.js';
 import { callerCommitmentDocs } from '../services/superhuman/after-call-commitments.js';
 import type { KeyMoment, UserProfile } from '../types/user-profile.js';
+
+// The write-time checks are behind TEAMMATE_TALK_FILTER; these blocks run with it on,
+// and 'with TEAMMATE_TALK_FILTER off' below checks that off is main's behaviour.
+beforeEach(() => vi.stubEnv('TEAMMATE_TALK_FILTER', 'on'));
+afterEach(() => vi.unstubAllEnvs());
 
 const TO_JORDAN = [
   'Hey Jordan, can you help me do some planning',
@@ -288,5 +293,99 @@ describe('a teammate who was on this call', () => {
   it('leaves the fallback for their own news, and for that name when the teammate is not there', () => {
     expect(momentsAfter("Hi, I'm Jordan.", 'My mom is in the hospital again')).toHaveLength(1);
     expect(momentsAfter(null, 'Jordan will help me plan the wedding')).toHaveLength(1);
+  });
+});
+
+/**
+ * Verifier round 5 (2026-10-17): an ask dropped its whole clause, so the life news in it
+ * went too; a caller's "Maya, my sister, ..." put Maya on the call; and "Peter died" was
+ * dropped with Peter on the call. Then: the write paths behind the flag.
+ */
+describe('life news said with a teammate request, or about a teammate name', () => {
+  const momentsFrom = (line: string, assistant?: string) => {
+    const engine = new UserLearningEngine();
+    if (assistant) engine.processAssistantTurn(assistant);
+    engine.processUserTurn(line, analysis(0.9), profile());
+    return engine.finalizeSession(profile()).keyMoments;
+  };
+
+  it('keeps the life news in the same clause as a request for a teammate', () => {
+    for (const line of [
+      'I got laid off today, can I talk to Peter about my budget?',
+      "I want to talk to Jordan about my dad's funeral",
+    ]) {
+      const moments = momentsFrom(line);
+      expect(moments, line).toHaveLength(1);
+      expect(moments[0]?.summary, line).not.toMatch(/peter|jordan/i);
+      expect(lifeMoments(moments), line).toHaveLength(1);
+    }
+  });
+
+  it('a caller line starting "Maya, my sister," does not put Maya on the call', () => {
+    const summary = withCallerProvenance(
+      { mainTopics: [], keyPoints: ['Maya had a baby girl yesterday'] },
+      [{ role: 'user', content: 'Maya, my sister, had a baby girl yesterday' }]
+    );
+    expect(summary.keyPoints).toEqual(['Maya had a baby girl yesterday']);
+  });
+
+  it('keeps "Peter died" when Peter the teammate was on the call', () => {
+    const summary = withCallerProvenance(
+      { mainTopics: [], keyPoints: ['Peter died last week', 'Has Peter helped with the budget?'] },
+      [
+        { role: 'assistant', content: "Hi, I'm Peter. What can I look into?" },
+        { role: 'user', content: 'Peter died last week and the budget is a mess' },
+      ]
+    );
+    expect(summary.keyPoints).toEqual(['Peter died last week']);
+    expect(momentsFrom('Jordan got laid off.', "Hi, I'm Jordan.")).toHaveLength(1);
+  });
+});
+
+describe('with TEAMMATE_TALK_FILTER off (the default), the write paths are as on main', () => {
+  beforeEach(() => vi.stubEnv('TEAMMATE_TALK_FILTER', 'off'));
+
+  it('the engine, callbacks, commitments and summary keep teammate talk as before', () => {
+    const engine = new UserLearningEngine();
+    engine.processUserTurn("I'm going to talk to Jordan.", analysis(0.9), profile());
+    engine.captureExternalKeyMoment(moment('Made a decision to talk to Jordan'));
+    expect(engine.finalizeSession(profile()).keyMoments).toHaveLength(2);
+
+    expect(extractCallbackKeyMoments("I'm going to talk to Jordan.")).not.toEqual([]);
+
+    const quote = "I'm going to talk to Jordan.";
+    const docs = callerCommitmentDocs(
+      [
+        {
+          subjectKind: 'self',
+          attribute: 'commitment',
+          value: quote,
+          confidence: 0.9,
+          source: { quote },
+          by: 'caller' as const,
+        },
+      ],
+      { userId: 'u', sessionId: 's', now: Date.parse('2026-10-14T12:00:00Z') }
+    );
+    expect(docs.map((d) => d.statement)).toEqual([quote]);
+
+    const summary = withCallerProvenance(
+      { mainTopics: [], keyPoints: ['Has Jordan helped with the planning?'] },
+      [
+        { role: 'assistant', content: "Hi, I'm Jordan." },
+        { role: 'user', content: 'Has Jordan helped with the planning? I hope Jordan helped.' },
+      ]
+    );
+    expect(summary.keyPoints).toEqual(['Has Jordan helped with the planning?']);
+  });
+
+  it("a teammate's insight keeps the persona's own wording", () => {
+    const i = { fromPersona: 'jordan', content: 'Planning a move' } as never;
+    expect(insightText(i, () => '- From Jordan: Planning a move')).toBe(
+      '- From Jordan: Planning a move'
+    );
+    expect(insightText(i, () => 'x', { TEAMMATE_TALK_FILTER: 'on' })).toBe(
+      "- From the caller's call with your teammate Jordan: Planning a move"
+    );
   });
 });
