@@ -21,6 +21,9 @@ describe('site claims check', () => {
     ['Ferni responds in under 500ms', 'under 500ms'],
     ['146 Tool Domains', 'tool domain count'],
     ['45+ Superhuman Capabilities', 'capability count'],
+    ['<span>GDPR Compliant</span>', 'gdpr compliant'],
+    ['<span>SSO/SAML</span>', 'sso saml'],
+    ['<span>Data Residency Options</span>', 'data residency'],
   ])('flags %s', (line, id) => {
     expect(findClaims('index.njk', `<p>\n${line}\n</p>`)).toEqual([
       expect.objectContaining({ file: 'index.njk', line: 2, id }),
