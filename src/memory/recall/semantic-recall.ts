@@ -59,7 +59,7 @@ export interface SemanticIndex {
 export const MIN_MARGIN = 0.07;
 const NEAR_BEST = 0.05;
 /** A transcript this short says too little to search with. */
-const MIN_QUERY_WORDS = 3;
+export const MIN_QUERY_WORDS = 3;
 const MAX_MATCHES = 4;
 
 /** What one user turn may recall, in tokens of remembered text (about 4 facts and 2 stories). */
@@ -99,7 +99,7 @@ function cosine(a: number[], b: number[]): number {
  * two facts has no "rest" to stand out from; these give every search a
  * baseline of how similar unrelated text is.
  */
-const ANCHORS = [
+export const ANCHORS = [
   'Okay.',
   'Sounds good to me.',
   'Thanks for asking.',
@@ -115,7 +115,9 @@ const ANCHORS = [
 export function standouts(
   query: number[],
   vectors: ReadonlyMap<string, number[]>,
-  anchors: number[][] = []
+  anchors: number[][] = [],
+  /** For the recall bench (scripts/memory-eval): try another margin. */
+  minMargin: number = MIN_MARGIN
 ): Map<string, number> {
   const sims = [...vectors].map(([id, v]) => ({ id, sim: cosine(query, v) }));
   if (sims.length === 0) return new Map();
@@ -129,7 +131,7 @@ export function standouts(
   const best = ranked[0].margin;
   return new Map(
     ranked
-      .filter((s) => s.margin >= MIN_MARGIN && s.margin >= best - NEAR_BEST)
+      .filter((s) => s.margin >= minMargin && s.margin >= best - NEAR_BEST)
       .slice(0, MAX_MATCHES)
       .map((s) => [s.id, s.margin])
   );
