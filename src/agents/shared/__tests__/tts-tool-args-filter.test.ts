@@ -59,8 +59,10 @@ describe('toolArgsCutter', () => {
   it('a held "<" that starts no marker goes out with the next chunk, or at the end', () => {
     expect(run(['I <', '3 you'])).toBe('I <3 you');
     const cut = toolArgsCutter();
-    expect(cut('see you <t').kept).toBe('see you ');
-    expect(cut.flush()).toBe('<t');
+    expect(cut('see you <').kept).toBe('see you ');
+    expect(cut.flush()).toBe('<');
+    expect(cut('cut off in a <templ').kept).toBe('cut off in a ');
+    expect(cut.flush()).toBe('');
   });
 
   it.each([
@@ -113,6 +115,14 @@ describe('tts-wrapper: tool arguments never reach TTS', () => {
     ]);
     expect(said).not.toMatch(/template|softTeamIntro|[{}]/);
     expect(said).toContain('Bye now.');
+  });
+
+  it('the end of the reply: a held "<" reaches TTS, a cut-off marker does not', async () => {
+    expect(await speak(['I love you ', '<'])).toMatch(/I love you\s*<$/);
+    heard.length = 0;
+    const said = await speak(['Bye. <temp']);
+    expect(said).toContain('Bye.');
+    expect(said).not.toContain('<temp');
   });
 
   it('TOOL_ARGS_GUARD=off sends it as before', async () => {

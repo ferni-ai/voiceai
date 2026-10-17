@@ -44,7 +44,10 @@ function markerTail(text: string): number {
 /** Cuts one reply's chunks, in order (it remembers a brace left open); flush() at the end. */
 export interface ToolArgsCutter {
   (chunk: string): Cut;
-  /** Characters held back as a possible marker start, once the reply has ended. */
+  /**
+   * At the end of the reply, what was held back: a lone "<" goes out; "<t" and longer are a
+   * marker the reply was cut off in (speech never has them, and SSML is added after this).
+   */
   flush: () => string;
 }
 
@@ -95,7 +98,7 @@ export function toolArgsCutter(): ToolArgsCutter {
     flush: () => {
       const rest = held;
       held = '';
-      return rest;
+      return rest.length === 1 ? rest : '';
     },
   });
 }
