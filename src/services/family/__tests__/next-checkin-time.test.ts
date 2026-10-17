@@ -57,6 +57,22 @@ describe('calculateNextCallTime', () => {
     expect(next).toBe('2026-10-26T00:30:00.000Z');
   });
 
+  it('lands a monthly check-in on the same day next month', () => {
+    const next = calculateNextCallTime(
+      { ...base, frequency: 'monthly' },
+      new Date('2026-10-17T15:00:00Z')
+    );
+    expect(next).toBe('2026-11-18T02:00:00.000Z');
+  });
+
+  it('ignores a day it does not know instead of looping', () => {
+    const next = calculateNextCallTime(
+      { ...base, frequency: 'weekly', daysOfWeek: ['someday' as 'monday'] },
+      new Date('2026-10-17T15:00:00Z')
+    );
+    expect(next).toBe('2026-10-19T01:00:00.000Z');
+  });
+
   it('falls back to UTC for an unknown zone', () => {
     const next = calculateNextCallTime(
       { ...base, timezone: 'Not/AZone' },

@@ -94,19 +94,23 @@ export function calculateNextCallTime(schedule: NextCheckinInput, now: Date = ne
   // A UTC date stands in for the family member's calendar day.
   const date = new Date(Date.UTC(today.year, today.month - 1, today.day + 1));
   const addDays = (n: number) => date.setUTCDate(date.getUTCDate() + n);
-  const targetDay = schedule.daysOfWeek?.[0];
+  const first = schedule.daysOfWeek?.[0];
+  // A day the record doesn't know (bad data) is ignored rather than looped on forever.
+  const targetDay = first !== undefined && first in DAY_NUMBER ? DAY_NUMBER[first] : undefined;
 
   switch (schedule.frequency) {
     case 'daily':
       break;
     case 'weekly':
     case 'biweekly':
-      if (targetDay) {
-        while (date.getUTCDay() !== DAY_NUMBER[targetDay]) addDays(1);
+      if (targetDay !== undefined) {
+        while (date.getUTCDay() !== targetDay) addDays(1);
         if (schedule.frequency === 'biweekly') addDays(7);
       }
       break;
     case 'monthly':
+      // Same day next month, counted from today rather than tomorrow.
+      addDays(-1);
       date.setUTCMonth(date.getUTCMonth() + 1);
       break;
     case 'custom':
