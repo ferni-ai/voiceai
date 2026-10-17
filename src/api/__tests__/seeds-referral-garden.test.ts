@@ -71,13 +71,11 @@ const fs = vi.hoisted(() => {
   return { docs, db, inc, union };
 });
 
-vi.mock('firebase-admin', () => {
-  const firestore = Object.assign(() => fs.db, {
-    Timestamp: { now: () => new Date(0) },
-    FieldValue: { increment: fs.inc, arrayUnion: fs.union },
-  });
-  return { default: { apps: [{}], initializeApp: () => ({}), firestore } };
-});
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: () => fs.db,
+  Timestamp: { now: () => new Date(0) },
+  FieldValue: { increment: fs.inc, arrayUnion: fs.union },
+}));
 
 const { handleSeedsRoutes } = await import('../seeds-routes.js');
 

@@ -91,12 +91,12 @@ describe('forgetTopic', () => {
       fact('dynamic_facts', 'p1', {
         entityName: 'Pete',
         key: 'phone number',
-        value: '435-339-7687',
+        value: '435-555-0188',
       }),
       dog,
     ]);
     expect(await forgetTopic('u', 'my ex', store)).toEqual({ kind: 'forgotten', marked: 1 });
-    expect(await forgetTopic('u', '4353397687', store)).toEqual({ kind: 'forgotten', marked: 1 });
+    expect(await forgetTopic('u', '4355550188', store)).toEqual({ kind: 'forgotten', marked: 1 });
     expect(await forgetTopic('u', 'forget what I said about that', store)).toEqual({
       kind: 'nothing',
     });
