@@ -10,10 +10,10 @@
  * Nothing plays early. The SDK forwards a reply's audio to the room only after
  * the speech is scheduled and authorized (agent_activity.js, pipelineReply:
  * _waitForScheduled, then _waitForAuthorization, then forwardSegment), and
- * pause-hold.ts holds a preemptive reply's first audio until the commit
- * decides whether ink hesitated ("decides a preemptive reply at the commit,
- * not before" in its tests). A dropped preemptive reply costs Cartesia seconds
- * that nobody hears.
+ * with PAUSE_HOLD on, pause-hold.ts holds a preemptive reply's first audio
+ * until the commit decides whether ink hesitated. The SDK runs our ttsNode,
+ * so the gateway voices the reply; preemptive-reply-gate.ts keeps a dropped
+ * one out of the turn receipt and cancels its Cartesia context at the commit.
  *
  * @module agents/multi-agent/preemptive-tts
  */

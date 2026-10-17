@@ -13,6 +13,7 @@ import {
   replyAudioHoldMs,
 } from '../output-control/reply-activity.js';
 import { waitForPauseHold } from '../output-control/pause-hold.js';
+import { preemptiveReplyGate } from './preemptive-reply-gate.js';
 
 // Same module name as the gateway node, so TTFB log lines are unchanged.
 const log = createLogger({ module: 'GatewayTTSNode' });
@@ -27,6 +28,8 @@ export type FirstAudioObserver = (() => void) & {
   hold(): Promise<void>;
   /** Sonic's leading silence dropped before the first audio (lead-silence.ts). */
   trimmed(ms: number): void;
+  /** Called if LiveKit drops this reply before playing it (preemptive-reply-gate.ts). */
+  onDropped: (stop: () => number) => void;
 };
 
 /** First audio of a gateway reply: ms from the start of the TTS node, and when its first text was sent. */
@@ -42,21 +45,33 @@ export function onGatewayFirstAudio(listener: FirstAudioListener): () => void {
 interface FirstAudioObserverOptions {
   sessionId?: string;
   startTime: number;
+  /** Read at creation, inside LiveKit's reply context; null plays at once. */
+  gate?: Promise<boolean> | null;
 }
 
 export function createFirstAudioObserver({
   sessionId,
   startTime,
+  gate = preemptiveReplyGate(),
 }: FirstAudioObserverOptions): FirstAudioObserver {
   let hasMarkedFirstAudio = false;
   const stages: { textMs?: number; pushMs?: number; leadTrimMs?: number } = {};
+  // A preemptive reply's marks wait for LiveKit to schedule it; a dropped one makes none.
+  const whenPlayed = (mark: () => void): void => {
+    if (gate) void gate.then((plays) => plays && mark());
+    else mark();
+  };
 
   const observe = (): void => {
     if (hasMarkedFirstAudio) return;
     hasMarkedFirstAudio = true;
     const ttfbMs = Date.now() - startTime;
+    whenPlayed(() => markFirstAudio(ttfbMs));
+  };
+  const markFirstAudio = (ttfbMs: number): void => {
     // Where the wait went: LLM text in (textMs), text sent (pushMs), audio back (ttfbMs).
-    log.info({ ttfbMs, ...stages, sessionId }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
+    const preemptive = gate ? { preemptive: true, heldMs: Date.now() - startTime - ttfbMs } : {};
+    log.info({ ttfbMs, ...stages, sessionId, ...preemptive }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
     if (sessionId) {
       noteReplyAudio(sessionId);
       for (const listener of firstAudioListeners) listener(sessionId, ttfbMs, stages.pushMs);
@@ -79,8 +94,18 @@ export function createFirstAudioObserver({
     },
     stage(stage: 'text' | 'push'): void {
       const key = stage === 'text' ? 'textMs' : 'pushMs';
-      if (stage === 'text' && stages.textMs === undefined && sessionId) noteReplyText(sessionId);
+      if (stage === 'text' && stages.textMs === undefined && sessionId) {
+        const at = Date.now();
+        whenPlayed(() => noteReplyText(sessionId, at));
+      }
       stages[key] ??= Date.now() - startTime;
+    },
+    onDropped(stop: () => number): void {
+      void gate?.then((plays) => {
+        if (plays) return;
+        // Text Cartesia was sent for a reply nobody heard: the A/B's cost side.
+        log.info({ sessionId, sentChars: stop(), ...stages }, 'PREEMPTIVE_TTS_DROPPED');
+      });
     },
     async hold(): Promise<void> {
       const ms = sessionId ? replyAudioHoldMs(sessionId) : 0;

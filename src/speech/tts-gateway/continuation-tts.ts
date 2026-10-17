@@ -14,7 +14,7 @@
 
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
-import { ReadableStream } from 'node:stream/web';
+import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 
 import { findChunkEnd, findFirstChunkEnd, findFirstWordEnd } from './chunk-boundary.js';
 import { leadSilenceTrimEnabled, trimLeadingSilence } from './lead-silence.js';
@@ -118,9 +118,14 @@ export interface ContinuationOptions {
    * Called at the reply's first audio. Its `hold`, when present, is awaited
    * first: an opening sound still playing keeps the reply from starting on
    * top of it (reply-activity.ts). `trimmed` gets the leading silence dropped
-   * (lead-silence.ts).
+   * (lead-silence.ts). `onDropped` stops a preemptive reply LiveKit dropped
+   * unheard (preemptive-reply-gate.ts); the stop returns the characters sent.
    */
-  onFirstAudio: (() => void) & { hold?: () => Promise<void>; trimmed?: (ms: number) => void };
+  onFirstAudio: (() => void) & {
+    hold?: () => Promise<void>;
+    trimmed?: (ms: number) => void;
+    onDropped?: (stop: () => number) => void;
+  };
   /** Drop Sonic's leading silence (default: CASCADE_TRIM_LEAD_SILENCE). */
   trimLeadSilence?: boolean;
   /** Pause between sentences in ms; defaults to sentenceBreakMs() (env). */
@@ -143,6 +148,8 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
   const replies: ReplyStream[] = [reply];
   let current = reply;
   let feedDone = false;
+  /** Characters sent to Cartesia: what a dropped reply cost. */
+  let sentChars = 0;
   let wakeAudio: (() => void) | null = null;
   const notifyAudio = (): void => {
     wakeAudio?.();
@@ -150,6 +157,13 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
   };
   const cancelAll = (): void => {
     for (const r of replies) r.cancel();
+  };
+  /** Stop both sides: Cartesia's contexts and the LLM text. */
+  const stop = (): void => {
+    stopped = true;
+    cancelAll();
+    notifyAudio();
+    void reader.cancel().catch(() => undefined);
   };
 
   /** Cut the LLM text into sentences and push them as they complete. */
@@ -205,6 +219,7 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
       first = false;
       state = next;
       // Pieces are joined verbatim, so keep a space between sentences.
+      sentChars += text.length;
       current.push(`${pause}${tags}${text} `);
       if (!pushed) {
         pushed = true;
@@ -284,8 +299,21 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     }
   };
 
+  /** Dropped before the commit: free the context, and end the stream LiveKit is still reading. */
+  const stopIfDropped = (controller: ReadableStreamDefaultController<AudioFrame>): void =>
+    onFirstAudio.onDropped?.(() => {
+      stop();
+      try {
+        controller.close();
+      } catch {
+        /* already closed */
+      }
+      return sentChars;
+    });
+
   return new ReadableStream<AudioFrame>({
     async start(controller) {
+      stopIfDropped(controller);
       const feeding = feed();
       let heardAudio = false;
       try {
@@ -323,11 +351,7 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
       }
     },
     cancel() {
-      // The listener stopped playback (the user interrupted): stop both sides.
-      stopped = true;
-      cancelAll();
-      notifyAudio();
-      void reader.cancel().catch(() => undefined);
+      stop(); // the listener stopped playback (the user interrupted)
     },
   }) as NodeReadableStream<AudioFrame>;
 }
