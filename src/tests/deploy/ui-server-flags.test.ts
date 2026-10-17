@@ -18,7 +18,10 @@ const dockerfile = read('docker/Dockerfile.ui');
 const cli = read('apps/cli/src/commands/deploy/deploy.ts');
 
 /** Server flags prod's web server runs with (Seth, 2026-10-17). */
-const SERVER_FLAGS = ['MEMORY_VIEW=on', 'JOURNAL_ONE_STORE=on'];
+const SERVER_FLAGS = ['MEMORY_VIEW=on', 'JOURNAL_ONE_STORE=on', 'PROACTIVE_CHANNELS=on'];
+
+/** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */
+const PROACTIVE_USERS_SECRET = 'PROACTIVE_CHANNELS_USERS=proactive-channels-users:latest';
 
 /** The `--set-env-vars` value of the workflow's john-bogle-ui deploy, split on its `::` delimiter. */
 function workflowEnv(): string[] {
@@ -27,6 +30,13 @@ function workflowEnv(): string[] {
   const m = /--set-env-vars "\^::\^([^"]*)"/.exec(workflow.slice(start));
   expect(m).not.toBeNull();
   return m![1].split('::');
+}
+
+/** The `--set-secrets` value after `from` (the UI deploy command), split on commas. */
+function secretsAfter(text: string, from: number): string[] {
+  const m = /--set-secrets "([^"]*)"/.exec(text.slice(from));
+  expect(m).not.toBeNull();
+  return m![1].split(',');
 }
 
 /** The CLI's `--set-env-vars` value, split on its `@` delimiter. */
@@ -43,6 +53,19 @@ describe('web-server flags survive a deploy', () => {
 
   it.each(SERVER_FLAGS)('the ferni CLI ui deploy sets %s', (flag) => {
     expect(cliEnv()).toContain(flag);
+  });
+
+  it('both deploys mount the proactive allowlist from Secret Manager', () => {
+    expect(secretsAfter(workflow, workflow.search(/run deploy john-bogle-ui\b/))).toContain(
+      PROACTIVE_USERS_SECRET
+    );
+    expect(secretsAfter(cli, 0)).toContain(PROACTIVE_USERS_SECRET);
+  });
+
+  it('never puts the proactive allowlist in plain env', () => {
+    for (const env of [workflowEnv(), cliEnv()]) {
+      expect(env.filter((v) => v.startsWith('PROACTIVE_CHANNELS_USERS='))).toEqual([]);
+    }
   });
 
   it('the What Ferni Knows build flag reaches both web builds', () => {
