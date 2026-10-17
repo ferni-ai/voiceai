@@ -1,6 +1,7 @@
 /**
  * Just enough Firestore for collection-group "due items" queries and claim
- * transactions: where ==/<=, orderBy, limit, runTransaction(get/update).
+ * transactions: where ==/<=, orderBy, limit, runTransaction(get/update), and
+ * bogle_users/{uid}/{collection}/{id} set/create/update.
  */
 export type Row = { id: string; userId: string; collection: string; data: Record<string, unknown> };
 
@@ -40,10 +41,20 @@ export function fakeFirestore(rows: Row[]) {
   const userDoc = (uid: string) => ({
     collection: (c: string) => ({
       doc: (id: string) => ({
+        // So a transaction can read and update this document by its ref.
+        get _row() {
+          return rows.find((r) => r.collection === c && r.id === id && r.userId === uid);
+        },
         set: async (data: Record<string, unknown>) => {
           const existing = rows.find((r) => r.collection === c && r.id === id);
           if (existing) existing.data = { ...data };
           else rows.push({ id, userId: uid, collection: c, data: { ...data } });
+        },
+        // Like Firestore's update(): merges into an existing document, else NOT_FOUND.
+        update: async (patch: Record<string, unknown>) => {
+          const existing = rows.find((r) => r.collection === c && r.id === id && r.userId === uid);
+          if (!existing) throw new Error(`NOT_FOUND: ${c}/${id}`);
+          Object.assign(existing.data, patch);
         },
         // Like Firestore's create(): fails when the document already exists.
         create: async (data: Record<string, unknown>) => {

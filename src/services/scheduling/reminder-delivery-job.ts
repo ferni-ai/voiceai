@@ -34,6 +34,7 @@ import {
   type ReminderDeliveryMethod,
   type ScheduledReminder,
 } from './reminder-scheduler.js';
+import { wasHeld } from './reminder-text-guard.js';
 
 const log = createLogger({ module: 'ReminderDeliveryJob' });
 
@@ -82,6 +83,8 @@ export interface ReminderRunResult {
   skipped: number;
   /** Delivered in-app because the chosen channel couldn't be reached. */
   rerouted: number;
+  /** Texts held to a later time by the guarded sender (quiet hours, its gap). */
+  held: number;
   dryRun: boolean;
   /** Overdue promises settled this run (absent on a dry run or when the check failed). */
   promises?: PromiseSweepResult;
@@ -133,6 +136,7 @@ export async function deliverDueReminders(
     missed: 0,
     skipped: 0,
     rerouted: 0,
+    held: 0,
     dryRun,
     promiseErrors: 0,
   };
@@ -193,7 +197,12 @@ export async function deliverDueReminders(
     }
 
     if (channel !== reminder.deliveryMethod) result.rerouted++;
-    const ok = await deliverReminder({ ...reminder, deliveryMethod: channel });
+    const sending = { ...reminder, deliveryMethod: channel };
+    const ok = await deliverReminder(sending);
+    if (wasHeld(sending)) {
+      result.held++; // a text due in quiet hours waits until 08:00 (reminder-text-guard.ts)
+      continue;
+    }
     if (ok) result.delivered++;
     else result.failed++;
     const how = ok ? `reminder delivered (${channel})` : 'reminder could not be delivered';

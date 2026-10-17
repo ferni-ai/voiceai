@@ -161,7 +161,7 @@ If no recipient specified, sends to the user themselves.`,
           return `Got it! I'll text you on ${timeStr}: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return "I don't have your phone number yet. What's a good number to reach you at?";
+            return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
           }
           return `I couldn't schedule that: ${result.error}`;
         }
@@ -218,7 +218,7 @@ The call will play a voice message when answered.`,
           return `I'll call you on ${timeStr}. When you answer, you'll hear: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return "I don't have your phone number yet. What's your number?";
+            return `I can't call you yet: there's no verified phone number on your account. You can add one in Settings.`;
           }
           return `I couldn't schedule that call: ${result.error}`;
         }
@@ -321,7 +321,7 @@ Use when the user says:
           return `Done! I just texted you: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return "I don't have your phone number. What's your number?";
+            return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
           }
           return `I couldn't send that text: ${result.error}`;
         }
@@ -706,7 +706,7 @@ Picks the time from the contact's learned response patterns.`,
 Reminder: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' : ''}"`;
           } else {
             if (result.error?.includes('phone')) {
-              return "I don't have your phone number yet. What's a good number?";
+              return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
             }
             if (result.error?.includes('email')) {
               return "I don't have an email address on file. What's your email?";

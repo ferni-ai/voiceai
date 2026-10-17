@@ -101,6 +101,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllEnvs();
   delete process.env.CALL_FOLLOWTHROUGH;
   delete process.env.SIP_TRUNK_ID;
   delete process.env.LIVEKIT_API_SECRET;
@@ -267,6 +268,7 @@ describe('scheduleCallRetryById (voicemail detection holds only the callId)', ()
 
 describe('placing the retry', () => {
   it('the scheduled-outreach job places it when due', async () => {
+    vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'on'); // a call to someone else: founder opt-in
     await schedule();
 
     // The job places at the wall-clock time, which must be inside calling hours.
