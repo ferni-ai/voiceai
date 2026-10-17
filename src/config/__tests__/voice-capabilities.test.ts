@@ -42,7 +42,9 @@ describe('voiceHonorsProsodyTags', () => {
   });
 
   it("returns true for Ferni's voice, so <emotion> and <speed> reach the render", () => {
-    expect(VOICE_IDS.FERNI).toBe(LEGACY_FERNI_IVC_VOICE_ID);
+    // Ferni is an instant clone ("calm B", 2026-10-16): measured honouring
+    // <speed> (0.8 → 11-12% slower) and <emotion>; never a Pro clone.
+    expect(VOICE_IDS.FERNI).not.toBe(LESTER_PRO_V3_VOICE_ID);
     expect(voiceHonorsProsodyTags(VOICE_IDS.FERNI)).toBe(true);
   });
 
