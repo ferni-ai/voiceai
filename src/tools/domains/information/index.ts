@@ -4,7 +4,7 @@
  * Tools for accessing information: news, weather, sports scores.
  * This domain provides properly-routed consolidated tools for the LLM.
  *
- * Web search: searchWeb, grounded in Google Search with WEB_SEARCH=on (web-search.ts).
+ * Web search: searchWeb (search.ts), grounded in Google Search with WEB_SEARCH=on.
  *
  * DOMAIN: information
  * TOOLS:
@@ -33,7 +33,6 @@ import { getSportScores, getTeamScore } from './sports.js';
 import { createTrafficTools } from './traffic.js';
 import { createNutritionTools } from './nutrition.js';
 import { createSearchTools } from './search.js';
-import { withGroundedSearch } from './web-search.js';
 import { createDailyBriefingTools } from './daily-briefing.js';
 
 // Import new "Better Than Human" tool systems
@@ -388,14 +387,12 @@ function getSearchToolDefinitions(): ToolDefinition[] {
   const legacyTools = createSearchTools();
 
   return [
-    withGroundedSearch(
-      wrapLegacyTool(
-        'searchWeb',
-        'Search Web',
-        'Search the web using DuckDuckGo for general information. Use when user asks about facts, definitions, or wants to look something up.',
-        legacyTools.searchWeb,
-        ['search', 'web', 'lookup', 'information']
-      )
+    wrapLegacyTool(
+      'searchWeb',
+      'Search Web',
+      'Search the web using DuckDuckGo for general information. Use when user asks about facts, definitions, or wants to look something up.',
+      legacyTools.searchWeb,
+      ['search', 'web', 'lookup', 'information']
     ),
     wrapLegacyTool(
       'searchWikipedia',
