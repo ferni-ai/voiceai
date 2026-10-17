@@ -3,6 +3,7 @@ import {
   applyCallerFlags,
   applyFlags,
   FLAG_CACHE_TTL_MS,
+  FLAG_STALE_MAX_MS,
   flagForUser,
   forgetAgentValues,
   forgetFlagCache,
@@ -224,6 +225,51 @@ describe('per-user lookup for servers that serve many users (flagForUser, usersW
     expect(
       await flagForUser('never-read', 'PROACTIVE_CHANNELS', { ...opts, store: failing() })
     ).toBe(undefined);
+  });
+
+  it("an override turned 'off' drops them on the next rebuild, within one cache period", async () => {
+    let t = 1_000_000;
+    let value = 'on';
+    const s: CohortStore = {
+      cohortsFor: async () => [],
+      overridesFor: async () => ({ PROACTIVE_CHANNELS: value }),
+    };
+    const one: FlagHolderStore = { candidatesFor: async () => ['solo'] };
+    const opts = { store: s, holders: one, env: ON, now: () => t };
+    // Another path (flagForUser) has their 'on' in the per-user cache.
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    t += 1_000;
+    value = 'off';
+    t += 30_000; // first holder rebuild, 30s after the flip, per-user cache still warm
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual([]);
+  });
+
+  it('a stale list stands in for a failed read for at most 5 minutes, then no one', async () => {
+    let t = 1_000_000;
+    let down = false;
+    const one: FlagHolderStore = {
+      candidatesFor: async () => (down ? Promise.reject(new Error('down')) : ['solo']),
+    };
+    const opts = { store: data, holders: one, env: ON, now: () => t };
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual(['solo']);
+    down = true;
+    t += FLAG_STALE_MAX_MS - 1;
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual(['solo']);
+    t += 1;
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual([]);
+  });
+
+  it("a person's cached flags stand in for a failed read for at most 5 minutes", async () => {
+    let t = 1_000_000;
+    const overrides = vi.fn(async () => ({ PROACTIVE_CHANNELS: 'on' }));
+    const s: CohortStore = { cohortsFor: async () => [], overridesFor: overrides };
+    const opts = { store: s, env: ON, now: () => t };
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    overrides.mockRejectedValue(new Error('down'));
+    t += FLAG_STALE_MAX_MS - 1;
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    t += 1;
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBeUndefined();
   });
 
   it('a failed holder read finds no one rather than throwing', async () => {
