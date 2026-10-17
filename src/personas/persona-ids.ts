@@ -128,7 +128,7 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
 
   // Peter John (Researcher)
   'peter-john': 'peter-john',
-  peter: 'peter-john',
+  peter: 'peter-john', // Ferni's Peter; the Financial Legend peter-lynch is Tom Brannigan
   'peter john': 'peter-john',
   john: 'peter-john', // Last name alias
   researcher: 'peter-john',
@@ -284,9 +284,10 @@ export const DISPLAY_NAMES: Record<CanonicalPersonaId, string> = {
   'maya-santos': 'Maya',
   'jordan-taylor': 'Jordan',
   'nayan-patel': 'Nayan',
-  'joel-dickson': 'Joel',
-  'peter-lynch': 'Peter Lynch',
-  'john-bogle': 'John Bogle',
+  // Fictional characters inspired by investing philosophies, not the real people the ids are named for.
+  'joel-dickson': 'Nate Holloway',
+  'peter-lynch': 'Tom Brannigan',
+  'john-bogle': 'Henry Caldwell',
 };
 
 export function getDisplayName(id: string): string {

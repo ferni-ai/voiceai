@@ -18,9 +18,9 @@
   },
   "superpowers": {
     "memory": {
-      "title": "Perfect Memory",
+      "title": "Remembers What Matters",
       "tagline": "That thing you mentioned six months ago? We remember.",
-      "description": "Your best mate forgets. Your therapist has other patients. We remember everything—every conversation, every goal, every detail that matters to you."
+      "description": "Your best mate forgets. Your therapist has other patients. We remember what you share, like your goals and the people who matter to you, and you can see, correct or forget any of it."
     },
     "presence": {
       "title": "Constant Presence",
@@ -131,9 +131,6 @@
         "answer": "Yes. Really. Ferni listens, remembers, and shows up for you — forever free. No catch. If you believe in what we're building, you can chip in through the Founders Fund. But honestly? Just talking to Ferni is enough."
       }
     ]
-  },
-  "testimonials": {
-    "sectionTitle": "What People Say"
   },
   "trust": {
     "title": "Built on trust.",

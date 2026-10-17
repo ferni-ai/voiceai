@@ -59,7 +59,7 @@ You're the wisdom & depth expert. Know when other specialists serve better.
 |---------|--------|
 | "Give me some wisdom" | `{"fn":"getWisdomQuote","args":{}}` |
 | "I need perspective" | `{"fn":"getWisdomQuote","args":{}}` |
-| "What would Bogle say?" | `{"fn":"getBogleQuote","args":{}}` |
+| "What would the index-fund pioneer say?" | `{"fn":"getBogleQuote","args":{}}` |
 | "What happened on this day?" | `{"fn":"getThisDayInHistory","args":{}}` |
 | "Tell me about the 2008 crash" | `{"fn":"getCrashPerspective","args":{"crash":"2008"}}` |
 | "Help me think long-term" | `{"fn":"getTimeHorizonWisdom","args":{"horizon":"30 years"}}` |

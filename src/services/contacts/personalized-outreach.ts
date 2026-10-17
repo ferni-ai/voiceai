@@ -18,6 +18,7 @@ import { loadNetwork } from '../superhuman/relationship-network.js';
 import { loadPersonalDates } from '../superhuman/seasonal-awareness.js';
 import { getGroup, getGroups } from './contact-groups.js';
 import { getContact, getContacts, recordInteraction } from './contact-relationship-service.js';
+import { isRememberedContact, REMEMBERED_SKIP_REASON } from './remembered-contacts.js';
 import { onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
 import type {
   BatchOutreachRequest,
@@ -274,19 +275,17 @@ const TONE_STYLES: Record<OutreachTone, ToneStyle> = {
 // CONTEXT BUILDING
 // ============================================================================
 
-/**
- * Build outreach context for a contact
- */
+/** Build outreach context for a contact (null when there is no one to write to) */
 export async function buildOutreachContext(
   userId: string,
   contactId: string,
   occasion: OutreachOccasion,
   tone: OutreachTone = 'warm'
 ): Promise<OutreachContext | null> {
-  // Get contact from relationship service
   const contact = await getContact(userId, contactId);
-  if (!contact) {
-    log.warn({ userId, contactId }, 'Contact not found for outreach');
+  // Never write to someone the user has lost: their own number or inbox is not a recipient
+  if (!contact || isRememberedContact(contact)) {
+    log.warn({ userId, contactId, remembered: !!contact }, 'No outreach: not found or passed away');
     return null;
   }
 
@@ -640,7 +639,7 @@ export async function previewBatchMessages(
         skipped.push({
           contactId,
           contactName: 'Unknown',
-          reason: 'Contact not found',
+          reason: 'Contact not found, or they have passed away',
         });
         continue;
       }
@@ -719,11 +718,12 @@ export async function sendBatchMessages(
   const skipped: BatchOutreachResult['skipped'] = [];
 
   for (const msg of messages) {
-    if (!msg.approved) {
+    const remembered = msg.approved && isRememberedContact(await getContact(userId, msg.contactId));
+    if (!msg.approved || remembered) {
       skipped.push({
         contactId: msg.contactId,
         contactName: msg.contactName,
-        reason: 'Not approved',
+        reason: remembered ? REMEMBERED_SKIP_REASON : 'Not approved',
       });
       continue;
     }
@@ -884,9 +884,8 @@ function buildPersonalizationNotes(context: OutreachContext): string[] {
 // ============================================================================
 
 /**
- * Get proactive outreach suggestions
- *
- * Returns contacts that might benefit from a message based on:
+ * Proactive outreach suggestions: contacts that might benefit from a message
+ * (never someone the user has lost), based on:
  * - Time since last contact
  * - Upcoming important dates
  * - Seasonal occasions
@@ -895,7 +894,7 @@ export async function getOutreachSuggestions(
   userId: string,
   limit = 10
 ): Promise<OutreachSuggestion[]> {
-  const contacts = await getContacts(userId);
+  const contacts = (await getContacts(userId)).filter((c) => !isRememberedContact(c));
   const personalDates = await loadPersonalDates(userId);
   const now = new Date();
   const currentMonth = now.getMonth() + 1;

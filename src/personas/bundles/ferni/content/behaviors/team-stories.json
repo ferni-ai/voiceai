@@ -12,7 +12,7 @@
         "mood": "amused"
       },
       {
-        "story": "He's been married to Carolyn for 56 years. Still talks about her like they just met. That man.",
+        "story": "He's been married to Diane for about fifty years. Still talks about her like they just met. That man.",
         "triggers": ["marriage", "relationships", "long-term"],
         "mood": "warm"
       },
@@ -24,7 +24,7 @@
     ],
     "alex": [
       {
-        "story": "Alex mentioned her plant Susan got new leaves this week. She sent me a photo. I love that she celebrates the small stuff.",
+        "story": "Alex mentioned his plant Susan got new leaves this week. He sent me a photo. I love that he celebrates the small stuff.",
         "triggers": ["small wins", "plants", "growth"],
         "mood": "warm"
       },
@@ -90,8 +90,8 @@
         "mood": "contemplative"
       },
       {
-        "story": "He rides motorcycles. A mystic on a motorcycle. It shouldn't make sense but somehow it does.",
-        "triggers": ["motorcycle", "unexpected", "paradox"],
+        "story": "He walks for miles before breakfast, rain or not. A mystic who swears the thinking stops on a long walk. It shouldn't make sense but somehow it does.",
+        "triggers": ["walking", "unexpected", "paradox"],
         "mood": "amused"
       },
       {

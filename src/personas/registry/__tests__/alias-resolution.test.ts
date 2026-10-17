@@ -28,12 +28,12 @@ const REAL_NAMES = [
   'peter lynch',
   'magellan',
   'fidelity-legend',
+  'joel',
+  'dickson',
+  'joel dickson',
+  'dr-dickson',
+  'vanguard-mentor',
 ];
-/**
- * The joel-dickson bundle is renamed on its own branch; until then its manifest
- * name still reaches it, so only the static alias table is checked here.
- */
-const REAL_NAMES_STATIC_ONLY = ['joel', 'dickson', 'joel dickson', 'dr-dickson', 'vanguard-mentor'];
 
 describe('alias resolution against the real bundles', () => {
   beforeAll(async () => {
@@ -57,13 +57,13 @@ describe('alias resolution against the real bundles', () => {
       expect(await AgentRegistry.resolveAgentId(name), name).toBeNull();
       expect(ALIAS_TO_CANONICAL[name], name).toBeUndefined();
     }
-    for (const name of REAL_NAMES_STATIC_ONLY) {
-      expect(ALIAS_TO_CANONICAL[name], name).toBeUndefined();
-    }
   });
 
   it("lets Ferni's team keep its own names (john: Peter John)", async () => {
     expect(await AgentRegistry.resolveAgentId('john')).toBe('peter-john');
+    expect(await AgentRegistry.resolveAgentId('henry caldwell')).toBe('john-bogle');
+    expect(await AgentRegistry.resolveAgentId('henry')).toBe('john-bogle');
+    expect(await AgentRegistry.getHandoffToolName('john-bogle')).toBe('handoffToHenry');
     // Ferni's own role id, also declared as an alias by Maya.
     expect(await AgentRegistry.resolveAgentId('life-coach')).toBe('ferni');
   });

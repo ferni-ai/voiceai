@@ -240,19 +240,17 @@
    ======================================================= */
 
 @media (prefers-color-scheme: dark) {
-  .nav {
-    background: rgba(88, 72, 64, 0.85);
+  /* Dark glass bar, the same overlay and hairline as the base and legal navs */
+  .nav,
+  .nav.is-scrolled {
+    background: var(--color-bg-overlay);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(244, 239, 230, 0.10);
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
-  .nav.is-scrolled {
-    background: rgba(88, 72, 64, 0.95);
-    box-shadow: var(--shadow-md);
-  }
-
-  /* Logo text - explicit light color for dark mode */
+  .nav.is-scrolled { box-shadow: var(--shadow-md); }
+  .nav__logo--wordmark-only .nav__logo-text { -webkit-text-fill-color: var(--color-ferni-text); }
   .nav__logo-text,
   .nav-logo,
   .logo-text {
@@ -346,7 +344,7 @@
   
   .hero__bg-orb {
     opacity: 0.5;
-    filter: saturate(1.2);
+    filter: blur(80px) saturate(1.2); /* keep story-brand.css blur: without it the orbs are hard discs */
   }
 
   /* Ferni Avatar */
@@ -445,7 +443,7 @@
 @media (prefers-color-scheme: dark) {
   .two-am {
     /* Explicit dark gradient - var(--color-background-deep) doesn't exist in tokens */
-    background: linear-gradient(180deg, var(--cinematic-black-rich) 0%, var(--color-text-primary) 100%);
+    background: linear-gradient(180deg, var(--cinematic-black-rich) 0%, var(--color-bg-tertiary) 100%);
   }
 
   .two-am__darkness {
@@ -2072,14 +2070,14 @@
 
 /* ----- Navigation ----- */
 [data-theme="dark"] .nav {
-  background: rgba(88, 72, 64, 0.85);
+  background: var(--color-bg-overlay);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(244, 239, 230, 0.10);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 [data-theme="dark"] .nav.is-scrolled {
-  background: rgba(88, 72, 64, 0.95);
+  background: var(--color-bg-overlay);
   box-shadow: var(--shadow-md);
 }
 
@@ -2170,7 +2168,7 @@
 
 [data-theme="dark"] .hero__bg-orb {
   opacity: 0.5;
-  filter: saturate(1.2);
+  filter: blur(80px) saturate(1.2); /* keep story-brand.css blur: without it the orbs are hard discs */
 }
 
 [data-theme="dark"] .hero__tagline {
@@ -3325,6 +3323,12 @@
     box-shadow: 0 0 20px rgba(157, 192, 130, 0.15);
   }
 
+  /* The hero avatar is a square box around a round SVG face, and it tilts.
+     A box-shadow there draws a rotated square; the SVG has its own glow ring. */
+  .ferni-avatar.breathing {
+    box-shadow: none;
+  }
+
   /* Testimonial quote marks — boost opacity for visibility */
   .testimonial__quote::before,
   .testimonial__quote::after {
@@ -3361,6 +3365,10 @@
 [data-theme="dark"] .breathing,
 [data-theme="dark"] [class*="breathing-"] {
   box-shadow: 0 0 20px rgba(157, 192, 130, 0.15);
+}
+
+[data-theme="dark"] .ferni-avatar.breathing {
+  box-shadow: none;
 }
 
 [data-theme="dark"] .testimonial__quote::before,

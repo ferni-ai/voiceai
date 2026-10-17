@@ -9,7 +9,9 @@ import { shouldSkipGenerateReply } from '../../handoff/unified-state.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { armSilentLine } from '../outbound-call/silent-line.js';
+import { goodbyesSaid } from '../shared/call-farewell.js';
 import { canTriggerProactive } from '../shared/response-orchestrator.js';
+import { musicHoldsRemark } from './silence-remark-guard.js';
 
 /**
  * The caller said they were stepping away ("give me a second, I'm going to open
@@ -18,7 +20,7 @@ import { canTriggerProactive } from '../shared/response-orchestrator.js';
  * later. Word-bounded phrases only (substring-classifier-pitfalls).
  */
 const STEPPED_AWAY =
-  /\b(?:give me (?:a|one) (?:sec|second|minute|moment)|(?:one|just a|wait a) (?:sec|second|minute|moment)|hold on|hang on|be right back|brb|bear with me|back in a (?:sec|second|minute|moment|bit))\b/i;
+  /\b(?:give me (?:a|one) (?:sec|second|minute|moment)|(?:one|just a|wait a) (?:sec|second|minute|moment)|hold on|hang on|let me (?:grab|get|check|find)|be right back|brb|bear with me|back in a (?:sec|second|minute|moment|bit))\b/i;
 /** How long a promise to wait holds before a check-in is natural again. */
 const STEP_AWAY_GRACE_SEC = 120;
 
@@ -45,8 +47,15 @@ export function silenceResponseBlocked(
       silenceSec: Math.round(silenceDurationSec),
     });
   }
+  // Both said goodbye: the next thing is the call ending, not a remark (call-farewell.ts).
+  const farewell = goodbyesSaid(sessionId);
+  if (farewell) {
+    diag.state('🤫 [SILENCE] Skipped - goodbyes said', {
+      silenceSec: Math.round(silenceDurationSec),
+    });
+  }
   // A placed call whose other end stays quiet gets hung up (silent-line.ts).
-  const silentLine = !steppedAway && armSilentLine(sessionId, silenceDurationSec);
+  const silentLine = armSilentLine(sessionId, silenceDurationSec, undefined, { hold: steppedAway });
 
   // FIX: Skip silence response if tools are actively executing (e.g., music search)
   // This prevents gateway timeouts when LLM is busy processing tool calls
@@ -87,6 +96,9 @@ export function silenceResponseBlocked(
     });
   }
 
+  // SILENCE_REMARK_GUARD: his music is playing (the early dead-air path already held back for it).
+  const music = musicHoldsRemark(silenceDurationSec);
+
   // ResponseOrchestrator check: Only trigger if SDK is not currently handling a response
   // This is the key integration point for the clean architecture
   const sdkIdle = canTriggerProactive(sessionId);
@@ -97,6 +109,13 @@ export function silenceResponseBlocked(
   }
 
   return Boolean(
-    steppedAway || silentLine || toolsActive || handoffOrDraining || noParticipants || !sdkIdle
+    steppedAway ||
+    farewell ||
+    silentLine ||
+    toolsActive ||
+    handoffOrDraining ||
+    noParticipants ||
+    music ||
+    !sdkIdle
   );
 }

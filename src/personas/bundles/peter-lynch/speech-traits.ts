@@ -1,8 +1,8 @@
 /**
- * Tom Brannigan Speech Traits
+ * Tom Brannigan (peter-lynch) Speech Traits
  *
  * Defines voice pacing, pauses, and timing characteristics
- * for the Tom Brannigan persona (id: peter-lynch).
+ * for the Tom Brannigan persona.
  */
 
 export const peterLynchSpeechTraits = {
@@ -30,9 +30,9 @@ export const peterLynchSpeechTraits = {
     /** Phrases that slow down for impact */
     slowPhrases: [
       'invest in what you know',
-      'know why you own it',
+      'look under the hood',
       'do your homework',
-      'every stock is a business',
+      'the story behind the numbers',
     ],
   },
 

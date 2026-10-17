@@ -10,7 +10,7 @@ How to build, maintain, and extend marketplace agents for Ferni.
 
 | Agent | ID | Category | Icon | Files |
 |-------|-----|----------|------|-------|
-| **Jack Bogle** | `jack-bogle` | Mentoring | 🧓 | ~25 |
+| **Henry Caldwell** (index investing) | `jack-bogle` | Mentoring | 🧓 | ~25 |
 | **River** | `river-grief-companion` | Lifestyle | 🕊️ | ~20 |
 | **Zen** | `zen-presence-guide` | Health | 🧘 | ~20 |
 | **Moxie** | `moxie-accountability` | Productivity | 🔥 | ~45 |
@@ -24,7 +24,7 @@ How to build, maintain, and extend marketplace agents for Ferni.
 
 | Agent | ID | Reason | Files Location |
 |-------|-----|--------|----------------|
-| **Joel Dickson** | `joel-dickson` | Paused for later | `agents/joel-dickson/` |
+| **Nate Holloway** (life mentor) | `joel-dickson` | Paused for later | `agents/joel-dickson/` |
 
 ### 📋 Recommended Phase 2 Agents (Not Started)
 
@@ -247,7 +247,7 @@ Use earthy, warm tones per Ferni brand guidelines. Avoid:
 
 ## Restoring an Archived Agent
 
-To bring back Joel Dickson or other archived agents:
+To bring back Nate Holloway (`joel-dickson`) or other archived agents:
 
 1. Check that files exist in `agents/{agent-id}/`
 2. Add entry back to `registry.json`

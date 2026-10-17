@@ -104,4 +104,40 @@ describe('gateway → Director turn wiring', () => {
     expect(takeReplyAudioPlan(SESSION, replyId2)).toBeUndefined();
     expect(pushes.at(-1)).toBeDefined();
   });
+
+  it('hands a laugh the Director added to the onNonverbal the session layer passed in', async () => {
+    process.env.SPEECH_DIRECTOR = 'live';
+    process.env.SPEECH_DIRECTOR_LAUGHTER = 'live';
+    vi.spyOn(Math, 'random').mockReturnValue(0); // every roll passes
+    try {
+      const { createGatewayTTSNode } = await import('../../gateway-tts-node.js');
+      const added: unknown[] = [];
+      const node = createGatewayTTSNode({
+        voiceId: LESTER_PRO_V3_VOICE_ID,
+        sessionId: SESSION,
+        personaId: 'jordan-taylor', // laughs readily (director-quirks.test.ts)
+        turnContext: { turnNumber: 10, userRequest: 'haha that was a good one', comfortLevel: 1 },
+        enableCache: false,
+        onNonverbal: (n) => void added.push(n),
+      });
+      const audio = await node(
+        new ReadableStream<string>({
+          start(c) {
+            c.enqueue("I'm just teasing you, you know that. Anyway, how was the weekend?");
+            c.close();
+          },
+        })
+      );
+      for await (const _ of audio!) {
+        /* drain */
+      }
+      expect(pushes.join('')).toContain('[laughter]');
+      expect(added).toContainEqual(
+        expect.objectContaining({ kind: 'laugh', source: 'director', personaId: 'jordan-taylor' })
+      );
+    } finally {
+      delete process.env.SPEECH_DIRECTOR_LAUGHTER;
+      vi.restoreAllMocks();
+    }
+  });
 });

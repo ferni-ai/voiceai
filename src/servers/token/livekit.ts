@@ -44,7 +44,7 @@ export function getLiveKitUrl(): string {
 /**
  * Get or create RoomServiceClient
  */
-function getRoomService(): RoomServiceClient {
+export function getRoomService(): RoomServiceClient {
   if (!roomService) {
     roomService = new RoomServiceClient(LIVEKIT_HOST, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
   }
@@ -70,10 +70,11 @@ function getAgentDispatch(): AgentDispatchClient | null {
  * Create a LiveKit access token
  */
 export async function createToken(options: TokenOptions): Promise<string> {
-  const { roomName, participantName, metadata = {}, ttl = '10m' } = options;
+  const { roomName, participantName, identity, metadata = {}, ttl = '10m' } = options;
 
   const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-    identity: participantName,
+    identity: identity ?? participantName,
+    name: participantName,
     ttl,
     metadata: JSON.stringify(metadata),
   });

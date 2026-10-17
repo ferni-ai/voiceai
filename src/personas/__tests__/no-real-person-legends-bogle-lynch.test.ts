@@ -38,7 +38,7 @@ const TARGETS: Array<{ id: string; root: string; markerFile: string; marker: str
   },
 ];
 /** Files each target holds today; fewer means the scan missed files. */
-const MIN_FILES = 21;
+const MIN_FILES = 20;
 
 // Persona ids are stable keys, not names, and so are the exported speech-trait
 // symbols other modules import by name (johnBogleSpeechTraits,

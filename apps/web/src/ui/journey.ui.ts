@@ -22,7 +22,8 @@
  */
 
 import { t } from '../i18n/index.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
+import { isNoStreaksOn, shownStreak } from '../config/no-streaks.js';
 import { 
   relationshipStageService, 
   getTranslatedStageName,
@@ -46,7 +47,7 @@ import type { TrustJourneyData } from './trust-journey/types.js';
 
 const log = createLogger('JourneyUI');
 
-type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' | 'error';
+export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' | 'error';
 
 // ============================================================================
 // VOICE ID STATUS
@@ -348,8 +349,7 @@ function createModal(): void {
     if (categoryGroup) categoryGroup.push(m);
   }
 
-  // Calculate streak info
-  const streak = progress.currentStreak;
+  const streak = shownStreak(progress.currentStreak); // 0 under VITE_NO_STREAKS: not shared
   const totalDays = progress.conversationDays.length;
 
   journeyModal = document.createElement('div');
@@ -390,11 +390,11 @@ function createModal(): void {
               <span class="journey-stat__value">${stageMetrics.daysSinceFirstMeeting}</span>
               <span class="journey-stat__label">days together</span>
             </div>
-            <div class="journey-stat">
+            ${isNoStreaksOn() ? '' : `<div class="journey-stat">
               <span class="journey-stat__icon">${ICONS.flame}</span>
               <span class="journey-stat__value">${stageMetrics.currentStreak}</span>
               <span class="journey-stat__label">day streak</span>
-            </div>
+            </div>`}
             <div class="journey-stat journey-stat--voice-id" id="journey-voice-id-stat">
               <span class="journey-stat__icon">${ICONS.shield}</span>
               <span class="journey-stat__value journey-stat__value--loading">...</span>
@@ -522,7 +522,7 @@ function createModal(): void {
 // CONNECTION STATE
 // ============================================================================
 
-function renderConnectionBanner(state: ConnectionState): string {
+export function renderConnectionBanner(state: ConnectionState): string {
   switch (state) {
     case 'connected':
     case 'speaking':
@@ -561,13 +561,13 @@ function renderConnectionBanner(state: ConnectionState): string {
 
     case 'disconnected':
     default:
-      // Disconnected - show connect CTA
+      // Idle is the normal resting state, not a failure: invite, don't apologize
       return `
-        <div class="journey-connection journey-connection--disconnected">
-          <span class="journey-connection__icon">${ICONS.heartBroken}</span>
+        <div class="journey-connection journey-connection--idle">
+          <span class="journey-connection__icon">${ICONS.messageHeart}</span>
           <div class="journey-connection__content">
-            <span class="journey-connection__text">${t('journey.connectionDisconnected')}</span>
-            <p class="journey-connection__subtext">${t('journey.connectionDisconnectedMessage')}</p>
+            <span class="journey-connection__text">${t('journey.connectionIdle')}</span>
+            <p class="journey-connection__subtext">${t('journey.connectionIdleMessage')}</p>
           </div>
           <button class="journey-connect-btn">
             ${ICONS.phone}
@@ -1092,7 +1092,7 @@ async function animateIn(modal: HTMLElement): Promise<void> {
 
   if (backdrop) {
     backdrop.style.opacity = '0';
-    backdrop.animate([{ opacity: '0' }, { opacity: '1' }], {
+    safeAnimate(backdrop, [{ opacity: '0' }, { opacity: '1' }], {
       duration: DURATION.SLOW,
       easing: 'ease-out',
       fill: 'forwards',
@@ -1105,7 +1105,7 @@ async function animateIn(modal: HTMLElement): Promise<void> {
     if (isMobile) {
       content.style.opacity = '0';
       content.style.transform = 'translateY(100%)';
-      content.animate(
+      safeAnimate(content,
         [
           { opacity: '0', transform: 'translateY(100%)' },
           { opacity: '1', transform: 'translateY(0)' },
@@ -1119,7 +1119,7 @@ async function animateIn(modal: HTMLElement): Promise<void> {
     } else {
       content.style.opacity = '0';
       content.style.transform = 'scale(0.95) translateY(20px)';
-      content.animate(
+      safeAnimate(content,
         [
           { opacity: '0', transform: 'scale(0.95) translateY(20px)' },
           { opacity: '1', transform: 'scale(1) translateY(0)' },
@@ -1143,7 +1143,7 @@ async function animateOut(modal: HTMLElement): Promise<void> {
 
   if (backdrop) {
     animations.push(
-      backdrop.animate([{ opacity: '1' }, { opacity: '0' }], {
+      safeAnimate(backdrop, [{ opacity: '1' }, { opacity: '0' }], {
         duration: DURATION.NORMAL,
         easing: 'ease-out',
         fill: 'forwards',
@@ -1156,7 +1156,7 @@ async function animateOut(modal: HTMLElement): Promise<void> {
     // Desktop: scale + fade out
     if (isMobile) {
       animations.push(
-        content.animate(
+        safeAnimate(content,
           [
             { opacity: '1', transform: 'translateY(0)' },
             { opacity: '0', transform: 'translateY(100%)' },
@@ -1170,7 +1170,7 @@ async function animateOut(modal: HTMLElement): Promise<void> {
       );
     } else {
       animations.push(
-        content.animate(
+        safeAnimate(content,
           [
             { opacity: '1', transform: 'scale(1) translateY(0)' },
             { opacity: '0', transform: 'scale(0.98) translateY(-10px)' },

@@ -61,6 +61,11 @@ export function understandingFor(session: object, text: string): Understanding |
   return understanders.get(session)?.forTurn(text)?.result ?? null;
 }
 
+/** What the model understood of the caller's last finished turn, or null (deliberation.ts). */
+export function understandingOfLastTurn(session: object): Understanding | null {
+  return understanders.get(session)?.previous ?? null;
+}
+
 /** Whether this session's understanding covers `text` right now (counts only), or null when off. */
 /**
  * The latest answer's labels (no words), whether or not it covers the whole turn:
@@ -85,13 +90,26 @@ export function understandingStatusFor(
     : null;
 }
 
-export const UNDERSTANDING_PROMPT = `You listen in on a phone call between a caller and their friend Ferni. Read the caller's words (EARLIER is context; judge NOW, which may still be mid-sentence) and return JSON only:
+/**
+ * The prompt naming the persona on the call (DIRECTOR_PERSONA_AWARE, after a
+ * handoff); for Ferni it is UNDERSTANDING_PROMPT exactly. The "about_ferni"
+ * label is the turn shape's move name, whoever is on the call.
+ */
+export function understandingPrompt(name = 'Ferni'): string {
+  const ferni = name === 'Ferni';
+  const n = name;
+  const self = ferni ? 'Ferni himself' : name;
+  const him = ferni ? 'him' : name;
+  return `You listen in on a phone call between a caller and their friend ${n}. Read the caller's words (EARLIER is context; judge NOW, which may still be mid-sentence) and return JSON only:
 {"move":"ack"|"lookup"|"request"|"about_ferni"|"share","needsTool":bool,"mood":"venting"|"tender"|"bad_news"|"funny"|"surprise"|"excited"|"neutral","laughed":bool,"laughFits":bool,"adviceFits":bool,"wantsToEnd":bool,"reaction":string|null}
-move: ack = a short acknowledgement ("yeah", "okay", "thanks"); lookup = asks for live facts (weather, news, scores, times, prices); request = asks Ferni to do or explain something; about_ferni = asks about Ferni himself; share = telling something about their own life or thoughts.
+move: ack = a short acknowledgement ("yeah", "okay", "thanks"); lookup = asks for live facts (weather, news, scores, times, prices); request = asks ${n} to do or explain something; about_ferni = asks about ${self}; share = telling something about their own life or thoughts.
 needsTool: true if answering well means doing something (timer, alarm, reminder, music, calendar, note, remembering a fact they asked to keep) or looking something up.
 mood: venting = frustrated, tired, stressed or upset; tender = moved, emotional in a warm way; bad_news = something went wrong or someone is hurt or sick; funny = amusing; surprise = big or unexpected news; excited = happy and energized.
-laughed: they laughed or are joking. laughFits: a good friend would genuinely laugh here (never at bad news, grief, tenderness or venting). adviceFits: the moment is light and nothing is asked of Ferni right now.
-reaction: what a close friend might murmur while still listening to something they are telling ("Oh no", "Ha", "Aw", "Whoa", "No way", "Oof", "Mm"), or null when silence is better. Always null when they ask Ferni something or ask him to do something: that gets a reply, not a murmur.`;
+laughed: they laughed or are joking. laughFits: a good friend would genuinely laugh here (never at bad news, grief, tenderness or venting). adviceFits: the moment is light and nothing is asked of ${n} right now.
+reaction: what a close friend might murmur while still listening to something they are telling ("Oh no", "Ha", "Aw", "Whoa", "No way", "Oof", "Mm"), or null when silence is better. Always null when they ask ${n} something or ask ${him} to do something: that gets a reply, not a murmur.`;
+}
+
+export const UNDERSTANDING_PROMPT = understandingPrompt();
 
 const MOVES = new Set(['ack', 'lookup', 'request', 'about_ferni', 'share']);
 const MOODS = new Set(['venting', 'tender', 'bad_news', 'funny', 'surprise', 'excited', 'neutral']);
@@ -162,6 +180,8 @@ const words = (t: string): string[] => t.toLowerCase().match(/[a-z0-9']+/g) ?? [
  */
 export class TurnUnderstander {
   private latest: { text: string; result: Understanding; at: number } | null = null;
+  /** The understanding that covered the last finished turn, kept past newTurn(). */
+  previous: Understanding | null = null;
   private running: string | null = null;
   private pending: string | null = null;
   private earlier: string[] = [];
@@ -177,7 +197,9 @@ export class TurnUnderstander {
   constructor(
     private readonly understand: UnderstandFn,
     private readonly now: () => number = Date.now,
-    private readonly timeoutMs = TIMEOUT_MS
+    private readonly timeoutMs = TIMEOUT_MS,
+    /** The prompt for whoever is on the call now (read per call: a handoff changes it). */
+    private readonly prompt: () => string = () => UNDERSTANDING_PROMPT
   ) {}
 
   /** The whole turn so far (finals plus the current interim). */
@@ -260,6 +282,7 @@ export class TurnUnderstander {
 
   /** A new caller turn begins: the last one becomes context, and its call is dropped. */
   newTurn(lastTurn: string): void {
+    this.previous = this.forTurn(lastTurn)?.result ?? null;
     if (lastTurn.trim()) this.earlier = [...this.earlier, lastTurn.trim()].slice(-3);
     this.turn++;
     this.inFlight?.abort();
@@ -290,7 +313,7 @@ export class TurnUnderstander {
       );
       const result = parseUnderstanding(
         await Promise.race([
-          this.understand(UNDERSTANDING_PROMPT, input, controller.signal),
+          this.understand(this.prompt(), input, controller.signal),
           aborted,
         ])
       );

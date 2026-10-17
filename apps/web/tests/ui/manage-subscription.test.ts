@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.resetModules();
   document.body.innerHTML = '';
   vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(IPHONE_UA);
-  mocks.apiGet.mockResolvedValue({ ok: true, status: 200, data: { tier: 'free' } });
+  mocks.apiGet.mockResolvedValue({ ok: true, status: 200, data: { tier: 'free', paywall: true } });
 });
 
 afterEach(() => {

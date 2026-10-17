@@ -723,9 +723,9 @@
     }
 
     /* ============================================
-       SECTION: TSUNAMI
+       SECTION: THE RIDGE
        ============================================ */
-    .tsunami-section {
+    .ridge-section {
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -735,13 +735,13 @@
       padding: 120px 0;
     }
 
-    .tsunami-content {
+    .ridge-content {
       text-align: center;
       max-width: 800px;
       padding: 0 40px;
     }
 
-    .tsunami-date {
+    .ridge-date {
       font-size: 14px;
       letter-spacing: 0.4em;
       color: rgba(255,255,255,0.3);
@@ -749,7 +749,7 @@
       opacity: 0;
     }
 
-    .tsunami-title {
+    .ridge-title {
       font-family: var(--font-display);
       font-size: clamp(32px, 5vw, 56px);
       margin-bottom: 48px;
@@ -757,7 +757,7 @@
       opacity: 0;
     }
 
-    .tsunami-body p {
+    .ridge-body p {
       font-size: clamp(16px, 1.5vw, 20px);
       line-height: 2;
       color: rgba(255,255,255,0.6);
@@ -765,12 +765,12 @@
       opacity: 0;
     }
 
-    .tsunami-body .highlight {
+    .ridge-body .highlight {
       color: var(--color-text-inverse);
       font-weight: 500;
     }
 
-    .tsunami-quote {
+    .ridge-quote {
       font-family: var(--font-display);
       font-size: clamp(24px, 3vw, 40px);
       font-style: italic;
@@ -1119,7 +1119,7 @@
     <div class="nav-dot" data-section="kintsugi" data-label="Kintsugi"></div>
     <div class="nav-dot" data-section="wyoming" data-label="Wyoming"></div>
     <div class="nav-dot" data-section="japan" data-label="Japan"></div>
-    <div class="nav-dot" data-section="tsunami" data-label="2011"></div>
+    <div class="nav-dot" data-section="the-ridge" data-label="The Ridge"></div>
     <div class="nav-dot" data-section="philosophy" data-label="Philosophy"></div>
     <div class="nav-dot" data-section="team" data-label="The Team"></div>
     <div class="nav-dot" data-section="closing" data-label="Promise"></div>
@@ -1304,17 +1304,17 @@
   </section>
 
   <!-- ============================================
-       TSUNAMI
+       THE RIDGE
        ============================================ -->
-  <section class="tsunami-section" id="tsunami">
-    <div class="tsunami-content">
-      <p class="tsunami-date">March 11, 2011</p>
-      <h2 class="tsunami-title">The Day Everything Shifted</h2>
-      <div class="tsunami-body">
-        <p>Standing in the aftermath, looking at destruction that couldn't have been imagined, Ferni learned what resilience really means. Not bouncing back—that's too light a word. <span class="highlight">Bowing and rising.</span> Absorbing the blow and still moving forward.</p>
-        <p>What do you say to someone whose entire village washed away? You don't say anything. <span class="highlight">You just stay.</span></p>
+  <section class="ridge-section" id="the-ridge">
+    <div class="ridge-content">
+      <p class="ridge-date">One October Sunday</p>
+      <h2 class="ridge-title">The Sunday He Didn't Go</h2>
+      <div class="ridge-body">
+        <p>Ferni cancelled a hike with his mentor that morning. Tanaka-san went alone, the fog came in, and he fell. In the months after, Ferni learned what resilience really means. Not bouncing back—that's too light a word. <span class="highlight">Bowing and rising.</span> Absorbing the blow and still moving forward.</p>
+        <p>What do you say to someone who wasn't there when it mattered? You don't say anything. <span class="highlight">You just stay.</span></p>
       </div>
-      <p class="tsunami-quote">"Presence matters more than words."</p>
+      <p class="ridge-quote">"Presence matters more than words."</p>
     </div>
   </section>
 
@@ -1553,7 +1553,7 @@
           <div class="persona-color-line" style="background: var(--color-nayan);"></div>
           <h3>Nayan Patel</h3>
           <div class="role">The Wisdom Sage</div>
-          <p class="bio">Patience of Bogle, simplicity of Gandhi, wit of Buffett. Mystic who rides motorcycles and understands compound interest—both financial and spiritual.</p>
+          <p class="bio">Patience of a long-run investor, simplicity of Gandhi, wit of Buffett. Mystic who rides motorcycles and understands compound interest—both financial and spiritual.</p>
           <div class="persona-traits">
             <span class="trait">Slowest pace (0.85x)</span>
             <span class="trait">Paradox lover</span>
@@ -1671,7 +1671,7 @@
     // CHAPTER NAVIGATION
     // ============================================
     const navDots = document.querySelectorAll('.nav-dot');
-    const sections = ['hero', 'kintsugi', 'wyoming', 'japan', 'tsunami', 'philosophy', 'team', 'closing'];
+    const sections = ['hero', 'kintsugi', 'wyoming', 'japan', 'the-ridge', 'philosophy', 'team', 'closing'];
 
     sections.forEach((id, index) => {
       ScrollTrigger.create({
@@ -1798,15 +1798,15 @@
         }
       });
 
-      // TSUNAMI
+      // THE RIDGE
       ScrollTrigger.create({
-        trigger: '.tsunami-section',
+        trigger: '.ridge-section',
         start: 'top 60%',
         onEnter: () => {
-          gsap.to('.tsunami-date', { opacity: 1, duration: 0.8 });
-          gsap.to('.tsunami-title', { opacity: 1, duration: 1, delay: 0.2 });
-          gsap.to('.tsunami-body p', { opacity: 1, duration: 0.8, stagger: 0.3, delay: 0.4 });
-          gsap.to('.tsunami-quote', { opacity: 1, duration: 1, delay: 1 });
+          gsap.to('.ridge-date', { opacity: 1, duration: 0.8 });
+          gsap.to('.ridge-title', { opacity: 1, duration: 1, delay: 0.2 });
+          gsap.to('.ridge-body p', { opacity: 1, duration: 0.8, stagger: 0.3, delay: 0.4 });
+          gsap.to('.ridge-quote', { opacity: 1, duration: 1, delay: 1 });
         }
       });
 

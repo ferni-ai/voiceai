@@ -15,7 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ quiet: true });
 
 // ============================================================================
 // TYPES

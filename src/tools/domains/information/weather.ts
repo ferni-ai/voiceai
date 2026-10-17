@@ -1,5 +1,6 @@
 /**
- * Weather Tools
+ * Weather lookups behind the information domain's getWeather and
+ * getWeatherForecast tools (index.ts).
  *
  * Domain: Weather data and forecasts.
  * Single responsibility: Fetching and presenting weather information.
@@ -16,18 +17,15 @@
  * Without Google Weather enabled, falls back to Open-Meteo (~500ms slower)
  */
 
-import { llm } from '@livekit/agents';
-import { z } from 'zod';
+import { flagOn } from '../../../config/env-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
-import { getToolDescription } from '../../utils/tool-descriptions.js';
 import {
   geocodeLocation,
   geocodeWithGoogle,
   formatLocationName,
   type GeocodingResult,
 } from './utils/geocoding.js';
-import { getCallerLocation, isValidLocation } from './location-preference.js';
 
 // ============================================================================
 // GOOGLE WEATHER API
@@ -238,11 +236,75 @@ function getWeatherDescription(code: number): string {
 // PUBLIC API FUNCTIONS
 // ============================================================================
 
+/** How long a current-weather reading is reused. */
+const CURRENT_WEATHER_TTL_MS = 10 * 60_000;
+const MAX_CACHED_PLACES = 500;
+const currentWeatherCache = new Map<string, { text: string; at: number }>();
+
+/** The longest a caller waits for the weather before hearing a fallback. */
+export const WEATHER_ANSWER_TIMEOUT_MS = 3000;
+
+/**
+ * Current weather for a location, reused for CURRENT_WEATHER_TTL_MS.
+ *
+ * World awareness fetches the caller's city at call start, so a later "what's
+ * the weather?" for that city is answered from here at once. Prod 2026-10-17:
+ * the call warmed its city's weather in 542 ms at 01:08:46, and the in-call
+ * answer reused none of it. WEATHER_FAST_ANSWER=off turns the reuse off.
+ */
+export async function getCurrentWeather(location: string): Promise<string> {
+  const reuse = flagOn('WEATHER_FAST_ANSWER');
+  const key = location.trim().toLowerCase();
+  const hit = reuse ? currentWeatherCache.get(key) : undefined;
+  if (hit && Date.now() - hit.at < CURRENT_WEATHER_TTL_MS) {
+    getLogger().info({ location, ageMs: Date.now() - hit.at }, '🌤️ Weather from cache');
+    return hit.text;
+  }
+  const text = await fetchCurrentWeather(location);
+  if (reuse && text.startsWith('Right now in ')) {
+    currentWeatherCache.delete(key);
+    currentWeatherCache.set(key, { text, at: Date.now() });
+    if (currentWeatherCache.size > MAX_CACHED_PLACES) {
+      const oldest = currentWeatherCache.keys().next().value;
+      if (oldest !== undefined) currentWeatherCache.delete(oldest);
+    }
+  }
+  return text;
+}
+
+/**
+ * The current weather, or a fallback line once `timeoutMs` has passed. The
+ * lookup keeps going and fills the cache, so asking again is instant.
+ * WEATHER_FAST_ANSWER=off waits for the lookup however long it takes.
+ */
+export async function currentWeatherWithin(
+  location: string,
+  timeoutMs = WEATHER_ANSWER_TIMEOUT_MS
+): Promise<{ text: string; timedOut: boolean }> {
+  const lookup = getCurrentWeather(location);
+  if (!flagOn('WEATHER_FAST_ANSWER')) return { text: await lookup, timedOut: false };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), timeoutMs);
+  });
+  try {
+    const text = await Promise.race([lookup, late]);
+    if (text !== null) return { text, timedOut: false };
+    lookup.catch(() => {}); // still running; its result only fills the cache
+    return {
+      text: `I couldn't get the weather for ${location} quickly just now. Want me to try again in a moment?`,
+      timedOut: true,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Get current weather for a location
  * Priority: Google Weather API → Open-Meteo (fallback)
  */
-export async function getCurrentWeather(location: string): Promise<string> {
+async function fetchCurrentWeather(location: string): Promise<string> {
   const startTime = Date.now();
   const log = getLogger();
 
@@ -458,7 +520,7 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
       `https://api.open-meteo.com/v1/forecast?` +
       `latitude=${geo.latitude}&longitude=${geo.longitude}` +
       `&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max` +
-      `&temperature_unit=fahrenheit&forecast_days=${days}`;
+      `&temperature_unit=fahrenheit&forecast_days=${days}&timezone=auto`; // the place's own days
 
     const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
 
@@ -499,133 +561,3 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
     return `I had trouble getting the forecast.`;
   }
 }
-
-// ============================================================================
-// TOOL DEFINITIONS
-// ============================================================================
-
-export function createWeatherTools() {
-  const logger = getLogger();
-
-  /** Resolve location from args, else the calling session's location. */
-  function resolveLocation(argLocation: string | undefined, run: unknown): string | null {
-    // If a valid location was provided, use it
-    if (isValidLocation(argLocation)) {
-      return argLocation!;
-    }
-
-    const sessionLocation = getCallerLocation(run);
-    if (sessionLocation) {
-      logger.info(
-        { argLocation, sessionLocation, source: 'session-fallback' },
-        '🌤️ Using session location as fallback'
-      );
-      return sessionLocation;
-    }
-
-    // No location available
-    logger.warn({ argLocation }, '🌤️ No location available - neither from args nor session');
-    return null;
-  }
-
-  return {
-    getWeather: llm.tool({
-      description: getToolDescription('getWeather'),
-      parameters: z.object({
-        location: z
-          .string()
-          .optional()
-          .describe(
-            'City name (e.g., "Philadelphia", "New York"). Optional - defaults to user\'s detected location.'
-          ),
-      }),
-      execute: async ({ location: argLocation }, run) => {
-        const startTime = Date.now();
-        const location = resolveLocation(argLocation, run);
-
-        if (!location) {
-          return "I don't know your location. Which city would you like weather for?";
-        }
-
-        logger.info({ argLocation, resolvedLocation: location }, '🌤️ Weather tool called');
-
-        try {
-          const result = await getCurrentWeather(location);
-          const elapsed = Date.now() - startTime;
-          logger.info(
-            { location, elapsed, resultLength: result.length },
-            '🌤️ Weather result returned'
-          );
-          return result;
-        } catch (error) {
-          logger.error({ location, error: String(error) }, '🌤️ Weather tool error');
-          return `I couldn't get weather for ${location}. Try a different city name?`;
-        }
-      },
-    }),
-
-    getWeatherForecast: llm.tool({
-      description: getToolDescription('getWeatherForecast'),
-      parameters: z.object({
-        location: z
-          .string()
-          .optional()
-          .describe("City name. Optional - defaults to user's detected location."),
-        days: z.number().optional().describe('Number of days to forecast (1-7), defaults to 5'),
-      }),
-      execute: async ({ location: argLocation, days = 5 }, run) => {
-        const startTime = Date.now();
-        const location = resolveLocation(argLocation, run);
-
-        if (!location) {
-          return "I don't know your location. Which city would you like the forecast for?";
-        }
-
-        logger.info(
-          { argLocation, resolvedLocation: location, days },
-          '📅 Weather forecast tool called'
-        );
-
-        try {
-          const result = await getWeatherForecast(location, Math.min(days, 7));
-          const elapsed = Date.now() - startTime;
-          logger.info(
-            { location, days, elapsed, resultLength: result.length },
-            '📅 Weather forecast returned'
-          );
-          return result;
-        } catch (error) {
-          logger.error({ location, days, error: String(error) }, '📅 Weather forecast tool error');
-          return `I couldn't get the forecast for ${location}. Try a different city name?`;
-        }
-      },
-    }),
-
-    getSunriseSunset: llm.tool({
-      description:
-        'Get sunrise and sunset times for a location. Use when user asks about sunrise, sunset, daylight hours, golden hour, or when the sun rises/sets.',
-      parameters: z.object({
-        location: z.string().describe('City name'),
-      }),
-      execute: async ({ location }) => {
-        const startTime = Date.now();
-        logger.info({ location }, '🌅 Sunrise/sunset tool called');
-
-        try {
-          const result = await getSunriseSunset(location);
-          const elapsed = Date.now() - startTime;
-          logger.info(
-            { location, elapsed, resultLength: result.length },
-            '🌅 Sunrise/sunset returned'
-          );
-          return result;
-        } catch (error) {
-          logger.error({ location, error: String(error) }, '🌅 Sunrise/sunset tool error');
-          return `I couldn't get sunrise/sunset times for ${location}. Try a different city name?`;
-        }
-      },
-    }),
-  };
-}
-
-export default createWeatherTools;

@@ -300,7 +300,7 @@ function addStyles(): void {
       left: 50%;
       transform: translateX(-50%) translateY(20px);
       opacity: 0;
-      z-index: var(--z-modal, 1000);
+      z-index: var(--z-modal);
       
       background: var(--color-background-elevated, #fffdfb);
       border-radius: var(--radius-xl, 16px);
@@ -434,7 +434,7 @@ function addStyles(): void {
       margin-top: var(--space-2, 8px);
       padding: var(--space-1, 4px) var(--space-2, 8px);
       background: var(--color-accent, #3d5a45);
-      color: white;
+      color: var(--color-text-on-accent);
       border-radius: var(--radius-full, 999px);
       font-size: 0.75rem;
       font-weight: 600;
@@ -449,7 +449,7 @@ function addStyles(): void {
     
     .wywa-dismiss {
       background: var(--color-accent, #3d5a45);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
       border-radius: var(--radius-full, 999px);
       padding: var(--space-2, 8px) var(--space-6, 24px);

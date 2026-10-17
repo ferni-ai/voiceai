@@ -25,6 +25,7 @@
 /* eslint-disable no-restricted-imports -- Workers need direct service imports */
 /* eslint-disable no-await-in-loop -- Sequential processing required for outreach triggers */
 
+import '../utils/log-redaction-install.js'; // mask phone numbers in all logs, first
 import { createLogger } from '../utils/safe-logger.js';
 import { getPubSubClient } from '../services/pubsub/pubsub-client.js';
 import type { OutreachTriggerPayload } from '../services/outreach/trigger-publisher.js';
@@ -115,13 +116,17 @@ async function evaluateTrigger(trigger: OutreachTriggerPayload): Promise<WorkerD
       };
     }
 
-    // Simple quiet hours check (avoid complex timing intelligence for now)
+    // Quiet hours. Off: 22:00-08:00 on the server clock, which is UTC on Cloud Run.
+    const { isQuietHoursUnified, userQuietHours } =
+      await import('../services/outreach/quiet-hours.js');
     const hour = now.getHours();
-    const isQuietHours = hour < 8 || hour >= 22;
+    const isQuietHours = isQuietHoursUnified()
+      ? (await userQuietHours(trigger.userId, now)).quiet
+      : hour < 8 || hour >= 22;
     if (isQuietHours) {
       return {
         shouldSend: false,
-        reason: 'Quiet hours (8pm-8am)',
+        reason: 'Quiet hours',
         optimalTime: trigger.scheduledFor ? new Date(trigger.scheduledFor) : undefined,
       };
     }

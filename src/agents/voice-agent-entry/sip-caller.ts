@@ -17,11 +17,14 @@
 import { ParticipantKind } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
+  maskPhoneNumber,
   PHONE_ATTEST_ATTRIBUTE,
   type PhoneAttestationResult,
   verifyPhoneAttestation,
 } from '../../services/identity/phone-attestation.js';
 import { notePhoneListener } from '../shared/performance/phone-voice-profile.js';
+
+export { maskPhoneNumber };
 
 export type SipAttestation = 'A' | 'B' | 'C' | 'failed' | 'none';
 
@@ -84,13 +87,6 @@ export function parseVerStat(value: string | undefined): SipAttestation {
   if (v.startsWith('tn-validation-passed-c')) return 'C';
   if (v.startsWith('tn-validation-failed')) return 'failed';
   return 'none';
-}
-
-/** `**67` for a number ending in 67; null when there is no number. */
-export function maskPhoneNumber(phoneNumber: string | undefined): string | null {
-  const digits = (phoneNumber ?? '').replace(/\D/g, '');
-  if (!digits) return null;
-  return digits.length <= 2 ? '**' : `**${digits.slice(-2)}`;
 }
 
 function hasSipAttributes(attributes: Record<string, string>): boolean {

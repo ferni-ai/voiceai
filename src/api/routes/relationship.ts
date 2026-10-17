@@ -11,10 +11,12 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { parseBody, requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 import type { AnyRecord } from './types.js';
 import {
+  calculateStreaks,
   getTeamUnlockState,
   parseBypassConfig,
   TEAM_MEMBERS,
@@ -347,39 +349,21 @@ export async function handleGetTeamUnlocks(
   if (!userId) return;
 
   try {
-    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
-    const { getConversationHistoryService } =
-      await import('../../services/stores/conversation-history.js');
+    // The same profile and the same rule the voice agent decides handoffs with
+    // (handoff-factory.ts, handoff-unlock-check.ts), so the app never offers a teammate
+    // the agent will refuse. This read engagement metrics and a streak field nothing
+    // writes, and the app and the agent disagreed about who was unlocked (dev, 2026-10-11).
+    const { getStore } = await import('../../memory/storage/store-factory.js');
+    const store = await getStore();
+    const profile = await store.getProfile(userId);
+    const tier = (profile?.subscription?.tier as 'free' | 'friend' | 'partner' | undefined) ?? 'free';
+    const state = getTeamUnlockState(profile, tier);
 
-    const store = await getEngagementStore();
-    const historyService = getConversationHistoryService();
-
-    const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
-    const history = await historyService.getHistory(userId, 100);
-
-    // Extract metrics (same as handleGetRelationshipProgress)
-    const totalConversations = history.totalSessions || 0;
-    const firstMeetingDate = (profile.firstMeetingDate as string) || profile.createdAt;
-    const daysSinceFirstMeeting = firstMeetingDate
-      ? Math.floor((Date.now() - new Date(firstMeetingDate).getTime()) / (24 * 60 * 60 * 1000))
+    const { currentStreak, longestStreak } = calculateStreaks(profile);
+    const totalConversations = profile?.totalConversations ?? 0;
+    const daysSinceFirstMeeting = profile?.firstContact
+      ? Math.floor((Date.now() - new Date(profile.firstContact).getTime()) / (24 * 60 * 60 * 1000))
       : 0;
-    const currentStreak = (profile.currentStreak as number) || 0;
-    const longestStreak = (profile.longestStreak as number) || currentStreak;
-
-    // Get subscription tier from profile or default to free
-    const tier: 'free' | 'friend' | 'partner' =
-      (profile.subscriptionTier as 'free' | 'friend' | 'partner') || 'free';
-
-    // Build a minimal UserProfile for the unlock check
-    const userProfile = {
-      totalConversations,
-      firstContact: firstMeetingDate || new Date().toISOString(),
-      conversationSummaries: [], // Not needed for unlock calculation
-      subscription: { tier },
-    };
-
-    // Get team unlock state
-    const state = getTeamUnlockState(userProfile as never, tier);
 
     // Check bypass mode
     const bypass = parseBypassConfig();
@@ -416,6 +400,8 @@ export async function handleGetTeamUnlocks(
           : null,
         // Expose bypass mode so frontend can sync
         bypassMode,
+        // TEAM_BY_NEED: every teammate is on the team; the app shows no locks
+        teamByNeed: isTeamByNeedEnabled(),
         // Include metrics for debugging
         metrics: {
           totalConversations,
@@ -452,6 +438,7 @@ export async function handleGetTeamUnlocks(
           daysNeeded: 0,
         },
         bypassMode: null,
+        teamByNeed: isTeamByNeedEnabled(),
         error: 'Failed to load unlock state',
       },
       500

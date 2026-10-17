@@ -13,6 +13,7 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import {
   ICONS,
   WEATHER_COPY,
@@ -23,6 +24,7 @@ import {
   escapeHtml,
   renderCloseButton,
   renderStreakDots,
+  renderEmptyState,
   getStreakMilestoneMessage,
   type IconName,
 } from './engagement-components.js';
@@ -32,7 +34,6 @@ import { engagementService } from '../services/engagement.service.js';
 import { isDemoDataEnabled, getDemoEngagementData } from '../services/engagement-demo-data.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { teaserPreview } from './teaser-preview.ui.js';
 
 const log = createLogger('EngagementUI');
 
@@ -144,13 +145,9 @@ export class EngagementUI {
     });
   }
 
-  /**
-   * Render empty state - shows teaser preview of what daily habits WILL look like
-   */
+  /** No check-ins yet: say what fills this panel, never invented habits or streaks. */
   private renderEmptyState(): string {
-    // Use teaser preview system to show what daily habits WILL look like
-    // Creates anticipation by showing realistic dummy data
-    return teaserPreview.habits().outerHTML;
+    return renderEmptyState('sunny', t('engagementPanel.emptyTitle'), t('engagementPanel.emptyMessage'));
   }
 
   /**
@@ -336,12 +333,11 @@ export class EngagementUI {
     `;
   }
 
-  /**
-   * Render individual streak item
-   */
+  /** Render a ritual. Under VITE_NO_STREAKS: name and due state only, no count. */
   private renderStreakItem(streak: RitualStreakData): string {
-    const isPersonalBest = streak.currentStreak >= streak.longestStreak && streak.currentStreak > 1;
-    const milestoneMessage = getStreakMilestoneMessage(streak.currentStreak);
+    const noStreaks = isNoStreaksOn();
+    const isPersonalBest = !noStreaks && streak.currentStreak >= streak.longestStreak && streak.currentStreak > 1;
+    const milestoneMessage = noStreaks ? null : getStreakMilestoneMessage(streak.currentStreak);
     const isDue = streak.dueToday;
 
     return `
@@ -350,12 +346,12 @@ export class EngagementUI {
           <span class="engagement-streak__name">${escapeHtml(streak.ritualName)}</span>
           ${isPersonalBest ? `<span class="engagement-streak__best">${t('engagementPanel.personalBest')}</span>` : ''}
         </div>
-        <div class="engagement-streak__body">
+        ${noStreaks ? '' : `<div class="engagement-streak__body">
           <span class="engagement-streak__count">
             ${tp('engagementPanel.streakDays', streak.currentStreak)}
           </span>
           ${renderStreakDots(streak.currentStreak, 7, streak.personaId)}
-        </div>
+        </div>`}
         ${milestoneMessage ? `<p class="engagement-streak__milestone">${escapeHtml(milestoneMessage)}</p>` : ''}
       </div>
     `;
@@ -367,7 +363,7 @@ export class EngagementUI {
   private renderStatsSection(stats: EngagementStats): string {
     const statsItems: { value: number | string; label: string }[] = [
       { value: stats.totalRitualDays, label: t('engagementPanel.totalDays') },
-      { value: stats.longestOverallStreak, label: t('engagementPanel.bestStreak') },
+      ...(isNoStreaksOn() ? [] : [{ value: stats.longestOverallStreak, label: t('engagementPanel.bestStreak') }]),
       { value: stats.currentActiveStreaks, label: t('engagementPanel.activeRituals') },
     ];
 
@@ -445,8 +441,11 @@ export class EngagementUI {
       return;
     }
 
-    // Leave as empty state
-    log.debug('No engagement data available, showing empty state');
+    // A failed load is not "nothing here yet"; the next open retries.
+    const content = this.container?.querySelector('#engagement-content');
+    if (userId && content) {
+      content.innerHTML = renderEmptyState('cloudy', t('engagementPanel.loadFailedTitle'), t('engagementPanel.loadFailedMessage'));
+    }
   }
 
   /**
@@ -500,7 +499,7 @@ export class EngagementUI {
       .engagement-panel {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -883,71 +882,6 @@ export class EngagementUI {
         text-align: center;
       }
 
-      /* Empty State */
-      .engagement-empty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: var(--space-8, 32px) var(--space-4, 16px);
-      }
-
-      .engagement-empty__icon {
-        width: 64px;
-        height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--persona-tint, var(--color-accent-subtle));
-        border-radius: var(--radius-full);
-        color: var(--color-accent-text);
-        margin-bottom: var(--space-4, 16px);
-      }
-
-      .engagement-empty__icon svg {
-        width: 32px;
-        height: 32px;
-      }
-
-      .engagement-empty__title {
-        font-family: var(--font-display);
-        font-size: var(--text-lg);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary);
-        margin: 0 0 var(--space-2, 8px) 0;
-      }
-
-      .engagement-empty__message {
-        font-size: var(--text-sm);
-        color: var(--color-text-secondary);
-        line-height: var(--leading-relaxed);
-        max-width: min(280px, 100%);
-        margin: 0 0 var(--space-5, 20px) 0;
-      }
-
-      .engagement-empty__cta {
-        background: var(--persona-primary, var(--color-accent-primary));
-        color: white;
-        border: none;
-        padding: var(--space-3, 12px) var(--space-6, 24px);
-        border-radius: var(--radius-full);
-        font-family: var(--font-body);
-        font-size: var(--text-sm);
-        font-weight: var(--font-weight-medium, 500);
-        cursor: pointer;
-        transition: transform ${DURATION.FAST}ms ${EASING.SPRING},
-                    background ${DURATION.FAST}ms ${EASING.STANDARD};
-      }
-
-      .engagement-empty__cta:hover {
-        transform: scale(1.05);
-        background: var(--persona-secondary);
-      }
-
-      .engagement-empty__cta:active {
-        transform: scale(0.98);
-      }
-
       /* Dark Theme */
       [data-theme="midnight"] .engagement-panel__backdrop {
         background: var(--backdrop-heavy);
@@ -984,8 +918,7 @@ export class EngagementUI {
       [data-theme="midnight"] .engagement-weather__description,
       [data-theme="midnight"] .engagement-streaks__content,
       [data-theme="midnight"] .engagement-streaks__empty,
-      [data-theme="midnight"] .engagement-streak__milestone,
-      [data-theme="midnight"] .engagement-empty__message {
+      [data-theme="midnight"] .engagement-streak__milestone {
         color: var(--color-text-secondary);
       }
 
@@ -997,7 +930,7 @@ export class EngagementUI {
       }
 
       /* Responsive */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .engagement-panel {
           padding: var(--space-4, 16px);
         }

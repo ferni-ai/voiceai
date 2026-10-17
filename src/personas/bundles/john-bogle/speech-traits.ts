@@ -1,8 +1,8 @@
 /**
- * Henry Caldwell Speech Traits
+ * Henry Caldwell (john-bogle) Speech Traits
  *
  * Defines voice pacing, pauses, and timing characteristics
- * for the Henry Caldwell persona (id: john-bogle).
+ * for Henry Caldwell, the fictional index-investing elder.
  *
  * Voice style: Warm, grandfatherly, unhurried, wise
  */
@@ -41,9 +41,9 @@ export const johnBogleSpeechTraits = {
     /** Phrases that slow down for impact */
     slowPhrases: [
       'stay the course',
-      'time is on your side',
+      'time is your friend',
       'costs matter',
-      'every dollar in fees',
+      "every dollar you don't pay a middleman",
       'a good plan you keep',
     ],
   },

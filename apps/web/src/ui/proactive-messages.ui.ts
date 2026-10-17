@@ -19,6 +19,7 @@ import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 import { requestAttention } from '../services/attention-queue.js';
+import { PROACTIVE_MESSAGES_CSS } from './proactive-messages.styles.js';
 
 const log = createLogger('ProactiveMessagesUI');
 
@@ -35,6 +36,14 @@ interface PendingMessage {
   reason: string;
   read: boolean;
   createdAt: string;
+  /** A coaching pick's answer card (/a/:id): why it was picked and where it came from. */
+  answerCardId?: string;
+}
+
+/** The card page for a message, or null when it has no well-formed card id. */
+export function answerCardHref(message: Pick<PendingMessage, 'answerCardId'>): string | null {
+  const id = message.answerCardId;
+  return typeof id === 'string' && /^[A-Za-z0-9_-]{43}$/.test(id) ? `/a/${id}` : null;
 }
 
 interface ProactiveMessagesState {
@@ -85,7 +94,7 @@ export function initProactiveMessages(): void {
     position: fixed;
     bottom: var(--space-20, 80px);
     right: var(--space-6, 24px);
-    z-index: var(--z-toast, 999);
+    z-index: var(--z-toast);
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--duration-normal, 200ms) var(--ease-standard, ease-out),
@@ -95,230 +104,7 @@ export function initProactiveMessages(): void {
   document.body.appendChild(indicator);
 
   const style = document.createElement('style');
-  style.textContent = `
-    .indicator-btn {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2, 8px);
-      padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--color-background-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-      border-radius: var(--radius-full, 9999px);
-      box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0,0,0,0.1));
-      cursor: pointer;
-      font-family: var(--font-body, 'Inter', sans-serif);
-      font-size: 14px;
-      color: var(--color-text-secondary, #5C544A);
-      transition: all var(--duration-fast, 100ms) ease;
-    }
-    
-    .indicator-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0,0,0,0.1));
-      color: var(--persona-primary, #4a6741);
-    }
-    
-    .indicator-dot {
-      width: 10px;
-      height: 10px;
-      background: var(--persona-primary, #4a6741);
-      border-radius: 50%;
-      animation: pulse-gentle 2s infinite;
-    }
-    
-    @keyframes pulse-gentle {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(0.9); }
-    }
-    
-    .indicator-count {
-      font-weight: 600;
-    }
-    
-    .proactive-messages-container {
-      position: fixed;
-      bottom: var(--space-20, 80px);
-      right: var(--space-6, 24px);
-      z-index: var(--z-toast, 1000);
-      max-width: 380px;
-      width: calc(100vw - 48px);
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(20px) scale(0.95);
-      transition: opacity var(--duration-slow, 300ms) var(--ease-standard, ease-out),
-                  transform var(--duration-slow, 300ms) var(--ease-spring, ease),
-                  visibility var(--duration-slow, 300ms);
-    }
-    
-    .proactive-messages-container.visible {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0) scale(1);
-    }
-    
-    .message-card {
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
-      overflow: hidden;
-    }
-    
-    .message-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: var(--space-4, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-    }
-    
-    .message-sender {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3, 12px);
-    }
-    
-    .sender-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: var(--persona-primary, #4a6741);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .sender-avatar svg {
-      width: 20px;
-      height: 20px;
-      fill: white;
-    }
-    
-    .sender-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    
-    .sender-name {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-weight: 600;
-      font-size: 14px;
-      color: var(--color-text-primary, #2C2520);
-    }
-    
-    .sender-reason {
-      font-size: 12px;
-      color: var(--color-text-muted, #756A5E);
-    }
-    
-    .close-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: none;
-      background: var(--color-background-secondary, #F5F1E8);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background var(--duration-fast, 100ms) ease;
-    }
-    
-    .close-btn:hover {
-      background: var(--color-border-medium, rgba(44, 37, 32, 0.1));
-    }
-    
-    .close-btn svg {
-      width: 16px;
-      height: 16px;
-      stroke: var(--color-text-muted, #756A5E);
-    }
-    
-    .message-body {
-      padding: var(--space-5, 20px);
-    }
-    
-    .message-text {
-      font-family: var(--font-body, 'Inter', sans-serif);
-      font-size: 15px;
-      line-height: 1.6;
-      color: var(--color-text-secondary, #5C544A);
-      white-space: pre-wrap;
-    }
-    
-    .message-actions {
-      display: flex;
-      gap: var(--space-3, 12px);
-      padding: var(--space-4, 16px);
-      padding-top: 0;
-    }
-    
-    .action-btn {
-      flex: 1;
-      padding: var(--space-3, 12px);
-      border-radius: var(--radius-lg, 12px);
-      border: 1px solid var(--color-border-medium, rgba(44, 37, 32, 0.1));
-      background: transparent;
-      font-family: var(--font-body, 'Inter', sans-serif);
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--color-text-secondary, #5C544A);
-      cursor: pointer;
-      transition: all var(--duration-fast, 100ms) ease;
-    }
-    
-    .action-btn:hover {
-      background: var(--color-background-secondary, #F5F1E8);
-    }
-    
-    .action-btn.primary {
-      background: var(--persona-primary, #4a6741);
-      border-color: var(--persona-primary, #4a6741);
-      color: white;
-    }
-    
-    .action-btn.primary:hover {
-      background: var(--persona-secondary, #3d5a35);
-      border-color: var(--persona-secondary, #3d5a35);
-    }
-    
-    .message-pagination {
-      display: flex;
-      justify-content: center;
-      gap: var(--space-2, 8px);
-      padding-bottom: var(--space-4, 16px);
-    }
-    
-    .pagination-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--color-border-medium, rgba(44, 37, 32, 0.15));
-      transition: all var(--duration-fast, 100ms) ease;
-    }
-    
-    .pagination-dot.active {
-      width: 20px;
-      border-radius: 3px;
-      background: var(--persona-primary, #4a6741);
-    }
-    
-    @media (max-width: 480px) {
-      .proactive-messages-container {
-        bottom: var(--space-16, 64px);
-        right: var(--space-3, 12px);
-        left: var(--space-3, 12px);
-        width: auto;
-        max-width: none;
-      }
-      
-      .proactive-indicator {
-        bottom: var(--space-16, 64px);
-        right: var(--space-3, 12px);
-      }
-    }
-  `;
+  style.textContent = PROACTIVE_MESSAGES_CSS;
   document.head.appendChild(style);
 
   // Create message container (hidden initially)
@@ -400,15 +186,12 @@ function updateIndicator(): void {
     countEl.textContent = state.messages.length.toString();
   }
 
-  if (state.hasUnread && !state.isVisible) {
-    indicator.style.opacity = '1';
-    indicator.style.visibility = 'visible';
-    indicator.style.transform = 'scale(1)';
-  } else {
-    indicator.style.opacity = '0';
-    indicator.style.visibility = 'hidden';
-    indicator.style.transform = 'scale(0.8)';
-  }
+  // is-visible also lets the dot's pulse run (paused-when-hidden.css)
+  const show = state.hasUnread && !state.isVisible;
+  indicator.classList.toggle('is-visible', show);
+  indicator.style.opacity = show ? '1' : '0';
+  indicator.style.visibility = show ? 'visible' : 'hidden';
+  indicator.style.transform = show ? 'scale(1)' : 'scale(0.8)';
 }
 
 /**
@@ -421,6 +204,11 @@ function renderMessage(): void {
   if (!message) return;
 
   const personaName = getPersonaDisplayName(message.personaId);
+  // The card opens in its own tab so a call in this one keeps going.
+  const cardHref = answerCardHref(message);
+  const cardLink = cardHref
+    ? `<a class="message-card-link" href="${cardHref}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('answerCard.seeSources'))}</a>`
+    : '';
 
   container.innerHTML = `
     <div class="message-card">
@@ -443,25 +231,38 @@ function renderMessage(): void {
       </div>
       <div class="message-body">
         <p class="message-text">${escapeHtml(message.text)}</p>
+        ${cardLink}
       </div>
       <div class="message-actions">
         <button class="action-btn" data-action="dismiss">${t('common.maybeLater')}</button>
         <button class="action-btn primary" data-action="respond">${t('proactiveMessages.respond')}</button>
       </div>
-      ${state.messages.length > 1 ? `
+      ${
+        state.messages.length > 1
+          ? `
         <div class="message-pagination">
-          ${state.messages.map((_, i) => `
+          ${state.messages
+            .map(
+              (_, i) => `
             <div class="pagination-dot ${i === state.currentIndex ? 'active' : ''}" data-index="${i}"></div>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
 
   // Bind events
   container.querySelector('.close-btn')?.addEventListener('click', () => dismissMessage());
-  container.querySelector('[data-action="dismiss"]')?.addEventListener('click', () => dismissMessage());
-  container.querySelector('[data-action="respond"]')?.addEventListener('click', () => respondToMessage());
+  container
+    .querySelector('[data-action="dismiss"]')
+    ?.addEventListener('click', () => dismissMessage());
+  container
+    .querySelector('[data-action="respond"]')
+    ?.addEventListener('click', () => respondToMessage());
 
   container.querySelectorAll('.pagination-dot').forEach((dot) => {
     dot.addEventListener('click', (e) => {

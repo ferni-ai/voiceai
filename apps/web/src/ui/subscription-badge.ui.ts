@@ -14,6 +14,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
+import { isPaywallOn } from '../services/paywall.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -22,11 +23,11 @@ import {
   showUpgradeModal,
   type SubscriptionStatus,
 } from './subscription.ui.js';
+import { isVenmoChipInEnabled } from './support/open-support.js';
 import { apiGet } from '../utils/api.js';
 
 const log = createLogger('SubBadge');
 
-// FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
@@ -180,17 +181,15 @@ async function refreshStatus(): Promise<void> {
       badgeElement.style.display = '';
     }
 
-    // First check trial status (for new users)
+    // Status first: it carries the paywall flag. No paywall: no badge (it only leads to paid plans)
+    const status = await loadSubscriptionStatus();
+    if (!isPaywallOn()) return updateBadgeDisplay(null);
     await refreshTrialStatus();
-
-    // If in trial, show trial timer instead of subscription badge
     if (currentTrialStatus?.inTrial) {
       updateTrialDisplay();
       return;
     }
 
-    // Otherwise show regular subscription status
-    const status = await loadSubscriptionStatus();
     updateBadgeDisplay(status);
   } catch (error) {
     log.warn('Failed to refresh subscription status:', error);
@@ -203,7 +202,7 @@ async function refreshStatus(): Promise<void> {
  */
 async function refreshTrialStatus(): Promise<void> {
   const deviceId = appState.getState().deviceId;
-  if (!deviceId) return;
+  if (!deviceId || !isPaywallOn() || isVenmoChipInEnabled()) return; // free (no paywall) or on Venmo: no trial clock
 
   try {
     const sessionTimeMs = sessionStartTime ? Date.now() - sessionStartTime : 0;
@@ -276,7 +275,7 @@ function formatTrialTime(ms: number): string {
  * Update badge to show trial countdown
  */
 function updateTrialDisplay(): void {
-  if (!badgeElement || !currentTrialStatus) return;
+  if (!badgeElement || !currentTrialStatus || !isPaywallOn()) return;
 
   // Calculate remaining time
   const sessionTimeMs = sessionStartTime ? Date.now() - sessionStartTime : 0;
@@ -526,7 +525,7 @@ function injectStyles(): void {
     }
     
     /* Mobile - slightly larger touch target */
-    @media (max-width: clamp(538px, 90vw, 768px)) {
+    @media (max-width: 768px) {
       .subscription-badge {
         padding: var(--space-2, 8px) var(--space-3, 12px);
         font-size: 0.8125rem;

@@ -24,6 +24,8 @@ import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { syncMedicationToCalendar } from '../../../services/calendar/calendar-bridge.js';
+import { runContextTimeZone, userTimeZone } from '../../../utils/caller-time-zone.js';
+import { WallClock, wallTimeIn } from '../../../utils/time-zone.js';
 // Bridge functions for persistence
 function medDataToMed(data: MedicationData, userId: string): Medication {
   return {
@@ -224,16 +226,18 @@ function getScheduledTimesForFrequency(frequency: MedicationFrequency): {
   }
 }
 
-function getTodayLogs(userId: string): DoseLog[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+// Dose times ("08:00") and "today" are the user's wall clock: their call's zone, else UTC.
+function userClock(userId: string, at: Date): { day: string; hhmm: string } {
+  const w = wallTimeIn(at, userTimeZone({ userId }) ?? 'Etc/UTC');
+  const hhmm = `${String(w.hour).padStart(2, '0')}:${String(w.minute).padStart(2, '0')}`;
+  return { day: `${w.year}-${w.month}-${w.day}`, hhmm };
+}
 
-  return Array.from(logsCache.values()).filter((log) => {
-    if (log.userId !== userId) return false;
-    const logDate = new Date(log.date);
-    logDate.setHours(0, 0, 0, 0);
-    return logDate.getTime() === today.getTime();
-  });
+function getTodayLogs(userId: string, now = new Date()): DoseLog[] {
+  const today = userClock(userId, now).day;
+  return Array.from(logsCache.values()).filter(
+    (log) => log.userId === userId && userClock(userId, new Date(log.date)).day === today
+  );
 }
 
 function getDueDoses(
@@ -241,8 +245,7 @@ function getDueDoses(
 ): Array<{ medication: Medication; scheduledTime: string; label: DoseTime }> {
   const userMeds = getUserMedications(userId);
   const todayLogs = getTodayLogs(userId);
-  const now = new Date();
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  const currentTime = userClock(userId, new Date()).hhmm;
 
   const due: Array<{ medication: Medication; scheduledTime: string; label: DoseTime }> = [];
 
@@ -273,8 +276,7 @@ function getUpcomingDoses(
 ): Array<{ medication: Medication; scheduledTime: string; label: DoseTime }> {
   const userMeds = getUserMedications(userId);
   const todayLogs = getTodayLogs(userId);
-  const now = new Date();
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  const currentTime = userClock(userId, new Date()).hhmm;
 
   const upcoming: Array<{ medication: Medication; scheduledTime: string; label: DoseTime }> = [];
 
@@ -328,6 +330,7 @@ export async function addMedication(params: {
   purpose?: string;
   pillsRemaining?: number;
   refillAt?: number;
+  timeZone?: string; // the user's IANA zone: dose times are their wall clock
 }): Promise<Medication> {
   const schedule = params.customTimes
     ? { times: params.customTimes, labels: params.customTimes.map(() => 'custom' as DoseTime) }
@@ -356,16 +359,15 @@ export async function addMedication(params: {
 
   getLogger().info({ medId: medication.id, name: medication.name }, 'Medication added');
 
-  // Sync each scheduled time to calendar for today
-  // This creates calendar events for medication reminders
+  // One calendar entry for the next dose at each time, on the user's clock (it doesn't repeat)
   const today = new Date();
   for (const time of medication.scheduledTimes) {
     const [hours, minutes] = time.split(':').map(Number);
-    const scheduledFor = new Date(today);
+    const scheduledFor = new WallClock(today, params.timeZone);
     scheduledFor.setHours(hours, minutes, 0, 0);
 
     // If time has passed today, schedule for tomorrow
-    if (scheduledFor <= today) {
+    if (scheduledFor.toDate() <= today) {
       scheduledFor.setDate(scheduledFor.getDate() + 1);
     }
 
@@ -375,11 +377,8 @@ export async function addMedication(params: {
         `${medication.id}_${time}`,
         medication.name,
         medication.dosage,
-        scheduledFor,
-        {
-          instructions: medication.instructions,
-          isRecurring: medication.frequency !== 'as_needed',
-        }
+        scheduledFor.toDate(),
+        { instructions: medication.instructions }
       );
     } catch (calendarError) {
       getLogger().warn(
@@ -512,13 +511,14 @@ export function createMedicationTools() {
           instructions,
           purpose,
           pillsRemaining: pillCount,
+          timeZone: runContextTimeZone(ctx),
         });
 
         let response = `Added: **${med.name}** (${med.dosage})\n`;
         response += `Schedule: ${med.frequency.replace(/_/g, ' ')}\n`;
 
         if (med.scheduledTimes.length > 0) {
-          response += `Times: ${med.scheduledTimes.map(formatTime).join(', ')}\n`;
+          response += `Times: ${med.scheduledTimes.map(formatTime).join(', ')} (your time)\n`;
         }
 
         if (instructions) {
@@ -526,10 +526,10 @@ export function createMedicationTools() {
         }
 
         if (pillCount) {
-          response += `${pillCount} pills - I'll remind you to refill\n`;
+          response += `${pillCount} pills tracked\n`;
         }
 
-        response += `\nI'll remind you when it's time to take your ${name}. Added to your calendar too.`;
+        response += `\nSaved to the medication list, with one calendar entry for the next dose. Dose and refill reminders aren't supported yet: nothing will ping them, and the entry doesn't repeat. Say so plainly; offer a one-time reminder (setReminder) instead.`;
 
         return response;
       },
@@ -766,7 +766,7 @@ export function createMedicationTools() {
         medsCache.set(updated.id, updated);
         persistMed(updated.userId, updated);
 
-        return `✅ Updated ${updated.name}: ${newCount} pills\nI'll remind you when you're running low.`;
+        return `✅ Updated ${updated.name}: ${newCount} pills\nRefill reminders aren't supported yet, so nothing will ping them when it runs low.`;
       },
     }),
 

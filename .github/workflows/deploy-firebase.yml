@@ -72,6 +72,12 @@ jobs:
           pnpm build
         env:
           NODE_ENV: production
+          # Venmo chip-in card (#1014): off unless both repo variables are set.
+          VITE_VENMO_CHIP_IN: ${{ vars.VITE_VENMO_CHIP_IN }}
+          VITE_VENMO_HANDLE: ${{ vars.VITE_VENMO_HANDLE }}
+          # Caption flags (apps/web/src/ui/captions/captions-flag.ts); off unless exactly "true".
+          VITE_CAPTIONS_V2: ${{ vars.VITE_CAPTIONS_V2 }}
+          VITE_CAPTIONS_BREATH: ${{ vars.VITE_CAPTIONS_BREATH }}
 
       - name: Deploy to Firebase (ferni-prod)
         id: deploy-ferni
@@ -187,7 +193,10 @@ jobs:
   deploy-landing:
     name: Deploy Landing
     runs-on: ubuntu-latest
-    if: ${{ inputs.target == 'landing' || inputs.target == 'both' }}
+    # Every push to main, like the app, plus a manual landing or both
+    # dispatch. A push-only "did the site change" check would miss site
+    # merges whose queued run the concurrency group replaced with a newer one.
+    if: ${{ github.event_name == 'push' || inputs.target == 'landing' || inputs.target == 'both' }}
 
     steps:
       - name: Checkout
@@ -198,15 +207,24 @@ jobs:
         with:
           frozen-lockfile: 'false'
 
+      # The site lives in apps/website/ferni-website (its old promo folder is gone),
+      # the folder `ferni deploy landing` builds. It is not a pnpm workspace package
+      # and has its own package-lock.json, so npm installs it. build:prod is the
+      # production build (minified) that `ferni deploy landing` runs.
       - name: Install landing dependencies
-        run: |
-          cd promo/ferni-website
-          pnpm install --no-frozen-lockfile
+        working-directory: apps/website/ferni-website
+        run: npm ci --no-audit --no-fund
 
       - name: Build landing page
-        run: |
-          cd promo/ferni-website
-          pnpm build
+        working-directory: apps/website/ferni-website
+        run: npm run build:prod
+
+      - name: Install Playwright chromium
+        run: pnpm playwright install --with-deps --only-shell chromium
+
+      # Fails the deploy if dark mode leaves any text under 3:1 again.
+      - name: Check light and dark mode on the built site
+        run: pnpm playwright test -c apps/website/ferni-website/playwright.config.ts
 
       - name: Deploy landing to Firebase
         id: deploy-landing
@@ -217,7 +235,7 @@ jobs:
           projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
           channelId: live
           target: ferni-landing
-          entryPoint: ./promo/ferni-website
+          entryPoint: ./apps/website/ferni-website
 
       - name: Health check landing page
         id: health
@@ -244,7 +262,7 @@ jobs:
         run: |
           echo "⚠️ Health check failed - initiating rollback"
           npm install -g firebase-tools
-          cd promo/ferni-website
+          cd apps/website/ferni-website
           firebase hosting:rollback --site ferni-landing --confirm || echo "Rollback failed"
           exit 1
         env:

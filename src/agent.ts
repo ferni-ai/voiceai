@@ -23,8 +23,14 @@
 // Make this file a module for top-level await
 export {};
 
+// Mask phone numbers in everything this process logs, before anything can log.
+await import('./utils/log-redaction-install.js');
+
 // Refuse to touch production data from a non-production process (no emulator, no opt-in).
 await import('./config/refuse-production-data.js'); // loads dotenv, then the guard
+
+// Error reporting (Sentry), before the worker loads; a no-op without SENTRY_DSN.
+await import('./instrument.js');
 
 // GCE-optimized worker with clean architecture
 await import('./agents/gce-voice-worker.js');

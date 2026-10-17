@@ -13,14 +13,14 @@ const log = createLogger({ module: 'banter' });
 
 // ============================================================================
 // CROSS-PERSONA REFERENCES - Characters talking about each other
-// NOTE: Alex uses they/them pronouns. Maya, Jordan use she/her.
+// Pronouns: personas/persona-pronouns.ts (Ferni and Alex he/him, Maya and Jordan she/her).
 // ============================================================================
 
 // NOTE: SSML <break time=XXms/> tags add natural pauses for more human speech
 export const CROSS_PERSONA_REFERENCES: Record<string, Record<string, string[]>> = {
   ferni: {
     aboutAlex: [
-      "Alex would have a system for this. <break time='200ms'/> They probably have a spreadsheet.",
+      "Alex would have a system for this. <break time='200ms'/> He probably has a spreadsheet.",
       "Alex reminds me of my wife— <break time='200ms'/> efficient, warm, and intolerant of excuses.",
     ],
     aboutMaya: [
@@ -93,7 +93,7 @@ export const CROSS_PERSONA_REFERENCES: Record<string, Record<string, string[]>> 
       "Ferni taught me: <break time='150ms'/> sometimes the best thing is just to listen.",
     ],
     aboutAlex: [
-      "Alex and I balance each other. <break time='150ms'/> They're all structure, I'm all vibes.",
+      "Alex and I balance each other. <break time='150ms'/> He's all structure, I'm all vibes.",
       "Alex would organize this into a system. <break time='150ms'/> Probably already has.",
     ],
     aboutMaya: [
@@ -125,7 +125,7 @@ export const CROSS_PERSONA_REFERENCES: Record<string, Record<string, string[]>> 
     ],
     aboutAlex: [
       "Alex organizes chaos into clarity. <break time='200ms'/> We speak the same language.",
-      "Alex and I are the systems thinkers. <break time='200ms'/> They manage today, I analyze yesterday.",
+      "Alex and I are the systems thinkers. <break time='200ms'/> He manages today, I analyze yesterday.",
     ],
     aboutJordan: [
       "Jordan dreams forward. <break time='200ms'/> I look backward. Together we see the timeline.",
@@ -161,7 +161,7 @@ export const CROSS_PERSONA_REFERENCES: Record<string, Record<string, string[]>> 
 // ============================================================================
 // HANDOFF BANTER - Warm introductions during persona transitions
 // KEEP THESE SHORT - users do multiple transfers per session
-// NOTE: Alex uses they/them pronouns
+// Pronouns: personas/persona-pronouns.ts (Ferni and Alex are he/him).
 // ============================================================================
 
 export const HANDOFF_BANTER: Record<string, Record<string, string[]>> = {
@@ -169,9 +169,9 @@ export const HANDOFF_BANTER: Record<string, Record<string, string[]>> = {
   // NOTE: Keep these ~2-3 seconds to cover agent spawn time
   ferni: {
     'alex-chen': [
-      "Let me get Alex for you. <break time='300ms'/> They're great at this.",
+      "Let me get Alex for you. <break time='300ms'/> He's great at this.",
       "Alex is perfect for this. <break time='300ms'/> One moment.",
-      "I'll bring in Alex. <break time='300ms'/> You'll like them.",
+      "I'll bring in Alex. <break time='300ms'/> You'll like him.",
     ],
     'maya-santos': [
       "Let me get Maya for you. <break time='300ms'/> She's wonderful.",
@@ -198,9 +198,9 @@ export const HANDOFF_BANTER: Record<string, Record<string, string[]>> = {
   // Alex introducing others
   'alex-chen': {
     ferni: [
-      "Let me get Ferni for you. <break time='300ms'/> They're great at this.",
+      "Let me get Ferni for you. <break time='300ms'/> He's great at this.",
       "Ferni's perfect for this. <break time='300ms'/> One moment.",
-      "I'll bring in Ferni. <break time='300ms'/> You'll like them.",
+      "I'll bring in Ferni. <break time='300ms'/> You'll like him.",
     ],
     'maya-santos': [
       "Let me get Maya for you. <break time='300ms'/> She's wonderful with habits.",
@@ -227,14 +227,14 @@ export const HANDOFF_BANTER: Record<string, Record<string, string[]>> = {
   // Maya introducing others
   'maya-santos': {
     ferni: [
-      "Let me get Ferni for you. <break time='300ms'/> They're wonderful.",
+      "Let me get Ferni for you. <break time='300ms'/> He's wonderful.",
       "Ferni's perfect for this. <break time='300ms'/> One moment.",
-      "I'll bring in Ferni. <break time='300ms'/> You'll like them.",
+      "I'll bring in Ferni. <break time='300ms'/> You'll like him.",
     ],
     'alex-chen': [
-      "Let me get Alex for you. <break time='300ms'/> They're great at organizing.",
+      "Let me get Alex for you. <break time='300ms'/> He's great at organizing.",
       "Alex is perfect for this. <break time='300ms'/> One moment.",
-      "I'll bring in Alex. <break time='300ms'/> They're wonderful.",
+      "I'll bring in Alex. <break time='300ms'/> He's wonderful.",
     ],
     'jordan-taylor': [
       "Let me get Jordan for you. <break time='300ms'/> She dreams big.",
@@ -256,14 +256,14 @@ export const HANDOFF_BANTER: Record<string, Record<string, string[]>> = {
   // Jordan introducing others
   'jordan-taylor': {
     ferni: [
-      "Let me get Ferni for you! <break time='300ms'/> They're amazing.",
+      "Let me get Ferni for you! <break time='300ms'/> He's amazing.",
       "Ferni's perfect for this! <break time='300ms'/> One moment.",
-      "I'll bring in Ferni! <break time='300ms'/> You'll love them.",
+      "I'll bring in Ferni! <break time='300ms'/> You'll love him.",
     ],
     'alex-chen': [
-      "Let me get Alex for you! <break time='300ms'/> They make things happen.",
+      "Let me get Alex for you! <break time='300ms'/> He makes things happen.",
       "Alex is perfect for this! <break time='300ms'/> One moment.",
-      "I'll bring in Alex! <break time='300ms'/> They're great.",
+      "I'll bring in Alex! <break time='300ms'/> He's great.",
     ],
     'maya-santos': [
       "Let me get Maya for you! <break time='300ms'/> She's wonderful.",
@@ -285,14 +285,14 @@ export const HANDOFF_BANTER: Record<string, Record<string, string[]>> = {
   // Nayan introducing others - slower, more contemplative
   'nayan-patel': {
     ferni: [
-      "Let me bring Ferni to you. <break time='500ms'/> They understand.",
+      "Let me bring Ferni to you. <break time='500ms'/> He understands.",
       "Ferni is right for this. <break time='500ms'/> One moment.",
-      "I'll get Ferni. <break time='500ms'/> They're wonderful.",
+      "I'll get Ferni. <break time='500ms'/> He's wonderful.",
     ],
     'alex-chen': [
-      "Let me bring Alex to you. <break time='500ms'/> They bring clarity.",
+      "Let me bring Alex to you. <break time='500ms'/> He brings clarity.",
       "Alex is right for this. <break time='500ms'/> One moment.",
-      "I'll get Alex. <break time='500ms'/> They're thoughtful.",
+      "I'll get Alex. <break time='500ms'/> He's thoughtful.",
     ],
     'maya-santos': [
       "Let me bring Maya to you. <break time='500ms'/> She builds well.",
@@ -314,14 +314,14 @@ export const HANDOFF_BANTER: Record<string, Record<string, string[]>> = {
   // Peter introducing others
   'peter-john': {
     ferni: [
-      "Let me get Ferni for you. <break time='300ms'/> They're perfect for this.",
+      "Let me get Ferni for you. <break time='300ms'/> He's perfect for this.",
       "Ferni's the right call here. <break time='300ms'/> One moment.",
-      "I'll bring in Ferni. <break time='300ms'/> You'll like them.",
+      "I'll bring in Ferni. <break time='300ms'/> You'll like him.",
     ],
     'alex-chen': [
-      "Let me get Alex for you. <break time='300ms'/> They're great at systems.",
+      "Let me get Alex for you. <break time='300ms'/> He's great at systems.",
       "Alex is the right call here. <break time='300ms'/> One moment.",
-      "I'll bring in Alex. <break time='300ms'/> They're sharp.",
+      "I'll bring in Alex. <break time='300ms'/> He's sharp.",
     ],
     'maya-santos': [
       "Let me get Maya for you. <break time='300ms'/> She's great with habits.",
@@ -376,126 +376,79 @@ export function getHandoffBanter(fromPersonaId: string, toPersonaId: string): st
 export const getSoftOpenBanter = getHandoffBanter;
 
 // ============================================================================
-// ARRIVING BANTER - Warm welcomes spoken by NEW persona AFTER voice switch
-// KEEP THESE SHORT - users do multiple transfers per session
-// NOTE: Alex uses they/them pronouns
+// ARRIVING OPENERS - the new persona's first words AFTER the voice switch
 // ============================================================================
 
-export const ARRIVING_BANTER: Record<string, Record<string, string[]>> = {
-  // When arriving FROM another persona, these are spoken by the NEW persona
-  // Key structure: newPersona -> { previousPersona -> welcomes[] }
-  // NOTE: Keep these WARM and WELCOMING - not jumping straight to business!
-
-  ferni: {
-    'alex-chen': ['Hey, good to see you!', "Hey! I'm here.", "Hey, I've got you."],
-    'maya-santos': ['Hey! Good to be back.', "Hey, I'm here for you.", "Hey! What's going on?"],
-    'jordan-taylor': ['Hey! Good to see you.', "Hey, I'm back!", 'Hey! How are you?'],
-    'nayan-patel': [
-      "Hey. <break time='150ms'/> Good to be here.",
-      "Hey, I'm back with you.",
-      "Hey! I'm here.",
-    ],
-    'peter-john': ['Hey! Good to see you.', "Hey, I'm here!", "Hey! What's happening?"],
-  },
-
-  'alex-chen': {
-    ferni: ['Hey! Good to meet you.', 'Hey there! Alex here.', "Hey! I'm here to help."],
-    'maya-santos': ['Hey! Alex here.', 'Hey there! Good to see you.', "Hey! I've got you."],
-    'jordan-taylor': ["Hey! I'm Alex.", "Hey there! Let's do this.", 'Hey! Good to be here.'],
-    'nayan-patel': ['Hey! Alex here.', "Hey there! I'm here.", 'Hey! Good to meet you.'],
-    'peter-john': ["Hey! I'm Alex.", 'Hey there! Good to see you.', "Hey! I've got you."],
-  },
-
-  'maya-santos': {
-    ferni: [
-      "Hey! Maya here. <break time='100ms'/> Good to meet you!",
-      "Hey there! I'm Maya.",
-      'Hey! Good to be here.',
-    ],
-    'alex-chen': ['Hey! Maya here.', 'Hey there! Good to see you.', "Hey! I'm here for you."],
-    'jordan-taylor': ['Hey! Maya here.', 'Hey there! Good to connect.', "Hey! I've got you."],
-    'nayan-patel': [
-      "Hey! Maya here. <break time='100ms'/> Nice to meet you.",
-      "Hey there! I'm here.",
-      'Hey! Good to be here.',
-    ],
-    'peter-john': ['Hey! Maya here.', 'Hey there! Good to connect.', "Hey! I'm here to help."],
-  },
-
-  'jordan-taylor': {
-    ferni: ['Hey hey! Jordan here!', 'Hey! So good to meet you!', "Hey there! I'm Jordan."],
-    'alex-chen': ['Hey! Jordan here!', 'Hey hey! Good to see you!', "Hey! I'm here!"],
-    'maya-santos': ['Hey! Jordan here!', 'Hey hey! Good to connect!', "Hey! Let's go!"],
-    'nayan-patel': ['Hey! Jordan here!', 'Hey hey! Nice to meet you!', 'Hey! Good to be here!'],
-    'peter-john': ['Hey! Jordan here!', 'Hey hey! Good to see you!', "Hey! I'm here!"],
-  },
-
-  // Nayan - warm but grounded
-  'nayan-patel': {
-    ferni: [
-      "Hello. <break time='200ms'/> Nayan here.",
-      "Namaste. <break time='200ms'/> I'm here.",
-      "Hello. <break time='150ms'/> Good to meet you.",
-    ],
-    'alex-chen': [
-      "Hello. <break time='200ms'/> Nayan here.",
-      "Namaste. <break time='150ms'/> I'm here for you.",
-      "Hello. <break time='150ms'/> Good to connect.",
-    ],
-    'maya-santos': [
-      "Hello. <break time='200ms'/> Nayan here.",
-      "Namaste. <break time='150ms'/> I'm here.",
-      "Hello. <break time='150ms'/> Good to be here.",
-    ],
-    'jordan-taylor': [
-      "Hello. <break time='200ms'/> Nayan here.",
-      "Namaste. <break time='150ms'/> Good to meet you.",
-      "Hello. <break time='150ms'/> I'm here.",
-    ],
-    'peter-john': [
-      "Hello. <break time='200ms'/> Nayan here.",
-      "Namaste. <break time='150ms'/> I'm here for you.",
-      "Hello. <break time='150ms'/> Good to connect.",
-    ],
-  },
-
-  // Peter - warm and friendly
-  'peter-john': {
-    ferni: ['Hey there! Peter here.', 'Hey! Good to meet you.', "Hey! I'm Peter."],
-    'maya-santos': ['Hey! Peter here.', 'Hey there! Good to connect.', "Hey! I'm here."],
-    'alex-chen': ['Hey! Peter here.', 'Hey there! Good to see you.', "Hey! I've got you."],
-    'jordan-taylor': ['Hey! Peter here.', 'Hey there! Good to connect.', "Hey! I'm here to help."],
-    'nayan-patel': ['Hey! Peter here.', 'Hey there! Good to meet you.', "Hey! I'm here."],
-  },
+/**
+ * Each persona opens in their own voice. Before, Peter, Maya and Jordan all
+ * opened "Hey there!" (dev 2026-10-04..12), so the first two seconds of every
+ * teammate sounded the same, and the legends had no line at all ("Hey! What's
+ * up?"). Short: callers transfer more than once a call. These are the canned
+ * line; BRIEFED_HANDOFF writes a briefed first line in front of it when it can
+ * (agents/multi-agent/handoff-brief.ts).
+ */
+export const ARRIVING_OPENERS: Readonly<Record<string, readonly string[]>> = {
+  ferni: [
+    "Hey, I'm back with you.",
+    'Hey! Good to see you again.',
+    "Hey, I'm here. What's going on?",
+  ],
+  'maya-santos': [
+    "Hi, it's Maya! I'm really glad you're here.",
+    "Maya here! Okay, let's figure this out together.",
+    "Hi! Maya. Tell me where you're at.",
+  ],
+  'jordan-taylor': [
+    'Jordan here! Ooh, I love a plan.',
+    "Yes! Jordan here. Let's make something happen.",
+    "Hi hi! It's Jordan. Tell me everything.",
+  ],
+  'alex-chen': [
+    "Alex here. Okay, let's sort this out.",
+    "Alex speaking. We'll take it one piece at a time.",
+    "Alex here. Let's get the words right.",
+  ],
+  'peter-john': [
+    'Peter here. Ooh, what are we digging into?',
+    "Okay, it's Peter. I'm curious already.",
+    "Peter here! Let's look at this together.",
+  ],
+  'nayan-patel': [
+    "Hello. <break time='200ms'/> Nayan here.",
+    "Namaste. <break time='200ms'/> I'm here.",
+    "Hello. <break time='150ms'/> Good to sit with you.",
+  ],
+  'john-bogle': [
+    'Hello, friend. Pull up a chair.',
+    "Good to meet you. Let's take this slowly.",
+    "Well, hello. Tell me what's on your mind.",
+  ],
+  'peter-lynch': [
+    "Hi! Tell me what you've been noticing out there.",
+    "Okay, I'm all ears. What caught your eye?",
+    "Glad you're here. Let's talk about what you know.",
+  ],
+  'joel-dickson': [
+    "Nate here! Ha, okay, what've we got?",
+    "Hi! It's Nate. I've heard a little, tell me more.",
+    'Nate here. I love this already.',
+  ],
 };
 
 /**
- * Get arriving banter when a persona takes over (WARM WELCOME - spoken AFTER voice switch)
- * This is the arriving persona's warm greeting acknowledging the handoff
+ * The arriving persona's opener after a handoff (spoken AFTER the voice
+ * switch), or null for a persona without one.
  */
 export function getArrivingBanter(toPersonaId: string, fromPersonaId: string): string | null {
-  const toBanter = ARRIVING_BANTER[toPersonaId];
-  if (!toBanter) {
-    log.debug(
-      { toPersonaId, available: Object.keys(ARRIVING_BANTER) },
-      'No arriving banter found for toPersona'
-    );
+  const options = ARRIVING_OPENERS[toPersonaId];
+  if (!options || options.length === 0) {
+    log.debug({ toPersonaId, fromPersonaId }, 'No arriving opener for this persona');
     return null;
   }
-
-  const banterOptions = toBanter[fromPersonaId];
-  if (!banterOptions || banterOptions.length === 0) {
-    log.debug(
-      { toPersonaId, fromPersonaId, available: Object.keys(toBanter) },
-      'No arriving banter for transition'
-    );
-    return null;
-  }
-
-  const selected = banterOptions[Math.floor(Math.random() * banterOptions.length)];
+  const selected = options[Math.floor(Math.random() * options.length)];
   log.debug(
     { toPersonaId, fromPersonaId, banter: selected.slice(0, 50) },
-    'Arriving banter selected'
+    'Arriving opener selected'
   );
   return selected;
 }

@@ -914,7 +914,7 @@ const PERSONA_PROFILES: Record<
     name: 'Peter',
     role: 'research analyst (the Triple Quant)',
     style: 'analytical, thorough, data-driven',
-    traits: 'loves patterns, quotes Jack Bogle, brings the facts',
+    traits: 'loves patterns, quotes the old-school value investors, brings the facts',
   },
   'jordan-taylor': {
     name: 'Jordan',
@@ -1068,7 +1068,7 @@ export function buildLLMArrivingInstructions(
   // Relationship depth
   const relationshipHint =
     context.relationshipStage === 'deep'
-      ? 'You have a deep relationship - be warm, maybe use their name.'
+      ? 'You have a deep relationship - be warm.'
       : context.relationshipStage === 'new'
         ? 'Newer relationship - be welcoming and open.'
         : '';
