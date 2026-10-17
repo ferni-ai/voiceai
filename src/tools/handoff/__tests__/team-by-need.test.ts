@@ -4,6 +4,7 @@
  * (team-by-need-note.ts). With the flag off, the same caller gets the unlock rules.
  */
 import { llm } from '@livekit/agents';
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { handleHandoffFromDataChannel } from '../../../agents/multi-agent/multi-agent-entry.js';
@@ -117,6 +118,20 @@ describe('the per-turn team note', () => {
     expect(note).not.toMatch(/Bogle|Lynch|Dickson/);
   });
 
+  it('names each legend in the note as its manifest does', () => {
+    byNeed(true);
+    const note = teamByNeedNote('ferni', 'should I move my 401k into index funds?');
+    for (const id of LEGENDS) {
+      const manifest = JSON.parse(
+        readFileSync(
+          new URL(`../../../personas/bundles/${id}/persona.manifest.json`, import.meta.url),
+          'utf8'
+        )
+      ) as { identity: { name: string } };
+      expect(note).toContain(`${manifest.identity.name} for`);
+    }
+  });
+
   it('doesn\'t take "I\'ve been meaning to" as a call for the sage', () => {
     byNeed(true);
     expect(teamByNeedNote('ferni', "I've been meaning to call my sister")).not.toMatch(/fits/);
@@ -134,7 +149,7 @@ describe('the per-turn team note', () => {
   it('lists the legends when the caller is talking about investing', () => {
     byNeed(true);
     expect(teamByNeedNote('ferni', 'should I move my 401k into index funds?')).toMatch(
-      /legends can join too: John Bogle for .*Peter Lynch for .*Joel Dickson for /
+      /legends can join too: Henry Caldwell for .*Tom Brannigan for .*Nate Holloway for /
     );
   });
 

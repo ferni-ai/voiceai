@@ -87,6 +87,9 @@ export interface Vocative {
   capNext: boolean;
   /** Where the name ends when it runs on into its sentence (for a falling name). */
   fallAt?: number;
+  /** Where the name itself starts and ends (inside start..end). */
+  nameAt: number;
+  nameEnd: number;
 }
 
 /**
@@ -187,7 +190,7 @@ export function findVocatives(
       // "What got you through? Honestly, Faith." may be the word answering it.
       if (wordName && /\?[^.!?]*$/.test(text.slice(0, at))) continue;
 
-      found.push({ start: at, end, with: '', capNext: false });
+      found.push({ start: at, end, with: '', capNext: false, nameAt, nameEnd: end });
       continue;
     }
     if (text.charAt(end) !== ',') continue;
@@ -198,7 +201,15 @@ export function findVocatives(
       continue;
     }
     if (CLAUSE_START.has(word)) {
-      found.push({ start: at, end: end + 1, with: ',', capNext: false, fallAt: end });
+      found.push({
+        start: at,
+        end: end + 1,
+        with: ',',
+        capNext: false,
+        fallAt: end,
+        nameAt,
+        nameEnd: end,
+      });
     }
   }
 
@@ -243,7 +254,7 @@ export function findVocatives(
     if (CALENDAR.has(name.toLowerCase()) && inCalendarList(text, nameAt, end)) continue;
     if (/^oh\s/i.test(greet)) {
       // "Oh Sam, that's awful" -> "Oh, that's awful": the "Oh" is the reaction, not a hello.
-      found.push({ start: nameAt - 1, end, with: '', capNext: false });
+      found.push({ start: nameAt - 1, end, with: '', capNext: false, nameAt, nameEnd: end });
       continue;
     }
     // The name goes with its comma or dash (a hello before it goes too: "Hey Sam,"
@@ -256,6 +267,8 @@ export function findVocatives(
       with: '',
       capNext: true,
       fallAt: runsOn ? end : undefined,
+      nameAt,
+      nameEnd: end,
     });
   }
   found.sort((a, b) => a.start - b.start);

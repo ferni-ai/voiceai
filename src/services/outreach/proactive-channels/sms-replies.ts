@@ -18,13 +18,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirebaseUserByPhone } from '../../identity/firebase-auth.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { frequencyOf } from './channel-policy.js';
-import {
-  logId,
-  LOG_COLLECTION,
-  recentOutreach,
-  type OutreachLogEntry,
-  type OutreachOutcome,
-} from './outreach-log.js';
+import { logId, LOG_COLLECTION, recentOutreach, type OutreachOutcome } from './outreach-log.js';
 import { isProactiveChannelsOn, proactiveChannelsUsers } from './proactive-tick.js';
 import type { ProactiveChannel } from './types.js';
 
@@ -58,10 +52,11 @@ async function markLatest(
   const db = getFirestoreDb();
   if (!db) return;
   const recent = await recentOutreach(userId, new Date(now.getTime() - ANSWER_WINDOW_MS));
-  const latest: OutreachLogEntry | undefined = recent
+  const latest = recent
     .filter((e) => channels.includes(e.channel))
-    .sort((a, b) => b.at.localeCompare(a.at))[0];
-  if (!latest) return;
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .at(0);
+  if (latest === undefined) return;
   await db
     .collection('bogle_users')
     .doc(userId)

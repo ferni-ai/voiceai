@@ -17,6 +17,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 
 import { generateText } from '../../services/landing-intelligence/gemini-client.js';
+import { getClientIp } from '../../utils/client-ip.js';
 import { parseBody, sendError, sendJSON } from '../helpers.js';
 
 // Request body types
@@ -71,14 +72,6 @@ function checkRateLimit(ip: string): boolean {
 
   record.count++;
   return true;
-}
-
-function getClientIP(req: IncomingMessage): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0].trim();
-  }
-  return req.socket.remoteAddress || 'unknown';
 }
 
 /**
@@ -162,7 +155,7 @@ export async function handleLandingAIRoutes(
   }
 
   const method = req.method?.toUpperCase();
-  const ip = getClientIP(req);
+  const ip = getClientIp(req);
 
   // Rate limiting
   if (!checkRateLimit(ip)) {

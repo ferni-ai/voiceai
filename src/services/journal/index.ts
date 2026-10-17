@@ -1,18 +1,9 @@
 /**
- * Unified Journal Service
- *
- * Provides a single interface for all journal-related operations across the system.
- * This abstraction layer routes to the appropriate storage based on context:
- *
- * - Digital Twin entries → Custom Agent Memory API
- * - Productivity notes → ProductivityStore
- * - Trust analytics → Trust Systems Firestore
- *
- * Benefits:
- * - Single API for all journaling operations
- * - Cross-source querying (get all entries)
- * - Consistent mood format handling
- * - Unified entry schema
+ * Unified Journal Service: one interface over the journal stores, with
+ * cross-source queries, stats and search (the Chronicle reads through it).
+ * With JOURNAL_ONE_STORE on, journal entries are read from and written to
+ * bogle_users/{uid}/journal (journal-ports.ts) instead of the twin memories
+ * subcollection and the ProductivityStore; productivity notes stay where they are.
  *
  * @module journal-service
  */
@@ -32,6 +23,7 @@ import {
   type MoodId,
 } from './mood-conversion.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
+import * as oneStore from './journal-ports.js';
 
 const log = createLogger({ module: 'JournalService' });
 
@@ -184,7 +176,8 @@ class JournalService {
     ) {
       try {
         const twinEntries = await this.getDigitalTwinEntries(userId, options);
-        entries.push(...twinEntries);
+        const stored = await oneStore.readChronicleJournal(userId, options.agentId);
+        entries.push(...twinEntries, ...this.filterEntries(stored, options));
       } catch (error) {
         log.warn({ error: String(error), userId }, 'Failed to load Digital Twin entries');
       }
@@ -231,9 +224,10 @@ class JournalService {
       case 'digital_twin':
         await this.saveToDigitalTwin(userId, fullEntry);
         break;
-      default:
-        // Default to productivity store
-        await this.saveToProductivityStore(userId, fullEntry);
+      default: // auto-capture and the rest: the journal store when it's on, else productivity
+        await (oneStore.journalOneStoreOn()
+          ? this.saveToDigitalTwin(userId, fullEntry)
+          : this.saveToProductivityStore(userId, fullEntry));
     }
 
     // Invalidate cache
@@ -453,6 +447,10 @@ class JournalService {
   }
 
   private async saveToDigitalTwin(userId: string, entry: UnifiedJournalEntry): Promise<void> {
+    if (oneStore.journalOneStoreOn()) {
+      await oneStore.addUnifiedEntry(userId, entry);
+      return;
+    }
     if (!entry.agentId) {
       log.warn(
         { userId, entryId: entry.id },

@@ -111,6 +111,26 @@ describe('outreach consent mapping', () => {
     });
   });
 
+  it('saves proactive frequency and quiet hours from the settings body, dropping junk', async () => {
+    const body = {
+      enabled: true,
+      allowedChannels: ['sms', 'call'],
+      proactiveFrequency: 'gentle',
+      quietHours: { start: 21, end: '08:00' },
+    };
+    await consent.writeOutreachConsent('u1', consent.consentPatchFrom(body));
+    expect(setCalls[0].value).toMatchObject({
+      outreachPreferences: {
+        enabled: true,
+        channels: ['sms', 'voice_call'],
+        proactiveFrequency: 'gentle',
+        quietHours: { enabled: true, start: '21:00', end: '08:00' },
+      },
+    });
+    const junk = { proactiveFrequency: 'always', quietHours: { start: 25, end: 'noon' } };
+    expect(consent.proactiveSettingsFrom(junk)).toEqual({});
+  });
+
   it('fails loudly when the opt-out cannot be saved', async () => {
     dbAvailable = false;
     await expect(consent.writeOutreachConsent('u1', { enabled: false })).rejects.toThrow();

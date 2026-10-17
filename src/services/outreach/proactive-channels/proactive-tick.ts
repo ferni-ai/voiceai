@@ -19,6 +19,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { lastTalkedAt } from '../outreach-cadence.js';
 import { isValidTimezone, localMinutes } from '../call-hours-guard.js';
+import type { WorldDueItem } from './more-triggers.js';
 import { collectTriggers } from './triggers.js';
 import { ponderedTriggers } from './pondered-triggers.js';
 import { chooseChannel } from './channel-policy.js';
@@ -41,12 +42,19 @@ export function proactiveChannelsUsers(): string[] {
 
 const HISTORY_MS = 3 * 24 * 60 * 60 * 1000;
 
+/** On the allowlist with the flag on: proactive check-ins handle this user. */
+export function isProactiveChannelsUser(userId: string): boolean {
+  return isProactiveChannelsOn() && proactiveChannelsUsers().includes(userId);
+}
+
 /** The delivery edges. Tests stub these; the SDKs live behind them. */
 export interface ProactiveDeps {
   sendInApp: (userId: string, trigger: ProactiveTrigger) => Promise<boolean>;
   /** The phone number on their Firebase account (verified by SMS code), if any. */
   verifiedPhone: (userId: string) => Promise<string | undefined>;
   sendSms: (phone: string, text: string) => Promise<boolean>;
+  /** What comes due today in their world; absent when the server has no world model. */
+  worldDue?: (userId: string, timeZone?: string) => Promise<WorldDueItem[]>;
 }
 
 export interface UserTickResult {
@@ -77,14 +85,22 @@ function localHourOf(user: Record<string, unknown>, now: Date): number | undefin
 async function nextTrigger(
   userId: string,
   user: Record<string, unknown>,
-  now: Date
+  now: Date,
+  deps: ProactiveDeps
 ): Promise<ProactiveTrigger | undefined> {
+  const worldDue = deps.worldDue
+    ? await deps.worldDue(userId, timezoneOf(user)).catch((error: unknown) => {
+        log.warn({ error: String(error), userId }, 'World model not loaded');
+        return [];
+      })
+    : [];
   const triggers = [
     ...(await collectTriggers(userId, {
       now,
       // Unknown time zone: never "evening", so time-of-day triggers wait.
       localHour: localHourOf(user, now) ?? 0,
       lastTalkedAt: lastTalkedAt(user),
+      worldDue,
     })),
     // Pondered follow-ups backed by the caller's own words (OUTREACH_PONDERED_NOTES).
     // A failed read skips them this minute; the triggers above still go out.
@@ -131,7 +147,7 @@ async function runForUser(
   const user = (await db.collection('bogle_users').doc(userId).get()).data();
   if (!user) return { userId, status: 'skipped', why: 'no such user' };
 
-  const trigger = await nextTrigger(userId, user, now);
+  const trigger = await nextTrigger(userId, user, now, deps);
   if (!trigger) return { userId, status: 'idle' };
   const verifiedPhone = await deps.verifiedPhone(userId);
   const recent = await recentOutreach(userId, new Date(now.getTime() - HISTORY_MS));
@@ -174,6 +190,11 @@ async function runForUser(
     textSource: written.source,
     ...(sent.fallbackFrom && { fallbackFrom: sent.fallbackFrom }),
   });
+  if (sent.ok) {
+    await trigger.afterSend?.().catch((error: unknown) => {
+      log.warn({ error: String(error), userId, sourceId: trigger.sourceId }, 'After-send failed');
+    });
+  }
   log.info(
     { ...base, channel: sent.channel, ok: sent.ok, kind: trigger.kind },
     'Proactive check-in sent'

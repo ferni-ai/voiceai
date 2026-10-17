@@ -21,6 +21,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
+import { llmContextCacheEnabled } from './llm-context-cache-flag.js';
 
 const log = createLogger({ module: 'ToolConfig' });
 
@@ -302,7 +303,11 @@ export function getMaxTools(): number {
  * caches a request's prefix). See tool-updater.ts and gemini-declarations.ts.
  */
 export function appendOnlyToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.CASCADE_APPEND_ONLY_TOOLS === 'on' || staticCoreToolsEnabled(env);
+  return (
+    env.CASCADE_APPEND_ONLY_TOOLS === 'on' ||
+    staticCoreToolsEnabled(env) ||
+    llmContextCacheEnabled(env)
+  );
 }
 
 /**

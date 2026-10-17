@@ -422,7 +422,9 @@ describe('Family Check-in Caller', () => {
         updatedAt: new Date().toISOString(),
       };
 
+      vi.stubEnv('FAMILY_CHECKIN_CALLS', 'on');
       const result = await initiateCheckinCall(mockSchedule);
+      vi.unstubAllEnvs();
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('not found');
