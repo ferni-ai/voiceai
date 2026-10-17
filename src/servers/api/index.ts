@@ -104,6 +104,7 @@ import { handleChatRoutes } from '../../api/chat-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handlePasskeyRoutes } from '../../api/passkey-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
+import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { handlePendingActionRoutes } from '../../api/pending-action-routes.js';
 import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
 import { handleAnswerCardRoutes } from '../../api/answer-card-routes.js';
@@ -1489,16 +1490,10 @@ const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 // Start the server
 server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
 async function startBackgroundServices(): Promise<void> {
-  log.info(
-    {
-      port: PORT,
-      livekitUrl: LIVEKIT_URL,
-      ddosProtection: true,
-    },
-    'UI Server started'
-  );
+  log.info({ port: PORT, livekitUrl: LIVEKIT_URL, ddosProtection: true }, 'UI Server started');
 
-  // Start Spotify token auto-refresh
+  // Texts and calls to a member (outreach routes, chat) reach only their verified phone.
+  installCallUserPort();
   startSpotifyAutoRefresh();
 
   // Start Calendar real-time sync services
