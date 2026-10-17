@@ -4533,6 +4533,8 @@
     "defaultOption2C": "Easing into it slowly",
     "defaultOption2D": "Diving right into work",
     "defaultHint2": "I'm curious to learn!",
+    "loadFailed": "I couldn't load your quiz just now. That's on my end. Try again in a little while.",
+    "notEnoughYet": "I don't know enough about you yet to quiz you. Talk with me a bit more and come back.",
     "resultMessageHigh": "We really know each other!",
     "resultMessageMedium": "We're building something special",
     "resultMessageLow": "Every conversation helps me know you better",
@@ -6329,7 +6331,8 @@
     },
     "emptyDescription": "Your chronicle is empty, but every great story starts somewhere. Capture your first thought, and watch your wisdom grow.",
     "quoted": "\"{text}\"",
-    "replyFailed": "That didn't go through. It's on my end, not yours. Try sending it again."
+    "replyFailed": "That didn't go through. It's on my end, not yours. Try sending it again.",
+    "loadFailed": "I couldn't load your Chronicle just now. Your entries are safe. Try again in a little while."
   },
   "marketplacePermissionConsent": {
     "required": "Required Permissions",

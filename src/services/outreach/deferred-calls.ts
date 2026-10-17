@@ -44,7 +44,26 @@ export function heldCallReply(contactName: string): string {
   return `Nothing was dialed yet: it's not a good hour to call ${contactName}, so the call is held for a better time.`;
 }
 
-/** What to tell the user when their call was deferred; undefined when it was placed. */
+/** When a held call rings, in the recipient's time: "later today at 9:00 AM", "tomorrow at …". */
+function spokenWhen(at: Date, timeZone: string, now: Date): string {
+  const day = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone }).format(d);
+  const time = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit' });
+  const tomorrow = day(new Date(now.getTime() + 86_400_000));
+  const when =
+    day(at) === day(now)
+      ? 'later today'
+      : day(at) === tomorrow
+        ? 'tomorrow'
+        : new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'long' }).format(at);
+  return `${when} at ${time.format(at)}`;
+}
+
+/**
+ * What to tell the user when their call was deferred; undefined when it was placed.
+ * Starts "Nothing was dialed yet" like heldCallReply, so the claim check
+ * (agents/personas/action-claims.ts) reads it as held, never as a call placed:
+ * prod 2026-10-17, Nayan said "I'm placing the call now" over this result.
+ */
 export function deferredCallReply(
   callId: string,
   contactName: string,
@@ -54,19 +73,9 @@ export function deferredCallReply(
   const deferral = recent.get(callId);
   // deferCall's ids: a held call, even when its time has left this process's memory.
   if (!deferral) return callId.startsWith('deferred_') ? heldCallReply(contactName) : undefined;
-  const timeZone = deferral.timezone;
-  const day = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone }).format(d);
-  const time = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit' });
-  const tomorrow = day(new Date(now.getTime() + 86_400_000));
-  const when =
-    day(deferral.at) === day(now)
-      ? 'later today'
-      : day(deferral.at) === tomorrow
-        ? 'tomorrow'
-        : new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'long' }).format(deferral.at);
   return (
-    `It's not a good hour to call ${contactName} right now, so I'll call ${when} at ` +
-    `${time.format(deferral.at)} their time to ${purpose}.`
+    `Nothing was dialed yet: it's not a good hour to call ${contactName}, so I'll call ` +
+    `${spokenWhen(deferral.at, deferral.timezone, now)} their time to ${purpose}.`
   );
 }
 

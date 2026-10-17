@@ -97,7 +97,7 @@ describe('on-behalf call', () => {
 
     expect(createSipParticipant).not.toHaveBeenCalled();
     expect(reply).toBe(
-      "It's not a good hour to call Dad right now, so I'll call tomorrow at 9:00 AM their time to wish him happy birthday."
+      "Nothing was dialed yet: it's not a good hour to call Dad, so I'll call tomorrow at 9:00 AM their time to wish him happy birthday."
     );
     expect(deferred()).toHaveLength(1);
     expect(deferred()[0].data).toMatchObject({
