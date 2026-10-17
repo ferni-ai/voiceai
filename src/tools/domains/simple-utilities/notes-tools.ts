@@ -12,6 +12,12 @@ import { z } from 'zod';
 import { quickNotes } from './shared-state.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { callJournalOn } from '../productivity/call-journal.js';
+
+/** CALL_JOURNAL=on: journal requests belong in the journal, not a note gone after the call. */
+export const QUICK_NOTE_JOURNAL_STEER =
+  ' Lasts only this call. Never for their journal: "put that in my journal", "keep a note of today" or "remember this about my day" go to the journal tool with action "write".';
+
 const quickNoteDef: ToolDefinition = {
   id: 'quickNote',
   name: 'Quick Note',
@@ -21,7 +27,8 @@ const quickNoteDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('quickNote'),
+      description:
+        getToolDescription('quickNote') + (callJournalOn() ? QUICK_NOTE_JOURNAL_STEER : ''),
       parameters: z.object({
         note: z.string().describe('The note to remember'),
       }),
