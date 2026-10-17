@@ -128,6 +128,8 @@ export class TurnReceiptRecorder {
   private preemptive: Preemptive | null = null;
   private readonly userKind: UserKind;
   private readonly now: () => number;
+  /** A handoff turn whose swap hadn't landed when it ended: emitted once the outcome is known. */
+  private heldHandoff: { receipt: TurnReceipt; from: string | null } | null = null;
 
   constructor(private readonly opts: TurnReceiptOptions) {
     this.userKind = userKindOf(opts.userId, opts.env);
@@ -158,6 +160,7 @@ export class TurnReceiptRecorder {
 
   /** The caller's turn was committed. A second commit after a reply has begun starts a new turn. */
   onCommit(): void {
+    this.releaseHandoff();
     if (this.turn?.user && this.turn.replied) this.finish('superseded');
     const turn = this.open();
     if (!turn.user) turn.personaAtStart = this.opts.persona() ?? null;
@@ -266,8 +269,37 @@ export class TurnReceiptRecorder {
 
   /** The call is over: emit a caller turn still open. */
   flush(): void {
+    this.releaseHandoff();
     if (this.turn?.user) this.finish('session_end');
     this.turn = null;
+  }
+
+  /**
+   * The held handoff turn, with the persona on the call now. The swap lands after the
+   * outgoing persona's goodbye, so the turn's own end still saw the old persona: prod
+   * receipts said "stayed" for handoffs that worked (4 of 6, week of 2026-10-12). By the
+   * caller's next turn, or the call's end, the swap has landed or failed.
+   */
+  private releaseHandoff(): void {
+    const held = this.heldHandoff;
+    this.heldHandoff = null;
+    if (!held) return;
+    const personaId = this.opts.persona() ?? null;
+    const result = personaId !== held.from ? 'switched' : 'stayed';
+    const { receipt } = held;
+    this.emit({
+      ...receipt,
+      personaId,
+      tools: { ...receipt.tools, handoff: { ...receipt.tools.handoff, result } },
+    });
+  }
+
+  private emit(receipt: TurnReceipt): void {
+    try {
+      (this.opts.emit ?? ((r) => log.info(r, 'TURN_RECEIPT')))(receipt);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'turn receipt not emitted');
+    }
   }
 
   private finish(endedBy: EndedBy): void {
@@ -281,11 +313,11 @@ export class TurnReceiptRecorder {
     if (receipt.reply.unrecorded) {
       log.warn({ sessionId: this.opts.sessionId, turn: this.count }, 'REPLY_NOT_RECORDED');
     }
-    try {
-      (this.opts.emit ?? ((r) => log.info(r, 'TURN_RECEIPT')))(receipt);
-    } catch (error) {
-      log.warn({ error: String(error) }, 'turn receipt not emitted');
+    if (receipt.tools.handoff.result === 'stayed' && endedBy === 'listening') {
+      this.heldHandoff = { receipt, from: turn.personaAtStart };
+      return;
     }
+    this.emit(receipt);
   }
 
   private timing(turn: OpenTurn, endedBy: EndedBy): Record<string, number | null> {
