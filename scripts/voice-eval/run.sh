@@ -98,6 +98,16 @@ caller=${CALLER_VOICE:-say}
 if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} && -z ${EVAL_DRY_RUN:-} ]]; then
   export CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret=cartesia-api-key --project=johnb-2025 2>/dev/null)
 fi
+# The agent takes user_id only from a dispatch signed with its LiveKit API secret
+# (#1212), so job_meta signs it the way our server does (eval-dispatch.ts).
+# Unsigned, every call is a new anonymous caller and EVAL_SEED proves nothing.
+# EVAL_DISPATCH_SECRET skips the lookup. The secret is never printed.
+if [[ $env != phone && -z ${EVAL_DRY_RUN:-} && -z ${EVAL_DISPATCH_SECRET:-} ]]; then
+  if [[ $env == prod ]]; then dsecret=livekit-api-secret; else dsecret=livekit-dev-api-secret; fi
+  export EVAL_DISPATCH_SECRET=$(gcloud secrets versions access latest --secret=$dsecret --project=johnb-2025 2>/dev/null || true)
+  [[ -n $EVAL_DISPATCH_SECRET ]] ||
+    print -u2 "run.sh: can't read $dsecret, so the call goes unsigned and the agent takes $uid as a stranger"
+fi
 json=$out/$scenario-$label.json
 stamp=$(date +%H%M%S)
 
@@ -105,14 +115,20 @@ stamp=$(date +%H%M%S)
 # --persona) which persona answers, as persona_id. Built with JSON.stringify: a
 # quote or backslash in a value must not break it.
 job_meta() {
-  node -e '
+  local m
+  m=$(node -e '
     const [uid, tz, city, region, persona] = process.argv.slice(1);
     const m = { user_id: uid, user_name: "Sam", timezone: tz };
     if (process.env.EVAL_LOCAL_TIME) m.eval_local_time = process.env.EVAL_LOCAL_TIME;
     if (city) Object.assign(m, { city, regionCode: region });
     if (persona) m.persona_id = persona;
     process.stdout.write(JSON.stringify(m));
-  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona"
+  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona")
+  if [[ -n ${EVAL_DISPATCH_SECRET:-} ]]; then
+    (cd $ROOT && npx tsx $HERE/sign-meta.ts "$m")
+  else
+    print -r -- "$m"
+  fi
 }
 
 if [[ -n ${EVAL_DRY_RUN:-} ]]; then
