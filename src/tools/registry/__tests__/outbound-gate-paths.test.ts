@@ -84,11 +84,11 @@ afterEach(() => {
 describe('tools built straight from a domain export are gated', () => {
   it("backgroundCall from proactive's definitions (as ferni-agent builds it) queues nothing without a yes", async () => {
     const def = proactiveDefs.find((d) => d.id === 'backgroundCall')!;
-    const args = { contactName: 'Dr. Lee', contactPhone: '8018983312', objective: 'reschedule' };
+    const args = { contactName: 'Dr. Lee', contactPhone: '8015550163', objective: 'reschedule' };
     const noSession = await def.create(ctx).execute(args, { toolCallId: 'x', ctx: {} });
     expect(String(noSession)).toMatch(/^Nothing was sent/);
     const call = liveCall();
-    expect(await call.run(def.create(ctx), args, 'c1')).toContain('Dr. Lee at 8018983312');
+    expect(await call.run(def.create(ctx), args, 'c1')).toContain('Dr. Lee at 8015550163');
     expect(edge.queueCall).not.toHaveBeenCalled();
     call.caller('yes go ahead');
     await call.run(def.create(ctx), args, 'c2');

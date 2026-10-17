@@ -38,7 +38,7 @@ function baseOptions(extra) {
     urlPath: URL_PATH,
     sharpJpegOptions: { quality: 78, mozjpeg: true },
     sharpWebpOptions: { quality: 75 },
-    sharpAvifOptions: { quality: 55, effort: 2 },
+    sharpAvifOptions: { quality: 50, effort: 6 },
     ...extra,
   };
 }

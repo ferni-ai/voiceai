@@ -71,6 +71,17 @@
   text-decoration: none;
 }
 
+/* The green link is about 2.1:1 on the dark banner, so dark mode uses the highlight token */
+@media (prefers-color-scheme: dark) {
+  .cookie-banner__text a {
+    color: var(--color-highlight);
+  }
+}
+
+:root[data-theme="dark"] .cookie-banner__text a {
+  color: var(--color-highlight);
+}
+
 /* Actions */
 .cookie-banner__actions {
   display: flex;
