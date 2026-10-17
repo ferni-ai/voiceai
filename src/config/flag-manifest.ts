@@ -87,6 +87,8 @@ export const FLAG_MANIFEST = {
   // on: the after-call extraction keeps the caller's own commitments (needs AFTER_CALL_EXTRACTION)
   COACH_COMMITMENT_CAPTURE: { default: 'on', owner: 'intelligence', kind: 'kill-switch' },
   COACH_FOLLOW_THROUGH: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: a commitment marked done is stored as a win the next greeting names once
+  COACH_WINS: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   COACH_MEDIA: { default: 'off', owner: 'tools', kind: 'experiment' },
   COHORT_FLAGS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: once a call, invite one small caller-owned next step (agents/personas/commitment-invite.ts)
