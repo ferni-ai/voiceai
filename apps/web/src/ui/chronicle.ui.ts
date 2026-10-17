@@ -15,7 +15,6 @@
  * @module chronicle.ui
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { escapeHtml } from './engagement-components.js';
@@ -1132,7 +1131,6 @@ function getGreeting(timeContext: TimeContext): string {
 async function loadData(): Promise<ChronicleData> {
   const timeContext = getTimeContext();
   const greeting = getGreeting(timeContext);
-  let loadFailed = false;
 
   try {
     // Try to load real journal data
@@ -1169,7 +1167,6 @@ async function loadData(): Promise<ChronicleData> {
           topThemes: string[];
         };
       }>(`/api/journal/chronicle?userId=${encodeURIComponent(userId)}`);
-      loadFailed = !result.ok;
 
       if (result.ok && result.data) {
         // Transform API response to ChronicleData format
@@ -1207,10 +1204,10 @@ async function loadData(): Promise<ChronicleData> {
     }
   } catch (error) {
     log.warn({ error }, 'Failed to load chronicle data');
-    loadFailed = true;
   }
 
-  // Signed out: an empty Chronicle. A failed load: say so, with no stand-in insights.
+  // Signed out: an empty Chronicle. Signed in and here: the load failed, so say so (no stand-in tips).
+  const loadFailed = Boolean(getUserId());
   return {
     greeting,
     timeContext,
@@ -1257,14 +1254,10 @@ function render(): void {
   const content = container.querySelector('#chronicle-content');
   if (!content) return;
 
-  const { greeting, entries, insights, memories, totalEntries } = state.data;
-
+  const { greeting, insights, memories, totalEntries } = state.data;
   if (state.data.loadFailed) {
-    content.innerHTML = `
-      <div class="chronicle-empty" role="alert" data-state="error">
-        <div class="chronicle-empty-icon">${ICONS.book}</div>
-        <p class="chronicle-empty-description">${t('chronicle.loadFailed')}</p>
-      </div>`;
+    const message = `<p class="chronicle-empty-description">${t('chronicle.loadFailed')}</p>`;
+    content.innerHTML = `<div class="chronicle-empty" role="alert" data-state="error">${message}</div>`;
     return;
   }
 
