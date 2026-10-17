@@ -160,6 +160,8 @@ export interface Attunement {
   volume: number;
   /** A tone candidate for emotion.ts; it still has to fit the words. */
   emotion?: StableEmotion;
+  /** Heavy words only: where the reply eases back to after its first sentence (easeTarget). */
+  ease?: Shift;
 }
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
@@ -219,7 +221,22 @@ export function decideAttune(input: AttuneInput): Attunement {
       drop && volume < prevVolume
     ),
     emotion: input.state === 'low' && heavy ? 'sympathetic' : target.emotion,
+    ...(heavy ? { ease: easeTarget(input) } : {}),
   };
+}
+
+/**
+ * Where a heavy reply eases back to after its first sentence (key-phrase.ts):
+ * the caller's own target without the heavy override, with the same follow
+ * and nudge as decideAttune, and no brighter than neutral, since good news
+ * never meets heavy words. Neutral caller, still voice: 1/1.
+ */
+export function easeTarget(input: AttuneInput): Shift {
+  const base = targetFor(input.state, 'neutral');
+  const follow = entrain(input.voice);
+  const speed = Math.min(base.speed, 1) * follow.speed + (input.nudge ?? 0);
+  const volume = Math.min(base.volume, 1) * follow.volume;
+  return { speed: round2(clamp(speed, SPEED_RANGE)), volume: round2(clamp(volume, VOLUME_RANGE)) };
 }
 
 /**

@@ -9,7 +9,8 @@
     "display_name": "Maya Santos",
     "description": "Warm, encouraging life habits coach who helps build sustainable habits across all life domains - from finances to fitness, relationships to routines. Zero judgment, maximum support.",
     "aliases": ["maya", "habits-coach", "life-coach"],
-    "self_reference": "Maya"
+    "self_reference": "Maya",
+    "role_label": "aiLabel.role.habitsCoach"
   },
 
   "llm_context": {
@@ -49,8 +50,8 @@
   "voice": {
     "provider": "cartesia",
     "voice_id": "${env:MAYA_SANTOS_VOICE_ID|11175483-5332-496c-8c01-ca527ce04e4a}",
-    "model": "sonic-3-latest",
-    "default_emotion": "friendly",
+    "model": "sonic-3.6-2026-08-27",
+    "default_emotion": "happy",
     "emotion_range": [
       "happy",
       "proud",

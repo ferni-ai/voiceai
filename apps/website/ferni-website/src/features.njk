@@ -34,7 +34,7 @@ description: Not "AI that feels human." Something humans can't be. Perfect memor
 </nav>
 
 {# ========== MOBILE MENU (Properly styled - hidden by default) ========== #}
-<div class="mobile-menu" id="mobileMenu">
+<nav class="mobile-menu" id="mobileMenu" aria-label="Mobile menu">
   <div class="mobile-menu__header">
     <span class="nav__logo-text">Ferni</span>
     <button class="mobile-menu__close" aria-label="Close menu">
@@ -43,19 +43,19 @@ description: Not "AI that feels human." Something humans can't be. Perfect memor
       </svg>
     </button>
   </div>
-  <nav class="mobile-menu__nav">
+  <div class="mobile-menu__nav">
     <a href="/capabilities/">Capabilities</a>
     <a href="/team/">Meet the Team</a>
     <a href="/blog/">Blog</a>
     <a href="/about/">About</a>
-  </nav>
+  </div>
   <div class="mobile-menu__cta">
     <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
       Get Started Free
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
   </div>
-</div>
+</nav>
 
 <main id="main-content">
 
@@ -878,7 +878,7 @@ description: Not "AI that feels human." Something humans can't be. Perfect memor
         <table class="truth-table">
           <thead>
             <tr>
-              <th></th>
+              <th scope="col"><span class="sr-only">Compared on</span></th>
               <th>Traditional Coach</th>
               <th>Your Best Friend</th>
               <th>Ferni</th>

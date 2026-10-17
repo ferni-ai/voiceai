@@ -8,6 +8,7 @@
 import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
+import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createBargeInJudge,
@@ -30,6 +31,7 @@ import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
+import { noteBargeIn } from '../shared/turn-receipt.js';
 
 const log = getLogger();
 
@@ -77,6 +79,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   if (process.env.BARGE_IN_FASTPATH !== 'off') {
     const bargeIn = createBargeInFastPath({
       interrupt: () => {
+        noteBargeIn(session, 'fastpath');
         try {
           session.interrupt();
         } catch (error) {
@@ -95,6 +98,9 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       { event: 'user_state_changed', handler: bargeIn.onUserState }
     );
   }
+
+  // callUser rings the caller's verified phone through outreach (call-user-port.ts).
+  installCallUserPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler
@@ -216,7 +222,7 @@ export function speakerIsAccountOwner(sessionId: string): boolean {
 /** What the barge-in model decided about each overlap (see interruption-config.ts). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function logBargeInDecisions(session: voice.AgentSession<any>, sessionId: string): void {
-  session.on(voice.AgentSessionEventTypes.OverlappingSpeech, (ev) =>
+  session.on(voice.AgentSessionEventTypes.OverlappingSpeech, (ev) => {
     log.info(
       {
         sessionId,
@@ -226,8 +232,9 @@ export function logBargeInDecisions(session: voice.AgentSession<any>, sessionId:
         overlapS: Math.round(ev.totalDurationInS * 100) / 100,
       },
       'BARGE_IN_DECISION'
-    )
-  );
+    );
+    if (ev.isInterruption) noteBargeIn(session, 'adaptive');
+  });
   session.on(voice.AgentSessionEventTypes.AgentFalseInterruption, (ev) =>
     log.info({ sessionId, resumed: ev.resumed }, 'BARGE_IN_FALSE_INTERRUPTION')
   );

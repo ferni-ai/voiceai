@@ -16,6 +16,8 @@ import { getUnifiedMemoryService } from '../../../services/unified-memory-servic
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { getSessionId } from '../../utils/tool-helpers.js';
+import { announceRemembered } from './remember-moment.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 
 const log = getLogger();
@@ -209,6 +211,9 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
 
         if (result.success) {
           log.debug({ memoryId: result.memoryId }, 'Memory written successfully');
+          // "I'll remember: …" in the app (REMEMBER_MOMENT=on); only after a store that succeeded.
+          const sessionId = getSessionId({ ctx: toolCtx });
+          void announceRemembered({ userId, sessionId, fact, category });
           return REMEMBERED;
         }
         // Never an empty result (tool-output-guard.ts): say whether it was kept

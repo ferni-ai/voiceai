@@ -10,13 +10,24 @@
  *   evening after, "how did the interview go?".
  * - Either one that says she'd call ("I'll call you tomorrow") is a promised call.
  *
- * Read from bogle_users/{uid}/ferni_commitments (promise-keeper.ts).
+ * Read from bogle_users/{uid}/ferni_commitments (promise-keeper.ts). Missed
+ * reminders, the user's own commitments and their world come from
+ * more-triggers.ts.
  *
  * @module services/outreach/proactive-channels/triggers
  */
 
+import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import {
+  commitmentTriggers,
+  reminderTriggers,
+  worldTriggers,
+  type WorldDueItem,
+} from './more-triggers.js';
 import type { ProactiveTrigger } from './types.js';
+
+const log = createLogger({ module: 'ProactiveTriggers' });
 
 const HOUR_MS = 60 * 60 * 1000;
 /** Reach out the next day, not the same evening Ferni said it. */
@@ -60,6 +71,8 @@ export interface TriggerContext {
   localHour: number;
   /** When they last talked with Ferni (ms), if ever. */
   lastTalkedAt?: number;
+  /** What comes due today in their world (temporal world model), if loaded. */
+  worldDue?: WorldDueItem[];
 }
 
 function checkInTrigger(
@@ -120,11 +133,16 @@ export function triggerFromPromise(p: StoredPromise, ctx: TriggerContext): Proac
   return null;
 }
 
-/** Everything Ferni has a reason to reach out about now, most pressing first. */
-export async function collectTriggers(
-  userId: string,
-  ctx: TriggerContext
-): Promise<ProactiveTrigger[]> {
+const KIND_ORDER: Array<ProactiveTrigger['kind']> = [
+  'promise',
+  'follow_up',
+  'reminder',
+  'world_due',
+];
+const rank = (t: ProactiveTrigger): number =>
+  (t.weight === 'meaningful' ? 0 : 10) + KIND_ORDER.indexOf(t.kind);
+
+async function promiseTriggers(userId: string, ctx: TriggerContext): Promise<ProactiveTrigger[]> {
   const db = getFirestoreDb();
   if (!db) return [];
   const snap = await db
@@ -135,6 +153,29 @@ export async function collectTriggers(
     .get();
   return snap.docs
     .map((d) => triggerFromPromise({ ...(d.data() as StoredPromise), id: d.id }, ctx))
-    .filter((t): t is ProactiveTrigger => t !== null)
-    .sort((a, b) => Number(b.weight === 'meaningful') - Number(a.weight === 'meaningful'));
+    .filter((t): t is ProactiveTrigger => t !== null);
+}
+
+/** Everything Ferni has a reason to reach out about now, most pressing first. */
+export async function collectTriggers(
+  userId: string,
+  ctx: TriggerContext
+): Promise<ProactiveTrigger[]> {
+  // One source failing (a missing index, a bad document) mustn't silence the rest.
+  const safe = async (
+    p: Promise<ProactiveTrigger[]>,
+    source: string
+  ): Promise<ProactiveTrigger[]> =>
+    p.catch((error: unknown) => {
+      log.warn({ error: String(error), userId, source }, 'Proactive trigger source failed');
+      return [] as ProactiveTrigger[];
+    });
+  const sources = await Promise.all([
+    safe(promiseTriggers(userId, ctx), 'promises'),
+    safe(commitmentTriggers(userId, ctx.now), 'commitments'),
+    safe(reminderTriggers(userId, ctx.now), 'reminders'),
+  ]);
+  return [...sources.flat(), ...worldTriggers(ctx.worldDue ?? [], ctx.now)].sort(
+    (a, b) => rank(a) - rank(b)
+  );
 }

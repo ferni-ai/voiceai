@@ -13,6 +13,8 @@ import {
   removeMemoryFromAgent,
 } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import { isJournalPlaceholder } from '../../services/custom-agent/journal-placeholder.js';
+import { journalOneStoreOn } from '../../services/journal/journal-ports.js';
+import { firestoreJournalStore as journalStore } from '../../services/stores/journal-store.js';
 import type { MemoryBody } from './types.js';
 import { sendJson, extractKeywords } from './helpers.js';
 
@@ -73,6 +75,15 @@ export async function handleAddMemory(
     keywords: body.keywords || extractKeywords(body.content),
   };
 
+  // JOURNAL_ONE_STORE: the one journal store, tagged with this agent, not the agent's array
+  if (body.type === 'journalEntry' && journalOneStoreOn()) {
+    const { phrase: _phrase, context: _context, ...entry } = memory;
+    const saved = await journalStore.add(userId, { ...entry, agentId, source: 'digital_twin' });
+    log.info({ userId, agentId, entryId: saved.id }, 'Journal entry added');
+    sendJson(res, 201, { message: 'Memory added', memory: saved });
+    return true;
+  }
+
   const updated = await addMemoryToAgent(userId, agentId, TYPE_MAP[body.type] as never, memory);
 
   if (!updated) {
@@ -104,8 +115,12 @@ export async function handleListMemories(
   }
 
   let memories: unknown[] = [];
+  const wantsJournal = journalOneStoreOn() && (!memoryType || memoryType === 'journalEntry');
+  const journal = wantsJournal ? await journalStore.listForAgent(userId, agent) : undefined;
 
-  if (memoryType) {
+  if (memoryType === 'journalEntry' && journal) {
+    memories = journal;
+  } else if (memoryType) {
     const key = TYPE_MAP[memoryType] as keyof typeof agent.memories;
     if (key && agent.memories[key]) {
       memories = agent.memories[key] as unknown[];
@@ -115,7 +130,7 @@ export async function handleListMemories(
       ...agent.memories.stories,
       ...agent.memories.wisdom,
       ...agent.memories.sharedMoments,
-      ...(agent.memories.journalEntries || []),
+      ...(journal ?? agent.memories.journalEntries ?? []),
     ];
   }
 
@@ -152,6 +167,10 @@ export async function handleDeleteMemory(
   if (!updated) {
     sendJson(res, 404, { error: 'Agent or memory not found' });
     return true;
+  }
+  // A migrated entry is in both places; leaving the store copy would bring it back.
+  if (internalType === 'journalEntries' && journalOneStoreOn()) {
+    await journalStore.remove(userId, memoryId);
   }
 
   log.info({ userId, agentId, memoryId }, 'Memory deleted');

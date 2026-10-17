@@ -2162,6 +2162,7 @@
     "sonosConnected": "تم ربط Sonos!",
     "transcribing": "جاري تحويل الصوت إلى نص...",
     "transcriptionUnavailable": "لم أتمكن من التقاط الكلمات هذه المرة، لذلك لم يُحفظ شيء. هل نحاول مرة أخرى؟",
+    "journalTooLong": "هذا طويل قليلًا. جرّب تسجيلًا أقصر من {count} دقائق.",
     "entrySaved": "تم حفظ المدخلة!",
     "couldNotSaveEntry": "لم نتمكن من حفظ المدخلة. هل تود المحاولة مجددًا؟",
     "profileSaved": "تم حفظ الملف الشخصي!",
@@ -3555,6 +3556,25 @@
     "fieldRelationship": "صلة القرابة",
     "fieldWhatShouldFerniCallThem": "ماذا يجب أن يناديهم Ferni؟",
     "fieldNotesForFerni": "ملاحظات لـ Ferni",
+    "callConsentLabel": "يسعده أن يتصل به Ferni",
+    "callConsentHint": "وافق على أن يتصل به Ferni من حين لآخر للاطمئنان عليه. ويمكنه أن يطلب منه التوقف في أي وقت.",
+    "callConsentSaved": "تم الحفظ",
+    "callConsentFailed": "تعذّر الحفظ. حاول مرة أخرى.",
+    "callConsentLoadFailed": "تعذّر تحميل ما إذا كان يسعده أن يتصل به Ferni. أعد الفتح للمحاولة مرة أخرى.",
+    "checkinTitle": "متى يتصل Ferni للاطمئنان؟",
+    "checkinHint": "سيتصل Ferni اتصالًا قصيرًا في هذا الوقت ليطمئن على حاله.",
+    "checkinFrequencyLabel": "كم مرة",
+    "checkinDaily": "كل يوم",
+    "checkinWeekly": "مرة في الأسبوع",
+    "checkinDayLabel": "أي يوم",
+    "checkinTimeLabel": "في أي ساعة",
+    "checkinTimezone": "الأوقات بتوقيت {zone}.",
+    "checkinSave": "حفظ موعد الاتصال",
+    "checkinRemove": "إيقاف الاتصالات المنتظمة",
+    "checkinSaved": "تم الحفظ. سيتصل Ferni في هذا الموعد.",
+    "checkinRemoved": "الاتصالات المنتظمة متوقفة.",
+    "checkinFailed": "تعذّر الحفظ. حاول مرة أخرى.",
+    "checkinLoadFailed": "تعذّر تحميل موعد الاتصال. أعد الفتح للمحاولة مرة أخرى.",
     "cancel": "إلغاء",
     "addToFamily": "إضافة إلى العائلة",
     "relationshipMother": "الأم",
@@ -9805,6 +9825,7 @@
   "moments": {
     "teamUnlockTitle": "تعرف على {name}",
     "niceWork": "عمل رائع",
+    "remembered": "سأتذكّر هذا: {summary}",
     "streakSubtitle": "حضورك مستمر، وهذا أمر رائع.",
     "streakTitle": {
       "zero": "سلسلة من {count} يوم",
@@ -11536,10 +11557,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

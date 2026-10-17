@@ -27,6 +27,7 @@ import { prosodyTags } from '../providers/cartesia.js';
 import { LATE_NIGHT, voiceAttuneOn, type Delivery } from './attune.js';
 import { DirectorEngine } from './engine.js';
 import { ferniSpeedNudge, porchLightOn } from './ferni-energy.js';
+import { carriedPace } from './key-phrase.js';
 import { leverModes, speechDirectorMode } from './gate.js';
 import { personaDelivery, teamVoicesOn } from './persona-delivery.js';
 import { RawCues } from './raw-cues.js';
@@ -107,6 +108,15 @@ export interface PlanSummary {
   failed: boolean;
 }
 
+/** A sound the director added to the reply, for whoever keeps track of them. */
+export interface DirectorNonverbal {
+  kind: 'laugh' | 'breath' | 'sigh';
+  source: 'director';
+  personaId?: string;
+  /** Where in the reply, for a laugh. */
+  where?: 'before' | 'after';
+}
+
 export interface DirectSpeechOptions {
   textStream: NodeReadableStream<string>;
   voiceId: string;
@@ -129,6 +139,12 @@ export interface DirectSpeechOptions {
   env?: Record<string, string | undefined>;
   sessions?: DirectorSessions;
   onPlan?: (summary: PlanSummary, plan: SpeechPlan) => void;
+  /**
+   * A laugh or opening breath/sigh the director really added (live levers only).
+   * It reaches Cartesia but never the chat history, so the session layer hands in
+   * where to record it (tts-wrapper.ts passes the quirk log, QUIRK_AWARENESS).
+   */
+  onNonverbal?: (added: DirectorNonverbal) => void;
   /** Defaults to setTimeout; tests inject a manual timer. */
   holdTimer?: HoldTimer;
 }
@@ -390,13 +406,34 @@ class DirectedReply implements ReplyStream {
         // The Director's own picks: the persona's tone and rest are reapplied each reply.
         emotion: engine.directorEmotion ?? engine.emotion.emotion,
         // The caller layer only: the resting layers are reapplied each reply, never compounded.
-        speed: engine.delivery?.relativeSpeed ?? engine.speed,
-        volume: engine.attunement?.volume,
+        ...carriedPace(engine),
         ...engine.nonverbalCarry(),
       });
     }
+    this.recordNonverbals(cancelled);
     if (opts.onPlan) opts.onPlan(summary, engine.plan);
     else log.info(summary, 'Speech director plan');
+  }
+
+  /** The laugh and opening breath/sigh added (live levers), to opts.onNonverbal: never in the history. */
+  private recordNonverbals(cancelled: boolean): void {
+    const { engine, opts } = this;
+    const report = opts.onNonverbal;
+    if (!report || this.mode !== 'live') return;
+    const at = { source: 'director' as const, personaId: opts.personaId };
+    const added: DirectorNonverbal[] = [];
+    const opening = engine.opening.opening;
+    if (opening && this.modes.nonverbal === 'live') added.push({ ...at, kind: opening.kind });
+    const laugh = engine.laughter;
+    if (laugh && this.modes.laughter === 'live' && !(cancelled && laugh === 'after')) {
+      added.push({ ...at, kind: 'laugh', where: laugh });
+    }
+    try {
+      for (const n of added) report(n);
+    } catch (err) {
+      // The caller's bookkeeping must never cost the reply its plan.
+      log.warn({ err: String(err), sessionId: opts.sessionId }, 'onNonverbal failed');
+    }
   }
 }
 

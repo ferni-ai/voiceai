@@ -2153,6 +2153,7 @@
     "sonosConnected": "Sonos connected!",
     "transcribing": "Transcribing...",
     "transcriptionUnavailable": "Couldn't catch the words this time, so nothing was saved. Want to try again?",
+    "journalTooLong": "That one's long. Try a shorter one, under {count} minutes.",
     "entrySaved": "Entry saved!",
     "couldNotSaveEntry": "Couldn't save entry. Try again?",
     "profileSaved": "Profile saved!",
@@ -3467,6 +3468,25 @@
     "fieldRelationship": "Relationship",
     "fieldWhatShouldFerniCallThem": "What should Ferni call them?",
     "fieldNotesForFerni": "Notes for Ferni",
+    "callConsentLabel": "They're happy to hear from Ferni",
+    "callConsentHint": "They agreed to Ferni ringing now and then to check in. They can tell him to stop at any time.",
+    "callConsentSaved": "Saved",
+    "callConsentFailed": "Couldn't save that. Try again.",
+    "callConsentLoadFailed": "Couldn't load whether they're happy to hear from Ferni. Reopen to try again.",
+    "checkinTitle": "When should Ferni check in?",
+    "checkinHint": "Ferni will give them a short call at this time to see how they're doing.",
+    "checkinFrequencyLabel": "How often",
+    "checkinDaily": "Every day",
+    "checkinWeekly": "Once a week",
+    "checkinDayLabel": "Which day",
+    "checkinTimeLabel": "What time",
+    "checkinTimezone": "Times are in {zone}.",
+    "checkinSave": "Save check-in time",
+    "checkinRemove": "Stop regular check-ins",
+    "checkinSaved": "Saved. Ferni will check in then.",
+    "checkinRemoved": "Regular check-ins are off.",
+    "checkinFailed": "Couldn't save that. Try again.",
+    "checkinLoadFailed": "Couldn't load the check-in time. Reopen to try again.",
     "cancel": "Cancel",
     "addToFamily": "Add to Family",
     "relationshipMother": "Mother",
@@ -3556,7 +3576,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "Your Personal AI Companion",
+        "role": "Your life coach",
         "description": "I'm here for whatever you need — from daily check-ins to deep conversations.",
         "unlockHint": "Always by your side",
         "unlockedMessage": "We've been through a lot together.",
@@ -3627,11 +3647,11 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — Your AI Life Companion",
+      "title": "Ferni — Your AI Life Coach",
       "message": "I've been using Ferni and it's genuinely changed how I approach my day. Join me! {url}",
       "shortMessage": "Join me on Ferni! {url}",
       "emailSubject": "You should try Ferni",
-      "emailBody": "Hey! I've been using Ferni — it's an AI companion that actually feels human. Thought you'd love it. {url}"
+      "emailBody": "Hey! I've been using Ferni — it's an AI life coach that actually feels human. Thought you'd love it. {url}"
     },
     "modal": {
       "title": "Share the Growth",
@@ -9473,7 +9493,18 @@
     "dismiss": "Just happy to chat"
   },
   "aiLabel": {
-    "companion": "AI companion"
+    "role": {
+      "lifeCoach": "Life coach",
+      "habitsCoach": "Habits coach",
+      "insightsMentor": "Insights mentor",
+      "lifePlanner": "Life planner",
+      "communicationCoach": "Communication coach",
+      "wisdomGuide": "Wisdom guide",
+      "investingMentor": "Investing mentor",
+      "stockPickingGuide": "Stock-picking guide",
+      "lifeMentor": "Life mentor",
+      "friend": "Friend"
+    }
   },
   "afterCall": {
     "ariaLabel": "After your call",
@@ -9489,6 +9520,7 @@
   "moments": {
     "teamUnlockTitle": "Meet {name}",
     "niceWork": "Nice work",
+    "remembered": "I'll remember: {summary}",
     "streakSubtitle": "You're showing up. That matters.",
     "streakTitle": {
       "one": "{count} day streak",
@@ -11044,7 +11076,8 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "approvePage": {
     "kind": {

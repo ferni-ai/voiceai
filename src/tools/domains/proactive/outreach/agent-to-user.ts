@@ -29,6 +29,7 @@ import {
 import { recordReminderPromise } from '../../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { sendEmail, sendSMS } from '../../../../services/communication-service.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
+import { getCallUserPort } from './call-user-port.js';
 import {
   getPersonaDisplayName,
   getCanonicalPersonaId,
@@ -392,7 +393,12 @@ Use when you need to reach them right now outside of the conversation.`,
 };
 
 /**
- * Call the user
+ * Call the user. Registered by the telephony domain (behind
+ * TOOLS_REAL_CALL_USER), not here, so there is one callUser.
+ *
+ * It only rings the verified phone on the account, never the model-written
+ * contactInfo.phone, and calling hours and quiet hours decide when it rings
+ * (call-user-port.ts; the call session installs the outreach adapter).
  */
 export const callUserDef: ToolDefinition = {
   id: 'callUser',
@@ -413,18 +419,29 @@ Use for important check-ins or when a phone call is more personal than text.`,
           return "I'd need to know who you are to call you.";
         }
 
-        const contactInfo = await getUserContactInfo(ctx.userId);
-        if (!contactInfo?.phone) {
-          return "I don't have a phone number for you. Share it first?";
+        const port = getCallUserPort();
+        if (!port) {
+          return "I can't place calls from here, so no call is coming.";
+        }
+        const phone = await port.verifiedPhone(ctx.userId);
+        if (!phone) {
+          return "I can't call you yet: there's no verified phone number on your account, so no call is coming.";
         }
 
-        const personaId = getCanonicalPersonaId(ctx.agentId || 'ferni');
-        const result = await makePhoneCall(contactInfo.phone, message, personaId);
+        const result = await port.call({
+          userId: ctx.userId,
+          phoneNumber: phone,
+          message,
+          personaId: getCanonicalPersonaId(ctx.agentId || 'ferni'),
+        });
 
-        if (result.success) {
-          return '📞 Calling you now...';
+        if (!result.success) {
+          return `I couldn't place the call, so no call is coming: ${result.error ?? 'unknown error'}`;
         }
-        return `I couldn't connect the call: ${result.error}`;
+        if (result.status === 'scheduled') {
+          return "It's outside your calling hours right now, so I'll call you once they open.";
+        }
+        return 'Calling you now.';
       },
     });
   },
@@ -435,7 +452,7 @@ Use for important check-ins or when a phone call is more personal than text.`,
 // ============================================================================
 
 export function getAgentToUserOutreachDefinitions(): ToolDefinition[] {
-  return [saveContactInfoDef, scheduleReminderDef, sendImmediateOutreachDef, callUserDef];
+  return [saveContactInfoDef, scheduleReminderDef, sendImmediateOutreachDef];
 }
 
 export default getAgentToUserOutreachDefinitions;

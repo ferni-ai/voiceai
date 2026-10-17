@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const sdk = vi.hoisted(() => ({
   generateContent: vi.fn(),
+  countTokens: vi.fn(),
   getGenerativeModel: vi.fn(),
   constructed: vi.fn(),
 }));
@@ -20,7 +21,7 @@ vi.mock('@google-cloud/vertexai', () => ({
     }
     getGenerativeModel(params: unknown, options: unknown) {
       sdk.getGenerativeModel(params, options);
-      return { generateContent: sdk.generateContent };
+      return { generateContent: sdk.generateContent, countTokens: sdk.countTokens };
     }
   },
 }));
@@ -82,6 +83,8 @@ async function loadCapture() {
 beforeEach(() => {
   vi.resetModules();
   sdk.generateContent.mockReset();
+  // A short clip by default: well under the clip cap and the hourly budget.
+  sdk.countTokens.mockReset().mockResolvedValue({ totalTokens: 100 });
   sdk.getGenerativeModel.mockReset();
   sdk.constructed.mockReset();
   logged.calls = [];

@@ -1,7 +1,9 @@
 /**
  * Venmo chip-in tests.
  *
- * - Flag off, or no handle: openSupport opens the Stripe Support Ferni modal as before.
+ * - Paywall on, flag off or no handle: openSupport opens the Stripe Support Ferni modal.
+ * - Paywall off, flag off or no handle: openSupport opens nothing (Ferni is free).
+ * - Flag on with a handle: the Venmo card opens, paywall or not (a voluntary chip-in).
  * - Flag on with a handle: the Venmo card opens with a $1 pay link, the handle as
  *   text, an optional QR, Escape to close, and a copy that falls back to selection.
  */
@@ -39,11 +41,37 @@ async function openCard(): Promise<HTMLDialogElement> {
 }
 
 describe('openSupport routing', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     mockSupportOpen.mockClear();
     document.body.innerHTML = '';
+    const { recordPaywallFlag } = await import('../../src/services/paywall.service.js');
+    recordPaywallFlag({ paywall: true }); // Stripe Support Ferni exists only with a paywall
   });
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    const { resetPaywallFlagForTests } = await import('../../src/services/paywall.service.js');
+    resetPaywallFlagForTests();
+  });
+
+  it('with the paywall off and the flag off, opens nothing at all', async () => {
+    const { resetPaywallFlagForTests } = await import('../../src/services/paywall.service.js');
+    resetPaywallFlagForTests();
+    vi.stubEnv('VITE_VENMO_CHIP_IN', 'false');
+    vi.stubEnv('VITE_VENMO_HANDLE', HANDLE);
+    const { openSupport, canOpenSupport } = await import('../../src/ui/support/open-support.js');
+    expect(canOpenSupport()).toBe(false);
+    await openSupport();
+    expect(mockSupportOpen).not.toHaveBeenCalled();
+    expect(card()).toBeNull();
+  });
+
+  it('with the paywall off and the flag on, still opens the voluntary Venmo card', async () => {
+    const { resetPaywallFlagForTests } = await import('../../src/services/paywall.service.js');
+    resetPaywallFlagForTests();
+    const dialog = await openCard();
+    expect(dialog).not.toBeNull();
+    expect(mockSupportOpen).not.toHaveBeenCalled();
+  });
 
   it('opens the Stripe Support Ferni modal when the flag is off', async () => {
     vi.stubEnv('VITE_VENMO_CHIP_IN', 'false');

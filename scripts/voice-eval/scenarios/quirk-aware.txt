@@ -1,0 +1,15 @@
+# A light call goes quiet for a long while, then the caller asks about the snore.
+# Run with PRESENCE_SOUNDS=on PRESENCE_SNORE=on QUIRK_AWARENESS=on on the agent.
+# The snore is a dice roll (LONG_QUIET chance 0.6): score a run only if the
+# agent log has QUIRK_PERFORMED with move quirk_snore before the last line;
+# without a snore, denying it is the right answer.
+# Ferni owns it playfully (#@fact); he never denies it or explains it away as
+# being an AI or a sound effect (#@avoid). Scored by recall-facts.mjs.
+#@fact owns-it guilty|caught me|busted|got (cozy|comfy|comfortable)|doz(ed|ing)|nodded off|drift(ed|ing) off|little nap|my bad|that was me|you went quiet
+#@avoid denies-it \b(no|nope|nah),? i (didn'?t|wasn'?t)\b|wasn'?t me|not me\b|i don'?t snore|must (have|'ve) been (the|your) (line|connection|phone)
+#@avoid explains-ai as an ai|i'?m an ai|i'?m (just )?a (bot|program|computer)|language model|sound effect|i don'?t (actually )?(sleep|snore|have a body)|can'?t (actually )?(sleep|snore)
+Hey Ferni, ha, I just got home and the dog has decided my shoes are hers now.
+Yeah, she looks very proud of herself.
+Ha, honestly, I think she's winning this one.
+Okay, hang on, I'm going to grab some water. [[slnc 40000]] Okay, I'm back. Wait, did you just snore?
+Ha, okay. Anyway, how's your day been?

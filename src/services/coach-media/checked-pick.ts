@@ -3,8 +3,9 @@
  * has watched it: each of the top candidates goes to Gemini (a video as its
  * public YouTube URL, a book as its title and description), which says whether
  * it fits this person and this need, whether it is evidence-based or hype, and
- * why in one sentence. The best that fits wins; if none fits, or no check
- * came back (timeout, quota), there is no pick: never an unvetted one.
+ * why in one sentence. The best that fits wins (its quality, moved by what
+ * this person liked before: taste.ts); if none fits, or no check came back
+ * (timeout, quota), there is no pick: never an unvetted one.
  *
  * Videos are checked on their first 150 seconds at low resolution and half a
  * frame per second, which keeps a check to a few thousand tokens.
@@ -14,6 +15,7 @@
 
 import { getGeminiClient } from '../../config/gemini-config.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import type { GroundedAnswer } from './grounded-search.js';
 import { webData } from './result-text.js';
 
 export interface Candidate {
@@ -24,8 +26,18 @@ export interface Candidate {
   url: string;
   /** "8 min", "52 s", "240 pages". */
   length?: string;
+  /** A video's length in seconds, for taste (short or long). */
+  seconds?: number;
+  /** A video's YouTube channelId: who made it, as taste may trust it. */
+  creatorId?: string;
   /** Book description; untrusted text from the listing. */
   summary?: string;
+  /** The grounded search that found it, for the user-facing sources card. */
+  grounding?: {
+    sources: GroundedAnswer['sources'];
+    searchSuggestionsHtml?: string;
+    webSearchQueries?: string[];
+  };
 }
 
 export interface Verdict {
@@ -150,7 +162,8 @@ async function check(c: Candidate, topic: string, fit: string): Promise<Verdict 
 export async function checkedPick(
   candidates: Candidate[],
   topic: string,
-  fit: string
+  fit: string,
+  boost: (c: Candidate) => number = () => 0
 ): Promise<Pick | null> {
   const top = candidates.slice(0, MAX_CHECKED);
   if (top.length === 0) return null;
@@ -160,7 +173,9 @@ export async function checkedPick(
     .filter((p): p is { candidate: Candidate; verdict: Verdict } =>
       Boolean(p.verdict?.fits && p.verdict.safe && p.verdict.evidence !== 'hype')
     )
-    .sort((a, b) => b.verdict.quality - a.verdict.quality)[0];
+    .sort(
+      (a, b) => b.verdict.quality + boost(b.candidate) - (a.verdict.quality + boost(a.candidate))
+    )[0];
   getLogger().info(
     { checked: verdicts.filter(Boolean).length, picked: Boolean(best) },
     'coach-media: checked pick'

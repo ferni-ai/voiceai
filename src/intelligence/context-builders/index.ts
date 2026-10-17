@@ -834,11 +834,9 @@ export async function buildConversationContext(
   const userName = input.userData.userName || input.userData.name || input.userProfile?.name;
   if (userName) {
     injections.push(
-      createHintInjection(
-        'personalization',
-        `User's name is ${userName}. Use it occasionally but naturally.`,
-        { category: 'personalization' }
-      )
+      createHintInjection('personalization', `User's name is ${userName}.`, {
+        category: 'personalization',
+      })
     );
   }
 

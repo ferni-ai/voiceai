@@ -33,7 +33,7 @@ The brand library and marketing content exist in **separate silos**:
 ## Integration Strategy
 
 ### Phase 1: Marketing Website (Week 1)
-**Build: `apps/marketing/site/index.html`**
+**Build: `apps/website/ferni-website/`** (the deployed site; the old `apps/marketing/site/` prototype was removed)
 
 Create a marketing landing page that showcases Ferni using the brand library.
 
@@ -226,7 +226,7 @@ Create a marketing landing page that showcases Ferni using the brand library.
 
 - [ ] **Create marketing site structure**
   ```
-  apps/marketing/site/
+  apps/website/ferni-website/src/
   ├── index.html          # Landing page
   ├── capabilities.html   # What Ferni can do
   ├── team.html           # Meet the 6 personas

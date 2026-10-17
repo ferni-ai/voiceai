@@ -235,17 +235,12 @@ export const inviteParticipantTool: SemanticToolDefinition = {
       };
     }
 
+    // Nothing consumes INVITE_PARTICIPANT, so no call is placed: never "Calling X now" (#1415).
     return {
-      success: true,
-      data: {
-        action: 'INVITE_PARTICIPANT',
-        phoneNumber,
-        name,
-        relationship: args.relationship,
-      },
-      naturalResponse: `Calling ${name} now...`,
+      success: false,
+      error: 'No dialer for adding a participant by phone',
+      naturalResponse: `I can't add ${name} to this call by phone yet, so I haven't dialed anyone.`,
       speakImmediately: true,
-      sideEffects: ['external_call_initiated'],
     };
   },
 

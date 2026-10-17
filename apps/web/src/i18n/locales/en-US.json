@@ -17,7 +17,8 @@
     "notFound": "Couldn't find that one. It may be on the account I texted.",
     "loadFailed": "Couldn't load that. Try again?",
     "retry": "Try again",
-    "switchAccount": "Use another account"
+    "switchAccount": "Use another account",
+    "seeSources": "Why I picked it, and where I found it"
   },
   "meta": {
     "locale": "en-US",
@@ -969,19 +970,15 @@
     "steps": {
       "welcome": {
         "title": "Welcome to Ferni",
-        "description": "Your personal team of AI life coaches. Each brings unique wisdom to support your journey."
+        "description": "Your personal team of life coaches. Each one brings their own way of seeing things."
       },
       "voice": {
         "title": "Just Speak",
-        "description": "Tap the center to start a conversation. Speak naturally - Ferni listens and responds in real time."
+        "description": "Tap Connect to start a conversation. Then just talk, the way you would with a friend."
       },
       "personas": {
         "title": "Meet Your Team",
         "description": "Six unique coaches with different perspectives. Each understands your history with the team."
-      },
-      "rituals": {
-        "title": "Daily Practices",
-        "description": "Build consistency with short daily rituals. Track streaks and celebrate progress."
       },
       "ready": {
         "title": "You're Ready",
@@ -2667,6 +2664,7 @@
     "tokenDeleted": "Token deleted",
     "transcribing": "Transcribing...",
     "transcriptionUnavailable": "Couldn't catch the words this time, so nothing was saved. Want to try again?",
+    "journalTooLong": "That one's long. Try a shorter one, under {count} minutes.",
     "unlockTeamMemberFirst": "Unlock this team member first",
     "updated": "Updated!",
     "uploadingPhoto": "Uploading photo...",
@@ -3495,6 +3493,25 @@
     "fieldRelationship": "Relationship",
     "fieldWhatShouldFerniCallThem": "What should Ferni call them?",
     "fieldNotesForFerni": "Notes for Ferni",
+    "callConsentLabel": "They're happy to hear from Ferni",
+    "callConsentHint": "They agreed to Ferni calling now and then to check in. They can tell him to stop at any time.",
+    "callConsentSaved": "Saved",
+    "callConsentFailed": "Couldn't save that. Try again.",
+    "callConsentLoadFailed": "Couldn't load whether they're happy to hear from Ferni. Reopen to try again.",
+    "checkinTitle": "When should Ferni check in?",
+    "checkinHint": "Ferni will give them a short call at this time to see how they're doing.",
+    "checkinFrequencyLabel": "How often",
+    "checkinDaily": "Every day",
+    "checkinWeekly": "Once a week",
+    "checkinDayLabel": "Which day",
+    "checkinTimeLabel": "What time",
+    "checkinTimezone": "Times are in {zone}.",
+    "checkinSave": "Save check-in time",
+    "checkinRemove": "Stop regular check-ins",
+    "checkinSaved": "Saved. Ferni will check in then.",
+    "checkinRemoved": "Regular check-ins are off.",
+    "checkinFailed": "Couldn't save that. Try again.",
+    "checkinLoadFailed": "Couldn't load the check-in time. Reopen to try again.",
     "cancel": "Cancel",
     "addToFamily": "Add to Family",
     "relationshipMother": "Mother",
@@ -3584,7 +3601,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "Your Personal AI Companion",
+        "role": "Your life coach",
         "description": "I'm here for whatever you need — from daily check-ins to deep conversations.",
         "unlockHint": "Always by your side",
         "unlockedMessage": "We've been through a lot together.",
@@ -3655,11 +3672,12 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — Your AI Life Companion",
-      "message": "I've been using Ferni and it's genuinely changed how I approach my day. Join me! {url}",
-      "shortMessage": "Join me on Ferni! {url}",
-      "emailSubject": "You should try Ferni",
-      "emailBody": "Hey! I've been using Ferni — it's an AI companion that actually feels human. Thought you'd love it. {url}"
+      "title": "Meet Ferni"
+    },
+    "draft": {
+      "label": "Your message",
+      "text": "I've been talking things through with Ferni. Thought you might like it too.",
+      "hint": "Say it your way. Your link goes at the end."
     },
     "modal": {
       "title": "Share the Growth",
@@ -3692,7 +3710,6 @@
       "friendsGrowing": "{count} friends growing",
       "title": "Your garden:"
     },
-    "quoteMessage": "\"Give them someone who remembers everything, shows up at 2am, and never judges.\"",
     "subtitle": "Know someone who could use a friend like this?",
     "title": "Share the Growth",
     "yourLink": "Your link:"
@@ -9527,7 +9544,18 @@
     "dismiss": "Just happy to chat"
   },
   "aiLabel": {
-    "companion": "AI companion"
+    "role": {
+      "lifeCoach": "Life coach",
+      "habitsCoach": "Habits coach",
+      "insightsMentor": "Insights mentor",
+      "lifePlanner": "Life planner",
+      "communicationCoach": "Communication coach",
+      "wisdomGuide": "Wisdom guide",
+      "investingMentor": "Investing mentor",
+      "stockPickingGuide": "Stock-picking guide",
+      "lifeMentor": "Life mentor",
+      "friend": "Friend"
+    }
   },
   "afterCall": {
     "ariaLabel": "After your call",
@@ -9547,6 +9575,7 @@
     },
     "teamUnlockTitle": "Meet {name}",
     "niceWork": "Nice work",
+    "remembered": "I'll remember: {summary}",
     "streakSubtitle": "You're showing up. That matters."
   },
   "marketplaceService": {

@@ -38,6 +38,7 @@ const DEV_SUMMARY = {
     'The user was working on contracts on the evening of 2026-10-11.',
     'The user has a pile of unopened mail on the kitchen table and dislikes dealing with mail.',
   ],
+  callerProvenance: 1,
   followUpItems: ['How did the contract wrangling turn out?'],
 };
 
