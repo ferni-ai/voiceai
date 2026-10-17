@@ -21,6 +21,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
 import {
+  ALREADY_EXISTS,
   CHECKINS,
   checkinDb,
   firestoreReplyStore,
@@ -39,13 +40,30 @@ import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
 import { verifiedPhoneOf } from './user-reach.js';
 import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
-import { isQuietHour } from '../follow-through/index.js';
+import { QUIET_END_HOUR, QUIET_START_HOUR } from '../follow-through/right-moment.js';
+import { flagOn } from '../../config/env-flag.js';
+import {
+  hoursWindow,
+  isQuietAt,
+  quietEndsAt,
+  quietZones,
+  quietZonesOf,
+  type QuietHoursUser,
+} from './quiet-hours.js';
+import { timezoneFromPhone } from './area-code-timezones.js';
 
 const log = createLogger({ module: 'guarded-text' });
+/** Send locks (lockedSend), kept apart from the records so no query reads them. */
+const TEXT_LOCKS = 'feature_checkin_locks';
 
 export interface TextStore extends Pick<ReplyStore, 'forPhoneHash' | 'isOptedOut'> {
   forUser: (userId: string) => Promise<StoredCheckin[]>;
   add: (record: CheckinRecord) => Promise<string>;
+  /** Takes lock `id`, stamped `at`, only if nobody holds it (atomic); false if someone does. */
+  lock: (id: string, at: string) => Promise<boolean>;
+  /** When lock `id` was taken, if it is held. */
+  lockedAt: (id: string) => Promise<string | undefined>;
+  unlock: (id: string) => Promise<void>;
   sponsoredPhone: (userId: string) => Promise<string | undefined>;
   userDoc: (userId: string) => Promise<Record<string, unknown> | undefined>;
   /** outreach_profiles/{userId}.state.allowedChannels, where the webhook's global STOP lands. */
@@ -118,6 +136,17 @@ export async function resolveCheckinPhone(
   return phone === undefined ? undefined : (toE164(phone) ?? undefined);
 }
 
+/** True when `phone` is the member's own verified number, so a text or call to it is to them. */
+export async function isOwnVerifiedPhone(
+  userId: string,
+  phone: string,
+  deps: Pick<TextDeps, 'store' | 'authPhone'> = defaultTextDeps()
+): Promise<boolean> {
+  const doc = userId.startsWith('sponsored_') ? undefined : await deps.store.userDoc(userId);
+  const own = await resolveCheckinPhone(userId, doc, deps);
+  return own !== undefined && own === toE164(phone);
+}
+
 /** The member explicitly turned texts off, in outreach settings or by a STOP to the webhook. */
 export function smsTurnedOff(
   userDoc: Record<string, unknown> | undefined,
@@ -141,6 +170,47 @@ export function recordUserId(userId: string, env: Env = process.env): string | n
   if (!userId.startsWith('phone:')) return userId;
   const hash = phoneHash(userId.slice('phone:'.length), env);
   return hash ? `phone#${hash}` : null;
+}
+
+/**
+ * Lock, send, record. Two runs at once (the job overlapping itself, a retry, a
+ * tool firing with the job) could both pass the gap checks. Each run locks its
+ * gap window and the one before (by kind and number), so two runs less than a
+ * gap apart share a lock and one loses; a window-before lock from more than a
+ * gap ago doesn't count. Locks stay; a failed send drops them for a retry.
+ */
+async function lockedSend(
+  deps: TextDeps,
+  gapMs: number,
+  record: CheckinRecord,
+  message: SMSMessage
+): Promise<SMSDeliveryResult | 'locked'> {
+  const at = Date.parse(record.sentAt);
+  const window = Math.floor(at / Math.max(gapMs, 1));
+  const [mine, before] = [window, window - 1].map((w) => `${record.kind}:${record.phoneHash}:${w}`);
+  if (!(await deps.store.lock(mine, record.sentAt))) return 'locked';
+  const held = [mine];
+  if (await deps.store.lock(before, record.sentAt)) held.push(before);
+  else if (at - Date.parse((await deps.store.lockedAt(before)) ?? '') < gapMs) {
+    await deps.store.unlock(mine);
+    return 'locked';
+  }
+  const unlock = () => Promise.all(held.map((id) => deps.store.unlock(id)));
+  let result: SMSDeliveryResult;
+  try {
+    result = await deps.send(message);
+  } catch (error) {
+    await unlock();
+    throw error;
+  }
+  if (!result.success) await unlock();
+  // A text that went is sent: a failed write must not make anyone send it again.
+  await deps.store
+    .add({ ...record, status: result.success ? 'sent' : 'failed' })
+    .catch((error: unknown) => {
+      log.warn({ kind: record.kind, refId: record.refId, error: String(error) }, 'Not recorded');
+    });
+  return result;
 }
 
 /** Sends `t` if every guard allows it, and records the attempt. Never throws for a skip. */
@@ -180,24 +250,25 @@ export async function sendGuardedText(
   if (sentWithin(lastSentAt(toPhone, t.kind), now, t.minGapMs)) return skip('recently-sent');
 
   const phoneLast4 = last4(phone);
-  const result = await deps.send({
+  const record: CheckinRecord = {
+    userId: storedId,
+    sessionId: t.refId,
+    sentAt: now.toISOString(),
+    question: t.body,
+    status: 'sent',
+    phoneLast4,
+    phoneHash: hash,
+    kind: t.kind,
+    refId: t.refId,
+  };
+  const result = await lockedSend(deps, t.minGapMs, record, {
     to: phone,
     body: t.body,
     personaId: 'ferni',
     userId: storedId,
     outreachId: `${t.kind}_${t.refId}`,
   });
-  await deps.store.add({
-    userId: storedId,
-    sessionId: t.refId,
-    sentAt: now.toISOString(),
-    question: t.body,
-    status: result.success ? 'sent' : 'failed',
-    phoneLast4,
-    phoneHash: hash,
-    kind: t.kind,
-    refId: t.refId,
-  });
+  if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
     log.warn({ ...logCtx, phoneLast4, error: redactNumbers(result.error) }, 'Text not sent');
     return { sent: false, reason: 'send-failed' };
@@ -210,8 +281,12 @@ export async function sendGuardedText(
 // Texts a member asks Ferni to send to someone else
 // ---------------------------------------------------------------------------
 
-export function onBehalfTextsOn(env: Env = process.env): boolean {
-  return env.ON_BEHALF_TEXTS === 'on';
+/**
+ * The guards are safety, not a feature, so they run unless ops turn them off:
+ * ON_BEHALF_TEXT_GUARD=off restores the unguarded send (rollback only).
+ */
+export function onBehalfGuardOn(env: Env = process.env): boolean {
+  return flagOn('ON_BEHALF_TEXT_GUARD', env);
 }
 
 /** No more than one text to the same person every 10 minutes: a loop can't spam them. */
@@ -226,44 +301,58 @@ export interface OnBehalfText {
   readonly refId: string;
   /** The recipient's IANA zone when known; else the member's. */
   readonly zone?: string;
+  /** The persona it is sent as (SMS signature); Ferni when unset. */
+  readonly personaId?: string;
 }
 
 export type OnBehalfSkip =
-  | 'flag-off'
-  | 'no-hash-secret'
-  | 'bad-number'
-  | 'opted-out'
-  | 'recently-sent'
-  | 'quiet-hours'
-  | 'send-failed';
-export type OnBehalfOutcome = { sent: true } | { sent: false; reason: OnBehalfSkip };
+  'no-hash-secret' | 'bad-number' | 'opted-out' | 'recently-sent' | 'quiet-hours' | 'send-failed';
+export type OnBehalfOutcome =
+  | { sent: true }
+  | { sent: false; reason: Exclude<OnBehalfSkip, 'quiet-hours'> }
+  /** `until`: when quiet hours end (08:00 in the zone used), for a sender that can wait. */
+  | { sent: false; reason: 'quiet-hours'; until: Date };
 
-/** Quiet hours (21:00 to 08:00, follow-through's) in their zone, else the member's; none when unknown. */
-function quietFor(now: Date, zone: string | undefined): boolean {
-  return zone !== undefined && isValidTimeZone(zone) && isQuietHour(now, zone);
+const QUIET_WINDOW = hoursWindow(QUIET_START_HOUR, QUIET_END_HOUR);
+
+/**
+ * Quiet-hours zones: the recipient's (given, else their area code's), else the
+ * member's (the call's, else their account's), else both US coasts.
+ */
+async function quietZonesFor(t: OnBehalfText, to: string, deps: TextDeps): Promise<string[]> {
+  const zone = [t.zone, timezoneFromPhone(to), userTimeZone({ userId: t.senderUserId })].find(
+    (z) => z !== undefined && isValidTimeZone(z)
+  );
+  if (zone) return [zone];
+  const doc = await deps.store.userDoc(t.senderUserId).catch(() => undefined);
+  return doc ? quietZonesOf(doc as QuietHoursUser) : quietZones(undefined);
 }
 
 /**
  * Sends a text to someone else for a member (the caller has already said yes,
  * outreach-confirm.ts): only to a valid number, never after that number sent
  * STOP (any STOP to our number is recorded, checkin-replies.ts), not twice in
- * ten minutes, not in their quiet hours. Off unless ON_BEHALF_TEXTS=on.
+ * ten minutes, not in their quiet hours (follow-through's 21:00 to 08:00).
  */
 export async function sendOnBehalfText(
   t: OnBehalfText,
   deps: TextDeps = defaultTextDeps()
 ): Promise<OnBehalfOutcome> {
-  const skip = (reason: OnBehalfSkip): OnBehalfOutcome => {
+  const skip = (reason: Exclude<OnBehalfSkip, 'quiet-hours'>): OnBehalfOutcome => {
     log.info({ kind: 'on-behalf', refId: t.refId, reason }, 'Text skipped');
     return { sent: false, reason };
   };
-  if (!onBehalfTextsOn(deps.env)) return skip('flag-off');
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
   const to = toE164(t.toPhone);
   const hash = to ? phoneHash(to, deps.env) : null;
   if (!to || !hash) return skip('bad-number');
   const now = deps.now();
-  if (quietFor(now, t.zone ?? userTimeZone({ userId: t.senderUserId }))) return skip('quiet-hours');
+  const zones = await quietZonesFor(t, to, deps);
+  if (isQuietAt(now, QUIET_WINDOW, zones)) {
+    const until = quietEndsAt(now, QUIET_WINDOW, zones);
+    log.info({ kind: 'on-behalf', refId: t.refId, reason: 'quiet-hours' }, 'Text skipped');
+    return { sent: false, reason: 'quiet-hours', until };
+  }
   const [optedOut, toPhone] = await Promise.all([
     deps.store.isOptedOut(hash),
     deps.store.forPhoneHash(hash),
@@ -273,24 +362,25 @@ export async function sendOnBehalfText(
     return skip('recently-sent');
 
   const storedId = recordUserId(t.senderUserId, deps.env) ?? 'unknown';
-  const result = await deps.send({
-    to,
-    body: t.body,
-    personaId: 'ferni',
-    userId: storedId,
-    outreachId: t.refId,
-  });
-  await deps.store.add({
+  const record: CheckinRecord = {
     userId: storedId,
     sessionId: t.refId,
     sentAt: now.toISOString(),
     question: t.body,
-    status: result.success ? 'sent' : 'failed',
+    status: 'sent',
     phoneLast4: last4(to),
     phoneHash: hash,
     kind: 'on-behalf',
     refId: t.refId,
+  };
+  const result = await lockedSend(deps, ON_BEHALF_GAP_MS, record, {
+    to,
+    body: t.body,
+    personaId: t.personaId ?? 'ferni',
+    userId: storedId,
+    outreachId: t.refId,
   });
+  if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
     log.warn(
       { kind: 'on-behalf', refId: t.refId, error: redactNumbers(result.error) },
@@ -299,6 +389,38 @@ export async function sendOnBehalfText(
     return { sent: false, reason: 'send-failed' };
   }
   return { sent: true };
+}
+
+/**
+ * Every text to someone other than the member goes through here: the guards
+ * above, or with ON_BEHALF_TEXT_GUARD=off the plain send it replaced.
+ */
+export async function textOnBehalf(
+  t: OnBehalfText,
+  deps: TextDeps = defaultTextDeps()
+): Promise<OnBehalfOutcome> {
+  if (onBehalfGuardOn(deps.env)) return sendOnBehalfText(t, deps);
+  const result = await deps.send({
+    to: t.toPhone,
+    body: t.body,
+    personaId: t.personaId ?? 'ferni',
+    userId: t.senderUserId,
+    outreachId: t.refId,
+  });
+  return result.success ? { sent: true } : { sent: false, reason: 'send-failed' };
+}
+
+/** What a tool tells the model when a text to `name` didn't go, so Ferni says so honestly. */
+export function onBehalfNotSent(name: string, reason: OnBehalfSkip): string {
+  const why: Record<OnBehalfSkip, string> = {
+    'opted-out': "that number replied STOP to our texts, so I can't text it",
+    'quiet-hours': "it's late where they are (9pm to 8am their time). Nothing is queued",
+    'recently-sent': 'I already texted that number in the last ten minutes',
+    'bad-number': "that doesn't look like a valid phone number",
+    'no-hash-secret': "texting isn't set up right now",
+    'send-failed': "the text didn't go through",
+  };
+  return `The text to ${name} was NOT sent: ${why[reason]}.`;
 }
 
 export const firestoreTextStore: TextStore = {
@@ -310,6 +432,23 @@ export const firestoreTextStore: TextStore = {
   },
   async add(record) {
     return (await checkinDb().collection(CHECKINS).add(record)).id;
+  },
+  async lock(id, at) {
+    try {
+      await checkinDb().collection(TEXT_LOCKS).doc(id).create({ at });
+      return true;
+    } catch (error) {
+      if ((error as { code?: unknown }).code === ALREADY_EXISTS) return false;
+      throw error;
+    }
+  },
+  async lockedAt(id) {
+    const doc = await checkinDb().collection(TEXT_LOCKS).doc(id).get();
+    const at: unknown = doc.exists ? doc.data()?.at : undefined;
+    return typeof at === 'string' ? at : undefined;
+  },
+  async unlock(id) {
+    await checkinDb().collection(TEXT_LOCKS).doc(id).delete();
   },
   async userDoc(userId) {
     const doc = await checkinDb().collection('bogle_users').doc(userId).get();
