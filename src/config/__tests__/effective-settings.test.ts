@@ -52,10 +52,26 @@ describe('effectiveSettings: no secret value leaks', () => {
     expect(line).not.toContain(MARK);
   });
 
-  it('hides a URL that carries a password, even under a printable name', () => {
-    const value = `https://user:${MARK}@example.test/path`;
-    const line = formatEffectiveSettings({ GEMINI_MODEL: value });
+  // Routes a secret could take even under a printable name, or a secret-shaped flag name.
+  it.each([
+    ['BUILD_SHA', `https://fakeuser:${MARK}@host`],
+    ['BUILD_SHA', `${MARK}-SHA-1`],
+    ['GOOGLE_CLOUD_PROJECT', `https://u:${MARK}/PW@h`],
+    ['GOOGLE_CLOUD_PROJECT', `https://u:${MARK} PW@h`],
+    ['GOOGLE_CLOUD_PROJECT', `u:${MARK}@h`],
+    ['GEMINI_MODEL', `sk-${MARK}_TOKEN`],
+    ['PERSONA_ID', `${MARK}`],
+    ['PORT', `${MARK}`],
+    ['APPROVALS_PASSKEYS', MARK],
+    ['SCHEDULED_JOBS_AUTH', `${MARK}secretword`],
+    ['ACTION_CLAIM_GUARD', `${MARK}password`],
+  ])('hides %s set to a value shaped like a secret (%s)', (name, value) => {
+    const line = formatEffectiveSettings({ [name]: value });
     expect(line).not.toContain(MARK);
+  });
+
+  it('shows a flag that is set to a manifest word, even under a secret-shaped name', () => {
+    expect(effectiveSettings({ SCHEDULED_JOBS_AUTH: 'off' }).flags.SCHEDULED_JOBS_AUTH).toBe('off');
   });
 
   it('hides every planted value when all non-printable names are set to fakes', () => {
@@ -105,6 +121,14 @@ describe('effectiveSettings: contents and hash', () => {
   it('reports the commit from BUILD_SHA, or unknown', () => {
     expect(effectiveSettings({ BUILD_SHA: 'abc1234' }).commit).toBe('abc1234');
     expect(effectiveSettings({}).commit).toBe('unknown');
+  });
+
+  it('hides a BUILD_SHA that is not a commit hash', () => {
+    expect(effectiveSettings({ BUILD_SHA: `${MARK}-SHA` }).commit).toBe(SET);
+  });
+
+  it('does not change the hash when a secret is first set', () => {
+    expect(effectiveSettings({ MY_API_KEY: 'one' }).hash).toBe(effectiveSettings({}).hash);
   });
 
   it('gives the same hash for the same non-secret settings', () => {

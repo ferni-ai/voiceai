@@ -4,9 +4,9 @@
  * The agent logs `EFFECTIVE_SETTINGS {...}` once at boot, so two deployments can
  * be compared by the hash of their non-secret settings instead of by hand. Every
  * manifest flag is listed with its resolved value. Every other env name the code
- * reads is listed too, but only its presence is shown unless the name is on the
- * printable list. Secrets are never printed: a name that does not clearly carry
- * a non-secret value is shown as `<set>` or `<unset>`.
+ * reads is listed too, but its value is printed only when it matches a strict
+ * shape for that name. Anything else is `<set>` or `<unset>`, so no secret value
+ * can reach the line.
  *
  * @module config/effective-settings
  */
@@ -18,7 +18,7 @@ export type Env = Readonly<Record<string, string | undefined>>;
 
 export interface EffectiveSettings {
   readonly commit: string;
-  /** Hash of the non-secret map (flags and printable names). Equal hashes mean equal non-secret settings. */
+  /** Hash of the printed non-secret map (flags and printable names). Equal hashes mean equal settings. */
   readonly hash: string;
   readonly flags: Readonly<Record<string, string>>;
   readonly env: Readonly<Record<string, string>>;
@@ -36,44 +36,55 @@ const UNSET = '<unset>';
 const SECRET_NAME =
   /KEY|SECRET|TOKEN|PASSWORD|PASS|CREDENTIAL|PRIVATE|DSN|AUTH|CERT|SIGNING|WEBHOOK|URL/i;
 
-/** A URL whose authority holds a user or password, such as `https://user:pw@host`. */
-const URL_WITH_CREDENTIALS = /:\/\/[^/\s]*@/;
-
 /**
- * Non-secret names whose values may be printed. Keep this list short and never
- * add a name that matches SECRET_NAME (a test checks that). Anything missing here
- * is shown as `<set>`, so PR 2's settings classification decides what joins it.
+ * Non-secret names and the one strict shape each value must match to be printed.
+ * A shape excludes `:`, `/`, `@` and spaces, so a URL with credentials or a
+ * pasted key never matches. A name missing here is shown as `<set>`.
  */
-const PRINTABLE = new Set([
-  'AGENT_NAME',
-  'BUILD_SHA',
-  'GEMINI_MODEL',
-  'GOOGLE_CLOUD_PROJECT',
-  'NODE_ENV',
-  'PERSONA_ID',
-  'PORT',
+const PRINTABLE: ReadonlyMap<string, RegExp> = new Map([
+  ['AGENT_NAME', /^[a-z0-9][a-z0-9-]{0,62}$/],
+  ['BUILD_SHA', /^[0-9a-f]{7,40}$/],
+  ['GEMINI_MODEL', /^gemini-[a-z0-9.-]{1,40}$/],
+  ['GOOGLE_CLOUD_PROJECT', /^[a-z][a-z0-9-]{4,29}$/],
+  ['NODE_ENV', /^(development|production|staging|test)$/],
+  ['PERSONA_ID', /^[a-z][a-z-]{0,39}$/],
+  ['PORT', /^\d{1,5}$/],
 ]);
 
-/** Values a flag may show: a lower-case word such as `on`, `off`, `live` or `learned`. */
-const FLAG_WORD = /^[a-z]{1,24}$/;
+/**
+ * Words a flag may show: `on`, `off` and the other words the manifest uses as
+ * defaults. Any other value is a secret-shaped risk and shows as `<set>`. A new
+ * mode word appears here once PR 2 classifies it.
+ */
+const FLAG_WORDS: ReadonlySet<string> = new Set([
+  '0',
+  '1',
+  'false',
+  'live',
+  'no',
+  'shadow',
+  'true',
+  'yes',
+  ...Object.values(FLAG_MANIFEST).map((spec) => spec.default),
+]);
 
 /** A flag's resolved value: its env value lower-cased, or the manifest default when unset. */
 function flagValue(name: FlagName, env: Env): string {
   const raw = env[name]?.trim().toLowerCase();
   if (!raw) return FLAG_MANIFEST[name].default;
-  return FLAG_WORD.test(raw) ? raw : SET;
+  return FLAG_WORDS.has(raw) ? raw : SET;
 }
 
 /** A non-flag env value we will print, or a marker. */
 function envValue(name: string, env: Env): string {
   const raw = env[name]?.trim();
   if (!raw) return UNSET;
-  if (SECRET_NAME.test(name) || !PRINTABLE.has(name)) return SET;
-  if (URL_WITH_CREDENTIALS.test(raw)) return SET;
-  return raw;
+  const shape = PRINTABLE.get(name);
+  if (!shape || SECRET_NAME.test(name)) return SET;
+  return shape.test(raw) ? raw : SET;
 }
 
-/** Stable hash of the non-secret map: sorted keys, so the same settings always give the same hash. */
+/** Stable hash of a map: sorted keys, so the same settings always give the same hash. */
 function hashOf(map: Readonly<Record<string, string>>): string {
   const sorted = Object.keys(map)
     .sort()
@@ -93,13 +104,15 @@ export function effectiveSettings(env: Env = process.env): EffectiveSettings {
     envMap[name] = envValue(name, env);
   }
 
-  // Hash only what is printed: a secret's presence or value never moves the hash.
+  // Hash only values that are printed. Neither marker moves the hash, so a
+  // secret being set or unset never changes it.
   const printed = Object.fromEntries(
-    Object.entries({ ...flags, ...envMap }).filter(([, v]) => v !== SET)
+    Object.entries({ ...flags, ...envMap }).filter(([, v]) => v !== SET && v !== UNSET)
   );
 
+  const commit = env.BUILD_SHA?.trim() ?? '';
   return {
-    commit: env.BUILD_SHA?.trim() || 'unknown',
+    commit: commit ? (PRINTABLE.get('BUILD_SHA')?.test(commit) ? commit : SET) : 'unknown',
     hash: hashOf(printed),
     flags,
     env: envMap,

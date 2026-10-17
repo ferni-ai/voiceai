@@ -21,9 +21,9 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-// process.env.X, process.env['X'], and a name passed to a config helper.
+// env.X, env['X'] (also process.env.X, and an env passed in as a parameter), and a name passed to a config helper.
 const READ =
-  /(?:process\.env(?:\.|\[['"])|\b(?:getEnv|requireEnv|flagOn|envEnabled)\(\s*['"])([A-Z][A-Z0-9_]+)/g;
+  /(?:\benv(?:\.|\[['"])|\b(?:getEnv|requireEnv|flagOn|envEnabled)\(\s*['"])([A-Z][A-Z0-9_]+)/g;
 
 function namesRead(): Map<string, string> {
   const reads = new Map<string, string>();
