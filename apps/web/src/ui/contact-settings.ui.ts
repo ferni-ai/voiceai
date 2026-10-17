@@ -18,6 +18,10 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getUserTimezone } from '../services/timezone.service.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { outreachService } from '../services/outreach.service.js';
+import { escapeAttr, escapeHtml } from './engagement-components.js';
+
+/** Saved or typed values (the voice agent can save these too) never become markup. */
+const attr = (value: string | undefined): string => escapeAttr(escapeHtml(value ?? ''));
 
 const log = createLogger('ContactSettingsUI');
 
@@ -662,11 +666,9 @@ function render(): void {
         ${t('contactSettings.subtitle', "Share your contact info so I can check in, celebrate wins, and be there when you need me.")}
       </p>
     </div>
-    
     <div class="contact-settings-content">
       ${state.error ? `<div class="contact-settings-error">${state.error}</div>` : ''}
       ${state.success ? `<div class="contact-settings-success">${ICONS.check} ${state.success}</div>` : ''}
-      
       <form class="contact-settings-form" id="contact-form">
         <div class="contact-settings-field">
           <label class="contact-settings-label">
@@ -679,7 +681,7 @@ function render(): void {
               class="contact-settings-input" 
               id="phone-input"
               placeholder="${t('placeholders.phoneExample')}"
-              value="${state.contactInfo.phone || ''}"
+              value="${attr(state.contactInfo.phone)}"
               ${state.isVerifying ? 'disabled' : ''}
             />
             ${state.contactInfo.phoneVerified ? `
@@ -696,7 +698,7 @@ function render(): void {
           ${state.isVerifying ? `
             <div class="contact-settings-verification">
               <p class="contact-settings-verification-text">
-                ${t('contactSettings.codeSent', 'I sent a 6-digit code to')} ${state.pendingPhone}
+                ${t('contactSettings.codeSent', 'I sent a 6-digit code to')} ${escapeHtml(state.pendingPhone)}
               </p>
               <input 
                 type="text" 
@@ -704,12 +706,11 @@ function render(): void {
                 id="verification-code"
                 placeholder="• • • • • •"
                 maxlength="6"
-                value="${state.verificationCode}"
+                value="${attr(state.verificationCode)}"
               />
             </div>
           ` : ''}
         </div>
-        
         <div class="contact-settings-field">
           <label class="contact-settings-label">
             ${ICONS.email}
@@ -721,7 +722,7 @@ function render(): void {
               class="contact-settings-input" 
               id="email-input"
               placeholder="${t('placeholders.emailExample')}"
-              value="${state.contactInfo.email || ''}"
+              value="${attr(state.contactInfo.email)}"
             />
             ${state.contactInfo.emailVerified ? `
               <span class="contact-settings-verified">
@@ -730,7 +731,6 @@ function render(): void {
             ` : ''}
           </div>
         </div>
-        
         <div class="contact-settings-field">
           <label class="contact-settings-label">
             ${t('contactSettings.nameLabel', 'What should I call you?')}
@@ -740,7 +740,7 @@ function render(): void {
             class="contact-settings-input" 
             id="name-input"
             placeholder="${t('placeholders.displayName')}"
-            value="${state.contactInfo.preferredName || ''}"
+            value="${attr(state.contactInfo.preferredName)}"
           />
         </div>
         
@@ -787,7 +787,7 @@ function render(): void {
           ${state.contactInfo.timezone ? `
             <div class="contact-settings-timezone">
               ${ICONS.globe}
-              <span>${t('contactSettings.detectedTimezone', 'Your timezone')}: ${formatTimezone(state.contactInfo.timezone)}</span>
+              <span>${t('contactSettings.detectedTimezone', 'Your timezone')}: ${escapeHtml(formatTimezone(state.contactInfo.timezone))}</span>
             </div>
           ` : ''}
         </div>

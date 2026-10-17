@@ -299,6 +299,38 @@ describe('Contact Settings UI', () => {
     });
   });
 
+  describe('Saved values are text, never markup', () => {
+    it('renders hostile saved values as plain input values', async () => {
+      const phone = '"><img src=x onerror=alert(1)>';
+      const email = 'a@b.com" autofocus onfocus="x';
+      const preferredName = '</label><img src=y onerror=alert(2)>';
+      mockApiGet.mockImplementation((url: string) =>
+        Promise.resolve(
+          url.includes('/api/user/contact')
+            ? contactRoute({
+                phone,
+                email,
+                preferredName,
+                timezone: '<b>tz</b>',
+                verifiedPhone: null,
+              })
+            : { ok: true, status: 200, data: {} }
+        )
+      );
+
+      await openContactSettings();
+      await new Promise((r) => setTimeout(r, 200));
+
+      const modal = findContactModal();
+      expect(modal).not.toBeNull();
+      expect(modal?.querySelector('img, b')).toBeNull();
+      expect(modal?.querySelector('[onerror], [onfocus], [autofocus]')).toBeNull();
+      expect(findPhoneInput()?.value).toBe(phone);
+      expect(findEmailInput()?.value).toBe(email);
+      expect(findNameInput()?.value).toBe(preferredName);
+    });
+  });
+
   describe('Phone Verification', () => {
     it('should show verify button for unverified phone', async () => {
       mockApiGet.mockImplementation((url: string) => {
