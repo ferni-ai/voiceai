@@ -16,7 +16,7 @@ const pete: EpisodeCall = {
   lines: [
     'Hey, could you call my brother?',
     'This name is Pete.',
-    "Uh, yes. It's uh 435 339 7687.",
+    "Uh, yes. It's uh 435 555 0188.",
     'Thanks so much.',
   ],
 };
@@ -41,10 +41,10 @@ describe('episodesOf', () => {
   it('keeps lines that belong together in overlapping passages', () => {
     const texts = episodesOf([pete]).map((e) => e.text);
     expect(texts[0]).toBe(
-      "Hey, could you call my brother? This name is Pete. Uh, yes. It's uh 435 339 7687."
+      "Hey, could you call my brother? This name is Pete. Uh, yes. It's uh 435 555 0188."
     );
     // The next passage starts one line before the last ended, so nothing falls between.
-    expect(texts[1]).toBe("Uh, yes. It's uh 435 339 7687. Thanks so much.");
+    expect(texts[1]).toBe("Uh, yes. It's uh 435 555 0188. Thanks so much.");
   });
 });
 
@@ -63,7 +63,7 @@ describe('createEpisodeRecall', () => {
     await settle();
     const note = recall.take();
     expect(note).toContain('(7 days ago) "Hey, could you call my brother? This name is Pete.');
-    expect(note).toContain('435 339 7687');
+    expect(note).toContain('435 555 0188');
     expect(note).not.toMatch(/blue grass/);
     recall.newTurn();
     recall.observe('and his number, one more time?');
@@ -111,17 +111,17 @@ describe('forgotten topics', () => {
     await recall.ready;
     recall.observe("what's my brother's phone number again?");
     await settle();
-    expect(recall.take() ?? '').not.toContain('435 339 7687');
+    expect(recall.take() ?? '').not.toContain('435 555 0188');
   });
 });
 
 describe('isForgottenPassage', () => {
   it('leaves out raw speech about a forgotten topic, erring toward privacy', () => {
     const said =
-      "Hey, could you call my brother? This name is Pete. Uh, yes. It's uh 435 339 7687.";
+      "Hey, could you call my brother? This name is Pete. Uh, yes. It's uh 435 555 0188.";
     // Topics are stored as forgetTokens (forget.ts), lower case.
     expect(isForgottenPassage(said, ['brother number'])).toBe(true); // "brother" is distinctive
-    expect(isForgottenPassage(said, ['4353397687'])).toBe(true); // the number, however it was spoken
+    expect(isForgottenPassage(said, ['4355550188'])).toBe(true); // the number, however it was spoken
     expect(isForgottenPassage('My ex called again', ['ex'])).toBe(true); // short words still count
     expect(isForgottenPassage('I told my old boss about it', ['old job'])).toBe(false); // no distinctive word: all needed
     expect(isForgottenPassage('my old job at the bakery', ['old job'])).toBe(true);
@@ -171,7 +171,7 @@ describe('privacy holds even when things go wrong', () => {
     });
     recall.observe("what's my brother's phone number again?");
     await settle();
-    expect(recall.take() ?? '').not.toContain('435 339 7687');
+    expect(recall.take() ?? '').not.toContain('435 555 0188');
   });
 });
 

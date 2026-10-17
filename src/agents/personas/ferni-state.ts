@@ -38,6 +38,7 @@ import {
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
+import { ferniThreadsOn, threadDetailFor } from './ferni-life-threads.js';
 import { dayDetailFor, isSelfShare, selfQuotes, soundsLow, turnsBack } from './ferni-self-share.js';
 import { callerVenting } from './turn-extras.js';
 import { hardNews } from './turn-candor.js';
@@ -247,6 +248,7 @@ const calls = new WeakMap<object, CallState>();
 
 interface UserDataView {
   personaId?: string;
+  userId?: string;
   voiceEmotion?: { arousal?: number; confidence?: number };
   services?: { sessionId?: string; sessionStartTime?: number };
   /** Eval calls only: his clock from the job metadata (eval-local-time.ts). */
@@ -282,16 +284,32 @@ function activeFor(userData: UserDataView, env?: Record<string, string | undefin
 
 const wordsIn = (text: string): number => text.split(/\s+/).filter(Boolean).length;
 
-function callFor(session: object, now: Date, sessionId?: string): CallState {
+/** His day this call: his thread's current beat (FERNI_THREADS), else a day detail. */
+function detailFor(
+  seed: string,
+  now: Date,
+  userId?: string,
+  env?: Record<string, string | undefined>
+) {
+  const caller = userId && userId !== 'anonymous' ? userId : seed;
+  return (ferniThreadsOn(env) && threadDetailFor(caller, now)) || dayDetailFor(seed);
+}
+
+function callFor(
+  session: object,
+  now: Date,
+  view: UserDataView,
+  env?: Record<string, string | undefined>
+): CallState {
   let call = calls.get(session);
   if (!call) {
-    const seed = sessionId ?? Math.random().toString(36).slice(2);
+    const seed = view.services?.sessionId ?? Math.random().toString(36).slice(2);
     call = {
       firstSeen: now.getTime(),
       needed: false,
       lastNote: '',
       lastSelf: '',
-      detail: dayDetailFor(seed),
+      detail: detailFor(seed, now, view.userId, env),
     };
     calls.set(session, call);
   }
@@ -353,7 +371,7 @@ export function ferniStateTurn(
   };
   if (!activeFor(userData, options.env)) return quiet();
   const now = options.now ?? new Date();
-  const call = callFor(session, now, sessionId);
+  const call = callFor(session, now, userData, options.env);
   const turns = callerTurns(chatCtx);
   const said = turns[turns.length - 1] ?? '';
   if (said && said === call.lastSaid)

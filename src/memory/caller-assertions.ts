@@ -20,6 +20,11 @@
  * @module memory/caller-assertions
  */
 import { flagOn, type Env } from '../config/env-flag.js';
+import {
+  TEAM_FIRST_NAMES as TEAM_NAMES,
+  isTeammateTalk,
+  namesTeammateOnCall,
+} from '../utils/teammate-talk.js';
 import { CALLER_PROVENANCE, contentWords } from './recall/session-recall.js';
 
 export { CALLER_PROVENANCE };
@@ -77,13 +82,8 @@ const NOT_THE_TOPIC = new Set(
   )
 );
 
-/**
- * The team's first names (personas/persona-ids.ts DISPLAY_NAMES; a test keeps them in step).
- * Not imported: memory can't reach into personas, and its index pulls in the whole agent.
- */
-export const TEAM_FIRST_NAMES: ReadonlySet<string> = new Set(
-  'ferni peter alex maya jordan nayan'.split(' ')
-);
+/** The team's first names (utils/teammate-talk.ts, kept in step with persona-ids by a test). */
+export const TEAM_FIRST_NAMES: ReadonlySet<string> = new Set(TEAM_NAMES);
 const TEAM = TEAM_FIRST_NAMES;
 
 /** What an item is about: content words that aren't summary filler or a teammate's name. */
@@ -230,7 +230,8 @@ export interface ProvenanceSummary {
 export function withCallerProvenance<T extends ProvenanceSummary>(
   summary: T,
   turns: readonly Turn[],
-  fields: ReadonlyArray<(typeof PROVENANCE_FIELDS)[number]> = PROVENANCE_FIELDS
+  fields: ReadonlyArray<(typeof PROVENANCE_FIELDS)[number]> = PROVENANCE_FIELDS,
+  env: Env = process.env
 ): T & Pick<ProvenanceSummary, 'assistantRaisedItems' | 'callerProvenance'> {
   const said = callerWords(turns);
   const raisedWords = turns
@@ -238,12 +239,20 @@ export function withCallerProvenance<T extends ProvenanceSummary>(
     .flatMap((t) => topicWordsOf(t.content));
   const raised = new Set(summary.assistantRaisedItems ?? []);
   const out: T = { ...summary, callerProvenance: CALLER_PROVENANCE };
+  const teammate = flagOn('TEAMMATE_TALK_FILTER', env);
   for (const field of fields) {
     const items = summary[field];
     if (!Array.isArray(items)) continue;
     const kept = items.filter((item) => {
+      // "Has Jordan helped with the planning?" when Jordan was on this call: the call
+      // itself, whatever the wording. Only "my friend Jordan" or "Jordan's" keeps it.
+      if (teammate && namesTeammateOnCall(item, turns)) {
+        raised.add(item);
+        return false;
+      }
+      // "Did you ever talk to Jordan about those plans?": a teammate, not their life
       const theirs = THREAD_FIELDS.has(field)
-        ? backedBy(item, said)
+        ? backedBy(item, said) && !(teammate && isTeammateTalk(item))
         : !fromTheirSide(item, said, raisedWords);
       if (!theirs) raised.add(item);
       return theirs;

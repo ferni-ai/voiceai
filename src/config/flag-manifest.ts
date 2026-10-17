@@ -112,6 +112,8 @@ export const FLAG_MANIFEST = {
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // a bare request to call someone, or a bare goodbye, with no risk in the call gets a soft check (crisis-relay.ts)
+  CRISIS_RELAY_SOFT: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
   // after-call date extraction into world_facts (nothing reads them in a call yet)
   DATES_THAT_MATTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -172,9 +174,13 @@ export const FLAG_MANIFEST = {
   FERNI_STATE: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_TASK_MOOD_ALONE_TRIGGERS: { default: 'off', owner: 'platform', kind: 'config' },
   FERNI_TASK_SCRIPTED_TRANSITIONS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on (with FERNI_STATE): his day holds this week's beat of a written life thread (ferni-life-threads.ts)
+  FERNI_THREADS: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_DEFER_BACKGROUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: after a call, the verified owner's reminders, commitments and threads become follow-ups (agents/follow-through-import.ts)
+  FOLLOW_THROUGH_IMPORT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
   // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
   FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -356,6 +362,8 @@ export const FLAG_MANIFEST = {
   SESSION_CONTINUITY_WRITE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: tell the caller's app when the agent session ends without them (session-ended-signal.ts)
   SESSION_ENDED_SIGNAL: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // once the caller said bye, Ferni's goodbye is one or two short sentences (short-goodbye.ts)
+  SHORT_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
@@ -374,6 +382,8 @@ export const FLAG_MANIFEST = {
   STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TAP_INTERRUPT: { default: 'off', owner: 'voice', kind: 'experiment' },
   TEAMMATE_IDENTITY_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // on: talk to a teammate is not stored as the caller's life (utils/teammate-talk.ts, #1507)
+  TEAMMATE_TALK_FILTER: { default: 'off', owner: 'memory', kind: 'experiment' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },

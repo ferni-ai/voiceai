@@ -64,10 +64,10 @@ const TELEPHONY_CONTACT_SCENARIOS: MultiTurnScenario[] = [
     turns: [
       {
         speaker: 'user',
-        message: "My mom's number is 801-898-3303",
+        message: "My mom's number is 801-555-0142",
         expectedAction: {
           domain: 'contacts',
-          shouldRemember: 'mom:+18018983303',
+          shouldRemember: 'mom:+18015550142',
         },
       },
       {
@@ -80,7 +80,7 @@ const TELEPHONY_CONTACT_SCENARIOS: MultiTurnScenario[] = [
         expectedAction: {
           domain: 'telephony',
           tool: 'callOnBehalf',
-          shouldRecall: 'mom:+18018983303',
+          shouldRecall: 'mom:+18015550142',
         },
       },
     ],
@@ -92,7 +92,7 @@ const TELEPHONY_CONTACT_SCENARIOS: MultiTurnScenario[] = [
     turns: [
       {
         speaker: 'user',
-        message: 'Call my mom at 801-898-3303 and tell her I love her',
+        message: 'Call my mom at 801-555-0142 and tell her I love her',
         expectedAction: {
           domain: 'telephony',
           tool: 'callOnBehalf',
@@ -108,8 +108,8 @@ const TELEPHONY_CONTACT_SCENARIOS: MultiTurnScenario[] = [
     turns: [
       {
         speaker: 'user',
-        message: "My mom's number is 801-898-3303",
-        expectedAction: { domain: 'contacts', shouldRemember: 'mom:+18018983303' },
+        message: "My mom's number is 801-555-0142",
+        expectedAction: { domain: 'contacts', shouldRemember: 'mom:+18015550142' },
       },
       {
         speaker: 'user',
@@ -131,7 +131,7 @@ const TELEPHONY_CONTACT_SCENARIOS: MultiTurnScenario[] = [
         expectedAction: {
           domain: 'telephony',
           tool: 'callOnBehalf',
-          shouldRecall: 'mom:+18018983303',
+          shouldRecall: 'mom:+18015550142',
         },
       },
     ],
@@ -457,9 +457,9 @@ describe('Memory Persistence Across Sessions', () => {
   const persistenceScenarios = [
     {
       name: 'Contact should persist',
-      saveMessage: "My mom's phone number is 801-898-3303",
+      saveMessage: "My mom's phone number is 801-555-0142",
       recallMessage: 'Call my mom',
-      expectedPersisted: 'mom:+18018983303',
+      expectedPersisted: 'mom:+18015550142',
     },
     {
       name: 'Preference should persist',

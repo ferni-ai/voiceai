@@ -18,7 +18,6 @@ import {
   getUserContacts,
   getRecentContacts,
   getFavoriteContacts,
-  markContacted,
   formatPhoneForDisplay,
   formatContactForSpeech,
   updateContact,
@@ -29,6 +28,10 @@ import {
   importFromCSV,
   type Contact,
 } from '../../services/contacts.js';
+
+/** Contacts are per caller; without a session user there's no address book to read. */
+export const NO_SESSION_USER =
+  "I can't tell whose address book this is, so I can't look up contacts right now.";
 
 export function createContactsTools() {
   return {
@@ -49,8 +52,8 @@ export function createContactsTools() {
         notes: z.string().optional().describe('Any additional notes'),
       }),
       execute: async ({ name, phone, email, nickname, relationship, company, notes }, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
+        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
+        if (!userId) return NO_SESSION_USER;
 
         if (!phone && !email) {
           return `I need at least a phone number or email for ${name}. What should I save?`;
@@ -83,8 +86,8 @@ export function createContactsTools() {
         query: z.string().describe('Who to find (name, nickname, or relationship like "my mom")'),
       }),
       execute: async ({ query }, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
+        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
+        if (!userId) return NO_SESSION_USER;
 
         const results = await searchContacts(userId, query);
 
@@ -142,8 +145,8 @@ export function createContactsTools() {
         purpose: z.string().optional().describe('Why calling (for appointment, to chat, etc.)'),
       }),
       execute: async ({ who, purpose }, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
+        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
+        if (!userId) return NO_SESSION_USER;
 
         const contact = await findContact(userId, who);
 
@@ -155,22 +158,9 @@ export function createContactsTools() {
           return `I have ${contact.displayName} saved, but no phone number. Want to add one?`;
         }
 
-        const phone =
-          contact.phones.find((p: { primary?: boolean }) => p.primary) || contact.phones[0];
-
-        // Mark as contacted
-        markContacted(contact.id);
-
-        let response = `📞 Calling ${formatContactForSpeech(contact)}\n`;
-        response += `Number: ${formatPhoneForDisplay(phone.number)}\n`;
-
-        if (purpose) {
-          response += `\nPurpose: ${purpose}\n`;
-        }
-
-        response += `\nReady to dial!`;
-
-        return response;
+        // Nothing dials here; the call goes through callOnBehalf's read-back and yes.
+        const why = purpose ? ` about ${purpose}` : '';
+        return `I haven't called ${formatContactForSpeech(contact)}${why}. I can call them for you: I'll tell you what I'll say first, and I'll only dial once you say yes. Want me to?`;
       },
     }),
 
@@ -184,8 +174,8 @@ export function createContactsTools() {
         limit: z.number().default(10).describe('How many to show'),
       }),
       execute: async ({ filter, group, limit }, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
+        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
+        if (!userId) return NO_SESSION_USER;
 
         let contacts: Contact[];
         let title: string;
@@ -249,8 +239,8 @@ export function createContactsTools() {
         notes: z.string().optional().describe('Add notes'),
       }),
       execute: async ({ who, phone, email, nickname, makeFavorite, notes }, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
+        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
+        if (!userId) return NO_SESSION_USER;
 
         const contact = await findContact(userId, who);
 
@@ -317,8 +307,8 @@ export function createContactsTools() {
           return `Are you sure you want to delete ${who} from your contacts? Say "yes, delete" to confirm.`;
         }
 
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
+        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
+        if (!userId) return NO_SESSION_USER;
 
         const contact = await findContact(userId, who);
 
@@ -341,8 +331,8 @@ export function createContactsTools() {
         data: z.string().optional().describe('vCard or CSV data if provided'),
       }),
       execute: async ({ source, data }, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
+        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
+        if (!userId) return NO_SESSION_USER;
 
         switch (source) {
           case 'google':
