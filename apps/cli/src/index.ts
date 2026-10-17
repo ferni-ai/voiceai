@@ -48,6 +48,7 @@ import {
   winsService,
 } from '../../../src/services/ceo/index.js';
 import {
+  AGENT_DEPLOY_MOVED,
   LIVEKIT_AGENTS,
   isLkInstalled,
   lkAgentArgs,
@@ -55,6 +56,10 @@ import {
   resolveAgentEnv,
   runLkAgent,
 } from './utils/livekit-agent.js';
+import {
+  handleUsers as handleUsersCommand,
+  handleWaitlist as handleWaitlistCommand,
+} from './commands/users/users-admin.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -259,8 +264,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Deploy services to cloud',
     icon: icons.rocket,
     script: 'apps/cli/src/commands/deploy/deploy.ts',
-    subcommands: ['ui', 'agent', 'frontend', 'landing', 'all'],
-    examples: ['ferni deploy ui', 'ferni deploy agent --prod', 'ferni deploy all --dry-run'],
+    subcommands: ['ui', 'frontend', 'landing', 'all'],
+    examples: ['ferni deploy ui', 'ferni deploy all --dry-run'],
   },
   agents: {
     name: 'Agents',
@@ -538,18 +543,18 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni commands validate --all',
     ],
   },
-  api: {
-    name: 'API',
-    description: 'Manage and validate API endpoints (200+ routes)',
+  // Was a second `api` entry, silently overridden by the contract-testing `api` below.
+  routes: {
+    name: 'Routes',
+    description: 'List, call and validate API endpoints (200+ routes)',
     icon: '🌐',
     handler: handleApi,
     subcommands: ['list', 'call', 'validate'],
     examples: [
-      'ferni api list',
-      'ferni api list --category calendar',
-      'ferni api call GET /api/health',
-      'ferni api call POST /api/habits --body \'{"name": "Morning run"}\'',
-      'ferni api validate --all',
+      'ferni routes list',
+      'ferni routes list --category calendar',
+      'ferni routes call GET /api/health',
+      'ferni routes validate --all',
     ],
   },
   ftis: {
@@ -897,11 +902,7 @@ const COMMANDS: Record<string, CliCommand> = {
     icon: '🏥',
     handler: handleSelfHeal,
     subcommands: ['health', 'circuits', 'restart', 'diagnose', 'anomalies'],
-    examples: [
-      'ferni self-heal health',
-      'ferni self-heal circuits',
-      'ferni self-heal restart agent',
-    ],
+    examples: ['ferni self-heal health', 'ferni self-heal circuits', 'ferni self-heal restart ui'],
   },
   circuits: {
     name: 'Circuits',
@@ -916,8 +917,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Restart Cloud Run services',
     icon: '🔄',
     handler: handleRestartService,
-    subcommands: ['agent', 'ui', 'status', 'history'],
-    examples: ['ferni restart agent', 'ferni restart ui --force', 'ferni restart history'],
+    subcommands: ['ui', 'status', 'history'],
+    examples: ['ferni restart ui --force', 'ferni restart history'],
   },
   diagnose: {
     name: 'Diagnose',
@@ -1093,8 +1094,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Rollback deployments to previous version',
     icon: '⏪',
     handler: handleRollback,
-    subcommands: ['agent', 'ui', 'status', 'history'],
-    examples: ['ferni rollback agent', 'ferni rollback ui', 'ferni rollback status'],
+    subcommands: ['ui', 'status', 'history'],
+    examples: ['ferni rollback ui', 'ferni rollback status'],
   },
   metrics: {
     name: 'Metrics',
@@ -1541,36 +1542,6 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['login', 'logout', 'status'],
     examples: ['ferni auth login', 'ferni auth status', 'ferni auth logout'],
   },
-  agent: {
-    name: 'Agent',
-    description: 'Create & manage custom agents',
-    icon: '🤖',
-    handler: handleAgent,
-    subcommands: ['create', 'list', 'show', 'voice', 'memory', 'test', 'deploy', 'delete'],
-    examples: [
-      'ferni agent create',
-      'ferni agent create --template legacy',
-      'ferni agent list',
-      'ferni agent voice upload <id> <file>',
-      'ferni agent memory add <id>',
-      'ferni agent test <id>',
-      'ferni agent deploy <id>',
-    ],
-  },
-  site: {
-    name: 'Site',
-    description: 'Generate & deploy agent websites',
-    icon: '🌐',
-    handler: handleSite,
-    subcommands: ['create', 'preview', 'deploy', 'status'],
-    examples: [
-      'ferni site create --agent <id>',
-      'ferni site create --agent <id> --template memorial',
-      'ferni site preview',
-      'ferni site deploy',
-      'ferni site deploy --ferni',
-    ],
-  },
   launch: {
     name: 'Launch',
     description: 'Product launch automation (checklist, social, analytics)',
@@ -1750,7 +1721,6 @@ const COMMANDS: Record<string, CliCommand> = {
     ],
     examples: [
       'ferni platform',
-      'ferni platform deploy agent',
       'ferni platform logs agent --tail',
       'ferni platform status',
       'ferni platform metrics live',
@@ -1845,7 +1815,6 @@ async function handlePlatform(args: string[]): Promise<void> {
     console.log(`    ${colors.green}experiments${colors.reset}  A/B tests & rollouts`);
     console.log();
     console.log(`  ${colors.dim}Examples:${colors.reset}`);
-    console.log(`    ferni platform deploy agent`);
     console.log(`    ferni platform logs agent --tail`);
     console.log(`    ferni platform metrics live`);
     return;
@@ -2060,76 +2029,6 @@ async function handleAgents(args: string[]): Promise<void> {
   // For all other subcommands, delegate to agent-manager.ts
   const agentManagerScript = join(PROJECT_ROOT, 'src', 'cli', 'agent-manager.ts');
   runCommand(agentManagerScript, args);
-}
-
-// ============================================================================
-// CUSTOM AGENT COMMAND (ferni agent - for user-created agents)
-// ============================================================================
-
-async function handleAgent(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'list';
-  const subcommandArgs = args.slice(1);
-
-  // Route to appropriate script based on subcommand
-  const scriptMap: Record<string, string> = {
-    create: 'apps/cli/src/commands/agent/agent-create.ts',
-    list: 'apps/cli/src/commands/agent/agent-list.ts',
-    show: 'apps/cli/src/commands/agent/agent-show.ts',
-    voice: 'apps/cli/src/commands/agent/agent-voice.ts',
-    memory: 'apps/cli/src/commands/agent/agent-memory.ts',
-    test: 'apps/cli/src/commands/agent/agent-test.ts',
-    deploy: 'apps/cli/src/commands/agent/agent-deploy.ts',
-    delete: 'apps/cli/src/commands/agent/agent-delete.ts',
-  };
-
-  const script = scriptMap[subcommand];
-  if (!script) {
-    log.error(messages.unknownCommand(subcommand));
-    console.log(`\n  Available: ${Object.keys(scriptMap).join(', ')}`);
-    console.log(`\n  Examples:`);
-    console.log(`    ferni agent create                    Create new agent`);
-    console.log(`    ferni agent create --template legacy  From template`);
-    console.log(`    ferni agent list                      List your agents`);
-    console.log(`    ferni agent voice upload <id> <file>  Upload voice`);
-    console.log(`    ferni agent memory add <id>           Add memory`);
-    console.log(`    ferni agent test <id>                 Test agent`);
-    console.log(`    ferni agent deploy <id>               Deploy agent`);
-    return;
-  }
-
-  runCommand(join(PROJECT_ROOT, script), subcommandArgs);
-}
-
-// ============================================================================
-// SITE COMMAND (ferni site - for agent website generation/deployment)
-// ============================================================================
-
-async function handleSite(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'help';
-  const subcommandArgs = args.slice(1);
-
-  // Route to appropriate script based on subcommand
-  const scriptMap: Record<string, string> = {
-    create: 'apps/cli/src/commands/site/site-create.ts',
-    preview: 'apps/cli/src/commands/site/site-preview.ts',
-    deploy: 'apps/cli/src/commands/site/site-deploy.ts',
-    status: 'apps/cli/src/commands/site/site-status.ts',
-  };
-
-  const script = scriptMap[subcommand];
-  if (!script) {
-    log.error(messages.unknownCommand(subcommand));
-    console.log(`\n  Available: ${Object.keys(scriptMap).join(', ')}`);
-    console.log(`\n  Examples:`);
-    console.log(`    ferni site create --agent <id>          Generate from template`);
-    console.log(`    ferni site create --agent <id> --template memorial`);
-    console.log(`    ferni site preview                      Local preview`);
-    console.log(`    ferni site deploy                       Deploy to Firebase`);
-    console.log(`    ferni site deploy --ferni               Deploy to ferni.ai`);
-    return;
-  }
-
-  runCommand(join(PROJECT_ROOT, script), subcommandArgs);
 }
 
 // ============================================================================
@@ -7430,172 +7329,19 @@ async function handleOps(args: string[]): Promise<void> {
 }
 
 // ============================================================================
-// WAITLIST COMMAND
+// WAITLIST + USERS COMMANDS (no shell; deletions dry-run by default)
 // ============================================================================
+
+const usersAdminDeps = () => ({ scriptsDir: join(PROJECT_ROOT, 'scripts'), ask: prompt });
 
 async function handleWaitlist(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
   log.header(`📋 Waitlist Management`);
-
-  const scriptsDir = join(PROJECT_ROOT, 'scripts');
-
-  if (!subcommand || subcommand === 'status') {
-    console.log(`${colors.bold}Waitlist Commands:${colors.reset}\n`);
-    console.log(
-      `  ${colors.cyan}ferni waitlist list${colors.reset}           - List pending waitlist users`
-    );
-    console.log(`  ${colors.cyan}ferni waitlist approve <email>${colors.reset} - Approve a user`);
-    console.log(
-      `  ${colors.cyan}ferni waitlist stats${colors.reset}          - Show waitlist statistics`
-    );
-    console.log(
-      `  ${colors.cyan}ferni waitlist export${colors.reset}         - Export waitlist to CSV`
-    );
-    return;
-  }
-
-  if (subcommand === 'list') {
-    const limit = args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '20';
-    console.log(`${colors.cyan}Fetching waitlist...${colors.reset}\n`);
-    spawnSync(
-      'sh',
-      ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --list --limit=${limit}`],
-      { stdio: 'inherit' }
-    );
-  }
-
-  if (subcommand === 'approve') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni waitlist approve user@example.com');
-      return;
-    }
-
-    console.log(`${colors.cyan}Approving ${email}...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'stats') {
-    console.log(`${colors.cyan}Fetching waitlist stats...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --stats`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'export') {
-    const output =
-      args.find((a) => a.startsWith('--output='))?.split('=')[1] || 'waitlist-export.csv';
-    console.log(`${colors.cyan}Exporting waitlist to ${output}...${colors.reset}\n`);
-    spawnSync(
-      'sh',
-      ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --export --output=${output}`],
-      { stdio: 'inherit' }
-    );
-  }
+  await handleWaitlistCommand(args, usersAdminDeps());
 }
 
-// ============================================================================
-// USERS COMMAND
-// ============================================================================
-
 async function handleUsers(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
   log.header(`👤 User Management`);
-
-  const scriptsDir = join(PROJECT_ROOT, 'scripts');
-
-  if (!subcommand || subcommand === 'status') {
-    console.log(`${colors.bold}User Management Commands:${colors.reset}\n`);
-    console.log(`  ${colors.cyan}ferni users list${colors.reset}              - List all users`);
-    console.log(`  ${colors.cyan}ferni users show <email>${colors.reset}      - Show user details`);
-    console.log(
-      `  ${colors.cyan}ferni users dump <userId>${colors.reset}     - Full user data dump`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users cleanup${colors.reset}           - Clean up anonymous users`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users grant <email>${colors.reset}     - Grant access to user`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users find-rich${colors.reset}         - Find users with rich data`
-    );
-    console.log(
-      `  ${colors.cyan}ferni users delete-stale${colors.reset}      - Delete stale profiles`
-    );
-    return;
-  }
-
-  if (subcommand === 'list') {
-    const limit = args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '50';
-    console.log(`${colors.cyan}Listing users...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/list-all-users.ts --limit=${limit}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'show') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni users show user@example.com');
-      return;
-    }
-    console.log(`${colors.cyan}Fetching user data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/check-my-data.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'dump') {
-    const userId = args[1];
-    if (!userId) {
-      log.error('User ID required. Usage: ferni users dump <userId>');
-      return;
-    }
-    console.log(`${colors.cyan}Dumping full user data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/full-user-dump.ts --user=${userId}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'cleanup') {
-    const dryRun = args.includes('--dry-run');
-    console.log(`${colors.cyan}Cleaning up anonymous users...${colors.reset}\n`);
-    const cmd = dryRun
-      ? `npx tsx ${scriptsDir}/cleanup-anonymous-users.ts --dry-run`
-      : `npx tsx ${scriptsDir}/cleanup-anonymous-users.ts`;
-    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'grant') {
-    const email = args[1];
-    if (!email) {
-      log.error('Email required. Usage: ferni users grant user@example.com');
-      return;
-    }
-    console.log(`${colors.cyan}Granting access...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/grant-access.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
-  }
-
-  if (subcommand === 'find-rich') {
-    console.log(`${colors.cyan}Finding users with rich data...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/find-rich-users.ts`], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'delete-stale') {
-    const dryRun = args.includes('--dry-run');
-    console.log(`${colors.cyan}Deleting stale profiles...${colors.reset}\n`);
-    const cmd = dryRun
-      ? `npx tsx ${scriptsDir}/delete-stale-profiles.ts --dry-run`
-      : `npx tsx ${scriptsDir}/delete-stale-profiles.ts`;
-    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
-  }
+  await handleUsersCommand(args, usersAdminDeps());
 }
 
 // ============================================================================
@@ -8503,8 +8249,7 @@ async function handleSecrets(args: string[]): Promise<void> {
     console.log(
       `     ${colors.cyan}gcloud secrets versions add ${secretName} --data-file=-${colors.reset}`
     );
-    console.log(`  3. Update Cloud Run service:`);
-    console.log(`     ${colors.cyan}ferni deploy agent${colors.reset}`);
+    console.log(`  3. Redeploy: agent via .claude/skills/deploy-agent/SKILL.md`);
     console.log(`  4. Update local .env file`);
     console.log(`  5. Revoke old secret from provider`);
   }
@@ -8524,7 +8269,6 @@ async function handleSecrets(args: string[]): Promise<void> {
     if (secrets) {
       log.success('Secrets available for sync');
       console.log(`\n  To sync to Cloud Run, redeploy the service:`);
-      console.log(`    ${colors.cyan}ferni deploy agent${colors.reset}`);
       console.log(`    ${colors.cyan}ferni deploy ui${colors.reset}`);
     } else {
       log.warn('No secrets found in Secret Manager');
@@ -9085,33 +8829,10 @@ async function handleCircuits(args: string[]): Promise<void> {
   console.log();
 }
 
-/**
- * Restart or roll back the LiveKit Cloud agent. Like `ferni deploy agent`, this
- * targets the dev agent unless --prod is given, and asks before acting.
- */
-async function runAgentMutation(action: 'restart' | 'rollback', args: string[]): Promise<void> {
-  const target = LIVEKIT_AGENTS[resolveAgentEnv(args, 'dev')];
-  if (!isLkInstalled()) {
-    log.error(messages.missingTool('lk', 'brew install livekit-cli'));
-    return;
-  }
-  if (action === 'rollback') runLkAgent(PROJECT_ROOT, 'versions', target);
-  console.log(`\n  Agent: ${colors.cyan}${target.project} ${target.agentId}${colors.reset}`);
-  console.log(`  Command: ${colors.dim}lk ${lkAgentArgs(action, target).join(' ')}${colors.reset}`);
-  if (!args.includes('--force') && !args.includes('-f')) {
-    const answer = await prompt(
-      `\n${colors.yellow}${action} ${target.env} agent? [y/N]:${colors.reset} `
-    );
-    if (answer.toLowerCase() !== 'y') {
-      console.log('\nAborted.');
-      return;
-    }
-  }
-  const version = args.find((a) => a.startsWith('--version='))?.split('=')[1];
-  const extra = action === 'rollback' && version ? ['--version', version, '--yes'] : ['--yes'];
-  const ok = runLkAgent(PROJECT_ROOT, action, target, { extra }).ok;
-  if (ok) log.success(`Agent ${action} done. Check: ferni status agent`);
-  else log.error(`lk agent ${action} failed`);
+/** The CLI no longer changes the voice agent; the deploy-agent skill does. */
+function refuseAgentMutation(): never {
+  log.error(AGENT_DEPLOY_MOVED);
+  process.exit(1);
 }
 
 async function handleRestartService(args: string[]): Promise<void> {
@@ -9151,17 +8872,14 @@ async function handleRestartService(args: string[]): Promise<void> {
     return;
   }
 
-  if (subcommand === 'agent') {
-    await runAgentMutation('restart', args);
-    return;
-  }
+  if (subcommand === 'agent') refuseAgentMutation();
 
   // Restart a specific service
   const serviceName = subcommand === 'ui' ? SERVICES.ui : null;
 
   if (!serviceName) {
     log.error(`Unknown service: ${subcommand}`);
-    console.log(`\n  Available: agent, ui`);
+    console.log(`\n  Available: ui`);
     return;
   }
 
@@ -9387,7 +9105,7 @@ async function diagnoseError(errorMessage: string): Promise<void> {
           `    ${colors.dim}The system will automatically retry this operation${colors.reset}`
         );
       } else if (type === 'restart') {
-        console.log(`    ${colors.cyan}ferni restart agent${colors.reset}`);
+        console.log(`    ${colors.cyan}.claude/skills/deploy-agent/SKILL.md${colors.reset}`);
       } else {
         console.log(`    ${colors.cyan}Check logs: ferni logs agent --errors${colors.reset}`);
       }
@@ -10569,10 +10287,7 @@ async function handleRollback(args: string[]): Promise<void> {
     return;
   }
 
-  if (subcommand === 'agent') {
-    await runAgentMutation('rollback', args);
-    return;
-  }
+  if (subcommand === 'agent') refuseAgentMutation();
 
   if (subcommand === 'ui') {
     const service = SERVICES.ui;
@@ -10616,7 +10331,7 @@ async function handleRollback(args: string[]): Promise<void> {
   }
 
   log.error(`Unknown rollback target: ${subcommand}`);
-  console.log(`\n  Available: agent, ui, status, history`);
+  console.log(`\n  Available: ui, status, history`);
 }
 
 async function handleMetrics(args: string[]): Promise<void> {
@@ -12867,17 +12582,7 @@ ${colors.bold}What would you like to do?${colors.reset}
     'deps',
     'auth',
   ];
-  const agentCommands = [
-    'agents',
-    'agent',
-    'site',
-    'personas',
-    'tools',
-    'voices',
-    'validate',
-    'audit',
-    'tokens',
-  ];
+  const agentCommands = ['agents', 'personas', 'tools', 'voices', 'validate', 'audit', 'tokens'];
   const infraCommands = ['doctor', 'db', 'env', 'secrets', 'ops', 'oncall'];
   const selfHealCommands = ['self-heal', 'circuits', 'restart', 'diagnose'];
 
@@ -13096,8 +12801,6 @@ ${colors.bold}Commands:${colors.reset}
     ],
     'Agents & Quality': [
       'agents',
-      'agent',
-      'site',
       'personas',
       'tools',
       'voices',
@@ -13179,7 +12882,6 @@ ${colors.bold}Commands:${colors.reset}
 
 ${colors.bold}Examples - Platform Operations:${colors.reset}
   ferni platform                 # Platform operations hub
-  ferni platform deploy agent    # Deploy voice agent to LiveKit Cloud
   ferni platform logs agent      # Stream agent logs
   ferni platform status          # Check all services
   ferni deploy ui                # Deploy UI (also works directly)

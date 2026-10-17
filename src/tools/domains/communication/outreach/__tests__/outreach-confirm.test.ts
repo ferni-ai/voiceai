@@ -12,7 +12,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetMemoryTexts } from '../../../../../services/outreach/__tests__/memory-text-store.js';
 
+// The real text guards over an in-memory store (no Firestore).
+vi.mock('../../../../../services/outreach/guarded-text.js', async (orig) =>
+  (
+    await import('../../../../../services/outreach/__tests__/memory-text-store.js')
+  ).withMemoryTextStore(await orig())
+);
 vi.mock('../../../../../services/contacts/contact-relationship-service.js', () => ({
   searchContacts: vi.fn(),
 }));
@@ -97,6 +104,8 @@ const batchOf = (text: string) => ({
 function textsSent(): Array<[string, string]> {
   return vi.mocked(sendSMS).mock.calls.map(([sms]) => [sms.to, sms.body]);
 }
+
+beforeEach(() => resetMemoryTexts());
 
 describe('outreach waits for the caller', () => {
   beforeEach(() => {

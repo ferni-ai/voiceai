@@ -1,9 +1,5 @@
 {
  "oversized": {
-  "apps/cli/src/commands/agent/agent-create.ts": 656,
-  "apps/cli/src/commands/agent/agent-init.ts": 1199,
-  "apps/cli/src/commands/agent/agent-preview.ts": 804,
-  "apps/cli/src/commands/agent/agent-publish.ts": 952,
   "apps/cli/src/commands/agents/agent-builder.ts": 776,
   "apps/cli/src/commands/api/api.ts": 584,
   "apps/cli/src/commands/brand/brand-automation.ts": 615,
@@ -37,7 +33,6 @@
   "apps/cli/src/commands/rituals/rituals.ts": 623,
   "apps/cli/src/commands/setup/generate-env-example.ts": 610,
   "apps/cli/src/commands/setup/setup.ts": 1021,
-  "apps/cli/src/commands/site/site-create.ts": 706,
   "apps/cli/src/commands/test/test-alex-comms.ts": 536,
   "apps/cli/src/commands/test/test-all-integrations.ts": 526,
   "apps/cli/src/commands/validate/validate-associative-cortex.ts": 715,
