@@ -85,6 +85,9 @@ test.describe('ferni.ai consent and content', () => {
 
     expect(hits).toEqual([]);
     expect(idRequests).toEqual([]);
+    // Backend-flagged features look the same as before consent existed: with
+    // no experiments service, the flags fall through to on, chat bubble included.
+    await expect(page.locator('.ferni-chat-trigger')).toHaveCount(1);
     const consentDefault = await page.evaluate(
       () =>
         (window as unknown as { dataLayer: unknown[][] }).dataLayer.find(

@@ -45,8 +45,9 @@
   // ============================================================================
 
   // No anonymous ID is made or sent until the visitor accepts the cookie
-  // banner (story-brand.njk stores the choice). Without it every experiment
-  // reads as unassigned, so callers keep their defaults.
+  // banner (story-brand.njk stores the choice). Before that, getVariant still
+  // asks the API so visitors see the same variants, but without a userId, and
+  // nothing is cached or tracked.
   function hasConsent() {
     try {
       return localStorage.getItem('ferni_cookies') === 'accepted';
@@ -101,11 +102,11 @@
 
   async function getVariant(experimentId, options) {
     options = options || {};
-    if (!hasConsent()) return null;
-    const userId = getUserId();
+    const consented = hasConsent();
+    const userId = consented ? getUserId() : null;
 
     // Check cache
-    const cache = getCache();
+    const cache = consented ? getCache() : {};
     if (cache[experimentId]) {
       const variantId = cache[experimentId].variantId;
 
@@ -122,10 +123,10 @@
         window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop';
 
       const params = new URLSearchParams({
-        userId: userId,
         isNewUser: Object.keys(cache).length === 0 ? 'true' : 'false',
         device: device,
       });
+      if (userId) params.set('userId', userId);
 
       // Get UTM source if available
       const urlParams = new URLSearchParams(window.location.search);
@@ -150,7 +151,7 @@
       }
 
       // Cache assignment
-      setCache(experimentId, data.variantId);
+      if (consented) setCache(experimentId, data.variantId);
 
       // Track exposure
       if (!options.skipExposure) {

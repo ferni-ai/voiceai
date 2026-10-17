@@ -68,8 +68,6 @@
       const flagPromises = Object.entries(FLAG_MAP).map(async ([flagId, configKey]) => {
         try {
           const variant = await window.FerniExperiments.getVariant(flagId, { skipExposure: true });
-          // No assignment (no cookie consent yet, or the service is down): keep the default
-          if (variant === null) return;
           // Variant is either the percentage bucket or 'control'/'enabled'
           CONFIG[configKey] = variant !== 'control' && variant !== '0';
           if (CONFIG.debugMode) {

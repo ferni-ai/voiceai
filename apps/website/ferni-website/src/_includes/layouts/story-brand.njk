@@ -360,8 +360,10 @@
         // Storage blocked: the choice holds for this page only.
       }
       var banner = document.getElementById('cookieBanner');
-      banner.classList.remove('is-visible');
-      banner.classList.add('is-hidden');
+      if (banner) {
+        banner.classList.remove('is-visible');
+        banner.classList.add('is-hidden');
+      }
 
       if (accepted && typeof window.ferniGrantAnalytics === 'function') {
         window.ferniGrantAnalytics();
@@ -373,7 +375,8 @@
     try { cookieChoice = localStorage.getItem('ferni_cookies'); } catch (e) { cookieChoice = null; }
     if (!cookieChoice) {
       setTimeout(() => {
-        document.getElementById('cookieBanner').classList.add('is-visible');
+        var pending = document.getElementById('cookieBanner');
+        if (pending) pending.classList.add('is-visible');
       }, 2000);
     }
     
