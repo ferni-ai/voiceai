@@ -13,7 +13,7 @@
  * end punctuation sounds unfinished, and one that also ends on a conjunction,
  * preposition, article, filler, auxiliary or comma even more so.
  *
- * Such a turn is held open (patches/@livekit__agents@1.6.4.patch,
+ * Such a turn is held open (patches/@livekit__agents@1.8.1.patch,
  * UNFINISHED_TURN_HELD): it isn't committed, so when the caller goes on,
  * ink's next final joins it and Ferni answers the whole sentence once. When
  * they don't, it is answered after the hold. Turns that sound finished are
