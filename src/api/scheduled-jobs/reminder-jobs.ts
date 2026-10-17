@@ -21,7 +21,8 @@ export async function handleDeliverReminders(
   try {
     const { deliverDueReminders } =
       await import('../../services/scheduling/reminder-delivery-job.js');
-    const result = await deliverDueReminders({ dryRun });
+    const { reminderTextSender } = await import('../../services/outreach/reminder-texts.js');
+    const result = await deliverDueReminders({ dryRun, textOwnReminder: reminderTextSender() });
     sendJson(res, 200, { success: true, job: 'deliver-reminders', ...result });
   } catch (error) {
     log.error({ error: String(error) }, 'Reminder delivery job failed');
