@@ -581,7 +581,10 @@ export async function wrappedTtsNode(
         // Clean chunk: pass through to TTS
         controller.enqueue(chunk);
       },
-      flush() {
+      flush(controller) {
+        // A possible "<template-call" start held back at the very end of the reply.
+        const held = cutToolArgs?.flush();
+        if (held) controller.enqueue(held);
         // Analyze accumulated leaked JSON at end of stream
         if (jsonLeakBuffer.length > 0) {
           // Try to extract useful info from the leaked JSON

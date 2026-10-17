@@ -11,13 +11,16 @@
  * "<template-call", an opening brace or a snake_case key before ":" or "=",
  * and runs to the closing brace, across chunks. A cut that starts at a key
  * with no brace open ends with its chunk. At most MAX_CUT characters go, so a
- * brace that never closes can't silence the rest of the reply.
+ * brace that never closes can't silence the rest of the reply. A chunk ending
+ * in the start of "<template-call" holds those characters for the next one,
+ * since the model's chunks split words ("teamm" + "ate_specialty").
  * TOOL_ARGS_GUARD=off turns the cut off.
  *
  * @module agents/shared/tts-tool-args-filter
  */
 
 const START = /<template-call\b|\{|\b[a-z]+(?:_[a-z]+)+\s*[:=]/i;
+const MARKER = '<template-call';
 export const MAX_CUT = 300;
 
 export function toolArgsGuardEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -30,14 +33,30 @@ export interface Cut {
   cut: string;
 }
 
-/** A cutter for one reply's chunks, in order: it remembers a brace left open. */
-export function toolArgsCutter(): (chunk: string) => Cut {
+/** How much of the text's end could be the start of the marker ("<", "<te", ...). */
+function markerTail(text: string): number {
+  for (let n = Math.min(MARKER.length - 1, text.length); n > 0; n--) {
+    if (MARKER.startsWith(text.slice(-n).toLowerCase())) return n;
+  }
+  return 0;
+}
+
+/** Cuts one reply's chunks, in order (it remembers a brace left open); flush() at the end. */
+export interface ToolArgsCutter {
+  (chunk: string): Cut;
+  /** Characters held back as a possible marker start, once the reply has ended. */
+  flush: () => string;
+}
+
+export function toolArgsCutter(): ToolArgsCutter {
   let open = false; // inside a brace opened by an earlier chunk
   let used = 0; // characters cut since that brace opened
-  return (chunk) => {
+  let held = ''; // a possible "<template-call" start from the end of the last chunk
+  const cutter = (chunk: string): Cut => {
     let kept = '';
     let cut = '';
-    let rest = chunk;
+    let rest = held + chunk;
+    held = '';
     while (rest) {
       if (!open) {
         const m = START.exec(rest);
@@ -65,6 +84,18 @@ export function toolArgsCutter(): (chunk: string) => Cut {
       rest = rest.slice(end);
       if ((close >= 0 && close < room) || used >= MAX_CUT) open = false;
     }
+    const tail = open ? 0 : markerTail(kept);
+    if (tail) {
+      held = kept.slice(-tail);
+      kept = kept.slice(0, -tail);
+    }
     return { kept, cut };
   };
+  return Object.assign(cutter, {
+    flush: () => {
+      const rest = held;
+      held = '';
+      return rest;
+    },
+  });
 }

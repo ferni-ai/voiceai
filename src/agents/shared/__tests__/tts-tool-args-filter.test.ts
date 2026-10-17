@@ -46,6 +46,23 @@ describe('toolArgsCutter', () => {
     expect(run(['So contact_query="mom" ', 'and then we talk.'])).toBe('So and then we talk.');
   });
 
+  it('cuts the marker when the model splits it across chunks', () => {
+    const chunks = [
+      'Sure. <templ',
+      'ate-call:default_api:softTeamIntro{ context: x }',
+      ' Bye now.',
+    ];
+    expect(run(chunks)).toBe('Sure.  Bye now.');
+    expect(run(['Sure. <', 'template-call:x{ a_b: c }', ' Bye.'])).toBe('Sure.  Bye.');
+  });
+
+  it('a held "<" that starts no marker goes out with the next chunk, or at the end', () => {
+    expect(run(['I <', '3 you'])).toBe('I <3 you');
+    const cut = toolArgsCutter();
+    expect(cut('see you <t').kept).toBe('see you ');
+    expect(cut.flush()).toBe('<t');
+  });
+
   it.each([
     "I'll call her at 3:30, she's usually up by then.",
     'It was a 2:1 vote, honestly.',
@@ -86,6 +103,16 @@ describe('tts-wrapper: tool arguments never reach TTS', () => {
     const said = await speak(PROD);
     expect(said).not.toMatch(/template-call|softTeamIntro|specialty|context:|[{}]/);
     expect(said).toContain('Maya is probably winding down herself.');
+  });
+
+  it('the marker split across chunks never reaches TTS', async () => {
+    const said = await speak([
+      'Sure. <templ',
+      'ate-call:default_api:softTeamIntro{ context: x }',
+      ' Bye now.',
+    ]);
+    expect(said).not.toMatch(/template|softTeamIntro|[{}]/);
+    expect(said).toContain('Bye now.');
   });
 
   it('TOOL_ARGS_GUARD=off sends it as before', async () => {
