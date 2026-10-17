@@ -234,6 +234,48 @@ describe('what the caller asked Ferni to forget', () => {
     expect(ids).toEqual(['f1', 'f2', 'w2']);
   });
 
+  it("drops a kept item's quote when the quote names a forgotten topic", () => {
+    const view = buildKnownView(
+      {
+        ...empty,
+        // Kept by subject/attribute/value, but the quote names the forgotten topic.
+        world: [
+          world({
+            id: 'w4',
+            value: 'back at work',
+            source: { kind: 'summary', sessionId: 's1', quote: 'after the knee surgery' },
+          }),
+        ],
+        mind: {
+          ...mind,
+          patterns: [
+            {
+              ...mind.patterns[0],
+              moments: [
+                ...mind.patterns[0].moments,
+                { sessionId: 's3', at: '2026-10-09T00:00:00.000Z', cue: 'joked about the layoff' },
+              ],
+            },
+          ],
+          sensitivities: [],
+        },
+        forgotten: ['knee surgery', 'layoff'],
+      },
+      NOW,
+      false
+    );
+    const items = Object.values(view).flatMap(
+      (list) => list as Array<{ id: string; quote?: string }>
+    );
+    const w4 = items.find((i) => i.id === 'w4');
+    const pattern = items.find((i) => i.id === 'jokes-when-anxious');
+    expect(w4).toBeDefined();
+    expect(w4?.quote).toBeUndefined();
+    expect(pattern).toBeDefined();
+    expect(pattern?.quote).toBeUndefined();
+    expect(JSON.stringify(view)).not.toMatch(/knee surgery|layoff/i);
+  });
+
   it('matches recall: a forgotten fact is in neither, a kept one in both', async () => {
     const docs = [
       { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 0.9 },
