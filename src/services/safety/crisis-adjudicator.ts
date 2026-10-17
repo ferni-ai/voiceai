@@ -319,9 +319,18 @@ export async function adjudicatedCheckin(run: CrisisAdjudicatorRun | null): Prom
   if (!run) return false;
   // Shadow never changes the reply; its decision is only logged.
   if (run.mode !== 'live') {
-    run.result.catch(() => undefined);
+    run.result.catch((error: unknown) => logRunFailure(run.mode, error));
     return false;
   }
-  const r = await run.result.catch(() => null);
+  const r = await run.result.catch((error: unknown) => {
+    logRunFailure(run.mode, error);
+    return null;
+  });
   return r?.decision === 'checkin';
+}
+
+/** A failed run escalates as before; log why (never the transcript). */
+function logRunFailure(mode: CrisisAdjudicatorMode, error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error);
+  log.warn({ mode, error: message }, 'CRISIS_ADJUDICATOR run failed, escalating as before');
 }
