@@ -89,10 +89,13 @@ function lint(files: string[]): EslintFile[] {
   const run = spawnSync(
     'npx',
     ['eslint', '--cache', '--cache-location', cache, '--format', 'json', ...files],
-    { cwd: ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' } }
+    { cwd: ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' } }
   );
   // ESLint exits 1 when it finds errors; that is the data we want, so only a missing stdout is fatal.
-  if (!run.stdout) throw new Error(`eslint produced no output: ${run.stderr}`);
+  if (!run.stdout) {
+    // Usually the process was killed (out of memory): a CI runner has about 7 GB.
+    throw new Error(`eslint produced no output (status ${run.status}, signal ${run.signal}): ${run.error?.message ?? run.stderr}`);
+  }
   return JSON.parse(run.stdout) as EslintFile[];
 }
 
