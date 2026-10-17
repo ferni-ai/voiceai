@@ -41,6 +41,7 @@ const AUDIO = Buffer.alloc(1_500_000, 7).toString('base64');
 function post(body: unknown): { req: IncomingMessage; res: ServerResponse; status: () => number } {
   const req = new EventEmitter() as IncomingMessage;
   req.method = 'POST';
+  req.headers = {};
   let status = 0;
   const res = {
     writeHead: vi.fn((code: number) => (status = code)),

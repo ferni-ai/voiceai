@@ -56,7 +56,9 @@ export function endpointingDelays(env: Record<string, string | undefined> = proc
  */
 export type TurnDetectorMode = 'cloud' | 'local' | 'off';
 
-export function turnDetectorMode(env: Record<string, string | undefined> = process.env): TurnDetectorMode {
+export function turnDetectorMode(
+  env: Record<string, string | undefined> = process.env
+): TurnDetectorMode {
   return env.TURN_DETECTOR === 'cloud' ? 'cloud' : env.TURN_DETECTOR === 'local' ? 'local' : 'off';
 }
 
@@ -73,7 +75,10 @@ export function registerLocalEotRunner(
     InferenceRunner.registerRunner(EOT_METHOD, runner);
     return true;
   } catch (error) {
-    log.warn({ error: String(error) }, 'Local end-of-turn model unavailable; keeping default turn detection');
+    log.warn(
+      { error: String(error) },
+      'Local end-of-turn model unavailable; keeping default turn detection'
+    );
     return false;
   }
 }
@@ -98,4 +103,24 @@ export function sessionTurnDetection<T>(
   }
   log.info({ model: 'turn-detector-v1-mini' }, 'TURN_DETECTOR local');
   return new inference.TurnDetector({ version: 'v1-mini' });
+}
+
+/** The parts of LiveKit's live AgentActivity (session._activity) that say how turns end. */
+interface ActivityTurnView {
+  _activity?: { _resolvedTurnDetection?: unknown; turnDetectionMode?: string };
+}
+
+/**
+ * What decides the end of the caller's turn on this session now, for the
+ * TURN_RECEIPT: the LiveKit model in use ('turn-detector-v1', or
+ * 'turn-detector-v1-mini' once cloud has fallen back to local), 'stt' (ink-2's
+ * own turn end in the cascade), 'vad', 'default' when LiveKit dropped the
+ * setting, or 'unknown' with no activity running.
+ */
+export function turnDetectionInUse(session: unknown): string {
+  const activity = (session as ActivityTurnView | undefined)?._activity;
+  if (!activity) return 'unknown';
+  const model = (activity._resolvedTurnDetection as { model?: unknown } | undefined)?.model;
+  if (typeof model === 'string') return model;
+  return activity.turnDetectionMode ?? 'default';
 }
