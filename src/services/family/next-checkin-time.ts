@@ -109,9 +109,14 @@ export function calculateNextCallTime(schedule: NextCheckinInput, now: Date = ne
       }
       break;
     case 'monthly':
-      // Same day next month, counted from today rather than tomorrow.
-      addDays(-1);
-      date.setUTCMonth(date.getUTCMonth() + 1);
+      // Same day next month, counted from today; the 31st becomes the month's last day.
+      date.setTime(Date.UTC(today.year, today.month, 1));
+      date.setUTCDate(
+        Math.min(
+          today.day,
+          new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate()
+        )
+      );
       break;
     case 'custom':
       if (schedule.customIntervalDays) addDays(schedule.customIntervalDays - 1);

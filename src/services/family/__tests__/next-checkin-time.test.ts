@@ -65,6 +65,14 @@ describe('calculateNextCallTime', () => {
     expect(next).toBe('2026-11-18T02:00:00.000Z');
   });
 
+  it('moves a monthly check-in on the 31st to the last day of a shorter month', () => {
+    const next = calculateNextCallTime(
+      { ...base, frequency: 'monthly', timezone: 'UTC' },
+      new Date('2027-01-31T08:00:00Z')
+    );
+    expect(next).toBe('2027-02-28T18:00:00.000Z');
+  });
+
   it('ignores a day it does not know instead of looping', () => {
     const next = calculateNextCallTime(
       { ...base, frequency: 'weekly', daysOfWeek: ['someday' as 'monday'] },
