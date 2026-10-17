@@ -13,6 +13,7 @@ import { t } from '../i18n/index.js';
 import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
 import { openDialog, type DialogHandle } from './overlay/dialog.js';
 import { STYLES } from './mobile-bottom-sheet.styles.js';
+import { isSheetActionVisible } from '../config/menu-visibility.js';
 
 // ============================================================================
 // TYPES
@@ -303,6 +304,7 @@ function handleKeyDown(e: KeyboardEvent): void {
 // ACTIONS
 // ============================================================================
 
+/** The sheet's actions, minus the hidden ones (config/menu-visibility.ts). */
 function getDefaultActions(): BottomSheetAction[] {
   return [
     {
@@ -368,7 +370,7 @@ function getDefaultActions(): BottomSheetAction[] {
         window.dispatchEvent(new CustomEvent('ferni:open-insights'));
       },
     },
-  ];
+  ].filter((action) => isSheetActionVisible(action.id));
 }
 
 function populateActions(actions: BottomSheetAction[]): void {

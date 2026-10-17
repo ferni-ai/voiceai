@@ -43,6 +43,7 @@ import { applyLockState } from './team-lock-state.js';
 import { toast } from './whisper.ui.js';
 import { captureRosterLayout, playRosterFlip } from './roster-motion.js';
 import { isRosterStable, orderRoster } from './roster-order.js';
+import { isPanelVisible } from '../config/menu-visibility.js';
 
 const log = createLogger('TeamUI');
 
@@ -1308,6 +1309,7 @@ function revealRosterWhenReady(container: HTMLElement): void {
  */
 function addMarketplaceButton(): void {
   if (!rosterContainer) return;
+  if (!isPanelVisible('marketplace')) return; // Meet More Friends is hidden: config/menu-visibility.ts
 
   // Don't add if already exists
   if (document.getElementById('marketplaceBtn')) return;

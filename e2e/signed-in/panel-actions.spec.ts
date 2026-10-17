@@ -92,6 +92,7 @@ test('Take Your Story: Export gives you a file with your data in it', async ({ p
 });
 
 test('quiz: answering a question shows how you did', async ({ page }) => {
+  test.skip(true, 'Knowledge Quiz is hidden: apps/web/src/config/menu-visibility.ts');
   const problems = watchProblems(page);
   const panel = await openPanel(page, 'knowledge-quiz');
   await panel.locator('.knowledge-quiz-option').first().click(); // questions are random; any answer will do
@@ -112,17 +113,13 @@ test('every control in every panel has a name', async ({ page }) => {
     'calendar-settings',
     'notifications',
     'journal',
-    'knowledge-quiz',
-    'music-dashboard',
     'play-games',
-    'vibe-controller',
     'contacts',
     'family-callers',
     'all-connections',
     'theme',
     'billing',
     'export',
-    'whats-growing',
     'share-ferni',
     'help',
   ];

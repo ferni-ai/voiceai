@@ -22,12 +22,10 @@ import {
   UNLOCKABLE_FEATURES,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
-// Team unlock service - for gating marketplace behind full team unlock
-import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
 import { signOutOfThisBrowser } from './sign-out.js';
 // Roadmap service - for "What's Growing" experience
 import { roadmapService } from '../services/roadmap.service.js';
-import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
+import { isMenuActionVisible } from '../config/menu-visibility.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -628,13 +626,8 @@ class SettingsMenuUI {
    * Roadmap features are hidden from the menu - they only appear in the Roadmap Panel
    */
   private renderMenuItem(action: string, icon: string, label: string, extraClasses = ''): string {
-    // Hide roadmap items from the menu - they live in "What's Growing" panel
-    if (roadmapService.isRoadmapFeature(action)) {
-      return '';
-    }
-
-    // Hide marketplace until full team is unlocked - users should know the team first
-    if (action === 'discover-agents' && !isFullTeamUnlocked()) {
+    // Hidden items (config/menu-visibility.ts) and unbuilt roadmap features render nothing
+    if (!isMenuActionVisible(action) || roadmapService.isRoadmapFeature(action)) {
       return '';
     }
 
@@ -783,7 +776,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
             ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane'), t('common.new'))}
-            ${isPatternInsightsOn() ? this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights')) : ''}
+            ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
             ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear'), t('common.new'))}
           `
@@ -1080,7 +1073,7 @@ class SettingsMenuUI {
     if (!canOpenSupport()) delete menuItems['support-ferni'];
 
     const pinnedItemsHtml = [...this.pinnedItems]
-      .filter((action) => menuItems[action] && !this.isFeatureLocked(action))
+      .filter((action) => menuItems[action] && isMenuActionVisible(action) && !this.isFeatureLocked(action))
       .map((action) => {
         const item = menuItems[action];
         if (!item) return '';
@@ -1139,6 +1132,7 @@ class SettingsMenuUI {
     label: string,
     badge: string
   ): string {
+    if (!isMenuActionVisible(action)) return '';
     const isLocked = this.isFeatureLocked(action);
     const requiredStage = this.getRequiredStage(action);
     const lockedClass = isLocked ? 'settings-menu__item--locked' : '';
@@ -1235,6 +1229,7 @@ class SettingsMenuUI {
   private handleAction(action: string | undefined): void {
     log.info('📍 handleAction called', { action });
     this.hide();
+    if (action && !isMenuActionVisible(action)) return; // hidden: config/menu-visibility.ts
 
     switch (action) {
       case 'history':

@@ -208,6 +208,7 @@ import {
 import { initI18n, t } from './i18n/index.js';
 import { createConversationStarter, START_CONVERSATION_EVENTS } from './app/conversation-starter.js';
 import { openPanelFromUrl } from './services/notification-navigation.js';
+import { isPanelEventVisible } from './config/menu-visibility.js';
 import { bindStaticDom } from './i18n/static-dom.js';
 import { bindLocaleRefresh } from './app/locale-refresh.js';
 import { installDialogFocus } from './utils/dialog-focus.js';
@@ -1749,8 +1750,11 @@ class VoiceAIApp {
     this.addTrackedListener(document, 'ferni:open-support', () => void openSupportFerni());
 
     // 🌱 Roadmap Panel - "What's Growing" feature voting; loaded when first opened
-    this.addTrackedListener(document, 'ferni:open-roadmap', ((e: CustomEvent<{ featureId?: string }>) =>
-      void import('./ui/roadmap-panel.ui.js').then((m) => m.showRoadmapPanel(e.detail?.featureId))) as EventListener);
+    // Hidden for now (config/menu-visibility.ts): the event does nothing
+    this.addTrackedListener(document, 'ferni:open-roadmap', ((e: CustomEvent<{ featureId?: string }>) => {
+      if (!isPanelEventVisible('ferni:open-roadmap')) return;
+      void import('./ui/roadmap-panel.ui.js').then((m) => m.showRoadmapPanel(e.detail?.featureId));
+    }) as EventListener);
 
     // 💰 Subscription Badge - Subtle status indicator in header
     this.safeInit('SubscriptionBadge', () => initSubscriptionBadge());
