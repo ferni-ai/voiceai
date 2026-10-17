@@ -109,6 +109,7 @@ body[data-connected='true'].${CAPTIONS_CALL_CLASS} #waveformContainer {
 @media (prefers-reduced-motion: reduce) {
   .ferni-captions { transition: opacity ${DURATION.NORMAL}ms linear; transform: translate(-50%, 0); }
   .ferni-caption-line .ferni-caption-words,
+  .ferni-caption-line:not(.ferni-caption-line--settled) .ferni-caption-words,
   .ferni-moment { animation: none; }
 }
 `;
@@ -172,5 +173,41 @@ export function injectBreathStyles(): void {
   const style = document.createElement('style');
   style.id = BREATH_STYLE_ID;
   style.textContent = BREATH_CSS;
+  document.head.appendChild(style);
+}
+
+const HEARD_STYLE_ID = 'ferni-captions-heard-styles';
+
+/**
+ * Heard (captions-heard flag). The caller's line is faint and blurred while
+ * its transcript is interim, and sharpens when it settles. Once Ferni takes
+ * the turn, a persona-colour check pops beside the settled line. Only injected
+ * when the flag is on, so flag-off pages get no new rules.
+ */
+const HEARD_CSS = `
+.ferni-caption-line--interim { opacity: 0.6; filter: blur(var(--space-2xs)); }
+.ferni-caption-check {
+  display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+  width: 1.375rem; height: 1.375rem; margin-inline-start: var(--space-xs);
+  border-radius: var(--radius-full); background: var(--persona-primary); color: var(--color-bg-elevated);
+}
+.ferni-caption-check svg { display: block; }
+@media (prefers-reduced-motion: no-preference) {
+  .ferni-caption-line[data-speaker='user'] {
+    transition: opacity ${DURATION.SLOW}ms ${EASING.DECELERATE}, filter ${DURATION.SLOW}ms ${EASING.DECELERATE};
+  }
+  .ferni-caption-line--ticked .ferni-caption-check {
+    animation: ferni-heard-pop ${DURATION.SLOW}ms ${EASING.SPRING} both;
+  }
+}
+@keyframes ferni-heard-pop { from { transform: scale(0); } }
+`;
+
+/** Add the Heard rules. Call only when the captions-heard flag is on. */
+export function injectHeardStyles(): void {
+  if (document.getElementById(HEARD_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = HEARD_STYLE_ID;
+  style.textContent = HEARD_CSS;
   document.head.appendChild(style);
 }
