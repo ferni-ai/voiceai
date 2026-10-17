@@ -8,16 +8,16 @@
  * @module services/seed-economy
  */
 
-import admin from 'firebase-admin';
+import { getFirestore as getDefaultFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { awardDailyConversation } from '../seeds/earn.js';
 
 /**
  * Get Firestore instance, returns null if not initialized.
  */
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   try {
-    return admin.firestore();
+    return getDefaultFirestore();
   } catch {
     return null;
   }
@@ -62,7 +62,10 @@ export interface SeedAwardResult {
  *
  * @param timeZone - the caller's IANA zone, so "today" is their day (UTC when unknown)
  */
-export async function awardSeedsForConversation(userId: string, timeZone?: string): Promise<SeedAwardResult> {
+export async function awardSeedsForConversation(
+  userId: string,
+  timeZone?: string
+): Promise<SeedAwardResult> {
   if (!userId) return { success: false, error: 'User ID required' };
   const db = getFirestore();
   if (!db) {
