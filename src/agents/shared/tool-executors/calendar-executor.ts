@@ -11,9 +11,9 @@ import {
   createEvent,
   getEventsForDay,
   getEventsForWeek,
-  isGoogleCalendarConnected,
   isTimeSlotAvailable,
 } from '../../../services/calendar/calendar-service.js';
+import { hasAnyProviderConnected } from '../../../services/calendar/unified-calendar-store.js';
 import {
   NOT_CONNECTED_CREATE,
   NOT_CONNECTED_READ,
@@ -96,7 +96,7 @@ async function execute(
     if (ctx.userId) {
       try {
         // Try to get real calendar data from Google Calendar integration
-        if (!(await isGoogleCalendarConnected(ctx.userId))) return NOT_CONNECTED_READ;
+        if (!(await hasAnyProviderConnected(ctx.userId))) return NOT_CONNECTED_READ;
         const events = await getEventsForDay(ctx.userId, new Date());
 
         if (events.length === 0) {
@@ -158,7 +158,7 @@ async function execute(
         });
 
         if (event) {
-          if (!(await isGoogleCalendarConnected(ctx.userId))) return NOT_CONNECTED_CREATE;
+          if (!(await hasAnyProviderConnected(ctx.userId))) return NOT_CONNECTED_CREATE;
           return `Done! I've added "${title}" to your calendar${date ? ` for ${date}` : ''}${time ? ` at ${time}` : ''}.`;
         }
       } catch (err: unknown) {
@@ -199,7 +199,7 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        if (!(await isGoogleCalendarConnected(ctx.userId))) return NOT_CONNECTED_READ;
+        if (!(await hasAnyProviderConnected(ctx.userId))) return NOT_CONNECTED_READ;
         // Get events for the week
         const overview = await getEventsForWeek(ctx.userId, new Date());
 
@@ -239,7 +239,7 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        if (!(await isGoogleCalendarConnected(ctx.userId))) return NOT_CONNECTED_READ;
+        if (!(await hasAnyProviderConnected(ctx.userId))) return NOT_CONNECTED_READ;
         // Build time slot from date and time strings
         const startTime = date && time ? new Date(`${date} ${time}`) : new Date();
         const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour slot
