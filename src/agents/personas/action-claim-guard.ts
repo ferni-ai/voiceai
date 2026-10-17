@@ -49,7 +49,7 @@ const log = createLogger({ module: 'ActionClaimGuard' });
 
 type Chunk = llm.ChatChunk | string | object;
 /** 'uncalled': a create tool is open, but no create ran on this call for this claim (#1547). */
-export type MissReason = 'no_tool' | 'failed' | 'awaiting' | 'uncalled';
+export type MissReason = 'no_tool' | 'failed' | 'awaiting' | 'uncalled' | 'elsewhere';
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
@@ -93,6 +93,7 @@ const REMIND = ' Want me to remind you to do it?';
 
 /** What Ferni says in place of a claim, and what he can do instead. */
 export function honestLine(kind: ActionKind, reason: MissReason, canRemind: boolean): string {
+  if (reason === 'elsewhere') return "It's saved to Ferni's own list, not your calendar.";
   if (reason === 'awaiting' || reason === 'uncalled') return NOT_YET[kind];
   const instead = canRemind && kind !== 'reminder' && kind !== 'save' ? REMIND : INSTEAD[kind];
   return `${reason === 'failed' ? DID_NOT_GO[kind] : CANNOT[kind]}${instead}`;
@@ -229,7 +230,7 @@ export async function withActionClaimCheck<T>(
   if (stream === null || stream === undefined) return stream;
   if (!actionClaimGuardEnabled(env)) return withAnnouncedCheckLog(stream, tools, env);
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
-  const { done, failed, awaiting } = callActions(chatCtx);
+  const { done, failed, awaiting, elsewhere } = callActions(chatCtx);
   // A plain yes to the read-back: the tool sends on its next call, so the claim may stand.
   const yesTurn = isClearYes(lastCallerWords(chatCtx));
   const open = new Set(Object.keys(tools.functionTools ?? {}).flatMap(kindsOfTool));
@@ -240,6 +241,8 @@ export async function withActionClaimCheck<T>(
       ? 'no_tool'
       : failed.has(kind)
         ? 'failed'
+        : elsewhere.has(kind)
+          ? 'elsewhere'
         : awaiting.has(kind) && !yesTurn
           ? 'awaiting'
           : kind === 'schedule' && !done.has(kind) && !calling.has(kind)
@@ -290,7 +293,7 @@ export async function withActionClaimCheck<T>(
         if (said || deferred) return;
         // A call of the kind later in this reply makes the claim true, so a held claim waits for the
         // reply to show. Streamed words cannot wait, so they are corrected at once.
-        if (reason === 'failed' || (reason === 'uncalled' && hold)) {
+        if (reason === 'failed' || reason === 'elsewhere' || (reason === 'uncalled' && hold)) {
           deferred = { kind, reason, text: hold ? text : undefined };
           return;
         }
@@ -314,9 +317,10 @@ export async function withActionClaimCheck<T>(
               passed = 0;
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
-            // The create came after the claim: the held sentence was true, so it and what followed go out first.
+            // A create came after the claim. A create only saves to Ferni's own list (#1547), so the
+            // claim is still false: the honest line replaces it, and what followed goes out after.
             if (deferred?.reason === 'uncalled' && calling.has(deferred.kind)) {
-              if (deferred.text) emit(deferred.text);
+              if (deferred.text) emit(honestLine(deferred.kind, 'elsewhere', false));
               for (const text of queued.splice(0)) emit(text);
               deferred = undefined;
             }

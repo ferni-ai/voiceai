@@ -174,6 +174,8 @@ export function kindsOfTool(name: string): ActionKind[] {
 
 /** The confirm gate's preview (outreach-confirm.ts): nothing sent until the caller says yes. */
 const PREVIEW = /^\W*not sent yet\b/i;
+/** A save that landed in Ferni's own list, not the caller's calendar (#1547). */
+const ELSEWHERE = /\bisn't on your calendar\b/i;
 /** A result that says the action did not happen. */
 const REFUSAL =
   /^\W*(?:no calendar is connected|nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi don't have (?:a|the|their|any) (?:phone )?number\b|\bi couldn't find\b|\bdon't see \w+(?: \w+)? in your contacts\b|\bdoesn't look (?:valid|right)\b|\b(?:calls?|calling|texts?|texting|outbound \w+) (?:are|is) (?:disabled|turned off|off|not available|unavailable)\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
@@ -202,6 +204,8 @@ export interface CallActions {
   awaiting: Set<ActionKind>;
   /** Kinds whose latest result refused or failed. */
   failed: Set<ActionKind>;
+  /** Schedule whose latest result saved to Ferni's own list, not the caller's calendar. */
+  elsewhere: Set<ActionKind>;
 }
 
 /** What the call's tools did: each kind as its latest tool result left it. */
@@ -212,9 +216,17 @@ export function callActions(chatCtx: { items: readonly unknown[] }): CallActions
     const text = outputText(item.output);
     const state =
       item.isError || REFUSAL.test(text) ? 'failed' : PREVIEW.test(text) ? 'awaiting' : 'done';
-    for (const kind of kindsOfTool(item.name ?? '')) latest.set(kind, state);
+    for (const kind of kindsOfTool(item.name ?? '')) {
+      const saved = ELSEWHERE.test(text) && kind === 'schedule' && state === 'done';
+      latest.set(kind, saved ? 'elsewhere' : state);
+    }
   }
-  const actions: CallActions = { done: new Set(), awaiting: new Set(), failed: new Set() };
+  const actions: CallActions = {
+    done: new Set(),
+    awaiting: new Set(),
+    failed: new Set(),
+    elsewhere: new Set(),
+  };
   for (const [kind, state] of latest) actions[state].add(kind);
   return actions;
 }

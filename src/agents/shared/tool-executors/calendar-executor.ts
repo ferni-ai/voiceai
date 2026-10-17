@@ -11,13 +11,10 @@ import {
   createEvent,
   getEventsForDay,
   getEventsForWeek,
+  isConnected,
   isTimeSlotAvailable,
 } from '../../../services/calendar/calendar-service.js';
-import { hasAnyProviderConnected } from '../../../services/calendar/unified-calendar-store.js';
-import {
-  NOT_CONNECTED_CREATE,
-  NOT_CONNECTED_READ,
-} from '../../../services/calendar/not-connected-copy.js';
+import { NOT_CONNECTED_READ, notConnectedCreate } from '../../../services/calendar/not-connected-copy.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
@@ -96,7 +93,7 @@ async function execute(
     if (ctx.userId) {
       try {
         // Try to get real calendar data from Google Calendar integration
-        if (!(await hasAnyProviderConnected(ctx.userId))) return NOT_CONNECTED_READ;
+        if (!(await isConnected(ctx.userId))) return NOT_CONNECTED_READ;
         const events = await getEventsForDay(ctx.userId, new Date());
 
         if (events.length === 0) {
@@ -158,7 +155,9 @@ async function execute(
         });
 
         if (event) {
-          if (!(await hasAnyProviderConnected(ctx.userId))) return NOT_CONNECTED_CREATE;
+          if (!(await isConnected(ctx.userId))) {
+            return notConnectedCreate([title, date, time].filter(Boolean).join(', '));
+          }
           return `Done! I've added "${title}" to your calendar${date ? ` for ${date}` : ''}${time ? ` at ${time}` : ''}.`;
         }
       } catch (err: unknown) {
@@ -199,7 +198,7 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        if (!(await hasAnyProviderConnected(ctx.userId))) return NOT_CONNECTED_READ;
+        if (!(await isConnected(ctx.userId))) return NOT_CONNECTED_READ;
         // Get events for the week
         const overview = await getEventsForWeek(ctx.userId, new Date());
 
@@ -239,7 +238,7 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        if (!(await hasAnyProviderConnected(ctx.userId))) return NOT_CONNECTED_READ;
+        if (!(await isConnected(ctx.userId))) return NOT_CONNECTED_READ;
         // Build time slot from date and time strings
         const startTime = date && time ? new Date(`${date} ${time}`) : new Date();
         const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour slot

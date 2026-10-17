@@ -1,20 +1,22 @@
 /**
- * Calendar tools when no calendar provider is connected (#1547).
+ * Calendar tools when no calendar is connected (#1547).
  *
  * Ferni's own calendar store always answers, so an empty day read as a clear
- * one, and a create read back as "on your calendar". With no provider
+ * one, and a create read back as "on your calendar". With no calendar
  * connected, a read says so and quotes nothing; a write says it went to
  * Ferni's own list, not the caller's calendar. The check lives here, not in
  * each tool, so the tool files do not grow.
  *
  * @module tools/domains/calendar/calendar-connection-gate
  */
+import { isConnected } from '../../../services/calendar/calendar-service.js';
 import {
   NOT_CONNECTED_CHANGE,
-  NOT_CONNECTED_CREATE,
+  NOT_CONNECTED_CHANGE_FAILED,
+  NOT_CONNECTED_CREATE_FAILED,
   NOT_CONNECTED_READ,
+  notConnectedCreate,
 } from '../../../services/calendar/not-connected-copy.js';
-import { hasAnyProviderConnected } from '../../../services/calendar/index.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 import { smartCalendarTools as rawSmartCalendarTools } from './smart-calendar-tools.js';
 
@@ -35,6 +37,8 @@ const READ_TOOLS = new Set([
   'findRecoveryOpportunities',
   'getCalendarLoadSummary',
   'smartReschedule',
+  'getUnifiedSchedule',
+  'checkScheduleConflicts',
 ]);
 
 /** Writes land in Ferni's own list whatever the connection state, so they say so. */
@@ -47,6 +51,14 @@ const WRITE_TOOLS = new Map<string, 'create' | 'change'>([
 
 /** A write's own refusal, which says nothing was saved (the success text is left alone). */
 const FAILED_WRITE = /^(?:I couldn't|Couldn't|I need)/;
+
+/** The title, date and time the caller asked for, for the create line. */
+function whatWasAsked(params: unknown): string | undefined {
+  if (typeof params !== 'object' || params === null) return undefined;
+  const { title, date, startTime } = params as Record<string, unknown>;
+  if (typeof title !== 'string') return undefined;
+  return [title, date, startTime].filter((part): part is string => typeof part === 'string').join(', ');
+}
 
 function gate(def: ToolDefinition): ToolDefinition {
   const mode = READ_TOOLS.has(def.id) ? 'read' : WRITE_TOOLS.get(def.id);
@@ -61,17 +73,24 @@ function gate(def: ToolDefinition): ToolDefinition {
         ...tool,
         execute: async (params: unknown, options: unknown) => {
           const { userId } = ctx;
-          if (!userId || (await hasAnyProviderConnected(userId))) return original(params, options);
+          if (!userId || (await isConnected(userId))) return original(params, options);
           if (mode === 'read') return NOT_CONNECTED_READ;
 
+          // A write still runs: it lands in Ferni's own list. Only the reply changes.
           const result: unknown = await original(params, options);
-          if (typeof result === 'string' && FAILED_WRITE.test(result)) return result;
-          return mode === 'create' ? NOT_CONNECTED_CREATE : NOT_CONNECTED_CHANGE;
+          const failed = typeof result === 'string' && FAILED_WRITE.test(result);
+          if (mode === 'create') {
+            return failed ? NOT_CONNECTED_CREATE_FAILED : notConnectedCreate(whatWasAsked(params));
+          }
+          return failed ? NOT_CONNECTED_CHANGE_FAILED : NOT_CONNECTED_CHANGE;
         },
       };
     },
   };
 }
 
+/** Put the not-connected gate on any calendar-backed tools (reads and writes listed above). */
+export const gateCalendarTools = (defs: ToolDefinition[]): ToolDefinition[] => defs.map(gate);
+
 /** The smart calendar tools, with the not-connected gate on the reads and writes. */
-export const smartCalendarTools: ToolDefinition[] = rawSmartCalendarTools.map(gate);
+export const smartCalendarTools: ToolDefinition[] = gateCalendarTools(rawSmartCalendarTools);

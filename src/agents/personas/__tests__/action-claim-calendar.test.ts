@@ -111,7 +111,7 @@ describe('calendar claims', () => {
     }
   });
 
-  it('a create called later in the same reply makes the claim stand, in order', async () => {
+  it('a create called later in the same reply: the claim is replaced, in order', async () => {
     const parts = [
       chunk('Sure. '),
       chunk("I've got that on your calendar. "),
@@ -121,10 +121,10 @@ describe('calendar claims', () => {
     const text = await textOf(
       await check(streamOf(...parts), [ASK], toolsWith('createCalendarEvent'))
     );
-    expect(text).toContain("I've got that on your calendar.");
-    expect(text).not.toContain("isn't booked yet");
-    expect(text.indexOf('Sure.')).toBeLessThan(text.indexOf("I've got that"));
-    expect(text.indexOf("I've got that")).toBeLessThan(text.indexOf('Enjoy.'));
+    expect(text).not.toMatch(/on your calendar/);
+    expect(text).toContain("It's saved to Ferni's own list, not your calendar.");
+    expect(text.indexOf('Sure.')).toBeLessThan(text.indexOf("It's saved"));
+    expect(text.indexOf("It's saved")).toBeLessThan(text.indexOf('Enjoy.'));
   });
 
   it('a create that saved only to Ferni\'s own list (not connected) is reported as not booked', async () => {
@@ -133,7 +133,7 @@ describe('calendar claims', () => {
       result(
         'createCalendarEvent',
         JSON.stringify(
-          "Nothing was added to a calendar, because none is connected. I saved it to Ferni's own list instead, not your calendar."
+          "Saved \"Lunch with Sam, 2026-10-18, 12:00\" to Ferni's own list. It isn't on your calendar, since none is connected."
         )
       ),
     ];
@@ -142,6 +142,7 @@ describe('calendar claims', () => {
       await check(streamOf(...parts), items, toolsWith('createCalendarEvent'))
     );
     expect(text).not.toMatch(/on your calendar/);
-    expect(text).toContain("That didn't go through, so it isn't booked.");
+    expect(text).toContain("It's saved to Ferni's own list, not your calendar.");
+    expect(text).not.toContain("That didn't go through");
   });
 });

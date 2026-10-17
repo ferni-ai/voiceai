@@ -35,9 +35,12 @@ vi.mock('@livekit/agents', () => ({
   },
   log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
+vi.mock('../../../../services/calendar/calendar-service.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isConnected: vi.fn(),
+}));
 vi.mock('../../../../services/calendar/index.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  hasAnyProviderConnected: vi.fn(),
   getEventsForDay: vi.fn(),
   getEventsForWeek: vi.fn(),
   getDayOverview: vi.fn(),
@@ -53,15 +56,16 @@ import {
   getEventsForDay,
   getEventsForWeek,
   getWeekOverview,
-  hasAnyProviderConnected,
   type CalendarEvent,
   type DayOverview,
 } from '../../../../services/calendar/index.js';
 import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
+import { isConnected } from '../../../../services/calendar/calendar-service.js';
 import {
   NOT_CONNECTED_CHANGE,
-  NOT_CONNECTED_CREATE,
+  NOT_CONNECTED_CREATE_FAILED,
   NOT_CONNECTED_READ,
+  notConnectedCreate,
 } from '../../../../services/calendar/not-connected-copy.js';
 import { smartCalendarTools } from '../calendar-connection-gate.js';
 
@@ -120,7 +124,7 @@ const toolFor = (id: string) => {
 
 describe('calendar tools with no calendar connected', () => {
   beforeEach(() => {
-    vi.mocked(hasAnyProviderConnected).mockResolvedValue(false);
+    vi.mocked(isConnected).mockResolvedValue(false);
     vi.mocked(getEventsForDay).mockResolvedValue([standup]);
     vi.mocked(getEventsForWeek).mockResolvedValue([standup]);
     vi.mocked(getDayOverview).mockResolvedValue(emptyDay);
@@ -150,9 +154,9 @@ describe('calendar tools with no calendar connected', () => {
       {}
     );
     expect(createEvent).toHaveBeenCalledTimes(1);
-    expect(out).toBe(NOT_CONNECTED_CREATE);
-    expect(String(out)).toMatch(/Nothing was added to a calendar/);
-    expect(String(out)).toMatch(/Ferni's own list/);
+    expect(out).toBe(notConnectedCreate('Lunch with Sam, 2026-10-18, 12:00'));
+    expect(String(out)).toMatch(/Saved "Lunch with Sam, 2026-10-18, 12:00" to Ferni's own list/);
+    expect(String(out)).toMatch(/isn't on your calendar/);
   });
 
   it('deleteCalendarEvent deletes from Ferni\'s own list and says the calendar was not changed', async () => {
@@ -169,11 +173,12 @@ describe('calendar tools with no calendar connected', () => {
       { title: 'Lunch with Sam', date: '2026-10-18', startTime: '12:00' },
       {}
     );
-    expect(out).toMatch(/^Couldn't create the event/);
+    expect(out).toBe(NOT_CONNECTED_CREATE_FAILED);
+    expect(String(out)).not.toMatch(/quite full/);
   });
 
   it('a connected calendar gets the real read, not the not-connected line', async () => {
-    vi.mocked(hasAnyProviderConnected).mockResolvedValue(true);
+    vi.mocked(isConnected).mockResolvedValue(true);
     const out = await toolFor('getCalendarToday').execute({}, {});
     expect(out).not.toBe(NOT_CONNECTED_READ);
     expect(String(out)).toMatch(/Standup with Priya|meeting/);

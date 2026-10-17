@@ -13,8 +13,8 @@ import { calendarExecutor } from '../calendar-executor.js';
 import type { ToolExecutionContext } from '../types.js';
 
 import {
-  NOT_CONNECTED_CREATE,
   NOT_CONNECTED_READ,
+  notConnectedCreate,
 } from '../../../../services/calendar/not-connected-copy.js';
 
 // Mock calendar service
@@ -23,12 +23,10 @@ vi.mock('../../../../services/calendar/calendar-service.js', () => ({
   getEventsForWeek: vi.fn().mockResolvedValue([]),
   createEvent: vi.fn().mockResolvedValue({ id: 'event-123' }),
   isTimeSlotAvailable: vi.fn().mockResolvedValue(true),
+  isConnected: vi.fn().mockResolvedValue(true),
 }));
 
 // The chat executor asks the unified store whether any provider is connected (same check as the tools).
-vi.mock('../../../../services/calendar/unified-calendar-store.js', () => ({
-  hasAnyProviderConnected: vi.fn().mockResolvedValue(true),
-}));
 
 describe('CalendarExecutor', () => {
   const createContext = (overrides: Partial<ToolExecutionContext> = {}): ToolExecutionContext => ({
@@ -141,10 +139,10 @@ describe('CalendarExecutor', () => {
       const { getEventsForDay } = await import(
         '../../../../services/calendar/calendar-service.js'
       );
-      const { hasAnyProviderConnected } = await import(
-        '../../../../services/calendar/unified-calendar-store.js'
+      const { isConnected } = await import(
+        '../../../../services/calendar/calendar-service.js'
       );
-      (hasAnyProviderConnected as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
+      (isConnected as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
 
       const result = await calendarExecutor.execute('getCalendarToday', {}, createContext());
 
@@ -156,10 +154,10 @@ describe('CalendarExecutor', () => {
       const { getEventsForWeek, isTimeSlotAvailable } = await import(
         '../../../../services/calendar/calendar-service.js'
       );
-      const { hasAnyProviderConnected } = await import(
-        '../../../../services/calendar/unified-calendar-store.js'
+      const { isConnected } = await import(
+        '../../../../services/calendar/calendar-service.js'
       );
-      (hasAnyProviderConnected as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false).mockResolvedValueOnce(false);
+      (isConnected as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false).mockResolvedValueOnce(false);
 
       const upcoming = await calendarExecutor.execute('getUpcomingAppointments', {}, createContext());
       const free = await calendarExecutor.execute(
@@ -175,10 +173,10 @@ describe('CalendarExecutor', () => {
     });
 
     it('createCalendarEvent says nothing went to a calendar and names Ferni\'s own list', async () => {
-      const { hasAnyProviderConnected } = await import(
-        '../../../../services/calendar/unified-calendar-store.js'
+      const { isConnected } = await import(
+        '../../../../services/calendar/calendar-service.js'
       );
-      (hasAnyProviderConnected as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
+      (isConnected as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
 
       const result = await calendarExecutor.execute(
         'createCalendarEvent',
@@ -186,8 +184,8 @@ describe('CalendarExecutor', () => {
         createContext()
       );
 
-      expect(result).toBe(NOT_CONNECTED_CREATE);
-      expect(result).toMatch(/Ferni's own list/);
+      expect(result).toBe(notConnectedCreate('Lunch with Sam, 2026-10-18, 12:00'));
+      expect(result).toMatch(/isn't on your calendar/);
     });
   });
 
