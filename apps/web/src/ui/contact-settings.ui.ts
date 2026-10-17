@@ -19,9 +19,10 @@ import { getUserTimezone } from '../services/timezone.service.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { formatPhone } from '../utils/phone.js';
 import {
-  type Drafts, PHONE_STYLES, afterPhoneCleared, bindPhoneActions, bindPhoneInput, escapeAttr,
+  PHONE_STYLES, afterPhoneCleared, bindPhoneActions, bindPhoneInput, escapeAttr,
   field, loadPhoneAndChannels, phoneActionsHtml, phoneStatus, planPhoneSave, sendCode,
 } from './contact-settings-phone.js';
+import type { ContactSettingsState } from './contact-settings-types.js';
 
 const log = createLogger('ContactSettingsUI');
 
@@ -80,32 +81,7 @@ function formatTimezone(timezone: string): string {
 // TYPES
 // ============================================================================
 
-interface ContactInfo {
-  phone?: string;
-  email?: string;
-  phoneVerified?: boolean;
-  emailVerified?: boolean;
-  preferredName?: string;
-  timezone?: string;
-  quietHoursStart?: string; // "22:00"
-  quietHoursEnd?: string; // "08:00"
-  quietHoursEnabled?: boolean;
-}
-
-export interface ContactSettingsState {
-  isOpen: boolean;
-  isLoading: boolean;
-  isSaving: boolean;
-  isVerifying: boolean;
-  verificationCode: string;
-  pendingPhone: string;
-  contactInfo: ContactInfo;
-  drafts: Drafts;
-  phoneInvalid: boolean;
-  channels: string[]; // check-in channels besides in-app: 'sms' | 'call' | 'email'
-  error?: string;
-  success?: string;
-}
+export type { ContactSettingsState } from './contact-settings-types.js';
 
 // ============================================================================
 // STATE

@@ -10,16 +10,9 @@ import { outreachService } from '../services/outreach.service.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { formatPhone, toE164 } from '../utils/phone.js';
-import type { ContactSettingsState } from './contact-settings.ui.js';
+import type { ContactSettingsState, Drafts } from './contact-settings-types.js';
 
 const log = createLogger('ContactSettingsPhone');
-
-/** What the user typed, kept across re-renders. Undefined = untouched, show the stored value. */
-export interface Drafts {
-  phone?: string;
-  email?: string;
-  preferredName?: string;
-}
 
 type State = ContactSettingsState;
 type Rerender = () => void;
