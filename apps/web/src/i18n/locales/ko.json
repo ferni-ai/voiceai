@@ -2110,6 +2110,7 @@
     "sonosConnected": "Sonos가 연결되었어요!",
     "transcribing": "텍스트로 변환하는 중이에요...",
     "transcriptionUnavailable": "이번에는 말을 알아듣지 못해서 아무것도 저장하지 않았어요. 다시 해볼까요?",
+    "journalTooLong": "조금 길어요. {count}분 이내로 다시 해볼까요?",
     "entrySaved": "항목이 저장되었어요!",
     "couldNotSaveEntry": "항목을 저장할 수 없었어요. 다시 시도해 보시겠어요?",
     "profileSaved": "프로필이 저장되었어요!",

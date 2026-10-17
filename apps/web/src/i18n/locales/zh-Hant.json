@@ -2110,6 +2110,7 @@
     "sonosConnected": "Sonos 已連線！",
     "transcribing": "正在語音轉文字...",
     "transcriptionUnavailable": "這次沒能聽清內容，所以什麼都沒有儲存。要再試一次嗎？",
+    "journalTooLong": "這段有點長。試試短一點的，{count} 分鐘以內。",
     "entrySaved": "記錄已儲存！",
     "couldNotSaveEntry": "無法儲存記錄。要再試一次嗎？",
     "profileSaved": "個人檔案已儲存！",

@@ -2110,6 +2110,7 @@
     "sonosConnected": "Sonosに接続しました！",
     "transcribing": "文字起こし中...",
     "transcriptionUnavailable": "今回は言葉を聞き取れなかったので、何も保存していません。もう一度試しますか？",
+    "journalTooLong": "少し長いみたい。{count}分以内でもう一度どうぞ。",
     "entrySaved": "エントリーを保存しました！",
     "couldNotSaveEntry": "エントリーを保存できませんでした。もう一度試してみてくださいね。",
     "profileSaved": "プロフィールを保存しました！",

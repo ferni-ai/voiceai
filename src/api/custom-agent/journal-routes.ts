@@ -14,6 +14,10 @@ import {
 import { isJournalPlaceholder } from '../../services/custom-agent/journal-placeholder.js';
 import type { JournalEntryBody } from './types.js';
 import { sendJson } from './helpers.js';
+import { getClientIp } from '../../utils/client-ip.js';
+import { rateLimitIpKey } from '../../utils/rate-limit-ip-key.js';
+import { refusedByTranscribeLimits } from '../journal-transcribe-limits.js';
+import { sentTranscribeRefusal } from '../transcribe-refusal.js';
 
 const log = createLogger({ module: 'CustomAgentJournalRoutes' });
 
@@ -26,6 +30,9 @@ export async function handleCreateJournalEntry(
   userId: string,
   agentId: string
 ): Promise<boolean> {
+  // It transcribes too, so the same per-key limits apply before the body is read.
+  if (await refusedByTranscribeLimits(res, rateLimitIpKey(getClientIp(req)), { userId }))
+    return true;
   const body = await parseBody<JournalEntryBody>(req);
 
   if (!body.audio) {
@@ -121,6 +128,7 @@ export async function handleCreateJournalEntry(
       transcriptLength: transcript.length,
     });
   } catch (error) {
+    if (sentTranscribeRefusal(res, error)) return true; // 413 too long, or 503 budget spent
     log.error({ error: String(error), userId, agentId }, 'Journal entry creation failed');
     sendJson(res, 500, { error: 'Failed to create journal entry' });
   }

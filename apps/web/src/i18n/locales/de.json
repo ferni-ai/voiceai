@@ -2110,6 +2110,7 @@
     "sonosConnected": "Sonos verbunden!",
     "transcribing": "Wird transkribiert...",
     "transcriptionUnavailable": "Diesmal konnte ich die Worte nicht verstehen, daher wurde nichts gespeichert. Noch einmal versuchen?",
+    "journalTooLong": "Die ist lang. Versuch es kürzer, unter {count} Minuten.",
     "entrySaved": "Eintrag gespeichert!",
     "couldNotSaveEntry": "Eintrag konnte nicht gespeichert werden. Versuchst du es noch mal?",
     "profileSaved": "Profil gespeichert!",

@@ -106,20 +106,29 @@ const memoryStore = new Map<string, RateLimitEntry>();
 /**
  * Check rate limit using in-memory store.
  */
-function checkMemoryRateLimit(key: string, maxRequests: number, windowMs: number): RateLimitResult {
+function checkMemoryRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+  cost = 1
+): RateLimitResult {
   const now = Date.now();
-  const entry = memoryStore.get(key);
+  let entry = memoryStore.get(key);
 
   if (!entry || entry.resetAt <= now) {
-    memoryStore.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, remaining: maxRequests - 1, resetAt: now + windowMs };
+    entry = { count: 0, resetAt: now + windowMs };
+    memoryStore.set(key, entry);
   }
 
-  if (entry.count >= maxRequests) {
-    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
+  if (entry.count + cost > maxRequests) {
+    return {
+      allowed: false,
+      remaining: Math.max(0, maxRequests - entry.count),
+      resetAt: entry.resetAt,
+    };
   }
 
-  entry.count++;
+  entry.count += cost;
   return { allowed: true, remaining: maxRequests - entry.count, resetAt: entry.resetAt };
 }
 
@@ -155,6 +164,7 @@ local key = KEYS[1]
 local max_requests = tonumber(ARGV[1])
 local window_ms = tonumber(ARGV[2])
 local now = tonumber(ARGV[3])
+local cost = tonumber(ARGV[4]) or 1
 
 -- Get current count and reset time
 local data = redis.call('HMGET', key, 'count', 'resetAt')
@@ -167,13 +177,13 @@ if reset_at <= now then
   reset_at = now + window_ms
 end
 
--- Check if rate limited
-if count >= max_requests then
-  return {0, 0, reset_at}
+-- Check if rate limited (a call uses cost units, 1 unless given)
+if count + cost > max_requests then
+  return {0, math.max(0, max_requests - count), reset_at}
 end
 
 -- Increment and update
-count = count + 1
+count = count + cost
 redis.call('HSET', key, 'count', count, 'resetAt', reset_at)
 redis.call('PEXPIRE', key, window_ms)
 
@@ -186,10 +196,11 @@ return {1, max_requests - count, reset_at}
 async function checkRedisRateLimit(
   key: string,
   maxRequests: number,
-  windowMs: number
+  windowMs: number,
+  cost = 1
 ): Promise<RateLimitResult> {
   if (!redisClient || !redisAvailable) {
-    return checkMemoryRateLimit(key, maxRequests, windowMs);
+    return checkMemoryRateLimit(key, maxRequests, windowMs, cost);
   }
 
   try {
@@ -200,7 +211,8 @@ async function checkRedisRateLimit(
       `ratelimit:${key}`,
       maxRequests,
       windowMs,
-      now
+      now,
+      cost
     )) as [number, number, number];
 
     return {
@@ -210,7 +222,7 @@ async function checkRedisRateLimit(
     };
   } catch (error) {
     log.warn({ error: String(error) }, 'Redis rate limit check failed, using memory fallback');
-    return checkMemoryRateLimit(key, maxRequests, windowMs);
+    return checkMemoryRateLimit(key, maxRequests, windowMs, cost);
   }
 }
 
@@ -229,13 +241,19 @@ export const rateLimiter = {
    * @param key - Unique identifier (e.g., 'user:123' or 'ip:1.2.3.4')
    * @param maxRequests - Maximum requests allowed in window
    * @param windowMs - Window duration in milliseconds
+   * @param cost - Units this call uses (default 1), e.g. seconds of audio
    * @returns Rate limit result with allowed, remaining, and resetAt
    */
-  async check(key: string, maxRequests: number, windowMs: number): Promise<RateLimitResult> {
+  async check(
+    key: string,
+    maxRequests: number,
+    windowMs: number,
+    cost = 1
+  ): Promise<RateLimitResult> {
     if (redisAvailable && redisClient) {
-      return checkRedisRateLimit(key, maxRequests, windowMs);
+      return checkRedisRateLimit(key, maxRequests, windowMs, cost);
     }
-    return checkMemoryRateLimit(key, maxRequests, windowMs);
+    return checkMemoryRateLimit(key, maxRequests, windowMs, cost);
   },
 
   /**

@@ -2663,6 +2663,7 @@
     "tokenDeleted": "Token deleted",
     "transcribing": "Transcribing...",
     "transcriptionUnavailable": "Couldn't catch the words this time, so nothing was saved. Want to try again?",
+    "journalTooLong": "That one's long. Try a shorter one, under {count} minutes.",
     "unlockTeamMemberFirst": "Unlock this team member first",
     "updated": "Updated!",
     "uploadingPhoto": "Uploading photo...",

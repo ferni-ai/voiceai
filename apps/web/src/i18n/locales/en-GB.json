@@ -2153,6 +2153,7 @@
     "sonosConnected": "Sonos connected!",
     "transcribing": "Transcribing...",
     "transcriptionUnavailable": "Couldn't catch the words this time, so nothing was saved. Want to try again?",
+    "journalTooLong": "That one's long. Try a shorter one, under {count} minutes.",
     "entrySaved": "Entry saved!",
     "couldNotSaveEntry": "Couldn't save entry. Try again?",
     "profileSaved": "Profile saved!",

@@ -29,6 +29,7 @@ import { requireAuth } from './auth-middleware.js';
 import { BodyTooLargeError, readJsonBodyLimited } from './bounded-body.js';
 import { refusedBySharedPools, refusedByTranscribeLimits } from './journal-transcribe-limits.js';
 import { sendJSON } from './helpers.js';
+import { sentTranscribeRefusal } from './transcribe-refusal.js';
 
 const log = createLogger({ module: 'journal-transcribe-route' });
 
@@ -111,6 +112,7 @@ export async function handleJournalTranscribe(
     sendJSON(res, { transcript, success: transcript !== PLACEHOLDER }, 200);
     return true;
   } catch (error) {
+    if (sentTranscribeRefusal(res, error)) return true; // 413 too long, or 503 budget spent
     log.error({ error: String(error), userId: auth.userId }, 'Transcription failed');
     sendJSON(res, { error: 'Transcription failed', transcript: '' }, 500);
     return true;
