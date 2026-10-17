@@ -454,7 +454,7 @@
 
   const FERNI_RESPONSES = [
     { says: '"I\'m here. Tell me what\'s on your mind."', sub: 'Same warmth at 3am as 3pm. Every time.' },
-    { says: '"I remember you mentioned something like this before..."', sub: 'Unlike humans, I never forget.' },
+    { says: '"I remember you mentioned something like this before..."', sub: 'I remember what matters, and you can see or change it.' },
     { says: '"That sounds really heavy. Want to talk it through?"', sub: 'No judgment. No tired sighs. Just presence.' },
     { says: '"I\'ve got all the time you need."', sub: 'No other patients. No session limits.' },
     { says: '"You don\'t have to carry this alone."', sub: 'I\'m literally always here.' },
