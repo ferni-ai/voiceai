@@ -270,6 +270,11 @@ jobs:
         env:
           NODE_ENV: test
 
+      # The root typecheck covers src/** only, so apps/cli was never typechecked.
+      # Its error count may only go down (baseline: apps/cli/tsc-error-baseline.json).
+      - name: CLI typecheck ratchet
+        run: node scripts/ci/cli-typecheck-ratchet.mjs
+
       # 60 call sites use the THROWING loadRustPerf() (tryLoadRustPerf is documented
       # "for availability checks, not for actual operations"), so the accelerator is
       # genuinely required — skipping those tests would hide coverage, not fix it.
