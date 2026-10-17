@@ -191,7 +191,7 @@ export async function editUserPreferences(
     if (!current) {
       return {
         success: false,
-        message: "I couldn't read your preferences just now, so nothing was changed.",
+        message: "I couldn't read your preferences just now, so that change wasn't made.",
       };
     }
     const decided = edit(current);
