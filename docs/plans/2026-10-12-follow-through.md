@@ -56,6 +56,13 @@ Firestore lives in an L1 adapter (`src/services/stores/follow-through-store.ts`)
   - It goes through the guarded sender extracted from #993: verified phones, STOP/START, 20 h cap, HMAC phone hashes.
   - Each send is written to `feature_checkins` with `kind: 'follow-up'`, so replies route to it.
 
+## When the import runs (checked 2026-10-17 on 4a1968a77)
+
+- **One path for every ending.** A hang-up, a dropped connection, the empty-room poll, the 10-minute safety net and LiveKit's shutdown callback all end the session wait in `voice-agent-entry/index.ts`. Both the single-agent and the multi-agent branch then call the same `handleSessionCleanup`, which calls `endSession`. After the summary is saved, `runAfterCall` starts the after-call tasks, and the import is one of them (`agents/voice-agent-entry/follow-through-import-register.ts`, loaded by `gce/job-executor.ts`). An abrupt disconnect needs no second hook.
+- **The 10 s race.** `handleSessionCleanup` stops waiting after 10 s, but the work keeps running, so `endSession` still saves the summary and starts the tasks. The process only stops it if it exits first. In the default in-process executor the worker keeps running. With `AGENT_JOB_EXECUTOR=process`, `job-child.ts` waits only for tasks that have already started, so a call whose summary is still running when the race ends loses its summary and its after-call tasks. `drainAfterCallTasks` has no callers.
+- **A killed pod.** Nothing runs after a SIGKILL. The import does not read the call: it reads pending reminders, active commitments and the last three summaries from Firestore, and each follow-up's id comes from its source. Reminders and commitments saved during the call are already in Firestore, so the caller's next owner call imports them, and nothing is written twice. The only thing a killed pod loses for good is that call's summary `followUpItems`, because the summary was never saved.
+- **Whose call.** The import runs only for the account's proven owner (`sessionIsVerifiedOwner`, and not a call Ferni placed). It skips anonymous, `anon:`, `onbehalf:`, placeholder and `voice-eval-` ids. When the caller's zone is unknown it skips the whole import instead of guessing, because the zone decides when a follow-up may be texted.
+
 ## Gates
 
 - **Per person:** Firestore cohort flags `FOLLOW_THROUGH_TEXTS` and `OPENER_FOLLOW_UP` (friends-and-family first).
