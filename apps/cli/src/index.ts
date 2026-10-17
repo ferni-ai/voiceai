@@ -48,6 +48,7 @@ import {
   winsService,
 } from '../../../src/services/ceo/index.js';
 import {
+  AGENT_DEPLOY_MOVED,
   LIVEKIT_AGENTS,
   isLkInstalled,
   lkAgentArgs,
@@ -259,8 +260,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Deploy services to cloud',
     icon: icons.rocket,
     script: 'apps/cli/src/commands/deploy/deploy.ts',
-    subcommands: ['ui', 'agent', 'frontend', 'landing', 'all'],
-    examples: ['ferni deploy ui', 'ferni deploy agent --prod', 'ferni deploy all --dry-run'],
+    subcommands: ['ui', 'frontend', 'landing', 'all'],
+    examples: ['ferni deploy ui', 'ferni deploy all --dry-run'],
   },
   agents: {
     name: 'Agents',
@@ -897,11 +898,7 @@ const COMMANDS: Record<string, CliCommand> = {
     icon: '🏥',
     handler: handleSelfHeal,
     subcommands: ['health', 'circuits', 'restart', 'diagnose', 'anomalies'],
-    examples: [
-      'ferni self-heal health',
-      'ferni self-heal circuits',
-      'ferni self-heal restart agent',
-    ],
+    examples: ['ferni self-heal health', 'ferni self-heal circuits', 'ferni self-heal restart ui'],
   },
   circuits: {
     name: 'Circuits',
@@ -916,8 +913,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Restart Cloud Run services',
     icon: '🔄',
     handler: handleRestartService,
-    subcommands: ['agent', 'ui', 'status', 'history'],
-    examples: ['ferni restart agent', 'ferni restart ui --force', 'ferni restart history'],
+    subcommands: ['ui', 'status', 'history'],
+    examples: ['ferni restart ui --force', 'ferni restart history'],
   },
   diagnose: {
     name: 'Diagnose',
@@ -1093,8 +1090,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Rollback deployments to previous version',
     icon: '⏪',
     handler: handleRollback,
-    subcommands: ['agent', 'ui', 'status', 'history'],
-    examples: ['ferni rollback agent', 'ferni rollback ui', 'ferni rollback status'],
+    subcommands: ['ui', 'status', 'history'],
+    examples: ['ferni rollback ui', 'ferni rollback status'],
   },
   metrics: {
     name: 'Metrics',
@@ -1750,7 +1747,6 @@ const COMMANDS: Record<string, CliCommand> = {
     ],
     examples: [
       'ferni platform',
-      'ferni platform deploy agent',
       'ferni platform logs agent --tail',
       'ferni platform status',
       'ferni platform metrics live',
@@ -1845,7 +1841,6 @@ async function handlePlatform(args: string[]): Promise<void> {
     console.log(`    ${colors.green}experiments${colors.reset}  A/B tests & rollouts`);
     console.log();
     console.log(`  ${colors.dim}Examples:${colors.reset}`);
-    console.log(`    ferni platform deploy agent`);
     console.log(`    ferni platform logs agent --tail`);
     console.log(`    ferni platform metrics live`);
     return;
@@ -8503,8 +8498,7 @@ async function handleSecrets(args: string[]): Promise<void> {
     console.log(
       `     ${colors.cyan}gcloud secrets versions add ${secretName} --data-file=-${colors.reset}`
     );
-    console.log(`  3. Update Cloud Run service:`);
-    console.log(`     ${colors.cyan}ferni deploy agent${colors.reset}`);
+    console.log(`  3. Redeploy: agent via .claude/skills/deploy-agent/SKILL.md`);
     console.log(`  4. Update local .env file`);
     console.log(`  5. Revoke old secret from provider`);
   }
@@ -8524,7 +8518,6 @@ async function handleSecrets(args: string[]): Promise<void> {
     if (secrets) {
       log.success('Secrets available for sync');
       console.log(`\n  To sync to Cloud Run, redeploy the service:`);
-      console.log(`    ${colors.cyan}ferni deploy agent${colors.reset}`);
       console.log(`    ${colors.cyan}ferni deploy ui${colors.reset}`);
     } else {
       log.warn('No secrets found in Secret Manager');
@@ -9085,33 +9078,10 @@ async function handleCircuits(args: string[]): Promise<void> {
   console.log();
 }
 
-/**
- * Restart or roll back the LiveKit Cloud agent. Like `ferni deploy agent`, this
- * targets the dev agent unless --prod is given, and asks before acting.
- */
-async function runAgentMutation(action: 'restart' | 'rollback', args: string[]): Promise<void> {
-  const target = LIVEKIT_AGENTS[resolveAgentEnv(args, 'dev')];
-  if (!isLkInstalled()) {
-    log.error(messages.missingTool('lk', 'brew install livekit-cli'));
-    return;
-  }
-  if (action === 'rollback') runLkAgent(PROJECT_ROOT, 'versions', target);
-  console.log(`\n  Agent: ${colors.cyan}${target.project} ${target.agentId}${colors.reset}`);
-  console.log(`  Command: ${colors.dim}lk ${lkAgentArgs(action, target).join(' ')}${colors.reset}`);
-  if (!args.includes('--force') && !args.includes('-f')) {
-    const answer = await prompt(
-      `\n${colors.yellow}${action} ${target.env} agent? [y/N]:${colors.reset} `
-    );
-    if (answer.toLowerCase() !== 'y') {
-      console.log('\nAborted.');
-      return;
-    }
-  }
-  const version = args.find((a) => a.startsWith('--version='))?.split('=')[1];
-  const extra = action === 'rollback' && version ? ['--version', version, '--yes'] : ['--yes'];
-  const ok = runLkAgent(PROJECT_ROOT, action, target, { extra }).ok;
-  if (ok) log.success(`Agent ${action} done. Check: ferni status agent`);
-  else log.error(`lk agent ${action} failed`);
+/** The CLI no longer changes the voice agent; the deploy-agent skill does. */
+function refuseAgentMutation(): never {
+  log.error(AGENT_DEPLOY_MOVED);
+  process.exit(1);
 }
 
 async function handleRestartService(args: string[]): Promise<void> {
@@ -9151,17 +9121,14 @@ async function handleRestartService(args: string[]): Promise<void> {
     return;
   }
 
-  if (subcommand === 'agent') {
-    await runAgentMutation('restart', args);
-    return;
-  }
+  if (subcommand === 'agent') refuseAgentMutation();
 
   // Restart a specific service
   const serviceName = subcommand === 'ui' ? SERVICES.ui : null;
 
   if (!serviceName) {
     log.error(`Unknown service: ${subcommand}`);
-    console.log(`\n  Available: agent, ui`);
+    console.log(`\n  Available: ui`);
     return;
   }
 
@@ -9387,7 +9354,7 @@ async function diagnoseError(errorMessage: string): Promise<void> {
           `    ${colors.dim}The system will automatically retry this operation${colors.reset}`
         );
       } else if (type === 'restart') {
-        console.log(`    ${colors.cyan}ferni restart agent${colors.reset}`);
+        console.log(`    ${colors.cyan}.claude/skills/deploy-agent/SKILL.md${colors.reset}`);
       } else {
         console.log(`    ${colors.cyan}Check logs: ferni logs agent --errors${colors.reset}`);
       }
@@ -10569,10 +10536,7 @@ async function handleRollback(args: string[]): Promise<void> {
     return;
   }
 
-  if (subcommand === 'agent') {
-    await runAgentMutation('rollback', args);
-    return;
-  }
+  if (subcommand === 'agent') refuseAgentMutation();
 
   if (subcommand === 'ui') {
     const service = SERVICES.ui;
@@ -10616,7 +10580,7 @@ async function handleRollback(args: string[]): Promise<void> {
   }
 
   log.error(`Unknown rollback target: ${subcommand}`);
-  console.log(`\n  Available: agent, ui, status, history`);
+  console.log(`\n  Available: ui, status, history`);
 }
 
 async function handleMetrics(args: string[]): Promise<void> {
@@ -13179,7 +13143,6 @@ ${colors.bold}Commands:${colors.reset}
 
 ${colors.bold}Examples - Platform Operations:${colors.reset}
   ferni platform                 # Platform operations hub
-  ferni platform deploy agent    # Deploy voice agent to LiveKit Cloud
   ferni platform logs agent      # Stream agent logs
   ferni platform status          # Check all services
   ferni deploy ui                # Deploy UI (also works directly)
