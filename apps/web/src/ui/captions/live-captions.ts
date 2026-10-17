@@ -393,7 +393,6 @@ class LiveCaptions {
 
   private layout(): void {
     if (!this.root || !this.viewport) return;
-    // Set first, so chrome() measures the padding this pass will show.
     this.root.classList.toggle('ferni-captions--caller', this.callerShown && !this.callerAside);
     this.root.classList.toggle(
       'ferni-captions--caller-aside',
@@ -434,8 +433,9 @@ class LiveCaptions {
       'ferni-captions--overflowing',
       lines > 1 && this.viewport.scrollHeight > this.viewport.clientHeight
     );
-    // Heard: a caller line that cannot show whole is set aside, then re-laid out.
-    const overflow = this.viewport.scrollHeight > this.viewport.clientHeight;
+    // Against the target height: reduced motion animates max-height, clientHeight lags.
+    const lh = parseFloat(getComputedStyle(this.viewport).lineHeight) || 1;
+    const overflow = this.viewport.scrollHeight > Math.max(1, lines) * lh + 1;
     if (this.callerShown && !this.callerAside && overflow) {
       this.callerAside = true;
       this.layout();

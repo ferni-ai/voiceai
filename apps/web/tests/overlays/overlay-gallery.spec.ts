@@ -430,7 +430,16 @@ test.describe('heard, in the browser', () => {
   test('at every size, the caller line shows whole with the reply, or is set aside: no line is cut', async ({
     page,
   }) => {
+    test.setTimeout(180_000);
     await openScene(page, 'caption-heard-reply');
+    // openScene freezes transitions for its own theme switch. This check needs the real
+    // reduced-motion path, so take that override out.
+    await page.evaluate(() => {
+      for (const style of Array.from(document.querySelectorAll('style'))) {
+        if (style.textContent?.trim() === '*, *::before, *::after { transition: none !important; }')
+          style.remove();
+      }
+    });
     const SIZES = [
       [1280, 800],
       [1440, 900],
@@ -438,7 +447,14 @@ test.describe('heard, in the browser', () => {
       [390, 844],
       [360, 640],
     ] as const;
+    // Alternate the reply's text: an unchanged transcript does not restart the idle timer,
+    // and the region hides after six seconds without speech.
+    const REPLIES = [
+      "Nervous-for-someone is love in disguise. What's she walking into?",
+      'Nervous-for-someone is love in disguise. What is she walking into?',
+    ] as const;
     const failures: string[] = [];
+    let turn = 0;
     for (const reduced of [false, true]) {
       for (const dark of [false, true]) {
         for (const large of [false, true]) {
@@ -456,17 +472,25 @@ test.describe('heard, in the browser', () => {
               },
               [dark, large] as const
             );
-            await page.waitForTimeout(400);
+            await page.evaluate(
+              (text) =>
+                window.dispatchEvent(
+                  new CustomEvent('ferni:transcript', {
+                    detail: { type: 'agent', text, isFinal: false },
+                  })
+                ),
+              REPLIES[turn++ % REPLIES.length]
+            );
+            await page.waitForTimeout(600);
             const result = await page.evaluate(() => {
-              const view = document
-                .querySelector('.ferni-captions__viewport')
-                ?.getBoundingClientRect();
+              const viewEl = document.querySelector<HTMLElement>('.ferni-captions__viewport');
+              const view = viewEl?.getBoundingClientRect();
+              const visible = !!viewEl && getComputedStyle(viewEl).display !== 'none';
               const lines = [
                 ...document.querySelectorAll('.ferni-captions__viewport > .ferni-caption-line'),
               ] as HTMLElement[];
               const shown = lines.filter((l) => getComputedStyle(l).display !== 'none');
-              // Check each visual line of each shown line: one that straddles the
-              // viewport edge is cut; one scrolled away whole is not.
+              // Each visual line of each shown line: one straddling the viewport edge is cut.
               const cut: string[] = [];
               for (const l of shown) {
                 const range = document.createRange();
@@ -499,17 +523,17 @@ test.describe('heard, in the browser', () => {
               }
               const root = document.querySelector('.ferni-captions');
               const padding = root ? getComputedStyle(root).paddingTop : null;
-              return { cut, callerSet, callerRows, padding };
+              return { visible, shown: shown.length, cut, callerSet, callerRows, padding };
             });
             const label = `${width}x${height} dark=${dark} large=${large} reduced=${reduced}`;
-            // A roomy size shows the caller's line whole, so setting it aside everywhere fails.
-            if (width === 1440 && !dark && !large && result.callerSet)
-              failures.push(`${label}: caller set aside at a roomy size`);
+            if (!result.visible || result.shown === 0)
+              failures.push(`${label}: caption area hidden, nothing measured`);
             if (result.cut.length) failures.push(`${label}: cut ${result.cut.join(' | ')}`);
-            if (!result.callerSet && result.cut.includes('My sister Ana starts her'))
-              failures.push(`${label}: caller cut`);
             if (result.callerRows === 'cut' || result.callerRows === 'out')
               failures.push(`${label}: caller line ${result.callerRows}`);
+            // A roomy size shows the caller's line whole, with the region padding dropped.
+            if (width === 1440 && !dark && !large && result.callerSet)
+              failures.push(`${label}: caller set aside at a roomy size`);
             if (width === 1440 && !dark && !large && result.padding !== '0px')
               failures.push(`${label}: caller-mode padding not dropped (${result.padding})`);
           }
