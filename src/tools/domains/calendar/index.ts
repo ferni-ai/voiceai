@@ -600,7 +600,7 @@ function getContactsToolDefinitions(): ToolDefinition[] {
 // SMART CALENDAR TOOLS (Advanced Calendar Management)
 // ============================================================================
 
-import { smartCalendarTools } from './smart-calendar-tools.js';
+import { smartCalendarTools } from './calendar-connection-gate.js';
 
 // ============================================================================
 // DOMAIN TOOLS COLLECTION

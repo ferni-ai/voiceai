@@ -82,7 +82,7 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
   schedule: [
     new RegExp(`${HAVE} (?:booked|scheduled|reserved) (?:it|that|this|the|a|an|your|you|${WHO})`),
     new RegExp(
-      `${HAVE} (?:put|added) (?:it|that|this|the \\w+) (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
+      `${HAVE} (?:put|added|got|have) (?:it|that|this|the \\w+) (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
     ),
     new RegExp(
       `${DOING} (?:booking|scheduling|reserving) (?:it|that|this|the|a|an|your|you)\\b(?! to\\b)`
