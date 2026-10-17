@@ -47,8 +47,13 @@ import { withAnnouncedCheckLog } from './announced-check.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
+/** A calendar tool that books a schedule item, so it saves to Ferni's own list here (#1547). */
+const isCalendarCreate = (name: string): boolean =>
+  /calendar/i.test(name) && kindsOfTool(name).includes('schedule');
+
 type Chunk = llm.ChatChunk | string | object;
-export type MissReason = 'no_tool' | 'failed' | 'awaiting';
+/** 'uncalled': a create tool is open, but no create ran on this call for this claim (#1547). */
+export type MissReason = 'no_tool' | 'failed' | 'awaiting' | 'uncalled' | 'elsewhere';
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
@@ -92,7 +97,8 @@ const REMIND = ' Want me to remind you to do it?';
 
 /** What Ferni says in place of a claim, and what he can do instead. */
 export function honestLine(kind: ActionKind, reason: MissReason, canRemind: boolean): string {
-  if (reason === 'awaiting') return NOT_YET[kind];
+  if (reason === 'elsewhere') return "It's saved to Ferni's own list, not your calendar.";
+  if (reason === 'awaiting' || reason === 'uncalled') return NOT_YET[kind];
   const instead = canRemind && kind !== 'reminder' && kind !== 'save' ? REMIND : INSTEAD[kind];
   return `${reason === 'failed' ? DID_NOT_GO[kind] : CANNOT[kind]}${instead}`;
 }
@@ -228,20 +234,27 @@ export async function withActionClaimCheck<T>(
   if (stream === null || stream === undefined) return stream;
   if (!actionClaimGuardEnabled(env)) return withAnnouncedCheckLog(stream, tools, env);
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
-  const { failed, awaiting } = callActions(chatCtx);
+  const { done, failed, awaiting, elsewhere } = callActions(chatCtx);
   // A plain yes to the read-back: the tool sends on its next call, so the claim may stand.
   const yesTurn = isClearYes(lastCallerWords(chatCtx));
-  const open = new Set(Object.keys(tools.functionTools ?? {}).flatMap(kindsOfTool));
+  const toolNames = Object.keys(tools.functionTools ?? {});
+  const open = new Set(toolNames.flatMap(kindsOfTool));
+  // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
+  const calendarCreateOpen = toolNames.some(isCalendarCreate);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
   /** Why a claim of this kind is false, or null when it may stand. */
-  const missing = (kind: ActionKind): MissReason | null =>
+  const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
     !open.has(kind)
       ? 'no_tool'
       : failed.has(kind)
         ? 'failed'
-        : awaiting.has(kind) && !yesTurn
-          ? 'awaiting'
-          : null;
+        : elsewhere.has(kind)
+          ? 'elsewhere'
+          : awaiting.has(kind) && !yesTurn
+            ? 'awaiting'
+            : kind === 'schedule' && calendarCreateOpen && !done.has(kind) && !calling.has(kind)
+              ? 'uncalled'
+              : null;
   let id = '';
   let stringChunks = true;
   const out = (text: string): Chunk =>
@@ -253,8 +266,12 @@ export async function withActionClaimCheck<T>(
       let last = '';
       let said = false; // an honest line already went out
       let lineLast = false; // the last thing out was an honest line
-      let deferred: ActionKind | undefined;
+      // `text` is the held sentence, kept until the reply shows whether the claim came true.
+      let deferred: { kind: ActionKind; reason: MissReason; text?: string } | undefined;
+      // Held sentences that follow an uncalled claim, released in order once the claim resolves.
+      const queued: string[] = [];
       const calling = new Set<ActionKind>();
+      let calendarCalled = false; // a calendar create ran in this reply
       const emit = (raw: string): void => {
         const text = !last || /\s$/.test(last) ? raw.trimStart() : raw;
         if (!text) return;
@@ -273,15 +290,19 @@ export async function withActionClaimCheck<T>(
       /** A whole sentence: held ones go out unless they claim; streamed ones are already out. */
       const flush = (text: string): void => {
         const kind = claimedAction(text);
-        const reason = kind ? missing(kind) : null;
+        const reason = kind ? missing(kind, calling) : null;
         if (!kind || !reason) {
-          if (hold) emit(text);
+          if (!hold) return;
+          if (deferred?.reason === 'uncalled') queued.push(text);
+          else emit(text);
           return;
         }
         log.warn({ kind, reason, held: hold }, 'ACTION_CLAIM_DROPPED');
         if (said || deferred) return;
-        if (reason === 'failed') {
-          deferred = kind;
+        // A call of the kind later in this reply makes the claim true, so a held claim waits for the
+        // reply to show. Streamed words cannot wait, so they are corrected at once.
+        if (reason === 'failed' || reason === 'elsewhere' || (reason === 'uncalled' && hold)) {
+          deferred = { kind, reason, text: hold ? text : undefined };
           return;
         }
         said = true;
@@ -304,6 +325,18 @@ export async function withActionClaimCheck<T>(
               passed = 0;
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
+            if (names.some(isCalendarCreate)) calendarCalled = true;
+            // A create came after the claim. A create only saves to Ferni's own list (#1547), so the
+            // claim is still false: the honest line replaces it, and what followed goes out after.
+            if (deferred?.reason === 'uncalled' && calling.has(deferred.kind)) {
+              if (deferred.text) {
+                emit(
+                  calendarCalled ? honestLine(deferred.kind, 'elsewhere', false) : deferred.text
+                );
+              }
+              for (const text of queued.splice(0)) emit(text);
+              deferred = undefined;
+            }
             controller.enqueue(chunk);
             continue;
           }
@@ -324,9 +357,10 @@ export async function withActionClaimCheck<T>(
           }
         }
         if (pending) flush(pending);
-        if (deferred && !said && !calling.has(deferred)) {
-          emit(honestLine(deferred, 'failed', open.has('reminder')));
+        if (deferred && !said && !calling.has(deferred.kind)) {
+          emit(honestLine(deferred.kind, deferred.reason, open.has('reminder')));
         }
+        for (const text of queued.splice(0)) emit(text);
         controller.close();
       } catch (error) {
         controller.error(error);

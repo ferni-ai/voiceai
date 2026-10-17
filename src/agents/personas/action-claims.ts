@@ -82,7 +82,10 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
   schedule: [
     new RegExp(`${HAVE} (?:booked|scheduled|reserved) (?:it|that|this|the|a|an|your|you|${WHO})`),
     new RegExp(
-      `${HAVE} (?:put|added) (?:it|that|this|the \\w+) (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
+      `${HAVE} (?:put|added|got|have) (?:it|that|this|the \\w+) (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
+    ),
+    new RegExp(
+      `${HAVE} (?:put|added|got|have) .{1,40}? (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
     ),
     new RegExp(
       `${DOING} (?:booking|scheduling|reserving) (?:it|that|this|the|a|an|your|you)\\b(?! to\\b)`
@@ -158,7 +161,8 @@ const TOOL_KINDS: Record<ActionKind, RegExp> = {
   call: /^(?:callonbehalf|callandconverse|quickcall|reachout|multioutreach|makephonecall|backgroundcall|invitefriendbycall|calluser|callcontact|haveferni?call|callforconversation|call_make|telephony_call)$/,
   send: /^(?:reachout|multioutreach|quicktext|quickemail|send\w*|backgroundfollowup|post\w*|sms_send|message_send)$/,
   schedule:
-    /^(?:\w*calendar\w*|\w*event\w*|\w*appointment\w*|\w*reservation\w*|book\w*|schedule(?!reminder)\w*)$/,
+    // A read (getCalendarToday, getUpcomingAppointments) is not a schedule action, so its reply never counts as one (#1547).
+    /^(?!(?:get|detect|check|find|suggest|list|view)\w*$)(?:\w*calendar\w*|\w*event\w*|\w*appointment\w*|\w*reservation\w*|book\w*|schedule(?!reminder)\w*)$/,
   reminder: /^\w*(?:remind|timer|alarm)\w*$/,
   save: /^(?:remember\w*|save\w*|addtask|addnote|\w*journal\w*|loghabit\w*|createhabit)$/,
 };
@@ -170,9 +174,11 @@ export function kindsOfTool(name: string): ActionKind[] {
 
 /** The confirm gate's preview (outreach-confirm.ts): nothing sent until the caller says yes. */
 const PREVIEW = /^\W*not sent yet\b/i;
+/** A save that landed in Ferni's own list, not the caller's calendar (#1547). */
+const ELSEWHERE = /\bisn't on your calendar\b/i;
 /** A result that says the action did not happen. */
 const REFUSAL =
-  /^\W*(?:nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi don't have (?:a|the|their|any) (?:phone )?number\b|\bi couldn't find\b|\bdon't see \w+(?: \w+)? in your contacts\b|\bdoesn't look (?:valid|right)\b|\b(?:calls?|calling|texts?|texting|outbound \w+) (?:are|is) (?:disabled|turned off|off|not available|unavailable)\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
+  /^\W*(?:no calendar is connected|nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi don't have (?:a|the|their|any) (?:phone )?number\b|\bi couldn't find\b|\bdon't see \w+(?: \w+)? in your contacts\b|\bdoesn't look (?:valid|right)\b|\b(?:calls?|calling|texts?|texting|outbound \w+) (?:are|is) (?:disabled|turned off|off|not available|unavailable)\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
 
 function outputText(output: unknown): string {
   if (typeof output !== 'string') return JSON.stringify(output ?? '');
@@ -198,6 +204,8 @@ export interface CallActions {
   awaiting: Set<ActionKind>;
   /** Kinds whose latest result refused or failed. */
   failed: Set<ActionKind>;
+  /** Schedule whose latest result saved to Ferni's own list, not the caller's calendar. */
+  elsewhere: Set<ActionKind>;
 }
 
 /** What the call's tools did: each kind as its latest tool result left it. */
@@ -208,9 +216,17 @@ export function callActions(chatCtx: { items: readonly unknown[] }): CallActions
     const text = outputText(item.output);
     const state =
       item.isError || REFUSAL.test(text) ? 'failed' : PREVIEW.test(text) ? 'awaiting' : 'done';
-    for (const kind of kindsOfTool(item.name ?? '')) latest.set(kind, state);
+    for (const kind of kindsOfTool(item.name ?? '')) {
+      const saved = ELSEWHERE.test(text) && kind === 'schedule' && state === 'done';
+      latest.set(kind, saved ? 'elsewhere' : state);
+    }
   }
-  const actions: CallActions = { done: new Set(), awaiting: new Set(), failed: new Set() };
+  const actions: CallActions = {
+    done: new Set(),
+    awaiting: new Set(),
+    failed: new Set(),
+    elsewhere: new Set(),
+  };
   for (const [kind, state] of latest) actions[state].add(kind);
   return actions;
 }
