@@ -34,7 +34,7 @@ import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
 import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
-import { noteReminder } from '../shared/turn-receipt.js';
+import { noteReminder } from '../shared/turn-receipt-session.js';
 import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes, listeningReply } from './listen-first-turn.js';

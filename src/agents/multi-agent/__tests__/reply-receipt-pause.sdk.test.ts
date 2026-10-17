@@ -14,7 +14,8 @@ import { createRequire } from 'node:module';
 import { DEFAULT_API_CONNECT_OPTIONS, initializeLogger, llm, voice } from '@livekit/agents';
 import { AudioFrame } from '@livekit/rtc-node';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { attachTurnReceipts, type TurnReceipt } from '../../shared/turn-receipt.js';
+import type { TurnReceipt } from '../../shared/turn-receipt.js';
+import { attachTurnReceipts } from '../../shared/turn-receipt-session.js';
 import { interruptionOverrides } from '../interruption-config.js';
 import { MS_PER_CHAR, PacedTTS, SAMPLE_RATE } from './fake-room-audio.js';
 

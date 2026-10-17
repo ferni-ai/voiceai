@@ -9,7 +9,8 @@
 import { EventEmitter } from 'node:events';
 import { llm } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
-import { attachTurnReceipts, type TurnReceipt } from '../turn-receipt.js';
+import type { TurnReceipt } from '../turn-receipt.js';
+import { attachTurnReceipts } from '../turn-receipt-session.js';
 
 function call(now: () => number = Date.now) {
   const activity: { pausedSpeech?: unknown } = {};

@@ -32,7 +32,7 @@ import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
-import { noteBargeIn } from '../shared/turn-receipt.js';
+import { noteBargeIn } from '../shared/turn-receipt-session.js';
 
 const log = getLogger();
 
