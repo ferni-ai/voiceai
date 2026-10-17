@@ -1,8 +1,9 @@
 /**
  * Every sound engine asks the sound director before it plays.
  *
- * For each engine: flag off, a non-earcon sound reaches the speaker as before;
- * flag on, it never does, and the call's earcon still plays.
+ * For each engine: flag off, its sounds reach the speaker as before; flag on,
+ * the engine itself plays nothing, and the call's earcons go to the
+ * director's one earcon output instead (earcon-player.test.ts).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -46,6 +47,14 @@ class FakeAudioContext {
   decodeAudioData = vi.fn(async () => ({ duration: 0.5 }));
 }
 
+const earcons = vi.hoisted(() => [] as string[]);
+vi.mock('../../../src/services/earcon-player.js', () => ({
+  installEarconUnlock: () => {},
+  playEarcon: async (earcon: string, personaId?: string) => {
+    earcons.push(personaId ? `${earcon}:${personaId}` : earcon);
+  },
+}));
+
 const proceduralPlays = vi.hoisted(() => ({ effects: [] as string[] }));
 vi.mock('../../../src/services/procedural-sounds.service.js', () => ({
   proceduralSounds: {
@@ -65,6 +74,7 @@ beforeEach(() => {
   nodes.oscillators = 0;
   nodes.bufferSources = 0;
   proceduralPlays.effects = [];
+  earcons.length = 0;
   vi.stubGlobal('AudioContext', FakeAudioContext);
 });
 
@@ -89,18 +99,16 @@ describe('sound.ui', () => {
     expect(nodes.oscillators).toBeGreaterThan(0);
   });
 
-  it('flag on: a tap click is silent, the arrival plays', async () => {
+  it('flag on: a tap click is silent, the arrival goes to the earcon output', async () => {
     turnOn();
     const soundUI = await readySoundUI();
     soundUI.play('click');
     soundUI.play('success');
-    vi.runAllTimers();
-    expect(nodes.oscillators).toBe(0);
-
     vi.advanceTimersByTime(5000);
     soundUI.play('enter', 'arrival');
     vi.runAllTimers();
-    expect(nodes.oscillators).toBeGreaterThan(0);
+    expect(nodes.oscillators).toBe(0);
+    expect(earcons).toEqual(['arrival']);
   });
 });
 
@@ -120,13 +128,14 @@ describe('audio.service', () => {
     expect(proceduralPlays.effects).toEqual(['cameo-arrive', 'cameo-return']);
   });
 
-  it('flag on: a cameo sound is silent, the handoff chime plays', async () => {
+  it("flag on: a cameo sound is silent, the handoff goes to the earcon output in the new persona's voice", async () => {
     turnOn();
     const audioService = await readyAudioService();
     await audioService.playSound('cameo-arrive');
     await audioService.playSoundAndWait('disconnect');
-    await audioService.playHandoffSound('dramatic-entrance', 0);
-    expect(proceduralPlays.effects).toEqual(['dramatic-entrance']);
+    await audioService.playHandoffSound('dramatic-entrance', 0, 'maya');
+    expect(proceduralPlays.effects).toEqual([]);
+    expect(earcons).toEqual(['handoff:maya']);
   });
 });
 
