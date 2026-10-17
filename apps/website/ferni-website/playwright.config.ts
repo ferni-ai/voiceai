@@ -8,7 +8,7 @@ import { defineConfig } from '@playwright/test';
  */
 export default defineConfig({
   testDir: '../../../e2e',
-  testMatch: ['night-ink-website.spec.ts', 'website-dark-contrast.spec.ts'],
+  testMatch: ['night-ink-website.spec.ts', 'website-dark-contrast.spec.ts', 'website-consent.spec.ts'],
   forbidOnly: !!process.env.CI,
   workers: 2,
   reporter: 'line',

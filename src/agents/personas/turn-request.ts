@@ -47,6 +47,7 @@ import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
+import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
@@ -279,7 +280,11 @@ function styleFor(
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const shaped = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
+  const shaped = withQuiet(
+    withRecent(withOwnStory(sig, said, ownStory), said, chatCtx),
+    said,
+    chatCtx
+  );
   const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
   // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
   const burst = burstLine(
@@ -363,6 +368,22 @@ function withOwnStory(
 ): TurnSignals | undefined {
   if (ownStory === undefined) return signals;
   return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory };
+}
+
+/**
+ * QUIET_CALLER=on: a caller saying very little gets room, not advice
+ * (quiet-caller.ts); "I'm still here" reads as an ack.
+ */
+function withQuiet(
+  signals: TurnSignals | undefined,
+  said: string,
+  chatCtx: llm.ChatContext
+): TurnSignals | undefined {
+  if (!quietCallerEnabled()) return signals;
+  const sig = signals ?? regexSignals(said, callerMove(said));
+  const quiet = isQuietCaller(callerTurnsOf(chatCtx));
+  const move = presentAck(said) ? 'ack' : sig.move;
+  return quiet || move !== sig.move ? { ...sig, move, quiet } : sig;
 }
 
 const callSeeds = new WeakMap<object, string>();

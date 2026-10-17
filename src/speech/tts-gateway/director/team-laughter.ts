@@ -58,8 +58,8 @@ const FREQUENCY: Readonly<Record<string, number>> = {
 };
 
 /**
- * The legends, in their own manner rather than Ferni's: Bogle grandfatherly
- * and dry (a rare warm chuckle, never at his own line), Lynch the storyteller
+ * The legends, in their own manner rather than Ferni's: Henry grandfatherly
+ * and dry (a rare warm chuckle, never at his own line), Tom the storyteller
  * who laughs at his own anecdotes, Nate quick-witted and laughs easily.
  */
 const LEGENDS: Readonly<Record<string, TeamLaughStyle>> = {

@@ -1,4 +1,5 @@
 const syntaxHighlight = require('@11ty/eleventy-plugin-syntaxhighlight');
+const { registerBlogImages } = require('./lib/blog-images');
 
 // ============================================
 // I18N CONFIGURATION
@@ -52,6 +53,9 @@ function getNestedValue(obj, path) {
 module.exports = function (eleventyConfig) {
   // Syntax highlighting for code blocks
   eleventyConfig.addPlugin(syntaxHighlight);
+
+  // Responsive AVIF/WebP blog images and og:image crops (lib/blog-images.js)
+  registerBlogImages(eleventyConfig);
 
   // ============================================
   // I18N FILTERS AND GLOBALS
@@ -122,7 +126,7 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('images/*.jpg');
   eleventyConfig.addPassthroughCopy('images/*.png');
   eleventyConfig.addPassthroughCopy('images/*.svg');
-  eleventyConfig.addPassthroughCopy('images/generated');
+  eleventyConfig.addPassthroughCopy('images/generated/hero/hero-zen-garden.jpg'); // the one generated image a page uses; drafts stay out
   eleventyConfig.addPassthroughCopy('images/avatars');
   eleventyConfig.addPassthroughCopy('images/stock-lifestyle');
   eleventyConfig.addPassthroughCopy('images/testimonials');
@@ -130,6 +134,14 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('images/blog');
   eleventyConfig.addPassthroughCopy('images/building');
   eleventyConfig.addPassthroughCopy('images/dev-blog');
+
+  // Brand icons and logo live in src/images/ (favicons, touch icon, logo, PWA icons).
+  // Copied by extension so the moodboard .html files there stay templates.
+  eleventyConfig.addPassthroughCopy({'src/images/*.ico': 'images'});
+  eleventyConfig.addPassthroughCopy({'src/images/*.png': 'images'});
+  eleventyConfig.addPassthroughCopy({'src/images/*.svg': 'images'});
+  // Alias for the Organization logo path in the story-brand JSON-LD.
+  eleventyConfig.addPassthroughCopy({'src/images/logo.png': 'images/ferni-logo.png'});
 
   // Developers directory
   eleventyConfig.addPassthroughCopy('developers');
@@ -190,6 +202,9 @@ module.exports = function (eleventyConfig) {
       return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     } else if (format === 'MMM d, yyyy') {
       return `${monthsShort[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    } else if (format === 'Y-m-d' || format === 'yyyy-MM-dd') {
+      // W3C date for sitemap <lastmod>, in UTC so it matches the source date
+      return date.toISOString().slice(0, 10);
     }
     return date.toLocaleDateString();
   });

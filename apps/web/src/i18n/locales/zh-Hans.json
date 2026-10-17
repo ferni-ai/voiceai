@@ -3467,6 +3467,11 @@
     "fieldRelationship": "关系",
     "fieldWhatShouldFerniCallThem": "Ferni 应该怎么称呼他们？",
     "fieldNotesForFerni": "给 Ferni 的备注",
+    "callConsentLabel": "乐意接到 Ferni 的电话",
+    "callConsentHint": "已同意 Ferni 不时打电话问候。随时可以让他停止。",
+    "callConsentSaved": "已保存",
+    "callConsentFailed": "无法保存，请重试。",
+    "callConsentLoadFailed": "无法加载对方是否乐意接到 Ferni 的电话。请重新打开再试。",
     "cancel": "取消",
     "addToFamily": "添加到家庭",
     "relationshipMother": "母亲",
@@ -11041,7 +11046,8 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
     "role": {

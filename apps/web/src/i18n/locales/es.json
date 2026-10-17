@@ -3489,6 +3489,11 @@
     "fieldRelationship": "Relación",
     "fieldWhatShouldFerniCallThem": "¿Cómo debería llamarles Ferni?",
     "fieldNotesForFerni": "Notas para Ferni",
+    "callConsentLabel": "Le parece bien que Ferni le llame",
+    "callConsentHint": "Ha aceptado que Ferni le llame de vez en cuando para saludar. Puede pedirle que pare cuando quiera.",
+    "callConsentSaved": "Guardado",
+    "callConsentFailed": "No se pudo guardar. Inténtalo de nuevo.",
+    "callConsentLoadFailed": "No se pudo cargar si le parece bien que Ferni le llame. Vuelve a abrir para intentarlo.",
     "cancel": "Cancelar",
     "addToFamily": "Añadir a la familia",
     "relationshipMother": "Madre",
@@ -11166,7 +11171,8 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
     "role": {

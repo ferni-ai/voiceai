@@ -1,7 +1,7 @@
 /**
  * POST /api/journal/twin-response answers through callLLM (Vertex first), so a
  * twin replies on prod, which has no OPENAI_API_KEY. A request without a
- * profile (the Chronicle's shape) is a 400, not a 500 from a crash.
+ * profile from someone with no twin is a 400, not a 500 from a crash.
  *
  * Drives the real route as a signed-in caller; the model, token checks and rate
  * limiting are mocked.
@@ -26,6 +26,10 @@ vi.mock('../../services/identity/firebase-auth.js', () => ({
   ),
   isVerifiedToken: (r: unknown) => r !== null && typeof r === 'object',
   claimsFirebaseIssuer: () => true,
+}));
+vi.mock('../../services/custom-agent/custom-agent-persistence-service.js', () => ({
+  listCustomAgents: vi.fn(async () => []), // no twin
+  getCustomAgent: vi.fn(async () => null),
 }));
 vi.mock('../auth-middleware.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../auth-middleware.js')>()),
@@ -99,7 +103,7 @@ describe('twin replies through callLLM', () => {
     expect((await post(request)).status).toBe(503);
   });
 
-  it("a request without a profile (the Chronicle's shape) is a 400 and calls no model", async () => {
+  it('a request without a profile from someone with no twin is a 400 and calls no model', async () => {
     const { status, body } = await post({ userMessage: 'hello', agentId: null });
     expect(status).toBe(400);
     expect(body.error).toBe('Missing profile');

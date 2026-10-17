@@ -103,6 +103,22 @@ describe('forgetTopic', () => {
     expect(forgetTokens('Forget that thing, user')).toEqual([]);
   });
 
+  it('sends facts about the topic forgotten one by one earlier through again, so their index copies go', async () => {
+    const earlier = fact('dynamic_facts', 'd9', {
+      entityName: 'User',
+      key: 'divorce',
+      value: 'divorce lawyer is Sam',
+      forgottenAt: '2026-10-01T00:00:00Z',
+    });
+    const { store } = memoryStore([earlier, dog]);
+    const marked: string[] = [];
+    store.markForgotten = async (_u, refs) => {
+      marked.push(...refs.map((r) => r.id));
+    };
+    expect(await forgetTopic('u', 'my divorce', store)).toEqual({ kind: 'forgotten', marked: 0 });
+    expect(marked).toEqual(['d9']);
+  });
+
   it('matches whole words only', () => {
     expect(isForgotten('Finalised the divorce papers', ['divorce'])).toBe(true);
     expect(isForgotten('A jobless week', ['job'])).toBe(false);

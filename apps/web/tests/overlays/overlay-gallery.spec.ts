@@ -46,6 +46,7 @@ const SCENES = [
   'coach-mark',
   'captions',
   'caption-moments',
+  'caption-breath',
 ] as const;
 
 const BASELINE_FILE = join(dirname(fileURLToPath(import.meta.url)), 'contrast-baseline.json');
@@ -68,7 +69,7 @@ async function settleAnimations(page: Page): Promise<void> {
 
 async function openScene(page: Page, scene: string, flagOn = false): Promise<void> {
   await page.addInitScript(
-    ([withAchievement, overlayHost, withCaptions]) => {
+    ([withAchievement, overlayHost, withCaptions, withBreath]) => {
       try {
         // The first chat of the day unlocks Early Bird; keep it to the scenes that show it.
         if (!withAchievement)
@@ -79,6 +80,7 @@ async function openScene(page: Page, scene: string, flagOn = false): Promise<voi
           localStorage.setItem('ferni:flag:captions-v2', 'true');
           localStorage.setItem('ferni_show_transcription', 'true');
         }
+        if (withBreath) localStorage.setItem('ferni:flag:captions-breath', 'true');
         // The welcome tour is not a gallery scene; on a slow runner it opened mid-test.
         localStorage.setItem('ferni:onboarding:complete', 'true');
       } catch {
@@ -88,7 +90,8 @@ async function openScene(page: Page, scene: string, flagOn = false): Promise<voi
     [
       scene === 'achievement' || scene === 'collision',
       flagOn,
-      scene === 'captions' || scene === 'caption-moments',
+      scene === 'captions' || scene === 'caption-moments' || scene === 'caption-breath',
+      scene === 'caption-breath',
     ] as const
   );
   // Pin the wall clock: greetings, countdowns and time-of-day features must not
@@ -144,6 +147,7 @@ const NO_SNAPSHOT = new Set([
   'collision',
   'captions',
   'caption-moments',
+  'caption-breath',
 ]);
 
 /** Text that changes with the clock or animates, kept out of the pixel diff. */
@@ -264,7 +268,10 @@ const overlaps = (a: Box, b: Box): boolean =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 /** Boxes of the first visible match of each selector, plus the viewport. */
-async function boxes(page: Page, selectors: string[]): Promise<{ vw: number; vh: number; found: (Box | null)[] }> {
+async function boxes(
+  page: Page,
+  selectors: string[]
+): Promise<{ vw: number; vh: number; found: (Box | null)[] }> {
   return page.evaluate((sels) => {
     const box = (el: Element | null) => {
       if (!el || el.getClientRects().length === 0) return null;
@@ -317,7 +324,9 @@ for (const [scene, legacy] of [
     page,
   }) => {
     await openScene(page, scene, true);
-    await expect(page.locator('.ferni-toast-region .ferni-toast--achievement').first()).toBeVisible();
+    await expect(
+      page.locator('.ferni-toast-region .ferni-toast--achievement').first()
+    ).toBeVisible();
     await expect(page.locator(legacy)).toHaveCount(0);
     const { vw, vh, found } = await boxes(page, ['.ferni-toast-region', ...CONTROLS]);
     const [region, ...controls] = found;
@@ -331,3 +340,40 @@ for (const [scene, legacy] of [
     }
   });
 }
+
+test.describe('breath motion, in the browser', () => {
+  test('reduced motion shows every word at once', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openScene(page, 'caption-breath');
+    const names = await page.$$eval('.ferni-caption-word', (els) =>
+      els.map((el) => getComputedStyle(el).animationName)
+    );
+    expect(names.length).toBeGreaterThan(0);
+    expect(names.every((name) => name === 'none')).toBe(true);
+  });
+
+  test('a settled line does not replay its rise when the region redraws', async ({ page }) => {
+    await openScene(page, 'caption-breath');
+    await page.evaluate(() => {
+      const say = (text: string, isFinal: boolean): void => {
+        window.dispatchEvent(
+          new CustomEvent('ferni:transcript', { detail: { type: 'agent', text, isFinal } })
+        );
+      };
+      say('That makes a lot of sense.', true);
+      say('When you said it went sideways', false);
+    });
+    await page.waitForTimeout(150);
+    const settled = await page.$$eval(
+      '.ferni-captions__viewport > .ferni-caption-line:first-child .ferni-caption-word',
+      (els) => els.map((el) => getComputedStyle(el).animationName)
+    );
+    const live = await page.$$eval(
+      '.ferni-captions__viewport > .ferni-caption-line:last-child .ferni-caption-word',
+      (els) => els.map((el) => getComputedStyle(el).animationName)
+    );
+    expect(settled.length).toBeGreaterThan(0);
+    expect(settled.every((name) => name === 'none')).toBe(true);
+    expect(live.every((name) => name === 'ferni-breath-word')).toBe(true);
+  });
+});
