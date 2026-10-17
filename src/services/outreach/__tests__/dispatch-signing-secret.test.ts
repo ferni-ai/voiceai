@@ -23,6 +23,12 @@ describe('dispatchSigningSecret', () => {
     expect(dispatchSigningSecret({})).toBeUndefined();
   });
 
+  it('refuses to sign without a key rather than sign with an empty one', () => {
+    vi.stubEnv('DISPATCH_SIGNING_SECRET', '');
+    vi.stubEnv('LIVEKIT_API_SECRET', '');
+    expect(() => signDispatch({ user_id: 'u1' })).toThrow(/signing secret/);
+  });
+
   it('lets a dispatch signed with our key verify on an agent whose LiveKit key differs', () => {
     vi.stubEnv('DISPATCH_SIGNING_SECRET', 'ours');
     vi.stubEnv('LIVEKIT_API_SECRET', 'injected-by-livekit-cloud');

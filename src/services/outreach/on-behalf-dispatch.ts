@@ -98,6 +98,7 @@ export function signDispatch<T extends object>(
   secret: string = dispatchSigningSecret() ?? '',
   signedAt: number = Date.now()
 ): T & { signedAt: number; requesterSignature: string } {
+  if (!secret) throw new Error('No dispatch signing secret: set DISPATCH_SIGNING_SECRET');
   const stamped = { ...d, signedAt };
   return {
     ...stamped,
