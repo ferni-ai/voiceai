@@ -219,6 +219,8 @@ export const FLAG_MANIFEST = {
   // Turn on with the web app's switch for the view that calls it: VITE_MEMORY_CONTROL, or the
   // memory view (VITE_MEMORY_VIEW / localStorage ferni:flag:memory-view, web known.ts).
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: log which moves each reply made and what followed, saved after the call (move-log.ts)
+  MOVE_OUTCOMES: { default: 'off', owner: 'voice', kind: 'experiment' },
   MULTI_AGENT_ESSENTIAL_TOOLS_FIRST: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MULTI_AGENT_MODE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // off: a handoff closes the call's session and starts another, as before (agents/multi-agent/persona-swap.ts)
