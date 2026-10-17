@@ -57,6 +57,8 @@ export interface CaptionEntry {
 const HISTORY_LIMIT = 200; // utterances kept in the history
 const RENDERED = 3; // utterances rendered in the live region
 const MAX_LINES = 2; // the last line or two; the sheet keeps the rest
+// With the caller's line shown above Ferni's reply (Heard), the room decides, up to this many lines.
+const CALLER_MAX_LINES = 5;
 const IDLE_MS = 6000; // captions fade after this long without speech
 const BREATH_STEP_MS = 140; // Breath: delay between the words of one burst
 const BREATH_MAX_STEPS = 8; // later words share the last step, so a long burst lands quickly
@@ -451,13 +453,13 @@ class LiveCaptions {
 
   /**
    * Whole caption lines that fit in `room` px. With the caller's line shown
-   * above Ferni's reply, one more line of room; the caller's line can wrap, so
-   * on a phone its first line may sit under the overflow fade.
+   * above Ferni's reply (Heard), the room decides, up to CALLER_MAX_LINES, so a
+   * two-line caller line and a two-line reply both fit.
    */
   private fit(room: number, withChips: boolean): number {
     if (!this.viewport) return 0;
     const line = parseFloat(getComputedStyle(this.viewport).lineHeight) || 1;
-    const maxLines = this.callerShown ? MAX_LINES + 1 : MAX_LINES;
+    const maxLines = this.callerShown ? CALLER_MAX_LINES : MAX_LINES;
     return Math.min(maxLines, Math.floor((room - this.chrome(withChips)) / line));
   }
 }

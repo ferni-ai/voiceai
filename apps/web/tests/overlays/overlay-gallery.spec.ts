@@ -427,6 +427,23 @@ test.describe('heard, in the browser', () => {
     expect(inside).toBe(true);
   });
 
+  test('a two-line caller line and its reply fit: the caller line is fully inside the caption area', async ({
+    page,
+  }) => {
+    await openScene(page, 'caption-heard-reply');
+    const fits = await page.evaluate(() => {
+      const caller = document.querySelector(
+        ".ferni-captions__viewport > .ferni-caption-line[data-speaker='user']"
+      );
+      const view = document.querySelector('.ferni-captions__viewport');
+      if (!caller || !view) return false;
+      const c = caller.getBoundingClientRect();
+      const v = view.getBoundingClientRect();
+      return c.top >= v.top - 1 && c.bottom <= v.bottom + 1;
+    });
+    expect(fits).toBe(true);
+  });
+
   test('reduced motion settles the caller line with no transition', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openScene(page, 'caption-heard');
