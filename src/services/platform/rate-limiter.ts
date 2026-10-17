@@ -190,6 +190,26 @@ redis.call('PEXPIRE', key, window_ms)
 return {1, max_requests - count, reset_at}
 `;
 
+/** One atomic check in Redis; throws when Redis isn't connected or the script fails. */
+async function evalRedisRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+  cost: number
+): Promise<RateLimitResult> {
+  if (!redisClient || !redisAvailable) throw new Error('Redis not connected');
+  const result = (await redisClient.eval(
+    RATE_LIMIT_SCRIPT,
+    1,
+    `ratelimit:${key}`,
+    maxRequests,
+    windowMs,
+    Date.now(),
+    cost
+  )) as [number, number, number];
+  return { allowed: result[0] === 1, remaining: result[1], resetAt: result[2] };
+}
+
 /**
  * Check rate limit using Redis (atomic operation).
  */
@@ -204,22 +224,7 @@ async function checkRedisRateLimit(
   }
 
   try {
-    const now = Date.now();
-    const result = (await redisClient.eval(
-      RATE_LIMIT_SCRIPT,
-      1,
-      `ratelimit:${key}`,
-      maxRequests,
-      windowMs,
-      now,
-      cost
-    )) as [number, number, number];
-
-    return {
-      allowed: result[0] === 1,
-      remaining: result[1],
-      resetAt: result[2],
-    };
+    return await evalRedisRateLimit(key, maxRequests, windowMs, cost);
   } catch (error) {
     log.warn({ error: String(error) }, 'Redis rate limit check failed, using memory fallback');
     return checkMemoryRateLimit(key, maxRequests, windowMs, cost);
@@ -241,7 +246,7 @@ export const rateLimiter = {
    * @param key - Unique identifier (e.g., 'user:123' or 'ip:1.2.3.4')
    * @param maxRequests - Maximum requests allowed in window
    * @param windowMs - Window duration in milliseconds
-   * @param cost - Units this call uses (default 1), e.g. seconds of audio
+   * @param cost - Units this call uses (default 1), e.g. audio tokens
    * @returns Rate limit result with allowed, remaining, and resetAt
    */
   async check(
@@ -254,6 +259,27 @@ export const rateLimiter = {
       return checkRedisRateLimit(key, maxRequests, windowMs, cost);
     }
     return checkMemoryRateLimit(key, maxRequests, windowMs, cost);
+  },
+
+  /**
+   * Like `check`, but for limits that must hold across instances (spend caps):
+   * when Redis is configured and unreachable it returns null instead of
+   * counting in this instance's memory, so the caller can fail closed. Uses
+   * memory only when no Redis is configured at all (local development).
+   */
+  async checkShared(
+    key: string,
+    maxRequests: number,
+    windowMs: number,
+    cost = 1
+  ): Promise<RateLimitResult | null> {
+    if (!redisClient) return checkMemoryRateLimit(key, maxRequests, windowMs, cost);
+    try {
+      return await evalRedisRateLimit(key, maxRequests, windowMs, cost);
+    } catch (error) {
+      log.warn({ error: String(error), key }, 'Shared rate limit unavailable: Redis unreachable');
+      return null;
+    }
   },
 
   /**

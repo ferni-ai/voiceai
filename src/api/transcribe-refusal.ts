@@ -12,6 +12,14 @@ import {
 } from '../services/custom-agent/transcribe-budget.js';
 import { sendJSON } from './helpers.js';
 
+/** Who a transcription is charged to: the person, or the address for an anonymous caller. */
+export function transcribePrincipal(
+  ip: string,
+  caller: { userId: string; isAnonymous?: boolean }
+): string {
+  return caller.isAnonymous === true ? `anon-ip:${ip}` : `user:${caller.userId}`;
+}
+
 /** True, with a 413 or 503 sent, when `error` is a budget refusal; false for any other error. */
 export function sentTranscribeRefusal(res: ServerResponse, error: unknown): boolean {
   if (error instanceof ClipTooLongError) {

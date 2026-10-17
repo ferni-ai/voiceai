@@ -21,6 +21,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { transcribeAudioBuffer } from '../services/custom-agent/memory-capture-service.js';
+import { withTranscribeCaller } from '../services/custom-agent/transcribe-budget.js';
 import { MAX_TRANSCRIBE_BYTES } from '../services/custom-agent/vertex-transcribe.js';
 import { getClientIp } from '../utils/client-ip.js';
 import { rateLimitIpKey } from '../utils/rate-limit-ip-key.js';
@@ -29,7 +30,7 @@ import { requireAuth } from './auth-middleware.js';
 import { BodyTooLargeError, readJsonBodyLimited } from './bounded-body.js';
 import { refusedBySharedPools, refusedByTranscribeLimits } from './journal-transcribe-limits.js';
 import { sendJSON } from './helpers.js';
-import { sentTranscribeRefusal } from './transcribe-refusal.js';
+import { sentTranscribeRefusal, transcribePrincipal } from './transcribe-refusal.js';
 
 const log = createLogger({ module: 'journal-transcribe-route' });
 
@@ -107,7 +108,9 @@ export async function handleJournalTranscribe(
     const mimeType = body.mimeType || 'audio/webm';
 
     log.debug({ bufferSize: audioBuffer.byteLength, mimeType }, 'Transcribing journal audio');
-    const transcript = await transcribeAudioBuffer(audioBuffer, mimeType);
+    const transcript = await withTranscribeCaller(transcribePrincipal(ip, auth), () =>
+      transcribeAudioBuffer(audioBuffer, mimeType)
+    );
 
     sendJSON(res, { transcript, success: transcript !== PLACEHOLDER }, 200);
     return true;

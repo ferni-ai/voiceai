@@ -154,6 +154,41 @@ describe('the hourly audio budget', () => {
   });
 });
 
+describe("each caller's share", () => {
+  it('stops one caller at their share while others still get the hour', async () => {
+    vi.stubEnv('TRANSCRIBE_MAX_AUDIO_MINUTES_PER_PERSON_HOUR', '3');
+    sdk.countTokens.mockResolvedValue({ totalTokens: minutes(2) });
+    const { vertexJournalFallback } = await load();
+    const { withTranscribeCaller } = await budget();
+    const as = (who: string) =>
+      withTranscribeCaller(who, () => vertexJournalFallback(clip(), 'audio/webm'));
+
+    expect(await as('user:a')).not.toBeNull(); // a: 2 of 3
+    await expect(as('user:a')).rejects.toMatchObject({ name: 'TranscribeBudgetSpentError' });
+    expect(await as('user:b')).not.toBeNull(); // b has their own share
+    expect(await as('anon-ip:198.51.100.7')).not.toBeNull();
+    expect(sdk.generateContent).toHaveBeenCalledTimes(3);
+  });
+
+  it('defaults the share to 15 audio minutes', async () => {
+    const { maxPersonAudioTokensPerHour } = await budget();
+    expect(maxPersonAudioTokensPerHour({})).toBe(minutes(15));
+  });
+});
+
+describe('when the shared count is unreachable', () => {
+  it('refuses the clip (fail closed) instead of counting in this instance', async () => {
+    const { vertexJournalFallback } = await load();
+    const { rateLimiter } = await import('../../platform/rate-limiter.js');
+    vi.spyOn(rateLimiter, 'checkShared').mockResolvedValueOnce(null);
+    await expect(vertexJournalFallback(clip(), 'audio/webm')).rejects.toMatchObject({
+      name: 'TranscribeBudgetSpentError',
+      retryAfterSeconds: 60,
+    });
+    expect(sdk.generateContent).not.toHaveBeenCalled();
+  });
+});
+
 describe('rateLimiter cost (memory fallback)', () => {
   it('allows a charge that lands exactly on the limit, refuses one over it, and keeps cost 1 as default', async () => {
     const { rateLimiter } = await import('../../platform/rate-limiter.js');

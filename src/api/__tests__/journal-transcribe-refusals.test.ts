@@ -72,13 +72,13 @@ async function transcribe(token: string, ip: string) {
   return r.result();
 }
 
-async function agentEntry(userId: string, ip: string) {
+async function agentEntry(userId: string, ip: string, isAnonymous = false) {
   const r = request(
     '/api/custom-agents/twin-1/journal/entry',
     { audio: AUDIO },
     { 'x-forwarded-for': ip }
   );
-  await handleCreateJournalEntry(r.req, r.res, userId, 'twin-1');
+  await handleCreateJournalEntry(r.req, r.res, userId, 'twin-1', isAnonymous);
   return r.result();
 }
 
@@ -124,5 +124,14 @@ describe('POST /api/custom-agents/:id/journal/entry', () => {
     expect(statuses.slice(0, 10).every((s) => s === 201)).toBe(true);
     expect(statuses[10]).toBe(429);
     expect(m.transcribe).toHaveBeenCalledTimes(10);
+  });
+
+  it('limits anonymous callers by address, since their uids are free to mint', async () => {
+    const statuses: Array<number | undefined> = [];
+    for (let i = 0; i < 11; i++) {
+      statuses.push((await agentEntry(`uid-anon-${i}`, '192.0.2.99', true)).status);
+    }
+    expect(statuses.slice(0, 10).every((s) => s === 201)).toBe(true);
+    expect(statuses[10]).toBe(429);
   });
 });
