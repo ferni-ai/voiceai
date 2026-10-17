@@ -15,6 +15,7 @@ import {
 import { isJournalPlaceholder } from '../../services/custom-agent/journal-placeholder.js';
 import { journalOneStoreOn } from '../../services/journal/journal-ports.js';
 import { firestoreJournalStore as journalStore } from '../../services/stores/journal-store.js';
+import { journalChanged } from './journal-view.js';
 import type { MemoryBody } from './types.js';
 import { sendJson, extractKeywords } from './helpers.js';
 
@@ -79,6 +80,7 @@ export async function handleAddMemory(
   if (body.type === 'journalEntry' && journalOneStoreOn()) {
     const { phrase: _phrase, context: _context, ...entry } = memory;
     const saved = await journalStore.add(userId, { ...entry, agentId, source: 'digital_twin' });
+    journalChanged(userId);
     log.info({ userId, agentId, entryId: saved.id }, 'Journal entry added');
     sendJson(res, 201, { message: 'Memory added', memory: saved });
     return true;
@@ -171,6 +173,7 @@ export async function handleDeleteMemory(
   // A migrated entry is in both places; leaving the store copy would bring it back.
   if (internalType === 'journalEntries' && journalOneStoreOn()) {
     await journalStore.remove(userId, memoryId);
+    journalChanged(userId);
   }
 
   log.info({ userId, agentId, memoryId }, 'Memory deleted');
