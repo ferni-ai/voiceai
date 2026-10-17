@@ -16,7 +16,7 @@
  * default, or a process per call); otherwise nothing is applied. The next
  * call's start puts the previous caller's flags back to the agent's own
  * values first. After-call work that is still running when the next call
- * starts sees the next caller's flags, so it should not read these switches.
+ * starts sees the next caller's flags, so it reads them with envForCaller.
  *
  * Only flags in COHORT_FLAGS can be set this way: behaviour switches, never
  * infrastructure or secrets. Reading cohorts never holds a call up for more
@@ -46,6 +46,21 @@ export const COHORT_FLAGS = [
   'POST_CALL_CHECKIN',
   'FOLLOW_THROUGH_TEXTS',
   'OUTREACH_PONDERED_NOTES',
+  // Read once the agent is set up, on a turn or at a handoff: after applyCallerFlags
+  // (docs/runbooks/cohort-rollout.md has the read sites).
+  'CALL_WRAP_UP',
+  'WRAP_UP',
+  'SHORT_GOODBYE',
+  'PHONE_GOODBYE',
+  'HAPPY_EXITS',
+  'HANDOFF_TALK_THROUGH',
+  'NAME_CORRECTION',
+  'ROOM_GUESTS',
+  'BARGE_IN_ACK_WORDS',
+  'FRIEND_FOLLOWUPS',
+  'INSIDE_JOKES',
+  // Read after the call, through envForCaller, never process.env as applied.
+  'DATES_THAT_MATTER',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
@@ -88,20 +103,43 @@ function allowed(flags: Record<string, unknown>, from: string): Record<string, s
   return out;
 }
 
+export interface CallerFlags {
+  flags: Record<string, string>;
+  /** The enabled cohorts the caller is in, by id: audiences, never who is in them. */
+  cohorts: string[];
+  /** Whether the caller's own overrides set anything. */
+  overridden: boolean;
+}
+
 /** The caller's flags: enabled cohorts (in id order, so it is stable), then their own overrides. */
-export async function resolveCallerFlags(
+export async function resolveCaller(
   userId: string,
   store: CohortStore = firestoreCohortStore
-): Promise<Record<string, string>> {
+): Promise<CallerFlags> {
   const [cohorts, overrides] = await Promise.all([
     store.cohortsFor(userId),
     store.overridesFor(userId),
   ]);
   const flags: Record<string, string> = {};
+  const ids: string[] = [];
   for (const c of [...cohorts].sort((a, b) => a.id.localeCompare(b.id))) {
-    if (c.enabled) Object.assign(flags, allowed(c.flags, `cohort ${c.id}`));
+    if (!c.enabled) continue;
+    ids.push(c.id);
+    Object.assign(flags, allowed(c.flags, `cohort ${c.id}`));
   }
-  return Object.assign(flags, allowed(overrides, 'override'));
+  const own = allowed(overrides, 'override');
+  return {
+    flags: Object.assign(flags, own),
+    cohorts: ids,
+    overridden: Object.keys(own).length > 0,
+  };
+}
+
+export async function resolveCallerFlags(
+  userId: string,
+  store: CohortStore = firestoreCohortStore
+): Promise<Record<string, string>> {
+  return (await resolveCaller(userId, store)).flags;
 }
 
 /** The agent's own value of each switch, from before any caller's flags were applied. */
@@ -130,6 +168,29 @@ export function forgetAgentValues(): void {
 }
 
 /**
+ * The env as this caller's call saw it, for work that runs after the call
+ * (after-call tasks). By then the next call may have started and put its
+ * caller's flags in process.env, so this starts from the agent's own values
+ * and adds the caller's cohorts and overrides (with COHORT_FLAGS=on), read
+ * again. Never throws; on a failed read the agent's own values apply.
+ */
+export async function envForCaller(
+  userId: string,
+  opts: { store?: CohortStore; env?: NodeJS.ProcessEnv } = {}
+): Promise<Record<string, string | undefined>> {
+  const env = opts.env ?? process.env;
+  const own: Record<string, string | undefined> = { ...env };
+  for (const [k, v] of agentValues) own[k] = v;
+  if (!cohortFlagsEnabled(env) || !userId || userId === 'anonymous') return own;
+  try {
+    return { ...own, ...(await resolveCallerFlags(userId, opts.store)) };
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Cohort flags not read after the call; agent values apply');
+    return own;
+  }
+}
+
+/**
  * At call start: apply the caller's cohort flags, if this is on and safe.
  * Never throws and never waits longer than READ_TIMEOUT_MS; on any failure
  * the call runs with the agent's own flags.
@@ -148,21 +209,24 @@ export async function applyCallerFlags(
   if (!userId || userId === 'anonymous') return applyFlags({}, env);
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const flags = await Promise.race([
-      resolveCallerFlags(userId, opts.store),
+    const caller = await Promise.race([
+      resolveCaller(userId, opts.store),
       new Promise<null>((resolve) => {
         timer = setTimeout(() => resolve(null), opts.timeoutMs ?? READ_TIMEOUT_MS);
       }),
     ]);
-    if (flags === null) {
+    if (caller === null) {
       log.warn(
         { userId: userId.slice(0, 8) },
         'Cohort flags not read in time; agent defaults apply'
       );
       return applyFlags({}, env);
     }
+    const { flags, cohorts, overridden } = caller;
     const applied = applyFlags(flags, env);
-    if (applied.length > 0) log.info({ userId: userId.slice(0, 8), flags }, 'Cohort flags applied');
+    // Cohort ids name the audience (seth, friends-and-family), never a member.
+    if (applied.length > 0)
+      log.info({ userId: userId.slice(0, 8), cohorts, overridden, flags }, 'Cohort flags applied');
     return applied;
   } catch (error) {
     log.warn({ error: String(error) }, 'Cohort flags not read; agent defaults apply');
