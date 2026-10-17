@@ -12,6 +12,7 @@ import {
   agreementOutcome,
   resolveCrisisAgreementGate,
 } from '../../../services/safety/crisis-agreement.js';
+import { relaySoftCheck } from '../../../services/safety/crisis-relay.js';
 import {
   startCrisisClassifier,
   turnVerdicts,
@@ -76,6 +77,14 @@ export function startTurnCrisis(
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
             const crisis = applyClassifierVerdict(patterns, verdict);
+            // A bare request to reach someone, with no risk anywhere (crisis-relay.ts).
+            if (
+              crisis !== patterns &&
+              relaySoftCheck({ pattern, verdicts: [verdict], ...input, env })
+            ) {
+              log.info({ outcome: 'relay_soft' }, 'CRISIS_AGREEMENT');
+              return { crisis: patterns, soft: true };
+            }
             if (!scope || crisis === patterns) return { crisis, soft: false };
             // Fail closed: a failed lookup counts as a missing read, which escalates.
             const verdicts = await turnVerdicts(scope, input).catch(() => [null]);

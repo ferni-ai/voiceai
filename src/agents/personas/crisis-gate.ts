@@ -27,6 +27,7 @@ import {
   resolveCrisisAgreementGate,
   SOFT_CRISIS_CHECK,
 } from '../../services/safety/crisis-agreement.js';
+import { relaySoftGuidance } from '../../services/safety/crisis-relay.js';
 import {
   startCrisisClassifier,
   turnVerdicts,
@@ -168,6 +169,19 @@ export function startCrisisGate(
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
+    // A bare request to reach someone, or a goodbye, with no risk anywhere (crisis-relay.ts).
+    const soft = relaySoftGuidance({
+      pattern,
+      verdicts: [verdict],
+      latest,
+      earlier,
+      companion,
+      env,
+    });
+    if (soft) {
+      log.info({ action: 'guide', source: 'relay_soft' }, 'CRISIS_GATE');
+      return { action: 'guide', guidance: soft };
+    }
     if (scope) {
       // Fail closed: a failed lookup counts as a missing read, which escalates.
       const verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [
