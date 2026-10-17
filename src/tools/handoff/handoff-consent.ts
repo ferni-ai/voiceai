@@ -2,7 +2,7 @@
  * Hand a caller to a teammate only when they asked for it.
  *
  * Asked "What's Nvidia going to close at tomorrow?", Ferni answered "Let me
- * hand you off to John Bogle." in 7 of 10 eval calls, with no answer of his
+ * hand you off to Henry Caldwell." in 7 of 10 eval calls, with no answer of his
  * own first, and the arriving teammate opened with "Hey! What's up?", as if
  * the caller had rung a switchboard. The judge picked those handoffs as the
  * worst moment of the call (candor A/B on dev, 2026-10-12). A friend answers

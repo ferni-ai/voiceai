@@ -166,11 +166,11 @@ const FERNI_STORY_UNLOCKS: Record<string, StoryUnlockRequirements> = {
     minTurns: 6,
   },
 
-  'blended-family': {
+  'second-marriage': {
     minRelationship: 'acquaintance',
-    fitsEmotions: ['stressed', 'overwhelmed', 'loving'],
+    fitsEmotions: ['hopeful', 'lonely', 'loving'],
     fitsPhases: ['building', 'release'],
-    topicTriggers: ['family', 'kids', 'chaos', 'love', 'relationships'],
+    topicTriggers: ['divorce', 'starting over', 'love', 'relationships'],
     depth: 'medium',
     minTurns: 7,
   },

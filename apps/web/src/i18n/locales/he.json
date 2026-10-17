@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "עוברים ל־{language}",
+    "seeYou": "נתראה בפעם הבאה!",
+    "callVoicemail": "השארתי ל־{name} הודעה קולית",
+    "callNoAnswer": "לא הצלחתי להשיג את {name}. לנסות שוב אחר כך?",
+    "callFailed": "השיחה ל־{name} לא עברה",
+    "callBack": "{name} מחכה לשיחה חוזרת מכם",
+    "followUp": "{name} מחכה לשמוע מכם"
+  },
   "accessibility": {
     "accountMenu": "תפריט חשבון",
     "accountSettings": "הגדרות חשבון",
@@ -9548,11 +9557,15 @@
     "rememberEmpty": "אין משהו חדש לשמור הפעם. תודה על החברה.",
     "nextStepTitle": "צעד הבא עדין",
     "invitation": "חזור מתי שתרצה. אני כאן.",
-    "close": "סגור"
+    "close": "סגור",
+    "seeCost": "כמה עלתה השיחה הזו",
+    "feedbackQuestion": "איך זה הרגיש?",
+    "feedbackThanks": "תודה, זה עוזר."
   },
   "moments": {
     "teamUnlockTitle": "להכיר את {name}",
     "niceWork": "עבודה יפה",
+    "remembered": "אזכור את זה: {summary}",
     "streakSubtitle": "ההתמדה שלך. זה מה שחשוב.",
     "streakTitle": {
       "one": "רצף של {count} יום",
@@ -11152,10 +11165,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

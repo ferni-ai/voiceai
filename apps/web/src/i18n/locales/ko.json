@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "{language}(으)로 바꿀게요",
+    "seeYou": "다음에 또 봐요!",
+    "callVoicemail": "{name}님께 음성 메시지를 남겼어요",
+    "callNoAnswer": "{name}님과 연결되지 않았어요. 나중에 다시 걸어 볼까요?",
+    "callFailed": "{name}님께 전화를 걸지 못했어요",
+    "callBack": "{name}님이 다시 전화해 달래요",
+    "followUp": "{name}님이 연락을 기다리고 있어요"
+  },
   "accessibility": {
     "accountMenu": "계정 메뉴",
     "accountSettings": "계정 설정",
@@ -9468,11 +9477,15 @@
     "rememberEmpty": "이번에는 새로 기억할 것이 없어요. 함께해 줘서 고마워요.",
     "nextStepTitle": "부드러운 다음 걸음",
     "invitation": "언제든 다시 와요. 여기 있을게요.",
-    "close": "닫기"
+    "close": "닫기",
+    "seeCost": "이번 통화 비용",
+    "feedbackQuestion": "이번 대화는 어땠어요?",
+    "feedbackThanks": "고마워요, 도움이 돼요."
   },
   "moments": {
     "teamUnlockTitle": "{name} 님 만나기",
     "niceWork": "멋져요",
+    "remembered": "기억해 둘게요: {summary}",
     "streakSubtitle": "꾸준히 찾아오고 계시네요. 그것만으로도 큰 의미가 있어요.",
     "streakTitle": {
       "other": "{count}일 연속 기록",
@@ -11028,10 +11041,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

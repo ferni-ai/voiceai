@@ -35,7 +35,7 @@ permalink: /about/
 </nav>
 
 {# ========== MOBILE MENU (Properly styled - hidden by default) ========== #}
-<div class="mobile-menu" id="mobileMenu">
+<nav class="mobile-menu" id="mobileMenu" aria-label="Mobile menu">
   <div class="mobile-menu__header">
     <span class="nav__logo-text">Ferni</span>
     <button class="mobile-menu__close" aria-label="Close menu">
@@ -44,19 +44,19 @@ permalink: /about/
       </svg>
     </button>
   </div>
-  <nav class="mobile-menu__nav">
+  <div class="mobile-menu__nav">
     <a href="/capabilities/">Capabilities</a>
     <a href="/team/">Meet the Team</a>
     <a href="/blog/">Blog</a>
     <a href="/about/">About</a>
-  </nav>
+  </div>
   <div class="mobile-menu__cta">
     <a href="https://app.ferni.ai" class="btn btn--primary btn--lg">
       Get Started Free
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
   </div>
-</div>
+</nav>
 
 <main id="main-content">
 
@@ -87,7 +87,8 @@ permalink: /about/
     --paper-sand: #f5f2ed;
     --natural-ink: #2C2520;
     --ink-muted: #5c544a;
-    --warm-amber: #C4A265;
+    /* #C4A265 was 2.27:1 on cream; this darker shade of the same amber is 4.74:1 (AA for small text) */
+    --warm-amber: #8a6a2e;
     --forest-green: #3D5A45;
   }
 
@@ -533,11 +534,11 @@ permalink: /about/
    ═══════════════════════════════════════════════════════════════════════════ #}
 <section style="padding: 140px 24px 100px; background: var(--page-paper, #FAF8F5); text-align: center;">
   <div style="max-width: 800px; margin: 0 auto;">
-    <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-amber, #C4A265); margin-bottom: 24px;">Our Philosophy</p>
+    <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-amber, var(--warm-amber)); margin-bottom: 24px;">Our Philosophy</p>
     
     <h1 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(24px, 4vw, 40px); font-weight: 500; line-height: 1.4; color: var(--page-ink, #2C2520); margin-bottom: 24px;">
       "We are all broken in different ways.<br>
-      <span style="color: var(--page-amber, #C4A265);">It's those cracks that make us both human and beautiful.</span><br>
+      <span style="color: var(--page-amber, var(--color-gold, #a6854a));">It's those cracks that make us both human and beautiful.</span><br>
       We celebrate the imperfections and the joy of being alive."
     </h1>
     
@@ -551,7 +552,7 @@ permalink: /about/
    ORIGIN STORY - Wyoming, Japan, The Ridge
    A timeline-style narrative journey
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 96px 24px; background: linear-gradient(180deg, #FAF8F5 0%, #f5f2ed 50%, #FAF8F5 100%);">
+<section style="padding: 96px 24px; background: linear-gradient(180deg, var(--page-paper, #FAF8F5) 0%, var(--page-sand, #f5f2ed) 50%, var(--page-paper, #FAF8F5) 100%);">
   <div style="max-width: 900px; margin: 0 auto;">
     <header style="text-align: center; margin-bottom: 80px;">
       <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-sage, #4a6741); margin-bottom: 16px;">The Origin</p>
@@ -738,7 +739,7 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    BETTER THAN HUMAN - The Promise
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 96px 24px; background: linear-gradient(180deg, #f5f2ed 0%, #FAF8F5 100%);">
+<section style="padding: 96px 24px; background: linear-gradient(180deg, var(--page-sand, #f5f2ed) 0%, var(--page-paper, #FAF8F5) 100%);">
   <div style="max-width: 1100px; margin: 0 auto;">
     <header class="section-header">
       <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-gold, #b8860b); margin-bottom: 16px;">The Promise</p>
@@ -940,7 +941,7 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    WHAT WE BELIEVE - Core Principles
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 96px 24px; background: linear-gradient(180deg, #FAF8F5 0%, #f5f2ed 100%);">
+<section style="padding: 96px 24px; background: linear-gradient(180deg, var(--page-paper, #FAF8F5) 0%, var(--page-sand, #f5f2ed) 100%);">
   <div style="max-width: 900px; margin: 0 auto;">
     <header class="section-header">
       <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-sage, #4a6741); margin-bottom: 16px;">Our Beliefs</p>
@@ -1141,7 +1142,7 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    LOCATION - Park City, Utah
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="about-visible" style="padding: 96px 24px; background: linear-gradient(180deg, #f5f2ed 0%, #FAF8F5 100%);">
+<section class="about-visible" style="padding: 96px 24px; background: linear-gradient(180deg, var(--page-sand, #f5f2ed) 0%, var(--page-paper, #FAF8F5) 100%);">
   <div style="max-width: 900px; margin: 0 auto;">
     <div class="location-card" style="background: var(--page-card, white); border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(44, 37, 32, 0.12); border: 1px solid rgba(44, 37, 32, 0.05);">
       <div style="display: grid; grid-template-columns: 1fr 1fr;">
@@ -1152,7 +1153,7 @@ permalink: /about/
             There's something about mountain air that clears your thinking. Ferni was born in the shadow of the Wasatch Range—where the pace is slower, the perspective is longer, and the focus is on what actually matters.
           </p>
         </div>
-        <div style="position: relative; min-height: 300px; background: linear-gradient(135deg, rgba(74, 103, 65, 0.15) 0%, #FAF8F5 50%, rgba(58, 107, 115, 0.1) 100%);">
+        <div style="position: relative; min-height: 300px; background: linear-gradient(135deg, rgba(74, 103, 65, 0.15) 0%, var(--page-sand, #FAF8F5) 50%, rgba(58, 107, 115, 0.1) 100%);">
           <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
             <div style="text-align: center;">
               <svg style="width: 64px; height: 64px; margin: 0 auto 16px; color: rgba(74, 103, 65, 0.5);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -1307,7 +1308,7 @@ permalink: /about/
       
       {# Product Column #}
       <div>
-        <h4 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: #FAF8F5; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;">Product</h4>
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: #FAF8F5; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;">Product</h3>
         <div style="display: flex; flex-direction: column; gap: 12px;">
           <a href="/team/" style="color: rgba(250, 248, 245, 0.6); text-decoration: none; font-size: 15px; transition: color 0.2s;">Meet the Team</a>
           <a href="/capabilities/" style="color: rgba(250, 248, 245, 0.6); text-decoration: none; font-size: 15px; transition: color 0.2s;">Capabilities</a>
@@ -1318,7 +1319,7 @@ permalink: /about/
       
       {# Company Column #}
       <div>
-        <h4 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: #FAF8F5; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;">Company</h4>
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: #FAF8F5; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;">Company</h3>
         <div style="display: flex; flex-direction: column; gap: 12px;">
           <a href="/about/" style="color: rgba(250, 248, 245, 0.6); text-decoration: none; font-size: 15px; transition: color 0.2s;">About</a>
           <a href="/blog/" style="color: rgba(250, 248, 245, 0.6); text-decoration: none; font-size: 15px; transition: color 0.2s;">Blog</a>
@@ -1329,7 +1330,7 @@ permalink: /about/
       
       {# Connect Column #}
       <div>
-        <h4 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: #FAF8F5; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;">Connect</h4>
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: #FAF8F5; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;">Connect</h3>
         <div style="display: flex; flex-direction: column; gap: 12px;">
           <a href="https://app.ferni.ai" style="color: rgba(250, 248, 245, 0.6); text-decoration: none; font-size: 15px; transition: color 0.2s;">Web App</a>
           <a href="tel:+18885983952" style="color: rgba(250, 248, 245, 0.6); text-decoration: none; font-size: 15px; transition: color 0.2s;">Call Ferni</a>

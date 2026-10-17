@@ -26,6 +26,8 @@ import { userReach } from '../../../services/outreach/user-reach.js';
 import { isAssistantActionsReal } from '../../../config/assistant-actions-flag.js';
 import { formatStoredLocalTime } from '../../../utils/time-zone.js';
 import { asksToRepeat, NO_REPEAT_YET } from '../../utils/honest-schedule.js';
+import { withOutreachConfirmation } from '../communication/outreach/outreach-confirm.js';
+import { reminderConfirm } from '../communication/outreach/outreach-confirm-specs.js';
 
 const log = getLogger();
 
@@ -268,7 +270,14 @@ const cancelReminderDef: ToolDefinition = {
 // EXPORTS
 // ============================================================================
 
-export const reminderTools: ToolDefinition[] = [setReminderDef, getRemindersDef, cancelReminderDef];
+/** A reminder to an address the model named waits for a yes; with the flag on, only email uses it. */
+const toNamedAddress = withOutreachConfirmation(setReminderDef, {
+  ...reminderConfirm,
+  applies: (a) =>
+    reminderConfirm.applies!(a) && (a.deliveryMethod === 'email' || !isAssistantActionsReal()),
+});
+
+export const reminderTools: ToolDefinition[] = [toNamedAddress, getRemindersDef, cancelReminderDef];
 
 export function createReminderTools(): ToolDefinition[] {
   return reminderTools;

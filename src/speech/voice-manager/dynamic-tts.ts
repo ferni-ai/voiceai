@@ -9,6 +9,7 @@ import * as cartesia from '@livekit/agents-plugin-cartesia';
 // NOTE: This uses the global getCurrentAgent (no sessionId) because DynamicTTS
 // is deprecated and doesn't have session context. Use PersonaAwareTTS instead.
 import { getCurrentAgent } from '../../tools/handoff/state.js';
+import { CARTESIA_API_VERSION } from '../../config/voice-ids.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { VOICES } from './config.js';
 import { normalizeAgentId } from './manager.js';
@@ -53,6 +54,7 @@ export class DynamicTTS extends tts.TTS {
         personaId,
         new cartesia.TTS({
           model: config.model,
+          apiVersion: CARTESIA_API_VERSION,
           voice: config.id,
         })
       );

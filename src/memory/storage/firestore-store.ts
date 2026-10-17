@@ -19,6 +19,7 @@ import type {
   FinancialGoal,
 } from '../../types/user-profile.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { conversationDaysFor } from './conversation-days.js';
 import { queryProfileByLinkedIdentifier } from './firestore-linked-identifier.js';
 import {
   isValidUserProfile,
@@ -198,14 +199,12 @@ export class FirestoreStore extends MemoryStore {
 
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
-      const doc = await docRef.get();
+      const [doc, days] = await Promise.all([docRef.get(), conversationDaysFor(docRef)]);
 
-      if (!doc.exists) return null;
-
-      const data = doc.data();
+      const data = doc.exists ? doc.data() : undefined;
       if (!data) return null;
 
-      const hydrated = this.hydrateData(data);
+      const hydrated = Object.assign(this.hydrateData(data), days && { conversationDays: days });
       if (!isValidUserProfile(hydrated)) {
         // FIX: Enhanced logging with data sample for debugging data corruption
         getLogger().error(
@@ -232,7 +231,8 @@ export class FirestoreStore extends MemoryStore {
 
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(profile.id);
-      const serialized = this.serializeForFirestore(profile);
+      const { conversationDays: _days, ...stored } = profile; // read on every load, never stored
+      const serialized = this.serializeForFirestore(stored);
 
       await docRef.set(cleanForFirestore(serialized), { merge: true });
       getLogger().debug(`Saved profile: ${profile.id}`);

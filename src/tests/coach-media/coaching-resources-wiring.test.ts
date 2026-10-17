@@ -19,6 +19,20 @@ vi.mock('../../config/gemini-config.js', async (importOriginal) => ({
   getGeminiClient: async () => ({ models: { generateContent } }),
 }));
 
+const sendSMS = vi.fn(async () => 'SM1');
+vi.mock('../../services/communication-service.js', () => ({ sendSMS }));
+vi.mock('../../services/outreach/user-reach.js', () => ({
+  userReach: async () => ({ phone: '+14155550134' }),
+}));
+
+// No Firestore here: the card store hands back a link (its own tests cover the write).
+vi.mock('../../services/approvals/answer-cards.js', () => ({
+  createAnswerCard: async () => ({
+    id: 'c'.repeat(43),
+    url: `https://app.example/a/${'c'.repeat(43)}`,
+  }),
+}));
+
 const profile = { subscription: { tier: 'free' } };
 
 /** The first agent's tools for a call, capped like agent-setup.ts, with COACH_MEDIA as given. */
@@ -39,7 +53,8 @@ async function firstAgentTools(coachMedia: string): Promise<Record<string, unkno
 async function dispatch(
   session: object,
   toolCtx: Record<string, unknown>,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  name = 'findCoachingResources'
 ): Promise<string> {
   const dist = dirname(createRequire(import.meta.url).resolve('@livekit/agents'));
   const { performToolExecutions } = (await import(
@@ -51,7 +66,7 @@ async function dispatch(
   };
   const call = llm.FunctionCall.create({
     callId: `call-${Math.random()}`,
-    name: 'findCoachingResources',
+    name,
     args: JSON.stringify(args),
   });
   const [task, out] = performToolExecutions({
@@ -82,7 +97,9 @@ afterEach(() => {
 
 describe('findCoachingResources on the live path', () => {
   it('is not in a call’s tools with the flag off', async () => {
-    expect(Object.keys(await firstAgentTools(''))).not.toContain('findCoachingResources');
+    const names = Object.keys(await firstAgentTools(''));
+    expect(names).not.toContain('findCoachingResources');
+    expect(names).not.toContain('coachingPick');
   }, 60_000);
 
   it('is in a call’s tools with COACH_MEDIA=on and searches the topic, not the caller', async () => {
@@ -204,6 +221,10 @@ describe('findCoachingResources on the live path', () => {
       skipGreeting: true,
     });
     const session = { userData: { name: 'Seth Ford' }, currentAgent: agent };
+    // A live call registers the owner check (live-call-behaviors.ts); this caller is the owner.
+    const { outreachConfirmListeners } =
+      await import('../../tools/domains/communication/outreach/outreach-confirm.js');
+    outreachConfirmListeners(session, () => true);
     const output = await dispatch(session, agent.toolCtx as unknown as Record<string, unknown>, {
       topic: 'Seth shin splint stretches',
       format: 'video',
@@ -228,5 +249,25 @@ describe('findCoachingResources on the live path', () => {
     expect(output).not.toContain('https://');
     expect(output).toContain('Seven minutes, made for beginners.');
     expect(output).toContain('General info, not personal advice');
+
+    // They ask for it by text: the same call's pick goes to their verified number.
+    expect(Object.keys(tools)).toContain('coachingPick');
+    const toolCtx = agent.toolCtx as unknown as Record<string, unknown>;
+    vi.stubEnv('APPROVALS_PAGE', 'on');
+    const sent = await dispatch(session, toolCtx, { action: 'send_text' }, 'coachingPick');
+    expect(sent).toContain('Texted it');
+    expect(sendSMS).toHaveBeenCalledWith(
+      '+14155550134',
+      expect.stringMatching(
+        /https:\/\/www\.youtube\.com\/watch\?v=vid1\w* Why I picked it: https:\/\/app\.example\/a\/c{43}$/
+      )
+    );
+    // Another call has no pick to send.
+    const other = { userData: {}, currentAgent: agent };
+    outreachConfirmListeners(other, () => true);
+    expect(await dispatch(other, toolCtx, { action: 'send_text' }, 'coachingPick')).toContain(
+      'no checked pick'
+    );
+    expect(sendSMS).toHaveBeenCalledTimes(1);
   }, 60_000);
 });

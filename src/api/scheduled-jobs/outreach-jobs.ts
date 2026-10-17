@@ -229,7 +229,9 @@ export async function handleFamilyCheckinCalls(res: ServerResponse): Promise<voi
     log.info('Starting family check-in calls job (Cloud Scheduler)');
 
     const { runFamilyCheckinJob } = await import('../../services/family/family-checkin-caller.js');
-    const result = await runFamilyCheckinJob();
+    const { createFamilyConsentStore } =
+      await import('../../services/stores/family-call-consent-store.js');
+    const result = await runFamilyCheckinJob(createFamilyConsentStore());
     const durationMs = Date.now() - startTime;
 
     log.info({ ...result, durationMs }, 'Family check-in calls job completed');

@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "正在切换到{language}",
+    "seeYou": "下次见！",
+    "callVoicemail": "已给{name}留了语音信息",
+    "callNoAnswer": "没联系上{name}。要我晚点再试吗？",
+    "callFailed": "没能拨通{name}的电话",
+    "callBack": "{name}希望你回个电话",
+    "followUp": "{name}在等你的消息"
+  },
   "accessibility": {
     "accountMenu": "账户菜单",
     "accountSettings": "账户设置",
@@ -9468,11 +9477,15 @@
     "rememberEmpty": "这次没有需要记住的新内容。谢谢你的陪伴。",
     "nextStepTitle": "温和的下一步",
     "invitation": "随时回来，我会在这里。",
-    "close": "关闭"
+    "close": "关闭",
+    "seeCost": "这次通话的费用",
+    "feedbackQuestion": "这次聊得怎么样？",
+    "feedbackThanks": "谢谢，这很有帮助。"
   },
   "moments": {
     "teamUnlockTitle": "认识 {name}",
     "niceWork": "做得真棒",
+    "remembered": "我会记住：{summary}",
     "streakSubtitle": "你一直在坚持。这很重要。",
     "streakTitle": {
       "other": "连续 {count} 天",
@@ -11028,10 +11041,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

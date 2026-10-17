@@ -1,0 +1,113 @@
+/**
+ * One line in the turn reminder (withTurnReminder, no extra call) about a
+ * snore, whistle, hum or laugh Ferni did that isn't in his words
+ * (services/session/quirk-log.ts). A friend who mock-snored owns it when
+ * called on it ("ha, guilty, you went quiet and I got cozy") and doesn't
+ * narrate it. So: the most notable one, done since his last reply or brought
+ * up by the caller within a few minutes; never breaths, sighs or "mm-hm"s.
+ * Reading the caller's words here also marks a quirk as landed.
+ * QUIRK_AWARENESS=on.
+ *
+ * @module agents/personas/quirk-note
+ */
+
+import type { llm } from '@livekit/agents';
+import {
+  isNotable,
+  NOTABLE_QUIRKS,
+  quirkAwarenessEnabled,
+  quirkEvents,
+  type QuirkEvent,
+  type QuirkKind,
+} from '../../services/session/quirk-log.js';
+import { callerLaughed } from './turn-extras.js';
+
+/** How long after a quirk the caller can still bring it up and get the note. */
+export const ASK_WINDOW_MS = 3 * 60_000;
+
+/** The caller talking about it. Whole words only ("human" is not a hum). */
+const MENTIONS: Record<string, RegExp> = {
+  snore: /\b(?:snor\w*|asleep|fell asleep|falling asleep|dozed?|dozing|nap(?:ping)?|zzz+)\b/i,
+  whistle: /\b(?:whistl\w*|that tune|that song)\b/i,
+  hum: /\b(?:hum|humm\w*|hummed|that tune|that song)\b/i,
+  laugh: /\b(?:laugh\w*|chuckl\w*|giggl\w*)\b/i,
+};
+
+function what(e: QuirkEvent): string {
+  switch (e.kind) {
+    case 'snore':
+      return 'You let out a playful mock snore during the long quiet';
+    case 'whistle':
+      return 'You whistled a few bars to yourself in the quiet';
+    case 'hum':
+      return 'You hummed a little tune to yourself in the quiet';
+    default:
+      return e.source === 'director'
+        ? `You laughed out loud at the ${e.where === 'after' ? 'end' : 'start'} of a reply just now`
+        : 'You laughed along with them a moment ago';
+  }
+}
+
+/** When Ferni's last reply started: chat items carry their creation time. */
+function lastReplyAt(chatCtx: llm.ChatContext): number {
+  for (let i = chatCtx.items.length - 1; i >= 0; i--) {
+    const item = chatCtx.items[i];
+    if (item.type === 'message' && item.role === 'assistant') return item.createdAt;
+  }
+  return 0;
+}
+
+interface Candidate {
+  e: QuirkEvent;
+  asked: boolean;
+}
+
+/**
+ * Notable quirks this reply could mention: done since his last reply (`since`),
+ * or brought up by the caller within ASK_WINDOW_MS. Marks the ones that landed.
+ */
+function candidatesFor(
+  events: QuirkEvent[],
+  since: number,
+  words: string,
+  now: number
+): Candidate[] {
+  const laughed = callerLaughed(words);
+  const out: Candidate[] = [];
+  for (const e of events) {
+    if (!isNotable(e.kind) || now - e.at > ASK_WINDOW_MS) continue;
+    const fresh = e.at > since;
+    const asked = MENTIONS[e.kind].test(words);
+    if (asked) e.landed = 'mentioned';
+    else if (fresh && laughed && e.kind !== 'laugh' && !e.landed) e.landed = 'laughed';
+    if (fresh || asked) out.push({ e, asked });
+  }
+  return out;
+}
+
+/** What they're asking about first, then the most notable, then the latest. */
+const rank = (c: Candidate): number =>
+  (c.asked ? 0 : 10) + NOTABLE_QUIRKS.indexOf(c.e.kind as QuirkKind);
+
+/**
+ * The note for this reply, or '' (flag off, nothing notable since his last
+ * reply, nothing the caller is asking about). `words` are the caller's words
+ * this reply answers.
+ */
+export function quirkTurnNote(
+  sessionId: string | undefined,
+  chatCtx: llm.ChatContext,
+  words: string,
+  now: number = Date.now(),
+  env: Record<string, string | undefined> = process.env
+): string {
+  if (!quirkAwarenessEnabled(env)) return '';
+  const candidates = candidatesFor(quirkEvents(sessionId), lastReplyAt(chatCtx), words, now);
+  if (candidates.length === 0) return '';
+  const { e, asked } = candidates.sort((a, b) => rank(a) - rank(b) || b.e.at - a.e.at)[0];
+  const why = e.reason ? ` (${e.reason})` : '';
+  const tail = asked
+    ? "They seem to be asking about it: own it playfully, say why if they want to know, and don't deny it or explain it away."
+    : "If they bring it up, own it playfully; don't announce it yourself.";
+  return `[${what(e)}${why}. ${tail}]`;
+}

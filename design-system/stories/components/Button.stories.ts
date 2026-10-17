@@ -5,7 +5,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/html';
-import { within, userEvent, expect } from '@storybook/test';
+import { within, userEvent, expect } from 'storybook/test';
 
 interface ButtonProps {
   label: string;
