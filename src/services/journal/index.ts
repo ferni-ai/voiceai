@@ -31,15 +31,14 @@ const log = createLogger({ module: 'JournalService' });
 // UNIFIED ENTRY TYPES
 // ============================================================================
 
-/**
- * Source system for journal entries
- */
+/** Source system for journal entries */
 export type JournalSource =
   | 'digital_twin' // Custom Agent Memory API
   | 'productivity' // ProductivityStore
   | 'auto_capture' // Auto-captured moments
   | 'quick_note' // Quick voice notes
-  | 'trust_analytics'; // Trust system recordings
+  | 'trust_analytics' // Trust system recordings
+  | 'call'; // Saved during a voice call (CALL_JOURNAL)
 
 /**
  * Unified journal entry that works across all storage systems
@@ -272,6 +271,7 @@ class JournalService {
       auto_capture: 0,
       quick_note: 0,
       trust_analytics: 0,
+      call: 0,
     };
     entries.forEach((e) => {
       entriesBySource[e.source]++;
