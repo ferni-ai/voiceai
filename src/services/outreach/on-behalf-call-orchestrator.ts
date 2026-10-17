@@ -355,10 +355,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       // The agent will read this metadata and behave as an outbound caller
       await agentDispatch.createDispatch(roomName, agentName, {
         metadata: JSON.stringify(
-          signOnBehalfDispatch(
-            onBehalfDispatchFor(callId, request, script),
-            this.config.livekitApiSecret
-          )
+          signOnBehalfDispatch(onBehalfDispatchFor(callId, request, script))
         ),
       });
 
