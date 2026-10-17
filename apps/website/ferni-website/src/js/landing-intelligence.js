@@ -210,8 +210,9 @@
       }
     }
 
-    // Apply visual mode
-    if (content.visualMode === 'dark') {
+    // Apply visual mode. The server sends 'dark' for late night too, so a light
+    // system still gets the paper page (see the time-aware check above).
+    if (content.visualMode === 'dark' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       document.body.classList.add('theme--dark', 'time-mode--night');
     }
 

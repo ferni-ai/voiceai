@@ -122,6 +122,23 @@ test.describe('Night Ink website', () => {
     expect(colors.button).toBeGreaterThan(4.5);
   });
 
+  // The late-night time mode used to darken light-mode pages between 00:00 and
+  // 05:00 local time. CI runs in UTC, so pin the clock to 01:05 UTC.
+  test.describe('late night', () => {
+    test.use({ timezoneId: 'UTC' });
+
+    test('system light stays on paper at 01:05 UTC', async ({ page }) => {
+      await page.clock.setFixedTime(new Date('2026-10-17T01:05:00Z'));
+      await page.emulateMedia({ colorScheme: 'light' });
+      await page.goto(SITE);
+      const colors = await readPage(page);
+
+      expect(colors.bodyBg).not.toBe('rgb(20, 17, 14)');
+      expect(colors.headline).toBeGreaterThan(4.5);
+      expect(colors.button).toBeGreaterThan(4.5);
+    });
+  });
+
   test('blog keeps the same Night Ink sheet', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     const response = await page.goto(`${SITE}/blog/`);
