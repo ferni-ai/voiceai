@@ -38,6 +38,9 @@ test('flag on: "Talk to Ferni now" leads, above sign-in, and fits a phone', asyn
   const talk = page.getByRole('button', { name: 'Talk to Ferni now' });
   await expect(talk).toBeVisible();
   await expect(page.getByText('No account needed. Just say hello.')).toBeVisible();
+  await expect(
+    page.getByText('Say hello first. Sign in whenever you want to keep the conversation.')
+  ).toBeVisible();
 
   const talkBox = (await talk.boundingBox())!;
   const googleBox = (await page.locator('[data-provider="google"]').boundingBox())!;
@@ -50,10 +53,13 @@ test('flag on: "Talk to Ferni now" leads, above sign-in, and fits a phone', asyn
   if (shot) await page.screenshot({ path: shot });
 });
 
-test('flag on: the button asks /demo-token for a room, and a used-up day says so', async ({ page }) => {
+test('flag on: the button asks /demo-token for a room, and a used-up day says so', async ({
+  page,
+}) => {
   // Headless CI has no microphone: hand the page a silent stream instead.
   await page.addInitScript(() => {
-    navigator.mediaDevices.getUserMedia = async () => new AudioContext().createMediaStreamDestination().stream;
+    navigator.mediaDevices.getUserMedia = async () =>
+      new AudioContext().createMediaStreamDestination().stream;
   });
   const asked: string[] = [];
   await page.route('**/demo-token**', async (route) => {
@@ -67,7 +73,9 @@ test('flag on: the button asks /demo-token for a room, and a used-up day says so
   await openGate(page, 'true');
   await page.getByRole('button', { name: 'Talk to Ferni now' }).click();
 
-  await expect(page.getByText("That's all the free calls for today. Sign in to keep talking.")).toBeVisible();
+  await expect(
+    page.getByText("That's all the free calls for today. Sign in to keep talking.")
+  ).toBeVisible();
   expect(asked).toEqual(['?persona_id=ferni']);
   await expect(page.getByRole('button', { name: 'Talk to Ferni now' })).toBeHidden();
   await expect(page.locator('[data-provider="google"]')).toBeVisible();

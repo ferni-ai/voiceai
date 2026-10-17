@@ -6,7 +6,8 @@
  * call. When it ends, however it ends (hang-up, Ferni leaving, the demo time
  * limit), the gate asks "Want to keep this conversation?" above its own Google
  * and Apple buttons; signing in then claims the call through
- * demo-claim.service.ts on app start.
+ * demo-claim.service.ts on app start. Signing in (here or in another tab)
+ * ends a call still running, since the gate is about to go away.
  *
  * Flag off: no elements, and the gate is unchanged.
  *
@@ -14,6 +15,7 @@
  */
 
 import { isTryFirstEnabled } from '../config/try-first-flag.js';
+import { onAuthStateChange } from '../services/firebase-auth.service.js';
 import { t } from '../i18n/index.js';
 import { DemoCallError, startDemoCall, type DemoCall } from '../services/demo-call.service.js';
 import { createLogger } from '../utils/logger.js';
@@ -35,10 +37,10 @@ const STYLES = `
 .try-first-btn--end { background: transparent; color: var(--color-text-primary);
   border: 1px solid var(--color-border-medium); }
 .try-first-btn--end:hover, .try-first-btn--end:focus-visible { background: var(--color-bg-secondary); }
-.try-first-note, .try-first-status, .try-first-keep-message { margin: 0; font-size: 0.875rem; line-height: 1.5;
+.try-first-note, .try-first-status, .try-first-keep-message { margin: 0; font-size: var(--text-sm); line-height: 1.5;
   color: var(--color-text-secondary); }
-.try-first-status:empty, .try-first-keep { display: none; }
-.try-first-keep-title { margin: 0 0 var(--space-xs); font-size: 1.25rem; font-weight: 600;
+.try-first-status:empty, .try-first-keep, .try-first-hear[hidden] { display: none; }
+.try-first-keep-title { margin: 0 0 var(--space-xs); font-size: var(--text-xl); font-weight: 600;
   color: var(--color-text-primary); }
 ${GATE}[data-try-first='connecting'] .sign-in-gate-btn:not(.try-first-btn),
 ${GATE}[data-try-first='in-call'] .sign-in-gate-btn:not(.try-first-btn),
@@ -77,6 +79,7 @@ function element<K extends keyof HTMLElementTagNameMap>(
 function failureCopy(error: unknown): string {
   if (!(error instanceof DemoCallError)) return t('tryFirst.unavailable');
   if (error.failure === 'used_up') return t('tryFirst.usedUp');
+  if (error.failure === 'cooldown') return t('tryFirst.cooldown');
   if (error.failure === 'mic_blocked') return t('tryFirst.micBlocked');
   return t('tryFirst.unavailable');
 }
@@ -98,9 +101,24 @@ export function tryFirstButtons(deps: TryFirstDeps = {}): HTMLElement[] {
   const keepTitle = element('h2', 'try-first-keep-title', t('tryFirst.keepTitle'));
   keepTitle.tabIndex = -1;
   keep.append(keepTitle, element('p', 'try-first-keep-message', t('tryFirst.keepMessage')));
-  block.append(keep, button, note, status);
+  const hear = element(
+    'button',
+    'sign-in-gate-btn try-first-btn try-first-hear',
+    t('speakerCues.tapToHear')
+  );
+  hear.type = 'button';
+  hear.dataset.provider = 'try-first-hear';
+  hear.hidden = true;
+  block.append(keep, button, hear, note, status);
+  // The gate adds this block to the page right after building it; the subtitle is there by then.
+  queueMicrotask(() => {
+    const subtitle = block.closest(GATE)?.querySelector('.sign-in-gate-subtitle');
+    if (subtitle) subtitle.textContent = t('tryFirst.subtitle');
+  });
 
   let call: DemoCall | null = null;
+  let signedIn = false;
+  let unsubscribeAuth: (() => void) | null = null;
   const setPhase = (phase: Phase): void => {
     const gate = block.closest<HTMLElement>(GATE);
     if (gate) gate.dataset.tryFirst = phase;
@@ -109,12 +127,21 @@ export function tryFirstButtons(deps: TryFirstDeps = {}): HTMLElement[] {
     if (phase === 'connecting') button.textContent = t('tryFirst.connecting');
     else if (phase === 'in-call') button.textContent = t('tryFirst.endCall');
     else button.textContent = t('tryFirst.talkNow');
+    if (phase !== 'in-call') hear.hidden = true;
     if (phase === 'ended') keepTitle.focus();
+  };
+  const watchSignIn = (): void => {
+    unsubscribeAuth ??= onAuthStateChange((state) => {
+      if (!state.isAuthenticated) return;
+      signedIn = true;
+      call?.end();
+    });
   };
 
   const begin = async (): Promise<void> => {
     status.textContent = '';
     setPhase('connecting');
+    watchSignIn();
     try {
       call = await startCall();
     } catch (error) {
@@ -125,16 +152,29 @@ export function tryFirstButtons(deps: TryFirstDeps = {}): HTMLElement[] {
     }
     status.textContent = t('tryFirst.inCall');
     setPhase('in-call');
+    call.onPlaybackBlocked((blocked) => {
+      hear.hidden = !blocked;
+    });
     void call.ended.then(() => {
       call = null;
       status.textContent = '';
       setPhase('ended');
     });
+    if (signedIn) call.end();
   };
 
   button.addEventListener('click', () => {
     if (call) call.end();
     else void begin();
+  });
+  hear.addEventListener('click', () => {
+    void call?.resumeAudio().then(
+      () => {
+        hear.hidden = true;
+      },
+      (error: unknown) =>
+        log.warn('Audio still blocked after tap to hear', { error: String(error) })
+    );
   });
   return [block];
 }
