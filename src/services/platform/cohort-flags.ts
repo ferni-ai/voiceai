@@ -59,6 +59,13 @@ export const COHORT_FLAGS = [
   'BARGE_IN_ACK_WORDS',
   'FRIEND_FOLLOWUPS',
   'INSIDE_JOKES',
+  // Persona flags, read at agent build, a handoff, a turn or a TTS reply, never cached
+  // across calls. The system prompt (FERNI_PERSONA_SLIP_GUARD) loads after
+  // applyCallerFlags: loadCallerPrompt (voice-agent-entry/persona-builder.ts).
+  'HANDOFF_FULL_TOOLS',
+  'TEAM_VOICES',
+  'FERNI_PERSONA_SLIP_GUARD',
+  'DIRECTOR_PERSONA_AWARE',
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
 ] as const;
