@@ -27,6 +27,9 @@ export const BANNED: ReadonlyArray<{ id: string; pattern: RegExp }> = [
   { id: 'under 500ms', pattern: /\b(responds|replies|answers) in under\b|\bunder 500 ?ms\b/i },
   { id: 'tool domain count', pattern: /\b\d+ tool domains\b/i },
   { id: 'capability count', pattern: /\b\d+\+ (superhuman )?capabilities\b/i },
+  { id: 'gdpr compliant', pattern: /\bGDPR compliant\b/i },
+  { id: 'sso saml', pattern: /\bSSO\/SAML\b/ },
+  { id: 'data residency', pattern: /\bdata residency\b/i },
 ];
 
 /** File (relative to SITE_SRC) and phrase id that may stay, with the reason. */
