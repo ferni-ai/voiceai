@@ -309,4 +309,18 @@ describe('liveKitDemoRoom', () => {
     expect(umd.localParticipant.setMicrophoneEnabled).toHaveBeenCalledWith(true);
     call.end();
   });
+
+  it('keeps the call when the browser refuses playback, so the tap button can show', async () => {
+    const umd = stubUmdRoom();
+    umd.remoteParticipants.set('agent-1', { identity: 'agent-1', isAgent: true });
+    umd.startAudio = vi.fn(async () => Promise.reject(new Error('NotAllowedError')));
+    const call = await startDemoCall({
+      fetchFn: respond(200, demoBody),
+      createRoom: () => liveKitDemoRoom(() => umd),
+      requestMicrophone: noMic,
+    });
+    expect(umd.localParticipant.setMicrophoneEnabled).toHaveBeenCalledWith(true);
+    expect(umd.disconnect).not.toHaveBeenCalled();
+    call.end();
+  });
 });

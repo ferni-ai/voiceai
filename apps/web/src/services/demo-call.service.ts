@@ -128,8 +128,11 @@ export function liveKitDemoRoom(makeRoom: () => UmdRoom = umdRoom): DemoRoom {
   return {
     connect: (url, token) => room.connect(url, token),
     enableMicrophone: async () => {
-      await room.startAudio();
       await room.localParticipant.setMicrophoneEnabled(true);
+      // Safari can refuse playback once the tap is spent; canPlaybackAudio then shows "Tap to hear".
+      await room.startAudio().catch((error: unknown) => {
+        log.warn('Audio playback blocked until a tap', { error: String(error) });
+      });
     },
     waitForAgent: async (timeoutMs) => {
       await waitForAgent(room, timeoutMs);

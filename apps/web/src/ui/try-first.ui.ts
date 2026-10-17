@@ -135,7 +135,12 @@ export function tryFirstButtons(deps: TryFirstDeps = {}): HTMLElement[] {
       if (!state.isAuthenticated) return;
       signedIn = true;
       call?.end();
+      stopWatching();
     });
+  };
+  const stopWatching = (): void => {
+    unsubscribeAuth?.();
+    unsubscribeAuth = null;
   };
 
   const begin = async (): Promise<void> => {
@@ -146,6 +151,7 @@ export function tryFirstButtons(deps: TryFirstDeps = {}): HTMLElement[] {
       call = await startCall();
     } catch (error) {
       log.warn('Demo call did not start', { error: String(error) });
+      stopWatching();
       status.textContent = failureCopy(error);
       setPhase(error instanceof DemoCallError && error.failure === 'used_up' ? 'used-up' : 'idle');
       return;
@@ -157,6 +163,7 @@ export function tryFirstButtons(deps: TryFirstDeps = {}): HTMLElement[] {
     });
     void call.ended.then(() => {
       call = null;
+      stopWatching();
       status.textContent = '';
       setPhase('ended');
     });
