@@ -230,6 +230,8 @@ export const FLAG_MANIFEST = {
   LIFE_LEDGER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIFE_MOVES_ON: { default: 'off', owner: 'voice', kind: 'experiment' },
   LISTEN_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a reply's "I'm here if you want to vent" / "safe space" clause is dropped (listen-offer.ts)
+  LISTEN_OFFER_STRIP: { default: 'off', owner: 'voice', kind: 'experiment' },
   // the look-up rule rides the two replies after a live-data question (turn-shape.ts)
   LIVE_DATA_CARRYOVER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIVE_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },

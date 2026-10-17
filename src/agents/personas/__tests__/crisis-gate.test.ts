@@ -433,3 +433,36 @@ describe('the caller name in a reply (name-gate.ts)', () => {
     expect(out.join('')).toBe("Yes, I'm sure. That's rough.");
   });
 });
+
+describe('a listen offer in a reply (listen-offer.ts)', () => {
+  const PROD =
+    "Sounds like a lot… I'm right here if you want to vent, or if you just need a quiet space to decompress.";
+  const replyTo = async (said: string, env: Record<string, string>) => {
+    const model = vi.fn(async () => streamOf(['Sounds like a lot… ', PROD.slice(19)], 5));
+    return (
+      await collect(
+        (await gatedReply(
+          request(['user', said]),
+          { userData: undefined },
+          model as never,
+          new OpenerGate(3),
+          {
+            env,
+          }
+        )) as never
+      )
+    ).join('');
+  };
+
+  it('drops it with LISTEN_OFFER_STRIP=on and keeps the rest', async () => {
+    expect(await replyTo('Work was rough.', { ...PATTERNS_ONLY, LISTEN_OFFER_STRIP: 'on' })).toBe(
+      'Sounds like a lot…'
+    );
+    expect(await replyTo('Work was rough.', PATTERNS_ONLY)).toBe(PROD);
+  });
+
+  it('leaves a reply asked with crisis guidance as written', async () => {
+    const env = { ...PATTERNS_ONLY, LISTEN_OFFER_STRIP: 'on' };
+    expect(await replyTo("I hope I don't wake up tomorrow", env)).toBe(PROD);
+  });
+});

@@ -49,6 +49,7 @@ import {
 import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
 import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
+import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { getDeliberator } from './deliberation.js';
 import { noteTurn } from './move-log.js';
@@ -319,9 +320,11 @@ export async function gatedReply(
   const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
   const ask = async (
     request: llm.ChatContext,
-    mayBurst = burst
+    mayBurst = burst,
+    guided = gate?.decision.action === 'guide'
   ): Promise<ReadableStream<Chunk> | null> => {
-    const stream = tapToolCalls(await model(request), session);
+    // LISTEN_OFFER_STRIP: no "I'm here if you want to vent" (listen-offer.ts); never with crisis guidance.
+    const stream = withoutListenOffer(tapToolCalls(await model(request), session), { guided, env });
     if (!stream) return stream;
     const opened =
       env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound, mayBurst) : stream;
@@ -342,7 +345,8 @@ export async function gatedReply(
     if (decision.action === 'pass') return null;
     return ask(
       withTurnStyleReminder(plain(), decision.guidance),
-      burst === undefined ? undefined : false
+      burst === undefined ? undefined : false,
+      true
     );
   });
 }
