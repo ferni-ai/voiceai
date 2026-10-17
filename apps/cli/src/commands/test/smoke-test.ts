@@ -78,12 +78,14 @@ async function testHealthEndpoint(): Promise<void> {
 async function testAgentsEndpoint(): Promise<void> {
   const response = await fetchWithTimeout(`${BASE_URL}/api/agents`);
   if (!response.ok) throw new Error(`Agents endpoint failed: ${response.status}`);
-  const data = await response.json();
+  // The endpoint answers { agents: [...] }; older builds sent the bare array
+  const body = (await response.json()) as { agents?: unknown } | unknown[];
+  const data = Array.isArray(body) ? body : body.agents;
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error('No agents returned');
   }
   // Verify required agent exists
-  const ferni = data.find((a: { id: string }) => a.id === 'ferni');
+  const ferni = (data as { id: string }[]).find((a) => a.id === 'ferni');
   if (!ferni) throw new Error('Ferni agent not found');
 }
 

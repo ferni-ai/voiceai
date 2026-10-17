@@ -50,36 +50,16 @@ jobs:
 
           echo "has_access=true" >> $GITHUB_OUTPUT
 
-          # Get Cloud Run costs specifically
-          CLOUD_RUN_COST=$(gcloud run services list \
-            --format="table(SERVICE,REGION)" \
-            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null | wc -l || echo "0")
-
-          echo "Active Cloud Run services: $CLOUD_RUN_COST"
-
-          # For now, estimate based on instance count
-          # Real implementation would query BigQuery billing export
-          # Voice agent runs on GCE (voiceai-agent-gce), not Cloud Run
-          VOICE_INSTANCES=$(gcloud compute instances describe voiceai-agent-gce \
-            --zone=us-central1-a \
-            --format="value(status)" \
-            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo "UNKNOWN")
-
-          UI_INSTANCES=$(gcloud run services describe john-bogle-ui \
-            --region=us-central1 \
-            --format="value(status.traffic[0].percent)" \
-            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo "0")
-
-          echo "voice_traffic=$VOICE_INSTANCES" >> $GITHUB_OUTPUT
-          echo "ui_traffic=$UI_INSTANCES" >> $GITHUB_OUTPUT
-
-          # Placeholder - in production, query BigQuery billing export
-          echo "daily_cost=25" >> $GITHUB_OUTPUT
-          echo "Note: For accurate costs, set up BigQuery billing export"
+          # There is no cost source yet: no BigQuery billing export is set up. This
+          # step used to print a hard-coded daily_cost=25, so the check below could
+          # never fire. Until an export exists, say plainly that the cost is unknown.
+          # The real alarms today are the GCP budgets (Billing > Budgets & alerts).
+          echo "daily_cost=unknown" >> $GITHUB_OUTPUT
+          echo "::warning title=No cost data::Daily cost is unknown: set up the BigQuery billing export, then query it here. GCP budget alerts are the only live cost alarm."
 
       - name: Check thresholds
         id: check
-        if: steps.costs.outputs.has_access == 'true'
+        if: steps.costs.outputs.has_access == 'true' && steps.costs.outputs.daily_cost != 'unknown'
         run: |
           COST=${{ steps.costs.outputs.daily_cost }}
           ALERT=${{ env.ALERT_THRESHOLD }}
@@ -122,9 +102,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Estimated Daily Cost | \$${{ steps.costs.outputs.daily_cost }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Daily Cost | ${{ steps.costs.outputs.daily_cost }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Alert Threshold | \$${{ env.ALERT_THRESHOLD }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Voice Agent Traffic | ${{ steps.costs.outputs.voice_traffic }}% |" >> $GITHUB_STEP_SUMMARY
-          echo "| UI Server Traffic | ${{ steps.costs.outputs.ui_traffic }}% |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "_For accurate billing, set up [BigQuery billing export](https://cloud.google.com/billing/docs/how-to/export-data-bigquery)_" >> $GITHUB_STEP_SUMMARY
