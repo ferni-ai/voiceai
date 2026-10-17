@@ -10,9 +10,10 @@ import { initializeLogger, llm, voice } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { honestLine, withActionClaimCheck } from '../action-claim-guard.js';
+import { actionInPlay, honestLine, withActionClaimCheck } from '../action-claim-guard.js';
 import { callActions, claimedAction, kindsOfTool, type ActionKind } from '../action-claims.js';
 import { PersonaVoiceAgent } from '../ferni-agent.js';
+import { withTurnStyleReminder } from '../turn-style.js';
 
 initializeLogger({ pretty: false, level: 'warn' });
 
@@ -314,8 +315,13 @@ const CLAIM = [
   ' him right now. ',
   "I'll let you know as soon as I get ahold of him.",
 ];
-const check = (stream: ReadableStream<llm.ChatChunk>, items: unknown[], tools = toolsWith()) =>
-  withActionClaimCheck(Promise.resolve(stream), ctx(...items), tools, {});
+const STREAM = { ACTION_CLAIM_STREAM: 'on' };
+const check = (
+  stream: ReadableStream<llm.ChatChunk>,
+  items: unknown[],
+  tools = toolsWith(),
+  env: Record<string, string> = STREAM
+) => withActionClaimCheck(Promise.resolve(stream), ctx(...items), tools, env);
 
 describe('withActionClaimCheck', () => {
   it('no call tool: the claim is dropped and Ferni says he cannot make calls', async () => {
@@ -364,7 +370,11 @@ describe('withActionClaimCheck', () => {
     ];
     expect(await textOf(await check(streamOf(...readBack), items, tools))).toBe(readBack.join(''));
     const yes = await chunksOf(
-      await check(streamOf('Great, sending it now. ', toolCall('quickText')), items, tools)
+      await check(
+        streamOf('Great, sending it now. ', toolCall('quickText')),
+        [...items, said(readBack.join('')), user('Yes.')],
+        tools
+      )
     );
     expect(yes[0].delta?.content).toBe('Great, sending it now. ');
     expect(yes[1].delta?.toolCalls?.[0].name).toBe('quickText');
@@ -424,12 +434,360 @@ describe('withActionClaimCheck', () => {
     expect(await textOf(await check(streamOf(...parts), [ASK]))).toBe(parts.join(''));
   });
 
-  it('ACTION_CLAIM_GUARD=off returns the very same stream', async () => {
+  it('ACTION_CLAIM_GUARD=off (and the announced-check log off) returns the very same stream', async () => {
     const stream = streamOf(...CLAIM);
-    const off = { ACTION_CLAIM_GUARD: 'off' };
+    const off = { ACTION_CLAIM_GUARD: 'off', ANNOUNCED_CHECK_LOG: 'off' };
     expect(await withActionClaimCheck(Promise.resolve(stream), ctx(ASK), toolsWith(), off)).toBe(
       stream
     );
+  });
+});
+
+/** A model stream that has sent these chunks and is still open: nothing after them is known yet. */
+function openStreamOf(...parts: string[]): ReadableStream<llm.ChatChunk> {
+  return new ReadableStream({
+    start(c) {
+      for (const p of parts) c.enqueue(chunk(p));
+    },
+  });
+}
+async function firstOut(stream: ReadableStream<llm.ChatChunk>): Promise<string | undefined> {
+  const reader = stream.getReader();
+  const next = await Promise.race([
+    reader.read(),
+    new Promise<'held'>((resolve) => setTimeout(() => resolve('held'), 50)),
+  ]);
+  void reader.cancel();
+  return next === 'held' ? undefined : (next.value?.delta?.content ?? undefined);
+}
+
+describe('no hold at the head of the reply (dev latency, increment 3)', () => {
+  const SMALL_TALK = [user('I had a long day.'), said('Oh no.'), user('Work kept piling it on.')];
+
+  it('an action is in play when the caller asked for one lately or an action tool ran', () => {
+    expect(actionInPlay(ctx(ASK))).toBe(true);
+    expect(actionInPlay(ctx(user('Remind me to call the dentist.')))).toBe(true);
+    expect(actionInPlay(ctx(user('Text my sister I am late.')))).toBe(true);
+    expect(actionInPlay(ctx(user('Okay so are you calling him now?')))).toBe(true);
+    expect(actionInPlay(ctx(user('Hi'), result('quickText', '"Sent."'), user('Thanks')))).toBe(
+      true
+    );
+    expect(actionInPlay(ctx(...SMALL_TALK))).toBe(false);
+    const later = ['ok', 'anyway', 'my day was long', 'yeah', 'the dog', 'mm', 'right'].map((t) =>
+      user(t)
+    );
+    expect(actionInPlay(ctx(ASK, ...later.slice(0, 5)))).toBe(true);
+    expect(actionInPlay(ctx(ASK, ...later))).toBe(false);
+    for (const ask of [
+      'Give my brother a buzz.',
+      'Can you get hold of my mom?',
+      'Hit up Dave for me.',
+      'FaceTime my dad.',
+      'WhatsApp my wife.',
+      'Get my mom on the line.',
+      'Tell Dave I am late.',
+      'Wake me up at seven.',
+      'Jot that down.',
+      'Set up a meeting with Sam.',
+      'cal my mom',
+      'tex my sister',
+      'Llama a mi mamá.',
+      'Appelle ma mère.',
+      'Can you connect me with my mom?',
+      'Could you get my mom for me?',
+      'Put me through to my mom.',
+      'I want to talk to my mom.',
+      'Loop in my sister.',
+      'Holler at my brother.',
+      'Ask my sister to pick me up.',
+      'Can you get in touch with my mom?',
+      'Could you give my mom a shout?',
+      'Give my brother a bell.',
+      'Patch me through to my sister.',
+      'Can you notify my sister?',
+      'Drop my mom a line.',
+      'Can you check in on my mom for me?',
+      'Video chat my sister.',
+      'Can you hook me up with my brother?',
+      'Order me a pizza.',
+      'Can you buy me tickets?',
+      'Get me an ambulance.',
+      'Can you order a taxi?',
+      'Can you pay my bill?',
+    ])
+      expect([ask, actionInPlay(ctx(user(ask)))]).toEqual([ask, true]);
+    // Speech-to-text capitalises each sentence, so a request or emergency holds at the start too
+    for (const ask of [
+      'Can you get the vet?',
+      'Please get the vet.',
+      "Can you help me? I can't breathe.",
+      'Get help!',
+      'Help me, I fell.',
+      'I need help, my chest hurts.',
+      'I think it is a heart attack.',
+      "I can't breathe.",
+      'Someone is breaking in.',
+      'She is bleeding a lot.',
+      'He took an overdose.',
+      'I keep thinking about suicide.',
+      'My boss kept piling it on.',
+      'Her phone is off.',
+    ])
+      expect([ask, actionInPlay(ctx(user(ask)))]).toEqual([ask, true]);
+    // Ferni offered to act, so the caller's yes is the ask
+    for (const offer of [
+      'Should I text your sister?',
+      'Want me to book a table?',
+      'Shall I call her for you?',
+      'I can send that to him now if you like.',
+      'Would you like me to set a reminder?',
+    ])
+      for (const yes of ['Yes.', 'Do it.', 'Sure, go for it.'])
+        expect([offer, yes, actionInPlay(ctx(said(offer), user(yes)))]).toEqual([offer, yes, true]);
+    // Verifier round 5: more emergencies, asks and offer wordings
+    for (const ask of [
+      "He's not breathing!",
+      'She collapsed.',
+      'He passed out.',
+      'She is unconscious',
+      "i think he's having a stroke",
+      "she's choking",
+      "he's having a seizure",
+      "There's a fire!",
+      "i've been in a car accident",
+      "he's got a gun",
+      'i need the cops',
+      'I want to kill myself.',
+      "I don't want to live anymore.",
+      'i want to end it all',
+      'ayuda',
+      'I can\u2019t breathe.',
+      'can not breathe',
+      'Get me a cab.',
+      'Find me a cab.',
+      'I need a ride to the airport.',
+      'Get us a table.',
+      'Sort me out a table for two.',
+      'Get me in at the dentist.',
+      'Notify the landlord.',
+    ])
+      expect([ask, actionInPlay(ctx(user(ask)))]).toEqual([ask, true]);
+    for (const offer of [
+      'Want me to set that up?',
+      'Can I call her for you?',
+      'Is it okay if I call her?',
+      'Mind if I text her?',
+      'How about I text her?',
+      'Happy to text her if you like.',
+      'Do you need me to call someone?',
+      "Say the word and I'll call her.",
+      "I'll text her if you want.",
+      'Want me to get you a cab?',
+      'Should I get you a table?',
+      'Shall I get an ambulance?',
+      'Want me to get help?',
+      'I can sort that out for you.',
+    ])
+      expect([offer, actionInPlay(ctx(said(offer), user('Go on then.')))]).toEqual([offer, true]);
+    for (const bare of [
+      'Want me to do that?',
+      'Should I go ahead?',
+      'Want me to handle it?',
+      'Should I?',
+    ])
+      expect([
+        bare,
+        actionInPlay(ctx(said('Your sister would love a message.'), said(bare), user('Yes.'))),
+      ]).toEqual([bare, true]);
+    // An offer with no action in it doesn't hold
+    expect(actionInPlay(ctx(said('Want me to keep going?'), user('Yes.')))).toBe(false);
+    expect(actionInPlay(ctx(user('Tell me something interesting.')))).toBe(false);
+    expect(actionInPlay(ctx(user("Hey Ferni, how's it going?")))).toBe(false);
+    expect(actionInPlay(ctx(user('How was it?'), said("That's on this call, so I'm here.")))).toBe(
+      false
+    );
+    expect(actionInPlay(ctx(result('getWeather', '"Sunny."')))).toBe(false);
+  });
+
+  it("reads only the caller's spoken words, never the turn reminder after them", () => {
+    const chat = llm.ChatContext.empty();
+    chat.addMessage({ role: 'user', content: 'Work kept piling it on.' });
+    const reminded = withTurnStyleReminder(chat);
+    expect(JSON.stringify(reminded.items)).toMatch(/on a call/);
+    expect(actionInPlay(reminded)).toBe(false);
+    chat.addMessage({ role: 'user', content: 'Can you text my sister?' });
+    expect(actionInPlay(withTurnStyleReminder(chat))).toBe(true);
+  });
+
+  it('with no action in play, each chunk goes out as it comes, before the sentence ends', async () => {
+    const out = await check(openStreamOf('Oh,'), SMALL_TALK);
+    expect(await firstOut(out)).toBe('Oh,');
+  });
+
+  it('ACTION_CLAIM_STREAM off (the default): small talk holds and a claim is never spoken', async () => {
+    expect(await firstOut(await check(openStreamOf('Oh,'), SMALL_TALK, toolsWith(), {}))).toBe(
+      undefined
+    );
+    const parts = ["I've texted her for you. ", 'Anything else?'];
+    expect(await textOf(await check(streamOf(...parts), SMALL_TALK, toolsWith(), {}))).toBe(
+      "I can't actually send messages for you, so nothing's gone out. I can help you word it, though. Anything else?"
+    );
+  });
+
+  it('with no action in play, the words come out exactly as the model wrote them', async () => {
+    const parts = ['Hey', "! It's going really well,", ' thanks for asking. How are', ' you?'];
+    expect(await textOf(await check(streamOf(...parts), SMALL_TALK))).toBe(parts.join(''));
+  });
+
+  it('with no action in play, a claim is corrected straight after it, between sentences', async () => {
+    const parts = ["I've texted her for you. ", 'Anything else?'];
+    expect(await textOf(await check(streamOf(...parts), SMALL_TALK))).toBe(
+      "I've texted her for you. Scratch that, I can't actually send messages for you, so nothing's gone out. I can help you word it, though. Anything else?"
+    );
+  });
+
+  it('with no action in play, a correction never lands inside a word', async () => {
+    const parts = ["I'm calling her now. Sh", "e'll be glad to hear from you."];
+    expect(await textOf(await check(streamOf(...parts), SMALL_TALK))).toBe(
+      "I'm calling her now. Scratch that, I can't actually make calls for you, so I haven't rung anyone. I can help you work out what to say, though. She'll be glad to hear from you."
+    );
+  });
+
+  it('with no action in play, words after a tool call mid-reply come through intact', async () => {
+    const stream = streamOf(
+      'Let me look',
+      toolCall('searchMemory'),
+      ' that up for you. ',
+      'Here it is.'
+    );
+    const out = await chunksOf(await check(stream, SMALL_TALK, toolsWith('searchMemory')));
+    expect(out.map((c) => c.delta?.content ?? '').join('')).toBe(
+      'Let me look that up for you. Here it is.'
+    );
+    expect(out.findIndex((c) => c.delta?.toolCalls?.length)).toBe(1);
+    const claim = streamOf('Okay, so', toolCall('searchMemory'), " I'm calling her now. Bye.");
+    expect(await textOf(await check(claim, SMALL_TALK, toolsWith('searchMemory')))).toBe(
+      "Okay, so I'm calling her now. Scratch that, I can't actually make calls for you, so I haven't rung anyone. I can help you work out what to say, though. Bye."
+    );
+  });
+
+  it.each([
+    [['Let me ring her at 5.', '30 right now.']],
+    [['Let me dial 555.', '867.5309 right now.']],
+    [["I'll call 555.", '867.5309 now.']],
+  ])('with an action in play, a claim with a number in it is never spoken: %j', async (parts) => {
+    expect(await textOf(await check(streamOf(...parts), [ASK]))).toBe(
+      "I can't actually make calls for you, so I haven't rung anyone. I can help you work out what to say, though."
+    );
+  });
+
+  it('with an action in play, a sentence is held until it is known to end, as before', async () => {
+    expect(
+      await firstOut(await check(openStreamOf("Okay, I'm calling him right now."), [ASK]))
+    ).toBe(undefined);
+  });
+});
+
+describe('prod call 2026-10-15: "dialing her now" turn after turn, no dial tool', () => {
+  const REPLY = ["I'm dialing her now.", " I'll call you right back on this line."];
+  const HONEST =
+    "I can't actually make calls for you, so I haven't rung anyone. I can help you work out what to say, though.";
+
+  it('"I\'ll call you right back on this line" is a claim of a call', () => {
+    expect(claimedAction("I'll call you right back on this line.")).toBe('call');
+    expect(claimedAction("I'll call you back once she picks up.")).toBe('call');
+    expect(claimedAction('Want me to call you back later?')).toBeNull();
+  });
+
+  it.each([
+    ['after the ask', [user('Can you call my mom for me?')]],
+    ['after a yes', [user('Can you call my mom for me?'), said(HONEST), user('Yes.')]],
+    [
+      "five turns on, the ask long gone from the caller's last messages",
+      [
+        user('Can you call my mom for me?'),
+        said(HONEST),
+        user('Yes.'),
+        said(HONEST),
+        user('Okay.'),
+        said(HONEST),
+        user('Hello?'),
+        said(HONEST),
+        user('Are you there?'),
+        said(HONEST),
+        user('So?'),
+        said(HONEST),
+        user('Yes please.'),
+      ],
+    ],
+  ])('%s: never spoken, the honest line instead', async (_label, items) => {
+    expect(actionInPlay(ctx(...items))).toBe(true);
+    const text = await textOf(await check(streamOf(...REPLY), items));
+    expect(text).not.toMatch(/dialing|call you right back/i);
+    expect(text).toBe(HONEST);
+  });
+});
+
+describe('prod call 2026-10-16: "dialing her now" while the call waits for a yes', () => {
+  const tools = toolsWith('callOnBehalf');
+  const preview = () =>
+    result('callOnBehalf', JSON.stringify('NOT SENT YET. Read this to the caller word for word'));
+  const NOT_YET = "I haven't actually dialed yet, though. Should I go ahead and call?";
+  const asked = [
+    user('Hey, have you called my mom recently?'),
+    said("I haven't called her yet. Shall I go ahead and make that check-in call right now?"),
+    user("Yeah, check in, tell her I said hi and I'll call her tomorrow."),
+    preview(),
+  ];
+
+  it('"I\'ll take care of that call right now" claims a call; with a condition it does not', () => {
+    expect(claimedAction("I'll take care of that call to your mom right now.")).toBe('call');
+    expect(claimedAction("I'll take care of that call once you say yes.")).toBeNull();
+    expect(claimedAction("I'll take care of it, don't worry.")).toBeNull();
+  });
+
+  it('the turn after the read-back: the claim goes, and Ferni asks instead', async () => {
+    const reply = [
+      'Well, I am dialing her now to let her know you say hello. ',
+      "I'll let you know how it goes.",
+    ];
+    const text = await textOf(await check(streamOf(...reply), asked, tools));
+    expect(text).not.toMatch(/dialing/i);
+    expect(text).toBe(`${NOT_YET} I'll let you know how it goes.`);
+  });
+
+  it('"Thanks, buddy" is not a yes: the next claim goes too', async () => {
+    const items = [...asked, said(NOT_YET), user('Thanks, buddy.')];
+    const reply = [
+      "You've got it. ",
+      "I'll take care of that call to your mom right now, and then you can get back to relaxing.",
+    ];
+    const text = await textOf(await check(streamOf(...reply), items, tools));
+    expect(text).not.toMatch(/take care of that call/i);
+    expect(text).toBe(`You've got it. ${NOT_YET}`);
+  });
+
+  it('a plain yes: the claim and the confirming tool call stream untouched', async () => {
+    const items = [...asked, said(NOT_YET), user('Yeah, go ahead.')];
+    const out = await chunksOf(
+      await check(streamOf('Calling her now. ', toolCall('callOnBehalf')), items, tools)
+    );
+    expect(out[0].delta?.content).toBe('Calling her now. ');
+    expect(out[1].delta?.toolCalls?.[0].name).toBe('callOnBehalf');
+  });
+
+  it('once the call went through, the claim stands', async () => {
+    const items = [...asked, user('Yes.'), result('callOnBehalf', JSON.stringify('Calling now.'))];
+    const text = await textOf(await check(streamOf("I'm calling her now."), items, tools));
+    expect(text).toBe("I'm calling her now.");
+  });
+
+  it('ACTION_CLAIM_GUARD=off leaves the claim alone', async () => {
+    const reply = ['Well, I am dialing her now.'];
+    const stream = await withActionClaimCheck(streamOf(...reply), ctx(...asked), tools, {
+      ACTION_CLAIM_GUARD: 'off',
+    });
+    expect(await textOf(stream)).toBe(reply[0]);
   });
 });
 

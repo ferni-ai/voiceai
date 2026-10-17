@@ -2747,13 +2747,13 @@ IMPORTANT:
       'Turn processed successfully'
     );
   } catch (error) {
-    logger.error({ error: String(error) }, 'Turn processing failed');
+    const stack = error instanceof Error ? error.stack : undefined; // code frames, no user text
+    logger.error({ error: String(error), stack }, 'Turn processing failed');
 
     // ================================================================
     // DEAD AIR FIX: Graceful error recovery
     // ================================================================
-    const isTimeout = String(error).includes('timeout');
-    const errorType = isTimeout ? 'api_timeout' : 'general';
+    const errorType = String(error).includes('timeout') ? 'api_timeout' : 'general';
     const gracefulError = getGracefulErrorResponse(errorType, String(error));
 
     if (currentSession) {

@@ -7,7 +7,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CRISIS_ATTRIBUTION_RULES,
   CRISIS_CLASSIFIER_PROMPT,
+  CRISIS_EVERYDAY_RULES,
   crisisClassifierPrompt,
+  resolveCrisisEverydayRules,
   DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS,
   classifyCrisis,
   resetCrisisClassifierCache,
@@ -237,6 +239,149 @@ describe('turnVerdicts (security review finding 2)', () => {
 
   it('finds no reads, so nothing to soften, for a turn it never saw', async () => {
     expect(await turnVerdicts('session-none', { latest: 'same.', earlier: [] })).toEqual([]);
+  });
+});
+
+describe('everyday call business (CRISIS_CLASSIFIER_EVERYDAY_RULES)', () => {
+  beforeEach(() => resetCrisisClassifierCache());
+  const attributed = CRISIS_CLASSIFIER_PROMPT.replace(
+    '\n\nReturn JSON only',
+    `\n${CRISIS_ATTRIBUTION_RULES}\n\nReturn JSON only`
+  );
+
+  it('is off unless set to on, and leaves both existing prompts exactly as they were', () => {
+    for (const value of [undefined, '', 'off', 'true', '1']) {
+      expect(resolveCrisisEverydayRules({ CRISIS_CLASSIFIER_EVERYDAY_RULES: value })).toBe(false);
+      const env = { CRISIS_CLASSIFIER_EVERYDAY_RULES: value };
+      expect(crisisClassifierPrompt(env)).toBe(CRISIS_CLASSIFIER_PROMPT);
+      expect(crisisClassifierPrompt({ ...env, CRISIS_AGREEMENT_GATE: 'on' })).toBe(attributed);
+    }
+    expect(resolveCrisisEverydayRules({ CRISIS_CLASSIFIER_EVERYDAY_RULES: ' On ' })).toBe(true);
+  });
+
+  it('adds the everyday rules, always with the attribution rules, before the output format', () => {
+    for (const gate of ['on', 'off']) {
+      const prompt = crisisClassifierPrompt({
+        CRISIS_CLASSIFIER_EVERYDAY_RULES: 'on',
+        CRISIS_AGREEMENT_GATE: gate,
+      });
+      expect(prompt).toContain(CRISIS_ATTRIBUTION_RULES);
+      expect(prompt).toContain(CRISIS_EVERYDAY_RULES);
+      expect(prompt.indexOf(CRISIS_EVERYDAY_RULES)).toBeLessThan(
+        prompt.indexOf('Return JSON only')
+      );
+      const head = CRISIS_CLASSIFIER_PROMPT.split('\n\nReturn JSON only')[0];
+      expect(
+        prompt.startsWith(`${head}\n${CRISIS_ATTRIBUTION_RULES}${CRISIS_EVERYDAY_RULES}`)
+      ).toBe(true);
+    }
+  });
+
+  it('keeps farewell messages, risk in earlier words, and answers to safety talk out of "none"', () => {
+    expect(CRISIS_EVERYDAY_RULES).toMatch(/caller's own words, in LATEST or EARLIER, carry risk/);
+    expect(CRISIS_EVERYDAY_RULES).toMatch(/sounds like a farewell .* is not everyday words/);
+    expect(CRISIS_EVERYDAY_RULES).toMatch(
+      /what the caller says back to them is judged as the caller's words/
+    );
+  });
+
+  it('sends the model the everyday prompt with the flag on', async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
+    const input = {
+      latest: 'Is that call going through?',
+      earlier: ['Can you ring my brother and say hi?'],
+      companion: "I'm dialing him now. Hang tight, I'll call you right back.",
+    };
+    const env = { CRISIS_CLASSIFIER_MODE: 'live', CRISIS_AGREEMENT_GATE: 'on' };
+    await startCrisisClassifier(input, { pattern: 'none', generate, env })?.verdict;
+    await startCrisisClassifier(input, {
+      pattern: 'none',
+      generate,
+      env: { ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'on' },
+    })?.verdict;
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(generate.mock.calls[0][0]).toBe(attributed);
+    expect(generate.mock.calls[1][0]).toContain(CRISIS_EVERYDAY_RULES);
+  });
+});
+
+describe('everyday rules backstop: risk words keep the read the rules would lower', () => {
+  beforeEach(() => resetCrisisClassifierCache());
+  const env = {
+    CRISIS_CLASSIFIER_MODE: 'live',
+    CRISIS_AGREEMENT_GATE: 'on',
+    CRISIS_CLASSIFIER_EVERYDAY_RULES: 'on',
+  };
+  /** Fake model: the read with the everyday rules says `ruled`, the read without says `plain`. */
+  const model = (ruled: string, plain: string) =>
+    vi.fn<CrisisGenerateFn>(async (prompt) =>
+      prompt.includes(CRISIS_EVERYDAY_RULES)
+        ? `{"risk":"${ruled}","subject":"self"}`
+        : `{"risk":"${plain}","subject":"self"}`
+    );
+  const turn = (latest: string) => ({ latest, earlier: [], companion: 'What are you up to?' });
+
+  it('restores imminent when the rules read only crisis on words from the risk list', async () => {
+    const generate = model('crisis', 'imminent');
+    const run = startCrisisClassifier(
+      turn("Stopped my meds, and I'm giving my stuff away Friday."),
+      {
+        pattern: 'none',
+        generate,
+        env,
+      }
+    );
+    expect(await run?.verdict).toEqual({ risk: 'imminent', subject: 'self' });
+    expect(generate).toHaveBeenCalledTimes(2);
+  });
+
+  it('restores crisis when the rules read none on words from the risk list', async () => {
+    const generate = model('none', 'crisis');
+    const run = startCrisisClassifier(turn('Okay, bye. Thanks for everything.'), {
+      pattern: 'none',
+      generate,
+      env,
+    });
+    expect(await run?.verdict).toEqual({ risk: 'crisis', subject: 'self' });
+  });
+
+  it('keeps a crisis read when the read without the rules fails, and never lets none stand alone', async () => {
+    const failing = (ruled: string) =>
+      vi.fn<CrisisGenerateFn>(async (prompt) => {
+        if (prompt.includes(CRISIS_EVERYDAY_RULES)) return `{"risk":"${ruled}","subject":"self"}`;
+        throw new Error('quota');
+      });
+    const latest = "Stopped my meds, and I'm giving my stuff away Friday.";
+    const opts = { pattern: 'none' as const, env };
+    expect(
+      await startCrisisClassifier(turn(latest), { ...opts, generate: failing('crisis') })?.verdict
+    ).toEqual({ risk: 'crisis', subject: 'self' });
+    resetCrisisClassifierCache();
+    expect(
+      await startCrisisClassifier(turn(latest), { ...opts, generate: failing('none') })?.verdict
+    ).toBeNull();
+  });
+
+  it('reads once, with the rules alone, when the caller used no risk words', async () => {
+    const generate = model('none', 'imminent');
+    const run = startCrisisClassifier(turn('Is the call going through?'), {
+      pattern: 'none',
+      generate,
+      env,
+    });
+    expect(await run?.verdict).toEqual({ risk: 'none', subject: 'self' });
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('never makes the second read with the flag off', async () => {
+    const generate = model('none', 'imminent');
+    const { CRISIS_CLASSIFIER_EVERYDAY_RULES: _off, ...gateOnly } = env;
+    await startCrisisClassifier(turn("Stopped my meds, and I'm giving my stuff away Friday."), {
+      pattern: 'none',
+      generate,
+      env: gateOnly,
+    })?.verdict;
+    expect(generate).toHaveBeenCalledTimes(1);
   });
 });
 

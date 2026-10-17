@@ -359,7 +359,7 @@ Explain financial concepts in plain language. Topics: banking (APY, overdraft, e
 
 ### `analyzeStock`
 
-Deep analysis of any stock using Peter Lynch's framework. Includes: P/E ratio, PEG ratio, growth rate, category classification (slow grower, stalwart, fast grower, cyclical, turnaround, asset play), and "the story" - why this company will succeed. Just provide a ticker symbol like AAPL, COST, or TSLA.
+Deep analysis of any stock using a classic growth-stock framework. Includes: P/E ratio, PEG ratio, growth rate, category classification (slow grower, stalwart, fast grower, cyclical, turnaround, asset play), and "the story" - why this company will succeed. Just provide a ticker symbol like AAPL, COST, or TSLA.
 
 **Tags:** research, stocks, analysis, valuation, peg, category
 
@@ -659,7 +659,7 @@ Get an inspirational quote about investing, money, or life wisdom
 
 ### `getBogleQuote`
 
-Get a quote from John Bogle about investing and life
+Get a quote about investing and life from an investing legend
 
 **Tags:** wisdom, quotes, bogle, investing
 

@@ -16,6 +16,7 @@ import {
   phoneOnlyIdentity,
   sessionIsVerifiedOwner,
 } from '../voice-agent-entry/caller-recognition.js';
+import { worldNowNote } from '../shared/world-now.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import { latestUserText } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
@@ -30,6 +31,7 @@ import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-n
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
+import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt.js';
 import { repairNoteFor } from './repair-check.js';
@@ -39,6 +41,10 @@ import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { roomGuestsNote } from './room-guests.js';
+import {
+  worldFactLinesFor,
+  worldFactsNoteFor,
+} from '../../intelligence/world-model/temporal/in-call-load.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { quirkTurnNote } from './quirk-note.js';
 import { honestFriendNote } from './honest-friend.js';
@@ -47,9 +53,10 @@ import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
+import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
-import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
+import { callerMove, rngFor, turnShapeEnabled, turnShapeFor, withLiveData } from './turn-shape.js';
 import {
   understandingFor,
   understandingMode,
@@ -110,6 +117,8 @@ export function withTurnReminder(
   const notes = answering
     ? ''
     : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
+  // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
+  const corrected = options.shape !== false ? correctionNotesFor(chatCtx, session) : '';
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
@@ -119,11 +128,14 @@ export function withTurnReminder(
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
+    // WORLD_NOW=on: the caller's time this reply, not the call's start (world-now.ts).
+    worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     // "Naya" in the transcript is Nayan (teammate-names.ts)
     heardTeammateNote(words),
     notes,
+    corrected,
     options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
@@ -149,9 +161,13 @@ export function withTurnReminder(
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
-    turnStyleReminderEnabled()
-      ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
-      : '',
+    // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
+    ...withLiveData(
+      turnStyleReminderEnabled()
+        ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
+        : '',
+      callerTurnsOf(chatCtx)
+    ),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
@@ -169,9 +185,17 @@ export function withTurnReminder(
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
     options.shape !== false && !answering ? repairNoteFor(chatCtx, session) : '',
   ].filter(Boolean);
+  // WORLD_FACTS_IN_CALL=on: where their life stands (in-call-load.ts); nothing when off.
+  const caller = callerOf(session);
+  const lifeAt = {
+    now: Date.now(),
+    timeZone: caller?.callerTimezone,
+    userName: caller?.userName,
+    words,
+  };
   const reminder = contextPacketEnabled()
-    ? packetReminder(session, words, turnNotes)
-    : turnNotes.join(' ');
+    ? packetReminder(session, words, turnNotes, worldFactLinesFor(caller, lifeAt))
+    : [worldFactsNoteFor(caller, lifeAt), ...turnNotes].filter(Boolean).join(' ');
   // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
   noteReminder(session, {
     reminder,
@@ -191,6 +215,14 @@ function closeLoopNote(session: object, words: string): string {
   if (!wrapUp || !words) return '';
   return wrapUp.noteFor(words, understandingFor(session, words)?.wantsToEnd === true);
 }
+
+interface CallerData {
+  personaId?: string;
+  userName?: string;
+  callerTimezone?: string;
+}
+const callerOf = (session: object): CallerData | undefined =>
+  (session as { userData?: unknown }).userData as CallerData | undefined;
 
 /**
  * DELIBERATION=on: a thought from the background deliberator, if one is ready
@@ -279,7 +311,11 @@ function styleFor(
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const shaped = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
+  const shaped = withQuiet(
+    withRecent(withOwnStory(sig, said, ownStory), said, chatCtx),
+    said,
+    chatCtx
+  );
   const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
   // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
   const burst = burstLine(
@@ -363,6 +399,22 @@ function withOwnStory(
 ): TurnSignals | undefined {
   if (ownStory === undefined) return signals;
   return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory };
+}
+
+/**
+ * QUIET_CALLER=on: a caller saying very little gets room, not advice
+ * (quiet-caller.ts); "I'm still here" reads as an ack.
+ */
+function withQuiet(
+  signals: TurnSignals | undefined,
+  said: string,
+  chatCtx: llm.ChatContext
+): TurnSignals | undefined {
+  if (!quietCallerEnabled()) return signals;
+  const sig = signals ?? regexSignals(said, callerMove(said));
+  const quiet = isQuietCaller(callerTurnsOf(chatCtx));
+  const move = presentAck(said) ? 'ack' : sig.move;
+  return quiet || move !== sig.move ? { ...sig, move, quiet } : sig;
 }
 
 const callSeeds = new WeakMap<object, string>();

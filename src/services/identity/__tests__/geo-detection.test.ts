@@ -201,22 +201,22 @@ describe('GeoDetection', () => {
       expect(result).toBe('203.0.113.50');
     });
 
-    it('should extract first IP from X-Forwarded-For chain', () => {
+    it('should take the proxy-appended entry, not a caller-forged first entry', () => {
       const req = createMockRequest({
         'x-forwarded-for': '203.0.113.50, 198.51.100.1, 192.0.2.1',
       });
 
       const result = getClientIP(req);
-      expect(result).toBe('203.0.113.50');
+      expect(result).toBe('192.0.2.1');
     });
 
-    it('should use X-Real-IP as fallback', () => {
+    it('should ignore a caller-set X-Real-IP', () => {
       const req = createMockRequest({
         'x-real-ip': '203.0.113.100',
       });
 
       const result = getClientIP(req);
-      expect(result).toBe('203.0.113.100');
+      expect(result).toBe('192.168.1.1');
     });
 
     it('should fall back to socket remote address', () => {

@@ -31,9 +31,8 @@ vi.mock('../../src/ui/whisper.ui.js', () => ({ toast }));
 
 const { saveJournalEntry } = await import('../../src/ui/voice-journal/save.js');
 const { fetchPrompt, prefetchPrompts } = await import('../../src/ui/voice-journal/prompts.js');
-const { setCurrentAgent, setCurrentPrompt, setRecordingDuration } = await import(
-  '../../src/ui/voice-journal/state.js'
-);
+const { setCurrentAgent, setCurrentPrompt, setRecordingDuration } =
+  await import('../../src/ui/voice-journal/state.js');
 const { t } = await import('../../src/i18n/index.js');
 
 type Reply = { status: number; body: unknown };
@@ -48,8 +47,7 @@ const fetchMock = vi.fn(async (url: string) => {
 
 function authHeaderFor(url: string): string | undefined {
   const call = fetchMock.mock.calls.find(([u]) => u === url) as
-    | [string, RequestInit | undefined]
-    | undefined;
+    [string, RequestInit | undefined] | undefined;
   return (call?.[1]?.headers as Record<string, string> | undefined)?.['Authorization'];
 }
 
@@ -120,7 +118,11 @@ describe('saving a recording', () => {
   });
 
   it.each([
-    ['the server has no speech-to-text', 200, { success: false, transcript: '[Transcription unavailable]' }],
+    [
+      'the server has no speech-to-text',
+      200,
+      { success: false, transcript: '[Transcription unavailable]' },
+    ],
     ['the auth door refuses', 401, { error: 'Unauthorized' }],
     ['the words come back empty', 200, { success: true, transcript: '   ' }],
   ])('saves nothing and says so plainly when %s', async (_label, status, body) => {
@@ -134,5 +136,19 @@ describe('saving a recording', () => {
     const shown = toastsShown().join(' | ');
     expect(shown).not.toMatch(/audio saved|saving audio|voice recording -/i);
     expect(t('toasts.transcriptionUnavailable')).toMatch(/nothing was saved/);
+  });
+});
+
+describe('Voice Journal: a clip over the cap', () => {
+  it('says it was too long, warmly, and saves nothing', async () => {
+    replies['/api/journal/transcribe'] = {
+      status: 413,
+      body: { reason: 'too_long', maxMinutes: 10, transcript: '' },
+    };
+    await saveJournalEntry(recording);
+    expect(addMemory).not.toHaveBeenCalled();
+    expect(toast.warning).toHaveBeenCalledWith(t('toasts.journalTooLong', { count: 10 }));
+    expect(t('toasts.journalTooLong', { count: 10 })).toContain('under 10 minutes');
+    expect(toastsShown()).not.toContain(t('toasts.transcriptionUnavailable'));
   });
 });
