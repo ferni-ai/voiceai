@@ -28,7 +28,7 @@ export const DEMO_MIN_MINUTES = 1;
 export const DEMO_MAX_MINUTES = 10;
 export const DEMO_WARNING_LEAD_MS = 30_000;
 /** Time for the goodbye to be spoken before the call closes. */
-export const DEMO_GOODBYE_LEAD_MS = 10_000;
+export const DEMO_GOODBYE_LEAD_MS = 15_000;
 export const DEMO_END_REASON = 'demo_limit';
 
 // Spoken through TTS: full sentences, commas and full stops only (speech-markup-notes.ts).
