@@ -27,6 +27,7 @@ import {
   withTeammateAsk,
 } from '../../tools/handoff/locked-teammates.js';
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
+import { teammateIdentityNote } from './teammate-identity.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
@@ -57,7 +58,7 @@ import { candorEnabled, supportHeld } from './turn-candor.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
-import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
+import { callerMove, rngFor, turnShapeEnabled, turnShapeFor, withLiveData } from './turn-shape.js';
 import {
   understandingFor,
   understandingMode,
@@ -122,14 +123,13 @@ export function withTurnReminder(
   const corrected = options.shape !== false ? correctionNotesFor(chatCtx, session) : '';
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
-  // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
-  // It also decides whether a story of his own may ride this reply.
+  // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
-  // The style goes last, nearest the reply: the per-turn shape is followed
-  // best there (turn-shape.ts), and live it otherwise sat behind the notes.
+  // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
-    // WORLD_NOW=on: the caller's time this reply, not the call's start (world-now.ts).
+    // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
+    teammateIdentityNote(view.currentAgentId),
     worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
@@ -164,9 +164,13 @@ export function withTurnReminder(
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
-    turnStyleReminderEnabled()
-      ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
-      : '',
+    // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
+    ...withLiveData(
+      turnStyleReminderEnabled()
+        ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
+        : '',
+      callerTurnsOf(chatCtx)
+    ),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
@@ -177,8 +181,7 @@ export function withTurnReminder(
     // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
     // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),
-    // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
-    // for this reply, last but the repair check; never with crisis guidance.
+    // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.

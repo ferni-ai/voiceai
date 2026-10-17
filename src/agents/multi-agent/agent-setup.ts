@@ -74,7 +74,11 @@ import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
-import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
+import {
+  buildEssentialToolSet,
+  handoffGetsEssentialSet,
+  type EssentialToolSetInput,
+} from './essential-tool-set.js';
 import { attachSessionEventLog } from './session-event-log.js';
 import { buildEmergencyToolset } from './emergency-toolset.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
@@ -97,6 +101,7 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
+import { withAlwaysOnInfoTools } from './always-on-info-tools.js';
 import {
   createFindToolsTool,
   FIND_TOOLS,
@@ -111,6 +116,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
+import { giveLoadedDomainsToNewAgents } from '../voice-agent/deferred-tool-update.js';
 import { createPersonaTTS } from './persona-tts.js';
 import { createCallSession } from './call-session.js';
 import { agentOnCall, personaOnCall, rememberPersona } from './persona-swap.js';
@@ -833,6 +839,20 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // For handoffs, use the fast path which loads from session cache + essential tools.
       // This typically completes in <500ms vs 5-20 seconds for full orchestrator.
       // =========================================================================
+      if (isHandoff && handoffGetsEssentialSet()) {
+        // The first agent's set and cap, not the gateway's Tier 0 (essential-tool-set.ts)
+        const handoffStart = Date.now();
+        const essential = await loadEssentialToolsFallback(initialToolPolicy);
+        log.info(
+          {
+            personaId: persona.id,
+            toolCount: Object.keys(essential).length,
+            elapsedMs: Date.now() - handoffStart,
+          },
+          '🎭 Handoff tools: essential set (HANDOFF_FULL_TOOLS)'
+        );
+        return essential;
+      }
       if (isHandoff) {
         log.info({ personaId: persona.id }, '⚡ Using FAST PATH for handoff tool loading');
 
@@ -965,7 +985,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
   })();
 
   // Wait for TTS and tools (LLM is created below in parallel section)
-  const [tts, orchestratorTools] = await Promise.all([ttsPromise, toolsPromise]);
+  const [tts, loadedTools] = await Promise.all([ttsPromise, toolsPromise]);
+  // Before the cap, so it keeps them: every path above (handoff, first agent, fallback)
+  const orchestratorTools = await withAlwaysOnInfoTools(loadedTools, {
+    userId: userId || 'anonymous',
+    sessionId,
+    agentId: persona.id,
+    agentDisplayName: persona.name || persona.id,
+  });
 
   // =========================================================================
   // 🔍 CRITICAL VISIBILITY: Log exactly what tools are available to LLM
@@ -1938,6 +1965,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
           autoOptimizer,
           agent,
         });
+        // A handed-to agent gets this call's loaded domains (TOOLS_FOLLOW_AGENT)
+        cleanupFunctions.push(giveLoadedDomainsToNewAgents(session, agent, dynamicToolLoader, log));
 
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {

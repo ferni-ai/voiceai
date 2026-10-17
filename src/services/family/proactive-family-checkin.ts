@@ -20,6 +20,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import type { SponsoredIdentity } from '../identity/sponsored-identity.js';
+import { calculateNextCallTime } from './next-checkin-time.js';
 
 const log = createLogger({ module: 'ProactiveFamilyCheckin' });
 
@@ -398,7 +399,7 @@ export async function updateCheckinSchedule(
   };
 
   // Recalculate next call if schedule changed
-  if (updates.frequency || updates.preferredTime || updates.daysOfWeek) {
+  if (updates.frequency || updates.preferredTime || updates.daysOfWeek || updates.timezone) {
     const current = await getCheckinSchedule(sponsorUserId, scheduleId);
     if (current) {
       const merged = { ...current, ...updates };
@@ -641,79 +642,6 @@ export async function markCallBriefed(sponsorUserId: string, recordId: string): 
 // ============================================================================
 // SCHEDULING HELPERS
 // ============================================================================
-
-/**
- * Calculate the next call time based on schedule settings
- */
-function calculateNextCallTime(
-  schedule: Pick<
-    FamilyCheckinSchedule,
-    'frequency' | 'preferredTime' | 'daysOfWeek' | 'customIntervalDays' | 'timezone'
-  >
-): string {
-  const now = new Date();
-  const [hours, minutes] = schedule.preferredTime.split(':').map(Number);
-
-  // Start from tomorrow at preferred time
-  const next = new Date(now);
-  next.setDate(next.getDate() + 1);
-  next.setHours(hours, minutes, 0, 0);
-
-  switch (schedule.frequency) {
-    case 'daily':
-      // Already set to tomorrow
-      break;
-
-    case 'weekly':
-      if (schedule.daysOfWeek && schedule.daysOfWeek.length > 0) {
-        const targetDay = dayOfWeekToNumber(schedule.daysOfWeek[0]);
-        while (next.getDay() !== targetDay) {
-          next.setDate(next.getDate() + 1);
-        }
-      }
-      break;
-
-    case 'biweekly':
-      if (schedule.daysOfWeek && schedule.daysOfWeek.length > 0) {
-        const targetDay = dayOfWeekToNumber(schedule.daysOfWeek[0]);
-        while (next.getDay() !== targetDay) {
-          next.setDate(next.getDate() + 1);
-        }
-        // Add another week for biweekly
-        next.setDate(next.getDate() + 7);
-      }
-      break;
-
-    case 'monthly':
-      // Same day next month
-      next.setMonth(next.getMonth() + 1);
-      break;
-
-    case 'custom':
-      if (schedule.customIntervalDays) {
-        next.setDate(next.getDate() + schedule.customIntervalDays - 1);
-      }
-      break;
-  }
-
-  return next.toISOString();
-}
-
-/**
- * Convert day of week string to number (0 = Sunday)
- */
-function dayOfWeekToNumber(day: DayOfWeek): number {
-  const map: Record<DayOfWeek, number> = {
-    sunday: 0,
-    monday: 1,
-    tuesday: 2,
-    wednesday: 3,
-    thursday: 4,
-    friday: 5,
-    saturday: 6,
-  };
-  return map[day];
-}
 
 /**
  * Update schedule after a successful call

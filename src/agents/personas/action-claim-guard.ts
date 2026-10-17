@@ -14,7 +14,12 @@
  *   he can't do that for them; the line goes where the claim was;
  * - the latest tool result of that kind on this call refused or failed: it
  *   didn't go through; the line goes at the end, and not at all when the reply
- *   calls a tool of that kind again.
+ *   calls a tool of that kind again;
+ * - the latest tool result of that kind is a read-back still waiting for the
+ *   caller's yes (outreach-confirm.ts), and the caller's last words were not a
+ *   plain yes: nothing has gone out; the line goes where the claim was and asks.
+ *   Prod call 2026-10-16: after "NOT SENT YET" Ferni said "I am dialing her
+ *   now", then "I'll take care of that call to your mom right now". No call went.
  * Everything else streams untouched, so the confirm read-back and the yes turn
  * (outreach-confirm.ts), a tool the model is about to call, and talk about an
  * action that really happened are never changed. Text and tool calls keep
@@ -34,14 +39,16 @@ import type { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { isClearYes } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { callActions, claimedAction, kindsOfTool, type ActionKind } from './action-claims.js';
+import { withAnnouncedCheckLog } from './announced-check.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
 type Chunk = llm.ChatChunk | string | object;
-export type MissReason = 'no_tool' | 'failed';
+export type MissReason = 'no_tool' | 'failed' | 'awaiting';
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
@@ -66,6 +73,14 @@ const CANNOT: Record<ActionKind, string> = {
   reminder: "I can't actually set reminders for you, so there isn't one set.",
   save: "I can't actually save that for you, so it isn't saved.",
 };
+/** A yes/no question, since the gate sends only on a plain yes to it. */
+const NOT_YET: Record<ActionKind, string> = {
+  call: "I haven't actually dialed yet, though. Should I go ahead and call?",
+  send: "Nothing's gone out yet, though. Should I go ahead and send it?",
+  schedule: "It isn't booked yet, though. Should I go ahead and book it?",
+  reminder: "It isn't set yet, though. Should I go ahead and set it?",
+  save: "It isn't saved yet, though. Should I go ahead and save it?",
+};
 const INSTEAD: Record<ActionKind, string> = {
   call: ' I can help you work out what to say, though.',
   send: ' I can help you word it, though.',
@@ -77,6 +92,7 @@ const REMIND = ' Want me to remind you to do it?';
 
 /** What Ferni says in place of a claim, and what he can do instead. */
 export function honestLine(kind: ActionKind, reason: MissReason, canRemind: boolean): string {
+  if (reason === 'awaiting') return NOT_YET[kind];
   const instead = canRemind && kind !== 'reminder' && kind !== 'save' ? REMIND : INSTEAD[kind];
   return `${reason === 'failed' ? DID_NOT_GO[kind] : CANNOT[kind]}${instead}`;
 }
@@ -155,6 +171,14 @@ const actedOn = (text: string): boolean =>
 /** Curly apostrophes from speech-to-text read as straight ones. */
 const plain = (text: string): string => text.replace(/[\u2018\u2019]/g, "'");
 
+/** The caller's latest words. */
+function lastCallerWords(chatCtx: { items: readonly unknown[] }): string {
+  const asks = (chatCtx.items as readonly Item[]).filter(
+    (item) => item.type === 'message' && item.role === 'user'
+  );
+  return asks.length ? plain(spokenOf(asks[asks.length - 1])) : '';
+}
+
 /** The caller asked for an action lately, or an action tool ran on this call. */
 export function actionInPlay(chatCtx: { items: readonly unknown[] }): boolean {
   const items = chatCtx.items as readonly Item[];
@@ -200,14 +224,24 @@ export async function withActionClaimCheck<T>(
   env: Env = process.env
 ): Promise<T> {
   const stream = await reply;
-  if (stream === null || stream === undefined || !actionClaimGuardEnabled(env)) return stream;
+  // Either way the reply is also tapped for "I'll check" with no tool call (announced-check.ts).
+  if (stream === null || stream === undefined) return stream;
+  if (!actionClaimGuardEnabled(env)) return withAnnouncedCheckLog(stream, tools, env);
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
-  const { failed } = callActions(chatCtx);
+  const { failed, awaiting } = callActions(chatCtx);
+  // A plain yes to the read-back: the tool sends on its next call, so the claim may stand.
+  const yesTurn = isClearYes(lastCallerWords(chatCtx));
   const open = new Set(Object.keys(tools.functionTools ?? {}).flatMap(kindsOfTool));
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind): MissReason | null =>
-    !open.has(kind) ? 'no_tool' : failed.has(kind) ? 'failed' : null;
+    !open.has(kind)
+      ? 'no_tool'
+      : failed.has(kind)
+        ? 'failed'
+        : awaiting.has(kind) && !yesTurn
+          ? 'awaiting'
+          : null;
   let id = '';
   let stringChunks = true;
   const out = (text: string): Chunk =>
@@ -304,5 +338,5 @@ export async function withActionClaimCheck<T>(
       });
     },
   });
-  return guarded as unknown as T;
+  return withAnnouncedCheckLog(guarded as unknown as T, tools, env);
 }

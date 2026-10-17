@@ -7,6 +7,7 @@
  * @module intelligence/world-model/temporal/ingest
  */
 
+import { forgottenTopicsOrNull, isForgotten } from '../../../memory/index.js';
 import { callLLMForJSON } from '../../../services/llm-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { planResolution, type SupersedeJudge } from './resolve.js';
@@ -24,6 +25,13 @@ export interface IngestDeps {
   judge?: SupersedeJudge;
   env?: Record<string, string | undefined>;
   newId?: () => string;
+  /** Topics the caller asked Ferni to forget (memory/recall/forget.ts). */
+  forgotten?: (userId: string) => Promise<string[]>;
+}
+
+/** Recorded topics; an unreadable list reads as none (forget.ts forgottenTopics). */
+async function readForgotten(userId: string): Promise<string[]> {
+  return (await forgottenTopicsOrNull(userId)) ?? [];
 }
 
 export interface IngestResult {
@@ -68,9 +76,12 @@ export async function recordWorldObservations(
   deps: IngestDeps = {}
 ): Promise<IngestResult | null> {
   if (!isWorldModelTemporalOn(deps.env) || !userId) return null;
+  const topics = await (deps.forgotten ?? readForgotten)(userId);
   const kept = observations
     .map((o) => validObservation(o, sessionId))
     .filter((o): o is WorldObservation => o !== null)
+    // Something they asked Ferni to forget isn't written back from the next call.
+    .filter((o) => !isForgotten(`${o.subject} ${o.attribute} ${o.value}`, topics))
     .slice(0, MAX_OBSERVATIONS_PER_CALL);
   if (kept.length === 0) return { created: 0, closed: 0, refreshed: 0 };
 

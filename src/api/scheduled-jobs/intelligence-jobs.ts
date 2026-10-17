@@ -259,3 +259,39 @@ export async function handleDeepAnalysis(res: ServerResponse): Promise<void> {
     });
   }
 }
+
+/**
+ * Nightly pondering (intelligence/pondering/ponder-job.ts): hourly poll that
+ * ponders the cohort's callers whose night slot has come. Off unless
+ * PONDERING=on.
+ */
+export async function handlePondering(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+  try {
+    const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
+    const { callLLM } = await import('../../services/llm-utils.js');
+    const { runPonderingJob } = await import('../../intelligence/pondering/ponder-job.js');
+    const db = getFirestoreDb();
+    if (!db) throw new Error('Firestore is not available');
+    const llm = async (prompt: string): Promise<string | null> =>
+      callLLM(prompt, { maxTokens: 1500, temperature: 0.4 });
+    const { results: _results, ...stats } = await runPonderingJob(db, llm);
+    const durationMs = Date.now() - startTime;
+    log.info({ ...stats, durationMs }, 'Pondering poll completed');
+    sendJson(res, 200, {
+      success: true,
+      job: 'pondering',
+      stats,
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, 'Pondering poll failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'pondering',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
