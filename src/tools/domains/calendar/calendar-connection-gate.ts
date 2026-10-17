@@ -44,7 +44,8 @@ const READ_TOOLS = new Set([
 
 /** Schedule views also cover reminders and appointments, so only their "clear" wording is changed. */
 const CLEAR_ONLY = new Set(['getUnifiedSchedule', 'checkScheduleConflicts']);
-const CLEAR_WORDING = /\bis clear\b|No scheduling conflicts found/i;
+/** A schedule view that found nothing at all, so its "clear" wording must not reach the caller. */
+const NOTHING_LISTED = /\bis clear\b|No scheduling conflicts found|\b0 scheduled items\b/i;
 
 /** Writes land in Ferni's own list whatever the connection state, so they say so. */
 const WRITE_TOOLS = new Map<string, 'create' | 'change'>([
@@ -68,7 +69,7 @@ async function notConnectedRead(id: string, userId: string): Promise<string> {
             true
           )
         : '';
-  return list ? notConnectedWithList(list) : NOT_CONNECTED_READ;
+  return list ? notConnectedWithList(list, id === 'getCalendarWeek' ? 'this week' : 'today') : NOT_CONNECTED_READ;
 }
 
 /** The title, date and time the caller asked for, for the create line. */
@@ -96,7 +97,10 @@ function gate(def: ToolDefinition): ToolDefinition {
           if (mode === 'read') return notConnectedRead(def.id, userId);
           if (mode === 'clear') {
             const result: unknown = await original(params, options);
-            return typeof result === 'string' && CLEAR_WORDING.test(result) ? NOT_CONNECTED_READ : result;
+            if (typeof result !== 'string') return result;
+            return NOTHING_LISTED.test(result)
+              ? NOT_CONNECTED_READ
+              : `No calendar is connected, so this is Ferni's own list, reminders and appointments:\n${result}`;
           }
 
           // A write still runs: it lands in Ferni's own list. Only the reply changes.

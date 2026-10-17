@@ -38,7 +38,7 @@ describe('legacy schedule read with no calendar connected', () => {
   it("names Ferni's own list, labelled, when it has items", async () => {
     connected.value = false;
     const out = String(await executeLegacyFallback('getSchedule', {}, ctx));
-    expect(out).toMatch(/No calendar is connected, but on Ferni's own list you have: .*Standup with Priya/);
+    expect(out).toMatch(/No calendar is connected, but on Ferni's own list for today you have: .*Standup with Priya/);
   });
 
   it('reads the calendar once one is connected', async () => {

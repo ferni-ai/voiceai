@@ -270,7 +270,9 @@ export async function checkAndSendMorningBriefings(): Promise<{
         }
 
         const notificationSent = await sendCalendarBriefingNotification(userId, {
-          title: formatBriefingTitle(overview.totalMeetings),
+          title: briefing
+            ? formatBriefingTitle(overview.totalMeetings)
+            : `${formatBriefingTitle(overview.totalMeetings)}, from Ferni's list`,
           body: briefing
             ? formatBriefingBody(briefing)
             : `No calendar is connected. On Ferni's own list today: ${describeFerniList(overview.events ?? [])}.`,

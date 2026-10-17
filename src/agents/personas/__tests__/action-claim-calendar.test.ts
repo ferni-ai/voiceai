@@ -156,4 +156,18 @@ describe('calendar claims', () => {
     );
     expect(text).toBe("I've got three things on your calendar tomorrow. Standup is at nine.");
   });
+
+  // Known trade-off (#1547 review): a read-style "I've got it on your calendar" after a read is
+  // held as a booking claim, because the guard cannot tell a read answer from a booking. The
+  // caller hears the honest line instead of the claim.
+  it('known trade-off: a read-style "got it on your calendar" after a read is held as a booking claim', async () => {
+    const items = [
+      ASK,
+      result('getCalendarToday', JSON.stringify("No calendar is connected yet, so I can't see your calendar. Want me to help you connect one?")),
+    ];
+    const text = await textOf(
+      await check(streamOf("Yep, I've got it on your calendar at three. "), items, toolsWith('getCalendarToday', 'createCalendarEvent'))
+    );
+    expect(text).toContain("It isn't booked yet, though.");
+  });
 });

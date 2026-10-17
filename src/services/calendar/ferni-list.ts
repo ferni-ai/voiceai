@@ -5,7 +5,8 @@
  * @module services/calendar/ferni-list
  */
 
-import { getDayOverview } from './calendar-service.js';
+import { getDayOverview, getEventsForDay } from './calendar-service.js';
+import { parseNaturalDate } from './natural-date-parser.js';
 import { notConnectedWithList } from './not-connected-copy.js';
 /**
  * Items as "10:00 AM Lunch with Sam; 3:00 PM Standup" (or "Mon, Oct 19 10:00 AM ..." with
@@ -57,10 +58,9 @@ export async function notConnectedAwareness(
   };
 }
 
-/** The schedule read with nothing connected: Ferni's list, named, or null when it is empty. */
-export function ferniScheduleReply(
-  events: readonly { startTime: Date | string; title?: string; isAllDay?: boolean }[]
-): string | null {
-  const list = describeFerniList(events);
-  return list ? notConnectedWithList(list) : null;
+/** The schedule read with nothing connected: Ferni's list for the day asked, or null when empty. */
+export async function ferniScheduleReply(userId: string, dateArg?: string): Promise<string | null> {
+  const parsed = dateArg ? parseNaturalDate(dateArg) : null;
+  const list = describeFerniList(await getEventsForDay(userId, parsed?.date ?? new Date()));
+  return list ? notConnectedWithList(list, parsed?.interpretation ?? 'today') : null;
 }

@@ -11,8 +11,8 @@ export const NOT_CONNECTED_READ =
 
 /** A create saved to Ferni's own list. `what` is the title and time, when known. */
 /** Ferni's own list has items today, named and labelled (#1547). */
-export const notConnectedWithList = (list: string): string =>
-  `No calendar is connected, but on Ferni's own list you have: ${list}. Want me to help you connect one?`;
+export const notConnectedWithList = (list: string, when = 'today'): string =>
+  `No calendar is connected, but on Ferni's own list for ${when} you have: ${list}. Want me to help you connect one?`;
 
 export const notConnectedCreate = (what?: string): string =>
   `Saved ${what ? `"${what}" ` : ''}to Ferni's own list. It isn't on your calendar, since none is connected. Want me to help you connect one?`;

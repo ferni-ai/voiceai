@@ -191,7 +191,7 @@ describe('calendar tools with no calendar connected', () => {
   it("getCalendarToday with nothing connected names Ferni's own list when it has items", async () => {
     vi.mocked(getDayOverview).mockResolvedValue(busyDay);
     const out = String(await toolFor('getCalendarToday').execute({}, {}));
-    expect(out).toMatch(/No calendar is connected, but on Ferni's own list you have: .*Standup with Priya/);
+    expect(out).toMatch(/No calendar is connected, but on Ferni's own list for today you have: .*Standup with Priya/);
     expect(out).not.toMatch(/clear/i);
   });
 
@@ -206,17 +206,19 @@ describe('calendar tools with no calendar connected', () => {
   it("getCalendarWeek with nothing connected names Ferni's own list by day", async () => {
     vi.mocked(getWeekOverview).mockResolvedValueOnce({ days: [busyDay] } as never);
     const out = String(await toolFor('getCalendarWeek').execute({}, {}));
-    expect(out).toMatch(/No calendar is connected, but on Ferni's own list you have: .*Standup with Priya/);
+    expect(out).toMatch(/No calendar is connected, but on Ferni's own list for this week you have: .*Standup with Priya/);
   });
 
   it('schedule views with nothing connected only change the "clear" wording', async () => {
     vi.mocked(isConnected).mockResolvedValue(false);
-    const [clear, reminder] = gateCalendarTools([
+    const [clear, reminder, emptyWeek] = gateCalendarTools([
       scheduleView('getUnifiedSchedule', 'Monday is clear. No scheduled items.'),
       scheduleView('getUnifiedSchedule', 'Reminder: call mom at 9.'),
+      scheduleView('getUnifiedSchedule', 'This week: 0 scheduled items across 7 days.'),
     ]).map((def) => def.create({ userId: 'user-1' } as never) as { execute: (p: unknown, o: unknown) => Promise<unknown> });
     expect(await clear.execute({}, {})).toBe(NOT_CONNECTED_READ);
-    expect(await reminder.execute({}, {})).toBe('Reminder: call mom at 9.');
+    expect(await emptyWeek.execute({}, {})).toBe(NOT_CONNECTED_READ);
+    expect(await reminder.execute({}, {})).toMatch(/^No calendar is connected, so this is Ferni's own list[\s\S]*Reminder: call mom at 9\./);
   });
 });
 

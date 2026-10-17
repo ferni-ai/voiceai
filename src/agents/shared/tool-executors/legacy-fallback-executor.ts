@@ -1507,7 +1507,7 @@ export async function executeLegacyFallback(
       const hasAccess = await isConnected(ctx.userId);
       if (!hasAccess) {
         const { ferniScheduleReply } = await import('../../../services/calendar/ferni-list.js');
-        return ferniScheduleReply(await getEventsForDay(ctx.userId, new Date())) ?? "Your calendar isn't connected yet. You can connect it in settings to see your schedule.";
+        return (await ferniScheduleReply(ctx.userId, dateArg)) ?? "Your calendar isn't connected yet. You can connect it in settings to see your schedule.";
       }
       // Parse date or default to today
       let targetDate = new Date();
