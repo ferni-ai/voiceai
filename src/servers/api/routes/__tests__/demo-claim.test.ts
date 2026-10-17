@@ -24,7 +24,11 @@ interface Reply {
   body: Record<string, unknown>;
 }
 
-async function postClaim(payload: unknown, authorization?: string): Promise<Reply> {
+async function postClaim(
+  payload: unknown,
+  authorization?: string,
+  rawBody?: string
+): Promise<Reply> {
   const emitter = new EventEmitter();
   const req = Object.assign(emitter, {
     method: 'POST',
@@ -47,7 +51,7 @@ async function postClaim(payload: unknown, authorization?: string): Promise<Repl
   const res = fake as unknown as ServerResponse;
 
   const done = handleDemoClaim(req, res);
-  emitter.emit('data', Buffer.from(JSON.stringify(payload)));
+  emitter.emit('data', Buffer.from(rawBody ?? JSON.stringify(payload)));
   emitter.emit('end');
   await done;
   return reply;
@@ -119,6 +123,20 @@ describe('POST /demo-claim takes the account from the verified token', () => {
     verifyFirebaseToken.mockResolvedValue({ uid: 'uid-real', claims: {} });
     const reply = await postClaim({}, 'Bearer good');
     expect(reply.status).toBe(400);
+    expect(claimDemoSession).not.toHaveBeenCalled();
+  });
+
+  it('answers 400, not 500, when the body is not JSON', async () => {
+    verifyFirebaseToken.mockResolvedValue({ uid: 'uid-real', claims: {} });
+    const reply = await postClaim(undefined, 'Bearer good', '{not json');
+    expect(reply.status).toBe(400);
+    expect(claimDemoSession).not.toHaveBeenCalled();
+  });
+
+  it('answers 413 for an oversized body and never verifies or claims', async () => {
+    const reply = await postClaim(undefined, 'Bearer good', 'x'.repeat(5000));
+    expect(reply.status).toBe(413);
+    expect(verifyFirebaseToken).not.toHaveBeenCalled();
     expect(claimDemoSession).not.toHaveBeenCalled();
   });
 });

@@ -57,8 +57,17 @@ async function verifiedUidOrRespond(
   }
 }
 
+/** Largest body /demo-claim reads; a claim is two short strings. */
+const MAX_BODY_BYTES = 4096;
+
 function parseBody(body: string): { claimToken?: string; bodyUid?: string } {
-  const parsed: unknown = JSON.parse(body);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    // Not JSON: treated like a body with no claim_token, so the caller gets a 400
+    return {};
+  }
   if (typeof parsed !== 'object' || parsed === null) return {};
   const record = parsed as Record<string, unknown>;
   const claimToken = record['claim_token'];
@@ -75,7 +84,15 @@ export async function handleDemoClaim(req: IncomingMessage, res: ServerResponse)
     return true;
   }
   let body = '';
-  req.on('data', (chunk: Buffer) => (body += chunk.toString()));
+  let tooLarge = false;
+  req.on('data', (chunk: Buffer) => {
+    if (tooLarge) return;
+    body += chunk.toString();
+    if (body.length > MAX_BODY_BYTES) {
+      tooLarge = true;
+      body = '';
+    }
+  });
 
   return new Promise((resolve) => {
     req.on('error', (err) => {
@@ -86,6 +103,11 @@ export async function handleDemoClaim(req: IncomingMessage, res: ServerResponse)
 
     onBodyEnd(req, res, resolve, async () => {
       try {
+        if (tooLarge) {
+          sendJson(res, 413, { error: 'Request body too large' });
+          resolve(true);
+          return;
+        }
         const uid = await verifiedUidOrRespond(req, res);
         if (!uid) {
           resolve(true);
