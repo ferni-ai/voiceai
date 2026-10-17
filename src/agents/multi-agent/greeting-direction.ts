@@ -189,7 +189,12 @@ export function callerHistory(
     if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
   }
   const fc = profile.firstContact;
-  const first = fc && typeof fc === 'object' && 'toDate' in fc ? fc.toDate() : fc && new Date(fc);
+  const first =
+    fc && typeof fc === 'object' && 'toDate' in fc
+      ? typeof fc.toDate === 'function'
+        ? fc.toDate()
+        : undefined
+      : fc && new Date(fc);
   if (first && Number.isFinite(first.getTime())) history.firstContact = first.toISOString();
   const topic = profile.lastCallerSummary?.trim();
   if (topic) history.lastTopic = topic.slice(0, MAX_TOPIC_CHARS);
@@ -379,7 +384,12 @@ export async function directedGreeting(
     maxChars: 140,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
-  if (anniversary && !unknown && directed.source === 'actor' && lineSaysAnniversary(spoken, anniversary))
+  if (
+    anniversary &&
+    !unknown &&
+    directed.source === 'actor' &&
+    lineSaysAnniversary(spoken, anniversary)
+  )
     anniversary.mark();
   // One follow-up per call opener (opener-claim.ts): having asked, the greeting
   // keeps the first recall note from asking about a thread too.

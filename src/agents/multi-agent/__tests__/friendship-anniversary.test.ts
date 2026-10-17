@@ -104,6 +104,10 @@ describe('the greeting side', () => {
     expect(
       callerHistory({ totalConversations: 5, firstContact: { toDate: () => at } })?.firstContact
     ).toBe(at.toISOString());
+    const odd = { toDate: true } as unknown as { toDate: () => Date };
+    expect(
+      callerHistory({ totalConversations: 5, firstContact: odd })?.firstContact
+    ).toBeUndefined();
     expect(
       callerHistory({ totalConversations: 5, firstContact: 'nonsense' })?.firstContact
     ).toBeUndefined();
