@@ -29,6 +29,7 @@ import { join } from 'node:path';
 import { getDisplayName, isKnownId } from '../../personas/persona-ids.js';
 import { getPersonaPronouns, type PersonaPronouns } from '../../personas/persona-pronouns.js';
 import { selfRecallEnabled } from './self-recall.js';
+import { troublesTalkEnabled, troubleWords } from './troubles-talk.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'LifeLedger' });
@@ -134,6 +135,19 @@ export function factDocId(f: LedgerFact): string {
 const BRIDGE_FOOTER =
   "This is your life, kept here so you stay consistent with it, not things to bring up. Don't volunteer any of them while they're on another topic or just saying hi: mention one only when they ask about you or what they just said is about the same thing. When they ask about something you told them, it is one of these; never make up a different event in its place. Don't repeat these back or list them.";
 
+const THREAD_FOOTER =
+  'This is your life: stay consistent with it, and if it fits, pick a thread back up the way a friend would ("the goat got out again"). When they ask about something you told them, it is one of these; never make up a different event in its place. Don\'t repeat these back or list them.';
+
+/**
+ * TROUBLES_TALK=on: on a trouble ("Do you have a minute to talk?", bad news)
+ * the ledger keeps him consistent but invites no thread of his own
+ * (troubles-talk.ts); "pick a thread back up" got his brother's first snow.
+ */
+export function quietLedger(note: string | null, said: string): string | null {
+  if (!note || !troublesTalkEnabled() || !troubleWords(said)) return note;
+  return note.replace(THREAD_FOOTER, BRIDGE_FOOTER);
+}
+
 /** The note for the first turn of a call, or null when there is nothing. */
 export function formatLedger(
   facts: LedgerFact[],
@@ -159,7 +173,7 @@ export function formatLedger(
     ...lines,
     opts.bridge
       ? BRIDGE_FOOTER
-      : 'This is your life: stay consistent with it, and if it fits, pick a thread back up the way a friend would ("the goat got out again"). When they ask about something you told them, it is one of these; never make up a different event in its place. Don\'t repeat these back or list them.',
+      : THREAD_FOOTER,
   ].join('\n');
 }
 

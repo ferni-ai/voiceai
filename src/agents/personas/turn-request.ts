@@ -47,6 +47,7 @@ import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
+import { troubleOpening, troublesTalkEnabled, troubleTurn } from './troubles-talk.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
@@ -280,7 +281,8 @@ function styleFor(
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
   const shaped = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
+  const troubled = withCallTrouble(session, said, shaped, source);
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, troubled);
   // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
   const burst = burstLine(
     session,
@@ -353,6 +355,23 @@ function withSupportHold(
   const sig = signals ?? regexSignals(said, callerMove(said));
   // Only the model's reading is sticky: plain (no reading yet) is careful by default.
   return { ...sig, supportFirst: supportHeld(session, said, source === 'model' && sig.careful) };
+}
+
+/**
+ * TROUBLES_TALK=on: a trouble holds for the next few turns, the way CANDOR's
+ * support does ("Thanks for listening" after the scan news got his own story
+ * about his dad). Shares CANDOR's hold, so the two agree on when it ends.
+ */
+function withCallTrouble(
+  session: object,
+  said: string,
+  signals: TurnSignals | undefined,
+  source: 'model' | 'plain' | 'regex'
+): TurnSignals | undefined {
+  if (!troublesTalkEnabled()) return signals;
+  const sig = signals ?? regexSignals(said, callerMove(said));
+  const hurting = (source === 'model' && sig.careful) || troubleOpening(said);
+  return { ...sig, trouble: supportHeld(session, said, hurting) || troubleTurn(said, sig) };
 }
 
 /** FERNI_STATE=on: his state's say on a story of his own rides with the signals (ferni-state.ts). */

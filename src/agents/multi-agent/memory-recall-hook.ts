@@ -52,6 +52,7 @@ import {
   formatLedger,
   loadLedger,
   personaDisplayName,
+  quietLedger,
   RECALL_LIMIT,
   type LedgerFact,
   type LedgerStore,
@@ -385,7 +386,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         ? !toldOffered &&
           (ASKS_ABOUT_YOU.test(text) || threadsForTurn([ledgerFacts], text, callerTurn).length > 0)
         : !followUpsOffered;
-      const told = tellNow ? [ledgerNote, sinceNote].filter(Boolean).join('\n') || null : null;
+      const told = tellNow
+        ? [quietLedger(ledgerNote, text), sinceNote].filter(Boolean).join('\n') || null
+        : null;
       // Who is who (RECALL_PEOPLE), once, with the first note.
       const people = followUpsOffered ? null : peopleNote;
       // What the two of them both know (COMMON_GROUND), once, with the first note.
@@ -420,7 +423,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           told,
           groundNow,
           extraTold.length > 0
-            ? formatLedger(extraTold, deps.userName, Date.now(), { bridge })
+            ? quietLedger(formatLedger(extraTold, deps.userName, Date.now(), { bridge }), text)
             : null,
           episode,
           self,

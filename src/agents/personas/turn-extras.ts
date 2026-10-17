@@ -87,6 +87,8 @@ export interface TurnSignals {
   recent?: RecentTurns;
   /** DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question (answer-turn.ts). */
   answered?: boolean;
+  /** TROUBLES_TALK=on: a trouble on this turn or just before it (troubles-talk.ts); unset when off. */
+  trouble?: boolean;
 }
 
 /** The model's understanding as signals. */
@@ -146,7 +148,8 @@ export function extrasFor(
   style: StyleProfile = NEUTRAL_STYLE
 ): Extras {
   const out: Extras = { lines: [], fired: [] };
-  if (on(env, 'LAUGH_ALONG') && signals.laughed) {
+  // TROUBLES_TALK=on: not while they tell a trouble; a listener doesn't laugh at it (Jefferson).
+  if (on(env, 'LAUGH_ALONG') && signals.laughed && !signals.trouble) {
     out.lines.push(LAUGH_ALONG);
     out.fired.push('laugh_along');
   }
@@ -182,6 +185,7 @@ export function extrasFor(
   if (
     on(env, 'ASK_ADVICE') &&
     !venting &&
+    !signals.trouble &&
     // Live, "keep an eye on the time for me" got the timer plus a musing about
     // his basil: a request wants the thing done, not his dilemma.
     signals.adviceFits &&
@@ -211,6 +215,7 @@ export function extrasFor(
       move === 'share' &&
       signals.laughFits &&
       !venting &&
+      !signals.trouble &&
       !signals.laughed &&
       shape !== 'full' &&
       rng() < scaled(0.5, style.laugh)
