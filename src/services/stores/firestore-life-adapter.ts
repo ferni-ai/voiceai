@@ -59,7 +59,9 @@ function getDocRef(db: Firestore, userId: string, domain: LifeAutomationDomain):
 
 /**
  * Get data for a specific life automation domain
- * Returns null if Firestore is unavailable or data doesn't exist
+ * Returns null if Firestore is unavailable or data doesn't exist. A failed read
+ * throws: callers read, change and save the whole domain, so a failure taken for
+ * "no data" would save over everything the person has.
  */
 export async function getLifeAutomationData<T>(
   userId: string,
@@ -87,7 +89,7 @@ export async function getLifeAutomationData<T>(
   } catch (error) {
     log.error({ error: String(error), userId, domain }, 'Failed to get life automation data');
     recordDegradation('firestore-life-adapter', `getLifeAutomationData:${domain}:error`);
-    return null;
+    throw error;
   }
 }
 

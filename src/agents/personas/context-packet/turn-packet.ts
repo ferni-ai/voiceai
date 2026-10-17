@@ -1,35 +1,53 @@
 /**
  * The live inputs of the context packet (CONTEXT_PACKET=on) as the typed input
- * the assembler takes (context-packet.ts): recall's picks, kept per call instead
- * of an unlabelled chat note, and the turn's notes for the one ranker, plus an
- * honesty note when the caller asks how Ferni knows something.
+ * the assembler takes (context-packet.ts): the facts recall picked, kept per
+ * call and labelled with where they came from (the rest of recall's note is sent
+ * as before, word for word), and the turn's notes exactly as the plain
+ * reminder carries them, in its order (turn-request.ts), plus an honesty note
+ * when the caller asks how Ferni knows something.
  *
  * @module agents/personas/context-packet/turn-packet
  */
 
 import { createHash } from 'node:crypto';
 
-import { factId, type RecallFact } from '../../../memory/recall/session-recall.js';
+import { contextPacketEnabled } from '../../../config/context-packet-flag.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import {
+  addRecallNote,
+  type MemoryRecall,
+  type RecallAgent,
+} from '../../multi-agent/memory-recall-hook.js';
+
+import { forgottenInProcess } from '../../../memory/recall/forget.js';
+import {
+  factId,
+  isForgotten,
+  RECALL_RULE,
+  type RecallFact,
+} from '../../../memory/recall/session-recall.js';
 import { getDisplayName } from '../../../personas/persona-ids.js';
-import type { OpenCommitment } from '../../../services/superhuman/commitment-follow-up.js';
-import type { LedgerFact } from '../life-ledger.js';
-import type { LifeUpdate } from '../life-updates.js';
 import {
   assembleContextPacket,
-  type Commitment,
   type ContextPacket,
   type KnownFact,
   type PacketAccounting,
 } from './context-packet.js';
-import type { GuidanceNote } from './guidance-ranker.js';
 
-/** What one recall picked for the caller's words (memory-recall-hook.ts lastPick). */
+const log = createLogger({ module: 'ContextPacket' });
+
+/** One recall note, split (memory-recall-hook.ts lastPick). */
 export interface RecallPick {
+  /** The facts about the caller it picked: labelled in the packet instead. */
   facts: RecallFact[];
-  followUps: string[];
-  told: LedgerFact[];
-  since: LifeUpdate[];
-  checkIns: OpenCommitment[];
+  userName?: string;
+  /**
+   * The rest of the note, word for word as recall writes it and on the same
+   * turns (check-ins, threads, inside jokes, opener, summaries, people, his own
+   * life and its footer, life updates, episodes, self-recall); null when only
+   * facts. Still sent as recall's chat note, so no recall flag changes.
+   */
+  rest: string | null;
 }
 
 const SELF = /^(speaker|user|me)$/i;
@@ -45,83 +63,78 @@ const CONFIRMED_FROM = 0.6;
 
 function factFromRecall(f: RecallFact, userName?: string): KnownFact {
   const subject = SELF.test(f.entity) ? userName || 'they' : f.entity;
+  // Like formatRecall: a replaced fact still shows, marked as how things were.
+  const was = f.supersededAt ? ' [no longer true: how things were before]' : '';
   return {
     id: opaque('fact', factId(f)),
-    text: `${subject} ${f.key.replace(/_/g, ' ')}: ${f.value}`,
+    text: `${subject} ${f.key.replace(/_/g, ' ')}: ${f.value}${was}`,
     source: f.confidence >= CONFIRMED_FROM ? 'caller-said' : 'unconfirmed',
     at: f.extractedAt,
   };
 }
 
-function factsOf(pick: RecallPick, userName?: string): KnownFact[] {
-  return [
-    ...pick.facts.map((f) => factFromRecall(f, userName)),
-    ...pick.followUps.map((t): KnownFact => ({
-      id: opaque('thread', t),
-      text: t,
-      source: 'thread',
-    })),
-    ...pick.told.map((f): KnownFact => ({
-      id: opaque('told', f.fact),
-      text: f.fact,
-      source: 'i-said',
-      at: f.saidAt,
-      learnedBy: getDisplayName(f.personaId),
-    })),
-    // Written for the persona that owns them (recall loads Ferni's): only they tell them.
-    ...pick.since.map((u): KnownFact => ({
-      id: opaque('since', u.update),
-      text: u.update,
-      source: 'my-news',
-      learnedBy: getDisplayName(u.personaId),
-    })),
-  ];
-}
+/** Most picked facts a call keeps for its packets; the packet carries them whole, so this bounds it. */
+const MAX_CALL_FACTS = 20;
 
 interface CallMemory {
   /** Newest pick first; each pick in recall's own order (most relevant first). */
   facts: KnownFact[];
-  commitments: Map<string, Commitment>;
+  /** The latest pick's note already carried the rule (RECALL_RULE), so the packet leaves it out. */
+  ruleInChat: boolean;
 }
+/** Held by the call's session object, so it goes when the call does (nothing outlives it). */
 const calls = new WeakMap<object, CallMemory>();
 
-/** Keep what recall picked for this call's packets. A newer pick goes first, in its own order. */
-export function rememberForPacket(session: object, pick: RecallPick, userName?: string): void {
-  const call: CallMemory = calls.get(session) ?? { facts: [], commitments: new Map() };
+/** Keep the facts recall picked for this call's packets. A newer pick goes first, in its own order. */
+export function rememberForPacket(
+  session: object,
+  pick: RecallPick,
+  userName = pick.userName
+): void {
+  const call: CallMemory = calls.get(session) ?? { facts: [], ruleInChat: false };
   calls.set(session, call);
-  const fresh = factsOf(pick, userName);
+  const fresh = pick.facts.map((f) => factFromRecall(f, userName));
   const ids = new Set(fresh.map((f) => f.id));
-  call.facts = [...fresh, ...call.facts.filter((f) => !ids.has(f.id))];
-  for (const c of pick.checkIns) {
-    const dueAt = c.targetDate ? new Date(c.targetDate).toISOString() : undefined;
-    const id = opaque('promise', c.id);
-    call.commitments.set(id, { id, text: c.statement, owner: 'you', dueAt });
-  }
+  call.facts = [...fresh, ...call.facts.filter((f) => !ids.has(f.id))].slice(0, MAX_CALL_FACTS);
+  call.ruleInChat = pick.rest?.includes(RECALL_RULE) ?? false;
+}
+
+/**
+ * A recall note, sent: CONTEXT_PACKET=on keeps what recall picked for the
+ * turn's packet, labelled, and adds only the rest (RecallPick.rest) as recall's
+ * chat note. Off: the note as before (memory-recall-hook.ts addRecallNote).
+ */
+export function sendRecall(
+  agent: RecallAgent,
+  session: object,
+  recall: MemoryRecall,
+  note: string
+): void {
+  const pick = contextPacketEnabled() ? recall.lastPick() : null;
+  if (!pick) return addRecallNote(agent, note);
+  rememberForPacket(session, pick);
+  if (pick.rest) addRecallNote(agent, pick.rest);
 }
 
 /** "How do you know", "who told you", "where did you hear that". */
 const ASKS_SOURCE =
   /\b(how (do|did|would) you (know|remember)|who told you|where did you (hear|get|learn)|how('d| did) you find out)\b/i;
 export const SOURCE_NOTE =
-  'They asked how you know: answer honestly from the label on that memory (when and to whom they said it), plainly, without guessing.';
+  'They asked how you know: answer honestly from the label on that memory (when they said it), plainly, without guessing.';
 
 export interface TurnParts {
   personaId?: string;
   userName?: string;
   timeZone?: string;
   words: string;
-  directorNotes: string[];
-  thought?: string;
-  told: string;
-  /** Team lines, most important first: each fits the budget or is dropped whole. */
-  team: string[];
-  game: string;
-  state?: string;
-  shape: string;
-  /** Crisis guidance for this reply (crisis-gate.ts): the top-ranked note. */
-  safety?: string;
-  /** Where their life stands now, labelled (world-model/temporal/in-call.ts); [] when none. */
-  life?: string[];
+  /**
+   * The turn's notes exactly as the plain reminder carries them, in its order
+   * (turn-request.ts): told, team, director, thought, game, state, beats, ...,
+   * style, exit, self-share, invite, hard rule. Never reordered or dropped.
+   */
+  notes: readonly string[];
+  /** Where their life stands now, labelled (world-model/temporal/in-call.ts); none when empty. */
+  life?: readonly string[];
   now: number;
 }
 
@@ -138,50 +151,50 @@ function localTime(now: number, timeZone: string | undefined): string | undefine
 export function turnPacket(session: object, p: TurnParts): ContextPacket {
   const call = calls.get(session);
   const persona = getDisplayName(p.personaId ?? 'ferni');
-  const guidance: GuidanceNote[] = [
-    ...(p.safety
-      ? [{ id: 'safety', kind: 'safety' as const, source: 'crisis-gate.ts', text: p.safety }]
-      : []),
-    ...(ASKS_SOURCE.test(p.words)
-      ? [
-          {
-            id: 'honesty:source',
-            kind: 'honesty' as const,
-            source: 'turn-packet.ts',
-            text: SOURCE_NOTE,
-            axes: { 'say-how-you-know': 1 as const },
-          },
-        ]
-      : []),
-    ...p.directorNotes.map((text, i) => ({
-      id: `director:${i}`,
-      kind: 'director' as const,
-      source: 'director-notes.ts',
-      text,
-    })),
-    ...(p.thought
-      ? [{ id: 'thought', kind: 'director' as const, source: 'deliberation.ts', text: p.thought }]
-      : []),
-    ...(p.told
-      ? [{ id: 'told', kind: 'director' as const, source: 'told-this-call.ts', text: p.told }]
-      : []),
-  ];
+  // Topics they asked us to forget (forget.ts) are never said back, even from a pick made earlier.
+  const userId = (session as { userData?: { userId?: string } }).userData?.userId;
+  const forgotten = userId ? forgottenInProcess(userId) : [];
+  const memories = (call?.facts ?? []).filter((f) => !isForgotten(f.text, forgotten));
+  // The honesty note leads the turn's own notes, which keep the plain order.
+  const honesty = ASKS_SOURCE.test(p.words) ? [SOURCE_NOTE] : [];
   return assembleContextPacket({
     persona,
     caller: { name: p.userName },
-    rightNow: {
-      localTime: localTime(p.now, p.timeZone),
-      justHappened: [p.state, p.game].filter((t): t is string => Boolean(t)),
-    },
+    rightNow: { localTime: localTime(p.now, p.timeZone) },
     life: p.life,
-    memories: (call?.facts ?? []).filter((f) => f.source !== 'my-news' || f.learnedBy === persona),
-    commitments: call ? [...call.commitments.values()] : [],
-    guidance,
-    shape: p.shape,
-    team: { note: p.team.filter(Boolean), relevant: p.team.some(Boolean) },
+    // Recall budgets its facts per turn; once picked they stay, like its notes in the chat.
+    memories,
+    memoriesWhole: true,
+    memoryRule: call?.ruleInChat ? undefined : RECALL_RULE,
+    turn: [...honesty, ...p.notes],
     now: p.now,
     timeZone: p.timeZone,
   });
+}
+
+/**
+ * CONTEXT_PACKET=on: the turn's reminder as one labelled packet, for
+ * withTurnReminder. Logged as counts only (packetLogFields): no text, ids or names.
+ */
+export function packetReminder(
+  session: object,
+  words: string,
+  notes: readonly string[],
+  life?: readonly string[]
+): string {
+  const userData = (session as { userData?: unknown }).userData as
+    { personaId?: string; userName?: string; callerTimezone?: string } | undefined;
+  const { text, accounting } = turnPacket(session, {
+    personaId: userData?.personaId,
+    userName: userData?.userName,
+    timeZone: userData?.callerTimezone,
+    words,
+    notes,
+    life,
+    now: Date.now(),
+  });
+  log.info(packetLogFields(accounting), 'CONTEXT_PACKET'); // counts only, never text
+  return text;
 }
 
 /**

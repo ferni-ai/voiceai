@@ -51,20 +51,7 @@ function plant(session: object): void {
           confidence: 0.9,
         })),
       ],
-      followUps: ['ask Jane Doe about the lake story'],
-      told: [
-        { personaId: 'ferni', fact: 'told Jane the lake story', saidAt: '2026-10-01T00:00:00Z' },
-      ],
-      since: [{ personaId: 'ferni', update: 'Biscuit learned the lake story', createdAt: '' }],
-      checkIns: [
-        {
-          id: 'jane@example.com',
-          statement: 'Jane Doe will call 555 867 5309',
-          createdAt: 0,
-          followUpAfter: 0,
-          followUpCount: 0,
-        },
-      ],
+      rest: null,
     },
     'Jane Doe'
   );
@@ -77,27 +64,23 @@ afterEach(() => {
 
 describe('CONTEXT_PACKET logging', () => {
   it('packetLogFields: counts only, though the packet itself carries every planted detail', () => {
-    const session = {};
+    const session = { userData: { services: { sessionId: 'log-bare' } } };
     plant(session);
     const packet = turnPacket(session, {
       personaId: 'ferni',
       userName: 'Jane Doe',
       words: 'how do you know my number, 555 867 5309?',
-      directorNotes: [
-        'Jane Doe sounds tired; stop explaining the deck.',
-        'Mention the lake story.',
+      notes: [
+        'You told the lake story already.',
+        'Jane Doe: none of your teammates are available.',
+        '[Director: Jane Doe sounds tired; stop explaining the deck. / Mention the lake story.]',
+        'Game on: Jane Doe vs Ferni.',
+        'Keep it short for Jane Doe.',
       ],
-      told: 'You told the lake story already.',
-      team: ['Jane Doe: none of your teammates are available.'],
-      game: 'Game on: Jane Doe vs Ferni.',
-      shape: 'Keep it short for Jane Doe.',
-      safety: 'Jane Doe may be at risk; stay with her.',
       now: Date.parse('2026-10-11T18:00:00Z'),
     });
-    // Non-vacuous: the planted details really are in the packet, and some were dropped.
-    for (const pii of ['Jane', '5309', 'lake story']) expect(packet.text).toContain(pii);
-    expect(packet.accounting.dropped.length).toBeGreaterThan(0);
-    expect(packet.accounting.guidanceDropped.length).toBeGreaterThan(0);
+    // Non-vacuous: the planted details really are in the packet.
+    for (const pii of ['Jane', '5309', 'lake story', 'Biscuit']) expect(packet.text).toContain(pii);
 
     const json = JSON.stringify(packetLogFields(packet.accounting));
     for (const pii of PII) expect(json).not.toContain(pii);
@@ -107,7 +90,9 @@ describe('CONTEXT_PACKET logging', () => {
   });
 
   it('what withTurnReminder logs on the live path has none of it', () => {
-    const session = { userData: { userName: 'Jane Doe', personaId: 'ferni' } };
+    const session = {
+      userData: { userName: 'Jane Doe', personaId: 'ferni', services: { sessionId: 'log-named' } },
+    };
     plant(session);
     setDirector(session, {
       current: () => ['Jane Doe sounds tired; stop explaining the deck.'],

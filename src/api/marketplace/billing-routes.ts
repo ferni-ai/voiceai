@@ -57,7 +57,7 @@ export async function handleUsageRoutes(
     }
 
     const itemId = pathname.split('/')[4];
-    const tier = getSubscriptionTier(req);
+    const tier = await getSubscriptionTier(userId);
 
     try {
       const summary = getUsageSummary(userId, itemId, tier);
@@ -78,7 +78,7 @@ export async function handleUsageRoutes(
       return true;
     }
 
-    const tier = getSubscriptionTier(req);
+    const tier = await getSubscriptionTier(userId);
 
     try {
       const installations = listInstallations(userId);
@@ -134,7 +134,7 @@ export async function handleUsageRoutes(
     }
 
     const itemId = pathname.split('/')[5];
-    const tier = getSubscriptionTier(req);
+    const tier = await getSubscriptionTier(userId);
 
     try {
       const result = checkQuota(userId, itemId, tier);

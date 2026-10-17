@@ -319,7 +319,7 @@ const NAME_WHITELIST = new Set([
 const CORE_PERSONA_NAMES = new Set(['Ferni', 'Maya', 'Peter', 'Alex', 'Jordan', 'Nayan']);
 
 /** Persona last names and extended identifiers */
-const PERSONA_EXTENDED = new Set(['Santos', 'Chen', 'Taylor', 'Patel', 'Bogle']);
+const PERSONA_EXTENDED = new Set(['Santos', 'Chen', 'Taylor', 'Patel', 'Caldwell']);
 
 /** Common non-places */
 const NON_PLACES = ['The', 'My', 'Our', 'This', 'That'];

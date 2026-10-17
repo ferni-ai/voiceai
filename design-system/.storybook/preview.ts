@@ -12,15 +12,14 @@ const preview: Preview = {
       },
     },
     backgrounds: {
-      default: 'light',
-      values: [
-        { name: 'light', value: '#FFFDFB' }, // Paper Cream
-        { name: 'dark', value: '#2C2520' },  // Natural Ink
-        { name: 'sage', value: '#4a6741' },  // Ferni Primary
-      ],
+      options: {
+        light: { name: 'light', value: '#FFFDFB' }, // Paper Cream
+        dark: { name: 'dark', value: '#2C2520' }, // Natural Ink
+        sage: { name: 'sage', value: '#4a6741' }, // Ferni Primary
+      },
     },
     viewport: {
-      viewports: {
+      options: {
         mobile: {
           name: 'Mobile',
           styles: { width: '375px', height: '667px' },
@@ -36,11 +35,15 @@ const preview: Preview = {
       },
     },
   },
+  initialGlobals: {
+    backgrounds: { value: 'light' },
+    theme: 'light',
+    persona: 'ferni',
+  },
   globalTypes: {
     theme: {
       name: 'Theme',
       description: 'Global theme for components',
-      defaultValue: 'light',
       toolbar: {
         icon: 'paintbrush',
         items: [
@@ -53,7 +56,6 @@ const preview: Preview = {
     persona: {
       name: 'Persona',
       description: 'Active persona colors',
-      defaultValue: 'ferni',
       toolbar: {
         icon: 'user',
         items: [

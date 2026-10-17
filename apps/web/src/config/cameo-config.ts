@@ -308,7 +308,7 @@ export function getCameoPersonaColors(personaId: string): {
  */
 export function canCameo(personaId: string): boolean {
   // Ferni is the host, doesn't do cameos
-  // Jack Bogle and generic-advisor are marketplace agents, not core team
+  // jack-b (a legacy Ferni alias) and generic-advisor are not core team, not core team
   const nonCameoPersonas = ['ferni', 'jack-b', 'generic-advisor'];
   return !nonCameoPersonas.includes(personaId);
 }

@@ -16,10 +16,14 @@ const fs = vi.hoisted(() => {
     limit: (n: number) => ({
       get: async () => ({ docs: rows.slice(0, n).map((d) => ({ data: () => d })) }),
     }),
+    // memory_state/forgotten: nothing forgotten (an unreadable list now fails recall closed).
+    doc: () => ({ get: async () => ({ exists: false, data: () => undefined }) }),
   });
   const db = {
     collection: () => ({
-      doc: (uid: string) => ({ collection: (name: string) => query(data.get(`${uid}/${name}`) ?? []) }),
+      doc: (uid: string) => ({
+        collection: (name: string) => query(data.get(`${uid}/${name}`) ?? []),
+      }),
     }),
   };
   return { data, db };
@@ -49,6 +53,7 @@ const TOPICS: Array<[string, RegExp]> = [
   ['reading', /history book|reading/i],
   ['craft', /pottery|clay/i],
   ['pet', /retriever|pup/i],
+  ['hospital', /hospital|St\. Mary/i],
 ];
 const embed: RetrievalEmbedder = async (texts) =>
   texts.map((t) => {
@@ -89,7 +94,13 @@ function seedCallOne(uid: string): void {
           value: 'needs to book flights to Lisbon for the wedding',
           confidence: 0.9,
         },
-        { entityName: 'Biscuit', factType: 'attribute', key: 'breed', value: 'golden retriever', confidence: 0.9 },
+        {
+          entityName: 'Biscuit',
+          factType: 'attribute',
+          key: 'breed',
+          value: 'golden retriever',
+          confidence: 0.9,
+        },
       ],
     },
     { sessionId: 'call-1', turnNumber: 4 },
@@ -100,7 +111,11 @@ function seedCallOne(uid: string): void {
 }
 
 /** Speak one user turn the way the SDK reports it: an interim, then the final. */
-async function userTurn(recall: ReturnType<typeof createMemoryRecall>, interim: string, final: string) {
+async function userTurn(
+  recall: ReturnType<typeof createMemoryRecall>,
+  interim: string,
+  final: string
+) {
   const notes = [recall.noteFor(interim)];
   await settle(); // the interim's embedding lands while they are still talking
   notes.push(recall.noteFor(final));
@@ -115,7 +130,9 @@ describe('semantic recall across calls', () => {
     seedCallOne('u-flights');
     const fact = 'needs to book flights to Lisbon for the wedding';
     // The premise: keyword recall has nothing to go on.
-    const shared = [...contentWords(QUESTION)].filter((w) => contentWords(`travel_plan ${fact}`).has(w));
+    const shared = [...contentWords(QUESTION)].filter((w) =>
+      contentWords(`travel_plan ${fact}`).has(w)
+    );
     expect(shared).toEqual([]);
 
     const keywordOnly = createMemoryRecall({ userId: 'u-flights', semantic: false, embed });
@@ -141,10 +158,18 @@ describe('semantic recall across calls', () => {
       extract: async () => ['Ferni has been reading an old history book about the silk road'],
       now: () => Date.parse('2026-10-09T18:00:00Z'),
     });
-    call1.add('ferni', "Honestly I've been reading this old history book about the silk road traders.");
+    call1.add(
+      'ferni',
+      "Honestly I've been reading this old history book about the silk road traders."
+    );
     expect(await call1.flush()).toBe(1);
 
-    const call2 = createMemoryRecall({ userId: 'u-story', ledgerStore: ledger, semantic: true, embed });
+    const call2 = createMemoryRecall({
+      userId: 'u-story',
+      ledgerStore: ledger,
+      semantic: true,
+      embed,
+    });
     await call2.ready;
     expect(call2.noteFor("hey, it's me again")).toContain(
       'Ferni has been reading an old history book about the silk road'
@@ -167,12 +192,21 @@ describe('semantic recall across calls', () => {
     }
     const story = 'silk road';
     for (const semantic of [false, true]) {
-      const recall = createMemoryRecall({ userId: `u-old-${semantic}`, ledgerStore: ledger, semantic, embed });
+      const recall = createMemoryRecall({
+        userId: `u-old-${semantic}`,
+        ledgerStore: ledger,
+        semantic,
+        embed,
+      });
       await recall.ready;
       await settle();
       expect(recall.noteFor('hey, good to hear you')).not.toContain(story);
       recall.newTurn();
-      const later = await userTurn(recall, 'what was that thing you were reading', 'what was that thing you were reading again');
+      const later = await userTurn(
+        recall,
+        'what was that thing you were reading',
+        'what was that thing you were reading again'
+      );
       if (semantic) expect(later).toContain(story);
       else expect(later).not.toContain(story);
     }
@@ -181,18 +215,85 @@ describe('semantic recall across calls', () => {
   it('brings back an older open thread when the talk turns to it', async () => {
     fs.data.set(
       'u-threads/summaries',
-      ['Ask how the move went', 'Ask about the new job', 'Check on the sore knee', 'Ask how the pottery class went'].map(
-        (item, i) => ({ timestamp: `2026-10-0${9 - i}T10:00:00Z`, followUpItems: [item] })
-      )
+      [
+        'Ask how the move went',
+        'Ask about the new job',
+        'Check on the sore knee',
+        'Ask how the pottery class went',
+      ].map((item, i) => ({
+        timestamp: `2026-10-0${9 - i}T10:00:00Z`,
+        callerProvenance: 1,
+        followUpItems: [item],
+      }))
     );
     const recall = createMemoryRecall({ userId: 'u-threads', semantic: true, embed });
     await recall.ready;
     await settle();
     expect(recall.noteFor('hi')).not.toContain('pottery');
     recall.newTurn();
-    expect(await userTurn(recall, "I've been getting my hands into clay", "I've been getting my hands into clay again")).toContain(
-      'Ask how the pottery class went'
+    expect(
+      await userTurn(
+        recall,
+        "I've been getting my hands into clay",
+        "I've been getting my hands into clay again"
+      )
+    ).toContain('Ask how the pottery class went');
+  });
+
+  it("an interim's loose word matches don't crowd out what the final transcript means", async () => {
+    // The benchmark miss (2026-10-11): "which hospital did I work at" matched
+    // four rows on "work" before its embedding landed, and the turn had no
+    // room left for the employer the question meant.
+    const fact = (entityName: string, key: string, value: string) => ({
+      entityName,
+      factType: 'attribute' as const,
+      key,
+      value,
+      confidence: 0.9,
+    });
+    const payloads = buildExtractionFirestoreWritePayloads(
+      'u-work',
+      {
+        entities: [],
+        relationships: [],
+        facts: [
+          fact('user', 'previous_employer', "St. Mary's"),
+          fact('user', 'schedule', 'works long shifts'),
+          fact('Neighbor', 'helps', 'walks the dog during work shifts'),
+          fact('Dana', 'relation', 'a friend from work'),
+          fact('commute', 'length', 'forty minutes to work'),
+        ],
+      },
+      { sessionId: 'call-1', turnNumber: 2 },
+      '2026-10-09T18:00:00.000Z',
+      noLog
     );
+    fs.data.set('u-work/dynamic_facts', payloads.facts);
+    const interim = 'which hospital did I work at';
+    const final = 'which hospital did I work at before this one?';
+    const ask = async (marked: boolean) => {
+      const recall = createMemoryRecall({ userId: 'u-work', semantic: true, embed });
+      await recall.ready;
+      await settle(); // the call-start index
+      const early = recall.noteFor(interim, marked ? { final: false } : undefined);
+      await settle(); // the interim's embedding lands while they are still talking
+      return [early, recall.noteFor(final, marked ? { final: true } : undefined)].join('\n');
+    };
+    // Unmarked transcripts keep the old behaviour: the interim spends the turn.
+    expect(await ask(false)).not.toContain("St. Mary's");
+    const note = await ask(true);
+    expect(note).toContain("St. Mary's");
+    expect(note).not.toContain('forty minutes');
+  });
+
+  it('an interim that names someone still recalls them before the embedding lands', async () => {
+    seedCallOne('u-named');
+    const recall = createMemoryRecall({ userId: 'u-named', semantic: true, embed });
+    await recall.ready;
+    await settle();
+    recall.noteFor('hey there');
+    recall.newTurn();
+    expect(recall.noteFor("how's Biscuit doing", { final: false })).toContain('golden retriever');
   });
 
   it('never waits on a slow embedder: the note is keyword recall, at once', async () => {

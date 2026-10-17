@@ -208,7 +208,7 @@ function buildTemplateContext(config: AgentPageConfig): TemplateContext {
  * const page = await generateAgentPage({
  *   agent: {
  *     id: 'joel-dickson',
- *     name: 'Joel Dickson',
+ *     name: 'Nate Holloway',
  *     initials: 'JD',
  *     tagline: 'Global Head of Investment Strategy',
  *     description: 'Expert in investment research and strategy',
@@ -459,7 +459,7 @@ function buildMultiAdvisorTemplateContext(
  *   advisors: [
  *     {
  *       id: 'peter-lynch',
- *       name: 'Peter Lynch',
+ *       name: 'Tom Brannigan',
  *       initials: 'PL',
  *       tagline: 'The Stock Picker',
  *       description: 'Master of finding great companies...',

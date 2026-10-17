@@ -51,9 +51,6 @@ export const PACKET_HEADER =
 /** 'thread': open from a past call; 'my-news': the persona's news since then (life-updates.ts). */
 export type Source = 'caller-said' | 'noticed' | 'unconfirmed' | 'i-said' | 'thread' | 'my-news';
 
-/** How to use what's remembered: the rules each recall note carried (session-recall.ts, life-ledger.ts). */
-export const MEMORY_RULE =
-  "How to use these: they're from past calls, not this one; use at most one, only if it fits. Dates inside a memory are as of when it was said; anything that could have changed, check instead of asserting. Never bring up health, pregnancy, money or relationships unless they do. Never list these, say you looked them up, or make up a different event in your own life.";
 /** The coach's rule for what they said they'd do (commitment-follow-up.ts). */
 export const PROMISE_RULE =
   "Early in the call, unless you already asked or they're not up for it, ask how one went, by name, once, like a friend rooting for them; skip anything that sounded offhand.";
@@ -94,10 +91,20 @@ export interface PacketInput {
   };
   /** Most relevant first: the budget keeps the head. */
   memories?: KnownFact[];
+  /** Keep every memory: the caller budgeted them already (turn-packet.ts, recall's per-turn limit). */
+  memoriesWhole?: boolean;
+  /** The rule for using memories, verbatim from recall (session-recall.ts RECALL_RULE); none when the chat note carries it. */
+  memoryRule?: string;
   /** Their life now, each line one dated, labelled fact (world-model/temporal/in-call.ts). */
   life?: readonly string[];
   commitments?: Commitment[];
   guidance?: GuidanceNote[];
+  /**
+   * This turn's notes in the order they were given, after the ranked guidance:
+   * never reordered, capped or dropped, since they carry their own ordering
+   * rules (turn-request.ts). They count against This turn's budget first.
+   */
+  turn?: readonly string[];
   /** This reply's shape (turn-shape.ts): the last line of This turn, outside the 3-note cap. */
   shape?: string;
   /** The team lines (who's available, misheard names, who helps with what); only when relevant. */
@@ -211,8 +218,8 @@ function fit(
 
 const bullet = (text: string): string => `- ${text}`;
 /** A section's rule leads it, so the budget keeps it; no lines, no rule. */
-const withRule = (rule: string, lines: Line[]): Line[] =>
-  lines.length ? [{ text: rule }, ...lines] : [];
+const withRule = (rule: string | undefined, lines: Line[]): Line[] =>
+  lines.length ? [...(rule ? [{ text: rule }] : []), ...lines] : [];
 interface Line {
   text: string;
   id?: string;
@@ -262,7 +269,7 @@ export function assembleContextPacket(input: PacketInput): ContextPacket {
       ...opt(at.turnInCall !== undefined && `Turn ${at.turnInCall} of this call${minutes}`),
       ...(at.justHappened ?? []).flatMap((t) => opt(t)),
     ],
-    what_i_remember: withRule(MEMORY_RULE, facts(input.memories, 'what_i_remember')),
+    what_i_remember: withRule(input.memoryRule, facts(input.memories, 'what_i_remember')),
     your_life: withRule(
       WORLD_FACTS_RULE,
       (input.life ?? []).map((text) => ({ text: bullet(text) }))
@@ -271,16 +278,25 @@ export function assembleContextPacket(input: PacketInput): ContextPacket {
     this_turn: ranked.kept.map((n) => ({ text: bullet(n.text), id: n.id })),
     team: team?.relevant ? teamLines.map((text) => ({ text })) : [],
   };
-  // The reply's shape closes This turn, outside the note cap, its room kept first.
+  // The turn's own notes are kept whole, in order; their room is taken first.
+  const turn = (input.turn ?? []).map(oneLine).filter(Boolean).map(bullet);
+  const turnRoom = turn.reduce((n, l) => n + l.length + 1, 0);
+  // The reply's shape closes This turn, outside the note cap, its room kept next.
   const shape = opt(input.shape && oneLine(input.shape)).map((l) => ({ ...l, id: 'shape' }));
-  const room = shape.length ? shape[0].text.length + 1 : 0;
+  const room = turnRoom + (shape.length ? shape[0].text.length + 1 : 0);
   const built = (Object.keys(HEADINGS) as SectionName[]).map((name) => {
     if (name === 'data') return dataSection(input.untrusted ?? [], dropped);
+    if (name === 'what_i_remember' && input.memoriesWhole)
+      return { name, lines: content[name].map((l) => oneLine(l.text)), dropped: 0 };
     if (name !== 'this_turn') return fit(name, content[name], dropped);
     const notes = fit(name, content.this_turn, dropped, room);
-    const used = notes.lines.reduce((n, l) => n + l.length + 1, 0);
+    const used = notes.lines.reduce((n, l) => n + l.length + 1, 0) + turnRoom;
     const last = fit(name, shape, dropped, used);
-    return { name, lines: [...notes.lines, ...last.lines], dropped: notes.dropped + last.dropped };
+    return {
+      name,
+      lines: [...notes.lines, ...turn, ...last.lines],
+      dropped: notes.dropped + last.dropped,
+    };
   });
 
   // A guidance note the budget cut is a dropped note too.
@@ -292,9 +308,10 @@ export function assembleContextPacket(input: PacketInput): ContextPacket {
   }
 
   const shown = built.filter((s) => s.lines.length > 0);
-  const text = [PACKET_HEADER, ...shown.map((s) => [HEADINGS[s.name], ...s.lines].join('\n'))].join(
-    '\n\n'
-  );
+  // Who I am is always there; alone it says nothing this turn, so no packet (as on main).
+  const text = shown.some((s) => s.name !== 'who_i_am')
+    ? [PACKET_HEADER, ...shown.map((s) => [HEADINGS[s.name], ...s.lines].join('\n'))].join('\n\n')
+    : '';
   const sections = built.map((s): SectionAccount => {
     const chars = s.lines.length ? HEADINGS[s.name].length + s.lines.join(' ').length + 1 : 0;
     const budgetTokens = SECTION_BUDGETS[s.name];

@@ -320,12 +320,12 @@ OFFER TO REMEMBER ${userName.toUpperCase()}
 Now that you've connected, offer to remember them for future calls.
 
 SAY SOMETHING LIKE:
-- "By the way, ${userName}, I can remember your number so I know it's you next time. Would you like that?"
-- "${userName}, if you call again, I'd love to remember you - want me to save your number?"
+- "By the way, I can remember your number so I know it's you next time. Would you like that?"
+- "If you call again, I'd love to remember you - want me to save your number?"
 
 If they say YES:
 - Their profile is already being created automatically
-- Confirm warmly: "Perfect! I'll remember you, ${userName}."
+- Confirm warmly: "Perfect! I'll remember you."
 - Use the rememberName tool if you haven't already
 
 If they say NO:

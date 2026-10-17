@@ -2,8 +2,8 @@
   "schema_version": 2,
   "knowledge_files": [
     {
-      "id": "inner-engineering",
-      "file": "inner-engineering.md",
+      "id": "inner-practice",
+      "file": "inner-practice.md",
       "description": "Core practices for inner transformation—breath, attention, energy management",
       "topics": ["yoga", "meditation", "breath", "energy", "practice", "transformation"],
       "priority": 1
@@ -18,7 +18,7 @@
     {
       "id": "wealth-philosophy",
       "file": "wealth-philosophy.md",
-      "description": "Patient wealth building in the spirit of Bogle and Buffett—compounding, long-term thinking, enough",
+      "description": "Patient wealth building in the spirit of the index-fund pioneers and Buffett—compounding, long-term thinking, enough",
       "topics": [
         "wealth",
         "investing",
@@ -125,27 +125,27 @@
   ],
   "cross_references": {
     "anxiety": [
-      "inner-engineering",
+      "inner-practice",
       "body-mind-energy",
       "emotions-management",
       "meditation-practices"
     ],
-    "meditation_help": ["inner-engineering", "yogic-wisdom", "meditation-practices"],
-    "relationship_problems": ["relationships-love", "inner-engineering", "emotions-management"],
+    "meditation_help": ["inner-practice", "yogic-wisdom", "meditation-practices"],
+    "relationship_problems": ["relationships-love", "inner-practice", "emotions-management"],
     "finding_purpose": ["success-work", "yogic-wisdom", "simple-living"],
     "health_concerns": ["body-mind-energy", "food-nutrition"],
     "fear_of_death": ["life-death-cosmos", "yogic-wisdom"],
     "environmental_action": ["environment-ecology"],
-    "emotional_struggles": ["emotions-management", "inner-engineering"],
+    "emotional_struggles": ["emotions-management", "inner-practice"],
     "parenting_challenges": ["parenting-children", "relationships-love"],
-    "anger_issues": ["emotions-management", "inner-engineering"],
+    "anger_issues": ["emotions-management", "inner-practice"],
     "work_stress": ["success-work", "body-mind-energy", "emotions-management"],
     "money_anxiety": ["wealth-philosophy", "simple-living", "emotions-management"],
     "investing_wisdom": ["wealth-philosophy"],
     "long_term_thinking": ["wealth-philosophy", "simple-living", "poetic-wisdom"],
     "simplicity": ["simple-living", "poetic-wisdom"],
     "patience": ["wealth-philosophy", "simple-living", "meditation-practices"],
-    "self_acceptance": ["poetic-wisdom", "inner-engineering"],
+    "self_acceptance": ["poetic-wisdom", "inner-practice"],
     "life_philosophy": ["wealth-philosophy", "simple-living", "poetic-wisdom", "yogic-wisdom"]
   }
 }

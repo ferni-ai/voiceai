@@ -1,0 +1,160 @@
+name: Blog Drafts
+
+# Drafts blog posts with scripts/blog/draft-post.ts and opens one PR per draft.
+# Nothing publishes without a person reviewing and merging that PR.
+#
+# Weekly: one developer post (whats-new) and one consumer post, rotating by ISO
+# week number through building-in-public, mission-essay, how-ferni-works and
+# team-letter. Manual: pick one type, or "weekly" for the same pair.
+#
+# PRs opened with GITHUB_TOKEN don't trigger other workflows, so CI doesn't run
+# on a draft PR by itself: push a commit to it (any edit) or close and reopen it.
+
+on:
+  schedule:
+    - cron: '0 15 * * 1' # Mondays 15:00 UTC
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'Post type to draft'
+        required: true
+        default: weekly
+        type: choice
+        options:
+          - weekly
+          - whats-new
+          - building-in-public
+          - mission-essay
+          - how-ferni-works
+          - team-letter
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: blog-drafts
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Choose post types
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      types: ${{ steps.pick.outputs.types }}
+    steps:
+      - id: pick
+        env:
+          INPUT_TYPE: ${{ github.event.inputs.type }}
+        run: |
+          rotation=(building-in-public mission-essay how-ferni-works team-letter)
+          week=$((10#$(date -u +%V)))
+          consumer=${rotation[$((week % ${#rotation[@]}))]}
+          if [ -z "$INPUT_TYPE" ] || [ "$INPUT_TYPE" = weekly ]; then
+            types="[\"whats-new\",\"$consumer\"]"
+          else
+            types="[\"$INPUT_TYPE\"]"
+          fi
+          echo "ISO week $week: $types"
+          echo "types=$types" >> "$GITHUB_OUTPUT"
+
+  draft:
+    name: Draft ${{ matrix.type }}
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        type: ${{ fromJSON(needs.plan.outputs.types) }}
+    env:
+      TYPE: ${{ matrix.type }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      # GOOGLE_API_KEY is the Gemini API key the AI review jobs use. The
+      # service account is a fallback for Vertex AI; it has no Vertex role yet.
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # Exits 1 when the draft still fails the brand gate after one retry.
+      - name: Draft the post
+        id: draft
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GOOGLE_CLOUD_LOCATION: global
+        run: |
+          META="$RUNNER_TEMP/draft-meta.json"
+          pnpm tsx scripts/blog/draft-post.ts --type "$TYPE" --meta-out "$META"
+          echo "status=$(jq -r .status "$META")" >> "$GITHUB_OUTPUT"
+          echo "path=$(jq -r '.path // empty' "$META")" >> "$GITHUB_OUTPUT"
+
+      - name: Brand gate
+        if: steps.draft.outputs.status == 'written'
+        env:
+          DRAFT: ${{ steps.draft.outputs.path }}
+        run: pnpm tsx scripts/blog/check-post.ts "$DRAFT" --meta "$RUNNER_TEMP/draft-meta.json"
+
+      # REST only (no GraphQL): create the branch from main, commit the one
+      # file through the contents API, open the PR and label it.
+      - name: Open a draft PR
+        if: steps.draft.outputs.status == 'written'
+        env:
+          DRAFT: ${{ steps.draft.outputs.path }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          META="$RUNNER_TEMP/draft-meta.json"
+          file=${DRAFT#"$GITHUB_WORKSPACE/"}
+          title=$(sed -n 's/^title: //p' "$DRAFT" | head -1 | jq -r .)
+          day=$(date -u +%F)
+          branch="blog/draft-$TYPE-$day"
+          if gh api "repos/$REPO/git/ref/heads/$branch" > /dev/null 2>&1; then
+            branch="$branch-$GITHUB_RUN_ID"
+          fi
+
+          gh api "repos/$REPO/labels/blog-draft" > /dev/null 2>&1 ||
+            gh api -X POST "repos/$REPO/labels" -f name=blog-draft -f color=4a6741 \
+              -f description='A drafted blog post waiting for review' > /dev/null
+
+          base=$(gh api "repos/$REPO/git/ref/heads/main" -q .object.sha)
+          gh api -X POST "repos/$REPO/git/refs" -f ref="refs/heads/$branch" -f sha="$base" > /dev/null
+          base64 -w0 "$DRAFT" > "$RUNNER_TEMP/content.b64"
+          gh api -X PUT "repos/$REPO/contents/$file" -f branch="$branch" \
+            -f message="docs(blog): draft $TYPE post for $day" \
+            -F content=@"$RUNNER_TEMP/content.b64" > /dev/null
+
+          {
+            echo "A drafted **$TYPE** post: **$title** (\`$file\`)."
+            echo
+            echo "Closes nothing; review and edit before merging."
+            echo
+            echo "Check every claim against the sources below (they're also in the post's front matter as \`sources\`). The drafter was told to use only these, and the brand gate passed: no forbidden words, em dashes, ellipses, retired-stack names, unlabelled composites or numbers missing from the sources. It can't judge tone or whether a merged change is live, so read it as a person would. Consumer posts have no hero image yet."
+            echo
+            echo "This PR was opened with GITHUB_TOKEN, so CI doesn't run on it by itself. Push an edit (or close and reopen it) to run the checks."
+            echo
+            echo "### Sources"
+            jq -r '.sources[] | "- " + .' "$META"
+            echo
+            echo "_Drafted by [Blog Drafts]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID)._"
+          } > "$RUNNER_TEMP/body.md"
+
+          pr=$(gh api -X POST "repos/$REPO/pulls" -f base=main -f head="$branch" \
+            -f title="docs(blog): draft $TYPE post for $day" -F body=@"$RUNNER_TEMP/body.md" -q .number)
+          gh api -X POST "repos/$REPO/issues/$pr/labels" -f 'labels[]=blog-draft' > /dev/null
+          echo "Opened #$pr from $branch" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Nothing to draft
+        if: steps.draft.outputs.status == 'nothing-to-draft'
+        run: echo "No merged PRs to write a $TYPE post from; no PR opened." | tee -a "$GITHUB_STEP_SUMMARY"

@@ -8,6 +8,7 @@ import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { getCanonicalPersonaId } from '../../personas/voice-registry.js';
 // Unified handoff module (Phase 3 migration)
 import { handoffEvents } from '../../handoff/index.js';
+import { CARTESIA_API_VERSION } from '../../config/voice-ids.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { VOICES } from './config.js';
 import type { VoiceAgentId, VoiceConfig } from './types.js';
@@ -102,6 +103,7 @@ export class VoiceManager {
         agentId,
         new cartesia.TTS({
           model: config.model,
+          apiVersion: CARTESIA_API_VERSION,
           voice: config.id,
         })
       );
@@ -216,6 +218,7 @@ export class VoiceManager {
     const voice = this.getCurrentVoice();
     return new cartesia.TTS({
       model: voice.model,
+      apiVersion: CARTESIA_API_VERSION,
       voice: voice.id,
     });
   }

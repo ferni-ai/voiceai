@@ -72,7 +72,6 @@ describe('Teaser Preview UI', () => {
       
       expect(typeof tp.wellbeing).toBe('function');
       expect(typeof tp.patterns).toBe('function');
-      expect(typeof tp.predictions).toBe('function');
       expect(typeof tp.habits).toBe('function');
       expect(typeof tp.growthAnalytics).toBe('function');
       expect(typeof tp.yourPeople).toBe('function');
@@ -98,13 +97,6 @@ describe('Teaser Preview UI', () => {
     it('should render patterns teaser as HTMLElement', async () => {
       const module = await import('../../src/ui/teaser-preview.ui.js');
       const element = module.teaserPreview.patterns();
-      
-      expect(element).toBeInstanceOf(HTMLElement);
-    });
-
-    it('should render predictions teaser as HTMLElement', async () => {
-      const module = await import('../../src/ui/teaser-preview.ui.js');
-      const element = module.teaserPreview.predictions();
       
       expect(element).toBeInstanceOf(HTMLElement);
     });

@@ -31,6 +31,15 @@ vi.mock('../../../../services/cross-persona/team-huddle.js', () => ({
   generateTeamHuddle: vi.fn(async () => null),
 }));
 
+// The caller is whoever a verified token says: "tok-<uid>" verifies as <uid>
+vi.mock('../../../../services/identity/firebase-auth.js', () => ({
+  verifyFirebaseToken: vi.fn(async (token: string) =>
+    token.startsWith('tok-') ? { uid: token.slice(4), claims: {} } : null
+  ),
+  isVerifiedToken: (r: unknown) => r !== null && typeof r === 'object',
+  claimsFirebaseIssuer: () => true,
+}));
+
 // Import after mocks
 import { handleSemanticIntelligenceRoutes } from '../semantic-intelligence.js';
 
@@ -47,9 +56,10 @@ function createMockRequest(
     method,
     url,
     headers: {
-      'x-user-id': 'test-user-123',
+      authorization: 'Bearer tok-test-user-123',
       ...headers,
     },
+    socket: { remoteAddress: '127.0.0.1' },
     on: vi.fn(),
   } as unknown as IncomingMessage;
 }
@@ -121,9 +131,9 @@ describe('Semantic Intelligence API Routes', () => {
       expect(body).toHaveProperty('trackedPeople');
     });
 
-    it('should reject request without userId', async () => {
+    it('should reject a request with no verified caller', async () => {
       const req = createMockRequest('GET', '/api/semantic-intelligence/summary', {});
-      delete (req.headers as Record<string, string>)['x-user-id'];
+      delete (req.headers as Record<string, string>)['authorization'];
       const res = createMockResponse();
 
       const handled = await handleSemanticIntelligenceRoutes(
@@ -133,10 +143,7 @@ describe('Semantic Intelligence API Routes', () => {
       );
 
       expect(handled).toBe(true);
-      expect(res.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
-
-      const body = res.getBody() as { error: string };
-      expect(body.error).toBe('userId required');
+      expect(res.writeHead).toHaveBeenCalledWith(401, expect.any(Object));
     });
   });
 

@@ -20,6 +20,9 @@ import {
   type EngagementMetrics,
   type RelationshipStage,
 } from './relationship-stage.service.js';
+import * as server from './team-unlock-server.js';
+import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
+import { isPaywallOn } from './paywall.service.js';
 
 const log = createLogger('TeamUnlock');
 
@@ -333,12 +336,7 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
     }
 
     const url = `${TEAM_UNLOCK_API}?userId=${userId}`;
-    const response = await apiGet<{
-      bypassMode?: string;
-      teamByNeed?: boolean;
-      tier?: string;
-      unlockedTeamMembers?: string[];
-    }>(url);
+    const response = await apiGet<server.TeamUnlocksResponse>(url);
 
     if (!response.ok || !response.data) {
       log.warn('Failed to sync team unlocks from backend:', response.status);
@@ -362,6 +360,7 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
       subscriptionTier = data.tier as 'free' | 'friend' | 'partner';
     }
 
+    server.record(data, subscriptionTier, TEAM_MEMBERS); // the server decides who is unlocked
     _hasSyncedWithBackend = true;
 
     // Update local state if backend has different data
@@ -369,7 +368,7 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
 
     log.debug('Synced team unlocks from backend', {
       tier: data.tier,
-      unlockedCount: data.unlockedTeamMembers?.length,
+      unlockedCount: data.unlockedMembers?.length,
       bypassMode: data.bypassMode,
     });
   } catch (err) {
@@ -406,17 +405,14 @@ function getMemberUnlockStatus(
     return { unlocked: true, progress: 1 };
   }
 
-  // Subscribers get everyone except Nayan immediately
-  // Nayan requires partner tier OR deep-partnership
+  // Subscribers get everyone but Nayan at once; Nayan needs partner tier or deep partnership
   if (tier === 'friend' || tier === 'partner') {
     if (member.premium && tier !== 'partner' && !stageAtOrBeyond(stage, member.unlocksAt)) {
       const threshold = STAGE_THRESHOLDS[member.unlocksAt];
-      return {
-        unlocked: false,
-        progress: calculateProgress(metrics, threshold),
-        lockReason: t('teamUnlock.nayanLockReason'),
-        unlockHint: t('teamUnlock.nayanUnlockHint'),
-      };
+      const paidPlans = isPaywallOn() && !isVenmoChipInEnabled(); // name the paid path only then
+      const hint = paidPlans ? t('teamUnlock.nayanUnlockHint') : getUnlockHint(member.unlocksAt, threshold);
+      const progress = calculateProgress(metrics, threshold);
+      return { unlocked: false, progress, lockReason: t('teamUnlock.nayanLockReason'), unlockHint: hint };
     }
     return { unlocked: true, progress: 1 };
   }
@@ -495,6 +491,7 @@ export function initTeamUnlockService(userId?: string): void {
   // FIX: Sync with backend for authoritative state and bypass mode
   // This runs async and updates state when complete
   void syncWithBackend(userId);
+  server.resyncOnRefusal(() => void syncWithBackend(userId)); // a refused tap: ask again
 
   log.info('Team unlock service initialized');
 }
@@ -524,7 +521,8 @@ export function updateUnlockState(): TeamUnlockState {
   let newlyUnlocked: TeamMemberId | null = null;
 
   for (const member of TEAM_MEMBERS) {
-    const status = getMemberUnlockStatus(member, stage, subscriptionTier, metrics);
+    const local = getMemberUnlockStatus(member, stage, subscriptionTier, metrics);
+    const status = server.decide(local, member, subscriptionTier, isMemberBypassed(member.id));
     memberStatuses.set(member.id, status);
 
     if (status.unlocked) {
@@ -609,9 +607,9 @@ export function isTeamMemberUnlocked(memberId: TeamMemberId): boolean {
   // FIX: Check backend bypass mode
   if (isMemberBypassed(memberId)) return true;
 
-  // Check local state
-  if (!currentState) return false;
-  return currentState.unlockedMembers.has(memberId);
+  return (
+    server.unlocked(memberId, subscriptionTier) ?? !!currentState?.unlockedMembers.has(memberId)
+  );
 }
 
 /**
@@ -803,6 +801,7 @@ export function _resetForTesting(): void {
   teamByNeed = false;
   subscriptionTier = 'free';
   _hasSyncedWithBackend = false;
+  server.reset();
   unlockListeners.clear();
   memberUnlockListeners.clear();
   almostThereListeners.clear();

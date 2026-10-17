@@ -103,7 +103,7 @@ describe('persona display names', () => {
     expect(personaDisplayName(PETER)).toBe('Peter');
     expect(personaDisplayName(MAYA)).toBe('Maya');
     expect(personaDisplayName(CANONICAL_IDS.COACH)).toBe('Ferni');
-    expect(personaDisplayName(CANONICAL_IDS.JOHN_BOGLE)).toBe('John Bogle');
+    expect(personaDisplayName(CANONICAL_IDS.JOHN_BOGLE)).toBe('Henry Caldwell');
     // An id the registry doesn't know still reads as a name.
     expect(personaDisplayName('zoe-quinn')).toBe('Zoe');
   });
@@ -117,7 +117,11 @@ describe('persona display names', () => {
     });
     rec.add(PETER, 'I spent the weekend restoring an old canoe.');
     await rec.flush();
-    expect(extract).toHaveBeenCalledWith('Peter', ['I spent the weekend restoring an old canoe.']);
+    expect(extract).toHaveBeenCalledWith('Peter', ['I spent the weekend restoring an old canoe.'], {
+      subject: 'he',
+      object: 'him',
+      possessive: 'his',
+    });
   });
 
   it('writes what happened since in Peter\'s name', async () => {

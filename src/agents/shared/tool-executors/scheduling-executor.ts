@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'SchedulingExecutor' });
@@ -142,12 +143,11 @@ async function execute(
     }
 
     try {
-      const { scheduleText, getUserContactInfo } = await loadOutreach();
+      const { scheduleText } = await loadOutreach();
       const { parseNaturalTime } = await loadScheduler();
 
-      // Get user's timezone
-      const contact = await getUserContactInfo(userId);
-      const scheduledFor = parseNaturalTime(when || 'in 1 hour', contact?.timezone);
+      const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+      const scheduledFor = parseNaturalTime(when || 'in 1 hour', zone);
 
       if (!scheduledFor) {
         return "I couldn't understand that time. Try something like 'tomorrow at 9am' or 'in 2 hours'.";
@@ -195,11 +195,11 @@ async function execute(
     }
 
     try {
-      const { scheduleCall, getUserContactInfo } = await loadOutreach();
+      const { scheduleCall } = await loadOutreach();
       const { parseNaturalTime } = await loadScheduler();
 
-      const contact = await getUserContactInfo(userId);
-      const scheduledFor = parseNaturalTime(when || 'in 1 hour', contact?.timezone);
+      const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+      const scheduledFor = parseNaturalTime(when || 'in 1 hour', zone);
 
       if (!scheduledFor) {
         return "I couldn't parse that time. Try 'tomorrow at 2pm' or 'in 30 minutes'.";
@@ -252,11 +252,11 @@ async function execute(
     }
 
     try {
-      const { scheduleEmail, getUserContactInfo } = await loadOutreach();
+      const { scheduleEmail } = await loadOutreach();
       const { parseNaturalTime } = await loadScheduler();
 
-      const contact = await getUserContactInfo(userId);
-      const scheduledFor = parseNaturalTime(when || 'in 1 hour', contact?.timezone);
+      const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+      const scheduledFor = parseNaturalTime(when || 'in 1 hour', zone);
 
       if (!scheduledFor) {
         return "I couldn't understand that time. Try 'Friday morning' or 'next week'.";

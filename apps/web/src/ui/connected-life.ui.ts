@@ -605,7 +605,7 @@ const styles = `
 
 .connected-life-tab.active {
   background: var(--color-accent, #3D5A45);
-  color: white;
+  color: var(--color-text-on-accent);
   border-color: transparent;
 }
 
@@ -690,7 +690,7 @@ const styles = `
   background: var(--color-accent, #3D5A45);
   border: none;
   border-radius: var(--radius-full, 9999px);
-  color: white;
+  color: var(--color-text-on-accent);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;

@@ -2,13 +2,14 @@
  * Every handoff tool, built from the real persona bundles: names are unique,
  * each goes to the persona its name says, and no description is missing text.
  *
- * Peter John (Ferni's team) and Peter Lynch (Financial Legends) both produced
- * handoffToPeter, so whichever was built last took the name; Ferni's agent got
- * "Transfer conversation to Peter Lynch, who specializes in undefined." because
- * the two Financial Legends bundles had no role description.
+ * Two personas that shared a first name both produced handoffToPeter, so
+ * whichever was built last took the name; Ferni's agent got "Transfer
+ * conversation to ..., who specializes in undefined." because the two Financial
+ * Legends bundles had no role description.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildHandoffTools, createHandoffTools } from '../handoff-factory.js';
+import { assignHandoffToolNames, type NameableAgent } from '../handoff-tool-naming.js';
 
 const BROKEN_TEXT = /undefined|null|\[object/i;
 
@@ -29,11 +30,26 @@ describe('the handoff tool catalog', () => {
     expect(tools.length).toBeGreaterThanOrEqual(9);
   }, 60_000);
 
-  it("keeps handoffToPeter for Ferni's Peter and names Peter Lynch in full", async () => {
+  it("names each tool after the persona's first name", async () => {
     const { toolsByName } = await createHandoffTools();
     expect(toolsByName.get('handofftopeter')?.agentId).toBe('peter-john');
-    expect(toolsByName.get('handofftopeterlynch')?.agentId).toBe('peter-lynch');
+    expect(toolsByName.get('handofftotom')?.agentId).toBe('peter-lynch');
+    expect(toolsByName.get('handofftohenry')?.agentId).toBe('john-bogle');
   }, 60_000);
+
+  it("keeps a shared first name for the coordinator's team and names the other in full", () => {
+    const team = (membership: string) => ({ team: { membership } });
+    const coordinator: NameableAgent = { id: 'coach', name: 'Coach', manifest: team('home') };
+    const agents: NameableAgent[] = [
+      coordinator,
+      { id: 'peter-smith', name: 'Peter Smith', manifest: team('away') },
+      { id: 'peter-jones', name: 'Peter Jones', manifest: team('home') },
+    ];
+    const names = assignHandoffToolNames(agents, coordinator);
+    expect(names.get('peter-jones')).toBe('handoffToPeter');
+    expect(names.get('peter-smith')).toBe('handoffToPeterSmith');
+    expect(names.get('coach')).toBe('handoffToCoach');
+  });
 
   it('describes every handoff tool with real text', async () => {
     const { tools: definitions } = await createHandoffTools();

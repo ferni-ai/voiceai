@@ -11,6 +11,7 @@
 
 import { callerText } from '../outreach/caller-text.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import type { Pick } from './checked-pick.js';
 import type { GroundedAnswer } from './grounded-search.js';
 
 export const WEB_DATA_GUARD =
@@ -37,8 +38,23 @@ export function isSensitiveTopic(topic: string): boolean {
 // Spoken to someone (the reader, the user, Ferni, a model) or about its tools.
 const ADDRESSED =
   /\b(you|your|you're|yourself|user|users|reader|readers|ferni|persona|instructions?|assistant|ai|chatbot|model|llm|agent|tools?|functions?)\b/i;
-// A camelCase word is a tool name ("reachOut", "sendText").
-const TOOL_NAME = /\b[a-z]+[A-Z][A-Za-z]+\b/;
+// A camelCase word is a tool name ("reachOut", "sendText"), except brand words
+// shaped like iPhone or eBay, unless one of those is a registered tool's name.
+const CAMEL = /\b[a-z]+[A-Z][A-Za-z]+\b/g;
+const BRAND_SHAPE = /^[ie][A-Z][a-z]+$/;
+let registeredToolNames: () => Iterable<string> = () => [];
+
+/** The tools layer hands over its live tool registry (services can't import tools). */
+export function useRegisteredToolNames(names: () => Iterable<string>): void {
+  registeredToolNames = names;
+}
+
+const namesATool = (s: string): boolean =>
+  (s.match(CAMEL) ?? []).some(
+    (w) =>
+      !BRAND_SHAPE.test(w) ||
+      [...registeredToolNames()].some((n) => n.toLowerCase() === w.toLowerCase())
+  );
 // Any scheme, hxxp, www., or a bare/defanged domain ("bit.ly/abc", "evil[.]com").
 const URLISH = /\b(?:[a-z][a-z0-9+.-]*:\/\/|hxxps?:|www\.)|\b[\w-]+(?:\.|\[\.\])[a-z]{2,}\b/i;
 // Opens with an order. Neutral summaries open with a noun, not one of these.
@@ -49,7 +65,7 @@ const PHONE_LIKE = /\+?\d(?:[\s().-]*\d){6,}/g;
 /** A fragment that gives an order, speaks to someone, names a tool or holds a link. */
 export function isInstructionLike(sentence: string): boolean {
   const s = sentence.trim();
-  return IMPERATIVE.test(s) || ADDRESSED.test(s) || TOOL_NAME.test(s) || URLISH.test(s);
+  return IMPERATIVE.test(s) || ADDRESSED.test(s) || namesATool(s) || URLISH.test(s);
 }
 
 /**
@@ -122,6 +138,41 @@ export function groundedResultText(
   if (sensitive || isSensitiveTopic(topic)) lines.push(GENERAL_INFO_NOTE);
   lines.push(
     'Point them to the source that fits best and say why in a sentence, from what you know; no affiliate links, nothing to buy.'
+  );
+  return lines.join('\n');
+}
+
+const EVIDENCE_WORDS: Record<string, string> = {
+  solid: 'evidence-based',
+  mixed: 'partly evidence-based',
+  unknown: 'evidence unclear',
+  hype: 'hype',
+};
+
+/** The tool result for one checked pick: guard line, one JSON data field, what to do. */
+export function pickResultText(topic: string, pick: Pick, sensitive = false, because = ''): string {
+  const c = pick.candidate;
+  const title = webData(c.title, MAX_TITLE_CHARS);
+  const why = webData(pick.verdict.why, MAX_SUMMARY_CHARS).text;
+  const data = {
+    note: WEB_DATA_NOTE,
+    topic: callerText(topic, 120),
+    pick: {
+      kind: c.kind,
+      title: title.dropped ? hostOf(c.url) : title.text || hostOf(c.url),
+      by: webData(c.by, MAX_TITLE_CHARS).text,
+      length: c.length ?? null,
+      host: hostOf(c.url),
+      evidence: EVIDENCE_WORDS[pick.verdict.evidence],
+      why,
+      // From their own past answers (taste.ts), so Ferni can say why it suits them.
+      because: because || null,
+    },
+  };
+  const lines = [WEB_DATA_GUARD, `web_data: ${JSON.stringify(data)}`];
+  if (sensitive || isSensitiveTopic(topic)) lines.push(GENERAL_INFO_NOTE);
+  lines.push(
+    'Offer just this one, with its length and one sentence on why it suits them; no affiliate links, nothing to buy.'
   );
   return lines.join('\n');
 }
