@@ -2119,11 +2119,6 @@ button {
 /* ============================================
    FERNI FUND SECTION - Gift Forward Model
    ============================================ */
-.ferni-fund {
-  background: linear-gradient(180deg, var(--color-paper-sand) 0%, var(--color-paper-cream) 100%);
-  padding: clamp(80px, 12vh, 120px) var(--space-6);
-}
-
 /* Fund Explainer - How it Works */
 .fund-explainer {
   background: var(--page-card, white);
