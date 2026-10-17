@@ -20,7 +20,9 @@
  * After the goodbyes Ferni stays quiet, and a short idle window ends the
  * call with reason `idle_after_goodbye` (call-farewell.ts).
  *
- * Phone callers keep PHONE_GOODBYE's own endCall, unchanged.
+ * Phone callers keep PHONE_GOODBYE's own endCall. With CALL_WRAP_UP on they
+ * also get the quiet after the goodbyes and the idle end, which hangs up the
+ * line straight away: there is no app to leave on its own.
  *
  * @module agents/shared/call-wrap-up
  */
@@ -142,8 +144,9 @@ interface CallRoom {
 
 /**
  * Gives the agent its endCall: PHONE_GOODBYE's for a phone caller, this one
- * for an app caller with CALL_WRAP_UP on. Never for calls placed on the
- * user's behalf, or an agent that already has one.
+ * for an app caller with CALL_WRAP_UP on. With CALL_WRAP_UP on, either kind
+ * of call also gets the farewell watcher. Never for calls placed on the
+ * user's behalf, or an agent that already has an endCall.
  */
 export async function attachCallWrapUp(
   agent: object,
@@ -161,19 +164,19 @@ export async function attachCallWrapUp(
   }
 ): Promise<boolean> {
   const roomName = call.room.name ?? '';
-  if (call.participant?.kind === ParticipantKind.SIP) {
-    return attachPhoneHangUp(agent, { ...call, roomName });
-  }
-  if (!callWrapUpEnabled(call.env) || call.onBehalf) return false;
+  const phone = call.participant?.kind === ParticipantKind.SIP;
+  const wrapUp = callWrapUpEnabled(call.env) && !call.onBehalf;
+  if (!phone && !wrapUp) return false;
   const wrap: WrapUpCall = {
     sessionId: call.sessionId,
     roomName,
     callerInRoom: () => (call.room.remoteParticipants?.size ?? 0) > 0,
     hangUp: call.hangUp,
     setTimer: call.setTimer,
+    ...(phone && { graceMs: 0 }),
   };
   // Quiet after the goodbyes, and a short idle window that ends the call (call-farewell.ts)
-  if (call.session) {
+  if (wrapUp && call.session) {
     watchFarewell(call.session, {
       sessionId: call.sessionId,
       setTimer: call.setTimer,
@@ -187,5 +190,6 @@ export async function attachCallWrapUp(
         ),
     });
   }
+  if (phone) return attachPhoneHangUp(agent, { ...call, roomName });
   return addEndCallTool(agent, () => createWrapUpTool(wrap));
 }

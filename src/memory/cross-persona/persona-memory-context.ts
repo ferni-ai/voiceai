@@ -45,6 +45,7 @@ import {
   type MemoryCategory,
   PERSONA_MEMORY_INTERESTS,
 } from './shared-memory-api.js';
+import { insightText } from './teammate-note.js';
 
 const log = createLogger({ module: 'PersonaMemoryContext' });
 
@@ -248,10 +249,9 @@ export async function buildPersonaMemoryContext(
       shouldSurface: m.score > 0.7,
     }));
 
-    // 6. Format insights for context
     const formattedInsights: FormattedInsight[] = insights.map((i) => ({
       id: i.id,
-      text: template.insightFormat(i),
+      text: insightText(i, template.insightFormat), // 6. Format insights (teammate-note.ts)
       fromPersona: i.fromPersona,
       priority: i.priority,
       shouldSurface: i.priority > 50,

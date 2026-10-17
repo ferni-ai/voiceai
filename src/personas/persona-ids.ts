@@ -186,31 +186,32 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   'lifetime-advisor': 'nayan-patel',
   'spiritual-guide': 'nayan-patel',
 
-  // Nate Holloway (Life Mentor - Financial Legends)
+  // Financial Legends: fictional characters. Their ids are stable keys, not
+  // names; no real person's name resolves to them.
+
+  // Nate Holloway (Life Mentor), id joel-dickson
   'joel-dickson': 'joel-dickson',
-  joel: 'joel-dickson',
+  nate: 'joel-dickson',
+  holloway: 'joel-dickson',
   'nate holloway': 'joel-dickson',
-  dickson: 'joel-dickson',
-  'dr-dickson': 'joel-dickson',
-  'vanguard-mentor': 'joel-dickson',
+  'nate-holloway': 'joel-dickson',
   'life-mentor': 'joel-dickson',
 
-  // Tom Brannigan (Stock Picker - Financial Legends)
+  // Tom Brannigan (Stock Picker), id peter-lynch
   'peter-lynch': 'peter-lynch',
-  'peter lynch': 'peter-lynch',
+  tom: 'peter-lynch',
+  brannigan: 'peter-lynch',
   'tom brannigan': 'peter-lynch',
-  lynch: 'peter-lynch',
+  'tom-brannigan': 'peter-lynch',
   'stock-picker': 'peter-lynch',
-  magellan: 'peter-lynch',
-  'fidelity-legend': 'peter-lynch',
 
-  // Henry Caldwell (Index Pioneer - Financial Legends)
+  // Henry Caldwell (Index Investing), id john-bogle
   'john-bogle': 'john-bogle',
-  bogle: 'john-bogle',
+  henry: 'john-bogle',
+  caldwell: 'john-bogle',
   'henry caldwell': 'john-bogle',
-  'jack-bogle': 'john-bogle',
-  jack: 'john-bogle',
-  'vanguard-founder': 'john-bogle',
+  'henry-caldwell': 'john-bogle',
+  'index-investing': 'john-bogle',
   'index-pioneer': 'john-bogle',
 };
 

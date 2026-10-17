@@ -9,13 +9,16 @@
  * words come from outreach-text.ts.
  *
  * Off unless PROACTIVE_CHANNELS=on, and then only for the user ids in
- * PROACTIVE_CHANNELS_USERS (comma separated). At most one check-in per user
- * per run; every trigger goes out once.
+ * PROACTIVE_CHANNELS_USERS (comma separated) and the people whose cohort flags
+ * turn PROACTIVE_CHANNELS on (cohort-flags.ts usersWithFlag, COHORT_FLAGS=on),
+ * so a person is added in Firestore, not in the public deploy config. At most
+ * one check-in per user per run; every trigger goes out once.
  *
  * @module services/outreach/proactive-channels/proactive-tick
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { usersWithFlag } from '../../platform/cohort-flags.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { lastTalkedAt } from '../outreach-cadence.js';
 import { isValidTimezone, localMinutes } from '../call-hours-guard.js';
@@ -47,18 +50,26 @@ export function proactiveChannelsUsers(): string[] {
     .filter(Boolean);
 }
 
+/** Everyone proactive check-ins handle: the env allowlist, then cohort members. Empty while off. */
+export async function proactiveUserIds(): Promise<string[]> {
+  if (!isProactiveChannelsOn()) return [];
+  return [
+    ...new Set([...proactiveChannelsUsers(), ...(await usersWithFlag('PROACTIVE_CHANNELS'))]),
+  ];
+}
+
 const HISTORY_MS = 3 * 24 * 60 * 60 * 1000;
 
-/** On the allowlist with the flag on: proactive check-ins handle this user. */
-export function isProactiveChannelsUser(userId: string): boolean {
-  return isProactiveChannelsOn() && proactiveChannelsUsers().includes(userId);
+/** The flag is on and they're on the allowlist or in a cohort: proactive check-ins handle this user. */
+export async function isProactiveChannelsUser(userId: string): Promise<boolean> {
+  return (await proactiveUserIds()).includes(userId);
 }
 
 /** The delivery edges. Tests stub these; the SDKs live behind them. */
 export interface ProactiveDeps {
   sendInApp: (userId: string, trigger: ProactiveTrigger) => Promise<boolean>;
-  /** The phone number on their Firebase account (verified by SMS code), if any. */
-  verifiedPhone: (userId: string) => Promise<string | undefined>;
+  /** A number they proved is theirs (user-reach.ts resolveVerifiedPhone), if any. */
+  verifiedPhone: (userId: string, user: Record<string, unknown>) => Promise<string | undefined>;
   sendSms: (phone: string, text: string) => Promise<boolean>;
   /** What comes due today in their world; absent when the server has no world model. */
   worldDue?: (userId: string, timeZone?: string) => Promise<WorldDueItem[]>;
@@ -245,7 +256,7 @@ async function runForUser(
 
   const trigger = await nextTrigger(userId, user, now, deps);
   if (!trigger) return { userId, status: 'idle' };
-  const verifiedPhone = await deps.verifiedPhone(userId);
+  const verifiedPhone = await deps.verifiedPhone(userId, user);
   const canCall = deps.canCall?.() === true && deps.placeCall !== undefined;
   if (trigger.weight === 'meaningful' && !canCall) {
     log.info({ userId, sourceId: trigger.sourceId }, 'No SIP trunk here, so no call');
@@ -292,7 +303,7 @@ export async function runProactiveChannelsTick(
   if (!isProactiveChannelsOn()) return { enabled: false, users: [] };
   const now = opts.now ?? new Date();
   const users: UserTickResult[] = [];
-  for (const userId of proactiveChannelsUsers()) {
+  for (const userId of await proactiveUserIds()) {
     try {
       // One user at a time keeps Firestore reads and sends paced.
       // eslint-disable-next-line no-await-in-loop

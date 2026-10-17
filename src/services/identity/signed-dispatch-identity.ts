@@ -5,7 +5,7 @@
  * the web /token route copies `device_id` straight from its query string. So
  * a claim that names an account outright (`user_id`, `auth_token`) or moves
  * data between accounts (device auto-migration) counts only on a dispatch
- * signed with the LiveKit API secret (verifyOnBehalfDispatch, over the whole
+ * signed with dispatchSigningSecret() (verifyOnBehalfDispatch, over the whole
  * payload). The same rule dispatch-phone.ts applies to phone numbers.
  *
  * A signed identity claim is also short-lived: it counts only while its
@@ -18,7 +18,7 @@
  * @module services/identity/signed-dispatch-identity
  */
 import { flagOn } from '../../config/env-flag.js';
-import { verifyOnBehalfDispatch } from '../outreach/on-behalf-dispatch.js';
+import { dispatchSigningSecret, verifyOnBehalfDispatch } from '../outreach/on-behalf-dispatch.js';
 
 /** How long a signed identity claim stays usable: covers dispatch latency and a slow job start. */
 export const SIGNED_IDENTITY_MAX_AGE_MS = 10 * 60_000;
@@ -34,7 +34,7 @@ function isFresh(signedAt: unknown, now: number): boolean {
 /** True when this metadata, as dispatched, carries our server's signature and was signed recently. */
 export function isSignedDispatch(
   metadata: Record<string, unknown>,
-  secret: string | undefined = process.env.LIVEKIT_API_SECRET,
+  secret: string | undefined = dispatchSigningSecret(),
   now: number = Date.now()
 ): boolean {
   return (
@@ -46,7 +46,7 @@ export function isSignedDispatch(
 export function signedClaim(
   metadata: Record<string, unknown>,
   keys: readonly string[],
-  secret: string | undefined = process.env.LIVEKIT_API_SECRET
+  secret: string | undefined = dispatchSigningSecret()
 ): string | null {
   const value = keys.map((k) => metadata[k]).find((v) => typeof v === 'string' && v !== '');
   if (typeof value !== 'string') return null;

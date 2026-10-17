@@ -76,7 +76,7 @@ function dailyCheckInFor(
  * isn't on the allowlist (the daily run then picks as it always has).
  */
 export async function dailyCheckIn(userId: string, now: Date): Promise<DailyCheckIn | undefined> {
-  if (!isProactiveChannelsUser(userId)) return undefined;
+  if (!(await isProactiveChannelsUser(userId))) return undefined;
   const db = getFirestoreDb();
   const held = (why: string): DailyCheckIn =>
     dailyCheckInFor(userId, now, { channel: null, why }, []);

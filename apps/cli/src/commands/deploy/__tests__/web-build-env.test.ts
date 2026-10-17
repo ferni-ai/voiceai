@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildFrontend, parseViteVars, repoViteVars } from '../web-build-env.js';
 
 const LIST = JSON.stringify([
@@ -55,6 +55,24 @@ describe('repoViteVars with no VITE_* variables', () => {
 
 describe('buildFrontend', () => {
   it('runs npm run build with the repo variables in its env', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'web-build-env-'));
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({
+        scripts: {
+          build: "node -e \"require('fs').writeFileSync('out.txt', process.env.VITE_CAPTIONS_V2)\"",
+        },
+      })
+    );
+    buildFrontend(dir, { VITE_CAPTIONS_V2: 'true' });
+    expect(readFileSync(join(dir, 'out.txt'), 'utf-8')).toBe('true');
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('lets the repo value win over a local VITE_* env, so a manual deploy matches CI', () => {
+    vi.stubEnv('VITE_CAPTIONS_V2', 'false');
     const dir = mkdtempSync(join(tmpdir(), 'web-build-env-'));
     writeFileSync(
       join(dir, 'package.json'),
