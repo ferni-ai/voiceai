@@ -18,11 +18,30 @@ function ttsGatewayEnabled(): boolean {
   return process.env.USE_TTS_GATEWAY !== 'false';
 }
 
-/** Warm the gateway provider, or `pluginTTS` when the gateway is off. Rethrows provider errors. */
-export function prewarmReplyVoice(pluginTTS: { prewarm: () => void }): void {
-  if (ttsGatewayEnabled()) {
-    getTTSProvider().prewarm?.();
-  } else {
-    pluginTTS.prewarm();
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { then?: unknown }).then === 'function'
+  );
+}
+
+/**
+ * Warm the gateway provider, or `pluginTTS` when the gateway is off. Never
+ * throws: a synchronous throw, or a rejection if a provider's prewarm returns
+ * a promise, goes to `onError`. (`ITTSProvider.prewarm` is typed `void` and the
+ * Cartesia provider catches its own connect failure; this guards the rest.)
+ */
+export function prewarmReplyVoice(
+  pluginTTS: { prewarm: () => void },
+  onError: (error: unknown) => void
+): void {
+  try {
+    const result: unknown = ttsGatewayEnabled()
+      ? getTTSProvider().prewarm?.()
+      : pluginTTS.prewarm();
+    if (isThenable(result)) result.then(undefined, onError);
+  } catch (error) {
+    onError(error);
   }
 }

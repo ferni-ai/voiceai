@@ -428,13 +428,11 @@ export class PersonaAwareTTS extends tts.TTS {
 
   /** Called by @livekit/agents on each activity start and handoff (prewarm-voice.ts). Never throws. */
   prewarm(): void {
-    try {
-      prewarmReplyVoice(this.personaTTS);
-    } catch (error) {
+    prewarmReplyVoice(this.personaTTS, (error) => {
       if (this.prewarmWarned) return;
       this.prewarmWarned = true;
       log('warn', { persona: this.personaName, error: String(error) }, 'TTS prewarm failed');
-    }
+    });
   }
 
   /** Frees the inner plugin TTS's idle sockets; the shared gateway socket is left alone. */

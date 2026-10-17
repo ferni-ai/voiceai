@@ -7,6 +7,17 @@ import { voice } from '@livekit/agents';
 const gateway = vi.hoisted(() => ({ prewarm: vi.fn() }));
 vi.mock('../../tts-gateway/providers/index.js', () => ({ getTTSProvider: () => gateway }));
 
+// PersonaAwareTTS loads its logger lazily via getLogger(); hand it one we can read.
+const logger = vi.hoisted(() => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }));
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getLogger: () => logger,
+}));
+
+/** The "TTS prewarm failed" lines PersonaAwareTTS has logged. */
+const prewarmWarnings = (): unknown[][] =>
+  logger.warn.mock.calls.filter((c) => c[1] === 'TTS prewarm failed');
+
 // The Cartesia plugin reads the key when the module loads, so set it first.
 let PersonaAwareTTS: typeof import('../persona-aware.js').PersonaAwareTTS;
 beforeAll(async () => {
@@ -14,9 +25,12 @@ beforeAll(async () => {
   ({ PersonaAwareTTS } = await import('../persona-aware.js'));
 });
 
+const gatewayPrewarmSpy = gateway.prewarm;
+
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
+  gateway.prewarm = gatewayPrewarmSpy; // a test may swap in a plain function
   gateway.prewarm.mockReset();
 });
 
@@ -80,6 +94,39 @@ describe('PersonaAwareTTS.prewarm', () => {
     expect(() => outer.prewarm()).not.toThrow();
     expect(() => outer.prewarm()).not.toThrow();
     expect(gateway.prewarm).toHaveBeenCalledTimes(2);
+  });
+
+  it('a rejecting gateway prewarm is caught: no unhandled rejection, one log line', async () => {
+    vi.stubEnv('USE_TTS_GATEWAY', '');
+    const { outer } = make();
+    // The logger loads asynchronously at construction; wait until it is in use.
+    await vi.waitFor(() => expect(logger.info).toHaveBeenCalled());
+    logger.warn.mockClear();
+    // A plain function, not vi.fn: a spy attaches its own handler to a returned
+    // promise to record its result, which would hide an unhandled rejection.
+    let calls = 0;
+    (gateway as { prewarm: () => unknown }).prewarm = () => {
+      calls++;
+      return Promise.reject(new Error('socket refused'));
+    };
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown): void => {
+      unhandled.push(reason);
+    };
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      outer.prewarm();
+      outer.prewarm();
+      await new Promise((r) => {
+        setTimeout(r, 50);
+      });
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+    expect(calls).toBe(2);
+    expect(unhandled).toEqual([]);
+    expect(prewarmWarnings()).toHaveLength(1);
+    expect(prewarmWarnings()[0][0]).toMatchObject({ error: 'Error: socket refused' });
   });
 });
 
