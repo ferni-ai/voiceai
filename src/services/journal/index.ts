@@ -689,10 +689,11 @@ class JournalService {
     return Date.now() < expiry;
   }
 
-  private invalidateCache(userId: string): void {
+  /** Public so a store write made outside this service (the panel) can drop stale lists. */
+  invalidateCache(userId: string): void {
     // Remove all cache entries for this user
     for (const key of this.entryCache.keys()) {
-      if (key.startsWith(userId)) {
+      if (key.startsWith(`${userId}:`)) {
         this.entryCache.delete(key);
         this.cacheExpiry.delete(key);
       }

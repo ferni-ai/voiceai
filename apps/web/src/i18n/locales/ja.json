@@ -10800,7 +10800,9 @@
     "helper": "あなた専属のガイド",
     "connectToTalk": "お話する",
     "endTalk": "終了",
-    "connectingCancel": "接続中です。タップしてキャンセル"
+    "connectingCancel": "接続中です。タップしてキャンセル",
+    "connectingNow": "接続中…",
+    "tapToCancel": "タップしてキャンセル"
   },
   "analyticsDashboard": {
     "title": "あなたの道のり",

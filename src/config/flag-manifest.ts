@@ -177,6 +177,8 @@ export const FLAG_MANIFEST = {
   FIRST_TURN_DEFER_BACKGROUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
+  // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
+  FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: at call start, ask once about a date the caller told us (dates/recall.ts; needs DATES_THAT_MATTER)
   FRIEND_FOLLOWUPS: { default: 'off', owner: 'memory', kind: 'experiment' },
   FTIS_COLLECT_TRAINING_DATA: { default: 'off', owner: 'tools', kind: 'experiment' },
@@ -200,6 +202,8 @@ export const FLAG_MANIFEST = {
   HANDOFF_ASK_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a handed-to persona gets the first agent's essential tool set, not Tier 0 (essential-tool-set.ts)
   HANDOFF_FULL_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // the caller can talk through a handoff goodbye (handoff-talk-through.ts)
+  HANDOFF_TALK_THROUGH: { default: 'off', owner: 'voice', kind: 'experiment' },
   HAPPY_EXITS: { default: 'off', owner: 'voice', kind: 'experiment' },
   HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -230,6 +234,7 @@ export const FLAG_MANIFEST = {
   LOG_BUILDER_CATEGORIES: { default: 'off', owner: 'intelligence', kind: 'config' },
   LOG_CONTEXT_BUILDS: { default: 'off', owner: 'voice', kind: 'config' },
   LOG_FULL_RESPONSES: { default: 'off', owner: 'platform', kind: 'config' },
+  LOG_PHONE_REDACTION: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   MAYA_PROACTIVE_CHECKS: { default: 'off', owner: 'platform', kind: 'experiment' },
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -239,6 +244,11 @@ export const FLAG_MANIFEST = {
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on (with MEMORY_VIEW): the memory view also shows what Ferni has been pondering.
   MEMORY_VIEW_PONDERING: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: mid-call system notes reach Gemini framed as private, not the caller's words
+  // (patches/@livekit__agents@1.6.4.patch), and save tools refuse them (tools/utils/own-note.ts)
+  MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: log which moves each reply made and what followed, saved after the call (move-log.ts)
+  MOVE_OUTCOMES: { default: 'off', owner: 'voice', kind: 'experiment' },
   MULTI_AGENT_ESSENTIAL_TOOLS_FIRST: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MULTI_AGENT_MODE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // off: a handoff closes the call's session and starts another, as before (agents/multi-agent/persona-swap.ts)
@@ -254,6 +264,8 @@ export const FLAG_MANIFEST = {
   // sends the app a name lift when the caller names someone remembered
   NAME_LIFT: { default: 'off', owner: 'memory', kind: 'experiment' },
   NAME_MISHEAR_NORMALIZE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // only with NAME_MISHEAR_NORMALIZE=on: "transfer me to Fern" asks for Ferni on any persona
+  NAME_MISHEAR_HANDOFF: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // a mode: on speaks a fallback when a reply fails, shadow only logs it
   NEVER_SILENT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // getNews topic search with no NewsData/GNews key says so and gives RSS headlines (news.ts)
@@ -288,6 +300,8 @@ export const FLAG_MANIFEST = {
   // read in patches/@livekit__agents@1.6.4.patch
   PLAYOUT_LAUNCH_RESUME: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PONDERING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // late-night calls: a softer reply line and the LATE_NIGHT layer in attune.ts (porch-light.ts)
+  PORCH_LIGHT: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_ADAPTIVE_PACING: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_ENHANCEMENT_ENABLED: { default: 'off', owner: 'voice', kind: 'experiment' },
   PREDICTIONS_USE_ASYNC: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -321,6 +335,7 @@ export const FLAG_MANIFEST = {
   // read as 'true', not 'on' (adaptive echo window)
   REQUIRE_FIX_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   RESUME_AFTER_DROP: { default: 'off', owner: 'voice', kind: 'experiment' },
+  REVIVED_INTELLIGENCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   ROOM_GUESTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   ROUNDTABLE_VOICE: { default: 'off', owner: 'voice', kind: 'config' },
   SAVED_INTERESTS: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -359,6 +374,7 @@ export const FLAG_MANIFEST = {
   STT_RETRY_RESET: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TAP_INTERRUPT: { default: 'off', owner: 'voice', kind: 'experiment' },
+  TEAMMATE_IDENTITY_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -429,6 +445,10 @@ export const FLAG_MANIFEST = {
   WEATHER_SAVED_HOME: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   // on: web callers' audio gets BVC noise cancellation (multi-agent/room-input-options.ts)
   WEB_NOISE_CANCEL: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: searchWeb answers from Vertex Google Search grounding, not DuckDuckGo (information/web-search.ts);
+  // caps SEARCH_MAX_PER_PERSON_HOUR (20), SEARCH_MAX_ANON_PER_HOUR (10, all unverified callers)
+  // and SEARCH_MAX_PER_DAY (150 Google queries)
+  WEB_SEARCH: { default: 'off', owner: 'tools', kind: 'experiment' },
   WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
   WORKER_DRAIN_TIMEOUT_MS: { default: '1800000', owner: 'platform', kind: 'config' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },

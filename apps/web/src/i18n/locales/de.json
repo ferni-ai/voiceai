@@ -10800,7 +10800,9 @@
     "helper": "Dein persönlicher Wegbegleiter",
     "connectToTalk": "Verbinden",
     "endTalk": "Auflegen",
-    "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen"
+    "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen",
+    "connectingNow": "Verbindung wird hergestellt…",
+    "tapToCancel": "Zum Abbrechen tippen"
   },
   "analyticsDashboard": {
     "title": "Deine Reise",
