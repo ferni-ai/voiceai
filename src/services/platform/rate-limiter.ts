@@ -118,13 +118,15 @@ function initializeRedis(): void {
       redisAvailable = true;
     });
 
+    // Debug: ioredis emits these on every reconnect attempt. An outage is reported by
+    // rate_limit_redis_down, once per revive window, not once per attempt.
     redisClient.on('error', (err) => {
-      log.warn({ error: String(err) }, 'Redis connection error');
+      log.debug({ error: String(err) }, 'Redis connection error');
       redisAvailable = false;
     });
 
     redisClient.on('close', () => {
-      log.info('Redis connection closed');
+      log.debug('Redis connection closed');
       redisAvailable = false;
     });
 
