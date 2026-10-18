@@ -32,7 +32,7 @@ import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-n
 import { chiefOfStaffNote, lastAgentWordsIn } from '../../tools/handoff/chief-of-staff-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
-import { retrievedTools } from './turn-request-tools.js';
+import { retrievedTools, withSameTurnTools } from './turn-request-tools.js';
 import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt-session.js';
@@ -431,6 +431,7 @@ export async function toolsForTurn(
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
   if (staticCoreToolsEnabled()) withPinnedTools(toolCtx, state.agent);
+  else withSameTurnTools(session, chatCtx, toolCtx); // TOOLS_SAME_TURN: this turn's topic tools
   const view = unlockViewFor(session.userData);
   const allowed = phoneOnlyIdentity(sessionIdOf(session.userData))
     ? await withoutAccountTools(toolCtx, state)

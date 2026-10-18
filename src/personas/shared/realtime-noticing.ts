@@ -686,7 +686,7 @@ function detectProtectiveLanguage(input: NoticingInput): NoticingResult | null {
     { pattern: /doesn('t| not) matter/i, response: "You said it doesn't matter, but..." },
     { pattern: /i('m| am) (over it|past it)/i, response: 'Are you though?' },
     { pattern: /whatever/i, response: "That 'whatever'..." },
-    { pattern: /i don('t| do not) care/i, response: "I hear you saying you don't care, but..." },
+    { pattern: /i don('t| do not) care/i, response: "You say you don't care, but..." },
     { pattern: /it('s| is) not a big deal/i, response: 'Not a big deal, you said, but...' },
   ];
 
