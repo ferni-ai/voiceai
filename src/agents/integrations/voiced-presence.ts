@@ -145,20 +145,9 @@ function shared(opts: VoicedPresenceOptions, direct: VoicedTrack) {
     return true;
   };
   const mood = (): string | undefined => caller()?.voiceEmotion?.primary;
-  const getTake = (text: string) => opts.getClip(text, opts.personaId());
-  const env = opts.env ?? process.env;
-  return {
-    session,
-    direct,
-    picker,
-    rng,
-    caller,
-    play,
-    mood,
-    getTake,
-    env,
-    mixerBusy: opts.mixerBusy,
-  };
+  const getTake = (text: string): ArrayBuffer | null => opts.getClip(text, opts.personaId());
+  const env = opts.env ?? process.env; // NAMED_TUNE
+  return { session, direct, picker, rng, caller, play, mood, getTake, env, busy: opts.mixerBusy };
 }
 type Voiced = ReturnType<typeof shared>;
 
@@ -186,7 +175,7 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
   /** A recorded whistle on the direct track; false if none is ready or a clip is playing. */
   const whistle = (): boolean => {
     const pcm = whistles?.next();
-    if (!pcm || v.mixerBusy()) return false;
+    if (!pcm || v.busy()) return false;
     if (!v.direct.play(pcm, IDLE_VOLUME, RECORDED + (presenceClipName(pcm) ?? 'unknown')))
       return false;
     endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
@@ -198,8 +187,7 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
   const named = (): boolean => {
     const id = namedTuneFor(sessionId(), v.env);
     const tune = id ? tuneAudio(id, v.getTake) : null;
-    if (!id || !tune || v.mixerBusy() || !v.direct.play(tune.pcm, IDLE_VOLUME, tune.label))
-      return false;
+    if (!id || !tune || v.busy() || !v.direct.play(tune.pcm, IDLE_VOLUME, tune.label)) return false;
     endsAt = Date.now() + tune.pcm.byteLength / 48;
     tunePlayed(sessionId(), id, tuneKind(id), v.env);
     return true;

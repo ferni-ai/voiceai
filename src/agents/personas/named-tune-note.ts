@@ -1,15 +1,10 @@
 /**
- * "Caught you whistling" (NAMED_TUNE=on): one line in the turn reminder when
- * the caller notices the few bars Ferni whistled or hummed in a quiet
- * (presence sounds). He owns it, says it's a tune he made up with no name,
- * and asks if they want to name it. Their answer, in their words, becomes
- * that tune's name for them (services/session/tune-state.ts), and from then
- * on their quiet-window sound is that tune. Now and then, at most once every
- * MENTION_EVERY calls and only on a light turn, he may say its name in
- * passing. "Stop whistling" turns the sounds off for that caller.
- *
- * Never for an unverified caller, never on a crisis turn, and never as a ping:
- * the note only rides his reply to something they said.
+ * "Caught you whistling" (NAMED_TUNE=on): when the caller notices the bars
+ * Ferni whistled or hummed in a quiet, he owns it and asks them to name it.
+ * Their answer is kept as that tune's name (tune-state.ts) and their quiet
+ * window plays it from then on; now and then, on a light turn, he may say it.
+ * "Stop whistling" turns the sounds off for them. Verified owners only, never
+ * on a crisis turn, and only ever in a reply to something they said.
  *
  * @module agents/personas/named-tune-note
  */
@@ -25,6 +20,7 @@ import {
 } from '../../services/session/tune-state.js';
 import { isHeavyMood } from '../integrations/presence-watcher.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { priorCallsOf } from './personal-beats.js';
 import { callerVenting } from './turn-extras.js';
 
 /** How long after a whistle the caller can still bring it up, or answer the naming question. */
@@ -78,6 +74,7 @@ export function tuneNameFrom(words: string): string | null {
 }
 
 const did = (kind: string): string => (kind === 'hum' ? 'hummed' : 'whistled');
+type Env = Record<string, string | undefined>;
 
 export interface TuneTurn {
   sessionId?: string;
@@ -96,9 +93,9 @@ export interface TuneTurn {
 /** The note for this reply, or ''. */
 export function namedTuneNote(
   turn: TuneTurn,
-  store: TuneStore = firestoreTuneStore,
-  env: Record<string, string | undefined> = process.env,
-  now: number = Date.now()
+  store = firestoreTuneStore,
+  env: Env = process.env,
+  now = Date.now()
 ): string {
   const call = readyCall(turn, store, env);
   if (!call) return '';
@@ -110,11 +107,7 @@ export function namedTuneNote(
 }
 
 /** The call's state once a verified caller's record is read; null with the flag off or otherwise. */
-function readyCall(
-  turn: TuneTurn,
-  store: TuneStore,
-  env: Record<string, string | undefined>
-): CallTune | null {
+function readyCall(turn: TuneTurn, store: TuneStore, env: Env): CallTune | null {
   if (!namedTuneEnabled(env) || !turn.sessionId) return null;
   const { userId } = turn;
   if (!turn.verified || turn.memoryHeld || !userId || userId === 'anonymous') return null;
@@ -139,11 +132,8 @@ function naming(call: CallTune, turn: TuneTurn, store: TuneStore, now: number): 
   call.asking = undefined;
   if (name === null) return null;
   call.spoken = true;
-  saveCallerTune(
-    call,
-    { tuneId: asking.tuneId, name, namedAt: now, mentionedAtCall: turn.priorCalls },
-    store
-  );
+  const { tuneId } = asking;
+  saveCallerTune(call, { tuneId, name, namedAt: now, mentionedAtCall: turn.priorCalls }, store);
   return `[They named your tune "${name}". Say the name back and that it's theirs now, in a few words.]`;
 }
 
@@ -175,7 +165,7 @@ function mention(call: CallTune, turn: TuneTurn, store: TuneStore, now: number):
 
 interface UserDataView {
   userId?: string;
-  services?: { sessionId?: string; userProfile?: { totalConversations?: number } };
+  services?: { sessionId?: string };
   voiceEmotion?: { primary?: string };
 }
 
@@ -189,7 +179,6 @@ export function tuneTurnNote(
   if (!namedTuneEnabled()) return '';
   const u = (session as { userData?: UserDataView }).userData;
   const sessionId = u?.services?.sessionId;
-  const total = u?.services?.userProfile?.totalConversations;
   return namedTuneNote({
     sessionId,
     userId: u?.userId,
@@ -197,7 +186,7 @@ export function tuneTurnNote(
     careful,
     // Their own call only: never one Ferni placed for them to someone else.
     verified: !!sessionId && verifiedOwner(sessionId) && !outboundPartiesFor(sessionId),
-    priorCalls: typeof total === 'number' ? total : undefined,
+    priorCalls: priorCallsOf(u),
     mood: u?.voiceEmotion?.primary,
   });
 }

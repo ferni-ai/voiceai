@@ -25,14 +25,6 @@ import {
 import { startToolHum } from './tool-hum.js';
 import { startVoicedPresence, voicedPresenceEnabled } from './voiced-presence.js';
 import { presenceClipPickers } from './presence-clips.js';
-import {
-  randomTune,
-  recordedWhistleId,
-  synthTuneId,
-  tuneAudio,
-  tuneKind,
-} from './presence-tune.js';
-import { namedTuneFor, presenceSoundsHeld, tunePlayed } from '../../services/session/tune-state.js';
 import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
 import { LAUGH_CLIP } from './backchannel-policy.js';
 import { callerVenting } from '../personas/turn-extras.js';
@@ -306,28 +298,12 @@ function startPresenceSounds(
   // PRESENCE_SOUND_ASSETS: a recorded whistle or snore when one loaded, else the synthesized one
   const recorded = presenceClipPickers();
   const quiet = () => stayQuietOn(session);
-  // NAMED_TUNE: the tune id that played, so the caller can name it and hear it again.
-  const tune = (kind: 'hum' | 'whistle', id: string | null, pcm: ArrayBuffer, quietMs: number) => {
-    const ok = playing(kind, pcm, quietMs);
-    if (ok && id) tunePlayed(sessionIdOf(session), id, kind);
-    return ok;
-  };
-  const idle = (quietMs: number): boolean => {
-    const sid = sessionIdOf(session);
-    if (presenceSoundsHeld(sid)) return false;
-    const id = namedTuneFor(sid);
-    const named = id ? tuneAudio(id, () => null) : null;
-    if (id && named) return tune(tuneKind(id), id, named.pcm, quietMs);
-    const n = randomTune();
-    if (presenceHumEnabled() && Math.random() < 0.5)
-      return tune('hum', synthTuneId('hum', n), synthHum({ tune: n }), quietMs);
-    const clip = recorded?.whistle.next();
-    if (clip) return tune('whistle', recordedWhistleId(clip), clip, quietMs);
-    return tune('whistle', synthTuneId('whistle', n), synthWhistle({ tune: n }), quietMs);
-  };
   const watchers = [
     createPresenceWatcher({
-      play: idle,
+      play: (quietMs) =>
+        presenceHumEnabled() && Math.random() < 0.5
+          ? playing('hum', synthHum(), quietMs)
+          : playing('whistle', recorded?.whistle.next() ?? synthWhistle(), quietMs),
       stop,
       mood,
       serious,

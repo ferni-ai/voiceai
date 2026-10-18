@@ -1,14 +1,8 @@
 /**
- * A presence tune the caller named (NAMED_TUNE=on, off by default). Ferni
- * whistles or hums a few bars in an easy silence (presence-watcher.ts); when
- * the caller notices, he owns it and asks them to name it
- * (personas/named-tune-note.ts). The name, in their words, and which tune it
- * was are kept per caller, so that caller's quiet-window sound is that tune
- * from then on. "Stop whistling" turns the sounds off for that caller.
- *
- * Kept at bogle_users/{uid}/preferences/presence (the preferences store is
- * already in the caller's export). Per call, the state lives here, keyed by
- * userData.services.sessionId, bounded like quirk-log.ts.
+ * A presence tune the caller named, and whether they asked Ferni to stop
+ * whistling (NAMED_TUNE=on; personas/named-tune-note.ts). Kept per caller at
+ * bogle_users/{uid}/preferences/presence (preferences is already exported);
+ * per call, keyed by userData.services.sessionId and bounded like quirk-log.ts.
  *
  * @module services/session/tune-state
  */
@@ -23,15 +17,12 @@ export function namedTuneEnabled(env: Env = process.env): boolean {
   return env.NAMED_TUNE === 'on';
 }
 
-/** What is kept for a caller. `tuneId` names the clip or take (presence-tune.ts). */
+/** Kept per caller: the tune (presence-tune.ts id) and its name in their words; "stop whistling"; the call count at the last mention. */
 export interface TuneRecord {
   tuneId?: string;
-  /** Their words, at most NAME_MAX characters. */
   name?: string;
   namedAt?: number;
-  /** They asked him to stop whistling and humming. */
   soundsOff?: boolean;
-  /** The caller's call count when Ferni last mentioned the name. */
   mentionedAtCall?: number;
 }
 
@@ -65,16 +56,13 @@ async function presenceDoc(userId: string): Promise<PresenceDoc | undefined> {
 
 export type TuneKind = 'whistle' | 'hum';
 
+/** One call: `skip` until a verified caller's record is read; the last tune played; the open naming question; whether the name came up. */
 export interface CallTune {
-  /** skip: not a verified caller (or memory held), so nothing is read or kept. */
   state: 'skip' | 'loading' | 'ready';
   userId?: string;
   record: TuneRecord;
-  /** The last tune played this call. */
   played?: { tuneId: string; kind: TuneKind; at: number };
-  /** Ferni asked them to name this tune. */
   asking?: { tuneId: string; at: number };
-  /** The name came up this call already (named, or mentioned once). */
   spoken?: boolean;
 }
 
