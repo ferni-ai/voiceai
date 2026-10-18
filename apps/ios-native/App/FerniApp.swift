@@ -28,7 +28,13 @@ struct FerniApp: App {
                 .task {
                     EndCallIntent.end = { [call = model.call] in await call.end() }
                     TalkIntent.handler = { [model] personaID in model.talk(to: personaID) }
-                    FerniAppDelegate.onToken = { [model] token in Task { await model.push.received(deviceToken: token) } }
+                    FerniAppDelegate.onToken = { [model] token in
+                        Task { await model.push.received(deviceToken: token, uid: model.account.user?.uid) }
+                    }
+                    // Back online: finish any unbind or registration that didn't go through.
+                    for await _ in NetworkWatcher.becameReachable() {
+                        await model.push.reconcile(uid: model.account.user?.uid)
+                    }
                     FerniAppDelegate.onTalk = { [model] in model.talk(to: model.team.chosen) }
                 }
                 .onChange(of: model.account.user?.uid, initial: true) { old, uid in
@@ -114,7 +120,7 @@ final class AppModel {
     /// Sign out: this person's agreement and everything shown about them leave
     /// the phone with them.
     func signOut() async {
-        await push.unregister() // while still signed in as them
+        if let uid = account.user?.uid { await push.unbindBeforeSignOut(uid: uid) } // while still them
         if let uid = account.user?.uid { consent.forget(uid: uid) }
         forgetPerson()
         await account.signOut()
@@ -123,12 +129,11 @@ final class AppModel {
     /// Every per-person store follows the signed-in account.
     func accountChanged(from old: String?, to uid: String?) {
         consent.use(uid: uid)
+        // At launch and on every change: the token is bound to this person only if they said yes.
+        Task { await push.reconcile(uid: uid) }
         guard old != nil, old != uid else { return } // first launch keeps what's loading
         forgetPerson()
-        Task {
-            await team.refresh()
-            await push.register() // this phone's notes are now the new person's
-        }
+        Task { await team.refresh() }
     }
 
     private func forgetPerson() {
@@ -150,7 +155,7 @@ final class AppModel {
         let apnsEnvironment = "production"
         #endif
         push = PushStore(
-            api: api, bundleID: Bundle.main.bundleIdentifier ?? "com.sethdford.ferni",
+            api: api, vault: KeychainPushVault(), bundleID: Bundle.main.bundleIdentifier ?? "com.sethdford.ferni",
             environment: apnsEnvironment, appVersion: SettingsView.version()
         )
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
