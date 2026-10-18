@@ -71,6 +71,17 @@ final class AppModel {
         if consent.agree() { call.start(personaID: team.chosen) }
     }
 
+    /// Delete the account on the server, then everything this phone kept about
+    /// the person, then start fresh. Throws (and keeps everything) if the server says no.
+    func deleteAccount() async throws {
+        let uid = account.user?.uid
+        try await AccountDeletion.delete(using: api)
+        if let uid { consent.forget(uid: uid) }
+        AccountDeletion.localKeys.forEach(UserDefaults.standard.removeObject(forKey:))
+        forgetPerson()
+        await account.signOut()
+    }
+
     /// Sign out: this person's agreement and everything shown about them leave
     /// the phone with them.
     func signOut() async {
