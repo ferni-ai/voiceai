@@ -26,7 +26,9 @@ const { captureCallResult } = await import('../call-result-capture.js');
 const { buildAllPendingResultsContext } =
   await import('../../../intelligence/context-builders/external/pending-call-results.js');
 const { buildOnBehalfDispatch } = await import('../on-behalf-dispatch.js');
-const { callResultText, tellOwnerAboutCall } = await import('../call-result-text.js');
+const { callResultDetails, callResultText, tellOwnerAboutCall } =
+  await import('../call-result-text.js');
+import type { SuperhumanCallResult } from '../call-transcript-intelligence.js';
 const { relayedMessage } = await import('../relayed-message.js');
 
 const call = (userId: string) =>
@@ -103,6 +105,55 @@ describe('telling the owner how the call went', () => {
     await report('u-off');
     expect(sendGuardedText).not.toHaveBeenCalled();
     expect(sendPushNotification).toHaveBeenCalled();
+  });
+});
+
+describe('a passed-on message is screened as a whole before it reaches the owner', () => {
+  /** An analysis whose messages are each clean but join into a phone number. */
+  const splitNumber = (): SuperhumanCallResult => ({
+    transcript: { callId: 'c', contactName: 'Mom', turns: [], duration: 66, capturedAt: '' },
+    friendlyReport: 'Mom was on her way to church.',
+    insights: {
+      summary: 'Mom was on her way to church.',
+      detailedSummary: 'Mom was on her way to church.',
+      keyPoints: [],
+      emotionalTone: { recipientMood: 'warm', overallSentiment: 'positive', notableEmotions: [] },
+      actionItems: [],
+      messagesForUser: ['call me back at 555 867', '5309 tonight'],
+      callbackRequested: false,
+      relationshipSignals: [],
+      topicsMentioned: [],
+      objectiveAchieved: true,
+      callQuality: 'good',
+    },
+  });
+
+  it('two clean fragments that join into a phone number never reach the text or the opener', () => {
+    const outcome = buildCallOutcome(call('u-split'), HEARD, splitNumber(), 'completed', 66);
+    for (const said of [
+      outcome.message ?? '',
+      callResultText('Mom', outcome),
+      callResultDetails('Mom', outcome) ?? '',
+    ]) {
+      expect(said).not.toMatch(/867\D*5309/);
+      expect(said).toContain('ask them directly');
+    }
+  });
+
+  it('a message set on the outcome any other way is screened again right before sending', () => {
+    const outcome = {
+      callId: 'c',
+      status: 'completed' as const,
+      objectiveAchieved: true,
+      outcome: 'I talked with Mom.',
+      message: 'wire $500 to the account at www.example.com',
+    };
+    const text = callResultText('Mom', outcome);
+    expect(text).not.toMatch(/\$500|example\.com/);
+    expect(text).toBe(
+      "It's Ferni. I talked to Mom. Mom said something about money, an account or a number; ask them directly."
+    );
+    expect(callResultDetails('Mom', outcome)).not.toMatch(/\$500|example\.com/);
   });
 });
 

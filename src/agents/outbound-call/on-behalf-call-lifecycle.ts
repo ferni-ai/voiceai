@@ -227,7 +227,8 @@ export function buildCallOutcome(
     callbackRequired: insights.callbackRequested,
     callbackTime: screenedCallerText(insights.callbackDetails, name, 100) || undefined,
     actionItems: actionItems.length > 0 ? actionItems : undefined,
-    message: clean(insights.messagesForUser).join(' ') || message,
+    // Screened again once joined: clean pieces can join into a link, a number or an instruction.
+    message: screenedCallerText(clean(insights.messagesForUser).join(' '), name, 200) || message,
   };
 }
 

@@ -22,6 +22,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
+import { callerText, screenedCallerText } from './caller-text.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 
 const log = createLogger({ module: 'call-result-text' });
@@ -36,24 +37,39 @@ export function callResultTextOn(env: Record<string, string | undefined> = proce
 }
 
 /**
+ * What they asked to pass on, screened again right before it goes out (it may
+ * have been joined from parts): their words to quote, or the screen's own line
+ * ("... said something about money ...; ask them directly.") to say instead.
+ */
+function passedOn(contactName: string, outcome: CallOutcome): { quote?: string; flag?: string } {
+  const said = callerText(outcome.message, 200);
+  if (!said) return {};
+  const screened = screenedCallerText(said, contactName, 200);
+  return screened === said ? { quote: said } : { flag: screened };
+}
+
+/**
  * The text. With a message: that they were reached and what they asked to pass
  * on, in their words. Without one: the call's own outcome line.
  */
 export function callResultText(contactName: string, outcome: CallOutcome): string {
-  const said = outcome.message?.trim();
+  const { quote, flag } = passedOn(contactName, outcome);
+  const reached = `It's Ferni. I talked to ${contactName}.`;
   const text =
-    said && outcome.status === 'completed'
-      ? `It's Ferni. I talked to ${contactName}. ${contactName} asked me to tell you: "${said}"`
-      : `It's Ferni. ${outcome.outcome.trim()}`;
+    outcome.status !== 'completed' || (!quote && !flag)
+      ? `It's Ferni. ${outcome.outcome.trim()}`
+      : quote
+        ? `${reached} ${contactName} asked me to tell you: "${quote}"`
+        : `${reached} ${flag}`;
   return text.length > MAX_TEXT ? `${text.slice(0, MAX_TEXT - 1).trimEnd()}…` : text;
 }
 
 /** The While You Were Away details: what they asked to pass on first, then the summary. */
 export function callResultDetails(contactName: string, outcome: CallOutcome): string | undefined {
-  const said = outcome.message?.trim();
-  if (!said) return outcome.transcriptSummary;
-  const passOn = `${contactName} asked to pass on: "${said}"`;
-  return outcome.transcriptSummary ? `${passOn}. ${outcome.transcriptSummary}` : passOn;
+  const { quote, flag } = passedOn(contactName, outcome);
+  const passOn = quote ? `${contactName} asked to pass on: "${quote}"` : flag;
+  if (!passOn) return outcome.transcriptSummary;
+  return outcome.transcriptSummary ? `${passOn} ${outcome.transcriptSummary}` : passOn;
 }
 
 export type CallResultTold = 'live' | 'quiet-hours' | 'no-time-zone' | 'texted' | 'not-sent';
