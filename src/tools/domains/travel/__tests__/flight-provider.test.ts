@@ -159,5 +159,6 @@ describe('findAirportCode', () => {
 
   it('does not match a city name inside a longer word', () => {
     expect(findAirportCode('Parisian Quarter')).toBeNull();
+    expect(findAirportCode('Montparis')).toBeNull();
   });
 });

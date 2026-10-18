@@ -115,6 +115,7 @@ describe('IgnavFlightProvider', () => {
     expect(url).toBe(`${IGNAV_BASE_URL}/fares/one-way`);
     expect(init.method).toBe('POST');
     expect((init.headers as Record<string, string>)['X-Api-Key']).toBe('test-key');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(JSON.parse(init.body as string)).toEqual({
       origin: 'BOS',
       destination: 'DEN',
@@ -231,6 +232,23 @@ describe('IgnavFlightProvider', () => {
     fetchMock.mockResolvedValue(
       jsonReply(200, {
         itineraries: [itinerary({ amount: 150, segments: [{ dep: '08:05', arr: '10:30' }] })],
+      })
+    );
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({ status: 'unavailable', reason: 'provider-error' });
+  });
+
+  it('says provider-error when a departure time is not anchored at its date', async () => {
+    fetchMock.mockResolvedValue(
+      jsonReply(200, {
+        itineraries: [
+          itinerary({
+            amount: 150,
+            segments: [{ dep: 'x2026-10-23T08:05:00', arr: '2026-10-23T10:30:00' }],
+          }),
+        ],
       })
     );
 

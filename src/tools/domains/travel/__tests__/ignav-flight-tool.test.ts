@@ -120,4 +120,15 @@ describe('searchFlights tool with FLIGHT_PROVIDER=ignav', () => {
     expect(reply).toContain('I can only check one-way fares for one passenger right now.');
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('getFlightPrice says the fare in its own currency', async () => {
+    const tools = await loadTools();
+
+    const reply = await tools.getFlightPrice.execute(
+      { origin: 'BOS', destination: 'DEN', when: 'next Friday' },
+      ctx
+    );
+
+    expect(reply).toContain('189 EUR');
+  });
 });
