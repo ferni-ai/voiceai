@@ -9,7 +9,7 @@ import { RETIRED_STACK } from './brand-terms.js';
 
 type Rule = 'front-matter' | 'em-dash' | 'ellipsis' | 'forbidden-word' | 'retired-stack';
 export interface GateIssue {
-  rule: Rule | 'real-claim' | 'number' | 'length' | 'not-live';
+  rule: Rule | 'real-claim' | 'number' | 'length' | 'not-live' | 'unsafe-link' | 'unsafe-html';
   message: string;
 }
 
