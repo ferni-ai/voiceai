@@ -10,6 +10,7 @@ import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
+import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createBargeInJudge,
@@ -29,6 +30,7 @@ import {
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { followThroughOpenerEnabled, followThroughReplyListeners } from './follow-through-opener.js';
 import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
@@ -113,6 +115,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   installCallUserPort();
   // THREADS_PENDING_CONFIRM: a read-back waiting on a yes is kept as a follow-up (confirm-thread.ts).
   installConfirmThreadPort();
+  // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
+  installForgetFollowUpsPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler
@@ -228,6 +232,20 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
+    ];
+    for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
+    sessionEventHandlers.push(...handlers);
+  }
+
+  // The caller's answer to the follow-up the opener raised closes it (follow-through-opener.ts).
+  if (userId && followThroughOpenerEnabled()) {
+    const replies = followThroughReplyListeners({
+      userId,
+      isOwner: () => speakerIsAccountOwner(sessionId),
+    });
+    const handlers = [
+      { event: 'conversation_item_added', handler: replies.onItemAdded },
+      { event: 'user_input_transcribed', handler: replies.onTranscript },
     ];
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);
