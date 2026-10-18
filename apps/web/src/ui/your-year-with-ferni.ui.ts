@@ -674,7 +674,7 @@ export class YourYearWithFerni {
         color: var(--color-ferni, #4A6741);
         margin-bottom: var(--space-2, 8px);
         display: block;
-      }
+      } [data-theme="midnight"] .your-year-eyebrow { color: var(--color-text-secondary); } /* ferni green was 2.1:1 */
 
       /* Title: Plus Jakarta Sans, dark text */
       .your-year-title {

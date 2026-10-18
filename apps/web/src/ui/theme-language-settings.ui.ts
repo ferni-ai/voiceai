@@ -253,7 +253,7 @@ function injectStyles(): void {
 
     .theme-language-settings__theme-desc {
       font-size: 0.75rem;
-      color: var(--color-text-muted, #8a827a);
+      color: var(--color-text-secondary); /* muted was 4.0:1 on the selected option in midnight */
     }
 
     .theme-language-settings__theme-check {
@@ -332,7 +332,7 @@ function injectStyles(): void {
 
     .theme-language-settings__language-english {
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #8a827a);
+      color: var(--color-text-secondary); /* muted was 4.0:1 on the selected option in midnight */
     }
 
     .theme-language-settings__language-check {

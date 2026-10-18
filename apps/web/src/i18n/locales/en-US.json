@@ -6068,7 +6068,8 @@
     "minutesShort": "{minutes}m",
     "hoursMinutesShort": "{hours}h {minutes}m",
     "percentChange": "{change}%",
-    "moreEvents": "+{count} more"
+    "moreEvents": "+{count} more",
+    "weekRegion": "This week, day by day"
   },
   "storyArcs": {
     "firstLaunch": {
@@ -8883,7 +8884,8 @@
     },
     "durationMinutes": "{minutes}m",
     "durationHoursMinutes": "{hours}h {minutes}m",
-    "durationHours": "{hours}h"
+    "durationHours": "{hours}h",
+    "sessionsRegion": "Our past conversations"
   },
   "outreachPrefs": {
     "eyebrow": "Stay in touch",
@@ -10835,7 +10837,8 @@
         "other": "{count} Seeds"
       }
     },
-    "purchased": "It's yours!"
+    "purchased": "It's yours!",
+    "itemsRegion": "Things you can choose"
   },
   "capabilityCard": {
     "betterThanHuman": "Better than Human"

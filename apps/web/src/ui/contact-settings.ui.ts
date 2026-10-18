@@ -639,7 +639,7 @@ function render(): void {
         ${ICONS.heart}
       </div>
       <p class="contact-settings-eyebrow">${t('contactSettings.eyebrow', 'Stay Connected')}</p>
-      <h2 class="contact-settings-title">${t('contactSettings.title', 'How can I reach you?')}</h2>
+      <h2 class="contact-settings-title" id="contact-settings-title">${t('contactSettings.title', 'How can I reach you?')}</h2>
       <p class="contact-settings-subtitle">
         ${t('contactSettings.subtitle', "Share your contact info so I can check in, celebrate wins, and be there when you need me.")}
       </p>

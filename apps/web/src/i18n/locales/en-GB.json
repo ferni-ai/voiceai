@@ -5993,7 +5993,8 @@
     "meetingsToday": {
       "one": "{count} meeting today",
       "other": "{count} meetings today"
-    }
+    },
+    "weekRegion": "This week, day by day"
   },
   "storyArcs": {
     "firstLaunch": {
@@ -8805,7 +8806,8 @@
     "messageCount": {
       "one": "{count} message",
       "other": "{count} messages"
-    }
+    },
+    "sessionsRegion": "Our past conversations"
   },
   "outreachPrefs": {
     "eyebrow": "Stay in touch",
@@ -10744,7 +10746,8 @@
         "other": "{count} Seeds"
       }
     },
-    "purchased": "It's yours!"
+    "purchased": "It's yours!",
+    "itemsRegion": "Things you can choose"
   },
   "capabilityCard": {
     "betterThanHuman": "Better than Human"

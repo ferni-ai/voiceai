@@ -303,9 +303,7 @@ class CalendarViewUI {
   private isLoadingPracticeView = false;
   private practiceViewTried = false; // one automatic load per open, so a failure can't loop
 
-  /**
-   * Initialize the calendar view
-   */
+  /** Initialize the calendar view */
   initialize(): void {
     if (this.panel) return;
 
@@ -316,9 +314,7 @@ class CalendarViewUI {
     this.createPanel();
   }
 
-  /**
-   * Set callbacks
-   */
+  /** Set callbacks */
   setCallbacks(callbacks: CalendarViewCallbacks): void {
     this.callbacks = callbacks;
   }
@@ -738,7 +734,7 @@ class CalendarViewUI {
         </div>
 
         <!-- Week Strip with Daily Insights -->
-        <div class="calendar-view__practice-week">
+        <div class="calendar-view__practice-week" tabindex="0" role="region" aria-label="${t('calendarView.weekRegion')}">
           ${weekDays.map(day => `
             <div class="calendar-view__practice-day ${day.isToday ? 'calendar-view__practice-day--today' : ''}" data-date="${day.date}">
               <div class="calendar-view__practice-day-name">${day.shortName}</div>
@@ -2547,6 +2543,9 @@ class CalendarViewUI {
         color: color-mix(in srgb, var(--color-jordan, #c4856a) 70%, black);
         font-weight: var(--font-weight-bold, 700);
       }
+      /* the darkened jordan was 2.2:1 on midnight's card */
+      [data-theme="midnight"] .calendar-view__practice-day--today .calendar-view__practice-day-name,
+      [data-theme="midnight"] .calendar-view__practice-day--today .calendar-view__practice-day-num { color: var(--color-text-primary); }
 
       .calendar-view__practice-day-indicators {
         display: flex;
@@ -3329,7 +3328,7 @@ class CalendarViewUI {
 
       [data-theme="midnight"] .calendar-view__tab--active {
         background: var(--color-alex-tint, rgba(90, 107, 138, 0.2));
-        color: var(--color-alex-light, #8a9bb8);
+        color: var(--color-text-primary); /* alex-light was 3.7:1 */
       }
 
       [data-theme="midnight"] .calendar-view__summary {

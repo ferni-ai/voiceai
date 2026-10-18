@@ -438,7 +438,7 @@ function injectStyles(): void {
 
     .yp-nudge-badge.medium {
       background: rgba(184, 149, 106, 0.15);
-      color: var(--nayan-primary, #b8956a);
+      color: var(--color-semantic-warning-text); /* nayan gold was 2.4:1 */
     }
 
     .yp-nudge-arrow {
