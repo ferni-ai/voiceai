@@ -5,8 +5,9 @@
  *   the same day, Ferni owns it. "I was meant to remind you to call the
  *   pharmacy earlier. Did it happen?"
  * - Something they said they'd do, when its follow-up comes due
- *   (COACH_FOLLOW_THROUGH, commitment-follow-up.ts). For allowlisted users
- *   this replaces the between-call push (commitment-push.ts).
+ *   (COACH_FOLLOW_THROUGH, commitment-follow-up.ts: on for everyone, or for
+ *   this person through their cohort flags). For allowlisted users this
+ *   replaces the between-call push (commitment-push.ts).
  * - Something in their world that is due today (the temporal world model's
  *   "since you last talked" items, WORLD_MODEL_TEMPORAL), when the server
  *   has that model; the loader is passed in by the scheduler job.
@@ -21,6 +22,7 @@ import {
   toOpenCommitment,
 } from '../../superhuman/commitment-follow-up.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import { flagForUser } from '../../platform/cohort-flags.js';
 import type { ProactiveTrigger } from './types.js';
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -68,9 +70,17 @@ export async function reminderTriggers(userId: string, now: Date): Promise<Proac
   return out;
 }
 
+/**
+ * On for everyone (the server's env), else for this person when their cohort
+ * flags turn it on. Read per person: this server runs for many users at once.
+ */
+async function followThroughOn(userId: string): Promise<boolean> {
+  return coachFollowThroughMode() || (await flagForUser(userId, 'COACH_FOLLOW_THROUGH')) === 'on';
+}
+
 /** What they said they'd do, when it's time to ask how it went (COACH_FOLLOW_THROUGH). */
 export async function commitmentTriggers(userId: string, now: Date): Promise<ProactiveTrigger[]> {
-  if (!coachFollowThroughMode()) return [];
+  if (!(await followThroughOn(userId))) return [];
   const store = firestoreCommitmentStore;
   const out: ProactiveTrigger[] = [];
   for (const { id, data } of await store.active(userId)) {

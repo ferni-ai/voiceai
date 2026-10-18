@@ -162,12 +162,21 @@ export const weeklyPredictionDef: ToolDefinition = {
           const weekOf = now.toISOString().split('T')[0];
           const id = `pred_${now.getTime()}`;
 
-          await store.savePrediction(userId, {
+          const saved = await store.savePrediction(userId, {
             id,
             weekOf,
             predictions,
             createdAt: now.toISOString(),
           });
+          if (!saved) {
+            getLogger().warn({ userId }, '📊 Weekly prediction not saved');
+            return {
+              error: 'The predictions were not saved',
+              saved: false,
+              instruction:
+                "Tell them honestly you couldn't save their predictions just now, and offer to try again. Don't say they're locked in.",
+            };
+          }
 
           // Notify frontend
           const dataSender = getEngagementDataSender();
