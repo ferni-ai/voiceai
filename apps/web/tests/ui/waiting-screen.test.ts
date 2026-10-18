@@ -171,6 +171,9 @@ describe("you're in", () => {
       'Founding member · Wave 7'
     );
     expect(document.querySelector('.waiting-screen__position')).toBeNull();
+    // A lapsed seat goes to the back of the line: never promise to hold it
+    expect(text()).toContain('Come in within a week to keep it.');
+    expect(text()).not.toMatch(/saved it|hold your|save your/i);
     hideWaitingOverlay();
     expect(await celebrateAdmissionOnce(read)).toBe(false);
     expect(read).toHaveBeenCalledTimes(1);

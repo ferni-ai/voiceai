@@ -11147,7 +11147,7 @@
     },
     "emailPromise": "I’ll email you the moment your spot opens.",
     "inTitle": "You’re in",
-    "inMessage": "Your spot opened up, and I saved it for you.",
+    "inMessage": "Your spot is open. Come in within a week to keep it.",
     "badge": "Founding member · Wave {wave}",
     "badgeNoWave": "Founding member",
     "enter": "Come in",
