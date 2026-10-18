@@ -32,8 +32,9 @@ export async function handleAuthRevokeRoutes(
 
   if (rateLimit(req, res, { maxRequests: 10, windowMs: 60_000 })) return true;
 
-  const auth = await requireAuth(req, res, { allowDevMode: false });
+  const auth = await requireAuth(req, res);
   if (!auth) return true;
+  // The real gate: only a verified Firebase user, never an API key or dev-mode header.
   if (auth.authMethod !== 'firebase' || !auth.firebaseUid) {
     sendError(res, 'Sign in to sign out your other sessions', 403);
     return true;
