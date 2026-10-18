@@ -88,9 +88,11 @@ export async function handleExecuteScheduledOutreach(
     const { executeDueScheduledOutreach } =
       await import('../../services/outreach/scheduled-outreach-executor.js');
     const outreach = await executeDueScheduledOutreach({ dryRun: isDryRun(req) });
-    if (isDryRun(req) || process.env.CALL_HOURS_GUARD !== 'on') return { ...outreach };
+    if (isDryRun(req)) return { ...outreach };
     // Calls the call-hours guard deferred ride the same per-minute job; their
-    // failure must not hide the outreach result.
+    // failure must not hide the outreach result. Not gated on this server's
+    // CALL_HOURS_GUARD: the agent defers, this server places, and a held call
+    // whose flag lived only on the agent was never placed (2026-10-17).
     const { executeDueDeferredCalls } = await import('../../services/outreach/deferred-calls.js');
     const deferredCalls = await executeDueDeferredCalls().catch((error: unknown) => {
       log.error({ error: String(error) }, 'Deferred calls run failed');
