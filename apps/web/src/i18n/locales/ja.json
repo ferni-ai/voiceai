@@ -4768,7 +4768,10 @@
     "funGames": "楽しいゲーム",
     "reflectionGames": "振り返りゲーム",
     "tipLabel": "ヒント：",
-    "tipContent": "途中でやめたいときは、いつでも「ストップ」や「ゲームを終了して」と言ってね。進捗はいつでも保存されているよ！"
+    "tipContent": "途中でやめたいときは、いつでも「ストップ」や「ゲームを終了して」と言ってね。進捗はいつでも保存されているよ！",
+    "connectFirst": "まずFerniと通話を始めてから、ゲームを選んでね。",
+    "starting": "{game}を始めています…",
+    "startFailed": "ゲームを始められませんでした。Ferniに頼んでみてね。"
   },
   "digitalTwinProfile": {
     "title": "デジタルツインを作ろう",

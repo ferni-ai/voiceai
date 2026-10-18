@@ -577,13 +577,7 @@ function setupHoverSounds(): void {
 // CONTROLS
 // ============================================================================
 
-/**
- * Mute lives in the one saved Sound setting (sound-director's `ferni:sound`),
- * with the director on or off, so "Sound Effects" off survives a reload like
- * the other menu toggles. It used to be a module variable that reset to
- * unmuted on every page load. With the director on, the same setting also
- * silences every other engine.
- */
+/** Mute is the saved Sound setting (`ferni:sound`), director on or off, so it survives a reload. */
 export function setMuted(muted: boolean): void {
   setSoundOn(!muted);
 

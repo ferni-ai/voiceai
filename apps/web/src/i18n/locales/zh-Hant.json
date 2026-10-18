@@ -4768,7 +4768,10 @@
     "funGames": "趣味遊戲",
     "reflectionGames": "反思遊戲",
     "tipLabel": "小撇步：",
-    "tipContent": "隨時說「停止」或「結束遊戲」就能提早結束。你的進度隨時都會自動儲存喔！"
+    "tipContent": "隨時說「停止」或「結束遊戲」就能提早結束。你的進度隨時都會自動儲存喔！",
+    "connectFirst": "先和 Ferni 開始通話，再選一個遊戲。",
+    "starting": "正在開始{game}…",
+    "startFailed": "沒能開始這個遊戲。試試直接問 Ferni。"
   },
   "digitalTwinProfile": {
     "title": "打造你的數位分身",

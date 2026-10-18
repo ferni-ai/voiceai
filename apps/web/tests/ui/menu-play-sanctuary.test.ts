@@ -9,7 +9,13 @@
  *   with a random canned line when no LLM key is set. It is now behind
  *   VITE_SANCTUARY_CHAT (off by default).
  */
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+type Locale = { gamePicker: Record<'connectFirst' | 'starting' | 'startFailed', string> };
+const LOCALES = join(__dirname, '..', '..', 'src', 'i18n', 'locales');
+const EN_US = JSON.parse(readFileSync(join(LOCALES, 'en-US.json'), 'utf8')) as Locale;
 
 const mocks = vi.hoisted(() => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
@@ -38,6 +44,7 @@ await i18n.setLocale('es');
 const { t } = i18n;
 const { showGamePicker, hideGamePicker } = await import('../../src/ui/game-picker.ui.js');
 const practice = await import('../../src/ui/practice-experience.ui.js');
+const sheet = await import('../../src/ui/mobile-bottom-sheet.ui.js');
 
 describe("Let's Play", () => {
   afterEach(async () => {
@@ -65,8 +72,20 @@ describe("Let's Play", () => {
     await vi.waitFor(() => expect(mocks.toast.error).toHaveBeenCalled());
     const message = mocks.toast.error.mock.calls[0]?.[0] as string;
     expect(message).toBe(t('gamePicker.connectFirst'));
-    expect(message).not.toBe('gamePicker.connectFirst'); // a real string, not the key
-    expect(message).not.toContain('Connect to Ferni first');
+    // Spanish, not the en-US text it would fall back to, nor the raw key
+    expect(message).not.toBe(EN_US.gamePicker.connectFirst);
+    expect(message).not.toBe('gamePicker.connectFirst');
+  });
+
+  it('has the three toasts translated in every locale, so none falls back to English', () => {
+    for (const file of readdirSync(LOCALES).filter((f) => f.endsWith('.json') && !f.startsWith('en-'))) {
+      const game = (JSON.parse(readFileSync(join(LOCALES, file), 'utf8')) as Locale).gamePicker;
+      for (const key of ['connectFirst', 'starting', 'startFailed'] as const) {
+        expect(game[key], `${file} ${key}`).toBeTruthy();
+        expect(game[key], `${file} ${key}`).not.toBe(EN_US.gamePicker[key]);
+      }
+      expect(game.starting, file).toContain('{game}');
+    }
   });
 
   it('starts a game with a localized toast and no library fields', async () => {
@@ -81,9 +100,9 @@ describe("Let's Play", () => {
     expect(sent).toMatchObject({ type: 'game_start_request', gameType: 'name-that-tune' });
     expect(sent).not.toHaveProperty('isLibraryMode');
     expect(sent).not.toHaveProperty('libraryMode');
-    expect(mocks.toast.success.mock.calls[0]?.[0]).toBe(
-      t('gamePicker.starting', { game: t('gamePicker.nameThatTune') })
-    );
+    const toast = mocks.toast.success.mock.calls[0]?.[0] as string;
+    expect(toast).toBe(t('gamePicker.starting', { game: t('gamePicker.nameThatTune') }));
+    expect(toast).not.toContain('Starting'); // the es string, not the en-US fallback
   });
 });
 
@@ -120,5 +139,29 @@ describe('Sanctuary self-guided practice', () => {
     mocks.room.isConnected = false;
     open();
     expect(walk()).toContain('chat');
+  });
+});
+
+describe('Sound effects in the phone sheet', () => {
+  afterEach(() => {
+    sheet.disposeMobileBottomSheet();
+    localStorage.clear();
+  });
+
+  it('shows a mute saved on another screen and undoes it there', async () => {
+    await i18n.setLocale('en-US');
+    localStorage.setItem('ferni:sound', 'off'); // muted from the desktop menu
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 375 }); // a phone
+    sheet.initMobileBottomSheet();
+    sheet.open();
+    const action = () =>
+      document.querySelector<HTMLElement>('.mobile-bottom-sheet__action[data-action="sound"]');
+    expect(action()?.textContent).toContain('Sound effects: off');
+
+    action()?.click();
+
+    expect(localStorage.getItem('ferni:sound')).toBe('on');
+    expect(action()?.textContent).toContain('Sound effects: on');
+    await i18n.setLocale('es');
   });
 });

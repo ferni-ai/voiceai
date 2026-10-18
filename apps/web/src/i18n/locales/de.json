@@ -4768,7 +4768,10 @@
     "funGames": "Spaßige Spiele",
     "reflectionGames": "Reflexionsspiele",
     "tipLabel": "Tipp:",
-    "tipContent": "Sag jederzeit „Stopp“ oder „Spiel beenden“, um früher aufzuhören. Dein Fortschritt wird immer gespeichert!"
+    "tipContent": "Sag jederzeit „Stopp“ oder „Spiel beenden“, um früher aufzuhören. Dein Fortschritt wird immer gespeichert!",
+    "connectFirst": "Starte zuerst ein Gespräch mit Ferni und wähle dann ein Spiel.",
+    "starting": "{game} startet …",
+    "startFailed": "Das Spiel konnte nicht starten. Frag einfach Ferni."
   },
   "digitalTwinProfile": {
     "title": "Erstelle deinen digitalen Zwilling",

@@ -364,7 +364,9 @@
         "calendar": "Calendar",
         "history": "Past chats",
         "people": "Your people",
-        "insights": "What I've learned"
+        "insights": "What I've learned",
+        "soundOn": "Sound effects: on",
+        "soundOff": "Sound effects: off"
       }
     },
     "ariaLabel": "Settings menu",
