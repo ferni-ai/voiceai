@@ -8,7 +8,8 @@
  */
 
 import type { Errand, Signal } from './errand.js';
-import { stepV1, type StepContext, type StepResult } from './step-v1.js';
+import type { StepContext, StepResult } from './draft.js';
+import { stepV1 } from './step-v1.js';
 
 export const CURRENT_STEP_VERSION = 1;
 

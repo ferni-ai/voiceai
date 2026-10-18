@@ -47,6 +47,7 @@ export const RETRY_POLICY: Readonly<Record<EffectKind, RetryPolicy>> = {
   call: { maxAttempts: 2, backoffMs: MINUTE, factor: 1, retryable: TRANSIENT },
   text: { maxAttempts: 3, backoffMs: 30 * SECOND, factor: 2, retryable: TRANSIENT },
   cancel_call: { maxAttempts: 3, backoffMs: MINUTE, factor: 2, retryable: TRANSIENT },
+  release_hold: { maxAttempts: 3, backoffMs: MINUTE, factor: 2, retryable: TRANSIENT },
   calendar: {
     maxAttempts: 5,
     backoffMs: 30 * SECOND,

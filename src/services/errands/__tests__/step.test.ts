@@ -4,31 +4,35 @@ import {
   DEFAULT_POLICY,
   OUTWARD_KINDS,
   RETRY_POLICY,
+  STEP_VERSIONS,
+  inWindow,
   sameApproval,
   step,
   type Approval,
   type ApprovalVerb,
+  type Candidate,
   type Effect,
   type Errand,
   type ErrandEvent,
+  type LineType,
   type NewCandidate,
   type Signal,
   type StepContext,
 } from '../index.js';
 
 const ZONE = 'America/New_York';
-const NOW = new Date('2026-10-20T14:00:00.000Z'); // 10:00 in New York
-const HOUR = 3_600_000;
+const NOW = new Date('2026-10-20T14:00:00.000Z'); // Tuesday 10:00 in New York
+const MIN = 60_000;
+const HOUR = 60 * MIN;
 const WHEN = '2026-10-27T13:00:00.000Z';
 const at = (ms: number): Date => new Date(NOW.getTime() + ms);
+const outwardKind = (f: Effect): boolean => (OUTWARD_KINDS as readonly string[]).includes(f.kind);
 
-/** A search result. `lineType` here is what the LOOKUP will answer, not what the search says. */
 const place = (placeId: string, over: Partial<NewCandidate> = {}): NewCandidate => ({
   placeId,
   name: `Place ${placeId}`,
-  phone: '+15550100000',
+  phone: `+1555010${placeId.replace(/\D/g, '').padStart(4, '0')}`,
   why: 'close by',
-  lineType: 'landline',
   ...over,
 });
 
@@ -42,9 +46,12 @@ const errand = (over: Partial<Errand> = {}): Errand => ({
   state: 'planning',
   step: 'find',
   stepVersion: CURRENT_STEP_VERSION,
+  revision: 0,
   nextWakeAt: null,
   candidates: [],
   pending: null,
+  queue: [],
+  asks: 0,
   approvals: [],
   createdAt: NOW.toISOString(),
   updatedAt: NOW.toISOString(),
@@ -52,74 +59,94 @@ const errand = (over: Partial<Errand> = {}): Errand => ({
   ...over,
 });
 
-type Step = Signal | [Signal, Date];
+/** A signal, a signal at a time, or a signal built from the errand as it stands (answers). */
+type Step = Signal | [Signal, Date] | ((e: Errand) => Signal);
 interface Run {
   next: Errand;
   effects: Effect[];
   last: Effect[];
   events: ErrandEvent[];
 }
+interface Opts {
+  policy?: Partial<StepContext['policy']>;
+  /** What the lookup service answers per place (default landline); null: answer by hand. */
+  lines?: Record<string, LineType> | null;
+}
 
-/** Runs signals in order (each at NOW unless paired with a time), collecting every effect. */
-function drive(e: Errand, steps: Step[], policy: Partial<StepContext['policy']> = {}): Run {
+/**
+ * Runs steps in order, collecting every effect. Unless `lines` is null it
+ * plays the lookup service: every pending lookup is answered right away.
+ */
+function drive(e: Errand, steps: Step[], opts: Opts = {}): Run {
   const run: Run = { next: e, effects: [], last: [], events: [] };
-  for (const s of steps) {
-    const [signal, now] = Array.isArray(s) ? s : [s, NOW];
-    const r = step(run.next, signal, { now, policy: { ...DEFAULT_POLICY, ...policy } });
+  const policy = { ...DEFAULT_POLICY, ...opts.policy };
+  const apply = (signal: Signal, now: Date): void => {
+    const r = step(run.next, signal, { now, policy });
     run.next = r.next;
     run.last = [...r.effects];
     run.effects.push(...r.effects);
     run.events.push(...r.events);
+  };
+  for (const s of steps) {
+    const [signal, now] =
+      typeof s === 'function' ? [s(run.next), NOW] : Array.isArray(s) ? s : [s, NOW];
+    apply(signal, now);
+    if (opts.lines === null) continue;
+    for (let c = lookingUp(run.next); c; c = lookingUp(run.next)) {
+      const lineType = opts.lines?.[c.placeId] ?? 'landline';
+      apply({ type: 'line_type_found', placeId: c.placeId, lineType }, now);
+    }
   }
   return run;
 }
+const lookingUp = (e: Errand): Candidate | undefined =>
+  e.candidates.find((c) => c.status === 'lookup');
 
-const searched = (...cs: NewCandidate[]): Signal => ({ type: 'candidates_found', candidates: cs });
-/** The search, then each place's line-type lookup answering with its fixture lineType. */
-const found = (...cs: NewCandidate[]): Signal[] => [
-  searched(...cs),
-  ...cs.flatMap((c): Signal[] =>
-    c.lineType ? [{ type: 'line_type_found', placeId: c.placeId, lineType: c.lineType }] : []
-  ),
-];
+const found = (...cs: NewCandidate[]): Signal => ({ type: 'candidates_found', candidates: cs });
 const ap = (verb: ApprovalVerb, ...placeIds: string[]): Approval => ({ verb, placeIds });
-const yes = (verb: ApprovalVerb, ...ids: string[]): Signal => ({
-  type: 'owner_confirmed',
-  action: ap(verb, ...ids),
-});
-const no = (verb: ApprovalVerb, ...ids: string[]): Signal => ({
-  type: 'owner_declined',
-  action: ap(verb, ...ids),
-});
+/** Answers the open question, which must be `verb` on these places. */
+const answer =
+  (type: 'owner_confirmed' | 'owner_declined', verb: ApprovalVerb, ids: string[]) =>
+  (e: Errand): Signal => {
+    expect(e.pending?.action).toEqual(ap(verb, ...ids));
+    return { type, questionId: e.pending?.id ?? 'none' };
+  };
+const yes = (verb: ApprovalVerb, ...ids: string[]) => answer('owner_confirmed', verb, ids);
+const no = (verb: ApprovalVerb, ...ids: string[]) => answer('owner_declined', verb, ids);
 const outcome = (
   placeId: string,
   over: Partial<Extract<Signal, { type: 'call_outcome' }>>
-): Signal => ({ type: 'call_outcome', placeId, status: 'booked', ...over });
+): Signal => ({ type: 'call_outcome', placeId, status: 'booked', when: WHEN, ...over });
+const wake = (time: Date): [Signal, Date] => [{ type: 'wake' }, time];
 const kinds = (fx: Effect[]): string[] => fx.map((f) => f.kind);
 const notes = (r: Run): string[] =>
   r.events.flatMap((e) => (e.type === 'decision' ? [e.note] : []));
+const status = (e: Errand, id: string): string | undefined =>
+  e.candidates.find((c) => c.placeId === id)?.status;
 
-describe('errand step v1: asking before acting', () => {
-  it('a shortlist asks the owner to confirm the first call, and calls nobody yet', () => {
-    const r = drive(errand(), found(place('p1'), place('p2')));
-    expect(r.next).toMatchObject({ state: 'awaiting_owner', pending: ap('call', 'p1') });
-    expect(r.effects.filter((f) => f.kind === 'ask_owner')).toEqual([
-      expect.objectContaining({ action: ap('call', 'p1'), idemKey: 'e1:ask:call:p1:1' }),
-    ]);
-    expect(r.effects.some((f) => (OUTWARD_KINDS as readonly string[]).includes(f.kind))).toBe(
-      false
-    );
+describe('asking before acting', () => {
+  it('a shortlist is looked up, then the owner is asked to confirm the first call; nobody is called', () => {
+    const r = drive(errand(), [found(place('p1'), place('p2'))]);
+    expect(kinds(r.effects)).toEqual(['lookup_line_type', 'ask_owner']);
+    expect(r.next).toMatchObject({
+      state: 'awaiting_owner',
+      pending: { id: 'e1:ask:call:p1:1', action: ap('call', 'p1') },
+    });
+    expect(r.effects.some(outwardKind)).toBe(false);
   });
 
-  it('a yes to a different action is ignored: no call, and the log says why', () => {
-    const r = drive(errand(), [...found(place('p1'), place('p2')), yes('call', 'p2')]);
+  it('an answer must carry the id of the open question', () => {
+    const r = drive(errand(), [
+      found(place('p1')),
+      { type: 'owner_confirmed', questionId: 'e1:ask:call:p1:7' },
+    ]);
     expect(r.last).toEqual([]);
     expect(r.next.approvals).toEqual([]);
-    expect(notes(r)).toContain('ignored: no pending action call:p2');
+    expect(notes(r)).toContain('ignored: no open question e1:ask:call:p1:7');
   });
 
-  it('the yes is recorded and the call carries errandId:step:attempt and the call retry policy', () => {
-    const r = drive(errand(), [...found(place('p1')), yes('call', 'p1')]);
+  it('a yes is recorded and dials with errandId:step:attempt, a call key and a 30 minute deadline', () => {
+    const r = drive(errand(), [found(place('p1')), yes('call', 'p1')]);
     expect(r.next).toMatchObject({ state: 'acting', approvals: [ap('call', 'p1')], pending: null });
     expect(r.last).toEqual([
       {
@@ -131,6 +158,11 @@ describe('errand step v1: asking before acting', () => {
         retry: RETRY_POLICY.call,
       },
     ]);
+    expect(r.next.candidates[0]).toMatchObject({
+      callKey: 'e1:call:p1:1',
+      dials: [NOW.toISOString()],
+    });
+    expect(r.next.nextWakeAt).toBe(at(30 * MIN).toISOString());
     expect(r.events).toContainEqual({
       type: 'owner_confirmed',
       at: NOW.toISOString(),
@@ -138,122 +170,172 @@ describe('errand step v1: asking before acting', () => {
     });
   });
 
-  it('an outward effect whose action has no recorded yes is dropped and the owner is asked', () => {
+  it('an outward effect without a recorded yes is dropped and the owner is asked', () => {
     const waiting = errand({
       state: 'waiting',
-      nextWakeAt: NOW.toISOString(),
-      approvals: [],
       candidates: [
         {
           ...place('p1'),
+          lineType: 'landline',
           lineChecked: true,
           status: 'retry',
           attempts: 1,
           approval: ap('call', 'p1'),
+          due: NOW.toISOString(),
         },
       ],
     });
-    const r = drive(waiting, [{ type: 'wake' }]);
+    const r = drive(waiting, [wake(NOW)]);
     expect(kinds(r.effects)).toEqual(['ask_owner']);
-    expect(r.next).toMatchObject({ state: 'awaiting_owner', pending: ap('call', 'p1') });
+    expect(r.next).toMatchObject({
+      state: 'awaiting_owner',
+      pending: { action: ap('call', 'p1') },
+    });
     expect(notes(r)).toContain('blocked call to p1: no owner yes covers it');
+    expect(r.next.nextWakeAt).toBeNull();
+    expect(drive(r.next, [wake(at(HOUR))]).effects).toEqual([]);
   });
 });
 
-describe('errand step v1: approvals cannot be widened', () => {
+describe('approvals cannot be widened', () => {
   it('a place id that could read as a separator never becomes a candidate', () => {
-    const r = drive(errand(), [searched(place('p1+p2'), place('call:p9'), place('p3'))]);
+    const r = drive(errand(), [found(place('p1+p2'), place('call:p9'), place('p3'))]);
     expect(r.next.candidates.map((c) => c.placeId)).toEqual(['p3']);
-    expect(notes(r).filter((n) => n.includes('not safe'))).toHaveLength(2);
+    expect(notes(r)).toContain('dropped 2 candidate(s) whose place id is not safe');
   });
 
-  it('a yes to one place does not cover dialling another, even if it is stored on it', () => {
-    const forged = errand({
+  const retrying = (id: string, yesTo: Approval): Errand =>
+    errand({
       state: 'waiting',
-      nextWakeAt: NOW.toISOString(),
-      approvals: [ap('call', 'p1')],
+      approvals: [yesTo],
       candidates: [
         {
-          ...place('p2'),
+          ...place(id),
+          lineType: 'landline',
           lineChecked: true,
           status: 'retry',
           attempts: 1,
-          approval: ap('call', 'p1'),
+          approval: yesTo,
+          due: NOW.toISOString(),
         },
       ],
     });
-    const r = drive(forged, [{ type: 'wake' }]);
-    expect(kinds(r.effects)).toEqual(['ask_owner']);
-    expect(r.next.pending).toEqual(ap('call', 'p2'));
+
+  it('a yes to one place does not cover dialling another, even if it is stored on it', () => {
+    expect(kinds(drive(retrying('p2', ap('call', 'p1')), [wake(NOW)]).effects)).toEqual([
+      'ask_owner',
+    ]);
   });
 
   it('a yes to text a place does not cover calling it', () => {
-    const forged = errand({
-      state: 'waiting',
-      nextWakeAt: NOW.toISOString(),
-      approvals: [ap('text', 'p1')],
-      candidates: [
-        {
-          ...place('p1'),
-          lineChecked: true,
-          status: 'retry',
-          attempts: 1,
-          approval: ap('text', 'p1'),
-        },
-      ],
-    });
-    expect(kinds(drive(forged, [{ type: 'wake' }]).effects)).toEqual(['ask_owner']);
+    expect(kinds(drive(retrying('p1', ap('text', 'p1')), [wake(NOW)]).effects)).toEqual([
+      'ask_owner',
+    ]);
   });
 });
 
-describe('errand step v1: line types come only from a lookup', () => {
-  it('a place the search labels landline is still looked up before anything is offered', () => {
-    const r = drive(errand(), [searched(place('p1', { lineType: 'landline' }))]);
+describe('line types come only from a lookup', () => {
+  it('a place the search labels landline is still looked up first', () => {
+    const r = drive(errand(), [found(place('p1', { lineType: 'landline' }))], { lines: null });
     expect(kinds(r.effects)).toEqual(['lookup_line_type']);
-    expect(r.next.candidates[0]).toMatchObject({ lineChecked: false });
+    expect(r.next.candidates[0]).toMatchObject({ status: 'lookup', lineChecked: false });
     expect(r.next.candidates[0]).not.toHaveProperty('lineType');
-    const after = drive(r.next, [{ type: 'line_type_found', placeId: 'p1', lineType: 'landline' }]);
-    expect(after.next.pending).toEqual(ap('call', 'p1'));
   });
 
-  it('a mobile line gets a text offered instead of a call; a yes sends the text, not a call', () => {
-    const r = drive(errand(), found(place('p1', { lineType: 'mobile' })));
+  it('a lookup answer is taken only while a lookup is pending', () => {
+    const r = drive(errand(), [
+      found(place('p1'), place('p2')),
+      { type: 'line_type_found', placeId: 'p2', lineType: 'landline' },
+    ]);
+    expect(notes(r)).toContain('ignored: no lookup pending for p2');
+    expect(r.next.candidates[1]).toMatchObject({ status: 'new', lineChecked: false });
+  });
+
+  it('a mobile line is offered a text, saying why; a yes sends the text, never a call', () => {
+    const r = drive(errand(), [found(place('p1'))], { lines: { p1: 'mobile' } });
     expect(r.last).toEqual([
       expect.objectContaining({
         kind: 'offer_text_instead',
         placeId: 'p1',
-        action: ap('text', 'p1'),
+        reason: "their number looks like a mobile, so I'll text instead of calling",
       }),
     ]);
     const sent = drive(r.next, [yes('text', 'p1')]);
     expect(kinds(sent.effects)).toEqual(['text']);
-    expect(sent.next).toMatchObject({
-      state: 'waiting',
-      nextWakeAt: at(24 * HOUR).toISOString(),
-    });
+    expect(sent.next).toMatchObject({ state: 'waiting', nextWakeAt: at(24 * HOUR).toISOString() });
   });
 
-  it('a lookup that cannot tell is final, and that line is never called', () => {
-    const r = drive(errand(), found(place('p1', { lineType: 'unknown' })));
-    expect(kinds(r.last)).toEqual(['offer_text_instead']);
+  it('an any-slot errand waits 2 hours for a text reply, not a day', () => {
+    const urgent = errand({ constraints: { prefs: [], urgency: 'any-slot' } });
+    const r = drive(urgent, [found(place('p1')), yes('text', 'p1')], { lines: { p1: 'mobile' } });
+    expect(r.next.nextWakeAt).toBe(at(2 * HOUR).toISOString());
   });
 
-  it('no reply to a text by the wake moves on to the next place', () => {
-    const r = drive(errand(), [
-      ...found(place('p1', { lineType: 'mobile' }), place('p2')),
-      yes('text', 'p1'),
-      [{ type: 'wake' }, at(24 * HOUR)],
+  it('a lookup that cannot tell, or never answers by its deadline, is offered a text', () => {
+    const unsure = drive(errand(), [found(place('p1'))], { lines: { p1: 'unknown' } });
+    expect(unsure.last[0]).toMatchObject({ kind: 'offer_text_instead' });
+    const silent = drive(errand(), [found(place('p1')), wake(at(31 * MIN))], { lines: null });
+    expect(silent.last).toEqual([
+      expect.objectContaining({
+        kind: 'offer_text_instead',
+        reason: expect.stringContaining("couldn't tell"),
+      }),
     ]);
-    expect(r.next.pending).toEqual(ap('call', 'p2'));
+  });
+
+  it('dialling re-checks the line: one that is no longer callable is offered a text', () => {
+    const e = errand({
+      state: 'waiting',
+      approvals: [ap('call', 'p1')],
+      candidates: [
+        {
+          ...place('p1'),
+          lineType: 'mobile',
+          lineChecked: true,
+          status: 'retry',
+          attempts: 1,
+          approval: ap('call', 'p1'),
+          due: NOW.toISOString(),
+        },
+      ],
+    });
+    expect(kinds(drive(e, [wake(NOW)]).effects)).toEqual(['offer_text_instead']);
+  });
+
+  it('a text with no reply moves on; a reply tells the owner and asks about the next place', () => {
+    const lines = { p1: 'mobile' } as const;
+    const quiet = drive(
+      errand(),
+      [found(place('p1'), place('p2')), yes('text', 'p1'), wake(at(24 * HOUR))],
+      {
+        lines,
+      }
+    );
+    expect(quiet.next.pending?.action).toEqual(ap('call', 'p2'));
+    const replied = drive(
+      errand(),
+      [
+        found(place('p1'), place('p2')),
+        yes('text', 'p1'),
+        { type: 'text_reply', placeId: 'p1', body: 'hi' },
+      ],
+      { lines }
+    );
+    expect(kinds(replied.last)).toEqual(['notify_owner', 'ask_owner']);
+    expect(replied.next.pending?.action).toEqual(ap('next', 'p1'));
+    expect(JSON.stringify(replied.next)).not.toContain('"hi"');
+    const calling = drive(errand(), [found(place('p1')), yes('call', 'p1')]).next;
+    const stray = drive(calling, [{ type: 'text_reply', placeId: 'p1', body: 'hi' }]);
+    expect(notes(stray)).toContain('ignored: no text waiting on p1');
   });
 });
 
-describe('errand step v1: verifying a booking', () => {
-  const calling = drive(errand(), [...found(place('p1'), place('p2')), yes('call', 'p1')]).next;
+describe('verifying a booking', () => {
+  const calling = drive(errand(), [found(place('p1'), place('p2')), yes('call', 'p1')]).next;
 
-  it('booked with a confirmation number is scheduled and asks to add it to the calendar', () => {
-    const r = drive(calling, [outcome('p1', { confirmation: '4821', when: WHEN, callId: 'c1' })]);
-    expect(r.next).toMatchObject({ state: 'scheduled', pending: ap('schedule', 'p1') });
+  it('booked with a confirmation at a real time is scheduled and asks about the calendar', () => {
+    const r = drive(calling, [outcome('p1', { confirmation: '4821', callId: 'c1' })]);
+    expect(r.next).toMatchObject({ state: 'scheduled', pending: { action: ap('schedule', 'p1') } });
     expect(r.next.outcome).toMatchObject({
       status: 'booked',
       confirmation: '4821',
@@ -261,219 +343,314 @@ describe('errand step v1: verifying a booking', () => {
     });
   });
 
-  it('booked with an explicit read-back is scheduled', () => {
-    expect(drive(calling, [outcome('p1', { readBack: true, when: WHEN })]).next.state).toBe(
-      'scheduled'
-    );
+  it('the same booking reported twice is not a late booking', () => {
+    const once = drive(calling, [outcome('p1', { readBack: true })]).next;
+    const twice = drive(once, [outcome('p1', { readBack: true })]);
+    expect(twice.effects).toEqual([]);
+    expect(once.queue).toEqual(twice.next.queue);
   });
 
-  it('booked with neither is only an offer and goes back to the owner', () => {
-    const r = drive(calling, [outcome('p1', { confirmation: '  ', readBack: false, when: WHEN })]);
-    expect(r.next).toMatchObject({ state: 'awaiting_owner', pending: ap('book', 'p1') });
-    expect(r.next.outcome?.status).toBe('offered');
-    expect(notes(r)).toContain('booked without a confirmation or read-back: treated as offered');
+  it('booked with an explicit read-back is scheduled', () => {
+    expect(drive(calling, [outcome('p1', { readBack: true })]).next.state).toBe('scheduled');
+  });
+
+  it('booked with neither, with no time, or outside the window is only an offer', () => {
+    const offered = (e: Errand, s: Signal): Errand => drive(e, [s]).next;
+    expect(
+      offered(calling, outcome('p1', { confirmation: ' ', readBack: false })).outcome?.status
+    ).toBe('offered');
+    expect(
+      offered(calling, outcome('p1', { readBack: true, when: undefined })).outcome?.status
+    ).toBe('offered');
+    const windowed = {
+      ...calling,
+      constraints: { prefs: [], window: { to: '2026-10-25T00:00:00.000Z' } },
+    };
+    const late = offered(windowed, outcome('p1', { readBack: true }));
+    expect(late).toMatchObject({ state: 'awaiting_owner', pending: { action: ap('book', 'p1') } });
   });
 
   it('a yes to an offer calls back to accept it; a no moves to the next place', () => {
-    const offered = drive(calling, [outcome('p1', { status: 'offered', when: WHEN })]).next;
+    const offered = drive(calling, [outcome('p1', { status: 'offered' })]).next;
     expect(drive(offered, [yes('book', 'p1')]).last).toEqual([
       expect.objectContaining({ kind: 'call', purpose: 'accept', idemKey: 'e1:call:p1:2' }),
     ]);
-    const declined = drive(offered, [no('book', 'p1'), ...found(place('p2')).slice(1)]);
-    expect(declined.next.pending).toEqual(ap('call', 'p2'));
+    expect(drive(offered, [no('book', 'p1')]).next.pending?.action).toEqual(ap('call', 'p2'));
   });
 
-  it('a place that wants a card goes back to the owner, even when it said booked', () => {
-    const r = drive(calling, [outcome('p1', { confirmation: '9', requiresPayment: true })]);
-    expect(r.next.outcome).toMatchObject({
-      status: 'needs_owner',
-      reason: 'the place wants a card or a deposit',
+  it('a place that wants a card goes back to the owner; a no hands them place, phone and slot', () => {
+    const card = drive(calling, [outcome('p1', { confirmation: '9', requiresPayment: true })]);
+    expect(card.next).toMatchObject({ pending: { action: ap('next', 'p1') } });
+    expect(card.effects.some(outwardKind)).toBe(false);
+    const handed = drive(card.next, [no('next', 'p1')]);
+    expect(handed.next).toMatchObject({
+      state: 'done',
+      outcome: { status: 'needs_owner', when: WHEN },
     });
-    expect(r.next).toMatchObject({ state: 'awaiting_owner', pending: ap('next', 'p1') });
-    expect(r.effects.some((f) => (OUTWARD_KINDS as readonly string[]).includes(f.kind))).toBe(
-      false
+    expect(handed.last).toEqual([
+      expect.objectContaining({
+        kind: 'notify_owner',
+        about: 'needs_owner',
+        placeId: 'p1',
+        phone: '+15550100001',
+        when: WHEN,
+      }),
+    ]);
+  });
+
+  it('handing over hangs up any call still going', () => {
+    const both = ap('call', 'p1', 'p2');
+    const line = { lineType: 'landline', lineChecked: true, attempts: 1, approval: both } as const;
+    const asking = errand({
+      state: 'awaiting_owner',
+      pending: { id: 'q1', action: ap('next', 'p1') },
+      approvals: [both],
+      candidates: [
+        { ...place('p1'), ...line, status: 'needs_owner' },
+        { ...place('p2'), ...line, status: 'calling', callKey: 'e1:call:p2:1' },
+      ],
+    });
+    const r = drive(asking, [{ type: 'owner_declined', questionId: 'q1' }]);
+    expect(r.next.state).toBe('done');
+    expect(r.last).toContainEqual(
+      expect.objectContaining({ kind: 'cancel_call', placeId: 'p2', call: 'e1:call:p2:1' })
     );
   });
 
   it('a second outcome for the same call is ignored', () => {
     const r = drive(calling, [
       outcome('p1', { status: 'declined' }),
-      outcome('p1', { readBack: true }),
+      outcome('p1', { readBack: true, when: 'x' }),
     ]);
-    expect(r.next.state).not.toBe('scheduled');
     expect(notes(r)).toContain('ignored: no call in flight to p1');
   });
 });
 
-describe('errand step v1: voicemail and retries', () => {
+describe('business hours, the daily cap and retries', () => {
   const vm = (id: string): Signal => outcome(id, { status: 'voicemail' });
 
-  it('voicemail sleeps 2 hours when that is inside the default 09:00-17:00', () => {
-    const r = drive(errand(), [...found(place('p1')), yes('call', 'p1'), vm('p1')]);
+  it('a first call after hours sleeps until the place opens', () => {
+    const evening = at(8 * HOUR); // Tue 18:00
+    const asked = drive(errand(), [found(place('p1'))]).next;
+    const q = { type: 'owner_confirmed', questionId: asked.pending?.id ?? '' } as const;
+    const slept = drive(asked, [[q, evening]]);
+    expect(kinds(slept.last)).toEqual([]);
+    expect(slept.next).toMatchObject({ state: 'waiting', nextWakeAt: '2026-10-21T13:00:00.000Z' });
+    expect(kinds(drive(slept.next, [wake(new Date('2026-10-21T13:00:00.000Z'))]).last)).toEqual([
+      'call',
+    ]);
+  });
+
+  it('skips the weekend: a yes on Friday evening calls on Monday morning', () => {
+    const asked = drive(errand(), [found(place('p1'))]).next;
+    const q = { type: 'owner_confirmed', questionId: asked.pending?.id ?? '' } as const;
+    const slept = drive(asked, [[q, new Date('2026-10-23T22:00:00.000Z')]]);
+    expect(slept.next.nextWakeAt).toBe('2026-10-26T13:00:00.000Z');
+  });
+
+  it('voicemail retries 2 hours on, but never a third call to a number within a day', () => {
+    const r = drive(errand(), [found(place('p1'), place('p2')), yes('call', 'p1'), vm('p1')]);
     expect(r.next).toMatchObject({ state: 'waiting', nextWakeAt: at(2 * HOUR).toISOString() });
-  });
-
-  it('2 hours past closing waits for the next opening, using the place hours when known', () => {
-    const late = at(6 * HOUR); // 16:00 in New York
-    const r = drive(errand(), [...found(place('p1')), yes('call', 'p1'), [vm('p1'), late]]);
-    expect(r.next.nextWakeAt).toBe('2026-10-21T13:00:00.000Z'); // 09:00 the next day
-    const open = drive(errand(), [
-      ...found(place('p1', { hours: { open: '08:00', close: '20:00' } })),
-      yes('call', 'p1'),
-      [vm('p1'), late],
+    const second = drive(r.next, [wake(at(2 * HOUR)), [vm('p1'), at(2 * HOUR)]]);
+    expect(second.effects.filter((f) => f.kind === 'call').map((f) => f.idemKey)).toEqual([
+      'e1:call:p1:2',
     ]);
-    expect(open.next.nextWakeAt).toBe(at(8 * HOUR).toISOString());
+    expect(second.next.nextWakeAt).toBe(new Date(NOW.getTime() + 24 * HOUR + 1).toISOString());
+    const third = drive(second.next, [wake(at(4 * HOUR))]);
+    expect(notes(third)).toContain('ignored: not due yet');
+    const nextDay = drive(second.next, [wake(at(25 * HOUR)), [vm('p1'), at(25 * HOUR)]]);
+    expect(nextDay.effects.filter((f) => f.kind === 'call').map((f) => f.idemKey)).toEqual([
+      'e1:call:p1:3',
+    ]);
+    expect(nextDay.next.pending?.action).toEqual(ap('call', 'p2'));
   });
 
-  it('retries twice on wake, then the next place, then fails with the reason', () => {
-    const t = (h: number): Date => at(h * HOUR);
+  it('when every place is spent it fails with the reason', () => {
     const r = drive(errand(), [
-      ...found(place('p1'), place('p2')),
+      found(place('p1')),
       yes('call', 'p1'),
-      vm('p1'),
-      [{ type: 'wake' }, t(1)],
-      [{ type: 'wake' }, t(2)],
-      [vm('p1'), t(2)],
-      [{ type: 'wake' }, t(4)],
-      [vm('p1'), t(4)],
+      outcome('p1', { status: 'declined' }),
     ]);
-    const calls = r.effects.filter((f) => f.kind === 'call').map((f) => f.idemKey);
-    expect(calls).toEqual(['e1:call:p1:1', 'e1:call:p1:2', 'e1:call:p1:3']);
-    expect(notes(r)).toContain('ignored: not due yet');
-    expect(r.next.pending).toEqual(ap('call', 'p2'));
-    const end = drive(r.next, [
-      yes('call', 'p2'),
-      outcome('p2', { status: 'no_answer' }),
-      [{ type: 'wake' }, t(2)],
-      [outcome('p2', { status: 'no_answer' }), t(2)],
-      [{ type: 'wake' }, t(4)],
-      [outcome('p2', { status: 'no_answer' }), t(4)],
+    expect(r.next).toMatchObject({ state: 'failed', failedReason: 'no place could book it' });
+    expect(r.last).toEqual([expect.objectContaining({ kind: 'notify_owner', about: 'failed' })]);
+  });
+
+  it('a call with no outcome by its deadline is given up on and never re-dialled', () => {
+    const r = drive(errand(), [
+      found(place('p1'), place('p2')),
+      yes('call', 'p1'),
+      wake(at(31 * MIN)),
     ]);
-    expect(end.next).toMatchObject({ state: 'failed', failedReason: 'no place could book it' });
-    expect(end.next.closedAt).toBeDefined();
-    expect(end.last).toEqual([expect.objectContaining({ kind: 'notify_owner', about: 'failed' })]);
+    expect(r.effects).toContainEqual(
+      expect.objectContaining({ about: 'no_outcome', placeId: 'p1' })
+    );
+    expect(r.next.pending?.action).toEqual(ap('call', 'p2'));
+    expect(status(r.next, 'p1')).toBe('exhausted');
+    expect(r.effects.filter((f) => f.kind === 'call')).toHaveLength(1);
+  });
+
+  it('a failed effect lets go of what it was for', () => {
+    const calling = drive(errand(), [found(place('p1'), place('p2')), yes('call', 'p1')]).next;
+    const failed = drive(calling, [
+      { type: 'effect_failed', idemKey: 'e1:call:p1:1', reason: 'invalid_number' },
+    ]);
+    expect(status(failed.next, 'p1')).toBe('exhausted');
+    expect(failed.next.pending?.action).toEqual(ap('call', 'p2'));
+    const other = drive(calling, [{ type: 'effect_failed', idemKey: 'e9:call:p1:1', reason: 'x' }]);
+    expect(notes(other)).toContain("ignored: not this errand's effect");
+    const looking = drive(errand(), [found(place('p1'))], { lines: null }).next;
+    const lookupFailed = drive(
+      looking,
+      [{ type: 'effect_failed', idemKey: 'e1:lookup:p1:1', reason: 'x' }],
+      {
+        lines: null,
+      }
+    );
+    expect(kinds(lookupFailed.last)).toEqual(['offer_text_instead']);
   });
 });
 
-describe('errand step v1: parallel calls', () => {
+describe('parallel calls and questions', () => {
   const urgent = errand({ constraints: { prefs: [], urgency: 'any-slot' } });
   const four = found(place('p1'), place('p2'), place('p3'), place('p4'));
-  const three = ap('call', 'p1', 'p2', 'p3');
+  const par = { policy: { parallel: true } };
 
-  it('calls one place at a time unless the errand is any-slot, even with parallel allowed', () => {
-    expect(drive(errand(), four, { parallel: true }).next.pending).toEqual(ap('call', 'p1'));
-    expect(drive(urgent, four).next.pending).toEqual(ap('call', 'p1'));
+  it('calls one place at a time unless the errand is any-slot AND parallel is allowed', () => {
+    expect(drive(errand(), [four], par).next.pending?.action).toEqual(ap('call', 'p1'));
+    expect(drive(urgent, [four]).next.pending?.action).toEqual(ap('call', 'p1'));
   });
 
-  it('any-slot with parallel calls up to 3, and the first booking cancels the others', () => {
-    const r = drive(urgent, [...four, yes('call', 'p1', 'p2', 'p3')], { parallel: true });
-    expect(r.last.map((f) => f.kind === 'call' && f.placeId)).toEqual(['p1', 'p2', 'p3']);
-    const won = drive(r.next, [outcome('p2', { readBack: true, when: WHEN })], {
-      parallel: true,
-    });
+  const live = drive(urgent, [four, yes('call', 'p1', 'p2', 'p3')], par).next;
+
+  it('dials up to 3; the first booking hangs up the others by their call keys', () => {
+    expect(live.candidates.filter((c) => c.status === 'calling').map((c) => c.placeId)).toEqual([
+      'p1',
+      'p2',
+      'p3',
+    ]);
+    const won = drive(live, [outcome('p2', { readBack: true })], par);
     expect(won.next.state).toBe('scheduled');
     expect(won.last.filter((f) => f.kind === 'cancel_call')).toEqual([
-      expect.objectContaining({ placeId: 'p1', approval: three }),
-      expect.objectContaining({ placeId: 'p3', approval: three }),
+      expect.objectContaining({
+        placeId: 'p1',
+        call: 'e1:call:p1:1',
+        approval: ap('call', 'p1', 'p2', 'p3'),
+      }),
+      expect.objectContaining({ placeId: 'p3', call: 'e1:call:p3:1' }),
     ]);
   });
 
-  it('in parallel a voicemail drops that place instead of sleeping 2 hours', () => {
-    const r = drive(
-      urgent,
-      [...four, yes('call', 'p1', 'p2', 'p3'), outcome('p1', { status: 'voicemail' })],
-      { parallel: true }
-    );
+  it('a voicemail drops that place instead of sleeping', () => {
+    const r = drive(live, [outcome('p1', { status: 'voicemail' })], par);
     expect(r.next.state).toBe('acting');
-    expect(r.next.candidates[0].status).toBe('exhausted');
+    expect(status(r.next, 'p1')).toBe('exhausted');
+  });
+
+  it('a second question while one is open waits its turn, then is asked', () => {
+    const r = drive(
+      live,
+      [outcome('p2', { status: 'offered' }), outcome('p3', { status: 'offered' })],
+      par
+    );
+    expect(r.next.pending?.action).toEqual(ap('book', 'p2'));
+    expect(r.next.queue.map((q) => q.action)).toEqual([ap('book', 'p3')]);
+    const after = drive(r.next, [no('book', 'p2')], par);
+    expect(after.next.pending?.action).toEqual(ap('book', 'p3'));
+  });
+
+  it('a booking withdraws questions it made moot, so a stale yes cannot double-book', () => {
+    const offered = drive(live, [outcome('p2', { status: 'offered' })], par).next;
+    const staleId = offered.pending?.id ?? '';
+    const won = drive(offered, [outcome('p1', { readBack: true })], par);
+    expect(won.next.pending?.action).toEqual(ap('schedule', 'p1'));
+    const stale = drive(won.next, [{ type: 'owner_confirmed', questionId: staleId }], par);
+    expect(stale.last).toEqual([]);
+  });
+
+  it('a second place booking after the first is never dropped: the owner is told and asked', () => {
+    const won = drive(live, [outcome('p1', { readBack: true })], par).next;
+    const r = drive(won, [outcome('p3', { confirmation: '77' })], par);
+    expect(r.last[0]).toMatchObject({
+      kind: 'notify_owner',
+      about: 'late_booking',
+      placeId: 'p3',
+      confirmation: '77',
+      when: WHEN,
+    });
+    expect(r.next.queue.map((q) => q.action)).toEqual([ap('release', 'p3')]);
   });
 });
 
-describe('errand step v1: cancelling stops every live call', () => {
+describe('cancelling', () => {
   const urgent = errand({ constraints: { prefs: [], urgency: 'any-slot' } });
+  const par = { policy: { parallel: true } };
   const live = drive(
     urgent,
     [
-      ...found(place('p1'), place('p2'), place('p3')),
+      found(place('p1'), place('p2'), place('p3')),
       yes('call', 'p1', 'p2', 'p3'),
-      outcome('p2', { status: 'offered', when: WHEN }),
+      outcome('p2', { status: 'offered' }),
     ],
-    { parallel: true }
+    par
   ).next;
 
-  it('the owner cancelling mid-call emits cancel_call for every calling or offered place', () => {
-    const r = drive(live, [{ type: 'owner_cancelled' }], { parallel: true });
+  it('hangs up live calls only, by call key; an offer gets no effect', () => {
+    const r = drive(live, [{ type: 'owner_cancelled' }], par);
     expect(r.next.state).toBe('cancelled');
     expect(r.last.filter((f) => f.kind === 'cancel_call').map((f) => f.placeId)).toEqual([
       'p1',
-      'p2',
       'p3',
     ]);
     expect(r.next.candidates.every((c) => c.status === 'cancelled')).toBe(true);
   });
 
-  it('a place waiting to be retried is cancelled too', () => {
+  it('a place waiting to be retried has no live call to hang up', () => {
     const waiting = drive(errand(), [
-      ...found(place('p1')),
+      found(place('p1')),
       yes('call', 'p1'),
       outcome('p1', { status: 'voicemail' }),
     ]).next;
-    const r = drive(waiting, [{ type: 'owner_cancelled' }]);
-    expect(r.last).toContainEqual(
-      expect.objectContaining({ kind: 'cancel_call', placeId: 'p1', approval: ap('call', 'p1') })
-    );
+    expect(kinds(drive(waiting, [{ type: 'owner_cancelled' }]).last)).toEqual(['notify_owner']);
   });
 
-  it('declining "try the next place" closes the errand and cancels any call still going', () => {
-    const asking = errand({
-      state: 'awaiting_owner',
-      pending: ap('next', 'p1'),
-      approvals: [ap('call', 'p1', 'p2')],
-      candidates: [
-        {
-          ...place('p1'),
-          lineChecked: true,
-          status: 'needs_owner',
-          attempts: 1,
-          approval: ap('call', 'p1', 'p2'),
-        },
-        {
-          ...place('p2'),
-          lineChecked: true,
-          status: 'calling',
-          attempts: 1,
-          approval: ap('call', 'p1', 'p2'),
-        },
-      ],
+  it('a booking that lands after the cancel is reported, and releasing it needs its own yes', () => {
+    const cancelled = drive(live, [{ type: 'owner_cancelled' }], par).next;
+    const late = drive(cancelled, [outcome('p1', { readBack: true })], par);
+    expect(kinds(late.last)).toEqual(['notify_owner', 'ask_owner']);
+    expect(late.next).toMatchObject({
+      state: 'cancelled',
+      pending: { action: ap('release', 'p1') },
     });
-    const r = drive(asking, [no('next', 'p1')]);
-    expect(r.next.state).toBe('cancelled');
-    expect(r.last.filter((f) => f.kind === 'cancel_call').map((f) => f.placeId)).toEqual(['p2']);
-  });
-
-  it('a card request in parallel never overwrites a question the owner has open', () => {
-    const r = drive(
-      urgent,
-      [
-        ...found(place('p1'), place('p2')),
-        yes('call', 'p1', 'p2'),
-        outcome('p2', { status: 'offered', when: WHEN }),
-        outcome('p1', { requiresPayment: true }),
-      ],
-      { parallel: true }
-    );
-    expect(r.next.pending).toEqual(ap('book', 'p2'));
-    expect(r.last).toEqual([
-      expect.objectContaining({ kind: 'notify_owner', about: 'needs_owner' }),
+    const released = drive(late.next, [yes('release', 'p1')], par);
+    expect(released.last).toEqual([
+      expect.objectContaining({
+        kind: 'release_hold',
+        placeId: 'p1',
+        approval: ap('release', 'p1'),
+      }),
     ]);
+    expect(drive(late.next, [no('release', 'p1')], par).last).toEqual([]);
   });
 });
 
-describe('errand step v1: calendar, follow-up and closing', () => {
+describe('a question about something else never stalls the search', () => {
+  it('an open release question does not stop the next place being planned', () => {
+    const calling = drive(errand(), [
+      found(place('p1'), place('p2'), place('p3')),
+      yes('call', 'p1'),
+    ]).next;
+    const late = drive(calling, [outcome('p1', { status: 'declined' })]).next;
+    const r = drive(late, [outcome('p1', { readBack: true }), no('call', 'p2')]);
+    expect(r.next.pending?.action).toEqual(ap('release', 'p1'));
+    expect(r.next.queue.map((q) => q.action)).toEqual([ap('call', 'p3')]);
+  });
+});
+
+describe('calendar, follow-up and closing', () => {
   const booked = drive(errand(), [
-    ...found(place('p1')),
+    found(place('p1')),
     yes('call', 'p1'),
-    outcome('p1', { confirmation: '4821', when: WHEN }),
+    outcome('p1', { confirmation: '4821' }),
   ]).next;
 
   it('a yes to scheduling writes the calendar event and a reminder the day before', () => {
@@ -486,21 +663,35 @@ describe('errand step v1: calendar, follow-up and closing', () => {
   });
 
   it('the day after the appointment it closes as done and asks how it went', () => {
-    const r = drive(booked, [[{ type: 'wake' }, new Date(Date.parse(WHEN) + 24 * HOUR)]]);
+    const r = drive(booked, [wake(new Date(Date.parse(WHEN) + 24 * HOUR))]);
     expect(r.next).toMatchObject({ state: 'done', nextWakeAt: null });
     expect(r.last).toEqual([expect.objectContaining({ kind: 'notify_owner', about: 'follow_up' })]);
     expect(drive(booked, [{ type: 'event_passed' }]).next.state).toBe('done');
   });
 
-  it('a closed errand takes no more signals', () => {
-    const r = drive(booked, [{ type: 'owner_cancelled' }, yes('schedule', 'p1')]);
+  it('a closed errand takes no more signals but a late booking or its open answer', () => {
+    const r = drive(booked, [{ type: 'owner_cancelled' }, { type: 'wake' }]);
     expect(r.next).toMatchObject({ state: 'cancelled', closedAt: NOW.toISOString() });
-    expect(r.last).toEqual([]);
     expect(notes(r)).toContain('ignored: errand is cancelled');
   });
 });
 
-describe('step versions', () => {
+describe('signals, revisions and versions', () => {
+  it('an unknown signal is a no-op: same errand, no events, no revision bump', () => {
+    const e = errand();
+    const r = step(e, { type: 'mystery' } as unknown as Signal, {
+      now: NOW,
+      policy: DEFAULT_POLICY,
+    });
+    expect(r).toEqual({ next: e, effects: [], events: [] });
+  });
+
+  it('a step that changes the errand bumps its revision; an ignored one does not', () => {
+    const r = drive(errand(), [found(place('p1'))]);
+    expect(r.next.revision).toBe(2);
+    expect(drive(r.next, [{ type: 'wake' }]).next.revision).toBe(2);
+  });
+
   it('an errand saved under a version this build does not know fails closed', () => {
     const e = errand({ stepVersion: 99, state: 'acting' });
     const r = step(e, outcome('p1', { readBack: true }), { now: NOW, policy: DEFAULT_POLICY });
@@ -512,6 +703,16 @@ describe('step versions', () => {
       note: 'no rules for stepVersion 99: held, nothing done',
     });
   });
+
+  it('every listed rules version runs', () => {
+    for (const v of STEP_VERSIONS) {
+      const r = step(errand({ stepVersion: v }), found(place('p1')), {
+        now: NOW,
+        policy: DEFAULT_POLICY,
+      });
+      expect(r.effects.length).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('invariants over random signal sequences', () => {
@@ -522,63 +723,72 @@ describe('invariants over random signal sequences', () => {
   }
   const pick = <T>(r: () => number, xs: readonly T[]): T => xs[Math.floor(r() * xs.length)];
   const IDS = ['p1', 'p2', 'p3', 'p4'];
-  const LINES = ['landline', 'mobile', 'unknown', 'voip'] as const;
+  const LINES = ['landline', 'landline', 'voip', 'mobile', 'unknown'] as const;
 
-  function randomSignal(r: () => number, e: Errand): Signal {
-    const id = pick(r, IDS);
-    switch (Math.floor(r() * 8)) {
-      case 0:
-        return searched(...IDS.map((p) => place(p)));
-      case 1:
-        return { type: 'line_type_found', placeId: id, lineType: pick(r, LINES) };
-      case 2:
-        return e.pending && r() < 0.8
-          ? { type: 'owner_confirmed', action: e.pending }
-          : yes('call', id);
-      case 3:
-        return e.pending ? { type: 'owner_declined', action: e.pending } : no('call', id);
-      case 4:
-      case 5:
-        return outcome(e.candidates.find((c) => c.status === 'calling')?.placeId ?? id, {
-          status: pick(r, ['booked', 'offered', 'declined', 'no_answer', 'voicemail'] as const),
-          ...(r() < 0.3 ? { confirmation: pick(r, ['', ' ', '4821']) } : {}),
-          ...(r() < 0.3 ? { readBack: r() < 0.5 } : {}),
-          ...(r() < 0.1 ? { requiresPayment: true } : {}),
-          when: WHEN,
-        });
-      case 6:
-        return { type: 'wake' };
-      default:
-        return r() < 0.1 ? { type: 'owner_cancelled' } : { type: 'event_passed' };
-    }
-  }
-
-  it('never booked without proof, and never an outward effect the owner did not say yes to', () => {
+  it('no unproven booking, no unapproved or non-landline call, nothing outward after close', () => {
     let booked = 0;
-    let outward = 0;
-    for (let seed = 1; seed <= 400; seed++) {
+    let dialled = 0;
+    for (let seed = 1; seed <= 300; seed++) {
       const r = rng(seed);
-      const urgency = r() < 0.5 ? 'any-slot' : 'normal';
-      let e = errand({ constraints: { prefs: [], urgency } });
+      const lineOf = Object.fromEntries(IDS.map((p) => [p, pick(r, LINES)])) as Record<
+        string,
+        LineType
+      >;
+      const window = r() < 0.5 ? { to: '2026-11-01T00:00:00.000Z' } : undefined;
+      let e = errand({
+        constraints: { prefs: [], urgency: r() < 0.5 ? 'any-slot' : 'normal', window },
+      });
+      const yeses: Approval[] = [];
       let now = NOW;
-      for (let i = 0; i < 40; i++) {
-        now = new Date(now.getTime() + Math.floor(r() * 6) * HOUR);
-        const policy = { ...DEFAULT_POLICY, parallel: r() < 0.5 };
-        const res = step(e, randomSignal(r, e), { now, policy });
-        e = res.next;
+      for (let i = 0; i < 60; i++) {
+        now = new Date(now.getTime() + Math.floor(r() * 4) * 15 * MIN);
+        const id = pick(r, IDS);
+        const looking = e.candidates.find((c) => c.status === 'lookup')?.placeId;
+        const roll = looking && r() < 0.7 ? 1 : Math.floor(r() * 9);
+        let signal: Signal;
+        if (roll === 0) signal = found(...IDS.map((p) => place(p)));
+        else if (roll === 1) {
+          const target = looking ?? id;
+          signal = { type: 'line_type_found', placeId: target, lineType: lineOf[target] };
+        } else if (roll <= 3 && e.pending && r() < 0.8) {
+          if (r() < 0.7) yeses.push(e.pending.action);
+          signal = {
+            type: yeses.at(-1) === e.pending.action ? 'owner_confirmed' : 'owner_declined',
+            questionId: e.pending.id,
+          };
+        } else if (roll <= 5) {
+          const live = e.candidates.find((c) => c.status === 'calling')?.placeId;
+          signal = outcome(live ?? (r() < 0.1 ? id : 'none'), {
+            status: pick(r, ['booked', 'offered', 'declined', 'no_answer', 'voicemail'] as const),
+            ...(r() < 0.4 ? { confirmation: pick(r, ['', ' ', '4821']) } : {}),
+            ...(r() < 0.4 ? { readBack: r() < 0.5 } : {}),
+            ...(r() < 0.1 ? { requiresPayment: true } : {}),
+            when: pick(r, [WHEN, WHEN, WHEN, '2026-12-01T13:00:00.000Z', 'soon']),
+          });
+        } else if (roll === 6) signal = { type: 'wake' };
+        else if (roll === 7 && r() < 0.04) signal = { type: 'owner_cancelled' };
+        else signal = { type: 'event_passed' };
+        const wasClosed = ['done', 'cancelled', 'failed'].includes(e.state);
+        const res = step(e, signal, { now, policy: { ...DEFAULT_POLICY, parallel: r() < 0.5 } });
         for (const f of res.effects) {
           if (!('approval' in f)) continue;
-          outward++;
-          expect(e.approvals.some((a) => sameApproval(a, f.approval))).toBe(true);
+          expect(yeses.some((a) => sameApproval(a, f.approval))).toBe(true);
           expect(f.approval.placeIds).toContain(f.placeId);
+          if (wasClosed) expect(f.kind).toBe('release_hold');
+          if (f.kind === 'call') {
+            dialled++;
+            expect(['landline', 'voip']).toContain(lineOf[f.placeId]);
+          }
         }
+        e = res.next;
         if ((e.state === 'scheduled' || e.state === 'done') && e.outcome?.status === 'booked') {
           booked++;
           expect(Boolean(e.outcome.confirmation) || e.outcome.readBack === true).toBe(true);
+          expect(inWindow(e.outcome.when, e.constraints.window)).toBe(true);
         }
       }
     }
-    expect(booked).toBeGreaterThan(20);
-    expect(outward).toBeGreaterThan(100);
+    expect(booked).toBeGreaterThan(10);
+    expect(dialled).toBeGreaterThan(50);
   });
 });

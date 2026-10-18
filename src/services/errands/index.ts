@@ -8,19 +8,23 @@
 
 export * from './errand.js';
 export {
-  DEFAULT_HOURS,
-  DEFAULT_POLICY,
-  parallelAllowed,
-  withinHours,
-  type ErrandPolicy,
-  type ErrandPrefs,
-} from './policy.js';
-export {
   RETRY_POLICY,
   isRetryable,
   retryDelayMs,
   type RetryPolicy,
   type RetryableError,
 } from './retry-policy.js';
+export {
+  DEFAULT_HOURS,
+  DEFAULT_POLICY,
+  WEEKDAYS,
+  inWindow,
+  nextDialAt,
+  parallelAllowed,
+  textWaitMs,
+  withinHours,
+  type ErrandPolicy,
+  type ErrandPrefs,
+} from './policy.js';
+export type { StepContext, StepResult } from './draft.js';
 export { step, CURRENT_STEP_VERSION } from './step.js';
-export type { StepContext, StepResult } from './step-v1.js';
