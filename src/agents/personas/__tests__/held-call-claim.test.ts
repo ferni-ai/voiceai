@@ -62,7 +62,7 @@ const streamOf = (...parts: Array<string | llm.ChatChunk>) =>
   });
 const tools = { functionTools: { callOnBehalf: {} } };
 async function run(items: unknown[], ...parts: Array<string | llm.ChatChunk>) {
-  const out = await withActionClaimCheck(streamOf(...parts), { items }, tools, {});
+  const out = await withActionClaimCheck(streamOf(...parts), { items }, tools, undefined, {});
   const chunks: llm.ChatChunk[] = [];
   for await (const c of out as unknown as AsyncIterable<llm.ChatChunk>) chunks.push(c);
   return {
