@@ -1,9 +1,7 @@
 /**
- * Firestore side of FRIEND_REPAIR (friend-repair.ts). Nothing new is stored
- * apart: the correction goes in the caller's corrections (user-corrections.ts,
- * the same fields, plus where it came from), the facts are read through fact
- * supersession's store, and a retired fact gets supersession's fields plus
- * correctedAt, which recall leaves out (session-recall.ts).
+ * Firestore side of FRIEND_REPAIR (friend-repair.ts): no new store. The
+ * correction joins the caller's corrections (user-corrections.ts fields plus
+ * provenance); a retired fact gets supersession's fields plus correctedAt.
  *
  * @module agents/personas/friend-repair-store
  */
@@ -24,14 +22,8 @@ const user = (userId: string): DocumentReference | undefined =>
 /** A stored correction as a record, or null when it isn't one FRIEND_REPAIR kept. */
 export function toRecord(data: Record<string, unknown>): RepairRecord | null {
   const text = (k: string): string => (typeof data[k] === 'string' ? (data[k] as string) : '');
-  if (
-    data.source !== REPAIR_SOURCE ||
-    !text('wrong') ||
-    !text('correctInformation') ||
-    !text('timestamp')
-  ) {
-    return null;
-  }
+  const kept = ['wrong', 'correctInformation', 'timestamp'].every((k) => text(k));
+  if (data.source !== REPAIR_SOURCE || !kept) return null;
   return {
     right: text('correctInformation'),
     wrong: text('wrong'),

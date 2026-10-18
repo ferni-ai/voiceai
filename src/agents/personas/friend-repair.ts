@@ -2,10 +2,8 @@
  * FRIEND_REPAIR=on: a miss the caller corrects stays corrected, on the next
  * call too (issue #1512).
  *
- * REPAIR_MODE (correction-repair.ts) owns a correction and carries it for the
- * rest of one call; nothing carried it further, so a friend's "my brother is
- * the one in Denver, not my sister" was gone by the next call and the old
- * fact could come back. With this on:
+ * REPAIR_MODE (correction-repair.ts) carries a correction for one call only,
+ * so "my brother in Denver, not my sister" was gone by the next. With this on:
  *
  * 1. A correction of a fact (the "<this>, not <that>" shape, where <that> is
  *    something Ferni stated, never asked) is kept in the caller's corrections
@@ -27,6 +25,7 @@
  * @module agents/personas/friend-repair
  */
 
+import type { StoredFact } from '../../memory/dynamic/fact-supersession.js';
 import { contentWords } from '../../memory/recall/session-recall.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { contrastWith } from './correction-repair.js';
@@ -77,14 +76,8 @@ export function factCorrection(said: string, ferni: string[]): FactCorrection | 
   return { right, wrong };
 }
 
-/** A stored fact, as the supersession store reads it (fact-supersession.ts). */
-export interface RepairFact {
-  id: string;
-  entityName: string;
-  key: string;
-  value: string;
-  supersededAt?: string;
-}
+/** A stored fact, as the supersession store reads it. */
+export type RepairFact = Pick<StoredFact, 'id' | 'entityName' | 'key' | 'value' | 'supersededAt'>;
 
 /** At most this many facts are retired by one correction. */
 const MAX_RETIRED = 3;
@@ -141,11 +134,10 @@ export interface RepairStore {
   recent: (userId: string) => Promise<RepairRecord[]>;
 }
 
+/** The caller's words this turn, and Ferni's lines before them, oldest first. */
 export interface CallerTurn {
   userId: string;
-  /** The caller's words this turn. */
   said: string;
-  /** Ferni's lines before them, oldest first; the last is what they answered. */
   ferni: string[];
   callId?: string;
   personaId?: string;
@@ -198,19 +190,13 @@ const ago = (at: string, now: number): string => {
 
 /** The note for a later call's first turn, or null when there is nothing recent. */
 export function repairNote(records: readonly RepairRecord[], now: number): string | null {
-  const seen = new Set<string>();
+  const recent = (r: RepairRecord): boolean =>
+    Date.parse(r.at) <= now && now - Date.parse(r.at) < REPAIR_DAYS * DAY_MS;
+  const miss = (r: RepairRecord): string => r.wrong.toLowerCase();
   const fresh = records
-    .filter((r) => {
-      const at = Date.parse(r.at);
-      return at <= now && now - at < REPAIR_DAYS * DAY_MS;
-    })
+    .filter(recent)
     .sort((a, b) => b.at.localeCompare(a.at))
-    .filter((r) => {
-      const key = r.wrong.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
+    .filter((r, i, all) => all.findIndex((o) => miss(o) === miss(r)) === i) // newest per miss
     .slice(0, REPAIRS_CARRIED);
   if (fresh.length === 0) return null;
   return [
@@ -220,20 +206,16 @@ export function repairNote(records: readonly RepairRecord[], now: number): strin
   ].join('\n');
 }
 
-export interface RepairRecall {
-  /** Resolves once loaded; never rejects. */
-  ready: Promise<void>;
-  /** The note, once loaded; null before, when off, or with nothing recent. */
-  note: () => string | null;
-}
-
-/** At call start: the corrections from earlier calls, for the first recall note. */
+/**
+ * At call start: the corrections from earlier calls, for the first recall
+ * note. `ready` never rejects; `note` is null until loaded, or when off.
+ */
 export function loadRepairRecall(
   userId: string,
   store: Pick<RepairStore, 'recent'> = firestoreRepairStore,
   env: Record<string, string | undefined> = process.env,
   now: number = Date.now()
-): RepairRecall {
+): { ready: Promise<void>; note: () => string | null } {
   if (!friendRepairEnabled(env)) return { ready: Promise.resolve(), note: () => null };
   let note: string | null = null;
   const ready = store

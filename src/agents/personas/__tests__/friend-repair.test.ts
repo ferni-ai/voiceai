@@ -18,8 +18,11 @@ import {
   type RepairRecord,
   type RepairStore,
 } from '../friend-repair.js';
+import { REPAIR_SOURCE, toRecord } from '../friend-repair-store.js';
 
 const ON = { FRIEND_REPAIR: 'on' };
+/** Em dash, ellipsis character, or three dots: never in what Ferni is asked to say. */
+const NOT_SPOKEN = new RegExp(`[${String.fromCharCode(0x2014, 0x2026)}]|[.]{3}`);
 const SISTER = 'So your sister in Denver is getting married, that is huge.';
 const SAID = "Ha, no, it's my brother in Denver, not my sister.";
 const DUBLIN = 'Dublin has that kind of grit to it, with the river right through the middle.';
@@ -229,7 +232,7 @@ describe('repairNote', () => {
 
   it('is plain text a voice can follow: no em dashes or ellipses', () => {
     const note = repairNote([rec('a', 1)], now) ?? '';
-    expect(note).not.toMatch(/—|\.\.\.|…/);
+    expect(note).not.toMatch(NOT_SPOKEN);
   });
 
   it('a store that fails leaves the note out, logged, never thrown', async () => {
@@ -254,7 +257,7 @@ describe('owning the miss (REPAIR_MODE line)', () => {
   it('with FRIEND_REPAIR on it names what he had wrong, light only if they are', () => {
     const note = correctionNotesFor(turns, {}, { REPAIR_MODE: 'on', FRIEND_REPAIR: 'on' });
     expect(note).toContain('names what you had wrong, light if they are');
-    expect(note).not.toMatch(/—|…/);
+    expect(note).not.toMatch(NOT_SPOKEN);
   });
 
   it('with it off the line is unchanged', () => {
@@ -263,5 +266,36 @@ describe('owning the miss (REPAIR_MODE line)', () => {
     expect(note).toContain(
       'the way a friend would ("Ah, my mistake."), then go on with what they said.'
     );
+  });
+});
+
+describe('stored corrections (friend-repair-store.ts)', () => {
+  const doc = {
+    whatFerniSaid: SISTER,
+    whatUserCorrected: SAID,
+    correctInformation: 'my brother in Denver',
+    category: 'fact',
+    timestamp: '2026-10-12T20:00:00.000Z',
+    source: REPAIR_SOURCE,
+    wrong: 'my sister',
+    callId: 'call-1',
+    supersededFactIds: ['f1'],
+  };
+
+  it('reads back a kept correction with its provenance', () => {
+    expect(toRecord(doc)).toEqual({
+      right: 'my brother in Denver',
+      wrong: 'my sister',
+      said: SAID,
+      ferniSaid: SISTER,
+      callId: 'call-1',
+      at: '2026-10-12T20:00:00.000Z',
+      supersededFactIds: ['f1'],
+    });
+  });
+
+  it("skips the loose detector's corrections and incomplete ones", () => {
+    expect(toRecord({ ...doc, source: undefined })).toBeNull();
+    expect(toRecord({ ...doc, wrong: '' })).toBeNull();
   });
 });
