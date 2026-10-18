@@ -476,7 +476,7 @@ export async function createCallRecord(
     familyMemberName: schedule.familyMemberName,
     status: 'in_progress',
     callStartedAt: new Date().toISOString(),
-    twilioCallSid,
+    ...(twilioCallSid ? { twilioCallSid } : {}), // Firestore rejects undefined fields
     sponsorBriefed: false,
   };
 
@@ -523,7 +523,7 @@ export async function completeCallRecord(
   if (!db) return;
 
   const updateData = {
-    ...result,
+    ...Object.fromEntries(Object.entries(result).filter(([, v]) => v !== undefined)),
     callEndedAt: new Date().toISOString(),
   };
 
