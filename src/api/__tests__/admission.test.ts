@@ -11,7 +11,10 @@ vi.mock('../../utils/firestore-utils.js', () => ({
   getFirestoreDb: () => ({
     collection: (name: string) => ({
       doc: () => ({ get: async () => ({ exists: name === 'feature_cohorts', data: () => (name === 'feature_cohorts' ? { members: members.list } : undefined) }) }), // prettier-ignore
-      where: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }),
+      where: (field: string, _op: string, uid: string) => ({
+        get: async () => ({ docs: name === 'feature_cohorts' && field === 'members' && members.list.includes(uid) ? [{ id: 'friends-and-family', data: () => ({ members: members.list }) }] : [] }), // prettier-ignore
+        limit: () => ({ get: async () => ({ docs: [] }) }),
+      }),
     }),
   }),
 }));

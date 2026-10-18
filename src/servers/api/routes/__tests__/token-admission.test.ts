@@ -58,11 +58,11 @@ const { docs, db } = vi.hoisted(() => {
       doc: (id: string) => ({
         get: async () => (read(), { exists: coll(n).has(id), data: () => coll(n).get(id) }),
       }),
-      where: (field: string, _op: string, value: unknown) => ({
-        limit: () => ({
-          get: async () => (read(), { docs: [...coll(n).values()].filter((d) => d[field] === value).map((d) => ({ data: () => d })) }), // prettier-ignore
-        }),
-      }),
+      where: (field: string, op: string, value: unknown) => {
+        const match = (d: Record<string, unknown>) => op === 'array-contains' ? Array.isArray(d[field]) && d[field].includes(value) : d[field] === value; // prettier-ignore
+        const get = async () => (read(), { docs: [...coll(n)].filter(([, d]) => match(d)).map(([id, d]) => ({ id, data: () => d })) }); // prettier-ignore
+        return { get, limit: () => ({ get }) };
+      },
     }),
   };
   return { docs, db };
@@ -148,6 +148,11 @@ describe('gate on', () => {
     put('feature_cohorts', 'friends-and-family', { members: ['uid-pat'] });
     signIn({ email: undefined, emailVerified: false });
     expect((await requestToken()).status).toBe(200);
+  });
+
+  it('a disabled friends-and-family cohort admits no one (disable is the fast kill)', async () => {
+    put('feature_cohorts', 'friends-and-family', { members: ['uid-pat'], enabled: false });
+    expect((await requestToken()).status).toBe(403);
   });
 
   it('lets an admin claim through', async () => {

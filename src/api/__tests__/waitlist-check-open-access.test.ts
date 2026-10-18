@@ -14,7 +14,11 @@ const fakeDb = {
       set: async (data: Record<string, unknown>, opts?: { merge?: boolean }) =>
         void coll(name).set(id, opts?.merge ? { ...coll(name).get(id), ...data } : data),
     }),
-    where: () => ({ limit: () => ({ get: async () => ({ empty: true, docs: [] }) }) }),
+    where: (field: string, _op: string, value: string) => ({
+      limit: () => ({ get: async () => ({ empty: true, docs: [] }) }),
+      // feature_cohorts membership (array-contains), for the admission rules
+      get: async () => ({ docs: [...coll(name)].filter(([, d]) => (d[field] as string[] | undefined)?.includes(value)).map(([id, d]) => ({ id, data: () => d })) }), // prettier-ignore
+    }),
   }),
 };
 vi.mock('firebase-admin', () => ({

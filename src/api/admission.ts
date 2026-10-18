@@ -10,7 +10,7 @@
  *    open access gave everyone who signed in since 2026-10-03;
  *  - an account created before WAITLIST_GATE_SINCE (ISO date; unset = no one
  *    is grandfathered by date);
- *  - a member of the friends-and-family cohort (wave 0).
+ *  - a member of the friends-and-family cohort while it is enabled (wave 0).
  * Emails count only when the caller's token says they're verified.
  *
  * Gate off: everyone is admitted and nothing is read. Gate on: a lookup that
@@ -22,6 +22,7 @@ import type { ServerResponse } from 'http';
 import type { Firestore } from '@google-cloud/firestore';
 import { waitlistGateOn } from './open-access.js';
 import { getFirestoreDb } from '../utils/firestore-utils.js';
+import { isCohortMember } from '../services/platform/cohort-flags.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'Admission' });
@@ -97,11 +98,7 @@ export const firestoreAdmissionStore: AdmissionStore = {
     const user = await getFirebaseUserOrThrow(uid);
     return user?.metadata.creationTime ? new Date(user.metadata.creationTime) : null;
   },
-  async inCohort(cohort, uid) {
-    const snap = await db().collection('feature_cohorts').doc(cohort).get();
-    const members: unknown = snap.data()?.members;
-    return Array.isArray(members) && members.includes(uid);
-  },
+  inCohort: async (cohort, uid) => isCohortMember(cohort, uid), // enabled + member (cohort-flags.ts)
 };
 
 const cache = new Map<string, { value: Admission; at: number }>();
