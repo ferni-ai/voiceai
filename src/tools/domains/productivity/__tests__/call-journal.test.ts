@@ -21,6 +21,10 @@ const h = vi.hoisted(() => ({
   productivityWrites: [] as unknown[],
 }));
 h.state = newFakeFirestoreState();
+// The tools module loads (and builds the registry list) while the flag is on, as it
+// would in a process whose first call's caller had it on through a cohort.
+process.env.CALL_JOURNAL = 'on';
+process.env.JOURNAL_ONE_STORE = 'on';
 const db = createFakeFirestore(h.state)()!;
 
 vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
@@ -42,7 +46,7 @@ vi.mock('../../../../services/stores/productivity-store.js', () => ({
   }),
 }));
 
-const { getNotesToolDefinitions } = await import('../index.js');
+const { definitions: registry, getNotesToolDefinitions } = await import('../index.js');
 const { getJournalService } = await import('../../../../services/journal/index.js');
 // What the agent process loads to wire the store (gce/job-executor.ts imports it).
 await import('../../../../agents/journal-store-register.js');
@@ -161,6 +165,22 @@ describe('CALL_JOURNAL on', () => {
     const reply = await runTool('journal', { action: 'history' });
     expect(reply).toContain('Walked by the river.');
     expect(reply).not.toContain('Not mine.');
+  });
+});
+
+describe('CALL_JOURNAL per caller (cohort-flags.ts)', () => {
+  it('the registry, built once per process, never decides: each call’s tools follow its flags', () => {
+    // As the process registered them, whatever the flag was then.
+    const journalDef = registry.find((d) => d.id === 'journal');
+    expect(registry.map((d) => d.id)).not.toContain('addGratitude');
+
+    vi.stubEnv('CALL_JOURNAL', 'off');
+    const offCall = journalDef?.create({} as never) as RunnableTool;
+    expect(Object.keys(offCall.parameters.shape)).toEqual(['type']);
+
+    vi.stubEnv('CALL_JOURNAL', 'on'); // the next caller's cohort turned it on
+    const onCall = journalDef?.create({} as never) as RunnableTool;
+    expect(Object.keys(onCall.parameters.shape)).toContain('action');
   });
 });
 

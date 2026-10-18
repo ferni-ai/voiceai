@@ -34,6 +34,8 @@
  * @module services/platform/cohort-flags
  */
 import { createHash } from 'node:crypto';
+import { flagOn } from '../../config/env-flag.js';
+import type { FlagName } from '../../config/flag-manifest.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
@@ -48,6 +50,8 @@ export const COHORT_FLAGS = [
   'FACT_SUPERSESSION',
   'EXTRACTION_CONTEXT',
   'OPENER_FOLLOW_UP',
+  // Background readers on both servers ask per person: readCallSummaries
+  // (memory/storage/call-summaries.ts) through personFlagOn (config/person-flag.ts).
   'LIVE_SUMMARIES',
   'COACH_FOLLOW_THROUGH',
   'LIFE_MOVES_ON',
@@ -86,6 +90,22 @@ export const COHORT_FLAGS = [
   'WEEKLY_PREDICTION',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
+  // Read by the greeting (greeting-direction.ts winFor); a win is recorded through
+  // personFlagOn, also when the UI server or after-call work marks a commitment done (wins.ts).
+  'COACH_WINS',
+  // Read by the greeting: anniversaryFor (friendship-anniversary.ts).
+  'FRIEND_CELEBRATIONS',
+  // Read when the turn hook is built at agent setup, then on each turn (revived-intelligence.ts).
+  'REVIVED_INTELLIGENCE',
+  // Read when a persona's tools are built and on a turn, never at module load (call-journal.ts).
+  // Does nothing unless the agent has JOURNAL_ONE_STORE=on, which is the agent's own.
+  'CALL_JOURNAL',
+  // Read after the call through envForCaller (follow-through-import.ts). Its sources are
+  // written by the agent's own AFTER_CALL_EXTRACTION.
+  'FOLLOW_THROUGH_IMPORT',
+  // Read by the greeting (greeting-direction.ts ponderFor); the UI server's hourly job
+  // also ponders everyone usersWithFlag names (ponder-job.ts).
+  'PONDERING',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
@@ -100,6 +120,10 @@ const VALUES: ReadonlySet<string> = new Set(['on', 'off']);
 export const COHORT_FLAG_NEEDS: Partial<Record<CohortFlag, CohortFlag[]>> = {
   RECALL_EPISODES: ['SEMANTIC_RECALL'],
   WORLD_FACTS_IN_CALL: ['WORLD_MODEL_TEMPORAL'],
+  // Follow-ups only come from the after-call import; the texts have nothing else to send.
+  FOLLOW_THROUGH_TEXTS: ['FOLLOW_THROUGH_IMPORT'],
+  // The notes are what the pondering pass wrote.
+  OUTREACH_PONDERED_NOTES: ['PONDERING'],
 };
 
 /** Flags set on whose prerequisites are not: "RECALL_EPISODES needs SEMANTIC_RECALL". */
@@ -257,6 +281,15 @@ export async function envForCaller(
     log.warn({ error: String(error) }, 'Cohort flags not read after the call; agent values apply');
     return own;
   }
+}
+
+/** One flag as this caller's call had it (envForCaller): the agent's config/person-flag.ts lookup. */
+export async function callerFlag(
+  userId: string,
+  flag: FlagName,
+  opts: { store?: CohortStore; env?: NodeJS.ProcessEnv } = {}
+): Promise<'on' | 'off'> {
+  return flagOn(flag, await envForCaller(userId, opts)) ? 'on' : 'off';
 }
 
 /**

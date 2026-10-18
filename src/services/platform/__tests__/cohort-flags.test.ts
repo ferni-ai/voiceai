@@ -8,6 +8,8 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 import {
   applyCallerFlags,
   applyFlags,
+  callerFlag,
+  COHORT_FLAGS,
   envForCaller,
   FLAG_CACHE_TTL_MS,
   FLAG_STALE_MAX_MS,
@@ -182,6 +184,13 @@ describe('the switches a cohort may set', () => {
     'TEAM_VOICES',
     'FERNI_PERSONA_SLIP_GUARD',
     'DIRECTOR_PERSONA_AWARE',
+    'COACH_WINS',
+    'FRIEND_CELEBRATIONS',
+    'REVIVED_INTELLIGENCE',
+    'CALL_JOURNAL',
+    'FOLLOW_THROUGH_IMPORT',
+    'PONDERING',
+    'LIVE_SUMMARIES',
   ])('a cohort can turn %s on for its members', async (flag) => {
     const s = store({ seth: [{ id: 'seth', enabled: true, flags: { [flag]: 'on' } }] });
     expect(await resolveCallerFlags('seth', s)).toEqual({ [flag]: 'on' });
@@ -463,5 +472,50 @@ describe('missingPrerequisites', () => {
         WORLD_FACTS_IN_CALL: 'on',
       })
     ).toEqual([]);
+  });
+});
+
+describe('COHORT_FLAGS', () => {
+  // Every entry was checked read by read (the comments in cohort-flags.ts name each
+  // site). Adding one without that check, or dropping one, must fail here.
+  it('is exactly the switches whose reads are safe per caller', () => {
+    expect([...COHORT_FLAGS].sort()).toEqual(
+      [
+        'SEMANTIC_RECALL', 'RECALL_PEOPLE', 'RECALL_EPISODES', 'RECALL_RARE_WORDS',
+        'FACT_SUPERSESSION', 'EXTRACTION_CONTEXT', 'OPENER_FOLLOW_UP', 'LIVE_SUMMARIES',
+        'COACH_FOLLOW_THROUGH', 'LIFE_MOVES_ON', 'CANDOR', 'WEB_SEARCH', 'WORLD_MODEL_TEMPORAL',
+        'WORLD_FACTS_IN_CALL', 'POST_CALL_CHECKIN', 'FOLLOW_THROUGH_TEXTS',
+        'OUTREACH_PONDERED_NOTES', 'CALL_WRAP_UP', 'WRAP_UP', 'SHORT_GOODBYE', 'PHONE_GOODBYE',
+        'HAPPY_EXITS', 'HANDOFF_TALK_THROUGH', 'NAME_CORRECTION', 'ROOM_GUESTS',
+        'BARGE_IN_ACK_WORDS', 'FRIEND_FOLLOWUPS', 'INSIDE_JOKES', 'HANDOFF_FULL_TOOLS',
+        'TEAM_VOICES', 'FERNI_PERSONA_SLIP_GUARD', 'DIRECTOR_PERSONA_AWARE', 'DATES_THAT_MATTER',
+        'PROACTIVE_CHANNELS', 'WEEKLY_PREDICTION', 'TOOLS_REAL_CALL_USER', 'COACH_WINS',
+        'FRIEND_CELEBRATIONS', 'REVIVED_INTELLIGENCE', 'CALL_JOURNAL', 'FOLLOW_THROUGH_IMPORT',
+        'PONDERING',
+      ].sort() // prettier-ignore
+    );
+  });
+
+  it('follow-up texts need the import, pondered notes need pondering', () => {
+    expect(missingPrerequisites({ FOLLOW_THROUGH_TEXTS: 'on' })).toEqual([
+      'FOLLOW_THROUGH_TEXTS needs FOLLOW_THROUGH_IMPORT',
+    ]);
+    expect(missingPrerequisites({ OUTREACH_PONDERED_NOTES: 'on' })).toEqual([
+      'OUTREACH_PONDERED_NOTES needs PONDERING',
+    ]);
+  });
+});
+
+describe('callerFlag (the agent’s per-person lookup)', () => {
+  beforeEach(() => forgetAgentValues());
+
+  it('is the ended call’s caller’s value, not the next caller’s in process.env', async () => {
+    const s = store({ mom: [{ id: 'mom', enabled: true, flags: { COACH_WINS: 'on' } }] });
+    const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on' };
+    await applyCallerFlags('mom', { store: s, env });
+    expect(env.COACH_WINS).toBe('on');
+    // Seth's call ended; mom's call has started and applied her flags.
+    expect(await callerFlag('seth', 'COACH_WINS', { store: s, env })).toBe('off');
+    expect(await callerFlag('mom', 'COACH_WINS', { store: s, env })).toBe('on');
   });
 });

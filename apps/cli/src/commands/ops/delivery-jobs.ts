@@ -88,5 +88,17 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
       retryCount: 0,
       timeout: '180s',
     },
+    {
+      // Hourly: each poll ponders callers whose night slot has come (ponder-job.ts), at most
+      // POLL_BUDGET_MS plus one caller. Off until PONDERING is on here or in a cohort.
+      name: 'pondering',
+      description: 'Ponder the callers whose night slot has come (PONDERING, ponder-job.ts)',
+      schedule: '40 * * * *',
+      timezone: 'Etc/UTC',
+      uri: `${uiServerUrl}/api/jobs/pondering`,
+      httpMethod: 'POST',
+      retryCount: 0,
+      timeout: '300s',
+    },
   ];
 }
