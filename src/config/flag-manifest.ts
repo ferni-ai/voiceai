@@ -213,6 +213,8 @@ export const FLAG_MANIFEST = {
   // the look-up rule rides the two replies after a live-data question (turn-shape.ts)
   LIVE_DATA_CARRYOVER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIVE_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: calls record audio and transcript to LiveKit Cloud, for debugging; never on when NODE_ENV=production (session-recording.ts)
+  LK_SESSION_RECORDING: { default: 'off', owner: 'voice', kind: 'config' },
   // the cascade's prompt-cache settings in one switch (llm-context-cache-flag.ts)
   LLM_CONTEXT_CACHE: { default: 'off', owner: 'voice', kind: 'experiment' },
   LLM_DYNAMIC_CONTENT_ENABLED: { default: 'on', owner: 'platform', kind: 'config' },
