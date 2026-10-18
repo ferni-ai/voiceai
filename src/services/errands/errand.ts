@@ -1,9 +1,7 @@
 /**
  * An errand: something Ferni gets done for its owner out in the world (book a
  * cleaning, find a table), kept as a durable workflow until it is done,
- * cancelled or failed (docs: errands design, 2026-10-18, section 2.1).
- *
- * Types only. The rules are in step.ts; storage is behind ports.ts. Nothing
+ * cancelled or failed (errands design, 2026-10-18, 2.1). Types only. Nothing
  * here holds call text: an outcome keeps what was agreed and an evidence id.
  *
  * @module services/errands/errand
@@ -47,7 +45,7 @@ export interface BusinessHours {
   readonly close: string;
 }
 
-/** A place Ferni might call, as the search found it. */
+/** A place Ferni might call, as the search found it. step() ignores its lineType (lookup only). */
 export interface NewCandidate {
   readonly placeId: string;
   readonly name: string;
