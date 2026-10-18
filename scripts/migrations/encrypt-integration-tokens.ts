@@ -30,7 +30,7 @@ import {
   type QueryDocumentSnapshot,
 } from '@google-cloud/firestore';
 import { getFirestoreDb } from '../../src/utils/firestore-utils.js';
-import { decryptData, isEncrypted } from '../../src/utils/token-encryption.js';
+import { isEncrypted, openEnvelope } from '../../src/utils/token-encryption.js';
 import {
   PLAINTEXT_TOKEN_KEYS,
   openTokens,
@@ -68,6 +68,10 @@ export interface Counts {
   plaintext: number;
   /** A real envelope with plaintext keys left beside it. */
   mixed: number;
+  /** An envelope sealed with a key other than this run's (the LOG_HASH_SECRET legacy key): re-sealed. */
+  legacy: number;
+  /** An envelope no key on the ring opens: left alone, needs a look. */
+  unopenable: number;
   written: number;
   failed: number;
   failureCodes: Record<string, number>;
@@ -80,7 +84,7 @@ export interface RunOptions {
 }
 
 type Json = Record<string, unknown>;
-type Kind = 'sealed' | 'plaintext' | 'mixed' | 'empty';
+type Kind = 'sealed' | 'plaintext' | 'mixed' | 'legacy' | 'unopenable' | 'empty';
 interface Job {
   counts: Counts;
   ref: DocumentReference;
@@ -93,6 +97,8 @@ const newCounts = (): Counts => ({
   sealed: 0,
   plaintext: 0,
   mixed: 0,
+  legacy: 0,
+  unopenable: 0,
   written: 0,
   failed: 0,
   failureCodes: {},
@@ -111,7 +117,13 @@ export function classify(record: unknown): Kind {
   if (record === null || typeof record !== 'object') return 'empty';
   const r = record as Json;
   const plain = plaintextKeysOf(r).length > 0;
-  if (envelopeOf(r) !== undefined) return plain ? 'mixed' : 'sealed';
+  const envelope = envelopeOf(r);
+  if (envelope !== undefined) {
+    if (plain) return 'mixed';
+    const opened = openEnvelope(envelope);
+    if (opened === null) return 'unopenable';
+    return opened.kid === tokenKeyId() ? 'sealed' : 'legacy';
+  }
   return plain || typeof r.encrypted === 'string' ? 'plaintext' : 'empty';
 }
 
@@ -136,17 +148,25 @@ function tokensOf(record: Json): Json {
 function docUpdate(record: Json, kind: Kind): Json {
   const deletes = (keys: string[]) => Object.fromEntries(keys.map((k) => [k, FieldValue.delete()]));
   if (kind === 'mixed') return deletes(plaintextKeysOf(record)); // keep the envelope as it is
+  if (kind === 'legacy') return { encrypted: resealed(record) };
   const tokens = tokensOf(record);
   // Every plaintext key goes, including ones left beside a no-key `encrypted` string.
   const stale = new Set([...Object.keys(tokens), ...plaintextKeysOf(record)]);
   return { ...deletes([...stale]), ...sealVerified(tokens) };
 }
 
+/** A legacy-key envelope opened with the ring and sealed again with this run's key. */
+function resealed(record: Json): string {
+  const opened = openEnvelope<Json>(envelopeOf(record) ?? '');
+  if (opened === null) throw new Error('legacy envelope no longer opens');
+  return sealVerified(opened.value).encrypted;
+}
+
 /** The replacement map for a profile token field (update() replaces the whole map). */
 function fieldValue(record: Json, kind: Kind): Json {
-  return kind === 'mixed'
-    ? { encrypted: envelopeOf(record) }
-    : { ...sealVerified(tokensOf(record)) };
+  if (kind === 'mixed') return { encrypted: envelopeOf(record) };
+  if (kind === 'legacy') return { encrypted: resealed(record) };
+  return { ...sealVerified(tokensOf(record)) };
 }
 
 function errorCode(error: unknown): string {
@@ -154,12 +174,13 @@ function errorCode(error: unknown): string {
   return code === undefined ? 'unknown' : String(code);
 }
 
-/** True when any envelope the servers wrote opens with this run's key. */
+/**
+ * True when an envelope the servers wrote opens with this run's sealing key.
+ * One that opens only with the legacy key on the ring proves nothing about it.
+ */
 async function keyOpensServerEnvelope(db: Firestore, seen: string[]): Promise<boolean> {
-  const opens = (envelope: string) => {
-    const opened = decryptData<Json>(envelope);
-    return opened !== null && opened.encrypted !== true;
-  };
+  const kid = tokenKeyId();
+  const opens = (envelope: string) => openEnvelope(envelope)?.kid === kid;
   if (seen.some(opens)) return true;
   for (const name of KEY_PROBE_COLLECTIONS) {
     const snaps = await db.collection(name).where('encrypted', '!=', null).limit(20).get();
@@ -215,8 +236,8 @@ export async function runEncryptIntegrationTokens(
     if (kind === 'empty') return;
     const envelope = envelopeOf(record as Json);
     if (envelope !== undefined) seenEnvelopes.push(envelope);
-    if (kind === 'sealed') {
-      counts.sealed++;
+    if (kind === 'sealed' || kind === 'unopenable') {
+      counts[kind]++;
       return;
     }
     counts[kind]++;

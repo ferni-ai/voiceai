@@ -55,6 +55,53 @@ export function tokenKeyHealth(): { tokenKid: string; tokenKeySource: TokenKeySo
   return { tokenKid: tokenKeyId(), tokenKeySource: resolveTokenKey().source };
 }
 
+/**
+ * The keys that may open an envelope: OAUTH_ENCRYPTION_KEY (the sealing key
+ * when set), then LOG_HASH_SECRET as read-only legacy. Every envelope written
+ * before the dedicated key exists was sealed with LOG_HASH_SECRET, so it must
+ * stay on the ring until those are re-sealed, or they would all stop opening.
+ */
+export function decryptionKeys(): Array<{ key: string; kid: string }> {
+  const keys = [process.env.OAUTH_ENCRYPTION_KEY, process.env.LOG_HASH_SECRET].filter(
+    (k): k is string => typeof k === 'string' && k !== ''
+  );
+  return [...new Set(keys)].map((key) => ({ key, kid: keyIdOf(key) }));
+}
+
+/**
+ * Open an envelope with the keyring: the key its kid names, or each key in
+ * order for an envelope written before kids. Null if none opens it.
+ */
+export function openEnvelope<T>(encryptedStr: string): { value: T; kid: string } | null {
+  let parsed: Partial<EncryptedPayload>;
+  try {
+    parsed = JSON.parse(encryptedStr) as Partial<EncryptedPayload>;
+  } catch {
+    return null;
+  }
+  const { iv, authTag, data, kid } = parsed;
+  if (parsed.encrypted !== true || typeof iv !== 'string' || typeof authTag !== 'string')
+    return null;
+  if (typeof data !== 'string') return null;
+  const ring = decryptionKeys();
+  for (const candidate of typeof kid === 'string' ? ring.filter((k) => k.kid === kid) : ring) {
+    try {
+      const derived = crypto.createHash('sha256').update(candidate.key).digest();
+      const decipher = crypto.createDecipheriv(
+        ENCRYPTION_ALGORITHM,
+        derived,
+        Buffer.from(iv, 'base64')
+      );
+      decipher.setAuthTag(Buffer.from(authTag, 'base64'));
+      const plain = decipher.update(data, 'base64', 'utf8') + decipher.final('utf8');
+      return { value: JSON.parse(plain) as T, kid: candidate.kid };
+    } catch {
+      // Not this key: try the next one.
+    }
+  }
+  return null;
+}
+
 /** Why a sealed envelope did not open: for a warning, never containing the key or the data. */
 export function envelopeFailure(encryptedStr: string): { reason: string; envelopeKid?: string } {
   let parsed: Partial<EncryptedPayload>;
@@ -64,8 +111,9 @@ export function envelopeFailure(encryptedStr: string): { reason: string; envelop
     return { reason: 'malformed' };
   }
   const envelopeKid = typeof parsed.kid === 'string' ? parsed.kid : undefined;
-  if (resolveTokenKey().key === '') return { reason: 'no-key', envelopeKid };
-  if (envelopeKid !== undefined && envelopeKid !== tokenKeyId()) {
+  const ring = decryptionKeys();
+  if (ring.length === 0) return { reason: 'no-key', envelopeKid };
+  if (envelopeKid !== undefined && !ring.some((k) => k.kid === envelopeKid)) {
     return { reason: 'kid-mismatch', envelopeKid };
   }
   return { reason: 'decrypt-failed', envelopeKid };
@@ -143,21 +191,14 @@ export function decryptData<T>(encryptedStr: string): T | null {
       return parsed as T;
     }
 
-    const key = getEncryptionKey();
-    if (!key) {
+    if (!getEncryptionKey()) {
       log.warn('Cannot decrypt - no encryption key configured');
       return null;
     }
 
-    const iv = Buffer.from(parsed.iv, 'base64');
-    const authTag = Buffer.from(parsed.authTag, 'base64');
-    const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(parsed.data, 'base64', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return JSON.parse(decrypted) as T;
+    const opened = openEnvelope<T>(encryptedStr);
+    if (!opened) throw new Error('no key on the ring opens this envelope');
+    return opened.value;
   } catch {
     // If decryption fails, try parsing as plain JSON (migration from old format)
     try {
