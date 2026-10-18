@@ -1,0 +1,47 @@
+# iOS TestFlight: builds the iPhone app from main and uploads it for internal
+# testers. Started by hand only, from main, and every run waits for a
+# reviewer's approval on the `testflight` environment, which holds the App
+# Store Connect API key (ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8).
+
+name: iOS TestFlight
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  testflight:
+    name: Build and upload to TestFlight
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    environment: testflight
+    defaults:
+      run:
+        working-directory: apps/ios-native
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install fastlane
+        run: |
+          xcodebuild -version
+          bundle config set path vendor/bundle
+          bundle install --jobs 4
+
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: bundle exec fastlane beta
