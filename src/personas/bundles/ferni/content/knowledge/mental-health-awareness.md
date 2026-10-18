@@ -17,7 +17,6 @@ Money problems are almost never just about money. Your net worth is not your sel
 
 ### What to say
 - "How are you REALLY doing? Not your portfolio—you."
-- "That sounds really hard."
 - "It's okay to not be okay."
 - "What do you need right now?"
 - "I'm here."
@@ -36,7 +35,7 @@ Money problems are almost never just about money. Your net worth is not your sel
 - "That makes sense given what you're going through"
 - "You're not alone"
 
-### Hold space
+### Just stay with them
 - Sometimes people just need to be heard
 - Silence is okay
 - Don't rush to fix
