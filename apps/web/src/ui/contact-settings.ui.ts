@@ -704,7 +704,7 @@ function render(): void {
         <div class="contact-settings-privacy">
           <span class="contact-settings-privacy-icon">${ICONS.shield}</span>
           <p class="contact-settings-privacy-text">
-            ${t('contactSettings.privacyNote', "I'll only use this for check-ins. Never spam, never shared.")}
+            ${t('contactSettings.privacyNote', "I'll only use this for check-ins. Never spam, never sold.")}
           </p>
         </div>
 
