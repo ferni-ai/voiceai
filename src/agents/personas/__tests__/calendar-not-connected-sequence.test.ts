@@ -45,7 +45,10 @@ const callChunk = (name: string): llm.ChatChunk => ({
     toolCalls: [llm.FunctionCall.create({ callId: 'x', name, args: '{}' })],
   },
 });
-const textChunk = (content: string): llm.ChatChunk => ({ id: 'r', delta: { role: 'assistant', content } });
+const textChunk = (content: string): llm.ChatChunk => ({
+  id: 'r',
+  delta: { role: 'assistant', content },
+});
 
 async function replyText(
   parts: Array<string | llm.ChatChunk>,
@@ -58,11 +61,12 @@ async function replyText(
       c.close();
     },
   });
-  const guarded = await withActionClaimCheck(Promise.resolve(stream), { items }, tools, {
+  const guarded = await withActionClaimCheck(Promise.resolve(stream), { items }, tools, undefined, {
     ACTION_CLAIM_STREAM: 'on',
   });
   let out = '';
-  for await (const c of guarded as unknown as AsyncIterable<llm.ChatChunk>) out += c.delta?.content ?? '';
+  for await (const c of guarded as unknown as AsyncIterable<llm.ChatChunk>)
+    out += c.delta?.content ?? '';
   return out;
 }
 
@@ -82,12 +86,14 @@ describe('#1547 sequence with nothing connected (real tools, real guard)', () =>
     expect(text).toContain("It isn't booked yet, though.");
   });
 
-  it('a create run in the same reply: the claim becomes the honest line, and the create says it is Ferni\'s list', async () => {
+  it("a create run in the same reply: the claim becomes the honest line, and the create says it is Ferni's list", async () => {
     const created = await toolFor('createCalendarEvent').execute(
       { title: 'Lunch with Sam', date: '2026-10-18', startTime: '12:00' },
       {}
     );
-    expect(String(created)).toMatch(/Saved "Lunch with Sam, 2026-10-18, 12:00" to Ferni's own list/);
+    expect(String(created)).toMatch(
+      /Saved "Lunch with Sam, 2026-10-18, 12:00" to Ferni's own list/
+    );
     expect(String(created)).toMatch(/isn't on your calendar/);
 
     const text = await replyText(
