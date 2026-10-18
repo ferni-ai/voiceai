@@ -292,6 +292,13 @@ describe('IgnavFlightProvider', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('answers unsupported-query for zero passengers', async () => {
+    const outcome = await new IgnavFlightProvider('test-key').search({ ...QUERY, passengers: 0 });
+
+    expect(outcome).toEqual({ status: 'unavailable', reason: 'unsupported-query' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('answers unsupported-query for more than one passenger', async () => {
     const outcome = await new IgnavFlightProvider('test-key').search({ ...QUERY, passengers: 2 });
 
@@ -397,14 +404,17 @@ describe('IgnavFlightProvider', () => {
   it('sends the local calendar day, not the UTC day, for a late-evening departure', async () => {
     // 23:30 in Los Angeles is 06:30 UTC on the next day.
     vi.stubEnv('TZ', 'America/Los_Angeles');
-    const lateDeparture = new Date(2026, 9, 23, 23, 30);
-    fetchMock.mockResolvedValue(jsonReply(200, SEARCH_REPLY));
+    try {
+      const lateDeparture = new Date(2026, 9, 23, 23, 30);
+      fetchMock.mockResolvedValue(jsonReply(200, SEARCH_REPLY));
 
-    await new IgnavFlightProvider('test-key').search({ ...QUERY, departureDate: lateDeparture });
+      await new IgnavFlightProvider('test-key').search({ ...QUERY, departureDate: lateDeparture });
 
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(init.body as string).departure_date).toBe('2026-10-23');
-    vi.unstubAllEnvs();
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(init.body as string).departure_date).toBe('2026-10-23');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('says provider-error for a 503 with a non-JSON body', async () => {
@@ -459,6 +469,26 @@ describe('IgnavFlightProvider', () => {
       expect(outcome).toEqual({
         status: 'live',
         results: [expect.objectContaining({ airline: 'Unknown' })],
+      });
+    });
+
+    it('prefers the leg carrier over the segment operating carrier name', async () => {
+      fetchMock.mockResolvedValue(
+        jsonReply(200, {
+          itineraries: [
+            withLegCarrier('UA', {
+              operating_carrier_name: 'Southwest',
+              marketing_carrier_code: 'WN',
+            }),
+          ],
+        })
+      );
+
+      const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+      expect(outcome).toEqual({
+        status: 'live',
+        results: [expect.objectContaining({ airline: 'UA' })],
       });
     });
   });
