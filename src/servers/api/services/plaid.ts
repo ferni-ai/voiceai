@@ -81,7 +81,7 @@ export async function loadTokensForUser(userId: string): Promise<PlaidTokenData 
   }
 
   try {
-    const data = openTokens<PlaidTokenData>(await tokenStore.get(userId));
+    const data = openTokens<PlaidTokenData>(await tokenStore.get(userId), 'plaid_tokens');
     if (data) {
       plaidAccessTokens.set(userId, data);
       log.info({ userId: userId.substring(0, 8) }, 'Loaded Plaid token from Firestore');

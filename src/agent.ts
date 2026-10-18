@@ -29,7 +29,7 @@ await import('./utils/log-redaction-install.js');
 // Refuse to touch production data from a non-production process (no emulator, no opt-in).
 await import('./config/refuse-production-data.js'); // loads dotenv, then the guard
 
-// Which token key this process seals and opens with (fingerprint only), to match the web server's.
+// Which token key this process seals and opens with (key id only), to match the web server's.
 await import('./utils/token-key-fingerprint-boot.js');
 
 // Error reporting (Sentry), before the worker loads; a no-op without SENTRY_DSN.

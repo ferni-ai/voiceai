@@ -89,7 +89,7 @@ export function getRefreshToken(): string | null {
  */
 export async function loadTokens(): Promise<void> {
   try {
-    const data = openTokens<SpotifyTokenData>(await tokenStore.get('global'));
+    const data = openTokens<SpotifyTokenData>(await tokenStore.get('global'), 'spotify_tokens');
     if (data) {
       cachedTokenData = data;
       log.info('Loaded Spotify tokens from Firestore');

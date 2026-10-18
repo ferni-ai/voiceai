@@ -13,15 +13,15 @@ describe('token key fingerprint at boot', () => {
     else process.env.LOG_HASH_SECRET = saved;
   });
 
-  it('logs the fingerprint line once on import, without the key', async () => {
+  it('logs the kid line once on import, without the key', async () => {
     delete process.env.OAUTH_ENCRYPTION_KEY;
     process.env.LOG_HASH_SECRET = 'fixture-boot-key';
     await import('../token-key-fingerprint-boot.js');
-    const { tokenKeyFingerprintLine } = await import('../token-at-rest.js');
+    const { tokenKeyIdLine } = await import('../token-at-rest.js');
     expect(info).toHaveBeenCalledTimes(1);
-    expect(info).toHaveBeenCalledWith(tokenKeyFingerprintLine());
+    expect(info).toHaveBeenCalledWith(tokenKeyIdLine());
     expect(String(info.mock.calls[0][0])).toMatch(
-      /^token_at_rest_key_fp=[0-9a-f]{8} source=LOG_HASH_SECRET$/
+      /^token_at_rest_kid=[0-9a-f]{8} source=LOG_HASH_SECRET$/
     );
     expect(JSON.stringify(info.mock.calls)).not.toContain('fixture-boot-key');
   });

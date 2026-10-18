@@ -93,7 +93,8 @@ async function persistTokens(userId: string, data: LinkedInUserData): Promise<vo
 async function loadTokens(userId: string): Promise<LinkedInTokens | null> {
   try {
     const persisted = openTokens<PersistedLinkedInTokens>(
-      await readProfileTokenField(userId, PROFILE_FIELD)
+      await readProfileTokenField(userId, PROFILE_FIELD),
+      PROFILE_FIELD
     );
     if (!persisted) return null;
 

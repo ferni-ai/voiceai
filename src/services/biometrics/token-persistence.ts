@@ -42,7 +42,8 @@ export async function loadTokens(userId: string): Promise<UserBiometrics | null>
   try {
     // Sealed, or legacy plaintext until the encrypt-integration-tokens migration runs
     const tokens = openTokens<PersistedBiometricTokens>(
-      await readProfileTokenField(userId, PROFILE_FIELD)
+      await readProfileTokenField(userId, PROFILE_FIELD),
+      PROFILE_FIELD
     );
     if (!tokens) return null;
 

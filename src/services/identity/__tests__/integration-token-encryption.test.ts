@@ -189,6 +189,26 @@ describe('integration token stores encrypt at rest', () => {
     expect(doc('oura_tokens/u-oura')).toBeUndefined();
   });
 
+  it('a key mismatch is logged with the store and reason, not read as "not connected" silently', async () => {
+    const oura = await import('../oura-auth.js');
+    tokenResponse();
+    await oura.exchangeCodeForTokens('code', 'u-kid-a');
+    const sealed = structuredClone(doc('oura_tokens/u-kid-a')!);
+    process.env.OAUTH_ENCRYPTION_KEY = 'fixture-other-key';
+    try {
+      state.docs.set('oura_tokens/u-kid-b', sealed);
+      h.calls.length = 0;
+      expect(await oura.getValidAccessToken('u-kid-b')).toBeNull();
+      const warning = h.calls.find(
+        (args) => (args[0] as { reason?: string } | undefined)?.reason === 'kid-mismatch'
+      );
+      expect(warning?.[0]).toMatchObject({ store: 'oura_tokens', reason: 'kid-mismatch' });
+      expect(JSON.stringify(warning)).not.toContain('u-kid-b');
+    } finally {
+      process.env.OAUTH_ENCRYPTION_KEY = 'fixture-encryption-key';
+    }
+  });
+
   it.each([
     ['eight sleep', '../eight-sleep-auth.js', 'eight_sleep_tokens'],
     ['ecobee', '../ecobee-auth.js', 'ecobee_tokens'],

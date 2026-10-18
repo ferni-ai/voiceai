@@ -9,9 +9,33 @@
  * until scripts/migrations/encrypt-integration-tokens.ts has run.
  */
 
-import { createHash } from 'node:crypto';
 import { FieldValue } from '@google-cloud/firestore';
-import { encryptData, decryptData, resolveTokenKey } from './token-encryption.js';
+import { createLogger } from './safe-logger.js';
+import {
+  decryptData,
+  encryptData,
+  envelopeFailure,
+  resolveTokenKey,
+  tokenKeyId,
+} from './token-encryption.js';
+
+export { tokenKeyId, tokenKeyHealth } from './token-encryption.js';
+
+const log = createLogger({ module: 'TokenAtRest' });
+
+/**
+ * Token maps kept on the profile doc. Only services/identity/profile-token-field
+ * writes them; a whole-profile save must not, or a stale cached profile puts a
+ * disconnected token back.
+ */
+export const PROFILE_TOKEN_FIELDS = ['linkedInTokens', 'biometricTokens'] as const;
+
+/** A copy of the profile without the token fields, for whole-profile writes. */
+export function withoutProfileTokenFields<T extends object>(profile: T): T {
+  const copy = { ...profile } as Record<string, unknown>;
+  for (const field of PROFILE_TOKEN_FIELDS) delete copy[field];
+  return copy as T;
+}
 
 /** The stored shape: the whole token record, encrypted. */
 export interface SealedTokens {
@@ -52,7 +76,7 @@ export function isPlaintextTokenRecord(stored: unknown): boolean {
  * plaintext (returned as-is for one release). Null when absent or when the
  * envelope cannot be decrypted.
  */
-export function openTokens<T>(stored: unknown): T | null {
+export function openTokens<T>(stored: unknown, store: string): T | null {
   if (stored === null || typeof stored !== 'object') return null;
   const sealed = (stored as Partial<SealedTokens>).encrypted;
   if (typeof sealed !== 'string') {
@@ -61,23 +85,18 @@ export function openTokens<T>(stored: unknown): T | null {
   const opened = decryptData<T>(sealed);
   // decryptData falls back to JSON.parse on a bad key, which yields the
   // envelope itself rather than tokens.
-  if (opened === null || (opened as { encrypted?: unknown }).encrypted === true) return null;
+  if (opened === null || (opened as { encrypted?: unknown }).encrypted === true) {
+    // A key mismatch must not look like "not connected": say which store and why.
+    log.warn(
+      { store, ...envelopeFailure(sealed), kid: tokenKeyId() },
+      'Sealed tokens did not open'
+    );
+    return null;
+  }
   return opened;
 }
 
-/**
- * A short, non-reversible tag for the effective token key: the first 8 hex of
- * sha256("ferni-token-key-fp:" + key), or "none" with no key. Two processes
- * that log the same value read and write each other's sealed tokens; the
- * key itself is never printed.
- */
-export function keyFingerprint(): string {
-  const { key } = resolveTokenKey();
-  if (key === '') return 'none';
-  return createHash('sha256').update(`ferni-token-key-fp:${key}`).digest('hex').slice(0, 8);
-}
-
-/** The boot line both the web server and the agent log, for comparing their keys. */
-export function tokenKeyFingerprintLine(): string {
-  return `token_at_rest_key_fp=${keyFingerprint()} source=${resolveTokenKey().source}`;
+/** The boot line the web server and the agent log, for comparing their keys. */
+export function tokenKeyIdLine(): string {
+  return `token_at_rest_kid=${tokenKeyId()} source=${resolveTokenKey().source}`;
 }

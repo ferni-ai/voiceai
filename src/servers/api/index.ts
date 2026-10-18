@@ -6,7 +6,7 @@
 
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
-import '../../utils/token-key-fingerprint-boot.js'; // which token key (fingerprint only)
+import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only)
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
