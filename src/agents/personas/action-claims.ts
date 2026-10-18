@@ -250,6 +250,28 @@ export function claimedAction(sentence: string): ActionKind | null {
   return null;
 }
 
+const ACK = 'okay|ok|alright|all right|sure|great|perfect|got it|you got it|yep|yes|yeah';
+const ON_IT = new RegExp(
+  `^(?:${ACK}|i'm on it|on it|consider it done|will do|wish me luck|here goes|here we go|leave it (?:to|with) me)$`
+);
+/**
+ * A sentence of only "I'm on it", "wish me luck" and the like: no action named,
+ * so not a claim by itself, but on the caller's yes to a call it says the call
+ * is under way (action-claim-guard.ts). Owner call 2026-10-18: "All right, I'm
+ * on it, wish me luck" and no call tool ran.
+ */
+export function bareOnIt(sentence: string): boolean {
+  const parts = sentence
+    .toLowerCase()
+    .replace(/[‘’ʼ`]/g, "'")
+    .split(/[^a-z' ]+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return (
+    parts.every((p) => ON_IT.test(p)) && parts.some((p) => !new RegExp(`^(?:${ACK})$`).test(p))
+  );
+}
+
 /** Tool names by the kind of action they carry out (lower case). */
 const TOOL_KINDS: Record<ActionKind, RegExp> = {
   call: /^(?:callonbehalf|callandconverse|quickcall|reachout|multioutreach|makephonecall|backgroundcall|invitefriendbycall|calluser|callcontact|haveferni?call|callforconversation|call_make|telephony_call)$/,

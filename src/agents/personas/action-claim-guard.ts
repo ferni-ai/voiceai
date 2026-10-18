@@ -23,8 +23,9 @@
  * - the latest call result is held for a better hour (deferred-calls.ts): nothing
  *   rang yet; the line goes where the claim was and says when it will.
  * - on the caller's yes, before the call tool has returned: whether it rang is
- *   not known yet, so a call claim is dropped with no line when the reply calls
- *   the tool (its result is spoken next), and asks again when it doesn't.
+ *   not known yet, so a call claim (or a bare "I'm on it") is dropped with no
+ *   line when the reply calls the tool (its result is spoken next), and asks
+ *   again when it doesn't.
  *   Prod call 2026-10-17: on the yes Nayan said "Well, I'm placing the call
  *   now." and the call was held until 9:00 AM their time.
  * - Ferni says he called emergency services or help (#1553): he can't reach
@@ -54,6 +55,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { isClearYes } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
+  bareOnIt,
   callActions,
   claimedAction,
   emergencyClaim,
@@ -306,7 +308,8 @@ async function checkActionClaims<T>(
     calling: ReadonlySet<ActionKind>
   ): { kind: ActionKind | null; reason: MissReason | null } => {
     if (isEmergency(text)) return { kind: 'call', reason: 'emergency' };
-    const kind = claimedAction(text);
+    // On the yes to a call, "I'm on it" says the call is under way too.
+    const kind = claimedAction(text) ?? (ahead('call') && bareOnIt(text) ? 'call' : null);
     return { kind, reason: kind ? missing(kind, calling) : null };
   };
   /** A call claimed on the yes, before the call tool has said whether anything rang. */
