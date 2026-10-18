@@ -1,11 +1,9 @@
 /**
- * Joining the waitlist, and a person's place in it. Identity is bound to the
- * verified address: a verified sign-in writes only the doc keyed by its own
- * email; a Gmail alias someone typed in earlier lends only its join time and is
- * retired (its phone, friend's code and lane are dropped). A join without a
- * sign-in proves nothing: it never touches an existing entry or stores a code.
- * A friend's code counts once, only if it came with that address's own verified
- * join, for someone new to the line who isn't the inviter. Throwaway domains are refused.
+ * Joining the waitlist. Identity is bound to the verified address and uid: a
+ * verified join writes only its own doc; a waiting Gmail alias lends only its
+ * join time and is retired (phone, code, lane dropped). An unverified join
+ * never touches an existing entry or stores a code. A friend's code counts once,
+ * only with that address's own verified join. Throwaway domains are refused.
  *
  * @module services/waitlist/join
  */
@@ -22,19 +20,24 @@ import {
 } from './queue.js';
 import type { WaitlistStore } from './store.js';
 
-/** The doc id every waitlist and profile route already uses. */
 export const waitlistDocId = (email: string): string =>
   Buffer.from(email).toString('base64').replace(/[/+=]/g, '_');
 
-/**
- * A person's own entry: the doc keyed by their address, else a verified entry
- * for the same inbox (a verified Gmail spelling is the same Google account).
- * An unverified alias proves nothing about who typed it, so it isn't theirs.
- */
-export async function findEntry(store: WaitlistStore, email: string): Promise<QueueEntry | null> {
+/** Dots and +tags fold only where the provider really does that: Gmail. */
+const foldsAliases = (email: string): boolean => /@(gmail|googlemail)\.com$/.test(email);
+
+/** Your entry: by uid once a sign-in bound it, else your address's doc, else (Gmail) a verified alias. */
+export async function findEntry(
+  store: WaitlistStore,
+  email: string,
+  uid?: string
+): Promise<QueueEntry | null> {
+  // prettier-ignore
+  const byUid = uid ? await store.findByUid(uid) : null;
+  if (byUid) return byUid;
   const lower = email.trim().toLowerCase();
   const exact = await store.get(waitlistDocId(lower));
-  if (exact) return exact;
+  if (exact || !foldsAliases(lower)) return exact;
   const alias = await store.findByCanonical(canonicalEmail(lower));
   return alias?.verified ? alias : null;
 }
@@ -48,16 +51,14 @@ export async function positionOf(store: WaitlistStore, e: QueueEntry): Promise<n
 
 export interface JoinInput {
   email: string;
-  /** The email came from a sign-in that proved it (Firebase email_verified). */
-  verified: boolean;
+  verified: boolean; // the email came from a sign-in that proved it (email_verified)
   ref?: string;
+  uid?: string; // that sign-in's Firebase uid: the entry is bound to it
   source: string;
   now: Date;
 }
 
 export type JoinOutcome = { entry: QueueEntry } | { refused: 'invalid_email' | 'disposable_email' };
-
-const isGmail = (e: QueueEntry): boolean => e.emailCanonical.endsWith('@gmail.com');
 
 /** Idempotent per inbox: a second join only fills in what is missing (verification, a code). */
 export async function joinWaitlist(store: WaitlistStore, input: JoinInput): Promise<JoinOutcome> {
@@ -65,13 +66,15 @@ export async function joinWaitlist(store: WaitlistStore, input: JoinInput): Prom
   if (!isValidEmail(email)) return { refused: 'invalid_email' };
   if (isDisposableEmail(email)) return { refused: 'disposable_email' };
   const exact = await store.get(waitlistDocId(email));
-  const existing = exact ?? (await store.findByCanonical(canonicalEmail(email)));
+  const existing = exact ?? (foldsAliases(email) ? await store.findByCanonical(canonicalEmail(email)) : null); // prettier-ignore
   if (!input.verified) {
     if (existing) return { entry: existing }; // can't prove it's theirs: touch nothing
     const entry = { ...newEntry(email, input.now), inviteCode: newInviteCode() };
     await store.merge(entry.id, { ...freshFields(entry, input), ...queueFields(entry) });
     return { entry };
   }
+  const byUid = !exact && input.uid ? await store.findByUid(input.uid) : null;
+  if (byUid) return { entry: byUid }; // this sign-in already has an entry
   if (!exact && existing?.verified) return { entry: existing }; // the same Google account, spelled differently
   return { entry: await joinVerified(store, { ...input, email }, exact, exact ? null : existing) };
 }
@@ -85,7 +88,7 @@ async function joinVerified(
 ): Promise<QueueEntry> {
   // prettier-ignore
   const { email, now } = input;
-  const inherit = alias && isGmail(alias) && WAITING_STATUSES.has(alias.status) ? alias : null;
+  const inherit = alias && WAITING_STATUSES.has(alias.status) ? alias : null; // a Gmail alias (foldsAliases)
   const ref = input.ref && INVITE_CODE_PATTERN.test(input.ref) ? input.ref : undefined;
   const base = exact ?? { ...newEntry(email, now), joinedAtMs: inherit?.joinedAtMs ?? now.getTime() }; // prettier-ignore
   const entry: QueueEntry = {
@@ -100,6 +103,7 @@ async function joinVerified(
   await store.merge(entry.id, {
     ...(exact ? {} : freshFields(entry, input)),
     email,
+    uid: input.uid,
     emailCanonical: entry.emailCanonical,
     joinedAt: new Date(entry.joinedAtMs),
     inviteCode: entry.inviteCode,
