@@ -311,6 +311,8 @@ export const FLAG_MANIFEST = {
   // once the caller said bye, Ferni's goodbye is one or two short sentences (short-goodbye.ts)
   SHORT_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a call with no caller turn is not counted in the profile (services/session/silent-call.ts)
+  SILENT_CALL_SKIP_PROFILE: { default: 'off', owner: 'memory', kind: 'experiment' },
   SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
   SKIP_GEMINI_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
