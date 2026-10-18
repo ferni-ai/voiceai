@@ -24,7 +24,7 @@ import { syncCommitmentToCalendar } from '../calendar/calendar-bridge.js';
 import { onCommitmentKeeperChange } from '../data-layer/hooks/superhuman-hooks.js';
 import { onCommitmentMade, onCommitmentAtRisk } from '../outreach/superhuman-outreach-bridge.js';
 import { recordWinFromCommitment } from './wins.js';
-import { commitmentSentences, isNotOwnCommitment } from './commitment-filters.js';
+import { commitmentSentences, isNotOwnCommitment } from '../../utils/commitment-filters.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
