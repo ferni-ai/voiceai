@@ -255,6 +255,43 @@ describe('the final verify of 0e61d0294', () => {
   });
 });
 
+describe('the C4 re-check of 5ef8f7f33 (best-effort secret drop)', () => {
+  it.each([
+    'the alarm is double four double one',
+    'the alarm is triple four one',
+    'el código doble cuatro doble uno',
+    'der Code ist doppel vier doppel eins',
+    'at 12:34 and at 23:45 then 567',
+    'at 11:11, at 11:11 and at 11:11',
+    'on the 41st on the 11th',
+    'the 12th then the 34th',
+    'on the 12th on the 21st',
+    'by the 3rd and the 4th of 56',
+    'la clave quatro quatro um um',
+    'diecinueve veintiuno',
+    'dieciocho dezoito',
+    'oitenta neunzehn',
+    'siebzehn diciannove',
+    'settanta settanta',
+    'девятнадцать семнадцать',
+  ])('drops %j', (line) => {
+    expect(said(line)).toEqual({ keep: false, reason: 'secret' });
+  });
+
+  it.each([
+    'pay rent at 5pm',
+    'dentist on the 15th at 3pm',
+    'call Mom Sunday',
+    'pick up the kids at 3:30',
+    "I'll pay Kevin $40 Friday",
+    'pick up the kids at 3:30 and 5:30',
+    'see you on March 12 at 5pm',
+    'pay the $1,450 deposit on Friday at 5pm',
+  ])('keeps the legit %j', (line) => {
+    expect(said(line)).toEqual({ keep: true });
+  });
+});
+
 describe('kept, and only ever kept: there is no "plain"', () => {
   it('every result is either { keep: true } or a drop with a reason, never more', () => {
     const items: Array<[unknown, string[]]> = [

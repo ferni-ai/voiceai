@@ -19,13 +19,17 @@
  *   however they are split up ("42 then 79", "the combo is 12:34"), is not
  *   stored, unless its only number is one money amount of at most seven
  *   digits with a currency sign or word ("$1,450"). Digits in a time or date
- *   count too, unless it reads as one ("at 3:30", "on the 15th", "5pm"),
- *   for at most two of them. A credential word drops an item as well.
+ *   count too, unless it reads as one ("at 3:30", "on March 3", "5pm"), for
+ *   at most two of them, and only when nothing else in the item is a number;
+ *   a bare ordinal ("the 41st") counts. A credential word drops an item too.
  *
- * Number words in other languages count as digits only as far as the lists
- * below go: best effort, a defence in depth for the drop rule, never a reason
- * to send anything. Accepted: a span can leave out a negation ("not going to
- * wire $900" gives "wire $900"), which only a call ever raises.
+ * Known limits. The secret drop is defence in depth, not a number parser:
+ * number words count as digits only as far as the lists below go (a few
+ * languages, the common words), and digits said any other way, or in any
+ * other language, are not caught. The safeguards that do not depend on it
+ * are that a kept commitment is only ever raised on a call, and texted only
+ * after the caller says yes to a reminder for it. Accepted too: a span can
+ * leave out a negation ("not going to wire $900" gives "wire $900").
  *
  * A library: nothing calls it yet. #1985's writer and readers adopt it.
  *
@@ -48,10 +52,10 @@ const spanKey = (s: string): string => canon(s).replace(/[.!?,;:]+$/, '');
  * Best effort: the languages listed, no more.
  */
 const NUMBER_WORDS = new Map<string, number>([
-  ...'zero oh one two three four five six seven eight nine cero uno dos tres cuatro cinco seis siete ocho nueve zéro un une deux trois quatre cinq six sept huit neuf null eins zwei drei vier fünf sechs sieben acht neun um dois três sete oito nove due tre quattro cinque sei sette otto один два три четыре пять шесть семь восемь девять'
+  ...'zero oh one two three four five six seven eight nine cero uno dos tres cuatro cinco seis siete ocho nueve zéro un une deux trois quatre cinq six sept huit neuf null eins zwei drei vier fünf sechs sieben acht neun um dois três sete oito nove due tre quattro cinque sei sette otto один два три четыре пять шесть семь восемь девять quatro'
     .split(' ')
     .map((w): [string, number] => [w, 1]),
-  ...'ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fourty fifty sixty seventy eighty ninety hundred dozen diez once doce trece catorce quince veinte veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento dix onze douze treize quatorze quinze seize vingt trente quarante cinquante soixante cent zehn elf zwölf zwanzig dreißig vierzig fünfzig sechzig siebzig achtzig neunzig hundert dez doze dezesseis vinte trinta quarenta cinquenta sessenta cem dieci undici dodici venti trenta quaranta cinquanta sessanta cento десять двадцать тридцать сорок пятьдесят сто'
+  ...'ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fourty fifty sixty seventy eighty ninety hundred dozen diez once doce trece catorce quince veinte veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento dix onze douze treize quatorze quinze seize vingt trente quarante cinquante soixante cent zehn elf zwölf zwanzig dreißig vierzig fünfzig sechzig siebzig achtzig neunzig hundert dez doze dezesseis vinte trinta quarenta cinquenta sessenta cem dieci undici dodici venti trenta quaranta cinquanta sessanta cento десять двадцать тридцать сорок пятьдесят сто diecinueve veintiuno dieciocho dezoito oitenta neunzehn siebzehn diciannove settanta девятнадцать семнадцать'
     .split(' ')
     .map((w): [string, number] => [w, 2]),
   ...'doscientos trescientos cuatrocientos quinientos seiscientos setecientos ochocientos novecientos quinhentos пятьсот'
@@ -64,6 +68,11 @@ const NUMBER_WORDS = new Map<string, number>([
     .split(' ')
     .map((w): [string, number] => [w, 6]),
   ...'billion billions'.split(' ').map((w): [string, number] => [w, 9]),
+]);
+/** Words that repeat the digit after them: "double four" is 44, "triple one" 111. */
+const MULTIPLIER = new Map<string, number>([
+  ...'double doble doppel doppio dupla'.split(' ').map((w): [string, number] => [w, 2]),
+  ...'triple triplo tripla dreifach'.split(' ').map((w): [string, number] => [w, 3]),
 ]);
 /** What a number may run on into, past a space: "$5 thousand", "$5 k", "$5 000". */
 const RUNS_ON = /^[\s'\u00a0\u2009\u202f]*(?:\p{N}|(?:k|m|mm|bn)(?![\p{L}\p{N}]))/u;
@@ -78,7 +87,7 @@ export function isSpanOf(span: string, turn: string): boolean {
   const s = spanKey(span);
   const t = canon(turn);
   if (!s) return false;
-  const cuts = (edge: string, beyond: string) =>
+  const cuts = (edge: string, beyond: string): boolean =>
     WORDY.test(edge) || (/[,.:]/.test(edge) && /\p{N}/u.test(beyond));
   for (let i = t.indexOf(s); i !== -1; i = t.indexOf(s, i + 1)) {
     const end = i + s.length;
@@ -98,14 +107,16 @@ const WEEKDAY = '(?:mon|tue|tues|wed|wednes|thu|thur|thurs|fri|sat|satur|sun)(?:
 /** "9am", "9:30 p.m.", "14:30". */
 const CLOCK =
   /(?<!\p{N})\d{1,2}(?::[0-5]\d)?\s?(?:a\.?m\.?|p\.?m\.?)(?![\p{L}\p{N}])|(?<![\p{N}:])(?:[01]?\d|2[0-3]):[0-5]\d(?![\p{N}:])/giu;
-/** "Friday the 13th", "March 3", "3rd of June", "the 15th": a day of the month, 1 to 31. */
+/** "Friday the 13th", "March 3", "3rd of June": a day of the month, 1 to 31, next to a month or weekday. A bare "the 15th" counts its digits. */
 const DAY = '(?:3[01]|[12]\\d|0?[1-9])';
 const DAY_OF_MONTH = new RegExp(
-  `(?<![\\p{L}])(?:${MONTH}|${WEEKDAY})\\.?\\s+(?:the\\s+)?${DAY}(?:st|nd|rd|th)?(?![\\p{N}])|(?<!\\p{N})${DAY}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:${MONTH})(?![\\p{L}])|(?<!\\p{N})${DAY}(?:st|nd|rd|th)(?![\\p{L}\\p{N}])`,
+  `(?<![\\p{L}])(?:${MONTH}|${WEEKDAY})\\.?\\s+(?:the\\s+)?${DAY}(?:st|nd|rd|th)?(?![\\p{N}])|(?<!\\p{N})${DAY}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:${MONTH})(?![\\p{L}])`,
   'giu'
 );
 /** Words that make a time or date read as one: "at 3:30", "on the 15th", "by March 3". */
 const INTRO = /(?<![\p{L}])(?:at|by|on|until|till|before|after|from)\s+(?:the\s+)?$/iu;
+/** What may sit between two listed times: "at 3:30 and 5:30", "at 9, or 10". */
+const LIST = /^\s*,?\s*(?:and|or|then|&)\s+(?:at\s+)?$/iu;
 /** At most this many time or date shapes are set aside; past that their digits count. */
 const MAX_SHAPES = 2;
 /** One money amount, at most 7 digits: "$40", "1,450", "$1,000,000", "$12.50". */
@@ -119,25 +130,51 @@ const CURRENCY =
 const MAGNITUDE = /\p{N}\s?(k|m|mm|bn|grand)(?![\p{L}])/giu;
 
 /**
- * Four or more digits in all (number words and magnitudes counted), unless
- * the only number is one money amount. A time or date counts as well, unless
- * it reads as one ("at 3:30", "5pm"), and then only for two of them.
+ * Four or more digits in all (number words, multipliers and magnitudes
+ * counted), unless the only number is one money amount. A time or date
+ * counts as well unless it reads as one ("at 3:30", "5pm"), only two are set
+ * aside, and none at all when anything else in the item is a number.
  */
+/** Digits said as words or magnitudes: "four one" is 2, "double four" 2, "5k" 3. */
+function spokenDigits(masked: string): number {
+  let spoken = 0;
+  const said = masked.split(/[^\p{L}]+/u);
+  for (let i = 0; i < said.length; i++) {
+    const n = NUMBER_WORDS.get(said[i]) ?? 0;
+    // "double four" is two digits and "triple four" three.
+    spoken += n * (n > 0 ? (MULTIPLIER.get(said[i - 1] ?? '') ?? 1) : 1);
+  }
+  for (const m of masked.matchAll(MAGNITUDE)) spoken += m[1] === 'k' || m[1] === 'grand' ? 3 : 6;
+  return spoken;
+}
 function tooManyDigits(text: string): boolean {
   let shapes = 0;
-  const setAside = (m: string, at: number, all: string) =>
-    (/[ap]\.?m\.?$/i.test(m) || INTRO.test(all.slice(0, at))) && ++shapes <= MAX_SHAPES ? '§' : m;
-  const masked = canon(text).replace(CLOCK, setAside).replace(DAY_OF_MONTH, setAside);
+  let shapeDigits = 0;
+  // One per pass: each pass reads its own string, so "listed" looks back only within it.
+  const setAside = () => {
+    let lastEnd = -1;
+    return (m: string, at: number, all: string) => {
+      // "at 3:30 and 5:30": a time listed right after one that read as a time reads as one too.
+      const listed = lastEnd >= 0 && LIST.test(all.slice(lastEnd, at));
+      const reads = /[ap]\.?m\.?$/i.test(m) || INTRO.test(all.slice(0, at)) || listed;
+      if (!reads || ++shapes > MAX_SHAPES) return m;
+      shapeDigits += (m.match(/\p{N}/gu) ?? []).length;
+      lastEnd = at + m.length;
+      return '§';
+    };
+  };
+  const masked = canon(text).replace(CLOCK, setAside()).replace(DAY_OF_MONTH, setAside());
   const numbers = [...masked.matchAll(NUMBER)].map((m) => m[0]);
-  let spoken = 0;
-  for (const w of masked.split(/[^\p{L}]+/u)) spoken += NUMBER_WORDS.get(w) ?? 0;
-  for (const m of masked.matchAll(MAGNITUDE)) spoken += m[1] === 'k' || m[1] === 'grand' ? 3 : 6;
+  const spoken = spokenDigits(masked);
   const oneAmount =
     numbers.length === 1 &&
     spoken === 0 &&
     AMOUNT.test(numbers[0]) &&
     (numbers[0].startsWith('$') || CURRENCY.test(masked));
-  return (masked.match(/\p{N}/gu) ?? []).length + spoken >= 4 && !oneAmount;
+  const other = (masked.match(/\p{N}/gu) ?? []).length + spoken;
+  // Times and dates are set aside only when nothing else in the item is a number:
+  // "at 3:30 and 5:30" is kept, "at 12:34 and at 23:45 then 567" is not.
+  return other > 0 && !oneAmount && other + shapeDigits >= 4;
 }
 
 /** Whole-word, in any script. */
