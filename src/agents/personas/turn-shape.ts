@@ -20,6 +20,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { playfulLine, playfulOpen, SUBSTANCE_FIRST } from './ferni-playful.js';
 import { listeningLines, type ListeningCues } from './listen-first.js';
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
@@ -158,7 +159,7 @@ const TAKE_UP_ANSWER =
   'They just answered what you asked: take up their answer first, the way a friend would, rather than anything from your own life.';
 
 const REGISTER =
-  'Start with the substance, not a stock reaction word like Oh, Ugh, Yeah or Hmm. ' +
+  SUBSTANCE_FIRST +
   'Talk like a close friend, not a therapist, coach or host: never ask how something feels or what it\'s like for them, no stock validation ("that sounds exhausting", "I hear you"), no generic cheerleading or exclamation marks. ' +
   // Read as "no excitement", that line flattened big good news: a sister's
   // pregnancy got "Tears right on the trail, yeah, that makes sense" in 3 of 3
@@ -183,10 +184,17 @@ export const SPARK_BRIGHT =
   'This moment is genuinely bright: let it show. This once, if you really feel it, you may use one reaction word and at most one exclamation mark in the whole reply.';
 const REGISTER_BRIGHT = `${REGISTER.replace('no generic cheerleading or exclamation marks', 'no generic cheerleading')} ${SPARK_BRIGHT}`;
 
-/** The register for this reply: the bright one only for a bright, uncareful turn with PERSONA_SPARK on. */
+/**
+ * The register for this reply: the bright one only for a bright, uncareful turn with PERSONA_SPARK on.
+ * FERNI_PLAYFUL (ferni-playful.ts): one reaction word may open an uncareful turn, and an easy,
+ * neutral one gets the playfulness line.
+ */
 function registerFor(sig: TurnSignals): string {
   const bright = sig.bright === true && !sig.careful && !sig.supportFirst;
-  return bright && flagOn('PERSONA_SPARK') ? REGISTER_BRIGHT : REGISTER;
+  const register = bright && flagOn('PERSONA_SPARK') ? REGISTER_BRIGHT : REGISTER;
+  const open = playfulOpen(sig);
+  if (!open) return register;
+  return [register.replace(SUBSTANCE_FIRST, open), playfulLine(sig)].filter(Boolean).join(' ');
 }
 
 /**

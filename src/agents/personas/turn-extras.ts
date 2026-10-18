@@ -106,6 +106,8 @@ export interface TurnSignals {
   answered?: boolean;
   /** QUIET_CALLER=on: their last turns were a few words each (quiet-caller.ts). */
   quiet?: boolean;
+  /** FERNI_PLAYFUL=on and Ferni speaking (ferni-playful.ts). */
+  playful?: boolean;
   /** TROUBLES_TALK=on: a trouble on this turn or just before it (troubles-talk.ts); unset when off. */
   trouble?: boolean;
 }
