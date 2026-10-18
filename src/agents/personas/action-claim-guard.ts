@@ -67,6 +67,7 @@ import { withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
 import { CRISIS_TALK, crisisInPlay, EMERGENCY_LINE, helpAlreadyCalled } from './emergency-claim.js';
 import { plain, spokenOf, type Item } from './spoken-words.js';
+import { callOutcomeUnheard, narratesCallOutcome, UNHEARD_LINE } from './call-narration.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -77,7 +78,13 @@ const isCalendarCreate = (name: string): boolean =>
 type Chunk = llm.ChatChunk | string | object;
 /** 'uncalled': a create tool is open, but no create ran on this call for this claim (#1547). */
 export type MissReason =
-  'no_tool' | 'failed' | 'awaiting' | 'held' | 'uncalled' | 'elsewhere' | 'emergency';
+  | 'no_tool'
+  | 'failed'
+  | 'awaiting'
+  | 'held'
+  | 'uncalled'
+  | 'elsewhere'
+  | 'emergency';
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
@@ -287,6 +294,9 @@ async function checkActionClaims<T>(
     const claim = emergencyClaim(text);
     return claim === 'called' || (claim === 'coming' && crisis);
   };
+  // A story of how a call went that no result came back from (call-narration.ts).
+  const callRan = [done, awaiting, failed, held].some((kinds) => kinds.has('call'));
+  const unheard = callOutcomeUnheard(chatCtx, callRan);
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
     !open.has(kind)
@@ -391,6 +401,17 @@ async function checkActionClaims<T>(
         emit(hold ? line : `Scratch that, ${line}`);
         lineLast = true;
       };
+      /** A story of how an unheard call went: dropped, and said honestly once. */
+      const told = (text: string): boolean => {
+        if (!unheard || !narratesCallOutcome(text, unheard.askedHow)) return false;
+        log.warn({ kind: 'call', reason: 'unheard', held: hold }, 'ACTION_CLAIM_DROPPED');
+        if (said) return true;
+        said = true;
+        const line = held.has('call') ? honestLine('call', 'held', false, heldWhen) : UNHEARD_LINE;
+        emit(hold ? line : `Scratch that, ${line}`);
+        lineLast = true;
+        return true;
+      };
       try {
         for (let next = await reader.read(); !next.done; next = await reader.read()) {
           const chunk = next.value;
@@ -401,7 +422,7 @@ async function checkActionClaims<T>(
             // flushing on them cut words at the piece break ("cr ickets", "don' t").
             const names = toolNamesOf(chunk);
             if (names.length > 0) {
-              if (pending) flush(pending);
+              if (pending && !told(pending)) flush(pending);
               pending = '';
               passed = 0;
             }
@@ -428,7 +449,7 @@ async function checkActionClaims<T>(
           pending += content;
           for (let end = sentenceEnd(pending); end > 0; end = sentenceEnd(pending)) {
             if (!hold) pass(pending.slice(passed, end)); // the rest of this sentence, then any correction
-            flush(pending.slice(0, end));
+            if (!told(pending.slice(0, end))) flush(pending.slice(0, end));
             pending = pending.slice(end);
             passed = 0;
           }
@@ -437,7 +458,7 @@ async function checkActionClaims<T>(
             passed = pending.length;
           }
         }
-        if (pending) flush(pending);
+        if (pending && !told(pending)) flush(pending);
         if (deferred && !said && !calling.has(deferred.kind)) {
           emit(honestLine(deferred.kind, deferred.reason, open.has('reminder')));
         }
