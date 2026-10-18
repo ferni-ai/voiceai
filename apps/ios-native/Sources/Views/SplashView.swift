@@ -50,7 +50,7 @@ struct SplashView: View {
                         .font(FerniFont.display(size: 32, weight: .bold))
                         .foregroundColor(.white)
 
-                    Text("Your AI Team")
+                    Text("Your team")
                         .font(FerniFont.body(size: 15, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
                 }

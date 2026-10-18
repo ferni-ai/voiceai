@@ -50,6 +50,7 @@ const OUTREACH_PREFIX = '/api/outreach';
 type Named = { userId?: unknown };
 
 import { handleVerifyPhone } from './verify-phone-routes.js';
+import { phoneChannelRefusal } from './user-contact.js';
 
 // Helper to get persona display name
 function getPersonaName(personaId: string): string {
@@ -157,20 +158,17 @@ export async function handleOutreachRoutes(
     if (route === '/preferences' && method === 'POST') {
       const body = await parseRequestBody(req);
       const { preferences } = body as {
-        preferences: {
-          enabled?: boolean;
-          allowedChannels?: Array<'sms' | 'email' | 'call'>;
-          preferredChannel?: 'sms' | 'email' | 'call';
-          disabledChannels?: Array<'sms' | 'email' | 'call'>;
-          quietHours?: { start: number; end: number };
-          timezone?: string;
-          maxOutreachPerDay?: number;
-          maxOutreachPerWeek?: number;
-        };
+        preferences: Parameters<typeof updateOutreachPreferences>[1];
       };
-
+      const patch = consentPatchFrom(preferences);
+      // Texts and calls only to a number the user proved is theirs (a texted code).
+      const refusal = await phoneChannelRefusal(auth, patch.channels);
+      if (refusal) {
+        sendJsonResponse(res, 409, { success: false, error: refusal });
+        return true;
+      }
       // Use authenticated userId (ignore body.userId to prevent tampering)
-      await writeOutreachConsent(authenticatedUserId, consentPatchFrom(preferences));
+      await writeOutreachConsent(authenticatedUserId, patch);
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;
