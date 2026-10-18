@@ -42,6 +42,7 @@ import { handleGrowthRoutes } from './routes/growth.js';
 import { handleMemoriesRoutes } from './routes/memories.js';
 import { handleRememberedRoutes } from './routes/remembered.js';
 import { handleKnownRoutes } from './routes/known.js';
+import { handlePromisesRoutes } from './routes/promises.js';
 import { handlePredictionsRoutes } from './routes/predictions.js';
 import { handleRelationshipRoutes } from './routes/relationship.js';
 import { handleRitualsRoutes } from './routes/rituals.js';
@@ -77,6 +78,7 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/team-insights',
   '/api/life-context',
   '/api/semantic-intelligence',
+  '/api/promises', // What Ferni is following through on (PROMISES_PANEL)
 ];
 
 /**
@@ -176,6 +178,11 @@ export async function handleEngagementRoutes(
 
   // What Ferni knows, every store in one view (MEMORY_VIEW=on)
   if (await handleKnownRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // What Ferni is following through on, and what happened (PROMISES_PANEL=on)
+  if (await handlePromisesRoutes(req, res, pathname, parsedUrl)) {
     return true;
   }
 

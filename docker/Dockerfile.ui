@@ -140,6 +140,9 @@ ARG VITE_CAPTIONS_HEARD=""
 ENV VITE_CAPTIONS_V2=$VITE_CAPTIONS_V2 VITE_CAPTIONS_BREATH=$VITE_CAPTIONS_BREATH VITE_CAPTIONS_HEARD=$VITE_CAPTIONS_HEARD
 ARG VITE_MEMORY_VIEW=""
 ENV VITE_MEMORY_VIEW=$VITE_MEMORY_VIEW
+# Promises in the Your Day hub (apps/web/src/ui/hub-promises.ui.ts); off unless set to "true".
+ARG VITE_PROMISES_PANEL=""
+ENV VITE_PROMISES_PANEL=$VITE_PROMISES_PANEL
 RUN pnpm run build
 
 # ============================================================================

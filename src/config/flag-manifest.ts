@@ -254,6 +254,8 @@ export const FLAG_MANIFEST = {
   PRE_STT_SIP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PROACTIVE_CHANNELS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: GET /api/promises, the Today panel's follow-through list (api/routes/promises.ts)
+  PROMISES_PANEL: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // character loads a short character sheet instead of the full prompt (prompt-loader.ts)
   PROMPT_MODE: { default: 'full', owner: 'voice', kind: 'config' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },

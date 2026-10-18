@@ -47,6 +47,18 @@ describe('web-server flags survive a deploy', () => {
     expect(workflowEnv()).toContain(flag);
   });
 
+  it('GET /api/promises has a slot in the workflow, off until a reviewed PR turns it on', () => {
+    expect(workflowEnv()).toContain('PROMISES_PANEL=off');
+  });
+
+  it('the Promises build flag reaches both web builds', () => {
+    expect(firebase).toMatch(/VITE_PROMISES_PANEL: \$\{\{ vars\.VITE_PROMISES_PANEL \}\}/);
+    expect(workflow).toMatch(
+      /--build-arg VITE_PROMISES_PANEL="\$\{\{ vars\.VITE_PROMISES_PANEL \}\}"/
+    );
+    expect(dockerfile).toMatch(/ARG VITE_PROMISES_PANEL=""\nENV VITE_PROMISES_PANEL=\$VITE_PROMISES_PANEL/);
+  });
+
   it('the What Ferni Knows build flag reaches both web builds', () => {
     expect(firebase).toMatch(/VITE_MEMORY_VIEW: \$\{\{ vars\.VITE_MEMORY_VIEW \}\}/);
     expect(workflow).toMatch(/--build-arg VITE_MEMORY_VIEW="\$\{\{ vars\.VITE_MEMORY_VIEW \}\}"/);
