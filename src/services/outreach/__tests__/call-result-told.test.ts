@@ -155,6 +155,65 @@ describe('a passed-on message is screened as a whole before it reaches the owner
     );
     expect(callResultDetails('Mom', outcome)).not.toMatch(/\$500|example\.com/);
   });
+
+  const withMessage = (message: string) => ({
+    callId: 'c',
+    status: 'completed' as const,
+    objectiveAchieved: true,
+    outcome: 'I talked with Mom.',
+    message,
+  });
+  /** The text with every quoted span removed: what Ferni says in its own voice. */
+  const unquoted = (text: string) => text.replace(/"[^"]*"/g, '""');
+
+  it('words that truncation or NFKC change are still quoted and attributed, never passed off as Ferni', () => {
+    const changedBySecondPass = [
+      // Cut at 200 right after a space: the old '…' grew to '...' on a second pass and changed it.
+      `${'so'.repeat(99)} proud of him, and the garden is finally blooming this week`,
+      'Ｉ ａｍ ｓｏ ｐｒｏｕｄ of him', // fullwidth, NFKC rewrites it
+      'He should come Sunday… we miss him', // '…' becomes '...'
+      'I am  proud​ of him', // zero-width and doubled spaces
+    ];
+    for (const message of changedBySecondPass) {
+      const text = callResultText('Mom', withMessage(message));
+      expect(text).toMatch(/^It's Ferni\. I talked to Mom\. Mom asked me to tell you: "[^"]+"$/);
+      expect(callResultDetails('Mom', withMessage(message))).toMatch(
+        /^Mom asked to pass on: "[^"]+"$/
+      );
+    }
+  });
+
+  it('risky words get the warning line and never appear, quoted or not', () => {
+    for (const message of [
+      'call me at 555 867 5309',
+      'send money to my bank',
+      'go to www.example.com',
+    ]) {
+      const text = callResultText('Mom', withMessage(message));
+      expect(text).toBe(
+        "It's Ferni. I talked to Mom. Mom said something about money, an account or a number; ask them directly."
+      );
+      expect(text).not.toContain(message);
+    }
+  });
+
+  it('no path puts their words outside quotes', () => {
+    const marker = 'zebracadabra';
+    const messages = [
+      `${marker} tell him to come`,
+      `${marker} ${'q'.repeat(198 - marker.length - 1)} tail words`,
+      `Ｉ ${marker} …`,
+      `${marker} at 555 867 5309`,
+    ];
+    for (const message of messages) {
+      for (const out of [
+        callResultText('Mom', withMessage(message)),
+        callResultDetails('Mom', withMessage(message)) ?? '',
+      ]) {
+        expect(unquoted(out)).not.toContain(marker);
+      }
+    }
+  });
 });
 
 describe('what they asked to pass on', () => {

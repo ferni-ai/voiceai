@@ -22,7 +22,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
-import { callerText, screenedCallerText } from './caller-text.js';
+import { callerText, isRiskyCallerText, riskyCallerLine } from './caller-text.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 
 const log = createLogger({ module: 'call-result-text' });
@@ -38,30 +38,40 @@ export function callResultTextOn(env: Record<string, string | undefined> = proce
 
 /**
  * What they asked to pass on, screened again right before it goes out (it may
- * have been joined from parts): their words to quote, or the screen's own line
- * ("... said something about money ...; ask them directly.") to say instead.
+ * have been joined from parts). Their words are only ever quoted and
+ * attributed; risky words are replaced by Ferni's own fixed line, decided by
+ * isRiskyCallerText, never by whether a second pass changed the text.
  */
 function passedOn(contactName: string, outcome: CallOutcome): { quote?: string; flag?: string } {
   const said = callerText(outcome.message, 200);
   if (!said) return {};
-  const screened = screenedCallerText(said, contactName, 200);
-  return screened === said ? { quote: said } : { flag: screened };
+  // The lifecycle may already have put the fixed line in `message`: say it, don't quote it.
+  if (said === riskyCallerLine(contactName) || isRiskyCallerText(said)) {
+    return { flag: riskyCallerLine(contactName) };
+  }
+  return { quote: said };
+}
+
+/** Cut to one text without leaving a quote open (a cut quote is closed, so it stays theirs). */
+function capped(text: string): string {
+  if (text.length <= MAX_TEXT) return text;
+  const cut = `${text.slice(0, MAX_TEXT - 4).trimEnd()}...`;
+  return (cut.match(/"/g)?.length ?? 0) % 2 === 1 ? `${cut}"` : cut;
 }
 
 /**
  * The text. With a message: that they were reached and what they asked to pass
- * on, in their words. Without one: the call's own outcome line.
+ * on, quoted. Without one: the call's own outcome line.
  */
 export function callResultText(contactName: string, outcome: CallOutcome): string {
   const { quote, flag } = passedOn(contactName, outcome);
   const reached = `It's Ferni. I talked to ${contactName}.`;
-  const text =
-    outcome.status !== 'completed' || (!quote && !flag)
-      ? `It's Ferni. ${outcome.outcome.trim()}`
-      : quote
-        ? `${reached} ${contactName} asked me to tell you: "${quote}"`
-        : `${reached} ${flag}`;
-  return text.length > MAX_TEXT ? `${text.slice(0, MAX_TEXT - 1).trimEnd()}…` : text;
+  if (outcome.status !== 'completed' || (!quote && !flag)) {
+    return capped(`It's Ferni. ${outcome.outcome.trim()}`);
+  }
+  return capped(
+    quote ? `${reached} ${contactName} asked me to tell you: "${quote}"` : `${reached} ${flag}`
+  );
 }
 
 /** The While You Were Away details: what they asked to pass on first, then the summary. */
