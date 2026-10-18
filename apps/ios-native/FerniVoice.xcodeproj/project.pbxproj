@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0FFEE0000000000000000C2 /* WaitlistStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0000000000000000C1 /* WaitlistStatusTests.swift */; };
+		C0FFEE0000000000000000B2 /* WaitingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0000000000000000B1 /* WaitingView.swift */; };
+		C0FFEE0000000000000000A2 /* WaitlistStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FFEE0000000000000000A1 /* WaitlistStatus.swift */; };
 		07A0DCA13A93E6271232535C /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9E71C3A7CB1F6BB57DC8E8 /* KeychainManager.swift */; };
 		087EA07EC8A40E2707A1D567 /* HomeKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A943E77BFDBA802900FA6014 /* HomeKitService.swift */; };
 		09092237862D6F73171C9F4A /* InteractiveMoodWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A8C78DB6D8406DE65F35C3B /* InteractiveMoodWidget.swift */; };
@@ -146,6 +149,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C0FFEE0000000000000000C1 /* WaitlistStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitlistStatusTests.swift; sourceTree = "<group>"; };
+		C0FFEE0000000000000000B1 /* WaitingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitingView.swift; sourceTree = "<group>"; };
+		C0FFEE0000000000000000A1 /* WaitlistStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitlistStatus.swift; sourceTree = "<group>"; };
 		057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniVoiceiOSTests.swift; sourceTree = "<group>"; };
 		07898F430099BCE617A604FF /* CarPlay.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CarPlay.framework; path = System/Library/Frameworks/CarPlay.framework; sourceTree = SDKROOT; };
 		0A8C78DB6D8406DE65F35C3B /* InteractiveMoodWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveMoodWidget.swift; sourceTree = "<group>"; };
@@ -294,6 +300,7 @@
 			children = (
 				DDBAD3CDC18C4DD4B2CA54B1 /* AccountSection.swift */,
 				3C8E9F7817349C526B5FE3DC /* ConnectingView.swift */,
+				C0FFEE0000000000000000B1 /* WaitingView.swift */,
 				2B6FD9C87E3433EDE46EB029 /* OnboardingView.swift */,
 				A7209647670485E81A61C468 /* PersonaPickerSheet.swift */,
 				B2D0FEED0000000000000004 /* TeammateIntroduction.swift */,
@@ -461,6 +468,7 @@
 				34565AE2398C36A9C793D505 /* AuthenticationIntegrationTests.swift */,
 				A621A2880FBC7F0E4BAE7443 /* E2EIntegrationTests.swift */,
 				057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */,
+				C0FFEE0000000000000000C1 /* WaitlistStatusTests.swift */,
 				981DBC4242D7E38D88F4C69B /* HandoffProtocolTests.swift */,
 				A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */,
 				B2D0FEED0000000000000001 /* TeamUnlockTests.swift */,
@@ -517,6 +525,7 @@
 				76626BFFF99251B574EA46E0 /* HealthKitService.swift */,
 				A943E77BFDBA802900FA6014 /* HomeKitService.swift */,
 				FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */,
+				C0FFEE0000000000000000A1 /* WaitlistStatus.swift */,
 				C3A6E5150000000000000001 /* AgentSignals.swift */,
 				1A9E71C3A7CB1F6BB57DC8E8 /* KeychainManager.swift */,
 				F20933E62906112CEBE251D0 /* LocationService.swift */,
@@ -772,6 +781,7 @@
 				5FF27AE78512CC515B73C484 /* AuthenticationIntegrationTests.swift in Sources */,
 				914A753EE576EC91DAD6C200 /* E2EIntegrationTests.swift in Sources */,
 				505ECFBDBD6E34C6DF676016 /* FerniVoiceiOSTests.swift in Sources */,
+				C0FFEE0000000000000000C2 /* WaitlistStatusTests.swift in Sources */,
 				D0DE478E4FA67CA03902966A /* HandoffProtocolTests.swift in Sources */,
 				A1C0FFEE0000000000000003 /* SubscriptionAccountTokenTests.swift in Sources */,
 				B2D0FEED0000000000000101 /* TeamUnlockTests.swift in Sources */,
@@ -810,6 +820,7 @@
 				2A3E516A7784E94BFC4AD896 /* BetterThanHumanIntegration.swift in Sources */,
 				61BEB49A3052CE32B516731C /* CalendarService.swift in Sources */,
 				B93B80BA369079B320F74101 /* ConnectingView.swift in Sources */,
+				C0FFEE0000000000000000B2 /* WaitingView.swift in Sources */,
 				67228DEE2B28C781DB7B04F3 /* ContactsService.swift in Sources */,
 				722784CB69BD446BD3EB1EAF /* ExpressionConfig.swift in Sources */,
 				97A4F6B283E21C21289930B6 /* ExpressionEventMapper.swift in Sources */,
@@ -822,6 +833,7 @@
 				35C03580BC88E4E8D27539EB /* HealthKitService.swift in Sources */,
 				087EA07EC8A40E2707A1D567 /* HomeKitService.swift in Sources */,
 				81DD38671F19B6737A0B0324 /* IOSLiveKitSession.swift in Sources */,
+				C0FFEE0000000000000000A2 /* WaitlistStatus.swift in Sources */,
 				C3A6E5150000000000000101 /* AgentSignals.swift in Sources */,
 				07A0DCA13A93E6271232535C /* KeychainManager.swift in Sources */,
 				1CDCF6AEA8221C5C3BA32246 /* LocationService.swift in Sources */,
