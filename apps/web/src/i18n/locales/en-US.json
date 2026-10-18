@@ -3381,7 +3381,8 @@
     "loadingStory": "Loading your story...",
     "motivation": "Every moment matters",
     "ourStoryStart": "Our story is just beginning",
-    "youAreHere": "You are here"
+    "youAreHere": "You are here",
+    "boundariesYouSet": "Boundaries you've set"
   },
   "agentWizard": {
     "namePlaceholder": "What should we call them?",
