@@ -16,6 +16,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { ensureFirebaseAdmin } from '../identity/firebase-auth.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { queueBqErasure } from '../analytics/bq-erasure.js';
 import { KEYED_STORES, type KeyedStore } from './erase-other-keys.js';
 import {
   gatherErasureKeys,
@@ -138,6 +139,8 @@ export async function eraseUserRecord(
   const keys = keyed.length > 0 ? await gatherKeys(db, userId, keyed) : null;
   const linked = keys?.linkedUserIds ?? [];
   linked.forEach(assertErasableUserId);
+  // Their BigQuery analytics rows go in a later batch, after the streaming buffer (bq-erasure.ts)
+  await queueBqErasure(db, [userId, ...linked]);
   const uidJobs = (uid: string, tier: number): Job[] =>
     stores
       .filter((store) => (KEY_TIER.get(storeLabel(store)) ?? 0) === tier)

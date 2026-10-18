@@ -51,6 +51,26 @@ export async function handleTTLCleanup(res: ServerResponse): Promise<void> {
   }
 }
 
+/** Deletes erased accounts' BigQuery analytics rows (services/analytics/bq-erasure.ts). */
+export async function handleBqErasure(res: ServerResponse): Promise<void> {
+  try {
+    const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
+    const { runBqErasure } = await import('../../services/analytics/bq-erasure.js');
+    const db = getFirestoreDb();
+    if (!db) throw new Error('Firestore not available');
+    const result = await runBqErasure(db);
+    log.info(result, 'BigQuery erasure run');
+    sendJson(res, result.failedTables.length ? 500 : 200, {
+      success: !result.failedTables.length,
+      job: 'bq-erasure',
+      ...result,
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, 'BigQuery erasure job failed');
+    sendJson(res, 500, { success: false, error: 'bq-erasure failed' });
+  }
+}
+
 export async function handleTTLBackfill(res: ServerResponse): Promise<void> {
   try {
     log.info('Running TTL backfill migration (Cloud Scheduler)');

@@ -39,6 +39,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/cleanup-orphaned-uploads',
   '/api/jobs/ttl-cleanup',
   '/api/jobs/ttl-backfill',
+  '/api/jobs/bq-erasure',
   '/api/jobs/daily-admin-report',
   '/api/jobs/memory-consolidation',
   '/api/jobs/memory-decay',
@@ -107,7 +108,12 @@ import {
 } from './intelligence-jobs.js';
 
 // Maintenance handlers
-import { handleTTLCleanup, handleTTLBackfill, handleDailyAdminReport } from './maintenance-jobs.js';
+import {
+  handleBqErasure,
+  handleTTLCleanup,
+  handleTTLBackfill,
+  handleDailyAdminReport,
+} from './maintenance-jobs.js';
 
 import { handleDeliverReminders } from './reminder-jobs.js';
 import {
@@ -267,6 +273,10 @@ export async function handleScheduledJobsRoutes(
 
     case '/api/jobs/ttl-backfill':
       await handleTTLBackfill(res);
+      return true;
+
+    case '/api/jobs/bq-erasure':
+      await handleBqErasure(res);
       return true;
 
     case '/api/jobs/daily-admin-report':

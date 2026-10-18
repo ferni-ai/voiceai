@@ -5,6 +5,7 @@ import {
   findUserRecordRemnants,
 } from '../erase-user-record.js';
 import type { OwnedStore } from '../user-stores.js';
+import { bqHash } from '../../analytics/bq-events.js';
 
 vi.mock('../../identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => false }));
 
@@ -25,6 +26,7 @@ function fakeFirestore(seed: Record<string, Record<string, string>>, opts = { de
   const docRef = (path: string) => ({
     path,
     get: async () => ({ exists: docs.has(path) }),
+    set: async (data: Record<string, string>) => void docs.set(path, data),
     listCollections: async () =>
       [...new Set(under(path).map((p) => p.slice(path.length + 1).split('/')[0]))].map((id) => ({
         id,
@@ -82,6 +84,16 @@ describe('eraseUserRecord', () => {
       'contact_relationships/r2',
       'users/u-2/journal/j1',
     ]);
+  });
+
+  it("queues the account's BigQuery user_hash (never the uid) for the analytics erasure job", async () => {
+    vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
+    const { db, docs } = seedTwoUsers();
+    await eraseUserRecord('u-1', db, STORES, []);
+    const hash = bqHash('user', 'u-1', { LOG_HASH_SECRET: 'test-secret' });
+    expect(docs.get(`bq_erasure/${hash}`)).toMatchObject({ userHash: hash });
+    expect(JSON.stringify([...docs])).not.toContain('"u-1"');
+    vi.unstubAllEnvs();
   });
 
   it('throws when anything survives, so no caller reports an erasure that did not happen', async () => {
