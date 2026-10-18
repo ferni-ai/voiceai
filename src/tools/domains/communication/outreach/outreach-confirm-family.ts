@@ -92,7 +92,12 @@ export interface Kin {
 }
 
 /** The same tool, or a sibling of its family, for the same person. */
-export function isKin(kin: Kin, toolId: string, family: Family | undefined, target: Target) {
+export function isKin(
+  kin: Kin,
+  toolId: string,
+  family: Family | undefined,
+  target: Target
+): boolean {
   const related = kin.toolId === toolId || (family !== undefined && kin.family === family);
   return related && sameTarget(kin.target, target);
 }
