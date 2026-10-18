@@ -133,9 +133,21 @@ export async function persistSnapshot(
 }
 
 /**
+ * How a read treats a Firestore error. By default it is logged and read as "no data";
+ * a panel passes rethrow so a failed read shows as an error, not as an empty history.
+ */
+export interface ReadOptions {
+  rethrow?: boolean;
+}
+
+/**
  * Load recent snapshots from Firestore.
  */
-export async function loadSnapshots(userId: string, days = 30): Promise<WellbeingSnapshot[]> {
+export async function loadSnapshots(
+  userId: string,
+  days = 30,
+  opts: ReadOptions = {}
+): Promise<WellbeingSnapshot[]> {
   // Check cache first
   const cached = snapshotCache.get(userId);
   if (cached && cached.expiresAt > Date.now()) {
@@ -188,6 +200,7 @@ export async function loadSnapshots(userId: string, days = 30): Promise<Wellbein
     return snapshots;
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to load wellbeing snapshots');
+    if (opts.rethrow) throw error;
     return [];
   }
 }
@@ -248,7 +261,10 @@ export async function persistProfile(userId: string, profile: WellbeingProfile):
 /**
  * Load a wellbeing profile from Firestore.
  */
-export async function loadProfile(userId: string): Promise<WellbeingProfile | null> {
+export async function loadProfile(
+  userId: string,
+  opts: ReadOptions = {}
+): Promise<WellbeingProfile | null> {
   // Check cache first
   const cached = profileCache.get(userId);
   if (cached && cached.expiresAt > Date.now()) {
@@ -326,6 +342,7 @@ export async function loadProfile(userId: string): Promise<WellbeingProfile | nu
     return profile;
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to load wellbeing profile');
+    if (opts.rethrow) throw error;
     return null;
   }
 }

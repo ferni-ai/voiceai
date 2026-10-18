@@ -80,7 +80,10 @@ export async function loadRelationshipArcData(userId: string): Promise<Relations
       return null;
     }
 
-    const data = doc.data() as RelationshipArcData;
+    // Saves go to bogle_users/{data.userId}, so it must be the id this was read under.
+    // An arc copied over by identity linking still carries the old id (a device: id);
+    // trusted, every call's update landed on that orphaned doc and the panel's never moved.
+    const data = { ...(doc.data() as RelationshipArcData), userId };
 
     // Update cache
     arcCache.set(cleanForFirestore(userId), { data, loadedAt: Date.now() });

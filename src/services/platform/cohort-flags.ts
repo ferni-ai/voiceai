@@ -88,6 +88,7 @@ export const COHORT_FLAGS = [
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
   'WEEKLY_PREDICTION',
+  'WELLBEING_AFTER_CALL',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
 ] as const;
