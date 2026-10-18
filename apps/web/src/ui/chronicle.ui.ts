@@ -15,7 +15,6 @@
  * @module chronicle.ui
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { escapeHtml } from './engagement-components.js';
@@ -55,6 +54,7 @@ interface ChronicleData {
   memories: JournalEntry[]; // Featured memories to resurface
   streak: number;
   totalEntries: number;
+  loadFailed?: boolean; // the journal couldn't be loaded: show that, not an empty Chronicle
 }
 
 type TimeContext = 'morning' | 'afternoon' | 'evening' | 'night';
@@ -1203,18 +1203,20 @@ async function loadData(): Promise<ChronicleData> {
       }
     }
   } catch (error) {
-    log.warn({ error }, 'Failed to load chronicle data, using defaults');
+    log.warn({ error }, 'Failed to load chronicle data');
   }
 
-  // Return defaults if API fails
+  // Signed out: an empty Chronicle. Signed in and here: the load failed, so say so (no stand-in tips).
+  const loadFailed = Boolean(getUserId());
   return {
     greeting,
     timeContext,
     entries: [],
-    insights: getDefaultInsights(),
+    insights: loadFailed ? [] : getDefaultInsights(),
     memories: [],
     streak: 0,
     totalEntries: 0,
+    loadFailed,
   };
 }
 
@@ -1252,7 +1254,12 @@ function render(): void {
   const content = container.querySelector('#chronicle-content');
   if (!content) return;
 
-  const { greeting, entries, insights, memories, streak, totalEntries } = state.data;
+  const { greeting, insights, memories, totalEntries } = state.data;
+  if (state.data.loadFailed) {
+    const message = `<p class="chronicle-empty-description">${t('chronicle.loadFailed')}</p>`;
+    content.innerHTML = `<div class="chronicle-empty" role="alert" data-state="error">${message}</div>`;
+    return;
+  }
 
   // If no entries yet, show empty state
   if (totalEntries === 0) {
@@ -1264,13 +1271,6 @@ function render(): void {
   content.innerHTML = `
     <!-- Stats Row -->
     <div class="chronicle-stats">
-      <div class="chronicle-stat">
-        <div class="chronicle-stat-icon">${ICONS.flame}</div>
-        <div>
-          <div class="chronicle-stat-value">${streak}</div>
-          <div class="chronicle-stat-label">${t('chronicle.dayStreak')}</div>
-        </div>
-      </div>
       <div class="chronicle-stat">
         <div class="chronicle-stat-icon">${ICONS.book}</div>
         <div>

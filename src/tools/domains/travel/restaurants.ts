@@ -4,7 +4,7 @@
  * Find restaurants, read reviews, and make reservations.
  *
  * APIs:
- * - Google Places API (search, details, reviews)
+ * - Google Places API (New) text search, via services/google-places
  * - OpenTable/Resy (reservations) - future integration
  *
  * @module tools/restaurants
@@ -13,15 +13,12 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
+import {
+  searchRestaurants as searchPlacesNew,
+  isGooglePlacesConfigured,
+} from '../../../services/google-places.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-const GOOGLE_PLACES_API_KEY =
-  process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '';
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -55,64 +52,25 @@ interface SearchParams {
 // ============================================================================
 
 async function searchGooglePlaces(params: SearchParams): Promise<Restaurant[]> {
-  if (!GOOGLE_PLACES_API_KEY) return [];
+  const query = [params.query || 'restaurants', params.cuisine].filter(Boolean).join(' ');
+  const places = await searchPlacesNew({
+    query,
+    location: params.location,
+    openNow: params.openNow,
+  });
+  const priceLevels = ['', '$', '$$', '$$$', '$$$$'];
 
-  try {
-    const searchQuery = [params.query || 'restaurants', params.cuisine, params.location]
-      .filter(Boolean)
-      .join(' ');
-
-    const searchParams = new URLSearchParams({
-      query: searchQuery,
-      type: 'restaurant',
-      key: GOOGLE_PLACES_API_KEY,
-    });
-
-    if (params.openNow) {
-      searchParams.set('opennow', 'true');
-    }
-
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?${searchParams}`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-
-    if (!response.ok) return [];
-
-    const data = (await response.json()) as {
-      status?: string;
-      results?: Array<{
-        name?: string;
-        rating?: number;
-        user_ratings_total?: number;
-        price_level?: number;
-        types?: string[];
-        formatted_address?: string;
-        opening_hours?: { open_now?: boolean };
-        geometry?: { location?: { lat?: number; lng?: number } };
-      }>;
-    };
-
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      getLogger().warn({ status: data.status }, 'Google Places API error');
-      return [];
-    }
-
-    const priceLevels = ['', '$', '$$', '$$$', '$$$$'];
-
-    return (data.results || []).slice(0, params.limit || 5).map((place) => ({
-      name: place.name || 'Unknown',
-      rating: place.rating || 0,
-      reviewCount: place.user_ratings_total || 0,
-      priceLevel: priceLevels[place.price_level || 2] || '$$',
-      cuisine: (place.types || []).filter(
-        (t) => !['restaurant', 'food', 'point_of_interest', 'establishment'].includes(t)
-      ),
-      address: place.formatted_address || '',
-      isOpen: place.opening_hours?.open_now,
-    }));
-  } catch (error) {
-    getLogger().warn({ error }, 'Google Places API error');
-    return [];
-  }
+  return places.slice(0, params.limit || 5).map((place) => ({
+    name: place.name,
+    rating: place.rating || 0,
+    reviewCount: place.userRatingsTotal || 0,
+    priceLevel: priceLevels[place.priceLevel || 2] || '$$',
+    cuisine: (place.types || []).filter(
+      (t) => !['restaurant', 'food', 'point_of_interest', 'establishment'].includes(t)
+    ),
+    address: place.address,
+    isOpen: place.openNow,
+  }));
 }
 
 // ============================================================================
@@ -125,8 +83,8 @@ export async function searchRestaurants(params: SearchParams): Promise<string> {
   const restaurants = await searchGooglePlaces(params);
 
   if (restaurants.length === 0) {
-    if (!GOOGLE_PLACES_API_KEY) {
-      return `I don't have restaurant search configured yet. Add GOOGLE_PLACES_API_KEY or GOOGLE_MAPS_API_KEY to enable this feature.`;
+    if (!isGooglePlacesConfigured()) {
+      return "I can't search restaurants right now.";
     }
     return `I couldn't find any restaurants matching your criteria in ${params.location}. Try:\n• Being more specific about the location\n• Broadening your cuisine preference\n• Searching without "open now"`;
   }

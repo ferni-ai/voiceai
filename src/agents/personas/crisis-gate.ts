@@ -58,6 +58,7 @@ import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { getDeliberator } from './deliberation.js';
+import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
 import { firstNameOf, withNameGate, type HistoryItem } from './name-gate.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
@@ -342,7 +343,8 @@ export async function gatedReply(
     wrap(
       stream: ReadableStream<Chunk>,
       openedBySound?: () => boolean,
-      burst?: boolean
+      burst?: boolean,
+      bright?: boolean
     ): ReadableStream<Chunk>;
   },
   options: CrisisGateOptions = {}
@@ -381,8 +383,10 @@ export async function gatedReply(
   ): Promise<ReadableStream<Chunk> | null> => {
     const stream = tapToolCalls(await model(request), session);
     if (!stream) return stream;
+    // FERNI_PLAYFUL: a bright turn's reminder invited a reaction word (ferni-playful.ts).
+    const bright = brightOpenerInvited(request);
     const opened =
-      env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound, mayBurst) : stream;
+      env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound, mayBurst, bright) : stream;
     // NAME_GATE: the caller's name at hello, goodbye, and rarely between (name-gate.ts).
     const trimmed = withNameGate(opened, {
       name: firstNameOf((session.userData as { userName?: unknown } | undefined)?.userName),
