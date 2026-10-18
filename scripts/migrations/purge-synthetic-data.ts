@@ -14,12 +14,10 @@
  *     whose userId names a harness owner (copies under a record go with it)
  *   phone_mappings: +1555 numbers, or rows mapping to a harness owner
  *
- * Dry run by default: prints document counts per collection, no ids, no writes.
+ * Dry run by default (scripts/destructive-gate.ts): counts per collection, no ids.
  *
  *   npx tsx scripts/migrations/purge-synthetic-data.ts
  *   npx tsx scripts/migrations/purge-synthetic-data.ts --apply --confirm-project=johnb-2025
- *
- * Deletes go through scripts/destructive-gate.ts.
  */
 
 import { pathToFileURL } from 'node:url';
