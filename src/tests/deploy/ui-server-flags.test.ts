@@ -25,6 +25,9 @@ const dockerfile = read('docker/Dockerfile.ui');
 const SERVER_FLAGS = [
   'MEMORY_VIEW=on',
   'JOURNAL_ONE_STORE=on',
+  // The whole team from the first call (product decision 2026-10-11); the agent already has it,
+  // so without it the web roster showed only Ferni while calls handed off to anyone.
+  'TEAM_BY_NEED=on',
   'CALL_HOURS_GUARD=on',
   'FAMILY_CHECKIN_STOP=on',
   // Check-ins: the jobs run, but each sends only to people whose own flag is on (Seth, 2026-10-17).
