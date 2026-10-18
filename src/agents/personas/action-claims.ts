@@ -15,11 +15,31 @@
  * a big hug", "it's ringing a bell", "I'll remind you to breathe"). Clauses are
  * read on their own, so a "?" in another clause never excuses a claim.
  *
+ * Also claims: ordering a ride ("I've ordered you an Uber"), a booking said as
+ * where it now is ("Done, it's in your diary."), and any report that emergency
+ * services were called or help is coming (emergency-claim.ts, #1553).
+ *
  * @module agents/personas/action-claims
  */
 
-export type ActionKind = 'call' | 'send' | 'schedule' | 'reminder' | 'save';
-export const ACTION_KINDS: readonly ActionKind[] = ['call', 'send', 'schedule', 'reminder', 'save'];
+import {
+  ANECDOTE,
+  CLAUSE_CONDITION,
+  CONDITION,
+  EMERGENCY_CALLED,
+  HELP_COMING,
+} from './emergency-claim.js';
+
+export type ActionKind = 'call' | 'send' | 'ride' | 'schedule' | 'reminder' | 'save';
+/** In match order: a ride ("I've booked you an Uber") is read before a booking. */
+export const ACTION_KINDS: readonly ActionKind[] = [
+  'call',
+  'send',
+  'ride',
+  'schedule',
+  'reminder',
+  'save',
+];
 
 const HAVE = "\\b(?:i've|i have|we've|i just|i've just|i already|i've already)";
 const DOING = "\\b(?:i'm|i am|we're)(?: just| now| already)?";
@@ -41,6 +61,8 @@ const DIALED = `(?:${WHO}|${NUMBER})`;
 /** The whole sentence is only the action, its target and "now": "Calling her now.", "Okay, dialing." */
 const BARE = (verbs: string, now = NOW): RegExp =>
   new RegExp(`${LEAD}${verbs}(?: ${DIALED})?(?: ${now})${TAIL}`);
+
+const VEHICLE = '(?:uber|lyft|cab|taxi|ride|car)\\b';
 
 /** Read on each clause: Ferni as the actor, a person in the caller's world (or their number) as the object. */
 const CLAIMS: Record<ActionKind, RegExp[]> = {
@@ -79,6 +101,17 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
     ),
     new RegExp(`\\b(?:shot|dropped) ${WHO} a (?:text|message|note|email|line)`),
   ],
+  ride: [
+    new RegExp(
+      `${HAVE} (?:ordered|booked|requested|arranged) (?:you |for you )?(?:an?|the|your) ${VEHICLE}`
+    ),
+    new RegExp(`${HAVE} (?:got|called|sent) you (?:an?|the) ${VEHICLE}`),
+    new RegExp(
+      `${DOING} (?:ordering|booking|requesting|arranging) (?:you |for you )?(?:an?|the|your) ${VEHICLE}`
+    ),
+    new RegExp(`${DOING} (?:getting|calling|sending) you (?:an?|the) ${VEHICLE}`),
+    /\byour (?:uber|lyft|cab|taxi|ride|car|driver)(?: is|'s) (?:on (?:its|the|their) way|coming|booked|ordered|arriving|outside|(?:\w+ )?minutes? away)\b/,
+  ],
   schedule: [
     new RegExp(`${HAVE} (?:booked|scheduled|reserved) (?:it|that|this|the|a|an|your|you|${WHO})`),
     new RegExp(
@@ -110,7 +143,13 @@ const WHOLE: Record<ActionKind, RegExp[]> = {
     BARE('(?:texting|sending it)'),
     new RegExp(`${LEAD}(?:just sent(?: it)?|message sent|text sent|email sent|sent it)\\W*$`),
   ],
-  schedule: [new RegExp(`${LEAD}(?:booked|you're all booked)\\W*$`)],
+  ride: [],
+  schedule: [
+    new RegExp(`${LEAD}(?:booked|you're all booked)\\W*$`),
+    new RegExp(
+      `${LEAD}(?:it's|it is|that's|that is)(?: been| now| all)? (?:in|on|added to) your (?:calendar|diary|schedule)(?: for [^?]*)?\\W*$`
+    ),
+  ],
   reminder: [new RegExp(`${LEAD}(?:your )?(?:reminder|timer|alarm)(?:'s| is) (?:all )?set\\W*$`)],
   save: [new RegExp(`${LEAD}(?:saved|(?:it's|that's) (?:been )?saved)\\W*$`)],
 };
@@ -125,7 +164,10 @@ const NOT_AN_ACTION =
 
 /** A capitalised word inside a clause is a name: read it as "her" (the patterns are lower case). */
 const names = (text: string): string =>
-  text.replace(/([a-z,;:]\s+)(?!I\b|I'|I’)[A-Z][a-z]+\b(?!['’])/g, '$1her');
+  text.replace(
+    /([a-z,;:]\s+)(?!I\b|I'|I’|(?:Uber|Lyft|Police|Ambulance|Paramedics|Fire|Emergency)\b)[A-Z][a-z]+\b(?!['’])/g,
+    '$1her'
+  );
 
 /** Anywhere in the sentence: it's about feelings, not an action ("that's saved, in my heart"). */
 const FIGURATIVE =
@@ -138,16 +180,36 @@ const normalize = (text: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
+const CLAUSES = /[,;:—–]| - /;
+
+/**
+ * Whether one sentence reports emergency services called ('called') or help
+ * coming ('coming'), or null. Either way it is a call claim (emergency-claim.ts).
+ */
+export function emergencyClaim(sentence: string): 'called' | 'coming' | null {
+  const text = normalize(sentence);
+  if (FIGURATIVE.test(text) || CONDITION.test(text)) return null;
+  for (const raw of text.split(CLAUSES)) {
+    const clause = raw.trim();
+    if (!clause || NOT_A_CLAIM.test(clause) || ANECDOTE.test(clause)) continue;
+    if (CLAUSE_CONDITION.test(clause)) continue;
+    if (EMERGENCY_CALLED.some((re) => re.test(clause))) return 'called';
+    if (HELP_COMING.some((re) => re.test(clause))) return 'coming';
+  }
+  return null;
+}
+
 /** The kind of action one sentence claims was done or is under way, or null. */
 export function claimedAction(sentence: string): ActionKind | null {
   const text = normalize(sentence);
   if (FIGURATIVE.test(text)) return null;
+  if (emergencyClaim(sentence)) return 'call';
   const whole = text.replace(/[—–]/g, ',');
   if (!NOT_A_CLAIM.test(whole) && !NOT_AN_ACTION.test(whole)) {
     const kind = ACTION_KINDS.find((k) => WHOLE[k].some((re) => re.test(whole)));
     if (kind) return kind;
   }
-  for (const raw of text.split(/[,;:—–]| - /)) {
+  for (const raw of text.split(CLAUSES)) {
     const clause = raw.trim();
     if (!clause || NOT_A_CLAIM.test(clause) || NOT_AN_ACTION.test(clause)) continue;
     const kind = ACTION_KINDS.find((k) => CLAIMS[k].some((re) => re.test(clause)));
@@ -159,6 +221,7 @@ export function claimedAction(sentence: string): ActionKind | null {
 /** Tool names by the kind of action they carry out (lower case). */
 const TOOL_KINDS: Record<ActionKind, RegExp> = {
   call: /^(?:callonbehalf|callandconverse|quickcall|reachout|multioutreach|makephonecall|backgroundcall|invitefriendbycall|calluser|callcontact|haveferni?call|callforconversation|call_make|telephony_call)$/,
+  ride: /^(?:requestride|scheduleride|bookride|book_ride|request_ride)$/,
   send: /^(?:reachout|multioutreach|quicktext|quickemail|send\w*|backgroundfollowup|post\w*|sms_send|message_send)$/,
   schedule:
     // A read (getCalendarToday, getUpcomingAppointments) is not a schedule action, so its reply never counts as one (#1547).

@@ -27,6 +27,10 @@
  *   the tool (its result is spoken next), and asks again when it doesn't.
  *   Prod call 2026-10-17: on the yes Nayan said "Well, I'm placing the call
  *   now." and the call was held until 9:00 AM their time.
+ * - a claim that emergency services were called or help is coming (#1553):
+ *   Ferni can't reach them, so it is always false, whatever the tools did; the
+ *   line says nobody was called and to call 911 or 988 now (emergency-claim.ts).
+ *   "Help is on the way" stands once the caller has said they called for help.
  * Everything else streams untouched, so the confirm read-back, the yes turn's
  * other words (outreach-confirm.ts), a tool the model is about to call, and talk about an
  * action that really happened are never changed. Text and tool calls keep
@@ -49,9 +53,16 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { isClearYes } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
-import { callActions, claimedAction, kindsOfTool, type ActionKind } from './action-claims.js';
+import {
+  callActions,
+  claimedAction,
+  emergencyClaim,
+  kindsOfTool,
+  type ActionKind,
+} from './action-claims.js';
 import { withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
+import { EMERGENCY_LINE, helpAlreadyCalled } from './emergency-claim.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -61,7 +72,8 @@ const isCalendarCreate = (name: string): boolean =>
 
 type Chunk = llm.ChatChunk | string | object;
 /** 'uncalled': a create tool is open, but no create ran on this call for this claim (#1547). */
-export type MissReason = 'no_tool' | 'failed' | 'awaiting' | 'held' | 'uncalled' | 'elsewhere';
+export type MissReason =
+  'no_tool' | 'failed' | 'awaiting' | 'held' | 'uncalled' | 'elsewhere' | 'emergency';
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
@@ -75,6 +87,7 @@ export function actionClaimStreamEnabled(env: Env = process.env): boolean {
 const DID_NOT_GO: Record<ActionKind, string> = {
   call: "That call didn't go through, so nothing's been dialed.",
   send: "That didn't go through, so nothing's been sent.",
+  ride: "That didn't go through, so no ride is booked.",
   schedule: "That didn't go through, so it isn't booked.",
   reminder: "That didn't go through, so there's no reminder set.",
   save: "That didn't go through, so it isn't saved.",
@@ -82,6 +95,7 @@ const DID_NOT_GO: Record<ActionKind, string> = {
 const CANNOT: Record<ActionKind, string> = {
   call: "I can't actually make calls for you, so I haven't rung anyone.",
   send: "I can't actually send messages for you, so nothing's gone out.",
+  ride: "I can't actually order rides for you, so nothing's on its way.",
   schedule: "I can't actually book that for you, so it isn't booked.",
   reminder: "I can't actually set reminders for you, so there isn't one set.",
   save: "I can't actually save that for you, so it isn't saved.",
@@ -90,6 +104,7 @@ const CANNOT: Record<ActionKind, string> = {
 const NOT_YET: Record<ActionKind, string> = {
   call: "I haven't actually dialed yet, though. Should I go ahead and call?",
   send: "Nothing's gone out yet, though. Should I go ahead and send it?",
+  ride: 'No ride is booked yet, though. Should I go ahead and book it?',
   schedule: "It isn't booked yet, though. Should I go ahead and book it?",
   reminder: "It isn't set yet, though. Should I go ahead and set it?",
   save: "It isn't saved yet, though. Should I go ahead and save it?",
@@ -98,6 +113,7 @@ const NOT_YET: Record<ActionKind, string> = {
 const HELD: Record<ActionKind, string> = {
   call: "I haven't dialed yet, though. The call is held for a better time.",
   send: "Nothing's gone out yet, though. It's held for a better time.",
+  ride: "No ride is booked yet, though. It's held for later.",
   schedule: "It isn't booked yet, though. It's held for later.",
   reminder: "It isn't set yet, though. It's held for later.",
   save: "It isn't saved yet, though. It's held for later.",
@@ -105,6 +121,7 @@ const HELD: Record<ActionKind, string> = {
 const INSTEAD: Record<ActionKind, string> = {
   call: ' I can help you work out what to say, though.',
   send: ' I can help you word it, though.',
+  ride: '',
   schedule: '',
   reminder: ' Maybe pop it in your phone so it nudges you.',
   save: '',
@@ -118,6 +135,7 @@ export function honestLine(
   canRemind: boolean,
   when?: string
 ): string {
+  if (reason === 'emergency') return EMERGENCY_LINE;
   if (reason === 'elsewhere') return "It's saved to Ferni's own list, not your calendar.";
   if (reason === 'awaiting' || reason === 'uncalled') return NOT_YET[kind];
   if (reason === 'held') {
@@ -279,6 +297,7 @@ async function checkActionClaims<T>(
   // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
   const calendarCreateOpen = toolNames.some(isCalendarCreate);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
+  const helpCalled = helpAlreadyCalled(chatCtx);
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
     !open.has(kind)
@@ -296,6 +315,16 @@ async function checkActionClaims<T>(
                 : kind === 'schedule' && calendarCreateOpen && !done.has(kind) && !calling.has(kind)
                   ? 'uncalled'
                   : null;
+  /** Why this sentence's claim is false, or null. An emergency claim always is (#1553). */
+  const reasonFor = (
+    text: string,
+    kind: ActionKind | null,
+    calling: ReadonlySet<ActionKind>
+  ): MissReason | null => {
+    const emergency = kind === 'call' ? emergencyClaim(text) : null;
+    if (emergency) return emergency === 'coming' && helpCalled ? null : 'emergency';
+    return kind ? missing(kind, calling) : null;
+  };
   /** A call claimed on the yes, before the call tool has said whether anything rang. */
   const ahead = (kind: ActionKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
   let id = '';
@@ -308,6 +337,7 @@ async function checkActionClaims<T>(
       let passed = 0; // how much of pending already streamed out
       let last = '';
       let said = false; // an honest line already went out
+      let crisisSaid = false; // the emergency line already went out
       let lineLast = false; // the last thing out was an honest line
       // `text` is the held sentence, kept until the reply shows whether the claim came true.
       let deferred: { kind: ActionKind; reason: MissReason; text?: string } | undefined;
@@ -334,7 +364,7 @@ async function checkActionClaims<T>(
       /** A whole sentence: held ones go out unless they claim; streamed ones are already out. */
       const flush = (text: string): void => {
         const kind = claimedAction(text);
-        const reason = kind ? missing(kind, calling) : null;
+        const reason = reasonFor(text, kind, calling);
         if (kind && !reason && hold && ahead(kind)) {
           log.warn({ kind, reason: 'before_result', held: hold }, 'ACTION_CLAIM_DROPPED');
           early ??= kind; // said nothing yet: the tool's result is spoken next
@@ -347,6 +377,14 @@ async function checkActionClaims<T>(
           return;
         }
         log.warn({ kind, reason, held: hold }, 'ACTION_CLAIM_DROPPED');
+        // The way to real help goes out once, even after another honest line.
+        if (reason === 'emergency') {
+          if (!crisisSaid) {
+            emit(hold ? EMERGENCY_LINE : `Scratch that, ${EMERGENCY_LINE}`);
+            crisisSaid = said = lineLast = true;
+          }
+          return;
+        }
         if (said || deferred) return;
         // A call of the kind later in this reply makes the claim true, so a held claim waits for the
         // reply to show. Streamed words cannot wait, so they are corrected at once.
