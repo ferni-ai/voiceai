@@ -40,6 +40,8 @@ export interface DraftResult {
   prompt: string;
   sources: Source[];
   path?: string;
+  /** The written post's title, for the log line (see log-safe.ts). */
+  title?: string;
   markdown?: string;
   issues: GateIssue[];
 }
@@ -183,7 +185,7 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
         type.id === 'whats-new' ? `whats-new-${deps.today}` : draft.title
       );
       (deps.writeFile ?? fs.writeFileSync)(file, markdown);
-      return { ...result, status: 'written', path: file, markdown };
+      return { ...result, status: 'written', path: file, title: draft.title, markdown };
     }
     Object.assign(result, { issues, markdown, prompt: ask(issues) });
   }
