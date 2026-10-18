@@ -22,6 +22,7 @@ import {
   toOpenCommitment,
 } from '../../superhuman/commitment-follow-up.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import { singleWriterFor } from '../../superhuman/commitment-single-writer.js';
 import { flagForUser } from '../../platform/cohort-flags.js';
 import type { ProactiveTrigger } from './types.js';
 
@@ -82,9 +83,10 @@ async function followThroughOn(userId: string): Promise<boolean> {
 export async function commitmentTriggers(userId: string, now: Date): Promise<ProactiveTrigger[]> {
   if (!(await followThroughOn(userId))) return [];
   const store = firestoreCommitmentStore;
+  const judgedOnly = await singleWriterFor(userId);
   const out: ProactiveTrigger[] = [];
   for (const { id, data } of await store.active(userId)) {
-    const c = toOpenCommitment(id, data);
+    const c = toOpenCommitment(id, data, judgedOnly);
     const said = quote(c?.statement, 120);
     if (!c || !said || !dueForPush(c, now.getTime())) continue;
     out.push({

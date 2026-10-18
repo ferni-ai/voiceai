@@ -90,6 +90,9 @@ export const COHORT_FLAGS = [
   'WEEKLY_PREDICTION',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
+  // Read per call, never at boot: on a turn and the greeting check-in from process.env as applied,
+  // after the call through envForCaller, and per person on the UI server (judged-commitments.ts).
+  'COMMITMENT_SINGLE_WRITER',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);

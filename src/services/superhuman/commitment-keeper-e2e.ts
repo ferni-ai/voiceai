@@ -41,6 +41,7 @@ import {
   type CommitmentType,
 } from './commitment-keeper.js';
 import { storeMemory, type PersonaId } from '../../memory/cross-persona/index.js';
+import { isCommitmentSingleWriterOn } from './commitment-single-writer.js';
 
 const log = createLogger({ module: 'CommitmentKeeperE2E' });
 
@@ -167,9 +168,7 @@ const DEFAULT_CONFIG: CommitmentE2EConfig = {
 
 let config: CommitmentE2EConfig = { ...DEFAULT_CONFIG };
 
-/**
- * Update configuration
- */
+/** Update configuration */
 export function setCommitmentE2EConfig(newConfig: Partial<CommitmentE2EConfig>): void {
   config = { ...config, ...newConfig };
 }
@@ -197,14 +196,14 @@ export async function detectCommitmentE2E(input: CommitmentE2EInput): Promise<Co
   const startTime = Date.now();
 
   try {
-    // 1. Run base detection
+    // 1. Run base detection. Under COMMITMENT_SINGLE_WRITER only the after-call judge stores.
     const detection = detectCommitment(input.transcript, input.userId, {
       topic: input.topic,
       personMentioned: input.mentionedEntities?.[0],
       emotionalIntensity: input.emotionalContext?.intensity,
     });
-
-    if (!detection.detected || detection.confidence < config.minDetectionConfidence) {
+    const judgedOnly = isCommitmentSingleWriterOn();
+    if (judgedOnly || !detection.detected || detection.confidence < config.minDetectionConfidence) {
       return {
         detected: false,
         confidence: detection.confidence,

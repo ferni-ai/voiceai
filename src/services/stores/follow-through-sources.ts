@@ -18,6 +18,7 @@
 import type { Firestore } from '@google-cloud/firestore';
 import type { FollowUpSources, SourceItem } from '../follow-through/index.js';
 import { firestoreCommitmentStore, toOpenCommitment } from '../superhuman/commitment-follow-up.js';
+import { singleWriterFor } from '../superhuman/commitment-single-writer.js';
 import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import { isForgotten } from '../../memory/recall/session-recall.js';
@@ -67,8 +68,9 @@ async function openCommitments(
   forgotten: readonly string[]
 ): Promise<SourceItem[]> {
   const docs = await firestoreCommitmentStore.active(userId);
+  const judgedOnly = await singleWriterFor(userId);
   return docs.flatMap((d) => {
-    const c = toOpenCommitment(d.id, d.data);
+    const c = toOpenCommitment(d.id, d.data, judgedOnly);
     if (!c || isForgotten(c.statement, forgotten)) return [];
     return [
       {

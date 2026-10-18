@@ -12,6 +12,7 @@
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isCommitmentSingleWriterOn, isJudgedRow } from './commitment-single-writer.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -54,11 +55,29 @@ function num(v: unknown): number | undefined {
   return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
 }
 
-/** A stored document as an open commitment, or null when it isn't one worth asking about. */
-export function toOpenCommitment(id: string, d: Record<string, unknown>): OpenCommitment | null {
-  if (d.status !== 'active') return null;
+/**
+ * The statement to ask about, or null when the row shouldn't be. `judgedOnly`
+ * (COMMITMENT_SINGLE_WRITER on for this person) keeps only rows the after-call
+ * judge wrote. Those were judged with the whole call, so the word filters
+ * meant for the regex captures don't apply to them ("text Mindy back").
+ */
+function askableStatement(d: Record<string, unknown>, judgedOnly: boolean): string | null {
+  const judged = isJudgedRow(d);
+  if (judgedOnly && !judged) return null;
   const statement = String(d.statement ?? d.summary ?? '').trim();
-  if (statement.split(/\s+/).length < MIN_WORDS || OFFHAND.test(statement)) return null;
+  if (judged) return statement.split(/\s+/).length >= 2 ? statement : null;
+  return statement.split(/\s+/).length < MIN_WORDS || OFFHAND.test(statement) ? null : statement;
+}
+
+/** A stored document as an open commitment, or null when it isn't one worth asking about. */
+export function toOpenCommitment(
+  id: string,
+  d: Record<string, unknown>,
+  judgedOnly = false
+): OpenCommitment | null {
+  if (d.status !== 'active') return null;
+  const statement = askableStatement(d, judgedOnly);
+  if (statement === null) return null;
   const createdAt = num(d.createdAt);
   if (createdAt === undefined) return null;
   const targetDate = num(d.targetDate);
@@ -170,8 +189,10 @@ export async function loadCallCheckIns(
 ): Promise<OpenCommitment[]> {
   try {
     const docs = await store.active(userId);
+    // Mid-call: process.env holds this caller's flags (applyCallerFlags).
+    const judgedOnly = isCommitmentSingleWriterOn();
     const all = docs
-      .map((d) => toOpenCommitment(d.id, d.data))
+      .map((d) => toOpenCommitment(d.id, d.data, judgedOnly))
       .filter((c): c is OpenCommitment => c !== null);
     const picked = pickForCall(all, now);
     // Recorded in the background: the greeting is waiting on this.
