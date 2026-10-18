@@ -47,7 +47,9 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
         )
         // Otherwise iOS silences every haptic while the mic records (B9).
         try session.setAllowHapticsAndSystemSoundsDuringRecording(true)
-        try session.setActive(true)
+        // Under LiveCommunicationKit the system activates the session itself and
+        // may refuse ours; that's fine, the call goes on with the system's.
+        try? session.setActive(true)
     }
 
     public func deactivate() {
