@@ -41,3 +41,8 @@ export async function personaForCaller(
   );
   return FALLBACK_PERSONA_ID;
 }
+
+/** /demo-token's persona: its persona_id (default Ferni), with no signed-in caller. */
+export function demoPersonaFor(url: URL): Promise<string> {
+  return personaForCaller(url.searchParams.get('persona_id') || FALLBACK_PERSONA_ID, undefined);
+}
