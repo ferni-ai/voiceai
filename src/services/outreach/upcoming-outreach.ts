@@ -10,7 +10,7 @@
  * - a call the call-hours guard held for their hours, in
  *   bogle_users/{uid}/deferred_calls (kind 'proactive', status 'pending'), which
  *   the per-minute job places (deferred-calls.ts);
- * - a follow-up with a time, in bogle_users/{uid}/follow_through, which the
+ * - a follow-up due later than now, in bogle_users/{uid}/follow_through, which the
  *   follow-up job texts, but only when FOLLOW_THROUGH_JOB=on and their
  *   FOLLOW_THROUGH_TEXTS cohort flag is on (follow-up-texts.ts). Otherwise it
  *   is raised on their next call, not sent, so it is not listed.
@@ -74,9 +74,10 @@ function heldCall(id: string, d: Record<string, unknown>, now: Date): UpcomingOu
   };
 }
 
-function followUp(f: FollowUp): UpcomingOutreach | null {
+/** Only a follow-up still ahead is upcoming: one due already was texted or is about to be. */
+function followUp(f: FollowUp, now: Date): UpcomingOutreach | null {
   const at = validIso(f.dueAt);
-  if (!at) return null;
+  if (!at || Date.parse(at) <= now.getTime()) return null;
   return {
     id: f.id,
     type: 'follow_up',
@@ -103,7 +104,7 @@ export async function listUpcomingOutreach(
     deps.followUpTextsOn(userId),
   ]);
   const items = calls.map((c) => heldCall(c.id, c.data, now));
-  if (textsOn) items.push(...(await deps.followUps(userId)).map(followUp));
+  if (textsOn) items.push(...(await deps.followUps(userId)).map((f) => followUp(f, now)));
   return items
     .filter((i): i is UpcomingOutreach => i !== null)
     .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor))

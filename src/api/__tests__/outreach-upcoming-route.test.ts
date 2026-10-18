@@ -146,4 +146,21 @@ describe('GET /api/outreach/upcoming', () => {
     expect(stores.reads).toEqual(['uid-A']);
     expect((await fetch(`${base}/api/outreach/upcoming`)).status).toBe(401);
   });
+
+  it('leaves out a follow-up already due and texted: it is not upcoming', async () => {
+    stores.textsOn = true;
+    stores.followUps.push({
+      id: 'fu-past',
+      kind: 'reminder',
+      text: 'take the bins out',
+      dueAt: inHours(-2),
+      status: 'surfaced',
+      surfaced: [{ at: inHours(-2), via: 'text' }],
+    });
+    stores.followUps.push({ id: 'fu-now', kind: 'reminder', text: 'now', dueAt: inHours(0) });
+
+    const { body } = await get();
+
+    expect(body.upcoming!.map((u) => u.id)).toEqual(['fu-1', 'held-1']);
+  });
 });
