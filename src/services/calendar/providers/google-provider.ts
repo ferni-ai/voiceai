@@ -20,9 +20,9 @@ import {
   createEvent as createGoogleEvent,
   updateEvent as updateGoogleEvent,
   deleteEvent as deleteGoogleEvent,
-  deleteUserTokens,
   type CalendarEvent as GoogleCalendarEvent,
 } from '../../identity/google-calendar-oauth.js';
+import { disconnectGoogleCalendar } from '../../identity/google-calendar-disconnect.js';
 
 const log = getLogger();
 
@@ -158,7 +158,7 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
    * Disconnect user's Google Calendar
    */
   async disconnect(userId: string): Promise<void> {
-    await deleteUserTokens(userId);
+    await disconnectGoogleCalendar(userId);
     log.info({ userId }, 'Disconnected Google Calendar');
   }
 

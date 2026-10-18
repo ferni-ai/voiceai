@@ -260,6 +260,13 @@ describe('calendar writes act only on the verified caller', () => {
     expect(data.disconnectGoogleCalendar).toHaveBeenCalledWith('bob');
   });
 
+  it('a disconnect that fails answers 500, not success', async () => {
+    data.disconnectGoogleCalendar.mockRejectedValueOnce(new Error('read failed'));
+    const { status, body } = await call('POST', '/api/calendar/disconnect', {}, 'alice');
+    expect(status).toBe(500);
+    expect(body.success).not.toBe(true);
+  });
+
   it('the Outlook callback no longer takes the user from ?state=', async () => {
     const { status } = await call(
       'GET',

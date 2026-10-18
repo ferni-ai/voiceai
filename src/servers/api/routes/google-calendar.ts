@@ -262,7 +262,14 @@ export async function handleGoogleCalendarRoutes(
       );
     }
 
-    await disconnectGoogleCalendar(userId);
+    try {
+      await disconnectGoogleCalendar(userId);
+    } catch (error) {
+      log.error({ error: String(error), userId }, 'Google Calendar unlink failed');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Could not disconnect Google Calendar' }));
+      return true;
+    }
     log.info({ userId }, 'Google Calendar unlinked');
 
     res.writeHead(200, { 'Content-Type': 'application/json' });

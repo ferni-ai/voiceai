@@ -13,9 +13,11 @@
  * Every read goes to Firestore: the API server writes them, the voice agent
  * (another process) reads them, and a disconnect must take effect at once.
  *
- * Disconnect deletes our copy without calling Google's revoke endpoint, because
- * revoking any token drops every scope the user granted the project, calendar
- * included. Account erasure does revoke (forgetGmailSendGrant).
+ * Revoking any token drops every scope the user granted the project. So
+ * disconnecting Gmail send deletes our copy without revoking (that would end
+ * the calendar connection too), and disconnecting the calendar skips its revoke
+ * while a Gmail send grant exists (hasGmailSendGrant). Account erasure revokes
+ * both (forgetGmailSendGrant, then disconnectGoogleCalendar).
  *
  * @module services/identity/gmail-send-as-user
  */
@@ -151,6 +153,11 @@ export async function completeGmailSendConnect(
 /** Which address mail goes out from, or null when not connected. */
 export async function getGmailSendAddress(userId: string): Promise<string | null> {
   return (await loadTokens(userId))?.email ?? null;
+}
+
+/** Whether the user has a Gmail send grant. Throws when Firestore can't be read. */
+export async function hasGmailSendGrant(userId: string): Promise<boolean> {
+  return !!(await store.load(userId, { fresh: true, strict: true }))?.encrypted;
 }
 
 /** Turn the feature off: forget the grant (see the module note on revoking). */
