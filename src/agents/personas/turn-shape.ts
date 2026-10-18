@@ -14,14 +14,24 @@
  * TURN_SHAPE=off falls back to the single reminder (turn-style.ts); the default,
  * model, lets the model judge the shape (modelChosenShape); TURN_SHAPE=dice draws it.
  * CANDOR=on fits the stance line to the moment instead of drawing it (turn-candor.ts).
+ * TROUBLES_TALK=on adds how a friend listens to a trouble (troubles-talk.ts).
  *
  * @module agents/personas/turn-shape
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { mayNeedTool } from '../model-provider/fast-lane.js';
+import { playfulLine, playfulOpen, SUBSTANCE_FIRST } from './ferni-playful.js';
 import { listeningLines, type ListeningCues } from './listen-first.js';
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
+import {
+  lengthCap,
+  SHARE_LINES,
+  telling,
+  tellingLengthLine,
+  withTrouble,
+} from './troubles-talk.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
 import {
   lengthLearned,
@@ -64,14 +74,42 @@ const ABOUT_FERNI =
 const ACK =
   /^(yeah|yep|yes|ok(ay)?|right|sure|true|totally|haha+|ha|mm+|hm+|no|nope|got it|i guess|maybe|thanks?( you)?|cool|nice|wow)[.!?,\s]*$/i;
 
+/**
+ * About their own things or what he can do for them, not about him: "do you
+ * have my number?" read as about_ferni ("do you have"), so the turn asked
+ * for his day and he answered "I do have your number, but ... I was just
+ * about to head out and try to find a replacement houseplant" (prod,
+ * 2026-10-17).
+ */
+const ABOUT_THEIR_THINGS =
+  /\b(?:do|did|can|could|would|will) you (?:still |even |actually )?(?:have|know|remember|keep|save|store|see|get|call|text|reach|ring|phone|message|email|send)\b(?:\s+\w+)?\s+(?:my|me|mine|our|us)\b/i;
+
 export function callerMove(text: string): CallerMove {
   const t = text.trim();
   const words = t.split(/\s+/).filter(Boolean).length;
   if (words <= 3 && ACK.test(t)) return 'ack';
   if (isLookup(t)) return 'lookup';
-  if (ASKS_FOR_MORE.test(t)) return 'request';
+  if (ASKS_FOR_MORE.test(t) || ABOUT_THEIR_THINGS.test(t)) return 'request';
   if (ABOUT_FERNI.test(t)) return 'about_ferni';
   return 'share';
+}
+
+/** Asked of him, not told: a question, or "can you", "could you", "please". */
+const ASKS_HIM = /\?|\b(?:can|could|would|will) you\b|\bplease\b/i;
+
+/**
+ * A turn about getting something done or found out: a look-up, a request
+ * that isn't about him, a tool request put to him ("can you set a timer?"),
+ * or the reply after a tool ran. His own day has no place in it.
+ */
+export function taskTurn(said: string, toolRan = false): boolean {
+  if (toolRan) return true;
+  const move = callerMove(said);
+  if (move === 'lookup') return true;
+  // "Tell me about your trip" is a request about him.
+  const aboutHim = ABOUT_FERNI.test(said) || /\byour(?:self)?\b/i.test(said);
+  if (aboutHim && !ABOUT_THEIR_THINGS.test(said)) return false;
+  return move === 'request' || (mayNeedTool(said) && ASKS_HIM.test(said));
 }
 
 /** How often each shape follows each kind of caller turn. */
@@ -148,7 +186,7 @@ const TAKE_UP_ANSWER =
   'They just answered what you asked: take up their answer first, the way a friend would, rather than anything from your own life.';
 
 const REGISTER =
-  'Start with the substance, not a stock reaction word like Oh, Ugh, Yeah or Hmm. ' +
+  SUBSTANCE_FIRST +
   'Talk like a close friend, not a therapist, coach or host: never ask how something feels or what it\'s like for them, no stock validation ("that sounds exhausting", "I hear you"), no generic cheerleading or exclamation marks. ' +
   // Read as "no excitement", that line flattened big good news: a sister's
   // pregnancy got "Tears right on the trail, yeah, that makes sense" in 3 of 3
@@ -173,10 +211,17 @@ export const SPARK_BRIGHT =
   'This moment is genuinely bright: let it show. This once, if you really feel it, you may use one reaction word and at most one exclamation mark in the whole reply.';
 const REGISTER_BRIGHT = `${REGISTER.replace('no generic cheerleading or exclamation marks', 'no generic cheerleading')} ${SPARK_BRIGHT}`;
 
-/** The register for this reply: the bright one only for a bright, uncareful turn with PERSONA_SPARK on. */
+/**
+ * The register for this reply: the bright one only for a bright, uncareful turn with PERSONA_SPARK on.
+ * FERNI_PLAYFUL (ferni-playful.ts): one reaction word may open an uncareful turn, and an easy,
+ * neutral one gets the playfulness line.
+ */
 function registerFor(sig: TurnSignals): string {
   const bright = sig.bright === true && !sig.careful && !sig.supportFirst;
-  return bright && flagOn('PERSONA_SPARK') ? REGISTER_BRIGHT : REGISTER;
+  const register = bright && flagOn('PERSONA_SPARK') ? REGISTER_BRIGHT : REGISTER;
+  const open = playfulOpen(sig);
+  if (!open) return register;
+  return [register.replace(SUBSTANCE_FIRST, open), playfulLine(sig)].filter(Boolean).join(' ');
 }
 
 /**
@@ -207,6 +252,11 @@ export const QUESTION_LINE = {
 function noQuestion(ownStory: boolean | undefined): string {
   if (ownStory === undefined) return QUESTION_LINE.none;
   return ownStory ? QUESTION_LINE.noneUnlessOwn : QUESTION_LINE.noneOnThem;
+}
+
+/** The no-question line; during a trouble (TROUBLES_TALK=on) it invites nothing of his own. */
+function noQuestionFor(sig: TurnSignals): string {
+  return sig.trouble ? QUESTION_LINE.noneOnThem : noQuestion(sig.ownStory);
 }
 
 export interface TurnShape {
@@ -291,8 +341,17 @@ function modelChosenShape(
   const parts = [registerFor(sig)];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   else if (sig.answered) parts.push(TAKE_UP_ANSWER);
-  else if (move === 'share' && !sig.careful && rng() < 0.3 && sig.ownStory !== false)
+  else if (
+    move === 'share' &&
+    !sig.careful &&
+    rng() < 0.3 &&
+    sig.ownStory !== false &&
+    !sig.trouble
+  )
     parts.push(SECOND_STORY);
+  // TROUBLES_TALK=on (troubles-talk.ts): unset when off.
+  const sharing = sig.trouble !== undefined && move === 'share';
+  if (sharing) parts.push(...SHARE_LINES);
   const stance = stanceFor(
     userText,
     move,
@@ -315,9 +374,12 @@ function modelChosenShape(
   const asks = rng() < 0.25;
   const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
   parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
-  if (learn.length) parts.push(lengthLine(target));
+  // No longer than what they just told: carried by the learned length line when that is on.
+  const cap = sharing && telling(userText, move) ? lengthCap(userText) : 0;
+  if (learn.length) parts.push(lengthLine(cap ? Math.min(target, cap) : target));
+  else if (cap) parts.push(tellingLengthLine(cap));
   if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
-  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory)));
+  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestionFor(sig)));
   const learned = [
     learn.length ? `length_${target}` : '',
     texture ? `texture_${texture.kind}` : '',
@@ -338,7 +400,7 @@ export function turnShapeFor(
   signals?: TurnSignals,
   style: StyleProfile = NEUTRAL_STYLE
 ): TurnShape {
-  const sig = signals ?? regexSignals(userText, callerMove(userText));
+  const sig = withTrouble(userText, signals ?? regexSignals(userText, callerMove(userText)));
   if (mode === 'model') return modelChosenShape(userText, rng, sig, style);
   const move = sig.move;
   const shape = pickShape(move, rng, style.replyLength);
@@ -357,9 +419,12 @@ export function turnShapeFor(
     shape !== 'react' &&
     !sig.careful &&
     rng() < 0.3 &&
-    sig.ownStory !== false
+    sig.ownStory !== false &&
+    !sig.trouble
   )
     parts.push(SECOND_STORY);
+  const sharing = sig.trouble !== undefined && move === 'share';
+  if (sharing) parts.push(...SHARE_LINES);
   const stance = stanceFor(
     userText,
     move,
@@ -373,10 +438,9 @@ export function turnShapeFor(
   const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig, style);
   parts.push(...extras.lines);
   if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
-  parts.push(
-    extras.shapeLine ?? SHAPE_LINE[shape],
-    extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory))
-  );
+  parts.push(extras.shapeLine ?? SHAPE_LINE[shape]);
+  if (sharing && telling(userText, move)) parts.push(tellingLengthLine(lengthCap(userText)));
+  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestionFor(sig)));
   return {
     move,
     shape,

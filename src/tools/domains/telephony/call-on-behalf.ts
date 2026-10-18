@@ -494,11 +494,10 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           );
         }
 
-        // Step 6: Initiate the call
-        const callId = await initiateOnBehalfCall(request);
-        const { deferredCallReply } = await import('../../../services/outreach/deferred-calls.js');
-        const deferred = deferredCallReply(callId, contact.name, purpose);
-        if (deferred) return deferred;
+        // Step 6: Initiate the call, unless one to this number already waits (deferred-calls.ts)
+        const { placeOrHold } = await import('../../../services/outreach/deferred-calls.js');
+        const { callId, held } = await placeOrHold(request, initiateOnBehalfCall);
+        if (held) return held;
         log.info({ callId, contactName: contact.name, purpose }, 'Call initiated successfully');
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
         return (
@@ -522,3 +521,4 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 // ============================================================================
 
 export { resolveContact, inferCallType, inferObjective, initiateOnBehalfCall, callOnBehalfSchema };
+export { alreadySetReply, pendingCallTo } from '../../../services/outreach/deferred-calls.js';

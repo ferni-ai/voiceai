@@ -11,7 +11,7 @@
 
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
-import { serveBuiltSite, type BuiltSite } from './built-site-server';
+import { keepOffProdApi, serveBuiltSite, type BuiltSite } from './built-site-server';
 
 const PORT = 8768;
 const SITE = `http://127.0.0.1:${PORT}`;
@@ -38,10 +38,13 @@ const GTAG_STUB = `
 
 let site: BuiltSite | undefined;
 
-/** Stubs Google, and records analytics hits and requests carrying a visitor ID. */
-async function watch(context: BrowserContext): Promise<{ hits: string[]; idRequests: string[] }> {
+/** Stubs Google and the prod API; records analytics hits, visitor-ID requests and prod calls. */
+async function watch(
+  context: BrowserContext
+): Promise<{ hits: string[]; idRequests: string[]; prodCalls: string[] }> {
   const hits: string[] = [];
   const idRequests: string[] = [];
+  const prodCalls = await keepOffProdApi(context);
   await context.route(/googletagmanager\.com\/gtag\/js/, (route) =>
     route.fulfill({ status: 200, contentType: 'application/javascript', body: GTAG_STUB })
   );
@@ -56,7 +59,7 @@ async function watch(context: BrowserContext): Promise<{ hits: string[]; idReque
       idRequests.push(url);
     }
   });
-  return { hits, idRequests };
+  return { hits, idRequests, prodCalls };
 }
 
 /** The banner's Accept and Decline sit under the chat bubble, so click them in the DOM. */
@@ -79,7 +82,7 @@ test.describe('ferni.ai consent and content', () => {
     context,
     page,
   }) => {
-    const { hits, idRequests } = await watch(context);
+    const { hits, idRequests, prodCalls } = await watch(context);
     await page.goto(`${SITE}/`, { waitUntil: 'load' });
     await page.waitForTimeout(3000);
 
@@ -108,6 +111,10 @@ test.describe('ferni.ai consent and content', () => {
     const before = hits.length;
     await page.goto(`${SITE}/about/`, { waitUntil: 'load' });
     await expect.poll(() => hits.length).toBeGreaterThan(before);
+    // Leaving / fires the exit beacon at the prod API; it is answered here, not sent.
+    await expect
+      .poll(() => prodCalls.some((url) => url.includes('/experiments/track/batch')))
+      .toBe(true);
     await expect(page.locator('#cookieBanner.is-visible')).toHaveCount(0);
   });
 

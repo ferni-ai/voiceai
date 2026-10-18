@@ -517,7 +517,7 @@ export function createTravelTools() {
           response += `\n💰 Best deal: $${cheapest.pricePerNight}/night at ${cheapest.name}`;
 
           if (results[0].bookingUrl) {
-            response += `\n\n🔗 Search at: ${results[0].bookingUrl}`;
+            response += `\n\n🔗 Book at: ${results[0].bookingUrl}`;
           }
         }
 

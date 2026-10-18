@@ -41,6 +41,7 @@ test('the Sanctuary: starting a practice opens it, and Escape closes it', async 
 });
 
 test('Set the Mood with nothing connected says so, in your language', async ({ page }) => {
+  test.skip(true, 'Set the Mood is hidden: apps/web/src/config/menu-visibility.ts');
   // Spanish, to prove the message is the app's own translation, not the server's English
   await page.evaluate(() => localStorage.setItem('ferni_locale', 'es'));
   await page.reload();

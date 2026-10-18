@@ -19,7 +19,11 @@ vi.mock('../../../services/superhuman/firestore-utils.js', () => ({
   }),
 }));
 
-import { deferCall, deferredCallReply } from '../../../services/outreach/deferred-calls.js';
+import {
+  alreadySetReply,
+  deferCall,
+  deferredCallReply,
+} from '../../../services/outreach/deferred-calls.js';
 import { withActionClaimCheck } from '../action-claim-guard.js';
 import { callActions, claimedAction } from '../action-claims.js';
 
@@ -58,7 +62,7 @@ const streamOf = (...parts: Array<string | llm.ChatChunk>) =>
   });
 const tools = { functionTools: { callOnBehalf: {} } };
 async function run(items: unknown[], ...parts: Array<string | llm.ChatChunk>) {
-  const out = await withActionClaimCheck(streamOf(...parts), { items }, tools, {});
+  const out = await withActionClaimCheck(streamOf(...parts), { items }, tools, undefined, {});
   const chunks: llm.ChatChunk[] = [];
   for await (const c of out as unknown as AsyncIterable<llm.ChatChunk>) chunks.push(c);
   return {
@@ -105,6 +109,19 @@ describe('a held call result', () => {
     expect(text).toMatch(
       /^I haven't dialed yet, though\. I'll call later today at 9:00\sAM their time\.$/
     );
+  });
+
+  it('the same for a call already set, after a handoff', async () => {
+    const already = alreadySetReply(
+      'Mom',
+      { id: 'deferred_1', at: NINE, timezone: 'America/Denver' },
+      NOW
+    );
+    const { text } = await run(
+      [...ASKED, result(JSON.stringify(already))],
+      "Okay, I'm calling her now."
+    );
+    expect(text).toMatch(/^I haven't dialed yet, though\. I'll call later today at 9:00\sAM/);
   });
 });
 

@@ -46,48 +46,21 @@
 // RE-EXPORTS FROM GENERATED FILE
 // These constants are auto-generated from design-system/tokens/animation.json
 // ============================================================================
+import { DURATION_GENERATED, EASING_GENERATED } from './animation-constants.generated.js';
+
 export {
   AVATAR_SQUASH_STRETCH,
   PERSONA_ANIMATION_PROFILES,
 } from './animation-constants.generated.js';
 
 // ============================================================================
-// DURATION CONSTANTS
-// Based on design-system/tokens/animation.json
+// DURATION CONSTANTS (ms)
+// The one duration scale, shared with CSS (--duration-*). Edit
+// design-system/tokens/animation.json `durations`, then run
+// `pnpm build:design-system`; CI fails when the generated file is stale.
 // ============================================================================
 
-export const DURATION = {
-  // Micro-interactions (immediate feedback)
-  INSTANT: 0,
-  MICRO: 50,
-
-  // Fast transitions (hover, focus)
-  FAST_PRESS: 80,
-  FAST: 100,
-  FAST_RELEASE: 150,
-
-  // Standard transitions
-  NORMAL: 200,
-  STANDARD: 250,
-
-  // Deliberate movements
-  SLOW: 300,
-  MODERATE: 400,
-
-  // Emphasis animations
-  DELIBERATE: 500,
-  DRAMATIC: 600,
-  CELEBRATION: 800,
-
-  // Extended animations
-  ENTRANCE: 1000,
-  GLACIAL: 1500,
-
-  // Ambient/background effects
-  AMBIENT_FAST: 3000,
-  AMBIENT_SLOW: 5000,
-  AMBIENT_GLACIAL: 8000,
-} as const;
+export const DURATION = DURATION_GENERATED;
 
 // Fibonacci-based timing (φ-ratio based)
 export const FIBONACCI_DURATION = {
@@ -103,44 +76,11 @@ export const FIBONACCI_DURATION = {
 
 // ============================================================================
 // EASING CURVES
-// Named cubic-bezier functions for consistent feel
+// Named timing functions, shared with CSS (--ease-*). Source of truth:
+// design-system/tokens/animation.json `easings`. SPRING is the one spring curve.
 // ============================================================================
 
-export const EASING = {
-  // Standard Material Design easings
-  STANDARD: 'cubic-bezier(0.4, 0, 0.2, 1)', // Standard deceleration
-  DECELERATE: 'cubic-bezier(0.0, 0, 0.2, 1)', // Fast start, slow end
-  ACCELERATE: 'cubic-bezier(0.4, 0, 1, 1)', // Slow start, fast end
-
-  // Spring/Bouncy (character-quality)
-  SPRING: 'cubic-bezier(0.34, 1.56, 0.64, 1)', // Overshoot and settle
-  SPRING_GENTLE: 'cubic-bezier(0.25, 1.25, 0.5, 1)',
-  SPRING_STRONG: 'cubic-bezier(0.5, 1.8, 0.5, 1)',
-
-  // Anticipation (wind-up before action)
-  ANTICIPATE: 'cubic-bezier(0.38, -0.4, 0.88, 0.65)',
-  ANTICIPATE_GENTLE: 'cubic-bezier(0.6, -0.28, 0.735, 0.045)',
-
-  // Expo curves (dramatic)
-  EXPO_OUT: 'cubic-bezier(0.16, 1, 0.3, 1)',
-  EXPO_IN_OUT: 'cubic-bezier(0.87, 0, 0.13, 1)',
-
-  // Aliases for backward compatibility
-  EASE_OUT_EXPO: 'cubic-bezier(0.16, 1, 0.3, 1)', // alias for EXPO_OUT
-  OUT_EXPO: 'cubic-bezier(0.16, 1, 0.3, 1)', // alias for EXPO_OUT
-
-  // Gentle/Organic
-  GENTLE: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
-  ORGANIC: 'cubic-bezier(0.4, 0.2, 0.2, 1.1)',
-
-  // Linear (use sparingly)
-  LINEAR: 'linear',
-
-  // Simple
-  EASE_OUT: 'ease-out',
-  EASE_IN: 'ease-in',
-  EASE_IN_OUT: 'ease-in-out',
-} as const;
+export const EASING = EASING_GENERATED;
 
 // ============================================================================
 // ANIMATION PRESETS

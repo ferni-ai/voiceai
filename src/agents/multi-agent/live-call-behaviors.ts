@@ -32,8 +32,13 @@ import { createTurnKeeper } from './turn-keeper.js';
 import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
-import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
-import { noteBargeIn } from '../shared/turn-receipt.js';
+import { endpointingDelays } from '../shared/turn-patience.js';
+import {
+  holdsStandDown,
+  sessionTurnDetector,
+  SOLE_STANDS_DOWN,
+} from '../shared/turn-detector-sole.js';
+import { noteBargeIn } from '../shared/turn-receipt-session.js';
 
 const log = getLogger();
 
@@ -160,9 +165,11 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   // Say something human when a reply fails instead of going silent (never-silent.ts).
   installNeverSilent(input);
 
-  // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). With the
-  // end-of-turn model on, the model decides and a second hold would only stack delay.
-  if (turnDetectorMode() === 'off') {
+  // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). When
+  // LiveKit's end-of-turn model decides alone (TURN_DETECTOR_SOLE=on), it stands down:
+  // the model already waits through unfinished thoughts (turn-detector-sole.ts).
+  const sole = holdsStandDown(session);
+  if (!sole) {
     installUnfinishedTurnHold(session);
     // ...and answer a clearly finished sentence sooner (ENDPOINT_FAST_FINISHED=on).
     const detach = installFinishedTurnEndpointing(
@@ -172,10 +179,17 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       (minDelayMs) => log.info({ sessionId, minDelayMs }, 'ENDPOINT_FLOOR')
     );
     if (detach) cleanupFunctions.push(detach);
-  } else
+  }
+  const detector = sessionTurnDetector(session);
+  if (detector) {
+    log.info(
+      { sessionId, model: detector.model, standsDown: sole ? SOLE_STANDS_DOWN : [] },
+      'TURN_DETECTOR_LAYERS'
+    );
     session.on(voice.AgentSessionEventTypes.EotPrediction, (ev) =>
       log.info(
         {
+          model: detector.model,
           probability: ev.probability,
           threshold: ev.threshold,
           delayMs: ev.delayMs,
@@ -184,6 +198,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         'EOT_PREDICTION'
       )
     );
+  }
   // One backchannel list for the patched LiveKit and the barge-in fast path.
   installBackchannelHook();
 

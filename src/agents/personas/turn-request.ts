@@ -34,7 +34,7 @@ import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
 import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
-import { noteReminder } from '../shared/turn-receipt.js';
+import { noteReminder } from '../shared/turn-receipt-session.js';
 import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes, listeningReply } from './listen-first-turn.js';
@@ -54,9 +54,11 @@ import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { journalAskFor } from './journal-ask.js';
-import { callerTurnsOf, goodbyeNoteOn, happyExitNote } from './happy-exits.js';
+import { callerTurnsOf, goodbyeNoteOn, happyExitNote, questionPaceNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
-import { candorEnabled, supportHeld } from './turn-candor.js';
+import { withPlayful } from './ferni-playful-turn.js';
+import { supportHeld } from './turn-candor.js';
+import { withCallTrouble, withSupportHold } from './turn-holds.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
@@ -74,6 +76,7 @@ import {
   withTurnStyleReminder,
 } from './turn-style.js';
 import { burstLine, clearBurstOffer } from './vocal-bursts.js';
+import { withHeavyMoment } from './heavy-turn.js';
 
 // Moved to turn-request-tools.ts; re-exported for existing importers.
 export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
@@ -276,7 +279,7 @@ function inviteFor(
   };
   const invite = commitmentInviteNote(session, turn, { crisis });
   const ask = journalAskFor(session, turn, { crisis, invite, phoneOnlyIdentity });
-  return [invite, ask].join(' ').trim();
+  return [invite, ask].join(' ').trim() || questionPaceNote(turn.ferniLines, { crisis });
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
@@ -308,17 +311,15 @@ function styleFor(
   if (!said) return { text: TURN_STYLE_REMINDER };
   const listening = listeningReply(said, chatCtx, session);
   if (listening) return { text: listening };
-  // Seeded per call and words: the preemptive and final requests agree, but
-  // the same words on another call (or said again) can get another shape.
+  // Seeded per call and words: preemptive and final requests agree; another call may differ.
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const shaped = withQuiet(
-    withRecent(withOwnStory(sig, said, ownStory), said, chatCtx),
-    said,
-    chatCtx
-  );
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
+  const told = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
+  const quiet = withQuiet(told, said, chatCtx);
+  const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
+  const troubled = withCallTrouble(session, said, shaped, source);
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, troubled);
   // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
   const burst = burstLine(
     session,
@@ -374,23 +375,6 @@ export function signalsFor(
   return understood
     ? { signals: modelSignals(understood), source: 'model' }
     : { signals: PLAIN_SIGNALS, source: 'plain' };
-}
-
-/**
- * CANDOR=on: after hard news, support comes first for the next few turns too
- * ("Can you just tell me something funny?" after "my dad's in the hospital"
- * is no moment to set them straight). Off, the signals are passed through.
- */
-function withSupportHold(
-  session: object,
-  said: string,
-  signals: TurnSignals | undefined,
-  source: 'model' | 'plain' | 'regex'
-): TurnSignals | undefined {
-  if (!candorEnabled()) return signals;
-  const sig = signals ?? regexSignals(said, callerMove(said));
-  // Only the model's reading is sticky: plain (no reading yet) is careful by default.
-  return { ...sig, supportFirst: supportHeld(session, said, source === 'model' && sig.careful) };
 }
 
 /** FERNI_STATE=on: his state's say on a story of his own rides with the signals (ferni-state.ts). */

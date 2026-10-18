@@ -84,7 +84,6 @@ describe('alarms: saved, but nothing rings them', () => {
 const KNOWN_STUBS: Record<string, number> = {
   'src/services/background-agents/executors/call-executor.ts': 1, // "queued" with no call
   'src/services/background-agents/executors/followup-executor.ts': 1, // "queued" with no send
-  'src/tools/domains/home/packages.ts': 1, // made-up tracking events
   'src/tools/domains/smart-home/index.ts': 1, // "Message sent!" to speakers
 };
 const STUB_MARKER =

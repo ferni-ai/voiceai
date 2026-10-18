@@ -1,11 +1,14 @@
 /**
  * Prod call 2026-10-17 (build c20c77407): the caller asked Nayan to call their
  * mom at 8:42 AM her time. The call-hours guard held it until 9:00 AM, and the
- * spoken reply was "Well, I'm placing the call now."
+ * spoken reply was "Well, I'm placing the call now." Then, after a handoff,
+ * Ferni went to call the same mom again and asked "Should I go ahead?".
  *
  * These run the real callOnBehalf tool, orchestrator, call-hours guard and
- * deferred-calls store (only Firestore and LiveKit are faked): a held call's
- * result says nothing was dialed, and when it will be.
+ * deferred-calls store (only Firestore and LiveKit are faked):
+ * - a held call's result says nothing was dialed, and when it will be;
+ * - a second call to the same number while the first waits sets up no other,
+ *   neither from the tool nor from the confirm read-back.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -80,6 +83,8 @@ process.env.LIVEKIT_API_SECRET = 's';
 process.env.SIP_TRUNK_ID = 'ST_test';
 
 const { createCallOnBehalfTool } = await import('../call-on-behalf.js');
+const { callConfirm } = await import('../call-confirm.js');
+const { pendingCallTo } = await import('../../../../services/outreach/deferred-calls.js');
 
 const AT_8_42_DENVER = new Date('2026-10-17T14:42:27Z'); // the prod call, 8:42 AM in Denver
 const NINE_DENVER = '2026-10-17T15:00:00.000Z';
@@ -113,5 +118,82 @@ describe('a call held for call hours', () => {
     expect(reply).toMatch(/^Nothing was dialed yet: /);
     expect(reply).toMatch(/later today at 9:00\sAM their time/);
     expect(reply).not.toMatch(/\b(?:i'm calling|calling \w+ now|right now)\b/i);
+  });
+});
+
+describe('a call to the same number while one waits', () => {
+  it('the tool sets up no second call and says when the first rings', async () => {
+    await callMom();
+    const again = await callMom();
+
+    expect(pending()).toHaveLength(1);
+    expect(createSipParticipant).not.toHaveBeenCalled();
+    expect(again).toMatch(/^Nothing was dialed yet: a call to Mom is already set for later today/);
+    expect(again).toMatch(/9:00\sAM their time/);
+  });
+
+  it('the confirm read-back says it is already set instead of asking to call again', async () => {
+    await callMom();
+    const prepared = await callConfirm.prepare(
+      { contactQuery: 'my mom', purpose: 'check in' },
+      'seth',
+      async () => undefined
+    );
+    expect(typeof prepared).toBe('string');
+    expect(prepared).toMatch(/^Nothing was dialed yet: a call to Mom is already set/);
+  });
+
+  it('with nothing waiting, the read-back is offered as before', async () => {
+    const prepared = await callConfirm.prepare(
+      { contactQuery: 'my mom', purpose: 'check in' },
+      'seth',
+      async () => undefined
+    );
+    expect(prepared).toMatchObject({ readBack: expect.stringMatching(/^a call to Mom at /) });
+  });
+});
+
+describe('pendingCallTo', () => {
+  const row = (id: string, data: Record<string, unknown>) =>
+    docs.push({ uid: 'seth', collection: 'deferred_calls', id, data });
+  const onBehalf = (phone: string, extra: Record<string, unknown> = {}) => ({
+    kind: 'on_behalf',
+    request: { resolvedContact: { name: 'Mom', phone } },
+    status: 'pending',
+    scheduledFor: NINE_DENVER,
+    timezone: 'America/Denver',
+    ...extra,
+  });
+
+  it('matches the number however it is written', async () => {
+    row('deferred_1', onBehalf('3035550100'));
+    const found = await pendingCallTo('seth', '+1 (303) 555-0100');
+    expect(found).toMatchObject({ id: 'deferred_1', timezone: 'America/Denver' });
+    expect(found?.at.toISOString()).toBe(NINE_DENVER);
+  });
+
+  it('skips other numbers, other users, placed calls, calls to the user, and stale ones', async () => {
+    row('other-number', onBehalf('3035550199'));
+    row('placed', onBehalf('3035550100', { status: 'placed' }));
+    row('proactive', { ...onBehalf('3035550100'), kind: 'proactive' });
+    row('stale', onBehalf('3035550100', { scheduledFor: '2026-10-16T01:00:00.000Z' }));
+    docs.push({
+      uid: 'someone-else',
+      collection: 'deferred_calls',
+      id: 'x',
+      data: onBehalf('3035550100'),
+    });
+    expect(await pendingCallTo('seth', '3035550100')).toBeUndefined();
+  });
+
+  it('a failed read finds nothing rather than blocking the call', async () => {
+    const spy = vi.spyOn(fakeDb, 'collection').mockImplementation(() => {
+      throw new Error('unavailable');
+    });
+    try {
+      expect(await pendingCallTo('seth', '3035550100')).toBeUndefined();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

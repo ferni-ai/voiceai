@@ -244,7 +244,7 @@ Location: `src/agents/voice-agent/data-channel-handler.ts`
 
 Handles these message types from native apps:
 - `handoff_request` → routes to HandoffCoordinator
-- `synthetic_text` → text-based testing without voice
+- `synthetic_text` → not handled (an unused test hook, removed)
 - `macos_context` → macOS desktop context
 - `claude_narration` → Claude Code integration
 - `game_*` → interactive games

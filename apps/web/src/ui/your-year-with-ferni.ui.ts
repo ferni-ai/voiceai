@@ -136,8 +136,9 @@ export class YourYearWithFerni {
     this.isOpen = true;
     log.debug({ userId }, 'Opening Your Year with Ferni');
 
-    // Load data (nobody signed in: no request, the empty state shows)
-    this.data = userId ? await this.loadYearData(userId) : null;
+    // Load data (nobody signed in: no request, the empty state shows; a failed load says so)
+    const loaded = userId ? await this.loadYearData(userId) : null;
+    this.data = loaded === 'error' ? null : loaded;
 
     // Check if user has meaningful data (more than 0 conversations)
     const hasData = this.data && this.data.stats && this.data.stats.totalConversations > 0;
@@ -146,7 +147,7 @@ export class YourYearWithFerni {
     if (hasData) {
       this.createUI();
     } else {
-      this.createEmptyStateUI();
+      this.createEmptyStateUI(loaded === 'error');
     }
     await this.animateIn();
   }
@@ -154,12 +155,12 @@ export class YourYearWithFerni {
   /**
    * Create empty state UI for new users.
    */
-  private createEmptyStateUI(): void {
+  private createEmptyStateUI(failed = false): void {
     this.container = document.createElement('div');
     this.container.className = 'your-year-overlay';
     
-    const emptyState = createEmptyState('your-year');
-    
+    const emptyState = failed ? document.createElement('p') : createEmptyState('your-year');
+    if (failed) Object.assign(emptyState, { className: 'your-year-error', textContent: t('common.error') });
     this.container.innerHTML = `
       <div class="your-year-backdrop"></div>
       <div class="your-year-modal your-year-modal--empty" role="dialog" aria-modal="true" aria-labelledby="your-year-title">
@@ -235,7 +236,7 @@ export class YourYearWithFerni {
   // DATA LOADING
   // ============================================================================
 
-  private async loadYearData(userId: string): Promise<YearData | null> {
+  private async loadYearData(userId: string): Promise<YearData | null | 'error'> {
     try {
       const response = await apiGet<YearData>(`/api/year-in-review/${userId}`);
       if (response.ok && response.data) {
@@ -266,12 +267,11 @@ export class YourYearWithFerni {
           })) ?? [],
         };
       }
-      // API returned no data - user has no year data yet
-      log.info({ userId }, 'No year data found for user - will show empty state');
-      return null;
+      log.warn({ status: response.status, userId }, 'Year data request failed');
+      return response.ok ? null : 'error'; // a failed load is not an empty year
     } catch (error) {
       log.warn({ error, userId }, 'Failed to load year data from API');
-      return null;
+      return 'error';
     }
   }
 

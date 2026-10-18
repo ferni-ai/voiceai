@@ -17,6 +17,7 @@
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
+import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
 import { injectUserAwareness } from './user-awareness-injection.js';
 
@@ -62,7 +63,7 @@ import { configureModelProvider } from '../../personas/bundles/model-provider-co
 // Submodule imports
 import { finishCallTypeContexts, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
 import { evalLocalTime } from '../personas/eval-local-time.js';
-import { buildSessionPersona } from './persona-builder.js';
+import { buildSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
@@ -256,7 +257,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Build persona with defaults and load prompts
     const personaResult = await buildSessionPersona(personaId, e2e);
     sessionPersona = personaResult.sessionPersona;
-    const { systemPrompt } = personaResult;
     modelBaseInstructions = personaResult.modelBaseInstructions;
 
     // =========================================================================
@@ -600,9 +600,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       process.stderr.write(
         `[voice-agent-entry] 🎭 Multi-agent early path — awaiting participant, skipping createAgentSession\n`
       );
-      const participantWaitResult = await (
-        earlyParticipantWaitPromise ?? waitForParticipantWithTimeout(ctx, participantTimeout)
-      );
+      const participantWaitResult =
+        await (earlyParticipantWaitPromise ?? waitForParticipantWithTimeout(ctx, participantTimeout));
       await markCallStageSafe(sessionId, 'participant_wait_start', participantWaitResult.startedAt);
       await markCallStageSafe(sessionId, 'participant_wait_done', participantWaitResult.endedAt);
       const participant = participantWaitResult.participant;
@@ -615,8 +614,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         void noteCallerJoined({ participant, room: ctx.room, sessionId });
         await markCallStageSafe(sessionId, 'orchestrator_start');
         const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
-        const { unregisterSession: unregisterCrashSession } =
-          await import('../shared/crash-analytics.js');
+        const crash = await import('../shared/crash-analytics.js');
         const multiAgentModeResult = await runMultiAgentMode({
           ctx,
           room: ctx.room,
@@ -626,7 +624,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           userData,
           sessionId,
           userId: userId ?? undefined,
-          unregisterSession: unregisterCrashSession,
+          unregisterSession: crash.unregisterSession,
+          callerChecks,
         });
         if (multiAgentModeResult.activated) {
           multiAgentActivatedEarly = true;
@@ -663,7 +662,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       const sessionResult = await createAgentSession({
         sessionId,
         sessionPersona,
-        systemPrompt,
+        // After applyCallerFlags (STEP 4), so the prompt has this caller's flags.
+        systemPrompt: await loadCallerPrompt(sessionPersona.id),
         modelBaseInstructions,
         userId,
         userAccent,
