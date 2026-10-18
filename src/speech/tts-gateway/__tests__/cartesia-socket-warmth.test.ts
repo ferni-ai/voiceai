@@ -39,24 +39,40 @@ class FakeSocket extends EventEmitter {
 
 const noop: ContextHandler = { onChunk() {}, onDone() {}, onError() {} };
 
-function harness(warmth?: SocketWarmth, { refuse = false } = {}) {
+/** What Cartesia does with the next socket opened; tests change it mid-run. */
+type OpenOutcome = 'accept' | 'refuse' | 'accept-then-close';
+
+function harness(warmth?: SocketWarmth) {
   const sockets: FakeSocket[] = [];
+  const server: { outcome: OpenOutcome } = { outcome: 'accept' };
+  const createSocket = (): SocketLike => {
+    const s = new FakeSocket();
+    sockets.push(s);
+    const { outcome } = server;
+    void Promise.resolve().then(() => {
+      if (outcome === 'refuse') {
+        s.emit('error', new Error('refused'));
+        return;
+      }
+      s.accept();
+      if (outcome === 'accept-then-close') s.close(1008);
+    });
+    return s as unknown as SocketLike;
+  };
   const cartesia = new CartesiaSocket(
     () => 'wss://test',
     1000,
-    () => {
-      const s = new FakeSocket();
-      sockets.push(s);
-      void Promise.resolve().then(() =>
-        refuse ? s.emit('error', new Error('refused')) : s.accept()
-      );
-      return s as unknown as SocketLike;
-    },
+    createSocket,
     warmth,
     () => Date.now()
   );
-  return { cartesia, sockets };
+  return { cartesia, sockets, server };
 }
+
+/** Cartesia answered on this socket, so it is known to work. */
+const answered = (s: FakeSocket): void => {
+  s.emit('message', Buffer.from(JSON.stringify({ context_id: 'none', type: 'done' })));
+};
 
 describe('CartesiaSocket warmth (TTS_SOCKET_WARM)', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -74,6 +90,7 @@ describe('CartesiaSocket warmth (TTS_SOCKET_WARM)', () => {
   it('on: reopens a dropped socket in the background so the next reply finds it open', async () => {
     const { cartesia, sockets } = harness(WARMTH);
     await cartesia.send('a', {}, noop);
+    answered(sockets[0]);
     sockets[0].close(1000);
     expect(sockets).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(WARMTH.reopenDelayMs);
@@ -121,36 +138,61 @@ describe('CartesiaSocket warmth (TTS_SOCKET_WARM)', () => {
   });
 
   it('on: gives up after maxReopenAttempts failures, backing off between them', async () => {
-    const { cartesia, sockets } = harness(WARMTH);
+    const { cartesia, sockets, server } = harness(WARMTH);
     await cartesia.send('a', {}, noop);
-    // From now on every open is refused.
-    const refusing = harness(WARMTH, { refuse: true });
-    Object.assign(cartesia, {
-      createSocket: (refusing.cartesia as unknown as { createSocket: unknown }).createSocket,
-    });
+    answered(sockets[0]);
+    server.outcome = 'refuse'; // from now on every open is refused
     sockets[0].close(1006);
     await vi.advanceTimersByTimeAsync(WARMTH.reopenDelayMs); // attempt 1
-    expect(refusing.sockets).toHaveLength(1);
+    expect(sockets).toHaveLength(1 + 1);
     await vi.advanceTimersByTimeAsync(WARMTH.reopenDelayMs); // still backing off (200 ms)
-    expect(refusing.sockets).toHaveLength(1);
+    expect(sockets).toHaveLength(1 + 1);
     await vi.advanceTimersByTimeAsync(WARMTH.reopenDelayMs); // attempt 2
-    expect(refusing.sockets).toHaveLength(2);
+    expect(sockets).toHaveLength(1 + 2);
     await vi.advanceTimersByTimeAsync(10_000);
-    expect(refusing.sockets).toHaveLength(2);
+    expect(sockets).toHaveLength(1 + 2);
   });
 
   it('on: caps the wait between reopen attempts at maxReopenDelayMs', async () => {
     const warmth = { ...WARMTH, maxReopenAttempts: 10, maxReopenDelayMs: 300 };
-    const { cartesia, sockets } = harness(warmth);
+    const { cartesia, sockets, server } = harness(warmth);
     await cartesia.send('a', {}, noop);
-    const refusing = harness(warmth, { refuse: true });
-    Object.assign(cartesia, {
-      createSocket: (refusing.cartesia as unknown as { createSocket: unknown }).createSocket,
-    });
+    answered(sockets[0]);
+    server.outcome = 'refuse';
     sockets[0].close(1006);
     // Uncapped, attempts 1-5 would land at 100, 300, 700, 1500 and 3100 ms.
     await vi.advanceTimersByTimeAsync(100 + 200 + 300 + 300 + 300);
-    expect(refusing.sockets).toHaveLength(5);
+    expect(sockets).toHaveLength(1 + 5);
+  });
+
+  it('on: a socket that opens and is closed at once backs off and stops (no reconnect storm)', async () => {
+    const warmth = { ...WARMTH, maxReopenAttempts: 5, maxReopenDelayMs: 1_000 };
+    const { cartesia, sockets, server } = harness(warmth);
+    await cartesia.send('a', {}, noop);
+    answered(sockets[0]);
+    server.outcome = 'accept-then-close'; // e.g. a 1008 policy close right after the upgrade
+    sockets[0].close(1006);
+    await vi.advanceTimersByTimeAsync(warmth.idleWindowMs - 1);
+    // One reopen per allowed attempt, not one every reopenDelayMs for the whole window.
+    expect(sockets).toHaveLength(1 + warmth.maxReopenAttempts);
+  });
+
+  it('on: a reopened socket that proves healthy resets the failure count', async () => {
+    const { cartesia, sockets, server } = harness(WARMTH);
+    await cartesia.send('a', {}, noop);
+    answered(sockets[0]);
+    server.outcome = 'accept-then-close';
+    sockets[0].close(1006);
+    await vi.advanceTimersByTimeAsync(WARMTH.reopenDelayMs); // attempt 1 opens, then closes
+    expect(sockets).toHaveLength(2);
+    server.outcome = 'accept';
+    await vi.advanceTimersByTimeAsync(WARMTH.reopenDelayMs * 2); // attempt 2 holds
+    expect(sockets).toHaveLength(3);
+    sockets[2].emit('pong');
+    // Healthy again: its next drop reopens after the base delay, not a backed-off one.
+    sockets[2].close(1006);
+    await vi.advanceTimersByTimeAsync(WARMTH.reopenDelayMs);
+    expect(sockets).toHaveLength(4);
   });
 
   it('close() stops the ping and reopen timers and fails in-flight replies', async () => {
@@ -181,19 +223,17 @@ describe('CartesiaSocket warmth (TTS_SOCKET_WARM)', () => {
     const onUnhandled = (reason: unknown) => unhandled.push(reason);
     process.on('unhandledRejection', onUnhandled);
     try {
-      const { cartesia, sockets } = harness(WARMTH);
+      const { cartesia, sockets, server } = harness(WARMTH);
       await cartesia.send('a', {}, noop);
-      const refusing = harness(WARMTH, { refuse: true });
-      Object.assign(cartesia, {
-        createSocket: (refusing.cartesia as unknown as { createSocket: unknown }).createSocket,
-      });
+      answered(sockets[0]);
+      server.outcome = 'refuse';
       sockets[0].close(1006);
       await vi.advanceTimersByTimeAsync(5_000);
       vi.useRealTimers();
       await new Promise<void>((resolve) => {
         setTimeout(resolve, 20);
       });
-      expect(refusing.sockets).toHaveLength(WARMTH.maxReopenAttempts);
+      expect(sockets).toHaveLength(1 + WARMTH.maxReopenAttempts);
       expect(unhandled).toEqual([]);
     } finally {
       process.off('unhandledRejection', onUnhandled);

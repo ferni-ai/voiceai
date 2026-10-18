@@ -106,7 +106,13 @@ export class CartesiaSocket {
   private stopPing: (() => void) | null = null;
   private readonly pingName = `cartesia-tts-socket-ping-${++socketCount}`;
   private reopenTimer: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * Reopens in a row that did not give a healthy socket. Reset only once the
+   * socket proves itself (a pong or a message from Cartesia), so a socket that
+   * opens and is closed at once (a 1008 policy close) still backs off and stops.
+   */
   private reopenFailures = 0;
+  private healthy = false;
   private closed = false;
 
   constructor(
@@ -211,7 +217,7 @@ export class CartesiaSocket {
           return;
         }
         this.socket = socket;
-        this.reopenFailures = 0;
+        this.healthy = false;
         this.startPinging(socket);
         resolve(socket);
       });
@@ -219,7 +225,10 @@ export class CartesiaSocket {
         clearTimeout(timer);
         reject(error);
       });
-      socket.on('message', (raw) => this.route(raw));
+      socket.on('message', (raw) => {
+        if (this.socket === socket) this.provedHealthy();
+        this.route(raw);
+      });
       socket.on('close', (code?: number) =>
         this.dropped(socket, new Error('Cartesia WebSocket closed'), 'close', code)
       );
@@ -272,7 +281,14 @@ export class CartesiaSocket {
     const at = this.now();
     this.lastDrop = { at, idleMs: this.lastUse ? at - this.lastUse : 0, code, reason };
     this.failAll(error);
+    // Dropped before it ever answered: count it as a failed reopen.
+    if (!this.healthy) this.reopenFailures += 1;
     this.scheduleReopen();
+  }
+
+  private provedHealthy(): void {
+    this.healthy = true;
+    this.reopenFailures = 0;
   }
 
   private recentlyUsed(): boolean {
@@ -291,6 +307,7 @@ export class CartesiaSocket {
     let awaitingPong = false;
     socket.on('pong', () => {
       awaitingPong = false;
+      if (this.socket === socket) this.provedHealthy();
     });
     this.stopPing = registerInterval(
       this.pingName,
