@@ -1,8 +1,10 @@
 name: Build
 
 # Builds the backend, the web app and the UI server image, and checks that the image
-# starts. "Build & Test" is a required check: it runs in the merge queue, and on a
-# PR it is skipped, which reports success (#1250). It used to live in staging.yml, next to the preview deploy, so disabling
+# starts. "Build & Test" is a required check: it runs on every PR and in the merge
+# queue. It used to skip on PRs (#1250), which reports success, so a PR that broke
+# the build was first caught in the queue, where it fails every group queued with it
+# (2026-10-18). It used to live in staging.yml, next to the preview deploy, so disabling
 # that workflow to stop the previews blocked every merge (2026-10-12).
 
 on:
@@ -22,8 +24,6 @@ env:
 jobs:
   changes:
     name: Build Scope
-    # Build & Test is skipped on pull_request (below), so this is too.
-    if: github.event_name != 'pull_request'
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: read
@@ -50,11 +50,9 @@ jobs:
     name: Build & Test
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: changes
-    # Required check: skipped (which reports success) on pull_request and when
-    # `code` is false, never filtered out by `paths:`, which would leave it pending
-    # forever. The merge queue builds and tests every PR before it merges, and PR
-    # runs were starving it of runners (#1250).
-    if: github.event_name != 'pull_request' && needs.changes.outputs.code != 'false'
+    # Required check: skipped (which reports success) when `code` is false, never
+    # filtered out by `paths:`, which would leave it pending forever.
+    if: needs.changes.outputs.code != 'false'
     
     steps:
       - name: Checkout
