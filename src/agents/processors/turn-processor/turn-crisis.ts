@@ -24,6 +24,11 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
+import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import {
+  callRiskBeforeTurn,
+  loneImminentGoodbye,
+} from '../../../services/safety/crisis-lone-imminent.js';
 import {
   applyClassifierVerdict,
   detectCrisis,
@@ -44,11 +49,18 @@ export interface TurnCrisis {
   /** The patterns with the live classifier verdict applied. Memoized. */
   resolve(): Promise<CrisisDetectionResult>;
   /**
-   * Whether this turn gets a soft check-in instead (CRISIS_AGREEMENT_GATE):
-   * its reads disagreed and no pattern matched. resolve() then returns the
-   * patterns' reading.
+   * Whether this turn gets a soft check-in instead: its reads disagreed and no
+   * pattern matched (CRISIS_AGREEMENT_GATE), or a lone imminent read of a plain
+   * goodbye on a call with no risk (crisis-lone-imminent.ts). resolve() then
+   * returns the patterns' reading.
    */
   softCheck(): Promise<boolean>;
+  /**
+   * Whether a router may answer this turn without the reply model (FTIS direct
+   * execution, the semantic short-circuit): never with a crisis signal or a
+   * soft check-in, which only the normal reply path carries.
+   */
+  bypassAllowed(): Promise<boolean>;
 }
 
 export function startTurnCrisis(
@@ -71,6 +83,7 @@ export function startTurnCrisis(
   );
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   const pattern = shouldBlock ? 'block' : patterns.isCrisis ? 'crisis' : 'none';
+  if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
   const { env = process.env, generate } = options;
   // Only the agreement gate and a live adjudicator hold the turn for the turn's
   // other reads; a shadow adjudicator runs beside it and never delays it.
@@ -84,12 +97,20 @@ export function startTurnCrisis(
     earlier: userData?.recentTranscripts ?? [],
     companion: userData?.lastAgentResponse,
   };
-  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope });
+  const call = options.sessionId || undefined;
+  // Taken before this turn's own read starts (crisis-lone-imminent.ts).
+  const priorRisk = callRiskBeforeTurn(call, input);
+  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
   let settled: Promise<{ crisis: CrisisDetectionResult; soft: boolean }> | null = null;
   const settle = (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> =>
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
+            // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
+            if (loneImminentGoodbye({ detection: patterns, verdict, ...input, priorRisk })) {
+              log.info({ outcome: 'soft', source: 'lone_imminent_goodbye' }, 'CRISIS_AGREEMENT');
+              return { crisis: patterns, soft: true };
+            }
             const crisis = applyClassifierVerdict(patterns, verdict);
             if (!scope || crisis === patterns) return { crisis, soft: false };
             if (!holdForReads) {
@@ -130,6 +151,7 @@ export function startTurnCrisis(
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
+    bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
   };
 }
 
