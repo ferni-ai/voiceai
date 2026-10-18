@@ -56,8 +56,9 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
     },
     {
       name: 'calendar-morning-briefing',
-      description: 'Alex morning calendar briefing (one push per user per local day)',
-      schedule: '*/15 5-11 * * *',
+      description: 'Alex morning briefing (one per user per local day)',
+      // All day: 7am (push) and 8am (text) come at different UTC hours per zone.
+      schedule: '*/15 * * * *',
       timezone: 'Etc/UTC',
       uri: `${uiServerUrl}/api/jobs/calendar-briefing`,
       httpMethod: 'POST',
