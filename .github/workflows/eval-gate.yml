@@ -57,8 +57,8 @@ jobs:
           NODE_ENV: test
           LOG_LEVEL: silent
 
-  # pull_request (never pull_request_target): fork code gets no secrets. The
-  # model job runs only for branches of this repo; a fork PR gets a notice.
+  # pull_request (never pull_request_target): fork code gets no secrets or OIDC
+  # token. The model job runs only for branches of this repo; a fork PR gets a notice.
   model-fork-notice:
     name: Model evals (Vertex)
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
@@ -73,52 +73,36 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Keyless: an OIDC token, accepted by the eval-gate provider only for this
+    # repo and this workflow path (keep the file name), impersonating a service
+    # account that holds roles/aiplatform.user and nothing else.
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      # No key configured (or it was removed): say so, never pass silently.
-      - name: Check for Vertex credentials
-        id: creds
-        env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-        run: |
-          if [ -n "$GCP_SA_KEY" ] && [ -n "$GCP_PROJECT_ID" ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Model evals skipped::skipped: no secret (GCP_SA_KEY / GCP_PROJECT_ID unavailable to this run)"
-            echo "### Model evals: skipped: no secret (GCP_SA_KEY / GCP_PROJECT_ID unavailable to this run)" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - if: steps.creds.outputs.present == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: steps.creds.outputs.present == 'true'
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-      - if: steps.creds.outputs.present == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - if: steps.creds.outputs.present == 'true'
-        name: Install dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - if: steps.creds.outputs.present == 'true'
-        name: Authenticate to Google Cloud
-        # Service-account key: the repo has no Workload Identity provider yet.
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: projects/1031920444452/locations/global/workloadIdentityPools/github-pool/providers/ferni-voiceai-eval-gate
+          service_account: ferni-ci-eval@johnb-2025.iam.gserviceaccount.com
 
-      - if: steps.creds.outputs.present == 'true'
-        name: Build the router example set
+      - name: Build the router example set
         run: |
           mkdir -p scripts/tool-retrieval/out
           pnpm tsx scripts/tool-retrieval/router-examples.ts
         env:
           LOG_LEVEL: silent
 
-      - if: steps.creds.outputs.present == 'true'
-        name: Compare with evals/baselines/model.json
+      - name: Compare with evals/baselines/model.json
         run: pnpm tsx scripts/eval-gate/model.ts
         env:
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GOOGLE_CLOUD_PROJECT: johnb-2025
           LOG_LEVEL: silent
