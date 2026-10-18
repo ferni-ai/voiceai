@@ -14,7 +14,8 @@
  *     whose userId names a harness owner (copies under a record go with it)
  *   phone_mappings: +1555 numbers, or rows mapping to a harness owner
  *
- * Dry run by default (scripts/destructive-gate.ts): counts per collection, no ids.
+ * Dry run by default (scripts/destructive-gate.ts): counts per collection, then
+ * the owner ids it would delete (all harness ids, so safe to print).
  *
  *   npx tsx scripts/migrations/purge-synthetic-data.ts
  *   npx tsx scripts/migrations/purge-synthetic-data.ts --apply --confirm-project=johnb-2025
@@ -45,13 +46,16 @@ interface Ref {
 interface CountQuery {
   get(): Promise<{ data(): { count: number } }>;
 }
-interface Snap {
-  docs: Array<{ id: string; ref: Ref; get(field: string): unknown }>;
+type Doc = { id: string; ref: Ref; get(field: string): unknown };
+interface GroupQuery {
+  limit(n: number): GroupQuery;
+  startAfter(doc: Doc): GroupQuery;
+  get(): Promise<{ docs: Doc[] }>;
 }
 /** The slice of Firestore the purge uses, so a test can hand it a fake. */
 export interface PurgeDb {
   collection(path: string): { listDocuments(): Promise<Ref[]> };
-  collectionGroup(name: string): { select(...fields: string[]): { get(): Promise<Snap> } };
+  collectionGroup(name: string): { select(...fields: string[]): GroupQuery };
   recursiveDelete(ref: Ref): Promise<void>;
   batch(): { delete(ref: Ref): unknown; commit(): Promise<unknown> };
 }
@@ -63,6 +67,25 @@ export interface PurgePlan {
   roots: Ref[];
   /** Single documents to delete. */
   docs: Ref[];
+  /** Every harness owner id found, to print. */
+  owners: Set<string>;
+}
+
+const PAGE = 1000;
+
+/** Every document of a collection group, a page at a time (vectors is large). */
+async function* scanGroup(db: PurgeDb, group: string, fields: string[]): AsyncGenerator<Doc> {
+  let last: Doc | undefined;
+  for (;;) {
+    const query = db
+      .collectionGroup(group)
+      .select(...fields)
+      .limit(PAGE);
+    const { docs } = await (last ? query.startAfter(last) : query).get();
+    yield* docs;
+    if (docs.length < PAGE) return;
+    last = docs[docs.length - 1];
+  }
 }
 
 const isUnderRoot = (path: string) => OWNER_ROOTS.includes(path.split('/')[0] as string);
@@ -77,7 +100,7 @@ async function inParallel<T>(items: T[], limit: number, fn: (item: T) => Promise
 
 /** Read-only: everything the purge would delete, with counts per collection. */
 export async function planPurge(db: PurgeDb): Promise<PurgePlan> {
-  const plan: PurgePlan = { counts: {}, roots: [], docs: [] };
+  const plan: PurgePlan = { counts: {}, roots: [], docs: [], owners: new Set() };
   const add = (label: string, n: number) => {
     if (n > 0) plan.counts[label] = (plan.counts[label] ?? 0) + n;
   };
@@ -87,6 +110,7 @@ export async function planPurge(db: PurgeDb): Promise<PurgePlan> {
       syntheticOwnerPrefix(r.id)
     );
     plan.roots.push(...owners);
+    for (const o of owners) plan.owners.add(o.id);
     add(root, owners.length);
     // One level of subcollections is counted; deeper documents go with their parents.
     await inParallel(owners, 16, async (owner) => {
@@ -97,26 +121,23 @@ export async function planPurge(db: PurgeDb): Promise<PurgePlan> {
   }
 
   for (const group of OWNER_FIELD_GROUPS) {
-    const snap = await db
-      .collectionGroup(group)
-      .select(...OWNER_FIELDS)
-      .get();
-    for (const doc of snap.docs) {
+    for await (const doc of scanGroup(db, group, OWNER_FIELDS)) {
       if (isUnderRoot(doc.ref.path)) continue;
-      if (!OWNER_FIELDS.some((f) => syntheticOwnerPrefix(doc.get(f)))) continue;
+      const owner = OWNER_FIELDS.map((f) => doc.get(f)).find((v) => syntheticOwnerPrefix(v));
+      if (typeof owner !== 'string') continue;
       plan.docs.push(doc.ref);
+      plan.owners.add(owner);
       add(group, 1);
     }
   }
 
-  const phones = await db.collectionGroup('phone_mappings').select('phone', 'userId').get();
-  for (const doc of phones.docs) {
+  for await (const doc of scanGroup(db, 'phone_mappings', ['phone', 'userId'])) {
+    const owner = doc.get('userId');
     const synthetic =
-      isSyntheticPhone(doc.id) ||
-      isSyntheticPhone(doc.get('phone')) ||
-      syntheticOwnerPrefix(doc.get('userId'));
+      isSyntheticPhone(doc.id) || isSyntheticPhone(doc.get('phone')) || syntheticOwnerPrefix(owner);
     if (!synthetic || isUnderRoot(doc.ref.path)) continue;
     plan.docs.push(doc.ref);
+    plan.owners.add(syntheticOwnerPrefix(owner) ? (owner as string) : doc.id);
     add('phone_mappings', 1);
   }
   return plan;
@@ -150,6 +171,10 @@ export async function main(argv: readonly string[] = process.argv, db?: PurgeDb)
     console.log(`  ${label.padEnd(48)} ${n}`);
   }
   if (Object.keys(plan.counts).length === 0) console.log('  nothing: no harness data found');
+  if (plan.owners.size > 0) {
+    console.log(`Owner ids (${plan.owners.size}):`);
+    for (const id of [...plan.owners].sort()) console.log(`  ${id}`);
+  }
   if (mode === 'dry-run') return;
 
   await applyPurge(db, plan);

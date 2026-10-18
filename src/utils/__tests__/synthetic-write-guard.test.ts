@@ -56,6 +56,16 @@ describe('refusedOwner', () => {
     expect(refusedOwner(update('phone_mappings/+14155550100'), {})).toBeNull();
   });
 
+  it('lets updates of existing docs through (update/tx.update preconditions)', () => {
+    const claim = {
+      ...update('bogle_users/test-user-1/reminders/r1'),
+      currentDocument: { exists: true },
+    };
+    expect(refusedOwner(claim, {})).toBeNull();
+    const createOnly = { ...update('bogle_users/test-user-1'), currentDocument: { exists: false } };
+    expect(refusedOwner(createOnly, {})).toBe('test-user-1');
+  });
+
   it('always lets deletes through, and ignores other projects and the emulator', () => {
     expect(refusedOwner({ delete: `${PROD}/bogle_users/test-user-1` }, {})).toBeNull();
     const emulator = { FIRESTORE_EMULATOR_HOST: 'localhost:8080' };
@@ -143,16 +153,55 @@ describe('installSyntheticWriteGuard', () => {
     return { cls: { prototype: { request } as Record<string | symbol, unknown> }, request };
   }
 
-  it('rejects a commit holding a harness write without sending it', async () => {
+  it('refuses a commit made only of harness writes, without sending it', async () => {
     const { cls, request } = fakeClass();
     installSyntheticWriteGuard({}, [cls]);
     const send = cls.prototype.request as (...a: unknown[]) => Promise<unknown>;
     const commit = send('commit', {
-      writes: [update('bogle_users/RealUid'), update('bogle_users/test-user-1')],
+      writes: [update('bogle_users/test-user-1'), update('users/test-user-1/x/y')],
     });
     await expect(commit).rejects.toBeInstanceOf(SyntheticWriteRefusedError);
     await expect(commit).rejects.toMatchObject({ code: 7, owner: 'test-user-1' });
     expect(request).not.toHaveBeenCalled();
+  });
+
+  it('sends a commit that mixes real and harness writes, whole (it is atomic)', async () => {
+    const { cls, request } = fakeClass();
+    installSyntheticWriteGuard({}, [cls]);
+    const send = cls.prototype.request as (...a: unknown[]) => Promise<unknown>;
+    const writes = [update('bogle_users/RealUid/r/1'), update('bogle_users/test-user-1/r/2')];
+    await send('commit', { writes });
+    expect(request).toHaveBeenCalledWith('commit', { writes });
+  });
+
+  it("sends a sweep's claim transaction on a harness user's reminder (update of an existing doc)", async () => {
+    const { cls, request } = fakeClass();
+    installSyntheticWriteGuard({}, [cls]);
+    const send = cls.prototype.request as (...a: unknown[]) => Promise<unknown>;
+    const claim = {
+      ...update('bogle_users/voice-eval-x-20261018120000-abcd/reminders/r1', { status: 'sending' }),
+      currentDocument: { exists: true },
+    };
+    await send('commit', { transaction: 'tx-1', writes: [claim] });
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('batchWrite sends the real writes and answers each harness write PERMISSION_DENIED in place', async () => {
+    const request = vi.fn(async (_m: string, req: { writes: unknown[] }) => ({
+      writeResults: req.writes.map((_, i) => ({ updateTime: `t${i}` })),
+      status: req.writes.map(() => ({ code: 0 })),
+    }));
+    const cls = { prototype: { request } as Record<string | symbol, unknown> };
+    installSyntheticWriteGuard({}, [cls]);
+    const send = cls.prototype.request as (...a: unknown[]) => Promise<unknown>;
+    const real1 = update('bogle_users/RealUid/r/1');
+    const real2 = update('bogle_users/OtherUid/r/2');
+    const response = (await send('batchWrite', {
+      writes: [real1, update('bogle_users/e2e-1/r/3'), real2],
+    })) as { writeResults: unknown[]; status: Array<{ code: number }> };
+    expect(request).toHaveBeenCalledWith('batchWrite', { writes: [real1, real2] });
+    expect(response.status.map((st) => st.code)).toEqual([0, 7, 0]);
+    expect(response.writeResults).toEqual([{ updateTime: 't0' }, {}, { updateTime: 't1' }]);
   });
 
   it('sends real writes, deletes and reads unchanged, and wraps only once', async () => {
@@ -190,6 +239,10 @@ describe('installSyntheticWriteGuard', () => {
         .doc('v')
         .set({ metadata: { userId: 'device:cli-1' } });
       await expect(viaField).rejects.toMatchObject({ owner: 'device:cli-1' });
+      // update() requires the doc to exist, so it passes this guard; the test
+      // setup's own refusal (gcp-test-guard, downstream) is what stops it here.
+      const claim = db.collection('bogle_users').doc('flow-test-1').update({ status: 'sending' });
+      await expect(claim).rejects.not.toBeInstanceOf(SyntheticWriteRefusedError);
     } finally {
       await db.terminate();
     }

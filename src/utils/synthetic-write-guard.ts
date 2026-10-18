@@ -18,12 +18,21 @@
  * stores. Writes to any other project, and every write while
  * FIRESTORE_EMULATOR_HOST is set, pass.
  *
- * There a write is refused with SyntheticWriteRefusedError (PERMISSION_DENIED,
- * never retried) when it is under bogle_users/{owner} or users/{owner}, names the
- * owner in userId / user_id / ownerId / uid / metadata.userId, or is a
- * phone_mappings row for +1555, and the owner is synthetic: it STARTS WITH one
- * of SYNTHETIC_OWNER_PREFIXES (a uid merely containing "test-" passes). Deletes
- * always pass.
+ * There a write is synthetic when it is under bogle_users/{owner} or
+ * users/{owner}, names the owner in userId / user_id / ownerId / uid /
+ * metadata.userId, or is a phone_mappings row for +1555, and the owner STARTS
+ * WITH one of SYNTHETIC_OWNER_PREFIXES (a uid merely containing "test-" passes).
+ * Deletes, and updates that require the document to exist (update(),
+ * tx.update(): currentDocument.exists), are never synthetic: they cannot create
+ * a harness user, and sweep jobs claim existing docs that way.
+ *
+ * Per write, so one harness doc never takes real work down with it (a reminder
+ * sweep whose claim transaction was refused would stall every later reminder):
+ * - batchWrite (non-atomic): only the synthetic writes are dropped, each
+ *   answered PERMISSION_DENIED in its own status; the rest are sent.
+ * - commit (a batch or transaction, atomic): refused with
+ *   SyntheticWriteRefusedError (PERMISSION_DENIED, never retried) only when
+ *   EVERY write in it is synthetic; a commit mixing in any other write is sent.
  *
  * Evals in production: run.sh calls an agent that writes here, and
  * returning-caller runs (EVAL_SEED) need the seed call's memories, so
@@ -81,6 +90,7 @@ interface WriteProto {
   update?: { name?: string; fields?: Record<string, ValueProto | undefined> };
   transform?: { document?: string };
   delete?: string;
+  currentDocument?: { exists?: boolean };
 }
 
 /** `projects/<p>/databases/<d>/documents/<path>` → [project, path segments] */
@@ -94,7 +104,8 @@ function parseName(name: string): [string, string[]] | null {
  * for tests; the guard calls it for every write of a commit.
  */
 export function refusedOwner(write: WriteProto, env: Env = process.env): string | null {
-  if (write.delete !== undefined || env.FIRESTORE_EMULATOR_HOST) return null;
+  if (write.delete !== undefined || write.currentDocument?.exists === true) return null;
+  if (env.FIRESTORE_EMULATOR_HOST) return null;
   const name = write.update?.name ?? write.transform?.document;
   const parsed = name ? parseName(name) : null;
   if (!parsed || parsed[0] !== PROD_FIRESTORE_PROJECT) return null;
@@ -147,6 +158,65 @@ function realFirestoreClasses(): FirestoreClass[] {
 
 const warned = new Set<string>();
 
+function warnOnce(owner: string, method: string): void {
+  if (warned.size >= 1000 || warned.has(owner)) return;
+  warned.add(owner);
+  log.warn({ owner, method }, 'Refused production write for a synthetic owner');
+}
+
+type Send = (request: unknown) => Promise<unknown>;
+interface BatchWriteResponse {
+  writeResults?: unknown[];
+  status?: unknown[];
+}
+
+/**
+ * One RPC through the guard: `send` forwards a request to the real client.
+ * Exported for tests.
+ */
+export async function guardedRequest(
+  method: string,
+  request: unknown,
+  send: Send,
+  env: Env = process.env
+): Promise<unknown> {
+  const writes = (request as { writes?: WriteProto[] } | undefined)?.writes;
+  if (!WRITE_METHODS.has(method) || !writes?.length) return send(request);
+  const owners = writes.map((w) => refusedOwner(w, env));
+  const refused = owners.filter((o): o is string => o !== null);
+  if (refused.length === 0) return send(request);
+  for (const owner of new Set(refused)) warnOnce(owner, method);
+
+  if (method === 'commit') {
+    // Atomic: all or nothing. Refuse only a commit that is all harness writes.
+    if (refused.length < writes.length) return send(request);
+    throw new SyntheticWriteRefusedError(refused[0] as string);
+  }
+
+  // batchWrite answers each write on its own: drop the harness writes only.
+  const denied = (owner: string) => ({
+    code: PERMISSION_DENIED,
+    message: new SyntheticWriteRefusedError(owner).message,
+  });
+  const kept = writes.filter((_, i) => owners[i] === null);
+  const sent = kept.length
+    ? ((await send({ ...(request as object), writes: kept })) as BatchWriteResponse)
+    : {};
+  const out: Required<BatchWriteResponse> = { writeResults: [], status: [] };
+  let k = 0;
+  owners.forEach((owner) => {
+    if (owner === null) {
+      out.writeResults.push(sent.writeResults?.[k] ?? {});
+      out.status.push(sent.status?.[k] ?? { code: 0 });
+      k++;
+    } else {
+      out.writeResults.push({});
+      out.status.push(denied(owner));
+    }
+  });
+  return { ...sent, ...out };
+}
+
 /**
  * Patch every Firestore client class once. Idempotent; called where clients
  * are made (getFirestoreDb, getAdminApp) and by entrypoints.
@@ -158,22 +228,11 @@ export function installSyntheticWriteGuard(
   for (const Firestore of classes) {
     const proto = Firestore.prototype;
     if (proto[GUARDED]) continue;
-    const original = proto.request;
+    const original = proto.request as (...a: unknown[]) => Promise<unknown>;
     if (typeof original !== 'function') continue;
     proto.request = function (this: unknown, method: string, request: unknown, ...rest: unknown[]) {
-      if (WRITE_METHODS.has(method)) {
-        const writes = (request as { writes?: WriteProto[] } | undefined)?.writes ?? [];
-        for (const write of writes) {
-          const owner = refusedOwner(write, env);
-          if (!owner) continue;
-          if (warned.size < 1000 && !warned.has(owner)) {
-            warned.add(owner);
-            log.warn({ owner, method }, 'Refused production write for a synthetic owner');
-          }
-          return Promise.reject(new SyntheticWriteRefusedError(owner));
-        }
-      }
-      return (original as (...a: unknown[]) => unknown).call(this, method, request, ...rest);
+      const send: Send = (req) => original.call(this, method, req, ...rest);
+      return guardedRequest(method, request, send, env);
     };
     proto[GUARDED] = true;
   }

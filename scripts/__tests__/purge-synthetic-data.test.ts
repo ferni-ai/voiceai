@@ -4,6 +4,7 @@ import { main, planPurge, type PurgeDb } from '../migrations/purge-synthetic-dat
 /** A path-keyed fake Firestore: just what the purge calls. */
 function fakeDb(seed: Record<string, Record<string, unknown>>) {
   const store = new Map(Object.entries(seed));
+  const groupPages: string[] = [];
   const parentOf = (path: string) => path.split('/').slice(0, -1).join('/');
   const get = (data: Record<string, unknown>, field: string): unknown =>
     field
@@ -43,19 +44,31 @@ function fakeDb(seed: Record<string, Record<string, unknown>>) {
         return [...ids].map((id) => ref(`${path}/${id}`));
       },
     }),
-    collectionGroup: (name) => ({
-      select: () => ({
-        get: async () => ({
-          docs: [...store.entries()]
-            .filter(([key]) => parentOf(key).split('/').at(-1) === name)
-            .map(([key, data]) => ({
-              id: ref(key).id,
-              ref: ref(key),
-              get: (f: string) => get(data, f),
-            })),
-        }),
-      }),
-    }),
+    collectionGroup: (name) => {
+      const query = (
+        limit: number,
+        after?: string
+      ): ReturnType<ReturnType<PurgeDb['collectionGroup']>['select']> => ({
+        limit: (n) => query(n, after),
+        startAfter: (d) => query(limit, d.ref.path),
+        get: async () => {
+          groupPages.push(name);
+          return {
+            docs: [...store.entries()]
+              .filter(([key]) => parentOf(key).split('/').at(-1) === name)
+              .sort(([a], [b]) => (a < b ? -1 : 1))
+              .filter(([key]) => after === undefined || key > after)
+              .slice(0, limit)
+              .map(([key, data]) => ({
+                id: ref(key).id,
+                ref: ref(key),
+                get: (f: string) => get(data, f),
+              })),
+          };
+        },
+      });
+      return { select: () => query(Infinity) };
+    },
     async recursiveDelete(r) {
       for (const key of [...store.keys()]) {
         if (key === r.path || key.startsWith(`${r.path}/`)) store.delete(key);
@@ -69,7 +82,7 @@ function fakeDb(seed: Record<string, Record<string, unknown>>) {
       };
     },
   };
-  return { db, store };
+  return { db, store, groupPages };
 }
 
 const REAL = 'AbCdEfGhIjKlMnOpQrStUvWxYz12';
@@ -109,6 +122,19 @@ beforeEach(() => {
 });
 
 describe('purge-synthetic-data', () => {
+  it('reads collection groups a page at a time', async () => {
+    const vectors = Object.fromEntries(
+      Array.from({ length: 2500 }, (_, i) => [
+        `vectors/v${String(i).padStart(4, '0')}`,
+        { metadata: { userId: i % 2 ? REAL : 'test-user-1' } },
+      ])
+    );
+    const { db, groupPages } = fakeDb(vectors);
+    const plan = await planPurge(db);
+    expect(plan.counts.vectors).toBe(1250);
+    expect(groupPages.filter((g) => g === 'vectors')).toHaveLength(3);
+  });
+
   it('counts harness documents per collection, and only those', async () => {
     const { db } = fakeDb({ ...KEPT, ...PURGED });
     const plan = await planPurge(db);
@@ -138,7 +164,16 @@ describe('purge-synthetic-data', () => {
     const out = log.mock.calls.flat().join('\n');
     expect(out).toContain('DRY RUN');
     expect(out).toMatch(/bogle_users\/\{owner\}\/memories\s+2/);
-    expect(out).not.toContain('voice-eval-story'); // counts only, no ids
+    // then the owner ids (all harness ids), never a real or anon: id
+    for (const id of [
+      'voice-eval-story-20261018120000-abcd',
+      'test-user-123',
+      'e2e-9',
+      '+15551234567',
+    ])
+      expect(out).toContain(id);
+    expect(out).not.toContain(REAL);
+    expect(out).not.toContain('anon:');
   });
 
   it('refuses --apply without the matching --confirm-project', async () => {
