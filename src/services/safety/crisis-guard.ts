@@ -249,7 +249,7 @@ export function detectCrisis(
   };
 }
 
-/** Where to turn when someone is in danger now; the action-claim guard reuses it (#1553). */
+/** Where to turn when someone is in danger now; the action-claim guard reuses it (issue 1553). */
 export const IN_DANGER_NOW =
   'please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.';
 
