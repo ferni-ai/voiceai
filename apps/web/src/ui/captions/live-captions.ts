@@ -46,13 +46,9 @@ import {
 } from './moment-chips.js';
 import { injectTranscriptSheetStyles, openTranscriptSheet } from './transcript-sheet.js';
 
-export type CaptionSpeaker = 'user' | 'agent';
+import type { CaptionEntry, CaptionSpeaker } from './caption-entry.js';
 
-export interface CaptionEntry {
-  speaker: CaptionSpeaker;
-  text: string;
-  final: boolean;
-}
+export type { CaptionEntry, CaptionSpeaker } from './caption-entry.js';
 
 const HISTORY_LIMIT = 200; // utterances kept in the history
 const RENDERED = 3; // utterances rendered in the live region

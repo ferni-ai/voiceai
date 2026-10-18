@@ -6,7 +6,7 @@
  * @module ui/captions/heard-check
  */
 
-import type { CaptionEntry } from './live-captions.js';
+import type { CaptionEntry } from './caption-entry.js';
 import { heardTicked, type HeardTurn } from './heard-turn.js';
 
 function checkMark(pop: boolean): HTMLSpanElement {

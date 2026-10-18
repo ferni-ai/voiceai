@@ -8,7 +8,7 @@
  * @module ui/captions/heard-turn
  */
 
-import type { CaptionEntry } from './live-captions.js';
+import type { CaptionEntry } from './caption-entry.js';
 
 export interface HeardTurn {
   /** The caller's latest line, or null before they have spoken. */
