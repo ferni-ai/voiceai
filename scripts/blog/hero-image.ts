@@ -8,8 +8,10 @@
  * The image goes to apps/website/ferni-website/images/blog/<post-slug>.png at the
  * size the January heroes use (2016x1134). The site build turns that one PNG into
  * AVIF/WebP/JPEG widths and the og:image crop (lib/blog-images.js), so a PNG and
- * an `image:` line are all a post needs. Auth is the drafter's: GEMINI_API_KEY,
- * or Vertex AI through GOOGLE_CLOUD_PROJECT and ambient Google credentials.
+ * an `image:` line are all a post needs. Auth: Vertex AI through
+ * GOOGLE_CLOUD_PROJECT and Application Default Credentials when the project is
+ * set (location GOOGLE_CLOUD_LOCATION, default global), else GEMINI_API_KEY,
+ * which must belong to a billed project for image models.
  * BLOG_IMAGE_MODEL overrides the model. --dry-run prints the prompt only.
  * --force replaces an image the post already has. Exits 1 if no image came back.
  */
@@ -18,7 +20,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { geminiClientOptions } from './model.js';
+import type { GeminiClientOptions } from './model.js';
 
 /** Nano Banana Pro; the same id works on the Gemini API and on Vertex AI (global). */
 export const DEFAULT_IMAGE_MODEL = 'gemini-3-pro-image';
@@ -105,9 +107,22 @@ export function setImage(markdown: string, file: string): string {
   return `---\n${lines.join('\n')}\n---\n${rest}`;
 }
 
+/**
+ * Vertex AI first, the reverse of the drafter's order: image models need a billed
+ * project, which CI's Vertex credentials have and its Gemini API key may not.
+ */
+export function imageClientOptions(env: NodeJS.ProcessEnv = process.env): GeminiClientOptions {
+  const project = env.GOOGLE_CLOUD_PROJECT;
+  if (project) return { vertexai: true, project, location: env.GOOGLE_CLOUD_LOCATION || 'global' };
+  if (env.GEMINI_API_KEY) return { apiKey: env.GEMINI_API_KEY };
+  throw new Error(
+    'Set GOOGLE_CLOUD_PROJECT (Vertex AI with Google credentials), or a billed GEMINI_API_KEY'
+  );
+}
+
 /** Gemini image generation through @google/genai. */
 export async function geminiImageModel(): Promise<ImageModel> {
-  const options = geminiClientOptions();
+  const options = imageClientOptions();
   const { GoogleGenAI } = await import('@google/genai');
   const client = new GoogleGenAI(options);
   const model = process.env.BLOG_IMAGE_MODEL || DEFAULT_IMAGE_MODEL;

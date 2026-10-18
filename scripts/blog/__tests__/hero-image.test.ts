@@ -7,6 +7,7 @@ import {
   IMAGE_DIR,
   generateWithRetry,
   heroPrompt,
+  imageClientOptions,
   makeHeroImage,
   postFacts,
   setImage,
@@ -143,5 +144,27 @@ describe('makeHeroImage', () => {
     const generate = vi.fn();
     expect((await makeHeroImage(post, { root, model: { generate } })).status).toBe('kept');
     expect(generate).not.toHaveBeenCalled();
+  });
+});
+
+describe('imageClientOptions', () => {
+  it('prefers Vertex AI in the global location over an API key', () => {
+    expect(imageClientOptions({ GOOGLE_CLOUD_PROJECT: 'johnb-2025', GEMINI_API_KEY: 'k' })).toEqual(
+      { vertexai: true, project: 'johnb-2025', location: 'global' }
+    );
+  });
+
+  it('honours GOOGLE_CLOUD_LOCATION', () => {
+    expect(
+      imageClientOptions({ GOOGLE_CLOUD_PROJECT: 'p', GOOGLE_CLOUD_LOCATION: 'us-central1' })
+    ).toMatchObject({ location: 'us-central1' });
+  });
+
+  it('uses the API key only when no project is set', () => {
+    expect(imageClientOptions({ GEMINI_API_KEY: 'k' })).toEqual({ apiKey: 'k' });
+  });
+
+  it('fails naming both options when neither is set', () => {
+    expect(() => imageClientOptions({})).toThrow(/GOOGLE_CLOUD_PROJECT.*GEMINI_API_KEY/);
   });
 });
