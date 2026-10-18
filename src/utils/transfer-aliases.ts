@@ -8,10 +8,14 @@
  * HEARD_AS (teammate-talk.ts) they never stand for a teammate on their own:
  * only as the target of a transfer ("pass me to 9", "can I talk to Fred?"),
  * with nothing after them but "please" or "now". Even then the caller may mean
- * someone else, so readers say "may be".
+ * someone else, so readers say "may be". Off unless CRISIS_TRANSFER_EVERYDAY
+ * is on, and "nine" or "9" is never Nayan when "one one" or "eight eight"
+ * (911, 988) follows anywhere in the same words.
  *
  * @module utils/transfer-aliases
  */
+
+import { flagOn, type Env } from '../config/env-flag.js';
 
 /** Spelling (lower case) → persona id, read only as the target of a transfer. */
 export const HEARD_IN_A_TRANSFER: Readonly<Record<string, string>> = {
@@ -41,13 +45,22 @@ const ALIAS_IN_TRANSFER = new RegExp(
   'gi'
 );
 
+/** "nine … one one", "9. 1 1", "nine eight eight": an emergency or crisis number, not Nayan. */
+const LINE_NUMBER_AFTER =
+  /\b(?:nine|9)\b.*(?:\b(?:(?:one|1)[\s.,-]*(?:one|1)|11|(?:eight|8)[\s.,-]*(?:eight|8)|88)\b|911|988)/i;
+
 /** Each transfer-only spelling the caller's words ask for, with the persona it may be. */
-export function aliasesInTransfer(text: string): Array<{ heard: string; id: string }> {
-  if (typeof text !== 'string') return [];
+export function aliasesInTransfer(
+  text: string,
+  env: Env = process.env
+): Array<{ heard: string; id: string }> {
+  if (typeof text !== 'string' || !flagOn('CRISIS_TRANSFER_EVERYDAY', env)) return [];
   const plain = text.toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+  const numberLine = LINE_NUMBER_AFTER.test(plain);
   const seen = new Map<string, string>();
   for (const match of plain.matchAll(ALIAS_IN_TRANSFER)) {
     const heard = match[1];
+    if (numberLine && (heard === 'nine' || heard === '9')) continue;
     if (heard && Object.hasOwn(HEARD_IN_A_TRANSFER, heard)) {
       seen.set(heard, HEARD_IN_A_TRANSFER[heard]);
     }

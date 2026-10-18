@@ -7,21 +7,26 @@
  * and Alex answered with the 988 line. The owner asked again and was handed to
  * Nayan, whose handoff summary still spoke of a crisis.
  *
- * With the flag on, a classifier crisis read is set to none when ALL of these hold:
- * - no pattern matched (pattern 'none'), and the read is crisis, never imminent;
+ * With the flag on, a classifier-only crisis read (never imminent, never the
+ * script) of such a turn gets the soft check-in (SOFT_CRISIS_CHECK) instead of
+ * crisis guidance; never nothing, since a word list cannot overrule a read of
+ * the whole conversation. The crisis gate and the turn pipeline apply it, and
+ * only when ALL of these hold:
+ * - no pattern matched (pattern 'none');
  * - the caller's latest words are only a request to switch to a teammate: "pass
  *   me to X", "transfer me to X", "can I talk to X", "put X on", "switch me to
  *   X", where X is a teammate's name, an STT spelling of one, or a bare number
  *   from 1 to 12; never "someone", a person, a crisis line or 911/988;
- * - the call is known, and no earlier read on it found risk or failed, and no
- *   pattern matched on it (crisis-escalations.ts): a risky earlier turn keeps
- *   every later read, even one its words cannot show;
+ * - the call is known, and no earlier read on it found risk, failed or is still
+ *   running, and nothing on it escalated (crisis-escalations.ts): a risky
+ *   earlier turn keeps every later read, even one its words cannot show;
  * - nothing the caller said this call (latest and earlier), nor the companion's
  *   line they answer, holds a word from the agreement gate's risk list
  *   (hasRiskContent, crisis-agreement.ts), which also counts anything it cannot
  *   read as risk; and nothing the caller said agrees with or echoes the
- *   companion (endorses, the same module).
- * Anything else, and any error, leaves the read as it was.
+ *   companion (endorses, the same module);
+ * - no live adjudicator is there to give the turn a fuller read (it decides).
+ * Anything else, and any error, leaves the crisis handling as it was.
  *
  * @module CrisisTransferRequest
  */
@@ -31,8 +36,8 @@ import { HEARD_AS, TEAM_FIRST_NAMES } from '../../utils/teammate-talk.js';
 import { HEARD_IN_A_TRANSFER } from '../../utils/transfer-aliases.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { endorses, hasRiskContent } from './crisis-agreement.js';
-import type { CrisisClassifierInput, CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
-import { crisisRiskThisCall, noteCrisisRisk } from './crisis-escalations.js';
+import type { CrisisClassifierInput, PatternOutcome } from './crisis-classifier.js';
+import { crisisRiskThisCall } from './crisis-escalations.js';
 
 const log = createLogger({ module: 'CrisisTransferRequest' });
 
@@ -61,7 +66,7 @@ const TRANSFER_ONLY = new RegExp(`^${CLAUSE}(?: ${CLAUSE})*$`);
  * its own, so no grammar change can ever exempt "pass me to 988".
  */
 const NEVER =
-  /\b(?:911|988|999|112|crisis|hotline|lifeline|helpline|help|emergency|police|ambulance|doctor|nurse|counsel\w*|therap\w*|someone|somebody|anyone|anybody|human|person|people)\b/;
+  /\b(?:911|988|999|112|crisis|hotline|lifeline|helpline|help|emergency|police|ambulance|doctor|nurse|counsel\w*|therap\w*|someone|somebody|anyone|anybody|human|person|people|(?:nine|9) (?:(?:one|1) (?:one|1)|(?:eight|8) (?:eight|8)))\b/;
 
 /** NFKC, lower case, every apostrophe variant as ', only letters, digits, apostrophes and spaces. */
 const words = (text: string): string =>
@@ -81,7 +86,7 @@ export function isTransferRequestOnly(text: string): boolean {
   return TRANSFER_ONLY.test(said);
 }
 
-/** Whether this turn's crisis read is set to none (see the module comment). */
+/** Whether this turn's classifier-only crisis read gets the soft check-in (see the module comment). */
 export function transferRequestIsEveryday(
   input: CrisisClassifierInput,
   pattern: PatternOutcome,
@@ -90,7 +95,8 @@ export function transferRequestIsEveryday(
 ): boolean {
   if (!flagOn('CRISIS_TRANSFER_EVERYDAY', env) || pattern !== 'none') return false;
   try {
-    if (!call || crisisRiskThisCall(call)) return false;
+    // This turn's own reads (the other path's) are not risk; any other read in flight is.
+    if (!call || crisisRiskThisCall(call, input.latest)) return false;
     if (!Array.isArray(input.earlier) || !isTransferRequestOnly(input.latest)) return false;
     const companion = typeof input.companion === 'string' ? input.companion.trim() : '';
     const caller = [input.latest, ...input.earlier];
@@ -98,42 +104,7 @@ export function transferRequestIsEveryday(
     if (caller.some(endorses)) return false;
     return ![...caller, ...(companion ? [companion] : [])].some(hasRiskContent);
   } catch (error) {
-    log.warn({ error: String(error) }, 'Transfer-request check failed; the read stands');
+    log.warn({ error: String(error) }, 'Transfer-request check failed; crisis handling as before');
     return false;
   }
-}
-
-/** A crisis read of such a turn, as none; imminent, none and a missing read stay as they are. */
-export function asEverydayTransfer(verdict: CrisisVerdict | null): CrisisVerdict | null {
-  if (verdict?.risk !== 'crisis') return verdict;
-  // Never the caller's words: only that a crisis read was set aside.
-  log.info({ risk: verdict.risk, subject: verdict.subject }, 'CRISIS_TRANSFER_EVERYDAY');
-  return { risk: 'none', subject: verdict.subject };
-}
-
-type Read = Promise<CrisisVerdict | null>;
-
-/**
- * This turn's copy of a classifier read: a crisis read of a bare transfer
- * request set to none (transferRequestIsEveryday, decided now), and any read
- * that ends up anything but none, or fails, noted against the call so later
- * transfer requests on it are left alone.
- */
-export function turnReadFor(
-  input: CrisisClassifierInput,
-  pattern: PatternOutcome,
-  call: string | undefined,
-  env: Env = process.env
-): (read: Read) => Read {
-  const everyday = transferRequestIsEveryday(input, pattern, call, env);
-  return (read) => {
-    const own = everyday ? read.then(asEverydayTransfer) : read;
-    own.then(
-      (v) => {
-        if (v?.risk !== 'none') noteCrisisRisk(call);
-      },
-      () => noteCrisisRisk(call)
-    );
-    return own;
-  };
 }

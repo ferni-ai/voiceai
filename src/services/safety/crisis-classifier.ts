@@ -30,7 +30,7 @@ import {
   needsPlainRead,
   resolveCrisisEverydayRules,
 } from './crisis-everyday.js';
-import { turnReadFor } from './crisis-transfer-request.js';
+import { trackCrisisRead } from './crisis-escalations.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -268,7 +268,7 @@ export interface StartCrisisClassifierOptions {
    * verdict is kept with the turn's other reads (turnVerdicts).
    */
   scope?: string;
-  /** The call's session id, always when known (CRISIS_TRANSFER_EVERYDAY needs it). */
+  /** The call's session id, always when known: its reads are tracked (crisis-escalations.ts). */
   call?: string;
 }
 
@@ -432,9 +432,8 @@ export function startCrisisClassifier(
     normalized.companion ?? '',
     prompt.length,
   ]);
-  // CRISIS_TRANSFER_EVERYDAY: a bare "pass me to Nayan" (crisis-transfer-request.ts). The shared
-  // run keeps the model's read; only this turn's copy of it changes.
-  const own = turnReadFor(input, options.pattern, options.call, env);
+  // What each call's reads found, and which are in flight (crisis-escalations.ts).
+  const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
   const shared = cachedRun(key, startedAt);
   if (shared) {
     const verdict = own(shared.verdict);

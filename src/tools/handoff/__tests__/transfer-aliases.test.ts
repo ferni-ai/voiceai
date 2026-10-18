@@ -2,15 +2,26 @@
  * Teammate names as speech-to-text hears them in a transfer request. Prod
  * 2026-10-18: "Can you pass me to Nayan?" arrived as "Can you pass me to 9?".
  * "9", "nine" and "Fred" are ordinary words, so they stand for a teammate only
- * as the target of a transfer, and the model is told "may be", not "is".
+ * as the target of a transfer, and the model is told "may be", not "is". Off
+ * unless CRISIS_TRANSFER_EVERYDAY is on; never on a turn with crisis guidance.
  */
 import { llm } from '@livekit/agents';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { TEAM_MEMBERS } from '../../../services/team-unlocks.js';
 import { aliasesInTransfer, HEARD_IN_A_TRANSFER } from '../../../utils/transfer-aliases.js';
 import { handoffConsent } from '../handoff-consent.js';
 import { heardTeammateNote, teammateHeardAs } from '../teammate-names.js';
+
+const ON = { CRISIS_TRANSFER_EVERYDAY: 'on' };
+const saved = process.env.CRISIS_TRANSFER_EVERYDAY;
+beforeEach(() => {
+  process.env.CRISIS_TRANSFER_EVERYDAY = 'on';
+});
+afterEach(() => {
+  if (saved === undefined) delete process.env.CRISIS_TRANSFER_EVERYDAY;
+  else process.env.CRISIS_TRANSFER_EVERYDAY = saved;
+});
 
 const chat = (said: string): llm.ChatContext => {
   const ctx = new llm.ChatContext();
@@ -52,7 +63,7 @@ describe('aliasesInTransfer', () => {
     ['Can I talk to Fred?', 'fred', 'ferni'],
     ['switch me back to Fernie', 'fernie', 'ferni'],
   ])('"%s" asks for %s (%s)', (said, heard, id) => {
-    expect(aliasesInTransfer(said)).toEqual([{ heard, id }]);
+    expect(aliasesInTransfer(said, ON)).toEqual([{ heard, id }]);
   });
 
   it.each([
@@ -65,8 +76,19 @@ describe('aliasesInTransfer', () => {
     'Fred and I talked about it',
     'talk to Fred about the car',
     'transfer me to Nayan',
+    'pass me to nine. one one',
+    'transfer me to 9, 1 1',
+    'can you pass me to nine? eight eight',
+    'pass me to 9. 911',
   ])('"%s" asks for nobody by alias', (said) => {
-    expect(aliasesInTransfer(said)).toEqual([]);
+    expect(aliasesInTransfer(said, ON)).toEqual([]);
+  });
+
+  it('is off unless CRISIS_TRANSFER_EVERYDAY is on', () => {
+    expect(aliasesInTransfer('Can you pass me to 9?', {})).toEqual([]);
+    expect(aliasesInTransfer('Can you pass me to 9?', { CRISIS_TRANSFER_EVERYDAY: 'off' })).toEqual(
+      []
+    );
   });
 });
 
@@ -83,6 +105,13 @@ describe('heardTeammateNote', () => {
     );
     expect(heardTeammateNote('I get up at nine.')).toBe('');
     expect(heardTeammateNote('My friend Fred called')).toBe('');
+  });
+
+  it('never adds the "may be" note on a turn with crisis guidance, or with the flag off', () => {
+    expect(heardTeammateNote('Can you pass me to 9?', false)).toBe('');
+    delete process.env.CRISIS_TRANSFER_EVERYDAY;
+    expect(heardTeammateNote('Can you pass me to 9?')).toBe('');
+    expect(heardTeammateNote('Can I talk to Naya?', false)).toMatch(/they mean Nayan/);
   });
 });
 

@@ -39,7 +39,8 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
-import { noteCrisisEscalation } from '../../services/safety/crisis-escalations.js';
+import { noteCrisisEscalation, noteCrisisRisk } from '../../services/safety/crisis-escalations.js';
+import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
@@ -195,9 +196,14 @@ export function startCrisisGate(
   const adjudicatorMode = resolveCrisisAdjudicatorMode(env);
   const scope = agreementGate || adjudicatorMode !== 'off' ? sessionScope(userData) : undefined;
   const holdForReads = agreementGate || adjudicatorMode === 'live';
+  const call = sessionScope(userData);
+  // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
+  const transfer =
+    adjudicatorMode !== 'live' &&
+    transferRequestIsEveryday({ latest, earlier, companion }, pattern, call, env);
   const run = startCrisisClassifier(
     { latest, earlier, companion },
-    { pattern, env, generate, scope, call: sessionScope(userData) }
+    { pattern, env, generate, scope, call }
   );
   if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
 
@@ -206,6 +212,12 @@ export function startCrisisGate(
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
+    if (transfer && stronger.action === 'guide') {
+      // A bare "pass me to Nayan": the soft check-in, never crisis guidance and never nothing.
+      noteCrisisRisk(call);
+      log.info({ action: 'guide', source: 'transfer-request' }, 'CRISIS_GATE');
+      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
+    }
     if (scope && !holdForReads) {
       const reads = turnVerdicts(scope, { latest, earlier, companion });
       shadowAdjudication(reads, callTranscript(chatCtx), {
@@ -242,9 +254,7 @@ export function startCrisisGate(
       }
     }
     // Real: the script, or a classifier read the agreement gate or adjudicator let stand.
-    if (stronger.action === 'replace' || (scope && holdForReads)) {
-      noteCrisisEscalation(sessionScope(userData));
-    }
+    if (stronger.action === 'replace' || (scope && holdForReads)) noteCrisisEscalation(call);
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'

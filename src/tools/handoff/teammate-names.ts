@@ -61,14 +61,15 @@ const capitalized = (heard: string): string => heard[0].toUpperCase() + heard.sl
  * One line for a turn whose words hold an STT spelling of a teammate's name,
  * so the model and the transfer it picks know who was asked for; '' otherwise.
  * A word that is only a teammate as the target of a transfer ("pass me to 9",
- * utils/transfer-aliases.ts) gets a "may be": the caller could mean someone else.
+ * utils/transfer-aliases.ts, CRISIS_TRANSFER_EVERYDAY) gets a "may be": the
+ * caller could mean someone else. Never on a turn with crisis guidance (`aliases` false).
  */
-export function heardTeammateNote(callerWords: string): string {
+export function heardTeammateNote(callerWords: string, aliases = true): string {
   const sure = misheardTeammates(callerWords).map(({ heard, id }) => {
     const name = firstNameOf(id);
     return `"${capitalized(heard)}" is speech-to-text for ${name}, your teammate: they mean ${name}.`;
   });
-  const maybe = aliasesInTransfer(callerWords).flatMap(({ heard, id }) => {
+  const maybe = (aliases ? aliasesInTransfer(callerWords) : []).flatMap(({ heard, id }) => {
     const name = TEAM_MEMBERS.find((m) => m.memberId === id)?.displayName;
     if (!name) return [];
     return `"${capitalized(heard)}" may be speech-to-text for ${name}, your teammate: if they are asking to be passed to a teammate, they mean ${name}.`;

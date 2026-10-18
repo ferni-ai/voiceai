@@ -24,7 +24,11 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { noteCrisisEscalation } from '../../../services/safety/crisis-escalations.js';
+import {
+  noteCrisisEscalation,
+  noteCrisisRisk,
+} from '../../../services/safety/crisis-escalations.js';
+import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import {
   applyClassifierVerdict,
   detectCrisis,
@@ -87,6 +91,9 @@ export function startTurnCrisis(
     companion: userData?.lastAgentResponse,
   };
   const call = options.sessionId || undefined;
+  // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
+  const transfer =
+    adjudicatorMode !== 'live' && transferRequestIsEveryday(input, pattern, call, env);
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
   let settled: Promise<{ crisis: CrisisDetectionResult; soft: boolean }> | null = null;
   const settle = (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> =>
@@ -95,7 +102,14 @@ export function startTurnCrisis(
         ? classifier.verdict.then(async (verdict) => {
             const crisis = applyClassifierVerdict(patterns, verdict);
             // Real: the crisis script, whichever read called for it.
-            if (guardFromDetection(crisis).shouldBlock) noteCrisisEscalation(options.sessionId);
+            const script = guardFromDetection(crisis).shouldBlock;
+            if (script) noteCrisisEscalation(options.sessionId);
+            if (transfer && crisis !== patterns && !script) {
+              // A bare "pass me to Nayan": the soft check-in, never crisis guidance and never nothing.
+              noteCrisisRisk(call);
+              log.info({ outcome: 'soft', source: 'transfer-request' }, 'CRISIS_AGREEMENT');
+              return { crisis: patterns, soft: true };
+            }
             if (!scope || crisis === patterns) return { crisis, soft: false };
             if (!holdForReads) {
               shadowAdjudication(turnVerdicts(scope, input), transcriptFrom(input), {
