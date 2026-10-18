@@ -19,6 +19,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { playfulLine, playfulOpen, SUBSTANCE_FIRST } from './ferni-playful.js';
 import { listeningLines, type ListeningCues } from './listen-first.js';
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
@@ -148,7 +149,7 @@ const TAKE_UP_ANSWER =
   'They just answered what you asked: take up their answer first, the way a friend would, rather than anything from your own life.';
 
 const REGISTER =
-  'Start with the substance, not a stock reaction word like Oh, Ugh, Yeah or Hmm. ' +
+  SUBSTANCE_FIRST +
   'Talk like a close friend, not a therapist, coach or host: never ask how something feels or what it\'s like for them, no stock validation ("that sounds exhausting", "I hear you"), no generic cheerleading or exclamation marks. ' +
   // Read as "no excitement", that line flattened big good news: a sister's
   // pregnancy got "Tears right on the trail, yeah, that makes sense" in 3 of 3
@@ -160,6 +161,31 @@ const REGISTER =
   // mentioned; "I can set an alarm for you" to someone going to bed.
   'Build only on what they actually told you: never fill in details of their day, plans or people they did not mention, and never talk as if you already know someone or something they just brought up. ' +
   'You are their friend, not an assistant: never offer to set up, remind or do things for them unless they ask.';
+
+/**
+ * PERSONA_SPARK=on, on a genuinely bright turn (good news, a win, a joke; never
+ * a careful one): the register without its ban on exclamation marks, and leave
+ * for one "!" and one reaction word. Sonic takes its emphasis from punctuation,
+ * so the ban took away the cheapest audible sign of joy, and with it every
+ * persona sounded the same on good news as on a quiet remark (persona-range
+ * report, 2026-10-17). Everything else in the register stays.
+ */
+export const SPARK_BRIGHT =
+  'This moment is genuinely bright: let it show. This once, if you really feel it, you may use one reaction word and at most one exclamation mark in the whole reply.';
+const REGISTER_BRIGHT = `${REGISTER.replace('no generic cheerleading or exclamation marks', 'no generic cheerleading')} ${SPARK_BRIGHT}`;
+
+/**
+ * The register for this reply: the bright one only for a bright, uncareful turn with PERSONA_SPARK on.
+ * FERNI_PLAYFUL (ferni-playful.ts): one reaction word may open an uncareful turn, and an easy,
+ * neutral one gets the playfulness line.
+ */
+function registerFor(sig: TurnSignals): string {
+  const bright = sig.bright === true && !sig.careful && !sig.supportFirst;
+  const register = bright && flagOn('PERSONA_SPARK') ? REGISTER_BRIGHT : REGISTER;
+  const open = playfulOpen(sig);
+  if (!open) return register;
+  return [register.replace(SUBSTANCE_FIRST, open), playfulLine(sig)].filter(Boolean).join(' ');
+}
 
 /**
  * Questions: people ask in a minority of turns (questions are ~6% of
@@ -270,7 +296,7 @@ function modelChosenShape(
   // Without it (v1: one OWN_SELF line) quirks fell 2.80 -> 2.17 and endearing
   // 2.87 -> 2.63, replies grew 17 -> 24 words and question endings 13% -> 21%
   // (dev A/B, 15 calls per arm, judge.mjs, 2026-10-10).
-  const parts = [REGISTER];
+  const parts = [registerFor(sig)];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   else if (sig.answered) parts.push(TAKE_UP_ANSWER);
   else if (move === 'share' && !sig.careful && rng() < 0.3 && sig.ownStory !== false)
@@ -330,7 +356,7 @@ export function turnShapeFor(
   }
   // The shape goes last, nearest the reply: first, behind the register lines,
   // it was diluted (replay: 5% of replies 6 words or fewer).
-  const parts = [REGISTER];
+  const parts = [registerFor(sig)];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   else if (sig.answered) parts.push(TAKE_UP_ANSWER);
   // Not while they're venting: a friend stays with them instead of telling a story.

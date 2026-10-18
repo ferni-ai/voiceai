@@ -408,10 +408,9 @@ function isActivatableFocused(): boolean {
 // ============================================================================
 
 function handleKeydown(e: KeyboardEvent): void {
-  // Track pressed key
+  // Chrome autofill and some IMEs send keydown/keyup with no key; nothing to match.
+  if (typeof e.key !== 'string') return;
   pressedKeys.add(e.key.toLowerCase());
-
-  // Skip if in input
   if (isInputFocused()) return;
   if (e.key === 'Enter' && isActivatableFocused()) return;
 
@@ -439,7 +438,7 @@ function handleKeydown(e: KeyboardEvent): void {
 }
 
 function handleKeyup(e: KeyboardEvent): void {
-  pressedKeys.delete(e.key.toLowerCase());
+  if (typeof e.key === 'string') pressedKeys.delete(e.key.toLowerCase());
 }
 
 // ============================================================================

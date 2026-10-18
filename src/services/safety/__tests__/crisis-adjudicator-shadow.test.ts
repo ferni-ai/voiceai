@@ -205,6 +205,102 @@ describe('shadow never delays the escalation', () => {
   });
 });
 
+describe('agreement gate + shadow waits no longer than the agreement gate alone', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // The other read lands at 900 ms; a shadow adjudicator that held the turn
+  // would add its own 300 ms on top. Both settle-by checks are at 950 ms.
+  const AGREE = { CRISIS_AGREEMENT_GATE: 'on' };
+  const AGREE_SHADOW = { ...AGREE, CRISIS_ADJUDICATOR: 'shadow' };
+  const reset = (): void => {
+    resetCrisisClassifierCache();
+    resetCrisisAdjudicatorCache();
+  };
+
+  it('reply gate', async () => {
+    const otherRead = (sessionId: string, env: Record<string, string>): void => {
+      startTurnCrisis(
+        'Can I give you her number?',
+        { lastAgentResponse: 'other line' },
+        { sessionId, env: { ...LIVE_CLASSIFIER, ...env }, generate: slow(CLASSIFIER_CRISIS, 900) }
+      );
+    };
+    const gate = (env: Record<string, string>, sessionId: string, adjudicate: CrisisGenerateFn) =>
+      startCrisisGate(
+        MOM_CALL,
+        { services: { sessionId } },
+        { env: { ...LIVE_CLASSIFIER, ...env }, generate: reply(CLASSIFIER_CRISIS), adjudicate }
+      );
+
+    otherRead('call-a1', AGREE);
+    const alone = gate(AGREE, 'call-a1', slow(CHECKIN, 300));
+    expect(await settledAfter(alone?.escalation, 0)).toBe(false);
+    expect(await settledAfter(alone?.escalation, 950)).toBe(true);
+
+    reset();
+    const adjudicate = vi.fn(slow(CHECKIN, 300));
+    otherRead('call-a2', AGREE_SHADOW);
+    const shadow = gate(AGREE_SHADOW, 'call-a2', adjudicate);
+    expect(await settledAfter(shadow?.escalation, 0)).toBe(false);
+    expect(await settledAfter(shadow?.escalation, 950)).toBe(true);
+    // The shadow adjudicator did run, and the reply is the agreement gate's alone.
+    expect(adjudicate).toHaveBeenCalledTimes(1);
+    expect(await shadow?.escalation).toEqual(await alone?.escalation);
+  });
+
+  it('turn pipeline', async () => {
+    const otherRead = (sessionId: string, env: Record<string, string>): void => {
+      startCrisisGate(
+        call(
+          ['user', 'Can you call my mom for me?'],
+          ['assistant', 'On it.'],
+          ['user', 'Can I give you her number?']
+        ),
+        { services: { sessionId } },
+        { env: { ...LIVE_CLASSIFIER, ...env }, generate: slow(CLASSIFIER_CRISIS, 900) }
+      );
+    };
+    const pipeline = (
+      env: Record<string, string>,
+      sessionId: string,
+      adjudicate: CrisisGenerateFn
+    ) =>
+      startTurnCrisis(
+        'Can I give you her number?',
+        {
+          recentTranscripts: ['Can you call my mom for me?'],
+          lastAgentResponse: "Sure, I don't have her number yet.",
+        },
+        {
+          sessionId,
+          env: { ...LIVE_CLASSIFIER, ...env },
+          generate: reply(CLASSIFIER_CRISIS),
+          adjudicate,
+        }
+      );
+
+    otherRead('call-a3', AGREE);
+    const alone = pipeline(AGREE, 'call-a3', slow(CHECKIN, 300));
+    expect(await settledAfter(alone.resolve(), 0)).toBe(false);
+    expect(await settledAfter(alone.resolve(), 950)).toBe(true);
+
+    reset();
+    const adjudicate = vi.fn(slow(CHECKIN, 300));
+    otherRead('call-a4', AGREE_SHADOW);
+    const shadow = pipeline(AGREE_SHADOW, 'call-a4', adjudicate);
+    expect(await settledAfter(shadow.resolve(), 0)).toBe(false);
+    expect(await settledAfter(shadow.resolve(), 950)).toBe(true);
+    expect(adjudicate).toHaveBeenCalledTimes(1);
+    expect((await shadow.resolve()).isCrisis).toBe((await alone.resolve()).isCrisis);
+    expect(await shadow.softCheck()).toBe(await alone.softCheck());
+  });
+});
+
 describe('shared runs stay within one call', () => {
   it('the same lines in two calls are two model calls', async () => {
     const generate = vi.fn(reply(CHECKIN));

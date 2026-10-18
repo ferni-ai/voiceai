@@ -21,8 +21,18 @@
  */
 
 import { decideLaughter } from '../../adaptive-ssml/contextual-laughter.js';
+import {
+  isHeavyMoment,
+  noteCallerTurn,
+  recentCallerTurns,
+} from '../../adaptive-ssml/heavy-moment.js';
 import type { Valence } from './emotion.js';
-import { decideTeamLaughter, noteWrittenLaughter, teamLaughStyle } from './team-laughter.js';
+import {
+  decideTeamLaughter,
+  ferniLightStyle,
+  noteWrittenLaughter,
+  teamLaughStyle,
+} from './team-laughter.js';
 
 export type LaughPlacement = 'before' | 'after';
 
@@ -41,6 +51,8 @@ export interface LaughterInput {
   comfortLevel?: number;
   /** TEAM_VOICES=on: teammates and legends laugh by their own style (team-laughter.ts). */
   teamVoices?: boolean;
+  /** FERNI_LIGHT_TOUCH=on: Ferni laughs by the team rules with a reachable floor (team-laughter.ts). */
+  lightTouch?: boolean;
 }
 
 const TOPIC_WEIGHT: Record<Valence, 'light' | 'medium' | 'heavy'> = {
@@ -55,15 +67,22 @@ const LAUGHTER_TAG = /\[laughter\]/i;
 /** Who and which turn: what the engine knows before the reply's first phrase. */
 export type LaughterWho = Pick<
   LaughterInput,
-  'sessionId' | 'personaId' | 'turn' | 'userEmotion' | 'comfortLevel' | 'teamVoices'
+  'sessionId' | 'personaId' | 'turn' | 'userEmotion' | 'comfortLevel' | 'teamVoices' | 'lightTouch'
 >;
 
 /** Where to add `[laughter]` for this reply, or undefined for none. */
 export function decideReplyLaughter(input: LaughterInput): LaughPlacement | undefined {
+  // Noted before any early return: the sympathetic (heavy) reply to "my dad
+  // died" is the turn the next reply, to "haha anyway", must look back on.
+  if (input.sessionId) noteCallerTurn(input.sessionId, input.userText, input.turn);
   if (!input.sessionId || input.replyValence === 'heavy') return undefined;
-  const team = input.teamVoices ? teamLaughStyle(input.personaId) : undefined;
+  // Never on a heavy moment, by any rules: the team's, Ferni's light touch or the old ones.
+  if (isHeavyMoment(recentCallerTurns(input.sessionId))) return undefined;
+  const team =
+    (input.teamVoices ? teamLaughStyle(input.personaId) : undefined) ??
+    (input.lightTouch ? ferniLightStyle(input.personaId) : undefined);
   if (input.alreadyLaughing || LAUGHTER_TAG.test(input.phrase)) {
-    if (team) noteWrittenLaughter(input.sessionId, input.turn);
+    if (team) noteWrittenLaughter(input.sessionId, input.turn, input.userText);
     return undefined;
   }
   if (team) return decideTeamLaughter(input, team);

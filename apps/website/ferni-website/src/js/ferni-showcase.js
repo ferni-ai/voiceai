@@ -181,6 +181,9 @@
   const BASE_EYE_RX = 7;
   const BASE_EYE_RY = 10;
   
+  // Hand-copied from the app's expressions. `settling` and `glad` (and the
+  // `noticing` micro-expression) now also live in design-system/tokens/expressions.json
+  // (expressions.settling, expressions.glad, microExpressions.noticing); keep them in step.
   // Expression configs: [leftRx, leftRy, rightRx, rightRy, avatarTransform, eyesGroupTranslate, dimpleOpacity]
   const EYE_CONFIGS = {
     neutral:    { lRy: 10, lRx: 7, rRy: 10, rRx: 7, avatar: '', eyes: '', dimple: 0 },

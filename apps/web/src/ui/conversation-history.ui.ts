@@ -307,7 +307,7 @@ class ConversationHistoryUI {
     const delay = index * STAGGER.NORMAL;
     const date = new Date(session.date);
     const formattedDate = this.formatDate(date);
-    const insightPreview = session.insights[0] || t('conversationHistory.noInsights');
+    const insightPreview = session.insights[0] || session.highlights?.[0] || t('conversationHistory.noInsights');
     const isFavorite = favoritePersona && session.personaName.toLowerCase() === favoritePersona.toLowerCase();
 
     return `

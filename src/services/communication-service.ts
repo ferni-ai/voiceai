@@ -113,7 +113,9 @@ export async function sendEmail(
     }
 
     getLogger().error('SendGrid API key not configured in production');
-    throw new Error('Email service is not available: SendGrid API key is not configured. Contact support to enable email delivery.');
+    throw new Error(
+      'Email service is not available: SendGrid API key is not configured. Contact support to enable email delivery.'
+    );
   }
 
   const sanitizedBody = isHtml ? body : sanitizePlainText(body);
@@ -172,7 +174,9 @@ export async function sendSMS(to: string, message: string): Promise<string> {
     }
 
     getLogger().error('Twilio credentials not configured in production');
-    throw new Error('SMS service is not available: Twilio credentials are not configured. Contact support to enable SMS delivery.');
+    throw new Error(
+      'SMS service is not available: Twilio credentials are not configured. Contact support to enable SMS delivery.'
+    );
   }
 
   const sanitizedMessage = sanitizePlainText(message);
@@ -206,6 +210,33 @@ export async function sendSMS(to: string, message: string): Promise<string> {
 
     return `SMS sent to ${sanitizePhoneForLog(to)}`;
   });
+}
+
+/**
+ * A text to someone other than the member, sent by `send` (this module's SMS or
+ * a voice message) only if guarded-text's guards allow it: never after their
+ * STOP, not in quiet hours, not twice in ten minutes. Says plainly when not sent.
+ */
+export async function guardedThirdPartySend(
+  phone: string,
+  body: string,
+  userId: string,
+  send: () => Promise<string>
+): Promise<string> {
+  const { defaultTextDeps, onBehalfNotSent, textOnBehalf } =
+    await import('./outreach/guarded-text.js');
+  let reply = '';
+  const sent = await textOnBehalf(
+    { senderUserId: userId, toPhone: phone, body, refId: `text_${Date.now()}` },
+    {
+      ...defaultTextDeps(),
+      send: async () => {
+        reply = await send();
+        return { success: true };
+      },
+    }
+  );
+  return sent.sent ? reply : onBehalfNotSent(sanitizePhoneForLog(phone), sent.reason);
 }
 
 // ============================================================================

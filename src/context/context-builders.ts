@@ -15,6 +15,7 @@ import {
 } from '../personas/shared/index.js';
 import type { PersonaId } from '../types/branded.js';
 import type { UserProfile } from '../types/user-profile.js';
+import { lifeMoments } from '../utils/teammate-talk.js';
 import type { ConversationState, EmotionResult, HandoffRecord, PhaseGuidance } from './types.js';
 
 // ============================================================================
@@ -51,7 +52,7 @@ export function buildRelationshipContext(userProfile?: UserProfile): string {
     sections.push(`Unanswered questions: ${p.openQuestions.slice(0, 2).join('; ')}`);
   }
 
-  const recentMoments = (p.keyMoments ?? [])
+  const recentMoments = lifeMoments(p.keyMoments) // not "decided to talk to Jordan"
     .filter((m) => m.followUpNeeded)
     .slice(0, 2)
     .map((m) => m.summary);

@@ -219,7 +219,7 @@ curl -X POST https://ui-url/api/test-firestore
 ```bash
 # Rollback voice agent - redeploy previous commit
 git checkout HEAD~1 -- src/agents/
-npm run deploy:agent
+# voice agent: follow .claude/skills/deploy-agent/SKILL.md (gated lk chain)
 
 # Rollback UI server
 gcloud run services update-traffic john-bogle-ui \
