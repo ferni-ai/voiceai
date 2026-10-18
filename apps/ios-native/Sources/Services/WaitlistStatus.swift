@@ -25,12 +25,31 @@ struct WaitlistStatus: Decodable, Equatable, Identifiable {
     var id: String { "\(status)-\(position ?? 0)" }
     var isAdmitted: Bool { status == "admitted" }
 
-    /// A /token refusal that means "you're in line": status 403 with code WAITLISTED.
+    /// The refusal said "waitlisted" without saying where; GET /api/waitlist/me can fill it in.
+    var detailsUnknown: Bool { status == "waiting" && position == nil }
+
+    /// Waiting, position not known yet.
+    static let unknownPosition = WaitlistStatus(
+        status: "waiting", position: nil, wavesAway: nil, nextWaveAt: nil, referralUrl: nil,
+        referrals: nil, foundingMember: nil, foundingWave: nil
+    )
+
+    /// A /token refusal that means "you're in line". The contract sends 403
+    /// { code: "WAITLISTED", ...details }; the gate's first version sends 403
+    /// { error: "not_admitted", waitlisted: true } with no details, which reads
+    /// as waiting, position unknown.
     static func fromRefusal(statusCode: Int, body: Data) -> WaitlistStatus? {
         guard statusCode == 403,
-              let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
-              object["code"] as? String == "WAITLISTED",
-              let status = try? JSONDecoder().decode(WaitlistStatus.self, from: body),
+              let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any]
+        else { return nil }
+        if object["code"] as? String == "WAITLISTED" { return fromMe(body) }
+        let waitlisted = object["error"] as? String == "not_admitted" || object["waitlisted"] as? Bool == true
+        return waitlisted ? unknownPosition : nil
+    }
+
+    /// The body of GET /api/waitlist/me (or a contract refusal); nil unless waiting or admitted.
+    static func fromMe(_ body: Data) -> WaitlistStatus? {
+        guard let status = try? JSONDecoder().decode(WaitlistStatus.self, from: body),
               ["waiting", "admitted"].contains(status.status)
         else { return nil }
         return status
@@ -42,11 +61,12 @@ struct WaitlistStatus: Decodable, Equatable, Identifiable {
         return URL(string: referralUrl)
     }
 
-    /// "You're #432 — about 4 waves away"
-    var positionLine: String {
-        let place = position.map { "You’re #\($0)" } ?? "You’re on the list"
+    /// "You're #432, about 4 waves away"; nil when the position isn't known yet.
+    var positionLine: String? {
+        guard let position else { return nil }
+        let place = "You’re #\(position)"
         guard let waves = wavesAway else { return place }
-        return waves > 1 ? "\(place) — about \(waves) waves away" : "\(place) — you’re in the very next wave"
+        return waves > 1 ? "\(place), about \(waves) waves away" : "\(place), in the very next wave"
     }
 
     /// "The next wave opens Thursday, October 22."

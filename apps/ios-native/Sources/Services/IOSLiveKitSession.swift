@@ -495,6 +495,17 @@ class IOSLiveKitSession: ObservableObject {
         let sessionId: String?
     }
 
+    /// GET /api/waitlist/me; nil when it can't be read.
+    private func fetchWaitlistMe(authorization: String?) async -> WaitlistStatus? {
+        guard let url = URL(string: "\(tokenServer)/api/waitlist/me") else { return nil }
+        var request = URLRequest(url: url)
+        request.setValue(authorization, forHTTPHeaderField: "Authorization")
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200
+        else { return nil }
+        return WaitlistStatus.fromMe(data)
+    }
+
     private func fetchToken() async -> TokenResponse? {
         let room = "ferni-ios-\(UUID().uuidString.prefix(8))"
         let username = "ios-\(UUID().uuidString.prefix(8))"
@@ -519,7 +530,11 @@ class IOSLiveKitSession: ObservableObject {
 
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                 if let status = WaitlistStatus.fromRefusal(statusCode: httpResponse.statusCode, body: data) {
+                    // Refused without details: show the soft screen now, then ask where they stand
                     await MainActor.run { self.waitlist = status }
+                    if status.detailsUnknown, let details = await fetchWaitlistMe(authorization: request.value(forHTTPHeaderField: "Authorization")) {
+                        await MainActor.run { self.waitlist = details }
+                    }
                     return nil
                 }
                 sessionLog.error("Token request failed with status \(httpResponse.statusCode)")

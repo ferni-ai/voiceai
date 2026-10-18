@@ -71,9 +71,11 @@ struct WaitingView: View {
     }
 
     @ViewBuilder private var waitingContent: some View {
-        Text(status.positionLine)
-            .font(.headline)
-            .foregroundColor(textPrimary)
+        if let line = status.positionLine {
+            Text(line)
+                .font(.headline)
+                .foregroundColor(textPrimary)
+        }
         if let line = status.nextWaveLine() {
             Text(line).foregroundColor(textSecondary)
         }
