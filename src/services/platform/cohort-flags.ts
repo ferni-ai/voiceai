@@ -68,6 +68,8 @@ export const COHORT_FLAGS = [
   'PHONE_GOODBYE',
   'HAPPY_EXITS',
   'HANDOFF_TALK_THROUGH',
+  // Read once the greeting's handlers are wired (greeting-wiring.ts), after applyCallerFlags.
+  'HANDOFF_FIRST_FIX',
   'NAME_CORRECTION',
   'ROOM_GUESTS',
   'BARGE_IN_ACK_WORDS',
@@ -88,6 +90,9 @@ export const COHORT_FLAGS = [
   'WEEKLY_PREDICTION',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
+  // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
+  // (services/outreach/morning-brief/brief-job.ts).
+  'MORNING_BRIEF',
   // The UI server's deliver-reminders job reads both per person, through flagForUser
   // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
   'REMINDER_SMS_DEFAULT',
