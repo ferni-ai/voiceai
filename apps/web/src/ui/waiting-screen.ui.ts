@@ -1,19 +1,11 @@
 /**
- * Waiting Screen
+ * Waiting Screen: what someone on the waitlist sees instead of an error.
+ * Ferni settled in, their place in line, the next wave and their invite link;
+ * "You're in" with the founding-member badge once their spot opens.
  *
- * What someone on the waitlist sees instead of an error: Ferni settled in,
- * their place in line, when the next wave opens, and their own invite link.
- * Once their spot opens it turns into "You're in", with the founding-member
- * badge for the wave they came in with.
- *
- * Shown only when the server says so (the sign-in gate's waitlisted answer,
- * or a 403 WAITLISTED from /token), so it is on by default. Turn it off for a
- * build with VITE_WAITLIST_SCREEN=false, or for one browser with localStorage
- * `ferni:flag:waitlist-screen` = 'false'; the plain notice comes back.
- *
- * Colors come from design tokens only, so light and dark themes both work.
- *
- * @module WaitingScreenUI
+ * Shown only when the server says so, so it is on by default. Off with
+ * VITE_WAITLIST_SCREEN=false or localStorage `ferni:flag:waitlist-screen` =
+ * 'false' (the plain notice comes back). Colors are design tokens only.
  */
 
 import { getLocale, t } from '../i18n/index.js';
@@ -80,11 +72,7 @@ function injectStyles(): void {
   document.head.appendChild(style);
 }
 
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  text?: string
-): HTMLElementTagNameMap[K] {
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) {
   const node = document.createElement(tag);
   node.className = className;
   if (text !== undefined) node.textContent = text;
@@ -94,7 +82,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
 function button(label: string, primary: boolean, onClick: () => void): HTMLButtonElement {
   const b = el(
     'button',
-    `waiting-screen__btn${primary ? ' waiting-screen__btn--primary' : ''}`,
+    primary ? 'waiting-screen__btn waiting-screen__btn--primary' : 'waiting-screen__btn',
     label
   );
   b.type = 'button';
@@ -112,14 +100,12 @@ function avatar(): HTMLImageElement {
   return img;
 }
 
+const DATE_FORMAT = { weekday: 'long', month: 'long', day: 'numeric' } as const;
+
 function waveDate(iso: string | null): string | null {
   const date = iso ? new Date(iso) : null;
   if (!date || Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat(getLocale(), {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  }).format(date);
+  return new Intl.DateTimeFormat(getLocale(), DATE_FORMAT).format(date);
 }
 
 function invite(url: string, creditedDays: number): HTMLElement {
@@ -137,15 +123,9 @@ function invite(url: string, creditedDays: number): HTMLElement {
   });
   copy.setAttribute('aria-live', 'polite');
   row.appendChild(copy);
-  if (typeof navigator.share === 'function') {
-    row.appendChild(
-      button(
-        t('waitlistScreen.share'),
-        false,
-        () => void navigator.share({ url }).catch(() => undefined)
-      )
-    );
-  }
+  const share = (): void => void navigator.share({ url }).catch(() => undefined);
+  if (typeof navigator.share === 'function')
+    row.appendChild(button(t('waitlistScreen.share'), false, share));
   box.append(row, el('p', 'waiting-screen__muted', t('waitlistScreen.inviteHelp')));
   if (creditedDays > 0)
     box.appendChild(
