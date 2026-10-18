@@ -43,21 +43,22 @@ function draft(statement: string): Omit<Commitment, 'id'> {
 describe('saveCommitment', () => {
   beforeEach(() => set.mockClear());
 
-  it.each(["I'll catch you later.", "I'll call her tomorrow."])('does not write %j', async (s) => {
+  it.each(["I'll catch you later.", "I'm good, thanks."])('does not write %j', async (s) => {
     const result = await saveCommitment(draft(s), { validateCalendar: false });
     expect(result.notActionable).toBe(true);
     expect(set).not.toHaveBeenCalled();
   });
 
-  it.each(["I'll send Mindy the photos.", "I'll be at the dentist at 2."])(
-    'writes %j',
-    async (s) => {
-      const result = await saveCommitment(draft(s), { validateCalendar: false });
-      expect(result.notActionable).toBeUndefined();
-      // The commitment document (other side effects may write through the same fake db).
-      expect(set.mock.calls.map((c) => (c as unknown[])[0])).toContainEqual(
-        expect.objectContaining({ statement: s, status: 'active' })
-      );
-    }
-  );
+  it.each([
+    "I'll send Mindy the photos.",
+    "I'll be at the dentist at 2.",
+    "I'll call her tomorrow.",
+  ])('writes %j', async (s) => {
+    const result = await saveCommitment(draft(s), { validateCalendar: false });
+    expect(result.notActionable).toBeUndefined();
+    // The commitment document (other side effects may write through the same fake db).
+    expect(set.mock.calls.map((c) => (c as unknown[])[0])).toContainEqual(
+      expect.objectContaining({ statement: s, status: 'active' })
+    );
+  });
 });

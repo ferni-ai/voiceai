@@ -113,7 +113,7 @@ const trackCommitmentDef: ToolDefinition = {
             followUpCount: 0,
             topic: context,
           });
-          if (notActionable) return 'Not tracked: that is a goodbye, or does not say who or what.';
+          if (notActionable) return 'Not tracked: that is a goodbye or a pleasantry.';
           let response = `**Got it. I'll remember this.** ✓\n\n`;
           response += `**Commitment:** ${summary}\n`;
           response += `**Type:** ${type}\n`;

@@ -84,6 +84,25 @@ describe('toOpenCommitment', () => {
     expect(said('Finish the deck by Friday.')).toBe('Finish the deck by Friday');
   });
 
+  it('leaves out a line shown on its own when "her" or "it" is all it says', () => {
+    const her = { ...doc, statement: "I'll call her tomorrow." };
+    expect(toOpenCommitment('c', her)).toBeNull();
+    expect(toOpenCommitment('c', her, { withContext: true })?.statement).toBe('call her tomorrow');
+    expect(toOpenCommitment('c', { ...doc, statement: "I'll pay it Thursday" })).toBeNull();
+  });
+
+  it('shows a run-on line whole, and quotes it back', () => {
+    const c = toOpenCommitment('c', {
+      ...doc,
+      statement: "I owe Tom fifty bucks, I'll pay him back Friday.",
+    });
+    expect(c).toMatchObject({
+      statement: "I owe Tom fifty bucks, I'll pay him back Friday",
+      whole: true,
+    });
+    expect(c && youSaidYoud(c)).toBe('"I owe Tom fifty bucks, I\'ll pay him back Friday"');
+  });
+
   it('says it back to them in the second person', () => {
     const c = toOpenCommitment('c', {
       ...doc,
@@ -178,23 +197,33 @@ describe('loadCallCheckIns', () => {
     expect(marked).toEqual(['c1']);
   });
 
-  it('does not bring up junk stored before the writers checked, and still brings up the rest', async () => {
+  it('leaves out a goodbye stored before the writers checked, and brings up the rest', async () => {
     const stored = (id: string, statement: string, ageDays: number) => ({
       id,
       data: { status: 'active', statement, createdAt: NOW - ageDays * DAY, followUpCount: 0 },
     });
     const { store, marked } = fakeStore([
-      stored('junk1', "I'll call her tomorrow.", 1),
-      stored('junk2', "I'll catch you later.", 1),
-      stored('ok', "I'll send Mindy the photos.", 2),
-      stored('be', "I'll be at Jake's recital Thursday.", 3),
+      stored('junk', "I'll catch you later.", 1),
+      stored('be', "I'll be at Jake's recital Thursday.", 2),
+      stored('ok', "I'll send Mindy the photos.", 3),
     ]);
     const open = await loadCallCheckIns('u1', store, NOW);
     expect(open.map((c) => [c.id, c.statement])).toEqual([
-      ['ok', 'send Mindy the photos'],
       ['be', "be at Jake's recital Thursday"],
+      ['ok', 'send Mindy the photos'],
     ]);
-    expect(marked).toEqual(['ok', 'be']);
+    expect(marked).toEqual(['be', 'ok']);
+  });
+
+  it('brings "call her tomorrow" up on the call, where the model has the conversation', async () => {
+    const { store } = fakeStore([
+      {
+        id: 'her',
+        data: { status: 'active', statement: "I'll call her tomorrow.", createdAt: NOW - DAY },
+      },
+    ]);
+    const open = await loadCallCheckIns('u1', store, NOW);
+    expect(open.map((c) => c.statement)).toEqual(['call her tomorrow']);
   });
 
   it('returns nothing instead of throwing when the store fails', async () => {

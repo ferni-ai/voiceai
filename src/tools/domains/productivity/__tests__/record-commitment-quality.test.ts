@@ -37,10 +37,9 @@ describe('recordCommitment', () => {
     expect(reply).toMatch(/^Not recorded/);
   });
 
-  it('does not store "call her tomorrow" when no one is named', async () => {
-    const reply = await record()({ statement: "I'll call her tomorrow", summary: 'call her' });
-    expect(saveCommitment).not.toHaveBeenCalled();
-    expect(reply).toMatch(/who or what/);
+  it('stores "call her tomorrow" as said when no one is named: a pronoun never drops a plan', async () => {
+    await record()({ statement: "I'll call her tomorrow", summary: 'call her' });
+    expect(saveCommitment.mock.calls[0][0]).toMatchObject({ statement: "I'll call her tomorrow" });
   });
 
   it('stores "call her tomorrow" as "call Mindy tomorrow" when the model named her', async () => {

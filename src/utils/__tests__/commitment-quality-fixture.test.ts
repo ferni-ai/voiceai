@@ -1,13 +1,14 @@
 /**
- * Regression fixture from the #1896 verifier (2026-10-18): realistic commitments
- * people say, the "be" / "think about" plans it was wrongly rejecting, and the
- * goodbyes and filler it must not keep. Each case is one the predicate got
- * wrong once, or is a near neighbour of one.
+ * Regression fixture from the #1896 verifier (2026-10-18, rounds 1 and 2), for
+ * the conservative gate: it drops only lines that are confidently junk, never a
+ * plan. Every real line is kept on write; a line shown on its own is skipped
+ * when its object is a bare pronoun nothing before it explains; pure goodbyes
+ * and pleasantries are rejected.
  */
 import { describe, expect, it } from 'vitest';
-import { judgeCommitment } from '../commitment-quality.js';
+import { commitmentLine, judgeCommitment, needsContext } from '../commitment-quality.js';
 
-/** Real plans: every one is kept (0 false rejects). */
+/** Real plans the verifier wrote, and its probes: all kept on write. */
 const REAL = [
   "I'm gonna call my sister tonight",
   'gotta pay the electric bill Friday',
@@ -23,6 +24,7 @@ const REAL = [
   'catch up with Mike next week',
   'take care of the paperwork',
   'follow up with the doctor',
+  "I'll sleep on it",
   'meet you there',
   "I'll call mom on Sunday",
   'I need to schedule my mammogram',
@@ -72,6 +74,8 @@ const REAL = [
   "I'll go for a run",
   "I'll study for the exam",
   'I need to buy a new phone charger',
+  "I'll get back to you on that",
+  "I'll think it over",
   "I'll be at the airport by 6",
   "I'll wash the car",
   "I'll meet Lisa for coffee at 10",
@@ -82,9 +86,12 @@ const REAL = [
   'Book dentist appointment',
   'Run 3 miles tomorrow',
   'Finish taxes',
+  "I'll handle it",
+  "I'll fix it tomorrow",
   "I'll stretch before bed",
   "I'll journal tonight",
   "I'll water the plants",
+  "I'll pray about it",
   "I'll vote on Tuesday",
   "I'm heading to the pharmacy after this",
   "I'll call my landlord about the heat",
@@ -95,6 +102,7 @@ const REAL = [
   "I'll Venmo you for dinner",
   "I'll ping Raj on Slack",
   'I need to set up a budget',
+  "I'll talk to him about it tonight",
   "I'll go see the doctor",
   "I'll swing by your place later",
   "I'm gonna go to sleep early",
@@ -127,12 +135,21 @@ const REAL = [
   "I'll go easy on the drinks at the party",
 ];
 
-/**
- * Real enough to say, but with nothing to ask about without a name or an
- * object ("handle it", "talk to him about it"), or a stance ("think it over",
- * "sleep on it"), or a goodbye ("call it a night"). Rejected by design.
- */
-const REJECTED_BY_DESIGN = [
+/** Run-on lines whose earlier words say who or what: kept and shown whole. */
+const RUN_ONS = [
+  "my sister's birthday is friday so I'll call her then",
+  "the car's making that noise again so I'll take it in tomorrow",
+  "Mark needs help painting his deck sunday and I said I'll do it",
+  "I owe Tom fifty bucks, I'll pay him back Friday",
+  "the dentist called and I'm going to call them back tomorrow",
+  "I haven't called my dad in weeks, I'm gonna do that tonight",
+  "rent's due friday, I'll pay it thursday",
+  "I told Mark I'd help him paint his deck sunday so I'll do that",
+];
+
+/** Kept on write, but skipped where a line is shown on its own: "her", "it", "that" alone. */
+const NEEDS_CONTEXT = [
+  "I'll text her back after lunch",
   "I'll sleep on it",
   "I'll get back to you on that",
   "I'll think it over",
@@ -140,10 +157,14 @@ const REJECTED_BY_DESIGN = [
   "I'll fix it tomorrow",
   "I'll pray about it",
   "I'll talk to him about it tonight",
-  "I'll call it a night",
+  "I'll do it",
+  'call her tomorrow',
 ];
 
-/** Goodbyes, pleasantries and filler: none is kept (0 of 40 false accepts). */
+/**
+ * Goodbyes and pleasantries: all rejected. "I'll call it a night" was in both of
+ * the verifier's lists; it is a goodbye, so it is here.
+ */
 const JUNK = [
   'bye',
   'talk soon',
@@ -173,8 +194,6 @@ const JUNK = [
   "yeah I'll see you around",
   'later',
   'love you, bye',
-  "I'll do it",
-  'call her tomorrow',
   "I'll think about it",
   "I'll be there",
   'ok bye',
@@ -185,15 +204,47 @@ const JUNK = [
   'sure',
   'no worries',
   "I'll call it a night",
+  "I'll keep that in mind",
+  "I'm good, thanks",
+  'cool cool',
+  'sounds good to me',
+  'perfect, thank you',
+  "I'm good",
+  "I'm fine, thanks",
+  'nice nice',
+  'lol ok',
+  'all good',
+  "I'll keep it in mind",
+  'for sure',
+  'right on',
+  'gotcha',
+  "I'm tired, goodnight",
+  'no thanks',
+  'I appreciate it',
+  'have a good one',
+  "I'm doing ok",
+  "I'm good thanks",
+  "I'm fine thanks",
+  "I'll call it a night",
 ];
 
-describe('verifier fixture', () => {
-  it.each(REAL)('keeps %j', (s) => {
+const shown = (s: string): string | null => {
+  const line = commitmentLine(s);
+  return line && !needsContext(line) ? line.text : null;
+};
+
+describe('verifier fixture: conservative gate', () => {
+  it.each([...REAL, ...RUN_ONS, ...NEEDS_CONTEXT])('keeps %j on write', (s) => {
     expect(judgeCommitment(s)).toMatchObject({ ok: true });
   });
 
-  it.each(REJECTED_BY_DESIGN)('rejects %j (no name or object, or a stance)', (s) => {
-    expect(judgeCommitment(s).ok).toBe(false);
+  it.each(RUN_ONS)('shows %j whole', (s) => {
+    expect(commitmentLine(s)).toMatchObject({ whole: true });
+    expect(shown(s)).not.toBeNull();
+  });
+
+  it.each(NEEDS_CONTEXT)('does not show %j on its own', (s) => {
+    expect(shown(s)).toBeNull();
   });
 
   it.each(JUNK)('rejects junk %j', (s) => {

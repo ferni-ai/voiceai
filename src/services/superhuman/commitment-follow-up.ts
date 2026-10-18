@@ -12,7 +12,12 @@
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { commitmentAction, MAX_CHARS, toSecondPerson } from '../../utils/commitment-quality.js';
+import {
+  commitmentLine,
+  MAX_CHARS,
+  needsContext,
+  toSecondPerson,
+} from '../../utils/commitment-quality.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -28,8 +33,9 @@ export function coachFollowThroughMode(
 /** The fields of a stored commitment this module reads (commitment-keeper.ts). */
 export interface OpenCommitment {
   id: string;
-  /** What they said they'd do, lead-in and trailing filler off ("call my sister Sunday"). */
+  /** What they said they'd do ("call my sister Sunday"), or their whole line (`whole`). */
   statement: string;
+  whole?: true;
   createdAt: number;
   targetDate?: number;
   followUpAfter: number;
@@ -46,33 +52,40 @@ const STALE_AFTER_MS = 30 * DAY_MS;
 /** Next follow-up after one is made. */
 const NEXT_FOLLOW_UP_MS = 3 * DAY_MS;
 
-// Every reader of open commitments (the call check-in, the push, the proactive
-// tick, the follow-through import, the morning brief) comes through here, so
-// this is where a stored line is cleaned up ("I'm going to call my sister
-// Sunday!" is "call my sister Sunday") and where sign-offs and lines no one can
-// act on ("I need to go", "I'll call her tomorrow"), stored before the writers
-// checked, are left out.
+// Every reader of open commitments (call check-in, push, proactive tick,
+// follow-through import, morning brief) comes through here: the stored line is
+// cleaned up, goodbyes stored before the writers checked are left out, and a
+// line that needs context ("call her tomorrow") is shown only with context.
 const MIN_WORDS = 4;
 
 function num(v: unknown): number | undefined {
   return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
 }
 
-/** A stored document as an open commitment, or null when it isn't one worth asking about. */
-export function toOpenCommitment(id: string, d: Record<string, unknown>): OpenCommitment | null {
+/**
+ * A stored document as an open commitment, or null when it isn't one worth
+ * asking about. `withContext` is for a reader whose model has the conversation
+ * (the call check-in); without it, a line that needs context to make sense is null.
+ */
+export function toOpenCommitment(
+  id: string,
+  d: Record<string, unknown>,
+  opts: { withContext?: boolean } = {}
+): OpenCommitment | null {
   if (d.status !== 'active') return null;
   const said = String(d.statement ?? d.summary ?? '')
     .slice(0, MAX_CHARS)
     .trim();
-  const statement = said.split(/\s+/).length < MIN_WORDS ? null : commitmentAction(said);
-  if (statement === null) return null;
+  const line = said.split(/\s+/).length < MIN_WORDS ? null : commitmentLine(said);
+  if (line === null || (opts.withContext !== true && needsContext(line))) return null;
   const createdAt = num(d.createdAt);
   if (createdAt === undefined) return null;
   const targetDate = num(d.targetDate);
   const lastFollowUp = num(d.lastFollowUp);
   return {
     id,
-    statement,
+    statement: line.text,
+    ...(line.whole && { whole: true as const }),
     createdAt,
     followUpAfter: num(d.followUpAfter) ?? createdAt + NEXT_FOLLOW_UP_MS,
     followUpCount: num(d.followUpCount) ?? 0,
@@ -106,9 +119,9 @@ export function pickForCall(all: OpenCommitment[], now: number, limit = 2): Open
     .slice(0, limit);
 }
 
-/** "you'd call your sister Sunday": the commitment said back to them. */
+/** The commitment said back to them: "you'd call your sister Sunday", or their whole line quoted. */
 export function youSaidYoud(c: OpenCommitment): string {
-  return `you'd ${toSecondPerson(c.statement)}`;
+  return c.whole ? `"${c.statement}"` : `you'd ${toSecondPerson(c.statement)}`;
 }
 
 function daysAgo(ms: number): string {
@@ -183,7 +196,7 @@ export async function loadCallCheckIns(
   try {
     const docs = await store.active(userId);
     const all = docs
-      .map((d) => toOpenCommitment(d.id, d.data))
+      .map((d) => toOpenCommitment(d.id, d.data, { withContext: true }))
       .filter((c): c is OpenCommitment => c !== null);
     const picked = pickForCall(all, now);
     // Recorded in the background: the greeting is waiting on this.

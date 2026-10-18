@@ -91,13 +91,11 @@ const recordCommitmentDef: ToolDefinition = {
         log.info({ userId: ctx.userId, type, summary }, 'Recording commitment');
 
         // "Call her tomorrow" becomes "call Mindy tomorrow" when the model named her;
-        // a goodbye or a bare "do it" is not kept (utils/commitment-quality.ts).
+        // a goodbye or pleasantry is not kept (utils/commitment-quality.ts).
         const verdict = judgeCommitment(statement, { person: personInvolved });
         if (!verdict.ok) {
           log.info({ userId: ctx.userId, reason: verdict.reason }, 'Commitment not recorded');
-          return verdict.reason === 'bare_pronoun'
-            ? 'Not recorded: it does not say who or what it is about. If it matters, ask who they mean, then record it with personInvolved set.'
-            : 'Not recorded: that is a goodbye or a feeling, not something they will do.';
+          return 'Not recorded: that is a goodbye or a pleasantry, not something they will do.';
         }
 
         // Parse target date if provided
