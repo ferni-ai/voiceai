@@ -10,9 +10,9 @@
  * Nothing known: undefined, and the tool asks where they are.
  *
  * City level only. Nothing here stores a street, a postcode, GPS or
- * coordinates. A value with a digit, a street or unit word, or two number
- * words is refused, not trimmed. This is a list of words, not a check against
- * real places, so it is a backstop for the caller's own words, not a guarantee.
+ * coordinates. A name with a digit or a character no place name uses is refused
+ * before any lookup. Saving a city asks Google Places to confirm it, and keeps
+ * only the locality and state Places returns, never the caller's words.
  *
  * @module tools/domains/local-search/caller-city
  */
@@ -44,7 +44,12 @@ const CITY_CHARS = /^[\p{L}\p{M} .'’-]+$/u;
 const NO_CALLER_IDS = new Set(['shared', 'anonymous', 'default', 'unknown']);
 const NO_CALLER_PREFIXES = ['anon:', 'onbehalf:'];
 
-export type SaveCityResult = 'saved' | 'not-a-city' | 'lookup-failed' | 'failed';
+/** `name` is what was saved, as Places spelled it ("Springfield, IL"), so the caller can hear and correct it. */
+export type SaveCityResult =
+  | { status: 'saved'; name: string }
+  | { status: 'not-a-city' }
+  | { status: 'lookup-failed' }
+  | { status: 'failed' };
 
 export function placesLocationOn(env = process.env): boolean {
   return flagOn('PLACES_LOCATION', env);
@@ -120,25 +125,28 @@ export async function saveCallerCity(
 ): Promise<SaveCityResult> {
   const cityName = cityOnly(city);
   const regionName = region === undefined ? undefined : cityOnly(region);
-  if (!cityName || (region !== undefined && !regionName)) return 'not-a-city';
+  if (!cityName || (region !== undefined && !regionName)) return { status: 'not-a-city' };
 
   let match;
   try {
     match = await findCityByName(regionName ? `${cityName}, ${regionName}` : cityName);
   } catch (error) {
     log.warn({ userId, error: String(error) }, '📍 Could not check the city with Places');
-    return 'lookup-failed';
+    return { status: 'lookup-failed' };
   }
-  if (!match) return 'not-a-city';
+  if (!match) return { status: 'not-a-city' };
 
   const previous = (await getUserPreferences(userId)).callerCity;
   const result = await updateUserPreferences(userId, {
     callerCity: { city: match.city, regionCode: match.regionCode, savedAt: new Date().toISOString() },
   });
-  if (result.success) return 'saved';
+  if (result.success) {
+    const name = match.regionCode ? `${match.city}, ${match.regionCode}` : match.city;
+    return { status: 'saved', name };
+  }
   // The preferences cache takes the new city before the Firestore write fails: put the old one back.
   await updateUserPreferences(userId, { callerCity: previous });
-  return 'failed';
+  return { status: 'failed' };
 }
 
 /** Forget the saved city. The phone's city, if it has one, is still used. */

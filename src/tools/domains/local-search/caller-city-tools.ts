@@ -40,12 +40,14 @@ const rememberCallerCityDef: ToolDefinition = {
         if (!userId) return "I can't save a city on this call.";
 
         const result = await saveCallerCity(userId, city, region);
-        if (result === 'not-a-city') {
+        if (result.status === 'not-a-city') {
           return "I couldn't find a city by that name. Which city is it in?";
         }
-        if (result === 'lookup-failed') return "I couldn't check that place just now. Let's try again in a moment.";
-        if (result === 'failed') return "I couldn't save that just now. Let's try again later.";
-        return "Saved. I'll use that city for 'near me' searches until they ask me to forget it.";
+        if (result.status === 'lookup-failed') {
+          return "I couldn't check that place just now. Let's try again in a moment.";
+        }
+        if (result.status === 'failed') return "I couldn't save that just now. Let's try again later.";
+        return `Saved ${result.name}. Say it back to the caller so they can correct it. I'll use that city for 'near me' searches until they ask me to forget it.`;
       },
     });
   },

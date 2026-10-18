@@ -16,6 +16,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env.GOOGLE_PLACES_API_KEY;
+  delete process.env.GOOGLE_API_KEY;
 });
 
 describe('findCityByName', () => {
@@ -65,6 +66,7 @@ describe('findCityByName', () => {
 
   it('throws without an API key', async () => {
     delete process.env.GOOGLE_PLACES_API_KEY;
+    delete process.env.GOOGLE_API_KEY;
     await expect(findCityByName('Philadelphia')).rejects.toThrow(/not configured/);
   });
 });

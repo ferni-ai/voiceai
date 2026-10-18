@@ -235,7 +235,7 @@ describe('saving the city', () => {
       { city: 'Philly', region: 'PA', callerSaidYes: true },
       phoneInStGeorge
     );
-    expect(result).toMatch(/Saved/);
+    expect(result).toMatch(/Saved Philadelphia, PA\./);
     expect(geo.findCityByName).toHaveBeenCalledWith('Philly, PA');
     const saved = store.prefs.get('u1')?.callerCity;
     expect(Object.keys(saved ?? {}).sort()).toEqual(['city', 'regionCode', 'savedAt']);
