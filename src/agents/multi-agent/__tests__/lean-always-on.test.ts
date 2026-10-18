@@ -75,6 +75,9 @@ describe('TOOLS_SAME_TURN on', () => {
     expect(names.length).toBeLessThan(LIMIT);
     for (const tool of KEPT) expect(names).toContain(tool);
     for (const tool of MOVED_TO_TOPICS) expect(names).not.toContain(tool);
+    // From the first turn, not only after the greeting: quickTimer, quickText and
+    // getWeather live in domains the essential set doesn't load.
+    for (const tool of KEPT) expect(call.initialNames).toContain(tool);
     // The turn that asks still gets its topic tools, and stays under the limit.
     const asked = await turn(call, 'Find me a coffee shop nearby.');
     expect(asked.request).toContain('searchLocalBusinesses');

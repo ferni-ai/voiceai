@@ -204,12 +204,6 @@ function appendOnly(
     delete merged[name];
     excess -= 1;
   }
-  // Still over a cap below APPEND_ONLY_TOOL_CAP (TOOLS_SAME_TURN): the newest
-  // non-essential additions, last picked first, wait for a later load.
-  if (cap >= APPEND_ONLY_TOOL_CAP) return merged;
-  for (let i = added.length - 1; i >= 0 && Object.keys(merged).length > cap; i--) {
-    if (!isEssentialTool(added[i])) delete merged[added[i]];
-  }
   return merged;
 }
 
