@@ -6,7 +6,7 @@
  * Run by pre-commit hook and CI/CD to catch mistakes.
  *
  * BLOCKS commits that contain:
- * - Direct `gcloud run deploy` commands (use `ferni deploy`)
+ * - Direct `gcloud run deploy` commands (use the deploy workflows)
  * - Direct `gcloud compute ssh ... docker run`
  * - Any Cloud Run deploy of a voice agent (it runs on LiveKit Cloud: deploy-agent skill)
  * - Hardcoded credentials or API keys
@@ -44,7 +44,7 @@ const UNSAFE_PATTERNS = [
     pattern: /gcloud\s+run\s+deploy\s+(?!.*--dry-run)/gi,
     severity: 'error',
     message: 'Direct `gcloud run deploy` is forbidden',
-    fix: 'Use `ferni deploy ui`; the voice agent deploys via .claude/skills/deploy-agent/SKILL.md',
+    fix: 'Deploy through .github/workflows/deploy-production.yml; the voice agent via .claude/skills/deploy-agent/SKILL.md',
     allowedIn: [
       'scripts/deploy.ts',
       'scripts/deploy-worker.sh',
@@ -94,14 +94,14 @@ const UNSAFE_PATTERNS = [
     pattern: /docker\s+push\s+gcr\.io/gi,
     severity: 'warning',
     message: 'Direct docker push detected',
-    fix: 'Use `ferni deploy` which handles image tagging and push',
+    fix: 'Let the deploy workflows build and push images',
     allowedIn: ['scripts/', 'cloudbuild', 'Dockerfile', '.github/', 'docs/', '.md', 'CLAUDE.md'],
   },
   {
     pattern: /firebase\s+deploy\s+--only\s+hosting/gi,
     severity: 'warning',
     message: 'Direct firebase deploy detected',
-    fix: 'Use `ferni deploy frontend` for consistent deployment',
+    fix: 'Deploy through .github/workflows/deploy-firebase.yml',
     allowedIn: [
       'scripts/',
       'apps/cli/src/commands/deploy/',

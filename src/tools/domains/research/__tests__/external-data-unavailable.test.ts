@@ -108,3 +108,14 @@ describe('descriptions do not promise live data', () => {
     expect(description).not.toMatch(/vs official CPI|See how YOUR/);
   });
 });
+
+describe('no simulated tables left behind', () => {
+  it('external-data.ts carries no simulated metro or news tables', async () => {
+    const { readFileSync } = await import('node:fs');
+    const source = readFileSync(
+      new URL('../superhuman-tools/external-data.ts', import.meta.url),
+      'utf8'
+    );
+    expect(source).not.toMatch(/getLocalEconomicData|getNewsSentiment|Simulated (local|sentiment)/);
+  });
+});

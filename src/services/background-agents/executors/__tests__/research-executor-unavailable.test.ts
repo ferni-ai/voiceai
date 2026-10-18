@@ -39,3 +39,13 @@ describe('research executor: no research source', () => {
     }
   );
 });
+
+describe('research executor: no placeholder generators left', () => {
+  it('exports no queueing path and carries no made-up sources', async () => {
+    const mod: Record<string, unknown> = await import('../research-executor.js');
+    expect(mod.queueResearchTask).toBeUndefined();
+    const { readFileSync } = await import('node:fs');
+    const source = readFileSync(new URL('../research-executor.ts', import.meta.url), 'utf8');
+    expect(source).not.toMatch(/simulateResearchDelay|'Web Search'|'Market Data'|performResearch/);
+  });
+});
