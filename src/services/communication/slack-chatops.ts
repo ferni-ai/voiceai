@@ -16,6 +16,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { execSync } from 'child_process';
+import { buildAgentLogsCommand, clampLogLines } from './agent-logs-command.js';
 
 const log = createLogger({ module: 'SlackChatOps' });
 
@@ -252,14 +253,10 @@ async function handleRollback(_args: string[], context: CommandContext): Promise
 }
 
 async function handleLogs(args: string[]): Promise<SlackResponse> {
-  const lines = parseInt(args[0]) || 20;
-  const maxLines = 50;
+  const lines = clampLogLines(parseInt(args[0]));
 
   try {
-    const output = execSync(
-      `gcloud compute ssh voiceai-agent-gce --zone us-central1-a --command "docker logs voiceai-agent-blue --tail ${Math.min(lines, maxLines)}" 2>&1`,
-      { encoding: 'utf-8', timeout: 30000 }
-    );
+    const output = execSync(buildAgentLogsCommand(lines), { encoding: 'utf-8', timeout: 30000 });
 
     // Truncate if too long for Slack
     const truncated =
@@ -267,7 +264,7 @@ async function handleLogs(args: string[]): Promise<SlackResponse> {
 
     return {
       response_type: 'ephemeral',
-      text: `📜 Recent Logs (${Math.min(lines, maxLines)} lines)`,
+      text: `📜 Recent Logs (${lines} lines)`,
       blocks: [
         {
           type: 'section',
