@@ -19,7 +19,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import admin from 'firebase-admin';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, type DocumentReference, type DocumentSnapshot } from 'firebase-admin/firestore'; // prettier-ignore
 
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
@@ -434,6 +434,11 @@ async function handleGetVotes(res: ServerResponse, featureId: string): Promise<b
 /** Waitlist statuses that let a person in: approved before waves, admitted by one, or signed in. */
 const ADMITTED_WAITLIST_STATUSES = new Set<unknown>(['approved', 'admitted', 'joined']);
 
+/** A wave seat claimed on sign-in: 'joined' stops it lapsing back to the pool. */
+async function claimWaveSeat(ref: DocumentReference, doc: DocumentSnapshot): Promise<void> {
+  if (doc.data()?.status === 'admitted') await ref.set({ status: 'joined', signedInAt: new Date() }, { merge: true }); // prettier-ignore
+}
+
 /**
  * Check if authenticated user has app access.
  * Verifies Firebase ID token and checks waitlist/approval status.
@@ -514,6 +519,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     if (profileDoc.exists) {
       const profile = profileDoc.data();
       if (profile?.subscription?.status === 'active') {
+        await claimWaveSeat(waitlistRef, waitlistDoc); // a member's seat must never lapse back to the pool
         log.info({ email: hashEmail(email) }, 'User has active subscription');
         sendJson(res, 200, {
           approved: true,
@@ -555,12 +561,9 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       const foundingWave = typeof waitlisted?.foundingWave === 'number' ? waitlisted.foundingWave : 0; // prettier-ignore
       const grant = { email, uid: decodedToken.uid, tier: 'free' as const, foundingWave };
       await grantAccess(db, profileDocId, { ...grant, grantedVia: 'waitlist-approval-auto' });
-      // A claimed wave seat: 'joined' stops it lapsing back to the pool
-      if (waitlisted?.status === 'admitted') {
-        await waitlistRef.set({ status: 'joined', signedInAt: new Date() }, { merge: true });
-      }
+      await claimWaveSeat(waitlistRef, waitlistDoc);
       log.info({ email: hashEmail(email), foundingWave }, 'Admitted waitlist user let in as a founding member'); // prettier-ignore
-      sendJson(res, 200, { approved: true, status: 'approved', tier: 'free', email, referralCode, foundingMember: true, foundingWave }); // prettier-ignore
+      sendJson(res, 200, { approved: true, status: 'approved', tier: 'free', email, referralCode, foundingWaveMember: true, foundingWave }); // prettier-ignore
       return true;
     }
 

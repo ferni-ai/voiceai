@@ -101,9 +101,9 @@ describe('waitlist check', () => {
   it('makes an approved waitlist entry a founding member on the free tier, not a partner', async () => {
     coll('waitlist').set(docId(email.value), { email: email.value, status: 'approved' });
     const { body } = await check();
-    expect(body).toMatchObject({ approved: true, tier: 'free', foundingMember: true, foundingWave: 0 }); // prettier-ignore
+    expect(body).toMatchObject({ approved: true, tier: 'free', foundingWaveMember: true, foundingWave: 0 }); // prettier-ignore
     const profile = coll('user_profiles').get(docId(email.value)) as Profile;
-    expect(profile).toMatchObject({ foundingMember: true, foundingWave: 0 });
+    expect(profile).toMatchObject({ foundingWaveMember: true, foundingWave: 0 });
     expect(profile.subscription).toMatchObject({ tier: 'free', status: 'active' });
     expect(profile.subscription.currentPeriodEnd).toBeUndefined(); // no 10-year grant
   });
@@ -112,9 +112,18 @@ describe('waitlist check', () => {
     vi.stubEnv('WAITLIST_GATE', 'on');
     coll('waitlist').set(docId(email.value), { email: email.value, status: 'admitted', foundingWave: 3 }); // prettier-ignore
     const { body } = await check();
-    expect(body).toMatchObject({ approved: true, tier: 'free', foundingMember: true, foundingWave: 3 }); // prettier-ignore
-    expect(coll('user_profiles').get(docId(email.value))).toMatchObject({ foundingMember: true, foundingWave: 3 }); // prettier-ignore
+    expect(body).toMatchObject({ approved: true, tier: 'free', foundingWaveMember: true, foundingWave: 3 }); // prettier-ignore
+    expect(coll('user_profiles').get(docId(email.value))).toMatchObject({ foundingWaveMember: true, foundingWave: 3 }); // prettier-ignore
     expect(coll('waitlist').get(docId(email.value))).toMatchObject({ status: 'joined' });
+  });
+
+  it('an active member with a wave seat claims it on sign-in, so it never lapses back', async () => {
+    vi.stubEnv('WAITLIST_GATE', 'on');
+    const id = docId(email.value);
+    coll('user_profiles').set(id, { email: email.value, subscription: { tier: 'free', status: 'active' } }); // prettier-ignore
+    coll('waitlist').set(id, { email: email.value, status: 'admitted', foundingWave: 2 });
+    expect((await check()).body).toMatchObject({ approved: true, tier: 'free' });
+    expect(coll('waitlist').get(id)).toMatchObject({ status: 'joined' });
   });
 
   it('leaves an existing grant untouched: an active partner stays partner, no founding write', async () => {
@@ -133,7 +142,7 @@ describe('waitlist check', () => {
     coll('waitlist').set(docId(fresh), { email: fresh, status: 'pending' });
     expect((await approve(fresh)).status).toBe(200);
     const profile = coll('user_profiles').get(docId(fresh)) as Profile;
-    expect(profile).toMatchObject({ foundingMember: true, foundingWave: 0 });
+    expect(profile).toMatchObject({ foundingWaveMember: true, foundingWave: 0 });
     expect(profile.subscription).toMatchObject({ tier: 'free', status: 'active' });
     expect(profile.subscription.currentPeriodEnd).toBeUndefined();
 
@@ -142,7 +151,7 @@ describe('waitlist check', () => {
     coll('user_profiles').set(docId(paying), { email: paying, subscription: { tier: 'partner', status: 'active' } }); // prettier-ignore
     await approve(paying);
     expect(coll('user_profiles').get(docId(paying))).toMatchObject({
-      foundingMember: true,
+      foundingWaveMember: true,
       subscription: { tier: 'partner', status: 'active' },
     });
   });

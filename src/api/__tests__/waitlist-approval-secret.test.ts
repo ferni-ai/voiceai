@@ -97,7 +97,7 @@ describe('waitlist one-click approval secret', () => {
     expect(status).toBe(200);
     expect(coll('waitlist').get(docId(EMAIL))).toMatchObject({ status: 'approved' });
     expect(coll('user_profiles').get(docId(EMAIL))).toMatchObject({
-      foundingMember: true, // the founding-member perk replaced the 10-year partner grant
+      foundingWaveMember: true, // the founding-member perk replaced the 10-year partner grant
       subscription: expect.objectContaining({ tier: 'free' }),
     });
   });

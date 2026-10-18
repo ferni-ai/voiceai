@@ -47,7 +47,7 @@ export async function grantAccess(db: Firestore, profileDocId: string, grant: Ac
         },
         ...(grant.foundingWave === undefined
           ? {}
-          : { foundingMember: true, foundingWave: grant.foundingWave }),
+          : { foundingWaveMember: true, foundingWave: grant.foundingWave }),
         createdAt: now,
         updatedAt: now,
       }),
@@ -67,7 +67,7 @@ export async function grantFoundingMember(
 ): Promise<void> {
   const ref = db.collection('user_profiles').doc(profileDocId);
   const now = new Date();
-  const founding = { foundingMember: true, foundingWave: 0, updatedAt: now };
+  const founding = { foundingWaveMember: true, foundingWave: 0, updatedAt: now };
   const existing = (await ref.get()).data() as { subscription?: { status?: string } } | undefined;
   if (existing?.subscription?.status === 'active') {
     await ref.set(founding, { merge: true });
