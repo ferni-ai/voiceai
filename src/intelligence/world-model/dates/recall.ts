@@ -19,7 +19,9 @@
  * @module intelligence/world-model/dates/recall
  */
 import { flagOn } from '../../../config/env-flag.js';
+import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { callMomentFor } from '../extraction/extraction-prompt.js';
 import {
   createFirestoreWorldFactStore,
   markFactRaised,
@@ -119,6 +121,8 @@ export interface DatesRecallDeps {
   /** Saves the day and moment a date was raised; the default writes them on the fact. */
   mark?: (userId: string, factId: string, day: string, moment: DateMoment) => Promise<void>;
   now?: () => Date;
+  /** The caller's IANA zone: dates are stored by their day, so today is theirs too (UTC without). */
+  timezone?: string;
 }
 
 export interface DatesRecall {
@@ -131,7 +135,7 @@ export interface DatesRecall {
 
 /** Loads the caller's dates at call start. Never rejects. */
 export function createDatesRecall(deps: DatesRecallDeps): DatesRecall {
-  const today = (deps.now?.() ?? new Date()).toISOString().slice(0, 10);
+  const today = callMomentFor(deps.now?.() ?? new Date(), deps.timezone ?? 'UTC').date;
   let due: DueDate | null = null;
   let given = false;
   const ready = (deps.store ?? createFirestoreWorldFactStore())
@@ -162,5 +166,6 @@ const NO_DATES: DatesRecall = {
 
 /** The call's dates recall with FRIEND_FOLLOWUPS=on; one that has nothing when off. */
 export function datesRecallFor(userId: string): DatesRecall {
-  return friendFollowUpsOn() ? createDatesRecall({ userId }) : NO_DATES;
+  if (!friendFollowUpsOn()) return NO_DATES;
+  return createDatesRecall({ userId, timezone: userTimeZone({ userId }) });
 }

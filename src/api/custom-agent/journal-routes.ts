@@ -6,12 +6,16 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { base64JsonBodyBytes } from '../bounded-body.js';
 import { parseBody } from '../helpers.js';
+import { MAX_TRANSCRIBE_BYTES } from '../../services/custom-agent/vertex-transcribe.js';
 import {
   getCustomAgent,
   addMemoryToAgent,
 } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import { isJournalPlaceholder } from '../../services/custom-agent/journal-placeholder.js';
+import { journalOneStoreOn } from '../../services/journal/journal-ports.js';
+import { firestoreJournalStore as journalStore } from '../../services/stores/journal-store.js';
 import type { JournalEntryBody } from './types.js';
 import { sendJson } from './helpers.js';
 import { getClientIp } from '../../utils/client-ip.js';
@@ -36,7 +40,10 @@ export async function handleCreateJournalEntry(
   const ip = rateLimitIpKey(getClientIp(req));
   const caller = { userId, isAnonymous };
   if (await refusedByTranscribeLimits(res, ip, caller)) return true;
-  const body = await parseBody<JournalEntryBody>(req);
+  // base64 audio up to the transcriber's cap; anything bigger it would refuse anyway.
+  const body = await parseBody<JournalEntryBody>(req, {
+    maxBytes: base64JsonBodyBytes(MAX_TRANSCRIBE_BYTES),
+  });
 
   if (!body.audio) {
     sendJson(res, 400, { error: 'Audio data is required' });
@@ -112,13 +119,11 @@ export async function handleCreateJournalEntry(
       createdAt: new Date(),
     };
 
-    // Add to agent's journal entries
-    const updated = await addMemoryToAgent(
-      userId,
-      agentId,
-      'journalEntries' as never,
-      journalEntry
-    );
+    // JOURNAL_ONE_STORE: the one journal store, tagged with this twin, not its array
+    const { context: _c, summary: _s, timestamp: _t, ...stored } = journalEntry;
+    const updated = journalOneStoreOn()
+      ? await journalStore.add(userId, { ...stored, audioUrl: audioUrl ?? undefined, agentId })
+      : await addMemoryToAgent(userId, agentId, 'journalEntries' as never, journalEntry);
 
     if (!updated) {
       sendJson(res, 500, { error: 'Failed to save journal entry' });
@@ -154,6 +159,12 @@ export async function handleListJournalEntries(
   const agent = await getCustomAgent(userId, agentId);
   if (!agent) {
     sendJson(res, 404, { error: 'Agent not found' });
+    return true;
+  }
+
+  if (journalOneStoreOn()) {
+    const all = await journalStore.listForAgent(userId, agent);
+    sendJson(res, 200, { entries: all.slice(0, limit), total: all.length, limit });
     return true;
   }
 

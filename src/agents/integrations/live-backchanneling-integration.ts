@@ -38,6 +38,11 @@ import {
 import { backchannelContextEnabled, pickContextualBackchannel } from './backchannel-context.js';
 import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
 import { ferniEnergyFor } from '../../speech/tts-gateway/director/ferni-energy.js';
+import {
+  backchannelAudioClockEnabled,
+  PauseClock,
+  STALE_FRAME_MS,
+} from './backchannel-pause-clock.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
 
@@ -167,11 +172,26 @@ export function initializeLiveBackchanneling<T>(
   let lastLaughTurn: number | null = null;
 
   let clipThisPause = false;
+  // BACKCHANNEL_AUDIO_CLOCK=on: pauses timed on the audio, not on when we read it.
+  const clock = cfg.playClip && backchannelAudioClockEnabled() ? new PauseClock() : null;
+  const pause = clock
+    ? {
+        speaking: () => clock.userSpeaking(),
+        breath: () => clock.isBreathPause(),
+        ms: () => clock.pauseMs(),
+        startedAt: () => clock.pauseStartedAt() ?? Date.now(),
+      }
+    : {
+        speaking: () => breathDetector.isUserSpeaking(),
+        breath: () => breathDetector.isBreathPause(),
+        ms: () => breathDetector.getCurrentPauseDuration(),
+        startedAt: () => Date.now() - breathDetector.getCurrentPauseDuration(),
+      };
 
   const considerClip = (
     playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean
   ): void => {
-    if (clipThisPause && breathDetector.isUserSpeaking()) {
+    if (clipThisPause && pause.speaking()) {
       clipThisPause = false;
       // The caller carried on before the clip was heard: take it back.
       if (cfg.cancelClip?.()) log.info({ by: 'pause_ended' }, 'CLIP_CANCELLED');
@@ -179,13 +199,15 @@ export function initializeLiveBackchanneling<T>(
     const agentSpeaking = isAgentSpeakingFn();
     if (agentWasSpeaking && !agentSpeaking) agentStoppedAt = Date.now();
     agentWasSpeaking = agentSpeaking;
-    if (!breathDetector.isBreathPause()) {
+    if (!pause.breath()) {
       decidedThisPause = false;
       return;
     }
-    if (decidedThisPause || breathDetector.getCurrentPauseDuration() < CLIP_PAUSE_MIN_MS) return;
+    if (decidedThisPause || pause.ms() < CLIP_PAUSE_MIN_MS) return;
+    // Behind real time: they may already be talking again. A fresher frame decides.
+    if (clock && clock.lagMs() > STALE_FRAME_MS) return;
     decidedThisPause = true;
-    const at = { pauseStartedAt: Date.now() - breathDetector.getCurrentPauseDuration() };
+    const at = { pauseStartedAt: pause.startedAt() };
     const emotional =
       (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
       (state.currentEmotion?.intensity ?? 0) > 0.7;
@@ -238,7 +260,7 @@ export function initializeLiveBackchanneling<T>(
     lastClip = text;
     state.lastBackchannelAt = now;
     trackBackchannelEvent(sessionId, {
-      pauseDurationMs: breathDetector.getCurrentPauseDuration(),
+      pauseDurationMs: pause.ms(),
       wasTimely: true,
       category: emotional ? 'empathy' : 'acknowledgment',
       userEmotion: state.currentEmotion?.primary,
@@ -261,6 +283,13 @@ export function initializeLiveBackchanneling<T>(
       sampleRate: frame.sampleRate,
       channels: frame.channels,
     });
+    if (clock) {
+      const levels = breathDetector.getBreathPauseStats();
+      clock.push(frame, {
+        silence: levels.adaptiveSilenceThreshold,
+        speech: levels.adaptiveSpeechThreshold,
+      });
+    }
 
     // Track user speech duration
     if (breathDetector.isUserSpeaking() && !state.userSpeechStartTime) {

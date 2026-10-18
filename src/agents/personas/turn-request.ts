@@ -16,6 +16,7 @@ import {
   phoneOnlyIdentity,
   sessionIsVerifiedOwner,
 } from '../voice-agent-entry/caller-recognition.js';
+import { worldNowNote } from '../shared/world-now.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import { latestUserText } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
@@ -26,10 +27,12 @@ import {
   withTeammateAsk,
 } from '../../tools/handoff/locked-teammates.js';
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
+import { teammateIdentityNote } from './teammate-identity.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
+import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt.js';
 import { repairNoteFor } from './repair-check.js';
@@ -38,19 +41,27 @@ import { listeningNotes, listeningReply } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
+import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
+import {
+  worldFactLinesFor,
+  worldFactsNoteFor,
+} from '../../intelligence/world-model/temporal/in-call-load.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { quirkTurnNote } from './quirk-note.js';
 import { honestFriendNote } from './honest-friend.js';
 import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
-import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
+import { journalAskFor } from './journal-ask.js';
+import { callerTurnsOf, goodbyeNoteOn, happyExitNote } from './happy-exits.js';
+import { noteTurn } from './move-log.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
-import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
+import { callerMove, rngFor, turnShapeEnabled, turnShapeFor, withLiveData } from './turn-shape.js';
+import type { TurnShape } from './turn-shape.js';
 import {
   understandingFor,
   understandingMode,
@@ -111,20 +122,28 @@ export function withTurnReminder(
   const notes = answering
     ? ''
     : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
+  // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
+  const corrected = options.shape !== false ? correctionNotesFor(chatCtx, session) : '';
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
-  // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
-  // It also decides whether a story of his own may ride this reply.
+  // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
-  // The style goes last, nearest the reply: the per-turn shape is followed
-  // best there (turn-shape.ts), and live it otherwise sat behind the notes.
+  const style = turnStyleReminderEnabled()
+    ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
+    : undefined;
+  noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
+  // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
+    // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
+    teammateIdentityNote(view.currentAgentId),
+    worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     // "Naya" in the transcript is Nayan (teammate-names.ts)
     heardTeammateNote(words),
     notes,
+    corrected,
     options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
@@ -132,6 +151,8 @@ export function withTurnReminder(
     // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
     quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
     state.note,
+    // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
+    porchLightNote(chatCtx, session, { careful: options.shape === false }),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
       said: words,
@@ -150,9 +171,8 @@ export function withTurnReminder(
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
-    turnStyleReminderEnabled()
-      ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
-      : '',
+    // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
+    ...withLiveData(style?.text ?? '', callerTurnsOf(chatCtx)),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
@@ -160,19 +180,25 @@ export function withTurnReminder(
     // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
     // self-share so "no stories of your own" wins for a tired caller. No length (TURN_LENGTH's).
     attunementNote(chatCtx, session, { careful: options.shape === false }),
-    // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
-    // Last, so on its one turn the invite wins over the self-share.
+    // COMMITMENT_INVITE=on: one small step, once a call; after the self-share, so it wins.
     inviteFor(chatCtx, session, words, options.shape === false),
-    // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
-    // for this reply, last but the repair check; never with crisis guidance.
+    // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
     options.shape !== false && !answering ? repairNoteFor(chatCtx, session) : '',
   ].filter(Boolean);
+  // WORLD_FACTS_IN_CALL=on: where their life stands (in-call-load.ts); nothing when off.
+  const caller = callerOf(session);
+  const lifeAt = {
+    now: Date.now(),
+    timeZone: caller?.callerTimezone,
+    userName: caller?.userName,
+    words,
+  };
   const reminder = contextPacketEnabled()
-    ? packetReminder(session, words, turnNotes)
-    : turnNotes.join(' ');
+    ? packetReminder(session, words, turnNotes, worldFactLinesFor(caller, lifeAt))
+    : [worldFactsNoteFor(caller, lifeAt), ...turnNotes].filter(Boolean).join(' ');
   // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
   noteReminder(session, {
     reminder,
@@ -193,6 +219,14 @@ function closeLoopNote(session: object, words: string): string {
   return wrapUp.noteFor(words, understandingFor(session, words)?.wantsToEnd === true);
 }
 
+interface CallerData {
+  personaId?: string;
+  userName?: string;
+  callerTimezone?: string;
+}
+const callerOf = (session: object): CallerData | undefined =>
+  (session as { userData?: unknown }).userData as CallerData | undefined;
+
 /**
  * DELIBERATION=on: a thought from the background deliberator, if one is ready
  * (deliberation.ts). Never while they are venting or hurting, or while support
@@ -208,9 +242,9 @@ function thoughtFor(session: object, said: string): string {
   return deliberator.noteFor(said, held);
 }
 
-/** HAPPY_EXITS=on: the goodbye note when they are wrapping up (happy-exits.ts). */
+/** HAPPY_EXITS or SHORT_GOODBYE: the goodbye note when they are wrapping up (happy-exits.ts). */
 function exitFor(chatCtx: llm.ChatContext, session: object, said: string): string {
-  if (!happyExitsEnabled() || !said) return '';
+  if (!goodbyeNoteOn() || !said) return '';
   const { signals } = signalsFor(session, said);
   return happyExitNote(session, {
     said,
@@ -221,7 +255,7 @@ function exitFor(chatCtx: llm.ChatContext, session: object, said: string): strin
   });
 }
 
-/** COMMITMENT_INVITE=on: the once-a-call invite, or saying back what they named (commitment-invite.ts). */
+/** COMMITMENT_INVITE=on: the once-a-call invite or its say-back; then the journal ask (journal-ask.ts). */
 function inviteFor(
   chatCtx: llm.ChatContext,
   session: object,
@@ -230,20 +264,19 @@ function inviteFor(
 ): string {
   if (!said) return '';
   const { signals } = signalsFor(session, said);
-  return commitmentInviteNote(
-    session,
-    {
-      said,
-      callerTurns: callerTurnsOf(chatCtx),
-      ferniLines: chatCtx.items.flatMap((i) =>
-        i.type === 'message' && i.role === 'assistant' ? [i.textContent ?? ''] : []
-      ),
-      careful: (signals ?? regexSignals(said, callerMove(said))).careful,
-      wantsToEnd: understandingFor(session, said)?.wantsToEnd,
-      firstCall: isFirstCall((session as { userData?: unknown }).userData),
-    },
-    { crisis }
-  );
+  const turn = {
+    said,
+    callerTurns: callerTurnsOf(chatCtx),
+    ferniLines: chatCtx.items.flatMap((i) =>
+      i.type === 'message' && i.role === 'assistant' ? [i.textContent ?? ''] : []
+    ),
+    careful: (signals ?? regexSignals(said, callerMove(said))).careful,
+    wantsToEnd: understandingFor(session, said)?.wantsToEnd,
+    firstCall: isFirstCall((session as { userData?: unknown }).userData),
+  };
+  const invite = commitmentInviteNote(session, turn, { crisis });
+  const ask = journalAskFor(session, turn, { crisis, invite, phoneOnlyIdentity });
+  return [invite, ask].join(' ').trim();
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
@@ -270,11 +303,11 @@ function styleFor(
   shape: boolean,
   ownStory?: boolean,
   answering = false
-): string {
+): { text: string; turn?: TurnShape } {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
-  if (!said) return TURN_STYLE_REMINDER;
+  if (!said) return { text: TURN_STYLE_REMINDER };
   const listening = listeningReply(said, chatCtx, session);
-  if (listening) return listening;
+  if (listening) return { text: listening };
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
@@ -305,7 +338,7 @@ function styleFor(
     },
     'TURN_SHAPE'
   );
-  return burst ? `${turn.reminder} ${burst}` : turn.reminder;
+  return { text: burst ? `${turn.reminder} ${burst}` : turn.reminder, turn };
 }
 
 /**

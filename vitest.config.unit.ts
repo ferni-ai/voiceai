@@ -20,6 +20,11 @@ export default defineConfig({
       // services, so they run here rather than in the integration config.
       'scripts/**/__tests__/**/*.test.{ts,mjs}',
       'scripts/**/*.test.mjs',
+      // The voice-eval judge's own tests (scoring, statistics, phone eval). Pure, no
+      // network. They live in src/tests, which is otherwise excluded below, and the
+      // integration job is skipped for a PR that touches only scripts/voice-eval, so
+      // they used to run for none of the changes they guard.
+      'src/tests/voice-eval/**/*.test.ts',
       // Design-system build helpers (node:assert, no browser). design-system/tests is
       // Playwright and stays out (see #1375).
       'design-system/*.test.js',
@@ -38,19 +43,19 @@ export default defineConfig({
       'apps/web/**',
       'apps/cli/**',
       'e2e/**',
-      // Exclude integration tests (by naming convention)
+      // *.integration.test.ts runs in vitest.config.integration.ts. Broader name
+      // patterns ('*integration*', '*-integration', 'integration/**', '*.e2e.test.ts')
+      // used to sit here too, and 40 mocked tests matched them and ran nowhere.
       '**/*.integration.test.ts',
-      '**/*.e2e.test.ts',
-      '**/*-integration.test.ts',
-      '**/*integration*.test.ts',
-      '**/integration/**',
+      // src/api/__tests__/e2e needs the Firestore emulator (and skips without it).
       '**/e2e/**',
       // No name-based Firestore exclusion: '*firebase*' and '*firestore*' also matched
       // mocked unit tests and the firebase-admin guard, which then never ran in CI.
       // Tests that need the emulator are named *.emulator.test.ts and skip without
       // FIRESTORE_EMULATOR_HOST.
-      // Exclude src/tests directory (mixed unit/integration)
-      'src/tests/**',
+      // Exclude src/tests directory (mixed unit/integration), except voice-eval (above)
+      'src/tests/*.test.ts',
+      'src/tests/!(voice-eval)/**',
     ],
     testTimeout: 20000, // Reasonable timeout for unit tests with mocking
     hookTimeout: 20000,

@@ -168,6 +168,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
     await attachCallWrapUp(agentSetup.agent, {
       sessionId,
       room: context.room,
+      session: agentSetup.session,
       participant: context.userParticipant,
       onBehalf: outboundPartiesFor(sessionId) !== undefined,
     }).catch((error: unknown) =>

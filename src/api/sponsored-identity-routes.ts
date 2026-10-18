@@ -23,6 +23,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { PhoneInUseError } from '../services/identity/phone-in-use-error.js';
 import { requireAuth } from './auth-middleware.js';
 import { handleCallConsentRoute } from './family-call-consent-routes.js';
+import { handleCheckinScheduleRoute } from './family-checkin-schedule-routes.js';
 import {
   createSponsoredIdentity,
   getSponsoredIdentity,
@@ -180,6 +181,7 @@ export async function handleSponsoredIdentityRoutes(
     }
 
     if (await handleCallConsentRoute(req, res, route, userId, sendJSON)) return true;
+    if (await handleCheckinScheduleRoute(req, res, route, userId, sendJSON)) return true;
 
     // Routes with :id parameter
     const idMatch = route.match(/^\/([^/]+)$/);

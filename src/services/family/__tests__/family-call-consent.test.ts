@@ -70,6 +70,20 @@ describe('a family check-in call with FAMILY_CHECKIN_CALLS on', () => {
     expect(await familyCallBlockReason(schedule, mom, store)).toBeNull();
   });
 
+  it('does not ring a family outside FAMILY_CHECKIN_SPONSORS', async () => {
+    vi.stubEnv('FAMILY_CHECKIN_SPONSORS', 'someone-else, another');
+    await store.record('mom-id', 'sponsor_confirmed', now);
+    expect(await familyCallBlockReason(schedule, mom, store)).toBe(
+      'Sponsor not in FAMILY_CHECKIN_SPONSORS'
+    );
+  });
+
+  it('rings a family whose sponsor is on FAMILY_CHECKIN_SPONSORS', async () => {
+    vi.stubEnv('FAMILY_CHECKIN_SPONSORS', 'someone-else, seth');
+    await store.record('mom-id', 'sponsor_confirmed', now);
+    expect(await familyCallBlockReason(schedule, mom, store)).toBeNull();
+  });
+
   it('rings again when she says yes after saying stop', async () => {
     await store.record('mom-id', 'own_call', now);
     await store.withdraw('mom-id', now);
@@ -100,6 +114,49 @@ describe('a family check-in call with FAMILY_CHECKIN_CALLS on', () => {
     expect(await familyCallBlockReason(schedule, { ...mom, sponsorUserId: 'other' }, store)).toBe(
       'Sponsor mismatch'
     );
+  });
+});
+
+describe('the do-not-call list in the gate', () => {
+  const dialed = { ...schedule, phoneNumber: '+12125550100' };
+  const listed = vi.fn(async (phone: string) => phone === '+12125550100');
+  const withList = { ...store, isNumberOptedOut: listed };
+  beforeEach(async () => {
+    vi.stubEnv('FAMILY_CHECKIN_CALLS', 'on');
+    await store.record('mom-id', 'sponsor_confirmed', now);
+  });
+
+  it('with FAMILY_CHECKIN_STOP on, refuses a number on the list even with consent', async () => {
+    vi.stubEnv('FAMILY_CHECKIN_STOP', 'on');
+    expect(await familyCallBlockReason(dialed, mom, withList)).toBe(
+      'Number is on the do-not-call list'
+    );
+    expect(listed).toHaveBeenCalledWith('+12125550100');
+  });
+
+  it('with FAMILY_CHECKIN_STOP on, rings a number not on the list', async () => {
+    vi.stubEnv('FAMILY_CHECKIN_STOP', 'on');
+    const other = { ...dialed, phoneNumber: '+12125550199' };
+    expect(await familyCallBlockReason(other, mom, withList)).toBeNull();
+  });
+
+  it('with FAMILY_CHECKIN_STOP on, no list wired or a failed read means no call', async () => {
+    vi.stubEnv('FAMILY_CHECKIN_STOP', 'on');
+    expect(await familyCallBlockReason(dialed, mom, store)).toBe(
+      'Number is on the do-not-call list'
+    );
+    const broken = {
+      ...store,
+      isNumberOptedOut: vi.fn(async () => Promise.reject(new Error('x'))),
+    };
+    expect(await familyCallBlockReason(dialed, mom, broken)).toBe(
+      'Number is on the do-not-call list'
+    );
+  });
+
+  it('with FAMILY_CHECKIN_STOP off, the list is not consulted', async () => {
+    expect(await familyCallBlockReason(dialed, mom, withList)).toBeNull();
+    expect(listed).not.toHaveBeenCalled();
   });
 });
 

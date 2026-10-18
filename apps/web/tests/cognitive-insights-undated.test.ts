@@ -28,7 +28,8 @@ describe('cognitive insights: undated memories', () => {
     expect(items).toHaveLength(2);
     expect(items[0].textContent).toContain('likes tea');
     expect(items[0].textContent).not.toMatch(/invalid/i);
-    expect(items[0].querySelectorAll('.cognitive-insights__memory-meta span')).toHaveLength(1);
-    expect(items[1].querySelectorAll('.cognitive-insights__memory-meta span')).toHaveLength(2);
+    // Only the date is shown (no "% sure"), and only when there is one
+    expect(items[0].querySelectorAll('.cognitive-insights__memory-meta span')).toHaveLength(0);
+    expect(items[1].querySelectorAll('.cognitive-insights__memory-meta span')).toHaveLength(1);
   });
 });

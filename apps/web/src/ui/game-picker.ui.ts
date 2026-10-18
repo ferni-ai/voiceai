@@ -273,16 +273,12 @@ class GamePickerUI {
       ? `<span class="game-card__badge game-card__badge--spotify">Spotify</span>`
       : '';
 
-    const isNewReflectionGame = game.category === 'reflection';
-    const newBadge = (game.id === 'finish-the-lyric' || game.id === 'decade-challenge' || isNewReflectionGame)
-      ? `<span class="game-card__badge game-card__badge--new">${t('common.new')}</span>`
-      : '';
 
     return `
       <button aria-label="${gameName.replace(/"/g, '&quot;')}" class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
         <div class="game-card__icon">${game.icon}</div>
         <div class="game-card__info">
-          <h3 class="game-card__name">${gameName}${newBadge}${spotifyBadge}</h3>
+          <h3 class="game-card__name">${gameName}${spotifyBadge}</h3>
           <p class="game-card__description">${gameDesc}</p>
           <div class="game-card__meta">
             <span class="game-card__difficulty" style="color: ${difficultyColors[game.difficulty]}">
@@ -911,11 +907,6 @@ class GamePickerUI {
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-      }
-      
-      .game-card__badge--new {
-        background: var(--color-semantic-warning-glow, rgba(166, 124, 53, 0.18));
-        color: var(--color-semantic-warning-text);
       }
       
       .game-card__badge--spotify {

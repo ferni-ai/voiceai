@@ -9,8 +9,9 @@
  * - Gemini specifically benefits from explicit capability declarations early in context
  * - Dynamic tool hints only trigger on detection; this provides always-on awareness
  *
- * This runs on EVERY turn with high priority to ensure the LLM always knows
- * it can play music, search the web, check weather, etc.
+ * It lists only tools named in userData.availableToolNames, never a fixed set.
+ * Not on the live voice path as of 2026-10-17: buildConversationContext, the
+ * only runner of registered builders, has no caller outside tests.
  *
  * @module intelligence/context-builders/tool-capabilities
  */
@@ -86,12 +87,7 @@ const CORE_CAPABILITIES: CapabilityDef[] = [
     id: 'memory',
     emoji: '🧠',
     name: 'MEMORY',
-    toolNames: [
-      'rememberAboutMe',
-      'whatDoYouKnowAboutMe',
-      'getRecentConversations',
-      'getUserContext',
-    ],
+    toolNames: ['rememberAboutUser', 'recallFromMemory', 'recallPreviousConversation'],
     description: 'Remember and recall information about the user.',
     whenToUse:
       'TRIGGERS: User shares important personal info (name, family, job, goals), "what do you remember about me", "do you know my [X]".',
@@ -235,36 +231,15 @@ export const toolCapabilitiesBuilder: ContextBuilder = {
       return [];
     }
 
-    // Get available tools from the persona's manifest
-    // We need to infer from the persona config what tools are available
     const personaId = persona?.identity?.id || 'unknown';
 
-    // Build a set of likely available tools based on persona domains
-    // In reality, this should come from the actual loaded tools, but we approximate here
-    const availableTools = new Set<string>();
-
-    // All agents have these core tools
-    availableTools.add('playMusic');
-    availableTools.add('musicControl');
-    availableTools.add('musicInfo');
-    availableTools.add('getWeather');
-    availableTools.add('searchWeb');
-    availableTools.add('getNews');
-    availableTools.add('rememberAboutMe');
-    availableTools.add('whatDoYouKnowAboutMe');
-
-    // Coordinator persona has team handoffs and cameos
-    if (isCoach(personaId)) {
-      availableTools.add('handoffToMaya');
-      availableTools.add('handoffToAlex');
-      availableTools.add('handoffToPeter');
-      availableTools.add('handoffToJordan');
-      availableTools.add('handoffToNayan');
-      availableTools.add('startGame');
-      // Cameo tools for quick team pop-ins
-      availableTools.add('inviteCameo');
-      availableTools.add('checkCameoOpportunity');
-    }
+    // Only the tools this agent really has this turn. This used to be a fixed
+    // list that told every agent it had getWeather, searchWeb and getNews (and
+    // two tools that don't exist), whatever it had been given: a teammate with
+    // no weather tool then "checked" the weather and made it up (prod,
+    // 2026-10-17). With no tool list in the input, it says nothing.
+    const availableTools = new Set(userData?.availableToolNames ?? []);
+    if (availableTools.size === 0) return [];
 
     const capabilitiesSection = buildCapabilitiesSection(availableTools, personaId);
 

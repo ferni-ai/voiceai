@@ -37,7 +37,7 @@ import { makeConversationalCall } from '../../../../services/outreach/conversati
 import type { OutboundCallContext } from '../../../../services/outreach/conversational-calls.js';
 
 // Delivery services
-import { sendSMS } from '../../../../services/outreach/delivery/sms-delivery.js';
+import { onBehalfNotSent, textOnBehalf } from '../../../../services/outreach/guarded-text.js';
 import { sendEmail } from '../../../../services/outreach/delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 
@@ -467,15 +467,15 @@ async function executeOutreach(
         };
       }
 
-      const result = await sendSMS({
-        to: contact.phone,
+      const result = await textOnBehalf({
+        senderUserId: userId,
+        toPhone: contact.phone,
         body: message,
+        refId: outreachId,
         personaId,
-        userId,
-        outreachId,
       });
 
-      if (result.success) {
+      if (result.sent) {
         await recordInteraction(userId, {
           contactId: contact.id,
           userId,
@@ -503,7 +503,7 @@ async function executeOutreach(
         channel,
         message,
         contactName: contact.name,
-        error: result.error || 'Text failed. Want me to try email?',
+        error: onBehalfNotSent(contact.name, result.reason),
       };
     }
 

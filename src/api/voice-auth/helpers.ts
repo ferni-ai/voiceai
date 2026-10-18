@@ -14,6 +14,7 @@ import { logLivenessFail, logSpoofDetected } from '../../services/voice/voice-au
 import { checkLiveness } from '../../services/voice/voice-liveness.js';
 import { checkRateLimit } from '../../services/voice/voice-rate-limit.js';
 import { getRedisCache } from '../../memory/redis-cache.js';
+import { BodyTooLargeError } from '../bounded-body.js';
 import { parseBody as parseBodyHelper } from '../helpers.js';
 import { getClientIp } from '../../utils/client-ip.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -190,12 +191,23 @@ export const continuousAuthenticators = {
 // ============================================================================
 
 /**
- * Parse JSON body from request.
+ * Enrollment and verification post raw 16 kHz samples as JSON numbers, about
+ * 1 MB for the 3 s the web records, so the 1 MB default would refuse some real
+ * samples. 4 MB holds about 12 s.
+ */
+export const VOICE_AUTH_MAX_BODY_BYTES = 4 * 1024 * 1024;
+
+/**
+ * Parse JSON body from request ({} when unreadable). A body over the cap has
+ * already been answered 413, so that error is rethrown rather than read as {}.
  */
 export async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   try {
-    return await parseBodyHelper<Record<string, unknown>>(req);
-  } catch {
+    return await parseBodyHelper<Record<string, unknown>>(req, {
+      maxBytes: VOICE_AUTH_MAX_BODY_BYTES,
+    });
+  } catch (error) {
+    if (error instanceof BodyTooLargeError) throw error;
     return {};
   }
 }

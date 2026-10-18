@@ -7,6 +7,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { flagOn } from '../../config/env-flag.js';
+import { base64JsonBodyBytes } from '../bounded-body.js';
 import { parseBody } from '../helpers.js';
 import {
   getCustomAgent,
@@ -16,6 +17,7 @@ import {
   processVoiceUpload,
   createVoiceClone as createCartesiaVoiceClone,
   generateVoicePreview,
+  MAX_FILE_SIZE_BYTES,
 } from '../../services/custom-agent/voice-clone-service.js';
 import type { CustomAgentVoice } from '../../types/custom-agent-api.js';
 import type { VoiceUploadBody, VoiceCloneBody } from './types.js';
@@ -46,7 +48,10 @@ export async function handleVoiceUpload(
   agentId: string
 ): Promise<boolean> {
   if (refusedVoiceClone(res, 'upload')) return true;
-  const body = await parseBody<VoiceUploadBody>(req);
+  // base64 audio up to the voice clone service's own file cap.
+  const body = await parseBody<VoiceUploadBody>(req, {
+    maxBytes: base64JsonBodyBytes(MAX_FILE_SIZE_BYTES),
+  });
 
   if (!body.audio) {
     sendJson(res, 400, { error: 'Audio data is required' });

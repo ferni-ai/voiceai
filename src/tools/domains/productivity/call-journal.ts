@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { flagOn } from '../../../config/env-flag.js';
 import { getJournalService } from '../../../services/journal/index.js';
 import { sanitizePlainText } from '../../validation.js';
+import { OWN_NOTE_REFUSAL, refuseOwnNote } from '../../utils/own-note.js';
 import { getLogger, getSessionId } from '../../utils/tool-helpers.js';
 import type { createNotesTools } from './notes.js';
 
@@ -43,6 +44,23 @@ const NO_CALLER =
 const FAILED =
   "Not saved: the journal couldn't be reached. Tell them plainly it didn't save this time; never say it was saved.";
 
+/** Calls (by session id) that saved a journal entry; capped, oldest dropped first. */
+const savedInCall = new Set<string>();
+const MAX_TRACKED_CALLS = 1000;
+
+/** Whether this call already saved something to the journal (journal-ask.ts asks only once). */
+export function journalSavedInCall(sessionId: string | undefined): boolean {
+  return sessionId !== undefined && savedInCall.has(sessionId);
+}
+
+function noteSaved(sessionId: string | undefined): void {
+  if (!sessionId) return;
+  savedInCall.add(sessionId);
+  if (savedInCall.size > MAX_TRACKED_CALLS) {
+    savedInCall.delete(savedInCall.values().next().value as string);
+  }
+}
+
 export function callJournalOn(): boolean {
   return flagOn('CALL_JOURNAL') && flagOn('JOURNAL_ONE_STORE');
 }
@@ -61,17 +79,20 @@ export async function saveCallJournalEntry(
   text: string,
   momentType: 'journal' | 'reflection' | 'gratitude'
 ): Promise<string> {
+  if (refuseOwnNote(text)) return OWN_NOTE_REFUSAL;
   const uid = callerUid(opts);
   if (!uid) return NO_CALLER;
   const content = sanitizePlainText(text, MAX_ENTRY_CHARS).trim();
   if (!content) return 'Nothing saved: the entry was empty. Ask what they want to keep.';
   try {
+    const sessionId = getSessionId(opts);
     await getJournalService().createEntry(uid, {
       content,
       source: 'call',
       momentType,
-      conversationId: getSessionId(opts),
+      conversationId: sessionId,
     });
+    noteSaved(sessionId);
     getLogger().info({ momentType, length: content.length }, 'Call journal entry saved');
     return SAVED;
   } catch (error) {

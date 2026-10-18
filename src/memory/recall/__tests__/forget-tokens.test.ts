@@ -81,7 +81,7 @@ describe('topics stored by the earlier tokenizer still hide what they hid', () =
     ['babie', 'They want a baby'],
     ['divorce', 'She is divorcing him'],
     ['sister wedding', "My sister's wedding is in May"],
-    ['4353397687', 'His number is 435-339-7687'],
+    ['4355550188', 'His number is 435-555-0188'],
     ['ex', 'Ran into my ex at the store'],
   ])('stored "%s" hides "%s"', (stored, memory) => {
     expect(isForgotten(memory, [stored])).toBe(true);
