@@ -16,12 +16,8 @@ import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity
 import { createLogger } from '../../../utils/safe-logger.js';
 import { sealTokens } from '../../../utils/token-at-rest.js';
 import { openSmartHomeCredentials } from '../../../services/smart-home/user-credentials.js';
-import {
-  assertNoEncryptedValues,
-  hueSaveInput,
-  isSafeBridgeIp,
-  lifxSaveInput,
-} from './smart-home-guards.js';
+import { assertNoEncryptedValues, hueSaveInput, lifxSaveInput } from './smart-home-guards.js';
+import { HUE_NEEDS_REMOTE_ACCESS } from '../../../services/smart-home/hue-remote-access.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
 import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
@@ -164,36 +160,16 @@ async function handleHueStatus(
   try {
     const credentials = await getCredentials<HueCredentials>(userId, 'hue');
 
-    if (!credentials?.username || !isSafeBridgeIp(credentials.bridgeIp)) {
+    // No server-side call to the bridge: it is on the home LAN (see hue-remote-access).
+    if (!credentials?.username) {
       sendJson(res, 200, { connected: false });
       return;
     }
-
-    // Try to get lights
-    const response = await fetch(
-      `http://${credentials.bridgeIp}/api/${credentials.username}/lights`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-
-    if (!response.ok) {
-      sendJson(res, 200, { connected: false, error: 'Bridge not reachable' });
-      return;
-    }
-
-    const lights = (await response.json()) as Record<
-      string,
-      { name: string; state: { on: boolean } }
-    >;
-    const lightList = Object.entries(lights).map(([_id, light]) => ({
-      name: light.name,
-      on: light.state.on,
-    }));
-
     sendJson(res, 200, {
-      connected: true,
-      bridgeIp: credentials.bridgeIp,
-      lightCount: lightList.length,
-      lights: lightList.slice(0, 5),
+      connected: false,
+      saved: true,
+      needsRemoteAccess: true,
+      message: HUE_NEEDS_REMOTE_ACCESS,
     });
   } catch (error) {
     log.error({ error, userId }, 'Hue status check failed');
@@ -487,7 +463,7 @@ async function handleSonosStatus(
 
     if (data.households.length > 0) {
       const groupsRes = await fetch(
-        `https://api.ws.sonos.com/control/api/v1/households/${data.households[0].id}/groups`,
+        `https://api.ws.sonos.com/control/api/v1/households/${encodeURIComponent(data.households[0].id)}/groups`,
         {
           headers: { Authorization: `Bearer ${credentials.accessToken}` },
           signal: AbortSignal.timeout(10000),
