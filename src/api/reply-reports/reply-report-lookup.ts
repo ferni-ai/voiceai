@@ -1,17 +1,9 @@
 /**
- * Find the reply a person reported, in the server's own transcript.
- *
- * The voice agent stores every turn of a call as it happens
- * (services/memory/realtime-memory.ts persistTurn):
- *   bogle_users/{uid}/conversations/{conv_…}            { startedAt, personaId, … }
- *   bogle_users/{uid}/conversations/{conv_…}/turns/{id} { role, content, timestamp }
- * A report stores the text found here, never text the client sent, so a report
- * can't put words in Ferni's mouth. Every read is under the verified caller's
- * own uid, so one person can't pull another's transcript into a report.
- *
- * The web client has no turn ids (it sees spoken segments, not stored turns),
- * so most reports name a time: the reply is the assistant turn nearest that
- * time, preferring one whose words match the on-screen text.
+ * Find a reported reply in the caller's own transcript, as realtime-memory
+ * persistTurn writes it (bogle_users/{uid}/conversations/{id}/turns/{turnId}:
+ * { role, content, timestamp }). Reports store this text, never the client's.
+ * The web client has no turn ids, so most reports name a time: the reply is the
+ * assistant turn nearest it, preferring one matching the on-screen words.
  *
  * @module api/reply-reports/reply-report-lookup
  */

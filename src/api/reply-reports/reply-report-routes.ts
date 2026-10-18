@@ -1,18 +1,10 @@
 /**
- * POST /api/reports: someone reports one of Ferni's replies from inside the app.
- *
- * Google Play's AI-generated content policy and Apple's guideline 1.2 both ask
- * for an in-app way to flag what the assistant said. The web app (and the
- * Android TWA around it) and the native iPhone app all call this endpoint; the
- * request contract is the schema in reply-report-input.ts.
- *
- * - Any verified Firebase user may report, anonymous accounts included (they
- *   are the ones on a call without signing in).
- * - The stored text is the reply and the person's turn before it, copied from
- *   the server's transcript (reply-report-lookup.ts). Client text is never stored.
- * - Reports go to `reply_reports`, which only admins can read (firestore.rules).
- * - Logs carry ids, the reason and whether the reply was found; never any text.
- * - Limits: 5 a minute per person on this instance, 20 a day across all of them.
+ * POST /api/reports: report one of Ferni's replies from inside the app (Google
+ * Play AI-generated content policy, Apple guideline 1.2). Called by the web app,
+ * the Android TWA and the iPhone app. Any verified Firebase user, anonymous
+ * included. Stored text comes from the server transcript only; reports go to
+ * admin-only `reply_reports`; logs never carry text. Limits: 5/min per person
+ * per instance, 20/day per person across instances.
  *
  * @module api/reply-reports/reply-report-routes
  */
