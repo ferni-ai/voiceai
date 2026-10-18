@@ -22,7 +22,7 @@ export type RequestedBy = 'user' | 'ferni';
 export const REASON_CODES = [
   ...['ok', 'requested-time', 'no-verified-phone', 'needs-consent', 'no-anchor', 'bad-channel'],
   ...['opted-out', 'sms-off', 'crisis-quiet', 'quiet-hours', 'outside-window', 'no-timezone'],
-  ...['over-budget', 'duplicate', 'recently-sent'],
+  ...['over-budget', 'duplicate', 'recently-sent', 'transactional-rate'],
 ] as const;
 export type ReasonCode = (typeof REASON_CODES)[number];
 
@@ -43,6 +43,8 @@ export interface Intent {
   readonly text?: string;
   /** The keyed hash the ledger stores for this body (the sender hashes; the policy compares). */
   readonly bodyHash?: string;
+  /** A code to the number the user is verifying in this same request (not yet verified). */
+  readonly verifyingNumber?: boolean;
   /** Set when re-deciding a message this policy held, so its own hold isn't a duplicate. */
   readonly redecide?: boolean;
 }
@@ -77,7 +79,7 @@ export interface PolicyCtx {
   };
   readonly crisis: { readonly lastCrisisAt?: Date };
   readonly ledger: readonly LedgerEntry[]; // the person's last 7 days
-  /** The owner's verified number (never one the model passed); for a code, the one being verified. */
+  /** The owner's verified number (never one the model passed). */
   readonly verifiedRecipient: boolean;
   readonly lastInboundAt?: Date; // their last text to us
   readonly isFirstContact: boolean;

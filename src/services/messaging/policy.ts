@@ -4,7 +4,7 @@
  * quiet-hour rules and no cross-kind cap decide that per sender.
  *
  * Gates in order, the first that objects decides (GATES): recipient, consent,
- * texts off, crisis quiet, quiet hours, dedupe, per-kind gap, daily budget,
+ * texts off, crisis quiet, quiet hours, dedupe, per-kind gap, code rate, budget,
  * then send. DESIGN lists the budget before dedupe; it runs last so a
  * duplicate is dropped, not merged into the digest.
  *
@@ -38,6 +38,8 @@ export const SMS_DAILY_BUDGET = 3;
 export const APP_DAILY_BUDGET = 6;
 export const SAME_BODY_MS = 12 * HOUR_MS;
 export const LIVE_REPLY_MS = 30 * MIN_MS; // a reply this soon after their text: they're awake
+/** Codes skip the daily budget but have their own limits per number (no SMS pumping). */
+export const CODE_LIMITS = { perHour: 5, perDay: 10, gapMs: 30_000 } as const;
 const FALLBACK_ZONES = ['America/New_York', 'America/Los_Angeles']; // no zone: either coast
 
 /**
@@ -75,6 +77,11 @@ const byPhone = (c: Channel): c is 'sms' | 'call' => c === 'sms' || c === 'call'
 /** The owner chose the time ("remind me at 6:30"), so it goes when they said. */
 const ownerTimed = (i: Intent): boolean =>
   i.recipient === 'owner' && i.requestedBy === 'user' && i.requestedAt !== undefined;
+/** A code or confirmation the user asked for, to them or to the number they are verifying. */
+const userCode = (i: Intent): boolean =>
+  i.kind === 'transactional' &&
+  i.requestedBy === 'user' &&
+  (i.recipient === 'owner' || i.verifyingNumber === true);
 const liveReply = (i: Intent, { now, lastInboundAt: at }: PolicyCtx): boolean =>
   i.kind === 'reply' && at !== undefined && now.getTime() - at.getTime() < LIVE_REPLY_MS;
 const recent = (e: LedgerEntry, ctx: PolicyCtx, ms: number): boolean =>
@@ -124,7 +131,9 @@ function nextWindow(now: Date, zone: string, windows: readonly LocalWindow[]): D
 /** 1. Only a verified owner number; a third party only by phone and about something real. */
 function recipientGate(i: Intent, ctx: PolicyCtx): Decision | null {
   if (i.recipient === 'owner') {
-    if (byPhone(i.channel) && !ctx.verifiedRecipient) return drop('no-verified-phone');
+    const verifying = userCode(i) && i.verifyingNumber === true;
+    if (byPhone(i.channel) && !ctx.verifiedRecipient && !verifying)
+      return drop('no-verified-phone');
   } else if (!byPhone(i.channel)) return drop('bad-channel');
   const grounded = i.anchor !== undefined && i.anchor.trim() !== '';
   return !grounded && (i.recipient === 'third-party' || isProactive(i)) ? drop('no-anchor') : null;
@@ -155,7 +164,7 @@ function crisisGate(i: Intent, ctx: PolicyCtx): Decision | null {
  * chose, a code or confirmation, a live reply; in-app notes wait for them to look.
  */
 function timeGate(i: Intent, ctx: PolicyCtx): Decision | null {
-  if (i.channel === 'in_app' || ownerTimed(i) || i.kind === 'transactional') return null;
+  if (i.channel === 'in_app' || ownerTimed(i) || userCode(i)) return null;
   if (liveReply(i, ctx)) return null;
   const known = isValidTimeZone(ctx.zone);
   if (!known && isProactive(i)) return hold('no-timezone');
@@ -191,7 +200,7 @@ function digestKey(ctx: PolicyCtx): string {
 }
 
 /**
- * 8. The daily budget, rolling 24 h. A sent message can't be taken back, so a
+ * 9. The daily budget, rolling 24 h. A sent message can't be taken back, so a
  * spent budget merges or drops. Slots still open but claimed by held messages
  * go to this one only if it outranks one of them (that one re-decides later
  * and finds the budget spent). The user's requests, replies and codes don't count.
@@ -238,7 +247,19 @@ function gapGate(i: Intent, ctx: PolicyCtx): Decision | null {
   return gap > 0 && close ? drop('recently-sent') : null;
 }
 
-/** 9. Send. A third party's first text from Ferni says who is writing and for whom. */
+/** 8. Codes, asked for or not: per number, 30 s apart, 5 an hour, 10 a day (sent or failed). */
+function codeRateGate(i: Intent, ctx: PolicyCtx): Decision | null {
+  if (i.kind !== 'transactional') return null;
+  const tries = ctx.ledger.filter(
+    (e) => e.kind === 'transactional' && (e.status === 'sent' || e.status === 'failed')
+  );
+  const within = (ms: number): number => tries.filter((e) => recent(e, ctx, ms)).length;
+  const { perHour, perDay, gapMs } = CODE_LIMITS;
+  const over = within(gapMs) > 0 || within(HOUR_MS) >= perHour || within(DAY_MS) >= perDay;
+  return over ? drop('transactional-rate') : null;
+}
+
+/** 10. Send. A third party's first text from Ferni says who is writing and for whom. */
 function sendDecision(i: Intent, ctx: PolicyCtx): Decision {
   const inQuiet = ownerTimed(i) && quietUntil(ctx.now, zonesOf(ctx)) !== null;
   return {
@@ -258,6 +279,7 @@ export const GATES: ReadonlyArray<readonly [string, Gate]> = [
   ['quiet-hours', timeGate],
   ['dedupe', dedupeGate],
   ['gap', gapGate],
+  ['code-rate', codeRateGate],
   ['budget', budgetGate],
 ];
 

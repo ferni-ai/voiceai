@@ -240,6 +240,24 @@ const crisis: Row[] = [
 
 const quietHours: Row[] = [
   {
+    name: 'a code to the number being verified at 02:00 goes',
+    i: { kind: 'transactional', requestedBy: 'user', anchor: undefined, verifyingNumber: true },
+    c: { now: at('2026-10-14T02:00'), verifiedRecipient: false },
+    want: SEND,
+  },
+  {
+    name: 'a code Ferni sends unasked at 02:00 waits for 08:00',
+    i: { kind: 'transactional', anchor: undefined },
+    c: { now: at('2026-10-14T02:00') },
+    want: quietUntil(at('2026-10-14T08:00')),
+  },
+  {
+    name: 'a code to a third party not being verified waits for 08:00',
+    i: { kind: 'transactional', requestedBy: 'user', recipient: 'third-party', anchor: 'req:1' },
+    c: { now: at('2026-10-14T02:00') },
+    want: quietUntil(at('2026-10-14T08:00')),
+  },
+  {
     name: 'a reply at 23:15, 5 min after their text, goes (they are awake and talking)',
     i: { kind: 'reply', anchor: undefined },
     c: { now: at('2026-10-14T23:15'), lastInboundAt: at('2026-10-14T23:10') },
@@ -578,6 +596,72 @@ const gap: Row[] = [
   },
 ];
 
+const CODE = { kind: 'transactional', requestedBy: 'user', anchor: undefined } as const;
+/** Codes sent `minutesAgo` before `from` (noon by default). */
+const codes = (minutesAgo: number[], o: Partial<LedgerEntry> = {}, from = NOON): LedgerEntry[] =>
+  minutesAgo.map((m) => ({
+    ...row(0, { kind: 'transactional', requestedBy: 'user', ...o }),
+    at: new Date(from.getTime() - m * 60_000),
+  }));
+const RATE = { action: 'drop', reason: 'transactional-rate' } as const;
+const codeRate: Row[] = [
+  {
+    name: 'codes: the 11th in 24 h is dropped',
+    i: CODE,
+    c: { ledger: codes([120, 240, 360, 480, 600, 720, 840, 960, 1080, 1200]) },
+    want: RATE,
+  },
+  {
+    name: 'codes: the 10th in 24 h goes',
+    i: CODE,
+    c: { ledger: codes([120, 240, 360, 480, 600, 720, 840, 960, 1080]) },
+    want: SEND,
+  },
+  {
+    name: 'codes: a code 25 h ago no longer counts',
+    i: CODE,
+    c: { ledger: codes([120, 240, 360, 480, 600, 720, 840, 960, 1080, 1500]) },
+    want: SEND,
+  },
+  {
+    name: 'codes: the 6th in an hour is dropped',
+    i: CODE,
+    c: { ledger: codes([5, 15, 25, 35, 45]) },
+    want: RATE,
+  },
+  {
+    name: 'codes: the 5th in an hour goes',
+    i: CODE,
+    c: { ledger: codes([5, 15, 25, 35]) },
+    want: SEND,
+  },
+  {
+    name: 'codes: failed sends count too',
+    i: CODE,
+    c: { ledger: codes([5, 15, 25, 35, 45], { status: 'failed' }) },
+    want: RATE,
+  },
+  {
+    name: 'codes: a 2nd within 30 s is dropped',
+    i: CODE,
+    c: { ledger: codes([20 / 60]) },
+    want: RATE,
+  },
+  { name: 'codes: 31 s after the last goes', i: CODE, c: { ledger: codes([31 / 60]) }, want: SEND },
+  {
+    name: 'codes: the limits hold at 02:00 too',
+    i: { ...CODE, verifyingNumber: true },
+    c: { now: at('2026-10-14T02:00'), ledger: codes([20 / 60], {}, at('2026-10-14T02:00')) },
+    want: RATE,
+  },
+  {
+    name: 'codes: unasked codes are limited too',
+    i: { kind: 'transactional', anchor: undefined },
+    c: { ledger: codes([20 / 60]) },
+    want: RATE,
+  },
+];
+
 const firstContact: Row[] = [
   {
     name: 'a third party, first contact: send with the intro',
@@ -606,6 +690,7 @@ describe.each([
   ['daily budget', budget],
   ['dedupe', dedupe],
   ['per-kind gap', gap],
+  ['code rate', codeRate],
   ['first contact', firstContact],
 ] as const)('decide: %s', (_gate, rows) => {
   it.each(rows)('$name', ({ i, c, want }) => {
@@ -626,6 +711,7 @@ describe('decide: the gates', () => {
       'quiet-hours',
       'dedupe',
       'gap',
+      'code-rate',
       'budget',
     ]);
   });
