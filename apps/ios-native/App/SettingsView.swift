@@ -12,6 +12,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 AccountSection(account: model.account)
+                PrivacySection(consent: model.consent)
                 Section("About") {
                     LabeledContent("Version", value: Self.version)
                     Link("Privacy Policy", destination: URL(string: "https://ferni.ai/privacy")!)
@@ -91,6 +92,30 @@ private struct AccountSection: View {
             Button("Sign out", role: .destructive) { Task { await account.signOut() } }
         } message: {
             Text("Ferni will start fresh on this phone until you sign in again.")
+        }
+    }
+}
+
+/// What you agreed to, and taking it back.
+private struct PrivacySection: View {
+    let consent: ConsentStore
+    @State private var confirmingWithdraw = false
+
+    var body: some View {
+        Section("Privacy") {
+            if let agreement = consent.agreement, consent.hasAgreed {
+                LabeledContent("You agreed on", value: agreement.agreedAt.formatted(date: .abbreviated, time: .omitted))
+                Button("Withdraw", role: .destructive) { confirmingWithdraw = true }
+            } else {
+                Text("You haven't agreed to share your conversations yet. Ferni will ask before your next call.")
+                    .foregroundStyle(FerniColor.textSecondary)
+            }
+            Link("How Ferni handles your data", destination: URL(string: "https://ferni.ai/privacy")!)
+        }
+        .confirmationDialog("Withdraw your agreement?", isPresented: $confirmingWithdraw, titleVisibility: .visible) {
+            Button("Withdraw", role: .destructive) { consent.withdraw() }
+        } message: {
+            Text("Ferni won't take calls until you agree again.")
         }
     }
 }
