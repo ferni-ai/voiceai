@@ -110,13 +110,7 @@ export const DEFAULT_RESPONSE_TEMPLATES: Record<
     pauseDurationMs: 800,
   },
   distress: {
-    verbal: [
-      'I hear you.',
-      'That sounds hard.',
-      "I'm with you.",
-      'Tell me more.',
-      "I'm right here.",
-    ],
+    verbal: ['Oof.', 'Yeah.', "I'm with you.", 'Tell me more.', "I'm right here."],
     nonVerbal: {
       expression: 'concern',
       gesture: 'lean-in',
