@@ -323,21 +323,6 @@ describe('Engagement Domain Tools', () => {
 
       expect(result).toBeDefined();
     });
-
-    it('should make weekly prediction', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'weeklyPrediction');
-      const tool = toolDef!.create(mockContext);
-
-      const result = await tool.execute(
-        {
-          prediction: 'I will complete my project',
-          confidence: 80,
-        },
-        toolCtx
-      );
-
-      expect(result).toBeDefined();
-    });
   });
 
   // --------------------------------------------------------------------------

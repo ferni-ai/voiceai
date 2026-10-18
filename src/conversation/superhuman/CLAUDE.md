@@ -11,7 +11,7 @@ This module implements the conversational patterns that make interactions feel g
 These features go beyond NLP tricks - they create **authentic relationship artifacts**:
 
 - **Quote Memory**: "Last time you said you were nervous about this..."
-- **Inside Jokes**: Shared humor that evolves over time
+- **Inside Jokes**: moved to the memory path (`INSIDE_JOKES`), see below
 - **Nicknames**: Natural terms of endearment
 - **Rituals**: "Our thing" - patterns unique to this relationship
 - **Emotional Forecasting**: Anticipating tough days
@@ -26,7 +26,7 @@ These features go beyond NLP tricks - they create **authentic relationship artif
 |---------|------|--------------|
 | **Quote Memory** | `quote-memory.ts` | Remember meaningful things user said |
 | **Story Continuity** | `story-continuity.ts` | Track people in user's life |
-| **Inside Jokes** | `inside-jokes.ts` | Shared humor that evolves |
+| **Inside Jokes** | (retired here) | Now in `memory/operations/inside-jokes.ts` behind `INSIDE_JOKES` |
 | **Nicknames** | `nicknames.ts` | Natural naming patterns |
 | **Shared Language** | `shared-language.ts` | "Our words" - unique vocabulary |
 
@@ -78,7 +78,6 @@ src/conversation/superhuman/
 │  # Relationship Memory
 ├── quote-memory.ts             # User quotes
 ├── story-continuity.ts         # People tracking
-├── inside-jokes.ts             # Shared humor
 ├── nicknames.ts                # Naming patterns
 ├── shared-language.ts          # Unique vocabulary
 │
@@ -184,18 +183,13 @@ if (relevant) {
 
 ### Inside Jokes
 
-```typescript
-import { captureJoke, findRelevantJoke } from './inside-jokes.js';
+Retired from this module. Shared bits live on the durable memory path: the
+conversation summary keeps each bit with the line it came from
+(`memory/operations/inside-jokes.ts`), and recall brings one back only on a
+turn that touches that line, once per call, behind `INSIDE_JOKES`
+(`memory/recall/session-recall.ts`, `agents/multi-agent/memory-recall-hook.ts`).
+The old in-memory `jokeStore` is gone, so jokes now survive restarts.
 
-// Capture funny moment
-await captureJoke(userId, { text, trigger, createdAt });
-
-// Find joke for callback
-const joke = await findRelevantJoke(userId, context);
-if (joke) {
-  // Reference naturally: "Speaking of {joke.trigger}..."
-}
-```
 
 ### Emotional Forecasting
 
@@ -261,7 +255,7 @@ pnpm vitest run src/conversation/superhuman/__tests__/
 
 # Run specific feature tests
 pnpm vitest run quote-memory
-pnpm vitest run inside-jokes
+pnpm vitest run summarizer-inside-jokes
 
 # Watch mode
 pnpm vitest src/conversation/superhuman/

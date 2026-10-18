@@ -12,6 +12,7 @@
  * @module agents/multi-agent/essential-tool-set
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
 import { buildHandoffTools } from '../../tools/handoff/handoff-factory.js';
 import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
@@ -70,4 +71,17 @@ export async function buildEssentialToolSet(
   }
 
   return { tools: { ...handoffTools, ...essentialTools }, handoffTools, essentialTools };
+}
+
+/**
+ * HANDOFF_FULL_TOOLS=on: a persona the caller is handed to gets this set (and the
+ * first agent's cap) instead of the Tool Gateway's Tier 0. Tier 0 is memory,
+ * handoff, entertainment, awareness and behavior only (~56 tools), so after any
+ * handoff the crisis, trauma-support, human-transfer, presence, calendar,
+ * productivity and telephony tools were gone (prod 2026-10-17: every teammate
+ * offered 55 tools), and Tier 0's shared handoff domain offered handoffs to the
+ * speaker itself and to teammates the user hasn't unlocked.
+ */
+export function handoffGetsEssentialSet(): boolean {
+  return flagOn('HANDOFF_FULL_TOOLS');
 }

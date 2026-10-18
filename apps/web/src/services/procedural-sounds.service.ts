@@ -177,6 +177,8 @@ const DEFAULT_PROFILE = PERSONA_PROFILES.ferni;
 class ProceduralSoundsService {
   private audioContext: AudioContext | null = null;
   private initialized = false;
+  /** Where notes go: the speakers, or the sound director's earcon gain (routeTo). */
+  private output: AudioNode | null = null;
 
   /**
    * Initialize the audio context (must be called after user interaction).
@@ -205,18 +207,22 @@ class ProceduralSoundsService {
     }
   }
 
-  /**
-   * Resume audio context if suspended.
-   */
+  /** Play through `output` in `ctx` (the sound director's one earcon gain) instead of straight out. */
+  routeTo(ctx: AudioContext, output: AudioNode): void {
+    if (this.audioContext !== ctx) void this.audioContext?.close().catch(() => {});
+    this.audioContext = ctx;
+    this.output = output;
+    this.initialized = true;
+  }
+
+  /** Resume audio context if suspended. */
   async resume(): Promise<void> {
     if (this.audioContext?.state === 'suspended') {
       await this.audioContext.resume();
     }
   }
 
-  /**
-   * Play a handoff sound for a specific persona.
-   */
+  /** Play a handoff sound for a specific persona. */
   async playHandoffSound(personaId: string): Promise<void> {
     if (!this.audioContext) {
       await this.initialize();
@@ -380,9 +386,7 @@ class ProceduralSoundsService {
     await this.playChimeSequence(profile);
   }
 
-  /**
-   * Get the sonic profile for a persona.
-   */
+  /** Get the sonic profile for a persona. */
   private getPersonaProfile(personaId: string): PersonaSonicProfile {
     // Normalize persona ID (remove suffixes like "-santos", "-taylor")
     const normalizedId = personaId.split('-')[0]?.toLowerCase() ?? personaId.toLowerCase();
@@ -390,9 +394,7 @@ class ProceduralSoundsService {
     return (PERSONA_PROFILES[normalizedId] ?? DEFAULT_PROFILE) as PersonaSonicProfile;
   }
 
-  /**
-   * Play a sequence of chime notes.
-   */
+  /** Play a sequence of chime notes. */
   private async playChimeSequence(profile: PersonaSonicProfile): Promise<void> {
     const ctx = this.audioContext;
     if (!ctx) return;
@@ -426,9 +428,7 @@ class ProceduralSoundsService {
     await new Promise((resolve) => setTimeout(resolve, totalDuration * 1000 + 200));
   }
 
-  /**
-   * Play a single note with the specified parameters.
-   */
+  /** Play a single note with the specified parameters. */
   private playNote(
     ctx: AudioContext,
     frequency: number,
@@ -458,9 +458,9 @@ class ProceduralSoundsService {
     filter.frequency.setValueAtTime(filterCutoff, startTime);
     filter.Q.setValueAtTime(0.5, startTime);
 
-    // Connect: oscillators -> filter -> gain -> destination
+    // Connect: oscillators -> filter -> gain -> destination (or the earcon gain)
     filter.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    gainNode.connect(this.output ?? ctx.destination);
 
     // Create oscillators (fundamental + harmonics)
     const oscillators: OscillatorNode[] = [];
@@ -518,16 +518,12 @@ class ProceduralSoundsService {
     );
   }
 
-  /**
-   * Check if procedural sounds are available.
-   */
+  /** Check if procedural sounds are available. */
   isAvailable(): boolean {
     return typeof window !== 'undefined' && (!!window.AudioContext || !!(window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
   }
 
-  /**
-   * Clean up resources.
-   */
+  /** Clean up resources. */
   dispose(): void {
     if (this.audioContext) {
       this.audioContext.close().catch(() => {
@@ -535,6 +531,7 @@ class ProceduralSoundsService {
       });
       this.audioContext = null;
     }
+    this.output = null;
     this.initialized = false;
   }
 }

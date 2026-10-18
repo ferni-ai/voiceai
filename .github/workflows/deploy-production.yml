@@ -27,7 +27,7 @@ name: Deploy Production (Blue-Green)
 #
 # PIPELINE STAGES:
 # 1. Prepare  → Validate secrets, determine services
-# 2. Test     → Type check, unit tests, build
+# 2. Test     → Type check, CI verdict on this commit, build
 # 3. Build    → Docker images (parallel, cached)
 # 4. Deploy   → Blue-green with health checks
 # 5. Verify   → Smoke tests
@@ -138,7 +138,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: prepare
     if: ${{ !inputs.skip_tests }}
-    
+    timeout-minutes: 75
+    permissions:
+      contents: read
+      actions: read  # to read CI's verdict on this commit
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -175,18 +179,53 @@ jobs:
           }
           echo "✅ Deployment safety passed"
 
+      # Type check and the CI verdict below both gate the deploy. They used to be
+      # continue-on-error, so a red build still shipped to prod.
       - name: Type check
         run: pnpm typecheck
-        continue-on-error: true
-        env:
-          NODE_OPTIONS: --max-old-space-size=3072
 
-      - name: Run tests
-        run: pnpm test -- --reporter=dot
-        continue-on-error: true
+      # The tests that count already ran on this exact commit: the merge queue runs
+      # the full CI workflow (unit with the Rust bindings, integration, quality
+      # gates) on the commit that then lands on main, with the same SHA. Re-running
+      # `pnpm test` here without those bindings failed 10 files on every deploy
+      # (2026-10-17, runs 39036034251 and 39038112712) and took 23 minutes, so this
+      # waits for CI's own verdict on github.sha instead. Any successful CI run on
+      # the commit passes (a push run cancelled by its concurrency group doesn't
+      # count against it); no success means no deploy.
+      - name: Require CI to pass on this commit
         env:
-          NODE_ENV: test
-          NODE_OPTIONS: --max-old-space-size=3072
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          start=$SECONDS
+          while :; do
+            # A transient API error (5xx, rate limit) retries next round; the time
+            # limits below still fail closed if it persists.
+            if ! runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SHA&per_page=20" \
+              --jq '.workflow_runs[] | "\(.status) \(.conclusion // "-") \(.event) \(.html_url)"'); then
+              echo "::warning::Could not read CI runs for $SHA, retrying"
+              runs=""
+            fi
+            echo "$runs"
+            if grep -q '^completed success ' <<<"$runs"; then
+              echo "✅ CI passed on $SHA"
+              exit 0
+            fi
+            if [ -n "$runs" ] && ! grep -qv '^completed ' <<<"$runs"; then
+              echo "❌ Every CI run on $SHA finished without success. Not deploying."
+              exit 1
+            fi
+            elapsed=$((SECONDS - start))
+            if [ -z "$runs" ] && [ "$elapsed" -gt 600 ]; then
+              echo "❌ No CI run found for $SHA after 10 minutes. Not deploying."
+              exit 1
+            fi
+            if [ "$elapsed" -gt 3600 ]; then
+              echo "❌ CI on $SHA has not finished after 60 minutes. Not deploying."
+              exit 1
+            fi
+            sleep 30
+          done
 
       - name: Build backend
         run: pnpm build:fast
@@ -328,6 +367,9 @@ jobs:
             --build-arg NODE_VERSION=22 \
             --build-arg VITE_VENMO_CHIP_IN="${{ vars.VITE_VENMO_CHIP_IN }}" \
             --build-arg VITE_VENMO_HANDLE="${{ vars.VITE_VENMO_HANDLE }}" \
+            --build-arg VITE_CAPTIONS_V2="${{ vars.VITE_CAPTIONS_V2 }}" \
+            --build-arg VITE_CAPTIONS_BREATH="${{ vars.VITE_CAPTIONS_BREATH }}" \
+            --build-arg VITE_MEMORY_VIEW="${{ vars.VITE_MEMORY_VIEW }}" \
             .
 
           # Push all tags
@@ -449,6 +491,9 @@ jobs:
           # (datastore.user), Vertex Gemini (aiplatform.user), Firebase Auth user
           # get/delete (custom role ferniUiAuthUsers) and secretAccessor on each
           # secret below. A new --set-secrets entry needs that grant too.
+          # Server flags live in --set-env-vars below. It REPLACES the service's env on every
+          # deploy, so a flag set by hand on Cloud Run is gone after the next main push:
+          # turn a web-server flag on here (and in apps/cli deploy.ts), in a reviewed PR.
           gcloud run deploy john-bogle-ui \
             --image ${{ env.UI_IMAGE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
@@ -465,7 +510,7 @@ jobs:
             --min-instances 0 \
             --max-instances 10 \
             --vpc-connector ferni-redis-connector \
-            --set-env-vars "^::^NODE_ENV=production::BUILD_SHA=${{ github.sha }}::GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app::SIP_TRUNK_ID=ST_AEE6NnKE84XP" \
+            --set-env-vars "^::^NODE_ENV=production::BUILD_SHA=${{ github.sha }}::GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app::SIP_TRUNK_ID=ST_AEE6NnKE84XP::JOURNAL_TRANSCRIBE_VERTEX=on::MEMORY_VIEW=on::JOURNAL_ONE_STORE=on" \
             --set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,CARTESIA_API_KEY=cartesia-api-key:latest,VAPID_PUBLIC_KEY=vapid-public-key:latest,VAPID_PRIVATE_KEY=vapid-private-key:latest,WAITLIST_APPROVAL_SECRET=waitlist-approval-secret:latest"
           
           REVISION=$(gcloud run revisions list --service=john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)

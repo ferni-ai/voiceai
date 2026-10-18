@@ -7,13 +7,33 @@
  * getAgentByHandoffTool('handoffToPeter') all gave whichever bundle loaded
  * last. The handoff tools (#264) say Peter is Peter John.
  *
- * The Financial Legends are fictional characters: Henry Caldwell (john-bogle)
- * and Tom Brannigan (peter-lynch).
+ * The Financial Legends are fictional characters: Henry Caldwell (john-bogle),
+ * Tom Brannigan (peter-lynch) and Nate Holloway (joel-dickson). No real
+ * person's name resolves to any persona.
  */
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { createHandoffTools } from '../../../tools/handoff/handoff-factory.js';
 import { ALIAS_TO_CANONICAL, toCanonical } from '../../persona-ids.js';
 import { AgentRegistry, type Agent } from '../unified-registry.js';
+
+/** Real people the legends were once modeled on: none may reach a persona. */
+const REAL_NAMES = [
+  'bogle',
+  'john bogle',
+  'jack bogle',
+  'jack-bogle',
+  'jack',
+  'vanguard-founder',
+  'lynch',
+  'peter lynch',
+  'magellan',
+  'fidelity-legend',
+  'joel',
+  'dickson',
+  'joel dickson',
+  'dr-dickson',
+  'vanguard-mentor',
+];
 
 describe('alias resolution against the real bundles', () => {
   beforeAll(async () => {
@@ -32,12 +52,19 @@ describe('alias resolution against the real bundles', () => {
     expect(await AgentRegistry.resolveAgentId('henry')).toBe('john-bogle');
   });
 
-  it("lets Ferni's team keep a shared alias (john: Peter John)", async () => {
+  it('resolves no real person to a persona', async () => {
+    for (const name of REAL_NAMES) {
+      expect(await AgentRegistry.resolveAgentId(name), name).toBeNull();
+      expect(ALIAS_TO_CANONICAL[name], name).toBeUndefined();
+    }
+  });
+
+  it("lets Ferni's team keep its own names (john: Peter John)", async () => {
     expect(await AgentRegistry.resolveAgentId('john')).toBe('peter-john');
     expect(await AgentRegistry.resolveAgentId('henry caldwell')).toBe('john-bogle');
     expect(await AgentRegistry.resolveAgentId('henry')).toBe('john-bogle');
     expect(await AgentRegistry.getHandoffToolName('john-bogle')).toBe('handoffToHenry');
-    // Ferni's own role id, also declared as an alias by Maya.
+    // Ferni's own role id; Maya no longer declares it too.
     expect(await AgentRegistry.resolveAgentId('life-coach')).toBe('ferni');
   });
 
@@ -72,6 +99,9 @@ describe('alias resolution against the real bundles', () => {
       }
     }
     expect(disagreements).toEqual([]);
+    expect(toCanonical('tom brannigan')).toBe('peter-lynch');
+    expect(toCanonical('henry caldwell')).toBe('john-bogle');
+    expect(toCanonical('nate holloway')).toBe('joel-dickson');
     expect(toCanonical('peter')).toBe('peter-john');
   });
 });
@@ -131,12 +161,13 @@ describe('alias collisions', () => {
     });
   });
 
-  it('the real bundles share no alias except where a role id is deliberate', async () => {
+  it('the real bundles claim no alias twice', async () => {
     const { buildAliasMap } = await import('../alias-map.js');
     const log = { warn: vi.fn() };
     buildAliasMap(await AgentRegistry.getAllAgents(), log);
     const contested = log.warn.mock.calls.map(([fields]) => (fields as { alias: string }).alias);
-    // Ferni's role id is also one of Maya's aliases, on purpose (see above).
-    expect(contested).toEqual(['life-coach']);
+    // Maya once also declared Ferni's role id "life-coach", which logged
+    // "Alias claimed by more than one persona" at every agent start.
+    expect(contested).toEqual([]);
   }, 60_000);
 });

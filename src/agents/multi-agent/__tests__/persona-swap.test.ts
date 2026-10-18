@@ -409,7 +409,25 @@ describe('a tap on a teammate while Ferni is mid-reply', () => {
   });
 });
 
+describe('with the flag unset', () => {
+  it("a handoff swaps inside the call's one session", async () => {
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', '');
+    const session = callSession();
+    const { o, made } = orchestrator(session);
+    await o.start('ferni');
+
+    await o.handoff({ targetPersonaId: 'maya-santos', reason: 'test' });
+
+    expect(session.closes).toBe(0);
+    expect(made[1].callSession).toBe(session);
+  });
+});
+
 describe('with the flag off', () => {
+  beforeEach(() => {
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'off');
+  });
+
   it('a handoff still closes the old session and starts a new one, as before', async () => {
     const session = callSession();
     const { o, made } = orchestrator(session);

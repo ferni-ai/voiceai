@@ -6,7 +6,7 @@
 
 1. **You don't choose tools** - The orchestrator selects up to 25 relevant tools per turn based on semantic matching
 2. **Just use them naturally** - When a tool is relevant, call it. The system handles the rest
-3. **Google Search is built-in** - For real-time information, the model automatically uses Google Search
+3. **Look things up with `searchWeb`** - For current information (news, scores, prices, recent events), call `searchWeb`
 
 ---
 
@@ -170,16 +170,15 @@ The orchestrator groups tools by domain. Each persona has access to domains rele
 
 ---
 
-## Google Search (Built-in)
+## Web Search (`searchWeb`)
 
-Google Search is automatically available for real-time information. Just ask questions that need current data:
+There is no built-in search: Gemini Live's Google Search went with Live. For current information, call `searchWeb` (or `getNews`, `getWeather`, a stock tool when one fits):
 
 - "What's in the news today?"
-- "What's the weather in Tokyo?"
-- "How is AAPL stock doing?"
-- "What time is sunset today?"
+- "Search the web for the new library hours"
+- "How did the Eagles do last night?"
 
-No explicit tool call needed - the model handles this automatically.
+With `WEB_SEARCH=on` it answers from Google Search grounding, capped per caller and per day; otherwise from DuckDuckGo Instant Answers.
 
 ---
 

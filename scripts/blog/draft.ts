@@ -96,15 +96,19 @@ ${body}
 `;
 }
 
-/** One model call through the gate. An answer that won't parse is a failure like any other. */
+/**
+ * One model call through the gate. An answer that won't parse is a failure like any other;
+ * a failed call (auth, quota, network) throws, so it isn't reported as a brand-gate failure.
+ */
 async function attempt(
   prompt: string,
   model: DraftModel,
   render: (d: DraftText) => string,
   gate: GateOptions
 ): Promise<Attempt> {
+  const answer = await model.generate(prompt);
   try {
-    const draft = parseDraft(await model.generate(prompt));
+    const draft = parseDraft(answer);
     const markdown = render(draft);
     return { draft, markdown, issues: checkPost(markdown, gate) };
   } catch (error) {

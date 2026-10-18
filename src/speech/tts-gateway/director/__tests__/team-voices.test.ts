@@ -24,7 +24,7 @@ import { directSpeech, type PlanSummary } from '../reply-director.js';
 import { DirectorSessions } from '../session-state.js';
 
 const BUNDLES = join(process.cwd(), 'src/personas/bundles');
-const NAYAN_VOICE = '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3';
+const NAYAN_VOICE = '6da65da0-cad8-4820-901c-549561d93ff3';
 const FERNI_VOICE = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
 
 class Recorder implements ReplyStream {

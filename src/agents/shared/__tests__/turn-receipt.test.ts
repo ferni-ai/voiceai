@@ -207,6 +207,30 @@ function call(opts: { userId?: string } = {}) {
 }
 
 describe('attachTurnReceipts', () => {
+  it('reports a handoff as switched when the swap lands after the turn ends', () => {
+    // Prod: the swap waits for the goodbye, so the turn ended with the old persona still on.
+    const c = call();
+    c.turn({ tools: ['handoffToMaya'] });
+    expect(c.receipts).toHaveLength(0); // held until the outcome is known
+    c.setPersona('maya');
+    c.turn();
+    expect(c.receipts[0]).toMatchObject({
+      turn: 1,
+      personaId: 'maya',
+      tools: { handoff: { attempted: true, tool: 'handoffToMaya', result: 'switched' } },
+    });
+    expect(c.receipts[0].timing.replyDoneMs).toBe(c.receipts[1].timing.replyDoneMs);
+  });
+
+  it('reports a handoff that never swapped as stayed, at the latest when the call ends', () => {
+    const c = call();
+    c.turn({ tools: ['handoffToMaya'] });
+    c.detach();
+    expect(c.receipts).toHaveLength(1);
+    expect(c.receipts[0].tools.handoff.result).toBe('stayed');
+    expect(c.receipts[0].personaId).toBe('ferni');
+  });
+
   it('emits one receipt per caller turn, with timings, prompt, tools and reply', () => {
     const c = call();
     c.turn({ tools: ['getWeather', 'handoffToMaya'], swapTo: 'maya' });
