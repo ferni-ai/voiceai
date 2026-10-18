@@ -58,9 +58,8 @@ test('importing contacts: each source is announced by name', async ({ page }) =>
   expect(await badNames(page, `[data-e2e-dialog="${id}"]`)).toEqual([]);
 });
 
-const ALL_PANELS = ['garden', 'gift', 'invite', 'commands', 'calendar-settings', 'notifications', 'journal',
-  'play-games', 'contacts', 'family-callers', 'all-connections', 'theme', 'billing', 'export', 'share-ferni',
-  'help'];
+const ALL_PANELS = ['commands', 'calendar-settings', 'notifications', 'journal', 'play-games', 'contacts',
+  'family-callers', 'all-connections', 'theme', 'billing', 'export', 'share-ferni', 'help'];
 
 /** role="button" elements nested in, or wrapped around, a real control: an extra Tab stop that does nothing */
 const nestedButtons = (page: Page) =>

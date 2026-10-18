@@ -27,9 +27,9 @@ import { prosodyTags } from '../providers/cartesia.js';
 import { LATE_NIGHT, voiceAttuneOn, type Delivery } from './attune.js';
 import { DirectorEngine } from './engine.js';
 import { ferniSpeedNudge, porchLightOn } from './ferni-energy.js';
+import { personaLayer, restingToneTags } from './ferni-resting-voice.js';
 import { carriedPace } from './key-phrase.js';
 import { leverModes, speechDirectorMode } from './gate.js';
-import { personaDelivery, teamVoicesOn } from './persona-delivery.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
 import type { DirectorMode, LeverModes, SpeechPlan, TurnContext } from './types.js';
@@ -194,7 +194,7 @@ class DirectedReply implements ReplyStream {
       sessionHint: opts.emotion,
       carry: opts.sessionId ? sessions.get(opts.sessionId, opts.personaId) : { speed: 1 },
       cues,
-      renderTags: prosodyTags,
+      renderTags: restingToneTags(prosodyTags, opts.personaId, modes.emotion, opts.env),
       stripProsody: this.stripProsody,
       userText: opts.turnContext?.userRequest,
       callerProsody:
@@ -203,7 +203,7 @@ class DirectedReply implements ReplyStream {
           : undefined,
       ferniNudge: ferniSpeedNudge(opts.sessionId),
       attune: attuneContext(opts),
-      persona: teamVoicesOn(opts.env) ? personaDelivery(opts.personaId) : undefined,
+      persona: personaLayer(opts.personaId, opts.env), // Ferni: FERNI_VOICE_SPEED; teammates: TEAM_VOICES
       lateNight: porchLightOn(opts.sessionId) ? LATE_NIGHT : undefined,
       laughter: {
         sessionId: opts.sessionId,
@@ -212,6 +212,7 @@ class DirectedReply implements ReplyStream {
         userEmotion: opts.turnContext?.userEmotion?.primary,
         comfortLevel: opts.comfortLevel ?? opts.turnContext?.comfortLevel,
         teamVoices: flagOn('TEAM_VOICES', opts.env),
+        lightTouch: flagOn('FERNI_LIGHT_TOUCH', opts.env),
       },
     });
   }

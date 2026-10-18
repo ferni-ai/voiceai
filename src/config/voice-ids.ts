@@ -119,8 +119,8 @@ export const VOICE_IDS = {
   // Jordan Taylor (event planner) - Verified Dec 2024
   JORDAN_TAYLOR: 'b2d14370-c56b-4bdd-a6a3-71abe1b6e345',
 
-  // Nayan Patel (lifetime advisor / sage) - Updated Dec 2024
-  NAYAN_PATEL: '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
+  // Nayan Patel (lifetime advisor / sage): instant clone of Krishna Choudhary, with consent (2026-10-17)
+  NAYAN_PATEL: '6da65da0-cad8-4820-901c-549561d93ff3',
 
   // Financial Legends: fictional characters on stock Cartesia library voices
   // (2026-10-11). The constant names are the persona ids, which predate them.

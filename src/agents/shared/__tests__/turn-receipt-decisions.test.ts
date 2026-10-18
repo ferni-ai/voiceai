@@ -67,9 +67,18 @@ type UserTurnCompleted = (this: unknown, info: Record<string, unknown>) => Promi
 
 async function userTurnCompleted(): Promise<UserTurnCompleted> {
   const mod = (await import(pathToFileURL(join(agentsDist, 'voice/agent_activity.js')).href)) as {
-    AgentActivity: { prototype: { userTurnCompleted: UserTurnCompleted } };
+    AgentActivity: {
+      prototype: { userTurnCompleted: UserTurnCompleted; userTurnCompletedImpl: UserTurnCompleted };
+    };
   };
-  return mod.AgentActivity.prototype.userTurnCompleted;
+  const { prototype } = mod.AgentActivity;
+  // 1.9 moved the body into userTurnCompletedImpl; userTurnCompleted only adds the trace span's end
+  return function (this: unknown, info) {
+    const self = Object.assign(this as object, {
+      userTurnCompletedImpl: prototype.userTurnCompletedImpl,
+    });
+    return prototype.userTurnCompleted.call(self, info);
+  };
 }
 
 /** The parts of an AgentActivity that userTurnCompleted reads, with a pending preemptive reply. */
@@ -108,7 +117,7 @@ function activityWithPreemptive(agentSession: EventEmitter, sameContext: boolean
 }
 
 describe('preemptive: LiveKit kept or dropped the reply it started early', () => {
-  // The PREEMPTIVE_DECISION line is ours (patches/@livekit__agents@1.8.1.patch); the
+  // The PREEMPTIVE_DECISION line is ours (patches/@livekit__agents@1.9.3.patch); the
   // patch also emits it on the session, just before the commit's eou_metrics.
   it.each([
     [true, 'reused'],
