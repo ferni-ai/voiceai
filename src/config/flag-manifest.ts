@@ -343,6 +343,8 @@ export const FLAG_MANIFEST = {
   // streaks count days from the summaries subcollection (up to 400 reads per profile load)
   STREAK_FROM_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // on: texts Ferni starts need texts turned on in settings; never-set channels no longer count as yes
+  STRICT_SMS_OPT_IN: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: a persona handoff keeps the call's STT stream instead of reopening it (stt-handoff-reuse.ts)
   STT_HANDOFF_REUSE: { default: 'off', owner: 'voice', kind: 'experiment' },
   STT_REFRESH_AFTER_GREETING: { default: 'off', owner: 'voice', kind: 'experiment' },

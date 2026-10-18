@@ -229,7 +229,8 @@ export async function sendGuardedText(
   if (sentWithin(lastSentAt(records, t.kind), now, t.minGapMs)) return skip('recently-sent');
   const phone = await resolveCheckinPhone(t.userId, userDoc, deps);
   if (!phone) return skip('no-verified-phone');
-  const noConsent = consentSkip(userDoc, legacyChannels, t.requested === true);
+  const strict = flagOn('STRICT_SMS_OPT_IN', deps.env); // never-set channels: no proactive texts
+  const noConsent = consentSkip(userDoc, legacyChannels, t.requested === true, strict);
   if (noConsent) return skip(noConsent);
 
   const hash = phoneHash(phone, deps.env);
