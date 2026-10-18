@@ -163,6 +163,10 @@ describe('findAirportCode', () => {
     expect(findAirportCode('Paris, France')).toBe('CDG');
   });
 
+  it('asks about a city name with extra words and no comma, such as "Paris Texas"', () => {
+    expect(findAirportCode('Paris Texas')).toBeNull();
+  });
+
   it('asks about a qualifier that does not match the city', () => {
     expect(findAirportCode('Paris, Texas')).toBeNull();
     expect(findAirportCode('Boston, UK')).toBeNull();

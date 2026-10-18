@@ -517,4 +517,21 @@ describe('IgnavFlightProvider', () => {
 
     expect(outcome).toEqual({ status: 'live', results: [] });
   });
+
+  it('drops an itinerary with no segments and keeps the others', async () => {
+    const noSegments = itinerary({ ignav_id: 'ig_empty', amount: 90, carrier: 'AA' });
+    noSegments.outbound.segments = [];
+    fetchMock.mockResolvedValue(
+      jsonReply(200, {
+        itineraries: [noSegments, itinerary({ ignav_id: 'ig_kept', amount: 200, carrier: 'UA' })],
+      })
+    );
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({
+      status: 'live',
+      results: [expect.objectContaining({ id: 'ig_kept', airline: 'UA' })],
+    });
+  });
 });

@@ -76,12 +76,9 @@ export function findAirportCode(place: string): string | null {
     return trimmed.toUpperCase();
   }
 
-  for (const [cityName, codes] of Object.entries(AIRPORT_CODES)) {
-    if (new RegExp(`\\b${cityName}\\b`).test(lower)) {
-      return codes[0];
-    }
-  }
-  return null;
+  // Exact city names only: "Paris Texas" or "Montparis" is asked about, not guessed.
+  const codes = AIRPORT_CODES[lower];
+  return codes ? codes[0] : null;
 }
 
 export function unknownAirportText(place: string): string {
