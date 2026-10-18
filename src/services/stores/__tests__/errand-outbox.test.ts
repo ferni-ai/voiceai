@@ -7,7 +7,12 @@ import {
   type NewErrand,
   type OutboxEffect,
 } from '../../errands/index.js';
-import { createEffectOutbox, firestoreEffectOutbox, toOutbox } from '../errand-outbox.js';
+import {
+  SAFE_TO_REPEAT,
+  createEffectOutbox,
+  firestoreEffectOutbox,
+  toOutbox,
+} from '../errand-outbox.js';
 import { createErrandStore } from '../errand-store.js';
 import { fakeFirestore } from './fake-firestore.js';
 
@@ -48,9 +53,23 @@ async function queued(effects: Effect[]) {
   const store = createErrandStore(fake.db, makeId);
   const outbox = createEffectOutbox(fake.db, makeId);
   const created = await store.create(newErrand, NOW, 1);
-  const e: Errand = { ...created, state: 'acting', updatedAt: later(1).toISOString() };
-  expect(await store.save(e, created.updatedAt, [], effects)).toBe(true);
-  return { ...fake, store, outbox, e };
+  const e: Errand = {
+    ...created,
+    state: 'acting',
+    revision: 1,
+    approvals: [{ verb: 'call', placeIds: ['p1'] }],
+    updatedAt: later(1).toISOString(),
+  };
+  expect(await store.save(e, created.revision, [], effects)).toBe(true);
+  /** Saves a change to the errand, as a later step would. */
+  const change = async (patch: Partial<Errand>): Promise<void> => {
+    const cur = await store.get('u1', e.id);
+    if (!cur) throw new Error('errand missing');
+    expect(await store.save({ ...cur, ...patch, revision: cur.revision + 1 }, cur.revision)).toBe(
+      true
+    );
+  };
+  return { ...fake, store, outbox, e, change };
 }
 
 const entry = (docs: Map<string, Record<string, unknown>>, e: Errand, key: string) =>
@@ -154,7 +173,8 @@ describe('effect outbox and leases', () => {
     const { outbox, docs, e } = await queued([call(), call('e1:call:p1:2')]);
     const first = await outbox.claimEffect(later(MIN), 5 * MIN);
     if (first.type !== 'claimed') throw new Error('expected a claim');
-    expect(await outbox.failEffect(first.lease, 'rate_limited', later(2 * MIN))).toBe(true);
+    const proof = { neverSent: true };
+    expect(await outbox.failEffect(first.lease, 'rate_limited', later(2 * MIN), proof)).toBe(true);
     const key = first.effect.idemKey;
     expect(entry(docs, e, key)).toMatchObject({
       status: 'pending',
@@ -164,7 +184,7 @@ describe('effect outbox and leases', () => {
     const second = await outbox.claimEffect(later(2 * MIN), 5 * MIN);
     if (second.type !== 'claimed') throw new Error('expected a claim');
     expect(second.effect.idemKey).not.toBe(key);
-    expect(await outbox.failEffect(second.lease, 'timeout', later(3 * MIN))).toBe(true);
+    expect(await outbox.failEffect(second.lease, 'timeout', later(3 * MIN), proof)).toBe(true);
     expect(entry(docs, e, second.effect.idemKey).status).toBe('failed');
   });
 
@@ -173,13 +193,100 @@ describe('effect outbox and leases', () => {
     const c = await outbox.claimEffect(later(MIN), 5 * MIN);
     if (c.type !== 'claimed') throw new Error('expected a claim');
     await outbox.recordProviderRef(c.lease, 'CA1', later(MIN), 5 * MIN);
+    await outbox.failEffect(c.lease, 'provider_unavailable', later(2 * MIN), { neverSent: true });
+    expect(entry(docs, e, 'e1:call:p1:1').status).toBe('failed');
+  });
+
+  it('only a lookup may be re-run blind; every other kind comes back for a provider check', async () => {
+    expect([...SAFE_TO_REPEAT]).toEqual(['lookup_line_type']);
+    for (const kind of Object.keys(RETRY_POLICY) as EffectKind[]) {
+      const f = { kind, placeId: 'p1', idemKey: `e1:${kind}:p1:1`, retry: RETRY_POLICY[kind] };
+      const { outbox } = await queued([f as unknown as Effect]);
+      await outbox.claimEffect(later(MIN), 5 * MIN);
+      const again = await outbox.claimEffect(later(7 * MIN), 5 * MIN);
+      expect([kind, again.type]).toEqual([
+        kind,
+        SAFE_TO_REPEAT.has(kind) ? 'claimed' : 'needs_provider_check',
+      ]);
+    }
+  });
+
+  it('a call is never queued again without proof the request never left', async () => {
+    const { outbox, docs, e } = await queued([call()]);
+    const c = await outbox.claimEffect(later(MIN), 5 * MIN);
+    if (c.type !== 'claimed') throw new Error('expected a claim');
     await outbox.failEffect(c.lease, 'provider_unavailable', later(2 * MIN));
     expect(entry(docs, e, 'e1:call:p1:1').status).toBe('failed');
   });
 
-  it('every kind of effect the store may repeat blind is one the retry table knows', () => {
-    const kinds: EffectKind[] = ['lookup_line_type', 'calendar', 'reminder'];
-    for (const k of kinds) expect(RETRY_POLICY[k]).toBeDefined();
+  it('crash, then provider_unavailable after the provider check: failed, even with neverSent', async () => {
+    const { outbox, docs, e } = await queued([call()]);
+    await outbox.claimEffect(later(MIN), 5 * MIN);
+    const check = await outbox.claimEffect(later(7 * MIN), 5 * MIN);
+    if (check.type !== 'needs_provider_check') throw new Error('expected a provider check');
+    const proof = { neverSent: true };
+    expect(
+      await outbox.failEffect(check.lease, 'provider_unavailable', later(8 * MIN), proof)
+    ).toBe(true);
+    expect(entry(docs, e, 'e1:call:p1:1')).toMatchObject({ status: 'failed', providerCheck: true });
+  });
+});
+
+describe('the claim reads the errand back', () => {
+  it('cancel after queue means no dial: the call is failed, not claimed', async () => {
+    const { outbox, docs, e, change } = await queued([call()]);
+    await change({ state: 'cancelled' });
+    expect((await outbox.claimEffect(later(MIN), 5 * MIN)).type).toBe('none');
+    expect(entry(docs, e, 'e1:call:p1:1')).toMatchObject({
+      status: 'failed',
+      error: 'errand cancelled',
+    });
+  });
+
+  it('an approval the errand no longer holds fails the effect', async () => {
+    const { outbox, docs, e, change } = await queued([call()]);
+    await change({ approvals: [] });
+    expect((await outbox.claimEffect(later(MIN), 5 * MIN)).type).toBe('none');
+    expect(entry(docs, e, 'e1:call:p1:1').error).toBe('approval withdrawn');
+  });
+
+  it('a hang-up or a notice still goes after the errand closes', async () => {
+    const hangUp = { ...call('e1:cancel:p1:1'), kind: 'cancel_call', call: 'e1:call:p1:1' };
+    const notice = { kind: 'notify_owner', about: 'cancelled', idemKey: 'e1:notify:cancelled:1' };
+    const { outbox, change } = await queued([
+      hangUp as unknown as Effect,
+      { ...notice, retry: RETRY_POLICY.notify_owner } as Effect,
+    ]);
+    await change({ state: 'cancelled' });
+    const kinds = [
+      await outbox.claimEffect(later(MIN), MIN),
+      await outbox.claimEffect(later(MIN), MIN),
+    ];
+    expect(kinds.map((c) => (c.type === 'claimed' ? c.effect.kind : c.type)).sort()).toEqual([
+      'cancel_call',
+      'notify_owner',
+    ]);
+  });
+
+  it('a retryable failure is not queued again once the errand has closed', async () => {
+    const { outbox, docs, e, change } = await queued([lookup()]);
+    const c = await outbox.claimEffect(later(MIN), 5 * MIN);
+    if (c.type !== 'claimed') throw new Error('expected a claim');
+    await change({ state: 'cancelled' });
+    await outbox.failEffect(c.lease, 'timeout', later(2 * MIN));
+    expect(entry(docs, e, 'e1:lookup:p1:1')).toMatchObject({
+      status: 'failed',
+      error: 'timeout (errand cancelled)',
+    });
+  });
+
+  it('an entry that will not parse is quarantined and the scan moves on', async () => {
+    const { outbox, docs, e } = await queued([call()]);
+    const junk = `bogle_users/u1/errands/${e.id}/effects/junk`;
+    docs.set(junk, { status: 'pending', notBefore: NOW.toISOString(), kind: 'mystery' });
+    const c = await outbox.claimEffect(later(MIN), 5 * MIN);
+    expect(c.type).toBe('claimed');
+    expect(docs.get(junk)).toMatchObject({ status: 'failed', error: 'quarantined: unreadable' });
   });
 });
 

@@ -33,6 +33,8 @@ export interface OutboxEffect {
   readonly leaseId: string | null;
   /** The provider's id for what was sent (call SID, message SID). */
   readonly providerRef: string | null;
+  /** It came back as needs_provider_check once: never queued again. */
+  readonly providerCheck?: boolean;
   readonly error?: string;
   readonly updatedAt: string;
 }
@@ -87,7 +89,11 @@ export type Claim =
 export interface EffectOutbox {
   /** Takes one runnable effect under a lease of `leaseMs`, or none. Only one claimer wins. */
   claimEffect: (now: Date, leaseMs: number) => Promise<Claim>;
-  /** Saves the provider's id the moment it exists, and renews the lease (long calls). */
+  /**
+   * Saves the provider's id the moment it exists, and renews the lease (long
+   * calls). False means the lease is lost: another runner may take the effect,
+   * so the runner MUST hang up the call (or stop the send) it is holding.
+   */
   recordProviderRef: (
     lease: EffectLease,
     providerRef: string,
@@ -95,6 +101,16 @@ export interface EffectOutbox {
     leaseMs: number
   ) => Promise<boolean>;
   completeEffect: (lease: EffectLease, providerRef: string | null, now: Date) => Promise<boolean>;
-  /** Back to pending after its backoff when `error` is retryable and attempts remain, else failed. */
-  failEffect: (lease: EffectLease, error: string, now: Date) => Promise<boolean>;
+  /**
+   * Back to pending after its backoff only when `error` is retryable, attempts
+   * remain, the errand still wants it, and nothing may have reached a person:
+   * a call or text needs `neverSent: true` (the request provably never left);
+   * anything that had a provider check never goes back. Else failed.
+   */
+  failEffect: (
+    lease: EffectLease,
+    error: string,
+    now: Date,
+    opts?: { readonly neverSent?: boolean }
+  ) => Promise<boolean>;
 }
