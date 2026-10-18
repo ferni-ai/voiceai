@@ -24,7 +24,7 @@ struct HomeView: View {
                     CaptionsView(lines: call.captions.lines)
                     // At accessibility text sizes the controls scroll with the
                     // content instead of covering it.
-                    if typeSize.isAccessibilitySize { CallControls(call: call) }
+                    if typeSize.isAccessibilitySize { CallControls(call: call, talk: model.talk) }
                 }
                 .frame(maxWidth: 560)
                 .frame(maxWidth: .infinity)
@@ -32,7 +32,7 @@ struct HomeView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
             .safeAreaInset(edge: .bottom) {
-                if !typeSize.isAccessibilitySize { CallControls(call: call) }
+                if !typeSize.isAccessibilitySize { CallControls(call: call, talk: model.talk) }
             }
             .background(FerniColor.background.ignoresSafeArea())
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
@@ -52,6 +52,16 @@ struct HomeView: View {
             }
             .sheet(isPresented: $model.isShowingSettings) {
                 SettingsView()
+            }
+            .fullScreenCover(isPresented: $model.isAskingConsent) {
+                ConsentView(
+                    onAgree: {
+                        model.consent.agree()
+                        model.isAskingConsent = false
+                        model.call.start()
+                    },
+                    onNotNow: { model.isAskingConsent = false }
+                )
             }
         }
     }
@@ -168,6 +178,7 @@ private struct CaptionsView: View {
 /// Talk when there's no call; mute, end and the audio route during one.
 private struct CallControls: View {
     let call: CallSession
+    let talk: () -> Void
 
     var body: some View {
         HStack(spacing: FerniSpace.rest) {
@@ -201,9 +212,7 @@ private struct CallControls: View {
                     .frame(width: 60, height: 60)
                     .accessibilityLabel("Audio output")
             } else {
-                Button {
-                    call.start()
-                } label: {
+                Button(action: talk) {
                     Label(talkLabel, systemImage: "waveform")
                         .font(FerniType.button)
                         .frame(maxWidth: 420, minHeight: 56)

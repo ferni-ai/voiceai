@@ -40,7 +40,14 @@ final class AppModel {
     let account: AccountStore
     let api: FerniAPI
     let call: CallSession
+    let consent = ConsentStore()
     var isShowingSettings = false
+    var isAskingConsent = false
+
+    /// Talk: the consent screen first if it's never been agreed (or was withdrawn).
+    func talk() {
+        if consent.hasAgreed { call.start() } else { isAskingConsent = true }
+    }
 
     init(config: FerniConfig = .fromBundle(), firebaseReady: Bool) {
         self.config = config
