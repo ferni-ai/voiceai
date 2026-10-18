@@ -55,12 +55,37 @@ export function parseWaitlistStatus(body: unknown): WaitlistStatus | null {
   };
 }
 
-/** A /token refusal that means "not yet, you're in line" (status 403, code WAITLISTED). */
+/** Waiting, position not known yet (GET /api/waitlist/me can fill it in). */
+export function isDetailsUnknown(s: WaitlistStatus): boolean {
+  return s.status === 'waiting' && s.position === null;
+}
+
+const UNKNOWN_POSITION: WaitlistStatus = {
+  status: 'waiting',
+  position: null,
+  wavesAway: null,
+  nextWaveAt: null,
+  referralUrl: null,
+  referrals: { verified: 0, creditedDays: 0, max: 5 },
+  admittedAt: null,
+  seatExpiresAt: null,
+  foundingMember: false,
+  foundingWave: null,
+};
+
+/**
+ * A /token refusal that means "not yet, you're in line". The contract sends
+ * 403 { code: 'WAITLISTED', ...details }; the gate's first version (#1953)
+ * sends 403 { error: 'not_admitted', waitlisted: true } with no details,
+ * which reads as waiting, position unknown.
+ */
 export function waitlistFromRefusal(status: number, bodyText: string): WaitlistStatus | null {
   if (status !== 403) return null;
   try {
     const body = JSON.parse(bodyText) as Record<string, unknown>;
-    return body['code'] === 'WAITLISTED' ? parseWaitlistStatus(body) : null;
+    if (body['code'] === 'WAITLISTED') return parseWaitlistStatus(body);
+    const waitlisted = body['error'] === 'not_admitted' || body['waitlisted'] === true;
+    return waitlisted ? { ...UNKNOWN_POSITION } : null;
   } catch {
     return null;
   }

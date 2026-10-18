@@ -26,7 +26,8 @@ const apiGet = vi.hoisted(() => vi.fn());
 vi.mock('../../src/utils/api.js', () => ({ apiGet }));
 
 const { fetchConnectionToken } = await import('../../src/services/token-fetch.service.js');
-const { classifyConnectError } = await import('../../src/services/connect-failure.js');
+const { classifyConnectError, TokenRequestError } =
+  await import('../../src/services/connect-failure.js');
 const { showCallNotice } = await import('../../src/ui/call-status.ui.js');
 const { showSignInGate, hideSignInGate } = await import('../../src/ui/sign-in-gate.ui.js');
 const {
@@ -96,7 +97,7 @@ describe('a 403 WAITLISTED from /token', () => {
     expect(failure.kind).toBe('waitlisted');
     const dialog = document.querySelector('#waiting-screen-overlay[role="dialog"]');
     expect(dialog).not.toBeNull();
-    expect(text()).toContain('You’re #432 — about 4 waves away');
+    expect(text()).toContain('You’re #432, about 4 waves away');
     expect(text()).toMatch(/The next wave opens Thursday, October 22\./);
     expect(document.querySelector('.waiting-screen__link')?.textContent).toBe(
       'https://ferni.ai/?ref=abc123'
@@ -186,6 +187,59 @@ describe("you're in", () => {
     const screen = buildWaitingScreen(parseWaitlistStatus(admitted)!, { onEnter })!;
     screen.querySelector<HTMLButtonElement>('.waiting-screen__btn--primary')!.click();
     expect(onEnter).toHaveBeenCalledOnce();
+  });
+});
+
+describe("#1953's refusal shape (no details yet)", () => {
+  const legacy = {
+    error: 'not_admitted',
+    status: 'pending',
+    waitlisted: true,
+    message: "You're on the list.",
+  };
+
+  it('opens the soft waiting screen at once, then fills in from /api/waitlist/me', async () => {
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: waiting });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify(legacy), { status: 403 }))
+    );
+    const error = await fetchConnectionToken({
+      room: 'r',
+      username: 'u',
+      deviceId: 'd',
+      personaId: 'ferni',
+    }).catch((e: unknown) => e);
+    const failure = classifyConnectError(error);
+    expect(failure.kind).toBe('waitlisted');
+    showCallNotice(failure, { onRetry: vi.fn() });
+    expect(text()).toContain('You’re on the list');
+    expect(document.querySelector('.waiting-screen__position')).toBeNull();
+    expect(text()).toContain('I’ll email you the moment your spot opens.');
+    await flush();
+    expect(apiGet).toHaveBeenCalledWith('/api/waitlist/me', undefined, { maxRetries: 1 });
+    expect(text()).toContain('You’re #432, about 4 waves away');
+    expect(document.querySelectorAll('#waiting-screen-overlay')).toHaveLength(1);
+  });
+
+  it('keeps the soft screen when /api/waitlist/me fails', async () => {
+    apiGet.mockResolvedValue({ ok: false, status: 401 });
+    showCallNotice(classifyConnectError(new TokenRequestError(403, 'x', waitlistFromRefusal(403, JSON.stringify(legacy))!)), { onRetry: vi.fn() }); // prettier-ignore
+    await flush();
+    expect(text()).toContain('You’re on the list');
+    expect(document.querySelector('.waiting-screen__position')).toBeNull();
+  });
+});
+
+describe('copy', () => {
+  it('has no em dashes or ellipses in the waiting-screen strings', () => {
+    for (const loc of ['en-US', 'en-GB']) {
+      const j = JSON.parse(
+        readFileSync(resolve(__dirname, `../../src/i18n/locales/${loc}.json`), 'utf8')
+      );
+      const strings = JSON.stringify([j.waitlistScreen, j.connectFailure.waitlisted]);
+      expect(strings).not.toMatch(/[\u2014\u2026]|\.\.\./);
+    }
   });
 });
 

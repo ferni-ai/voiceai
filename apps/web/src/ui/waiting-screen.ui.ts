@@ -10,7 +10,11 @@
 
 import { getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
-import { fetchWaitlistStatus, type WaitlistStatus } from '../services/waitlist-status.js';
+import {
+  fetchWaitlistStatus,
+  isDetailsUnknown,
+  type WaitlistStatus,
+} from '../services/waitlist-status.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('WaitingScreen');
@@ -151,7 +155,7 @@ export function buildWaitingScreen(
   options: WaitingScreenOptions = {}
 ): HTMLElement | null {
   const admitted = status.status === 'admitted';
-  if (!admitted && (status.status !== 'waiting' || status.position === null)) return null;
+  if (!admitted && status.status !== 'waiting') return null;
   injectStyles();
 
   const root = el('section', `waiting-screen waiting-screen--${admitted ? 'in' : 'waiting'}`);
@@ -174,12 +178,16 @@ export function buildWaitingScreen(
     root.appendChild(el('p', 'waiting-screen__muted', t('waitlistScreen.inMessage')));
     if (options.onEnter) root.appendChild(button(t('waitlistScreen.enter'), true, options.onEnter));
   } else {
+    // Position unknown (the refusal had no details): the title alone, soft
+    const { position } = status;
     const waves = status.wavesAway ?? 0;
-    const line =
-      waves > 1
-        ? t('waitlistScreen.position', { position: status.position ?? 0, waves })
-        : t('waitlistScreen.positionNext', { position: status.position ?? 0 });
-    root.appendChild(el('p', 'waiting-screen__position', line));
+    if (position !== null) {
+      const line =
+        waves > 1
+          ? t('waitlistScreen.position', { position, waves })
+          : t('waitlistScreen.positionNext', { position });
+      root.appendChild(el('p', 'waiting-screen__position', line));
+    }
     const date = waveDate(status.nextWaveAt);
     if (date)
       root.appendChild(el('p', 'waiting-screen__muted', t('waitlistScreen.nextWave', { date })));
@@ -223,8 +231,12 @@ export function hideWaitingOverlay(): void {
   document.getElementById(OVERLAY_ID)?.remove();
 }
 
-/** Full-screen waiting (or You're-in) screen over the app. Returns false when there's nothing to show. */
-export function showWaitingOverlay(status: WaitlistStatus): boolean {
+/**
+ * Full-screen waiting (or You're-in) screen over the app. Returns false when
+ * there's nothing to show. With the position unknown it shows the soft screen
+ * at once, then asks GET /api/waitlist/me and fills in the details.
+ */
+export function showWaitingOverlay(status: WaitlistStatus, read = fetchWaitlistStatus): boolean {
   hideWaitingOverlay();
   const titleId = 'waiting-screen-title';
   const close = button(
@@ -242,6 +254,13 @@ export function showWaitingOverlay(status: WaitlistStatus): boolean {
   overlay.appendChild(screen);
   document.body.appendChild(overlay);
   screen.querySelector<HTMLButtonElement>('button')?.focus();
+  if (isDetailsUnknown(status)) {
+    void read().then((details) => {
+      // Only if it's still open and the answer says more
+      if (details && !isDetailsUnknown(details) && overlay.isConnected)
+        showWaitingOverlay(details, read);
+    });
+  }
   return true;
 }
 

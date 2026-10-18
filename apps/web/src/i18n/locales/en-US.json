@@ -11212,8 +11212,8 @@
   },
   "waitlistScreen": {
     "title": "You’re on the list",
-    "position": "You’re #{position} — about {waves} waves away",
-    "positionNext": "You’re #{position} — you’re in the very next wave",
+    "position": "You’re #{position}, about {waves} waves away",
+    "positionNext": "You’re #{position}, in the very next wave",
     "nextWave": "The next wave opens {date}.",
     "inviteLabel": "Your invite link",
     "copy": "Copy link",
