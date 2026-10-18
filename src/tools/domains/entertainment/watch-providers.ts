@@ -6,9 +6,6 @@
  * JustWatch wherever it is shown, so every answer that uses it says so.
  */
 
-import { llm } from '@livekit/agents';
-import { z } from 'zod';
-import { getLogger } from '../../../utils/safe-logger.js';
 import { spokenList, tmdbGet } from './tmdb-client.js';
 
 type Media = 'movie' | 'tv';
@@ -120,24 +117,4 @@ export async function whereToWatch(
   const [first, ...more] = offered.map(([how, n]) => `${how} ${spokenList(n.slice(0, 3))}`);
   const also = more.length ? ` It's also ${spokenList(more)}.` : '';
   return `${name} is ${first} in ${regionName(region)}, ${CREDIT}.${also}`;
-}
-
-/** The tool; `regionOf` reads the caller's country from the call. */
-export function whereToWatchTool(regionOf: (run: unknown) => string) {
-  return llm.tool({
-    description:
-      'Where a movie or TV show can be watched in the caller\'s country: which services stream it, show it free with ads, rent it or sell it. Use for "where can I watch X", "is X on Netflix", "is X streaming anywhere".',
-    parameters: z.object({
-      title: z.string().describe('Name of the movie or TV show'),
-      type: z
-        .enum(['movie', 'tv'])
-        .optional()
-        .describe('movie or tv, if clear from the conversation'),
-      service: z.string().optional().describe('A service the caller named, like "Netflix"'),
-    }),
-    execute: async ({ title, type, service }, run) => {
-      getLogger().info({ title, type }, '🎬 Where to watch tool called');
-      return whereToWatch(title, regionOf(run), { type, service });
-    },
-  });
 }

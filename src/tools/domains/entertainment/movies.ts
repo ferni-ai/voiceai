@@ -16,7 +16,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { requiringEnv } from '../../registry/tool-availability.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 import { callerRegion, spokenDate, spokenList, tmdbGet, todayIso } from './tmdb-client.js';
-import { whereToWatchTool } from './watch-providers.js';
+import { whereToWatch } from './watch-providers.js';
 
 // ============================================================================
 // TMDB API (Movie Database)
@@ -317,7 +317,22 @@ export function createMovieTools(ctx?: Pick<ToolContext, 'userLocation'>) {
       },
     }),
 
-    getWhereToWatch: whereToWatchTool(region),
+    getWhereToWatch: llm.tool({
+      description:
+        'Where a movie or TV show can be watched in the caller\'s country: which services stream it, show it free with ads, rent it or sell it. Use for "where can I watch X", "is X on Netflix", "is X streaming anywhere".',
+      parameters: z.object({
+        title: z.string().describe('Name of the movie or TV show'),
+        type: z
+          .enum(['movie', 'tv'])
+          .optional()
+          .describe('movie or tv, if clear from the conversation'),
+        service: z.string().optional().describe('A service the caller named, like "Netflix"'),
+      }),
+      execute: async ({ title, type, service }, run) => {
+        logger.info({ title, type }, '🎬 Where to watch tool called');
+        return whereToWatch(title, region(run), { type, service });
+      },
+    }),
   };
 }
 
