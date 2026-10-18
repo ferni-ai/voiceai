@@ -9,6 +9,7 @@ import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
+import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createBargeInJudge,
@@ -32,7 +33,7 @@ import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
-import { noteBargeIn } from '../shared/turn-receipt.js';
+import { noteBargeIn } from '../shared/turn-receipt-session.js';
 
 const log = getLogger();
 
@@ -105,6 +106,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // callUser rings the caller's verified phone through outreach (call-user-port.ts).
   installCallUserPort();
+  // THREADS_PENDING_CONFIRM: a read-back waiting on a yes is kept as a follow-up (confirm-thread.ts).
+  installConfirmThreadPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler

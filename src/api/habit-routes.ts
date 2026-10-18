@@ -14,7 +14,7 @@
  * - GET /api/habits/:id/history - Get completion history
  */
 
-import admin from 'firebase-admin';
+import { getFirestore as getDefaultFirestore, type Firestore } from 'firebase-admin/firestore';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
@@ -36,9 +36,9 @@ const log = createLogger({ module: 'HabitAPI' });
 const HABITS_COLLECTION = 'user_habits';
 const COMPLETIONS_COLLECTION = 'habit_completions';
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   try {
-    return admin.firestore();
+    return getDefaultFirestore();
   } catch {
     return null;
   }

@@ -57,6 +57,7 @@ const seedTwoUsers = () =>
   fakeFirestore({
     'bogle_users/u-1': {},
     'bogle_users/u-1/dynamic_facts/f1': {},
+    'bogle_users/u-1/mind_model/current': {}, // theory of mind
     'users/u-1/calendar_events/e1': {}, // a subcollection under a record with no document
     'contact_relationships/r1': { userId: 'u-1' },
     'bogle_users/u-2/dynamic_facts/f1': {},

@@ -52,7 +52,7 @@ test('invite: Copy puts a working invite link on the clipboard', async ({
   test.skip(browserName !== 'chromium', 'clipboard permissions are Chromium-only in Playwright');
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const problems = watchProblems(page);
-  const panel = await openPanel(page, 'invite');
+  const panel = await openPanel(page, 'share-ferni'); // Bring a friend (the seeds card's invite is gone)
   await panel.locator('[data-action="copy"]').click();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toMatch(/https?:\/\/\S+/); // a short message with the link in it
@@ -92,6 +92,7 @@ test('Take Your Story: Export gives you a file with your data in it', async ({ p
 });
 
 test('quiz: answering a question shows how you did', async ({ page }) => {
+  test.skip(true, 'Knowledge Quiz is hidden: apps/web/src/config/menu-visibility.ts');
   const problems = watchProblems(page);
   const panel = await openPanel(page, 'knowledge-quiz');
   await panel.locator('.knowledge-quiz-option').first().click(); // questions are random; any answer will do
@@ -105,24 +106,17 @@ test('every control in every panel has a name', async ({ page }) => {
   test.setTimeout(120_000);
   const unnamed: string[] = [];
   const panels = [
-    'garden',
-    'gift',
-    'invite',
     'commands',
     'calendar-settings',
     'notifications',
     'journal',
-    'knowledge-quiz',
-    'music-dashboard',
     'play-games',
-    'vibe-controller',
     'contacts',
     'family-callers',
     'all-connections',
     'theme',
     'billing',
     'export',
-    'whats-growing',
     'share-ferni',
     'help',
   ];
@@ -165,6 +159,7 @@ test('every control in every panel has a name', async ({ page }) => {
 });
 
 test('gift: the seed amounts are announced as amounts', async ({ page }) => {
+  test.skip(true, 'Seeds are cut from the menu (Seth, 2026-10-17): gifting has no entry point');
   const panel = await openPanel(page, 'gift');
   for (const amount of ['10', '25', '50']) {
     await expect(panel.locator(`[data-amount="${amount}"]`)).toHaveAccessibleName(

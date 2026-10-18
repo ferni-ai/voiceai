@@ -21,10 +21,9 @@ import {
 import { createLogger } from '../utils/logger.js';
 import { checkAccess, type AccessOutcome } from '../services/access-check.js';
 import { emulatorSignInButtons } from './emulator-sign-in.js';
+import { tryFirstButtons } from './try-first.ui.js';
 import { t } from '../i18n/index.js';
 import { createAiRoleLabelRow } from './ai-role-label.ui.js';
-
-// TYPES
 
 const log = createLogger('SignInGate');
 
@@ -561,7 +560,7 @@ function createOverlay(): HTMLElement {
   appleText.textContent = t('auth.continueWithApple');
   appleBtn.appendChild(appleText);
 
-  buttonsDiv.append(googleBtn, appleBtn, ...emulatorSignInButtons((e) => log.error('Emulator sign-in failed:', e)));
+  buttonsDiv.append(googleBtn, appleBtn, ...emulatorSignInButtons((e) => log.error('Emulator sign-in failed:', e)), ...tryFirstButtons());
 
   // Error container
   const errorDiv = document.createElement('div');
