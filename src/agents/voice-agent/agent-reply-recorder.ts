@@ -26,6 +26,7 @@ import { stripSSML } from '../../utils/text-utils.js';
 import type { UserData } from '../shared/types.js';
 import { createLedgerRecorder } from '../personas/life-ledger.js';
 import { recordAgentTurn } from './agent-turn-recorder.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'agent-reply-recorder' });
 
@@ -160,7 +161,7 @@ export function registerAgentReplyRecorder(session: ReplySession, ctx: AgentRepl
 
   // What the agent says about itself, kept for the next call (life-ledger.ts).
   const userId = ctx.services?.userId;
-  const ledger = userId && userId !== 'anonymous' ? createLedgerRecorder(userId) : null;
+  const ledger = isMemberIdentity(userId) ? createLedgerRecorder(userId) : null;
   session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (event) => {
     recordCommittedAgentReply(ctx, event.item)
       .then((recorded) => {

@@ -26,6 +26,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
 import { closeForgottenFollowUps } from './forget-follow-ups.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 export { isForgotten };
 
@@ -117,7 +118,7 @@ export async function forgetForCaller(
   topic: string,
   store: ForgetStore = firestoreForgetStore
 ): Promise<ForgetResult> {
-  if (!userId || userId === 'anonymous') return { kind: 'failed' };
+  if (!isMemberIdentity(userId)) return { kind: 'failed' };
   return forgetTopic(userId, topic, store).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Could not forget from stored memory');
     return { kind: 'failed' as const };
