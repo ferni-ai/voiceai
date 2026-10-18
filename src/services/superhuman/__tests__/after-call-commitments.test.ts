@@ -166,6 +166,23 @@ describe('recording', () => {
   });
 });
 
+describe('only commitments someone can act on', () => {
+  it('stores "send Mindy the photos" but not "call her tomorrow" or a goodbye', async () => {
+    const { sink, added } = memorySink();
+    const written = await recordCallerCommitments(
+      [
+        obs({ value: 'call her', source: { quote: "I'll call her tomorrow" } }),
+        obs({ value: 'goodbye', source: { quote: "I'll catch you later" } }),
+        obs({ value: 'send photos', source: { quote: "I'll send Mindy the photos" } }),
+      ],
+      ctx,
+      { sink, forgotten: async () => [] }
+    );
+    expect(written).toBe(1);
+    expect(added.map((d) => d.statement)).toEqual(["I'll send Mindy the photos"]);
+  });
+});
+
 describe('helpers', () => {
   it('sameCommitment matches rewordings, not different plans', () => {
     expect(sameCommitment("I'll call my sister Sunday", 'call sister on Sunday')).toBe(true);

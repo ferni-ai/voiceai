@@ -143,6 +143,21 @@ describe('loadCallCheckIns', () => {
     expect(marked).toEqual(['c1']);
   });
 
+  it('does not bring up junk stored before the writers checked, and still brings up the rest', async () => {
+    const stored = (id: string, statement: string, ageDays: number) => ({
+      id,
+      data: { status: 'active', statement, createdAt: NOW - ageDays * DAY, followUpCount: 0 },
+    });
+    const { store, marked } = fakeStore([
+      stored('junk1', "I'll call her tomorrow.", 1),
+      stored('junk2', "I'll catch you later.", 1),
+      stored('ok', "I'll send Mindy the photos.", 2),
+    ]);
+    const open = await loadCallCheckIns('u1', store, NOW);
+    expect(open.map((c) => c.id)).toEqual(['ok']);
+    expect(marked).toEqual(['ok']);
+  });
+
   it('returns nothing instead of throwing when the store fails', async () => {
     const store: CommitmentStore = {
       active: async () => {

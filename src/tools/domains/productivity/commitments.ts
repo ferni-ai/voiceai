@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { judgeCommitment } from '../../../utils/commitment-quality.js';
 import {
   detectCommitment,
   saveCommitment,
@@ -89,6 +90,16 @@ const recordCommitmentDef: ToolDefinition = {
 
         log.info({ userId: ctx.userId, type, summary }, 'Recording commitment');
 
+        // "Call her tomorrow" becomes "call Mindy tomorrow" when the model named her;
+        // a goodbye or a bare "do it" is not kept (utils/commitment-quality.ts).
+        const verdict = judgeCommitment(statement, { person: personInvolved });
+        if (!verdict.ok) {
+          log.info({ userId: ctx.userId, reason: verdict.reason }, 'Commitment not recorded');
+          return verdict.reason === 'bare_pronoun'
+            ? 'Not recorded: it does not say who or what it is about. If it matters, ask who they mean, then record it with personInvolved set.'
+            : 'Not recorded: that is a goodbye or a feeling, not something they will do.';
+        }
+
         // Parse target date if provided
         let targetDateMs: number | undefined;
         if (targetDate) {
@@ -104,7 +115,7 @@ const recordCommitmentDef: ToolDefinition = {
           const now = Date.now();
           const result = await saveCommitment({
             userId: ctx.userId,
-            statement,
+            statement: verdict.statement,
             summary,
             text: summary, // Alias for calendar integration
             type: type as CommitmentType,

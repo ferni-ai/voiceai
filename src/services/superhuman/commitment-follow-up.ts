@@ -12,6 +12,7 @@
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isActionableCommitment } from '../../utils/commitment-quality.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -44,10 +45,10 @@ const STALE_AFTER_MS = 30 * DAY_MS;
 /** Next follow-up after one is made. */
 const NEXT_FOLLOW_UP_MS = 3 * DAY_MS;
 
-// The capture regex takes any "I'll" or "I need to", so the store holds
-// sign-offs and filler too ("I need to go", "I'll let you go"). Whole words only.
-const OFFHAND =
-  /\b(go|run|head out|hop off|let you go|talk (to you )?(later|soon)|call you|see|think about it|try|figure it out|be fine|be okay|be right back|bbl)\b[.!?]?\s*$/i;
+// The store holds sign-offs and lines no one can act on ("I need to go", "I'll
+// call her tomorrow"), written before the writers checked: every reader of open
+// commitments (the call check-in, the push, the proactive tick, the morning
+// brief) comes through here, so they are not shown.
 const MIN_WORDS = 4;
 
 function num(v: unknown): number | undefined {
@@ -58,7 +59,7 @@ function num(v: unknown): number | undefined {
 export function toOpenCommitment(id: string, d: Record<string, unknown>): OpenCommitment | null {
   if (d.status !== 'active') return null;
   const statement = String(d.statement ?? d.summary ?? '').trim();
-  if (statement.split(/\s+/).length < MIN_WORDS || OFFHAND.test(statement)) return null;
+  if (statement.split(/\s+/).length < MIN_WORDS || !isActionableCommitment(statement)) return null;
   const createdAt = num(d.createdAt);
   if (createdAt === undefined) return null;
   const targetDate = num(d.targetDate);
