@@ -92,7 +92,7 @@ struct OnboardingView: View {
                     .font(FerniFont.largeTitle)
                     .foregroundColor(.white)
 
-                Text("Your AI life coach and team coordinator.\nHave natural voice conversations anytime.")
+                Text("A friend who listens, with a team behind you.\nTalk out loud, anytime.")
                     .font(FerniFont.body(size: 17))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)

@@ -2,17 +2,14 @@
  * Engagement Conversation Triggers
  *
  * System for personas to naturally bring up engagement topics during conversations.
- * Triggers are context-aware and persona-specific, making mentions feel organic.
- *
- * Examples:
- * - "Hey, you're on a 7-day streak with our morning check-ins!"
- * - "Remember last week you predicted you'd feel better by today. How accurate was that?"
- * - "Maya mentioned you've been crushing your habits lately."
+ * Triggers are context-aware and persona-specific, making mentions feel organic
+ * ("Hey, you're on a 7-day streak with our morning check-ins!").
  */
 
 import type { UserProfile } from '../../types/user-profile.js';
 import {
-  EngagementStore,
+  getEngagementStore,
+  type EngagementStore,
   type StoredRitualStreak,
   type StoredPrediction,
 } from './engagement-store.js';
@@ -21,7 +18,6 @@ import { createLogger } from '../../utils/safe-logger.js';
 const log = createLogger({ module: 'ConversationTriggers' });
 import { PERSONA_RITUALS } from '../daily-rituals.js';
 
-// Use string type for persona IDs since they can be various formats
 type PersonaIdString = string;
 
 // ============================================================================
@@ -50,6 +46,8 @@ export interface TriggerContext {
   minutesIntoConversation: number;
   userProfile: UserProfile;
   recentTopics?: string[];
+  /** Only these kinds of trigger; the others' reads are skipped. */
+  only?: ReadonlyArray<ConversationTrigger['type']>;
 }
 
 // ============================================================================
@@ -165,16 +163,17 @@ const PERSONA_MILESTONE_TEMPLATES: Record<string, string[]> = {
 export async function generateConversationTriggers(
   context: TriggerContext
 ): Promise<ConversationTrigger[]> {
-  const store = new EngagementStore();
+  // The shared store: one of its own was never initialized, so it never read anything.
+  const store = await getEngagementStore();
   const triggers: ConversationTrigger[] = [];
+  const want = (t: ConversationTrigger['type']) => !context.only || context.only.includes(t);
 
   try {
-    // Get engagement profile
     const profile = await store.getProfile(context.userId);
     if (!profile) return triggers;
 
     // Check for due rituals (high priority early in conversation)
-    if (context.minutesIntoConversation < 5) {
+    if (want('streak_due') && context.minutesIntoConversation < 5) {
       const dueRituals = await getDueRituals(store, context.userId, context.personaId);
       for (const ritual of dueRituals) {
         if (ritual.currentStreak >= 3) {
@@ -183,22 +182,22 @@ export async function generateConversationTriggers(
       }
     }
 
-    // Check for milestones
-    const milestones = await getMilestoneStreaks(store, context.userId);
+    const milestones = want('streak_milestone')
+      ? await getMilestoneStreaks(store, context.userId)
+      : [];
     for (const milestone of milestones) {
       triggers.push(createMilestoneTrigger(milestone, context.personaId));
     }
 
-    // Check for pending predictions to resolve (medium priority)
-    if (context.minutesIntoConversation > 3 && context.minutesIntoConversation < 15) {
+    // Predictions a week old, to resolve (medium priority); from the start of a call too
+    if (want('prediction_result') && context.minutesIntoConversation < 15) {
       const predictions = await getPendingPredictions(store, context.userId);
       for (const prediction of predictions.slice(0, 1)) {
         triggers.push(createPredictionTrigger(prediction, context.personaId));
       }
     }
 
-    // Check for weather check (if not done today)
-    const weatherDone = await hasWeatherToday(store, context.userId);
+    const weatherDone = !want('weather_check') || (await hasWeatherToday(store, context.userId));
     if (!weatherDone && context.minutesIntoConversation > 2) {
       triggers.push(createWeatherCheckTrigger(context.personaId));
     }
@@ -220,7 +219,6 @@ async function getDueRituals(
 ): Promise<Array<StoredRitualStreak & { ritualName: string }>> {
   const allRituals: Array<StoredRitualStreak & { ritualName: string }> = [];
 
-  // Get rituals for this persona
   const ritualIds = getPersonaRitualIds(personaId);
   for (const ritualId of ritualIds) {
     const streak = await store.getRitualStreak(userId, ritualId);
@@ -374,10 +372,10 @@ function createPredictionTrigger(
     PERSONA_PREDICTION_TEMPLATES[personaId] || PERSONA_PREDICTION_TEMPLATES['ferni'];
   const template = templates[Math.floor(Math.random() * templates.length)];
 
-  // The StoredPrediction uses predictions map format, so we need to format differently
   const firstPrediction = Object.entries(prediction.predictions)[0];
   const question = firstPrediction ? firstPrediction[0] : 'your prediction';
   const userPredictionValue = firstPrediction ? firstPrediction[1] : 50;
+  const said = Object.entries(prediction.predictions).map(([k, v]) => `${k}: ${v}`);
 
   const message = template
     .replace('{question}', question)
@@ -389,7 +387,7 @@ function createPredictionTrigger(
     personaId,
     priority: 'medium',
     message,
-    contextPrompt: `User made a prediction about "${question}" (they said ${userPredictionValue}%). It's time to check the actual result.`,
+    contextPrompt: `On ${prediction.weekOf} they predicted their week with Peter's game (${said.join(', ')}). Ask once, gently, how the week actually went, and record what they tell you with weeklyPrediction (record-actuals). If they'd rather not, let it go.`,
     data: {
       predictionId: prediction.id,
       question,
@@ -515,11 +513,13 @@ export function createTeamHuddleTrigger(
  */
 export async function buildEngagementContextPrompt(
   userId: string,
-  personaId: PersonaIdString
+  personaId: PersonaIdString,
+  only?: TriggerContext['only']
 ): Promise<string> {
   const context: TriggerContext = {
     userId,
     personaId,
+    only,
     conversationStartTime: new Date(),
     minutesIntoConversation: 0,
     userProfile: {} as UserProfile, // Would be fetched

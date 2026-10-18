@@ -76,11 +76,7 @@
       ]
     }
   },
-  "tools": {
-    "always_available": ["handoff_to_team_member", "get_current_time", "get_user_context"],
-    "domain_specific": ["portfolio_analysis", "expense_ratio_comparison", "asset_allocation"],
-    "restricted": []
-  },
+  "tools": {},
   "capabilities": {
     "voice_enabled": true,
     "memory_enabled": true,

@@ -20,6 +20,7 @@ import { createHash } from 'crypto';
 import type { CollectionReference, Firestore } from '@google-cloud/firestore';
 import type {
   FollowUp,
+  FollowUpAction,
   FollowUpKind,
   FollowUpStatus,
   FollowUpStore,
@@ -60,6 +61,22 @@ function repeatOf(x: unknown): Repeat | null {
     : null;
 }
 
+const OUTCOMES: ReadonlySet<string> = new Set(['sent', 'failed', 'unknown']);
+
+/** A read-back action (outreach-confirm), keeping only the fields it may have. */
+function actionOf(x: unknown): FollowUpAction | null {
+  if (!isRecord(x) || !str(x.tool)) return null;
+  const contactId = str(x.contactId);
+  return {
+    tool: String(x.tool),
+    ...(contactId ? { contactId } : {}),
+    ...(x.waitingOn === 'you' ? { waitingOn: 'you' as const } : {}),
+    ...(OUTCOMES.has(String(x.outcome))
+      ? { outcome: x.outcome as NonNullable<FollowUpAction['outcome']> }
+      : {}),
+  };
+}
+
 /** Every field a follow-up needs is present and has the right kind of value. */
 function hasFollowUpShape(data: Record<string, unknown>): boolean {
   const source = isRecord(data.source) ? data.source : null;
@@ -84,6 +101,7 @@ export function toFollowUp(id: string, data: unknown): FollowUp | null {
   if (!isRecord(data) || !hasFollowUpShape(data)) return null;
   const { userId, kind, text, zone, status, createdAt, updatedAt } = data;
   const source = data.source as Record<string, unknown>;
+  const action = actionOf(data.action);
   const surfaced = Array.isArray(data.surfaced)
     ? data.surfaced.flatMap((s) => {
         if (!isRecord(s) || !str(s.at) || !['opener', 'in-call', 'text'].includes(String(s.via)))
@@ -105,6 +123,7 @@ export function toFollowUp(id: string, data: unknown): FollowUp | null {
     createdAt: String(createdAt),
     updatedAt: String(updatedAt),
     ...(str(data.closedAt) ? { closedAt: String(data.closedAt) } : {}),
+    ...(action ? { action } : {}),
   };
 }
 
