@@ -132,7 +132,8 @@ describe('THREADS_PENDING_CONFIRM: no promise without a thread', () => {
       zone: 'America/Denver',
       action: { tool: 'callOnBehalf', contactId: 'c-mom', waitingOn: 'you' },
     });
-    expect(JSON.stringify(thread)).not.toContain('555');
+    // The number itself, in any format. A bare '555' also matched timestamps like 14:28:30.555Z.
+    expect(JSON.stringify(thread)).not.toMatch(/555\D?123\D?0001/);
     expect(sends).toHaveLength(0);
   });
 
