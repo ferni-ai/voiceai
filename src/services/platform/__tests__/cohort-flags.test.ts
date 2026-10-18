@@ -1,8 +1,16 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applyCallerFlags,
   applyFlags,
+  FLAG_CACHE_TTL_MS,
+  FLAG_STALE_MAX_MS,
+  flagForUser,
   forgetAgentValues,
+  inSample,
+  missingPrerequisites,
+  forgetFlagCache,
+  usersWithFlag,
+  type FlagHolderStore,
   oneCallPerProcess,
   resolveCallerFlags,
   type Cohort,
@@ -11,11 +19,15 @@ import {
 
 const store = (
   cohorts: Record<string, Cohort[]>,
-  overrides: Record<string, Record<string, string>> = {}
+  overrides: Record<string, Record<string, string>> = {},
+  sampled: Cohort[] = []
 ): CohortStore => ({
   cohortsFor: async (u) => cohorts[u] ?? [],
   overridesFor: async (u) => overrides[u] ?? {},
+  sampledCohorts: async () => sampled,
 });
+
+const callers = Array.from({ length: 2000 }, (_, i) => `user-${i}`);
 
 const family: Cohort = {
   id: 'friends-and-family',
@@ -118,7 +130,10 @@ describe('applyCallerFlags', () => {
     const env = on();
     await applyCallerFlags('mindy', { store: store({ mindy: [family] }), env });
     const slow: CohortStore = {
-      cohortsFor: () => new Promise(() => undefined),
+      cohortsFor: async () =>
+        new Promise<Cohort[]>(() => {
+          /* never settles */
+        }),
       overridesFor: async () => ({}),
     };
     expect(await applyCallerFlags('mom', { store: slow, env, timeoutMs: 20 })).toEqual([]);
@@ -133,5 +148,224 @@ describe('applyCallerFlags', () => {
     await applyCallerFlags('mindy', { store: store({ mindy: [family] }), env });
     await applyCallerFlags('anonymous', { store: store({}), env });
     expect(env.OPENER_FOLLOW_UP).toBeUndefined();
+  });
+});
+
+describe('per-user lookup for servers that serve many users (flagForUser, usersWithFlag)', () => {
+  const ON = { COHORT_FLAGS: 'on' };
+  const proactive: Cohort = { id: 'family', enabled: true, flags: { PROACTIVE_CHANNELS: 'on' } };
+  const paused: Cohort = { id: 'paused', enabled: false, flags: { PROACTIVE_CHANNELS: 'on' } };
+  const data = store(
+    { mindy: [proactive], mom: [proactive], dad: [paused] },
+    { mom: { PROACTIVE_CHANNELS: 'off' }, solo: { PROACTIVE_CHANNELS: 'on' } }
+  );
+  // What the Firestore queries return: anyone a cohort or override names, before resolution.
+  const holders: FlagHolderStore = { candidatesFor: async () => ['mindy', 'mom', 'dad', 'solo'] };
+
+  beforeEach(() => forgetFlagCache());
+
+  it("an override 'off' beats a cohort 'on'", async () => {
+    expect(await flagForUser('mindy', 'PROACTIVE_CHANNELS', { store: data, env: ON })).toBe('on');
+    expect(await flagForUser('mom', 'PROACTIVE_CHANNELS', { store: data, env: ON })).toBe('off');
+    expect(
+      await flagForUser('dad', 'PROACTIVE_CHANNELS', { store: data, env: ON })
+    ).toBeUndefined();
+  });
+
+  it('usersWithFlag: cohort members and overrides that are on, minus overrides that are off', async () => {
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', { store: data, holders, env: ON })).toEqual([
+      'mindy',
+      'solo',
+    ]);
+  });
+
+  it('reads nothing and finds no one unless COHORT_FLAGS=on', async () => {
+    const reads = { cohortsFor: vi.fn(data.cohortsFor), overridesFor: vi.fn(data.overridesFor) };
+    const find = { candidatesFor: vi.fn(holders.candidatesFor) };
+    expect(await flagForUser('mindy', 'PROACTIVE_CHANNELS', { store: reads, env: {} })).toBe(
+      undefined
+    );
+    expect(
+      await usersWithFlag('PROACTIVE_CHANNELS', { store: reads, holders: find, env: {} })
+    ).toEqual([]);
+    expect(reads.cohortsFor).not.toHaveBeenCalled();
+    expect(find.candidatesFor).not.toHaveBeenCalled();
+  });
+
+  it('only allowlisted flags', async () => {
+    const s = store({ u: [{ id: 'c', enabled: true, flags: { AGENT_JOB_EXECUTOR: 'on' } }] });
+    expect(await flagForUser('u', 'AGENT_JOB_EXECUTOR', { store: s, env: ON })).toBeUndefined();
+    expect(await usersWithFlag('AGENT_JOB_EXECUTOR', { store: s, holders, env: ON })).toEqual([]);
+  });
+
+  it('never writes process.env', async () => {
+    const had = process.env.COHORT_FLAGS;
+    process.env.COHORT_FLAGS = 'on';
+    const before = { ...process.env };
+    try {
+      expect(await usersWithFlag('PROACTIVE_CHANNELS', { store: data, holders })).toContain(
+        'mindy'
+      );
+      expect(await flagForUser('mindy', 'PROACTIVE_CHANNELS', { store: data })).toBe('on');
+      expect({ ...process.env }).toEqual(before);
+      expect(process.env.PROACTIVE_CHANNELS).toBeUndefined();
+    } finally {
+      if (had === undefined) delete process.env.COHORT_FLAGS;
+      else process.env.COHORT_FLAGS = had;
+    }
+  });
+
+  it('reuses a read for a minute, then reads again; a failed read keeps the last value', async () => {
+    let t = 1_000_000;
+    const overrides = vi.fn(async () => ({ PROACTIVE_CHANNELS: 'on' }));
+    const s: CohortStore = { cohortsFor: async () => [], overridesFor: overrides };
+    const opts = { store: s, env: ON, now: () => t };
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    t += FLAG_CACHE_TTL_MS - 1;
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    expect(overrides).toHaveBeenCalledTimes(1);
+    t += 1;
+    overrides.mockRejectedValueOnce(new Error('down'));
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    expect(overrides).toHaveBeenCalledTimes(2);
+    expect(
+      await flagForUser('never-read', 'PROACTIVE_CHANNELS', { ...opts, store: failing() })
+    ).toBe(undefined);
+  });
+
+  it("an override turned 'off' drops them on the next rebuild, within one cache period", async () => {
+    let t = 1_000_000;
+    let value = 'on';
+    const s: CohortStore = {
+      cohortsFor: async () => [],
+      overridesFor: async () => ({ PROACTIVE_CHANNELS: value }),
+    };
+    const one: FlagHolderStore = { candidatesFor: async () => ['solo'] };
+    const opts = { store: s, holders: one, env: ON, now: () => t };
+    // Another path (flagForUser) has their 'on' in the per-user cache.
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    t += 1_000;
+    value = 'off';
+    t += 30_000; // first holder rebuild, 30s after the flip, per-user cache still warm
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual([]);
+  });
+
+  it('a stale list stands in for a failed read for at most 5 minutes, then no one', async () => {
+    let t = 1_000_000;
+    let down = false;
+    const one: FlagHolderStore = {
+      candidatesFor: async () => (down ? Promise.reject(new Error('down')) : ['solo']),
+    };
+    const opts = { store: data, holders: one, env: ON, now: () => t };
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual(['solo']);
+    down = true;
+    t += FLAG_STALE_MAX_MS - 1;
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual(['solo']);
+    t += 1;
+    expect(await usersWithFlag('PROACTIVE_CHANNELS', opts)).toEqual([]);
+  });
+
+  it("a person's cached flags stand in for a failed read for at most 5 minutes", async () => {
+    let t = 1_000_000;
+    const overrides = vi.fn(async () => ({ PROACTIVE_CHANNELS: 'on' }));
+    const s: CohortStore = { cohortsFor: async () => [], overridesFor: overrides };
+    const opts = { store: s, env: ON, now: () => t };
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    overrides.mockRejectedValue(new Error('down'));
+    t += FLAG_STALE_MAX_MS - 1;
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBe('on');
+    t += 1;
+    expect(await flagForUser('solo', 'PROACTIVE_CHANNELS', opts)).toBeUndefined();
+  });
+
+  it('a failed holder read finds no one rather than throwing', async () => {
+    const down: FlagHolderStore = { candidatesFor: async () => Promise.reject(new Error('down')) };
+    expect(
+      await usersWithFlag('PROACTIVE_CHANNELS', { store: data, holders: down, env: ON })
+    ).toEqual([]);
+  });
+});
+
+function failing(): CohortStore {
+  return {
+    cohortsFor: async () => Promise.reject(new Error('down')),
+    overridesFor: async () => ({}),
+  };
+}
+
+describe('sampled cohorts', () => {
+  const memory = (percent: number, enabled = true): Cohort => ({
+    id: 'memory-stack',
+    enabled,
+    percent,
+    flags: { SEMANTIC_RECALL: 'on', RECALL_EPISODES: 'on' },
+  });
+
+  it('takes about its percent of callers, the same ones each call', async () => {
+    const picked = callers.filter((u) => inSample(memory(10), u));
+    expect(picked.length).toBeGreaterThan(150);
+    expect(picked.length).toBeLessThan(250);
+    expect(callers.filter((u) => inSample(memory(10), u))).toEqual(picked);
+    const s = store({}, {}, [memory(10)]);
+    expect(await resolveCallerFlags(picked[0] ?? '', s)).toEqual({
+      SEMANTIC_RECALL: 'on',
+      RECALL_EPISODES: 'on',
+    });
+    const left = callers.find((u) => !picked.includes(u)) ?? '';
+    expect(await resolveCallerFlags(left, s)).toEqual({});
+  });
+
+  it('keeps everyone already in when the percent grows, and nobody at 0 or disabled', async () => {
+    const at10 = callers.filter((u) => inSample(memory(10), u));
+    const at25 = callers.filter((u) => inSample(memory(25), u));
+    expect(at10.every((u) => at25.includes(u))).toBe(true);
+    expect(at25.length).toBeGreaterThan(at10.length);
+    expect(callers.filter((u) => inSample(memory(0), u))).toEqual([]);
+    expect(callers.every((u) => inSample(memory(100), u))).toBe(true);
+    expect(await resolveCallerFlags(at10[0] ?? '', store({}, {}, [memory(10, false)]))).toEqual({});
+  });
+
+  it('picks different callers for different cohorts', () => {
+    const other: Cohort = { ...memory(10), id: 'world-facts' };
+    const a = callers.filter((u) => inSample(memory(10), u));
+    const b = callers.filter((u) => inSample(other, u));
+    expect(a.filter((u) => b.includes(u)).length).toBeLessThan(a.length / 2);
+  });
+
+  it('always includes members, and their own overrides still win', async () => {
+    const left = callers.find((u) => !inSample(memory(10), u)) ?? '';
+    const s = store({ [left]: [memory(10)] }, { [left]: { RECALL_EPISODES: 'off' } }, [memory(10)]);
+    expect(await resolveCallerFlags(left, s)).toEqual({
+      SEMANTIC_RECALL: 'on',
+      RECALL_EPISODES: 'off',
+    });
+  });
+});
+
+describe('memory flags', () => {
+  it('a cohort can set the in-call world facts', async () => {
+    const world: Cohort = { id: 'world', enabled: true, flags: { WORLD_FACTS_IN_CALL: 'on' } };
+    expect(await resolveCallerFlags('u', store({ u: [world] }))).toEqual({
+      WORLD_FACTS_IN_CALL: 'on',
+    });
+  });
+});
+
+describe('missingPrerequisites', () => {
+  it('names a memory switch turned on without what it builds on', () => {
+    expect(missingPrerequisites({ RECALL_EPISODES: 'on' })).toEqual([
+      'RECALL_EPISODES needs SEMANTIC_RECALL',
+    ]);
+    expect(missingPrerequisites({ WORLD_FACTS_IN_CALL: 'on' })).toEqual([
+      'WORLD_FACTS_IN_CALL needs WORLD_MODEL_TEMPORAL',
+    ]);
+    expect(
+      missingPrerequisites({
+        SEMANTIC_RECALL: 'on',
+        RECALL_EPISODES: 'on',
+        WORLD_MODEL_TEMPORAL: 'on',
+        WORLD_FACTS_IN_CALL: 'on',
+      })
+    ).toEqual([]);
   });
 });

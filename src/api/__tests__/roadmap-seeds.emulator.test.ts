@@ -3,8 +3,12 @@
  * ledger, on the Firestore emulator. The streak reward reads the server's own ritual
  * streaks: the count the browser posts is ignored (it could be any number).
  */
-import admin from 'firebase-admin';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
+import type { Firestore } from 'firebase-admin/firestore';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+// src/tests/setup.ts fakes firebase-admin for every test; this file reads the emulator
+vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
 
 const streaks = vi.hoisted(() => ({ list: [] as Array<{ currentStreak: number }> }));
 vi.mock('../../services/engagement/engagement-store.js', () => ({
@@ -13,14 +17,13 @@ vi.mock('../../services/engagement/engagement-store.js', () => ({
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-seed-ledger';
-let db: admin.firestore.Firestore;
+let db: Firestore;
 let uid: string;
 let mod: typeof import('../roadmap-seeds.js');
 
 beforeAll(async () => {
   if (!emulator) return;
-  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
-  db = admin.firestore();
+  db = getAdminFirestore();
   mod = await import('../roadmap-seeds.js');
 });
 
