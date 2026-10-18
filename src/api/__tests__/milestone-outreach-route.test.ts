@@ -24,11 +24,15 @@ vi.mock('../../utils/firestore-utils.js', async (importOriginal) => ({
       doc: (userId: string) => ({
         collection: (name: string) =>
           name === 'conversations'
-            ? {
-                select: () => ({
+            ? (() => {
+                const query = {
+                  select: () => query,
+                  orderBy: () => query,
+                  limit: () => query,
                   get: async () => ({ docs: calls.map((d) => ({ data: () => d })) }),
-                }),
-              }
+                };
+                return query;
+              })()
             : {
                 doc: (id: string) => ({
                   create: async (data: Doc) => {
