@@ -24,6 +24,7 @@
  */
 
 import { llm } from '@livekit/agents';
+import { callerUserId } from '../local-search/caller-city.js';
 import { notCalling, ownerRefusal } from '../../../services/messaging/consent-grants.js';
 import { z } from 'zod';
 import {
@@ -535,9 +536,8 @@ export function createCommunicationTools() {
         phoneNumber: z.string().describe('Phone number to call'),
         message: z.string().describe('Message to deliver in the call'),
       }),
-      execute: async ({ phoneNumber, message }, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        return makePhoneCall(phoneNumber, message, userData?.userId);
+      execute: async ({ phoneNumber, message }, opts) => {
+        return makePhoneCall(phoneNumber, message, callerUserId(opts)); // the session's identity
       },
     }),
 

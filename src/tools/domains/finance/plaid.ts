@@ -15,6 +15,7 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { callerUserId } from '../local-search/caller-city.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
@@ -571,7 +572,9 @@ export function createPlaidTools() {
         deliveryMethod: z.enum(['sms', 'email']).describe('How to send the secure link'),
         contact: z.string().describe('Phone number (for SMS) or email address'),
       }),
-      execute: async ({ userId, deliveryMethod, contact }) => {
+      execute: async ({ deliveryMethod, contact }, opts) => {
+        const userId = callerUserId(opts); // the session's verified identity, never the model's
+        if (!userId) return "I can only send the link to the person I'm talking with.";
         const startTime = Date.now();
         getLogger().info({ userId, deliveryMethod }, '>>> TOOL: linkBankAccount STARTED');
 
@@ -743,7 +746,6 @@ export function createPlaidTools() {
           return "You haven't linked a bank account yet. Once you do, I can show you exactly where your money is going and help you find ways to save. Want to link an account?";
         }
 
-        // Calculate date range
         const endDate = new Date();
         const startDate = new Date();
         if (period === 'week') {
@@ -828,7 +830,6 @@ export function createPlaidTools() {
           100
         );
 
-        // Apply filters
         if (merchantFilter) {
           const filter = merchantFilter.toLowerCase();
           transactions = transactions.filter(
@@ -895,7 +896,6 @@ export function createPlaidTools() {
           return "To give you a real financial health checkup, I'd need to see your accounts. Want to link your bank? It's secure and takes just a minute.";
         }
 
-        // Get balances
         const accounts = await getAccountBalances(accessToken);
 
         // Get recent transactions for spending analysis
