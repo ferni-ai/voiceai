@@ -431,6 +431,9 @@ async function handleGetVotes(res: ServerResponse, featureId: string): Promise<b
 // ACCESS CHECK
 // ============================================================================
 
+/** Waitlist statuses that let a person in: approved before waves, admitted by one, or signed in. */
+const ADMITTED_WAITLIST_STATUSES = new Set<unknown>(['approved', 'admitted', 'joined']);
+
 /**
  * Check if authenticated user has app access.
  * Verifies Firebase ID token and checks waitlist/approval status.
@@ -545,12 +548,20 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       }
     }
 
-    if (waitlistDoc.exists && waitlistDoc.data()?.status === 'approved') {
-      // Approved but no profile yet - create one now
-      const grant = { email, uid: decodedToken.uid, tier: 'partner' as const, years: 10 };
+    const waitlisted = waitlistDoc.data();
+    if (waitlistDoc.exists && ADMITTED_WAITLIST_STATUSES.has(waitlisted?.status)) {
+      // Admitted (a wave, or approved before waves) and no profile yet: the free tier plus the
+      // founding-member perk, which replaces the 10-year partner grant (decided 2026-10-18).
+      const foundingWave =
+        typeof waitlisted?.foundingWave === 'number' ? waitlisted.foundingWave : 0;
+      const grant = { email, uid: decodedToken.uid, tier: 'free' as const, foundingWave };
       await grantAccess(db, profileDocId, { ...grant, grantedVia: 'waitlist-approval-auto' });
-      log.info({ email: hashEmail(email) }, 'Auto-created profile for approved waitlist user');
-      sendJson(res, 200, { approved: true, status: 'approved', tier: 'partner', email, referralCode });
+      // A claimed wave seat: 'joined' stops it lapsing back to the pool
+      if (waitlisted?.status === 'admitted') {
+        await waitlistRef.set({ status: 'joined', signedInAt: new Date() }, { merge: true });
+      }
+      log.info({ email: hashEmail(email), foundingWave }, 'Admitted waitlist user let in as a founding member'); // prettier-ignore
+      sendJson(res, 200, { approved: true, status: 'approved', tier: 'free', email, referralCode, foundingMember: true, foundingWave }); // prettier-ignore
       return true;
     }
 
@@ -875,37 +886,39 @@ async function approveUserAndGrantAccess(
     })
   );
 
-  // Grant app access by creating/updating user profile with partner tier
+  // Grant app access: the free tier plus the founding-member perk, which replaces the
+  // 10-year partner grant (decided 2026-10-18). An active subscription keeps its own tier.
   // Use email as a consistent user ID (base64 encoded)
   const userId = docId;
 
   const profileRef = db.collection('user_profiles').doc(userId);
+  const founding = { foundingMember: true, foundingWave: 0, updatedAt: new Date() };
+  const existing = (await profileRef.get()).data() as { subscription?: { status?: string } } | undefined; // prettier-ignore
+  const keepTier = existing?.subscription?.status === 'active';
+  const freeTier = {
+    tier: 'free',
+    status: 'active',
+    subscribedAt: new Date(),
+    inTrial: false,
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+    grantedVia: 'waitlist-approval',
+    monthlyUsage: { conversationCount: 0, minutesTalked: 0, lastUpdated: new Date() },
+  };
   await profileRef.set(
-    cleanForFirestore({
-      email: email.toLowerCase().trim(),
-      phone: waitlistData.phone || null,
-      subscription: {
-        tier: 'partner',
-        status: 'active',
-        subscribedAt: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10), // 10 years
-        inTrial: false,
-        stripeCustomerId: null,
-        stripeSubscriptionId: null,
-        grantedVia: 'waitlist-approval',
-        monthlyUsage: {
-          conversationCount: 0,
-          minutesTalked: 0,
-          lastUpdated: new Date(),
-        },
-      },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }),
+    keepTier
+      ? founding
+      : cleanForFirestore({
+          email: email.toLowerCase().trim(),
+          phone: waitlistData.phone || null,
+          ...founding,
+          subscription: freeTier,
+          createdAt: new Date(),
+        }),
     { merge: true }
   );
 
-  log.info({ email: hashEmail(email), userId }, 'User granted partner tier access');
+  log.info({ email: hashEmail(email), userId }, 'User granted access as a founding member');
 
   // Trigger welcome call or email
   if (waitlistData.phone) {

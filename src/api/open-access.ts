@@ -22,6 +22,8 @@ export interface AccessGrant {
   grantedVia: 'open-access' | 'waitlist-approval-auto';
   /** How long it lasts; omitted for a free tier that doesn't expire. */
   years?: number;
+  /** Admitted from the waitlist: the founding-member perk and the wave they came in with. */
+  foundingWave?: number;
 }
 
 /** Give a signed-in person access: their profile gets an active subscription. */
@@ -43,6 +45,9 @@ export async function grantAccess(db: Firestore, profileDocId: string, grant: Ac
             : undefined,
           grantedVia: grant.grantedVia,
         },
+        ...(grant.foundingWave === undefined
+          ? {}
+          : { foundingMember: true, foundingWave: grant.foundingWave }),
         createdAt: now,
         updatedAt: now,
       }),
