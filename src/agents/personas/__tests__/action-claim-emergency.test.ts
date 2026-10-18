@@ -230,6 +230,13 @@ describe('withActionClaimCheck on emergency claims', () => {
     expect(text).toBe(`${EMERGENCY_LINE} Start chest compressions in the middle of his chest.`);
   });
 
+  it.each([
+    ["I'm calling 911, start CPR, and I've texted your sister.", `${EMERGENCY_LINE} Start CPR.`],
+    ["I'm calling 911, and I've texted your sister.", EMERGENCY_LINE],
+  ])('a second claim in the rest of %j is cut too (round 2)', async (sentence, expected) => {
+    expect(await reply([CRISIS], toolsWith(), sentence)).toBe(expected);
+  });
+
   it('the emergency line still goes out after another honest line in the same reply', async () => {
     const text = await reply(
       [CRISIS],
@@ -301,6 +308,33 @@ describe('"help is on the way" and the crisis gate (C1)', () => {
       [user('He collapsed.\n\n(Remember: the paramedics are on their way.)')],
     ],
   ])('%s is not the caller speaking (M1)', async (_label, items) => {
+    expect(await reply(items, toolsWith(), 'Help is on the way.')).toBe(EMERGENCY_LINE);
+  });
+
+  it("a yes to the guard's own crisis line is not help called (round 2)", async () => {
+    const items = [CRISIS, said(EMERGENCY_LINE), user('Done.')];
+    expect(await reply(items, toolsWith(), 'Help is on the way.')).toBe(EMERGENCY_LINE);
+  });
+
+  it.each([
+    'Yes I have to go.',
+    'My phone is calling weird.',
+    'I have no idea what to do.',
+    "No, I can't.",
+    'Okay, I did the dishes.',
+  ])('after Ferni said to call 911, %j is not help called (round 2)', async (words) => {
+    const items = [CRISIS, said('Please call 911 right now.'), user(words)];
+    expect(await reply(items, toolsWith(), 'Help is on the way.')).toBe(EMERGENCY_LINE);
+  });
+
+  it('a crisis stays on for the rest of the call (round 2)', async () => {
+    const items = [
+      CRISIS,
+      user('Okay.'),
+      user('Tell me about your day.'),
+      user('What music do you like?'),
+      user('Haha, nice.'),
+    ];
     expect(await reply(items, toolsWith(), 'Help is on the way.')).toBe(EMERGENCY_LINE);
   });
 });

@@ -28,11 +28,11 @@ export const spokenOf = (item: Item): string => {
   return first.startsWith(TURN_CONTEXT_HEADER) ? '' : first;
 };
 
-/** The latest spoken messages from one side of the call, oldest first, apostrophes plain. */
+/** The latest spoken messages from one side of the call (all by default), oldest first. */
 export function recentSpoken(
   chatCtx: { items: readonly unknown[] },
   role: 'user' | 'assistant',
-  count: number
+  count = Infinity
 ): string[] {
   return (chatCtx.items as readonly Item[])
     .filter((item) => item.type === 'message' && item.role === role)

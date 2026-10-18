@@ -208,15 +208,19 @@ export function emergencyClaim(sentence: string): 'called' | 'coming' | null {
   return null;
 }
 
-/** The rest of a sentence once its emergency claim is cut ("..., start chest compressions."), or ''. */
+/**
+ * The rest of a sentence once its emergency claim is cut ("..., start chest
+ * compressions."), or ''. A piece that claims another action is cut too.
+ */
 export function emergencyRemainder(sentence: string): string {
   const kept = sentence
     .split(/[,;:—–]\s*|\s+-\s+|\s+(?:and|so|but|then)\s+/i)
-    .map((piece) => piece.trim())
+    .map((piece) => piece.trim().replace(/^(?:and|so|but|then)\s+/i, ''))
     .filter(
       (piece) =>
         piece !== '' &&
         emergencyClaim(piece) === null &&
+        claimedAction(piece) === null &&
         !/^(?:okay|ok|alright|all right|right|sure|yes|yep|on it|i'?m on it|hang on|hold on)\W*$/i.test(
           piece
         )

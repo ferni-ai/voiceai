@@ -12,7 +12,8 @@
  *   the way."). Plenty of light talk says that too ("help is on the way, the
  *   weekend's nearly here", "the fire department is coming to inspect"), so it
  *   is swapped only when the caller's recent words are about an emergency
- *   (crisisInPlay), and stands when the caller said help was already called.
+ *   (crisisInPlay, on for the rest of the call once they are), and stands when
+ *   the caller said help was already called.
  *
  * The patterns read lower-case clauses, before any name is rewritten.
  *
@@ -106,17 +107,21 @@ const CALLED_FOR_HELP = new RegExp(
   'i'
 );
 /** A negation or a question: "I haven't called 911", "nobody's called an ambulance", "is help coming?". */
-const NEGATED = /\b(?:not|never|nobody|no one|noone|no-one)\b|n't\b|\?/i;
+const NEGATED = /\b(?:no|not|never|nobody|no one|noone|no-one|can't|cannot)\b|n't\b|\?/i;
 /** Ferni told the caller to call for help. */
 const TOLD_TO_CALL =
   /\b(?:call|dial|ring|phone) (?:911|9-1-1|988|an ambulance|the police|emergency services)\b/i;
-/** A short yes to that: "okay I did", "done", "they're coming", "my neighbor is calling them". */
-const DID_CALL =
-  /^(?:(?:okay|ok|yes|yeah|yep|alright|all right)\W*)*(?:i did|i have|i(?:'ve)? called|done|did it|they're coming|they are coming|they're on (?:the|their) way|(?:\w+ ){0,2}\w+(?: is| are|'s|'re) calling(?: them| now| 911)*)\b/i;
+/**
+ * The whole reply is a short yes to that: "okay I did", "done", "they're coming",
+ * "my neighbor is calling them". Not "I have no idea" or "my phone is calling weird".
+ */
+const DID_CALL = new RegExp(
+  `^(?:(?:okay|ok|yes|yeah|yep|alright|all right)\\W*)*(?:i did|did it|done|i(?:'ve| have) called(?: them| ${SERVICE})?|they're coming|they are coming|they're on (?:the|their) way|(?:\\w+ ){0,2}\\w+(?: is| are|'s|'re) calling (?:them|${SERVICE})(?: now| right now)?)\\W*$`,
+  'i'
+);
 
-/** How many of the caller's latest messages count. */
+/** How many of the caller's latest messages can say help was already called. */
 const CALLER_WINDOW = 6;
-const CRISIS_WINDOW = 3;
 
 /** True when the caller's latest messages say help was already called, so "help is on the way" may stand. */
 export function helpAlreadyCalled(chatCtx: { items: readonly unknown[] }): boolean {
@@ -128,18 +133,23 @@ export function helpAlreadyCalled(chatCtx: { items: readonly unknown[] }): boole
       .some((clause) => !NEGATED.test(clause) && CALLED_FOR_HELP.test(clause))
   );
   if (said) return true;
-  // "Okay, done." right after Ferni said to call 911.
+  // "Okay, done." right after Ferni said to call 911. Not after the guard's own line: it
+  // says "please call 911" to every emergency claim, so a yes to it proves nothing.
   const items = (chatCtx.items as readonly Item[]).filter((item) => item.type === 'message');
   const last = items[items.length - 1];
   const before = items[items.length - 2];
   if (last?.role !== 'user' || before?.role !== 'assistant') return false;
   const answer = plain(spokenOf(last));
+  const told = plain(spokenOf(before));
   return (
-    TOLD_TO_CALL.test(plain(spokenOf(before))) && !NEGATED.test(answer) && DID_CALL.test(answer)
+    TOLD_TO_CALL.test(told) &&
+    !told.includes(IN_DANGER_NOW) &&
+    !NEGATED.test(answer) &&
+    DID_CALL.test(answer)
   );
 }
 
-/** True when the caller's latest few messages are about an emergency. */
+/** True once any of the caller's messages on this call was about an emergency: it stays on. */
 export function crisisInPlay(chatCtx: { items: readonly unknown[] }): boolean {
-  return recentSpoken(chatCtx, 'user', CRISIS_WINDOW).some((text) => CRISIS.test(text));
+  return recentSpoken(chatCtx, 'user').some((text) => CRISIS.test(text));
 }

@@ -367,7 +367,9 @@ async function checkActionClaims<T>(
             emit(hold ? EMERGENCY_LINE : `Scratch that, ${EMERGENCY_LINE}`);
             crisisSaid = said = lineLast = true;
           }
-          if (hold) emit(emergencyRemainder(text));
+          // Through flush again, so it keeps its place behind any held sentences.
+          const rest = hold ? emergencyRemainder(text) : '';
+          if (rest) flush(rest);
           return;
         }
         if (said || deferred) return;
