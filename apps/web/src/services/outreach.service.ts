@@ -70,7 +70,8 @@ const API_BASE = '/api/outreach';
 class OutreachService {
   private localPreferences: OutreachPreferences = {
     emailEnabled: true,
-    smsEnabled: true,
+    // Off until the server says the user turned texts on (Contact Settings, with the disclosure).
+    smsEnabled: false,
     weeklyRecap: true,
     monthlyRecap: true,
     streakReminders: true,
@@ -282,7 +283,7 @@ class OutreachService {
       // Disabled channels
       const disabled: string[] = [];
       if (prefs.emailEnabled === false) disabled.push('email');
-      if (prefs.smsEnabled === false) disabled.push('sms');
+      // Texts are not in this list: they go on and off only in Contact Settings (allowedChannels).
       if (disabled.length > 0) backendPrefs.disabledChannels = disabled;
 
       const response = await apiPost(`${API_BASE}/preferences`, { preferences: backendPrefs });

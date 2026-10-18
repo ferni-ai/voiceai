@@ -131,6 +131,34 @@ describe('outreach consent mapping', () => {
     expect(consent.proactiveSettingsFrom(junk)).toEqual({});
   });
 
+  it('records proof of consent when texts or calls go on, and revokedAt when they go off', async () => {
+    const how = { disclosureVersion: consent.SMS_DISCLOSURE_VERSION, source: 'web-settings' };
+    users = [user('u1', { outreachPreferences: { channels: [] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms', 'voice_call'] }, how);
+    const granted = (setCalls[0].value as { outreachPreferences: Record<string, unknown> })
+      .outreachPreferences;
+    for (const [field, channel] of [
+      ['smsConsent', 'sms'],
+      ['callConsent', 'call'],
+    ]) {
+      expect(granted[field]).toEqual({
+        grantedAt: expect.stringMatching(/^\d{4}-\d\d-\d\dT/),
+        disclosureVersion: '2026-10-18',
+        source: 'web-settings',
+        channel,
+        revokedAt: null,
+      });
+    }
+
+    users = [user('u1', { outreachPreferences: { channels: ['sms', 'voice_call'] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['voice_call'] }, how);
+    const revoked = (setCalls[1].value as { outreachPreferences: Record<string, unknown> })
+      .outreachPreferences;
+    // Only revokedAt: the merge keeps the original grant on record.
+    expect(revoked.smsConsent).toEqual({ revokedAt: expect.stringMatching(/^\d{4}-/) });
+    expect(revoked).not.toHaveProperty('callConsent'); // unchanged, so untouched
+  });
+
   it('fails loudly when the opt-out cannot be saved', async () => {
     dbAvailable = false;
     await expect(consent.writeOutreachConsent('u1', { enabled: false })).rejects.toThrow();
