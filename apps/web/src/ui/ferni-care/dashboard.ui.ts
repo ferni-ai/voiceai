@@ -276,7 +276,7 @@ const styles = `
   
   .ferni-routine__status--active {
     background: rgba(74, 103, 65, 0.1);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
   }
   
   .ferni-routine__status--paused {
@@ -323,7 +323,7 @@ const styles = `
     width: 80px;
     height: 80px;
     margin: 0 auto var(--space-5, 20px);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
     opacity: 0.4;
   }
   
@@ -382,7 +382,7 @@ const styles = `
   
   .ferni-add-btn:hover {
     border-color: var(--color-ferni, #4a6741);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
     background: rgba(74, 103, 65, 0.02);
   }
   
