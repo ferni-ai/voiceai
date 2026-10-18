@@ -10,7 +10,8 @@
  * forgetTopic marks the caller's facts about the topic as forgotten in both
  * fact collections and records the topic's words, and recall's snapshot
  * (session-recall.ts) leaves out marked facts and any fact or open thread
- * about a recorded topic. By default it never deletes: the tool is called by
+ * about a recorded topic; open follow-ups about it are released
+ * (forget-follow-ups.ts). By default it never deletes: the tool is called by
  * a model, on a confirmation the model itself reports, so a misread request
  * must be recoverable. With FORGET_DELETES=on the facts are deleted instead,
  * with the embeddings they hold and their index copies, except a dynamic fact
@@ -34,6 +35,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
+import { closeForgottenFollowUps } from './forget-follow-ups.js';
 
 export { isForgotten };
 
@@ -114,6 +116,8 @@ export async function forgetTopic(
   await store.addTopic(userId, tokens, topic.trim());
   noteForgotten(userId, tokens);
   bumpForgetGeneration(userId);
+  // Open follow-ups about it close too (best effort; the delivery job checks again).
+  await closeForgottenFollowUps(userId, (text) => isForgotten(text, [tokens]), now);
   const marking = [...matched, ...earlier];
   const deleteFacts = flagOn('FORGET_DELETES', env) ? store.deleteFacts : undefined;
   // Facts that can't be deleted yet are marked, so recall still leaves them out.
