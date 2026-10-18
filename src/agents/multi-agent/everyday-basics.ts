@@ -17,6 +17,8 @@ import { loadToolDomainsLazy } from '../../tools/registry/loader.js';
 import type { ToolContext, ToolDomain } from '../../tools/registry/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { withAlwaysOnInfoTools } from './always-on-info-tools.js';
+import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
+import { withLeanAlwaysOnTools } from './lean-always-on.js';
 
 const log = getLogger();
 
@@ -55,13 +57,15 @@ export async function withEverydayBasics<T>(
 
 /**
  * Every agent's always-on tools before the cap: the info tools (ALWAYS_ON_INFO_TOOLS),
- * and for a persona the caller is handed to, the everyday basics.
+ * and for a persona the caller is handed to, the everyday basics. With
+ * TOOLS_SAME_TURN, the lean always-on set instead (lean-always-on.ts).
  */
 export async function withAlwaysOnTools<T>(
   tools: Record<string, T>,
   ctx: ToolContext,
   handedTo: boolean
 ): Promise<Record<string, T>> {
+  if (sameTurnToolsEnabled()) return withLeanAlwaysOnTools(tools, ctx);
   const withInfo = await withAlwaysOnInfoTools(tools, ctx);
   return handedTo ? withEverydayBasics(withInfo, ctx) : withInfo;
 }
