@@ -165,3 +165,53 @@ describe('finding your own entry', () => {
     expect(s.docs.size).toBe(1);
   });
 });
+
+describe('review fixes', () => {
+  it('several waiting Gmail aliases: the signed-in entry inherits the earliest place, and every alias is retired', async () => {
+    const s = memoryStore(); // returns matches newest first
+    // Website signups typed by anyone (unverified), seeded directly: the join route folds them into one
+    for (const [email, n] of [['j.doe+b@gmail.com', 5], ['jd.oe+a@gmail.com', 2], ['j.d.oe+c@gmail.com', 8]] as const) { // prettier-ignore
+      s.docs.set(waitlistDocId(email), { email, emailCanonical: 'jdoe@gmail.com', status: 'pending', joinedAt: day(n) }); // prettier-ignore
+    }
+    const signedIn = await join(s.store, 'jdoe@gmail.com', 20);
+    expect(signedIn.joinedAtMs).toBe(day(2).getTime());
+    const aliases = [...s.docs.entries()].filter(([id]) => id !== signedIn.id).map(([, d]) => d);
+    expect(aliases.map((d) => d.status)).toEqual(['merged', 'merged', 'merged']);
+    expect([...s.docs.values()].filter((d) => d.inQueue === true)).toHaveLength(1);
+  });
+
+  it('one uid, one entry: binding a uid retires another waiting doc that held it', async () => {
+    const s = memoryStore();
+    const first = await joinWaitlist(s.store, { email: 'a@example.com', uid: 'u9', verified: true, source: 't', now: day(0) }); // prettier-ignore
+    if ('refused' in first) throw new Error();
+    await join(s.store, 'b@example.com', 1, { verified: false }); // a website signup of the same person's other address
+    await joinWaitlist(s.store, { email: 'b@example.com', uid: 'u9', verified: true, source: 't', now: day(2) }); // prettier-ignore
+    expect(s.docs.get(first.entry.id)).toMatchObject({
+      status: 'merged',
+      inQueue: false,
+      uid: null,
+    });
+    expect([...s.docs.values()].filter((d) => d.uid === 'u9')).toHaveLength(1);
+  });
+
+  it('a code that arrives after the first verification never earns credit', async () => {
+    const s = memoryStore();
+    const inviter = await join(s.store, 'inviter@example.com', 0);
+    await join(s.store, 'late@example.com', 1); // verified, no code
+    await s.store.merge(waitlistDocId('late@example.com'), { referralCode: inviter.inviteCode }); // e.g. a later ?referralCode=
+    await join(s.store, 'late@example.com', 2, { ref: inviter.inviteCode });
+    expect((await s.store.get(inviter.id))!.verifiedReferrals).toBe(0);
+  });
+
+  it('a relay inbox may join but earns its inviter no credit', async () => {
+    const s = memoryStore();
+    const inviter = await join(s.store, 'inviter@example.com', 0);
+    const relay = await join(s.store, 'abc123@privaterelay.appleid.com', 1, {
+      ref: inviter.inviteCode,
+    });
+    expect(relay.verified).toBe(true);
+    expect((await s.store.get(inviter.id))!.verifiedReferrals).toBe(0);
+    await join(s.store, 'real@example.com', 2, { ref: inviter.inviteCode });
+    expect((await s.store.get(inviter.id))!.verifiedReferrals).toBe(1);
+  });
+});
