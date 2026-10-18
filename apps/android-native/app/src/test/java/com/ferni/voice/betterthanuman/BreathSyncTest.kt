@@ -44,9 +44,10 @@ class BreathSyncConfigTest {
 
     @Test
     fun `heartbeat cycle matches resting heart rate`() {
-        // 1.8s cycle = ~66 BPM (typical resting heart rate)
-        val bpm = 60.0 / PixarTiming.HEARTBEAT_CYCLE
-        assertTrue("BPM should be in resting range", bpm in 50.0..80.0)
+        // Each 1.8s cycle is a lub-dub (two beats, VoiceOrb's heartbeat ring), so ~66 BPM
+        val beatsPerCycle = 2
+        val bpm = 60.0 * beatsPerCycle / PixarTiming.HEARTBEAT_CYCLE
+        assertTrue("BPM should be in resting range, was $bpm", bpm in 50.0..80.0)
     }
 
     // MARK: - Breath Rate Bounds Tests

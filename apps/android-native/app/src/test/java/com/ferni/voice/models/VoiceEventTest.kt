@@ -151,8 +151,13 @@ class EmotionHintTest {
 
     @Test
     fun `all emotion hints exist`() {
-        val hints = EmotionHint.entries
-        assertEquals(6, hints.size)
+        val expected = setOf(
+            EmotionHint.HAPPY, EmotionHint.EXCITED, EmotionHint.CURIOUS, EmotionHint.EMPATHETIC,
+            EmotionHint.ENCOURAGING, EmotionHint.NEUTRAL, EmotionHint.THINKING, EmotionHint.CALM
+        )
+        // Every hint is accounted for: adding one without a test fails here
+        assertEquals(expected, EmotionHint.entries.toSet())
+        assertEquals(expected.size, EmotionHint.entries.size)
     }
 
     @Test
