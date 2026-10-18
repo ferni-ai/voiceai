@@ -14,6 +14,7 @@
  * TURN_SHAPE=off falls back to the single reminder (turn-style.ts); the default,
  * model, lets the model judge the shape (modelChosenShape); TURN_SHAPE=dice draws it.
  * CANDOR=on fits the stance line to the moment instead of drawing it (turn-candor.ts).
+ * TROUBLES_TALK=on adds how a friend listens to a trouble (troubles-talk.ts).
  *
  * @module agents/personas/turn-shape
  */
@@ -24,6 +25,13 @@ import { playfulLine, playfulOpen, SUBSTANCE_FIRST } from './ferni-playful.js';
 import { listeningLines, type ListeningCues } from './listen-first.js';
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
+import {
+  lengthCap,
+  SHARE_LINES,
+  telling,
+  tellingLengthLine,
+  withTrouble,
+} from './troubles-talk.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
 import {
   lengthLearned,
@@ -246,6 +254,11 @@ function noQuestion(ownStory: boolean | undefined): string {
   return ownStory ? QUESTION_LINE.noneUnlessOwn : QUESTION_LINE.noneOnThem;
 }
 
+/** The no-question line; during a trouble (TROUBLES_TALK=on) it invites nothing of his own. */
+function noQuestionFor(sig: TurnSignals): string {
+  return sig.trouble ? QUESTION_LINE.noneOnThem : noQuestion(sig.ownStory);
+}
+
 export interface TurnShape {
   move: CallerMove;
   shape: Shape;
@@ -328,8 +341,17 @@ function modelChosenShape(
   const parts = [registerFor(sig)];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   else if (sig.answered) parts.push(TAKE_UP_ANSWER);
-  else if (move === 'share' && !sig.careful && rng() < 0.3 && sig.ownStory !== false)
+  else if (
+    move === 'share' &&
+    !sig.careful &&
+    rng() < 0.3 &&
+    sig.ownStory !== false &&
+    !sig.trouble
+  )
     parts.push(SECOND_STORY);
+  // TROUBLES_TALK=on (troubles-talk.ts): unset when off.
+  const sharing = sig.trouble !== undefined && move === 'share';
+  if (sharing) parts.push(...SHARE_LINES);
   const stance = stanceFor(
     userText,
     move,
@@ -352,9 +374,12 @@ function modelChosenShape(
   const asks = rng() < 0.25;
   const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
   parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
-  if (learn.length) parts.push(lengthLine(target));
+  // No longer than what they just told: carried by the learned length line when that is on.
+  const cap = sharing && telling(userText, move) ? lengthCap(userText) : 0;
+  if (learn.length) parts.push(lengthLine(cap ? Math.min(target, cap) : target));
+  else if (cap) parts.push(tellingLengthLine(cap));
   if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
-  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory)));
+  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestionFor(sig)));
   const learned = [
     learn.length ? `length_${target}` : '',
     texture ? `texture_${texture.kind}` : '',
@@ -375,7 +400,7 @@ export function turnShapeFor(
   signals?: TurnSignals,
   style: StyleProfile = NEUTRAL_STYLE
 ): TurnShape {
-  const sig = signals ?? regexSignals(userText, callerMove(userText));
+  const sig = withTrouble(userText, signals ?? regexSignals(userText, callerMove(userText)));
   if (mode === 'model') return modelChosenShape(userText, rng, sig, style);
   const move = sig.move;
   const shape = pickShape(move, rng, style.replyLength);
@@ -394,9 +419,12 @@ export function turnShapeFor(
     shape !== 'react' &&
     !sig.careful &&
     rng() < 0.3 &&
-    sig.ownStory !== false
+    sig.ownStory !== false &&
+    !sig.trouble
   )
     parts.push(SECOND_STORY);
+  const sharing = sig.trouble !== undefined && move === 'share';
+  if (sharing) parts.push(...SHARE_LINES);
   const stance = stanceFor(
     userText,
     move,
@@ -410,10 +438,9 @@ export function turnShapeFor(
   const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig, style);
   parts.push(...extras.lines);
   if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
-  parts.push(
-    extras.shapeLine ?? SHAPE_LINE[shape],
-    extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory))
-  );
+  parts.push(extras.shapeLine ?? SHAPE_LINE[shape]);
+  if (sharing && telling(userText, move)) parts.push(tellingLengthLine(lengthCap(userText)));
+  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestionFor(sig)));
   return {
     move,
     shape,

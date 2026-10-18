@@ -27,6 +27,10 @@ const SERVER_FLAGS = [
   'JOURNAL_ONE_STORE=on',
   'CALL_HOURS_GUARD=on',
   'FAMILY_CHECKIN_STOP=on',
+  // Check-ins: the jobs run, but each sends only to people whose own flag is on (Seth, 2026-10-17).
+  'COHORT_FLAGS=on',
+  'PROACTIVE_CHANNELS=on',
+  'FOLLOW_THROUGH_JOB=on',
 ];
 
 /** The `--set-env-vars` value of the workflow's john-bogle-ui deploy, split on its `::` delimiter. */
