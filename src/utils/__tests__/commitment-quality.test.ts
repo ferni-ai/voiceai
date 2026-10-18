@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { actionableCommitment, isActionableCommitment } from '../commitment-quality.js';
+import {
+  actionableCommitment,
+  commitmentAction,
+  isActionableCommitment,
+  toSecondPerson,
+} from '../commitment-quality.js';
 
 describe('isActionableCommitment', () => {
   const rejected = [
@@ -83,5 +88,29 @@ describe('actionableCommitment', () => {
     expect(actionableCommitment('  send Mindy the photos ', { person: 'Sam' })).toBe(
       'send Mindy the photos'
     );
+  });
+});
+
+describe('commitmentAction', () => {
+  it('is null for what judgeCommitment rejects', () => {
+    expect(commitmentAction("I'll catch you later.")).toBeNull();
+    expect(commitmentAction("I'll call her tomorrow.")).toBeNull();
+  });
+
+  it('takes off the lead-in, fillers and trailing punctuation, and keeps their words', () => {
+    expect(commitmentAction("Yeah so I'm gonna just email the landlord, I guess.")).toBe(
+      'email the landlord'
+    );
+    expect(commitmentAction('I need to see my doctor next week!!')).toBe('see my doctor next week');
+    expect(commitmentAction('off to dinner with my sister')).toBe('off to dinner with my sister');
+  });
+});
+
+describe('toSecondPerson', () => {
+  it('turns their first person into "you", whole words only', () => {
+    expect(toSecondPerson('call my mom and tell her I miss her')).toBe(
+      'call your mom and tell her you miss her'
+    );
+    expect(toSecondPerson('mymail cleanup')).toBe('mymail cleanup');
   });
 });

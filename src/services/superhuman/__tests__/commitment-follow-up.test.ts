@@ -8,6 +8,7 @@ import {
   loadCallCheckIns,
   pickForCall,
   toOpenCommitment,
+  youSaidYoud,
   type CommitmentStore,
   type OpenCommitment,
 } from '../commitment-follow-up.js';
@@ -43,10 +44,10 @@ describe('toOpenCommitment', () => {
     followUpCount: 1,
   };
 
-  it('reads the fields commitment-keeper writes', () => {
+  it('reads the fields commitment-keeper writes, the statement without its lead-in', () => {
     expect(toOpenCommitment('c9', doc)).toEqual({
       id: 'c9',
-      statement: "I'll start running three mornings a week.",
+      statement: 'start running three mornings a week',
       createdAt: NOW - DAY,
       followUpAfter: NOW + 2 * DAY,
       followUpCount: 1,
@@ -62,6 +63,22 @@ describe('toOpenCommitment', () => {
     ]) {
       expect(toOpenCommitment('c', { ...doc, statement })).toBeNull();
     }
+  });
+
+  it('cleans the stored line the same way for every reader', () => {
+    const said = (statement: string) => toOpenCommitment('c', { ...doc, statement })?.statement;
+    expect(said("Okay, I'm going to call my sister Sunday!")).toBe('call my sister Sunday');
+    expect(said("I'll probably send Mindy the photos lol")).toBe('send Mindy the photos');
+    expect(said("I'm going to the gym tonight.")).toBe('go to the gym tonight');
+    expect(said('Finish the deck by Friday.')).toBe('Finish the deck by Friday');
+  });
+
+  it('says it back to them in the second person', () => {
+    const c = toOpenCommitment('c', {
+      ...doc,
+      statement: "I'll call my mom and tell her I'm sorry",
+    });
+    expect(c && youSaidYoud(c)).toBe("you'd call your mom and tell her you're sorry");
   });
 
   it('skips completed commitments and ones without a creation time', () => {

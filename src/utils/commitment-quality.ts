@@ -189,3 +189,48 @@ export function actionableCommitment(
 export function isActionableCommitment(statement: string, context?: CommitmentContext): boolean {
   return judgeCommitment(statement, context).ok;
 }
+
+const LEAD_IN_ANY_CASE = new RegExp(LEAD_IN.source, 'i');
+const FILLER_LEAD_ANY_CASE = new RegExp(FILLER_LEAD.source, 'i');
+const OPENER = /^(?:(?:ok(?:ay)?|alright|well|so|yeah|and|but|honestly)\b[,\s]*)+/i;
+const TRAILER =
+  /(?:[\s,;:.!?"]+|[,\s]+(?:lol|haha|i guess|i think|or something|or whatever|anyway))+$/i;
+
+/**
+ * What they said they'd do, in their words without the "I'll" / "I'm going
+ * to" in front or the "lol" and punctuation behind, for every reader to show:
+ * "Okay, I'm going to call my sister Sunday!" is "call my sister Sunday", and
+ * "I'm going to the gym" is "go to the gym". Null when judgeCommitment
+ * rejects it.
+ */
+export function commitmentAction(statement: string): string | null {
+  if (!judgeCommitment(statement).ok) return null;
+  const text = statement.replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim();
+  const lead = LEAD_IN_ANY_CASE.exec(text);
+  const after = lead ? text.slice(lead.index + lead[0].length) : text.replace(OPENER, '');
+  let rest = after.replace(FILLER_LEAD_ANY_CASE, '').replace(TRAILER, '');
+  const lower = rest.toLowerCase();
+  if (lead && /(?:going|heading|headed) to\s+$/i.test(lead[0])) {
+    if (!hasAction(parse(`i will ${lower}`), lower, false)) rest = `go to ${rest}`;
+  }
+  return rest === '' ? text.replace(TRAILER, '') : rest;
+}
+
+const TO_YOU: Record<string, string> = {
+  i: 'you',
+  "i'm": "you're",
+  "i'll": "you'll",
+  "i've": "you've",
+  me: 'you',
+  my: 'your',
+  mine: 'yours',
+  myself: 'yourself',
+};
+
+/** commitmentAction's words as said back to them: "call my sister" is "call your sister". */
+export function toSecondPerson(action: string): string {
+  return action.replace(
+    /\b(?:i'm|i'll|i've|i|me|my|mine|myself)\b/gi,
+    (w) => TO_YOU[w.toLowerCase()] ?? w
+  );
+}

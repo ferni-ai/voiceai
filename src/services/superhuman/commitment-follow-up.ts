@@ -12,7 +12,7 @@
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { isActionableCommitment } from '../../utils/commitment-quality.js';
+import { commitmentAction, toSecondPerson } from '../../utils/commitment-quality.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -28,6 +28,7 @@ export function coachFollowThroughMode(
 /** The fields of a stored commitment this module reads (commitment-keeper.ts). */
 export interface OpenCommitment {
   id: string;
+  /** What they said they'd do, lead-in and trailing filler off ("call my sister Sunday"). */
   statement: string;
   createdAt: number;
   targetDate?: number;
@@ -45,10 +46,12 @@ const STALE_AFTER_MS = 30 * DAY_MS;
 /** Next follow-up after one is made. */
 const NEXT_FOLLOW_UP_MS = 3 * DAY_MS;
 
-// The store holds sign-offs and lines no one can act on ("I need to go", "I'll
-// call her tomorrow"), written before the writers checked: every reader of open
-// commitments (the call check-in, the push, the proactive tick, the morning
-// brief) comes through here, so they are not shown.
+// Every reader of open commitments (the call check-in, the push, the proactive
+// tick, the follow-through import, the morning brief) comes through here, so
+// this is where a stored line is cleaned up ("I'm going to call my sister
+// Sunday!" is "call my sister Sunday") and where sign-offs and lines no one can
+// act on ("I need to go", "I'll call her tomorrow"), stored before the writers
+// checked, are left out.
 const MIN_WORDS = 4;
 
 function num(v: unknown): number | undefined {
@@ -58,8 +61,9 @@ function num(v: unknown): number | undefined {
 /** A stored document as an open commitment, or null when it isn't one worth asking about. */
 export function toOpenCommitment(id: string, d: Record<string, unknown>): OpenCommitment | null {
   if (d.status !== 'active') return null;
-  const statement = String(d.statement ?? d.summary ?? '').trim();
-  if (statement.split(/\s+/).length < MIN_WORDS || !isActionableCommitment(statement)) return null;
+  const said = String(d.statement ?? d.summary ?? '').trim();
+  const statement = said.split(/\s+/).length < MIN_WORDS ? null : commitmentAction(said);
+  if (statement === null) return null;
   const createdAt = num(d.createdAt);
   if (createdAt === undefined) return null;
   const targetDate = num(d.targetDate);
@@ -98,6 +102,11 @@ export function pickForCall(all: OpenCommitment[], now: number, limit = 2): Open
     .filter((c) => askableOnCall(c, now))
     .sort((a, b) => rank(a) - rank(b) || b.createdAt - a.createdAt)
     .slice(0, limit);
+}
+
+/** "you'd call your sister Sunday": the commitment said back to them. */
+export function youSaidYoud(c: OpenCommitment): string {
+  return `you'd ${toSecondPerson(c.statement)}`;
 }
 
 function daysAgo(ms: number): string {

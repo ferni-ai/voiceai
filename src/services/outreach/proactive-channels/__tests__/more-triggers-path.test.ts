@@ -141,7 +141,7 @@ describe('what they said they would do (COACH_FOLLOW_THROUGH)', () => {
     seedCommitment();
     await runHandler();
     expect(texts).toEqual([
-      'Hey, it\'s Ferni. Last time you said: "I will send the resume to Dana by Thursday". How did it go?',
+      "Hey, it's Ferni. Last time you said you'd send the resume to Dana by Thursday. How did it go?",
     ]);
     expect(docs.get(`bogle_users/${SETH}/commitments/c1`)).toMatchObject({
       followUpCount: 1,
