@@ -59,6 +59,8 @@ export const COHORT_FLAGS = [
   'WORLD_FACTS_IN_CALL',
   'POST_CALL_CHECKIN',
   'FOLLOW_THROUGH_TEXTS',
+  // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.
+  'FOLLOW_THROUGH_OPENER',
   'OUTREACH_PONDERED_NOTES',
   // Read once the agent is set up, on a turn or at a handoff: after applyCallerFlags
   // (docs/runbooks/cohort-rollout.md has the read sites).
@@ -68,6 +70,8 @@ export const COHORT_FLAGS = [
   'PHONE_GOODBYE',
   'HAPPY_EXITS',
   'HANDOFF_TALK_THROUGH',
+  // Read once the greeting's handlers are wired (greeting-wiring.ts), after applyCallerFlags.
+  'HANDOFF_FIRST_FIX',
   'NAME_CORRECTION',
   'ROOM_GUESTS',
   'BARGE_IN_ACK_WORDS',
@@ -88,6 +92,9 @@ export const COHORT_FLAGS = [
   'WEEKLY_PREDICTION',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
+  // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
+  // (services/outreach/morning-brief/brief-job.ts).
+  'MORNING_BRIEF',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
