@@ -33,14 +33,17 @@ env:
 
 jobs:
   # ============================================================================
-  # ROLLBACK VOICE AGENT (GCE)
+  # ROLLBACK VOICE AGENT (LiveKit Cloud): manual, by design
   # ============================================================================
-  # Voice agent runs on GCE, NOT Cloud Run. Cloud Run voiceai-agent was deleted
-  # on 2026-02-24 because it created zombie LiveKit workers that stole jobs.
-  # Use `ferni deploy gce` or `ferni rollback gce` for voice agent operations.
+  # The voice agent runs on LiveKit Cloud (prod agent CA_GeFvEpsNXLSF in project
+  # ferni-prod). The GCE VM voiceai-agent-gce no longer runs, and the ferni
+  # CLI's agent rollback refuses (#1730). A rollback restarts the agent and cuts live callers
+  # off, so a person checks rooms=0 and runs `lk agent rollback`. The gated
+  # chain is in .claude/skills/deploy-agent/SKILL.md. This job prints the steps
+  # and fails so the run is never reported as a completed rollback.
   # ============================================================================
   rollback-voice-agent:
-    name: Rollback Voice Agent (GCE)
+    name: Rollback Voice Agent (LiveKit Cloud, manual)
     runs-on: ubuntu-latest
     if: ${{ inputs.service == 'voice-agent' || inputs.service == 'all' }}
     outputs:
@@ -48,23 +51,31 @@ jobs:
       new_revision: ${{ steps.rollback.outputs.revision }}
 
     steps:
-      - name: ⛔ Voice agent rollback requires GCE (not Cloud Run)
+      - name: ⛔ Voice agent rollback is manual (lk agent rollback)
         id: rollback
+        env:
+          TARGET: ${{ inputs.target }}
         run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "⛔ Voice agent runs on GCE, not Cloud Run"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "The Cloud Run voiceai-agent service was deleted because it created"
-          echo "zombie LiveKit workers that stole jobs from the GCE agent."
-          echo ""
-          echo "To rollback the voice agent, use:"
-          echo "  ferni rollback gce"
-          echo ""
-          echo "GCE instance: voiceai-agent-gce (34.134.186.63)"
-          echo ""
-          echo "previous=gce-rollback-required" >> $GITHUB_OUTPUT
-          echo "revision=gce-rollback-required" >> $GITHUB_OUTPUT
+          {
+            echo "## ⛔ Voice agent rollback is manual"
+            echo ""
+            echo "Run from a clean checkout of origin/main. Full gated chain: .claude/skills/deploy-agent/SKILL.md"
+            echo ""
+            echo '```bash'
+            echo 'P=ferni-prod; C="$(git rev-parse --show-toplevel)/livekit.prod-cloud.toml"   # absolute path'
+            echo 'lk agent versions --project $P --config "$C"    # find the last good version id'
+            echo ''
+            echo '# Rule: rooms must be 0 first; a rollback restarts the agent and cuts live callers off.'
+            echo 'ROOMS=$(lk room list --project $P 2>&1) \'
+            echo '  && echo "$ROOMS" | grep -q "Using project \[$P\]" \'
+            echo '  && [ "$(echo "$ROOMS" | grep -c "│ RM_")" = 0 ] \'
+            echo "  && lk agent rollback --project \$P --config \"\$C\" --version ${TARGET:-<id>}"
+            echo ''
+            echo 'lk agent versions --project $P --config "$C"    # ✓ Production must show that version'
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "previous=manual-rollback-required" >> $GITHUB_OUTPUT
+          echo "revision=manual-rollback-required" >> $GITHUB_OUTPUT
           exit 1
 
   # ============================================================================
