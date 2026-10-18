@@ -4,8 +4,8 @@
  * GET /api/cognitive/memories read profile.personaMemories, which is on 0 of 46
  * real profiles (prod audit 2026-10-18), so the panel was empty for everyone.
  * It now reads the facts live recall reads (bogle_users/{uid}/dynamic_facts,
- * through memory-control.ts, the same as /api/memories/remembered), reused for
- * LEARNED_CACHE_MS. It also used to send `knowledgeScore`, a number nothing
+ * through memory-control.ts, the same as /api/memories/remembered), read through
+ * on every request. It also used to send `knowledgeScore`, a number nothing
  * measured; that stays gone.
  *
  * Real HTTP through the real route and the real memory-control filters; only
@@ -46,7 +46,6 @@ vi.mock('../../memory/profile-store.js', () => ({
 vi.mock('../../memory/store-factory.js', () => ({ getStore: async () => profileStore }));
 
 const { handleMemoriesRoutes } = await import('../routes/memories.js');
-const { clearLearnedCache, LEARNED_CACHE_MS } = await import('../routes/learned-facts.js');
 
 let server: Server;
 let base = '';
@@ -75,7 +74,6 @@ const fact = (id: string, entityName: string, key: string, value: string): Fact 
 });
 
 beforeEach(() => {
-  clearLearnedCache();
   facts.clear();
   facts.set('u1', [
     fact('f1', 'Biscuit', 'breed', 'golden retriever'),
@@ -116,17 +114,10 @@ describe('GET /api/cognitive/memories', () => {
     expect(factStore.facts).not.toHaveBeenCalledWith('u1');
   });
 
-  it('reuses the list until the cache expires, then reads again', async () => {
-    const t0 = Date.now();
-    const now = vi.spyOn(Date, 'now').mockReturnValue(t0);
+  it('reads the store on every request, so a fact learned since shows at once', async () => {
     await learned('u1');
     facts.get('u1')!.push(fact('f3', 'user', 'sport', 'climbing'));
 
-    now.mockReturnValue(t0 + LEARNED_CACHE_MS - 1);
-    expect(contents(await learned('u1'))).not.toContain('sport: climbing');
-    expect(factStore.facts).toHaveBeenCalledTimes(1);
-
-    now.mockReturnValue(t0 + LEARNED_CACHE_MS + 1);
     expect(contents(await learned('u1'))).toContain('sport: climbing');
     expect(factStore.facts).toHaveBeenCalledTimes(2);
   });

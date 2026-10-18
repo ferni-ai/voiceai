@@ -5,7 +5,7 @@
  * reported success, and the list was sent with `private, max-age=60`, so a
  * forgotten memory could reappear. The list is now the facts live recall reads
  * (dynamic_facts, memory-control.ts), so forgetting one here is forgetting it
- * for the next call too; the route's own short cache must drop it at once.
+ * for the next call too, and the list (never cached) drops it at once.
  *
  * Real HTTP through the real route and the real memory-control; only the
  * Firestore fact store is faked (in memory) so a write failure can be injected.
@@ -43,7 +43,6 @@ vi.mock('../../memory/profile-store.js', () => ({
 vi.mock('../../memory/store-factory.js', () => ({ getStore: async () => profileStore }));
 
 const { handleMemoriesRoutes } = await import('../routes/memories.js');
-const { clearLearnedCache } = await import('../routes/learned-facts.js');
 
 let server: Server;
 let base = '';
@@ -79,7 +78,6 @@ const fact = (id: string, value: string, extractedAt?: string): Fact => ({
 beforeEach(() => {
   db.facts.clear();
   db.failWrites = false;
-  clearLearnedCache();
   db.facts.set('u1', [fact('keep', 'jazz', '2026-10-01T00:00:00.000Z'), fact('gone', 'oat milk')]);
   db.facts.set('owner', [fact('theirs', 'private thing')]);
 });
@@ -136,7 +134,6 @@ describe('forget this memory', () => {
     expect(del.status).toBe(500);
     expect(((await del.json()) as { success?: boolean }).success).not.toBe(true);
     db.failWrites = false;
-    clearLearnedCache();
     expect(await ids('u1')).toContain('gone');
   });
 
