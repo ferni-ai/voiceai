@@ -44,7 +44,6 @@ export {
   getGoogleApisClient,
   getWikipediaClient,
   getHomeAssistantClient,
-  getHueClient,
   getLifxClient,
   getSmartThingsClient,
 } from './resilient-http.js';

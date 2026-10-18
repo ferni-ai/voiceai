@@ -549,7 +549,6 @@ let _alphaVantageClient: ResilientClient | null = null;
 let _googleApisClient: ResilientClient | null = null;
 let _wikipediaClient: ResilientClient | null = null;
 let _homeAssistantClient: ResilientClient | null = null;
-let _hueClient: ResilientClient | null = null;
 let _lifxClient: ResilientClient | null = null;
 let _smartThingsClient: ResilientClient | null = null;
 
@@ -604,17 +603,6 @@ export function getHomeAssistantClient(): ResilientClient {
     });
   }
   return _homeAssistantClient;
-}
-
-export function getHueClient(): ResilientClient {
-  if (!_hueClient) {
-    _hueClient = createResilientClient('philips-hue', {
-      timeout: HTTP_TIMEOUT_MS,
-      maxRetries: MAX_RETRIES_LIGHT,
-      failureThreshold: 3,
-    });
-  }
-  return _hueClient;
 }
 
 export function getLifxClient(): ResilientClient {

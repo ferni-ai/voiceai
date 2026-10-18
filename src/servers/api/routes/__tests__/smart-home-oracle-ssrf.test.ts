@@ -145,13 +145,22 @@ describe('bridgeIp guard (SSRF)', () => {
 });
 
 describe('no decryption oracle', () => {
-  it('hue and lifx saves refuse an enc_ credential', async () => {
+  it('the Hue save guard refuses an enc_ username for being encrypted', () => {
+    // The app-key pattern (no underscore) would also reject it; check the guard itself.
+    expect(guards.hueSaveInput('uid-A', { bridgeIp: '192.168.1.2', username: 'enc_abc' })).toEqual({
+      status: 400,
+      error: 'username must not be an encrypted value',
+    });
+  });
+
+  it('hue and lifx saves refuse an enc_ credential over HTTP', async () => {
     const stolen = await encryptSensitive('victim-secret');
     const hue = await post('/api/smart-home/hue/save', {
       bridgeIp: '192.168.1.2',
       username: stolen,
     });
     const lifx = await post('/api/smart-home/lifx/save', { token: stolen });
+    expect(await lifx.json()).toMatchObject({ error: 'token must not be an encrypted value' });
     expect([hue.status, lifx.status]).toEqual([400, 400]);
     expect(state.docs.size).toBe(0);
   });
@@ -182,17 +191,31 @@ describe('no decryption oracle', () => {
     expect(await creds.getCredential('uid-A', 'lifx')).toBeNull();
   });
 
-  it('legacy ciphertext without AAD still opens; the next agent save re-encrypts it with AAD', async () => {
-    state.docs.set('bogle_users/uid-A/smart_home/lifx', {
-      token: await encryptSensitive('legacy-token'),
-    });
-    expect(await creds.getCredential('uid-A', 'lifx')).toEqual({ token: 'legacy-token' });
-    await creds.saveCredential('uid-A', 'lifx', { token: 'legacy-token' });
+  it('a no-AAD ciphertext (e.g. an MCP or OAuth secret) does not open in a smart_home doc', async () => {
+    const noAad = await encryptSensitive('some-other-secret');
+    state.docs.set('bogle_users/uid-A/smart_home/lifx', { token: noAad });
+    expect(await creds.getCredential('uid-A', 'lifx')).toBeNull();
+    expect(await routes.getCredentials('uid-A', 'lifx')).toBeNull();
+    await expect(
+      decryptSensitive(noAad, creds.smartHomeAad('uid-A', 'lifx', 'token'))
+    ).rejects.toThrow();
+    // What the agent writes now is bound, and opens only with its AAD.
+    await creds.saveCredential('uid-A', 'lifx', { token: 'new-token' });
     const token = state.docs.get('bogle_users/uid-A/smart_home/lifx')!.token as string;
-    await expect(decryptSensitive(token)).rejects.toThrow();
     expect(await decryptSensitive(token, creds.smartHomeAad('uid-A', 'lifx', 'token'))).toBe(
-      'legacy-token'
+      'new-token'
     );
+  });
+
+  it('one unreadable field blanks only its own integration', async () => {
+    await creds.saveCredential('uid-A', 'lifx', { token: 'good-lifx-token' });
+    state.docs.set('bogle_users/uid-A/smart_home/hue', {
+      bridgeIp: '192.168.1.2',
+      username: await encryptSensitive('x', 'someone-else/smart_home/hue/username'),
+    });
+    const all = await creds.getUserSmartHomeCredentials('uid-A');
+    expect(all.hue).toBeNull();
+    expect(all.lifx).toEqual({ token: 'good-lifx-token', connectedAt: expect.any(String) });
   });
 });
 
@@ -216,5 +239,39 @@ describe('saves use only the verified caller', () => {
     );
     expect(res.status).toBe(401);
     expect(state.docs.size).toBe(0);
+  });
+});
+
+describe('HomeKit command-complete uses only the verified caller', () => {
+  const pending = (uid: string) => `bogle_users/${uid}/homekit/commands/pending/c1`;
+  const complete = (body: object, authorization?: string) =>
+    realFetch(`${base}/api/smart-home/homekit/command-complete`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(authorization ? { authorization } : {}) },
+      body: JSON.stringify(body),
+    });
+
+  it("ignores body.userId: completes only the verified caller's command", async () => {
+    state.docs.set(pending('victim'), { deviceId: 'd', action: 'on', timestamp: 1 });
+    state.docs.set(pending('uid-A'), { deviceId: 'd', action: 'on', timestamp: 1 });
+    const res = await complete(
+      { userId: 'victim', commandId: 'c1', success: true },
+      'Bearer tok-A'
+    );
+    expect(res.status).toBe(200);
+    expect(state.docs.has(pending('victim'))).toBe(true);
+    expect(state.docs.has(pending('uid-A'))).toBe(false);
+    expect(state.docs.get('bogle_users/uid-A/homekit/commands/history/c1')).toMatchObject({
+      success: true,
+    });
+  });
+
+  it('refuses an unverified bearer token or none at all', async () => {
+    state.docs.set(pending('victim'), { deviceId: 'd', action: 'on', timestamp: 1 });
+    for (const auth of ['Bearer not-a-real-token', undefined]) {
+      const res = await complete({ userId: 'victim', commandId: 'c1', success: true }, auth);
+      expect(res.status).toBe(401);
+    }
+    expect(state.docs.has(pending('victim'))).toBe(true);
   });
 });
