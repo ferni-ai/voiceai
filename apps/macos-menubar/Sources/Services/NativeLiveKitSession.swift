@@ -213,7 +213,7 @@ class NativeLiveKitSession: ObservableObject {
         sessionLog.info("Fetching token...")
         guard let tokenData = await fetchToken() else {
             sessionLog.error("Failed to fetch token")
-            state = .error(FerniAccount.shared.isSignedIn ? "Failed to get token" : "Sign in to talk to Ferni")
+            state = .error("Failed to get token")
             return
         }
 
@@ -402,10 +402,29 @@ class NativeLiveKitSession: ObservableObject {
     private func fetchToken() async -> TokenResponse? {
         let room = "ferni-\(UUID().uuidString.prefix(8))"
         let username = "user-\(UUID().uuidString.prefix(8))"
+        let tokenUrl = "\(tokenServer)/token?room=\(room)&username=\(username)&persona_id=\(currentPersonaId)"
+
+        sessionLog.debug("Token request URL: \(tokenUrl)")
+
+        guard let url = URL(string: tokenUrl) else {
+            sessionLog.error("Invalid token URL: \(tokenUrl)")
+            return nil
+        }
+
         do {
-            // Signed-in request: /token refuses callers without a Firebase ID token
-            let data = try await FerniAccount.shared.voiceToken(
-                server: tokenServer, room: room, username: username, personaId: currentPersonaId)
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            if let httpResponse = response as? HTTPURLResponse {
+                sessionLog.debug("Token response status: \(httpResponse.statusCode)")
+                if httpResponse.statusCode != 200 {
+                    sessionLog.error("Token request failed with status \(httpResponse.statusCode)")
+                    if let bodyStr = String(data: data, encoding: .utf8) {
+                        sessionLog.error("Response body: \(bodyStr)")
+                    }
+                    return nil
+                }
+            }
+
             var tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data)
             sessionLog.debug("Token decoded - LiveKit URL: \(tokenResponse.url)")
 
@@ -415,7 +434,7 @@ class NativeLiveKitSession: ObservableObject {
             }
             return tokenResponse
         } catch {
-            sessionLog.error("Token fetch error: \(String(describing: error))")
+            sessionLog.error("Token fetch error: \(error.localizedDescription)")
             return nil
         }
     }

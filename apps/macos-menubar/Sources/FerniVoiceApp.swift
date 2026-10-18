@@ -280,6 +280,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func showContextMenu() {
         let menu = NSMenu()
+        
         // Current persona indicator - colored circle with persona color
         let currentPersona = voiceManager.currentPersona
         let headerItem = NSMenuItem(title: currentPersona.name, action: nil, keyEquivalent: "")
@@ -289,8 +290,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         headerItem.image = headerIcon?.withSymbolConfiguration(headerConfig)
         headerItem.isEnabled = false
         menu.addItem(headerItem)
-        menu.addItem(NSMenuItem.separator())
-        for item in FerniAccount.shared.menuItems() { menu.addItem(item) }
+
         menu.addItem(NSMenuItem.separator())
 
         // Persona picker - each persona gets their brand color
@@ -383,6 +383,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openClaudeITermItem.image = iTermIcon?.withSymbolConfiguration(iTermConfig)
         openClaudeITermItem.target = self
         menu.addItem(openClaudeITermItem)
+        
         menu.addItem(NSMenuItem.separator())
 
         // Cloud/Local toggle - brand-aligned colors

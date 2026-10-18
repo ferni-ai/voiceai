@@ -26,7 +26,6 @@ let package = Package(
             dependencies: [
                 .product(name: "LiveKit", package: "client-sdk-swift"),
                 .product(name: "FerniShared", package: "shared"),
-                .product(name: "FerniAuth", package: "shared"),
             ],
             path: "Sources"
         ),
