@@ -355,9 +355,9 @@ export async function finishCallTypeContexts(
  * carries a valid signature.
  */
 async function isTrustedDispatch(rawJobMetadata: string | undefined): Promise<boolean> {
-  const { dispatchSigningSecret, verifyOnBehalfDispatch } =
+  const { dispatchVerifySecrets, verifyOnBehalfDispatch } =
     await import('../../services/outreach/on-behalf-dispatch.js');
-  return verifyOnBehalfDispatch(rawJobMetadata, dispatchSigningSecret());
+  return verifyOnBehalfDispatch(rawJobMetadata, dispatchVerifySecrets());
 }
 
 /** The requester's name as dispatched: under `requester`, or the older top-level `userName`. */

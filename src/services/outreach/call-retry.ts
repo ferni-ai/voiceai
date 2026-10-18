@@ -26,6 +26,7 @@ import {
   onBehalfRequestFromDispatch,
   parseOnBehalfDispatch,
   dispatchSigningSecret,
+  dispatchVerifySecrets,
   signOnBehalfDispatch,
   verifyOnBehalfDispatch,
   type OnBehalfDispatch,
@@ -301,7 +302,7 @@ export async function placeCallRetry(
 ): Promise<{ success: boolean; error?: string }> {
   if (!isCallFollowthroughEnabled()) return { success: false, error: 'CALL_FOLLOWTHROUGH is off' };
   const raw = JSON.stringify(signedDispatch ?? null);
-  if (!verifyOnBehalfDispatch(raw, dispatchSigningSecret())) {
+  if (!verifyOnBehalfDispatch(raw, dispatchVerifySecrets())) {
     return { success: false, error: 'Retry is not signed by the server' };
   }
   const call = parseOnBehalfDispatch(signedDispatch as Record<string, unknown>);

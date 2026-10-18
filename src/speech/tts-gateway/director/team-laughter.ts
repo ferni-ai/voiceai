@@ -19,8 +19,14 @@
  * (Provine). Each persona keeps its style: Peter and Nayan don't laugh at
  * their own jokes, and the legends have their own instead of Ferni's.
  *
- * Ferni is unchanged: he already writes his own [laughter] (57 on dev in the
- * same window), and the lever keeps its old rules for him.
+ * Ferni is unchanged by default: he already writes his own [laughter] (57 on
+ * dev in the same window), and the lever keeps its old rules for him. Those
+ * rules top out at 0.18 x 1.5 = 0.27 against the 0.3 threshold, so on prod
+ * the lever added 0 laughs in 415 plans. FERNI_LIGHT_TOUCH=on (off by default)
+ * gives him the same reachable path as the team: his own base and spacing
+ * (0.18, 6 turns), a chance that never drops below 0.15 at a moment that
+ * qualifies, the same blocks and the same cap of 4 a call, his own written
+ * [laughter] counted toward both.
  *
  * @module speech/tts-gateway/director/team-laughter
  */
@@ -45,6 +51,8 @@ export interface TeamLaughStyle {
   withUser: boolean;
   /** Minimum turns between two laughs. */
   minTurns: number;
+  /** The chance at a qualifying moment never drops below this (FERNI_LIGHT_TOUCH). */
+  floor?: number;
 }
 
 /** Frequencies from each persona's manifest (laughter_frequency); a test keeps them equal. */
@@ -76,6 +84,22 @@ const DISTRESSED = new Set(['sad', 'distressed', 'angry', 'grief', 'anxious']);
 /** The caller laughed, as speech-to-text writes it: "hahaha" and "[laughter]" too, which the playful patterns miss. */
 const CALLER_LAUGHED = /\[laughter\]|\b(?:ha){2,}h?\b|\bha ha\b|\b(?:he){2,}\b|\b(?:lol|lmao)\b/i;
 
+/** The lowest chance Ferni laughs at a qualifying moment, with FERNI_LIGHT_TOUCH on. */
+export const FERNI_LAUGH_FLOOR = 0.15;
+
+/** Ferni's style with FERNI_LIGHT_TOUCH on: his own base and spacing, and a reachable floor. */
+export function ferniLightStyle(personaId: string | undefined): TeamLaughStyle | undefined {
+  if (personaId !== 'ferni') return undefined;
+  const style = PERSONA_LAUGH_STYLES.ferni;
+  return {
+    frequency: style.laughProbabilityBase,
+    ownJokes: style.laughAfterOwnJokes,
+    withUser: style.laughWithUser,
+    minTurns: style.minTurnsBetweenLaughs,
+    floor: FERNI_LAUGH_FLOOR,
+  };
+}
+
 /** A teammate's or legend's laugh style; undefined for Ferni or an unknown persona. */
 export function teamLaughStyle(personaId: string | undefined): TeamLaughStyle | undefined {
   if (!personaId || personaId === 'ferni') return undefined;
@@ -102,6 +126,12 @@ function blocked(input: LaughterInput, style: TeamLaughStyle): boolean {
   );
 }
 
+/** The chance of laughing at a moment that qualifies: more with rapport, twice when the caller played. */
+function chance(style: TeamLaughStyle, rapport: number, callerPlayed: boolean): number {
+  const p = style.frequency * (rapport + 0.5) * (callerPlayed ? 2 : 1);
+  return Math.min(MAX_P, Math.max(style.floor ?? 0, p));
+}
+
 /**
  * Where a teammate laughs in this reply, if anywhere. The caller (the lever)
  * has already ruled out a heavy reply and one that already laughs.
@@ -120,9 +150,7 @@ export function decideTeamLaughter(
     style.ownJokes &&
     AGENT_HUMOR_PATTERNS.some((h) => h.confidence >= OWN_JOKE_MIN && h.pattern.test(input.phrase));
   if (!callerPlayed && !ownJoke) return undefined;
-  const rapport = input.comfortLevel ?? 0.5;
-  const p = Math.min(MAX_P, style.frequency * (rapport + 0.5) * (callerPlayed ? 2 : 1));
-  if (rng() >= p) return undefined;
+  if (rng() >= chance(style, input.comfortLevel ?? 0.5, callerPlayed)) return undefined;
   recordLaugh(input.sessionId, input.turn ?? 0);
   return callerPlayed ? 'before' : 'after';
 }

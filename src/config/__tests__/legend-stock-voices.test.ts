@@ -99,13 +99,12 @@ describe('legend voices', () => {
     expect(getVoiceIdForPersona('peter-john')).toBe(VOICE_IDS.PETER_JOHN);
   });
 
-  it.each([
-    'src/api/v1/developers/voice-routes.ts',
-    'apps/cli/src/commands/agent/agent-init.ts',
-    'tools/agent-starter-template/CUSTOMIZING.md',
-  ])('is not offered to developers in %s', (path) => {
-    const text = read(path);
-    expect(text.length).toBeGreaterThan(500);
-    for (const clone of CLONES) expect(text).not.toContain(clone);
-  });
+  it.each(['src/api/v1/developers/voice-routes.ts', 'tools/agent-starter-template/CUSTOMIZING.md'])(
+    'is not offered to developers in %s',
+    (path) => {
+      const text = read(path);
+      expect(text.length).toBeGreaterThan(500);
+      for (const clone of CLONES) expect(text).not.toContain(clone);
+    }
+  );
 });

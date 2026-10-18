@@ -229,7 +229,7 @@ describe('the Director hears it, through attune (late night is its second layer)
     return { summary: summary!, spoken: pushed.join('') };
   }
   const INSTANT = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
-  const NAYAN = '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3';
+  const NAYAN = '6da65da0-cad8-4820-901c-549561d93ff3';
 
   it('an instant clone answers slower and quieter (<speed> and <volume>)', async () => {
     const normal = await plan('porch-director-off', INSTANT);
