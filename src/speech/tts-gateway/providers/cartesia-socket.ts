@@ -65,6 +65,8 @@ export interface SocketWarmth {
   pingEveryMs: number;
   /** First wait before reopening a dropped socket; doubles per failed attempt. */
   reopenDelayMs: number;
+  /** The longest wait between reopen attempts, however many have failed. */
+  maxReopenDelayMs: number;
   /** Stop after this many reopen failures in a row (the next reply connects inline). */
   maxReopenAttempts: number;
 }
@@ -73,6 +75,7 @@ export const DEFAULT_SOCKET_WARMTH: SocketWarmth = {
   idleWindowMs: 10 * 60_000,
   pingEveryMs: 20_000,
   reopenDelayMs: 250,
+  maxReopenDelayMs: 5_000,
   maxReopenAttempts: 5,
 };
 
@@ -104,6 +107,7 @@ export class CartesiaSocket {
   private readonly pingName = `cartesia-tts-socket-ping-${++socketCount}`;
   private reopenTimer: ReturnType<typeof setTimeout> | null = null;
   private reopenFailures = 0;
+  private closed = false;
 
   constructor(
     private readonly url: () => string,
@@ -151,6 +155,21 @@ export class CartesiaSocket {
     this.handlers.delete(contextId);
   }
 
+  /**
+   * Stop keeping the socket warm and close it: no ping or reopen timer
+   * outlives the socket's owner (resetCartesiaProvider).
+   */
+  close(): void {
+    this.closed = true;
+    this.stopPinging();
+    if (this.reopenTimer) clearTimeout(this.reopenTimer);
+    this.reopenTimer = null;
+    const socket = this.socket;
+    this.socket = null;
+    this.failAll(new Error('Cartesia socket closed by its owner'));
+    socket?.close();
+  }
+
   private isOpen(): boolean {
     return this.socket !== null && this.socket.readyState === OPEN;
   }
@@ -186,6 +205,11 @@ export class CartesiaSocket {
       }, this.openTimeoutMs);
       socket.once('open', () => {
         clearTimeout(timer);
+        if (this.closed) {
+          socket.close();
+          reject(new Error('Cartesia socket closed by its owner'));
+          return;
+        }
         this.socket = socket;
         this.reopenFailures = 0;
         this.startPinging(socket);
@@ -300,12 +324,15 @@ export class CartesiaSocket {
   /** Reopen a dropped socket in the background, so the next reply finds it open. */
   private scheduleReopen(): void {
     const warmth = this.warmth;
-    if (!warmth || this.reopenTimer || !this.recentlyUsed()) return;
+    if (!warmth || this.closed || this.reopenTimer || !this.recentlyUsed()) return;
     if (this.reopenFailures >= warmth.maxReopenAttempts) return;
-    const delay = warmth.reopenDelayMs * 2 ** this.reopenFailures;
+    const delay = Math.min(
+      warmth.maxReopenDelayMs,
+      warmth.reopenDelayMs * 2 ** this.reopenFailures
+    );
     this.reopenTimer = setTimeout(() => {
       this.reopenTimer = null;
-      if (this.isOpen() || !this.recentlyUsed()) return;
+      if (this.closed || this.isOpen() || !this.recentlyUsed()) return;
       this.ensureOpen().catch((error: unknown) => {
         this.reopenFailures += 1;
         log.warn(

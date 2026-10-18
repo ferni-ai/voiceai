@@ -11,6 +11,7 @@ const WARMTH: SocketWarmth = {
   idleWindowMs: 60_000,
   pingEveryMs: 1_000,
   reopenDelayMs: 100,
+  maxReopenDelayMs: 1_000,
   maxReopenAttempts: 2,
 };
 
@@ -136,6 +137,67 @@ describe('CartesiaSocket warmth (TTS_SOCKET_WARM)', () => {
     expect(refusing.sockets).toHaveLength(2);
     await vi.advanceTimersByTimeAsync(10_000);
     expect(refusing.sockets).toHaveLength(2);
+  });
+
+  it('on: caps the wait between reopen attempts at maxReopenDelayMs', async () => {
+    const warmth = { ...WARMTH, maxReopenAttempts: 10, maxReopenDelayMs: 300 };
+    const { cartesia, sockets } = harness(warmth);
+    await cartesia.send('a', {}, noop);
+    const refusing = harness(warmth, { refuse: true });
+    Object.assign(cartesia, {
+      createSocket: (refusing.cartesia as unknown as { createSocket: unknown }).createSocket,
+    });
+    sockets[0].close(1006);
+    // Uncapped, attempts 1-5 would land at 100, 300, 700, 1500 and 3100 ms.
+    await vi.advanceTimersByTimeAsync(100 + 200 + 300 + 300 + 300);
+    expect(refusing.sockets).toHaveLength(5);
+  });
+
+  it('close() stops the ping and reopen timers and fails in-flight replies', async () => {
+    const { cartesia, sockets } = harness(WARMTH);
+    const errors: Error[] = [];
+    await cartesia.send('a', {}, { ...noop, onError: (e) => errors.push(e) });
+    cartesia.close();
+    expect(errors[0]?.message).toMatch(/closed by its owner/);
+    expect(sockets[0].readyState).toBe(3);
+    await vi.advanceTimersByTimeAsync(WARMTH.pingEveryMs * 5);
+    expect(sockets[0].pings).toBe(0);
+    expect(sockets).toHaveLength(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('close() during a pending reopen cancels it', async () => {
+    const { cartesia, sockets } = harness(WARMTH);
+    await cartesia.send('a', {}, noop);
+    sockets[0].close(1006);
+    cartesia.close();
+    await vi.advanceTimersByTimeAsync(WARMTH.reopenDelayMs * 10);
+    expect(sockets).toHaveLength(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('a refused background reopen is handled, not an unhandled rejection', async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      const { cartesia, sockets } = harness(WARMTH);
+      await cartesia.send('a', {}, noop);
+      const refusing = harness(WARMTH, { refuse: true });
+      Object.assign(cartesia, {
+        createSocket: (refusing.cartesia as unknown as { createSocket: unknown }).createSocket,
+      });
+      sockets[0].close(1006);
+      await vi.advanceTimersByTimeAsync(5_000);
+      vi.useRealTimers();
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 20);
+      });
+      expect(refusing.sockets).toHaveLength(WARMTH.maxReopenAttempts);
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
   });
 
   it('stops pinging once the socket has gone unused past the idle window', async () => {

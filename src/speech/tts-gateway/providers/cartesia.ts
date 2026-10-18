@@ -279,6 +279,11 @@ export class CartesiaTTSProvider implements ITTSProvider {
       );
   }
 
+  /** Close the shared socket and stop its ping and reopen timers. */
+  close(): void {
+    this.socket.close();
+  }
+
   async isAvailable(): Promise<boolean> {
     return !!process.env.CARTESIA_API_KEY;
   }
@@ -305,5 +310,6 @@ export function createCartesiaProvider(): CartesiaTTSProvider {
 }
 
 export function resetCartesiaProvider(): void {
+  instance?.close();
   instance = null;
 }
