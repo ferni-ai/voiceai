@@ -47,6 +47,12 @@ describe('web-server flags survive a deploy', () => {
     expect(workflowEnv()).toContain(flag);
   });
 
+  it('sends app email through the ferni.ai Workspace, switchable back by repo variable', () => {
+    const env = workflowEnv();
+    expect(env).toContain("EMAIL_PROVIDER=${{ vars.EMAIL_PROVIDER || 'gmail' }}");
+    expect(env).toContain("EMAIL_FROM=${{ vars.EMAIL_FROM || 'admin@ferni.ai' }}");
+  });
+
   it('the What Ferni Knows build flag reaches both web builds', () => {
     expect(firebase).toMatch(/VITE_MEMORY_VIEW: \$\{\{ vars\.VITE_MEMORY_VIEW \}\}/);
     expect(workflow).toMatch(/--build-arg VITE_MEMORY_VIEW="\$\{\{ vars\.VITE_MEMORY_VIEW \}\}"/);
