@@ -70,7 +70,7 @@ import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forg
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
-import { heldAfter } from '../../utils/minor-care.js';
+import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
 import {
   analyzeTurnSignals,
   handleInterruption,
@@ -2030,8 +2030,8 @@ function processDailyCheckInTranscript(
   sessionId: string,
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>
 ): void {
-  // Only process if we have a user ID
-  if (!userData.userId) {
+  // A user ID, and MINOR_CARE=on: not a held caller under 18 (it records their emotional weather)
+  if (!userData.userId || memoryHeld(sessionId)) {
     return;
   }
 
