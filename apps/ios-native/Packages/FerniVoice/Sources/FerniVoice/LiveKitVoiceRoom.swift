@@ -24,9 +24,13 @@ public final class LiveKitVoiceRoom: NSObject, VoiceRoom, RoomDelegate, @uncheck
         try await room.registerTextStreamHandler(for: Self.transcriptionTopic) { [weak self] reader, sender in
             guard let self else { return }
             let attributes = reader.info.attributes
-            let agents = Set(self.room.remoteParticipants.values.filter(\.isAgent).compactMap(\.identity?.stringValue))
+            let local = self.room.localParticipant
             guard let speaker = Self.captionSpeaker(
-                sender: sender.stringValue, local: self.room.localParticipant.identity?.stringValue, agents: agents
+                sender: sender.stringValue,
+                transcribedTrack: attributes["lk.transcribed_track_id"],
+                local: local.identity?.stringValue,
+                localTracks: Set(local.trackPublications.keys.map(\.stringValue)),
+                agents: Set(self.room.remoteParticipants.values.filter(\.isAgent).compactMap(\.identity?.stringValue))
             ) else { return } // only Ferni's words, or ours as Ferni heard them
             let segmentID = attributes["lk.segment_id"] ?? reader.info.id
             let isFinal = attributes["lk.transcription_final"] == "true"
@@ -85,11 +89,22 @@ public final class LiveKitVoiceRoom: NSObject, VoiceRoom, RoomDelegate, @uncheck
     /// Data messages steer the call (speech state, expressions): only the agent may send them.
     static func trustsData(fromAgent isAgent: Bool?) -> Bool { isAgent == true }
 
-    /// Whose caption a transcript stream is: ours (the agent sends our words under our
-    /// identity), Ferni's (an agent participant), or nobody's (anyone else: ignored).
-    static func captionSpeaker(sender: String, local: String?, agents: Set<String>) -> CaptionChunk.Speaker? {
-        if sender == local { return .you }
-        return agents.contains(sender) ? .ferni : nil
+    /// Whose caption a transcript stream is, or nil to ignore it.
+    ///
+    /// LiveKit hands the handler the identity in the stream's packet, which the
+    /// sender sets (agents-js sends our words with `senderIdentity` = us), not a
+    /// server-verified one: the SDK doesn't expose who actually delivered it.
+    /// The trust boundary is the room. /token signs a room-scoped grant for the
+    /// verified uid, only for a room that uid owns, so the only members are us
+    /// and the server's agent. Within that, a stream is accepted only from an
+    /// agent or from our own identity, and it's ours only if it transcribes one
+    /// of our own published tracks.
+    static func captionSpeaker(
+        sender: String, transcribedTrack: String?, local: String?, localTracks: Set<String>, agents: Set<String>
+    ) -> CaptionChunk.Speaker? {
+        guard agents.contains(sender) || sender == local else { return nil }
+        if let transcribedTrack { return localTracks.contains(transcribedTrack) ? .you : .ferni }
+        return sender == local ? .you : .ferni
     }
 
     public func room(_ room: Room, didStartReconnectWithMode reconnectMode: ReconnectMode) {
