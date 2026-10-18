@@ -3,10 +3,12 @@
  * (2026-10-18, on 0a21c0278) is a regression here: C2 secrets in any
  * language or number format, C3 invented content (amounts in words, inflated
  * numbers, payees nobody named, other scripts, Ferni's own turn), plus the
- * plain-or-sensitive split the readers rely on.
+ * fixtures from the final verify of 0e61d0294 (spans that leave a number
+ * behind, digits hidden in times, split secrets). There is no "plain":
+ * a kept item is only ever kept.
  */
 import { describe, expect, it } from 'vitest';
-import { canon, hasSecret, isPlain, isSpanOf, screenCommitment } from '../commitment-span-guard.js';
+import { canon, hasSecret, isSpanOf, screenCommitment } from '../commitment-span-guard.js';
 
 /** The caller said it, and it is the whole statement (no quote, so the statement's own checks decide). */
 const said = (line: string) => screenCommitment({ statement: line }, [line]);
@@ -70,6 +72,29 @@ describe('C2: a secret in any field means the item is not stored at all', () => 
     'may 41 may 11 may 11 may 11',
     'ssn-less 123-45-6789',
     'send Kyle five thousand dollars',
+    // The final verify of 0e61d0294: digits in a time or date count unless it reads as one.
+    'the combo is 12:34',
+    'the combo is 23:59',
+    'the safe opens 12:34 then 23:45',
+    'March 12 and the 31st',
+    'code 41:11',
+    'combo 41:11',
+    'May 4111',
+    'send Kyle a billion',
+    'half a million to Kyle',
+    'the alarm is quince veinticinco',
+    'the alarm is siebzig elf',
+    'the alarm is trenta quaranta',
+    'the alarm is dezesseis quarenta',
+    'the alarm is fourty fourty',
+    'code is double four double one',
+    'cuatro uno uno uno',
+    'quatre un un un',
+    'vier eins eins eins',
+    '٤١١١',
+    '४१११',
+    '⁴¹¹¹',
+    '④①①①',
   ])('drops %j', (line) => {
     expect(said(line)).toEqual({ keep: false, reason: 'secret' });
   });
@@ -134,10 +159,10 @@ describe("C3: only the caller's own words are stored", () => {
 
   it('keeps what the caller said, as said, with a person named in another of their turns', () => {
     const turns = ['My sister Mindy had a rough week.', "I'll call her tomorrow."];
-    expect(screenCommitment({ statement: 'call her tomorrow', quote: 'call her tomorrow.', person: 'Mindy' }, turns)).toEqual({ keep: true, sensitive: false }); // prettier-ignore
+    expect(screenCommitment({ statement: 'call her tomorrow', quote: 'call her tomorrow.', person: 'Mindy' }, turns)).toEqual({ keep: true }); // prettier-ignore
     // Money is never plain: kept, but only a call may raise it.
-    expect(said("I'll pay Kevin $40 Friday")).toEqual({ keep: true, sensitive: true });
-    expect(screenCommitment({ statement: 'CALL  MOM  on Sunday' }, ["I'll call Mom on Sunday."])).toEqual({ keep: true, sensitive: false }); // prettier-ignore
+    expect(said("I'll pay Kevin $40 Friday")).toEqual({ keep: true });
+    expect(screenCommitment({ statement: 'CALL  MOM  on Sunday' }, ["I'll call Mom on Sunday."])).toEqual({ keep: true }); // prettier-ignore
   });
 });
 
@@ -152,7 +177,7 @@ describe('the #2128 verifier round', () => {
     expect(screenCommitment({ statement: 'send Kyle $5' }, ["I'll send Kyle $5,000"])).toEqual({ keep: false, reason: 'not-a-caller-span' }); // prettier-ignore
     expect(screenCommitment({ statement: 'pay Kyle $1' }, ["I'll pay Kyle $1.5 million"])).toEqual({ keep: false, reason: 'not-a-caller-span' }); // prettier-ignore
     expect(screenCommitment({ statement: '000 to Kyle' }, ["I'll send $5,000 to Kyle"])).toEqual({ keep: false, reason: 'not-a-caller-span' }); // prettier-ignore
-    expect(screenCommitment({ statement: 'call mom' }, ["I'll call mom, then the bank."])).toEqual({ keep: true, sensitive: false }); // prettier-ignore
+    expect(screenCommitment({ statement: 'call mom' }, ["I'll call mom, then the bank."])).toEqual({ keep: true }); // prettier-ignore
   });
 
   it('a quote is the statement itself, so a secret cannot ride in a quote that differs', () => {
@@ -179,66 +204,89 @@ describe('the #2128 verifier round', () => {
     expect(screenCommitment({ statement: 'send Kyle $5k' }, ["I'll send Kyle $5"])).toEqual({ keep: false, reason: 'not-a-caller-span' }); // prettier-ignore
     expect(said('send Kyle $5grand')).toEqual({ keep: false, reason: 'secret' });
     expect(said('send $12,345,678 to the fund')).toEqual({ keep: false, reason: 'secret' });
-    expect(said('sell my cryptos')).toEqual({ keep: true, sensitive: true });
+    expect(said('sell my cryptos')).toEqual({ keep: true });
     // Without a currency sign or word a 7-digit number is no money amount, just a number.
     expect(said('my account is 1,234,567')).toEqual({ keep: false, reason: 'secret' });
-    expect(said('pay $1,234,567 to the fund')).toEqual({ keep: true, sensitive: true });
+    expect(said('pay $1,234,567 to the fund')).toEqual({ keep: true });
     expect(said('pay $1450 Friday')).toEqual({ keep: false, reason: 'secret' });
   });
 
   it('time and date shapes are set aside only twice: "11:11 11:11" is a time, four of them a number', () => {
-    expect(said('pick up the kids at 3:30 and 5:30')).toEqual({ keep: true, sensitive: false });
+    expect(said('pick up the kids at 3:30 and 5:30')).toEqual({ keep: true });
     expect(said('11:11 11:11 11:11 11:11')).toEqual({ keep: false, reason: 'secret' });
   });
 });
 
-describe('plain or sensitive', () => {
+describe('the final verify of 0e61d0294', () => {
+  it.each([
+    ['$5 thousand', "I'll send Kyle $5 thousand"],
+    ['$5 k', "I'll send Kyle $5 k"],
+    ['$5k', "I'll send Kyle $5k"],
+    ['$5 million', "I'll send Kyle $5 million"],
+    ['$5 grand', "I'll send Kyle $5 grand"],
+    ["$5'000", "I'll send Kyle $5'000"],
+    ['$5 000', "I'll send Kyle $5 000"],
+    ['$5 thin-space 000', "I'll send Kyle $5\u2009000"],
+    ['$5 no-break-space 000', "I'll send Kyle $5\u00a0000"],
+    ['$5 narrow no-break 000', "I'll send Kyle $5\u202f000"],
+  ])('a span may not leave the rest of a number behind: "$5" from %s', (_what, turn) => {
+    expect(screenCommitment({ statement: 'send Kyle $5' }, [turn])).toEqual({ keep: false, reason: 'not-a-caller-span' }); // prettier-ignore
+  });
+
+  it('nor a number word, nor a clock: "send Kyle five" from "five thousand", "at 3" from "at 3:30"', () => {
+    expect(screenCommitment({ statement: 'send Kyle five' }, ["I'll send Kyle five thousand"])).toEqual({ keep: false, reason: 'not-a-caller-span' }); // prettier-ignore
+    expect(screenCommitment({ statement: 'pick up the kids at 3' }, ['pick up the kids at 3:30'])).toEqual({ keep: false, reason: 'not-a-caller-span' }); // prettier-ignore
+    expect(screenCommitment({ statement: 'send Kyle $5' }, ["I'll send Kyle $5 on Friday"])).toEqual({ keep: true }); // prettier-ignore
+  });
+
+  it('times and dates are set aside only when they read as one: "at", "on", "by", am or pm', () => {
+    expect(said('pick up the kids at 3:30 and 5:30')).toEqual({ keep: true });
+    expect(said('the meeting is 12:34pm and 5:55am')).toEqual({ keep: true });
+    expect(said('see you on March 12 at 5pm')).toEqual({ keep: true });
+    expect(said('the combo is 12:34')).toEqual({ keep: false, reason: 'secret' });
+    // Only two are set aside, however they read: four times "at 11:11" is a number.
+    expect(said('ring at 11:11, at 11:11, at 11:11 and at 11:11')).toEqual({ keep: false, reason: 'secret' }); // prettier-ignore
+  });
+
+  it('a secret elsewhere in the turn is not stored with the item, and the item is still kept', () => {
+    const turn = "I'll call Mom Sunday, and the gate code is 4417";
+    expect(screenCommitment({ statement: 'call Mom Sunday' }, [turn])).toEqual({ keep: true });
+    expect(screenCommitment({ statement: 'call Mom Sunday', quote: 'call Mom Sunday' }, [turn])).toEqual({ keep: true }); // prettier-ignore
+  });
+});
+
+describe('kept, and only ever kept: there is no "plain"', () => {
+  it('every result is either { keep: true } or a drop with a reason, never more', () => {
+    const items: Array<[unknown, string[]]> = [
+      [{ statement: 'call Mom Sunday' }, ['call Mom Sunday']],
+      [{ statement: "I'll pay Kevin $40 Friday" }, ["I'll pay Kevin $40 Friday"]],
+      [{ statement: 'mandale a Kyle quinientos el viernes' }, ['mandale a Kyle quinientos el viernes']], // prettier-ignore
+      [{ statement: 'card 4111 1111 1111 1111' }, ['card 4111 1111 1111 1111']],
+      [{ statement: 'invented' }, ['call Mom Sunday']],
+      [null, []],
+    ];
+    for (const [item, turns] of items) {
+      const r = screenCommitment(item as never, turns);
+      expect(Object.keys(r).sort()).toEqual(r.keep ? ['keep'] : ['keep', 'reason']);
+    }
+  });
+
   it.each([
     'pay rent Friday',
     'pay rent at 5pm',
     'dentist on the 15th at 3pm',
     'call Mom Sunday',
     'pick up the kids at 3:30',
-    'call the pharmacy at 9am',
-    'meet Lisa at 10:30 for coffee',
-    'pay the hospital bill by the 15th',
-    'see the dentist on March 3',
-    "I'll code the website tonight",
-    'pin the poster up in the hall',
-  ])('%j is plain', (line) => {
-    expect(isPlain(line)).toBe(true);
-    expect(said(line)).toEqual({ keep: true, sensitive: false });
-  });
-
-  it.each([
-    "I'll venmo Jake $40 for pizza",
     "I'll pay Kevin $40 Friday",
-    'remind me to pay Kevin $40 Friday',
-    'save $1,450 for the deposit',
-    'run 3 miles tomorrow',
     'transfer $2,000 to Jordan',
-    'wiring $900 to Kyle tomorrow',
     'send Kyle $1,000,000',
-    'apple pay Kyle $40',
     'transferir quinientos a Marta',
-    'pay the fifty bucks back',
-    'pay back what I owe in euros',
-    'buy my first cryptocurrency',
-    'transferir 500 a la cuenta',
-    'faire un virement à Paul',
-    'close the old bank account',
-    'buy mom a gift card',
-    'call the bank between 9 10',
-  ])('%j is stored but sensitive', (line) => {
-    expect(isPlain(line)).toBe(false);
-    expect(said(line)).toEqual({ keep: true, sensitive: true });
+    'mandale a Kyle quinientos el viernes',
+    'отправь Кайлу пятьсот рублей',
+    'run 3 miles tomorrow',
+  ])('%j is kept, and the result says nothing about sending it', (line) => {
+    expect(said(line)).toEqual({ keep: true });
   });
-
-  it('a person is judged too: a payment word there makes the item sensitive', () => {
-    const turns = ["I'll pay my Venmo friend tonight", 'pay him back tonight'];
-    expect(screenCommitment({ statement: 'pay him back tonight', person: 'Venmo friend' }, turns)).toEqual({ keep: true, sensitive: true }); // prettier-ignore
-  });
-
   it('canon folds width, case and spacing; hasSecret sees full-width digits as digits', () => {
     expect(canon('ＣＡＬＬ  Mom')).toBe('call mom');
     expect(hasSecret('card ４１１１ １１１１')).toBe(true);
