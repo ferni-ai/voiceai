@@ -47,6 +47,41 @@ final class CountingRefresher: @unchecked Sendable {
     }
 }
 
+/// A refresher that suspends until the test releases it, to exercise actor reentrancy.
+final class SuspendingRefresher: @unchecked Sendable {
+    private let lock = NSLock()
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private var count = 0
+    /// Fail like Firebase does for a revoked refresh token, once released.
+    var rejects = false
+
+    var calls: Int { lock.withLock { count } }
+
+    func refresh(_ refreshToken: String) async throws -> FirebaseSession {
+        await withCheckedContinuation { continuation in
+            lock.withLock {
+                count += 1
+                waiting.append(continuation)
+            }
+        }
+        if rejects { throw AuthError.signInRequired }
+        return FirebaseSession(uid: "uid-1", idToken: "id-renewed", refreshToken: "refresh-renewed",
+                               expiresAt: Date().addingTimeInterval(3600))
+    }
+
+    func release() {
+        lock.withLock {
+            waiting.forEach { $0.resume() }
+            waiting = []
+        }
+    }
+
+    /// Waits (bounded) until `n` refreshes have started.
+    func waitForCalls(_ n: Int) async {
+        for _ in 0..<200 where calls < n { try? await Task.sleep(nanoseconds: 5_000_000) }
+    }
+}
+
 private let server = URL(string: "https://app.ferni.ai")!
 
 private func signedInSession(_ refresher: CountingRefresher, expiresIn: TimeInterval = 3600) async -> AuthSession {
@@ -146,6 +181,66 @@ final class AuthSessionTests: XCTestCase {
         let state = await session.state
         XCTAssertEqual(state, .needsSignIn)
         XCTAssertNil(store.read(AuthSession.refreshAccount))
+    }
+
+    func testSignOutDuringASuspendedRefreshStaysSignedOut() async throws {
+        let refresher = SuspendingRefresher()
+        let store = InMemoryStore()
+        let session = AuthSession(store: store) { try await refresher.refresh($0) }
+        await session.adopt(FirebaseSession(uid: "uid-1", idToken: "id-0", refreshToken: "refresh-0", expiresAt: .distantPast))
+
+        let refresh = Task { try await session.validToken() }
+        await refresher.waitForCalls(1)
+        await session.signOut()
+        refresher.release()
+
+        do {
+            _ = try await refresh.value
+            XCTFail("a refresh that outlived sign-out must not hand back a token")
+        } catch {
+            XCTAssertEqual(error as? AuthError, .signInRequired)
+        }
+        let state = await session.state
+        XCTAssertEqual(state, .signedOut)
+        XCTAssertNil(store.read(AuthSession.refreshAccount))
+        XCTAssertNil(store.read(AuthSession.uidAccount))
+    }
+
+    func testLateRejectionOfAnOldRefreshDoesNotWipeANewSignIn() async throws {
+        let refresher = SuspendingRefresher()
+        refresher.rejects = true
+        let store = InMemoryStore()
+        let session = AuthSession(store: store) { try await refresher.refresh($0) }
+        await session.adopt(FirebaseSession(uid: "uid-1", idToken: "id-0", refreshToken: "refresh-0", expiresAt: .distantPast))
+
+        let refresh = Task { try await session.validToken() }
+        await refresher.waitForCalls(1)
+        await session.adopt(FirebaseSession(uid: "uid-1", idToken: "id-new", refreshToken: "refresh-new",
+                                            expiresAt: Date().addingTimeInterval(3600)))
+        refresher.release()
+
+        _ = try? await refresh.value
+        let state = await session.state
+        XCTAssertEqual(state, .signedIn(uid: "uid-1"))
+        XCTAssertEqual(store.read(AuthSession.refreshAccount), "refresh-new")
+        let token = try await session.validToken()
+        XCTAssertEqual(token.idToken, "id-new")
+    }
+
+    func testConcurrentCallersShareOneRefresh() async throws {
+        let refresher = SuspendingRefresher()
+        let session = AuthSession(store: InMemoryStore()) { try await refresher.refresh($0) }
+        await session.adopt(FirebaseSession(uid: "uid-1", idToken: "id-0", refreshToken: "refresh-0", expiresAt: .distantPast))
+
+        let first = Task { try await session.validToken() }
+        await refresher.waitForCalls(1)
+        let second = Task { try await session.validToken() }
+        try await Task.sleep(nanoseconds: 100_000_000) // let the second caller reach the session
+        refresher.release()
+
+        let tokens = try await [first.value.idToken, second.value.idToken]
+        XCTAssertEqual(tokens, ["id-renewed", "id-renewed"])
+        XCTAssertEqual(refresher.calls, 1)
     }
 
     func testRestoresSignedInStateFromTheStore() async {

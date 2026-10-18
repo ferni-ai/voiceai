@@ -20,6 +20,11 @@ public actor AuthSession {
     private let refresher: @Sendable (String) async throws -> FirebaseSession
     private let now: @Sendable () -> Date
     private var current: FirebaseSession?
+    /// One refresh at a time: concurrent callers share it, and sign-out cancels it.
+    private var inFlight: Task<FirebaseSession, Error>?
+    /// Bumped by sign-in, sign-out and needs-sign-in. A refresh that started under an older
+    /// generation must not write its result back (the actor can re-enter during its await).
+    private var generation = 0
 
     public init(store: SecretStore,
                 now: @escaping @Sendable () -> Date = Date.init,
@@ -34,12 +39,10 @@ public actor AuthSession {
         }
     }
 
-    /// Keeps a session from a completed sign-in (or a refresh).
+    /// Keeps the session from a completed sign-in, superseding any refresh in flight.
     public func adopt(_ session: FirebaseSession) {
-        current = session
-        store.write(session.refreshToken, for: Self.refreshAccount)
-        store.write(session.uid, for: Self.uidAccount)
-        state = .signedIn(uid: session.uid)
+        supersede()
+        save(session)
     }
 
     /// A usable ID token, refreshing first when it is close to expiry or when `forceRefresh`.
@@ -47,18 +50,33 @@ public actor AuthSession {
         if !forceRefresh, let session = current, session.expiresAt > now().addingTimeInterval(Self.refreshMargin) {
             return session
         }
+        if let inFlight { return try await inFlight.value }
         guard let refreshToken = store.read(Self.refreshAccount) else {
             state = .signedOut
             throw AuthError.signInRequired
         }
+        let started = generation
+        let task = Task { try await self.finishRefresh(refreshToken, generation: started) }
+        inFlight = task
+        return try await task.value
+    }
+
+    private func finishRefresh(_ refreshToken: String, generation started: Int) async throws -> FirebaseSession {
+        defer { if generation == started { inFlight = nil } }
+        let renewed: FirebaseSession
         do {
-            let renewed = try await refresher(refreshToken)
-            adopt(renewed)
-            return renewed
-        } catch AuthError.signInRequired {
-            markNeedsSignIn()
+            renewed = try await refresher(refreshToken)
+        } catch {
+            guard generation == started else { throw AuthError.signInRequired }
+            if error as? AuthError == .signInRequired { markNeedsSignIn() }
+            throw error
+        }
+        // Signed out, or signed in as someone else, while the refresh was suspended.
+        guard generation == started, store.read(Self.refreshAccount) == refreshToken else {
             throw AuthError.signInRequired
         }
+        save(renewed)
+        return renewed
     }
 
     /// Drops the credentials and asks the user to sign in again.
@@ -72,7 +90,21 @@ public actor AuthSession {
         state = .signedOut
     }
 
+    private func save(_ session: FirebaseSession) {
+        current = session
+        store.write(session.refreshToken, for: Self.refreshAccount)
+        store.write(session.uid, for: Self.uidAccount)
+        state = .signedIn(uid: session.uid)
+    }
+
+    private func supersede() {
+        generation += 1
+        inFlight?.cancel()
+        inFlight = nil
+    }
+
     private func clear() {
+        supersede()
         current = nil
         store.delete(Self.refreshAccount)
         store.delete(Self.uidAccount)
