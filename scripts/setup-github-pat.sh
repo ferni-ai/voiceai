@@ -48,5 +48,5 @@ gcloud secrets add-iam-policy-binding "$SECRET_NAME" \
 echo "✅ Done! Secret '$SECRET_NAME' is ready for Cloud Build."
 echo ""
 echo "Next steps:"
-echo "1. Run: npm run deploy:ui"
+echo "1. Redeploy: gh workflow run deploy-production.yml --ref main -f service=ui-server"
 

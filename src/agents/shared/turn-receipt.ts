@@ -35,6 +35,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { callerTurn, fastLaneEnabled, laneReason } from '../model-provider/fast-lane.js';
 import { toolRetrievalMode } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { llmReady, type EouMetric, type LlmMetric } from './turn-metrics.js';
+import { eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js';
 import {
   promptSections,
   type ItemView,
@@ -97,6 +98,7 @@ interface OpenTurn {
   };
   /** When LiveKit paused the reply for the caller's voice and said "listening". */
   pausedAt?: number;
+  eot: EotCall | null;
   preemptive: Preemptive;
   pauseHoldMs: number;
   bargeInSource: BargeInSource | null;
@@ -136,6 +138,8 @@ export class TurnReceiptRecorder {
   private turn: OpenTurn | null = null;
   private count = 0;
   private reminder: ReminderNote | null = null;
+  /** The latest end-of-turn prediction (eot_prediction); its commit claims it. */
+  private readonly pendingEot = new PendingEot(() => this.now());
   /** LiveKit's preemptive decision, made just before the commit it belongs to. */
   private preemptive: Preemptive | null = null;
   private readonly userKind: UserKind;
@@ -166,6 +170,7 @@ export class TurnReceiptRecorder {
       called: [],
       toolErrors: 0,
       reply: { messages: 0, chars: 0, sentences: 0, interrupted: false, repeatsPrevious: false },
+      eot: null,
       preemptive: 'none',
       pauseHoldMs: 0,
       bargeInSource: null,
@@ -183,9 +188,13 @@ export class TurnReceiptRecorder {
     if (!turn.user) turn.personaAtStart = this.opts.persona() ?? null;
     turn.user = true;
     turn.handling ??= this.opts.handling?.() ?? null;
+    this.pendingEot.claim(turn);
     if (this.preemptive) turn.preemptive = this.preemptive;
     this.preemptive = null;
   }
+
+  /** LiveKit's end-of-turn model judged the caller's pause (turn-receipt-eot.ts). */
+  readonly onEot = (call: EotCall | null): void => this.pendingEot.note(call);
 
   /** LiveKit decided whether to keep its preemptive reply (PREEMPTIVE_DECISION); the commit follows. */
   onPreemptive(used: boolean): void {
@@ -479,6 +488,7 @@ export class TurnReceiptRecorder {
       turnDetection: turn.handling?.turnDetection ?? 'unknown',
       interruptionMode: turn.handling?.interruptionMode ?? 'unknown',
       bargeInSource: turn.bargeInSource ?? (turn.reply.interrupted ? 'other' : null),
+      ...eotReceiptField(turn.eot),
     };
   }
 }

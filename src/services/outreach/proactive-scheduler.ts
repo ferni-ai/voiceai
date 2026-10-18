@@ -14,7 +14,6 @@
  * @module proactive-scheduler
  */
 
-import { getProfileStore } from '../../memory/profile-store.js';
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -217,7 +216,7 @@ function getOptimalSendTime(userId: string): Date {
 // DELIVERY (placeholder - integrates with outreach/delivery/)
 // ============================================================================
 
-async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
+export async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
   try {
     const prefs = userPreferences.get(outreach.userId);
     const method = prefs?.preferredMethod ?? 'push';
@@ -250,23 +249,16 @@ async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
       }
       case 'text': {
         try {
-          const { sendSMS } = await import('./delivery/sms-delivery.js');
-          const store = await getProfileStore();
-          const profile = await store.getProfile(outreach.userId);
-          const phone = profile?.contactInfo?.phone;
-
-          if (phone) {
-            await sendSMS({
-              to: phone,
-              body: outreach.message,
-              personaId: 'ferni',
-              userId: outreach.userId,
-              outreachId: outreach.id,
-            });
-          } else {
+          // Never profile.contactInfo.phone (model-written): the verified phone, through the
+          // guarded sender, so STOP, texts off and quiet hours hold it (call-user-adapter.ts).
+          const { callUserAdapter } = await import('./call-user-adapter.js');
+          const text = await callUserAdapter.textOwner?.(outreach.userId, outreach.message, {
+            askedNow: false,
+          });
+          if (!text?.sent) {
             log.debug(
-              { userId: outreach.userId },
-              'No phone number for SMS delivery, falling back to push'
+              { userId: outreach.userId, reason: text?.reason },
+              'Text not sent, falling back to push'
             );
             await push();
           }

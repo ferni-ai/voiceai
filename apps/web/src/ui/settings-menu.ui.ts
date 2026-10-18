@@ -553,6 +553,27 @@ class SettingsMenuUI {
   }
 
   /**
+   * "How I reach you": the phone Ferni texts or calls, and how he checks in.
+   * It was "Staying in Touch", last in a collapsed section, and the founder couldn't
+   * find it; it now sits at the top of the menu with a line saying what's inside.
+   */
+  private renderReachMeItem(): string {
+    const label = t('menu.items.howIReachYou');
+    const hint = t('menu.items.howIReachYouHint');
+    return `
+      <div class="settings-menu__section settings-menu__section--reach-me">
+        <button aria-label="${label}" class="settings-menu__item settings-menu__item--reach-me" data-action="contact-settings">
+          <span class="settings-menu__icon">${ICONS.phone}</span>
+          <span class="settings-menu__text">
+            <span class="settings-menu__label">${label}</span>
+            <span class="settings-menu__hint">${hint}</span>
+          </span>
+        </button>
+      </div>
+    `;
+  }
+
+  /**
    * Render a toggle menu item (for on/off settings)
    */
   private renderToggleItem(action: string, icon: string, label: string, isOn: boolean): string {
@@ -593,6 +614,9 @@ class SettingsMenuUI {
         </header>
 
         <nav class="settings-menu__nav">
+          <!-- How I reach you: first, where a person looks for "me" -->
+          ${this.renderReachMeItem()}
+
           <!-- PINNED ITEMS (Your Favorites) -->
           ${pinnedItemsHtml}
 
@@ -623,7 +647,6 @@ class SettingsMenuUI {
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
             ${this.renderMenuItem('outreach-schedule', ICONS.calendar, t('menu.items.outreachSchedule'))}
-            ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
           `
           )}
 
@@ -902,7 +925,7 @@ class SettingsMenuUI {
       household: { icon: ICONS.users, label: t('menu.items.householdMembers') },
       'household-members': { icon: ICONS.users, label: t('menu.items.householdMembers') },
       'family-callers': { icon: ICONS.phone, label: t('menu.items.familyCallers') },
-      'contact-settings': { icon: ICONS.contact, label: t('menu.items.contactInfo') },
+      'contact-settings': { icon: ICONS.phone, label: t('menu.items.howIReachYou') },
       export: { icon: ICONS.download, label: t('menu.items.exportData') },
       'share-ferni': { icon: ICONS.share, label: t('menu.items.shareFerni') },
       help: { icon: ICONS.help, label: t('menu.items.takeTour') },
@@ -1944,6 +1967,25 @@ class SettingsMenuUI {
 
       .settings-menu__item:hover .settings-menu__label {
         color: var(--color-text-primary, #2c2520);
+      }
+
+      .settings-menu__item--reach-me {
+        background: var(--color-background-secondary, #f5f2ed);
+      }
+
+      .settings-menu__text {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .settings-menu__hint {
+        font-family: var(--font-body, Inter, sans-serif);
+        font-size: 12px;
+        line-height: 1.35;
+        color: var(--color-text-secondary, #6b5d52);
       }
 
       /* Active/Connected state for items like Spotify */

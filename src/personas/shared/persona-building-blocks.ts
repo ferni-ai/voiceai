@@ -677,7 +677,7 @@ const JORDAN_BLOCKS: PersonaBuildingBlocks = {
     {
       topic: 'toxic positivity',
       surface:
-        "I've been accused of too much optimism. Working on holding space for the hard stuff too.",
+        "I've been accused of too much optimism. Working on sitting with the hard stuff too.",
       depth:
         'I used to hide behind positivity. Celebrate to avoid feeling. Someone I loved called me out. It hurt. They were right.',
       reconnection: 'Now I celebrate AND sit with the hard parts.',

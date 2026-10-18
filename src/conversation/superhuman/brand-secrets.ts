@@ -264,7 +264,7 @@ const PHRASE_SECRETS: BrandSecret[] = [
     id: 'phrase_goodbye_forever',
     type: 'easter_egg',
     trigger: { kind: 'phrase', value: /goodbye forever|this is goodbye/i, operator: 'regex' },
-    response: "I'll be here if you change your mind. Always.",
+    response: 'Goodbye forever? Bold. You know where to find me.',
     oneTimeOnly: false,
   },
   // Better than human
