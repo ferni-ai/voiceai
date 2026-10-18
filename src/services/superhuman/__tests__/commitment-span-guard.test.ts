@@ -269,6 +269,8 @@ describe('the C4 re-check of 5ef8f7f33 (best-effort secret drop)', () => {
     'by the 3rd and the 4th of 56',
     'la clave quatro quatro um um',
     'diecinueve veintiuno',
+    'la alarma es diecinueve diecisiete',
+    'dieciséis dieciseis',
     'dieciocho dezoito',
     'oitenta neunzehn',
     'siebzehn diciannove',
@@ -287,6 +289,8 @@ describe('the C4 re-check of 5ef8f7f33 (best-effort secret drop)', () => {
     'pick up the kids at 3:30 and 5:30',
     'see you on March 12 at 5pm',
     'pay the $1,450 deposit on Friday at 5pm',
+    'meet May 3 at 10:30',
+    'veintiuno ocho',
   ])('keeps the legit %j', (line) => {
     expect(said(line)).toEqual({ keep: true });
   });

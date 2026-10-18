@@ -55,7 +55,7 @@ const NUMBER_WORDS = new Map<string, number>([
   ...'zero oh one two three four five six seven eight nine cero uno dos tres cuatro cinco seis siete ocho nueve zéro un une deux trois quatre cinq six sept huit neuf null eins zwei drei vier fünf sechs sieben acht neun um dois três sete oito nove due tre quattro cinque sei sette otto один два три четыре пять шесть семь восемь девять quatro'
     .split(' ')
     .map((w): [string, number] => [w, 1]),
-  ...'ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fourty fifty sixty seventy eighty ninety hundred dozen diez once doce trece catorce quince veinte veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento dix onze douze treize quatorze quinze seize vingt trente quarante cinquante soixante cent zehn elf zwölf zwanzig dreißig vierzig fünfzig sechzig siebzig achtzig neunzig hundert dez doze dezesseis vinte trinta quarenta cinquenta sessenta cem dieci undici dodici venti trenta quaranta cinquanta sessanta cento десять двадцать тридцать сорок пятьдесят сто diecinueve veintiuno dieciocho dezoito oitenta neunzehn siebzehn diciannove settanta девятнадцать семнадцать'
+  ...'ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fourty fifty sixty seventy eighty ninety hundred dozen diez once doce trece catorce quince veinte veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento dix onze douze treize quatorze quinze seize vingt trente quarante cinquante soixante cent zehn elf zwölf zwanzig dreißig vierzig fünfzig sechzig siebzig achtzig neunzig hundert dez doze dezesseis vinte trinta quarenta cinquenta sessenta cem dieci undici dodici venti trenta quaranta cinquanta sessanta cento десять двадцать тридцать сорок пятьдесят сто dieciséis dieciseis diecisiete diecinueve veintiuno dieciocho dezoito oitenta neunzehn siebzehn diciannove settanta девятнадцать семнадцать'
     .split(' ')
     .map((w): [string, number] => [w, 2]),
   ...'doscientos trescientos cuatrocientos quinientos seiscientos setecientos ochocientos novecientos quinhentos пятьсот'
@@ -151,19 +151,20 @@ function tooManyDigits(text: string): boolean {
   let shapes = 0;
   let shapeDigits = 0;
   // One per pass: each pass reads its own string, so "listed" looks back only within it.
-  const setAside = () => {
+  // A date named by its month or weekday ("May 3") always reads as one; a time needs a cue.
+  const setAside = (always = false) => {
     let lastEnd = -1;
     return (m: string, at: number, all: string) => {
       // "at 3:30 and 5:30": a time listed right after one that read as a time reads as one too.
       const listed = lastEnd >= 0 && LIST.test(all.slice(lastEnd, at));
-      const reads = /[ap]\.?m\.?$/i.test(m) || INTRO.test(all.slice(0, at)) || listed;
+      const reads = always || /[ap]\.?m\.?$/i.test(m) || INTRO.test(all.slice(0, at)) || listed;
       if (!reads || ++shapes > MAX_SHAPES) return m;
       shapeDigits += (m.match(/\p{N}/gu) ?? []).length;
       lastEnd = at + m.length;
       return '§';
     };
   };
-  const masked = canon(text).replace(CLOCK, setAside()).replace(DAY_OF_MONTH, setAside());
+  const masked = canon(text).replace(CLOCK, setAside()).replace(DAY_OF_MONTH, setAside(true));
   const numbers = [...masked.matchAll(NUMBER)].map((m) => m[0]);
   const spoken = spokenDigits(masked);
   const oneAmount =
