@@ -27,10 +27,11 @@
  *   the tool (its result is spoken next), and asks again when it doesn't.
  *   Prod call 2026-10-17: on the yes Nayan said "Well, I'm placing the call
  *   now." and the call was held until 9:00 AM their time.
- * - a claim that emergency services were called or help is coming (#1553):
- *   Ferni can't reach them, so it is always false, whatever the tools did; the
- *   line says nobody was called and to call 911 or 988 now (emergency-claim.ts).
- *   "Help is on the way" stands once the caller has said they called for help.
+ * - Ferni says he called emergency services or help (#1553): he can't reach
+ *   them, so it is always false, whatever the tools did. "Help is on the way"
+ *   is false too when the caller's words are about an emergency, unless they
+ *   said help was already called (emergency-claim.ts). The line says he hasn't
+ *   called them and to call 911 or 988 now; the rest of that sentence follows.
  * Everything else streams untouched, so the confirm read-back, the yes turn's
  * other words (outreach-confirm.ts), a tool the model is about to call, and talk about an
  * action that really happened are never changed. Text and tool calls keep
@@ -52,17 +53,18 @@ import { ReadableStream } from 'node:stream/web';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { isClearYes } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
   callActions,
   claimedAction,
   emergencyClaim,
+  emergencyRemainder,
   kindsOfTool,
   type ActionKind,
 } from './action-claims.js';
 import { withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
-import { EMERGENCY_LINE, helpAlreadyCalled } from './emergency-claim.js';
+import { CRISIS_TALK, crisisInPlay, EMERGENCY_LINE, helpAlreadyCalled } from './emergency-claim.js';
+import { plain, spokenOf, type Item } from './spoken-words.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -174,32 +176,15 @@ const ACTION_TALK =
  * emergency. A wrong match only costs a held sentence; a missed ask speaks a claim.
  * Case-blind, since speech-to-text capitalises the start of every sentence.
  */
-const ASK_SHAPE =
-  /\b(?:(?:can|could|would|will) you|please|i need you to|i want you to|go ahead|for me|ambulance|911|police|emergency|fire department|help|hurt\w*|fell|fallen|(?:can'?t|cannot|can not) breathe|heart attack|chest|bleed\w*|breaking in|broke in|overdos\w*|suicid\w*|not breathing|collaps\w*|passed out|unconscious|stroke|chok\w*|seizure|fire|accident|gun|knife|cops|kill (?:my|him|her)sel(?:f|ves)|end it all|(?:don'?t|do not) want to (?:live|be here)|ayuda|hilfe|socorro|aiuto|au secours|(?:my|your|our) (?:\w+ )?(?:mom|mum|mother|mama|dad|father|papa|sister|sis|brother|bro|grandma|grandmother|gran|nana|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|friend|bestie|boss|doctor|dentist|therapist|landlord|teacher|neighbou?r|family|roommate)|her|him|them)\b/i;
+const ASK_SHAPE = new RegExp(
+  `\\b(?:(?:can|could|would|will) you|please|i need you to|i want you to|go ahead|for me|help|${CRISIS_TALK}|(?:my|your|our) (?:\\w+ )?(?:mom|mum|mother|mama|dad|father|papa|sister|sis|brother|bro|grandma|grandmother|gran|nana|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|friend|bestie|boss|doctor|dentist|therapist|landlord|teacher|neighbou?r|family|roommate)|her|him|them)\\b`,
+  'i'
+);
 /** Someone named mid-sentence: a capitalised word other than Ferni's name (case matters here). */
 const NAMED = /\s(?!(?:Ferni|Fern)\b)[A-Z][a-z]+/;
 
 /** How many of the caller's (and Ferni's) latest messages can put an action in play. */
 const ASK_WINDOW = 6;
-
-interface Item {
-  type?: string;
-  role?: string;
-  name?: string;
-  content?: unknown;
-  textContent?: string;
-}
-
-/** The caller's spoken words: the first line only, since a per-turn reminder rides after a blank line (turn-style.ts). */
-const spokenOf = (item: Item): string => {
-  const text =
-    item.textContent ??
-    (Array.isArray(item.content)
-      ? item.content.filter((part): part is string => typeof part === 'string').join(' ')
-      : '');
-  const first = text.split('\n')[0].trim();
-  return first.startsWith(TURN_CONTEXT_HEADER) ? '' : first;
-};
 
 /** Ferni's own line claimed an action or said honestly he couldn't: the action is still in play. */
 const HONEST_SAID = /\b(?:can't actually|didn't go through)\b/i;
@@ -218,9 +203,6 @@ const actedOn = (text: string): boolean =>
         claimedAction(part) !== null ||
         (OFFER.test(part) && (ACTION_TALK.test(part) || ASK_SHAPE.test(part)))
     );
-/** Curly apostrophes from speech-to-text read as straight ones. */
-const plain = (text: string): string => text.replace(/[\u2018\u2019]/g, "'");
-
 /** The caller's latest words. */
 function lastCallerWords(chatCtx: { items: readonly unknown[] }): string {
   const asks = (chatCtx.items as readonly Item[]).filter(
@@ -297,33 +279,35 @@ async function checkActionClaims<T>(
   // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
   const calendarCreateOpen = toolNames.some(isCalendarCreate);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
-  const helpCalled = helpAlreadyCalled(chatCtx);
+  // "Help is on the way" is false only in an emergency nobody has called about yet.
+  const crisis = crisisInPlay(chatCtx) && !helpAlreadyCalled(chatCtx);
+  const isEmergency = (text: string): boolean => {
+    const claim = emergencyClaim(text);
+    return claim === 'called' || (claim === 'coming' && crisis);
+  };
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
     !open.has(kind)
       ? 'no_tool'
       : failed.has(kind)
         ? 'failed'
-        : failed.has(kind)
-          ? 'failed'
-          : elsewhere.has(kind)
-            ? 'elsewhere'
-            : held.has(kind)
-              ? 'held'
-              : awaiting.has(kind) && !yesTurn
-                ? 'awaiting'
-                : kind === 'schedule' && calendarCreateOpen && !done.has(kind) && !calling.has(kind)
-                  ? 'uncalled'
-                  : null;
-  /** Why this sentence's claim is false, or null. An emergency claim always is (#1553). */
-  const reasonFor = (
+        : elsewhere.has(kind)
+          ? 'elsewhere'
+          : held.has(kind)
+            ? 'held'
+            : awaiting.has(kind) && !yesTurn
+              ? 'awaiting'
+              : kind === 'schedule' && calendarCreateOpen && !done.has(kind) && !calling.has(kind)
+                ? 'uncalled'
+                : null;
+  /** What one sentence claims, and why that is false (reason null: it may stand). */
+  const judge = (
     text: string,
-    kind: ActionKind | null,
     calling: ReadonlySet<ActionKind>
-  ): MissReason | null => {
-    const emergency = kind === 'call' ? emergencyClaim(text) : null;
-    if (emergency) return emergency === 'coming' && helpCalled ? null : 'emergency';
-    return kind ? missing(kind, calling) : null;
+  ): { kind: ActionKind | null; reason: MissReason | null } => {
+    if (isEmergency(text)) return { kind: 'call', reason: 'emergency' };
+    const kind = claimedAction(text);
+    return { kind, reason: kind ? missing(kind, calling) : null };
   };
   /** A call claimed on the yes, before the call tool has said whether anything rang. */
   const ahead = (kind: ActionKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
@@ -363,8 +347,7 @@ async function checkActionClaims<T>(
       };
       /** A whole sentence: held ones go out unless they claim; streamed ones are already out. */
       const flush = (text: string): void => {
-        const kind = claimedAction(text);
-        const reason = reasonFor(text, kind, calling);
+        const { kind, reason } = judge(text, calling);
         if (kind && !reason && hold && ahead(kind)) {
           log.warn({ kind, reason: 'before_result', held: hold }, 'ACTION_CLAIM_DROPPED');
           early ??= kind; // said nothing yet: the tool's result is spoken next
@@ -377,12 +360,14 @@ async function checkActionClaims<T>(
           return;
         }
         log.warn({ kind, reason, held: hold }, 'ACTION_CLAIM_DROPPED');
-        // The way to real help goes out once, even after another honest line.
+        // The way to real help goes out once, even after another honest line; a held
+        // sentence's other words ("start chest compressions") follow it.
         if (reason === 'emergency') {
           if (!crisisSaid) {
             emit(hold ? EMERGENCY_LINE : `Scratch that, ${EMERGENCY_LINE}`);
             crisisSaid = said = lineLast = true;
           }
+          if (hold) emit(emergencyRemainder(text));
           return;
         }
         if (said || deferred) return;

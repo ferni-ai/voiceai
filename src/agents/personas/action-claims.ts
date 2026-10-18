@@ -15,9 +15,9 @@
  * a big hug", "it's ringing a bell", "I'll remind you to breathe"). Clauses are
  * read on their own, so a "?" in another clause never excuses a claim.
  *
- * Also claims: ordering a ride ("I've ordered you an Uber"), a booking said as
- * where it now is ("Done, it's in your diary."), and any report that emergency
- * services were called or help is coming (emergency-claim.ts, #1553).
+ * Also claims: ordering a ride ("I've ordered you an Uber"), a booking reported
+ * done ("Done, it's in your diary.", not a read-back of what is already there),
+ * and Ferni saying he called emergency services (emergency-claim.ts, #1553).
  *
  * @module agents/personas/action-claims
  */
@@ -27,7 +27,9 @@ import {
   CLAUSE_CONDITION,
   CONDITION,
   EMERGENCY_CALLED,
+  EMERGENCY_CLAUSES,
   HELP_COMING,
+  OFFER_OR_NOT,
 } from './emergency-claim.js';
 
 export type ActionKind = 'call' | 'send' | 'ride' | 'schedule' | 'reminder' | 'save';
@@ -62,7 +64,7 @@ const DIALED = `(?:${WHO}|${NUMBER})`;
 const BARE = (verbs: string, now = NOW): RegExp =>
   new RegExp(`${LEAD}${verbs}(?: ${DIALED})?(?: ${now})${TAIL}`);
 
-const VEHICLE = '(?:uber|lyft|cab|taxi|ride|car)\\b';
+const VEHICLE = '(?:uber|lyft|cab|taxi|ride|car)\\b(?! keys?\\b)';
 
 /** Read on each clause: Ferni as the actor, a person in the caller's world (or their number) as the object. */
 const CLAIMS: Record<ActionKind, RegExp[]> = {
@@ -120,6 +122,7 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
     new RegExp(
       `${HAVE} (?:got|have) (?:it|that|this) (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
     ),
+    /\b(?:it's|it is|that's|that is) (?:been added to|been put (?:in|on|into)|now (?:in|on)) your (?:calendar|diary|schedule)\b/,
     new RegExp(
       `${DOING} (?:booking|scheduling|reserving) (?:it|that|this|the|a|an|your|you)\\b(?! to\\b)`
     ),
@@ -146,8 +149,9 @@ const WHOLE: Record<ActionKind, RegExp[]> = {
   ride: [],
   schedule: [
     new RegExp(`${LEAD}(?:booked|you're all booked)\\W*$`),
+    // Only with a word saying it was just done: "It's on your calendar for Friday" may be a read-back.
     new RegExp(
-      `${LEAD}(?:it's|it is|that's|that is)(?: been| now| all)? (?:in|on|added to) your (?:calendar|diary|schedule)(?: for [^?]*)?\\W*$`
+      `${LEAD}(?:done|all done|all set|booked|sorted|there we go|there you go)\\W+(?:it's|it is|that's|that is)(?: now| all)? (?:in|on) your (?:calendar|diary|schedule)(?: for [^?]*)?\\W*$`
     ),
   ],
   reminder: [new RegExp(`${LEAD}(?:your )?(?:reminder|timer|alarm)(?:'s| is) (?:all )?set\\W*$`)],
@@ -164,21 +168,20 @@ const NOT_AN_ACTION =
 
 /** A capitalised word inside a clause is a name: read it as "her" (the patterns are lower case). */
 const names = (text: string): string =>
-  text.replace(
-    /([a-z,;:]\s+)(?!I\b|I'|I’|(?:Uber|Lyft|Police|Ambulance|Paramedics|Fire|Emergency)\b)[A-Z][a-z]+\b(?!['’])/g,
-    '$1her'
-  );
+  text.replace(/([a-z,;:]\s+)(?!I\b|I'|I’|(?:Uber|Lyft)\b)[A-Z][a-z]+\b(?!['’])/g, '$1her');
 
 /** Anywhere in the sentence: it's about feelings, not an action ("that's saved, in my heart"). */
 const FIGURATIVE =
   /\bin (?:my|your|our) (?:heart|head|memory|mind|imagination|dreams)\b|\bin spirit\b|\binto the universe\b/;
 
-const normalize = (text: string): string =>
-  names(text.replace(/"[^"]*"|“[^”]*”/g, ' ')) // a message's words, quoted: never Ferni's claim
+const unquoted = (text: string): string => text.replace(/"[^"]*"|“[^”]*”/g, ' '); // a message's words: never Ferni's claim
+const flat = (text: string): string =>
+  text
     .toLowerCase()
     .replace(/[‘’ʼ`]/g, "'")
     .replace(/\s+/g, ' ')
     .trim();
+const normalize = (text: string): string => flat(names(unquoted(text)));
 
 const CLAUSES = /[,;:—–]| - /;
 
@@ -187,23 +190,48 @@ const CLAUSES = /[,;:—–]| - /;
  * coming ('coming'), or null. Either way it is a call claim (emergency-claim.ts).
  */
 export function emergencyClaim(sentence: string): 'called' | 'coming' | null {
-  const text = normalize(sentence);
+  // Before names(): "the Fire Department" must not read as "the fire her".
+  const text = flat(unquoted(sentence)).replace(/^(?:and |but |so )/, '');
   if (FIGURATIVE.test(text) || CONDITION.test(text)) return null;
-  for (const raw of text.split(CLAUSES)) {
+  for (const raw of text.split(EMERGENCY_CLAUSES)) {
     const clause = raw.trim();
-    if (!clause || NOT_A_CLAIM.test(clause) || ANECDOTE.test(clause)) continue;
+    if (!clause || clause.includes('?') || ANECDOTE.test(clause)) continue;
     if (CLAUSE_CONDITION.test(clause)) continue;
-    if (EMERGENCY_CALLED.some((re) => re.test(clause))) return 'called';
-    if (HELP_COMING.some((re) => re.test(clause))) return 'coming';
+    /** A claim, unless an offer or negation comes before its verb. */
+    const said = (re: RegExp): boolean => {
+      const at = re.exec(clause)?.index;
+      return at !== undefined && !OFFER_OR_NOT.test(clause.slice(0, at + 1));
+    };
+    if (EMERGENCY_CALLED.some(said)) return 'called';
+    if (HELP_COMING.some(said)) return 'coming';
   }
   return null;
+}
+
+/** The rest of a sentence once its emergency claim is cut ("..., start chest compressions."), or ''. */
+export function emergencyRemainder(sentence: string): string {
+  const kept = sentence
+    .split(/[,;:—–]\s*|\s+-\s+|\s+(?:and|so|but|then)\s+/i)
+    .map((piece) => piece.trim())
+    .filter(
+      (piece) =>
+        piece !== '' &&
+        emergencyClaim(piece) === null &&
+        !/^(?:okay|ok|alright|all right|right|sure|yes|yep|on it|i'?m on it|hang on|hold on)\W*$/i.test(
+          piece
+        )
+    );
+  if (kept.length === 0) return '';
+  const text = kept.join(', ').replace(/[\s,]+$/, '');
+  const ended = /[.!?]$/.test(text) ? text : `${text}.`;
+  return ended.charAt(0).toUpperCase() + ended.slice(1);
 }
 
 /** The kind of action one sentence claims was done or is under way, or null. */
 export function claimedAction(sentence: string): ActionKind | null {
   const text = normalize(sentence);
   if (FIGURATIVE.test(text)) return null;
-  if (emergencyClaim(sentence)) return 'call';
+  if (emergencyClaim(sentence) === 'called') return 'call';
   const whole = text.replace(/[—–]/g, ',');
   if (!NOT_A_CLAIM.test(whole) && !NOT_AN_ACTION.test(whole)) {
     const kind = ACTION_KINDS.find((k) => WHOLE[k].some((re) => re.test(whole)));
