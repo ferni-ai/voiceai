@@ -218,6 +218,24 @@ export interface ImmediateContactOptions {
   isDirectToContact?: boolean;
   /** They asked for this text just now ("text me that"), so quiet hours don't hold it. */
   askedNow?: boolean;
+  /** They asked for it on this call ("text me that"); the call's session proves any consent. */
+  requested?: boolean;
+  sessionId?: string;
+}
+
+/** Records an immediate send about a contact for timing ML; a failure never fails the send. */
+async function recordImmediateOutcome(
+  userId: string,
+  contactId: string | undefined,
+  channel: 'sms' | 'email' | 'voice'
+): Promise<void> {
+  if (!contactId) return;
+  try {
+    // gotResponse is updated by the webhooks if they respond.
+    await recordOutcome(userId, { contactId, sentAt: new Date(), channel, gotResponse: false });
+  } catch (mlError) {
+    getLogger().warn({ error: String(mlError) }, 'Failed to record timing outcome');
+  }
 }
 
 /**
@@ -228,7 +246,7 @@ export async function textUser(
   message: string,
   personaId = 'ferni',
   options?: ImmediateContactOptions
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; disclose?: string }> {
   const phone = await verifiedPhone(userId);
   if (!phone) return { success: false, error: NO_VERIFIED_PHONE };
 
@@ -240,29 +258,23 @@ export async function textUser(
 
     const body = `${message}\n\n— ${firstName}`;
     const askedNow = options?.askedNow === true;
-    const text = await getCallUserPort()?.textOwner?.(userId, body, { askedNow });
-    if (!text?.sent) return { success: false, error: text?.reason ?? 'no guarded sender here' };
+    const { requested, sessionId } = options ?? {};
+    const text = await getCallUserPort()?.textOwner?.(userId, body, {
+      askedNow,
+      requested,
+      sessionId,
+    });
+    if (!text?.sent) {
+      return {
+        success: false,
+        error: text?.reason ?? 'no guarded sender here',
+        disclose: text?.disclose,
+      };
+    }
 
     getLogger().info({ userId, personaId: canonicalId }, '📱 Text sent to user');
 
-    // Record outcome for ML timing learning if this message is about a contact
-    if (options?.contactId) {
-      try {
-        await recordOutcome(userId, {
-          contactId: options.contactId,
-          sentAt: new Date(),
-          channel: 'sms',
-          gotResponse: false, // Will be updated via webhooks if they respond
-        });
-        getLogger().debug(
-          { contactId: options.contactId, channel: 'sms' },
-          '📊 Recorded immediate text outcome for timing ML'
-        );
-      } catch (mlError) {
-        // Don't fail the send if ML tracking fails
-        getLogger().warn({ error: String(mlError) }, 'Failed to record timing outcome');
-      }
-    }
+    await recordImmediateOutcome(userId, options?.contactId, 'sms');
 
     return { success: true };
   } catch (error) {
@@ -299,24 +311,7 @@ export async function emailUser(
 
     getLogger().info({ userId, personaId: canonicalId, subject }, '📧 Email sent to user');
 
-    // Record outcome for ML timing learning if this message is about a contact
-    if (options?.contactId) {
-      try {
-        await recordOutcome(userId, {
-          contactId: options.contactId,
-          sentAt: new Date(),
-          channel: 'email',
-          gotResponse: false, // Will be updated via webhooks if they respond
-        });
-        getLogger().debug(
-          { contactId: options.contactId, channel: 'email' },
-          '📊 Recorded immediate email outcome for timing ML'
-        );
-      } catch (mlError) {
-        // Don't fail the send if ML tracking fails
-        getLogger().warn({ error: String(mlError) }, 'Failed to record timing outcome');
-      }
-    }
+    await recordImmediateOutcome(userId, options?.contactId, 'email');
 
     return { success: true };
   } catch (error) {
@@ -351,24 +346,7 @@ export async function callUser(
       '📞 Call initiated to user'
     );
 
-    // Record outcome for ML timing learning if this message is about a contact
-    if (options?.contactId) {
-      try {
-        await recordOutcome(userId, {
-          contactId: options.contactId,
-          sentAt: new Date(),
-          channel: 'voice',
-          gotResponse: false, // Will be updated via call completion webhooks
-        });
-        getLogger().debug(
-          { contactId: options.contactId, channel: 'voice' },
-          '📊 Recorded immediate call outcome for timing ML'
-        );
-      } catch (mlError) {
-        // Don't fail the call if ML tracking fails
-        getLogger().warn({ error: String(mlError) }, 'Failed to record timing outcome');
-      }
-    }
+    await recordImmediateOutcome(userId, options?.contactId, 'voice');
 
     return { success: true, callSid: result.callSid };
   } catch (error) {

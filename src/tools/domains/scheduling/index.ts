@@ -34,7 +34,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 import { WHERE_TO_ADD_NUMBER } from '../../shared/where-to-add-number.js';
-
+import { disclosureFirst } from '../proactive/outreach/call-user-port.js';
 import {
   scheduleText,
   scheduleEmail,
@@ -315,16 +315,14 @@ Use when the user says:
 
         log.info({ userId }, '📱 Sending immediate text');
 
-        const result = await textUser(userId, params.message, personaId, { askedNow: true });
-
-        if (result.success) {
-          return `Done! I just texted you: "${params.message}"`;
-        } else {
-          if (result.error?.includes('phone')) {
-            return `I can't text you yet: there's no verified phone number on your account. ${WHERE_TO_ADD_NUMBER}`;
-          }
-          return `I couldn't send that text: ${result.error}`;
+        const asked = { askedNow: true, requested: true, sessionId: ctx.sessionId };
+        const result = await textUser(userId, params.message, personaId, asked);
+        if (result.disclose) return disclosureFirst(result.disclose);
+        if (result.success) return `Done! I just texted you: "${params.message}"`;
+        if (result.error?.includes('phone')) {
+          return `I can't text you yet: there's no verified phone number on your account. ${WHERE_TO_ADD_NUMBER}`;
         }
+        return `I couldn't send that text: ${result.error}`;
       },
     }),
 };

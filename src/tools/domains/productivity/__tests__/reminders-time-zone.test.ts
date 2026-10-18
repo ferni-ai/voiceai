@@ -99,6 +99,8 @@ describe('scheduling tools use the caller zone', () => {
       '2026-10-12T16:00:00.000Z'
     );
     expect(created.reminders[0].timezone).toBe('America/New_York');
+    // The user asked for it, so consent given on a call covers its text.
+    expect(created.reminders[0].requestedByUser).toBe(true);
   });
 
   it('setReminder: a repeat asked for is not confirmed, and the result says it does not repeat', async () => {

@@ -22,6 +22,7 @@ import {
   applyAttributionFeedback,
 } from '../../memory/retrieval/index.js';
 import { recordMemoryAttribution, recordMemoriesInjected } from '../../memory/dynamic/metrics.js';
+import { noteConsentTurn } from '../../services/outreach/voice-consent-ledger.js';
 
 const log = createLogger({ module: 'agent-turn-recorder' });
 
@@ -38,6 +39,8 @@ export function recordAgentTurn(
   text: string
 ): void {
   if (!text) return;
+  // What the caller heard: proof Ferni spoke a texting disclosure (voice-consent-ledger.ts).
+  noteConsentTurn(sessionId, 'assistant', text);
 
   // Record to regular session services (memory persistence)
   if (services && typeof services.addTurn === 'function') {
@@ -102,16 +105,17 @@ export function recordAgentTurn(
  * Record a user turn. In an on-behalf call services.addTurn is routed to the
  * call transcript, so the "user" here is the person being called.
  *
- * @param _sessionId - Kept for call-site symmetry with recordAgentTurn
+ * @param sessionId - The call, for the texting-consent answer (voice-consent-ledger.ts)
  * @param services - Session services for regular turn recording
  * @param text - The user/recipient's speech
  */
 export function recordUserTurn(
-  _sessionId: string,
+  sessionId: string,
   services: SessionServices | null | undefined,
   text: string
 ): void {
   if (!text) return;
+  noteConsentTurn(sessionId, 'user', text);
 
   // Record to regular session services (memory persistence)
   if (services && typeof services.addTurn === 'function') {

@@ -16,6 +16,8 @@ import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
 import { scheduleProactiveCall } from './conversational-calls.js';
 import { sendGuardedText, type TextSkip } from './guarded-text.js';
+import { readSmsConsent, recordVoiceSmsConsent, VOICE_SMS_DISCLOSURE } from './outreach-consent.js';
+import { requestDisclosure, takeAgreedDisclosure } from './voice-consent-ledger.js';
 import { escapeXml } from './twilio-ssml.js';
 import { userReach } from './user-reach.js';
 
@@ -24,6 +26,7 @@ const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'quiet-hours': "it's quiet hours where you are",
   'opted-out': 'you replied STOP to my texts',
   'sms-off': 'texts are turned off in your settings',
+  'no-consent': "you've only okayed texts you ask me for",
   'recently-sent': 'I just texted you',
   'no-verified-phone': "there's no verified phone number on your account",
   'no-hash-secret': "texting isn't set up here",
@@ -43,13 +46,32 @@ export const callUserAdapter: CallUserPort = {
     const user = await getFirebaseUser(userId);
     return user?.emailVerified ? (user.email ?? undefined) : undefined;
   },
-  textOwner: async (userId, body, { askedNow }) => {
+  textOwner: async (userId, body, { askedNow, requested = false, sessionId }) => {
     const zone = userTimeZone({ userId });
     if (!askedNow && isValidTimeZone(zone) && isQuietHour(new Date(), zone)) {
       return { sent: false, reason: HELD['quiet-hours'] };
     }
+    // Asked for with no consent on record: consent only once this call's ledger shows Ferni
+    // spoke the disclosure and they said yes (voice-consent-ledger.ts); never on the model's word.
+    if (requested && !(await readSmsConsent(userId))) {
+      if (!sessionId)
+        return { sent: false, reason: 'texts need your okay on a call or in the app' };
+      const nonce = takeAgreedDisclosure(sessionId);
+      if (!nonce) {
+        requestDisclosure(sessionId);
+        return { sent: false, reason: 'no texting consent yet', disclose: VOICE_SMS_DISCLOSURE };
+      }
+      await recordVoiceSmsConsent(userId, { sessionId, nonce });
+    }
     const refId = `${Date.now()}`;
-    const t = { userId, body, kind: 'message' as const, refId, minGapMs: OWNER_TEXT_GAP_MS };
+    const t = {
+      userId,
+      body,
+      kind: 'message' as const,
+      refId,
+      minGapMs: OWNER_TEXT_GAP_MS,
+      requested,
+    };
     const outcome = await sendGuardedText(t);
     return outcome.sent ? { sent: true } : { sent: false, reason: HELD[outcome.reason] };
   },

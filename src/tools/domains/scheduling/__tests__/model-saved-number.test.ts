@@ -95,7 +95,9 @@ describe('a number the model saved is never texted or rung', () => {
     await run('scheduleMessage', { message: 'hi', when: 'in 2 hours' });
     await run('scheduleCall', { message: 'hi', when: 'in 2 hours' });
     // Through the guarded sender (STOP, texts off); they just asked, so quiet hours don't hold it.
-    expect(guarded.mock.calls.map((c) => [c[0], c[2]])).toEqual([[ctx.userId, { askedNow: true }]]);
+    expect(guarded.mock.calls.map((c) => [c[0], c[2]])).toEqual([
+      [ctx.userId, { askedNow: true, requested: true, sessionId: undefined }],
+    ]);
     expect(sent.sms).not.toHaveBeenCalled();
     expect(addresses()).toEqual([OWNER, OWNER]);
   });
@@ -115,5 +117,23 @@ describe('a number the model saved is never texted or rung', () => {
     setCallUserPort(port(OWNER, 'owner@example.com'));
     await run('scheduleEmail', { subject: 's', message: 'hi', when: 'in 2 hours' });
     expect(addresses()).toEqual(['owner@example.com']);
+  });
+});
+
+describe('sendMessageNow with no texting consent on record', () => {
+  it('passes the call session, and says the disclosure first instead of claiming it sent', async () => {
+    const disclose = 'Sure. Just so you know, I will text this number.';
+    guarded.mockResolvedValueOnce({ sent: false, reason: 'no consent', disclose } as never);
+    setCallUserPort(port(OWNER));
+    const live = { ...ctx, sessionId: 'call-1' };
+    const tool = definitions.find((d) => d.id === 'sendMessageNow')!.create(live);
+    const reply = String(await tool.execute({ message: 'the address' }, {}));
+    expect(reply).toContain(`word for word: "${disclose}"`);
+    expect(reply).not.toContain('Done');
+    expect(guarded).toHaveBeenCalledWith(live.userId, expect.any(String), {
+      askedNow: true,
+      requested: true,
+      sessionId: 'call-1',
+    });
   });
 });
