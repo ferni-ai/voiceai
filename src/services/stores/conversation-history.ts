@@ -9,6 +9,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { getDisplayName } from '../../personas/persona-ids.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { getEngagementStore } from '../engagement/engagement-store.js';
+import { getSessionsTogether } from './sessions-together.js';
 
 // ============================================================================
 // TYPES
@@ -31,6 +32,7 @@ export interface ConversationSession {
 
 export interface ConversationHistoryData {
   sessions: ConversationSession[];
+  /** Every session together (sessions-together), not just the ones listed in `sessions`. */
   totalSessions: number;
   totalMinutes: number;
   favoritePersona?: string;
@@ -101,13 +103,16 @@ class ConversationHistoryService {
    */
   async getHistory(userId: string, limit = 50): Promise<ConversationHistoryData> {
     let sessions: ConversationSession[] = [];
+    let totalSessions = 0;
 
     if (this.firestoreEnabled) {
       const store = await getEngagementStore();
-      const [calls, storedSessions] = await Promise.all([
+      const [calls, storedSessions, together] = await Promise.all([
         readAgentCalls(userId, limit),
         store.getConversationSessions(userId, limit),
+        getSessionsTogether(userId),
       ]);
+      totalSessions = together.count;
       const webSessions = storedSessions.map((s) => ({
         id: s.id as string,
         date: s.date as string,
@@ -144,7 +149,7 @@ class ConversationHistoryService {
 
     return {
       sessions,
-      totalSessions: sessions.length,
+      totalSessions, // the total, not the length of this (latest-`limit`) page
       totalMinutes,
       favoritePersona,
       insightCount,

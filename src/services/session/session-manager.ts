@@ -163,6 +163,7 @@ import {
 
 // Persistence metrics for observability
 import { persistenceMetrics } from '../analytics/persistence-metrics.js';
+import { withSessionsTogether } from './sessions-together-profile.js';
 
 // ============================================================================
 // SESSION STATE
@@ -273,7 +274,6 @@ export async function createSessionServices(
       // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
       userProfile = createUserProfile(profileUserId, userName);
       await global.store.saveProfile(userProfile);
-      // Cache the new profile
       void cacheProfile(profileUserId, userProfile);
       getLogger().info(
         { userId: profileUserId, name: userName || '(none)' },
@@ -290,7 +290,7 @@ export async function createSessionServices(
         '✨ Updated existing profile with name from onboarding'
       );
     }
-    return userProfile;
+    return withSessionsTogether(profileUserId, userProfile); // one count of sessions together
   };
 
   if (validatedUserId && !deferProfileLoad) {

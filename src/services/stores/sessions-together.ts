@@ -95,6 +95,19 @@ export function currentDayStreak(days: string[], now = new Date(), timeZone?: st
   return streak;
 }
 
+/** The longest run of consecutive calendar days in `days` (YYYY-MM-DD). */
+export function longestDayStreak(days: string[]): number {
+  const sorted = [...new Set(days)].sort();
+  let best = 0;
+  let run = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const gap = i === 0 ? 0 : (Date.parse(sorted[i]!) - Date.parse(sorted[i - 1]!)) / 864e5;
+    run = gap === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+  }
+  return best;
+}
+
 /**
  * Read every stored call for a user and summarize it. Throws when Firestore
  * can't be read, so a caller never mistakes a failed read for "no sessions".
