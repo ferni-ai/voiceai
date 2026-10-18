@@ -9,11 +9,13 @@ import { registerAfterCallTask } from '../services/session/after-call-tasks.js';
 import { callLLM } from '../services/llm-utils.js';
 import { factSupersessionEnabled, supersedeNewFacts } from '../memory/dynamic/fact-supersession.js';
 import { firestoreSupersessionStore } from '../memory/storage/supersession-store.js';
+import { envForCaller } from '../services/platform/cohort-flags.js';
 
 registerAfterCallTask(
   'fact-supersession',
   async (ctx) => {
-    if (!factSupersessionEnabled()) return;
+    // As this caller's call had it: process.env may hold the next caller's (cohort-flags.ts).
+    if (!factSupersessionEnabled(await envForCaller(ctx.userId))) return;
     await supersedeNewFacts(ctx.userId, {
       store: firestoreSupersessionStore,
       llm: (prompt) => callLLM(prompt, { temperature: 0, maxTokens: 600 }),

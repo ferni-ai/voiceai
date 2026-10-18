@@ -51,6 +51,23 @@ describe('the dates-that-matter after-call task', () => {
     expect(s.plans).toEqual([]);
   });
 
+  it("reads the flag as the ended call had it, not as the next caller's cohort set it", async () => {
+    const cohorts = (on: boolean) => ({
+      cohortsFor: async () => [{ id: 'seth', enabled: true, flags: { DATES_THAT_MATTER: on ? 'on' : 'off' } }], // prettier-ignore
+      overridesFor: async () => ({}),
+    });
+    // The next call's caller has it on in the env; this caller's cohort has it off.
+    const nextOn = { COHORT_FLAGS: 'on', DATES_THAT_MATTER: 'on' };
+    const llm = vi.fn(async (_prompt: string) => modelReply);
+    await extractDatesAfterCall(ctx, { llm, store: store(), topics: async () => [], env: nextOn, cohorts: cohorts(false) }); // prettier-ignore
+    expect(llm).not.toHaveBeenCalled();
+    // And the other way round: this caller's cohort has it on, the env is off.
+    const s = store();
+    await extractDatesAfterCall(ctx, { llm, store: s, topics: async () => [], env: { COHORT_FLAGS: 'on' }, cohorts: cohorts(true) }); // prettier-ignore
+    expect(llm).toHaveBeenCalledTimes(1);
+    expect(s.plans).toHaveLength(1);
+  });
+
   it("stores the call's dates resolved against the caller's own day", async () => {
     const llm = vi.fn(async (_prompt: string) => modelReply);
     const s = store();
