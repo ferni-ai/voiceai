@@ -37,6 +37,7 @@ export const CRISIS_QUIET_MS = 14 * DAY_MS;
 export const SMS_DAILY_BUDGET = 3;
 export const APP_DAILY_BUDGET = 6;
 export const SAME_BODY_MS = 12 * HOUR_MS;
+export const LIVE_REPLY_MS = 30 * MIN_MS; // a reply this soon after their text: they're awake
 const FALLBACK_ZONES = ['America/New_York', 'America/Los_Angeles']; // no zone: either coast
 
 /**
@@ -74,6 +75,8 @@ const byPhone = (c: Channel): c is 'sms' | 'call' => c === 'sms' || c === 'call'
 /** The owner chose the time ("remind me at 6:30"), so it goes when they said. */
 const ownerTimed = (i: Intent): boolean =>
   i.recipient === 'owner' && i.requestedBy === 'user' && i.requestedAt !== undefined;
+const liveReply = (i: Intent, { now, lastInboundAt: at }: PolicyCtx): boolean =>
+  i.kind === 'reply' && at !== undefined && now.getTime() - at.getTime() < LIVE_REPLY_MS;
 const recent = (e: LedgerEntry, ctx: PolicyCtx, ms: number): boolean =>
   ctx.now.getTime() - e.at.getTime() < ms;
 
@@ -110,7 +113,6 @@ const inWindow = (w: LocalWindow, min: number): boolean =>
     ? min >= w.startMin && min < w.endMin
     : min >= w.startMin || min < w.endMin;
 
-/** The next opening of the person's own windows, or null when one is open now. */
 function nextWindow(now: Date, zone: string, windows: readonly LocalWindow[]): Date | null {
   const { hour, minute } = wallTimeIn(now, zone);
   const min = hour * 60 + minute;
@@ -149,11 +151,12 @@ function crisisGate(i: Intent, ctx: PolicyCtx): Decision | null {
 }
 
 /**
- * 5. Quiet hours and the person's own windows; a time the owner chose goes
- * anyway. In-app notes wait for them to look.
+ * 5. Quiet hours and the person's own windows. Going anyway: a time the owner
+ * chose, a code or confirmation, a live reply; in-app notes wait for them to look.
  */
 function timeGate(i: Intent, ctx: PolicyCtx): Decision | null {
-  if (i.channel === 'in_app' || ownerTimed(i)) return null;
+  if (i.channel === 'in_app' || ownerTimed(i) || i.kind === 'transactional') return null;
+  if (liveReply(i, ctx)) return null;
   const known = isValidTimeZone(ctx.zone);
   if (!known && isProactive(i)) return hold('no-timezone');
   const until = quietUntil(ctx.now, zonesOf(ctx));
@@ -191,7 +194,7 @@ function digestKey(ctx: PolicyCtx): string {
  * 8. The daily budget, rolling 24 h. A sent message can't be taken back, so a
  * spent budget merges or drops. Slots still open but claimed by held messages
  * go to this one only if it outranks one of them (that one re-decides later
- * and finds the budget spent). The user's requests and replies don't count.
+ * and finds the budget spent). The user's requests, replies and codes don't count.
  */
 function budgetGate(i: Intent, ctx: PolicyCtx): Decision | null {
   const group = budgetGroup(i.channel);
@@ -247,7 +250,6 @@ function sendDecision(i: Intent, ctx: PolicyCtx): Decision {
 
 type Gate = (i: Intent, ctx: PolicyCtx) => Decision | null;
 
-/** In order; the first that objects decides. */
 export const GATES: ReadonlyArray<readonly [string, Gate]> = [
   ['recipient', recipientGate],
   ['consent', consentGate],
@@ -274,8 +276,7 @@ const GSM_BASIC = new Set(
   '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡' +
     'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà'
 );
-/** GSM-7 extension characters: an escape plus the character, two septets. */
-const GSM_EXT = new Set('\f^{}\\[~]|€');
+const GSM_EXT = new Set('\f^{}\\[~]|€'); // escape + character: two septets
 
 /**
  * How many SMS segments the text takes: GSM-7 (160 in one, else 153 each) or,

@@ -84,6 +84,12 @@ const quietUntil = (until: Date): Partial<Decision> => ({
 
 const recipient: Row[] = [
   {
+    name: 'a verification code to a number not being verified is dropped',
+    i: { kind: 'transactional', requestedBy: 'user', anchor: undefined },
+    c: { verifiedRecipient: false },
+    want: { action: 'drop', reason: 'no-verified-phone' },
+  },
+  {
     name: 'owner sms to an unverified number is dropped',
     c: { verifiedRecipient: false },
     want: { action: 'drop', reason: 'no-verified-phone' },
@@ -128,6 +134,12 @@ const recipient: Row[] = [
 ];
 
 const consent: Row[] = [
+  {
+    name: 'a verification code to an opted-out number is dropped',
+    i: { kind: 'transactional', requestedBy: 'user', anchor: undefined },
+    c: { now: at('2026-10-14T02:00'), consent: { sms: 'out', call: 'in' } },
+    want: { action: 'drop', reason: 'opted-out' },
+  },
   {
     name: 'a third party who never said yes waits for consent',
     i: { recipient: 'third-party', kind: 'on-behalf', requestedBy: 'user' },
@@ -227,6 +239,24 @@ const crisis: Row[] = [
 ];
 
 const quietHours: Row[] = [
+  {
+    name: 'a reply at 23:15, 5 min after their text, goes (they are awake and talking)',
+    i: { kind: 'reply', anchor: undefined },
+    c: { now: at('2026-10-14T23:15'), lastInboundAt: at('2026-10-14T23:10') },
+    want: SEND,
+  },
+  {
+    name: 'the same reply 45 min after their text waits for 08:00',
+    i: { kind: 'reply', anchor: undefined },
+    c: { now: at('2026-10-14T23:15'), lastInboundAt: at('2026-10-14T22:30') },
+    want: quietUntil(at('2026-10-15T08:00')),
+  },
+  {
+    name: 'a verification code at 02:00 goes',
+    i: { kind: 'transactional', requestedBy: 'user', anchor: undefined },
+    c: { now: at('2026-10-14T02:00') },
+    want: SEND,
+  },
   { name: 'NY 20:59 goes', c: { now: at('2026-10-14T20:59') }, want: SEND },
   {
     name: 'NY 21:00 holds to 08:00 tomorrow',
@@ -363,6 +393,18 @@ const DIGEST_TODAY = {
   mergeInto: 'digest:2026-10-14',
 } as const;
 const budget: Row[] = [
+  {
+    name: 'budget: a verification code is outside it',
+    i: { kind: 'transactional', requestedBy: 'user', anchor: undefined },
+    c: { ledger: sentToday(3) },
+    want: SEND,
+  },
+  {
+    name: 'budget: a live reply at 23:15 with 3 sent today goes',
+    i: { kind: 'reply', anchor: undefined },
+    c: { now: at('2026-10-14T23:15'), lastInboundAt: at('2026-10-14T23:10'), ledger: sentToday(3) },
+    want: SEND,
+  },
   { name: 'budget: 2 sent, the 3rd goes', c: { ledger: sentToday(2) }, want: SEND },
   {
     name: 'budget: 3 sent, a check-in merges into the digest',

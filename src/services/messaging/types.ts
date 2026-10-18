@@ -32,8 +32,7 @@ export interface Intent {
   readonly recipient: 'owner' | 'third-party';
   readonly kind: MessageKind;
   readonly persona: string;
-  /** Higher goes first when the day's budget is short (priorityOf). */
-  readonly priority: number;
+  readonly priority: number; // priorityOf
   /** What it is grounded in (a commitment, reminder, event or request). No anchor, no proactive send. */
   readonly anchor?: string;
   readonly requestedBy: RequestedBy;
@@ -60,9 +59,8 @@ export interface LedgerEntry {
   readonly requestedBy?: RequestedBy;
 }
 
-/** A local-time window, minutes after midnight; end before start wraps midnight. */
 export interface LocalWindow {
-  readonly startMin: number;
+  readonly startMin: number; // minutes after local midnight; end before start wraps
   readonly endMin: number;
 }
 
@@ -79,8 +77,9 @@ export interface PolicyCtx {
   };
   readonly crisis: { readonly lastCrisisAt?: Date };
   readonly ledger: readonly LedgerEntry[]; // the person's last 7 days
-  /** The owner's number is verified as theirs (never one the model passed). */
+  /** The owner's verified number (never one the model passed); for a code, the one being verified. */
   readonly verifiedRecipient: boolean;
+  readonly lastInboundAt?: Date; // their last text to us
   readonly isFirstContact: boolean;
 }
 
@@ -89,8 +88,7 @@ export interface Decision {
   readonly reason: ReasonCode;
   /** Re-decide then; unset on a hold means "until something changes" (consent, a zone). */
   readonly holdUntil?: Date;
-  /** The digest it joins ("digest:2026-10-18", the recipient's local date). */
-  readonly mergeInto?: string;
+  readonly mergeInto?: string; // the digest it joins: "digest:2026-10-18", their local date
   /** A third party's first text from Ferni opens with who is writing and for whom. */
   readonly introRequired?: boolean;
 }
