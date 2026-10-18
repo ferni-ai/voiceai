@@ -23,8 +23,9 @@
  * - the latest call result is held for a better hour (deferred-calls.ts): nothing
  *   rang yet; the line goes where the claim was and says when it will.
  * - on the caller's yes, before the call tool has returned: whether it rang is
- *   not known yet, so a call claim is dropped with no line when the reply calls
- *   the tool (its result is spoken next), and asks again when it doesn't.
+ *   not known yet, so a call claim (or a bare "I'm on it") is dropped with no
+ *   line when the reply calls the tool (its result is spoken next), and asks
+ *   again when it doesn't.
  *   Prod call 2026-10-17: on the yes Nayan said "Well, I'm placing the call
  *   now." and the call was held until 9:00 AM their time.
  * Everything else streams untouched, so the confirm read-back, the yes turn's
@@ -49,9 +50,16 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { isClearYes } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
-import { callActions, claimedAction, kindsOfTool, type ActionKind } from './action-claims.js';
+import {
+  bareOnIt,
+  callActions,
+  claimedAction,
+  kindsOfTool,
+  type ActionKind,
+} from './action-claims.js';
 import { withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
+import { callOutcomeUnheard, narratesCallOutcome, UNHEARD_LINE } from './call-narration.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -279,6 +287,9 @@ async function checkActionClaims<T>(
   // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
   const calendarCreateOpen = toolNames.some(isCalendarCreate);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
+  // A story of how a call went that no result came back from (call-narration.ts).
+  const callRan = [done, awaiting, failed, held].some((kinds) => kinds.has('call'));
+  const unheard = callOutcomeUnheard(chatCtx, callRan);
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
     !open.has(kind)
@@ -333,7 +344,8 @@ async function checkActionClaims<T>(
       };
       /** A whole sentence: held ones go out unless they claim; streamed ones are already out. */
       const flush = (text: string): void => {
-        const kind = claimedAction(text);
+        // On the yes to a call, "I'm on it" says the call is under way too.
+        const kind = claimedAction(text) ?? (ahead('call') && bareOnIt(text) ? 'call' : null);
         const reason = kind ? missing(kind, calling) : null;
         if (kind && !reason && hold && ahead(kind)) {
           log.warn({ kind, reason: 'before_result', held: hold }, 'ACTION_CLAIM_DROPPED');
@@ -359,6 +371,17 @@ async function checkActionClaims<T>(
         emit(hold ? line : `Scratch that, ${line}`);
         lineLast = true;
       };
+      /** A story of how an unheard call went: dropped, and said honestly once. */
+      const told = (text: string): boolean => {
+        if (!unheard || !narratesCallOutcome(text, unheard.askedHow)) return false;
+        log.warn({ kind: 'call', reason: 'unheard', held: hold }, 'ACTION_CLAIM_DROPPED');
+        if (said) return true;
+        said = true;
+        const line = held.has('call') ? honestLine('call', 'held', false, heldWhen) : UNHEARD_LINE;
+        emit(hold ? line : `Scratch that, ${line}`);
+        lineLast = true;
+        return true;
+      };
       try {
         for (let next = await reader.read(); !next.done; next = await reader.read()) {
           const chunk = next.value;
@@ -369,7 +392,7 @@ async function checkActionClaims<T>(
             // flushing on them cut words at the piece break ("cr ickets", "don' t").
             const names = toolNamesOf(chunk);
             if (names.length > 0) {
-              if (pending) flush(pending);
+              if (pending && !told(pending)) flush(pending);
               pending = '';
               passed = 0;
             }
@@ -396,7 +419,7 @@ async function checkActionClaims<T>(
           pending += content;
           for (let end = sentenceEnd(pending); end > 0; end = sentenceEnd(pending)) {
             if (!hold) pass(pending.slice(passed, end)); // the rest of this sentence, then any correction
-            flush(pending.slice(0, end));
+            if (!told(pending.slice(0, end))) flush(pending.slice(0, end));
             pending = pending.slice(end);
             passed = 0;
           }
@@ -405,7 +428,7 @@ async function checkActionClaims<T>(
             passed = pending.length;
           }
         }
-        if (pending) flush(pending);
+        if (pending && !told(pending)) flush(pending);
         if (deferred && !said && !calling.has(deferred.kind)) {
           emit(honestLine(deferred.kind, deferred.reason, open.has('reminder')));
         }
