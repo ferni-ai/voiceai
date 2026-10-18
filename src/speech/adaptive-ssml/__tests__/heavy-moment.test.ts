@@ -108,9 +108,10 @@ describe('isHeavyMoment', () => {
     expect(isHeavyMoment([long])).toBe(true);
   });
 
-  it('looks back over the last two turns, and no further', () => {
+  it('looks back over the hard turn and the two after it, and no further', () => {
     expect(isHeavyMoment(['my dad died last week', 'haha anyway'])).toBe(true);
-    expect(isHeavyMoment(['my dad died last week', 'yeah', 'haha anyway'])).toBe(false);
+    expect(isHeavyMoment(['my dad died last week', 'haha anyway', 'lol okay'])).toBe(true);
+    expect(isHeavyMoment(['my dad died last week', 'yeah', 'lol okay', 'haha anyway'])).toBe(false);
     expect(isHeavyMoment([undefined, 'haha anyway'])).toBe(false);
   });
 });
@@ -133,13 +134,22 @@ describe('the caller turns kept per session', () => {
     expect(recentCallerTurns('hm')).toHaveLength(2);
   });
 
-  it('keeps the latest two, and a partial grown into the final is one turn', () => {
+  it('with turn ids, a fresh light segment of the same turn keeps its hard one', () => {
+    noteCallerTurn('hm', 'my dad died last week', 7);
+    noteCallerTurn('hm', 'haha anyway', 7);
+    expect(recentCallerTurns('hm')).toEqual(['my dad died last week', 'haha anyway']);
+    noteCallerTurn('hm', 'Haha anyway', 7); // a revised partial replaces only the light words
+    expect(recentCallerTurns('hm')).toEqual(['my dad died last week', 'Haha anyway']);
+  });
+
+  it('keeps the latest three, and a partial grown into the final is one turn', () => {
     noteCallerTurn('hm', 'my dad');
     noteCallerTurn('hm', 'my dad died last week');
     expect(recentCallerTurns('hm')).toEqual(['my dad died last week']);
     noteCallerTurn('hm', 'haha anyway');
     noteCallerTurn('hm', 'so what are you up to');
-    expect(recentCallerTurns('hm')).toEqual(['haha anyway', 'so what are you up to']);
+    noteCallerTurn('hm', 'lol okay');
+    expect(recentCallerTurns('hm')).toEqual(['haha anyway', 'so what are you up to', 'lol okay']);
     forgetCallerTurns('hm');
     expect(recentCallerTurns('hm')).toEqual([]);
   });

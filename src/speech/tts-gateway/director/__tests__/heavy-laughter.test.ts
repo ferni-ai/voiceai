@@ -68,14 +68,17 @@ describe('laughing along on a heavy moment', () => {
       }
   });
 
-  it('never laughs at "haha anyway" right after grief, and does again two turns on', () => {
-    for (const [name, who] of WHO) {
+  it('never laughs on the two turns after grief, and may again on the third', () => {
+    const old = { personaId: 'jordan-taylor', comfortLevel: 1, phrase: "That's it, just kidding." };
+    for (const [name, who] of [...WHO, ['jordan (old rules)', old] as const]) {
       fresh();
       expect(reply({ ...who, turn: 1, userText: 'my dad died last week' })).toBeUndefined();
-      expect(reply({ ...who, turn: 10, userText: 'haha anyway' }), name).toBeUndefined();
-      expect(reply({ ...who, turn: 20, userText: "hahaha you're ridiculous" }), name).toBe(
-        'before'
-      );
+      expect(reply({ ...who, turn: 10, userText: 'haha anyway' }), `${name} 2`).toBeUndefined();
+      expect(reply({ ...who, turn: 20, userText: 'lol okay' }), `${name} 3`).toBeUndefined();
+      expect(
+        reply({ ...who, turn: 30, userText: "hahaha you're ridiculous" }),
+        `${name} 4`
+      ).toBeDefined();
     }
   });
 
