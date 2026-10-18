@@ -18,7 +18,7 @@ export type Channel = 'sms' | 'push' | 'in_app' | 'call';
 export type Consent = 'in' | 'out' | 'unknown';
 export type RequestedBy = 'user' | 'ferni';
 
-/** Why it decided so: outreach_events' codes (#1875) where the meaning is the same. */
+/** Why it decided so: outreach_events' codes (PR 1875) where the meaning is the same. */
 export const REASON_CODES = [
   ...['ok', 'requested-time', 'no-verified-phone', 'needs-consent', 'no-anchor', 'bad-channel'],
   ...['opted-out', 'sms-off', 'crisis-quiet', 'quiet-hours', 'outside-window', 'no-timezone'],
@@ -67,7 +67,7 @@ export interface PolicyCtx {
     readonly textsOff: boolean;
     readonly maxPerDay?: number; // "fewer texts": lowers the SMS budget, never raises it
     readonly windows?: readonly LocalWindow[]; // "only mornings": narrows, never widens
-    readonly quietStart?: string; // the owner's messagingPrefs (#2001), "HH:MM"
+    readonly quietStart?: string; // the owner's messagingPrefs (PR 2001), "HH:MM"
     readonly quietEnd?: string;
   };
   readonly crisis: { readonly lastCrisisAt?: Date };

@@ -283,7 +283,7 @@ export function decide(intent: Intent, ctx: PolicyCtx): Decision {
   return sendDecision(intent, ctx);
 }
 
-// SMS segments: count, never cut (sms-delivery cut to 160 and reported success, #1929).
+// SMS segments: count, never cut (sms-delivery cut to 160 and reported success, PR 1929).
 
 const GSM_BASIC = new Set(
   '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡' +
