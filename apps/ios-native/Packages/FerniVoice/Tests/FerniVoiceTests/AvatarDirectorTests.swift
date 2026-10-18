@@ -19,7 +19,7 @@ final class AvatarDirectorTests: XCTestCase {
         var d = AvatarDirector()
         _ = d.send(.connectTapped, now: .zero)
         XCTAssertEqual(d.pose, .arriving)
-        XCTAssertEqual(d.send(.agentJoined, now: ms(500)), [.haptic(.presence)])
+        XCTAssertEqual(d.send(.agentJoined, now: ms(500)), [.haptic(.presence), .earcon(.arrival)])
         _ = d.send(.agentState(.speaking), now: ms(500))
         XCTAssertEqual(d.pose, .speaking, "the first turn of a call doesn't wait")
     }
@@ -81,7 +81,7 @@ final class AvatarDirectorTests: XCTestCase {
         _ = d.send(.handoffStarted(to: "maya"), now: ms(700))
         XCTAssertEqual(d.pose, .handoffArriving(to: "maya"))
         XCTAssertEqual(d.send(.handoffCompleted(to: "maya", name: "Maya"), now: ms(900)),
-                       [.haptic(.handoff), .announce("Maya joined.")])
+                       [.haptic(.handoff), .earcon(.handoff(to: "maya")), .announce("Maya joined.")])
         XCTAssertEqual(d.personaID, "maya")
         _ = d.send(.agentState(.listening), now: ms(1000))
         _ = d.tick(now: ms(1150))
@@ -115,7 +115,7 @@ final class AvatarDirectorTests: XCTestCase {
 
     func testHangingUpSaysGoodbyeThenRests() {
         var d = live()
-        XCTAssertEqual(d.send(.ended, now: ms(5000)), [.haptic(.goodbye)])
+        XCTAssertEqual(d.send(.ended, now: ms(5000)), [.haptic(.goodbye), .earcon(.goodbye)])
         XCTAssertEqual(d.pose, .departing)
         _ = d.tick(now: ms(6500))
         XCTAssertEqual(d.pose, .idle)

@@ -52,16 +52,7 @@ struct FerniApp: App {
 @MainActor
 @Observable
 final class AppModel {
-    private static let haptics = CoreHapticsPlayer()
-
-    /// The avatar's feedback: one haptic per moment, and VoiceOver announcements.
-    private static func play(_ effect: AvatarEffect) {
-        switch effect {
-        case .haptic(let cue): haptics.play(cue)
-        case .announce(let text): AccessibilityNotification.Announcement(text).post()
-        }
-    }
-
+    let feedback: CallFeedback
     let config: FerniConfig
     let account: AccountStore
     let api: FerniAPI
@@ -98,6 +89,7 @@ final class AppModel {
 
     /// Talk: the consent screen first if this person hasn't agreed (or withdrew).
     func talk() {
+        feedback.newCall()
         if consent.hasAgreed { call.start(personaID: team.chosen) } else { isAskingConsent = true }
     }
 
@@ -163,14 +155,17 @@ final class AppModel {
             currentUID: { [account] in account.user?.uid }
         )
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
+        let feedback = CallFeedback()
+        self.feedback = feedback
         let level = AudioLevelMeter()
         call = CallSession(
             fetchToken: CallTokens.fetcher(api: api),
             makeRoom: { LiveKitVoiceRoom(agentLevel: level) },
             audio: SystemCallAudio(),
-            avatar: AvatarModel(play: Self.play),
+            avatar: AvatarModel(play: { [feedback] in feedback.play($0) }),
             lifecycle: ConversationLifecycle.isAvailable ? ConversationLifecycle() : nil,
             agentLevel: level
         )
+        feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
     }
 }
