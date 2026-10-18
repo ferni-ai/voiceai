@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
+import { isMemberCall } from '../../outreach/after-call-checkin.js';
 import type { WellbeingSnapshot } from '../index.js';
 import {
   WELLBEING_TASK,
   buildWellbeingPrompt,
+  isCrisisCall,
   parseWellbeingReply,
   recordWellbeingAfterCall,
 } from '../after-call.js';
@@ -20,7 +22,12 @@ const CALL = {
 function run(reply: string | null, flag = 'on') {
   const llm = vi.fn(async () => reply);
   const save = vi.fn(async (_u: string, _s: WellbeingSnapshot) => true);
-  const done = recordWellbeingAfterCall(CALL, { llm, save, env: { WELLBEING_AFTER_CALL: flag } });
+  const done = recordWellbeingAfterCall(CALL, {
+    llm,
+    save,
+    env: { WELLBEING_AFTER_CALL: flag },
+    isMember: isMemberCall,
+  });
   return { llm, save, done };
 }
 
@@ -55,13 +62,51 @@ describe('after-call wellbeing snapshot', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('writes nothing for an anonymous caller', async () => {
+  it.each([
+    ['anonymous', 'anonymous'],
+    ['an unrecognised caller', 'anon:5e4001b2-6005-40e8-bd29-abf9bc9ed648'],
+    ['the third party on a call placed for someone', 'onbehalf:call-123'],
+    ['no caller', ''],
+  ])('makes no model call and writes nothing for %s', async (_label, userId) => {
+    const llm = vi.fn(async () => '{"mood":0.9}');
     const save = vi.fn(async () => true);
     await recordWellbeingAfterCall(
-      { ...CALL, userId: 'anonymous' },
-      { llm: async () => '{"mood":0.9}', save, env: { WELLBEING_AFTER_CALL: 'on' } }
+      { ...CALL, userId },
+      { llm, save, env: { WELLBEING_AFTER_CALL: 'on' }, isMember: isMemberCall }
     );
+    expect(llm).not.toHaveBeenCalled();
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it('runs for nobody when no member check is passed in (fails closed)', async () => {
+    const llm = vi.fn(async () => '{"mood":0.9}');
+    const save = vi.fn(async () => true);
+    await recordWellbeingAfterCall(CALL, { llm, save, env: { WELLBEING_AFTER_CALL: 'on' } });
+    expect(llm).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('never scores a crisis call: no model call, nothing written', async () => {
+    const llm = vi.fn(async () => '{"mood":0.1}');
+    const save = vi.fn(async () => true);
+    const turns = [
+      { role: 'assistant', content: 'How are you holding up?' },
+      { role: 'user', content: "Honestly I don't want to live anymore." },
+    ];
+    expect(isCrisisCall(turns)).toBe(true);
+    await recordWellbeingAfterCall(
+      { ...CALL, turns },
+      { llm, save, env: { WELLBEING_AFTER_CALL: 'on' }, isMember: isMemberCall }
+    );
+    expect(llm).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('a hard week that is not a crisis is still scored', () => {
+    expect(isCrisisCall(CALL.turns)).toBe(false);
+    expect(isCrisisCall([{ role: 'user', content: 'Work has been brutal and I am wiped.' }])).toBe(
+      false
+    );
   });
 
   it('drops scores outside 0..1 and unreadable replies', () => {

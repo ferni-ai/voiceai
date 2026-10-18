@@ -120,7 +120,10 @@ describe('GET /api/wellbeing/dashboard', () => {
     await get('/api/wellbeing/dashboard?userId=someone-else');
 
     expect(loadProfile).toHaveBeenCalledWith('signed-in-user', { rethrow: true });
-    expect(loadProfile).not.toHaveBeenCalledWith('someone-else', expect.anything());
+    // Every read, whatever its other arguments, is for the signed-in user
+    const readFor = [...loadProfile.mock.calls, ...loadSnapshots.mock.calls].map((c) => c[0]);
+    expect(readFor.length).toBeGreaterThan(0);
+    expect(new Set(readFor)).toEqual(new Set(['signed-in-user']));
   });
 
   it("the web's has-data check accepts the server's real output in both cases", async () => {

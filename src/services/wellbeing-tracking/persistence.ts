@@ -73,6 +73,31 @@ function clearCacheForUser(userId: string): void {
 // ============================================================================
 
 /**
+ * The semantic-index check-in for a snapshot (scores 0-1 become 0-10), or null.
+ * Its text always reads "Mood m/10, Energy e/10", so a snapshot missing either
+ * score is not indexed: a missing score used to become a made-up 0/10.
+ */
+export function wellnessCheckinFor(
+  snapshot: WellbeingSnapshot
+): {
+  mood: number;
+  energy: number;
+  stressLevel?: number;
+  notes?: string;
+  timestamp: string;
+} | null {
+  const { mood, energy, worry } = snapshot.dimensions;
+  if (typeof mood !== 'number' || typeof energy !== 'number') return null;
+  return {
+    mood: mood * 10,
+    energy: energy * 10,
+    stressLevel: typeof worry === 'number' ? worry * 10 : undefined,
+    notes: snapshot.notes,
+    timestamp: snapshot.timestamp.toISOString(),
+  };
+}
+
+/**
  * Save a wellbeing snapshot to Firestore.
  */
 export async function persistSnapshot(
@@ -110,20 +135,9 @@ export async function persistSnapshot(
 
     log.debug({ userId, snapshotId: snapshot.id }, 'Wellbeing snapshot persisted');
 
-    // Index to semantic memory
-    void onWellnessCheckinChange(
-      userId,
-      snapshot.id,
-      {
-        mood: (snapshot.dimensions.mood ?? 0) * 10, // Convert -1 to 1 to 0-10 scale
-        energy: (snapshot.dimensions.energy ?? 0) * 10, // Convert 0-1 to 0-10 scale
-        stressLevel:
-          snapshot.dimensions.worry !== undefined ? snapshot.dimensions.worry * 10 : undefined,
-        notes: snapshot.notes,
-        timestamp: snapshot.timestamp.toISOString(),
-      },
-      'update'
-    );
+    // Index to semantic memory, only with real scores (see wellnessCheckinFor)
+    const checkin = wellnessCheckinFor(snapshot);
+    if (checkin) void onWellnessCheckinChange(userId, snapshot.id, checkin, 'update');
 
     return true;
   } catch (error) {
