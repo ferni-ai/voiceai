@@ -80,6 +80,63 @@ describe('refusedOwner', () => {
   });
 });
 
+describe('what counts as prod: the project in the written document, nothing else', () => {
+  const write = (project: string) =>
+    update('bogle_users/test-user-1', {}, `projects/${project}/databases/(default)/documents`);
+
+  it.each([
+    ['the prod agent', { NODE_ENV: 'production', AGENT_NAME: 'voice-agent' }],
+    [
+      'the ferni-dev agent, which also writes to johnb-2025',
+      { NODE_ENV: 'production', AGENT_NAME: 'voice-agent-lkcloud' },
+    ],
+    [
+      'a local process with prod data opted in',
+      { NODE_ENV: 'development', ALLOW_PRODUCTION_DATA: '1' },
+    ],
+    ['a process whose env names another project', { GOOGLE_CLOUD_PROJECT: 'ferni-dev' }],
+  ])('refuses a johnb-2025 write from %s', (_who, env) => {
+    expect(refusedOwner(write('johnb-2025'), env)).toBe('test-user-1');
+  });
+
+  it('lets the same write through to any other project, even from a production process', () => {
+    const env = { NODE_ENV: 'production', GOOGLE_CLOUD_PROJECT: 'johnb-2025' };
+    for (const project of ['ferni-dev', 'ferni-test-no-gcp', 'demo-project']) {
+      expect(refusedOwner(write(project), env), project).toBeNull();
+    }
+  });
+});
+
+describe('prefix-only matching: real ids are never refused', () => {
+  const REAL_IDS = [
+    'AbCdEfGhIjKlMnOpQrStUvWxYz12', // Firebase uid
+    'device:3f2a9c1e-7b4d-4e2a-9f1c-0d8e6b5a4c3b',
+    'device:test-rig-1', // device: is real; only device:cli- is the CLI
+    'phone:+14155550100',
+    'phone:+15555550100', // phone: owner ids are real; only phone_mappings rows for +1555 are not
+    'family_8f2a1c',
+    'sponsored_5d3e9b',
+    'auth:google:113546789012345678901',
+    'auth:apple:000123.abc.0456',
+    'anon:3f2a',
+    // contain a harness prefix, but not at the start
+    'abc-test-123',
+    'x-voice-eval-y',
+    'my-e2e-run',
+    'a-flow-test-1',
+    'zctx-e2e-1',
+    'device:abc-cli-1',
+    'Test-user-1', // case matters
+  ];
+
+  it.each(REAL_IDS)('lets %s write, by path and by owner field', (id) => {
+    expect(refusedOwner(update(`bogle_users/${id}/memories/m1`), {})).toBeNull();
+    expect(refusedOwner(update(`users/${id}`), {})).toBeNull();
+    expect(refusedOwner(update('vectors/v1', { userId: id }), {})).toBeNull();
+    expect(syntheticOwnerPrefix(id)).toBeNull();
+  });
+});
+
 describe('installSyntheticWriteGuard', () => {
   function fakeClass() {
     const request = vi.fn(async () => ({ writeResults: [] }));

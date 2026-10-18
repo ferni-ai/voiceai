@@ -8,11 +8,22 @@
  * audit. The guard sits where every write leaves the process,
  * Firestore.prototype.request (`commit` and `batchWrite`, for
  * @google-cloud/firestore and firebase-admin alike; src/tests/gcp-test-guard.ts
- * uses the same layer). A write in PROD_FIRESTORE_PROJECT is refused with
- * SyntheticWriteRefusedError (PERMISSION_DENIED, never retried) when it is under
- * bogle_users/{owner} or users/{owner}, names the owner in userId / user_id /
- * ownerId / uid / metadata.userId, or is a phone_mappings row for +1555, and the
- * owner is synthetic. Deletes, other projects and the emulator pass.
+ * uses the same layer).
+ *
+ * "In prod" means one thing: the document the write names is in project
+ * PROD_FIRESTORE_PROJECT (johnb-2025), read from the write itself
+ * (projects/<p>/databases/...). Not NODE_ENV, not GOOGLE_CLOUD_PROJECT, not
+ * which agent is running. The ferni-dev agent writes to johnb-2025 too, so the
+ * guard applies to it as well, on purpose: its harness users land in the same
+ * stores. Writes to any other project, and every write while
+ * FIRESTORE_EMULATOR_HOST is set, pass.
+ *
+ * There a write is refused with SyntheticWriteRefusedError (PERMISSION_DENIED,
+ * never retried) when it is under bogle_users/{owner} or users/{owner}, names the
+ * owner in userId / user_id / ownerId / uid / metadata.userId, or is a
+ * phone_mappings row for +1555, and the owner is synthetic: it STARTS WITH one
+ * of SYNTHETIC_OWNER_PREFIXES (a uid merely containing "test-" passes). Deletes
+ * always pass.
  *
  * Evals in production: run.sh calls an agent that writes here, and
  * returning-caller runs (EVAL_SEED) need the seed call's memories, so
