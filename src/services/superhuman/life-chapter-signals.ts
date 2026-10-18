@@ -30,6 +30,8 @@ export interface ChapterActivity {
   lastUpdated: number;
   startDate: number;
   conversationIds?: string[];
+  /** Stored before conversationIds existed: how many conversations touched it. */
+  conversationCount?: number;
 }
 
 /** A stable key for "this conversation": the session id, or the calendar day without one. */
@@ -47,11 +49,29 @@ export function recordChapterConversation(
   now = Date.now()
 ): boolean {
   const key = chapterConversationKey(conversationId, now);
-  const ids = (chapter.conversationIds ??= []);
+  // A chapter from before conversationIds keeps the count it had: seed the list from it
+  const ids = (chapter.conversationIds ??= Array.from(
+    { length: Math.max(0, chapter.conversationCount || 0) },
+    (_, i) => `legacy:${i}`
+  ));
   if (ids.includes(key)) return false;
   ids.push(key);
   chapter.conversationCount = ids.length;
   return true;
+}
+
+/**
+ * Record the conversation; true when that is what made the chapter nameable. Never for a
+ * chapter created before conversations were tracked: its outreach moment has passed.
+ */
+export function recordAndCheckNameable(
+  chapter: ChapterActivity & { conversationCount: number },
+  conversationId: string | undefined,
+  now = Date.now()
+): boolean {
+  const legacy = chapter.conversationIds === undefined;
+  const isNew = recordChapterConversation(chapter, conversationId, now);
+  return !legacy && isNew && chapter.conversationCount === MIN_CHAPTER_CONVERSATIONS;
 }
 
 /** Still going: not closed, and mentioned within the fade window. */
@@ -63,7 +83,8 @@ export function isChapterCurrent(chapter: ChapterActivity, now = Date.now()): bo
 
 /** Enough evidence to say it out loud: separate conversations, not one passing line. */
 export function isChapterNameable(chapter: ChapterActivity): boolean {
-  return (chapter.conversationIds?.length ?? 0) >= MIN_CHAPTER_CONVERSATIONS;
+  const seen = chapter.conversationIds?.length ?? chapter.conversationCount ?? 0;
+  return seen >= MIN_CHAPTER_CONVERSATIONS;
 }
 
 /** The chapter Ferni may name right now, or undefined when nothing is clear enough yet. */

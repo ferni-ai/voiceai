@@ -303,11 +303,11 @@ export async function createOrUpdateChapter(
     if (data.emotion && !ongoing.keyEmotions.includes(data.emotion)) {
       ongoing.keyEmotions.push(data.emotion);
     }
-    const newConversation = signals.recordChapterConversation(ongoing, data.conversationId);
+    const becameNameable = signals.recordAndCheckNameable(ongoing, data.conversationId);
     ongoing.lastUpdated = Date.now();
     await saveChapter(ongoing);
     // Reach out only as the chapter becomes clear enough to name, never on one passing line
-    if (newConversation && ongoing.conversationCount === signals.MIN_CHAPTER_CONVERSATIONS) {
+    if (becameNameable) {
       await reachOutForChapter(userId, ongoing);
     }
     return ongoing;

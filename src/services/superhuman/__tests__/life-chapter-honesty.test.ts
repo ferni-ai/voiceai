@@ -44,7 +44,11 @@ async function getChapterFromRoute(userId: string) {
       res.body = chunk ?? '';
     }),
   };
-  const req = { method: 'GET', headers: {}, url: `/api/insights/${userId}` } as http.IncomingMessage;
+  const req = {
+    method: 'GET',
+    headers: {},
+    url: `/api/insights/${userId}`,
+  } as http.IncomingMessage;
   await handleInsightsRoutes(req, res as unknown as http.ServerResponse, `/api/insights/${userId}`);
   return JSON.parse(res.body || '{}').chapter as { type: string; title: string } | undefined;
 }
@@ -93,9 +97,17 @@ describe('naming waits for separate conversations', () => {
 
   it('the insights route shows the chapter only once it is nameable, with its real type', async () => {
     const userId = 'chapter-user';
-    await narrative.createOrUpdateChapter(userId, { type: 'loss', quote: 'I lost my dad', conversationId: 'a' });
+    await narrative.createOrUpdateChapter(userId, {
+      type: 'loss',
+      quote: 'I lost my dad',
+      conversationId: 'a',
+    });
     expect(await getChapterFromRoute(userId)).toBeUndefined();
-    await narrative.createOrUpdateChapter(userId, { type: 'loss', quote: 'I miss him', conversationId: 'b' });
+    await narrative.createOrUpdateChapter(userId, {
+      type: 'loss',
+      quote: 'I miss him',
+      conversationId: 'b',
+    });
     expect((await getChapterFromRoute(userId))?.type).toBe('loss');
   });
 });
@@ -117,7 +129,49 @@ describe('chapters fade after a quiet stretch', () => {
     expect(signals.isChapterCurrent({ ...named, lastUpdated: now, endDate: now }, now)).toBe(false);
   });
 
-  it('a chapter stored before conversations were tracked is not named', () => {
-    expect(signals.getCurrentChapter([{ startDate: now, lastUpdated: now }], now)).toBeUndefined();
+  it.each([
+    { stored: 0, named: false },
+    { stored: 1, named: false },
+    { stored: 3, named: true },
+  ])(
+    'a chapter stored before conversationIds with conversationCount $stored: named = $named',
+    ({ stored, named }) => {
+      const legacy = { startDate: now, lastUpdated: now, conversationCount: stored };
+      expect(Boolean(signals.getCurrentChapter([legacy], now))).toBe(named);
+    }
+  );
+});
+
+describe('chapters stored before conversations were tracked', () => {
+  it('keep their count (the list is seeded from it, not reset) and never trigger outreach', async () => {
+    const userId = `legacy-${Math.random()}`;
+    const base = {
+      id: `chapter_legacy_${userId}`,
+      userId,
+      title: 'Saying Goodbye',
+      summary: 'I lost my mom',
+      type: 'loss' as const,
+      startDate: Date.now() - DAY,
+      keyQuotes: ['I lost my mom'],
+      keyPeople: [],
+      keyEmotions: [],
+      keyThemes: [],
+      insightsGained: [],
+      strengthsRevealed: [],
+      patternsIdentified: [],
+      createdAt: Date.now() - DAY,
+      lastUpdated: Date.now() - DAY,
+    };
+    // Stored with a count of 1 and no conversationIds: the next mention makes it 2
+    await narrative.saveChapter({ ...base, conversationCount: 1 });
+    const after = await narrative.createOrUpdateChapter(userId, {
+      type: 'loss',
+      quote: 'I miss her',
+      conversationId: 'new-session',
+    });
+    expect(after.conversationIds).toEqual(['legacy:0', 'new-session']);
+    expect(after.conversationCount).toBe(2);
+    expect(signals.isChapterNameable(after)).toBe(true);
+    expect(onLifeChapterTransition).not.toHaveBeenCalled();
   });
 });
