@@ -17,22 +17,29 @@ import { statedName } from '../personas/name-correction.js';
 
 export const RETURNING_CALLER_TASK = 'returning-caller';
 
-/** The last name the caller gave for themselves on this call (name-correction.ts's narrow cues). */
-export function nameTheyGave(turns: AfterCallContext['turns']): string | undefined {
-  let name: string | undefined;
+/** Every name the caller gave for themselves, in order (name-correction.ts's narrow cues). */
+export function namesTheyGave(turns: AfterCallContext['turns']): string[] {
+  const names: string[] = [];
   let agentLast = '';
   for (const turn of turns) {
     if (turn.role === 'assistant') agentLast = turn.content;
-    else if (turn.role === 'user') name = statedName(turn.content, undefined, agentLast) ?? name;
+    const name = turn.role === 'user' ? statedName(turn.content, undefined, agentLast) : null;
+    if (name) names.push(name);
   }
-  return name;
+  return names;
 }
+
+/** The last name the caller gave for themselves on this call. */
+export const nameTheyGave = (turns: AfterCallContext['turns']): string | undefined =>
+  namesTheyGave(turns).at(-1);
 
 export async function recordReturningCallAfterCall(ctx: AfterCallContext): Promise<void> {
   const summary = ctx.summary as { mainTopics?: unknown[] } | undefined;
+  const statedNames = namesTheyGave(ctx.turns);
   await recordReturningCall({
     sessionId: ctx.sessionId,
-    firstName: nameTheyGave(ctx.turns),
+    firstName: statedNames.at(-1),
+    statedNames,
     topics: summary?.mainTopics,
     callerLines: ctx.turns.filter((t) => t.role === 'user').map((t) => t.content),
   });

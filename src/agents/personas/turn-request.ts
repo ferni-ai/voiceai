@@ -41,7 +41,7 @@ import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes, listeningReply } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import {
-  returningCallerFor,
+  inReturningCallerFlow,
   returningCallerTurnNote,
 } from '../../services/identity/returning-caller.js';
 import { lastAgentLine, nameCorrectionNote, statedName } from './name-correction.js';
@@ -172,7 +172,7 @@ export function withTurnReminder(
     }),
     // FIRST_CALL_RAPPORT=on: a new caller's first call; RETURNING_CALLER=on: not for one who may
     // have called before; "forget me", or the topic hint once they confirm (returning-caller.ts)
-    returningCallerFor(sessionId) ? '' : firstCallNote(chatCtx, session, words),
+    inReturningCallerFlow(sessionId) ? '' : firstCallNote(chatCtx, session, words),
     returningCallerTurnNote(sessionId, words, lastAgentLine(chatCtx), (w, a) =>
       statedName(w, undefined, a)
     ),

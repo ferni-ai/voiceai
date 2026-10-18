@@ -21,10 +21,12 @@
  *   caller ID alone can be spoofed.
  * - Nothing is written unless a minor-signal check is registered
  *   (registerMinorSignal) and says the caller is not a likely minor.
- * - A number can be shared, so Ferni never says a stored name first: he greets
- *   warmly without naming anyone, and only a name the caller states that
- *   matches the record confirms them; then the model gets the one-line topic
- *   hint (returning-caller-talk.ts). Only that person refreshes the record.
+ * - A number can be shared and a first name guessed, so what Ferni says or is
+ *   told before confirmation never depends on whether a record exists. Only
+ *   the first name the caller states, matching the record, confirms them;
+ *   then the model gets the one-line topic hint (returning-caller-talk.ts).
+ *   Any other stated name ends it and sets deniedUntil (7 days), during which
+ *   nothing is surfaced or refreshed. Only the confirmed person refreshes it.
  * - "Forget me" overwrites the record with a tombstone (no name or summary)
  *   that keeps the number forgotten until expiry, retried with backoff; if it
  *   can't be stored, a pending-erase marker is (returning_caller_erasures, also
@@ -37,103 +39,45 @@
  */
 import { createHmac } from 'node:crypto';
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { safeFirstName, safeSummary } from './returning-caller-summary.js';
+import {
+  deniedNow,
+  expiryOf,
+  firestoreReturningCallerStore,
+  isLiveTombstone,
+  tombstone,
+  toStoredRecord,
+  TTL_MS,
+  type ReturningCallerStore,
+} from './returning-caller-store.js';
 import {
   asksToBeForgotten,
   confirmedNote,
   FORGETTING_NOTE,
   FORGOTTEN_NOTE,
   nameConfirmation,
-  POSSIBLY_RETURNING_GREETING,
-  POSSIBLY_RETURNING_NOTE,
+  UNKNOWN_CALLER_GREETING,
+  UNKNOWN_CALLER_NOTE,
 } from './returning-caller-talk.js';
 
 export { asksToBeForgotten, FORGETTING_NOTE, FORGOTTEN_NOTE } from './returning-caller-talk.js';
+export {
+  firestoreReturningCallerStore,
+  RETURNING_CALLER_FIELDS,
+  toStoredRecord,
+  type ReturningCallerStore,
+  type StoredReturningCaller,
+} from './returning-caller-store.js';
 
 const log = createLogger({ module: 'returning-caller' });
 
-export const RETURNING_CALLERS = 'returning_callers';
-/** Pending-erase markers: a "forget me" whose tombstone couldn't be stored yet. */
-export const RETURNING_CALLER_ERASURES = 'returning_caller_erasures';
 /** Domain separation: this key is only ever used to name returning-caller records. */
 const HASH_PURPOSE = 'returning-caller/phone/v1';
-export const TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** A stated name that isn't the record's holds the record this long: names can be guessed. */
+export const DENY_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 /** Bounds the call-start read: the greeting must not wait on Firestore. */
 const LOOKUP_TIMEOUT_MS = 1200;
-
-/** The only fields a record may hold. */
-export const RETURNING_CALLER_FIELDS = [
-  'firstName',
-  'summary',
-  'lastCallAt',
-  'callCount',
-  'expireAt',
-  'forgotten',
-] as const;
-
-export interface StoredReturningCaller {
-  firstName?: string;
-  summary?: string;
-  lastCallAt: Date;
-  callCount: number;
-  expireAt: Date;
-  /** A tombstone: they asked not to be remembered; no name or summary, until expiry. */
-  forgotten?: true;
-}
-
-export interface ReturningCallerStore {
-  get: (hash: string) => Promise<Record<string, unknown> | null>;
-  set: (hash: string, data: StoredReturningCaller) => Promise<void>;
-  /**
-   * Writes, unless (read in the same transaction) the doc is a live tombstone,
-   * or a live pending-erase marker exists: then it stores the tombstone instead
-   * and clears the marker. False when the record was not written.
-   */
-  setUnlessForgotten: (hash: string, data: StoredReturningCaller, now: Date) => Promise<boolean>;
-  /** A live pending-erase marker for this hash. */
-  erasurePending: (hash: string, now: Date) => Promise<boolean>;
-  markErasure: (hash: string, expireAt: Date) => Promise<void>;
-  clearErasure: (hash: string) => Promise<void>;
-}
-
-export const firestoreReturningCallerStore: ReturningCallerStore = {
-  async get(hash) {
-    const snap = await getFirestoreDb()?.collection(RETURNING_CALLERS).doc(hash).get();
-    return snap?.exists ? (snap.data() ?? null) : null;
-  },
-  async set(hash, data) {
-    await getFirestoreDb()?.collection(RETURNING_CALLERS).doc(hash).set(data);
-  },
-  async setUnlessForgotten(hash, data, now) {
-    const db = getFirestoreDb();
-    if (!db) return false;
-    const ref = db.collection(RETURNING_CALLERS).doc(hash);
-    const marker = db.collection(RETURNING_CALLER_ERASURES).doc(hash);
-    return db.runTransaction(async (tx) => {
-      const [snap, mark] = await Promise.all([tx.get(ref), tx.get(marker)]);
-      if (isLiveTombstone(snap.exists ? (snap.data() ?? null) : null, now)) return false;
-      if (isLive(mark.exists ? (mark.data() ?? null) : null, now)) {
-        tx.set(ref, tombstone(now));
-        tx.delete(marker);
-        return false;
-      }
-      tx.set(ref, data);
-      return true;
-    });
-  },
-  async erasurePending(hash, now) {
-    const snap = await getFirestoreDb()?.collection(RETURNING_CALLER_ERASURES).doc(hash).get();
-    return isLive(snap?.exists ? (snap.data() ?? null) : null, now);
-  },
-  async markErasure(hash, expireAt) {
-    await getFirestoreDb()?.collection(RETURNING_CALLER_ERASURES).doc(hash).set({ expireAt });
-  },
-  async clearErasure(hash) {
-    await getFirestoreDb()?.collection(RETURNING_CALLER_ERASURES).doc(hash).delete();
-  },
-};
 
 export function returningCallerEnabled(env: Env = process.env): boolean {
   return flagOn('RETURNING_CALLER', env);
@@ -151,15 +95,6 @@ export function callerHash(e164: string, env: Env = process.env): string | null 
   }
   const key = createHmac('sha256', secret).update(HASH_PURPOSE).digest();
   return createHmac('sha256', key).update(e164).digest('hex');
-}
-
-/** Only the allow-listed fields, so nothing else can reach the store. */
-export function toStoredRecord(input: Record<string, unknown>): StoredReturningCaller {
-  const out: Record<string, unknown> = {};
-  for (const field of RETURNING_CALLER_FIELDS) {
-    if (input[field] !== undefined) out[field] = input[field];
-  }
-  return out as unknown as StoredReturningCaller;
 }
 
 // ---------------------------------------------------------------- per session
@@ -194,27 +129,6 @@ function remember(sessionId: string, entry: SessionEntry): void {
 
 /** Hashes forgotten in this process whose tombstone could not be stored, until expiry. */
 const forgottenHere = new Map<string, number>();
-
-function expiryOf(data: Record<string, unknown>): Date | undefined {
-  const expire = data.expireAt as { toDate?: () => Date } | Date | undefined;
-  return expire instanceof Date ? expire : expire?.toDate?.();
-}
-
-/** A stored doc that hasn't expired (TTL deletion can lag). */
-function isLive(data: Record<string, unknown> | null, now: Date): boolean {
-  return !!data && (expiryOf(data)?.getTime() ?? Infinity) > now.getTime();
-}
-
-/** A stored "forget me" marker that hasn't expired. */
-function isLiveTombstone(data: Record<string, unknown> | null, now: Date): boolean {
-  return data?.forgotten === true && isLive(data, now);
-}
-
-/** What "forget me" leaves: no name, no summary, the number forgotten until expiry. */
-function tombstone(now: Date): StoredReturningCaller {
-  const expireAt = new Date(now.getTime() + TTL_MS);
-  return toStoredRecord({ forgotten: true, lastCallAt: now, callCount: 0, expireAt });
-}
 
 function asView(data: Record<string, unknown> | null, now: Date): SessionEntry['record'] {
   if (!data) return undefined;
@@ -263,7 +177,9 @@ export async function beginReturningCaller(
     else if (pending) {
       entry.forgotten = true; // a "forget me" whose tombstone never landed: try again now
       void eraseOnce(entry, store);
-    } else entry.record = asView(data, now);
+    } else if (deniedNow(data, now))
+      entry.noWrite = true; // cooldown: surface and refresh nothing
+    else entry.record = asView(data, now);
     log.info({ sessionId, returning: !!entry.record }, 'RETURNING_CALLER lookup');
   } catch (error) {
     entry.noWrite = true; // fail closed: never overwrite what couldn't be read
@@ -285,16 +201,23 @@ function nameToCheck(sessionId: string | undefined): string | undefined {
   return entry && !entry.forgotten && !entry.denied ? entry.record?.firstName : undefined;
 }
 
-/** The model's call-start note: possibly someone who called before; no name, no summary. */
-export function returningCallerAwareness(sessionId: string): string | null {
-  const name = nameToCheck(sessionId);
-  return name ? POSSIBLY_RETURNING_NOTE : null;
+/**
+ * Whether this call looked a number up (an attested unverified phone call,
+ * flag on). Everything said or noted before confirmation hangs on this, never
+ * on whether a record exists.
+ */
+export function inReturningCallerFlow(sessionId: string | undefined): boolean {
+  return !!sessionId && bySession.has(sessionId);
 }
 
-/** The greeting's direction: warm, names nobody, asks who it is; or null. */
+/** The model's call-start note, the same with or without a record. */
+export function returningCallerAwareness(sessionId: string): string | null {
+  return inReturningCallerFlow(sessionId) ? UNKNOWN_CALLER_NOTE : null;
+}
+
+/** The greeting's direction, the same with or without a record. */
 export function returningCallerGreeting(sessionId: string): string | null {
-  const name = nameToCheck(sessionId);
-  return name ? POSSIBLY_RETURNING_GREETING : null;
+  return inReturningCallerFlow(sessionId) ? UNKNOWN_CALLER_GREETING : null;
 }
 
 /** Waits before each try to store the tombstone. */
@@ -373,6 +296,17 @@ export function returningCallerForgetNote(
   return entry.erased ? FORGOTTEN_NOTE : FORGETTING_NOTE;
 }
 
+/** Ends this call's chance to confirm, and holds the record for DENY_COOLDOWN_MS. */
+function deny(entry: SessionEntry, store: ReturningCallerStore, now = new Date()): Promise<void> {
+  entry.confirmed = false;
+  if (entry.denied) return Promise.resolve();
+  entry.denied = true;
+  const until = new Date(now.getTime() + DENY_COOLDOWN_MS);
+  return store.markDenied(entry.hash, until, now).catch(() => {
+    log.warn('Returning caller denial cooldown not stored');
+  });
+}
+
 /**
  * Per turn (turn-request.ts): the "forget me" note, else, once the caller
  * confirms they're the record's name, the note with the one-line topic hint.
@@ -391,8 +325,7 @@ export function returningCallerTurnNote(
   if (forget || !entry?.record || !name) return forget;
   const answer = nameConfirmation(name, nameIn(callerWords, agentLast));
   if (answer === 'denied') {
-    entry.confirmed = false; // a different name, even after a match: not them
-    entry.denied = true;
+    void deny(entry, store); // any other name, even after a match: not them, and a cooldown
     return '';
   }
   if (answer === 'confirmed') entry.confirmed = true;
@@ -429,12 +362,23 @@ async function settleForgotten(entry: SessionEntry, store: ReturningCallerStore)
   if (!stored) await eraseOnce(entry, store);
 }
 
-/** A record is refreshed only by the person it names: they stated that name, and no other since. */
-function isThem(entry: SessionEntry, given: string | undefined): boolean {
+/**
+ * A record is refreshed only by the person it names: every name they stated
+ * is the record's (so the first one decides; a guess after a miss can't
+ * win), or they confirmed in the call and stated nothing else. A mismatch
+ * found only now still starts the cooldown.
+ */
+async function isThem(
+  entry: SessionEntry,
+  stated: readonly string[],
+  store: ReturningCallerStore
+): Promise<boolean> {
   const name = entry.record?.firstName?.toLowerCase();
   if (!name || entry.denied) return false;
-  if (given) return given.toLowerCase() === name; // the last name they gave decides
-  return entry.confirmed === true;
+  if (stated.length === 0) return entry.confirmed === true;
+  if (stated.every((n) => n.toLowerCase() === name)) return true;
+  await deny(entry, store);
+  return false;
 }
 
 /**
@@ -447,6 +391,8 @@ export async function recordReturningCall(
   input: {
     sessionId: string;
     firstName?: string;
+    /** Every name the caller stated for themselves on the call, in order. */
+    statedNames?: readonly string[];
     topics?: readonly unknown[];
     callerLines?: readonly string[];
   },
@@ -463,7 +409,7 @@ export async function recordReturningCall(
   }
   if (entry.noWrite || !returningCallerEnabled(env)) return false;
   if ((forgottenHere.get(entry.hash) ?? 0) > now.getTime()) return false; // forgotten here
-  if (entry.record && !isThem(entry, input.firstName)) return false;
+  if (entry.record && !(await isThem(entry, input.statedNames ?? [], store))) return false;
   if (mayBeMinor(input.sessionId)) return false;
   const firstName = safeFirstName(input.firstName) ?? entry.record?.firstName;
   const summary = safeSummary(input.topics, input.callerLines) ?? entry.record?.summary;

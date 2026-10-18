@@ -78,6 +78,8 @@ const ERASURES = 'returning_caller_erasures';
 /** Every call here carries the signed attestation A a lookup needs (caller-recognition.ts). */
 const ATTESTED = { signedAttestation: async () => 'A' as const };
 type Request = { direction: string; facts: Record<string, string> };
+/** What the greeting is told: its direction and facts (the understudy line varies by design). */
+const pick = ({ direction, facts }: Request): Request => ({ direction, facts });
 const lastRequest = (): Request => directedText.mock.calls.at(-1)![1] as unknown as Request;
 const nameIn = (w: string, a: string): string | null => statedName(w, undefined, a);
 /** The per-turn note for the caller's words after Ferni's line. */
@@ -132,20 +134,43 @@ afterEach(() => {
 });
 
 describe('a call from a number someone called from before', () => {
-  it('greets warmly, names nobody, and keeps the stored name out of context until they say it', async () => {
+  it('greets every looked-up call the same, record or not, and keeps the name out of context', async () => {
     await start('first');
     await directedGreeting('first', 'ferni', {});
-    expect(lastRequest().direction).not.toMatch(/called you from this number/);
+    const without = { ...pick(lastRequest()), note: firstTalkNote('first') };
     await end('first', "Hi, I'm Dana. I've been learning guitar.");
 
     await startReturningCaller(roomWith('(555) 123-4567'), 'second', 'anon:second', ATTESTED);
     await directedGreeting('second', 'ferni', {});
-    expect(lastRequest().direction).toMatch(/called you from this number before.*who's this\?/);
-    const before = JSON.stringify([lastRequest(), firstTalkNote('second')]);
-    expect(firstTalkNote('second')).toMatch(/^Possibly a returning caller/);
+    const withRecord = { ...pick(lastRequest()), note: firstTalkNote('second') };
+    expect(withRecord).toEqual(without);
+    expect(withRecord.direction).toMatch(/who've I got\?/);
+    expect(withRecord.direction).not.toMatch(/from this number|from you again/);
     expect(turn('second', 'Hello?')).toBe('');
-    expect(turn('second', 'Yes.', "Hey, good to hear from you again, who's this?")).toBe('');
-    for (const leak of ['Dana', 'guitar']) expect(before).not.toContain(leak);
+    expect(turn('second', 'Yes.', "Hey, who've I got?")).toBe('');
+    for (const leak of ['Dana', 'guitar']) expect(JSON.stringify(withRecord)).not.toContain(leak);
+  });
+
+  it('a wrong name then the right one: never confirmed, and the record is held', async () => {
+    await seed();
+    await start('guess');
+    expect(turn('guess', "I'm Sarah.")).toBe('');
+    expect(turn('guess', "Sorry, I'm Dana.")).toBe('');
+    await end('guess', "I'm Dana.");
+    expect(record()).toMatchObject({ firstName: 'Dana', callCount: 1 });
+    expect((record()?.deniedUntil as Date).getTime()).toBeGreaterThan(Date.now() + 6 * 86_400_000);
+  });
+
+  it('the cooldown blocks the next call: nothing surfaced, nothing refreshed', async () => {
+    await seed();
+    await start('guess');
+    turn('guess', "I'm Sarah.");
+    await vi.waitFor(() => expect(record()?.deniedUntil).toBeDefined());
+    await start('next');
+    expect(rc.returningCallerFor('next')).toBeUndefined();
+    expect(turn('next', "I'm Dana.")).toBe('');
+    await end('next', "I'm Dana.");
+    expect(record()).toMatchObject({ firstName: 'Dana', callCount: 1, summary: 'learning guitar' });
   });
 
   it('confirms only on the name they state, then gives the topic hint and refreshes her record', async () => {
@@ -168,13 +193,24 @@ describe('a call from a number someone called from before', () => {
     expect(record()).toMatchObject({ firstName: 'Dana', callCount: 1, summary: 'learning guitar' });
   });
 
+  it('a cooldown set by another call since this one started holds the write too', async () => {
+    await seed();
+    await start('early');
+    expect(turn('early', "I'm Dana.")).toMatch(/learning guitar/);
+    await start('other');
+    turn('other', "I'm Sarah.");
+    await vi.waitFor(() => expect(record()?.deniedUntil).toBeDefined());
+    await end('early', "I'm Dana.");
+    expect(record()).toMatchObject({ firstName: 'Dana', callCount: 1 });
+  });
+
   it('a different name, even after a match, revokes it: no hint, no write', async () => {
     await seed();
     await start('sam');
     expect(turn('sam', "I'm Dana.")).toMatch(/learning guitar/);
     expect(turn('sam', "Actually I'm Sam, I was kidding.")).toBe('');
     expect(turn('sam', "I'm Dana.")).toBe('');
-    expect(firstTalkNote('sam')).toMatch(/^This is your first conversation/);
+    await vi.waitFor(() => expect(record()?.deniedUntil).toBeDefined());
     await end('sam', "I'm Sam.");
     expect(record()).toMatchObject({ firstName: 'Dana', callCount: 1, summary: 'learning guitar' });
   });
@@ -212,12 +248,12 @@ describe('"forget me"', () => {
     expect(record()).not.toHaveProperty('firstName');
     expect(record()).not.toHaveProperty('summary');
     expect(turn('k2', 'Please forget me.')).toBe(rc.FORGOTTEN_NOTE);
-    expect(firstTalkNote('k2')).toMatch(/^This is your first conversation/);
+    expect(rc.returningCallerFor('k2')).toBeUndefined();
     await end('k2');
     expect(record()).toMatchObject({ forgotten: true, callCount: 0 });
 
     await start('k3'); // the next call loads nothing and writes nothing back
-    expect(firstTalkNote('k3')).toMatch(/^This is your first conversation/);
+    expect(rc.returningCallerFor('k3')).toBeUndefined();
     await end('k3', "Hi, I'm Dana again.");
     expect(record()).not.toHaveProperty('firstName');
   });
@@ -249,7 +285,7 @@ describe('"forget me"', () => {
     rc.clearReturningCallers(); // another worker, or a restart: no in-process memory
     rc.registerMinorSignal(() => false);
     await start('f3');
-    expect(firstTalkNote('f3')).toMatch(/^This is your first conversation/);
+    expect(rc.returningCallerFor('f3')).toBeUndefined();
     expect(turn('f3', 'Please forget me.')).toBe(rc.FORGETTING_NOTE);
     await end('f3', "I'm Dana.");
     expect(record()?.firstName).toBe('Dana');
@@ -258,7 +294,7 @@ describe('"forget me"', () => {
     rc.clearReturningCallers();
     rc.registerMinorSignal(() => false);
     await start('f4');
-    expect(firstTalkNote('f4')).toMatch(/^This is your first conversation/);
+    expect(rc.returningCallerFor('f4')).toBeUndefined();
     await vi.waitFor(() => expect(record()?.forgotten).toBe(true));
     await vi.waitFor(() => expect(erasures()).toBe(0));
   }, 20_000);
@@ -275,7 +311,7 @@ describe('"forget me"', () => {
       'Returning caller erase failed: neither the tombstone nor the pending-erase marker was stored',
     ]);
     await start('e3');
-    expect(firstTalkNote('e3')).toMatch(/^This is your first conversation/);
+    expect(rc.returningCallerFor('e3')).toBeUndefined();
   }, 20_000);
 
   it('a tombstone stored by another call since this one started wins at write time', async () => {
