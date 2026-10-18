@@ -72,6 +72,8 @@ export const COHORT_FLAGS = [
   'PHONE_GOODBYE',
   'HAPPY_EXITS',
   'HANDOFF_TALK_THROUGH',
+  // Read once the greeting's handlers are wired (greeting-wiring.ts), after applyCallerFlags.
+  'HANDOFF_FIRST_FIX',
   'NAME_CORRECTION',
   'ROOM_GUESTS',
   'BARGE_IN_ACK_WORDS',
@@ -81,6 +83,8 @@ export const COHORT_FLAGS = [
   // across calls. The system prompt (FERNI_PERSONA_SLIP_GUARD) loads after
   // applyCallerFlags: loadCallerPrompt (voice-agent-entry/persona-builder.ts).
   'HANDOFF_FULL_TOOLS',
+  // Read at agent build, a tool update and each turn's request, never at boot (same-turn-tools-config.ts).
+  'TOOLS_SAME_TURN',
   'TEAM_VOICES',
   'FERNI_PERSONA_SLIP_GUARD',
   'DIRECTOR_PERSONA_AWARE',
@@ -106,6 +110,9 @@ export const COHORT_FLAGS = [
   // Read by the greeting (greeting-direction.ts ponderFor); the UI server's hourly job
   // also ponders everyone usersWithFlag names (ponder-job.ts).
   'PONDERING',
+  // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
+  // (services/outreach/morning-brief/brief-job.ts).
+  'MORNING_BRIEF',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
