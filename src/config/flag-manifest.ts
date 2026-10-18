@@ -68,6 +68,12 @@ export const FLAG_MANIFEST = {
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
   CRISIS_ADJUDICATOR: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // crisis classifier, with the everyday rules: a rough day or week reads none too
+  CRISIS_CLASSIFIER_EVERYDAY_DISTRESS: {
+    default: 'off',
+    owner: 'intelligence',
+    kind: 'experiment',
+  },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },

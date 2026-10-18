@@ -25,7 +25,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisAgreementGate } from './crisis-agreement.js';
 import {
-  CRISIS_EVERYDAY_RULES,
+  everydayRulesFor,
   moreSevereRead,
   needsPlainRead,
   resolveCrisisEverydayRules,
@@ -127,7 +127,7 @@ export function crisisClassifierPrompt(
   const everyday = resolveCrisisEverydayRules(env);
   const rules = [
     everyday || resolveCrisisAgreementGate(env) ? CRISIS_ATTRIBUTION_RULES : '',
-    everyday ? CRISIS_EVERYDAY_RULES : '',
+    everyday ? everydayRulesFor(env) : '',
   ].join('');
   return rules
     ? CRISIS_CLASSIFIER_PROMPT.replace('\n\nReturn JSON only', `\n${rules}\n\nReturn JSON only`)

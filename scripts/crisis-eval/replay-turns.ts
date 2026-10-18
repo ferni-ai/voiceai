@@ -110,9 +110,17 @@ const ARMS = [
     name: 'gate on + rules',
     env: { CRISIS_AGREEMENT_GATE: 'on', CRISIS_CLASSIFIER_EVERYDAY_RULES: 'on' },
   },
+  {
+    name: 'rules + distress',
+    env: { CRISIS_CLASSIFIER_EVERYDAY_RULES: 'on', CRISIS_CLASSIFIER_EVERYDAY_DISTRESS: 'on' },
+  },
 ];
 
-async function replay(c: Case, env: Record<string, string | undefined>, scope: string): Promise<Level> {
+async function replay(
+  c: Case,
+  env: Record<string, string | undefined>,
+  scope: string
+): Promise<Level> {
   const turns = c.variants.map((v) =>
     startTurnCrisis(
       v.latest,

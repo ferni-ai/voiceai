@@ -30,6 +30,40 @@ Everyday call business is risk "none" unless the caller's own words, in LATEST o
 - everyday plans and numbers: retirement, money, work, projects, ages and dates ("maybe at 60", "help me map out a budget")
 A last request or final goodbye is about not being around afterwards ("tell my mom I love her after I'm gone", "this is the last time you'll hear from me"). These rules only decide between everyday business and risk. They never lower imminent to crisis. A message the caller wants passed on that sounds like a farewell (love, forgiveness, regret for everything, who gets their things) is not everyday words: judge it as above. The companion's call handling and reassurance (staying on the line, "hang in there", "hang tight", promising to call back) and safety talk it started on its own (a check-in, a crisis line) are not signs that the caller is at risk; what the caller says back to them is judged as the caller's words.`;
 
+/**
+ * CRISIS_CLASSIFIER_EVERYDAY_DISTRESS=on (off by default; needs the everyday
+ * rules on): everyday low moods are everyday business too.
+ *
+ * Prod smoke, 2026-10-18 12:29Z (8d2324c66, everyday rules on): a new caller
+ * opened with "Hey Ferni, rough couple of days over here." No pattern matched
+ * and the line has no word from the risk list, so only the ruled read ran, and
+ * the rules cover call business but say nothing about a bad stretch. The base
+ * prompt's "choose crisis if a trained crisis counselor would want to check
+ * in" can then read it as crisis, which makes the gate regenerate the reply
+ * with crisis guidance (988 is required there), and the caller heard the 988
+ * line 22 s later. A rerun at 12:50Z read none: the read is a coin flip.
+ *
+ * The rule never sees a turn whose latest words hold a risk-list word without
+ * a backstop: those turns are also read without the rules (needsPlainRead).
+ */
+export const CRISIS_EVERYDAY_DISTRESS_RULES = `
+- everyday low moods and hard stretches: a rough, long or bad day, week or couple of days, stress, being busy, tired or worn out, a bad mood, venting about work, money, family or people ("rough couple of days over here", "work has been brutal", "I'm wiped"). Feeling down on its own is not risk; risk is the caller's own words about dying, not being around, hurting themselves, hopelessness about living or being a burden, judged as above`;
+
+export function resolveCrisisEverydayDistress(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return env.CRISIS_CLASSIFIER_EVERYDAY_DISTRESS?.trim().toLowerCase() === 'on';
+}
+
+/** The everyday rules for this environment: with the distress rule as their last item when on. */
+export function everydayRulesFor(env: Record<string, string | undefined> = process.env): string {
+  if (!resolveCrisisEverydayDistress(env)) return CRISIS_EVERYDAY_RULES;
+  return CRISIS_EVERYDAY_RULES.replace(
+    '\nA last request or final goodbye',
+    `${CRISIS_EVERYDAY_DISTRESS_RULES}\nA last request or final goodbye`
+  );
+}
+
 export function resolveCrisisEverydayRules(
   env: Record<string, string | undefined> = process.env
 ): boolean {
