@@ -2,8 +2,9 @@
 #
 # Builds the mobile apps (iOS, Android). The Electron desktop app was removed.
 # Triggered on version tags (v*) or manual dispatch. Pull requests and the merge
-# queue run only the iOS build and unit tests, and only when the iPhone app,
-# the shared Swift package or this workflow changed.
+# queue run the iOS build and unit tests when the iPhone app, the shared Swift
+# package or this workflow changed, and the Android debug build and unit tests
+# when the Android app or this workflow changed.
 
 name: Build Native Apps
 
@@ -175,13 +176,39 @@ jobs:
   # ============================================================================
   # ANDROID BUILD (Native Kotlin/Compose)
   # ============================================================================
-  build-android:
-    if: >
-      github.event_name == 'push' ||
-      github.event.inputs.platforms == 'all' ||
-      github.event.inputs.platforms == 'mobile' ||
-      github.event.inputs.platforms == 'android'
+  # Pull requests and merge-queue groups build debug and run the JVM unit tests
+  # when they touch the Android app or this workflow; tags and manual runs also
+  # build the release APK and bundle. Before this gate, PRs always skipped.
+  android-changes:
+    name: Did the Android app change?
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      android: ${{ steps.android.outputs.matched }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: android
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(apps/android-native/|\.github/workflows/build-apps\.yml$)'
+          merge-group: 'true'
+
+  build-android:
+    needs: android-changes
+    if: >
+      !cancelled() && (
+        needs.android-changes.outputs.android == 'true' ||
+        github.event_name == 'push' ||
+        github.event.inputs.platforms == 'all' ||
+        github.event.inputs.platforms == 'mobile' ||
+        github.event.inputs.platforms == 'android'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v7
@@ -226,19 +253,36 @@ jobs:
           storeFile=../ferni-release.keystore
           EOF
 
+      - name: Build debug and run unit tests
+        run: |
+          cd apps/android-native
+          chmod +x gradlew
+          ./gradlew assembleDebug testDebugUnitTest
+
+      - name: Upload unit test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-unit-test-report
+          path: apps/android-native/app/build/reports/tests/testDebugUnitTest
+          retention-days: 14
+
       - name: Build Android APK
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           cd apps/android-native
           chmod +x gradlew
           ./gradlew assembleRelease
 
       - name: Build Android Bundle (AAB)
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           cd apps/android-native
           ./gradlew bundleRelease
         continue-on-error: true
 
       - name: Upload Android artifacts
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
           name: android-build
