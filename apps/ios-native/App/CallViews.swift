@@ -101,6 +101,7 @@ struct CallCaptions: View {
         case .waitingForFerni: return "\(name)'s on the way…"
         case .reconnecting: return "Reconnecting…"
         case .live:
+            if call.isOnHold { return "On hold" }
             if call.isMuted { return "You're muted" }
             switch call.avatar.pose {
             case .speaking: return nil

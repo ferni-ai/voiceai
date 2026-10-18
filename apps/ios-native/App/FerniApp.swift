@@ -86,6 +86,7 @@ final class AppModel {
             makeRoom: { LiveKitVoiceRoom(agentLevel: level) },
             audio: SystemCallAudio(),
             avatar: AvatarModel(play: Self.play),
+            lifecycle: ConversationLifecycle.isAvailable ? ConversationLifecycle() : nil,
             agentLevel: level
         )
     }
