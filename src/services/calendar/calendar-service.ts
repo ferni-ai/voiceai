@@ -61,6 +61,11 @@ export interface CalendarEvent {
   attendees: string[];
   status: 'confirmed' | 'tentative' | 'cancelled';
   calendarId: string;
+  /**
+   * The owner's stance on it, from Google: 'organizer' (their own event),
+   * 'accepted', 'tentative', 'needsAction' or 'declined'. Undefined when not known.
+   */
+  ownerResponse?: 'organizer' | 'needsAction' | 'declined' | 'tentative' | 'accepted';
 }
 
 export interface TimeSlot {
@@ -187,6 +192,17 @@ const BACK_TO_BACK_GAP_MINUTES = 15; // Less than 15 min gap = back to back
 // CONVERSION HELPERS
 // ============================================================================
 
+/**
+ * How the calendar's owner stands on an event someone else sent: 'accepted'
+ * or 'organizer' for their own, else the invite's response. Unknown (no
+ * organizer data) is undefined, not a guess.
+ */
+function ownerResponse(event: GoogleCalendarEvent): CalendarEvent['ownerResponse'] {
+  if (!event.organizer) return undefined;
+  if (event.organizer.self) return 'organizer';
+  return event.attendees?.find((a) => a.self)?.responseStatus ?? 'needsAction';
+}
+
 function googleEventToCalendarEvent(event: GoogleCalendarEvent, calendarId: string): CalendarEvent {
   const startDateTime = event.start.dateTime || event.start.date;
   const endDateTime = event.end.dateTime || event.end.date;
@@ -202,6 +218,7 @@ function googleEventToCalendarEvent(event: GoogleCalendarEvent, calendarId: stri
     attendees: (event.attendees || []).map((a) => a.email),
     status: event.status || 'confirmed',
     calendarId,
+    ownerResponse: ownerResponse(event),
   };
 }
 

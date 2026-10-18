@@ -82,7 +82,15 @@ export interface CalendarEvent {
     date?: string;
     timeZone?: string;
   };
-  attendees?: Array<{ email: string; displayName?: string }>;
+  attendees?: Array<{
+    email: string;
+    displayName?: string;
+    /** This attendee is the calendar's owner. */
+    self?: boolean;
+    responseStatus?: 'needsAction' | 'declined' | 'tentative' | 'accepted';
+  }>;
+  /** Who created the invite; `self` when it's the calendar's owner. */
+  organizer?: { email?: string; self?: boolean };
   reminders?: {
     useDefault: boolean;
     overrides?: Array<{ method: 'email' | 'popup'; minutes: number }>;

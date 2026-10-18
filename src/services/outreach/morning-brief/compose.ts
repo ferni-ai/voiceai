@@ -18,6 +18,8 @@ export interface BriefEvent {
   readonly title: string;
   readonly start: Date;
   readonly allDay: boolean;
+  /** An invite from someone else not yet accepted: shown by time only, never by title. */
+  readonly invite?: boolean;
 }
 
 export interface MorningBriefInput {
@@ -35,9 +37,22 @@ export interface MorningBriefInput {
 const FIRST_PERSON =
   /^(?:i(?:'m| am) (?:going to|gonna)|i(?:'ll| will)|i (?:need|have|want|promise) to|i should)\s+/i;
 
-/** One item, safe for the brief: no dashes, ellipses or emoji, at most ITEM_CHARS. */
+// Contact details never go out in a brief: a title or task holding a link, a domain,
+// an email or a phone number could make a Ferni text carry someone else's phishing.
+// Each is a single linear pattern (no nested quantifiers), run on at most 200 chars.
+const URL_LIKE = /\b(?:https?:\/\/|www\.)\S+/gi;
+const EMAIL_LIKE = /\S+@\S+\.\S+/g;
+const DOMAIN_LIKE = /\b[a-z0-9-]+\.(?:com|net|org|io|co|app|ai|us|info|biz|xyz|link|ly|me|gg|to)\b\S*/gi;
+const PHONE_LIKE = /\+?\d[\d\s().-]{6,}\d/g;
+
+/** One item, safe for the brief: no dashes, ellipses, emoji or contact details, at most ITEM_CHARS. */
 export function cleanItem(raw: string): string {
   const s = raw
+    .slice(0, 200)
+    .replace(URL_LIKE, ' ')
+    .replace(EMAIL_LIKE, ' ')
+    .replace(DOMAIN_LIKE, ' ')
+    .replace(PHONE_LIKE, ' ')
     .replace(/\s*[—–]\s*/g, ', ')
     .replace(/…|\.{2,}/g, ' ')
     .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '')
@@ -89,6 +104,7 @@ export function composeMorningBrief(input: MorningBriefInput): string | null {
   const lists = {
     today: unique(
       events.map((e) => {
+        if (e.invite) return e.allDay ? 'an invite' : `an invite at ${clock(e.start, input.timeZone)}`;
         const title = cleanItem(e.title);
         return e.allDay || !title ? title : `${clock(e.start, input.timeZone)} ${title}`;
       })

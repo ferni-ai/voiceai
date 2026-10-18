@@ -102,3 +102,40 @@ describe('cleanItem', () => {
     expect(cleanItem("Mindy's birthday")).toBe("Mindy's birthday");
   });
 });
+
+describe('nothing in a brief can carry someone else\'s phishing', () => {
+  const at = (h: number) => new Date(Date.UTC(2026, 9, 19, h, 0));
+  const base = { timeZone: 'America/New_York', reminders: [], tasks: [], commitments: [] };
+
+  it('shows an outside invite by time only, never its title', () => {
+    const text = composeMorningBrief({
+      ...base,
+      events: [
+        { title: 'Your account is locked, call 555 201 8899 now', start: at(19), allDay: false, invite: true },
+        { title: 'Standup', start: at(14), allDay: false },
+      ],
+    });
+    expect(text).toContain('an invite at 3pm');
+    expect(text).toContain('10am Standup');
+    expect(text).not.toMatch(/locked|555|account/i);
+  });
+
+  it('strips links, domains, emails and phone numbers from any line', () => {
+    const text = composeMorningBrief({
+      ...base,
+      events: [{ title: 'Sync https://evil.example/x', start: at(14), allDay: false }],
+      reminders: ['pay at paypa1-secure.com today', 'text +1 (801) 555-0199 back'],
+      tasks: ['email boss@corp.co the deck'],
+    })!;
+    for (const bad of ['https', 'evil', 'paypa1', '.com', '555', '0199', '@', 'corp.co']) {
+      expect(text).not.toContain(bad);
+    }
+    expect(text).toContain('Sync');
+  });
+
+  it('cleans a pathological title quickly', () => {
+    const t0 = performance.now();
+    cleanItem(`${'1 '.repeat(5000)}x ${'a.'.repeat(5000)}com`);
+    expect(performance.now() - t0).toBeLessThan(50);
+  });
+});
