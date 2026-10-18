@@ -370,6 +370,8 @@ export const FLAG_MANIFEST = {
   // ping the shared Cartesia TTS socket and reopen it when it drops (tts-gateway/providers/cartesia-socket.ts)
   TTS_SOCKET_WARM: { default: 'off', owner: 'voice', kind: 'experiment' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // troubles talk: no shift to his own life during a trouble, replies no longer than what they told (troubles-talk.ts)
+  TROUBLES_TALK: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a mode: off | cloud | local (turn-patience.ts)
   TURN_DETECTOR: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_DETECTOR_SOLE: { default: 'off', owner: 'voice', kind: 'experiment' },
