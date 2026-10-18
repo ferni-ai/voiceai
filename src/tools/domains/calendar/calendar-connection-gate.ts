@@ -22,6 +22,7 @@ import {
 } from '../../../services/calendar/not-connected-copy.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 import { smartCalendarTools as rawSmartCalendarTools } from './smart-calendar-tools.js';
+import { routeWriteToProvider } from './provider-routing.js';
 
 /** Reads describe a calendar, so with none connected they quote nothing. */
 const READ_TOOLS = new Set([
@@ -69,7 +70,9 @@ async function notConnectedRead(id: string, userId: string): Promise<string> {
             true
           )
         : '';
-  return list ? notConnectedWithList(list, id === 'getCalendarWeek' ? 'this week' : 'today') : NOT_CONNECTED_READ;
+  return list
+    ? notConnectedWithList(list, id === 'getCalendarWeek' ? 'this week' : 'today')
+    : NOT_CONNECTED_READ;
 }
 
 /** The title, date and time the caller asked for, for the create line. */
@@ -77,11 +80,17 @@ function whatWasAsked(params: unknown): string | undefined {
   if (typeof params !== 'object' || params === null) return undefined;
   const { title, date, startTime } = params as Record<string, unknown>;
   if (typeof title !== 'string') return undefined;
-  return [title, date, startTime].filter((part): part is string => typeof part === 'string').join(', ');
+  return [title, date, startTime]
+    .filter((part): part is string => typeof part === 'string')
+    .join(', ');
 }
 
 function gate(def: ToolDefinition): ToolDefinition {
-  const mode = CLEAR_ONLY.has(def.id) ? 'clear' : READ_TOOLS.has(def.id) ? 'read' : WRITE_TOOLS.get(def.id);
+  const mode = CLEAR_ONLY.has(def.id)
+    ? 'clear'
+    : READ_TOOLS.has(def.id)
+      ? 'read'
+      : WRITE_TOOLS.get(def.id);
   if (mode === undefined) return def;
 
   return {
@@ -93,7 +102,13 @@ function gate(def: ToolDefinition): ToolDefinition {
         ...tool,
         execute: async (params: unknown, options: unknown) => {
           const { userId } = ctx;
-          if (!userId || (await isConnected(userId))) return original(params, options);
+          if (!userId) return original(params, options);
+          if (await isConnected(userId)) {
+            // A write goes to the connected calendar when the flag is on (#1749); else the Ferni path.
+            const routed =
+              mode === 'read' ? null : await routeWriteToProvider(def.id, userId, params, ctx);
+            return routed ?? original(params, options);
+          }
           if (mode === 'read') return notConnectedRead(def.id, userId);
           if (mode === 'clear') {
             const result: unknown = await original(params, options);
