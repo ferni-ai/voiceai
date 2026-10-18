@@ -10,7 +10,7 @@ Generated with Bubblewrap (`@bubblewrap/core` 1.27.0, the same templates as
 
 - `versionCode`/`versionName` come from `TWA_VERSION_CODE`/`TWA_VERSION_NAME`
   (CI passes the workflow run number).
-- Release signing comes from `ANDROID_UPLOAD_KEYSTORE_PATH` and the
+- Local release signing reads `ANDROID_UPLOAD_KEYSTORE_PATH` and the
   `ANDROID_UPLOAD_*` passwords; without them the bundle is unsigned.
 - `mavenCentral()` instead of the retired `jcenter()`.
 - A white-silhouette notification icon (Android masks colour icons to a blob).
@@ -29,31 +29,46 @@ Generated with Bubblewrap (`@bubblewrap/core` 1.27.0, the same templates as
 
 ## Build
 
-CI: `.github/workflows/android-twa.yml` builds `app-release.aab` on PRs that touch
-this folder and on manual dispatch, and uploads it as an artifact.
+CI: `.github/workflows/android-twa.yml`.
+
+- **build** runs on every PR that touches this folder, on pushes to main and on
+  dispatch. It validates the Gradle wrapper, builds `app-release.aab`
+  **unsigned**, checks it is unsigned, and uploads it. It never sees a secret.
+- **sign** runs only on main (push or dispatch) in the protected
+  `android-signing` environment. It signs that bundle with `jarsigner` using the
+  `ANDROID_UPLOAD_*` environment secrets.
+- **play-internal** runs only on a dispatch from main with "upload_to_play"
+  ticked, in the protected `play-release` environment, and sends a draft release
+  to the internal track.
 
 Locally (JDK 17 and an Android SDK with platform 36):
 
 ```bash
 cd apps/android-twa
-./gradlew bundleRelease   # app/build/outputs/bundle/release/app-release.aab
+./gradlew bundleRelease   # app/build/outputs/bundle/release/app-release.aab, unsigned
 ```
+
+`app/build.gradle` also signs a local build when `ANDROID_UPLOAD_KEYSTORE_PATH`
+and the `ANDROID_UPLOAD_*` passwords are set in your shell. CI does not use this.
 
 ## Going live (owner)
 
 1. `scripts/android/make-upload-key.sh` creates the upload key and stores it as
-   the `ANDROID_UPLOAD_*` repository secrets. It prints the upload key's SHA-256.
-2. Run the workflow manually, download the signed bundle, create the app in Play
-   Console with Play App Signing, and upload that first bundle by hand.
+   `ANDROID_UPLOAD_*` secrets of the `android-signing` environment. If that
+   environment is missing, the script creates it for main only, with you as
+   reviewer. It prints the upload key's SHA-256.
+2. Dispatch the workflow from main, approve `android-signing`, download the
+   signed bundle, create the app in Play Console with Play App Signing, and upload
+   that first bundle by hand.
 3. Set the repository variable `ANDROID_CERT_SHA256` to the Play **app signing**
    SHA-256 (Play Console, App signing), plus the upload key's if you want
-   sideloaded CI builds verified, comma separated. The next web deploy serves
+   sideloaded builds verified, comma separated. The next web deploy serves
    them at https://app.ferni.ai/.well-known/assetlinks.json
    (`apps/web/scripts/asset-links.ts`). Until then the app opens with a browser
    URL bar.
-4. Optional: store a Play service account as `PLAY_SERVICE_ACCOUNT_JSON` in the
-   `play-release` environment (with required reviewers). Dispatch the workflow
-   with "Upload to Play" ticked to send a draft release to the internal track.
+4. Optional: lock `play-release` to main with a required reviewer, store a Play
+   service account there as `PLAY_SERVICE_ACCOUNT_JSON`, and dispatch with
+   "Upload to Play" ticked.
 
 To regenerate after a Bubblewrap update, run `bubblewrap update` here and
 re-apply the edits above.

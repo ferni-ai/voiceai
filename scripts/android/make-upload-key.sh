@@ -4,9 +4,15 @@
 # outside one private temp file that is deleted on exit.
 #
 # For the owner to run, once, on a trusted machine:
-#   scripts/android/make-upload-key.sh [--repo owner/name] [--replace]
+#   scripts/android/make-upload-key.sh [--repo owner/name] [--env android-signing] [--replace]
 #
-# Sets these repository secrets (read by .github/workflows/android-twa.yml):
+# The secrets are ENVIRONMENT secrets of the android-signing environment, which
+# only the main-branch signing job in .github/workflows/android-twa.yml uses;
+# pull-request builds never see them. If the environment does not exist, the
+# script creates it limited to the main branch with you as required reviewer,
+# and it refuses to use an existing one that any branch can deploy from.
+#
+# Sets these secrets:
 #   ANDROID_UPLOAD_KEYSTORE_B64       the PKCS12 keystore, base64
 #   ANDROID_UPLOAD_KEYSTORE_PASSWORD  random, generated here
 #   ANDROID_UPLOAD_KEY_ALIAS          "upload"
@@ -23,14 +29,16 @@ set -euo pipefail
 umask 077
 
 REPO="ferni-ai/voiceai"
+ENV_NAME="android-signing"
 REPLACE=0
 ALIAS="upload"
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --repo) REPO="${2:?--repo needs owner/name}"; shift 2 ;;
+    --env) ENV_NAME="${2:?--env needs a name}"; shift 2 ;;
     --replace) REPLACE=1; shift ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -43,9 +51,24 @@ for tool in keytool gh openssl base64; do
 done
 gh auth status > /dev/null 2>&1 || { echo "Run 'gh auth login' first." >&2; exit 1; }
 
-existing="$(gh secret list --repo "$REPO" --json name --jq '.[].name' | grep -c '^ANDROID_UPLOAD_' || true)"
+# The signing environment: create it locked to main, or check the existing one is.
+if ! gh api "repos/$REPO/environments/$ENV_NAME" > /dev/null 2>&1; then
+  me="$(gh api user --jq .id)"
+  printf '{"reviewers":[{"type":"User","id":%s}],"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}' "$me" |
+    gh api -X PUT "repos/$REPO/environments/$ENV_NAME" --input - > /dev/null
+  gh api -X POST "repos/$REPO/environments/$ENV_NAME/deployment-branch-policies" \
+    -f name=main -f type=branch > /dev/null
+  echo "Created environment $ENV_NAME (main branch only, you as required reviewer)."
+fi
+policy="$(gh api "repos/$REPO/environments/$ENV_NAME" --jq '.deployment_branch_policy // "none"')"
+if [ "$policy" = "none" ]; then
+  echo "Environment $ENV_NAME lets any branch deploy. Limit it to main first (Settings, Environments)." >&2
+  exit 1
+fi
+
+existing="$(gh secret list --repo "$REPO" --env "$ENV_NAME" --json name --jq '.[].name' | grep -c '^ANDROID_UPLOAD_' || true)"
 if [ "$existing" -gt 0 ] && [ "$REPLACE" -ne 1 ]; then
-  echo "$REPO already has ANDROID_UPLOAD_* secrets. Re-run with --replace to make a new upload key" >&2
+  echo "$ENV_NAME already has ANDROID_UPLOAD_* secrets. Re-run with --replace to make a new upload key" >&2
   echo "(then reset the upload key in Play Console, or Play will reject new bundles)." >&2
   exit 1
 fi
@@ -87,17 +110,20 @@ if [ -z "$fingerprint" ]; then
   exit 1
 fi
 
-base64 < "$keystore" | tr -d '\n' | gh secret set ANDROID_UPLOAD_KEYSTORE_B64 --repo "$REPO" > /dev/null
-printf '%s' "$FERNI_UPLOAD_PASSWORD" | gh secret set ANDROID_UPLOAD_KEYSTORE_PASSWORD --repo "$REPO" > /dev/null
-printf '%s' "$FERNI_UPLOAD_PASSWORD" | gh secret set ANDROID_UPLOAD_KEY_PASSWORD --repo "$REPO" > /dev/null
-printf '%s' "$ALIAS" | gh secret set ANDROID_UPLOAD_KEY_ALIAS --repo "$REPO" > /dev/null
+base64 < "$keystore" | tr -d '\n' | gh secret set ANDROID_UPLOAD_KEYSTORE_B64 --repo "$REPO" --env "$ENV_NAME" > /dev/null
+printf '%s' "$FERNI_UPLOAD_PASSWORD" | gh secret set ANDROID_UPLOAD_KEYSTORE_PASSWORD --repo "$REPO" --env "$ENV_NAME" > /dev/null
+printf '%s' "$FERNI_UPLOAD_PASSWORD" | gh secret set ANDROID_UPLOAD_KEY_PASSWORD --repo "$REPO" --env "$ENV_NAME" > /dev/null
+printf '%s' "$ALIAS" | gh secret set ANDROID_UPLOAD_KEY_ALIAS --repo "$REPO" --env "$ENV_NAME" > /dev/null
 unset FERNI_UPLOAD_PASSWORD
 
 cat <<EOF
 Upload key SHA-256: $fingerprint
 
 Next steps
-1. Run the "Android app (TWA)" workflow (Actions, Run workflow) and download the signed bundle.
+Secrets stored in the $ENV_NAME environment of $REPO.
+
+1. Run the "Android app (TWA)" workflow from main (Actions, Run workflow), approve the
+   $ENV_NAME deployment, and download the signed bundle.
 2. Play Console: create the app with package ai.ferni.app, enrol in Play App Signing,
    and upload that first bundle by hand to the internal testing track.
 3. Play Console, Setup, App signing: copy the APP SIGNING key's SHA-256 (not this one).
@@ -106,5 +132,6 @@ Next steps
    https://app.ferni.ai/.well-known/assetlinks.json lists them. Without it the app
    shows a browser bar instead of running full screen.
 5. Optional: create a Play service account, store its JSON as PLAY_SERVICE_ACCOUNT_JSON
-   in the play-release environment, and later uploads can go through the workflow.
+   in the play-release environment (also main-only with a reviewer), and later uploads
+   can go through the workflow.
 EOF

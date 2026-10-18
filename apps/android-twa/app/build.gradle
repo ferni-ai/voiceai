@@ -144,9 +144,9 @@ android {
         resValue "string", "orientation", twaManifest.orientation
 
     }
-    // Release signing comes from the environment: CI decodes the upload keystore
-    // from the ANDROID_UPLOAD_* secrets (.github/workflows/android-twa.yml).
-    // Without it the release bundle is built unsigned.
+    // Local release signing only, from the environment. CI always builds unsigned
+    // and signs the bundle with jarsigner in the protected android-signing job
+    // (.github/workflows/android-twa.yml). Without these the bundle is unsigned.
     signingConfigs {
         if (uploadKeystore) {
             upload {
