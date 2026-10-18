@@ -1,0 +1,18 @@
+{
+  "description": "One per run of a promise-keeping job (PROMISE_JOB_RUN from src/services/follow-through/promise-outcomes.ts), by job. Read by job-stopped-policy.json.",
+  "filter": "resource.type=\"cloud_run_revision\" AND jsonPayload.event=\"PROMISE_JOB_RUN\"",
+  "metricDescriptor": {
+    "metricKind": "DELTA",
+    "valueType": "INT64",
+    "labels": [
+      {
+        "key": "job",
+        "valueType": "STRING",
+        "description": "deferred-calls, scheduled-outreach, deliver-reminders or follow-through"
+      }
+    ]
+  },
+  "labelExtractors": {
+    "job": "EXTRACT(jsonPayload.job)"
+  }
+}

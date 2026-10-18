@@ -158,8 +158,7 @@ describe('buildQuickSummary', () => {
       { role: 'user', content: 'I need help', timestamp: new Date() },
     ];
     const summary = buildQuickSummary(turns);
-    expect(summary).toContain('Hi there');
-    expect(summary).toContain('I need help');
+    expect(summary).toBe('Discussed: I need help'); // "Hi there" is a greeting, not a topic
     expect(summary).not.toContain('Hello');
     expect(summary).not.toContain('How can I help');
   });
@@ -260,13 +259,13 @@ describe('Summary extraction patterns', () => {
   it('should handle empty content', () => {
     const turns: ConversationTurn[] = [{ role: 'user', content: '', timestamp: new Date() }];
     const summary = buildQuickSummary(turns);
-    expect(summary).toBe('Discussed: ');
+    expect(summary).toBe('');
   });
 
   it('should handle whitespace-only content', () => {
     const turns: ConversationTurn[] = [{ role: 'user', content: '   ', timestamp: new Date() }];
     const summary = buildQuickSummary(turns);
-    expect(summary).toContain('Discussed:');
+    expect(summary).toBe('');
   });
 });
 
@@ -357,11 +356,11 @@ describe('Content length handling', () => {
   it('should handle very short content', () => {
     const turn: ConversationTurn = {
       role: 'user',
-      content: 'Hi',
+      content: 'Rome',
       timestamp: new Date(),
     };
     const summary = buildQuickSummary([turn]);
-    expect(summary).toContain('Hi');
+    expect(summary).toBe('Discussed: Rome');
   });
 
   it('should handle very long content', () => {
