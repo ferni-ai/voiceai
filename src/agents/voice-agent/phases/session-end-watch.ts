@@ -10,6 +10,8 @@
  * (prod: caller turns at 07:57:12 and 07:57:20, hung up at 07:57:23).
  */
 
+import { roomDisconnectEndReason } from '../../../services/analytics/call-end-reason.js';
+
 export const EMPTY_ROOM_GRACE_MS = 5_000;
 export const IDLE_MS = 10 * 60_000;
 export const MAX_CALL_MS = 3 * 60 * 60_000;
@@ -35,7 +37,7 @@ export interface SessionEndOptions {
 
 const ACTIVITY_EVENTS = ['dataReceived', 'participantConnected', 'trackSubscribed'] as const;
 
-/** Resolves with why the call ended: room.disconnected, room.!isConnected, empty_room, idle or max_duration (or options.maxReason). */
+/** Resolves with why the call ended: room.disconnected or room.closed, room.!isConnected, empty_room, idle or max_duration (or options.maxReason). */
 export function waitForSessionEnd(room: WatchedRoom, options: SessionEndOptions = {}): Promise<string> {
   const idleMs = options.idleMs ?? IDLE_MS;
   const maxMs = options.maxMs ?? MAX_CALL_MS;
@@ -52,7 +54,7 @@ export function waitForSessionEnd(room: WatchedRoom, options: SessionEndOptions 
     const onSpeakers = (speakers: unknown): void => {
       if (Array.isArray(speakers) && speakers.length > 0) touch();
     };
-    const onDisconnected = (): void => finish('room.disconnected');
+    const onDisconnected = (reason?: unknown): void => finish(roomDisconnectEndReason(reason));
     const onParticipantLeft = (): void => {
       if (room.remoteParticipants.size === 0) emptySinceMs = emptySinceMs ?? Date.now();
     };

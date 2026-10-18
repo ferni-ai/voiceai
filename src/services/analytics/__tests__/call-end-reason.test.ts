@@ -28,6 +28,10 @@ describe('classifyCallEnd', () => {
   it.each([
     ['empty_room', 'natural'],
     ['job.shutdownCallback', 'natural'],
+    ['room.closed', 'natural'],
+    ['idle', 'natural'],
+    ['max_duration', 'natural'],
+    ['demo_limit', 'natural'],
     ['room.disconnected', 'disconnect'],
     ['room.!isConnected', 'disconnect'],
     ['connectionStateChanged:disconnected', 'disconnect'],

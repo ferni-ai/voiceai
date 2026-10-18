@@ -36,6 +36,7 @@ import {
 } from '../voice-agent/phases/index.js';
 
 import { finops } from '../../services/observability/finops.js';
+import { classifyCallEnd, roomDisconnectEndReason } from '../../services/analytics/call-end-reason.js';
 
 import {
   cleanupSpeechCoordination,
@@ -791,7 +792,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         );
         try {
           const { endCall } = await import('../../services/analytics/call-quality-monitor.js');
-          endCall(sessionId, 'disconnect');
+          endCall(sessionId, classifyCallEnd(sessionEndReason));
         } catch {
           /* ignore */
         }
@@ -872,7 +873,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         // Unblock LiveKit job_proc close wait (runs after entrypoint returns).
         // Without this, empty-room exits hang forever on once(closeEvent).
         try {
-          if (reason !== 'room.disconnected' && reason !== 'job.shutdownCallback') {
+          if (!['room.disconnected', 'room.closed', 'job.shutdownCallback'].includes(reason)) {
             ctx.shutdown(reason);
           }
         } catch {
@@ -903,7 +904,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
       ctx.room.on('disconnected', (reason?: unknown) => {
         logDisconnectDiagnostics(String(reason || 'unknown'));
-        finish('room.disconnected');
+        finish(roomDisconnectEndReason(reason));
       });
 
       // connectionStateChanged often fires even when isConnected lags

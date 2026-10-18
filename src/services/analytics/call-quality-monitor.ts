@@ -16,6 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService } from '../slack-notifications.js';
 import { recordMetricValue } from '../predictive-alerting.js';
+import { enoughCallsToRate } from './call-quality-min-sample.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
 
@@ -209,10 +210,8 @@ export function recordCallEvent(event: CallEvent): void {
     sessions.set(event.callId, session);
   }
 
-  // Add event
   session.events.push(event);
 
-  // Process event
   switch (event.type) {
     case 'connection_success':
       session.connectionTimeMs = event.timestamp - session.startTime;
@@ -404,7 +403,6 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
   const now = Date.now();
   const windowStart = now - windowMs;
 
-  // Get sessions in window
   const windowSessions = completedSessions.filter((s) => s.startTime >= windowStart);
   const activeSessions = Array.from(sessions.values());
 
@@ -598,15 +596,16 @@ async function sendQualityAlert(
   }
 }
 
-async function checkQualityAlerts(): Promise<void> {
+export async function checkQualityAlerts(): Promise<void> {
   const metrics = calculateMetrics();
+  const ok = enoughCallsToRate(metrics); // too few calls to rate: no alert (call-quality-min-sample.ts)
 
   // Feed to predictive alerting
   recordMetricValue('connection_success_rate', metrics.connectionSuccessRate * 100);
   recordMetricValue('disconnect_rate', metrics.disconnectRate * 100);
 
   // Connection success rate
-  if (metrics.connectionSuccessRate < config.connectionSuccessRateCritical) {
+  if (ok.attempts && metrics.connectionSuccessRate < config.connectionSuccessRateCritical) {
     await sendQualityAlert(
       'critical',
       'Connection Success Rate Critical',
@@ -616,7 +615,7 @@ async function checkQualityAlerts(): Promise<void> {
         connectionAttempts: metrics.connectionAttempts,
       }
     );
-  } else if (metrics.connectionSuccessRate < config.connectionSuccessRateWarning) {
+  } else if (ok.attempts && metrics.connectionSuccessRate < config.connectionSuccessRateWarning) {
     await sendQualityAlert(
       'warning',
       'Connection Success Rate Degraded',
@@ -646,14 +645,14 @@ async function checkQualityAlerts(): Promise<void> {
   }
 
   // Disconnect rate
-  if (metrics.disconnectRate > config.disconnectRateCritical) {
+  if (ok.ended && metrics.disconnectRate > config.disconnectRateCritical) {
     await sendQualityAlert(
       'critical',
       'Disconnect Rate Critical',
       `${(metrics.disconnectRate * 100).toFixed(1)}% of calls ending in disconnection`,
       { disconnectRate: metrics.disconnectRate, disconnectCount: metrics.disconnectCount }
     );
-  } else if (metrics.disconnectRate > config.disconnectRateWarning) {
+  } else if (ok.ended && metrics.disconnectRate > config.disconnectRateWarning) {
     await sendQualityAlert(
       'warning',
       'Disconnect Rate Elevated',
@@ -663,14 +662,14 @@ async function checkQualityAlerts(): Promise<void> {
   }
 
   // Quality score alert
-  if (metrics.qualityScore < 70) {
+  if (ok.ended && metrics.qualityScore < 70) {
     await sendQualityAlert(
       'critical',
       'Call Quality Score Low',
       `Overall quality score is ${metrics.qualityScore}/100`,
       metrics
     );
-  } else if (metrics.qualityScore < 85) {
+  } else if (ok.ended && metrics.qualityScore < 85) {
     await sendQualityAlert(
       'warning',
       'Call Quality Score Degraded',
