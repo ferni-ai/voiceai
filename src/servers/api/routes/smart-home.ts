@@ -853,23 +853,20 @@ async function handleHomeKitCommandComplete(
   res: ServerResponse
 ): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId, commandId, success, error } = body as {
-      userId: string;
-      commandId: string;
-      success: boolean;
-      error?: string;
-    };
-
-    if (!userId || !commandId) {
-      sendError(res, 400, 'userId and commandId required');
+    // The caller verified at the door (bindVerifiedIdentity checks the bearer
+    // token); body.userId is ignored, so no one can complete another user's commands.
+    const userId = getUserId(req);
+    if (!userId) {
+      sendError(res, 401, 'Authentication required');
       return;
     }
-
-    // Validate auth
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      sendError(res, 401, 'Authentication required');
+    const { commandId, success, error } = (await parseBody(req)) as {
+      commandId?: unknown;
+      success?: boolean;
+      error?: string;
+    };
+    if (typeof commandId !== 'string' || !commandId || commandId.includes('/')) {
+      sendError(res, 400, 'commandId required');
       return;
     }
 

@@ -233,8 +233,8 @@ async function decryptCombined(combined: Buffer, aad: string | undefined): Promi
  * Decrypt sensitive data
  *
  * @param encryptedData - Data encrypted with encryptSensitive()
- * @param aad - The context it was bound to. Ciphertext written before AAD
- *   binding still opens without it (legacy fallback); anything else fails.
+ * @param aad - The context it was bound to. When given it is required: a
+ *   ciphertext without it (or bound elsewhere) does not open.
  * @returns Decrypted string (or parsed JSON if it was an object)
  */
 export async function decryptSensitive<T = string>(
@@ -245,13 +245,7 @@ export async function decryptSensitive<T = string>(
     throw new Error('Invalid encrypted data format');
   }
   const combined = Buffer.from(encryptedData.slice(4), 'base64');
-  let decrypted: string;
-  try {
-    decrypted = await decryptCombined(combined, aad);
-  } catch (error) {
-    if (aad === undefined) throw error;
-    decrypted = await decryptCombined(combined, undefined); // pre-AAD ciphertext
-  }
+  const decrypted = await decryptCombined(combined, aad);
 
   // Try to parse as JSON
   try {

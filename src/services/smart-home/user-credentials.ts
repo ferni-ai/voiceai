@@ -108,9 +108,11 @@ async function encryptFields<T extends object>(
 }
 
 /**
- * Decrypt the enc_ secret fields. Plaintext (legacy) values pass through, and
- * ciphertext written before AAD binding still opens (decryptSensitive's
- * legacy fallback) until the next save re-encrypts it with AAD.
+ * Decrypt the enc_ secret fields. Plaintext (legacy) values pass through. The
+ * AAD is required: a ciphertext without it, or bound to another user or field,
+ * does not open (prod never had DATA_ENCRYPTION_KEY, so no pre-AAD ciphertext
+ * exists, and a fallback would let any no-AAD ciphertext, such as an MCP or
+ * OAuth secret, open inside a smart_home doc).
  */
 async function decryptFields<T extends object>(
   userId: string,
@@ -174,18 +176,19 @@ export async function getUserSmartHomeCredentials(userId: string): Promise<Smart
       smartHomeRef.doc('homekit').get(),
     ]);
 
-    // Open docs the web routes sealed; decrypt the ones this module wrote
-    credentials.hue = await openSmartHomeCredentials<HueCredentials>(userId, 'hue', hueDoc.data());
-    credentials.lifx = await openSmartHomeCredentials<LifxCredentials>(
-      userId,
-      'lifx',
-      lifxDoc.data()
-    );
-    credentials.sonos = await openSmartHomeCredentials<SonosCredentials>(
-      userId,
-      'sonos',
-      sonosDoc.data()
-    );
+    // Open docs the web routes sealed; decrypt the ones this module wrote. One bad
+    // field fails only its own integration, never the others.
+    const open = async <T>(integration: string, stored: unknown): Promise<T | null> => {
+      try {
+        return await openSmartHomeCredentials<T>(userId, integration, stored);
+      } catch (error) {
+        log.warn({ error: String(error), integration }, 'Smart home credential unreadable');
+        return null;
+      }
+    };
+    credentials.hue = await open<HueCredentials>('hue', hueDoc.data());
+    credentials.lifx = await open<LifxCredentials>('lifx', lifxDoc.data());
+    credentials.sonos = await open<SonosCredentials>('sonos', sonosDoc.data());
 
     if (homeKitDoc.exists) {
       // HomeKit has no sensitive credentials to decrypt
