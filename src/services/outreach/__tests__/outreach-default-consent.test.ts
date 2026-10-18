@@ -132,7 +132,7 @@ describe('outreach consent mapping', () => {
   });
 
   it('records proof of consent when texts or calls go on, and revokedAt when they go off', async () => {
-    const how = { disclosureVersion: consent.SMS_DISCLOSURE_VERSION, source: 'web-settings' };
+    const how = { disclosureVersion: consent.CURRENT_SMS_DISCLOSURE, source: 'web-settings' };
     users = [user('u1', { outreachPreferences: { channels: [] } })];
     await consent.writeOutreachConsent('u1', { channels: ['sms', 'voice_call'] }, how);
     const granted = (setCalls[0].value as { outreachPreferences: Record<string, unknown> })

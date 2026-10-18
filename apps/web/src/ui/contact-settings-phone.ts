@@ -86,7 +86,7 @@ export async function loadPhoneAndChannels(s: State): Promise<void> {
 
 const PHONE_CHANNELS = ['sms', 'call'];
 
-/** Matches SMS_DISCLOSURE_VERSION in src/services/outreach/outreach-consent.ts. Bump both when the text changes. */
+/** Matches CURRENT_SMS_DISCLOSURE in src/services/outreach/outreach-consent.ts. Bump both when the text changes. */
 export const SMS_DISCLOSURE_VERSION = '2026-10-18';
 const SMS_TERMS_URL = 'https://ferni.ai/sms-consent';
 
