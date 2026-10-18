@@ -53,6 +53,15 @@ final class AppModel {
     var isShowingSettings = false
     var isAskingConsent = false
     var isShowingCallMore = false
+    /// A line of Ferni's being reported.
+    var reporting: Caption?
+
+    func report(_ caption: Caption, reason: ReplyReport.Reason, note: String) async throws {
+        try await ReplyReport.send(
+            using: api, sessionID: call.roomName ?? "unknown", saidAt: caption.at, reason: reason,
+            note: note, textHint: caption.text, appVersion: SettingsView.version()
+        )
+    }
     /// Ferni's words in the caption area; off leaves only who's doing what.
     var showCaptions = UserDefaults.standard.object(forKey: "ferni.captions") as? Bool ?? true {
         didSet { UserDefaults.standard.set(showCaptions, forKey: "ferni.captions") }
