@@ -254,6 +254,8 @@ describe('a profile zone reaches a call only through phone-parity.ts', () => {
     'services/outreach/user-contact.ts': "the account's contact info, stored with delivery to it",
     'services/outreach/quiet-hours.ts': 'quiet hours for outreach to the account',
     'services/outreach/call-hours-guard.ts': 'call hours for outreach to the account',
+    'services/outreach/confirm-thread-adapter.ts':
+      "the verified owner's follow-up record (no due time, no repeat); never a call's zone",
     'services/outreach/timing-intelligence.ts': 'outreach timing for the account',
     'services/outreach/proactive-channels/proactive-tick.ts':
       'between-call outreach to the account',
