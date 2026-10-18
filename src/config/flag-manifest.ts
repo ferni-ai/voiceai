@@ -161,7 +161,6 @@ export const FLAG_MANIFEST = {
   FTIS_COLLECT_TRAINING_DATA: { default: 'off', owner: 'tools', kind: 'experiment' },
   FTIS_ENABLED: { default: 'off', owner: 'platform', kind: 'config' },
   FTIS_ONLY_MODE: { default: 'off', owner: 'tools', kind: 'experiment' },
-  FTIS_PRIMARY: { default: 'off', owner: 'tools', kind: 'experiment' },
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   GEMINI_LIVE_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },
   GEMMA3N_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -233,7 +232,6 @@ export const FLAG_MANIFEST = {
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
   PLACES_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read in patches/@livekit__agents@1.9.3.patch
