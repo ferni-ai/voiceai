@@ -1,0 +1,152 @@
+/**
+ * POST /api/reports: someone reports one of Ferni's replies from inside the app.
+ *
+ * Google Play's AI-generated content policy and Apple's guideline 1.2 both ask
+ * for an in-app way to flag what the assistant said. The web app (and the
+ * Android TWA around it) and the native iPhone app all call this endpoint; the
+ * request contract is the schema in reply-report-input.ts.
+ *
+ * - Any verified Firebase user may report, anonymous accounts included (they
+ *   are the ones on a call without signing in).
+ * - The stored text is the reply and the person's turn before it, copied from
+ *   the server's transcript (reply-report-lookup.ts). Client text is never stored.
+ * - Reports go to `reply_reports`, which only admins can read (firestore.rules).
+ * - Logs carry ids, the reason and whether the reply was found; never any text.
+ * - Limits: 5 a minute per person on this instance, 20 a day across all of them.
+ *
+ * @module api/reply-reports/reply-report-routes
+ */
+import type { IncomingMessage, ServerResponse } from 'http';
+import type { Firestore } from '@google-cloud/firestore';
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { rateLimit, requireAuth } from '../auth-middleware.js';
+import {
+  handleCorsPreflightIfNeeded,
+  parseBodyWithSchema,
+  sendError,
+  sendJSON,
+} from '../helpers.js';
+import { replyReportBodySchema, toEpochMs, type ReplyReportBody } from './reply-report-input.js';
+import { findReportedReply, type ReportedReply } from './reply-report-lookup.js';
+import { takeReplyReportQuota } from './reply-report-quota.js';
+
+const log = createLogger({ module: 'ReplyReports' });
+
+export const REPLY_REPORTS_PATH = '/api/reports';
+export const REPLY_REPORTS_COLLECTION = 'reply_reports';
+
+export interface ReplyReportCaller {
+  userId: string;
+  isAnonymous?: boolean;
+}
+
+export interface ReplyReportDeps {
+  /** Verify the caller, or answer 401 and return null. */
+  authenticate: (req: IncomingMessage, res: ServerResponse) => Promise<ReplyReportCaller | null>;
+  getDb: () => Firestore | null;
+  now: () => number;
+}
+
+const defaultDeps: ReplyReportDeps = {
+  authenticate: async (req, res) => requireAuth(req, res),
+  getDb: getFirestoreDb,
+  now: Date.now,
+};
+
+function serverVersion(): string | null {
+  return process.env.BUILD_SHA?.trim() || process.env.K_REVISION?.trim() || null;
+}
+
+/** The stored report: the reply's text comes only from `reply` (the server's transcript). */
+function reportRecord(
+  caller: ReplyReportCaller,
+  body: ReplyReportBody,
+  messageAt: number | null,
+  reply: ReportedReply | null,
+  now: number
+): Record<string, unknown> {
+  return {
+    uid: caller.userId,
+    isAnonymous: caller.isAnonymous === true,
+    reason: body.reason,
+    note: body.note || null, // an all-blank note is no note
+    sessionId: body.sessionId,
+    requestedTurnId: body.turnId ?? null,
+    messageAt: messageAt === null ? null : new Date(messageAt),
+    matched: reply !== null,
+    matchedBy: reply?.matchedBy ?? null,
+    conversationId: reply?.conversationId ?? null,
+    turnId: reply?.turnId ?? null,
+    replyText: reply?.replyText ?? null,
+    userTurnText: reply?.userTurnText ?? null,
+    replyAt: reply?.replyAt == null ? null : new Date(reply.replyAt),
+    personaId: reply?.personaId ?? null,
+    appVersion: body.appVersion ?? null,
+    platform: body.platform ?? null,
+    serverVersion: serverVersion(),
+    status: 'open',
+    createdAt: new Date(now),
+  };
+}
+
+export async function handleReplyReportRoutes(
+  req: IncomingMessage,
+  res: ServerResponse,
+  pathname: string,
+  deps: ReplyReportDeps = defaultDeps
+): Promise<boolean> {
+  if (pathname !== REPLY_REPORTS_PATH) return false;
+  if (handleCorsPreflightIfNeeded(req, res)) return true;
+  if (req.method !== 'POST') {
+    sendError(res, 'Method not allowed', 405);
+    return true;
+  }
+  const caller = await deps.authenticate(req, res);
+  if (!caller) return true;
+  const perPerson = { keyPrefix: 'reply-report', keyGenerator: () => `user:${caller.userId}` };
+  if (rateLimit(req, res, { maxRequests: 5, windowMs: 60_000, ...perPerson })) return true;
+
+  const parsed = await parseBodyWithSchema(req, replyReportBodySchema);
+  if (!parsed.success) {
+    sendError(res, parsed.error, 400);
+    return true;
+  }
+  const body = parsed.data;
+  const db = deps.getDb();
+  if (!db) {
+    sendError(res, 'Reporting is unavailable right now', 503);
+    return true;
+  }
+
+  try {
+    const now = deps.now();
+    if (!(await takeReplyReportQuota(db, caller.userId, now))) {
+      sendError(res, "You've sent a lot of reports today. Try again tomorrow.", 429);
+      return true;
+    }
+    const messageAt = toEpochMs(body.messageAt);
+    const reply = await findReportedReply(db, caller.userId, {
+      sessionId: body.sessionId,
+      turnId: body.turnId,
+      messageAt,
+      textHint: body.textHint,
+    });
+    const ref = db.collection(REPLY_REPORTS_COLLECTION).doc();
+    await ref.set(reportRecord(caller, body, messageAt, reply, now));
+    log.info(
+      {
+        reportId: ref.id,
+        reason: body.reason,
+        matched: reply !== null,
+        matchedBy: reply?.matchedBy,
+      },
+      'Reply reported'
+    );
+    sendJSON(res, { ok: true, reportId: ref.id, matched: reply !== null }, 201);
+  } catch (error) {
+    log.error({ error: String(error) }, 'Could not store a reply report');
+    sendError(res, 'Could not send the report', 500);
+  }
+  return true;
+}
