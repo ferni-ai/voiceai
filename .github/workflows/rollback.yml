@@ -85,16 +85,22 @@ jobs:
     name: Rollback UI Server
     runs-on: ubuntu-latest
     if: ${{ inputs.service == 'ui-server' || inputs.service == 'all' }}
-    # Changes john-bogle-ui's traffic or revisions, so it shares the prod deploy's
-    # group (deploy-production.yml) and never runs while a deploy does.
+    # Its own group, not deploy-production's: GitHub keeps one pending run per
+    # group, so a later deploy would replace (cancel) a pending rollback. The
+    # deploy freeze below keeps deploys off instead.
     concurrency:
-      group: deploy-production
+      group: prod-rollback
       cancel-in-progress: false
+    permissions:
+      contents: write  # the deploy-freeze tag
     outputs:
       previous_revision: ${{ steps.current.outputs.revision }}
       new_revision: ${{ steps.rollback.outputs.revision }}
     
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
@@ -141,6 +147,21 @@ jobs:
           
           echo "revision=$TARGET" >> $GITHUB_OUTPUT
 
+      # Freeze automatic deploys BEFORE moving traffic. Main's tip is still the
+      # commit being rolled back, and the next automatic deploy would put it
+      # straight back (scripts/ci/deploy-freeze.sh). A deploy already running
+      # re-checks the freeze right before its own traffic shift and stops; the
+      # pause lets one that passed that check a moment ago land first, so this
+      # rollback has the last word. Unfreeze deliberately afterwards
+      # (deploy-production with unfreeze: true and a reason).
+      - name: Freeze automatic deploys
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REASON: ${{ inputs.reason }}
+        run: |
+          bash scripts/ci/deploy-freeze.sh set "rollback.yml by $GITHUB_ACTOR: $REASON"
+          sleep 30
+
       - name: Rollback traffic
         id: rollback
         run: |
@@ -158,6 +179,18 @@ jobs:
             --format="value(status.url)")
           
           curl -sf "$URL/health" > /dev/null && echo "Health check passed!" || echo "Warning: Health check failed"
+
+      - name: Confirm traffic stayed on the rollback target
+        env:
+          TARGET: ${{ steps.target.outputs.revision }}
+        run: |
+          SERVING=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format=json \
+            | jq -r '[.status.traffic[]? | select((.percent // 0) > 0)] | max_by(.percent) | .revisionName // empty')
+          if [ "$SERVING" != "$TARGET" ]; then
+            echo "::error::Traffic is on $SERVING, not the rollback target $TARGET. A deploy may have shifted it; deploys stay frozen. Re-run this rollback."
+            exit 1
+          fi
+          echo "✅ Traffic is on $TARGET; automatic deploys stay frozen until someone unfreezes."
 
   # ============================================================================
   # TRACK ROLLBACK

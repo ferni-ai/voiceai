@@ -17,6 +17,8 @@
 #   - Manual dispatch deploys only commits on main. With ALLOW_OLDER=true and
 #     a REASON it skips the forward-only check, for an intentional rollback.
 #     rollback.yml doesn't come through here; it shifts traffic on its own.
+#   - While a rollback's deploy freeze holds (scripts/ci/deploy-freeze.sh), it
+#     is a no-op ("frozen: <reason>"), except for a manual run with allow_older.
 #
 # Env: DEPLOY_SHA, EVENT (github.event_name), ALLOW_OLDER, REASON, GCP_REGION,
 # GCP_PROJECT_ID, GITHUB_REPOSITORY, GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, and
@@ -40,6 +42,14 @@ refuse() { echo "::error::Not deploying ${DEPLOY_SHA}: $1"; summary "### ❌ Ref
 compare() { gh api "repos/$REPO/compare/$1...$2" --jq .status 2>/dev/null || true; }
 
 [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || refuse "DEPLOY_SHA is not a full commit SHA"
+
+rc=0
+frozen=$(bash "$(dirname "$0")/deploy-freeze.sh" gate) || rc=$?
+case "$rc" in
+  0) ;;
+  3) noop "frozen: $frozen. Automatic deploys wait for a deliberate unfreeze (deploy-production with unfreeze: true and a reason, or delete the deploy-freeze tag). A manual run with allow_older still deploys." ;;
+  *) refuse "could not read the deploy freeze" ;;
+esac
 
 if [ "$EVENT" = workflow_dispatch ]; then
   on_main=$(compare "$DEPLOY_SHA" main)
