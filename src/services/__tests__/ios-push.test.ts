@@ -7,7 +7,7 @@
  * flag lookup is a double.
  */
 import { generateKeyPairSync } from 'node:crypto';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetFakeFirestore } from '../../tests/helpers/fake-firestore.js';
 
 const fake = await vi.hoisted(async () =>
@@ -16,6 +16,7 @@ const fake = await vi.hoisted(async () =>
 const h = vi.hoisted(() => ({
   on: new Set<string>(),
   sent: [] as Array<{ origin: string; path: string }>,
+  bodies: [] as string[],
   reply: (_path: string) => ({ status: 200, body: '' }),
   configured: true,
 }));
@@ -57,6 +58,7 @@ vi.mock('../apns-sender.js', async (importOriginal) => {
     },
     async (req) => {
       h.sent.push({ origin: req.origin, path: req.path });
+      h.bodies.push(req.body);
       return h.reply(req.path);
     }
   );
@@ -65,7 +67,7 @@ vi.mock('../apns-sender.js', async (importOriginal) => {
 
 const PushNotificationsBackendService = (await import('../push-notifications.js')).default;
 const { registerDevice, listDevices, unregisterDevice } = await import('../push-devices.js');
-const { sendIosPush, apnsAlert } = await import('../ios-push.js');
+const { sendIosPush, apnsAlert, recipientTag } = await import('../ios-push.js');
 
 const token = (n: number) => n.toString(16).padStart(64, '0');
 const device = (n: number, bundleId = 'com.sethdford.ferni') => ({
@@ -87,6 +89,7 @@ beforeEach(() => {
   resetFakeFirestore(fake);
   h.on.clear();
   h.sent = [];
+  h.bodies = [];
   h.reply = () => ({ status: 200, body: '' });
   h.configured = true;
 });
@@ -174,6 +177,43 @@ describe('push service → iPhone', () => {
     h.on.add('alice');
     fake.up = false;
     expect(await sendIosPush('alice', NOTE)).toBe(false);
+  });
+});
+
+describe('recipient tag', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("tags each push with the recipient's opaque tag, never their uid", async () => {
+    vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
+    await registerDevice('alice-uid-123', device(1));
+    h.on.add('alice-uid-123');
+
+    expect(await send('alice-uid-123')).toBe(true);
+
+    const body = JSON.parse(h.bodies[0]) as { r?: string; aps?: unknown };
+    expect(body.r).toBe(recipientTag('alice-uid-123'));
+    expect(body.r).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    expect(h.bodies[0]).not.toContain('alice-uid-123');
+  });
+
+  it('is stable for a person, different between people, and keyed by the secret', () => {
+    const env = { LOG_HASH_SECRET: 'test-secret' };
+    expect(recipientTag('alice', env)).toBe(recipientTag('alice', env));
+    expect(recipientTag('alice', env)).not.toBe(recipientTag('bob', env));
+    expect(recipientTag('alice', { LOG_HASH_SECRET: 'other' })).not.toBe(
+      recipientTag('alice', env)
+    );
+  });
+
+  it('is left out without the secret, rather than sending a guessable one', async () => {
+    vi.stubEnv('LOG_HASH_SECRET', '');
+    expect(recipientTag('alice')).toBeNull();
+    await registerDevice('alice', device(1));
+    h.on.add('alice');
+
+    await send('alice');
+
+    expect(JSON.parse(h.bodies[0])).not.toHaveProperty('r');
   });
 });
 

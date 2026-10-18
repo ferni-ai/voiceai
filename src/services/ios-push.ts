@@ -12,8 +12,15 @@
  * this app's bundle id. A token Apple says is gone (410, BadDeviceToken) is
  * forgotten.
  *
+ * Every push carries `r`, an opaque tag of the person it is for (recipientTag).
+ * The app gets its own tag when it registers (POST /api/push/devices answers
+ * { recipientTag }) and drops a push whose `r` is a different person's: a
+ * second line of defense if a sign-out's unregister never reached us. The tag
+ * is an HMAC of the uid, so the uid itself is never in a push.
+ *
  * @module services/ios-push
  */
+import { createHmac } from 'node:crypto';
 import { createLogger } from '../utils/safe-logger.js';
 import { getApnsSender, type ApnsAlert, type ApnsSender } from './apns-sender.js';
 import { flagForUser, type FlagLookupOptions } from './platform/cohort-flags.js';
@@ -40,8 +47,35 @@ const defaultDeps: IosPushDeps = {
   forget: unregisterDevice,
 };
 
-export function apnsAlert(payload: PushNotificationPayload): ApnsAlert {
+const TAG_PURPOSE = 'ios-push-recipient-v1';
+let warnedNoSecret = false;
+
+/**
+ * The person's push tag: HMAC-SHA256 of the uid under a key derived from
+ * LOG_HASH_SECRET for this purpose only, base64url, 22 characters (132 bits).
+ * Null, with one warning, without the secret (pushes then carry no tag).
+ */
+export function recipientTag(
+  uid: string,
+  env: Record<string, string | undefined> = process.env
+): string | null {
+  const secret = env.LOG_HASH_SECRET;
+  if (!secret) {
+    if (!warnedNoSecret)
+      log.warn('LOG_HASH_SECRET is not set, so iOS pushes carry no recipient tag');
+    warnedNoSecret = true;
+    return null;
+  }
+  const key = createHmac('sha256', secret).update(TAG_PURPOSE).digest();
+  return createHmac('sha256', key).update(uid).digest('base64url').slice(0, 22);
+}
+
+export function apnsAlert(
+  payload: PushNotificationPayload,
+  recipient: string | null = null
+): ApnsAlert {
   return {
+    ...(recipient && { recipient }),
     title: payload.title,
     body: payload.body,
     threadId: payload.type,
@@ -69,7 +103,7 @@ export async function sendIosPush(
     const devices = (await deps.devices(userId)).filter((d) => d.bundleId === sender.topic);
     if (devices.length === 0) return false;
 
-    const alert = apnsAlert(payload);
+    const alert = apnsAlert(payload, recipientTag(userId));
     const results = await Promise.all(devices.map(async (d) => sender.send(d, alert)));
     const dead = devices.filter((_, i) => results[i]?.dead);
     await Promise.all(dead.map(async (d) => deps.forget(userId, d.token)));

@@ -50,6 +50,8 @@ export interface ApnsAlert {
   threadId?: string;
   /** App data, delivered beside `aps`. */
   data?: Record<string, unknown>;
+  /** Opaque tag of the person it is for, sent as `r` beside `aps` (ios-push.ts recipientTag). */
+  recipient?: string;
 }
 
 export interface ApnsResult {
@@ -169,6 +171,7 @@ export class ApnsSender {
             sound: 'default',
             ...(alert.threadId && { 'thread-id': alert.threadId }),
           },
+          ...(alert.recipient && { r: alert.recipient }),
           ...(alert.data && { data: alert.data }),
         }),
       });
