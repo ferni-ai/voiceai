@@ -938,6 +938,10 @@ function attachMarketplaceAgentListeners(
   const cleanup = addListener(element, 'click', (e) => {
     e.stopPropagation();
 
+    // The marketplace panel is hidden (config/menu-visibility.ts): an old install's
+    // tile must not open it.
+    if (!isPanelVisible('marketplace')) return;
+
     log.debug('Clicked marketplace agent:', name);
 
     // Visual feedback - FIX BUG: Use DURATION constant instead of hardcoded value

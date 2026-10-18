@@ -3968,7 +3968,6 @@
       "ceo": "執行長",
       "ferniRole": "CEO 與人生教練",
       "ferniDesc": "一切的核心，溫暖而睿智的存在。Ferni 以完美的回憶、毫無批判的包容，以及時刻的陪伴，協調著整個團隊。",
-      "coFounders": "共同創辦人",
       "coreTeam": "核心團隊",
       "footer": "攜手同行，我們正在重新定義什麼是「真正傾聽你的團隊」。",
       "roles": {
@@ -9058,10 +9057,6 @@
     "chiefExecutive": "執行長",
     "ferni": "Ferni",
     "ferniRole": "CEO 與人生教練",
-    "coFounders": "共同創辦人",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "核心團隊",
     "tagline": "攜手合作，我們正在重新定義什麼是「真正傾聽你」的團隊。",
     "inTeam": "團隊中",

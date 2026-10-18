@@ -4023,7 +4023,6 @@
       "ceo": "Chief Executive",
       "ferniRole": "CEO & Life Coach",
       "ferniDesc": "The warm, wise presence at the heart of everything. Ferni coordinates the team with perfect memory, zero judgment, and constant presence.",
-      "coFounders": "Co-Founders",
       "coreTeam": "Core Team",
       "footer": "Together, we're redefining what it means to have a team that truly listens.",
       "roles": {
@@ -9143,10 +9142,6 @@
     "chiefExecutive": "Chief Executive",
     "ferni": "Ferni",
     "ferniRole": "CEO & Life Coach",
-    "coFounders": "Co-Founders",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "Core Team",
     "tagline": "Together, we're redefining what it means to have a team that truly listens.",
     "inTeam": "In Team",

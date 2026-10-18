@@ -3967,7 +3967,6 @@
       "ceo": "代表",
       "ferniRole": "CEO兼ライフコーチ",
       "ferniDesc": "すべての中心にある、温かく賢い存在。Ferniは完璧な思い出、偏見のない心、そして常に寄り添う姿勢でチームをまとめます。",
-      "coFounders": "共同創業者",
       "coreTeam": "コアチーム",
       "footer": "私たちは共に、本当に耳を傾けてくれるチームを持つことの意味を再定義しています。",
       "roles": {
@@ -9058,10 +9057,6 @@
     "chiefExecutive": "最高経営責任者",
     "ferni": "Ferni",
     "ferniRole": "CEO 兼 ライフコーチ",
-    "coFounders": "共同創業者",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "コアチーム",
     "tagline": "私たちは力を合わせて、「心から耳を傾けてくれるチーム」のあり方を新しく定義していきます。",
     "inTeam": "チームに参加中",
