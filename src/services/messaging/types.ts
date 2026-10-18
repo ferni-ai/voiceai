@@ -18,12 +18,7 @@ export type Channel = 'sms' | 'push' | 'in_app' | 'call';
 export type Consent = 'in' | 'out' | 'unknown';
 export type RequestedBy = 'user' | 'ferni';
 
-/**
- * Why the policy decided what it did. Kebab-case like the outreach_events
- * reason codes (#1875, bq-fields.ts), and the same code where the meaning is
- * the same: 'no-verified-phone', 'sms-off', 'opted-out', 'quiet-hours',
- * 'recently-sent'.
- */
+/** Why it decided so: outreach_events' codes (#1875) where the meaning is the same. */
 export const REASON_CODES = [
   ...['ok', 'requested-time', 'no-verified-phone', 'needs-consent', 'no-anchor', 'bad-channel'],
   ...['opted-out', 'sms-off', 'crisis-quiet', 'quiet-hours', 'outside-window', 'no-timezone'],
@@ -36,7 +31,6 @@ export interface Intent {
   readonly personId: string;
   readonly recipient: 'owner' | 'third-party';
   readonly kind: MessageKind;
-  /** The persona who signs it; a voice over the shared thread and cap. */
   readonly persona: string;
   /** Higher goes first when the day's budget is short (priorityOf). */
   readonly priority: number;
@@ -45,7 +39,6 @@ export interface Intent {
   readonly requestedBy: RequestedBy;
   /** The time the user chose for it ("remind me at 6:30"); such a send goes in quiet hours. */
   readonly requestedAt?: Date;
-  /** One per thing to say; the same key twice is a duplicate. */
   readonly intentKey: string;
   readonly channel: Channel;
   readonly text?: string;
@@ -75,8 +68,7 @@ export interface LocalWindow {
 
 export interface PolicyCtx {
   readonly now: Date;
-  /** The recipient's IANA zone. */
-  readonly zone: string;
+  readonly zone: string; // the recipient's
   readonly consent: { readonly sms: Consent; readonly call: Consent };
   readonly prefs: {
     readonly textsOff: boolean;
@@ -86,8 +78,7 @@ export interface PolicyCtx {
     readonly windows?: readonly LocalWindow[];
   };
   readonly crisis: { readonly lastCrisisAt?: Date };
-  /** The person's last 7 days. */
-  readonly ledger: readonly LedgerEntry[];
+  readonly ledger: readonly LedgerEntry[]; // the person's last 7 days
   /** The owner's number is verified as theirs (never one the model passed). */
   readonly verifiedRecipient: boolean;
   readonly isFirstContact: boolean;

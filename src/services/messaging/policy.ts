@@ -1,21 +1,15 @@
 /**
  * The one messaging policy (DESIGN 2026-10-18, section 2): whether a message
- * goes now, waits, joins the day's digest or is dropped. Every outbound text,
- * push, note and call will ask it before send(); today seven quiet-hour rules
- * and no cross-kind cap decide that per sender.
+ * goes now, waits, joins the day's digest or is dropped. Today seven
+ * quiet-hour rules and no cross-kind cap decide that per sender.
  *
- * The gates run in order and the first that objects decides:
- * 1 recipient (a verified owner number; a third party by phone, grounded),
- * 2 consent (STOP drops; a third party who never said yes waits),
- * 3 texts turned off, 4 crisis quiet (14 days), 5 quiet hours 21:00 to 08:00
- * in the recipient's zone and their own windows, 6 dedupe, 7 the per-kind
- * gap, 8 the daily budget, 9 send (a third party's first text needs the intro).
- * DESIGN lists the budget before dedupe; it runs last here so a duplicate is
- * dropped, not merged into the digest.
+ * Gates in order, the first that objects decides (GATES): recipient, consent,
+ * texts off, crisis quiet, quiet hours, dedupe, per-kind gap, daily budget,
+ * then send. DESIGN lists the budget before dedupe; it runs last so a
+ * duplicate is dropped, not merged into the digest.
  *
- * Pure and synchronous: no I/O, flags or clock; everything comes in through
- * the context. Imports only the shared zone math and its own types
- * (policy-purity.test.ts keeps it that way).
+ * Pure: no I/O, flags or clock (all in the context); imports only the zone
+ * math and its types (policy-purity.test.ts).
  *
  * @module services/messaging/policy
  */
@@ -39,13 +33,11 @@ const DAY_MS = 24 * HOUR_MS;
 export const QUIET_START_HOUR = 21;
 export const QUIET_END_HOUR = 8;
 export const CRISIS_QUIET_MS = 14 * DAY_MS;
-/** Ferni-initiated texts per person per rolling 24 h, across every kind and persona. */
+/** Ferni-initiated texts per person per rolling 24 h (every kind and persona); push + in-app share 6. */
 export const SMS_DAILY_BUDGET = 3;
-/** Push and in-app notes share their own cap. */
 export const APP_DAILY_BUDGET = 6;
 export const SAME_BODY_MS = 12 * HOUR_MS;
-/** With no known zone it is quiet when it is quiet on either US coast (quiet-hours.ts). */
-const FALLBACK_ZONES = ['America/New_York', 'America/Los_Angeles'];
+const FALLBACK_ZONES = ['America/New_York', 'America/Los_Angeles']; // no zone: either coast
 
 /**
  * Per kind: priority when the budget is short (a user's request outranks them
@@ -70,7 +62,7 @@ export const priorityOf = (kind: MessageKind, requestedBy: RequestedBy): number 
   requestedBy === 'user' ? 100 : KINDS[kind].priority;
 export const isDigestible = (kind: MessageKind): boolean => KINDS[kind].digest;
 
-/** Kinds that answer the person rather than reach out to them. */
+// Kinds that answer the person rather than reach out to them.
 const RESPONSIVE: ReadonlySet<MessageKind> = new Set(['reply', 'transactional']);
 
 const ferniInitiated = (kind: MessageKind, by: RequestedBy | undefined): boolean =>
