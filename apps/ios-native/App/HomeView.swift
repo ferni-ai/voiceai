@@ -8,6 +8,7 @@ import SwiftUI
 struct HomeView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         @Bindable var model = model
@@ -17,10 +18,10 @@ struct HomeView: View {
                 VStack(spacing: FerniSpace.rest) {
                     FerniWindowAvatar(
                         size: 200,
-                        persona: WindowPersona(personaId: call.personaID),
-                        expression: call.expression,
-                        isSpeaking: .constant(call.isFerniSpeaking),
-                        volume: .constant(call.isFerniSpeaking ? 0.6 : 0)
+                        persona: WindowPersona(personaId: call.avatar.personaID),
+                        expression: call.avatar.expression,
+                        isSpeaking: .constant(call.avatar.pose == .speaking),
+                        volume: .constant(call.avatar.pose == .speaking ? 0.6 : 0)
                     )
                     .opacity(call.phase == .reconnecting ? 0.5 : 1)
                     .padding(.top, FerniSpace.silence)
@@ -39,6 +40,7 @@ struct HomeView: View {
                 if !typeSize.isAccessibilitySize { CallControls(call: call) }
             }
             .background(FerniColor.background.ignoresSafeArea())
+            .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
