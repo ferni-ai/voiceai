@@ -26,6 +26,7 @@ import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team/t
 import { getToolDescription } from '../utils/tool-descriptions.js';
 import { isHandoffTargetOpen } from './handoff-availability.js';
 import { assignHandoffToolNames, specialtyOf } from './handoff-tool-naming.js';
+import { chiefOfStaffDescription } from './chief-of-staff-note.js';
 // FIX BUG #6: Import normalizeAgentIdSync for robust ID matching
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
 import { isCoach } from '../../personas/persona-ids.js';
@@ -439,9 +440,8 @@ export async function buildHandoffTools(
     }
     createdTools.push(def.name);
 
-    // Create the actual LLM tool
     const tool = llm.tool({
-      description: def.description,
+      description: chiefOfStaffDescription(def.agentId, def.description), // ALEX_CHIEF_OF_STAFF
       parameters: z.object({
         reason: z.string().describe(`Brief reason for handoff to ${def.agentName}`),
         context_summary: z.string().optional().describe('Summary of relevant conversation context'),
