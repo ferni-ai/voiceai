@@ -9,6 +9,17 @@ import { POST_TYPES } from '../post-types.js';
 const root = path.resolve(__dirname, '../../..');
 const TODAY = '2026-10-19';
 
+// Read the real blog folders as they stood before the fixture PRs merged, so a
+// newly published post can't move whats-new's lookback window past them.
+const POSTS_AS_OF = '2026-10-14';
+vi.mock('../existing-posts.js', async (importActual) => {
+  const actual = await importActual<typeof import('../existing-posts.js')>();
+  return {
+    ...actual,
+    existingPosts: (dir: string) => actual.existingPosts(dir).filter((p) => p.date <= POSTS_AS_OF),
+  };
+});
+
 const pr = (
   number: number,
   title: string,
