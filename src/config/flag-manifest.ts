@@ -253,6 +253,8 @@ export const FLAG_MANIFEST = {
   PRESENCE_SOUNDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRE_STT_SIP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PROACTIVE_CHANNELS: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // at most one check-in per commitment every 3 days, kept across calls (superhuman/commitment-checkin-cooldown.ts)
+  PROACTIVE_COOLDOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
   // character loads a short character sheet instead of the full prompt (prompt-loader.ts)
   PROMPT_MODE: { default: 'full', owner: 'voice', kind: 'config' },
