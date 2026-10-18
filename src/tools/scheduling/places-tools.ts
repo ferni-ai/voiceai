@@ -45,7 +45,11 @@ export function createPlacesTools() {
           return `I can't look up business numbers right now. Do you have the number for ${businessName}?`;
         }
 
-        const results = await places.searchRestaurants({ query: businessName, location });
+        const results = await places.searchRestaurants({
+          query: businessName,
+          location,
+          type: null,
+        });
         if (results.length === 0) {
           return `I couldn't find ${businessName}${location ? ` near ${location}` : ''}. Could you give me more details?`;
         }
@@ -105,7 +109,7 @@ export function createPlacesTools() {
           return `I can't search for businesses right now. Do you know the specific name of ${query}?`;
         }
 
-        const results = await places.searchRestaurants({ query, location, openNow });
+        const results = await places.searchRestaurants({ query, location, openNow, type: null });
         if (results.length === 0) {
           return `I couldn't find anything matching "${query}"${location ? ` near ${location}` : ''}. Could you be more specific?`;
         }
@@ -126,7 +130,11 @@ export function createPlacesTools() {
           return `I can't look up details for ${businessName} right now. What would you like to know?`;
         }
 
-        const results = await places.searchRestaurants({ query: businessName, location });
+        const results = await places.searchRestaurants({
+          query: businessName,
+          location,
+          type: null,
+        });
         if (results.length === 0) {
           return `I couldn't find ${businessName}. Could you give me more details about their location?`;
         }
@@ -170,7 +178,11 @@ export function createPlacesTools() {
           return `I need the phone number for ${businessName}. Do you have it?`;
         }
 
-        const results = await places.searchRestaurants({ query: businessName, location });
+        const results = await places.searchRestaurants({
+          query: businessName,
+          location,
+          type: null,
+        });
         if (results.length === 0) {
           return `I couldn't find ${businessName}. Do you have their phone number?`;
         }

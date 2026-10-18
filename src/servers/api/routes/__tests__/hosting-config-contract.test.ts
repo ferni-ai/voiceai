@@ -58,13 +58,15 @@ describe('landing hosting config', () => {
     expectShareRoutedToBackend(entries[0]);
   });
 
-  it('is deployed by the CLI with --only hosting:ferni-landing', () => {
-    const deploy = readFileSync(resolve(ROOT, 'apps/cli/src/commands/deploy/deploy.ts'), 'utf8');
-    const landing = deploy.slice(deploy.indexOf('async function deployLanding'));
-    const body = landing.slice(0, landing.indexOf('\nasync function ', 1));
-    expect(deploy).toContain("const LANDING_SITE = 'ferni-landing';");
-    expect(body).toContain('--only hosting:${LANDING_SITE}');
-    expect(body).not.toMatch(/firebase deploy --only hosting --/);
+  // The ferni CLI's landing deploy was removed 2026-10-17: the workflow is the only path.
+  it('is deployed by the Firebase workflow to the ferni-landing target only', () => {
+    const workflow = readFileSync(resolve(ROOT, '.github/workflows/deploy-firebase.yml'), 'utf8');
+    const start = workflow.indexOf('- name: Deploy landing to Firebase');
+    expect(start).toBeGreaterThan(-1);
+    const step = workflow.slice(start, workflow.indexOf('\n      - name: ', start + 1));
+    expect(step).toContain('target: ferni-landing');
+    expect(step).toContain('entryPoint: ./apps/website/ferni-website');
+    expect(step).not.toContain('ferni-prod');
   });
 });
 

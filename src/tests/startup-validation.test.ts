@@ -186,6 +186,8 @@ describe('Startup Validation', () => {
     it('should error in production when semantic search is disabled', async () => {
       process.env.NODE_ENV = 'production';
       process.env.GOOGLE_CLOUD_PROJECT = 'test';
+      // With a project and Vertex on, embeddings run on Vertex; turn it off.
+      process.env.USE_VERTEX_AI = 'false';
       process.env.ANTHROPIC_API_KEY = 'test';
       process.env.LIVEKIT_URL = 'wss://test';
       process.env.LIVEKIT_API_KEY = 'key';
@@ -229,6 +231,33 @@ describe('Startup Validation', () => {
     });
   });
 
+  describe('Vertex AI on ADC (no API keys, as prod runs)', () => {
+    it('counts the LLM and embeddings as available with a project and Vertex on', async () => {
+      process.env.GOOGLE_CLOUD_PROJECT = 'test-project';
+      delete process.env.USE_VERTEX_AI;
+
+      const { validateStartup } = await getValidationModule();
+      const result = validateStartup({ environment: 'production' });
+
+      expect(result.errors.filter((e) => /LLM API key|semantic search/.test(e))).toEqual([]);
+      expect(result.capabilities.llmAvailable).toBe(true);
+      expect(result.capabilities.embeddingProvider).toBe('google');
+      expect(result.capabilities.semanticSearch).toBe(true);
+    });
+
+    it('still errors when Vertex is switched off and there is no key', async () => {
+      process.env.GOOGLE_CLOUD_PROJECT = 'test-project';
+      process.env.USE_VERTEX_AI = 'false';
+
+      const { validateStartup } = await getValidationModule();
+      const result = validateStartup({ environment: 'production' });
+
+      expect(result.errors.some((e) => e.includes('LLM API key'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('semantic search'))).toBe(true);
+      expect(result.capabilities.llmAvailable).toBe(false);
+    });
+  });
+
   describe('hasFullCapabilities', () => {
     it('should return true when all capabilities are available', async () => {
       process.env.GOOGLE_CLOUD_PROJECT = 'test-project';
@@ -257,6 +286,7 @@ describe('Startup Validation', () => {
 
     it('should return false when semantic search is disabled', async () => {
       process.env.GOOGLE_CLOUD_PROJECT = 'test';
+      process.env.USE_VERTEX_AI = 'false';
       process.env.ANTHROPIC_API_KEY = 'test';
       process.env.LIVEKIT_URL = 'wss://test';
       process.env.LIVEKIT_API_KEY = 'key';

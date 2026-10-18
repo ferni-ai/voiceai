@@ -8,7 +8,6 @@
  *
  * Usage:
  *   ferni                    # Interactive menu
- *   ferni deploy ui          # Deploy UI server
  *   ferni agents new         # Create a new marketplace agent
  *   ferni status             # Check service health
  *

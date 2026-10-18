@@ -44,7 +44,8 @@ export interface Package {
   carrier: Carrier;
   description: string; // What's in it
   sender?: string;
-  status: PackageStatus;
+  // Only what a live provider returned or the user told us; unset until then.
+  status?: PackageStatus;
   expectedDelivery?: Date;
   deliveredAt?: Date;
   events: TrackingEvent[];
@@ -101,32 +102,39 @@ function getCarrierName(carrier: Carrier): string {
 // API CONFIGURATION
 // ============================================================================
 
-// Carrier API credentials for real package tracking
-// These require business accounts with each carrier
-
-// AfterShip - Universal tracking API (recommended)
+// AfterShip - Universal tracking API, the only live tracking source wired up.
 // Sign up at: https://www.aftership.com/
 const AFTERSHIP_API_KEY = process.env.AFTERSHIP_API_KEY || '';
-
-// Individual carrier APIs (if not using AfterShip)
-const UPS_ACCESS_KEY = process.env.UPS_ACCESS_KEY || '';
-const FEDEX_API_KEY = process.env.FEDEX_API_KEY || '';
 
 /**
  * Check if real tracking APIs are configured
  */
 export function isTrackingApiConfigured(): boolean {
-  return !!(AFTERSHIP_API_KEY || UPS_ACCESS_KEY || FEDEX_API_KEY);
+  return !!AFTERSHIP_API_KEY;
 }
+
+/**
+ * Outcome of a live tracking lookup. When the provider is not configured or
+ * does not answer, the outcome is 'unavailable' and carries no status, ETA or
+ * events: nothing is invented to fill the gap.
+ */
+export type LiveTracking =
+  | {
+      status: 'live';
+      packageStatus?: PackageStatus;
+      expectedDelivery?: Date;
+      events: TrackingEvent[];
+    }
+  | { status: 'unavailable'; reason: 'not-configured' | 'provider-error' };
 
 /**
  * Fetch real tracking info from AfterShip API
  */
-async function fetchTrackingFromAfterShip(
+export async function fetchTrackingInfo(
   trackingNumber: string,
   carrier: Carrier
-): Promise<TrackingEvent[] | null> {
-  if (!AFTERSHIP_API_KEY) return null;
+): Promise<LiveTracking> {
+  if (!AFTERSHIP_API_KEY) return { status: 'unavailable', reason: 'not-configured' };
 
   try {
     const response = await fetch(
@@ -140,11 +148,15 @@ async function fetchTrackingFromAfterShip(
       }
     );
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      getLogger().warn({ status: response.status, trackingNumber }, 'AfterShip tracking failed');
+      return { status: 'unavailable', reason: 'provider-error' };
+    }
 
     const data = (await response.json()) as {
       data: {
         tracking: {
+          expected_delivery?: string | null;
           checkpoints: Array<{
             checkpoint_time: string;
             tag: string;
@@ -161,19 +173,36 @@ async function fetchTrackingFromAfterShip(
       OutForDelivery: 'out_for_delivery',
       Delivered: 'delivered',
       Exception: 'exception',
+      AttemptFail: 'exception',
       FailedAttempt: 'exception',
       Expired: 'exception',
     };
 
-    return data.data.tracking.checkpoints.map((cp) => ({
-      timestamp: new Date(cp.checkpoint_time),
-      status: statusMap[cp.tag] || 'in_transit',
-      location: cp.city,
-      description: cp.message,
-    }));
+    // Checkpoints whose tag has no status here are skipped rather than guessed.
+    const events = data.data.tracking.checkpoints
+      .filter((cp) => statusMap[cp.tag])
+      .map((cp) => ({
+        timestamp: new Date(cp.checkpoint_time),
+        status: statusMap[cp.tag],
+        location: cp.city,
+        description: cp.message,
+      }));
+    const expected = new Date(data.data.tracking.expected_delivery ?? NaN);
+
+    getLogger().info(
+      { trackingNumber, carrier, eventCount: events.length },
+      '📦 Fetched real tracking info from AfterShip'
+    );
+
+    return {
+      status: 'live',
+      packageStatus: events[events.length - 1]?.status,
+      expectedDelivery: Number.isNaN(expected.getTime()) ? undefined : expected,
+      events,
+    };
   } catch (error) {
     getLogger().warn({ error, trackingNumber }, 'AfterShip tracking failed');
-    return null;
+    return { status: 'unavailable', reason: 'provider-error' };
   }
 }
 
@@ -220,6 +249,10 @@ function formatPackageForSpeech(pkg: Package): string {
     returned: '↩️',
   };
 
+  if (!pkg.status) {
+    return `📦 ${pkg.description} - no tracking update yet (${getCarrierName(pkg.carrier)})`;
+  }
+
   const emoji = statusEmoji[pkg.status];
   let result = `${emoji} ${pkg.description}`;
 
@@ -258,79 +291,20 @@ function formatPackageForSpeech(pkg: Package): string {
 }
 
 // ============================================================================
-// TRACKING INFO FETCH (Real API with fallback to mock)
-// ============================================================================
-
-async function fetchTrackingInfo(
-  trackingNumber: string,
-  carrier: Carrier
-): Promise<{ status: PackageStatus; expectedDelivery?: Date; events: TrackingEvent[] }> {
-  // Try real API first (AfterShip)
-  const realEvents = await fetchTrackingFromAfterShip(trackingNumber, carrier);
-
-  if (realEvents && realEvents.length > 0) {
-    getLogger().info(
-      { trackingNumber, carrier, eventCount: realEvents.length },
-      '📦 Fetched real tracking info from AfterShip'
-    );
-
-    // Determine current status from latest event
-    const latestEvent = realEvents[realEvents.length - 1];
-
-    // Estimate delivery date
-    const expectedDelivery =
-      latestEvent.status === 'out_for_delivery'
-        ? new Date()
-        : latestEvent.status === 'in_transit'
-          ? new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
-          : undefined;
-
-    return {
-      status: latestEvent.status,
-      expectedDelivery,
-      events: realEvents,
-    };
-  }
-
-  // Fallback to mock data
-  getLogger().info(
-    { trackingNumber, carrier },
-    '📦 Fetching tracking info (mock - set AFTERSHIP_API_KEY for real tracking)'
-  );
-
-  // Simulate API call
-  await new Promise<void>((resolve) => {
-    setTimeout(resolve, 500);
-  });
-
-  // Generate mock tracking based on carrier
-  const now = new Date();
-  const events: TrackingEvent[] = [
-    {
-      timestamp: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-      status: 'label_created',
-      description: 'Shipping label created',
-    },
-    {
-      timestamp: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-      status: 'in_transit',
-      location: 'Distribution Center',
-      description: 'Package picked up',
-    },
-  ];
-
-  const expectedDelivery = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
-
-  return {
-    status: 'in_transit',
-    expectedDelivery,
-    events,
-  };
-}
-
-// ============================================================================
 // CORE FUNCTIONS
 // ============================================================================
+
+// Apply a live provider answer to a stored package. Unavailable lookups leave
+// the package as it was: no status, ETA or events are made up.
+function applyTracking(pkg: Package, tracking: LiveTracking): void {
+  if (tracking.status !== 'live') return;
+  if (tracking.packageStatus) pkg.status = tracking.packageStatus;
+  if (tracking.expectedDelivery) pkg.expectedDelivery = tracking.expectedDelivery;
+  if (tracking.events.length > 0) pkg.events = tracking.events;
+  if (pkg.status === 'delivered' && !pkg.deliveredAt) {
+    pkg.deliveredAt = tracking.events[tracking.events.length - 1]?.timestamp;
+  }
+}
 
 export async function addPackage(params: {
   userId: string;
@@ -338,11 +312,8 @@ export async function addPackage(params: {
   description: string;
   carrier?: Carrier;
   sender?: string;
-}): Promise<Package> {
+}): Promise<{ pkg: Package; tracking: LiveTracking }> {
   const detectedCarrier = params.carrier || detectCarrier(params.trackingNumber);
-
-  // Fetch initial tracking info
-  const trackingInfo = await fetchTrackingInfo(params.trackingNumber, detectedCarrier);
 
   const pkg: Package = {
     id: generateId('pkg'),
@@ -351,13 +322,14 @@ export async function addPackage(params: {
     carrier: detectedCarrier,
     description: sanitizePlainText(params.description, 100),
     sender: params.sender,
-    status: trackingInfo.status,
-    expectedDelivery: trackingInfo.expectedDelivery,
-    events: trackingInfo.events,
+    events: [],
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
+
+  const tracking = await fetchTrackingInfo(pkg.trackingNumber, detectedCarrier);
+  applyTracking(pkg, tracking);
 
   packages.set(pkg.id, pkg);
 
@@ -366,29 +338,34 @@ export async function addPackage(params: {
     '📦 Package added'
   );
 
-  return pkg;
+  return { pkg, tracking };
 }
 
-export async function refreshPackage(pkgId: string): Promise<Package | null> {
+export async function refreshPackage(
+  pkgId: string
+): Promise<{ pkg: Package; tracking: LiveTracking } | null> {
   const pkg = packages.get(pkgId);
   if (!pkg) return null;
 
-  const trackingInfo = await fetchTrackingInfo(pkg.trackingNumber, pkg.carrier);
-
-  pkg.status = trackingInfo.status;
-  if (trackingInfo.expectedDelivery) {
-    pkg.expectedDelivery = trackingInfo.expectedDelivery;
-  }
-  pkg.events = trackingInfo.events;
-  pkg.updatedAt = new Date();
-
-  if (pkg.status === 'delivered' && !pkg.deliveredAt) {
-    pkg.deliveredAt = new Date();
-  }
+  const tracking = await fetchTrackingInfo(pkg.trackingNumber, pkg.carrier);
+  applyTracking(pkg, tracking);
+  if (tracking.status === 'live') pkg.updatedAt = new Date();
 
   packages.set(pkgId, pkg);
 
-  return pkg;
+  return { pkg, tracking };
+}
+
+// What to say when live tracking can't be looked up: no status, no ETA, just
+// what we do know and where the user can check.
+function trackingUnavailableText(pkg: Package): string {
+  const carrier = getCarrierName(pkg.carrier);
+  let text = `I can't look up live tracking right now, so I don't know where it is or when it's due.`;
+  const trackingUrl = getCarrierTrackingUrl(pkg.carrier, pkg.trackingNumber);
+  text += trackingUrl
+    ? `\n${carrier}'s site will have the latest: ${trackingUrl}`
+    : `\nThe carrier's website will have the latest on tracking number ${pkg.trackingNumber}.`;
+  return text;
 }
 
 export function markDelivered(pkgId: string): Package | null {
@@ -441,7 +418,7 @@ export function createPackageTools() {
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'default';
 
-        const pkg = await addPackage({
+        const { pkg, tracking } = await addPackage({
           userId,
           trackingNumber,
           description,
@@ -449,9 +426,16 @@ export function createPackageTools() {
           sender,
         });
 
+        if (tracking.status === 'unavailable') {
+          const saved = `📦 Saved **${pkg.description}** (${getCarrierName(pkg.carrier)}, tracking ${pkg.trackingNumber}).`;
+          return `${saved}\n${trackingUnavailableText(pkg)}`;
+        }
+
         let response = `📦 Now tracking: **${pkg.description}**\n`;
         response += `Carrier: ${getCarrierName(pkg.carrier)}\n`;
-        response += `Status: ${pkg.status.replace(/_/g, ' ')}\n`;
+        response += pkg.status
+          ? `Status: ${pkg.status.replace(/_/g, ' ')}\n`
+          : `Status: no updates from the carrier yet\n`;
 
         if (pkg.expectedDelivery) {
           const date = pkg.expectedDelivery.toLocaleDateString('en-US', {
@@ -492,7 +476,7 @@ export function createPackageTools() {
         const delivered = userPackages.filter((p) => p.status === 'delivered');
 
         if (active.length > 0) {
-          response += `**In Transit:**\n`;
+          response += `**Not Delivered Yet:**\n`;
           active.forEach((pkg) => {
             response += `• ${formatPackageForSpeech(pkg)}\n`;
           });
@@ -535,11 +519,22 @@ export function createPackageTools() {
         }
 
         // Refresh tracking info
-        const refreshed = await refreshPackage(pkg.id);
-        if (!refreshed) return `Couldn't check that package right now. Want to try again?`;
+        const result = await refreshPackage(pkg.id);
+        if (!result) return `Couldn't check that package right now. Want to try again?`;
+        const { pkg: refreshed, tracking } = result;
+
+        if (tracking.status === 'unavailable') {
+          let text = `📦 **${refreshed.description}** (${getCarrierName(refreshed.carrier)}, tracking ${refreshed.trackingNumber})\n`;
+          if (refreshed.status) {
+            text += `The last status I had was ${refreshed.status.replace(/_/g, ' ')}, but I couldn't get a fresh update.\n`;
+          }
+          return text + trackingUnavailableText(refreshed);
+        }
 
         let response = `📦 **${refreshed.description}**\n\n`;
-        response += `**Status:** ${refreshed.status.replace(/_/g, ' ')}\n`;
+        response += refreshed.status
+          ? `**Status:** ${refreshed.status.replace(/_/g, ' ')}\n`
+          : `**Status:** no updates from the carrier yet\n`;
         response += `**Carrier:** ${getCarrierName(refreshed.carrier)}\n`;
         response += `**Tracking:** ${refreshed.trackingNumber}\n`;
 
@@ -701,7 +696,7 @@ export function createPackageTools() {
         );
 
         if (later.length > 0) {
-          response += `📦 **Later This Week:**\n`;
+          response += `📦 **Later:**\n`;
           later.forEach((p) => {
             const exp = p.expectedDelivery
               ? p.expectedDelivery.toLocaleDateString('en-US', {
@@ -709,7 +704,7 @@ export function createPackageTools() {
                   month: 'short',
                   day: 'numeric',
                 })
-              : 'TBD';
+              : 'no delivery estimate yet';
             response += `• ${p.description} - ${exp}\n`;
           });
         }

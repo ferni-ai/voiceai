@@ -566,7 +566,7 @@ export class EngagementStore {
       return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
       getLogger().warn({ error, userId }, 'Failed to get conversation sessions');
-      return [];
+      throw error; // The history panel shows an error; [] would claim no conversations
     }
   }
 

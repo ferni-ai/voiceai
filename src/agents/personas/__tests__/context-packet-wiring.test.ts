@@ -212,7 +212,7 @@ describe('CONTEXT_PACKET: the same notes in the same order, on and off', () => {
       ['happy exit', /^If they are wrapping up the call/],
       [
         'self-share',
-        /^\[(If something of your own fits|They asked about you|Keep this reply on them|They're telling you something of theirs)/,
+        /^\[(If something of your own fits|They asked about you|Keep this reply on them|They're telling you something of theirs|They want something answered or done)/,
       ],
       ['commitment invite', /^THIS REPLY, over any length/],
       ['hard rule', new RegExp(`^${HARD_RULE}$`)],
