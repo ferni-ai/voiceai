@@ -1,7 +1,1 @@
-# fastlane output
 build/
-fastlane/report.xml
-fastlane/README.md
-fastlane/test_output/
-vendor/
-.bundle/
