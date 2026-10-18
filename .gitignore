@@ -205,3 +205,6 @@ cases-*.json
 cases-*.md
 longmem-*.json
 memory-[0-9]*.json
+
+# Commit the deploy-agent chain writes for the agent image (src/config/build-sha.ts)
+.build-sha

@@ -25,6 +25,7 @@
 import 'dotenv/config';
 
 import { GCE_WORKER_STARTUP_DELAY_MS, GCE_WORKER_READINESS_DELAY_MS } from '../config/timeouts.js';
+import { loadBuildSha } from '../config/build-sha.js';
 import { effectiveSettingsLines } from '../config/effective-settings.js';
 
 // ============================================================================
@@ -52,6 +53,8 @@ log('🚀 GCE Voice Worker starting', {
 });
 
 // Once per boot, for comparing deployments by hash (no flag: it is cheap observability).
+// agent.ts loads it first; this covers starting the worker directly.
+loadBuildSha();
 for (const line of effectiveSettingsLines()) log(line);
 
 // ============================================================================
