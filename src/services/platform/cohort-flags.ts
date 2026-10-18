@@ -50,8 +50,7 @@ export const COHORT_FLAGS = [
   'FACT_SUPERSESSION',
   'EXTRACTION_CONTEXT',
   'OPENER_FOLLOW_UP',
-  // Background readers on both servers ask per person: readCallSummaries
-  // (memory/storage/call-summaries.ts) through personFlagOn (config/person-flag.ts).
+  // Asked per person by readCallSummaries (call-summaries.ts) through personFlagOn.
   'LIVE_SUMMARIES',
   'COACH_FOLLOW_THROUGH',
   'LIFE_MOVES_ON',
@@ -94,21 +93,17 @@ export const COHORT_FLAGS = [
   'WEEKLY_PREDICTION',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
-  // Read by the greeting (greeting-direction.ts winFor); a win is recorded through
-  // personFlagOn, also when the UI server or after-call work marks a commitment done (wins.ts).
+  // Read by the greeting (winFor); wins.ts records a win through personFlagOn on any server.
   'COACH_WINS',
   // Read by the greeting: anniversaryFor (friendship-anniversary.ts).
   'FRIEND_CELEBRATIONS',
   // Read when the turn hook is built at agent setup, then on each turn (revived-intelligence.ts).
   'REVIVED_INTELLIGENCE',
-  // Read when a persona's tools are built and on a turn, never at module load (call-journal.ts).
-  // Does nothing unless the agent has JOURNAL_ONE_STORE=on, which is the agent's own.
+  // Read at tool build and per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on.
   'CALL_JOURNAL',
-  // Read after the call through envForCaller (follow-through-import.ts). Its sources are
-  // written by the agent's own AFTER_CALL_EXTRACTION.
+  // Read after the call through envForCaller (follow-through-import.ts).
   'FOLLOW_THROUGH_IMPORT',
-  // Read by the greeting (greeting-direction.ts ponderFor); the UI server's hourly job
-  // also ponders everyone usersWithFlag names (ponder-job.ts).
+  // Read by the greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too.
   'PONDERING',
   // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
   // (services/outreach/morning-brief/brief-job.ts).
@@ -127,9 +122,8 @@ const VALUES: ReadonlySet<string> = new Set(['on', 'off']);
 export const COHORT_FLAG_NEEDS: Partial<Record<CohortFlag, CohortFlag[]>> = {
   RECALL_EPISODES: ['SEMANTIC_RECALL'],
   WORLD_FACTS_IN_CALL: ['WORLD_MODEL_TEMPORAL'],
-  // Follow-ups only come from the after-call import; the texts have nothing else to send.
+  // Texts send follow-ups the import wrote; notes send what pondering wrote.
   FOLLOW_THROUGH_TEXTS: ['FOLLOW_THROUGH_IMPORT'],
-  // The notes are what the pondering pass wrote.
   OUTREACH_PONDERED_NOTES: ['PONDERING'],
 };
 
