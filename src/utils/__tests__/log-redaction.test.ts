@@ -124,32 +124,44 @@ function bestOf(n: number, fn: () => unknown): number {
   return best;
 }
 
+// Each line is timed at a quarter of its size and at full size, in the same run, so a
+// slow runner (CI with coverage takes 50-60 ms where a laptop takes 10) slows both
+// alike. Linear work costs about 4x for 4x the text; quadratic work costs 16x, so the
+// full line must cost under 8x the quarter. The floor keeps sub-millisecond quarters
+// from failing on timer noise. The ceiling is loose on purpose: catastrophic regex
+// backtracking on a 1 MB line takes seconds, while linear redaction of it takes tens
+// of milliseconds even on a slow runner.
+const RATIO_LIMIT = 8;
+const FLOOR_MS = 10;
+const CEILING_MS = 1000;
+
+function expectLinear(make: (n: number) => string, n: number): void {
+  const quarter = make(n / 4);
+  const full = make(n);
+  const tQuarter = bestOf(5, () => redactPhoneNumbers(quarter));
+  const tFull = bestOf(5, () => redactPhoneNumbers(full));
+  expect(tFull).toBeLessThan(Math.max(RATIO_LIMIT * tQuarter, FLOOR_MS));
+  expect(tFull).toBeLessThan(CEILING_MS);
+}
+
 describe('redactPhoneNumbers: cost is linear in the line', () => {
-  const epochs = Array.from({ length: 20_000 }, (_, i) => 1791797261114 + i);
-  const cases: Array<[string, string]> = [
-    ['a 20,000-element numeric array', JSON.stringify({ t: epochs })],
-    ['a 20,000-element array under a phone key', JSON.stringify({ phones: epochs })],
-    ['a 20,000-number csv under a phone key', `{"phone":"${epochs.join(',')}"}`],
-    ['a 1 MB line of one letter', 'a'.repeat(1_000_000)],
+  const epochs = (n: number): number[] => Array.from({ length: n }, (_, i) => 1791797261114 + i);
+  const arrays: Array<[string, (n: number) => string]> = [
+    ['a 20,000-element numeric array', (n) => JSON.stringify({ t: epochs(n) })],
+    ['a 20,000-element array under a phone key', (n) => JSON.stringify({ phones: epochs(n) })],
+    ['a 20,000-number csv under a phone key', (n) => `{"phone":"${epochs(n).join(',')}"}`],
   ];
-  it.each(cases)('%s redacts in well under 50 ms', (_name, line) => {
-    expect(bestOf(5, () => redactPhoneNumbers(line))).toBeLessThan(50);
+  it.each(arrays)('%s redacts in linear time', (_name, make) => {
+    expectLinear(make, 20_000);
   });
 
-  // CI runners (with coverage) are slower than a laptop, so for 1 MB lines the bound is
-  // relative: four times the text must cost well under eight times as much (quadratic
-  // would be sixteen), and the whole line stays under a loose absolute ceiling.
   const lines: Array<[string, (n: number) => string]> = [
+    ['one letter', (n) => 'a'.repeat(n)],
     ['words and numbers', (n) => 'took 1234ms at 2026-10-12 to 3 of '.repeat(n / 34)],
     ['digits and spaces', (n) => '1234 '.repeat(n / 5)],
   ];
   it.each(lines)('a 1 MB line of %s redacts in linear time', (_name, make) => {
-    const quarter = make(250_000);
-    const full = make(1_000_000);
-    const tQuarter = bestOf(5, () => redactPhoneNumbers(quarter));
-    const tFull = bestOf(5, () => redactPhoneNumbers(full));
-    expect(tFull).toBeLessThan(Math.max(8 * tQuarter, 10));
-    expect(tFull).toBeLessThan(250);
+    expectLinear(make, 1_000_000);
   });
 });
 

@@ -49,6 +49,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/execute-scheduled-outreach',
   '/api/jobs/calendar-triggers',
   '/api/jobs/calendar-briefing',
+  '/api/jobs/follow-through',
   '/api/jobs/deep-analysis',
   '/api/jobs/pondering',
   '/api/jobs/knowledge-graph-insights',
@@ -114,6 +115,7 @@ import {
   handleCalendarBriefing,
   handleDeliverScheduledActions,
   handleExecuteScheduledOutreach,
+  handleFollowThrough,
 } from './background-delivery-jobs.js';
 
 // Memory maintenance handlers
@@ -305,6 +307,10 @@ export async function handleScheduledJobsRoutes(
 
     case '/api/jobs/calendar-briefing':
       await handleCalendarBriefing(res);
+      return true;
+
+    case '/api/jobs/follow-through':
+      await handleFollowThrough(req, res);
       return true;
 
     case '/api/jobs/deep-analysis':

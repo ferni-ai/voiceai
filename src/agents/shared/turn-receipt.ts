@@ -4,12 +4,19 @@
  * turns slower?" are answered from one line instead of a dozen grepped ones.
  *
  * Counts, ids, enums and timings only. Text is measured where it passes and
- * never kept: no transcript, reply, tool arguments, notes, names or numbers.
+ * never kept: no transcript, reply, tool arguments, notes, names or numbers
+ * (only a SHA-256 digest of the last reply, to spot a cut reply repeating it).
  *
  * A turn opens when the caller's turn is committed (end-of-utterance metric or
  * their message added) and is emitted when Ferni goes back to listening after
  * replying, when the next commit comes first ('superseded'), or at the end of
  * the call. Agent-initiated speech (greeting, check-ins) opens no turn.
+ *
+ * LiveKit also says "listening" when it pauses a reply for the caller's voice
+ * (interruptByAudioActivity). That is not the end of the reply: it resumes
+ * ("speaking", then "listening") or is cut, and a cut reply's item can land
+ * just after the caller's next commit. The turn stays open through the pause,
+ * and a cut turn waits for that item before it is emitted.
  *
  * Prompt tokens per section are estimates (chars/4, labelled), over the chat
  * context only; `tokens` carries the model's own counts, tool schemas included.
@@ -23,18 +30,12 @@
  *
  * @module agents/shared/turn-receipt
  */
-import { onGatewayFirstAudio } from '../../speech/tts-gateway/first-audio-observer.js';
-import { onPauseHoldReleased } from '../../speech/output-control/pause-hold.js';
-import {
-  interruptionModeInUse,
-  speechPausedForCaller,
-} from '../multi-agent/interruption-config.js';
-import { turnDetectionInUse } from './turn-patience.js';
-import { eotCallFrom, eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js';
+import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { callerTurn, fastLaneEnabled, laneReason } from '../model-provider/fast-lane.js';
 import { toolRetrievalMode } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { llmReady, type EouMetric, type LlmMetric } from './turn-metrics.js';
+import { eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js';
 import {
   promptSections,
   type ItemView,
@@ -87,7 +88,16 @@ interface OpenTurn {
   toolsOffered: number | null;
   called: string[];
   toolErrors: number;
-  reply: { messages: number; chars: number; sentences: number; interrupted: boolean };
+  reply: {
+    messages: number;
+    chars: number;
+    sentences: number;
+    interrupted: boolean;
+    /** A cut reply was committed with the previous reply's exact text (livekit/agents-js#2566). */
+    repeatsPrevious: boolean;
+  };
+  /** When LiveKit paused the reply for the caller's voice and said "listening". */
+  pausedAt?: number;
   eot: EotCall | null;
   preemptive: Preemptive;
   pauseHoldMs: number;
@@ -119,6 +129,8 @@ export type TurnReceipt = ReturnType<TurnReceiptRecorder['build']>;
 export type EndedBy = 'listening' | 'superseded' | 'session_end';
 
 const log = createLogger({ module: 'TurnReceipt' });
+/** Audio before a pause after which a cut reply must have words to commit. */
+const HEARD_MS = 1000;
 const ms = (n: number | undefined | null): number | null =>
   n === undefined || n === null || !Number.isFinite(n) ? null : Math.round(n);
 
@@ -134,6 +146,10 @@ export class TurnReceiptRecorder {
   private readonly now: () => number;
   /** A handoff turn whose swap hadn't landed when it ended: emitted once the outcome is known. */
   private heldHandoff: { receipt: TurnReceipt; from: string | null } | null = null;
+  /** A paused reply cut by the caller's next commit, waiting for its interrupted item. */
+  private heldCut: { turn: OpenTurn; n: number } | null = null;
+  /** Digest of the last reply text added, to spot a cut reply committed with it again. */
+  private lastReplyDigest: string | null = null;
 
   constructor(private readonly opts: TurnReceiptOptions) {
     this.userKind = userKindOf(opts.userId, opts.env);
@@ -153,7 +169,7 @@ export class TurnReceiptRecorder {
       toolsOffered: null,
       called: [],
       toolErrors: 0,
-      reply: { messages: 0, chars: 0, sentences: 0, interrupted: false },
+      reply: { messages: 0, chars: 0, sentences: 0, interrupted: false, repeatsPrevious: false },
       eot: null,
       preemptive: 'none',
       pauseHoldMs: 0,
@@ -166,6 +182,7 @@ export class TurnReceiptRecorder {
   /** The caller's turn was committed. A second commit after a reply has begun starts a new turn. */
   onCommit(): void {
     this.releaseHandoff();
+    this.releaseCut();
     if (this.turn?.user && this.turn.replied) this.finish('superseded');
     const turn = this.open();
     if (!turn.user) turn.personaAtStart = this.opts.persona() ?? null;
@@ -244,14 +261,36 @@ export class TurnReceiptRecorder {
 
   onItem(item: { role?: string; interrupted?: boolean; textContent?: string } | undefined): void {
     if (item?.role === 'user') return this.onCommit();
-    if (item?.role !== 'assistant' || !this.turn) return;
+    if (item?.role !== 'assistant') return;
     const text = item.textContent ?? '';
-    const reply = this.turn.reply;
+    const interrupted = item.interrupted === true;
+    const repeats = this.repeatsLastReply(text, interrupted);
+    const owner = this.replyOwner(interrupted);
+    if (!owner) return;
+    const { reply } = owner;
     reply.messages += 1;
     reply.chars += text.length;
     reply.sentences += sentenceCount(text);
-    if (item.interrupted) reply.interrupted = true;
-    this.turn.replied = true;
+    reply.interrupted ||= interrupted;
+    reply.repeatsPrevious ||= repeats;
+    owner.replied = true;
+    if (owner === this.heldCut?.turn) this.releaseCut();
+  }
+
+  /** A cut reply committed with the text of the reply added before it. */
+  private repeatsLastReply(text: string, interrupted: boolean): boolean {
+    if (!text) return false;
+    const digest = createHash('sha256').update(text).digest('base64url');
+    const repeats = interrupted && digest === this.lastReplyDigest;
+    this.lastReplyDigest = digest;
+    return repeats;
+  }
+
+  /** A cut reply's item, after the commit that cut it and before this turn's own audio. */
+  private replyOwner(interrupted: boolean): OpenTurn | null {
+    const cut = this.heldCut;
+    if (interrupted && cut && this.turn?.speakingAt === undefined) return cut.turn;
+    return this.turn;
   }
 
   onToolsExecuted(ev: {
@@ -264,14 +303,22 @@ export class TurnReceiptRecorder {
     turn.replied = true;
   }
 
-  onAgentState(state: string | undefined): void {
+  /** `pausedForCaller`: this "listening" is LiveKit pausing the reply for the caller's voice. */
+  onAgentState(state: string | undefined, pausedForCaller = false): void {
     if (state === 'thinking') this.open().thinkingAt ??= this.now();
     if (state === 'speaking') {
+      if (this.turn?.speakingAt === undefined) this.releaseCut(); // this turn's own audio
       const turn = this.open();
       turn.speakingAt ??= this.now();
       turn.replied = true;
     }
     if (state !== 'listening' || !this.turn?.replied) return;
+    // Prod 2026-10-14..17: 9 of 12 REPLY_NOT_RECORDED fired at this pause, and in each
+    // the reply's item was added once it resumed or was cut.
+    if (pausedForCaller) {
+      this.turn.pausedAt ??= this.now();
+      return;
+    }
     if (this.turn.user) this.finish('listening');
     else this.turn = null; // Ferni spoke unprompted: no caller turn to account for
   }
@@ -279,6 +326,7 @@ export class TurnReceiptRecorder {
   /** The call is over: emit a caller turn still open. */
   flush(): void {
     this.releaseHandoff();
+    this.releaseCut();
     if (this.turn?.user) this.finish('session_end');
     this.turn = null;
   }
@@ -303,6 +351,13 @@ export class TurnReceiptRecorder {
     });
   }
 
+  /** The cut turn, with whatever its interrupted item brought (or nothing: cut before a word). */
+  private releaseCut(): void {
+    const cut = this.heldCut;
+    this.heldCut = null;
+    if (cut) this.report(this.build(cut.turn, 'superseded', cut.n));
+  }
+
   private emit(receipt: TurnReceipt): void {
     try {
       (this.opts.emit ?? ((r) => log.info(r, 'TURN_RECEIPT')))(receipt);
@@ -316,17 +371,44 @@ export class TurnReceiptRecorder {
     this.turn = null;
     if (!turn) return;
     this.count += 1;
-    const receipt = this.build(turn, endedBy);
-    // Prod 2026-10-12: after a cut-off, LiveKit stopped adding Ferni's replies to the
-    // history, and the model re-answered questions it had already answered.
-    if (receipt.reply.unrecorded) {
-      log.warn({ sessionId: this.opts.sessionId, turn: this.count }, 'REPLY_NOT_RECORDED');
+    if (endedBy === 'superseded' && turn.pausedAt !== undefined && turn.reply.messages === 0) {
+      this.heldCut = { turn, n: this.count };
+      return;
     }
+    const receipt = this.build(turn, endedBy);
     if (receipt.tools.handoff.result === 'stayed' && endedBy === 'listening') {
+      this.warn(receipt);
       this.heldHandoff = { receipt, from: turn.personaAtStart };
       return;
     }
+    this.report(receipt);
+  }
+
+  private warn(receipt: TurnReceipt): void {
+    const at = { sessionId: this.opts.sessionId, turn: receipt.turn };
+    // Prod 2026-10-12: after a cut-off, LiveKit stopped adding Ferni's replies to the
+    // history, and the model re-answered questions it had already answered.
+    if (receipt.reply.unrecorded) log.warn(at, 'REPLY_NOT_RECORDED');
+    // Prod 2026-10-16: a cut reply was committed with the previous reply's text, so the
+    // history lost what Ferni had begun to say (ROTATED_SEGMENT_FIX, #1585).
+    if (receipt.reply.repeatsPrevious) log.warn(at, 'REPLY_TEXT_REPEATED');
+  }
+
+  private report(receipt: TurnReceipt): void {
+    this.warn(receipt);
     this.emit(receipt);
+  }
+
+  /**
+   * No reply reached the history after Ferni spoke: at the end of the reply, or after a
+   * reply paused a second or more in, then cut. By then the synchronizer has paced out
+   * words, so a cut that commits nothing lost them.
+   */
+  private unrecorded(turn: OpenTurn, endedBy: EndedBy): boolean {
+    const { speakingAt, pausedAt } = turn;
+    if (turn.reply.messages > 0 || speakingAt === undefined) return false;
+    if (endedBy === 'listening') return true;
+    return endedBy === 'superseded' && pausedAt !== undefined && pausedAt - speakingAt >= HEARD_MS;
   }
 
   private timing(turn: OpenTurn, endedBy: EndedBy): Record<string, number | null> {
@@ -353,7 +435,7 @@ export class TurnReceiptRecorder {
     };
   }
 
-  build(turn: OpenTurn, endedBy: EndedBy) {
+  build(turn: OpenTurn, endedBy: EndedBy, n = this.count) {
     const { llm } = turn;
     const personaId = this.opts.persona() ?? null;
     const handoffTool = turn.called.find(isHandoffTool) ?? null;
@@ -362,7 +444,7 @@ export class TurnReceiptRecorder {
       event: 'TURN_RECEIPT' as const,
       v: TURN_RECEIPT_VERSION,
       sessionId: this.opts.sessionId,
-      turn: this.count,
+      turn: n,
       personaId,
       userKind: this.userKind,
       endedBy,
@@ -397,8 +479,7 @@ export class TurnReceiptRecorder {
         ...turn.reply,
         ttsCancelled: turn.ttsCancelled,
         /** Ferni spoke and the caller's turn ended, but no reply reached the chat history. */
-        unrecorded:
-          endedBy === 'listening' && turn.speakingAt !== undefined && turn.reply.messages === 0,
+        unrecorded: this.unrecorded(turn, endedBy),
       },
       preemptive: turn.preemptive,
       pauseHoldMs: turn.pauseHoldMs,
@@ -410,91 +491,4 @@ export class TurnReceiptRecorder {
       ...eotReceiptField(turn.eot),
     };
   }
-}
-
-// One recorder per AgentSession, so llmNode and withTurnReminder can find it.
-const recorders = new WeakMap<object, TurnReceiptRecorder>();
-
-/** withTurnReminder: the per-turn reminder of the request being built. */
-export function noteReminder(session: object, note: ReminderNote): void {
-  recorders.get(session)?.onReminder(note);
-}
-
-/** The barge-in fast path or LiveKit's barge-in model stopped Ferni (live-call-behaviors.ts). */
-export function noteBargeIn(session: object, source: BargeInSource): void {
-  recorders.get(session)?.onBargeIn(source);
-}
-
-/** llmNode: the request as it goes to the model, with the tools it carries. */
-export function noteRequest(
-  session: object,
-  request: { items: readonly unknown[] },
-  tools: { functionTools?: Record<string, unknown> }
-): void {
-  recorders
-    .get(session)
-    ?.onRequest(request.items as ItemView[], Object.keys(tools.functionTools ?? {}).length);
-}
-
-interface EventSource {
-  on(event: string, handler: (ev: unknown) => void): unknown;
-  off(event: string, handler: (ev: unknown) => void): unknown;
-}
-
-/**
- * Record a TURN_RECEIPT per caller turn on this session. Returns a detach that
- * emits a turn still open and stops listening.
- */
-export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOptions): () => void {
-  const rec = new TurnReceiptRecorder({
-    handling: () => ({
-      turnDetection: turnDetectionInUse(session),
-      interruptionMode: interruptionModeInUse(session),
-    }),
-    ...opts,
-  });
-  recorders.set(session, rec);
-  const handlers: Array<[string, (ev: unknown) => void]> = [
-    [
-      'metrics_collected',
-      (ev) => {
-        const m = (ev as { metrics?: { type?: string } } | undefined)?.metrics;
-        if (m) rec.onMetric(m as never);
-      },
-    ],
-    ['conversation_item_added', (ev) => rec.onItem((ev as { item?: never } | undefined)?.item)],
-    ['function_tools_executed', (ev) => rec.onToolsExecuted((ev ?? {}) as never)],
-    ['eot_prediction', (ev) => rec.onEot(eotCallFrom(ev, session))],
-    [
-      'agent_state_changed',
-      (ev) => {
-        const { oldState, newState } = (ev ?? {}) as { oldState?: string; newState?: string };
-        // LiveKit pauses a reply for the caller's voice and says "listening" (interruptByAudioActivity).
-        if (oldState === 'speaking' && newState === 'listening' && speechPausedForCaller(session)) {
-          rec.onBargeIn('vad');
-        }
-        rec.onAgentState(newState);
-      },
-    ],
-    // Our LiveKit patch: the PREEMPTIVE_DECISION, just before this turn's eou_metrics.
-    [
-      'ferni_preemptive_decision',
-      (ev) => rec.onPreemptive(Boolean((ev as { used?: boolean })?.used)),
-    ],
-    ['close', () => rec.flush()],
-  ];
-  for (const [event, handler] of handlers) session.on(event, handler);
-  const offAudio = onGatewayFirstAudio((sessionId, ttfbMs, pushMs) => {
-    if (sessionId === opts.sessionId) rec.onGatewayAudio(ttfbMs, pushMs);
-  });
-  const offHold = onPauseHoldReleased((sessionId, heldMs) => {
-    if (sessionId === opts.sessionId) rec.onPauseHold(heldMs);
-  });
-  return () => {
-    offAudio();
-    offHold();
-    rec.flush();
-    for (const [event, handler] of handlers) session.off(event, handler);
-    recorders.delete(session);
-  };
 }

@@ -38,7 +38,7 @@ import {
   sessionTurnDetector,
   SOLE_STANDS_DOWN,
 } from '../shared/turn-detector-sole.js';
-import { noteBargeIn } from '../shared/turn-receipt.js';
+import { noteBargeIn } from '../shared/turn-receipt-session.js';
 
 const log = getLogger();
 

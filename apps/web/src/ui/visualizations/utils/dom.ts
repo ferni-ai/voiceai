@@ -270,23 +270,9 @@ export function createScreenReaderLabel(text: string): HTMLSpanElement {
 // ============================================================================
 
 /**
- * Animation durations from design system.
+ * Timing and easing: the app-wide scale from design-system/tokens/animation.json.
  */
-export const DURATION = {
-  FAST: 150,
-  NORMAL: 200,
-  SLOW: 300,
-  MODERATE: 400,
-} as const;
-
-/**
- * Easing functions from design system.
- */
-export const EASING = {
-  STANDARD: 'cubic-bezier(0.4, 0, 0.2, 1)',
-  OUT_EXPO: 'cubic-bezier(0.16, 1, 0.3, 1)',
-  SPRING: 'cubic-bezier(0.5, 1.5, 0.5, 1)',
-} as const;
+export { DURATION, EASING } from '../../../config/animation-constants.js';
 
 /**
  * Animate an element with Web Animations API.

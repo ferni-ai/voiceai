@@ -258,37 +258,29 @@ const requestRideDef: ToolDefinition = {
   },
 };
 
+/** What comparePrices says: it has no live Uber or Lyft fares to compare. */
+export const RIDE_PRICES_UNAVAILABLE =
+  "I can't compare Uber and Lyft fares right now: I don't have live ride prices. The Uber and Lyft apps show the current fare for a trip.";
+
+const RIDE_PRICES_DESCRIPTION =
+  'Compare Uber and Lyft ride fares for a trip. Rides only: not for product, shopping, grocery, gas, insurance, subscription or flight prices.';
+
 const comparePricesDef: ToolDefinition = {
   id: 'comparePrices',
   name: 'Compare Ride Prices',
-  description: 'Compare prices between Uber and Lyft for a trip.',
+  description: RIDE_PRICES_DESCRIPTION,
   domain: 'transportation',
-  tags: ['uber', 'lyft', 'price', 'compare'],
+  tags: ['uber', 'lyft', 'ride', 'fare'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (): Tool => {
     return llm.tool({
-      description: 'Compare prices between Uber and Lyft for a trip.',
+      description: RIDE_PRICES_DESCRIPTION,
       parameters: z.object({
-        destination: z.string().describe('Where you want to go'),
+        destination: z.string().describe('Where the ride goes'),
         from: z.string().optional().describe('Pickup location'),
       }),
-      execute: async (params: { destination: string; from?: string }) => {
-        const userId = ctx.userId;
-        if (!userId) {
-          return 'I need to know who you are to compare prices.';
-        }
-
-        // This would fetch real estimates in production
-        return (
-          `📊 **Price Comparison to ${params.destination}**\n\n` +
-          `Connect your Uber and Lyft accounts to see real-time price comparisons.\n\n` +
-          `I'll show you:\n` +
-          `- Prices for different ride types\n` +
-          `- ETAs for pickup\n` +
-          `- Surge/primetime pricing alerts\n` +
-          `- The best value option`
-        );
-      },
+      // No live fares are fetched, so nothing is promised or invented.
+      execute: async () => RIDE_PRICES_UNAVAILABLE,
     });
   },
 };

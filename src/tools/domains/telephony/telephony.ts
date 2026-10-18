@@ -7,6 +7,10 @@
  * place the call it says so, and offers what does work (a reminder), so the
  * model never tells the user something happened when it didn't.
  *
+ * It says so once per call. A caller who kept asking heard the same refusal
+ * and the same reminder offer five times in a row, word for word; after the
+ * first refusal the tool tells the model it already said it.
+ *
  * @module tools/domains/telephony/telephony
  */
 
@@ -23,6 +27,53 @@ export const CANT_CALL_NOW =
 export const CANT_SCHEDULE_CALL =
   "I can't schedule a call to your phone yet, so nothing is booked. I can set a reminder for that time instead. Want me to?";
 
+/** What callUser returns when it already refused earlier in this call. */
+export const ALREADY_SAID_CANT_CALL =
+  "Already told them I can't ring their phone yet and offered a reminder. Don't repeat that offer and don't call this tool again this call; acknowledge briefly and move on.";
+
+/** What scheduleCallback returns when it already refused earlier in this call. */
+export const ALREADY_SAID_CANT_SCHEDULE =
+  "Already told them I can't schedule a call to their phone yet and offered a reminder. Don't repeat that offer and don't call this tool again this call; acknowledge briefly and move on.";
+
+type Refusal = 'callUser' | 'scheduleCallback';
+
+const REPEAT_NOTE: Record<Refusal, string> = {
+  callUser: ALREADY_SAID_CANT_CALL,
+  scheduleCallback: ALREADY_SAID_CANT_SCHEDULE,
+};
+
+/**
+ * The refusals already given in each call, keyed by the call session's
+ * userData: one object per AgentSession, so nothing carries into the next
+ * call, and the entry goes when the session does.
+ */
+const refusedInCall = new WeakMap<object, Set<Refusal>>();
+
+/** The call session's userData, or undefined (no session, or the SDK throws: userData not set). */
+function callKey(opts: unknown): object | undefined {
+  try {
+    const data = (opts as { ctx?: { userData?: unknown } } | undefined)?.ctx?.userData;
+    return typeof data === 'object' && data !== null ? data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The full refusal the first time in this call, then a short note telling
+ * the model it already said so. Without a call session to key on, always
+ * the full refusal: better repeated than lost.
+ */
+export function refuseOnce(tool: Refusal, refusal: string, opts: unknown): string {
+  const key = callKey(opts);
+  if (!key) return refusal;
+  const said = refusedInCall.get(key) ?? new Set<Refusal>();
+  if (said.has(tool)) return REPEAT_NOTE[tool];
+  said.add(tool);
+  refusedInCall.set(key, said);
+  return refusal;
+}
+
 export function createTelephonyTools() {
   return {
     callUser: llm.tool({
@@ -30,9 +81,9 @@ export function createTelephonyTools() {
       parameters: z.object({
         reason: z.string().describe('Why the user wants the call (e.g., "check in", "wake me up")'),
       }),
-      execute: async ({ reason }) => {
+      execute: async ({ reason }, opts) => {
         getLogger().info({ reason }, 'callUser: no call path, told the user honestly');
-        return CANT_CALL_NOW;
+        return refuseOnce('callUser', CANT_CALL_NOW, opts);
       },
     }),
 
@@ -44,9 +95,12 @@ export function createTelephonyTools() {
           .describe('When to call (e.g., "in 30 minutes", "tomorrow at 9am", "next Monday")'),
         reason: z.string().describe('What the call is about (e.g., "remind me to stretch")'),
       }),
-      execute: async ({ when, reason }) => {
-        getLogger().info({ when, reason }, 'scheduleCallback: no call path, told the user honestly');
-        return CANT_SCHEDULE_CALL;
+      execute: async ({ when, reason }, opts) => {
+        getLogger().info(
+          { when, reason },
+          'scheduleCallback: no call path, told the user honestly'
+        );
+        return refuseOnce('scheduleCallback', CANT_SCHEDULE_CALL, opts);
       },
     }),
   };

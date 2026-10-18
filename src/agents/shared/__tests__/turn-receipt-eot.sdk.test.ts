@@ -14,7 +14,8 @@ import {
 } from '@livekit/agents';
 import { AudioFrame } from '@livekit/rtc-node';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { attachTurnReceipts, TurnReceiptRecorder, type TurnReceipt } from '../turn-receipt.js';
+import { TurnReceiptRecorder, type TurnReceipt } from '../turn-receipt.js';
+import { attachTurnReceipts } from '../turn-receipt-session.js';
 import { endpointingDelays, registerLocalEotRunner } from '../turn-patience.js';
 
 const RATE = 24_000;

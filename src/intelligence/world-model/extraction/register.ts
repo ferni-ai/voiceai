@@ -22,6 +22,7 @@ import {
   registerAfterCallTask,
   type AfterCallContext,
 } from '../../../services/session/after-call-tasks.js';
+import { envForCaller, type CohortStore } from '../../../services/platform/cohort-flags.js';
 import { recordWorldObservations, type IngestDeps } from '../temporal/ingest.js';
 import { isWorldModelTemporalOn } from '../temporal/types.js';
 import {
@@ -38,10 +39,12 @@ const llm: ExtractionLlm = (prompt) =>
 /** The task body; exported so tests can run it with a fake model and store. */
 export async function extractWorldAfterCall(
   ctx: AfterCallContext,
-  deps: IngestDeps & { llm?: ExtractionLlm; commitments?: CaptureDeps } = {}
+  deps: IngestDeps & { llm?: ExtractionLlm; commitments?: CaptureDeps; cohorts?: CohortStore } = {}
 ): Promise<void> {
   if (!isAfterCallExtractionOn(deps.env)) return;
-  const world = isWorldModelTemporalOn(deps.env);
+  // WORLD_MODEL_TEMPORAL as this caller's call had it: process.env may hold the next caller's.
+  const callerEnv = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
+  const world = isWorldModelTemporalOn(callerEnv);
   const capture = isCommitmentCaptureOn(deps.env);
   if (!world && !capture) return;
   const observations = await extractWorldObservations(
@@ -63,7 +66,12 @@ export async function extractWorldAfterCall(
           { env: deps.env, ...deps.commitments }
         )
       : null,
-    world ? recordWorldObservations(ctx.userId, ctx.sessionId, observations, deps) : null,
+    world
+      ? recordWorldObservations(ctx.userId, ctx.sessionId, observations, {
+          ...deps,
+          env: callerEnv,
+        })
+      : null,
   ]);
 }
 
