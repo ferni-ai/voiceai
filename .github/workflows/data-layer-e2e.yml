@@ -131,8 +131,10 @@ jobs:
           GOOGLE_API_KEY: ''
           SKIP_EMBEDDING: 'true'
 
-      # Waitlist waves: overlapping runs, the per-person transaction, members (services/waitlist)
+      # Waitlist waves: overlapping runs, the per-person transaction, members (services/waitlist).
+      # Runs even when an earlier suite failed (the seed ledger suite is red on main), so it's always read.
       - name: Run Waitlist Wave Tests
+        if: ${{ !cancelled() }}
         run: |
           pnpm vitest run src/services/waitlist/__tests__/wave-store.emulator.test.ts --reporter=verbose
         env:
