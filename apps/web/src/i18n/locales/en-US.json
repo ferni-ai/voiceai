@@ -4583,7 +4583,7 @@
     "title": "Create Agent Page",
     "nameLabel": "Agent Name",
     "namePlaceholder": "e.g., Nate Holloway",
-    "nameHint": "The full name of your AI agent",
+    "nameHint": "The full name of your agent",
     "initialsLabel": "Initials",
     "initialsPlaceholder": "e.g., JD",
     "initialsHint": "Shown on the avatar (2-3 characters)",
@@ -7312,7 +7312,7 @@
       "feature1": "Record daily voice journals",
       "feature2": "Talk to your past self",
       "feature3": "Track your growth over time",
-      "feature4": "AI-generated insights"
+      "feature4": "Insights drawn from your journals"
     },
     "fictional": {
       "name": "Fictional",
@@ -9840,7 +9840,7 @@
     },
     "marketplace": {
       "headline": "Find your people.",
-      "description": "Beyond Ferni core team, a garden of specialized AI coaches awaits. ADHD support, sobriety companions, sleep specialists, parenting guides - experts who understand your specific journey.",
+      "description": "Beyond Ferni core team, a garden of specialized coaches awaits. ADHD support, sobriety companions, sleep specialists, parenting guides - experts who understand your specific journey.",
       "superhuman1": "Specialized personas - Coaches for specific life challenges",
       "superhuman2": "Community ratings - Real experiences, real reviews",
       "superhuman3": "Free and premium - Support for every budget",
@@ -9848,7 +9848,7 @@
     },
     "developerPortal": {
       "headline": "Build what matters.",
-      "description": "Ferni technology is opening up. Build your own AI coaches, create specialized personas, and reach people who need exactly what you offer. The platform that powers Ferni - now yours.",
+      "description": "Ferni technology is opening up. Build your own coaches, create specialized personas, and reach people who need exactly what you offer. The platform that powers Ferni - now yours.",
       "superhuman1": "Full API documentation - Everything you need to build",
       "superhuman2": "SDK and libraries - TypeScript-first development",
       "superhuman3": "Persona builder - Visual tools for creating coaches",
@@ -10551,7 +10551,7 @@
   },
   "ferniAwakens": {
     "greeting": "Hello.",
-    "subtext": "I'm Ferni, your AI life coach."
+    "subtext": "I'm Ferni, your personal guide."
   },
   "serviceHealth": {
     "names": {
@@ -10561,7 +10561,7 @@
       "historicalFacts": "Historical Facts",
       "smartHome": "Smart Home",
       "lighting": "Lighting",
-      "aiContext": "AI Context",
+      "aiContext": "Memory & context",
       "sleepHealth": "Sleep & Health Data",
       "other": "A connected service"
     },
@@ -10717,9 +10717,6 @@
     "founderShort": "Founder",
     "patronShort": "Patron",
     "founderAria": "{tier}. Thank you for believing in us! Click to manage."
-  },
-  "splash": {
-    "tagline": "Your AI team is ready"
   },
   "lifeCoachingHub": {
     "tabs": {
