@@ -25,6 +25,7 @@ describe('errand retry policy', () => {
         'lookup_line_type',
         'notify_owner',
         'offer_text_instead',
+        'release_hold',
         'reminder',
         'text',
       ].sort()

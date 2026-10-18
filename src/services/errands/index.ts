@@ -8,14 +8,6 @@
 
 export * from './errand.js';
 export {
-  DEFAULT_HOURS,
-  DEFAULT_POLICY,
-  parallelAllowed,
-  withinHours,
-  type ErrandPolicy,
-  type ErrandPrefs,
-} from './policy.js';
-export {
   RETRY_POLICY,
   isRetryable,
   retryDelayMs,
