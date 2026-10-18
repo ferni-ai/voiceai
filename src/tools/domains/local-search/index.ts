@@ -17,7 +17,8 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
-import { resolveCallerLocation } from '../../shared/caller-location.js';
+import { callerCityTools } from './caller-city-tools.js';
+import { callerCityMemoryOn, resolveSearchLocation } from './caller-city.js';
 
 import { detectExplicitSource, formatResults, unifiedSearch } from './unified-search.js';
 import { pickRestaurantDef } from './restaurant-pick.js';
@@ -85,7 +86,7 @@ const searchLocalBusinessesDef: ToolDefinition = {
           .describe('Price filter: "1" ($), "2" ($$), "3" ($$$), "4" ($$$$)'),
       }),
       execute: async ({ query, location: requested, openNow, priceLevel }, opts) => {
-        const location = resolveCallerLocation(requested, opts, ctx);
+        const location = await resolveSearchLocation(requested, opts, ctx);
         if (!location) return LOCATION_UNKNOWN;
         try {
           log.info({ query, location, userId: ctx.userId }, '🔍 Searching local businesses');
@@ -135,7 +136,7 @@ const findRestaurantsDef: ToolDefinition = {
         priceLevel: z.string().optional().describe('Price range: "1" ($) to "4" ($$$$)'),
       }),
       execute: async ({ location: requested, cuisine, openNow, priceLevel }, opts) => {
-        const location = resolveCallerLocation(requested, opts, ctx);
+        const location = await resolveSearchLocation(requested, opts, ctx);
         if (!location) return LOCATION_UNKNOWN;
         try {
           const query = cuisine ? `${cuisine} restaurant` : 'restaurant';
@@ -147,7 +148,7 @@ const findRestaurantsDef: ToolDefinition = {
           const results = await unifiedSearch(
             cleanCuisine ? `${cleanCuisine} restaurant` : 'restaurant',
             location,
-            { openNow, priceLevel, explicitSource }
+            { openNow, priceLevel, explicitSource, restaurantsOnly: true }
           );
 
           if (results.length === 0) {
@@ -375,9 +376,16 @@ export const { domain, definitions } = createDomainExport('local-search', [
   lookupByPhoneDef,
   checkLocalSearchStatusDef,
   pickRestaurantDef,
+  ...callerCityTools,
 ]);
 /** What the registry loads: no pickRestaurant while COACH_LOCAL is off (config/coach-local-flag.ts). */
 export const getToolDefinitions = (): Promise<ToolDefinition[]> =>
-  Promise.resolve(definitions.filter((d) => d !== pickRestaurantDef || isCoachLocalEnabled()));
+  Promise.resolve(
+    definitions.filter(
+      (d) =>
+        (d !== pickRestaurantDef || isCoachLocalEnabled()) &&
+        (!callerCityTools.includes(d) || callerCityMemoryOn())
+    )
+  );
 
 export default { getToolDefinitions, domain, definitions };

@@ -233,6 +233,7 @@
     "sync:promo": "node design-system/sync-promo-tokens.js",
     "tokens:sync": "npm run build:design-system && npm run sync:promo && echo '✅ All tokens synced'",
     "tokens:check": "node design-system/check-drift.js",
+    "tokens:drift": "node design-system/check-generated-drift.js",
     "tokens:watch": "node design-system/watch-tokens.js",
     "icons:regenerate": "npx tsx scripts/regenerate-icons.ts",
     "favicons:generate": "npx tsx scripts/generate-favicons.ts",
