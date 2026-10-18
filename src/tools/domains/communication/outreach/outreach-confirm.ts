@@ -6,9 +6,11 @@
  * - The first call sends nothing. It fixes the words, channel, contact and
  *   address (outreach-confirm-specs.ts, telephony/call-confirm.ts), stores
  *   them for this session and user for 5 minutes, and returns the read-back.
- * - The next call sends that stored action once, only if the caller's first
- *   speech-to-text turn after the preview is a plain yes with no other tool
- *   output in between. Tool output and model text are never read.
+ * - The next call sends that stored action once, only if the caller's
+ *   speech-to-text turns after the preview, read together, are a plain yes
+ *   with no other tool output in between ("Yeah, go ahead." then "Go ahead and
+ *   give her a call." is one answer split in two). Tool output and model text
+ *   are never read.
  * - Anything else (a no, a question, another tool's output, expiry, no live
  *   call, a speaker not proven to be the account owner) sends nothing.
  * - Test accounts (voice-eval-*, e2e-*) never reach anyone, flag or no flag.
@@ -165,8 +167,9 @@ export function confirmationState(
   if (now > pending.expiresAt) return 'void';
   const after = events.filter((e) => e.seq > pending.createdSeq);
   let delivered = false;
-  for (let i = 0; i < after.length; i++) {
-    const e = after[i];
+  // Speech-to-text may cut one answer into several finals; they are judged as one reply.
+  const answer: string[] = [];
+  for (const e of after) {
     if (e.kind === 'tool') {
       // The preview's own output reaching the model is expected once; any other output voids it.
       if (!delivered && e.callIds.length > 0 && e.callIds.every((id) => id === pending.callId)) {
@@ -176,11 +179,18 @@ export function confirmationState(
       return 'void';
     }
     if (isClearNo(e.text)) return 'void';
-    // Words before the preview was read, or over Ferni reading it, are not the answer.
-    if (!delivered || e.agentSpeaking) continue;
-    return isClearYes(e.text) && i === after.length - 1 ? 'confirmed' : 'void';
+    // Words before the preview was read are not the answer.
+    if (!delivered) continue;
+    // Words over Ferni are not the answer, and once the answer has begun they void it.
+    if (e.agentSpeaking) {
+      if (answer.length > 0) return 'void';
+      continue;
+    }
+    answer.push(e.text);
   }
-  return 'waiting';
+  if (answer.length === 0) return 'waiting';
+  // Every part must be a yes phrase or a filler: "Yes." then "Call Bob instead." is not a yes.
+  return isClearYes(answer.join(' ')) ? 'confirmed' : 'void';
 }
 
 /**
