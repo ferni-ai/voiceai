@@ -509,4 +509,12 @@ describe('IgnavFlightProvider', () => {
       results: [expect.objectContaining({ id: 'ig_kept', airline: 'UA' })],
     });
   });
+
+  it('returns a live empty result when Ignav finds no itineraries', async () => {
+    fetchMock.mockResolvedValue(jsonReply(200, { itineraries: [] }));
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({ status: 'live', results: [] });
+  });
 });
