@@ -9500,7 +9500,14 @@
     "close": "關閉",
     "seeCost": "這次通話的費用",
     "feedbackQuestion": "這次聊得怎麼樣？",
-    "feedbackThanks": "謝謝，這很有幫助。"
+    "feedbackThanks": "謝謝，這很有幫助。",
+    "pushAskQuestion": "想讓 Ferni 之後問問你這件事嗎？",
+    "pushAskYes": "好的",
+    "pushAskNotNow": "先不用",
+    "pushAskDone": "好了。Ferni 的訊息會傳到這台裝置。",
+    "pushAskLater": "沒關係。之後可以在設定裡更改。",
+    "pushAskHomeScreen": "要在這裡收到 Ferni 的訊息，請先把 Ferni 加入主畫面：點一下「分享」，再點「加入主畫面」。",
+    "pushAskGotIt": "知道了"
   },
   "moments": {
     "teamUnlockTitle": "認識 {name}",

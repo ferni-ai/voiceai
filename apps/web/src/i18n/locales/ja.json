@@ -9500,7 +9500,14 @@
     "close": "閉じる",
     "seeCost": "この通話の費用",
     "feedbackQuestion": "今回の会話はどうでしたか？",
-    "feedbackThanks": "ありがとう、参考になります。"
+    "feedbackThanks": "ありがとう、参考になります。",
+    "pushAskQuestion": "このことについて、Ferniから様子を聞いてもいい？",
+    "pushAskYes": "うん、お願い",
+    "pushAskNotNow": "今はいい",
+    "pushAskDone": "設定しました。Ferniからのメッセージがこの端末に届きます。",
+    "pushAskLater": "大丈夫です。あとで設定から変更できます。",
+    "pushAskHomeScreen": "ここでFerniからのメッセージを受け取るには、ホーム画面にFerniを追加してください：共有をタップし、「ホーム画面に追加」を選びます。",
+    "pushAskGotIt": "わかった"
   },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",

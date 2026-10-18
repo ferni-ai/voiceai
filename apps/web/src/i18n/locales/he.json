@@ -9580,7 +9580,14 @@
     "close": "סגור",
     "seeCost": "כמה עלתה השיחה הזו",
     "feedbackQuestion": "איך זה הרגיש?",
-    "feedbackThanks": "תודה, זה עוזר."
+    "feedbackThanks": "תודה, זה עוזר.",
+    "pushAskQuestion": "רוצה ש-Ferni ישאל אותך על זה בהמשך?",
+    "pushAskYes": "כן, בבקשה",
+    "pushAskNotNow": "לא עכשיו",
+    "pushAskDone": "בוצע. הודעות מ-Ferni יגיעו למכשיר הזה.",
+    "pushAskLater": "אין בעיה. אפשר לשנות את זה בהגדרות בהמשך.",
+    "pushAskHomeScreen": "כדי לקבל כאן הודעות מ-Ferni, הוסף את Ferni למסך הבית: הקש על שיתוף ואז על הוספה למסך הבית.",
+    "pushAskGotIt": "הבנתי"
   },
   "moments": {
     "teamUnlockTitle": "להכיר את {name}",

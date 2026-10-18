@@ -9601,7 +9601,14 @@
     "close": "Close",
     "seeCost": "What this call cost",
     "feedbackQuestion": "How did that feel?",
-    "feedbackThanks": "Thanks, that helps."
+    "feedbackThanks": "Thanks, that helps.",
+    "pushAskQuestion": "Want Ferni to check in about this?",
+    "pushAskYes": "Yes, please",
+    "pushAskNotNow": "Not now",
+    "pushAskDone": "Done. Notes from Ferni will come to this device.",
+    "pushAskLater": "No problem. You can change this in Settings later.",
+    "pushAskHomeScreen": "To get notes from Ferni here, add Ferni to your Home Screen: tap Share, then Add to Home Screen.",
+    "pushAskGotIt": "Got it"
   },
   "moments": {
     "streakTitle": {

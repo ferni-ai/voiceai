@@ -9500,7 +9500,14 @@
     "close": "关闭",
     "seeCost": "这次通话的费用",
     "feedbackQuestion": "这次聊得怎么样？",
-    "feedbackThanks": "谢谢，这很有帮助。"
+    "feedbackThanks": "谢谢，这很有帮助。",
+    "pushAskQuestion": "想让 Ferni 之后问问你这件事吗？",
+    "pushAskYes": "好的",
+    "pushAskNotNow": "先不用",
+    "pushAskDone": "好了。Ferni 的消息会发到这台设备。",
+    "pushAskLater": "没关系。之后可以在设置里更改。",
+    "pushAskHomeScreen": "要在这里收到 Ferni 的消息，请先把 Ferni 添加到主屏幕：轻点“分享”，再轻点“添加到主屏幕”。",
+    "pushAskGotIt": "知道了"
   },
   "moments": {
     "teamUnlockTitle": "认识 {name}",
