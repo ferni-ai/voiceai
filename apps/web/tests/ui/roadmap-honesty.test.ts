@@ -38,6 +38,7 @@ describe("What's Coming", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     getRoadmapPanelUI().hide();
     document.body.replaceChildren();
   });
@@ -52,6 +53,7 @@ describe("What's Coming", () => {
   });
 
   it('states the seed amounts the server pays', async () => {
+    vi.stubEnv('VITE_NO_STREAKS', 'false'); // streak awards are listed only when streaks are shown
     await getRoadmapPanelUI().show();
     (document.querySelector('.roadmap-panel__seed-info-trigger') as HTMLElement).click();
     const tooltip = document.querySelector('.roadmap-panel__seeds-tooltip')?.textContent ?? '';

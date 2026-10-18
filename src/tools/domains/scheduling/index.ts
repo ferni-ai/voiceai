@@ -34,13 +34,13 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
-// Import proactive outreach functions
 import {
   scheduleText,
   scheduleEmail,
   scheduleCall,
   textUser,
   setUserContactInfo,
+  SAVED_NOT_VERIFIED,
 } from '../proactive/outreach/index.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
@@ -161,7 +161,7 @@ If no recipient specified, sends to the user themselves.`,
           return `Got it! I'll text you on ${timeStr}: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return "I don't have your phone number yet. What's a good number to reach you at?";
+            return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
           }
           return `I couldn't schedule that: ${result.error}`;
         }
@@ -218,7 +218,7 @@ The call will play a voice message when answered.`,
           return `I'll call you on ${timeStr}. When you answer, you'll hear: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return "I don't have your phone number yet. What's your number?";
+            return `I can't call you yet: there's no verified phone number on your account. You can add one in Settings.`;
           }
           return `I couldn't schedule that call: ${result.error}`;
         }
@@ -280,7 +280,7 @@ Use when the user says things like:
           return `Email scheduled for ${timeStr} with subject: "${params.subject}"`;
         } else {
           if (result.error?.includes('email')) {
-            return "I don't have your email address. What's your email?";
+            return `I can't email you yet: there's no verified email address on your account.`;
           }
           return `I couldn't schedule that email: ${result.error}`;
         }
@@ -315,13 +315,13 @@ Use when the user says:
 
         log.info({ userId }, '📱 Sending immediate text');
 
-        const result = await textUser(userId, params.message, personaId);
+        const result = await textUser(userId, params.message, personaId, { askedNow: true });
 
         if (result.success) {
           return `Done! I just texted you: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return "I don't have your phone number. What's your number?";
+            return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
           }
           return `I couldn't send that text: ${result.error}`;
         }
@@ -500,7 +500,7 @@ Use when the user shares their phone or email:
         if (params.phone) saved.push('phone number');
         if (params.email) saved.push('email');
 
-        return `Got it! I saved your ${saved.join(' and ')}. Now I can send you texts, emails, or calls.`;
+        return `Saved your ${saved.join(' and ')}. ${SAVED_NOT_VERIFIED}`;
       },
     }),
 };
@@ -706,10 +706,10 @@ Picks the time from the contact's learned response patterns.`,
 Reminder: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' : ''}"`;
           } else {
             if (result.error?.includes('phone')) {
-              return "I don't have your phone number yet. What's a good number?";
+              return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
             }
             if (result.error?.includes('email')) {
-              return "I don't have an email address on file. What's your email?";
+              return `I can't email you yet: there's no verified email address on your account.`;
             }
             return `Couldn't schedule that: ${result.error}`;
           }

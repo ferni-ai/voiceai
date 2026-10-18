@@ -8,7 +8,7 @@
  * 4. Edge cases are handled (ambiguous phrases, pronouns, etc.)
  *
  * This test suite catches bugs like:
- * - "call my mom at 801-898-3303" saving mom's number as user's contact info
+ * - "call my mom at 801-555-0142" saving mom's number as user's contact info
  * - Forgetting saved contacts between sessions
  * - Incorrect relationship inference
  *
@@ -353,19 +353,19 @@ describe('Edge Cases', () => {
 
 describe('Regression Tests', () => {
   /**
-   * Bug: "call my mom at 801-898-3303" was saving mom's number as user's contact
+   * Bug: "call my mom at 801-555-0142" was saving mom's number as user's contact
    * Fix: isThirdPartyPhoneReference() now detects this pattern
    */
   it('should NOT save mom phone number as user contact (regression)', async () => {
     const { detectContactInfo } = await import('../../services/contact-onboarding.js');
 
     const variations = [
-      'call my mom at 801-898-3303',
-      'Call my mom at 801-898-3303',
-      'can you call my mom at 801-898-3303',
-      'please call my mother at 801-898-3303',
-      'phone my mom at 801-898-3303',
-      'ring my mom at 801-898-3303',
+      'call my mom at 801-555-0142',
+      'Call my mom at 801-555-0142',
+      'can you call my mom at 801-555-0142',
+      'please call my mother at 801-555-0142',
+      'phone my mom at 801-555-0142',
+      'ring my mom at 801-555-0142',
     ];
 
     for (const phrase of variations) {
@@ -382,15 +382,15 @@ describe('Regression Tests', () => {
     const { detectContactInfo } = await import('../../services/contact-onboarding.js');
 
     const variations = [
-      'My number is 801-898-3303',
-      'my phone is 801-898-3303',
-      'text me at 801-898-3303',
-      'reach me at 801-898-3303',
+      'My number is 801-555-0142',
+      'my phone is 801-555-0142',
+      'text me at 801-555-0142',
+      'reach me at 801-555-0142',
     ];
 
     for (const phrase of variations) {
       const result = detectContactInfo(phrase);
-      expect(result?.phone).toBe('+18018983303');
+      expect(result?.phone).toBe('+18015550142');
     }
   });
 });

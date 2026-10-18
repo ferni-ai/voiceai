@@ -16,7 +16,8 @@
  * @see apps/BETTER-THAN-HUMAN-PLAN.md for full architecture
  */
 
-import admin from 'firebase-admin';
+import type { Firestore, Query } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
@@ -106,10 +107,10 @@ const MIN_SEEDS_PER_VOTE = 1;
 // FIRESTORE
 // =============================================================================
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) {
     return firestoreInstance;
   }
@@ -120,24 +121,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    // Check if admin.apps exists and has length (handles undefined case)
-    const { apps } = admin;
-    if (!apps || apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-        log.info({ projectId }, 'Firebase initialized for roadmap routes');
-      } else {
-        admin.initializeApp();
-        log.info('Firebase initialized with default credentials');
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firebase not available for roadmap routes');
@@ -418,7 +402,7 @@ async function handleGetSuggestions(req: IncomingMessage, res: ServerResponse): 
     const category = url.searchParams.get('category');
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 50);
 
-    let query: admin.firestore.Query = db.collection('roadmap_suggestions');
+    let query: Query = db.collection('roadmap_suggestions');
 
     if (status !== 'all') {
       query = query.where('status', '==', status);

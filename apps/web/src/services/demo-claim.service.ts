@@ -148,23 +148,19 @@ function cleanupUrl(): void {
 
 /**
  * Call the backend to claim the demo session.
+ * The server claims for the account in the verified ID token, so it needs one.
  */
 async function claimSessionFromBackend(
   claimToken: string,
-  firebaseToken: string | null
+  firebaseToken: string
 ): Promise<ClaimResult> {
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    if (firebaseToken) {
-      headers['Authorization'] = `Bearer ${firebaseToken}`;
-    }
-
     const response = await fetch('/demo-claim', {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${firebaseToken}`,
+      },
       body: JSON.stringify({ claim_token: claimToken }),
     });
 
@@ -262,6 +258,17 @@ export async function checkAndClaimDemoSession(
     log.info('Claiming demo session...');
 
     const firebaseToken = await getFirebaseToken();
+    if (!firebaseToken) {
+      // Keep the claim token stored so a later run, once signed in, can claim it.
+      log.warn('Not signed in yet, demo claim deferred');
+      claimPromise = null;
+      return {
+        success: false,
+        alreadyClaimed: false,
+        conversation: null,
+        error: 'Sign in required to claim demo session',
+      };
+    }
     const result = await claimSessionFromBackend(claimToken, firebaseToken);
 
     if (result.success) {

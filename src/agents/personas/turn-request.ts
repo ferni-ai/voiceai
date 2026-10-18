@@ -34,7 +34,7 @@ import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
 import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
-import { noteReminder } from '../shared/turn-receipt.js';
+import { noteReminder } from '../shared/turn-receipt-session.js';
 import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes, listeningReply } from './listen-first-turn.js';
@@ -53,8 +53,10 @@ import { honestFriendNote } from './honest-friend.js';
 import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
-import { callerTurnsOf, goodbyeNoteOn, happyExitNote } from './happy-exits.js';
+import { journalAskFor } from './journal-ask.js';
+import { callerTurnsOf, goodbyeNoteOn, happyExitNote, questionPaceNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
+import { withPlayful } from './ferni-playful-turn.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
@@ -73,6 +75,7 @@ import {
   withTurnStyleReminder,
 } from './turn-style.js';
 import { burstLine, clearBurstOffer } from './vocal-bursts.js';
+import { withHeavyMoment } from './heavy-turn.js';
 
 // Moved to turn-request-tools.ts; re-exported for existing importers.
 export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
@@ -254,7 +257,7 @@ function exitFor(chatCtx: llm.ChatContext, session: object, said: string): strin
   });
 }
 
-/** COMMITMENT_INVITE=on: the once-a-call invite, or saying back what they named (commitment-invite.ts). */
+/** COMMITMENT_INVITE=on: the once-a-call invite or its say-back; then the journal ask (journal-ask.ts). */
 function inviteFor(
   chatCtx: llm.ChatContext,
   session: object,
@@ -263,20 +266,19 @@ function inviteFor(
 ): string {
   if (!said) return '';
   const { signals } = signalsFor(session, said);
-  return commitmentInviteNote(
-    session,
-    {
-      said,
-      callerTurns: callerTurnsOf(chatCtx),
-      ferniLines: chatCtx.items.flatMap((i) =>
-        i.type === 'message' && i.role === 'assistant' ? [i.textContent ?? ''] : []
-      ),
-      careful: (signals ?? regexSignals(said, callerMove(said))).careful,
-      wantsToEnd: understandingFor(session, said)?.wantsToEnd,
-      firstCall: isFirstCall((session as { userData?: unknown }).userData),
-    },
-    { crisis }
-  );
+  const turn = {
+    said,
+    callerTurns: callerTurnsOf(chatCtx),
+    ferniLines: chatCtx.items.flatMap((i) =>
+      i.type === 'message' && i.role === 'assistant' ? [i.textContent ?? ''] : []
+    ),
+    careful: (signals ?? regexSignals(said, callerMove(said))).careful,
+    wantsToEnd: understandingFor(session, said)?.wantsToEnd,
+    firstCall: isFirstCall((session as { userData?: unknown }).userData),
+  };
+  const invite = commitmentInviteNote(session, turn, { crisis });
+  const ask = journalAskFor(session, turn, { crisis, invite, phoneOnlyIdentity });
+  return [invite, ask].join(' ').trim() || questionPaceNote(turn.ferniLines, { crisis });
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
@@ -308,16 +310,13 @@ function styleFor(
   if (!said) return { text: TURN_STYLE_REMINDER };
   const listening = listeningReply(said, chatCtx, session);
   if (listening) return { text: listening };
-  // Seeded per call and words: the preemptive and final requests agree, but
-  // the same words on another call (or said again) can get another shape.
+  // Seeded per call and words: preemptive and final requests agree; another call may differ.
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const shaped = withQuiet(
-    withRecent(withOwnStory(sig, said, ownStory), said, chatCtx),
-    said,
-    chatCtx
-  );
+  const told = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
+  const quiet = withQuiet(told, said, chatCtx);
+  const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
   const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
   // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
   const burst = burstLine(

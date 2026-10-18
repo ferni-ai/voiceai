@@ -306,13 +306,13 @@ async function execute(
 
     try {
       const { textUser } = await loadOutreach();
-      const result = await textUser(userId, message, personaId);
+      const result = await textUser(userId, message, personaId, { askedNow: true });
 
       if (result.success) {
-        return `Done! I just texted ${recipient || 'you'}: "${message}"`;
+        return `Done! I just texted you: "${message}"`; // textUser reaches only the owner
       } else {
         if (result.error?.includes('phone')) {
-          return "I don't have a phone number on file. What's your number?";
+          return "I can't text you yet: there's no verified phone number on your account.";
         }
         return `I couldn't send that: ${result.error}. Want me to schedule it instead?`;
       }

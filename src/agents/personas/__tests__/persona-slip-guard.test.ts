@@ -64,6 +64,18 @@ describe('persona slip guard', () => {
     expect(prompt.indexOf('## Your own people')).toBeLessThan(prompt.indexOf('# Ferni Tool Usage'));
   });
 
+  it("reads the flag on every load: one caller's guard never reaches the next caller's prompt", async () => {
+    // Cohort flags change process.env per call; a process-wide prompt cache would
+    // hand the next caller the sheet built for the last one (cohort-flags.ts).
+    process.env['PROMPT_MODE'] = 'character';
+    process.env[FLAG] = 'on';
+    expect(await loadSystemPrompt('ferni')).toContain("You're fifty-seven.");
+    delete process.env[FLAG];
+    expect(await loadSystemPrompt('ferni')).not.toContain("You're fifty-seven.");
+    process.env[FLAG] = 'on';
+    expect(await loadSystemPrompt('ferni')).toContain("You're fifty-seven.");
+  });
+
   it('on: the sincere-ask honesty rule in the base instructions is unchanged', async () => {
     process.env[FLAG] = 'on';
     const base = await loadModelBaseInstructions();

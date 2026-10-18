@@ -13,6 +13,7 @@ import { t } from '../i18n/index.js';
 import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
 import { openDialog, type DialogHandle } from './overlay/dialog.js';
 import { STYLES } from './mobile-bottom-sheet.styles.js';
+import { isSheetActionVisible } from '../config/menu-visibility.js';
 
 // ============================================================================
 // TYPES
@@ -368,13 +369,12 @@ function getDefaultActions(): BottomSheetAction[] {
         window.dispatchEvent(new CustomEvent('ferni:open-insights'));
       },
     },
-  ];
+  ].filter((action) => isSheetActionVisible(action.id)); // hides: config/menu-visibility.ts
 }
 
 function populateActions(actions: BottomSheetAction[]): void {
   if (!actionsContainer) return;
 
-  // Clear existing actions
   while (actionsContainer.firstChild) {
     actionsContainer.removeChild(actionsContainer.firstChild);
   }

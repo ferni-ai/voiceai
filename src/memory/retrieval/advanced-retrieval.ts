@@ -20,6 +20,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { lifeMoments } from '../../utils/teammate-talk.js';
 import { embed, cosineSimilarity } from '../embeddings.js';
 import { findSimilarCached, storeInSemanticCache } from './semantic-memory-cache.js';
 import type { UserProfile, ConversationSummary, KeyMoment } from '../../types/user-profile.js';
@@ -259,8 +260,7 @@ export function buildMemoryIndex(userId: string, profile: UserProfile): number {
     memories.push(summaryToMemoryItem(summary));
   }
 
-  // Index key moments
-  const moments = profile.keyMoments ?? [];
+  const moments = lifeMoments(profile.keyMoments); // key moments, not "decided to talk to Jordan"
   for (const moment of moments) {
     memories.push(momentToMemoryItem(moment));
   }
