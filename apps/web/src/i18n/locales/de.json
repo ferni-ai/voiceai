@@ -2971,7 +2971,7 @@
     "waitlistMessage": "Wir führen Ferni schrittweise ein, um allen das beste Erlebnis zu bieten. Wir senden dir eine E-Mail, sobald dein Platz frei wird.",
     "waitlistEmail": "Wir benachrichtigen dich unter {email}",
     "tryDifferentAccount": "Anderes Konto versuchen",
-    "checkingAccess": "Dein Zugang wird überprüft...",
+    "checkingAccess": "Alles wird vorbereitet…",
     "checkingLabel": "Einen kleinen Moment...",
     "signInError": "Die Anmeldung wurde abgebrochen oder ist fehlgeschlagen. Bitte versuche es noch einmal.",
     "verifyEmailTitle": "Bestätige deine E-Mail",
@@ -10798,7 +10798,7 @@
   },
   "entrance": {
     "helper": "Dein persönlicher Wegbegleiter",
-    "connectToTalk": "Verbinden",
+    "connectToTalk": "Mit Ferni reden",
     "endTalk": "Auflegen",
     "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen",
     "connectingNow": "Verbindung wird hergestellt…",

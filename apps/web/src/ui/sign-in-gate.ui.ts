@@ -20,12 +20,17 @@ import {
 } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
 import { checkAccess, type AccessOutcome } from '../services/access-check.js';
+import { signInFailureMessage } from '../services/sign-in-error.js';
+import { isAppleWebSignInEnabled } from '../config/apple-web-signin-flag.js';
 import { emulatorSignInButtons } from './emulator-sign-in.js';
 import { tryFirstButtons } from './try-first.ui.js';
 import { t } from '../i18n/index.js';
 import { createAiRoleLabelRow } from './ai-role-label.ui.js';
 
 const log = createLogger('SignInGate');
+// app.ferni.ai serves the app for every path, so the legal pages are on the marketing site.
+const TERMS_URL = 'https://ferni.ai/terms';
+const PRIVACY_URL = 'https://ferni.ai/privacy';
 
 // ELEMENT REFERENCES
 
@@ -501,6 +506,18 @@ function releaseAppBehindGate(): void {
   inertBehindGate = [];
 }
 
+function createAppleButton(): HTMLButtonElement {
+  const appleBtn = document.createElement('button');
+  appleBtn.className = 'sign-in-gate-btn sign-in-gate-btn--apple';
+  appleBtn.dataset.provider = 'apple';
+  appleBtn.dataset.focusRing = 'inset';
+  appleBtn.appendChild(createAppleIcon());
+  const appleText = document.createElement('span');
+  appleText.textContent = t('auth.continueWithApple');
+  appleBtn.appendChild(appleText);
+  return appleBtn;
+}
+
 function createOverlay(): HTMLElement {
   const overlay = document.createElement('div');
   overlay.className = 'sign-in-gate-overlay';
@@ -550,17 +567,8 @@ function createOverlay(): HTMLElement {
   googleText.textContent = t('auth.continueWithGoogle');
   googleBtn.appendChild(googleText);
 
-  // Apple button
-  const appleBtn = document.createElement('button');
-  appleBtn.className = 'sign-in-gate-btn sign-in-gate-btn--apple';
-  appleBtn.dataset.provider = 'apple';
-  appleBtn.dataset.focusRing = 'inset';
-  appleBtn.appendChild(createAppleIcon());
-  const appleText = document.createElement('span');
-  appleText.textContent = t('auth.continueWithApple');
-  appleBtn.appendChild(appleText);
-
-  buttonsDiv.append(googleBtn, appleBtn, ...emulatorSignInButtons((e) => log.error('Emulator sign-in failed:', e)), ...tryFirstButtons());
+  const appleBtn = isAppleWebSignInEnabled() ? createAppleButton() : null; // hidden until Apple web sign-in is set up
+  buttonsDiv.append(googleBtn, ...(appleBtn ? [appleBtn] : []), ...emulatorSignInButtons((e) => log.error('Emulator sign-in failed:', e)), ...tryFirstButtons());
 
   // Error container
   const errorDiv = document.createElement('div');
@@ -574,14 +582,16 @@ function createOverlay(): HTMLElement {
   const parts2 = parts[1]!.split('{privacy}');
   footer.appendChild(document.createTextNode(parts[0]!));
   const termsLink = document.createElement('a');
-  termsLink.href = '/terms';
+  termsLink.href = TERMS_URL;
   termsLink.target = '_blank';
+  termsLink.rel = 'noopener noreferrer';
   termsLink.textContent = t('auth.termsLink');
   footer.appendChild(termsLink);
   footer.appendChild(document.createTextNode(parts2[0]!));
   const privacyLink = document.createElement('a');
-  privacyLink.href = '/privacy';
+  privacyLink.href = PRIVACY_URL;
   privacyLink.target = '_blank';
+  privacyLink.rel = 'noopener noreferrer';
   privacyLink.textContent = t('auth.privacyLink');
   footer.appendChild(privacyLink);
   footer.appendChild(document.createTextNode(parts2[1]!));
@@ -598,7 +608,7 @@ function createOverlay(): HTMLElement {
 
   // Add click handlers
   googleBtn.addEventListener('click', () => handleSignIn('google'));
-  appleBtn.addEventListener('click', () => handleSignIn('apple'));
+  appleBtn?.addEventListener('click', () => handleSignIn('apple'));
 
   return overlay;
 }
@@ -631,8 +641,8 @@ async function handleSignIn(provider: 'google' | 'apple'): Promise<void> {
 
     // Show error
     if (errorEl) {
-      // Library error messages are English-only; show the localized generic one.
-      errorEl.textContent = t('auth.signInError');
+      // Say why (popup blocked, provider off, network, closed); never the raw library message.
+      errorEl.textContent = signInFailureMessage(error, provider === 'google' ? 'Google' : 'Apple');
       errorEl.classList.add('visible');
     }
 

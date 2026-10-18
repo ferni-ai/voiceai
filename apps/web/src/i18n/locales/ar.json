@@ -3047,7 +3047,7 @@
     "waitlistMessage": "نحن نطلق Ferni تدريجيًا لضمان حصول الجميع على أفضل تجربة. سنرسل رسالة بريد إلكتروني بمجرد توفر مكانك.",
     "waitlistEmail": "سنرسل إشعارًا إلى {email}",
     "tryDifferentAccount": "تجربة حساب آخر",
-    "checkingAccess": "جاري التحقق من إمكانية الدخول...",
+    "checkingAccess": "نجهّز كل شيء…",
     "checkingLabel": "لحظة واحدة...",
     "signInError": "تم إلغاء تسجيل الدخول أو فشل. يرجى المحاولة مرة أخرى.",
     "verifyEmailTitle": "تأكيد بريدك الإلكتروني",
@@ -11274,7 +11274,7 @@
   },
   "entrance": {
     "helper": "المرشد الشخصي",
-    "connectToTalk": "تواصل",
+    "connectToTalk": "تحدّث مع Ferni",
     "endTalk": "إنهاء",
     "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء",
     "connectingNow": "جارٍ الاتصال…",

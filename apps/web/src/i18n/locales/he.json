@@ -2990,7 +2990,7 @@
     "waitlistMessage": "אנחנו משיקים את Ferni בהדרגה כדי להבטיח לכולם את החוויה הטובה ביותר. נשלח לך אימייל ברגע שהתור שלך יגיע.",
     "waitlistEmail": "נעדכן אותך בכתובת {email}",
     "tryDifferentAccount": "לנסות חשבון אחר",
-    "checkingAccess": "בודקים את הגישה שלך...",
+    "checkingAccess": "מכינים הכול…",
     "checkingLabel": "רק רגע...",
     "signInError": "ההתחברות בוטלה או נכשלה. כדאי לנסות שוב.",
     "verifyEmailTitle": "אימות כתובת האימייל",
@@ -10917,7 +10917,7 @@
   },
   "entrance": {
     "helper": "ליווי אישי צמוד",
-    "connectToTalk": "להתחבר",
+    "connectToTalk": "לדבר עם Ferni",
     "endTalk": "ניתוק",
     "connectingCancel": "מתחבר. הקש לביטול",
     "connectingNow": "מתחבר…",

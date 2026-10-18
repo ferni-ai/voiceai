@@ -2971,7 +2971,7 @@
     "waitlistMessage": "我们正在逐步推出 Ferni，以确保每个人都能获得最佳体验。一旦有空缺名额，我们会立即给你发送电子邮件。",
     "waitlistEmail": "我们会在 {email} 通知你",
     "tryDifferentAccount": "尝试其他账户",
-    "checkingAccess": "正在检查你的访问权限...",
+    "checkingAccess": "正在准备…",
     "checkingLabel": "请稍等片刻...",
     "signInError": "登录已取消或失败。请重试。",
     "verifyEmailTitle": "验证你的邮箱",
@@ -10798,7 +10798,7 @@
   },
   "entrance": {
     "helper": "你的专属向导",
-    "connectToTalk": "连线",
+    "connectToTalk": "和 Ferni 聊聊",
     "endTalk": "挂断",
     "connectingCancel": "正在连接。点按即可取消",
     "connectingNow": "正在连接…",

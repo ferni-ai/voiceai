@@ -3016,7 +3016,7 @@
     "waitlistMessage": "We're rolling out Ferni gradually to ensure everyone gets the best experience. We'll send you an email as soon as your spot opens up.",
     "waitlistEmail": "We'll notify you at {email}",
     "tryDifferentAccount": "Try a different account",
-    "checkingAccess": "Checking your access...",
+    "checkingAccess": "Getting things ready…",
     "checkingLabel": "Just a moment...",
     "signInError": "Sign-in was cancelled or failed. Please try again.",
     "verifyEmailTitle": "Verify your email",
@@ -10815,7 +10815,7 @@
   },
   "entrance": {
     "helper": "Your personal guide",
-    "connectToTalk": "Connect",
+    "connectToTalk": "Talk to Ferni",
     "endTalk": "Disconnect",
     "connectingCancel": "Connecting. Tap to cancel",
     "connectingNow": "Connecting…",
