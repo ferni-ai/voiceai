@@ -38,6 +38,7 @@ import {
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
+import { helpAskLine, newHelpAskState, type HelpAskState } from './ferni-asks-help.js';
 import { ferniThreadsOn, threadDetailFor } from './ferni-life-threads.js';
 import { dayDetailFor, isSelfShare, selfQuotes, soundsLow, turnsBack } from './ferni-self-share.js';
 import { callerVenting } from './turn-extras.js';
@@ -261,6 +262,8 @@ interface CallState {
   lastToolRan?: boolean;
   /** The one good thing in his day this call (ferni-self-share.ts). */
   detail: string;
+  /** FERNI_ASKS_HELP: how far his ask for a hand has got (ferni-asks-help.ts). */
+  help: HelpAskState;
 }
 const calls = new WeakMap<object, CallState>();
 
@@ -328,6 +331,7 @@ function callFor(
       lastNote: '',
       lastSelf: '',
       detail: detailFor(seed, now, view.userId, env),
+      help: newHelpAskState(),
     };
     calls.set(session, call);
   }
@@ -405,14 +409,14 @@ export function ferniStateTurn(
   if (options.careful === true || callerNeedsHim(said, mood)) call.needed = true;
   if (call.needed) return quiet();
   const energy = stateNote(call, userData, { words: turns.map(wordsIn), said, mood }, now);
-  const self = selfShareFor({
-    replies: ferniReplies(chatCtx),
-    said,
-    detail: call.detail,
-    toolRan,
-  });
+  const replies = ferniReplies(chatCtx);
+  const self = selfShareFor({ replies, said, detail: call.detail, toolRan });
+  const help = helpAskLine(
+    { ...self, detail: call.detail, replies, userId: userData.userId, userData, env: options.env },
+    call.help
+  );
   call.lastNote = [WELL, energy].filter(Boolean).join(' ');
-  call.lastSelf = self.line;
+  call.lastSelf = [self.line, help].filter(Boolean).join(' ');
   call.lastOwnStory = self.ownStory;
   return { note: call.lastNote, last: call.lastSelf, ownStory: call.lastOwnStory };
 }
