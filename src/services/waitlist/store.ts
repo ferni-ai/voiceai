@@ -13,8 +13,9 @@ import { readSettings, SETTINGS_DOC, type WaitlistSettings } from './settings.js
 
 export interface WaitlistStore {
   get: (id: string) => Promise<QueueEntry | null>;
-  findByCanonical: (canonical: string) => Promise<QueueEntry | null>;
-  findByUid: (uid: string) => Promise<QueueEntry | null>;
+  /** Every doc for an inbox, and every doc bound to a uid: all of them, in no promised order. */
+  byCanonical: (canonical: string) => Promise<QueueEntry[]>;
+  byUid: (uid: string) => Promise<QueueEntry[]>;
   findByInviteCode: (code: string) => Promise<QueueEntry | null>;
   /** How many people in line sort before (laneRank, priorityKey). */
   countAhead: (laneRank: number, priorityKey: number) => Promise<number>;
@@ -36,14 +37,16 @@ export function firestoreWaitlistStore(db: Firestore): WaitlistStore {
     const doc = (await q.limit(1).get()).docs.at(0);
     return doc ? readEntry(doc.id, doc.data()) : null;
   };
+  const all = async (q: Query): Promise<QueueEntry[]> =>
+    (await q.limit(50).get()).docs.map((d) => readEntry(d.id, d.data()));
   return {
     async get(id) {
       const snap = await col.doc(id).get();
       return snap.exists ? readEntry(id, snap.data() ?? {}) : null;
     },
-    findByCanonical: async (canonical) => first(col.where('emailCanonical', '==', canonical)),
+    byCanonical: async (canonical) => all(col.where('emailCanonical', '==', canonical)),
     findByInviteCode: async (code) => first(col.where('inviteCode', '==', code)),
-    findByUid: async (uid) => first(col.where('uid', '==', uid)),
+    byUid: async (uid) => all(col.where('uid', '==', uid)),
     async countAhead(laneRank, priorityKey) {
       const line = col.where('inQueue', '==', true);
       const [lowerLane, sameLane] = await Promise.all([

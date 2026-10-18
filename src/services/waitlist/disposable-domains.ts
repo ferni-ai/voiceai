@@ -14,3 +14,8 @@ export const DISPOSABLE_DOMAINS: ReadonlySet<string> = new Set(
   tempmail.com tempmail.dev tempmailo.com tempr.email throwawaymail.com trashmail.com
   trashmail.de yopmail.com yopmail.fr yopmail.net`.split(/\s+/)
 );
+
+/** Forwarding inboxes: real people use them, so they may join, but one person can mint many. */
+export const RELAY_DOMAINS: ReadonlySet<string> = new Set(
+  'duck.com mozmail.com privaterelay.appleid.com addy.io anonaddy.me anonaddy.com'.split(' ')
+);
