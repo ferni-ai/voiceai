@@ -153,7 +153,7 @@ function generateBackchannelGuidance(
   switch (context) {
     case 'hard_news':
       lines.push('CONTEXT: User shared something hard.');
-      lines.push(contextGuidance['after_hard_news'] || 'Hold space. Silence can be powerful.');
+      lines.push(contextGuidance['after_hard_news'] || 'Stay with them. Silence can be powerful.');
       if (silenceGuidance['after_heavy_share']) {
         lines.push(`CONSIDER: ${silenceGuidance['after_heavy_share']}`);
       }

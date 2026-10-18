@@ -54,7 +54,7 @@ When you finish implementing a feature, **proactively suggest the correct deploy
 
 | ❌ FORBIDDEN (blocks commit)          | ✅ REQUIRED                    |
 | ------------------------------------- | ------------------------------ |
-| `gcloud compute ssh ... docker run`   | `ferni deploy gce`             |
+| `gcloud compute ssh ... docker run`   | deploy-agent skill (`lk`)      |
 | `gcloud run deploy ...`               | deploy-production.yml          |
 | `firebase deploy --only hosting`      | deploy-firebase.yml            |
 | `docker push gcr.io/...`              | the deploy workflows           |
