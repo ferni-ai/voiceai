@@ -35,6 +35,8 @@ public final class CallSession {
     public private(set) var isOnHold = false
     /// When the latest call began (what it taught Ferni is learned after this).
     public private(set) var startedAt: Date?
+    /// The room of the latest call (a report's session id).
+    public private(set) var roomName: String?
     public private(set) var captions = CaptionBook()
     public private(set) var personaID = "ferni"
     /// Whether this phone has ever had a call go live (Home's first-visit hello).
@@ -225,6 +227,7 @@ public final class CallSession {
         }
         let room = makeRoom()
         self.room = room
+        roomName = token.room
         agentHere = false
         eventsTask = Task { [weak self] in
             for await event in room.events { self?.handle(event, from: room) }
