@@ -50,7 +50,8 @@ function textedSinceDue(f: FollowUp, dueMs: number): boolean {
   return f.surfaced.some((s) => s.via === 'text' && Date.parse(s.at) >= dueMs);
 }
 
-export function rightMoment(f: FollowUp, now: Date): Moment {
+/** `quiet`: the person's own quiet-hours check (messagingPrefs), else 21:00-08:00. */
+export function rightMoment(f: FollowUp, now: Date, quiet = isQuietHour): Moment {
   if (isClosed(f)) return 'wait';
   const nowMs = now.getTime();
   if (f.dueAt === null) {
@@ -62,5 +63,5 @@ export function rightMoment(f: FollowUp, now: Date): Moment {
   if (textedSinceDue(f, dueMs)) return 'next-call';
   if (nowMs - dueMs > LATE_TEXT_HOURS * HOUR_MS) return 'next-call';
   if (CALLER_TIMED.has(f.kind)) return 'text-now';
-  return isQuietHour(now, f.zone) ? 'wait' : 'text-now';
+  return quiet(now, f.zone) ? 'wait' : 'text-now';
 }

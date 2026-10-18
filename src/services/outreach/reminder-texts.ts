@@ -30,6 +30,7 @@ import {
   installReminderTextGuard,
   type GuardedTextOutcome,
 } from '../scheduling/reminder-text-guard.js';
+import { prefsQuietUntil } from '../messaging/prefs-gate.js';
 import { toE164 } from './checkin-replies.js';
 import {
   defaultTextDeps,
@@ -56,12 +57,14 @@ export interface ReminderTextDeps {
   text: TextDeps;
   sendOwn: typeof sendGuardedText;
   sendOther: typeof sendOnBehalfText;
+  quietUntil: typeof prefsQuietUntil;
 }
 
 const defaultDeps = (): ReminderTextDeps => ({
   text: defaultTextDeps(),
   sendOwn: sendGuardedText,
   sendOther: sendOnBehalfText,
+  quietUntil: prefsQuietUntil,
 });
 
 /** follow-through's quiet window ends at 08:00 (right-moment.ts QUIET_END_HOUR). */
@@ -115,7 +118,9 @@ export async function guardReminderText(
 
   if (to === own) {
     const now = deps.text.now();
-    const morning = quietHoursEnd(now, r.timezone);
+    // Their own quiet hours (messagingPrefs) with MESSAGING_PREFS on, else 21:00-08:00.
+    const fromPrefs = await deps.quietUntil(r.userId, now, r.timezone);
+    const morning = fromPrefs !== undefined ? fromPrefs : quietHoursEnd(now, r.timezone);
     if (morning) return holdUntil(r, morning);
     const t = { userId: r.userId, body: reminderText(r), kind: 'reminder' as const };
     const outcome = await deps.sendOwn(

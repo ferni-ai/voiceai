@@ -116,13 +116,19 @@ async function evaluateTrigger(trigger: OutreachTriggerPayload): Promise<WorkerD
       };
     }
 
-    // Quiet hours. Off: 22:00-08:00 on the server clock, which is UTC on Cloud Run.
+    // Quiet hours: their messagingPrefs with MESSAGING_PREFS on; else QUIET_HOURS_UNIFIED;
+    // else 22:00-08:00 on the server clock, which is UTC on Cloud Run.
     const { isQuietHoursUnified, userQuietHours } =
       await import('../services/outreach/quiet-hours.js');
+    const { prefsQuietUntil } = await import('../services/messaging/prefs-gate.js');
+    const fromPrefs = await prefsQuietUntil(trigger.userId, now);
     const hour = now.getHours();
-    const isQuietHours = isQuietHoursUnified()
-      ? (await userQuietHours(trigger.userId, now)).quiet
-      : hour < 8 || hour >= 22;
+    const isQuietHours =
+      fromPrefs !== undefined
+        ? fromPrefs !== null
+        : isQuietHoursUnified()
+          ? (await userQuietHours(trigger.userId, now)).quiet
+          : hour < 8 || hour >= 22;
     if (isQuietHours) {
       return {
         shouldSend: false,

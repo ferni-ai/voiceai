@@ -93,6 +93,8 @@ export const COHORT_FLAGS = [
   // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
   // (services/outreach/morning-brief/brief-job.ts).
   'MORNING_BRIEF',
+  // Read per person at each send (messaging/prefs-gate.ts prefsOnFor), never process.env as applied.
+  'MESSAGING_PREFS',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);

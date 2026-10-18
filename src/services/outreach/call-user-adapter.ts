@@ -15,12 +15,13 @@ import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
 import { scheduleProactiveCall } from './conversational-calls.js';
+import { prefsQuietUntil } from '../messaging/prefs-gate.js';
 import { sendGuardedText, type TextSkip } from './guarded-text.js';
 import { escapeXml } from './twilio-ssml.js';
 import { userReach } from './user-reach.js';
 
 /** What Ferni says when a text to the owner was held. */
-const HELD: Record<TextSkip | 'quiet-hours', string> = {
+const HELD: Record<TextSkip, string> = {
   'quiet-hours': "it's quiet hours where you are",
   'opted-out': 'you replied STOP to my texts',
   'sms-off': 'texts are turned off in your settings',
@@ -29,6 +30,14 @@ const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'no-hash-secret': "texting isn't set up here",
   'send-failed': "the text didn't go through",
 };
+
+/** Their own quiet hours (messagingPrefs) with MESSAGING_PREFS on, else 21:00-08:00 in their zone. */
+async function ownerQuiet(userId: string, now: Date): Promise<boolean> {
+  const zone = userTimeZone({ userId });
+  const fromPrefs = await prefsQuietUntil(userId, now, isValidTimeZone(zone) ? zone : undefined);
+  if (fromPrefs !== undefined) return fromPrefs !== null;
+  return isValidTimeZone(zone) && isQuietHour(now, zone);
+}
 
 /** No second immediate text within a minute: a loop can't spam the owner. */
 const OWNER_TEXT_GAP_MS = 60 * 1000;
@@ -44,8 +53,7 @@ export const callUserAdapter: CallUserPort = {
     return user?.emailVerified ? (user.email ?? undefined) : undefined;
   },
   textOwner: async (userId, body, { askedNow }) => {
-    const zone = userTimeZone({ userId });
-    if (!askedNow && isValidTimeZone(zone) && isQuietHour(new Date(), zone)) {
+    if (!askedNow && (await ownerQuiet(userId, new Date()))) {
       return { sent: false, reason: HELD['quiet-hours'] };
     }
     const refId = `${Date.now()}`;

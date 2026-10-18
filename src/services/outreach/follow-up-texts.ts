@@ -47,6 +47,8 @@ export interface FollowUpTextDeps {
   optedIn: () => Promise<string[]>;
   /** The person's cohort flags, from Firestore (never process env). */
   resolveFlags: (userId: string) => Promise<Record<string, string>>;
+  /** Their own quiet-hours check (messagingPrefs), read when their MESSAGING_PREFS is on. */
+  quietFor?: (userId: string) => Promise<(at: Date, zone: string) => boolean>;
   /** The guarded sender (guarded-text.ts sendGuardedText). */
   sendText: (t: {
     userId: string;
@@ -146,7 +148,9 @@ async function forPerson(
   const { now, dryRun } = opts;
   const due = await dueFor(deps.store, userId, now);
   report.scanned += due.length;
-  const moments = due.map((f) => ({ f, moment: rightMoment(f, now) }));
+  const on = flags.MESSAGING_PREFS === 'on' && deps.quietFor;
+  const quiet = on ? await deps.quietFor?.(userId) : undefined;
+  const moments = due.map((f) => ({ f, moment: rightMoment(f, now, quiet) }));
   for (const { f } of moments.filter((m) => m.moment === 'expire')) {
     if (dryRun || (await record(deps.store, f, { type: 'expire' }, now))) report.expired++;
     else report.lostSaves++;

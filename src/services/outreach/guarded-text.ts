@@ -51,6 +51,7 @@ import {
   type QuietHoursUser,
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
+import { guardedTextHold } from '../messaging/prefs-gate.js';
 
 const log = createLogger({ module: 'guarded-text' });
 /** Send locks (lockedSend), kept apart from the records so no query reads them. */
@@ -95,6 +96,7 @@ export type TextSkip =
   | 'recently-sent'
   | 'sms-off'
   | 'opted-out'
+  | 'quiet-hours'
   | 'send-failed';
 export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip };
 
@@ -234,6 +236,8 @@ export async function sendGuardedText(
   const phone = await resolveCheckinPhone(t.userId, userDoc, deps);
   if (!phone) return skip('no-verified-phone');
   if (smsTurnedOff(userDoc, legacyChannels)) return skip('sms-off');
+  const held = await guardedTextHold(t.userId, userDoc, t.kind, now); // MESSAGING_PREFS
+  if (held) return skip(held);
 
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');

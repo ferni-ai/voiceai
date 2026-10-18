@@ -20,6 +20,7 @@ import {
   type FlagLookupOptions,
 } from '../../services/platform/cohort-flags.js';
 import type { FollowUpTextDeps } from '../../services/outreach/follow-up-texts.js';
+import { prefsOnFor, quietCheckFor } from '../../services/messaging/prefs-gate.js';
 
 const log = createLogger({ module: 'BackgroundDeliveryJobs' });
 
@@ -156,6 +157,7 @@ export function followThroughFlags(
     optedIn: async () => usersWithFlag('FOLLOW_THROUGH_TEXTS', opts),
     resolveFlags: async (userId) => ({
       FOLLOW_THROUGH_TEXTS: (await flagForUser(userId, 'FOLLOW_THROUGH_TEXTS', opts)) ?? '',
+      ...((await prefsOnFor(userId, opts)) && { MESSAGING_PREFS: 'on' }),
     }),
   };
 }
@@ -168,7 +170,8 @@ async function defaultFollowThroughDeps(): Promise<FollowUpTextDeps | null> {
   ]);
   const store = firestoreFollowUpStore();
   if (!store) return null;
-  return { store, ...followThroughFlags(), sendText: async (t) => sendGuardedText(t) };
+  const sendText: FollowUpTextDeps['sendText'] = async (t) => sendGuardedText(t);
+  return { store, ...followThroughFlags(), sendText, quietFor: quietCheckFor };
 }
 
 /**
