@@ -1,10 +1,7 @@
 /**
- * The waitlist queue on the existing `waitlist` collection, which waves let in
- * 100 at a time (2026-10-18). Order: lane (vip, friends, standard), then join
- * time less 3 days per verified friend, at most 5 (a time boost is stable; "N
- * places" would reshuffle everyone). Only verified people are in line. Derived
- * fields let one index (inQueue, laneRank, priorityKey) order and count it.
- *
+ * The waitlist queue (waves of 100, 2026-10-18): lane (vip, friends, standard), then join time
+ * less 3 days per verified friend, at most 5. Only verified people are in line; derived fields
+ * let one index (inQueue, laneRank, priorityKey) order and count it.
  * @module services/waitlist/queue
  */
 import { randomInt } from 'crypto';
@@ -74,14 +71,10 @@ export interface QueueEntry {
 }
 
 function toDate(value: unknown): Date | undefined {
-  if (value instanceof Date) return value;
   const ts = value as { toDate?: () => Date } | null;
-  if (typeof ts?.toDate === 'function') return ts.toDate();
-  if (typeof value === 'string' || typeof value === 'number') {
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? undefined : d;
-  }
-  return undefined;
+  if (value instanceof Date || typeof ts?.toDate === 'function') return value instanceof Date ? value : ts!.toDate!(); // prettier-ignore
+  const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : undefined;
+  return d && !Number.isNaN(d.getTime()) ? d : undefined;
 }
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined);

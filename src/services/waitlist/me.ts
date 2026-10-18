@@ -58,8 +58,14 @@ export function meView(
   };
 }
 
-export async function meFor(store: WaitlistStore, email: string, now: Date): Promise<WaitlistMe> {
-  const entry = await findEntry(store, email);
+export async function meFor(
+  store: WaitlistStore,
+  email: string,
+  now: Date,
+  uid?: string
+): Promise<WaitlistMe> {
+  // prettier-ignore
+  const entry = await findEntry(store, email, uid);
   const position = entry ? await positionOf(store, entry) : null;
   return meView(entry, position, await store.settings(), now);
 }

@@ -144,3 +144,24 @@ describe('who is in the line', () => {
     expect(await place(s, 'in@example.com')).toBe(1);
   });
 });
+
+describe('finding your own entry', () => {
+  it('folds aliases only for Gmail; elsewhere only the exact address is yours', async () => {
+    const s = memoryStore();
+    await join(s.store, 'pat@example.com', 0);
+    expect(await findEntry(s.store, 'pat+x@example.com')).toBeNull();
+    const g = await join(s.store, 'jdoe@gmail.com', 1);
+    expect((await findEntry(s.store, 'J.Doe+x@googlemail.com'))?.id).toBe(g.id);
+  });
+
+  it('is bound to the Firebase uid once a sign-in joined', async () => {
+    const s = memoryStore();
+    const out = await joinWaitlist(s.store, { email: 'old@example.com', uid: 'u1', verified: true, source: 't', now: NOW }); // prettier-ignore
+    if ('refused' in out) throw new Error(out.refused);
+    expect(s.docs.get(out.entry.id)).toMatchObject({ uid: 'u1' });
+    expect((await findEntry(s.store, 'new@example.com', 'u1'))?.id).toBe(out.entry.id);
+    const again = await joinWaitlist(s.store, { email: 'new@example.com', uid: 'u1', verified: true, source: 't', now: NOW }); // prettier-ignore
+    expect('entry' in again && again.entry.id).toBe(out.entry.id);
+    expect(s.docs.size).toBe(1);
+  });
+});

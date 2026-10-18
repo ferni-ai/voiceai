@@ -38,8 +38,8 @@ export async function keepWaitlistReferral(
 }
 
 /** First sign-in with the gate on: in line as a verified person, with the friend's code if one came. */
-export async function addSigninToWaitlist(email: string, referralCode: string | undefined): Promise<void> { // prettier-ignore
+export async function addSigninToWaitlist(email: string, referralCode: string | undefined, uid: string): Promise<void> { // prettier-ignore
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore unavailable');
-  await joinWaitlist(firestoreWaitlistStore(db), { email, verified: true, ref: referralCode, source: 'app_signin', now: new Date() }); // prettier-ignore
+  await joinWaitlist(firestoreWaitlistStore(db), { email, uid, verified: true, ref: referralCode, source: 'app_signin', now: new Date() }); // prettier-ignore
 }
