@@ -130,50 +130,13 @@ ferni agent publish my-advisor
 
 **Full E2E docs:** `docs/architecture/AGENT-E2E-DEVELOPER-EXPERIENCE.md`
 
-### Agent Management
-
-```bash
-# Interactive agent creation wizard
-ferni agent init <agent-id>
-ferni agent init my-coach --template mentor
-ferni agent init quick-agent --quick
-
-# Local development server with hot reload
-ferni agent preview <agent-id>
-ferni agent preview my-agent --port 4000
-
-# One-command production deployment
-ferni agent publish <agent-id>
-ferni agent publish my-agent --dry-run
-ferni agent publish my-agent --subdomain custom-name
-
-# Other agent commands
-ferni agent list              # List all agents
-ferni agent show <agent-id>   # Show agent details
-ferni agent test <agent-id>   # Run tests
-```
-
 ### Deployment
 
-```bash
-# Deploy to GCE (voice agent) - RECOMMENDED
-ferni deploy gce
+The CLI deploys only the async workers (`ferni deploy async`). Everything else:
 
-# Deploy to GCE with MIG auto-scaling
-ferni deploy gce --mig
-
-# Deploy UI backend to Cloud Run
-ferni deploy ui
-
-# Deploy frontend to Firebase
-ferni deploy frontend
-
-# Deploy everything
-ferni deploy all
-
-# Dry run (preview)
-ferni deploy gce --dry-run
-```
+- Web (UI server, app, landing): GitHub workflows, on every push to main
+  (`deploy-production.yml`, `deploy-firebase.yml`; by hand: `gh workflow run ...`).
+- Voice agent: `.claude/skills/deploy-agent/SKILL.md` (the gated `lk` chain).
 
 ### Build
 
