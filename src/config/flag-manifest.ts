@@ -132,6 +132,7 @@ export const FLAG_MANIFEST = {
   DEFER_TOOL_UPDATES: { default: 'on', owner: 'voice', kind: 'config' },
   DELIBERATION: { default: 'off', owner: 'voice', kind: 'experiment' },
   DEMO_CALL_CAP: { default: 'off', owner: 'voice', kind: 'experiment' },
+  DEMO_RATE_LIMIT_SHARED: { default: 'off', owner: 'platform', kind: 'experiment' },
   DEV_TELEMETRY: { default: 'off', owner: 'voice', kind: 'config' },
   DEV_TELEMETRY_VERBOSE: { default: 'off', owner: 'voice', kind: 'config' },
   DIRECTOR_ANSWER_TURN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -168,8 +169,12 @@ export const FLAG_MANIFEST = {
   FAMILY_CHECKIN_STOP: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // never on when NODE_ENV=production
   FERNI_DEVELOPER_TOOLS: { default: 'off', owner: 'tools', kind: 'config' },
+  // Ferni's laughter lever reachable (floor 0.15) and a director that stops discouraging upbeat (director/team-laughter.ts, director-notes.ts)
+  FERNI_LIGHT_TOUCH: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_LOCAL_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_PERSONA_SLIP_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // one reaction word on easy turns, a playful line on neutral ones, a bright opener kept, a warmer hello (agents/personas/ferni-playful.ts)
+  FERNI_PLAYFUL: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_SCRIPTED_HINT_LINES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   FERNI_SELF_MEMORY: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_SELF_RECALL: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -178,6 +183,10 @@ export const FLAG_MANIFEST = {
   FERNI_TASK_SCRIPTED_TRANSITIONS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on (with FERNI_STATE): his day holds this week's beat of a written life thread (ferni-life-threads.ts)
   FERNI_THREADS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // unset: the Director's tones. A Sonic 3 emotion: Ferni's resting tone (director/ferni-resting-voice.ts)
+  FERNI_VOICE_EMOTION: { default: 'off', owner: 'voice', kind: 'config' },
+  // unset: resting pace 1. A number, clamped to 0.85-1.2: Ferni's resting pace (same module)
+  FERNI_VOICE_SPEED: { default: 'off', owner: 'voice', kind: 'config' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_DEFER_BACKGROUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -278,6 +287,8 @@ export const FLAG_MANIFEST = {
   // getNews topic search with no NewsData/GNews key says so and gives RSS headlines (news.ts)
   NEWS_HEADLINES_FALLBACK: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  // First on-behalf dial checks the do-not-call list (first-dial-opt-out.ts)
+  ON_BEHALF_DNC_CHECK: { default: 'off', owner: 'outreach', kind: 'experiment' },
   ON_BEHALF_TEXTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // off: texts to someone else skip the STOP, quiet-hours and 10-minute guards (guarded-text.ts); rollback only
   ON_BEHALF_TEXT_GUARD: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
@@ -328,6 +339,8 @@ export const FLAG_MANIFEST = {
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   PUBSUB_ENABLED: { default: 'off', owner: 'voice', kind: 'config' },
+  // no question right after a reply that ended on one (question-pace.ts)
+  QUESTION_PACE: { default: 'off', owner: 'voice', kind: 'experiment' },
   QUIET_CALLER: { default: 'off', owner: 'voice', kind: 'experiment' },
   QUIET_HOURS_UNIFIED: { default: 'off', owner: 'outreach', kind: 'experiment' },
   QUIRK_AWARENESS: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -400,6 +413,8 @@ export const FLAG_MANIFEST = {
   TEAMMATE_TALK_FILTER: { default: 'off', owner: 'memory', kind: 'experiment' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a call or text read back and waiting for the owner's yes is kept as a follow-up (outreach/confirm-thread.ts)
+  THREADS_PENDING_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
   TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // topic tools go to the agent on the call now, and a handed-to agent gets the call's
   // loaded domains (voice-agent/deferred-tool-update.ts)
@@ -472,6 +487,8 @@ export const FLAG_MANIFEST = {
   // caps SEARCH_MAX_PER_PERSON_HOUR (20), SEARCH_MAX_ANON_PER_HOUR (10, all unverified callers)
   // and SEARCH_MAX_PER_DAY (150 Google queries)
   WEB_SEARCH: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // on: "predict my week" loads Peter's game; a week-old prediction is asked about once a call
+  WEEKLY_PREDICTION: { default: 'off', owner: 'tools', kind: 'experiment' },
   WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
   WORKER_DRAIN_TIMEOUT_MS: { default: '1800000', owner: 'platform', kind: 'config' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },

@@ -67,7 +67,7 @@ export function stopRateLimitCleanup(): void {
  * Get rate limit data for an IP
  */
 function getDemoRateLimit(ip: string): DemoRateLimitData {
-  const dayStart = new Date().setHours(0, 0, 0, 0);
+  const dayStart = demoDayStart();
 
   let data = demoRateLimits.get(ip);
 
@@ -85,13 +85,24 @@ function getDemoRateLimit(ip: string): DemoRateLimitData {
   return data;
 }
 
-/**
- * Check if a demo session is allowed for an IP
- */
-export function checkDemoAllowed(ip: string, config = DEMO_CONFIG): RateLimitResult {
-  const data = getDemoRateLimit(ip);
-  const now = Date.now();
+/** The counters a demo limit decision needs (in memory or in Firestore). */
+export interface DemoLimitCounters {
+  dayStart: number;
+  sessionCount: number;
+  lastSession: number;
+}
 
+/** Local midnight today: the start of the window the daily limit counts in. */
+export function demoDayStart(now = Date.now()): number {
+  return new Date(now).setHours(0, 0, 0, 0);
+}
+
+/** Decide whether one more demo is allowed, given an IP's counters for today. */
+export function evaluateDemoLimit(
+  data: DemoLimitCounters,
+  now: number,
+  config = DEMO_CONFIG
+): RateLimitResult {
   // Check daily limit
   if (data.sessionCount >= config.maxSessionsPerDay) {
     return {
@@ -121,6 +132,13 @@ export function checkDemoAllowed(ip: string, config = DEMO_CONFIG): RateLimitRes
 }
 
 /**
+ * Check if a demo session is allowed for an IP
+ */
+export function checkDemoAllowed(ip: string, config = DEMO_CONFIG): RateLimitResult {
+  return evaluateDemoLimit(getDemoRateLimit(ip), Date.now(), config);
+}
+
+/**
  * Record a demo session for an IP
  */
 export function recordDemoSession(ip: string): string {
@@ -135,6 +153,16 @@ export function recordDemoSession(ip: string): string {
   });
 
   return sessionId;
+}
+
+/**
+ * Give back an IP's most recent demo (it never started): one count, and the cooldown.
+ */
+export function releaseDemoSession(ip: string): void {
+  const data = getDemoRateLimit(ip);
+  data.sessionCount = Math.max(0, data.sessionCount - 1);
+  data.lastSession = 0;
+  data.sessions.pop();
 }
 
 /**

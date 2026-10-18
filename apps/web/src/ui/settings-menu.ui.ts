@@ -21,10 +21,10 @@ import { signOutOfThisBrowser } from './sign-out.js';
 import { roadmapService } from '../services/roadmap.service.js';
 import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
 
-// Seeds display for personalization economy
-import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 import { transcriptUI } from './transcript.ui.js';
 import { canOpenSupport } from './support/open-support.js';
+import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
+import { isPaywallOn } from '../services/paywall.service.js';
 import { soundUI } from './sound.ui.js';
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
@@ -578,6 +578,8 @@ class SettingsMenuUI {
 
   private renderContent(): void {
     if (!this.panel) return;
+    // Free, with the Venmo chip-in configured: "Chip in" (Venmo card) replaces Account & Billing
+    const chipIn = isVenmoChipInEnabled() && !isPaywallOn();
 
     // Track which sections are expanded
     const expandedSections = this.expandedSections || new Set(['connect', 'personalize']);
@@ -596,9 +598,6 @@ class SettingsMenuUI {
           </div>
           <button class="settings-menu__close" aria-label="${t('accessibility.closeMenu')}">${ICONS.close}</button>
         </header>
-
-        <!-- Seeds Balance Card -->
-        ${renderSeedsSettingsCard()}
 
         <nav class="settings-menu__nav">
           <!-- PINNED ITEMS (Your Favorites) -->
@@ -690,7 +689,7 @@ class SettingsMenuUI {
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript'), transcriptUI.isEnabled())}
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
+            ${chipIn ? '' : this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${memoryControlEnabled() ? this.renderMenuItem('cognitive', ICONS.brain, t('ferniKnows.panelTitle')) : ''}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -703,6 +702,7 @@ class SettingsMenuUI {
           <div class="settings-menu__quick-actions" role="group" aria-label="${t('menu.sections.connect')}">
             ${this.renderMenuItem('whats-growing', ICONS.seedling, t('menu.items.whatsGrowing'))}
             ${this.renderMenuItem('share-ferni', ICONS.share, t('menu.items.shareFerni'))}
+            ${chipIn ? this.renderMenuItem('support-ferni', ICONS.heart, t('buttons.chipIn')) : ''}
             ${this.renderMenuItem('help', ICONS.help, t('menu.items.takeTour'))}
             ${this.renderMenuItem('sign-out', ICONS.signOut, t('buttons.signOut'))}
           </div>
