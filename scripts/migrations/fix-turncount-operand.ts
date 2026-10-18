@@ -6,7 +6,9 @@
  * rebuilt the sentinel as a plain object, so 427 conversations store turnCount as
  * `{ operand: 1 }` (prod audit 2026-10-18). The writer keeps sentinels now; the
  * reader treats a non-number as 0. This sets each such turnCount to the number of
- * documents in the conversation's own `turns` subcollection.
+ * documents in the conversation's own `turns` subcollection, keeping the old
+ * value in `turnCountWas`. Only bogle_users/{uid}/conversations are touched, and
+ * only the `{ operand }` shape is repaired.
  *
  *   GOOGLE_CLOUD_PROJECT=<id> pnpm tsx scripts/migrations/fix-turncount-operand.ts
  *       dry run: counts only
@@ -18,9 +20,19 @@
 import { pathToFileURL } from 'node:url';
 import { getFirestoreDb } from '../../src/utils/firestore-utils.js';
 
-/** A stored turnCount that needs repair: anything but a finite number. */
+/**
+ * Only the corrupted shape: the flattened increment sentinel, an object with an
+ * `operand` key. Anything else odd (a string, a missing field) is left alone.
+ */
 export const needsRepair = (turnCount: unknown): boolean =>
-  !(typeof turnCount === 'number' && Number.isFinite(turnCount));
+  typeof turnCount === 'object' &&
+  turnCount !== null &&
+  !Array.isArray(turnCount) &&
+  'operand' in turnCount;
+
+/** Only bogle_users/{uid}/conversations: other collections named "conversations" aren't ours to fix. */
+export const isUserConversation = (ref: FirebaseFirestore.DocumentReference): boolean =>
+  ref.parent.parent?.parent.id === 'bogle_users';
 
 /** 'apply' only with --apply AND --confirm-project naming the project; else a dry run. */
 export function runMode(argv: readonly string[], project: string): 'dry-run' | 'apply' | 'refused' {
@@ -31,6 +43,8 @@ export function runMode(argv: readonly string[], project: string): 'dry-run' | '
 
 export interface TurnCountReport {
   scanned: number;
+  /** conversations docs outside bogle_users/{uid}/conversations, skipped */
+  otherCollections: number;
   broken: number;
   repaired: number;
   /** Turns counted across the broken conversations (what turnCount becomes). */
@@ -41,7 +55,13 @@ export async function repairTurnCounts(
   db: FirebaseFirestore.Firestore,
   apply: boolean
 ): Promise<TurnCountReport> {
-  const report: TurnCountReport = { scanned: 0, broken: 0, repaired: 0, turnsCounted: 0 };
+  const report: TurnCountReport = {
+    scanned: 0,
+    otherCollections: 0,
+    broken: 0,
+    repaired: 0,
+    turnsCounted: 0,
+  };
   let last: FirebaseFirestore.QueryDocumentSnapshot | undefined;
   for (;;) {
     let q = db.collectionGroup('conversations').select('turnCount').limit(500);
@@ -50,12 +70,18 @@ export async function repairTurnCounts(
     if (snap.empty) break;
     for (const doc of snap.docs) {
       report.scanned++;
-      if (!needsRepair(doc.get('turnCount'))) continue;
+      if (!isUserConversation(doc.ref)) {
+        report.otherCollections++;
+        continue;
+      }
+      const was: unknown = doc.get('turnCount');
+      if (!needsRepair(was)) continue;
       report.broken++;
       const turns = (await doc.ref.collection('turns').count().get()).data().count;
       report.turnsCounted += turns;
       if (apply) {
-        await doc.ref.update({ turnCount: turns });
+        // the stored value is kept, so the repair can be checked or undone
+        await doc.ref.update({ turnCount: turns, turnCountWas: was });
         report.repaired++;
       }
     }
