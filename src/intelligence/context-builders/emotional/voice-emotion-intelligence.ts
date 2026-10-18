@@ -226,7 +226,7 @@ but they're trying to sound composed. This is a sacred moment.
 DO:
 - Honor their vulnerability with gentleness
 - Slow way down - use pauses thoughtfully
-- Hold space, don't fill it
+- Let the quiet sit, don't fill it
 - Be gentle and present
 
 DON'T:
@@ -239,7 +239,7 @@ DON'T:
       'Honor this vulnerable moment with your presence',
       'Slow your pace significantly - let pauses breathe',
       'Be gentle - both in words and delivery',
-      'Hold space without needing to fill it',
+      'Let the quiet sit without needing to fill it',
     ],
     avoidBehaviors: [
       'Being too clinical',

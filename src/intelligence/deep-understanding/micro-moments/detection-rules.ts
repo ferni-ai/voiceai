@@ -197,7 +197,7 @@ export const MICRO_MOMENT_RULES: MicroMomentRule[] = [
 export const ACKNOWLEDGMENT_PHRASES: Record<MicroMomentType, string[]> = {
   'vulnerability-edge': [
     'Thank you for trusting me with that.',
-    'I hear you. That took courage.',
+    'That took guts.',
     "I'm honored you shared that.",
     "That's a big thing to say out loud.",
   ],
@@ -249,7 +249,7 @@ export const ACKNOWLEDGMENT_PHRASES: Record<MicroMomentType, string[]> = {
 export const ACKNOWLEDGMENT_SSML: Record<MicroMomentType, string[]> = {
   'vulnerability-edge': [
     "<break time='300ms'/>Thank you<break time='200ms'/> for trusting me with that.",
-    "<break time='400ms'/>I hear you.<break time='200ms'/> That took courage.",
+    "<break time='400ms'/>That took guts.",
   ],
   'small-win': [
     "Nice.<break time='200ms'/> That counts.",
