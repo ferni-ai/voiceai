@@ -32,7 +32,7 @@ name: Deploy Production (Blue-Green)
 # for 3+ hours on 2026-10-18. The steps are unchanged; they now run in order
 # in the single deploy-ui job:
 # 1. Prepare  → Validate secrets, metadata, deployment safety check
-# 2. Gate     → CI verdict on this commit (see "on:" below)
+# 2. Gate     → CI verdict on this commit (see "on:" below), forward-only guard
 # 3. Build    → design-system, then the UI Docker image
 # 4. Deploy   → Blue-green with health check, rollback if unhealthy
 # 5. Verify   → Smoke tests against the deployed revision
@@ -53,8 +53,13 @@ on:
   # main lets only the newest waiting run finish, superseded ones end cancelled
   # (no deploy). merge_group runs don't deploy: their commit isn't on main yet
   # when they finish, and GitHub cancels them when the queue merges; the push
-  # run on the merged commit is the verdict. A push CI skips (docs-only paths)
-  # leaves nothing to deploy; the image's inputs are all in CI's path list.
+  # run on the merged commit is the verdict. A push that CI's `paths:` filter
+  # skips (docs only) deploys nothing; every input of the UI image is in that
+  # list (src, apps, packages, design-system, docker, the root package and
+  # tsconfig files, patches, .npmrc, .dockerignore, this workflow).
+  # CI runs can still finish out of order, so the job's forward-only guard
+  # (scripts/ci/deploy-forward-guard.sh) never deploys an older commit over a
+  # newer one. A failed CI on main's tip is reported by report-not-live.
   workflow_run:
     workflows: [CI]
     types: [completed]
@@ -77,6 +82,14 @@ on:
         description: 'Traffic % to new revision (canary)'
         type: number
         default: 100
+      allow_older:
+        description: 'Roll back on purpose: skip the forward-only check (needs a reason)'
+        type: boolean
+        default: false
+      reason:
+        description: 'Why (required with allow_older; shown in the run summary)'
+        type: string
+        default: ''
 
 # One deploy at a time. Merges minutes apart each start a deploy, and without
 # a group they ran in parallel, so whichever finished last decided what served
@@ -85,7 +98,8 @@ on:
 # cancel-in-progress stays off so a rollout is never cut off midway.
 # Every CI completion on main starts a run, most of them cancelled or failed
 # CI that deploy nothing. Those take a group of their own, so they can never
-# replace a pending real deploy. The condition matches the deploy-ui `if:`.
+# replace a pending real deploy. The condition matches the deploying part of
+# the deploy-ui `if:`.
 concurrency:
   group: ${{ (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) && 'deploy-production' || format('deploy-production-noop-{0}', github.run_id) }}
   cancel-in-progress: false
@@ -139,6 +153,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 0  # the forward-only guard compares commits
 
       - name: Generate metadata
         id: meta
@@ -176,16 +191,45 @@ jobs:
           echo "Wait for CI to pass (that deploys it), or rerun this once it has."
           exit 1
 
+      # ═══════════════════════════════════════════════════════════════════════
+      # GCR AUTHENTICATION
+      # ═══════════════════════════════════════════════════════════════════════
+      # Uses gcloud auth configure-docker which works with service account keys
+      # Required to push the UI image to gcr.io, and here first so the guard
+      # can read what production serves. The build itself pulls nothing
+      # private (the ferni-speaker base image is gone from Dockerfile.ui).
+      # ═══════════════════════════════════════════════════════════════════════
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # Never move production backwards: deploy only when the commit production
+      # serves is an ancestor of DEPLOY_SHA. A no-op otherwise (deploy=false),
+      # which skips every step below. A manual allow_older (with a reason)
+      # skips the check, for an intentional rollback.
+      - name: Forward-only guard
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          ALLOW_OLDER: ${{ inputs.allow_older == true }}
+          REASON: ${{ inputs.reason }}
+        run: bash scripts/ci/deploy-forward-guard.sh
+
       - name: Setup pnpm
+        if: steps.guard.outputs.deploy == 'true'
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
+        if: steps.guard.outputs.deploy == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
       - name: Fix local dependencies for CI
+        if: steps.guard.outputs.deploy == 'true'
         run: |
           sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
@@ -197,10 +241,11 @@ jobs:
       # No install scripts: nothing compiles on the host. The safety check, the
       # design-system build and the smoke tests need only tsx and plain Node.
       - name: Install dependencies
+        if: steps.guard.outputs.deploy == 'true'
         run: pnpm install --no-frozen-lockfile --ignore-scripts
 
       - name: Deployment safety check
-        if: ${{ !inputs.skip_tests }}
+        if: ${{ steps.guard.outputs.deploy == 'true' && !inputs.skip_tests }}
         run: |
           echo "🔍 Scanning for unsafe deployment patterns..."
           npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all || {
@@ -215,24 +260,15 @@ jobs:
       # Dockerfile.ui builds the backend and the frontend itself; it copies only
       # design-system/dist from the host.
       - name: Build design-system (required for Docker)
+        if: steps.guard.outputs.deploy == 'true'
         run: node design-system/build.js
 
-      # ═══════════════════════════════════════════════════════════════════════
-      # GCR AUTHENTICATION
-      # ═══════════════════════════════════════════════════════════════════════
-      # Uses gcloud auth configure-docker which works with service account keys
-      # Required to push the UI image to gcr.io. The build itself pulls nothing
-      # private (the ferni-speaker base image is gone from Dockerfile.ui).
-      # ═══════════════════════════════════════════════════════════════════════
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
       - name: Configure Docker for GCR
+        if: steps.guard.outputs.deploy == 'true'
         run: gcloud auth configure-docker gcr.io --quiet
 
       - name: Free runner disk space
+        if: steps.guard.outputs.deploy == 'true'
         # The ui image build ran out of disk (ERR_PNPM_ENOSPC) on ubuntu-latest.
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
@@ -240,6 +276,7 @@ jobs:
           df -h /
 
       - name: Build and push image
+        if: steps.guard.outputs.deploy == 'true'
         run: |
           docker build \
             --file docker/Dockerfile.ui \
@@ -261,6 +298,7 @@ jobs:
           docker push ${{ env.UI_IMAGE }}:latest
 
       - name: Image summary
+        if: steps.guard.outputs.deploy == 'true'
         run: |
           echo "### 🐳 UI Server Image Built" >> $GITHUB_STEP_SUMMARY
           echo "- **Image:** \`${{ env.UI_IMAGE }}:${{ env.DEPLOY_SHA }}\`" >> $GITHUB_STEP_SUMMARY
@@ -271,11 +309,13 @@ jobs:
       # 3. If healthy: shift traffic blue→green (100%)
       # 4. If unhealthy: remove the green tag, keep blue, fail the run
       - name: Set up Cloud SDK
+        if: steps.guard.outputs.deploy == 'true'
         uses: google-github-actions/setup-gcloud@v3
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
       - name: 🟢 Deploy GREEN revision (no traffic)
+        if: steps.guard.outputs.deploy == 'true'
         id: deploy
         run: |
           REVISION_SUFFIX=${{ steps.meta.outputs.short_sha }}
@@ -331,6 +371,7 @@ jobs:
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Health check green revision
+        if: steps.guard.outputs.deploy == 'true'
         id: health
         run: |
           URL="${{ steps.deploy.outputs.url }}"
@@ -348,7 +389,7 @@ jobs:
           echo "healthy=false" >> $GITHUB_OUTPUT
 
       - name: Shift traffic to green
-        if: steps.health.outputs.healthy == 'true'
+        if: steps.guard.outputs.deploy == 'true' && steps.health.outputs.healthy == 'true'
         run: |
           TRAFFIC=${{ inputs.traffic_percent || 100 }}
 
@@ -363,7 +404,7 @@ jobs:
           fi
 
       - name: Rollback on failure
-        if: steps.health.outputs.healthy != 'true'
+        if: steps.guard.outputs.deploy == 'true' && steps.health.outputs.healthy != 'true'
         run: |
           gcloud run services update-traffic john-bogle-ui \
             --region=${{ env.GCP_REGION }} \
@@ -374,15 +415,16 @@ jobs:
       # Against the revision just deployed. It used to run with no URL, so it hit
       # localhost:3002, failed 0/7 on every deploy, and continue-on-error hid it.
       - name: Run smoke tests
+        if: steps.guard.outputs.deploy == 'true'
         env:
           SMOKE_TEST_URL: ${{ steps.deploy.outputs.url }}
         run: |
           test -n "$SMOKE_TEST_URL" || { echo "::error::the deploy step gave no URL"; exit 1; }
           npx tsx apps/cli/src/commands/test/smoke-test.ts
 
-      # ── 6. Notify (always, so a failed deploy still reports) ───────────────
+      # ── 6. Notify (always, so a failed deploy still reports; not on a no-op) ─
       - name: Create deployment summary
-        if: always()
+        if: always() && steps.guard.outputs.deploy != 'false'
         run: |
           echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -404,7 +446,7 @@ jobs:
 
       - name: Determine status
         id: status
-        if: always()
+        if: always() && steps.guard.outputs.deploy != 'false'
         run: |
           UI="${{ job.status }}"
 
@@ -423,7 +465,7 @@ jobs:
           fi
 
       - name: Send Slack notification
-        if: ${{ always() && env.SLACK_WEBHOOK_URL != '' }}
+        if: ${{ always() && steps.guard.outputs.deploy != 'false' && env.SLACK_WEBHOOK_URL != '' }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
@@ -463,7 +505,7 @@ jobs:
             }' || true
 
       - name: Track DORA metrics
-        if: ${{ always() && env.DORA_API_URL != '' && env.DORA_API_KEY != '' }}
+        if: ${{ always() && steps.guard.outputs.deploy != 'false' && env.DORA_API_URL != '' && env.DORA_API_KEY != '' }}
         env:
           DORA_API_URL: ${{ secrets.DORA_API_URL }}
           DORA_API_KEY: ${{ secrets.DORA_API_KEY }}
@@ -478,3 +520,39 @@ jobs:
               "success": ${{ steps.status.outputs.status == 'success' }},
               "triggeredBy": "${{ github.actor }}"
             }' || true
+
+  # ============================================================================
+  # MERGED BUT NOT LIVE: CI failed on a push to main, so nothing deploys
+  # ============================================================================
+  # Without this a red head is silent here: the deploy job just doesn't run.
+  # Red when the failed commit is still main's tip (production is behind main
+  # until a fix lands); a warning when a newer head has superseded it.
+  report-not-live:
+    name: ⚠️ Merged but not live
+    runs-on: ubuntu-24.04
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Report the commit that did not deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          CI_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha) || tip=""
+          if [ "$SHA" = "$tip" ]; then
+            msg="Merged but not live: CI failed on $SHA, main's tip, so production was not deployed. CI: $CI_URL"
+            echo "::error::$msg"
+            echo "### ❌ $msg" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          msg="CI failed on $SHA, but main has moved on to ${tip:-an unknown head}, which deploys if its CI passes. CI: $CI_URL"
+          echo "::warning::$msg"
+          echo "### ⚠️ $msg" >> "$GITHUB_STEP_SUMMARY"

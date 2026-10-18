@@ -23,6 +23,9 @@ on:
       - '.github/workflows/**'
       - '.github/actions/**'
       - '**/Dockerfile*'
+      # Shapes the UI image's build context. Prod web deploys start from this
+      # push run's verdict (deploy-production.yml), so it must run on it.
+      - '.dockerignore'
       - 'cloudbuild*.yaml'
       - 'infra/**'
   pull_request:
