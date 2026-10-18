@@ -26,11 +26,16 @@
 #     forward-only check holds.
 #   - While a rollback's deploy freeze holds (scripts/ci/deploy-freeze.sh), it
 #     is a no-op ("frozen: <reason>"), except for a manual run with allow_older.
+#   - On workflow_run, the triggering push CI run (CI_RUN_ID) must have run
+#     main's required CI jobs (scripts/ci/required-checks.sh). Skipped jobs are
+#     fine when an unscoped merge-queue run passed them on this exact tree
+#     (ci.yml's queue-tested skip); otherwise nothing they cover changed, and it
+#     is a quiet no-op ("no code change since the last deploy"). A failed or
+#     missing required job refuses (red).
 #
-# Env: DEPLOY_SHA, EVENT (github.event_name), ALLOW_OLDER, REASON, QUEUE_TESTED,
-# QUEUE_RUN_ID,
-# GCP_REGION, GCP_PROJECT_ID, GITHUB_REPOSITORY, GITHUB_OUTPUT,
-# GITHUB_STEP_SUMMARY, and GH_TOKEN for gh.
+# Env: DEPLOY_SHA, EVENT (github.event_name), ALLOW_OLDER, REASON, CI_RUN_ID,
+# QUEUE_TESTED, QUEUE_RUN_ID, GCP_REGION, GCP_PROJECT_ID, GITHUB_REPOSITORY,
+# GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, and GH_TOKEN for gh.
 set -euo pipefail
 
 SERVICE=john-bogle-ui
@@ -74,6 +79,25 @@ if [ "$EVENT" = workflow_dispatch ]; then
     summary "Reason: $REASON"
     deploy "allow_older set by ${GITHUB_ACTOR:-a maintainer}"
   fi
+fi
+
+if [ "$EVENT" = workflow_run ]; then
+  checks="$(dirname "$0")/required-checks.sh"
+  rc=0
+  why=$(bash "$checks" ci-run "${CI_RUN_ID:-}") || rc=$?
+  case "$rc" in
+    0) echo "✅ Push CI: $why" ;;
+    3)
+      qrc=0
+      queue=$(bash "$checks" queue-covers "$DEPLOY_SHA") || qrc=$?
+      case "$qrc" in
+        0) echo "✅ Push CI skipped required jobs ($why) because merge-queue run $queue already passed them on this tree." ;;
+        3) noop "no code change since the last deploy; nothing to ship. ($why: nothing the suite covers changed.)" ;;
+        *) refuse "could not check whether the merge queue tested this tree: $queue" ;;
+      esac ;;
+    4) refuse "push CI on it didn't pass main's required checks: $why" ;;
+    *) refuse "could not check push CI run ${CI_RUN_ID:-?}: $why" ;;
+  esac
 fi
 
 tip=$(gh api "repos/$REPO/commits/main" --jq .sha 2>/dev/null) || tip=""

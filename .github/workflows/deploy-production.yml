@@ -259,6 +259,7 @@ jobs:
           REASON: ${{ inputs.reason }}
           QUEUE_TESTED: ${{ steps.queue.outputs.tested }}
           QUEUE_RUN_ID: ${{ steps.queue.outputs.run-id }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
         run: bash scripts/ci/deploy-forward-guard.sh
 
       - name: Setup pnpm
