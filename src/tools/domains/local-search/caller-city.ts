@@ -20,6 +20,7 @@
 import { flagOn } from '../../../config/env-flag.js';
 import { isRequireFixMemoryEnabled } from '../../../config/require-fix-memory-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { nonAccountPrefixOf } from '../../../utils/synthetic-user.js';
 import type { ToolContext } from '../../registry/types.js';
 import {
   callerLocation,
@@ -100,11 +101,10 @@ const NUMBER_WORDS = new Set([
 /**
  * Ids that name no one: the fast-path shared ctx, the placeholder handler-setup
  * gives a call with no user, and the ids of unknown or on-behalf callers
- * (isMemberCall in services/outreach/after-call-checkin.ts). Only a member's
+ * (nonAccountPrefixOf in utils/synthetic-user.ts). Only a member's
  * own id is reused on a later call, so only that one can be remembered.
  */
 const NO_CALLER_IDS = new Set(['shared', 'anonymous', 'default', 'unknown']);
-const NO_CALLER_PREFIXES = ['anon:', 'onbehalf:'];
 
 export type SaveCityResult = 'saved' | 'not-a-city' | 'failed';
 
@@ -149,7 +149,7 @@ export function callerUserId(opts: unknown): string | undefined {
   if (typeof id !== 'string') return undefined;
   const trimmed = id.trim();
   if (!trimmed || NO_CALLER_IDS.has(trimmed.toLowerCase())) return undefined;
-  return NO_CALLER_PREFIXES.some((prefix) => trimmed.startsWith(prefix)) ? undefined : trimmed;
+  return nonAccountPrefixOf(trimmed) ? undefined : trimmed;
 }
 
 /** "Philadelphia, PA" for the caller's saved city; undefined when none is saved or the read fails. */
@@ -173,8 +173,7 @@ export async function resolveSearchLocation(
   if (!placesLocationOn()) return resolveCallerLocation(requested, opts, ctx);
   if (!isUnspecifiedLocation(requested)) return requested?.trim();
   const userId = callerUserId(opts);
-  const remembered =
-    userId && callerCityMemoryOn() ? await savedCallerLocation(userId) : undefined;
+  const remembered = userId && callerCityMemoryOn() ? await savedCallerLocation(userId) : undefined;
   return remembered ?? callerLocation(opts, ctx);
 }
 
