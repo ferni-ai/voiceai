@@ -74,8 +74,18 @@ describe('the commitment judge prompt and reply', () => {
       { statement: 'renew the passport', isCommitment: true, confidence: 0.8 },
       { statement: 'yesterday thing', isCommitment: true, confidence: 0.8 },
     ]);
-    expect(parseJudgedCommitments('not json', '2026-10-10')).toEqual([]);
-    expect(parseJudgedCommitments(null, '2026-10-10')).toEqual([]);
+    expect(parseJudgedCommitments('{"commitments": []}', '2026-10-10')).toEqual([]);
+    expect(parseJudgedCommitments('not json', '2026-10-10')).toBeNull();
+    expect(parseJudgedCommitments(null, '2026-10-10')).toBeNull();
+  });
+
+  it('reads the last answer when the model corrects itself after a first one', () => {
+    const first = '{"commitments":[{"statement":"clean the garage","due":"2026-10-11","isCommitment":true,"confidence":0.9}]}'; // prettier-ignore
+    const second = '{"commitments":[{"statement":"clean the garage","isCommitment":true,"confidence":0.9}]}'; // prettier-ignore
+    const reply = `${first}\n\nHmm, "this weekend" is not one day. Corrected:\n\n${second}`;
+    expect(parseJudgedCommitments(reply, '2026-10-10')).toEqual([
+      { statement: 'clean the garage', isCommitment: true, confidence: 0.9 },
+    ]);
   });
 });
 
@@ -113,6 +123,20 @@ describe('after the call', () => {
     expect(llm).toHaveBeenCalledTimes(2);
     expect(s.legacy).not.toHaveBeenCalled();
     expect(s.judged).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks the fallback once when the first reply holds no JSON, and not when it's an empty answer", async () => {
+    const env = { AFTER_CALL_EXTRACTION: 'on', COMMITMENT_SINGLE_WRITER: 'on' };
+    const prose = vi.fn(async () => 'It reads as something they intend to do.\n```json\n```');
+    const fallback = vi.fn(async () => judgeReply);
+    const s = sinks();
+    await extractWorldAfterCall(call, { env, llm: prose, judgeFallback: fallback, ...s.deps });
+    expect(fallback).toHaveBeenCalledTimes(1);
+    expect(s.judged.mock.calls.map((c) => c[1].statement)).toEqual(['call Mindy tomorrow']);
+    const none = vi.fn(async () => '{"commitments": []}');
+    const unused = vi.fn(async () => judgeReply);
+    await extractWorldAfterCall(call, { env, llm: none, judgeFallback: unused, ...sinks().deps });
+    expect(unused).not.toHaveBeenCalled();
   });
 
   it("reads the flag as this caller's cohort has it, not as the next caller's env does", async () => {

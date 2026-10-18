@@ -39,10 +39,10 @@ Return JSON only: {"commitments": [ ... ]}. Each item:
   - stances, maybes and deliberating ("I'll mull it over", "let me chew on it", "we'll see how it goes", a bare "I'll try", "maybe", "I'm considering it"); trying a named thing counts ("I'll try the spin class Monday")
   - things about this conversation or Ferni ("I'll ring you back", "I'll fill you in later"), requests to Ferni, questions
   - what someone else will do, what already happened, and anything Ferni said it would do
-- confidence: 0..1, how sure you are of isCommitment
+- confidence: 0..1, how sure you are of isCommitment. It is not how firm, big or likely the plan is: a soft or open-ended thing the caller still said they'd do ("I'll be more patient with my kids") is a sure commitment. Go under 0.7 only when you doubt it is one at all
 - quote: the caller's own words it came from, at most 25 words
 
-Return {"commitments": []} when the caller said nothing like this.
+Return {"commitments": []} when the caller said nothing like this. Your whole reply is that one JSON object: no words before or after it.
 
 TRANSCRIPT:
 ${transcript}`;
@@ -74,31 +74,61 @@ function toJudged(raw: unknown, callDate: string): JudgedCommitment | null {
   };
 }
 
-/** The judged items in a model reply; [] when the reply has no usable JSON. */
-export function parseJudgedCommitments(reply: string | null, callDate: string): JudgedCommitment[] {
-  const json = reply?.match(/\{[\s\S]*\}/)?.[0];
-  if (!json) return [];
-  let items: unknown;
-  try {
-    items = (JSON.parse(json) as { commitments?: unknown }).commitments;
-  } catch {
-    return [];
+/**
+ * The items of the last {"commitments": [...]} in the reply that parses, or
+ * null when there is none. Claude now and then writes a first answer, a line
+ * of second thoughts, then a corrected one; a single first-brace-to-last-brace
+ * match read none of them.
+ */
+function commitmentItems(reply: string): unknown[] | null {
+  let items: unknown[] | null = null;
+  for (const m of reply.matchAll(/\{\s*"commitments"/g)) {
+    for (let end = reply.indexOf('}', m.index); end !== -1; end = reply.indexOf('}', end + 1)) {
+      try {
+        const v = (JSON.parse(reply.slice(m.index, end + 1)) as { commitments?: unknown })
+          .commitments;
+        if (Array.isArray(v)) {
+          items = v;
+          break;
+        }
+      } catch {
+        // Not the end of this object yet: try the next closing brace.
+      }
+    }
   }
-  if (!Array.isArray(items)) return [];
-  return items
-    .slice(0, MAX_ITEMS)
-    .map((raw) => toJudged(raw, callDate))
-    .filter((j): j is JudgedCommitment => j !== null);
+  return items;
 }
 
-/** The call's judged commitment candidates; [] when the caller said nothing or the model failed. */
+/** The judged items in a model reply; null when it holds no commitments object at all. */
+export function parseJudgedCommitments(
+  reply: string | null,
+  callDate: string
+): JudgedCommitment[] | null {
+  const items = reply ? commitmentItems(reply) : null;
+  return items === null
+    ? null
+    : items
+        .slice(0, MAX_ITEMS)
+        .map((raw) => toJudged(raw, callDate))
+        .filter((j): j is JudgedCommitment => j !== null);
+}
+
+/**
+ * The call's judged commitment candidates; [] when the caller said nothing or
+ * the model failed. A reply with no commitments object (prose, an empty code
+ * fence) is asked again of `fallback` (the Gemini path), since callLLM only
+ * falls back from Claude when the call itself fails.
+ */
 export async function judgeCallCommitments(
   turns: CallTurn[],
   call: CallFacts,
-  llm: ExtractionLlm
+  llm: ExtractionLlm,
+  fallback?: ExtractionLlm
 ): Promise<JudgedCommitment[]> {
   if (!turns.some((t) => t.role === 'user' && (t.content?.trim() ?? '') !== '')) return [];
   const moment = callMomentFor(call.startedAt, call.timezone ?? 'UTC');
-  const reply = await llm(buildCommitmentJudgePrompt(transcriptOf(turns), moment));
-  return parseJudgedCommitments(reply, moment.date);
+  const prompt = buildCommitmentJudgePrompt(transcriptOf(turns), moment);
+  const first = parseJudgedCommitments(await llm(prompt), moment.date);
+  if (first !== null || !fallback) return first ?? [];
+  return parseJudgedCommitments(await fallback(prompt), moment.date) ?? [];
 }

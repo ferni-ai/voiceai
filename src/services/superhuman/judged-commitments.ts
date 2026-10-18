@@ -46,8 +46,9 @@ export interface JudgedCommitment {
 /** Whether a judged candidate is kept: a sure commitment Ferni can say back as written. */
 export function keepJudged(j: JudgedCommitment): boolean {
   if (!j.isCommitment || j.confidence < MIN_JUDGED_CONFIDENCE) return false;
-  const named =
-    j.person !== undefined && j.statement.toLowerCase().includes(j.person.toLowerCase());
+  // A "person" that is itself a pronoun ("them") names no one.
+  const person = j.person && !UNNAMED.test(j.person) ? j.person.toLowerCase() : undefined;
+  const named = person !== undefined && j.statement.toLowerCase().includes(person);
   return named || !UNNAMED.test(j.statement);
 }
 

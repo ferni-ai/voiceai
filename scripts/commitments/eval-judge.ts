@@ -55,6 +55,7 @@ const CALL = { sessionId: 'eval', startedAt: STARTED, timezone: 'America/New_Yor
 const CTX = { userId: 'eval', sessionId: 'eval', now: STARTED.getTime() + 1_800_000, timezone: CALL.timezone }; // prettier-ignore
 const ASK = { role: 'assistant', content: "So what's the rest of your day look like?" };
 let failures = 0;
+let fallbacks = 0;
 
 /** The production call options; a null answer is retried, then counted as a transport failure. */
 async function llm(prompt: string): Promise<string | null> {
@@ -68,9 +69,15 @@ async function llm(prompt: string): Promise<string | null> {
   return null;
 }
 
+/** As register.ts: a Claude reply with no JSON is asked again on the Gemini path. */
+async function gemini(prompt: string): Promise<string | null> {
+  fallbacks++;
+  return callLLM(prompt, { maxTokens: 2000, temperature: 0.1, timeout: 20_000 });
+}
+
 /** What production would store from this call: the judge's read, then the keep rule. */
 async function stored(turns: Turn[]): Promise<string[]> {
-  const judged = await judgeCallCommitments(turns, CALL, llm);
+  const judged = await judgeCallCommitments(turns, CALL, llm, provider === 'claude' ? gemini : undefined); // prettier-ignore
   return judgedCommitmentDocs(judged, CTX).map((d) => String(d.statement));
 }
 
@@ -119,7 +126,7 @@ for (const set of (['context', 'tails'] as const).filter((x) => !only || only.in
 const said = [...(result.real?.all ?? []), ...(result.heldoutReal?.all ?? [])];
 const firstPerson = said.filter((s) => /^(i|i'll|i'm|ill|imma|gonna|going to)\b/i.test(s));
 console.log(`statements in first person: ${firstPerson.length}/${said.length}`);
-console.log(`provider ${provider}, threshold ${MIN_JUDGED_CONFIDENCE}, transport failures ${failures}`); // prettier-ignore
+console.log(`provider ${provider}, threshold ${MIN_JUDGED_CONFIDENCE}, transport failures ${failures}, Gemini fallbacks ${fallbacks}`); // prettier-ignore
 const rate = (set: string): string => pct(result[set]?.wrong ?? 0, result[set]?.n ?? 0);
 const right = (set: string): string => pct((result[set]?.n ?? 0) - (result[set]?.wrong ?? 0), result[set]?.n ?? 0); // prettier-ignore
 console.log(`SUMMARY false reject ${rate('real')} / held-out ${rate('heldoutReal')} (target <= 2%); false accept ${rate('junk')} / held-out ${rate('heldoutJunk')} (target <= 5%); unresolved stored ${rate('unresolved')}; pronoun ${right('context')} (target >= 90%)`); // prettier-ignore

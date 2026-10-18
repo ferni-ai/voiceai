@@ -41,12 +41,16 @@ export const WORLD_EXTRACTION_TASK = 'world-extraction';
 
 const llm: ExtractionLlm = (prompt) =>
   callLLM(prompt, { maxTokens: 2000, temperature: 0.1, timeout: 20_000, task: 'memory' });
+/** No task, so never Claude: the judge's second try when Claude's reply holds no JSON. */
+const geminiLlm: ExtractionLlm = (prompt) =>
+  callLLM(prompt, { maxTokens: 2000, temperature: 0.1, timeout: 20_000 });
 
 /** The task body; exported so tests can run it with a fake model and store. */
 export async function extractWorldAfterCall(
   ctx: AfterCallContext,
   deps: IngestDeps & {
     llm?: ExtractionLlm;
+    judgeFallback?: ExtractionLlm;
     commitments?: CaptureDeps;
     judged?: JudgedDeps;
     cohorts?: CohortStore;
@@ -70,7 +74,12 @@ export async function extractWorldAfterCall(
   };
   // Started alongside the extraction: both model reads must fit the task's 30 s.
   const judging = judged
-    ? judgeCallCommitments([...ctx.turns], call, model).then(async (found) =>
+    ? judgeCallCommitments(
+        [...ctx.turns],
+        call,
+        model,
+        deps.judgeFallback ?? (deps.llm ? undefined : geminiLlm)
+      ).then(async (found) =>
         recordJudgedCommitments(found, capturing, { env: deps.env, ...deps.judged })
       )
     : null;

@@ -52,6 +52,7 @@ describe('which judged candidates are kept', () => {
   it('drops a statement whose "her" or "him" names no one, keeps one that names them', () => {
     expect(keepJudged(j({ statement: 'call her this afternoon', person: undefined }))).toBe(false);
     expect(keepJudged(j({ statement: 'call her tomorrow', person: 'Mindy' }))).toBe(false);
+    expect(keepJudged(j({ statement: 'tell them on Monday', person: 'them' }))).toBe(false);
     expect(keepJudged(j({ statement: 'take Mindy to her appointment', person: 'Mindy' }))).toBe(
       true
     );
