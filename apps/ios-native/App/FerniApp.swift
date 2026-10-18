@@ -17,6 +17,8 @@ struct FerniApp: App {
                 .environment(model)
                 // Silent, anonymous on a first launch: talking never waits on a sign-in screen.
                 .task { await model.account.start() }
+                // Consent belongs to whoever is signed in: switch with them.
+                .onChange(of: model.account.user?.uid, initial: true) { _, uid in model.consent.use(uid: uid) }
         }
     }
 }
@@ -44,9 +46,23 @@ final class AppModel {
     var isShowingSettings = false
     var isAskingConsent = false
 
-    /// Talk: the consent screen first if it's never been agreed (or was withdrawn).
+    /// Talk: the consent screen first if this person hasn't agreed (or withdrew).
     func talk() {
         if consent.hasAgreed { call.start() } else { isAskingConsent = true }
+    }
+
+    /// "I agree, let's talk": recorded for the signed-in account only, so the
+    /// account is settled first.
+    func agreeAndTalk() async {
+        await account.start()
+        consent.use(uid: account.user?.uid)
+        if consent.agree() { call.start() }
+    }
+
+    /// Sign out: this person's agreement leaves the phone with them.
+    func signOut() async {
+        if let uid = account.user?.uid { consent.forget(uid: uid) }
+        await account.signOut()
     }
 
     init(config: FerniConfig = .fromBundle(), firebaseReady: Bool) {
