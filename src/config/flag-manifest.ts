@@ -177,6 +177,8 @@ export const FLAG_MANIFEST = {
   GTM_REQUIRE_APPROVAL: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   HANDOFF_ARRIVAL_CONTEXT: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   HANDOFF_ASK_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // the first handoff's goodbye plays and its teammate arrives once (missed-greeting-end.ts)
+  HANDOFF_FIRST_FIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a handed-to persona gets the first agent's essential tool set, not Tier 0 (essential-tool-set.ts)
   HANDOFF_FULL_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
   // the caller can talk through a handoff goodbye (handoff-talk-through.ts)
