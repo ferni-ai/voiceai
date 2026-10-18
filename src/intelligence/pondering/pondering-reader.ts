@@ -43,6 +43,8 @@ export function surfacedKey(item: { basis: string; text: string }): string {
 export interface GreetingPick {
   followUp?: PonderFollowUp;
   note?: PonderNote;
+  /** When the pass that wrote the pick ran (ISO), for showing how fresh it is. */
+  generatedAt?: string;
 }
 
 interface StoredPondering {
@@ -90,7 +92,8 @@ export async function readPonderingForGreeting(
   const p = (doc.data() ?? {}) as StoredPondering;
   const generated = p.generatedAt ? Date.parse(p.generatedAt) : NaN;
   if (Number.isNaN(generated) || now.getTime() - generated > MAX_AGE_DAYS * DAY_MS) return {};
-  return pick(p, new Set(p.surfaced ?? []), now.toISOString().slice(0, 10));
+  const picked = pick(p, new Set(p.surfaced ?? []), now.toISOString().slice(0, 10));
+  return picked.followUp || picked.note ? { ...picked, generatedAt: p.generatedAt } : picked;
 }
 
 /** Records that an item was raised, so later calls don't repeat it. */

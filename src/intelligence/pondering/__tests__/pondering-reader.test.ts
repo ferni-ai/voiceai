@@ -79,7 +79,9 @@ describe('readPonderingForGreeting', () => {
       now: new Date('2026-10-12T15:00:00Z'),
       env: on,
     });
-    expect(pick).toEqual({ note: { text: 'your sister moving to Denver', basis: 's3' } });
+    expect(pick.followUp).toBeUndefined();
+    expect(pick.note).toEqual({ text: 'your sister moving to Denver', basis: 's3' });
+    expect(pick.generatedAt).toBe(s.generatedAt);
   });
 
   it('surfaces a prying why only reworded as a check-in', async () => {

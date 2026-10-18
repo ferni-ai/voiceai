@@ -65,6 +65,8 @@ async function forgottenTopics(db: Firestore, userId: string): Promise<string[]>
 export interface OpenerAsk {
   text: string;
   item: PonderFollowUp | PonderNote;
+  /** When the pondering pass that wrote the item ran (ISO). */
+  generatedAt?: string;
 }
 
 /** The pondered thing the opener may ask about, or undefined. Reads in parallel. */
@@ -81,5 +83,5 @@ export async function ponderingForOpener(
   ]);
   const item = picked.followUp ?? picked.note;
   if (!item || crisis || isForgotten(item.text, forgotten)) return undefined;
-  return { text: item.text, item };
+  return { text: item.text, item, generatedAt: picked.generatedAt };
 }

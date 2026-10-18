@@ -39,6 +39,7 @@ import { handleDataRoutes } from './routes/data.js';
 import { handleGamesRoutes } from './routes/games.js';
 import { handleGroupCoachingRoutes } from './routes/group-coaching.js';
 import { handleGrowthRoutes } from './routes/growth.js';
+import { handleHomeRoute } from './home/home-route.js';
 import { handleMemoriesRoutes } from './routes/memories.js';
 import { handleRememberedRoutes } from './routes/remembered.js';
 import { handleKnownRoutes } from './routes/known.js';
@@ -56,6 +57,7 @@ import { handleWearableRoutes } from './routes/wearable.js';
 
 // Route prefixes handled by this module (for early bailout)
 const ENGAGEMENT_ROUTE_PREFIXES = [
+  '/api/home', // The iPhone app's Home line and note
   '/api/conversations',
   '/api/commitments', // Better Than Human - track commitments
   '/api/analytics',
@@ -133,6 +135,11 @@ export async function handleEngagementRoutes(
 
   // Delegate to modular route handlers
   // Each handler returns true if it handled the route, false otherwise
+
+  // The Home line and note (read-only, verified caller only)
+  if (await handleHomeRoute(req, res, pathname, parsedUrl)) {
+    return true;
+  }
 
   // Conversations
   if (await handleConversationsRoutes(req, res, pathname, parsedUrl)) {
