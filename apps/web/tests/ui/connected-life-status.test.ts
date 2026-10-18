@@ -2,6 +2,9 @@
  * Connected Life reads link status from routes that exist, in the shapes they send:
  * - /spotify/status needs device_id (without it the server reports SDK config, not the user's link);
  * - /api/calendar/providers/status returns providers keyed by name, not an array.
+ *
+ * The Spotify tile is hidden for now (no prod credentials, config/menu-visibility.ts),
+ * so only its link status request is checked.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -24,7 +27,7 @@ describe('Connected Life status', () => {
     document.body.innerHTML = '';
   });
 
-  it('marks Spotify and Calendar connected from the real routes and shapes', async () => {
+  it('marks Calendar connected and asks Spotify per device, from the real routes and shapes', async () => {
     mockApiGet.mockImplementation(async (path: string, params?: Record<string, string>) => {
       if (path === '/api/v1/integrations/status') {
         return {
@@ -61,7 +64,7 @@ describe('Connected Life status', () => {
     document.querySelector<HTMLElement>('[data-tab="calendar"]')?.click();
     expect(connected('google-calendar')).toBe(true);
 
-    document.querySelector<HTMLElement>('[data-tab="vibe"]')?.click();
-    expect(connected('spotify')).toBe(true);
+    expect(mockApiGet).toHaveBeenCalledWith('/spotify/status', { device_id: 'device-1' });
+    expect(document.querySelector('[data-integration="spotify"]')).toBeNull();
   });
 });

@@ -72,6 +72,29 @@ describe('argument checks', () => {
   });
 });
 
+describe('override names the person, then the flag and its value', () => {
+  // 2026-10-17: run() took the uid off positional[] and planWrites then read the flag from
+  // positional[1] (the value), so `override <uid> FLAG on` always failed "on: not a cohort flag".
+  it('override <uid> FLAG on', async () => {
+    const r = await cli(['override', 'uid-1', 'PROACTIVE_CHANNELS', 'on', '--project', 'p1']);
+    expect(r.code).toBe(0);
+    expect(r.lines.join('\n')).toContain('feature_flag_overrides/uid-1 {"flags":{"PROACTIVE_CHANNELS":"on"}');
+  });
+
+  it('override FLAG on --uid <uid>', async () => {
+    const r = await cli(['override', 'PROACTIVE_CHANNELS', 'off', '--uid', 'uid-1', '--project', 'p1']);
+    expect(r.code).toBe(0);
+    expect(r.lines.join('\n')).toContain('feature_flag_overrides/uid-1 {"flags":{"PROACTIVE_CHANNELS":"off"}');
+  });
+
+  it('clear-override <uid> FLAG', async () => {
+    const r = await cli(['clear-override', 'uid-1', 'PROACTIVE_CHANNELS', '--project', 'p1']);
+    expect(r.code).toBe(0);
+    expect(r.lines.join('\n')).toContain('feature_flag_overrides/uid-1');
+    expect(r.lines.join('\n')).toContain('PROACTIVE_CHANNELS');
+  });
+});
+
 describe('dry run (the default)', () => {
   it('prints the intended writes and writes nothing, even with --project', async () => {
     const r = await cli(['set-flag', 'seth', 'CANDOR', 'on', '--project', 'p1']);
@@ -140,5 +163,26 @@ describe('reads', () => {
       'flags:     {"CANDOR":"off"} (with COHORT_FLAGS=on; else agent defaults)',
     ]);
     expect(r.writes).toEqual([]);
+  });
+});
+
+describe('sampled cohorts and prerequisites', () => {
+  it('percent sets a whole-number sample, and 0 goes back to members only', () => {
+    const plan = (n: string) => planWrites(parseArgs(['percent', 'memory-recall', n]), undefined, NOW); // prettier-ignore
+    expect(plan('5')[0]?.fields).toEqual({ percent: 5, updatedAt: NOW });
+    expect(plan('0')[0]?.deleteFields).toEqual(['percent']);
+    for (const bad of ['101', '-1', '2.5', 'x']) expect(() => plan(bad)).toThrow(/0-100/);
+  });
+
+  it('warns when a memory switch goes on without what it builds on', async () => {
+    const store = fakeStore({ 'memory-recall': { enabled: true, members: [], flags: {} } });
+    const r = await cli(['set-flag', 'memory-recall', 'RECALL_EPISODES', 'on', '--project', 'p1'], store); // prettier-ignore
+    expect(r.lines).toContain('warning: RECALL_EPISODES needs SEMANTIC_RECALL (in this cohort or on the agent)'); // prettier-ignore
+  });
+
+  it("who counts a cohort's sample: at 100% everyone is in", async () => {
+    const store = fakeStore({ everyone: { enabled: true, members: [], percent: 100, flags: { SEMANTIC_RECALL: 'on' } } }); // prettier-ignore
+    const r = await cli(['who', 'uid-mom', '--project', 'p1'], store);
+    expect(r.lines).toContain('flags:     {"SEMANTIC_RECALL":"on"} (with COHORT_FLAGS=on; else agent defaults)'); // prettier-ignore
   });
 });

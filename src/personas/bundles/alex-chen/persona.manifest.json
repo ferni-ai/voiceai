@@ -47,11 +47,7 @@
         "scheduleReminder",
         "manageContact",
         "findBusiness",
-        "parseNaturalDate",
-        "confirmEventDetails",
-        "getPreMeetingBriefing",
-        "suggestPostMeetingFollowUp",
-        "suggestRecurringEvents"
+        "getPreMeetingBriefing"
       ],
       "email": [
         "getInboxSummary",
@@ -81,7 +77,6 @@
       ],
       "scheduling": [
         "scheduleMessage",
-        "scheduleText",
         "scheduleCall",
         "scheduleEmail",
         "sendMessageNow",
@@ -589,13 +584,8 @@
       "postToLinkedIn",
       "listScheduledPosts",
       "getMarketingAnalytics",
-      "parseNaturalDate",
-      "confirmEventDetails",
       "getPreMeetingBriefing",
-      "suggestPostMeetingFollowUp",
-      "suggestRecurringEvents",
       "scheduleMessage",
-      "scheduleText",
       "scheduleCall",
       "scheduleEmail",
       "sendMessageNow",

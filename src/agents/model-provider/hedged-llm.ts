@@ -20,6 +20,7 @@
 
 import { llm, type APIConnectOptions } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
+import { forwardPrewarm } from './forward-prewarm.js';
 
 const log = createLogger({ module: 'HedgedLLM' });
 
@@ -31,6 +32,9 @@ export function isCommittingChunk(chunk: llm.ChatChunk): boolean {
 }
 
 export class HedgedLLM extends llm.LLM {
+  /** Inner models whose prewarm failure was already logged. */
+  private readonly prewarmWarned = new WeakSet<object>();
+
   constructor(
     readonly primary: llm.LLM,
     readonly backup: llm.LLM,
@@ -53,6 +57,14 @@ export class HedgedLLM extends llm.LLM {
 
   label(): string {
     return `hedged(${this.primary.label()} | ${this.backup.label()})`;
+  }
+
+  /**
+   * Warm both models: the backup only starts when the primary is slow, which
+   * is exactly when a cold connection would hurt most.
+   */
+  prewarm(): void {
+    forwardPrewarm('HedgedLLM', [this.primary, this.backup], this.prewarmWarned);
   }
 
   chat(opts: ChatOptions): llm.LLMStream {

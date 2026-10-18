@@ -27,7 +27,6 @@ import {
   resolveCrisisAgreementGate,
   SOFT_CRISIS_CHECK,
 } from '../../services/safety/crisis-agreement.js';
-import { relaySoftGuidance } from '../../services/safety/crisis-relay.js';
 import {
   startCrisisClassifier,
   turnVerdicts,
@@ -52,6 +51,7 @@ import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { getDeliberator } from './deliberation.js';
+import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
 import { firstNameOf, withNameGate, type HistoryItem } from './name-gate.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
@@ -169,19 +169,6 @@ export function startCrisisGate(
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
-    // A bare request to reach someone, or a goodbye, with no risk anywhere (crisis-relay.ts).
-    const soft = relaySoftGuidance({
-      pattern,
-      verdicts: [verdict],
-      latest,
-      earlier,
-      companion,
-      env,
-    });
-    if (soft) {
-      log.info({ action: 'guide', source: 'relay_soft' }, 'CRISIS_GATE');
-      return { action: 'guide', guidance: soft };
-    }
     if (scope) {
       // Fail closed: a failed lookup counts as a missing read, which escalates.
       const verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [
@@ -298,7 +285,8 @@ export async function gatedReply(
     wrap(
       stream: ReadableStream<Chunk>,
       openedBySound?: () => boolean,
-      burst?: boolean
+      burst?: boolean,
+      bright?: boolean
     ): ReadableStream<Chunk>;
   },
   options: { env?: Record<string, string | undefined>; generate?: CrisisGenerateFn } = {}
@@ -337,8 +325,10 @@ export async function gatedReply(
   ): Promise<ReadableStream<Chunk> | null> => {
     const stream = tapToolCalls(await model(request), session);
     if (!stream) return stream;
+    // FERNI_PLAYFUL: a bright turn's reminder invited a reaction word (ferni-playful.ts).
+    const bright = brightOpenerInvited(request);
     const opened =
-      env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound, mayBurst) : stream;
+      env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound, mayBurst, bright) : stream;
     // NAME_GATE: the caller's name at hello, goodbye, and rarely between (name-gate.ts).
     const trimmed = withNameGate(opened, {
       name: firstNameOf((session.userData as { userName?: unknown } | undefined)?.userName),

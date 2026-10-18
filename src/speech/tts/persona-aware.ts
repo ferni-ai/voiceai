@@ -17,6 +17,7 @@ import { tts } from '@livekit/agents';
 import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
 import { CARTESIA_API_VERSION, CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
 import { forwardTtsEvents } from './forward-tts-events.js';
+import { prewarmReplyVoice } from './prewarm-voice.js';
 import type { PersonaVoiceConfig } from './types.js';
 
 // ============================================================================
@@ -108,6 +109,7 @@ export class PersonaAwareTTS extends tts.TTS {
   private pendingSwitch: { personaName: string; voiceId: string; accent?: EnglishAccent } | null =
     null;
   private activeStreamCount = 0;
+  private prewarmWarned = false; // a prewarm failure is logged once
 
   // Adaptive delivery (emotion/speed) for the next reply; survives voice switches.
 
@@ -422,6 +424,20 @@ export class PersonaAwareTTS extends tts.TTS {
     };
 
     return underlyingStream;
+  }
+
+  /** Called by @livekit/agents on each activity start and handoff (prewarm-voice.ts). Never throws. */
+  prewarm(): void {
+    prewarmReplyVoice(this.personaTTS, (error) => {
+      if (this.prewarmWarned) return;
+      this.prewarmWarned = true;
+      log('warn', { persona: this.personaName, error: String(error) }, 'TTS prewarm failed');
+    });
+  }
+
+  /** Frees the inner plugin TTS's idle sockets; the shared gateway socket is left alone. */
+  async releaseIdleConnections(): Promise<void> {
+    await this.personaTTS.releaseIdleConnections();
   }
 
   // ============================================================================
