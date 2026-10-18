@@ -29,7 +29,6 @@ public enum AvatarEffect: Equatable, Sendable {
     case announce(String)
 }
 
-public enum HapticCue: String, Equatable, Sendable { case presence, firstWord, handoff, goodbye, error, reconnected }
 
 /// The avatar's state machine, pure and clocked by the caller so tests control
 /// time. Turn poses settle for 150 ms (400 ms under Reduce Motion) so a quick
