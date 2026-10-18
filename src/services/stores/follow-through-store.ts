@@ -123,6 +123,7 @@ export function toFollowUp(id: string, data: unknown): FollowUp | null {
     createdAt: String(createdAt),
     updatedAt: String(updatedAt),
     ...(str(data.closedAt) ? { closedAt: String(data.closedAt) } : {}),
+    ...(data.closedReason === 'forgotten' ? { closedReason: 'forgotten' as const } : {}),
     ...(action ? { action } : {}),
   };
 }

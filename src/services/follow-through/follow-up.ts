@@ -60,14 +60,19 @@ export interface FollowUp {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly closedAt?: string;
+  /** Why it was released, when a rule (not the person's answer) closed it. */
+  readonly closedReason?: CloseReason;
   readonly action?: FollowUpAction;
 }
+
+/** forgotten: the person asked Ferni to forget what it is about (memory/recall/forget.ts). */
+export type CloseReason = 'forgotten';
 
 export type FollowUpEvent =
   | { readonly type: 'surface'; readonly via: SurfacedVia }
   | { readonly type: 'done' }
   | { readonly type: 'replan'; readonly dueAt: string }
-  | { readonly type: 'release' }
+  | { readonly type: 'release'; readonly reason?: CloseReason }
   | { readonly type: 'expire' };
 
 const CLOSED: ReadonlySet<FollowUpStatus> = new Set(['done', 'released', 'expired']);
@@ -126,7 +131,12 @@ export function apply(f: FollowUp, event: FollowUpEvent, now: Date): Result<Foll
       if (Number.isNaN(Date.parse(event.dueAt))) return failure(`bad dueAt ${event.dueAt}`);
       return success({ ...touched, status: 'open', dueAt: event.dueAt });
     case 'release':
-      return success({ ...touched, status: 'released', closedAt: at });
+      return success({
+        ...touched,
+        status: 'released',
+        closedAt: at,
+        ...(event.reason ? { closedReason: event.reason } : {}),
+      });
     case 'expire':
       return success({ ...touched, status: 'expired', closedAt: at });
   }
