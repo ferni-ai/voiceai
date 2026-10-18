@@ -58,7 +58,15 @@ async function loadActiveCommitments(userId: string): Promise<string | null> {
 
     // Filter active and overdue commitments
     const active = allCommitments.filter((c) => c.status === 'active');
-    const overdue = active.filter((c) => c.targetDate && c.targetDate < now);
+    // PROACTIVE_COOLDOWN: a commitment checked in on in the last 3 days is not offered again.
+    const { checkInsDue } =
+      await import('../../../services/superhuman/commitment-checkin-cooldown.js');
+    const overdue = await checkInsDue(
+      userId,
+      active.filter((c) => c.targetDate && c.targetDate < now),
+      (c) => c.summary || c.statement,
+      { record: true }
+    );
     const upcoming = active.filter((c) => !c.targetDate || c.targetDate >= now);
 
     if (overdue.length === 0 && upcoming.length === 0) return null;
