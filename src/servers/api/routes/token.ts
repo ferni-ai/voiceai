@@ -17,6 +17,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 import { refuseUnownedRoom } from './token-room-owner.js';
+import { personaForCaller } from './token-persona-owner.js';
 import { handleDemoClaim } from './demo-claim.js';
 import { handleDemoSessionUpdate } from './demo-session-update.js';
 
@@ -169,7 +170,11 @@ export async function handleTokenRoutes(
     const ip = getClientIp(req);
 
     // Get persona_id from query params (defaults to 'ferni' for backwards compatibility)
-    const personaId = parsedUrl.searchParams.get('persona_id') || 'ferni';
+    // No one is signed in here, so a custom agent id always becomes Ferni.
+    const personaId = await personaForCaller(
+      parsedUrl.searchParams.get('persona_id') || 'ferni',
+      undefined
+    );
 
     // Every demo counts against the limit: persona_id is the caller's choice, so it can't exempt one
     const allowed = await reserveDemoSession(ip);
@@ -332,7 +337,7 @@ export async function handleTokenRoutes(
       return true;
     }
 
-    const selectedPersona = persona_id || 'ferni';
+    const requestedPersona = persona_id || 'ferni';
 
     try {
       // SECURITY: Require verified Firebase auth before issuing LiveKit tokens.
@@ -388,6 +393,8 @@ export async function handleTokenRoutes(
         return true;
       }
       if (await refuseUnownedRoom(room, firebaseUid, res)) return true; // never join another's room
+      // A custom agent id must be the caller's own, else the call is with Ferni.
+      const selectedPersona = await personaForCaller(requestedPersona, firebaseUid);
 
       // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
       log.info(
