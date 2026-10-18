@@ -130,9 +130,17 @@ export type OwnNumberCheck = (ownerUid: string, phone: string) => Promise<boolea
 const defaultIsOwn: OwnNumberCheck = async (uid, phone) =>
   (await import('../outreach/guarded-text.js')).isOwnVerifiedPhone(uid, phone);
 
+/** Did this phone opt out of anything (a plain STOP, or "stop calling")? */
+async function anyGlobalOptOut(hash: string, deps: ConsentDeps): Promise<boolean> {
+  const { sms, call } = await readConsent(hash, deps);
+  return sms.state === 'opted-out' || call.state === 'opted-out';
+}
+
 /**
  * May `ownerUid` reach this phone when nothing global forbids it? Yes for the
- * owner's own verified number, or with their own grant for `channel`.
+ * owner's own verified number, or with their own grant for `channel`. A grant
+ * never outlives the contact's own opt-out: a plain STOP (texts only) also
+ * ends every owner's call grant, since it beats every grant.
  */
 export async function mayReachForOwner(
   ownerUid: string,
@@ -143,7 +151,8 @@ export async function mayReachForOwner(
 ): Promise<boolean> {
   if (await isOwn(ownerUid, phone)) return true;
   const hash = phoneHash(phone, deps.env);
-  return hash !== null && hasGrant(hash, ownerUid, channel, deps);
+  if (hash === null || (await anyGlobalOptOut(hash, deps))) return false;
+  return hasGrant(hash, ownerUid, channel, deps);
 }
 
 /**
@@ -158,10 +167,13 @@ export async function thirdPartyRefusal(
   isOwn: OwnNumberCheck = defaultIsOwn,
   deps: ConsentDeps = defaultConsentDeps()
 ): Promise<ConsentBlock | null> {
-  return consentBlocks(
+  const block = await consentBlocks(
     phone,
     channel,
     async (d) => mayReachForOwner(ownerUid, phone, channel, isOwn, d),
     deps
   );
+  if (block !== 'needs-consent') return block;
+  const hash = phoneHash(phone, deps.env);
+  return hash !== null && (await anyGlobalOptOut(hash, deps)) ? 'opted-out' : block;
 }

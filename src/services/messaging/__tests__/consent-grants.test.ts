@@ -4,8 +4,13 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryConsentStore } from './memory-consent.js';
-import { hasGrant, recordOwnerAttestation, thirdPartyRefusal } from '../consent-grants.js';
-import { readConsent, writeOptOut, type ConsentDeps } from '../consent.js';
+import {
+  hasGrant,
+  mayReachForOwner,
+  recordOwnerAttestation,
+  thirdPartyRefusal,
+} from '../consent-grants.js';
+import { readConsent, recordInboundSmsConsent, writeOptOut, type ConsentDeps } from '../consent.js';
 import { phoneHash } from '../../outreach/checkin-replies.js';
 import type { TextDeps, TextStore } from '../../outreach/guarded-text.js';
 
@@ -54,12 +59,13 @@ describe('consent is given for one owner, and a STOP beats it', () => {
     zone: 'America/New_York',
   });
   const send = vi.fn(async () => ({ success: true, messageSid: 'SM1' }));
+  let sent: Array<Record<string, unknown>> = [];
   const textDeps = (): TextDeps => ({
     env,
     store: {
       forUser: async () => [],
-      forPhoneHash: async () => [],
-      add: async () => 'id',
+      forPhoneHash: async (h: string) => sent.filter((r) => r.phoneHash === h),
+      add: async (r: Record<string, unknown>) => (sent.push(r), 'id'),
       lock: async () => true,
       lockedAt: async () => undefined,
       unlock: async () => undefined,
@@ -74,7 +80,28 @@ describe('consent is given for one owner, and a STOP beats it', () => {
     consent: deps,
   });
   const notOwn = async (): Promise<boolean> => false;
-  beforeEach(() => send.mockClear());
+  beforeEach(() => {
+    send.mockClear();
+    sent = [];
+  });
+
+  it("each owner's first text to Mom carries that owner's intro; later ones are plain", async () => {
+    const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
+    await recordOwnerAttestation(PAT, 'sms', 'seth', deps, async () => true);
+    await recordOwnerAttestation(PAT, 'sms', 'user-b', deps, async () => true);
+    const bodies = (): string[] =>
+      (send.mock.calls as unknown as Array<[{ body: string }]>).map(([m]) => m.body);
+    await sendOnBehalfText(textFor('seth'), textDeps());
+    now = new Date(now.getTime() + 20 * 60 * 1000); // past the 10-minute gap
+    await sendOnBehalfText({ ...textFor('seth'), refId: 'r-seth-2' }, textDeps());
+    now = new Date(now.getTime() + 20 * 60 * 1000);
+    await sendOnBehalfText(textFor('user-b'), textDeps());
+    expect(bodies()).toEqual([
+      expect.stringContaining('asked me to send this: hi'),
+      'hi',
+      expect.stringContaining('asked me to send this: hi'),
+    ]);
+  });
 
   it("Seth's attestation doesn't let user B text or call Mom; Seth's own grant works", async () => {
     const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
@@ -89,17 +116,27 @@ describe('consent is given for one owner, and a STOP beats it', () => {
     expect(await thirdPartyRefusal('seth', PAT, 'call', notOwn, deps)).toBeNull();
   });
 
-  it("a global STOP beats Seth's grant", async () => {
+  it("a real STOP from Mom (texts only) beats Seth's text AND call grants", async () => {
     const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
     await recordOwnerAttestation(PAT, 'sms', 'seth', deps, async () => true);
     await recordOwnerAttestation(PAT, 'call', 'seth', deps, async () => true);
-    await writeOptOut(HASH, 'sms', 'inbound-sms', deps);
-    await writeOptOut(HASH, 'call', 'inbound-sms', deps);
+    // What the inbound route does with a plain "STOP": an sms opt-out only.
+    expect(await recordInboundSmsConsent(PAT, 'STOP', deps)).toEqual({
+      state: 'opted-out',
+      channels: ['sms'],
+    });
+    expect((await readConsent(HASH, deps)).call.state).toBe('unknown');
     expect(await sendOnBehalfText(textFor('seth'), textDeps())).toEqual({
       sent: false,
       reason: 'opted-out',
     });
     expect(await thirdPartyRefusal('seth', PAT, 'call', notOwn, deps)).toBe('opted-out');
+    expect(await mayReachForOwner('seth', PAT, 'call', notOwn, deps)).toBe(false);
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it("Seth's own number is still callable after his own text STOP", async () => {
+    await recordInboundSmsConsent(PAT, 'STOP', deps);
+    expect(await thirdPartyRefusal('seth', PAT, 'call', async () => true, deps)).toBeNull();
   });
 });
