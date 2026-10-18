@@ -15,7 +15,7 @@
  *   week" read as light.
  *
  * So this reads every word of each turn, looks back over the caller's last
- * two turns, and lists the hard things, mishaps left out. Suicidal and
+ * three turns (the hard one and the two after it), and lists the hard things, mishaps left out. Suicidal and
  * self-harm language is also scored by the crisis guard's own detector
  * (services/safety), so the two sides never disagree on what is a crisis.
  * It errs toward heavy: a missed laugh costs nothing, a laugh at grief costs
@@ -114,8 +114,12 @@ const ER = /\bE\.?R\b/;
 /** Every pattern this check uses: the laughter blocks and the hard things above. */
 export const HEAVY_MOMENT_PATTERNS: readonly RegExp[] = [...BLOCK_LAUGHTER_PATTERNS, ...HEAVY];
 
-/** How many of the caller's latest turns count. */
-export const HEAVY_LOOKBACK = 2;
+/**
+ * How many of the caller's latest turns count: hard news and the two turns
+ * after it. At 2, "my dad died last week", "haha anyway", "lol okay" got a
+ * laugh on the third (verified on Ferni, Maya and Jordan, 2026-10-17).
+ */
+export const HEAVY_LOOKBACK = 3;
 
 function heavyTurn(text: string): boolean {
   if (ER.test(text)) return true;
@@ -148,13 +152,18 @@ const MAX_SESSIONS = 500;
 /**
  * Whether `said` is the latest noted turn again, not a new one. With a turn id,
  * only the same turn (a partial and its final) is merged. Without one, a
- * transcript extending the last is merged, unless that would drop a heavy
- * turn: "she left me" then "she left me a voicemail lol" are two turns.
+ * transcript extending the last is merged. Neither ever drops a heavy turn
+ * for light words that don't carry it on: "she left me" then "she left me a
+ * voicemail lol" are two turns, and so are "my dad died" then a fresh
+ * segment "haha anyway" of the same turn.
  */
 function sameTurn(last: NotedTurn, said: string, turn: number | string | undefined): boolean {
   if (said === last.text) return true;
-  if (turn !== undefined && last.turn !== undefined) return turn === last.turn;
-  return said.startsWith(last.text) && (!heavyTurn(last.text) || heavyTurn(said));
+  const extends_ = said.startsWith(last.text);
+  const keepsHeavy = !heavyTurn(last.text) || heavyTurn(said);
+  if (turn !== undefined && last.turn !== undefined)
+    return turn === last.turn && (keepsHeavy || extends_);
+  return extends_ && keepsHeavy;
 }
 
 /**
