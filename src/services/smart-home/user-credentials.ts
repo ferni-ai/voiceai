@@ -13,7 +13,7 @@ import { FieldValue } from '@google-cloud/firestore'; // the same instance fireb
 import type { DocumentData } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { openSealedOrRaw } from '../../utils/token-at-rest.js';
+import { openTokens } from '../../utils/token-at-rest.js';
 import { encryptSensitive, decryptSensitive } from '../privacy-crypto.js';
 
 const log = createLogger({ module: 'smart-home-credentials' });
@@ -71,85 +71,60 @@ export interface SmartHomeSetupState {
 /**
  * Check if a value is already encrypted (has enc_ prefix)
  */
-function isEncrypted(value: string | undefined | null): boolean {
+function isEncrypted(value: unknown): value is string {
   return typeof value === 'string' && value.startsWith('enc_');
 }
 
-/**
- * Encrypt Hue credentials (username is an API key)
- */
-async function encryptHueCredentials(creds: HueCredentials): Promise<HueCredentials> {
-  return {
-    ...creds,
-    username: await encryptSensitive(creds.username),
-  };
-}
+/** The fields of each integration that hold a secret (Hue's username is its API key). */
+const SECRET_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  hue: ['username'],
+  lifx: ['token'],
+  sonos: ['accessToken', 'refreshToken'],
+};
 
 /**
- * Decrypt Hue credentials (handles unencrypted legacy data)
+ * Additional authenticated data for one encrypted field. It binds the
+ * ciphertext to this user, integration and field, so it cannot be replayed
+ * into another user's doc (or another field) and decrypted there.
  */
-async function decryptHueCredentials(creds: HueCredentials): Promise<HueCredentials> {
-  if (!isEncrypted(creds.username)) {
-    // Legacy unencrypted data - return as-is
-    return creds;
+export function smartHomeAad(userId: string, integration: string, field: string): string {
+  return `${userId}/smart_home/${integration}/${field}`;
+}
+
+/** Encrypt the secret fields, bound to their context (see smartHomeAad). */
+async function encryptFields<T extends object>(
+  userId: string,
+  integration: string,
+  creds: T
+): Promise<T> {
+  const out = { ...creds } as Record<string, unknown>;
+  for (const field of SECRET_FIELDS[integration] ?? []) {
+    const value = out[field];
+    if (typeof value === 'string') {
+      out[field] = await encryptSensitive(value, smartHomeAad(userId, integration, field));
+    }
   }
-  return {
-    ...creds,
-    username: await decryptSensitive<string>(creds.username),
-  };
+  return out as T;
 }
 
 /**
- * Encrypt LIFX credentials (token is an API key)
+ * Decrypt the enc_ secret fields. Plaintext (legacy) values pass through, and
+ * ciphertext written before AAD binding still opens (decryptSensitive's
+ * legacy fallback) until the next save re-encrypts it with AAD.
  */
-async function encryptLifxCredentials(creds: LifxCredentials): Promise<LifxCredentials> {
-  return {
-    ...creds,
-    token: await encryptSensitive(creds.token),
-  };
-}
-
-/**
- * Decrypt LIFX credentials (handles unencrypted legacy data)
- */
-async function decryptLifxCredentials(creds: LifxCredentials): Promise<LifxCredentials> {
-  if (!isEncrypted(creds.token)) {
-    return creds;
+async function decryptFields<T extends object>(
+  userId: string,
+  integration: string,
+  creds: T
+): Promise<T> {
+  const out = { ...creds } as Record<string, unknown>;
+  for (const field of SECRET_FIELDS[integration] ?? []) {
+    const value = out[field];
+    if (isEncrypted(value)) {
+      out[field] = await decryptSensitive<string>(value, smartHomeAad(userId, integration, field));
+    }
   }
-  return {
-    ...creds,
-    token: await decryptSensitive<string>(creds.token),
-  };
-}
-
-/**
- * Encrypt Sonos credentials (access and refresh tokens)
- */
-async function encryptSonosCredentials(creds: SonosCredentials): Promise<SonosCredentials> {
-  return {
-    ...creds,
-    accessToken: await encryptSensitive(creds.accessToken),
-    refreshToken: await encryptSensitive(creds.refreshToken),
-  };
-}
-
-/**
- * Decrypt Sonos credentials (handles unencrypted legacy data)
- */
-async function decryptSonosCredentials(creds: SonosCredentials): Promise<SonosCredentials> {
-  const needsDecrypt = isEncrypted(creds.accessToken) || isEncrypted(creds.refreshToken);
-  if (!needsDecrypt) {
-    return creds;
-  }
-  return {
-    ...creds,
-    accessToken: isEncrypted(creds.accessToken)
-      ? await decryptSensitive<string>(creds.accessToken)
-      : creds.accessToken,
-    refreshToken: isEncrypted(creds.refreshToken)
-      ? await decryptSensitive<string>(creds.refreshToken)
-      : creds.refreshToken,
-  };
+  return out as T;
 }
 
 // ============================================================================
@@ -157,20 +132,23 @@ async function decryptSonosCredentials(creds: SonosCredentials): Promise<SonosCr
 // ============================================================================
 
 /**
- * A smart_home doc as any reader should see it: opened if the web routes
- * sealed it, with the `enc_` fields this module writes decrypted. Docs that
- * are not token-shaped (homekit) come back as stored.
+ * A smart_home doc as any reader should see it. A doc the web routes sealed is
+ * opened and returned as is: its fields came from user input or the routes,
+ * and are never decrypted (decrypting them would let a user submit someone
+ * else's enc_ value and get it back as plaintext). Only a doc this module
+ * wrote (no envelope) has its enc_ fields decrypted, bound to this user.
+ * Docs that are not token-shaped (homekit) come back as stored.
  */
 export async function openSmartHomeCredentials<T>(
+  userId: string,
   integration: string,
   stored: unknown
 ): Promise<T | null> {
-  const raw = openSealedOrRaw<DocumentData>(stored, `smart_home/${integration}`);
-  if (!raw) return null;
-  if (integration === 'hue') return (await decryptHueCredentials(raw as HueCredentials)) as T;
-  if (integration === 'lifx') return (await decryptLifxCredentials(raw as LifxCredentials)) as T;
-  if (integration === 'sonos') return (await decryptSonosCredentials(raw as SonosCredentials)) as T;
-  return raw as T;
+  if (stored === null || typeof stored !== 'object') return null;
+  if (typeof (stored as { encrypted?: unknown }).encrypted === 'string') {
+    return openTokens<T>(stored, `smart_home/${integration}`);
+  }
+  return (await decryptFields(userId, integration, stored as DocumentData)) as T;
 }
 
 /**
@@ -196,13 +174,18 @@ export async function getUserSmartHomeCredentials(userId: string): Promise<Smart
       smartHomeRef.doc('homekit').get(),
     ]);
 
-    // Open docs the web routes sealed, then decrypt (handles legacy unencrypted data)
-    const hue = openSealedOrRaw<HueCredentials>(hueDoc.data(), 'smart_home/hue');
-    if (hue) credentials.hue = await decryptHueCredentials(hue);
-    const lifx = openSealedOrRaw<LifxCredentials>(lifxDoc.data(), 'smart_home/lifx');
-    if (lifx) credentials.lifx = await decryptLifxCredentials(lifx);
-    const sonos = openSealedOrRaw<SonosCredentials>(sonosDoc.data(), 'smart_home/sonos');
-    if (sonos) credentials.sonos = await decryptSonosCredentials(sonos);
+    // Open docs the web routes sealed; decrypt the ones this module wrote
+    credentials.hue = await openSmartHomeCredentials<HueCredentials>(userId, 'hue', hueDoc.data());
+    credentials.lifx = await openSmartHomeCredentials<LifxCredentials>(
+      userId,
+      'lifx',
+      lifxDoc.data()
+    );
+    credentials.sonos = await openSmartHomeCredentials<SonosCredentials>(
+      userId,
+      'sonos',
+      sonosDoc.data()
+    );
 
     if (homeKitDoc.exists) {
       // HomeKit has no sensitive credentials to decrypt
@@ -247,7 +230,7 @@ export async function getCredential<K extends keyof SmartHomeCredentials>(
 
     // Same view as the web routes: opened if sealed, enc_ fields decrypted
     const docId = type === 'homeKit' ? 'homekit' : type;
-    return (await openSmartHomeCredentials(docId, doc.data())) as SmartHomeCredentials[K];
+    return (await openSmartHomeCredentials(userId, docId, doc.data())) as SmartHomeCredentials[K];
   } catch (error) {
     log.error({ error: String(error), userId, type }, 'Failed to load credential');
     return null as SmartHomeCredentials[K];
@@ -267,32 +250,8 @@ export async function saveCredential<K extends keyof SmartHomeCredentials>(
     const db = getAdminFirestore();
     const docId = type === 'homeKit' ? 'homekit' : type;
 
-    // Encrypt sensitive fields before saving
-    // Note: Cast through unknown required because TypeScript can't narrow generic K
-    let encryptedCredentials: NonNullable<SmartHomeCredentials[K]>;
-    switch (type) {
-      case 'hue':
-        encryptedCredentials = (await encryptHueCredentials(
-          credentials as HueCredentials
-        )) as unknown as NonNullable<SmartHomeCredentials[K]>;
-        break;
-      case 'lifx':
-        encryptedCredentials = (await encryptLifxCredentials(
-          credentials as LifxCredentials
-        )) as unknown as NonNullable<SmartHomeCredentials[K]>;
-        break;
-      case 'sonos':
-        encryptedCredentials = (await encryptSonosCredentials(
-          credentials as SonosCredentials
-        )) as unknown as NonNullable<SmartHomeCredentials[K]>;
-        break;
-      case 'homeKit':
-        // HomeKit has no sensitive credentials to encrypt
-        encryptedCredentials = credentials;
-        break;
-      default:
-        encryptedCredentials = credentials;
-    }
+    // Encrypt sensitive fields (bound to this user and field) before saving
+    const encryptedCredentials = await encryptFields(userId, docId, credentials);
 
     await db
       .collection('bogle_users')
