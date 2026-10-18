@@ -3,7 +3,7 @@
  *
  * 🎭 AUTO-GENERATED FROM design-system/tokens/expressions.json
  * Do not edit directly - run: pnpm build:expressions
- * Generated: 2026-02-23T11:35:47.951Z
+ * Generated: 2026-10-17T13:17:43.186Z
  *
  * 92 Luxo-style expressions organized into 18 families.
  * CSS transforms only - no pupils, opaque eyes with shape transforms.
@@ -14,7 +14,7 @@
 // ============================================================================
 
 /**
- * All available expression IDs (100 total)
+ * All available expression IDs (102 total)
  */
 export type ExpressionId =
   | 'neutral'
@@ -26,6 +26,7 @@ export type ExpressionId =
   | 'amused'
   | 'pleased'
   | 'content'
+  | 'glad'
   | 'excited'
   | 'grateful'
   | 'proud'
@@ -66,6 +67,7 @@ export type ExpressionId =
   | 'calm'
   | 'serene'
   | 'peaceful'
+  | 'settling'
   | 'encouraging'
   | 'cheering'
   | 'guiding'
@@ -241,7 +243,7 @@ export interface ExpressionFamilyMeta {
 // ============================================================================
 
 /**
- * All 100 expression configurations.
+ * All 102 expression configurations.
  * Use getExpression() for type-safe access.
  */
 export const EXPRESSIONS: Record<ExpressionId, ExpressionConfig> = {
@@ -376,6 +378,21 @@ export const EXPRESSIONS: Record<ExpressionId, ExpressionConfig> = {
     lidBottom: { curve: 0 },
     smileCrease: { opacity: 0.4, strokeWidth: 1 },
     presenceRing: { opacity: 0.25, strokeWidth: 1.5, scale: 1 },
+    animation: null,
+    sparkle: false,
+    ios: { topCutoff: 0, topCurve: 0, bottomCutoff: 0, bottomCurve: 0, asymmetry: 0 },
+  },
+  'glad': {
+    family: 'happy',
+    body: { transform: 'translateY(-5px) rotate(6deg)' },
+    eyeWhite: { scaleY: 0.74, scaleX: 1.08 },
+    eyeLeftOverride: null,
+    eyeRightOverride: null,
+    eyesGroup: { translateX: 1, translateY: -2 },
+    lidTop: { curve: 30 },
+    lidBottom: { curve: -18 },
+    smileCrease: { opacity: 1, strokeWidth: 1.3 },
+    presenceRing: { opacity: 0.48, strokeWidth: 1.8, scale: 1 },
     animation: null,
     sparkle: false,
     ios: { topCutoff: 0, topCurve: 0, bottomCutoff: 0, bottomCurve: 0, asymmetry: 0 },
@@ -977,6 +994,21 @@ export const EXPRESSIONS: Record<ExpressionId, ExpressionConfig> = {
     smileCrease: { opacity: 0.4, strokeWidth: 1 },
     presenceRing: { opacity: 0.32, strokeWidth: 1.5, scale: 1 },
     animation: null,
+    sparkle: false,
+    ios: { topCutoff: 0, topCurve: 0, bottomCutoff: 0, bottomCurve: 0, asymmetry: 0 },
+  },
+  'settling': {
+    family: 'presence',
+    body: { transform: 'translateY(2px) rotate(-5deg)' },
+    eyeWhite: { scaleY: 0.7, scaleX: 1.04 },
+    eyeLeftOverride: null,
+    eyeRightOverride: null,
+    eyesGroup: { translateX: -1, translateY: 4 },
+    lidTop: { curve: 32 },
+    lidBottom: { curve: 8 },
+    smileCrease: { opacity: 0.4, strokeWidth: 1 },
+    presenceRing: { opacity: 0.24, strokeWidth: 1.5, scale: 1 },
+    animation: 'calmBreathe',
     sparkle: false,
     ios: { topCutoff: 0, topCurve: 0, bottomCutoff: 0, bottomCurve: 0, asymmetry: 0 },
   },
@@ -1786,6 +1818,11 @@ export const MICRO_EXPRESSIONS: Record<string, MicroExpressionConfig> = {
     duration: 80,
     returnTo: 'listening',
   },
+  'noticing': {
+    expression: 'intrigued',
+    duration: 100,
+    returnTo: 'listening',
+  },
 };
 
 // ============================================================================
@@ -1804,7 +1841,7 @@ export const EXPRESSION_FAMILIES: Record<ExpressionFamily, ExpressionFamilyMeta>
   'happy': {
     name: 'Happy',
     description: 'Joy spectrum from pleased to delighted - warmth, gratitude, excitement',
-    expressions: ['happy', 'joyful', 'delighted', 'amused', 'pleased', 'content', 'excited', 'grateful', 'proud'],
+    expressions: ['happy', 'joyful', 'delighted', 'amused', 'pleased', 'content', 'glad', 'excited', 'grateful', 'proud'],
   },
   'warmth': {
     name: 'Warmth & Care',
@@ -1833,8 +1870,8 @@ export const EXPRESSION_FAMILIES: Record<ExpressionFamily, ExpressionFamilyMeta>
   },
   'presence': {
     name: 'Presence',
-    description: 'Grounded states: present, grounded, calm, serene, peaceful',
-    expressions: ['present', 'grounded', 'calm', 'serene', 'peaceful'],
+    description: 'Grounded states: present, grounded, calm, serene, peaceful, settling',
+    expressions: ['present', 'grounded', 'calm', 'serene', 'peaceful', 'settling'],
   },
   'coaching': {
     name: 'Coaching',
