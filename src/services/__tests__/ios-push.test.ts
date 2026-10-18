@@ -64,7 +64,7 @@ vi.mock('../apns-sender.js', async (importOriginal) => {
 });
 
 const PushNotificationsBackendService = (await import('../push-notifications.js')).default;
-const { registerDevice, listDevices } = await import('../push-devices.js');
+const { registerDevice, listDevices, unregisterDevice } = await import('../push-devices.js');
 const { sendIosPush, apnsAlert } = await import('../ios-push.js');
 
 const token = (n: number) => n.toString(16).padStart(64, '0');
@@ -100,6 +100,28 @@ describe('push service → iPhone', () => {
     expect(h.sent).toEqual([
       { origin: 'https://api.push.apple.com', path: `/3/device/${token(1)}` },
     ]);
+  });
+
+  it("after bob signs in on alice's phone and registers it, alice's notes skip that phone", async () => {
+    await registerDevice('alice', device(1));
+    await registerDevice('bob', device(1)); // same token, now bob's
+    h.on.add('alice');
+    h.on.add('bob');
+
+    expect(await send('alice')).toBe(false);
+    expect(h.sent).toEqual([]);
+
+    expect(await send('bob')).toBe(true);
+    expect(h.sent.map((r) => r.path)).toEqual([`/3/device/${token(1)}`]);
+  });
+
+  it("after alice unregisters on sign-out, her notes don't reach that phone", async () => {
+    await registerDevice('alice', device(1));
+    h.on.add('alice');
+    await unregisterDevice('alice', token(1));
+
+    expect(await send('alice')).toBe(false);
+    expect(h.sent).toEqual([]);
   });
 
   it('sends nothing to Apple while IOS_PUSH is off for the person', async () => {
