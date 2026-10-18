@@ -14,6 +14,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
 import { createOAuthStateManager } from '../../utils/ddos-protection.js';
 import type {
   EightSleepTokens,
@@ -135,7 +136,7 @@ export async function storeUserTokens(userId: string, tokens: EightSleepTokens):
         .doc(userId)
         .set(
           removeUndefined({
-            ...tokens,
+            ...sealTokens(tokens),
             updatedAt: new Date(),
           })
         );
@@ -162,10 +163,12 @@ export async function getUserTokens(userId: string): Promise<EightSleepTokens | 
       try {
         const doc = await firestore.collection(EIGHT_SLEEP_TOKENS_COLLECTION).doc(userId).get();
         if (doc.exists) {
-          const data = doc.data() as EightSleepTokens;
-          userTokens.set(userId, data);
-          loadedTokenUsers.add(userId);
-          return data;
+          const data = openTokens<EightSleepTokens>(doc.data());
+          if (data) {
+            userTokens.set(userId, data);
+            loadedTokenUsers.add(userId);
+            return data;
+          }
         }
       } catch (err) {
         log.warn({ err, userId }, 'Failed to load Eight Sleep tokens from Firestore');
