@@ -14,6 +14,7 @@ import fs from 'fs';
 import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { cssDurations } from './lib/duration-scale.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -204,7 +205,7 @@ function generateAnimationVars(animation) {
   lines.push('  /* ============================================');
   lines.push('     ANIMATION - Durations');
   lines.push('     ============================================ */');
-  for (const [key, value] of Object.entries(animation.durations)) {
+  for (const [key, value] of Object.entries(cssDurations(animation))) {
     const varName = key.replace(/([A-Z])/g, '-$1').toLowerCase();
     lines.push(`  --duration-${varName}: ${value};`);
   }

@@ -119,7 +119,7 @@
   --physics-mass: 0.1;
   --physics-stiffness: 400;
   --physics-damping: 25;
-  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  transition: transform var(--duration-fast, 150ms) var(--ease-spring);
 }
 
 .physics-card {
@@ -154,7 +154,7 @@
   --physics-mass: 0.1;
   --physics-stiffness: 450;
   --physics-damping: 28;
-  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  transition: transform var(--duration-fast, 150ms) var(--ease-spring);
 }
 
 .physics-notification {
@@ -180,7 +180,7 @@
 }
 
 .spring-bounce {
-  animation: spring-bounce var(--duration-normal, 200ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  animation: spring-bounce var(--duration-normal, 200ms) var(--ease-spring);
 }
 
 @keyframes spring-pop {
@@ -190,7 +190,7 @@
 }
 
 .spring-pop {
-  animation: spring-pop var(--duration-normal, 200ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  animation: spring-pop var(--duration-normal, 200ms) var(--ease-spring);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -459,7 +459,7 @@
 
 /* Button micro-interactions */
 .micro-button {
-  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  transition: transform var(--duration-fast, 150ms) var(--ease-spring);
 }
 
 .micro-button:hover {
@@ -497,7 +497,7 @@
 
 /* Toggle micro-interactions */
 .micro-toggle {
-  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  transition: transform var(--duration-fast, 150ms) var(--ease-spring);
 }
 
 /* Notification entrance */

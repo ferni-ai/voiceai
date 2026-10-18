@@ -401,14 +401,14 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'scoreEvidenceQuality',
       'Score Evidence Quality',
-      'Score the quality of evidence behind any claim. Separate fact from anecdote from opinion.',
+      'Say how well-supported a claim is, from short built-in research notes. Not a live literature search.',
       superhumanTools.scoreEvidenceQuality,
       { tags: ['superhuman', 'research', 'evidence', 'critical-thinking'] }
     ),
     wrapLegacyTool(
       'synthesizeResearch',
       'Synthesize Research',
-      'Synthesize research on any topic in seconds. Get the real consensus, not pop science headlines.',
+      'Summarize what is generally known on a few life topics from built-in research notes. Not a live literature search.',
       superhumanTools.synthesizeResearch,
       { tags: ['superhuman', 'research', 'synthesis', 'evidence'] }
     ),
@@ -422,14 +422,14 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'verifyClaim',
       'Verify Claim',
-      'Verify any claim against evidence. Get a truth rating from verified to false.',
+      'Check advice against well-known myths and built-in research notes. Says when it cannot verify a claim.',
       superhumanTools.verifyClaim,
       { tags: ['superhuman', 'research', 'fact-check', 'evidence'] }
     ),
     wrapLegacyTool(
       'getBaseRate',
       'Get Base Rate',
-      'Get the base rate for any situation. Combat probability blindness with real statistics.',
+      'Base-rate context for a few common scenarios. Quotes a figure only where a sourced one exists.',
       superhumanTools.getBaseRate,
       { tags: ['superhuman', 'research', 'statistics', 'probability'] }
     ),
@@ -592,35 +592,35 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'getLocalEconomics',
       'Get Local Economics',
-      'Get local economic indicators for your area. See how YOUR local economy is doing.',
+      'Talk about the local economy. Live local data is not connected, so this points to public sources instead of quoting figures.',
       superhumanTools.getLocalEconomics,
       { tags: ['superhuman', 'external-data', 'economics', 'local'] }
     ),
     wrapLegacyTool(
       'synthesizeIndustryTrends',
       'Synthesize Industry Trends',
-      'Synthesize trends for any industry. Know where sectors are heading.',
+      'Talk about an industry: no current market views, sentiment calls or company picks.',
       superhumanTools.synthesizeIndustryTrends,
       { tags: ['superhuman', 'external-data', 'industry', 'trends'] }
     ),
     wrapLegacyTool(
       'analyzeNewsSentiment',
       'Analyze News Sentiment',
-      'Analyze news sentiment for any topic. Cut through noise to see the real narrative.',
+      'Talk about news coverage of a topic. Live news is not connected, so this does not score current coverage.',
       superhumanTools.analyzeNewsSentiment,
       { tags: ['superhuman', 'external-data', 'news', 'sentiment'] }
     ),
     wrapLegacyTool(
       'recordSpending',
       'Record Spending',
-      'Record spending for personal inflation calculation.',
+      "Record a spending entry for the user's own spending summary.",
       superhumanTools.recordSpending,
       { tags: ['superhuman', 'external-data', 'spending', 'inflation'] }
     ),
     wrapLegacyTool(
       'calculatePersonalInflation',
       'Calculate Personal Inflation',
-      'Calculate YOUR personal inflation rate. See how inflation actually affects YOU.',
+      "Summarize the user's recorded spending by category. Live inflation data is not connected, so this gives no personal inflation rate.",
       superhumanTools.calculatePersonalInflation,
       { tags: ['superhuman', 'external-data', 'inflation', 'personal'] }
     ),

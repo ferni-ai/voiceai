@@ -34,7 +34,7 @@ import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools } from './turn-request-tools.js';
 import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
-import { noteReminder } from '../shared/turn-receipt.js';
+import { noteReminder } from '../shared/turn-receipt-session.js';
 import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes, listeningReply } from './listen-first-turn.js';
@@ -76,6 +76,7 @@ import {
   withTurnStyleReminder,
 } from './turn-style.js';
 import { burstLine, clearBurstOffer } from './vocal-bursts.js';
+import { withHeavyMoment } from './heavy-turn.js';
 
 // Moved to turn-request-tools.ts; re-exported for existing importers.
 export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
@@ -314,11 +315,9 @@ function styleFor(
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const shaped = withPlayful(
-    session,
-    said,
-    withQuiet(withRecent(withOwnStory(sig, said, ownStory), said, chatCtx), said, chatCtx)
-  );
+  const told = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
+  const quiet = withQuiet(told, said, chatCtx);
+  const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
   const troubled = withCallTrouble(session, said, shaped, source);
   const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, troubled);
   // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.

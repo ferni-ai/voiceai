@@ -43,6 +43,7 @@ import { applyLockState } from './team-lock-state.js';
 import { toast } from './whisper.ui.js';
 import { captureRosterLayout, playRosterFlip } from './roster-motion.js';
 import { isRosterStable, orderRoster } from './roster-order.js';
+import { isPanelVisible } from '../config/menu-visibility.js';
 
 const log = createLogger('TeamUI');
 
@@ -1304,13 +1305,12 @@ function revealRosterWhenReady(container: HTMLElement): void {
 
 /**
  * 🏪 Add marketplace button to the roster.
- * Opens the agent marketplace modal for browsing/installing external agents.
+ * Opens the agent marketplace modal. None while Meet More Friends is hidden (config/menu-visibility.ts).
  */
 function addMarketplaceButton(): void {
-  if (!rosterContainer) return;
+  if (!rosterContainer || !isPanelVisible('marketplace')) return;
 
-  // Don't add if already exists
-  if (document.getElementById('marketplaceBtn')) return;
+  if (document.getElementById('marketplaceBtn')) return; // already added
 
   const marketplaceBtn = document.createElement('button');
   marketplaceBtn.id = 'marketplaceBtn';

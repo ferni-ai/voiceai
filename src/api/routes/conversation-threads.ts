@@ -15,7 +15,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import admin from 'firebase-admin';
+import type { Firestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireAuth } from '../auth-middleware.js';
 import { sendJSON, sendError, parsePositiveInt, readBody } from '../helpers.js';
@@ -27,10 +28,10 @@ const log = createLogger({ module: 'ConversationThreadsAPI' });
 // FIRESTORE INITIALIZATION
 // ============================================================================
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) {
     return firestoreInstance;
   }
@@ -41,22 +42,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-        log.info({ projectId }, 'Firebase initialized for conversation threads');
-      } else {
-        admin.initializeApp();
-        log.info('Firebase initialized with default credentials');
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firebase not available for conversation threads');

@@ -24,7 +24,7 @@
 
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { contentWords, personaDisplayName, type LedgerFact } from './life-ledger.js';
+import { aboutToLeave, contentWords, personaDisplayName, type LedgerFact } from './life-ledger.js';
 
 const log = createLogger({ module: 'LifeUpdates' });
 
@@ -78,7 +78,8 @@ export function safeUpdates(raw: string[]): string[] {
   for (const line of raw) {
     const text = line.replace(/^[\s\-*\d.)]+/, '').trim();
     if (!text || /^none\b/i.test(text) || text.split(/\s+/).length > MAX_UPDATE_WORDS) continue;
-    if (UNSAFE.test(text) || seen.has(text.toLowerCase())) continue;
+    // "You're about to head out to find a replacement" is a reason to leave the call, not news.
+    if (UNSAFE.test(text) || aboutToLeave(text) || seen.has(text.toLowerCase())) continue;
     seen.add(text.toLowerCase());
     out.push(text);
   }
@@ -168,7 +169,10 @@ function spoken(u: LifeUpdate, told: LedgerFact[]): boolean {
 /** Updates written but not yet said, and not so old that his life has moved on. */
 function unspoken(stored: LifeUpdate[], told: LedgerFact[], now: number): LifeUpdate[] {
   return stored.filter(
-    (u) => now - Date.parse(u.createdAt) < PENDING_MAX_DAYS * DAY_MS && !spoken(u, told)
+    (u) =>
+      now - Date.parse(u.createdAt) < PENDING_MAX_DAYS * DAY_MS &&
+      !spoken(u, told) &&
+      !aboutToLeave(u.update)
   );
 }
 

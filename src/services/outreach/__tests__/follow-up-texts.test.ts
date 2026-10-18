@@ -11,22 +11,30 @@ import {
 
 const NOW = new Date('2026-10-13T16:10:00Z'); // 12:10 in New York; the fixture is due at 12:00
 
-function deps(due: FollowUp[], opts: { cohort?: string[]; saveOk?: boolean } = {}) {
+/** An in-memory store with the real one's live() and compare-and-set save(). */
+function deps(
+  due: FollowUp[],
+  opts: { cohort?: string[]; saveOk?: boolean; optedIn?: string[] } = {}
+) {
+  const docs = new Map(due.map((f) => [f.id, f]));
   const saved: FollowUp[] = [];
   const d: FollowUpTextDeps = {
     store: {
-      due: vi.fn(async () => due),
-      save: vi.fn(async (next: FollowUp) => {
+      live: vi.fn(async (u: string) => [...docs.values()].filter((f) => f.userId === u)),
+      save: vi.fn(async (next: FollowUp, expected: string) => {
+        if (opts.saveOk === false || docs.get(next.id)?.updatedAt !== expected) return false;
         saved.push(next);
-        return opts.saveOk ?? true;
+        docs.set(next.id, next);
+        return true;
       }),
     },
+    optedIn: vi.fn(async () => opts.optedIn ?? [...new Set(due.map((f) => f.userId))]),
     resolveFlags: vi.fn(async (u: string): Promise<Record<string, string>> =>
       (opts.cohort ?? ['u1']).includes(u) ? { FOLLOW_THROUGH_TEXTS: 'on' } : {}
     ),
     sendText: vi.fn(async () => ({ sent: true })),
   };
-  return { d, saved };
+  return { d, saved, docs };
 }
 
 describe('sendDueFollowUpTexts', () => {
@@ -78,17 +86,69 @@ describe('sendDueFollowUpTexts', () => {
     expect(d.sendText).not.toHaveBeenCalled();
   });
 
-  it('counts why the guarded sender held a text and leaves the follow-up open', async () => {
-    const { d, saved } = deps([followUp()]);
+  it('counts why the guarded sender held a text and puts the claim back for a later run', async () => {
+    const { d, docs } = deps([followUp()]);
     d.sendText = vi.fn(async () => ({ sent: false, reason: 'opted-out' }));
     const report = await sendDueFollowUpTexts(d, { now: NOW });
     expect(report.held).toEqual({ 'opted-out': 1 });
-    expect(saved).toHaveLength(0);
+    expect(docs.get('f1')).toEqual(followUp());
+
+    d.sendText = vi.fn(async () => ({ sent: true }));
+    expect((await sendDueFollowUpTexts(d, { now: NOW })).sent).toBe(1);
   });
 
-  it('reports a lost save when a call surfaced it first', async () => {
+  it('claims before sending: a call that raised it first means no text', async () => {
+    const { d, docs } = deps([followUp()]);
+    const read = d.store.live;
+    // A call surfaces f1 between the job's read and its claim.
+    d.store.live = vi.fn(async (u: string) => {
+      const theirs = await read(u);
+      docs.set('f1', { ...followUp(), status: 'surfaced', updatedAt: '2026-10-13T16:09:00.000Z' });
+      return theirs;
+    });
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).not.toHaveBeenCalled();
+    expect(report).toMatchObject({ sent: 0, lostSaves: 1 });
+  });
+
+  it('reads and writes nothing for someone not opted in, even a stale follow-up', async () => {
+    const stale = followUp({ userId: 'mom', id: 'stale', dueAt: '2026-10-09T16:00:00.000Z' });
+    const { d } = deps([stale], { cohort: ['u1'] });
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.store.live).not.toHaveBeenCalled();
+    expect(d.store.save).not.toHaveBeenCalled();
+    expect(report).toMatchObject({ expired: 0, notInCohort: 1 });
+  });
+
+  it('reads only the opted-in people, so nobody else crowds them out', async () => {
+    const others = Array.from({ length: 300 }, (_, i) =>
+      followUp({ id: `o${i}`, userId: `other${i}`, dueAt: '2026-10-13T15:00:00.000Z' })
+    );
+    const { d } = deps([...others, followUp()], { optedIn: ['u1'] });
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.store.live).toHaveBeenCalledTimes(1);
+    expect(d.store.live).toHaveBeenCalledWith('u1');
+    expect(report).toMatchObject({ people: 1, sent: 1 });
+  });
+
+  it('one person failing does not stop the run for the people after them', async () => {
+    const { d } = deps([followUp({ id: 'a', userId: 'broken' }), followUp()], {
+      cohort: ['broken', 'u1'],
+    });
+    const flags = d.resolveFlags;
+    d.resolveFlags = vi.fn(async (u: string) => {
+      if (u === 'broken') throw new Error('flag read failed');
+      return flags(u);
+    });
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(report).toMatchObject({ errors: 1, sent: 1 });
+    expect(d.sendText).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u1' }));
+  });
+
+  it('reports a lost save, and sends nothing, when the claim loses', async () => {
     const { d } = deps([followUp()], { saveOk: false });
     expect((await sendDueFollowUpTexts(d, { now: NOW })).lostSaves).toBe(1);
+    expect(d.sendText).not.toHaveBeenCalled();
   });
 
   it('in a dry run sends and saves nothing but counts what it would do', async () => {

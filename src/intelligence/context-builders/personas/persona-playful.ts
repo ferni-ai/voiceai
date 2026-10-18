@@ -15,6 +15,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
+import { isHeavyMoment } from '../../../speech/adaptive-ssml/heavy-moment.js';
 
 // ============================================================================
 // INLINE PLAYFUL CONTENT (Fallback - bundles have richer content)
@@ -658,10 +659,9 @@ function isFerniPlayfulMoment(input: ContextBuilderInput): boolean {
   const emotion = input.analysis?.emotion;
   const state = input.analysis?.state;
 
-  // Never be playful during distress/crisis
-  if (emotion?.needsSupport || state?.phase === 'crisis' || state?.phase === 'distress') {
-    return false;
-  }
+  // Never playful in distress or crisis, or on hard news, "lol" or not (heavy-moment.ts).
+  if (emotion?.needsSupport || isHeavyMoment([input.userText])) return false;
+  if (state?.phase === 'crisis' || state?.phase === 'distress') return false;
 
   // More likely during light moods, exploring, or when user is playful
   if (state?.phase === 'exploring' || state?.phase === 'reflecting') return true;
