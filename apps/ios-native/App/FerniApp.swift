@@ -1,3 +1,4 @@
+import FerniDesign
 import FerniKit
 import FerniVoice
 import SwiftUI
@@ -25,9 +26,14 @@ struct FerniApp: App {
 @MainActor
 @Observable
 final class AppModel {
-    /// The avatar's feedback. Haptics arrive with the Core Haptics player.
+    private static let haptics = CoreHapticsPlayer()
+
+    /// The avatar's feedback: one haptic per moment, and VoiceOver announcements.
     private static func play(_ effect: AvatarEffect) {
-        if case .announce(let text) = effect { AccessibilityNotification.Announcement(text).post() }
+        switch effect {
+        case .haptic(let cue): haptics.play(cue)
+        case .announce(let text): AccessibilityNotification.Announcement(text).post()
+        }
     }
 
     let config: FerniConfig
