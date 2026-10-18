@@ -14,6 +14,7 @@ import { setTheme, type ThemeName } from '../theme/index.js';
 import { apiGet } from '../utils/api.js';
 import { openAuthedWebSocket } from './authed-websocket.service.js';
 import { createLogger } from '../utils/logger.js';
+import { isPanelEventVisible } from '../config/menu-visibility.js';
 
 const log = createLogger('VoiceEvents');
 
@@ -119,7 +120,7 @@ function handleShowView(data: ShowViewData): void {
   };
 
   const eventName = panelEventMap[view];
-
+  if (eventName && !isPanelEventVisible(eventName)) return; // hidden: config/menu-visibility.ts
   if (eventName) {
     window.dispatchEvent(new CustomEvent(eventName, { detail: params }));
     log.debug({ view, eventName }, 'Dispatched panel open event');

@@ -199,19 +199,23 @@ export function alreadySetReply(contactName: string, waiting: Deferral, now = ne
 export interface DeferredCallsRunResult {
   due: number;
   placed: number;
+  /** Still outside the recipient's hours when picked up, so held again for the next good hour. */
+  rescheduled: number;
   failed: number;
   missed: number;
 }
 
-async function place(userId: string, call: DeferredCall): Promise<void> {
+/** The new deferral's id when the call-hours guard held it again, else undefined (it rang). */
+async function place(userId: string, call: DeferredCall): Promise<string | undefined> {
   if (call.kind === 'on_behalf') {
     const { getOnBehalfCallOrchestrator } = await import('./on-behalf-call-orchestrator.js');
-    await getOnBehalfCallOrchestrator().initiateCall({ ...call.request, userId });
-    return;
+    const callId = await getOnBehalfCallOrchestrator().initiateCall({ ...call.request, userId });
+    return callId.startsWith('deferred_') ? callId : undefined;
   }
   const { scheduleProactiveCall } = await import('./conversational-calls.js');
   const result = await scheduleProactiveCall({ ...call.request, userId });
   if (!result.success) throw new Error(result.error ?? 'proactive call failed');
+  return undefined;
 }
 
 /** Place the deferred calls that are due. Run by the execute-scheduled-outreach job. */
@@ -232,14 +236,17 @@ export async function executeDueDeferredCalls(
     now: opts.now,
     limit: opts.limit ?? 10,
   });
-  const result = { due: claim.due, placed: 0, failed: 0, missed: claim.late };
+  const result = { due: claim.due, placed: 0, rescheduled: 0, failed: 0, missed: claim.late };
   for (const item of claim.claimed) {
     const call = item.data as unknown as DeferredCall;
     let status = 'placed';
+    let heldAs: string | undefined;
     try {
       // Owner from the document's path, not the stored request.
-      await place(item.userId, call);
-      result.placed++;
+      heldAs = await place(item.userId, call);
+      // Still outside their hours (prod 2026-10-18 02:39Z, 8:39pm in Denver): held, not placed.
+      if (heldAs) status = 'rescheduled';
+      result[heldAs ? 'rescheduled' : 'placed']++;
     } catch (error) {
       status = 'failed';
       result.failed++;
@@ -250,7 +257,12 @@ export async function executeDueDeferredCalls(
       .doc(item.userId)
       .collection(COLLECTION)
       .doc(item.id)
-      .set({ ...item.data, status, placedAt: new Date().toISOString() });
+      .set({
+        ...item.data,
+        status,
+        placedAt: new Date().toISOString(),
+        ...(heldAs ? { rescheduledAs: heldAs } : {}),
+      });
   }
   if (result.due > 0) log.info(result, 'Deferred calls run');
   return result;

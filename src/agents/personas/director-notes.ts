@@ -67,10 +67,11 @@ const HABITS = '(too many questions, fixing too early, sounding upbeat, repeatin
 /**
  * FERNI_LIGHT_TOUCH=on: "sounding upbeat" is no longer a habit to drop (23% of
  * prod notes leaned soft and Ferni read as calm and boring); going flat when
- * the caller is being light is.
+ * the caller is being light is, but only about something light: "lol my
+ * grandma passed" is not a cue to lighten up.
  */
 const LIGHT_HABITS =
-  "(too many questions, fixing too early, repeating himself, staying flat or serious when they're being light)";
+  "(too many questions, fixing too early, repeating himself, staying flat or serious when they're being light about something light)";
 
 export const DIRECTOR_SYSTEM = [
   DIRECTOR_ROLE,

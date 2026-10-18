@@ -6,7 +6,8 @@
 import { EventEmitter } from 'node:events';
 import { llm } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
-import { attachTurnReceipts, noteRequest, type TurnReceipt } from '../../shared/turn-receipt.js';
+import type { TurnReceipt } from '../../shared/turn-receipt.js';
+import { attachTurnReceipts, noteRequest } from '../../shared/turn-receipt-session.js';
 import { Director, setDirector } from '../director-notes.js';
 import { withTurnReminder } from '../turn-request.js';
 

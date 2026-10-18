@@ -25,17 +25,13 @@ const PANELS = [
   'calendar-settings',
   'notifications',
   'journal',
-  'knowledge-quiz',
-  'music-dashboard',
   'play-games',
-  'vibe-controller',
   'contacts',
   'family-callers',
   'all-connections',
   'theme',
   'billing',
   'export',
-  'whats-growing',
   'share-ferni',
   'help',
 ];
@@ -117,6 +113,18 @@ test.describe('a first-call user', () => {
     await page.keyboard.press('Escape');
     await expect.poll(() => isGone(page, id), { message: 'history did not close on Escape', timeout: 5_000 }).toBe(true);
     expect(problems.take(), 'history raised problems').toEqual([]);
+  });
+
+  // Hidden on purpose (apps/web/src/config/menu-visibility.ts, Seth 2026-10-17)
+  const HIDDEN = ['ritual', 'knowledge-quiz', 'music-dashboard', 'vibe-controller', 'discover-agents',
+    'household-members', 'voice-id-settings', 'whats-growing'];
+
+  test('the menu shows no hidden row', async ({ page }) => {
+    await openMenu(page);
+    await expect(page.locator('.settings-menu [data-action="journal"]')).toBeVisible();
+    for (const action of HIDDEN) {
+      await expect(page.locator(`.settings-menu [data-action="${action}"]`), action).toHaveCount(0);
+    }
   });
 });
 

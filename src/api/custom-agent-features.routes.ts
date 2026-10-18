@@ -9,7 +9,8 @@
  * @module custom-agent-features.routes
  */
 
-import admin from 'firebase-admin';
+import { FieldValue, type Firestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import {
@@ -33,10 +34,10 @@ const log = getLogger().child({ module: 'CustomAgentFeaturesRoutes' });
 // FIRESTORE
 // =============================================================================
 
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) {
     return firestoreInstance;
   }
@@ -47,23 +48,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    const { apps } = admin;
-    if (!apps || apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-        log.info({ projectId }, 'Firebase initialized for custom agent features routes');
-      } else {
-        admin.initializeApp();
-        log.info('Firebase initialized with default credentials');
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (err) {
     log.error({ error: String(err) }, 'Failed to initialize Firestore');
@@ -155,10 +140,7 @@ interface RoleplaySession {
  *
  * Task types are extensible - add new cases as custom agents define new task types.
  */
-async function processTaskAsync(
-  db: admin.firestore.Firestore,
-  session: TaskSession
-): Promise<void> {
+async function processTaskAsync(db: Firestore, session: TaskSession): Promise<void> {
   const docRef = db.collection('task_sessions').doc(session.id);
 
   try {
@@ -627,7 +609,7 @@ export async function handleCustomAgentFeaturesRoutes(
 
       await docRef.update(
         cleanForFirestore({
-          messages: admin.firestore.FieldValue.arrayUnion(message),
+          messages: FieldValue.arrayUnion(message),
         })
       );
 
