@@ -138,9 +138,11 @@ export async function handleUpdateCommitment(
 const CLOSE_ROUTE = /^\/api\/commitments\/([A-Za-z0-9_-]{1,200})\/(complete|dismiss)$/;
 
 /**
- * Close one of the verified caller's active commitments: done, or no longer
- * theirs to keep. 404 when they have no such active commitment; 500 when the
- * write fails, never a success that didn't land.
+ * Close one of the verified caller's active commitments: done, or dismissed.
+ * Its follow-through follow-up closes with it (done or released), so a
+ * dismissed commitment is never texted about. 404 when they have no such
+ * active commitment; 500 when a write fails, never a success that didn't land
+ * (a retry of the same close finishes the follow-up step).
  */
 export async function handleCloseCommitment(
   req: IncomingMessage,
@@ -154,11 +156,13 @@ export async function handleCloseCommitment(
   try {
     const { closeCommitmentOrThrow } =
       await import('../../services/superhuman/commitment-store.js');
-    if (!(await closeCommitmentOrThrow(userId, commitmentId, status))) {
+    const outcome = await closeCommitmentOrThrow(userId, commitmentId, status);
+    if (outcome === 'missing') {
       sendError(res, 'Commitment not found', 404);
       return;
     }
-    if (status === 'completed') {
+    await closeCommitmentFollowUp(userId, commitmentId, status);
+    if (status === 'completed' && outcome === 'closed') {
       const { recordWinFromCommitment } = await import('../../services/superhuman/wins.js');
       void recordWinFromCommitment(userId, commitmentId);
     }
@@ -167,6 +171,28 @@ export async function handleCloseCommitment(
     log.error({ error: String(err), userId, commitmentId }, 'Failed to close commitment');
     sendError(res, 'Failed to update commitment', 500);
   }
+}
+
+/** The follow-up imported from this commitment (source 'commitments'), closed the same way. */
+async function closeCommitmentFollowUp(
+  userId: string,
+  commitmentId: string,
+  status: ClosedBy
+): Promise<void> {
+  const [{ closeFromSource }, { firestoreFollowUpStore }] = await Promise.all([
+    import('../../services/follow-through/index.js'),
+    import('../../services/stores/follow-through-store.js'),
+  ]);
+  const store = firestoreFollowUpStore();
+  if (!store) throw new Error('Follow-through store unavailable');
+  const source = { store: 'commitments', ref: commitmentId };
+  await closeFromSource(
+    store,
+    userId,
+    source,
+    status === 'completed' ? 'done' : 'release',
+    new Date()
+  );
 }
 
 // ============================================================================
@@ -195,7 +221,7 @@ export async function handleCommitmentsRoutes(
   // POST /api/commitments/:id/complete | /dismiss
   const closeMatch = pathname.match(CLOSE_ROUTE);
   if (closeMatch && req.method === 'POST') {
-    const status = closeMatch[2] === 'complete' ? 'completed' : 'abandoned';
+    const status = closeMatch[2] === 'complete' ? 'completed' : 'dismissed';
     await handleCloseCommitment(req, res, parsedUrl, closeMatch[1]!, status);
     return true;
   }

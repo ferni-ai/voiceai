@@ -54,12 +54,34 @@ vi.mock('../../services/superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => fakeFirestore,
   recordDegradation: () => undefined,
 }));
+// The follow-through store, in memory: follow-ups by id.
+const followUps = vi.hoisted(() => ({
+  byId: new Map<string, Record<string, unknown>>(),
+  failSaves: false,
+}));
+const followUpStore = vi.hoisted(() => ({
+  live: async (userId: string) =>
+    [...followUps.byId.values()].filter(
+      (f) => f.userId === userId && (f.status === 'open' || f.status === 'surfaced')
+    ) as never[],
+  save: async (next: Record<string, unknown>, expected: string) => {
+    if (followUps.failSaves) throw new Error('firestore unavailable');
+    const current = followUps.byId.get(next.id as string);
+    if (!current || current.updatedAt !== expected) return false;
+    followUps.byId.set(next.id as string, next);
+    return true;
+  },
+}));
+vi.mock('../../services/stores/follow-through-store.js', () => ({
+  firestoreFollowUpStore: () => followUpStore,
+}));
 const wins = vi.hoisted(() => ({ recorded: [] as string[] }));
 vi.mock('../../services/superhuman/wins.js', () => ({
   recordWinFromCommitment: async (_u: string, id: string) => void wins.recorded.push(id),
 }));
 
 const { handleCommitmentsRoutes } = await import('../routes/commitments.js');
+const { sendDueFollowUpTexts } = await import('../../services/outreach/follow-up-texts.js');
 
 let server: Server;
 let base = '';
@@ -87,6 +109,23 @@ beforeEach(() => {
   db.docs.clear();
   db.failWrites = false;
   wins.recorded = [];
+  followUps.byId.clear();
+  followUps.failSaves = false;
+  // the follow-up the after-call import made from that commitment, already due
+  followUps.byId.set('fu-c1', {
+    id: 'fu-c1',
+    userId: 'u1',
+    kind: 'commitment',
+    text: 'call my sister',
+    dueAt: '2026-10-18T13:00:00.000Z',
+    zone: 'America/New_York',
+    repeat: null,
+    source: { store: 'commitments', ref: 'AutoId123' },
+    status: 'open',
+    surfaced: [],
+    createdAt: '2026-09-30T09:00:00.000Z',
+    updatedAt: '2026-09-30T09:00:00.000Z',
+  });
   // saved with .add(): no id in the data
   db.docs.set(path('u1', 'AutoId123'), {
     summary: 'call my sister',
@@ -116,12 +155,13 @@ describe('closing a commitment from the app', () => {
     expect(await res.json()).toEqual({ success: true, id: 'AutoId123', status: 'completed' });
     expect(db.docs.get(path('u1', 'AutoId123'))).toMatchObject({ status: 'completed' });
     expect(wins.recorded).toEqual(['AutoId123']);
+    expect(followUps.byId.get('fu-c1')).toMatchObject({ status: 'done' });
     expect(await listIds('u1')).toEqual([]);
   });
 
-  it('dismisses it without counting a win', async () => {
+  it("dismisses it as 'dismissed' (not 'abandoned') without counting a win", async () => {
     expect((await close('u1', 'AutoId123', 'dismiss')).status).toBe(200);
-    expect(db.docs.get(path('u1', 'AutoId123'))).toMatchObject({ status: 'abandoned' });
+    expect(db.docs.get(path('u1', 'AutoId123'))).toMatchObject({ status: 'dismissed' });
     expect(wins.recorded).toEqual([]);
   });
 
@@ -148,5 +188,38 @@ describe('closing a commitment from the app', () => {
   it('is 404 for one already closed', async () => {
     await close('u1', 'AutoId123', 'dismiss');
     expect((await close('u1', 'AutoId123', 'complete')).status).toBe(404);
+  });
+
+  it('a dismissed commitment is never texted about: its follow-up is released', async () => {
+    const sendText = vi.fn(async () => ({ sent: true }));
+    const textDeps = {
+      store: followUpStore,
+      optedIn: async () => ['u1'],
+      resolveFlags: async () => ({ FOLLOW_THROUGH_TEXTS: 'on' }),
+      sendText,
+      forgotten: async () => [] as string[],
+    } as unknown as Parameters<typeof sendDueFollowUpTexts>[0];
+    const now = new Date('2026-10-18T15:00:00.000Z');
+    // the precondition: left open, the follow-up job would text it
+    await sendDueFollowUpTexts(textDeps, { dryRun: true, now }).then((r) =>
+      expect(r.wouldSend).toBe(1)
+    );
+
+    expect((await close('u1', 'AutoId123', 'dismiss')).status).toBe(200);
+
+    expect(followUps.byId.get('fu-c1')).toMatchObject({ status: 'released' });
+    const report = await sendDueFollowUpTexts(textDeps, { now });
+    expect(sendText).not.toHaveBeenCalled();
+    expect(report.sent).toBe(0);
+  });
+
+  it('a follow-up that fails to close is a 500, and the retry finishes it', async () => {
+    followUps.failSaves = true;
+    expect((await close('u1', 'AutoId123', 'dismiss')).status).toBe(500);
+    expect(followUps.byId.get('fu-c1')).toMatchObject({ status: 'open' });
+
+    followUps.failSaves = false;
+    expect((await close('u1', 'AutoId123', 'dismiss')).status).toBe(200);
+    expect(followUps.byId.get('fu-c1')).toMatchObject({ status: 'released' });
   });
 });
