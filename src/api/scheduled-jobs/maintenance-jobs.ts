@@ -60,8 +60,8 @@ export async function handleBqErasure(res: ServerResponse): Promise<void> {
     if (!db) throw new Error('Firestore not available');
     const result = await runBqErasure(db);
     log.info(result, 'BigQuery erasure run');
-    sendJson(res, result.failedTables.length ? 500 : 200, {
-      success: !result.failedTables.length,
+    sendJson(res, result.retrying || result.overdue ? 500 : 200, {
+      success: !result.retrying && !result.overdue,
       job: 'bq-erasure',
       ...result,
     });
