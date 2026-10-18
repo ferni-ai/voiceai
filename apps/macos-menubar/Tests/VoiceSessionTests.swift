@@ -231,17 +231,12 @@ final class VoiceConnectionIntegrationTests: XCTestCase {
         XCTAssertEqual(httpResponse?.statusCode, 200, "Token server should be reachable")
     }
 
-    func testLiveKitTokenEndpoint() async throws {
+    func testTokenEndpointRefusesUnauthenticatedCallers() async throws {
+        // The app must sign in first (FerniAccount); see FerniAuthTests for the authed request
         let room = "test-\(UUID().uuidString.prefix(8))"
         let url = URL(string: "https://app.ferni.ai/token?room=\(room)&username=test&persona_id=ferni")!
 
-        let (data, response) = try await URLSession.shared.data(from: url)
-        let httpResponse = response as? HTTPURLResponse
-        XCTAssertEqual(httpResponse?.statusCode, 200, "Token endpoint should return 200")
-
-        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        XCTAssertNotNil(json?["token"], "Response should contain token")
-        XCTAssertNotNil(json?["url"], "Response should contain LiveKit URL")
-        XCTAssertNotNil(json?["room"], "Response should contain room")
+        let (_, response) = try await URLSession.shared.data(from: url)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 401, "Token endpoint requires Firebase auth")
     }
 }
