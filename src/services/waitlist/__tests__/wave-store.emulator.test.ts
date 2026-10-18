@@ -43,7 +43,11 @@ describe.skipIf(!emulator)('wave store (emulator)', () => {
     const reports = await Promise.all([run('2026-10-19'), run('2026-10-19')]);
     const admitted = (await db.collection('waitlist').where('status', '==', 'admitted').get()).size;
     expect(admitted).toBe(3);
-    expect(reports.map((r) => r.skipped ?? 'ran').sort()).toEqual(['busy', 'ran']);
+    // The other run admits nobody: 'busy' while the lease is held, or 'already-ran' if it came after
+    const outcomes = reports.map((r) => r.skipped ?? 'ran');
+    expect(outcomes.filter((o) => o === 'ran')).toHaveLength(1);
+    expect(outcomes.filter((o) => o !== 'ran').every((o) => o === 'busy' || o === 'already-ran')).toBe(true); // prettier-ignore
+    expect(reports.filter((r) => r.skipped).every((r) => r.admitted === 0)).toBe(true);
     expect((await db.collection('waitlist_waves').doc('2026-10-19').get()).data()?.admitted).toBe(
       3
     );
