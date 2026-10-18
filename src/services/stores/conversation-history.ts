@@ -9,7 +9,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { getDisplayName } from '../../personas/persona-ids.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { getEngagementStore } from '../engagement/engagement-store.js';
-import { getSessionsTogether } from './sessions-together.js';
+import { getSessionsTogether, isCountedSession } from './sessions-together.js';
 
 // ============================================================================
 // TYPES
@@ -275,7 +275,8 @@ async function readAgentCalls(userId: string, limit: number): Promise<AgentCall[
   for (const doc of snapshot.docs) {
     const data = doc.data();
     const startMs = toMillis(data.startedAt);
-    if (startMs === undefined) continue;
+    // Only sessions together are listed, so the rows agree with the total in the header
+    if (startMs === undefined || !isCountedSession(data)) continue;
     const endMs = toMillis(data.endedAt);
     const personaId = typeof data.personaId === 'string' ? data.personaId : 'ferni';
     const summary = typeof data.summary === 'string' ? data.summary.trim() : '';
@@ -301,13 +302,13 @@ async function readAgentCalls(userId: string, limit: number): Promise<AgentCall[
 /**
  * The web app records its own summary of a call on hang-up (POST
  * /api/conversations). Fold each one into the agent call it describes so a web
- * call shows once; keep the rest (the agent's write may have failed).
+ * call shows once. A summary with no counted call is not listed: the rows are the
+ * sessions together the header counts (a greeting-only call is not one).
  */
 function mergeWebSessions(
   calls: AgentCall[],
   webSessions: ConversationSession[]
 ): ConversationSession[] {
-  const unmatched: ConversationSession[] = [];
   const taken = new Set<AgentCall>();
   for (const web of webSessions) {
     const hangUpMs = Date.parse(web.date);
@@ -318,10 +319,7 @@ function mergeWebSessions(
         c.startMs <= hangUpMs + HANGUP_MATCH_MS && Math.abs(endMs - hangUpMs) <= HANGUP_MATCH_MS
       );
     });
-    if (!call) {
-      unmatched.push(web);
-      continue;
-    }
+    if (!call) continue;
     taken.add(call);
     Object.assign(call.session, {
       personaName: web.personaName || call.session.personaName,
@@ -334,9 +332,7 @@ function mergeWebSessions(
       topicsDiscussed: web.topicsDiscussed,
     });
   }
-  return [...calls.map((c) => c.session), ...unmatched].sort(
-    (a, b) => Date.parse(b.date) - Date.parse(a.date)
-  );
+  return calls.map((c) => c.session).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 }
 
 // ============================================================================

@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { withSessionsTogether } from '../sessions-together-profile.js';
+import { neverLowerSessionCount, withSessionsTogether } from '../sessions-together-profile.js';
 import { summarizeSessions } from '../../stores/sessions-together.js';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -54,5 +54,25 @@ describe('withSessionsTogether', () => {
 
   it('passes a missing profile through', async () => {
     expect(await withSessionsTogether('u1', null, vi.fn())).toBeNull();
+  });
+});
+
+describe('neverLowerSessionCount (the end-of-session save)', () => {
+  it.each([
+    { name: 'counted 3 then +1, stored 21', stored: 21, counted: 3, saved: 21 },
+    { name: 'counted 30 then +1, stored 21', stored: 21, counted: 30, saved: 31 },
+  ])('$name: saves $saved', async ({ stored, counted, saved }) => {
+    const userId = `save-${stored}-${counted}`;
+    const read = vi.fn(async () => ({ ...summarizeSessions([]), count: counted }));
+    const profile = await withSessionsTogether(userId, { totalConversations: stored }, read);
+    const afterSession = { totalConversations: profile!.totalConversations + 1 };
+    neverLowerSessionCount(userId, afterSession);
+    expect(afterSession.totalConversations).toBe(saved);
+  });
+
+  it('leaves a profile alone when nothing was replaced', () => {
+    const profile = { totalConversations: 4 };
+    neverLowerSessionCount('untouched-user', profile);
+    expect(profile.totalConversations).toBe(4);
   });
 });

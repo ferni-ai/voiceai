@@ -18,6 +18,24 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getSessionsTogether } from '../stores/sessions-together.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
+/** The counter as stored before the counted value replaced it, per user, for the save. */
+const storedCounters = new Map<string, number>();
+
+/**
+ * At save time, never write back less than the stored counter: the counted value can be
+ * lower (old calls that never recorded an end), and the stored one must not shrink.
+ */
+export function neverLowerSessionCount(
+  userId: string,
+  profile: Pick<UserProfile, 'totalConversations'>
+): void {
+  const stored = storedCounters.get(userId);
+  storedCounters.delete(userId);
+  if (stored !== undefined && stored > profile.totalConversations) {
+    profile.totalConversations = stored;
+  }
+}
+
 /** A slow read must not hold up the call: past this, the stored counter stays. */
 const READ_TIMEOUT_MS = 800;
 
@@ -40,6 +58,7 @@ export async function withSessionsTogether<P extends Pick<UserProfile, 'totalCon
           'Sessions together: using the counted sessions'
         );
       }
+      storedCounters.set(userId, profile.totalConversations);
       profile.totalConversations = sessions.count;
     }
   } catch (error) {

@@ -61,6 +61,14 @@ describe('Past Chats total', () => {
       listed: 2,
       total: 3,
     },
+    // Every row fits the page: the rows are exactly the sessions the header counts
+    {
+      n: 3,
+      docs: [call(1), call(2), call(3), call(4, { endedAt: undefined }), call(5, { turnCount: 1 })],
+      limit: 10,
+      listed: 3,
+      total: 3,
+    },
   ])('n=$n: lists $listed, totals $total', async ({ docs, limit, listed, total }) => {
     calls.length = 0;
     calls.push(...docs);
