@@ -87,7 +87,6 @@ These docs stay with their code because they're project-specific:
 |----------|---------|
 | `apps/web/CLAUDE.md` | Frontend coding context |
 | `apps/website/ferni-website/docs/` | Website-specific (marketing pipeline, assets) |
-| `apps/website/ferni-website/*.md` | Website plans (LAUNCH-PLAN, POLISH-PLAN) |
 | `design-system/README.md` | Design system setup |
 | `design-system/docs/brand/` | Brand guidelines, voice, imagery |
 | `src/personas/bundles/*/` | Persona content (identity, commands, etc.) |
