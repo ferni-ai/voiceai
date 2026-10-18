@@ -23,6 +23,11 @@
 import { createPersistenceStore } from '../persistence/index.js';
 import { encryptData, decryptData } from '../../utils/token-encryption.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  googleCalendarClientId,
+  googleCalendarClientSecret,
+  googleCalendarRedirectUri,
+} from '../../config/google-calendar-oauth-env.js';
 
 const log = createLogger({ module: 'GmailSendAsUser' });
 
@@ -51,12 +56,12 @@ const short = (userId: string) => userId.substring(0, 8);
 
 /** The same redirect the calendar connect uses: the callback is shared (routes/gmail-send.ts). */
 export function gmailSendRedirectUri(): string {
-  return process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'https://app.ferni.ai/auth/google/callback';
+  return googleCalendarRedirectUri('https://app.ferni.ai/auth/google/callback');
 }
 
 export function buildGmailSendAuthUrl(state: string): string {
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-  url.searchParams.set('client_id', process.env.GOOGLE_CALENDAR_CLIENT_ID || '');
+  url.searchParams.set('client_id', googleCalendarClientId());
   url.searchParams.set('redirect_uri', gmailSendRedirectUri());
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('scope', GMAIL_SEND_SCOPES.join(' '));
@@ -107,8 +112,8 @@ export async function completeGmailSendConnect(
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CALENDAR_CLIENT_ID || '',
-      client_secret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '',
+      client_id: googleCalendarClientId(),
+      client_secret: googleCalendarClientSecret(),
       redirect_uri: gmailSendRedirectUri(),
       grant_type: 'authorization_code',
     }),

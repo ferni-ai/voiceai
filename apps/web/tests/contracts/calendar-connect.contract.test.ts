@@ -96,12 +96,15 @@ let http: Server;
 let base = '';
 const realFetch = globalThis.fetch;
 const cookieJar = new Map<string, string>();
+/** Requests that left for an outside host (Google), in order. */
+const outsideCalls: Array<{ href: string; body: string }> = [];
 const mockLocation = { href: 'http://localhost:3000/', origin: 'http://localhost:3000' };
 
 /** Browser-side fetch: same-origin requests go to the API server with cookies. */
 async function browserFetch(input: string | URL, init: RequestInit = {}): Promise<Response> {
   const url = new URL(String(input), mockLocation.origin);
   if (url.origin !== mockLocation.origin) {
+    outsideCalls.push({ href: url.href, body: String(init.body) });
     // Google's token endpoint answers the connect callback's code exchange;
     // any other outside call (e.g. cloud credentials) fails fast.
     const isCodeExchange =
@@ -211,10 +214,18 @@ describe('Google Calendar: one connect path, one token store', () => {
     expect(await calendarOAuth.getValidAccessToken('user-B')).toBeNull();
   });
 
-  it("the panel's Disconnect removes the tokens every reader uses", async () => {
+  it("the panel's Disconnect revokes at Google and removes the tokens every reader uses", async () => {
     expect(await calendarOAuth.isCalendarConfigured('user-A')).toBe(true);
+    outsideCalls.length = 0;
 
     await createIntegrationsCallbacks().onDisconnectCalendar?.();
+
+    // The refresh token is revoked at Google. Google is offline here (503), and
+    // disconnect still removes everything below: revoke is best effort.
+    expect(outsideCalls).toContainEqual({
+      href: 'https://oauth2.googleapis.com/revoke',
+      body: 'token=g-refresh',
+    });
 
     expect(messageUI.show).toHaveBeenLastCalledWith('Calendar disconnected', 'success', 2500);
     expect(await calendarOAuth.getValidAccessToken('user-A')).toBeNull();
