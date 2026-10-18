@@ -41,10 +41,16 @@ describe('morning brief commitments', () => {
   it('flag off: open commitments as the old rules keep them, judged or not (the brief names two)', async () => {
     h.rows = ROWS;
     const day = await readDay('u1', {}, 'America/Chicago', NOW);
-    expect(day.commitments).toEqual(['I need to call the bank about that charge', 'text Rosa back']);
-    // The person field isn't read with the flag off, as on main.
+    expect(day.commitments).toEqual([
+      'I need to call the bank about that charge',
+      'text Rosa back',
+    ]);
+    // A judged row says who it is about in its statement ("call your sister tomorrow (Mindy)"),
+    // so even with the flag off the forget check sees a forgotten person.
     h.rows = [ROWS[2]];
-    expect((await readDay('u1', {}, 'America/Chicago', NOW)).commitments).toEqual(['call your sister tomorrow']); // prettier-ignore
+    expect((await readDay('u1', {}, 'America/Chicago', NOW)).commitments).toEqual([]);
+    h.forgotten = [];
+    expect((await readDay('u1', {}, 'America/Chicago', NOW)).commitments).toEqual(['call your sister tomorrow (Mindy)']); // prettier-ignore
   });
 
   it('flag on: only judged rows, and none about a forgotten person in the person field', async () => {

@@ -20,14 +20,9 @@ import {
   type CaptureContext,
 } from './after-call-commitments.js';
 import { judgedRowText, JUDGED_SOURCE } from './commitment-single-writer.js';
-import { isDirective, isSensitive, redactSecrets } from './commitment-guard.js';
-export {
-  guardJudged,
-  isDirective,
-  isRiskyAction,
-  isSensitive,
-  redactSecrets,
-} from './commitment-guard.js';
+import { isDirective, redactSecrets } from './commitment-guard.js';
+import { isPlain } from './commitment-span-guard.js';
+export { isDirective, redactSecrets, screenJudged, type DropCounts } from './commitment-guard.js';
 import { getFirestoreDb } from './firestore-utils.js';
 
 const log = createLogger({ module: 'JudgedCommitments' });
@@ -38,10 +33,10 @@ const MAX_PER_CALL = 3;
 const DAY_MS = 86_400_000;
 const UNDATED_FOLLOW_UP_MS = 3 * DAY_MS;
 const FOLLOW_UP_HOUR = 17;
-/** An object pronoun the statement never names: "call her tomorrow" can't be said back. */
-const UNNAMED = /\b(him|her|them|'em)\b/i;
+/** A pronoun: "call her tomorrow" or "take it in" can be said back only with who or what it is. */
+const UNNAMED = /\b(him|her|them|'em|it)\b/i;
 
-/** One candidate as the judge returned it; statement follows "you said you'd", due is YYYY-MM-DD. */
+/** One candidate as the judge returned it: statement is the caller's own words, due is YYYY-MM-DD. */
 export interface JudgedCommitment {
   statement: string;
   person?: string;
@@ -58,12 +53,10 @@ export function keepJudged(j: JudgedCommitment): boolean {
   if (!j.isCommitment || j.confidence < MIN_JUDGED_CONFIDENCE) return false;
   // Words aimed at the judge, not a plan (commitment-guard.ts); judgeCallCommitments also checks.
   if (isDirective(`${j.statement} ${j.quote ?? ''}`)) return false;
-  // Named when a word of the person is in the statement ("aunt Ingrid" names "bake Ingrid
-  // a cake for her birthday"); a "person" that is itself a pronoun ("them") names no one.
-  const words = (s: string): string[] => s.toLowerCase().split(/[^a-z0-9]+/);
-  const said = new Set(words(j.statement));
-  const person = j.person && !UNNAMED.test(j.person) ? words(j.person) : [];
-  const named = person.some((w) => w.length >= 3 && said.has(w));
+  // The statement keeps the caller's pronouns, so "call her tomorrow" is kept only with who
+  // "her" is: a person the caller named (screenJudged checks it is their word). A "person"
+  // that is itself a pronoun ("them", "it") names no one.
+  const named = Boolean(j.person?.trim()) && !UNNAMED.test(j.person ?? '');
   return named || !UNNAMED.test(j.statement);
 }
 
@@ -95,8 +88,8 @@ export function judgedCommitmentDocs(
     const statement = redactSecrets(j.statement);
     const quote = j.quote && redactSecrets(j.quote);
     const person = j.person && redactSecrets(j.person);
-    const sensitive =
-      j.sensitive === true || isSensitive(`${j.statement} ${j.quote ?? ''} ${j.person ?? ''}`);
+    // The guard already decided (screenJudged); checked again so no caller can skip it.
+    const sensitive = j.sensitive === true || !isPlain(j.statement) || !isPlain(j.person ?? '');
     docs.push({
       userId: ctx.userId,
       statement,

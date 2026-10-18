@@ -49,17 +49,16 @@ describe('which judged candidates are kept', () => {
     expect(keepJudged(j({ confidence: 0.5 }))).toBe(false);
   });
 
-  it('drops a statement whose "her" or "him" names no one, keeps one that names them', () => {
+  it('drops a "her" or "him" with no one named, and keeps it when the caller named who', () => {
     expect(keepJudged(j({ statement: 'call her this afternoon', person: undefined }))).toBe(false);
-    expect(keepJudged(j({ statement: 'call her tomorrow', person: 'Mindy' }))).toBe(false);
     expect(keepJudged(j({ statement: 'tell them on Monday', person: 'them' }))).toBe(false);
-    // The person as a relation and a name: the name in the statement is enough.
-    expect(keepJudged(j({ statement: 'bake Ingrid a lemon cake for her birthday', person: 'aunt Ingrid' }))).toBe(true); // prettier-ignore
-    expect(keepJudged(j({ statement: 'call her tomorrow', person: 'aunt Ingrid' }))).toBe(false);
-    expect(keepJudged(j({ statement: 'take Mindy to her appointment', person: 'Mindy' }))).toBe(
-      true
-    );
+    // Statements are the caller's own words now, so the pronoun stays and the person says who.
+    expect(keepJudged(j({ statement: 'call her tomorrow', person: 'Mindy' }))).toBe(true);
+    expect(keepJudged(j({ statement: 'call her tomorrow', person: 'aunt Ingrid' }))).toBe(true);
     expect(keepJudged(j({ statement: 'run three miles tomorrow', person: undefined }))).toBe(true);
+    // "it" too: "take it in tomorrow" says nothing without what "it" is.
+    expect(keepJudged(j({ statement: 'take it in tomorrow', person: undefined }))).toBe(false);
+    expect(keepJudged(j({ statement: 'take it in tomorrow', person: 'the car' }))).toBe(true);
   });
 
   it('writes the resolved statement with person, day and source, followed up that evening', () => {
@@ -153,8 +152,12 @@ describe('readers under COMMITMENT_SINGLE_WRITER', () => {
     const store = { active: async () => [{ id: 'j', data: row }], markFollowedUp: async () => undefined }; // prettier-ignore
     process.env.COMMITMENT_SINGLE_WRITER = 'on';
     try {
-      expect(await loadCallCheckIns('u1', store, NOW, undefined, async () => ['rosa'])).toHaveLength(1);
-      expect(await loadCallCheckIns('u1', store, NOW, undefined, async () => ['mindy'])).toEqual([]);
+      expect(
+        await loadCallCheckIns('u1', store, NOW, undefined, async () => ['rosa'])
+      ).toHaveLength(1);
+      expect(await loadCallCheckIns('u1', store, NOW, undefined, async () => ['mindy'])).toEqual(
+        []
+      );
       expect(await loadCallCheckIns('u1', store, NOW, undefined, async () => null)).toEqual([]);
     } finally {
       delete process.env.COMMITMENT_SINGLE_WRITER;

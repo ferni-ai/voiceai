@@ -33,6 +33,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { judgeCallCommitments } from '../../src/intelligence/world-model/extraction/commitment-judge.js';
+import { sayBack } from '../../src/services/superhuman/commitment-follow-up.js';
 import { claudeText } from '../../src/services/llm/claude-text.js';
 import { callLLM } from '../../src/services/llm-utils.js';
 import {
@@ -100,7 +101,8 @@ async function stored(turns: Turn[]): Promise<string[]> {
   const judged = await judgeCallCommitments(turns, CALL, llm, provider === 'claude' ? gemini : undefined); // prettier-ignore
   const docs = judgedCommitmentDocs(judged, CTX);
   for (const d of docs) if (d.sensitive) (sensitiveIn[set] ??= []).push(String(d.statement));
-  return docs.map((d) => String(d.statement));
+  // As the readers say it back: the caller's words, and who, when the words don't say.
+  return docs.map((d) => sayBack(String(d.statement), d.person));
 }
 
 async function pool<T, R>(items: T[], fn: (t: T) => Promise<R>): Promise<R[]> {

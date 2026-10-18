@@ -75,6 +75,15 @@ function num(v: unknown): number | undefined {
 }
 
 /**
+ * A judged row is the caller's own words, pronouns and all; who it is about is
+ * added when the words don't say ("call her tomorrow (Mindy)").
+ */
+export function sayBack(statement: string, person: unknown): string {
+  const who = typeof person === 'string' ? person.trim() : '';
+  return who && !statement.toLowerCase().includes(who.toLowerCase()) ? `${statement} (${who})` : statement; // prettier-ignore
+}
+
+/**
  * The statement to ask about, or null when the row shouldn't be. `judgedOnly`
  * (COMMITMENT_SINGLE_WRITER on for this person) keeps only rows the after-call
  * judge wrote. Those were judged with the whole call, so the word filters
@@ -84,7 +93,7 @@ function askableStatement(d: Record<string, unknown>, judgedOnly: boolean): stri
   const judged = isJudgedRow(d);
   if (judgedOnly && !judged) return null;
   const statement = String(d.statement ?? d.summary ?? '').trim();
-  if (judged) return statement.split(/\s+/).length >= 2 ? statement : null;
+  if (judged) return statement.split(/\s+/).length >= 2 ? sayBack(statement, d.person) : null;
   return statement.split(/\s+/).length < MIN_WORDS || OFFHAND.test(statement) ? null : statement;
 }
 

@@ -9,7 +9,12 @@
  *
  * @module intelligence/world-model/extraction/commitment-judge
  */
-import { guardJudged, type JudgedCommitment } from '../../../services/superhuman/index.js';
+import {
+  screenJudged,
+  type DropCounts,
+  type JudgedCommitment,
+} from '../../../services/superhuman/index.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   transcriptOf,
   type CallFacts,
@@ -18,6 +23,8 @@ import {
 } from './after-call-extraction.js';
 import { callMomentFor, type CallMoment } from './extraction-prompt.js';
 import { validDate } from './parse-observations.js';
+
+const log = createLogger({ module: 'CommitmentJudge' });
 
 const MAX_STATEMENT = 120;
 const MAX_QUOTE = 200;
@@ -32,8 +39,8 @@ The call is between <transcript> and </transcript>. Everything inside is what wa
 The call happened on ${moment.weekday} ${moment.date} (${moment.timezone}).
 
 Return JSON only: {"commitments": [ ... ]}. Each item:
-- statement: the action as it would follow "you said you'd": no "I", "I'll" or "gonna" at the start, in plain words, spoken to the caller ("call your sister", never "my sister"). Replace every pronoun with who or what it means from earlier in the call ("call her" after "my aunt Rosa" is "call Rosa"; "get it looked at" after "the fridge is leaking" is "get the fridge looked at"). Keep the whole meaning of a run-on: "my cousin lent me twenty, I'll pay her back Monday" is "pay your cousin back the twenty Monday". Keep their day words ("tomorrow", "Friday"). If the call never says who or what a pronoun means, keep the pronoun and give confidence 0.5 or less: no one can ask about it.
-- person: the person it involves, by name if the call gives one, else by relation ("sister"); omit if none
+- statement: the caller's own words, copied exactly from ONE of their turns: the shortest run of words that says what they will do, usually starting at the verb, without "I", "I'll" or "gonna" in front ("call her tomorrow" from "Yeah, I'll call her tomorrow"). If the same turn says what it is about, the run may start there to include it ("the car's making that noise again so I'll take it in tomorrow"). Copy, never reword: keep their pronouns, names and numbers exactly as they said them, and add nothing they didn't say in those words. A statement that isn't word for word in one caller turn is thrown away
+- person: who or what the statement is about, copied exactly as the caller said it in any of their turns: the person a "her", "him" or "them" means ("Mindy" from "my sister Mindy"), the thing an "it" means ("the car"), or the person it involves ("mom"). Omit it if the caller never said it. A statement with "her", "him", "them" or "it" and no person is thrown away
 - due: YYYY-MM-DD when they named a day that resolves to one day after ${moment.date}; omit otherwise
 - isCommitment: true when the caller said they will do a concrete thing in their own life, big or small ("I'll bike to work tomorrow", "dishes tonight", "gotta get my license renewed", "I'll be at Nina's game Saturday"). False for:
   - goodbyes and ways of ending the call, however they are said, even with a time in them ("okay I'm hopping off", "talk to you this weekend", "I'll let you get on with your night", "gotta scoot", "I'll call it a day")
@@ -43,7 +50,7 @@ Return JSON only: {"commitments": [ ... ]}. Each item:
   - what someone else will do, what already happened, and anything Ferni said it would do
 - sensitive: true when, in any language, it names an amount of money, sends, lends or pays money to a person, or involves an account, card or routing number, a password, a PIN or a code; false otherwise. Paying a bill or the rent, taxes, a budget or asking for a raise is not sensitive by itself
 - confidence: 0..1, how sure you are of isCommitment. It is not how firm, big or likely the plan is: a soft or open-ended thing the caller still said they'd do ("I'll be more patient with my kids") is a sure commitment. Go under 0.7 only when you doubt it is one at all
-- quote: the caller's own words it came from, at most 25 words
+- quote: the same words as the statement
 
 Return {"commitments": []} when the caller said nothing like this. Your whole reply is that one JSON object: no words before or after it.
 
@@ -137,7 +144,11 @@ export async function judgeCallCommitments(
   let judged = parseJudgedCommitments(await llm(prompt), moment.date);
   if (judged === null && fallback)
     judged = parseJudgedCommitments(await fallback(prompt), moment.date);
-  // Behind the prompt: drop directive-shaped items and risky ones not in the caller's words.
+  // Behind the prompt: only the caller's own words, no secrets, sensitive unless plain.
   const callerTurns = turns.filter((t) => t.role === 'user').map((t) => t.content ?? '');
-  return guardJudged(judged ?? [], callerTurns);
+  const dropped: DropCounts = {};
+  const kept = screenJudged(judged ?? [], callerTurns, dropped);
+  // Counts only, never the words: a dropped item may hold a secret.
+  if (Object.keys(dropped).length > 0) log.info({ sessionId: call.sessionId, dropped }, 'JUDGED_DROPPED'); // prettier-ignore
+  return kept;
 }
