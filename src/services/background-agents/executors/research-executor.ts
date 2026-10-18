@@ -59,76 +59,27 @@ export interface ResearchResult {
  * 3. Stores the result via unified result capture
  * 4. Notifies the user when complete
  */
+export const RESEARCH_UNAVAILABLE_SUMMARY =
+  "I can't research things in the background right now, so I have no findings to share.";
+
+/**
+ * No research source is connected: a request gets no findings and nothing is
+ * captured for later delivery. This used to wait a moment and then store
+ * placeholder findings with made-up sources ("Web Search", "Market Data") as
+ * completed research. The generators below are no longer reached.
+ */
 export async function executeResearchTask(request: ResearchRequest): Promise<ResearchResult> {
   log.info(
-    { userId: request.userId, query: request.query, type: request.type },
-    'Starting background research task'
+    { userId: request.userId, type: request.type },
+    'Research requested; no research source is connected'
   );
 
-  const startTime = Date.now();
-
-  try {
-    // Execute the research based on type
-    const findings = await performResearch(request);
-
-    // Build summary
-    const summary = buildResearchSummary(request.query, findings, request.type);
-
-    const result: ResearchResult = {
-      query: request.query,
-      findings,
-      summary,
-      methodology: getMethodologyDescription(request.type, request.depth),
-      completedAt: new Date().toISOString(),
-    };
-
-    // Store result via unified capture
-    await captureBackgroundResult({
-      userId: request.userId,
-      type: 'research_complete',
-      status: findings.length > 0 ? 'success' : 'partial_success',
-      summary: `Research on "${request.query}" complete: ${findings.length} findings`,
-      priority: request.priority || 'normal',
-      initiatedBy: request.initiatedBy || 'peter',
-      sessionId: request.sessionId,
-      details: summary,
-      specificData: {
-        query: request.query,
-        findingsCount: findings.length,
-        type: request.type,
-        depth: request.depth,
-        durationMs: Date.now() - startTime,
-      },
-    });
-
-    log.info(
-      {
-        userId: request.userId,
-        query: request.query,
-        findingsCount: findings.length,
-        durationMs: Date.now() - startTime,
-      },
-      'Research task completed'
-    );
-
-    return result;
-  } catch (error) {
-    log.error({ error: String(error), userId: request.userId }, 'Research task failed');
-
-    // Report failure
-    await captureBackgroundResult({
-      userId: request.userId,
-      type: 'research_complete',
-      status: 'failed',
-      summary: `Research on "${request.query}" couldn't be completed`,
-      priority: 'low',
-      initiatedBy: request.initiatedBy || 'peter',
-      sessionId: request.sessionId,
-      details: `Error: ${String(error)}`,
-    });
-
-    throw error;
-  }
+  return {
+    query: request.query,
+    findings: [],
+    summary: RESEARCH_UNAVAILABLE_SUMMARY,
+    completedAt: new Date().toISOString(),
+  };
 }
 
 // ============================================================================
