@@ -9,7 +9,7 @@ name: Ferni
 options:
   bundleIdPrefix: com.sethdford
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "26.0"
   xcodeVersion: "27.1"
   generateEmptyDirectories: false
 
