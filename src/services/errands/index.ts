@@ -22,3 +22,5 @@ export {
   type RetryPolicy,
   type RetryableError,
 } from './retry-policy.js';
+export { step, CURRENT_STEP_VERSION } from './step.js';
+export type { StepContext, StepResult } from './step-v1.js';
