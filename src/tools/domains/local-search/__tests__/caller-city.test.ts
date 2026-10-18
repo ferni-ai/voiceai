@@ -46,7 +46,7 @@ vi.mock('../../../../services/yelp.js', () => ({
 }));
 
 // Stands in for Firestore-backed preferences. updateUserPreferences merges like the real one.
-type SavedCity = { city: string; regionCode?: string; savedAt: string };
+type SavedCity = { placeId?: string; city: string; regionCode?: string; savedAt: string };
 const store = vi.hoisted(() => ({
   prefs: new Map<string, { callerCity?: SavedCity | undefined }>(),
   failWrites: false,
@@ -65,23 +65,21 @@ vi.mock('../../information/preferences/storage.js', () => ({
 
 import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 
-// Places confirms a city name. Only these names have a locality; everything else has none.
-const knownCities: Record<string, { city: string; regionCode: string }> = {
-  'philadelphia, pa': { city: 'Philadelphia', regionCode: 'PA' },
-  'philly, pa': { city: 'Philadelphia', regionCode: 'PA' },
-  'philadelphia': { city: 'Philadelphia', regionCode: 'PA' },
-  'boston, ma': { city: 'Boston', regionCode: 'MA' },
-  'st. george': { city: 'St. George', regionCode: 'UT' },
-  'st. louis': { city: 'St. Louis', regionCode: 'MO' },
-  'two harbors': { city: 'Two Harbors', regionCode: 'MN' },
-  'high point': { city: 'High Point', regionCode: 'NC' },
-  'west point': { city: 'West Point', regionCode: 'NY' },
-  'dade city': { city: 'Dade City', regionCode: 'FL' },
+// Places confirms a city name with a place ID. Only these names have a locality; everything else has none.
+const knownCities: Record<string, string> = {
+  'philadelphia, pa': 'place-philadelphia',
+  'philly, pa': 'place-philadelphia',
+  'philadelphia': 'place-philadelphia',
+  'boston, ma': 'place-boston',
+  'st. george': 'place-st-george',
+  'st. louis': 'place-st-louis',
+  'two harbors': 'place-two-harbors',
+  'high point': 'place-high-point',
+  'west point': 'place-west-point',
+  'dade city': 'place-dade-city',
 };
 const geo = vi.hoisted(() => ({
-  findCityByName: vi.fn(
-    async (query: string): Promise<{ city: string; regionCode?: string } | null> => null
-  ),
+  findCityByName: vi.fn(async (query: string): Promise<{ placeId: string } | null> => null),
 }));
 vi.mock('../places-locality.js', () => ({
   findCityByName: geo.findCityByName,
@@ -120,7 +118,10 @@ const forgetCity = () => domainTool('forgetCallerCity');
 
 beforeEach(() => {
   geo.findCityByName.mockReset();
-  geo.findCityByName.mockImplementation(async (q: string) => knownCities[q.toLowerCase()] ?? null);
+  geo.findCityByName.mockImplementation(async (q: string) => {
+    const placeId = knownCities[q.toLowerCase()];
+    return placeId ? { placeId } : null;
+  });
   process.env.PLACES_LOCATION = 'on';
   process.env.REQUIRE_FIX_MEMORY = 'on';
   store.prefs.clear();
@@ -235,11 +236,13 @@ describe('saving the city', () => {
       { city: 'Philly', region: 'PA', callerSaidYes: true },
       phoneInStGeorge
     );
-    expect(result).toMatch(/Saved Philadelphia, PA\./);
+    expect(result).toMatch(/Saved Philly, PA\./);
     expect(geo.findCityByName).toHaveBeenCalledWith('Philly, PA');
+    // Only the place ID and the caller's own words are persisted: no Google name, address or coordinates.
     const saved = store.prefs.get('u1')?.callerCity;
-    expect(Object.keys(saved ?? {}).sort()).toEqual(['city', 'regionCode', 'savedAt']);
-    expect(saved?.city).toBe('Philadelphia');
+    expect(Object.keys(saved ?? {}).sort()).toEqual(['city', 'placeId', 'regionCode', 'savedAt']);
+    expect(saved?.placeId).toBe('place-philadelphia');
+    expect(saved?.city).toBe('Philly');
     expect(saved?.regionCode).toBe('PA');
   });
 

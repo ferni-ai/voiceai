@@ -12,7 +12,8 @@
  * City level only. Nothing here stores a street, a postcode, GPS or
  * coordinates. A name with a digit or a character no place name uses is refused
  * before any lookup. Saving a city asks Google Places to confirm it, and keeps
- * only the locality and state Places returns, never the caller's words.
+ * only the Places place ID and the caller's own words. Google's name, address
+ * and coordinates are never stored.
  *
  * @module tools/domains/local-search/caller-city
  */
@@ -44,7 +45,7 @@ const CITY_CHARS = /^[\p{L}\p{M} .'’-]+$/u;
 const NO_CALLER_IDS = new Set(['shared', 'anonymous', 'default', 'unknown']);
 const NO_CALLER_PREFIXES = ['anon:', 'onbehalf:'];
 
-/** `name` is what was saved, as Places spelled it ("Springfield, IL"), so the caller can hear and correct it. */
+/** `name` is what was saved, in the caller's own words ("Philly, PA"), so the caller can hear and correct it. */
 export type SaveCityResult =
   | { status: 'saved'; name: string }
   | { status: 'not-a-city' }
@@ -116,7 +117,7 @@ export async function resolveSearchLocation(
 
 /**
  * Remember a city for the caller. Called only after they said yes. The name is
- * confirmed with Places, and only the locality it returns is stored.
+ * confirmed with Places, and what is stored is the place ID and the caller's own words.
  */
 export async function saveCallerCity(
   userId: string,
@@ -136,13 +137,18 @@ export async function saveCallerCity(
   }
   if (!match) return { status: 'not-a-city' };
 
+  // Stored: the Places place ID and the caller's own words. Not Google's name, address or coordinates.
   const previous = (await getUserPreferences(userId)).callerCity;
   const result = await updateUserPreferences(userId, {
-    callerCity: { city: match.city, regionCode: match.regionCode, savedAt: new Date().toISOString() },
+    callerCity: {
+      placeId: match.placeId,
+      city: cityName,
+      regionCode: regionName,
+      savedAt: new Date().toISOString(),
+    },
   });
   if (result.success) {
-    const name = match.regionCode ? `${match.city}, ${match.regionCode}` : match.city;
-    return { status: 'saved', name };
+    return { status: 'saved', name: regionName ? `${cityName}, ${regionName}` : cityName };
   }
   // The preferences cache takes the new city before the Firestore write fails: put the old one back.
   await updateUserPreferences(userId, { callerCity: previous });

@@ -155,6 +155,9 @@ export interface LocationPreference {
 
 /** A city the caller chose to be remembered in. Never a street, postcode or coordinates. */
 export interface CallerCityPreference {
+  /** The Google Places place ID that confirmed the city. The only Google value kept. */
+  placeId: string;
+  /** The city and state as the caller said them. Google's name and address are not stored. */
   city: string;
   regionCode?: string;
   /** ISO time the caller agreed to be remembered */

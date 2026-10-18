@@ -20,23 +20,32 @@ afterEach(() => {
 });
 
 describe('findCityByName', () => {
-  it('returns the locality and state Places gives back', async () => {
+  it('returns only the place ID of a locality', async () => {
     const fetchMock = reply({
       places: [
         {
+          id: 'ChIJ-philadelphia',
           types: ['locality', 'political'],
-          addressComponents: [
-            { longText: 'Philadelphia', shortText: 'Philadelphia', types: ['locality'] },
-            { longText: 'Pennsylvania', shortText: 'PA', types: ['administrative_area_level_1'] },
-          ],
+          displayName: { text: 'Philadelphia' },
+          location: { latitude: 39.95, longitude: -75.16 },
         },
       ],
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await findCityByName('Philly, PA')).toEqual({ city: 'Philadelphia', regionCode: 'PA' });
+    expect(await findCityByName('Philly, PA')).toEqual({ placeId: 'ChIJ-philadelphia' });
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(JSON.parse(String(init.body))).toMatchObject({ textQuery: 'Philly, PA' });
+  });
+
+  it('asks Places for the place ID and types only, never the name, address or coordinates', async () => {
+    const fetchMock = reply({ places: [] });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await findCityByName('Philly, PA');
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers['X-Goog-FieldMask']).toBe('places.id,places.types');
   });
 
   it('returns null for a street, which is not a locality', async () => {
