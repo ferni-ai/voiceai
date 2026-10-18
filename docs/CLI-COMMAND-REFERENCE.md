@@ -98,21 +98,14 @@ ferni <command> --help
 | Command | Status | Description |
 |---------|--------|-------------|
 | `ferni deploy` | ✅ | Interactive deployment menu |
-| `ferni deploy gce` | ✅ | Voice agent to GCE (blue-green) |
 | `ferni deploy ui` | ✅ | UI backend to Cloud Run |
 | `ferni deploy frontend` | ✅ | Frontend to Firebase |
 | `ferni deploy landing` | ✅ | Landing page to Firebase |
 | `ferni deploy all` | ✅ | Deploy everything |
-| `ferni deploy gce --dry-run` | ✅ | Preview deployment |
 
-### GCE Operations
-
-| Command | Status | Description |
-|---------|--------|-------------|
-| `ferni disk` | ✅ | Check GCE disk status |
-| `ferni disk clean` | ✅ | Clean up disk space |
-| `ferni disk clean:aggressive` | ✅ | Aggressive cleanup |
-| `ferni disk setup-cron` | ✅ | Setup daily cleanup cron |
+The voice agent is not deployed with the CLI: it runs on LiveKit Cloud and is
+deployed with `lk` through `.claude/skills/deploy-agent/SKILL.md`. The CLI's
+agent deploy, restart and rollback refuse (#1730).
 
 ### GitHub Actions Runner
 
@@ -128,7 +121,6 @@ ferni <command> --help
 
 | Command | Status | Description |
 |---------|--------|-------------|
-| `ferni rollback gce` | ✅ | Rollback voice agent |
 | `ferni rollback ui` | ✅ | Rollback UI server |
 | `ferni rollback status` | ✅ | Show rollback status |
 
@@ -651,7 +643,6 @@ DELETE /api/experiments/:id        - Delete experiment
 
 ```bash
 # ✅ CORRECT
-ferni deploy gce
 ferni deploy ui
 
 # ❌ NEVER DO (skips health checks!)
@@ -670,7 +661,6 @@ ferni lint:fix         # Auto-fix issues
 ### Use Dry Run for Preview
 
 ```bash
-ferni deploy gce --dry-run
 ferni experiments create --dry-run
 ```
 

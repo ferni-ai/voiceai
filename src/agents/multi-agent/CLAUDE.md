@@ -127,8 +127,8 @@ await orchestrator.handoff({
 pnpm vitest run src/agents/multi-agent/
 
 # Manual E2E testing
-# 1. Stop cloud agent (if running)
-gcloud compute ssh voiceai-agent-gce --zone=us-central1-a --command="docker stop \$(docker ps -q)"
+# 1. Know what else can take the job: the deployed dev agent on LiveKit Cloud
+lk agent status --project ferni-dev --config "$(git rev-parse --show-toplevel)/livekit.toml"
 
 # 2. Start local servers
 pnpm token-server &
@@ -202,8 +202,8 @@ const { orchestrator } = await initializeMultiAgentSession({
 # Deploy with multi-agent mode enabled
 # Add MULTI_AGENT_MODE=true to .env or deployment config
 
-# Via Ferni CLI
-ferni deploy gce  # Deploys with current .env settings
+# LiveKit Cloud: set the flag with lk agent update-secrets, then deploy.
+# Gated chain (rooms=0 first): .claude/skills/deploy-agent/SKILL.md
 ```
 
 ## Migration Path
@@ -220,7 +220,7 @@ ferni deploy gce  # Deploys with current .env settings
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
-| Session connects but no multi-agent | Cloud agent stealing jobs | Stop cloud agent: `gcloud compute ssh voiceai-agent-gce ...` |
+| Session connects but no multi-agent | A deployed agent took the job | Check `lk agent status` for the project you're testing against |
 | "Participant wait timed out" | Slow network or participant delayed | Timeout extended to 10s for multi-agent mode |
 | Handoff fails silently | Banter module not found | Check logs for require() errors |
 | No banter during handoff | Banter phrases missing | Check `services/team-engagement/banter.ts` |
