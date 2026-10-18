@@ -54,11 +54,12 @@ export const callUserAdapter: CallUserPort = {
     // Asked for with no consent on record: consent only once this call's ledger shows Ferni
     // spoke the disclosure and they said yes (voice-consent-ledger.ts); never on the model's word.
     if (requested && !(await readSmsConsent(userId))) {
-      if (!sessionId)
-        return { sent: false, reason: 'texts need your okay on a call or in the app' };
-      const nonce = takeAgreedDisclosure(sessionId);
+      const noConsent = { sent: false, reason: 'texts need your okay on a call or in the app' };
+      if (!sessionId) return noConsent;
+      const nonce = takeAgreedDisclosure(sessionId, userId);
       if (!nonce) {
-        requestDisclosure(sessionId);
+        // Null off the member's own call (an on-behalf call, a caller with no account).
+        if (!requestDisclosure(sessionId, userId)) return noConsent;
         return { sent: false, reason: 'no texting consent yet', disclose: VOICE_SMS_DISCLOSURE };
       }
       await recordVoiceSmsConsent(userId, { sessionId, nonce });

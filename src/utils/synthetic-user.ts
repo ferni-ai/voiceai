@@ -42,3 +42,9 @@ export function isPersonAccountId(userId: string | undefined | null): boolean {
   if (!id || PLACEHOLDER_IDS.has(id) || isSyntheticUserId(id)) return false;
   return nonAccountPrefixOf(id) === undefined;
 }
+
+/** Calls placed on someone's behalf, or with no known person, are not the member's own call. */
+export function isMemberCall(userId: string): boolean {
+  const id = userId.trim();
+  return id !== '' && id !== 'anonymous' && nonAccountPrefixOf(id) === undefined;
+}

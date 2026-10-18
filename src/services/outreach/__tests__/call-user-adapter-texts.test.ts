@@ -27,7 +27,7 @@ vi.mock('../outreach-consent.js', () => ({
 }));
 
 import { callUserAdapter } from '../call-user-adapter.js';
-import { noteConsentTurn } from '../voice-consent-ledger.js';
+import { noteConsentTurn, setConsentRefused } from '../voice-consent-ledger.js';
 
 const NOON_NY = new Date('2026-10-15T16:00:00.000Z');
 const ELEVEN_PM_NY = new Date('2026-10-16T03:00:00.000Z');
@@ -103,6 +103,19 @@ describe('a text they ask for on a call, with no consent on record', () => {
       sent: false,
       reason: 'texts need your okay on a call or in the app',
     });
+    expect(h.record).not.toHaveBeenCalled();
+    expect(h.guarded).not.toHaveBeenCalled();
+  });
+
+  it('on an on-behalf call nothing is disclosed, and the third party saying yes records nothing', async () => {
+    vi.useFakeTimers({ now: NOON_NY });
+    h.consented = false;
+    setConsentRefused('call-ob', true);
+    const refused = { sent: false, reason: 'texts need your okay on a call or in the app' };
+    expect(await ask('call-ob')).toEqual(refused);
+    noteConsentTurn('call-ob', 'assistant', SAID);
+    noteConsentTurn('call-ob', 'user', 'yes');
+    expect(await ask('call-ob')).toEqual(refused);
     expect(h.record).not.toHaveBeenCalled();
     expect(h.guarded).not.toHaveBeenCalled();
   });
