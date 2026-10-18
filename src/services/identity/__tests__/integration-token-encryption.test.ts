@@ -134,8 +134,8 @@ describe('integration token stores encrypt at rest', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     // No token value ever reaches the logger.
-    noRawToken(h.calls.map((args) => args.map(String).join(' ') + JSON.stringify(args)));
-    h.calls.length = 0;
+    const logged = h.calls.splice(0);
+    noRawToken(logged.map((args) => args.map(String).join(' ') + JSON.stringify(args)));
   });
   afterAll(() => {
     process.env = savedEnv;
