@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { soundGate } from './sound-director.js';
 
 const log = createLogger('FerniAudio');
 
@@ -316,7 +317,7 @@ export class FerniAudioEngine {
    * Play a sound by ID
    */
   async play(soundId: string, options: PlayOptions = {}): Promise<void> {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled || !soundGate('brand', soundId)) return;
     if (!this.audioContext || !this.masterGain) {
       log.warn('Audio not initialized, call initialize() first');
       return;
@@ -341,7 +342,6 @@ export class FerniAudioEngine {
     // Stop existing instance of this sound
     this.stop(soundId);
     
-    // Create nodes
     const source = this.audioContext.createBufferSource();
     source.buffer = loaded.buffer;
     source.loop = options.loop ?? loaded.definition.loop ?? false;

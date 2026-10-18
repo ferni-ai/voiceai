@@ -1,7 +1,7 @@
 /**
  * An in-memory Firestore keyed by document path, with nested subcollections:
  * doc get/set (with merge)/update, runTransaction (serialized; create), collection where (==, >=,
- * <=, array-contains), orderBy (asc/desc, or '__name__' for the document id),
+ * <=, array-contains; dotted field paths), orderBy (asc/desc, or '__name__' for the document id),
  * startAfter/startAt/endAt(id), limit. Enough for the
  * proactive check-in run and the daily outreach run end to end.
  */
@@ -27,6 +27,12 @@ function deepMerge(base: Json, patch: Json): Json {
   }
   return out;
 }
+
+/** A field, or a nested one by dotted path ('flags.CANDOR'). */
+const fieldOf = (doc: Json | undefined, f: string): unknown =>
+  doc && f in doc
+    ? doc[f]
+    : f.split('.').reduce<unknown>((v, k) => (isMap(v) ? v[k] : undefined), doc);
 
 export function pathFirestore(docs: Map<string, Json>) {
   const snap = (path: string) => {
@@ -75,7 +81,7 @@ export function pathFirestore(docs: Map<string, Json>) {
         );
         paths = paths.filter((p) =>
           filters.every(([f, op, v]) => {
-            const x = docs.get(p)?.[f];
+            const x = fieldOf(docs.get(p), f);
             if (op === '==') return x === v;
             if (op === 'array-contains') return Array.isArray(x) && x.includes(v);
             if (x === undefined) return false;

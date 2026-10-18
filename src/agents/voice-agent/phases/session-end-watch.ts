@@ -27,13 +27,15 @@ export interface WatchedRoom {
 export interface SessionEndOptions {
   idleMs?: number;
   maxMs?: number;
+  /** Reason the cap timer settles with (default max_duration). */
+  maxReason?: string;
   emptyGraceMs?: number;
   pollMs?: number;
 }
 
 const ACTIVITY_EVENTS = ['dataReceived', 'participantConnected', 'trackSubscribed'] as const;
 
-/** Resolves with why the call ended: room.disconnected, room.!isConnected, empty_room, idle or max_duration. */
+/** Resolves with why the call ended: room.disconnected, room.!isConnected, empty_room, idle or max_duration (or options.maxReason). */
 export function waitForSessionEnd(room: WatchedRoom, options: SessionEndOptions = {}): Promise<string> {
   const idleMs = options.idleMs ?? IDLE_MS;
   const maxMs = options.maxMs ?? MAX_CALL_MS;
@@ -83,6 +85,6 @@ export function waitForSessionEnd(room: WatchedRoom, options: SessionEndOptions 
       if (Date.now() - lastActivityMs >= idleMs) finish('idle');
     }, options.pollMs ?? 1_000);
 
-    const cap = setTimeout(() => finish('max_duration'), maxMs);
+    const cap = setTimeout(() => finish(options.maxReason ?? 'max_duration'), maxMs);
   });
 }
