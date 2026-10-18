@@ -27,7 +27,15 @@ export interface SessionsTogether {
   days: string[];
   firstAt?: Date;
   lastAt?: Date;
+  /**
+   * Calls still going (no end yet, started in the last 6 hours). Not sessions together:
+   * only a milestone check counts them, since the call that crosses a threshold is live.
+   */
+  inProgress: { count: number; days: string[] };
 }
+
+/** How long a call without an end can still be the live one. */
+export const IN_PROGRESS_WINDOW_MS = 6 * 60 * 60 * 1000;
 
 function toMs(value: unknown): number | undefined {
   if (value == null) return undefined;
@@ -65,8 +73,23 @@ export function calendarDay(ms: number, timeZone?: string): string {
   }
 }
 
+/** Started within the window and not ended: the call happening now. */
+export function isInProgressCall(call: StoredCall, now = Date.now()): boolean {
+  const start = toMs(call.startedAt);
+  return (
+    toMs(call.endedAt) === undefined && start !== undefined && now - start <= IN_PROGRESS_WINDOW_MS
+  );
+}
+
 /** Pure: the summary of a user's stored calls. */
-export function summarizeSessions(calls: StoredCall[], timeZone?: string): SessionsTogether {
+export function summarizeSessions(
+  calls: StoredCall[],
+  timeZone?: string,
+  now = Date.now()
+): SessionsTogether {
+  const live = calls
+    .filter((c) => isInProgressCall(c, now))
+    .map((c) => toMs(c.startedAt) as number);
   const starts = calls
     .filter(isCountedSession)
     .map((c) => toMs(c.startedAt) as number)
@@ -77,6 +100,10 @@ export function summarizeSessions(calls: StoredCall[], timeZone?: string): Sessi
     days,
     firstAt: starts.length ? new Date(starts[0]!) : undefined,
     lastAt: starts.length ? new Date(starts[starts.length - 1]!) : undefined,
+    inProgress: {
+      count: live.length,
+      days: [...new Set(live.map((ms) => calendarDay(ms, timeZone)))],
+    },
   };
 }
 

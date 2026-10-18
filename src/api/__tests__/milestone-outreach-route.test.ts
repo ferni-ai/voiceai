@@ -22,7 +22,11 @@ vi.mock('../../utils/firestore-utils.js', async (importOriginal) => ({
       doc: (userId: string) => ({
         collection: (name: string) =>
           name === 'conversations'
-            ? { select: () => ({ get: async () => ({ docs: calls.map((d) => ({ data: () => d })) }) }) }
+            ? {
+                select: () => ({
+                  get: async () => ({ docs: calls.map((d) => ({ data: () => d })) }),
+                }),
+              }
             : {
                 doc: (id: string) => ({
                   create: async (data: Doc) => {
@@ -31,6 +35,14 @@ vi.mock('../../utils/firestore-utils.js', async (importOriginal) => ({
                     claims.set(key, data);
                   },
                   delete: async () => void claims.delete(`${userId}/${id}`),
+                  get: async () => ({
+                    data: () => claims.get(`${userId}/${id}`),
+                    updateTime: 'v1',
+                  }),
+                  update: async (data: Doc) => {
+                    const key = `${userId}/${id}`;
+                    claims.set(key, { ...claims.get(key), ...data });
+                  },
                 }),
               },
       }),
@@ -39,9 +51,8 @@ vi.mock('../../utils/firestore-utils.js', async (importOriginal) => ({
 }));
 
 const { sendMilestoneOutreach } = await import('../milestone-outreach-route.js');
-const { summarizeSessions, currentDayStreak, calendarDay } = await import(
-  '../../services/stores/sessions-together.js'
-);
+const { summarizeSessions, currentDayStreak, calendarDay } =
+  await import('../../services/stores/sessions-together.js');
 
 const DAY = 24 * 60 * 60 * 1000;
 const emailUser = vi.fn(async () => ({ success: true }));
@@ -153,5 +164,55 @@ describe('POST /api/outreach/milestone', () => {
 
   it('refuses a milestone it does not know', async () => {
     expect((await post(milestone('made-up'))).status).toBe(400);
+  });
+
+  it('counts the call that crosses the threshold while it is still going', async () => {
+    // The app fires first-hello as the first call connects: nothing has ended yet
+    calls.push(call(0, { endedAt: undefined, turnCount: 1 }));
+    const { body } = await post(milestone('first-hello'));
+    expect(body.sent).toBe(true);
+    expect(emailUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('a call left open for more than 6 hours is not the live one', async () => {
+    const start = new Date(Date.now() - 7 * 60 * 60 * 1000);
+    calls.push({ startedAt: { toDate: () => start }, turnCount: 1 });
+    expect((await post(milestone('first-hello'))).body).toMatchObject({ reason: 'not-reached' });
+  });
+
+  it('marks the claim sent, and never sends it again', async () => {
+    calls.push(call(0));
+    await post(milestone('first-hello'));
+    expect(claims.get('u1/first-hello')?.sentAt).toBeInstanceOf(Date);
+    expect((await post(milestone('first-hello'))).body).toMatchObject({ reason: 'already-sent' });
+    expect(emailUser).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { name: 'a send in flight (5 min, no sentAt)', ageMin: 5, sentAt: undefined, sends: false },
+    { name: 'a dead send (20 min, no sentAt)', ageMin: 20, sentAt: undefined, sends: true },
+    { name: 'a sent claim, however old', ageMin: 600, sentAt: new Date(), sends: false },
+  ])('an existing claim from $name: sends again = $sends', async ({ ageMin, sentAt, sends }) => {
+    calls.push(call(0));
+    claims.set('u1/first-hello', {
+      milestoneId: 'first-hello',
+      claimedAt: new Date(Date.now() - ageMin * 60_000),
+      ...(sentAt ? { sentAt } : {}),
+    });
+    const { body } = await post(milestone('first-hello'));
+    expect(body.sent).toBe(sends);
+    expect(emailUser).toHaveBeenCalledTimes(sends ? 1 : 0);
+  });
+
+  it('the text is signed once, by textUser, not again here', async () => {
+    calls.push(call(0));
+    getContactInfo.mockResolvedValueOnce({
+      phone: '+15550001111',
+      timezone: 'UTC',
+    } as unknown as Awaited<ReturnType<typeof getContactInfo>>);
+    await post(milestone('first-hello'));
+    expect(String((textUser.mock.calls[0] as unknown as [string, string])[1])).not.toMatch(
+      /- Ferni/
+    );
   });
 });
