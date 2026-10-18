@@ -8,15 +8,22 @@
  * OPENER_EVERY replies and otherwise drops it before the words reach TTS and
  * captions: "Ha! Oh, of course he did." becomes "Of course he did."
  *
+ * FERNI_PLAYFUL=on: a bright turn whose reminder invited a reaction word
+ * (ferni-playful.ts) keeps it, but a kept word still comes at most once in
+ * PLAYFUL_GAP replies and never twice running, so not every reply opens "Oh".
+ *
  * @module agents/personas/opener-gate
  */
 
 import type { llm } from '@livekit/agents';
 import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 
+import { flagOn } from '../../config/env-flag.js';
 import { leadingBurst, withoutBurst, withRenderedBurst } from './vocal-bursts.js';
 
 export const OPENER_EVERY = 3;
+/** FERNI_PLAYFUL: a reaction word is kept on at most one reply in this many. */
+export const PLAYFUL_GAP = 3;
 /** Characters of a reply to see before deciding (enough for "Ha! Oh, well,"). */
 const DECIDE_AFTER = 24;
 
@@ -38,6 +45,14 @@ export function stripStockOpener(text: string): { text: string; stripped: boolea
   }
   if (!stripped || !/[A-Za-z]/.test(rest.slice(0, 1))) return { text, stripped: false };
   return { text: tag + rest.charAt(0).toUpperCase() + rest.slice(1), stripped: true };
+}
+
+/** The reaction word a reply opens with, normalised ("Hahaha!" is "ha", "Ohh," is "oh"), or null. */
+export function openerWord(text: string): string | null {
+  const m = INTERJECTION.exec(text.slice((TAG_PREFIX.exec(text)?.[1] ?? '').length));
+  if (!m) return null;
+  const word = m[0].toLowerCase().replace(/[^a-z]/g, '');
+  return /^(?:ha)+h?$/.test(word) ? 'ha' : word.replace(/(.)\1+/g, '$1');
 }
 
 /** A whole first word: letters/digits followed by something that ends it. */
@@ -95,14 +110,19 @@ function contentOf(chunk: Chunk): string | undefined {
 /** Per-agent gate: keeps a reaction-word opener at most every `every` replies. */
 export class OpenerGate {
   private repliesSinceKept: number;
+  /** FERNI_PLAYFUL: replies since a reaction word was kept, and which word it was. */
+  private turnsSinceKept = PLAYFUL_GAP;
+  private lastKept: string | null = null;
 
   /**
    * `early`: decide as soon as the opening is decidable (openingDecidable)
    * instead of after DECIDE_AFTER characters. OPENER_GATE_EARLY=on.
+   * `playful`: FERNI_PLAYFUL=on, a bright turn may keep its word (mayKeep).
    */
   constructor(
     private readonly every: number = OPENER_EVERY,
-    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on'
+    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on',
+    private readonly playful: boolean = flagOn('FERNI_PLAYFUL')
   ) {
     this.repliesSinceKept = every; // the first reply may keep one
   }
@@ -113,39 +133,61 @@ export class OpenerGate {
    * goes, and the clip counts as this reply's kept opener. `burst`
    * (VOCAL_BURSTS=on) is whether this reply may open with a vocal burst: one it
    * may is kept, in the spelling that renders; one it may not is dropped, as is
-   * any burst after a turn-opening clip. Undefined: as before.
+   * any burst after a turn-opening clip. Undefined: as before. `bright`: the
+   * reminder invited a reaction word on a bright turn (FERNI_PLAYFUL).
    */
-  decide(opening: string, openedBySound = false, burst?: boolean): string {
+  decide(opening: string, openedBySound = false, burst?: boolean, bright = false): string {
+    this.turnsSinceKept++;
     const found = burst === undefined ? null : leadingBurst(opening);
     if (found && burst && !openedBySound) {
-      this.repliesSinceKept = 0;
+      this.kept(null);
       return capitalizeStart(withRenderedBurst(opening, found));
     }
     if (found) opening = capitalizeStart(withoutBurst(opening, found));
     const { text, stripped } = stripStockOpener(opening);
     if (openedBySound) {
-      this.repliesSinceKept = 0;
+      this.kept('mm');
       return stripped ? text : capitalizeStart(opening);
     }
     if (!stripped) return capitalizeStart(opening);
-    if (this.repliesSinceKept >= this.every) {
-      this.repliesSinceKept = 0;
+    if (this.mayKeep(opening, bright)) {
+      this.kept(openerWord(opening));
       return capitalizeStart(opening);
     }
     this.repliesSinceKept++;
     return text;
   }
 
+  private kept(word: string | null): void {
+    this.repliesSinceKept = 0;
+    this.turnsSinceKept = 0;
+    this.lastKept = word;
+  }
+
+  /**
+   * Off: one every `every` replies that opened on a reaction word. With
+   * FERNI_PLAYFUL also on a bright turn, but never within PLAYFUL_GAP replies
+   * of the last kept word and never the same word twice running.
+   */
+  private mayKeep(opening: string, bright: boolean): boolean {
+    const due = this.repliesSinceKept >= this.every;
+    if (!this.playful) return due;
+    if (this.turnsSinceKept < PLAYFUL_GAP || openerWord(opening) === this.lastKept) return false;
+    return due || bright;
+  }
+
   /**
    * Wrap one reply's LLM stream; `openedBySound` is asked when the opening is
-   * decided; `burst` as in decide.
+   * decided; `burst` and `bright` as in decide.
    */
   wrap(
     input: ReadableStream<Chunk>,
     openedBySound: () => boolean = () => false,
-    burst?: boolean
+    burst?: boolean,
+    bright = false
   ): ReadableStream<Chunk> {
-    const decide = (opening: string): string => this.decide(opening, openedBySound(), burst);
+    const decide = (opening: string): string =>
+      this.decide(opening, openedBySound(), burst, bright);
     const early = this.early;
     let buffered = '';
     let template: Chunk | null = null;

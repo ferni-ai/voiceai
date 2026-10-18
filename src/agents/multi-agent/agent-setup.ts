@@ -17,7 +17,7 @@
  */
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
-import { attachTurnReceipts } from '../shared/turn-receipt.js';
+import { attachTurnReceipts } from '../shared/turn-receipt-session.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
@@ -101,7 +101,7 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
-import { withAlwaysOnInfoTools } from './always-on-info-tools.js';
+import { withAlwaysOnTools } from './everyday-basics.js';
 import { withCallJournalTools } from './call-journal-tools.js';
 import {
   createFindToolsTool,
@@ -991,7 +991,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const toolsCtx = { userId: userId || 'anonymous', sessionId, agentId: persona.id };
   const named = { ...toolsCtx, agentDisplayName: persona.name || persona.id };
   const withJournal = await withCallJournalTools(loadedTools, named); // CALL_JOURNAL=on
-  const orchestratorTools = await withAlwaysOnInfoTools(withJournal, named);
+  const orchestratorTools = await withAlwaysOnTools(withJournal, named, isHandoff === true);
 
   // =========================================================================
   // 🔍 CRITICAL VISIBILITY: Log exactly what tools are available to LLM

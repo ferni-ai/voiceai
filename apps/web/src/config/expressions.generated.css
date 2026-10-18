@@ -3,9 +3,9 @@
  *
  * 🎭 AUTO-GENERATED FROM design-system/tokens/expressions.json
  * Do not edit directly - run: pnpm build:expressions
- * Generated: 2026-02-23T11:35:47.953Z
+ * Generated: 2026-10-17T13:17:43.242Z
  *
- * 100 Luxo-style expression rules.
+ * 102 Luxo-style expression rules.
  * CSS transforms only - no pupils, opaque eyes with shape transforms.
  */
 
@@ -76,6 +76,13 @@
   --expr-content-lid-bottom-curve: 0;
   --expr-content-presence-opacity: 0.25;
   --expr-content-presence-stroke: 1.5;
+
+  --expr-glad-eye-scale-y: 0.74;
+  --expr-glad-eye-scale-x: 1.08;
+  --expr-glad-lid-top-curve: 30;
+  --expr-glad-lid-bottom-curve: -18;
+  --expr-glad-presence-opacity: 0.48;
+  --expr-glad-presence-stroke: 1.8;
 
   --expr-excited-eye-scale-y: 1.15;
   --expr-excited-eye-scale-x: 1.08;
@@ -356,6 +363,13 @@
   --expr-peaceful-lid-bottom-curve: 0;
   --expr-peaceful-presence-opacity: 0.32;
   --expr-peaceful-presence-stroke: 1.5;
+
+  --expr-settling-eye-scale-y: 0.7;
+  --expr-settling-eye-scale-x: 1.04;
+  --expr-settling-lid-top-curve: 32;
+  --expr-settling-lid-bottom-curve: 8;
+  --expr-settling-presence-opacity: 0.24;
+  --expr-settling-presence-stroke: 1.5;
 
   --expr-encouraging-eye-scale-y: 0.9;
   --expr-encouraging-eye-scale-x: 1.06;
@@ -839,7 +853,7 @@
 /* Expression: delighted (happy) */
 .ferni-avatar[data-expression="delighted"] {
   transform: translateY(-6px) scale(1.05) rotate(-2deg);
-  animation: delightedBounce 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: delightedBounce 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="delighted"] .eye-white {
@@ -923,10 +937,41 @@
   stroke-width: 1.5;
 }
 
+/* Expression: glad (happy) */
+.ferni-avatar[data-expression="glad"] {
+  transform: translateY(-5px) rotate(6deg);
+}
+
+.ferni-avatar[data-expression="glad"] .eye-white {
+  transform: scaleY(0.74) scaleX(1.08);
+}
+
+.ferni-avatar[data-expression="glad"] .eyes-group {
+  transform: translate(1px, -2px);
+}
+
+.ferni-avatar[data-expression="glad"] .lid-top {
+  d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="glad"] .lid-bottom {
+  d: path("M 0,100 Q 50,82 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="glad"] .smile-crease {
+  opacity: 1;
+  stroke-width: 1.3;
+}
+
+.ferni-avatar[data-expression="glad"] .presence-ring {
+  opacity: 0.48;
+  stroke-width: 1.8;
+}
+
 /* Expression: excited (happy) */
 .ferni-avatar[data-expression="excited"] {
   transform: scale(1.06);
-  animation: excitedBounce 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: excitedBounce 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="excited"] .eye-white {
@@ -1017,7 +1062,7 @@
 /* Expression: caring (warmth) */
 .ferni-avatar[data-expression="caring"] {
   transform: translateY(-2px) rotate(-1deg);
-  animation: caringSettle 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: caringSettle 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="caring"] .eye-white {
@@ -1045,7 +1090,7 @@
 /* Expression: loving (warmth) */
 .ferni-avatar[data-expression="loving"] {
   transform: translateY(-4px) scale(1.02);
-  animation: lovingGlow 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: lovingGlow 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="loving"] .eye-white {
@@ -1204,7 +1249,7 @@
 /* Expression: playful (playful) */
 .ferni-avatar[data-expression="playful"] {
   transform: rotate(2deg) translateY(-2px);
-  animation: playfulSway 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: playfulSway 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="playful"] .eye-white {
@@ -1267,7 +1312,7 @@
 /* Expression: silly (playful) */
 .ferni-avatar[data-expression="silly"] {
   transform: rotate(-4deg) scaleX(1.03) translateY(-3px);
-  animation: sillyWobble 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: sillyWobble 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="silly"] .eye-white {
@@ -1286,7 +1331,7 @@
 /* Expression: winking (playful) */
 .ferni-avatar[data-expression="winking"] {
   transform: rotate(2deg);
-  animation: winkPop 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: winkPop 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="winking"] .eye-white {
@@ -1739,7 +1784,7 @@
 /* Expression: calm (presence) */
 .ferni-avatar[data-expression="calm"] {
   transform: none;
-  animation: calmBreathe 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: calmBreathe 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="calm"] .eye-white {
@@ -1796,6 +1841,38 @@
   stroke-width: 1.5;
 }
 
+/* Expression: settling (presence) */
+.ferni-avatar[data-expression="settling"] {
+  transform: translateY(2px) rotate(-5deg);
+  animation: calmBreathe 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.ferni-avatar[data-expression="settling"] .eye-white {
+  transform: scaleY(0.7) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="settling"] .eyes-group {
+  transform: translate(-1px, 4px);
+}
+
+.ferni-avatar[data-expression="settling"] .lid-top {
+  d: path("M 0,0 Q 50,32 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="settling"] .lid-bottom {
+  d: path("M 0,100 Q 50,108 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="settling"] .smile-crease {
+  opacity: 0.4;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="settling"] .presence-ring {
+  opacity: 0.24;
+  stroke-width: 1.5;
+}
+
 /* Expression: encouraging (coaching) */
 .ferni-avatar[data-expression="encouraging"] {
   transform: translateY(-3px) scale(1.02);
@@ -1822,7 +1899,7 @@
 /* Expression: cheering (coaching) */
 .ferni-avatar[data-expression="cheering"] {
   transform: translateY(-5px) scale(1.04);
-  animation: cheeringBounce 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: cheeringBounce 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="cheering"] .eye-white {
@@ -1936,7 +2013,7 @@
 /* Expression: drowsy (tired) */
 .ferni-avatar[data-expression="drowsy"] {
   transform: scaleY(0.98) translateY(1px);
-  animation: drowsyBlink 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: drowsyBlink 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="drowsy"] .eye-white {
@@ -1989,7 +2066,7 @@
 /* Expression: yawning (tired) */
 .ferni-avatar[data-expression="yawning"] {
   transform: scaleY(1.02) translateY(-2px);
-  animation: yawnCycle 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: yawnCycle 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="yawning"] .eye-white {
@@ -2372,7 +2449,7 @@
 /* Expression: eyeroll (frustrated) */
 .ferni-avatar[data-expression="eyeroll"] {
   transform: rotate(-2deg);
-  animation: eyerollArc 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: eyerollArc 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="eyeroll"] .eye-white {
@@ -2491,7 +2568,7 @@
 /* Expression: nervous (nervous) */
 .ferni-avatar[data-expression="nervous"] {
   transform: translateY(-1px);
-  animation: nervousLook 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: nervousLook 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="nervous"] .eye-white {
@@ -2510,7 +2587,7 @@
 /* Expression: anxious (nervous) */
 .ferni-avatar[data-expression="anxious"] {
   transform: scaleY(1.01) translateY(-2px);
-  animation: anxiousDart 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: anxiousDart 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="anxious"] .eye-white {
@@ -2897,7 +2974,7 @@
 /* Expression: passionate (intense) */
 .ferni-avatar[data-expression="passionate"] {
   transform: translateY(-4px) scale(1.03);
-  animation: passionatePulse 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+  animation: passionatePulse 0.5s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 .ferni-avatar[data-expression="passionate"] .eye-white {

@@ -20,7 +20,7 @@
  *   npm run ferni deploy ui
  */
 
-import { execSync, spawn, spawnSync } from 'child_process';
+import { execFileSync, execSync, spawn, spawnSync } from 'child_process';
 import { config as dotenvConfig } from 'dotenv';
 import { existsSync, promises as fs, readFileSync } from 'fs';
 import { homedir } from 'os';
@@ -56,6 +56,7 @@ import {
   resolveAgentEnv,
   runLkAgent,
 } from './utils/livekit-agent.js';
+import { argv, captureArgv, runArgv } from './utils/argv.js';
 import {
   handleUsers as handleUsersCommand,
   handleWaitlist as handleWaitlistCommand,
@@ -1468,7 +1469,6 @@ function runCommand(script: string, args: string[]): void {
   const result = spawnSync('npx', ['tsx', script, ...args], {
     cwd: PROJECT_ROOT,
     stdio: 'inherit',
-    shell: true,
   });
 
   process.exit(result.status || 0);
@@ -1793,8 +1793,12 @@ async function handleLogs(args: string[]): Promise<void> {
   } else if (subcommand === 'errors') {
     // Show errors from all services
     log.info('Fetching error logs from all services...\n');
-    const cmd = `gcloud logging read "resource.type=cloud_run_revision AND severity>=ERROR" --limit=${limit} --project=${GCP_PROJECT} --format="table(timestamp,resource.labels.service_name,textPayload)" 2>/dev/null`;
-    const result = spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+    const filter = 'resource.type=cloud_run_revision AND severity>=ERROR';
+    const format = 'table(timestamp,resource.labels.service_name,textPayload)';
+    runArgv(
+      argv`gcloud logging read ${filter} --limit=${limit} --project=${GCP_PROJECT} --format=${format}`,
+      true
+    );
     return;
   } else {
     const service = SERVICES[subcommand as keyof typeof SERVICES];
@@ -1812,14 +1816,15 @@ async function handleLogs(args: string[]): Promise<void> {
     console.log(`${colors.bold}${colors.cyan}━━━ ${service} ━━━${colors.reset}\n`);
 
     const tailFlag = tail ? '--tail=100' : `--limit=${limit}`;
-    const cmd = `gcloud run services logs read ${service} ${tailFlag} --project=${GCP_PROJECT} --region=${GCP_REGION} 2>/dev/null`;
+    const [cmd, ...cmdArgs] =
+      argv`gcloud run services logs read ${service} ${tailFlag} --project=${GCP_PROJECT} --region=${GCP_REGION}`;
 
     if (tail) {
       log.info(`Streaming logs (Ctrl+C to stop)...`);
-      const child = spawn('sh', ['-c', cmd], { stdio: 'inherit' });
+      const child = spawn(cmd, cmdArgs, { stdio: ['inherit', 'inherit', 'ignore'] });
       await new Promise((resolve) => child.on('close', resolve));
     } else {
-      const result = spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+      runArgv([cmd, ...cmdArgs], true);
     }
     console.log();
   }
@@ -1842,8 +1847,9 @@ async function handleLogsAnalyze(args: string[], since: string): Promise<void> {
     logQuery += ` AND resource.labels.service_name="${svcName}"`;
   }
 
-  const cmd = `gcloud logging read '${logQuery}' --limit=200 --project=${GCP_PROJECT} --format="json" --freshness=${since} 2>/dev/null`;
-  const logsJson = execCommand(cmd);
+  const logsJson = captureArgv(
+    argv`gcloud logging read ${logQuery} --limit=200 --project=${GCP_PROJECT} --format=json --freshness=${since}`
+  );
 
   spinner.stop(!!logsJson);
 
@@ -1934,12 +1940,17 @@ async function handleLogsSearch(query: string, since: string): Promise<void> {
   spinner.start();
 
   // Search across all services
-  const cmd = `gcloud logging read 'resource.type=cloud_run_revision AND textPayload=~"${query}"' --limit=50 --project=${GCP_PROJECT} --format="table(timestamp,resource.labels.service_name,severity,textPayload)" --freshness=${since} 2>/dev/null`;
+  // JSON.stringify quotes the query for the logging filter language (no shell involved).
+  const filter = `resource.type=cloud_run_revision AND textPayload=~${JSON.stringify(query)}`;
+  const format = 'table(timestamp,resource.labels.service_name,severity,textPayload)';
 
   spinner.stop(true);
 
   console.log();
-  const result = spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  const result = runArgv(
+    argv`gcloud logging read ${filter} --limit=50 --project=${GCP_PROJECT} --format=${format} --freshness=${since}`,
+    true
+  );
 
   if (result.status !== 0) {
     log.warn('Search completed with no results or errors');
@@ -2444,11 +2455,7 @@ async function handleTokens(args: string[]): Promise<void> {
     }
 
     const versionArgs = ['run', 'tokens:version', '--', versionType, ...changes];
-    spawnSync('npm', versionArgs, {
-      cwd: PROJECT_ROOT,
-      stdio: 'inherit',
-      shell: true,
-    });
+    spawnSync('npm', versionArgs, { cwd: PROJECT_ROOT, stdio: 'inherit' });
   }
 
   if (subcommand === 'watch') {
@@ -3686,13 +3693,12 @@ async function handleJobs(args: string[]): Promise<void> {
     }
 
     // Show Cloud Logging for scheduler jobs
-    const filter = jobName ? `AND labels.job_name="${jobName}"` : '';
-    const cmd = `gcloud logging read "resource.type=cloud_scheduler_job ${filter}" --limit=10 --project=${GCP_PROJECT} --format="table(timestamp,severity,textPayload)" 2>/dev/null`;
-
-    spawnSync('sh', ['-c', cmd], {
-      cwd: PROJECT_ROOT,
-      stdio: 'inherit',
-    });
+    const filter = `resource.type=cloud_scheduler_job${jobName ? ` AND labels.job_name=${JSON.stringify(jobName)}` : ''}`;
+    const format = 'table(timestamp,severity,textPayload)';
+    runArgv(
+      argv`gcloud logging read ${filter} --limit=10 --project=${GCP_PROJECT} --format=${format}`,
+      true
+    );
   }
 
   if (subcommand === 'logs') {
@@ -3700,13 +3706,8 @@ async function handleJobs(args: string[]): Promise<void> {
 
     console.log(`${colors.bold}Job Logs:${colors.reset}\n`);
 
-    const filter = jobName ? `AND labels.job_name="${jobName}"` : '';
-    const cmd = `gcloud logging read "resource.type=cloud_scheduler_job ${filter}" --limit=20 --project=${GCP_PROJECT} 2>/dev/null`;
-
-    spawnSync('sh', ['-c', cmd], {
-      cwd: PROJECT_ROOT,
-      stdio: 'inherit',
-    });
+    const filter = `resource.type=cloud_scheduler_job${jobName ? ` AND labels.job_name=${JSON.stringify(jobName)}` : ''}`;
+    runArgv(argv`gcloud logging read ${filter} --limit=20 --project=${GCP_PROJECT}`, true);
   }
 }
 
@@ -6049,9 +6050,7 @@ async function handleOps(args: string[]): Promise<void> {
         return;
       }
       console.log(`${colors.cyan}Triggering memory job: ${jobName}...${colors.reset}\n`);
-      spawnSync('sh', ['-c', `npx tsx ${cliCommandsDir}/memory-scheduler.ts trigger ${jobName}`], {
-        stdio: 'inherit',
-      });
+      runArgv(argv`npx tsx ${cliCommandsDir}/memory-scheduler.ts trigger ${jobName}`);
     } else if (action === 'list') {
       console.log(`${colors.cyan}Available memory jobs:${colors.reset}\n`);
       spawnSync('sh', ['-c', `npx tsx ${cliCommandsDir}/memory-scheduler.ts list`], {
@@ -6097,8 +6096,12 @@ async function handleOps(args: string[]): Promise<void> {
     const output = outputArg ? outputArg.split('=')[1] : undefined;
 
     console.log(`${colors.cyan}Generating CI/CD dashboard...${colors.reset}\n`);
-    const cmd = `npx tsx ${cliCommandsDir}/ci-dashboard.ts${json ? ' --json' : ''}${open ? ' --open' : ''}${publish ? ' --publish' : ''}${output ? ` --output=${output}` : ''}`;
-    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+    const flags = [json && '--json', open && '--open', publish && '--publish'];
+    if (output) flags.push(`--output=${output}`);
+    runArgv([
+      ...argv`npx tsx ${cliCommandsDir}/ci-dashboard.ts`,
+      ...flags.filter((f): f is string => !!f),
+    ]);
   }
 
   if (subcommand === 'metrics') {
@@ -6159,9 +6162,7 @@ async function handleCalls(args: string[]): Promise<void> {
       return;
     }
     console.log(`${colors.cyan}Initiating test call to ${phone}...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/test-outbound-call.ts --phone=${phone}`], {
-      stdio: 'inherit',
-    });
+    runArgv(argv`npx tsx ${scriptsDir}/test-outbound-call.ts --phone=${phone}`);
   }
 
   if (subcommand === 'status') {
@@ -6171,9 +6172,7 @@ async function handleCalls(args: string[]): Promise<void> {
       return;
     }
     console.log(`${colors.cyan}Checking call status...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/check-call-status.ts --call=${callId}`], {
-      stdio: 'inherit',
-    });
+    runArgv(argv`npx tsx ${scriptsDir}/check-call-status.ts --call=${callId}`);
   }
 
   if (subcommand === 'family') {
@@ -6207,9 +6206,7 @@ async function handleCalls(args: string[]): Promise<void> {
       return;
     }
     console.log(`${colors.cyan}Sending Ferni invite call...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/ferni-invite-call.ts --email=${email}`], {
-      stdio: 'inherit',
-    });
+    runArgv(argv`npx tsx ${scriptsDir}/ferni-invite-call.ts --email=${email}`);
   }
 
   if (subcommand === 'goodnight') {
@@ -6485,10 +6482,7 @@ async function handleValidate(args: string[]): Promise<void> {
       'validate',
       'validate-tools-e2e.ts'
     );
-    const { spawnSync } = await import('child_process');
-    spawnSync('sh', ['-c', `npx tsx ${validateToolsPath} ${subArgs.join(' ')}`], {
-      stdio: 'inherit',
-    });
+    runArgv(['npx', 'tsx', validateToolsPath, ...subArgs]);
     return;
   }
 
@@ -6504,8 +6498,7 @@ async function handleValidate(args: string[]): Promise<void> {
       'validate',
       'validate-nl-routing.ts'
     );
-    const { spawnSync } = await import('child_process');
-    spawnSync('sh', ['-c', `npx tsx ${validateNLPath} ${subArgs.join(' ')}`], { stdio: 'inherit' });
+    runArgv(['npx', 'tsx', validateNLPath, ...subArgs]);
     return;
   }
 
@@ -10462,19 +10455,19 @@ async function handleBackup(args: string[]): Promise<void> {
       return;
     }
 
-    log.warn('⚠️ This will OVERWRITE current Firestore data!');
-    const answer = await prompt(`${colors.yellow}Continue? [y/N]:${colors.reset} `);
-    if (answer.toLowerCase() !== 'y') {
-      console.log('\nAborted.');
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
+    log.warn(`⚠️ This will OVERWRITE current Firestore data in ${projectId}!`);
+    const typed = await prompt(`${colors.yellow}Type the project id to continue:${colors.reset} `);
+    if (typed.trim() !== projectId) {
+      console.log('\nProject id did not match. Aborted.');
       return;
     }
 
-    const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
     const spinner = new Spinner('Restoring backup...');
     spinner.start();
 
     try {
-      execSync(`gcloud firestore import ${backupPath} --project=${projectId}`, {
+      execFileSync('gcloud', ['firestore', 'import', backupPath, `--project=${projectId}`], {
         encoding: 'utf-8',
         timeout: 60 * 60 * 1000,
         stdio: 'pipe',
@@ -10492,11 +10485,8 @@ async function handleBackup(args: string[]): Promise<void> {
   if (subcommand === 'cleanup') {
     console.log(`${colors.bold}Cleaning up old backups...${colors.reset}\n`);
 
-    const retentionDays = 30;
-    log.info(`Removing backups older than ${retentionDays} days`);
-
-    // In production, this would delete old backups
-    log.success('Cleanup complete');
+    // Not implemented: say so instead of printing a fake "Cleanup complete".
+    log.warn('Not implemented. Expire old exports with a GCS lifecycle rule on the bucket.');
     return;
   }
 

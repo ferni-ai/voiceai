@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { searchRestaurants as searchPlacesNew } from '../google-places.js';
 import {
   checkActionPermission,
   markActionExecuted,
@@ -202,50 +203,21 @@ async function searchYelp(
 }
 
 /**
- * Search Google Places for restaurants
+ * Search Google Places (New) for restaurants. No photo URL: nothing reads one,
+ * and a photo URL would carry the API key.
  */
 async function searchGooglePlaces(query: string, location: string): Promise<Restaurant[]> {
-  const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-  if (!GOOGLE_API_KEY) return [];
-
-  const params = new URLSearchParams({
-    query: `${query} restaurant ${location}`,
-    type: 'restaurant',
-    key: GOOGLE_API_KEY,
-  });
-
-  const response = await fetch(
-    `https://maps.googleapis.com/maps/api/place/textsearch/json?${params}`
-  );
-
-  if (!response.ok) return [];
-
-  const data = await response.json();
-
-  return (data.results || [])
-    .slice(0, 10)
-    .map(
-      (r: {
-        place_id: string;
-        name: string;
-        formatted_address: string;
-        rating?: number;
-        photos?: Array<{ photo_reference: string }>;
-        price_level?: number;
-      }) => ({
-        id: `google_${r.place_id}`,
-        name: r.name,
-        address: r.formatted_address,
-        city: location,
-        rating: r.rating,
-        priceRange: r.price_level as 1 | 2 | 3 | 4 | undefined,
-        imageUrl: r.photos?.[0]
-          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${r.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
-          : undefined,
-        provider: 'google' as BookingProvider,
-        externalId: r.place_id,
-      })
-    );
+  const places = await searchPlacesNew({ query: `${query} restaurant`, location });
+  return places.slice(0, 10).map((p) => ({
+    id: `google_${p.placeId}`,
+    name: p.name,
+    address: p.address,
+    city: location,
+    rating: p.rating,
+    priceRange: (p.priceLevel || undefined) as 1 | 2 | 3 | 4 | undefined,
+    provider: 'google' as BookingProvider,
+    externalId: p.placeId,
+  }));
 }
 
 /**

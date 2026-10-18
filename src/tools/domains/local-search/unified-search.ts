@@ -124,9 +124,16 @@ export function formatResults(results: SearchResult[], query: string, location: 
 export async function unifiedSearch(
   query: string,
   location: string,
-  options: { openNow?: boolean; priceLevel?: string; explicitSource?: Source }
+  options: {
+    openNow?: boolean;
+    priceLevel?: string;
+    explicitSource?: Source;
+    restaurantsOnly?: boolean;
+  }
 ): Promise<SearchResult[]> {
   const source = options.explicitSource || 'auto';
+  // Places text search drops every non-restaurant when includedType is 'restaurant'.
+  const type = options.restaurantsOnly ? 'restaurant' : null;
 
   // Explicit Yelp request
   if (source === 'yelp') {
@@ -154,6 +161,7 @@ export async function unifiedSearch(
       query,
       location,
       openNow: options.openNow,
+      type,
     });
     return googleResults.map(googleToUnified);
   }
@@ -164,6 +172,7 @@ export async function unifiedSearch(
       query,
       location,
       openNow: options.openNow,
+      type,
     });
 
     if (googleResults.length > 0) {
