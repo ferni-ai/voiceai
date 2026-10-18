@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { OutgoingEmail } from '../../../types/email-sender.js';
-import { signJwtUrl } from '../gmail-auth.js';
+import { GOOGLE_TOKEN_URL, signJwtUrl } from '../gmail-auth.js';
 import { GMAIL_SEND_URL } from '../gmail-sender.js';
 import {
   createEmailSenderFromEnv,
@@ -24,8 +24,9 @@ function recorder() {
   const fetchImpl = (async (input: Parameters<typeof fetch>[0], init: RequestInit = {}) => {
     const url = String(input);
     calls.push({ url, init });
-    if (url.includes(':signJwt')) return new Response(JSON.stringify({ signedJwt: 'jwt' }));
-    if (url.includes('oauth2.googleapis.com'))
+    if (url.startsWith('https://iamcredentials.googleapis.com/') && url.endsWith(':signJwt'))
+      return new Response(JSON.stringify({ signedJwt: 'jwt' }));
+    if (url === GOOGLE_TOKEN_URL)
       return new Response(JSON.stringify({ access_token: 'at', expires_in: 3600 }));
     if (url === GMAIL_SEND_URL) return new Response(JSON.stringify({ id: 'g1' }));
     return new Response('', { status: 202, headers: { 'x-message-id': 'sg-1' } });
