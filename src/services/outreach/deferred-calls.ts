@@ -45,7 +45,7 @@ export function heldCallReply(contactName: string): string {
 }
 
 /** When a held call rings, in the recipient's time: "later today at 9:00 AM", "tomorrow at …". */
-function spokenWhen(at: Date, timeZone: string, now: Date): string {
+export function spokenWhen(at: Date, timeZone: string, now: Date): string {
   const day = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone }).format(d);
   const time = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit' });
   const tomorrow = day(new Date(now.getTime() + 86_400_000));
