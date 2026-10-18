@@ -154,6 +154,8 @@ export const FLAG_MANIFEST = {
   // on: after a call, the verified owner's reminders, commitments and threads become follow-ups (agents/follow-through-import.ts)
   FOLLOW_THROUGH_IMPORT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
+  // on: the opener asks about one follow_through row and the caller's answer closes it (follow-through-opener.ts)
+  FOLLOW_THROUGH_OPENER: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
   FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: at call start, ask once about a date the caller told us (dates/recall.ts; needs DATES_THAT_MATTER)

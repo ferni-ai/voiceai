@@ -29,6 +29,7 @@ import {
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { followThroughOpenerEnabled, followThroughReplyListeners } from './follow-through-opener.js';
 import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
@@ -228,6 +229,20 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
+    ];
+    for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
+    sessionEventHandlers.push(...handlers);
+  }
+
+  // The caller's answer to the follow-up the opener raised closes it (follow-through-opener.ts).
+  if (userId && followThroughOpenerEnabled()) {
+    const replies = followThroughReplyListeners({
+      userId,
+      isOwner: () => speakerIsAccountOwner(sessionId),
+    });
+    const handlers = [
+      { event: 'conversation_item_added', handler: replies.onItemAdded },
+      { event: 'user_input_transcribed', handler: replies.onTranscript },
     ];
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);
