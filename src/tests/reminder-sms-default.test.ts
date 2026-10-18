@@ -42,6 +42,8 @@ const state = vi.hoisted(() => ({
   extended: [] as Array<{ reminderId: string; at: string }>,
   /** Reminders delivered to the app's message panel. */
   inApp: [] as string[],
+  /** Promises the delivery job settled, by reminder. */
+  settled: [] as Array<{ reminderId: string; outcome: string }>,
   /** The guarded sender's env (SCHEDULED_OUTREACH_THIRD_PARTY gates texts to someone else). */
   env: { LOG_HASH_SECRET: 'test-secret' } as Record<string, string>,
   /** The guarded sender's clock: noon in New York unless a test moves it. */
@@ -134,7 +136,10 @@ vi.mock('../services/superhuman/semantic-intelligence/promise-keeper.js', () => 
   extendReminderPromise: async (_owner: string, reminderId: string, at: Date) => {
     state.extended.push({ reminderId, at: at.toISOString() });
   },
-  settleReminderPromise: async () => {},
+  settleReminderPromise: async (_owner: string, reminderId: string, outcome: string) => {
+    state.settled.push({ reminderId, outcome });
+    return true;
+  },
   sweepOverduePromises: async () => ({}),
 }));
 vi.mock('../services/outreach/unified-delivery.js', () => ({
@@ -157,6 +162,7 @@ import { deliverDueReminders } from '../services/scheduling/reminder-delivery-jo
 import { deliverReminder, reminderFromDoc } from '../services/scheduling/reminder-scheduler.js';
 import { installReminderTextGuard } from '../services/scheduling/reminder-text-guard.js';
 import { installReminderTexts } from '../services/outreach/reminder-texts.js';
+import { reminderReach } from '../services/outreach/reminder-reach.js';
 import type { ToolContext } from '../tools/registry/types.js';
 
 const WEB_USER = 'web-user-1';
@@ -164,9 +170,9 @@ const VERIFIED = '+15557654321';
 const MODEL_NUMBER = '+19998887777';
 const BODY = "It's Ferni. You asked me to remind you: take the bread out";
 
-async function setReminder(args: Record<string, unknown>): Promise<string> {
+async function setReminder(args: Record<string, unknown>, userId = WEB_USER): Promise<string> {
   const def = (await getToolDefinitions()).find((d) => d.id === 'setReminder')!;
-  const tool = def.create({ userId: WEB_USER, agentId: 'ferni' } as ToolContext) as unknown as {
+  const tool = def.create({ userId, agentId: 'ferni' } as ToolContext) as unknown as {
     execute: (a: object, o: unknown) => Promise<string>;
   };
   return tool.execute({ message: 'take the bread out', when: 'in 30 minutes', ...args }, {});
@@ -187,6 +193,7 @@ beforeEach(() => {
   state.legacyTexts = [];
   state.guarded = [];
   state.inApp = [];
+  state.settled = [];
   state.optedOut = false;
   state.records = [];
   state.locks = new Map();
@@ -379,5 +386,111 @@ describe('REMINDER_SMS_DEFAULT off (today)', () => {
     await deliverDueReminders({ now: soon() });
     expect(state.guarded).toEqual([]);
     expect(state.legacyTexts).toEqual([{ to: MODEL_NUMBER, message: 'take the bread out' }]);
+  });
+});
+
+describe('per person: REMINDER_SMS_DEFAULT and REMINDER_IN_APP_PUSH from cohort flags', () => {
+  const OTHER = 'web-user-2';
+  const OTHER_PHONE = '+15550002222';
+  /** Flags as flagForUser would resolve them: on for these people only, never process.env. */
+  let flags: Record<string, Record<string, 'on'>>;
+  let pushes: Array<{ userId: string; body: string }>;
+  let pushWorks: boolean;
+  const reach = () =>
+    reminderReach({
+      env: {},
+      flagForUser: async (uid, flag) => flags[uid]?.[flag],
+      push: async (userId, _title, body) => {
+        if (!pushWorks) return false;
+        pushes.push({ userId, body });
+        return true;
+      },
+    });
+  const rowOf = (uid: string) =>
+    state.rows.find((r) => r.collection === 'reminders' && r.userId === uid)!;
+  const run = (now = soon()) => deliverDueReminders({ now, reach: reach() });
+
+  beforeEach(() => {
+    state.users[OTHER] = { linkedIdentifiers: [`phone:${OTHER_PHONE}`] };
+    flags = { [WEB_USER]: { REMINDER_SMS_DEFAULT: 'on' } };
+    pushes = [];
+    pushWorks = true;
+  });
+
+  it("texts the flagged person's app reminder to their verified number, and not anyone else's", async () => {
+    await setReminder({}); // the default: voice_message, kept for the app (voice:<uid>)
+    await setReminder({}, OTHER);
+    expect(process.env.REMINDER_SMS_DEFAULT).toBeUndefined();
+
+    const result = await run();
+    expect(state.guarded).toEqual([{ to: VERIFIED, body: BODY }]);
+    expect(state.legacyTexts).toEqual([]);
+    expect(state.inApp).toEqual(['take the bread out']); // OTHER's, in the app
+    expect(rowOf(WEB_USER).data.status).toBe('delivered');
+    expect(rowOf(OTHER).data.status).toBe('in_app_unnotified');
+    expect(result).toMatchObject({ texted: 1, inboxOnly: 1, delivered: 1 });
+  });
+
+  it('due in quiet hours: held until 08:00, then texted', async () => {
+    await setReminder({});
+    Object.assign(rowOf(WEB_USER).data, {
+      scheduledFor: '2026-10-15T03:00:00.000Z', // 23:00 New York
+      timezone: 'America/New_York',
+    });
+    state.now = new Date('2026-10-15T03:00:00.000Z');
+    expect(await run(state.now)).toMatchObject({ held: 1, texted: 0 });
+    noTexts();
+    expect(rowOf(WEB_USER).data).toMatchObject({
+      status: 'pending',
+      scheduledFor: '2026-10-15T12:00:00.000Z',
+    });
+
+    state.now = new Date('2026-10-15T12:00:00.000Z');
+    expect(await run(state.now)).toMatchObject({ texted: 1 });
+    expect(state.guarded).toEqual([{ to: VERIFIED, body: BODY }]);
+  });
+
+  it('no verified phone, with REMINDER_IN_APP_PUSH on: a push goes out, delivered, promise kept', async () => {
+    state.users[WEB_USER] = {};
+    flags[WEB_USER].REMINDER_IN_APP_PUSH = 'on';
+    await setReminder({});
+    const result = await run();
+    noTexts();
+    expect(pushes).toEqual([{ userId: WEB_USER, body: 'take the bread out' }]);
+    expect(rowOf(WEB_USER).data.status).toBe('delivered');
+    expect(state.settled).toEqual([{ reminderId: rowOf(WEB_USER).id, outcome: 'kept' }]);
+    expect(result).toMatchObject({ pushed: 1, delivered: 1, inboxOnly: 0 });
+  });
+
+  it('text refused (STOP), with REMINDER_IN_APP_PUSH on: a push goes out instead, promise kept', async () => {
+    flags[WEB_USER].REMINDER_IN_APP_PUSH = 'on';
+    state.optedOut = true;
+    await setReminder({});
+    await run();
+    noTexts();
+    expect(pushes).toHaveLength(1);
+    expect(rowOf(WEB_USER).data.status).toBe('delivered');
+    expect(state.settled).toEqual([{ reminderId: rowOf(WEB_USER).id, outcome: 'kept' }]);
+  });
+
+  it('push flag off: in_app_unnotified, and the promise is not kept', async () => {
+    state.optedOut = true;
+    await setReminder({});
+    const result = await run();
+    expect(pushes).toEqual([]);
+    expect(state.inApp).toEqual(['take the bread out']);
+    expect(rowOf(WEB_USER).data.status).toBe('in_app_unnotified');
+    expect(state.settled).toEqual([]); // left open; the overdue check calls it missed
+    expect(result).toMatchObject({ delivered: 0, inboxOnly: 1, pushed: 0 });
+  });
+
+  it('push on but it fails (no device): in_app_unnotified, and the promise is not kept', async () => {
+    flags[WEB_USER].REMINDER_IN_APP_PUSH = 'on';
+    pushWorks = false;
+    state.optedOut = true;
+    await setReminder({});
+    await run();
+    expect(rowOf(WEB_USER).data.status).toBe('in_app_unnotified');
+    expect(state.settled).toEqual([]);
   });
 });

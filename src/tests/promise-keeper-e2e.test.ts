@@ -202,6 +202,41 @@ describe('Ferni keeps her promises', () => {
     expect(byId.get(cancelled.id)?.violated).toBeUndefined();
   });
 
+  it('a reminder left in the app with no push is not a kept promise; with a push it is', async () => {
+    const def = reminderTools.find((t) => t.id === 'setReminder');
+    const tool = def?.create({ userId: UID, agentId: 'ferni' } as never) as unknown as {
+      execute: (p: Record<string, string>) => Promise<string>;
+    };
+    await tool.execute({ message: 'stretch', when: 'in 30 minutes' }); // kept for the app
+    await tool.execute({ message: 'water the plants', when: 'in 40 minutes' });
+    const [first, second] = promises().sort((a, b) =>
+      String(a.dueBy).localeCompare(String(b.dueBy))
+    );
+    const statusOf = (p: Record<string, unknown>) =>
+      fs.store.get(`bogle_users/${UID}/reminders/${String(p.reminderId)}`)?.status;
+
+    // No push: an inbox row nobody was told about. Its promise stays open...
+    const run = await deliverDueReminders({ now: at(31 * 60 * 1000) });
+    expect(run).toMatchObject({ delivered: 0, inboxOnly: 1 });
+    expect(statusOf(first)).toBe('in_app_unnotified');
+    const byId = () => new Map(promises().map((p) => [p.id, p]));
+    expect(byId().get(first.id)).toMatchObject({ outcome: 'open', fulfilled: false });
+
+    // A push told them: delivered, and the promise is kept.
+    const reach = { textOn: async () => false, notifyInApp: async () => true };
+    await deliverDueReminders({ now: at(41 * 60 * 1000), reach });
+    expect(statusOf(second)).toBe('delivered');
+    expect(byId().get(second.id)).toMatchObject({ outcome: 'kept', fulfilled: true });
+
+    // ...and once it is due, the overdue check calls it missed, never kept.
+    await deliverDueReminders({ now: at(3 * 60 * 60 * 1000) });
+    expect(byId().get(first.id)).toMatchObject({
+      outcome: 'missed',
+      fulfilled: false,
+      missedReason: 'reminder left in the app, no one told',
+    });
+  });
+
   it('asking about it in a later conversation keeps a check-in promise', async () => {
     await trackFerniCommitments(
       UID,

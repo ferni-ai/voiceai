@@ -174,7 +174,8 @@ describe('flag off (today)', () => {
     expect(reply).toMatch(/^Saved: .*one reminder to .*sent as a message in the Ferni app\./);
     expect(stored(WEB_USER)[0]).toMatchObject({ deliveryMethod: 'voice_message' });
     const run = await deliverDueReminders({ now: soon() });
-    expect(run).toMatchObject({ delivered: 1, rerouted: 1 });
+    // In the app with no push: it didn't reach them, so it isn't counted delivered.
+    expect(run).toMatchObject({ delivered: 0, rerouted: 1, inboxOnly: 1 });
     expect(state.texts).toEqual([]);
   });
 });

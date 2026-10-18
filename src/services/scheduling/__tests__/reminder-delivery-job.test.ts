@@ -6,7 +6,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Row = { id: string; userId: string; data: Record<string, unknown> };
 let rows: Row[] = [];
-const deliverReminder = vi.fn(async (_reminder: { id: string; deliveryMethod: string }) => true);
+type Outcome = 'sent' | 'in_app' | 'in_app_unnotified' | 'held' | 'failed';
+const deliverReminder = vi.fn(
+  async (
+    _reminder: { id: string; deliveryMethod: string },
+    _opts?: { textOn?: boolean; notifyInApp?: unknown }
+  ): Promise<Outcome> => 'sent'
+);
 
 /** Enough of Firestore for the job's query and its claim transaction. */
 function fakeDb() {
@@ -56,7 +62,7 @@ vi.mock('../../outreach/unified-delivery.js', () => ({
 }));
 vi.mock('../reminder-scheduler.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../reminder-scheduler.js')>()),
-  deliverReminder,
+  deliverReminderOutcome: deliverReminder,
 }));
 
 const { deliverDueReminders, deliveryChannelFor, MISSED_AFTER_MS } =
@@ -82,7 +88,7 @@ const reminder = (id: string, data: Record<string, unknown>): Row => ({
 beforeEach(() => {
   rows = [];
   smsUp = true;
-  deliverReminder.mockReset().mockResolvedValue(true);
+  deliverReminder.mockReset().mockResolvedValue('sent');
 });
 
 describe('deliverDueReminders', () => {
@@ -124,10 +130,35 @@ describe('deliverDueReminders', () => {
         deliveryAddress: '',
       }),
     ];
+    deliverReminder.mockResolvedValueOnce('in_app');
     const result = await deliverDueReminders({ now: NOW });
 
-    expect(result).toMatchObject({ delivered: 1, rerouted: 1 });
+    expect(result).toMatchObject({ delivered: 1, rerouted: 1, pushed: 1, texted: 0 });
     expect(deliverReminder.mock.calls[0][0]).toMatchObject({ deliveryMethod: 'in_app' });
+  });
+
+  it('an in-app reminder nobody was told about is not delivered', async () => {
+    deliverReminder.mockResolvedValueOnce('in_app_unnotified');
+    rows = [reminder('inbox', { scheduledFor: at(-60_000), deliveryMethod: 'in_app' })];
+    const result = await deliverDueReminders({ now: NOW });
+    expect(result).toMatchObject({ delivered: 0, inboxOnly: 1, failed: 0 });
+  });
+
+  it('with texts on for the owner, a text reminder with no phone of its own goes to the guard', async () => {
+    rows = [
+      reminder('app', {
+        scheduledFor: at(-60_000),
+        deliveryMethod: 'voice_message',
+        deliveryAddress: 'voice:u1',
+      }),
+    ];
+    const textOn = vi.fn(async (uid: string) => uid === 'u1');
+    const notifyInApp = vi.fn(async () => true);
+    const result = await deliverDueReminders({ now: NOW, reach: { textOn, notifyInApp } });
+    expect(textOn).toHaveBeenCalledWith('u1');
+    expect(deliverReminder.mock.calls[0][0]).toMatchObject({ deliveryMethod: 'voice_message' });
+    expect(deliverReminder.mock.calls[0][1]).toEqual({ textOn: true, notifyInApp });
+    expect(result).toMatchObject({ delivered: 1, texted: 1, rerouted: 0 });
   });
 
   it('sends in-app when this server has no Twilio credentials', async () => {
@@ -146,7 +177,7 @@ describe('deliverDueReminders', () => {
   });
 
   it('counts a failed delivery', async () => {
-    deliverReminder.mockResolvedValueOnce(false);
+    deliverReminder.mockResolvedValueOnce('failed');
     rows = [reminder('due', { scheduledFor: at(-60_000) })];
     expect(await deliverDueReminders({ now: NOW })).toMatchObject({ delivered: 0, failed: 1 });
   });
@@ -182,6 +213,14 @@ describe('deliveryChannelFor', () => {
   it('falls back to in-app when it cannot', () => {
     expect(deliveryChannelFor(r('voice_message', '[invalid]'))).toBe('in_app');
     expect(deliveryChannelFor(r('email', ''))).toBe('in_app');
+    expect(deliveryChannelFor(r('call', 'voice:u1'), undefined, true)).toBe('in_app');
+  });
+
+  it("with texts on, keeps a text reminder's channel for the guard to resolve", () => {
+    expect(deliveryChannelFor(r('voice_message', 'voice:u1'), undefined, true)).toBe(
+      'voice_message'
+    );
+    expect(deliveryChannelFor(r('voice_message', 'voice:u1'), undefined, false)).toBe('in_app');
   });
 });
 

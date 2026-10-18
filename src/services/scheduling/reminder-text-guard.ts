@@ -31,21 +31,21 @@ export type ReminderTextGuard = (reminder: ScheduledReminder) => Promise<Guarded
 const TEXT_METHODS: readonly ReminderDeliveryMethod[] = ['sms', 'voice_message'];
 
 let guard: ReminderTextGuard | undefined;
-const held = new WeakSet<ScheduledReminder>();
 
 export function installReminderTextGuard(next: ReminderTextGuard | undefined): void {
   guard = next;
 }
 
-/** True when deliverReminder held this reminder to a later time instead of delivering it. */
-export const wasHeld = (reminder: ScheduledReminder): boolean => held.has(reminder);
-
-/** null: not a text, or the flag is off, so deliver it as before. */
+/**
+ * null: not a text, or texts are off, so deliver it as before. `textOn` is the
+ * owner's REMINDER_SMS_DEFAULT: a server delivering for many people decides it
+ * per person and passes it in; elsewhere it is this process's env.
+ */
 export async function textThroughGuard(
   reminder: ScheduledReminder,
-  env: Record<string, string | undefined> = process.env
+  textOn: boolean = isReminderSmsDefaultOn()
 ): Promise<GuardedTextOutcome | null> {
-  if (!isReminderSmsDefaultOn(env) || !TEXT_METHODS.includes(reminder.deliveryMethod)) return null;
+  if (!textOn || !TEXT_METHODS.includes(reminder.deliveryMethod)) return null;
   if (!guard) {
     log.warn(
       { reminderId: reminder.id },
@@ -65,20 +65,20 @@ export async function textThroughGuard(
  * Marks a held reminder 'pending' at its new time in this process (the in-process
  * scheduler reads these objects). The guard that held it saved the new time.
  */
-function holdReminder(reminder: ScheduledReminder, until: Date): boolean {
+function holdReminder(reminder: ScheduledReminder, until: Date): void {
   reminder.status = 'pending';
   reminder.scheduledFor = until;
-  held.add(reminder);
   log.info({ reminderId: reminder.id, until: until.toISOString() }, 'Reminder text held');
-  return true;
 }
 
 /** For deliverReminder: deliver a held-for-the-app text in the app, or hold it until its time. */
-export async function settleGuardedText(
+export async function settleGuardedText<T>(
   reminder: ScheduledReminder,
   outcome: 'in-app' | { holdUntil: Date },
-  deliver: (r: ScheduledReminder) => Promise<boolean>
-): Promise<boolean> {
+  deliver: (r: ScheduledReminder) => Promise<T>,
+  heldResult: T
+): Promise<T> {
   if (outcome === 'in-app') return deliver({ ...reminder, deliveryMethod: 'in_app' });
-  return Promise.resolve(holdReminder(reminder, outcome.holdUntil));
+  holdReminder(reminder, outcome.holdUntil);
+  return Promise.resolve(heldResult);
 }

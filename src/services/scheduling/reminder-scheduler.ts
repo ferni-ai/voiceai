@@ -27,6 +27,16 @@ import { WallClock, zonedWallTimeToUtc } from '../../utils/time-zone.js';
 export { userTimeZone } from '../../utils/caller-time-zone.js';
 import { clockTime } from './clock-time.js';
 import { settleGuardedText, textThroughGuard } from './reminder-text-guard.js';
+import {
+  attributedMessage,
+  inAppOutcome,
+  reachedThem,
+  type DeliverOptions,
+  type ReminderOutcome,
+  type ReminderStatus,
+} from './reminder-outcome.js';
+
+export type { DeliverOptions, ReminderOutcome } from './reminder-outcome.js';
 
 // Logger instance for use throughout this module
 const logger = getLogger();
@@ -76,8 +86,8 @@ export interface ScheduledReminder {
   sourceRelationship?: string;
 
   // Status
-  /** 'sending' = claimed by the delivery job; 'missed' = found too late to be useful. */
-  status: 'pending' | 'sending' | 'delivered' | 'failed' | 'cancelled' | 'missed';
+  /** 'sending': claimed by the job; 'missed': too late; 'in_app_unnotified': inbox row, no text or push. */
+  status: ReminderStatus;
   attempts: number;
   lastAttempt?: Date;
   error?: string;
@@ -464,7 +474,7 @@ export async function cancelReminder(reminderId: string): Promise<boolean> {
  */
 async function updateReminderStatus(
   reminder: ScheduledReminder,
-  status: 'delivered' | 'failed',
+  status: Extract<ReminderStatus, 'delivered' | 'failed' | 'in_app_unnotified'>,
   error?: string
 ): Promise<void> {
   reminder.status = status;
@@ -503,32 +513,19 @@ async function updateReminderStatus(
 // DELIVERY FUNCTIONS
 // ============================================================================
 
-/**
- * Format relationship for human-readable output.
- */
-function formatRelationship(relationship?: string): string {
-  if (!relationship) return '';
-  const map: Record<string, string> = {
-    mother: 'mom',
-    father: 'dad',
-    grandmother: 'grandma',
-    grandfather: 'grandpa',
-    grandparent: 'grandparent',
-    parent: 'parent',
-    sibling: 'sibling',
-    child: 'child',
-    spouse: 'spouse',
-    partner: 'partner',
-    friend: 'friend',
-    other: '',
-  };
-  return map[relationship] || relationship;
+/** Deliver a reminder; true when it reached them (or was held to a later time). */
+export async function deliverReminder(
+  reminder: ScheduledReminder,
+  opts: DeliverOptions = {}
+): Promise<boolean> {
+  return reachedThem(await deliverReminderOutcome(reminder, opts));
 }
 
-/**
- * Deliver a reminder via the appropriate channel
- */
-export async function deliverReminder(reminder: ScheduledReminder): Promise<boolean> {
+/** Deliver a reminder via the appropriate channel, and say how it went. */
+export async function deliverReminderOutcome(
+  reminder: ScheduledReminder,
+  opts: DeliverOptions = {}
+): Promise<ReminderOutcome> {
   getLogger().info(
     {
       reminderId: reminder.id,
@@ -539,29 +536,16 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
     '📤 Delivering reminder'
   );
 
-  // Build attributed message if this reminder came from a family member
-  let messageToDeliver = reminder.message;
-  if (reminder.sourceIdentityId && reminder.sourceIdentityName) {
-    const relationship = formatRelationship(reminder.sourceRelationship);
-    const attribution = relationship
-      ? `Your ${relationship} ${reminder.sourceIdentityName}`
-      : reminder.sourceIdentityName;
-    messageToDeliver = `${attribution} wanted me to remind you: ${reminder.message}`;
-
-    getLogger().info(
-      {
-        reminderId: reminder.id,
-        sourceIdentityName: reminder.sourceIdentityName,
-        relationship: reminder.sourceRelationship,
-      },
-      '👨‍👩‍👧 Reminder attributed to family member'
-    );
-  }
+  const messageToDeliver = attributedMessage(reminder);
 
   try {
-    const guarded = await textThroughGuard(reminder); // REMINDER_SMS_DEFAULT: texts only via the guard
-    if (guarded && guarded !== 'sent')
-      return await settleGuardedText(reminder, guarded, deliverReminder);
+    // REMINDER_SMS_DEFAULT: texts only via the guard
+    const guarded = await textThroughGuard(reminder, opts.textOn);
+    if (guarded && guarded !== 'sent') {
+      const deliver = (r: ScheduledReminder) => deliverReminderOutcome(r, opts);
+      return await settleGuardedText<ReminderOutcome>(reminder, guarded, deliver, 'held');
+    }
+    let outcome: ReminderOutcome = 'sent';
     switch (guarded === 'sent' ? 'guarded' : reminder.deliveryMethod) {
       case 'guarded':
         break;
@@ -628,6 +612,7 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
           triggerId: reminder.id,
         });
         if (!saved.success) throw new Error(saved.error ?? 'in-app save failed');
+        outcome = await inAppOutcome(reminder, opts); // nobody told: it hasn't reached them
         break;
       }
 
@@ -741,8 +726,10 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
         throw new Error(`Unknown delivery method: ${reminder.deliveryMethod}`);
     }
 
-    await updateReminderStatus(reminder, 'delivered');
-    getLogger().info({ reminderId: reminder.id }, '✅ Reminder delivered');
+    const unnotified = outcome === 'in_app_unnotified';
+    await updateReminderStatus(reminder, unnotified ? 'in_app_unnotified' : 'delivered');
+    getLogger().info({ reminderId: reminder.id, outcome }, '📬 Reminder delivery settled');
+    if (unnotified) return outcome;
 
     // Record outcome for ML timing learning (if this reminder is about a contact)
     if (reminder.contactId && reminder.isDirectToContact) {
@@ -771,12 +758,12 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
       }
     }
 
-    return true;
+    return outcome;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     await updateReminderStatus(reminder, 'failed', errorMsg);
     getLogger().error({ reminderId: reminder.id, error: errorMsg }, '❌ Reminder delivery failed');
-    return false;
+    return 'failed';
   }
 }
 
