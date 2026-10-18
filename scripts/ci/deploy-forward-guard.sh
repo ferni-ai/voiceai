@@ -1,30 +1,32 @@
 #!/usr/bin/env bash
 # Never move production backwards (deploy-production.yml, before the build).
 #
-# workflow_run events can arrive out of order: an older head's CI can finish
-# after a newer one's, and deploying it would put an older commit over a newer
-# one. This decides whether DEPLOY_SHA may deploy, writes deploy=true|false to
-# $GITHUB_OUTPUT, and exits 0 either way. A no-op is not a failure. It exits
-# non-zero only when it can't read production, or when allow_older has no reason.
+# workflow_run events can arrive out of order, and an old CI run can be re-run:
+# either would deploy an older commit over a newer one. This decides whether
+# DEPLOY_SHA may deploy, writes deploy=true|false to $GITHUB_OUTPUT, and exits 0
+# either way: a no-op is not a failure. It exits non-zero only when it can't
+# read production, or when a manual deploy asks for something it must refuse.
 #
 #   - Production's commit is the BUILD_SHA env of the revision serving traffic
 #     (not the service template, which a rolled-back green revision can hold).
-#   - Deploys when that commit is an ancestor of DEPLOY_SHA (forward).
-#   - Already serving DEPLOY_SHA: a no-op on the automatic path (a CI re-run).
+#   - GitHub's compare of production's commit...DEPLOY_SHA decides:
+#     ahead deploys; identical is a no-op (manual: redeploys); behind or
+#     diverged is a no-op that says how to roll back on purpose.
 #   - Production's commit unknown: deploys only main's tip.
 #   - No service yet: deploys (first deployment).
-#   - Manual dispatch with ALLOW_OLDER=true and a REASON skips the check, for an
-#     intentional rollback. rollback.yml doesn't come through here; it shifts
-#     traffic to an existing revision on its own.
+#   - Manual dispatch deploys only commits on main. With ALLOW_OLDER=true and
+#     a REASON it skips the forward-only check, for an intentional rollback.
+#     rollback.yml doesn't come through here; it shifts traffic on its own.
 #
 # Env: DEPLOY_SHA, EVENT (github.event_name), ALLOW_OLDER, REASON, GCP_REGION,
 # GCP_PROJECT_ID, GITHUB_REPOSITORY, GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, and
-# GH_TOKEN for gh. Run from a checkout with full history.
+# GH_TOKEN for gh.
 set -euo pipefail
 
 SERVICE=john-bogle-ui
+REPO=$GITHUB_REPOSITORY
 summary() { echo "$1" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"; }
-deploy() { echo "deploy=true" >> "$GITHUB_OUTPUT"; echo "✅ $1"; exit 0; }
+deploy() { echo "deploy=true" >> "$GITHUB_OUTPUT"; echo "✅ Deploying $DEPLOY_SHA: $1"; exit 0; }
 noop() {
   echo "deploy=false" >> "$GITHUB_OUTPUT"
   echo "::notice::Not deploying ${DEPLOY_SHA}: $1"
@@ -32,28 +34,36 @@ noop() {
   summary "$1"
   exit 0
 }
+refuse() { echo "::error::Not deploying ${DEPLOY_SHA}: $1"; summary "### ❌ Refused: $1"; exit 1; }
+# GitHub's compare status of $2 relative to $1: ahead|identical|behind|diverged,
+# or nothing when it can't tell (unknown commit, API error).
+compare() { gh api "repos/$REPO/compare/$1...$2" --jq .status 2>/dev/null || true; }
 
-[[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::DEPLOY_SHA is not a commit SHA: $DEPLOY_SHA"; exit 1; }
+[[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || refuse "DEPLOY_SHA is not a full commit SHA"
 
-if [ "$EVENT" = workflow_dispatch ] && [ "${ALLOW_OLDER:-false}" = true ]; then
-  [ -n "${REASON// /}" ] || { echo "::error::allow_older needs a reason. Not deploying."; exit 1; }
-  echo "::warning::allow_older: deploying $DEPLOY_SHA without the forward-only check. Reason: $REASON"
-  summary "### ⏪ Forward-only check skipped (allow_older)"
-  summary "Reason: $REASON"
-  deploy "allow_older set by ${GITHUB_ACTOR:-a maintainer}"
+if [ "$EVENT" = workflow_dispatch ]; then
+  on_main=$(compare "$DEPLOY_SHA" main)
+  [ "$on_main" = ahead ] || [ "$on_main" = identical ] \
+    || refuse "it is not a commit on main (main is ${on_main:-unknown} relative to it)"
+  if [ "${ALLOW_OLDER:-false}" = true ]; then
+    [ -n "${REASON// /}" ] || refuse "allow_older needs a reason"
+    echo "::warning::allow_older: deploying $DEPLOY_SHA without the forward-only check. Reason: $REASON"
+    summary "### ⏪ Forward-only check skipped (allow_older)"
+    summary "Reason: $REASON"
+    deploy "allow_older set by ${GITHUB_ACTOR:-a maintainer}"
+  fi
 fi
 
-tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha 2>/dev/null) || tip=""
-echo "main's tip: ${tip:-unknown}; deploying: $DEPLOY_SHA"
+tip=$(gh api "repos/$REPO/commits/main" --jq .sha 2>/dev/null) || tip=""
+echo "main's tip: ${tip:-unknown}"
 
 err=$(mktemp)
 if ! svc=$(gcloud run services describe "$SERVICE" --region="$GCP_REGION" --project="$GCP_PROJECT_ID" --format=json 2>"$err"); then
   if grep -qiE 'could not be found|not found' "$err"; then
-    deploy "$SERVICE doesn't exist yet: nothing to move backwards from"
+    deploy "$SERVICE doesn't exist yet, so there is nothing to move backwards from"
   fi
   cat "$err"
-  echo "::error::Could not read the live $SERVICE service. Not deploying."
-  exit 1
+  refuse "could not read the live $SERVICE service"
 fi
 
 rev=$(jq -r '[.status.traffic[]? | select((.percent // 0) > 0)] | max_by(.percent) | .revisionName // empty' <<<"$svc")
@@ -64,18 +74,19 @@ if [ -n "$rev" ]; then
 fi
 echo "serving: ${rev:-none} (BUILD_SHA ${live:-unknown})"
 
-if [[ "$live" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "${live}^{commit}" 2>/dev/null; then
-  if [ "$live" = "$DEPLOY_SHA" ] && [ "$EVENT" != workflow_dispatch ]; then
-    noop "production already serves it ($rev)."
-  fi
-  if git merge-base --is-ancestor "$live" "$DEPLOY_SHA"; then
-    deploy "forward: production's $live is an ancestor of $DEPLOY_SHA"
-  fi
-  noop "production serves $live ($rev), which is not an ancestor of it, so this would move production backwards. To roll back on purpose, run this workflow by hand with allow_older: true and a reason."
-fi
+status=""
+[[ "$live" =~ ^[0-9a-f]{40}$ ]] && status=$(compare "$live" "$DEPLOY_SHA")
+case "$status" in
+  ahead) deploy "forward from production's $live" ;;
+  identical)
+    [ "$EVENT" = workflow_dispatch ] && deploy "manual redeploy of the commit production serves"
+    noop "production already serves it ($rev)." ;;
+  behind | diverged)
+    noop "production serves $live ($rev), and this commit is $status relative to it: deploying it would move production backwards. To roll back on purpose, run this workflow by hand from main with allow_older: true, a reason, and the sha." ;;
+esac
 
 if [ -n "$tip" ] && [ "$DEPLOY_SHA" = "$tip" ]; then
   echo "::warning::Production's commit is unknown (${live:-no BUILD_SHA}); $DEPLOY_SHA is main's tip, so it deploys."
   deploy "main's tip"
 fi
-noop "production's commit is unknown (${live:-no BUILD_SHA}) and it is not main's tip (${tip:-unknown})."
+noop "production's commit is unknown (${live:-no BUILD_SHA}) and this is not main's tip (${tip:-unknown})."

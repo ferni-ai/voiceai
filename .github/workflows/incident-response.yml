@@ -96,6 +96,11 @@ jobs:
     name: Execute Response
     needs: triage
     runs-on: ubuntu-latest
+    # Restarts and rolls back john-bogle-ui, so it shares the prod deploy's group
+    # (deploy-production.yml) and never runs while a deploy does.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
 
     steps:
       - name: Checkout

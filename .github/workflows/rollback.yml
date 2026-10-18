@@ -85,6 +85,11 @@ jobs:
     name: Rollback UI Server
     runs-on: ubuntu-latest
     if: ${{ inputs.service == 'ui-server' || inputs.service == 'all' }}
+    # Changes john-bogle-ui's traffic or revisions, so it shares the prod deploy's
+    # group (deploy-production.yml) and never runs while a deploy does.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     outputs:
       previous_revision: ${{ steps.current.outputs.revision }}
       new_revision: ${{ steps.rollback.outputs.revision }}

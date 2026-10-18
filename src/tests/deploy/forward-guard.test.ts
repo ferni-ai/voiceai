@@ -1,27 +1,30 @@
 /**
  * The prod web deploy never moves production backwards
  * (scripts/ci/deploy-forward-guard.sh, run by deploy-production.yml).
- * workflow_run events can arrive out of order: an older head's CI can finish
- * after a newer one's, and deploying it would put an older commit over a newer
- * one. An intentional rollback (manual dispatch with allow_older and a reason)
- * must still go through.
+ * workflow_run events can arrive out of order, and an old CI run can be re-run:
+ * either would deploy an older commit over a newer one. An intentional rollback
+ * (manual dispatch from main with allow_older and a reason, for a commit on
+ * main) must still go through.
  *
  * Runs the real script in a throwaway git repo with stand-in `gh` and `gcloud`
- * binaries. `gcloud` reports the BUILD_SHA of the revision serving traffic.
+ * binaries. `gh api .../compare/A...B` answers from the repo's real commit
+ * graph, the way GitHub's compare API does. `gcloud` reports the BUILD_SHA of
+ * the revision serving traffic.
  */
 import { spawnSync, execFileSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const SCRIPT = join(ROOT, 'scripts/ci/deploy-forward-guard.sh');
+const read = (p: string): string => readFileSync(join(ROOT, p), 'utf8');
 
 let dir: string;
 let repo: string;
 let bin: string;
-// a -> b -> c on main; side branches off a.
+// a -> b -> c on main; side branches off a and never lands.
 const sha: Record<'a' | 'b' | 'c' | 'side', string> = { a: '', b: '', c: '', side: '' };
 
 function git(...args: string[]): string {
@@ -35,11 +38,43 @@ function commit(name: string): string {
   return git('rev-parse', 'HEAD');
 }
 
+const FAKE_GH = `#!/usr/bin/env bash
+# gh api repos/o/r/commits/main --jq .sha | gh api repos/o/r/compare/BASE...HEAD --jq .status
+path=$2
+case "$path" in
+  */commits/main) echo "$FAKE_TIP" ;;
+  */compare/*)
+    spec=\${path##*/compare/}; base=\${spec%%...*}; head=\${spec##*...}
+    [ "$base" = main ] && base=$FAKE_TIP
+    [ "$head" = main ] && head=$FAKE_TIP
+    git cat-file -e "$base^{commit}" 2>/dev/null && git cat-file -e "$head^{commit}" 2>/dev/null \\
+      || { echo "gh: Not Found (HTTP 404)" >&2; exit 1; }
+    if [ "$base" = "$head" ]; then echo identical
+    elif git merge-base --is-ancestor "$base" "$head"; then echo ahead
+    elif git merge-base --is-ancestor "$head" "$base"; then echo behind
+    else echo diverged; fi ;;
+  *) echo "unexpected gh $*" >&2; exit 2 ;;
+esac
+`;
+
+const FAKE_GCLOUD = `#!/usr/bin/env bash
+case "$*" in
+  *"services describe"*)
+    if [ "$FAKE_SERVICE" = missing ]; then echo "ERROR: Service [john-bogle-ui] could not be found." >&2; exit 1; fi
+    if [ "$FAKE_SERVICE" = error ]; then echo "ERROR: PERMISSION_DENIED" >&2; exit 1; fi
+    echo '{"status":{"traffic":[{"revisionName":"john-bogle-ui-old","percent":0,"tag":"green"},{"revisionName":"john-bogle-ui-live","percent":100}]}}' ;;
+  *"revisions describe john-bogle-ui-live"*)
+    echo "{\\"spec\\":{\\"containers\\":[{\\"env\\":[{\\"name\\":\\"NODE_ENV\\",\\"value\\":\\"production\\"},{\\"name\\":\\"BUILD_SHA\\",\\"value\\":\\"$FAKE_LIVE\\"}]}]}}" ;;
+  *) echo "unexpected gcloud $*" >&2; exit 2 ;;
+esac
+`;
+
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), 'forward-guard-'));
   repo = join(dir, 'repo');
   bin = join(dir, 'bin');
-  execFileSync('mkdir', ['-p', repo, bin]);
+  mkdirSync(repo);
+  mkdirSync(bin);
   git('init', '-q', '-b', 'main');
   git('config', 'user.email', 't@example.com');
   git('config', 'user.name', 't');
@@ -50,24 +85,8 @@ beforeAll(() => {
   git('checkout', '-q', '-b', 'side', sha.a);
   sha.side = commit('side');
   git('checkout', '-q', 'main');
-
-  // gh: main's tip from FAKE_TIP.
-  writeFileSync(join(bin, 'gh'), '#!/usr/bin/env bash\necho "$FAKE_TIP"\n');
-  // gcloud: the service (or "not found" / an API error), then the serving revision's env.
-  writeFileSync(
-    join(bin, 'gcloud'),
-    `#!/usr/bin/env bash
-case "$*" in
-  *"services describe"*)
-    if [ "$FAKE_SERVICE" = missing ]; then echo "ERROR: Service [john-bogle-ui] could not be found." >&2; exit 1; fi
-    if [ "$FAKE_SERVICE" = error ]; then echo "ERROR: PERMISSION_DENIED" >&2; exit 1; fi
-    echo '{"status":{"traffic":[{"revisionName":"john-bogle-ui-old","percent":0,"tag":"green"},{"revisionName":"john-bogle-ui-live","percent":100}]}}' ;;
-  *"revisions describe john-bogle-ui-live"*)
-    echo "{\\"spec\\":{\\"containers\\":[{\\"env\\":[{\\"name\\":\\"NODE_ENV\\",\\"value\\":\\"production\\"},{\\"name\\":\\"BUILD_SHA\\",\\"value\\":\\"$FAKE_LIVE\\"}]}]}}" ;;
-  *) echo "unexpected gcloud $*" >&2; exit 2 ;;
-esac
-`
-  );
+  writeFileSync(join(bin, 'gh'), FAKE_GH);
+  writeFileSync(join(bin, 'gcloud'), FAKE_GCLOUD);
   chmodSync(join(bin, 'gh'), 0o755);
   chmodSync(join(bin, 'gcloud'), 0o755);
 });
@@ -120,53 +139,28 @@ function guard(opts: {
   return { status: r.status, deploy, summary: readFileSync(summary, 'utf8'), out: r.stdout + r.stderr };
 }
 
-describe('forward-only deploy guard', () => {
-  it('deploys a newer commit over an older one', () => {
-    const r = guard({ live: sha.a, deploy: sha.c });
-    expect(r).toMatchObject({ status: 0, deploy: 'true' });
+const dispatch = { event: 'workflow_dispatch' } as const;
+
+describe('forward-only deploy guard: automatic (workflow_run) path', () => {
+  it('deploys a commit ahead of production', () => {
+    expect(guard({ live: sha.a, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'true' });
   });
 
-  it('a late CI for an older head is a no-op, not a failure', () => {
+  it('a late or re-run CI for an older commit (behind) is a no-op, not a failure', () => {
     const r = guard({ live: sha.c, deploy: sha.b });
     expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.out).toMatch(/::notice::Not deploying .*behind/);
     expect(r.summary).toMatch(/move production backwards/);
   });
 
-  it('does not deploy a commit off main history over production', () => {
-    expect(guard({ live: sha.c, deploy: sha.side })).toMatchObject({ status: 0, deploy: 'false' });
-  });
-
-  it('a CI re-run on the commit already serving is a no-op', () => {
-    expect(guard({ live: sha.c, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'false' });
-  });
-
-  it('reads the revision serving traffic, not a 0% green tag', () => {
-    // The 0% revision would have answered with nothing: this proves the 100% one was read.
-    expect(guard({ live: sha.b, deploy: sha.c }).out).toMatch(/serving: john-bogle-ui-live/);
-  });
-
-  it('an older-SHA dispatch without allow_older is refused as a no-op', () => {
-    const r = guard({ event: 'workflow_dispatch', live: sha.c, deploy: sha.a });
+  it('a diverged commit is a no-op', () => {
+    const r = guard({ live: sha.c, deploy: sha.side });
     expect(r).toMatchObject({ status: 0, deploy: 'false' });
-    expect(r.summary).toMatch(/allow_older/);
+    expect(r.out).toMatch(/diverged/);
   });
 
-  it('an intentional rollback (allow_older + reason) goes through', () => {
-    const r = guard({
-      event: 'workflow_dispatch',
-      live: sha.c,
-      deploy: sha.a,
-      allowOlder: true,
-      reason: 'c broke sign-in',
-    });
-    expect(r).toMatchObject({ status: 0, deploy: 'true' });
-    expect(r.summary).toMatch(/c broke sign-in/);
-  });
-
-  it('allow_older without a reason fails', () => {
-    const r = guard({ event: 'workflow_dispatch', live: sha.c, deploy: sha.a, allowOlder: true, reason: '  ' });
-    expect(r.status).not.toBe(0);
-    expect(r.deploy).toBeUndefined();
+  it('the commit already serving (identical) is a no-op', () => {
+    expect(guard({ live: sha.c, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'false' });
   });
 
   it('allow_older is ignored on the automatic path', () => {
@@ -176,11 +170,9 @@ describe('forward-only deploy guard', () => {
     });
   });
 
-  it('a manual redeploy of the serving commit still runs', () => {
-    expect(guard({ event: 'workflow_dispatch', live: sha.c, deploy: sha.c })).toMatchObject({
-      status: 0,
-      deploy: 'true',
-    });
+  it('reads the revision serving traffic, not a 0% green tag', () => {
+    // gcloud fails for any other revision, so a pass proves the 100% one was read.
+    expect(guard({ live: sha.b, deploy: sha.c }).out).toMatch(/serving: john-bogle-ui-live/);
   });
 
   it('with production on an unknown commit, deploys only main tip', () => {
@@ -198,20 +190,63 @@ describe('forward-only deploy guard', () => {
     expect(r.status).not.toBe(0);
     expect(r.deploy).toBeUndefined();
   });
+
+  it('refuses a DEPLOY_SHA that is not a full SHA', () => {
+    expect(guard({ live: sha.a, deploy: 'main; rm -rf /' }).status).not.toBe(0);
+  });
 });
 
-describe('deploy-production.yml wires the guard', () => {
-  const workflow = readFileSync(join(ROOT, '.github/workflows/deploy-production.yml'), 'utf8');
+describe('forward-only deploy guard: manual dispatch', () => {
+  it('an older commit without allow_older is refused as a no-op', () => {
+    const r = guard({ ...dispatch, live: sha.c, deploy: sha.a });
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toMatch(/allow_older/);
+  });
+
+  it('an intentional rollback (allow_older + reason, commit on main) goes through', () => {
+    const r = guard({ ...dispatch, live: sha.c, deploy: sha.a, allowOlder: true, reason: 'c broke sign-in' });
+    expect(r).toMatchObject({ status: 0, deploy: 'true' });
+    expect(r.summary).toMatch(/c broke sign-in/);
+  });
+
+  it('allow_older without a reason fails', () => {
+    const r = guard({ ...dispatch, live: sha.c, deploy: sha.a, allowOlder: true, reason: '  ' });
+    expect(r.status).not.toBe(0);
+    expect(r.deploy).toBeUndefined();
+  });
+
+  it('a commit that is not on main is refused, even with allow_older', () => {
+    const r = guard({ ...dispatch, live: sha.c, deploy: sha.side, allowOlder: true, reason: 'x' });
+    expect(r.status).not.toBe(0);
+    expect(r.deploy).toBeUndefined();
+    expect(r.out).toMatch(/not a commit on main/);
+  });
+
+  it('a redeploy of the serving commit still runs', () => {
+    expect(guard({ ...dispatch, live: sha.c, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'true' });
+  });
+
+  it('a forward deploy runs', () => {
+    expect(guard({ ...dispatch, live: sha.a, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'true' });
+  });
+});
+
+describe('deploy-production.yml wiring', () => {
+  const workflow = read('.github/workflows/deploy-production.yml');
   const job = workflow.slice(workflow.indexOf('\n  deploy-ui:'), workflow.indexOf('\n  report-not-live:'));
   const steps = job.split('\n      - name: ').slice(1);
   const names = steps.map((s) => s.split('\n')[0]);
-  const guardAt = names.indexOf('Forward-only guard');
-  const notifyAt = names.indexOf('Create deployment summary');
+  const at = (name: string): number => {
+    const i = names.indexOf(name);
+    expect(i, name).toBeGreaterThan(-1);
+    return i;
+  };
+  const guardAt = at('Forward-only guard');
+  const notifyAt = at('Create deployment summary');
 
   it('runs the guard script before anything is built or deployed', () => {
-    expect(guardAt).toBeGreaterThan(-1);
     expect(steps[guardAt]).toMatch(/run: bash scripts\/ci\/deploy-forward-guard\.sh/);
-    expect(guardAt).toBeLessThan(names.indexOf('Build and push image'));
+    expect(guardAt).toBeLessThan(at('Build and push image'));
   });
 
   it('a no-op skips every build and deploy step, rollback included', () => {
@@ -229,9 +264,43 @@ describe('deploy-production.yml wires the guard', () => {
   });
 
   it('manual rollback inputs reach the guard', () => {
-    expect(workflow).toMatch(/\n {6}allow_older:\n/);
-    expect(workflow).toMatch(/\n {6}reason:\n/);
+    for (const input of ['sha', 'allow_older', 'reason']) {
+      expect(workflow).toMatch(new RegExp(`\\n {6}${input}:\\n`));
+    }
+    expect(workflow).toMatch(/DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \|\| inputs\.sha \|\| github\.sha \}\}/);
     expect(steps[guardAt]).toMatch(/ALLOW_OLDER: \$\{\{ inputs\.allow_older == true \}\}/);
     expect(steps[guardAt]).toMatch(/REASON: \$\{\{ inputs\.reason \}\}/);
+  });
+
+  it('manual deploys run only from main, in the job if and the concurrency group', () => {
+    const dispatchFromMain = "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'";
+    expect(job).toContain(dispatchFromMain);
+    expect(/\nconcurrency:\n {2}group: (.*)\n/.exec(workflow)?.[1]).toContain(dispatchFromMain);
+    expect(workflow).not.toMatch(/github\.event_name == 'workflow_dispatch' \|\|/);
+  });
+
+  it('the manual CI check counts only push runs on main, never a green PR run', () => {
+    expect(steps[at('Require CI to pass on this commit')]).toMatch(
+      /select\(\.event == "push" and \.head_branch == "main"\)/
+    );
+  });
+
+  it('health check and smoke tests hit green before it gets traffic', () => {
+    expect(steps[at('Health check green revision')]).toMatch(/steps\.deploy\.outputs\.green_url/);
+    expect(steps[at('Run smoke tests')]).toMatch(/SMOKE_TEST_URL: \$\{\{ steps\.deploy\.outputs\.green_url \}\}/);
+    expect(at('Run smoke tests')).toBeLessThan(at('Shift traffic to green'));
+    expect(steps[at('Rollback on failure')]).toMatch(/steps\.smoke\.outcome == 'failure'/);
+    expect(steps[at('🟢 Deploy GREEN revision (no traffic)')]).toMatch(/select\(\.tag == "green"\) \| \.url/);
+  });
+
+  it('a redeploy of the same commit gets a fresh revision name', () => {
+    expect(steps[at('🟢 Deploy GREEN revision (no traffic)')]).toMatch(
+      /REVISION_SUFFIX=\$\{\{ steps\.meta\.outputs\.revision_suffix \}\}/
+    );
+    expect(steps[at('Generate metadata')]).toMatch(/revision_suffix=\$\{DEPLOY_SHA::8\}-\$\{GITHUB_RUN_ID\}-\$\{GITHUB_RUN_ATTEMPT\}/);
+  });
+
+  it.each(['rollback.yml', 'incident-response.yml'])('%s shares the deploy-production group', (file) => {
+    expect(read(`.github/workflows/${file}`)).toMatch(/concurrency:\n {6}group: deploy-production\n/);
   });
 });
