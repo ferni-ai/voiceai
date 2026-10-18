@@ -233,6 +233,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           ALLOW_OLDER: ${{ inputs.allow_older == true }}
           REASON: ${{ inputs.reason }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
         run: bash scripts/ci/deploy-forward-guard.sh
 
       - name: Setup pnpm

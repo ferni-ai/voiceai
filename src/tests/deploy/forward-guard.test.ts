@@ -21,6 +21,36 @@ const ROOT = join(__dirname, '..', '..', '..');
 const SCRIPT = join(ROOT, 'scripts/ci/deploy-forward-guard.sh');
 const FREEZE = join(ROOT, 'scripts/ci/deploy-freeze.sh');
 const CONFIRM = join(ROOT, 'scripts/ci/confirm-rollback-traffic.sh');
+const CHECKS = join(ROOT, 'scripts/ci/required-checks.sh');
+
+const REQUIRED_CI = [
+  'Lint & Type Check',
+  'Frontend Quality',
+  'Unit Tests',
+  'Integration Tests (1/3)',
+  'Integration Tests (2/3)',
+  'Integration Tests (3/3)',
+  'Quality Gates (Blocking)',
+  'Security Scan',
+];
+
+/** Writes CI run <id>'s jobs into state dir d: every required job success, then `jobs` overrides ('missing' drops one). */
+function ciRun(d: string, id: string, jobs: Record<string, string> = {}): string {
+  const all: Record<string, string> = {
+    'Setup & Cache Dependencies': 'success',
+    'Overlay Gallery (visual + contrast)': 'skipped', // not required
+    ...Object.fromEntries(REQUIRED_CI.map((n) => [n, 'success'])),
+    ...jobs,
+  };
+  writeFileSync(
+    join(d, `jobs-${id}`),
+    Object.entries(all)
+      .filter(([, c]) => c !== 'missing')
+      .map(([n, c]) => `${c}\t${n}`)
+      .join('\n') + '\n'
+  );
+  return id;
+}
 const read = (p: string): string => readFileSync(join(ROOT, p), 'utf8');
 
 let dir: string;
@@ -79,6 +109,16 @@ case "$method $path" in
     echo "$sha" > "$FREEZE_DIR/ref" ;;
   "PATCH "*/git/refs/tags/deploy-freeze) echo "$sha" > "$FREEZE_DIR/ref" ;;
   "DELETE "*/git/refs/tags/deploy-freeze) [ -f "$FREEZE_DIR/ref" ] && rm "$FREEZE_DIR/ref" || notfound ;;
+  # CI runs (state in $QV_DIR): jobs-<run> ("<conclusion>\\t<name>" lines),
+  # runs-<workflow>-<sha> (ids of successful runs), mg-runs ("<id> <head>").
+  "GET "*/actions/runs/*/jobs*)
+    id=\${path%/jobs*}; id=\${id##*/}
+    [ -f "$QV_DIR/jobs-$id" ] && cat "$QV_DIR/jobs-$id" || notfound ;;
+  "GET "*/actions/workflows/ci.yml/runs?event=merge_group*) cat "$QV_DIR/mg-runs" 2>/dev/null || true ;;
+  "GET "*/actions/workflows/*/runs*)
+    wf=\${path%/runs*}; wf=\${wf##*/}; q=\${path#*head_sha=}; q=\${q%%&*}
+    cat "$QV_DIR/runs-$wf-$q" 2>/dev/null || true ;;
+  "GET "*/git/commits/*) git rev-parse "\${path##*/}^{tree}" 2>/dev/null || notfound ;;
   *) echo "unexpected gh $method $path" >&2; exit 2 ;;
 esac
 `;
@@ -133,6 +173,7 @@ function baseEnv(freezeDir: string): NodeJS.ProcessEnv {
     GITHUB_SHA: sha.c,
     GITHUB_ACTOR: 'tester',
     FREEZE_DIR: freezeDir,
+    QV_DIR: freezeDir,
   };
 }
 
@@ -167,7 +208,12 @@ function guard(opts: {
   service?: 'ok' | 'missing' | 'error';
   freezeDir?: string;
   freezeError?: boolean;
+  /** The triggering push CI run's job overrides; every required job passes by default. */
+  ciJobs?: Record<string, string>;
+  ciRunId?: string;
 }): Run {
+  const d = opts.freezeDir ?? freshDir();
+  const ciRunId = opts.ciRunId ?? ciRun(d, '501', opts.ciJobs);
   const output = join(dir, `out-${Math.random().toString(36).slice(2)}`);
   const summary = `${output}-summary`;
   writeFileSync(output, '');
@@ -176,7 +222,8 @@ function guard(opts: {
     cwd: repo,
     encoding: 'utf8',
     env: {
-      ...baseEnv(opts.freezeDir ?? freshDir()),
+      ...baseEnv(d),
+      CI_RUN_ID: ciRunId,
       FAKE_FREEZE_ERROR: opts.freezeError ? '1' : '',
       DEPLOY_SHA: opts.deploy,
       EVENT: opts.event ?? 'workflow_run',
@@ -304,6 +351,93 @@ describe('forward-only deploy guard: manual dispatch', () => {
       status: 0,
       deploy: 'true',
     });
+  });
+});
+
+describe('required checks: a push CI "success" must have run them', () => {
+  const skippedSuite = {
+    'Lint & Type Check': 'skipped',
+    'Unit Tests': 'skipped',
+    'Frontend Quality': 'skipped',
+  };
+
+  it('a push run where every required job passed deploys', () => {
+    expect(guard({ live: sha.b, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'true' });
+  });
+
+  it('a scoped push run (required jobs skipped, nothing they cover changed) is a quiet no-op', () => {
+    const r = guard({ live: sha.b, deploy: sha.c, ciJobs: skippedSuite });
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toContain('no code change since the last deploy; nothing to ship');
+    expect(r.out).not.toMatch(/::error::/);
+  });
+
+  it("skipped jobs are fine when an unscoped merge-queue run passed them on this tree (ci.yml's queue-tested skip)", () => {
+    const d = freshDir();
+    ciRun(d, '601'); // the queue run: every required job passed
+    writeFileSync(join(d, 'mg-runs'), `601 ${sha.c}\n`);
+    const r = guard({ freezeDir: d, live: sha.b, deploy: sha.c, ciJobs: skippedSuite });
+    expect(r).toMatchObject({ status: 0, deploy: 'true' });
+    expect(r.out).toMatch(/merge-queue run 601 already passed them/);
+  });
+
+  it('a scoped merge-queue run does not cover the skipped jobs', () => {
+    const d = freshDir();
+    ciRun(d, '601', { 'Unit Tests': 'skipped' });
+    writeFileSync(join(d, 'mg-runs'), `601 ${sha.c}\n`);
+    const r = guard({ freezeDir: d, live: sha.b, deploy: sha.c, ciJobs: skippedSuite });
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toContain('no code change since the last deploy');
+  });
+
+  it('a merge-queue run on a different tree does not cover them', () => {
+    const d = freshDir();
+    ciRun(d, '601');
+    writeFileSync(join(d, 'mg-runs'), `601 ${sha.b}\n`); // b's tree, not c's
+    expect(guard({ freezeDir: d, live: sha.a, deploy: sha.c, ciJobs: skippedSuite }).deploy).toBe(
+      'false'
+    );
+  });
+
+  it.each(['failure', 'cancelled', 'missing'])('a required job that is %s goes red', (c) => {
+    const r = guard({ live: sha.b, deploy: sha.c, ciJobs: { 'Security Scan': c } });
+    expect(r.status).not.toBe(0);
+    expect(r.deploy).toBeUndefined();
+    expect(r.out).toMatch(/::error::.*Security Scan/);
+  });
+
+  it('an unreadable push run goes red, never a silent skip', () => {
+    const r = guard({ live: sha.b, deploy: sha.c, ciRunId: '999' });
+    expect(r.status).not.toBe(0);
+    expect(r.deploy).toBeUndefined();
+  });
+
+  it('manual dispatch does not depend on a push run', () => {
+    expect(
+      guard({ event: 'workflow_dispatch', live: sha.b, deploy: sha.c, ciRunId: '' })
+    ).toMatchObject({
+      deploy: 'true',
+    });
+  });
+
+  it('others: Build & Test and Menu E2E on a commit', () => {
+    const d = freshDir();
+    const run = (args: string[]): { status: number | null; out: string } => {
+      const r = spawnSync('bash', [CHECKS, ...args], {
+        cwd: repo,
+        encoding: 'utf8',
+        env: baseEnv(d),
+      });
+      return { status: r.status, out: r.stdout + r.stderr };
+    };
+    expect(run(['others', sha.c]).status).toBe(3);
+    writeFileSync(join(d, `runs-build.yml-${sha.c}`), '701\n');
+    writeFileSync(join(d, 'jobs-701'), 'success\tBuild & Test\n');
+    writeFileSync(join(d, `runs-menu-e2e.yml-${sha.c}`), '702\n');
+    writeFileSync(join(d, 'jobs-702'), 'skipped\tMenu E2E\n');
+    expect(run(['others', sha.c]).out).toMatch(/Menu E2E/);
+    writeFileSync(join(d, 'jobs-702'), 'success\tMenu E2E\n');
+    expect(run(['others', sha.c]).status).toBe(0);
   });
 });
 
@@ -557,6 +691,16 @@ describe('deploy-production.yml wiring', () => {
     expect(text).toMatch(
       /TARGET: \$\{\{ steps\.rollback\.outputs\.revision \}\}[\s\S]*?confirm-rollback-traffic\.sh "\$TARGET"/
     );
+  });
+
+  it('the triggering push CI run reaches the guard', () => {
+    expect(steps[guardAt]).toMatch(/CI_RUN_ID: \$\{\{ github\.event\.workflow_run\.id \}\}/);
+  });
+
+  it('report-not-live goes red only when CI failed, not for a scoped skip', () => {
+    const report = workflow.slice(workflow.indexOf('\n  report-not-live:'));
+    expect(report).toMatch(/github\.event\.workflow_run\.conclusion == 'failure'/);
+    expect(report).not.toMatch(/conclusion == 'success'/);
   });
 
   it('unfreeze is its own job; the deploy job never gets contents: write', () => {
