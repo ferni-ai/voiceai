@@ -49,14 +49,15 @@ describe('saveCommitment', () => {
     expect(set).not.toHaveBeenCalled();
   });
 
-  it('writes a commitment someone can act on', async () => {
-    const result = await saveCommitment(draft("I'll send Mindy the photos."), {
-      validateCalendar: false,
-    });
-    expect(result.notActionable).toBeUndefined();
-    // The commitment document (other side effects may write through the same fake db).
-    expect(set.mock.calls.map((c) => (c as unknown[])[0])).toContainEqual(
-      expect.objectContaining({ statement: "I'll send Mindy the photos.", status: 'active' })
-    );
-  });
+  it.each(["I'll send Mindy the photos.", "I'll be at the dentist at 2."])(
+    'writes %j',
+    async (s) => {
+      const result = await saveCommitment(draft(s), { validateCalendar: false });
+      expect(result.notActionable).toBeUndefined();
+      // The commitment document (other side effects may write through the same fake db).
+      expect(set.mock.calls.map((c) => (c as unknown[])[0])).toContainEqual(
+        expect.objectContaining({ statement: s, status: 'active' })
+      );
+    }
+  );
 });

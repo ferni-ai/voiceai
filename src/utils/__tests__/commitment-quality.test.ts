@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  MAX_CHARS,
   actionableCommitment,
   commitmentAction,
   isActionableCommitment,
+  judgeCommitment,
   toSecondPerson,
 } from '../commitment-quality.js';
 
@@ -73,8 +75,12 @@ describe('actionableCommitment', () => {
       "I'll call Mindy tomorrow"
     );
     expect(actionableCommitment('text him back', { person: 'dad' })).toBe('text dad back');
-    expect(actionableCommitment('call them tonight', { person: 'boss' })).toBe(
-      'call my boss tonight'
+    expect(actionableCommitment('Remind them about the rent', { person: 'roommates' })).toBe(
+      'Remind roommates about the rent'
+    );
+    // Her as a possessive is not the person: "her mom" stays.
+    expect(actionableCommitment("I'll call her mom about the party", { person: 'Mindy' })).toBe(
+      "I'll call her mom about the party"
     );
   });
 
@@ -112,5 +118,42 @@ describe('toSecondPerson', () => {
       'call your mom and tell her you miss her'
     );
     expect(toSecondPerson('mymail cleanup')).toBe('mymail cleanup');
+  });
+});
+
+describe('caller text cannot make the patterns run away', () => {
+  const pathological = [
+    `${' ,'.repeat(5000)}x`,
+    `${', '.repeat(5000)}lol x`,
+    `${'ok '.repeat(3500)}x`,
+    `I'll ${'probably '.repeat(1200)}x`,
+    `see you ${'later '.repeat(1800)}x`,
+    `${'bye, '.repeat(2500)}x`,
+    `call ${'her '.repeat(3000)}x`,
+    `${'my me '.repeat(2000)}x`,
+    `${'I will '.repeat(1500)}`,
+  ];
+
+  // The parser's first call loads its lexicon; time the patterns, not that.
+  beforeAll(() => {
+    judgeCommitment('send Mindy the photos');
+  });
+
+  it.each(pathological.map((s) => [s.slice(0, 24), s]))('%j... finishes in under 50 ms', (_, s) => {
+    let best = Infinity; // best of three: the work done, not a scheduler or GC pause
+    for (let run = 0; run < 3; run++) {
+      const started = performance.now();
+      judgeCommitment(s, { person: 'Mindy' });
+      commitmentAction(s);
+      toSecondPerson(s);
+      best = Math.min(best, performance.now() - started);
+    }
+    expect(best).toBeLessThan(50);
+  });
+
+  it('judges only the first MAX_CHARS characters', () => {
+    expect(MAX_CHARS).toBe(300);
+    const long = `${'send Mindy the photos and '.repeat(20)}`;
+    expect(actionableCommitment(long)?.length).toBeLessThanOrEqual(MAX_CHARS);
   });
 });

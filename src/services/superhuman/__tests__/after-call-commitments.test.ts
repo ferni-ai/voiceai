@@ -167,19 +167,23 @@ describe('recording', () => {
 });
 
 describe('only commitments someone can act on', () => {
-  it('stores "send Mindy the photos" but not "call her tomorrow" or a goodbye', async () => {
+  it('stores "send Mindy the photos" and a "be at" plan, not "call her tomorrow" or a goodbye', async () => {
     const { sink, added } = memorySink();
     const written = await recordCallerCommitments(
       [
         obs({ value: 'call her', source: { quote: "I'll call her tomorrow" } }),
         obs({ value: 'goodbye', source: { quote: "I'll catch you later" } }),
         obs({ value: 'send photos', source: { quote: "I'll send Mindy the photos" } }),
+        obs({ value: 'dentist', source: { quote: "I'll be at the dentist at 2" } }),
       ],
       ctx,
       { sink, forgotten: async () => [] }
     );
-    expect(written).toBe(1);
-    expect(added.map((d) => d.statement)).toEqual(["I'll send Mindy the photos"]);
+    expect(written).toBe(2);
+    expect(added.map((d) => d.statement)).toEqual([
+      "I'll send Mindy the photos",
+      "I'll be at the dentist at 2",
+    ]);
   });
 });
 

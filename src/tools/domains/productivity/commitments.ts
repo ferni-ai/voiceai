@@ -76,7 +76,7 @@ const recordCommitmentDef: ToolDefinition = {
         personInvolved: z
           .string()
           .optional()
-          .describe('If this involves a specific person (e.g., "mom", "boss")'),
+          .describe('The person it involves, as you would say it ("Mindy", "mom", "my boss")'),
       }),
       execute: async (params) => {
         const {

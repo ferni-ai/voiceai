@@ -27,6 +27,17 @@ function commitment(over: Partial<OpenCommitment> = {}): OpenCommitment {
   };
 }
 
+/** Best of three runs, in ms: the work done, not a scheduler or GC pause. */
+function fastest(run: () => unknown): number {
+  let best = Infinity;
+  for (let i = 0; i < 3; i++) {
+    const started = performance.now();
+    run();
+    best = Math.min(best, performance.now() - started);
+  }
+  return best;
+}
+
 describe('coachFollowThroughMode', () => {
   it('is off by default and on only with COACH_FOLLOW_THROUGH=on', () => {
     expect(coachFollowThroughMode({})).toBe(false);
@@ -79,6 +90,13 @@ describe('toOpenCommitment', () => {
       statement: "I'll call my mom and tell her I'm sorry",
     });
     expect(c && youSaidYoud(c)).toBe("you'd call your mom and tell her you're sorry");
+  });
+
+  it('reads a pathological stored line quickly (cut to MAX_CHARS first)', () => {
+    toOpenCommitment('warm', doc);
+    for (const statement of [`${' ,'.repeat(5000)}x`, `${'my me '.repeat(2000)}x`]) {
+      expect(fastest(() => toOpenCommitment('c', { ...doc, statement }))).toBeLessThan(50);
+    }
   });
 
   it('skips completed commitments and ones without a creation time', () => {
@@ -169,10 +187,14 @@ describe('loadCallCheckIns', () => {
       stored('junk1', "I'll call her tomorrow.", 1),
       stored('junk2', "I'll catch you later.", 1),
       stored('ok', "I'll send Mindy the photos.", 2),
+      stored('be', "I'll be at Jake's recital Thursday.", 3),
     ]);
     const open = await loadCallCheckIns('u1', store, NOW);
-    expect(open.map((c) => c.id)).toEqual(['ok']);
-    expect(marked).toEqual(['ok']);
+    expect(open.map((c) => [c.id, c.statement])).toEqual([
+      ['ok', 'send Mindy the photos'],
+      ['be', "be at Jake's recital Thursday"],
+    ]);
+    expect(marked).toEqual(['ok', 'be']);
   });
 
   it('returns nothing instead of throwing when the store fails', async () => {

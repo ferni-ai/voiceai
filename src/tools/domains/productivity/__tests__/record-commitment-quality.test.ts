@@ -55,6 +55,17 @@ describe('recordCommitment', () => {
     });
   });
 
+  it('names her as the object even with more in the line: "text Mindy back after lunch"', async () => {
+    await record()({
+      statement: "I'll text her back after lunch",
+      summary: 'text Mindy back',
+      personInvolved: 'Mindy',
+    });
+    expect(saveCommitment.mock.calls[0][0]).toMatchObject({
+      statement: "I'll text Mindy back after lunch",
+    });
+  });
+
   it('stores a real plan word for word', async () => {
     const reply = await record()({ statement: 'send Mindy the photos', summary: 'send photos' });
     expect(saveCommitment.mock.calls[0][0]).toMatchObject({ statement: 'send Mindy the photos' });

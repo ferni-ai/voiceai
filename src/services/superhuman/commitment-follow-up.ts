@@ -12,7 +12,7 @@
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { commitmentAction, toSecondPerson } from '../../utils/commitment-quality.js';
+import { commitmentAction, MAX_CHARS, toSecondPerson } from '../../utils/commitment-quality.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -61,7 +61,9 @@ function num(v: unknown): number | undefined {
 /** A stored document as an open commitment, or null when it isn't one worth asking about. */
 export function toOpenCommitment(id: string, d: Record<string, unknown>): OpenCommitment | null {
   if (d.status !== 'active') return null;
-  const said = String(d.statement ?? d.summary ?? '').trim();
+  const said = String(d.statement ?? d.summary ?? '')
+    .slice(0, MAX_CHARS)
+    .trim();
   const statement = said.split(/\s+/).length < MIN_WORDS ? null : commitmentAction(said);
   if (statement === null) return null;
   const createdAt = num(d.createdAt);
