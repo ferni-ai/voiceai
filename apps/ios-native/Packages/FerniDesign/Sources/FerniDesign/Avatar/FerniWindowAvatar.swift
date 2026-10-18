@@ -20,7 +20,7 @@ import SwiftUI
 // MARK: - Avatar Mood
 
 /// Emotional states that affect the window shape
-enum AvatarMood: String, CaseIterable {
+public enum AvatarMood: String, CaseIterable, Sendable {
     case neutral
     case happy
     case delighted
@@ -120,7 +120,7 @@ enum AvatarMood: String, CaseIterable {
 // MARK: - Window Persona Colors (local type to avoid conflict with FerniShared.Persona)
 
 /// Team member persona colors for window avatar
-enum WindowPersona {
+public enum WindowPersona: String, CaseIterable, Sendable {
     case ferni
     case peter
     case maya
@@ -128,7 +128,12 @@ enum WindowPersona {
     case nayan
     case alex
     
-    var primaryColor: Color {
+    /// The avatar for a PersonaRegistry id ("maya"); Ferni for an unknown id.
+    public init(personaId: String) {
+        self = WindowPersona(rawValue: personaId.lowercased()) ?? .ferni
+    }
+
+    public var primaryColor: Color {
         switch self {
         case .ferni: return Color(hexString: "#4a6741")
         case .peter: return Color(hexString: "#3a6b73")
@@ -155,7 +160,7 @@ enum WindowPersona {
 
 /// The signature Ferni Window Avatar
 /// Creates the illusion of Ferni peeking through the interface
-struct FerniWindowAvatar: View {
+public struct FerniWindowAvatar: View {
     // MARK: - Properties
 
     var size: CGFloat = 120
@@ -182,6 +187,20 @@ struct FerniWindowAvatar: View {
     @State private var breathPhase: CGFloat = 0
     @State private var eyeGazeOffset: CGPoint = .zero
     @State private var sparklePhase: CGFloat = 0
+
+    public init(
+        size: CGFloat = 120,
+        persona: WindowPersona = .ferni,
+        expression: AvatarExpression = .neutral,
+        isSpeaking: Binding<Bool>,
+        volume: Binding<CGFloat>
+    ) {
+        self.size = size
+        self.persona = persona
+        self.expression = expression
+        _isSpeaking = isSpeaking
+        _volume = volume
+    }
 
     // MARK: - Computed Expression Config
 
@@ -240,7 +259,7 @@ struct FerniWindowAvatar: View {
     
     // MARK: - Body
     
-    var body: some View {
+    public var body: some View {
         ZStack {
             // Avatar face (the "behind")
             avatarFace
@@ -274,15 +293,17 @@ struct FerniWindowAvatar: View {
             )
         }
         .frame(width: size, height: size)
+        .accessibilityHidden(true)
         .onAppear {
             startBreathing()
-            startGazeMovement()
             startSparkleAnimation()
         }
-        .onChange(of: volume) { newVolume in
+        // Gaze shifts end with the view (a Timer here outlived it).
+        .task { await moveGaze() }
+        .onChange(of: volume) { _, newVolume in
             updateVolume(newVolume)
         }
-        .onChange(of: isSpeaking) { speaking in
+        .onChange(of: isSpeaking) { _, speaking in
             if !speaking {
                 withAnimation(.easeOut(duration: 0.2)) {
                     animatedVolume = 0
@@ -350,9 +371,10 @@ struct FerniWindowAvatar: View {
         }
     }
     
-    private func startGazeMovement() {
+    private func moveGaze() async {
         // Natural gaze shifts
-        Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { _ in
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(2.5))
             withAnimation(.easeInOut(duration: 0.4)) {
                 eyeGazeOffset = CGPoint(
                     x: CGFloat.random(in: -1...1),
@@ -491,8 +513,6 @@ struct WindowMask: View {
     var curve: CGFloat = 0
     var asymmetry: CGFloat = 0
     
-    @Environment(\.colorScheme) var colorScheme
-    
     var body: some View {
         GeometryReader { geo in
             Path { path in
@@ -540,15 +560,9 @@ struct WindowMask: View {
         }
     }
     
-    private var backgroundColor: Color {
-        // Use system background color to match the surrounding UI
-        colorScheme == .dark
-            ? Color(hexString: "#1a1612")
-            : Color(hexString: "#F5F1E8") // Paper Cream
-    }
+    /// The lids are the screen's own background, so Ferni seems to look through it.
+    private var backgroundColor: Color { FerniColor.background }
 }
-
-// Color extension removed - using FerniShared's Color(hexString:) instead
 
 // MARK: - Preview
 
@@ -637,7 +651,7 @@ struct FerniWindowAvatar_Previews: PreviewProvider {
                 .padding()
             }
         }
-        .background(Color(hexString: "#F5F1E8"))
+        .background(FerniColor.background)
     }
 }
 
@@ -662,4 +676,3 @@ struct ExpressionPreview: View {
     }
 }
 
-extension WindowPersona: Hashable {}
