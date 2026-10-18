@@ -41,6 +41,22 @@
   const MAX_QUEUE_SIZE = 20;
 
   // ============================================================================
+  // CONSENT
+  // ============================================================================
+
+  // No anonymous ID is made or sent until the visitor accepts the cookie
+  // banner (story-brand.njk stores the choice). Before that, getVariant still
+  // asks the API so visitors see the same variants, but without a userId, and
+  // nothing is cached or tracked.
+  function hasConsent() {
+    try {
+      return localStorage.getItem('ferni_cookies') === 'accepted';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ============================================================================
   // USER ID
   // ============================================================================
 
@@ -81,15 +97,47 @@
   }
 
   // ============================================================================
+  // NETWORK TIMING
+  // ============================================================================
+
+  // There is no batch variant endpoint, so a page view makes one request per
+  // experiment or flag (about a dozen). Hold them until the page has loaded
+  // and the main thread is idle, so they never compete with first paint.
+  let idlePromise = null;
+
+  function whenIdle() {
+    if (idlePromise) return idlePromise;
+    idlePromise = new Promise(function (resolve) {
+      const schedule = function () {
+        if (typeof window.requestIdleCallback === 'function') {
+          window.requestIdleCallback(resolve, { timeout: 2000 });
+        } else {
+          setTimeout(resolve, 200);
+        }
+      };
+      if (document.readyState === 'complete') {
+        schedule();
+      } else {
+        window.addEventListener('load', schedule, { once: true });
+      }
+    });
+    return idlePromise;
+  }
+
+  // One in-flight request per experiment, shared by every caller.
+  const pending = {};
+
+  // ============================================================================
   // VARIANT ASSIGNMENT
   // ============================================================================
 
   async function getVariant(experimentId, options) {
     options = options || {};
-    const userId = getUserId();
+    const consented = hasConsent();
+    const userId = consented ? getUserId() : null;
 
     // Check cache
-    const cache = getCache();
+    const cache = consented ? getCache() : {};
     if (cache[experimentId]) {
       const variantId = cache[experimentId].variantId;
 
@@ -100,16 +148,32 @@
       return variantId;
     }
 
+    if (!pending[experimentId]) {
+      pending[experimentId] = whenIdle().then(function () {
+        return fetchVariant(experimentId, userId, cache);
+      });
+    }
+    const variantId = await pending[experimentId];
+
+    // Track exposure
+    if (variantId && !options.skipExposure) {
+      queueEvent(experimentId, variantId, userId, 'exposure');
+    }
+
+    return variantId;
+  }
+
+  async function fetchVariant(experimentId, userId, cache) {
     // Fetch from API
     try {
       const device =
         window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop';
 
       const params = new URLSearchParams({
-        userId: userId,
         isNewUser: Object.keys(cache).length === 0 ? 'true' : 'false',
         device: device,
       });
+      if (userId) params.set('userId', userId);
 
       // Get UTM source if available
       const urlParams = new URLSearchParams(window.location.search);
@@ -134,12 +198,7 @@
       }
 
       // Cache assignment
-      setCache(experimentId, data.variantId);
-
-      // Track exposure
-      if (!options.skipExposure) {
-        queueEvent(experimentId, data.variantId, userId, 'exposure');
-      }
+      if (consented) setCache(experimentId, data.variantId);
 
       return data.variantId;
     } catch (error) {
@@ -154,6 +213,7 @@
   // ============================================================================
 
   function queueEvent(experimentId, variantId, userId, eventType, goalId, value) {
+    if (!hasConsent()) return;
     eventQueue.push({
       experimentId: experimentId,
       variantId: variantId,
@@ -201,6 +261,7 @@
   }
 
   function trackConversion(experimentId, goalId, value) {
+    if (!hasConsent()) return;
     const cache = getCache();
     const assignment = cache[experimentId];
 
@@ -215,6 +276,7 @@
   }
 
   function trackConversionForAll(goalId, value) {
+    if (!hasConsent()) return;
     const cache = getCache();
     const userId = getUserId();
 

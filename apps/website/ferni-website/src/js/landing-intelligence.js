@@ -210,8 +210,8 @@
       }
     }
 
-    // Apply visual mode
-    if (content.visualMode === 'dark') {
+    // Apply visual mode: a dark system only, or paper gets a dark hero under paper-ink type
+    if (content.visualMode === 'dark' && matchMedia('(prefers-color-scheme: dark)').matches) {
       document.body.classList.add('theme--dark', 'time-mode--night');
     }
 
@@ -412,8 +412,8 @@
     // Quick time-aware content (no network call needed for basic version)
     if (CONFIG.enableTimeAware) {
       const hour = new Date().getHours();
-      if (hour >= 0 && hour < 5) {
-        // Late night - immediate local treatment
+      if (hour < 5 && matchMedia('(prefers-color-scheme: dark)').matches) {
+        // Late night on a dark system only: on paper it painted the hero dark under dark ink
         document.body.classList.add('time-mode--late-night');
       }
     }

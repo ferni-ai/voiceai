@@ -643,6 +643,7 @@
 
 .blog-post__hero-image {
   width: 100%;
+  height: auto;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
 }

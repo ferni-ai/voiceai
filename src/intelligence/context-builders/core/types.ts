@@ -195,6 +195,8 @@ export interface ContextUserData {
   isReturningUser?: boolean;
   sessionDurationMs?: number;
   turnCount?: number;
+  /** Names of the tools this agent has this turn (tool-awareness.ts lists only these). */
+  availableToolNames?: readonly string[];
   lastTopic?: string;
   recentTopics?: string[];
   currentPersona?: string;

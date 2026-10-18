@@ -85,7 +85,7 @@ const PERSONA_VOICES: Record<string, PersonaVoiceProfile> = {
     voiceId:
       process.env.NAYAN_PATEL_VOICE_ID ||
       process.env.NAYAN_VOICE_ID ||
-      '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
+      '6da65da0-cad8-4820-901c-549561d93ff3',
     speed: 0.9,
     emotion: 'calm',
   },

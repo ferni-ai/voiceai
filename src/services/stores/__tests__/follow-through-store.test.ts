@@ -221,4 +221,34 @@ describe('toFollowUp', () => {
     });
     expect(toFollowUp('x', { ...base, repeat: { every: 'hourly', at: '8' } })?.repeat).toBeNull();
   });
+
+  it('keeps a read-back action (tool, contact, waiting on you, outcome) and nothing else in it', () => {
+    const base = {
+      userId: 'u1',
+      kind: 'promise',
+      text: 'Call Mom',
+      zone: 'UTC',
+      status: 'open',
+      createdAt: 'a',
+      updatedAt: 'a',
+      source: { store: 'outreach_confirm', ref: 'r' },
+    };
+    const action = {
+      tool: 'callOnBehalf',
+      contactId: 'c-mom',
+      waitingOn: 'you',
+      to: '+15551230001',
+    };
+    expect(toFollowUp('x', { ...base, action })?.action).toEqual({
+      tool: 'callOnBehalf',
+      contactId: 'c-mom',
+      waitingOn: 'you',
+    });
+    const done = { tool: 'reachOut', outcome: 'sent', waitingOn: 'them' };
+    expect(toFollowUp('x', { ...base, action: done })?.action).toEqual({
+      tool: 'reachOut',
+      outcome: 'sent',
+    });
+    expect(toFollowUp('x', base)).not.toHaveProperty('action');
+  });
 });

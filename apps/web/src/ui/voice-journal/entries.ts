@@ -90,7 +90,7 @@ export async function deleteEntry(entryId: string): Promise<boolean> {
   }
 
   try {
-    await deleteMemory(currentAgent.id, entryId);
+    await deleteMemory(currentAgent.id, entryId, 'journalEntry');
 
     // Reload entries
     const entries = (await listMemories(currentAgent.id, 'journalEntry')) || [];

@@ -8,7 +8,7 @@
  * paraphrases; Ferni can quote. The live pipeline already stores every turn
  * (bogle_users/{uid}/conversations/{id}/turns); this reads the caller's lines
  * from their last few calls, in short overlapping passages so a fact spread
- * over lines ("call my brother", "his name is Pete", "it's 435 339 7687")
+ * over lines ("call my brother", "his name is Pete", "it's 435 555 0188")
  * stays together, and embeds them once when the call starts. A turn that
  * means the same thing as a passage gets it quoted, within its own small
  * budget. Nothing on the turn path waits for any of it.
@@ -67,8 +67,8 @@ export const MIN_TURNS = 4;
 
 /**
  * True when a raw passage is about a forgotten topic. Speech rarely uses the
- * topic's own words ("forget my brother's number" vs "it's uh 435 339
- * 7687"), so a passage goes if it has any distinctive word of the topic
+ * topic's own words ("forget my brother's number" vs "it's uh 435 555
+ * 0188"), so a passage goes if it has any distinctive word of the topic
  * (five letters or more, or a number of four digits or more); otherwise it
  * needs all the topic's words, as facts do. One tokenizer (forgetTokens) on
  * both sides, so a request can't match one way and slip past the other. A

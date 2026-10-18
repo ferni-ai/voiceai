@@ -232,7 +232,7 @@ const PERSONA_PRESENCE: Record<
     ],
     environment: [
       'company reports scattered across the desk',
-      'a worn copy of "One Up On Wall Street" nearby',
+      "the pattern notebook open to today's three",
       'sticky notes everywhere with stock ideas',
     ],
     physicalTics: [

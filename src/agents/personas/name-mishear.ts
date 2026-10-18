@@ -14,6 +14,14 @@
  * user_input_transcribed (memory, observers) from these events.
  * NAME_MISHEAR_NORMALIZE=on turns it on.
  *
+ * A request for Ferni is put right whoever is on the call. Prod call
+ * 2026-10-17: talking to Alex, the caller said "transfer me to Fern" twice;
+ * only Ferni's own turns were fixed, so Alex got "Fern", didn't call the
+ * handoff and said "Ferni here" instead. Only a name that ends a transfer
+ * ("transfer me to Fern", "back to Fern", "talk to Fern please") is changed:
+ * "I gave water to the fern" and "we drove to Fern Creek" are not.
+ * NAME_MISHEAR_HANDOFF=off turns that part off.
+ *
  * @module agents/personas/name-mishear
  */
 import { stt } from '@livekit/agents';
@@ -46,20 +54,44 @@ function addressesFerni(before: string, after: string): boolean {
   return (prev === '' || /[.!?]$/.test(prev)) && CLOSES.test(after) && !LIST.test(after);
 }
 
+/** "transfer me to", "switch back over to", "back to", "talk with": a transfer, right before the name. */
+const TRANSFER_TO =
+  /\b(?:(?:transfer|switch|pass|send|hand|put|patch|connect|talk|speak)\s+(?:me\s+|us\s+)?(?:back\s+)?(?:over\s+)?(?:to|with)|back\s+to)\s+$/i;
+/** The transfer ends with the name, give or take a "please" or "now". */
+const ENDS_TRANSFER = /^\s*(?:,?\s*(?:please|now|again|real quick)\b)?\s*(?:[.!?,;:]|$)/i;
+
+/** "transfer me to Fern": the caller wants Ferni, whoever is on the call. */
+function asksForFerni(before: string, after: string): boolean {
+  return TRANSFER_TO.test(before) && ENDS_TRANSFER.test(after);
+}
+
+export interface NameFixScope {
+  /** Ferni is on the call: a greeting or vocative is said to him. */
+  vocatives: boolean;
+  /** A transfer that ends with the name is a request for Ferni (NAME_MISHEAR_HANDOFF). */
+  transfers: boolean;
+}
+
+const EVERYTHING: NameFixScope = { vocatives: true, transfers: true };
+
 /** The text put right, and the variants changed ("Freddy→Ferni"), never the text itself. */
-function fixName(text: string): { text: string; fixed: string[] } {
+function fixName(text: string, scope: NameFixScope): { text: string; fixed: string[] } {
   const fixed: string[] = [];
   const out = text.replace(MISHEARD, (word, _w: string, at: number) => {
-    if (!addressesFerni(text.slice(0, at), text.slice(at + word.length))) return word;
+    const [before, after] = [text.slice(0, at), text.slice(at + word.length)];
+    const ferni =
+      (scope.vocatives && addressesFerni(before, after)) ||
+      (scope.transfers && asksForFerni(before, after));
+    if (!ferni) return word;
     fixed.push(`${word}→Ferni`);
     return 'Ferni';
   });
   return { text: out, fixed };
 }
 
-/** The text with mishearings of Ferni's name that address Ferni put right. */
-export function normalizeNameMishear(text: string): string {
-  return fixName(text).text;
+/** The text with mishearings of Ferni's name that address or ask for Ferni put right. */
+export function normalizeNameMishear(text: string, scope: NameFixScope = EVERYTHING): string {
+  return fixName(text, scope).text;
 }
 
 const TRANSCRIPTS = new Set([
@@ -68,12 +100,12 @@ const TRANSCRIPTS = new Set([
   stt.SpeechEventType.FINAL_TRANSCRIPT,
 ]);
 
-function fixEvent<E>(ev: E): E {
+function fixEvent<E>(ev: E, scope: NameFixScope): E {
   if (typeof ev !== 'object' || ev === null) return ev;
   const event = ev as unknown as stt.SpeechEvent;
   const alt = event.alternatives?.[0];
   if (!TRANSCRIPTS.has(event.type) || alt === undefined) return ev;
-  const { text, fixed } = fixName(alt.text);
+  const { text, fixed } = fixName(alt.text, scope);
   if (fixed.length === 0) return ev;
   if (event.type === stt.SpeechEventType.FINAL_TRANSCRIPT) {
     // Never the caller's words: only which name was changed, and how often.
@@ -95,8 +127,9 @@ function personaOf(session: SessionLike | undefined): string {
 }
 
 /**
- * The agent's STT events with Ferni's name put right while Ferni is the
- * persona on the call. Unchanged when NAME_MISHEAR_NORMALIZE is off.
+ * The agent's STT events with Ferni's name put right: said to him while he is
+ * the persona on the call, and asked for whoever is on it. Unchanged when
+ * NAME_MISHEAR_NORMALIZE is off.
  */
 export async function sttWithNameFix<E>(
   session: SessionLike | undefined,
@@ -110,7 +143,11 @@ export async function sttWithNameFix<E>(
     async pull(controller) {
       const { done, value } = await reader.read();
       if (done) return controller.close();
-      controller.enqueue(personaOf(session) === 'ferni' ? fixEvent(value) : value);
+      const scope = {
+        vocatives: personaOf(session) === 'ferni',
+        transfers: flagOn('NAME_MISHEAR_HANDOFF', env),
+      };
+      controller.enqueue(scope.vocatives || scope.transfers ? fixEvent(value, scope) : value);
     },
     async cancel(reason) {
       return reader.cancel(reason);

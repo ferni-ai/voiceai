@@ -51,6 +51,21 @@ export function callerVenting(text: string): boolean {
   return VENTING.test(text);
 }
 
+/**
+ * Good news, a win or a joke, said in words (PERSONA_SPARK, turn-shape.ts):
+ * whole words only, and never alongside venting, bad news or a tender moment
+ * ("I got the job but I'm so stressed" stays careful).
+ */
+const GOOD_NEWS =
+  /\b(?:good news|great news|best news|got (?:the (?:job|offer|part|role|house|apartment|promotion|raise)|in|accepted|engaged|married|promoted|a raise)|(?:i'?m|we'?re|she'?s|he'?s) (?:engaged|pregnant|expecting)|promoted|promotion|graduated|passed (?:my|the|it)|(?:i|we) won|won (?:the|first)|first place|nailed it|(?:i|we) did it|pulled it off|it worked|bought (?:a|our|my) (?:house|home|car)|new job|so excited)\b/i;
+
+export function callerBright(text: string): boolean {
+  if (callerVenting(text)) return false;
+  const context = classifyBackchannelContext(text);
+  if (context === 'bad_news' || context === 'tender') return false;
+  return context === 'funny' || GOOD_NEWS.test(text);
+}
+
 const CURIOUS_QUESTION =
   'You may ask one question, about one specific thing they mentioned (a name, a place, a thing), the way a curious friend would; never how it feels. Otherwise end on a thought.';
 const CURIOUS_ONE =
@@ -73,6 +88,8 @@ export interface TurnSignals {
   move: CallerMove;
   /** Venting, bad news or a tender moment: no story of his own, no laugh, no aside. */
   careful: boolean;
+  /** PERSONA_SPARK=on: good news, a win or a joke, and nothing careful (turn-shape.ts). */
+  bright?: boolean;
   /** CANDOR=on: hard news earlier in the call, so support still comes first (turn-candor.ts). */
   supportFirst?: boolean;
   laughed: boolean;
@@ -87,6 +104,8 @@ export interface TurnSignals {
   recent?: RecentTurns;
   /** DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question (answer-turn.ts). */
   answered?: boolean;
+  /** QUIET_CALLER=on: their last turns were a few words each (quiet-caller.ts). */
+  quiet?: boolean;
   /** TROUBLES_TALK=on: a trouble on this turn or just before it (troubles-talk.ts); unset when off. */
   trouble?: boolean;
 }
@@ -96,6 +115,7 @@ export function modelSignals(u: Understanding): TurnSignals {
   return {
     move: u.move,
     careful: u.mood === 'venting' || u.mood === 'bad_news' || u.mood === 'tender',
+    bright: u.mood === 'excited' || u.mood === 'funny',
     laughed: u.laughed,
     laughFits: u.laughFits,
     adviceFits: u.adviceFits && !u.needsTool,
@@ -116,6 +136,7 @@ export function regexSignals(text: string, move: CallerMove): TurnSignals {
   return {
     move,
     careful: callerVenting(text),
+    bright: callerBright(text),
     laughed: callerLaughed(text),
     laughFits: ['funny', 'surprise'].includes(classifyBackchannelContext(text) ?? ''),
     adviceFits: !mayNeedTool(text),
@@ -158,7 +179,12 @@ export function extrasFor(
   // aloud on chit-chat, where friends rarely do either.
   const learnedTexture = env.TURN_TEXTURE === 'learned';
   const chat = move === 'share' || move === 'ack';
-  if (on(env, 'THINK_ALOUD') && shape !== 'react' && !(learnedTexture && chat)) {
+  if (
+    on(env, 'THINK_ALOUD') &&
+    shape !== 'react' &&
+    !(learnedTexture && chat) &&
+    !signals.quiet
+  ) {
     // Live, request turns are rare: also think aloud on some longer answers.
     const p =
       move === 'request' || move === 'about_ferni'
@@ -223,7 +249,13 @@ export function extrasFor(
       out.lines.push(LAUGH_SPONTANEOUS);
       out.fired.push('laugh_spontaneous');
     }
-    if (move !== 'ack' && !venting && shape !== 'react' && rng() < scaled(0.25, style.opinion)) {
+    if (
+      move !== 'ack' &&
+      !venting &&
+      !signals.quiet &&
+      shape !== 'react' &&
+      rng() < scaled(0.25, style.opinion)
+    ) {
       out.lines.push(OPINION);
       out.fired.push('opinion');
     }

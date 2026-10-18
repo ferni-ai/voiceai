@@ -19,6 +19,8 @@ export function isSavedInterestsOn(env: Record<string, string | undefined> = pro
 export interface SavedInterests {
   favoriteTeams: string[];
   topics: string[];
+  /** The home the caller saved ("my home is in Tampa"), for its weather (WORLD_NOW). */
+  home?: string;
 }
 
 const NONE: SavedInterests = { favoriteTeams: [], topics: [] };
@@ -40,15 +42,24 @@ function names(x: unknown): string[] {
 /** The saved preference document, reduced to what world awareness uses. */
 export function toSavedInterests(data: unknown): SavedInterests {
   const d = typeof data === 'object' && data !== null ? (data as Record<string, unknown>) : {};
-  return { favoriteTeams: names(d.favoriteTeams), topics: names(d.newsInterests) };
+  const home = d.homeLocation as { address?: unknown } | undefined;
+  const address = typeof home?.address === 'string' ? home.address.trim() : '';
+  return {
+    favoriteTeams: names(d.favoriteTeams),
+    topics: names(d.newsInterests),
+    ...(address ? { home: address } : {}),
+  };
 }
 
-/** The caller's saved teams and news topics; empty when off, unsaved or unreadable. */
+/**
+ * The caller's saved teams and news topics (SAVED_INTERESTS=on) and home
+ * (WORLD_NOW=on); empty when both are off, or unsaved or unreadable.
+ */
 export async function loadSavedInterests(
   userId: string,
   env: Record<string, string | undefined> = process.env
 ): Promise<SavedInterests> {
-  if (!isSavedInterestsOn(env)) return NONE;
+  if (!isSavedInterestsOn(env) && env.WORLD_NOW !== 'on') return NONE;
   const db = getFirestoreDb();
   if (!db) return NONE;
   try {

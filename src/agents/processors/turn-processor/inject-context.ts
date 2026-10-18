@@ -6,6 +6,8 @@
  */
 
 import type { llm } from '@livekit/agents';
+import { withRevivedIntelligence } from '../../../intelligence/revived/revived-intelligence.js';
+import { MAX_PUSHED_CONTEXT_CHARS } from '../../multi-agent/turn-context-header.js';
 import type { TurnProcessorResult } from '../types.js';
 
 /**
@@ -13,8 +15,18 @@ import type { TurnProcessorResult } from '../types.js';
  *
  * Call this after processTurn() to add all context injections to the chat.
  */
-export function injectTurnContext(turnCtx: llm.ChatContext, result: TurnProcessorResult): void {
-  const { injections } = result.context;
+export function injectTurnContext(
+  turnCtx: llm.ChatContext,
+  result: TurnProcessorResult,
+  turn?: { sessionId: string; turnNumber: number }
+): void {
+  // What Ferni knows from earlier calls (REVIVED_INTELLIGENCE), already loaded.
+  const injections = withRevivedIntelligence(result.context.injections, {
+    sessionId: turn?.sessionId,
+    turn: turn?.turnNumber,
+    crisis: result.crisis?.isCrisis,
+    maxChars: MAX_PUSHED_CONTEXT_CHARS,
+  });
 
   if (injections.length === 0) return;
 

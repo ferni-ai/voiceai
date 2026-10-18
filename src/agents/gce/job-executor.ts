@@ -18,6 +18,10 @@ import { runFullVoiceAgentEntry } from '../voice-agent-entry/index.js';
 import { emptyRoomGraceMs } from './empty-room-grace.js';
 // Work that runs after each call ends (extraction, person model): registered once per process.
 import '../after-call-register.js';
+// The one journal store, for the tools that write it during a call (CALL_JOURNAL).
+import '../journal-store-register.js';
+// After a call, the verified owner's reminders and commitments become follow-ups (FOLLOW_THROUGH_IMPORT).
+import '../voice-agent-entry/follow-through-import-register.js';
 
 // ============================================================================
 // TYPES

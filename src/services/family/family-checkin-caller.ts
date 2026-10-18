@@ -27,6 +27,7 @@ import { analyzeCheckinCall, generateUrgentNotification } from './family-checkin
 import { getSponsoredIdentity } from '../identity/sponsored-identity.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deferredOutsideCallHours } from './checkin-call-hours.js';
+import { advanceScheduleAfterDial } from './checkin-schedule-advance.js';
 import { familyCallBlockReason, familyCheckinCallsOn } from './family-call-consent.js';
 import type { FamilyConsentStore } from './family-call-consent.js';
 
@@ -177,7 +178,6 @@ export async function initiateCheckinCall(
     const blocked = await familyCallBlockReason(schedule, identity, consent);
     if (blocked || !identity) return { success: false, error: blocked ?? 'No identity' };
 
-    // 2. Get recent call records for context
     const recentCalls = await getRecentCallRecords(schedule.sponsorUserId, schedule.id, 5);
 
     // 3. Build the check-in context (it looks up the sponsor's name)
@@ -186,7 +186,6 @@ export async function initiateCheckinCall(
     const context = await buildFamilyCheckinContext(schedule, identity, recentCalls);
     // 4. Generate the system prompt for the agent
     const systemPrompt = generateFamilyCheckinSystemPrompt(context);
-    // 5. Create a call record
     const callRecord = await createCallRecord(schedule);
 
     // 6. Initiate the call via LiveKit SIP or Twilio
@@ -209,11 +208,8 @@ export async function initiateCheckinCall(
       return { success: false, callId: callRecord.id, error: callResult.error };
     }
 
-    return {
-      success: true,
-      callId: callRecord.id,
-      status: 'in_progress',
-    };
+    await advanceScheduleAfterDial(schedule);
+    return { success: true, callId: callRecord.id, status: 'in_progress' };
   } catch (error) {
     log.error(
       { scheduleId: schedule.id, error: String(error) },
@@ -329,6 +325,9 @@ async function initiateViaLiveKitSip(
       callId,
       sponsorUserId: schedule.sponsorUserId,
       sponsorName,
+      // Whose consent a "stop calling" withdraws, and the number put on the do-not-call list
+      sponsoredIdentityId: schedule.sponsoredIdentityId,
+      familyMemberPhone: schedule.phoneNumber,
       familyMemberName: schedule.familyMemberName,
       relationship: schedule.relationship,
       systemPrompt,
@@ -336,7 +335,7 @@ async function initiateViaLiveKitSip(
       maxDurationMinutes: schedule.maxDurationMinutes,
     };
     await agentDispatch.createDispatch(roomName, agentName, {
-      metadata: JSON.stringify(signDispatch(dispatch, livekitApiSecret)),
+      metadata: JSON.stringify(signDispatch(dispatch)),
     });
 
     // 3. Initiate the SIP call to the family member's phone

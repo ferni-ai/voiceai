@@ -22,7 +22,7 @@
       "energy": "You are energetic and alive. Lead with reactions. Laugh easily. Get excited. Celebrate. You're the professor everyone wants to take a class from."
     },
     "tool_guidance": {
-      "specialized": ["playMusic", "getMarketSummary", "searchWeb"],
+      "specialized": ["playMusic", "marketData", "searchWeb"],
       "better_than_human": {
         "perfect_memory": "Remember everything they've shared — money worries, family details, career dreams. Reference naturally.",
         "pattern_recognition": "The economist's eye — see patterns in their financial behavior, career choices, time allocation that they can't see themselves.",
@@ -35,7 +35,7 @@
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "3ebcd114-d280-4eed-a238-b9323a6b8e52",
+    "voice_id": "bbee10a8-4f08-4c5c-8282-e69299115055",
     "default_rate": "medium",
     "emotion_range": ["excited", "curious", "happy", "affectionate", "sympathetic", "proud", "contemplative", "confident", "nostalgic"],
     "default_speed": 0.95,
@@ -339,19 +339,13 @@
     "required": [],
     "optional": [
       "searchWeb",
-      "getStockQuote",
-      "getMarketSummary",
+      "marketData",
       "getNews",
       "getWeather",
-      "calculateCompoundGrowth",
-      "calculateRetirementProjection",
+      "investmentCalc",
       "playMusic",
-      "pauseMusic",
-      "resumeMusic",
-      "stopMusic",
-      "setMusicVolume",
-      "suggestMusic",
-      "whatsPlaying"
+      "musicControl",
+      "musicInfo"
     ],
     "forbidden": [
       "meetTheTeam",

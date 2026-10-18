@@ -326,7 +326,8 @@ export async function setupCallTypeContexts(
 
 /**
  * Close out call-type work when the session ends, on every exit path.
- * On-behalf calls report how the call went to the person who asked for it.
+ * On-behalf calls report how the call went to the person who asked for it;
+ * a family check-in honours the family member asking not to be called again.
  */
 export async function finishCallTypeContexts(
   metadata: Record<string, unknown>,
@@ -335,6 +336,11 @@ export async function finishCallTypeContexts(
   sessionDurationMs: number,
   rawJobMetadata: string | undefined
 ): Promise<void> {
+  if (callType === 'family_checkin') {
+    const { finishFamilyCheckin } = await import('../outbound-call/family-checkin-stop.js');
+    await finishFamilyCheckin(sessionId, metadata, await isTrustedDispatch(rawJobMetadata));
+    return;
+  }
   if (callType !== 'on_behalf_call') return;
   const { completeOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
   const call = parseOnBehalfDispatch(metadata);
@@ -349,8 +355,9 @@ export async function finishCallTypeContexts(
  * carries a valid signature.
  */
 async function isTrustedDispatch(rawJobMetadata: string | undefined): Promise<boolean> {
-  const { verifyOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
-  return verifyOnBehalfDispatch(rawJobMetadata, process.env.LIVEKIT_API_SECRET);
+  const { dispatchVerifySecrets, verifyOnBehalfDispatch } =
+    await import('../../services/outreach/on-behalf-dispatch.js');
+  return verifyOnBehalfDispatch(rawJobMetadata, dispatchVerifySecrets());
 }
 
 /** The requester's name as dispatched: under `requester`, or the older top-level `userName`. */

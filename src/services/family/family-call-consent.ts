@@ -45,6 +45,11 @@ export interface FamilyConsentStore {
   ) => Promise<boolean>;
   /** They said stop; false when not saved. */
   withdraw: (sponsoredIdentityId: string, now: Date) => Promise<boolean>;
+  /**
+   * The shared do-not-call list (wired from services/outreach/call-retry by the
+   * job). True when the number must not be rung, including when it can't be read.
+   */
+  isNumberOptedOut?: (phone: string) => Promise<boolean>;
 }
 
 /** True when scheduled family check-in calls may ring anyone at all. */
@@ -57,19 +62,40 @@ export function familyCheckinCallsOn(): boolean {
 type IdentityForGate = Pick<SponsoredIdentity, 'sponsorUserId' | 'status'>;
 
 /**
+ * Sponsors whose family may be rung, from FAMILY_CHECKIN_SPONSORS (comma
+ * separated user ids). Unset means every sponsor, so the first real calls can
+ * be limited to one family before the feature opens to everyone.
+ */
+function sponsorAllowed(sponsorUserId: string): boolean {
+  const list = process.env.FAMILY_CHECKIN_SPONSORS?.trim();
+  if (!list) return true;
+  return list.split(',').some((id) => id.trim() === sponsorUserId);
+}
+
+/**
  * Why this check-in call must not ring, or null when it may. Checks the flag,
- * that the identity exists, belongs to the schedule's sponsor and is active,
+ * the sponsor allowlist, that the identity exists, belongs to the schedule's sponsor and is active,
  * and that the family member's own consent is on record and not withdrawn.
+ * With FAMILY_CHECKIN_STOP on, a number on the do-not-call list is refused too
+ * (no list wired means no call).
  */
 export async function familyCallBlockReason(
-  schedule: { sponsorUserId: string; sponsoredIdentityId: string },
+  schedule: { sponsorUserId: string; sponsoredIdentityId: string; phoneNumber?: string },
   identity: IdentityForGate | null,
   store: FamilyConsentStore | undefined
 ): Promise<string | null> {
   if (!flagOn('FAMILY_CHECKIN_CALLS')) return 'Family check-in calls are off';
+  if (!sponsorAllowed(schedule.sponsorUserId)) return 'Sponsor not in FAMILY_CHECKIN_SPONSORS';
   if (!identity) return 'Sponsored identity not found';
   if (identity.sponsorUserId !== schedule.sponsorUserId) return 'Sponsor mismatch';
   if (identity.status !== 'active') return `Identity is ${identity.status}`;
+  if (flagOn('FAMILY_CHECKIN_STOP') && (await onDoNotCallList(schedule, store))) {
+    log.info(
+      { sponsoredIdentityId: schedule.sponsoredIdentityId },
+      'Check-in not placed: the number is on the do-not-call list'
+    );
+    return 'Number is on the do-not-call list';
+  }
   const consent = store ? await store.get(schedule.sponsoredIdentityId) : null;
   if (!consent?.consentedAt || consent.withdrawnAt) {
     log.info(
@@ -79,4 +105,20 @@ export async function familyCallBlockReason(
     return 'No consent from the family member';
   }
   return null;
+}
+
+async function onDoNotCallList(
+  schedule: { sponsoredIdentityId: string; phoneNumber?: string },
+  store: FamilyConsentStore | undefined
+): Promise<boolean> {
+  if (!store?.isNumberOptedOut || !schedule.phoneNumber) return true;
+  try {
+    return await store.isNumberOptedOut(schedule.phoneNumber);
+  } catch (error) {
+    log.warn(
+      { sponsoredIdentityId: schedule.sponsoredIdentityId, error: String(error) },
+      'Could not read the do-not-call list; not calling'
+    );
+    return true;
+  }
 }
