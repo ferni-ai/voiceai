@@ -49,7 +49,7 @@ import {
 import { timezoneFromPhone } from './area-code-timezones.js';
 import {
   attestedIntro,
-  holdsConsentAsk,
+  grantedOrAsked,
   isOwnerAttested,
   ownerFirstName,
 } from '../messaging/consent-grants.js';
@@ -424,18 +424,12 @@ async function onBehalfConsent(
   deps: TextDeps
 ): Promise<'opted-out' | 'needs-consent' | 'send-failed' | null> {
   const hash = phoneHash(t.toPhone, deps.env);
-  const claim = t.consentAskClaim;
-  const ownNumber = async (): Promise<boolean> =>
-    (claim !== undefined &&
-      hash !== null &&
-      (await holdsConsentAsk(hash, claim, consentOf(deps)))) ||
+  const c = consentOf(deps);
+  // The sender's own grant (or their consent ask) or their own number; never someone else's grant.
+  const allow = async (): Promise<boolean> =>
+    (hash !== null && (await grantedOrAsked(hash, t.senderUserId, t.consentAskClaim, c))) ||
     isOwnVerifiedPhone(t.senderUserId, t.toPhone, deps);
-  const block: ConsentBlock | null = await consentBlocks(
-    t.toPhone,
-    'sms',
-    ownNumber,
-    consentOf(deps)
-  );
+  const block: ConsentBlock | null = await consentBlocks(t.toPhone, 'sms', allow, c);
   return block === 'unverifiable' ? 'send-failed' : block;
 }
 
@@ -447,7 +441,8 @@ async function firstContactBody(
   deps: TextDeps
 ): Promise<string> {
   if (!firstText || !messagingPipelineOn(deps.env)) return t.body;
-  if (!(await isOwnerAttested(hash, 'sms', consentOf(deps)).catch(() => false))) return t.body;
+  const c = consentOf(deps);
+  if (!(await isOwnerAttested(hash, 'sms', t.senderUserId, c).catch(() => false))) return t.body;
   const owner = t.ownerName ?? ownerFirstName(await deps.store.userDoc(t.senderUserId));
   return attestedIntro(owner, t.body);
 }

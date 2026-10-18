@@ -19,7 +19,7 @@ import {
   type ScheduledOutreachTarget,
 } from './scheduled-multi-outreach.js';
 import { isOwnVerifiedPhone, ON_BEHALF_GAP_MS, textOnBehalf } from './guarded-text.js';
-import { consentBlocks } from '../messaging/consent.js';
+import { thirdPartyRefusal } from '../messaging/consent-grants.js';
 import { flagOn } from '../../config/env-flag.js';
 import { sendEmail } from './delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../voice/voice-call.js';
@@ -133,8 +133,11 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
       }
       // MESSAGING_PIPELINE: a number that asked not to be called is never rung, and someone
       // other than the member must have agreed to calls (nothing confirms a scheduled call).
-      const refused = await consentBlocks(target.resolvedPhone, 'call', async () =>
-        toMemberThemself(userId, channelUsed, target)
+      const refused = await thirdPartyRefusal(
+        userId,
+        target.resolvedPhone,
+        'call',
+        isOwnVerifiedPhone
       );
       if (refused) {
         await updateOutreachStatus(userId, id, 'cancelled', {

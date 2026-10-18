@@ -102,10 +102,8 @@ describe('third-party calls', () => {
   it("a friends-and-family owner's yes attests consent, so the call goes", async () => {
     member.value = true;
     await confirmedReachOut({ contact: 'Pat', purpose: 'hi', preferredChannel: 'call' });
-    expect(consentDoc()?.call).toMatchObject({
-      state: 'opted-in',
-      source: 'owner-attested',
-      by: 'owner-1',
+    expect((consentDoc()?.grants as Record<string, unknown>)['owner-1']).toMatchObject({
+      call: { source: 'owner-attested' },
     });
     expect(callWithPersonaVoice).toHaveBeenCalledOnce();
   });

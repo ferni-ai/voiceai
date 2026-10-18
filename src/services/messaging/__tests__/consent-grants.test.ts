@@ -8,6 +8,8 @@ import { memoryConsentStore } from './memory-consent.js';
 import {
   claimConsentAsk,
   consentAskText,
+  hasGrant,
+  thirdPartyRefusal,
   isConsentYes,
   recordContactYes,
   recordOwnerAttestation,
@@ -45,10 +47,11 @@ describe('recordContactYes', () => {
   it('a YES to an open consent ask turns texts in (contact-yes) and closes the ask', async () => {
     await claimConsentAsk(HASH, 'owner-1', deps);
     expect(await recordContactYes(PAT, 'Yes', deps)).toEqual(['sms']);
-    expect((await readConsent(HASH, deps)).sms).toMatchObject({
-      state: 'opted-in',
-      source: 'contact-yes',
+    expect((m.docs.get(HASH)?.grants as Record<string, unknown>)['owner-1']).toMatchObject({
+      sms: { source: 'contact-yes' },
     });
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(true);
+    expect((await readConsent(HASH, deps)).sms.state).toBe('unknown'); // global: only their STOP/START
     expect(m.docs.get(HASH)?.ask).toBeUndefined();
   });
 
@@ -57,7 +60,7 @@ describe('recordContactYes', () => {
     await claimConsentAsk(HASH, 'owner-1', deps);
     now = new Date(now.getTime() + 31 * DAY);
     expect(await recordContactYes(PAT, 'yes', deps)).toBeNull();
-    expect((await readConsent(HASH, deps)).sms.state).toBe('unknown');
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(false);
   });
 
   it('a YES never undoes a STOP', async () => {
@@ -65,25 +68,24 @@ describe('recordContactYes', () => {
     await writeOptOut(HASH, 'sms', 'inbound-sms', deps);
     await recordContactYes(PAT, 'yes', deps);
     expect((await readConsent(HASH, deps)).sms.state).toBe('opted-out');
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(false); // nothing waits for a START
   });
 });
 
 describe('recordOwnerAttestation', () => {
   it('a friends-and-family owner: recorded with source, uid and time', async () => {
     expect(await recordOwnerAttestation(PAT, 'call', 'owner-1', deps, async () => true)).toBe(true);
-    expect(m.docs.get(HASH)?.call).toEqual({
-      state: 'opted-in',
-      source: 'owner-attested',
-      by: 'owner-1',
-      at: now.toISOString(),
+    expect(m.docs.get(HASH)?.grants).toEqual({
+      'owner-1': { call: { source: 'owner-attested', at: now.toISOString() } },
     });
+    expect(m.docs.get(HASH)?.call).toBeUndefined(); // the global record is the contact's alone
   });
 
   it('an owner outside friends-and-family: nothing recorded', async () => {
     expect(await recordOwnerAttestation(PAT, 'call', 'owner-2', deps, async () => false)).toBe(
       false
     );
-    expect((await readConsent(HASH, deps)).call.state).toBe('unknown');
+    expect(await hasGrant(HASH, 'owner-2', 'call', deps)).toBe(false);
   });
 
   it('never over an opt-out', async () => {
@@ -185,5 +187,85 @@ describe('sendConsentAsk', () => {
       sent: false,
       reason: 'opted-out',
     });
+  });
+});
+
+describe('consent is given for one owner, and a STOP beats it', () => {
+  const textFor = (sender: string) => ({
+    senderUserId: sender,
+    toPhone: PAT,
+    body: 'hi',
+    refId: `r-${sender}`,
+    zone: 'America/New_York',
+  });
+  const send = vi.fn(async () => ({ success: true, messageSid: 'SM1' }));
+  const textDeps = (): TextDeps => ({
+    env,
+    store: {
+      forUser: async () => [],
+      forPhoneHash: async () => [],
+      add: async () => 'id',
+      lock: async () => true,
+      lockedAt: async () => undefined,
+      unlock: async () => undefined,
+      sponsoredPhone: async () => undefined,
+      isOptedOut: async () => false,
+      userDoc: async () => undefined,
+      legacySmsChannels: async () => undefined,
+    } as unknown as TextStore,
+    authPhone: async () => '+12025550100',
+    send,
+    now: () => now,
+    consent: deps,
+  });
+  const notOwn = async (): Promise<boolean> => false;
+  beforeEach(() => send.mockClear());
+
+  it("Seth's attestation doesn't let user B text or call Mom; Seth's own grant works", async () => {
+    const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
+    await recordOwnerAttestation(PAT, 'sms', 'seth', deps, async () => true);
+    await recordOwnerAttestation(PAT, 'call', 'seth', deps, async () => true);
+    expect(await sendOnBehalfText(textFor('user-b'), textDeps())).toEqual({
+      sent: false,
+      reason: 'needs-consent',
+    });
+    expect(await thirdPartyRefusal('user-b', PAT, 'call', notOwn, deps)).toBe('needs-consent');
+    expect(await sendOnBehalfText(textFor('seth'), textDeps())).toEqual({ sent: true });
+    expect(await thirdPartyRefusal('seth', PAT, 'call', notOwn, deps)).toBeNull();
+  });
+
+  it("Mom's YES to Seth's ask covers Seth, not user B", async () => {
+    const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
+    await claimConsentAsk(HASH, 'seth', deps);
+    await recordContactYes(PAT, 'YES', deps);
+    expect(await sendOnBehalfText(textFor('user-b'), textDeps())).toEqual({
+      sent: false,
+      reason: 'needs-consent',
+    });
+    expect(await sendOnBehalfText(textFor('seth'), textDeps())).toEqual({ sent: true });
+    // Their own yes to the ask already introduced Ferni: no attestation intro.
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ body: 'hi' }));
+  });
+
+  it("a global STOP beats Seth's grant", async () => {
+    const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
+    await recordOwnerAttestation(PAT, 'sms', 'seth', deps, async () => true);
+    await recordOwnerAttestation(PAT, 'call', 'seth', deps, async () => true);
+    await writeOptOut(HASH, 'sms', 'inbound-sms', deps);
+    await writeOptOut(HASH, 'call', 'inbound-sms', deps);
+    expect(await sendOnBehalfText(textFor('seth'), textDeps())).toEqual({
+      sent: false,
+      reason: 'opted-out',
+    });
+    expect(await thirdPartyRefusal('seth', PAT, 'call', notOwn, deps)).toBe('opted-out');
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("user B can't ride on Seth's open consent ask", async () => {
+    const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
+    const claim = (await claimConsentAsk(HASH, 'seth', deps)) as string;
+    expect(
+      await sendOnBehalfText({ ...textFor('user-b'), consentAskClaim: claim }, textDeps())
+    ).toEqual({ sent: false, reason: 'needs-consent' });
   });
 });

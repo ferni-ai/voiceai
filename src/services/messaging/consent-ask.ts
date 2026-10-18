@@ -23,6 +23,7 @@ import {
 import {
   claimConsentAsk,
   consentAskText,
+  hasGrant,
   ownerFirstName,
   releaseConsentAsk,
 } from './consent-grants.js';
@@ -64,7 +65,9 @@ export async function sendConsentAsk(
   if (!hash) return { sent: false, reason: 'bad-number' };
   const { sms } = await readConsent(hash, deps.consent);
   if (sms.state === 'opted-out') return { sent: false, reason: 'opted-out' };
-  if (sms.state === 'opted-in') return { sent: false, reason: 'already-consented' };
+  if (await hasGrant(hash, req.senderUserId, 'sms', deps.consent)) {
+    return { sent: false, reason: 'already-consented' };
+  }
   const claim = await claimConsentAsk(hash, req.senderUserId, deps.consent);
   if (!claim) return { sent: false, reason: 'asked-recently' };
   const owner = req.ownerName ?? ownerFirstName(await deps.text.store.userDoc(req.senderUserId));

@@ -20,7 +20,6 @@ import { z } from 'zod';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { ToolContext, ToolDefinition, Tool } from '../../../registry/types.js';
 
-// Contact & relationship services
 import {
   searchContacts,
   getContact,
@@ -35,7 +34,11 @@ import { calculateOptimalTime } from '../../../../services/outreach/timing-intel
 import { makeConversationalCall } from '../../../../services/outreach/conversational-calls.js';
 import type { OutboundCallContext } from '../../../../services/outreach/conversational-calls.js';
 
-import { onBehalfNotSent, textOnBehalf } from '../../../../services/outreach/guarded-text.js';
+import {
+  isOwnVerifiedPhone,
+  onBehalfNotSent,
+  textOnBehalf,
+} from '../../../../services/outreach/guarded-text.js';
 import { thirdPartyRefusal } from '../../../../services/messaging/consent-grants.js';
 import { sendEmail } from '../../../../services/outreach/delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
@@ -154,7 +157,6 @@ function needsConversation(intent: OutreachIntent, purpose: string): boolean {
 
   if (conversationalIntents.includes(intent)) return true;
 
-  // Phrases suggesting conversation
   const conversationPhrases = [
     'chat',
     'talk',
@@ -187,12 +189,10 @@ function selectOptimalChannel(ctx: OutreachContext): OutreachDecision {
 
   let channelList = priorities[intent] || ['text', 'conversation', 'email', 'call'];
 
-  // Boost contact's preferred channel
   if (ctx.preferredChannel) {
     channelList = [ctx.preferredChannel, ...channelList.filter((c) => c !== ctx.preferredChannel)];
   }
 
-  // Filter by available contact info
   const hasPhone = !!contact.phone;
   const hasEmail = !!contact.email;
 
@@ -309,7 +309,8 @@ async function executeOutreach(
   if (planOnly) return { success: true, channel, message, ...plan };
   // MESSAGING_PIPELINE: a call to anyone but the owner needs their consent (consent-grants.ts).
   const isCall = ['call', 'voicemail', 'conversation'].includes(channel);
-  const refused = isCall && to ? await thirdPartyRefusal(userId, to, 'call') : null;
+  const refused =
+    isCall && to ? await thirdPartyRefusal(userId, to, 'call', isOwnVerifiedPhone) : null;
   if (refused) return { success: false, channel, message, ...plan, error: notAgreed(refused) };
 
   log.info(

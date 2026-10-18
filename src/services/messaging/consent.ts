@@ -46,8 +46,7 @@ const HISTORY_MAX = 20;
 export type ConsentChannel = 'sms' | 'call';
 export type ConsentState = 'opted-in' | 'opted-out' | 'unknown';
 /** Where a change came from; short codes only, never message text. */
-export type ConsentSource =
-  'inbound-sms' | 'voice-call' | 'legacy-store' | 'contact-yes' | 'owner-attested';
+export type ConsentSource = 'inbound-sms' | 'voice-call' | 'legacy-store';
 
 export interface ChannelConsent {
   state: ConsentState;
@@ -112,17 +111,13 @@ export async function readConsent(
   return consent;
 }
 
-/**
- * Every channel in one transaction, so a STOP for texts and calls never lands
- * half-written. `extra` is stored on each channel (an attesting owner's uid).
- */
+/** Every channel in one transaction, so a STOP for texts and calls never lands half-written. */
 export async function writeConsent(
   hash: string,
   channels: readonly ConsentChannel[],
   state: Exclude<ConsentState, 'unknown'>,
   source: ConsentSource,
-  deps: ConsentDeps,
-  extra: Record<string, string> = {}
+  deps: ConsentDeps
 ): Promise<void> {
   const at = deps.now().toISOString();
   const keyVersion = phoneHashKeyVersion(deps.env);
@@ -131,7 +126,7 @@ export async function writeConsent(
     const changes = channels.map((c) => `${at} ${c} ${state} ${source}`);
     return {
       ...doc,
-      ...Object.fromEntries(channels.map((c) => [c, { state, source, at, ...extra }])),
+      ...Object.fromEntries(channels.map((c) => [c, { state, source, at }])),
       updatedAt: at,
       keyVersion,
       history: [...history, ...changes].slice(-HISTORY_MAX),
@@ -273,16 +268,16 @@ export type ConsentBlock = 'opted-out' | 'needs-consent' | 'unverifiable';
  * Null when `channel` to `phone` is allowed, else why not. With the flag off,
  * always null (each sender keeps its own checks). Fails closed: a number that
  * can't be hashed, or a store that can't be read, refuses. `allowUnknown` is
- * asked only when the phone's consent is unknown: "is this the owner's own
- * verified number?" (a function, asked only then), since a third party must
- * have said yes (consent-grants.ts). Shared transport senders pass true: they
+ * asked whenever no opt-out is on record: "is this the owner's own verified
+ * number, or does the sender hold their own grant?" (a function, asked only
+ * then; consent-grants.ts mayReachForOwner). Shared transport senders pass true: they
  * can't tell who they reach, so they stop only at an opt-out, and the caller
  * that knows does the third-party check.
  */
 export async function consentBlocks(
   phone: string,
   channel: ConsentChannel,
-  allowUnknown: boolean | (() => Promise<boolean>),
+  allowUnknown: boolean | ((deps: ConsentDeps) => Promise<boolean>),
   deps: ConsentDeps = defaultConsentDeps()
 ): Promise<ConsentBlock | null> {
   if (!messagingPipelineOn(deps.env)) return null;
@@ -293,8 +288,8 @@ export async function consentBlocks(
     const { state } = (await readConsent(hash, deps))[channel];
     if (state === 'opted-out') return 'opted-out';
     if (channel === 'call' && (await deps.store.legacyCallOptOut(e164))) return 'opted-out';
-    if (state === 'opted-in') return null;
-    if (typeof allowUnknown === 'boolean' ? allowUnknown : await allowUnknown()) return null;
+    // A global opt-in (the contact's START) grants nobody: third parties need their own grant.
+    if (typeof allowUnknown === 'boolean' ? allowUnknown : await allowUnknown(deps)) return null;
     return 'needs-consent';
   } catch (error) {
     log.warn({ error: String(error), channel }, 'Consent not readable; not sending');
