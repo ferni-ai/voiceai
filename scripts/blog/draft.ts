@@ -15,6 +15,7 @@ import { getPostType, type PostType } from './post-types.js';
 import { buildPrompt, parseDraft, type DraftText } from './prompt.js';
 import { characterLabel, letterAuthor, pickPersona } from './team-letter.js';
 import { NEEDS_PRS, collectSources } from './type-sources.js';
+import { MAX_ANSWER_CHARS, unsafeOutput } from './untrusted-text.js';
 
 export interface DraftDeps {
   root: string;
@@ -55,6 +56,8 @@ interface Attempt {
   draft?: DraftText;
   markdown?: string;
   issues: GateIssue[];
+  /** An off-allowlist link or raw HTML: rejected at once, never retried. */
+  unsafe?: boolean;
 }
 
 export const ATTEMPTS = 2;
@@ -107,9 +110,15 @@ async function attempt(
   gate: GateOptions
 ): Promise<Attempt> {
   const answer = await model.generate(prompt);
+  if (answer.length > MAX_ANSWER_CHARS) {
+    const message = `answer is ${answer.length} characters; the cap is ${MAX_ANSWER_CHARS}`;
+    return { issues: [{ rule: 'length', message }] };
+  }
   try {
     const draft = parseDraft(answer);
     const markdown = render(draft);
+    const unsafe = unsafeOutput(markdown);
+    if (unsafe.length > 0) return { draft, markdown, issues: unsafe, unsafe: true };
     return { draft, markdown, issues: checkPost(markdown, gate) };
   } catch (error) {
     return { issues: [{ rule: 'front-matter', message: `unreadable answer: ${String(error)}` }] };
@@ -161,7 +170,13 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
   for (let n = 1; n <= ATTEMPTS; n++) {
     // Sequential on purpose: the second call carries the first one's findings.
     // eslint-disable-next-line no-await-in-loop
-    const { draft, markdown, issues } = await attempt(result.prompt, deps.model, render, gate);
+    const { draft, markdown, issues, unsafe } = await attempt(
+      result.prompt,
+      deps.model,
+      render,
+      gate
+    );
+    if (unsafe) return { ...result, status: 'rejected', issues, markdown };
     if (draft && markdown && issues.length === 0) {
       const file = freePath(
         folder,
