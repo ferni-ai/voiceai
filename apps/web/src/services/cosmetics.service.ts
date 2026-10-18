@@ -472,14 +472,11 @@ export async function buyCosmetic(cosmeticId: string): Promise<boolean> {
 }
 
 /**
- * Equip a cosmetic
+ * Equip a cosmetic. Seeds are cut (Seth, 2026-10-17: "cut seeds"), so anything
+ * in the catalog is free to pick: no ownership or balance check. The old
+ * prices stay in the catalog data only; Make It Yours shows none of them.
  */
 export function equipCosmetic(cosmeticId: string): boolean {
-  if (!ownsCosmetic(cosmeticId)) {
-    log.warn({ cosmeticId }, 'Cannot equip - not owned');
-    return false;
-  }
-
   const cosmetic = COSMETICS_CATALOG.find((c) => c.id === cosmeticId);
   if (!cosmetic) return false;
 

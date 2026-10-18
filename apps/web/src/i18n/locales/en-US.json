@@ -1683,7 +1683,6 @@
     "generateReportNow": "Generate Report Now",
     "getIdeas": "Get Ideas",
     "getNewPrompt": "Get new prompt",
-    "getThis": "Get This",
     "gettingStarted": "Getting Started",
     "gift": "Gift",
     "giftSuggestions": "Gift suggestions",
@@ -1789,7 +1788,6 @@
     "myItems": "My Items",
     "nameThatTune": "Name That Tune",
     "nayan": "Nayan",
-    "needMoreSeeds": "Need more Seeds",
     "needsAttention": "Needs attention",
     "nervous": "Nervous",
     "neutral": "Neutral",
@@ -3709,40 +3707,22 @@
       "text": "I've been talking things through with Ferni. Thought you might like it too.",
       "hint": "Say it your way. Your link goes at the end."
     },
-    "modal": {
-      "title": "Share the Growth",
-      "subtitle": "When friends join, everyone grows",
-      "bonusAmount": "{seeds} bonus seeds",
-      "bonusWhen": "when they join!",
-      "quote": "The best things in life are better shared",
-      "linkLabel": "Your link:"
-    },
     "buttons": {
       "share": "Share",
       "copyLink": "Copy Link",
       "email": "Email",
       "text": "Text"
     },
-    "gardenStats": {
-      "title": "Your referral garden",
-      "friendsGrowing": "{count} friends growing",
-      "seedsEarned": "{seeds} seeds earned",
-      "emptyState": "Plant your first seed"
-    },
     "errorClipboard": "Couldn't copy. Try again?",
     "copyError": "Couldn't copy. Try again?",
     "linkUnavailable": "Couldn't load your link right now. Try again in a moment.",
-    "bonusAmount": "You'll both get {seeds} seeds",
-    "bonusWhen": "when they join!",
-    "garden": {
-      "earned": "You've earned {seeds} seeds from sharing",
-      "empty": "Seeds grow when shared. Start your garden today.",
-      "friendsGrowing": "{count} friends growing",
-      "title": "Your garden:"
-    },
     "subtitle": "Know someone who could use a friend like this?",
     "title": "Share the Growth",
-    "yourLink": "Your link:"
+    "yourLink": "Your link:",
+    "friendsJoined": {
+      "one": "{count} friend has joined through you",
+      "other": "{count} friends have joined through you"
+    }
   },
   "conversationMemory": {
     "demoBanner": "Demo mode - showing example data",
@@ -10827,15 +10807,8 @@
     "subtitle": "Choose how Ferni looks and sounds",
     "comingSoon": "More options coming soon.",
     "status": {
-      "active": "Active",
-      "owned": "Yours",
-      "default": "Default",
-      "price": {
-        "one": "{count} Seed",
-        "other": "{count} Seeds"
-      }
-    },
-    "purchased": "It's yours!"
+      "active": "Active"
+    }
   },
   "capabilityCard": {
     "betterThanHuman": "Better than Human"
