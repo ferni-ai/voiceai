@@ -101,13 +101,16 @@ export type UserReach =
 export async function userReach(
   userId: string,
   channel: 'sms' | 'voice_call',
-  opts: { standingOptIn: boolean }
+  opts: { standingOptIn: boolean },
+  sources: VerifiedPhoneSources = accountPhoneSources
 ): Promise<UserReach> {
   const db = getFirestoreDb();
   if (!db) return { reason: 'no_database' };
   const doc = await db.collection('bogle_users').doc(userId).get();
   const data = (doc.exists ? doc.data() : undefined) as Record<string, unknown> | undefined;
-  const phone = verifiedPhoneOf(userId, data);
+  // The same number every other sender uses: a Google sign-in that verified its phone in
+  // Settings has it on Firebase Auth only, which verifiedPhoneOf alone never saw.
+  const phone = await resolveVerifiedPhone(userId, data, sources);
   if (!phone) return { reason: 'no_verified_phone' };
   if (opts.standingOptIn) {
     const consent = consentFromPrefs(data?.outreachPreferences);

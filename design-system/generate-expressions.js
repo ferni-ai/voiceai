@@ -28,12 +28,16 @@ const PROJECT_ROOT = path.dirname(__dirname);
 
 const CONFIG = {
   source: path.join(__dirname, 'tokens/expressions.json'),
+  animation: path.join(__dirname, 'tokens/animation.json'),
   outputs: {
     typescript: path.join(PROJECT_ROOT, 'apps/web/src/config/expressions.generated.ts'),
     css: path.join(PROJECT_ROOT, 'apps/web/src/config/expressions.generated.css'),
     ios: path.join(PROJECT_ROOT, 'apps/ios-native/Ferni/Resources/expressions.json'),
   },
 };
+
+// The one spring curve (animation.json easings.spring), used as the var() fallback.
+const SPRING = JSON.parse(fs.readFileSync(CONFIG.animation, 'utf-8')).easings.spring;
 
 // ============================================================================
 // TYPESCRIPT GENERATOR
@@ -466,7 +470,7 @@ function generateCSSRules(expressions) {
     }
 
     if (expr.animation) {
-      lines.push(`  animation: ${expr.animation} 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));`);
+      lines.push(`  animation: ${expr.animation} 0.5s var(--ease-spring, ${SPRING});`);
     }
 
     lines.push(`}`);

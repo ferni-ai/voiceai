@@ -3,7 +3,7 @@
  * 
  * 🎬 AUTO-GENERATED FROM design-system/tokens/animation.json
  * Do not edit directly - run: npm run build:animation-constants
- * Generated: 2026-03-05T09:41:17.557Z
+ * Generated: 2026-10-17T14:06:54.304Z
  * 
  * This file contains the generated constants. The main animation-constants.ts
  * imports and re-exports these along with manual additions.
@@ -15,18 +15,25 @@
  */
 export const DURATION_GENERATED = {
   INSTANT: 0,
-  FASTEST: 50,
+  MICRO: 50,
+  FAST_PRESS: 80,
   FASTER: 100,
   FAST: 150,
+  FAST_RELEASE: 150,
   NORMAL: 200,
+  STANDARD: 250,
   SLOW: 300,
-  SLOWER: 400,
+  MODERATE: 400,
   SLOWEST: 500,
   DELIBERATE: 700,
+  CELEBRATION: 800,
   DRAMATIC: 1000,
+  ENTRANCE: 1000,
   GLACIAL: 1500,
-  MEDITATIVE: 3000,
-  AMBIENT: 8000,
+  EPIC: 2000,
+  AMBIENT_FAST: 3000,
+  AMBIENT_SLOW: 5000,
+  AMBIENT_GLACIAL: 8000,
 } as const;
 
 /**
@@ -35,21 +42,29 @@ export const DURATION_GENERATED = {
  */
 export const EASING_GENERATED = {
   LINEAR: 'linear',
-  EASE_IN: 'cubic-bezier(0.4, 0, 1, 1)',
-  EASE_OUT: 'cubic-bezier(0, 0, 0.2, 1)',
-  EASE_IN_OUT: 'cubic-bezier(0.4, 0, 0.2, 1)',
-  EASE_OUT_EXPO: 'cubic-bezier(0.16, 1, 0.3, 1)',
-  EASE_OUT_BACK: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-  EASE_IN_OUT_QUINT: 'cubic-bezier(0.83, 0, 0.17, 1)',
-  SPRING: 'cubic-bezier(0.5, 1.5, 0.5, 1)',
-  SPRING_BOUNCY: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-  SMOOTH: 'cubic-bezier(0.45, 0, 0.55, 1)',
-  ORGANIC: 'cubic-bezier(0.4, 0.2, 0.2, 1.1)',
-  ELASTIC: 'cubic-bezier(0.68, -0.6, 0.32, 1.6)',
-  ANTICIPATE: 'cubic-bezier(0.38, -0.4, 0.88, 0.65)',
+  STANDARD: 'cubic-bezier(0.4, 0, 0.2, 1)',
   DECELERATE: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
-  GENTLE: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+  ACCELERATE: 'cubic-bezier(0.4, 0, 1, 1)',
+  EASE_IN: 'ease-in',
+  EASE_OUT: 'ease-out',
+  EASE_IN_OUT: 'ease-in-out',
+  SPRING: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  SPRING_GENTLE: 'cubic-bezier(0.25, 1.25, 0.5, 1)',
+  SPRING_STRONG: 'cubic-bezier(0.5, 1.8, 0.5, 1)',
+  SPRING_BOUNCY: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+  EASE_OUT_BACK: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  ELASTIC: 'cubic-bezier(0.68, -0.6, 0.32, 1.6)',
   PLAYFUL: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+  ANTICIPATE: 'cubic-bezier(0.38, -0.4, 0.88, 0.65)',
+  ANTICIPATE_GENTLE: 'cubic-bezier(0.6, -0.28, 0.735, 0.045)',
+  EXPO_OUT: 'cubic-bezier(0.16, 1, 0.3, 1)',
+  EASE_OUT_EXPO: 'cubic-bezier(0.16, 1, 0.3, 1)',
+  OUT_EXPO: 'cubic-bezier(0.16, 1, 0.3, 1)',
+  EXPO_IN_OUT: 'cubic-bezier(0.87, 0, 0.13, 1)',
+  EASE_IN_OUT_QUINT: 'cubic-bezier(0.83, 0, 0.17, 1)',
+  SMOOTH: 'cubic-bezier(0.45, 0, 0.55, 1)',
+  GENTLE: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+  ORGANIC: 'cubic-bezier(0.4, 0.2, 0.2, 1.1)',
 } as const;
 
 /**

@@ -36,11 +36,13 @@ const state = vi.hoisted(() => ({
     sentAt: string;
     status: string;
   }>,
+  /** The guarded sender's send locks, by id: when each was taken. */
+  locks: new Map<string, string>(),
   /** Promises moved to a held reminder's new time. */
   extended: [] as Array<{ reminderId: string; at: string }>,
   /** Reminders delivered to the app's message panel. */
   inApp: [] as string[],
-  /** The guarded sender's env (ON_BEHALF_TEXTS gates texts to someone else). */
+  /** The guarded sender's env (SCHEDULED_OUTREACH_THIRD_PARTY gates texts to someone else). */
   env: { LOG_HASH_SECRET: 'test-secret' } as Record<string, string>,
   /** The guarded sender's clock: noon in New York unless a test moves it. */
   now: new Date('2026-10-14T16:00:00.000Z'),
@@ -67,9 +69,8 @@ vi.mock('../services/superhuman/firestore-utils.js', async () => {
 });
 vi.mock('../services/outreach/guarded-text.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../services/outreach/guarded-text.js')>();
-  return {
-    ...real,
-    defaultTextDeps: () => ({
+  const deps = (): ReturnType<typeof real.defaultTextDeps> =>
+    ({
       env: state.env,
       store: {
         forUser: async (id: string) => state.records.filter((r) => r.userId === id),
@@ -82,6 +83,16 @@ vi.mock('../services/outreach/guarded-text.js', async (importOriginal) => {
         legacySmsChannels: async () => undefined,
         forPhoneHash: async (h: string) => state.records.filter((r) => r.phoneHash === h),
         isOptedOut: async () => state.optedOut,
+        // Atomic like Firestore's create(): a held lock can't be taken again.
+        lock: async (id: string, at: string) => {
+          if (state.locks.has(id)) return false;
+          state.locks.set(id, at);
+          return true;
+        },
+        lockedAt: async (id: string) => state.locks.get(id),
+        unlock: async (id: string) => {
+          state.locks.delete(id);
+        },
       },
       authPhone: async () => undefined,
       send: async (m: { to: string; body: string }) => {
@@ -89,7 +100,14 @@ vi.mock('../services/outreach/guarded-text.js', async (importOriginal) => {
         return { success: true, messageId: 'SM1' };
       },
       now: () => state.now,
-    }),
+    }) as unknown as ReturnType<typeof real.defaultTextDeps>;
+  return {
+    ...real,
+    defaultTextDeps: deps,
+    // The real isOwnVerifiedPhone defaults to the module's own defaultTextDeps, which this
+    // mock can't reach; give it the test's store so the member's verified phone is theirs.
+    isOwnVerifiedPhone: (userId: string, phone: string) =>
+      real.isOwnVerifiedPhone(userId, phone, deps()),
   };
 });
 vi.mock('../services/communication-service.js', () => ({
@@ -171,6 +189,7 @@ beforeEach(() => {
   state.inApp = [];
   state.optedOut = false;
   state.records = [];
+  state.locks = new Map();
   state.extended = [];
   state.env = { LOG_HASH_SECRET: 'test-secret' };
   state.now = new Date('2026-10-14T16:00:00.000Z');
@@ -285,7 +304,7 @@ describe('REMINDER_SMS_DEFAULT on', () => {
   it('when the verified phone changed since, the old number is never texted', async () => {
     await setReminder({ deliveryMethod: 'sms' });
     state.users[WEB_USER] = { linkedIdentifiers: ['phone:+15550001111'] };
-    state.env.ON_BEHALF_TEXTS = 'on'; // even with texts to others allowed
+    state.env.SCHEDULED_OUTREACH_THIRD_PARTY = 'on'; // even with texts to others allowed
     await deliverDueReminders({ now: soon() });
     noTexts();
     expect(state.inApp).toEqual(['take the bread out']);
@@ -294,13 +313,13 @@ describe('REMINDER_SMS_DEFAULT on', () => {
   it('a text to someone else goes through the guarded on-behalf sender, never the old one', async () => {
     await setReminder({ deliveryMethod: 'sms' });
     Object.assign(stored()[0], { deliveryAddress: MODEL_NUMBER, addressSource: undefined });
-    await deliverDueReminders({ now: soon() }); // ON_BEHALF_TEXTS off: held
+    await deliverDueReminders({ now: soon() }); // SCHEDULED_OUTREACH_THIRD_PARTY off: held
     noTexts();
     expect(state.inApp).toEqual(['take the bread out']);
 
     state.inApp = [];
     Object.assign(stored()[0], { status: 'pending' });
-    state.env.ON_BEHALF_TEXTS = 'on';
+    state.env.SCHEDULED_OUTREACH_THIRD_PARTY = 'on';
     await deliverDueReminders({ now: soon() });
     expect(state.guarded).toEqual([{ to: MODEL_NUMBER, body: BODY }]);
     expect(state.legacyTexts).toEqual([]);

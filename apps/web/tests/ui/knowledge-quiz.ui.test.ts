@@ -196,7 +196,7 @@ describe('KnowledgeQuizUI', () => {
       expect(overlay).toBeFalsy();
     });
 
-    it('should use default questions when API fails', async () => {
+    it('says it could not load, with no stand-in questions, when the API fails', async () => {
       mockApiGet.mockRejectedValue(new Error('Network error'));
 
       initKnowledgeQuizUI();
@@ -208,9 +208,9 @@ describe('KnowledgeQuizUI', () => {
       const overlay = document.querySelector('.knowledge-quiz-overlay');
       expect(overlay).toBeTruthy();
 
-      // Should still show questions
-      const questionText = document.querySelector('.knowledge-quiz-question-text');
-      expect(questionText).toBeTruthy();
+      // An honest error, never generic questions dressed up as "how well do you know me"
+      expect(document.querySelector('.knowledge-quiz-question-text')).toBeNull();
+      expect(document.querySelector('.knowledge-quiz-unavailable[data-state="error"]')).toBeTruthy();
     });
   });
 

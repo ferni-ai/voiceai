@@ -1,8 +1,9 @@
 /**
  * SMS Reading Tools
  *
- * Read and manage incoming SMS messages via Twilio.
- * Complements the existing SMS sending capability.
+ * Every member's texts with Ferni sit on one Twilio account, so a read covers
+ * one number: the Firebase Auth phone (set only by SMS verification) of the
+ * owner on a signed-in app call. Everyone else is refused before Twilio is asked.
  *
  * @module simple-utilities/sms-reading-tools
  */
@@ -11,8 +12,8 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { getFirebaseUser } from '../../../services/identity/firebase-auth.js';
+import type { MessageInstance } from 'twilio/lib/rest/api/v2010/account/message.js';
 
 const log = getLogger();
 
@@ -31,17 +32,41 @@ export interface SMSMessage {
   dateCreated: string;
 }
 
-export interface SMSConversation {
-  phoneNumber: string;
-  contactName?: string;
-  messages: SMSMessage[];
-  lastMessageAt: string;
-  unreadCount: number;
+// ============================================================================
+// WHO MAY READ
+// ============================================================================
+
+/** What a refused read says. */
+export const SMS_OWNER_ONLY =
+  "I can only read your texts with me when you're signed in to the app with a phone number you've verified, so I can't open them on this call.";
+
+/** Is this session the account's owner on a signed-in app call? */
+export type SignedInOwnerCheck = (sessionId: string) => boolean;
+
+/** Refuses every session until the call layer registers its answer (agents/voice-agent-entry/sms-owner-register.ts). */
+let signedInOwner: SignedInOwnerCheck = () => false;
+
+export function registerSmsOwnerSessionCheck(check: SignedInOwnerCheck): void {
+  signedInOwner = check;
 }
 
-// Cache for SMS messages (short TTL since they change)
-const smsCache = new Map<string, { messages: SMSMessage[]; fetchedAt: number }>();
-const SMS_CACHE_TTL = 60_000; // 1 minute
+const E164 = /^\+[1-9]\d{7,14}$/;
+
+/** Ids that can't be a Firebase account (anonymous, `phone:`, `sponsored_`, ...) are never looked up. */
+function isAccountUid(userId: string | undefined): userId is string {
+  if (!userId) return false;
+  const id = userId.trim();
+  return id !== '' && id !== 'anonymous' && !id.includes(':') && !id.startsWith('sponsored_');
+}
+
+/** The only number whose texts this call may read, or undefined to refuse. */
+async function ownerSmsPhone(ctx: ToolContext): Promise<string | undefined> {
+  if (!isAccountUid(ctx.userId) || !ctx.sessionId || !signedInOwner(ctx.sessionId)) {
+    return undefined;
+  }
+  const phone = (await getFirebaseUser(ctx.userId.trim()).catch(() => null))?.phoneNumber;
+  return phone && E164.test(phone) ? phone : undefined;
+}
 
 // ============================================================================
 // TWILIO CLIENT HELPER
@@ -72,152 +97,62 @@ async function getTwilioClient() {
 }
 
 // ============================================================================
-// SMS READING FUNCTIONS
+// SMS READING
 // ============================================================================
 
+const NOT_SET_UP = "Reading texts isn't set up right now.";
+
+function toSmsMessage(msg: MessageInstance): SMSMessage {
+  return {
+    id: msg.sid,
+    from: msg.from || '',
+    to: msg.to || '',
+    body: msg.body || '',
+    direction: msg.direction?.includes('inbound') ? 'inbound' : 'outbound',
+    status: msg.status || 'unknown',
+    dateSent: msg.dateSent?.toISOString() || '',
+    dateCreated: msg.dateCreated?.toISOString() || '',
+  };
+}
+
 /**
- * Fetch recent SMS messages from Twilio
+ * Texts to or from `ownerPhone` only, newest first; null when Twilio isn't
+ * configured. Throws when Twilio fails, so a failure never reads as "no texts".
  */
-async function fetchRecentMessages(
-  userId: string,
-  options: { limit?: number; fromNumber?: string; daysBack?: number } = {}
-): Promise<SMSMessage[]> {
-  const { limit = 20, fromNumber, daysBack = 7 } = options;
-
-  // Check cache first
-  const cacheKey = `${userId}:${fromNumber || 'all'}`;
-  const cached = smsCache.get(cacheKey);
-  if (cached && Date.now() - cached.fetchedAt < SMS_CACHE_TTL) {
-    return cached.messages.slice(0, limit);
-  }
-
+async function fetchOwnerMessages(
+  ownerPhone: string,
+  options: { limit?: number; daysBack?: number } = {}
+): Promise<SMSMessage[] | null> {
+  const { limit = 20, daysBack = 7 } = options;
   const client = await getTwilioClient();
-  if (!client) {
-    return [];
+  if (!client) return null;
+
+  const dateSentAfter = new Date();
+  dateSentAfter.setDate(dateSentAfter.getDate() - daysBack);
+  const pageSize = Math.min(limit, 100);
+
+  const [toOwner, fromOwner] = await Promise.all([
+    client.messages.list({ to: ownerPhone, dateSentAfter, limit: pageSize }),
+    client.messages.list({ from: ownerPhone, dateSentAfter, limit: pageSize }),
+  ]);
+
+  const seen = new Set<string>();
+  const messages: SMSMessage[] = [];
+  for (const msg of [...toOwner, ...fromOwner]) {
+    // Twilio was asked for this number only; anything else is dropped, not shown.
+    if (msg.to !== ownerPhone && msg.from !== ownerPhone) continue;
+    if (seen.has(msg.sid)) continue;
+    seen.add(msg.sid);
+    messages.push(toSmsMessage(msg));
   }
-
-  try {
-    const dateSentAfter = new Date();
-    dateSentAfter.setDate(dateSentAfter.getDate() - daysBack);
-
-    // Build filter options
-    const filterOptions: {
-      limit: number;
-      dateSentAfter: Date;
-      from?: string;
-    } = {
-      limit: Math.min(limit, 100), // Twilio max is 1000, but we cap at 100
-      dateSentAfter,
-    };
-
-    if (fromNumber) {
-      filterOptions.from = fromNumber;
-    }
-
-    const messages = await client.messages.list(filterOptions);
-
-    const formattedMessages: SMSMessage[] = messages.map((msg) => ({
-      id: msg.sid,
-      from: msg.from || '',
-      to: msg.to || '',
-      body: msg.body || '',
-      direction: msg.direction?.includes('inbound') ? 'inbound' : 'outbound',
-      status: msg.status || 'unknown',
-      dateSent: msg.dateSent?.toISOString() || '',
-      dateCreated: msg.dateCreated?.toISOString() || '',
-    }));
-
-    // Update cache
-    smsCache.set(cacheKey, { messages: formattedMessages, fetchedAt: Date.now() });
-
-    log.info({ userId, count: formattedMessages.length }, '📱 Fetched SMS messages');
-    return formattedMessages;
-  } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to fetch SMS messages');
-    return [];
-  }
+  messages.sort((a, b) => new Date(b.dateSent).getTime() - new Date(a.dateSent).getTime());
+  return messages.slice(0, limit);
 }
 
-/**
- * Get conversations grouped by phone number
- */
-async function getConversations(
-  userId: string,
-  options: { limit?: number } = {}
-): Promise<SMSConversation[]> {
-  const messages = await fetchRecentMessages(userId, { limit: 100 });
-
-  // Group messages by phone number (the other party, not Ferni's number)
-  const ferniNumber = process.env.TWILIO_PHONE_NUMBER || '';
-  const conversationMap = new Map<string, SMSMessage[]>();
-
-  for (const msg of messages) {
-    const otherParty = msg.direction === 'inbound' ? msg.from : msg.to;
-    if (otherParty && otherParty !== ferniNumber) {
-      const existing = conversationMap.get(otherParty) || [];
-      existing.push(msg);
-      conversationMap.set(otherParty, existing);
-    }
-  }
-
-  // Convert to conversations
-  const conversations: SMSConversation[] = [];
-  for (const [phoneNumber, msgs] of conversationMap) {
-    const sortedMsgs = msgs.sort(
-      (a, b) => new Date(b.dateSent).getTime() - new Date(a.dateSent).getTime()
-    );
-
-    // Try to get contact name from Firestore
-    let contactName: string | undefined;
-    try {
-      const db = getFirestoreDb();
-      if (db) {
-        const contactSnapshot = await db
-          .collection('bogle_users')
-          .doc(userId)
-          .collection('contacts')
-          .where('phone', '==', phoneNumber)
-          .limit(1)
-          .get();
-
-        if (!contactSnapshot.empty) {
-          const contactData = contactSnapshot.docs[0].data();
-          contactName = contactData.name || contactData.firstName;
-        }
-      }
-    } catch {
-      // Ignore contact lookup errors
-    }
-
-    conversations.push({
-      phoneNumber,
-      contactName,
-      messages: sortedMsgs,
-      lastMessageAt: sortedMsgs[0]?.dateSent || '',
-      unreadCount: sortedMsgs.filter((m) => m.direction === 'inbound').length, // Simplified
-    });
-  }
-
-  // Sort by most recent
-  conversations.sort(
-    (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-  );
-
-  return conversations.slice(0, options.limit || 10);
-}
-
-/**
- * Format phone number for display
- */
-function formatPhoneForDisplay(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 11 && digits.startsWith('1')) {
-    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
-  }
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  }
-  return phone;
+/** One text, from the member's side: they text in (inbound), Ferni texts out. */
+function formatText(msg: SMSMessage): string {
+  const who = msg.direction === 'inbound' ? 'You' : 'Me';
+  return `${who} (${formatRelativeTime(msg.dateSent)}): "${msg.body}"`;
 }
 
 /**
@@ -249,68 +184,34 @@ function formatRelativeTime(dateStr: string): string {
 export const readSMSDef: ToolDefinition = {
   id: 'readSMS',
   name: 'Read SMS',
-  description: 'Read recent text messages. Can filter by contact or show all conversations.',
+  description:
+    "Read the recent texts between the user and Ferni. Only their own verified number; it can't see other texts on their phone.",
   domain: 'simple-utilities',
   tags: ['sms', 'text', 'messages', 'read', 'inbox'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Read text messages. Returns recent SMS conversations. Can filter by contact name or phone number.`,
+      description: `Read the recent texts between the user and you (Ferni), on their own verified number only. It can't see other texts on their phone.`,
       parameters: z.object({
-        contact: z.string().optional().describe('Contact name or phone number to filter by'),
         limit: z.number().optional().describe('Max messages to show (default 10)'),
       }),
-      execute: async ({ contact, limit = 10 }) => {
+      execute: async ({ limit = 10 }) => {
         const userId = ctx.userId;
-        log.info({ userId, contact, limit }, '📱 Reading SMS messages');
+        log.info({ userId, limit }, '📱 Reading SMS messages');
 
         try {
-          if (contact) {
-            // Filter by specific contact
-            const messages = await fetchRecentMessages(userId, {
-              fromNumber: contact,
-              limit,
-            });
+          const ownerPhone = await ownerSmsPhone(ctx);
+          if (!ownerPhone) return SMS_OWNER_ONLY;
 
-            if (messages.length === 0) {
-              return `No messages found from ${contact}.`;
-            }
+          const messages = await fetchOwnerMessages(ownerPhone, { limit });
+          if (!messages) return NOT_SET_UP;
+          if (messages.length === 0) return 'No texts between us in the last week.';
 
-            const formatted = messages
-              .slice(0, limit)
-              .map((msg) => {
-                const arrow = msg.direction === 'inbound' ? '←' : '→';
-                const time = formatRelativeTime(msg.dateSent);
-                return `${arrow} ${time}: "${msg.body}"`;
-              })
-              .join('\n');
-
-            return `Messages with ${contact}:\n${formatted}`;
-          } else {
-            // Show all conversations
-            const conversations = await getConversations(userId, { limit });
-
-            if (conversations.length === 0) {
-              return 'No text messages in the last week.';
-            }
-
-            const formatted = conversations
-              .map((conv) => {
-                const name = conv.contactName || formatPhoneForDisplay(conv.phoneNumber);
-                const lastMsg = conv.messages[0];
-                const preview =
-                  lastMsg.body.length > 50 ? lastMsg.body.slice(0, 47) + '...' : lastMsg.body;
-                const time = formatRelativeTime(lastMsg.dateSent);
-                const arrow = lastMsg.direction === 'inbound' ? '←' : '→';
-                return `${name} (${time}):\n  ${arrow} "${preview}"`;
-              })
-              .join('\n\n');
-
-            return `Recent text conversations:\n\n${formatted}`;
-          }
+          const formatted = messages.map(formatText).join('\n');
+          return `Our recent texts:\n${formatted}`;
         } catch (error) {
           log.error({ error: String(error), userId }, 'Failed to read SMS');
-          return "I couldn't read your messages right now. Make sure Twilio is configured.";
+          return "I couldn't read your messages right now.";
         }
       },
     });
@@ -323,42 +224,29 @@ export const readSMSDef: ToolDefinition = {
 export const checkNewMessagesDef: ToolDefinition = {
   id: 'checkNewMessages',
   name: 'Check New Messages',
-  description: 'Check if there are any new text messages.',
+  description: 'Check for texts between the user and Ferni today (their own verified number only).',
   domain: 'simple-utilities',
   tags: ['sms', 'text', 'messages', 'new', 'unread'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Check for new text messages received today.`,
+      description: `Check for texts between the user and you (Ferni) today, on their own verified number only.`,
       parameters: z.object({}),
       execute: async () => {
         const userId = ctx.userId;
         log.info({ userId }, '📱 Checking for new messages');
 
         try {
-          const messages = await fetchRecentMessages(userId, { daysBack: 1, limit: 50 });
-          const inbound = messages.filter((m) => m.direction === 'inbound');
+          const ownerPhone = await ownerSmsPhone(ctx);
+          if (!ownerPhone) return SMS_OWNER_ONLY;
 
-          if (inbound.length === 0) {
-            return 'No new text messages today.';
-          }
+          const messages = await fetchOwnerMessages(ownerPhone, { daysBack: 1, limit: 50 });
+          if (!messages) return NOT_SET_UP;
 
-          // Group by sender
-          const bySender = new Map<string, number>();
-          for (const msg of inbound) {
-            bySender.set(msg.from, (bySender.get(msg.from) || 0) + 1);
-          }
-
-          if (bySender.size === 1) {
-            const [sender, count] = [...bySender.entries()][0];
-            return `You have ${count} new message${count > 1 ? 's' : ''} from ${formatPhoneForDisplay(sender)}.`;
-          }
-
-          const summary = [...bySender.entries()]
-            .map(([sender, count]) => `${count} from ${formatPhoneForDisplay(sender)}`)
-            .join(', ');
-
-          return `You have ${inbound.length} new messages: ${summary}.`;
+          const fromMe = messages.filter((m) => m.direction === 'outbound').length;
+          const fromYou = messages.length - fromMe;
+          if (messages.length === 0) return 'No texts between us today.';
+          return `Today: ${fromMe} text${fromMe === 1 ? '' : 's'} from me, ${fromYou} from you.`;
         } catch (error) {
           log.error({ error: String(error), userId }, 'Failed to check messages');
           return "I couldn't check your messages right now.";
@@ -374,43 +262,35 @@ export const checkNewMessagesDef: ToolDefinition = {
 export const searchMessagesDef: ToolDefinition = {
   id: 'searchMessages',
   name: 'Search Messages',
-  description: 'Search through text messages for specific content.',
+  description:
+    'Search the texts between the user and Ferni for words (their own verified number only).',
   domain: 'simple-utilities',
   tags: ['sms', 'text', 'messages', 'search', 'find'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Search text messages for specific words or phrases.`,
+      description: `Search the texts between the user and you (Ferni) for words or phrases, on their own verified number only.`,
       parameters: z.object({
         query: z.string().describe('Text to search for in messages'),
         limit: z.number().optional().describe('Max results (default 10)'),
       }),
       execute: async ({ query, limit = 10 }) => {
         const userId = ctx.userId;
-        log.info({ userId, query }, '📱 Searching messages');
+        log.info({ userId }, '📱 Searching messages');
 
         try {
-          const messages = await fetchRecentMessages(userId, { limit: 100, daysBack: 30 });
+          const ownerPhone = await ownerSmsPhone(ctx);
+          if (!ownerPhone) return SMS_OWNER_ONLY;
 
-          const matches = messages.filter((m) =>
-            m.body.toLowerCase().includes(query.toLowerCase())
-          );
+          const messages = await fetchOwnerMessages(ownerPhone, { limit: 100, daysBack: 30 });
+          if (!messages) return NOT_SET_UP;
 
-          if (matches.length === 0) {
-            return `No messages found containing "${query}".`;
-          }
+          const needle = query.toLowerCase();
+          const matches = messages.filter((m) => m.body.toLowerCase().includes(needle));
+          if (matches.length === 0) return `No texts between us mention "${query}".`;
 
-          const formatted = matches
-            .slice(0, limit)
-            .map((msg) => {
-              const arrow = msg.direction === 'inbound' ? 'From' : 'To';
-              const other = msg.direction === 'inbound' ? msg.from : msg.to;
-              const time = formatRelativeTime(msg.dateSent);
-              return `${arrow} ${formatPhoneForDisplay(other)} (${time}):\n  "${msg.body}"`;
-            })
-            .join('\n\n');
-
-          return `Found ${matches.length} message${matches.length > 1 ? 's' : ''} with "${query}":\n\n${formatted}`;
+          const formatted = matches.slice(0, limit).map(formatText).join('\n');
+          return `Found ${matches.length} text${matches.length > 1 ? 's' : ''} with "${query}":\n${formatted}`;
         } catch (error) {
           log.error({ error: String(error), userId }, 'Failed to search messages');
           return "I couldn't search your messages right now.";

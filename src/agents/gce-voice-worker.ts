@@ -25,6 +25,7 @@
 import 'dotenv/config';
 
 import { GCE_WORKER_STARTUP_DELAY_MS, GCE_WORKER_READINESS_DELAY_MS } from '../config/timeouts.js';
+import { effectiveSettingsLines } from '../config/effective-settings.js';
 
 // ============================================================================
 // GLOBAL ERROR HANDLERS (Must be first - prevents process crashes)
@@ -49,6 +50,9 @@ log('🚀 GCE Voice Worker starting', {
   nodeVersion: process.version,
   env: process.env.NODE_ENV || 'development',
 });
+
+// Once per boot, for comparing deployments by hash (no flag: it is cheap observability).
+for (const line of effectiveSettingsLines()) log(line);
 
 // ============================================================================
 // CONFIGURATION

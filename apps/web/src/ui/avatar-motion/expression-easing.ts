@@ -41,7 +41,10 @@ export const NEUTRAL_EASE = 'power2.out';
 export const LIGHT_EASE = LEGACY_EASE;
 export const REDUCED_MOTION_EASE = 'power1.out';
 
-export const HEAVY_MIN_MS = DURATION.DRAMATIC;
+// The 600-900 ms heavy glide is the face's own range. It was DURATION.DRAMATIC,
+// which became 1000 ms (above HEAVY_MAX_MS) when the scale moved; held at 600
+// so the face keeps its timing until the face PR revisits it.
+export const HEAVY_MIN_MS = 600;
 export const HEAVY_MAX_MS = 900;
 export const REDUCED_MOTION_MS = DURATION.FAST_RELEASE;
 

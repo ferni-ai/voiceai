@@ -29,7 +29,7 @@ import {
   startReminderScheduler,
   type ReminderDeliveryMethod,
 } from '../../../../services/scheduling/reminder-scheduler.js';
-import { sendEmail, sendSMS } from '../../../../services/communication-service.js';
+import { sendEmail } from '../../../../services/communication-service.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 import {
   getPersonaDisplayName,
@@ -40,15 +40,21 @@ import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 import { getCallUserPort } from './call-user-port.js';
 
 /**
- * The number we text or ring the user on: the verified phone on the account (the
- * call-user port, as callUser uses), never contactInfo.phone, which saveContactInfo
- * writes from whatever the model heard. No port installed in this process: none.
+ * The number we text or ring the user on: the verified phone (the call-user port, as callUser
+ * uses), never contactInfo.phone, which saveContactInfo writes from whatever the model heard.
  */
 const verifiedPhone = async (userId: string): Promise<string | undefined> =>
   getCallUserPort()?.verifiedPhone(userId);
+/** The same for email: only the address Firebase verified, never contactInfo.email. */
+const verifiedEmail = async (userId: string): Promise<string | undefined> =>
+  getCallUserPort()?.verifiedEmail?.(userId);
 export const NO_VERIFIED_PHONE = 'No verified phone number on this account';
+export const NO_VERIFIED_EMAIL = 'No verified email address on this account';
+/** What saveContactInfo says: a saved number or address is never used to reach them. */
+export const SAVED_NOT_VERIFIED =
+  'I only text, call or email the phone number and email verified on your account, so if this is new, verify it in Settings first.';
 
-/** A Twilio call in the persona's voice (Cartesia TTS, Twilio's own voice as fallback). */
+/** A Twilio call in the persona's voice (Cartesia TTS, else Twilio's voice). */
 async function makePhoneCall(
   phone: string,
   message: string,
@@ -58,9 +64,7 @@ async function makePhoneCall(
     const result = await callWithPersonaVoice(phone, message, personaId, {
       fallbackToTwilioVoice: true,
     });
-    if (result.success) {
-      return { success: true, callSid: result.callSid };
-    }
+    if (result.success) return { success: true, callSid: result.callSid };
     return { success: false, error: result.message };
   } catch (error) {
     getLogger().error({ error, personaId }, 'makePhoneCall failed');
@@ -76,10 +80,7 @@ interface SimpleToolDefinition {
   handler: (params: Record<string, unknown>, context: ToolContext) => Promise<string>;
 }
 
-interface ToolContext {
-  userId?: string;
-  personaId?: string;
-}
+type ToolContext = { userId?: string; personaId?: string };
 
 // ============================================================================
 // TYPES
@@ -150,11 +151,17 @@ export async function setUserContactInfo(
 }
 
 /**
- * Get user's contact information.
- * Checks cache first, then loads from profile if not found.
+ * The user's contact info: the verified phone and email (the call-user port), with the
+ * saved preferred method and timezone. The saved phone and email are never handed out.
  */
 export async function getUserContactInfo(userId: string): Promise<UserContactInfo | undefined> {
-  // Check cache first
+  const saved = await savedContactInfo(userId);
+  const [phone, email] = await Promise.all([verifiedPhone(userId), verifiedEmail(userId)]);
+  return saved || phone || email ? { ...saved, phone, email } : undefined;
+}
+
+/** What saveContactInfo stored (cached); only its preferred method and timezone are used. */
+async function savedContactInfo(userId: string): Promise<UserContactInfo | undefined> {
   const cached = userContactCache.get(userId);
   if (cached) return cached;
 
@@ -163,9 +170,8 @@ export async function getUserContactInfo(userId: string): Promise<UserContactInf
     const store = await getProfileStore();
     const profile = await store.getProfile(userId);
     if (profile?.contactInfo) {
+      // Preferences only: the saved phone and email are never read back.
       const info: UserContactInfo = {
-        phone: profile.contactInfo.phone,
-        email: profile.contactInfo.email,
         preferredMethod: profile.contactInfo.preferredContactMethod,
         timezone: profile.contactInfo.timezone,
       };
@@ -193,11 +199,11 @@ export async function canReachUser(
     return !!(await verifiedPhone(userId));
   }
   if (method === 'email') {
-    return !!info.email;
+    return !!(await verifiedEmail(userId));
   }
 
   // Any method - check if we have any contact info
-  return !!info.phone || !!info.email;
+  return !!(await verifiedPhone(userId)) || !!(await verifiedEmail(userId));
 }
 
 // ============================================================================
@@ -210,10 +216,12 @@ export interface ImmediateContactOptions {
   contactId?: string;
   /** If true, this is a direct message TO the contact (not to user about contact) */
   isDirectToContact?: boolean;
+  /** They asked for this text just now ("text me that"), so quiet hours don't hold it. */
+  askedNow?: boolean;
 }
 
 /**
- * Send an immediate text message to the user
+ * Send an immediate text message to the user, through the guarded sender (STOP, texts off)
  */
 export async function textUser(
   userId: string,
@@ -230,12 +238,10 @@ export async function textUser(
     const displayName = getPersonaDisplayName(canonicalId);
     const firstName = displayName.split(' ')[0];
 
-    const fullMessage = `${message}\n\n— ${firstName}`;
-    const result = await sendSMS(phone, fullMessage);
-
-    if (result.includes('trouble') || result.includes('error')) {
-      return { success: false, error: result };
-    }
+    const body = `${message}\n\n— ${firstName}`;
+    const askedNow = options?.askedNow === true;
+    const text = await getCallUserPort()?.textOwner?.(userId, body, { askedNow });
+    if (!text?.sent) return { success: false, error: text?.reason ?? 'no guarded sender here' };
 
     getLogger().info({ userId, personaId: canonicalId }, '📱 Text sent to user');
 
@@ -275,11 +281,8 @@ export async function emailUser(
   personaId = 'ferni',
   options?: ImmediateContactOptions
 ): Promise<{ success: boolean; error?: string }> {
-  const contact = await getUserContactInfo(userId);
-
-  if (!contact?.email) {
-    return { success: false, error: 'No email address on file for this user' };
-  }
+  const email = await verifiedEmail(userId);
+  if (!email) return { success: false, error: NO_VERIFIED_EMAIL };
 
   try {
     // Get the persona's display name for the signature
@@ -288,7 +291,7 @@ export async function emailUser(
     const firstName = displayName.split(' ')[0];
 
     const fullMessage = `${message}\n\n— ${firstName}`;
-    const result = await sendEmail(contact.email, subject, fullMessage);
+    const result = await sendEmail(email, subject, fullMessage);
 
     if (result.includes('trouble') || result.includes('error')) {
       return { success: false, error: result };
@@ -386,8 +389,6 @@ export interface ScheduleContactOptions {
   contactName?: string;
   /** If true, message goes directly TO the contact (not as reminder to self) */
   isDirectToContact?: boolean;
-  /** Email to send to (overrides user's saved contact) */
-  toEmail?: string;
 }
 
 /**
@@ -456,11 +457,11 @@ export async function scheduleEmail(
   personaId = 'ferni',
   options?: ScheduleContactOptions
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
-  const deliveryEmail = options?.toEmail || (await getUserContactInfo(userId))?.email;
+  const deliveryEmail = await verifiedEmail(userId);
   const contact = await getUserContactInfo(userId);
 
   if (!deliveryEmail) {
-    return { success: false, error: 'No email address on file. Ask for their email first!' };
+    return { success: false, error: NO_VERIFIED_EMAIL };
   }
 
   try {
@@ -655,7 +656,7 @@ Example: "Email me at john@example.com" → save their email`,
       if (params.phone) saved.push('phone number');
       if (params.email) saved.push('email');
 
-      return `Got it! I've saved your ${saved.join(' and ')}. Now I can text, email, or call you for reminders and follow-ups.`;
+      return `Saved your ${saved.join(' and ')}. ${SAVED_NOT_VERIFIED}`;
     },
   },
 

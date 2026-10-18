@@ -152,11 +152,7 @@ Spotify, Plaid, Stripe, Twilio, Google Calendar - see `.env.example`
 
 ```bash
 # Production (Blue-Green with health checks)
-ferni deploy agent      # Voice agent → Cloud Run
-ferni deploy ui         # UI server → Cloud Run
-ferni deploy frontend   # App → Firebase Hosting
-ferni deploy landing    # Landing → Firebase Hosting
-ferni deploy all        # Deploy everything
+# Web deploys: merge to main (deploy-production.yml, deploy-firebase.yml run on push)
 ```
 
 All deploys use **blue-green deployment**:
@@ -272,8 +268,8 @@ ferni --help               # Full command list
 | Command | Description |
 |---------|-------------|
 | `ferni dev start` | Start all development servers |
-| `ferni deploy ui` | Deploy UI server (blue-green) |
-| `ferni deploy agent` | Deploy voice agent (blue-green) |
+| (web) | Deploys run in GitHub workflows on every push to main |
+| (voice agent) | Deploy with `.claude/skills/deploy-agent/SKILL.md`, not the CLI |
 | `ferni deploy gce` | Deploy voice agent to GCE |
 | `ferni test quick` | Quick validation tests |
 | `ferni quality all` | Run all quality checks |

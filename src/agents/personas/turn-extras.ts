@@ -20,6 +20,7 @@
  *
  * @module agents/personas/turn-extras
  */
+import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { classifyBackchannelContext } from '../integrations/backchannel-context.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
@@ -95,6 +96,8 @@ export interface TurnSignals {
   laughed: boolean;
   laughFits: boolean;
   adviceFits: boolean;
+  /** Hard news in their last two turns, however they laughed (heavy-turn.ts): no laugh at all. */
+  heavy?: boolean;
   /**
    * FERNI_STATE=on: whether a story of his own may ride this reply
    * (ferni-state.ts). Undefined when his state has no say.
@@ -106,6 +109,8 @@ export interface TurnSignals {
   answered?: boolean;
   /** QUIET_CALLER=on: their last turns were a few words each (quiet-caller.ts). */
   quiet?: boolean;
+  /** FERNI_PLAYFUL=on and Ferni speaking (ferni-playful.ts). */
+  playful?: boolean;
 }
 
 /** The model's understanding as signals. */
@@ -167,7 +172,9 @@ export function extrasFor(
   style: StyleProfile = NEUTRAL_STYLE
 ): Extras {
   const out: Extras = { lines: [], fired: [] };
-  if (on(env, 'LAUGH_ALONG') && signals.laughed) {
+  // "lol my grandma passed" laughed, and is no moment to laugh along.
+  const heavy = signals.heavy === true || isHeavyMoment([userText]);
+  if (on(env, 'LAUGH_ALONG') && signals.laughed && !heavy) {
     out.lines.push(LAUGH_ALONG);
     out.fired.push('laugh_along');
   }
@@ -176,12 +183,7 @@ export function extrasFor(
   // aloud on chit-chat, where friends rarely do either.
   const learnedTexture = env.TURN_TEXTURE === 'learned';
   const chat = move === 'share' || move === 'ack';
-  if (
-    on(env, 'THINK_ALOUD') &&
-    shape !== 'react' &&
-    !(learnedTexture && chat) &&
-    !signals.quiet
-  ) {
+  if (on(env, 'THINK_ALOUD') && shape !== 'react' && !(learnedTexture && chat) && !signals.quiet) {
     // Live, request turns are rare: also think aloud on some longer answers.
     const p =
       move === 'request' || move === 'about_ferni'
@@ -237,6 +239,7 @@ export function extrasFor(
       move === 'share' &&
       signals.laughFits &&
       !venting &&
+      !heavy &&
       !signals.laughed &&
       shape !== 'full' &&
       rng() < scaled(0.5, style.laugh)
