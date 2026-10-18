@@ -10,6 +10,7 @@ import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
+import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createBargeInJudge,
@@ -113,6 +114,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   installCallUserPort();
   // THREADS_PENDING_CONFIRM: a read-back waiting on a yes is kept as a follow-up (confirm-thread.ts).
   installConfirmThreadPort();
+  // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
+  installForgetFollowUpsPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler
