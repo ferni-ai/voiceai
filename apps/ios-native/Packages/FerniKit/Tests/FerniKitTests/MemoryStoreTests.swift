@@ -81,4 +81,30 @@ final class MemoryStoreTests: XCTestCase {
         XCTAssertFalse(forgotten)
         XCTAssertFalse(server.requests.contains { $0.httpMethod == "DELETE" })
     }
+
+    /// Security review: A's notes never show for B.
+    func testANewPersonSeesNoneOfTheLastOnesNotes() async {
+        let memory = store(Server())
+        await memory.refresh()
+        XCTAssertFalse(memory.notes.isEmpty)
+        memory.reset()
+        XCTAssertTrue(memory.notes.isEmpty)
+        XCTAssertEqual(memory.load, .idle)
+    }
+
+    func testSignedOutClearsWhatWasShown() async {
+        final class Gate: @unchecked Sendable { var signedIn = true }
+        let gate = Gate()
+        let body = Data(body.utf8)
+        let memory = MemoryStore(api: FerniAPI(
+            baseURL: URL(string: "https://app.example.test")!,
+            idToken: { _ in gate.signedIn ? "t" : nil },
+            send: { request in (body, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!) }
+        ))
+        await memory.refresh()
+        XCTAssertFalse(memory.notes.isEmpty)
+        gate.signedIn = false
+        await memory.refresh()
+        XCTAssertTrue(memory.notes.isEmpty)
+    }
 }

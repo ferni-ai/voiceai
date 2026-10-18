@@ -33,6 +33,13 @@ public final class TeamStore {
         return true
     }
 
+    /// A different person: back to Ferni alone until the server answers for them.
+    public func reset() {
+        unlocked = [PersonaRegistry.ferni.id]
+        teasers = [:]
+        chosen = PersonaRegistry.ferni.id
+    }
+
     /// Refreshes from the server; on failure the last answer stays.
     public func refresh() async {
         guard let data = try? await fetch(), let parsed = Self.parse(data) else { return }

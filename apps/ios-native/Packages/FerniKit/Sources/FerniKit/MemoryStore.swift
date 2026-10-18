@@ -31,8 +31,18 @@ public final class MemoryStore {
             notes = try Self.parse(await api.data("/api/cognitive/memories"))
             load = .loaded
         } catch {
+            // Signed out or refused: whatever was shown belonged to someone else.
+            if let error = error as? FerniAPIError, error == .notSignedIn || error == .status(401) || error == .status(403) {
+                notes = []
+            }
             load = .failed
         }
+    }
+
+    /// A different person (sign-out, a new account): nothing of the last one stays.
+    public func reset() {
+        notes = []
+        load = .idle
     }
 
     /// Notes learned at or after `since` (the call that just ended), newest first.
