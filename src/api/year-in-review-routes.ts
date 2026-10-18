@@ -107,14 +107,23 @@ interface YearData {
 // DATA FETCHING (from Firestore superhuman services)
 // ============================================================================
 
-async function fetchYearData(userId: string): Promise<YearData> {
+/** YYYY-MM-DD in the user's zone (UTC for none or an unknown zone): the heat map's day. */
+function dayKeyIn(ms: number, timeZone?: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timeZone || 'UTC' }).format(new Date(ms));
+  } catch {
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+}
+
+async function fetchYearData(userId: string, timeZone?: string): Promise<YearData> {
   const now = new Date();
   const yearAgo = new Date(now);
   yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 
   // Fetch from various superhuman services
   const [conversations, dreams, commitments, relationships, teamStatus] = await Promise.all([
-    fetchConversationHistory(userId, yearAgo),
+    fetchConversationHistory(userId, yearAgo, timeZone),
     fetchDreams(userId),
     fetchCommitments(userId),
     fetchRelationships(userId),
@@ -122,7 +131,7 @@ async function fetchYearData(userId: string): Promise<YearData> {
   ]);
 
   // Calculate stats
-  const stats = calculateStats(conversations, dreams, commitments, teamStatus);
+  const stats = calculateStats(conversations, dreams, commitments, teamStatus, timeZone);
 
   return {
     userId,
@@ -141,7 +150,8 @@ async function fetchYearData(userId: string): Promise<YearData> {
 
 async function fetchConversationHistory(
   userId: string,
-  since: Date
+  since: Date,
+  timeZone?: string
 ): Promise<
   {
     daily: DayData[];
@@ -180,7 +190,7 @@ async function fetchConversationHistory(
 
     for (const data of summaries) {
       const date = new Date(data.timestamp);
-      const dateKey = date.toISOString().split('T')[0];
+      const dateKey = dayKeyIn(date.getTime(), timeZone);
 
       // Daily count
       const existing = dailyMap.get(dateKey);
@@ -381,7 +391,8 @@ function calculateStats(
   conversations: { daily: DayData[]; milestones: Milestone[] } & ConversationTenure,
   dreams: DreamProgress[],
   commitments: CommitmentSummary[],
-  teamUnlocks: TeamUnlock[]
+  teamUnlocks: TeamUnlock[],
+  timeZone?: string
 ): YearStats {
   // Total conversations
   const totalConversations = conversations.daily.reduce((sum, d) => sum + d.count, 0);
@@ -394,12 +405,10 @@ function calculateStats(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = dayKeyIn(Date.now(), timeZone);
   for (let i = 0; i < sortedDays.length; i++) {
     const day = sortedDays[i];
-    const expectedDate = new Date();
-    expectedDate.setDate(expectedDate.getDate() - i);
-    const expectedDateStr = expectedDate.toISOString().split('T')[0];
+    const expectedDateStr = dayKeyIn(Date.now() - i * 24 * 60 * 60 * 1000, timeZone);
 
     if (day.date === expectedDateStr) {
       tempStreak++;
@@ -470,7 +479,8 @@ export async function handleYearInReviewRoutes(
 
     try {
       log.info({ userId }, 'Fetching year in review data');
-      const data = await fetchYearData(userId);
+      const tz = typeof parsedUrl.query.tz === 'string' ? parsedUrl.query.tz : undefined;
+      const data = await fetchYearData(userId, tz); // days in the caller's zone, not UTC
       sendJSON(res, data);
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to fetch year in review');
