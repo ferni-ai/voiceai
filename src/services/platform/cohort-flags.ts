@@ -75,6 +75,8 @@ export const COHORT_FLAGS = [
   'BARGE_IN_ACK_WORDS',
   'FRIEND_FOLLOWUPS',
   'INSIDE_JOKES',
+  // Read on each turn and each quiet-window sound, never at boot (named-tune-note.ts, tune-state.ts).
+  'NAMED_TUNE',
   // Persona flags, read at agent build, a handoff, a turn or a TTS reply, never cached
   // across calls. The system prompt (FERNI_PERSONA_SLIP_GUARD) loads after
   // applyCallerFlags: loadCallerPrompt (voice-agent-entry/persona-builder.ts).

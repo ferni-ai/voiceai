@@ -46,6 +46,9 @@ const TUNES: Array<Array<[number, number]>> = [
   ],
 ];
 
+/** How many tunes there are; a tune is picked by number (NAMED_TUNE keeps one per caller). */
+export const TUNE_COUNT = TUNES.length;
+
 export interface WhistleOptions {
   /** Base pitch in Hz; whistles sit around 1-2 kHz. */
   baseHz?: number;
@@ -54,12 +57,14 @@ export interface WhistleOptions {
   /** Peak level, 0-1. */
   level?: number;
   rng?: () => number;
+  /** Which tune, 0..TUNE_COUNT-1; random when unset. */
+  tune?: number;
 }
 
 /** A few bars whistled, as 24 kHz mono s16le PCM (the clip player's format). */
 export function synthWhistle(options: WhistleOptions = {}): ArrayBuffer {
   const rng = options.rng ?? Math.random;
-  const tune = TUNES[Math.floor(rng() * TUNES.length) % TUNES.length];
+  const tune = TUNES[options.tune ?? Math.floor(rng() * TUNES.length) % TUNES.length];
   const baseHz = (options.baseHz ?? 1100) * (0.94 + rng() * 0.12);
   const beat = (options.beat ?? 0.32) * (0.9 + rng() * 0.2);
   const level = options.level ?? 0.22;
@@ -107,6 +112,7 @@ export interface HumOptions {
   beat?: number;
   level?: number;
   rng?: () => number;
+  tune?: number;
 }
 
 /**
@@ -116,7 +122,7 @@ export interface HumOptions {
  */
 export function synthHum(options: HumOptions = {}): ArrayBuffer {
   const rng = options.rng ?? Math.random;
-  const tune = TUNES[Math.floor(rng() * TUNES.length) % TUNES.length];
+  const tune = TUNES[options.tune ?? Math.floor(rng() * TUNES.length) % TUNES.length];
   const baseHz = (options.baseHz ?? 125) * (0.94 + rng() * 0.12);
   const beat = (options.beat ?? 0.36) * (0.9 + rng() * 0.2);
   const level = options.level ?? 0.45;
