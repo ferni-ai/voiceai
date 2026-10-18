@@ -11,7 +11,6 @@
  * - experiment: off by default, being tried; ends as deleted or made permanent.
  * - kill-switch: guards live behaviour (usually on); kept so ops can turn it off.
  * - config: a mode, debug or platform knob rather than a feature switch.
- *
  * @module config/flag-manifest
  */
 
@@ -363,9 +362,7 @@ export const FLAG_MANIFEST = {
   RESUME_AFTER_DROP: { default: 'off', owner: 'voice', kind: 'experiment' },
   REVIVED_INTELLIGENCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   ROOM_GUESTS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // read in patches/@livekit__agents@1.9.3.patch: livekit/agents-js#2655 (unmerged), so an
-  // interrupted reply is not committed with the previous reply's text (#2566)
-  ROTATED_SEGMENT_FIX: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ROTATED_SEGMENT_FIX: { default: 'off', owner: 'voice', kind: 'experiment' }, // 1.9.3 patch, #2566
   ROUNDTABLE_VOICE: { default: 'off', owner: 'voice', kind: 'config' },
   SAVED_INTERESTS: { default: 'off', owner: 'platform', kind: 'experiment' },
   SCHEDULED_JOBS_AUTH: { default: 'on', owner: 'platform', kind: 'kill-switch' },
