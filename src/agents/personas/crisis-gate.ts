@@ -28,6 +28,13 @@ import {
   SOFT_CRISIS_CHECK,
 } from '../../services/safety/crisis-agreement.js';
 import {
+  adjudicatedCheckin,
+  resolveCrisisAdjudicatorMode,
+  shadowAdjudication,
+  startCrisisAdjudicator,
+  type AdjudicatorLine,
+} from '../../services/safety/crisis-adjudicator.js';
+import {
   startCrisisClassifier,
   turnVerdicts,
   type CrisisGenerateFn,
@@ -111,6 +118,20 @@ function callerWords(chatCtx: llm.ChatContext): {
   return { latest: latest.join(' '), earlier: said, companion };
 }
 
+/** The call's recent lines, oldest first, marked by speaker (crisis-adjudicator.ts trims them). */
+function callTranscript(chatCtx: llm.ChatContext): AdjudicatorLine[] {
+  const lines: AdjudicatorLine[] = [];
+  for (const raw of chatCtx.items) {
+    const item = raw as MessageView;
+    const text = item.textContent?.trim();
+    if (item.type !== 'message' || !text) continue;
+    if (item.role === 'assistant') lines.push({ speaker: 'ferni', text });
+    else if (item.role === 'user' && !text.startsWith(TURN_CONTEXT_HEADER))
+      lines.push({ speaker: 'caller', text });
+  }
+  return lines;
+}
+
 /** The call's session id, which the reply gate and the turn pipeline share. */
 function sessionScope(userData: unknown): string | undefined {
   return (
@@ -127,6 +148,14 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   return { action: 'pass' };
 }
 
+export interface CrisisGateOptions {
+  env?: Record<string, string | undefined>;
+  /** The classifier's model call. */
+  generate?: CrisisGenerateFn;
+  /** The adjudicator's model call. */
+  adjudicate?: CrisisGenerateFn;
+}
+
 /**
  * Decide this reply's crisis handling from the request about to go to the LLM.
  * Null when the gate is off or in shadow, or there are no caller words.
@@ -134,7 +163,7 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
 export function startCrisisGate(
   chatCtx: llm.ChatContext,
   userData: unknown,
-  options: { env?: Record<string, string | undefined>; generate?: CrisisGenerateFn } = {}
+  options: CrisisGateOptions = {}
 ): CrisisGateTurn | null {
   const { env = process.env, generate } = options;
   if (resolveCrisisGuardMode(env) !== 'live') return null;
@@ -156,8 +185,13 @@ export function startCrisisGate(
 
   const pattern =
     decision.action === 'replace' ? 'block' : decision.action === 'guide' ? 'crisis' : 'none';
-  // The agreement gate weighs this read against the turn pipeline's (crisis-agreement.ts).
-  const scope = resolveCrisisAgreementGate(env) ? sessionScope(userData) : undefined;
+  // The agreement gate and the adjudicator weigh this read with the turn pipeline's.
+  // Only the agreement gate and a live adjudicator hold the escalation for those
+  // reads; a shadow adjudicator runs beside it and never delays the 988 line.
+  const agreementGate = resolveCrisisAgreementGate(env);
+  const adjudicatorMode = resolveCrisisAdjudicatorMode(env);
+  const scope = agreementGate || adjudicatorMode !== 'off' ? sessionScope(userData) : undefined;
+  const holdForReads = agreementGate || adjudicatorMode === 'live';
   const run = startCrisisClassifier(
     { latest, earlier, companion },
     { pattern, env, generate, scope }
@@ -169,15 +203,39 @@ export function startCrisisGate(
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
-    if (scope) {
+    if (scope && !holdForReads) {
+      const reads = turnVerdicts(scope, { latest, earlier, companion });
+      shadowAdjudication(reads, callTranscript(chatCtx), {
+        pattern,
+        env,
+        scope,
+        source: 'gate',
+        generate: options.adjudicate,
+      });
+    } else if (scope) {
       // Fail closed: a failed lookup counts as a missing read, which escalates.
       const verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [
         null,
       ]);
-      const outcome = agreementOutcome({ pattern, verdicts, latest, earlier, companion });
+      const outcome = agreementGate
+        ? agreementOutcome({ pattern, verdicts, latest, earlier, companion })
+        : 'escalate';
       if (outcome !== 'escalate') {
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
         return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
+      }
+      // Every read of the turn is in: a classifier-only crisis gets a fuller second read.
+      const adjudicator = startCrisisAdjudicator(callTranscript(chatCtx), {
+        pattern,
+        verdicts,
+        env,
+        generate: options.adjudicate,
+        source: 'gate',
+        scope,
+      });
+      if (await adjudicatedCheckin(adjudicator)) {
+        log.info({ action: 'guide', source: 'adjudicator' }, 'CRISIS_GATE');
+        return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
       }
     }
     log.info(
@@ -289,7 +347,7 @@ export async function gatedReply(
       bright?: boolean
     ): ReadableStream<Chunk>;
   },
-  options: { env?: Record<string, string | undefined>; generate?: CrisisGenerateFn } = {}
+  options: CrisisGateOptions = {}
 ): Promise<ReadableStream<Chunk> | null> {
   const { env = process.env } = options;
   const chatCtx = withoutPastLeadIns(request);

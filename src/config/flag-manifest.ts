@@ -65,6 +65,7 @@ export const FLAG_MANIFEST = {
   CONTACT_IN_MEMORY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CONTEXT_PACKET: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
+  CRISIS_ADJUDICATOR: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -424,5 +425,4 @@ export const FLAG_MANIFEST = {
   // the goodbye closes the loop on what the call decided
   WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
-
 export type FlagName = keyof typeof FLAG_MANIFEST;
