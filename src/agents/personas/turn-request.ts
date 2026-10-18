@@ -57,7 +57,8 @@ import { journalAskFor } from './journal-ask.js';
 import { callerTurnsOf, goodbyeNoteOn, happyExitNote, questionPaceNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
 import { withPlayful } from './ferni-playful-turn.js';
-import { candorEnabled, supportHeld } from './turn-candor.js';
+import { supportHeld } from './turn-candor.js';
+import { withCallTrouble, withSupportHold } from './turn-holds.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
@@ -317,7 +318,8 @@ function styleFor(
   const told = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
   const quiet = withQuiet(told, said, chatCtx);
   const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
+  const troubled = withCallTrouble(session, said, shaped, source);
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, troubled);
   // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
   const burst = burstLine(
     session,
@@ -373,23 +375,6 @@ export function signalsFor(
   return understood
     ? { signals: modelSignals(understood), source: 'model' }
     : { signals: PLAIN_SIGNALS, source: 'plain' };
-}
-
-/**
- * CANDOR=on: after hard news, support comes first for the next few turns too
- * ("Can you just tell me something funny?" after "my dad's in the hospital"
- * is no moment to set them straight). Off, the signals are passed through.
- */
-function withSupportHold(
-  session: object,
-  said: string,
-  signals: TurnSignals | undefined,
-  source: 'model' | 'plain' | 'regex'
-): TurnSignals | undefined {
-  if (!candorEnabled()) return signals;
-  const sig = signals ?? regexSignals(said, callerMove(said));
-  // Only the model's reading is sticky: plain (no reading yet) is careful by default.
-  return { ...sig, supportFirst: supportHeld(session, said, source === 'model' && sig.careful) };
 }
 
 /** FERNI_STATE=on: his state's say on a story of his own rides with the signals (ferni-state.ts). */
