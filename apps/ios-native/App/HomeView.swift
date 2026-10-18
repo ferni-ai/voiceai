@@ -16,13 +16,7 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: FerniSpace.rest) {
-                    FerniWindowAvatar(
-                        size: 200,
-                        persona: WindowPersona(personaId: call.avatar.personaID),
-                        expression: call.avatar.expression,
-                        isSpeaking: .constant(call.avatar.pose == .speaking),
-                        volume: .constant(call.avatar.pose == .speaking ? 0.6 : 0)
-                    )
+                    SpeakingAvatar(avatar: call.avatar, level: call.agentLevel)
                     .opacity(call.phase == .reconnecting ? 0.5 : 1)
                     .padding(.top, FerniSpace.silence)
                     CallStatus(call: call)
@@ -58,6 +52,38 @@ struct HomeView: View {
             .sheet(isPresented: $model.isShowingSettings) {
                 SettingsView()
             }
+        }
+    }
+}
+
+/// The avatar with its mouth on Ferni's real voice level: read every frame
+/// while Ferni speaks, paused otherwise.
+private struct SpeakingAvatar: View {
+    let avatar: AvatarModel
+    let level: AudioLevelMeter
+    @State private var mouth = Mouth()
+
+    var body: some View {
+        let speaking = avatar.pose == .speaking
+        TimelineView(.animation(paused: !speaking)) { context in
+            FerniWindowAvatar(
+                size: 200,
+                persona: WindowPersona(personaId: avatar.personaID),
+                expression: avatar.expression,
+                isSpeaking: .constant(speaking),
+                volume: .constant(CGFloat(mouth.value(level.level, at: context.date)))
+            )
+        }
+    }
+
+    /// Frame-to-frame smoothing state; a reference so rendering doesn't write view state.
+    final class Mouth {
+        private var smoother = LevelSmoother()
+        private var last: Date?
+
+        func value(_ target: Float, at now: Date) -> Float {
+            defer { last = now }
+            return smoother.step(toward: target, dt: last.map { now.timeIntervalSince($0) } ?? 0)
         }
     }
 }

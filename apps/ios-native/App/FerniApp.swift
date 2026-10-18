@@ -41,11 +41,13 @@ final class AppModel {
         account = AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
         api = account.api(baseURL: config.apiBaseURL)
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
+        let level = AudioLevelMeter()
         call = CallSession(
             fetchToken: CallTokens.fetcher(api: api),
-            makeRoom: { LiveKitVoiceRoom() },
+            makeRoom: { LiveKitVoiceRoom(agentLevel: level) },
             audio: SystemCallAudio(),
-            avatar: AvatarModel(play: Self.play)
+            avatar: AvatarModel(play: Self.play),
+            agentLevel: level
         )
     }
 }
