@@ -236,17 +236,18 @@ export async function recordInboundSmsConsent(
   const e164 = keyword ? toE164(from) : null;
   if (!keyword || !e164) return null;
   const phoneLast4 = last4(e164);
-  const hash = phoneHash(e164, deps.env);
-  if (!hash) {
-    log.error({ phoneLast4, ...keyword }, 'Opt-out recognised but not saved: no LOG_HASH_SECRET');
-    return null;
-  }
   const at = deps.now().toISOString();
   const mirror = messagingPipelineOn(deps.env);
+  // Keyed by number, so it needs no hash secret: written even when the rest can't be.
   if (mirror && keyword.channels.includes('call')) {
     await attempt('call_opt_outs', phoneLast4, async () =>
       deps.store.setLegacyCallOptOut(e164, at)
     );
+  }
+  const hash = phoneHash(e164, deps.env);
+  if (!hash) {
+    log.error({ phoneLast4, ...keyword }, 'Opt-out recognised but not saved: no LOG_HASH_SECRET');
+    return null;
   }
   const saved = await attempt('consent', phoneLast4, async () =>
     writeConsent(hash, keyword.channels, keyword.state, 'inbound-sms', deps)
