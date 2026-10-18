@@ -8,6 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetLaughterSession } from '../../../adaptive-ssml/contextual-laughter.js';
+import { forgetCallerTurns } from '../../../adaptive-ssml/heavy-moment.js';
 import { decideReplyLaughter, type LaughterInput } from '../laughter.js';
 import {
   FERNI_LAUGH_FLOOR,
@@ -64,6 +65,7 @@ function playCalls(
   const out: number[][] = [];
   for (let c = 0; c < calls; c++) {
     resetLaughterSession(SESSION);
+    forgetCallerTurns(SESSION);
     const laughed: number[] = [];
     for (let n = 1; n <= turns; n++) {
       if (decideReplyLaughter(input({ turn: n, lightTouch, ...turn(n) }))) laughed.push(n);
@@ -81,6 +83,7 @@ const playfulTurn = (n: number): Partial<LaughterInput> => {
 let roll: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   resetLaughterSession(SESSION);
+  forgetCallerTurns(SESSION);
   roll = vi.spyOn(Math, 'random').mockImplementation(seeded(1017));
 });
 afterEach(() => roll.mockRestore());

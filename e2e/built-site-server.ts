@@ -10,6 +10,7 @@
  * dbe48cae2's first attempt).
  */
 
+import type { BrowserContext } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { get } from 'node:http';
 import { createServer } from 'node:net';
@@ -70,4 +71,23 @@ export async function serveBuiltSite(port: number): Promise<BuiltSite> {
   }
   await waitForSite(url);
   return { url, stop: () => server?.kill() };
+}
+
+/** Any ferni.ai API: app.ferni.ai, api.ferni.ai, ferni.ai itself. */
+const PROD_API = /^https:\/\/([a-z0-9-]+\.)*ferni\.ai\/api\//;
+
+/**
+ * Answers the built pages' calls to the production API in the browser, so a
+ * spec never reaches it. Some scripts use absolute prod URLs (the exit beacon
+ * in conversion-tracking.js posts to app.ferni.ai's experiments/track/batch);
+ * from CI that was 167 HTTP 400s and 153 CORS blocks in prod logs from origin
+ * 127.0.0.1:8768 after the consent spec landed. Returns the URLs it answered.
+ */
+export async function keepOffProdApi(context: BrowserContext): Promise<string[]> {
+  const caught: string[] = [];
+  await context.route(PROD_API, (route) => {
+    caught.push(route.request().url());
+    return route.fulfill({ status: 204, body: '' });
+  });
+  return caught;
 }

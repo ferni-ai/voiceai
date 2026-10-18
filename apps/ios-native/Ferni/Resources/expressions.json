@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2026-02-23T11:35:47.954Z",
+  "generated": "2026-10-17T13:17:43.251Z",
   "expressions": {
     "neutral": {
       "family": "core",
@@ -109,6 +109,18 @@
       "sparkle": false,
       "eyeScaleY": 0.85,
       "eyeScaleX": 1.02
+    },
+    "glad": {
+      "family": "happy",
+      "topCutoff": 0.13,
+      "topCurve": 0.3,
+      "bottomCutoff": 0.08,
+      "bottomCurve": -0.18,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.74,
+      "eyeScaleX": 1.08
     },
     "excited": {
       "family": "happy",
@@ -589,6 +601,18 @@
       "sparkle": false,
       "eyeScaleY": 0.85,
       "eyeScaleX": 1.01
+    },
+    "settling": {
+      "family": "presence",
+      "topCutoff": 0.15,
+      "topCurve": 0.32,
+      "bottomCutoff": 0.09,
+      "bottomCurve": 0.08,
+      "asymmetry": 0,
+      "animation": "calmBreathe",
+      "sparkle": false,
+      "eyeScaleY": 0.7,
+      "eyeScaleX": 1.04
     },
     "encouraging": {
       "family": "coaching",
@@ -1234,7 +1258,7 @@
     },
     "presence": {
       "displayName": "Presence",
-      "description": "Grounded states: present, grounded, calm, serene, peaceful"
+      "description": "Grounded states: present, grounded, calm, serene, peaceful, settling"
     },
     "coaching": {
       "displayName": "Coaching",
@@ -1312,6 +1336,12 @@
       "description": "Brief surprise micro-expression",
       "expression": "surprised",
       "duration": 80,
+      "returnTo": "listening"
+    },
+    "noticing": {
+      "description": "Small flash of noticing - something you said caught Ferni's attention",
+      "expression": "intrigued",
+      "duration": 100,
       "returnTo": "listening"
     }
   }

@@ -226,21 +226,29 @@ export function getPersonaAnimationProfile(personaId: string): PersonaAnimationP
  */
 export const EASINGS = {
   "linear": "linear",
-  "easeIn": "cubic-bezier(0.4, 0, 1, 1)",
-  "easeOut": "cubic-bezier(0, 0, 0.2, 1)",
-  "easeInOut": "cubic-bezier(0.4, 0, 0.2, 1)",
-  "easeOutExpo": "cubic-bezier(0.16, 1, 0.3, 1)",
-  "easeOutBack": "cubic-bezier(0.34, 1.56, 0.64, 1)",
-  "easeInOutQuint": "cubic-bezier(0.83, 0, 0.17, 1)",
-  "spring": "cubic-bezier(0.5, 1.5, 0.5, 1)",
-  "springBouncy": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-  "smooth": "cubic-bezier(0.45, 0, 0.55, 1)",
-  "organic": "cubic-bezier(0.4, 0.2, 0.2, 1.1)",
-  "elastic": "cubic-bezier(0.68, -0.6, 0.32, 1.6)",
-  "anticipate": "cubic-bezier(0.38, -0.4, 0.88, 0.65)",
+  "standard": "cubic-bezier(0.4, 0, 0.2, 1)",
   "decelerate": "cubic-bezier(0.0, 0.0, 0.2, 1)",
+  "accelerate": "cubic-bezier(0.4, 0, 1, 1)",
+  "easeIn": "ease-in",
+  "easeOut": "ease-out",
+  "easeInOut": "ease-in-out",
+  "spring": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+  "springGentle": "cubic-bezier(0.25, 1.25, 0.5, 1)",
+  "springStrong": "cubic-bezier(0.5, 1.8, 0.5, 1)",
+  "springBouncy": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+  "easeOutBack": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+  "elastic": "cubic-bezier(0.68, -0.6, 0.32, 1.6)",
+  "playful": "cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+  "anticipate": "cubic-bezier(0.38, -0.4, 0.88, 0.65)",
+  "anticipateGentle": "cubic-bezier(0.6, -0.28, 0.735, 0.045)",
+  "expoOut": "cubic-bezier(0.16, 1, 0.3, 1)",
+  "easeOutExpo": "cubic-bezier(0.16, 1, 0.3, 1)",
+  "outExpo": "cubic-bezier(0.16, 1, 0.3, 1)",
+  "expoInOut": "cubic-bezier(0.87, 0, 0.13, 1)",
+  "easeInOutQuint": "cubic-bezier(0.83, 0, 0.17, 1)",
+  "smooth": "cubic-bezier(0.45, 0, 0.55, 1)",
   "gentle": "cubic-bezier(0.25, 0.1, 0.25, 1)",
-  "playful": "cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+  "organic": "cubic-bezier(0.4, 0.2, 0.2, 1.1)"
 };
 
 export type EasingName = keyof typeof EASINGS;

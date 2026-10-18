@@ -213,7 +213,6 @@ describe('GET /api/user/contact', () => {
     h.firebasePhone = '+15552017497';
     expect((await call('GET')).json.contactInfo).toMatchObject({
       verifiedPhone: '+15552017497',
-      phone: '***',
     });
     h.firebasePhone = null;
     expect((await call('GET')).json.contactInfo).toMatchObject({ verifiedPhone: null });

@@ -6,14 +6,8 @@ import { EventEmitter } from 'node:events';
 import { llm } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
 import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-context-header.js';
-import {
-  attachTurnReceipts,
-  noteReminder,
-  noteRequest,
-  sentenceCount,
-  userKindOf,
-  type TurnReceipt,
-} from '../turn-receipt.js';
+import { attachTurnReceipts, noteReminder, noteRequest } from '../turn-receipt-session.js';
+import { sentenceCount, userKindOf, type TurnReceipt } from '../turn-receipt.js';
 import { createFirstAudioObserver } from '../../../speech/tts-gateway/first-audio-observer.js';
 import { promptSections } from '../prompt-sections.js';
 
