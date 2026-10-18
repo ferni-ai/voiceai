@@ -8,7 +8,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import admin from 'firebase-admin';
+import { getAdminApp } from '../utils/firebase-admin-app.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -35,23 +35,10 @@ const log = createLogger({ module: 'SitesRoutes' });
  * Ensure Firebase Admin is initialized before accessing Firestore
  */
 function ensureFirebaseInitialized(): void {
-  if (admin.apps.length === 0) {
-    try {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-        log.info({ projectId }, 'Firebase initialized for sites routes');
-      } else {
-        admin.initializeApp();
-        log.info('Firebase initialized with default credentials for sites routes');
-      }
-    } catch {
-      log.debug('Firebase already initialized elsewhere');
-    }
+  try {
+    getAdminApp();
+  } catch {
+    log.debug('Firebase already initialized elsewhere');
   }
 }
 
