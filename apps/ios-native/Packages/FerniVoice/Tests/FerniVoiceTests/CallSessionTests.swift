@@ -206,6 +206,19 @@ final class CallSessionTests: XCTestCase {
         await until(!session.isUserSpeaking)
     }
 
+    /// Untrusted numbers in a packet never crash the app (security review).
+    func testHugeOrNegativeExpressionTimesAreClampedNotFatal() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        rooms.made[0].send(.data(Data(#"{"type":"expression_update","expression":"warm","duration":9223372036854775807}"#.utf8)))
+        await until(session.avatar.expression == .warm)
+        rooms.made[0].send(.data(Data(#"{"type":"expression_update","expression":"curious","hold":-5,"duration":1e308}"#.utf8)))
+        await until(session.avatar.expression == .curious || session.avatar.expression == .listening)
+        XCTAssertEqual(session.phase, .live)
+    }
+
     func testCaptionsAssembleFromTheTranscriptStream() async {
         let session = makeSession()
         session.start()
@@ -369,5 +382,18 @@ final class CallTokenTests: XCTestCase {
         XCTAssertTrue(query["room"]?.hasPrefix("ios-") == true)
         XCTAssertEqual(query["username"], "User", "a placeholder Ferni won't greet you by")
         XCTAssertEqual(query["timezone"], TimeZone.current.identifier)
+    }
+}
+
+final class RemoteDurationTests: XCTestCase {
+    func testAnythingAPacketSendsBecomesASafeDuration() {
+        XCTAssertNil(RemoteDuration.seconds(nil))
+        XCTAssertNil(RemoteDuration.seconds(.nan))
+        XCTAssertEqual(RemoteDuration.seconds(.infinity), .seconds(60))
+        XCTAssertEqual(RemoteDuration.seconds(-.infinity), .zero)
+        XCTAssertEqual(RemoteDuration.seconds(1e308), .seconds(60))
+        XCTAssertEqual(RemoteDuration.seconds(Double(Int.max)), .seconds(60))
+        XCTAssertEqual(RemoteDuration.seconds(-5), .zero)
+        XCTAssertEqual(RemoteDuration.seconds(1.5), .milliseconds(1500))
     }
 }

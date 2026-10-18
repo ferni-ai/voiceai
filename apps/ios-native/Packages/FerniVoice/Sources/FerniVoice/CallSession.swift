@@ -198,7 +198,7 @@ public final class CallSession {
             case nil: break
             }
             if let result = ExpressionEventMapper.shared.processMessage(json) {
-                let hold = (result.hold ?? result.duration).map { Duration.milliseconds(Int($0 * 1000)) }
+                let hold = RemoteDuration.seconds(result.hold ?? result.duration)
                 avatar.send(.expression(result.expression, hold: hold))
             }
         case .caption(let chunk):
