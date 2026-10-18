@@ -15,7 +15,7 @@ import {
   type CommitmentStore,
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
-import { singleWriterFor } from '../../services/superhuman/commitment-single-writer.js';
+import { shownRows, singleWriterFor } from '../../services/superhuman/commitment-single-writer.js';
 import { proactiveUserIds } from '../../services/outreach/proactive-channels/proactive-tick.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -59,13 +59,20 @@ async function scanDue(now: number): Promise<DueCommitment[]> {
     .get();
   const users = [...new Set(snap.docs.map((d) => d.ref.parent.parent?.id ?? ''))];
   // COMMITMENT_SINGLE_WRITER is per person here: this server sends for everyone.
-  const flags = await Promise.all(users.map(async (u) => [u, await singleWriterFor(u)] as const));
-  const judgedOnly = new Map(flags);
+  const flags = await Promise.all(
+    users.map(async (u) => {
+      const on = await singleWriterFor(u);
+      return [u, { on, shown: await shownRows(u, on) }] as const;
+    })
+  );
+  const byUser = new Map(flags);
   const rows: DueCommitment[] = [];
   for (const doc of snap.docs) {
     const userId = doc.ref.parent.parent?.id;
     if (!userId) continue;
-    const commitment = toOpenCommitment(doc.id, doc.data(), judgedOnly.get(userId));
+    const flag = byUser.get(userId);
+    if (flag && !flag.shown(doc.data())) continue;
+    const commitment = toOpenCommitment(doc.id, doc.data(), flag?.on);
     if (commitment) rows.push({ userId, commitment });
   }
   return pickDuePerUser(rows, now);

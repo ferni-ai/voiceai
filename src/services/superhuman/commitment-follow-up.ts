@@ -12,7 +12,12 @@
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { isCommitmentSingleWriterOn, isJudgedRow } from './commitment-single-writer.js';
+import {
+  isCommitmentSingleWriterOn,
+  isJudgedRow,
+  shownRows,
+  type ForgottenLoader,
+} from './commitment-single-writer.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -185,13 +190,18 @@ export const firestoreCommitmentStore: CommitmentStore = {
 export async function loadCallCheckIns(
   userId: string,
   store: CommitmentStore = firestoreCommitmentStore,
-  now: number = Date.now()
+  now: number = Date.now(),
+  forgotten?: ForgottenLoader
 ): Promise<OpenCommitment[]> {
   try {
-    const docs = await store.active(userId);
     // Mid-call: process.env holds this caller's flags (applyCallerFlags).
     const judgedOnly = isCommitmentSingleWriterOn();
+    const [docs, shown] = await Promise.all([
+      store.active(userId),
+      shownRows(userId, judgedOnly, forgotten),
+    ]);
     const all = docs
+      .filter((d) => shown(d.data))
       .map((d) => toOpenCommitment(d.id, d.data, judgedOnly))
       .filter((c): c is OpenCommitment => c !== null);
     const picked = pickForCall(all, now);

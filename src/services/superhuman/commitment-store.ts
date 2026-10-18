@@ -9,7 +9,7 @@
 
 import type { Commitment } from './commitment-keeper.js';
 import { getFirestoreDb, recordDegradation } from './firestore-utils.js';
-import { isJudgedRow, singleWriterFor } from './commitment-single-writer.js';
+import { shownRows, singleWriterFor } from './commitment-single-writer.js';
 
 /** How long a process may serve a user's commitments without reading the store. */
 export const COMMITMENT_CACHE_TTL_MS = 15_000;
@@ -59,9 +59,9 @@ export async function loadActiveCommitmentsOrThrow(userId: string): Promise<Comm
     .limit(50)
     .get();
 
-  // COMMITMENT_SINGLE_WRITER: only what the after-call judge wrote (judged-commitments.ts).
-  const judgedOnly = await singleWriterFor(userId);
-  const docs = snapshot.docs.filter((doc) => !judgedOnly || isJudgedRow(doc.data()));
+  // COMMITMENT_SINGLE_WRITER: only judged rows, nothing forgotten (judged-commitments.ts).
+  const shown = await shownRows(userId, await singleWriterFor(userId));
+  const docs = snapshot.docs.filter((doc) => shown(doc.data()));
   const commitments = docs.map((doc) => doc.data() as Commitment);
   commitmentCache.set(userId, commitments);
   return commitments;

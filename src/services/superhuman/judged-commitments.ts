@@ -19,7 +19,7 @@ import {
   sameCommitment,
   type CaptureContext,
 } from './after-call-commitments.js';
-import { JUDGED_SOURCE } from './commitment-single-writer.js';
+import { forgetText, JUDGED_SOURCE } from './commitment-single-writer.js';
 import { getFirestoreDb } from './firestore-utils.js';
 
 const log = createLogger({ module: 'JudgedCommitments' });
@@ -141,7 +141,7 @@ export async function recordJudgedCommitments(
     let written = 0;
     for (const doc of candidates) {
       const statement = String(doc.statement);
-      if (isForgotten(`${statement} ${String(doc.quote ?? '')}`, forgotten)) continue;
+      if (isForgotten(forgetText(doc), forgotten)) continue;
       if (open.some((o) => sameCommitment(o, statement))) continue;
       await sink.add(ctx.userId, doc);
       written++;

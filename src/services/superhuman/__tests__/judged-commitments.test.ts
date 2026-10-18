@@ -6,7 +6,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { forgetFlagCache, type CohortStore } from '../../platform/cohort-flags.js';
-import { toOpenCommitment } from '../commitment-follow-up.js';
+import { loadCallCheckIns, toOpenCommitment } from '../commitment-follow-up.js';
 import { JUDGED_SOURCE, singleWriterFor } from '../commitment-single-writer.js';
 import {
   judgedCommitmentDocs,
@@ -108,6 +108,15 @@ describe('recordJudgedCommitments', () => {
     expect([...open.added, ...forgot.added, ...blind.added]).toEqual([]);
   });
 
+  it('stores nothing about a forgotten person, even when only the person field names them', async () => {
+    const { sink, added } = memorySink();
+    const sister = j({ statement: 'call your sister tomorrow', person: 'Mindy', quote: "I'll call her tomorrow" }); // prettier-ignore
+    const forgotten = async () => ['mindy'];
+    expect(await recordJudgedCommitments([sister], ctx, { sink, forgotten })).toBe(0);
+    expect(await recordJudgedCommitments([sister], ctx, { sink, forgotten: async () => ['rosa'] })).toBe(1); // prettier-ignore
+    expect(added.map((d) => d.person)).toEqual(['Mindy']);
+  });
+
   it('writes nothing with the capture kill switch off', async () => {
     const { sink, added } = memorySink();
     const env = { COACH_COMMITMENT_CAPTURE: 'off' };
@@ -134,6 +143,24 @@ describe('readers under COMMITMENT_SINGLE_WRITER', () => {
     expect(toOpenCommitment('j', judged, true)).toMatchObject({ statement: 'text Mindy back' });
     // "go for a run" ends on a word the regex-capture filter takes for a sign-off.
     expect(toOpenCommitment('j', { ...judged, statement: 'go for a run' }, true)).not.toBeNull();
+  });
+
+  it('check-ins hide a judged row about a forgotten person (person field only), and show nothing blind', async () => {
+    const row = { ...judged, statement: 'call your sister tomorrow', person: 'Mindy' };
+    const store = { active: async () => [{ id: 'j', data: row }], markFollowedUp: async () => undefined }; // prettier-ignore
+    process.env.COMMITMENT_SINGLE_WRITER = 'on';
+    try {
+      expect(await loadCallCheckIns('u1', store, NOW, async () => ['rosa'])).toHaveLength(1);
+      expect(await loadCallCheckIns('u1', store, NOW, async () => ['mindy'])).toEqual([]);
+      expect(await loadCallCheckIns('u1', store, NOW, async () => null)).toEqual([]);
+    } finally {
+      delete process.env.COMMITMENT_SINGLE_WRITER;
+    }
+    // Flag off: as on main, no forget read and the row reads as before.
+    const unread = async (): Promise<string[]> => {
+      throw new Error('read with the flag off');
+    };
+    expect(await loadCallCheckIns('u1', store, NOW, unread)).toHaveLength(1);
   });
 
   it('is decided per person: a cohort turns it on for one caller and no one else', async () => {
