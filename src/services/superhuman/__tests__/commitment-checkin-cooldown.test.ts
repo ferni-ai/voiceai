@@ -43,6 +43,10 @@ vi.mock('../../../utils/firestore-utils.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   getFirestoreDb: () => ref([]),
 }));
+vi.mock('../firestore-utils.js', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  getFirestoreDb: () => ref([]),
+}));
 
 const commitments = vi.hoisted(() => ({ list: [] as Array<Record<string, unknown>> }));
 vi.mock('../commitment-keeper.js', async (orig) => ({

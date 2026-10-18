@@ -19,7 +19,7 @@
 import { createHash } from 'crypto';
 import type { CollectionReference } from '@google-cloud/firestore';
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { getFirestoreDb } from './firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { Commitment, CommitmentFollowUp } from './commitment-keeper.js';
 
