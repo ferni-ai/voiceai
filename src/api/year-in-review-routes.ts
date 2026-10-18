@@ -38,10 +38,10 @@ interface EmotionalMoment {
   intensity: number;
 }
 
+/** A teammate on this person's team (TEAM_BY_NEED: the whole team, nobody "unlocked"). */
 interface TeamUnlock {
   personaId: string;
   personaName: string;
-  unlockedAt?: string; // not recorded anywhere (unlocks follow the relationship stage)
   primaryColor: string;
 }
 
@@ -80,11 +80,8 @@ interface RelationshipGrowth {
 interface YearStats {
   totalConversations: number;
   totalMinutes?: number; // only when every conversation recorded its duration
-  longestStreak: number;
-  currentStreak: number;
   averageConversationsPerWeek: number;
   mostActiveMonth: string;
-  teamMembersUnlocked: number;
   dreamsTracked: number;
   commitmentsKept: number;
 }
@@ -122,7 +119,7 @@ async function fetchYearData(userId: string): Promise<YearData> {
   ]);
 
   // Calculate stats
-  const stats = calculateStats(conversations, dreams, commitments, teamStatus);
+  const stats = calculateStats(conversations, dreams, commitments);
 
   return {
     userId,
@@ -366,50 +363,21 @@ async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
       primaryColor: PERSONA_COLORS[memberId] || '#4a6741',
     }));
   } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to fetch team unlocks');
-    return [
-      {
-        personaId: 'ferni',
-        personaName: 'Ferni',
-        primaryColor: '#4a6741',
-      },
-    ];
+    // Empty, not a made-up "Ferni unlocked": the page says it couldn't load the team.
+    log.warn({ error: String(error), userId }, 'Failed to fetch team');
+    return [];
   }
 }
 
 function calculateStats(
   conversations: { daily: DayData[]; milestones: Milestone[] } & ConversationTenure,
   dreams: DreamProgress[],
-  commitments: CommitmentSummary[],
-  teamUnlocks: TeamUnlock[]
+  commitments: CommitmentSummary[]
 ): YearStats {
   // Total conversations
   const totalConversations = conversations.daily.reduce((sum, d) => sum + d.count, 0);
 
-  // Streak calculation
-  let currentStreak = 0;
-  let longestStreak = 0;
-  let tempStreak = 0;
-  const sortedDays = [...conversations.daily].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  const today = new Date().toISOString().split('T')[0];
-  for (let i = 0; i < sortedDays.length; i++) {
-    const day = sortedDays[i];
-    const expectedDate = new Date();
-    expectedDate.setDate(expectedDate.getDate() - i);
-    const expectedDateStr = expectedDate.toISOString().split('T')[0];
-
-    if (day.date === expectedDateStr) {
-      tempStreak++;
-      if (i === 0 || day.date === today) currentStreak = tempStreak;
-    } else {
-      if (tempStreak > longestStreak) longestStreak = tempStreak;
-      tempStreak = 0;
-    }
-  }
-  if (tempStreak > longestStreak) longestStreak = tempStreak;
+  // No streaks (Seth, 2026-10-11 TEAM_BY_NEED / 2026-10-17): showing up is never tallied.
 
   // Most active month
   const monthCounts = new Map<string, number>();
@@ -433,11 +401,8 @@ function calculateStats(
   return {
     totalConversations,
     totalMinutes: conversations.minutes,
-    longestStreak,
-    currentStreak,
     averageConversationsPerWeek: averageConversationsPerWeek(totalConversations, conversations),
     mostActiveMonth,
-    teamMembersUnlocked: teamUnlocks.length,
     dreamsTracked: dreams.length,
     commitmentsKept,
   };

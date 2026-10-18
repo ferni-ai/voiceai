@@ -553,7 +553,6 @@
     "target": "Target",
     "tasks": "Tasks",
     "teachings": "Teachings",
-    "teamMembersUnlocked": "Team members unlocked",
     "teamUnlock": "Team Unlock",
     "testCall": "Test Call",
     "testEmail": "Test Email",
@@ -3463,7 +3462,6 @@
   "familyIdentities": {
     "closeModal": "Close",
     "familyTitle": "Your Ferni Family",
-    "familySubtitle": "People who can call Ferni by phone",
     "fieldName": "Name",
     "fieldPhoneNumber": "Phone Number",
     "fieldPhoneNumberDisabledHint": "Phone number cannot be changed",
@@ -3511,7 +3509,6 @@
     "accessLevelSupervisedDesc": "You get notified of calls",
     "eyebrow": "Family",
     "addMember": "Add Family Member",
-    "emptyText": "Add family members who call Ferni by phone. They'll be recognised automatically and can have their own conversations with Ferni.",
     "lastCall": "Last: {date}",
     "noCalls": "No calls yet",
     "nameAndPhoneRequired": "Name and phone are required",
@@ -3526,7 +3523,9 @@
     "calls": {
       "one": "{count} call",
       "other": "{count} calls"
-    }
+    },
+    "checkinSubtitle": "People Ferni can check in on by phone",
+    "emptyIntro": "Add family members Ferni can check in on by phone. Ferni doesn't recognise callers by their number yet, so when they call, it's a fresh conversation."
   },
   "panels": {
     "goBack": "Go back",
@@ -9367,16 +9366,11 @@
     "subtitleNoMinutes": "{conversations}. Countless moments of growth.",
     "statConversations": "Conversations",
     "statTotal": "Total",
-    "statCurrentStreak": "Current Streak",
-    "statBestStreak": "Best: {count}",
-    "statTeamMembers": "Team Members",
-    "statUnlocked": "Unlocked",
     "statDreamsTracked": "Dreams Tracked",
     "statGrowing": "Growing",
     "conversationActivity": "Conversation Activity",
     "emotionalMilestones": "Emotional Milestones",
     "dreamsGuarding": "Dreams We're Guarding",
-    "unlockedOn": "Unlocked {date}",
     "conversationCount": {
       "one": "{count} conversation",
       "other": "{count} conversations"
@@ -9393,10 +9387,7 @@
       "one": "{count} minute",
       "other": "{count} minutes"
     },
-    "streakDays": {
-      "one": "{count} day",
-      "other": "{count} days"
-    }
+    "teamUnavailable": "Couldn't load your team just now."
   },
   "geolocation": {
     "prompts": {
