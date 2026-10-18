@@ -268,6 +268,8 @@ describe('amadeus flight search', () => {
 
   describe('one synthetic offers response', () => {
     it('maps an offer to a flight result with the carrier code and a stop count', async () => {
+      vi.stubEnv('AMADEUS_API_KEY', 'test-key');
+      vi.stubEnv('AMADEUS_API_SECRET', 'test-secret');
       fetchMock.mockResolvedValueOnce(tokenOk()).mockResolvedValueOnce(
         new Response(
           JSON.stringify({

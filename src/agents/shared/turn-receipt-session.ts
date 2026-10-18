@@ -18,6 +18,7 @@ import {
   type BargeInSource,
   type TurnReceiptOptions,
 } from './turn-receipt.js';
+import { eotCallFrom } from './turn-receipt-eot.js';
 import { turnDetectionInUse } from './turn-patience.js';
 
 // One recorder per AgentSession, so llmNode and withTurnReminder can find it.
@@ -72,6 +73,7 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     ],
     ['conversation_item_added', (ev) => rec.onItem((ev as { item?: never } | undefined)?.item)],
     ['function_tools_executed', (ev) => rec.onToolsExecuted((ev ?? {}) as never)],
+    ['eot_prediction', (ev) => rec.onEot(eotCallFrom(ev, session))],
     [
       'agent_state_changed',
       (ev) => {
