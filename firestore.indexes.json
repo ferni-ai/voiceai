@@ -653,6 +653,14 @@
       ]
     },
     {
+      "collectionGroup": "family_checkin_schedules",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "nextScheduledCall", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "scheduled_actions",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
