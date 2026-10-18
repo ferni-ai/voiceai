@@ -27,6 +27,9 @@ import { analyzeCheckinCall, generateUrgentNotification } from './family-checkin
 import { getSponsoredIdentity } from '../identity/sponsored-identity.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deferredOutsideCallHours } from './checkin-call-hours.js';
+import { advanceScheduleAfterDial } from './checkin-schedule-advance.js';
+import { familyCallBlockReason, familyCheckinCallsOn } from './family-call-consent.js';
+import type { FamilyConsentStore } from './family-call-consent.js';
 
 const log = createLogger({ module: 'FamilyCheckinCaller' });
 
@@ -61,7 +64,9 @@ export interface SingleCallResult {
  * Process all due family check-in schedules
  * Called by Cloud Scheduler via /api/jobs/family-checkin-calls
  */
-export async function runFamilyCheckinJob(): Promise<FamilyCheckinJobResult> {
+export async function runFamilyCheckinJob(
+  consent?: FamilyConsentStore
+): Promise<FamilyCheckinJobResult> {
   const startTime = Date.now();
   const result: FamilyCheckinJobResult = {
     success: true,
@@ -76,7 +81,7 @@ export async function runFamilyCheckinJob(): Promise<FamilyCheckinJobResult> {
   };
 
   try {
-    log.info('📞 Starting family check-in job');
+    if (!familyCheckinCallsOn()) return { ...result, durationMs: Date.now() - startTime };
 
     // Get all schedules that are due
     const dueSchedules = await getDueSchedules();
@@ -92,7 +97,7 @@ export async function runFamilyCheckinJob(): Promise<FamilyCheckinJobResult> {
       result.schedulesProcessed++;
       if (await deferredOutsideCallHours(schedule, result)) continue;
       try {
-        const callResult = await initiateCheckinCall(schedule);
+        const callResult = await initiateCheckinCall(schedule, consent);
 
         if (callResult.success) {
           result.callsInitiated++;
@@ -161,23 +166,18 @@ export async function runFamilyCheckinJob(): Promise<FamilyCheckinJobResult> {
  * Initiate a single family check-in call
  */
 export async function initiateCheckinCall(
-  schedule: FamilyCheckinSchedule
+  schedule: FamilyCheckinSchedule,
+  consent?: FamilyConsentStore
 ): Promise<SingleCallResult> {
   try {
     // Test accounts never ring anyone; never dial emergency, premium or malformed numbers
     const number = checkDialableNumber(schedule.phoneNumber);
     if (isSyntheticUserId(schedule.sponsorUserId) || !number.ok)
       return { success: false, error: number.ok ? 'Test account' : number.reason };
-    // 1. Get the sponsored identity, and verify sponsor ownership
     const identity = await getSponsoredIdentity(schedule.sponsoredIdentityId);
-    if (!identity) {
-      return { success: false, error: 'Sponsored identity not found' };
-    }
-    if (identity.sponsorUserId !== schedule.sponsorUserId) {
-      return { success: false, error: 'Sponsor mismatch' };
-    }
+    const blocked = await familyCallBlockReason(schedule, identity, consent);
+    if (blocked || !identity) return { success: false, error: blocked ?? 'No identity' };
 
-    // 2. Get recent call records for context
     const recentCalls = await getRecentCallRecords(schedule.sponsorUserId, schedule.id, 5);
 
     // 3. Build the check-in context (it looks up the sponsor's name)
@@ -186,7 +186,6 @@ export async function initiateCheckinCall(
     const context = await buildFamilyCheckinContext(schedule, identity, recentCalls);
     // 4. Generate the system prompt for the agent
     const systemPrompt = generateFamilyCheckinSystemPrompt(context);
-    // 5. Create a call record
     const callRecord = await createCallRecord(schedule);
 
     // 6. Initiate the call via LiveKit SIP or Twilio
@@ -209,11 +208,8 @@ export async function initiateCheckinCall(
       return { success: false, callId: callRecord.id, error: callResult.error };
     }
 
-    return {
-      success: true,
-      callId: callRecord.id,
-      status: 'in_progress',
-    };
+    await advanceScheduleAfterDial(schedule);
+    return { success: true, callId: callRecord.id, status: 'in_progress' };
   } catch (error) {
     log.error(
       { scheduleId: schedule.id, error: String(error) },
@@ -329,6 +325,9 @@ async function initiateViaLiveKitSip(
       callId,
       sponsorUserId: schedule.sponsorUserId,
       sponsorName,
+      // Whose consent a "stop calling" withdraws, and the number put on the do-not-call list
+      sponsoredIdentityId: schedule.sponsoredIdentityId,
+      familyMemberPhone: schedule.phoneNumber,
       familyMemberName: schedule.familyMemberName,
       relationship: schedule.relationship,
       systemPrompt,
@@ -336,7 +335,7 @@ async function initiateViaLiveKitSip(
       maxDurationMinutes: schedule.maxDurationMinutes,
     };
     await agentDispatch.createDispatch(roomName, agentName, {
-      metadata: JSON.stringify(signDispatch(dispatch, livekitApiSecret)),
+      metadata: JSON.stringify(signDispatch(dispatch)),
     });
 
     // 3. Initiate the SIP call to the family member's phone

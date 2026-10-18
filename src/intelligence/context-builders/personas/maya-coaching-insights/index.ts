@@ -183,7 +183,7 @@ async function buildMayaCoachingInsightsContext(
 
   // Only for Maya
   const currentPersona = (services as { personaId?: string })?.personaId || '';
-  const isMaya = ['maya', 'maya-santos', 'habits-coach', 'life-coach'].includes(
+  const isMaya = ['maya', 'maya-santos', 'habits-coach'].includes(
     currentPersona.toLowerCase()
   );
 

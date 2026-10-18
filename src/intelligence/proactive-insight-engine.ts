@@ -11,6 +11,7 @@
  * - "It's been 2 weeks since we talked - just checking in!"
  */
 
+import { hiddenAsTeammateTalk } from '../utils/teammate-talk.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, FinancialGoal, KeyMoment } from '../types/user-profile.js';
 import type { LearnedConversationPatterns } from './conversation-pattern-analyzer.js';
@@ -290,13 +291,12 @@ export class ProactiveInsightEngine {
     const insights: ProactiveInsight[] = [];
 
     for (const moment of profile.keyMoments) {
-      if (!moment.followUpNeeded) continue;
+      if (!moment.followUpNeeded || hiddenAsTeammateTalk(moment.summary)) continue;
 
       const daysSinceMoment = Math.floor(
         (Date.now() - new Date(moment.timestamp).getTime()) / (1000 * 60 * 60 * 24)
       );
 
-      // Follow up on concerns after a few days
       if (moment.type === 'concern' && daysSinceMoment >= 3 && daysSinceMoment <= 14) {
         insights.push({
           id: `moment_followup_${moment.id}`,

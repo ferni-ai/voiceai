@@ -42,6 +42,7 @@ import {
   type BriefInput,
 } from '../handoff-brief.js';
 import { createAgentOrchestrator, type PersonaAgent } from '../orchestrator.js';
+import { withoutStockOpener } from '../handoff-arrival.js';
 
 const msg = (role: string, text: string) => ({ type: 'message', role, textContent: text });
 
@@ -212,9 +213,13 @@ describe('grounding: the brief holds only what the caller said', () => {
     expect(out.firstLine).toBeUndefined();
   });
 
-  it('keeps a first line that only greets', async () => {
+  it('keeps a first line that only greets, minus a stock opener', async () => {
+    expect((await run({}, 'Hey Sam! Good to hear you.')).out.firstLine).toBe(
+      'Hey Sam! Good to hear you.'
+    );
+    // Prod 2026-10-17: the call was well under way; "what do you want to get into" isn't.
     const { out } = await run({}, 'Hey Sam! What do you want to get into?');
-    expect(out.firstLine).toBe('Hey Sam! What do you want to get into?');
+    expect(out.firstLine).toBe('Hey Sam!');
   });
 
   it("drops the writer's additions and keeps the caller's own words", async () => {
@@ -408,5 +413,65 @@ describe('orchestrator with BRIEFED_HANDOFF', () => {
     expect(String(peter.context.conversationSummary ?? '')).not.toContain('HANDOFF BRIEF');
     const said = (peter.agent.say as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
     expect(said).not.toContain('Denver');
+  });
+});
+
+describe('the arriving line on a call already under way (prod call 2026-10-17)', () => {
+  // About 1 a.m. for the caller (New York), well into the call; they only asked for the teammate.
+  const lateCall = (): BriefInput =>
+    input({
+      fromName: 'Alex',
+      toName: 'Ferni',
+      toPersonaId: 'ferni',
+      turns: [
+        { speaker: 'caller', text: 'So what is your job, Alex?' },
+        { speaker: 'persona', text: 'Logistics, mostly.' },
+        { speaker: 'caller', text: 'Oh, really?' },
+        { speaker: 'caller', text: 'Transfer me to Ferni.' },
+      ],
+      reason: undefined,
+      timeZone: 'America/New_York',
+    });
+  const NOW = new Date('2026-10-17T05:10:00Z');
+
+  async function arrive(said: string, env: Record<string, string> = {}) {
+    const actor = vi.fn(async (..._args: unknown[]) => said);
+    const out = await prepareBriefing(lateCall(), 'Hey, I am back with you.', {
+      writer: async () => undefined,
+      actor,
+      env,
+      now: NOW,
+    });
+    return { out, cue: JSON.stringify(actor.mock.calls[0] ?? []) };
+  }
+
+  it('tells the director the call is under way and the hour, not to ask a stock opener', async () => {
+    const { cue } = await arrive('Hey Seth.');
+    expect(cue).toContain('already under way');
+    expect(cue).toContain('talking with Alex for a while');
+    expect(cue).toContain('about 1 AM for them, late at night');
+    expect(cue).not.toContain("ask what they'd like to get into");
+    expect(cue).toContain('never ask a stock opener');
+  });
+
+  it('cuts the stock openers the call heard, keeping the hello', async () => {
+    const heard: Array<[string, string | undefined]> = [
+      ["Hey Seth, I'm here. What would you like to dive into today?", "Hey Seth, I'm here."],
+      ['Hello there. What would you like to get into today?', 'Hello there.'],
+      ['Hi Seth, Peter here. What would you like to get into today?', 'Hi Seth, Peter here.'],
+      ['What would you like to get into?', undefined], // nothing left: the canned line plays
+    ];
+    for (const [said, kept] of heard) expect((await arrive(said)).out.firstLine, said).toBe(kept);
+    expect(withoutStockOpener("Still up? Me too, it's quiet here.")).toBe(
+      "Still up? Me too, it's quiet here."
+    );
+  });
+
+  it('HANDOFF_ARRIVAL_CONTEXT=off brings back the old cue and line', async () => {
+    const { out, cue } = await arrive('Hello there. What would you like to get into today?', {
+      HANDOFF_ARRIVAL_CONTEXT: 'off',
+    });
+    expect(out.firstLine).toBe('Hello there. What would you like to get into today?');
+    expect(cue).not.toContain('already under way');
   });
 });

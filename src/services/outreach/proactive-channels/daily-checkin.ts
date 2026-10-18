@@ -23,7 +23,7 @@ import {
   type OutreachLogEntry,
 } from './outreach-log.js';
 import { writeOutreachText, type TextSource } from './outreach-text.js';
-import { isProactiveChannelsOn, proactiveChannelsUsers, timezoneOf } from './proactive-tick.js';
+import { isProactiveChannelsUser, timezoneOf } from './proactive-tick.js';
 
 const HISTORY_MS = 3 * 24 * 60 * 60 * 1000;
 const REASON = 'a regular check-in';
@@ -76,7 +76,7 @@ function dailyCheckInFor(
  * isn't on the allowlist (the daily run then picks as it always has).
  */
 export async function dailyCheckIn(userId: string, now: Date): Promise<DailyCheckIn | undefined> {
-  if (!isProactiveChannelsOn() || !proactiveChannelsUsers().includes(userId)) return undefined;
+  if (!(await isProactiveChannelsUser(userId))) return undefined;
   const db = getFirestoreDb();
   const held = (why: string): DailyCheckIn =>
     dailyCheckInFor(userId, now, { channel: null, why }, []);

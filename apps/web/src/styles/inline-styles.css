@@ -5479,26 +5479,42 @@ body {
 }
 
 .btn-connecting .btn-content {
-  opacity: 0;
-  transform: scale(0.9);
+  display: none;
 }
 
-/* Connecting label over the button. Undo the .btn-primary::after glow
-   (behind the button, blurred, fill colour) or the label is invisible. */
-.btn.btn-connecting::after {
-  content: attr(data-status);
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: none;
-  filter: none;
+/* Connecting status: "Connecting…" over a smaller "Tap to cancel", a flex
+   item beside the spinner, so a long or enlarged label wraps at word breaks
+   inside the pill (which grows) instead of clipping or running under the
+   spinner (controls.ui.ts showConnectingStatus). */
+.btn-connecting .btn-status {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding-inline-start: 28px; /* Space for spinner */
+  min-width: 0;
+  text-align: center;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+  animation: connectTextFade 0.3s ease-out forwards;
+}
+
+.btn-connecting .btn-status-main {
   font-weight: 500;
   letter-spacing: 0.01em;
-  animation: connectTextFade 0.3s ease-out forwards;
+}
+
+.btn-connecting .btn-status-hint {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+/* Room for the two lines inside the button's usual 52px (no height jump)
+   and for "Connecting…" unbroken at 200% zoom. !important only to beat the
+   global `.btn:not(.btn-mute)` paddings, which are themselves !important
+   (hence the matching :not, for one more class of specificity). */
+.btn.btn-connecting:not(.btn-mute) {
+  padding-block: var(--space-xs) !important;
+  padding-inline: var(--space-md) !important;
 }
 
 @keyframes connectTextFade {
@@ -5512,15 +5528,13 @@ body {
   }
 }
 
-/* Spinning indicator - Apple-style minimal */
+/* Spinning indicator - Apple-style minimal, the label's leading flex item */
 .btn-connecting::before {
   content: '';
-  position: absolute;
-  inset-inline-start: 24px;
-  top: 50%;
+  position: static;
+  flex: none;
   width: 14px;
   height: 14px;
-  margin-top: -7px;
   border: 2px solid rgba(255, 255, 255, 0.25);
   border-top-color: rgba(255, 255, 255, 0.95);
   border-radius: 50%;
@@ -5565,6 +5579,10 @@ body {
   .btn-connecting::before {
     animation: none;
     opacity: 0.7;
+  }
+
+  .btn-connecting .btn-status {
+    animation: none;
   }
 
   /* Disable spring entrances */

@@ -2024,7 +2024,7 @@ ${result.crisis.suggestedResponse}`,
     // Inject context into LLM (with role: 'user')
     // Note: FTIS V2 tool results are now handled in the semantic routing section above
     // using generateReplyBySessionId with ephemeral instructions (cleaner architecture)
-    injectTurnContext(turnCtx, result);
+    injectTurnContext(turnCtx, result, { sessionId: services.sessionId, turnNumber });
 
     // Mark LLM start (LLM inference happens after this point)
     markTurnCheckpoint(services.sessionId, turnNumber, 'llmStart');
@@ -2747,13 +2747,13 @@ IMPORTANT:
       'Turn processed successfully'
     );
   } catch (error) {
-    logger.error({ error: String(error) }, 'Turn processing failed');
+    const stack = error instanceof Error ? error.stack : undefined; // code frames, no user text
+    logger.error({ error: String(error), stack }, 'Turn processing failed');
 
     // ================================================================
     // DEAD AIR FIX: Graceful error recovery
     // ================================================================
-    const isTimeout = String(error).includes('timeout');
-    const errorType = isTimeout ? 'api_timeout' : 'general';
+    const errorType = String(error).includes('timeout') ? 'api_timeout' : 'general';
     const gracefulError = getGracefulErrorResponse(errorType, String(error));
 
     if (currentSession) {

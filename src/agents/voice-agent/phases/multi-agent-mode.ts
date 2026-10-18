@@ -21,6 +21,7 @@ import type { UserData } from '../types.js';
 import { startInCallChannels } from '../../multi-agent/live-data-context.js';
 import { startResumeLookup } from '../../multi-agent/resume-after-drop.js';
 import { waitForSessionEnd, type WatchedRoom } from './session-end-watch.js';
+import { demoCallCap, startDemoCallCap } from './demo-call-cap.js';
 
 // ============================================================================
 // TYPES
@@ -347,7 +348,20 @@ export async function runMultiAgentMode(
     );
 
     // Until the room disconnects or empties, or the call goes idle (session-end-watch.ts)
-    const endReason = await waitForSessionEnd(ctx.room as unknown as WatchedRoom);
+    // DEMO_CALL_CAP=on: a demo room ends at its session_duration_minutes (demo-call-cap.ts)
+    const demoLimitMs = demoCallCap(ctx.room?.metadata || ctx.job.room?.metadata);
+    const demoCap =
+      demoLimitMs === null
+        ? null
+        : startDemoCallCap(demoLimitMs, (text) =>
+            multiAgentResult.orchestrator.getActiveAgent()?.say(text, { allowInterruptions: false })
+          );
+    let endReason: Awaited<ReturnType<typeof waitForSessionEnd>>;
+    try {
+      endReason = await waitForSessionEnd(ctx.room as unknown as WatchedRoom, demoCap?.endOptions);
+    } finally {
+      demoCap?.stop();
+    }
     process.stderr.write(`[multi-agent-mode] 🎭 Ending session wait (${endReason})\n`);
 
     // Cleanup

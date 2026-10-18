@@ -365,10 +365,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     services = initResult.services;
     if (callType === 'on_behalf_call') {
-      const { wrapServicesForOnBehalfCapture } =
-        await import('../integrations/on-behalf-transcript-capture.js');
-      wrapServicesForOnBehalfCapture(sessionId, services);
-    }
+      const capture = await import('../integrations/on-behalf-transcript-capture.js');
+      capture.wrapServicesForOnBehalfCapture(sessionId, services);
+    } else if (callType === 'family_checkin')
+      (await import('../outbound-call/family-checkin-stop.js')).listenForStop(sessionId, services);
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
     // The browser's zone, else (once the profile loads) only a verified owner's (phone-parity.ts).

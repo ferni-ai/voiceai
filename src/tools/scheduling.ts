@@ -29,8 +29,7 @@ export type {
 export {
   createAppointmentRequest,
   updateAppointmentStatus,
-  makeAppointmentCall,
-  generateCallScript,
+  businessCallReply,
   getAppointment,
   getUserAppointments,
 } from './scheduling/appointment-core.js';

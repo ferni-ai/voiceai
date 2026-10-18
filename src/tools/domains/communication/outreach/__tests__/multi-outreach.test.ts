@@ -8,8 +8,15 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { resetMemoryTexts } from '../../../../../services/outreach/__tests__/memory-text-store.js';
 
 // Mock all external dependencies
+// The real text guards over an in-memory store (no Firestore).
+vi.mock('../../../../../services/outreach/guarded-text.js', async (orig) =>
+  (
+    await import('../../../../../services/outreach/__tests__/memory-text-store.js')
+  ).withMemoryTextStore(await orig())
+);
 vi.mock('../../../../../services/contacts/contact-relationship-service.js', () => ({
   searchContacts: vi.fn(),
 }));
@@ -134,6 +141,8 @@ const mockBoss = {
   updatedAt: new Date(),
 };
 
+beforeEach(() => resetMemoryTexts());
+
 describe('Multi-Outreach Tool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -159,6 +168,7 @@ describe('Multi-Outreach Tool', () => {
 
   afterEach(() => {
     vi.resetAllMocks();
+    vi.unstubAllEnvs();
   });
 
   describe('getMultiOutreachDefinition', () => {
@@ -329,6 +339,28 @@ describe('Multi-Outreach Tool', () => {
       expect(scheduleOutreach).toHaveBeenCalledTimes(1);
       expect(callWithPersonaVoice).not.toHaveBeenCalled(); // Should not call immediately
       expect(result).toContain('scheduled');
+    });
+
+    it('while later sends to others are paused, says so and promises nothing', async () => {
+      const paused =
+        'messages to other people at a later time are paused for now, so nothing was scheduled';
+      vi.mocked(scheduleOutreach).mockRejectedValueOnce(new Error(paused));
+      vi.mocked(parseNaturalDate).mockReturnValue({
+        date: new Date(Date.now() + 3600000),
+        confidence: 'high',
+        original: 'tomorrow',
+        interpretation: 'tomorrow',
+        hasTime: true,
+        hasDate: true,
+      });
+      const tool = createMultiOutreachTool(mockContext);
+      const result = await tool.execute({
+        targets: [{ contact: 'Mom', channel: 'text', scheduledFor: 'tomorrow' }],
+      });
+
+      expect(sendSMS).not.toHaveBeenCalled();
+      expect(result).toContain(paused);
+      expect(result).not.toMatch(/Scheduled for/);
     });
 
     it('should handle group resolution', async () => {
