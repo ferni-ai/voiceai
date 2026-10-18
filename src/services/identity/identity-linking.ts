@@ -9,15 +9,16 @@
  * 2. Copy every subcollection of its record (listCollections, at any depth) to the
  *    authenticated profile. A fixed list of 12 names used to leave ~28 behind.
  * 3. Mark the old record with _migratedTo (migration-flag.ts), the one flag
- *    autoLinkOnAuth and user-migration.ts both read; only after a full copy, so a
- *    failed one is retried
+ *    autoLinkOnAuth and user-migration.ts both read. A failed copy still claims
+ *    it, with _migrationIncomplete: true, and is retried while that is set.
+ *    A retry never overwrites a target doc changed since (newer updatedAt).
  *
  * @module services/identity/identity-linking
  */
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { markMigrated, migratedToOf } from './migration-flag.js';
+import { markMigrated, migratedToOf, migrationIncomplete } from './migration-flag.js';
 
 const log = createLogger({ module: 'identity-linking' });
 
@@ -97,11 +98,11 @@ export async function linkIdentity(
     }
 
     const migratedTo = migratedToOf(sourceDoc.data());
-    if (migratedTo === targetFirebaseUid) {
+    if (migratedTo === targetFirebaseUid && !migrationIncomplete(sourceDoc.data())) {
       result.success = true;
       return result;
     }
-    if (migratedTo) {
+    if (migratedTo && migratedTo !== targetFirebaseUid) {
       result.errors.push('Source already migrated to a different account');
       return result;
     }
@@ -139,9 +140,9 @@ export async function linkIdentity(
       }
     }
 
-    // Mark the source only after everything copied, so a partial copy is retried
+    // Claim the source either way; a partial copy stays marked for a retry
     result.success = result.errors.length === 0;
-    if (result.success) await markMigrated(db, sourceUserId, targetFirebaseUid);
+    await markMigrated(db, sourceUserId, targetFirebaseUid, result.success);
     log.info(
       {
         sourceUserId: sourceUserId.substring(0, 20),
@@ -160,6 +161,22 @@ export async function linkIdentity(
   }
 }
 
+/** An updatedAt as epoch ms: a Timestamp, Date, ISO string or number; NaN otherwise. */
+function millisOf(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') return Date.parse(value);
+  if (value instanceof Date) return value.getTime();
+  const toMillis = (value as { toMillis?: () => number } | null)?.toMillis;
+  return typeof toMillis === 'function' ? toMillis.call(value) : NaN;
+}
+
+/** True only when both times are known and the target's is later. */
+function isNewer(target: unknown, source: unknown): boolean {
+  const t = millisOf(target);
+  const s = millisOf(source);
+  return Number.isFinite(t) && Number.isFinite(s) && t > s;
+}
+
 /**
  * Copy every document of `source` to the same id under `target`, and every
  * subcollection under each of them, at any depth. Returns the documents copied.
@@ -173,11 +190,14 @@ async function copyTree(
   if (!db) return 0;
 
   const snapshot = await source.get();
+  // On a retry the user may have changed a target doc since; stale data must not win
+  const current = new Map((await target.get()).docs.map((d) => [d.id, d.data()]));
   const BATCH_SIZE = 500; // Firestore limit
   let copied = 0;
   let batch = db.batch();
   let batchCount = 0;
   for (const doc of snapshot.docs) {
+    if (isNewer(current.get(doc.id)?.updatedAt, doc.data().updatedAt)) continue;
     // Same document id, so references keep working
     batch.set(
       target.doc(doc.id),
@@ -226,7 +246,7 @@ export async function autoLinkOnAuth(
     if (!deviceDoc.exists) return;
 
     const deviceData = deviceDoc.data();
-    if (migratedToOf(deviceData)) {
+    if (migratedToOf(deviceData) && !migrationIncomplete(deviceData)) {
       log.debug({ deviceId }, 'Device profile already migrated');
       return;
     }

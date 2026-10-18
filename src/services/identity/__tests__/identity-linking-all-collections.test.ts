@@ -10,7 +10,7 @@ type Data = Record<string, unknown>;
 /** Documents by path, with the reads and writes linking makes. */
 const { docs, db, failing } = vi.hoisted(() => {
   const docs = new Map<string, Data>();
-  const failing = { listCollections: false };
+  const failing = { listCollections: false, collectionGet: null as string | null };
   const childIds = (path: string, depthOffset: number) => [
     ...new Set(
       [...docs.keys()]
@@ -33,13 +33,17 @@ const { docs, db, failing } = vi.hoisted(() => {
   const collection = (path: string): Record<string, unknown> => ({
     id: path.split('/').at(-1),
     doc: (id: string) => doc(`${path}/${id}`),
-    get: async () => ({
-      docs: [...docs.keys()]
-        .filter(
-          (p) => p.startsWith(`${path}/`) && p.split('/').length === path.split('/').length + 1
-        )
-        .map((p) => ({ id: p.split('/').at(-1), data: () => docs.get(p) })),
-    }),
+    get: async () => {
+      if (failing.collectionGet && path.endsWith(`/${failing.collectionGet}`))
+        throw new Error('unavailable');
+      return {
+        docs: [...docs.keys()]
+          .filter(
+            (p) => p.startsWith(`${path}/`) && p.split('/').length === path.split('/').length + 1
+          )
+          .map((p) => ({ id: p.split('/').at(-1), data: () => docs.get(p) })),
+      };
+    },
     listDocuments: async () => childIds(path, 0).map((id) => doc(`${path}/${id}`)),
   });
   const db = {
@@ -78,6 +82,7 @@ const seedDevice = () => {
 beforeEach(async () => {
   docs.clear();
   failing.listCollections = false;
+  failing.collectionGet = null;
   const { InMemoryStore } = await import('../../../memory/storage/in-memory-store.js');
   if (!store.current) store.current = new InMemoryStore();
 });
@@ -168,10 +173,53 @@ describe('migrateUserData marks the device as taken', () => {
       success: true,
     });
     expect(docs.get('bogle_users/device:d3')?._migratedTo).toBe(UID);
+    expect(docs.get('bogle_users/device:d3')?._migrationIncomplete).toBe(true);
     failing.listCollections = false;
+    failing.collectionGet = null;
     const other = 'SomeoneElse000000000000000000';
     expect(await migrateUserData({ deviceId: 'device:d3', firebaseUid: other })).toMatchObject({
       success: false,
     });
+  });
+});
+
+describe('a failed copy is retried, never stranded', () => {
+  it('claims the device as incomplete, then a later sign-in finishes the copy and clears it', async () => {
+    seedDevice();
+    failing.collectionGet = 'reminders';
+    const first = await linkIdentity('device:d1', UID);
+    expect(first.success).toBe(false);
+    expect(docs.get('bogle_users/device:d1')).toMatchObject({
+      _migratedTo: UID,
+      _migrationIncomplete: true,
+    });
+    expect(docs.has(`bogle_users/${UID}/journal/j1`)).toBe(true);
+    expect(docs.has(`bogle_users/${UID}/reminders/r1`)).toBe(false);
+
+    failing.collectionGet = null;
+    await autoLinkOnAuth('d1', UID);
+    expect(docs.has(`bogle_users/${UID}/reminders/r1`)).toBe(true);
+    expect(docs.get('bogle_users/device:d1')?._migrationIncomplete).toBe(false);
+  });
+
+  it('a retry keeps target docs the user changed since, and refreshes stale ones', async () => {
+    seedDevice();
+    docs.set('bogle_users/device:d1/journal/j1', {
+      text: 'device',
+      updatedAt: '2026-10-01T00:00:00Z',
+    });
+    docs.set(`bogle_users/${UID}/journal/j1`, {
+      text: 'edited',
+      updatedAt: '2026-10-10T00:00:00Z',
+    });
+    docs.set('bogle_users/device:d1/journal/j2', {
+      text: 'device',
+      updatedAt: '2026-10-12T00:00:00Z',
+    });
+    docs.set(`bogle_users/${UID}/journal/j2`, { text: 'older', updatedAt: '2026-10-02T00:00:00Z' });
+    docs.set('bogle_users/device:d1', { _migratedTo: UID, _migrationIncomplete: true });
+    expect((await linkIdentity('device:d1', UID)).success).toBe(true);
+    expect(docs.get(`bogle_users/${UID}/journal/j1`)?.text).toBe('edited');
+    expect(docs.get(`bogle_users/${UID}/journal/j2`)?.text).toBe('device');
   });
 });

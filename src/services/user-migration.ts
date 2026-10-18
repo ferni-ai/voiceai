@@ -19,7 +19,7 @@ import { createLogger } from '../utils/safe-logger.js';
 import type { MemoryStore } from '../memory/store.js';
 import { getFirestoreDb } from '../utils/firestore-utils.js';
 import { linkIdentity } from './identity/identity-linking.js';
-import { markMigrated, readMigratedTo } from './identity/migration-flag.js';
+import { markMigrated, readMigratedTo, readMigration } from './identity/migration-flag.js';
 
 // Cache the store reference to avoid repeated async calls
 let cachedStore: MemoryStore | null = null;
@@ -110,9 +110,20 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
   });
 
   // Check if already migrated
-  const existingUid = await getMigratedUid(legacyUserId);
+  const flagDb = getFirestoreDb();
+  const { to: existingUid, incomplete } = flagDb
+    ? await readMigration(flagDb, legacyUserId)
+    : { to: null, incomplete: false };
   if (existingUid) {
     if (existingUid === firebaseUid) {
+      // A copy that failed part-way is retried; linkIdentity clears the mark when done
+      if (incomplete) {
+        try {
+          await linkIdentity(legacyUserId, firebaseUid);
+        } catch (linkErr) {
+          log.error('Retrying the copy failed', { error: String(linkErr) });
+        }
+      }
       log.info('Migration already completed for this device');
       return {
         success: true,
@@ -277,7 +288,7 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
     // 7. Copy every other subcollection of the record. A full copy sets the
     // source's _migratedTo, the flag both movers read. The device id is the only
     // credential a device profile has, so the flag is set even when some stores
-    // failed to copy: no second account can take the device (rerun linkIdentity).
+    // failed to copy (with _migrationIncomplete, so the next sign-in retries).
     let linked = false;
     try {
       const link = await linkIdentity(legacyUserId, firebaseUid);
@@ -287,7 +298,7 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
       log.error('Copying the other stores failed', { error: String(linkErr) });
     }
     const db = linked ? null : getFirestoreDb();
-    if (db) await markMigrated(db, legacyUserId, firebaseUid);
+    if (db) await markMigrated(db, legacyUserId, firebaseUid, false);
 
     log.info('Migration completed successfully', {
       conversationsMigrated,
