@@ -152,7 +152,7 @@ Spotify, Plaid, Stripe, Twilio, Google Calendar - see `.env.example`
 
 ```bash
 # Production (Blue-Green with health checks)
-# Web deploys: merge to main (deploy-production.yml, deploy-firebase.yml run on push)
+# Web deploys: merge to main (deploy-production.yml runs when CI passes on main, deploy-firebase.yml on push)
 ```
 
 All deploys use **blue-green deployment**:
