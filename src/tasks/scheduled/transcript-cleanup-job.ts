@@ -1,6 +1,19 @@
 /**
- * Transcript cleanup: removes conversations, group sessions and summaries past
- * their retention periods (moved out of memory-jobs.ts unchanged).
+ * Transcript cleanup: deletes conversations, group sessions and call summaries
+ * older than their retention periods. OFF unless TRANSCRIPT_CLEANUP is on.
+ *
+ * Off by default because the privacy policy (ferni.ai/privacy) keeps
+ * conversation history for the life of the account, and Ferni tells people
+ * deleting their account is what erases it. Turn it on only together with a
+ * policy that names the retention period.
+ *
+ * Until 2026-10-18 the job compared the call and summary dates, which are
+ * stored as Firestore Timestamps, with ISO strings. Firestore never orders a
+ * Timestamp against a string, so those two queries matched nothing and the
+ * job deleted no transcripts while reporting success. Group sessions store
+ * startedAt as an ISO string, so that query did match. It now compares each
+ * field with the type its writer stores, and deletes only documents under
+ * bogle_users/{uid}.
  *
  * @module tasks/scheduled/transcript-cleanup-job
  */
@@ -10,6 +23,7 @@ import {
   SUMMARY_RETENTION_DAYS,
   TRANSCRIPT_RETENTION_DAYS,
 } from '../../services/session/constants.js';
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { runFirestoreQuery } from '../../utils/firestore-query.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 
@@ -32,20 +46,27 @@ export interface TranscriptCleanupJobResult extends Record<string, unknown> {
   groupTranscriptsDeleted: number;
   usersProcessed: number;
   bytesRecovered: number;
+  /** False when TRANSCRIPT_CLEANUP is off and nothing was looked at. */
+  enabled: boolean;
+}
+
+/** Whether the cleanup may delete anything (TRANSCRIPT_CLEANUP, off by default). */
+export function transcriptCleanupOn(env: Env = process.env): boolean {
+  return flagOn('TRANSCRIPT_CLEANUP', env);
+}
+
+/** Only a person's own records, bogle_users/{uid}/<collection>/{id}, never a same-named collection elsewhere. */
+function underUser(ref: { parent: { parent: { parent: { id: string } } | null } }): boolean {
+  return ref.parent.parent?.parent.id === 'bogle_users';
 }
 
 /**
- * Transcript Cleanup Job
+ * Transcript Cleanup Job (see the module comment: off unless TRANSCRIPT_CLEANUP is on).
  *
- * Removes old transcripts, summaries, and group conversation data
- * based on configurable retention periods.
- *
- * Environment Variables:
+ * Environment Variables, used only when it is on:
  * - TRANSCRIPT_RETENTION_DAYS: Raw transcript retention (default: 90)
  * - SUMMARY_RETENTION_DAYS: Conversation summary retention (default: 365)
  * - GROUP_TRANSCRIPT_RETENTION_DAYS: Group conversation retention (default: 180)
- *
- * Best run nightly to keep storage costs manageable.
  */
 export class TranscriptCleanupJob extends ScheduledJob<
   TranscriptCleanupJobConfig,
@@ -65,6 +86,21 @@ export class TranscriptCleanupJob extends ScheduledJob<
     config: TranscriptCleanupJobConfig,
     ctx: JobContext
   ): Promise<TranscriptCleanupJobResult> {
+    if (!transcriptCleanupOn()) {
+      ctx.log.info(
+        {},
+        'Transcript cleanup is off (TRANSCRIPT_CLEANUP): conversation history is kept for the life of the account'
+      );
+      return {
+        transcriptsDeleted: 0,
+        summariesDeleted: 0,
+        groupTranscriptsDeleted: 0,
+        usersProcessed: 0,
+        bytesRecovered: 0,
+        enabled: false,
+      };
+    }
+
     ctx.log.info(
       {
         transcriptRetentionDays: config.transcriptRetentionDays,
@@ -107,12 +143,14 @@ export class TranscriptCleanupJob extends ScheduledJob<
       const conversationsSnapshot = await runFirestoreQuery(
         db
           .collectionGroup('conversations')
-          .where('startedAt', '<', transcriptCutoff.toISOString())
+          // startedAt is a Timestamp (realtime-memory startConversation): compare with a Date
+          .where('startedAt', '<', transcriptCutoff)
           .limit(config.maxDeletesPerRun),
         { context: 'TranscriptCleanupJob conversations' }
       );
 
       for (const doc of conversationsSnapshot.docs) {
+        if (!underUser(doc.ref)) continue;
         ctx.counters.processed++;
         if (config.dryRun) {
           ctx.log.debug({ docId: doc.id }, 'DRY RUN: Would delete conversation');
@@ -143,12 +181,14 @@ export class TranscriptCleanupJob extends ScheduledJob<
       const groupSessionsSnapshot = await runFirestoreQuery(
         db
           .collectionGroup('group_sessions')
+          // group sessions store startedAt as an ISO string (group-conversation-firestore.ts)
           .where('startedAt', '<', groupCutoff.toISOString())
           .limit(config.maxDeletesPerRun),
         { context: 'TranscriptCleanupJob group_sessions' }
       );
 
       for (const doc of groupSessionsSnapshot.docs) {
+        if (!underUser(doc.ref)) continue;
         ctx.counters.processed++;
         if (config.dryRun) {
           ctx.log.debug({ docId: doc.id }, 'DRY RUN: Would delete group session');
@@ -183,12 +223,14 @@ export class TranscriptCleanupJob extends ScheduledJob<
       const summariesSnapshot = await runFirestoreQuery(
         db
           .collectionGroup('conversation_summaries')
-          .where('createdAt', '<', summaryCutoff.toISOString())
+          // createdAt is a Timestamp (summarization-worker.ts): compare with a Date
+          .where('createdAt', '<', summaryCutoff)
           .limit(config.maxDeletesPerRun),
         { context: 'TranscriptCleanupJob conversation_summaries' }
       );
 
       for (const doc of summariesSnapshot.docs) {
+        if (!underUser(doc.ref)) continue;
         ctx.counters.processed++;
         if (config.dryRun) {
           ctx.log.debug({ docId: doc.id }, 'DRY RUN: Would delete old summary');
@@ -237,7 +279,7 @@ export class TranscriptCleanupJob extends ScheduledJob<
       groupTranscriptsDeleted,
       usersProcessed,
       bytesRecovered: 0, // Would need document size tracking to calculate
+      enabled: true,
     };
   }
 }
-
