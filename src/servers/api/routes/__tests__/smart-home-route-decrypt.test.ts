@@ -33,7 +33,12 @@ describe('smart_home route reader and agent-written enc_ fields', () => {
       refreshToken: 'fixture-sonos-refresh',
     });
     // Stored encrypted (enc_), as the agent writes it.
-    expect(String(state.docs.get('bogle_users/u1/smart_home/lifx')?.token)).toMatch(/^enc_/);
+    const stored = (name: string, field: string) =>
+      String(state.docs.get(`bogle_users/u1/smart_home/${name}`)?.[field]);
+    expect(stored('lifx', 'token')).toMatch(/^enc_/);
+    expect(stored('hue', 'username')).toMatch(/^enc_/);
+    expect(stored('sonos', 'accessToken')).toMatch(/^enc_/);
+    expect(stored('sonos', 'refreshToken')).toMatch(/^enc_/);
 
     expect(await routes.getCredentials('u1', 'lifx')).toMatchObject({
       token: 'fixture-lifx-token',
