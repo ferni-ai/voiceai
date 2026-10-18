@@ -10028,7 +10028,8 @@
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
     "agentLeft": "Ferni dropped off the line. Reconnect?",
-    "unknown": "Couldn't connect. Try again?"
+    "unknown": "Couldn't connect. Try again?",
+    "waitlisted": "You’re on the list. I’ll email you the moment your spot opens."
   },
   "ambientSounds": {
     "rain": {
@@ -11208,5 +11209,24 @@
     "helper": "Scan with your phone's camera, or tap Open Venmo. You can change the amount.",
     "maybeLater": "Maybe later",
     "close": "Close"
+  },
+  "waitlistScreen": {
+    "title": "You’re on the list",
+    "position": "You’re #{position} — about {waves} waves away",
+    "positionNext": "You’re #{position} — you’re in the very next wave",
+    "nextWave": "The next wave opens {date}.",
+    "inviteLabel": "Your invite link",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "share": "Share",
+    "inviteHelp": "Each friend who joins moves you up a few days.",
+    "credited": "Your friends have already moved you up {days} days.",
+    "emailPromise": "I’ll email you the moment your spot opens.",
+    "inTitle": "You’re in",
+    "inMessage": "Your spot opened up, and I saved it for you.",
+    "badge": "Founding member · Wave {wave}",
+    "badgeNoWave": "Founding member",
+    "enter": "Come in",
+    "notNow": "Not now"
   }
 }

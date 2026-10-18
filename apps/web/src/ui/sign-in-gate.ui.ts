@@ -24,6 +24,7 @@ import { emulatorSignInButtons } from './emulator-sign-in.js';
 import { tryFirstButtons } from './try-first.ui.js';
 import { t } from '../i18n/index.js';
 import { createAiRoleLabelRow } from './ai-role-label.ui.js';
+import { celebrateAdmissionOnce, showWaitingInGate } from './waiting-screen.ui.js';
 
 const log = createLogger('SignInGate');
 
@@ -306,9 +307,7 @@ function showCheckingState(): void {
   }
 }
 
-/**
- * Create the waitlist icon SVG (clock/hourglass icon).
- */
+/** The waitlist notice's icon: a clock. */
 function createWaitlistIcon(): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '64');
@@ -336,9 +335,6 @@ function createWaitlistIcon(): SVGSVGElement {
   return svg;
 }
 
-/**
- * Transform the UI to show the waitlist pending state.
- */
 type AccessNotice = Exclude<AccessOutcome, { kind: 'approved' }>;
 
 const NOTICE_COPY: Record<AccessNotice['kind'], { title: string; message: string }> = {
@@ -666,14 +662,17 @@ export async function showSignInGate(): Promise<void> {
     if (state.isAuthenticated) {
       const runCheck = (): void => {
         showCheckingState();
-        void checkAccess().then((outcome) => {
+        void checkAccess().then(async (outcome) => {
           log.info('Access check', { outcome: outcome.kind });
           if (outcome.kind !== 'approved') {
             // Stay on the gate and keep listening: they may sign in with another account
+            const content = overlayEl?.querySelector('.sign-in-gate-content');
+            if (outcome.kind === 'waitlisted' && content && (await showWaitingInGate(content, runCheck, handleSignOutAndRetry, TITLE_ID))) return; // prettier-ignore
             showAccessNotice(outcome, runCheck);
             return;
           }
           hideSignInGate();
+          void celebrateAdmissionOnce(); // first sign-in after their spot opened
           unsubscribe();
           resolveSignIn?.();
           resolveSignIn = null;

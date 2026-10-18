@@ -10,6 +10,7 @@
 import { t } from '../i18n/index.js';
 import type { ConnectFailure } from '../services/connect-failure.js';
 import { createLogger } from '../utils/logger.js';
+import { isWaitlistScreenEnabled, showWaitingOverlay } from './waiting-screen.ui.js';
 
 const log = createLogger('CallStatusUI');
 
@@ -98,6 +99,8 @@ function mount(notice: HTMLElement): void {
  */
 export function showCallNotice(failure: ConnectFailure, handlers: CallNoticeHandlers): void {
   clearCallNotice();
+  // Still on the waitlist: their place in line, not an error
+  if (failure.waitlist && isWaitlistScreenEnabled() && showWaitingOverlay(failure.waitlist)) return;
   if (!failure.message) return;
   injectStyles();
 
