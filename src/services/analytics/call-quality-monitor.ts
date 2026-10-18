@@ -9,7 +9,7 @@
  * - Disconnection patterns
  *
  * "Better than human" means we know when users are having a bad experience
- * before they tell us. What healthy means, and when that pages, is call-quality-slo.ts.
+ * before they tell us.
  */
 
 import { hostname } from 'node:os';
@@ -653,11 +653,11 @@ export async function checkQualityAlerts(now: number = Date.now()): Promise<void
     now
   );
   const pages = callQualityAlertsEnabled(process.env, hostname());
-  for (const { kind, condition: c } of trackIncidents(incidents, conditions)) {
+  const changes = trackIncidents(incidents, conditions, now, config.sloWindowMs);
+  for (const { kind, condition: c } of changes) {
+    const v = c.value ?? 0;
     const rate = c.key === 'drop_rate' || c.key === 'connect_fail';
-    const value = rate
-      ? `${((c.value ?? 0) * 100).toFixed(1)}%`
-      : `${((c.value ?? 0) / 1000).toFixed(1)}s`;
+    const value = rate ? `${(v * 100).toFixed(1)}%` : `${(v / 1000).toFixed(1)}s`;
     const summary = `${SLO_LABELS[c.key]} ${value} over ${c.samples} prod samples`;
     if (kind === 'closed' || !pages || !c.severity) {
       log[pages ? 'info' : 'debug']({ kind, ...c }, `Call-quality incident ${kind}: ${summary}`);
@@ -666,7 +666,6 @@ export async function checkQualityAlerts(now: number = Date.now()): Promise<void
     const detail = { key: c.key, value: c.value, samples: c.samples };
     await sendQualityAlert(c.severity, `${SLO_LABELS[c.key]} ${c.severity}`, summary, detail);
   }
-  log.debug({ conditions }, 'Quality check complete');
 }
 
 // ============================================================================

@@ -3,11 +3,10 @@
  *   reply_p90     caller stops speaking → Ferni's first audio (TURN_RECEIPT firstAudioMs) ≤ 3 s, critical 5 s
  *   greeting_p90  caller joins, or the dialed phone answers → first audio ≤ 4 s (never ringing)
  *   drop_rate     agent lost a caller still on the line ≤ 5 %, critical 10 %
- *   connect_fail  calls that never connected ≤ 5 %, critical 10 %
+ *   connect_fail  calls that never connected (judged 30 s in) ≤ 5 %, critical 10 %
  * Rates need minCalls completed calls in the window, latencies minCalls calls or minTurns turns.
- * Eval and key-check calls never count (58 of 107 prod calls, 2026-10-11..18). Prod 2026-10-18
- * paged 126 times in 6 h on a clock that included ringing, on one-call 100 % rates, re-paging
- * every breach, while receipts showed reply p90 2.9 s.
+ * Eval and key-check calls never count (58 of 107 prod calls, 10-11..18). Prod paged 126 times
+ * in 6 h on 10-18 (ringing in the clock, one-call 100 % rates, re-pages) at reply p90 2.9 s.
  *
  * @module services/analytics/call-quality-slo
  */
@@ -23,6 +22,7 @@ export type SloLimits = Record<SloKey, { warn: number; critical: number }> & {
 };
 
 export const RECOVERY_MARGIN = 0.1;
+export const CONNECT_DEADLINE_MS = 30_000;
 const EVAL_PREFIXES = ['eval-', 'keycheck-', 'voice-eval-'];
 const MAX_REPLIES = 5000;
 const MAX_EXCLUDED = 2000;
@@ -73,6 +73,12 @@ function p90(values: readonly number[]): number | null {
 }
 const share = (n: number, of: number): number | null => (of > 0 ? n / of : null);
 
+/** startCall precedes connection_success (session-init-handler.ts): in between is neither. */
+function connecting(s: CallSession, now: number): boolean {
+  const done = s.endTime !== undefined || s.connectionTimeMs !== undefined;
+  return !done && now - s.startTime < CONNECT_DEADLINE_MS;
+}
+
 /** One SLO's verdict; `recovered` = RECOVERY_MARGIN inside the warning line. */
 function judge(limits: SloLimits, key: SloKey, sampled: boolean, n: number, value: number | null) {
   const { warn, critical } = limits[key];
@@ -98,7 +104,8 @@ export function evaluateSlos(
   const greetings = all.map(greetingMs).filter((g) => g !== undefined);
   const ended = calls.filter((s) => s.endReason !== undefined);
   const drops = ended.filter((s) => s.endReason === 'disconnect').length;
-  const unconnected = all.filter((s) => s.connectionTimeMs === undefined).length;
+  const settled = all.filter((s) => !connecting(s, now));
+  const unconnected = settled.filter((s) => s.connectionTimeMs === undefined).length;
   const callsOk = calls.length >= limits.minCalls;
   const latencyOk = callsOk || turns.length >= limits.minTurns;
   const ends = ended.length;
@@ -106,22 +113,29 @@ export function evaluateSlos(
     judge(limits, 'reply_p90', latencyOk, turns.length, p90(turns)),
     judge(limits, 'greeting_p90', latencyOk, greetings.length, p90(greetings)),
     judge(limits, 'drop_rate', ends >= limits.minCalls, ends, share(drops, ends)),
-    judge(limits, 'connect_fail', callsOk, all.length, share(unconnected, all.length)),
+    judge(limits, 'connect_fail', callsOk, settled.length, share(unconnected, settled.length)),
   ];
 }
 
-export type OpenIncidents = Map<SloKey, Severity>;
+export type OpenIncidents = Map<SloKey, { severity: Severity; quietSince?: number }>;
 
-/** Opens an incident once (escalating once to critical), closes it on recovery: the changes. */
-export function trackIncidents(open: OpenIncidents, conditions: readonly SloCondition[]) {
+/** Opens an incident once (escalating once); closes it on recovery or after `quietMs` unjudged. */
+export function trackIncidents(
+  open: OpenIncidents,
+  conds: readonly SloCondition[],
+  now: number,
+  quietMs: number
+) {
   const changes: Array<{ kind: 'opened' | 'closed'; condition: SloCondition }> = [];
-  for (const c of conditions) {
+  for (const c of conds) {
     const was = open.get(c.key);
-    if (!c.sampled) continue; // too few calls to say anything
-    if (c.severity && (!was || (c.severity === 'critical' && was === 'warning'))) {
-      open.set(c.key, c.severity);
+    if (was) was.quietSince = c.sampled ? undefined : (was.quietSince ?? now);
+    const quiet = was?.quietSince !== undefined && now - was.quietSince >= quietMs;
+    const escalates = c.severity === 'critical' && was?.severity === 'warning';
+    if (c.sampled && c.severity && (!was || escalates)) {
+      open.set(c.key, { severity: c.severity });
       changes.push({ kind: 'opened', condition: c });
-    } else if (!c.severity && was && c.recovered) {
+    } else if (was && (quiet || c.recovered)) {
       open.delete(c.key);
       changes.push({ kind: 'closed', condition: c });
     }

@@ -167,6 +167,34 @@ describe('call-quality alerts', () => {
     expect(sent('incident_opened').map(([n]) => n.metadata.key)).toEqual(['drop_rate']);
   });
 
+  it('calls still connecting are neither connected nor failed until 30 s in', async () => {
+    for (let i = 0; i < 10; i++) call(`ok-${i}`, { replies: [1200] });
+    startCall('connecting-1'); // startCall runs before connection_success
+    startCall('connecting-2');
+    const connect = () =>
+      evaluateSlos(getRecentCalls(), getActiveCalls(), LIMITS).find(
+        (c) => c.key === 'connect_fail'
+      );
+    expect(connect()).toMatchObject({ value: 0, samples: 10 });
+
+    await evaluate(); // judged now, then a minute passes
+    expect(notify).not.toHaveBeenCalled();
+    // A minute on and still not connected: now they are failures (2 of 12).
+    expect(connect()).toMatchObject({ samples: 12, severity: 'critical' });
+  });
+
+  it('an incident with no traffic to judge it expires after a window, so the next breach pages', async () => {
+    for (let i = 0; i < 12; i++) call(`slow-${i}`, { replies: [1200, 6000] });
+    await evaluate();
+    vi.advanceTimersByTime(61 * MINUTE); // traffic stops: nothing left in the window
+    await evaluate();
+    vi.advanceTimersByTime(61 * MINUTE);
+    await evaluate();
+    for (let i = 0; i < 12; i++) call(`slow-again-${i}`, { replies: [1200, 6000] });
+    await evaluate();
+    expect(sent('incident_opened')).toHaveLength(2);
+  });
+
   it('eval calls and eval callers never count toward prod metrics', async () => {
     for (let i = 0; i < 12; i++)
       call(`eval-room-${i}`, { replies: [8000], end: 'disconnect', eval: true });

@@ -10,10 +10,7 @@ import { markCallStage, recordCallEvent } from '../../services/analytics/call-qu
 import type { AttributeUpdates, SipParticipantLike } from './sip-caller.js';
 
 const SIP_CALL_STATUS = 'sip.callStatus';
-/** A dialed phone that hasn't answered by now never will (outbound-opener.ts waits 60 s). */
-const ANSWER_WATCH_MS = 90_000;
-
-type AttributesListener = Parameters<AttributeUpdates['on']>[1];
+const ANSWER_WATCH_MS = 90_000; // outbound-opener.ts gives up on an unanswered phone at 60 s
 
 export function noteCallQualityContext(input: {
   participant: SipParticipantLike;
@@ -22,13 +19,9 @@ export function noteCallQualityContext(input: {
 }): void {
   const { participant, room, sessionId } = input;
   const roomName = 'name' in room && typeof room.name === 'string' ? room.name : undefined;
+  const metadata = { traffic: 'eval' };
   if (isEvalTraffic(roomName, participant.identity)) {
-    recordCallEvent({
-      callId: sessionId,
-      timestamp: Date.now(),
-      type: 'call_context',
-      metadata: { traffic: 'eval' },
-    });
+    recordCallEvent({ callId: sessionId, timestamp: Date.now(), type: 'call_context', metadata });
   }
 
   const status = participant.attributes?.[SIP_CALL_STATUS];
@@ -40,13 +33,12 @@ export function noteCallQualityContext(input: {
     clearTimeout(timer);
     room.off('participantAttributesChanged', onChange);
   };
-  const onChange: AttributesListener = (changed, who) => {
+  const onChange: Parameters<AttributeUpdates['on']>[1] = (changed, who) => {
     if (who.identity !== participant.identity) return;
     const next = changed[SIP_CALL_STATUS];
     if (next === 'active') markCallStage(sessionId, 'call_answered');
     if (next === 'active' || next === 'hangup') stop();
   };
   const timer = setTimeout(stop, ANSWER_WATCH_MS);
-  timer.unref?.();
   room.on('participantAttributesChanged', onChange);
 }
