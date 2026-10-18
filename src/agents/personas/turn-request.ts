@@ -50,6 +50,7 @@ import {
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { quirkTurnNote } from './quirk-note.js';
 import { honestFriendNote } from './honest-friend.js';
+import { teaseGateFor } from './tease-gate.js';
 import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
@@ -135,6 +136,8 @@ export function withTurnReminder(
     ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
     : undefined;
   noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
+  // TEASE_GATE=on: teasing earned at friend stage, never low, heavy or after pushback.
+  const tease = teaseGateFor(chatCtx, session, words, { careful: options.shape === false });
   // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
@@ -174,6 +177,7 @@ export function withTurnReminder(
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
+    tease.note,
     // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
     ...withLiveData(style?.text ?? '', callerTurnsOf(chatCtx)),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
@@ -190,7 +194,9 @@ export function withTurnReminder(
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
     options.shape !== false && !answering ? repairNoteFor(chatCtx, session) : '',
-  ].filter(Boolean);
+  ]
+    .filter(Boolean)
+    .map(tease.strip);
   // WORLD_FACTS_IN_CALL=on: where their life stands (in-call-load.ts); nothing when off.
   const caller = callerOf(session);
   const lifeAt = {

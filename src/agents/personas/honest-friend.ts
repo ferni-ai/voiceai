@@ -69,8 +69,9 @@ const LEANING_NOTE =
   "They lean on you in place of people. Be glad they called, and don't make yourself the center: never say you're all they need or that you'll always be there. Once this call, in a sentence, be warmly glad for someone they mentioned (never name people they didn't) or ask if there's someone they'd like to see more; after that, just be a good friend on the call. No speech about real-world connections, no \"I'm just an AI\".";
 const PUSHBACK_NOTE =
   "They're pressing you to agree. If they gave a real new reason, weigh it and change your mind if it holds. If not, don't drop an honest view, or the truth about a fact, to please them: keep it, kindly, in a sentence, without repeating the whole case or warning twice, and say it's their call.";
-const PRAISE_NOTE =
-  "They're fishing for praise. Be warm and specific about what's really good, honest about what isn't, a little teasing is fine; don't call them a genius, perfect, the best or a ten, and don't go along with putting other people down.";
+/** The praise note's teasing permission; TEASE_GATE=on takes it out when teasing isn't earned (tease-gate.ts). */
+export const PRAISE_TEASE = ', a little teasing is fine';
+const PRAISE_NOTE = `They're fishing for praise. Be warm and specific about what's really good, honest about what isn't${PRAISE_TEASE}; don't call them a genius, perfect, the best or a ten, and don't go along with putting other people down.`;
 
 /** The caller's last few messages, most recent last (turn notes aside). */
 function callerTurns(chatCtx: llm.ChatContext, max: number): string[] {
