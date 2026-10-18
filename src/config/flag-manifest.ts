@@ -33,6 +33,8 @@ export const FLAG_MANIFEST = {
   CALLER_TURN_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // shadow: log where a reply answers its own question for the caller, cut nothing; on: cut there (caller-voice-guard.ts)
   CALLER_VOICE_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a caller's voice create, update and delete go to their connected calendar, not only Ferni's list (#1749)
+  CALENDAR_WRITE_TO_PROVIDER: { default: 'off', owner: 'tools', kind: 'experiment' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -230,6 +232,8 @@ export const FLAG_MANIFEST = {
   // on: mid-call system notes reach Gemini framed as private, not the caller's words
   // (patches/@livekit__agents@1.9.3.patch), and save tools refuse them (tools/utils/own-note.ts)
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // Alex's 8am text brief, with MORNING_BRIEF_USERS (services/outreach/morning-brief/brief-job.ts)
+  MORNING_BRIEF: { default: 'off', owner: 'outreach', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
