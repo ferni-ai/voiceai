@@ -25,6 +25,12 @@ import {
   type FollowUpStore,
 } from '../follow-through/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  followUpTextOutcome,
+  logPromiseJobRun,
+  logPromiseOutcome,
+  type PromiseJobCounts,
+} from '../follow-through/index.js';
 
 const log = createLogger({ module: 'follow-up-texts' });
 
@@ -71,6 +77,16 @@ export interface FollowUpTextReport {
   lostSaves: number;
   /** People whose turn failed (a flag or store read threw); the run went on. */
   errors: number;
+}
+
+/** The run in PROMISE_JOB_RUN terms: a skip the sender will retry is held, the rest failed. */
+export function followUpJobCounts(r: FollowUpTextReport): PromiseJobCounts {
+  const counts = { due: r.scanned, done: r.sent, failed: 0, held: 0, missed: r.expired };
+  for (const [reason, n] of Object.entries(r.held)) {
+    if (followUpTextOutcome(reason).outcome === 'held') counts.held += n;
+    else counts.failed += n;
+  }
+  return counts;
 }
 
 async function record(
@@ -123,11 +139,12 @@ async function textOne(
     refId: pick.id,
     minGapMs: FOLLOW_UP_GAP_MS,
   });
+  const reason = outcome.sent ? 'sent' : (outcome.reason ?? 'unknown');
+  logPromiseOutcome('follow-through-text', followUpTextOutcome(reason), { followUpId: pick.id });
   if (outcome.sent) {
     report.sent++;
     return;
   }
-  const reason = outcome.reason ?? 'unknown';
   report.held[reason] = (report.held[reason] ?? 0) + 1;
   if (!(await deps.store.save(pick, claimed.data.updatedAt))) report.lostSaves++;
 }
@@ -148,8 +165,13 @@ async function forPerson(
   report.scanned += due.length;
   const moments = due.map((f) => ({ f, moment: rightMoment(f, now) }));
   for (const { f } of moments.filter((m) => m.moment === 'expire')) {
-    if (dryRun || (await record(deps.store, f, { type: 'expire' }, now))) report.expired++;
-    else report.lostSaves++;
+    if (dryRun) report.expired++;
+    else if (await record(deps.store, f, { type: 'expire' }, now)) {
+      report.expired++;
+      logPromiseOutcome('follow-through-text', followUpTextOutcome('expired'), {
+        followUpId: f.id,
+      });
+    } else report.lostSaves++;
   }
   const pick = moments.find((m) => m.moment === 'text-now')?.f;
   if (!pick) return;
@@ -188,5 +210,6 @@ export async function sendDueFollowUpTexts(
     }
   }
   log.info({ ...report, dryRun: run.dryRun }, 'Follow-up texts run');
+  if (!run.dryRun) logPromiseJobRun('follow-through', followUpJobCounts(report));
   return report;
 }
