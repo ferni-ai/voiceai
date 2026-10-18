@@ -21,6 +21,10 @@ struct FerniApp: App {
                     await model.team.refresh()
                 }
                 // Consent belongs to whoever is signed in: switch with them.
+                .onChange(of: LiveActivityController.content(for: model.call)) { _, content in
+                    model.liveActivity.follow(content, startedAt: model.call.startedAt)
+                }
+                .task { EndCallIntent.end = { [call = model.call] in await call.end() } }
                 .onChange(of: model.account.user?.uid, initial: true) { old, uid in
                     model.accountChanged(from: old, to: uid)
                 }
@@ -50,6 +54,7 @@ final class AppModel {
     let consent = ConsentStore()
     let team: TeamStore
     let memory: MemoryStore
+    let liveActivity = LiveActivityController()
     var isShowingSettings = false
     var isAskingConsent = false
     var isShowingCallMore = false
