@@ -164,6 +164,8 @@ export const FLAG_MANIFEST = {
   FTIS_ENABLED: { default: 'off', owner: 'platform', kind: 'config' },
   FTIS_ONLY_MODE: { default: 'off', owner: 'tools', kind: 'experiment' },
   FTIS_PRIMARY: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // on: Jordan's hello may offer a letter to future you once its day has come (future-letters.ts)
+  FUTURE_LETTER_OPENER: { default: 'off', owner: 'tools', kind: 'experiment' },
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   GEMINI_LIVE_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },
   GEMMA3N_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },

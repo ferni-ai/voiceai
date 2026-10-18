@@ -29,6 +29,11 @@ import {
   lineSaysAnniversary,
 } from './friendship-anniversary.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
+import {
+  letterOfferDirection,
+  letterToOffer,
+  lineOffersLetter,
+} from '../../tools/domains/engagement/future-letters.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -357,12 +362,22 @@ export async function directedGreeting(
   }
   const scripted = generateWarmGreeting(personaId, ctx);
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome, anniversary] = await Promise.all([
+  const [openCheckIn, openWin, pondered, welcome, anniversary, letter] = await Promise.all([
     checkInFor(userData?.userId),
     winFor(userData?.userId),
     ponderFor(userData?.userId, history),
     loadWelcomeBack(userData?.userId, personaId, history),
     anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
+    userData?.userId // FUTURE_LETTER_OPENER: Jordan only, owner only
+      ? inTime(
+          letterToOffer({
+            userId: userData.userId,
+            sessionId,
+            personaId,
+            zone: userData.callerTimezone,
+          })
+        )
+      : undefined,
   ]);
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
   const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
@@ -382,6 +397,7 @@ export async function directedGreeting(
     (ask && !unknown ? PONDER_DIRECTION : '') +
     (back?.direction ?? '') +
     (anniversary && !unknown ? anniversaryDirection(anniversary) : '') +
+    (letter && !unknown ? letterOfferDirection(letter) : '') +
     (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
@@ -409,6 +425,7 @@ export async function directedGreeting(
     lineSaysAnniversary(spoken, anniversary)
   )
     anniversary.mark();
+  if (letter && !unknown && directed.source === 'actor' && lineOffersLetter(spoken)) letter.mark();
   // One follow-up per call opener (opener-claim.ts): having asked, the greeting
   // keeps the first recall note from asking about a thread too.
   const topic = checkIn ?? ask?.text;

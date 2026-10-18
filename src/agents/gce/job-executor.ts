@@ -22,6 +22,8 @@ import '../after-call-register.js';
 import '../journal-store-register.js';
 // After a call, the verified owner's reminders and commitments become follow-ups (FOLLOW_THROUGH_IMPORT).
 import '../voice-agent-entry/follow-through-import-register.js';
+// Letters to future you are kept for the account's owner (futureSelfLetter).
+import '../voice-agent-entry/future-letter-register.js';
 // Which sessions may read their own texts with Ferni (readSMS refuses all until this loads).
 import '../voice-agent-entry/sms-owner-register.js';
 
