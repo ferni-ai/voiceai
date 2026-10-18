@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { FollowUp, NewFollowUp } from '../../follow-through/index.js';
+import { topicKeyOf, type FollowUp, type NewFollowUp } from '../../follow-through/index.js';
 import { createFollowUpStore, followUpId, toFollowUp } from '../follow-through-store.js';
 import { fakeFirestore } from './fake-firestore.js';
 
@@ -191,5 +191,131 @@ describe('toFollowUp', () => {
       outcome: 'sent',
     });
     expect(toFollowUp('x', base)).not.toHaveProperty('action');
+  });
+});
+
+describe('follow-up brain fields (design §2.2)', () => {
+  // A row exactly as the importer writes it today, before any brain field existed
+  const old = {
+    userId: 'u1',
+    kind: 'commitment',
+    text: 'apply for the job',
+    dueAt: '2026-10-14T00:00:00.000Z',
+    zone: 'UTC',
+    repeat: null,
+    source: { store: 'commitments', ref: 'c1' },
+    status: 'surfaced',
+    surfaced: [{ at: '2026-10-13T00:00:00.000Z', via: 'opener' }],
+    createdAt: '2026-10-12T00:00:00.000Z',
+    updatedAt: '2026-10-13T00:00:00.000Z',
+  };
+
+  it('an old document still parses unchanged, with no brain field added', () => {
+    expect(toFollowUp('x', old)).toEqual({ id: 'x', ...old });
+    const forgotten = { ...old, status: 'released', closedReason: 'forgotten' };
+    expect(toFollowUp('x', forgotten)?.closedReason).toBe('forgotten');
+  });
+
+  it('keeps well-formed brain fields and drops a bad one without losing the row', () => {
+    const ask = {
+      at: '2026-10-13T00:00:00.000Z',
+      via: 'opener',
+      personaId: 'ferni',
+      sessionId: 's1',
+      answer: 'not-yet',
+      by: 'live',
+    };
+    const f = toFollowUp('x', {
+      ...old,
+      topicKey: 'apply job',
+      sources: [old.source, { store: 'summaries', ref: 's1:0' }, { store: 7 }],
+      eventAt: null,
+      askType: 'how-is-it-going',
+      salience: { weight: 0.7, heavy: false, sensitive: false, by: 'llm', v: 1 },
+      asks: [ask, { at: 'soon', via: 'opener' }],
+      snoozedUntil: '2026-10-20T00:00:00.000Z',
+      owner: 'stranger',
+      eventPrecision: 'fortnight',
+      closedReason: 'bored',
+    });
+    expect(f).toMatchObject({
+      topicKey: 'apply job',
+      sources: [old.source, { store: 'summaries', ref: 's1:0' }],
+      eventAt: null,
+      askType: 'how-is-it-going',
+      asks: [ask],
+      snoozedUntil: '2026-10-20T00:00:00.000Z',
+    });
+    expect(f?.salience?.weight).toBe(0.7);
+    for (const dropped of ['owner', 'eventPrecision', 'closedReason', 'nextEligibleAt'])
+      expect(f).not.toHaveProperty(dropped);
+  });
+});
+
+describe('open merges by topic (design §2.2 merge rule)', () => {
+  it('two sources describing one thread make one follow-up listing both sources', async () => {
+    const { db, docs } = fakeFirestore();
+    const store = createFollowUpStore(db);
+    const first = await store.open(
+      newFollowUp({
+        kind: 'commitment',
+        text: 'call my mom',
+        topicKey: topicKeyOf('call my mom'),
+        source: { store: 'commitments', ref: 'c1' },
+      }),
+      NOW
+    );
+    const later = new Date(NOW.getTime() + 60_000);
+    const fromSummary = {
+      kind: 'thread' as const,
+      text: 'the mom call',
+      topicKey: topicKeyOf('the mom call'),
+      source: { store: 'summaries', ref: 's1:0' },
+    };
+    const second = await store.open(newFollowUp(fromSummary), later);
+    expect(docs.size).toBe(1);
+    expect(second.id).toBe(first.id);
+    expect(second.sources).toEqual([first.source, fromSummary.source]);
+    expect((await store.live('u1'))[0].sources).toHaveLength(2);
+
+    // the second source imported again finds its row instead of adding itself twice
+    const again = await store.open(newFollowUp(fromSummary), new Date(later.getTime() + 60_000));
+    expect(again.sources).toHaveLength(2);
+    expect(docs.size).toBe(1);
+  });
+
+  it('a different topic, or a writer with no topic key (every writer today), still makes its own row', async () => {
+    const { db, docs } = fakeFirestore();
+    const store = createFollowUpStore(db);
+    await store.open(newFollowUp({ topicKey: 'call mom', source: { store: 'r', ref: '1' } }), NOW);
+    await store.open(newFollowUp({ topicKey: 'dentist', source: { store: 'r', ref: '2' } }), NOW);
+    await store.open(newFollowUp({ source: { store: 'r', ref: '3' } }), NOW);
+    await store.open(newFollowUp({ source: { store: 'r', ref: '4' } }), NOW);
+    expect(docs.size).toBe(4);
+  });
+});
+
+describe('ask is a compare-and-set on the stored row', () => {
+  const by = (sessionId: string) => ({ via: 'opener' as const, personaId: 'ferni', sessionId });
+
+  it('two workers asking the same follow-up at once: one marks it asked, the other loses', async () => {
+    const { db } = fakeFirestore();
+    const store = createFollowUpStore(db);
+    const f = await store.open(newFollowUp({ dueAt: null, kind: 'thread' }), NOW);
+    const at = new Date(NOW.getTime() + 60_000);
+    const results = await Promise.all([
+      store.ask('u1', f.id, by('call-a'), at),
+      store.ask('u1', f.id, by('call-b'), at),
+    ]);
+    expect(results.filter((r) => r !== null)).toHaveLength(1);
+    const stored = (await store.live('u1'))[0];
+    expect(stored.asks).toHaveLength(1);
+    expect(stored.status).toBe('surfaced');
+  });
+
+  it('a missing follow-up is not asked', async () => {
+    const { db, docs } = fakeFirestore();
+    expect(await createFollowUpStore(db).ask('u1', 'nope', by('s'), NOW)).toBeNull();
+    expect(docs.size).toBe(0);
   });
 });

@@ -17,17 +17,22 @@
  */
 
 import { createHash } from 'crypto';
-import type { CollectionReference, Firestore } from '@google-cloud/firestore';
-import type {
-  FollowUp,
-  FollowUpAction,
-  FollowUpKind,
-  FollowUpStatus,
-  FollowUpStore,
-  NewFollowUp,
-  Repeat,
-  SurfacedVia,
+import type { CollectionReference, Firestore, Transaction } from '@google-cloud/firestore';
+import {
+  ask,
+  mergeInto,
+  mergeTarget,
+  type FollowUp,
+  type FollowUpAction,
+  type FollowUpAsker,
+  type FollowUpKind,
+  type FollowUpStatus,
+  type FollowUpStore,
+  type NewFollowUp,
+  type Repeat,
+  type SurfacedVia,
 } from '../follow-through/index.js';
+import { brainFieldsOf } from './follow-through-brain-fields.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -123,8 +128,8 @@ export function toFollowUp(id: string, data: unknown): FollowUp | null {
     createdAt: String(createdAt),
     updatedAt: String(updatedAt),
     ...(str(data.closedAt) ? { closedAt: String(data.closedAt) } : {}),
-    ...(data.closedReason === 'forgotten' ? { closedReason: 'forgotten' as const } : {}),
     ...(action ? { action } : {}),
+    ...brainFieldsOf(data),
   };
 }
 
@@ -137,7 +142,26 @@ function parsed(docs: ReadonlyArray<{ id: string; data: () => unknown }>): Follo
   });
 }
 
-export function createFollowUpStore(db: Firestore): FollowUpStore {
+/** How far back open() looks for a follow-up the same thread may join (topic-merge.ts). */
+const MERGE_LOOKBACK_MS = 21 * 86_400_000;
+
+/** The follow-up `f` joins (its own, or a live one on the same topic), or null for a new one. */
+async function joinThread(
+  tx: Transaction,
+  rows: CollectionReference,
+  f: NewFollowUp,
+  now: Date
+): Promise<FollowUp | null> {
+  const since = new Date(now.getTime() - MERGE_LOOKBACK_MS).toISOString();
+  const recent = await tx.get(rows.where('createdAt', '>=', since));
+  const target = mergeTarget(parsed(recent.docs), f, now);
+  if (!target || target.kind === 'known') return target?.row ?? null;
+  const merged = mergeInto(target.row, f, now);
+  tx.set(rows.doc(merged.id), merged);
+  return merged;
+}
+
+export function createFollowUpStore(db: Firestore): FollowUpStore & FollowUpAsker {
   const mine = (userId: string): CollectionReference =>
     db.collection('bogle_users').doc(userId).collection('follow_through');
 
@@ -149,6 +173,9 @@ export function createFollowUpStore(db: Firestore): FollowUpStore {
         const snap = await tx.get(ref);
         const existing = snap.exists ? toFollowUp(id, snap.data()) : null;
         if (existing) return existing;
+        // A writer that names the topic joins a live follow-up on the same thread
+        const joined = f.topicKey ? await joinThread(tx, mine(f.userId), f, now) : null;
+        if (joined) return joined;
         const at = now.toISOString();
         const created: FollowUp = {
           ...f,
@@ -195,6 +222,23 @@ export function createFollowUpStore(db: Firestore): FollowUpStore {
         if (!current || current.updatedAt !== expectedUpdatedAt) return false;
         tx.set(ref, next);
         return true;
+      });
+    },
+
+    async ask(userId, id, input, now): Promise<FollowUp | null> {
+      const ref = mine(userId).doc(id);
+      return db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const current = snap.exists ? toFollowUp(id, snap.data()) : null;
+        if (!current) return null;
+        // Judged against the stored copy: a second worker sees the first ask and is refused
+        const next = ask(current, input, now);
+        if (!next.success) {
+          log.info({ userId, followUpId: id, reason: next.error }, 'Follow-up ask refused');
+          return null;
+        }
+        tx.set(ref, next.data);
+        return next.data;
       });
     },
   };
