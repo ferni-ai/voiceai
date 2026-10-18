@@ -222,31 +222,12 @@ async function testExecutors(): Promise<boolean> {
   console.log('─────────────────────────────────────────');
 
   const results = {
-    research: false,
     habitReminder: false,
     followup: false,
   };
 
-  // Test Research Executor
-  try {
-    console.log('\n   🔬 Testing Research Executor (Peter)...');
-    const { queueResearchTask } = await import(
-      '../src/services/background-agents/executors/research-executor.js'
-    );
-
-    const taskId = await queueResearchTask({
-      userId: TEST_USER_ID,
-      query: 'E2E test query',
-      type: 'general',
-      depth: 'quick',
-      initiatedBy: 'peter',
-    });
-
-    console.log(`   ✅ Research task queued: ${taskId}`);
-    results.research = true;
-  } catch (error) {
-    console.log(`   ❌ Research executor error: ${error}`);
-  }
+  // No research executor to test: background research answers that it is
+  // unavailable instead of queueing placeholder findings (#1814, #1821).
 
   // Test Habit Reminder Executor
   try {
@@ -291,7 +272,7 @@ async function testExecutors(): Promise<boolean> {
     console.log(`   ❌ Follow-up executor error: ${error}`);
   }
 
-  return results.research && results.habitReminder && results.followup;
+  return results.habitReminder && results.followup;
 }
 
 async function testDeliveryInitialization(): Promise<boolean> {
