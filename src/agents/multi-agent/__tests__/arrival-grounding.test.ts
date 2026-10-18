@@ -15,6 +15,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
   log.child = () => log;
   return { createLogger: () => log, getLogger: () => log };
 });
+vi.mock('../../../services/diagnostic-logger.js', () => ({ diag: { entry: vi.fn() } }));
 vi.mock('../../../conversation/advanced-humanization-integration.js', () => ({
   recordAgentResponse: vi.fn(),
   recordAdviceGiven: vi.fn(),
@@ -31,6 +32,7 @@ import {
 } from '../arrival-grounding.js';
 import { assistantTranscriptHandler } from '../assistant-transcript.js';
 import { prepareBriefing, type BriefInput } from '../handoff-brief.js';
+import { createAgentOrchestrator, type PersonaAgent } from '../orchestrator.js';
 
 const ON = { ARRIVAL_LINE_GROUNDED: 'on' };
 const OFF = { ARRIVAL_LINE_GROUNDED: 'off' };
@@ -183,7 +185,11 @@ describe('the first line never reaches summary or fact input', () => {
     };
     const item = llm.ChatMessage.create({ role: 'assistant', content: text });
     await recordCommittedAgentReply(
-      { sessionId: 's1', services: services as unknown as SessionServices, userData: {} as UserData },
+      {
+        sessionId: 's1',
+        services: services as unknown as SessionServices,
+        userData: {} as UserData,
+      },
       item
     );
     return services.addTurn;
@@ -209,5 +215,50 @@ describe('the first line never reaches summary or fact input', () => {
     holdOutOfMemory('s1', arrival);
     expect(await record(arrival)).toHaveBeenCalledWith('assistant', arrival);
     expect(threaded(arrival)).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the orchestrator holds whatever the teammate says first', () => {
+  const handoff = async () => {
+    const said: Record<string, string[]> = {};
+    const createPersonaAgent = vi.fn(async (personaId: string): Promise<PersonaAgent> => {
+      const lines: string[] = (said[personaId] = []);
+      return {
+        id: personaId,
+        personaId,
+        isActive: false,
+        session: { history: { items: [] } },
+        cleanup: vi.fn().mockResolvedValue(undefined),
+        say: (text: string) => void lines.push(text),
+        setMuted: vi.fn(),
+        interrupt: vi.fn(),
+      };
+    });
+    const orchestrator = createAgentOrchestrator({
+      ctx: {} as never,
+      room: {} as never,
+      userParticipant: {} as never,
+      createPersonaAgent,
+      sessionId: 'arrive-test',
+    });
+    await orchestrator.start('ferni');
+    expect(
+      (await orchestrator.handoff({ targetPersonaId: 'peter-john', reason: 'x' })).success
+    ).toBe(true);
+    return said['peter-john']?.[0] ?? '';
+  };
+
+  it('flag on: the arrival line is held out of memory', async () => {
+    vi.stubEnv('ARRIVAL_LINE_GROUNDED', 'on');
+    const line = await handoff();
+    expect(line).not.toBe('');
+    expect(heldOutOfMemory('arrive-test', line)).toBe(true);
+  });
+
+  it('flag off: nothing is held', async () => {
+    vi.stubEnv('ARRIVAL_LINE_GROUNDED', 'off');
+    const line = await handoff();
+    vi.stubEnv('ARRIVAL_LINE_GROUNDED', 'on');
+    expect(heldOutOfMemory('arrive-test', line)).toBe(false);
   });
 });
