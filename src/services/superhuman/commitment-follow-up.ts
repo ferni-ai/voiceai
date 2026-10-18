@@ -34,6 +34,8 @@ export function coachFollowThroughMode(
 export interface OpenCommitment {
   id: string;
   statement: string;
+  /** Money or a credential (judged-commitments.ts): raised on a call only, never in a text. */
+  sensitive?: true;
   createdAt: number;
   targetDate?: number;
   followUpAfter: number;
@@ -107,6 +109,7 @@ export function toOpenCommitment(
     followUpCount: num(d.followUpCount) ?? 0,
     ...(targetDate !== undefined && { targetDate }),
     ...(lastFollowUp !== undefined && { lastFollowUp }),
+    ...(d.sensitive === true && { sensitive: true as const }),
   };
 }
 

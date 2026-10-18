@@ -73,7 +73,8 @@ async function scanDue(now: number): Promise<DueCommitment[]> {
     const flag = byUser.get(userId);
     if (flag && !flag.shown(doc.data())) continue;
     const commitment = toOpenCommitment(doc.id, doc.data(), flag?.on);
-    if (commitment) rows.push({ userId, commitment });
+    // A money or credential item is raised only on a call, never in a push.
+    if (commitment && !commitment.sensitive) rows.push({ userId, commitment });
   }
   return pickDuePerUser(rows, now);
 }

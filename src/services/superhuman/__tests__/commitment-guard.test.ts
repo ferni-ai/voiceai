@@ -7,7 +7,13 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { guardJudged, isDirective, isRiskyAction } from '../commitment-guard.js';
+import {
+  guardJudged,
+  isDirective,
+  isRiskyAction,
+  isSensitive,
+  redactSecrets,
+} from '../commitment-guard.js';
 
 const fixture = JSON.parse(
   readFileSync(join(process.cwd(), 'scripts/commitments/fixtures/judge-cases.json'), 'utf8')
@@ -116,5 +122,39 @@ describe('guardJudged', () => {
   it('leaves ordinary plans alone, whatever the model did to the quote', () => {
     const plan = item('call your sister Mindy tomorrow', 'gonna call her tmrw');
     expect(guardJudged([plan], ["My sister Mindy's had a rough week. I'll call her tomorrow."])).toEqual([plan]); // prettier-ignore
+  });
+});
+
+describe('redactSecrets and isSensitive', () => {
+  it.each([
+    ['wire $500 to account 4417-2290', 'wire $500 to account [number]'],
+    ['transferir 500 a la cuenta 4417-2290', 'transferir 500 a la cuenta [number]'],
+    ['card 4111 1111 1111 1111 expires 09/27', 'card [number] expires 09/27'],
+    ['routing 021000021', 'routing [number]'],
+    ['my PIN is 4512', 'my PIN is [number]'],
+    ['the CVV is 123', 'the CVV is [number]'],
+    ['code 836104', 'code [number]'],
+    ['my password is hunter2', 'my password is [secret]'],
+    ['call the pharmacy at 555-0142 at 9am', 'call the pharmacy at [number] at 9am'],
+  ])('redacts %j', (text, redacted) => {
+    expect(redactSecrets(text)).toBe(redacted);
+    expect(isSensitive(text)).toBe(true);
+  });
+
+  it.each([
+    'transfer the $1,450 deposit Friday',
+    'send 1,450 dollars to the landlord',
+    'renew the passport before 2027',
+    "I'll code the website tonight",
+    'run 3 miles at 6:30',
+  ])('leaves %j as said', (text) => {
+    expect(redactSecrets(text)).toBe(text);
+  });
+
+  it('marks money sensitive and leaves an ordinary plan alone', () => {
+    expect(isSensitive('transfer the $1,450 deposit Friday')).toBe(true);
+    expect(isSensitive('pagar 200 euros a Marta')).toBe(true);
+    expect(isSensitive('pay rent Friday')).toBe(false);
+    expect(isSensitive('renew the passport before 2027')).toBe(false);
   });
 });

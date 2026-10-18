@@ -73,6 +73,8 @@ async function openCommitments(
     const c = toOpenCommitment(d.id, d.data, judgedOnly);
     // A judged row's resolved statement may not name the person: check its person too.
     if (!c || isForgotten(judgedOnly ? judgedRowText(d.data) : c.statement, forgotten)) return [];
+    // A money or credential item is raised only on a call, never in a follow-through text.
+    if (c.sensitive) return [];
     return [
       {
         kind: 'commitment' as const,

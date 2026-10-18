@@ -20,8 +20,14 @@ import {
   type CaptureContext,
 } from './after-call-commitments.js';
 import { judgedRowText, JUDGED_SOURCE } from './commitment-single-writer.js';
-import { isDirective } from './commitment-guard.js';
-export { guardJudged, isDirective, isRiskyAction } from './commitment-guard.js';
+import { isDirective, isSensitive, redactSecrets } from './commitment-guard.js';
+export {
+  guardJudged,
+  isDirective,
+  isRiskyAction,
+  isSensitive,
+  redactSecrets,
+} from './commitment-guard.js';
 import { getFirestoreDb } from './firestore-utils.js';
 
 const log = createLogger({ module: 'JudgedCommitments' });
@@ -82,11 +88,17 @@ export function judgedCommitmentDocs(
       continue;
     const due = j.due && j.due >= today ? j.due : undefined;
     const { at, targetDate } = followUp(due, ctx);
+    // No account, card or routing number, PIN or code is ever stored, in any field or language;
+    // a money or credential item is only raised on a call, never in a text, brief or push.
+    const statement = redactSecrets(j.statement);
+    const quote = j.quote && redactSecrets(j.quote);
+    const person = j.person && redactSecrets(j.person);
+    const sensitive = isSensitive(`${j.statement} ${j.quote ?? ''} ${j.person ?? ''}`);
     docs.push({
       userId: ctx.userId,
-      statement: j.statement,
-      summary: j.statement,
-      text: j.statement,
+      statement,
+      summary: statement,
+      text: statement,
       type: 'intention',
       source: JUDGED_SOURCE,
       confidence: j.confidence,
@@ -97,9 +109,10 @@ export function judgedCommitmentDocs(
       lastMentioned: ctx.now,
       followUpAfter: at,
       followUpCount: 0,
-      ...(j.person && { person: j.person, personInvolved: j.person }),
+      ...(person && { person, personInvolved: person }),
       ...(due && { due }),
-      ...(j.quote && { quote: j.quote }),
+      ...(quote && { quote }),
+      ...(sensitive && { sensitive: true }),
       ...(targetDate !== undefined && { targetDate }),
     });
     if (docs.length >= MAX_PER_CALL) break;

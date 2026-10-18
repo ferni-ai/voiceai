@@ -54,6 +54,58 @@ export function isRiskyAction(text: string): boolean {
   return RISKY.some((r) => r.test(text));
 }
 
+/**
+ * Runs of four or more digits (separators allowed: "4417-2290", "4111 1111
+ * 1111 1111"), which is how account, card and routing numbers, PINs and codes
+ * look in any language. A dollar amount ("$1,450", "1,450 dollars") is not one.
+ */
+const DIGIT_RUN = /(\$\s?)?\b\d(?:[\d\s.,-]*\d)?\b(\s*(?:dollars|bucks|usd)\b)?/gi;
+/** A password and the value after it ("password hunter2"). */
+const PASSWORD_VALUE = /\b(password|passcode|passwd)(\s*(?:is|:|=)?\s+)(?!\[)(\S+)/gi;
+/** A short numeric credential ("CVV 123", "PIN: 4512", "code 8361"), shorter than a digit run. */
+const SHORT_CODE = /\b(cvv|cvc|pin|otp|code)(\s*(?:is|:|=)?\s*)\d{3,}\b/gi;
+/** A year said as one ("by 2027", "in March 2026"), which is not a secret. */
+const YEAR_BEFORE = /\b(in|by|before|after|until|since|of|early|late|january|february|march|april|may|june|july|august|september|october|november|december)\s+$/i; // prettier-ignore
+/** Money in any currency, written as a symbol or a word next to a number. */
+const MONEY = /[$€£¥]\s?\d|\b\d[\d,.]*\s*(dollars|bucks|euros|pesos|pounds|usd)\b/i;
+
+/**
+ * Text with every account, card or routing number, PIN, passcode and
+ * one-time code replaced by "[number]" (a password by "[secret]"), whatever
+ * the language. Dollar amounts and years stay. Applied to everything stored,
+ * so a number the guard didn't recognise as risky is still never kept raw.
+ */
+export function redactSecrets(text: string): string {
+  return text
+    .replace(PASSWORD_VALUE, (_m, word: string, sep: string) => `${word}${sep}[secret]`)
+    .replace(SHORT_CODE, (_m, word: string, sep: string) => `${word}${sep}[number]`)
+    .replace(
+      DIGIT_RUN,
+      (
+        m: string,
+        dollar: string | undefined,
+        unit: string | undefined,
+        at: number,
+        all: string
+      ) => {
+        // prettier-ignore
+        const digits = (m.match(/\d/g) ?? []).length;
+        if (dollar || unit || digits < 4) return m;
+        if (/^(19|20)\d{2}$/.test(m) && YEAR_BEFORE.test(all.slice(0, at))) return m;
+        return '[number]';
+      }
+    );
+}
+
+/**
+ * Whether an item moves money or touches a credential, so it is only ever
+ * raised on a call, with the caller there, never in a text, brief or push. Fails
+ * closed: anything redacted counts, in whatever language it was said.
+ */
+export function isSensitive(text: string): boolean {
+  return isRiskyAction(text) || MONEY.test(text) || redactSecrets(text) !== text;
+}
+
 /** The fields of a judged item this reads. */
 export interface GuardedItem {
   statement: string;
@@ -62,7 +114,7 @@ export interface GuardedItem {
 
 const words = (s: string): string[] => norm(s).split(' ').filter(Boolean);
 
-/** Whether `part` appears in `whole` as whole words, in order ("500 to kyle" is not in "1500 to kyle"). */
+/** Whether `part` is in `whole` as whole words, in order ("500 to kyle" isn't in "1500 to kyle"). */
 function hasWords(whole: readonly string[], part: readonly string[]): boolean {
   if (part.length === 0) return false;
   for (let i = 0; i + part.length <= whole.length; i++) {

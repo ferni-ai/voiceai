@@ -106,7 +106,8 @@ async function openCommitments(userId: string): Promise<string[]> {
     .flatMap((d) => {
       const c = toOpenCommitment(d.id, d.data, judgedOnly);
       const about = judgedOnly ? judgedRowText(d.data) : (c?.statement ?? '');
-      return c && !isForgotten(about, forgotten) ? [c.statement] : [];
+      // A money or credential item is raised only on a call, never in the brief.
+      return c && !c.sensitive && !isForgotten(about, forgotten) ? [c.statement] : [];
     })
     .slice(0, COMMITMENTS);
 }

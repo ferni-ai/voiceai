@@ -87,7 +87,9 @@ export async function commitmentTriggers(userId: string, now: Date): Promise<Pro
   const shown = await shownRows(userId, judgedOnly);
   const out: ProactiveTrigger[] = [];
   for (const { id, data } of await store.active(userId)) {
-    const c = shown(data) ? toOpenCommitment(id, data, judgedOnly) : null;
+    const open = shown(data) ? toOpenCommitment(id, data, judgedOnly) : null;
+    // A money or credential item is raised only on a call, never in a proactive text.
+    const c = open?.sensitive ? null : open;
     const said = quote(c?.statement, 120);
     if (!c || !said || !dueForPush(c, now.getTime())) continue;
     out.push({
