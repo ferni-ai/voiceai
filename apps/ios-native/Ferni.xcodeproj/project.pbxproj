@@ -12,13 +12,19 @@
 		27464AAE3E6286E2D651309D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C71781BAD997D314C08864 /* HomeView.swift */; };
 		2FD49FFFD4A0F9F9441CB534 /* FerniLive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FE8F191561C68141BA565BFB /* FerniLive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */; };
+		38240C7BC3E78705B56F4A7C /* handoff-to-nayan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */; };
 		3D35744BE349C5C980D7C2A6 /* FerniKit in Frameworks */ = {isa = PBXBuildFile; productRef = ED4AC2AA3060D84427234E43 /* FerniKit */; };
+		4A50AB47CB1B846447DE63F9 /* handoff-to-maya.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */; };
 		6C5C041CBBDFB39263B52443 /* FerniLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65555DCB199766EA982A43A3 /* FerniLive.swift */; };
 		6F1A1895F228B47FE081346A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F086DF8C257F87FC0940C6A /* Assets.xcassets */; };
 		761A16438630BC6B8CC02981 /* EndCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */; };
 		775B0EC80FED93D54BCEEF37 /* TalkIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */; };
+		78E7BB2CF29B9CB32F9054E3 /* arrival.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = FADB5DC0AC364E861BD63F4D /* arrival.mp3 */; };
 		7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974DF185A4FA58E1F08FD688 /* FerniApp.swift */; };
 		8008F255B971A496A174CC6F /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E0556D7156242BE3423D87 /* Notifications.swift */; };
+		848DC4E9F3BACD5DBACFB471 /* goodbye.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = BE53A65C5F71E02C0E7B4239 /* goodbye.mp3 */; };
+		89C6C497D887627D3AFD147D /* handoff-to-alex.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */; };
+		9B5B3E0DC766449E9764FA0D /* handoff-to-jordan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 649C35992ED39D62D2F8714A /* handoff-to-jordan.mp3 */; };
 		9D3C3C27AA79ECED1768D30E /* EndCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */; };
 		A6EC64BC0F35C99AB84B8055 /* AudioRoutePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F678B752992C142D10FE5E /* AudioRoutePicker.swift */; };
 		B0638D9FFF8A35EDC5CD683B /* TalkControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = F76007C81E8DC1B134090AD5 /* TalkControl.swift */; };
@@ -26,13 +32,16 @@
 		B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E550D3CF186D8D463FF66E /* SettingsView.swift */; };
 		CAAC14DD23372C8B957B3BAB /* MemoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E67B08698448132C9E2AE39 /* MemoryViews.swift */; };
 		CF99FB01C1F6E7CF14AF4FCA /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */; };
+		CFB4A2A20FF174CCCBC95045 /* CallFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49306E5B24BD5C520DBE56ED /* CallFeedback.swift */; };
 		D1583676262D8254FE6C3D86 /* LiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C643B5190988DED731CADF82 /* LiveActivityController.swift */; };
 		DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */; };
 		E264DB68385FB7094C895AAE /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 129CF5787F87ED1DCDD384F0 /* FerniDesign */; };
 		E67FBA51E487A86BF76A408A /* ReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */; };
 		E88BB02A6FEC21AF520A766B /* TalkIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */; };
 		EA64D0860B43223CE3A8D6EB /* FerniShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 766CF4344E77F81DF8043439 /* FerniShortcuts.swift */; };
+		F04C1D4DF69A4646E1699849 /* handoff-to-ferni.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 15418FA6D6693B28961C02AC /* handoff-to-ferni.mp3 */; };
 		F8659A8DCBD2D3621DA596A3 /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 3A2B0DD01002A1C6F9C20247 /* FerniDesign */; };
+		FF7158968372C9F770945D32 /* handoff-to-peter.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 90F94F51F9D61D01EEED1837 /* handoff-to-peter.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,27 +80,36 @@
 		0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		0F086DF8C257F87FC0940C6A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		12AD4DC924A1BFC0A91BA221 /* FerniKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniKit; path = Packages/FerniKit; sourceTree = SOURCE_ROOT; };
+		15418FA6D6693B28961C02AC /* handoff-to-ferni.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-ferni.mp3"; sourceTree = "<group>"; };
+		2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-alex.mp3"; sourceTree = "<group>"; };
 		346AABA0EB545D4C92B2D8CD /* CallViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViews.swift; sourceTree = "<group>"; };
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
 		41E550D3CF186D8D463FF66E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		49306E5B24BD5C520DBE56ED /* CallFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallFeedback.swift; sourceTree = "<group>"; };
 		4E67B08698448132C9E2AE39 /* MemoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryViews.swift; sourceTree = "<group>"; };
 		58E0556D7156242BE3423D87 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-nayan.mp3"; sourceTree = "<group>"; };
+		649C35992ED39D62D2F8714A /* handoff-to-jordan.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-jordan.mp3"; sourceTree = "<group>"; };
 		65555DCB199766EA982A43A3 /* FerniLive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniLive.swift; sourceTree = "<group>"; };
 		69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndCallIntent.swift; sourceTree = "<group>"; };
 		766CF4344E77F81DF8043439 /* FerniShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniShortcuts.swift; sourceTree = "<group>"; };
 		7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
+		90F94F51F9D61D01EEED1837 /* handoff-to-peter.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-peter.mp3"; sourceTree = "<group>"; };
 		974DF185A4FA58E1F08FD688 /* FerniApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniApp.swift; sourceTree = "<group>"; };
 		A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportSheet.swift; sourceTree = "<group>"; };
 		ADAF04ADD5C0DB140C9F7769 /* Ferni.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ferni.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B8C71781BAD997D314C08864 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkIntent.swift; sourceTree = "<group>"; };
 		BE26440C63996901B649797F /* FerniAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FerniAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BE53A65C5F71E02C0E7B4239 /* goodbye.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = goodbye.mp3; sourceTree = "<group>"; };
 		C5DE888F55AE5FD01208AD72 /* FerniDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniDesign; path = Packages/FerniDesign; sourceTree = SOURCE_ROOT; };
 		C643B5190988DED731CADF82 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
+		E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-maya.mp3"; sourceTree = "<group>"; };
 		F0356DF8A0D911077889805D /* Ferni.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ferni.entitlements; sourceTree = "<group>"; };
 		F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		F76007C81E8DC1B134090AD5 /* TalkControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkControl.swift; sourceTree = "<group>"; };
+		FADB5DC0AC364E861BD63F4D /* arrival.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = arrival.mp3; sourceTree = "<group>"; };
 		FE8F191561C68141BA565BFB /* FerniLive.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = FerniLive.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -160,6 +178,7 @@
 			children = (
 				0F086DF8C257F87FC0940C6A /* Assets.xcassets */,
 				03F678B752992C142D10FE5E /* AudioRoutePicker.swift */,
+				49306E5B24BD5C520DBE56ED /* CallFeedback.swift */,
 				346AABA0EB545D4C92B2D8CD /* CallViews.swift */,
 				7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */,
 				F0356DF8A0D911077889805D /* Ferni.entitlements */,
@@ -173,6 +192,7 @@
 				5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */,
 				A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */,
 				41E550D3CF186D8D463FF66E /* SettingsView.swift */,
+				D4C06A9CF9494E3A7EC15BDE /* Sounds */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -185,6 +205,21 @@
 				351D4C8121FCCE2BDDE55A5E /* FerniVoice */,
 			);
 			path = Packages;
+			sourceTree = "<group>";
+		};
+		D4C06A9CF9494E3A7EC15BDE /* Sounds */ = {
+			isa = PBXGroup;
+			children = (
+				FADB5DC0AC364E861BD63F4D /* arrival.mp3 */,
+				BE53A65C5F71E02C0E7B4239 /* goodbye.mp3 */,
+				2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */,
+				15418FA6D6693B28961C02AC /* handoff-to-ferni.mp3 */,
+				649C35992ED39D62D2F8714A /* handoff-to-jordan.mp3 */,
+				E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */,
+				5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */,
+				90F94F51F9D61D01EEED1837 /* handoff-to-peter.mp3 */,
+			);
+			path = Sounds;
 			sourceTree = "<group>";
 		};
 		EE3F3C65F760CE47567CD8CF /* Products */ = {
@@ -318,6 +353,14 @@
 				6F1A1895F228B47FE081346A /* Assets.xcassets in Resources */,
 				31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */,
 				117123ACF45A5D57E6E0056D /* PrivacyInfo.xcprivacy in Resources */,
+				78E7BB2CF29B9CB32F9054E3 /* arrival.mp3 in Resources */,
+				848DC4E9F3BACD5DBACFB471 /* goodbye.mp3 in Resources */,
+				89C6C497D887627D3AFD147D /* handoff-to-alex.mp3 in Resources */,
+				F04C1D4DF69A4646E1699849 /* handoff-to-ferni.mp3 in Resources */,
+				9B5B3E0DC766449E9764FA0D /* handoff-to-jordan.mp3 in Resources */,
+				4A50AB47CB1B846447DE63F9 /* handoff-to-maya.mp3 in Resources */,
+				38240C7BC3E78705B56F4A7C /* handoff-to-nayan.mp3 in Resources */,
+				FF7158968372C9F770945D32 /* handoff-to-peter.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -329,6 +372,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A6EC64BC0F35C99AB84B8055 /* AudioRoutePicker.swift in Sources */,
+				CFB4A2A20FF174CCCBC95045 /* CallFeedback.swift in Sources */,
 				B0B567B29058A9FEF290836E /* CallViews.swift in Sources */,
 				DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */,
 				9D3C3C27AA79ECED1768D30E /* EndCallIntent.swift in Sources */,
