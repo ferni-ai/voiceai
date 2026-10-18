@@ -208,6 +208,7 @@ import {
 import { initI18n, t } from './i18n/index.js';
 import { createConversationStarter, START_CONVERSATION_EVENTS } from './app/conversation-starter.js';
 import { openPanelFromUrl } from './services/notification-navigation.js';
+import { isPanelEventVisible } from './config/menu-visibility.js';
 import { bindStaticDom } from './i18n/static-dom.js';
 import { bindLocaleRefresh } from './app/locale-refresh.js';
 import { installDialogFocus } from './utils/dialog-focus.js';
@@ -310,7 +311,6 @@ import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
-// Roadmap Panel - What's Growing feature voting
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
@@ -1753,8 +1753,8 @@ class VoiceAIApp {
     // 💚 Support Ferni / Founders Fund - the founders-journey CTA opens it
     this.addTrackedListener(document, 'ferni:open-support', () => void openSupportFerni());
 
-    // 🌱 Roadmap Panel - "What's Growing" feature voting; loaded when first opened
-    this.addTrackedListener(document, 'ferni:open-roadmap', ((e: CustomEvent<{ featureId?: string }>) =>
+    // 🌱 Roadmap Panel ("What's Coming"): hidden for now, so the event opens nothing (config/menu-visibility.ts)
+    this.addTrackedListener(document, 'ferni:open-roadmap', ((e: CustomEvent<{ featureId?: string }>) => isPanelEventVisible('ferni:open-roadmap') &&
       void import('./ui/roadmap-panel.ui.js').then((m) => m.showRoadmapPanel(e.detail?.featureId))) as EventListener);
 
     // 💰 Subscription Badge - Subtle status indicator in header
