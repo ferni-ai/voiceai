@@ -39,6 +39,11 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
+import { noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import {
+  callRiskBeforeTurn,
+  loneImminentGoodbye,
+} from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
@@ -178,6 +183,7 @@ export function startCrisisGate(
   });
   const decision = decisionFor(detection);
   if (decision.action !== 'pass') {
+    noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
     log.info(
       { action: decision.action, source: 'patterns', indicators: detection.indicators },
       'CRISIS_GATE'
@@ -193,13 +199,21 @@ export function startCrisisGate(
   const adjudicatorMode = resolveCrisisAdjudicatorMode(env);
   const scope = agreementGate || adjudicatorMode !== 'off' ? sessionScope(userData) : undefined;
   const holdForReads = agreementGate || adjudicatorMode === 'live';
+  const call = sessionScope(userData);
+  // Taken before this turn's own read starts (crisis-lone-imminent.ts).
+  const priorRisk = callRiskBeforeTurn(call, { latest, earlier });
   const run = startCrisisClassifier(
     { latest, earlier, companion },
-    { pattern, env, generate, scope }
+    { pattern, env, generate, scope, call }
   );
   if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
+    // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
+    if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
+      log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
+      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
+    }
     const merged = applyClassifierVerdict(detection, verdict);
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
