@@ -31,11 +31,21 @@ import { trackBackchannelEvent } from './speech-metrics-integration.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import {
   decideBackchannel,
+  heavyMoment,
   LAUGH_CLIP,
   pickBackchannel,
   shouldLaughAlong,
 } from './backchannel-policy.js';
-import { backchannelContextEnabled, pickContextualBackchannel } from './backchannel-context.js';
+import {
+  forgetCallerTurns,
+  noteCallerTurn,
+  recentCallerTurns,
+} from '../../speech/adaptive-ssml/heavy-moment.js';
+import {
+  backchannelContextEnabled,
+  pickContextualBackchannel,
+  REACTIONS,
+} from './backchannel-context.js';
 import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
 import { ferniEnergyFor } from '../../speech/tts-gateway/director/ferni-energy.js';
 import {
@@ -170,6 +180,8 @@ export function initializeLiveBackchanneling<T>(
   let agentStoppedAt = 0;
   let lastClip: string | null = null;
   let lastLaughTurn: number | null = null;
+  // The caller's latest words, kept across segments and turns for the heavy-moment check.
+  const heard = `listen:${sessionId}`;
 
   let clipThisPause = false;
   // BACKCHANNEL_AUDIO_CLOCK=on: pauses timed on the audio, not on when we read it.
@@ -208,17 +220,20 @@ export function initializeLiveBackchanneling<T>(
     if (clock && clock.lagMs() > STALE_FRAME_MS) return;
     decidedThisPause = true;
     const at = { pauseStartedAt: pause.startedAt() };
+    const callerTurns = recentCallerTurns(heard);
+    const partialTranscript = state.partialTranscript ?? '';
     const emotional =
       (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
       (state.currentEmotion?.intensity ?? 0) > 0.7;
     const now = Date.now();
     if (
       shouldLaughAlong({
-        partialTranscript: state.partialTranscript ?? '',
+        partialTranscript,
         emotional,
         agentSpeaking,
         turnCount: state.turnCount,
         lastLaughTurn,
+        callerTurns,
       })
     ) {
       if (playClip(LAUGH_CLIP, at)) {
@@ -244,9 +259,12 @@ export function initializeLiveBackchanneling<T>(
     }
     // BACKCHANNEL_CONTEXT=on: react to what they're saying ("oh no", "whoa").
     // Nothing fits, or that clip isn't cached for this persona: the neutral pick.
-    const fitting = backchannelContextEnabled()
-      ? pickContextualBackchannel(state.partialTranscript ?? '', emotional, lastClip)
+    const contextual = backchannelContextEnabled()
+      ? pickContextualBackchannel(partialTranscript, emotional, lastClip)
       : null;
+    // Never a "Ha" at hard news, however they laughed ("kms lol").
+    const laugh = contextual !== null && REACTIONS.funny.includes(contextual);
+    const fitting = laugh && heavyMoment({ partialTranscript, callerTurns }) ? null : contextual;
     // FERNI_STATE: a worn-out Ferni listens with soft "mm"s, not "yeah" or "right".
     const soft = emotional || ferniEnergyFor(sessionId) === 'low';
     let text = fitting ?? pickBackchannel(soft, lastClip);
@@ -371,6 +389,7 @@ export function initializeLiveBackchanneling<T>(
 
   const updateState = (update: Partial<LiveBackchannelState>): void => {
     Object.assign(state, update);
+    if (update.partialTranscript) noteCallerTurn(heard, update.partialTranscript);
   };
 
   const onNewTurn = (): void => {
@@ -394,6 +413,7 @@ export function initializeLiveBackchanneling<T>(
   };
 
   const cleanup = (): void => {
+    forgetCallerTurns(heard);
     // Cleanup is handled by session-cleanup.ts via resetLiveBackchanneling
     log.debug({ sessionId }, '🧹 Live backchanneling integration cleaned up');
   };
