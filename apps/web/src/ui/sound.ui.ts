@@ -8,6 +8,13 @@
  * - Achievements
  */
 
+import {
+  isSoundDirectorOn,
+  isSoundOn,
+  setSoundOn,
+  soundGate,
+  type Earcon,
+} from '../services/sound-director.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -423,7 +430,8 @@ async function playMP3(name: SoundName): Promise<boolean> {
 // SOUND PLAYBACK
 // ============================================================================
 
-export function play(name: SoundName): void {
+/** `earcon` names the call moment this sound marks; the sound director (flag) plays only those. */
+export function play(name: SoundName, earcon?: Earcon): void {
   if (isMuted) return;
 
   // MOBILE FIX: Debounce sounds to prevent "casino effect"
@@ -431,6 +439,8 @@ export function play(name: SoundName): void {
     log.debug(`Sound debounced: ${name}`);
     return;
   }
+
+  if (!soundGate('ui', name, earcon)) return;
 
   // Record this play for debouncing
   recordSoundPlay(name);
@@ -570,6 +580,8 @@ function setupHoverSounds(): void {
 // ============================================================================
 
 export function setMuted(muted: boolean): void {
+  // Director on: this is the one saved Sound setting for every engine.
+  if (isSoundDirectorOn()) setSoundOn(!muted);
   isMuted = muted;
 
   if (masterGain) {
@@ -578,16 +590,16 @@ export function setMuted(muted: boolean): void {
 }
 
 export function toggleMute(): boolean {
-  setMuted(!isMuted);
-  return isMuted;
+  setMuted(!getMuted());
+  return getMuted();
 }
 
 export function getMuted(): boolean {
-  return isMuted;
+  return isSoundDirectorOn() ? !isSoundOn() : isMuted;
 }
 
 // ============================================================================
-// CONVENIENCE METHODS
+// CONVENIENCE METHODS (the call's earcons pass `earcon` to play() instead)
 // ============================================================================
 
 export function playConnect(): void {
@@ -596,29 +608,11 @@ export function playConnect(): void {
 export function playDisconnect(): void {
   play('disconnect');
 }
-export function playGoodbye(): void {
-  play('goodbye');
-}
-export function playHangup(): void {
-  play('hangup');
-}
-export function playPhoneClick(): void {
-  play('phoneClick');
-}
-export function playEnter(): void {
-  play('enter');
-}
 export function playClick(): void {
   play('click');
 }
-export function playSwitch(): void {
-  play('switch');
-}
 export function playSuccess(): void {
   play('success');
-}
-export function playCelebrate(): void {
-  play('celebrate');
 }
 export function playTeamUnlock(): void {
   play('teamUnlock');
@@ -649,14 +643,8 @@ export const soundUI = {
   getMuted,
   playConnect,
   playDisconnect,
-  playGoodbye,
-  playHangup,
-  playPhoneClick,
-  playEnter,
   playTeamUnlock,
   playClick,
-  playSwitch,
   playSuccess,
-  playCelebrate,
   dispose,
 };

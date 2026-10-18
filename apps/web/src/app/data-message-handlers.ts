@@ -34,7 +34,12 @@ import { setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/i
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
-import { connectionService, engagementService, handoffService, moodService } from '../services/index.js';
+import {
+  connectionService,
+  engagementService,
+  handoffService,
+  moodService,
+} from '../services/index.js';
 import { handleVoiceEventDataMessage } from '../services/voice-events.service.js';
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
@@ -897,7 +902,15 @@ interface HumanizationSignalEvent extends DataMessage {
   somaticType?: 'breathing' | 'settling' | 'grounding' | 'pause';
   timeContext?: 'late_night' | 'early_morning' | 'weekend' | 'monday' | 'evening';
   // Silence analysis fields
-  silenceType?: 'processing' | 'emotional' | 'resistant' | 'confused' | 'reflective' | 'contemplative' | 'disconnection' | 'unknown';
+  silenceType?:
+    | 'processing'
+    | 'emotional'
+    | 'resistant'
+    | 'confused'
+    | 'reflective'
+    | 'contemplative'
+    | 'disconnection'
+    | 'unknown';
   silenceDurationMs?: number;
   suggestedBehavior?: string;
 }
@@ -1037,7 +1050,11 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
     case 'silence_analyzed': {
       // 🤫 Silence classification from backend — match avatar expression to silence type
       const silenceType = event.silenceType ?? 'unknown';
-      if (silenceType === 'emotional' || silenceType === 'reflective' || silenceType === 'contemplative') {
+      if (
+        silenceType === 'emotional' ||
+        silenceType === 'reflective' ||
+        silenceType === 'contemplative'
+      ) {
         playMicroExpression('warmth_pulse');
         ferniExpressions.setExpression('holdingSpace', 500, 4000);
       } else if (silenceType === 'confused' || silenceType === 'resistant') {
@@ -1559,11 +1576,11 @@ export function handleCelebration(event: CelebrationEvent): void {
     }
   }
 
-  // Aha moment / good news - double-take for surprise, then delight
+  // Aha moment / good news - double-take for surprise, then delight. No chime:
+  // these arrive while Ferni is answering, so a sound would play over his voice.
   if (event.celebrationType === 'aha_moment' || event.celebrationType === 'good_news') {
     celebrationsUI.gentleBounce();
     celebrationsUI.warmthGlow({ intensity: 'gentle' });
-    soundUI.play('success');
     delightService.haptic('light');
     presenceUI.bounce();
     // Flash encouraging emotion for aha moments

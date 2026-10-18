@@ -8,7 +8,7 @@
  *
  * @module services/seeds/earn
  */
-import type admin from 'firebase-admin';
+import type { Firestore } from 'firebase-admin/firestore';
 import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { commitSeeds, prepareMoreSeeds, prepareSeeds, type SeedResult } from './ledger.js';
@@ -105,7 +105,7 @@ function accountZone(
  * Safe to call on every conversation end: a second call on the same day changes nothing.
  */
 export async function awardDailyConversation(
-  db: admin.firestore.Firestore,
+  db: Firestore,
   uid: string,
   now: Date = new Date(),
   timeZone?: string

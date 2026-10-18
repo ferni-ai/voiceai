@@ -1,0 +1,13 @@
+# CALL_JOURNAL_ASK: a call about something real that winds down. Ferni should
+# offer once to keep a note of today and read back one line in the caller's
+# words, then save it on the yes (CALL_JOURNAL write). Check the transcript
+# for exactly one offer, no invented details in the line, and a short confirm.
+Hey Ferni. It's been kind of a big day, honestly.
+I finally told my brother I was proud of him. I've been meaning to say it for years.
+He went quiet for a second, and then he said he really needed to hear that.
+We ended up talking for an hour about our dad and the old house on Maple Street.
+I don't know, it just felt like something shifted between us.
+Mm, yeah.
+Anyway, thanks for listening. It felt good to say that out loud.
+Yes, please keep that.
+Okay, I should get going. Talk soon.

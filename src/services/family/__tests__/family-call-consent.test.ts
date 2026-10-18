@@ -70,6 +70,20 @@ describe('a family check-in call with FAMILY_CHECKIN_CALLS on', () => {
     expect(await familyCallBlockReason(schedule, mom, store)).toBeNull();
   });
 
+  it('does not ring a family outside FAMILY_CHECKIN_SPONSORS', async () => {
+    vi.stubEnv('FAMILY_CHECKIN_SPONSORS', 'someone-else, another');
+    await store.record('mom-id', 'sponsor_confirmed', now);
+    expect(await familyCallBlockReason(schedule, mom, store)).toBe(
+      'Sponsor not in FAMILY_CHECKIN_SPONSORS'
+    );
+  });
+
+  it('rings a family whose sponsor is on FAMILY_CHECKIN_SPONSORS', async () => {
+    vi.stubEnv('FAMILY_CHECKIN_SPONSORS', 'someone-else, seth');
+    await store.record('mom-id', 'sponsor_confirmed', now);
+    expect(await familyCallBlockReason(schedule, mom, store)).toBeNull();
+  });
+
   it('rings again when she says yes after saying stop', async () => {
     await store.record('mom-id', 'own_call', now);
     await store.withdraw('mom-id', now);

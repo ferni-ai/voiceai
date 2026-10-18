@@ -35,7 +35,23 @@ export default [
       '*.config.mjs',
       'apps/web/**',
       'design-system/**',
-      'apps/**',
+      'apps/android-native/**',
+      'apps/async/**',
+      'apps/figma-plugin/**',
+      'apps/intelligence-worker/**',
+      'apps/ios-native/**',
+      'apps/macos-menubar/**',
+      'apps/marketing/**',
+      'apps/marketplace-agents/**',
+      'apps/ml-training/**',
+      'apps/rust-audio/**',
+      'apps/rust-perf/**',
+      'apps/shared/**',
+      'apps/sonata/**',
+      'apps/vscode-extension/**',
+      'apps/web/**',
+      'apps/website/**',
+      // apps/cli is linted (the deploy commands are production code); its other files are not yet.
       'marketplace-agents/**',
       'e2e/**',
       'promo/**',
@@ -548,6 +564,16 @@ export default [
     rules: {
       '@typescript-eslint/no-misused-promises': ['error', { checksConditionals: true }],
       '@typescript-eslint/no-floating-promises': 'error',
+    },
+  },
+
+  // apps/cli deploy commands: typed linting against the CLI's own tsconfig (root tsconfig only covers src/).
+  {
+    files: ['apps/cli/src/commands/deploy/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: './apps/cli/tsconfig.json',
+      },
     },
   },
 ];

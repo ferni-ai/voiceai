@@ -11,6 +11,7 @@ export {
   isClosed,
   nextOccurrence,
   type FollowUp,
+  type FollowUpAction,
   type FollowUpEvent,
   type FollowUpKind,
   type FollowUpStatus,

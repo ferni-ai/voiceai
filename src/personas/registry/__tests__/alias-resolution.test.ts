@@ -64,7 +64,7 @@ describe('alias resolution against the real bundles', () => {
     expect(await AgentRegistry.resolveAgentId('henry caldwell')).toBe('john-bogle');
     expect(await AgentRegistry.resolveAgentId('henry')).toBe('john-bogle');
     expect(await AgentRegistry.getHandoffToolName('john-bogle')).toBe('handoffToHenry');
-    // Ferni's own role id, also declared as an alias by Maya.
+    // Ferni's own role id; Maya no longer declares it too.
     expect(await AgentRegistry.resolveAgentId('life-coach')).toBe('ferni');
   });
 
@@ -161,12 +161,13 @@ describe('alias collisions', () => {
     });
   });
 
-  it('the real bundles share no alias except where a role id is deliberate', async () => {
+  it('the real bundles claim no alias twice', async () => {
     const { buildAliasMap } = await import('../alias-map.js');
     const log = { warn: vi.fn() };
     buildAliasMap(await AgentRegistry.getAllAgents(), log);
     const contested = log.warn.mock.calls.map(([fields]) => (fields as { alias: string }).alias);
-    // Ferni's role id is also one of Maya's aliases, on purpose (see above).
-    expect(contested).toEqual(['life-coach']);
+    // Maya once also declared Ferni's role id "life-coach", which logged
+    // "Alias claimed by more than one persona" at every agent start.
+    expect(contested).toEqual([]);
   }, 60_000);
 });
