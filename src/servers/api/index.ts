@@ -30,6 +30,7 @@ import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
 import { bindBodyLimitResponse } from '../../api/bounded-body.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+import { initializeVoiceRegistry } from '../../personas/voice-registry.js';
 import { parseRawBody } from '../../api/helpers.js';
 
 // Local routes
@@ -1487,7 +1488,6 @@ registerDDoSAlertCallback(async (details) => {
 // Start automatic DDoS monitoring
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
-// Start the server
 server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
 async function startBackgroundServices(): Promise<void> {
   log.info({ port: PORT, livekitUrl: LIVEKIT_URL, ddosProtection: true }, 'UI Server started');
@@ -1495,6 +1495,7 @@ async function startBackgroundServices(): Promise<void> {
   // Outreach reaches only verified phones; a forgotten topic closes its follow-ups.
   installUiServerPorts();
   startSpotifyAutoRefresh();
+  fireAndForget(initializeVoiceRegistry, 'voice-registry'); // bundle voices win over fallbacks
 
   // Start Calendar real-time sync services
   try {
@@ -1564,7 +1565,6 @@ async function gracefulShutdown(): Promise<void> {
   // Stop accepting new connections
   server.close();
 
-  // Stop DDoS monitoring
   stopDDoSMonitoring();
 
   // Shutdown WebSocket servers first

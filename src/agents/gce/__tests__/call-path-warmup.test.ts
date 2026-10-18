@@ -34,3 +34,19 @@ describe('quietProcessReport', () => {
     expect(report.excludeNetwork).toBe(true);
   });
 });
+
+describe('warmCallPath', () => {
+  it('loads the bundle voices, so a call never starts on the fallbacks', async () => {
+    const { warmCallPath } = await import('../call-path-warmup.js');
+    const registry = await import('../../../personas/voice-registry.js');
+    const { discoverAndLoadBundles } = await import('../../../personas/bundles/index.js');
+    registry.resetVoiceRegistry();
+    registry.getVoiceId('ferni'); // an early lookup registers the fallbacks
+    await warmCallPath(() => undefined, []);
+    for (const { manifest } of (await discoverAndLoadBundles()).bundles) {
+      expect(registry.getVoiceId(manifest.identity.id), manifest.identity.id).toBe(
+        manifest.voice.voice_id
+      );
+    }
+  }, 60_000);
+});
