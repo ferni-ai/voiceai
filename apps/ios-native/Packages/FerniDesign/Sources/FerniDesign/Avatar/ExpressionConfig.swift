@@ -3,7 +3,7 @@
 //
 // This file provides expression configurations loaded from design-system tokens.
 // The source of truth is design-system/tokens/expressions.json, which is
-// compiled to Resources/expressions.json by the build script.
+// copied to this package's Resources/expressions.json.
 //
 // Usage:
 //   let config = ExpressionLoader.shared.config(for: "joyful")
@@ -12,11 +12,12 @@
 // Reference: design-system/tokens/expressions.json
 
 import Foundation
+import os
 
 // MARK: - Expression Configuration Model
 
 /// Configuration for a single expression
-struct ExpressionConfig: Codable {
+struct ExpressionConfig: Codable, Sendable {
     let family: String
     let topCutoff: CGFloat
     let topCurve: CGFloat
@@ -29,6 +30,42 @@ struct ExpressionConfig: Codable {
     // Eye scale properties (derived from web eyeWhite properties)
     let eyeScaleY: CGFloat?
     let eyeScaleX: CGFloat?
+
+    /// A null or missing number reads as neutral's. expressions.json has
+    /// `speaking.bottomCurve: null` (the voice drives the mouth), and a strict
+    /// decode of that one value threw away the whole file, so every face was
+    /// silently neutral.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let n = ExpressionConfig.neutral
+        family = try c.decodeIfPresent(String.self, forKey: .family) ?? n.family
+        topCutoff = try c.decodeIfPresent(CGFloat.self, forKey: .topCutoff) ?? n.topCutoff
+        topCurve = try c.decodeIfPresent(CGFloat.self, forKey: .topCurve) ?? n.topCurve
+        bottomCutoff = try c.decodeIfPresent(CGFloat.self, forKey: .bottomCutoff) ?? n.bottomCutoff
+        bottomCurve = try c.decodeIfPresent(CGFloat.self, forKey: .bottomCurve) ?? n.bottomCurve
+        asymmetry = try c.decodeIfPresent(CGFloat.self, forKey: .asymmetry) ?? n.asymmetry
+        animation = try c.decodeIfPresent(String.self, forKey: .animation)
+        sparkle = try c.decodeIfPresent(Bool.self, forKey: .sparkle) ?? false
+        eyeScaleY = try c.decodeIfPresent(CGFloat.self, forKey: .eyeScaleY)
+        eyeScaleX = try c.decodeIfPresent(CGFloat.self, forKey: .eyeScaleX)
+    }
+
+    init(
+        family: String, topCutoff: CGFloat, topCurve: CGFloat, bottomCutoff: CGFloat,
+        bottomCurve: CGFloat, asymmetry: CGFloat, animation: String?, sparkle: Bool,
+        eyeScaleY: CGFloat?, eyeScaleX: CGFloat?
+    ) {
+        self.family = family
+        self.topCutoff = topCutoff
+        self.topCurve = topCurve
+        self.bottomCutoff = bottomCutoff
+        self.bottomCurve = bottomCurve
+        self.asymmetry = asymmetry
+        self.animation = animation
+        self.sparkle = sparkle
+        self.eyeScaleY = eyeScaleY
+        self.eyeScaleX = eyeScaleX
+    }
 
     /// Computed eye scale with defaults
     var effectiveEyeScaleY: CGFloat { eyeScaleY ?? 1.0 }
@@ -56,13 +93,13 @@ struct ExpressionConfig: Codable {
 }
 
 /// Family metadata
-struct ExpressionFamilyMeta: Codable {
+struct ExpressionFamilyMeta: Codable, Sendable {
     let displayName: String
     let description: String
 }
 
 /// Root structure of the expressions.json file
-struct ExpressionsData: Codable {
+struct ExpressionsData: Codable, Sendable {
     let version: String
     let generated: String
     let expressions: [String: ExpressionConfig]
@@ -71,22 +108,22 @@ struct ExpressionsData: Codable {
 }
 
 /// Micro-expression configuration
-struct MicroExpressionConfig: Codable {
+struct MicroExpressionConfig: Codable, Sendable {
     let duration: Int
     let eyeWhite: EyeWhiteConfig?
     let lidTop: LidConfig?
     let smileCrease: SmileCreaseConfig?
 
-    struct EyeWhiteConfig: Codable {
+    struct EyeWhiteConfig: Codable, Sendable {
         let scaleY: CGFloat?
         let scaleX: CGFloat?
     }
 
-    struct LidConfig: Codable {
+    struct LidConfig: Codable, Sendable {
         let curve: CGFloat?
     }
 
-    struct SmileCreaseConfig: Codable {
+    struct SmileCreaseConfig: Codable, Sendable {
         let opacity: CGFloat?
     }
 }
@@ -94,36 +131,29 @@ struct MicroExpressionConfig: Codable {
 // MARK: - Expression Loader
 
 /// Singleton loader for expression configurations
-final class ExpressionLoader {
+final class ExpressionLoader: Sendable {
     static let shared = ExpressionLoader()
 
-    private var expressionsData: ExpressionsData?
-    private var didLoad = false
+    private let expressionsData: ExpressionsData?
 
     private init() {
-        loadExpressions()
+        expressionsData = Self.loadExpressions()
     }
 
     // MARK: - Loading
 
-    /// Load expressions from bundled JSON
-    private func loadExpressions() {
-        guard !didLoad else { return }
-        didLoad = true
-
-        // Try to load from bundle
-        guard let url = Bundle.main.url(forResource: "expressions", withExtension: "json") else {
-            print("⚠️ ExpressionLoader: expressions.json not found in bundle")
-            return
+    /// Load expressions from this package's bundled JSON
+    private static func loadExpressions() -> ExpressionsData? {
+        let log = Logger(subsystem: "com.sethdford.ferni", category: "avatar")
+        guard let url = Bundle.module.url(forResource: "expressions", withExtension: "json") else {
+            log.error("expressions.json is missing from FerniDesign's bundle")
+            return nil
         }
-
         do {
-            let data = try Data(contentsOf: url)
-            let decoder = JSONDecoder()
-            expressionsData = try decoder.decode(ExpressionsData.self, from: data)
-            print("✅ ExpressionLoader: Loaded \(expressionsData?.expressions.count ?? 0) expressions")
+            return try JSONDecoder().decode(ExpressionsData.self, from: Data(contentsOf: url))
         } catch {
-            print("❌ ExpressionLoader: Failed to load expressions: \(error)")
+            log.error("expressions.json failed to decode: \(error.localizedDescription, privacy: .public)")
+            return nil
         }
     }
 
@@ -169,7 +199,7 @@ final class ExpressionLoader {
 
 /// All available expression IDs as an enum
 /// This enum is data-driven: unknown strings fall back to .neutral
-enum AvatarExpression: String, CaseIterable, Codable {
+public enum AvatarExpression: String, CaseIterable, Codable, Sendable {
     // Core
     case neutral, listening, speaking
 
@@ -268,7 +298,7 @@ enum AvatarExpression: String, CaseIterable, Codable {
     // MARK: - Factory
 
     /// Create from string, falling back to neutral for unknown values
-    static func from(_ string: String) -> AvatarExpression {
+    public static func from(_ string: String) -> AvatarExpression {
         return AvatarExpression(rawValue: string) ?? .neutral
     }
 }
