@@ -7967,7 +7967,7 @@
       "descriptionHash": "ecb6325fa9"
     },
     "getMovieInfo": {
-      "domain": "entertainment",
+      "domain": "video",
       "description": "Get information about a specific movie including rating, runtime, genres, and description. Use when user asks about a movie.",
       "queries": [
         "My friends keep talking about Saltburn but I have no idea what it's about, can you check it out for me?",
@@ -7980,7 +7980,7 @@
       "descriptionHash": "5f0f8ebaab"
     },
     "getMovieShowtimes": {
-      "domain": "entertainment",
+      "domain": "video",
       "description": "Get showtime information for a movie in a specific location. Use when user asks for showtimes or when a movie is playing.",
       "queries": [
         "Wicked showtimes Seattle.",
@@ -7993,7 +7993,7 @@
       "descriptionHash": "9572a6b4d4"
     },
     "getMoviesNowPlaying": {
-      "domain": "entertainment",
+      "domain": "video",
       "description": "Get a list of movies currently playing in theaters. Use when user asks what movies are out, in theaters, or playing now.",
       "queries": [
         "I want to see what's currently in theaters because my partner and I finally have a babysitter for date night.",
@@ -8909,7 +8909,7 @@
       "descriptionHash": "dc656c0cef"
     },
     "getUpcomingMovies": {
-      "domain": "entertainment",
+      "domain": "video",
       "description": "Get a list of upcoming movies coming to theaters soon. Use when user asks about upcoming releases or what movies are coming out.",
       "queries": [
         "Upcoming movie releases.",

@@ -51,6 +51,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { callActions, claimedAction, kindsOfTool, type ActionKind } from './action-claims.js';
 import { withAnnouncedCheckLog } from './announced-check.js';
+import { withCallerVoiceGuard } from './caller-voice-guard.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -252,7 +253,18 @@ export async function withActionClaimCheck<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },
   tools: { functionTools?: Record<string, unknown> },
+  persona = 'ferni',
   env: Env = process.env
+): Promise<T> {
+  return withCallerVoiceGuard(await checkActionClaims(reply, chatCtx, tools, env), env, persona);
+}
+
+/** The claim check alone; withActionClaimCheck also runs the caller voice guard after it. */
+async function checkActionClaims<T>(
+  reply: Promise<T> | T,
+  chatCtx: { items: readonly unknown[] },
+  tools: { functionTools?: Record<string, unknown> },
+  env: Env
 ): Promise<T> {
   const stream = await reply;
   // Either way the reply is also tapped for "I'll check" with no tool call (announced-check.ts).
