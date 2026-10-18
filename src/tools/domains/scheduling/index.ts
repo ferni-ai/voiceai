@@ -33,6 +33,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
+import { WHERE_TO_ADD_NUMBER } from '../../shared/where-to-add-number.js';
 
 import {
   scheduleText,
@@ -143,7 +144,6 @@ If no recipient specified, sends to the user themselves.`,
           '📱 Scheduling text message'
         );
 
-        // Parse the time
         const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
         const scheduledFor = parseScheduleTime(params.when, zone);
 
@@ -161,7 +161,7 @@ If no recipient specified, sends to the user themselves.`,
           return `Got it! I'll text you on ${timeStr}: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
+            return `I can't text you yet: there's no verified phone number on your account. ${WHERE_TO_ADD_NUMBER}`;
           }
           return `I couldn't schedule that: ${result.error}`;
         }
@@ -218,7 +218,7 @@ The call will play a voice message when answered.`,
           return `I'll call you on ${timeStr}. When you answer, you'll hear: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return `I can't call you yet: there's no verified phone number on your account. You can add one in Settings.`;
+            return `I can't call you yet: there's no verified phone number on your account. ${WHERE_TO_ADD_NUMBER}`;
           }
           return `I couldn't schedule that call: ${result.error}`;
         }
@@ -321,7 +321,7 @@ Use when the user says:
           return `Done! I just texted you: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
-            return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
+            return `I can't text you yet: there's no verified phone number on your account. ${WHERE_TO_ADD_NUMBER}`;
           }
           return `I couldn't send that text: ${result.error}`;
         }
@@ -706,7 +706,7 @@ Picks the time from the contact's learned response patterns.`,
 Reminder: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' : ''}"`;
           } else {
             if (result.error?.includes('phone')) {
-              return `I can't text you yet: there's no verified phone number on your account. You can add one in Settings.`;
+              return `I can't text you yet: there's no verified phone number on your account. ${WHERE_TO_ADD_NUMBER}`;
             }
             if (result.error?.includes('email')) {
               return `I can't email you yet: there's no verified email address on your account.`;

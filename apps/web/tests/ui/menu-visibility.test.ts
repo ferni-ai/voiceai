@@ -42,6 +42,8 @@ const HIDDEN_ROWS = [
 
 /** Every row of the menu body, in order, for a user with everything unlocked. */
 const VISIBLE_ROWS = [
+  // How I reach you, above the sections (tests/ui/menu-how-i-reach-you.test.ts)
+  'contact-settings',
   // Let's Practice
   'hub',
   'commands',
@@ -49,7 +51,6 @@ const VISIBLE_ROWS = [
   'calendar-settings',
   'notifications',
   'outreach-schedule',
-  'contact-settings',
   // Our Story
   'your-story',
   'trust-dashboard',
@@ -133,7 +134,7 @@ describe('mobile bottom sheet', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
   });
 
-  it('offers exactly settings, team, calendar, history, people and insights', async () => {
+  it('offers exactly how i reach you, settings, team, calendar, history, people and insights', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 375 });
     const { initMobileBottomSheet } = await import('../../src/ui/mobile-bottom-sheet.ui.js');
     initMobileBottomSheet();
@@ -141,7 +142,15 @@ describe('mobile bottom sheet', () => {
     const actions = [
       ...document.querySelectorAll<HTMLElement>('.mobile-bottom-sheet__action[data-action]'),
     ].map((el) => el.dataset.action);
-    expect(actions).toEqual(['settings', 'team', 'calendar', 'history', 'people', 'insights']);
+    expect(actions).toEqual([
+      'reach-me',
+      'settings',
+      'team',
+      'calendar',
+      'history',
+      'people',
+      'insights',
+    ]);
   });
 });
 
@@ -173,7 +182,11 @@ describe('deep links to hidden panels do nothing', () => {
     );
     expect(opened).toEqual([]);
 
-    processVoiceUserEvent({ type: 'show_view', data: { view: 'calendar' }, timestamp: 't-visible' });
+    processVoiceUserEvent({
+      type: 'show_view',
+      data: { view: 'calendar' },
+      timestamp: 't-visible',
+    });
     expect(opened).toEqual(['ferni:open-calendar']);
   });
 
