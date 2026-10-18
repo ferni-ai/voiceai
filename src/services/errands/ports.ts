@@ -45,13 +45,13 @@ export interface ErrandStore {
   /** Open errands, across everyone, whose nextWakeAt is at or before `now`. */
   due: (now: Date, limit: number) => Promise<Errand[]>;
   /**
-   * Writes `next` only if the stored copy still has `expectedUpdatedAt`, and in
+   * Writes `next` only if the stored copy still has `expectedRevision`, and in
    * the same transaction appends `events` and puts `effects` in the outbox as
    * pending. False when it lost, and then nothing is written.
    */
   save: (
     next: Errand,
-    expectedUpdatedAt: string,
+    expectedRevision: number,
     events?: readonly ErrandEvent[],
     effects?: readonly Effect[]
   ) => Promise<boolean>;

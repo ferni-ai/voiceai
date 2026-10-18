@@ -3,11 +3,13 @@
  * append-only log at .../events and the effect outbox at .../effects/{idemKey}.
  *
  * Implements the errands context's ErrandStore port (services/errands/ports.ts).
- * - save() writes only if the stored copy still has the updatedAt the caller
- *   read (same contract as FollowUpStore.save), and appends the step's events
+ * - save() writes only if the stored copy still has the revision the caller
+ *   read (the FollowUpStore.save contract, on an integer), and appends the step's events
  *   and queues its effects as pending in the same transaction: a lost update
  *   writes nothing, and an effect is on record before anything runs it.
- * - Reads drop documents that don't look like an errand (logged).
+ * - Reads drop documents that don't look like an errand (logged). due()
+ *   quarantines them, and any errand saved under a rules version this build
+ *   doesn't run, so they can't fill every scan forever.
  *
  * @module services/stores/errand-store
  */
@@ -23,7 +25,9 @@ import { errandsEnabled } from '../../config/errands-flag.js';
 import type { Env } from '../../config/env-flag.js';
 import {
   CLOSED_STATES,
+  STEP_VERSIONS,
   type Approval,
+  type BusinessHours,
   type Candidate,
   type Errand,
   type ErrandEvent,
@@ -31,6 +35,7 @@ import {
   type ErrandStore,
   type Outcome,
   type OutboxEffect,
+  type Question,
 } from '../errands/index.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -41,9 +46,9 @@ const KINDS = new Set(['appointment', 'reservation', 'inquiry', 'purchase-resear
 const STATES = ['planning', 'awaiting_owner', 'acting', 'waiting', 'verifying', 'scheduled'];
 const OPEN: ErrandState[] = STATES as ErrandState[];
 const ALL_STATES = new Set([...STATES, ...CLOSED_STATES]);
-const VERBS = new Set(['call', 'book', 'text', 'schedule', 'next']);
+const VERBS = new Set(['call', 'book', 'text', 'schedule', 'next', 'release']);
 const CANDIDATE = new Set([
-  ...['new', 'calling', 'retry', 'texted', 'offered', 'booked'],
+  ...['new', 'lookup', 'calling', 'retry', 'texted', 'replied', 'offered', 'booked'],
   ...['needs_owner', 'declined', 'exhausted', 'cancelled'],
 ]);
 const OUTCOMES = new Set([
@@ -60,6 +65,8 @@ const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === 'obj
 const str = (x: unknown): string | undefined => (typeof x === 'string' ? x : undefined);
 const opt = (o: Record<string, unknown>, k: string): Record<string, string> =>
   typeof o[k] === 'string' ? { [k]: o[k] as string } : {};
+const strings = (x: unknown): string[] | null =>
+  Array.isArray(x) && x.every((v) => typeof v === 'string') ? (x as string[]) : null;
 
 function approvalOf(x: unknown): Approval | null {
   if (!isRecord(x) || !VERBS.has(String(x.verb)) || !Array.isArray(x.placeIds)) return null;
@@ -67,12 +74,24 @@ function approvalOf(x: unknown): Approval | null {
   return { verb: x.verb as Approval['verb'], placeIds: x.placeIds as string[] };
 }
 
+function questionOf(x: unknown): Question | null {
+  const action = isRecord(x) && str(x.id) ? approvalOf(x.action) : null;
+  return isRecord(x) && action ? { id: String(x.id), action, ...opt(x, 'reason') } : null;
+}
+
+function hoursOf(x: unknown): BusinessHours | null {
+  if (!isRecord(x) || !str(x.open) || !str(x.close)) return null;
+  const days = Array.isArray(x.days) ? x.days.filter((d): d is number => Number.isInteger(d)) : [];
+  return { open: String(x.open), close: String(x.close), ...(days.length ? { days } : {}) };
+}
+
 function candidateOf(x: unknown): Candidate[] {
   if (!isRecord(x) || !CANDIDATE.has(String(x.status)) || typeof x.attempts !== 'number') return [];
   const [placeId, name, phone, why] = [x.placeId, x.name, x.phone, x.why].map(str);
   if (!placeId || name === undefined || phone === undefined || why === undefined) return [];
-  const hours = isRecord(x.hours) && str(x.hours.open) && str(x.hours.close) ? x.hours : null;
+  const hours = hoursOf(x.hours);
   const approval = approvalOf(x.approval);
+  const dials = strings(x.dials);
   return [
     {
       placeId,
@@ -82,9 +101,12 @@ function candidateOf(x: unknown): Candidate[] {
       status: x.status as Candidate['status'],
       attempts: x.attempts,
       ...(LINES.has(String(x.lineType)) ? { lineType: x.lineType as Candidate['lineType'] } : {}),
-      ...(hours ? { hours: { open: String(hours.open), close: String(hours.close) } } : {}),
+      ...(hours ? { hours } : {}),
       ...(typeof x.lineChecked === 'boolean' ? { lineChecked: x.lineChecked } : {}),
       ...(approval ? { approval } : {}),
+      ...(dials ? { dials } : {}),
+      ...opt(x, 'due'),
+      ...opt(x, 'callKey'),
     },
   ];
 }
@@ -122,6 +144,7 @@ export function toErrand(id: string, data: unknown): Errand | null {
   const c = isRecord(data.constraints) ? data.constraints : null;
   if (s.some((x) => x === undefined) || !c || !KINDS.has(String(data.kind))) return null;
   if (!ALL_STATES.has(String(data.state)) || typeof data.stepVersion !== 'number') return null;
+  if (typeof data.revision !== 'number' || typeof data.asks !== 'number') return null;
   const [userId, goal, zone, step, createdAt, updatedAt, env] = s as string[];
   const outcome = outcomeOf(data.outcome);
   return {
@@ -134,9 +157,12 @@ export function toErrand(id: string, data: unknown): Errand | null {
     state: data.state as ErrandState,
     step,
     stepVersion: data.stepVersion,
+    revision: data.revision,
     nextWakeAt: str(data.nextWakeAt) ?? null,
     candidates: Array.isArray(data.candidates) ? data.candidates.flatMap(candidateOf) : [],
-    pending: approvalOf(data.pending),
+    pending: questionOf(data.pending),
+    queue: Array.isArray(data.queue) ? data.queue.flatMap((q) => questionOf(q) ?? []) : [],
+    asks: data.asks,
     approvals: Array.isArray(data.approvals)
       ? data.approvals.flatMap((a) => approvalOf(a) ?? [])
       : [],
@@ -176,6 +202,22 @@ const queuedEffect = (e: Errand, f: OutboxEffect['effect'], at: string): OutboxE
   ...{ leaseUntil: null, leaseId: null, providerRef: null },
 });
 
+/** Takes a bad doc out of due() for good: no wake time, and why, for a person to look at. */
+async function quarantine(
+  db: Firestore,
+  ref: DocumentReference,
+  data: unknown,
+  why: string,
+  now: Date
+): Promise<void> {
+  log.warn({ docId: ref.id, why }, 'Quarantined an errand document');
+  const raw = isRecord(data) ? data : {};
+  await db.runTransaction(async (tx) => {
+    tx.set(ref, { ...raw, nextWakeAt: null, quarantined: { at: now.toISOString(), why } });
+    return Promise.resolve();
+  });
+}
+
 export function createErrandStore(db: Firestore, makeId: () => string = newId): ErrandStore {
   const errands = (userId: string): CollectionReference => errandsOf(db, userId);
 
@@ -192,8 +234,9 @@ export function createErrandStore(db: Firestore, makeId: () => string = newId): 
       const at = now.toISOString();
       const e: Errand = {
         ...n,
-        ...{ id: makeId(), state: 'planning', step: 'find', stepVersion, nextWakeAt: null },
-        ...{ candidates: [], pending: null, approvals: [], createdAt: at, updatedAt: at },
+        ...{ id: makeId(), state: 'planning', step: 'find', stepVersion, revision: 0 },
+        ...{ nextWakeAt: null, candidates: [], pending: null, queue: [], asks: 0, approvals: [] },
+        ...{ createdAt: at, updatedAt: at },
       };
       await db.runTransaction(async (tx) => {
         tx.set(errands(e.userId).doc(e.id), e);
@@ -220,10 +263,22 @@ export function createErrandStore(db: Firestore, makeId: () => string = newId): 
         .orderBy('nextWakeAt')
         .limit(limit)
         .get();
-      return parsed(snap.docs);
+      const ok: Errand[] = [];
+      for (const d of snap.docs) {
+        const e = toErrand(d.id, d.data());
+        const why = !e
+          ? 'unreadable'
+          : STEP_VERSIONS.includes(e.stepVersion)
+            ? null
+            : 'unknown stepVersion';
+        if (e && !why) ok.push(e);
+        // eslint-disable-next-line no-await-in-loop -- one write per bad doc, rare
+        else await quarantine(db, d.ref, d.data(), why ?? 'unreadable', now);
+      }
+      return ok;
     },
 
-    async save(next, expectedUpdatedAt, events = [], effects = []) {
+    async save(next, expectedRevision, events = [], effects = []) {
       const ref = errands(next.userId).doc(next.id);
       const keys = effects.map(({ idemKey }) =>
         effectDoc(db, { userId: next.userId, errandId: next.id, idemKey })
@@ -231,7 +286,7 @@ export function createErrandStore(db: Firestore, makeId: () => string = newId): 
       return db.runTransaction(async (tx) => {
         const snap = await tx.get(ref);
         const current = snap.exists ? toErrand(next.id, snap.data()) : null;
-        if (!current || current.updatedAt !== expectedUpdatedAt) return false;
+        if (!current || current.revision !== expectedRevision) return false;
         const queued = await Promise.all(keys.map(async (k) => tx.get(k)));
         tx.set(ref, next);
         append(tx, next, events);

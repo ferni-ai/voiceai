@@ -3,7 +3,8 @@ import type { Firestore } from '@google-cloud/firestore';
 // A Firestore fake with only the calls the follow-through and errand stores make:
 // documents by path, where (==, in, >=, <, <=), orderBy, limit, collectionGroup and
 // transactions. Transactions are optimistic like Firestore's: writes are buffered,
-// and if a document read inside one changed before it commits, it runs again.
+// a read after a write throws, and if a document read inside one changed before it
+// commits, it runs again.
 type Cond = [string, string, unknown];
 export function fakeFirestore() {
   const docs = new Map<string, Record<string, unknown>>();
@@ -11,11 +12,13 @@ export function fakeFirestore() {
   const version = (path: string): number => versions.get(path) ?? 0;
   const snapOf = (path: string) => ({
     id: path.split('/').pop() ?? '',
+    ref: docRef(path),
     exists: docs.has(path),
     data: () => docs.get(path),
   });
   const docRef = (path: string): Record<string, unknown> => ({
     path,
+    id: path.split('/').pop() ?? '',
     collection: (name: string) => coll(`${path}/${name}`),
     get: async () => snapOf(path),
   });
@@ -60,6 +63,7 @@ export function fakeFirestore() {
         const writes: Array<[string, Record<string, unknown>]> = [];
         const result = await fn({
           get: async (ref: { path: string }) => {
+            if (writes.length) throw new Error('fake transaction: a read after a write');
             reads.set(ref.path, version(ref.path));
             return snapOf(ref.path);
           },
