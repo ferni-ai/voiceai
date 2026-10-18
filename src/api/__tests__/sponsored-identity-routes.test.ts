@@ -38,6 +38,32 @@ vi.mock('../auth-middleware.js', () => ({
   }),
 }));
 
+const holder = vi.hoisted(() => ({
+  startHolderVerification: vi.fn(async (_route: string, _uid: string) => ({ started: true })),
+}));
+vi.mock('../../services/messaging/holder-verification.js', async (orig) => {
+  const real = await orig<typeof import('../../services/messaging/holder-verification.js')>();
+  return {
+    ...real,
+    handleHolderVerifyRoute: (
+      req: IncomingMessage,
+      res: ServerResponse,
+      route: string,
+      uid: string,
+      send: Parameters<typeof real.handleHolderVerifyRoute>[4]
+    ) =>
+      real
+        .handleHolderVerifyRoute(req, res, route, uid, send, {
+          ...real.defaultHolderDeps(),
+          byId: async () => undefined,
+        })
+        .then(async (handled) => {
+          if (handled) await holder.startHolderVerification(route, uid);
+          return handled;
+        }),
+  };
+});
+
 import { handleSponsoredIdentityRoutes } from '../sponsored-identity-routes.js';
 
 function request(method: string, headers: Record<string, string>): IncomingMessage {
@@ -127,5 +153,20 @@ describe('sponsored identity routes', () => {
     );
 
     expect(res.status).toBe(200);
+  });
+});
+
+describe('POST /api/sponsored-identities/:id/verify-phone', () => {
+  it('is routed for the signed-in sponsor from the verified token', async () => {
+    const res = response();
+    await handleSponsoredIdentityRoutes(
+      request('POST', { authorization: 'Bearer verified-sponsor-1' }),
+      res,
+      '/api/sponsored-identities/sponsored_mom/verify-phone'
+    );
+    expect(holder.startHolderVerification).toHaveBeenCalledWith(
+      '/sponsored_mom/verify-phone',
+      'sponsor-1'
+    );
   });
 });

@@ -22,6 +22,7 @@ import { handlePushInteraction } from '../services/outreach/delivery/push-notifi
 import { recordCheckinReply } from '../services/outreach/checkin-replies.js';
 import { recordInboundSmsConsent } from '../services/messaging/consent.js';
 import { recordContactYes } from '../services/messaging/consent-grants.js';
+import { recordHolderCode } from '../services/messaging/holder-verification.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { isSignedByTwilio } from './twilio-callback-signature.js';
 import { URL } from 'url';
@@ -186,6 +187,7 @@ export async function handleOutreachWebhookRoutes(
         // MESSAGING_PIPELINE: STOP/START from any text lands in the one consent record.
         await recordInboundSmsConsent(body.From, body.Body);
         await recordContactYes(body.From, body.Body, body.MessageSid); // a YES to the last text, an ask
+        await recordHolderCode(body.From, body.Body); // a sponsored holder confirming their phone
       }
 
       if (result.twiml) {
