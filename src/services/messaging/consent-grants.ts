@@ -24,7 +24,14 @@
  * @module services/messaging/consent-grants
  */
 import { createLogger } from '../../utils/safe-logger.js';
-import { last4, phoneHash, phoneHashKeyVersion, toE164 } from '../outreach/checkin-replies.js';
+import {
+  firestoreReplyStore,
+  last4,
+  phoneHash,
+  phoneHashKeyVersion,
+  toE164,
+  type StoredCheckin,
+} from '../outreach/checkin-replies.js';
 import { isCohortMember } from '../platform/cohort-flags.js';
 import {
   consentBlocks,
@@ -49,6 +56,21 @@ interface ConsentAsk {
   at: string;
   by: string;
   channels: ConsentChannel[];
+  /** The ask text's refId in feature_checkins, to tell it from any later text. */
+  ref?: string;
+}
+
+/** A YES counts only while the ask is the last text to that number, and this recent. */
+export const YES_WINDOW_MS = 48 * 60 * 60 * 1000;
+const MESSAGE_SID = /^[A-Za-z0-9]{10,64}$/;
+/** The texts sent to a phone (feature_checkins), newest not guaranteed first. */
+export type TextsToPhone = (hash: string) => Promise<StoredCheckin[]>;
+
+/** The newest text actually sent to this phone, from anyone. */
+function latestSent(texts: readonly StoredCheckin[]): StoredCheckin | undefined {
+  return texts
+    .filter((t) => t.status === 'sent' && !Number.isNaN(Date.parse(t.sentAt)))
+    .sort((a, b) => Date.parse(b.sentAt) - Date.parse(a.sentAt))[0];
 }
 
 function askOf(doc: Record<string, unknown> | undefined): ConsentAsk | null {
@@ -118,7 +140,8 @@ export async function hasGrant(
 export async function claimConsentAsk(
   hash: string,
   ownerUid: string,
-  deps: ConsentDeps = defaultConsentDeps()
+  deps: ConsentDeps = defaultConsentDeps(),
+  ref?: string
 ): Promise<string | null> {
   const now = deps.now();
   const at = now.toISOString();
@@ -127,7 +150,8 @@ export async function claimConsentAsk(
     const prev = askOf(doc);
     claimed = !prev || !within(prev.at, now);
     if (!claimed) return doc ?? {};
-    return { ...doc, ask: { at, by: ownerUid, channels: ['sms'] }, updatedAt: at };
+    const ask = { at, by: ownerUid, channels: ['sms'], ...(ref !== undefined && { ref }) };
+    return { ...doc, ask, updatedAt: at };
   });
   return claimed ? at : null;
 }
@@ -157,23 +181,34 @@ export async function holdsConsentAsk(
 }
 
 /**
- * Inbound hook: a contact's YES to a consent ask from the last 30 days grants
- * the owner who asked (ask.by) the asked channels (source contact-yes) and
- * closes the ask. A YES with no open ask, or from a number that opted out,
- * changes nothing. Never throws.
+ * Inbound hook: a contact's YES grants the owner who asked (ask.by) the asked
+ * channels (source contact-yes) and closes the ask, but only when that ask is
+ * still the LAST text sent to the number, within 48 hours: an "ok" after any
+ * later text (another owner's, a reminder) may answer that one instead. Each
+ * inbound MessageSid counts once, so a replayed webhook grants nothing. A YES
+ * from a number that opted out changes nothing. Never throws.
  */
 export async function recordContactYes(
   from: unknown,
   body: unknown,
-  deps: ConsentDeps = defaultConsentDeps()
+  messageSid: unknown,
+  deps: ConsentDeps = defaultConsentDeps(),
+  textsTo: TextsToPhone = async (h) => firestoreReplyStore.forPhoneHash(h)
 ): Promise<ConsentChannel[] | null> {
   if (typeof from !== 'string' || typeof body !== 'string' || !isConsentYes(body)) return null;
   const e164 = toE164(from);
   const hash = e164 ? phoneHash(e164, deps.env) : null;
-  if (!e164 || !hash) return null;
+  const sid = typeof messageSid === 'string' && MESSAGE_SID.test(messageSid) ? messageSid : null;
+  if (!e164 || !hash || !sid) return null;
   try {
     const ask = askOf(await deps.store.read(hash));
-    if (!ask || !within(ask.at, deps.now())) return null;
+    const last = latestSent(await textsTo(hash));
+    const now = deps.now().getTime();
+    const answersAsk =
+      ask?.ref !== undefined &&
+      last?.refId === ask.ref &&
+      now - Date.parse(last.sentAt) < YES_WINDOW_MS;
+    if (!ask || !answersAsk || !(await firstSighting(hash, sid, deps))) return null;
     const consent = await readConsent(hash, deps);
     const channels = ask.channels.filter((c) => consent[c].state !== 'opted-out');
     if (channels.length > 0) await writeGrant(hash, ask.by, channels, 'contact-yes', deps);
@@ -184,6 +219,17 @@ export async function recordContactYes(
     log.error({ error: String(error), phoneLast4: last4(e164) }, 'Contact yes not saved');
     return null;
   }
+}
+
+/** Records an inbound MessageSid atomically; false when it was seen before (a replay). */
+async function firstSighting(hash: string, sid: string, deps: ConsentDeps): Promise<boolean> {
+  let fresh = false;
+  await deps.store.apply(hash, (doc) => {
+    const seen = Array.isArray(doc?.seenSids) ? (doc.seenSids as string[]) : [];
+    fresh = !seen.includes(sid);
+    return fresh ? { ...doc, seenSids: [...seen, sid].slice(-20) } : (doc ?? {});
+  });
+  return fresh;
 }
 
 /**

@@ -50,7 +50,7 @@ describe('POST /api/outreach/webhooks/twilio/sms-inbound', () => {
     const { req, res } = post();
     await handleOutreachWebhookRoutes(req, res, PATH);
     expect(recordInboundSmsConsent).toHaveBeenCalledWith(params.From, params.Body);
-    expect(recordContactYes).toHaveBeenCalledWith(params.From, params.Body);
+    expect(recordContactYes).toHaveBeenCalledWith(params.From, params.Body, params.MessageSid);
   });
 
   it('never records anything (no opt-out, no reply) for an unsigned or forged message', async () => {

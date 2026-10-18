@@ -68,7 +68,7 @@ export async function sendConsentAsk(
   if (await hasGrant(hash, req.senderUserId, 'sms', deps.consent)) {
     return { sent: false, reason: 'already-consented' };
   }
-  const claim = await claimConsentAsk(hash, req.senderUserId, deps.consent);
+  const claim = await claimConsentAsk(hash, req.senderUserId, deps.consent, req.refId);
   if (!claim) return { sent: false, reason: 'asked-recently' };
   const owner = req.ownerName ?? ownerFirstName(await deps.text.store.userDoc(req.senderUserId));
   const outcome = await sendOnBehalfText(

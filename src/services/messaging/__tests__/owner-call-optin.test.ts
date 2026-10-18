@@ -58,6 +58,37 @@ describe('undoOwnCallOptOut', () => {
     expect(m.legacyCall.has(OWN)).toBe(true);
   });
 
+  it('MESSAGING_PIPELINE off: nothing changes', async () => {
+    const { m, deps } = setup();
+    deps.consent = { ...deps.consent, env: { LOG_HASH_SECRET: 'test-secret' } };
+    expect(await undoOwnCallOptOut('owner-1', deps)).toEqual({ ok: false, reason: 'pipeline-off' });
+    expect(m.legacyCall.has(OWN)).toBe(true);
+    expect(deps.verifiedPhone).not.toHaveBeenCalled();
+  });
+
+  it('a sponsored identity is refused: a sponsor-typed number is not proven theirs', async () => {
+    const { m, deps } = setup();
+    expect(await undoOwnCallOptOut('sponsored_abc', deps)).toEqual({
+      ok: false,
+      reason: 'sponsored',
+    });
+    expect(m.legacyCall.has(OWN)).toBe(true);
+  });
+
+  it('a dry run writes nothing; an operator run is recorded as admin-undo', async () => {
+    const { m, consent, deps } = setup();
+    expect(await undoOwnCallOptOut('owner-1', deps, { dryRun: true })).toEqual({
+      ok: true,
+      phoneLast4: '0199',
+      dryRun: true,
+    });
+    expect(m.legacyCall.has(OWN)).toBe(true);
+    expect(m.docs.size).toBe(0);
+    await undoOwnCallOptOut('owner-1', deps, { source: 'admin-undo' });
+    const hash = phoneHash(OWN, env) as string;
+    expect((await readConsent(hash, consent)).call.source).toBe('admin-undo');
+  });
+
   it('a failed write is reported, never claimed done', async () => {
     const { deps } = setup();
     deps.removeCallOptOut = vi.fn(async () => Promise.reject(new Error('unavailable')));

@@ -136,8 +136,9 @@ export async function handleOutreachRoutes(
     // The owner lifts a do-not-call on their own verified number (never one from the request).
     if (route === '/consent/calls/undo' && method === 'POST') {
       const { undoOwnCallOptOut } = await import('../services/messaging/owner-call-optin.js');
-      const out = await undoOwnCallOptOut(authenticatedUserId);
-      sendJsonResponse(res, out.ok ? 200 : 409, { success: out.ok, ...out });
+      const out = await undoOwnCallOptOut(authenticatedUserId); // 404 until MESSAGING_PIPELINE
+      const status = out.ok ? 200 : out.reason === 'pipeline-off' ? 404 : 409;
+      sendJsonResponse(res, status, { success: out.ok, ...out });
       return true;
     }
     if (route === '/preferences' && method === 'GET') {

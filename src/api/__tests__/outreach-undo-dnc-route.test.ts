@@ -48,6 +48,13 @@ describe('POST /api/outreach/consent/calls/undo', () => {
     expect(undoOwnCallOptOut).toHaveBeenCalledWith('owner-1');
   });
 
+  it('MESSAGING_PIPELINE off: 404, the route does not exist yet', async () => {
+    undoOwnCallOptOut.mockResolvedValueOnce({ ok: false, reason: 'pipeline-off' } as never);
+    const { req, res } = post();
+    await handleOutreachRoutes(req, res, PATH, new URL(`http://x${PATH}`));
+    expect(res.writeHead).toHaveBeenCalledWith(404, expect.anything());
+  });
+
   it('without a login, nothing is changed', async () => {
     auth.userId = null;
     const { req, res } = post();
