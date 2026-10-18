@@ -379,6 +379,8 @@ export const FLAG_MANIFEST = {
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_STYLE_REMINDER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a turn_input_tokens line per turn, the model's input in four parts (turn-input-tokens.ts)
+  TURN_TOKEN_RECEIPT: { default: 'off', owner: 'voice', kind: 'config' },
   UI_EVENTS_OVER_CALL: { default: 'off', owner: 'platform', kind: 'experiment' },
   UNFINISHED_TURN_HOLD: { default: 'on', owner: 'voice', kind: 'config' },
   USE_FIRESTORE_BILLING: { default: 'off', owner: 'billing', kind: 'experiment' },
