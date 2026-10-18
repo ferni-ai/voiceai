@@ -18,6 +18,7 @@ import { buyCosmetic, canPurchase, COSMETICS_CATALOG, equipCosmetic, getCosmetic
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
+import { asModalDialog } from '../utils/accessibility.js';
 
 const log = createLogger('PersonalizeUI');
 
@@ -424,9 +425,7 @@ const CATEGORY_LABEL_KEYS: Record<CosmeticType | 'all', string> = {
 // HMR CLEANUP - Required per brand guidelines
 // ============================================================================
 
-/**
- * Clean up any orphaned elements from HMR reloads
- */
+/** Clean up any orphaned elements from HMR reloads */
 function cleanupOrphanedElements(): void {
   document.querySelectorAll('.personalize-overlay').forEach((el) => el.remove());
   document.querySelectorAll('.personalize-toast').forEach((el) => el.remove());
@@ -464,6 +463,9 @@ function createModal(): HTMLElement {
     </div>
   `;
 
+  // A modal dialog: named, Escape closes it, dialog-focus moves focus in and traps Tab
+  asModalDialog(overlay.querySelector('.personalize-card') as HTMLElement, { labelledBy: 'personalize-title' }, () => isOpen && container === overlay, close);
+
   overlay.querySelector('.personalize-backdrop')?.addEventListener('click', close);
   overlay.querySelector('.personalize-close')?.addEventListener('click', close);
 
@@ -478,7 +480,7 @@ function renderHeader(): string {
     <div class="personalize-header">
       <button class="personalize-close" aria-label="${t('common.close')}">${CLOSE_ICON}</button>
       <p class="personalize-eyebrow">${t('personalize.eyebrow')}</p>
-      <h2 class="personalize-title">${t('personalize.title')}</h2>
+      <h2 class="personalize-title" id="personalize-title">${t('personalize.title')}</h2>
       <p class="personalize-subtitle">${t('personalize.subtitle')}</p>
     </div>
   `;
@@ -514,9 +516,7 @@ function renderCategories(): string {
   `;
 }
 
-/**
- * Render a visual preview for a cosmetic item
- */
+/** Render a visual preview for a cosmetic item */
 function renderPreview(item: CosmeticItem): string {
   switch (item.type) {
     case 'avatar-skin': {

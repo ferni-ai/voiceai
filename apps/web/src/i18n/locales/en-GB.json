@@ -9457,7 +9457,8 @@
       "household": "your household",
       "lifeContext": "your life context",
       "ritualBuilder": "the ritual builder",
-      "notificationSettings": "notification settings"
+      "notificationSettings": "notification settings",
+      "yourYear": "This Year Together"
     },
     "updated": "Ferni just got an update. Refresh the page to open {screen}.",
     "ritualCreated": "\"{name}\" created! You've got this."
@@ -11129,5 +11130,8 @@
     "helper": "Scan with your phone's camera, or tap Open Venmo. You can change the amount.",
     "maybeLater": "Maybe later",
     "close": "Close"
+  },
+  "panelShell": {
+    "gettingReady": "One moment, I'm getting this ready for you"
   }
 }
