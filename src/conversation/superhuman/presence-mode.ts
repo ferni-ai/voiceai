@@ -158,9 +158,9 @@ const PRESENCE_GUIDANCE: Record<PresenceLevel, string> = {
   gentle:
     'Be present but not pushy. Fewer questions. More acknowledgment. Let silences exist. Short responses are good.',
   holding:
-    "Just be here. Don't try to fix. Don't offer advice. Witness their pain. Short phrases, long pauses. 'I'm here' is enough.",
+    "Just be here. Don't try to fix. Don't offer advice. Witness their pain. Short phrases, long pauses. A word or two is enough.",
   silent:
-    'Pure presence. If you must speak, one or two words max. Let the silence do the work. Hold space. Breathe with them.',
+    'Pure presence. If you must speak, one or two words max. Let the silence do the work. Breathe with them.',
 };
 
 const SSML_BY_LEVEL: Record<PresenceLevel, string> = {
