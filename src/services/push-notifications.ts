@@ -146,15 +146,32 @@ class PushNotificationsBackendService {
   private subscriptions = new Map<string, PushSubscription[]>();
   private scheduledNotifications = new Map<string, ScheduledNotification>();
   private initialized = false;
+  /** One initialization, shared: callers wait for it instead of racing it. */
+  private initializing: Promise<void> | null = null;
 
   // Persistence stores
   private subscriptionStore: PersistenceStore<UserSubscriptionsData> | null = null;
   private scheduledStore: PersistenceStore<ScheduledNotificationsData> | null = null;
 
   /**
-   * Initialize the service with VAPID keys and persistence
+   * Initialize the service with VAPID keys and persistence. Safe to call more
+   * than once: every caller waits for the same run.
+   *
+   * getPushNotificationsService() starts this without waiting, and the web
+   * server never awaits it at boot, so the first send or subscribe in a fresh
+   * process used to run before the stores and VAPID details existed: a send
+   * found no subscriptions and returned false, and a subscribe answered success
+   * without saving anything. Sends and subscription changes now wait here.
    */
   async initialize(): Promise<void> {
+    this.initializing ??= this.runInitialize().catch((error: unknown) => {
+      this.initializing = null; // let the next caller try again
+      throw error;
+    });
+    await this.initializing;
+  }
+
+  private async runInitialize(): Promise<void> {
     if (this.initialized) return;
 
     // Initialize persistence stores
@@ -235,6 +252,7 @@ class PushNotificationsBackendService {
    * moves from a previous owner only with the same keys (EndpointOwnedError otherwise).
    */
   async registerSubscription(subscription: PushSubscription): Promise<void> {
+    await this.initialize();
     const { endpoint, keys, userId } = subscription;
     const previousOwner = await claimEndpoint(endpoint, keys, userId);
     if (previousOwner) await this.removeSubscription(previousOwner, endpoint);
@@ -256,6 +274,7 @@ class PushNotificationsBackendService {
    * Remove a push subscription
    */
   async removeSubscription(userId: string, endpoint: string): Promise<void> {
+    await this.initialize();
     const filtered = (await this.loadSubscriptions(userId)).filter((s) => s.endpoint !== endpoint);
     if (filtered.length > 0) {
       this.subscriptions.set(userId, filtered);
@@ -273,6 +292,7 @@ class PushNotificationsBackendService {
    * Send a push notification to a user
    */
   async sendNotification(userId: string, payload: PushNotificationPayload): Promise<boolean> {
+    await this.initialize();
     const userSubs = await this.loadSubscriptions(userId);
     if (userSubs.length === 0) {
       getLogger().debug({ userId }, 'No subscriptions for user');
@@ -299,12 +319,15 @@ class PushNotificationsBackendService {
           sent = true;
         }
       } catch (error) {
+        // Never the endpoint or the error object: web-push's error carries the
+        // endpoint, and whoever holds an endpoint (with its keys) can push to it.
+        const statusCode = (error as { statusCode?: unknown } | null)?.statusCode;
         getLogger().warn(
-          { error, userId, endpoint: sub.endpoint },
+          { userId, platform: sub.platform, statusCode },
           'Failed to send push notification'
         );
 
-        // Remove invalid subscription
+        // Gone (404/410): the browser dropped it, so stop sending to it
         if (this.isSubscriptionExpired(error)) {
           await this.removeSubscription(userId, sub.endpoint);
         }
@@ -658,7 +681,9 @@ let instance: PushNotificationsBackendService | null = null;
 export function getPushNotificationsService(): PushNotificationsBackendService {
   if (!instance) {
     instance = new PushNotificationsBackendService();
-    void instance.initialize();
+    instance.initialize().catch((error: unknown) => {
+      getLogger().warn({ error: String(error) }, 'Push notifications service not initialized yet');
+    });
   }
   return instance;
 }

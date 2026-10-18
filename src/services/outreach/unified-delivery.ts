@@ -386,7 +386,9 @@ async function deliverVoiceCall(
 }
 
 /**
- * Deliver via Push Notification using FCM
+ * Deliver via Push Notification: the person's browsers first when
+ * WEB_PUSH_DELIVERY is on for them (web-push-delivery.ts), then FCM device
+ * tokens, then an in-app note.
  */
 async function deliverPush(
   userId: string,
@@ -394,6 +396,14 @@ async function deliverPush(
   outreachType: OutreachType,
   triggerId?: string
 ): Promise<DeliveryResult> {
+  const { sendOutreachWebPush } = await import('./web-push-delivery.js');
+  const note = { text: content.text, personaId: content.personaId, kind: outreachType, triggerId };
+  if (await sendOutreachWebPush(userId, note)) {
+    const messageId = `webpush-${Date.now()}`;
+    await recordDelivery(userId, 'push', messageId, outreachType, triggerId);
+    return { success: true, channel: 'push', messageId };
+  }
+
   const creds = await loadCredentials();
   if (!creds.fcm) {
     // Fall back to in-app
