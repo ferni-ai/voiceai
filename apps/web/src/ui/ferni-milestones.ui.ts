@@ -79,6 +79,7 @@ interface Milestone {
   // Has this milestone been celebrated?
   celebrated: boolean;
   celebratedAt?: number;
+  outreachDone?: boolean; // the server answered sent or already-sent; until then it retries
   // Progress tracking (for multi-step milestones)
   progress?: number;
   target?: number;
@@ -518,6 +519,11 @@ function setupEventListeners(): void {
 // ============================================================================
 
 function trackConversationStart(): void {
+  // Email/SMS the server hasn't confirmed yet (e.g. it said not-reached on the call that crossed
+  // the threshold) gets another try, for a week; older ones are never re-sent from here
+  milestones
+    .filter((m) => m.celebrated && !m.outreachDone && Date.now() - (m.celebratedAt ?? 0) < 7 * 864e5)
+    .forEach(sendMilestoneOutreach);
   const now = new Date();
   const today = now.toISOString().split('T')[0] ?? '';
 
@@ -746,26 +752,16 @@ function checkAndCelebrate(milestoneId: MilestoneType): void {
   log.info('Milestone celebrated:', milestoneId);
 }
 
+const EMAIL_MILESTONES = new Set<string>(['first-hello', 'week-together', 'month-of-growth',
+  'three-month', 'six-month', 'one-year', 'streak-7', 'streak-30', 'hundred-conversations', 'fifty-talks']);
+
 /**
  * Send milestone celebration via email/SMS.
  * Better than human: we celebrate your growth across channels.
  */
 function sendMilestoneOutreach(milestone: Milestone): void {
   // Only send for significant milestones to avoid overwhelming users
-  const emailMilestones = [
-    'first-hello',
-    'week-together',
-    'month-of-growth',
-    'three-month',
-    'six-month',
-    'one-year',
-    'streak-7',
-    'streak-30',
-    'hundred-conversations',
-    'fifty-talks',
-  ];
-
-  if (!emailMilestones.includes(milestone.id)) return;
+  if (!EMAIL_MILESTONES.has(milestone.id)) return;
 
   // The server checks the milestone against its own records, counts for itself and
   // sends each one once per user, so this browser's local numbers are not sent
@@ -774,6 +770,11 @@ function sendMilestoneOutreach(milestone: Milestone): void {
       milestoneId: milestone.id,
       milestoneName: t(milestone.name),
       milestoneMessage: t(milestone.message),
+    })
+    .then((result) => {
+      if (!result.sent && result.reason !== 'already-sent') return; // retried next call
+      milestone.outreachDone = true;
+      saveState();
     })
     .catch((error) => {
       log.warn('Failed to send milestone outreach:', error);
@@ -1220,6 +1221,7 @@ function saveState(): void {
         id: m.id,
         celebrated: m.celebrated,
         celebratedAt: m.celebratedAt,
+        outreachDone: m.outreachDone,
         progress: m.progress,
       })),
       progress: {
@@ -1252,6 +1254,7 @@ function loadState(): void {
           if (milestone) {
             milestone.celebrated = savedMilestone.celebrated;
             milestone.celebratedAt = savedMilestone.celebratedAt;
+            milestone.outreachDone = savedMilestone.outreachDone;
             milestone.progress = savedMilestone.progress;
           }
         }

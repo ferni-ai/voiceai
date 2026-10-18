@@ -85,15 +85,35 @@ function claimRef(userId: string, milestoneId: string) {
   return db.collection('bogle_users').doc(userId).collection('milestone_outreach').doc(milestoneId);
 }
 
-/** Claim the milestone for this user. False when it was already claimed (sent before). */
+/** A claim with no sentAt this old belongs to a send that died: it may be taken again. */
+export const STALE_CLAIM_MS = 15 * 60 * 1000;
+
+const asMs = (v: unknown): number =>
+  ((v as { toDate?: () => Date })?.toDate?.() ?? new Date(v as string)).getTime();
+
+/**
+ * Claim the milestone for this user. False when it was sent (sentAt) or another send is
+ * in flight; a claim left with no sentAt for 15 minutes is taken over instead of blocking
+ * the milestone forever.
+ */
 async function claim(userId: string, milestoneId: string): Promise<boolean> {
+  const ref = claimRef(userId, milestoneId);
   try {
-    await claimRef(userId, milestoneId).create({ milestoneId, claimedAt: new Date() });
+    await ref.create({ milestoneId, claimedAt: new Date() });
     return true;
   } catch (error) {
     const code = (error as { code?: unknown }).code;
-    if (code === 6 || code === 'already-exists' || code === 'ALREADY_EXISTS') return false;
-    throw error;
+    if (code !== 6 && code !== 'already-exists' && code !== 'ALREADY_EXISTS') throw error;
+  }
+  const snap = await ref.get();
+  const data = snap.data() ?? {};
+  if (data.sentAt || Date.now() - asMs(data.claimedAt) < STALE_CLAIM_MS) return false;
+  // Only if nobody touched it since we read it (two retries racing take it once)
+  try {
+    await ref.update({ claimedAt: new Date() }, { lastUpdateTime: snap.updateTime });
+    return true;
+  } catch {
+    return false; // the other retry took it
   }
 }
 
@@ -125,10 +145,15 @@ export async function sendMilestoneOutreach(
       return;
     }
 
+    // The app fires a milestone when the call that crosses it connects, before it has ended,
+    // so the live call counts here (only here): without it the milestone read as n-1 forever
     const sessions = await getSessionsTogether(userId, contactInfo.timezone);
+    const days = [...new Set([...sessions.days, ...sessions.inProgress.days])].sort();
     const facts: Facts = {
       ...sessions,
-      streak: currentDayStreak(sessions.days, new Date(), contactInfo.timezone),
+      count: sessions.count + sessions.inProgress.count,
+      days,
+      streak: currentDayStreak(days, new Date(), contactInfo.timezone),
     };
     if (!rule.reached(facts)) {
       sendJsonResponse(res, 200, { success: true, sent: false, reason: 'not-reached' });
@@ -153,14 +178,15 @@ export async function sendMilestoneOutreach(
       results.email = (await emailUser(userId, milestoneName, emailBody)).success;
     }
     if (contactInfo.phone && contactInfo.preferredMethod !== 'email') {
-      const smsBody = [`${milestoneName}: ${milestoneMessage}`, fact, '- Ferni']
+      const smsBody = [`${milestoneName}: ${milestoneMessage}`, fact] // textUser signs it
         .filter(Boolean)
         .join(' ');
       results.sms = (await textUser(userId, smsBody)).success;
     }
 
-    // Nothing went out: release the claim so a later try can still celebrate it
+    // Nothing went out: release the claim so a later try can still celebrate it. Sent: mark it
     if (!results.email && !results.sms) await claimRef(userId, milestoneId).delete();
+    else await claimRef(userId, milestoneId).update({ sentAt: new Date() });
 
     log.info({ userId, milestoneId, results }, 'Milestone outreach sent');
     sendJsonResponse(res, 200, { success: true, sent: !!(results.email || results.sms), results });
