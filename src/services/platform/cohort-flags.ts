@@ -82,6 +82,7 @@ export const COHORT_FLAGS = [
   // Read at agent build, a tool update and each turn's request, never at boot (same-turn-tools-config.ts).
   'TOOLS_SAME_TURN',
   'TEAM_VOICES',
+  'GOOD_NEWS_BIGGER',
   'FERNI_PERSONA_SLIP_GUARD',
   'DIRECTOR_PERSONA_AWARE',
   // Read after the call, through envForCaller, never process.env as applied.
