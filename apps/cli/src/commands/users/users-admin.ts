@@ -12,7 +12,7 @@
 
 import { spawnSync, type SpawnSyncReturns } from 'child_process';
 import { join } from 'path';
-import { handleWaitlistWave } from './waitlist-wave.js';
+import { handleWaitlistGuard, handleWaitlistWave } from './waitlist-wave.js';
 
 export type RunFn = (
   cmd: string,
@@ -112,6 +112,7 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
 
 export async function handleWaitlist(args: string[], deps: UsersAdminDeps): Promise<void> {
   if (args[0] === 'wave') return void (await handleWaitlistWave(args.slice(1), deps)); // waitlist-wave.ts
+  if (args[0] === 'guard') return handleWaitlistGuard(args.slice(1), deps);
   const [subcommand = 'status', target] = args;
   const script = 'approve-waitlist-user.ts';
   switch (subcommand) {

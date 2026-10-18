@@ -4,7 +4,8 @@
  * (as for deletions in users-admin.ts); never through a shell.
  *
  *   ferni waitlist wave --wave 0 --include signed-in,pending,friends-and-family [--apply]
- *   ferni waitlist wave [--apply]          the next wave now (guard and settings apply)
+ *   ferni waitlist wave [--apply]          a manual wave now (guard and settings apply)
+ *   ferni waitlist guard --check           the capacity guard's two readings, read-only
  */
 import { spawnSync } from 'child_process';
 import { join } from 'path';
@@ -30,7 +31,16 @@ export async function handleWaitlistWave(args: string[], deps: UsersAdminDeps): 
     }
   }
   const script = join(deps.scriptsDir, 'waitlist-wave.ts');
-  const argv = ['tsx', script, '--project', projectId, ...forwarded, ...(apply ? ['--apply'] : [])];
+  const confirmed = apply ? ['--apply', `--confirm-project=${projectId}`] : []; // typed above
+  const argv = ['tsx', script, '--project', projectId, ...forwarded, ...confirmed];
   (deps.run ?? ((cmd, a, o) => spawnSync(cmd, [...a], o)))('npx', argv, { stdio: 'inherit' });
   return true;
+}
+
+/** `ferni waitlist guard --check`: read-only; needs BILLING_EXPORT_TABLE in your shell for the cost. */
+export function handleWaitlistGuard(args: string[], deps: UsersAdminDeps): void {
+  if (!args.includes('--check')) return void console.log('Usage: ferni waitlist guard --check');
+  const script = join(deps.scriptsDir, 'waitlist-wave.ts');
+  const argv = ['tsx', script, '--project', deps.projectId ?? 'johnb-2025', '--guard-check'];
+  (deps.run ?? ((cmd, a, o) => spawnSync(cmd, [...a], o)))('npx', argv, { stdio: 'inherit' });
 }
