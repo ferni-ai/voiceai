@@ -1531,7 +1531,7 @@
         "title": "편하게 말씀하세요"
       },
       "welcome": {
-        "description": "당신만을 위한 AI 라이프 코치 팀이에요. 각 코치들이 저마다의 지혜로 당신의 여정을 도와줄 거예요.",
+        "description": "당신만을 위한 가이드 팀이에요. 저마다 자기만의 시선을 갖고 있어요.",
         "title": "Ferni에 오신 것을 환영해요"
       }
     },
@@ -3576,7 +3576,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "나만을 위한 AI 동반자",
+        "role": "나만을 위한 동반자",
         "description": "매일의 체크인부터 깊은 대화까지, 필요한 건 무엇이든 곁에서 함께할게요.",
         "unlockHint": "언제나 곁에 있어요",
         "unlockedMessage": "우리는 참 많은 것을 함께해 왔네요.",
@@ -3647,11 +3647,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — 나만의 AI 인생 동반자",
+      "title": "Ferni를 만나 보세요",
       "message": "요즘 Ferni를 쓰고 있는데, 하루를 보내는 마음가짐이 정말 달라졌어요. 같이 시작해 봐요! {url}",
       "shortMessage": "Ferni에서 저와 함께해요! {url}",
-      "emailSubject": "Ferni를 한번 써보세요",
-      "emailBody": "안녕하세요! 요즘 Ferni라는 앱을 쓰고 있는데, 정말 사람처럼 느껴지는 AI 동반자예요. 좋아하실 것 같아 공유해 드려요. {url}"
+      "emailSubject": "Ferni를 한번 써보세요"
     },
     "modal": {
       "title": "성장을 나누어 보세요",
@@ -4564,7 +4563,7 @@
     "title": "에이전트 페이지 만들기",
     "nameLabel": "에이전트 이름",
     "namePlaceholder": "예: Nate Holloway",
-    "nameHint": "AI 에이전트의 전체 이름",
+    "nameHint": "에이전트의 전체 이름",
     "initialsLabel": "이니셜",
     "initialsPlaceholder": "예: JD",
     "initialsHint": "아바타에 표시됩니다 (2~3자)",
@@ -7285,8 +7284,7 @@
       "description": "나와 함께 성장하는 나만의 음성 일기",
       "feature1": "매일 음성 일기 기록하기",
       "feature2": "과거의 나와 대화하기",
-      "feature3": "시간에 따른 성장 추적하기",
-      "feature4": "AI가 생성하는 인사이트"
+      "feature3": "시간에 따른 성장 추적하기"
     },
     "fictional": {
       "name": "가상 캐릭터",
@@ -9792,7 +9790,7 @@
     },
     "marketplace": {
       "headline": "나에게 딱 맞는 코치를 찾아보세요.",
-      "description": "Ferni 기본 팀을 넘어, 전문 분야를 가진 AI 코치들이 가득한 정원이 기다리고 있습니다. ADHD 지원, 금주 동반자, 수면 전문가, 육아 가이드 등 나의 특별한 여정을 깊이 이해하는 전문가들을 만나보세요.",
+      "description": "Ferni 기본 팀을 넘어, 전문 분야를 가진 코치들이 가득한 정원이 기다리고 있습니다. ADHD 지원, 금주 동반자, 수면 전문가, 육아 가이드 등 나의 특별한 여정을 깊이 이해하는 전문가들을 만나보세요.",
       "superhuman1": "특화된 페르소나 - 삶의 구체적인 고민들을 함께 해결할 코치들",
       "superhuman2": "커뮤니티 평점 - 실제 경험에서 우러나온 생생한 후기",
       "superhuman3": "무료 및 프리미엄 - 상황에 맞게 선택하는 든든한 지원",
@@ -9800,7 +9798,7 @@
     },
     "developerPortal": {
       "headline": "가치 있는 것을 직접 만들어 보세요.",
-      "description": "Ferni의 기술이 활짝 열립니다. 나만의 AI 코치를 빌드하고, 특화된 페르소나를 만들어, 내가 제공하는 가치를 꼭 필요로 하는 사람들에게 다가가 보세요. Ferni를 움직이는 바로 그 플랫폼을 이제 직접 경험해 보세요.",
+      "description": "Ferni의 기술이 활짝 열립니다. 나만의 코치를 빌드하고, 특화된 페르소나를 만들어, 내가 제공하는 가치를 꼭 필요로 하는 사람들에게 다가가 보세요. Ferni를 움직이는 바로 그 플랫폼을 이제 직접 경험해 보세요.",
       "superhuman1": "전체 API 문서 - 빌드에 필요한 모든 것",
       "superhuman2": "SDK 및 라이브러리 - TypeScript 기반 개발 지원",
       "superhuman3": "페르소나 빌더 - 코치를 시각적으로 손쉽게 만드는 도구",
@@ -10496,7 +10494,7 @@
   },
   "ferniAwakens": {
     "greeting": "안녕하세요.",
-    "subtext": "당신의 AI 라이프 코치, Ferni예요."
+    "subtext": "당신만의 가이드, Ferni예요."
   },
   "serviceHealth": {
     "names": {
@@ -10506,7 +10504,7 @@
       "historicalFacts": "역사적 사실",
       "smartHome": "스마트 홈",
       "lighting": "조명",
-      "aiContext": "AI 컨텍스트",
+      "aiContext": "기억 및 컨텍스트",
       "sleepHealth": "수면 및 건강 데이터",
       "other": "연결된 서비스"
     },
@@ -10662,9 +10660,6 @@
     "founderShort": "파운더",
     "patronShort": "후원자",
     "founderAria": "{tier} 등급이에요. 저희를 믿어주셔서 감사해요! 관리하려면 클릭하세요."
-  },
-  "splash": {
-    "tagline": "나만의 AI 팀이 준비되었어요"
   },
   "lifeCoachingHub": {
     "tabs": {
