@@ -452,7 +452,10 @@ jobs:
     outputs:
       revision: ${{ steps.deploy.outputs.revision }}
       url: ${{ steps.deploy.outputs.url }}
-    
+    env:
+      # The --set-secrets list for the deploy below; the preflight checks the same string.
+      UI_SECRETS: "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,CARTESIA_API_KEY=cartesia-api-key:latest,VAPID_PUBLIC_KEY=vapid-public-key:latest,VAPID_PRIVATE_KEY=vapid-private-key:latest,WAITLIST_APPROVAL_SECRET=waitlist-approval-secret:latest,DISPATCH_SIGNING_SECRET=dispatch-signing-secret:latest"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -466,6 +469,51 @@ jobs:
         uses: google-github-actions/setup-gcloud@v3
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
+
+      # 2026-10-17: a --set-secrets entry named a secret with no enabled version.
+      # The new revision could not start and Cloud Run kept serving the old one
+      # for 3.5h. Check every secret before deploying, and name each bad one.
+      - name: 🔐 Preflight - every mounted secret has an enabled version
+        id: preflight
+        run: |
+          set -u
+          bad=()
+          declare -A seen=()
+          IFS=',' read -ra entries <<< "$UI_SECRETS"
+          for entry in "${entries[@]}"; do
+            ref=${entry#*=}
+            secret=${ref%%:*}
+            version=latest
+            if [[ "$ref" == *:* ]]; then version=${ref#*:}; fi
+            if [[ -n "${seen[$secret:$version]:-}" ]]; then continue; fi
+            seen[$secret:$version]=1
+
+            if out=$(gcloud secrets versions list "$secret" --filter=state:ENABLED --limit=1 --format='value(name)' 2>&1); then
+              if [[ -z "$out" ]]; then
+                bad+=("$secret: no ENABLED version")
+              elif [[ "$version" != latest ]]; then
+                state=$(gcloud secrets versions describe "$version" --secret="$secret" --format='value(state)' 2>&1)
+                if [[ "$state" != ENABLED ]]; then bad+=("$secret:$version: $state"); fi
+              fi
+            elif [[ "$out" == *PERMISSION_DENIED* ]]; then
+              # No secretmanager.versions.list: probe the exact version Cloud Run
+              # will mount. The payload goes to /dev/null and is never printed.
+              if ! err=$(gcloud secrets versions access "$version" --secret="$secret" 2>&1 >/dev/null); then
+                bad+=("$secret:$version: $(head -1 <<< "$err")")
+              fi
+            else
+              bad+=("$secret: $(head -1 <<< "$out")")
+            fi
+          done
+
+          if (( ${#bad[@]} > 0 )); then
+            for b in "${bad[@]}"; do echo "::error title=Secret preflight::$b"; done
+            echo "### ❌ Secret preflight failed" >> "$GITHUB_STEP_SUMMARY"
+            printf -- '- %s\n' "${bad[@]}" >> "$GITHUB_STEP_SUMMARY"
+            echo "Add or enable a version of each secret above, then re-run. Not deploying."
+            exit 1
+          fi
+          echo "✅ ${#seen[@]} secret references, each with an enabled version"
 
       - name: 🟢 Deploy GREEN revision (no traffic)
         id: deploy
@@ -514,7 +562,7 @@ jobs:
             --max-instances 10 \
             --vpc-connector ferni-redis-connector \
             --set-env-vars "^::^NODE_ENV=production::BUILD_SHA=${{ github.sha }}::GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app::SIP_TRUNK_ID=ST_AEE6NnKE84XP::JOURNAL_TRANSCRIBE_VERTEX=on::MEMORY_VIEW=on::JOURNAL_ONE_STORE=on::CALL_HOURS_GUARD=on::FAMILY_CHECKIN_STOP=on::COHORT_FLAGS=on::PROACTIVE_CHANNELS=on::FOLLOW_THROUGH_JOB=on" \
-            --set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,CARTESIA_API_KEY=cartesia-api-key:latest,VAPID_PUBLIC_KEY=vapid-public-key:latest,VAPID_PRIVATE_KEY=vapid-private-key:latest,WAITLIST_APPROVAL_SECRET=waitlist-approval-secret:latest,DISPATCH_SIGNING_SECRET=dispatch-signing-secret:latest"
+            --set-secrets "$UI_SECRETS"
           
           REVISION=$(gcloud run revisions list --service=john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
           URL=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(status.url)")
@@ -553,6 +601,41 @@ jobs:
               --region=${{ env.GCP_REGION }} \
               --to-tags green=$TRAFFIC
           fi
+
+      # Runs after a failed deploy too, so the log says why the revision isn't live.
+      - name: ✅ Verify the new revision is Ready and serving
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' }}
+        env:
+          EXPECTED: john-bogle-ui-${{ needs.prepare.outputs.short_sha }}
+          TRAFFIC: ${{ inputs.traffic_percent || 100 }}
+          REGION: ${{ env.GCP_REGION }}
+        run: |
+          set -u
+          if ! rev=$(gcloud run revisions describe "$EXPECTED" --region="$REGION" --format=json); then
+            echo "::error title=Deploy not live::revision $EXPECTED was never created"
+            echo "### ❌ $EXPECTED was never created" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          svc=$(gcloud run services describe john-bogle-ui --region="$REGION" --format=json)
+          ready=$(jq -r '[.status.conditions[]? | select(.type == "Ready") | .status][0] // "Unknown"' <<< "$rev")
+          why=$(jq -r '[.status.conditions[]? | select(.type == "Ready") | (.message // .reason // "")][0] // ""' <<< "$rev")
+          serving=$(jq -r --arg r "$EXPECTED" '[.status.traffic[]? | select(.revisionName == $r) | (.percent // 0)] | add // 0' <<< "$svc")
+          echo "$EXPECTED: Ready=$ready, serving ${serving}% (expected ${TRAFFIC}%)"
+
+          fail=0
+          if [[ "$ready" != True ]]; then
+            echo "::error title=Deploy not live::$EXPECTED is not Ready ($ready): $why"
+            fail=1
+          fi
+          if [[ "$serving" != "$TRAFFIC" ]]; then
+            echo "::error title=Deploy not live::$EXPECTED serves ${serving}% of traffic, expected ${TRAFFIC}%; traffic did not move to it"
+            fail=1
+          fi
+          if (( fail )); then
+            echo "### ❌ $EXPECTED is not live: Ready=$ready, ${serving}% of traffic" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "### ✅ $EXPECTED is Ready and serving ${serving}%" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Rollback on failure
         if: steps.health.outputs.healthy != 'true'
