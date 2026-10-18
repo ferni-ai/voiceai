@@ -2,13 +2,21 @@ import SwiftUI
 
 /// Ferni's type scale, from design-system/tokens/typography.json `textStyles`.
 ///
-/// Each style is a system text style, so it follows Dynamic Type from xSmall to
-/// AX5 without any extra work. The web's sizes and weights pick the nearest
-/// text style; the web's brand fonts (Plus Jakarta Sans, Inter) map to SF,
-/// which is what iOS readers expect and what scales best.
+/// Display type (the one big line on a screen, greetings) is the brand face,
+/// Plus Jakarta Sans, scaled with Dynamic Type through `relativeTo:`. Everything
+/// read at length is a system text style, which scales from xSmall to AX5 and is
+/// what iOS readers expect (the web's body face, Inter, maps to SF).
 public enum FerniType {
     /// heroDisplay (60/800): the one big line on a screen.
-    public static let display = Font.system(.largeTitle, design: .rounded, weight: .bold)
+    public static var display: Font {
+        FerniFonts.brand(FerniFonts.displayName, size: 34, relativeTo: .largeTitle,
+                         fallback: .system(.largeTitle, design: .rounded, weight: .bold))
+    }
+    /// Ferni's voice on screen (the greeting, names): the brand face at 700.
+    public static var greeting: Font {
+        FerniFonts.brand(FerniFonts.greetingName, size: 34, relativeTo: .largeTitle,
+                         fallback: .system(.largeTitle, design: .rounded, weight: .bold))
+    }
     /// pageTitle (36/700)
     public static let title = Font.system(.title, design: .rounded, weight: .bold)
     /// sectionTitle (24/600)
