@@ -8,6 +8,7 @@
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { forgetCallerTurns } from '../../../adaptive-ssml/heavy-moment.js';
 import { CartesiaTTSProvider } from '../../providers/cartesia.js';
 import { CartesiaSocket } from '../../providers/cartesia-socket.js';
 import { resetFerniRestingVoiceWarnings } from '../ferni-resting-voice.js';
@@ -28,6 +29,7 @@ let sent: Array<{ transcript: string }>;
 beforeEach(() => {
   sent = [];
   resetFerniRestingVoiceWarnings();
+  forgetCallerTurns('lift');
   resetPersonaDeliveryCache();
   vi.spyOn(CartesiaSocket.prototype, 'send').mockImplementation(async (_id, request) => {
     sent.push(request as (typeof sent)[number]);
@@ -36,17 +38,26 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
-/** One reply through the Director into the real provider; its opening request transcript. */
-async function speak(
-  text: string,
-  env: Record<string, string>,
-  opts: { personaId?: string; sessions?: DirectorSessions } = {}
-): Promise<string> {
+interface SpeakOpts {
+  personaId?: string;
+  sessions?: DirectorSessions;
+  /** What the caller just said. */
+  caller?: string;
+  userEmotion?: string;
+  /** The pieces pushed to Cartesia (default: the whole text in one push). */
+  pushes?: string[];
+  /** What the LLM had streamed when the opening was decided (default: the whole text). */
+  streamed?: string;
+}
+
+/** One reply through the Director into the real provider; every request transcript it sent. */
+async function speakAll(text: string, env: Record<string, string>, opts: SpeakOpts = {}) {
   const from = sent.length;
+  const pushes = opts.pushes ?? [text];
   const directed = directSpeech(new CartesiaTTSProvider().openReplyStream(CALM_B), {
     textStream: new ReadableStream<string>({
       start(c) {
-        c.enqueue(text);
+        c.enqueue(opts.streamed ?? text);
         c.close();
       },
     }),
@@ -55,17 +66,27 @@ async function speak(
     personaId: opts.personaId ?? 'ferni',
     env,
     sessions: opts.sessions ?? new DirectorSessions(),
+    turnContext: {
+      userRequest: opts.caller,
+      userEmotion: opts.userEmotion ? { primary: opts.userEmotion } : undefined,
+    },
     onPlan: () => {},
   });
   for await (const _ of directed.textStream) {
     /* observe */
   }
-  directed.reply.push(text);
+  for (const piece of pushes) directed.reply.push(piece);
   directed.reply.end();
-  await vi.waitFor(() => expect(sent.length - from).toBeGreaterThanOrEqual(2));
-  return sent[from]?.transcript ?? '';
+  await vi.waitFor(() => expect(sent.length - from).toBeGreaterThanOrEqual(pushes.length + 1));
+  return sent.slice(from, from + pushes.length).map((r) => r.transcript);
 }
 
+/** The opening request transcript of one reply. */
+async function speak(text: string, env: Record<string, string>, opts: SpeakOpts = {}) {
+  return (await speakAll(text, env, opts))[0] ?? '';
+}
+
+const PLAIN = { SPEECH_DIRECTOR: 'live' };
 const tagOf = (push: string, name: 'emotion' | 'speed'): string | undefined =>
   new RegExp(`<${name} (?:value|ratio)="([^"]+)"/>`).exec(push)?.[1];
 
@@ -164,5 +185,108 @@ describe('EMOTION_LIFT: scope', () => {
     const env = { SPEECH_DIRECTOR: 'live', EMOTION_LIFT: 'on', FERNI_VOICE_EMOTION: 'excited' };
     const plain = await speak('I checked the calendar for Thursday.', { SPEECH_DIRECTOR: 'live' });
     expect(await speak('I checked the calendar for Thursday.', env)).toBe(plain);
+  });
+});
+
+describe('EMOTION_LIFT: hard words beat laughter and bright words (review C1, L1)', () => {
+  it.each([
+    "[laughs] Oh no, I'm so sorry your dad died.",
+    '[laughter] my dad died',
+    '<emotion value="sympathetic"/>[laughter] Oh man. I\'m so sorry',
+    "I love that you called. I'm so sorry about your dad.",
+    "Ha, I'm so sorry about your dad.",
+  ])('%s is voiced as with no overrides, never excited', async (text) => {
+    const plain = await speak(text, PLAIN);
+    const push = await speak(text, LIFT);
+    expect(tagOf(push, 'emotion')).not.toBe('excited');
+    expect(push).toBe(plain);
+  });
+
+  it.each(['sympathetic', 'contemplative', 'calm'])(
+    "the LLM's own %s on a laughing line is kept, not lifted",
+    async (emotion) => {
+      const push = await speak(`<emotion value="${emotion}"/>[laughter] Oh man, okay.`, LIFT);
+      expect(tagOf(push, 'emotion')).toBe(emotion);
+      expect(tagOf(push, 'speed')).not.toBe('1.08');
+    }
+  );
+});
+
+describe("EMOTION_LIFT: the caller's hard moment and the whole reply (review H1)", () => {
+  it('a laughing reply right after the caller says something hard is not lifted', async () => {
+    const opts = { caller: 'my dad died lol' };
+    const plain = await speak('[laughter] oh wow', PLAIN, opts);
+    forgetCallerTurns('lift');
+    const push = await speak('[laughter] oh wow', LIFT, opts);
+    expect(tagOf(push, 'emotion')).not.toBe('excited');
+    expect(push).toBe(plain);
+  });
+
+  it("the caller's turn before this one still counts", async () => {
+    await speak('I am so sorry.', LIFT, { caller: 'my mom passed away last week' });
+    const push = await speak("[laughter] that's so funny", LIFT, { caller: 'lol anyway' });
+    expect(tagOf(push, 'emotion')).not.toBe('excited');
+    expect(tagOf(push, 'speed')).not.toBe('1.08');
+  });
+
+  it('a reply that turns hard after its opening is not lifted', async () => {
+    const push = await speak('Ha, I hear you. That sounds really hard.', LIFT);
+    expect(tagOf(push, 'emotion')).not.toBe('excited');
+  });
+
+  it('the opening is judged on everything streamed so far, not its first phrase', async () => {
+    const text = 'Ha, I hear you. That sounds really hard.';
+    const [first] = await speakAll(text, LIFT, {
+      pushes: ['Ha, I hear you. ', 'That sounds really hard.'],
+    });
+    expect(tagOf(first ?? '', 'emotion')).not.toBe('excited');
+  });
+
+  it('when the hard part streams after the opening, that push settles to sympathetic', async () => {
+    const [first, second] = await speakAll('', LIFT, {
+      streamed: 'Ha, that is funny. ',
+      pushes: ['Ha, that is funny. ', "But honestly I'm worried about you."],
+    });
+    expect(tagOf(first ?? '', 'emotion')).toBe('excited');
+    expect(second).toMatch(/^<speed ratio="1\.02"\/><emotion value="sympathetic"\/>But/);
+  });
+});
+
+describe('EMOTION_LIFT: negated, shocked and sarcastic bright words (review H2)', () => {
+  it.each([
+    'I know you love her so much, and now she is gone.',
+    "Wow, that's awful.",
+    'Wow. He really said that to you?',
+    "That doesn't sound like fun at all.",
+    "That's not funny.",
+    'Oh great, they fired you?',
+  ])('%s is not lifted', async (text) => {
+    const push = await speak(text, LIFT);
+    expect(tagOf(push, 'emotion')).not.toBe('excited');
+    expect(tagOf(push, 'speed')).not.toBe('1.08');
+  });
+});
+
+describe('EMOTION_LIFT: pace limits (review M1, M3)', () => {
+  it('with VOICE_ATTUNE on, a heavy reply keeps the no-overrides pace in every sentence', async () => {
+    const text = "I'm so sorry about your dad. He sounds like he was a good man.";
+    const pushes = ["I'm so sorry about your dad. ", 'He sounds like he was a good man.'];
+    const attune = { userEmotion: 'sad', pushes };
+    const plain = await speakAll(text, { ...PLAIN, VOICE_ATTUNE: 'on' }, attune);
+    const lifted = await speakAll(text, { ...LIFT, VOICE_ATTUNE: 'on' }, attune);
+    expect(lifted).toEqual(plain);
+  });
+
+  it("a later push's own speed tag never takes a bright reply past FERNI_VOICE_SPEED", async () => {
+    const [, second] = await speakAll('', LIFT, {
+      streamed: 'That was so funny, ha. And then he fell over.',
+      pushes: ['That was so funny, ha. ', '<speed ratio="1"/>And then he fell over.'],
+    });
+    expect(Number(tagOf(second ?? '', 'speed'))).toBeLessThanOrEqual(1.08);
+  });
+
+  it("a soft start's own speed never takes the opening past FERNI_VOICE_SPEED", async () => {
+    const push = await speak('<speed ratio="1.2"/>That was so funny, ha.', LIFT);
+    expect(Number(tagOf(push, 'speed'))).toBeLessThanOrEqual(1.08);
   });
 });

@@ -188,7 +188,7 @@ class DirectedReply implements ReplyStream {
   ) {
     const sessions = opts.sessions ?? directorSessions;
     this.stripProsody = mode === 'live' && !voiceHonorsProsodyTags(opts.voiceId);
-    const lift = emotionLift(opts.personaId, opts.env); // EMOTION_LIFT (emotion-lift.ts)
+    const lift = emotionLift(opts, cues, modes); // EMOTION_LIFT (emotion-lift.ts)
     this.engine = new DirectorEngine({
       modes,
       voiceId: opts.voiceId,

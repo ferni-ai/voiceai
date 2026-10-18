@@ -14,7 +14,8 @@ import { callerState, decideAttune, layerDelivery, SPEED_EPSILON } from './attun
 import type { Attunement, Delivery, Shift } from './attune.js';
 import { pacesOf, planKeyPhrase, type KeyPhrase, type KeyPhraseStep } from './key-phrase.js';
 import type { SSMLProsodyConfig } from '../types.js';
-import { decideTone, liftedDelivery, liftedValence, type EmotionLift } from './emotion-lift.js';
+import { decideTone, liftedDelivery, liftedValence, settleLift } from './emotion-lift.js';
+import type { EmotionLift } from './emotion-lift.js';
 import { type EmotionDecision, type StableEmotion, type Valence } from './emotion.js';
 import { decideReplyLaughter, placeLaughter, type LaughPlacement } from './laughter.js';
 import type { LaughterWho } from './laughter.js';
@@ -220,7 +221,7 @@ export class DirectorEngine {
       // A voice that ignores the rest still takes the reply's loudness (attune.ts layerDelivery).
       const own = strip ? volumeOnly(this.replyVolume === 1 ? tags : lead) : lead;
       if (first) this.pendingTags += own;
-      else spokenBody = `${own}${spokenBody}`;
+      else spokenBody = settleLift(this.ctx.lift, own, spokenBody); // EMOTION_LIFT: a reply turning hard
       const spoken = this.spokenPhrases.accept(spokenBody, first);
       if (spoken.length === 0) this.stats.held++;
       return this.emit(spoken);
@@ -423,8 +424,11 @@ export class DirectorEngine {
   private planKeyPhrase(supported: boolean): void {
     const caller = this.attunement?.ease;
     if (!this.attunement || !caller || !this.delivery) return;
-    // The eased pace goes through the same resting layers as the reply's own.
-    const eased = layerDelivery({ persona: this.ctx.persona, caller }, this.live('pacing'));
+    const eased = liftedDelivery(
+      this.ctx.lift, // the eased pace goes through the reply's own resting layers and lift
+      { persona: this.ctx.persona, caller },
+      this.live('pacing')
+    );
     const tagSpeed = this.live('pacing') && supported; // as replySpeed
     this.keyPhrase = planKeyPhrase(
       pacesOf(this.delivery, this.attunement.volume, tagSpeed),

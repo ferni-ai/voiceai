@@ -100,21 +100,23 @@ export function personaLayer(
  * The opening-tag renderer for this reply: for Ferni with the emotion lever
  * live and FERNI_VOICE_EMOTION set, a resting pick is rendered as his resting
  * tone; otherwise `render` itself. With EMOTION_LIFT on (`lift`), only a
- * bright reply takes it (emotion-lift.ts).
+ * bright reply takes it, and the opening speed is capped (emotion-lift.ts).
  */
 export function restingToneTags(
   render: (prosody: SSMLProsodyConfig) => string,
   personaId: string | undefined,
   emotionLever: DirectorMode,
   env: Env = process.env,
-  lift?: { readonly bright: boolean }
+  lift?: { readonly bright: boolean; cap: (speed: number | undefined) => number | undefined }
 ): (prosody: SSMLProsodyConfig) => string {
-  if (personaId !== 'ferni' || emotionLever !== 'live') return render;
-  const resting = ferniRestingEmotion(env);
-  if (!resting) return render;
+  if (personaId !== 'ferni') return render;
+  const resting = emotionLever === 'live' ? ferniRestingEmotion(env) : undefined;
+  if (!resting && !lift) return render;
   return (prosody) => {
-    const takes = RESTING_PICKS.has(prosody.emotion) && (!lift || lift.bright);
-    return render(takes ? { ...prosody, emotion: resting } : prosody);
+    const takes =
+      resting !== undefined && RESTING_PICKS.has(prosody.emotion) && (!lift || lift.bright);
+    const speed = lift ? lift.cap(prosody.speed) : prosody.speed;
+    return render({ ...prosody, speed, ...(takes ? { emotion: resting } : {}) });
   };
 }
 
