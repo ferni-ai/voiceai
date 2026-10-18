@@ -201,9 +201,26 @@ describe('encrypt-integration-tokens migration', () => {
       expect(state.writes).toHaveLength(0);
     });
 
-    it('a legacy envelope does not prove the new key to the servers-key check', async () => {
+    it('a re-seal run needs BOTH env vars: without LOG_HASH_SECRET it refuses', async () => {
       state.docs.set('google_calendar_tokens/g1', { ...sealWithLegacy({ access_token: 'x' }) });
-      await expect(apply('omit')).rejects.toThrow(/No server-written envelope opens/);
+      delete process.env.LOG_HASH_SECRET; // only the new key: the legacy envelopes don't open
+      await expect(apply()).rejects.toThrow(/No envelope the servers wrote opens/);
+      expect(state.writes).toHaveLength(0);
+      process.env.LOG_HASH_SECRET = LEGACY; // both: proceeds
+      expect((await apply()).google_calendar_tokens).toBeUndefined();
+      expect(state.docs.get('oura_tokens/u1')).toHaveProperty('encrypted');
+    });
+
+    it('a mixed doc whose envelope no key opens is unopenable and left untouched', async () => {
+      process.env.OAUTH_ENCRYPTION_KEY = 'some-retired-key';
+      const lost = sealTokens({ access_token: 'lost' }).encrypted;
+      process.env.OAUTH_ENCRYPTION_KEY = KEY;
+      const record = { encrypted: lost, access_token: ACCESS };
+      state.docs.set('oura_tokens/m1', { ...record });
+      state.docs.set('google_calendar_tokens/g2', { ...sealTokens({ access_token: 'x' }) });
+      const counts = await apply();
+      expect(counts.oura_tokens).toMatchObject({ unopenable: 1, mixed: 0 });
+      expect(state.docs.get('oura_tokens/m1')).toEqual(record);
     });
 
     it('with no OAUTH_ENCRYPTION_KEY nothing is legacy', async () => {
@@ -217,7 +234,7 @@ describe('encrypt-integration-tokens migration', () => {
 
   describe('--apply proves the servers key first', () => {
     it('refuses with no --expect-kid when no server envelope exists', async () => {
-      await expect(apply('omit')).rejects.toThrow(/--expect-kid/);
+      await expect(apply('omit')).rejects.toThrow(/--apply needs --expect-kid/);
       expect(state.writes).toHaveLength(0);
     });
 
@@ -226,17 +243,18 @@ describe('encrypt-integration-tokens migration', () => {
       expect(state.writes).toHaveLength(0);
     });
 
-    it('accepts a server-written envelope that opens with this key, without --expect-kid', async () => {
+    it('requires --expect-kid even when a server envelope opens (that proves only the web key)', async () => {
       state.docs.set('google_calendar_tokens/u10', { ...sealTokens({ access_token: 'x' }) });
-      const counts = await apply('omit');
-      expect(counts.oura_tokens.written).toBe(1);
+      await expect(apply('omit')).rejects.toThrow(/--apply needs --expect-kid/);
+      expect(state.writes).toHaveLength(0);
+      expect((await apply()).oura_tokens.written).toBe(1); // with the kid it proceeds
     });
 
     it('refuses when the server envelopes do not open with this key', async () => {
       process.env.OAUTH_ENCRYPTION_KEY = 'the-servers-key';
       state.docs.set('google_calendar_tokens/u10', { ...sealTokens({ access_token: 'x' }) });
       process.env.OAUTH_ENCRYPTION_KEY = KEY;
-      await expect(apply('omit')).rejects.toThrow(/No server-written envelope opens/);
+      await expect(apply()).rejects.toThrow(/No envelope the servers wrote opens/);
       expect(state.docs.get('oura_tokens/u1')).toHaveProperty('access_token');
     });
 

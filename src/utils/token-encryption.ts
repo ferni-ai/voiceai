@@ -42,17 +42,12 @@ export function keyIdOf(key: string): string {
 }
 
 /**
- * Key id of the effective token key, or "none". Non-reversible, so safe to log
- * and to serve: two processes with the same kid seal and open each other's tokens.
+ * Key id of the effective token key, or "none". Non-reversible, so safe to log:
+ * two processes with the same kid seal and open each other's tokens.
  */
 export function tokenKeyId(): string {
   const { key } = resolveTokenKey();
   return key === '' ? 'none' : keyIdOf(key);
-}
-
-/** For /health: which key this process uses (kid only, never the key). */
-export function tokenKeyHealth(): { tokenKid: string; tokenKeySource: TokenKeySource } {
-  return { tokenKid: tokenKeyId(), tokenKeySource: resolveTokenKey().source };
 }
 
 /**

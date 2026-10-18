@@ -19,7 +19,7 @@ import {
   tokenKeyId,
 } from './token-encryption.js';
 
-export { tokenKeyId, tokenKeyHealth } from './token-encryption.js';
+export { tokenKeyId } from './token-encryption.js';
 
 const log = createLogger({ module: 'TokenAtRest' });
 
