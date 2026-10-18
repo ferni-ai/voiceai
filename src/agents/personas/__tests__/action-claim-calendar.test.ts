@@ -139,6 +139,24 @@ describe('calendar claims', () => {
     expect(text).not.toContain("That didn't go through");
   });
 
+  it('a connected create saved only to the Ferni calendar (flag off) is reported as elsewhere', async () => {
+    const items = [
+      ASK,
+      result(
+        'createCalendarEvent',
+        JSON.stringify(
+          'Saved to the Ferni calendar only, not Google Calendar: "Lunch with Sam", Saturday, Oct 18, 12:00 PM your time, 60 minutes.'
+        )
+      ),
+    ];
+    const parts = ["I've got that on your calendar for tomorrow at noon. "];
+    const text = await textOf(
+      await check(streamOf(...parts), items, toolsWith('createCalendarEvent'))
+    );
+    expect(text).not.toMatch(/on your calendar for/);
+    expect(text).toContain("It's saved to Ferni's own list, not your calendar.");
+  });
+
   it('a booking tool that is not a calendar create releases its claim, not the calendar line', async () => {
     const parts = [
       chunk("I've booked the table at Nobu for you. "),

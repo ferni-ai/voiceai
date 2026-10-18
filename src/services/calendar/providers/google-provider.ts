@@ -74,10 +74,14 @@ function unifiedToGoogle(event: CalendarEvent): GoogleCalendarEvent {
     status: event.status,
     reminders: {
       useDefault: event.reminders.length === 0,
-      overrides: event.reminders.map((r) => ({
-        method: r.method === 'push' ? 'popup' : r.method,
-        minutes: r.minutesBefore,
-      })),
+      // None with the defaults (undefined is left out of the JSON), as calendar-service sends it.
+      overrides:
+        event.reminders.length === 0
+          ? undefined
+          : event.reminders.map((r) => ({
+              method: r.method === 'push' ? 'popup' : r.method,
+              minutes: r.minutesBefore,
+            })),
     },
   };
 }
@@ -198,8 +202,8 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
       return null;
     }
 
+    const googleEvent = unifiedToGoogle(event);
     try {
-      const googleEvent = unifiedToGoogle(event);
       const created = await createGoogleEvent(
         accessToken,
         event.externalCalendarId || 'primary',
@@ -208,6 +212,11 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
 
       return created?.id || null;
     } catch (error) {
+      // A 409 on an id we chose: this exact event was created before (a repeated create), so it stands.
+      if (googleEvent.id && /\(HTTP 409\)/.test(String(error))) {
+        log.info({ userId, externalId: googleEvent.id }, 'Google Calendar event already exists');
+        return googleEvent.id;
+      }
       log.error(
         { error: String(error), userId, eventId: event.id },
         'Failed to create Google Calendar event'

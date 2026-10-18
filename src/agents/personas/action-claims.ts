@@ -174,8 +174,8 @@ export function kindsOfTool(name: string): ActionKind[] {
 
 /** The confirm gate's preview (outreach-confirm.ts): nothing sent until the caller says yes. */
 const PREVIEW = /^\W*not sent yet\b/i;
-/** A save that landed in Ferni's own list, not the caller's calendar (#1547). */
-const ELSEWHERE = /\bisn't on your calendar\b/i;
+/** A save that landed in Ferni's own list, not the caller's calendar (#1547, and #1749's flag-off line). */
+const ELSEWHERE = /\bisn't on your calendar\b|\bFerni calendar only\b/i;
 /** A call held for a better hour (services/outreach/deferred-calls.ts): set, but nothing rang. */
 const HELD = /^\W*nothing was dialed yet\b/i;
 /** The held call's time as its result words it: "later today at 9:00 AM". */

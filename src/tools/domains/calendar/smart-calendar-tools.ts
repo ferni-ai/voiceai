@@ -25,8 +25,6 @@ import {
   getEventsForDay,
   getEventsForWeek,
   createEvent,
-  updateEvent,
-  deleteEvent,
   findFreeTimeSlots,
   isTimeSlotAvailable,
   getDayOverview,
@@ -58,7 +56,7 @@ import {
   getPendingEvent,
 } from '../../../services/calendar/event-confirmation.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
-import { saveNewEvent } from './create-event-destination.js';
+import { removeEvent, saveEventChange, saveNewEvent } from './calendar-write-destination.js';
 import { formatStoredLocalTime, zonedWallTimeToUtc } from '../../../utils/time-zone.js';
 import {
   getUpcomingBriefings,
@@ -300,14 +298,9 @@ const updateCalendarEventDef: ToolDefinition = {
           );
         }
 
-        const updated = await updateEvent(userId, params.eventId, updates);
-
-        if (!updated) {
-          return "Couldn't update that event. It may have been deleted or there's a calendar connection issue.";
-        }
-
-        log.info({ userId, eventId: params.eventId }, 'Updated calendar event');
-        return `Updated. ${updated.title} is now scheduled for ${formatStoredLocalTime(updated.startTime, zone)}.`;
+        return saveEventChange(userId, params.eventId, updates, (start) =>
+          formatStoredLocalTime(start, zone)
+        );
       },
     }),
 };
@@ -336,15 +329,7 @@ const deleteCalendarEventDef: ToolDefinition = {
           return 'I need to know who you are to modify your calendar.';
         }
 
-        const deleted = await deleteEvent(userId, params.eventId);
-
-        if (!deleted) {
-          return "Couldn't delete that event. It may already be gone or there's a connection issue.";
-        }
-
-        const title = params.eventTitle || 'The event';
-        log.info({ userId, eventId: params.eventId }, 'Deleted calendar event');
-        return `${title} has been removed from your calendar.`;
+        return removeEvent(userId, params.eventId, params.eventTitle);
       },
     }),
 };

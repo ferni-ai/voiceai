@@ -414,7 +414,7 @@ export async function createEvent(
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Failed to create event: ${error}`);
+      throw new Error(`Failed to create event (HTTP ${response.status}): ${error}`);
     }
 
     const created = (await response.json()) as CalendarEvent;
@@ -439,7 +439,7 @@ export async function updateEvent(
   }
 
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=none`,
     {
       method: 'PATCH',
       headers: {
@@ -473,7 +473,7 @@ export async function deleteEvent(
   }
 
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=none`,
     {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${accessToken}` },
