@@ -5,7 +5,10 @@ import WidgetKit
 
 @main
 struct FerniLiveBundle: WidgetBundle {
-    var body: some Widget { CallLiveActivity() }
+    var body: some Widget {
+        CallLiveActivity()
+        TalkControl()
+    }
 }
 
 /// The call while the phone is locked or you're in another app: who, what

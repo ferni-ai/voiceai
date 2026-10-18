@@ -24,7 +24,10 @@ struct FerniApp: App {
                 .onChange(of: LiveActivityController.content(for: model.call)) { _, content in
                     model.liveActivity.follow(content, startedAt: model.call.startedAt)
                 }
-                .task { EndCallIntent.end = { [call = model.call] in await call.end() } }
+                .task {
+                    EndCallIntent.end = { [call = model.call] in await call.end() }
+                    TalkIntent.handler = { [model] personaID in model.talk(to: personaID) }
+                }
                 .onChange(of: model.account.user?.uid, initial: true) { old, uid in
                     model.accountChanged(from: old, to: uid)
                 }
@@ -70,6 +73,14 @@ final class AppModel {
     /// Ferni's words in the caption area; off leaves only who's doing what.
     var showCaptions = UserDefaults.standard.object(forKey: "ferni.captions") as? Bool ?? true {
         didSet { UserDefaults.standard.set(showCaptions, forKey: "ferni.captions") }
+    }
+
+    /// From Siri, Shortcuts, Control Center or the Action button: the same door
+    /// as the Talk button. Someone not on the team yet means Ferni answers.
+    func talk(to personaID: String) {
+        guard !call.isActive else { return }
+        if !team.choose(personaID) { team.choose(PersonaRegistry.ferni.id) }
+        talk()
     }
 
     /// Talk: the consent screen first if this person hasn't agreed (or withdrew).
