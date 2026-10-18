@@ -56,18 +56,9 @@ export interface SurfacedInsight {
   category: string;
 }
 
-export type FollowUpReason =
-  | 'picked'
-  | 'none'
-  | 'other-insight'
-  | 'crisis'
-  | 'heavy-mood'
-  | 'low-quality'
-  | 'future-event'
-  | 'call-not-completed'
-  | 'asked-recently'
-  | 'store-unreadable'
-  | 'timeout';
+type Gated = 'crisis' | 'heavy-mood' | 'low-quality' | 'future-event' | 'call-not-completed';
+type Unasked = 'asked-recently' | 'store-unreadable' | 'timeout';
+export type FollowUpReason = 'picked' | 'none' | 'other-insight' | Gated | Unasked;
 
 interface Decision {
   reason: FollowUpReason;
