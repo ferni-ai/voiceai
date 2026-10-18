@@ -266,6 +266,9 @@ async function defaultPorts(): Promise<CallLifecyclePorts> {
 
 const reportedCalls = new Set<string>();
 
+/** The fixed reason logged when a finished call's result is dropped for an unsigned dispatch. */
+export const UNSIGNED_RESULT_DROPPED = 'unsigned_dispatch';
+
 /**
  * Report the finished call to the requester. `trusted` says the dispatch was
  * signed by our server (verifyOnBehalfDispatch); a forged one never reports
@@ -283,9 +286,11 @@ export async function completeOnBehalfCall(
   // An unsigned dispatch names a callId someone else chose: touch nothing keyed
   // by it (another call's report guard or transcript), only this session.
   if (!trusted) {
+    // The result is dropped, not stored: the only place to keep it is under the
+    // user the dispatch names, and an unsigned dispatch can name anyone.
     log.warn(
-      { callId: call.callId, requesterUserId: call.requester.userId },
-      'Unsigned on-behalf dispatch; not reporting to the named requester'
+      { callId: call.callId, reason: UNSIGNED_RESULT_DROPPED },
+      'On-behalf call result dropped: unsigned dispatch'
     );
     const { cleanupOnBehalfCapture } =
       await import('../integrations/on-behalf-transcript-capture.js');
