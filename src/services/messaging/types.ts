@@ -1,8 +1,5 @@
-/**
- * Ferni's one messaging pipeline: what a sender asks (Intent), what the policy
- * knows (PolicyCtx), what it decides (Decision). MESSAGE_KINDS is the one list of kinds.
- * @module services/messaging/types
- */
+/** What a sender asks (Intent), what the policy knows (PolicyCtx) and decides (Decision).
+ * MESSAGE_KINDS is the one list of kinds. @module services/messaging/types */
 
 /** Ferni-initiated texts per person per rolling window, every kind and persona (DESIGN decision 2). */
 export const DAILY_TEXT_CAP = 3;
@@ -23,7 +20,7 @@ export const REASON_CODES = [
   ...['ok', 'requested-time', 'no-verified-phone', 'needs-consent', 'no-anchor', 'bad-channel'],
   ...['opted-out', 'sms-off', 'crisis-quiet', 'quiet-hours', 'outside-window', 'no-timezone'],
   ...['over-budget', 'duplicate', 'recently-sent', 'transactional-rate', 'reply-rate'],
-  'requested-rate',
+  ...['requested-rate', 'too-many-destinations'],
 ] as const;
 export type ReasonCode = (typeof REASON_CODES)[number];
 

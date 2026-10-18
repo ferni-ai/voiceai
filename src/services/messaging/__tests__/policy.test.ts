@@ -758,9 +758,88 @@ const RATE = { action: 'drop', reason: 'transactional-rate' } as const;
 const HOURS = (n: number): number[] => Array.from({ length: n }, (_, k) => (k + 1) * 60);
 const codeRate: Row[] = [
   {
-    name: "codes: 10 to another number don't count",
+    name: "codes: 4 to another number don't count toward this number's limits",
     i: { ...CODE, destination: 'h:b' },
-    c: { ledger: codes(HOURS(10), { destination: 'h:a' }) },
+    c: { ledger: codes(HOURS(4), { destination: 'h:a' }) },
+    want: SEND,
+  },
+  {
+    name: 'codes: the 30 s gap is per number',
+    i: { ...CODE, destination: 'h:b' },
+    c: { ledger: codes([20 / 60], { destination: 'h:a' }) },
+    want: SEND,
+  },
+  {
+    name: 'codes per person: 10 in 24 h across two numbers, an 11th to a third is dropped',
+    i: { ...CODE, destination: 'h:c' },
+    c: {
+      ledger: [
+        ...codes(HOURS(5), { destination: 'h:a' }),
+        ...codes(
+          HOURS(5).map((m) => m + 30),
+          { destination: 'h:b' }
+        ),
+      ],
+    },
+    want: RATE,
+  },
+  {
+    name: 'codes per person: 9 in 24 h across two numbers, a 10th to a third goes',
+    i: { ...CODE, destination: 'h:c' },
+    c: {
+      ledger: [
+        ...codes(HOURS(5), { destination: 'h:a' }),
+        ...codes(
+          HOURS(4).map((m) => m + 30),
+          { destination: 'h:b' }
+        ),
+      ],
+    },
+    want: SEND,
+  },
+  {
+    name: 'codes per person: 5 in an hour across numbers, a 6th is dropped',
+    i: { ...CODE, destination: 'h:a' },
+    c: {
+      ledger: [
+        ...codes([5, 15, 25], { destination: 'h:a' }),
+        ...codes([35, 45], { destination: 'h:b' }),
+      ],
+    },
+    want: RATE,
+  },
+  {
+    name: 'codes per person: a 4th number in 24 h is dropped',
+    i: { ...CODE, destination: 'h:d' },
+    c: {
+      ledger: [
+        ...codes([120], { destination: 'h:a' }),
+        ...codes([240], { destination: 'h:b' }),
+        ...codes([360], { destination: 'h:c' }),
+      ],
+    },
+    want: { action: 'drop', reason: 'too-many-destinations' },
+  },
+  {
+    name: 'codes per person: failed sends to 3 numbers count toward the 4th',
+    i: { ...CODE, destination: 'h:d' },
+    c: {
+      ledger: ['h:a', 'h:b', 'h:c'].flatMap((d, k) =>
+        codes([120 * (k + 1)], { destination: d, status: 'failed' })
+      ),
+    },
+    want: { action: 'drop', reason: 'too-many-destinations' },
+  },
+  {
+    name: 'codes per person: one of the 3 numbers already used today still goes',
+    i: { ...CODE, destination: 'h:a' },
+    c: {
+      ledger: [
+        ...codes([120], { destination: 'h:a' }),
+        ...codes([240], { destination: 'h:b' }),
+        ...codes([360], { destination: 'h:c' }),
+      ],
+    },
     want: SEND,
   },
   {
@@ -973,6 +1052,7 @@ describe('decide: the gates', () => {
       'quiet-hours',
       'dedupe',
       'gap',
+      'code-rate',
       'rate',
       'budget',
     ]);

@@ -1,10 +1,6 @@
-/**
- * The one messaging policy (DESIGN 2026-10-18, section 2): send, hold, merge into
- * the digest, or drop. The gates run in GATES order and the first that objects
- * decides; the budget runs last so a duplicate is dropped, not merged.
- * Pure: no I/O, flags or clock; imports only the zone math and its types.
- * @module services/messaging/policy
- */
+/** The one messaging policy (DESIGN 2026-10-18 s.2): GATES in order, first objection decides;
+ * the budget runs last so a duplicate is dropped, not merged into the digest.
+ * Pure: no I/O, flags or clock; imports only the zone math and its types. @module services/messaging/policy */
 import { isValidTimeZone, wallTimeIn, zonedWallTimeToUtc } from '../../utils/time-zone.js';
 import { DAILY_TEXT_CAP, DAILY_TEXT_WINDOW_MS } from './types.js';
 import type { Channel, Decision, Intent, LocalWindow, MessageKind, PolicyCtx } from './types.js';
@@ -20,7 +16,8 @@ export const APP_DAILY_BUDGET = 6; // push and in-app share it; texts: DAILY_TEX
 export const SAME_BODY_MS = 12 * HOUR_MS;
 export const LIVE_REPLY_MS = 30 * MIN_MS; // a reply this soon after their text: they're awake
 export const RATE_LIMITS = {
-  code: { gapMs: 30_000, perHour: 5, perDay: 10 }, // per destination (phone hash)
+  code: { gapMs: 30_000 }, // per destination (phone hash)
+  codesPerPerson: { perHour: 5, perDay: 10, destinationsPerDay: 3 }, // no SMS pumping
   reply: { perInbound: 5, perHour: 20 },
   requested: { perDay: 10 }, // the user's own requests, which skip the budget
 } as const;
@@ -82,7 +79,6 @@ function localAt(at: Date, zone: string, dayOffset: number, minutes: number): Da
 
 const minuteIn = (at: Date, zone: string): number =>
   ((w) => w.hour * 60 + w.minute)(wallTimeIn(at, zone));
-
 const toMin = (hhmm: string): number | null => {
   const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm);
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
@@ -171,11 +167,10 @@ function timeGate(i: Intent, ctx: PolicyCtx): Decision | null {
 const budgetGroup = (c: Channel): 'sms' | 'app' | null =>
   c === 'sms' ? 'sms' : c === 'push' || c === 'in_app' ? 'app' : null;
 
-function smsCap(ctx: PolicyCtx): number {
-  const lower = ctx.prefs.maxPerDay;
-  if (lower === undefined || !Number.isFinite(lower)) return DAILY_TEXT_CAP;
-  return Math.max(0, Math.min(DAILY_TEXT_CAP, Math.floor(lower)));
-}
+const smsCap = ({ prefs: { maxPerDay: m } }: PolicyCtx): number =>
+  m === undefined || !Number.isFinite(m)
+    ? DAILY_TEXT_CAP
+    : Math.max(0, Math.min(DAILY_TEXT_CAP, Math.floor(m)));
 
 /** The digest it joins: today's in the recipient's zone, or tomorrow's once today's went. */
 function digestKey(ctx: PolicyCtx): string {
@@ -192,7 +187,7 @@ function digestKey(ctx: PolicyCtx): string {
 }
 
 /**
- * 9. The daily budget, rolling 24 h: spent, it merges or drops. A slot a held message
+ * 10. The daily budget, rolling 24 h: spent, it merges or drops. A slot a held message
  * claims goes to this one only if it outranks one (that one finds the budget spent later).
  */
 function budgetGate(i: Intent, ctx: PolicyCtx): Decision | null {
@@ -235,20 +230,29 @@ function gapGate(i: Intent, ctx: PolicyCtx): Decision | null {
   return gap > 0 && close ? drop('recently-sent') : null;
 }
 
-/** 8. Bounds on what the budget skips (attempts, sent or failed): codes, live replies, requests. */
+const tries = (ctx: PolicyCtx, match: (e: Entry) => boolean, ms: number): Entry[] =>
+  ctx.ledger.filter(
+    (e) => e.status !== 'held' && e.status !== 'skipped' && match(e) && recent(e, ctx, ms)
+  );
+
+/** 8. Codes, asked for or not: per number, and per person across numbers (no SMS pumping). */
+function codeRateGate(i: Intent, ctx: PolicyCtx): Decision | null {
+  if (i.kind !== 'transactional') return null;
+  const tried = (match: (e: Entry) => boolean, ms: number): number => tries(ctx, match, ms).length;
+  const person = RATE_LIMITS.codesPerPerson;
+  const anyCode = (e: Entry): boolean => e.kind === 'transactional';
+  const code = (e: Entry): boolean => anyCode(e) && e.destination === i.destination;
+  const byThem =
+    tried(anyCode, HOUR_MS) >= person.perHour || tried(anyCode, DAY_MS) >= person.perDay;
+  if (tried(code, RATE_LIMITS.code.gapMs) > 0 || byThem) return drop('transactional-rate');
+  const numbers = new Set(tries(ctx, anyCode, DAY_MS).map((e) => e.destination));
+  const newNumber = !numbers.has(i.destination) && numbers.size >= person.destinationsPerDay;
+  return newNumber ? drop('too-many-destinations') : null;
+}
+
+/** 9. Live replies per inbound text and per hour; the user's own requests per day. */
 function rateGate(i: Intent, ctx: PolicyCtx): Decision | null {
-  const tried = (match: (e: Entry) => boolean, ms: number): number =>
-    ctx.ledger
-      .filter((e) => e.status !== 'held' && e.status !== 'skipped' && match(e))
-      .filter((e) => recent(e, ctx, ms)).length;
-  if (i.kind === 'transactional') {
-    const { gapMs, perHour, perDay } = RATE_LIMITS.code;
-    const code = (e: Entry): boolean =>
-      e.kind === 'transactional' && e.destination === i.destination;
-    const over =
-      tried(code, gapMs) > 0 || tried(code, HOUR_MS) >= perHour || tried(code, DAY_MS) >= perDay;
-    return over ? drop('transactional-rate') : null;
-  }
+  const tried = (match: (e: Entry) => boolean, ms: number): number => tries(ctx, match, ms).length;
   if (i.kind === 'reply') {
     const { perInbound, perHour } = RATE_LIMITS.reply;
     const reply = (e: Entry): boolean => e.kind === 'reply';
@@ -263,14 +267,11 @@ function rateGate(i: Intent, ctx: PolicyCtx): Decision | null {
   return overAsked ? drop('requested-rate') : null;
 }
 
-/** 10. Send. A third party's first text from Ferni says who is writing and for whom. */
+/** 11. Send. A third party's first text from Ferni says who is writing and for whom. */
 function sendDecision(i: Intent, ctx: PolicyCtx): Decision {
   const inQuiet = ownerTimed(i) && quietUntil(ctx.now, zonesOf(ctx), quietWindow(i, ctx)) !== null;
-  return {
-    action: 'send',
-    reason: inQuiet ? 'requested-time' : 'ok',
-    introRequired: i.recipient === 'third-party' && ctx.isFirstContact,
-  };
+  const introRequired = i.recipient === 'third-party' && ctx.isFirstContact;
+  return { action: 'send', reason: inQuiet ? 'requested-time' : 'ok', introRequired };
 }
 
 type Gate = (i: Intent, ctx: PolicyCtx) => Decision | null;
@@ -283,6 +284,7 @@ export const GATES: ReadonlyArray<readonly [string, Gate]> = [
   ['quiet-hours', timeGate],
   ['dedupe', dedupeGate],
   ['gap', gapGate],
+  ['code-rate', codeRateGate],
   ['rate', rateGate],
   ['budget', budgetGate],
 ];
