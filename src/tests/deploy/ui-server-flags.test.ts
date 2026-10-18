@@ -31,6 +31,7 @@ const SERVER_FLAGS = [
   'COHORT_FLAGS=on',
   'PROACTIVE_CHANNELS=on',
   'FOLLOW_THROUGH_JOB=on',
+  'ON_BEHALF_DNC_CHECK=on',
 ];
 
 /** The `--set-env-vars` value of the workflow's john-bogle-ui deploy, split on its `::` delimiter. */
