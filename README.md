@@ -270,7 +270,6 @@ ferni --help               # Full command list
 | `ferni dev start` | Start all development servers |
 | (web) | Deploys run in GitHub workflows on every push to main |
 | (voice agent) | Deploy with `.claude/skills/deploy-agent/SKILL.md`, not the CLI |
-| `ferni deploy gce` | Deploy voice agent to GCE |
 | `ferni test quick` | Quick validation tests |
 | `ferni quality all` | Run all quality checks |
 | `ferni pr create` | Create a pull request |

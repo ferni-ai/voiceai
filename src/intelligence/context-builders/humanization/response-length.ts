@@ -172,11 +172,7 @@ const LENGTH_GUIDANCE: Record<
 > = {
   minimal: {
     description: 'Brief acknowledgment, then a curious follow-up. Still be present.',
-    examples: [
-      '"That\'s a lot. What\'s weighing on you most?"',
-      '"I hear you. Go on..."',
-      '"That landed. Tell me more."',
-    ],
+    examples: ['"That\'s a lot. What\'s weighing on you most?"', '"That landed. Tell me more."'],
     maxSentences: '2-3 sentences',
   },
 
@@ -251,7 +247,7 @@ async function buildResponseLengthContext(input: ContextBuilderInput): Promise<C
     lines.push('• Try to fix it');
     lines.push('• Share your own similar experience');
     lines.push('');
-    lines.push('DO: Hold space. Let them feel heard. Brief acknowledgments.');
+    lines.push('DO: Stay with them. Say something real and short. Let them lead.');
   }
 
   if (signals.isProcessing) {

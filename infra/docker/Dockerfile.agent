@@ -99,8 +99,8 @@ COPY src/ ./src/
 
 # Copy the CLI source the build scripts run from (as docker/Dockerfile.agent
 # does). Listing build-fast.ts and bundle-agent.ts alone missed their imports
-# (esbuild-target.ts, utils/project-root.ts), so this local-Docker build of
-# `ferni deploy gce` failed.
+# (esbuild-target.ts, utils/project-root.ts), so this local-Docker build
+# failed.
 COPY apps/cli/src/ ./apps/cli/src/
 
 # Build TypeScript + Bundle Agent (2441 modules → 1 file!)
