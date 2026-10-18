@@ -11,12 +11,16 @@
  *
  * Always the verified caller's own (requireUserId; a ?userId= naming someone
  * else is not an identity). A read that fails answers 500, never an empty
- * list that reads as "nothing promised". Off (404) unless PROMISES_PANEL=on.
+ * list that reads as "nothing promised". A follow-up about a topic the caller
+ * asked Ferni to forget is left out (forget.ts), and when those topics can't be
+ * read the route answers 500 rather than risk showing one. Off (404) unless
+ * PROMISES_PANEL=on.
  *
  * @module api/routes/promises
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import { flagOn } from '../../config/env-flag.js';
+import { forgottenTopicsOrNull, isForgotten } from '../../memory/recall/forget.js';
 import type { FollowUp, FollowUpStore } from '../../services/follow-through/index.js';
 import { firestoreFollowUpStore } from '../../services/stores/follow-through-store.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -68,15 +72,18 @@ const dueOrder = (a: FollowUp, b: FollowUp): number =>
 export async function promisesFor(
   store: FollowUpStore,
   userId: string,
-  now: Date
+  now: Date,
+  forgotten: (userId: string) => Promise<string[] | null> = forgottenTopicsOrNull
 ): Promise<{ open: PromiseRow[]; recent: PromiseRow[] }> {
   const since = new Date(now.getTime() - RECENT_DAYS * 86_400_000);
-  const [live, changed] = await Promise.all([
+  const [live, changed, topics] = await Promise.all([
     store.live(userId),
     store.changedBetween(userId, since, now),
+    forgotten(userId),
   ]);
+  if (topics === null) throw new Error('forgotten topics unreadable');
   // The store reads under bogle_users/{userId}; this keeps a stray row from ever leaking.
-  const mine = (f: FollowUp) => f.userId === userId;
+  const mine = (f: FollowUp) => f.userId === userId && !isForgotten(f.text, topics);
   return {
     open: live.filter(mine).sort(dueOrder).slice(0, MAX_ROWS).map(toRow),
     recent: changed
@@ -92,7 +99,8 @@ export async function handlePromisesRoutes(
   res: ServerResponse,
   pathname: string,
   parsedUrl: URL,
-  store: () => FollowUpStore | null = firestoreFollowUpStore
+  store: () => FollowUpStore | null = firestoreFollowUpStore,
+  forgotten?: (userId: string) => Promise<string[] | null>
 ): Promise<boolean> {
   if (!flagOn('PROMISES_PANEL')) return false;
   if (pathname !== '/api/promises' || req.method !== 'GET') return false;
@@ -101,7 +109,7 @@ export async function handlePromisesRoutes(
   try {
     const s = store();
     if (!s) throw new Error('no Firestore');
-    sendJSON(res, { success: true, ...(await promisesFor(s, userId, new Date())) });
+    sendJSON(res, { success: true, ...(await promisesFor(s, userId, new Date(), forgotten)) });
   } catch (err) {
     log.error({ error: String(err) }, 'Failed to read promises');
     sendError(res, API_ERRORS.OPERATION_FAILED, 500);

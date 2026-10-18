@@ -12,6 +12,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import type { FollowUpStore, NewFollowUp } from '../../services/follow-through/index.js';
 import { createFollowUpStore } from '../../services/stores/follow-through-store.js';
 import { fakeFirestore } from '../../services/stores/__tests__/fake-firestore.js';
+import { storedTopic } from '../../memory/recall/session-recall.js';
 
 vi.mock('../../services/identity/firebase-auth.js', () => ({
   verifyFirebaseToken: vi.fn(async (token: string) =>
@@ -23,12 +24,22 @@ const { handlePromisesRoutes } = await import('../routes/promises.js');
 const { bindVerifiedIdentity } = await import('../../servers/api/request-identity.js');
 
 let store: FollowUpStore | null = null;
+let forgotten: string[] | null = [];
 
 async function listen(bind: boolean): Promise<{ server: Server; base: string }> {
   const server = createServer(async (req, res) => {
     if (bind) await bindVerifiedIdentity(req, { NODE_ENV: 'production' });
     const url = new URL(req.url ?? '/', 'http://x');
-    if (!(await handlePromisesRoutes(req, res, url.pathname, url, () => store))) {
+    if (
+      !(await handlePromisesRoutes(
+        req,
+        res,
+        url.pathname,
+        url,
+        () => store,
+        async () => forgotten
+      ))
+    ) {
       res.statusCode = 418;
       res.end();
     }
@@ -72,6 +83,7 @@ const follow = (userId: string, ref: string, over: Partial<NewFollowUp> = {}): N
 
 beforeEach(async () => {
   process.env.PROMISES_PANEL = 'on';
+  forgotten = [];
   store = createFollowUpStore(fakeFirestore().db);
   const now = new Date();
   await store.open(follow('u-1', 'later'), now);
@@ -129,6 +141,16 @@ describe('GET /api/promises', () => {
     };
     expect((await fetch(`${base}/api/promises`, { headers: asUser('u-1') })).status).toBe(500);
     store = null;
+    expect((await fetch(`${base}/api/promises`, { headers: asUser('u-1') })).status).toBe(500);
+  });
+
+  it('leaves out a topic the caller asked Ferni to forget, and answers 500 if those are unreadable', async () => {
+    forgotten = [storedTopic('the dentist')];
+    const res = await fetch(`${base}/api/promises`, { headers: asUser('u-1') });
+    const body = (await res.json()) as { open: Array<{ text: string }>; recent: unknown[] };
+    expect(texts(body.open)).toEqual(['u-1: overdue', 'u-1: call mom']);
+    expect(body.recent).toEqual([]);
+    forgotten = null;
     expect((await fetch(`${base}/api/promises`, { headers: asUser('u-1') })).status).toBe(500);
   });
 
