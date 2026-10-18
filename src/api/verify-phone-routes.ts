@@ -24,6 +24,7 @@ import {
 } from '../services/trust-and-identity/verification-store.js';
 import { redactNumbers } from '../services/outreach/guarded-text.js';
 import { textVerificationCode, type CodeOutcome } from '../services/outreach/verification-text.js';
+import { getClientIp } from '../utils/client-ip.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { claimedUserFor } from './acting-user.js';
 import type { AuthContext } from './auth-middleware.js';
@@ -40,14 +41,17 @@ const CODE_ERRORS: Record<string, string> = {
 
 const tail = (phone: string): string => phone.replace(/\D/g, '').slice(-4);
 
-/** Why a code didn't go, as the status and words the settings screen shows. */
+/**
+ * Why a code didn't go, as the status and words the settings screen shows. A
+ * refusal about someone else's number ('quiet': their STOP, the pair limit) gets
+ * the same answer as a send, so the route can't tell anyone whether a number
+ * opted out; the reason is in the server log only.
+ */
+const SENT = 'If this number can receive texts, a code is on its way.';
 const SEND_ERRORS: Record<Exclude<CodeOutcome, { sent: true }>['reason'], [number, string]> = {
-  'invalid-number': [400, "That number doesn't look right. Mind checking it?"],
+  'invalid-number': [400, 'Ferni can text US and Canadian mobile numbers. Mind checking it?'],
+  quiet: [200, SENT],
   unavailable: [503, "Texting codes isn't working right now. Try again in a bit?"],
-  'opted-out': [
-    409,
-    "That number replied STOP to Ferni's texts. Text START from it, then try again.",
-  ],
   'too-soon': [429, 'I just sent a code. Give it a minute before asking for another.'],
   'too-many': [429, "That's a lot of codes for one hour. Try again a little later."],
   'send-failed': [502, "Couldn't send the code. Try again?"],
@@ -77,9 +81,15 @@ export async function handleVerifyPhone(
       // when the provider took it. It used to go through textUser(phone), which looked the
       // phone up as a user id, sent nothing, and still answered "sent".
       const makeCode = async (e164: string) => (await createVerificationCode(userId, e164)).code;
-      const outcome = await textVerificationCode(userId, phone, makeCode);
-      if (outcome.sent) {
-        sendJsonResponse(res, 200, { success: true, message: 'Verification code sent' });
+      const outcome = await textVerificationCode(
+        userId,
+        phone,
+        makeCode,
+        undefined,
+        getClientIp(req)
+      );
+      if (outcome.sent || outcome.reason === 'quiet') {
+        sendJsonResponse(res, 200, { success: true, message: SENT });
       } else {
         const [status, error] = SEND_ERRORS[outcome.reason];
         sendJsonResponse(res, status, { success: false, error });

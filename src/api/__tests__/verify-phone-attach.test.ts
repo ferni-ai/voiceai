@@ -57,6 +57,7 @@ vi.mock('../../tools/domains/proactive/outreach/index.js', () => ({ textUser }))
 // The real textVerificationCode (number, STOP, limits) with Firestore and Twilio faked.
 const sms = vi.hoisted(() => ({
   send: vi.fn(async (_m: { to: string; body: string }) => ({ success: true, messageSid: 'SM1' })),
+  optedOut: false,
 }));
 vi.mock('../../services/outreach/verification-text.js', async (importOriginal) => {
   const real =
@@ -64,9 +65,17 @@ vi.mock('../../services/outreach/verification-text.js', async (importOriginal) =
   const sends = new Map<string, string[]>();
   const deps = {
     env: { LOG_HASH_SECRET: 'test-secret' },
-    isOptedOut: async () => false,
-    recentSends: async (k: string) => sends.get(k) ?? [],
-    saveSends: async (k: string, at: string[]) => void sends.set(k, at),
+    isOptedOut: async () => sms.optedOut,
+    atomically: async <T>(
+      keys: string[],
+      decide: (r: Record<string, string[]>) => { result: T; write?: Record<string, string[]> }
+    ) => {
+      const { result, write } = decide(
+        Object.fromEntries(keys.map((k) => [k, sends.get(k) ?? []]))
+      );
+      for (const [k, v] of Object.entries(write ?? {})) sends.set(k, v);
+      return result;
+    },
     send: (m: { to: string; body: string }) => sms.send(m),
     now: () => new Date(),
   };
@@ -125,6 +134,17 @@ describe('asking for a phone code', () => {
       })
     );
     expect(textUser).not.toHaveBeenCalled();
+  });
+
+  it('a number that sent STOP gets the same answer as a send, and nothing is sent', async () => {
+    const sent = await (await post('/verify-phone', { phone: MINE }, 'tok-A')).json();
+    sms.send.mockClear();
+    sms.optedOut = true;
+    const res = await post('/verify-phone', { phone: MINE }, 'tok-A');
+    sms.optedOut = false;
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(sent); // nothing tells the caller the number opted out
+    expect(sms.send).not.toHaveBeenCalled();
   });
 
   it('a send the provider refused answers with a friendly error, not "sent"', async () => {
