@@ -9,7 +9,6 @@
  *
  * @module tools/handoff/handoff-reasons
  */
-import { withoutUnescalatedCrisis } from '../../services/safety/index.js';
 import { toCanonicalId } from './state.js';
 
 const reasons = new Map<string, string>();
@@ -33,23 +32,4 @@ export function takeHandoffReason(sessionId: string, personaId: string): string 
   const why = reasons.get(k);
   reasons.delete(k);
   return why;
-}
-
-/** What a reason with nothing left after the crisis wording was removed says instead. */
-export const NEUTRAL_HANDOFF_REASON = 'The caller asked for this teammate.';
-
-/**
- * The tool's reason and summary as the teammate may read them: with
- * HANDOFF_CRISIS_WORDING=on, no crisis wording unless the crisis gate really
- * escalated on this call (services/safety/crisis-escalations.ts).
- */
-export function handoffWords(
-  sessionId: string | undefined,
-  reason: string,
-  summary?: string
-): { reason: string; summary?: string } {
-  return {
-    reason: withoutUnescalatedCrisis(reason, sessionId) ?? NEUTRAL_HANDOFF_REASON,
-    summary: withoutUnescalatedCrisis(summary, sessionId),
-  };
 }

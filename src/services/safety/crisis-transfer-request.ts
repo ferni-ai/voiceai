@@ -7,45 +7,43 @@
  * and Alex answered with the 988 line. The owner asked again and was handed to
  * Nayan, whose handoff summary still spoke of a crisis.
  *
- * With the flag on, a classifier-only crisis read (never imminent, never the
- * script) of such a turn gets the soft check-in (SOFT_CRISIS_CHECK) instead of
+ * With the flag on, a classifier-only crisis read (never an imminent read,
+ * whoever it is about, and never the script) of such a turn gets the soft check-in (SOFT_CRISIS_CHECK) instead of
  * crisis guidance; never nothing, since a word list cannot overrule a read of
  * the whole conversation. The crisis gate and the turn pipeline apply it, and
  * only when ALL of these hold:
  * - no pattern matched (pattern 'none');
  * - the caller's latest words are only a request to switch to a teammate: "pass
  *   me to X", "transfer me to X", "can I talk to X", "put X on", "switch me to
- *   X", where X is a teammate's name, an STT spelling of one, or a bare number
- *   from 1 to 12; never "someone", a person, a crisis line or 911/988;
+ *   X", where X is a teammate's name as written or a bare number from 1 to 12
+ *   (how STT wrote "Nayan" on the prod call); never "someone", a person, a
+ *   crisis line, 911/988 or "nine one one";
  * - the call is known, and no earlier read on it found risk, failed or is still
- *   running, and nothing on it escalated (crisis-escalations.ts): a risky
+ *   running, and nothing on it escalated (crisis-call-risk.ts): a risky
  *   earlier turn keeps every later read, even one its words cannot show;
  * - nothing the caller said this call (latest and earlier), nor the companion's
  *   line they answer, holds a word from the agreement gate's risk list
  *   (hasRiskContent, crisis-agreement.ts), which also counts anything it cannot
  *   read as risk; and nothing the caller said agrees with or echoes the
  *   companion (endorses, the same module);
- * - no live adjudicator is there to give the turn a fuller read (it decides).
+ * - no live adjudicator is there to give the turn a fuller read (it decides),
+ *   and the agreement gate did not find the turn's crisis reads agreeing.
  * Anything else, and any error, leaves the crisis handling as it was.
  *
  * @module CrisisTransferRequest
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { HEARD_AS, TEAM_FIRST_NAMES } from '../../utils/teammate-talk.js';
-import { HEARD_IN_A_TRANSFER } from '../../utils/transfer-aliases.js';
+import { TEAM_FIRST_NAMES } from '../../utils/teammate-talk.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { endorses, hasRiskContent } from './crisis-agreement.js';
 import type { CrisisClassifierInput, PatternOutcome } from './crisis-classifier.js';
-import { crisisRiskThisCall } from './crisis-escalations.js';
+import { crisisRiskThisCall } from './crisis-call-risk.js';
 
 const log = createLogger({ module: 'CrisisTransferRequest' });
 
-const NAME = `(?:${[
-  ...TEAM_FIRST_NAMES,
-  ...Object.keys(HEARD_AS),
-  ...Object.keys(HEARD_IN_A_TRANSFER),
-].join('|')})`;
+/** The team's names as written: no speech-to-text spellings, which are often ordinary words. */
+const NAME = `(?:${TEAM_FIRST_NAMES.join('|')})`;
 const NUMBER = '(?:[1-9]|1[0-2]|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)';
 const WHO = `(?:${NAME}|${NUMBER})`;
 

@@ -24,10 +24,7 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import {
-  noteCrisisEscalation,
-  noteCrisisRisk,
-} from '../../../services/safety/crisis-escalations.js';
+import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import {
   applyClassifierVerdict,
@@ -54,6 +51,12 @@ export interface TurnCrisis {
    * patterns' reading.
    */
   softCheck(): Promise<boolean>;
+  /**
+   * Whether a router may answer this turn without the reply model (FTIS direct
+   * execution, the semantic short-circuit): never with a crisis signal or a
+   * soft check-in, which only the normal reply path carries.
+   */
+  bypassAllowed(): Promise<boolean>;
 }
 
 export function startTurnCrisis(
@@ -76,7 +79,7 @@ export function startTurnCrisis(
   );
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   const pattern = shouldBlock ? 'block' : patterns.isCrisis ? 'crisis' : 'none';
-  if (pattern !== 'none') noteCrisisEscalation(options.sessionId); // real: a pattern match
+  if (pattern !== 'none') noteCrisisRisk(options.sessionId); // CRISIS_TRANSFER_EVERYDAY
   const { env = process.env, generate } = options;
   // Only the agreement gate and a live adjudicator hold the turn for the turn's
   // other reads; a shadow adjudicator runs beside it and never delays it.
@@ -101,16 +104,21 @@ export function startTurnCrisis(
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
             const crisis = applyClassifierVerdict(patterns, verdict);
-            // Real: the crisis script, whichever read called for it.
-            const script = guardFromDetection(crisis).shouldBlock;
-            if (script) noteCrisisEscalation(options.sessionId);
-            if (transfer && crisis !== patterns && !script) {
-              // A bare "pass me to Nayan": the soft check-in, never crisis guidance and never nothing.
-              noteCrisisRisk(call);
+            if (crisis !== patterns) noteCrisisRisk(call); // CRISIS_TRANSFER_EVERYDAY
+            // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an
+            // imminent one whoever it is about, gets the soft check-in after every other check.
+            let softTransfer =
+              transfer &&
+              crisis !== patterns &&
+              verdict?.risk === 'crisis' &&
+              !guardFromDetection(crisis).shouldBlock;
+            const eased = (): { crisis: CrisisDetectionResult; soft: boolean } => {
               log.info({ outcome: 'soft', source: 'transfer-request' }, 'CRISIS_AGREEMENT');
               return { crisis: patterns, soft: true };
+            };
+            if (!scope || crisis === patterns) {
+              return softTransfer ? eased() : { crisis, soft: false };
             }
-            if (!scope || crisis === patterns) return { crisis, soft: false };
             if (!holdForReads) {
               shadowAdjudication(turnVerdicts(scope, input), transcriptFrom(input), {
                 pattern,
@@ -119,7 +127,7 @@ export function startTurnCrisis(
                 source: 'pipeline',
                 generate: options.adjudicate,
               });
-              return { crisis, soft: false };
+              return softTransfer ? eased() : { crisis, soft: false };
             }
             // Fail closed: a failed lookup counts as a missing read, which escalates.
             const verdicts = await turnVerdicts(scope, input).catch(() => [null]);
@@ -129,6 +137,12 @@ export function startTurnCrisis(
             if (outcome !== 'escalate') {
               log.info({ outcome, reads: verdicts.length }, 'CRISIS_AGREEMENT');
               return { crisis: patterns, soft: outcome === 'soft' };
+            }
+            // Reads of this turn that agree on risk are never eased.
+            if (
+              verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2
+            ) {
+              softTransfer = false;
             }
             // A classifier-only crisis gets a fuller second read (crisis-adjudicator.ts).
             const adjudicator = startCrisisAdjudicator(transcriptFrom(input), {
@@ -140,8 +154,7 @@ export function startTurnCrisis(
               scope,
             });
             if (!(await adjudicatedCheckin(adjudicator))) {
-              noteCrisisEscalation(options.sessionId); // real: the reads were weighed and it stood
-              return { crisis, soft: false };
+              return softTransfer ? eased() : { crisis, soft: false };
             }
             log.info({ outcome: 'soft', source: 'adjudicator' }, 'CRISIS_AGREEMENT');
             return { crisis: patterns, soft: true };
@@ -152,6 +165,7 @@ export function startTurnCrisis(
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
+    bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
   };
 }
 

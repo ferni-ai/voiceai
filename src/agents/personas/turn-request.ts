@@ -143,8 +143,8 @@ export function withTurnReminder(
     worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
-    // "Naya" in the transcript is Nayan (teammate-names.ts); no "9 may be Nayan" with crisis guidance
-    heardTeammateNote(words, options.shape !== false),
+    // "Naya" in the transcript is Nayan (teammate-names.ts)
+    heardTeammateNote(words),
     notes,
     corrected,
     options.closeLoop === false ? '' : closeLoopNote(session, words),

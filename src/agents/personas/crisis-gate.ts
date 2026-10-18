@@ -39,7 +39,7 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
-import { noteCrisisEscalation, noteCrisisRisk } from '../../services/safety/crisis-escalations.js';
+import { noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
@@ -180,7 +180,7 @@ export function startCrisisGate(
   });
   const decision = decisionFor(detection);
   if (decision.action !== 'pass') {
-    noteCrisisEscalation(sessionScope(userData)); // a pattern match is a real escalation
+    noteCrisisRisk(sessionScope(userData)); // CRISIS_TRANSFER_EVERYDAY: risk on this call
     log.info(
       { action: decision.action, source: 'patterns', indicators: detection.indicators },
       'CRISIS_GATE'
@@ -212,12 +212,9 @@ export function startCrisisGate(
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
-    if (transfer && stronger.action === 'guide') {
-      // A bare "pass me to Nayan": the soft check-in, never crisis guidance and never nothing.
-      noteCrisisRisk(call);
-      log.info({ action: 'guide', source: 'transfer-request' }, 'CRISIS_GATE');
-      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
-    }
+    // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
+    // one whoever it is about, gets the soft check-in once every other check below has run.
+    let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';
     if (scope && !holdForReads) {
       const reads = turnVerdicts(scope, { latest, earlier, companion });
       shadowAdjudication(reads, callTranscript(chatCtx), {
@@ -239,6 +236,10 @@ export function startCrisisGate(
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
         return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
       }
+      // Reads of this turn that agree on risk are never eased.
+      if (verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2) {
+        softTransfer = false;
+      }
       // Every read of the turn is in: a classifier-only crisis gets a fuller second read.
       const adjudicator = startCrisisAdjudicator(callTranscript(chatCtx), {
         pattern,
@@ -253,8 +254,11 @@ export function startCrisisGate(
         return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
       }
     }
-    // Real: the script, or a classifier read the agreement gate or adjudicator let stand.
-    if (stronger.action === 'replace' || (scope && holdForReads)) noteCrisisEscalation(call);
+    noteCrisisRisk(call); // CRISIS_TRANSFER_EVERYDAY: risk on this call, soft or not
+    if (softTransfer) {
+      log.info({ action: 'guide', source: 'transfer-request' }, 'CRISIS_GATE');
+      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
+    }
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'

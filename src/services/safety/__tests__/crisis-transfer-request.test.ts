@@ -22,10 +22,11 @@ import {
   type PatternOutcome,
 } from '../crisis-classifier.js';
 import {
-  noteCrisisEscalation,
-  resetCrisisEscalations,
+  crisisRiskThisCall,
+  noteCrisisRisk,
+  resetCrisisCallRisk,
   trackCrisisRead,
-} from '../crisis-escalations.js';
+} from '../crisis-call-risk.js';
 import { isTransferRequestOnly, transferRequestIsEveryday } from '../crisis-transfer-request.js';
 
 const ON = { CRISIS_TRANSFER_EVERYDAY: 'on' };
@@ -45,7 +46,7 @@ const everyday = (
 
 beforeEach(() => {
   resetCrisisClassifierCache();
-  resetCrisisEscalations();
+  resetCrisisCallRisk();
 });
 
 /** Shapes from the prod call and the brief: pass, transfer, talk to, put on, switch. */
@@ -55,17 +56,16 @@ const TRANSFER_REQUESTS = [
   'Transfer me to 9. Transfer me to 9.',
   'pass me to nine',
   'Can I talk to Maya?',
-  'Can I speak with Naya?',
   'Put Alex on.',
   'hey, put Ferni on the line',
   'Switch me to Jordan please.',
   'switch to 9',
   'Alex, can you transfer me to Nayan?',
   'Could you put me through to Peter?',
-  'Can you pass me back to Fern?',
-  'I want to talk to Fred.',
+  'Can you pass me back to Ferni?',
+  'I want to talk to Nayan.',
   'Okay, transfer me to 12 now',
-  'Can you hand me over to Pete real quick?',
+  'Can you hand me over to Peter real quick?',
 ];
 
 /** None of these is only a request to switch teammates. */
@@ -84,6 +84,10 @@ const NOT_TRANSFER_REQUESTS = [
   'can I talk to a real person',
   'pass me to 13',
   'pass me to Bob',
+  // Speech-to-text spellings are often ordinary words: only the names as written count.
+  'Can I speak with Naya?',
+  'Can you pass me back to Fern?',
+  'I want to talk to Fred.',
   'I talked to Maya yesterday',
   'can I talk to Maya about my plan',
   'put Maya on, I am done',
@@ -150,7 +154,7 @@ describe('transferRequestIsEveryday', () => {
   });
 
   it('keeps it on a call where an earlier read found risk, failed, or a pattern matched', async () => {
-    noteCrisisEscalation('patterns-call');
+    noteCrisisRisk('patterns-call');
     expect(everyday(turn('Put Maya on.'), 'none', ON, 'patterns-call')).toBe(false);
     await trackCrisisRead(
       'risky-call',
@@ -185,7 +189,9 @@ describe('transferRequestIsEveryday', () => {
     void trackCrisisRead(
       'same-turn',
       'Can you pass me to 9?',
-      new Promise<{ risk: string }>(() => undefined)
+      new Promise<{ risk: string }>((_resolve) => {
+        void _resolve;
+      })
     );
     expect(everyday(turn('Can you pass me to 9?'), 'none', ON, 'same-turn')).toBe(true);
   });
@@ -277,5 +283,18 @@ describe('every labelled crisis case keeps full crisis handling', () => {
       if (everyday(transfer, 'none', ON, call)) exempted.push(`#${i} after`);
     }
     expect(exempted).toEqual([]);
+  });
+});
+
+describe('risk noted on a call', () => {
+  it('is kept for 6 hours from the last note, however many other calls come after', () => {
+    const start = 1_000_000;
+    noteCrisisRisk('first', start);
+    for (let i = 0; i < 2000; i++) noteCrisisRisk(`other ${i}`, start + i);
+    expect(crisisRiskThisCall('first', undefined, start + 5_000)).toBe(true);
+    noteCrisisRisk('first', start + 60_000); // noted again: its 6 hours start again
+    const sixHours = 6 * 60 * 60 * 1000;
+    expect(crisisRiskThisCall('first', undefined, start + 60_000 + sixHours)).toBe(true);
+    expect(crisisRiskThisCall('first', undefined, start + 60_001 + sixHours)).toBe(false);
   });
 });

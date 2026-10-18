@@ -2,30 +2,35 @@
  * The 2026-10-18 prod call, through the live reply gate and the turn pipeline:
  * "Can you pass me to 9?" (STT for Nayan) with a classifier-only crisis read.
  * With CRISIS_TRANSFER_EVERYDAY on, the caller gets the soft check-in (never
- * nothing); off, crisis guidance as in prod. Risky lines keep full crisis
- * guidance. The gate also records which calls really escalated, for the
- * handoff wording (services/safety/crisis-escalations.ts).
+ * nothing); off, crisis guidance as in prod. Risky lines, imminent reads,
+ * agreeing reads and a live adjudicator keep full crisis guidance; the shadow
+ * adjudicator still sees eased turns; and no router bypass skips the soft
+ * check-in.
  */
+import { readFileSync } from 'node:fs';
 import { llm } from '@livekit/agents';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SOFT_CRISIS_CHECK } from '../../../services/safety/crisis-agreement.js';
+import {
+  crisisRiskThisCall,
+  resetCrisisCallRisk,
+} from '../../../services/safety/crisis-call-risk.js';
 import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import {
-  crisisEscalatedThisCall,
-  crisisRiskThisCall,
-  resetCrisisEscalations,
-} from '../../../services/safety/crisis-escalations.js';
+import { checkSemanticShortCircuit } from '../../processors/semantic-short-circuit.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
 
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
 const ON = { ...LIVE, CRISIS_TRANSFER_EVERYDAY: 'on' };
-const crisisRead: CrisisGenerateFn = async () => '{"risk":"crisis","subject":"self"}';
-const imminentRead: CrisisGenerateFn = async () => '{"risk":"imminent","subject":"self"}';
+const read =
+  (risk: string, subject = 'self'): CrisisGenerateFn =>
+  async () =>
+    `{"risk":"${risk}","subject":"${subject}"}`;
+const crisisRead = read('crisis');
 
 function request(...turns: Array<['user' | 'assistant', string]>): llm.ChatContext {
   const ctx = llm.ChatContext.empty();
@@ -41,9 +46,10 @@ async function effective(
   ctx: llm.ChatContext,
   sessionId: string,
   env: Record<string, string>,
-  generate: CrisisGenerateFn = crisisRead
+  generate: CrisisGenerateFn = crisisRead,
+  adjudicate?: CrisisGenerateFn
 ): Promise<CrisisGateDecision> {
-  const gate = startCrisisGate(ctx, userData(sessionId), { env, generate });
+  const gate = startCrisisGate(ctx, userData(sessionId), { env, generate, adjudicate });
   if (!gate) throw new Error('gate off');
   return (await gate.escalation) ?? gate.decision;
 }
@@ -55,12 +61,13 @@ const full = (d: CrisisGateDecision): boolean =>
 
 beforeEach(() => {
   resetCrisisClassifierCache();
-  resetCrisisEscalations();
+  resetCrisisCallRisk();
 });
 
+const COMPANION = 'Two meetings, and a call with Mindy at four. Want me to text her?';
 const PROD = request(
   ['user', 'What do I have today?'],
-  ['assistant', 'Two meetings, and a call with Mindy at four. Want me to text her?'],
+  ['assistant', COMPANION],
   ['user', 'Can you pass me to 9?']
 );
 
@@ -74,8 +81,12 @@ describe('a transfer request through the crisis gate', () => {
     expect(full(await effective(PROD, 'prod-off', LIVE))).toBe(true);
   });
 
-  it('never softens an imminent read', async () => {
-    expect((await effective(PROD, 'imminent', ON, imminentRead)).action).toBe('replace');
+  it('never softens an imminent read, about the caller or about someone else', async () => {
+    expect((await effective(PROD, 'imminent', ON, read('imminent'))).action).toBe('replace');
+    resetCrisisClassifierCache();
+    expect(full(await effective(PROD, 'imminent-3p', ON, read('imminent', 'third_party')))).toBe(
+      true
+    );
   });
 
   it.each([
@@ -124,15 +135,64 @@ describe('a transfer request through the crisis gate', () => {
   });
 });
 
+describe('with CRISIS_AGREEMENT_GATE on too', () => {
+  const BOTH = { ...ON, CRISIS_AGREEMENT_GATE: 'on' };
+
+  it('a lone crisis read the agreement gate escalates still gets only the soft check-in', async () => {
+    expect(await effective(PROD, 'both-lone', BOTH)).toEqual(soft);
+  });
+
+  it('two reads of the turn agreeing on crisis keep crisis guidance', async () => {
+    // The turn pipeline read the same words with other context: a second, agreeing crisis read.
+    const pipeline = startTurnCrisis(
+      'Can you pass me to 9?',
+      { recentTranscripts: ['Morning.'], lastAgentResponse: 'Hey, what is up?' },
+      { sessionId: 'both-agree', env: BOTH, generate: crisisRead }
+    );
+    expect(full(await effective(PROD, 'both-agree', BOTH))).toBe(true);
+    expect(await pipeline.softCheck()).toBe(false);
+  });
+
+  it('with the transfer flag off, the agreement gate escalates as before', async () => {
+    const env = { ...LIVE, CRISIS_AGREEMENT_GATE: 'on' };
+    expect(full(await effective(PROD, 'agree-only', env))).toBe(true);
+  });
+});
+
+describe('adjudicators', () => {
+  it('the shadow adjudicator still reads an eased turn (eval data)', async () => {
+    const adjudicate = vi.fn<CrisisGenerateFn>(async () => '{"decision":"checkin"}');
+    const env = { ...ON, CRISIS_ADJUDICATOR: 'shadow' };
+    expect(await effective(PROD, 'shadow', env, crisisRead, adjudicate)).toEqual(soft);
+    await vi.waitFor(() => expect(adjudicate).toHaveBeenCalled());
+  });
+
+  it('the turn pipeline also hands an eased turn to the shadow adjudicator', async () => {
+    const adjudicate = vi.fn<CrisisGenerateFn>(async () => '{"decision":"checkin"}');
+    const turn = startTurnCrisis(
+      'Can you pass me to 9?',
+      { recentTranscripts: ['What do I have today?'], lastAgentResponse: COMPANION },
+      {
+        sessionId: 'shadow-pipe',
+        env: { ...ON, CRISIS_ADJUDICATOR: 'shadow' },
+        generate: crisisRead,
+        adjudicate,
+      }
+    );
+    expect(await turn.softCheck()).toBe(true);
+    await vi.waitFor(() => expect(adjudicate).toHaveBeenCalled());
+  });
+});
+
 describe('a transfer request through the turn pipeline (startTurnCrisis)', () => {
   const userTurn = {
     recentTranscripts: ['What do I have today?'],
     lastAgentResponse: 'Want me to text her?',
   };
-  const opts = (sessionId: string, env: Record<string, string>) => ({
+  const opts = (sessionId: string, env: Record<string, string>, generate = crisisRead) => ({
     sessionId,
     env,
-    generate: crisisRead,
+    generate,
   });
 
   it('gives the soft check-in with the flag on', async () => {
@@ -141,7 +201,7 @@ describe('a transfer request through the turn pipeline (startTurnCrisis)', () =>
     expect((await turn.resolve()).isCrisis).toBe(false);
   });
 
-  it('gives crisis handling with the flag off, and for a risky line', async () => {
+  it('gives crisis handling with the flag off, for a risky line, and for an imminent read', async () => {
     const off = startTurnCrisis('Can you pass me to 9?', userTurn, opts('pipe-off', LIVE));
     expect(await off.softCheck()).toBe(false);
     expect((await off.resolve()).isCrisis).toBe(true);
@@ -153,36 +213,63 @@ describe('a transfer request through the turn pipeline (startTurnCrisis)', () =>
     );
     expect(await risky.softCheck()).toBe(false);
     expect((await risky.resolve()).isCrisis).toBe(true);
+    resetCrisisClassifierCache();
+    const thirdParty = startTurnCrisis(
+      'Can you pass me to 9?',
+      userTurn,
+      opts('pipe-3p', ON, read('imminent', 'third_party'))
+    );
+    expect(await thirdParty.softCheck()).toBe(false);
+    expect((await thirdParty.resolve()).isCrisis).toBe(true);
   });
 });
 
-describe('which calls really escalated', () => {
-  it('a classifier-only crisis guide is not a real escalation (but is risk on the call)', async () => {
-    const gate = startCrisisGate(PROD, userData('classifier-only'), {
-      env: LIVE,
-      generate: crisisRead,
-    });
-    expect(gate?.decision.action).toBe('pass');
-    expect((await gate?.escalation)?.action).toBe('guide');
-    expect(crisisEscalatedThisCall('classifier-only')).toBe(false);
-    expect(crisisRiskThisCall('classifier-only')).toBe(true);
+describe('router bypasses never skip the soft check-in', () => {
+  const userTurn = { recentTranscripts: ['What do I have today?'], lastAgentResponse: COMPANION };
+  const turnFor = (sessionId: string, generate: CrisisGenerateFn) =>
+    startTurnCrisis('Can you pass me to 9?', userTurn, { sessionId, env: ON, generate });
+
+  it('bypassAllowed is false for an eased turn and true for a turn read as none', async () => {
+    expect(await turnFor('bypass-soft', crisisRead).bypassAllowed()).toBe(false);
+    resetCrisisClassifierCache();
+    expect(await turnFor('bypass-none', read('none')).bypassAllowed()).toBe(true);
   });
 
-  it('a pattern match is', async () => {
-    const ctx = request(['user', 'I want to kill myself.']);
-    expect((await effective(ctx, 'pattern', LIVE)).action).not.toBe('pass');
-    expect(crisisEscalatedThisCall('pattern')).toBe(true);
+  it('the semantic short-circuit declines an eased turn as it does a crisis', async () => {
+    const shortCircuit = async (sessionId: string, generate: CrisisGenerateFn) => {
+      const turn = turnFor(sessionId, generate);
+      const routed = await turn.resolve();
+      return checkSemanticShortCircuit(
+        new Promise((_resolve) => {
+          void _resolve;
+        }),
+        {
+          // As process-turn.ts passes it.
+          crisisDetected: !(await turn.bypassAllowed()),
+          crisisSeverity: routed.severity,
+          analysisResult: {} as Parameters<typeof checkSemanticShortCircuit>[1]['analysisResult'],
+          ctx: {} as Parameters<typeof checkSemanticShortCircuit>[1]['ctx'],
+        }
+      );
+    };
+    const eased = await shortCircuit('sc-soft', crisisRead);
+    expect(eased.shortCircuited).toBe(false);
+    expect(eased.reason).toMatch(/^Crisis detected/);
+    resetCrisisClassifierCache();
+    const plain = await shortCircuit('sc-none', read('none'));
+    expect(plain.reason).not.toMatch(/^Crisis detected/); // it went on to wait for routing
   });
 
-  it('a classifier read the agreement gate let stand is', async () => {
-    const ctx = request(
-      ['assistant', 'How was the weekend?'],
-      ['user', 'It made me feel calm for the first time all week.']
+  it('process-turn.ts asks bypassAllowed before FTIS direct execution and the short-circuit', () => {
+    const source = readFileSync(
+      new URL('../../processors/turn-processor/process-turn.ts', import.meta.url),
+      'utf8'
     );
-    const env = { ...LIVE, CRISIS_AGREEMENT_GATE: 'on' };
-    const gate = startCrisisGate(ctx, userData('agreed'), { env, generate: crisisRead });
-    expect(gate?.decision.action).toBe('pass'); // no pattern: the classifier's read alone
-    expect((await gate?.escalation)?.action).toBe('guide');
-    expect(crisisEscalatedThisCall('agreed')).toBe(true);
+    const start = source.indexOf('// FTIS DIRECT EXECUTION');
+    const ftis = source.slice(start, source.indexOf('return {', start));
+    expect(ftis).toMatch(
+      /ftisResult\.bypassLLM &&\s+ftisResult\.toolResult &&\s+\(await turnCrisis\.bypassAllowed\(\)\)/
+    );
+    expect(source).toMatch(/crisisDetected: !\(await turnCrisis\.bypassAllowed\(\)\)/);
   });
 });

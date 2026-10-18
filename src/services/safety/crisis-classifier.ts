@@ -30,7 +30,7 @@ import {
   needsPlainRead,
   resolveCrisisEverydayRules,
 } from './crisis-everyday.js';
-import { trackCrisisRead } from './crisis-escalations.js';
+import { trackCrisisRead } from './crisis-call-risk.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -268,7 +268,7 @@ export interface StartCrisisClassifierOptions {
    * verdict is kept with the turn's other reads (turnVerdicts).
    */
   scope?: string;
-  /** The call's session id, always when known: its reads are tracked (crisis-escalations.ts). */
+  /** The call's session id, always when known: its reads are tracked (crisis-call-risk.ts). */
   call?: string;
 }
 
@@ -432,7 +432,7 @@ export function startCrisisClassifier(
     normalized.companion ?? '',
     prompt.length,
   ]);
-  // What each call's reads found, and which are in flight (crisis-escalations.ts).
+  // What each call's reads found, and which are in flight (crisis-call-risk.ts).
   const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
   const shared = cachedRun(key, startedAt);
   if (shared) {
