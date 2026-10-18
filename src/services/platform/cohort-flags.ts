@@ -68,6 +68,7 @@ export const COHORT_FLAGS = [
   'PHONE_GOODBYE',
   'HAPPY_EXITS',
   'HANDOFF_TALK_THROUGH',
+  'FAMILY_TABLE',
   // Read once the greeting's handlers are wired (greeting-wiring.ts), after applyCallerFlags.
   'HANDOFF_FIRST_FIX',
   'NAME_CORRECTION',
