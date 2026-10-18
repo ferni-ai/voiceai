@@ -27,27 +27,14 @@
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
+import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
+import { serverConfirmOn, type Kin } from './outreach-confirm-family.js';
 import {
-  dropConfirmThread,
-  openConfirmThread,
-  outcomeOf,
-  sentConfirmThread,
-} from './confirm-thread.js';
-import {
-  alreadyPlacedReply,
-  failedNote,
-  familyOf,
-  isKin,
-  resultNote,
-  SERVER_CONFIRM_SETTLE_MS,
-  serverConfirmOn,
-  stillWaitingReply,
-  targetOf,
-  underwayNote,
-  type Family,
-  type Kin,
-  type Target,
-} from './outreach-confirm-family.js';
+  gateInFamily,
+  settleThenSend,
+  type ConfirmGate,
+  type Execute,
+} from './outreach-server-confirm.js';
 
 const log = getLogger();
 
@@ -82,9 +69,9 @@ const GATED = Symbol.for('ferni.outbound-confirm');
 
 type SessionEvent =
   { kind: 'caller'; text: string; agentSpeaking: boolean } | { kind: 'tool'; callIds: string[] };
-type ConfirmEvent = SessionEvent & { seq: number };
+export type ConfirmEvent = SessionEvent & { seq: number };
 
-interface PendingAction {
+export interface PendingAction {
   toolId: string;
   userId: string;
   spec: ConfirmSpec;
@@ -97,7 +84,7 @@ interface PendingAction {
   server?: Kin & { readBack: string; send: () => Promise<unknown> };
 }
 
-interface SessionLog {
+export interface SessionLog {
   seq: number;
   events: ConfirmEvent[];
   pending?: PendingAction;
@@ -287,63 +274,6 @@ function continues(
   return pending.spec === spec && spec.sameAction(pending.args, args);
 }
 
-/** Take the stored action, so nothing can send it twice, and send it as read back. */
-async function sendTaken(
-  entry: SessionLog,
-  pending: PendingAction,
-  send: () => Promise<unknown>
-): Promise<unknown> {
-  entry.pending = undefined;
-  clearTimeout(entry.settle);
-  entry.settle = undefined;
-  const { server } = pending;
-  const sent = server && { ...server, expiresAt: Date.now() + CONFIRM_WINDOW_MS };
-  entry.sent = sent || undefined;
-  const result = sentConfirmThread(pending, send());
-  // A send that failed is not "already placed": the caller may ask again.
-  const forget = (): void => {
-    if (entry.sent === sent) entry.sent = undefined;
-  };
-  void result.then((r) => outcomeOf(r) === 'failed' && forget(), forget);
-  return result;
-}
-
-/**
- * OUTREACH_SERVER_CONFIRM: a final that confirms the read-back sends it once
- * the caller has been quiet for SERVER_CONFIRM_SETTLE_MS, judged again then.
- */
-function settleThenSend(session: object): void {
-  const entry = logFor(session);
-  clearTimeout(entry.settle);
-  entry.settle = undefined;
-  const { pending } = entry;
-  const server = pending?.server;
-  if (!server || confirmationState(pending, entry.events, Date.now()) !== 'confirmed') return;
-  entry.settle = setTimeout(() => {
-    entry.settle = undefined;
-    // A later final ("Call Bob instead"), another tool's output, a no or expiry voids it.
-    if (entry.pending !== pending) return;
-    if (confirmationState(pending, entry.events, Date.now()) !== 'confirmed') return;
-    if (!ownerKnown(session) || isSyntheticUserId(pending.userId)) {
-      log.warn(
-        { toolId: server.toolId },
-        'OUTREACH_SERVER_CONFIRM: owner not proven, nothing sent'
-      );
-      return;
-    }
-    log.info({ toolId: server.toolId }, 'OUTREACH_SERVER_CONFIRM: caller said yes, sending');
-    entry.note?.(underwayNote(server.toolId, server.readBack));
-    const failed = (why: unknown): void => {
-      log.warn({ toolId: server.toolId }, 'OUTREACH_SERVER_CONFIRM: the send failed');
-      entry.note?.(failedNote(server.toolId, server.readBack, why));
-    };
-    void sendTaken(entry, pending, server.send).then((result) => {
-      if (outcomeOf(result) === 'failed') failed(result);
-      else entry.note?.(resultNote(server.toolId, result));
-    }, failed);
-  }, SERVER_CONFIRM_SETTLE_MS);
-}
-
 /**
  * Listeners for a live AgentSession: the caller's final transcripts and tool
  * outputs. If `speakerIsOwner` returns false, no reply on this call confirms.
@@ -362,7 +292,7 @@ export function outreachConfirmListeners(
       if (!e.isFinal || !e.transcript?.trim()) return;
       const agentSpeaking = session.agentState === 'speaking';
       record(session, { kind: 'caller', text: e.transcript, agentSpeaking });
-      if (serverConfirmOn()) settleThenSend(session);
+      if (serverConfirmOn()) settleThenSend(serverGate, session, logFor(session));
     },
     onToolsExecuted: (event: unknown) => {
       const calls = (event as { functionCalls?: Array<{ callId?: string }> }).functionCalls ?? [];
@@ -391,98 +321,15 @@ export interface ConfirmSpec {
   sameAction?: (stored: Record<string, unknown>, next: Record<string, unknown>) => boolean;
 }
 
-type Execute = (a: unknown, o?: unknown) => Promise<unknown>;
-
-/** One call of a gated tool, with OUTREACH_SERVER_CONFIRM on. */
-interface FamilyCall {
-  toolId: string;
-  spec: ConfirmSpec;
-  execute: Execute;
-  session: object;
-  entry: SessionLog;
-  args: Record<string, unknown>;
-  opts: unknown;
-  callId: string;
-  userId: string;
-}
-
-/** Whether the caller said no to this read-back since it was stored. */
-function saidNoTo(entry: SessionLog, pending: PendingAction): boolean {
-  return entry.events.some(
-    (e) => e.seq > pending.createdSeq && e.kind === 'caller' && isClearNo(e.text)
-  );
-}
-
-/** What was sent or still waits for this person, by this tool or a sibling; undefined: neither. */
-function familyAnswer(c: FamilyCall, family: Family | undefined, target: Target): unknown {
-  const { sent, pending } = c.entry;
-  const now = Date.now();
-  if (sent && now <= sent.expiresAt && isKin(sent, c.toolId, family, target)) {
-    log.info({ toolId: c.toolId }, 'OUTREACH_SERVER_CONFIRM: already placed, nothing sent');
-    return alreadyPlacedReply(sent.readBack);
-  }
-  if (!pending || pending.userId !== c.userId) return undefined;
-  const kin = pending.server !== undefined && isKin(pending.server, c.toolId, family, target);
-  if (confirmationState(pending, c.entry.events, now) === 'confirmed') {
-    if (pending.toolId !== c.toolId && !kin) return undefined;
-    log.info({ toolId: c.toolId }, 'OUTREACH_CONFIRM: caller said yes, sending');
-    const send = pending.server?.send ?? (async () => c.execute(pending.args, c.opts));
-    return sendTaken(c.entry, pending, send);
-  }
-  if (!kin || !pending.server || saidNoTo(c.entry, pending) || now > pending.expiresAt)
-    return undefined;
-  // The same action for the same person: read it again, and judge the answer to this reading.
-  Object.assign(pending, {
-    callId: c.callId,
-    createdSeq: c.entry.seq,
-    expiresAt: now + CONFIRM_WINDOW_MS,
-  });
-  log.info({ toolId: c.toolId }, 'OUTREACH_SERVER_CONFIRM: kept the stored read-back');
-  return stillWaitingReply(pending.server.readBack, pending.toolId);
-}
-
-/** The gate with OUTREACH_SERVER_CONFIRM on: siblings share one read-back (outreach-confirm-family.ts). */
-async function gateInFamily(c: FamilyCall): Promise<unknown> {
-  const early = familyAnswer(c, familyOf(c.toolId, c.args), targetOf(c.args));
-  if (early !== undefined) return early;
-  const prepared = await c.spec.prepare(c.args, c.userId, async (a) =>
-    c.execute({ ...a, [PLAN_ONLY]: true }, c.opts)
-  );
-  if (typeof prepared === 'string') return prepared;
-  const planned = (prepared.args as { [PLANNED]?: Planned })[PLANNED];
-  const family = familyOf(c.toolId, prepared.args);
-  const target = targetOf(prepared.args, planned?.to);
-  // The resolved number may match where the name didn't, and a yes may have landed meanwhile.
-  const late = familyAnswer(c, family, target);
-  if (late !== undefined) return late;
-  const { entry } = c;
-  if (entry.pending) dropConfirmThread(entry.pending); // replaced, never sent
-  const send = async (): Promise<unknown> => c.execute(prepared.args, c.opts);
-  const { readBack } = prepared;
-  entry.pending = {
-    toolId: c.toolId,
-    userId: c.userId,
-    spec: c.spec,
-    readBack,
-    args: prepared.args,
-    callId: c.callId,
-    createdSeq: entry.seq,
-    expiresAt: Date.now() + CONFIRM_WINDOW_MS,
-    server: { toolId: c.toolId, family, target, readBack, send },
-  };
-  openConfirmThread(entry.pending, {
-    userId: c.userId,
-    toolId: c.toolId,
-    args: prepared.args,
-    planned,
-    ownerVerified: ownerKnown(c.session),
-  });
-  log.info({ toolId: c.toolId }, 'OUTREACH_CONFIRM: preview stored, waiting for caller');
-  return (
-    `NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: ` +
-    `${readBack}. Call ${c.toolId} again only after the caller says yes.`
-  );
-}
+/** What OUTREACH_SERVER_CONFIRM's half (outreach-server-confirm.ts) borrows from this gate. */
+const serverGate: ConfirmGate = {
+  confirmationState,
+  ownerKnown,
+  isClearNo,
+  windowMs: CONFIRM_WINDOW_MS,
+  planOnly: PLAN_ONLY,
+  planned: PLANNED,
+};
 
 /** Wrap an outbound tool so it acts only on a caller's yes (see the module comment). */
 export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec): ToolDefinition {
@@ -492,7 +339,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
     create: (ctx: ToolContext): Tool => {
       const tool = def.create(ctx);
       const execute = (tool as { execute: Execute }).execute.bind(tool);
-      const gate = { toolId: def.id, spec, execute };
+      const gate = { gate: serverGate, toolId: def.id, spec, execute };
       const gated = async (args: Record<string, unknown>, opts?: unknown): Promise<unknown> => {
         if (spec.applies && !spec.applies(args)) return execute(args, opts);
         if (isSyntheticUserId(ctx.userId)) {
