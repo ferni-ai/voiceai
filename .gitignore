@@ -110,6 +110,7 @@ brand/ferni-design-tokens.css
 
 # Test artifacts
 playwright-report/
+playwright-report-*/
 test-results/
 coverage/
 Receipt-*.pdf
