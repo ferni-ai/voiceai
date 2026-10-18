@@ -33,6 +33,8 @@ public final class CallSession {
     public private(set) var isMuted = false
     /// A phone call or Siri has the audio; the call resumes when it's done.
     public private(set) var isOnHold = false
+    /// When the latest call began (what it taught Ferni is learned after this).
+    public private(set) var startedAt: Date?
     public private(set) var captions = CaptionBook()
     public private(set) var personaID = "ferni"
     /// Whether this phone has ever had a call go live (Home's first-visit hello).
@@ -99,6 +101,7 @@ public final class CallSession {
         let id = UUID()
         callID = id
         callBegan = .now
+        startedAt = .now
         callTask = Task {
             // The system's call UI; the call still works if it refuses.
             try? await lifecycle?.begin(id: id, name: PersonaRegistry.get(personaID).name)
