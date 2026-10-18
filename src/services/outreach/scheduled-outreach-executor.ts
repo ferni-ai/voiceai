@@ -13,9 +13,13 @@ import {
   getPendingOutreach,
   updateOutreachStatus,
   incrementRetry,
+  patchOutreach,
+  claimPendingOutreach,
   type ScheduledOutreach,
+  type ScheduledOutreachTarget,
 } from './scheduled-multi-outreach.js';
-import { sendSMS } from './delivery/sms-delivery.js';
+import { isOwnVerifiedPhone, ON_BEHALF_GAP_MS, textOnBehalf } from './guarded-text.js';
+import { flagOn } from '../../config/env-flag.js';
 import { sendEmail } from './delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../voice/voice-call.js';
 import { makeConversationalCall } from './conversational-calls.js';
@@ -49,12 +53,27 @@ const DEFAULT_CONFIG: ExecutorConfig = {
 let isRunning = false;
 let config = DEFAULT_CONFIG;
 
+/** Guard skips that end a scheduled text rather than fail it. */
+const FINAL_SKIPS: ReadonlySet<string> = new Set(['opted-out', 'bad-number']);
+/** A held item released this long after its time is stale: cancelled, never sent as a backlog. */
+const HELD_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
 // Track active users to process
 const activeUserIds = new Set<string>();
 
 // ============================================================================
 // EXECUTION
 // ============================================================================
+
+/** Only a text or call to the member's own verified phone is to them; every other send is to someone else. */
+async function toMemberThemself(
+  userId: string,
+  channel: string,
+  target: ScheduledOutreachTarget
+): Promise<boolean> {
+  if (!['text', 'call', 'conversation'].includes(channel) || !target.resolvedPhone) return false;
+  return isOwnVerifiedPhone(userId, target.resolvedPhone).catch(() => false);
+}
 
 /**
  * Execute a single scheduled outreach
@@ -68,34 +87,37 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
     '⏰ Executing scheduled outreach'
   );
 
+  if (outreach.heldAt && Date.now() - outreach.scheduledFor.getTime() > HELD_EXPIRY_MS) {
+    await updateOutreachStatus(userId, id, 'cancelled', {
+      success: false,
+      error: 'expired-while-held',
+    });
+    log.info({ userId, id }, 'Held scheduled outreach expired');
+    return;
+  }
+
   // Mark as executing
   await updateOutreachStatus(userId, id, 'executing');
 
   try {
     let success = false;
     let errorMsg: string | undefined;
-    let channelUsed = target.channel === 'auto' ? 'text' : target.channel;
+    // 'auto' means a text (an email without a phone); a call only when one was asked for.
+    const auto = target.resolvedPhone || !target.resolvedEmail ? 'text' : 'email';
+    const channelUsed = target.channel === 'auto' ? auto : target.channel;
 
-    // Determine channel if auto
-    if (target.channel === 'auto') {
-      // Default: text if phone available, else email
-      if (target.resolvedPhone) {
-        channelUsed = 'text';
-      } else if (target.resolvedEmail) {
-        channelUsed = 'email';
-      }
-
-      // Upgrade to call for certain purposes
-      const purposeLower = target.purpose.toLowerCase();
-      if (
-        purposeLower.includes('check in') ||
-        purposeLower.includes('talk') ||
-        purposeLower.includes('important')
-      ) {
-        if (target.resolvedPhone) {
-          channelUsed = 'call';
-        }
-      }
+    if (
+      !flagOn('SCHEDULED_OUTREACH_THIRD_PARTY') &&
+      !(await toMemberThemself(userId, channelUsed, target))
+    ) {
+      // Kept, not dropped and not retried every minute, until the founder opts in.
+      await patchOutreach(userId, id, {
+        status: 'held',
+        heldReason: 'awaiting-approval',
+        heldAt: new Date(),
+      });
+      log.info({ userId, id, channel: channelUsed }, 'Scheduled outreach to someone else held');
+      return;
     }
 
     // Execute based on channel
@@ -135,15 +157,37 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
         throw new Error(`No phone number for ${target.resolvedContactName}`);
       }
 
-      const result = await sendSMS({
-        to: target.resolvedPhone,
+      const sent = await textOnBehalf({
+        senderUserId: userId,
+        toPhone: target.resolvedPhone,
         body: target.message || target.purpose,
+        refId: outreachId,
         personaId,
-        userId,
-        outreachId,
       });
-      success = result.success;
-      errorMsg = result.error;
+      if (!sent.sent && sent.reason === 'quiet-hours') {
+        // Held, not dropped: it goes out when their morning starts.
+        await patchOutreach(userId, id, { status: 'pending', scheduledFor: sent.until });
+        log.info({ userId, id, until: sent.until.toISOString() }, 'Scheduled text held');
+        return;
+      }
+      if (!sent.sent && sent.reason === 'recently-sent') {
+        // Another text to them just went (or is going): this one waits out the gap.
+        const scheduledFor = new Date(Date.now() + ON_BEHALF_GAP_MS);
+        await patchOutreach(userId, id, { status: 'pending', scheduledFor });
+        return;
+      }
+      if (!sent.sent && FINAL_SKIPS.has(sent.reason)) {
+        // A STOP or a bad number: trying again would be wrong, not unlucky.
+        await updateOutreachStatus(userId, id, 'cancelled', {
+          success: false,
+          channel: channelUsed,
+          error: `skipped: ${sent.reason}`,
+        });
+        log.info({ userId, id, reason: sent.reason }, 'Scheduled text skipped');
+        return;
+      }
+      success = sent.sent;
+      errorMsg = sent.sent ? undefined : sent.reason;
     } else if (channelUsed === 'email') {
       if (!target.resolvedEmail) {
         throw new Error(`No email for ${target.resolvedContactName}`);
@@ -220,7 +264,11 @@ async function processUserOutreach(userId: string): Promise<number> {
 
     // Process in parallel (up to batch size)
     const batch = pending.slice(0, config.batchSize);
-    await Promise.all(batch.map(executeScheduledOutreach));
+    await Promise.all(
+      batch.map(async (o) => {
+        if (await claimPendingOutreach(userId, o.id)) await executeScheduledOutreach(o);
+      })
+    );
 
     return batch.length;
   } catch (error) {
