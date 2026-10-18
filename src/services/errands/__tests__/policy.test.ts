@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_POLICY, parallelAllowed, withinHours } from '../policy.js';
-import type { Errand } from '../errand.js';
+import { describeApproval, isSafePlaceId, sameApproval, type Errand } from '../errand.js';
 
 const ZONE = 'America/New_York';
 const at = (iso: string): Date => new Date(iso);
@@ -40,5 +40,21 @@ describe('parallelAllowed', () => {
     expect(parallelAllowed(errand('any-slot'), { ...DEFAULT_POLICY, parallel: true })).toBe(true);
     expect(parallelAllowed(errand('normal'), { ...DEFAULT_POLICY, parallel: true })).toBe(false);
     expect(parallelAllowed(errand('any-slot'), DEFAULT_POLICY)).toBe(false);
+  });
+});
+
+describe('approvals', () => {
+  it('match only the same verb and the same places in the same order', () => {
+    const a = { verb: 'call', placeIds: ['p1', 'p2'] } as const;
+    expect(sameApproval(a, { verb: 'call', placeIds: ['p1', 'p2'] })).toBe(true);
+    expect(sameApproval(a, { verb: 'call', placeIds: ['p1'] })).toBe(false);
+    expect(sameApproval(a, { verb: 'book', placeIds: ['p1', 'p2'] })).toBe(false);
+    expect(describeApproval(a)).toBe('call:p1+p2');
+  });
+
+  it('a place id with a separator or control character is not safe', () => {
+    expect(isSafePlaceId('ChIJN1t_tDeuEmsRUsoyG83frY4')).toBe(true);
+    for (const bad of ['p1+p2', 'call:p2', 'p1\n', '', 'a/b'])
+      expect(isSafePlaceId(bad)).toBe(false);
   });
 });

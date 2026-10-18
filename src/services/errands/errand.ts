@@ -62,10 +62,10 @@ export interface Candidate extends NewCandidate {
   readonly status: CandidateStatus;
   /** Calls placed to it so far, retries included. */
   readonly attempts: number;
-  /** A lookup ran; an 'unknown' after it is final and the line is not called. */
+  /** A lookup ran. Line type is trusted only from a lookup, never from the search. */
   readonly lineChecked?: boolean;
   /** The owner-confirmed action that covers calling it (retries and cancels reuse it). */
-  readonly approval?: string;
+  readonly approval?: Approval;
 }
 
 export interface Constraints {
@@ -111,9 +111,9 @@ export interface Errand {
   readonly nextWakeAt: string | null;
   readonly candidates: readonly Candidate[];
   /** The action the owner was asked to confirm and hasn't answered. */
-  readonly pending: string | null;
+  readonly pending: Approval | null;
   /** Every action the owner said yes to. An outward effect needs its action here. */
-  readonly approvals: readonly string[];
+  readonly approvals: readonly Approval[];
   readonly outcome?: Outcome;
   readonly failedReason?: string;
   readonly createdAt: string;
@@ -122,13 +122,36 @@ export interface Errand {
   readonly env: string;
 }
 
+export type ApprovalVerb = 'call' | 'book' | 'text' | 'schedule' | 'next';
+
+/**
+ * One action the owner was asked about, exactly as read back: what to do and
+ * the places it covers. Structured, never a delimited string, so no place id
+ * can widen what the owner said yes to.
+ */
+export interface Approval {
+  readonly verb: ApprovalVerb;
+  readonly placeIds: readonly string[];
+}
+
+export const sameApproval = (a: Approval, b: Approval): boolean =>
+  a.verb === b.verb &&
+  a.placeIds.length === b.placeIds.length &&
+  a.placeIds.every((p, i) => p === b.placeIds[i]);
+
+/** For logs and idempotency keys: "call:p1+p2". Safe because place ids are checked. */
+export const describeApproval = (a: Approval): string => `${a.verb}:${a.placeIds.join('+')}`;
+
+/** Letters, digits, '_' and '-' only, as Google place ids are: nothing that reads as a separator. */
+export const isSafePlaceId = (id: string): boolean => /^[A-Za-z0-9_-]{1,256}$/.test(id);
+
 export type CallStatus = Exclude<OutcomeStatus, 'needs_owner'>;
 
 export type Signal =
   | { readonly type: 'candidates_found'; readonly candidates: readonly NewCandidate[] }
   | { readonly type: 'line_type_found'; readonly placeId: string; readonly lineType: LineType }
-  | { readonly type: 'owner_confirmed'; readonly action: string }
-  | { readonly type: 'owner_declined'; readonly action: string }
+  | { readonly type: 'owner_confirmed'; readonly action: Approval }
+  | { readonly type: 'owner_declined'; readonly action: Approval }
   | { readonly type: 'owner_cancelled' }
   | {
       readonly type: 'call_outcome';
@@ -152,23 +175,23 @@ export type OutwardKind = (typeof OUTWARD_KINDS)[number];
 export type OwnerNotice = 'needs_owner' | 'failed' | 'follow_up' | 'cancelled';
 
 export type EffectBody =
-  | { readonly kind: 'ask_owner'; readonly action: string; readonly reason?: string }
+  | { readonly kind: 'ask_owner'; readonly action: Approval; readonly reason?: string }
   | { readonly kind: 'notify_owner'; readonly about: OwnerNotice; readonly reason?: string }
-  | { readonly kind: 'offer_text_instead'; readonly action: string; readonly placeId: string }
+  | { readonly kind: 'offer_text_instead'; readonly action: Approval; readonly placeId: string }
   | { readonly kind: 'lookup_line_type'; readonly placeId: string }
   | {
       readonly kind: 'call';
       readonly placeId: string;
       readonly purpose: 'ask' | 'accept';
-      readonly approval: string;
+      readonly approval: Approval;
     }
-  | { readonly kind: 'text'; readonly placeId: string; readonly approval: string }
-  | { readonly kind: 'cancel_call'; readonly placeId: string; readonly approval: string }
+  | { readonly kind: 'text'; readonly placeId: string; readonly approval: Approval }
+  | { readonly kind: 'cancel_call'; readonly placeId: string; readonly approval: Approval }
   | {
       readonly kind: 'calendar' | 'reminder';
       readonly placeId: string;
       readonly at: string;
-      readonly approval: string;
+      readonly approval: Approval;
     };
 
 export type EffectKind = EffectBody['kind'];
@@ -183,8 +206,8 @@ export type Effect = EffectBody & { readonly idemKey: string; readonly retry: Re
 /** One line of the append-only log at errands/{id}/events. Outcomes and ids, never transcripts. */
 export type ErrandEvent =
   | { readonly type: 'signal'; readonly at: string; readonly signal: Signal['type'] }
-  | { readonly type: 'owner_confirmed'; readonly at: string; readonly action: string }
-  | { readonly type: 'owner_declined'; readonly at: string; readonly action: string }
+  | { readonly type: 'owner_confirmed'; readonly at: string; readonly action: Approval }
+  | { readonly type: 'owner_declined'; readonly at: string; readonly action: Approval }
   | {
       readonly type: 'transition';
       readonly at: string;
