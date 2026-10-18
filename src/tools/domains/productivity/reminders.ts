@@ -24,6 +24,7 @@ import {
 import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { userReach } from '../../../services/outreach/user-reach.js';
 import { isAssistantActionsReal } from '../../../config/assistant-actions-flag.js';
+import { isReminderSmsDefaultOn } from '../../../config/reminder-sms-flag.js';
 import { formatStoredLocalTime } from '../../../utils/time-zone.js';
 import { asksToRepeat, NO_REPEAT_YET } from '../../utils/honest-schedule.js';
 import { withOutreachConfirmation } from '../communication/outreach/outreach-confirm.js';
@@ -38,6 +39,10 @@ const log = getLogger();
 /** The user asked for a text but there's no verified number to send it to. */
 export const NO_NUMBER_TO_TEXT =
   "I don't have a verified number for you, so I can't text this one. I can keep it in the app instead. Want that?";
+
+/** REMINDER_SMS_DEFAULT: they asked for a text, there's no verified number, so it was kept in the app. */
+export const KEPT_IN_APP_NO_NUMBER =
+  "I don't have a verified number for you, so I'll leave this one in the Ferni app instead of texting it.";
 
 /**
  * With ASSISTANT_ACTIONS_REAL on, where a reminder for the user is texted: only
@@ -108,11 +113,22 @@ const setReminderDef: ToolDefinition = {
 
         let method: ReminderDeliveryMethod = deliveryMethod;
         let address = deliveryAddress || '';
-        if (isAssistantActionsReal() && deliveryMethod !== 'email') {
+        let keptInApp = '';
+        // A number from textAddress is the account's verified phone; delivery checks it still is.
+        let addressSource: 'verified-own' | undefined;
+        if (!isAssistantActionsReal() && isReminderSmsDefaultOn() && deliveryMethod === 'sms') {
+          // Only the account's verified number, never deliveryAddress from the model.
+          const phone = await textAddress(ctx.userId, true);
+          method = phone ? 'sms' : 'voice_message';
+          address = phone ?? '';
+          addressSource = phone ? 'verified-own' : undefined;
+          keptInApp = phone ? '' : ` ${KEPT_IN_APP_NO_NUMBER}`;
+        } else if (isAssistantActionsReal() && deliveryMethod !== 'email') {
           const phone = await textAddress(ctx.userId, deliveryMethod === 'sms');
           if (phone) {
             method = 'sms';
             address = phone;
+            addressSource = 'verified-own';
           } else if (deliveryMethod === 'sms') {
             return NO_NUMBER_TO_TEXT;
           }
@@ -137,6 +153,7 @@ const setReminderDef: ToolDefinition = {
             timezone: zone,
             deliveryMethod: method,
             deliveryAddress: address,
+            addressSource,
             createdBy: ctx.agentId || 'ferni',
             personaId: ctx.agentId,
           });
@@ -158,7 +175,7 @@ const setReminderDef: ToolDefinition = {
           );
 
           const repeat = asksToRepeat(message, when) ? NO_REPEAT_YET : '';
-          return `Saved: ${formatStoredLocalTime(scheduledFor, zone)}, one reminder to "${message}", sent ${how}.${repeat}`;
+          return `Saved: ${formatStoredLocalTime(scheduledFor, zone)}, one reminder to "${message}", sent ${how}.${keptInApp}${repeat}`;
         } catch (error) {
           log.error({ error: String(error), userId: ctx.userId }, 'Failed to create reminder');
           return "I couldn't set that reminder. Let me try again in a moment.";
@@ -270,11 +287,16 @@ const cancelReminderDef: ToolDefinition = {
 // EXPORTS
 // ============================================================================
 
-/** A reminder to an address the model named waits for a yes; with the flag on, only email uses it. */
+/**
+ * A reminder to an address the model named waits for a yes. With either flag
+ * on, a text ignores that address (verified phone only), so only email uses it.
+ */
 const toNamedAddress = withOutreachConfirmation(setReminderDef, {
   ...reminderConfirm,
   applies: (a) =>
-    reminderConfirm.applies!(a) && (a.deliveryMethod === 'email' || !isAssistantActionsReal()),
+    reminderConfirm.applies!(a) &&
+    (a.deliveryMethod === 'email' ||
+      !(isAssistantActionsReal() || (isReminderSmsDefaultOn() && a.deliveryMethod === 'sms'))),
 });
 
 export const reminderTools: ToolDefinition[] = [toNamedAddress, getRemindersDef, cancelReminderDef];

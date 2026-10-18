@@ -17,7 +17,8 @@
  * 0.85, not from Ferni's 1.0.
  *
  * Ferni is the reference the Director was tuned on (its six stable emotions
- * were measured on Ferni's voice), so Ferni gets no profile and is unchanged.
+ * were measured on Ferni's voice), so Ferni gets no profile and is unchanged
+ * (FERNI_VOICE_SPEED / FERNI_VOICE_EMOTION aside: ferni-resting-voice.ts).
  *
  * Manifest fields (voice section): default_speed (or legacy settings.speed),
  * speed_band [min, max], default_volume, emotion_range, default_emotion.

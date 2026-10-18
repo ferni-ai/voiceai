@@ -26,6 +26,10 @@
  * Performance impact: -100-200ms on first response
  */
 
+// Type-only: erased at build, so the prewarm path stays dependency-free.
+import type { CanonicalPersonaId } from '../../personas/persona-ids.js';
+import { LEGEND_INSTANT_GREETINGS } from './legend-greetings.js';
+
 // Lightweight logging (zero dependencies - don't import safe-logger!)
 const _log = (level: string, msg: string, data?: Record<string, unknown>) => {
   if (process.env.NODE_ENV !== 'production' || level === 'error') {
@@ -1051,11 +1055,11 @@ function buildDynamicPeterGreeting(ctx?: GreetingContext): string {
 }
 
 /**
- * Nate Holloway - Life Mentor
+ * Nate Holloway (joel-dickson) - Life Mentor
  * Energy: Bright, warm, quick-witted
  * Style: Professorial warmth with economist humor — like a brilliant friend at a dinner party
  *
- * Joel's greetings have ENERGY. He arrives mid-thought, genuinely curious about you.
+ * Nate's greetings have ENERGY. He arrives mid-thought, genuinely curious about you.
  * He sometimes catches himself, laughs, resets. Never polished — always alive.
  */
 function buildDynamicJoelGreeting(ctx?: GreetingContext): string {
@@ -1071,7 +1075,7 @@ function buildDynamicJoelGreeting(ctx?: GreetingContext): string {
     ],
     morning: [
       { text: 'Hey!', emotion: 'happy', energy: 'warm', speed: 0.95 },
-      { text: 'Joel here.', emotion: 'happy', energy: 'warm', speed: 0.94 },
+      { text: 'Nate here.', emotion: 'happy', energy: 'warm', speed: 0.94 },
       { text: 'Oh— hey!', emotion: 'excited', energy: 'warm', speed: 0.96, halfStarted: true },
     ],
     afternoon: [
@@ -1333,6 +1337,7 @@ export function generateContextAwareGreeting(personaId: string, ctx: GreetingCon
 // - Landing pauses for patience
 //
 // Pattern: [breath] + [slow emotion opener] + [pause] + [question] + [landing]
+// `satisfies` makes the compiler refuse a canonical persona with no greeting of its own.
 const INSTANT_GREETINGS: Record<string, string[]> = {
   ferni: [
     // Humanized with speed arc and landing
@@ -1373,7 +1378,8 @@ const INSTANT_GREETINGS: Record<string, string[]> = {
     '<break time="40ms"/>[breath]<break time="50ms"/><speed ratio="0.92"/><emotion value="affectionate"/>Hey.<break time="140ms"/><speed ratio="1.0"/>Talk to me.<break time="450ms"/>',
     '<break time="30ms"/><speed ratio="0.95"/><emotion value="curious"/>Hey!<break time="110ms"/><speed ratio="1.0"/>What\'s going on?<break time="400ms"/>',
   ],
-};
+  ...LEGEND_INSTANT_GREETINGS, // john-bogle, peter-lynch
+} satisfies Record<CanonicalPersonaId, string[]>;
 
 // Humanized defaults - used when persona isn't recognized
 // Still use speed arc and landing for natural feel
@@ -1495,15 +1501,8 @@ const allPersonaGreetingsCache = new Map<string, string>();
  * Called from warmup.ts during GCE worker initialization.
  */
 export function prewarmGreetingsForAllPersonas(): void {
-  const personas = [
-    'ferni',
-    'maya-santos',
-    'peter-john',
-    'alex-chen',
-    'jordan-taylor',
-    'nayan-patel',
-    'joel-dickson',
-  ];
+  // Every canonical persona (INSTANT_GREETINGS is checked against the canonical list)
+  const personas = Object.keys(INSTANT_GREETINGS);
 
   for (const personaId of personas) {
     const greeting = generateWarmGreeting(personaId);

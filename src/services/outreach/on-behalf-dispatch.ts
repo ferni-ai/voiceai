@@ -67,6 +67,32 @@ function canonical(value: unknown): string {
   return JSON.stringify(value) ?? 'null';
 }
 
+/**
+ * The key every dispatch is signed and verified with: DISPATCH_SIGNING_SECRET
+ * when set, else the LiveKit API secret. LiveKit Cloud agents get an injected
+ * LiveKit key that no signer outside the agent holds, so on Cloud a shared
+ * DISPATCH_SIGNING_SECRET (on the agents and the server alike) is the only way
+ * a signed dispatch verifies. Unset, nothing changes.
+ */
+export function dispatchSigningSecret(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return env.DISPATCH_SIGNING_SECRET || env.LIVEKIT_API_SECRET || undefined;
+}
+
+/** A key, or every key, a dispatch may verify with. */
+export type DispatchSecrets = string | readonly string[] | undefined;
+
+/**
+ * Every key a dispatch may verify with: DISPATCH_SIGNING_SECRET, and the
+ * LiveKit API secret beside it while signers move over, so agents and the
+ * server can get the new key in either order without refusing a call that
+ * verifies today.
+ */
+export function dispatchVerifySecrets(env: NodeJS.ProcessEnv = process.env): string[] {
+  return [env.DISPATCH_SIGNING_SECRET, env.LIVEKIT_API_SECRET].filter(
+    (s): s is string => typeof s === 'string' && s !== ''
+  );
+}
+
 function signatureFor(payload: Record<string, unknown>, secret: string): string {
   const { requesterSignature: _omit, ...signed } = payload;
   return createHmac('sha256', secret).update(canonical(signed)).digest('base64url');
@@ -75,7 +101,7 @@ function signatureFor(payload: Record<string, unknown>, secret: string): string 
 /**
  * Sign a dispatch the server itself created, over every field, so no part of a
  * signed payload (who hears the result, which room it goes to, what was said
- * about the call) can be changed. Use the LiveKit API secret. Any outbound
+ * about the call) can be changed. Use dispatchSigningSecret(). Any outbound
  * call the server places is signed this way (on-behalf and family check-in).
  *
  * `signedAt` (epoch ms) is stamped in and signed with the rest, so a reader
@@ -84,14 +110,21 @@ function signatureFor(payload: Record<string, unknown>, secret: string): string 
  */
 export function signDispatch<T extends object>(
   d: T,
-  secret: string,
+  secret: string = dispatchSigningSecret() ?? '',
   signedAt: number = Date.now()
 ): T & { signedAt: number; requesterSignature: string } {
+  if (!secret) throw new Error('No dispatch signing secret: set DISPATCH_SIGNING_SECRET');
   const stamped = { ...d, signedAt };
-  return { ...stamped, requesterSignature: signatureFor(stamped as Record<string, unknown>, secret) };
+  return {
+    ...stamped,
+    requesterSignature: signatureFor(stamped as Record<string, unknown>, secret),
+  };
 }
 
-export function signOnBehalfDispatch(d: OnBehalfDispatch, secret: string): OnBehalfDispatch {
+export function signOnBehalfDispatch(
+  d: OnBehalfDispatch,
+  secret: string = dispatchSigningSecret() ?? ''
+): OnBehalfDispatch {
   return signDispatch(d, secret);
 }
 
@@ -102,9 +135,10 @@ export function signOnBehalfDispatch(d: OnBehalfDispatch, secret: string): OnBeh
  */
 export function verifyOnBehalfDispatch(
   rawJobMetadata: string | undefined,
-  secret: string | undefined
+  secrets: DispatchSecrets
 ): boolean {
-  if (!secret || !rawJobMetadata) return false;
+  const keys = (typeof secrets === 'string' ? [secrets] : (secrets ?? [])).filter(Boolean);
+  if (keys.length === 0 || !rawJobMetadata) return false;
   let payload: unknown;
   try {
     payload = JSON.parse(rawJobMetadata);
@@ -114,9 +148,11 @@ export function verifyOnBehalfDispatch(
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
   const given = (payload as Record<string, unknown>).requesterSignature;
   if (typeof given !== 'string' || !given) return false;
-  const expected = Buffer.from(signatureFor(payload as Record<string, unknown>, secret));
   const actual = Buffer.from(given);
-  return expected.length === actual.length && timingSafeEqual(expected, actual);
+  return keys.some((key) => {
+    const expected = Buffer.from(signatureFor(payload as Record<string, unknown>, key));
+    return expected.length === actual.length && timingSafeEqual(expected, actual);
+  });
 }
 
 /** The dispatch for a call the orchestrator places from an on-behalf request. */

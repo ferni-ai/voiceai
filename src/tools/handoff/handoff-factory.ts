@@ -35,11 +35,11 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
 import { holdUnaskedHandoff } from './handoff-consent.js';
 import { handoffToolResponse } from './handoff-tool-response.js';
+import { holdHandoffThroughTalk } from './held-handoff-speech.js';
 import { noteHandoffReason } from './handoff-reasons.js';
 import { introduceTeammate } from './introduce-member.js';
 
-// FIX BUG: Use safe-logger utility instead of console fallback
-// This follows project conventions and provides consistent logging
+// FIX BUG: safe-logger, not a console fallback (project convention, consistent logging)
 import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
@@ -446,7 +446,7 @@ export async function buildHandoffTools(
         reason: z.string().describe(`Brief reason for handoff to ${def.agentName}`),
         context_summary: z.string().optional().describe('Summary of relevant conversation context'),
       }),
-      execute: async ({ reason, context_summary }, runContext) => {
+      execute: holdHandoffThroughTalk(async ({ reason, context_summary }, runContext) => {
         // The unlock check needs the RUNTIME profile ({ ctx: { userData } }); build time may lack it.
         // 🐛 FIX BUG-008: conversationTopics is in the type so it can be cleared
         interface RuntimeUserData {
@@ -521,7 +521,7 @@ export async function buildHandoffTools(
           // Note: We preserve lastEmotionAnalysis as it's useful context for the new persona
         }
         return handoffToolResponse(result, def.agentName, sessionId);
-      },
+      }),
     });
 
     tools[def.name] = tool;

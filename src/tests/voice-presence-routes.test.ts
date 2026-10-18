@@ -61,6 +61,7 @@ function createMockRequest(options: {
       }
       return req;
     }),
+    removeListener: vi.fn(() => req),
     socket: { remoteAddress: '127.0.0.1' },
   } as unknown as IncomingMessage;
 

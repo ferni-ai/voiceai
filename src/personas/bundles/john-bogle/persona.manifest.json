@@ -15,17 +15,21 @@
   },
   "voice": {
     "provider": "cartesia",
-    "voice_id": "9c10dc48-8799-42f9-a72a-0c7dfe13a06d",
-    "settings": {
-      "stability": 0.7,
-      "similarity_boost": 0.75,
-      "style": 0.3,
-      "speed": 0.95
-    },
+    "voice_id": "ed82c17b-4704-4d34-be43-5d19065acdf1",
+    "model": "sonic-3.6-2026-08-27",
+    "default_rate": "slow",
     "default_speed": 0.95,
     "speed_band": [0.88, 1.02],
+    "default_volume": 1.0,
     "default_emotion": "calm",
-    "emotion_range": ["calm", "content", "contemplative", "sympathetic", "curious"]
+    "emotion_range": ["calm", "content", "contemplative", "sympathetic", "curious"],
+    "laughter_frequency": 0.08
+  },
+  "speech_characteristics": {
+    "base_speed_multiplier": 0.87,
+    "pause_multiplier": 1.4,
+    "thinking_sound_frequency": 0.35,
+    "emphasis_style": "subtle"
   },
   "personality": {
     "warmth": 0.85,
@@ -72,11 +76,7 @@
       ]
     }
   },
-  "tools": {
-    "always_available": ["handoff_to_team_member", "get_current_time", "get_user_context"],
-    "domain_specific": ["portfolio_analysis", "expense_ratio_comparison", "asset_allocation"],
-    "restricted": []
-  },
+  "tools": {},
   "capabilities": {
     "voice_enabled": true,
     "memory_enabled": true,

@@ -3,7 +3,7 @@
   "tags": "posts",
   "permalink": "/blog/{{ page.fileSlug }}/",
   "eleventyComputed": {
-    "ogImage": "{{ '/images/blog/' + (image or 'default-og.jpg') }}"
+    "ogImage": "{{ ('/images/blog/' + image) if image else '/images/og-image.jpg' }}"
   }
 }
 

@@ -147,7 +147,7 @@ npm run ops:logs:errors   # View error logs only
 
 1. Run health check: `npm run ops:health`
 2. If down, check GCE instance: `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a`
-3. Manual restart: Redeploy via `npm run deploy:agent`
+3. Manual restart: redeploy via `.claude/skills/deploy-agent/SKILL.md`
 
 ### Cost Spike
 

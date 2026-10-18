@@ -14,14 +14,23 @@
  * Prompt tokens per section are estimates (chars/4, labelled), over the chat
  * context only; `tokens` carries the model's own counts, tool schemas included.
  *
- * `eot` is LiveKit's end-of-turn model's last call before the commit
- * (TURN_DETECTOR, turn-patience.ts): the model that made it (v1-mini after a
- * cloud fallback), its probability and the threshold below which LiveKit
- * waited its maximum. Absent when no model ran or its prediction timed out.
+ * Per-turn decisions logged elsewhere are joined here, so a latency experiment
+ * can be credited turn by turn: `preemptive` (PREEMPTIVE_DECISION, our LiveKit
+ * patch), `pauseHoldMs` (PAUSE_HOLD_RELEASED, pause-hold.ts), `bargeInSource`
+ * (BARGE_IN_FASTPATH / BARGE_IN_DECISION, live-call-behaviors.ts; 'vad' when
+ * LiveKit paused Ferni for the caller's voice, 'other' for any other cut-off),
+ * and the turn detection and interruption mode LiveKit resolved for the turn.
  *
  * @module agents/shared/turn-receipt
  */
 import { onGatewayFirstAudio } from '../../speech/tts-gateway/first-audio-observer.js';
+import { onPauseHoldReleased } from '../../speech/output-control/pause-hold.js';
+import {
+  interruptionModeInUse,
+  speechPausedForCaller,
+} from '../multi-agent/interruption-config.js';
+import { turnDetectionInUse } from './turn-patience.js';
+import { eotCallFrom, eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { callerTurn, fastLaneEnabled, laneReason } from '../model-provider/fast-lane.js';
 import { toolRetrievalMode } from '../../tools/retrieval/turn-tool-retrieval.js';
@@ -35,6 +44,10 @@ import {
 
 export const TURN_RECEIPT_VERSION = 1;
 export type UserKind = 'owner' | 'eval' | 'other';
+/** Whether LiveKit kept the reply it generated before the commit. */
+export type Preemptive = 'reused' | 'dropped' | 'none';
+/** What stopped Ferni for the caller (see the module doc). */
+export type BargeInSource = 'fastpath' | 'adaptive' | 'vad';
 
 /** owner (TURN_RECEIPT_OWNER_UIDS), eval (voice-eval users) or other. Never the uid itself. */
 export function userKindOf(
@@ -76,28 +89,27 @@ interface OpenTurn {
   toolErrors: number;
   reply: { messages: number; chars: number; sentences: number; interrupted: boolean };
   eot: EotCall | null;
+  preemptive: Preemptive;
+  pauseHoldMs: number;
+  bargeInSource: BargeInSource | null;
+  handling: TurnHandling | null;
 }
 
-/** LiveKit's end-of-turn prediction (its eot_prediction event) with the model that made it. */
-export interface EotCall {
-  model: string;
-  probability: number;
-  threshold: number;
-  /** The caller's last speech to the prediction. */
-  delayMs: number;
+/** How turns end and how barge-in works on the session, read at the commit. */
+export interface TurnHandling {
+  turnDetection: string;
+  interruptionMode: string;
 }
-
-/**
- * A prediction this old at the commit belongs to an earlier pause. The commit
- * follows within the maximum wait (2 s) plus an unfinished-turn hold (2 s).
- */
-const EOT_MAX_AGE_MS = 6000;
 
 export interface TurnReceiptOptions {
   sessionId: string;
   userId: string | undefined;
   /** The persona on the call now (follows handoffs). */
   persona: () => string | null | undefined;
+  /** A phone (SIP) caller; undefined when the call path is not known. */
+  phoneCaller?: boolean;
+  /** The session's turn handling now (attachTurnReceipts reads LiveKit's activity). */
+  handling?: () => TurnHandling;
   emit?: (receipt: TurnReceipt) => void;
   now?: () => number;
   env?: Record<string, string | undefined>;
@@ -114,10 +126,14 @@ export class TurnReceiptRecorder {
   private turn: OpenTurn | null = null;
   private count = 0;
   private reminder: ReminderNote | null = null;
-  /** The latest end-of-turn prediction, made before the commit it belongs to. */
-  private eot: { call: EotCall; at: number } | null = null;
+  /** The latest end-of-turn prediction (eot_prediction); its commit claims it. */
+  private readonly pendingEot = new PendingEot(() => this.now());
+  /** LiveKit's preemptive decision, made just before the commit it belongs to. */
+  private preemptive: Preemptive | null = null;
   private readonly userKind: UserKind;
   private readonly now: () => number;
+  /** A handoff turn whose swap hadn't landed when it ended: emitted once the outcome is known. */
+  private heldHandoff: { receipt: TurnReceipt; from: string | null } | null = null;
 
   constructor(private readonly opts: TurnReceiptOptions) {
     this.userKind = userKindOf(opts.userId, opts.env);
@@ -139,24 +155,43 @@ export class TurnReceiptRecorder {
       toolErrors: 0,
       reply: { messages: 0, chars: 0, sentences: 0, interrupted: false },
       eot: null,
+      preemptive: 'none',
+      pauseHoldMs: 0,
+      bargeInSource: null,
+      handling: null,
     };
     return this.turn;
   }
 
   /** The caller's turn was committed. A second commit after a reply has begun starts a new turn. */
   onCommit(): void {
+    this.releaseHandoff();
     if (this.turn?.user && this.turn.replied) this.finish('superseded');
     const turn = this.open();
     if (!turn.user) turn.personaAtStart = this.opts.persona() ?? null;
     turn.user = true;
-    const eot = this.eot;
-    this.eot = null;
-    if (eot && this.now() - eot.at <= EOT_MAX_AGE_MS) turn.eot ??= eot.call;
+    turn.handling ??= this.opts.handling?.() ?? null;
+    this.pendingEot.claim(turn);
+    if (this.preemptive) turn.preemptive = this.preemptive;
+    this.preemptive = null;
   }
 
-  /** LiveKit's end-of-turn model judged the caller's pause (eot_prediction); the last one counts. */
-  onEot(call: EotCall): void {
-    this.eot = { call, at: this.now() };
+  /** LiveKit's end-of-turn model judged the caller's pause (turn-receipt-eot.ts). */
+  readonly onEot = (call: EotCall | null): void => this.pendingEot.note(call);
+
+  /** LiveKit decided whether to keep its preemptive reply (PREEMPTIVE_DECISION); the commit follows. */
+  onPreemptive(used: boolean): void {
+    this.preemptive = used ? 'reused' : 'dropped';
+  }
+
+  /** The reply's first audio waited this long for the caller's pause (pause-hold.ts). */
+  onPauseHold(heldMs: number): void {
+    if (this.turn) this.turn.pauseHoldMs = Math.max(this.turn.pauseHoldMs, Math.round(heldMs));
+  }
+
+  /** Ferni was stopped for the caller; the first decision that did it counts. */
+  onBargeIn(source: BargeInSource): void {
+    if (this.turn) this.turn.bargeInSource ??= source;
   }
 
   onMetric(metric: { type?: string } & Record<string, unknown>): void {
@@ -243,8 +278,37 @@ export class TurnReceiptRecorder {
 
   /** The call is over: emit a caller turn still open. */
   flush(): void {
+    this.releaseHandoff();
     if (this.turn?.user) this.finish('session_end');
     this.turn = null;
+  }
+
+  /**
+   * The held handoff turn, with the persona on the call now. The swap lands after the
+   * outgoing persona's goodbye, so the turn's own end still saw the old persona: prod
+   * receipts said "stayed" for handoffs that worked (4 of 6, week of 2026-10-12). By the
+   * caller's next turn, or the call's end, the swap has landed or failed.
+   */
+  private releaseHandoff(): void {
+    const held = this.heldHandoff;
+    this.heldHandoff = null;
+    if (!held) return;
+    const personaId = this.opts.persona() ?? null;
+    const result = personaId !== held.from ? 'switched' : 'stayed';
+    const { receipt } = held;
+    this.emit({
+      ...receipt,
+      personaId,
+      tools: { ...receipt.tools, handoff: { ...receipt.tools.handoff, result } },
+    });
+  }
+
+  private emit(receipt: TurnReceipt): void {
+    try {
+      (this.opts.emit ?? ((r) => log.info(r, 'TURN_RECEIPT')))(receipt);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'turn receipt not emitted');
+    }
   }
 
   private finish(endedBy: EndedBy): void {
@@ -258,11 +322,11 @@ export class TurnReceiptRecorder {
     if (receipt.reply.unrecorded) {
       log.warn({ sessionId: this.opts.sessionId, turn: this.count }, 'REPLY_NOT_RECORDED');
     }
-    try {
-      (this.opts.emit ?? ((r) => log.info(r, 'TURN_RECEIPT')))(receipt);
-    } catch (error) {
-      log.warn({ error: String(error) }, 'turn receipt not emitted');
+    if (receipt.tools.handoff.result === 'stayed' && endedBy === 'listening') {
+      this.heldHandoff = { receipt, from: turn.personaAtStart };
+      return;
     }
+    this.emit(receipt);
   }
 
   private timing(turn: OpenTurn, endedBy: EndedBy): Record<string, number | null> {
@@ -336,15 +400,14 @@ export class TurnReceiptRecorder {
         unrecorded:
           endedBy === 'listening' && turn.speakingAt !== undefined && turn.reply.messages === 0,
       },
-      // Only with a model on, so receipts without one are unchanged.
-      ...(turn.eot && {
-        eot: {
-          ...turn.eot,
-          probability: Math.round(turn.eot.probability * 1000) / 1000,
-          threshold: Math.round(turn.eot.threshold * 1000) / 1000,
-          delayMs: Math.round(turn.eot.delayMs),
-        },
-      }),
+      preemptive: turn.preemptive,
+      pauseHoldMs: turn.pauseHoldMs,
+      callerPath:
+        this.opts.phoneCaller === undefined ? 'unknown' : this.opts.phoneCaller ? 'phone' : 'web',
+      turnDetection: turn.handling?.turnDetection ?? 'unknown',
+      interruptionMode: turn.handling?.interruptionMode ?? 'unknown',
+      bargeInSource: turn.bargeInSource ?? (turn.reply.interrupted ? 'other' : null),
+      ...eotReceiptField(turn.eot),
     };
   }
 }
@@ -355,6 +418,11 @@ const recorders = new WeakMap<object, TurnReceiptRecorder>();
 /** withTurnReminder: the per-turn reminder of the request being built. */
 export function noteReminder(session: object, note: ReminderNote): void {
   recorders.get(session)?.onReminder(note);
+}
+
+/** The barge-in fast path or LiveKit's barge-in model stopped Ferni (live-call-behaviors.ts). */
+export function noteBargeIn(session: object, source: BargeInSource): void {
+  recorders.get(session)?.onBargeIn(source);
 }
 
 /** llmNode: the request as it goes to the model, with the tools it carries. */
@@ -378,7 +446,13 @@ interface EventSource {
  * emits a turn still open and stops listening.
  */
 export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOptions): () => void {
-  const rec = new TurnReceiptRecorder(opts);
+  const rec = new TurnReceiptRecorder({
+    handling: () => ({
+      turnDetection: turnDetectionInUse(session),
+      interruptionMode: interruptionModeInUse(session),
+    }),
+    ...opts,
+  });
   recorders.set(session, rec);
   const handlers: Array<[string, (ev: unknown) => void]> = [
     [
@@ -390,24 +464,22 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     ],
     ['conversation_item_added', (ev) => rec.onItem((ev as { item?: never } | undefined)?.item)],
     ['function_tools_executed', (ev) => rec.onToolsExecuted((ev ?? {}) as never)],
-    [
-      'eot_prediction',
-      (ev) => {
-        const p = (ev ?? {}) as { probability?: number; threshold?: number; delayMs?: number };
-        if (typeof p.probability !== 'number' || typeof p.threshold !== 'number') return;
-        // The session's detector; its model flips to v1-mini after a cloud fallback.
-        const model = (session as { turnDetection?: { model?: unknown } }).turnDetection?.model;
-        rec.onEot({
-          model: typeof model === 'string' ? model : 'unknown',
-          probability: p.probability,
-          threshold: p.threshold,
-          delayMs: p.delayMs ?? 0,
-        });
-      },
-    ],
+    ['eot_prediction', (ev) => rec.onEot(eotCallFrom(ev, session))],
     [
       'agent_state_changed',
-      (ev) => rec.onAgentState((ev as { newState?: string } | undefined)?.newState),
+      (ev) => {
+        const { oldState, newState } = (ev ?? {}) as { oldState?: string; newState?: string };
+        // LiveKit pauses a reply for the caller's voice and says "listening" (interruptByAudioActivity).
+        if (oldState === 'speaking' && newState === 'listening' && speechPausedForCaller(session)) {
+          rec.onBargeIn('vad');
+        }
+        rec.onAgentState(newState);
+      },
+    ],
+    // Our LiveKit patch: the PREEMPTIVE_DECISION, just before this turn's eou_metrics.
+    [
+      'ferni_preemptive_decision',
+      (ev) => rec.onPreemptive(Boolean((ev as { used?: boolean })?.used)),
     ],
     ['close', () => rec.flush()],
   ];
@@ -415,8 +487,12 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
   const offAudio = onGatewayFirstAudio((sessionId, ttfbMs, pushMs) => {
     if (sessionId === opts.sessionId) rec.onGatewayAudio(ttfbMs, pushMs);
   });
+  const offHold = onPauseHoldReleased((sessionId, heldMs) => {
+    if (sessionId === opts.sessionId) rec.onPauseHold(heldMs);
+  });
   return () => {
     offAudio();
+    offHold();
     rec.flush();
     for (const [event, handler] of handlers) session.off(event, handler);
     recorders.delete(session);

@@ -15,6 +15,7 @@ import {
   RunDays,
   formatPaired,
   formatReport,
+  formatStrict,
   interimOf,
   judgePrompt,
   paired,
@@ -302,5 +303,29 @@ describe('remarks', () => {
     expect(hasEvidence('restraint')).toBe(false);
     expect(hasEvidence('abstention')).toBe(false);
     expect(hasEvidence('false-premise')).toBe(true);
+  });
+});
+
+describe('strict judge', () => {
+  it('reports the benchmark judge beside the live one, over the same answers', () => {
+    const live: CaseResult = {
+      history: 'h',
+      category: 'temporal',
+      ask: 'q',
+      gold: 'g',
+      note: null,
+      response: 'It was Friday.',
+      correct: true,
+      retrieved: null,
+      strict: false,
+    };
+    expect(formatStrict([live, { ...live, strict: true }])).toBe(
+      'strict judge (benchmark prompt): 1/2 50%'
+    );
+    // A missing answer counts as wrong, as in the table; a judge failure alone measures nothing.
+    expect(formatStrict([{ ...live, noAnswer: true, correct: null, strict: null }])).toBe(
+      'strict judge (benchmark prompt): 0/1 0%'
+    );
+    expect(formatStrict([{ ...live, strict: null }])).toBe('strict judge (benchmark prompt): –');
   });
 });

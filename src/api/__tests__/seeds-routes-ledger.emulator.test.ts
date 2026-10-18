@@ -6,15 +6,19 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import admin from 'firebase-admin';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
+import type { Firestore } from 'firebase-admin/firestore';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+// src/tests/setup.ts fakes firebase-admin for every test; this file reads the emulator
+vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-seed-ledger';
 
 let server: Server;
 let base: string;
-let db: admin.firestore.Firestore;
+let db: Firestore;
 const id = () => `u-${Math.random().toString(36).slice(2)}`;
 
 beforeAll(async () => {
@@ -31,8 +35,7 @@ beforeAll(async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
-  db = admin.firestore();
+  db = getAdminFirestore();
 });
 
 afterAll(() => server?.close());
