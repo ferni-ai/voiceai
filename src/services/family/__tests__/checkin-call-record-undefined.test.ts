@@ -10,11 +10,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const docs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
 
-vi.mock('../../superhuman/firestore-utils.js', () => {
-  const reject = (data: Record<string, unknown>) => {
-    for (const [k, v] of Object.entries(data))
-      if (v === undefined)
-        throw new Error(`Cannot use "undefined" as a Firestore value (found in field "${k}")`);
+vi.mock('../../superhuman/firestore-utils.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../superhuman/firestore-utils.js')>();
+  // Like the real client: undefined is rejected at any depth, arrays included
+  const reject = (data: unknown, path = ''): void => {
+    if (data === undefined)
+      throw new Error(`Cannot use "undefined" as a Firestore value (found in field "${path}")`);
+    if (data !== null && typeof data === 'object')
+      for (const [k, v] of Object.entries(data)) reject(v, path ? `${path}.${k}` : k);
   };
   const ref = (path: string[]) => ({
     collection: (name: string) => ({ doc: (id: string) => ref([...path, name, id]) }),
@@ -29,6 +32,7 @@ vi.mock('../../superhuman/firestore-utils.js', () => {
     get: async () => ({ exists: docs.has(path.join('/')), data: () => docs.get(path.join('/')) }),
   });
   return {
+    cleanForFirestore: actual.cleanForFirestore,
     getFirestoreDb: () => ({
       collection: (name: string) => ({ doc: (id: string) => ref([name, id]) }),
     }),
@@ -67,5 +71,22 @@ describe('check-in call records', () => {
     const saved = docs.get(`bogle_users/seth-uid/family_checkin_calls/${record.id}`);
     expect(saved).toMatchObject({ status: 'failed' });
     expect(saved).not.toHaveProperty('errorMessage');
+  });
+
+  it('complete when the call analysis leaves optional fields out', async () => {
+    const record = await createCallRecord(schedule);
+    await completeCallRecord('seth-uid', record.id, {
+      status: 'completed',
+      concernsIdentified: [
+        { description: 'Knee hurts', urgency: 'low', category: 'health', quote: undefined },
+      ],
+      followUpItems: [
+        { item: 'Ask about the knee', suggestedFollowUp: undefined, responsibleParty: 'ferni' },
+      ],
+    } as never);
+    const saved = docs.get(`bogle_users/seth-uid/family_checkin_calls/${record.id}`);
+    expect(saved).toMatchObject({ status: 'completed' });
+    expect((saved?.concernsIdentified as object[])[0]).not.toHaveProperty('quote');
+    expect((saved?.followUpItems as object[])[0]).not.toHaveProperty('suggestedFollowUp');
   });
 });

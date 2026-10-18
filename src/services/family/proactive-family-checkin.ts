@@ -18,7 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import { cleanForFirestore, getFirestoreDb } from '../superhuman/firestore-utils.js';
 import type { SponsoredIdentity } from '../identity/sponsored-identity.js';
 import { calculateNextCallTime } from './next-checkin-time.js';
 
@@ -523,7 +523,7 @@ export async function completeCallRecord(
   if (!db) return;
 
   const updateData = {
-    ...Object.fromEntries(Object.entries(result).filter(([, v]) => v !== undefined)),
+    ...cleanForFirestore(result), // deep: analysis concerns and follow-ups carry optional fields
     callEndedAt: new Date().toISOString(),
   };
 
