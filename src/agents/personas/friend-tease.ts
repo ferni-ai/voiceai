@@ -9,8 +9,10 @@
  * - a hard turn (crisis aside, which gets no note at all): no teasing, not
  *   even gently. Hard means the understanding's careful mood, venting, hard
  *   news, a low line about themselves, or hard words in the last few turns;
- * - the caller pushes back on a tease ("that's not funny", "low blow"): own
- *   it in a few plain words and no more teasing on this call;
+ * - the caller pushes back at Ferni ("that's not funny", "low blow") right
+ *   after a reply where a tease was possible (friend stage, nothing hard):
+ *   own it in a few plain words and no more teasing on this call. A hard
+ *   turn is read first, so venting about someone else never gets an apology;
  * - a light turn before the third call (or with no call count): not yet,
  *   any joke is about himself or the situation;
  * - a light turn from the third call on, Ferni speaking: a light tease is
@@ -61,9 +63,12 @@ const NOTES: Record<TeaseCue, string> = {
   none: '',
 };
 
-/** A tease that landed wrong, said to Ferni right after he spoke. */
+/**
+ * A tease that landed wrong, aimed at Ferni: "you're ...", or "that's ..."
+ * about what he just said, never a third party ("my boss was so rude").
+ */
 const TEASE_PUSHBACK =
-  /\b(?:(?:that'?s|that was|you'?re being|so) (?:\w+ ){0,2}(?:mean|rude|harsh|uncalled for)|(?:that'?s |that was |it'?s )?not (?:funny|cool|nice)|wasn'?t funny|low blow|uncalled for|that (?:hurt|stung)|are you making fun of me|(?:don'?t|stop) (?:make|making) fun of me|stop teasing|(?:be|play) nice)\b/i;
+  /(?:\b(?:you'?re(?: being)?|that'?s|that was) (?:(?:so|kind of|a bit|a little|really|pretty) )?(?:mean|rude|harsh|uncalled for|not (?:funny|nice|cool))\b|\b(?:that )?wasn'?t funny\b|^\W*not funny\b|\blow blow\b|\bare you making fun of me\b|\b(?:don'?t|stop) mak(?:e|ing) fun of me\b|\bstop teasing me\b)/i;
 
 export function friendTeaseOn(env: Env = process.env): boolean {
   return flagOn('FRIEND_TEASE', env);
@@ -86,8 +91,12 @@ export interface TeaseTurn {
   priorCalls: number | undefined;
   /** The understanding (or other signals) reads the turn as careful. */
   careful: boolean;
-  /** Ferni has spoken on this call, so pushback can be about him. */
-  ferniSpoke: boolean;
+  /**
+   * Which reply this is: Ferni's replies on the call so far. The preemptive
+   * and final requests for one reply share it; the next caller turn does not,
+   * even with the same words ("yeah", then "yeah").
+   */
+  reply: number;
   /** Ferni, not a teammate, is speaking: only he gets the earned invitation. */
   ferni: boolean;
 }
@@ -95,7 +104,7 @@ export interface TeaseTurn {
 interface CallState {
   stopped: boolean;
   lightTurns: number;
-  last?: { said: string; cue: TeaseCue };
+  last?: { reply: number; cue: TeaseCue };
 }
 
 const calls = new WeakMap<object, CallState>();
@@ -112,8 +121,9 @@ function hard(turn: TeaseTurn): boolean {
 }
 
 /**
- * This reply's cue, kept per call. The same words asked again (the preemptive
- * request, then the final one) get the same cue and count once.
+ * This reply's cue, kept per call. The same reply asked for again (the
+ * preemptive request, then the final one, whose words may have grown) gets
+ * the same cue and counts once; keyed on the reply, never on the words.
  */
 export function teaseCue(call: object, turn: TeaseTurn): TeaseCue {
   if (!turn.said.trim()) return 'none';
@@ -122,18 +132,28 @@ export function teaseCue(call: object, turn: TeaseTurn): TeaseCue {
     state = { stopped: false, lightTurns: 0 };
     calls.set(call, state);
   }
-  if (state.last?.said === turn.said) return state.last.cue;
+  if (state.last?.reply === turn.reply) return state.last.cue;
   const cue = decide(state, turn);
-  state.last = { said: turn.said, cue };
+  state.last = { reply: turn.reply, cue };
   return cue;
 }
 
+/** Whether Ferni's reply just before this turn could have teased: friend stage, nothing hard. */
+function teaseWasPossible(state: CallState, turn: TeaseTurn): boolean {
+  const prev = state.last;
+  return (
+    prev?.reply === turn.reply - 1 &&
+    (prev.cue === 'earned' || prev.cue === 'none') &&
+    teaseEarned(turn.priorCalls)
+  );
+}
+
 function decide(state: CallState, turn: TeaseTurn): TeaseCue {
-  if (turn.ferniSpoke && teasePushback(turn.said)) {
+  if (hard(turn)) return 'low';
+  if (teaseWasPossible(state, turn) && teasePushback(turn.said)) {
     state.stopped = true;
     return 'pushback';
   }
-  if (hard(turn)) return 'low';
   if (state.stopped) return 'stopped';
   if (!teaseEarned(turn.priorCalls)) return 'not_yet';
   if (!turn.ferni) return 'none';
@@ -166,12 +186,13 @@ export function friendNotes(
   if (!friendTeaseOn(env) || crisis) {
     return [honestFriendNote(chatCtx, said, { careful: crisis, env })];
   }
+  const replies = chatCtx.items.filter((i) => i.type === 'message' && i.role === 'assistant');
   const cue = teaseCue(session, {
     said,
+    reply: replies.length,
     callerTurns: callerTurnsOf(chatCtx),
     priorCalls: priorCallsOf((session as { userData?: unknown }).userData),
     careful: carefulRead(session, said, env),
-    ferniSpoke: chatCtx.items.some((i) => i.type === 'message' && i.role === 'assistant'),
     ferni: ferniSpeaking(session),
   });
   const teaseOk = cue === 'earned' || cue === 'none';

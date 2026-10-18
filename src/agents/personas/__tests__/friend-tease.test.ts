@@ -44,12 +44,14 @@ const session = (prior: number | undefined, personaId = 'ferni') => ({
   },
 });
 
+/** Each call is a new reply unless `reply` is given. */
+let replies = 0;
 const turn = (said: string, over: Partial<TeaseTurn> = {}): TeaseTurn => ({
   said,
+  reply: ++replies,
   callerTurns: [said],
   priorCalls: 4,
   careful: false,
-  ferniSpoke: true,
   ferni: true,
   ...over,
 });
@@ -83,9 +85,22 @@ describe('teasing is earned by friend stage', () => {
 
   it('gives the same cue to the same words asked twice, counting them once', () => {
     const c = {};
-    expect(teaseCue(c, turn('first light thing'))).toBe('earned');
-    expect(teaseCue(c, turn('first light thing'))).toBe('earned');
-    expect(teaseCue(c, turn('second light thing'))).toBe('none');
+    expect(teaseCue(c, turn('first light', { reply: 1 }))).toBe('earned');
+    // The final request for the same reply, its words grown: same cue, counted once.
+    expect(teaseCue(c, turn('first light thing', { reply: 1 }))).toBe('earned');
+    expect(teaseCue(c, turn('second light thing', { reply: 2 }))).toBe('none');
+    expect(teaseCue(c, turn('third light thing', { reply: 3 }))).toBe('none');
+    expect(teaseCue(c, turn('fourth light thing', { reply: 4 }))).toBe('earned');
+  });
+
+  it('counts two real turns with the same words as two turns ("yeah", then "yeah")', () => {
+    const c = {};
+    const cues = [1, 2, 3, 4].map((reply) => teaseCue(c, turn('yeah', { reply })));
+    expect(cues).toEqual(['earned', 'none', 'none', 'earned']);
+    // And a pushback on the second "yeah"-like turn is still read fresh.
+    const d = {};
+    expect(teaseCue(d, turn('haha', { reply: 1 }))).toBe('earned');
+    expect(teaseCue(d, turn("haha, that's not funny", { reply: 2 }))).toBe('pushback');
   });
 
   it('a teammate never gets the earned invitation, but does get "not yet"', () => {
@@ -116,33 +131,70 @@ describe('never on a hard turn', () => {
 });
 
 describe('dropped the moment it lands wrong', () => {
-  it('reads pushback on a tease, not a plain no', () => {
+  it('reads pushback aimed at Ferni, not venting about someone else', () => {
     for (const t of [
       "Hey, that's not funny.",
+      'Not funny, Ferni.',
       'Wow, low blow.',
       "That's kind of mean.",
+      "You're being so rude!",
       'Are you making fun of me?',
       'Stop teasing me.',
     ]) {
       expect(teasePushback(t), t).toBe(true);
     }
-    for (const t of ["No, I'm good.", 'That was a funny movie.', 'My boss is mean to me.']) {
+    for (const t of [
+      "No, I'm good.",
+      'That was a funny movie.',
+      'My boss is mean to me.',
+      'My boss was not nice to me today.',
+      'My mom is so mean sometimes.',
+      'My coworker was so rude in the meeting.',
+      'When he left, that hurt.',
+      'It is not cool how much rent costs.',
+      'I just want to be nice to my sister.',
+    ]) {
       expect(teasePushback(t), t).toBe(false);
     }
   });
 
-  it('pushback owns it, then no more teasing that call, even at friend stage', () => {
+  it('pushback right after a reply that could tease owns it, then no more teasing that call', () => {
     const c = {};
-    expect(teaseCue(c, turn("Hey, that's not funny."))).toBe('pushback');
-    expect(teaseCue(c, turn('Anyway, I made pasta tonight.'))).toBe('stopped');
-    expect(teaseCue(c, turn('It was pretty good actually.'))).toBe('stopped');
+    expect(teaseCue(c, turn('I finally fixed the sink, ha.', { reply: 1 }))).toBe('earned');
+    expect(teaseCue(c, turn("Hey, that's not funny.", { reply: 2 }))).toBe('pushback');
+    expect(teaseCue(c, turn('Anyway, I made pasta tonight.', { reply: 3 }))).toBe('stopped');
+    expect(teaseCue(c, turn('It was pretty good actually.', { reply: 4 }))).toBe('stopped');
     // A new call starts clean.
-    expect(teaseCue({}, turn('Anyway, I made pasta tonight.'))).toBe('earned');
+    expect(teaseCue({}, turn('Anyway, I made pasta tonight.', { reply: 1 }))).toBe('earned');
   });
 
-  it('pushback before Ferni has spoken is not about him', () => {
-    expect(teaseCue({}, turn("That's not funny.", { ferniSpoke: false, priorCalls: 0 }))).toBe(
-      'not_yet'
+  it('no apology for a joke he could not have made: first words, before friend stage, or after a hard turn', () => {
+    // Nothing decided before this turn on the call.
+    expect(teaseCue({}, turn("That's not funny.", { reply: 1 }))).toBe('earned');
+    // Call 1: the reply before was "not yet", so no tease was possible.
+    const early = {};
+    expect(teaseCue(early, turn('Ha, I burned the toast.', { reply: 1, priorCalls: 0 }))).toBe('not_yet');
+    expect(teaseCue(early, turn("That's not funny.", { reply: 2, priorCalls: 0 }))).toBe('not_yet');
+    // The reply before was to a hard turn.
+    const low = {};
+    expect(teaseCue(low, turn('My dad died last week.', { reply: 1 }))).toBe('low');
+    expect(
+      teaseCue(low, turn("You're being kind of harsh.", { reply: 2, callerTurns: ['ok'] }))
+    ).not.toBe('pushback');
+  });
+
+  it('a hard turn with pushback words gets the no-teasing note, never the apology, and does not stop the call', () => {
+    const c = {};
+    expect(teaseCue(c, turn('Ha, fair.', { reply: 1 }))).toBe('earned');
+    expect(teaseCue(c, turn("That's not funny, my dad just died.", { reply: 2 }))).toBe('low');
+    expect(teaseCue(c, turn('Anyway, tell me about your day.', { reply: 3 }))).not.toBe('stopped');
+  });
+
+  it('venting about someone else after a possible tease is not pushback', () => {
+    const c = {};
+    expect(teaseCue(c, turn('Ha, fair.', { reply: 1 }))).toBe('earned');
+    expect(teaseCue(c, turn('My coworker was so rude in the meeting.', { reply: 2 }))).not.toBe(
+      'pushback'
     );
   });
 });
@@ -185,6 +237,32 @@ describe('FRIEND_TEASE in the turn reminder', () => {
     const out = last(withTurnReminder(low, session(5)));
     expect(out).toContain(LOW_NOTE);
     expect(out).not.toContain(EARNED_NOTE);
+  });
+
+  it('on, the same words on the next real turn are a new turn, through the reminder', () => {
+    process.env.FRIEND_TEASE = 'on';
+    const s = session(3);
+    const first = call('Hi.', 'Hey you.', 'yeah');
+    expect(last(withTurnReminder(first, s))).toContain(EARNED_NOTE);
+    // The final request for that same reply agrees.
+    expect(last(withTurnReminder(call('Hi.', 'Hey you.', 'yeah'), s))).toContain(EARNED_NOTE);
+    // Ferni answered; "yeah" again is the next turn, so the invitation rests.
+    const next = call('Hi.', 'Hey you.', 'yeah', 'Long week?', 'yeah');
+    expect(last(withTurnReminder(next, s))).not.toContain(EARNED_NOTE);
+    const third = call('Hi.', 'Hey you.', 'yeah', 'Long week?', 'yeah', 'Same here.', 'yeah');
+    const fourth = call(
+      'Hi.',
+      'Hey you.',
+      'yeah',
+      'Long week?',
+      'yeah',
+      'Same here.',
+      'yeah',
+      'Ha.',
+      'yeah'
+    );
+    expect(last(withTurnReminder(third, s))).not.toContain(EARNED_NOTE);
+    expect(last(withTurnReminder(fourth, s))).toContain(EARNED_NOTE);
   });
 
   it('never rides with crisis guidance', () => {
