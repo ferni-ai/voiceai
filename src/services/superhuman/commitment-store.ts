@@ -31,6 +31,10 @@ class ExpiringCache<T> {
   set(key: string, value: T): void {
     this.entries.set(key, { at: Date.now(), value });
   }
+
+  delete(key: string): void {
+    this.entries.delete(key);
+  }
 }
 
 export const commitmentCache = new ExpiringCache<Commitment[]>(COMMITMENT_CACHE_TTL_MS);
@@ -58,7 +62,39 @@ export async function loadActiveCommitmentsOrThrow(userId: string): Promise<Comm
     .limit(50)
     .get();
 
-  const commitments = snapshot.docs.map((doc) => doc.data() as Commitment);
+  // An after-call commitment is saved with .add(), so its id is only the document's.
+  const commitments = snapshot.docs.map((doc) => {
+    const data = doc.data() as Commitment;
+    return { ...data, id: doc.id ?? data.id };
+  });
   commitmentCache.set(userId, commitments);
   return commitments;
+}
+
+/** How the app closes a commitment: done, or dismissed (no longer theirs to keep). */
+export type ClosedBy = 'completed' | 'abandoned';
+
+/**
+ * Close one of the caller's own active commitments. The document is read under
+ * their uid, so only its owner can. False when they have no active commitment
+ * by that id; throws when it can't be written, so no caller reports a close
+ * that didn't land.
+ */
+export async function closeCommitmentOrThrow(
+  userId: string,
+  commitmentId: string,
+  status: ClosedBy,
+  now = Date.now()
+): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore unavailable');
+  const ref = db.collection('bogle_users').doc(userId).collection('commitments').doc(commitmentId);
+  const closed = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || snap.get('status') !== 'active') return false;
+    tx.update(ref, { status, closedAt: now, closedVia: 'app', lastMentioned: now });
+    return true;
+  });
+  if (closed) commitmentCache.delete(userId);
+  return closed;
 }

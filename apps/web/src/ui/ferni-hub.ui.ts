@@ -18,7 +18,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { soundUI } from './sound.ui.js';
 import { messageUI } from './message.ui.js';
 import { fetchHubData, type BackgroundResult, type HubLoad, type OpenThread, type TrackedItem } from './ferni-hub-data.js';
-import { bindHubProblem, renderHubEmpty, renderHubProblem } from './ferni-hub-states.js'; import { escapeHtml } from './trust-dashboard-data.js';
+import { bindHubProblem, renderHubEmpty, renderHubProblem } from './ferni-hub-states.js'; import { escapeHtml } from './trust-dashboard-data.js'; import { bindTrackedActions, trackedActionsHtml } from './ferni-hub-tracked.js';
 import {
   PERSONA_ICONS,
   SECTION_ICONS,
@@ -261,6 +261,7 @@ function renderTrackedItems(items: TrackedItem[]): string {
             <span class="ferni-hub-card-persona">${persona.name} is tracking</span>
             ${dueText ? `<span class="ferni-hub-card-due">${dueText}</span>` : ''}
           </div>
+          ${trackedActionsHtml(item.id)}
         </div>
       </div>
     `;
@@ -337,14 +338,8 @@ function attachCardListeners(): void {
     });
   });
 
-  // Result cards - show details
-  container?.querySelectorAll('.ferni-hub-result-card').forEach((card) => {
-    card.addEventListener('click', () => {
-      const resultId = card.getAttribute('data-result-id');
-      log.debug({ resultId }, 'Result card clicked');
-      // Could expand to show more details
-    });
-  });
+  // On Your Mind: Done / Dismiss (ferni-hub-tracked.ts)
+  if (container) bindTrackedActions(container);
 }
 
 // ============================================================================

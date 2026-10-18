@@ -7,10 +7,12 @@
  * GET /api/commitments - Get user's commitments
  * GET /api/commitments/:id - Get specific commitment
  * PATCH /api/commitments/:id - Update commitment status
+ * POST /api/commitments/:id/complete | /dismiss - Close one (owner only)
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import type { ClosedBy } from '../../services/superhuman/commitment-store.js';
 import { requireUserId, sendJSON, sendError, parsePositiveInt, readBody } from '../helpers.js';
 
 const log = createLogger({ module: 'CommitmentsAPI' });
@@ -130,6 +132,44 @@ export async function handleUpdateCommitment(
 }
 
 // ============================================================================
+// POST /api/commitments/:id/complete | /dismiss - Close one from the app
+// ============================================================================
+
+const CLOSE_ROUTE = /^\/api\/commitments\/([A-Za-z0-9_-]{1,200})\/(complete|dismiss)$/;
+
+/**
+ * Close one of the verified caller's active commitments: done, or no longer
+ * theirs to keep. 404 when they have no such active commitment; 500 when the
+ * write fails, never a success that didn't land.
+ */
+export async function handleCloseCommitment(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL,
+  commitmentId: string,
+  status: ClosedBy
+): Promise<void> {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
+  try {
+    const { closeCommitmentOrThrow } =
+      await import('../../services/superhuman/commitment-store.js');
+    if (!(await closeCommitmentOrThrow(userId, commitmentId, status))) {
+      sendError(res, 'Commitment not found', 404);
+      return;
+    }
+    if (status === 'completed') {
+      const { recordWinFromCommitment } = await import('../../services/superhuman/wins.js');
+      void recordWinFromCommitment(userId, commitmentId);
+    }
+    sendJSON(res, { success: true, id: commitmentId, status });
+  } catch (err) {
+    log.error({ error: String(err), userId, commitmentId }, 'Failed to close commitment');
+    sendError(res, 'Failed to update commitment', 500);
+  }
+}
+
+// ============================================================================
 // ROUTE HANDLER
 // ============================================================================
 
@@ -149,6 +189,14 @@ export async function handleCommitmentsRoutes(
   const updateMatch = pathname.match(/^\/api\/commitments\/([^/]+)$/);
   if (updateMatch && req.method === 'PATCH') {
     await handleUpdateCommitment(req, res, parsedUrl, updateMatch[1]);
+    return true;
+  }
+
+  // POST /api/commitments/:id/complete | /dismiss
+  const closeMatch = pathname.match(CLOSE_ROUTE);
+  if (closeMatch && req.method === 'POST') {
+    const status = closeMatch[2] === 'complete' ? 'completed' : 'abandoned';
+    await handleCloseCommitment(req, res, parsedUrl, closeMatch[1]!, status);
     return true;
   }
 
