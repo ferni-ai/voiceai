@@ -192,7 +192,7 @@ describe('outreach consent mapping', () => {
     await consent.recordVoiceSmsConsent('u1', proof, new Date('2026-10-18T15:00:00Z'));
     const smsConsent = {
       grantedAt: '2026-10-18T15:00:00.000Z',
-      disclosureVersion: consent.VOICE_SMS_DISCLOSURE_VERSION,
+      disclosureVersion: consent.CURRENT_VOICE_DISCLOSURE,
       source: 'voice',
       channel: 'sms',
       scope: 'requested',

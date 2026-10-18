@@ -182,7 +182,7 @@ export function smsDisclosureRefusal(
 /** What Ferni says on a call before the first text a user asks for (no consent on record yet). */
 export const VOICE_SMS_DISCLOSURE =
   "Sure. Just so you know, I'll text this number, msg and data rates may apply, and you can reply STOP anytime.";
-export const VOICE_SMS_DISCLOSURE_VERSION = '2026-10-18';
+export const CURRENT_VOICE_DISCLOSURE = '2026-10-18';
 
 /** True when texts may go to this user: texts on in settings, or an unrevoked consent record. */
 export function hasSmsConsent(prefs: unknown): boolean {
@@ -211,7 +211,7 @@ export async function recordVoiceSmsConsent(
   if (!db) throw new Error('Firestore not available');
   const smsConsent = {
     grantedAt: now.toISOString(),
-    disclosureVersion: VOICE_SMS_DISCLOSURE_VERSION,
+    disclosureVersion: CURRENT_VOICE_DISCLOSURE,
     source: 'voice',
     channel: 'sms',
     scope: 'requested',
