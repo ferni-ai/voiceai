@@ -9,7 +9,8 @@
  * laugh to every one of those. So on a heavy moment (isHeavyMoment, over the
  * caller's last two turns) every laugh cue the model writes is taken out of
  * the reply's text before the SSML processor maps it to Cartesia's
- * [laughter]. Otherwise the text passes through exactly as before.
+ * [laughter], and a written laugh opening the reply ("Haha, oh no.") goes
+ * too. Otherwise the text passes through exactly as before.
  *
  * Runs in every Director mode but off, shadow included: it is a harm fix, not
  * a plan. A cue split across chunks ("[laugh" + "s]") is held until it
@@ -34,6 +35,10 @@ const log = createLogger({ module: 'HeavyLaughterGuard' });
 /** Every laugh cue the model writes, as brackets, asterisks or parentheses. */
 const LAUGH_CUE =
   /(?:\[(?:[a-z]+\s+)?(?:laugh(?:s|ter|ing)?|chuckl(?:e|es|ing)|giggl(?:e|es|ing))(?:\s+[a-z]+)?\]|\*(?:laughs?|chuckles?|giggles?)\*|\((?:laughs?|laughing|chuckles?|chuckling|giggles?)\))\s*/gi;
+/** A laugh written as words at the very start, after any leading tags: "Haha, ", "Ha! ", "Heh. ". */
+const LEADING_LAUGH = /^((?:\s|<[^>]*>)*)(?:ha(?:ha)*h?|hah|heh(?:eh)*)\b[,.!]*\s*/i;
+/** The reply's first word is complete (or tags only so far): the opening can be read. */
+const FIRST_WORD = /^(?:\s|<[^>]*>)*[^\s<]+[\s,.!?]/;
 /** An opening bracket or asterisk near the end with no close yet: a cue may be splitting. */
 const OPEN_TAIL = /[[*(][^\]*)]{0,24}$/;
 
@@ -55,6 +60,14 @@ export function withoutLaughter(text: string): string {
   return text.replace(LAUGH_CUE, '');
 }
 
+/** The reply's opening without a written laugh; what follows starts with a capital. */
+export function withoutLeadingLaugh(text: string): string {
+  const m = LEADING_LAUGH.exec(text);
+  if (!m || m[0].length === m[1].length) return text;
+  const rest = text.slice(m[0].length);
+  return m[1] + rest.charAt(0).toUpperCase() + rest.slice(1);
+}
+
 /**
  * The reply's raw text stream, seen by `cues` (raw-cues.ts) as before; on a
  * heavy moment with every laugh cue taken out first.
@@ -67,6 +80,7 @@ export function laughterGuard(opts: GuardOptions, cues: RawCues): TransformStrea
     log.warn({ err: String(err), sessionId: opts.sessionId }, 'heavy-moment check failed');
   }
   let held = '';
+  let opening = true;
   const pass = (text: string, controller: TransformStreamDefaultController<string>): void => {
     cues.see(text); // never throws; see raw-cues.ts
     controller.enqueue(text);
@@ -75,6 +89,12 @@ export function laughterGuard(opts: GuardOptions, cues: RawCues): TransformStrea
     transform(chunk, controller) {
       if (!heavy) return pass(chunk, controller);
       let text = held + chunk;
+      if (opening) {
+        held = text;
+        if (!FIRST_WORD.test(withoutLaughter(text))) return; // read the first word whole
+        opening = false;
+        text = withoutLeadingLaugh(withoutLaughter(text));
+      }
       const open = OPEN_TAIL.exec(text);
       held = open ? open[0] : '';
       if (open) text = text.slice(0, open.index);
@@ -82,7 +102,8 @@ export function laughterGuard(opts: GuardOptions, cues: RawCues): TransformStrea
       if (spoken) pass(spoken, controller);
     },
     flush(controller) {
-      const spoken = withoutLaughter(held);
+      const rest = withoutLaughter(held);
+      const spoken = opening ? withoutLeadingLaugh(rest) : rest;
       if (spoken) pass(spoken, controller);
     },
   });

@@ -22,8 +22,11 @@ function frame(loud: boolean, t: number): AudioFrame {
 
 let sessions = 0;
 
-/** Each earlier turn, then 3 s of `transcript` and a breath pause: the clips played. */
-function clipsFor(transcript: string, earlier: string[] = []): string[] {
+/**
+ * Each earlier turn, then 3 s of `transcript` and a breath pause: the clips
+ * played. `revisions` are interim partials of the last turn before `transcript`.
+ */
+function clipsFor(transcript: string, earlier: string[] = [], revisions: string[] = []): string[] {
   vi.useFakeTimers({ now: 1_000_000 });
   vi.spyOn(Math, 'random').mockReturnValue(0);
   const played: string[] = [];
@@ -41,7 +44,7 @@ function clipsFor(transcript: string, earlier: string[] = []): string[] {
     bc.updateState({ partialTranscript: turn });
   }
   bc.onNewTurn();
-  bc.updateState({ partialTranscript: transcript });
+  for (const partial of [...revisions, transcript]) bc.updateState({ partialTranscript: partial });
   for (let t = 0; t < 400; t++) {
     vi.advanceTimersByTime(10);
     bc.processAudioFrame(frame(t < 300, t));
@@ -72,6 +75,13 @@ describe('the laugh-along clip on a heavy moment', () => {
 
   it('never laughs at "haha anyway" right after grief', () => {
     expect(clipsFor('haha anyway', ['my dad died last week'])).not.toContain('[laughter]');
+  });
+
+  it("remembers the grief when the next turn's partial is revised", () => {
+    const revised = ['haha anyway', 'Haha anyway'];
+    expect(clipsFor('Haha, anyway', ['my dad died last week'], revised)).not.toContain(
+      '[laughter]'
+    );
   });
 
   it('gives no "Ha" either, with the reactions that fit on', () => {

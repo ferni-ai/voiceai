@@ -55,10 +55,33 @@ describe('laughterGuard', () => {
     expect(out.join('')).toBe('Oh. I am so sorry.');
   });
 
-  it('looks back a turn: "haha anyway" right after grief is still heavy', async () => {
+  it('takes out a laugh written as words at the start, however it streams', async () => {
+    const ha = await through('kms lol', [
+      '<emotion value="sympathetic"/>Ha',
+      'ha, oh no. ',
+      'Haha.',
+    ]);
+    expect(ha.out.join('')).toBe('<emotion value="sympathetic"/>Oh no. Haha.');
+    expect((await through('we lost the baby lol', ['Heh. I am so sorry.'])).out.join('')).toBe(
+      'I am so sorry.'
+    );
+    expect((await through('we lost the baby lol', ['Hang on.'])).out.join('')).toBe('Hang on.');
+  });
+
+  it("keeps a light reply's written laugh", async () => {
+    expect((await through('hahaha you are ridiculous', ['Haha, ', 'okay.'])).out).toEqual([
+      'Haha, ',
+      'okay.',
+    ]);
+  });
+
+  it('strips on the two turns after grief, and not on the third', async () => {
     await through('my dad died last week', ['I am so sorry.'], 1);
-    const { out } = await through('haha anyway', ['[laughter] Okay. '], 2);
-    expect(out.join('')).toBe('Okay. ');
+    expect((await through('haha anyway', ['[laughter] Okay. '], 2)).out.join('')).toBe('Okay. ');
+    expect((await through('lol okay', ['[laughter] Sure. '], 3)).out.join('')).toBe('Sure. ');
+    expect((await through('hahaha stop', ['[laughter] Fine. '], 4)).out.join('')).toBe(
+      '[laughter] Fine. '
+    );
   });
 });
 

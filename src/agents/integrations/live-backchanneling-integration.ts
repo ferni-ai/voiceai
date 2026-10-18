@@ -389,7 +389,8 @@ export function initializeLiveBackchanneling<T>(
 
   const updateState = (update: Partial<LiveBackchannelState>): void => {
     Object.assign(state, update);
-    if (update.partialTranscript) noteCallerTurn(heard, update.partialTranscript);
+    // The turn as its id: a revised partial ("haha" -> "Haha") is the same turn, not a new one.
+    if (update.partialTranscript) noteCallerTurn(heard, update.partialTranscript, state.turnCount);
   };
 
   const onNewTurn = (): void => {
