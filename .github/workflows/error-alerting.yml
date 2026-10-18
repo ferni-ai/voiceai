@@ -1,18 +1,28 @@
 name: Error Rate Monitor
 
-# Checks Cloud Run error logs every 15 minutes
-# Alerts to Slack if error rate exceeds threshold
+# Every 15 minutes: counts voice-agent errors (LiveKit Cloud) and UI server
+# errors (Cloud Run), and posts to Slack when either passes the threshold.
+#
+# The voice agent runs on LiveKit Cloud (prod CA_GeFvEpsNXLSF, dev
+# CA_siTDMHEba4Fg). Its logs reach Cloud Logging as
+# logName=projects/johnb-2025/logs/cloud-agents, pino JSON in textPayload.
+# Cloud Logging marks almost every line severity ERROR because the agent writes
+# to stderr, so severity>=ERROR counts info logs too (>200k a day). Count pino
+# level >= 50 (error/fatal) instead. Until 2026-10-18 this watched the GCE VM
+# voiceai-agent-gce, which no longer runs, so agent errors raised no alert.
 
 on:
-  # DISABLED: Scheduled runs consume too many Actions minutes
-  # Re-enable when on paid plan
-  # schedule:
-  #   - cron: '*/15 * * * *'
+  # Re-enabled 2026-10-18: the repo is public, so hosted-runner minutes are free.
+  schedule:
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   ERROR_THRESHOLD: 10  # Alert if more than 10 errors in 15 min
+  AGENT_LOG_PROJECT: johnb-2025
+  PROD_AGENT_ID: CA_GeFvEpsNXLSF
+  DEV_AGENT_ID: CA_siTDMHEba4Fg
 
 jobs:
   check-errors:
@@ -31,16 +41,29 @@ jobs:
       - name: Check Voice Agent errors
         id: voice-errors
         run: |
-          # Query last 15 minutes of errors
-          COUNT=$(gcloud logging read \
-            'resource.type="gce_instance" AND resource.labels.instance_id="voiceai-agent-gce" AND severity>=ERROR' \
+          set -euo pipefail
+          # The textPayload match narrows the query; jq then keeps only lines
+          # whose top-level pino level is >= 50, so a nested "level" can't count.
+          # No `|| echo 0`: if the query fails, this step fails instead of
+          # reporting zero errors.
+          FILTER='logName="projects/${{ env.AGENT_LOG_PROJECT }}/logs/cloud-agents" AND labels.agent_id=("${{ env.PROD_AGENT_ID }}" OR "${{ env.DEV_AGENT_ID }}") AND (textPayload:"\"level\":50" OR textPayload:"\"level\":60")'
+          gcloud logging read "$FILTER" \
             --limit=1000 \
             --freshness=15m \
-            --format="value(timestamp)" \
-            --project=${{ env.GCP_PROJECT_ID }} 2>/dev/null | wc -l || echo "0")
+            --format=json \
+            --project=${{ env.AGENT_LOG_PROJECT }} > "$RUNNER_TEMP/voice-errors.json"
 
-          echo "count=$COUNT" >> $GITHUB_OUTPUT
-          echo "Voice Agent errors (15m): $COUNT"
+          count_for() {
+            jq --arg id "$1" '[.[] | select(.labels.agent_id == $id)
+              | select(((.textPayload // "") | fromjson? | objects | .level // 0) >= 50)] | length' \
+              "$RUNNER_TEMP/voice-errors.json"
+          }
+          PROD=$(count_for "${{ env.PROD_AGENT_ID }}")
+          DEV=$(count_for "${{ env.DEV_AGENT_ID }}")
+
+          echo "prod=$PROD" >> "$GITHUB_OUTPUT"
+          echo "dev=$DEV" >> "$GITHUB_OUTPUT"
+          echo "Voice Agent errors (15m): prod=$PROD dev=$DEV"
 
       - name: Check UI Server errors
         id: ui-errors
@@ -58,13 +81,17 @@ jobs:
       - name: Check for error spike
         id: spike
         run: |
-          VOICE=${{ steps.voice-errors.outputs.count }}
+          PROD=${{ steps.voice-errors.outputs.prod }}
+          DEV=${{ steps.voice-errors.outputs.dev }}
           UI=${{ steps.ui-errors.outputs.count }}
           THRESHOLD=${{ env.ERROR_THRESHOLD }}
 
           ALERTS=""
-          if [ "$VOICE" -gt "$THRESHOLD" ]; then
-            ALERTS="$ALERTS Voice-Agent($VOICE errors)"
+          if [ "$PROD" -gt "$THRESHOLD" ]; then
+            ALERTS="$ALERTS Voice-Agent-prod($PROD errors)"
+          fi
+          if [ "$DEV" -gt "$THRESHOLD" ]; then
+            ALERTS="$ALERTS Voice-Agent-dev($DEV errors)"
           fi
           if [ "$UI" -gt "$THRESHOLD" ]; then
             ALERTS="$ALERTS UI-Server($UI errors)"
@@ -81,13 +108,10 @@ jobs:
         id: samples
         if: steps.spike.outputs.has_spike == 'true'
         run: |
-          echo "Recent Voice Agent errors:"
-          gcloud logging read \
-            'resource.type="gce_instance" AND resource.labels.instance_id="voiceai-agent-gce" AND severity>=ERROR' \
-            --limit=3 \
-            --freshness=15m \
-            --format="table(timestamp,textPayload)" \
-            --project=${{ env.GCP_PROJECT_ID }} 2>/dev/null || echo "No errors found"
+          echo "Recent Voice Agent errors (pino level >= 50):"
+          jq -r '.[] | select(((.textPayload // "") | fromjson? | objects | .level // 0) >= 50)
+            | "\(.timestamp) \(.labels.agent_id) \(.textPayload | fromjson | .msg // "" | tostring | .[0:200])"' \
+            "$RUNNER_TEMP/voice-errors.json" | head -n 3
 
       - name: Alert on error spike
         if: steps.spike.outputs.has_spike == 'true'
@@ -114,15 +138,19 @@ jobs:
           echo "| Service | Errors | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|--------|" >> $GITHUB_STEP_SUMMARY
 
-          VOICE=${{ steps.voice-errors.outputs.count }}
+          PROD=${{ steps.voice-errors.outputs.prod }}
+          DEV=${{ steps.voice-errors.outputs.dev }}
           UI=${{ steps.ui-errors.outputs.count }}
           THRESHOLD=${{ env.ERROR_THRESHOLD }}
 
-          if [ "$VOICE" -gt "$THRESHOLD" ]; then
-            echo "| Voice Agent | $VOICE | 🚨 Spike |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Voice Agent | $VOICE | ✅ Normal |" >> $GITHUB_STEP_SUMMARY
-          fi
+          for row in "Voice Agent (prod):$PROD" "Voice Agent (dev):$DEV"; do
+            NAME="${row%%:*}"; N="${row##*:}"
+            if [ "$N" -gt "$THRESHOLD" ]; then
+              echo "| $NAME | $N | 🚨 Spike |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $NAME | $N | ✅ Normal |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
 
           if [ "$UI" -gt "$THRESHOLD" ]; then
             echo "| UI Server | $UI | 🚨 Spike |" >> $GITHUB_STEP_SUMMARY
