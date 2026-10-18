@@ -64,6 +64,7 @@ import {
 } from '../personas/life-updates.js';
 import { commonGroundEnabled, formatCommonGround } from '../personas/common-ground.js';
 import { firestoreGroundStore, type GroundStore } from '../personas/common-ground-after-call.js';
+import { loadRepairRecall, type RepairStore } from '../personas/friend-repair.js';
 import {
   callCheckIns,
   coachFollowThroughMode,
@@ -137,6 +138,7 @@ export interface MemoryRecallDeps {
   checkIns?: () => Promise<OpenCommitment[]>;
   /** What the two of them both know (common-ground.ts, COMMON_GROUND). */
   groundStore?: GroundStore;
+  repairStore?: Pick<RepairStore, 'recent'>; // Corrections from earlier calls (FRIEND_REPAIR)
   /** A date they told Ferni about, asked once (dates/recall.ts, FRIEND_FOLLOWUPS). */
   dates?: DatesRecall;
   /** Peter's weekly prediction, a week on (prediction-check-in.ts, WEEKLY_PREDICTION). */
@@ -332,7 +334,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const dates = deps.dates ?? datesRecallFor(deps.userId);
   const week = deps.week ?? predictionCheckInFor(deps.userId, personaId);
   const loading = [loaded, since, checkedIn, ground, canonLoaded, dates.ready, world.ready];
-  const ready = Promise.all(loading).then(() => undefined);
+  const repairs = loadRepairRecall(deps.userId, deps.repairStore); // FRIEND_REPAIR, first note
+  const ready = Promise.all([...loading, repairs.ready]).then(() => undefined);
 
   return {
     ready,
@@ -439,6 +442,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
             people,
             told,
             groundNow,
+            followUpsOffered ? null : repairs.note(),
             extraTold.length > 0
               ? quietLedger(formatLedger(extraTold, deps.userName, Date.now(), { bridge }), text)
               : null,
