@@ -11,14 +11,24 @@ import { join, relative } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
+import { CRISIS_ADJUDICATOR_PROMPT } from '../../services/safety/crisis-adjudicator.js';
+
 const SRC = join(process.cwd(), 'src');
 const FEMININE = /\b(?:she|her|hers|herself)\b/i;
 
 /** A line that names Ferni and uses a feminine pronoun almost always means Ferni. */
 const callsFerniShe = (line: string): boolean => /\bFerni\b/.test(line) && FEMININE.test(line);
 
-/** Lines that name Ferni and a woman who isn't Ferni. */
-const NOT_FERNI = new Set(['Enroll my wife so she can use Ferni too']);
+/**
+ * Lines that name Ferni and a woman who isn't Ferni. The crisis adjudicator's
+ * risk list quotes a caller ("tell her I'm sorry") about someone else.
+ */
+const ADJUDICATOR_RISK_LINE = CRISIS_ADJUDICATOR_PROMPT.split('\n').find((l) =>
+  l.includes('"tell her I\'m sorry"')
+);
+const NOT_FERNI = new Set(
+  ['Enroll my wife so she can use Ferni too', ADJUDICATOR_RISK_LINE?.trim()].filter(Boolean)
+);
 
 const isTest = (path: string): boolean =>
   /(?:^|\/)(?:__tests__|tests)\//.test(path) || /\.(?:test|spec)\.ts$/.test(path);
@@ -53,6 +63,10 @@ describe('Ferni pronouns in code strings', () => {
     expect(callsFerniShe('You can talk to Ferni about anything. She gets it.')).toBe(true);
     expect(callsFerniShe('Have Ferni personally call a friend to introduce herself.')).toBe(true);
     expect(callsFerniShe('You can talk to Ferni about anything. He gets it.')).toBe(false);
+  });
+
+  it('exempts only the adjudicator line that quotes a caller about someone else', () => {
+    expect(ADJUDICATOR_RISK_LINE).toContain('"tell her I\'m sorry"');
   });
 
   it('never refers to Ferni as she/her in a string literal', () => {

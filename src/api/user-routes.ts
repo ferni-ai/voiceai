@@ -790,11 +790,11 @@ export async function handleUserRoutes(
       sendJson(res, 200, {
         success: true,
         contactInfo: {
-          phone: profile.contactInfo?.phone ? '***' : undefined,
-          email: profile.contactInfo?.email ? '***' : undefined,
+          // The signed-in owner's own details, so Staying in Touch shows what's saved
+          phone: profile.contactInfo?.phone || undefined,
+          email: profile.contactInfo?.email || undefined,
+          preferredName: profile.preferredName,
           timezone: profile.contactInfo?.timezone,
-          hasPhone: !!profile.contactInfo?.phone,
-          hasEmail: !!profile.contactInfo?.email,
           verifiedPhone,
         },
       });

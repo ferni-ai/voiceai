@@ -13,8 +13,11 @@
  *   - SIP provider (Twilio, etc.) for PSTN connectivity
  */
 
+import { llm } from '@livekit/agents';
+import { z } from 'zod';
 import { createDomainExport } from '../../registry/loader.js';
-import type { ToolDefinition, ToolContext, ExternalService } from '../../registry/types.js';
+import type { ToolDefinition, ToolContext, ExternalService, Tool } from '../../registry/types.js';
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 
 // Import legacy tool creator
 import { createTelephonyTools } from './telephony.js';
@@ -30,9 +33,50 @@ import { callUserDef } from '../proactive/outreach/agent-to-user.js';
  * registers last, so a second callUser in another domain made the behaviour
  * depend on load order. With TOOLS_REAL_CALL_USER=on it places the call;
  * otherwise it says honestly that no call is coming.
+ *
+ * Read when the tool runs, not when the definitions are built: they are built
+ * once, when this module is first imported (worker start-up), before any
+ * caller is known, while cohort flags (cohort-flags.ts) are applied per caller
+ * at call start. So one person can have the real call path on.
  */
 function isRealCallUserEnabled(): boolean {
   return process.env.TOOLS_REAL_CALL_USER === 'on';
+}
+
+type Run = (args: Record<string, unknown>, opts: unknown) => Promise<unknown>;
+
+/**
+ * The one callUser: each run takes the real call path (agent-to-user.ts:
+ * the account's verified phone only, through calling hours and quiet hours)
+ * when TOOLS_REAL_CALL_USER is on for this call, the honest refusal otherwise.
+ */
+function callUserDefinition(refusal: unknown): ToolDefinition {
+  return {
+    id: 'callUser',
+    name: 'Call User',
+    description: 'Make an outbound phone call to the user for alerts, reminders, or check-ins',
+    domain: 'telephony',
+    tags: ['telephony', 'phone', 'outbound', 'call'],
+    requiredServices: ['twilio'],
+    create: (ctx: ToolContext): Tool => {
+      const real: { execute: Run } = callUserDef.create(ctx);
+      const refuse = (refusal as { execute: Run }).execute;
+      return llm.tool({
+        description: getToolDescription('callUser'),
+        // No phone number: the call only ever goes to the verified phone on the account.
+        parameters: z.object({
+          reason: z
+            .string()
+            .describe('Why the user wants the call (e.g., "check in", "wake me up")'),
+          message: z.string().optional().describe('What to say when they answer'),
+        }),
+        execute: async ({ reason, message }, opts) =>
+          isRealCallUserEnabled()
+            ? real.execute({ message: message?.trim() || reason }, opts)
+            : refuse({ reason }, opts),
+      });
+    },
+  };
 }
 
 // ============================================================================
@@ -68,20 +112,7 @@ function getTelephonyToolDefinitions(): ToolDefinition[] {
   const legacyTools = createTelephonyTools();
 
   return [
-    isRealCallUserEnabled()
-      ? {
-          ...callUserDef,
-          domain: 'telephony',
-          tags: ['telephony', 'phone', 'outbound', 'call'],
-          requiredServices: ['twilio'],
-        }
-      : wrapLegacyTool(
-          'callUser',
-          'Call User',
-          'Make an outbound phone call to the user for alerts, reminders, or check-ins',
-          legacyTools.callUser,
-          { tags: ['outbound', 'call'], requiredServices: ['twilio'] }
-        ),
+    callUserDefinition(legacyTools.callUser),
     wrapLegacyTool(
       'scheduleCallback',
       'Schedule Callback',

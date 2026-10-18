@@ -4,6 +4,7 @@
  * music play/pause, starting a game or practice, and approving an action reached nothing.
  */
 import { EventEmitter } from 'events';
+import { ParticipantKind } from '@livekit/rtc-node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const { resolvePendingAction, getSessionAdapter } = vi.hoisted(() => ({
@@ -21,16 +22,18 @@ vi.mock('../../shared/handoff/coordinator-adapter.js', async (importOriginal) =>
 
 const { liveDataChannelContext, startInCallChannels } = await import('../live-data-context.js');
 
-/** A room the agent is in: messages arrive from the person's participant */
+/** A room the agent is in: messages arrive from the session user's participant */
 function room() {
   const r = new EventEmitter() as EventEmitter & {
     localParticipant: { identity: string; publishData: () => Promise<void> };
+    remoteParticipants: Map<string, { kind: ParticipantKind }>;
     send: (message: object) => void;
   };
   r.localParticipant = { identity: 'agent', publishData: vi.fn(async () => undefined) };
+  r.remoteParticipants = new Map([['u1', { kind: ParticipantKind.STANDARD }]]);
   r.send = (message) =>
     r.emit('dataReceived', new TextEncoder().encode(JSON.stringify(message)), {
-      identity: 'person',
+      identity: 'u1',
     });
   return r;
 }
@@ -51,6 +54,8 @@ const parts = (r: ReturnType<typeof room>) => ({
   userId: 'u1',
   sessionId: 'call-1',
   sessionPersona: { id: 'ferni', name: 'Ferni' },
+  // The entrypoint's checks: this session's user was verified at dispatch
+  callerChecks: { verifiedOwner: () => true, phoneOnly: () => false },
 });
 
 afterEach(() => {

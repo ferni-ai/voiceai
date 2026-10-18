@@ -17,6 +17,14 @@ const MUST_NOT_LAUGH = [
   'kill myself lol',
   "my dad's in the ICU haha",
   'what do I even do now??',
+  "i'm suicidal lol",
+  'kms lol',
+  'I wish I was dead haha',
+  'he hits me lol',
+  'we lost the baby lol',
+  'there is no point lol',
+  "we're in the ER lol",
+  'I cried all night haha',
 ];
 const WHO: Array<[string, Partial<LaughterInput>]> = [
   ['ferni', { personaId: 'ferni', lightTouch: true }],
@@ -60,15 +68,40 @@ describe('laughing along on a heavy moment', () => {
       }
   });
 
-  it('never laughs at "haha anyway" right after grief, and does again two turns on', () => {
-    for (const [name, who] of WHO) {
+  it('never laughs on the two turns after grief, and may again on the third', () => {
+    const old = { personaId: 'jordan-taylor', comfortLevel: 1, phrase: "That's it, just kidding." };
+    for (const [name, who] of [...WHO, ['jordan (old rules)', old] as const]) {
       fresh();
       expect(reply({ ...who, turn: 1, userText: 'my dad died last week' })).toBeUndefined();
-      expect(reply({ ...who, turn: 10, userText: 'haha anyway' }), name).toBeUndefined();
-      expect(reply({ ...who, turn: 20, userText: "hahaha you're ridiculous" }), name).toBe(
-        'before'
-      );
+      expect(reply({ ...who, turn: 10, userText: 'haha anyway' }), `${name} 2`).toBeUndefined();
+      expect(reply({ ...who, turn: 20, userText: 'lol okay' }), `${name} 3`).toBeUndefined();
+      expect(
+        reply({ ...who, turn: 30, userText: "hahaha you're ridiculous" }),
+        `${name} 4`
+      ).toBeDefined();
     }
+  });
+
+  it('remembers the grief when the reply to it was heavy, as a sympathetic reply is', () => {
+    for (const [name, who] of WHO) {
+      fresh();
+      const grief = { ...who, turn: 1, userText: 'my dad died', replyValence: 'heavy' as const };
+      expect(reply({ ...grief, phrase: "Oh no, I'm so sorry." })).toBeUndefined();
+      expect(reply({ ...who, turn: 10, userText: 'haha anyway' }), name).toBeUndefined();
+    }
+  });
+
+  it('keeps the old rules off a heavy moment too', () => {
+    // A teammate without TEAM_VOICES, at full rapport, after its own joke: the old rules laugh.
+    const old = {
+      personaId: 'jordan-taylor',
+      comfortLevel: 1,
+      phrase: "I'd eat cereal for dinner too, just kidding.",
+    };
+    expect(reply({ ...old, turn: 10, userText: 'haha anyway' })).toBeDefined();
+    fresh();
+    expect(reply({ ...old, turn: 1, userText: 'my dad died last week' })).toBeUndefined();
+    expect(reply({ ...old, turn: 10, userText: 'haha anyway' })).toBeUndefined();
   });
 
   it('remembers the grief even when that reply already laughed on its own', () => {

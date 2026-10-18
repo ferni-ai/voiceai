@@ -56,14 +56,7 @@ test.describe('Conversation History UI', () => {
       }
     }
 
-    // Check if feature is locked (for new users)
-    const isLocked = await historyButton.getAttribute('data-locked');
-    if (isLocked === 'true') {
-      // Feature is locked, verify lock UI is shown
-      await expect(historyButton.locator('.settings-menu__lock-icon')).toBeVisible();
-      return;
-    }
-
+    // Nothing in the menu is locked (#1688): history opens from the first call
     await historyButton.click();
 
     // Verify history panel opened

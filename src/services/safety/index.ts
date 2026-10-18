@@ -22,6 +22,8 @@
 // ============================================================================
 
 export { detectCrisis, getHighestSeverityCrisis, isCrisisActive } from './crisis-detection.js';
+/** The crisis guard's scoring of the caller's words alone: quiet, no logging (heavy-moment.ts). */
+export { detectCrisis as scoreCrisisLanguage } from './crisis-guard.js';
 
 export type {
   CrisisDetectionResult,

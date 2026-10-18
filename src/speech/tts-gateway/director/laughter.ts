@@ -21,6 +21,11 @@
  */
 
 import { decideLaughter } from '../../adaptive-ssml/contextual-laughter.js';
+import {
+  isHeavyMoment,
+  noteCallerTurn,
+  recentCallerTurns,
+} from '../../adaptive-ssml/heavy-moment.js';
 import type { Valence } from './emotion.js';
 import {
   decideTeamLaughter,
@@ -67,7 +72,12 @@ export type LaughterWho = Pick<
 
 /** Where to add `[laughter]` for this reply, or undefined for none. */
 export function decideReplyLaughter(input: LaughterInput): LaughPlacement | undefined {
+  // Noted before any early return: the sympathetic (heavy) reply to "my dad
+  // died" is the turn the next reply, to "haha anyway", must look back on.
+  if (input.sessionId) noteCallerTurn(input.sessionId, input.userText, input.turn);
   if (!input.sessionId || input.replyValence === 'heavy') return undefined;
+  // Never on a heavy moment, by any rules: the team's, Ferni's light touch or the old ones.
+  if (isHeavyMoment(recentCallerTurns(input.sessionId))) return undefined;
   const team =
     (input.teamVoices ? teamLaughStyle(input.personaId) : undefined) ??
     (input.lightTouch ? ferniLightStyle(input.personaId) : undefined);

@@ -23,7 +23,7 @@ import { CONTEXTS, LAYER_MAP, type Context, type Layer } from './architecture-la
 
 export const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'architecture-baseline.generated.json');
 const RUNTIME_RULES = ['upward', 'core-to-platform', 'context-internal'] as const;
-export const RULES = [...RUNTIME_RULES, 'type-upward', 'type-core-to-platform', 'type-context-internal', 'cycle'] as const;
+export const RULES = [...RUNTIME_RULES, 'type-upward', 'type-core-to-platform', 'type-context-internal', 'cycle', 'vendor'] as const;
 export type Rule = (typeof RULES)[number];
 export type Baseline = Record<Rule, string[]>;
 
@@ -32,6 +32,17 @@ export interface Edge { from: string; to: string; kind: 'static' | 'type' | 'dyn
 /** `prefix`: the map key that matched; `<prefix>/index.ts` is a context's public API. */
 export interface Placement { layer: Layer; context?: Context; prefix: string }
 export interface Violation { rule: Rule; from: string; to: string; line: number }
+/** A direct import of a vendor SDK package (`to` is the package name). */
+export interface VendorImport { from: string; to: string; line: number }
+
+/** Vendor SDKs that core (L2/L3) must reach through a port, not import (#1673). */
+export const VENDOR_PACKAGES = ['firebase-admin', '@livekit/', 'livekit-server-sdk', '@google/genai', '@google/generative-ai', '@google-cloud/vertexai'];
+const vendorOf = (spec: string): string | null => {
+  const pkg = VENDOR_PACKAGES.find((p) => spec === p || spec.startsWith(p.endsWith('/') ? p : `${p}/`));
+  if (!pkg) return null;
+  const parts = spec.split('/'); // "@livekit/agents/dist" → "@livekit/agents"; "firebase-admin/app" → "firebase-admin"
+  return spec.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0]!;
+};
 
 const TEST = /(__tests__|__mocks__|\.(test|spec)\.tsx?$|^src\/(tests|e2e)\/)/;
 const RANK: Record<Layer, number> = { L1: -1, L2: 0, L3: 1, L4: 2, L5: 3 };
@@ -69,14 +80,17 @@ function typeOnly(node: ts.ImportDeclaration | ts.ExportDeclaration): boolean {
 }
 
 /** Every relative import between production files under src/, from the AST. */
-export function buildGraph(root: string): { files: string[]; edges: Edge[] } {
+export function buildGraph(root: string): { files: string[]; edges: Edge[]; vendor: VendorImport[] } {
   const files = walk(join(root, 'src'), []).map((f) => relative(root, f)).filter((f) => !TEST.test(f));
   const edges: Edge[] = [];
+  const vendor: VendorImport[] = [];
   for (const from of files) {
     const sf = ts.createSourceFile(from, readFileSync(join(root, from), 'utf8'), ts.ScriptTarget.Latest, true);
     const add = (spec: string, kind: Edge['kind'], node: ts.Node, lazy: boolean): void => {
       const to = resolveSpec(root, from, spec);
       const line = sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+      const pkg = vendorOf(spec);
+      if (pkg) vendor.push({ from, to: pkg, line });
       if (to && !TEST.test(to)) edges.push({ from, to, kind, lazy, line });
     };
     const visit = (node: ts.Node, lazy: boolean): void => {
@@ -96,7 +110,7 @@ export function buildGraph(root: string): { files: string[]; edges: Edge[] } {
     };
     visit(sf, false);
   }
-  return { files, edges };
+  return { files, edges, vendor };
 }
 
 /** Where a file sits (longest matching prefix); null when unassigned or unmapped. */
@@ -180,7 +194,7 @@ export function cycles(edges: Edge[]): { components: string[][]; violations: Vio
 export const keyOf = (v: Violation): string => `${v.from} -> ${v.to}`;
 
 /** Every violation, one per (rule, from, to); the first import line stands for the edge. */
-export function check(graph: { edges: Edge[] }, map: Record<string, string> = LAYER_MAP): Violation[] {
+export function check(graph: { edges: Edge[]; vendor?: VendorImport[] }, map: Record<string, string> = LAYER_MAP): Violation[] {
   const out = new Map<string, Violation>();
   const add = (v: Violation): Map<string, Violation> => out.set(`${v.rule}|${keyOf(v)}`, out.get(`${v.rule}|${keyOf(v)}`) ?? v);
   for (const e of graph.edges) {
@@ -190,6 +204,10 @@ export function check(graph: { edges: Edge[] }, map: Record<string, string> = LA
     if (rule) add({ rule: e.kind === 'type' ? (`type-${rule}` as Rule) : rule, from: e.from, to: e.to, line: e.line });
   }
   cycles(graph.edges).violations.forEach(add);
+  for (const v of graph.vendor ?? []) {
+    const layer = placementOf(v.from, map)?.layer;
+    if (layer === 'L2' || layer === 'L3') add({ rule: 'vendor', from: v.from, to: v.to, line: v.line });
+  }
   return [...out.values()];
 }
 
@@ -213,6 +231,7 @@ const HINT: Record<string, string> = {
   'core-to-platform': 'depend on a port (interface) in L2/L3 and let L4 hand in the adapter',
   'context-internal': "import the other context's index.ts, or publish a domain event",
   cycle: 'import siblings directly instead of the barrel, or invert one edge',
+  vendor: 'depend on a port (interface) in L2/L3 and have an L1 adapter implement it (#1673)',
 };
 
 /** Markdown scoreboard: unique violating edges per layer pair and per context, cycles, unassigned. */
@@ -221,7 +240,8 @@ export function scoreboard(files: string[], edges: Edge[], violations: Violation
   const pairs = new Map<string, [number, number]>();
   const ctx = new Map<string, number[]>(CONTEXTS.map((c) => [c, [0, 0, 0, 0, 0]]));
   for (const c of files.map((f) => place(f)?.context)) if (c) ctx.get(c)![0]++;
-  for (const v of violations.filter((x) => x.rule !== 'cycle')) {
+  const edgeViolations = violations.filter((x) => x.rule !== 'cycle' && x.rule !== 'vendor');
+  for (const v of edgeViolations) {
     const type = v.rule.startsWith('type-');
     const pair = `${place(v.from)!.layer} → ${place(v.to)!.layer}`;
     pairs.set(pair, pairs.get(pair) ?? [0, 0]).get(pair)![type ? 1 : 0]++;
@@ -246,7 +266,8 @@ export function scoreboard(files: string[], edges: Edge[], violations: Violation
     `Cycles: ${components.length} static import cycles over ${components.reduce((n, c) => n + c.length, 0)} files ` +
       `(${violations.filter((v) => v.rule === 'cycle').length} edges, largest ${largest(components)} files). With lazy ` +
       `\`import()\`/\`require()\` the largest cycle spans ${largest(lazy)} files (reported, not gated).`,
-    `Unassigned, not checked: ${files.filter((f) => !place(f)).length} of ${files.length} files (${top.join(', ')}).`
+    `Unassigned, not checked: ${files.filter((f) => !place(f)).length} of ${files.length} files (${top.join(', ')}).`,
+    `Vendor SDK imports in L2/L3 (must go through a port): ${violations.filter((v) => v.rule === 'vendor').length} files-to-package edges.`
   );
   return out.join('\n');
 }

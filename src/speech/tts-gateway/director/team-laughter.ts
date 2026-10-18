@@ -129,7 +129,7 @@ function blocked(input: LaughterInput, style: TeamLaughStyle): boolean {
   if (emotion && DISTRESSED.has(emotion)) return true;
   if (SUPPORTIVE_PATTERNS.some((p) => p.test(input.phrase))) return true;
   if (BLOCK_LAUGHTER_PATTERNS.some((p) => p.test(input.phrase))) return true;
-  // Anything hard in the caller's last two turns (noted just before), however they laughed.
+  // Anything hard in the caller's last three turns (noted just before), however they laughed.
   if (isHeavyMoment(recentCallerTurns(input.sessionId!))) return true;
   const history = getSessionHistory(input.sessionId!);
   return (
