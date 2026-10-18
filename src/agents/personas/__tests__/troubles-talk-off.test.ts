@@ -1,7 +1,8 @@
 /**
  * TROUBLES_TALK off (or unset): every prompt it touches is byte for byte what
- * origin/main built before it existed (2705bbda6). The hashes below were taken
- * on that commit with this same file; a change to any of these prompts that is
+ * origin/main builds without it (c8ee11d96, re-taken when main was merged in;
+ * first taken on 2705bbda6). The hashes below were taken on that commit with
+ * this same file; a change to any of these prompts that is
  * not behind the flag fails here.
  *
  * Regenerate (only for a deliberate change outside the flag):
@@ -198,10 +199,10 @@ const BASELINE: Record<string, string> = {
   ledger: '969858475dd1023e',
   'recall:opening': 'b3e7205e818a3418',
   'recall:fence': 'b3e7205e818a3418',
-  'character:ferni': '6d4245e0616b3351',
-  'character:peter-john': '72ab5a50b4eea99e',
-  'character:maya-santos': '79287872417000ae',
-  'character:alex-chen': '03b30a2e55d6fd31',
+  'character:ferni': '38a211cfe2802e85',
+  'character:peter-john': 'e1f1a726043eb4d6',
+  'character:maya-santos': 'f250d6d523d51c55',
+  'character:alex-chen': '074e2a565130904b',
 };
 
 describe('TROUBLES_TALK off', () => {
