@@ -8,7 +8,11 @@
  * @module services/calendar/provider-write
  */
 import { createHash } from 'node:crypto';
-import { getValidAccessToken, isCalendarConfigured } from '../identity/google-calendar-oauth.js';
+import {
+  getValidAccessToken,
+  isCalendarConfigured,
+  updateEvent as updateGoogleEvent,
+} from '../identity/google-calendar-oauth.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getProvider } from './providers/provider-registry.js';
 import type {
@@ -30,8 +34,8 @@ const log = createLogger({ module: 'calendar-provider-write' });
 
 export type ConnectedProvider = Exclude<CalendarProvider, 'ferni'>;
 
-/** reconnect: tokens stored, no access token. guests: a change would reset or cancel it for them. */
-export type GoogleFailure = 'failed' | 'reconnect' | 'guests';
+/** reconnect: tokens stored, no access token. not_ferni: from their own calendar, so left alone. */
+export type GoogleFailure = 'failed' | 'reconnect' | 'not_ferni';
 
 export type ProviderCreateResult =
   { status: 'saved'; externalId: string } | { status: GoogleFailure };
@@ -41,6 +45,7 @@ export type GoogleChangeResult =
   { status: 'not_google' } | { status: 'done' | GoogleFailure; event: CalendarEvent };
 
 const GOOGLE_CALENDAR_ID = 'primary';
+const FERNI_ID = /^ferni[0-9a-f]{40}$/;
 
 /** The connected calendar, or null. Google sign-in stores tokens, not a provider record. */
 export async function connectedProvider(userId: string): Promise<ConnectedProvider | null> {
@@ -126,62 +131,71 @@ export async function createEventInGoogle(
   return { status: 'saved', externalId };
 }
 
-/** Change or remove a Google event Ferni holds a copy of; the copy follows only once Google took it. */
+/**
+ * Change or remove a Google event Ferni created (its id is one googleEventIdFor makes). Events
+ * from the caller's own calendar are never touched. The copy follows only once Google took it.
+ */
+type GoogleWrite = (adapter: CalendarProviderAdapter, id: string, cal: string) => Promise<boolean>;
+
 async function changeInGoogle(
   userId: string,
   eventId: string,
   what: 'update' | 'delete',
-  write: (adapter: CalendarProviderAdapter, existing: CalendarEvent) => Promise<boolean>,
+  write: GoogleWrite,
   followCopy: () => Promise<unknown>
 ): Promise<GoogleChangeResult> {
   const existing = await getEventById(userId, eventId);
   if (existing?.source !== 'google' || !existing.externalId) return { status: 'not_google' };
-  if (existing.attendees.length > 0) return { status: 'guests', event: existing };
+  if (!FERNI_ID.test(existing.externalId)) return { status: 'not_ferni', event: existing };
+  const { externalId: id, externalCalendarId: cal = GOOGLE_CALENDAR_ID } = existing;
   const adapter = await googleAdapter(userId);
   if (typeof adapter === 'string') return { status: adapter, event: existing };
-  if (!(await attempt(userId, `Google ${what}`, () => write(adapter, existing)))) {
+  if (!(await attempt(userId, `Google ${what}`, () => write(adapter, id, cal)))) {
     return { status: 'failed', event: existing };
   }
   await attempt(userId, `Ferni copy of a Google ${what}`, followCopy);
   return { status: 'done', event: existing };
 }
 
-/** Change a Google event. A new start with no new end keeps its length. */
+/**
+ * Change a Google event Ferni created. Only the changed fields are sent (no etag check: the
+ * client has none): a whole copy would overwrite edits made on Google, and its guests.
+ */
 export async function updateEventInGoogle(
   userId: string,
   eventId: string,
   updates: UpdateEventInput
 ): Promise<GoogleChangeResult> {
-  let changed: CalendarEvent | undefined;
-  let endTime: Date | undefined;
+  const existing = await getEventById(userId, eventId);
+  const start = updates.startTime;
+  const length = existing ? existing.endTime.getTime() - existing.startTime.getTime() : 0;
+  // A new start keeps the length.
+  const endTime = updates.endTime ?? (start ? new Date(start.getTime() + length) : undefined);
+  const at = (date?: Date) => (date ? { dateTime: date.toISOString() } : undefined);
+  const { title: summary, description, location } = updates;
+  const body = { summary, description, location, start: at(start), end: at(endTime) };
+  const changes = endTime ? { ...updates, endTime } : updates;
   const result = await changeInGoogle(
     userId,
     eventId,
     'update',
-    (adapter, existing) => {
-      const length = existing.endTime.getTime() - existing.startTime.getTime();
-      const start = updates.startTime;
-      endTime = updates.endTime ?? (start ? new Date(start.getTime() + length) : existing.endTime);
-      changed = { ...existing, ...updates, endTime };
-      return adapter.updateEvent(userId, changed);
+    async (_adapter, id, cal) => {
+      const token = await getValidAccessToken(userId);
+      return token ? Boolean(await updateGoogleEvent(token, cal, id, body)) : false;
     },
-    () => updateEvent(userId, eventId, { ...updates, endTime })
+    () => updateEvent(userId, eventId, changes)
   );
-  return result.status === 'done' && changed ? { status: 'done', event: changed } : result;
+  if (result.status !== 'done') return result;
+  return { status: 'done', event: { ...result.event, ...changes } };
 }
 
-/** Remove a Google event. */
+/** Remove a Google event Ferni created. */
 export function deleteEventInGoogle(userId: string, eventId: string): Promise<GoogleChangeResult> {
   return changeInGoogle(
     userId,
     eventId,
     'delete',
-    (adapter, existing) =>
-      adapter.deleteEvent(
-        userId,
-        existing.externalId ?? '',
-        existing.externalCalendarId ?? GOOGLE_CALENDAR_ID
-      ),
+    (adapter, id, cal) => adapter.deleteEvent(userId, id, cal),
     () => deleteEvent(userId, eventId)
   );
 }

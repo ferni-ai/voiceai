@@ -376,10 +376,9 @@ async function checkActionClaims<T>(
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
             if (names.some(isCalendarCreate)) calendarCalled = true;
-            // A create came after the claim. Without provider writes a create only saves to Ferni's
-            // own list (#1547), so the claim is still false: the honest line replaces it, and what
-            // followed goes out after. With them (#1749) the create may reach the caller's calendar,
-            // which only its result knows, so the claim is dropped and the result is spoken next.
+            // A create came after the claim. A create only saves to Ferni's own list (#1547), so the
+            // claim is still false: the honest line replaces it, and what followed goes out after.
+            // With CALENDAR_PROVIDER_WRITE only its result knows, so the claim is dropped (#1749).
             if (deferred?.reason === 'uncalled' && calling.has(deferred.kind)) {
               if (deferred.text && !(calendarCalled && providerWrite)) {
                 emit(

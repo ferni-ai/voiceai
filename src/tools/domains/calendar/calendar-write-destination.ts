@@ -1,8 +1,8 @@
 /**
  * Where the calendar write tools save, and the line that says so (#1749). Flag
  * off: Ferni's own list, with the lines they have always said. CALENDAR_PROVIDER_WRITE
- * on with Google connected: creates, and changes to events from Google, go to
- * Google first; a failure says so and changes nothing. Other providers get Ferni's
+ * on with Google connected: creates, and changes to Google events Ferni created, go
+ * to Google first; a failure says so and changes nothing. Other providers get Ferni's
  * list and "isn't on your calendar" (the claim guard's "elsewhere"). With nothing
  * connected the #1547 gate words the result.
  *
@@ -20,24 +20,17 @@ import {
   createEventInGoogle,
   deleteEventInGoogle,
   updateEventInGoogle,
-  type ConnectedProvider,
   type GoogleFailure,
 } from '../../../services/calendar/provider-write.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'calendar-write-destination' });
 
-const NAME: Record<ConnectedProvider, string> = {
-  google: 'Google',
-  outlook: 'Outlook',
-  apple: 'Apple',
-};
-
 /** Why a Google write didn't happen, as the end of "I couldn't ... your Google Calendar". */
 const WHY: Record<GoogleFailure, string> = {
   failed: '',
   reconnect: ', since the Google Calendar connection needs reconnecting',
-  guests: ", since it has guests and I can't change it for them from here",
+  not_ferni: ', since I only change events I added there',
 };
 
 /** Save a new event and say where. `when` is the start as the caller hears it. */
@@ -56,7 +49,6 @@ export async function saveNewEvent(
     if (result.status !== 'saved') {
       return `I couldn't add "${input.title}" to your Google Calendar${WHY[result.status]}, so it isn't on your calendar. Nothing was saved.`;
     }
-    // Guests are never sent to Google (provider-write.ts), so the model must not say they were.
     const guests =
       (input.attendees ?? []).length > 0 ? " I didn't invite anyone, so no invites went out." : '';
     return `Added to your Google Calendar: ${what}.${guests}`;
@@ -72,7 +64,9 @@ export async function saveNewEvent(
     // createEvent keeps it in Ferni's own calendar; nothing pushes it to Google.
     return `Saved to the Ferni calendar only, not Google Calendar: ${what}.`;
   }
-  const why = provider ? `, since I can't add to ${NAME[provider]} yet` : '';
+  const why = provider
+    ? `, since I can't add to ${provider === 'outlook' ? 'Outlook' : 'Apple'} yet`
+    : '';
   return `Saved to Ferni's own list: ${what}. It isn't on your calendar${why}.`;
 }
 

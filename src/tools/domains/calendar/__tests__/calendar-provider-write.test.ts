@@ -67,6 +67,7 @@ import type { CalendarEvent, ProviderConnection } from '../../../../services/cal
 import { notConnectedCreate } from '../../../../services/calendar/not-connected-copy.js';
 import { rememberCallerTimeZone } from '../../../../utils/caller-time-zone.js';
 import type { ToolContext } from '../../../registry/types.js';
+import { googleEventIdFor } from '../../../../services/calendar/provider-write.js';
 import { smartCalendarTools } from '../calendar-connection-gate.js';
 
 type Exec = { execute: (args: Record<string, unknown>, options?: unknown) => Promise<string> };
@@ -81,7 +82,12 @@ const ASK = {
   description: 'Cleaning',
 };
 const WHAT = '"Dentist", Tuesday, Nov 3, 1:00 PM your time, 30 minutes';
-const COPY_ID = 'evt_g-123';
+// Google echoes the id Ferni sends (googleEventIdFor), so the copy is keyed by it.
+const GID = googleEventIdFor(USER, {
+  title: 'Dentist',
+  startTime: new Date('2026-11-03T18:00:00.000Z'),
+});
+const COPY_ID = `evt_${GID}`;
 
 function tool(id = 'createCalendarEvent'): Exec {
   const def = smartCalendarTools.find((d) => d.id === id)!;
@@ -126,12 +132,7 @@ beforeEach(() => {
   vi.mocked(isConnected).mockResolvedValue(true);
   vi.mocked(getProviderConnections).mockResolvedValue([]);
   vi.mocked(getValidAccessToken).mockResolvedValue('token-1');
-  vi.mocked(googleCreate).mockResolvedValue({
-    id: 'g-123',
-    summary: 'Dentist',
-    start: {},
-    end: {},
-  });
+  vi.mocked(googleCreate).mockImplementation(async (_token, _cal, event) => ({ ...event }));
   vi.mocked(googleUpdate).mockResolvedValue({
     id: 'g-123',
     summary: 'Dentist',
@@ -198,7 +199,7 @@ describe('createCalendarEvent with a connected calendar (#1749)', () => {
     expect(importExternalEvent).toHaveBeenCalledWith(
       USER,
       'google',
-      'g-123',
+      GID,
       'primary',
       expect.objectContaining({ title: 'Dentist' })
     );
@@ -221,7 +222,7 @@ describe('createCalendarEvent with a connected calendar (#1749)', () => {
     expect(importExternalEvent).toHaveBeenCalledWith(
       USER,
       'google',
-      'g-123',
+      GID,
       'primary',
       expect.objectContaining({ attendees: [] })
     );
@@ -307,9 +308,12 @@ describe('updating and deleting an event created on Google Calendar (#1749)', ()
     );
     expect(googleUpdate).toHaveBeenCalledTimes(1);
     const [token, calendarId, googleId, sent] = vi.mocked(googleUpdate).mock.calls[0];
-    expect([token, calendarId, googleId]).toEqual(['token-1', 'primary', 'g-123']);
-    expect(sent.start?.dateTime).toBe('2026-11-03T20:00:00.000Z');
-    expect(sent.end?.dateTime).toBe('2026-11-03T20:30:00.000Z');
+    expect([token, calendarId, googleId]).toEqual(['token-1', 'primary', GID]);
+    // Only the changed fields go in the PATCH, as sent on the wire: no stale copy, no guests.
+    expect(JSON.parse(JSON.stringify(sent))).toEqual({
+      start: { dateTime: '2026-11-03T20:00:00.000Z' },
+      end: { dateTime: '2026-11-03T20:30:00.000Z' },
+    });
     expect(storeUpdate).toHaveBeenCalledWith(
       USER,
       COPY_ID,
@@ -328,23 +332,50 @@ describe('updating and deleting an event created on Google Calendar (#1749)', ()
     expect(storeUpdate).not.toHaveBeenCalled();
   });
 
-  it('update of a Google event with guests: not changed, and says why', async () => {
-    copies.set(COPY_ID, { ...copies.get(COPY_ID)!, attendees: ['sam@example.com'] });
+  it('a title-only update sends only the new title', async () => {
+    await tool('updateCalendarEvent').execute({ eventId: COPY_ID, title: 'Dentist checkup' });
 
-    const said = await tool('updateCalendarEvent').execute(MOVE);
+    const sent = vi.mocked(googleUpdate).mock.calls[0][3];
+    expect(JSON.parse(JSON.stringify(sent))).toEqual({ summary: 'Dentist checkup' });
+  });
 
-    expect(said).toMatch(
-      /^I couldn't change "Dentist" on your Google Calendar, since it has guests/
-    );
-    expect(googleUpdate).not.toHaveBeenCalled();
-    expect(storeUpdate).not.toHaveBeenCalled();
+  describe("an event from the caller's own Google Calendar (not created by Ferni)", () => {
+    const IMPORTED = 'evt_imported';
+    beforeEach(() => {
+      const meeting = { ...copies.get(COPY_ID)!, id: IMPORTED, title: 'Board meeting' };
+      copies.set(IMPORTED, {
+        ...meeting,
+        externalId: 'abc123def456ghi789',
+        attendees: ['x@y.com'],
+      });
+    });
+
+    it('update: left alone, says so, touches neither Google nor the copy', async () => {
+      const said = await tool('updateCalendarEvent').execute({ ...MOVE, eventId: IMPORTED });
+
+      expect(said).toBe(
+        `I couldn't change "Board meeting" on your Google Calendar, since I only change events I added there, so it's unchanged there.`
+      );
+      expect(googleUpdate).not.toHaveBeenCalled();
+      expect(storeUpdate).not.toHaveBeenCalled();
+    });
+
+    it('delete: left alone, says so, touches neither Google nor the copy', async () => {
+      const said = await tool('deleteCalendarEvent').execute({ eventId: IMPORTED });
+
+      expect(said).toBe(
+        `I couldn't remove "Board meeting" from your Google Calendar, since I only change events I added there, so it's still there.`
+      );
+      expect(googleDelete).not.toHaveBeenCalled();
+      expect(storeDelete).not.toHaveBeenCalled();
+    });
   });
 
   it('delete after create: removes it from Google, then the copy', async () => {
     const said = await tool('deleteCalendarEvent').execute({ eventId: COPY_ID });
 
     expect(said).toBe('Dentist has been removed from your Google Calendar.');
-    expect(googleDelete).toHaveBeenCalledWith('token-1', 'primary', 'g-123');
+    expect(googleDelete).toHaveBeenCalledWith('token-1', 'primary', GID);
     expect(storeDelete).toHaveBeenCalledWith(USER, COPY_ID);
   });
 
