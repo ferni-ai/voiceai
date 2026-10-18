@@ -191,7 +191,12 @@ function guard(opts: {
     },
   });
   const deploy = /^deploy=(\w+)$/m.exec(readFileSync(output, 'utf8'))?.[1];
-  return { status: r.status, deploy, summary: readFileSync(summary, 'utf8'), out: r.stdout + r.stderr };
+  return {
+    status: r.status,
+    deploy,
+    summary: readFileSync(summary, 'utf8'),
+    out: r.stdout + r.stderr,
+  };
 }
 
 const dispatch = { event: 'workflow_dispatch' } as const;
@@ -237,7 +242,10 @@ describe('forward-only deploy guard: automatic (workflow_run) path', () => {
   });
 
   it('deploys when the service does not exist yet', () => {
-    expect(guard({ service: 'missing', deploy: sha.c })).toMatchObject({ status: 0, deploy: 'true' });
+    expect(guard({ service: 'missing', deploy: sha.c })).toMatchObject({
+      status: 0,
+      deploy: 'true',
+    });
   });
 
   it('fails closed when production cannot be read', () => {
@@ -259,7 +267,13 @@ describe('forward-only deploy guard: manual dispatch', () => {
   });
 
   it('an intentional rollback (allow_older + reason, commit on main) goes through', () => {
-    const r = guard({ ...dispatch, live: sha.c, deploy: sha.a, allowOlder: true, reason: 'c broke sign-in' });
+    const r = guard({
+      ...dispatch,
+      live: sha.c,
+      deploy: sha.a,
+      allowOlder: true,
+      reason: 'c broke sign-in',
+    });
     expect(r).toMatchObject({ status: 0, deploy: 'true' });
     expect(r.summary).toMatch(/c broke sign-in/);
   });
@@ -278,11 +292,17 @@ describe('forward-only deploy guard: manual dispatch', () => {
   });
 
   it('a redeploy of the serving commit still runs', () => {
-    expect(guard({ ...dispatch, live: sha.c, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'true' });
+    expect(guard({ ...dispatch, live: sha.c, deploy: sha.c })).toMatchObject({
+      status: 0,
+      deploy: 'true',
+    });
   });
 
   it('a forward deploy runs', () => {
-    expect(guard({ ...dispatch, live: sha.a, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'true' });
+    expect(guard({ ...dispatch, live: sha.a, deploy: sha.c })).toMatchObject({
+      status: 0,
+      deploy: 'true',
+    });
   });
 });
 
@@ -309,13 +329,17 @@ describe('deploy freeze: a rollback holds until someone unfreezes', () => {
   it('the merge-queue push path no-ops while frozen too', () => {
     const f = freshDir();
     freezeCmd(f, ['set', 'rollback']);
-    expect(guard({ freezeDir: f, event: 'push', live: sha.b, deploy: sha.c })).toMatchObject({ deploy: 'false' });
+    expect(guard({ freezeDir: f, event: 'push', live: sha.b, deploy: sha.c })).toMatchObject({
+      deploy: 'false',
+    });
   });
 
   it('a plain manual run no-ops while frozen; allow_older still deploys', () => {
     const f = freshDir();
     freezeCmd(f, ['set', 'rollback']);
-    expect(guard({ freezeDir: f, event: 'workflow_dispatch', live: sha.b, deploy: sha.c })).toMatchObject({
+    expect(
+      guard({ freezeDir: f, event: 'workflow_dispatch', live: sha.b, deploy: sha.c })
+    ).toMatchObject({
       deploy: 'false',
     });
     const older = guard({
@@ -327,14 +351,18 @@ describe('deploy freeze: a rollback holds until someone unfreezes', () => {
       reason: 'roll back further',
     });
     expect(older).toMatchObject({ status: 0, deploy: 'true' });
-    expect(freezeCmd(f, ['gate'], { EVENT: 'workflow_dispatch', ALLOW_OLDER: 'true' }).status).toBe(0);
+    expect(freezeCmd(f, ['gate'], { EVENT: 'workflow_dispatch', ALLOW_OLDER: 'true' }).status).toBe(
+      0
+    );
   });
 
   it('allow_older bypasses the freeze only on a manual run', () => {
     const f = freshDir();
     freezeCmd(f, ['set', 'rollback']);
     expect(freezeCmd(f, ['gate'], { EVENT: 'workflow_run', ALLOW_OLDER: 'true' }).status).toBe(3);
-    expect(guard({ freezeDir: f, live: sha.b, deploy: sha.c, allowOlder: true, reason: 'x' })).toMatchObject({
+    expect(
+      guard({ freezeDir: f, live: sha.b, deploy: sha.c, allowOlder: true, reason: 'x' })
+    ).toMatchObject({
       deploy: 'false',
     });
   });
@@ -406,13 +434,16 @@ describe('deploy-production.yml wiring', () => {
     for (const input of ['sha', 'allow_older', 'reason']) {
       expect(workflow).toMatch(new RegExp(`\\n {6}${input}:\\n`));
     }
-    expect(workflow).toMatch(/DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \|\| inputs\.sha \|\| github\.sha \}\}/);
+    expect(workflow).toMatch(
+      /DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \|\| inputs\.sha \|\| github\.sha \}\}/
+    );
     expect(steps[guardAt]).toMatch(/ALLOW_OLDER: \$\{\{ inputs\.allow_older == true \}\}/);
     expect(steps[guardAt]).toMatch(/REASON: \$\{\{ inputs\.reason \}\}/);
   });
 
   it('manual deploys run only from main, in the job if and the concurrency group', () => {
-    const dispatchFromMain = "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'";
+    const dispatchFromMain =
+      "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'";
     expect(job).toContain(dispatchFromMain);
     expect(/\nconcurrency:\n {2}group: (.*)\n/.exec(workflow)?.[1]).toContain(dispatchFromMain);
     expect(workflow).not.toMatch(/github\.event_name == 'workflow_dispatch' \|\|/);
@@ -426,17 +457,23 @@ describe('deploy-production.yml wiring', () => {
 
   it('health check and smoke tests hit green before it gets traffic', () => {
     expect(steps[at('Health check green revision')]).toMatch(/steps\.deploy\.outputs\.green_url/);
-    expect(steps[at('Run smoke tests')]).toMatch(/SMOKE_TEST_URL: \$\{\{ steps\.deploy\.outputs\.green_url \}\}/);
+    expect(steps[at('Run smoke tests')]).toMatch(
+      /SMOKE_TEST_URL: \$\{\{ steps\.deploy\.outputs\.green_url \}\}/
+    );
     expect(at('Run smoke tests')).toBeLessThan(at('Shift traffic to green'));
     expect(steps[at('Rollback on failure')]).toMatch(/steps\.smoke\.outcome == 'failure'/);
-    expect(steps[at('🟢 Deploy GREEN revision (no traffic)')]).toMatch(/select\(\.tag == "green"\) \| \.url/);
+    expect(steps[at('🟢 Deploy GREEN revision (no traffic)')]).toMatch(
+      /select\(\.tag == "green"\) \| \.url/
+    );
   });
 
   it('a redeploy of the same commit gets a fresh revision name', () => {
     expect(steps[at('🟢 Deploy GREEN revision (no traffic)')]).toMatch(
       /REVISION_SUFFIX=\$\{\{ steps\.meta\.outputs\.revision_suffix \}\}/
     );
-    expect(steps[at('Generate metadata')]).toMatch(/revision_suffix=\$\{DEPLOY_SHA::8\}-\$\{GITHUB_RUN_ID\}-\$\{GITHUB_RUN_ATTEMPT\}/);
+    expect(steps[at('Generate metadata')]).toMatch(
+      /revision_suffix=\$\{DEPLOY_SHA::8\}-\$\{GITHUB_RUN_ID\}-\$\{GITHUB_RUN_ATTEMPT\}/
+    );
   });
 
   it('re-checks the freeze right before the traffic shift, and a freeze rolls green back', () => {
@@ -447,7 +484,9 @@ describe('deploy-production.yml wiring', () => {
   });
 
   it('unfreeze is its own job; the deploy job never gets contents: write', () => {
-    expect(workflow).toMatch(/\n {2}unfreeze:\n[\s\S]*?inputs\.unfreeze == true[\s\S]*?contents: write[\s\S]*?deploy-freeze\.sh clear/);
+    expect(workflow).toMatch(
+      /\n {2}unfreeze:\n[\s\S]*?inputs\.unfreeze == true[\s\S]*?contents: write[\s\S]*?deploy-freeze\.sh clear/
+    );
     expect(job).toMatch(/\n {4}permissions:\n {6}contents: read\n/);
     expect(job).not.toMatch(/\n {6}contents: write/);
     expect(job).toContain('inputs.unfreeze != true');
