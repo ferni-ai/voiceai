@@ -8,7 +8,7 @@
  *
  * Every reply the model writes passes through here (ferni-agent.ts llmNode),
  * a sentence at a time. A sentence that claims a call, a text or email, a
- * booking, a reminder or a save (action-claims.ts) is dropped in two cases
+ * booking, a reminder or a save (action-claims.ts) is dropped in these cases
  * only, and one honest line says what happened and what he can do instead:
  * - no tool of that kind is open this turn (it doesn't exist here, or is off):
  *   he can't do that for them; the line goes where the claim was;
@@ -20,8 +20,15 @@
  *   plain yes: nothing has gone out; the line goes where the claim was and asks.
  *   Prod call 2026-10-16: after "NOT SENT YET" Ferni said "I am dialing her
  *   now", then "I'll take care of that call to your mom right now". No call went.
- * Everything else streams untouched, so the confirm read-back and the yes turn
- * (outreach-confirm.ts), a tool the model is about to call, and talk about an
+ * - the latest call result is held for a better hour (deferred-calls.ts): nothing
+ *   rang yet; the line goes where the claim was and says when it will.
+ * - on the caller's yes, before the call tool has returned: whether it rang is
+ *   not known yet, so a call claim is dropped with no line when the reply calls
+ *   the tool (its result is spoken next), and asks again when it doesn't.
+ *   Prod call 2026-10-17: on the yes Nayan said "Well, I'm placing the call
+ *   now." and the call was held until 9:00 AM their time.
+ * Everything else streams untouched, so the confirm read-back, the yes turn's
+ * other words (outreach-confirm.ts), a tool the model is about to call, and talk about an
  * action that really happened are never changed. Text and tool calls keep
  * their order. ACTION_CLAIM_GUARD=off turns the guard off. Logs carry the kind
  * and the reason, never words.
@@ -53,7 +60,7 @@ const isCalendarCreate = (name: string): boolean =>
 
 type Chunk = llm.ChatChunk | string | object;
 /** 'uncalled': a create tool is open, but no create ran on this call for this claim (#1547). */
-export type MissReason = 'no_tool' | 'failed' | 'awaiting' | 'uncalled' | 'elsewhere';
+export type MissReason = 'no_tool' | 'failed' | 'awaiting' | 'held' | 'uncalled' | 'elsewhere';
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
@@ -86,6 +93,14 @@ const NOT_YET: Record<ActionKind, string> = {
   reminder: "It isn't set yet, though. Should I go ahead and set it?",
   save: "It isn't saved yet, though. Should I go ahead and save it?",
 };
+/** A held action: set for later, not done (only calls are held today). */
+const HELD: Record<ActionKind, string> = {
+  call: "I haven't dialed yet, though. The call is held for a better time.",
+  send: "Nothing's gone out yet, though. It's held for a better time.",
+  schedule: "It isn't booked yet, though. It's held for later.",
+  reminder: "It isn't set yet, though. It's held for later.",
+  save: "It isn't saved yet, though. It's held for later.",
+};
 const INSTEAD: Record<ActionKind, string> = {
   call: ' I can help you work out what to say, though.',
   send: ' I can help you word it, though.',
@@ -96,9 +111,19 @@ const INSTEAD: Record<ActionKind, string> = {
 const REMIND = ' Want me to remind you to do it?';
 
 /** What Ferni says in place of a claim, and what he can do instead. */
-export function honestLine(kind: ActionKind, reason: MissReason, canRemind: boolean): string {
+export function honestLine(
+  kind: ActionKind,
+  reason: MissReason,
+  canRemind: boolean,
+  when?: string
+): string {
   if (reason === 'elsewhere') return "It's saved to Ferni's own list, not your calendar.";
   if (reason === 'awaiting' || reason === 'uncalled') return NOT_YET[kind];
+  if (reason === 'held') {
+    return kind === 'call' && when
+      ? `I haven't dialed yet, though. I'll call ${when} their time.`
+      : HELD[kind];
+  }
   const instead = canRemind && kind !== 'reminder' && kind !== 'save' ? REMIND : INSTEAD[kind];
   return `${reason === 'failed' ? DID_NOT_GO[kind] : CANNOT[kind]}${instead}`;
 }
@@ -234,7 +259,7 @@ export async function withActionClaimCheck<T>(
   if (stream === null || stream === undefined) return stream;
   if (!actionClaimGuardEnabled(env)) return withAnnouncedCheckLog(stream, tools, env);
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
-  const { done, failed, awaiting, elsewhere } = callActions(chatCtx);
+  const { done, failed, awaiting, elsewhere, held, heldWhen } = callActions(chatCtx);
   // A plain yes to the read-back: the tool sends on its next call, so the claim may stand.
   const yesTurn = isClearYes(lastCallerWords(chatCtx));
   const toolNames = Object.keys(tools.functionTools ?? {});
@@ -248,13 +273,19 @@ export async function withActionClaimCheck<T>(
       ? 'no_tool'
       : failed.has(kind)
         ? 'failed'
-        : elsewhere.has(kind)
-          ? 'elsewhere'
-          : awaiting.has(kind) && !yesTurn
-            ? 'awaiting'
-            : kind === 'schedule' && calendarCreateOpen && !done.has(kind) && !calling.has(kind)
-              ? 'uncalled'
-              : null;
+        : failed.has(kind)
+          ? 'failed'
+          : elsewhere.has(kind)
+            ? 'elsewhere'
+            : held.has(kind)
+              ? 'held'
+              : awaiting.has(kind) && !yesTurn
+                ? 'awaiting'
+                : kind === 'schedule' && calendarCreateOpen && !done.has(kind) && !calling.has(kind)
+                  ? 'uncalled'
+                  : null;
+  /** A call claimed on the yes, before the call tool has said whether anything rang. */
+  const ahead = (kind: ActionKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
   let id = '';
   let stringChunks = true;
   const out = (text: string): Chunk =>
@@ -270,6 +301,7 @@ export async function withActionClaimCheck<T>(
       let deferred: { kind: ActionKind; reason: MissReason; text?: string } | undefined;
       // Held sentences that follow an uncalled claim, released in order once the claim resolves.
       const queued: string[] = [];
+      let early: ActionKind | undefined; // a call claimed ahead of its tool's result
       const calling = new Set<ActionKind>();
       let calendarCalled = false; // a calendar create ran in this reply
       const emit = (raw: string): void => {
@@ -291,6 +323,11 @@ export async function withActionClaimCheck<T>(
       const flush = (text: string): void => {
         const kind = claimedAction(text);
         const reason = kind ? missing(kind, calling) : null;
+        if (kind && !reason && hold && ahead(kind)) {
+          log.warn({ kind, reason: 'before_result', held: hold }, 'ACTION_CLAIM_DROPPED');
+          early ??= kind; // said nothing yet: the tool's result is spoken next
+          return;
+        }
         if (!kind || !reason) {
           if (!hold) return;
           if (deferred?.reason === 'uncalled') queued.push(text);
@@ -306,7 +343,7 @@ export async function withActionClaimCheck<T>(
           return;
         }
         said = true;
-        const line = honestLine(kind, reason, open.has('reminder'));
+        const line = honestLine(kind, reason, open.has('reminder'), heldWhen);
         emit(hold ? line : `Scratch that, ${line}`);
         lineLast = true;
       };
@@ -360,6 +397,8 @@ export async function withActionClaimCheck<T>(
         if (deferred && !said && !calling.has(deferred.kind)) {
           emit(honestLine(deferred.kind, deferred.reason, open.has('reminder')));
         }
+        // A yes the reply never acted on: nothing rang, so ask again.
+        if (early && !said && !calling.has(early)) emit(honestLine(early, 'awaiting', false));
         for (const text of queued.splice(0)) emit(text);
         controller.close();
       } catch (error) {

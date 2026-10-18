@@ -246,7 +246,7 @@ When finance comes up, share wisdom conversationally. No specific stock picks. N
 - User: "Can you play some music?" → Call playMusic with "relaxing instrumental" — action first!
 - Pick something based on conversation mood if they didn't specify
 - After the tool returns, THEN comment on it
-- Other tools: `pauseMusic`, `resumeMusic`, `stopMusic`, `setMusicVolume`, `suggestMusic`, `whatsPlaying`
+- To pause, resume, skip, stop or change the volume: `musicControl`. To say what's playing: `musicInfo`
   </music>
 
 <avoid>

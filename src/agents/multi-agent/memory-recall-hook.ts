@@ -71,6 +71,7 @@ import {
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createWorldRecall, type WorldRecallDeps } from './world-recall.js';
+import { predictionCheckInFor, type PredictionCheckIn } from './prediction-check-in.js';
 import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
 import { takeOpenerClaim } from '../../memory/recall/opener-claim.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
@@ -137,6 +138,8 @@ export interface MemoryRecallDeps {
   groundStore?: GroundStore;
   /** A date they told Ferni about, asked once (dates/recall.ts, FRIEND_FOLLOWUPS). */
   dates?: DatesRecall;
+  /** Peter's weekly prediction, a week on (prediction-check-in.ts, WEEKLY_PREDICTION). */
+  week?: PredictionCheckIn;
   /** FERNI_SELF_RECALL=on; read from the environment when not given. */
   selfRecall?: boolean;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
@@ -326,6 +329,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       })
     : Promise.resolve();
   const dates = deps.dates ?? datesRecallFor(deps.userId);
+  const week = deps.week ?? predictionCheckInFor(deps.userId, personaId);
   const loading = [loaded, since, checkedIn, ground, canonLoaded, dates.ready, world.ready];
   const ready = Promise.all(loading).then(() => undefined);
 
@@ -337,6 +341,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         turnCounted = true;
         callerTurn++;
       }
+      week.heard(text);
       if (!snapshot || !text || world.loading) return null;
       index?.observe(text);
       episodes?.observe(text);
@@ -397,10 +402,13 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       // One follow-up per call opener (opener-claim.ts): a check-in or a date
       // in this note, or one the greeting already asked, leaves the thread line out.
       const greetingAsked = followUpsOffered ? undefined : takeOpenerClaim(deps.userId);
+      // The week's predictions come alone: never beside a check-in, a date or the greeting's ask.
+      const weekNow = checkIn || dateNow || greetingAsked ? null : week.note(opts.final);
       const opener =
         !followUpsOffered &&
         !checkIn &&
         !dateNow &&
+        !weekNow &&
         !greetingAsked &&
         threadsNow.length > 0 &&
         (deps.opener ?? openerFollowUpEnabled())
@@ -421,6 +429,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
             checkIn,
             worldNote,
             dateNow,
+            weekNow,
             formatRecall(shown, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
             opener,
             summary,
@@ -445,6 +454,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));
       if (checkIn) checkInOffered = true;
       if (dateNow) dates.raised();
+      if (checkIn || dateNow || greetingAsked || weekNow) week.raised(weekNow !== null);
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);
       factsThisTurn += facts.length;

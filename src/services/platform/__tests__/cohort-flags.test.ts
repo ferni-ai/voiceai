@@ -6,6 +6,8 @@ import {
   FLAG_STALE_MAX_MS,
   flagForUser,
   forgetAgentValues,
+  inSample,
+  missingPrerequisites,
   forgetFlagCache,
   usersWithFlag,
   type FlagHolderStore,
@@ -17,11 +19,15 @@ import {
 
 const store = (
   cohorts: Record<string, Cohort[]>,
-  overrides: Record<string, Record<string, string>> = {}
+  overrides: Record<string, Record<string, string>> = {},
+  sampled: Cohort[] = []
 ): CohortStore => ({
   cohortsFor: async (u) => cohorts[u] ?? [],
   overridesFor: async (u) => overrides[u] ?? {},
+  sampledCohorts: async () => sampled,
 });
+
+const callers = Array.from({ length: 2000 }, (_, i) => `user-${i}`);
 
 const family: Cohort = {
   id: 'friends-and-family',
@@ -286,3 +292,80 @@ function failing(): CohortStore {
     overridesFor: async () => ({}),
   };
 }
+
+describe('sampled cohorts', () => {
+  const memory = (percent: number, enabled = true): Cohort => ({
+    id: 'memory-stack',
+    enabled,
+    percent,
+    flags: { SEMANTIC_RECALL: 'on', RECALL_EPISODES: 'on' },
+  });
+
+  it('takes about its percent of callers, the same ones each call', async () => {
+    const picked = callers.filter((u) => inSample(memory(10), u));
+    expect(picked.length).toBeGreaterThan(150);
+    expect(picked.length).toBeLessThan(250);
+    expect(callers.filter((u) => inSample(memory(10), u))).toEqual(picked);
+    const s = store({}, {}, [memory(10)]);
+    expect(await resolveCallerFlags(picked[0] ?? '', s)).toEqual({
+      SEMANTIC_RECALL: 'on',
+      RECALL_EPISODES: 'on',
+    });
+    const left = callers.find((u) => !picked.includes(u)) ?? '';
+    expect(await resolveCallerFlags(left, s)).toEqual({});
+  });
+
+  it('keeps everyone already in when the percent grows, and nobody at 0 or disabled', async () => {
+    const at10 = callers.filter((u) => inSample(memory(10), u));
+    const at25 = callers.filter((u) => inSample(memory(25), u));
+    expect(at10.every((u) => at25.includes(u))).toBe(true);
+    expect(at25.length).toBeGreaterThan(at10.length);
+    expect(callers.filter((u) => inSample(memory(0), u))).toEqual([]);
+    expect(callers.every((u) => inSample(memory(100), u))).toBe(true);
+    expect(await resolveCallerFlags(at10[0] ?? '', store({}, {}, [memory(10, false)]))).toEqual({});
+  });
+
+  it('picks different callers for different cohorts', () => {
+    const other: Cohort = { ...memory(10), id: 'world-facts' };
+    const a = callers.filter((u) => inSample(memory(10), u));
+    const b = callers.filter((u) => inSample(other, u));
+    expect(a.filter((u) => b.includes(u)).length).toBeLessThan(a.length / 2);
+  });
+
+  it('always includes members, and their own overrides still win', async () => {
+    const left = callers.find((u) => !inSample(memory(10), u)) ?? '';
+    const s = store({ [left]: [memory(10)] }, { [left]: { RECALL_EPISODES: 'off' } }, [memory(10)]);
+    expect(await resolveCallerFlags(left, s)).toEqual({
+      SEMANTIC_RECALL: 'on',
+      RECALL_EPISODES: 'off',
+    });
+  });
+});
+
+describe('memory flags', () => {
+  it('a cohort can set the in-call world facts', async () => {
+    const world: Cohort = { id: 'world', enabled: true, flags: { WORLD_FACTS_IN_CALL: 'on' } };
+    expect(await resolveCallerFlags('u', store({ u: [world] }))).toEqual({
+      WORLD_FACTS_IN_CALL: 'on',
+    });
+  });
+});
+
+describe('missingPrerequisites', () => {
+  it('names a memory switch turned on without what it builds on', () => {
+    expect(missingPrerequisites({ RECALL_EPISODES: 'on' })).toEqual([
+      'RECALL_EPISODES needs SEMANTIC_RECALL',
+    ]);
+    expect(missingPrerequisites({ WORLD_FACTS_IN_CALL: 'on' })).toEqual([
+      'WORLD_FACTS_IN_CALL needs WORLD_MODEL_TEMPORAL',
+    ]);
+    expect(
+      missingPrerequisites({
+        SEMANTIC_RECALL: 'on',
+        RECALL_EPISODES: 'on',
+        WORLD_MODEL_TEMPORAL: 'on',
+        WORLD_FACTS_IN_CALL: 'on',
+      })
+    ).toEqual([]);
+  });
+});
