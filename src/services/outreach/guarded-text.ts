@@ -381,11 +381,13 @@ export async function sendOnBehalfText(
   if (optedOut) return skip('opted-out');
   const consent = await onBehalfConsent(t, deps);
   if (consent) return skip(consent);
-  const lastToThem = lastSentAt(toPhone, 'on-behalf');
-  if (sentWithin(lastToThem, now, ON_BEHALF_GAP_MS)) return skip('recently-sent');
-  const body = await firstContactBody(t, hash, lastToThem === null, deps);
-
+  if (sentWithin(lastSentAt(toPhone, 'on-behalf'), now, ON_BEHALF_GAP_MS))
+    return skip('recently-sent');
   const storedId = recordUserId(t.senderUserId, deps.env) ?? 'unknown';
+  // First from THIS owner to that number: each owner's first text carries their intro.
+  const fromOwner = toPhone.filter((r) => r.userId === storedId);
+  const body = await firstContactBody(t, hash, lastSentAt(fromOwner, 'on-behalf') === null, deps);
+
   const record: CheckinRecord = {
     userId: storedId,
     sessionId: t.refId,
