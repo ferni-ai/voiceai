@@ -112,6 +112,31 @@ describe('isTransferRequestOnly', () => {
   });
 });
 
+describe('the hard block, on its own', () => {
+  // A grammar that takes anything: only the block stands between these lines and the exemption.
+  const ANYTHING = /^.*$/;
+
+  it.each([
+    'pass me to 988',
+    'pass me to 911',
+    'can I talk to someone',
+    'transfer me to 9 1 1',
+    'pass me to nine eight eight',
+    'put me through to a crisis line',
+    'can I talk to a counselor',
+    'get me someone who can help',
+    'transfer me to a real person',
+    'call emergency',
+  ])('refuses "%s" whatever the grammar says', (line) => {
+    expect(isTransferRequestOnly(line, ANYTHING)).toBe(false);
+  });
+
+  it('lets a plain teammate request through that grammar', () => {
+    expect(isTransferRequestOnly('Can you pass me to 9?', ANYTHING)).toBe(true);
+    expect(isTransferRequestOnly('Put Maya on.', ANYTHING)).toBe(true);
+  });
+});
+
 describe('transferRequestIsEveryday', () => {
   it('is off unless CRISIS_TRANSFER_EVERYDAY is on', () => {
     expect(everyday(turn('Can you pass me to 9?'), 'none', {})).toBe(false);

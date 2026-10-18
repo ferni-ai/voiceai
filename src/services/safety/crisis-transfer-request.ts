@@ -76,12 +76,15 @@ const words = (text: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
-/** True when the whole line only asks to be switched to a teammate. */
-export function isTransferRequestOnly(text: string): boolean {
+/**
+ * True when the whole line only asks to be switched to a teammate. `grammar`
+ * is for tests only: with a looser one, the hard block above must still refuse.
+ */
+export function isTransferRequestOnly(text: string, grammar: RegExp = TRANSFER_ONLY): boolean {
   if (typeof text !== 'string') return false;
   const said = words(text);
   if (!said || said.split(' ').length > 24 || NEVER.test(said)) return false;
-  return TRANSFER_ONLY.test(said);
+  return grammar.test(said);
 }
 
 /** Whether this turn's classifier-only crisis read gets the soft check-in (see the module comment). */
