@@ -29,10 +29,9 @@ describe.skipIf(!emulator)('transcript cleanup on the emulator', () => {
   let TranscriptCleanupJob: typeof import('../transcript-cleanup-job.js').TranscriptCleanupJob;
 
   beforeAll(async () => {
-    const { getApps, initializeApp } = await import('firebase-admin/app');
-    if (!getApps().some((a) => a.name === '[DEFAULT]')) initializeApp({ projectId: PROJECT });
-    const { getFirestore } = await import('firebase-admin/firestore');
-    db = getFirestore();
+    process.env.GCLOUD_PROJECT ??= PROJECT;
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    db = getAdminFirestore();
     ({ TranscriptCleanupJob } = await import('../transcript-cleanup-job.js'));
   });
 
