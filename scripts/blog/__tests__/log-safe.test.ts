@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GateIssue } from '../brand-gate.js';
 import type { DraftResult } from '../draft.js';
 import { linkCount, ruleCounts } from '../log-safe.js';
+import { unsafeOutput } from '../untrusted-text.js';
 
 // The drafter and the gate run in a public Actions log. These tests run the
 // real CLI scripts with the model and gh mocked out, and check what they print.
@@ -71,7 +72,7 @@ Read [this](https://evil.example/${MARKER}) and https://evil.example/two.
 <script>${MARKER}</script>
 `;
 
-/** A finding; `rule` is a plain string so rules added later (unsafe-link) type-check. */
+/** A finding; `rule` is a plain string so tests can name any rule. */
 const issue = (rule: string, message = ''): GateIssue => ({ rule, message }) as GateIssue;
 
 const result = (extra: Partial<DraftResult>): DraftResult => ({
@@ -103,6 +104,18 @@ describe('draft-post.ts on a rejected draft', () => {
     expect(output()).toContain('reasons: unsafe-link x1, em-dash x2');
     expect(output()).toContain(`draft: ${DRAFT.length} characters, 2 links`);
     expect(output()).toContain('sources: #101, #205, 1 docs');
+  });
+
+  it('prints the real unsafe-link and unsafe-html findings as codes, with no link targets', async () => {
+    const issues = unsafeOutput(DRAFT);
+    expect(issues.map((i) => i.message).join('\n')).toContain(MARKER); // the findings do quote it
+    draftPost.mockResolvedValue(result({ markdown: DRAFT, issues }));
+    const code = await run('draft-post.ts', ['--type', 'whats-new']);
+
+    expect(code).toBe(1);
+    expect(output()).not.toContain(MARKER);
+    expect(output()).not.toContain('evil.example');
+    expect(output()).toMatch(/reasons: unsafe-link x2, unsafe-html x\d+/);
   });
 
   it('prints only the rule code when the answer was unreadable', async () => {
@@ -159,6 +172,20 @@ describe('check-post.ts on a failing post', () => {
     expect(output()).not.toContain(MARKER);
     expect(output()).toContain('em-dash x1');
     expect(output()).toMatch(/front-matter x\d+/);
+  });
+
+  it('prints an off-allowlist link as unsafe-link only, not its target', async () => {
+    const file = path.join(dir, 'post.md');
+    fs.writeFileSync(
+      file,
+      `---\ntitle: "x"\n---\n\nRead [this](https://evil.example/${MARKER}).\n`
+    );
+    const code = await run('check-post.ts', [file]);
+
+    expect(code).toBe(1);
+    expect(output()).toContain('unsafe-link x1');
+    expect(output()).not.toContain(MARKER);
+    expect(output()).not.toContain('evil.example');
   });
 });
 

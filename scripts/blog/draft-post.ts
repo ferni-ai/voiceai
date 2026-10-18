@@ -8,7 +8,8 @@
  * Types: see post-types.ts. --dry-run prints the prompt and sources and calls
  * no model. --meta-out writes what the workflow needs for the PR (the path,
  * the sources, and the grounding text the gate checks numbers against).
- * Exits 1 when the draft still fails the brand gate after a retry.
+ * Exits 1 when the draft still fails the brand gate after a retry, or at once
+ * when it links off the allowlist or carries raw HTML (untrusted-text.ts).
  *
  * The workflow's log is public, so a rejected draft prints only its rule
  * codes, counts and source PR numbers, and a written one its title and slug
