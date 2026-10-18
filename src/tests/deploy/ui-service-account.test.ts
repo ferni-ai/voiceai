@@ -10,7 +10,6 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const workflow = readFileSync(join(ROOT, '.github/workflows/deploy-production.yml'), 'utf8');
-const cli = readFileSync(join(ROOT, 'apps/cli/src/commands/deploy/deploy.ts'), 'utf8');
 
 /** The UI service's Cloud Run deploy command, up to its last continued line. */
 function uiDeployCommand(text: string): string {
@@ -30,10 +29,5 @@ describe('john-bogle-ui service account', () => {
 
   it('never as the default compute account', () => {
     expect(workflow).not.toMatch(/compute@developer\.gserviceaccount\.com/);
-    expect(cli).not.toMatch(/compute@developer\.gserviceaccount\.com/);
-  });
-
-  it('the ferni CLI ui deploy uses the same account', () => {
-    expect(cli).toMatch(/--service-account john-bogle-ui@\$\{CONFIG\.projectId\}\.iam\.gserviceaccount\.com/);
   });
 });

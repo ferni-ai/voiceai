@@ -10,8 +10,9 @@
  *
  * Not listed on purpose: quickCall/quickText/quickEmail hand off to
  * callOnBehalf/reachOut, which are gated; tools that only reach the account
- * owner's own saved number or address (callUser, sendImmediateOutreach,
- * sendMessageNow, schedule*).
+ * owner, at the verified phone or email on the account and never a saved or
+ * model-supplied one, texts through the guarded sender (callUser,
+ * sendImmediateOutreach, sendMessageNow, schedule*; see call-user-port.ts).
  *
  * @module tools/registry/outbound-gate
  */

@@ -61,6 +61,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'memory_capsules',
     'memory_highlights',
     'memory_protection',
+    'mind_model',
     'monetization_tips',
     'monetization_value_capture',
     'motivational_interviewing',
@@ -227,6 +228,7 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'bogle_users/{uid}/journal',
   'bogle_users/{uid}/team_insights', // Team Insights
   'bogle_users/{uid}/wellbeing_snapshots', // How You're Feeling
+  'bogle_users/{uid}/mind_model', // what Ferni understands about them (THEORY_OF_MIND)
   'users/{uid}/calendar_events', // What's Ahead
   'users/{uid}/life_automation', // What I Do For You
   'users/{uid}/shared_memories',

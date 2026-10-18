@@ -46,7 +46,10 @@ describe('deliverAndRecord', () => {
     deliverOutreach.mockResolvedValue({ success: false, channel: 'push', error: 'no token' });
 
     expect(await deliverAndRecord(send)).toBe(false);
-    expect(recordAttempt.mock.calls[0][1]).toMatchObject({ status: 'failed', message: send.message });
+    expect(recordAttempt.mock.calls[0][1]).toMatchObject({
+      status: 'failed',
+      message: send.message,
+    });
   });
 
   it('records a send that threw as failed', async () => {

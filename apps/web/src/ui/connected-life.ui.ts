@@ -14,6 +14,7 @@ import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 import { apiGet } from '../utils/api.js';
 import { getDeviceId } from '../state/app.state.js';
+import { visibleIntegrations } from '../config/menu-visibility.js';
 
 const log = createLogger('ConnectedLife');
 
@@ -30,8 +31,6 @@ interface Integration {
   icon: string;
   status: ConnectionStatus;
   description: string;
-  onConnect?: () => void;
-  onDisconnect?: () => void;
 }
 
 interface ConnectedLifeCallbacks {
@@ -143,7 +142,6 @@ class ConnectedLifeUI {
 
   private async fetchIntegrationStatuses(): Promise<void> {
     try {
-      // Fetch integration statuses from API
       const response = await apiGet<{
         integrations?: {
           biometrics?: { connected: boolean; platform?: string };
@@ -197,14 +195,14 @@ class ConnectedLifeUI {
       } catch {
         // Calendar status check is optional
       }
-      
     } catch (error) {
       log.debug('Failed to fetch integration statuses, using defaults', error);
-      // Keep default disconnected statuses
     }
   }
 
   private createModal(): void {
+    const tabs = Object.keys(this.getIntegrations()) as IntegrationCategory[]; // hides can empty a tab
+    if (!tabs.includes(this.activeCategory) && tabs[0]) this.activeCategory = tabs[0];
     const modal = document.createElement('div');
     modal.className = 'connected-life-overlay';
     asModalDialog(
@@ -255,6 +253,7 @@ class ConnectedLifeUI {
     ];
 
     return tabs
+      .filter((tab) => this.getIntegrations()[tab.id])
       .map(
         (tab) => `
         <button 
@@ -271,8 +270,9 @@ class ConnectedLifeUI {
       .join('');
   }
 
-  private getIntegrations(): Record<IntegrationCategory, Integration[]> {
-    return {
+  /** The tiles by tab, minus hidden tiles and empty tabs (config/menu-visibility.ts). */
+  private getIntegrations(): Partial<Record<IntegrationCategory, Integration[]>> {
+    return visibleIntegrations({
       health: [
         {
           id: 'apple-health',
@@ -342,11 +342,11 @@ class ConnectedLifeUI {
           description: t('connectedLife.vibeControllerDesc'),
         },
       ],
-    };
+    });
   }
 
   private renderIntegrations(): string {
-    const integrations = this.getIntegrations()[this.activeCategory];
+    const integrations = this.getIntegrations()[this.activeCategory] ?? [];
     
     return `
       <div class="connected-life-integrations">

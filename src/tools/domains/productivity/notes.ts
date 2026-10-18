@@ -20,6 +20,7 @@ import {
   type JournalEntryData,
 } from '../../../services/stores/productivity-store.js';
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
+import { OWN_NOTE_REFUSAL, refuseOwnNote } from '../../utils/own-note.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // Bridge functions for persistence
@@ -276,9 +277,6 @@ const JOURNAL_PROMPTS: Record<string, string[]> = {
   ],
 };
 
-// Note: For dynamic journal prompts, use:
-// import { generateDynamicPrompt } from '../../../../services/trust-systems/journaling-prompts.js';
-
 // ============================================================================
 // CORE FUNCTIONS
 // ============================================================================
@@ -384,6 +382,7 @@ export function createNotesTools() {
         tags: z.array(z.string()).optional().describe('Tags for organization'),
       }),
       execute: async ({ content, title, type, tags }, { ctx }) => {
+        if (refuseOwnNote(content)) return OWN_NOTE_REFUSAL;
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'default';
 

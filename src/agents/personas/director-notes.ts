@@ -21,8 +21,10 @@
  * @module agents/personas/director-notes
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { splitSaidBy } from './said-by.js';
 import {
   DIRECTOR_ADDRESS,
   directorEscalates,
@@ -31,7 +33,7 @@ import {
 } from './director-escalation.js';
 import { directorSeesTools, ToolLog } from './director-tool-state.js';
 import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
-import { claimsIdentity, speakerNote } from './director-persona.js';
+import { claimsIdentity, speakerNote, teamNote } from './director-persona.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -60,9 +62,20 @@ const DIRECTOR_RULES = [
   'If the conversation is flowing and Ferni is doing fine, reply NONE. Reply with only the notes, one per line, no numbering, or exactly NONE.',
 ];
 
+/** The habits the director may tell Ferni to drop. */
+const HABITS = '(too many questions, fixing too early, sounding upbeat, repeating himself)';
+/**
+ * FERNI_LIGHT_TOUCH=on: "sounding upbeat" is no longer a habit to drop (23% of
+ * prod notes leaned soft and Ferni read as calm and boring); going flat when
+ * the caller is being light is, but only about something light: "lol my
+ * grandma passed" is not a cue to lighten up.
+ */
+const LIGHT_HABITS =
+  "(too many questions, fixing too early, repeating himself, staying flat or serious when they're being light about something light)";
+
 export const DIRECTOR_SYSTEM = [
   DIRECTOR_ROLE,
-  "Every note must point at something that actually happened in this call, naming the detail: what they hinted at but didn't say, a pattern across what they've said, the mood or energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
+  `Every note must point at something that actually happened in this call, naming the detail: what they hinted at but didn't say, a pattern across what they've said, the mood or energy they're bringing, or a habit of Ferni's to drop ${HABITS}. Give the nudge and its reason in under 20 words.`,
   'Ferni reads your notes only after they have spoken again, and what they say next comes first. So never send him back to an earlier line: no connecting to, coming back to or following up on something they said. Say what you notice about them instead.',
   ...DIRECTOR_RULES,
 ].join('\n');
@@ -78,7 +91,7 @@ const TOOL_RULE =
 /** The prompt before 2026-10-03, which invited notes that send Ferni back to an earlier line. */
 const LOOKING_BACK_SYSTEM = [
   DIRECTOR_ROLE,
-  "Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
+  `Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or a habit of Ferni's to drop ${HABITS}. Give the nudge and its reason in under 20 words.`,
   ...DIRECTOR_RULES,
 ].join('\n');
 
@@ -231,18 +244,20 @@ export class Director {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
     this.rule = '';
-    this.toldRecord = toldThisCallEnabled() ? toldThisCall(lines, this.opts.userName) : null;
+    const speaking = this.opts.speaking?.();
+    this.toldRecord = toldThisCallEnabled()
+      ? toldThisCall(lines, this.opts.userName, speaking)
+      : null;
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const seesTools = directorSeesTools();
     const started = Date.now();
-    const speaking = this.opts.speaking?.();
     const system = directorSystem();
     const work = (async () => {
       try {
         const reply = await withTimeout(
           writer(
-            (speaking ? `${system}\n${speakerNote(speaking)}` : system) +
+            (speaking ? `${system}\n${speakerNote(speaking)}\n${teamNote(speaking)}` : system) +
               (seesTools ? `\n${TOOL_RULE}` : ''),
             buildDirectorPrompt(
               lines,
@@ -325,9 +340,10 @@ export class Director {
 }
 
 /** The director's instructions for this call's flags. */
-function directorSystem(): string {
-  const system = directorLooksBack() ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM;
-  return directorEscalates() ? `${system}\n${DIRECTOR_ADDRESS}` : system;
+export function directorSystem(env: Record<string, string | undefined> = process.env): string {
+  const looking = directorLooksBack(env) ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM;
+  const system = flagOn('FERNI_LIGHT_TOUCH', env) ? looking.replace(HABITS, LIGHT_HABITS) : looking;
+  return directorEscalates(env) ? `${system}\n${DIRECTOR_ADDRESS}` : system;
 }
 
 function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | undefined> {
@@ -371,12 +387,15 @@ export function linesFromChat(
   for (const item of items) {
     if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
     if (item.textContent?.startsWith(TURN_CONTEXT_HEADER)) continue;
-    const text = (item.textContent ?? '')
+    const said = (item.textContent ?? '')
       .replace(/<[^>]+>/g, '')
       .replace(/\s+/g, ' ')
       .trim();
+    // A reply carried over at a handoff is marked "(Ferni said:) " (persona-swap.ts).
+    const marked = item.role === 'assistant' ? splitSaidBy(said) : undefined;
+    const text = marked?.text ?? said;
     if (!text) continue;
-    const name = item.role === 'assistant' ? by?.(item) : undefined;
+    const name = item.role === 'assistant' ? (by?.(item) ?? marked?.name) : undefined;
     if (name) lines.push({ speaker: 'ferni', text, by: name });
     else lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
   }

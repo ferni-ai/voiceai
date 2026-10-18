@@ -18,6 +18,7 @@
 import { llm, type APIConnectOptions } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
+import { forwardPrewarm } from './forward-prewarm.js';
 
 const log = createLogger({ module: 'FastLane' });
 
@@ -86,6 +87,9 @@ export function chitChat(text: string | null): boolean {
 }
 
 export class FastLaneLLM extends llm.LLM {
+  /** Inner models whose prewarm failure was already logged. */
+  private readonly prewarmWarned = new WeakSet<object>();
+
   constructor(
     readonly fast: llm.LLM,
     readonly main: llm.LLM
@@ -106,6 +110,11 @@ export class FastLaneLLM extends llm.LLM {
 
   label(): string {
     return `fast-lane(${this.fast.label()} | ${this.main.label()})`;
+  }
+
+  /** Warm both lanes: any turn may go to either. */
+  prewarm(): void {
+    forwardPrewarm('FastLaneLLM', [this.fast, this.main], this.prewarmWarned);
   }
 
   chat(opts: ChatOptions): llm.LLMStream {

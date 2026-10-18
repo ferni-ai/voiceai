@@ -71,12 +71,5 @@
 <!-- Design Tokens (auto-generated from design-system/tokens/) -->
 <link rel="stylesheet" href="/css/_tokens.css">
 
-<!-- Google Analytics (graceful failure) -->
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){try{dataLayer.push(arguments)}catch(e){}}
-  gtag('js', new Date());
-  gtag('config', '{{ site.analytics.gaId }}', { 'send_page_view': true });
-</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}" 
-        onerror="console.log('Analytics blocked')"></script>
+<!-- Google Analytics, denied until the visitor accepts cookies -->
+{% include "partials/analytics.njk" %}

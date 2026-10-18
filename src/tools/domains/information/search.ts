@@ -5,6 +5,7 @@
  * Single responsibility: Fetching information from the web.
  *
  * APIs used:
+ * - Vertex Gemini grounded in Google Search for searchWeb, with WEB_SEARCH=on (web-search.ts)
  * - DuckDuckGo Instant Answer API (free, no key required)
  * - Wikipedia API (free, no key required)
  */
@@ -14,6 +15,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { runWebSearch, searchPrincipal, webSearchEnabled } from './web-search.js';
 // ============================================================================
 // PUBLIC API FUNCTIONS
 // ============================================================================
@@ -218,13 +220,15 @@ export function createSearchTools() {
             'The search query - must contain REAL values, no placeholders like [user location]'
           ),
       }),
-      execute: async ({ query }) => {
+      execute: async ({ query }, opts) => {
         // Reject queries with placeholder patterns
         if (/\[.*\]/.test(query)) {
           getLogger().warn(`Search query contains placeholder: ${query}`);
           return `I need more information to search for that. Could you tell me the specific details?`;
         }
         getLogger().info(`Searching web for: ${query}`);
+        // WEB_SEARCH=on: Google Search grounding instead of DuckDuckGo's Instant Answers.
+        if (webSearchEnabled()) return runWebSearch(query, searchPrincipal(opts));
         return searchWeb(query);
       },
     }),

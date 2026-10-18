@@ -1,8 +1,8 @@
 /**
  * Family check-ins respect the call-hours guard: a check-in that comes due
  * outside 9:00–20:30 in the family member's time zone moves to the next
- * opening instead of ringing then (schedules store `preferredTime` but are
- * computed in server time, so "14:00" can land at 7am on the West Coast).
+ * opening instead of ringing then (a safety net: next-checkin-time.ts already
+ * computes `preferredTime` on the family member's clock).
  *
  * @module services/family/checkin-call-hours
  */

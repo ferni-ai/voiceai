@@ -14,13 +14,24 @@
  * TURN_SHAPE=off falls back to the single reminder (turn-style.ts); the default,
  * model, lets the model judge the shape (modelChosenShape); TURN_SHAPE=dice draws it.
  * CANDOR=on fits the stance line to the moment instead of drawing it (turn-candor.ts).
+ * TROUBLES_TALK=on adds how a friend listens to a trouble (troubles-talk.ts).
  *
  * @module agents/personas/turn-shape
  */
 
+import { flagOn } from '../../config/env-flag.js';
+import { mayNeedTool } from '../model-provider/fast-lane.js';
+import { playfulLine, playfulOpen, SUBSTANCE_FIRST } from './ferni-playful.js';
 import { listeningLines, type ListeningCues } from './listen-first.js';
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
+import {
+  lengthCap,
+  SHARE_LINES,
+  telling,
+  tellingLengthLine,
+  withTrouble,
+} from './troubles-talk.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
 import {
   lengthLearned,
@@ -29,6 +40,7 @@ import {
   textureLearned,
   textureLine,
 } from './turn-length.js';
+import { quietLineFor } from './quiet-caller.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -62,14 +74,42 @@ const ABOUT_FERNI =
 const ACK =
   /^(yeah|yep|yes|ok(ay)?|right|sure|true|totally|haha+|ha|mm+|hm+|no|nope|got it|i guess|maybe|thanks?( you)?|cool|nice|wow)[.!?,\s]*$/i;
 
+/**
+ * About their own things or what he can do for them, not about him: "do you
+ * have my number?" read as about_ferni ("do you have"), so the turn asked
+ * for his day and he answered "I do have your number, but ... I was just
+ * about to head out and try to find a replacement houseplant" (prod,
+ * 2026-10-17).
+ */
+const ABOUT_THEIR_THINGS =
+  /\b(?:do|did|can|could|would|will) you (?:still |even |actually )?(?:have|know|remember|keep|save|store|see|get|call|text|reach|ring|phone|message|email|send)\b(?:\s+\w+)?\s+(?:my|me|mine|our|us)\b/i;
+
 export function callerMove(text: string): CallerMove {
   const t = text.trim();
   const words = t.split(/\s+/).filter(Boolean).length;
   if (words <= 3 && ACK.test(t)) return 'ack';
   if (isLookup(t)) return 'lookup';
-  if (ASKS_FOR_MORE.test(t)) return 'request';
+  if (ASKS_FOR_MORE.test(t) || ABOUT_THEIR_THINGS.test(t)) return 'request';
   if (ABOUT_FERNI.test(t)) return 'about_ferni';
   return 'share';
+}
+
+/** Asked of him, not told: a question, or "can you", "could you", "please". */
+const ASKS_HIM = /\?|\b(?:can|could|would|will) you\b|\bplease\b/i;
+
+/**
+ * A turn about getting something done or found out: a look-up, a request
+ * that isn't about him, a tool request put to him ("can you set a timer?"),
+ * or the reply after a tool ran. His own day has no place in it.
+ */
+export function taskTurn(said: string, toolRan = false): boolean {
+  if (toolRan) return true;
+  const move = callerMove(said);
+  if (move === 'lookup') return true;
+  // "Tell me about your trip" is a request about him.
+  const aboutHim = ABOUT_FERNI.test(said) || /\byour(?:self)?\b/i.test(said);
+  if (aboutHim && !ABOUT_THEIR_THINGS.test(said)) return false;
+  return move === 'request' || (mayNeedTool(said) && ASKS_HIM.test(said));
 }
 
 /** How often each shape follows each kind of caller turn. */
@@ -123,7 +163,7 @@ export function pickShape(
  * off limits (speech-markup-notes.ts), and without a written form the model
  * marked a restart ",," ("Cats are,, I mean", dev 2026-10-06).
  */
-const ROUGH_FORMS = [
+export const ROUGH_FORMS = [
   'Let one thought come out unpolished: start it, then restart it differently, joined with a comma ("I was, well, we were going to").',
   'Correct yourself once halfway through a thought, set off with commas ("it\'s, I mean, not exactly that").',
   'Hesitate once where you are actually working something out, with a comma either side ("it\'s, um, Thursday").',
@@ -133,9 +173,9 @@ const ROUGH_FORMS = [
  * of their own, and that trade is how closeness builds. Replayed, only 3-6% of
  * Ferni's replies said anything of his own.
  */
-const SECOND_STORY =
+export const SECOND_STORY =
   'If something from your own life comes to mind, share a small piece of it (a sentence), the way a friend trades a story, rather than asking about theirs.';
-const ABOUT_YOU =
+export const ABOUT_YOU =
   'They asked about you: answer about yourself, something specific from your own life, before anything else.';
 /**
  * DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question. "I did." to
@@ -146,7 +186,7 @@ const TAKE_UP_ANSWER =
   'They just answered what you asked: take up their answer first, the way a friend would, rather than anything from your own life.';
 
 const REGISTER =
-  'Start with the substance, not a stock reaction word like Oh, Ugh, Yeah or Hmm. ' +
+  SUBSTANCE_FIRST +
   'Talk like a close friend, not a therapist, coach or host: never ask how something feels or what it\'s like for them, no stock validation ("that sounds exhausting", "I hear you"), no generic cheerleading or exclamation marks. ' +
   // Read as "no excitement", that line flattened big good news: a sister's
   // pregnancy got "Tears right on the trail, yeah, that makes sense" in 3 of 3
@@ -160,6 +200,31 @@ const REGISTER =
   'You are their friend, not an assistant: never offer to set up, remind or do things for them unless they ask.';
 
 /**
+ * PERSONA_SPARK=on, on a genuinely bright turn (good news, a win, a joke; never
+ * a careful one): the register without its ban on exclamation marks, and leave
+ * for one "!" and one reaction word. Sonic takes its emphasis from punctuation,
+ * so the ban took away the cheapest audible sign of joy, and with it every
+ * persona sounded the same on good news as on a quiet remark (persona-range
+ * report, 2026-10-17). Everything else in the register stays.
+ */
+export const SPARK_BRIGHT =
+  'This moment is genuinely bright: let it show. This once, if you really feel it, you may use one reaction word and at most one exclamation mark in the whole reply.';
+const REGISTER_BRIGHT = `${REGISTER.replace('no generic cheerleading or exclamation marks', 'no generic cheerleading')} ${SPARK_BRIGHT}`;
+
+/**
+ * The register for this reply: the bright one only for a bright, uncareful turn with PERSONA_SPARK on.
+ * FERNI_PLAYFUL (ferni-playful.ts): one reaction word may open an uncareful turn, and an easy,
+ * neutral one gets the playfulness line.
+ */
+function registerFor(sig: TurnSignals): string {
+  const bright = sig.bright === true && !sig.careful && !sig.supportFirst;
+  const register = bright && flagOn('PERSONA_SPARK') ? REGISTER_BRIGHT : REGISTER;
+  const open = playfulOpen(sig);
+  if (!open) return register;
+  return [register.replace(SUBSTANCE_FIRST, open), playfulLine(sig)].filter(Boolean).join(' ');
+}
+
+/**
  * Questions: people ask in a minority of turns (questions are ~6% of
  * Switchboard utterances), and a one-question allowance on every longer reply
  * was taken almost every time (replay: 35% of replies ended on one). So a
@@ -169,7 +234,7 @@ function questionAllowed(shape: Shape, rng: () => number): boolean {
   return shape !== 'react' && shape !== 'one' && rng() < 0.25;
 }
 
-const QUESTION_LINE = {
+export const QUESTION_LINE = {
   allowed:
     'You may ask one question if you really want to know something; otherwise end on a thought.',
   none: 'No question this time: end on a thought, a reaction or something of your own.',
@@ -189,6 +254,11 @@ function noQuestion(ownStory: boolean | undefined): string {
   return ownStory ? QUESTION_LINE.noneUnlessOwn : QUESTION_LINE.noneOnThem;
 }
 
+/** The no-question line; during a trouble (TROUBLES_TALK=on) it invites nothing of his own. */
+function noQuestionFor(sig: TurnSignals): string {
+  return sig.trouble ? QUESTION_LINE.noneOnThem : noQuestion(sig.ownStory);
+}
+
 export interface TurnShape {
   move: CallerMove;
   shape: Shape;
@@ -202,9 +272,38 @@ export interface TurnShape {
  * no stance, no rough self-correction (that is how "wait, no, they lost" came
  * out), no question.
  */
-const LOOKUP =
-  'They asked about something live that you have to look up: if you have no tool result for it yet, call the tool for it now and answer from what it returns. ' +
+const NEVER_MADE_UP =
   "Never state a forecast, score, headline, price, opening hour or travel time that you didn't get from a tool on this call; if no tool can get it, say you can't check that right now.";
+const LOOKUP = `They asked about something live that you have to look up: if you have no tool result for it yet, call the tool for it now and answer from what it returns. ${NEVER_MADE_UP}`;
+
+/**
+ * The rule rides the next replies too. Prod 2026-10-17: "can you check the
+ * weather?" got the look-up rule, the agent asked which city, and the answer
+ * ("<city>.") read as a share, with no rule: it said "I'll check" with no tool
+ * call, then gave a temperature it made up. LIVE_DATA_CARRYOVER=off: the rule
+ * rides only the asking turn, as before.
+ */
+export const LOOKUP_FOLLOW_UP = `They asked about something live a moment ago: if you still have no tool result for it, call the tool now (don't just say you'll check) and answer only from what it returns. ${NEVER_MADE_UP}`;
+
+/** The follow-up rule when either of the caller's last two turns asked for live data and this reply has no look-up rule yet. */
+export function liveDataCarryover(
+  callerTurns: readonly string[],
+  style: string,
+  env: Record<string, string | undefined> = process.env
+): string {
+  if (!flagOn('LIVE_DATA_CARRYOVER', env) || style.includes(NEVER_MADE_UP)) return '';
+  const recent = callerTurns.slice(-2).map((t) => t.split('\n')[0]);
+  return recent.some(isLookup) ? LOOKUP_FOLLOW_UP : '';
+}
+
+/** The style reminder, then the follow-up rule if it applies (turn-request.ts). */
+export function withLiveData(
+  style: string,
+  callerTurns: readonly string[],
+  env: Record<string, string | undefined> = process.env
+): [string, string] {
+  return [style, liveDataCarryover(callerTurns, style, env)];
+}
 
 /**
  * TURN_SHAPE=model: the shape is the model's call, not a dice roll. Drawn at
@@ -239,11 +338,20 @@ function modelChosenShape(
   // Without it (v1: one OWN_SELF line) quirks fell 2.80 -> 2.17 and endearing
   // 2.87 -> 2.63, replies grew 17 -> 24 words and question endings 13% -> 21%
   // (dev A/B, 15 calls per arm, judge.mjs, 2026-10-10).
-  const parts = [REGISTER];
+  const parts = [registerFor(sig)];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   else if (sig.answered) parts.push(TAKE_UP_ANSWER);
-  else if (move === 'share' && !sig.careful && rng() < 0.3 && sig.ownStory !== false)
+  else if (
+    move === 'share' &&
+    !sig.careful &&
+    rng() < 0.3 &&
+    sig.ownStory !== false &&
+    !sig.trouble
+  )
     parts.push(SECOND_STORY);
+  // TROUBLES_TALK=on (troubles-talk.ts): unset when off.
+  const sharing = sig.trouble !== undefined && move === 'share';
+  if (sharing) parts.push(...SHARE_LINES);
   const stance = stanceFor(
     userText,
     move,
@@ -266,8 +374,12 @@ function modelChosenShape(
   const asks = rng() < 0.25;
   const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
   parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
-  if (learn.length) parts.push(lengthLine(target));
-  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory)));
+  // No longer than what they just told: carried by the learned length line when that is on.
+  const cap = sharing && telling(userText, move) ? lengthCap(userText) : 0;
+  if (learn.length) parts.push(lengthLine(cap ? Math.min(target, cap) : target));
+  else if (cap) parts.push(tellingLengthLine(cap));
+  if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
+  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestionFor(sig)));
   const learned = [
     learn.length ? `length_${target}` : '',
     texture ? `texture_${texture.kind}` : '',
@@ -288,7 +400,7 @@ export function turnShapeFor(
   signals?: TurnSignals,
   style: StyleProfile = NEUTRAL_STYLE
 ): TurnShape {
-  const sig = signals ?? regexSignals(userText, callerMove(userText));
+  const sig = withTrouble(userText, signals ?? regexSignals(userText, callerMove(userText)));
   if (mode === 'model') return modelChosenShape(userText, rng, sig, style);
   const move = sig.move;
   const shape = pickShape(move, rng, style.replyLength);
@@ -298,7 +410,7 @@ export function turnShapeFor(
   }
   // The shape goes last, nearest the reply: first, behind the register lines,
   // it was diluted (replay: 5% of replies 6 words or fewer).
-  const parts = [REGISTER];
+  const parts = [registerFor(sig)];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   else if (sig.answered) parts.push(TAKE_UP_ANSWER);
   // Not while they're venting: a friend stays with them instead of telling a story.
@@ -307,9 +419,12 @@ export function turnShapeFor(
     shape !== 'react' &&
     !sig.careful &&
     rng() < 0.3 &&
-    sig.ownStory !== false
+    sig.ownStory !== false &&
+    !sig.trouble
   )
     parts.push(SECOND_STORY);
+  const sharing = sig.trouble !== undefined && move === 'share';
+  if (sharing) parts.push(...SHARE_LINES);
   const stance = stanceFor(
     userText,
     move,
@@ -322,10 +437,10 @@ export function turnShapeFor(
   const asks = questionAllowed(shape, rng);
   const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig, style);
   parts.push(...extras.lines);
-  parts.push(
-    extras.shapeLine ?? SHAPE_LINE[shape],
-    extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory))
-  );
+  if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
+  parts.push(extras.shapeLine ?? SHAPE_LINE[shape]);
+  if (sharing && telling(userText, move)) parts.push(tellingLengthLine(lengthCap(userText)));
+  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestionFor(sig)));
   return {
     move,
     shape,

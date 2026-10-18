@@ -13,7 +13,7 @@ vi.mock('../../services/outreach/checkin-replies.js', () => ({ recordCheckinRepl
 import { handleOutreachWebhookRoutes } from '../outreach-webhook-routes.js';
 
 const PATH = '/api/outreach/webhooks/twilio/sms-inbound';
-const params = { From: '+18018285260', Body: 'STOP', MessageSid: 'SM0123456789abcdef' };
+const params = { From: '+18015550177', Body: 'STOP', MessageSid: 'SM0123456789abcdef' };
 
 function post() {
   const req = Readable.from([new URLSearchParams(params).toString()]) as unknown as IncomingMessage;

@@ -1,6 +1,6 @@
 /**
  * Ferni doesn't answer half a sentence (unfinished-turn.ts and the
- * UNFINISHED_TURN_HELD hunk of patches/@livekit__agents@1.6.4.patch).
+ * UNFINISHED_TURN_HELD hunk of patches/@livekit__agents@1.9.3.patch).
  *
  * Dev call, 2026-10-03: "We don't get" | "caught up in reviews." got a reply
  * to "We don't get"; so did "When you go to sleep, what do you dream" | "of?".

@@ -1264,7 +1264,7 @@ class HandoffService {
 
     try {
       // Play sound, wait for it to finish, then add the pause
-      await audioService.playHandoffSound(soundToPlay, pauseAfterMs);
+      await audioService.playHandoffSound(soundToPlay, pauseAfterMs, handoff.toPersona);
     } catch (error) {
       // FIX: Track that sound failed and dispatch event for UI fallback
       this._soundFailedForCurrentHandoff = true;

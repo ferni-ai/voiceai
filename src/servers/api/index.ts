@@ -28,6 +28,7 @@ import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
 import { limitApiRequest } from '../../api/global-rate-limit.js';
 import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
+import { bindBodyLimitResponse } from '../../api/bounded-body.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { parseRawBody } from '../../api/helpers.js';
 
@@ -103,6 +104,7 @@ import { handleChatRoutes } from '../../api/chat-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handlePasskeyRoutes } from '../../api/passkey-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
+import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { handlePendingActionRoutes } from '../../api/pending-action-routes.js';
 import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
 import { handleAnswerCardRoutes } from '../../api/answer-card-routes.js';
@@ -261,10 +263,9 @@ if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
   process.exit(1);
 }
 
-/**
- * Create the HTTP server
- */
-const server = http.createServer((req, res) => respondOnRejection(res, handleRequest(req, res)));
+const server = http.createServer((req, res) =>
+  respondOnRejection(res, handleRequest(bindBodyLimitResponse(req, res), res))
+);
 async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   addRequestId(req, res); // request ID for tracing
 
@@ -1489,16 +1490,10 @@ const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 // Start the server
 server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
 async function startBackgroundServices(): Promise<void> {
-  log.info(
-    {
-      port: PORT,
-      livekitUrl: LIVEKIT_URL,
-      ddosProtection: true,
-    },
-    'UI Server started'
-  );
+  log.info({ port: PORT, livekitUrl: LIVEKIT_URL, ddosProtection: true }, 'UI Server started');
 
-  // Start Spotify token auto-refresh
+  // Texts and calls to a member (outreach routes, chat) reach only their verified phone.
+  installCallUserPort();
   startSpotifyAutoRefresh();
 
   // Start Calendar real-time sync services

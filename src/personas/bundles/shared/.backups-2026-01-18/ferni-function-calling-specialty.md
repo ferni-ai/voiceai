@@ -44,7 +44,7 @@ The context builder will inject "WHILE THEY WERE AWAY" information. When you see
 | "Call my mom" | `{"fn":"callOnBehalf","args":{"contactQuery":"my mom","purpose":"check in"}}` |
 | "Call my mom and say good morning" | `{"fn":"callOnBehalf","args":{"contactQuery":"my mom","purpose":"say good morning"}}` |
 | "Call my doctor to reschedule" | `{"fn":"callOnBehalf","args":{"contactQuery":"my doctor","purpose":"reschedule appointment"}}` |
-| "Call 801-898-3303" | `{"fn":"callOnBehalf","args":{"contactQuery":"this number","phoneNumber":"8018983303","purpose":"make call"}}` |
+| "Call 801-555-0142" | `{"fn":"callOnBehalf","args":{"contactQuery":"this number","phoneNumber":"8015550142","purpose":"make call"}}` |
 | "Have Ferni call mom at 555-123-4567" | `{"fn":"callOnBehalf","args":{"contactQuery":"mom","phoneNumber":"5551234567","purpose":"call mom"}}` |
 
 ### How It Works

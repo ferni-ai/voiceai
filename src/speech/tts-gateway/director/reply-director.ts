@@ -16,7 +16,7 @@
  */
 
 import { readCallerProsody, type CallerProsody } from '../../audio-prosody/caller-prosody.js';
-import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
 import { flagOn } from '../../../config/env-flag.js';
 import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
@@ -24,11 +24,13 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
-import { voiceAttuneOn, type Delivery } from './attune.js';
-import { DirectorEngine } from './engine.js';
-import { ferniSpeedNudge } from './ferni-energy.js';
+import { LATE_NIGHT, voiceAttuneOn, type Delivery } from './attune.js';
+import { DirectorEngine, emotionLift } from './engine.js';
+import { ferniSpeedNudge, porchLightOn } from './ferni-energy.js';
+import { personaLayer, restingToneTags } from './ferni-resting-voice.js';
+import { carriedPace } from './key-phrase.js';
 import { leverModes, speechDirectorMode } from './gate.js';
-import { personaDelivery, teamVoicesOn } from './persona-delivery.js';
+import { laughterGuard } from './heavy-laughter-guard.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
 import type { DirectorMode, LeverModes, SpeechPlan, TurnContext } from './types.js';
@@ -187,13 +189,15 @@ class DirectedReply implements ReplyStream {
   ) {
     const sessions = opts.sessions ?? directorSessions;
     this.stripProsody = mode === 'live' && !voiceHonorsProsodyTags(opts.voiceId);
+    const lift = emotionLift(opts, cues, modes); // EMOTION_LIFT (emotion-lift.ts)
     this.engine = new DirectorEngine({
       modes,
       voiceId: opts.voiceId,
       sessionHint: opts.emotion,
       carry: opts.sessionId ? sessions.get(opts.sessionId, opts.personaId) : { speed: 1 },
       cues,
-      renderTags: prosodyTags,
+      renderTags: restingToneTags(prosodyTags, opts.personaId, modes.emotion, opts.env, lift),
+      lift,
       stripProsody: this.stripProsody,
       userText: opts.turnContext?.userRequest,
       callerProsody:
@@ -202,7 +206,8 @@ class DirectedReply implements ReplyStream {
           : undefined,
       ferniNudge: ferniSpeedNudge(opts.sessionId),
       attune: attuneContext(opts),
-      persona: teamVoicesOn(opts.env) ? personaDelivery(opts.personaId) : undefined,
+      persona: personaLayer(opts.personaId, opts.env), // Ferni: FERNI_VOICE_SPEED; teammates: TEAM_VOICES
+      lateNight: porchLightOn(opts.sessionId) ? LATE_NIGHT : undefined,
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,
@@ -210,6 +215,7 @@ class DirectedReply implements ReplyStream {
         userEmotion: opts.turnContext?.userEmotion?.primary,
         comfortLevel: opts.comfortLevel ?? opts.turnContext?.comfortLevel,
         teamVoices: flagOn('TEAM_VOICES', opts.env),
+        lightTouch: flagOn('FERNI_LIGHT_TOUCH', opts.env),
       },
     });
   }
@@ -404,8 +410,7 @@ class DirectedReply implements ReplyStream {
         // The Director's own picks: the persona's tone and rest are reapplied each reply.
         emotion: engine.directorEmotion ?? engine.emotion.emotion,
         // The caller layer only: the resting layers are reapplied each reply, never compounded.
-        speed: engine.delivery?.relativeSpeed ?? engine.speed,
-        volume: engine.attunement?.volume,
+        ...carriedPace(engine),
         ...engine.nonverbalCarry(),
       });
     }
@@ -448,14 +453,8 @@ export function directSpeech(
   if (mode === 'off') return { reply, textStream: opts.textStream };
 
   const cues = new RawCues();
-  const textStream = opts.textStream.pipeThrough(
-    new TransformStream<string, string>({
-      transform(chunk, controller) {
-        cues.see(chunk); // never throws; see raw-cues.ts
-        controller.enqueue(chunk);
-      },
-    })
-  );
+  // The raw text, read by cues; on a heavy moment with no laugh the model wrote.
+  const textStream = opts.textStream.pipeThrough(laughterGuard(opts, cues));
   const directed = new DirectedReply(reply, mode, leverModes(opts.env), opts, cues);
   return { reply: directed, textStream };
 }

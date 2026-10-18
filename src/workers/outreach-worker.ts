@@ -25,6 +25,7 @@
 /* eslint-disable no-restricted-imports -- Workers need direct service imports */
 /* eslint-disable no-await-in-loop -- Sequential processing required for outreach triggers */
 
+import '../utils/log-redaction-install.js'; // mask phone numbers in all logs, first
 import { createLogger } from '../utils/safe-logger.js';
 import { getPubSubClient } from '../services/pubsub/pubsub-client.js';
 import type { OutreachTriggerPayload } from '../services/outreach/trigger-publisher.js';

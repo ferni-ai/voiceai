@@ -12,6 +12,16 @@ import { getTeamStyles } from './team.js';
 import { getDetailStyles } from './detail.js';
 import { getCreationsStyles } from './creations.js';
 
+/** Avatar breathing and pulse loops (base and hover) hold still for reduced motion. */
+const REDUCED_MOTION_STYLES = `
+  @media (prefers-reduced-motion: reduce) {
+    .discover-avatar-ring, .discover-avatar-orb, .agent-avatar,
+    .leader-avatar, .cofounder-avatar, .employee-avatar {
+      animation-play-state: paused !important;
+    }
+  }
+`;
+
 /**
  * Get all marketplace styles combined
  */
@@ -21,6 +31,7 @@ export function getMarketplaceStyles(): string {
     getCardStyles(),
     getTeamStyles(),
     getCreationsStyles(),
+    REDUCED_MOTION_STYLES,
   ].join('\n');
 }
 

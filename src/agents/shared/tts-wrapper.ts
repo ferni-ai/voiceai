@@ -43,6 +43,7 @@ import {
   isStreamingTTSEnabled,
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
+import { logToolMarkup, toolMarkupTransform } from './tool-markup-strip.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
 import { isFtisEnabled } from '../../config/tool-config.js';
 
@@ -595,7 +596,9 @@ export async function wrappedTtsNode(
       },
     });
 
-    filteredText = text.pipeThrough(jsonLeakFilter);
+    // Calls written as text (`<template-call:…>`, `default_api.x(…)`) go whole, even across chunks.
+    const toolMarkup = toolMarkupTransform(logToolMarkup('tts', sessionId));
+    filteredText = text.pipeThrough(toolMarkup).pipeThrough(jsonLeakFilter);
   } else {
     // Legacy path: intercept JSON function calls from LLM text output
     log.info('🔄 JSON workaround ACTIVE - intercepting JSON function calls from LLM output');

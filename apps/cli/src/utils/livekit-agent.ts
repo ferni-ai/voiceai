@@ -9,10 +9,19 @@
  * @module cli/utils/livekit-agent
  */
 import { spawnSync } from 'child_process';
-import { copyFileSync, existsSync, readFileSync } from 'fs';
-import { join } from 'path';
 
 export type AgentEnv = 'prod' | 'dev';
+
+/**
+ * The CLI no longer deploys, restarts or rolls back the voice agent. One path
+ * does, with every gate (origin/main commit, rooms=0, typecheck, absolute
+ * --config, lk's exit-0 failures caught): the deploy-agent skill.
+ */
+export const AGENT_DEPLOY_MOVED = [
+  'The CLI no longer deploys, restarts or rolls back the voice agent.',
+  'Use the gated chain in .claude/skills/deploy-agent/SKILL.md (in Claude Code: /deploy-agent).',
+  'It checks the commit is on origin/main, that no room is live, and that lk really deployed.',
+].join('\n');
 
 export interface LiveKitAgentTarget {
   readonly env: AgentEnv;
@@ -87,26 +96,4 @@ export function parseAgentStatus(output: string, agentId: string): string | null
   const row = rows.find((line) => cells(line)[0] === agentId);
   if (!header || !row) return null;
   return cells(row)[cells(header).indexOf('Status')] ?? null;
-}
-
-export type DockerfilePrep =
-  | { readonly ok: true; readonly created: boolean }
-  | { readonly ok: false; readonly reason: string };
-
-/**
- * `lk agent deploy` builds ./Dockerfile. The agent image is defined in
- * docker/Dockerfile.agent, so copy it to the root unless an identical copy is
- * already there. A different root Dockerfile is never overwritten.
- */
-export function prepareAgentDockerfile(root: string): DockerfilePrep {
-  const source = join(root, 'docker', 'Dockerfile.agent');
-  const dest = join(root, 'Dockerfile');
-  if (!existsSync(source)) return { ok: false, reason: 'docker/Dockerfile.agent not found' };
-  if (existsSync(dest)) {
-    return readFileSync(dest, 'utf-8') === readFileSync(source, 'utf-8')
-      ? { ok: true, created: false }
-      : { ok: false, reason: './Dockerfile exists and differs from docker/Dockerfile.agent' };
-  }
-  copyFileSync(source, dest);
-  return { ok: true, created: true };
 }

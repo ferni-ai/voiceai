@@ -145,6 +145,8 @@ export interface EmotionInput {
   previous?: string;
   /** A tone answering how the caller sounds (prosody-response.ts), when that lever is live. */
   prosody?: StableEmotion;
+  /** The reply's valence when already read (EMOTION_LIFT reads it wider); else from openingText. */
+  valence?: Valence;
 }
 
 export interface EmotionDecision {
@@ -158,6 +160,7 @@ export interface EmotionDecision {
     | 'previous'
     | 'bridge'
     | 'persona'
+    | 'lift'
     | 'none';
 }
 
@@ -186,7 +189,8 @@ function choose(input: EmotionInput, valence: Valence): EmotionDecision {
   }
   const hint = toStable(input.sessionHint).emotion;
   if (hint && fits.has(hint)) return { emotion: hint, source: 'session' };
-  if (input.prosody && fits.has(input.prosody)) return { emotion: input.prosody, source: 'prosody' };
+  if (input.prosody && fits.has(input.prosody))
+    return { emotion: input.prosody, source: 'prosody' };
   const fromWords = FROM_WORDS[valence];
   if (fromWords) return { emotion: fromWords, source: 'words' };
   const previous = toStable(input.previous).emotion;
@@ -195,7 +199,7 @@ function choose(input: EmotionInput, valence: Valence): EmotionDecision {
 }
 
 export function decideEmotion(input: EmotionInput): EmotionDecision {
-  const valence = readValence(input.openingText);
+  const valence = input.valence ?? readValence(input.openingText);
   const decision = choose(input, valence);
   const brightened = decision.emotion === 'content' || decision.emotion === 'affectionate';
   if (input.previous === 'sympathetic' && brightened && valence !== 'bright') {
