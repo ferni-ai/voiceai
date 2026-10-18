@@ -80,7 +80,7 @@ function sessionFor(c: Case): string {
   if (c === 'off') vi.stubEnv('MINOR_CARE', 'off');
   else vi.stubEnv('MINOR_CARE', 'on');
   if (c === 'owner') setVerifiedOwnerCheck((id) => id === sessionId);
-  noteCallerWords(sessionId, "I'm 16 and kind of bored");
+  noteCallerWords(sessionId, "I'm 16 years old and kind of bored");
   return sessionId;
 }
 
@@ -158,7 +158,7 @@ describe.each<[Case, boolean]>([
     const services = await createSessionServices(sessionId, `user-${sessionId}`);
     const tracker = getHistoryTracker(sessionId, `user-${sessionId}`);
     tracker.addAssistantTurn('Hey, who is this?');
-    tracker.addUserTurn("I'm 16 and kind of bored");
+    tracker.addUserTurn("I'm 16 years old and kind of bored");
     store.saveProfile.mockClear();
     await services.endSession();
     expect(store.saveSummary).toHaveBeenCalledTimes(stores ? 1 : 0);
@@ -177,7 +177,7 @@ describe.each<[Case, boolean]>([
       },
     };
     const chat = llm.ChatContext.empty();
-    chat.addMessage({ role: 'user', content: "I'm 16 and kind of bored" });
+    chat.addMessage({ role: 'user', content: "I'm 16 years old and kind of bored" });
     const sent = await toolsForTurn(
       { userData: { personaId: 'ferni', services: { sessionId } } } as never,
       chat,
@@ -204,10 +204,25 @@ describe('the care note on the live request (turn-request.ts)', () => {
     expect(request('note-1', "I'm in 8th grade")).toContain(MINOR_CARE_NOTE);
   });
 
+  it('a bare "16." counts only as the answer to Ferni asking their age', () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    const answer = (sessionId: string, asked: string): string => {
+      const chat = llm.ChatContext.empty();
+      chat.addMessage({ role: 'assistant', content: asked });
+      chat.addMessage({ role: 'user', content: '16.' });
+      const out = withTurnReminder(chat, { userData: { services: { sessionId } } }, {});
+      return (out.items.at(-1) as llm.ChatMessage).textContent ?? '';
+    };
+    expect(answer('bare-1', 'How many minutes out are you?')).not.toContain(MINOR_CARE_NOTE);
+    expect(answer('bare-2', 'How old are you, if you don’t mind me asking?')).toContain(
+      MINOR_CARE_NOTE
+    );
+  });
+
   it('never with crisis guidance, and not with the flag off', () => {
     vi.stubEnv('MINOR_CARE', 'on');
-    expect(request('note-2', "I'm 15", false)).not.toContain(MINOR_CARE_NOTE);
+    expect(request('note-2', "I'm 15 years old", false)).not.toContain(MINOR_CARE_NOTE);
     vi.stubEnv('MINOR_CARE', 'off');
-    expect(request('note-3', "I'm 15")).not.toContain(MINOR_CARE_NOTE);
+    expect(request('note-3', "I'm 15 years old")).not.toContain(MINOR_CARE_NOTE);
   });
 });

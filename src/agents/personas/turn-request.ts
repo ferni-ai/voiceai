@@ -160,6 +160,7 @@ export function withTurnReminder(
     // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts); none with crisis guidance.
     minorCareNote(sessionIdOf((session as { userData?: unknown }).userData), words, {
       careful: options.shape === false,
+      asked: ferniSaid(chatCtx),
     }),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
@@ -300,6 +301,12 @@ function callerWords(chatCtx: llm.ChatContext): string {
   return said.join(' ');
 }
 
+/** Ferni's last line: MINOR_CARE reads a bare "16." as the answer to "how old are you?". */
+const ferniSaid = (chatCtx: llm.ChatContext): string | undefined =>
+  chatCtx.items
+    .filter((i): i is llm.ChatMessage => i.type === 'message' && i.role === 'assistant')
+    .at(-1)?.textContent ?? undefined;
+
 /**
  * This reply's shape (turn-shape.ts) from the caller's latest words, or the
  * single style reminder when shaping is off, there are no words, or the
@@ -437,7 +444,7 @@ export async function toolsForTurn(
   const view = unlockViewFor(session.userData);
   const sessionId = sessionIdOf(session.userData);
   // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores anything.
-  const held = heldAfter(sessionId, callerWords(chatCtx));
+  const held = heldAfter(sessionId, callerWords(chatCtx), { asked: ferniSaid(chatCtx) });
   const allowed =
     phoneOnlyIdentity(sessionId) || held ? await withoutAccountTools(toolCtx, state) : toolCtx;
   const unlocked = await withoutLockedHandoffs(allowed, view).catch((error: unknown) => {
