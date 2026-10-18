@@ -124,7 +124,7 @@ const POST_CONVERSATION_FORECASTS: Record<string, EmotionalForecast> = {
       "You're probably going to feel anxious before that conversation. That's your body preparing, not a bad sign.",
     supportSuggestions: [
       'Practice what you want to say',
-      "It's okay to feel nervous",
+      'Nerves before it are normal',
       'We can debrief after',
     ],
   },
