@@ -249,7 +249,7 @@ const SELF_SOOTHING_PATTERNS: Array<{
 const PROBE_QUESTIONS: Record<SelfSoothingCategory, string[]> = {
   reassurance: [
     "You said it'll be fine... but how are you actually feeling about it?",
-    "I hear you saying you're okay. And if you're not, that's okay too.",
+    "You keep saying you're okay. Are you, though?",
     "What would it look like if it wasn't fine?",
   ],
   minimizing: [
@@ -260,7 +260,7 @@ const PROBE_QUESTIONS: Record<SelfSoothingCategory, string[]> = {
   dismissive: [
     'You moved on from that pretty quick. Is there more there?',
     "You said 'whatever' - is that frustration, or something else?",
-    "You said to forget it, but I'm here if you want to share.",
+    'You said forget it. Fair. But it sounded like it mattered.',
   ],
   normalizing: [
     "Even if it's 'normal,' that doesn't mean it's not hard. Is it hard?",
@@ -570,8 +570,7 @@ export class SelfSoothingDetector {
         "Don't challenge their reassurance directly. Create space: 'How are you really feeling about this?'",
       minimizing:
         "Gently acknowledge what they're minimizing without pushing: 'That sounds like it might be meaningful.'",
-      dismissive:
-        "Don't chase what they dismissed, but leave the door open: 'I'm here if you want to come back to that.'",
+      dismissive: "Don't chase what they dismissed; if it comes up again, pick it back up.",
       normalizing:
         "Validate their experience even if it's common: 'Even if others feel this, your experience matters.'",
       deflecting:
