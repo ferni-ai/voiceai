@@ -59,6 +59,8 @@ export const COHORT_FLAGS = [
   'WORLD_FACTS_IN_CALL',
   'POST_CALL_CHECKIN',
   'FOLLOW_THROUGH_TEXTS',
+  // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.
+  'FOLLOW_THROUGH_OPENER',
   'OUTREACH_PONDERED_NOTES',
   // Read once the agent is set up, on a turn or at a handoff: after applyCallerFlags
   // (docs/runbooks/cohort-rollout.md has the read sites).
