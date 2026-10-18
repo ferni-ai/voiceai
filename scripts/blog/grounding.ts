@@ -1,7 +1,7 @@
 /**
  * The grounding pack: every fact a draft may use, with where it came from.
  * The model is told to use only these, the gate checks numbers against them,
- * and the draft lists them as `sources` for the reviewer.
+ * and the draft lists them as `sources` so a reader can check them.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -17,7 +17,10 @@ export interface Source {
 
 /** A merged PR as a source; `title` lets callers pick which kinds of change to keep. */
 export interface PrSource extends Source {
+  number: number;
   title: string;
+  /** The whole body, for the live check (`text` is cut to MAX_BODY). */
+  body: string;
   mergedAt: string;
 }
 
@@ -57,7 +60,15 @@ export function fetchMergedPrs(since: string, repo: string, gh: GhRunner = runGh
       const body = (pr.body ?? '').replace(/<!--[\s\S]*?-->|🤖 Generated with[\s\S]*$/g, '').trim();
       const text = `${pr.title}\n\n${body.length > MAX_BODY ? `${body.slice(0, MAX_BODY)} [truncated]` : body}`;
       const label = `PR #${pr.number}: ${pr.title}`;
-      prs.push({ label, url: pr.html_url, text, title: pr.title, mergedAt: pr.merged_at });
+      prs.push({
+        label,
+        url: pr.html_url,
+        text,
+        number: pr.number,
+        title: pr.title,
+        body,
+        mergedAt: pr.merged_at,
+      });
     }
     if (batch.length < 100 || batch[batch.length - 1].updated_at < since) break;
   }
