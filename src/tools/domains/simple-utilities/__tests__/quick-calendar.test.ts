@@ -15,6 +15,13 @@ vi.mock('../../../../services/calendar/index.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   ...calendar,
 }));
+// The calendar tools answer "not connected" with no calendar (#1547), so these
+// cases run as a user who has one connected.
+const connection = vi.hoisted(() => ({ isConnected: vi.fn() }));
+vi.mock('../../../../services/calendar/calendar-service.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  ...connection,
+}));
 
 import { getToolDefinitions as getCalendarTools } from '../../calendar/index.js';
 import { getToolDefinitions as getShortcutTools } from '../index.js';
@@ -30,6 +37,7 @@ async function quickCalendar(args: Record<string, string>): Promise<string> {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  connection.isConnected.mockResolvedValue(true);
   calendar.getDayOverview.mockResolvedValue({ totalMeetings: 0, events: [] });
   calendar.getWeekOverview.mockResolvedValue({ totalMeetings: 0, days: [] });
 });
@@ -57,6 +65,14 @@ describe('quickCalendar runs the calendar', () => {
     expect(reply).toBe('Your calendar is clear today. No meetings scheduled.');
   });
 
+  it('list with no calendar connected says so instead of a clear day', async () => {
+    connection.isConnected.mockResolvedValue(false);
+    const reply = await quickCalendar({ action: 'list' });
+    expect(connection.isConnected).toHaveBeenCalledWith('u1');
+    expect(reply).toMatch(/No calendar is connected/);
+    expect(reply).not.toMatch(/clear/);
+  });
+
   it('check for this week reads the week', async () => {
     const reply = await quickCalendar({ action: 'check', date: 'this week' });
     expect(calendar.getWeekOverview).toHaveBeenCalledWith('u1');
@@ -79,7 +95,12 @@ describe('quickCalendar runs the calendar', () => {
   });
 
   it('add without a usable date and time writes nothing and says so', async () => {
-    const reply = await quickCalendar({ action: 'add', event: 'Lunch', date: 'tomorrow', time: '1pm' });
+    const reply = await quickCalendar({
+      action: 'add',
+      event: 'Lunch',
+      date: 'tomorrow',
+      time: '1pm',
+    });
     expect(calendar.createEvent).not.toHaveBeenCalled();
     expect(reply).toMatch(/Nothing was added/);
   });

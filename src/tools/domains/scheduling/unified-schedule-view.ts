@@ -28,9 +28,9 @@ import { getUserAppointments } from '../../scheduling/appointment-core.js';
 import type { ScheduledAppointment } from '../../scheduling/types.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { createDomainExport } from '../../registry/loader.js';
+import { gateCalendarTools } from '../calendar/calendar-connection-gate.js';
 
 const log = getLogger();
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -508,9 +508,9 @@ Use when user wants to know if there are any conflicts or before scheduling some
 // EXPORTS
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport('scheduling', [
-  getUnifiedScheduleDef,
-  checkScheduleConflictsDef,
-]);
+export const { getToolDefinitions, domain, definitions } = createDomainExport(
+  'scheduling',
+  gateCalendarTools([getUnifiedScheduleDef, checkScheduleConflictsDef])
+);
 
 export { getUnifiedScheduleDef, checkScheduleConflictsDef };

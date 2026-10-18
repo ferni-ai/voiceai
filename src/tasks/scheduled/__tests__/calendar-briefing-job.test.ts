@@ -114,4 +114,26 @@ describe('checkAndSendMorningBriefings', () => {
     expect(formatDateInTimezone('America/New_York', now)).toBe('2026-10-06');
     expect(formatDateInTimezone('Asia/Tokyo', now)).toBe('2026-10-07');
   });
+
+  it("with no calendar connected, names the items on Ferni's own list instead of skipping (#1547)", async () => {
+    const { checkAndSendMorningBriefings } = await import('../calendar-briefing-job.js');
+    isConnected.mockResolvedValueOnce(false);
+    getDayOverview.mockResolvedValueOnce({
+      totalMeetings: 1,
+      events: [
+        { startTime: new Date('2026-10-06T15:00:00.000Z'), title: 'Lunch with Sam', isAllDay: false },
+      ],
+    } as never);
+
+    const result = await checkAndSendMorningBriefings();
+
+    expect(result.sent).toBe(1);
+    expect(generateDailyBriefing).not.toHaveBeenCalled();
+    expect(sendNotification).toHaveBeenCalledWith(
+      'user-alex',
+      expect.objectContaining({
+        body: expect.stringMatching(/No calendar is connected.*Ferni's own list.*Lunch with Sam/),
+      })
+    );
+  });
 });

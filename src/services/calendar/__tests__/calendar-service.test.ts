@@ -25,6 +25,7 @@ vi.mock('../../identity/google-calendar-oauth.js', () => ({
 }));
 
 vi.mock('../unified-calendar-store.js', () => ({
+  hasAnyProviderConnected: vi.fn().mockResolvedValue(false),
   getEventsForDay: vi.fn().mockResolvedValue([]),
   getEvents: vi.fn().mockResolvedValue([]),
   createEvent: vi.fn().mockImplementation(async (_userId, input) => ({
@@ -56,6 +57,7 @@ import {
   type CreateEventInput,
 } from '../calendar-service.js';
 import * as googleCalendarOAuth from '../../identity/google-calendar-oauth.js';
+import { hasAnyProviderConnected } from '../unified-calendar-store.js';
 
 describe('Calendar Service', () => {
   const mockUserId = 'test-user-123';
@@ -81,13 +83,14 @@ describe('Calendar Service', () => {
       expect(googleCalendarOAuth.isCalendarConfigured).toHaveBeenCalledWith(mockUserId);
     });
 
-    it('should return true even when Google not configured (local fallback)', async () => {
+    it('should return false when no Google or provider calendar is connected (#1547)', async () => {
       vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(false);
+      vi.mocked(hasAnyProviderConnected).mockResolvedValue(false);
 
       const result = await isConnected(mockUserId);
 
-      // Now returns true because local calendar is always available
-      expect(result).toBe(true);
+      // Ferni's own list always answers, so this must not read as "connected".
+      expect(result).toBe(false);
     });
   });
 
