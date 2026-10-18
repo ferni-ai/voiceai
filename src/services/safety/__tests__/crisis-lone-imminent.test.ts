@@ -23,7 +23,8 @@ import {
 const imminent: CrisisVerdict = { risk: 'imminent', subject: 'self' };
 const HIKE = [
   'I went hiking this morning.',
-  'Up the ridge trail with my brother, the views were amazing.',
+  'Up the ridge trail with my brother.',
+  'The views were amazing.',
 ];
 
 /** The two dev calls' goodbyes (2026-10-18), synthetic context. */
@@ -75,6 +76,9 @@ describe('isPlainSignOff', () => {
     "Bye. I won't be talking to you again.",
     'Tell my mom I love her. Bye.',
     'Thanks, bye!',
+    "It's been great. Goodbye ferni.",
+    'It has been good. Bye.',
+    "it's been fun, bye",
     'bye forever',
     'goodbye world',
     'bye :(',
@@ -96,6 +100,19 @@ describe('loneImminentGoodbye', () => {
   it('needs the call to have had no risk before this turn, and fails closed when unknown', () => {
     expect(lone('Bye.', { priorRisk: true })).toBe(false);
     expect(lone('Bye.', { priorRisk: undefined as unknown as boolean })).toBe(false);
+  });
+
+  it('needs at least three quiet caller lines before the goodbye', () => {
+    expect(lone('Bye, Ferni.', { earlier: [] })).toBe(false);
+    expect(lone('I need to go.', { earlier: ['hi'] })).toBe(false);
+    expect(lone('Bye.', { earlier: HIKE.slice(0, 2) })).toBe(false);
+    expect(lone('Bye.', { earlier: [...HIKE.slice(0, 2), 'Bye.'] })).toBe(false);
+    expect(lone('Bye, Ferni.', { earlier: HIKE })).toBe(true);
+    expect(lone('I need to go.', { earlier: ['hi', ...HIKE] })).toBe(true);
+  });
+
+  it('keeps the script for a look back over the call', () => {
+    expect(lone("It's been great. Goodbye ferni.")).toBe(false);
   });
 
   it('needs an imminent read about the caller', () => {
@@ -184,7 +201,8 @@ describe('the labelled crisis lines', () => {
 
   it('never qualify on their own words, with no call risk recorded', () => {
     const softened = POSITIVES.filter((c) => {
-      const earlier = c.earlier ?? [];
+      // An everyday start, so the three-line minimum is never what keeps the script.
+      const earlier = [...HIKE, ...(c.earlier ?? [])];
       return loneImminentGoodbye({
         detection: detectCrisis(c.text, undefined, { recentMessages: earlier }),
         verdict: imminent,
@@ -206,7 +224,7 @@ describe('the labelled crisis lines', () => {
   it('keep every goodbye after them once the call has risk noted', () => {
     for (const c of POSITIVES) {
       for (const bye of ['Bye.', 'Okay, bye.', 'Yeah. it was great. Okay, bye.']) {
-        const earlier = [...(c.earlier ?? []), c.text];
+        const earlier = [...HIKE, ...(c.earlier ?? []), c.text];
         expect(
           loneImminentGoodbye({
             detection: detectCrisis(bye, undefined, { recentMessages: earlier }),
@@ -228,14 +246,39 @@ describe('callRiskBeforeTurn', () => {
     expect(callRiskBeforeTurn(undefined, { latest: 'Bye.' })).toBe(true);
   });
 
-  it('reads the call record, and keeps the first reading for the same turn', () => {
-    expect(callRiskBeforeTurn('call-1', { latest: 'Bye.', earlier: HIKE })).toBe(false);
-    noteCrisisRisk('call-1'); // this turn's own read, settling between the two paths
-    expect(callRiskBeforeTurn('call-1', { latest: 'Bye.', earlier: HIKE })).toBe(false);
-    // A later turn sees it.
-    expect(
-      callRiskBeforeTurn('call-1', { latest: 'Bye.', earlier: [...HIKE, 'Bye.', 'wait'] })
-    ).toBe(true);
+  it("keeps this turn's own reading, whichever path asks first", () => {
+    const turn = { latest: 'Bye.', earlier: HIKE, companion: 'Ha, good one.' };
+    expect(callRiskBeforeTurn('call-1', turn)).toBe(false);
+    noteCrisisRisk('call-1', Date.now(), 'bye'); // this turn's own read settles
+    expect(callRiskBeforeTurn('call-1', turn)).toBe(false);
+  });
+
+  it('a later turn sees the risk: a new line before it, or a new Ferni line', () => {
+    const turn = { latest: 'Bye.', earlier: HIKE, companion: 'Ha, good one.' };
+    expect(callRiskBeforeTurn('call-1', turn)).toBe(false);
+    noteCrisisRisk('call-1', Date.now(), 'bye');
+    const moved = { ...turn, earlier: [...HIKE, 'Bye.', 'wait'] };
+    expect(callRiskBeforeTurn('call-1', moved)).toBe(true);
+    expect(callRiskBeforeTurn('call-1', { ...turn, companion: 'Bye! Take care.' })).toBe(true);
+  });
+
+  it('drops the snapshot when anything else on the call notes risk', () => {
+    const turn = { latest: 'Bye.', earlier: HIKE, companion: 'Ha, good one.' };
+    expect(callRiskBeforeTurn('call-1', turn)).toBe(false);
+    noteCrisisRisk('call-1'); // a pattern match
+    expect(callRiskBeforeTurn('call-1', turn)).toBe(true);
+    expect(callRiskBeforeTurn('call-2', turn)).toBe(false);
+    noteCrisisRisk('call-2', Date.now(), 'something else');
+    expect(callRiskBeforeTurn('call-2', turn)).toBe(true);
+  });
+
+  it('is never reused after 5 seconds', () => {
+    const turn = { latest: 'Bye.', earlier: HIKE, companion: 'Ha, good one.' };
+    const at = Date.now();
+    expect(callRiskBeforeTurn('call-1', turn, at)).toBe(false);
+    noteCrisisRisk('call-1', at, 'bye');
+    expect(callRiskBeforeTurn('call-1', turn, at + 4_000)).toBe(false);
+    expect(callRiskBeforeTurn('call-1', turn, at + 10_000)).toBe(true);
   });
 
   it('is risk once anything on the call has noted it', () => {

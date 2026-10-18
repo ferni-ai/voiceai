@@ -201,7 +201,7 @@ export function startCrisisGate(
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
-  const priorRisk = callRiskBeforeTurn(call, { latest, earlier });
+  const priorRisk = callRiskBeforeTurn(call, { latest, earlier, companion });
   const run = startCrisisClassifier(
     { latest, earlier, companion },
     { pattern, env, generate, scope, call }

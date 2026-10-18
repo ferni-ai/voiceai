@@ -7,7 +7,7 @@
  */
 import { llm } from '@livekit/agents';
 import { readFileSync } from 'node:fs';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SOFT_CRISIS_CHECK } from '../../../services/safety/crisis-agreement.js';
 import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
@@ -15,6 +15,7 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
+import { checkSemanticShortCircuit } from '../../processors/semantic-short-circuit.js';
 import { crisisSummary, startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { CRISIS_CONTEXTUAL } from '../../__tests__/fixtures/crisis-contextual.js';
 import { CRISIS_HELDOUT } from '../../__tests__/fixtures/crisis-heldout.js';
@@ -34,6 +35,7 @@ type Turn = [caller: string, ferni: string];
 const HIKING_CALL: Turn[] = [
   ['I went hiking this morning.', 'Oh nice, where did you go?'],
   ['Up the ridge trail with my brother.', 'That sounds beautiful. How were the views?'],
+  ['The views were amazing.', 'I love that. What a way to spend a morning.'],
 ];
 const PUNS_CALL: Turn[] = [
   ['Tell me a pun.', 'What do you call a fake noodle? An impasta.'],
@@ -162,6 +164,48 @@ describe('goodbyes that keep the script', () => {
     expect(heard.at(-1)).toBe('replace');
   });
 
+  it('a goodbye with no conversation before it', async () => {
+    const generate = classifier({}, IMMINENT);
+    expect((await runCall([], 'Bye, Ferni.', generate)).at(-1)).toBe('replace');
+    const hi: Turn[] = [['hi', 'Hey you! How are you doing?']];
+    const gen = classifier({ 'I need to go.': IMMINENT }, NONE);
+    expect((await runCall(hi, 'I need to go.', gen)).at(-1)).toBe('replace');
+  });
+
+  it('a look back over the call: "It\'s been great. Goodbye ferni."', async () => {
+    const line = "It's been great. Goodbye ferni.";
+    const heard = await runCall(HIKING_CALL, line, classifier({ [line]: IMMINENT }, NONE));
+    expect(heard.at(-1)).toBe('replace');
+  });
+
+  it.each([
+    ['10 seconds', 10_000],
+    ['2 seconds', 2_000],
+  ])('a second "Bye." %s after a softened one', async (_gap, gapMs) => {
+    const now = vi.spyOn(Date, 'now');
+    try {
+      const start = Date.now();
+      now.mockReturnValue(start);
+      const generate = classifier({ 'Bye.': IMMINENT }, NONE);
+      const session = `call-${++calls}`;
+      const first = await runCall(PUNS_CALL, 'Bye.', generate, session);
+      expect(first.at(-1)).toBe('guide');
+      now.mockReturnValue(start + gapMs);
+      const again: Turn[] = [...PUNS_CALL, ['Bye.', 'Bye! That was fun.']];
+      const gate = startCrisisGate(
+        request(again, 'Bye.'),
+        { services: { sessionId: session } },
+        {
+          env: LIVE,
+          generate,
+        }
+      );
+      expect((await gate?.escalation)?.action).toBe('replace');
+    } finally {
+      now.mockRestore();
+    }
+  });
+
   it('a goodbye on a call the gate cannot identify', async () => {
     const heard = await runCall(HIKING_CALL, 'Bye.', classifier({ 'Bye.': IMMINENT }, NONE), '');
     expect(heard.at(-1)).toBe('replace');
@@ -189,6 +233,63 @@ describe('the turn pipeline agrees', () => {
     expect(await turn.softCheck()).toBe(true);
     expect(crisisSummary(crisis, true).shouldOverrideLLM).toBe(false);
     expect(crisis.isCrisis).toBe(false);
+  });
+
+  /** The dev puns goodbye through the pipeline, after three clean turns. */
+  async function punsGoodbye(goodbyeRead: string) {
+    const session = `call-${++calls}`;
+    const generate = classifier({ 'Bye.': goodbyeRead }, NONE);
+    const earlier = PUNS_CALL.map(([caller]) => caller);
+    for (let i = 0; i < earlier.length; i++) {
+      await startTurnCrisis(
+        earlier[i],
+        { recentTranscripts: earlier.slice(0, i + 1) },
+        { sessionId: session, env: LIVE, generate }
+      ).resolve();
+    }
+    return startTurnCrisis(
+      'Bye.',
+      { recentTranscripts: [...earlier, 'Bye.'], lastAgentResponse: 'Ha! That one got me.' },
+      { sessionId: session, env: LIVE, generate }
+    );
+  }
+
+  it('no router bypass skips the soft check: bypassAllowed is false for it', async () => {
+    const softened = await punsGoodbye(IMMINENT);
+    expect(await softened.softCheck()).toBe(true);
+    expect(await softened.bypassAllowed()).toBe(false);
+    resetCrisisClassifierCache();
+    expect(await (await punsGoodbye(NONE)).bypassAllowed()).toBe(true);
+  });
+
+  it('the semantic short-circuit declines the softened goodbye as it does a crisis', async () => {
+    const shortCircuit = async (goodbyeRead: string) => {
+      const turn = await punsGoodbye(goodbyeRead);
+      const routed = await turn.resolve();
+      return checkSemanticShortCircuit(new Promise(() => undefined), {
+        // As process-turn.ts passes it.
+        crisisDetected: !(await turn.bypassAllowed()),
+        crisisSeverity: routed.severity,
+        analysisResult: {} as Parameters<typeof checkSemanticShortCircuit>[1]['analysisResult'],
+        ctx: {} as Parameters<typeof checkSemanticShortCircuit>[1]['ctx'],
+      });
+    };
+    const softened = await shortCircuit(IMMINENT);
+    expect(softened.shortCircuited).toBe(false);
+    expect(softened.reason).toMatch(/^Crisis detected/);
+  });
+
+  it('process-turn.ts asks bypassAllowed before FTIS direct execution and the short-circuit', () => {
+    const source = readFileSync(
+      new URL('../../processors/turn-processor/process-turn.ts', import.meta.url),
+      'utf8'
+    );
+    const start = source.indexOf('// FTIS DIRECT EXECUTION');
+    const ftis = source.slice(start, source.indexOf('return {', start));
+    expect(ftis).toMatch(
+      /ftisResult\.bypassLLM &&\s+ftisResult\.toolResult &&\s+\(await turnCrisis\.bypassAllowed\(\)\)/
+    );
+    expect(source).toMatch(/crisisDetected: !\(await turnCrisis\.bypassAllowed\(\)\)/);
   });
 
   it('keeps the override for a goodbye after risk', async () => {
@@ -243,12 +344,12 @@ const POSITIVES: Labelled[] = [
 const OK = 'Mm, tell me more.';
 
 /**
- * The labelled case as a call: its earlier lines, each answered by Ferni, the
- * last by the case's own Ferni line (after an opening turn when it has no
- * earlier lines), then the line itself.
+ * The labelled case as a call: an everyday start (so the three-line minimum
+ * is never what keeps the script), its earlier lines, each answered by Ferni,
+ * the last by the case's own Ferni line, then the line itself.
  */
 function asTurns(c: Labelled): Turn[] {
-  const earlier = c.earlier?.length ? c.earlier : c.companion ? ['Hey Ferni.'] : [];
+  const earlier = [...HIKING_CALL.map(([caller]) => caller), ...(c.earlier ?? [])];
   return earlier.map((caller, i) => [
     caller,
     i === earlier.length - 1 && c.companion ? c.companion : OK,

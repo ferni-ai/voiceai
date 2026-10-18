@@ -55,6 +55,12 @@ export interface TurnCrisis {
    * returns the patterns' reading.
    */
   softCheck(): Promise<boolean>;
+  /**
+   * Whether a router may answer this turn without the reply model (FTIS direct
+   * execution, the semantic short-circuit): never with a crisis signal or a
+   * soft check-in, which only the normal reply path carries.
+   */
+  bypassAllowed(): Promise<boolean>;
 }
 
 export function startTurnCrisis(
@@ -145,6 +151,7 @@ export function startTurnCrisis(
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
+    bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
   };
 }
 

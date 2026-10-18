@@ -14,6 +14,10 @@
  * @module CrisisCallRisk
  */
 
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'CrisisCallRisk' });
+
 const TTL_MS = 6 * 60 * 60 * 1000;
 
 /** Calls with risk noted, least recently noted first. */
@@ -28,12 +32,36 @@ const turnOf = (latest: string): string =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
-/** Note risk on this call, moving it to the back. Only expired calls are ever dropped. */
-export function noteCrisisRisk(sessionId: string | undefined, now = Date.now()): void {
+/** Told of every risk noted: the call, and the caller words whose read noted it, when known. */
+type RiskListener = (sessionId: string, turn: string | undefined) => void;
+const listeners = new Set<RiskListener>();
+
+/** Hear of every risk noted on any call (crisis-lone-imminent.ts drops its snapshots). */
+export function onCrisisRiskNoted(listener: RiskListener): void {
+  listeners.add(listener);
+}
+
+/**
+ * Note risk on this call, moving it to the back. Only expired calls are ever
+ * dropped. `turn` is the caller words whose read found it, when one did.
+ */
+export function noteCrisisRisk(
+  sessionId: string | undefined,
+  now = Date.now(),
+  turn?: string
+): void {
   if (!sessionId) return;
   for (const [id, at] of risky) if (now - at > TTL_MS) risky.delete(id);
   risky.delete(sessionId);
   risky.set(sessionId, now);
+  for (const listener of listeners) {
+    try {
+      listener(sessionId, turn);
+    } catch (error) {
+      // A listener's failure never stops risk being noted.
+      log.warn({ error: String(error) }, 'Crisis risk listener failed');
+    }
+  }
 }
 
 /**
@@ -55,7 +83,7 @@ export function trackCrisisRead<T extends { risk: string } | null>(
     if (left > 0) reads.set(turn, left);
     else reads.delete(turn);
     if (reads.size === 0 && pending.get(sessionId) === reads) pending.delete(sessionId);
-    if (risk) noteCrisisRisk(sessionId);
+    if (risk) noteCrisisRisk(sessionId, Date.now(), turn);
   };
   read.then(
     (v) => settle(v?.risk !== 'none'),

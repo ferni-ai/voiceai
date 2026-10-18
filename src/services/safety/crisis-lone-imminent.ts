@@ -17,15 +17,18 @@
  *   - the line is a plain sign-off ("bye", "okay, bye", "talk later",
  *     "goodnight"), with only filler or a short remark about the chat around
  *     it ("yeah, it was great"). "Bye, I won't be here tomorrow", "goodbye
- *     everyone" and "thanks for everything, bye" are not;
+ *     everyone", "it's been great, goodbye" and "thanks for everything, bye"
+ *     are not;
  *   - the read is imminent and about the caller;
  *   - the patterns found nothing at all in this turn (no indicator, no voice
  *     distress, no session escalation);
  *   - nothing on this call found risk before this turn (crisis-call-risk.ts:
  *     a pattern match, a classifier read that was not none or gave no verdict,
  *     or a read still in flight), and the call is known;
- *   - none of the caller's earlier words match a pattern or hold a word from
- *     the agreement gate's broad risk list (hasRiskContent);
+ *   - the caller said at least three things before it this call, and none of
+ *     them matches a pattern or holds a word from the agreement gate's broad
+ *     risk list (hasRiskContent): a call that is only a goodbye is itself a
+ *     warning sign;
  *   - Ferni's line did not raise safety (a check-in, 988, 911), and the caller
  *     is not agreeing with it.
  * Everything else keeps the imminent script exactly as before, as does any
@@ -38,9 +41,10 @@
  */
 
 import { endorses, hasRiskContent } from './crisis-agreement.js';
-import { crisisRiskThisCall } from './crisis-call-risk.js';
+import { crisisRiskThisCall, onCrisisRiskNoted } from './crisis-call-risk.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
 import { detectCrisis, type CrisisDetectionResult } from './crisis-guard.js';
+import { stripSSML } from '../../utils/text-utils.js';
 
 /** NFKC, lower case, every apostrophe variant as ', spaces collapsed. */
 const normalized = (text: string): string =>
@@ -82,10 +86,14 @@ const SIGN_OFF = [
 const FILLER =
   'yeah|yep|yes|yup|yea|ok|okay|k|alright|all right|cool|great|awesome|nice|perfect|sounds good|(?:ha)+|lol|well|so|anyway|anyways|oh|ah|um|uh|hey|mhm|mm+|hmm+|sure|fern|ferni|fernie|ferny|fernee|ferne';
 
-/** A short remark about the chat or the day ("it was great", "that was fun"). */
+/**
+ * A short remark about the chat just had ("it was great", "that was fun",
+ * "good talk"). Never a look back over a longer stretch ("it's been great",
+ * "it has been good"), which can be a farewell.
+ */
 const REMARK = [
-  "(?:it|that|this|today)(?:'s| is| was| has been) (?:so |really |pretty |super |a lot of )?(?:great|fun|good|nice|lovely|awesome|amazing|a blast|hilarious|funny|cool)",
-  "(?:it's|its|that's|thats) (?:been )?(?:so |really |pretty |super )?(?:great|fun|good|nice|lovely|awesome|amazing|hilarious|funny|cool)",
+  '(?:it|that|this|today) was (?:so |really |pretty |super |a lot of )?(?:great|fun|good|nice|lovely|awesome|amazing|a blast|hilarious|funny|cool)',
+  "(?:that's|thats) (?:so |really |pretty |super )?(?:great|fun|hilarious|funny)",
   '(?:good|nice|great|fun) (?:talk|chat|chatting|talking)(?: to you| with you)?',
   '(?:i )?had (?:so much |a lot of )?fun',
 ].join('|');
@@ -116,12 +124,14 @@ function earlierRisk(line: string): boolean {
  * Whether this call had risk before this turn, taken before this turn's own
  * reads start and shared by the gate and the turn pipeline: whichever path
  * starts the turn first records it, so this turn's own read (or the other
- * path's) never counts. An unknown call counts as risk. Kept 30 seconds per
- * turn (the caller's words and their line before), in memory.
+ * path's) never counts. An unknown call counts as risk. A snapshot is for one
+ * turn: the caller's words, their line before and Ferni's line they answer,
+ * reused for 5 seconds at most, and dropped as soon as anything on the call
+ * notes risk, except this same turn's own reads. In memory.
  */
-const SNAPSHOT_TTL_MS = 30_000;
+const SNAPSHOT_REUSE_MS = 5_000;
 const SNAPSHOT_MAX = 64;
-const snapshots = new Map<string, { at: number; risk: boolean }>();
+const snapshots = new Map<string, { at: number; risk: boolean; call: string; turn: string }>();
 
 const loose = (text: string): string =>
   text
@@ -130,19 +140,24 @@ const loose = (text: string): string =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+onCrisisRiskNoted((call, turn) => {
+  for (const [key, kept] of snapshots) {
+    if (kept.call === call && (turn === undefined || turn !== kept.turn)) snapshots.delete(key);
+  }
+});
+
 export function callRiskBeforeTurn(
   call: string | undefined,
-  input: { latest: string; earlier?: readonly string[] },
+  input: { latest: string; earlier?: readonly string[]; companion?: string },
   now = Date.now()
 ): boolean {
   try {
     if (!call) return true;
-    const latest = loose(input.latest);
-    const before = (input.earlier ?? [])
-      .map(loose)
-      .filter((line) => line !== '' && line !== latest);
-    const key = JSON.stringify([call, latest, before.at(-1) ?? '']);
-    for (const [k, v] of snapshots) if (now - v.at > SNAPSHOT_TTL_MS) snapshots.delete(k);
+    const turn = loose(input.latest);
+    const before = (input.earlier ?? []).map(loose).filter((line) => line !== '' && line !== turn);
+    const ferni = loose(stripSSML(input.companion ?? ''));
+    const key = JSON.stringify([call, turn, before.at(-1) ?? '', ferni]);
+    for (const [k, v] of snapshots) if (now - v.at > SNAPSHOT_REUSE_MS) snapshots.delete(k);
     const kept = snapshots.get(key);
     if (kept) return kept.risk;
     const risk = crisisRiskThisCall(call, input.latest, now);
@@ -150,7 +165,7 @@ export function callRiskBeforeTurn(
       const oldest = snapshots.keys().next().value;
       if (oldest !== undefined) snapshots.delete(oldest);
     }
-    snapshots.set(key, { at: now, risk });
+    snapshots.set(key, { at: now, risk, call, turn });
     return risk;
   } catch {
     return true;
@@ -193,16 +208,23 @@ function qualifies(args: Parameters<typeof loneImminentGoodbye>[0]): boolean {
   return isPlainSignOff(latest) && !endorses(latest) && quietContext(args);
 }
 
-/** Ferni's line raised no safety, and no earlier caller line shows any risk. */
+/**
+ * A goodbye with no conversation before it (a caller who rings up only to say
+ * goodbye) is itself a warning sign, so a call needs this many earlier caller
+ * lines, every one of them quiet.
+ */
+const MIN_EARLIER_LINES = 3;
+
+/** Ferni's line raised no safety, and enough earlier caller lines all show no risk. */
 function quietContext(args: Parameters<typeof loneImminentGoodbye>[0]): boolean {
   const { latest, companion } = args;
   const earlier: readonly unknown[] = args.earlier ?? [];
   if (companion !== undefined && typeof companion !== 'string') return false;
   if (companion !== undefined && SAFETY_TALK.test(normalized(companion))) return false;
+  if (earlier.some((line) => typeof line !== 'string')) return false;
   const own = latest.trim();
-  return earlier.every((line) => {
-    if (typeof line !== 'string') return false;
-    const said = line.trim();
-    return said === '' || said === own || !earlierRisk(said);
-  });
+  const lines = (earlier as readonly string[])
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && line !== own);
+  return lines.length >= MIN_EARLIER_LINES && !lines.some(earlierRisk);
 }
