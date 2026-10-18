@@ -1,0 +1,8 @@
+{
+  "description": "Daily outreach runs that processed users but sent to none (the 'Daily outreach job complete' line, src/services/outreach/automated-scheduler.ts). Read by zero-sends-policy.json.",
+  "filter": "resource.type=\"cloud_run_revision\" AND jsonPayload.msg=\"Daily outreach job complete\" AND jsonPayload.sent=0 AND jsonPayload.processed>0",
+  "metricDescriptor": {
+    "metricKind": "DELTA",
+    "valueType": "INT64"
+  }
+}
