@@ -9,7 +9,7 @@
  * Custom voice: Gemini Live can replicate a voice from a 10-20s sample
  * (speech_config.voice_config.replicated_voice_config). LiveKit's Google
  * plugin hard-codes the prebuilt voice, so this relies on
- * patches/@livekit__agents-plugin-google@1.8.1.patch, which adds a
+ * patches/@livekit__agents-plugin-google@1.9.3.patch, which adds a
  * `voiceConfig` option. Replicated voices are allowlisted by Google ("select
  * customers") and require consent and rights for the sample.
  *

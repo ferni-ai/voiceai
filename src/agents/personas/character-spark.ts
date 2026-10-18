@@ -25,6 +25,18 @@ import { withOwnLife } from '../../personas/persona-slip-guard.js';
 export const CHARACTER_FILE = 'identity/character.md';
 export const SPARK_FILE = 'identity/character-spark.md';
 
+/**
+ * Bundles whose character sheet came with PERSONA_SPARK: the three legends had
+ * only legacy system prompts, two with "Things You DO Say" lines the model
+ * repeats. Off, they keep the legacy prompt, so a legend call doesn't change
+ * until the flag flips.
+ */
+export const SHEET_WITH_SPARK: ReadonlySet<string> = new Set([
+  'joel-dickson',
+  'peter-lynch',
+  'john-bogle',
+]);
+
 const BUNDLES = join(dirname(fileURLToPath(import.meta.url)), '../../personas/bundles');
 
 async function read(bundleDir: string, file: string): Promise<string | null> {
@@ -47,6 +59,7 @@ export async function characterSheet(
   bundleDir: string,
   env: Env = process.env
 ): Promise<string | null> {
+  if (SHEET_WITH_SPARK.has(bundleDir) && !flagOn('PERSONA_SPARK', env)) return null;
   return withOwnLife(
     await withSpark(await read(bundleDir, CHARACTER_FILE), bundleDir, env),
     bundleDir

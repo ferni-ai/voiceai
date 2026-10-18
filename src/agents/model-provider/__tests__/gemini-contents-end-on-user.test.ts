@@ -1,5 +1,5 @@
 /**
- * Pins our @livekit/agents patch (patches/@livekit__agents@1.8.1.patch): the
+ * Pins our @livekit/agents patch (patches/@livekit__agents@1.9.3.patch): the
  * Gemini request never ends on a model turn.
  *
  * Gemini answers such a request with 400 "Requests ending with a model turn are

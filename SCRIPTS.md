@@ -90,7 +90,7 @@ Deploy services to cloud
 | Script | Command |
 |--------|----------|
 | `npm run deploy` | `npx tsx scripts/deploy.ts` |
-| `npm run deploy:agent` | `pnpm ferni deploy gce` (voice agent to GCE) |
+| (voice agent) | Removed: deploy with `.claude/skills/deploy-agent/SKILL.md` |
 | `npm run deploy:all` | `npx tsx scripts/deploy.ts all` |
 | `npm run deploy:brand` | `npx tsx scripts/deploy.ts brand` |
 | `npm run deploy:context` | `bash infrastructure/scripts/deploy-context.sh` |
