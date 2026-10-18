@@ -6,6 +6,7 @@
 
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
+import '../../utils/token-key-fingerprint-boot.js'; // which token key (fingerprint only)
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -1487,7 +1488,6 @@ registerDDoSAlertCallback(async (details) => {
 // Start automatic DDoS monitoring
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
-// Start the server
 server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
 async function startBackgroundServices(): Promise<void> {
   log.info({ port: PORT, livekitUrl: LIVEKIT_URL, ddosProtection: true }, 'UI Server started');
