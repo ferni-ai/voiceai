@@ -39,10 +39,13 @@ targets:
       - path: App
         excludes:
           - Info.plist
+      - path: Shared
     dependencies:
       - package: FerniKit
       - package: FerniVoice
       - package: FerniDesign
+      - target: FerniLive
+        embed: true
     info:
       path: App/Info.plist
       properties:
@@ -51,6 +54,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         FerniAPIBaseURL: $(FERNI_API_BASE_URL)
         ITSAppUsesNonExemptEncryption: false
+        NSSupportsLiveActivities: true
         # ProMotion: the avatar asks for 120 Hz only while Ferni speaks.
         CADisableMinimumFrameDurationOnPhone: true
         LSRequiresIPhoneOS: true
@@ -87,6 +91,30 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES
         ENABLE_PREVIEWS: YES
+
+  # The call on the Lock Screen and in the Dynamic Island.
+  FerniLive:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: LiveActivity
+        excludes:
+          - Info.plist
+      - path: Shared
+    dependencies:
+      - package: FerniDesign
+    info:
+      path: LiveActivity/Info.plist
+      properties:
+        CFBundleDisplayName: Ferni
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.live
+        TARGETED_DEVICE_FAMILY: "1,2"
 
 schemes:
   Ferni:
