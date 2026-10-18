@@ -391,9 +391,7 @@ function formatTrustGuidance(primarySignal: TrustSignal, allSignals: TrustSignal
       lines.push('[🤝 PERMISSION SEEKING - CREATE SAFETY]');
       lines.push('User wants to share something but needs permission.');
       lines.push('');
-      lines.push('SAY something like:');
-      lines.push('"You can tell me anything. This is a safe space."');
-      lines.push('"I\'m here. Take your time."');
+      lines.push('DO: Make it easy. Short, warm, no ceremony. Let them start when ready.');
       break;
 
     case 'growth':
@@ -406,11 +404,11 @@ function formatTrustGuidance(primarySignal: TrustSignal, allSignals: TrustSignal
       break;
 
     case 'sensitive':
-      lines.push('[💔 SENSITIVE TOPIC - HOLD SPACE]');
+      lines.push('[💔 SENSITIVE TOPIC - STAY WITH THEM]');
       lines.push('User is touching on something heavy or painful.');
       lines.push('');
       lines.push("DO: Be present. Don't rush to fix.");
-      lines.push('SAY: "That\'s a lot to carry." or "I hear you."');
+      lines.push('Say something real and short, then let them lead.');
       lines.push("DON'T: Immediately problem-solve or redirect");
       break;
 
@@ -436,7 +434,7 @@ function formatTrustGuidance(primarySignal: TrustSignal, allSignals: TrustSignal
       lines.push('');
       lines.push('This is the most important moment. Be WITH them.');
       lines.push("DON'T: Fix, advise, or redirect");
-      lines.push('DO: Listen, validate, hold space');
+      lines.push('DO: Listen. Stay with them. Let them lead.');
       break;
 
     case 'false_fine':

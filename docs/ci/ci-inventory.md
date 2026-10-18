@@ -57,16 +57,6 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 | Runner | ubuntu-latest |
 | Duration | ~15 min |
 
-### deploy-gce.yml
-
-**Purpose:** Deploy voice agent to GCE
-
-| Property | Value |
-|----------|-------|
-| Trigger | Manual, workflow_call |
-| Runner | Self-hosted |
-| Duration | ~10 min |
-
 ### deploy-firebase.yml
 
 **Purpose:** Deploy frontend to Firebase Hosting

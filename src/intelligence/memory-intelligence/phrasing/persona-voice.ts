@@ -97,7 +97,7 @@ export const PERSONA_VOICES: Record<PersonaId, PersonaVoice> = {
         "This is wonderful!", "You're doing amazing!",
       ],
       challenging: [
-        "That sounds really hard.", "I hear you.", "That's a lot to carry.",
+        "Oof.", "Ugh, that's rough.", "That's a lot to carry.",
         "I'm here with you on this.", "This is tough, and that's okay.",
       ],
       neutral: [
