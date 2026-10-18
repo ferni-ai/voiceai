@@ -14,6 +14,8 @@ import type { ServerResponse } from 'http';
 type Doc = Record<string, unknown>;
 const calls: Doc[] = [];
 const claims = new Map<string, Doc>();
+/** Updates whose data matches this fail (simulates Firestore errors on a given write). */
+const failUpdate = { when: (_data: Doc) => false };
 
 vi.mock('../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -40,6 +42,7 @@ vi.mock('../../utils/firestore-utils.js', async (importOriginal) => ({
                     updateTime: 'v1',
                   }),
                   update: async (data: Doc) => {
+                    if (failUpdate.when(data)) throw new Error('UNAVAILABLE');
                     const key = `${userId}/${id}`;
                     claims.set(key, { ...claims.get(key), ...data });
                   },
@@ -183,25 +186,59 @@ describe('POST /api/outreach/milestone', () => {
   it('marks the claim sent, and never sends it again', async () => {
     calls.push(call(0));
     await post(milestone('first-hello'));
+    expect(claims.get('u1/first-hello')).toMatchObject({ state: 'sent' });
     expect(claims.get('u1/first-hello')?.sentAt).toBeInstanceOf(Date);
     expect((await post(milestone('first-hello'))).body).toMatchObject({ reason: 'already-sent' });
     expect(emailUser).toHaveBeenCalledTimes(1);
   });
 
   it.each([
-    { name: 'a send in flight (5 min, no sentAt)', ageMin: 5, sentAt: undefined, sends: false },
-    { name: 'a dead send (20 min, no sentAt)', ageMin: 20, sentAt: undefined, sends: true },
-    { name: 'a sent claim, however old', ageMin: 600, sentAt: new Date(), sends: false },
-  ])('an existing claim from $name: sends again = $sends', async ({ ageMin, sentAt, sends }) => {
+    { name: 'pending, 5 min (a send starting)', state: 'pending', ageMin: 5, sends: false },
+    { name: 'pending, 20 min (died before sending)', state: 'pending', ageMin: 20, sends: true },
+    { name: 'sending, 20 min (may have gone out)', state: 'sending', ageMin: 20, sends: false },
+    { name: 'sent, however old', state: 'sent', ageMin: 600, sends: false },
+    { name: 'no state (legacy or unknown), 20 min', state: undefined, ageMin: 20, sends: false },
+  ])('an existing claim, $name: sends again = $sends', async ({ state, ageMin, sends }) => {
     calls.push(call(0));
     claims.set('u1/first-hello', {
       milestoneId: 'first-hello',
       claimedAt: new Date(Date.now() - ageMin * 60_000),
-      ...(sentAt ? { sentAt } : {}),
+      ...(state ? { state } : {}),
     });
     const { body } = await post(milestone('first-hello'));
     expect(body.sent).toBe(sends);
     expect(emailUser).toHaveBeenCalledTimes(sends ? 1 : 0);
+  });
+
+  it('a failed mark after a successful send never reopens the claim', async () => {
+    calls.push(call(0));
+    failUpdate.when = (data) => data.state === 'sent'; // both attempts fail
+    try {
+      expect((await post(milestone('first-hello'))).body.sent).toBe(true);
+      expect(claims.get('u1/first-hello')).toMatchObject({ state: 'sending' });
+      // Retried now and well past the stale window: still never sent twice
+      expect((await post(milestone('first-hello'))).body.sent).toBe(false);
+      claims.set('u1/first-hello', {
+        ...claims.get('u1/first-hello'),
+        claimedAt: new Date(Date.now() - 60 * 60_000),
+      });
+      expect((await post(milestone('first-hello'))).body.sent).toBe(false);
+      expect(emailUser).toHaveBeenCalledTimes(1);
+    } finally {
+      failUpdate.when = () => false;
+    }
+  });
+
+  it('a mark that fails once is retried and lands', async () => {
+    calls.push(call(0));
+    let failures = 1;
+    failUpdate.when = (data) => data.state === 'sent' && failures-- > 0;
+    try {
+      await post(milestone('first-hello'));
+      expect(claims.get('u1/first-hello')).toMatchObject({ state: 'sent' });
+    } finally {
+      failUpdate.when = () => false;
+    }
   });
 
   it('the text is signed once, by textUser, not again here', async () => {

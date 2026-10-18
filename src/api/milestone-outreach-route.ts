@@ -85,21 +85,22 @@ function claimRef(userId: string, milestoneId: string) {
   return db.collection('bogle_users').doc(userId).collection('milestone_outreach').doc(milestoneId);
 }
 
-/** A claim with no sentAt this old belongs to a send that died: it may be taken again. */
+/**
+ * A claim moves pending (create) -> sending (just before the send) -> sent (sentAt).
+ * Only a claim still 'pending' 15 minutes later is taken over: nothing went out for it.
+ * 'sending' that old may or may not have gone out, so it is logged for review and never
+ * re-sent; a claim with no state (or any other) counts as sent. Never double-send.
+ */
 export const STALE_CLAIM_MS = 15 * 60 * 1000;
 
 const asMs = (v: unknown): number =>
   ((v as { toDate?: () => Date })?.toDate?.() ?? new Date(v as string)).getTime();
 
-/**
- * Claim the milestone for this user. False when it was sent (sentAt) or another send is
- * in flight; a claim left with no sentAt for 15 minutes is taken over instead of blocking
- * the milestone forever.
- */
+/** Claim the milestone for this user, as 'pending'. False when it can't be claimed now. */
 async function claim(userId: string, milestoneId: string): Promise<boolean> {
   const ref = claimRef(userId, milestoneId);
   try {
-    await ref.create({ milestoneId, claimedAt: new Date() });
+    await ref.create({ milestoneId, state: 'pending', claimedAt: new Date() });
     return true;
   } catch (error) {
     const code = (error as { code?: unknown }).code;
@@ -107,13 +108,34 @@ async function claim(userId: string, milestoneId: string): Promise<boolean> {
   }
   const snap = await ref.get();
   const data = snap.data() ?? {};
-  if (data.sentAt || Date.now() - asMs(data.claimedAt) < STALE_CLAIM_MS) return false;
+  const stale = Date.now() - asMs(data.claimedAt) >= STALE_CLAIM_MS;
+  if (data.state === 'sending' && stale) {
+    log.error({ userId, milestoneId }, 'Milestone outreach stuck in sending: needs review');
+  }
+  if (data.state !== 'pending' || !stale) return false;
   // Only if nobody touched it since we read it (two retries racing take it once)
   try {
     await ref.update({ claimedAt: new Date() }, { lastUpdateTime: snap.updateTime });
     return true;
   } catch {
     return false; // the other retry took it
+  }
+}
+
+/** Record that it went out. One retry; if both fail it stays 'sending' (never re-sent). */
+async function markSent(userId: string, milestoneId: string): Promise<void> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      await claimRef(userId, milestoneId).update({ state: 'sent', sentAt: new Date() });
+      return;
+    } catch (error) {
+      if (attempt === 2) {
+        log.error(
+          { error: String(error), userId, milestoneId },
+          'Milestone sent but not marked: left as sending, so it is not sent again'
+        );
+      }
+    }
   }
 }
 
@@ -164,6 +186,8 @@ export async function sendMilestoneOutreach(
       return;
     }
 
+    // From here it may go out: 'sending' is never taken over, so it is never sent twice
+    await claimRef(userId, milestoneId).update({ state: 'sending', sendingAt: new Date() });
     const fact = rule.fact(facts);
     const results: { email?: boolean; sms?: boolean } = {};
     if (contactInfo.email) {
@@ -184,9 +208,9 @@ export async function sendMilestoneOutreach(
       results.sms = (await textUser(userId, smsBody)).success;
     }
 
-    // Nothing went out: release the claim so a later try can still celebrate it. Sent: mark it
+    // Nothing went out (both providers said no): release it so a later try can celebrate it
     if (!results.email && !results.sms) await claimRef(userId, milestoneId).delete();
-    else await claimRef(userId, milestoneId).update({ sentAt: new Date() });
+    else await markSent(userId, milestoneId);
 
     log.info({ userId, milestoneId, results }, 'Milestone outreach sent');
     sendJsonResponse(res, 200, { success: true, sent: !!(results.email || results.sms), results });
