@@ -97,6 +97,8 @@ export const COHORT_FLAGS = [
   // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
   // (services/outreach/morning-brief/brief-job.ts).
   'MORNING_BRIEF',
+  // Read per person on the web server (flagForUser): outreach pushes and the after-call ask (web-push-flag.ts).
+  'WEB_PUSH_DELIVERY',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
