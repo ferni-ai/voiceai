@@ -31,8 +31,14 @@ vi.mock('firebase-admin', () => ({
 }));
 vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => fakeDb, FieldValue: {} }));
 vi.mock('../auth-middleware.js', () => ({ rateLimit: () => false, requireAdmin: () => true }));
+// The admission rules (admission.ts) read the same in-memory database
+vi.mock('../../utils/firestore-utils.js', async (orig) => ({
+  ...(await orig<typeof import('../../utils/firestore-utils.js')>()),
+  getFirestoreDb: () => fakeDb,
+}));
 
 const { handleWaitlistRoutes } = await import('../waitlist-routes.js');
+const { forgetAdmissionCache } = await import('../admission.js');
 
 async function check(): Promise<{ status: number; body: Record<string, unknown> }> {
   const req = Object.assign(new EventEmitter(), {
@@ -56,6 +62,7 @@ describe('waitlist check', () => {
   afterEach(() => {
     email.verified = true;
     store.clear();
+    forgetAdmissionCache();
     vi.unstubAllEnvs();
   });
 
@@ -93,6 +100,15 @@ describe('waitlist check', () => {
     const { body } = await check();
     expect(body).toMatchObject({ approved: false, status: 'pending' });
     expect(coll('user_profiles').size).toBe(0);
+  });
+
+  it('gate on: lets in a friends-and-family member, as the token route would', async () => {
+    vi.stubEnv('WAITLIST_GATE', 'on');
+    coll('feature_cohorts').set('friends-and-family', { members: ['uid-1'] });
+    const { body } = await check();
+    expect(body).toMatchObject({ approved: true, status: 'approved', tier: 'free' });
+    const profile = coll('user_profiles').get(docId(email.value)) as { subscription: Record<string, unknown> }; // prettier-ignore
+    expect(profile.subscription).toMatchObject({ grantedVia: 'admission' });
   });
 
   it("never acts on an unverified email: no access, no write to that email's profile", async () => {

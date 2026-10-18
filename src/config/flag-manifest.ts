@@ -422,6 +422,8 @@ export const FLAG_MANIFEST = {
   // which voice pipeline runs; anything unrecognised is the Cartesia cascade (model-provider-config.ts)
   VOICE_PIPELINE: { default: 'cartesia-cascade', owner: 'voice', kind: 'config' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // with WAITLIST_GATE=on: accounts created before this ISO date stay admitted; unset = none by date (api/admission.ts)
+  WAITLIST_GATE_SINCE: { default: 'unset', owner: 'platform', kind: 'config' },
   // current weather is reused 10 min per place and answered within 3 s (information/weather.ts)
   WEATHER_FAST_ANSWER: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   // weather with no place named: saved home, then profile, then this call's city (weather-location.ts)

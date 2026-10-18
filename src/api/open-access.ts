@@ -19,7 +19,7 @@ export interface AccessGrant {
   email: string;
   uid: string;
   tier: 'free' | 'partner';
-  grantedVia: 'open-access' | 'waitlist-approval-auto';
+  grantedVia: 'open-access' | 'waitlist-approval-auto' | 'admission';
   /** How long it lasts; omitted for a free tier that doesn't expire. */
   years?: number;
 }

@@ -17,6 +17,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 import { refuseUnownedRoom } from './token-room-owner.js';
+import { refuseUnadmitted } from '../../../api/admission.js';
 import { handleDemoClaim } from './demo-claim.js';
 import { handleDemoSessionUpdate } from './demo-session-update.js';
 
@@ -352,6 +353,7 @@ export async function handleTokenRoutes(
       }
 
       let firebaseUid: string;
+      let isAdmin = false;
       try {
         const { verifyFirebaseToken, isVerifiedToken } =
           await import('../../../services/identity/firebase-auth.js');
@@ -379,6 +381,7 @@ export async function handleTokenRoutes(
           return true;
         }
         firebaseUid = verified.uid;
+        isAdmin = verified.claims.admin === true;
         verifiedEmail = verified.emailVerified ? verified.email : undefined;
         log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
       } catch (firebaseErr) {
@@ -387,6 +390,8 @@ export async function handleTokenRoutes(
         res.end(JSON.stringify({ error: 'Authentication service unavailable' }));
         return true;
       }
+      // WAITLIST_GATE=on: only admitted people get a voice session (the demo route stays open)
+      if (await refuseUnadmitted({ uid: firebaseUid, email: verifiedEmail, isAdmin }, res)) return true;
       if (await refuseUnownedRoom(room, firebaseUid, res)) return true; // never join another's room
 
       // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
