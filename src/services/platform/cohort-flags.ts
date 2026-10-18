@@ -58,8 +58,6 @@ export const COHORT_FLAGS = [
   'POST_CALL_CHECKIN',
   'FOLLOW_THROUGH_TEXTS',
   'OUTREACH_PONDERED_NOTES',
-  'PROACTIVE_CHANNELS',
-  'WEEKLY_PREDICTION',
   // Read once the agent is set up, on a turn or at a handoff: after applyCallerFlags
   // (docs/runbooks/cohort-rollout.md has the read sites).
   'CALL_WRAP_UP',
@@ -75,6 +73,8 @@ export const COHORT_FLAGS = [
   'INSIDE_JOKES',
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
+  'PROACTIVE_CHANNELS',
+  'WEEKLY_PREDICTION',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
