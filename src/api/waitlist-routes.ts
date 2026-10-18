@@ -27,7 +27,7 @@ import { BRAND_ACCENT, BRAND_TEXT_PRIMARY, getPersonaColor } from '../config/bra
 import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { waitlistRateLimit } from './waitlist-rate-limits.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
-import { grantAccess, waitlistGateOn } from './open-access.js';
+import { grantAccess, grantFoundingMember, waitlistGateOn } from './open-access.js';
 import {
   buildApprovalUrl,
   getApprovalSecret,
@@ -552,8 +552,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     if (waitlistDoc.exists && ADMITTED_WAITLIST_STATUSES.has(waitlisted?.status)) {
       // Admitted (a wave, or approved before waves) and no profile yet: the free tier plus the
       // founding-member perk, which replaces the 10-year partner grant (decided 2026-10-18).
-      const foundingWave =
-        typeof waitlisted?.foundingWave === 'number' ? waitlisted.foundingWave : 0;
+      const foundingWave = typeof waitlisted?.foundingWave === 'number' ? waitlisted.foundingWave : 0; // prettier-ignore
       const grant = { email, uid: decodedToken.uid, tier: 'free' as const, foundingWave };
       await grantAccess(db, profileDocId, { ...grant, grantedVia: 'waitlist-approval-auto' });
       // A claimed wave seat: 'joined' stops it lapsing back to the pool
@@ -886,37 +885,11 @@ async function approveUserAndGrantAccess(
     })
   );
 
-  // Grant app access: the free tier plus the founding-member perk, which replaces the
-  // 10-year partner grant (decided 2026-10-18). An active subscription keeps its own tier.
+  // Grant app access as a founding member (replaced the 10-year partner grant, 2026-10-18)
   // Use email as a consistent user ID (base64 encoded)
   const userId = docId;
-
-  const profileRef = db.collection('user_profiles').doc(userId);
-  const founding = { foundingMember: true, foundingWave: 0, updatedAt: new Date() };
-  const existing = (await profileRef.get()).data() as { subscription?: { status?: string } } | undefined; // prettier-ignore
-  const keepTier = existing?.subscription?.status === 'active';
-  const freeTier = {
-    tier: 'free',
-    status: 'active',
-    subscribedAt: new Date(),
-    inTrial: false,
-    stripeCustomerId: null,
-    stripeSubscriptionId: null,
-    grantedVia: 'waitlist-approval',
-    monthlyUsage: { conversationCount: 0, minutesTalked: 0, lastUpdated: new Date() },
-  };
-  await profileRef.set(
-    keepTier
-      ? founding
-      : cleanForFirestore({
-          email: email.toLowerCase().trim(),
-          phone: waitlistData.phone || null,
-          ...founding,
-          subscription: freeTier,
-          createdAt: new Date(),
-        }),
-    { merge: true }
-  );
+  const profile = { email: email.toLowerCase().trim(), phone: waitlistData.phone || null };
+  await grantFoundingMember(db, userId, profile);
 
   log.info({ email: hashEmail(email), userId }, 'User granted access as a founding member');
 
