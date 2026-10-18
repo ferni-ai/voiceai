@@ -54,8 +54,9 @@ async function todaysEvents(userId: string, zone: string, now: Date): Promise<Br
     [-DAY_MS, 0, DAY_MS].map((d) => getEventsForDay(userId, new Date(now.getTime() + d)))
   );
   const byId = new Map(days.flat().map((e) => [e.id, e]));
-  // Someone else's invite they haven't accepted goes in without its title: anyone
-  // can send an invite, and its title would otherwise reach them as a Ferni text.
+  // Only their own events (Ferni's calendar, ones they organized) and invites they
+  // accepted go in by title. Anything else, including unknown, goes by time only:
+  // anyone can send an invite, and its title would reach them as a Ferni text.
   return [...byId.values()]
     .filter((e) => e.status !== 'cancelled' && e.ownerResponse !== 'declined')
     .filter((e) => sameLocalDay(e.startTime, now, zone))
@@ -63,7 +64,7 @@ async function todaysEvents(userId: string, zone: string, now: Date): Promise<Br
       title: e.title,
       start: e.startTime,
       allDay: e.isAllDay,
-      invite: e.ownerResponse === 'needsAction' || e.ownerResponse === 'tentative',
+      invite: e.ownerResponse !== 'organizer' && e.ownerResponse !== 'accepted',
     }));
 }
 

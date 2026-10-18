@@ -39,20 +39,26 @@ const FIRST_PERSON =
 
 // Contact details never go out in a brief: a title or task holding a link, a domain,
 // an email or a phone number could make a Ferni text carry someone else's phishing.
-// Each is a single linear pattern (no nested quantifiers), run on at most 200 chars.
-const URL_LIKE = /\b(?:https?:\/\/|www\.)\S+/gi;
-const EMAIL_LIKE = /\S+@\S+\.\S+/g;
-const DOMAIN_LIKE = /\b[a-z0-9-]+\.(?:com|net|org|io|co|app|ai|us|info|biz|xyz|link|ly|me|gg|to)\b\S*/gi;
-const PHONE_LIKE = /\+?\d[\d\s().-]{6,}\d/g;
+// NFKC folds full-width letters and dots first; each pattern is linear (no nested
+// quantifiers) and runs on at most 200 chars, again after the length cut.
+const URL_LIKE = /\b(?:https?:\/\/|www\.)\S+/giu;
+const EMAIL_LIKE = /\S+@\S+/gu;
+const DOMAIN_LIKE = /[\p{L}\p{N}-]+[.。｡][\p{L}]{2,}\S*/gu;
+const PHONE_LIKE = /\+?\d[\d\s().-]{6,}\d/gu;
 
-/** One item, safe for the brief: no dashes, ellipses, emoji or contact details, at most ITEM_CHARS. */
-export function cleanItem(raw: string): string {
-  const s = raw
+function withoutContacts(text: string): string {
+  return text
+    .normalize('NFKC')
     .slice(0, 200)
     .replace(URL_LIKE, ' ')
     .replace(EMAIL_LIKE, ' ')
     .replace(DOMAIN_LIKE, ' ')
-    .replace(PHONE_LIKE, ' ')
+    .replace(PHONE_LIKE, ' ');
+}
+
+/** One item, safe for the brief: no dashes, ellipses, emoji or contact details, at most ITEM_CHARS. */
+export function cleanItem(raw: string): string {
+  const s = withoutContacts(raw)
     .replace(/\s*[—–]\s*/g, ', ')
     .replace(/…|\.{2,}/g, ' ')
     .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '')
@@ -63,7 +69,9 @@ export function cleanItem(raw: string): string {
   if (s.length <= ITEM_CHARS) return s;
   const cut = s.slice(0, ITEM_CHARS + 1);
   const space = cut.lastIndexOf(' ');
-  return (space > 10 ? cut.slice(0, space) : cut.slice(0, ITEM_CHARS)).replace(/[\s,;:]+$/, '');
+  return withoutContacts(space > 10 ? cut.slice(0, space) : cut.slice(0, ITEM_CHARS))
+    .trim()
+    .replace(/[\s,;:]+$/, '');
 }
 
 /** "10am", "2:30pm" in the zone. */
@@ -104,7 +112,8 @@ export function composeMorningBrief(input: MorningBriefInput): string | null {
   const lists = {
     today: unique(
       events.map((e) => {
-        if (e.invite) return e.allDay ? 'an invite' : `an invite at ${clock(e.start, input.timeZone)}`;
+        if (e.invite)
+          return e.allDay ? 'an invite' : `an invite at ${clock(e.start, input.timeZone)}`;
         const title = cleanItem(e.title);
         return e.allDay || !title ? title : `${clock(e.start, input.timeZone)} ${title}`;
       })

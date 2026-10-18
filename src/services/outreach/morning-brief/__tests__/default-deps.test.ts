@@ -73,7 +73,8 @@ describe('readDay invites', () => {
             event('pending', '2026-10-19T16:00:00Z', { ownerResponse: 'needsAction' }),
             event('maybe', '2026-10-19T17:00:00Z', { ownerResponse: 'tentative' }),
             event('declined', '2026-10-19T18:00:00Z', { ownerResponse: 'declined' }),
-            event('ferni-own', '2026-10-19T19:00:00Z'),
+            event('ferni-own', '2026-10-19T19:00:00Z', { ownerResponse: 'organizer' }),
+            event('unknown', '2026-10-19T20:00:00Z'),
           ]
         : []
     );
@@ -85,6 +86,8 @@ describe('readDay invites', () => {
       ['pending', true],
       ['maybe', true],
       ['ferni-own', false],
+      // No organizer data at all: shown by time only (fail closed).
+      ['unknown', true],
     ]);
   });
 });

@@ -30,6 +30,7 @@ import {
   isCalendarConfigured,
   type CalendarEvent as GoogleCalendarEvent,
 } from '../identity/google-calendar-oauth.js';
+import { ownerResponseOf, type OwnerResponse } from '../identity/google-event-invite.js';
 import {
   getEventsForDay as getUnifiedEventsForDay,
   getEvents as getUnifiedEvents,
@@ -46,9 +47,7 @@ import type {
 
 const log = getLogger();
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 export interface CalendarEvent {
   id: string;
@@ -61,11 +60,8 @@ export interface CalendarEvent {
   attendees: string[];
   status: 'confirmed' | 'tentative' | 'cancelled';
   calendarId: string;
-  /**
-   * The owner's stance on it, from Google: 'organizer' (their own event),
-   * 'accepted', 'tentative', 'needsAction' or 'declined'. Undefined when not known.
-   */
-  ownerResponse?: 'organizer' | 'needsAction' | 'declined' | 'tentative' | 'accepted';
+  /** From Google: their own event, or their answer to someone else's invite. */
+  ownerResponse?: OwnerResponse;
 }
 
 export interface TimeSlot {
@@ -108,9 +104,7 @@ export interface WeekOverview {
   averageMeetingsPerDay: number;
 }
 
-// ============================================================================
 // ADAPTER FUNCTIONS (unified store <-> calendar-service types)
-// ============================================================================
 
 /**
  * Convert unified store event to calendar-service event type
@@ -130,6 +124,7 @@ function unifiedToCalendarEvent(
     attendees: unified.attendees,
     status: unified.status,
     calendarId: unified.externalCalendarId || calendarId,
+    ownerResponse: unified.source === 'ferni' ? 'organizer' : undefined,
   };
 }
 
@@ -178,9 +173,7 @@ function toUnifiedUpdateInput(updates: Partial<CreateEventInput>): UnifiedUpdate
   return result;
 }
 
-// ============================================================================
 // CONFIGURATION
-// ============================================================================
 
 const DEFAULT_CALENDAR_ID = 'primary';
 const WORK_DAY_START_HOUR = 9;
@@ -191,17 +184,6 @@ const BACK_TO_BACK_GAP_MINUTES = 15; // Less than 15 min gap = back to back
 // ============================================================================
 // CONVERSION HELPERS
 // ============================================================================
-
-/**
- * How the calendar's owner stands on an event someone else sent: 'accepted'
- * or 'organizer' for their own, else the invite's response. Unknown (no
- * organizer data) is undefined, not a guess.
- */
-function ownerResponse(event: GoogleCalendarEvent): CalendarEvent['ownerResponse'] {
-  if (!event.organizer) return undefined;
-  if (event.organizer.self) return 'organizer';
-  return event.attendees?.find((a) => a.self)?.responseStatus ?? 'needsAction';
-}
 
 function googleEventToCalendarEvent(event: GoogleCalendarEvent, calendarId: string): CalendarEvent {
   const startDateTime = event.start.dateTime || event.start.date;
@@ -218,7 +200,7 @@ function googleEventToCalendarEvent(event: GoogleCalendarEvent, calendarId: stri
     attendees: (event.attendees || []).map((a) => a.email),
     status: event.status || 'confirmed',
     calendarId,
-    ownerResponse: ownerResponse(event),
+    ownerResponse: ownerResponseOf(event),
   };
 }
 

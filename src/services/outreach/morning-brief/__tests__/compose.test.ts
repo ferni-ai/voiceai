@@ -133,6 +133,18 @@ describe('nothing in a brief can carry someone else\'s phishing', () => {
     expect(text).toContain('Sync');
   });
 
+  it('catches look-alike dots, any domain ending and a link at the length cut', () => {
+    for (const raw of [
+      'login at paypal．com now',
+      'go to account-help。support today',
+      'see evil.example/reset',
+      `${'word '.repeat(7)}https://evil.example/very/long/path`,
+    ]) {
+      const out = cleanItem(raw);
+      expect(out, raw).not.toMatch(/paypal|support|evil|https|\.com/i);
+    }
+  });
+
   it('cleans a pathological title quickly', () => {
     const t0 = performance.now();
     cleanItem(`${'1 '.repeat(5000)}x ${'a.'.repeat(5000)}com`);
