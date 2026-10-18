@@ -9498,7 +9498,14 @@
     "close": "닫기",
     "seeCost": "이번 통화 비용",
     "feedbackQuestion": "이번 대화는 어땠어요?",
-    "feedbackThanks": "고마워요, 도움이 돼요."
+    "feedbackThanks": "고마워요, 도움이 돼요.",
+    "pushAskQuestion": "이 일에 대해 Ferni가 안부를 물어봐도 될까요?",
+    "pushAskYes": "네, 좋아요",
+    "pushAskNotNow": "나중에요",
+    "pushAskDone": "완료했어요. Ferni의 메시지가 이 기기로 와요.",
+    "pushAskLater": "괜찮아요. 나중에 설정에서 바꿀 수 있어요.",
+    "pushAskHomeScreen": "여기서 Ferni의 메시지를 받으려면 홈 화면에 Ferni를 추가하세요: 공유를 누른 다음 홈 화면에 추가를 누르세요.",
+    "pushAskGotIt": "알겠어요"
   },
   "moments": {
     "teamUnlockTitle": "{name} 님 만나기",

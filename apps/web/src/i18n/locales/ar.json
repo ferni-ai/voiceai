@@ -9815,7 +9815,14 @@
     "close": "إغلاق",
     "seeCost": "تكلفة هذه المكالمة",
     "feedbackQuestion": "كيف كانت المكالمة؟",
-    "feedbackThanks": "شكرًا، هذا يساعدني."
+    "feedbackThanks": "شكرًا، هذا يساعدني.",
+    "pushAskQuestion": "هل تريد أن يطمئن Ferni عليك بخصوص هذا؟",
+    "pushAskYes": "نعم، من فضلك",
+    "pushAskNotNow": "ليس الآن",
+    "pushAskDone": "تم. ستصل رسائل Ferni إلى هذا الجهاز.",
+    "pushAskLater": "لا مشكلة. يمكنك تغيير ذلك من الإعدادات لاحقًا.",
+    "pushAskHomeScreen": "لتصلك رسائل Ferni هنا، أضف Ferni إلى الشاشة الرئيسية: اضغط مشاركة، ثم إضافة إلى الشاشة الرئيسية.",
+    "pushAskGotIt": "حسنًا"
   },
   "moments": {
     "teamUnlockTitle": "تعرف على {name}",

@@ -9498,7 +9498,14 @@
     "close": "Schließen",
     "seeCost": "Was dieser Anruf gekostet hat",
     "feedbackQuestion": "Wie war das Gespräch?",
-    "feedbackThanks": "Danke, das hilft mir."
+    "feedbackThanks": "Danke, das hilft mir.",
+    "pushAskQuestion": "Soll Ferni sich dazu bei dir melden?",
+    "pushAskYes": "Ja, gern",
+    "pushAskNotNow": "Nicht jetzt",
+    "pushAskDone": "Erledigt. Nachrichten von Ferni kommen auf dieses Gerät.",
+    "pushAskLater": "Kein Problem. Du kannst das später in den Einstellungen ändern.",
+    "pushAskHomeScreen": "Um hier Nachrichten von Ferni zu bekommen, füge Ferni zum Home-Bildschirm hinzu: Tippe auf Teilen, dann auf Zum Home-Bildschirm.",
+    "pushAskGotIt": "Verstanden"
   },
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",

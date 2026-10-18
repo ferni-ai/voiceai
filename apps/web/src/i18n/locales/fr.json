@@ -9579,7 +9579,14 @@
     "close": "Fermer",
     "seeCost": "Ce qu'a coûté cet appel",
     "feedbackQuestion": "Comment c'était ?",
-    "feedbackThanks": "Merci, ça m'aide."
+    "feedbackThanks": "Merci, ça m'aide.",
+    "pushAskQuestion": "Tu veux que Ferni prenne de tes nouvelles à ce sujet ?",
+    "pushAskYes": "Oui, volontiers",
+    "pushAskNotNow": "Pas maintenant",
+    "pushAskDone": "C'est fait. Les mots de Ferni arriveront sur cet appareil.",
+    "pushAskLater": "Pas de souci. Tu pourras changer ça dans les Réglages.",
+    "pushAskHomeScreen": "Pour recevoir les mots de Ferni ici, ajoute Ferni à ton écran d'accueil : touche Partager, puis Sur l'écran d'accueil.",
+    "pushAskGotIt": "Compris"
   },
   "moments": {
     "teamUnlockTitle": "Fais la connaissance de {name}",
