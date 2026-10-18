@@ -52,6 +52,7 @@ import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { callActions, claimedAction, kindsOfTool, type ActionKind } from './action-claims.js';
 import { withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
+import { callOutcomeUnheard, narratesCallOutcome, UNHEARD_LINE } from './call-narration.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -279,6 +280,9 @@ async function checkActionClaims<T>(
   // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
   const calendarCreateOpen = toolNames.some(isCalendarCreate);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
+  // A story of how a call went that no result came back from (call-narration.ts).
+  const callRan = [done, awaiting, failed, held].some((kinds) => kinds.has('call'));
+  const unheard = callOutcomeUnheard(chatCtx, callRan);
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
     !open.has(kind)
@@ -359,6 +363,17 @@ async function checkActionClaims<T>(
         emit(hold ? line : `Scratch that, ${line}`);
         lineLast = true;
       };
+      /** A story of how an unheard call went: dropped, and said honestly once. */
+      const told = (text: string): boolean => {
+        if (!unheard || !narratesCallOutcome(text, unheard.askedHow)) return false;
+        log.warn({ kind: 'call', reason: 'unheard', held: hold }, 'ACTION_CLAIM_DROPPED');
+        if (said) return true;
+        said = true;
+        const line = held.has('call') ? honestLine('call', 'held', false, heldWhen) : UNHEARD_LINE;
+        emit(hold ? line : `Scratch that, ${line}`);
+        lineLast = true;
+        return true;
+      };
       try {
         for (let next = await reader.read(); !next.done; next = await reader.read()) {
           const chunk = next.value;
@@ -369,7 +384,7 @@ async function checkActionClaims<T>(
             // flushing on them cut words at the piece break ("cr ickets", "don' t").
             const names = toolNamesOf(chunk);
             if (names.length > 0) {
-              if (pending) flush(pending);
+              if (pending && !told(pending)) flush(pending);
               pending = '';
               passed = 0;
             }
@@ -396,7 +411,7 @@ async function checkActionClaims<T>(
           pending += content;
           for (let end = sentenceEnd(pending); end > 0; end = sentenceEnd(pending)) {
             if (!hold) pass(pending.slice(passed, end)); // the rest of this sentence, then any correction
-            flush(pending.slice(0, end));
+            if (!told(pending.slice(0, end))) flush(pending.slice(0, end));
             pending = pending.slice(end);
             passed = 0;
           }
@@ -405,7 +420,7 @@ async function checkActionClaims<T>(
             passed = pending.length;
           }
         }
-        if (pending) flush(pending);
+        if (pending && !told(pending)) flush(pending);
         if (deferred && !said && !calling.has(deferred.kind)) {
           emit(honestLine(deferred.kind, deferred.reason, open.has('reminder')));
         }
