@@ -329,6 +329,7 @@
     isInVariant: isInVariant,
     getCurrentVariant: getCurrentVariant,
     getUserId: getUserId,
+    hasConsent: hasConsent,
     flushEvents: flushEvents,
   };
 

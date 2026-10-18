@@ -323,18 +323,28 @@
     window.addEventListener('beforeunload', function () {
       var timeOnPage = Math.round((Date.now() - pageLoadTime) / 1000);
 
-      // Final scroll depth
-      if (typeof window.FerniExperiments !== 'undefined') {
+      // Final scroll depth. The API records events only for a visitor id, and
+      // experiments.js mints one only after cookie consent, so without consent
+      // nothing is sent (the id-less beacon was refused with a 400).
+      var experiments = window.FerniExperiments;
+      if (
+        typeof experiments !== 'undefined' &&
+        typeof experiments.hasConsent === 'function' &&
+        experiments.hasConsent()
+      ) {
+        var userId = experiments.getUserId();
         // Use sendBeacon for reliability
         var events = [
           {
             experimentId: 'all',
+            userId: userId,
             eventType: 'engagement',
             goalId: 'final_scroll_depth',
             value: maxScrollDepth,
           },
           {
             experimentId: 'all',
+            userId: userId,
             eventType: 'engagement',
             goalId: 'time_on_page',
             value: timeOnPage,
@@ -369,7 +379,6 @@
     initFormTracking();
     initVisibilityTracking();
     initExitTracking();
-
   }
 
   // Initialize on DOM ready
