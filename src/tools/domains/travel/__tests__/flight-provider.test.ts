@@ -20,6 +20,7 @@ vi.mock('../../../../utils/safe-logger.js', () => {
   };
 });
 
+import { FLAG_MANIFEST } from '../../../../config/flag-manifest.js';
 import { findAirportCode } from '../airport-codes.js';
 import {
   flightProviderConfigured,
@@ -34,6 +35,12 @@ const QUERY = {
   passengers: 1,
   cabinClass: 'economy' as const,
 };
+
+describe('FLIGHT_PROVIDER in the flag manifest', () => {
+  it('defaults to amadeus, so nothing changes until the flag is set', () => {
+    expect(FLAG_MANIFEST.FLIGHT_PROVIDER.default).toBe('amadeus');
+  });
+});
 
 describe('selectedFlightProvider', () => {
   beforeEach(() => {

@@ -131,4 +131,22 @@ describe('searchFlights tool with FLIGHT_PROVIDER=ignav', () => {
 
     expect(reply).toContain('189 EUR');
   });
+
+  it('labels the Google Flights link as a search, not a booking', async () => {
+    const tools = await loadTools();
+
+    const reply = await tools.searchFlights.execute(
+      {
+        origin: 'BOS',
+        destination: 'DEN',
+        departureDate: 'next Friday',
+        passengers: 1,
+        cabinClass: 'economy',
+      },
+      ctx
+    );
+
+    expect(reply).toContain('Search at: https://www.google.com/flights?q=BOS+to+DEN');
+    expect(reply).not.toContain('Book at:');
+  });
 });

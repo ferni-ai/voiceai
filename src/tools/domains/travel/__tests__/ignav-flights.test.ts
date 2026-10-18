@@ -414,4 +414,69 @@ describe('IgnavFlightProvider', () => {
 
     expect(outcome).toEqual({ status: 'unavailable', reason: 'provider-error' });
   });
+
+  describe('airline name fallback', () => {
+    function withLegCarrier(carrier: string | null, segmentNames: Record<string, string | null>) {
+      const base = itinerary({ ignav_id: 'ig_fallback', amount: 120 });
+      return {
+        ...base,
+        outbound: {
+          ...base.outbound,
+          carrier,
+          segments: [{ ...base.outbound.segments[0], ...segmentNames }],
+        },
+      };
+    }
+
+    it('uses the marketing carrier code when the leg and operating names are null', async () => {
+      fetchMock.mockResolvedValue(
+        jsonReply(200, {
+          itineraries: [
+            withLegCarrier(null, { operating_carrier_name: null, marketing_carrier_code: 'WN' }),
+          ],
+        })
+      );
+
+      const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+      expect(outcome).toEqual({
+        status: 'live',
+        results: [expect.objectContaining({ airline: 'WN' })],
+      });
+    });
+
+    it("says 'Unknown' when no carrier name is given", async () => {
+      fetchMock.mockResolvedValue(
+        jsonReply(200, {
+          itineraries: [
+            withLegCarrier(null, { operating_carrier_name: null, marketing_carrier_code: null }),
+          ],
+        })
+      );
+
+      const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+      expect(outcome).toEqual({
+        status: 'live',
+        results: [expect.objectContaining({ airline: 'Unknown' })],
+      });
+    });
+  });
+
+  it('drops an itinerary that has no ignav_id and keeps the others', async () => {
+    const withoutId = { ...itinerary({ amount: 90, carrier: 'AA' }) } as Record<string, unknown>;
+    delete withoutId.ignav_id;
+    fetchMock.mockResolvedValue(
+      jsonReply(200, {
+        itineraries: [withoutId, itinerary({ ignav_id: 'ig_kept', amount: 200, carrier: 'UA' })],
+      })
+    );
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({
+      status: 'live',
+      results: [expect.objectContaining({ id: 'ig_kept', airline: 'UA' })],
+    });
+  });
 });
