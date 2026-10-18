@@ -324,7 +324,7 @@
       "contactInfo": "Staying in Touch",
       "howIReachYou": "How I reach you",
       "howIReachYouHint": "Your number, and whether I text, call or leave a note in the app",
-      "exportData": "Take Your Story",
+      "exportData": "Privacy & your data",
       "shareFerni": "Bring a Friend",
       "supportFerni": "Support Ferni",
       "takeTour": "Show Me Around",
@@ -9438,7 +9438,8 @@
     },
     "exportFormat": "Export format",
     "deleteAll": "Delete All Data",
-    "footer": "Your data belongs to you. We respect your privacy.",
+    "footer": "I save our conversations and the things you tell me so I can remember them next time, and if you ever want them gone, deleting your account erases them.",
+    "privacyPolicyLink": "Read the privacy policy",
     "deleteAccount": "Delete my account",
     "confirmDeleteAll": "Are you sure you want to delete all your data? This cannot be undone.",
     "confirmDeleteAccount": "Delete your Ferni account? This erases everything Ferni knows about you and signs you out for good. It cannot be undone."
