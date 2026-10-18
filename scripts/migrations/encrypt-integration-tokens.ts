@@ -10,7 +10,7 @@
  *
  * --apply needs proof that this run seals with the servers' key: either an
  * envelope the servers already wrote opens with it, or --expect-kid matches
- * the token_at_rest_kid the web server and agent log at boot (also on /health).
+ * the token_at_rest_kid the web server and agent log at boot.
  * It refuses otherwise, and with no key at all (encryptData would write plain JSON).
  *
  * Per record: plaintext is sealed and its plaintext keys deleted; an
@@ -212,7 +212,7 @@ export async function assertServerKey(db: Firestore, seen: string[], expectKid?:
   }
   if (!(await keyOpensServerEnvelope(db, seen))) {
     throw new Error(
-      `No server-written envelope opens with kid ${kid}; pass --expect-kid=<kid from the servers' boot log or /health>`
+      `No server-written envelope opens with kid ${kid}; pass --expect-kid=<token_at_rest_kid from the servers boot log>`
     );
   }
 }
