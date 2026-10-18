@@ -313,7 +313,7 @@ export type OnBehalfSkip =
   | 'no-hash-secret'
   | 'bad-number'
   | 'opted-out'
-  | 'no-consent'
+  | 'needs-consent'
   | 'recently-sent'
   | 'quiet-hours'
   | 'send-failed';
@@ -410,7 +410,7 @@ export async function sendOnBehalfText(
 async function onBehalfConsent(
   t: OnBehalfText,
   deps: TextDeps
-): Promise<'opted-out' | 'no-consent' | 'send-failed' | null> {
+): Promise<'opted-out' | 'needs-consent' | 'send-failed' | null> {
   const ownNumber = async (): Promise<boolean> =>
     isOwnVerifiedPhone(t.senderUserId, t.toPhone, deps);
   const block: ConsentBlock | null = await consentBlocks(
@@ -447,7 +447,7 @@ export async function textOnBehalf(
 export function onBehalfNotSent(name: string, reason: OnBehalfSkip): string {
   const why: Record<OnBehalfSkip, string> = {
     'opted-out': "that number replied STOP to our texts, so I can't text it",
-    'no-consent': "they haven't agreed to texts from me yet (they can text START to my number)",
+    'needs-consent': "they haven't said yes to texts from me yet",
     'quiet-hours': "it's late where they are (9pm to 8am their time). Nothing is queued",
     'recently-sent': 'I already texted that number in the last ten minutes',
     'bad-number': "that doesn't look like a valid phone number",

@@ -55,7 +55,7 @@ let isRunning = false;
 let config = DEFAULT_CONFIG;
 
 /** Guard skips that end a scheduled text rather than fail it. */
-const FINAL_SKIPS: ReadonlySet<string> = new Set(['opted-out', 'no-consent', 'bad-number']);
+const FINAL_SKIPS: ReadonlySet<string> = new Set(['opted-out', 'needs-consent', 'bad-number']);
 /** A held item released this long after its time is stale: cancelled, never sent as a backlog. */
 const HELD_EXPIRY_MS = 24 * 60 * 60 * 1000;
 

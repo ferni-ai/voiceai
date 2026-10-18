@@ -88,7 +88,7 @@ describe('sendGuardedText (owner texts)', () => {
 describe('sendOnBehalfText / textOnBehalf (texts to someone else)', () => {
   it('refuses a third party who never opted in', async () => {
     const { d, send } = textDeps(ON);
-    expect(await sendOnBehalfText(friendText, d)).toEqual({ sent: false, reason: 'no-consent' });
+    expect(await sendOnBehalfText(friendText, d)).toEqual({ sent: false, reason: 'needs-consent' });
     expect(send).not.toHaveBeenCalled();
   });
 
@@ -114,7 +114,7 @@ describe('sendOnBehalfText / textOnBehalf (texts to someone else)', () => {
 
   it('the unguarded rollback path (ON_BEHALF_TEXT_GUARD=off) still reads consent', async () => {
     const { d, send } = textDeps({ ...ON, ON_BEHALF_TEXT_GUARD: 'off' });
-    expect(await textOnBehalf(friendText, d)).toEqual({ sent: false, reason: 'no-consent' });
+    expect(await textOnBehalf(friendText, d)).toEqual({ sent: false, reason: 'needs-consent' });
     expect(send).not.toHaveBeenCalled();
   });
 
