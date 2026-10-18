@@ -14,6 +14,7 @@ import type { IncomingMessage, Server, ServerResponse } from 'http';
 import { createLogger } from './safe-logger.js';
 import { registerInterval, clearNamedInterval } from './interval-manager.js';
 import { getClientIp } from './client-ip.js';
+import { tokenKeyHealth } from './token-encryption.js';
 
 export { getClientIp };
 
@@ -290,10 +291,9 @@ export function handleHealthEndpoint(
     return true;
   }
 
-  // Basic health check - minimal info
   if (pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', service: serviceName }));
+    res.end(JSON.stringify({ status: 'ok', service: serviceName, ...tokenKeyHealth() }));
     return true;
   }
 

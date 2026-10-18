@@ -160,7 +160,9 @@ export async function getUserTokens(userId: string): Promise<EcobeeTokens | unde
     if (firestore) {
       try {
         const doc = await firestore.collection(ECOBEE_TOKENS_COLLECTION).doc(userId).get();
-        const data = doc.exists ? openTokens<EcobeeTokens>(doc.data()) : null;
+        const data = doc.exists
+          ? openTokens<EcobeeTokens>(doc.data(), ECOBEE_TOKENS_COLLECTION)
+          : null;
         if (data) {
           userTokens.set(userId, data);
           loadedTokenUsers.add(userId);

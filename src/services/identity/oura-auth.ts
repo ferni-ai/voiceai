@@ -309,7 +309,7 @@ async function getTokens(userId: string): Promise<OuraTokens | null> {
     const doc = await db.collection(FIRESTORE_COLLECTION).doc(userId).get();
     if (!doc.exists) return null;
 
-    const data = openTokens<OuraTokens>(doc.data());
+    const data = openTokens<OuraTokens>(doc.data(), FIRESTORE_COLLECTION);
     if (!data) return null;
     tokenCache.set(userId, data);
     return data;

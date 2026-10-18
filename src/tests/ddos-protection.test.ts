@@ -320,6 +320,8 @@ describe('DDoS Protection', () => {
       expect(JSON.parse(res._body)).toEqual({
         status: 'ok',
         service: 'test-service',
+        tokenKid: expect.any(String),
+        tokenKeySource: expect.any(String),
       });
     });
 

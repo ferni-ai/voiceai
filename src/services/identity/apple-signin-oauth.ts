@@ -341,7 +341,7 @@ export async function getTokens(userId: string): Promise<AppleTokens | null> {
     return null;
   }
 
-  return openTokens<AppleTokens>(doc.data());
+  return openTokens<AppleTokens>(doc.data(), 'apple_calendar_tokens');
 }
 
 /**

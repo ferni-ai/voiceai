@@ -15,6 +15,8 @@ interface EncryptedPayload {
   iv: string;
   authTag: string;
   data: string;
+  /** tokenKeyId() of the key that sealed it (absent on envelopes written before kids). */
+  kid?: string;
 }
 
 const log = createLogger({ module: 'Encryption' });
@@ -32,6 +34,41 @@ export function resolveTokenKey(): { source: TokenKeySource; key: string } {
     return { source: 'LOG_HASH_SECRET', key: process.env.LOG_HASH_SECRET };
   }
   return { source: 'none', key: '' };
+}
+
+/** Key id of a raw key: the first 8 hex of HMAC-SHA256(key, "ferni-token-kid"). */
+export function keyIdOf(key: string): string {
+  return crypto.createHmac('sha256', key).update('ferni-token-kid').digest('hex').slice(0, 8);
+}
+
+/**
+ * Key id of the effective token key, or "none". Non-reversible, so safe to log
+ * and to serve: two processes with the same kid seal and open each other's tokens.
+ */
+export function tokenKeyId(): string {
+  const { key } = resolveTokenKey();
+  return key === '' ? 'none' : keyIdOf(key);
+}
+
+/** For /health: which key this process uses (kid only, never the key). */
+export function tokenKeyHealth(): { tokenKid: string; tokenKeySource: TokenKeySource } {
+  return { tokenKid: tokenKeyId(), tokenKeySource: resolveTokenKey().source };
+}
+
+/** Why a sealed envelope did not open: for a warning, never containing the key or the data. */
+export function envelopeFailure(encryptedStr: string): { reason: string; envelopeKid?: string } {
+  let parsed: Partial<EncryptedPayload>;
+  try {
+    parsed = JSON.parse(encryptedStr) as Partial<EncryptedPayload>;
+  } catch {
+    return { reason: 'malformed' };
+  }
+  const envelopeKid = typeof parsed.kid === 'string' ? parsed.kid : undefined;
+  if (resolveTokenKey().key === '') return { reason: 'no-key', envelopeKid };
+  if (envelopeKid !== undefined && envelopeKid !== tokenKeyId()) {
+    return { reason: 'kid-mismatch', envelopeKid };
+  }
+  return { reason: 'decrypt-failed', envelopeKid };
 }
 
 /**
@@ -88,6 +125,7 @@ export function encryptData<T>(data: T): string {
     iv: iv.toString('base64'),
     authTag: authTag.toString('base64'),
     data: encrypted,
+    kid: tokenKeyId(),
   };
 
   return JSON.stringify(payload);

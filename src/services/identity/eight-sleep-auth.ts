@@ -162,7 +162,9 @@ export async function getUserTokens(userId: string): Promise<EightSleepTokens | 
     if (firestore) {
       try {
         const doc = await firestore.collection(EIGHT_SLEEP_TOKENS_COLLECTION).doc(userId).get();
-        const data = doc.exists ? openTokens<EightSleepTokens>(doc.data()) : null;
+        const data = doc.exists
+          ? openTokens<EightSleepTokens>(doc.data(), EIGHT_SLEEP_TOKENS_COLLECTION)
+          : null;
         if (data) {
           userTokens.set(userId, data);
           loadedTokenUsers.add(userId);
