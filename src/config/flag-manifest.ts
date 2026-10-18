@@ -234,7 +234,7 @@ export const FLAG_MANIFEST = {
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // Keep off until #1855 (the Places-confirmed city) is merged. #1760 merged with an unverified head.
+  // Keep off: needs #1855, the privacy-page wording, and a ruling on Maps terms for storing the locality. #1760 merged with an unverified head.
   PLACES_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read in patches/@livekit__agents@1.9.3.patch

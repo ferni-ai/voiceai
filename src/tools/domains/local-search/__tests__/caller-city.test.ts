@@ -259,7 +259,7 @@ describe('saving the city', () => {
       phoneInStGeorge
     );
     expect(result).toMatch(/couldn't check that place/);
-    expect(result).not.toMatch(/Saved\./);
+    expect(result).not.toMatch(/^Saved /);
     expect(store.prefs.get('u1')?.callerCity).toBeUndefined();
   });
 
@@ -361,7 +361,7 @@ describe('saving the city', () => {
       phoneInStGeorge
     );
     expect(result).toMatch(/couldn't save/);
-    expect(result).not.toMatch(/Saved\./);
+    expect(result).not.toMatch(/^Saved /);
     expect(store.prefs.get('u1')?.callerCity).toBeUndefined();
   });
 
