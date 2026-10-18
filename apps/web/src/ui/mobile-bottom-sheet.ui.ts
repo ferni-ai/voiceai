@@ -9,7 +9,6 @@
  * Hide the dashboard complexity, reveal on demand.
  */
 
-import { openContactSettings } from './lazy-screens.js';
 import { t } from '../i18n/index.js';
 import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
 import { openDialog, type DialogHandle } from './overlay/dialog.js';
@@ -315,7 +314,8 @@ function getDefaultActions(): BottomSheetAction[] {
       label: t('menu.items.howIReachYou'),
       onClick: () => {
         close();
-        void openContactSettings();
+        // lazy: a static import pulls every screen into this module's graph
+        void import('./lazy-screens.js').then((m) => m.openContactSettings());
       },
     },
     {
