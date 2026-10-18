@@ -440,7 +440,10 @@ function injectStyles(): void {
       flex-shrink: 0;
     }
     
-    .progress-ring svg {
+    /* Only the ring turns (so progress starts at 12 o'clock); a plain
+       descendant selector also turned the heart icon on its side. */
+    .progress-ring > svg {
+      display: block;
       transform: rotate(-90deg);
     }
     
@@ -460,13 +463,16 @@ function injectStyles(): void {
     
     .progress-ring-icon {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
       color: var(--persona-text);
     }
-    
+
     .progress-ring-icon svg {
+      display: block;
       width: 18px;
       height: 18px;
     }
@@ -572,7 +578,8 @@ function injectStyles(): void {
       margin: 0 auto var(--space-3, 12px);
     }
     
-    .progress-ring-large svg {
+    .progress-ring-large > svg {
+      display: block;
       transform: rotate(-90deg);
     }
     
@@ -608,10 +615,15 @@ function injectStyles(): void {
     }
     
     .progress-ring-icon-large {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
       color: var(--persona-text);
     }
-    
+
     .progress-ring-icon-large svg {
+      display: block;
       width: 28px;
       height: 28px;
     }
