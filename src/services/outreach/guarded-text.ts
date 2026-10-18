@@ -48,8 +48,15 @@ import {
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
 import {
+  attestedIntro,
+  holdsConsentAsk,
+  isOwnerAttested,
+  ownerFirstName,
+} from '../messaging/consent-grants.js';
+import {
   consentBlocks,
   defaultConsentDeps,
+  messagingPipelineOn,
   type ConsentBlock,
   type ConsentDeps,
 } from '../messaging/consent.js';
@@ -307,6 +314,10 @@ export interface OnBehalfText {
   readonly zone?: string;
   /** The persona it is sent as (SMS signature); Ferni when unset. */
   readonly personaId?: string;
+  /** The owner's name for a first-contact intro; else their account's. */
+  readonly ownerName?: string;
+  /** Only sendConsentAsk sets this: its claim, which lets the one consent ask reach unknown consent. */
+  readonly consentAskClaim?: string;
 }
 
 export type OnBehalfSkip =
@@ -370,15 +381,16 @@ export async function sendOnBehalfText(
   if (optedOut) return skip('opted-out');
   const consent = await onBehalfConsent(t, deps);
   if (consent) return skip(consent);
-  if (sentWithin(lastSentAt(toPhone, 'on-behalf'), now, ON_BEHALF_GAP_MS))
-    return skip('recently-sent');
+  const lastToThem = lastSentAt(toPhone, 'on-behalf');
+  if (sentWithin(lastToThem, now, ON_BEHALF_GAP_MS)) return skip('recently-sent');
+  const body = await firstContactBody(t, hash, lastToThem === null, deps);
 
   const storedId = recordUserId(t.senderUserId, deps.env) ?? 'unknown';
   const record: CheckinRecord = {
     userId: storedId,
     sessionId: t.refId,
     sentAt: now.toISOString(),
-    question: t.body,
+    question: body,
     status: 'sent',
     phoneLast4: last4(to),
     phoneHash: hash,
@@ -387,7 +399,7 @@ export async function sendOnBehalfText(
   };
   const result = await lockedSend(deps, ON_BEHALF_GAP_MS, record, {
     to,
-    body: t.body,
+    body,
     personaId: t.personaId ?? 'ferni',
     userId: storedId,
     outreachId: t.refId,
@@ -411,7 +423,12 @@ async function onBehalfConsent(
   t: OnBehalfText,
   deps: TextDeps
 ): Promise<'opted-out' | 'needs-consent' | 'send-failed' | null> {
+  const hash = phoneHash(t.toPhone, deps.env);
+  const claim = t.consentAskClaim;
   const ownNumber = async (): Promise<boolean> =>
+    (claim !== undefined &&
+      hash !== null &&
+      (await holdsConsentAsk(hash, claim, consentOf(deps)))) ||
     isOwnVerifiedPhone(t.senderUserId, t.toPhone, deps);
   const block: ConsentBlock | null = await consentBlocks(
     t.toPhone,
@@ -420,6 +437,19 @@ async function onBehalfConsent(
     consentOf(deps)
   );
   return block === 'unverifiable' ? 'send-failed' : block;
+}
+
+/** MESSAGING_PIPELINE: the first text after an owner's attestation says who is writing, and for whom. */
+async function firstContactBody(
+  t: OnBehalfText,
+  hash: string,
+  firstText: boolean,
+  deps: TextDeps
+): Promise<string> {
+  if (!firstText || !messagingPipelineOn(deps.env)) return t.body;
+  if (!(await isOwnerAttested(hash, 'sms', consentOf(deps)).catch(() => false))) return t.body;
+  const owner = t.ownerName ?? ownerFirstName(await deps.store.userDoc(t.senderUserId));
+  return attestedIntro(owner, t.body);
 }
 
 /**

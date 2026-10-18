@@ -344,6 +344,15 @@ export const firestoreCohortStore: CohortStore = {
   },
 };
 
+/** True when the user is a named member of the enabled cohort `cohortId` (samples don't count). */
+export async function isCohortMember(
+  userId: string,
+  cohortId: string,
+  store: CohortStore = firestoreCohortStore
+): Promise<boolean> {
+  return (await store.cohortsFor(userId)).some((c) => c.id === cohortId && c.enabled);
+}
+
 /** Finds who might have a flag on, without reading every user. */
 export interface FlagHolderStore {
   /** Members of cohorts setting `flag` to 'on', and users whose own override sets it 'on'. */

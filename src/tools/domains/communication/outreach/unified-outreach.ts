@@ -31,21 +31,21 @@ import {
   type ContactRelationship,
 } from '../../../../services/contacts/contact-relationship-service.js';
 
-// Outreach services
 import { calculateOptimalTime } from '../../../../services/outreach/timing-intelligence.js';
 import { makeConversationalCall } from '../../../../services/outreach/conversational-calls.js';
 import type { OutboundCallContext } from '../../../../services/outreach/conversational-calls.js';
 
-// Delivery services
 import { onBehalfNotSent, textOnBehalf } from '../../../../services/outreach/guarded-text.js';
+import { thirdPartyRefusal } from '../../../../services/messaging/consent-grants.js';
 import { sendEmail } from '../../../../services/outreach/delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 
-// Message crafting
 import { craftPersonalizedMessage } from './message-crafting.js';
 import { PLAN_ONLY, PLANNED, type Planned } from './outreach-confirm.js';
 
 const log = createLogger({ module: 'unified-outreach' });
+const notAgreed = (why: string): string =>
+  why === 'opted-out' ? 'They asked not to be called.' : "They haven't said yes to my calls yet.";
 
 // ============================================================================
 // TYPES
@@ -215,7 +215,6 @@ function selectOptimalChannel(ctx: OutreachContext): OutreachDecision {
   const selected = available[0];
   const reasoning: string[] = [];
 
-  // Generate human-readable reasoning
   if (needsConversation(intent, purpose) && selected === 'conversation') {
     reasoning.push('This seems like something worth having a real conversation about');
   } else if (intent === 'wish_well' && selected === 'text') {
@@ -259,10 +258,8 @@ async function gatherOutreachContext(
     (now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24)
   );
 
-  // Get recent topics for personalization
   const recentTopics = contact.topics?.slice(0, 5).map((t) => t.topic) || [];
 
-  // Check for pending follow-ups
   const pendingFollowUp =
     contact.pendingFollowUp?.completed === false ? contact.pendingFollowUp.reason : undefined;
 
@@ -295,7 +292,6 @@ async function executeOutreach(
   const { channel } = decision;
   const outreachId = `outreach_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  // Craft the message (LLM-powered if no custom message)
   const message =
     customMessage ||
     (await craftPersonalizedMessage({
@@ -311,6 +307,10 @@ async function executeOutreach(
   const to = channel === 'email' ? contact.email : contact.phone;
   const plan = { contactName: contact.name, contactId: contact.id, to };
   if (planOnly) return { success: true, channel, message, ...plan };
+  // MESSAGING_PIPELINE: a call to anyone but the owner needs their consent (consent-grants.ts).
+  const isCall = ['call', 'voicemail', 'conversation'].includes(channel);
+  const refused = isCall && to ? await thirdPartyRefusal(userId, to, 'call') : null;
+  if (refused) return { success: false, channel, message, ...plan, error: notAgreed(refused) };
 
   log.info(
     {
@@ -375,7 +375,6 @@ async function executeOutreach(
       const result = await makeConversationalCall(callContext);
 
       if (result.status === 'initiating' || result.status === 'ringing') {
-        // Record interaction
         await recordInteraction(userId, {
           contactId: contact.id,
           userId,

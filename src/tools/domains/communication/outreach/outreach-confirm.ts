@@ -220,6 +220,24 @@ export interface ConfirmSpec {
   ) => Promise<{ args: Record<string, unknown>; readBack: string } | string>;
 }
 
+const CALL_CHANNELS = ['call', 'voicemail', 'conversation'];
+
+/**
+ * MESSAGING_PIPELINE: the owner's yes to a planned text or call is their
+ * attestation that the contact is happy to hear from Ferni on that channel,
+ * recorded only for a friends-and-family owner (consent-grants.ts).
+ */
+async function attestOnConfirm(userId: string, args: Record<string, unknown>): Promise<void> {
+  const planned = (args as { [PLANNED]?: Planned })[PLANNED];
+  if (!planned?.to || planned.channel === 'email') return;
+  const { messagingPipelineOn } = await import('../../../../services/messaging/consent.js');
+  if (!messagingPipelineOn()) return;
+  const { recordOwnerAttestation } =
+    await import('../../../../services/messaging/consent-grants.js');
+  const channel = CALL_CHANNELS.includes(planned.channel) ? 'call' : 'sms';
+  await recordOwnerAttestation(planned.to, channel, userId);
+}
+
 /** Wrap an outbound tool so it acts only on a caller's yes (see the module comment). */
 export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec): ToolDefinition {
   if ((def as unknown as Record<symbol, unknown>)[GATED]) return def;
@@ -256,6 +274,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         ) {
           entry.pending = undefined; // taken before sending, so a second call can't repeat it
           log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: caller said yes, sending');
+          await attestOnConfirm(ctx.userId, pending.args);
           return sentConfirmThread(pending, execute(pending.args, opts));
         }
         if (entry.pending) dropConfirmThread(entry.pending); // replaced or discarded, never sent

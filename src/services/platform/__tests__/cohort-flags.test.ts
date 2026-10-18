@@ -14,6 +14,7 @@ import {
   flagForUser,
   forgetAgentValues,
   inSample,
+  isCohortMember,
   missingPrerequisites,
   forgetFlagCache,
   usersWithFlag,
@@ -463,5 +464,20 @@ describe('missingPrerequisites', () => {
         WORLD_FACTS_IN_CALL: 'on',
       })
     ).toEqual([]);
+  });
+});
+
+describe('isCohortMember', () => {
+  const ff = (enabled: boolean): Cohort => ({ id: 'friends-and-family', enabled, flags: {} });
+  it('a named member of the enabled cohort is one; a disabled cohort or another cohort is not', async () => {
+    const s = store({
+      a: [ff(true)],
+      b: [ff(false)],
+      c: [{ id: 'seth', enabled: true, flags: {} }],
+    });
+    expect(await isCohortMember('a', 'friends-and-family', s)).toBe(true);
+    expect(await isCohortMember('b', 'friends-and-family', s)).toBe(false);
+    expect(await isCohortMember('c', 'friends-and-family', s)).toBe(false);
+    expect(await isCohortMember('nobody', 'friends-and-family', s)).toBe(false);
   });
 });

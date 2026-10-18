@@ -46,7 +46,8 @@ const HISTORY_MAX = 20;
 export type ConsentChannel = 'sms' | 'call';
 export type ConsentState = 'opted-in' | 'opted-out' | 'unknown';
 /** Where a change came from; short codes only, never message text. */
-export type ConsentSource = 'inbound-sms' | 'voice-call' | 'legacy-store';
+export type ConsentSource =
+  'inbound-sms' | 'voice-call' | 'legacy-store' | 'contact-yes' | 'owner-attested';
 
 export interface ChannelConsent {
   state: ConsentState;
@@ -111,13 +112,17 @@ export async function readConsent(
   return consent;
 }
 
-/** Every channel in one transaction, so a STOP for texts and calls never lands half-written. */
-async function writeConsent(
+/**
+ * Every channel in one transaction, so a STOP for texts and calls never lands
+ * half-written. `extra` is stored on each channel (an attesting owner's uid).
+ */
+export async function writeConsent(
   hash: string,
   channels: readonly ConsentChannel[],
   state: Exclude<ConsentState, 'unknown'>,
   source: ConsentSource,
-  deps: ConsentDeps
+  deps: ConsentDeps,
+  extra: Record<string, string> = {}
 ): Promise<void> {
   const at = deps.now().toISOString();
   const keyVersion = phoneHashKeyVersion(deps.env);
@@ -126,7 +131,7 @@ async function writeConsent(
     const changes = channels.map((c) => `${at} ${c} ${state} ${source}`);
     return {
       ...doc,
-      ...Object.fromEntries(channels.map((c) => [c, { state, source, at }])),
+      ...Object.fromEntries(channels.map((c) => [c, { state, source, at, ...extra }])),
       updatedAt: at,
       keyVersion,
       history: [...history, ...changes].slice(-HISTORY_MAX),
@@ -177,7 +182,7 @@ const STOP_CALLING =
   /^(please )?(stop calling|don'?t call|do not call)( me)?( again| anymore)?( please)?$/;
 
 /** Lower case, curly quotes straightened, punctuation gone, spaces collapsed: "Stop ." is "stop". */
-const normalize = (body: string): string =>
+export const normalizeReply = (body: string): string =>
   body
     .toLowerCase()
     .replace(/[\u2018\u2019]/g, "'")
@@ -194,7 +199,7 @@ const normalize = (body: string): string =>
  * Anything else is not a consent change here.
  */
 export function consentKeyword(body: string): ConsentKeyword | null {
-  const said = normalize(body);
+  const said = normalizeReply(body);
   if (OPT_OUT_WORDS.has(said)) return { state: 'opted-out', channels: ['sms'] };
   if (STOP_CALLING.test(said)) return { state: 'opted-out', channels: ['sms', 'call'] };
   if (OPT_IN_WORDS.has(said)) return { state: 'opted-in', channels: ['sms'] };
@@ -268,10 +273,11 @@ export type ConsentBlock = 'opted-out' | 'needs-consent' | 'unverifiable';
  * Null when `channel` to `phone` is allowed, else why not. With the flag off,
  * always null (each sender keeps its own checks). Fails closed: a number that
  * can't be hashed, or a store that can't be read, refuses. `allowUnknown` is
- * asked only when the phone's consent is unknown. For texts it is "is this the
- * owner's own verified number?" (a function, asked only then): a third party
- * must have opted in. Calls pass true: a call to someone else already needs the owner's confirmation
- * (OUTBOUND_CONFIRM), so only an opt-out stops it.
+ * asked only when the phone's consent is unknown: "is this the owner's own
+ * verified number?" (a function, asked only then), since a third party must
+ * have said yes (consent-grants.ts). Shared transport senders pass true: they
+ * can't tell who they reach, so they stop only at an opt-out, and the caller
+ * that knows does the third-party check.
  */
 export async function consentBlocks(
   phone: string,
