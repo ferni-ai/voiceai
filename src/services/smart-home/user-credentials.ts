@@ -157,6 +157,23 @@ async function decryptSonosCredentials(creds: SonosCredentials): Promise<SonosCr
 // ============================================================================
 
 /**
+ * A smart_home doc as any reader should see it: opened if the web routes
+ * sealed it, with the `enc_` fields this module writes decrypted. Docs that
+ * are not token-shaped (homekit) come back as stored.
+ */
+export async function openSmartHomeCredentials<T>(
+  integration: string,
+  stored: unknown
+): Promise<T | null> {
+  const raw = openSealedOrRaw<DocumentData>(stored, `smart_home/${integration}`);
+  if (!raw) return null;
+  if (integration === 'hue') return (await decryptHueCredentials(raw as HueCredentials)) as T;
+  if (integration === 'lifx') return (await decryptLifxCredentials(raw as LifxCredentials)) as T;
+  if (integration === 'sonos') return (await decryptSonosCredentials(raw as SonosCredentials)) as T;
+  return raw as T;
+}
+
+/**
  * Load all smart home credentials for a user
  */
 export async function getUserSmartHomeCredentials(userId: string): Promise<SmartHomeCredentials> {
@@ -228,26 +245,9 @@ export async function getCredential<K extends keyof SmartHomeCredentials>(
 
     if (!doc.exists) return null as SmartHomeCredentials[K];
 
-    // Open a doc the web routes sealed, then decrypt (handles legacy unencrypted data)
-    const rawData = openSealedOrRaw<DocumentData>(doc.data(), `smart_home/${type}`);
-    if (!rawData) return null as SmartHomeCredentials[K];
-    switch (type) {
-      case 'hue':
-        return (await decryptHueCredentials(rawData as HueCredentials)) as SmartHomeCredentials[K];
-      case 'lifx':
-        return (await decryptLifxCredentials(
-          rawData as LifxCredentials
-        )) as SmartHomeCredentials[K];
-      case 'sonos':
-        return (await decryptSonosCredentials(
-          rawData as SonosCredentials
-        )) as SmartHomeCredentials[K];
-      case 'homeKit':
-        // HomeKit has no sensitive credentials
-        return rawData as SmartHomeCredentials[K];
-      default:
-        return rawData as SmartHomeCredentials[K];
-    }
+    // Same view as the web routes: opened if sealed, enc_ fields decrypted
+    const docId = type === 'homeKit' ? 'homekit' : type;
+    return (await openSmartHomeCredentials(docId, doc.data())) as SmartHomeCredentials[K];
   } catch (error) {
     log.error({ error: String(error), userId, type }, 'Failed to load credential');
     return null as SmartHomeCredentials[K];

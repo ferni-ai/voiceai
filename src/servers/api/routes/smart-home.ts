@@ -14,7 +14,8 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { openSealedOrRaw, sealTokens } from '../../../utils/token-at-rest.js';
+import { sealTokens } from '../../../utils/token-at-rest.js';
+import { openSmartHomeCredentials } from '../../../services/smart-home/user-credentials.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
 import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
@@ -107,7 +108,7 @@ export async function getCredentials<T>(userId: string, integration: string): Pr
       .get();
 
     if (!doc.exists) return null;
-    return openSealedOrRaw<T>(doc.data(), `smart_home/${integration}`);
+    return await openSmartHomeCredentials<T>(integration, doc.data()); // also decrypts enc_ fields
   } catch (error) {
     log.error({ error, userId, integration }, 'Failed to get credentials');
     return null;
