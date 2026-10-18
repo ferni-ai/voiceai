@@ -22,6 +22,7 @@
 
 import type { llm } from '@livekit/agents';
 import { latestUserText } from '../retrieval/turn-tool-retrieval.js';
+import { aliasesInTransfer } from '../../utils/transfer-aliases.js';
 import { misheardTeammates, teammateHeardAs } from './teammate-names.js';
 
 export function handoffAskFirstEnabled(
@@ -46,7 +47,9 @@ function names(text: string, agentName: string): boolean {
     .some((w) => new RegExp(`\\b${escape(w)}\\b`, 'i').test(text));
   if (byName) return true;
   const target = teammateHeardAs(agentName.split(/\s+/)[0] ?? '');
-  return target !== null && misheardTeammates(text).some((m) => m.id === target);
+  if (target === null) return false;
+  // "pass me to 9" is Nayan only as the target of a transfer (utils/transfer-aliases.ts)
+  return [...misheardTeammates(text), ...aliasesInTransfer(text)].some((m) => m.id === target);
 }
 
 /**

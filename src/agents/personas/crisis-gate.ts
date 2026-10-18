@@ -39,6 +39,7 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
+import { noteCrisisEscalation } from '../../services/safety/crisis-escalations.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
@@ -178,6 +179,7 @@ export function startCrisisGate(
   });
   const decision = decisionFor(detection);
   if (decision.action !== 'pass') {
+    noteCrisisEscalation(sessionScope(userData)); // a pattern match is a real escalation
     log.info(
       { action: decision.action, source: 'patterns', indicators: detection.indicators },
       'CRISIS_GATE'
@@ -195,7 +197,7 @@ export function startCrisisGate(
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const run = startCrisisClassifier(
     { latest, earlier, companion },
-    { pattern, env, generate, scope }
+    { pattern, env, generate, scope, call: sessionScope(userData) }
   );
   if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
 
@@ -238,6 +240,10 @@ export function startCrisisGate(
         log.info({ action: 'guide', source: 'adjudicator' }, 'CRISIS_GATE');
         return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
       }
+    }
+    // Real: the script, or a classifier read the agreement gate or adjudicator let stand.
+    if (stronger.action === 'replace' || (scope && holdForReads)) {
+      noteCrisisEscalation(sessionScope(userData));
     }
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },

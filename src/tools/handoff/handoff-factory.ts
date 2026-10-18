@@ -36,7 +36,7 @@ import { executeHandoff } from './executor.js';
 import { holdUnaskedHandoff } from './handoff-consent.js';
 import { handoffToolResponse } from './handoff-tool-response.js';
 import { holdHandoffThroughTalk } from './held-handoff-speech.js';
-import { noteHandoffReason } from './handoff-reasons.js';
+import { handoffWords, noteHandoffReason } from './handoff-reasons.js';
 import { introduceTeammate } from './introduce-member.js';
 
 // FIX BUG: safe-logger, not a console fallback (project convention, consistent logging)
@@ -499,11 +499,11 @@ export async function buildHandoffTools(
             }
           : undefined;
 
-        // The multi-agent handler that runs this handoff only hears the persona: keep why
-        noteHandoffReason(sessionId, def.agentId, reason, context_summary);
+        const said = handoffWords(sessionId, reason, context_summary); // HANDOFF_CRISIS_WORDING
+        noteHandoffReason(sessionId, def.agentId, said.reason, said.summary); // for the handler
         // The generic executor, with runtime user context (unlock check) and cognitive context
-        const result = await executeHandoff(def.agentId, reason, {
-          context: context_summary ? { summary: context_summary } : undefined,
+        const result = await executeHandoff(def.agentId, said.reason, {
+          context: said.summary ? { summary: said.summary } : undefined,
           userProfile: runtimeUserProfile,
           subscriptionTier: runtimeTier,
           // Pass conversation context for cognitive handoff

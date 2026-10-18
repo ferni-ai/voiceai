@@ -30,6 +30,7 @@ import {
   needsPlainRead,
   resolveCrisisEverydayRules,
 } from './crisis-everyday.js';
+import { turnReadFor } from './crisis-transfer-request.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -267,6 +268,8 @@ export interface StartCrisisClassifierOptions {
    * verdict is kept with the turn's other reads (turnVerdicts).
    */
   scope?: string;
+  /** The call's session id, always when known (CRISIS_TRANSFER_EVERYDAY needs it). */
+  call?: string;
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
@@ -429,10 +432,14 @@ export function startCrisisClassifier(
     normalized.companion ?? '',
     prompt.length,
   ]);
+  // CRISIS_TRANSFER_EVERYDAY: a bare "pass me to Nayan" (crisis-transfer-request.ts). The shared
+  // run keeps the model's read; only this turn's copy of it changes.
+  const own = turnReadFor(input, options.pattern, options.call, env);
   const shared = cachedRun(key, startedAt);
   if (shared) {
-    if (options.scope) rememberRead(options.scope, input, startedAt, shared.verdict);
-    return { mode, verdict: shared.verdict };
+    const verdict = own(shared.verdict);
+    if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
+    return { mode, verdict };
   }
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
@@ -464,10 +471,10 @@ export function startCrisisClassifier(
     );
     return v;
   });
-  const run = { mode, verdict };
-  rememberRun(key, startedAt, run);
-  if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
-  return run;
+  rememberRun(key, startedAt, { mode, verdict });
+  const turn = own(verdict);
+  if (options.scope) rememberRead(options.scope, input, startedAt, turn);
+  return { mode, verdict: turn };
 }
 
 export default {

@@ -68,6 +68,9 @@ export type {
   ProfessionalType,
 } from './escalation-pathways.js';
 
+/** A real crisis escalation on this call, and handoff wording kept to it (HANDOFF_CRISIS_WORDING). */
+export { noteCrisisEscalation, withoutUnescalatedCrisis } from './crisis-escalations.js';
+
 // ============================================================================
 // UNIFIED API
 // ============================================================================

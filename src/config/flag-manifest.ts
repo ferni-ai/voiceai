@@ -70,6 +70,8 @@ export const FLAG_MANIFEST = {
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // a classifier crisis read of a bare "pass me to Nayan", with no risk words anywhere, reads none
+  CRISIS_TRANSFER_EVERYDAY: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
   // after-call date extraction into world_facts (nothing reads them in a call yet)
   DATES_THAT_MATTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -177,6 +179,8 @@ export const FLAG_MANIFEST = {
   GTM_REQUIRE_APPROVAL: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   HANDOFF_ARRIVAL_CONTEXT: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   HANDOFF_ASK_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // no crisis wording in a handoff's reason or summary unless the crisis gate escalated this call
+  HANDOFF_CRISIS_WORDING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // the first handoff's goodbye plays and its teammate arrives once (missed-greeting-end.ts)
   HANDOFF_FIRST_FIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a handed-to persona gets the first agent's essential tool set, not Tier 0 (essential-tool-set.ts)

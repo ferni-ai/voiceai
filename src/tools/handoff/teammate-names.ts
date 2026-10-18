@@ -16,6 +16,7 @@
  */
 
 import { TEAM_MEMBERS, type TeamMemberId } from '../../services/team-unlocks.js';
+import { aliasesInTransfer } from '../../utils/transfer-aliases.js';
 
 /** STT spellings of each teammate's first name (lowercase), the name itself aside. */
 export const HEARD_AS: Readonly<Record<string, TeamMemberId>> = {
@@ -54,16 +55,23 @@ export function misheardTeammates(text: string): Array<{ heard: string; id: Team
   return [...seen].map(([heard, id]) => ({ heard, id }));
 }
 
+const capitalized = (heard: string): string => heard[0].toUpperCase() + heard.slice(1);
+
 /**
  * One line for a turn whose words hold an STT spelling of a teammate's name,
  * so the model and the transfer it picks know who was asked for; '' otherwise.
+ * A word that is only a teammate as the target of a transfer ("pass me to 9",
+ * utils/transfer-aliases.ts) gets a "may be": the caller could mean someone else.
  */
 export function heardTeammateNote(callerWords: string): string {
-  return misheardTeammates(callerWords)
-    .map(({ heard, id }) => {
-      const name = firstNameOf(id);
-      const said = heard[0].toUpperCase() + heard.slice(1);
-      return `"${said}" is speech-to-text for ${name}, your teammate: they mean ${name}.`;
-    })
-    .join(' ');
+  const sure = misheardTeammates(callerWords).map(({ heard, id }) => {
+    const name = firstNameOf(id);
+    return `"${capitalized(heard)}" is speech-to-text for ${name}, your teammate: they mean ${name}.`;
+  });
+  const maybe = aliasesInTransfer(callerWords).flatMap(({ heard, id }) => {
+    const name = TEAM_MEMBERS.find((m) => m.memberId === id)?.displayName;
+    if (!name) return [];
+    return `"${capitalized(heard)}" may be speech-to-text for ${name}, your teammate: if they are asking to be passed to a teammate, they mean ${name}.`;
+  });
+  return [...sure, ...maybe].join(' ');
 }

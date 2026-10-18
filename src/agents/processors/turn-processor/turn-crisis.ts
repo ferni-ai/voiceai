@@ -24,6 +24,7 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
+import { noteCrisisEscalation } from '../../../services/safety/crisis-escalations.js';
 import {
   applyClassifierVerdict,
   detectCrisis,
@@ -71,6 +72,7 @@ export function startTurnCrisis(
   );
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   const pattern = shouldBlock ? 'block' : patterns.isCrisis ? 'crisis' : 'none';
+  if (pattern !== 'none') noteCrisisEscalation(options.sessionId); // real: a pattern match
   const { env = process.env, generate } = options;
   // Only the agreement gate and a live adjudicator hold the turn for the turn's
   // other reads; a shadow adjudicator runs beside it and never delays it.
@@ -84,13 +86,16 @@ export function startTurnCrisis(
     earlier: userData?.recentTranscripts ?? [],
     companion: userData?.lastAgentResponse,
   };
-  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope });
+  const call = options.sessionId || undefined;
+  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
   let settled: Promise<{ crisis: CrisisDetectionResult; soft: boolean }> | null = null;
   const settle = (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> =>
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
             const crisis = applyClassifierVerdict(patterns, verdict);
+            // Real: the crisis script, whichever read called for it.
+            if (guardFromDetection(crisis).shouldBlock) noteCrisisEscalation(options.sessionId);
             if (!scope || crisis === patterns) return { crisis, soft: false };
             if (!holdForReads) {
               shadowAdjudication(turnVerdicts(scope, input), transcriptFrom(input), {
@@ -120,7 +125,10 @@ export function startTurnCrisis(
               source: 'pipeline',
               scope,
             });
-            if (!(await adjudicatedCheckin(adjudicator))) return { crisis, soft: false };
+            if (!(await adjudicatedCheckin(adjudicator))) {
+              noteCrisisEscalation(options.sessionId); // real: the reads were weighed and it stood
+              return { crisis, soft: false };
+            }
             log.info({ outcome: 'soft', source: 'adjudicator' }, 'CRISIS_AGREEMENT');
             return { crisis: patterns, soft: true };
           })
