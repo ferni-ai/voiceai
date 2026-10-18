@@ -44,6 +44,7 @@ vi.mock('../../../../memory/entity-store/integration.js', () => ({
 vi.mock('../../../../services/global-services.js', () => ({ getGlobalServicesSync: () => null }));
 
 import { ToolRegistry } from '../../../registry/index.js';
+import type { ToolDefinition } from '../../../registry/types.js';
 import {
   CONFIRM_WINDOW_MS,
   isClearYes,
@@ -62,9 +63,20 @@ const fetchSpy = vi.fn(async () => new Response('{}'));
 const CALL_DAD = { contactQuery: 'my dad', phoneNumber: '801-555-0142', purpose: 'say hi' };
 const CONVERSE_DAD = { contactQuery: 'Dad', phoneNumber: '8015550142', purpose: 'catch up' };
 
+// A legacy call tool (Alex's set) that reports its own failure as { success: false }.
+const makePhoneCall = vi.fn(async (..._a: unknown[]) => ({ success: true }) as object);
+const makePhoneCallDef = {
+  id: 'makePhoneCall',
+  name: 'makePhoneCall',
+  description: 'makePhoneCall',
+  domain: 'communication',
+  create: () => ({ execute: makePhoneCall }),
+} as unknown as ToolDefinition;
+
 function liveCall(userId = 'user-1') {
   const registry = new ToolRegistry();
   for (const def of getTelephonyToolDefinitions()) registry.register(def);
+  registry.register(makePhoneCallDef);
   const session = { agentState: 'listening' };
   let owner = true;
   const notes: string[] = [];
@@ -231,6 +243,38 @@ describe('OUTREACH_SERVER_CONFIRM: the yes places the call', () => {
     call.caller('Yes, go ahead.');
     await quiet(call, false);
     expect(dialed()).toEqual(['+18015550142']);
+  });
+
+  it('a call that fails to ring is not "placed": a true note, no retry, a fresh read-back', async () => {
+    sip.createSipParticipant.mockImplementationOnce(async () => {
+      throw new Error('SIP 503');
+    });
+    const call = liveCall();
+    await call.call('callOnBehalf', CALL_DAD, 'c1');
+    call.caller('Yes.');
+    await vi.advanceTimersByTimeAsync(SERVER_CONFIRM_SETTLE_MS);
+    await vi.waitFor(() => expect(call.notes.at(-1)).toContain('did not go through'));
+    expect(call.notes.at(-1)).toContain('ask if they want to try again');
+    await vi.advanceTimersByTimeAsync(60_000);
+    call.caller('Yes.');
+    await quiet(call, false);
+    expect(sip.createSipParticipant).toHaveBeenCalledTimes(1); // tried once, never retried alone
+
+    const sibling = await call.call('callAndConverse', CONVERSE_DAD, 'c2');
+    expect(sibling).not.toMatch(/^Already placed/);
+    expect(sibling).toContain('NOT SENT YET');
+  });
+
+  it('a tool that reports { success: false } is not "placed" either', async () => {
+    makePhoneCall.mockImplementationOnce(async () => ({ success: false, error: 'busy' }));
+    const call = liveCall();
+    const toMom = { contactName: 'Mom', phoneNumber: '801-555-0111' };
+    await call.call('makePhoneCall', toMom, 'p1');
+    call.caller('Yes.');
+    await vi.advanceTimersByTimeAsync(SERVER_CONFIRM_SETTLE_MS);
+    await vi.waitFor(() => expect(call.notes.at(-1)).toContain('did not go through'));
+    expect(await call.call('makePhoneCall', toMom, 'p2')).toContain('NOT SENT YET');
+    expect(makePhoneCall).toHaveBeenCalledTimes(1);
   });
 
   it('the model calling the tool and the server confirming together ring once, either order', async () => {

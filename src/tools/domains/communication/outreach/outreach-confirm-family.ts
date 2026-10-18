@@ -123,8 +123,23 @@ export function underwayNote(toolId: string, readBack: string): string {
   );
 }
 
+const said = (result: unknown): string =>
+  (result instanceof Error
+    ? result.message
+    : typeof result === 'string'
+      ? result
+      : JSON.stringify(result ?? null)
+  ).slice(0, 300);
+
 /** The note the model gets with what the server-sent action reported. */
 export function resultNote(toolId: string, result: unknown): string {
-  const said = typeof result === 'string' ? result : JSON.stringify(result ?? null);
-  return `${toolId}, sent on the caller's yes, reported: ${said.slice(0, 300)}`;
+  return `${toolId}, sent on the caller's yes, reported: ${said(result)}`;
+}
+
+/** The note the model gets when the server-sent action failed: nothing went out. */
+export function failedNote(toolId: string, readBack: string, result: unknown): string {
+  return (
+    `${readBack} did not go through (${toolId}: ${said(result)}). Nothing was sent. ` +
+    `Tell them it didn't go through, and ask if they want to try again.`
+  );
 }

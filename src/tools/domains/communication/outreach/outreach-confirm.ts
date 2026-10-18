@@ -33,6 +33,7 @@ import {
 } from './confirm-thread.js';
 import {
   alreadyPlacedReply,
+  failedNote,
   familyOf,
   isKin,
   resultNote,
@@ -268,10 +269,14 @@ function settleThenSend(session: object): void {
     }
     log.info({ toolId: server.toolId }, 'OUTREACH_SERVER_CONFIRM: caller said yes, sending');
     entry.note?.(underwayNote(server.toolId, server.readBack));
-    void sendTaken(entry, pending, server.send).then(
-      (result) => entry.note?.(resultNote(server.toolId, result)),
-      (err: unknown) => log.warn({ err, toolId: server.toolId }, 'OUTREACH_SERVER_CONFIRM: failed')
-    );
+    const failed = (why: unknown): void => {
+      log.warn({ toolId: server.toolId }, 'OUTREACH_SERVER_CONFIRM: the send failed');
+      entry.note?.(failedNote(server.toolId, server.readBack, why));
+    };
+    void sendTaken(entry, pending, server.send).then((result) => {
+      if (outcomeOf(result) === 'failed') failed(result);
+      else entry.note?.(resultNote(server.toolId, result));
+    }, failed);
   }, SERVER_CONFIRM_SETTLE_MS);
 }
 
