@@ -26,13 +26,14 @@ function fakeFirestore(seed: Record<string, Record<string, string>>, opts = { de
   const docRef = (path: string) => ({
     path,
     get: async () => ({ exists: docs.has(path) }),
-    set: async (data: Record<string, string>) => void docs.set(path, data),
     listCollections: async () =>
       [...new Set(under(path).map((p) => p.slice(path.length + 1).split('/')[0]))].map((id) => ({
         id,
       })),
   });
   const db = {
+    runTransaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn({ set: (r: { path: string }, d: Record<string, string>) => void docs.set(r.path, d) }),
     collection: (name: string) => ({
       doc: (id: string) => docRef(`${name}/${id}`),
       where: (field: string, _op: string, value: string) => ({
@@ -91,7 +92,7 @@ describe('eraseUserRecord', () => {
     const { db, docs } = seedTwoUsers();
     await eraseUserRecord('u-1', db, STORES, []);
     const hash = bqHash('user', 'u-1', { LOG_HASH_SECRET: 'test-secret' });
-    expect(docs.get(`bq_erasure/${hash}`)).toMatchObject({ userHash: hash });
+    expect(docs.get(`bq_erasure/${hash}`)).toMatchObject({ attempts: 0, doneTables: [] });
     expect(JSON.stringify([...docs])).not.toContain('"u-1"');
     vi.unstubAllEnvs();
   });

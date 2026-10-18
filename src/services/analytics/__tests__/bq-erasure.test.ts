@@ -1,6 +1,7 @@
 /**
- * bq-erasure: an erased account's hash is queued (never its uid), and after the streaming
- * buffer has had time to drain its rows are deleted from every table that has user_hash.
+ * bq-erasure: hashes (never uids) are queued; due hashes are deleted per table with progress
+ * saved at once, a poison hash is isolated within the run's budget, and a doc re-queued
+ * mid-run is never overwritten.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,61 +12,75 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 
 import { bqHash } from '../bq-events.js';
 import {
+  BUDGET_STATEMENTS,
   ERASABLE_TABLES,
   HOLD_MS,
   OVERDUE_MS,
   backoffMs,
   queueBqErasure,
   runBqErasure,
+  type RunDml,
 } from '../bq-erasure.js';
 
 const ENV = { LOG_HASH_SECRET: 'test-secret' };
 const NOW = new Date('2026-10-18T12:00:00Z');
+type Doc = Record<string, unknown>;
 
-/** Just enough Firestore for one collection: set (merge), delete, where('<=').orderBy().limit().get(). */
+/** One Firestore collection: transactions, and where('<=').orderBy().limit() (missing fields never match). */
 function fakeDb() {
-  const docs = new Map<string, Record<string, unknown>>();
-  const query = (field: string, cutoff: string) => ({
-    orderBy: () => ({
-      limit: (n: number) => ({
-        get: async () => ({
-          docs: [...docs]
-            .filter(([, d]) => String(d[field]) <= cutoff)
-            .sort(([, a], [, b]) => String(a[field]).localeCompare(String(b[field])))
-            .slice(0, n)
-            .map(([id, d]) => ({ id, data: () => d })),
+  const docs = new Map<string, Doc>();
+  const ref = (id: string) => ({ id });
+  const tx = {
+    get: async (r: { id: string }) => ({ exists: docs.has(r.id), data: () => docs.get(r.id) }),
+    set: (r: { id: string }, d: Doc) => void docs.set(r.id, { ...d }),
+    update: (r: { id: string }, d: Doc) => void docs.set(r.id, { ...docs.get(r.id), ...d }),
+    delete: (r: { id: string }) => void docs.delete(r.id),
+  };
+  const db = {
+    runTransaction: async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx),
+    collection: () => ({
+      doc: ref,
+      where: (field: string, _op: string, cutoff: string) => ({
+        orderBy: () => ({
+          limit: (n: number) => ({
+            get: async () => ({
+              docs: [...docs]
+                .filter(([, d]) => typeof d[field] === 'string' && String(d[field]) <= cutoff)
+                .sort(([, a], [, b]) => String(a[field]).localeCompare(String(b[field])))
+                .slice(0, n)
+                .map(([id, d]) => ({ id, data: () => d })),
+            }),
+          }),
         }),
       }),
-    }),
-  });
-  const db = {
-    collection: () => ({
-      doc: (id: string) => ({
-        set: async (data: Record<string, unknown>, o?: { merge?: boolean }) =>
-          void docs.set(id, o?.merge ? { ...docs.get(id), ...data } : data),
-        delete: async () => void docs.delete(id),
-      }),
-      where: (field: string, _op: string, cutoff: string) => query(field, cutoff),
     }),
   };
   return { db: db as unknown as FirebaseFirestore.Firestore, docs };
 }
 
-const ago = (ms: number): Date => new Date(NOW.getTime() - ms);
-const due = (db: FirebaseFirestore.Firestore, uid: string, extraMs = 0) =>
-  queueBqErasure(db, [uid], ENV, ago(HOLD_MS + 1 + extraMs));
 const h = (uid: string): string => bqHash('user', uid, ENV) ?? '';
 const tableOf = (sql: string): string => /ferni_events\.(\w+)/.exec(sql)?.[1] ?? '';
+const ago = (ms: number): Date => new Date(NOW.getTime() - ms);
+const queueDue = (db: FirebaseFirestore.Firestore, uids: string[]) =>
+  queueBqErasure(db, uids, ENV, ago(HOLD_MS + 1));
+const ok: RunDml = async () => undefined;
+
+beforeEach(() => logError.mockClear());
 
 describe('queueBqErasure', () => {
-  it('queues the hashes of the account and its linked profiles, never the ids', async () => {
+  it('writes the full shape for each hash, never the ids, and a re-erase resets it', async () => {
     const { db, docs } = fakeDb();
-    const n = await queueBqErasure(db, ['uid-1', 'phone:+15551234567', 'uid-1'], ENV, NOW);
-    expect(n).toBe(2);
-    expect([...docs.keys()].sort()).toEqual(
-      [bqHash('user', 'uid-1', ENV), bqHash('user', 'phone:+15551234567', ENV)].sort()
-    );
+    expect(await queueBqErasure(db, ['uid-1', 'phone:+15551234567', 'uid-1'], ENV, NOW)).toBe(2);
+    expect(docs.get(h('uid-1'))).toEqual({
+      queuedAt: NOW.toISOString(),
+      nextAttemptAt: new Date(NOW.getTime() + HOLD_MS).toISOString(),
+      attempts: 0,
+      doneTables: [],
+    });
     expect(JSON.stringify([...docs])).not.toMatch(/uid-1|5551234567/);
+    docs.set(h('uid-1'), { ...docs.get(h('uid-1')), attempts: 3, doneTables: ['call_events'] });
+    await queueBqErasure(db, ['uid-1'], ENV, NOW);
+    expect(docs.get(h('uid-1'))).toMatchObject({ attempts: 0, doneTables: [] });
   });
 
   it('queues nothing without LOG_HASH_SECRET (no row carries a hash then)', async () => {
@@ -76,110 +91,108 @@ describe('queueBqErasure', () => {
 });
 
 describe('runBqErasure', () => {
-  beforeEach(() => logError.mockClear());
-
-  it('waits out the streaming buffer, then deletes from every user_hash table and dequeues', async () => {
+  it('waits out the streaming buffer, then one DELETE per table and the doc goes', async () => {
     const { db, docs } = fakeDb();
-    await due(db, 'uid-old');
+    await queueDue(db, ['uid-old']);
     await queueBqErasure(db, ['uid-new'], ENV, ago(60_000));
-    const run = vi.fn(async () => undefined);
-
-    const result = await runBqErasure(db, { run, now: NOW });
-
-    expect(result).toMatchObject({ due: 1, erased: 1, retrying: 0, failedTables: [] });
-    expect(ERASABLE_TABLES).toEqual(
-      expect.arrayContaining([
-        'call_events',
-        'outreach_events',
-        'turn_metrics',
-        'followthrough_outcomes',
-      ])
-    );
-    expect(ERASABLE_TABLES).not.toContain('eval_results');
+    const run = vi.fn(ok);
+    expect(await runBqErasure(db, { run, now: NOW })).toMatchObject({ due: 1, erased: 1 });
     expect(run).toHaveBeenCalledTimes(ERASABLE_TABLES.length);
-    expect(run).toHaveBeenCalledWith(
+    expect(run.mock.calls[0]?.slice(0, 2)).toEqual([
       'DELETE FROM `johnb-2025.ferni_events.call_events` WHERE user_hash IN UNNEST(@hashes)',
-      [h('uid-old')]
-    );
+      [h('uid-old')],
+    ]);
+    expect(ERASABLE_TABLES).not.toContain('eval_results');
     expect([...docs.keys()]).toEqual([h('uid-new')]);
   });
 
-  it('one failing table does not block the other tables, and records progress per hash', async () => {
+  it('a legacy doc without nextAttemptAt is processed (due at queuedAt + HOLD_MS)', async () => {
     const { db, docs } = fakeDb();
-    await due(db, 'uid-a');
-    const run = vi.fn(async (sql: string) => {
-      if (tableOf(sql) === 'outreach_events') throw new Error('streaming buffer');
+    docs.set(h('uid-legacy'), {
+      userHash: h('uid-legacy'),
+      queuedAt: ago(HOLD_MS + 1).toISOString(),
     });
-
-    const result = await runBqErasure(db, { run, now: NOW });
-
-    expect(result).toMatchObject({
-      due: 1,
-      erased: 0,
-      retrying: 1,
-      failedTables: ['outreach_events'],
-    });
-    const doc = docs.get(h('uid-a'));
-    expect(doc?.doneTables).toEqual(ERASABLE_TABLES.filter((t) => t !== 'outreach_events'));
-    expect(doc?.attempts).toBe(1);
-    expect(doc?.nextAttemptAt).toBe(new Date(NOW.getTime() + backoffMs(1)).toISOString());
-  });
-
-  it('a table already done for a hash is not run again; the hash goes once the rest is done', async () => {
-    const { db, docs } = fakeDb();
-    await due(db, 'uid-a');
-    await runBqErasure(db, {
-      run: async (sql) => {
-        if (tableOf(sql) === 'outreach_events') throw new Error('x');
-      },
-      now: NOW,
-    });
-    const run = vi.fn(async (_sql: string, _hashes: readonly string[]) => undefined);
-    const later = new Date(NOW.getTime() + backoffMs(1));
-
-    expect(await runBqErasure(db, { run, now: later })).toMatchObject({ erased: 1, retrying: 0 });
-    expect(run.mock.calls.map(([sql]) => tableOf(sql))).toEqual(['outreach_events']);
+    expect(await runBqErasure(db, { run: ok, now: NOW })).toMatchObject({ due: 1, erased: 1 });
     expect(docs.size).toBe(0);
   });
 
-  it('one poison hash fails alone: the others in its batch are cleared', async () => {
+  it('saves each table as done right after its DELETE, and never re-runs a done table', async () => {
     const { db, docs } = fakeDb();
-    await due(db, 'uid-poison', 2);
-    await due(db, 'uid-b', 1);
-    await due(db, 'uid-c');
+    await queueDue(db, ['uid-a']);
+    const seen: unknown[] = [];
+    const run = vi.fn(async (sql: string) => {
+      seen.push(docs.get(h('uid-a'))?.doneTables);
+      if (tableOf(sql) === 'outreach_events') throw new Error('x');
+    });
+    await runBqErasure(db, { run, now: NOW });
+    expect(seen.slice(0, 2)).toEqual([[], ['call_events']]);
+    expect(docs.get(h('uid-a'))).toMatchObject({
+      doneTables: ERASABLE_TABLES.filter((t) => t !== 'outreach_events'),
+      attempts: 1,
+      nextAttemptAt: new Date(NOW.getTime() + backoffMs(1)).toISOString(),
+    });
+    const rerun = vi.fn(ok);
+    await runBqErasure(db, { run: rerun, now: new Date(NOW.getTime() + backoffMs(1)) });
+    expect(rerun.mock.calls.map(([sql]) => tableOf(sql))).toEqual(['outreach_events']);
+    expect(docs.size).toBe(0);
+  });
+
+  it('a re-queue during the run is not clobbered by its progress, backoff or delete', async () => {
+    const { db, docs } = fakeDb();
+    await queueDue(db, ['uid-a']);
+    const run = vi.fn(async () => {
+      if (run.mock.calls.length === 1) await queueBqErasure(db, ['uid-a'], ENV, NOW);
+    });
+    await runBqErasure(db, { run, now: NOW });
+    expect(docs.get(h('uid-a'))).toEqual({
+      queuedAt: NOW.toISOString(),
+      nextAttemptAt: new Date(NOW.getTime() + HOLD_MS).toISOString(),
+      attempts: 0,
+      doneTables: [],
+    });
+  });
+
+  it('isolates a poison hash by bisection within the statement budget', async () => {
+    const { db, docs } = fakeDb();
+    const uids = ['p', 'b', 'c', 'd', 'e', 'f', 'g', 'i'].map((x) => `uid-${x}`);
+    await queueDue(db, uids);
     const run = vi.fn(async (_sql: string, hashes: readonly string[]) => {
-      if (hashes.includes(h('uid-poison'))) throw new Error('bad');
+      if (hashes.includes(h('uid-p'))) throw new Error('bad');
     });
-
-    const result = await runBqErasure(db, { run, now: NOW });
-
-    expect(result).toMatchObject({ due: 3, erased: 2, retrying: 1 });
-    expect([...docs.keys()]).toEqual([h('uid-poison')]);
+    await runBqErasure(db, { run, now: NOW });
+    expect(run.mock.calls.length).toBeLessThanOrEqual(BUDGET_STATEMENTS);
+    await runBqErasure(db, { run, now: new Date(NOW.getTime() + backoffMs(1)) });
+    expect([...docs.keys()]).toEqual([h('uid-p')]);
   });
 
-  it('a failed hash moves behind newer ones (nextAttemptAt order, not queuedAt)', async () => {
-    const { db } = fakeDb();
-    await due(db, 'uid-old', 10 * HOLD_MS);
-    await runBqErasure(db, { run: async () => Promise.reject(new Error('x')), now: NOW });
-    const later = new Date(NOW.getTime() + backoffMs(1) + HOLD_MS + 1);
-    await queueBqErasure(db, ['uid-new'], ENV, new Date(NOW.getTime() + 1));
-    const order: string[][] = [];
-    await runBqErasure(db, {
-      run: async (_sql, hashes) => void order.push([...hashes]),
-      now: later,
+  it('stops at the statement budget, and at the time budget, and backs off the rest', async () => {
+    const { db, docs } = fakeDb();
+    await queueDue(
+      db,
+      Array.from({ length: 64 }, (_, i) => `uid-${i}`)
+    );
+    const down = vi.fn(async () => Promise.reject(new Error('table down')));
+    expect(await runBqErasure(db, { run: down, now: NOW })).toMatchObject({
+      erased: 0,
+      retrying: 64,
     });
-    expect(order[0]).toEqual([h('uid-new'), h('uid-old')]);
+    expect(down).toHaveBeenCalledTimes(BUDGET_STATEMENTS);
+    expect([...docs.values()].every((d) => d.attempts === 1)).toBe(true);
+
+    const slow = fakeDb();
+    await queueDue(slow.db, ['uid-x']);
+    let t = 0;
+    const timed = vi.fn(async () => void (t += 30_000));
+    await runBqErasure(slow.db, { run: timed, now: NOW, clock: () => t });
+    expect(timed).toHaveBeenCalledTimes(2);
   });
 
-  it('logs BQ_ERASURE_OVERDUE at error level for a hash queued more than 7 days', async () => {
+  it('logs BQ_ERASURE_OVERDUE at error level for a hash queued more than 7 days, never the hash', async () => {
     const { db } = fakeDb();
     await queueBqErasure(db, ['uid-stuck'], ENV, ago(OVERDUE_MS + 1));
     await queueBqErasure(db, ['uid-recent'], ENV, ago(OVERDUE_MS - 60_000));
-    const result = await runBqErasure(db, {
-      run: async () => Promise.reject(new Error('x')),
-      now: NOW,
-    });
-    expect(result.overdue).toBe(1);
+    const fail = async () => Promise.reject(new Error('x'));
+    expect((await runBqErasure(db, { run: fail, now: NOW })).overdue).toBe(1);
     expect(logError).toHaveBeenCalledWith(
       expect.objectContaining({ overdue: 1 }),
       'BQ_ERASURE_OVERDUE'
@@ -187,9 +200,9 @@ describe('runBqErasure', () => {
     expect(JSON.stringify(logError.mock.calls)).not.toContain(h('uid-stuck'));
   });
 
-  it('a hash erased in time raises no alert, and nothing due runs nothing', async () => {
+  it('nothing due runs nothing and raises no alert', async () => {
     const { db } = fakeDb();
-    const run = vi.fn();
+    const run = vi.fn(ok);
     expect(await runBqErasure(db, { run, now: NOW })).toEqual({
       due: 0,
       erased: 0,
