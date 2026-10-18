@@ -6,6 +6,7 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2026-10-16
 category: "Product"
+image: "how-ferni-keeps-the-hour-with-you.png"
 readTime: 3
 sources:
   - "PR #1647: feat(web): avatar settles in the evening and looks glad when you come back (https://github.com/ferni-ai/voiceai/pull/1647)"
