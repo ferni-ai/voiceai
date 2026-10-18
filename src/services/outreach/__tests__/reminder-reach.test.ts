@@ -4,7 +4,8 @@
  * person's cohort flag (flagForUser), never another person's.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { reminderReach, type ReminderReachDeps } from '../reminder-reach.js';
+import { ownerReminderReach, reminderReach, type ReminderReachDeps } from '../reminder-reach.js';
+import { applyFlags, forgetAgentValues } from '../../platform/cohort-flags.js';
 import type { ScheduledReminder } from '../../scheduling/reminder-scheduler.js';
 
 const reminder = (userId: string) =>
@@ -63,5 +64,19 @@ describe('reminderReach', () => {
       throw new Error('no vapid key');
     };
     expect(await reminderReach(deps({ env, push: boom })).notifyInApp!(reminder('a'))).toBe(false);
+  });
+});
+
+describe('ownerReminderReach (the in-process scheduler in a voice-call process)', () => {
+  it("ignores the current caller's flags in process.env and reads the owner's", async () => {
+    applyFlags({ REMINDER_SMS_DEFAULT: 'on' }); // a call started: its caller's flags are applied
+    try {
+      expect(process.env.REMINDER_SMS_DEFAULT).toBe('on');
+      expect(await ownerReminderReach().textOn('another-owner')).toBe(false);
+    } finally {
+      applyFlags({}); // the agent's own values back
+      forgetAgentValues();
+    }
+    expect(process.env.REMINDER_SMS_DEFAULT).toBeUndefined();
   });
 });

@@ -18,9 +18,9 @@
 import { flagOn } from '../../config/env-flag.js';
 import { isReminderSmsDefaultOn } from '../../config/reminder-sms-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { flagForUser } from '../platform/cohort-flags.js';
+import { envForCaller, flagForUser } from '../platform/cohort-flags.js';
 import { getPushNotificationsService } from '../push-notifications.js';
-import type { ReminderReach } from '../scheduling/reminder-delivery-job.js';
+import type { ReminderReach } from '../scheduling/reminder-outcome.js';
 import type { ScheduledReminder } from '../scheduling/reminder-scheduler.js';
 
 const log = createLogger({ module: 'reminder-reach' });
@@ -45,15 +45,29 @@ const defaultDeps = (): ReminderReachDeps => ({
     }),
 });
 
+/** A flag read that hasn't answered by then counts as no value: off. */
+export const FLAG_READ_TIMEOUT_MS = 2000;
+
+async function personOn(deps: ReminderReachDeps, userId: string, flag: string): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), FLAG_READ_TIMEOUT_MS);
+  });
+  try {
+    return (await Promise.race([deps.flagForUser(userId, flag), late])) === 'on';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function reminderReach(deps: ReminderReachDeps = defaultDeps()): ReminderReach {
   return {
     textOn: async (userId) =>
-      isReminderSmsDefaultOn(deps.env) ||
-      (await deps.flagForUser(userId, 'REMINDER_SMS_DEFAULT')) === 'on',
+      isReminderSmsDefaultOn(deps.env) || personOn(deps, userId, 'REMINDER_SMS_DEFAULT'),
     notifyInApp: async (r: ScheduledReminder) => {
       const on =
         flagOn('REMINDER_IN_APP_PUSH', deps.env) ||
-        (await deps.flagForUser(r.userId, 'REMINDER_IN_APP_PUSH')) === 'on';
+        (await personOn(deps, r.userId, 'REMINDER_IN_APP_PUSH'));
       if (!on) return false;
       try {
         const sent = await deps.push(r.userId, 'A reminder from Ferni', r.message, r.id);
@@ -65,4 +79,17 @@ export function reminderReach(deps: ReminderReachDeps = defaultDeps()): Reminder
       }
     },
   };
+}
+
+/**
+ * For the in-process scheduler in a voice-call process, where process.env holds
+ * the current caller's flags: each owner's own values (envForCaller), never the caller's.
+ */
+export function ownerReminderReach(): ReminderReach {
+  return reminderReach({
+    ...defaultDeps(),
+    env: {},
+    flagForUser: async (userId, flag) =>
+      (await envForCaller(userId))[flag] === 'on' ? 'on' : undefined,
+  });
 }

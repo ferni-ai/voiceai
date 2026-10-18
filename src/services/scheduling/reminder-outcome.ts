@@ -20,8 +20,33 @@ export type ReminderStatus =
  */
 export type ReminderOutcome = 'sent' | 'in_app' | 'in_app_unnotified' | 'held' | 'failed';
 
+/** How a delivery run reaches each person, decided per person by the server running it. */
+export interface ReminderReach {
+  /** Whether this person's app reminders go by text (REMINDER_SMS_DEFAULT, for everyone or for them). */
+  textOn: (userId: string) => Promise<boolean>;
+  /** Tells the person a reminder is in their app's inbox; true when a push was sent. */
+  notifyInApp?: (reminder: ScheduledReminder) => Promise<boolean>;
+}
+
+/** The owner's text decision; a failed read means off, so the reminder stays in the app. */
+export async function textOnFor(
+  reach: ReminderReach | undefined,
+  userId: string
+): Promise<boolean> {
+  if (!reach) return false;
+  try {
+    return await reach.textOn(userId);
+  } catch (error) {
+    getLogger().warn(
+      { error: String(error) },
+      'Reminder text flag not read; keeping it in the app'
+    );
+    return false;
+  }
+}
+
 export interface DeliverOptions {
-  /** The owner's REMINDER_SMS_DEFAULT; defaults to this process's env. */
+  /** The owner's REMINDER_SMS_DEFAULT (textOnFor); unknown means off. */
   textOn?: boolean;
   /** Tells the owner a reminder is in their app's inbox (a push); true when one was sent. */
   notifyInApp?: (reminder: ScheduledReminder) => Promise<boolean>;

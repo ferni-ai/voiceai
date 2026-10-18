@@ -1,9 +1,10 @@
 /**
- * With REMINDER_SMS_DEFAULT=on, every reminder text (sms, or a voice_message
- * MMS) goes through the guarded sender or into the app: never the old
- * sendReminder, which honours neither STOP nor quiet hours. deliverReminder
- * asks here first, so the deliver-reminders job and the in-process scheduler
- * take the same path.
+ * Every reminder text (sms or voice_message) goes through the guarded sender
+ * or into the app, whatever the flags say: never a direct send, which honours
+ * neither STOP nor quiet hours (fail closed). deliverReminder asks here first,
+ * so the deliver-reminders job and the in-process scheduler take the same path.
+ * REMINDER_SMS_DEFAULT only decides whether a reminder kept for the app
+ * (voice:<uid>) is texted to its owner instead.
  *
  * The guarded sender can also hold a text: one due in the owner's quiet hours
  * waits until 08:00 (Seth, 2026-10-17), and one inside the guard's gap after
@@ -18,7 +19,6 @@
  * @module services/scheduling/reminder-text-guard
  */
 
-import { isReminderSmsDefaultOn } from '../../config/reminder-sms-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ReminderDeliveryMethod, ScheduledReminder } from './reminder-scheduler.js';
 
@@ -37,15 +37,16 @@ export function installReminderTextGuard(next: ReminderTextGuard | undefined): v
 }
 
 /**
- * null: not a text, or texts are off, so deliver it as before. `textOn` is the
- * owner's REMINDER_SMS_DEFAULT: a server delivering for many people decides it
- * per person and passes it in; elsewhere it is this process's env.
+ * null: not a text, so deliver it on its channel. `textOn` is the owner's
+ * REMINDER_SMS_DEFAULT, decided per person by the caller; unknown means off,
+ * so an app reminder stays in the app.
  */
 export async function textThroughGuard(
   reminder: ScheduledReminder,
-  textOn: boolean = isReminderSmsDefaultOn()
+  textOn = false
 ): Promise<GuardedTextOutcome | null> {
-  if (!textOn || !TEXT_METHODS.includes(reminder.deliveryMethod)) return null;
+  if (!TEXT_METHODS.includes(reminder.deliveryMethod)) return null;
+  if (!textOn && reminder.deliveryAddress.startsWith('voice:')) return 'in-app';
   if (!guard) {
     log.warn(
       { reminderId: reminder.id },

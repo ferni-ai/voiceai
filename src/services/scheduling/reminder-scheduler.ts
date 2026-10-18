@@ -21,7 +21,7 @@ import {
 // Firestore access via superhuman firestore-utils for proper db instance
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onReminderChange } from '../data-layer/hooks/index.js';
-import { sendEmail, sendReminder as sendReminderSMS, sendSMS } from '../communication-service.js';
+import { sendEmail, sendSMS } from '../communication-service.js';
 import { recordOutcome } from '../contacts/optimal-timing.js';
 import { WallClock, zonedWallTimeToUtc } from '../../utils/time-zone.js';
 export { userTimeZone } from '../../utils/caller-time-zone.js';
@@ -31,6 +31,8 @@ import {
   attributedMessage,
   inAppOutcome,
   reachedThem,
+  textOnFor,
+  type ReminderReach,
   type DeliverOptions,
   type ReminderOutcome,
   type ReminderStatus,
@@ -539,7 +541,7 @@ export async function deliverReminderOutcome(
   const messageToDeliver = attributedMessage(reminder);
 
   try {
-    // REMINDER_SMS_DEFAULT: texts only via the guard
+    // Texts (sms, voice_message) only ever go through the guard, or into the app.
     const guarded = await textThroughGuard(reminder, opts.textOn);
     if (guarded && guarded !== 'sent') {
       const deliver = (r: ScheduledReminder) => deliverReminderOutcome(r, opts);
@@ -549,18 +551,6 @@ export async function deliverReminderOutcome(
     switch (guarded === 'sent' ? 'guarded' : reminder.deliveryMethod) {
       case 'guarded':
         break;
-      case 'sms': {
-        const smsResult = await sendReminderSMS(
-          reminder.deliveryAddress,
-          messageToDeliver,
-          reminder.context
-        );
-        if (smsResult.includes('trouble') || smsResult.includes('error')) {
-          throw new Error(smsResult);
-        }
-        break;
-      }
-
       case 'email': {
         // Use persona-specific email formatting
         const { getPersonaDisplayName } = await import('../../personas/voice-registry.js');
@@ -613,112 +603,6 @@ export async function deliverReminderOutcome(
         });
         if (!saved.success) throw new Error(saved.error ?? 'in-app save failed');
         outcome = await inAppOutcome(reminder, opts); // nobody told: it hasn't reached them
-        break;
-      }
-
-      case 'voice_message': {
-        // Generate voice message with persona's Cartesia voice and send via MMS
-        const { generatePersonaVoice } = await import('../voice/voice-call.js');
-        const { getPersonaDisplayName } = await import('../../personas/voice-registry.js');
-        const personaId = reminder.personaId || reminder.createdBy || 'ferni';
-        const displayName = getPersonaDisplayName(personaId);
-        const firstName = displayName.split(' ')[0];
-
-        const audioBuffer = await generatePersonaVoice(messageToDeliver, personaId);
-
-        if (audioBuffer) {
-          // Try to upload to GCS and send via MMS
-          const GCS_BUCKET =
-            process.env.GCS_VOICE_BUCKET ||
-            (process.env.GOOGLE_CLOUD_PROJECT
-              ? `${process.env.GOOGLE_CLOUD_PROJECT}-voice-audio`
-              : '');
-
-          let audioUrl: string | null = null;
-
-          if (GCS_BUCKET) {
-            try {
-              const gcs = await import('@google-cloud/storage');
-              type GcsFile = { save: (data: Buffer, opts: object) => Promise<void> };
-              type GcsStorage = new () => {
-                bucket: (name: string) => { file: (path: string) => GcsFile };
-              };
-              type GcsModule = { Storage?: GcsStorage; default?: { Storage?: GcsStorage } };
-              const Storage = (gcs as GcsModule).Storage || (gcs as GcsModule).default?.Storage;
-              if (Storage) {
-                const storage = new Storage();
-                const bucket = storage.bucket(GCS_BUCKET);
-                const filename = `voice-reminders/${reminder.id}.mp3`;
-                const file = bucket.file(filename);
-
-                await file.save(audioBuffer, {
-                  metadata: { contentType: 'audio/mpeg' },
-                  public: true,
-                });
-
-                audioUrl = `https://storage.googleapis.com/${GCS_BUCKET}/${filename}`;
-                logger.info(
-                  { reminderId: reminder.id, audioUrl },
-                  '🎤 Voice audio uploaded to GCS'
-                );
-              }
-            } catch (gcsError) {
-              logger.warn({ error: String(gcsError) }, 'GCS upload failed, falling back to SMS');
-            }
-          }
-
-          // If we have an audio URL, send via MMS
-          if (audioUrl) {
-            const accountSid = process.env.TWILIO_ACCOUNT_SID;
-            const authToken = process.env.TWILIO_AUTH_TOKEN;
-            const fromNumber = process.env.TWILIO_PHONE_NUMBER;
-
-            if (accountSid && authToken && fromNumber) {
-              const cleanPhone = reminder.deliveryAddress.replace(/\D/g, '');
-              const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
-
-              const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-              const response = await fetch(
-                `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-                {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Basic ${auth}`,
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                  },
-                  body: new URLSearchParams({
-                    To: e164Phone,
-                    From: fromNumber,
-                    Body: `🎤 Voice message from ${firstName}`,
-                    MediaUrl: audioUrl,
-                  }),
-                }
-              );
-
-              if (response.ok) {
-                logger.info({ personaId, audioUrl }, '🎤 Voice message sent via MMS');
-                break;
-              } else {
-                const errorText = await response.text();
-                logger.warn({ error: errorText }, 'MMS send failed, falling back to SMS');
-              }
-            }
-          }
-
-          // Fallback to SMS with text if MMS failed
-          await sendSMS(
-            reminder.deliveryAddress,
-            `🎤 Voice message from ${firstName}: "${reminder.message}"`
-          );
-          logger.info({ personaId }, '🎤 Voice message sent as SMS (MMS unavailable)');
-        } else {
-          // Fallback if TTS fails
-          await sendSMS(
-            reminder.deliveryAddress,
-            `🎤 Voice message from ${firstName}: "${reminder.message}"`
-          );
-          logger.info({ personaId }, '🎤 Voice message sent as SMS (TTS unavailable)');
-        }
         break;
       }
 
@@ -949,7 +833,7 @@ const CLEANUP_EVERY_N_INTERVALS = 60; // Run cleanup every 60 intervals (hourly 
  * Checks for due reminders every minute
  * Runs cleanup every hour to prevent memory leaks
  */
-export function startReminderScheduler(intervalMs = 60000): void {
+export function startReminderScheduler(intervalMs = 60000, reach?: ReminderReach): void {
   if (schedulerInterval) {
     getLogger().warn('Reminder scheduler already running');
     return;
@@ -968,7 +852,9 @@ export function startReminderScheduler(intervalMs = 60000): void {
           getLogger().info({ count: dueReminders.length }, '📬 Processing due reminders');
 
           for (const reminder of dueReminders) {
-            await deliverReminder(reminder);
+            // The owner's flags, never this process's env (a call's caller may be someone else).
+            const textOn = await textOnFor(reach, reminder.userId);
+            await deliverReminder(reminder, { textOn, notifyInApp: reach?.notifyInApp });
           }
         }
 

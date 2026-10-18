@@ -42,6 +42,9 @@ import {
   type ReminderDeliveryMethod,
   type ScheduledReminder,
 } from './reminder-scheduler.js';
+import { textOnFor, type ReminderReach } from './reminder-outcome.js';
+
+export type { ReminderReach } from './reminder-outcome.js';
 
 const log = createLogger({ module: 'ReminderDeliveryJob' });
 
@@ -50,14 +53,6 @@ export const MISSED_AFTER_MS = 2 * 60 * 60 * 1000;
 
 const PHONE_METHODS: readonly ReminderDeliveryMethod[] = ['sms', 'voice_message', 'call'];
 const TEXT_METHODS: readonly ReminderDeliveryMethod[] = ['sms', 'voice_message'];
-
-/** How this run reaches each person, decided per person by the server running it. */
-export interface ReminderReach {
-  /** Whether this person's reminders go by text (REMINDER_SMS_DEFAULT, for everyone or for them). */
-  textOn: (userId: string) => Promise<boolean>;
-  /** Tells the person a reminder is in their app's inbox; true when a push was sent. */
-  notifyInApp?: (reminder: ScheduledReminder) => Promise<boolean>;
-}
 
 /** This server's own env, and no push: what a caller that decides nothing per person gets. */
 const envReach: ReminderReach = { textOn: async () => isReminderSmsDefaultOn() };
@@ -196,7 +191,7 @@ export async function deliverDueReminders(
     if (!owner) continue;
     const reminder = { ...reminderFromDoc(doc.id, doc.data()), userId: owner };
     const late = now.getTime() - reminder.scheduledFor.getTime() > MISSED_AFTER_MS;
-    const textOn = await reach.textOn(owner);
+    const textOn = await textOnFor(reach, owner); // a failed read: off, never a direct send
     const channel = deliveryChannelFor(reminder, channels, textOn);
 
     if (dryRun) {

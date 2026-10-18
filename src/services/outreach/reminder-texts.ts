@@ -1,7 +1,7 @@
 /**
- * The guarded sender for reminder texts (REMINDER_SMS_DEFAULT=on). deliverReminder
- * hands every reminder text here (scheduling/reminder-text-guard.ts) and delivers
- * it in the app unless this says 'sent':
+ * The guarded sender for every reminder text: deliverReminder hands each one here
+ * (scheduling/reminder-text-guard.ts), whatever the flags say, and delivers it in
+ * the app unless this says 'sent':
  *
  * - to the owner's own verified number (also for a reminder kept for their app,
  *   `voice:<uid>`, once texts are on for them): sendGuardedText, so STOP and texts

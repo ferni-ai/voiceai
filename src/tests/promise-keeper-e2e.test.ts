@@ -36,11 +36,13 @@ vi.mock('../services/superhuman/firestore-utils.js', async (importOriginal) => {
     getFirestoreDb: () => sharedNestedFirestore.db,
   };
 });
-// External senders: Twilio SMS, and the credential lookup that says it's configured.
-const sendSms = vi.fn(async (_to: string, _text: string) => 'Reminder sent');
+// External senders: the guarded text sender (stubbed, installed below; the old
+// unguarded sendReminder must never be used), and the channel check.
+const sendSms = vi.fn(async (_to: string, _text: string): Promise<'sent' | 'in-app'> => 'sent');
+const unguarded = vi.fn(async () => 'Reminder sent');
 vi.mock('../services/communication-service.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../services/communication-service.js')>()),
-  sendReminder: (to: string, text: string) => sendSms(to, text),
+  sendReminder: unguarded,
 }));
 vi.mock('../services/outreach/unified-delivery.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../services/outreach/unified-delivery.js')>()),
@@ -59,6 +61,7 @@ vi.mock('@livekit/agents', async (importOriginal) => {
 
 const { reminderTools } = await import('../tools/domains/productivity/reminders.js');
 const { deliverDueReminders } = await import('../services/scheduling/reminder-delivery-job.js');
+const { installReminderTextGuard } = await import('../services/scheduling/reminder-text-guard.js');
 const { trackFerniCommitments } =
   await import('../services/superhuman/semantic-intelligence/integration.js');
 const { clearCommitmentCache } =
@@ -127,6 +130,8 @@ beforeEach(() => {
   clearCommitmentCache();
   resetOfferedMisses();
   sendSms.mockClear();
+  unguarded.mockClear();
+  installReminderTextGuard(async (r) => sendSms(r.deliveryAddress, r.message));
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(START);
 });
@@ -144,6 +149,7 @@ describe('Ferni keeps her promises', () => {
     const run = await deliverDueReminders({ now: at(31 * 60 * 1000) });
     expect(run).toMatchObject({ delivered: 1, promiseErrors: 0 });
     expect(sendSms).toHaveBeenCalledTimes(1);
+    expect(unguarded).not.toHaveBeenCalled();
     expect(promises()[0]).toMatchObject({
       outcome: 'kept',
       fulfilled: true,
@@ -174,8 +180,8 @@ describe('Ferni keeps her promises', () => {
     expect(await followsThrough()).toEqual({ kept: 0, total: 1 });
   });
 
-  it('a reminder that could not be sent is a missed promise; a cancelled one is released', async () => {
-    sendSms.mockResolvedValueOnce('trouble sending');
+  it('a reminder that could not be texted is a missed promise; a cancelled one is released', async () => {
+    sendSms.mockResolvedValueOnce('in-app'); // the guard refused it: it goes to the app, unread
     await setReminder('in 30 minutes');
     await setReminder('in 2 hours');
     const [failing, cancelled] = promises().sort((a, b) =>
@@ -196,8 +202,9 @@ describe('Ferni keeps her promises', () => {
     const byId = new Map(promises().map((p) => [p.id, p]));
     expect(byId.get(failing.id)).toMatchObject({
       outcome: 'missed',
-      missedReason: 'reminder could not be delivered',
+      missedReason: 'reminder left in the app, no one told',
     });
+    expect(unguarded).not.toHaveBeenCalled();
     expect(byId.get(cancelled.id)).toMatchObject({ outcome: 'released', fulfilled: false });
     expect(byId.get(cancelled.id)?.violated).toBeUndefined();
   });
