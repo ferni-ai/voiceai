@@ -26,6 +26,7 @@ vi.mock('../../utils/firestore-utils.js', async (orig) => ({
 vi.mock('../../services/waitlist/store.js', () => ({ firestoreWaitlistStore: () => world.store }));
 
 const { handleWaitlistQueueRoutes } = await import('../waitlist-queue-routes.js');
+const { waitlistRateLimit } = await import('../waitlist-rate-limits.js');
 
 async function call(method: 'GET' | 'POST', path: string, body?: unknown) {
   const req = Object.assign(Readable.from(body ? [Buffer.from(JSON.stringify(body))] : []), {
@@ -63,21 +64,38 @@ describe('waitlist queue routes', () => {
     expect(Object.keys(me.body).sort()).toEqual(['admittedAt', 'foundingMember', 'foundingWave', 'nextWaveAt', 'position', 'referralUrl', 'referrals', 'seatExpiresAt', 'status', 'wavesAway']); // prettier-ignore
   });
 
-  it('a join without a sign-in is unverified and reveals nothing about who is on the list', async () => {
+  it('/join needs a sign-in too: an anonymous or unproven join is refused and writes nothing', async () => {
+    expect((await call('POST', '/api/waitlist/join', { email: 'new@example.com' })).status).toBe(
+      401
+    );
+    world.token = { email: 'pat@example.com', emailVerified: false };
+    expect((await call('POST', '/api/waitlist/join', {})).status).toBe(401);
+    expect(s.docs.size).toBe(0);
+  });
+
+  it('the address comes from the token, never the body', async () => {
     world.token = { email: 'pat@example.com', emailVerified: true };
-    await call('POST', '/api/waitlist/join', {});
-    world.token = null;
-    const probe = await call('POST', '/api/waitlist/join', { email: 'pat@example.com' });
-    expect(probe.body).toMatchObject({ status: 'waiting', position: null, referralUrl: null });
-    const stranger = await call('POST', '/api/waitlist/join', { email: 'new@example.com' });
-    expect(stranger.body).toEqual(probe.body);
-    expect((await s.store.get(Buffer.from('new@example.com').toString('base64').replace(/[/+=]/g, '_')))?.verified).toBe(false); // prettier-ignore
+    await call('POST', '/api/waitlist/join', { email: 'victim@example.com' });
+    expect([...s.docs.values()].map((d) => d.email)).toEqual(['pat@example.com']);
   });
 
   it('refuses a throwaway inbox with a warm message', async () => {
-    const out = await call('POST', '/api/waitlist/join', { email: 'x@yopmail.com' });
+    world.token = { email: 'x@yopmail.com', emailVerified: true };
+    const out = await call('POST', '/api/waitlist/join', {});
     expect(out).toMatchObject({ status: 400, body: { error: 'disposable_email' } });
     expect(s.docs.size).toBe(0);
+  });
+
+  it('/me finds your entry by your sign-in (uid) even if the address spelling changed', async () => {
+    world.token = { email: 'old@example.com', emailVerified: true };
+    await call('POST', '/api/waitlist/join', {});
+    world.token = { email: 'new@example.com', emailVerified: true }; // same uid u1
+    expect((await call('GET', '/api/waitlist/me')).body).toMatchObject({ status: 'waiting', position: 1 }); // prettier-ignore
+  });
+
+  it('/join shares the tight sign-up rate limit', () => {
+    expect(waitlistRateLimit('/api/waitlist/join')).toEqual({ maxRequests: 5, keyPrefix: 'waitlist:signup' }); // prettier-ignore
+    expect(waitlistRateLimit('/api/waitlist/me').keyPrefix).not.toBe('waitlist:signup');
   });
 
   it('leaves other paths alone', async () => {
