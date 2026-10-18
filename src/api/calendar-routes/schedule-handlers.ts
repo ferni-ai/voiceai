@@ -36,7 +36,14 @@ export async function handleToday(
     const connected = await isConnected(userId);
 
     if (!connected) {
-      sendJson(res, { connected: false, overview: null, message: 'Calendar not connected' });
+      // Ferni's own list still counts: name it, labelled, not a silent empty day (#1547).
+      const events = (await getDayOverview(userId, new Date())).events;
+      sendJson(res, {
+        connected: false,
+        overview: null,
+        ferniList: events.map(formatEventForApi),
+        message: "No calendar is connected. Ferni's own list is shown.",
+      });
       return;
     }
 
@@ -254,7 +261,13 @@ export async function handleWeek(
     const connected = await isConnected(userId);
 
     if (!connected) {
-      sendJson(res, { connected: false, overview: null, message: 'Calendar not connected' });
+      const days = (await getWeekOverview(userId, new Date())).days;
+      sendJson(res, {
+        connected: false,
+        overview: null,
+        ferniList: days.flatMap((day) => day.events).map(formatEventForApi),
+        message: "No calendar is connected. Ferni's own list is shown.",
+      });
       return;
     }
 

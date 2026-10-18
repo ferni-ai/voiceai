@@ -34,6 +34,7 @@ import {
   getEventsForDay as getUnifiedEventsForDay,
   getEvents as getUnifiedEvents,
   createEvent as createUnifiedEvent,
+  hasAnyProviderConnected,
   updateEvent as updateUnifiedEvent,
   deleteEvent as deleteUnifiedEvent,
 } from './unified-calendar-store.js';
@@ -259,18 +260,12 @@ export async function getCalendarMode(userId: string): Promise<CalendarMode> {
 // ============================================================================
 
 /**
- * Check if calendar is available for a user
- *
- * NOTE: With local fallback, calendar is ALWAYS available.
- * This function now returns true if either Google or local is usable.
+ * Is a calendar connected for this user? Google or another provider (#1547).
  */
 export async function isConnected(userId: string): Promise<boolean> {
-  // Google connected = definitely connected
-  const googleConnected = await isCalendarConfigured(userId);
-  if (googleConnected) return true;
-
-  // Local calendar is always available
-  return true;
+  // Google sign-in writes tokens, not a provider record, so both count (#1547).
+  if (await isCalendarConfigured(userId)) return true;
+  return hasAnyProviderConnected(userId);
 }
 
 /**
