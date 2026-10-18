@@ -1,0 +1,4 @@
+# TestFlight uploads (fastlane gym + pilot). CI runs `bundle exec fastlane beta`.
+source "https://rubygems.org"
+
+gem "fastlane", "~> 2.227"
