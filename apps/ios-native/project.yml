@@ -10,7 +10,7 @@ options:
 packages:
   LiveKit:
     url: https://github.com/livekit/client-sdk-swift
-    exactVersion: 2.11.0
+    exactVersion: 2.12.1
   FerniShared:
     path: ../shared
   Firebase:
@@ -20,7 +20,7 @@ packages:
 settings:
   base:
     MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "4"
+    CURRENT_PROJECT_VERSION: "6"
     SWIFT_VERSION: "5.9"
     DEVELOPMENT_TEAM: "XT8W26YE9U"
     CODE_SIGN_STYLE: Automatic
@@ -79,7 +79,7 @@ targets:
               - UISceneConfigurationName: CarPlay Configuration
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).FerniCarPlaySceneDelegate
         # Core permissions
-        NSMicrophoneUsageDescription: Ferni needs microphone access for voice conversations with your AI team.
+        NSMicrophoneUsageDescription: Ferni needs the microphone so you can talk out loud with Ferni and your team.
         # Required by LiveKit SDK (even if not used directly)
         NSCameraUsageDescription: Ferni may use the camera for future video features.
         NSMotionUsageDescription: Ferni may use motion data to enhance your experience.
@@ -170,7 +170,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
         GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "6"
         MARKETING_VERSION: "1.0.0"
 
   # MARK: - watchOS Targets
@@ -204,7 +204,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         WATCHOS_DEPLOYMENT_TARGET: "9.0"
         GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "6"
         MARKETING_VERSION: "1.0.0"
         SDKROOT: watchos
 
@@ -235,7 +235,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         WATCHOS_DEPLOYMENT_TARGET: "9.0"
         GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "6"
         MARKETING_VERSION: "1.0.0"
         SDKROOT: watchos
 
@@ -270,7 +270,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         IPHONEOS_DEPLOYMENT_TARGET: "16.0"
         GENERATE_INFOPLIST_FILE: NO
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "6"
         MARKETING_VERSION: "1.0.0"
 
 schemes:

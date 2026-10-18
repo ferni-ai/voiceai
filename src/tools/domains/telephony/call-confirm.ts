@@ -27,6 +27,10 @@ export const callConfirm: ConfirmSpec = {
     if (!raw) return `Nothing was dialed: I don't have a number for ${who}. Ask the caller for it.`;
     const number = checkDialableNumber(raw);
     if (!number.ok) return `Nothing was dialed: ${number.reason}.`;
+    // A call to this number already set for later: say so, rather than read back a second one.
+    const { alreadySetReply, pendingCallTo } = await import('./call-on-behalf.js');
+    const waiting = await pendingCallTo(userId, number.e164);
+    if (waiting) return alreadySetReply(name, waiting);
     return {
       args: { ...args, phoneNumber: number.e164 },
       readBack: `a call to ${name} at ${number.spoken}${purpose ? `, to ${purpose}` : ''}`,

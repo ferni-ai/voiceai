@@ -47,6 +47,8 @@ const SCENES = [
   'captions',
   'caption-moments',
   'caption-breath',
+  'caption-heard',
+  'caption-heard-reply',
 ] as const;
 
 const BASELINE_FILE = join(dirname(fileURLToPath(import.meta.url)), 'contrast-baseline.json');
@@ -69,7 +71,7 @@ async function settleAnimations(page: Page): Promise<void> {
 
 async function openScene(page: Page, scene: string, flagOn = false): Promise<void> {
   await page.addInitScript(
-    ([withAchievement, overlayHost, withCaptions, withBreath]) => {
+    ([withAchievement, overlayHost, withCaptions, withBreath, withHeard]) => {
       try {
         // The first chat of the day unlocks Early Bird; keep it to the scenes that show it.
         if (!withAchievement)
@@ -81,6 +83,7 @@ async function openScene(page: Page, scene: string, flagOn = false): Promise<voi
           localStorage.setItem('ferni_show_transcription', 'true');
         }
         if (withBreath) localStorage.setItem('ferni:flag:captions-breath', 'true');
+        if (withHeard) localStorage.setItem('ferni:flag:captions-heard', 'true');
         // The welcome tour is not a gallery scene; on a slow runner it opened mid-test.
         localStorage.setItem('ferni:onboarding:complete', 'true');
       } catch {
@@ -90,8 +93,12 @@ async function openScene(page: Page, scene: string, flagOn = false): Promise<voi
     [
       scene === 'achievement' || scene === 'collision',
       flagOn,
-      scene === 'captions' || scene === 'caption-moments' || scene === 'caption-breath',
+      scene === 'captions' ||
+        scene === 'caption-moments' ||
+        scene === 'caption-breath' ||
+        scene.startsWith('caption-heard'),
       scene === 'caption-breath',
+      scene.startsWith('caption-heard'),
     ] as const
   );
   // Pin the wall clock: greetings, countdowns and time-of-day features must not
@@ -148,6 +155,8 @@ const NO_SNAPSHOT = new Set([
   'captions',
   'caption-moments',
   'caption-breath',
+  'caption-heard',
+  'caption-heard-reply',
 ]);
 
 /** Text that changes with the clock or animates, kept out of the pixel diff. */
@@ -376,4 +385,214 @@ test.describe('breath motion, in the browser', () => {
     expect(settled.every((name) => name === 'none')).toBe(true);
     expect(live.every((name) => name === 'ferni-breath-word')).toBe(true);
   });
+});
+
+test.describe('heard, in the browser', () => {
+  test('the caller line is faint until its transcript is final', async ({ page }) => {
+    await openScene(page, 'caption-heard');
+    expect(await page.$$eval('.ferni-caption-line--interim', (els) => els.length)).toBe(1);
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent('ferni:transcript', {
+          detail: {
+            type: 'user',
+            text: "My sister Ana starts her new job Monday and I'm weirdly nervous for her.",
+            isFinal: true,
+          },
+        })
+      )
+    );
+    await page.waitForTimeout(150);
+    expect(await page.$$eval('.ferni-caption-line--interim', (els) => els.length)).toBe(0);
+  });
+
+  test('the check pops once Ferni takes the settled caller line', async ({ page }) => {
+    await openScene(page, 'caption-heard-reply');
+    expect(
+      await page.$$eval('.ferni-caption-line--ticked .ferni-caption-check', (els) => els.length)
+    ).toBe(1);
+    expect(await page.$$eval('.ferni-caption-line--interim', (els) => els.length)).toBe(0);
+  });
+
+  test('the check sits inside the caption area in the reply scene', async ({ page }) => {
+    await openScene(page, 'caption-heard-reply');
+    const inside = await page.evaluate(() => {
+      const check = document.querySelector('.ferni-caption-check');
+      const view = document.querySelector('.ferni-captions__viewport');
+      if (!check || !view) return false;
+      const c = check.getBoundingClientRect();
+      const v = view.getBoundingClientRect();
+      return c.top >= v.top - 1 && c.bottom <= v.bottom + 1;
+    });
+    expect(inside).toBe(true);
+  });
+
+  test('at every size, the caller line shows whole with the reply, or is set aside: no line is cut', async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+    await openScene(page, 'caption-heard-reply');
+    // openScene freezes transitions for its own theme switch. This check needs the real
+    // reduced-motion path, so take that override out.
+    await page.evaluate(() => {
+      for (const style of Array.from(document.querySelectorAll('style'))) {
+        if (style.textContent?.trim() === '*, *::before, *::after { transition: none !important; }')
+          style.remove();
+      }
+    });
+    const SIZES = [
+      [1280, 800],
+      [1440, 900],
+      [1366, 768],
+      [390, 844],
+      [360, 640],
+    ] as const;
+    // Alternate the reply's text: an unchanged transcript does not restart the idle timer,
+    // and the region hides after six seconds without speech.
+    const REPLIES = [
+      "Nervous-for-someone is love in disguise. What's she walking into?",
+      'Nervous-for-someone is love in disguise. What is she walking into?',
+    ] as const;
+    const failures: string[] = [];
+    let turn = 0;
+    for (const reduced of [false, true]) {
+      for (const dark of [false, true]) {
+        for (const large of [false, true]) {
+          for (const [width, height] of SIZES) {
+            await page.setViewportSize({ width, height });
+            await page.emulateMedia({
+              colorScheme: dark ? 'dark' : 'light',
+              reducedMotion: reduced ? 'reduce' : 'no-preference',
+            });
+            await page.evaluate(
+              ([d, l]) => {
+                document.documentElement.setAttribute('data-theme', d ? 'midnight' : 'zen');
+                document.documentElement.style.fontSize = l ? '24px' : '';
+                window.dispatchEvent(new Event('resize'));
+              },
+              [dark, large] as const
+            );
+            await page.evaluate(
+              (text) =>
+                window.dispatchEvent(
+                  new CustomEvent('ferni:transcript', {
+                    detail: { type: 'agent', text, isFinal: false },
+                  })
+                ),
+              REPLIES[turn++ % REPLIES.length]
+            );
+            await page.waitForTimeout(900); // let the resize settle before measuring
+            const result = await page.evaluate(() => {
+              const viewEl = document.querySelector<HTMLElement>('.ferni-captions__viewport');
+              const view = viewEl?.getBoundingClientRect();
+              const visible = !!viewEl && getComputedStyle(viewEl).display !== 'none';
+              const lines = [
+                ...document.querySelectorAll('.ferni-captions__viewport > .ferni-caption-line'),
+              ] as HTMLElement[];
+              const shown = lines.filter((l) => getComputedStyle(l).display !== 'none');
+              // Each visual line of each shown line: one straddling the viewport edge is cut.
+              const cut: string[] = [];
+              for (const l of shown) {
+                const range = document.createRange();
+                range.selectNodeContents(l);
+                for (const b of Array.from(range.getClientRects())) {
+                  if (
+                    view &&
+                    b.bottom > view.top &&
+                    b.top < view.bottom &&
+                    (b.top < view.top - 1 || b.bottom > view.bottom + 1)
+                  ) {
+                    cut.push(l.textContent?.slice(0, 24) ?? '');
+                    break;
+                  }
+                }
+              }
+              const caller = lines.find((l) => l.dataset.speaker === 'user');
+              const callerSet = !caller || getComputedStyle(caller).display === 'none';
+              // A shown caller line must be whole in the viewport: not cut, and not scrolled out.
+              let callerRows = 'n/a';
+              if (caller && !callerSet && view) {
+                const range = document.createRange();
+                range.selectNodeContents(caller);
+                const rows = Array.from(range.getClientRects());
+                const inside = rows.every(
+                  (b) => b.top >= view.top - 1 && b.bottom <= view.bottom + 1
+                );
+                const touches = rows.some((b) => b.bottom > view.top && b.top < view.bottom);
+                callerRows = inside ? 'whole' : touches ? 'cut' : 'out';
+              }
+              const root = document.querySelector('.ferni-captions');
+              const padding = root ? getComputedStyle(root).paddingTop : null;
+              const reply = lines.find((l) => l.dataset.speaker === 'agent');
+              const fontOf = (el: HTMLElement | undefined) =>
+                el ? parseFloat(getComputedStyle(el).fontSize) : null;
+              const callerFont = callerSet ? null : fontOf(caller);
+              // The step-down size, read from the token in the page.
+              const probe = document.createElement('span');
+              probe.style.fontSize = 'var(--text-base)';
+              document.body.append(probe);
+              const textBase = parseFloat(getComputedStyle(probe).fontSize);
+              probe.remove();
+              return {
+                visible,
+                shown: shown.length,
+                cut,
+                callerSet,
+                callerRows,
+                padding,
+                callerFont,
+                textBase,
+              };
+            });
+            const label = `${width}x${height} dark=${dark} large=${large} reduced=${reduced}`;
+            if (!result.visible || result.shown === 0)
+              failures.push(`${label}: caption area hidden, nothing measured`);
+            if (result.cut.length) failures.push(`${label}: cut ${result.cut.join(' | ')}`);
+            if (result.callerRows === 'cut' || result.callerRows === 'out')
+              failures.push(`${label}: caller line ${result.callerRows}`);
+            // A roomy size shows the caller's line whole, with the region padding dropped.
+            if (width === 1440 && !dark && !large && result.callerSet)
+              failures.push(`${label}: caller set aside at a roomy size`);
+            // The caller's line steps down to the --text-base size when it is shown.
+            if (result.callerFont !== null && Math.abs(result.callerFont - result.textBase) > 0.5)
+              failures.push(
+                `${label}: caller font ${result.callerFont}px, expected --text-base ${result.textBase}px`
+              );
+            if (width === 1440 && !dark && !large && result.padding !== '0px')
+              failures.push(`${label}: caller-mode padding not dropped (${result.padding})`);
+          }
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  test('reduced motion settles the caller line with no transition', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openScene(page, 'caption-heard');
+    // openScene freezes transitions. Take that override out, so only the app's own
+    // reduced-motion rule decides the transition here.
+    await page.evaluate(() => {
+      for (const style of Array.from(document.querySelectorAll('style'))) {
+        if (style.textContent?.trim() === '*, *::before, *::after { transition: none !important; }')
+          style.remove();
+      }
+    });
+    const durations = await page.$$eval(".ferni-caption-line[data-speaker='user']", (els) =>
+      els.map((el) => getComputedStyle(el).transitionDuration)
+    );
+    expect(durations.length).toBeGreaterThan(0);
+    expect(durations.every((d) => parseFloat(d) < 0.001)).toBe(true);
+  });
+});
+
+test('reduced motion turns off the plain captions fade (flags off)', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openScene(page, 'captions');
+  const names = await page.$$eval(
+    '.ferni-caption-line:not(.ferni-caption-line--settled) .ferni-caption-words',
+    (els) => els.map((el) => getComputedStyle(el).animationName)
+  );
+  expect(names.length).toBeGreaterThan(0);
+  expect(names.every((name) => name === 'none')).toBe(true);
 });

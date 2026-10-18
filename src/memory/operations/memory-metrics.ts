@@ -302,15 +302,15 @@ export class MemoryMetricsCollector {
       });
     }
 
-    // Check hit rate
-    if (metrics.retrieval.hitRate < this.thresholds.minHitRate) {
+    // Hit rate only means something once this process served a lookup (the UI never does).
+    const { hitRate, totalRetrievals } = metrics.retrieval;
+    if (totalRetrievals > 0 && hitRate < this.thresholds.minHitRate) {
       alerts.push({
         metric: 'hitRate',
-        currentValue: metrics.retrieval.hitRate,
+        currentValue: hitRate,
         threshold: this.thresholds.minHitRate,
-        severity:
-          metrics.retrieval.hitRate < this.thresholds.minHitRate * 0.5 ? 'critical' : 'warning',
-        message: `Hit rate (${(metrics.retrieval.hitRate * 100).toFixed(1)}%) below threshold`,
+        severity: hitRate < this.thresholds.minHitRate * 0.5 ? 'critical' : 'warning',
+        message: `Hit rate (${(hitRate * 100).toFixed(1)}%) below threshold`,
         timestamp: new Date(),
       });
     }

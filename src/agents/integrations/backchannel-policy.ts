@@ -13,6 +13,7 @@
  * @module agents/integrations/backchannel-policy
  */
 
+import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { callerLaughed } from '../personas/turn-extras.js';
 
 export interface BackchannelMoment {
@@ -86,12 +87,24 @@ export interface LaughMoment {
   turnCount: number;
   /** Turn of the last laugh-along, or null if none this call. */
   lastLaughTurn: number | null;
+  /** The caller's latest turns, oldest first, ending with this one (heavy-moment.ts). */
+  callerTurns?: readonly string[];
+}
+
+/**
+ * Hard news in the caller's words now or in their last turn, however they
+ * laughed: "my dad died last week... haha anyway" (heavy-moment.ts). The
+ * voice's emotion alone missed it, and the laugh-along clip played.
+ */
+export function heavyMoment(m: Pick<LaughMoment, 'partialTranscript' | 'callerTurns'>): boolean {
+  return isHeavyMoment([m.partialTranscript]) || isHeavyMoment(m.callerTurns ?? []);
 }
 
 /**
  * LAUGH_ALONG=on: when the caller laughs mid-turn, laugh with them instead of
- * an "mm-hm", the way a friend chuckles along. Not into emotion, not over
- * Ferni's own speech, and not two turns running (a laugh on cue is a tic).
+ * an "mm-hm", the way a friend chuckles along. Not into emotion or a heavy
+ * moment, not over Ferni's own speech, and not two turns running (a laugh on
+ * cue is a tic).
  */
 export function shouldLaughAlong(
   m: LaughMoment,
@@ -99,5 +112,5 @@ export function shouldLaughAlong(
 ): boolean {
   if (env.LAUGH_ALONG !== 'on' || m.emotional || m.agentSpeaking) return false;
   if (m.lastLaughTurn !== null && m.turnCount - m.lastLaughTurn < 2) return false;
-  return callerLaughed(m.partialTranscript);
+  return callerLaughed(m.partialTranscript) && !heavyMoment(m);
 }

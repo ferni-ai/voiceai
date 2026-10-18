@@ -3574,22 +3574,22 @@
     },
     "comparePrices": {
       "domain": "transportation",
-      "description": "Compare prices between Uber and Lyft for a trip.",
+      "description": "Compare Uber and Lyft ride fares for a trip. Rides only: not for product, shopping, grocery, gas, insurance, subscription or flight prices.",
       "queries": [
-        "okay so, Cheapest rental cars in Denver.",
-        "hmm, Price comparison for frozen vegetables.",
-        "Find the best deal on paper towels.",
-        "no rush, Cheapest gas station on my way home.",
-        "when you get a chance, Compare prices for toilet paper.",
-        "Compare the cost of Netflix vs Hulu.",
-        "Price check on Nike Air Max shoes.",
-        "Cheapest route to Los Angeles.",
-        "Cheapest movie tickets near me.",
-        "Cheapest data plans for my phone. right now",
-        "so, Compare prices on Samsung TVs.",
-        "no rush, Compare rates for auto insurance."
+        "Is Uber or Lyft cheaper to the airport right now?",
+        "How much would a Lyft to downtown cost compared to an Uber?",
+        "Compare Uber and Lyft fares to the stadium.",
+        "which ride is cheaper to get home tonight, uber or lyft",
+        "What's the fare difference between UberX and a standard Lyft to my office?",
+        "hmm, is Uber surging? Would Lyft be cheaper for this trip?",
+        "Cheapest rideshare to the train station.",
+        "Check what an Uber versus a Lyft costs to Mom's place.",
+        "Compare ride prices for a trip to the concert venue.",
+        "so, Lyft or Uber, which costs less to the hospital?",
+        "How much is a ride share across town right now?",
+        "Price out an Uber and a Lyft to the restaurant for me."
       ],
-      "descriptionHash": "fd30957303"
+      "descriptionHash": "d577032d3a"
     },
     "compareToYesterday": {
       "domain": "quiet-growth",
@@ -7967,7 +7967,7 @@
       "descriptionHash": "ecb6325fa9"
     },
     "getMovieInfo": {
-      "domain": "entertainment",
+      "domain": "video",
       "description": "Get information about a specific movie including rating, runtime, genres, and description. Use when user asks about a movie.",
       "queries": [
         "My friends keep talking about Saltburn but I have no idea what it's about, can you check it out for me?",
@@ -7980,7 +7980,7 @@
       "descriptionHash": "5f0f8ebaab"
     },
     "getMovieShowtimes": {
-      "domain": "entertainment",
+      "domain": "video",
       "description": "Get showtime information for a movie in a specific location. Use when user asks for showtimes or when a movie is playing.",
       "queries": [
         "Wicked showtimes Seattle.",
@@ -7993,7 +7993,7 @@
       "descriptionHash": "9572a6b4d4"
     },
     "getMoviesNowPlaying": {
-      "domain": "entertainment",
+      "domain": "video",
       "description": "Get a list of movies currently playing in theaters. Use when user asks what movies are out, in theaters, or playing now.",
       "queries": [
         "I want to see what's currently in theaters because my partner and I finally have a babysitter for date night.",
@@ -8909,7 +8909,7 @@
       "descriptionHash": "dc656c0cef"
     },
     "getUpcomingMovies": {
-      "domain": "entertainment",
+      "domain": "video",
       "description": "Get a list of upcoming movies coming to theaters soon. Use when user asks about upcoming releases or what movies are coming out.",
       "queries": [
         "Upcoming movie releases.",

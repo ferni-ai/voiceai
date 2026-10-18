@@ -1,12 +1,13 @@
 /**
  * Research Synthesis Tools
  *
- * These tools give Peter the ability to synthesize research at scale,
- * score evidence quality, and find counter-arguments - tasks that would
- * take humans weeks to do properly.
+ * These tools help Peter talk about what research says on everyday topics,
+ * judge how settled a claim is, and find counter-arguments.
  *
- * "Better than Human" because: No human can read 50 papers in seconds
- * and synthesize them into actionable insights.
+ * The research notes below are short hand-written summaries, not a live
+ * literature search. They carry no study counts, sample sizes or effect
+ * sizes, and only cite a study where the citation is real and says what the
+ * note claims.
  *
  * @module tools/domains/research/superhuman-tools/research-synthesis
  */
@@ -14,31 +15,21 @@
 import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../../utils/safe-logger.js';
-import type {
-  EvidenceQuality,
-  ResearchSynthesis,
-  CounterArgument,
-  BaseRateContext,
-} from './types.js';
-import {
-  getUserIdFromContext,
-  saveVerifiedClaim,
-  loadVerifiedClaims,
-} from './firestore-persistence.js';
+import { getUserIdFromContext } from './firestore-persistence.js';
 
 const log = getLogger();
 
 // ============================================================================
-// RESEARCH DATABASE (Simulated - would integrate with academic APIs)
+// RESEARCH NOTES (hand-written summaries, not a live literature search)
 // ============================================================================
+
+/** How settled the evidence is, as a plain-language judgement, not a score. */
+type EvidenceStrength = 'strong' | 'moderate' | 'mixed' | 'limited';
 
 interface ResearchEntry {
   topic: string;
   keywords: string[];
-  consensus: 'strong' | 'moderate' | 'weak' | 'contested';
-  studyCount: number;
-  totalParticipants: number;
-  effectSize: 'small' | 'medium' | 'large';
+  evidence: EvidenceStrength;
   keyFindings: string[];
   limitations: string[];
   practicalTakeaway: string;
@@ -48,191 +39,141 @@ const researchDatabase: ResearchEntry[] = [
   {
     topic: 'habit formation duration',
     keywords: ['habit', '21 days', '66 days', 'formation', 'automaticity'],
-    consensus: 'moderate',
-    studyCount: 12,
-    totalParticipants: 2500,
-    effectSize: 'medium',
+    evidence: 'moderate',
     keyFindings: [
-      'Average time to automaticity is 66 days, not 21 (Lally et al., 2010)',
-      'Range is 18 to 254 days depending on complexity',
-      'Missing a single day does not significantly affect habit formation',
+      'In a study of 96 people, a new daily habit took a median of about 66 days to feel automatic, with an estimated range of 18 to 254 days (Lally et al., 2010)',
+      'In the same study, missing a single day did not noticeably set people back',
       'Consistency matters more than perfection',
     ],
-    limitations: ['Most studies use self-report', 'Limited to simple habits'],
-    practicalTakeaway: 'Plan for 2-3 months, not 3 weeks. Missing days is okay.',
+    limitations: [
+      'Automaticity was self-reported',
+      'Mostly simple eating, drinking and exercise habits',
+    ],
+    practicalTakeaway: 'Plan for a couple of months, not three weeks. Missing a day is okay.',
   },
   {
     topic: 'sleep and decision making',
     keywords: ['sleep', 'decision', 'cognitive', 'deprivation', 'judgment'],
-    consensus: 'strong',
-    studyCount: 45,
-    totalParticipants: 8000,
-    effectSize: 'large',
+    evidence: 'strong',
     keyFindings: [
-      'Sleep deprivation impairs risk assessment (Harrison & Horne, 2000)',
-      'Less than 6 hours reduces decision quality by 25-40%',
-      'Effects are similar to alcohol intoxication at 17+ hours awake',
-      'Recovery sleep restores function but takes multiple nights',
+      'Sleep loss hurts decisions that need flexible thinking or updating a plan (Harrison & Horne, 2000, a review)',
+      'After about 17 hours awake, performance on a tracking task fell to about the level seen at a 0.05% blood alcohol concentration (Dawson & Reid, 1997)',
+      'After several short nights, one night of recovery sleep may not fully restore performance',
     ],
     limitations: ['Lab conditions may not reflect real-world'],
-    practicalTakeaway: 'Never make important decisions on <6 hours sleep.',
+    practicalTakeaway: "When you're short on sleep, put off big decisions if you can.",
   },
   {
     topic: 'morning routine productivity',
     keywords: ['morning', 'routine', 'productivity', 'willpower', 'discipline'],
-    consensus: 'moderate',
-    studyCount: 8,
-    totalParticipants: 1200,
-    effectSize: 'medium',
+    evidence: 'limited',
     keyFindings: [
-      'Morning routines reduce decision fatigue (Baumeister)',
-      'Willpower is highest in morning for most people',
-      'Consistent wake times improve sleep quality',
-      'Effect varies significantly by chronotype',
+      'There is little direct evidence that a morning routine itself makes people more productive',
+      'Regular wake times are linked with better sleep',
+      'Chronotype matters: the best time of day for focused work differs between people',
     ],
     limitations: ['Chronotype not always controlled', 'Self-selection bias'],
-    practicalTakeaway: 'Morning routines work, but respect your chronotype.',
+    practicalTakeaway: 'A steady wake time is the better-supported part. Respect your chronotype.',
   },
   {
     topic: 'passive vs active investing',
     keywords: ['passive', 'active', 'index', 'fund', 'performance', 'fees'],
-    consensus: 'strong',
-    studyCount: 30,
-    totalParticipants: 0, // Fund data
-    effectSize: 'large',
+    evidence: 'strong',
     keyFindings: [
-      '~90% of active funds underperform index over 15 years (SPIVA)',
-      'Fees are the strongest predictor of underperformance',
+      "Over 15 years, roughly 9 in 10 actively managed US large-cap funds trailed the S&P 500 in recent S&P Dow Jones Indices' SPIVA reports",
+      'Lower fees are one of the most consistent predictors of better fund returns',
       'Past performance does not predict future results',
       'Survivorship bias makes active look better than it is',
     ],
     limitations: ['Some markets less efficient', 'Tax considerations vary'],
-    practicalTakeaway: 'For most investors, low-cost index funds win.',
+    practicalTakeaway: 'For most investors, low-cost index funds have been hard to beat.',
   },
   {
     topic: 'compound interest psychology',
     keywords: ['compound', 'interest', 'exponential', 'growth', 'bias'],
-    consensus: 'strong',
-    studyCount: 15,
-    totalParticipants: 3000,
-    effectSize: 'large',
+    evidence: 'moderate',
     keyFindings: [
-      'Humans systematically underestimate exponential growth',
-      'Even financially literate people make this error',
-      'Visualization helps but does not eliminate bias',
+      'People tend to underestimate exponential growth, a pattern called exponential growth bias (Stango & Zinman, 2009)',
       'Starting early matters more than people realize',
     ],
-    limitations: ['Education can help somewhat'],
-    practicalTakeaway: 'Your intuition about compound growth is wrong. Trust the math.',
+    limitations: ['The evidence on how best to correct the bias is limited'],
+    practicalTakeaway: 'Your intuition about compound growth is likely low. Trust the math.',
   },
   {
     topic: 'exercise and mood',
     keywords: ['exercise', 'mood', 'depression', 'anxiety', 'mental health'],
-    consensus: 'strong',
-    studyCount: 50,
-    totalParticipants: 15000,
-    effectSize: 'medium',
+    evidence: 'moderate',
     keyFindings: [
-      'Exercise is as effective as medication for mild-moderate depression',
-      'Effects are immediate (single session) and cumulative',
-      '30 minutes of moderate exercise 3x/week is sufficient',
-      'Type of exercise matters less than consistency',
+      'Some trials found exercise helped mild to moderate depression about as much as standard treatment, but the trials are small and the evidence is mixed',
+      'A single session can lift mood in the short term',
+      'Moderate, regular activity is what most studies use; intense training is not required',
     ],
-    limitations: ['Severe depression may need medication first'],
+    limitations: ["Exercise isn't a substitute for treatment of severe depression"],
     practicalTakeaway: 'Any exercise is a mood intervention. Start small.',
   },
   {
     topic: 'multitasking myth',
     keywords: ['multitasking', 'productivity', 'focus', 'attention', 'switching'],
-    consensus: 'strong',
-    studyCount: 25,
-    totalParticipants: 5000,
-    effectSize: 'large',
+    evidence: 'strong',
     keyFindings: [
-      'True multitasking is neurologically impossible for complex tasks',
-      'Task switching costs 20-40% of productive time',
-      'Heavy multitaskers perform worse at filtering distractions',
-      'Quality degrades significantly when attention is divided',
+      'People cannot give full attention to two demanding tasks at once; "multitasking" is usually switching',
+      'Switching between tasks has measurable time costs (Rubinstein, Meyer & Evans, 2001)',
+      'Heavy media multitaskers did worse at filtering distractions in one well-known study (Ophir, Nass & Wagner, 2009), though later replications are mixed',
     ],
     limitations: ['Simple tasks can be combined', 'Some individual variation'],
-    practicalTakeaway: 'Single-tasking is 40% more productive. Block distractions.',
+    practicalTakeaway: 'Do one demanding thing at a time. Block distractions.',
   },
   {
     topic: 'goal setting effectiveness',
     keywords: ['goal', 'SMART', 'setting', 'achievement', 'motivation'],
-    consensus: 'moderate',
-    studyCount: 35,
-    totalParticipants: 7000,
-    effectSize: 'medium',
+    evidence: 'moderate',
     keyFindings: [
-      'Specific goals outperform vague goals (Locke & Latham)',
-      'Writing goals increases achievement probability',
-      'Too many goals reduces performance on all',
-      'Process goals may outperform outcome goals',
+      'Specific, challenging goals lead to better performance than "do your best" goals (Locke & Latham, 2002)',
+      'Whether process goals beat outcome goals is mixed',
     ],
     limitations: ['Effect varies by goal type', 'Cultural factors'],
-    practicalTakeaway: 'Write down 1-3 specific goals. Focus on process.',
+    practicalTakeaway: 'Pick a few specific goals and plan the steps.',
   },
 ];
 
-// Base rate database for common claims
-const baseRateDatabase: Record<
-  string,
-  { rate: number; context: string; comparisons: { category: string; rate: number }[] }
-> = {
+const evidenceLabel: Record<EvidenceStrength, string> = {
+  strong: 'strong: broadly agreed in the research',
+  moderate: 'moderate: good support, some open questions',
+  mixed: 'mixed: studies disagree',
+  limited: 'limited: little direct research',
+};
+
+const notesDisclaimer =
+  'This is from my short built-in research notes, not a live search of the literature.';
+
+// Base rates. `rate` is set only where a well-established, sourced figure
+// fits the question; everything else is described without a number.
+const baseRateDatabase: Record<string, { rate?: number; context: string; tips: string[] }> = {
   'startup success': {
-    rate: 10,
-    context: '~90% of startups fail within 10 years',
-    comparisons: [
-      { category: 'VC-backed startups', rate: 25 },
-      { category: 'Solo founders', rate: 8 },
-      { category: 'Second-time founders', rate: 18 },
-    ],
+    context:
+      "There's no single agreed startup success rate. For reference, roughly half of new US businesses close within five years (US Bureau of Labor Statistics). Survival isn't the same as success.",
+    tips: ['Prior founding experience and a real, paying customer early tend to help'],
   },
   'new year resolution': {
-    rate: 9,
-    context: 'Only 9% of people complete their New Year resolutions',
-    comparisons: [
-      { category: 'With accountability partner', rate: 25 },
-      { category: 'Written down', rate: 15 },
-      { category: 'Shared publicly', rate: 12 },
-    ],
+    context:
+      'Most resolutions fade within months. Good figures are scarce; the evidence is limited and mostly from surveys.',
+    tips: ['Specific goals with a plan for when and where tend to do better than vague intentions'],
   },
   'diet success': {
-    rate: 5,
-    context: '95% of diets fail within 5 years (weight regained)',
-    comparisons: [
-      { category: 'With exercise', rate: 20 },
-      { category: 'Lifestyle change approach', rate: 30 },
-      { category: 'Crash diets', rate: 2 },
-    ],
+    context:
+      'Many people who lose weight by dieting regain much of it over the following years. How many varies a lot between studies.',
+    tips: ['Changes you can keep up, plus regular physical activity, tend to help keep weight off'],
   },
   'habit stick': {
-    rate: 40,
-    context: 'About 40% of new habits stick past 30 days',
-    comparisons: [
-      { category: 'With implementation intention', rate: 62 },
-      { category: 'Habit stacking', rate: 55 },
-      { category: 'Without strategy', rate: 25 },
-    ],
+    context:
+      'In one study of 96 people, new habits took a median of about 66 days to feel automatic, with wide variation between people (Lally et al., 2010). How many habits stick overall is not well measured.',
+    tips: ["If-then plans ('when X happens, I'll do Y') tend to help people follow through"],
   },
   'active investor beats market': {
     rate: 10,
-    context: 'Only ~10% of active fund managers beat the index over 15 years',
-    comparisons: [
-      { category: '1 year horizon', rate: 40 },
-      { category: '5 year horizon', rate: 20 },
-      { category: 'After fees', rate: 8 },
-    ],
-  },
-  'side business success': {
-    rate: 20,
-    context: '~20% of side businesses generate meaningful income within 2 years',
-    comparisons: [
-      { category: 'With existing audience', rate: 45 },
-      { category: 'Service-based', rate: 35 },
-      { category: 'Product-based', rate: 15 },
-    ],
+    context:
+      "Over 15 years, roughly 1 in 10 actively managed US large-cap funds beat the S&P 500 in recent S&P Dow Jones Indices' SPIVA reports.",
+    tips: ['Fees are one of the most consistent drags on returns'],
   },
 };
 
@@ -267,7 +208,7 @@ function findRelevantResearch(query: string): ResearchEntry[] {
 
 export const scoreEvidenceQuality = llm.tool({
   description:
-    'Score the evidence quality behind any claim. Get instant meta-analysis: study count, sample size, effect size, consistency. Know if advice is well-supported or just popular.',
+    'Say how well-supported a claim or piece of advice is, from short built-in research notes. Gives key findings, limitations and how settled the evidence is. Not a live literature search; says when it has nothing on the topic.',
   parameters: z.object({
     claim: z.string().describe('The claim or advice to evaluate'),
   }),
@@ -283,9 +224,9 @@ export const scoreEvidenceQuality = llm.tool({
         '',
         `Claim: "${params.claim}"`,
         '',
-        `⚠️ **No strong research found in my database**`,
+        `⚠️ **Nothing on this in my research notes**`,
         '',
-        `This doesn't mean the claim is wrong, but I can't find solid academic backing.`,
+        `This doesn't mean the claim is wrong. My notes cover only a few topics, so I can't say how well-supported it is.`,
         '',
         `**Possible reasons:**`,
         `• Topic is too new for research`,
@@ -295,46 +236,15 @@ export const scoreEvidenceQuality = llm.tool({
         `**Recommendation:**`,
         `Treat this as unverified. Look for:`,
         `• Randomized controlled trials`,
-        `• Large sample sizes (>1000)`,
+        `• Large samples`,
         `• Replication across studies`,
         `• Peer-reviewed publications`,
       ].join('\n');
     }
 
     const topMatch = relevantResearch[0];
-    const totalStudies = relevantResearch.reduce((sum, r) => sum + r.studyCount, 0);
-    const totalParticipants = relevantResearch.reduce((sum, r) => sum + r.totalParticipants, 0);
-
-    // Calculate overall evidence score
-    let score = 0;
-    if (totalStudies >= 30) score += 30;
-    else if (totalStudies >= 15) score += 20;
-    else if (totalStudies >= 5) score += 10;
-
-    if (totalParticipants >= 10000) score += 25;
-    else if (totalParticipants >= 5000) score += 15;
-    else if (totalParticipants >= 1000) score += 10;
-
-    if (topMatch.consensus === 'strong') score += 25;
-    else if (topMatch.consensus === 'moderate') score += 15;
-    else if (topMatch.consensus === 'weak') score += 5;
-
-    if (topMatch.effectSize === 'large') score += 20;
-    else if (topMatch.effectSize === 'medium') score += 10;
-    else score += 5;
-
-    const scoreLabel =
-      score >= 80
-        ? 'STRONG'
-        : score >= 60
-          ? 'GOOD'
-          : score >= 40
-            ? 'MODERATE'
-            : score >= 20
-              ? 'WEAK'
-              : 'VERY WEAK';
-
-    const emoji = score >= 60 ? '✅' : score >= 40 ? '⚠️' : '🔴';
+    const emoji =
+      topMatch.evidence === 'strong' ? '✅' : topMatch.evidence === 'moderate' ? '⚠️' : '🔴';
 
     return [
       `🔬 **EVIDENCE QUALITY ANALYSIS**`,
@@ -342,14 +252,9 @@ export const scoreEvidenceQuality = llm.tool({
       `Claim: "${params.claim}"`,
       '',
       `═══════════════════════════════════`,
-      `${emoji} **EVIDENCE SCORE: ${score}/100 (${scoreLabel})**`,
+      `${emoji} **HOW SETTLED: ${evidenceLabel[topMatch.evidence]}**`,
       `═══════════════════════════════════`,
-      '',
-      `📊 **Research Summary:**`,
-      `• Studies found: ${totalStudies}`,
-      `• Total participants: ${totalParticipants.toLocaleString()}`,
-      `• Scientific consensus: ${topMatch.consensus}`,
-      `• Effect size: ${topMatch.effectSize}`,
+      notesDisclaimer,
       '',
       `═══════════════════════════════════`,
       `📝 **KEY FINDINGS**`,
@@ -369,11 +274,11 @@ export const scoreEvidenceQuality = llm.tool({
       `═══════════════════════════════════`,
       `🎯 **PETER'S VERDICT**`,
       `═══════════════════════════════════`,
-      score >= 60
-        ? `This claim is well-supported. You can act on it with confidence.`
-        : score >= 40
-          ? `Evidence exists but isn't overwhelming. Proceed with awareness.`
-          : `Weak evidence. This might be more hype than science.`,
+      topMatch.evidence === 'strong'
+        ? `This is well-supported. You can act on it with reasonable confidence.`
+        : topMatch.evidence === 'moderate'
+          ? `There's support, but it isn't settled. Proceed with awareness.`
+          : `The evidence is thin or mixed. Treat this as a hypothesis to test.`,
     ].join('\n');
   },
 });
@@ -384,7 +289,7 @@ export const scoreEvidenceQuality = llm.tool({
 
 export const synthesizeResearch = llm.tool({
   description:
-    'Get an instant synthesis of research on any life topic. What would take you weeks to read, I can summarize in seconds.',
+    "Summarize what's generally known about a life topic from short built-in research notes: key findings, caveats and how settled the evidence is. Not a live literature search; says when it has nothing on the topic.",
   parameters: z.object({
     topic: z.string().describe('Topic to synthesize research on'),
     depth: z
@@ -404,30 +309,23 @@ export const synthesizeResearch = llm.tool({
         '',
         `⚠️ **No direct research found**`,
         '',
-        `I don't have research specifically on "${params.topic}" in my database.`,
+        `I don't have anything on "${params.topic}" in my research notes.`,
         '',
         `**Try searching for:**`,
         `• More specific terms`,
         `• Related concepts`,
         `• Academic terminology`,
         '',
-        `**Or ask me about these researched topics:**`,
+        `**Or ask me about these topics:**`,
         ...researchDatabase.slice(0, 5).map((r) => `• ${r.topic}`),
       ].join('\n');
     }
 
     const allFindings = relevantResearch.flatMap((r) => r.keyFindings);
     const allLimitations = [...new Set(relevantResearch.flatMap((r) => r.limitations))];
-    const totalStudies = relevantResearch.reduce((sum, r) => sum + r.studyCount, 0);
-    const totalParticipants = relevantResearch.reduce((sum, r) => sum + r.totalParticipants, 0);
 
-    // Determine overall consensus
-    const consensusValues = relevantResearch.map((r) => r.consensus);
-    const overallConsensus = consensusValues.includes('strong')
-      ? 'strong'
-      : consensusValues.includes('moderate')
-        ? 'moderate'
-        : 'weak';
+    // The best-matching topic decides how settled the answer is
+    const overallEvidence = relevantResearch[0].evidence;
 
     const output = [
       `📚 **RESEARCH SYNTHESIS: ${params.topic.toUpperCase()}**`,
@@ -435,10 +333,8 @@ export const synthesizeResearch = llm.tool({
       `═══════════════════════════════════`,
       `📊 **OVERVIEW**`,
       `═══════════════════════════════════`,
-      `• Related research areas: ${relevantResearch.length}`,
-      `• Combined studies: ${totalStudies}`,
-      `• Total participants: ${totalParticipants.toLocaleString()}`,
-      `• Scientific consensus: ${overallConsensus}`,
+      `• How settled: ${evidenceLabel[overallEvidence]}`,
+      `• ${notesDisclaimer}`,
       '',
       `═══════════════════════════════════`,
       `🔬 **KEY FINDINGS FROM RESEARCH**`,
@@ -468,9 +364,9 @@ export const synthesizeResearch = llm.tool({
       output.push(
         '',
         `═══════════════════════════════════`,
-        `📖 **RESEARCH AREAS CONSULTED**`,
+        `📖 **TOPICS CONSULTED**`,
         `═══════════════════════════════════`,
-        ...relevantResearch.map((r) => `• ${r.topic} (${r.studyCount} studies)`)
+        ...relevantResearch.map((r) => `• ${r.topic}`)
       );
     }
 
@@ -479,9 +375,9 @@ export const synthesizeResearch = llm.tool({
       `═══════════════════════════════════`,
       `🎯 **BOTTOM LINE**`,
       `═══════════════════════════════════`,
-      overallConsensus === 'strong'
-        ? `The science is clear on this. You can act with confidence.`
-        : overallConsensus === 'moderate'
+      overallEvidence === 'strong'
+        ? `The science is fairly clear on this. You can act with reasonable confidence.`
+        : overallEvidence === 'moderate'
           ? `Evidence is good but not conclusive. Apply with awareness.`
           : `Research is mixed. Your individual experience matters a lot here.`
     );
@@ -518,7 +414,7 @@ export const findCounterArguments = llm.tool({
           argument: 'Survivorship bias may be inflating your perception',
           strength: 'strong',
           evidence:
-            'You hear about winners, not the 90% who failed. The full picture may be less optimistic.',
+            'You hear about winners, not the many who failed. The full picture may be less optimistic.',
         },
         {
           argument: "Past performance doesn't predict future results",
@@ -648,7 +544,7 @@ export const findCounterArguments = llm.tool({
 
 export const verifyClaim = llm.tool({
   description:
-    'Fact-check any life advice or claim against peer-reviewed research. Know if that productivity tip is backed by science or just popular.',
+    'Check a piece of life advice against a few well-known myths and short built-in research notes. Not a live literature search; says when it cannot verify a claim.',
   parameters: z.object({
     claim: z.string().describe('The claim to verify'),
   }),
@@ -663,12 +559,12 @@ export const verifyClaim = llm.tool({
       '21 days': {
         verdict: 'MYTH (partially)',
         reality:
-          'The 21-day habit myth comes from a misquoted 1960s book. Research shows 66 days on average, ranging from 18-254 days.',
+          'The 21-day habit myth comes from a misquoted 1960s book. In one study of 96 people, new habits took a median of about 66 days to feel automatic, with an estimated range of 18 to 254 days (Lally et al., 2010).',
       },
       multitask: {
         verdict: 'MYTH',
         reality:
-          "True multitasking is neurologically impossible for complex tasks. What we call 'multitasking' is task-switching, which costs 20-40% productivity.",
+          "People can't give full attention to two demanding tasks at once. What we call 'multitasking' is usually task-switching, which has measurable time costs.",
       },
       'willpower muscle': {
         verdict: 'CONTESTED',
@@ -727,13 +623,8 @@ export const verifyClaim = llm.tool({
     }
 
     if (relevantResearch.length > 0) {
+      // A topic match says what the research covers, not whether this exact claim holds
       const topMatch = relevantResearch[0];
-      const verdict =
-        topMatch.consensus === 'strong'
-          ? 'SUPPORTED'
-          : topMatch.consensus === 'moderate'
-            ? 'PARTIALLY SUPPORTED'
-            : 'WEAKLY SUPPORTED';
 
       return [
         `✅ **CLAIM VERIFICATION**`,
@@ -741,13 +632,12 @@ export const verifyClaim = llm.tool({
         `Claim: "${params.claim}"`,
         '',
         `═══════════════════════════════════`,
-        `📊 **VERDICT: ${verdict}**`,
+        `📊 **RELATED RESEARCH: ${topMatch.topic.toUpperCase()}**`,
         `═══════════════════════════════════`,
         '',
-        `**Evidence found:**`,
-        `• ${topMatch.studyCount} studies`,
-        `• ${topMatch.totalParticipants.toLocaleString()} participants`,
-        `• Effect size: ${topMatch.effectSize}`,
+        `Compare the claim with these findings; they cover the topic, not this exact wording.`,
+        `**How settled:** ${evidenceLabel[topMatch.evidence]}`,
+        notesDisclaimer,
         '',
         `**Key findings:**`,
         ...topMatch.keyFindings.slice(0, 3).map((f) => `• ${f}`),
@@ -796,7 +686,7 @@ export const verifyClaim = llm.tool({
 
 export const getBaseRate = llm.tool({
   description:
-    "Combat probability blindness. Get the actual base rate for any claim. Your gut estimate is probably wrong - here's the data.",
+    'Give base-rate context for a few common scenarios (startups, resolutions, diets, habits, active investing). Quotes a figure only where a sourced one exists; otherwise describes the evidence and says when it has no data.',
   parameters: z.object({
     scenario: z.string().describe('The scenario or claim to get base rates for'),
     userEstimate: z
@@ -814,11 +704,7 @@ export const getBaseRate = llm.tool({
     log.info({ userId, scenario: params.scenario }, '📊 Getting base rate');
 
     // Find matching base rate
-    let matchedRate: {
-      rate: number;
-      context: string;
-      comparisons: { category: string; rate: number }[];
-    } | null = null;
+    let matchedRate: (typeof baseRateDatabase)[string] | null = null;
     let matchedKey = '';
 
     for (const [key, data] of Object.entries(baseRateDatabase)) {
@@ -855,18 +741,23 @@ export const getBaseRate = llm.tool({
         `2. What's the historical success rate?`,
         `3. What makes the winners different?`,
         '',
-        `**Topics I have base rates for:**`,
+        `**Topics I have notes on:**`,
         ...Object.keys(baseRateDatabase).map((k) => `• ${k}`),
       ].join('\n');
     }
 
-    const calibrationMessage = params.userEstimate
-      ? params.userEstimate > matchedRate.rate + 20
-        ? `⚠️ **CALIBRATION CHECK:** You estimated ${params.userEstimate}%, actual is ${matchedRate.rate}%. You may be overconfident.`
-        : params.userEstimate < matchedRate.rate - 20
-          ? `📈 **CALIBRATION CHECK:** You estimated ${params.userEstimate}%, actual is ${matchedRate.rate}%. You may be underestimating.`
-          : `✅ **CALIBRATION CHECK:** Your estimate (${params.userEstimate}%) is close to reality (${matchedRate.rate}%). Good intuition!`
-      : '';
+    const { rate } = matchedRate;
+    let calibrationMessage = '';
+    if (params.userEstimate !== undefined) {
+      calibrationMessage =
+        rate === undefined
+          ? `I don't have a reliable figure to check your ${params.userEstimate}% estimate against.`
+          : params.userEstimate > rate + 20
+            ? `⚠️ **CALIBRATION CHECK:** You estimated ${params.userEstimate}%; the figure above is about ${rate}%. You may be overconfident.`
+            : params.userEstimate < rate - 20
+              ? `📈 **CALIBRATION CHECK:** You estimated ${params.userEstimate}%; the figure above is about ${rate}%. You may be underestimating.`
+              : `✅ **CALIBRATION CHECK:** Your estimate (${params.userEstimate}%) is close to the figure above (about ${rate}%).`;
+    }
 
     return [
       `📊 **BASE RATE CHECK: ${matchedKey.toUpperCase()}**`,
@@ -874,7 +765,7 @@ export const getBaseRate = llm.tool({
       `Scenario: "${params.scenario}"`,
       '',
       `═══════════════════════════════════`,
-      `🎯 **ACTUAL BASE RATE: ${matchedRate.rate}%**`,
+      `🎯 **WHAT'S KNOWN**`,
       `═══════════════════════════════════`,
       '',
       matchedRate.context,
@@ -882,20 +773,10 @@ export const getBaseRate = llm.tool({
       calibrationMessage,
       '',
       `═══════════════════════════════════`,
-      `📈 **HOW TO IMPROVE YOUR ODDS**`,
+      `📈 **WHAT TENDS TO HELP**`,
       `═══════════════════════════════════`,
       '',
-      ...matchedRate.comparisons.map((c) => `• ${c.category}: ${c.rate}% success`),
-      '',
-      `═══════════════════════════════════`,
-      `💡 **WHAT THIS MEANS**`,
-      `═══════════════════════════════════`,
-      '',
-      matchedRate.rate < 20
-        ? `The base rate is low. This is HARD. Don't let survivorship bias fool you.`
-        : matchedRate.rate < 50
-          ? `It's challenging but doable. The factors that improve odds are your focus.`
-          : `Base rate is favorable. Focus on execution, not motivation.`,
+      ...matchedRate.tips.map((t) => `• ${t}`),
       '',
       `**Peter's Take:**`,
       `Knowing the base rate doesn't predict YOUR outcome.`,

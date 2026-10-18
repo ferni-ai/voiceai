@@ -13,6 +13,7 @@ import { t } from '../i18n/index.js';
 import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
 import { openDialog, type DialogHandle } from './overlay/dialog.js';
 import { STYLES } from './mobile-bottom-sheet.styles.js';
+import { isSheetActionVisible } from '../config/menu-visibility.js';
 
 // ============================================================================
 // TYPES
@@ -122,6 +123,8 @@ const ICON_PATHS = {
   history: 'circle:12,12,10|polyline:12,6,12,12,16,14',
   people: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|circle:12,7,4',
   insights: 'M21.21 15.89A10 10 0 1 1 8 2.83|M22 12A10 10 0 0 0 12 2v10z',
+  phone:
+    'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z',
 };
 
 // ============================================================================
@@ -306,6 +309,17 @@ function handleKeyDown(e: KeyboardEvent): void {
 function getDefaultActions(): BottomSheetAction[] {
   return [
     {
+      // The phone Ferni texts or calls: one tap from here, not three (settings-menu.ui.ts)
+      id: 'reach-me',
+      iconPath: ICON_PATHS.phone,
+      label: t('menu.items.howIReachYou'),
+      onClick: () => {
+        close();
+        // lazy: a static import pulls every screen into this module's graph
+        void import('./lazy-screens.js').then((m) => m.openContactSettings());
+      },
+    },
+    {
       id: 'settings',
       iconPath: ICON_PATHS.settings,
       label: t('menu.mobileSheet.actions.settings'),
@@ -368,13 +382,12 @@ function getDefaultActions(): BottomSheetAction[] {
         window.dispatchEvent(new CustomEvent('ferni:open-insights'));
       },
     },
-  ];
+  ].filter((action) => isSheetActionVisible(action.id)); // hides: config/menu-visibility.ts
 }
 
 function populateActions(actions: BottomSheetAction[]): void {
   if (!actionsContainer) return;
 
-  // Clear existing actions
   while (actionsContainer.firstChild) {
     actionsContainer.removeChild(actionsContainer.firstChild);
   }

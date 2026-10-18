@@ -172,7 +172,7 @@ interface DeployOptions {
   rollback: boolean;
 }
 
-async function checkPrerequisites(skipDeploy: boolean): Promise<boolean> {
+async function checkPrerequisites(_skipDeploy: boolean): Promise<boolean> {
   log('\n🔍 Checking prerequisites...', colors.cyan);
 
   // Check if we're in the right directory
@@ -182,59 +182,16 @@ async function checkPrerequisites(skipDeploy: boolean): Promise<boolean> {
     return false;
   }
 
-  // Check if ferni CLI is available (only required if not skipping deploy)
-  if (!skipDeploy) {
-    const { success: hasFerni } = await runCommand('which', ['ferni'], { silent: true });
-    if (!hasFerni) {
-      logWarning('Ferni CLI not found. Will use npm scripts instead.');
-      logInfo('To install: cd /Users/sethford/Documents/voiceai && npm link');
-    }
-  }
-
   logSuccess('Prerequisites check passed');
   return true;
 }
 
-async function deployCode(dryRun: boolean): Promise<boolean> {
-  if (dryRun) {
-    logInfo('DRY RUN: Would deploy voice agent and UI server');
-    return true;
-  }
-
-  // Check if ferni CLI is available
-  const { success: hasFerni } = await runCommand('which', ['ferni'], { silent: true });
-
-  if (hasFerni) {
-    log('\n🚀 Deploying voice agent (via Ferni CLI)...', colors.blue);
-    const { success: agentSuccess } = await runCommand('ferni', ['deploy', 'gce']);
-    if (!agentSuccess) {
-      logWarning('Voice agent deployment had issues - continuing...');
-    }
-
-    log('\n🚀 Deploying UI server (via Ferni CLI)...', colors.blue);
-    const { success: uiSuccess } = await runCommand('ferni', ['deploy', 'ui']);
-    if (!uiSuccess) {
-      logWarning('UI server deployment had issues - continuing...');
-    }
-  } else {
-    // Fallback to npm scripts
-    log('\n🚀 Deploying voice agent (via npm)...', colors.blue);
-    const { success: agentSuccess } = await runCommand('pnpm', ['deploy:agent']);
-    if (!agentSuccess) {
-      logWarning('Voice agent deployment had issues - continuing...');
-    }
-
-    log('\n🚀 Deploying UI server (via npm)...', colors.blue);
-    const { success: uiSuccess } = await runCommand('pnpm', ['deploy:ui:async']);
-    if (!uiSuccess) {
-      logWarning('UI server deployment had issues - continuing...');
-    }
-  }
-
-  // Wait for deployments to stabilize
-  log('\n⏳ Waiting for deployments to stabilize (60s)...', colors.yellow);
-  await sleep(60000);
-
+async function deployCode(_dryRun: boolean): Promise<boolean> {
+  // This script no longer deploys. The voice agent ships only through the gated
+  // deploy-agent skill, and the web only through the GitHub workflows.
+  logWarning('Deploy the code yourself, then re-run with --skip-deploy:');
+  logInfo('  voice agent: .claude/skills/deploy-agent/SKILL.md');
+  logInfo('  UI server:   merge to main (deploy-production.yml runs on every push)');
   return true;
 }
 

@@ -16,9 +16,16 @@ import { ToolRegistry } from '../index.js';
 import { missingEnv, requiringEnv, resetToolAvailabilityLog } from '../tool-availability.js';
 import type { ToolDefinition } from '../types.js';
 import { definitions as entertainmentDefs } from '../../domains/entertainment/index.js';
+import { definitions as videoDefs } from '../../domains/video/index.js';
 
 const KEYS = ['TMDB_API_KEY', 'SONOS_CLIENT_ID', 'SONOS_CLIENT_SECRET', 'FAKE_TOOL_KEY'];
-const MOVIES = ['getMovieInfo', 'getMoviesNowPlaying', 'getUpcomingMovies', 'getMovieShowtimes'];
+const MOVIES = [
+  'getMovieInfo',
+  'getMoviesNowPlaying',
+  'getUpcomingMovies',
+  'getMovieShowtimes',
+  'getWhereToWatch',
+];
 const SONOS = [
   'playSonosMusic',
   'playSonosFavorite',
@@ -88,18 +95,21 @@ describe('requiresEnv availability', () => {
     expect(def.requiresEnv).toEqual(['A', 'B']);
   });
 
-  it('without TMDB and Sonos keys, the entertainment domain offers no movie or Sonos tool', () => {
-    const ids = registered(entertainmentDefs);
+  it('without TMDB and Sonos keys, no movie or Sonos tool is offered', () => {
+    const ids = registered([...entertainmentDefs, ...videoDefs]);
     for (const id of [...MOVIES, ...SONOS]) expect(ids).not.toContain(id);
-    expect(ids).toContain('playMusic'); // the rest of the domain is unchanged
+    expect(ids).toContain('playMusic'); // the rest of both domains is unchanged
+    expect(ids).toContain('searchYouTube');
   });
 
   it('with the keys set, the movie and Sonos tools are offered again', () => {
     vi.stubEnv('TMDB_API_KEY', 'tmdb');
     vi.stubEnv('SONOS_CLIENT_ID', 'id');
     vi.stubEnv('SONOS_CLIENT_SECRET', 'secret');
-    const ids = registered(entertainmentDefs);
+    const ids = registered([...entertainmentDefs, ...videoDefs]);
     for (const id of [...MOVIES, ...SONOS]) expect(ids).toContain(id);
+    // The movie tools live in video, which a movie or TV topic loads (screen-topics.ts).
+    for (const id of MOVIES) expect(videoDefs.find((d) => d.id === id)?.domain).toBe('video');
   });
 
   it('Sonos needs both halves of its OAuth client', () => {

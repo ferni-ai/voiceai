@@ -6,7 +6,7 @@
  * received. Apply them carefully: <note>" and merges it into the caller's turn.
  * On dev a caller said "put that in my journal" and the model saved a recall note
  * as their words. With the flag on, our patch to the SDK's google formatter
- * (patches/@livekit__agents@1.8.1.patch) frames those notes as private instead,
+ * (patches/@livekit__agents@1.9.3.patch) frames those notes as private instead,
  * and the tools that save a caller's words refuse text that carries either
  * opening, in case the model copies one anyway.
  *

@@ -44,7 +44,7 @@
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "${env:NAYAN_PATEL_VOICE_ID|52f0a563-2a2a-4c4a-ab4f-000eaaed32b3}",
+    "voice_id": "${env:NAYAN_PATEL_VOICE_ID|6da65da0-cad8-4820-901c-549561d93ff3}",
     "model": "sonic-3.6-2026-08-27",
     "default_emotion": "contemplative",
     "emotion_range": ["contemplative", "serene", "calm", "affectionate", "happy"],
