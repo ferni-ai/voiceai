@@ -69,9 +69,12 @@ on:
   # Merge-queue fast path. A queue merge lands a tree that a successful
   # merge-queue CI run already tested (squash merges land the same tree), so
   # the push deploys right away instead of waiting 65-132 min for push CI
-  # (queue-tested decides; merge_group runs themselves never deploy, because
-  # the group can still be dequeued). An admin merge or direct push has no such
-  # run: its push is a no-op, and the workflow_run path deploys it after push CI.
+  # (queue-tested finds the run; merge_group runs themselves never deploy,
+  # because the group can still be dequeued). The queue runs SCOPED CI, so the
+  # run counts only if every required check passed with none skipped, on a
+  # base that was itself tested (scripts/ci/queue-verdict.sh). An admin merge,
+  # direct push, scoped or docs-only run has no such verdict: its push is a
+  # no-op, and the workflow_run path deploys it after full push CI.
   # One deploy per head: when push CI on a fast-pathed head passes, the
   # workflow_run run finds production already serving it (identical) and stops.
   push:
@@ -255,6 +258,7 @@ jobs:
           ALLOW_OLDER: ${{ inputs.allow_older == true }}
           REASON: ${{ inputs.reason }}
           QUEUE_TESTED: ${{ steps.queue.outputs.tested }}
+          QUEUE_RUN_ID: ${{ steps.queue.outputs.run-id }}
         run: bash scripts/ci/deploy-forward-guard.sh
 
       - name: Setup pnpm

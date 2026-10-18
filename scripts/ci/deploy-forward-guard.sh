@@ -18,13 +18,17 @@
 #     a REASON it skips the forward-only check, for an intentional rollback.
 #     rollback.yml doesn't come through here; it shifts traffic on its own.
 #   - A push to main (the merge-queue fast path) deploys only when QUEUE_TESTED
-#     is true: a successful merge-queue CI run tested exactly this tree. If it
-#     isn't (admin merge, direct push), the push is a no-op and the workflow_run
-#     path deploys after push CI passes. Either way the forward-only check holds.
+#     is true (a successful merge-queue CI run, QUEUE_RUN_ID, tested exactly this
+#     tree) AND that run counts as full CI (scripts/ci/queue-verdict.sh: every
+#     required check passed, none skipped by scoping, on a tested base). If not
+#     (admin merge, direct push, scoped run, untested base), the push is a no-op
+#     and the workflow_run path deploys after push CI passes. Either way the
+#     forward-only check holds.
 #   - While a rollback's deploy freeze holds (scripts/ci/deploy-freeze.sh), it
 #     is a no-op ("frozen: <reason>"), except for a manual run with allow_older.
 #
 # Env: DEPLOY_SHA, EVENT (github.event_name), ALLOW_OLDER, REASON, QUEUE_TESTED,
+# QUEUE_RUN_ID,
 # GCP_REGION, GCP_PROJECT_ID, GITHUB_REPOSITORY, GITHUB_OUTPUT,
 # GITHUB_STEP_SUMMARY, and GH_TOKEN for gh.
 set -euo pipefail
@@ -78,6 +82,7 @@ echo "main's tip: ${tip:-unknown}"
 err=$(mktemp)
 if ! svc=$(gcloud run services describe "$SERVICE" --region="$GCP_REGION" --project="$GCP_PROJECT_ID" --format=json 2>"$err"); then
   if grep -qiE 'could not be found|not found' "$err"; then
+    [ "$EVENT" != push ] || noop "$SERVICE doesn't exist yet; its first deploy waits for push CI."
     deploy "$SERVICE doesn't exist yet, so there is nothing to move backwards from"
   fi
   cat "$err"
@@ -91,6 +96,16 @@ if [ -n "$rev" ]; then
     | jq -r 'first(.spec.containers[0].env[]? | select(.name == "BUILD_SHA") | .value) // empty')
 fi
 echo "serving: ${rev:-none} (BUILD_SHA ${live:-unknown})"
+
+if [ "$EVENT" = push ]; then
+  rc=0
+  why=$(bash "$(dirname "$0")/queue-verdict.sh" "${QUEUE_RUN_ID:-}" "$live") || rc=$?
+  case "$rc" in
+    0) echo "✅ Merge-queue run ${QUEUE_RUN_ID} $why" ;;
+    3) noop "merge-queue run ${QUEUE_RUN_ID:-?} doesn't count as full CI: $why. It deploys once push CI passes on main." ;;
+    *) noop "could not check merge-queue run ${QUEUE_RUN_ID:-?} ($why). It deploys once push CI passes on main." ;;
+  esac
+fi
 
 status=""
 [[ "$live" =~ ^[0-9a-f]{40}$ ]] && status=$(compare "$live" "$DEPLOY_SHA")
