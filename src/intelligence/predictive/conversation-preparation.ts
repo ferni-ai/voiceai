@@ -907,7 +907,7 @@ function generateOpening(
   } else if (primaryNeed === 'validation') {
     phrase = `How are you really doing?`;
     rationale = 'Open-ended to allow for sharing';
-    alternatives.push(`I'm here for you. What's going on?`);
+    alternatives.push(`What's going on with you?`);
   } else if (primaryNeed === 'celebration') {
     phrase = `Something feels different! Tell me what's happening.`;
     rationale = 'Invites sharing of good news';
