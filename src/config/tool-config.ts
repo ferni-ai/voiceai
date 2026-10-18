@@ -23,6 +23,7 @@ import { createLogger } from '../utils/safe-logger.js';
 import { flagOn } from './env-flag.js';
 import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
 import { llmContextCacheEnabled } from './llm-context-cache-flag.js';
+import { isVoiceTicTacToeTool } from './voice-tictactoe.js';
 
 const log = createLogger({ module: 'ToolConfig' });
 
@@ -364,7 +365,7 @@ export function isTeammateTool(name: string): boolean {
 }
 
 export function isStaticCoreTool(name: string): boolean {
-  return STATIC_CORE_TOOLS.includes(name) || isTeammateTool(name);
+  return STATIC_CORE_TOOLS.includes(name) || isTeammateTool(name) || isVoiceTicTacToeTool(name);
 }
 
 /**
@@ -388,6 +389,7 @@ export function isEssentialTool(toolName: string): boolean {
   return (
     config.essentialTools.includes(toolName) ||
     (CALL_JOURNAL_TOOLS.includes(toolName) && callJournalToolsOn()) ||
+    isVoiceTicTacToeTool(toolName) ||
     toolName.startsWith('handoffTo') ||
     toolName === 'endCall' ||
     toolName === 'askForTeammate' // stands in for locked handoffs (locked-teammates.ts)

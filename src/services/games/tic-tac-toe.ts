@@ -408,7 +408,7 @@ export function getGameMessage(
       if (userIsX) {
         return 'Alright, let\'s play tic-tac-toe! You\'re X, so you go first. The board is numbered 1 through 9, starting top-left. Say a number or position like "center" or "top right".';
       } else {
-        return "Let's play! I'll be X and go first. You're O. I'll put my X in the center. Your turn - say a position like \"top left\" or just a number 1 through 9.";
+        return "Let's play! I'll be X and go first, and you're O. Your turn, say a position like \"top left\" or just a number 1 through 9.";
       }
     }
 
@@ -427,7 +427,7 @@ export function getGameMessage(
       const aiPosName = position !== undefined ? POSITION_NAMES[position] : 'there';
       const aiResponses = [
         `I'll take ${aiPosName}.`,
-        `Hmm... I'll go ${aiPosName}.`,
+        `Hmm, I'll go ${aiPosName}.`,
         `${aiPosName} for me.`,
         `I'm putting my ${state.aiSymbol} in ${aiPosName}.`,
       ];

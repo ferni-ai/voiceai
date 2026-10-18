@@ -425,6 +425,8 @@ export const FLAG_MANIFEST = {
   VOICE_EVAL_CLOCK: { default: 'off', owner: 'voice', kind: 'config' },
   VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // on: the tic-tac-toe tools stay through every tool cap, so the board engine plays (voice-tictactoe.ts)
+  VOICE_TICTACTOE: { default: 'off', owner: 'tools', kind: 'experiment' },
   // which voice pipeline runs; anything unrecognised is the Cartesia cascade (model-provider-config.ts)
   VOICE_PIPELINE: { default: 'cartesia-cascade', owner: 'voice', kind: 'config' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
