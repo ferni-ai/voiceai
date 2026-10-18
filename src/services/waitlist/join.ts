@@ -2,7 +2,8 @@
  * Joining the waitlist. Identity is bound to the verified address and uid: a
  * verified join writes only its own doc; waiting Gmail aliases lend only the
  * earliest join time and are all retired (phone, code, lane dropped). An
- * unverified join never touches an existing entry or stores a code. A friend's
+ * unverified join never touches an existing entry or stores a code; verifying
+ * a doc made unverified keeps only its join time (phone, code, lane dropped). A friend's
  * code counts once, only at that address's first verification, and never for a
  * relay inbox. Throwaway domains are refused.
  *
@@ -106,15 +107,18 @@ async function joinVerified(
   const ref = input.ref && INVITE_CODE_PATTERN.test(input.ref) ? input.ref : undefined;
   const base = exact ?? { ...newEntry(email, now), joinedAtMs: waitingAliases[0]?.joinedAtMs ?? now.getTime() }; // prettier-ignore
   const firstVerification = !base.verified;
+  // An unverified doc may have been planted by anyone: keep only its place in line, and take
+  // the friend's code from this verified join alone (never one stored while unverified)
   const entry: QueueEntry = {
     ...base,
     email,
     verified: true,
+    lane: firstVerification ? 'standard' : base.lane,
     joinedAtMs: base.joinedAtMs || now.getTime(),
     inviteCode: base.inviteCode ?? newInviteCode(),
-    // Set before or with this address's first verification, never after, never from an alias
-    referredBy: firstVerification ? (base.referredBy ?? ref) : base.referredBy,
+    referredBy: firstVerification ? ref : base.referredBy,
   };
+  const scrub = exact && firstVerification ? { phone: null, referralCode: entry.referredBy ?? null, referredBy: entry.referredBy ?? null, lane: 'standard' } : {}; // prettier-ignore
   await store.merge(entry.id, {
     ...(exact ? {} : freshFields(entry, input)),
     email,
@@ -125,6 +129,7 @@ async function joinVerified(
     referredBy: entry.referredBy,
     verifiedAt: firstVerification ? now : undefined,
     ...queueFields(entry),
+    ...scrub, // last: undefined keys above are dropped, so they can't override it
   });
   for (const a of waitingAliases)
     await store.merge(a.id, { status: 'merged', mergedInto: entry.id, inQueue: false }); // eslint-disable-line no-await-in-loop

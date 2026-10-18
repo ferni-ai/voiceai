@@ -170,7 +170,12 @@ describe('review fixes', () => {
   it('several waiting Gmail aliases: the signed-in entry inherits the earliest place, and every alias is retired', async () => {
     const s = memoryStore(); // returns matches newest first
     // Website signups typed by anyone (unverified), seeded directly: the join route folds them into one
-    for (const [email, n] of [['j.doe+b@gmail.com', 5], ['jd.oe+a@gmail.com', 2], ['j.d.oe+c@gmail.com', 8]] as const) { // prettier-ignore
+    for (const [email, n] of [
+      ['j.doe+b@gmail.com', 5],
+      ['jd.oe+a@gmail.com', 2],
+      ['j.d.oe+c@gmail.com', 8],
+    ] as const) {
+      // prettier-ignore
       s.docs.set(waitlistDocId(email), { email, emailCanonical: 'jdoe@gmail.com', status: 'pending', joinedAt: day(n) }); // prettier-ignore
     }
     const signedIn = await join(s.store, 'jdoe@gmail.com', 20);
@@ -213,5 +218,26 @@ describe('review fixes', () => {
     expect((await s.store.get(inviter.id))!.verifiedReferrals).toBe(0);
     await join(s.store, 'real@example.com', 2, { ref: inviter.inviteCode });
     expect((await s.store.get(inviter.id))!.verifiedReferrals).toBe(1);
+  });
+});
+
+describe('verifying a doc made while unverified (review)', () => {
+  it('keeps only its place in line: a planted phone, referrer and lane do not survive', async () => {
+    const s = memoryStore();
+    const farmer = await join(s.store, 'farmer@example.com', 0);
+    const id = waitlistDocId('owner@example.com');
+    s.docs.set(id, { email: 'owner@example.com', status: 'pending', joinedAt: day(1), phone: '+15550001111', referralCode: farmer.inviteCode, referredBy: farmer.inviteCode, lane: 'vip' }); // prettier-ignore
+    const owner = await join(s.store, 'owner@example.com', 30);
+    expect(owner.joinedAtMs).toBe(day(1).getTime());
+    expect(s.docs.get(id)).toMatchObject({ phone: null, referralCode: null, referredBy: null, lane: 'standard', laneRank: 2 }); // prettier-ignore
+    expect((await s.store.get(farmer.id))!.verifiedReferrals).toBe(0);
+  });
+
+  it('a code that comes with the verified join itself still counts', async () => {
+    const s = memoryStore();
+    const friend = await join(s.store, 'friend@example.com', 0);
+    s.docs.set(waitlistDocId('owner@example.com'), { email: 'owner@example.com', status: 'pending', joinedAt: day(1) }); // prettier-ignore
+    await join(s.store, 'owner@example.com', 2, { ref: friend.inviteCode });
+    expect((await s.store.get(friend.id))!.verifiedReferrals).toBe(1);
   });
 });
