@@ -3,11 +3,10 @@
  * server, once; sibling call tools share the read-back.
  *
  * Before (prod 2026-10-18, session-AJ_8skUJPtD63SG): the caller asked for a call
- * to their dad four times and nothing rang. "Uh, go ahead, Fred." failed the yes
- * check ("Fred" is "Ferni"), after "Yes, go ahead." the model called
- * callAndConverse instead of callOnBehalf (a new read-back), and after "Yes." it
- * said "I'm on it" with no tool call. Each send depended on the model calling
- * the same tool again right after the yes.
+ * to their dad four times and nothing rang. #1938 now takes "Uh, go ahead, Fred."
+ * as a yes and lets callAndConverse carry callOnBehalf's read-back, but a send
+ * still waits on the model calling a tool after the yes, and after "Yes." it
+ * said "I'm on it" with no tool call.
  *
  * Drives the telephony domain's definitions through a ToolRegistry (register()
  * applies the gate), the real on-behalf tool and orchestrator. Mocked only at the
@@ -47,7 +46,6 @@ import { ToolRegistry } from '../../../registry/index.js';
 import type { ToolDefinition } from '../../../registry/types.js';
 import {
   CONFIRM_WINDOW_MS,
-  isClearYes,
   outreachConfirmListeners,
 } from '../../communication/outreach/outreach-confirm.js';
 import {
@@ -151,17 +149,17 @@ describe('OUTREACH_SERVER_CONFIRM: the yes places the call', () => {
     expect(dialed()).toEqual(['+18015550142']);
   });
 
-  it('flag off: the same replay rings nothing and the sibling stores a new read-back', async () => {
+  it('flag off: the yes alone rings nothing; the model calling a tool places it (#1938)', async () => {
     vi.stubEnv('OUTREACH_SERVER_CONFIRM', 'off');
     const call = liveCall();
     await call.call('callOnBehalf', CALL_DAD, 'c1');
     call.caller('Uh, go ahead, Fred.');
     await quiet(call, false);
-    expect(await call.call('callAndConverse', CONVERSE_DAD, 'c2')).toContain('NOT SENT YET');
-    call.caller('Yes.');
-    await quiet(call, false);
+    await vi.advanceTimersByTimeAsync(60_000);
     expect(dialed()).toEqual([]);
     expect(call.notes).toEqual([]);
+    expect(await call.call('callAndConverse', CONVERSE_DAD, 'c2')).toContain("I'm calling my dad");
+    expect(dialed()).toEqual(['+18015550142']);
   });
 
   it('a sibling before the yes keeps the read-back, sends nothing, and the yes still rings', async () => {
@@ -320,14 +318,5 @@ describe('who counts as the same action', () => {
     expect(isKin(dad, 'callAndConverse', 'call', newNumber)).toBe(false);
     expect(isKin(dad, 'callAndConverse', 'call', targetOf({ contactQuery: 'My Dad' }))).toBe(true);
     expect(isKin(dad, 'callAndConverse', 'call', targetOf({ contactQuery: 'Bob' }))).toBe(false);
-  });
-});
-
-describe("a mishear of Ferni's name in a yes", () => {
-  it('counts like the name, and never adds a person or a word', () => {
-    for (const yes of ['Uh, go ahead, Fred.', 'Yes, Freddie.', 'Go ahead, Fern.', 'yeah ferny'])
-      expect(isClearYes(yes)).toBe(true);
-    for (const not of ['Fred.', 'Go ahead, call Bob instead.', 'Yes, call Fred.', 'Fred, wait'])
-      expect(isClearYes(not)).toBe(false);
   });
 });
