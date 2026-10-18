@@ -9,10 +9,10 @@ import XCTest
 final class AvatarRendererTests: XCTestCase {
     private let side = 200
 
-    private func pixels(_ frame: AvatarFrame, on background: Color) -> [UInt32] {
+    private func pixels(_ frame: AvatarFrame, on background: Color, avatar: Bool = true) -> [UInt32] {
         let view = ZStack {
             background
-            Canvas { context, size in AvatarRenderer.draw(frame, in: &context, size: size) }
+            if avatar { Canvas { context, size in AvatarRenderer.draw(frame, in: &context, size: size) } }
         }
         .frame(width: CGFloat(side), height: CGFloat(side))
         let renderer = ImageRenderer(content: view)
@@ -40,13 +40,16 @@ final class AvatarRendererTests: XCTestCase {
         Double(zip(a, b).filter { $0 != $1 }.count) / Double(a.count)
     }
 
-    /// B5: the lids are a clip, so outside the face the background shows through
-    /// untouched, on black and on white alike.
+    /// B5: the lids are a clip, so outside the face the room shows through
+    /// untouched: on black, white, paper and Night Ink alike.
     func testNothingIsDrawnOutsideTheFaceOnAnyBackground() {
-        for (background, value) in [(Color.black, UInt32(0xFF00_0000)), (Color.white, UInt32(0xFFFF_FFFF))] {
-            let px = pixels(frame(.listening, .listening), on: background)
-            for (x, y) in [(0, 0), (199, 0), (0, 199), (199, 199), (100, 2), (2, 100)] {
-                XCTAssertEqual(px[y * side + x], value, "pixel \(x),\(y) on \(background)")
+        let paper = Color(red: 0xFA / 255, green: 0xF8 / 255, blue: 0xF5 / 255)
+        let nightInk = Color(red: 0x14 / 255, green: 0x11 / 255, blue: 0x0E / 255)
+        for background in [Color.black, .white, paper, nightInk] {
+            let withAvatar = pixels(frame(.listening, .listening), on: background)
+            let alone = pixels(frame(.listening, .listening), on: background, avatar: false)
+            for (x, y) in [(0, 0), (199, 0), (0, 199), (199, 199), (100, 2), (2, 100), (198, 100), (100, 198)] {
+                XCTAssertEqual(withAvatar[y * side + x], alone[y * side + x], "pixel \(x),\(y) on \(background)")
             }
         }
     }

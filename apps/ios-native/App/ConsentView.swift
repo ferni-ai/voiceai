@@ -11,7 +11,7 @@ struct ConsentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FerniSpace.rest) {
                 Text("Before we talk")
-                    .font(FerniType.title)
+                    .font(FerniType.greeting)
                     .foregroundStyle(FerniColor.textPrimary)
                     .accessibilityAddTraits(.isHeader)
                 Text(Self.body)
@@ -36,7 +36,7 @@ struct ConsentView: View {
                         .font(FerniType.button)
                         .frame(maxWidth: 420, minHeight: 56)
                 }
-                .buttonStyle(.borderedProminent)
+                .ferniPrimaryGlass()
                 .buttonBorderShape(.capsule)
                 Button("Not now", action: onNotNow)
                     .font(FerniType.button)

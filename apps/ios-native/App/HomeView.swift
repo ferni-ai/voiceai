@@ -34,7 +34,7 @@ struct HomeView: View {
             .safeAreaInset(edge: .bottom) {
                 if !typeSize.isAccessibilitySize { CallControls(call: call, talk: model.talk) }
             }
-            .background(FerniColor.background.ignoresSafeArea())
+            .background(RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID)))
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -103,7 +103,7 @@ private struct CallStatus: View {
     var body: some View {
         VStack(spacing: FerniSpace.breath) {
             Text(headline)
-                .font(FerniType.title)
+                .font(FerniType.greeting)
                 .foregroundStyle(FerniColor.textPrimary)
             if let detail {
                 Text(detail)
@@ -189,9 +189,8 @@ private struct CallControls: View {
                         .font(.title2)
                         .frame(width: 60, height: 60)
                 }
-                .buttonStyle(.bordered)
+                .ferniGlass()
                 .buttonBorderShape(.circle)
-                .tint(FerniColor.textSecondary)
                 .accessibilityLabel(call.isMuted ? "Unmute" : "Mute")
                 .disabled(call.phase != .live)
 
@@ -216,9 +215,8 @@ private struct CallControls: View {
                         .font(FerniType.button)
                         .frame(maxWidth: 420, minHeight: 56)
                 }
-                .buttonStyle(.borderedProminent)
+                .ferniPrimaryGlass()
                 .buttonBorderShape(.capsule)
-                .tint(FerniColor.accent)
             }
         }
         .sensoryFeedback(.impact(weight: .medium), trigger: call.isActive)
