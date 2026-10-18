@@ -176,7 +176,6 @@ Design tokens and components
 
 | Script | Command |
 |--------|----------|
-| `npm run design-system` | `node design-system/dev-server.js` |
 | `npm run design-system:dev` | `node design-system/dev-server.js` |
 | `npm run design-system:test` | `npx playwright test --config=design-system/playwright.con...` |
 | `npm run design-system:test:update` | `npx playwright test --config=design-system/playwright.con...` |
