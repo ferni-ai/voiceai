@@ -131,9 +131,18 @@ describe('What’s Ahead states', () => {
   });
 
   it('a 200 without an overview is an error (wrong shape), not an empty day', async () => {
-    serve(json(200, { connected: false, overview: null }));
+    serve(json(200, { connected: true }));
     await calendarViewUI.show();
     expect(panel().querySelector('[data-notice="error"]')).not.toBeNull();
+  });
+
+  it('no calendar connected with a null overview is empty, not the error state (#1694)', async () => {
+    const notConnected = { connected: false, overview: null, ferniList: [] };
+    serve(json(200, notConnected));
+    await calendarViewUI.show();
+
+    expect(panel().dataset.state).toBe('empty');
+    expect(panel().querySelector('[data-notice]')).toBeNull();
   });
 
   it('events: ready, and the booked event is on the Today tab', async () => {
