@@ -58,6 +58,8 @@ export const COHORT_FLAGS = [
   // Read when the call session is built, after applyCallerFlags (in-call-load.ts).
   'WORLD_FACTS_IN_CALL',
   'POST_CALL_CHECKIN',
+  // Read per person by the push service on the web server (flagForUser, services/ios-push.ts).
+  'IOS_PUSH',
   'FOLLOW_THROUGH_TEXTS',
   // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.
   'FOLLOW_THROUGH_OPENER',

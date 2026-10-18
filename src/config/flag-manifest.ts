@@ -199,6 +199,9 @@ export const FLAG_MANIFEST = {
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   INTERRUPT_TRACE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   IN_PROCESS_SCHEDULERS: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // on for a person (cohort flag, read per person): pushes that reach their browser also reach
+  // their iPhone over APNs (services/ios-push.ts); needs the APNS_* secrets
+  IOS_PUSH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // every journal surface reads and writes bogle_users/{uid}/journal (old twin arrays merged in)
   JOURNAL_ONE_STORE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // voice journal speech-to-text through Gemini on Vertex when Deepgram and Whisper have no key
