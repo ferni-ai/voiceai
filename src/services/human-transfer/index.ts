@@ -304,7 +304,6 @@ export async function logTransferEvent(
 
     // Store in user's crisis history
     await db.collection('bogle_users').doc(userId).collection('crisis_history').add(record);
-    forgetRecentCrisis(userId); // the next turn's check-in sees this event
 
     log.info({ userId }, '🗄️ Crisis event stored in Firestore');
   } catch (error) {
@@ -372,6 +371,7 @@ export async function logCrisisSignal(
         transcriptSnippet: transcript ? transcript.slice(0, 200) : null,
         sessionId,
       });
+    forgetRecentCrisis(userId); // the next turn's check-in sees this signal
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to log crisis signal');
   }
@@ -420,7 +420,7 @@ type RecentCrisis = { hasCrisis: boolean; lastCrisis?: CrisisEventRecord };
 /**
  * The crisis check-in runs every turn; the answer is kept for a minute so a
  * call queries crisis_history about once a minute instead of once a turn.
- * logTransferEvent drops it when it records a crisis, and a failed query is
+ * logCrisisSignal (the live crisis writer) drops it, and a failed query is
  * not kept, so the next turn asks again.
  */
 const RECENT_CRISIS_TTL_MS = 60_000;

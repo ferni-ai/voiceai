@@ -51,12 +51,17 @@ export const userRootKey = (userId: string): string => `root:${userId}`;
 /** Key for the conversation-days read FirestoreStore makes alongside the root doc. */
 export const userDaysKey = (userId: string): string => `days:${userId}`;
 
-/** The caller's root doc data, shared at call start (undefined when missing). */
+/**
+ * The caller's root doc data, shared at call start (undefined when missing).
+ * Every caller gets its own deep copy, so no reader can change another's.
+ */
 export function readUserDocOnce<D>(
   userId: string,
   ref: { get(): Promise<{ data(): D | undefined }> }
 ): Promise<D | undefined> {
-  return readOncePerCallStart(userRootKey(userId), async () => (await ref.get()).data());
+  return readOncePerCallStart(userRootKey(userId), async () => (await ref.get()).data()).then(
+    (data) => data && structuredClone(data)
+  );
 }
 
 /**

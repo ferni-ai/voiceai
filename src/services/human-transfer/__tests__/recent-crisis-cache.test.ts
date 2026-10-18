@@ -32,7 +32,7 @@ vi.mock('../../../utils/safe-logger.js', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-import { forgetRecentCrisis, hadRecentCrisis, logTransferEvent } from '../index.js';
+import { forgetRecentCrisis, hadRecentCrisis, logCrisisSignal } from '../index.js';
 import { buildCrisisHistoryInjection } from '../../../agents/processors/injection-builders/better-than-human-builders.js';
 
 const crisisDoc = {
@@ -54,14 +54,16 @@ describe('recent crisis check', () => {
     forgetRecentCrisis('u-turns');
   });
 
-  it('sees a crisis recorded during the call on the next turn', async () => {
+  it('sees a crisis signal logged during the call on the next turn', async () => {
     expect((await hadRecentCrisis('u-record', 7)).hasCrisis).toBe(false);
     fake.answer(async () => ({ docs: [crisisDoc] }));
-    await logTransferEvent(
-      'u-record',
-      { type: 'crisis_line', urgency: 'immediate', reason: 'test' } as never,
-      { success: true, channel: 'phone' } as never
-    );
+    await logCrisisSignal('u-record', {
+      suicidalIdeation: true,
+      selfHarmIndicators: false,
+      domesticViolence: false,
+      dangerToOthers: false,
+      severity: 8,
+    } as never);
     expect(fake.add).toHaveBeenCalled();
     expect((await hadRecentCrisis('u-record', 7)).hasCrisis).toBe(true);
     expect(fake.query).toHaveBeenCalledTimes(2);

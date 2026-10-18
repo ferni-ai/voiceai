@@ -9,12 +9,17 @@ const fake = vi.hoisted(() => {
     const data = rootDocs.get(id);
     return { exists: data !== undefined, data: () => (data ? structuredClone(data) : undefined) };
   });
-  const set = vi.fn(async () => undefined);
+  // A merge write, as Firestore does it (top-level fields only, enough here)
+  const set = vi.fn(
+    async (id: string, data: Record<string, unknown>, opts?: { merge?: boolean }) => {
+      rootDocs.set(id, opts?.merge ? { ...(rootDocs.get(id) ?? {}), ...data } : data);
+    }
+  );
   const db = {
     collection: (_name: string) => ({
       doc: (id: string) => ({
         get: () => get(id),
-        set,
+        set: (data: Record<string, unknown>, opts?: { merge?: boolean }) => set(id, data, opts),
         delete: vi.fn(async () => undefined),
         collection: () => ({}),
       }),
@@ -29,8 +34,15 @@ vi.mock('../../../services/superhuman/firestore-utils.js', () => ({
 
 import { FirestoreStore } from '../firestore-store.js';
 import { createUserProfile, type UserProfile } from '../../../types/user-profile.js';
-import { openCallStartReadWindow, resetCallStartReads } from '../../../utils/call-start-reads.js';
-import { loadUserLanguagePreference } from '../../../services/language/language-service.js';
+import {
+  openCallStartReadWindow,
+  readUserDocOnce,
+  resetCallStartReads,
+} from '../../../utils/call-start-reads.js';
+import {
+  loadUserLanguagePreference,
+  persistUserLanguagePreference,
+} from '../../../services/language/language-service.js';
 
 function storeWithFakeDb(): FirestoreStore {
   const store = new FirestoreStore({ projectId: 'test', databaseId: 'test' });
@@ -71,16 +83,49 @@ describe('call-start root-doc reads', () => {
     expect(profiles[1]!.name).toBe('Ana');
   });
 
-  it('reads again after the profile is saved', async () => {
+  it('reads again after the profile is saved, and returns the saved value', async () => {
     const store = storeWithFakeDb();
     seed(store, 'u-save');
     openCallStartReadWindow();
 
     const before = await store.getProfile('u-save');
+    expect(before?.name).toBe('Ana');
     await store.saveProfile({ ...before!, name: 'Ana Maria' });
-    await store.getProfile('u-save');
+    const after = await store.getProfile('u-save');
 
+    expect(after?.name).toBe('Ana Maria');
     expect(fake.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('reads again after a language preference is saved', async () => {
+    const store = storeWithFakeDb();
+    seed(store, 'u-lang');
+    openCallStartReadWindow();
+
+    await store.getProfile('u-lang');
+    await persistUserLanguagePreference('u-lang', 'fr');
+    const after = (await store.getProfile('u-lang')) as {
+      preferences?: { spokenLanguage?: string };
+    };
+
+    expect(after.preferences?.spokenLanguage).toBe('fr');
+    expect(fake.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives every raw-doc reader its own deep copy', async () => {
+    openCallStartReadWindow();
+    const doc = { preferences: { spokenLanguage: 'es' } };
+    const ref = { get: vi.fn(async () => ({ data: () => doc })) };
+
+    const [a, b] = await Promise.all([
+      readUserDocOnce('u-raw', ref),
+      readUserDocOnce('u-raw', ref),
+    ]);
+
+    expect(ref.get).toHaveBeenCalledTimes(1);
+    a!.preferences.spokenLanguage = 'changed by one reader';
+    expect(b!.preferences.spokenLanguage).toBe('es');
+    expect(doc.preferences.spokenLanguage).toBe('es');
   });
 
   it('outside a call-start window every read goes to Firestore, as before', async () => {

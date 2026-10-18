@@ -422,6 +422,19 @@ export async function buildHumanTransferInjections(
 /** How long a turn waits for the crisis check under CALL_START_TRIM. */
 export const CRISIS_READ_BUDGET_MS = 150;
 
+/** `work`'s result, or `fallback` after `ms`; the timer is cleared either way. */
+async function withinBudget<T>(work: Promise<T>, fallback: T, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const budget = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  try {
+    return await Promise.race([work, budget]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Build crisis history context injection for users who had recent crisis.
  */
@@ -435,12 +448,7 @@ export async function buildCrisisHistoryInjection(
     // the next turn uses it (hadRecentCrisis keeps the answer for a minute).
     const check = hadRecentCrisis(userId, 7);
     const { hasCrisis, lastCrisis } = flagOn('CALL_START_TRIM')
-      ? await Promise.race([
-          check,
-          new Promise<{ hasCrisis: false; lastCrisis?: undefined }>((resolve) => {
-            setTimeout(() => resolve({ hasCrisis: false }), CRISIS_READ_BUDGET_MS);
-          }),
-        ])
+      ? await withinBudget(check, { hasCrisis: false }, CRISIS_READ_BUDGET_MS)
       : await check;
 
     if (!hasCrisis || !lastCrisis) {
