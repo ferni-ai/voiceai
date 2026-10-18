@@ -16,6 +16,12 @@ import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity
 import { createLogger } from '../../../utils/safe-logger.js';
 import { sealTokens } from '../../../utils/token-at-rest.js';
 import { openSmartHomeCredentials } from '../../../services/smart-home/user-credentials.js';
+import {
+  assertNoEncryptedValues,
+  hueSaveInput,
+  isSafeBridgeIp,
+  lifxSaveInput,
+} from './smart-home-guards.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
 import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
@@ -108,7 +114,7 @@ export async function getCredentials<T>(userId: string, integration: string): Pr
       .get();
 
     if (!doc.exists) return null;
-    return await openSmartHomeCredentials<T>(integration, doc.data()); // also decrypts enc_ fields
+    return await openSmartHomeCredentials<T>(userId, integration, doc.data());
   } catch (error) {
     log.error({ error, userId, integration }, 'Failed to get credentials');
     return null;
@@ -121,6 +127,7 @@ export async function saveCredentials<T extends object>(
   credentials: T
 ): Promise<void> {
   try {
+    assertNoEncryptedValues(credentials); // never seal (or later decrypt) a submitted enc_ value
     const existing = (await getCredentials<Record<string, unknown>>(userId, integration)) ?? {};
     const ref = getSmartHomeCollection().doc(userId).collection('smart_home').doc(integration);
     await ref.set(sealTokens({ ...existing, ...credentials })); // replaced whole: no plaintext left
@@ -157,7 +164,7 @@ async function handleHueStatus(
   try {
     const credentials = await getCredentials<HueCredentials>(userId, 'hue');
 
-    if (!credentials?.bridgeIp || !credentials?.username) {
+    if (!credentials?.username || !isSafeBridgeIp(credentials.bridgeIp)) {
       sendJson(res, 200, { connected: false });
       return;
     }
@@ -196,19 +203,15 @@ async function handleHueStatus(
 
 async function handleHueSave(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId, bridgeIp, username } = body as {
-      userId: string;
-      bridgeIp: string;
-      username: string;
-    };
-
-    if (!userId || !bridgeIp || !username) {
-      sendError(res, 400, 'userId, bridgeIp, and username required');
+    const input = hueSaveInput(getUserId(req), await parseBody(req));
+    if ('error' in input) {
+      sendError(res, input.status, input.error);
       return;
     }
-
-    await saveCredentials(userId, 'hue', { bridgeIp, username });
+    await saveCredentials(input.userId, 'hue', {
+      bridgeIp: input.bridgeIp,
+      username: input.username,
+    });
     sendJson(res, 200, { success: true });
   } catch (error) {
     log.error({ error }, 'Hue save failed');
@@ -289,15 +292,12 @@ async function handleLifxStatus(
 
 async function handleLifxSave(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId, token } = body as { userId: string; token: string };
-
-    if (!userId || !token) {
-      sendError(res, 400, 'userId and token required');
+    const input = lifxSaveInput(getUserId(req), await parseBody(req));
+    if ('error' in input) {
+      sendError(res, input.status, input.error);
       return;
     }
-
-    await saveCredentials(userId, 'lifx', { token });
+    await saveCredentials(input.userId, 'lifx', { token: input.token });
     sendJson(res, 200, { success: true });
   } catch (error) {
     log.error({ error }, 'LIFX save failed');
