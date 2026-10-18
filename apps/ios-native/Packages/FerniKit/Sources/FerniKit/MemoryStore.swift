@@ -22,15 +22,21 @@ public final class MemoryStore {
     public private(set) var load: Load = .idle
 
     private let api: FerniAPI
+    /// Bumped on every reset: an answer requested for an earlier person is dropped.
+    private var generation = 0
 
     public init(api: FerniAPI) { self.api = api }
 
     public func refresh() async {
+        let asked = generation
         load = .loading
         do {
-            notes = try Self.parse(await api.data("/api/cognitive/memories"))
+            let fetched = try Self.parse(await api.data("/api/cognitive/memories"))
+            guard asked == generation else { return } // someone else signed in meanwhile
+            notes = fetched
             load = .loaded
         } catch {
+            guard asked == generation else { return }
             // Signed out or refused: whatever was shown belonged to someone else.
             if let error = error as? FerniAPIError, error == .notSignedIn || error == .status(401) || error == .status(403) {
                 notes = []
@@ -41,6 +47,7 @@ public final class MemoryStore {
 
     /// A different person (sign-out, a new account): nothing of the last one stays.
     public func reset() {
+        generation += 1
         notes = []
         load = .idle
     }
@@ -56,13 +63,14 @@ public final class MemoryStore {
     @discardableResult
     public func forget(_ note: Note) async -> Bool {
         guard note.canForget, let index = notes.firstIndex(of: note) else { return false }
+        let asked = generation
         notes.remove(at: index)
         do {
             let id = note.id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? note.id
             _ = try await api.data("/api/cognitive/memories/\(id)", method: "DELETE")
             return true
         } catch {
-            notes.insert(note, at: min(index, notes.count))
+            if asked == generation { notes.insert(note, at: min(index, notes.count)) }
             return false
         }
     }
