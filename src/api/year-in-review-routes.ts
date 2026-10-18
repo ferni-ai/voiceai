@@ -7,6 +7,7 @@
  * @module api/year-in-review-routes
  */
 
+import type { DocumentData } from '@google-cloud/firestore';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
@@ -152,22 +153,22 @@ async function fetchConversationHistory(
   try {
     const { getFirestoreDb } = await import('../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
-    if (!db) {
-      return {
-        daily: [],
-        emotionalMoments: [],
-        milestones: [],
-        topTopics: [],
-      };
-    }
+    if (!db) throw new Error('Firestore unavailable'); // an empty year would be a lie
 
-    // Fetch conversation summaries
-    const convRef = db.collection('bogle_users').doc(userId).collection('conversation_summaries');
-
-    const snapshot = await convRef
-      .where('timestamp', '>=', since.getTime())
+    // Calls save their summary to bogle_users/{uid}/summaries (end-session → saveSummary), with
+    // an ISO timestamp. This read conversation_summaries, which nothing live writes.
+    const snapshot = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('summaries')
+      .where('timestamp', '>=', since.toISOString())
       .orderBy('timestamp', 'asc')
+      .select('timestamp', 'duration', 'mainTopics')
       .get();
+    const summaries = snapshot.docs.map((d): DocumentData => {
+      const data = d.data();
+      return { ...data, timestamp: Date.parse(String(data.timestamp)), topics: data.mainTopics };
+    });
 
     // Aggregate by day
     const dailyMap = new Map<string, DayData>();
@@ -177,8 +178,7 @@ async function fetchConversationHistory(
 
     let totalConversations = 0;
 
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
+    for (const data of summaries) {
       const date = new Date(data.timestamp);
       const dateKey = date.toISOString().split('T')[0];
 
@@ -248,16 +248,11 @@ async function fetchConversationHistory(
       emotionalMoments: emotionalMoments.slice(0, 10), // Top 10 moments
       milestones,
       topTopics,
-      ...tenureOf(snapshot.docs.map((d) => d.data())),
+      ...tenureOf(summaries),
     };
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to fetch conversation history');
-    return {
-      daily: [],
-      emotionalMoments: [],
-      milestones: [],
-      topTopics: [],
-    };
+    throw error; // the route answers 500 and the panel says so, not "no conversations yet"
   }
 }
 

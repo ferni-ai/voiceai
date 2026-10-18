@@ -608,7 +608,7 @@ class IOSLiveKitSession: ObservableObject {
 
     // MARK: - Data Channel Handling
 
-    private func handleDataMessage(_ data: Data) {
+    func handleDataMessage(_ data: Data) {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let type = json["type"] as? String else {
             return
@@ -662,8 +662,8 @@ class IOSLiveKitSession: ObservableObject {
             // Process through expression mapper for 100-expression system
             handleExpressionEvent(json)
 
-        case "speech_state":
-            // Handle speech state for avatar mouth animation
+        case "speech_state", "speech_start", "speech_pause", "speech_end":
+            // The caller's speech as the agent hears it
             handleSpeechState(json)
 
         default:
@@ -712,39 +712,55 @@ class IOSLiveKitSession: ObservableObject {
 
     // MARK: - Speech State Handling
 
+    /// `speech_state` messages describe the CALLER's speech (the agent sends the
+    /// phase in `innerType`); Ferni's own turn state comes from `lk.agent.state`
+    /// in `applyAgentAttributes`.
     private func handleSpeechState(_ json: [String: Any]) {
-        guard let state = json["state"] as? String else { return }
+        guard let speech = AgentSignals.userSpeech(from: json) else { return }
 
         DispatchQueue.main.async {
-            switch state {
-            case "speaking":
-                self.isAgentSpeaking = true
-                // Set listening expression when agent starts speaking
-                if self.currentExpression == .neutral {
-                    self.currentExpression = .speaking
-                }
+            switch speech {
+            case .started:
+                self.isUserSpeaking = true
+                self.lastSpeechTime = Date()
+                self.speechPauseDuration = 0
+                self.updateLiveActivitySpeakingState(.userSpeaking)
 
-            case "listening", "idle":
-                self.isAgentSpeaking = false
-                self.agentAudioLevel = 0
-                // Return to listening expression
-                if self.currentExpression == .speaking {
-                    self.currentExpression = .listening
-                }
+            case .paused(let durationMs):
+                // Still mid-utterance: date the last speech so the pause timer
+                // shows this pause instead of timing the caller out.
+                self.isUserSpeaking = true
+                self.lastSpeechTime = Date().addingTimeInterval(-durationMs / 1000)
+                self.speechPauseDuration = durationMs / 1000
 
-            case "processing", "thinking":
-                self.isAgentSpeaking = false
-                self.currentExpression = .thinking
-
-            default:
-                break
+            case .ended:
+                self.isUserSpeaking = false
+                self.speechPauseDuration = 0
             }
         }
+    }
 
-        // Handle audio level if present
-        if let level = json["level"] as? Float {
-            DispatchQueue.main.async {
-                self.agentAudioLevel = CGFloat(level)
+    /// Ferni's turn state from the agent participant's `lk.agent.state`
+    /// attribute (attributes or an attribute diff). Drives the avatar's
+    /// speaking and thinking faces and the Live Activity.
+    func applyAgentAttributes(_ attributes: [String: String]) {
+        guard let activity = AgentSignals.agentActivity(from: attributes) else { return }
+
+        DispatchQueue.main.async {
+            let avatar = AgentSignals.avatar(for: activity, current: self.currentExpression)
+            self.isAgentSpeaking = avatar.isSpeaking
+            self.currentExpression = avatar.expression
+            if !avatar.isSpeaking {
+                self.agentAudioLevel = 0
+            }
+
+            switch activity {
+            case .speaking:
+                self.updateLiveActivitySpeakingState(.agentSpeaking)
+            case .listening:
+                self.updateLiveActivitySpeakingState(.listening)
+            case .thinking, .idle, .initializing:
+                self.updateLiveActivitySpeakingState(.idle)
             }
         }
     }
@@ -783,6 +799,22 @@ extension IOSLiveKitSession: RoomDelegate {
     nonisolated func room(_ room: Room, participant: RemoteParticipant, didSubscribeTrack publication: RemoteTrackPublication, track: Track) {
         if track.kind == .audio {
             sessionLog.info("Subscribed to agent audio")
+        }
+
+        // The agent may have set its turn state before this delegate saw a change.
+        let attributes = participant.attributes
+        Task { @MainActor [weak self] in
+            guard let self = self, self.room != nil else { return }
+            self.applyAgentAttributes(attributes)
+        }
+    }
+
+    nonisolated func room(_ room: Room, participant: Participant, didUpdateAttributes attributes: [String: String]) {
+        guard participant is RemoteParticipant else { return }
+
+        Task { @MainActor [weak self] in
+            guard let self = self, self.room != nil else { return }
+            self.applyAgentAttributes(attributes)
         }
     }
 

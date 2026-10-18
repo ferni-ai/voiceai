@@ -189,6 +189,9 @@ export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
   return callerRecognitionFor(sessionId)?.status === 'known';
 }
 
+/** Both checks, for lower layers that are handed them (data-channel-handler.ts). */
+export const callerChecks = { verifiedOwner: sessionIsVerifiedOwner, phoneOnly: phoneOnlyIdentity };
+
 /**
  * The hello for a phone caller Ferni hasn't recognised (maybe or stranger,
  * greeted alike so the greeting can't tell a caller whose number it is).

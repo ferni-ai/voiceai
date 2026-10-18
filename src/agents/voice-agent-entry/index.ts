@@ -17,6 +17,7 @@
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
+import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
 import { injectUserAwareness } from './user-awareness-injection.js';
 
@@ -599,9 +600,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       process.stderr.write(
         `[voice-agent-entry] 🎭 Multi-agent early path — awaiting participant, skipping createAgentSession\n`
       );
-      const participantWaitResult = await (
-        earlyParticipantWaitPromise ?? waitForParticipantWithTimeout(ctx, participantTimeout)
-      );
+      const participantWaitResult =
+        await (earlyParticipantWaitPromise ?? waitForParticipantWithTimeout(ctx, participantTimeout));
       await markCallStageSafe(sessionId, 'participant_wait_start', participantWaitResult.startedAt);
       await markCallStageSafe(sessionId, 'participant_wait_done', participantWaitResult.endedAt);
       const participant = participantWaitResult.participant;
@@ -614,8 +614,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         void noteCallerJoined({ participant, room: ctx.room, sessionId });
         await markCallStageSafe(sessionId, 'orchestrator_start');
         const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
-        const { unregisterSession: unregisterCrashSession } =
-          await import('../shared/crash-analytics.js');
+        const crash = await import('../shared/crash-analytics.js');
         const multiAgentModeResult = await runMultiAgentMode({
           ctx,
           room: ctx.room,
@@ -625,7 +624,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           userData,
           sessionId,
           userId: userId ?? undefined,
-          unregisterSession: unregisterCrashSession,
+          unregisterSession: crash.unregisterSession,
+          callerChecks,
         });
         if (multiAgentModeResult.activated) {
           multiAgentActivatedEarly = true;

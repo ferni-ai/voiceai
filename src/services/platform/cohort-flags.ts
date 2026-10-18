@@ -52,6 +52,8 @@ export const COHORT_FLAGS = [
   'COACH_FOLLOW_THROUGH',
   'LIFE_MOVES_ON',
   'CANDOR',
+  // Read only when searchWeb runs mid-call (information/web-search.ts), never at boot.
+  'WEB_SEARCH',
   'WORLD_MODEL_TEMPORAL',
   // Read when the call session is built, after applyCallerFlags (in-call-load.ts).
   'WORLD_FACTS_IN_CALL',
@@ -82,6 +84,8 @@ export const COHORT_FLAGS = [
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
   'WEEKLY_PREDICTION',
+  // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
+  'TOOLS_REAL_CALL_USER',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
