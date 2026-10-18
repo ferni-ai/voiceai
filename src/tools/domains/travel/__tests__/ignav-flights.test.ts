@@ -240,6 +240,23 @@ describe('IgnavFlightProvider', () => {
     expect(outcome).toEqual({ status: 'unavailable', reason: 'provider-error' });
   });
 
+  it('says provider-error when an arrival time is not anchored at its date', async () => {
+    fetchMock.mockResolvedValue(
+      jsonReply(200, {
+        itineraries: [
+          itinerary({
+            amount: 150,
+            segments: [{ dep: '2026-10-23T08:05:00', arr: 'x2026-10-23T10:30:00' }],
+          }),
+        ],
+      })
+    );
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({ status: 'unavailable', reason: 'provider-error' });
+  });
+
   it('says provider-error when a departure time is not anchored at its date', async () => {
     fetchMock.mockResolvedValue(
       jsonReply(200, {
