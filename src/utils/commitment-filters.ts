@@ -8,7 +8,7 @@
  *   butter and honey") is dropped, and the rest is still read: "I'll take a
  *   coffee. I'm going to call my sister tomorrow." keeps the second sentence.
  *
- * @module services/superhuman/commitment-filters
+ * @module utils/commitment-filters
  */
 
 // Sarcasm indicators: never a commitment when detected (P2 FIX)

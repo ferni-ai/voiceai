@@ -339,7 +339,7 @@ function modelChosenShape(
   // 2.87 -> 2.63, replies grew 17 -> 24 words and question endings 13% -> 21%
   // (dev A/B, 15 calls per arm, judge.mjs, 2026-10-10).
   const parts = [registerFor(sig)];
-  if (move === 'about_ferni') parts.push(ABOUT_YOU);
+  if (move === 'about_ferni' && !sig.selfBrief) parts.push(ABOUT_YOU);
   else if (sig.answered) parts.push(TAKE_UP_ANSWER);
   else if (
     move === 'share' &&
@@ -411,7 +411,7 @@ export function turnShapeFor(
   // The shape goes last, nearest the reply: first, behind the register lines,
   // it was diluted (replay: 5% of replies 6 words or fewer).
   const parts = [registerFor(sig)];
-  if (move === 'about_ferni') parts.push(ABOUT_YOU);
+  if (move === 'about_ferni' && !sig.selfBrief) parts.push(ABOUT_YOU);
   else if (sig.answered) parts.push(TAKE_UP_ANSWER);
   // Not while they're venting: a friend stays with them instead of telling a story.
   else if (
