@@ -1,5 +1,4 @@
 {
-  "note": "FAMILY_TABLE (agents/multi-agent/family-table.ts). fond: one line said handing the caller to that teammate. back: a word back to the teammate who just handed over. Only facts already in that persona's identity files; family-table.test.ts checks.",
   "fond": {
     "ferni": [
       "Here is Ferni. His glasses are on his head. Again.",

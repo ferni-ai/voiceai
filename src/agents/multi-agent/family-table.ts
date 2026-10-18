@@ -1,21 +1,9 @@
 /**
- * FAMILY_TABLE (off by default, cohort-capable): a handoff is a small family moment, not a
- * switchboard transfer.
- *
- * Prod 2026-10-18: four handoffs in four minutes, each a stock line ("Maya's perfect for
- * this. One moment.", banter.ts). With the flag on, the departing persona says one fond,
- * specific line about the teammate, from canon only, and the teammate's first words may
- * hand a word back ("Ferni's been bragging again, hasn't he?") before serving the caller.
- *
- * - The lines live in each persona's `identity/family-table.json` (fond: about a teammate;
- *   back: to the one who just handed over), so they are edited as content, not code.
- * - No line about a teammate twice in one call, and the word back once per pair per call.
- * - Never on a heavy moment: after the crisis gate guided or replaced a reply on this call,
- *   on a hard turn or mood, or when the caller asked to be put through urgently. Then a
- *   plain, warm line, and no word back.
- * - The word back goes in front of the arrival line after its grounding check
- *   (handoff-brief.ts), so it never meets the caller-facts filter; it names only teammates.
- *
+ * FAMILY_TABLE (off by default, cohort-capable): prod 2026-10-18 had four handoffs, four stock
+ * lines (banter.ts). On, the departing persona says one fond canon line about the teammate,
+ * and the teammate may hand a word back. Lines: each persona's identity/family-table.json.
+ * No fond line twice a call; never on a heavy moment (crisis gate acted, hard turn or mood,
+ * urgent ask). The word back is joined after the arrival line's grounding check.
  * @module agents/multi-agent/family-table
  */
 
@@ -32,107 +20,83 @@ import { arrivalLine, departureLine, readConversation } from './handoff-brief.js
 
 const log = createLogger({ module: 'FamilyTable' });
 
-function familyTableEnabled(env: Env = process.env): boolean {
-  return flagOn('FAMILY_TABLE', env);
-}
-
-/** One persona's lines: fond[teammate] when handing over, back[teammate] when handed to. */
 export interface FamilyLines {
   fond: Record<string, string[]>;
   back: Record<string, string>;
 }
 
-const EMPTY: FamilyLines = { fond: {}, back: {} };
 const tables = new Map<string, FamilyLines>();
 
 /** The persona's identity/family-table.json, read once; empty when it has none. */
 export function familyLines(personaId: string): FamilyLines {
-  const cached = tables.get(personaId);
-  if (cached) return cached;
-  let lines = EMPTY;
+  let lines = tables.get(personaId);
+  if (lines) return lines;
+  lines = { fond: {}, back: {} };
   for (const root of getBundleSearchPaths()) {
+    const file = join(root, personaId, 'identity', 'family-table.json');
     try {
-      const raw = JSON.parse(
-        readFileSync(join(root, personaId, 'identity', 'family-table.json'), 'utf8')
-      ) as Partial<FamilyLines>;
-      lines = { fond: raw.fond ?? {}, back: raw.back ?? {} };
+      lines = { ...lines, ...(JSON.parse(readFileSync(file, 'utf8')) as Partial<FamilyLines>) };
       break;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        log.warn({ personaId, root, error: String(error) }, 'Unreadable family table');
-      }
+      const missing = (error as NodeJS.ErrnoException).code === 'ENOENT';
+      if (!missing) log.warn({ file, error: String(error) }, 'Unreadable family table');
     }
   }
   tables.set(personaId, lines);
   return lines;
 }
 
+/** Per call: fond lines said, pairs answered, and the fond pair just handed over. */
 interface CallTable {
-  /** Fond lines already said on this call. */
   said: Set<string>;
-  /** "from>to" pairs whose word back was said. */
   answered: Set<string>;
-  /** The last departure was fond: the arriving teammate may answer it. */
   pending?: string;
 }
-
-const MAX_CALLS = 500;
 const calls = new Map<string, CallTable>();
 
 function callTable(callId: string): CallTable {
   let call = calls.get(callId);
   if (!call) {
-    if (calls.size >= MAX_CALLS) calls.delete(calls.keys().next().value as string);
+    if (calls.size >= 500) calls.delete(calls.keys().next().value as string);
     call = { said: new Set(), answered: new Set() };
     calls.set(callId, call);
   }
   return call;
 }
 
-/** Their voice read heavy (the handoff request's userEmotion). */
 const HEAVY_MOOD =
   /^(?:sad|hurt|anxious|fearful|scared|angry|grief|grieving|distressed|stressed|negative|overwhelmed|upset|lonely|crisis)$/i;
-/** Put through urgently: "right now", "quick", "asap". Whole words only. */
 const URGENT =
   /\b(?:right now|right away|asap|hurry|urgent|urgently|emergency|immediately|quick|quickly|now please)\b/i;
 
 /** Why this handoff gets a plain line, or undefined when a fond one fits. */
-function heavyHandoff(
-  session: unknown,
-  userEmotion: string | undefined,
-  callerTurns: string[]
-): string | undefined {
+function heavyHandoff(session: unknown, said: string[], mood?: string): string | undefined {
   if (crisisDecidedOn(session)) return 'crisis';
-  if (HEAVY_MOOD.test(userEmotion?.trim() ?? '')) return 'mood';
-  if (isHeavyMoment(callerTurns)) return 'heavy';
-  if (URGENT.test(callerTurns.at(-1) ?? '')) return 'urgent';
-  return undefined;
+  if (HEAVY_MOOD.test(mood?.trim() ?? '')) return 'mood';
+  if (isHeavyMoment(said)) return 'heavy';
+  return URGENT.test(said.at(-1) ?? '') ? 'urgent' : undefined;
 }
 
-const firstName = (personaId: string): string => getPersonaDisplayName(personaId).split(/\s+/)[0];
-
 /** The warm handoff for a hard moment: no joke, no teammate trivia. */
-export const plainHandoff = (to: string): string => `Okay. I'll get ${firstName(to)} for you.`;
+export const plainHandoff = (to: string): string =>
+  `Okay. I'll get ${getPersonaDisplayName(to).split(/\s+/)[0]} for you.`;
 
-/**
- * The departing persona's line. Off: today's line (handoff-brief.ts). On: one fond line
- * about the teammate not yet said on this call, or the plain line on a heavy moment.
- */
+/** The departing line: off, today's; on, a fond line not yet said this call, or the plain one. */
 export function familyDeparture(
   agent: { personaId: string; session: unknown },
   request: { targetPersonaId: string; userEmotion?: string },
   callId: string,
   env: Env = process.env
 ): string {
-  const from = agent.personaId;
+  const { personaId: from, session } = agent;
   const to = request.targetPersonaId;
-  if (!familyTableEnabled(env)) return departureLine(from, to, env);
+  if (!flagOn('FAMILY_TABLE', env)) return departureLine(from, to, env);
   const call = callTable(callId);
   call.pending = undefined;
-  const callerTurns = readConversation(agent.session)
-    .turns.filter((t) => t.speaker === 'caller')
-    .map((t) => t.text);
-  const heavy = heavyHandoff(agent.session, request.userEmotion, callerTurns);
+  const said = readConversation(session).turns.flatMap((t) =>
+    t.speaker === 'caller' ? t.text : []
+  );
+  const heavy = heavyHandoff(session, said, request.userEmotion);
   if (heavy) {
     log.info({ from, to, heavy }, 'Family table: plain handoff');
     return plainHandoff(to);
@@ -145,10 +109,7 @@ export function familyDeparture(
   return line;
 }
 
-/**
- * The arriving teammate's first words: a word back to whoever handed over fondly (once per
- * pair per call), then `firstLine` (the briefed line) or the canned arrival line.
- */
+/** The arrival: a word back after a fond handover (once per pair a call), then `firstLine`. */
 export function familyArrival(
   to: string,
   from: string,
@@ -157,7 +118,7 @@ export function familyArrival(
   env: Env = process.env
 ): string {
   const line = firstLine ?? arrivalLine(to, from, env);
-  if (!familyTableEnabled(env)) return line;
+  if (!flagOn('FAMILY_TABLE', env)) return line;
   const call = callTable(callId);
   const pair = `${from}>${to}`;
   const fond = call.pending === pair;
