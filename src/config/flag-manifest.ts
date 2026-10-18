@@ -389,6 +389,8 @@ export const FLAG_MANIFEST = {
   // cartesia by default; sonata only when its native addon is built (speech/tts-gateway/providers/index.ts)
   TTS_PROVIDER: { default: 'cartesia', owner: 'voice', kind: 'config' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // ping the shared Cartesia TTS socket and reopen it when it drops (tts-gateway/providers/cartesia-socket.ts)
+  TTS_SOCKET_WARM: { default: 'off', owner: 'voice', kind: 'experiment' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
   // troubles talk: no shift to his own life during a trouble, replies no longer than what they told (troubles-talk.ts)
   TROUBLES_TALK: { default: 'off', owner: 'voice', kind: 'experiment' },
