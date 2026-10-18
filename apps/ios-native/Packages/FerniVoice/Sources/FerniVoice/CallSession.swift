@@ -33,6 +33,10 @@ public final class CallSession {
     public private(set) var isMuted = false
     public private(set) var captions = CaptionBook()
     public private(set) var personaID = "ferni"
+    /// Whether this phone has ever had a call go live (Home's first-visit hello).
+    public private(set) var hasTalked: Bool
+    private let defaults: UserDefaults
+    private static let hasTalkedKey = "ferni.call.hasTalked"
 
     public typealias FetchToken = @Sendable (_ personaID: String) async throws -> CallToken
 
@@ -52,8 +56,11 @@ public final class CallSession {
         audio: any CallAudio,
         avatar: AvatarModel = AvatarModel(),
         agentLevel: AudioLevelMeter = AudioLevelMeter(),
-        agentTimeout: Duration = .seconds(10)
+        agentTimeout: Duration = .seconds(10),
+        defaults: UserDefaults = .standard
     ) {
+        self.defaults = defaults
+        hasTalked = defaults.bool(forKey: Self.hasTalkedKey)
         self.avatar = avatar
         self.agentLevel = agentLevel
         self.fetchToken = fetchToken
@@ -113,7 +120,13 @@ public final class CallSession {
             if Task.isCancelled { return }
             switch await join() {
             case .joined:
-                if !Task.isCancelled { phase = .live }
+                if !Task.isCancelled {
+                    phase = .live
+                    if !hasTalked {
+                        hasTalked = true
+                        defaults.set(true, forKey: Self.hasTalkedKey)
+                    }
+                }
                 if rejoining { avatar.send(.reconnected) }
                 return
             case .ferniMissing:

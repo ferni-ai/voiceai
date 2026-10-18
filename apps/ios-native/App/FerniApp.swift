@@ -16,7 +16,10 @@ struct FerniApp: App {
             HomeView()
                 .environment(model)
                 // Silent, anonymous on a first launch: talking never waits on a sign-in screen.
-                .task { await model.account.start() }
+                .task {
+                    await model.account.start()
+                    await model.team.refresh()
+                }
                 // Consent belongs to whoever is signed in: switch with them.
                 .onChange(of: model.account.user?.uid, initial: true) { _, uid in model.consent.use(uid: uid) }
         }
@@ -43,12 +46,13 @@ final class AppModel {
     let api: FerniAPI
     let call: CallSession
     let consent = ConsentStore()
+    let team: TeamStore
     var isShowingSettings = false
     var isAskingConsent = false
 
     /// Talk: the consent screen first if this person hasn't agreed (or withdrew).
     func talk() {
-        if consent.hasAgreed { call.start() } else { isAskingConsent = true }
+        if consent.hasAgreed { call.start(personaID: team.chosen) } else { isAskingConsent = true }
     }
 
     /// "I agree, let's talk": recorded for the signed-in account only, so the
@@ -56,7 +60,7 @@ final class AppModel {
     func agreeAndTalk() async {
         await account.start()
         consent.use(uid: account.user?.uid)
-        if consent.agree() { call.start() }
+        if consent.agree() { call.start(personaID: team.chosen) }
     }
 
     /// Sign out: this person's agreement leaves the phone with them.
@@ -69,6 +73,7 @@ final class AppModel {
         self.config = config
         account = AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
         api = account.api(baseURL: config.apiBaseURL)
+        team = TeamStore(api: api)
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
         let level = AudioLevelMeter()
         call = CallSession(

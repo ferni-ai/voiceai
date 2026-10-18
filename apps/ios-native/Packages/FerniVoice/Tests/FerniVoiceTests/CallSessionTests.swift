@@ -89,7 +89,8 @@ final class CallSessionTests: XCTestCase {
                 return room
             },
             audio: audio,
-            agentTimeout: timeout
+            agentTimeout: timeout,
+            defaults: UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
         )
     }
 
@@ -112,6 +113,7 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(rooms.made.first?.micStates, [true])
         XCTAssertEqual(audio.activations, 1)
         XCTAssertEqual(session.agentActivity, .listening)
+        XCTAssertTrue(session.hasTalked)
     }
 
     /// Haptics-while-recording is set up (in activate) before the mic goes on.
