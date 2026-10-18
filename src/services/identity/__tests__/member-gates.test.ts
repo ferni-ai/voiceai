@@ -41,7 +41,7 @@ function disputeStore(): DisputeStore & { facts: ReturnType<typeof vi.fn> } {
 describe('member gates on stored data', () => {
   it.each(NON_MEMBERS)('forgetting never touches the store for %s', async (userId) => {
     const store = forgetStore();
-    expect(await forgetForCaller(userId, 'my dog', store)).toEqual({ kind: 'failed' });
+    expect(await forgetForCaller(userId, 'my dog', store)).toEqual({ kind: 'not-saved' });
     expect(store.facts).not.toHaveBeenCalled();
     expect(store.addTopic).not.toHaveBeenCalled();
   });
