@@ -33,6 +33,8 @@ export const FLAG_MANIFEST = {
   CALLER_TURN_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // shadow: log where a reply answers its own question for the caller, cut nothing; on: cut there (caller-voice-guard.ts)
   CALLER_VOICE_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a caller's voice create, update and delete go to their connected calendar, not only Ferni's list (#1749)
+  CALENDAR_WRITE_TO_PROVIDER: { default: 'off', owner: 'tools', kind: 'experiment' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
