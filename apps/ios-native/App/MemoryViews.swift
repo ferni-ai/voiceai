@@ -11,7 +11,9 @@ struct RememberCard: View {
     @State private var notes: [MemoryStore.Note] = []
 
     var body: some View {
-        Group {
+        // A permanent zero-height anchor: .task on a view that renders nothing never runs.
+        VStack(spacing: 0) {
+            Color.clear.frame(height: 0)
             if !notes.isEmpty {
                 VStack(alignment: .leading, spacing: FerniSpace.breath) {
                     Text("I'll remember")
