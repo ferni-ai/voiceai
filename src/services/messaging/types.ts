@@ -4,6 +4,10 @@
  * @module services/messaging/types
  */
 
+/** Ferni-initiated texts per person per rolling window, every kind and persona (DESIGN decision 2). */
+export const DAILY_TEXT_CAP = 3;
+export const DAILY_TEXT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 export const MESSAGE_KINDS = [
   ...['reminder', 'morning-brief', 'check-in', 'post-call-check-in', 'follow-up', 'proactive'],
   ...['on-behalf', 'commitment-nudge', 'reply', 'digest', 'transactional'],
@@ -63,7 +67,8 @@ export interface PolicyCtx {
     readonly textsOff: boolean;
     readonly maxPerDay?: number; // "fewer texts": lowers the SMS budget, never raises it
     readonly windows?: readonly LocalWindow[]; // "only mornings": narrows, never widens
-    readonly quiet?: { readonly start: string; readonly end: string }; // the owner's, "22:30"-"07:00"
+    readonly quietStart?: string; // the owner's messagingPrefs (#2001), "HH:MM"
+    readonly quietEnd?: string;
   };
   readonly crisis: { readonly lastCrisisAt?: Date };
   readonly ledger: readonly LedgerEntry[]; // the person's last 7 days

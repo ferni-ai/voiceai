@@ -238,8 +238,63 @@ const crisis: Row[] = [
   },
 ];
 
-const OWN_QUIET = { textsOff: false, quiet: { start: '22:30', end: '07:00' } } as const;
+const OWN_QUIET = { textsOff: false, quietStart: '22:30', quietEnd: '07:00' } as const;
 const quietHours: Row[] = [
+  {
+    name: "LA owner's quiet 22:30-07:00: 22:29 goes",
+    c: { zone: LA, now: at('2026-10-14T22:29', LA), prefs: OWN_QUIET },
+    want: SEND,
+  },
+  {
+    name: "LA owner's quiet 22:30-07:00: 22:30 holds to 07:00",
+    c: { zone: LA, now: at('2026-10-14T22:30', LA), prefs: OWN_QUIET },
+    want: quietUntil(at('2026-10-15T07:00', LA)),
+  },
+  {
+    name: "LA owner's quiet 22:30-07:00: 06:59 holds to 07:00",
+    c: { zone: LA, now: at('2026-10-14T06:59', LA), prefs: OWN_QUIET },
+    want: quietUntil(at('2026-10-14T07:00', LA)),
+  },
+  {
+    name: "LA owner's quiet 22:30-07:00: 07:00 goes",
+    c: { zone: LA, now: at('2026-10-14T07:00', LA), prefs: OWN_QUIET },
+    want: SEND,
+  },
+  {
+    name: "LA third party, owner's quiet 22:30-07:00 set: 21:00 still holds to 08:00",
+    i: { recipient: 'third-party', kind: 'on-behalf', requestedBy: 'user' },
+    c: { zone: LA, now: at('2026-10-14T21:00', LA), prefs: OWN_QUIET },
+    want: quietUntil(at('2026-10-15T08:00', LA)),
+  },
+  {
+    name: 'prefs saved at the default 21:00-08:00: 20:59 goes',
+    c: {
+      now: at('2026-10-14T20:59'),
+      prefs: { textsOff: false, quietStart: '21:00', quietEnd: '08:00' },
+    },
+    want: SEND,
+  },
+  {
+    name: 'prefs saved at the default 21:00-08:00: 21:00 holds to 08:00',
+    c: {
+      now: at('2026-10-14T21:00'),
+      prefs: { textsOff: false, quietStart: '21:00', quietEnd: '08:00' },
+    },
+    want: quietUntil(at('2026-10-15T08:00')),
+  },
+  {
+    name: 'only one end saved: the default applies (21:30 holds)',
+    c: { now: at('2026-10-14T21:30'), prefs: { textsOff: false, quietStart: '22:30' } },
+    want: quietUntil(at('2026-10-15T08:00')),
+  },
+  {
+    name: 'a saved window of exactly 4 h is used (23:00-03:00): 22:59 goes',
+    c: {
+      now: at('2026-10-14T22:59'),
+      prefs: { textsOff: false, quietStart: '23:00', quietEnd: '03:00' },
+    },
+    want: SEND,
+  },
   {
     name: "owner's quiet 22:30-07:00: 21:30 goes",
     c: { now: at('2026-10-14T21:30'), prefs: OWN_QUIET },
@@ -270,7 +325,7 @@ const quietHours: Row[] = [
     name: 'a saved window under 4 h is ignored: 21:30 holds to 08:00',
     c: {
       now: at('2026-10-14T21:30'),
-      prefs: { textsOff: false, quiet: { start: '23:00', end: '02:30' } },
+      prefs: { textsOff: false, quietStart: '23:00', quietEnd: '02:30' },
     },
     want: quietUntil(at('2026-10-15T08:00')),
   },
@@ -278,7 +333,7 @@ const quietHours: Row[] = [
     name: 'a saved window over 16 h is ignored',
     c: {
       now: at('2026-10-14T21:30'),
-      prefs: { textsOff: false, quiet: { start: '20:00', end: '12:01' } },
+      prefs: { textsOff: false, quietStart: '20:00', quietEnd: '12:01' },
     },
     want: quietUntil(at('2026-10-15T08:00')),
   },
@@ -286,7 +341,7 @@ const quietHours: Row[] = [
     name: 'a 16 h saved window is used: 12:00 goes',
     c: {
       now: at('2026-10-14T12:00'),
-      prefs: { textsOff: false, quiet: { start: '20:00', end: '12:00' } },
+      prefs: { textsOff: false, quietStart: '20:00', quietEnd: '12:00' },
     },
     want: SEND,
   },
@@ -294,7 +349,7 @@ const quietHours: Row[] = [
     name: 'a malformed saved window is ignored',
     c: {
       now: at('2026-10-14T21:30'),
-      prefs: { textsOff: false, quiet: { start: '9pm', end: '07:00' } },
+      prefs: { textsOff: false, quietStart: '9pm', quietEnd: '07:00' },
     },
     want: quietUntil(at('2026-10-15T08:00')),
   },
@@ -302,7 +357,7 @@ const quietHours: Row[] = [
     name: 'a non-wrapping saved window (01:00-07:00): 01:30 holds to 07:00',
     c: {
       now: at('2026-10-14T01:30'),
-      prefs: { textsOff: false, quiet: { start: '01:00', end: '07:00' } },
+      prefs: { textsOff: false, quietStart: '01:00', quietEnd: '07:00' },
     },
     want: quietUntil(at('2026-10-14T07:00')),
   },
@@ -310,7 +365,7 @@ const quietHours: Row[] = [
     name: 'a non-wrapping saved window: 00:30 goes',
     c: {
       now: at('2026-10-14T00:30'),
-      prefs: { textsOff: false, quiet: { start: '01:00', end: '07:00' } },
+      prefs: { textsOff: false, quietStart: '01:00', quietEnd: '07:00' },
     },
     want: SEND,
   },

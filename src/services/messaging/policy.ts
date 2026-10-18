@@ -6,6 +6,7 @@
  * @module services/messaging/policy
  */
 import { isValidTimeZone, wallTimeIn, zonedWallTimeToUtc } from '../../utils/time-zone.js';
+import { DAILY_TEXT_CAP, DAILY_TEXT_WINDOW_MS } from './types.js';
 import type { Channel, Decision, Intent, LocalWindow, MessageKind, PolicyCtx } from './types.js';
 
 type Requester = Intent['requestedBy'];
@@ -17,9 +18,7 @@ const DAY_MS = 24 * HOUR_MS;
 /** 21:00-08:00; the owner's saved window replaces it for messages to them (4-16 h long). */
 export const DEFAULT_QUIET: LocalWindow = { startMin: 21 * 60, endMin: 8 * 60 };
 export const CRISIS_QUIET_MS = 14 * DAY_MS;
-/** Ferni-initiated texts per person per rolling 24 h (every kind and persona); push + in-app share 6. */
-export const SMS_DAILY_BUDGET = 3;
-export const APP_DAILY_BUDGET = 6;
+export const APP_DAILY_BUDGET = 6; // push and in-app share it; texts: DAILY_TEXT_CAP
 export const SAME_BODY_MS = 12 * HOUR_MS;
 export const LIVE_REPLY_MS = 30 * MIN_MS; // a reply this soon after their text: they're awake
 /** Codes skip the daily budget but have their own limits per number (no SMS pumping). */
@@ -92,8 +91,8 @@ const toMin = (hhmm: string): number | null => {
 
 /** The quiet window for this recipient: the owner's saved one when valid, else 21:00-08:00. */
 function quietWindow(i: Intent, ctx: PolicyCtx): LocalWindow {
-  const saved = i.recipient === 'owner' ? ctx.prefs.quiet : undefined;
-  const [startMin, endMin] = [toMin(saved?.start ?? ''), toMin(saved?.end ?? '')];
+  const { quietStart = '', quietEnd = '' } = i.recipient === 'owner' ? ctx.prefs : {};
+  const [startMin, endMin] = [toMin(quietStart), toMin(quietEnd)];
   if (startMin === null || endMin === null) return DEFAULT_QUIET;
   const span = (endMin - startMin + 1440) % 1440;
   return span >= 240 && span <= 960 ? { startMin, endMin } : DEFAULT_QUIET;
@@ -176,8 +175,8 @@ const budgetGroup = (c: Channel): 'sms' | 'app' | null =>
 
 function smsCap(ctx: PolicyCtx): number {
   const lower = ctx.prefs.maxPerDay;
-  if (lower === undefined || !Number.isFinite(lower)) return SMS_DAILY_BUDGET;
-  return Math.max(0, Math.min(SMS_DAILY_BUDGET, Math.floor(lower)));
+  if (lower === undefined || !Number.isFinite(lower)) return DAILY_TEXT_CAP;
+  return Math.max(0, Math.min(DAILY_TEXT_CAP, Math.floor(lower)));
 }
 
 /** The digest it joins: today's in the recipient's zone, or tomorrow's once today's went. */
@@ -206,7 +205,7 @@ function budgetGate(i: Intent, ctx: PolicyCtx): Decision | null {
     (e) =>
       budgetGroup(e.channel) === group &&
       countsTowardBudget(e.kind, e.requestedBy) &&
-      recent(e, ctx, DAY_MS)
+      recent(e, ctx, DAILY_TEXT_WINDOW_MS)
   );
   const sent = today.filter((e) => e.status === 'sent').length;
   const queued = today.filter((e) => e.status === 'held' && e.intentKey !== i.intentKey);
