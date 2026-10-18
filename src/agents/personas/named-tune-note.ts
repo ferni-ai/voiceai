@@ -87,7 +87,7 @@ export interface TuneTurn {
   /** Crisis guidance rides this reply. */
   careful: boolean;
   verified: boolean;
-  /** TODO(#1897): MINOR_CARE's memoryHeld (src/utils/minor-care.ts) once it merges. */
+  /** TODO(PR 1897): MINOR_CARE's memoryHeld (src/utils/minor-care.ts) once it merges. */
   memoryHeld?: boolean;
   priorCalls?: number;
   mood?: string;
