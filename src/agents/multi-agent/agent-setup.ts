@@ -70,6 +70,7 @@ import {
   resolveTurnIntelligenceMode,
 } from './turn-intelligence.js';
 import { createMemoryRecall, memoryRecallMode, type RecallAgent } from './memory-recall-hook.js';
+import { callLoopsRecallFor } from './open-loops-recall.js';
 import { attachMindNote, theoryOfMindMode } from './mind-note-hook.js';
 import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
@@ -1629,6 +1630,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       userId,
       userName: userData.userName,
       personaId: persona.id,
+      loops: callLoopsRecallFor(userId, sessionId), // OPEN_LOOPS_IN_CONTEXT
     });
     const nameLift = startNameLift(recall, createDataMessageSender(room)); // NAME_LIFT=on
     const onRecallTranscript = (event: unknown) => {

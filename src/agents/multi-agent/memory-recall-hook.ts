@@ -72,6 +72,7 @@ import {
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createWorldRecall, type WorldRecallDeps } from './world-recall.js';
+import type { CallLoopsRecall } from './open-loops-recall.js';
 import { predictionCheckInFor, type PredictionCheckIn } from './prediction-check-in.js';
 import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
 import { takeOpenerClaim } from '../../memory/recall/opener-claim.js';
@@ -141,6 +142,7 @@ export interface MemoryRecallDeps {
   dates?: DatesRecall;
   /** Peter's weekly prediction, a week on (prediction-check-in.ts, WEEKLY_PREDICTION). */
   week?: PredictionCheckIn;
+  loops?: CallLoopsRecall; // open loops + Ferni's promises, once a call (OPEN_LOOPS_IN_CONTEXT)
   /** FERNI_SELF_RECALL=on; read from the environment when not given. */
   selfRecall?: boolean;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
@@ -332,7 +334,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const dates = deps.dates ?? datesRecallFor(deps.userId);
   const week = deps.week ?? predictionCheckInFor(deps.userId, personaId);
   const loading = [loaded, since, checkedIn, ground, canonLoaded, dates.ready, world.ready];
-  const ready = Promise.all(loading).then(() => undefined);
+  const ready = Promise.all([...loading, deps.loops?.ready]).then(() => undefined);
 
   return {
     ready,
@@ -424,7 +426,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           : null;
       if (self) selfNoteGiven = true;
       const [summary, episode] = [summaryRecall?.take(text) ?? null, episodes?.take() ?? null];
-      const worldNote = world.note();
+      const [worldNote, loopsNow] = [world.note(), deps.loops?.note() ?? null];
       // The same note with or without the facts: CONTEXT_PACKET labels those in the packet.
       const noteWith = (shown: RecallFact[]): string | null =>
         world.screen(
@@ -432,6 +434,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
             checkIn,
             worldNote,
             dateNow,
+            loopsNow,
             weekNow,
             formatRecall(shown, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
             opener,
@@ -457,6 +460,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));
       if (checkIn) checkInOffered = true;
       if (dateNow) dates.raised();
+      if (loopsNow) deps.loops?.raised();
       if (checkIn || dateNow || greetingAsked || weekNow) week.raised(weekNow !== null);
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);

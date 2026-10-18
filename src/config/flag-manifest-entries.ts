@@ -104,6 +104,8 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   OPENER_FOLLOW_UP: { default: 'off', owner: 'memory', kind: 'experiment' },
   OPENER_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: open loops and Ferni's own promises join a call's recall note, once a call (agents/multi-agent/open-loops-recall.ts)
+  OPEN_LOOPS_IN_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   OUTBOUND_CONFIRM: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
   // ms, 10-1000: the room audio output queue; unset keeps the SDK default (1000 ms in 1.5.1)
   OUTPUT_QUEUE_MS: { default: 'sdk', owner: 'voice', kind: 'config' },
