@@ -15,7 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { consentBlocks } from '../messaging/consent.js';
+import { ownerRefusal } from '../messaging/consent-grants.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { callQuietHours } from './quiet-hours.js';
@@ -174,11 +174,12 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     if (!normalizedPhone) {
       return { success: false, error: 'Invalid phone number format' };
     }
-    // MESSAGING_PIPELINE: callUser and every proactive call stop at a call opt-out. A call
+    // MESSAGING_PIPELINE: callUser and every proactive call reach only the member's own number
+    // or one they hold a call grant for, and stop at an opt-out. A call
     // the call-hours guard holds comes back through here when it is placed (deferred-calls.ts),
     // so it is checked again then. A quiet-hours call saved to scheduled_calls below is not
     // dialled later by anything (no job reads pending scheduled_calls), so there is no later dial.
-    const refused = await consentBlocks(normalizedPhone, 'call', true);
+    const refused = await ownerRefusal(userId, normalizedPhone, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
     // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.

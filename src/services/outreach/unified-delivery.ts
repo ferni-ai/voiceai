@@ -223,8 +223,8 @@ async function deliverSMS(
   if (!phone) {
     return { success: false, channel: 'sms', error: 'No phone number provided' };
   }
-  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
-  const refused = await (await import('../messaging/consent.js')).consentBlocks(phone, 'sms', true);
+  const { ownerRefusal } = await import('../messaging/consent-grants.js'); // MESSAGING_PIPELINE
+  const refused = await ownerRefusal(userId, phone, 'sms'); // own number, or the owner's grant
   if (refused) return { success: false, channel: 'sms', error: `Not sent: ${refused}` };
 
   const creds = await loadCredentials();

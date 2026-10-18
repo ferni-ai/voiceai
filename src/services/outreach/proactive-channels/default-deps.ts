@@ -8,6 +8,7 @@
 
 import { sendSMS } from '../../communication-service.js';
 import { consentBlocks } from '../../messaging/consent.js';
+import { ownerRefusal } from '../../messaging/consent-grants.js';
 import { saveInAppMessage } from '../unified-delivery.js';
 import { resolveVerifiedPhone } from '../user-reach.js';
 import type { ProactiveDeps } from './proactive-tick.js';
@@ -38,6 +39,8 @@ export function defaultProactiveDeps(): ProactiveDeps {
     },
     canCall: () => canPlaceCalls(),
     placeCall: async (userId, phone, trigger) =>
-      (await consentBlocks(phone, 'call', true)) ? 'failed' : placeSelfCall(userId, phone, trigger),
+      (await ownerRefusal(userId, phone, 'call'))
+        ? 'failed'
+        : placeSelfCall(userId, phone, trigger),
   };
 }

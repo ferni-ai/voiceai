@@ -232,7 +232,6 @@ async function getHostedAudioUrl(
   // Create a cache key from the message + persona
   const cacheKey = Buffer.from(`${personaId}:${message}`).toString('base64').slice(0, 32);
 
-  // Check cache
   const cached = audioUrlCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
     getLogger().debug({ cacheKey, personaId }, 'Using cached audio URL');
@@ -267,6 +266,8 @@ export interface PersonaCallOptions {
   customGreeting?: string;
   /** SSML options for natural speech. Set to false to disable SSML enhancement. */
   ssml?: OutboundSsmlOptions | false;
+  /** Who the call is for. MESSAGING_PIPELINE: without it, or to someone else without their grant, no call. */
+  ownerUid?: string;
 }
 
 /**
@@ -293,8 +294,8 @@ export async function callWithPersonaVoice(
 
   const cleanPhone = toPhone.replace(/\D/g, '');
   const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
-  const { consentBlocks } = await import('../messaging/consent.js'); // MESSAGING_PIPELINE
-  const refused = await consentBlocks(e164Phone, 'call', true); // opt-outs, every caller
+  const { ownerRefusal } = await import('../messaging/consent-grants.js'); // MESSAGING_PIPELINE
+  const refused = await ownerRefusal(options?.ownerUid, e164Phone, 'call'); // fails closed
   if (refused) return { success: false, message: `Not calling: ${refused}` };
 
   const displayName = getPersonaDisplayName(personaId);
@@ -302,7 +303,6 @@ export async function callWithPersonaVoice(
 
   logger.info({ to: e164Phone, personaId }, `📞 Initiating call with ${firstName}'s voice...`);
 
-  // Try to generate persona's voice
   let twiml: string;
   let usedCartesiaVoice = false;
 

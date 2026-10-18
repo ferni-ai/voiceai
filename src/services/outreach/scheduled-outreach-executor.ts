@@ -164,7 +164,7 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
           target.resolvedPhone,
           target.message || target.purpose,
           personaId,
-          { fallbackToTwilioVoice: true }
+          { fallbackToTwilioVoice: true, ownerUid: userId }
         );
         success = result.success;
         errorMsg = result.success ? undefined : result.message;

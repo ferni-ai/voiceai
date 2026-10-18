@@ -24,7 +24,7 @@
  */
 
 import { llm } from '@livekit/agents';
-import { consentBlocks } from '../../../services/messaging/consent.js';
+import { notCalling, ownerRefusal } from '../../../services/messaging/consent-grants.js';
 import { z } from 'zod';
 import {
   guardedThirdPartySend,
@@ -192,17 +192,21 @@ async function sendTextReal(to: string, message: string, userId: string): Promis
 /**
  * Initiate an outbound phone call via Twilio
  */
-async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Promise<string> {
+async function makePhoneCall(
+  to: string,
+  purpose: string,
+  ownerUid: string | undefined,
+  twimlUrl?: string
+): Promise<string> {
   const validation = validatePhone(to);
   if (!validation.valid) {
     return `I need a valid phone number to make a call. Can you double-check "${to}"?`;
   }
 
   const validPhone = validation.sanitized as string;
-  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
-  if (await consentBlocks(validPhone, 'call', true)) {
-    return `I can't call that number: it asked not to be called.`;
-  }
+  // MESSAGING_PIPELINE: the owner's own number, or someone who gave this owner a call grant.
+  const refused = await ownerRefusal(ownerUid, validPhone, 'call');
+  if (refused) return notCalling(refused);
 
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
     getLogger().warn('Twilio not configured for calls');
@@ -286,7 +290,6 @@ async function sendVoiceMessageRealWithUserId(
   }
 
   try {
-    // Create voice message record
     const voiceMsg = await createVoiceMessage({
       userId,
       message,
@@ -340,7 +343,6 @@ async function scheduleReminderReal(params: {
   const deliveryMethod: ReminderDeliveryMethod =
     params.deliveryMethod || (params.contact ? 'sms' : 'in_app');
 
-  // Validate the contact
   if (deliveryMethod === 'email' && deliveryAddress) {
     const validation = validateEmail(deliveryAddress);
     if (!validation.valid) {
@@ -533,8 +535,9 @@ export function createCommunicationTools() {
         phoneNumber: z.string().describe('Phone number to call'),
         message: z.string().describe('Message to deliver in the call'),
       }),
-      execute: async ({ phoneNumber, message }) => {
-        return makePhoneCall(phoneNumber, message);
+      execute: async ({ phoneNumber, message }, { ctx }) => {
+        const userData = ctx?.userData as { userId?: string } | undefined;
+        return makePhoneCall(phoneNumber, message, userData?.userId);
       },
     }),
 

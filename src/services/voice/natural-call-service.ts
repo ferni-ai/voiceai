@@ -159,7 +159,6 @@ export async function makeNaturalCall(request: NaturalCallRequest): Promise<Natu
       'Generated call message'
     );
 
-    // Make the call
     const ssmlOptions: OutboundSsmlOptions | false = request.options?.skipSsml
       ? false
       : {
@@ -171,6 +170,7 @@ export async function makeNaturalCall(request: NaturalCallRequest): Promise<Natu
     const result = await callWithPersonaVoice(request.phone, generatedCall.message, personaId, {
       fallbackToTwilioVoice: request.options?.fallbackToTwilioVoice ?? true,
       ssml: ssmlOptions,
+      ownerUid: request.userId,
     });
 
     if (result.success) {

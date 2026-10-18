@@ -152,6 +152,12 @@ describe('scheduled-outreach executor, call branch', () => {
     own.value = true;
     await executeScheduledOutreach(scheduledCall());
     expect(callWithPersonaVoice).toHaveBeenCalledOnce();
+    expect(callWithPersonaVoice).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ ownerUid: 'u1' })
+    );
   });
 
   it('flag off: places the call as today', async () => {

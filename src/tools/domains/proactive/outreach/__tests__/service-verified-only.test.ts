@@ -93,3 +93,21 @@ describe('a saved phone or email with no verified reach', () => {
     expect(info?.email).toBeUndefined();
   });
 });
+
+describe('callUser with a verified phone', () => {
+  it('tells the shared call sender whose call it is (it re-checks own number or grant)', async () => {
+    setCallUserPort({
+      verifiedPhone: async () => '+15550000111',
+      verifiedEmail: async () => undefined,
+      textOwner,
+      call: vi.fn(),
+    });
+    await callUser(UID, 'hi');
+    expect(h.twilioCall).toHaveBeenCalledWith(
+      '+15550000111',
+      'hi',
+      expect.anything(),
+      expect.objectContaining({ ownerUid: UID })
+    );
+  });
+});

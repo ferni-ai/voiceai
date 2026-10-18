@@ -58,11 +58,13 @@ export const SAVED_NOT_VERIFIED =
 async function makePhoneCall(
   phone: string,
   message: string,
-  personaId = 'ferni'
+  personaId: string,
+  ownerUid: string
 ): Promise<{ success: boolean; callSid?: string; error?: string }> {
   try {
     const result = await callWithPersonaVoice(phone, message, personaId, {
       fallbackToTwilioVoice: true,
+      ownerUid,
     });
     if (result.success) return { success: true, callSid: result.callSid };
     return { success: false, error: result.message };
@@ -119,7 +121,6 @@ export async function setUserContactInfo(
   userId: string,
   info: Partial<UserContactInfo>
 ): Promise<void> {
-  // Update local cache
   const existing = userContactCache.get(userId) || {};
   const updated = { ...existing, ...info };
   userContactCache.set(userId, updated);
@@ -340,7 +341,7 @@ export async function callUser(
   try {
     // Normalize persona ID and use for voice
     const canonicalPersonaId = getCanonicalPersonaId(personaId);
-    const result = await makePhoneCall(phone, message, canonicalPersonaId);
+    const result = await makePhoneCall(phone, message, canonicalPersonaId, userId);
 
     if ('error' in result) {
       return { success: false, error: result.error };
