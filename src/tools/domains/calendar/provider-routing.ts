@@ -7,7 +7,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { flagOn } from '../../../config/env-flag.js';
-import { getEventById } from '../../../services/calendar/index.js';
+import { deleteEvent, getEventById, updateEvent } from '../../../services/calendar/index.js';
 import {
   connectedWriteProvider,
   createOnProvider,
@@ -17,9 +17,12 @@ import {
   type WriteProvider,
 } from '../../../services/calendar/provider-writes.js';
 import type { CalendarEvent } from '../../../services/calendar/types.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import { formatStoredLocalTime, zonedWallTimeToUtc } from '../../../utils/time-zone.js';
 import type { ToolContext } from '../../registry/types.js';
+
+const log = createLogger({ module: 'ProviderRouting' });
 
 export const WRITE_TO_PROVIDER_FLAG = 'CALENDAR_WRITE_TO_PROVIDER';
 
@@ -128,9 +131,14 @@ async function changeOnConnected(
       event.externalId,
       event.externalCalendarId
     );
-    return removed
-      ? `Removed "${event.title}" from your ${label}.`
-      : `I couldn't remove "${event.title}" from your ${label}. It's still there.`;
+    if (!removed) return `I couldn't remove "${event.title}" from your ${label}. It's still there.`;
+    await mirrorLocal(userId, 'delete', () => deleteEvent(userId, event.id));
+    return `Removed "${event.title}" from your ${label}.`;
+  }
+
+  // A move needs both the day and the time; with one alone, ask rather than guess.
+  if (Boolean(params.date) !== Boolean(params.startTime)) {
+    return 'I need both the day and the time to move that event.';
   }
 
   const zone = userTimeZone(ctx);
@@ -150,7 +158,31 @@ async function changeOnConnected(
     updatedAt: new Date(),
   };
   const changed = await updateOnProvider(userId, target, updated);
-  return changed
-    ? `Updated "${updated.title}" on your ${label}.`
-    : `I couldn't update "${event.title}" on your ${label}. It's unchanged there.`;
+  if (!changed) return `I couldn't update "${event.title}" on your ${label}. It's unchanged there.`;
+  await mirrorLocal(userId, 'update', () =>
+    updateEvent(userId, event.id, {
+      title: updated.title,
+      description: updated.description,
+      location: updated.location,
+      startTime,
+      endTime: updated.endTime,
+    })
+  );
+  return `Updated "${updated.title}" on your ${label}.`;
+}
+
+/** Keep Ferni's copy in step once the provider took the change. A failure here is logged. */
+async function mirrorLocal(
+  userId: string,
+  action: 'update' | 'delete',
+  write: () => Promise<unknown>
+): Promise<void> {
+  try {
+    await write();
+  } catch (error) {
+    log.error(
+      { userId, action, error: String(error) },
+      'Ferni copy not updated after provider write'
+    );
+  }
 }
