@@ -92,6 +92,18 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         ENABLE_PREVIEWS: YES
 
+  # App-level logic (AppModel), hosted in the app.
+  FerniAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [AppTests]
+    dependencies:
+      - target: Ferni
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.apptests
+        GENERATE_INFOPLIST_FILE: YES
+
   # The call on the Lock Screen and in the Dynamic Island.
   FerniLive:
     type: app-extension
@@ -128,6 +140,7 @@ schemes:
       config: Debug
       gatherCoverageData: true
       targets:
+        - FerniAppTests
         - package: FerniKit/FerniKitTests
         - package: FerniVoice/FerniVoiceTests
         - package: FerniDesign/FerniDesignTests
