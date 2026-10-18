@@ -103,29 +103,20 @@ describe('textVerificationCode', () => {
     expect(await ask(d)).toEqual({ sent: true });
   });
 
-  it('a number has a hard limit across users for repeat requests (1 a minute, 10 an hour), quietly', async () => {
+  it('a number has one ceiling for every request (1 a minute, 5 an hour), refused quietly', async () => {
     const { d, advance } = deps();
     expect(await ask(d, 'u0', N)).toEqual({ sent: true });
     advance(20_000);
-    expect(await ask(d, 'u1', N)).toEqual({ sent: true }); // u1's first request this hour: exempt
-    advance(50_000);
-    expect(await ask(d, 'u0', N)).toEqual({ sent: false, reason: 'quiet' }); // a repeat, 50 s after a send
-    for (let i = 2; i < 10; i++) {
+    expect(await ask(d, 'u1', N)).toEqual({ sent: false, reason: 'quiet' }); // no first-request exemption
+    for (let i = 2; i < 6; i++) {
       advance(61_000);
-      expect(await ask(d, `u${i}`, N)).toEqual({ sent: true }); // first requests
+      expect(await ask(d, `u${i}`, N)).toEqual({ sent: true });
     }
     advance(61_000);
-    expect(await ask(d, 'u1', N)).toEqual({ sent: false, reason: 'quiet' }); // a repeat, 10 already this hour
-    expect(d.send).toHaveBeenCalledTimes(10);
-  });
-
-  it("the owner's first request goes through while others spam the number", async () => {
-    const { d, advance } = deps();
-    for (let i = 0; i < 12; i++) {
-      await ask(d, `spammer-${i}`, N);
-      advance(10_000);
-    }
-    expect(await ask(d, 'owner', N)).toEqual({ sent: true });
+    expect(await ask(d, 'owner', N)).toEqual({ sent: false, reason: 'quiet' }); // the 6th this hour
+    expect(d.send).toHaveBeenCalledTimes(5);
+    advance(60 * 60 * 1000);
+    expect(await ask(d, 'owner', N)).toEqual({ sent: true }); // the owner can retry within the hour
   });
 
   it('the (user, number) pair: three an hour, quietly', async () => {
@@ -147,27 +138,44 @@ describe('textVerificationCode', () => {
     expect(await ask(d, 'fresh', num(2), '203.0.113.7')).toMatchObject({ reason: 'too-many' });
   });
 
-  it('a quiet refusal (STOP, number limit) stores no code, so nothing can be confirmed', async () => {
-    const { d, stopped } = deps();
-    stopped.add(phoneHash(N, ENV) ?? '');
-    const make = makeCode();
-    logged.all.length = 0;
-    expect(await textVerificationCode('uid-1', N, make, d)).toEqual({
-      sent: false,
-      reason: 'quiet',
-    });
-    expect(make).not.toHaveBeenCalled(); // no usable code exists for a number we never texted
-    expect(d.send).not.toHaveBeenCalled();
-    expect(logged.all.some(([, msg]) => String(msg).includes('refused quietly'))).toBe(true);
+  it('a quiet refusal stores no code (STOP, the number ceiling, the pair limit) and logs last four only', async () => {
+    const stoppedCase = deps();
+    stoppedCase.stopped.add(phoneHash(N, ENV) ?? '');
+    const ceiling = deps();
+    await ask(ceiling.d, 'a', N);
+    ceiling.advance(20_000);
+    const pair = deps();
+    for (let i = 0; i < 3; i++) {
+      await ask(pair.d, 'a', N);
+      pair.advance(61_000 * 5); // apart enough for the number's own limits
+    }
+    for (const [d, user] of [
+      [stoppedCase.d, 'uid-1'],
+      [ceiling.d, 'b'],
+      [pair.d, 'a'],
+    ] as const) {
+      const make = makeCode();
+      logged.all.length = 0;
+      expect(await textVerificationCode(user, N, make, d)).toEqual({
+        sent: false,
+        reason: 'quiet',
+      });
+      expect(make).not.toHaveBeenCalled(); // no usable code exists for a number we never texted
+      const all = JSON.stringify(logged.all);
+      expect(all).toContain('refused quietly');
+      expect(all).not.toContain('5555550100');
+    }
+    expect(stoppedCase.d.send).not.toHaveBeenCalled();
   });
 
-  it('confirm tries are capped per number across users: five an hour', async () => {
+  it('confirm tries are limited per (user, number): five an hour', async () => {
     const { d, advance } = deps();
-    for (let i = 0; i < 5; i++) expect(await reserveConfirmTry(N, d)).toBe('ok');
-    expect(await reserveConfirmTry('(555) 555-0100', d)).toBe('locked');
-    expect(await reserveConfirmTry(num(1), d)).toBe('ok'); // another number
+    for (let i = 0; i < 5; i++) expect(await reserveConfirmTry('uid-a', N, d)).toBe('ok');
+    expect(await reserveConfirmTry('uid-a', '(555) 555-0100', d)).toBe('locked');
+    expect(await reserveConfirmTry('uid-b', N, d)).toBe('ok'); // another user
+    expect(await reserveConfirmTry('uid-a', num(1), d)).toBe('ok'); // another number
     advance(60 * 60 * 1000);
-    expect(await reserveConfirmTry(N, d)).toBe('ok');
+    expect(await reserveConfirmTry('uid-a', N, d)).toBe('ok');
   });
 
   it('twenty a day to one number raises an alert but never refuses', async () => {
@@ -175,7 +183,7 @@ describe('textVerificationCode', () => {
     logged.errors.length = 0;
     for (let i = 0; i < 21; i++) {
       expect(await ask(d, `user-${i}`, N)).toEqual({ sent: true });
-      advance(7 * 60 * 1000); // under the number's 10 an hour
+      advance(13 * 60 * 1000); // under the number's 5 an hour
     }
     expect(
       logged.errors.some(([, msg]) => String(msg).includes('one number asked for often'))

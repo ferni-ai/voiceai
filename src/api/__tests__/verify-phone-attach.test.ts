@@ -91,7 +91,7 @@ vi.mock('../../services/outreach/verification-text.js', async (importOriginal) =
   };
   return {
     ...real,
-    reserveConfirmTry: (phone: string) => real.reserveConfirmTry(phone, deps),
+    reserveConfirmTry: (user: string, phone: string) => real.reserveConfirmTry(user, phone, deps),
     textVerificationCode: (
       u: string,
       p: string,
@@ -179,7 +179,7 @@ describe('asking for a phone code', () => {
     expect(fake.phones.get('uid-A')).toBeUndefined();
   });
 
-  it('confirm tries are capped per number: the sixth try in the hour is refused, even a right one', async () => {
+  it('confirm tries are limited per (user, number): the sixth try in the hour is refused, even a right one', async () => {
     await post('/verify-phone', { phone: '+15555550177' }, 'tok-A');
     for (let i = 0; i < 5; i++) {
       await post('/verify-phone/confirm', { phone: '+15555550177', code: '000000' }, 'tok-A');

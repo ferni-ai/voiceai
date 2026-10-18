@@ -11,16 +11,22 @@
  * 3. the attempt is recorded in the user and IP buckets, whatever comes next,
  *    so probing other numbers costs the prober's own budget;
  * 4. the number's side: it sent STOP (the global opt-out every inbound STOP
- *    writes), or it is over its hard limit across all users (1 a minute,
- *    10 an hour, against bombing; a pair's first request in the hour is exempt,
- *    so a stranger spamming a number can't lock its owner out), or over the
- *    (user, number) pair limit (3 an hour). Any of these is 'quiet': answered
+ *    writes), or it is over its absolute ceiling across all users (1 a minute,
+ *    5 an hour, every request, against bombing), or over the (user, number)
+ *    pair limit (3 an hour). Any of these is 'quiet': answered
  *    exactly like a send, and NO code is stored (a throwaway is generated for
  *    the timing), so nothing confirmable exists for a number we never texted;
  * 5. otherwise every bucket records the send; 20 a day to one number alerts.
  *
- * Confirming is capped per number too (reserveConfirmTry): 5 tries an hour
- * across all users, whether or not a text went out.
+ * Accepted trade-off: someone spamming a number can use up its hourly ceiling
+ * and delay its owner's code. That is bounded by the ceiling itself and by the
+ * per-user and per-IP budgets (an attacker needs real accounts, each with its
+ * own budget), and the owner can retry within the hour. The alternative
+ * (exempting owners) reopens SMS bombing.
+ *
+ * Confirm tries are limited per (user, number) (reserveConfirmTry) on top of
+ * the store's per-code attempt limit. Codes exist only for numbers we actually
+ * texted (the quiet path stores nothing), so guessing needs a delivered code.
  *
  * The code and the full number are never logged: last four digits only.
  *
@@ -44,7 +50,7 @@ export const LIMITS = {
   user: { windowMs: HOUR, gapMs: MIN, max: 5 },
   ip: { windowMs: HOUR, gapMs: 0, max: 10 },
   pair: { windowMs: HOUR, gapMs: MIN, max: 3 },
-  phone: { windowMs: HOUR, gapMs: MIN, max: 10 },
+  phone: { windowMs: HOUR, gapMs: MIN, max: 5 },
   /** Alert only. */
   phoneDay: { windowMs: DAY, gapMs: 0, max: 20 },
   /** Refuses here; alerts from GLOBAL_ALERT. */
@@ -216,11 +222,10 @@ export async function textVerificationCode(
         return { result: { kind: 'refuse', reason: 'unavailable', why: 'global-ceiling' } };
       }
       // 3-4. Recorded against the requester first; then the number's side, answered quietly.
-      // A pair's first request this hour skips the number's cross-user limit (no owner lockout).
-      const firstForPair = kept.pair.length === 0;
+      // The number's ceiling holds for every request, its owner's too (see the trade-off above).
       const quiet = optedOut
         ? 'opted-out'
-        : !firstForPair && (soon('phone') || over('phone'))
+        : soon('phone') || over('phone')
           ? 'number-limit'
           : soon('pair') || over('pair')
             ? 'pair-limit'
@@ -273,22 +278,23 @@ export async function textVerificationCode(
   return { sent: true };
 }
 
-/** Confirm tries per number, across users, sent or not. */
+/** Confirm tries per (user, number) an hour, on top of the store's per-code attempt limit. */
 export const CONFIRM_TRIES = { windowMs: HOUR, max: 5 } as const;
 
 /**
- * Reserves one confirm try for the number a pending code is for: 'locked' once
- * it has had CONFIRM_TRIES.max tries this hour (from anyone), so guessing a
- * code across accounts is capped. Atomic like the send limits.
+ * Reserves one confirm try for this user and the number their pending code is
+ * for: 'locked' once that pair has had CONFIRM_TRIES.max tries this hour.
+ * Atomic like the send limits.
  */
 export async function reserveConfirmTry(
+  userId: string,
   rawPhone: string,
   deps: CodeTextDeps = defaultCodeTextDeps()
 ): Promise<'ok' | 'locked' | 'unavailable'> {
   const phone = toE164(rawPhone);
   const hash = phone ? phoneHash(phone, deps.env) : null;
   if (!hash) return 'unavailable';
-  const key = `confirm:${hash}`;
+  const key = `confirm:${userId}:${hash}`;
   const now = deps.now().getTime();
   const verdict = await deps.atomically<'ok' | 'locked'>([key], hash, (recent) => {
     const kept = (recent[key] ?? []).filter((t) => now - Date.parse(t) < CONFIRM_TRIES.windowMs);
@@ -296,6 +302,6 @@ export async function reserveConfirmTry(
     return { result: 'ok', write: { [key]: [...kept, new Date(now).toISOString()] } };
   });
   if (verdict === 'locked')
-    log.warn({ phoneLast4: last4(phone ?? '') }, 'Confirm tries capped for a number');
+    log.warn({ phoneLast4: last4(phone ?? '') }, 'Confirm tries capped for a user and number');
   return verdict;
 }

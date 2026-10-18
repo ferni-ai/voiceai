@@ -108,9 +108,9 @@ export async function handleVerifyPhone(
   }
 
   try {
-    // Tries are capped per number (the one the pending code went to), across users.
+    // Tries are capped per (user, number): the number their pending code went to.
     const pendingFor = (await getVerificationStatus(userId))?.phone;
-    if (pendingFor && (await reserveConfirmTry(pendingFor)) !== 'ok') {
+    if (pendingFor && (await reserveConfirmTry(userId, pendingFor)) !== 'ok') {
       sendJsonResponse(res, 429, {
         success: false,
         error: 'Too many tries for that number. Ask for a new code in an hour.',
