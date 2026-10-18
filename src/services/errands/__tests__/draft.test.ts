@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { answered, approval, ask, outward, wakeAt, type Draft } from '../draft.js';
+import { answered, approval, ask, outward, wakeAt, withdraw, type Draft } from '../draft.js';
 import type { Candidate, Errand } from '../errand.js';
 import { DEFAULT_POLICY } from '../policy.js';
 
@@ -103,6 +103,31 @@ describe('questions', () => {
     const d = draft(errand({ state: 'cancelled' }));
     ask(d, approval('release', 'p1'));
     expect(d.e.state).toBe('cancelled');
+  });
+});
+
+describe('withdraw', () => {
+  const moot = (q: { action: { verb: string } }): boolean => q.action.verb === 'book';
+
+  it('drops a moot open question and asks the next one that still applies', () => {
+    const d = draft(errand());
+    ask(d, approval('book', 'p2'));
+    ask(d, approval('book', 'p3'));
+    ask(d, approval('release', 'p4'));
+    withdraw(d, moot);
+    expect(d.e.pending).toMatchObject({ id: 'e1:ask:release:p4:3' });
+    expect(d.e.queue).toEqual([]);
+    expect(d.effects.at(-1)).toMatchObject({ kind: 'ask_owner', idemKey: 'e1:ask:release:p4:3' });
+  });
+
+  it('keeps an open question that still applies and only prunes the queue', () => {
+    const d = draft(errand());
+    ask(d, approval('release', 'p4'));
+    ask(d, approval('book', 'p2'));
+    withdraw(d, moot);
+    expect(d.e.pending?.action.verb).toBe('release');
+    expect(d.e.queue).toEqual([]);
+    expect(d.effects).toHaveLength(1);
   });
 });
 

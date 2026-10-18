@@ -135,6 +135,21 @@ export function answered(
   return q;
 }
 
+/**
+ * Drops the open and queued questions `moot` picks (once a place has booked,
+ * "book the other place?" must not be answerable), asking the next survivor.
+ */
+export function withdraw(d: Draft, moot: (q: Question) => boolean): void {
+  const queue = d.e.queue.filter((q) => !moot(q));
+  const dropOpen = d.e.pending !== null && moot(d.e.pending);
+  if (!dropOpen && queue.length === d.e.queue.length) return;
+  note(d, 'withdrew questions that no longer apply');
+  if (!dropOpen) return set(d, { queue });
+  const next: Question | undefined = queue[0];
+  set(d, { pending: null, queue: queue.slice(1) });
+  if (next !== undefined) put(d, next);
+}
+
 type Outward = Extract<EffectBody, { approval: Approval }>;
 
 /**
