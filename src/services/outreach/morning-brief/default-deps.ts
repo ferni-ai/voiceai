@@ -23,6 +23,7 @@ import {
 import { forgottenTopicsOrNull } from '../../../memory/recall/forget.js';
 import { isForgotten } from '../../../memory/recall/session-recall.js';
 import { usersWithFlag } from '../../platform/cohort-flags.js';
+import { judgedRowText, singleWriterFor } from '../../superhuman/commitment-single-writer.js';
 import { getPushNotificationsService } from '../../push-notifications.js';
 import { resolveClaimStore } from '../../../tasks/scheduled/calendar-briefing-job.js';
 import { firestoreTextStore, sendGuardedText } from '../guarded-text.js';
@@ -97,11 +98,15 @@ export function openTasks(user: Record<string, unknown>): string[] {
 async function openCommitments(userId: string): Promise<string[]> {
   const forgotten = await forgottenTopicsOrNull(userId);
   if (!forgotten) return [];
+  // COMMITMENT_SINGLE_WRITER (per person, this server serves many): only judged rows,
+  // checked against forget requests on every field, person included (judged-commitments.ts).
+  const judgedOnly = await singleWriterFor(userId);
   const docs = await firestoreCommitmentStore.active(userId);
   return docs
     .flatMap((d) => {
-      const c = toOpenCommitment(d.id, d.data);
-      return c && !isForgotten(c.statement, forgotten) ? [c.statement] : [];
+      const c = toOpenCommitment(d.id, d.data, judgedOnly);
+      const about = judgedOnly ? judgedRowText(d.data) : (c?.statement ?? '');
+      return c && !isForgotten(about, forgotten) ? [c.statement] : [];
     })
     .slice(0, COMMITMENTS);
 }

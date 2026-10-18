@@ -53,6 +53,9 @@ describe('which judged candidates are kept', () => {
     expect(keepJudged(j({ statement: 'call her this afternoon', person: undefined }))).toBe(false);
     expect(keepJudged(j({ statement: 'call her tomorrow', person: 'Mindy' }))).toBe(false);
     expect(keepJudged(j({ statement: 'tell them on Monday', person: 'them' }))).toBe(false);
+    // The person as a relation and a name: the name in the statement is enough.
+    expect(keepJudged(j({ statement: 'bake Ingrid a lemon cake for her birthday', person: 'aunt Ingrid' }))).toBe(true); // prettier-ignore
+    expect(keepJudged(j({ statement: 'call her tomorrow', person: 'aunt Ingrid' }))).toBe(false);
     expect(keepJudged(j({ statement: 'take Mindy to her appointment', person: 'Mindy' }))).toBe(
       true
     );
@@ -150,9 +153,9 @@ describe('readers under COMMITMENT_SINGLE_WRITER', () => {
     const store = { active: async () => [{ id: 'j', data: row }], markFollowedUp: async () => undefined }; // prettier-ignore
     process.env.COMMITMENT_SINGLE_WRITER = 'on';
     try {
-      expect(await loadCallCheckIns('u1', store, NOW, async () => ['rosa'])).toHaveLength(1);
-      expect(await loadCallCheckIns('u1', store, NOW, async () => ['mindy'])).toEqual([]);
-      expect(await loadCallCheckIns('u1', store, NOW, async () => null)).toEqual([]);
+      expect(await loadCallCheckIns('u1', store, NOW, undefined, async () => ['rosa'])).toHaveLength(1);
+      expect(await loadCallCheckIns('u1', store, NOW, undefined, async () => ['mindy'])).toEqual([]);
+      expect(await loadCallCheckIns('u1', store, NOW, undefined, async () => null)).toEqual([]);
     } finally {
       delete process.env.COMMITMENT_SINGLE_WRITER;
     }
@@ -160,7 +163,7 @@ describe('readers under COMMITMENT_SINGLE_WRITER', () => {
     const unread = async (): Promise<string[]> => {
       throw new Error('read with the flag off');
     };
-    expect(await loadCallCheckIns('u1', store, NOW, unread)).toHaveLength(1);
+    expect(await loadCallCheckIns('u1', store, NOW, undefined, unread)).toHaveLength(1);
   });
 
   it('is decided per person: a cohort turns it on for one caller and no one else', async () => {

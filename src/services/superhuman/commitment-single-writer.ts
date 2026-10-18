@@ -39,13 +39,13 @@ export function isJudgedRow(d: Record<string, unknown>): boolean {
 }
 
 /** All a row says about whom and what: a resolved statement may not name the person. */
-export function forgetText(d: Record<string, unknown>): string {
+export function judgedRowText(d: Record<string, unknown>): string {
   return [d.statement, d.summary, d.quote, d.person, d.personInvolved]
     .filter((x): x is string => typeof x === 'string')
     .join(' ');
 }
 
-export type ForgottenLoader = (userId: string) => Promise<string[] | null>;
+export type ForgetListLoader = (userId: string) => Promise<string[] | null>;
 
 /**
  * Which stored rows this person may be shown. Flag off: all (as before).
@@ -55,10 +55,10 @@ export type ForgottenLoader = (userId: string) => Promise<string[] | null>;
 export async function shownRows(
   userId: string,
   judgedOnly: boolean,
-  forgotten: ForgottenLoader = forgottenTopicsOrNull
+  forgotten: ForgetListLoader = forgottenTopicsOrNull
 ): Promise<(d: Record<string, unknown>) => boolean> {
   if (!judgedOnly) return () => true;
   const topics = await forgotten(userId);
   if (topics === null) return () => false;
-  return (d) => isJudgedRow(d) && !isForgotten(forgetText(d), topics);
+  return (d) => isJudgedRow(d) && !isForgotten(judgedRowText(d), topics);
 }

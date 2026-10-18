@@ -18,7 +18,7 @@
 import type { Firestore } from '@google-cloud/firestore';
 import type { FollowUpSources, SourceItem } from '../follow-through/index.js';
 import { firestoreCommitmentStore, toOpenCommitment } from '../superhuman/commitment-follow-up.js';
-import { forgetText, singleWriterFor } from '../superhuman/commitment-single-writer.js';
+import { judgedRowText, singleWriterFor } from '../superhuman/commitment-single-writer.js';
 import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import { isForgotten } from '../../memory/recall/session-recall.js';
@@ -72,7 +72,7 @@ async function openCommitments(
   return docs.flatMap((d) => {
     const c = toOpenCommitment(d.id, d.data, judgedOnly);
     // A judged row's resolved statement may not name the person: check its person too.
-    if (!c || isForgotten(judgedOnly ? forgetText(d.data) : c.statement, forgotten)) return [];
+    if (!c || isForgotten(judgedOnly ? judgedRowText(d.data) : c.statement, forgotten)) return [];
     return [
       {
         kind: 'commitment' as const,

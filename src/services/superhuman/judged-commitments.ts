@@ -19,7 +19,9 @@ import {
   sameCommitment,
   type CaptureContext,
 } from './after-call-commitments.js';
-import { forgetText, JUDGED_SOURCE } from './commitment-single-writer.js';
+import { judgedRowText, JUDGED_SOURCE } from './commitment-single-writer.js';
+import { isDirective } from './commitment-guard.js';
+export { guardJudged, isDirective, isRiskyAction } from './commitment-guard.js';
 import { getFirestoreDb } from './firestore-utils.js';
 
 const log = createLogger({ module: 'JudgedCommitments' });
@@ -46,9 +48,14 @@ export interface JudgedCommitment {
 /** Whether a judged candidate is kept: a sure commitment Ferni can say back as written. */
 export function keepJudged(j: JudgedCommitment): boolean {
   if (!j.isCommitment || j.confidence < MIN_JUDGED_CONFIDENCE) return false;
-  // A "person" that is itself a pronoun ("them") names no one.
-  const person = j.person && !UNNAMED.test(j.person) ? j.person.toLowerCase() : undefined;
-  const named = person !== undefined && j.statement.toLowerCase().includes(person);
+  // Words aimed at the judge, not a plan (commitment-guard.ts); judgeCallCommitments also checks.
+  if (isDirective(`${j.statement} ${j.quote ?? ''}`)) return false;
+  // Named when a word of the person is in the statement ("aunt Ingrid" names "bake Ingrid
+  // a cake for her birthday"); a "person" that is itself a pronoun ("them") names no one.
+  const words = (s: string): string[] => s.toLowerCase().split(/[^a-z0-9]+/);
+  const said = new Set(words(j.statement));
+  const person = j.person && !UNNAMED.test(j.person) ? words(j.person) : [];
+  const named = person.some((w) => w.length >= 3 && said.has(w));
   return named || !UNNAMED.test(j.statement);
 }
 
@@ -141,7 +148,7 @@ export async function recordJudgedCommitments(
     let written = 0;
     for (const doc of candidates) {
       const statement = String(doc.statement);
-      if (isForgotten(forgetText(doc), forgotten)) continue;
+      if (isForgotten(judgedRowText(doc), forgotten)) continue;
       if (open.some((o) => sameCommitment(o, statement))) continue;
       await sink.add(ctx.userId, doc);
       written++;
