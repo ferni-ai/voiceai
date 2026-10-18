@@ -133,7 +133,13 @@ export async function handleOutreachRoutes(
     // PREFERENCES
     // ========================================================================
 
-    // GET /api/outreach/preferences
+    // The owner lifts a do-not-call on their own verified number (never one from the request).
+    if (route === '/consent/calls/undo' && method === 'POST') {
+      const { undoOwnCallOptOut } = await import('../services/messaging/owner-call-optin.js');
+      const out = await undoOwnCallOptOut(authenticatedUserId);
+      sendJsonResponse(res, out.ok ? 200 : 409, { success: out.ok, ...out });
+      return true;
+    }
     if (route === '/preferences' && method === 'GET') {
       const userId = authenticatedUserId;
 
@@ -154,7 +160,6 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // POST /api/outreach/preferences
     if (route === '/preferences' && method === 'POST') {
       const body = await parseRequestBody(req);
       const { preferences } = body as {
@@ -174,7 +179,6 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // POST /api/outreach/pause
     if (route === '/pause' && method === 'POST') {
       const body = await parseRequestBody(req);
       const { durationDays } = body as { durationDays?: number };

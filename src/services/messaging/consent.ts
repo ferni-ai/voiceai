@@ -46,7 +46,7 @@ const HISTORY_MAX = 20;
 export type ConsentChannel = 'sms' | 'call';
 export type ConsentState = 'opted-in' | 'opted-out' | 'unknown';
 /** Where a change came from; short codes only, never message text. */
-export type ConsentSource = 'inbound-sms' | 'voice-call' | 'legacy-store';
+export type ConsentSource = 'inbound-sms' | 'voice-call' | 'legacy-store' | 'owner-undo';
 
 export interface ChannelConsent {
   state: ConsentState;

@@ -20,6 +20,7 @@ describe('no shell: user input stays one argv element', () => {
     ['users show', () => handleUsers, ['show', evil], 'check-my-data.ts', `--email=${evil}`],
     ['users grant', () => handleUsers, ['grant', evil], 'grant-access.ts', `--email=${evil}`],
     ['users dump', () => handleUsers, ['dump', evil], 'full-user-dump.ts', `--user=${evil}`],
+    ['users undo-dnc', () => handleUsers, ['undo-dnc', evil], 'undo-own-dnc.ts', `--user=${evil}`],
     [
       'waitlist approve',
       () => handleWaitlist,

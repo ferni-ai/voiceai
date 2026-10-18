@@ -96,6 +96,11 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
     case 'delete-stale':
       await runDestructive(deps, 'delete-stale-profiles.ts', args);
       return;
+    case 'undo-dnc':
+      if (requireArg(target, 'ferni users undo-dnc <userId>')) {
+        runScript(deps, 'undo-own-dnc.ts', [`--user=${target}`]);
+      }
+      return;
     default:
       console.log(`User Management Commands:
 
@@ -105,7 +110,8 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
   ferni users grant <email>          Grant access to a user
   ferni users find-rich              Find users with rich data
   ferni users cleanup [--execute]    Delete anonymous Auth users (dry run by default)
-  ferni users delete-stale [--execute]  Delete empty anonymous profiles (dry run by default)`);
+  ferni users delete-stale [--execute]  Delete empty anonymous profiles (dry run by default)
+  ferni users undo-dnc <userId>      Let Ferni call the user's own verified number again`);
   }
 }
 
