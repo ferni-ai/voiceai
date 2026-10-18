@@ -261,7 +261,7 @@ async function readAgentCalls(userId: string, limit: number): Promise<AgentCall[
   const snapshot = await db
     .collection('bogle_users')
     .doc(userId)
-    .collection('conversations')
+    .collection('conversation_sessions') // RED DEMO: deliberately the wrong collection
     .orderBy('startedAt', 'desc')
     .limit(limit)
     .get();
