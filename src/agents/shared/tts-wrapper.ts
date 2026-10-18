@@ -44,6 +44,7 @@ import {
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 import { logToolMarkup, toolMarkupTransform } from './tool-markup-strip.js';
+import { replyCallerTurnFields } from './reply-caller-turn.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
 import { isFtisEnabled } from '../../config/tool-config.js';
 
@@ -316,8 +317,9 @@ export interface TtsSessionContext {
 
   /** User's name for personalized responses */
   userName?: string;
-  /** What the user originally asked (from last transcript) */
+  /** The caller's words this reply answers (reply-caller-turn.ts) */
   userRequest?: string;
+  callerTurnFresh?: boolean; // userRequest was read from this reply's own chat context
   /** User's detected emotional state */
   userEmotion?: {
     primary?: string;
@@ -1313,9 +1315,7 @@ export function extractTtsSessionContext(
     // User's name for personalized responses
     userName: (userData?.userName as string | undefined) || (userData?.name as string | undefined),
 
-    // What the user originally asked (from last transcript)
-    userRequest: userData?.lastUserMessage as string | undefined,
-
+    ...replyCallerTurnFields(agent, userData?.lastUserMessage),
     // User's detected emotional state (prefer voice emotion, fallback to last analysis)
     userEmotion:
       voiceEmotion || lastEmotionAnalysis
