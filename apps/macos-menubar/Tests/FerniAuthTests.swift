@@ -227,6 +227,28 @@ final class AuthSessionTests: XCTestCase {
         XCTAssertEqual(token.idToken, "id-new")
     }
 
+    func testRefreshFromBeforeSignOutCannotOverwriteANewSignInWithTheSameRefreshToken() async throws {
+        let refresher = SuspendingRefresher()
+        let store = InMemoryStore()
+        let session = AuthSession(store: store) { try await refresher.refresh($0) }
+        await session.adopt(FirebaseSession(uid: "uid-1", idToken: "id-0", refreshToken: "refresh-0", expiresAt: .distantPast))
+
+        let refresh = Task { try await session.validToken() }
+        await refresher.waitForCalls(1)
+        await session.signOut()
+        // Same refresh-token string, so only the generation can tell this sign-in apart.
+        await session.adopt(FirebaseSession(uid: "uid-2", idToken: "id-2", refreshToken: "refresh-0",
+                                            expiresAt: Date().addingTimeInterval(3600)))
+        refresher.release()
+
+        _ = try? await refresh.value
+        let state = await session.state
+        XCTAssertEqual(state, .signedIn(uid: "uid-2"))
+        XCTAssertEqual(store.read(AuthSession.uidAccount), "uid-2")
+        let token = try await session.validToken()
+        XCTAssertEqual(token.idToken, "id-2")
+    }
+
     func testConcurrentCallersShareOneRefresh() async throws {
         let refresher = SuspendingRefresher()
         let session = AuthSession(store: InMemoryStore()) { try await refresher.refresh($0) }
