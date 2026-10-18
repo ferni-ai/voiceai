@@ -16,7 +16,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { isSyntheticUserId } from '../../utils/synthetic-user.js';
+import { isPersonAccountId, nonAccountPrefixOf } from '../../utils/synthetic-user.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deliver, getChannelStatus, type DeliveryChannel } from './unified-delivery.js';
 import {
@@ -278,6 +278,10 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
       if (page.empty) break;
       scanned += page.size;
       lastId = page.docs[page.docs.length - 1].id;
+      // anon:/onbehalf: docs pile up one per session: jump past the rest of
+      // that id range rather than spend the scan bound reading it.
+      const prefix = nonAccountPrefixOf(lastId);
+      if (prefix) lastId = `${prefix}\uf8ff`;
 
       for (const doc of page.docs) {
         if (candidates.length >= limit) break;
@@ -285,7 +289,8 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         const data = doc.data();
         const userId = doc.id;
         if (data.outreachPreferences?.enabled === false) continue;
-        if (isSyntheticUserId(userId)) continue; // test harness accounts
+        // Test harnesses and ids that name no account: skipped before the cap.
+        if (!isPersonAccountId(userId)) continue;
 
         const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
         const engagementLevel = engagementLevelOf(data, now.getTime());

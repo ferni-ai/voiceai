@@ -23,6 +23,8 @@ describe('isMemberIdentity', () => {
     ['unrecognised caller', 'anon:3b0e7c1e-0000-4000-8000-000000000000'],
     ['unrecognised caller, padded and upper case', '  ANON:abc'],
     ['third party on a call placed for a member', 'onbehalf:call-123'],
+    ['third party, upper case', 'ONBEHALF:call-123'],
+    ['placeholder in upper case', 'SHARED'],
   ])('refuses %s', (_label, id) => {
     expect(isMemberIdentity(id)).toBe(false);
   });
@@ -31,7 +33,8 @@ describe('isMemberIdentity', () => {
     ['an account uid', 'uid-0000000000000000000000000001'],
     ['a caller recognised by number', 'phone:+15555550100'],
     ['a member before sign-in', 'device:0f1e2d3c'],
-    ['a sponsored family member', 'sponsored_1700000000000_ab12cd'],
+    ['a sponsored family member', 'family_sponsored_1700000000000_ab12cd'],
+    ['a caller identified through an auth provider', 'auth:google:0000000001'],
     ['a voice-eval caller (evals check memory)', 'voice-eval-sam'],
     ['an e2e account', 'e2e-run-1'],
     ['an id that merely contains a placeholder word', 'anonymous-but-real-uid'],

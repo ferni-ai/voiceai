@@ -164,8 +164,7 @@ export async function resolveSearchLocation(
   if (!placesLocationOn()) return resolveCallerLocation(requested, opts, ctx);
   if (!isUnspecifiedLocation(requested)) return requested?.trim();
   const userId = callerUserId(opts);
-  const remembered =
-    userId && callerCityMemoryOn() ? await savedCallerLocation(userId) : undefined;
+  const remembered = userId && callerCityMemoryOn() ? await savedCallerLocation(userId) : undefined;
   return remembered ?? callerLocation(opts, ctx);
 }
 
