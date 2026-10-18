@@ -767,13 +767,14 @@ describe('prod call 2026-10-16: "dialing her now" while the call waits for a yes
     expect(text).toBe(`You've got it. ${NOT_YET}`);
   });
 
-  it('a plain yes: the claim and the confirming tool call stream untouched', async () => {
+  it('a plain yes: the confirming tool call goes out; the claim waits for its result', async () => {
+    // Prod 2026-10-17: the call this claim ran ahead of was held for later (held-call-claim.test.ts).
     const items = [...asked, said(NOT_YET), user('Yeah, go ahead.')];
     const out = await chunksOf(
       await check(streamOf('Calling her now. ', toolCall('callOnBehalf')), items, tools)
     );
-    expect(out[0].delta?.content).toBe('Calling her now. ');
-    expect(out[1].delta?.toolCalls?.[0].name).toBe('callOnBehalf');
+    expect(out.map((c) => c.delta?.content ?? '').join('')).toBe('');
+    expect(out[0].delta?.toolCalls?.[0].name).toBe('callOnBehalf');
   });
 
   it('once the call went through, the claim stands', async () => {

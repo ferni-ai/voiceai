@@ -78,6 +78,21 @@ export function dispatchSigningSecret(env: NodeJS.ProcessEnv = process.env): str
   return env.DISPATCH_SIGNING_SECRET || env.LIVEKIT_API_SECRET || undefined;
 }
 
+/** A key, or every key, a dispatch may verify with. */
+export type DispatchSecrets = string | readonly string[] | undefined;
+
+/**
+ * Every key a dispatch may verify with: DISPATCH_SIGNING_SECRET, and the
+ * LiveKit API secret beside it while signers move over, so agents and the
+ * server can get the new key in either order without refusing a call that
+ * verifies today.
+ */
+export function dispatchVerifySecrets(env: NodeJS.ProcessEnv = process.env): string[] {
+  return [env.DISPATCH_SIGNING_SECRET, env.LIVEKIT_API_SECRET].filter(
+    (s): s is string => typeof s === 'string' && s !== ''
+  );
+}
+
 function signatureFor(payload: Record<string, unknown>, secret: string): string {
   const { requesterSignature: _omit, ...signed } = payload;
   return createHmac('sha256', secret).update(canonical(signed)).digest('base64url');
@@ -120,9 +135,10 @@ export function signOnBehalfDispatch(
  */
 export function verifyOnBehalfDispatch(
   rawJobMetadata: string | undefined,
-  secret: string | undefined
+  secrets: DispatchSecrets
 ): boolean {
-  if (!secret || !rawJobMetadata) return false;
+  const keys = (typeof secrets === 'string' ? [secrets] : (secrets ?? [])).filter(Boolean);
+  if (keys.length === 0 || !rawJobMetadata) return false;
   let payload: unknown;
   try {
     payload = JSON.parse(rawJobMetadata);
@@ -132,9 +148,11 @@ export function verifyOnBehalfDispatch(
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
   const given = (payload as Record<string, unknown>).requesterSignature;
   if (typeof given !== 'string' || !given) return false;
-  const expected = Buffer.from(signatureFor(payload as Record<string, unknown>, secret));
   const actual = Buffer.from(given);
-  return expected.length === actual.length && timingSafeEqual(expected, actual);
+  return keys.some((key) => {
+    const expected = Buffer.from(signatureFor(payload as Record<string, unknown>, key));
+    return expected.length === actual.length && timingSafeEqual(expected, actual);
+  });
 }
 
 /** The dispatch for a call the orchestrator places from an on-behalf request. */

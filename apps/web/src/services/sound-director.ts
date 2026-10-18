@@ -25,6 +25,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { installEarconUnlock, playEarcon, type Earcon } from './earcon-player.js';
 
 const log = createLogger('SoundDirector');
 
@@ -38,7 +39,7 @@ export const REJOIN_WINDOW_MS = 120_000;
 
 /** Which engine asks: sound.ui, audio.service, the Ferni audio engine, persona-magic. */
 export type SoundEngine = 'ui' | 'effects' | 'brand' | 'magic';
-export type Earcon = 'arrival' | 'handoff' | 'goodbye';
+export type { Earcon };
 
 /** The slice of a livekit-client Room the speech check reads. */
 export interface SpeechRoom {
@@ -166,13 +167,22 @@ const director = createSoundDirector({
 });
 
 /**
- * Every engine asks here before it plays. Off: always true. On: false unless
- * the saved Sound setting is on and the director allows this earcon now.
+ * Every engine asks here before it plays. True: the engine plays it as before
+ * (director off). False: the engine stays silent; with the director on, an
+ * earcon it allows plays here instead, through the one earcon output
+ * (earcon-player.ts). `personaId` is the handoff's new persona.
  */
-export function soundGate(engine: SoundEngine, name: string, earcon?: Earcon): boolean {
+export function soundGate(
+  engine: SoundEngine,
+  name: string,
+  earcon?: Earcon,
+  personaId?: string
+): boolean {
   if (!isSoundDirectorOn()) return true;
-  if (!isSoundOn()) return false;
-  return director.allow(engine, name, earcon);
+  if (earcon && isSoundOn() && director.allow(engine, name, earcon)) {
+    void playEarcon(earcon, personaId);
+  }
+  return false;
 }
 
 export interface SoundDirectorWiring {
@@ -183,6 +193,7 @@ export interface SoundDirectorWiring {
 /** App wiring: where to read who is speaking, and when a call starts. */
 export function installSoundDirector(wiring: SoundDirectorWiring): void {
   getSpeechRoom = wiring.getRoom;
+  installEarconUnlock(isSoundDirectorOn);
   wiring.onConnectionState((state) => {
     if (state === 'connecting') director.callStarting();
   });

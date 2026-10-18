@@ -273,18 +273,7 @@ async function testTaskExecutors(): Promise<{ passed: boolean; details?: string 
   const executorResults: string[] = [];
 
   try {
-    // Research
-    const { queueResearchTask } = await import(
-      '../src/services/background-agents/executors/research-executor.js'
-    );
-    const researchId = await queueResearchTask({
-      userId: TEST_USER_ID,
-      query: 'E2E test',
-      type: 'general',
-      depth: 'quick',
-      initiatedBy: 'peter',
-    });
-    executorResults.push(`research:${researchId.slice(0, 8)}`);
+    // No research executor: background research says it is unavailable (#1814, #1821).
 
     // Habit Reminder
     const { queueHabitReminder } = await import(

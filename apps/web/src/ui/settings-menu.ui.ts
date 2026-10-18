@@ -14,17 +14,15 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { memoryControlEnabled } from './memory/remembered.js';
 import { LINKEDIN_ENABLED } from '../config/linkedin.js';
-// Team unlock service - for gating marketplace behind full team unlock
-import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
 import { signOutOfThisBrowser } from './sign-out.js';
 // Roadmap service - for "What's Growing" experience
 import { roadmapService } from '../services/roadmap.service.js';
-import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
+import { isMenuActionVisible } from '../config/menu-visibility.js';
 
-// Seeds display for personalization economy
-import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 import { transcriptUI } from './transcript.ui.js';
 import { canOpenSupport } from './support/open-support.js';
+import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
+import { isPaywallOn } from '../services/paywall.service.js';
 import { soundUI } from './sound.ui.js';
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
@@ -539,13 +537,8 @@ class SettingsMenuUI {
    * Roadmap features are hidden from the menu - they only appear in the Roadmap Panel
    */
   private renderMenuItem(action: string, icon: string, label: string, extraClasses = ''): string {
-    // Hide roadmap items from the menu - they live in "What's Growing" panel
-    if (roadmapService.isRoadmapFeature(action)) {
-      return '';
-    }
-
-    // Hide marketplace until full team is unlocked - users should know the team first
-    if (action === 'discover-agents' && !isFullTeamUnlocked()) {
+    // Hidden items (config/menu-visibility.ts) and unbuilt roadmap features render nothing
+    if (!isMenuActionVisible(action) || roadmapService.isRoadmapFeature(action)) {
       return '';
     }
 
@@ -578,6 +571,8 @@ class SettingsMenuUI {
 
   private renderContent(): void {
     if (!this.panel) return;
+    // Free, with the Venmo chip-in configured: "Chip in" (Venmo card) replaces Account & Billing
+    const chipIn = isVenmoChipInEnabled() && !isPaywallOn();
 
     // Track which sections are expanded
     const expandedSections = this.expandedSections || new Set(['connect', 'personalize']);
@@ -596,9 +591,6 @@ class SettingsMenuUI {
           </div>
           <button class="settings-menu__close" aria-label="${t('accessibility.closeMenu')}">${ICONS.close}</button>
         </header>
-
-        <!-- Seeds Balance Card -->
-        ${renderSeedsSettingsCard()}
 
         <nav class="settings-menu__nav">
           <!-- PINNED ITEMS (Your Favorites) -->
@@ -644,10 +636,10 @@ class SettingsMenuUI {
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory'))}
             ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
-            ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane'), t('common.new'))}
-            ${isPatternInsightsOn() ? this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights')) : ''}
+            ${this.renderMenuItem('memory-lane', ICONS.book, t('menu.items.memoryLane'))}
+            ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
-            ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear'), t('common.new'))}
+            ${this.renderMenuItem('your-year', ICONS.sparkles, t('menu.items.yourYear'))}
           `
           )}
 
@@ -658,7 +650,7 @@ class SettingsMenuUI {
             expandedSections.has('waysToConnect'),
             `
             ${this.renderMenuItem('journal', ICONS.journal, t('menu.items.journaling'))}
-            ${this.renderMenuItemWithBadge('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz'), t('common.new'))}
+            ${this.renderMenuItem('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz'))}
             ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
             ${this.renderMenuItem('vibe-controller', ICONS.sparkles, t('menu.items.setTheVibe'))}
@@ -690,7 +682,7 @@ class SettingsMenuUI {
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript'), transcriptUI.isEnabled())}
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
+            ${chipIn ? '' : this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${memoryControlEnabled() ? this.renderMenuItem('cognitive', ICONS.brain, t('ferniKnows.panelTitle')) : ''}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -703,6 +695,7 @@ class SettingsMenuUI {
           <div class="settings-menu__quick-actions" role="group" aria-label="${t('menu.sections.connect')}">
             ${this.renderMenuItem('whats-growing', ICONS.seedling, t('menu.items.whatsGrowing'))}
             ${this.renderMenuItem('share-ferni', ICONS.share, t('menu.items.shareFerni'))}
+            ${chipIn ? this.renderMenuItem('support-ferni', ICONS.heart, t('buttons.chipIn')) : ''}
             ${this.renderMenuItem('help', ICONS.help, t('menu.items.takeTour'))}
             ${this.renderMenuItem('sign-out', ICONS.signOut, t('buttons.signOut'))}
           </div>
@@ -920,7 +913,7 @@ class SettingsMenuUI {
     if (!canOpenSupport()) delete menuItems['support-ferni'];
 
     const pinnedItemsHtml = [...this.pinnedItems]
-      .filter((action) => menuItems[action])
+      .filter((action) => menuItems[action] && isMenuActionVisible(action))
       .map((action) => {
         const item = menuItems[action];
         if (!item) return '';
@@ -979,6 +972,8 @@ class SettingsMenuUI {
     label: string,
     badge: string
   ): string {
+    if (!isMenuActionVisible(action)) return '';
+
     return `
       <button aria-label="${label}" class="settings-menu__item" data-action="${action}">
         <span class="settings-menu__icon">${icon}</span>
@@ -1057,6 +1052,7 @@ class SettingsMenuUI {
   private handleAction(action: string | undefined): void {
     log.info('📍 handleAction called', { action });
     this.hide();
+    if (action && !isMenuActionVisible(action)) return; // hidden: config/menu-visibility.ts
 
     switch (action) {
       case 'history':
@@ -2137,48 +2133,6 @@ class SettingsMenuUI {
       }
 
       /* ========================================================================
-         LOCKED FEATURE STATE
-         ======================================================================== */
-      .settings-menu__item--locked {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-
-      .settings-menu__item--locked:hover {
-        background: transparent;
-      }
-
-      .settings-menu__item--locked .settings-menu__icon {
-        color: var(--color-text-muted, #756a5e);
-      }
-
-      .settings-menu__label-wrap {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-
-      .settings-menu__unlock-hint {
-        font-family: var(--font-body);
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
-        font-style: italic;
-      }
-
-      .settings-menu__lock-icon {
-        width: 16px;
-        height: 16px;
-        color: var(--color-text-muted, #756a5e);
-        flex-shrink: 0;
-      }
-
-      .settings-menu__lock-icon svg {
-        width: 100%;
-        height: 100%;
-      }
-
-      /* ========================================================================
          ROADMAP FEATURE STATE (Coming Soon / What's Growing)
          ======================================================================== */
       .settings-menu__item--roadmap {
@@ -2251,146 +2205,6 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__roadmap-badge {
         background: linear-gradient(135deg, var(--persona-primary, #5a7a51), var(--persona-secondary, #4a6a41));
-      }
-
-      /* Shake animation for locked items */
-      @keyframes menuItemShake {
-        0%, 100% { transform: translateX(0); }
-        20% { transform: translateX(-4px); }
-        40% { transform: translateX(4px); }
-        60% { transform: translateX(-4px); }
-        80% { transform: translateX(4px); }
-      }
-
-      .settings-menu__item--shake {
-        animation: menuItemShake 0.4s ease;
-      }
-
-      /* ========================================================================
-         RELATIONSHIP STAGE BANNER - Inspiring journey visualization
-         ======================================================================== */
-      .settings-menu__stage-banner {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--space-4, 16px);
-        padding: var(--space-5, 20px) var(--space-6, 24px);
-        background: linear-gradient(135deg, 
-          var(--persona-tint, rgba(74, 103, 65, 0.1)) 0%,
-          transparent 60%
-        );
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        position: relative;
-        overflow: hidden;
-      }
-
-      /* Subtle decorative elements */
-      .settings-menu__stage-banner::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -20%;
-        width: 180px;
-        height: 180px;
-        background: radial-gradient(circle, var(--persona-tint, rgba(74, 103, 65, 0.06)) 0%, transparent 70%);
-        pointer-events: none;
-      }
-
-      .settings-menu__stage-info {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        z-index: 1;
-      }
-
-      .settings-menu__stage-label {
-        font-family: var(--font-body);
-        font-size: 10px;
-        font-weight: 600;
-        color: var(--color-text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-      }
-
-      .settings-menu__stage-name {
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-lg, 1.125rem);
-        font-weight: 700;
-        color: var(--persona-primary, #4a6741);
-        letter-spacing: -0.01em;
-      }
-
-      .settings-menu__stage-progress {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 6px;
-        min-width: 120px;
-        z-index: 1;
-      }
-
-      .settings-menu__stage-bar {
-        width: 100%;
-        height: 8px;
-        background: var(--color-background-tertiary, #ebe6df);
-        border-radius: var(--radius-full, 9999px);
-        overflow: hidden;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
-      }
-
-      .settings-menu__stage-fill {
-        height: 100%;
-        background: linear-gradient(90deg, 
-          var(--persona-secondary, #3d5a35) 0%,
-          var(--persona-primary, #4a6741) 100%
-        );
-        border-radius: var(--radius-full, 9999px);
-        transition: width ${DURATION.MODERATE}ms ${EASING.EXPO_OUT};
-        position: relative;
-      }
-
-      /* Animated shimmer on progress bar */
-      .settings-menu__stage-fill::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(90deg, 
-          transparent 0%,
-          rgba(255, 255, 255, 0.3) 50%,
-          transparent 100%
-        );
-        animation: progressShimmer 2s ease-in-out infinite;
-      }
-
-      @keyframes progressShimmer {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(200%); }
-      }
-
-      .settings-menu__stage-next {
-        font-family: var(--font-body);
-        font-size: 11px;
-        font-weight: 500;
-        color: var(--color-text-secondary);
-      }
-
-      .settings-menu__stage-max {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2, 8px);
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-sm, 0.875rem);
-        font-weight: 600;
-        color: var(--persona-primary, #4a6741);
-      }
-
-      .settings-menu__stage-max::before {
-        content: '✦';
-        font-size: 10px;
-        opacity: 0.7;
       }
 
       /* ========================================================================
@@ -2520,46 +2334,6 @@ class SettingsMenuUI {
         border-top-color: rgba(255, 255, 255, 0.06);
       }
 
-      /* Stage Banner */
-      [data-theme="midnight"] .settings-menu__stage-banner {
-        background: linear-gradient(135deg, 
-          var(--persona-tint, rgba(124, 179, 107, 0.12)) 0%,
-          transparent 60%
-        );
-        border-bottom-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-banner::before {
-        background: radial-gradient(circle, var(--persona-tint, rgba(124, 179, 107, 0.08)) 0%, transparent 70%);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-label {
-        color: var(--color-text-muted, #ddd6cc);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-name {
-        color: var(--color-accent-secondary, #7cb36b);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-bar {
-        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.08));
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-fill {
-        background: linear-gradient(90deg, 
-          var(--persona-secondary, #5a8a4a) 0%,
-          var(--color-accent-secondary, #7cb36b) 100%
-        );
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-next {
-        color: var(--color-text-muted, #ddd6cc);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-max {
-        color: var(--color-accent-secondary, #7cb36b);
-      }
-
       /* Badges */
       [data-theme="midnight"] .settings-menu__badge {
         background: linear-gradient(135deg, 
@@ -2611,16 +2385,6 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__unpin-btn {
         color: var(--color-text-muted, #e8e2da);
-      }
-
-      /* Locked items */
-      [data-theme="midnight"] .settings-menu__item--locked {
-        opacity: 0.5;
-      }
-
-      [data-theme="midnight"] .settings-menu__unlock-hint,
-      [data-theme="midnight"] .settings-menu__lock-icon {
-        color: var(--color-text-muted, #ddd6cc);
       }
 
       /* Active items */

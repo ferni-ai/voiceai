@@ -44,6 +44,7 @@ test('the tour: Next moves on, Back returns, Skip ends it for good', async ({ pa
 });
 
 test("what's coming: planting seeds spends them, and it sticks", async ({ page }) => {
+  test.skip(true, "What's Coming is hidden: apps/web/src/config/menu-visibility.ts");
   const problems = watchProblems(page);
   let panel = await openPanel(page, 'whats-growing');
   const balance = () =>

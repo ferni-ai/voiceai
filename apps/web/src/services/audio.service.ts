@@ -192,8 +192,8 @@ class AudioService {
     return Math.min(1.0, Math.max(0.0, baseVolume * multiplier));
   }
 
-  async playSoundAndWait(effect: SoundEffect, earcon?: Earcon): Promise<void> {
-    if (!soundGate('effects', effect, earcon)) return;
+  async playSoundAndWait(effect: SoundEffect, earcon?: Earcon, personaId?: string): Promise<void> {
+    if (!soundGate('effects', effect, earcon, personaId)) return;
     // Try procedural sound first (preferred)
     if (this.canPlayProcedurally(effect)) {
       try {
@@ -256,7 +256,7 @@ class AudioService {
    *
    * Updated to prefer procedural sounds (on-brand, per-persona signatures).
    */
-  async playHandoffSound(effect: SoundEffect, pauseMs: number = 300): Promise<void> {
+  async playHandoffSound(effect: SoundEffect, pauseMs = 300, personaId?: string): Promise<void> {
     try {
       // FIX BUG #59: Stop any currently playing handoff sound to prevent overlap
       if (this.currentHandoffSound && !this.currentHandoffSound.paused) {
@@ -289,7 +289,7 @@ class AudioService {
         this.currentHandoffSound = audio;
       }
 
-      await this.playSoundAndWait(effect, 'handoff'); // the moment is the earcon, any sound
+      await this.playSoundAndWait(effect, 'handoff', personaId); // the moment is the earcon, any sound
 
       // Clear reference after sound completes
       this.currentHandoffSound = null;

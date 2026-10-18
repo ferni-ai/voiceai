@@ -100,15 +100,14 @@ describe('shouldHandoffToNayan', () => {
       expect(shouldHandoffToNayan('Hello Nayan!')).toBe(true);
     });
 
-    it('should detect Sadhguru wake words', () => {
-      expect(shouldHandoffToNayan('hey sadhguru')).toBe(true);
-      expect(shouldHandoffToNayan('hi sadhguru')).toBe(true);
-      expect(shouldHandoffToNayan('hello sadhguru')).toBe(true);
+    it("doesn't answer to the real teacher's name (Nayan is fictional)", () => {
+      expect(shouldHandoffToNayan('hey sadhguru')).toBe(false);
+      expect(shouldHandoffToNayan('hi sadhguru')).toBe(false);
+      expect(shouldHandoffToNayan('hello sadhguru')).toBe(false);
     });
 
     it('should detect direct requests', () => {
       expect(shouldHandoffToNayan('talk to nayan')).toBe(true);
-      expect(shouldHandoffToNayan('talk to sadhguru')).toBe(true);
       expect(shouldHandoffToNayan('get nayan please')).toBe(true);
     });
   });

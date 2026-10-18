@@ -2,12 +2,22 @@
  * Sound director: the gate every web sound engine asks before it plays.
  *
  * The scripted call below is the order of sound requests the app makes in one
- * call (file refs per step). Flag off, every request passes, so what plays is
- * unchanged. Flag on, the same call is exactly arrival, handoff, goodbye.
+ * call (file refs per step). Flag off, every request passes to its engine, so
+ * what plays is unchanged. Flag on, engines stay silent and the director plays
+ * exactly arrival, handoff, goodbye through its one earcon output.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Earcon, SoundEngine, SpeechRoom } from '../../../src/services/sound-director.js';
+
+/** What the caller hears, in order: engine plays (gate true) and director earcons. */
+const heard = vi.hoisted(() => [] as string[]);
+vi.mock('../../../src/services/earcon-player.js', () => ({
+  installEarconUnlock: () => {},
+  playEarcon: async (earcon: string) => {
+    heard.push(earcon);
+  },
+}));
 
 type Director = typeof import('../../../src/services/sound-director.js');
 
@@ -67,7 +77,7 @@ async function freshDirector(): Promise<Director> {
 }
 
 function run(director: Director, steps: Step[]): string[] {
-  const played: string[] = [];
+  heard.length = 0;
   for (const step of steps) {
     vi.setSystemTime(step.at);
     if ('connection' in step) connectionListener(step.connection);
@@ -76,10 +86,10 @@ function run(director: Director, steps: Step[]): string[] {
       room.agent = step.speaking === 'agent' ? 'speaking' : 'listening';
       room.user = step.speaking === 'user';
     } else if (director.soundGate(step.engine, step.name, step.earcon)) {
-      played.push(step.earcon ?? step.name);
+      heard.push(step.earcon ?? step.name);
     }
   }
-  return played;
+  return [...heard];
 }
 
 const soundSteps = (steps: Step[]) =>
@@ -190,7 +200,7 @@ describe('sound director, flag on', () => {
     turnOn();
     localStorage.setItem('ferni:sound', 'off');
     const director = await freshDirector();
-    expect(director.soundGate('ui', 'enter', 'arrival')).toBe(false);
+    expect(run(director, [{ at: 0, engine: 'ui', name: 'enter', earcon: 'arrival' }])).toEqual([]);
   });
 });
 
@@ -204,11 +214,16 @@ describe('the Sound setting (sound.ui mute)', () => {
     const director = await freshDirector(); // a reload: fresh modules, same storage
     const reloaded = (await import('../../../src/ui/sound.ui.js')).soundUI;
     expect(reloaded.getMuted()).toBe(true);
-    expect(director.soundGate('effects', 'dramatic-entrance', 'handoff')).toBe(false);
-    expect(director.soundGate('brand', 'system.connectionSuccess')).toBe(false);
+    const handoff: Step = {
+      at: 0,
+      engine: 'effects',
+      name: 'dramatic-entrance',
+      earcon: 'handoff',
+    };
+    expect(run(director, [handoff])).toEqual([]);
 
     expect(reloaded.toggleMute()).toBe(false);
-    expect(director.soundGate('ui', 'enter', 'arrival')).toBe(true);
+    expect(run(director, [handoff])).toEqual(['handoff']);
   });
 
   it('flag off: mute stays in memory only, as before', async () => {
