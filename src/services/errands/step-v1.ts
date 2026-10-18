@@ -1,52 +1,45 @@
 /**
  * Version 1 of the errand rules: the slice-1 appointment flow (errands design,
- * section 3). Find places, ask the owner, call, verify, put it on the
- * calendar, follow up.
- *
- * - `booked` needs a confirmation or a read-back; anything less is an offer
- *   that goes back to the owner.
- * - Voicemail or no answer: try again 2 hours on, inside business hours, at
- *   most twice, then the next place, then fail with the reason.
- * - Every outward effect needs the owner's yes to that exact action
- *   (`approvals`); without it the effect is dropped and the owner is asked.
- * - One place at a time, unless the policy allows parallel AND the errand is
- *   urgency 'any-slot'; then up to 3, and the first booking cancels the rest.
- * - A mobile line is offered a text, not an AI-voice call; an unchecked line
- *   is looked up first. A place that wants a card goes back to the owner.
- *
- * Pure: no clock, no storage. The caller passes `now`.
+ * section 3). booked needs proof; voicemail retries twice inside business
+ * hours; every outward effect needs the owner's yes to exactly that action;
+ * parallel calls only for any-slot errands; mobile lines get a text offer; no
+ * money. Pure: no clock, no storage. The caller passes `now`.
  *
  * @module services/errands/step-v1
  */
 
 import {
+  describeApproval,
   isClosed,
+  isSafePlaceId,
+  sameApproval,
+  type Approval,
+  type ApprovalVerb,
   type Candidate,
   type Effect,
   type EffectBody,
   type Errand,
   type ErrandEvent,
   type ErrandState,
+  type NewCandidate,
   type Outcome,
+  type OutwardKind,
   type Signal,
 } from './errand.js';
 import { parallelAllowed, withinHours, type ErrandPolicy, type ErrandPrefs } from './policy.js';
 import { RETRY_POLICY } from './retry-policy.js';
 
 const HOUR_MS = 3_600_000;
-
 export interface StepContext {
   readonly now: Date;
   readonly prefs?: ErrandPrefs;
   readonly policy: ErrandPolicy;
 }
-
 export interface StepResult {
   readonly next: Errand;
   readonly effects: readonly Effect[];
   readonly events: readonly ErrandEvent[];
 }
-
 interface Draft {
   e: Errand;
   readonly effects: Effect[];
@@ -54,6 +47,17 @@ interface Draft {
   readonly at: string;
   readonly ctx: StepContext;
 }
+
+const approval = (verb: ApprovalVerb, ...placeIds: string[]): Approval => ({ verb, placeIds });
+
+/** Which owner yeses can cover each outward kind: a cancel rides on the yes to the call. */
+const COVERS: Readonly<Record<OutwardKind, readonly ApprovalVerb[]>> = {
+  call: ['call', 'book'],
+  text: ['text'],
+  cancel_call: ['call', 'book'],
+  calendar: ['schedule'],
+  reminder: ['schedule'],
+};
 
 const cand = (e: Errand, placeId: string): Candidate | undefined =>
   e.candidates.find((c) => c.placeId === placeId);
@@ -63,87 +67,94 @@ const set = (d: Draft, patch: Partial<Errand>): void => void (d.e = { ...d.e, ..
 const note = (d: Draft, text: string): void =>
   void d.events.push({ type: 'decision', at: d.at, note: text });
 function setCandidate(d: Draft, placeId: string, patch: Partial<Candidate>): void {
-  set(d, {
-    candidates: d.e.candidates.map((c) => (c.placeId === placeId ? { ...c, ...patch } : c)),
-  });
+  const candidates = d.e.candidates.map((c) => (c.placeId === placeId ? { ...c, ...patch } : c));
+  set(d, { candidates });
 }
 
 function emit(d: Draft, body: EffectBody, step: string, attempt = 1): void {
-  d.effects.push({
-    ...body,
-    idemKey: `${d.e.id}:${step}:${attempt}`,
-    retry: RETRY_POLICY[body.kind],
-  });
+  const idemKey = `${d.e.id}:${step}:${attempt}`;
+  d.effects.push({ ...body, idemKey, retry: RETRY_POLICY[body.kind] });
 }
+
+/** Moves to `state`, clearing the open question and the timer. */
+const move = (d: Draft, state: ErrandState, step: string): void =>
+  set(d, { state, step, pending: null, nextWakeAt: null });
 
 function ask(
   d: Draft,
-  action: string,
+  action: Approval,
   reason?: string,
   state: ErrandState = 'awaiting_owner'
 ): void {
-  set(d, { state, pending: action, step: `confirm:${action}`, nextWakeAt: null });
-  emit(d, { kind: 'ask_owner', action, ...(reason ? { reason } : {}) }, `ask:${action}`);
+  const said = describeApproval(action);
+  set(d, { state, pending: action, step: `confirm:${said}`, nextWakeAt: null });
+  emit(d, { kind: 'ask_owner', action, ...(reason ? { reason } : {}) }, `ask:${said}`);
 }
 
-/** Emits an outward effect only when the owner said yes to its action; otherwise asks. */
-function outward(
-  d: Draft,
-  body: Extract<EffectBody, { approval: string }>,
-  step: string,
-  attempt = 1
-): boolean {
-  if (d.e.approvals.includes(body.approval)) {
+/**
+ * Emits an outward effect only when the owner said yes to exactly this
+ * approval, it names this place, and its verb covers this kind; otherwise the
+ * effect is dropped and the owner is asked about this one place.
+ */
+type Outward = Extract<EffectBody, { approval: Approval }>;
+function outward(d: Draft, body: Outward, step: string, attempt = 1): boolean {
+  const a = body.approval;
+  const covered =
+    d.e.approvals.some((x) => sameApproval(x, a)) &&
+    a.placeIds.includes(body.placeId) &&
+    COVERS[body.kind].includes(a.verb);
+  if (covered) {
     emit(d, body, step, attempt);
     return true;
   }
-  note(d, `blocked ${body.kind} to ${body.placeId}: no owner yes for ${body.approval}`);
-  ask(d, body.approval);
+  note(d, `blocked ${body.kind} to ${body.placeId}: no owner yes covers it`);
+  ask(d, approval(COVERS[body.kind][0], body.placeId));
   return false;
 }
 
-function dial(d: Draft, placeId: string, purpose: 'ask' | 'accept', approval: string): void {
+function dial(d: Draft, placeId: string, purpose: 'ask' | 'accept', yes: Approval): void {
   const c = cand(d.e, placeId);
   if (!c) return;
   const attempts = c.attempts + 1;
-  if (!outward(d, { kind: 'call', placeId, purpose, approval }, `call:${placeId}`, attempts))
-    return;
-  setCandidate(d, placeId, { status: 'calling', attempts, approval });
+  const body = { kind: 'call', placeId, purpose, approval: yes } as const;
+  if (!outward(d, body, `call:${placeId}`, attempts)) return;
+  setCandidate(d, placeId, { status: 'calling', attempts, approval: yes });
   set(d, { state: 'acting', step: `call:${placeId}`, nextWakeAt: null });
 }
 
 function fail(d: Draft, reason: string): void {
-  set(d, {
-    state: 'failed',
-    failedReason: reason,
-    pending: null,
-    nextWakeAt: null,
-    step: 'failed',
-  });
+  move(d, 'failed', 'failed');
+  set(d, { failedReason: reason });
   emit(d, { kind: 'notify_owner', about: 'failed', reason }, 'notify:failed');
 }
 
-const needsLookup = (c: Candidate): boolean =>
-  c.lineType === undefined || (c.lineType === 'unknown' && !c.lineChecked);
+/** Line type is trusted only from a lookup. */
+const needsLookup = (c: Candidate): boolean => c.lineChecked !== true;
+const callable = (c: Candidate): boolean =>
+  c.lineChecked === true && (c.lineType === 'landline' || c.lineType === 'voip');
 
 /** The next thing to do with the places not tried yet. */
 function plan(d: Draft): void {
   const fresh = d.e.candidates.filter((c) => c.status === 'new');
-  if (!fresh.length) return fail(d, 'no place could book it');
+  if (!fresh.length) {
+    const card = d.e.candidates.some((c) => c.status === 'needs_owner');
+    return fail(d, card ? 'only a place that wants a card or a deposit' : 'no place could book it');
+  }
   const head = fresh.slice(0, parallelAllowed(d.e, d.ctx.policy) ? d.ctx.policy.maxParallel : 1);
   const unknown = head.filter(needsLookup);
   if (unknown.length) {
-    set(d, { state: 'planning', step: 'lookup', pending: null, nextWakeAt: null });
+    move(d, 'planning', 'lookup');
     for (const c of unknown)
       emit(d, { kind: 'lookup_line_type', placeId: c.placeId }, `lookup:${c.placeId}`);
     return;
   }
-  const callable = head.filter((c) => c.lineType === 'landline' || c.lineType === 'voip');
-  if (callable.length) return ask(d, `call:${callable.map((c) => c.placeId).join('+')}`);
+  const lines = head.filter(callable);
+  if (lines.length) return ask(d, approval('call', ...lines.map((c) => c.placeId)));
   const { placeId } = head[0];
-  const action = `text:${placeId}`;
-  set(d, { state: 'awaiting_owner', pending: action, step: `confirm:${action}`, nextWakeAt: null });
-  emit(d, { kind: 'offer_text_instead', action, placeId }, `ask:${action}`);
+  const action = approval('text', placeId);
+  const said = describeApproval(action);
+  set(d, { state: 'awaiting_owner', pending: action, step: `confirm:${said}`, nextWakeAt: null });
+  emit(d, { kind: 'offer_text_instead', action, placeId }, `ask:${said}`);
 }
 
 /** After a place is done with: wait on an open question or calls in flight, else plan. */
@@ -153,16 +164,32 @@ function settle(d: Draft): void {
   plan(d);
 }
 
-function splitAction(action: string): [string, string[]] {
-  const i = action.indexOf(':');
-  return [action.slice(0, i), action.slice(i + 1).split('+')];
+type Answer = 'owner_confirmed' | 'owner_declined';
+/** The open question, if `answer` is to it, logged and cleared. An answer only settles what was asked. */
+function answered(d: Draft, answer: Approval, type: Answer): Approval | string {
+  const action = d.e.pending && sameApproval(d.e.pending, answer) ? d.e.pending : null;
+  if (!action) return `no pending action ${describeApproval(answer)}`;
+  d.events.push({ type, at: d.at, action });
+  set(d, { pending: null });
+  return action;
 }
 
-function onConfirmed(d: Draft, action: string): string | void {
-  if (d.e.pending !== action) return `no pending action ${action}`;
-  d.events.push({ type: 'owner_confirmed', at: d.at, action });
-  set(d, { approvals: [...d.e.approvals, action], pending: null });
-  const [verb, ids] = splitAction(action);
+/** Stops every live, offered or retrying call (but `keep`), each under the yes that covered it. */
+function cancelActive(d: Draft, keep?: string): void {
+  for (const o of d.e.candidates) {
+    if (o.placeId === keep || !['calling', 'offered', 'retry'].includes(o.status)) continue;
+    const { placeId, approval: yes } = o;
+    setCandidate(d, placeId, { status: 'cancelled' });
+    if (yes) outward(d, { kind: 'cancel_call', placeId, approval: yes }, `cancel:${placeId}`);
+    else note(d, `no call to cancel at ${placeId}`);
+  }
+}
+
+function onConfirmed(d: Draft, answer: Approval): string | void {
+  const action = answered(d, answer, 'owner_confirmed');
+  if (typeof action === 'string') return action;
+  set(d, { approvals: [...d.e.approvals, action] });
+  const { verb, placeIds: ids } = action;
   const [placeId] = ids;
   if (verb === 'call' || verb === 'book') {
     for (const id of ids) dial(d, id, verb === 'call' ? 'ask' : 'accept', action);
@@ -188,30 +215,24 @@ function onConfirmed(d: Draft, action: string): string | void {
   }
 }
 
-function onDeclined(d: Draft, action: string): string | void {
-  if (d.e.pending !== action) return `no pending action ${action}`;
-  d.events.push({ type: 'owner_declined', at: d.at, action });
-  set(d, { pending: null });
-  const [verb, ids] = splitAction(action);
-  if (verb === 'schedule') return set(d, { step: 'scheduled' });
-  if (verb === 'next') {
+function onDeclined(d: Draft, answer: Approval): string | void {
+  const action = answered(d, answer, 'owner_declined');
+  if (typeof action === 'string') return action;
+  if (action.verb === 'schedule') return set(d, { step: 'scheduled' });
+  if (action.verb === 'next') {
     note(d, 'the owner books it himself');
-    return set(d, { state: 'cancelled', step: 'cancelled', nextWakeAt: null });
+    cancelActive(d);
+    return move(d, 'cancelled', 'cancelled');
   }
-  for (const id of ids) setCandidate(d, id, { status: 'declined' });
+  for (const id of action.placeIds) setCandidate(d, id, { status: 'declined' });
   settle(d);
 }
 
 function booked(d: Draft, c: Candidate, outcome: Outcome): void {
-  for (const o of d.e.candidates) {
-    if (o.placeId === c.placeId || (o.status !== 'calling' && o.status !== 'offered')) continue;
-    setCandidate(d, o.placeId, { status: 'cancelled' });
-    const approval = o.approval ?? `call:${o.placeId}`;
-    outward(d, { kind: 'cancel_call', placeId: o.placeId, approval }, `cancel:${o.placeId}`);
-  }
+  cancelActive(d, c.placeId);
   setCandidate(d, c.placeId, { status: 'booked' });
   set(d, { outcome });
-  ask(d, `schedule:${c.placeId}`, undefined, 'scheduled');
+  ask(d, approval('schedule', c.placeId), undefined, 'scheduled');
   const when = outcome.when ? Date.parse(outcome.when) : NaN;
   if (!Number.isNaN(when)) set(d, { nextWakeAt: new Date(when + 24 * HOUR_MS).toISOString() });
 }
@@ -238,19 +259,18 @@ function onOutcome(d: Draft, s: CallOutcome): string | void {
     const reason = 'the place wants a card or a deposit';
     setCandidate(d, s.placeId, { status: 'needs_owner' });
     set(d, { outcome: { ...base, status: 'needs_owner', reason } });
-    if (inFlight(d.e))
+    if (inFlight(d.e) || d.e.pending)
       return emit(d, { kind: 'notify_owner', about: 'needs_owner', reason }, `notify:${s.placeId}`);
-    return ask(d, `next:${s.placeId}`, reason);
+    return ask(d, approval('next', s.placeId), reason);
   }
-  if (s.status === 'booked' && (base.confirmation || s.readBack === true)) {
-    return booked(d, c, { ...base, status: 'booked' });
-  }
+  const proven = Boolean(base.confirmation) || s.readBack === true;
+  if (s.status === 'booked' && proven) return booked(d, c, { ...base, status: 'booked' });
   if (s.status === 'booked' || s.status === 'offered') {
     if (s.status === 'booked')
       note(d, 'booked without a confirmation or read-back: treated as offered');
     setCandidate(d, s.placeId, { status: 'offered' });
     set(d, { outcome: { ...base, status: 'offered' } });
-    return ask(d, `book:${s.placeId}`);
+    return ask(d, approval('book', s.placeId));
   }
   set(d, { outcome: { ...base, status: s.status } });
   if (s.status === 'declined') {
@@ -269,7 +289,7 @@ function onOutcome(d: Draft, s: CallOutcome): string | void {
 
 function passed(d: Draft): string | void {
   if (d.e.state !== 'scheduled') return `not scheduled (${d.e.state})`;
-  set(d, { state: 'done', step: 'follow_up', pending: null, nextWakeAt: null });
+  move(d, 'done', 'follow_up');
   emit(d, { kind: 'notify_owner', about: 'follow_up' }, 'notify:follow_up');
 }
 
@@ -279,8 +299,8 @@ function onWake(d: Draft): string | void {
   if (d.e.state !== 'waiting') return `nothing to wake in ${d.e.state}`;
   const retry = d.e.candidates.find((c) => c.status === 'retry');
   if (retry) {
-    const purpose = retry.approval?.startsWith('book:') ? 'accept' : 'ask';
-    return dial(d, retry.placeId, purpose, retry.approval ?? `call:${retry.placeId}`);
+    const purpose = retry.approval?.verb === 'book' ? 'accept' : 'ask';
+    return dial(d, retry.placeId, purpose, retry.approval ?? approval('call', retry.placeId));
   }
   const texted = d.e.candidates.find((c) => c.status === 'texted');
   if (!texted) return 'nothing waiting';
@@ -289,24 +309,38 @@ function onWake(d: Draft): string | void {
   plan(d);
 }
 
+/** New places from a search. Unsafe place ids are dropped, and so is any line type the search claims. */
+function shortlist(d: Draft, found: readonly NewCandidate[]): Candidate[] {
+  const known = new Set(d.e.candidates.map((c) => c.placeId));
+  const added: Candidate[] = [];
+  for (const { placeId, name, phone, why, hours } of found) {
+    if (!isSafePlaceId(placeId)) {
+      note(d, 'dropped a candidate whose place id is not safe');
+      continue;
+    }
+    if (known.has(placeId)) continue;
+    known.add(placeId);
+    const fresh = { placeId, name, phone, why, ...(hours ? { hours } : {}) };
+    added.push({ ...fresh, status: 'new', attempts: 0, lineChecked: false });
+  }
+  return added;
+}
+
 function route(d: Draft, s: Signal): string | void {
   switch (s.type) {
     case 'owner_cancelled':
-      set(d, { state: 'cancelled', step: 'cancelled', pending: null, nextWakeAt: null });
+      cancelActive(d);
+      move(d, 'cancelled', 'cancelled');
       return emit(d, { kind: 'notify_owner', about: 'cancelled' }, 'notify:cancelled');
     case 'candidates_found': {
       if (d.e.state !== 'planning') return `not planning (${d.e.state})`;
-      const known = new Set(d.e.candidates.map((c) => c.placeId));
-      const added = s.candidates
-        .filter((c) => !known.has(c.placeId))
-        .map((c): Candidate => ({ ...c, status: 'new', attempts: 0 }));
-      set(d, { candidates: [...d.e.candidates, ...added] });
+      set(d, { candidates: [...d.e.candidates, ...shortlist(d, s.candidates)] });
       return plan(d);
     }
     case 'line_type_found':
-      if (d.e.state !== 'planning' || !cand(d.e, s.placeId)) return `no lookup for ${s.placeId}`;
+      if (!cand(d.e, s.placeId)) return `no candidate ${s.placeId}`;
       setCandidate(d, s.placeId, { lineType: s.lineType, lineChecked: true });
-      return plan(d);
+      return d.e.state === 'planning' ? plan(d) : undefined;
     case 'owner_confirmed':
       return onConfirmed(d, s.action);
     case 'owner_declined':
@@ -325,13 +359,8 @@ export function stepV1(e: Errand, signal: Signal, ctx: StepContext): StepResult 
   const heard: ErrandEvent = { type: 'signal', at, signal: signal.type };
   const d: Draft = { e, effects: [], events: [heard], at, ctx };
   const why = isClosed(e) ? `errand is ${e.state}` : route(d, signal);
-  if (typeof why === 'string') {
-    return {
-      next: e,
-      effects: [],
-      events: [heard, { type: 'decision', at, note: `ignored: ${why}` }],
-    };
-  }
+  const ignored: ErrandEvent = { type: 'decision', at, note: `ignored: ${why}` };
+  if (typeof why === 'string') return { next: e, effects: [], events: [heard, ignored] };
   let next: Errand = { ...d.e, updatedAt: at };
   if (isClosed(next)) next = { ...next, closedAt: at };
   if (e.state !== next.state || e.step !== next.step) {

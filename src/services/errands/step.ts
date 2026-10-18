@@ -19,16 +19,7 @@ export function step(e: Errand, signal: Signal, ctx: StepContext): StepResult {
   const rules = RULES.get(e.stepVersion);
   if (rules) return rules(e, signal, ctx);
   const at = ctx.now.toISOString();
-  return {
-    next: e,
-    effects: [],
-    events: [
-      { type: 'signal', at, signal: signal.type },
-      {
-        type: 'decision',
-        at,
-        note: `no rules for stepVersion ${e.stepVersion}: held, nothing done`,
-      },
-    ],
-  };
+  const note = `no rules for stepVersion ${e.stepVersion}: held, nothing done`;
+  const heard = { type: 'signal', at, signal: signal.type } as const;
+  return { next: e, effects: [], events: [heard, { type: 'decision', at, note }] };
 }
