@@ -171,13 +171,9 @@ cargo build --release --no-default-features  # For pocket-voice crates
 
 ## Deployment
 
-All deployments go through the Ferni CLI:
-
-```bash
-ferni deploy frontend    # apps/web → Firebase
-ferni deploy landing     # apps/website/ferni-website → Firebase
-ferni deploy all         # Everything
-```
+Web deploys run in GitHub workflows on every push to main: `deploy-firebase.yml`
+(apps/web and apps/website/ferni-website) and `deploy-production.yml` (UI server).
+The voice agent deploys through `.claude/skills/deploy-agent/SKILL.md`.
 
 See root `CLAUDE.md` for full deployment documentation.
 
