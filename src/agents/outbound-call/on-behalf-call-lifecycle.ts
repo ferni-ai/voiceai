@@ -264,14 +264,17 @@ async function defaultPorts(): Promise<CallLifecyclePorts> {
   };
 }
 
-const reportedCalls = new Set<string>();
+/** The report under way (or done) per callId, so every exit path waits for the one report. */
+const reports = new Map<string, Promise<CallOutcome | null>>();
 
 /**
  * Report the finished call to the requester. `trusted` says the dispatch was
  * signed by our server (verifyOnBehalfDispatch); a forged one never reports
  * and never touches state belonging to the callId it names.
  * Safe to call from every session exit path: only the first call for a callId
- * reports. Never throws.
+ * reports, and a later one waits for that report to finish (the job's
+ * shutdown callback relies on this to keep the process alive until the
+ * requester has been told). Never throws.
  */
 export async function completeOnBehalfCall(
   sessionId: string,
@@ -292,9 +295,22 @@ export async function completeOnBehalfCall(
     cleanupOnBehalfCapture(sessionId);
     return null;
   }
-  if (reportedCalls.has(call.callId)) return null;
-  reportedCalls.add(call.callId);
+  const running = reports.get(call.callId);
+  if (running) {
+    await running;
+    return null;
+  }
+  const reported = reportCall(sessionId, call, durationSeconds, ports);
+  reports.set(call.callId, reported);
+  return reported;
+}
 
+async function reportCall(
+  sessionId: string,
+  call: OnBehalfDispatch,
+  durationSeconds: number,
+  ports?: CallLifecyclePorts
+): Promise<CallOutcome | null> {
   try {
     const { readDisposition, readTranscript, analyze, report, scheduleRetry, recordOptOut } =
       ports ?? (await defaultPorts());
