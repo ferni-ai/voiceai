@@ -67,7 +67,7 @@ describe('recall bench scoring', () => {
     const high = scoreAt(e, 0.9);
     expect(high.counts['false-recall']).toBeLessThan(low.counts['false-recall']);
     expect(high.counts.hit).toBeLessThanOrEqual(low.counts.hit);
-    expect(sweepTable(e, [0.07]).at(-1)).toContain('<- MIN_MARGIN');
+    expect(sweepTable(e, [0.1]).at(-1)).toContain('<- MIN_MARGIN');
   });
 
   it('the shipped cases are well formed: every expected id is one of the caller’s items', () => {

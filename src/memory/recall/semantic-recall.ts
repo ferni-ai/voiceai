@@ -55,8 +55,11 @@ export interface SemanticIndex {
  * references +0.08 to +0.23 ("how is that book going" -> the book +0.082);
  * small talk's best item +0.06 at most; noise trails the best by more than
  * 0.05 ("my knee is acting up": mom's knee +0.193, an oil change +0.099).
+ * Recall bench (scripts/memory-eval, 3 callers, 72 turns, 2026-10-18): 0.07
+ * pulled memories into 26% of small-talk turns; 0.10 keeps that to 7% and
+ * still finds 80% of real references (precision 92%).
  */
-export const MIN_MARGIN = 0.07;
+export const MIN_MARGIN = 0.1;
 const NEAR_BEST = 0.05;
 /** A transcript this short says too little to search with. */
 export const MIN_QUERY_WORDS = 3;
