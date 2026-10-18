@@ -61,6 +61,10 @@ public final class LiveKitVoiceRoom: NSObject, VoiceRoom, RoomDelegate, @uncheck
         try await room.localParticipant.setMicrophone(enabled: enabled)
     }
 
+    public func send(_ data: Data) async throws {
+        try await room.localParticipant.publish(data: data, options: DataPublishOptions(reliable: true))
+    }
+
     public func disconnect() async {
         leaving.withLock { $0 = true }
         await room.unregisterTextStreamHandler(for: Self.transcriptionTopic)

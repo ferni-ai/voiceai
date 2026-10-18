@@ -96,6 +96,21 @@ public final class CallSession {
         avatar.send(.ended)
     }
 
+    /// Tap Ferni while Ferni is talking: ask the agent to stop now (its
+    /// `user_interrupt` handler, the web's tap-to-interrupt). Only while speaking.
+    @discardableResult
+    public func interrupt() async -> Bool {
+        guard avatar.pose == .speaking, let room else { return false }
+        let ms = Int(Date().timeIntervalSince1970 * 1000)
+        do {
+            try await room.send(Data(#"{"type":"user_interrupt","timestamp":\#(ms)}"#.utf8))
+            return true
+        } catch {
+            log.error("Interrupt not sent: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
     public func toggleMute() async {
         isMuted.toggle()
         do {

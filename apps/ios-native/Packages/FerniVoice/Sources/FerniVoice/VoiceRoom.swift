@@ -24,6 +24,8 @@ public protocol VoiceRoom: AnyObject, Sendable {
     var events: AsyncStream<RoomEvent> { get }
     func connect(url: String, token: String) async throws
     func setMicrophone(enabled: Bool) async throws
+    /// A reliable data message to the agent (e.g. user_interrupt).
+    func send(_ data: Data) async throws
     func disconnect() async
 }
 
