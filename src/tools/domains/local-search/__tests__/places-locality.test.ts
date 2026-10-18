@@ -73,6 +73,27 @@ describe('findCityByName', () => {
     await expect(findCityByName('Philadelphia')).rejects.toThrow(/status 503/);
   });
 
+  it('does not pass on the body of a non-JSON reply', async () => {
+    const secret = 'secret-google-body-0123';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          ({
+            ok: true,
+            status: 200,
+            json: async () => {
+              throw new SyntaxError(`Unexpected token '<', "<html>${secret}</html>" is not valid JSON`);
+            },
+          }) as unknown as Response
+      )
+    );
+    const error = await findCityByName('Philly, PA').catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(String(error)).toMatch(/unreadable reply/);
+    expect(String(error)).not.toContain(secret);
+  });
+
   it('throws without an API key', async () => {
     delete process.env.GOOGLE_PLACES_API_KEY;
     delete process.env.GOOGLE_API_KEY;

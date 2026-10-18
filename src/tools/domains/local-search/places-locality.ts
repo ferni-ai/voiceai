@@ -32,8 +32,15 @@ export async function findCityByName(name: string): Promise<CityMatch | null> {
   });
   if (!response.ok) throw new Error(`Places lookup failed with status ${response.status}`);
 
-  const data = (await response.json()) as { places?: Array<{ id?: string; types?: string[] }> };
+  // A non-JSON reply's parse error quotes the start of the body, so it is replaced, not passed on.
+  let data: { places?: Array<{ id?: unknown; types?: unknown }> };
+  try {
+    data = (await response.json()) as typeof data;
+  } catch {
+    throw new Error('Places lookup returned an unreadable reply');
+  }
   const place = data.places?.[0];
-  if (!place?.types?.includes('locality') || !place.id) return null;
+  if (typeof place?.id !== 'string' || !Array.isArray(place.types)) return null;
+  if (!place.types.includes('locality')) return null;
   return { placeId: place.id };
 }

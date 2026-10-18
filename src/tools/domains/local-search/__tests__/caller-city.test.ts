@@ -231,7 +231,7 @@ describe('source order (PLACES_LOCATION on)', () => {
 });
 
 describe('saving the city', () => {
-  it('stores the city and region Places returns, with no coordinates or address fields', async () => {
+  it('stores the place ID and the caller\'s own words, with no coordinates or address fields', async () => {
     const result = await (await rememberCity()).execute(
       { city: 'Philly', region: 'PA', callerSaidYes: true },
       phoneInStGeorge
