@@ -68,6 +68,8 @@ export const COHORT_FLAGS = [
   'PHONE_GOODBYE',
   'HAPPY_EXITS',
   'HANDOFF_TALK_THROUGH',
+  // Read once the greeting's handlers are wired (greeting-wiring.ts), after applyCallerFlags.
+  'HANDOFF_FIRST_FIX',
   'NAME_CORRECTION',
   'ROOM_GUESTS',
   'BARGE_IN_ACK_WORDS',
@@ -78,6 +80,8 @@ export const COHORT_FLAGS = [
   // across calls. The system prompt (FERNI_PERSONA_SLIP_GUARD) loads after
   // applyCallerFlags: loadCallerPrompt (voice-agent-entry/persona-builder.ts).
   'HANDOFF_FULL_TOOLS',
+  // Read at agent build, a tool update and each turn's request, never at boot (same-turn-tools-config.ts).
+  'TOOLS_SAME_TURN',
   'TEAM_VOICES',
   'FERNI_PERSONA_SLIP_GUARD',
   'DIRECTOR_PERSONA_AWARE',

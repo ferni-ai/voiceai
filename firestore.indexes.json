@@ -123,14 +123,6 @@
       ]
     },
     {
-      "collectionGroup": "communication_preferences",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "dimension", "order": "ASCENDING" },
-        { "fieldPath": "confidence", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "workflows",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -171,14 +163,6 @@
       ]
     },
     {
-      "collectionGroup": "callback_queue",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "scheduledFor", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "pending_actions",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -203,8 +187,16 @@
       ]
     },
     {
-      "collectionGroup": "proactive_checkin_calls",
-      "queryScope": "COLLECTION_GROUP",
+      "collectionGroup": "family_checkin_calls",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "scheduleId", "order": "ASCENDING" },
+        { "fieldPath": "callStartedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "family_checkin_calls",
+      "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "sponsorBriefed", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
@@ -252,23 +244,6 @@
       ]
     },
     {
-      "collectionGroup": "insights",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "category", "order": "ASCENDING" },
-        { "fieldPath": "priority", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "insights",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "type", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "threads",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -292,6 +267,35 @@
     },
     {
       "collectionGroup": "vectors",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "metadata.userId", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" },
+        {
+          "fieldPath": "embedding",
+          "vectorConfig": {
+            "dimension": 768,
+            "flat": {}
+          }
+        }
+      ]
+    },
+    {
+      "collectionGroup": "memory_vectors",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "__name__", "order": "ASCENDING" },
+        {
+          "fieldPath": "embedding",
+          "vectorConfig": {
+            "dimension": 768,
+            "flat": {}
+          }
+        }
+      ]
+    },
+    {
+      "collectionGroup": "memory_vectors",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "metadata.userId", "order": "ASCENDING" },
@@ -361,7 +365,7 @@
     },
 
     {
-      "collectionGroup": "mcp_servers",
+      "collectionGroup": "developer_mcp_servers",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "publisherId", "order": "ASCENDING" },
@@ -653,6 +657,14 @@
       ]
     },
     {
+      "collectionGroup": "family_checkin_schedules",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "nextScheduledCall", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "scheduled_actions",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -698,14 +710,6 @@
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "lastInteraction", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "unified_memories",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "topics", "order": "ASCENDING" },
-        { "fieldPath": "importance", "order": "DESCENDING" }
       ]
     },
     {
@@ -864,6 +868,21 @@
         { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
         { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
       ]
+    },
+    {
+      "collectionGroup": "vectors",
+      "fieldPath": "text",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "memory_vectors",
+      "fieldPath": "text",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "unified_memories",
+      "fieldPath": "content",
+      "indexes": []
     }
   ]
 }
