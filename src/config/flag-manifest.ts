@@ -173,6 +173,8 @@ export const FLAG_MANIFEST = {
   GEMMA3N_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
+  GOOD_NEWS_BIGGER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GREETING_WIRE_AFTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GTM_AUTO_PUBLISH: { default: 'off', owner: 'platform', kind: 'experiment' },
   GTM_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
