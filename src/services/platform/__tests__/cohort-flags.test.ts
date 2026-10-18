@@ -197,7 +197,9 @@ describe('flags with a mode, not a switch', () => {
     const flags = { PERSONA_VOICE: 'on', TURN_LENGTH: 'learned', TURN_TEXTURE: 'learned' };
     const s = store({ seth: [{ id: 'seth', enabled: true, flags }] });
     const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on' };
-    expect((await applyCallerFlags('seth', { store: s, env })).sort()).toEqual(Object.keys(flags).sort());
+    expect((await applyCallerFlags('seth', { store: s, env })).sort()).toEqual(
+      Object.keys(flags).sort()
+    );
     expect(env).toMatchObject(flags);
   });
 
