@@ -52,9 +52,32 @@ vi.mock('../../services/trust-and-identity/verification-store.js', () => ({
     return { valid: true, reason: 'success', phone: stored.phone };
   }),
 }));
-vi.mock('../../tools/domains/proactive/outreach/index.js', () => ({
-  textUser: vi.fn(async () => ({ success: true })),
+const textUser = vi.hoisted(() => vi.fn(async () => ({ success: true })));
+vi.mock('../../tools/domains/proactive/outreach/index.js', () => ({ textUser }));
+// The real textVerificationCode (number, STOP, limits) with Firestore and Twilio faked.
+const sms = vi.hoisted(() => ({
+  send: vi.fn(async (_m: { to: string; body: string }) => ({ success: true, messageSid: 'SM1' })),
 }));
+vi.mock('../../services/outreach/verification-text.js', async (importOriginal) => {
+  const real =
+    await importOriginal<typeof import('../../services/outreach/verification-text.js')>();
+  const sends = new Map<string, string[]>();
+  const deps = {
+    env: { LOG_HASH_SECRET: 'test-secret' },
+    isOptedOut: async () => false,
+    recentSends: async (k: string) => sends.get(k) ?? [],
+    saveSends: async (k: string, at: string[]) => void sends.set(k, at),
+    send: (m: { to: string; body: string }) => sms.send(m),
+    now: () => new Date(),
+  };
+  return {
+    ...real,
+    textVerificationCode: (u: string, p: string, make: (e: string) => Promise<string>) => {
+      sends.clear();
+      return real.textVerificationCode(u, p, make, deps);
+    },
+  };
+});
 
 const { handleOutreachRoutes } = await import('../outreach.routes.js');
 
@@ -90,6 +113,30 @@ const post = (path: string, body: unknown, token: string) =>
   });
 
 const MINE = '+15555550100';
+
+describe('asking for a phone code', () => {
+  it('texts the code to the number given (never a user lookup), and says sent only when it went', async () => {
+    const res = await post('/verify-phone', { phone: '(555) 555-0100' }, 'tok-A');
+    expect(res.status).toBe(200);
+    expect(sms.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: MINE,
+        body: 'Your Ferni code is 123456. It expires in 10 minutes.',
+      })
+    );
+    expect(textUser).not.toHaveBeenCalled();
+  });
+
+  it('a send the provider refused answers with a friendly error, not "sent"', async () => {
+    sms.send.mockResolvedValueOnce({ success: false, error: 'carrier said no' } as never);
+    const res = await post('/verify-phone', { phone: MINE }, 'tok-A');
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({
+      success: false,
+      error: "Couldn't send the code. Try again?",
+    });
+  });
+});
 
 describe('confirming a phone code', () => {
   it("puts the number on the signed-in user's Firebase account", async () => {
