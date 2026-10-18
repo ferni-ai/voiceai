@@ -55,8 +55,13 @@ import { withCallerVoiceGuard } from './caller-voice-guard.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
+/** A calendar tool that books a schedule item, so it saves to Ferni's own list here (#1547). */
+const isCalendarCreate = (name: string): boolean =>
+  /calendar/i.test(name) && kindsOfTool(name).includes('schedule');
+
 type Chunk = llm.ChatChunk | string | object;
-export type MissReason = 'no_tool' | 'failed' | 'awaiting' | 'held';
+/** 'uncalled': a create tool is open, but no create ran on this call for this claim (#1547). */
+export type MissReason = 'no_tool' | 'failed' | 'awaiting' | 'held' | 'uncalled' | 'elsewhere';
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
@@ -113,7 +118,8 @@ export function honestLine(
   canRemind: boolean,
   when?: string
 ): string {
-  if (reason === 'awaiting') return NOT_YET[kind];
+  if (reason === 'elsewhere') return "It's saved to Ferni's own list, not your calendar.";
+  if (reason === 'awaiting' || reason === 'uncalled') return NOT_YET[kind];
   if (reason === 'held') {
     return kind === 'call' && when
       ? `I haven't dialed yet, though. I'll call ${when} their time.`
@@ -265,22 +271,31 @@ async function checkActionClaims<T>(
   if (stream === null || stream === undefined) return stream;
   if (!actionClaimGuardEnabled(env)) return withAnnouncedCheckLog(stream, tools, env);
   const reader = (stream as unknown as ReadableStream<Chunk>).getReader();
-  const { failed, awaiting, held, heldWhen } = callActions(chatCtx);
+  const { done, failed, awaiting, elsewhere, held, heldWhen } = callActions(chatCtx);
   // A plain yes to the read-back: the tool sends on its next call, so the claim may stand.
   const yesTurn = isClearYes(lastCallerWords(chatCtx));
-  const open = new Set(Object.keys(tools.functionTools ?? {}).flatMap(kindsOfTool));
+  const toolNames = Object.keys(tools.functionTools ?? {});
+  const open = new Set(toolNames.flatMap(kindsOfTool));
+  // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
+  const calendarCreateOpen = toolNames.some(isCalendarCreate);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
   /** Why a claim of this kind is false, or null when it may stand. */
-  const missing = (kind: ActionKind): MissReason | null =>
+  const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
     !open.has(kind)
       ? 'no_tool'
       : failed.has(kind)
         ? 'failed'
-        : held.has(kind)
-          ? 'held'
-          : awaiting.has(kind) && !yesTurn
-            ? 'awaiting'
-            : null;
+        : failed.has(kind)
+          ? 'failed'
+          : elsewhere.has(kind)
+            ? 'elsewhere'
+            : held.has(kind)
+              ? 'held'
+              : awaiting.has(kind) && !yesTurn
+                ? 'awaiting'
+                : kind === 'schedule' && calendarCreateOpen && !done.has(kind) && !calling.has(kind)
+                  ? 'uncalled'
+                  : null;
   /** A call claimed on the yes, before the call tool has said whether anything rang. */
   const ahead = (kind: ActionKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
   let id = '';
@@ -294,9 +309,13 @@ async function checkActionClaims<T>(
       let last = '';
       let said = false; // an honest line already went out
       let lineLast = false; // the last thing out was an honest line
-      let deferred: ActionKind | undefined;
+      // `text` is the held sentence, kept until the reply shows whether the claim came true.
+      let deferred: { kind: ActionKind; reason: MissReason; text?: string } | undefined;
+      // Held sentences that follow an uncalled claim, released in order once the claim resolves.
+      const queued: string[] = [];
       let early: ActionKind | undefined; // a call claimed ahead of its tool's result
       const calling = new Set<ActionKind>();
+      let calendarCalled = false; // a calendar create ran in this reply
       const emit = (raw: string): void => {
         const text = !last || /\s$/.test(last) ? raw.trimStart() : raw;
         if (!text) return;
@@ -315,20 +334,24 @@ async function checkActionClaims<T>(
       /** A whole sentence: held ones go out unless they claim; streamed ones are already out. */
       const flush = (text: string): void => {
         const kind = claimedAction(text);
-        const reason = kind ? missing(kind) : null;
+        const reason = kind ? missing(kind, calling) : null;
         if (kind && !reason && hold && ahead(kind)) {
           log.warn({ kind, reason: 'before_result', held: hold }, 'ACTION_CLAIM_DROPPED');
           early ??= kind; // said nothing yet: the tool's result is spoken next
           return;
         }
         if (!kind || !reason) {
-          if (hold) emit(text);
+          if (!hold) return;
+          if (deferred?.reason === 'uncalled') queued.push(text);
+          else emit(text);
           return;
         }
         log.warn({ kind, reason, held: hold }, 'ACTION_CLAIM_DROPPED');
         if (said || deferred) return;
-        if (reason === 'failed') {
-          deferred = kind;
+        // A call of the kind later in this reply makes the claim true, so a held claim waits for the
+        // reply to show. Streamed words cannot wait, so they are corrected at once.
+        if (reason === 'failed' || reason === 'elsewhere' || (reason === 'uncalled' && hold)) {
+          deferred = { kind, reason, text: hold ? text : undefined };
           return;
         }
         said = true;
@@ -351,6 +374,18 @@ async function checkActionClaims<T>(
               passed = 0;
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
+            if (names.some(isCalendarCreate)) calendarCalled = true;
+            // A create came after the claim. A create only saves to Ferni's own list (#1547), so the
+            // claim is still false: the honest line replaces it, and what followed goes out after.
+            if (deferred?.reason === 'uncalled' && calling.has(deferred.kind)) {
+              if (deferred.text) {
+                emit(
+                  calendarCalled ? honestLine(deferred.kind, 'elsewhere', false) : deferred.text
+                );
+              }
+              for (const text of queued.splice(0)) emit(text);
+              deferred = undefined;
+            }
             controller.enqueue(chunk);
             continue;
           }
@@ -371,11 +406,12 @@ async function checkActionClaims<T>(
           }
         }
         if (pending) flush(pending);
-        if (deferred && !said && !calling.has(deferred)) {
-          emit(honestLine(deferred, 'failed', open.has('reminder')));
+        if (deferred && !said && !calling.has(deferred.kind)) {
+          emit(honestLine(deferred.kind, deferred.reason, open.has('reminder')));
         }
         // A yes the reply never acted on: nothing rang, so ask again.
         if (early && !said && !calling.has(early)) emit(honestLine(early, 'awaiting', false));
+        for (const text of queued.splice(0)) emit(text);
         controller.close();
       } catch (error) {
         controller.error(error);
