@@ -588,32 +588,6 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: [],
     examples: ['ferni voice', 'ferni voice --persona maya', 'ferni voice --debug'],
   },
-  chat: {
-    name: 'Chat',
-    description: 'Natural language chat with Ferni (text-based, same tools as voice)',
-    icon: '💬',
-    script: 'apps/cli/src/commands/chat/chat.ts',
-    subcommands: ['--interactive', '--tools', '--exec'],
-    examples: [
-      'ferni chat "play some jazz music"',
-      'ferni chat "call Jordan about the snowstorm"',
-      'ferni chat -i --persona maya',
-      'ferni chat --tools music',
-    ],
-  },
-  music: {
-    name: 'Music',
-    description: 'Control music playback',
-    icon: '🎵',
-    script: 'apps/cli/src/commands/music/music.ts',
-    subcommands: ['play', 'pause', 'resume', 'stop', 'skip', 'volume', 'status', 'suggest'],
-    examples: [
-      'ferni music play "relaxing piano"',
-      'ferni music pause',
-      'ferni music volume 70',
-      'ferni music suggest "focused work"',
-    ],
-  },
   contacts: {
     name: 'Contacts',
     description: 'Manage contacts and relationships',
@@ -727,30 +701,6 @@ const COMMANDS: Record<string, CliCommand> = {
     handler: handleRelease,
     subcommands: ['create', 'changelog', 'tag', 'notes', 'status', 'history'],
     examples: ['ferni release create v1.2.0', 'ferni release changelog', 'ferni release notes'],
-  },
-  devblog: {
-    name: 'DevBlog',
-    description: 'Developer blog content management',
-    icon: '📝',
-    handler: handleDevBlog,
-    subcommands: [
-      'new',
-      'changelog',
-      'images',
-      'newsletter',
-      'social',
-      'preview',
-      'publish',
-      'validate',
-      'status',
-    ],
-    examples: [
-      'ferni devblog new "My Post Title"',
-      'ferni devblog changelog v1.2.3',
-      'ferni devblog images',
-      'ferni devblog preview',
-      'ferni devblog publish',
-    ],
   },
   ops: {
     name: 'Ops',
@@ -1241,23 +1191,6 @@ const COMMANDS: Record<string, CliCommand> = {
     script: 'apps/cli/src/commands/auth/auth-login.ts',
     subcommands: ['login', 'logout', 'status'],
     examples: ['ferni auth login', 'ferni auth status', 'ferni auth logout'],
-  },
-  launch: {
-    name: 'Launch',
-    description: 'Product launch automation (checklist, social, analytics)',
-    icon: '🚀',
-    script: 'apps/cli/src/commands/launch/launch.ts',
-    subcommands: ['checklist', 'day', 'schedule', 'analytics', 'content', 'gifs', 'post'],
-    examples: [
-      'ferni launch',
-      'ferni launch checklist',
-      'ferni launch day',
-      'ferni launch analytics',
-      'ferni launch content',
-      'ferni launch gifs',
-      'ferni launch post twitter',
-      'ferni launch post all',
-    ],
   },
   // ============================================================================
   // EXECUTIVE SUITE - Autonomous Company Operations
@@ -4851,251 +4784,6 @@ async function handleRelease(args: string[]): Promise<void> {
 // ============================================================================
 // DEVBLOG COMMAND
 // ============================================================================
-
-async function handleDevBlog(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
-  log.header(`📝 Developer Blog`);
-
-  const devBlogDir = join(PROJECT_ROOT, 'apps/website/ferni-website/src/dev-blog');
-  const imagesDir = join(PROJECT_ROOT, 'apps/website/ferni-website/images/dev-blog');
-  const scriptsDir = join(PROJECT_ROOT, 'scripts');
-
-  if (subcommand === 'status') {
-    console.log(`${colors.bold}Developer Blog Status:${colors.reset}\n`);
-
-    // Count posts
-    try {
-      const posts = execCommand(`ls -1 ${devBlogDir}/*.md 2>/dev/null | wc -l`).trim();
-      const images = execCommand(`ls -1 ${imagesDir}/*.png 2>/dev/null | wc -l`).trim();
-
-      console.log(`  ${colors.cyan}Posts:${colors.reset} ${posts} markdown files`);
-      console.log(`  ${colors.cyan}Images:${colors.reset} ${images} OG images`);
-
-      // Recent posts
-      console.log(`\n  ${colors.bold}Recent Posts:${colors.reset}`);
-      const recentPosts = execCommand(
-        `ls -t ${devBlogDir}/*.md 2>/dev/null | head -5 | xargs -I {} basename {}`
-      );
-      if (recentPosts) {
-        recentPosts.split('\n').forEach((post) => {
-          if (post) console.log(`    ${icons.bullet} ${post}`);
-        });
-      }
-    } catch {
-      console.log(`  ${colors.yellow}No posts found yet${colors.reset}`);
-    }
-
-    console.log(`\n  ${colors.bold}Available Commands:${colors.reset}`);
-    console.log(`    ferni devblog new "Title"          - Create a new blog post`);
-    console.log(`    ferni devblog changelog <version>  - Generate changelog post`);
-    console.log(`    ferni devblog images               - Generate OG images`);
-    console.log(`    ferni devblog newsletter           - Generate weekly newsletter`);
-    console.log(`    ferni devblog social               - Generate social snippets`);
-    console.log(`    ferni devblog preview              - Start local preview server`);
-    console.log(`    ferni devblog publish              - Deploy to Firebase`);
-    console.log(`    ferni devblog validate             - Validate all posts`);
-  }
-
-  if (subcommand === 'changelog') {
-    const version = args[1];
-    if (!version) {
-      log.error('Version required. Usage: ferni devblog changelog v1.2.3');
-      return;
-    }
-
-    console.log(`${colors.cyan}Generating changelog for ${version}...${colors.reset}\n`);
-
-    const dryRun = args.includes('--dry-run');
-    const cmd = dryRun
-      ? `node ${scriptsDir}/generate-changelog-post.js --version ${version} --dry-run`
-      : `node ${scriptsDir}/generate-changelog-post.js --version ${version}`;
-
-    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'images') {
-    const batch = !args.includes('--single');
-
-    if (batch) {
-      console.log(`${colors.cyan}Generating OG images for all posts...${colors.reset}\n`);
-      spawnSync('sh', ['-c', `node ${scriptsDir}/generate-dev-blog-image.js --batch`], {
-        stdio: 'inherit',
-      });
-    } else {
-      const title = args.find((a) => a.startsWith('--title='))?.split('=')[1];
-      const category = args.find((a) => a.startsWith('--category='))?.split('=')[1];
-
-      if (!title) {
-        log.error(
-          'Title required for single image. Usage: ferni devblog images --single --title="Your Title" --category=tutorial'
-        );
-        return;
-      }
-
-      const imgCmd = `node ${scriptsDir}/generate-dev-blog-image.js --title "${title}" ${category ? `--category ${category}` : ''}`;
-      spawnSync('sh', ['-c', imgCmd], { stdio: 'inherit' });
-    }
-  }
-
-  if (subcommand === 'newsletter') {
-    const preview = args.includes('--preview');
-
-    console.log(`${colors.cyan}Generating weekly newsletter...${colors.reset}\n`);
-    const digestCmd = `node ${scriptsDir}/generate-weekly-digest.js ${preview ? '--preview' : ''}`;
-    spawnSync('sh', ['-c', digestCmd], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'social') {
-    const batch = !args.includes('--recent');
-
-    console.log(`${colors.cyan}Generating social media snippets...${colors.reset}\n`);
-    const socialCmd = `node ${scriptsDir}/generate-social-snippets.js ${batch ? '--batch' : '--recent'}`;
-    spawnSync('sh', ['-c', socialCmd], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'new') {
-    const title = args[1];
-    if (!title) {
-      log.error('Title required. Usage: ferni devblog new "My Post Title" --category=tutorial');
-      return;
-    }
-
-    const category = args.find((a) => a.startsWith('--category='))?.split('=')[1] || 'tutorial';
-    const date = new Date().toISOString().split('T')[0];
-    const slug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-    const filename = `${date}-${slug}.md`;
-    const filepath = join(devBlogDir, filename);
-
-    const frontmatter = `---
-title: "${title}"
-excerpt: "Add a compelling excerpt here..."
-author: "Ferni Dev Team"
-authorInitials: "FD"
-authorColor: "#38bdf8"
-date: ${date}
-category: "${category}"
-image: "${slug}.png"
-readTime: 5
----
-
-# ${title}
-
-Start writing your post here...
-
-## Section 1
-
-Content goes here.
-
-## Section 2
-
-More content.
-
----
-
-*Have questions? Join our [Discord community](https://discord.gg/ferni) or reach out on [Twitter](https://twitter.com/ferni_ai).*
-`;
-
-    const fs = await import('fs/promises');
-    await fs.writeFile(filepath, frontmatter);
-    console.log(`${colors.green}${icons.success}${colors.reset} Created: ${filename}`);
-    console.log(`\n  ${colors.dim}Edit: ${filepath}${colors.reset}`);
-    console.log(`  ${colors.dim}Preview: ferni devblog preview${colors.reset}`);
-  }
-
-  if (subcommand === 'preview') {
-    console.log(`${colors.cyan}Starting dev blog preview server...${colors.reset}\n`);
-    const websiteDir = join(PROJECT_ROOT, 'apps/website/ferni-website');
-    spawnSync('sh', ['-c', `cd ${websiteDir} && pnpm serve`], { stdio: 'inherit' });
-  }
-
-  if (subcommand === 'publish') {
-    const dryRun = args.includes('--dry-run');
-    console.log(`${colors.cyan}Publishing dev blog to Firebase...${colors.reset}\n`);
-
-    const websiteDir = join(PROJECT_ROOT, 'apps/website/ferni-website');
-
-    // Build first
-    console.log(`  ${colors.dim}Building...${colors.reset}`);
-    spawnSync('sh', ['-c', `cd ${websiteDir} && pnpm build`], { stdio: 'inherit' });
-
-    if (dryRun) {
-      console.log(`\n${colors.yellow}Dry run - skipping deploy${colors.reset}`);
-    } else {
-      // Deploy
-      console.log(`\n  ${colors.dim}Deploying...${colors.reset}`);
-      spawnSync('sh', ['-c', `cd ${websiteDir} && firebase deploy --only hosting:ferni-landing`], {
-        stdio: 'inherit',
-      });
-      console.log(
-        `\n${colors.green}${icons.success}${colors.reset} Published to https://developers.ferni.ai`
-      );
-    }
-  }
-
-  if (subcommand === 'validate') {
-    console.log(`${colors.bold}Validating blog posts...${colors.reset}\n`);
-
-    try {
-      const posts = execCommand(`ls -1 ${devBlogDir}/*.md 2>/dev/null`).trim().split('\n');
-      let errors = 0;
-      let warnings = 0;
-
-      for (const postPath of posts) {
-        if (!postPath) continue;
-        const filename = postPath.split('/').pop();
-        const fs = await import('fs/promises');
-        const content = await fs.readFile(postPath, 'utf-8');
-
-        // Check frontmatter
-        const hasFrontmatter = content.startsWith('---');
-        const hasTitle = content.includes('title:');
-        const hasExcerpt = content.includes('excerpt:');
-        const hasDate = content.includes('date:');
-        const hasCategory = content.includes('category:');
-        const hasImage = content.includes('image:');
-
-        const issues: string[] = [];
-        if (!hasFrontmatter) issues.push('Missing frontmatter');
-        if (!hasTitle) issues.push('Missing title');
-        if (!hasExcerpt) issues.push('Missing excerpt');
-        if (!hasDate) issues.push('Missing date');
-        if (!hasCategory) issues.push('Missing category');
-        if (!hasImage) issues.push('Missing image reference');
-
-        if (issues.length > 0) {
-          console.log(`  ${colors.red}${icons.error}${colors.reset} ${filename}`);
-          issues.forEach((issue) => console.log(`      ${colors.dim}${issue}${colors.reset}`));
-          errors++;
-        } else {
-          console.log(`  ${colors.green}${icons.success}${colors.reset} ${filename}`);
-        }
-
-        // Check for image file
-        const imageMatch = content.match(/image:\s*["']?([^"'\n]+)["']?/);
-        if (imageMatch) {
-          const imageName = imageMatch[1];
-          const imagePath = join(imagesDir, imageName);
-          if (!existsSync(imagePath)) {
-            console.log(
-              `      ${colors.yellow}${icons.warning} Missing OG image: ${imageName}${colors.reset}`
-            );
-            warnings++;
-          }
-        }
-      }
-
-      console.log(
-        `\n${colors.bold}Summary:${colors.reset} ${posts.length} posts, ${errors} errors, ${warnings} warnings`
-      );
-    } catch (error) {
-      log.error('Failed to validate posts');
-    }
-  }
-}
 
 // ============================================================================
 // OPS COMMAND
@@ -10327,7 +10015,6 @@ ${colors.bold}Commands:${colors.reset}
       'migrate',
       'deps',
       'auth',
-      'devblog',
       'icons',
     ],
     'Agents & Quality': [
