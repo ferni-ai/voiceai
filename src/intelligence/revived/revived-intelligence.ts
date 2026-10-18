@@ -23,6 +23,7 @@ import {
   type RevivedLine,
   type SummaryDoc,
 } from './revived-builders.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'RevivedIntelligence' });
 
@@ -201,7 +202,7 @@ async function load(entry: Entry): Promise<void> {
  */
 export async function startRevivedIntelligence(start: RevivedStart): Promise<void> {
   if (!revivedIntelligenceConfig(start.env).on) return Promise.resolve();
-  if (!start.userId || start.userId === 'anonymous' || !start.sessionId) return Promise.resolve();
+  if (!isMemberIdentity(start.userId) || !start.sessionId) return Promise.resolve();
   const existing = sessions.get(start.sessionId);
   if (existing) return existing.loading ?? Promise.resolve();
   evict(Date.now());

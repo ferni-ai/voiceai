@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getFirebaseUser } from '../../../services/identity/firebase-auth.js';
 import type { MessageInstance } from 'twilio/lib/rest/api/v2010/account/message.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 const log = getLogger();
 
@@ -54,9 +55,9 @@ const E164 = /^\+[1-9]\d{7,14}$/;
 
 /** Ids that can't be a Firebase account (anonymous, `phone:`, `sponsored_`, ...) are never looked up. */
 function isAccountUid(userId: string | undefined): userId is string {
-  if (!userId) return false;
+  if (!isMemberIdentity(userId)) return false;
   const id = userId.trim();
-  return id !== '' && id !== 'anonymous' && !id.includes(':') && !id.startsWith('sponsored_');
+  return !id.includes(':') && !id.startsWith('sponsored_');
 }
 
 /** The only number whose texts this call may read, or undefined to refuse. */

@@ -21,6 +21,7 @@ import { predictionCheckInAsked } from '../../tools/dynamic-loader/prediction-to
 import { createLogger } from '../../utils/safe-logger.js';
 import { hardNews } from '../personas/turn-candor.js';
 import { callerVenting } from '../personas/turn-extras.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'prediction-check-in' });
 
@@ -96,6 +97,6 @@ const NONE: PredictionCheckIn = {
 
 /** The call's prediction check-in with WEEKLY_PREDICTION=on; one with nothing when off. */
 export function predictionCheckInFor(userId: string, personaId: string): PredictionCheckIn {
-  if (!flagOn('WEEKLY_PREDICTION') || !userId || userId === 'anonymous') return NONE;
+  if (!flagOn('WEEKLY_PREDICTION') || !isMemberIdentity(userId)) return NONE;
   return createPredictionCheckIn({ userId, personaId });
 }

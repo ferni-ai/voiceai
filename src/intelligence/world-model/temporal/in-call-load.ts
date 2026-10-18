@@ -19,6 +19,7 @@ import {
 } from './in-call.js';
 import { createFirestoreWorldFactStore, type WorldFactStore } from './store.js';
 import type { TemporalFact } from './types.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'world-model:in-call' });
 
@@ -53,7 +54,7 @@ export async function loadWorldFactsForCall(
   userId: string | undefined,
   deps: WorldFactsLoadDeps = {}
 ): Promise<void> {
-  if (!isWorldFactsInCallOn(deps.env) || !userId || userId === 'anonymous') return;
+  if (!isWorldFactsInCallOn(deps.env) || !isMemberIdentity(userId)) return;
   const store = deps.store ?? createFirestoreWorldFactStore();
   const topics = deps.forgotten ?? (async (id: string) => (await forgottenTopicsOrNull(id)) ?? []);
   try {

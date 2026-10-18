@@ -27,6 +27,7 @@ import {
   resolveCallerLocation,
 } from '../../shared/caller-location.js';
 import { getUserPreferences, updateUserPreferences } from '../information/preferences/storage.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 const log = getLogger();
 
@@ -97,15 +98,6 @@ const NUMBER_WORDS = new Set([
   'thousand',
 ]);
 
-/**
- * Ids that name no one: the fast-path shared ctx, the placeholder handler-setup
- * gives a call with no user, and the ids of unknown or on-behalf callers
- * (isMemberCall in services/outreach/after-call-checkin.ts). Only a member's
- * own id is reused on a later call, so only that one can be remembered.
- */
-const NO_CALLER_IDS = new Set(['shared', 'anonymous', 'default', 'unknown']);
-const NO_CALLER_PREFIXES = ['anon:', 'onbehalf:'];
-
 export type SaveCityResult = 'saved' | 'not-a-city' | 'failed';
 
 export function placesLocationOn(env = process.env): boolean {
@@ -142,14 +134,13 @@ export function cityOnly(value: string | undefined): string | undefined {
  * The caller on this call: only the call's own userData.userId. A fast-path
  * tool's ctx is shared, and handler-setup gives a call with no user the
  * placeholder 'anonymous'; neither names a caller, so neither is read or written.
+ * Nor does an unknown or on-behalf caller's id (isMemberIdentity): only a
+ * member's own id is reused on a later call, so only that one can be remembered.
  */
 export function callerUserId(opts: unknown): string | undefined {
   const id = (opts as { ctx?: { userData?: { userId?: unknown } } } | undefined)?.ctx?.userData
     ?.userId;
-  if (typeof id !== 'string') return undefined;
-  const trimmed = id.trim();
-  if (!trimmed || NO_CALLER_IDS.has(trimmed.toLowerCase())) return undefined;
-  return NO_CALLER_PREFIXES.some((prefix) => trimmed.startsWith(prefix)) ? undefined : trimmed;
+  return typeof id === 'string' && isMemberIdentity(id) ? id.trim() : undefined;
 }
 
 /** "Philadelphia, PA" for the caller's saved city; undefined when none is saved or the read fails. */

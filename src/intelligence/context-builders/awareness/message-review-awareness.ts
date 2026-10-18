@@ -13,6 +13,7 @@ import {
   getPendingDrafts,
   getDraftsReadyForReview,
 } from '../../../services/message-validation/message-validation-service.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:message-review-awareness' });
 
@@ -31,7 +32,7 @@ export const messageReviewAwarenessBuilder: ContextBuilder = {
     }
 
     const userId = input.services?.userId || 'anonymous';
-    if (userId === 'anonymous') {
+    if (!isMemberIdentity(userId)) {
       return [];
     }
 

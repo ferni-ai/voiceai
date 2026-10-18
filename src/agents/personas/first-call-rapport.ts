@@ -19,6 +19,7 @@
 import type { llm } from '@livekit/agents';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 /** The base note on every reply of a first call. */
 export const FIRST_CALL_NOTE =
@@ -47,12 +48,7 @@ export function firstCallRapportEnabled(env: Env = process.env): boolean {
 /** A known account on its first conversation. */
 export function isFirstCall(userData: unknown): boolean {
   const u = userData as { isReturningUser?: unknown; userId?: unknown } | undefined;
-  return (
-    u?.isReturningUser === false &&
-    typeof u.userId === 'string' &&
-    u.userId !== '' &&
-    u.userId !== 'anonymous'
-  );
+  return u?.isReturningUser === false && isMemberIdentity(u.userId as string | undefined);
 }
 
 /** What Ferni has said so far on this call. */

@@ -122,6 +122,7 @@ import {
   DEFAULT_PETER_INSIGHTS,
   type JordanInsightBriefing,
 } from './types.js';
+import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:jordan-milestone-insights' });
 
@@ -245,7 +246,7 @@ async function buildJordanMilestoneInsightsContext(
   if (!isJordan) return injections;
 
   const userId = services?.userId || 'anonymous';
-  if (userId === 'anonymous') return injections;
+  if (!isMemberIdentity(userId)) return injections;
 
   const turnCount = userData?.turnCount ?? 0;
   const sessionId = services?.sessionId || userId;

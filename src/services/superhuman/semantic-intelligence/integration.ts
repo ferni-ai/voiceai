@@ -1451,7 +1451,7 @@ function extractKeyConcepts(text: string): string[] {
  * This pre-loads Firestore data into memory caches for faster context building.
  */
 export async function warmupSemanticIntelligence(userId: string): Promise<void> {
-  if (!userId || userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return;
   }
 

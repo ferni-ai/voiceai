@@ -26,6 +26,7 @@ import {
   getTemporalAnchor,
 } from '../../../services/embodied-awareness.js';
 import { processMoodDrift, getMoodExpression, getMoodState } from '../../../services/mood-drift.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 // ============================================================================
 // TYPES
@@ -228,7 +229,7 @@ export async function buildAliveAwarenessContext(
 
   // 4. Cross-agent context
   let teamContextStr: string | undefined;
-  if (turnCount > 2 && userId !== 'anonymous') {
+  if (turnCount > 2 && isMemberIdentity(userId)) {
     try {
       const teamContext = await getTeamContext(userId, personaId);
       teamContextStr = formatCrossAgentContextForPrompt(teamContext, personaId);

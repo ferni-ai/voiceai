@@ -25,6 +25,7 @@ import {
 import { directedText } from '../../speech/direction/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { calmGreeting, directedGreeting } from './greeting-direction.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'ResumeAfterDrop' });
 
@@ -84,7 +85,7 @@ export function startResumeLookup(
   userId: string | undefined,
   currentConversationId: string | undefined
 ): void {
-  if (!resumeAfterDropMode() || !userId || userId === 'anonymous') return;
+  if (!resumeAfterDropMode() || !isMemberIdentity(userId)) return;
   const lookup = findDroppedCall(userId, currentConversationId).catch((error: unknown) => {
     log.warn({ error: String(error), sessionId }, 'Dropped-call lookup failed, greeting cold');
     return undefined;

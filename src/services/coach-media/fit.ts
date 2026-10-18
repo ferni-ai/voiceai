@@ -10,6 +10,7 @@
 
 import { getUserPreferences } from '../user-preferences-store.js';
 import { topicOnlyQuery } from './topic-query.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 
 /** Preference categories that say what fits a coaching resource. */
 export const FIT_CATEGORIES = [
@@ -29,7 +30,7 @@ export async function fitContext(
 ): Promise<string> {
   const parts: string[] = [];
   if (said) parts.push(said);
-  if (userId && userId !== 'anonymous') {
+  if (isMemberIdentity(userId)) {
     const profile = await getUserPreferences(userId).catch(() => null);
     const stored = [...(profile?.preferences.values() ?? [])]
       .filter((p) => p.isActive && FIT_CATEGORIES.includes(p.category))

@@ -27,6 +27,7 @@ import {
   lineSaysAnniversary,
 } from './friendship-anniversary.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -95,14 +96,14 @@ async function inTime<T>(work: Promise<T>): Promise<T | undefined> {
 
 /** The commitment to open on, or undefined (flag off, none open, or too slow). */
 async function checkInFor(userId: string | undefined): Promise<string | undefined> {
-  if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
+  if (!isMemberIdentity(userId) || !coachFollowThroughMode()) return undefined;
   // Never one about a call Ferni hasn't completed: it is held, failed or unheard.
   return (await inTime(checkInsWithCalls(userId)))?.find((c) => !c.callNote)?.statement;
 }
 
 /** A win not yet named, or undefined (COACH_WINS off, none, or too slow). */
 async function winFor(userId: string | undefined): Promise<Win | undefined> {
-  if (!userId || userId === 'anonymous') return undefined;
+  if (!isMemberIdentity(userId)) return undefined;
   return inTime(winForOpener(userId));
 }
 
@@ -135,7 +136,7 @@ async function ponderFor(
   userId: string | undefined,
   history: CallerHistory | undefined
 ): Promise<PonderAsk | undefined> {
-  if (!userId || userId === 'anonymous' || !isPonderingOn()) return undefined;
+  if (!isMemberIdentity(userId) || !isPonderingOn()) return undefined;
   if (history && history.calls < 2) return undefined;
   const db = getFirestoreDb();
   if (!db) return undefined;
