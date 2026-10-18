@@ -1,9 +1,11 @@
 /**
- * EMOTION_LIFT: Ferni rests calm and lifts on bright words (Seth's "lively"
- * pick, 2026-10-17: calm B at excited / 1.08).
+ * EMOTION_LIFT: Ferni lifts when the caller brings something bright (Seth's
+ * "lively" pick, 2026-10-17: calm B at excited / 1.08), and otherwise rests.
  *
  * Asserted on the request bodies the real Cartesia provider sends over its
- * socket (openReplyStream through the Director).
+ * socket (openReplyStream through the Director). As in production, the LLM
+ * has streamed only the first clause when the opening is decided, and the
+ * reply reaches Cartesia clause by clause.
  */
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,26 +13,26 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { forgetCallerTurns } from '../../../adaptive-ssml/heavy-moment.js';
 import { CartesiaTTSProvider } from '../../providers/cartesia.js';
 import { CartesiaSocket } from '../../providers/cartesia-socket.js';
+import { callerBright } from '../emotion-lift.js';
 import { resetFerniRestingVoiceWarnings } from '../ferni-resting-voice.js';
 import { resetPersonaDeliveryCache } from '../persona-delivery.js';
 import { directSpeech } from '../reply-director.js';
 import { DirectorSessions } from '../session-state.js';
 
 const CALM_B = '2e7f8a26-1627-4d66-88dc-293c297c1619';
-const LIVELY = {
-  SPEECH_DIRECTOR: 'live',
-  FERNI_VOICE_EMOTION: 'excited',
-  FERNI_VOICE_SPEED: '1.08',
-};
+const PLAIN = { SPEECH_DIRECTOR: 'live' };
+const LIVELY = { ...PLAIN, FERNI_VOICE_EMOTION: 'excited', FERNI_VOICE_SPEED: '1.08' };
 const LIFT = { ...LIVELY, EMOTION_LIFT: 'on' };
+const GOOD = 'I got the job!!';
+const LAUGH = 'haha that is the funniest thing';
 
 let sent: Array<{ transcript: string }>;
 
 beforeEach(() => {
   sent = [];
   resetFerniRestingVoiceWarnings();
-  forgetCallerTurns('lift');
   resetPersonaDeliveryCache();
+  forgetCallerTurns('lift');
   vi.spyOn(CartesiaSocket.prototype, 'send').mockImplementation(async (_id, request) => {
     sent.push(request as (typeof sent)[number]);
   });
@@ -38,26 +40,32 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
+/** The reply cut into clauses, the way it reaches the Director in production. */
+const clauses = (text: string): string[] => text.match(/[^,.!?]+[,.!?]*\s*/g) ?? [text];
+
 interface SpeakOpts {
-  personaId?: string;
-  sessions?: DirectorSessions;
   /** What the caller just said. */
   caller?: string;
+  personaId?: string;
+  sessions?: DirectorSessions;
   userEmotion?: string;
-  /** The pieces pushed to Cartesia (default: the whole text in one push). */
+  /** The pieces pushed (default: clause by clause). */
   pushes?: string[];
-  /** What the LLM had streamed when the opening was decided (default: the whole text). */
-  streamed?: string;
 }
 
 /** One reply through the Director into the real provider; every request transcript it sent. */
-async function speakAll(text: string, env: Record<string, string>, opts: SpeakOpts = {}) {
+async function speakAll(
+  text: string,
+  env: Record<string, string>,
+  opts: SpeakOpts = {}
+): Promise<string[]> {
   const from = sent.length;
-  const pushes = opts.pushes ?? [text];
+  const pushes = opts.pushes ?? clauses(text);
   const directed = directSpeech(new CartesiaTTSProvider().openReplyStream(CALM_B), {
+    // Only the first clause has streamed when the opening is decided.
     textStream: new ReadableStream<string>({
       start(c) {
-        c.enqueue(opts.streamed ?? text);
+        c.enqueue(pushes[0] ?? '');
         c.close();
       },
     }),
@@ -77,8 +85,11 @@ async function speakAll(text: string, env: Record<string, string>, opts: SpeakOp
   }
   for (const piece of pushes) directed.reply.push(piece);
   directed.reply.end();
-  await vi.waitFor(() => expect(sent.length - from).toBeGreaterThanOrEqual(pushes.length + 1));
-  return sent.slice(from, from + pushes.length).map((r) => r.transcript);
+  await vi.waitFor(() => expect(sent.slice(from).some((r) => r.transcript === '')).toBe(true));
+  return sent
+    .slice(from)
+    .map((r) => r.transcript)
+    .filter((t) => t !== '');
 }
 
 /** The opening request transcript of one reply. */
@@ -86,207 +97,246 @@ async function speak(text: string, env: Record<string, string>, opts: SpeakOpts 
   return (await speakAll(text, env, opts))[0] ?? '';
 }
 
-const PLAIN = { SPEECH_DIRECTOR: 'live' };
 const tagOf = (push: string, name: 'emotion' | 'speed'): string | undefined =>
   new RegExp(`<${name} (?:value|ratio)="([^"]+)"/>`).exec(push)?.[1];
+const speeds = (pushes: string[]): number[] =>
+  pushes.flatMap((p) => [...p.matchAll(/<speed ratio="([\d.]+)"\/>/g)].map((m) => Number(m[1])));
+const emotions = (pushes: string[]): string[] =>
+  pushes.flatMap((p) => [...p.matchAll(/<emotion value="([a-z_]+)"\/>/g)].map((m) => m[1] ?? ''));
 
-describe('EMOTION_LIFT: bright replies lift', () => {
-  it('a funny reply is sent excited at 1.08', async () => {
-    const push = await speak('That was so funny, ha.', LIFT);
-    expect(push).toBe('<speed ratio="1.08"/><emotion value="excited"/>That was so funny, ha. ');
-  });
-
-  it('a bright question is excited, not curious', async () => {
-    const off = await speak('Wow, how did the first day go?', LIVELY);
-    expect(tagOf(off, 'emotion')).toBe('curious');
-    const push = await speak('Wow, how did the first day go?', LIFT);
+describe('EMOTION_LIFT: a bright caller lifts the reply', () => {
+  it('good news is answered excited at 1.08', async () => {
+    const push = await speak('That is so great, congrats!', LIFT, { caller: GOOD });
     expect(tagOf(push, 'emotion')).toBe('excited');
     expect(tagOf(push, 'speed')).toBe('1.08');
   });
 
-  it("on a bright reply the LLM's own curious gives way to excited", async () => {
-    const text = '<emotion value="curious"/>Ha, and then what happened?';
-    expect(tagOf(await speak(text, LIVELY), 'emotion')).toBe('curious');
-    expect(tagOf(await speak(text, LIFT), 'emotion')).toBe('excited');
+  it('a laughing caller gets an excited reply', async () => {
+    const push = await speak('Ha, that is so funny.', LIFT, { caller: LAUGH });
+    expect(push.startsWith('<speed ratio="1.08"/><emotion value="excited"/>')).toBe(true);
   });
 
-  it('no reply runs faster than FERNI_VOICE_SPEED, even turn after bright turn', async () => {
-    const sessions = new DirectorSessions();
-    for (const line of ['Ha, I love that.', 'That is great news.', 'Wow, so much fun.']) {
-      const push = await speak(line, LIFT, { sessions });
-      expect(Number(tagOf(push, 'speed'))).toBeLessThanOrEqual(1.08);
-      expect(tagOf(push, 'emotion')).toBe('excited');
-    }
+  it('a question to a bright caller is excited, not curious', async () => {
+    const text = 'When do you start?';
+    expect(tagOf(await speak(text, LIVELY, { caller: GOOD }), 'emotion')).toBe('curious');
+    expect(tagOf(await speak(text, LIFT, { caller: GOOD }), 'emotion')).toBe('excited');
+  });
+
+  it("the LLM's own curious, to a bright caller, gives way to excited", async () => {
+    const text = '<emotion value="curious"/>When do you start?';
+    expect(tagOf(await speak(text, LIVELY, { caller: GOOD }), 'emotion')).toBe('curious');
+    forgetCallerTurns('lift');
+    expect(tagOf(await speak(text, LIFT, { caller: GOOD }), 'emotion')).toBe('excited');
+  });
+
+  it('"Ha, congrats! You worked so hard for this." stays excited throughout, no flip', async () => {
+    const pushes = await speakAll('Ha, congrats! You worked so hard for this.', LIFT, {
+      caller: GOOD,
+    });
+    expect(emotions(pushes)).toEqual(['excited']);
+    expect(speeds(pushes).every((s) => s === 1.08)).toBe(true);
+  });
+
+  it.each([
+    'That is so great, and I bet you were crying laughing.',
+    'Congrats! You must be fired up.',
+    'Ha, congrats! He tells terrible jokes though.',
+    'Ha, congrats! The cake was gone in minutes.',
+  ])('bare or idiomatic words mid-reply never flip it: %s', async (text) => {
+    const pushes = await speakAll(text, LIFT, { caller: GOOD });
+    expect(emotions(pushes)).toEqual(['excited']);
   });
 });
 
-describe('EMOTION_LIFT: other replies rest', () => {
-  it('a neutral reply rests at 1.03 with no upbeat tone', async () => {
-    const push = await speak('I checked the calendar for Thursday.', LIFT);
+describe('EMOTION_LIFT: no lift unless the caller is bright', () => {
+  it('a neutral caller gets the resting pace (1.03) and no upbeat tone', async () => {
+    const push = await speak('I checked the calendar for Thursday.', LIFT, {
+      caller: 'can you check thursday',
+    });
     expect(push).toBe('<speed ratio="1.03"/>I checked the calendar for Thursday. ');
   });
 
-  it('a question that is not bright stays curious at the resting pace', async () => {
-    const push = await speak('What did the doctor say about it?', LIFT);
+  it('a question to a neutral caller stays curious at the resting pace', async () => {
+    const push = await speak('What did the doctor say about it?', LIFT, { caller: 'so anyway' });
     expect(tagOf(push, 'emotion')).toBe('curious');
     expect(tagOf(push, 'speed')).toBe('1.03');
   });
-});
 
-describe('EMOTION_LIFT: hard moments keep their tone and normal pace', () => {
-  it('a sympathetic reply is sent exactly as with no overrides at all', async () => {
-    const plain = await speak("I'm so sorry about your dad.", { SPEECH_DIRECTOR: 'live' });
-    const push = await speak("I'm so sorry about your dad.", LIFT);
-    expect(tagOf(push, 'emotion')).toBe('sympathetic');
-    expect(push).toBe(plain);
+  it('caller "my sister relapsed" + "Wow, how is she doing now?" is not excited', async () => {
+    const push = await speak('Wow, how is she doing now?', LIFT, { caller: 'my sister relapsed' });
+    expect(tagOf(push, 'emotion')).not.toBe('excited');
+    expect(tagOf(push, 'speed')).not.toBe('1.08');
   });
 
-  it('a calm reply the LLM chose keeps calm at normal pace', async () => {
-    const text = '<emotion value="calm"/>Take a breath with me.';
-    const plain = await speak(text, { SPEECH_DIRECTOR: 'live' });
-    const push = await speak(text, LIFT);
-    expect(tagOf(push, 'emotion')).toBe('calm');
-    expect(push).toBe(plain);
-  });
-});
-
-describe('EMOTION_LIFT: a bright reply breaks the carry-over', () => {
-  const after = async (env: Record<string, string>, line: string): Promise<string> => {
-    const sessions = new DirectorSessions();
-    await speak("I'm so sorry about your dad.", env, { sessions });
-    return speak(line, env, { sessions });
-  };
-
-  it('[laughter] after a sympathetic turn is not voiced sympathetic', async () => {
-    const line = '[laughter] Okay, that part is pretty good.';
-    expect(tagOf(await after(LIVELY, line), 'emotion')).toBe('sympathetic');
-    const push = await after(LIFT, line);
-    expect(tagOf(push, 'emotion')).toBe('excited');
+  it('"Ha, okay, so the biopsy came back?" after a hard turn is not excited', async () => {
+    const push = await speak('Ha, okay, so the biopsy came back?', LIFT, {
+      caller: 'they did a biopsy on monday haha',
+    });
+    expect(tagOf(push, 'emotion')).not.toBe('excited');
   });
 
-  it('a fun line after a sympathetic turn drops the carried tone', async () => {
-    expect(tagOf(await after(LIVELY, 'He sounds like fun.'), 'emotion')).toBe('sympathetic');
-    expect(tagOf(await after(LIFT, 'He sounds like fun.'), 'emotion')).toBe('excited');
+  it.each([
+    ['I know you love her so much, and now she is gone.', 'she moved away'],
+    ["Wow, that's awful.", 'my boss yelled at me haha'],
+    ['Wow. He really said that to you?', 'he called me lazy lol'],
+    ["That doesn't sound like fun at all.", 'it was not fun'],
+    ["That's not funny.", 'that was not funny'],
+    ['Oh great, they fired you?', 'lol they fired me'],
+    ['Ha, I hear you. That sounds really hard.', 'work has been brutal'],
+  ])('%s (caller: %s) is not lifted', async (text, caller) => {
+    const pushes = await speakAll(text, LIFT, { caller });
+    expect(emotions(pushes)).not.toContain('excited');
+    expect(speeds(pushes)).not.toContain(1.08);
   });
 
-  it('a plain line after a sympathetic turn keeps the care', async () => {
-    expect(tagOf(await after(LIFT, 'Tell me about him.'), 'emotion')).toBe('sympathetic');
-  });
-});
-
-describe('EMOTION_LIFT: scope', () => {
   it('a teammate is unchanged by the flag', async () => {
-    const text = 'That was so funny, ha.';
-    const off = await speak(text, LIVELY, { personaId: 'maya-santos' });
-    expect(await speak(text, LIFT, { personaId: 'maya-santos' })).toBe(off);
-  });
-
-  it('without FERNI_VOICE_SPEED the pace is the Director’s own', async () => {
-    const env = { SPEECH_DIRECTOR: 'live', EMOTION_LIFT: 'on', FERNI_VOICE_EMOTION: 'excited' };
-    const plain = await speak('I checked the calendar for Thursday.', { SPEECH_DIRECTOR: 'live' });
-    expect(await speak('I checked the calendar for Thursday.', env)).toBe(plain);
+    const opts = { caller: GOOD, personaId: 'maya-santos' };
+    const off = await speakAll('Ha, that is so funny.', LIVELY, opts);
+    forgetCallerTurns('lift');
+    expect(await speakAll('Ha, that is so funny.', LIFT, opts)).toEqual(off);
   });
 });
 
-describe('EMOTION_LIFT: hard words beat laughter and bright words (review C1, L1)', () => {
+describe('EMOTION_LIFT: hard moments win (C1, L1)', () => {
   it.each([
     "[laughs] Oh no, I'm so sorry your dad died.",
     '[laughter] my dad died',
     '<emotion value="sympathetic"/>[laughter] Oh man. I\'m so sorry',
-    "I love that you called. I'm so sorry about your dad.",
-    "Ha, I'm so sorry about your dad.",
-  ])('%s is voiced as with no overrides, never excited', async (text) => {
-    const plain = await speak(text, PLAIN);
-    const push = await speak(text, LIFT);
-    expect(tagOf(push, 'emotion')).not.toBe('excited');
-    expect(push).toBe(plain);
+    "I'm so sorry, I love that you called.",
+  ])('%s, even to a laughing caller, is voiced as with no overrides', async (text) => {
+    const plain = await speakAll(text, PLAIN, { caller: LAUGH });
+    forgetCallerTurns('lift');
+    const lifted = await speakAll(text, LIFT, { caller: LAUGH });
+    expect(emotions(lifted)).not.toContain('excited');
+    expect(lifted).toEqual(plain);
+  });
+
+  it('"Ha, I\'m so sorry about your dad." settles at "sorry", never excited past the laugh', async () => {
+    const pushes = await speakAll("Ha, I'm so sorry about your dad.", LIFT, { caller: LAUGH });
+    expect(pushes[1]).toMatch(
+      /^<speed ratio="1(?:\.0\d)?"\/><emotion value="sympathetic"\/>I'm so sorry/
+    );
+  });
+
+  it('a resting reply that turns hard drops to the Director pace, with no tone added', async () => {
+    const pushes = await speakAll('So, about Thursday. Your dad died?', LIFT, { caller: 'ok' });
+    expect(tagOf(pushes[0] ?? '', 'speed')).toBe('1.03');
+    expect(emotions(pushes)).toEqual([]);
+    expect(speeds(pushes.slice(1)).every((s) => s < 1.03)).toBe(true);
   });
 
   it.each(['sympathetic', 'contemplative', 'calm'])(
     "the LLM's own %s on a laughing line is kept, not lifted",
     async (emotion) => {
-      const push = await speak(`<emotion value="${emotion}"/>[laughter] Oh man, okay.`, LIFT);
+      const text = `<emotion value="${emotion}"/>[laughter] Oh man, okay.`;
+      const push = await speak(text, LIFT, { caller: LAUGH });
       expect(tagOf(push, 'emotion')).toBe(emotion);
       expect(tagOf(push, 'speed')).not.toBe('1.08');
     }
   );
-});
 
-describe("EMOTION_LIFT: the caller's hard moment and the whole reply (review H1)", () => {
-  it('a laughing reply right after the caller says something hard is not lifted', async () => {
-    const opts = { caller: 'my dad died lol' };
-    const plain = await speak('[laughter] oh wow', PLAIN, opts);
-    forgetCallerTurns('lift');
-    const push = await speak('[laughter] oh wow', LIFT, opts);
-    expect(tagOf(push, 'emotion')).not.toBe('excited');
-    expect(push).toBe(plain);
-  });
-
-  it("the caller's turn before this one still counts", async () => {
+  it('a laughing caller right after a hard turn is not lifted', async () => {
     await speak('I am so sorry.', LIFT, { caller: 'my mom passed away last week' });
-    const push = await speak("[laughter] that's so funny", LIFT, { caller: 'lol anyway' });
+    const push = await speak('Ha, that is so funny.', LIFT, { caller: 'lol anyway' });
     expect(tagOf(push, 'emotion')).not.toBe('excited');
     expect(tagOf(push, 'speed')).not.toBe('1.08');
   });
 
-  it('a reply that turns hard after its opening is not lifted', async () => {
-    const push = await speak('Ha, I hear you. That sounds really hard.', LIFT);
-    expect(tagOf(push, 'emotion')).not.toBe('excited');
-  });
-
-  it('the opening is judged on everything streamed so far, not its first phrase', async () => {
-    const text = 'Ha, I hear you. That sounds really hard.';
-    const [first] = await speakAll(text, LIFT, {
-      pushes: ['Ha, I hear you. ', 'That sounds really hard.'],
-    });
-    expect(tagOf(first ?? '', 'emotion')).not.toBe('excited');
-  });
-
-  it('when the hard part streams after the opening, that push settles to sympathetic', async () => {
-    const [first, second] = await speakAll('', LIFT, {
-      streamed: 'Ha, that is funny. ',
-      pushes: ['Ha, that is funny. ', "But honestly I'm worried about you."],
-    });
-    expect(tagOf(first ?? '', 'emotion')).toBe('excited');
-    expect(second).toMatch(/^<speed ratio="1\.02"\/><emotion value="sympathetic"\/>But/);
-  });
-});
-
-describe('EMOTION_LIFT: negated, shocked and sarcastic bright words (review H2)', () => {
-  it.each([
-    'I know you love her so much, and now she is gone.',
-    "Wow, that's awful.",
-    'Wow. He really said that to you?',
-    "That doesn't sound like fun at all.",
-    "That's not funny.",
-    'Oh great, they fired you?',
-  ])('%s is not lifted', async (text) => {
-    const push = await speak(text, LIFT);
-    expect(tagOf(push, 'emotion')).not.toBe('excited');
-    expect(tagOf(push, 'speed')).not.toBe('1.08');
-  });
-});
-
-describe('EMOTION_LIFT: pace limits (review M1, M3)', () => {
-  it('with VOICE_ATTUNE on, a heavy reply keeps the no-overrides pace in every sentence', async () => {
-    const text = "I'm so sorry about your dad. He sounds like he was a good man.";
-    const pushes = ["I'm so sorry about your dad. ", 'He sounds like he was a good man.'];
-    const attune = { userEmotion: 'sad', pushes };
-    const plain = await speakAll(text, { ...PLAIN, VOICE_ATTUNE: 'on' }, attune);
-    const lifted = await speakAll(text, { ...LIFT, VOICE_ATTUNE: 'on' }, attune);
+  it('"my dad died lol" is a heavy moment, not a bright turn', async () => {
+    const plain = await speakAll('[laughter] oh wow', PLAIN, { caller: 'my dad died lol' });
+    forgetCallerTurns('lift');
+    const lifted = await speakAll('[laughter] oh wow', LIFT, { caller: 'my dad died lol' });
+    expect(emotions(lifted)).not.toContain('excited');
     expect(lifted).toEqual(plain);
   });
 
-  it("a later push's own speed tag never takes a bright reply past FERNI_VOICE_SPEED", async () => {
-    const [, second] = await speakAll('', LIFT, {
-      streamed: 'That was so funny, ha. And then he fell over.',
-      pushes: ['That was so funny, ha. ', '<speed ratio="1"/>And then he fell over.'],
+  it('a laughing line after a sympathetic turn is not voiced sympathetic', async () => {
+    const sessions = new DirectorSessions();
+    await speak("I'm so sorry about your dad.", LIFT, { caller: 'my dad is sick', sessions });
+    forgetCallerTurns('lift');
+    const after = '[laughter] Okay, that part is pretty good.';
+    const offPush = await speak(after, LIVELY, { caller: 'he did a dance', sessions });
+    expect(tagOf(offPush, 'emotion')).toBe('sympathetic');
+    const sessions2 = new DirectorSessions();
+    forgetCallerTurns('lift');
+    await speak("I'm so sorry about your dad.", LIFT, {
+      caller: 'my dad is sick',
+      sessions: sessions2,
     });
-    expect(Number(tagOf(second ?? '', 'speed'))).toBeLessThanOrEqual(1.08);
+    forgetCallerTurns('lift');
+    const push = await speak(after, LIFT, { caller: 'he did a dance', sessions: sessions2 });
+    expect(tagOf(push, 'emotion')).not.toBe('sympathetic');
+  });
+});
+
+describe('EMOTION_LIFT: a lifted reply that turns hard downgrades once, and stays down', () => {
+  it('strong heavy wording mid-reply goes sympathetic at the Director pace for the rest', async () => {
+    const pushes = await speakAll('', LIFT, {
+      caller: LAUGH,
+      pushes: ['Ha, okay. ', 'Wait, your dad died? ', '<speed ratio="1.1"/>When was this?'],
+    });
+    expect(tagOf(pushes[0] ?? '', 'emotion')).toBe('excited');
+    expect(pushes[1]).toMatch(/^<speed ratio="1(?:\.0\d)?"\/><emotion value="sympathetic"\/>/);
+    const after = speeds(pushes.slice(1));
+    expect(after.length).toBeGreaterThan(0);
+    expect(after.every((s) => s < 1.08)).toBe(true);
+  });
+});
+
+describe('EMOTION_LIFT: pace limits (M1, M3)', () => {
+  it('with VOICE_ATTUNE on, a heavy reply keeps the no-overrides pace in every sentence', async () => {
+    const text = "I'm so sorry about your dad. He sounds like he was a good man.";
+    const opts = { caller: 'my dad died', userEmotion: 'sad' };
+    const plain = await speakAll(text, { ...PLAIN, VOICE_ATTUNE: 'on' }, opts);
+    forgetCallerTurns('lift');
+    const lifted = await speakAll(text, { ...LIFT, VOICE_ATTUNE: 'on' }, opts);
+    expect(lifted).toEqual(plain);
   });
 
   it("a soft start's own speed never takes the opening past FERNI_VOICE_SPEED", async () => {
-    const push = await speak('<speed ratio="1.2"/>That was so funny, ha.', LIFT);
+    const push = await speak('', LIFT, {
+      caller: LAUGH,
+      pushes: ['<speed ratio="1.2"/>Ha, ', 'that is so funny.'],
+    });
     expect(Number(tagOf(push, 'speed'))).toBeLessThanOrEqual(1.08);
   });
+
+  it.each(['1.2', '1.4'])('a later push at %s is capped at FERNI_VOICE_SPEED', async (ratio) => {
+    const pushes = await speakAll('', LIFT, {
+      caller: LAUGH,
+      pushes: ['Ha, that is so funny. ', `<speed ratio="${ratio}"/>And then he fell over.`],
+    });
+    expect(Math.max(...speeds(pushes))).toBeLessThanOrEqual(1.08);
+  });
+
+  it('three bright turns in a row never exceed FERNI_VOICE_SPEED', async () => {
+    const sessions = new DirectorSessions();
+    for (const line of ['Ha, I love that.', 'That is great news.', 'Wow, so much fun.']) {
+      // eslint-disable-next-line no-await-in-loop -- turns are sequential
+      const pushes = await speakAll(line, LIFT, { caller: LAUGH, sessions });
+      expect(Math.max(...speeds(pushes))).toBeLessThanOrEqual(1.08);
+      expect(emotions(pushes)).toEqual(['excited']);
+    }
+  });
+
+  it('without FERNI_VOICE_SPEED the pace is the Director’s own', async () => {
+    const env = { ...PLAIN, EMOTION_LIFT: 'on', FERNI_VOICE_EMOTION: 'excited' };
+    const plain = await speak('I checked the calendar for Thursday.', PLAIN, { caller: 'ok' });
+    expect(await speak('I checked the calendar for Thursday.', env, { caller: 'ok' })).toBe(plain);
+  });
+});
+
+describe('callerBright', () => {
+  it.each(['I got the job!!', 'haha he fell off the couch', 'guess what, we won', 'lmao 😂'])(
+    '%s is bright',
+    (said) => expect(callerBright(said)).toBe(true)
+  );
+  it.each([
+    'my sister relapsed',
+    'my boss yelled at me haha',
+    'that was not funny',
+    'ugh, seriously',
+    'can you check thursday',
+    undefined,
+  ])('%s is not bright', (said) => expect(callerBright(said)).toBe(false));
 });

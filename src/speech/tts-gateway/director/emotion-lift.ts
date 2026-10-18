@@ -1,35 +1,42 @@
 /**
- * EMOTION_LIFT (off by default): Ferni rests calm and lifts on bright words.
+ * EMOTION_LIFT (off by default): Ferni lifts when the CALLER brings something
+ * bright, and otherwise rests calm.
  *
  * Seth's "lively" pick (2026-10-17: calm B, excited at 1.08) was rarely heard
- * through the Director as it stood (prod audit, 385 replies):
- * - BRIGHT (emotion.ts) missed laughter and everyday warm words (fun, funny,
- *   ha, love, wow, great news), so few turns read as bright;
- * - curious was 42% of picks and outranked a resting tone on a question;
- * - the previous reply's emotion carried into 61% of replies, so a
- *   sympathetic or calm turn kept colouring the bright turns after it.
+ * through the Director (prod audit, 385 replies): curious was 42% of picks,
+ * the previous reply's emotion carried into 61%, and BRIGHT missed laughter.
  *
- * With the flag on, for Ferni only:
- * - laughter in the reply makes it bright (a laughing line is never voiced
- *   sympathetic); otherwise heavy words still win, then the wider bright
- *   words;
- * - a bright reply takes its tone from its words, so a carried sympathetic
- *   or calm is dropped, and curious gives way to the resting tone, so
- *   FERNI_VOICE_EMOTION is voiced there
- *   (ferni-resting-voice.ts). Only bright replies get it: a neutral reply
- *   keeps the Director's own tone, so the lift is a contrast, not a register;
- * - pace: bright replies rest at FERNI_VOICE_SPEED, other non-heavy replies
- *   at 1 + (speed - 1) x 0.4 (about 1.03 for 1.08), and heavy or careful
- *   replies (sympathetic, calm, contemplative) at the Director's own 1.0.
- *   No reply goes faster than FERNI_VOICE_SPEED.
+ * Caller-led, because the caller's turn is fully known before Ferni speaks,
+ * while Ferni's own reply is not: in production the first push is cut at the
+ * first clause ("Ha. I'm so s"), so a lift judged on Ferni's words leaked
+ * (two review rounds on #1830: "Wow, how is she doing now?" after a relapse,
+ * "You worked so hard" flipping a congratulations to sympathetic).
+ *
+ * With the flag on, for Ferni only, a reply is lifted when all hold:
+ * - the caller's turn is bright: they laughed, or it is good news or bright
+ *   words, with no bad-news, negated or shocked words in it;
+ * - none of the caller's last two turns is a heavy moment (heavy-moment.ts);
+ * - the LLM did not tag the reply sympathetic, calm or contemplative;
+ * - the reply's first clause has no hard, negated or shocked words.
+ * A lifted reply reads bright: the Director's tone comes from that (so a
+ * carried sympathetic or calm cannot reach it), curious gives way, and
+ * FERNI_VOICE_EMOTION is voiced (ferni-resting-voice.ts).
+ *
+ * Mid-reply, a lifted reply is downgraded only by strong heavy wording
+ * (isHeavyMoment on the push, minus benign idioms like "crying laughing" or
+ * "fired up"): sympathetic, and the Director's own pace for the rest of the
+ * reply. Bare words ("so hard for this") never flip it.
+ *
+ * Pace: lifted replies rest at FERNI_VOICE_SPEED, other non-heavy replies at
+ * 1 + (speed - 1) x 0.4 (about 1.03 for 1.08), careful replies at the
+ * Director's own. Every push's speed is capped at min(FERNI_VOICE_SPEED, 1.2).
  *
  * Why big emotions were excluded: on 2026-09-27 emotion tags on Ferni's then
  * instant clone swung his pitch range 6.4-10.9 semitones between turns
  * (docs/plans/2026-09-27-human-level-ferni.md, emotion.ts STABLE_EMOTIONS).
- * The guards here: the upbeat tone goes only on replies whose words are
- * bright (Cartesia honours an emotion only when the words carry it), one
- * emotion per reply (later tags are still stripped), never on heavy or
- * careful replies, and the pace is capped at FERNI_VOICE_SPEED (at most 1.2).
+ * The guards: the upbeat tone only follows a bright caller, one emotion per
+ * reply (later tags are still stripped), never on heavy or careful replies,
+ * and the pace is capped.
  *
  * @module speech/tts-gateway/director/emotion-lift
  */
@@ -41,7 +48,6 @@ import {
   noteCallerTurn,
   recentCallerTurns,
 } from '../../adaptive-ssml/heavy-moment.js';
-import { prosodyTags } from '../providers/cartesia.js';
 import { layerDelivery, type Delivery, type DeliveryLayers } from './attune.js';
 import {
   decideEmotion,
@@ -56,118 +62,137 @@ import { ferniRestingSpeed } from './ferni-resting-voice.js';
 import { deliveryFromManifest } from './persona-delivery.js';
 import type { LeverModes } from './types.js';
 
-/** A laughter cue in the reply (raw-cues.ts LAUGHTER_CUE, plus Cartesia's own [laughter]). */
+/** A laughter cue Ferni wrote (raw-cues.ts LAUGHTER_CUE, plus Cartesia's own [laughter]). */
 const LAUGHTER = /\[(?:laugh\w*|chuckl\w*|warm laugh|big laugh)\]/i;
-/** Warm everyday words BRIGHT (emotion.ts) misses. Whole words only. */
-const LIFT_BRIGHT = /\b(?:fun|funny|ha(?:ha)*|love|great news)\b/i;
-/** Bright only when nothing in the reply reads as shock (SHOCK). */
-const WOW = /\bwow\b/i;
-/** Hard words in Ferni's own reply that readValence misses or needs two of. */
-const REPLY_HEAVY =
+/** The caller laughed. */
+const CALLER_LAUGH =
+  /\b(?:ha(?:ha)+|he(?:he)+|lol+|lmao|rofl|hilarious|crack(?:ed|ing) up|(?:crying|dying) laughing)\b|[\u{1F602}\u{1F923}]/iu;
+/** The caller brings good news. */
+const GOOD_NEWS =
+  /\b(?:good news|great news|guess what|i got (?:it|in|the (?:job|offer|part|apartment|house))|got (?:promoted|engaged|married|accepted|the job)|(?:i|we) won|i passed|nailed it|so excited|so happy|can'?t wait)\b/i;
+/** Bad news or a hard day in the caller's turn: never a bright turn, whatever else it says. */
+const CALLER_BAD =
+  /\b(?:awful|terrible|horrible|sucks?|worst|hate|yelled|screamed|angry|mad at|upset|sad|stressed|anxious|worried|scared|(?:rough|hard|bad|long) day|exhausted|sick|hurt|lost|failed|rejected|cancell?ed|crashed|accident|fight|argument|lazy|stupid|idiot|called me|rude|mean to me|insult\w*|relaps\w*|surgery|rehab|biopsy|cried|miss (?:him|her|them)|hospital|diagnos\w*)\b/i;
+/** Hard words in Ferni's first clause that readValence misses or needs two of. */
+const CLAUSE_HEAVY =
   /\b(?:gone|awful|terrible|horrible|worried about you|sorry|hard|scary|fired|laid off)\b/i;
-/** Shock or sarcasm, not delight: "Wow. He really said that to you?", "Oh great, ...". */
+/** Shock or sarcasm, not delight: "really said that", "oh great". */
 const SHOCK =
   /\b(?:really said|said that|did that|can'?t believe|oh no|yikes|ugh|seriously)\b|\boh,? great\b/i;
 /** A bright word negated a few words before it: "not funny", "doesn't sound like fun". */
 const NEGATED =
-  /\b(?:not|no|never|hardly|\w+n't)\b(?:\s+\w+){0,3}?\s+(?:fun|funny|love|great|amazing|wonderful|awesome|fantastic|brilliant|incredible)\b/i;
+  /\b(?:not|no|never|hardly|\w+n't)\b(?:\s+\w+){0,3}?\s+(?:fun|funny|love|great|amazing|wonderful|awesome|fantastic|brilliant|incredible|good)\b/i;
+/** Idioms that read heavy word by word but are joy: stripped before the heavy check. */
+const BENIGN =
+  /\b(?:(?:crying|cried|dying|died) (?:laughing|of laughter)|tears of joy|happy tears|fired up|laughed so hard)\b/gi;
+/** Care wording strong enough to settle a reply mid-way: "I'm so sorry", "that sounds really hard". */
+const STRONG_CARE =
+  /\b(?:i'?m|i am) (?:so |really |truly )?sorry\b(?!,? (?:i'?m late|for the wait|to interrupt))|\b(?:sounds|must be|must have been|that's|that is) (?:so |really |incredibly )?(?:hard|awful|terrible|painful|scary|rough|heartbreaking)\b(?!\s+(?:question|call|choice|decision))/i;
 /** Replies that keep the Director's own pace and tone. */
 const CAREFUL: ReadonlySet<StableEmotion | undefined> = new Set([
   'sympathetic',
   'calm',
   'contemplative',
 ]);
-/** How much of FERNI_VOICE_SPEED's lift a non-bright reply keeps. */
+/** How much of FERNI_VOICE_SPEED's lift a non-lifted reply keeps. */
 export const RESTING_SHARE = 0.4;
 /** Cartesia's speed is never pushed past this, whatever FERNI_VOICE_SPEED says. */
 const SPEED_CEILING = 1.2;
+const SPEED_TAG = /<speed ratio="([\d.]+)"\s*\/>/g;
 
-/** What the lift reads besides the opening phrase. */
+const plain = (text: string): string => text.replace(/[\u2018\u2019]/g, "'");
+/** The text with joyful idioms ("crying laughing", "fired up") taken out, for the heavy checks. */
+const unidiom = (text: string): string => plain(text).replace(BENIGN, ' ');
+/** isHeavyMoment, idioms aside. */
+const strongHeavy = (texts: ReadonlyArray<string | undefined>): boolean =>
+  isHeavyMoment(texts.map((t) => (t === undefined ? t : unidiom(t))));
+
+/** Ferni's own push turns hard: strong heavy wording or care wording, idioms aside. */
+const turnsHard = (text: string): boolean => strongHeavy([text]) || STRONG_CARE.test(unidiom(text));
+
+/** The caller's turn is bright: a laugh, good news or bright words, and nothing bad, negated or shocked. */
+export function callerBright(said: string | undefined): boolean {
+  if (!said) return false;
+  const t = plain(said);
+  const hard = unidiom(said);
+  if (CALLER_BAD.test(hard) || NEGATED.test(t) || SHOCK.test(t) || readValence(hard) === 'heavy') {
+    return false;
+  }
+  return CALLER_LAUGH.test(t) || GOOD_NEWS.test(t) || readValence(t) === 'bright';
+}
+
+/** What the lift knows before Ferni speaks. */
 export interface LiftContext {
-  /** The caller's last turns (heavy-moment.ts) say something hard. */
+  /** The caller's current turn is bright (callerBright). */
+  callerBright: boolean;
+  /** One of the caller's last two turns is a heavy moment. */
   callerHeavy: boolean;
-  /** The raw reply so far and the LLM's own emotion tag (raw-cues.ts). */
-  cues: { readonly streamed: string; readonly authoredEmotion?: string };
+  /** The LLM's own emotion tag (raw-cues.ts). */
+  cues: { readonly authoredEmotion?: string };
   /** Tags the voice will honour on a later push (live levers, not a Pro clone). */
   tags: { emotion: boolean; pacing: boolean };
 }
 
 interface Reading {
   valence: Valence;
-  bright: boolean;
+  lifted: boolean;
   careful: boolean;
 }
 
-const plain = (text: string): string => text.replace(/[\u2018\u2019]/g, "'");
-
-/** Hard words anywhere in this text (Ferni's own reply). */
-function heavyText(text: string): boolean {
-  const t = plain(text);
-  return readValence(t) === 'heavy' || REPLY_HEAVY.test(t) || isHeavyMoment([t]);
-}
-
-/** One reply's lift: decided at the opening, read by the pace and the tag renderer. */
+/** One reply's lift: decided at the opening, read by the pace, the tag renderer and each push. */
 export class EmotionLift {
-  /** The reply is lifted: bright words, nothing hard (set when the opening is decided). */
+  /** The reply is lifted and not downgraded (the tag renderer reads it at the opening). */
   bright = false;
   private careful = false;
   private reading: Reading | undefined;
-  private settled = false;
-  /** The Director's own pace for this reply, without the lift (for settle). */
+  private downgraded = false;
+  /** The Director's own pace for this reply, without the lift (a downgrade's pace). */
   private ownSpeed = 1;
 
-  /** `speed`: FERNI_VOICE_SPEED, when set: the bright pace and the cap. */
+  /** `speed`: FERNI_VOICE_SPEED, when set: the lifted pace and the cap. */
   constructor(
     private readonly context: LiftContext,
     readonly speed?: number
   ) {}
 
-  /**
-   * How the reply reads. Hard first: a hard moment for the caller, or the
-   * LLM's own careful tag, keeps the Director's reading and is never lifted;
-   * hard words anywhere in the reply so far make it heavy. Then a negated or
-   * shocked bright word is not bright. Only then do laughter and the wider
-   * bright words lift.
-   */
+  /** How the reply reads: bright when lifted, else the Director's own reading. */
   valence(openingText: string): Valence {
     this.reading ??= this.read(openingText);
     return this.reading.valence;
   }
 
   private read(opening: string): Reading {
-    const base = readValence(opening);
-    const reply = plain(`${opening} ${this.context.cues.streamed}`);
+    const clause = plain(opening);
+    const base = readValence(clause);
+    const heavy = base === 'heavy' || CLAUSE_HEAVY.test(clause) || strongHeavy([clause]);
     const authored = toStableEmotion(this.context.cues.authoredEmotion);
-    if (this.context.callerHeavy || (authored && CAREFUL.has(authored))) {
-      return { valence: base, bright: false, careful: true };
-    }
-    if (base === 'heavy' || heavyText(reply))
-      return { valence: 'heavy', bright: false, careful: true };
-    if (NEGATED.test(reply) || SHOCK.test(reply)) {
-      return { valence: base === 'bright' ? 'neutral' : base, bright: false, careful: false };
-    }
-    const bright =
-      base === 'bright' || LAUGHTER.test(reply) || LIFT_BRIGHT.test(reply) || WOW.test(reply);
-    return { valence: bright ? 'bright' : base, bright, careful: false };
+    const wary = NEGATED.test(clause) || SHOCK.test(clause); // "oh no", "not funny": bad news ahead
+    const careful =
+      heavy || wary || this.context.callerHeavy || (!!authored && CAREFUL.has(authored));
+    const lifted = this.context.callerBright && !careful;
+    return { valence: lifted ? 'bright' : base, lifted, careful };
   }
 
   /**
-   * The Director's tone from the lifted reading. A bright reply takes its tone
-   * from its words, which rank above the previous reply's (emotion.ts choose),
-   * so a sympathetic or calm turn no longer carries into it; and curious (the
-   * LLM's or the caller's) gives way to the resting tone.
+   * The Director's tone from the reading. A lifted reply reads bright, and its
+   * words rank above the previous reply's tone (emotion.ts choose), so a
+   * carried sympathetic or calm cannot reach it; curious gives way to the
+   * resting tone. A laughing line is never voiced a carried sympathetic.
    */
   decide(input: EmotionInput): EmotionDecision {
     const reading = (this.reading ??= this.read(input.openingText));
     const decision = decideEmotion({ ...input, valence: reading.valence });
     this.careful = reading.careful || CAREFUL.has(decision.emotion);
-    this.bright = reading.bright && !this.careful;
-    return this.bright && decision.emotion === 'curious'
-      ? { emotion: 'content', source: 'lift' }
+    this.bright = reading.lifted && !this.careful;
+    if (this.bright && decision.emotion === 'curious')
+      return { emotion: 'content', source: 'lift' };
+    const carried = decision.source === 'previous' && decision.emotion === 'sympathetic';
+    return carried && LAUGHTER.test(input.openingText)
+      ? { emotion: 'calm', source: 'lift' }
       : decision;
   }
 
-  /** The reply's pace: bright at FERNI_VOICE_SPEED, careful at the Director's own, the rest between. */
+  /** The reply's pace: lifted at FERNI_VOICE_SPEED, careful at the Director's own, the rest between. */
   deliver(layers: DeliveryLayers, pacingLive: boolean): Delivery {
     const { speed } = this;
     const own = layerDelivery({ ...layers, persona: undefined }, pacingLive);
@@ -176,31 +201,34 @@ export class EmotionLift {
     if (this.careful) return own;
     const base = this.bright ? speed : 1 + (speed - 1) * RESTING_SHARE;
     const persona = deliveryFromManifest('ferni', { default_speed: base });
-    const delivery = layerDelivery({ ...layers, persona }, pacingLive);
-    return delivery.speed > speed ? { ...delivery, speed } : delivery;
+    return layerDelivery({ ...layers, persona }, pacingLive); // every push is capped (push, cap)
   }
 
-  /** An opening speed (a soft start composed with the reply's) never above FERNI_VOICE_SPEED or 1.2. */
+  /** A speed, never above FERNI_VOICE_SPEED (when set) or 1.2. */
   cap(speed: number | undefined): number | undefined {
-    if (speed === undefined || this.speed === undefined) return speed;
-    return Math.min(speed, this.speed, SPEED_CEILING);
+    if (speed === undefined) return speed;
+    return Math.min(speed, this.speed ?? SPEED_CEILING, SPEED_CEILING);
   }
 
   /**
-   * A later push of a lifted reply whose words turn hard ("Ha, I hear you.
-   * That sounds really hard."): settle once to sympathetic at the Director's
-   * own pace. The opening is decided before the whole reply has streamed, so
-   * this catches what it could not see.
+   * One push as it goes to Cartesia. A reply that was not careful and whose
+   * push says something strongly heavy (isHeavyMoment, or care wording like
+   * "I'm so sorry") is downgraded once: the Director's own pace from there to
+   * the end, and sympathetic if it was lifted. Every speed tag is capped.
    */
-  settle(tags: string, body: string): string {
-    if (!this.bright || this.settled || !heavyText(body)) return `${tags}${body}`;
-    this.settled = true;
-    const { emotion, pacing } = this.context.tags;
-    const settle = prosodyTags({
-      speed: pacing ? this.ownSpeed : undefined,
-      emotion: emotion ? 'sympathetic' : undefined,
+  push(text: string, first: boolean): string {
+    let out = text;
+    if (!first && !this.careful && !this.downgraded && turnsHard(text)) {
+      this.downgraded = true;
+      const { emotion, pacing } = this.context.tags;
+      const speedTag = pacing ? `<speed ratio="${this.ownSpeed}"/>` : '';
+      const toneTag = emotion && this.bright ? '<emotion value="sympathetic"/>' : '';
+      out = `${speedTag}${toneTag}${text}`;
+    }
+    return out.replace(SPEED_TAG, (_, ratio: string) => {
+      const speed = this.downgraded ? this.ownSpeed : (this.cap(Number(ratio)) ?? 1);
+      return `<speed ratio="${speed}"/>`;
     });
-    return `${tags}${settle}${body}`;
   }
 }
 
@@ -225,11 +253,16 @@ export function emotionLift(
   if (opts.sessionId) noteCallerTurn(opts.sessionId, said);
   const turns = opts.sessionId ? recentCallerTurns(opts.sessionId) : [said];
   const honours = voiceHonorsProsodyTags(opts.voiceId);
-  const tags = {
-    emotion: honours && modes.emotion === 'live',
-    pacing: honours && modes.pacing === 'live',
+  const context: LiftContext = {
+    callerBright: callerBright(said),
+    callerHeavy: strongHeavy(turns) || turns.some((t) => !!t && CALLER_BAD.test(unidiom(t))),
+    cues,
+    tags: {
+      emotion: honours && modes.emotion === 'live',
+      pacing: honours && modes.pacing === 'live',
+    },
   };
-  return new EmotionLift({ callerHeavy: isHeavyMoment(turns), cues, tags }, ferniRestingSpeed(env));
+  return new EmotionLift(context, ferniRestingSpeed(env));
 }
 
 /** The reply's valence, lifted when EMOTION_LIFT is on. */
@@ -251,7 +284,7 @@ export function liftedDelivery(
   return lift ? lift.deliver(layers, pacingLive) : layerDelivery(layers, pacingLive);
 }
 
-/** A later push's tags and body, settled when a lifted reply turns hard. */
-export function settleLift(lift: EmotionLift | undefined, tags: string, body: string): string {
-  return lift ? lift.settle(tags, body) : `${tags}${body}`;
+/** One push as it goes to Cartesia: capped, and downgraded if a lifted reply turns hard. */
+export function liftPush(lift: EmotionLift | undefined, text: string, first: boolean): string {
+  return lift ? lift.push(text, first) : text;
 }

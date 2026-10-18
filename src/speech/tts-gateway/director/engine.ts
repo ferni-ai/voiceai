@@ -10,11 +10,11 @@
  */
 
 import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
-import { callerState, decideAttune, layerDelivery, SPEED_EPSILON } from './attune.js';
+import { callerState, decideAttune, SPEED_EPSILON } from './attune.js';
 import type { Attunement, Delivery, Shift } from './attune.js';
 import { pacesOf, planKeyPhrase, type KeyPhrase, type KeyPhraseStep } from './key-phrase.js';
 import type { SSMLProsodyConfig } from '../types.js';
-import { decideTone, liftedDelivery, liftedValence, settleLift } from './emotion-lift.js';
+import { decideTone, liftedDelivery, liftedValence, liftPush } from './emotion-lift.js';
 import type { EmotionLift } from './emotion-lift.js';
 import { type EmotionDecision, type StableEmotion, type Valence } from './emotion.js';
 import { decideReplyLaughter, placeLaughter, type LaughPlacement } from './laughter.js';
@@ -221,8 +221,8 @@ export class DirectorEngine {
       // A voice that ignores the rest still takes the reply's loudness (attune.ts layerDelivery).
       const own = strip ? volumeOnly(this.replyVolume === 1 ? tags : lead) : lead;
       if (first) this.pendingTags += own;
-      else spokenBody = settleLift(this.ctx.lift, own, spokenBody); // EMOTION_LIFT: a reply turning hard
-      const spoken = this.spokenPhrases.accept(spokenBody, first);
+      else spokenBody = `${own}${spokenBody}`;
+      const spoken = this.spokenPhrases.accept(liftPush(this.ctx.lift, spokenBody, first), first);
       if (spoken.length === 0) this.stats.held++;
       return this.emit(spoken);
     });

@@ -31,8 +31,6 @@ const LAUGHTER_CUE = /\[(?:laughs?|laughter|laughing|chuckles?|chuckling|warm la
 const HEAD = 160;
 /** Longest cue we expect to straddle a chunk boundary. */
 const OVERLAP = 64;
-/** How much of the raw reply is kept whole for EMOTION_LIFT (emotion-lift.ts). */
-const STREAMED = 4000;
 
 export class RawCues {
   authoredEmotion?: string;
@@ -47,8 +45,6 @@ export class RawCues {
   opensWithSpokenSigh = false;
   /** The LLM already wrote a laughter cue in this reply. */
   sawLaughter = false;
-  /** The raw reply so far, up to STREAMED characters: EMOTION_LIFT reads all of it. */
-  streamed = '';
   private head = '';
   private tail = '';
   private seenSighs = 0;
@@ -61,8 +57,6 @@ export class RawCues {
       const text = this.tail + chunk;
       this.scannedChars += text.length;
       this.readOpening(chunk);
-      if (this.streamed.length < STREAMED)
-        this.streamed = (this.streamed + chunk).slice(0, STREAMED);
       if (!this.sawLaughter) this.sawLaughter = LAUGHTER_CUE.test(text);
       if (this.authoredEmotion === undefined) {
         this.authoredEmotion = AUTHORED_EMOTION.exec(text)?.[1]?.toLowerCase();
