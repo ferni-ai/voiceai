@@ -40,6 +40,11 @@ import {
   getSessionHistory,
   recordLaugh,
 } from '../../adaptive-ssml/contextual-laughter.js';
+import {
+  isHeavyMoment,
+  noteCallerTurn,
+  recentCallerTurns,
+} from '../../adaptive-ssml/heavy-moment.js';
 import type { LaughPlacement, LaughterInput } from './laughter.js';
 
 export interface TeamLaughStyle {
@@ -81,6 +86,11 @@ const OWN_JOKE_MIN = 0.6;
 const MAX_LAUGHS = 4;
 const MAX_P = 0.6;
 const DISTRESSED = new Set(['sad', 'distressed', 'angry', 'grief', 'anxious']);
+/**
+ * The caller was playful, minus "??" and "!!": "what do I even do now??" is
+ * distress, not play, and got a laugh along.
+ */
+const PLAYFUL = USER_PLAYFUL_PATTERNS.filter((p) => p.source !== '[!?]{2,}');
 /** The caller laughed, as speech-to-text writes it: "hahaha" and "[laughter]" too, which the playful patterns miss. */
 const CALLER_LAUGHED = /\[laughter\]|\b(?:ha){2,}h?\b|\bha ha\b|\b(?:he){2,}\b|\b(?:lol|lmao)\b/i;
 
@@ -118,8 +128,9 @@ function blocked(input: LaughterInput, style: TeamLaughStyle): boolean {
   const emotion = input.userEmotion?.toLowerCase();
   if (emotion && DISTRESSED.has(emotion)) return true;
   if (SUPPORTIVE_PATTERNS.some((p) => p.test(input.phrase))) return true;
-  const heavy = (t: string | undefined) => !!t && BLOCK_LAUGHTER_PATTERNS.some((p) => p.test(t));
-  if (heavy(input.phrase) || heavy(input.userText)) return true;
+  if (BLOCK_LAUGHTER_PATTERNS.some((p) => p.test(input.phrase))) return true;
+  // Anything hard in the caller's last two turns (noted just before), however they laughed.
+  if (isHeavyMoment(recentCallerTurns(input.sessionId!))) return true;
   const history = getSessionHistory(input.sessionId!);
   return (
     (input.turn ?? 0) - history.lastLaughTurn < style.minTurns || history.laughCount >= MAX_LAUGHS
@@ -141,11 +152,12 @@ export function decideTeamLaughter(
   style: TeamLaughStyle,
   rng: () => number = Math.random
 ): LaughPlacement | undefined {
-  if (!input.sessionId || blocked(input, style)) return undefined;
+  if (!input.sessionId) return undefined;
+  noteCallerTurn(input.sessionId, input.userText);
+  if (blocked(input, style)) return undefined;
   const user = input.userText ?? '';
   const callerPlayed =
-    style.withUser &&
-    (CALLER_LAUGHED.test(user) || USER_PLAYFUL_PATTERNS.some((p) => p.test(user)));
+    style.withUser && (CALLER_LAUGHED.test(user) || PLAYFUL.some((p) => p.test(user)));
   const ownJoke =
     style.ownJokes &&
     AGENT_HUMOR_PATTERNS.some((h) => h.confidence >= OWN_JOKE_MIN && h.pattern.test(input.phrase));
@@ -155,7 +167,16 @@ export function decideTeamLaughter(
   return callerPlayed ? 'before' : 'after';
 }
 
-/** The LLM wrote its own [laughter]: count it toward the persona's spacing and cap. */
-export function noteWrittenLaughter(sessionId: string | undefined, turn: number | undefined): void {
-  if (sessionId) recordLaugh(sessionId, turn ?? 0);
+/**
+ * The LLM wrote its own [laughter]: count it toward the persona's spacing and
+ * cap, and note the caller's turn, which the next reply looks back on.
+ */
+export function noteWrittenLaughter(
+  sessionId: string | undefined,
+  turn: number | undefined,
+  userText?: string
+): void {
+  if (!sessionId) return;
+  recordLaugh(sessionId, turn ?? 0);
+  noteCallerTurn(sessionId, userText);
 }

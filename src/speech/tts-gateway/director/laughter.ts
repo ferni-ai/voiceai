@@ -72,7 +72,7 @@ export function decideReplyLaughter(input: LaughterInput): LaughPlacement | unde
     (input.teamVoices ? teamLaughStyle(input.personaId) : undefined) ??
     (input.lightTouch ? ferniLightStyle(input.personaId) : undefined);
   if (input.alreadyLaughing || LAUGHTER_TAG.test(input.phrase)) {
-    if (team) noteWrittenLaughter(input.sessionId, input.turn);
+    if (team) noteWrittenLaughter(input.sessionId, input.turn, input.userText);
     return undefined;
   }
   if (team) return decideTeamLaughter(input, team);
