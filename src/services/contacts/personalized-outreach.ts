@@ -18,6 +18,7 @@ import { loadNetwork } from '../superhuman/relationship-network.js';
 import { loadPersonalDates } from '../superhuman/seasonal-awareness.js';
 import { getGroup, getGroups } from './contact-groups.js';
 import { getContact, getContacts, recordInteraction } from './contact-relationship-service.js';
+import { daysSinceLastInteraction } from './last-interaction.js';
 import { isRememberedContact, REMEMBERED_SKIP_REASON } from './remembered-contacts.js';
 import { onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
 import type {
@@ -291,9 +292,7 @@ export async function buildOutreachContext(
 
   // Calculate days since last contact
   const now = new Date();
-  const lastContactedDays = Math.floor(
-    (now.getTime() - contact.lastInteraction.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const lastContactedDays = daysSinceLastInteraction(contact, now);
 
   // Get additional context from relationship network
   const network = await loadNetwork(userId);
@@ -353,7 +352,7 @@ export async function buildOutreachContext(
     preferredTimes: contact.bestTimeToReach ? [contact.bestTimeToReach] : undefined,
     strengthScore: contact.strengthScore,
     sentiment: mapSentiment(networkPerson?.sentiment),
-    needsAttention: lastContactedDays > 30,
+    needsAttention: lastContactedDays !== null && lastContactedDays > 30,
     interactionCount: contact.interactionCount,
     firstInteractionDate: contact.firstInteraction,
     createdAt: contact.createdAt,
@@ -363,7 +362,8 @@ export async function buildOutreachContext(
 
   return {
     contact: enhancedContact,
-    lastContactedDays,
+    // 0 when nothing is recorded: every "it's been a while" line checks for > 0
+    lastContactedDays: lastContactedDays ?? 0,
     recentTopicsDiscussed: contact.topics?.map((t) => t.topic) || [],
     sharedExperiences: contact.recentContext || [],
     occasion,
@@ -903,12 +903,11 @@ export async function getOutreachSuggestions(
   const suggestions: OutreachSuggestion[] = [];
 
   for (const contact of contacts) {
-    const daysSinceContact = Math.floor(
-      (now.getTime() - contact.lastInteraction.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    // Only a real last interaction can make someone "overdue"
+    const daysSinceContact = daysSinceLastInteraction(contact, now);
 
     // 1. Overdue contacts (haven't talked in 30+ days)
-    if (daysSinceContact > 30 && contact.relationship !== 'acquaintance') {
+    if (daysSinceContact !== null && daysSinceContact > 30 && contact.relationship !== 'acquaintance') {
       const urgency = daysSinceContact > 90 ? 'high' : daysSinceContact > 60 ? 'medium' : 'low';
 
       // Build minimal enhanced contact for suggestion
