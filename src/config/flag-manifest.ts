@@ -132,6 +132,7 @@ export const FLAG_MANIFEST = {
   DEFER_TOOL_UPDATES: { default: 'on', owner: 'voice', kind: 'config' },
   DELIBERATION: { default: 'off', owner: 'voice', kind: 'experiment' },
   DEMO_CALL_CAP: { default: 'off', owner: 'voice', kind: 'experiment' },
+  DEMO_RATE_LIMIT_SHARED: { default: 'off', owner: 'platform', kind: 'experiment' },
   DEV_TELEMETRY: { default: 'off', owner: 'voice', kind: 'config' },
   DEV_TELEMETRY_VERBOSE: { default: 'off', owner: 'voice', kind: 'config' },
   DIRECTOR_ANSWER_TURN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -336,6 +337,8 @@ export const FLAG_MANIFEST = {
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   PUBSUB_ENABLED: { default: 'off', owner: 'voice', kind: 'config' },
+  // no question right after a reply that ended on one (question-pace.ts)
+  QUESTION_PACE: { default: 'off', owner: 'voice', kind: 'experiment' },
   QUIET_CALLER: { default: 'off', owner: 'voice', kind: 'experiment' },
   QUIET_HOURS_UNIFIED: { default: 'off', owner: 'outreach', kind: 'experiment' },
   QUIRK_AWARENESS: { default: 'off', owner: 'voice', kind: 'experiment' },

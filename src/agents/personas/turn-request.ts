@@ -54,7 +54,7 @@ import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { journalAskFor } from './journal-ask.js';
-import { callerTurnsOf, goodbyeNoteOn, happyExitNote } from './happy-exits.js';
+import { callerTurnsOf, goodbyeNoteOn, happyExitNote, questionPaceNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
@@ -276,7 +276,7 @@ function inviteFor(
   };
   const invite = commitmentInviteNote(session, turn, { crisis });
   const ask = journalAskFor(session, turn, { crisis, invite, phoneOnlyIdentity });
-  return [invite, ask].join(' ').trim();
+  return [invite, ask].join(' ').trim() || questionPaceNote(turn.ferniLines, { crisis });
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */

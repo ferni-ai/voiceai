@@ -17,8 +17,17 @@ const firebase = read('.github/workflows/deploy-firebase.yml');
 const dockerfile = read('docker/Dockerfile.ui');
 const cli = read('apps/cli/src/commands/deploy/deploy.ts');
 
-/** Server flags prod's web server runs with (Seth, 2026-10-17). */
-const SERVER_FLAGS = ['MEMORY_VIEW=on', 'JOURNAL_ONE_STORE=on'];
+/**
+ * Server flags prod's web server runs with (Seth, 2026-10-17). CALL_HOURS_GUARD
+ * and FAMILY_CHECKIN_STOP are on for the agent; the web server places the calls
+ * the agent defers and checks family call consent, so it needs them too.
+ */
+const SERVER_FLAGS = [
+  'MEMORY_VIEW=on',
+  'JOURNAL_ONE_STORE=on',
+  'CALL_HOURS_GUARD=on',
+  'FAMILY_CHECKIN_STOP=on',
+];
 
 /** The `--set-env-vars` value of the workflow's john-bogle-ui deploy, split on its `::` delimiter. */
 function workflowEnv(): string[] {
