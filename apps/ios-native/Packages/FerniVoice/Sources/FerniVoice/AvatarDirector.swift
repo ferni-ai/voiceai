@@ -26,6 +26,8 @@ public enum CallEvent: Equatable, Sendable {
 /// Feedback a pose change asks for; the model plays it, views never do (one per event at most).
 public enum AvatarEffect: Equatable, Sendable {
     case haptic(HapticCue)
+    /// Played only if the sound director allows it (EarconDirector).
+    case earcon(Earcon)
     case announce(String)
 }
 
@@ -108,7 +110,7 @@ public struct AvatarDirector: Equatable, Sendable {
             if connection == .arriving { connection = .none }
             if !presencePlayed {
                 presencePlayed = true
-                effects.append(.haptic(.presence))
+                effects += [.haptic(.presence), .earcon(.arrival)]
             }
         case .agentState(let activity):
             effects += setTurn(Self.turn(for: activity), now: now)
@@ -120,7 +122,7 @@ public struct AvatarDirector: Equatable, Sendable {
             handoffTo = nil
             personaID = to
             firstWordPlayed = false
-            effects += [.haptic(.handoff), .announce("\(name) joined.")]
+            effects += [.haptic(.handoff), .earcon(.handoff(to: to)), .announce("\(name) joined.")]
         case .handoffFailed:
             handoffTo = nil
             expressionOverride = (.concerned, now + .milliseconds(1500))
@@ -145,7 +147,7 @@ public struct AvatarDirector: Equatable, Sendable {
             turn = .idle
             pendingTurn = nil
             handoffTo = nil
-            if wasInCall { effects.append(.haptic(.goodbye)) }
+            if wasInCall { effects += [.haptic(.goodbye), .earcon(.goodbye)] }
         }
         return effects
     }
