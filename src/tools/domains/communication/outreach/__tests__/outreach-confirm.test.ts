@@ -12,7 +12,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetMemoryTexts } from '../../../../../services/outreach/__tests__/memory-text-store.js';
 
+// The real text guards over an in-memory store (no Firestore).
+vi.mock('../../../../../services/outreach/guarded-text.js', async (orig) =>
+  (
+    await import('../../../../../services/outreach/__tests__/memory-text-store.js')
+  ).withMemoryTextStore(await orig())
+);
 vi.mock('../../../../../services/contacts/contact-relationship-service.js', () => ({
   searchContacts: vi.fn(),
 }));
@@ -97,6 +104,8 @@ const batchOf = (text: string) => ({
 function textsSent(): Array<[string, string]> {
   return vi.mocked(sendSMS).mock.calls.map(([sms]) => [sms.to, sms.body]);
 }
+
+beforeEach(() => resetMemoryTexts());
 
 describe('outreach waits for the caller', () => {
   beforeEach(() => {
@@ -385,6 +394,30 @@ describe('isClearYes', () => {
     }
     for (const yes of ['Oh yes, of course.', 'Yeah, that works.', 'Sure, Maya, you can.']) {
       expect(isClearYes(yes), yes).toBe(true);
+    }
+  });
+
+  it('takes a yes that restates the same action (owner call 2026-10-17)', () => {
+    for (const yes of [
+      'Uh, yeah, go ahead. Go ahead and give her a call.',
+      'Yes, you, you need to call her.',
+      'Yeah, call her now.',
+      'Go ahead and call him.',
+    ]) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+    // A restatement that adds anything (someone else, a time, a different action) is not plain.
+    for (const notYes of [
+      'Yes, and call Bob.',
+      'Go ahead and give her a call tomorrow.',
+      'Yes, you need to call her mom.',
+      'Go ahead and text her.',
+      'and',
+      'you need to',
+      'give her a call',
+      'now',
+    ]) {
+      expect(isClearYes(notYes), notYes).toBe(false);
     }
   });
 

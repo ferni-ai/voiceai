@@ -199,8 +199,18 @@ export class OpenAIRealtimeProvider implements ModelProvider {
     // Instructions are set via the LiveKit Agent system prompt instead.
     // Model selection: env var > config > default
     const envModel = process.env.OPENAI_REALTIME_MODEL;
-    const openaiModel = envModel || (config.model?.startsWith('gpt-') ? config.model : 'gpt-realtime-1.5');
-    const model = new openai.realtime.RealtimeModel({
+    const openaiModel =
+      envModel || (config.model?.startsWith('gpt-') ? config.model : 'gpt-realtime-1.5');
+    // Since 1.9.1 the plugin re-exports RealtimeModel from an @livekit/agents subpath
+    // export, which moduleResolution "node" cannot type. It is there at runtime.
+    const { RealtimeModel } = openai.realtime as unknown as {
+      RealtimeModel: new (opts: {
+        model: string;
+        modalities: string[];
+        temperature: number;
+      }) => unknown;
+    };
+    const model = new RealtimeModel({
       model: openaiModel,
       modalities: ['text'], // Text-only mode - Cartesia TTS handles persona voice
       temperature,
