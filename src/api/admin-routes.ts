@@ -14,7 +14,6 @@ import { requireAdmin } from './auth-middleware.js';
 
 const log = createLogger({ module: 'AdminAPI' });
 
-
 // ============================================================================
 // ROUTE HANDLER
 // ============================================================================
@@ -100,8 +99,8 @@ async function handleGetCallers(
 ): Promise<void> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
-    const { initializeApp, getApps } = await import('firebase-admin/app');
-    if (getApps().length === 0) initializeApp();
+    const { getAdminApp } = await import('../utils/firebase-admin-app.js');
+    getAdminApp();
     const db = getFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
@@ -149,8 +148,8 @@ async function handleGetVisitors(
 ): Promise<void> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
-    const { initializeApp, getApps } = await import('firebase-admin/app');
-    if (getApps().length === 0) initializeApp();
+    const { getAdminApp } = await import('../utils/firebase-admin-app.js');
+    getAdminApp();
     const db = getFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;

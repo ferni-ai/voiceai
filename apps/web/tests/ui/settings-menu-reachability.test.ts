@@ -7,15 +7,13 @@
  * rows never rendered (and discover-agents' progressive-unlock check never ran).
  * "What I Do For You" and the Ferni Hub were handled by handleAction() but no
  * row existed for them at all.
+ *
+ * 2026-10-17: voice-id-settings, household-members and discover-agents are
+ * now hidden on purpose (config/menu-visibility.ts, menu-visibility.test.ts),
+ * so only the shipped panels that stay in the menu are checked here.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-const teamUnlock = vi.hoisted(() => ({ fullTeam: false }));
-vi.mock('../../src/services/team-unlock.service.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../src/services/team-unlock.service.js')>()),
-  isFullTeamUnlocked: () => teamUnlock.fullTeam,
-}));
 
 const { relationshipStageService } =
   await import('../../src/services/relationship-stage.service.js');
@@ -30,9 +28,6 @@ function menuButton(action: string): HTMLElement | null {
 
 const callbacks = {
   onPersonalizeClick: vi.fn(),
-  onVoiceEnrollmentClick: vi.fn(),
-  onHouseholdClick: vi.fn(),
-  onDiscoverAgentsClick: vi.fn(),
   onHubClick: vi.fn(),
   onWhatIDoForYouClick: vi.fn(),
   onOutreachScheduleClick: vi.fn(),
@@ -41,7 +36,6 @@ const callbacks = {
 
 describe('settings menu: shipped panels are reachable', () => {
   beforeEach(() => {
-    teamUnlock.fullTeam = true;
     vi.spyOn(relationshipStageService, 'getStage').mockReturnValue('established');
     vi.spyOn(relationshipStageService, 'isFeatureUnlocked').mockReturnValue(true);
     initSettingsMenuUI(callbacks);
@@ -70,9 +64,6 @@ describe('settings menu: shipped panels are reachable', () => {
   it('renders each shipped row and routes its click to the real callback', () => {
     const rows: Array<[string, keyof typeof callbacks]> = [
       ['personal-settings', 'onPersonalizeClick'],
-      ['voice-id-settings', 'onVoiceEnrollmentClick'],
-      ['household-members', 'onHouseholdClick'],
-      ['discover-agents', 'onDiscoverAgentsClick'],
       ['hub', 'onHubClick'],
       ['what-i-do-for-you', 'onWhatIDoForYouClick'],
       // the phone number for "Text me" is added and verified here
@@ -87,25 +78,5 @@ describe('settings menu: shipped panels are reachable', () => {
       expect(callbacks[callback], `${action} -> ${callback}`).toHaveBeenCalledTimes(1);
       getSettingsMenuUI().show(); // a row click closes the menu
     }
-  });
-});
-
-describe('settings menu: discover-agents progressive unlock', () => {
-  beforeEach(() => {
-    teamUnlock.fullTeam = false;
-    vi.spyOn(relationshipStageService, 'getStage').mockReturnValue('established');
-    vi.spyOn(relationshipStageService, 'isFeatureUnlocked').mockReturnValue(true);
-    initSettingsMenuUI(callbacks);
-    getSettingsMenuUI().show();
-  });
-
-  afterEach(() => {
-    getSettingsMenuUI().destroy(); // the singleton keeps a detached panel once the DOM is cleared
-    vi.restoreAllMocks();
-  });
-
-  it('hides discover-agents until the full team is unlocked, but keeps its sibling rows', () => {
-    expect(menuButton('discover-agents')).toBeNull();
-    expect(menuButton('personal-settings')).not.toBeNull();
   });
 });

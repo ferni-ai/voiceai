@@ -383,40 +383,7 @@ class MusicDashboardUI {
   private renderMusicSources(): string {
     const sources = this.profileData?.musicSources;
 
-    // Calculate DNA confidence based on connected sources
-    let confidence = 0;
-    let _connectedCount = 0;
-
-    // Games always contribute
     const gamesPlayed = sources?.games?.gamesPlayed || 0;
-    if (gamesPlayed > 0) {
-      confidence += Math.min(30, gamesPlayed * 2); // Up to 30% from games
-      _connectedCount++;
-    }
-
-    // Spotify adds 35%
-    if (sources?.spotify?.connected) {
-      confidence += 35;
-      _connectedCount++;
-    }
-
-    // Apple Music adds 35%
-    if (sources?.appleMusic?.connected) {
-      confidence += 35;
-      _connectedCount++;
-    }
-
-    // Cap at 100
-    confidence = Math.min(100, confidence);
-
-    const confidenceKey =
-      confidence >= 80
-        ? 'excellent'
-        : confidence >= 60
-          ? 'high'
-          : confidence >= 40
-            ? 'medium'
-            : 'low';
 
     const spotifyStatus = sources?.spotify?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${tp('musicDashboard.sources.tracks', sources.spotify.trackCount || 0)}</span>`
@@ -460,25 +427,6 @@ class MusicDashboardUI {
             </div>
             ${appleMusicStatus}
           </div>
-        </div>
-        
-        <div class="music-sources__confidence">
-          <div class="music-sources__confidence-header">
-            <span class="music-sources__confidence-label">${t('musicDashboard.sources.dnaConfidence')}</span>
-            <span class="music-sources__confidence-value">${t(`musicDashboard.sources.confidence.${confidenceKey}`, { percent: confidence })}</span>
-          </div>
-          <div class="music-sources__confidence-bar">
-            <div class="music-sources__confidence-fill" style="width: ${confidence}%"></div>
-          </div>
-          ${
-            confidence < 70
-              ? `
-            <p class="music-sources__confidence-hint">
-              ${t('musicDashboard.sources.dnaHint')}
-            </p>
-          `
-              : ''
-          }
         </div>
       </section>
     `;
@@ -2002,54 +1950,6 @@ class MusicDashboardUI {
       .music-sources__connect-btn svg {
         width: 14px;
         height: 14px;
-      }
-
-      .music-sources__confidence {
-        padding-top: var(--space-3);
-        border-top: var(--glass-border-subtle);
-      }
-
-      .music-sources__confidence-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: var(--space-2);
-      }
-
-      .music-sources__confidence-label {
-        font-size: var(--text-xs);
-        font-weight: var(--font-weight-semibold);
-        color: var(--color-text-secondary);
-      }
-
-      .music-sources__confidence-value {
-        font-size: var(--text-xs);
-        font-weight: var(--font-weight-bold);
-        color: var(--persona-text);
-      }
-
-      .music-sources__confidence-bar {
-        height: 8px;
-        background: var(--color-background-elevated);
-        border-radius: var(--radius-xs);
-        overflow: hidden;
-      }
-
-      .music-sources__confidence-fill {
-        height: 100%;
-        background: linear-gradient(90deg,
-          var(--persona-secondary),
-          var(--persona-primary)
-        );
-        border-radius: var(--radius-xs);
-        transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
-      }
-
-      .music-sources__confidence-hint {
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
-        margin: var(--space-2) 0 0 0;
-        line-height: var(--leading-snug);
       }
 
       /* Dark theme - uses CSS variables which auto-switch via [data-theme="midnight"] */

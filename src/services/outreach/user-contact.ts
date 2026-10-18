@@ -7,6 +7,12 @@
  *
  * ARCHITECTURE NOTE: This service exists at Level 60 (services)
  * and can be imported by both tools (Level 70) and other services.
+ *
+ * The phone and email it hands out are only the account's verified ones: the
+ * verified phone (userReach: a phone: id or a proved linked phone) and the
+ * email Firebase verified. profile.contactInfo is written by saveContactInfo
+ * from whatever the model heard, so its phone and email are never used to
+ * reach anyone; the rest of it (preferred method, timezone) still is.
  */
 
 import { getProfileStore } from '../../memory/profile-store.js';
@@ -14,6 +20,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { getCanonicalPersonaId, getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { createReminder } from '../scheduling/reminder-scheduler.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getFirebaseUser } from '../identity/firebase-auth.js';
+import { userReach } from './user-reach.js';
 
 const log = getLogger();
 
@@ -28,8 +36,24 @@ export interface UserContactInfo {
   timezone?: string;
 }
 
-// In-memory cache (backed by Firestore when available)
+// In-memory cache (backed by Firestore when available). Its phone and email are
+// what was saved, never handed out: getUserContactInfo swaps in the verified ones.
 const userContactCache = new Map<string, UserContactInfo>();
+
+/** The verified phone and email on the account, never the saved contactInfo ones. */
+async function verifiedReach(userId: string): Promise<Pick<UserContactInfo, 'phone' | 'email'>> {
+  const [reach, user] = await Promise.all([
+    userReach(userId, 'sms', { standingOptIn: false }).catch((error: unknown) => {
+      log.warn({ error: String(error), userId }, 'Could not look up the verified phone');
+      return undefined;
+    }),
+    userId.startsWith('phone:') ? null : getFirebaseUser(userId),
+  ]);
+  return {
+    phone: reach?.phone,
+    email: user?.emailVerified ? (user.email ?? undefined) : undefined,
+  };
+}
 
 // ============================================================================
 // CONTACT INFO MANAGEMENT
@@ -79,6 +103,14 @@ export async function setUserContactInfo(
  * Checks cache first, then loads from profile if not found.
  */
 export async function getUserContactInfo(userId: string): Promise<UserContactInfo | undefined> {
+  const saved = await savedContactInfo(userId);
+  const verified = await verifiedReach(userId);
+  if (!saved && !verified.phone && !verified.email) return undefined;
+  return { ...saved, ...verified };
+}
+
+/** What was saved (preferred method, timezone; phone and email ignored by callers). */
+async function savedContactInfo(userId: string): Promise<UserContactInfo | undefined> {
   // Check cache first
   const cached = userContactCache.get(userId);
   if (cached) return cached;
@@ -138,16 +170,12 @@ export function clearContactCache(userId?: string): void {
   }
 }
 
-/**
- * Get cached contact info without async lookup (for performance-critical paths)
- */
-export function getCachedContactInfo(userId: string): UserContactInfo | undefined {
-  return userContactCache.get(userId);
-}
-
 // ============================================================================
 // SCHEDULING HELPERS
 // ============================================================================
+
+export const NO_VERIFIED_PHONE = 'No verified phone number on this account';
+export const NO_VERIFIED_EMAIL = 'No verified email address on this account';
 
 export interface ScheduleContactOptions {
   /** Contact ID for ML timing learning */
@@ -156,10 +184,6 @@ export interface ScheduleContactOptions {
   contactName?: string;
   /** Whether this is a direct message TO the contact */
   isDirectToContact?: boolean;
-  /** Phone to send to (overrides user's saved contact) */
-  toPhone?: string;
-  /** Email to send to (overrides user's saved contact) */
-  toEmail?: string;
 }
 
 /**
@@ -172,13 +196,9 @@ export async function scheduleText(
   personaId = 'ferni',
   options?: ScheduleContactOptions
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
-  // Use provided phone or fall back to user's saved contact
-  const deliveryPhone = options?.toPhone || (await getUserContactInfo(userId))?.phone;
   const contact = await getUserContactInfo(userId);
-
-  if (!deliveryPhone) {
-    return { success: false, error: 'No phone number on file. Ask for their number first!' };
-  }
+  const deliveryPhone = contact?.phone; // the verified phone only
+  if (!deliveryPhone) return { success: false, error: NO_VERIFIED_PHONE };
 
   try {
     const canonicalId = getCanonicalPersonaId(personaId);
@@ -229,12 +249,9 @@ export async function scheduleEmail(
   personaId = 'ferni',
   options?: ScheduleContactOptions
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
-  const deliveryEmail = options?.toEmail || (await getUserContactInfo(userId))?.email;
   const contact = await getUserContactInfo(userId);
-
-  if (!deliveryEmail) {
-    return { success: false, error: 'No email address on file. Ask for their email first!' };
-  }
+  const deliveryEmail = contact?.email; // the verified email only
+  if (!deliveryEmail) return { success: false, error: NO_VERIFIED_EMAIL };
 
   try {
     const canonicalId = getCanonicalPersonaId(personaId);
@@ -285,12 +302,9 @@ export async function scheduleCall(
   personaId = 'ferni',
   options?: ScheduleContactOptions
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
-  const deliveryPhone = options?.toPhone || (await getUserContactInfo(userId))?.phone;
   const contact = await getUserContactInfo(userId);
-
-  if (!deliveryPhone) {
-    return { success: false, error: 'No phone number on file. Ask for their number first!' };
-  }
+  const deliveryPhone = contact?.phone; // the verified phone only
+  if (!deliveryPhone) return { success: false, error: NO_VERIFIED_PHONE };
 
   try {
     const canonicalId = getCanonicalPersonaId(personaId);

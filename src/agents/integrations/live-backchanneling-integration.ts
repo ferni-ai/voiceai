@@ -31,13 +31,28 @@ import { trackBackchannelEvent } from './speech-metrics-integration.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import {
   decideBackchannel,
+  heavyMoment,
   LAUGH_CLIP,
   pickBackchannel,
   shouldLaughAlong,
 } from './backchannel-policy.js';
-import { backchannelContextEnabled, pickContextualBackchannel } from './backchannel-context.js';
+import {
+  forgetCallerTurns,
+  noteCallerTurn,
+  recentCallerTurns,
+} from '../../speech/adaptive-ssml/heavy-moment.js';
+import {
+  backchannelContextEnabled,
+  pickContextualBackchannel,
+  REACTIONS,
+} from './backchannel-context.js';
 import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
 import { ferniEnergyFor } from '../../speech/tts-gateway/director/ferni-energy.js';
+import {
+  backchannelAudioClockEnabled,
+  PauseClock,
+  STALE_FRAME_MS,
+} from './backchannel-pause-clock.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
 
@@ -165,13 +180,30 @@ export function initializeLiveBackchanneling<T>(
   let agentStoppedAt = 0;
   let lastClip: string | null = null;
   let lastLaughTurn: number | null = null;
+  // The caller's latest words, kept across segments and turns for the heavy-moment check.
+  const heard = `listen:${sessionId}`;
 
   let clipThisPause = false;
+  // BACKCHANNEL_AUDIO_CLOCK=on: pauses timed on the audio, not on when we read it.
+  const clock = cfg.playClip && backchannelAudioClockEnabled() ? new PauseClock() : null;
+  const pause = clock
+    ? {
+        speaking: () => clock.userSpeaking(),
+        breath: () => clock.isBreathPause(),
+        ms: () => clock.pauseMs(),
+        startedAt: () => clock.pauseStartedAt() ?? Date.now(),
+      }
+    : {
+        speaking: () => breathDetector.isUserSpeaking(),
+        breath: () => breathDetector.isBreathPause(),
+        ms: () => breathDetector.getCurrentPauseDuration(),
+        startedAt: () => Date.now() - breathDetector.getCurrentPauseDuration(),
+      };
 
   const considerClip = (
     playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean
   ): void => {
-    if (clipThisPause && breathDetector.isUserSpeaking()) {
+    if (clipThisPause && pause.speaking()) {
       clipThisPause = false;
       // The caller carried on before the clip was heard: take it back.
       if (cfg.cancelClip?.()) log.info({ by: 'pause_ended' }, 'CLIP_CANCELLED');
@@ -179,24 +211,29 @@ export function initializeLiveBackchanneling<T>(
     const agentSpeaking = isAgentSpeakingFn();
     if (agentWasSpeaking && !agentSpeaking) agentStoppedAt = Date.now();
     agentWasSpeaking = agentSpeaking;
-    if (!breathDetector.isBreathPause()) {
+    if (!pause.breath()) {
       decidedThisPause = false;
       return;
     }
-    if (decidedThisPause || breathDetector.getCurrentPauseDuration() < CLIP_PAUSE_MIN_MS) return;
+    if (decidedThisPause || pause.ms() < CLIP_PAUSE_MIN_MS) return;
+    // Behind real time: they may already be talking again. A fresher frame decides.
+    if (clock && clock.lagMs() > STALE_FRAME_MS) return;
     decidedThisPause = true;
-    const at = { pauseStartedAt: Date.now() - breathDetector.getCurrentPauseDuration() };
+    const at = { pauseStartedAt: pause.startedAt() };
+    const callerTurns = recentCallerTurns(heard);
+    const partialTranscript = state.partialTranscript ?? '';
     const emotional =
       (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
       (state.currentEmotion?.intensity ?? 0) > 0.7;
     const now = Date.now();
     if (
       shouldLaughAlong({
-        partialTranscript: state.partialTranscript ?? '',
+        partialTranscript,
         emotional,
         agentSpeaking,
         turnCount: state.turnCount,
         lastLaughTurn,
+        callerTurns,
       })
     ) {
       if (playClip(LAUGH_CLIP, at)) {
@@ -222,9 +259,12 @@ export function initializeLiveBackchanneling<T>(
     }
     // BACKCHANNEL_CONTEXT=on: react to what they're saying ("oh no", "whoa").
     // Nothing fits, or that clip isn't cached for this persona: the neutral pick.
-    const fitting = backchannelContextEnabled()
-      ? pickContextualBackchannel(state.partialTranscript ?? '', emotional, lastClip)
+    const contextual = backchannelContextEnabled()
+      ? pickContextualBackchannel(partialTranscript, emotional, lastClip)
       : null;
+    // Never a "Ha" at hard news, however they laughed ("kms lol").
+    const laugh = contextual !== null && REACTIONS.funny.includes(contextual);
+    const fitting = laugh && heavyMoment({ partialTranscript, callerTurns }) ? null : contextual;
     // FERNI_STATE: a worn-out Ferni listens with soft "mm"s, not "yeah" or "right".
     const soft = emotional || ferniEnergyFor(sessionId) === 'low';
     let text = fitting ?? pickBackchannel(soft, lastClip);
@@ -238,7 +278,7 @@ export function initializeLiveBackchanneling<T>(
     lastClip = text;
     state.lastBackchannelAt = now;
     trackBackchannelEvent(sessionId, {
-      pauseDurationMs: breathDetector.getCurrentPauseDuration(),
+      pauseDurationMs: pause.ms(),
       wasTimely: true,
       category: emotional ? 'empathy' : 'acknowledgment',
       userEmotion: state.currentEmotion?.primary,
@@ -261,6 +301,13 @@ export function initializeLiveBackchanneling<T>(
       sampleRate: frame.sampleRate,
       channels: frame.channels,
     });
+    if (clock) {
+      const levels = breathDetector.getBreathPauseStats();
+      clock.push(frame, {
+        silence: levels.adaptiveSilenceThreshold,
+        speech: levels.adaptiveSpeechThreshold,
+      });
+    }
 
     // Track user speech duration
     if (breathDetector.isUserSpeaking() && !state.userSpeechStartTime) {
@@ -342,6 +389,8 @@ export function initializeLiveBackchanneling<T>(
 
   const updateState = (update: Partial<LiveBackchannelState>): void => {
     Object.assign(state, update);
+    // The turn as its id: a revised partial ("haha" -> "Haha") is the same turn, not a new one.
+    if (update.partialTranscript) noteCallerTurn(heard, update.partialTranscript, state.turnCount);
   };
 
   const onNewTurn = (): void => {
@@ -365,6 +414,7 @@ export function initializeLiveBackchanneling<T>(
   };
 
   const cleanup = (): void => {
+    forgetCallerTurns(heard);
     // Cleanup is handled by session-cleanup.ts via resetLiveBackchanneling
     log.debug({ sessionId }, '🧹 Live backchanneling integration cleaned up');
   };

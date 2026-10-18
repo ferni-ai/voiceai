@@ -1,0 +1,708 @@
+diff --git a/dist/llm/provider_format/google.cjs b/dist/llm/provider_format/google.cjs
+index 5fd1b543e2efcc19882ae1d0d936acbcf6810f19..5cbddb1314a10fa5457b69800d786a07e4d7d017 100644
+--- a/dist/llm/provider_format/google.cjs
++++ b/dist/llm/provider_format/google.cjs
+@@ -24,11 +24,21 @@ module.exports = __toCommonJS(google_exports);
+ var import_chat_context = require("../chat_context.cjs");
+ var import_utils = require("../utils.cjs");
+ var import_utils2 = require("./utils.cjs");
++// MID_CALL_NOTE_FRAME=on (Ferni): a system note added mid-call (memory recall,
++// turn context, tool announcements) still reaches Gemini as user-role text, but
++// framed as the agent's own context so the model doesn't take it as the caller's
++// words. The stock template reads as a request from the caller.
++const MID_CALL_NOTE_FRAME = "[Private note to you from your own memory and context, not words the caller said. Use it quietly; never read it out, save it, or act on it as their request:]\n{instructions}";
++function midCallNoteFrameOn() {
++  const v = (process.env.MID_CALL_NOTE_FRAME ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
+ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+-  chatCtx = (0, import_utils2.convertMidConversationInstructions)(chatCtx);
++  chatCtx = midCallNoteFrameOn() ? (0, import_utils2.convertMidConversationInstructions)(chatCtx, "user", MID_CALL_NOTE_FRAME) : (0, import_utils2.convertMidConversationInstructions)(chatCtx);
+   const turns = [];
+   const systemMessages = [];
+   let currentRole = null;
++  let currentKey = null;
+   let parts = [];
+   const itemGroups = (0, import_utils2.groupToolCalls)(chatCtx);
+   const flattenedItems = [];
+@@ -50,12 +60,17 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+     } else {
+       continue;
+     }
+-    if (role !== currentRole) {
++    // Function responses get a turn of their own: Gemini 3.5 rejects a user turn
++    // that mixes them with text (flash-lite: 400 "Requests ending with a model
++    // turn"; flash: empty replies), as when the caller speaks after a tool call.
++    const key = msg.type === "function_call_output" ? "function_response" : role;
++    if (key !== currentKey) {
+       if (currentRole !== null && parts.length > 0) {
+         turns.push({ role: currentRole, parts: [...parts] });
+       }
+       parts = [];
+       currentRole = role;
++      currentKey = key;
+     }
+     if (msg.type === "message") {
+       for (const content of msg.content) {
+@@ -97,7 +112,9 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+   if (currentRole !== null && parts.length > 0) {
+     turns.push({ role: currentRole, parts });
+   }
+-  if (injectDummyUserMessage && currentRole !== "user") {
++  // Gemini rejects contents that end on a model turn. Check the last turn sent,
++  // not the last item seen: a trailing empty user message adds no turn.
++  if (injectDummyUserMessage && turns[turns.length - 1]?.role !== "user") {
+     turns.push({ role: "user", parts: [{ text: "." }] });
+   }
+   return [
+diff --git a/dist/llm/provider_format/google.js b/dist/llm/provider_format/google.js
+index 9920f2c7d37504a433f04c8b148c386dabb800db..e2672a788d3912ff777f8a39db65341d76390429 100644
+--- a/dist/llm/provider_format/google.js
++++ b/dist/llm/provider_format/google.js
+@@ -1,11 +1,21 @@
+ import { isInstructions } from "../chat_context.js";
+ import { serializeImage } from "../utils.js";
+ import { convertMidConversationInstructions, groupToolCalls } from "./utils.js";
++// MID_CALL_NOTE_FRAME=on (Ferni): a system note added mid-call (memory recall,
++// turn context, tool announcements) still reaches Gemini as user-role text, but
++// framed as the agent's own context so the model doesn't take it as the caller's
++// words. The stock template reads as a request from the caller.
++const MID_CALL_NOTE_FRAME = "[Private note to you from your own memory and context, not words the caller said. Use it quietly; never read it out, save it, or act on it as their request:]\n{instructions}";
++function midCallNoteFrameOn() {
++  const v = (process.env.MID_CALL_NOTE_FRAME ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
+ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+-  chatCtx = convertMidConversationInstructions(chatCtx);
++  chatCtx = midCallNoteFrameOn() ? convertMidConversationInstructions(chatCtx, "user", MID_CALL_NOTE_FRAME) : convertMidConversationInstructions(chatCtx);
+   const turns = [];
+   const systemMessages = [];
+   let currentRole = null;
++  let currentKey = null;
+   let parts = [];
+   const itemGroups = groupToolCalls(chatCtx);
+   const flattenedItems = [];
+@@ -27,12 +37,17 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+     } else {
+       continue;
+     }
+-    if (role !== currentRole) {
++    // Function responses get a turn of their own: Gemini 3.5 rejects a user turn
++    // that mixes them with text (flash-lite: 400 "Requests ending with a model
++    // turn"; flash: empty replies), as when the caller speaks after a tool call.
++    const key = msg.type === "function_call_output" ? "function_response" : role;
++    if (key !== currentKey) {
+       if (currentRole !== null && parts.length > 0) {
+         turns.push({ role: currentRole, parts: [...parts] });
+       }
+       parts = [];
+       currentRole = role;
++      currentKey = key;
+     }
+     if (msg.type === "message") {
+       for (const content of msg.content) {
+@@ -74,7 +89,9 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+   if (currentRole !== null && parts.length > 0) {
+     turns.push({ role: currentRole, parts });
+   }
+-  if (injectDummyUserMessage && currentRole !== "user") {
++  // Gemini rejects contents that end on a model turn. Check the last turn sent,
++  // not the last item seen: a trailing empty user message adds no turn.
++  if (injectDummyUserMessage && turns[turns.length - 1]?.role !== "user") {
+     turns.push({ role: "user", parts: [{ text: "." }] });
+   }
+   return [
+diff --git a/dist/stt/stt.cjs b/dist/stt/stt.cjs
+index 0c3bbab906a45829c8d2a26326fb7c0bd39f1792..2c308e1fb58ebba21e966f4a1000e29eca9d0645 100644
+--- a/dist/stt/stt.cjs
++++ b/dist/stt/stt.cjs
+@@ -200,7 +200,14 @@ class SpeechStream {
+         if (this.abortController.signal.aborted) {
+           return;
+         }
+-        if (Date.now() - lastStartTime > this._connOptions.timeoutMs) {
++        // PATCHED(ferni): STT_RETRY_MIN_UPTIME. #2494 resets the count after any attempt longer
++        // than timeoutMs (10 s, timed from before run()), so a socket the provider accepts and
++        // drops 11-29 s in, or a ~10 s connect hang, retried forever at attempt 1: a deaf agent
++        // with no alert. Reset only after 60 s up; Cartesia's ~3-5 min idle recycle still resets.
++        const __ferniUptimeMs = Date.now() - lastStartTime;
++        const __ferniResetAfterMs = process.env.STT_RETRY_MIN_UPTIME === "off" ? this._connOptions.timeoutMs : Math.max(this._connOptions.timeoutMs, 6e4);
++        const __ferniRetriesBefore = this._numRetries;
++        if (__ferniUptimeMs > __ferniResetAfterMs) {
+           this._numRetries = 0;
+         }
+         if (error instanceof import_exceptions.APIError) {
+@@ -216,7 +223,7 @@ class SpeechStream {
+             });
+           } else {
+             this.logger.warn(
+-              { stt: this.#stt.label, attempt: this._numRetries + 1, error },
++              { stt: this.#stt.label, attempt: this._numRetries + 1, retriesBefore: __ferniRetriesBefore, uptimeMs: __ferniUptimeMs, error },
+               `failed to recognize speech, retrying in ${retryInterval}ms`
+             );
+           }
+diff --git a/dist/stt/stt.js b/dist/stt/stt.js
+index 6012dbba6bcff20ff321ee2e2db75f2d6473b929..b06dee1b38e3f0e69697cd71c48099c4961474b6 100644
+--- a/dist/stt/stt.js
++++ b/dist/stt/stt.js
+@@ -175,7 +175,14 @@ class SpeechStream {
+         if (this.abortController.signal.aborted) {
+           return;
+         }
+-        if (Date.now() - lastStartTime > this._connOptions.timeoutMs) {
++        // PATCHED(ferni): STT_RETRY_MIN_UPTIME. #2494 resets the count after any attempt longer
++        // than timeoutMs (10 s, timed from before run()), so a socket the provider accepts and
++        // drops 11-29 s in, or a ~10 s connect hang, retried forever at attempt 1: a deaf agent
++        // with no alert. Reset only after 60 s up; Cartesia's ~3-5 min idle recycle still resets.
++        const __ferniUptimeMs = Date.now() - lastStartTime;
++        const __ferniResetAfterMs = process.env.STT_RETRY_MIN_UPTIME === "off" ? this._connOptions.timeoutMs : Math.max(this._connOptions.timeoutMs, 6e4);
++        const __ferniRetriesBefore = this._numRetries;
++        if (__ferniUptimeMs > __ferniResetAfterMs) {
+           this._numRetries = 0;
+         }
+         if (error instanceof APIError) {
+@@ -191,7 +198,7 @@ class SpeechStream {
+             });
+           } else {
+             this.logger.warn(
+-              { stt: this.#stt.label, attempt: this._numRetries + 1, error },
++              { stt: this.#stt.label, attempt: this._numRetries + 1, retriesBefore: __ferniRetriesBefore, uptimeMs: __ferniUptimeMs, error },
+               `failed to recognize speech, retrying in ${retryInterval}ms`
+             );
+           }
+diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
+index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2ab01c77f7 100644
+--- a/dist/voice/agent_activity.cjs
++++ b/dist/voice/agent_activity.cjs
+@@ -240,6 +240,12 @@ class AutoToolReplyTurnHold {
+     (0, import_speech_handle.endCarriedAgentTurn)(held.carry);
+   }
+ }
++// PATCHED(ferni): words that on their own say "go on", not "my turn"
++const __FERNI_BACKCHANNEL = new Set(["m", "mm", "mmm", "mhm", "mmhm", "mmhmm", "hmm", "hm", "uh", "huh", "uhhuh", "ah", "oh", "yeah", "yep", "yup", "yes", "ok", "okay", "right", "sure", "gotcha", "totally", "exactly", "wow", "cool", "nice", "true", "ha", "haha"]);
++function __ferniIsBackchannel(text) {
++  const __hook = globalThis.__FERNI_IS_BACKCHANNEL; if (typeof __hook === "function") return __hook(String(text ?? "")); const words = String(text ?? "").toLowerCase().replace(/-/g, "").split(/[^a-z']+/).map((w) => w.replace(/'/g, "")).filter(Boolean);
++  return words.length > 0 && words.length <= 4 && words.every((w) => __FERNI_BACKCHANNEL.has(w));
++}
+ class AgentActivity {
+   agent;
+   agentSession;
+@@ -1629,6 +1635,12 @@ class AgentActivity {
+         );
+       }
+     }
++    // PATCHED(ferni): every final transcript cancelled the pause, interrupting the
++    // reply before onEndOfTurn could see it was only "mm-hmm". Keep it resumable.
++    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(ev.alternatives[0].text)) {
++      this.logger.info({ user_input: ev.alternatives[0].text }, "BACKCHANNEL_KEEPS_PAUSE");
++      return;
++    }
+     this.cancelSpeechPauseTask = this.cancelSpeechPause();
+   }
+   onTranscriptionTimeout(speechDuration, turnStart) {
+@@ -1653,14 +1665,23 @@ class AgentActivity {
+     if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof import_llm2.LLM)) {
+       return;
+     }
++    // PATCHED(ferni): the original cancelled the running preemptive reply
++    // first and then returned when maxRetries was reached, so Ink-2's repeated
++    // eager-end/final events left no preemptive reply at all by the end of
++    // the turn (0 of 51 dev turns reused one). Keep one whose transcript still
++    // matches, and cancel only when a replacement will actually start.
++    if (this._preemptiveGeneration !== void 0 && transcriptsEquivalent(this._preemptiveGeneration.info.newTranscript, info.newTranscript)) {
++      return;
++    }
+     const discarded = (_a = this._preemptiveGeneration) == null ? void 0 : _a.speechHandle;
+-    this.cancelPreemptiveGeneration("user_turn");
+     if (info.startedSpeakingAt !== void 0 && Date.now() - info.startedSpeakingAt > preemptiveOpts.maxSpeechDuration) {
++      this.cancelPreemptiveGeneration("user_turn");
+       return;
+     }
+     if (this._preemptiveGenerationCount >= preemptiveOpts.maxRetries) {
+       return;
+     }
++    this.cancelPreemptiveGeneration("user_turn");
+     this._preemptiveGenerationCount++;
+     this.logger.info(
+       {
+@@ -1858,6 +1879,40 @@ class AgentActivity {
+       }
+       return true;
+     }
++    // PATCHED(ferni): "mm-hmm" over Ferni's reply paused it; the adaptive model
++    // already let it through as a backchannel, but ink still transcribed it and
++    // it was committed as a turn that cut the reply off mid-sentence (dev,
++    // 2026-09-30). Drop it and resume 350 ms on, once the caller is quiet: the
++    // 2 s default was too late, 0 ms talked over "Yeah, so..." (resume waits).
++    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(info.newTranscript)) {
++      this.cancelPreemptiveGeneration();
++      this.logger.info({ user_input: info.newTranscript }, "BACKCHANNEL_NOT_A_TURN");
++      const __resume = (tries) => { if (!this.pausedSpeech || this.pausedSpeech.handle.interrupted) return; if (this.agentSession.userState === "speaking" && tries < 20) { this.__ferniResumeTimer = setTimeout(() => __resume(tries + 1), 150); return; } this.startFalseInterruptionTimer(0); }; clearTimeout(this.__ferniResumeTimer); this.__ferniResumeTimer = setTimeout(() => __resume(0), 350);
++      return true;
++    }
++    // PATCHED(ferni): hold a turn that sounds unfinished ("We don't get", then
++    // "caught up in reviews."). Not committing it keeps the words pending, so
++    // ink's next final joins them and one reply answers the whole sentence.
++    // The app sets agentSession.unfinishedTurnHoldMs (multi-agent/unfinished-turn.ts);
++    // when the hold runs out with no more speech, the turn is committed as it is.
++    if (this.__ferniHeldTurnTimer !== void 0) {
++      clearTimeout(this.__ferniHeldTurnTimer);
++      this.__ferniHeldTurnTimer = void 0;
++    }
++    const __holdFor = this.agentSession.unfinishedTurnHoldMs;
++    const __holdMs = typeof __holdFor === "function" && this.__ferniHoldExpired !== info.newTranscript ? __holdFor(info.newTranscript) : 0;
++    this.__ferniHoldExpired = void 0;
++    if (__holdMs > 0 && this.audioRecognition) {
++      const recognition = this.audioRecognition;
++      this.logger.info({ user_input: info.newTranscript, holdMs: __holdMs }, "UNFINISHED_TURN_HELD");
++      this.__ferniHeldTurnTimer = setTimeout(() => {
++        this.__ferniHeldTurnTimer = void 0;
++        if (this.closeAbort.signal.aborted || recognition.speaking || recognition.audioTranscript !== info.newTranscript) return;
++        this.__ferniHoldExpired = info.newTranscript;
++        recognition.runEOUDetection(this.agentSession.chatCtx, "stt");
++      }, __holdMs);
++      return false;
++    }
+     if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords) > 0) {
+       const wordCount = (0, import_word.splitWords)(info.newTranscript, true).length;
+       if (wordCount < ((_d = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _d.minWords)) {
+@@ -2368,7 +2423,15 @@ class AgentActivity {
+     let discardedPreemptive;
+     if (this._preemptiveGeneration !== void 0) {
+       const preemptive = this._preemptiveGeneration;
+-      if (transcriptsEquivalent(preemptive.info.newTranscript, userMessage == null ? void 0 : userMessage.rawTextContent) && preemptive.chatCtx.isEquivalent(chatCtx) && preemptive.tools.equals(this.tools) && (0, import_tool_context.isSameToolChoice)(preemptive.toolChoice, this.toolChoice)) {
++      // PATCHED(ferni): log why a preemptive reply was kept or dropped
++      const __pSameText = transcriptsEquivalent(preemptive.info.newTranscript, userMessage == null ? void 0 : userMessage.rawTextContent);
++      const __pSameCtx = preemptive.chatCtx.isEquivalent(chatCtx);
++      const __pSameTools = preemptive.tools.equals(this.tools);
++      const __pSameChoice = (0, import_tool_context.isSameToolChoice)(preemptive.toolChoice, this.toolChoice);
++      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight: String(preemptive.info.newTranscript).slice(0, 60), final: String(userMessage == null ? void 0 : userMessage.rawTextContent).slice(0, 60) }, 'PREEMPTIVE_DECISION');
++      // PATCHED(ferni): the same decision as an event, for the TURN_RECEIPT (turn-receipt.ts)
++      this.agentSession.emit("ferni_preemptive_decision", { type: "ferni_preemptive_decision", used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice });
++      if (__pSameText && __pSameCtx && __pSameTools && __pSameChoice) {
+         speechHandle = preemptive.speechHandle;
+         if (userMessage) {
+           preemptive.userMessage.content = [...userMessage.content];
+@@ -4183,10 +4246,34 @@ class AgentActivity {
+     if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
+       this.updatePausedSpeech(speechHandle, 0);
+       audioOutput.pause();
++      // PATCHED(ferni): PLAYOUT_LAUNCH_RESUME. Only a VAD end of speech releases this hold,
++      // and a cancelled turn decision drops even that resume (#2204). Our turns end on
++      // ink-2's end of turn, often inside VAD's hangover, so a reply could stay paused
++      // with the caller silent until they spoke again (dev 2026-10-13: 16 s and 46 s).
++      // Resume after falseInterruptionTimeout unless the caller is really speaking.
++      if (process.env.PLAYOUT_LAUNCH_RESUME !== "off") this.__ferniArmLaunchResume(speechHandle, Date.now());
+       return;
+     }
+     audioOutput == null ? void 0 : audioOutput.resume();
+   }
++  // PATCHED(ferni): PLAYOUT_LAUNCH_RESUME watchdog for a reply paused at playout launch.
++  __ferniArmLaunchResume(speechHandle, pausedAt) {
++    clearTimeout(this.__ferniLaunchResumeTimer);
++    const ms = this.agentSession.sessionOptions.turnHandling.interruption.falseInterruptionTimeout ?? 2e3;
++    this.__ferniLaunchResumeTimer = setTimeout(() => {
++      var _a;
++      this.__ferniLaunchResumeTimer = void 0;
++      if (this.closeAbort.signal.aborted || !this.pausedSpeech || this.pausedSpeech.handle !== speechHandle || speechHandle.interrupted || speechHandle.done()) return;
++      const eot = (_a = this.audioRecognition) == null ? void 0 : _a.endOfTurnTask;
++      if (this.agentSession.userState === "speaking" || eot && !eot.done) {
++        this.__ferniArmLaunchResume(speechHandle, pausedAt);
++        return;
++      }
++      this.falseInterruptionPending = false;
++      this.logger.info({ heldMs: Date.now() - pausedAt, speechId: speechHandle.id }, "PLAYOUT_LAUNCH_RESUMED");
++      this.startFalseInterruptionTimer(0);
++    }, ms);
++  }
+   cancelFalseInterruptionTimer() {
+     if (this.falseInterruptionTimer !== void 0) {
+       clearTimeout(this.falseInterruptionTimer);
+@@ -4279,8 +4366,16 @@ class AgentActivity {
+     if (!this.pausedSpeech) {
+       return;
+     }
++    let __ferniDropped = false;
+     if (interrupt && !this.pausedSpeech.handle.interrupted && this.pausedSpeech.handle.allowInterruptions) {
+       this.pausedSpeech.handle.interrupt(false, "user_turn");
++      // PATCHED(ferni): the paused reply is being cut. resume() below opened the
++      // gate before the speech task cleared the buffer, so the frame held at the
++      // gate played: a 20-40 ms blip of the cut reply after every interruption
++      // (dev talk-over calls, 2026-10-05). Drop it unplayed; the next reply
++      // resumes the output itself.
++      (_a2 => _a2 == null ? void 0 : _a2.clearBuffer())(this.agentSession.output.audio);
++      __ferniDropped = true;
+       if (this.pausedSpeech.handle._hasGenerations) {
+         await this.pausedSpeech.handle.waitIfNotInterrupted([
+           this.pausedSpeech.handle._waitForGeneration()
+@@ -4289,7 +4384,7 @@ class AgentActivity {
+     }
+     this.pausedSpeech = void 0;
+     const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
+-    if (interruptionOptions.resumeFalseInterruption && this.agentSession.output.audio) {
++    if (interruptionOptions.resumeFalseInterruption && this.agentSession.output.audio && !__ferniDropped) {
+       this.agentSession.output.audio.resume();
+     }
+   }
+diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
+index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6a72a5636 100644
+--- a/dist/voice/agent_activity.js
++++ b/dist/voice/agent_activity.js
+@@ -293,6 +293,12 @@ class AutoToolReplyTurnHold {
+     endCarriedAgentTurn(held.carry);
+   }
+ }
++// PATCHED(ferni): words that on their own say "go on", not "my turn"
++const __FERNI_BACKCHANNEL = new Set(["m", "mm", "mmm", "mhm", "mmhm", "mmhmm", "hmm", "hm", "uh", "huh", "uhhuh", "ah", "oh", "yeah", "yep", "yup", "yes", "ok", "okay", "right", "sure", "gotcha", "totally", "exactly", "wow", "cool", "nice", "true", "ha", "haha"]);
++function __ferniIsBackchannel(text) {
++  const __hook = globalThis.__FERNI_IS_BACKCHANNEL; if (typeof __hook === "function") return __hook(String(text ?? "")); const words = String(text ?? "").toLowerCase().replace(/-/g, "").split(/[^a-z']+/).map((w) => w.replace(/'/g, "")).filter(Boolean);
++  return words.length > 0 && words.length <= 4 && words.every((w) => __FERNI_BACKCHANNEL.has(w));
++}
+ class AgentActivity {
+   agent;
+   agentSession;
+@@ -1682,6 +1688,12 @@ class AgentActivity {
+         );
+       }
+     }
++    // PATCHED(ferni): every final transcript cancelled the pause, interrupting the
++    // reply before onEndOfTurn could see it was only "mm-hmm". Keep it resumable.
++    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(ev.alternatives[0].text)) {
++      this.logger.info({ user_input: ev.alternatives[0].text }, "BACKCHANNEL_KEEPS_PAUSE");
++      return;
++    }
+     this.cancelSpeechPauseTask = this.cancelSpeechPause();
+   }
+   onTranscriptionTimeout(speechDuration, turnStart) {
+@@ -1706,14 +1718,23 @@ class AgentActivity {
+     if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof LLM)) {
+       return;
+     }
++    // PATCHED(ferni): the original cancelled the running preemptive reply
++    // first and then returned when maxRetries was reached, so Ink-2's repeated
++    // eager-end/final events left no preemptive reply at all by the end of
++    // the turn (0 of 51 dev turns reused one). Keep one whose transcript still
++    // matches, and cancel only when a replacement will actually start.
++    if (this._preemptiveGeneration !== void 0 && transcriptsEquivalent(this._preemptiveGeneration.info.newTranscript, info.newTranscript)) {
++      return;
++    }
+     const discarded = (_a = this._preemptiveGeneration) == null ? void 0 : _a.speechHandle;
+-    this.cancelPreemptiveGeneration("user_turn");
+     if (info.startedSpeakingAt !== void 0 && Date.now() - info.startedSpeakingAt > preemptiveOpts.maxSpeechDuration) {
++      this.cancelPreemptiveGeneration("user_turn");
+       return;
+     }
+     if (this._preemptiveGenerationCount >= preemptiveOpts.maxRetries) {
+       return;
+     }
++    this.cancelPreemptiveGeneration("user_turn");
+     this._preemptiveGenerationCount++;
+     this.logger.info(
+       {
+@@ -1911,6 +1932,40 @@ class AgentActivity {
+       }
+       return true;
+     }
++    // PATCHED(ferni): "mm-hmm" over Ferni's reply paused it; the adaptive model
++    // already let it through as a backchannel, but ink still transcribed it and
++    // it was committed as a turn that cut the reply off mid-sentence (dev,
++    // 2026-09-30). Drop it and resume 350 ms on, once the caller is quiet: the
++    // 2 s default was too late, 0 ms talked over "Yeah, so..." (resume waits).
++    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(info.newTranscript)) {
++      this.cancelPreemptiveGeneration();
++      this.logger.info({ user_input: info.newTranscript }, "BACKCHANNEL_NOT_A_TURN");
++      const __resume = (tries) => { if (!this.pausedSpeech || this.pausedSpeech.handle.interrupted) return; if (this.agentSession.userState === "speaking" && tries < 20) { this.__ferniResumeTimer = setTimeout(() => __resume(tries + 1), 150); return; } this.startFalseInterruptionTimer(0); }; clearTimeout(this.__ferniResumeTimer); this.__ferniResumeTimer = setTimeout(() => __resume(0), 350);
++      return true;
++    }
++    // PATCHED(ferni): hold a turn that sounds unfinished ("We don't get", then
++    // "caught up in reviews."). Not committing it keeps the words pending, so
++    // ink's next final joins them and one reply answers the whole sentence.
++    // The app sets agentSession.unfinishedTurnHoldMs (multi-agent/unfinished-turn.ts);
++    // when the hold runs out with no more speech, the turn is committed as it is.
++    if (this.__ferniHeldTurnTimer !== void 0) {
++      clearTimeout(this.__ferniHeldTurnTimer);
++      this.__ferniHeldTurnTimer = void 0;
++    }
++    const __holdFor = this.agentSession.unfinishedTurnHoldMs;
++    const __holdMs = typeof __holdFor === "function" && this.__ferniHoldExpired !== info.newTranscript ? __holdFor(info.newTranscript) : 0;
++    this.__ferniHoldExpired = void 0;
++    if (__holdMs > 0 && this.audioRecognition) {
++      const recognition = this.audioRecognition;
++      this.logger.info({ user_input: info.newTranscript, holdMs: __holdMs }, "UNFINISHED_TURN_HELD");
++      this.__ferniHeldTurnTimer = setTimeout(() => {
++        this.__ferniHeldTurnTimer = void 0;
++        if (this.closeAbort.signal.aborted || recognition.speaking || recognition.audioTranscript !== info.newTranscript) return;
++        this.__ferniHoldExpired = info.newTranscript;
++        recognition.runEOUDetection(this.agentSession.chatCtx, "stt");
++      }, __holdMs);
++      return false;
++    }
+     if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords) > 0) {
+       const wordCount = splitWords(info.newTranscript, true).length;
+       if (wordCount < ((_d = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _d.minWords)) {
+@@ -2421,7 +2476,15 @@ class AgentActivity {
+     let discardedPreemptive;
+     if (this._preemptiveGeneration !== void 0) {
+       const preemptive = this._preemptiveGeneration;
+-      if (transcriptsEquivalent(preemptive.info.newTranscript, userMessage == null ? void 0 : userMessage.rawTextContent) && preemptive.chatCtx.isEquivalent(chatCtx) && preemptive.tools.equals(this.tools) && isSameToolChoice(preemptive.toolChoice, this.toolChoice)) {
++      // PATCHED(ferni): log why a preemptive reply was kept or dropped
++      const __pSameText = transcriptsEquivalent(preemptive.info.newTranscript, userMessage == null ? void 0 : userMessage.rawTextContent);
++      const __pSameCtx = preemptive.chatCtx.isEquivalent(chatCtx);
++      const __pSameTools = preemptive.tools.equals(this.tools);
++      const __pSameChoice = isSameToolChoice(preemptive.toolChoice, this.toolChoice);
++      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight: String(preemptive.info.newTranscript).slice(0, 60), final: String(userMessage == null ? void 0 : userMessage.rawTextContent).slice(0, 60) }, 'PREEMPTIVE_DECISION');
++      // PATCHED(ferni): the same decision as an event, for the TURN_RECEIPT (turn-receipt.ts)
++      this.agentSession.emit("ferni_preemptive_decision", { type: "ferni_preemptive_decision", used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice });
++      if (__pSameText && __pSameCtx && __pSameTools && __pSameChoice) {
+         speechHandle = preemptive.speechHandle;
+         if (userMessage) {
+           preemptive.userMessage.content = [...userMessage.content];
+@@ -4236,10 +4299,34 @@ class AgentActivity {
+     if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
+       this.updatePausedSpeech(speechHandle, 0);
+       audioOutput.pause();
++      // PATCHED(ferni): PLAYOUT_LAUNCH_RESUME. Only a VAD end of speech releases this hold,
++      // and a cancelled turn decision drops even that resume (#2204). Our turns end on
++      // ink-2's end of turn, often inside VAD's hangover, so a reply could stay paused
++      // with the caller silent until they spoke again (dev 2026-10-13: 16 s and 46 s).
++      // Resume after falseInterruptionTimeout unless the caller is really speaking.
++      if (process.env.PLAYOUT_LAUNCH_RESUME !== "off") this.__ferniArmLaunchResume(speechHandle, Date.now());
+       return;
+     }
+     audioOutput == null ? void 0 : audioOutput.resume();
+   }
++  // PATCHED(ferni): PLAYOUT_LAUNCH_RESUME watchdog for a reply paused at playout launch.
++  __ferniArmLaunchResume(speechHandle, pausedAt) {
++    clearTimeout(this.__ferniLaunchResumeTimer);
++    const ms = this.agentSession.sessionOptions.turnHandling.interruption.falseInterruptionTimeout ?? 2e3;
++    this.__ferniLaunchResumeTimer = setTimeout(() => {
++      var _a;
++      this.__ferniLaunchResumeTimer = void 0;
++      if (this.closeAbort.signal.aborted || !this.pausedSpeech || this.pausedSpeech.handle !== speechHandle || speechHandle.interrupted || speechHandle.done()) return;
++      const eot = (_a = this.audioRecognition) == null ? void 0 : _a.endOfTurnTask;
++      if (this.agentSession.userState === "speaking" || eot && !eot.done) {
++        this.__ferniArmLaunchResume(speechHandle, pausedAt);
++        return;
++      }
++      this.falseInterruptionPending = false;
++      this.logger.info({ heldMs: Date.now() - pausedAt, speechId: speechHandle.id }, "PLAYOUT_LAUNCH_RESUMED");
++      this.startFalseInterruptionTimer(0);
++    }, ms);
++  }
+   cancelFalseInterruptionTimer() {
+     if (this.falseInterruptionTimer !== void 0) {
+       clearTimeout(this.falseInterruptionTimer);
+@@ -4332,8 +4419,16 @@ class AgentActivity {
+     if (!this.pausedSpeech) {
+       return;
+     }
++    let __ferniDropped = false;
+     if (interrupt && !this.pausedSpeech.handle.interrupted && this.pausedSpeech.handle.allowInterruptions) {
+       this.pausedSpeech.handle.interrupt(false, "user_turn");
++      // PATCHED(ferni): the paused reply is being cut. resume() below opened the
++      // gate before the speech task cleared the buffer, so the frame held at the
++      // gate played: a 20-40 ms blip of the cut reply after every interruption
++      // (dev talk-over calls, 2026-10-05). Drop it unplayed; the next reply
++      // resumes the output itself.
++      (_a2 => _a2 == null ? void 0 : _a2.clearBuffer())(this.agentSession.output.audio);
++      __ferniDropped = true;
+       if (this.pausedSpeech.handle._hasGenerations) {
+         await this.pausedSpeech.handle.waitIfNotInterrupted([
+           this.pausedSpeech.handle._waitForGeneration()
+@@ -4342,7 +4437,7 @@ class AgentActivity {
+     }
+     this.pausedSpeech = void 0;
+     const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
+-    if (interruptionOptions.resumeFalseInterruption && this.agentSession.output.audio) {
++    if (interruptionOptions.resumeFalseInterruption && this.agentSession.output.audio && !__ferniDropped) {
+       this.agentSession.output.audio.resume();
+     }
+   }
+diff --git a/dist/voice/audio_recognition.cjs b/dist/voice/audio_recognition.cjs
+index e2de266631f0c3fffc6fdc7e33dde9720722d341..bd7695419dcf2001ec846e2c34232aaaeb843ba4 100644
+--- a/dist/voice/audio_recognition.cjs
++++ b/dist/voice/audio_recognition.cjs
+@@ -738,13 +738,18 @@ class AudioRecognition {
+     if (this.agentSpeechStartedAt !== void 0) {
+       trimStart = Math.max(trimStart, this.agentSpeechStartedAt);
+     }
++    const __ferniDropped = []; // PATCHED(ferni): HELD_STT_DROPPED
+     while (this.transcriptBuffer.length > 0) {
+       const event = this.transcriptBuffer[0];
+       const shouldTrim = event.speechEndTime !== void 0 ? event.speechEndTime < trimStart && (this.agentSpeechStartedAt === void 0 || this.agentSpeechStartedAt < event.speechEndTime) : event.createdAt < trimStart;
+       if (!shouldTrim) {
+         break;
+       }
+-      this.transcriptBuffer.shift();
++      __ferniDropped.push(this.transcriptBuffer.shift());
++    }
++    // PATCHED(ferni): make dropped held events visible (backchannels, or a lost turn)
++    if (__ferniDropped.length > 0) {
++      this.logger.info({ dropped: __ferniDropped.map((e) => { var _a; return `${e.type}:${String(((_a = e.alternatives) == null ? void 0 : _a[0]) == null ? "" : e.alternatives[0].text).slice(0, 40)}`; }), audioTranscript: String(this.audioTranscript).slice(0, 60) }, "HELD_STT_DROPPED");
+     }
+   }
+   flushHeldTranscripts(resolvedAt, vadSpeechStartedAt) {
+@@ -877,6 +882,15 @@ class AudioRecognition {
+       }
+     }
+     if (ev.type !== import_stt.SpeechEventType.RECOGNITION_USAGE && this.transcriptGateActive) {
++      // PATCHED(ferni): END_OF_SPEECH_PASSTHROUGH. An END_OF_SPEECH whose transcript already went
++      // through (the caller finished just as a reply started) must go through too. Held alone it
++      // carries no text and nothing re-sends it: the agent's end of speech or a backchannel
++      // verdict trims it as overlap, the turn is never committed, and the words go unanswered.
++      if (ev.type === import_stt.SpeechEventType.END_OF_SPEECH && this.transcriptBuffer.length === 0 && this.audioTranscript) {
++        this.logger.info({ transcript: this.audioTranscript.slice(0, 60), agentSpeaking: this.isAgentSpeaking }, "END_OF_SPEECH_PASSTHROUGH");
++        this.processSTTEvent(ev);
++        return;
++      }
+       this.logger.trace({ event: ev.type }, "holding STT event during agent speech");
+       this.transcriptBuffer.push(ev);
+       return;
+diff --git a/dist/voice/audio_recognition.js b/dist/voice/audio_recognition.js
+index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..53ae54c6b6e98ad6a4bdb878ec971ac203abfd2f 100644
+--- a/dist/voice/audio_recognition.js
++++ b/dist/voice/audio_recognition.js
+@@ -733,13 +733,18 @@ class AudioRecognition {
+     if (this.agentSpeechStartedAt !== void 0) {
+       trimStart = Math.max(trimStart, this.agentSpeechStartedAt);
+     }
++    const __ferniDropped = []; // PATCHED(ferni): HELD_STT_DROPPED
+     while (this.transcriptBuffer.length > 0) {
+       const event = this.transcriptBuffer[0];
+       const shouldTrim = event.speechEndTime !== void 0 ? event.speechEndTime < trimStart && (this.agentSpeechStartedAt === void 0 || this.agentSpeechStartedAt < event.speechEndTime) : event.createdAt < trimStart;
+       if (!shouldTrim) {
+         break;
+       }
+-      this.transcriptBuffer.shift();
++      __ferniDropped.push(this.transcriptBuffer.shift());
++    }
++    // PATCHED(ferni): make dropped held events visible (backchannels, or a lost turn)
++    if (__ferniDropped.length > 0) {
++      this.logger.info({ dropped: __ferniDropped.map((e) => { var _a; return `${e.type}:${String(((_a = e.alternatives) == null ? void 0 : _a[0]) == null ? "" : e.alternatives[0].text).slice(0, 40)}`; }), audioTranscript: String(this.audioTranscript).slice(0, 60) }, "HELD_STT_DROPPED");
+     }
+   }
+   flushHeldTranscripts(resolvedAt, vadSpeechStartedAt) {
+@@ -872,6 +877,15 @@ class AudioRecognition {
+       }
+     }
+     if (ev.type !== SpeechEventType.RECOGNITION_USAGE && this.transcriptGateActive) {
++      // PATCHED(ferni): END_OF_SPEECH_PASSTHROUGH. An END_OF_SPEECH whose transcript already went
++      // through (the caller finished just as a reply started) must go through too. Held alone it
++      // carries no text and nothing re-sends it: the agent's end of speech or a backchannel
++      // verdict trims it as overlap, the turn is never committed, and the words go unanswered.
++      if (ev.type === SpeechEventType.END_OF_SPEECH && this.transcriptBuffer.length === 0 && this.audioTranscript) {
++        this.logger.info({ transcript: this.audioTranscript.slice(0, 60), agentSpeaking: this.isAgentSpeaking }, "END_OF_SPEECH_PASSTHROUGH");
++        this.processSTTEvent(ev);
++        return;
++      }
+       this.logger.trace({ event: ev.type }, "holding STT event during agent speech");
+       this.transcriptBuffer.push(ev);
+       return;
+diff --git a/dist/voice/transcription/synchronizer.cjs b/dist/voice/transcription/synchronizer.cjs
+index e7351b5e4d0db18cf9554448da10c3c982d37dcb..4ae8293504515fd7762acaedca52cd4f20578f82 100644
+--- a/dist/voice/transcription/synchronizer.cjs
++++ b/dist/voice/transcription/synchronizer.cjs
+@@ -147,6 +147,8 @@ class SegmentSynchronizerImpl {
+   closedFuture = new import_utils.Future();
+   playbackCompleted = false;
+   interrupted = false;
++  // PATCHED(ferni): ROTATED_SEGMENT_FIX, a port of livekit/agents-js#2655 (#2566)
++  playbackFinishedReceived = false;
+   // The audio source failed before covering the segment's text, e.g. a TTS error.
+   audioTruncated = false;
+   /**
+@@ -171,6 +173,11 @@ class SegmentSynchronizerImpl {
+   get textInputEnded() {
+     return this.textData.done;
+   }
++  // PATCHED(ferni): ROTATED_SEGMENT_FIX. Whether a playback_finished for this segment is
++  // still outstanding: only a segment that carried audio downstream is owed one, until it arrives.
++  get owesPlaybackFinished() {
++    return this.audioData.pushedDuration > 0 && !this.playbackFinishedReceived;
++  }
+   get hasPendingText() {
+     return this.textData.pushedText.length > this.textData.forwardedText.length;
+   }
+@@ -276,6 +283,7 @@ class SegmentSynchronizerImpl {
+     }
+     interrupted ||= this.audioTruncated;
+     this.interrupted = interrupted;
++    this.playbackFinishedReceived = true; // PATCHED(ferni): ROTATED_SEGMENT_FIX
+     if (!this.textData.done || !this.audioData.done) {
+       this.logger.warn(
+         { textDone: this.textData.done, audioDone: this.audioData.done },
+@@ -771,10 +779,16 @@ class SyncedTextOutput extends import_io.TextOutput {
+       this.logger.warn(
+         "SegmentSynchronizerImpl text marked as ended in capture text, rotating segment"
+       );
+-      this.synchronizer._pendingRotatedSegments.push({
+-        impl: this.synchronizer._impl,
+-        acceptedDownstream: this.synchronizer.audioOutput._rotationCandidateAccepted
+-      });
++      // PATCHED(ferni): ROTATED_SEGMENT_FIX (livekit/agents-js#2655, unmerged). A segment whose
++      // finish already arrived, or one rotated in mid-flow that never carried audio, owes no
++      // playback_finished. Queuing it leaves the queue one behind for the rest of the call, and
++      // every later interrupted reply is committed with the previous reply's text (#2566).
++      if (process.env.ROTATED_SEGMENT_FIX !== "on" || this.synchronizer._impl.owesPlaybackFinished) {
++        this.synchronizer._pendingRotatedSegments.push({
++          impl: this.synchronizer._impl,
++          acceptedDownstream: this.synchronizer.audioOutput._rotationCandidateAccepted
++        });
++      }
+       this.synchronizer.rotateSegment();
+       await this.synchronizer.barrier();
+     }
+diff --git a/dist/voice/transcription/synchronizer.js b/dist/voice/transcription/synchronizer.js
+index 88db34b9f4e4effdba097614e5948d974d179eb2..46263cf7460ff6cf6138ffcfbbbb36a56875e90f 100644
+--- a/dist/voice/transcription/synchronizer.js
++++ b/dist/voice/transcription/synchronizer.js
+@@ -127,6 +127,8 @@ class SegmentSynchronizerImpl {
+   closedFuture = new Future();
+   playbackCompleted = false;
+   interrupted = false;
++  // PATCHED(ferni): ROTATED_SEGMENT_FIX, a port of livekit/agents-js#2655 (#2566)
++  playbackFinishedReceived = false;
+   // The audio source failed before covering the segment's text, e.g. a TTS error.
+   audioTruncated = false;
+   /**
+@@ -151,6 +153,11 @@ class SegmentSynchronizerImpl {
+   get textInputEnded() {
+     return this.textData.done;
+   }
++  // PATCHED(ferni): ROTATED_SEGMENT_FIX. Whether a playback_finished for this segment is
++  // still outstanding: only a segment that carried audio downstream is owed one, until it arrives.
++  get owesPlaybackFinished() {
++    return this.audioData.pushedDuration > 0 && !this.playbackFinishedReceived;
++  }
+   get hasPendingText() {
+     return this.textData.pushedText.length > this.textData.forwardedText.length;
+   }
+@@ -256,6 +263,7 @@ class SegmentSynchronizerImpl {
+     }
+     interrupted ||= this.audioTruncated;
+     this.interrupted = interrupted;
++    this.playbackFinishedReceived = true; // PATCHED(ferni): ROTATED_SEGMENT_FIX
+     if (!this.textData.done || !this.audioData.done) {
+       this.logger.warn(
+         { textDone: this.textData.done, audioDone: this.audioData.done },
+@@ -751,10 +759,16 @@ class SyncedTextOutput extends TextOutput {
+       this.logger.warn(
+         "SegmentSynchronizerImpl text marked as ended in capture text, rotating segment"
+       );
+-      this.synchronizer._pendingRotatedSegments.push({
+-        impl: this.synchronizer._impl,
+-        acceptedDownstream: this.synchronizer.audioOutput._rotationCandidateAccepted
+-      });
++      // PATCHED(ferni): ROTATED_SEGMENT_FIX (livekit/agents-js#2655, unmerged). A segment whose
++      // finish already arrived, or one rotated in mid-flow that never carried audio, owes no
++      // playback_finished. Queuing it leaves the queue one behind for the rest of the call, and
++      // every later interrupted reply is committed with the previous reply's text (#2566).
++      if (process.env.ROTATED_SEGMENT_FIX !== "on" || this.synchronizer._impl.owesPlaybackFinished) {
++        this.synchronizer._pendingRotatedSegments.push({
++          impl: this.synchronizer._impl,
++          acceptedDownstream: this.synchronizer.audioOutput._rotationCandidateAccepted
++        });
++      }
+       this.synchronizer.rotateSegment();
+       await this.synchronizer.barrier();
+     }

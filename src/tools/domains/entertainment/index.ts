@@ -26,7 +26,6 @@ import { appleMusicTools } from './apple-music-tools.js';
 // Import Spotify Connect multi-room tools
 import { spotifyConnectTools } from './spotify-connect.js';
 
-import { createMovieTools } from './movies.js';
 import { createSonosMusicTools } from './sonos-music.js';
 import { requiringEnv } from '../../registry/tool-availability.js';
 const SONOS_ENV = ['SONOS_CLIENT_ID', 'SONOS_CLIENT_SECRET'];
@@ -471,45 +470,6 @@ function getSonosMusicToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
-// MOVIE TOOLS
-// ============================================================================
-
-function getMovieToolDefinitions(): ToolDefinition[] {
-  const legacyTools = createMovieTools();
-
-  return [
-    wrapLegacyTool(
-      'getMovieInfo',
-      'Get Movie Info',
-      'Get information about a specific movie including rating, runtime, genres, and description.',
-      legacyTools.getMovieInfo,
-      { tags: ['movie', 'film', 'info'] }
-    ),
-    wrapLegacyTool(
-      'getMoviesNowPlaying',
-      'Movies Now Playing',
-      'Get a list of movies currently playing in theaters.',
-      legacyTools.getMoviesNowPlaying,
-      { tags: ['movie', 'theater', 'now playing'] }
-    ),
-    wrapLegacyTool(
-      'getUpcomingMovies',
-      'Upcoming Movies',
-      'Get a list of upcoming movies coming to theaters soon.',
-      legacyTools.getUpcomingMovies,
-      { tags: ['movie', 'upcoming', 'coming soon'] }
-    ),
-    wrapLegacyTool(
-      'getMovieShowtimes',
-      'Movie Showtimes',
-      'Get showtime information for a movie in a specific location.',
-      legacyTools.getMovieShowtimes,
-      { tags: ['movie', 'showtimes', 'theater'] }
-    ),
-  ];
-}
-
-// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -559,14 +519,6 @@ try {
   log.warn({ error: String(err) }, '⚠️ Sonos tools failed to load');
 }
 
-try {
-  const movieTools = requiringEnv(['TMDB_API_KEY'], getMovieToolDefinitions()); // TMDB is their only source
-  entertainmentTools.push(...movieTools);
-  log.debug({ count: movieTools.length }, '🎵 Movie tools loaded');
-} catch (err) {
-  log.warn({ error: String(err) }, '⚠️ Movie tools failed to load');
-}
-
 // Verify critical music tools are present
 const criticalMusicTools = ['playMusic', 'musicControl', 'musicInfo'];
 const missingCritical = criticalMusicTools.filter(
@@ -600,11 +552,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   entertainmentTools
 );
 
-export {
-  getUnifiedMusicToolDefinitions,
-  getSpotifyToolDefinitions,
-  getSonosMusicToolDefinitions,
-  getMovieToolDefinitions,
-};
+export { getUnifiedMusicToolDefinitions, getSpotifyToolDefinitions, getSonosMusicToolDefinitions };
 
 export default getToolDefinitions;

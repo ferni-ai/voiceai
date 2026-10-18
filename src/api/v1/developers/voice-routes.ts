@@ -131,7 +131,7 @@ const CURATED_VOICES: VoiceInfo[] = [
     recommended_for: ['communication', 'career', 'leadership'],
   },
   {
-    id: '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
+    id: '6da65da0-cad8-4820-901c-549561d93ff3',
     name: 'Nayan',
     description: 'Deep and contemplative. Ideal for wisdom and philosophy.',
     gender: 'male',

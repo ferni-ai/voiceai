@@ -9,6 +9,9 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
+// Streak awards exist only in a build that shows streaks (config/no-streaks.ts)
+vi.stubEnv('VITE_NO_STREAKS', 'false');
+
 const celebration = vi.hoisted(() => vi.fn());
 vi.mock('../../src/ui/whisper.ui.js', () => ({ whisper: { celebration } }));
 

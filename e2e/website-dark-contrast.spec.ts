@@ -9,7 +9,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
-import { serveBuiltSite, type BuiltSite } from './built-site-server';
+import { keepOffProdApi, serveBuiltSite, type BuiltSite } from './built-site-server';
 
 const PORT = 8767;
 const SITE = `http://127.0.0.1:${PORT}`;
@@ -160,6 +160,10 @@ test.describe('ferni.ai in dark mode', () => {
 
   test.afterAll(() => {
     site?.stop();
+  });
+
+  test.beforeEach(async ({ context }) => {
+    await keepOffProdApi(context);
   });
 
   for (const path of PAGES) {

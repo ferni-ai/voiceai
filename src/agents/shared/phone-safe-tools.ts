@@ -61,6 +61,7 @@ const PUBLIC = [
   'getMovieShowtimes',
   'getMoviesNowPlaying',
   'getUpcomingMovies',
+  'getWhereToWatch',
   'meetTheTeam',
   'softTeamIntro',
   'introduceMember',

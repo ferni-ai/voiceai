@@ -78,14 +78,13 @@ jobs:
           # Caption flags (apps/web/src/ui/captions/captions-flag.ts); off unless exactly "true".
           VITE_CAPTIONS_V2: ${{ vars.VITE_CAPTIONS_V2 }}
           VITE_CAPTIONS_BREATH: ${{ vars.VITE_CAPTIONS_BREATH }}
+          VITE_CAPTIONS_HEARD: ${{ vars.VITE_CAPTIONS_HEARD }}
           # What Ferni Knows (apps/web/src/ui/memory/known.ts); off unless exactly "true".
           VITE_MEMORY_VIEW: ${{ vars.VITE_MEMORY_VIEW }}
 
       - name: Deploy to Firebase (ferni-prod)
         id: deploy-ferni
         uses: FirebaseExtended/action-hosting-deploy@v0
-        # May fail if service account lacks run.services.get permission for Cloud Run rewrites
-        continue-on-error: true
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -97,8 +96,6 @@ jobs:
       - name: Deploy to Firebase (johnb-app / app.ferni.ai)
         id: deploy-app
         uses: FirebaseExtended/action-hosting-deploy@v0
-        # May fail if service account lacks run.services.get permission for Cloud Run rewrites
-        continue-on-error: true
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
