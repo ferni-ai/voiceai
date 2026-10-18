@@ -108,6 +108,8 @@ export interface TurnSignals {
   quiet?: boolean;
   /** FERNI_PLAYFUL=on and Ferni speaking (ferni-playful.ts). */
   playful?: boolean;
+  /** FERNI_PLAYFUL: false when this call had its playful line too recently (ferni-playful-turn.ts). */
+  playfulLine?: boolean;
 }
 
 /** The model's understanding as signals. */
@@ -178,12 +180,7 @@ export function extrasFor(
   // aloud on chit-chat, where friends rarely do either.
   const learnedTexture = env.TURN_TEXTURE === 'learned';
   const chat = move === 'share' || move === 'ack';
-  if (
-    on(env, 'THINK_ALOUD') &&
-    shape !== 'react' &&
-    !(learnedTexture && chat) &&
-    !signals.quiet
-  ) {
+  if (on(env, 'THINK_ALOUD') && shape !== 'react' && !(learnedTexture && chat) && !signals.quiet) {
     // Live, request turns are rare: also think aloud on some longer answers.
     const p =
       move === 'request' || move === 'about_ferni'
