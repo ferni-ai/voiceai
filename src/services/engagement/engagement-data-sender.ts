@@ -8,8 +8,9 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { PERSONA_RITUALS } from './daily-rituals.js';
 import {
-  EngagementStore,
+  getEngagementStore,
   type EngagementProfile,
+  type EngagementStore,
   type StoredPrediction,
   type StoredWeatherEntry,
 } from './engagement-store.js';
@@ -83,12 +84,7 @@ export interface EngagementTriggerMessage {
 
 class EngagementDataSender {
   private room: LiveKitRoomLike | null = null;
-  private store: EngagementStore;
   private logger = getLogger();
-
-  constructor() {
-    this.store = new EngagementStore();
-  }
 
   /**
    * Set the LiveKit room for sending messages
@@ -114,10 +110,13 @@ class EngagementDataSender {
     }
 
     try {
-      const profile = await this.store.getProfile(userId);
-      const weatherHistory = await this.store.getWeatherHistory(userId, 7);
-      const ritualStreaks = await this.getRitualStreaks(userId);
-      const predictions = await this.getPredictions(userId);
+      // The shared, initialized store: a store of its own never connected to
+      // Firestore, so every push sent no predictions and the panel cleared them.
+      const store = await getEngagementStore();
+      const profile = await store.getProfile(userId);
+      const weatherHistory = await store.getWeatherHistory(userId, 7);
+      const ritualStreaks = await this.getRitualStreaks(store, userId);
+      const predictions = await this.getPredictions(store, userId);
 
       const message: EngagementDataMessage = {
         type: 'engagement',
@@ -239,9 +238,12 @@ class EngagementDataSender {
   // HELPER METHODS
   // ============================================================================
 
-  private async getPredictions(userId: string): Promise<EngagementDataMessage['predictions']> {
+  private async getPredictions(
+    store: EngagementStore,
+    userId: string
+  ): Promise<EngagementDataMessage['predictions']> {
     try {
-      const storedPredictions = await this.store.getRecentPredictions(userId, 20);
+      const storedPredictions = await store.getRecentPredictions(userId, 20);
 
       return storedPredictions.map((stored) => {
         // Unmatched old resolutions were never scored: send them as open.
@@ -287,12 +289,15 @@ class EngagementDataSender {
     return `Week of ${p.weekOf}: Weekly behavior prediction`;
   }
 
-  private async getRitualStreaks(userId: string): Promise<EngagementDataMessage['ritualStreaks']> {
+  private async getRitualStreaks(
+    store: EngagementStore,
+    userId: string
+  ): Promise<EngagementDataMessage['ritualStreaks']> {
     const streaks: EngagementDataMessage['ritualStreaks'] = [];
     const today = new Date().toDateString();
 
     for (const [ritualId, ritual] of Object.entries(PERSONA_RITUALS)) {
-      const streak = await this.store.getRitualStreak(userId, ritualId);
+      const streak = await store.getRitualStreak(userId, ritualId);
 
       if (streak) {
         const lastDate = streak.lastCompletedAt

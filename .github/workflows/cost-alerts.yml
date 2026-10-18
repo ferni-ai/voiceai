@@ -10,9 +10,10 @@ on:
   workflow_dispatch:
 
 env:
-  # Daily cost thresholds (USD)
-  ALERT_THRESHOLD: 50      # Alert if daily spend > $50
-  CRITICAL_THRESHOLD: 100  # Critical alert if > $100
+  # Daily cost thresholds in USD; the COST_ALERT_USD and COST_CRITICAL_USD repo
+  # variables override them.
+  ALERT_THRESHOLD: ${{ vars.COST_ALERT_USD || '50' }}
+  CRITICAL_THRESHOLD: ${{ vars.COST_CRITICAL_USD || '100' }}
 
 jobs:
   check-costs:
@@ -28,54 +29,42 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v3
 
+      # Real spend from the Cloud Billing export to BigQuery. Until 2026-10-17 this
+      # step wrote a fixed daily_cost=25 whatever was spent, so the alert could
+      # never fire. Off until the BILLING_EXPORT_TABLE repo variable names the
+      # export table (project.dataset.gcp_billing_export_v1_XXXXXX); while it is
+      # unset the run says the cost was not measured instead of inventing one.
       - name: Get yesterday's costs
         id: costs
+        env:
+          BILLING_EXPORT_TABLE: ${{ vars.BILLING_EXPORT_TABLE }}
         run: |
-          # Get billing data for yesterday
-          YESTERDAY=$(date -d "yesterday" +%Y-%m-%d)
-          TODAY=$(date +%Y-%m-%d)
-
+          YESTERDAY=$(date -u -d "yesterday" +%Y-%m-%d)
           echo "Checking costs for $YESTERDAY"
 
-          # Query billing export (requires billing export to BigQuery)
-          # If not set up, this will show instructions
-          COST=$(gcloud billing accounts list --format="value(name)" 2>/dev/null | head -1)
-
-          if [ -z "$COST" ]; then
-            echo "⚠️ No billing access - skipping cost check"
-            echo "daily_cost=0" >> $GITHUB_OUTPUT
+          if [ -z "$BILLING_EXPORT_TABLE" ]; then
+            echo "::warning::BILLING_EXPORT_TABLE is not set, so daily cost was not measured"
             echo "has_access=false" >> $GITHUB_OUTPUT
             exit 0
           fi
+          if ! [[ "$BILLING_EXPORT_TABLE" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+            echo "::error::BILLING_EXPORT_TABLE must be project.dataset.table"
+            exit 1
+          fi
+
+          # Net of credits (free tier, discounts), in the billing account's currency.
+          COST=$(bq query --use_legacy_sql=false --format=csv --quiet \
+            "SELECT ROUND(IFNULL(SUM(cost), 0) + IFNULL(SUM((SELECT SUM(c.amount) FROM UNNEST(credits) c)), 0), 2)
+             FROM \`$BILLING_EXPORT_TABLE\`
+             WHERE DATE(usage_start_time) = '$YESTERDAY'" | tail -n 1)
+          if ! [[ "$COST" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "::error::Could not read cost from $BILLING_EXPORT_TABLE (got: $COST)"
+            exit 1
+          fi
 
           echo "has_access=true" >> $GITHUB_OUTPUT
-
-          # Get Cloud Run costs specifically
-          CLOUD_RUN_COST=$(gcloud run services list \
-            --format="table(SERVICE,REGION)" \
-            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null | wc -l || echo "0")
-
-          echo "Active Cloud Run services: $CLOUD_RUN_COST"
-
-          # For now, estimate based on instance count
-          # Real implementation would query BigQuery billing export
-          # Voice agent runs on GCE (voiceai-agent-gce), not Cloud Run
-          VOICE_INSTANCES=$(gcloud compute instances describe voiceai-agent-gce \
-            --zone=us-central1-a \
-            --format="value(status)" \
-            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo "UNKNOWN")
-
-          UI_INSTANCES=$(gcloud run services describe john-bogle-ui \
-            --region=us-central1 \
-            --format="value(status.traffic[0].percent)" \
-            --project=${{ secrets.GCP_PROJECT_ID }} 2>/dev/null || echo "0")
-
-          echo "voice_traffic=$VOICE_INSTANCES" >> $GITHUB_OUTPUT
-          echo "ui_traffic=$UI_INSTANCES" >> $GITHUB_OUTPUT
-
-          # Placeholder - in production, query BigQuery billing export
-          echo "daily_cost=25" >> $GITHUB_OUTPUT
-          echo "Note: For accurate costs, set up BigQuery billing export"
+          echo "daily_cost=$COST" >> $GITHUB_OUTPUT
+          echo "Spend on $YESTERDAY: \$$COST"
 
       - name: Check thresholds
         id: check
@@ -85,10 +74,11 @@ jobs:
           ALERT=${{ env.ALERT_THRESHOLD }}
           CRITICAL=${{ env.CRITICAL_THRESHOLD }}
 
-          if [ "$COST" -gt "$CRITICAL" ]; then
+          # COST has cents, which bash's -gt can't compare.
+          if awk -v c="$COST" -v t="$CRITICAL" 'BEGIN { exit !(c > t) }'; then
             echo "level=critical" >> $GITHUB_OUTPUT
             echo "🚨 CRITICAL: Daily cost ($${COST}) exceeds $${CRITICAL}!"
-          elif [ "$COST" -gt "$ALERT" ]; then
+          elif awk -v c="$COST" -v t="$ALERT" 'BEGIN { exit !(c > t) }'; then
             echo "level=warning" >> $GITHUB_OUTPUT
             echo "⚠️ WARNING: Daily cost ($${COST}) exceeds $${ALERT}"
           else
@@ -117,14 +107,19 @@ jobs:
             }"
 
       - name: Summary
+        env:
+          COST: ${{ steps.costs.outputs.daily_cost }}
         run: |
           echo "## 💰 Daily Cost Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Estimated Daily Cost | \$${{ steps.costs.outputs.daily_cost }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Alert Threshold | \$${{ env.ALERT_THRESHOLD }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Voice Agent Traffic | ${{ steps.costs.outputs.voice_traffic }}% |" >> $GITHUB_STEP_SUMMARY
-          echo "| UI Server Traffic | ${{ steps.costs.outputs.ui_traffic }}% |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "_For accurate billing, set up [BigQuery billing export](https://cloud.google.com/billing/docs/how-to/export-data-bigquery)_" >> $GITHUB_STEP_SUMMARY
+          SPEND="not measured"
+          [ -n "$COST" ] && SPEND="\$$COST"
+          echo "| Yesterday's spend | $SPEND |" >> $GITHUB_STEP_SUMMARY
+          echo "| Alert threshold | \$${{ env.ALERT_THRESHOLD }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Critical threshold | \$${{ env.CRITICAL_THRESHOLD }} |" >> $GITHUB_STEP_SUMMARY
+          if [ -z "$COST" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "_Not measured: set the BILLING_EXPORT_TABLE repo variable to the [BigQuery billing export](https://cloud.google.com/billing/docs/how-to/export-data-bigquery) table._" >> $GITHUB_STEP_SUMMARY
+          fi
