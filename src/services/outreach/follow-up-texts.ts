@@ -19,18 +19,16 @@
  */
 import {
   apply,
+  followUpTextOutcome,
+  logPromiseJobRun,
+  logPromiseOutcome,
   rightMoment,
   type FollowUp,
   type FollowUpEvent,
   type FollowUpStore,
-} from '../follow-through/index.js';
-import { createLogger } from '../../utils/safe-logger.js';
-import {
-  followUpTextOutcome,
-  logPromiseJobRun,
-  logPromiseOutcome,
   type PromiseJobCounts,
 } from '../follow-through/index.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'follow-up-texts' });
 
