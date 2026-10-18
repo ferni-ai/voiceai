@@ -52,6 +52,7 @@ import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { callActions, claimedAction, kindsOfTool, type ActionKind } from './action-claims.js';
 import { withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
+import { FirstClauseFlush, firstClauseFlushEnabled } from './first-clause-flush.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -279,6 +280,10 @@ async function checkActionClaims<T>(
   // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
   const calendarCreateOpen = toolNames.some(isCalendarCreate);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
+  // FIRST_CLAUSE_FLUSH: a held reply's first clause goes early when it names no action (first-clause-flush.ts).
+  const firstClause = new FirstClauseFlush(hold && firstClauseFlushEnabled(env));
+  const clauseSafe = (clause: string): boolean =>
+    claimedAction(clause) === null && !ACTION_TALK.test(plain(clause));
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
     !open.has(kind)
@@ -306,6 +311,7 @@ async function checkActionClaims<T>(
     async start(controller) {
       let pending = '';
       let passed = 0; // how much of pending already streamed out
+      let clauseSent = 0; // how much of pending went out as the reply's first clause
       let last = '';
       let said = false; // an honest line already went out
       let lineLast = false; // the last thing out was an honest line
@@ -331,9 +337,14 @@ async function checkActionClaims<T>(
         last = spaced;
         lineLast = false;
       };
-      /** A whole sentence: held ones go out unless they claim; streamed ones are already out. */
-      const flush = (text: string): void => {
-        const kind = claimedAction(text);
+      /**
+       * A whole sentence: held ones go out unless they claim; streamed ones are already out.
+       * `sent` leading characters already went out as the first clause: the claim check
+       * reads the whole sentence, and only the rest is emitted, queued or dropped.
+       */
+      const flush = (whole: string, sent = 0): void => {
+        const text = whole.slice(sent);
+        const kind = claimedAction(whole);
         const reason = kind ? missing(kind, calling) : null;
         if (kind && !reason && hold && ahead(kind)) {
           log.warn({ kind, reason: 'before_result', held: hold }, 'ACTION_CLAIM_DROPPED');
@@ -369,9 +380,11 @@ async function checkActionClaims<T>(
             // flushing on them cut words at the piece break ("cr ickets", "don' t").
             const names = toolNamesOf(chunk);
             if (names.length > 0) {
-              if (pending) flush(pending);
+              if (pending) flush(pending, clauseSent);
               pending = '';
               passed = 0;
+              clauseSent = 0;
+              firstClause.close();
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
             if (names.some(isCalendarCreate)) calendarCalled = true;
@@ -396,16 +409,21 @@ async function checkActionClaims<T>(
           pending += content;
           for (let end = sentenceEnd(pending); end > 0; end = sentenceEnd(pending)) {
             if (!hold) pass(pending.slice(passed, end)); // the rest of this sentence, then any correction
-            flush(pending.slice(0, end));
+            flush(pending.slice(0, end), clauseSent);
             pending = pending.slice(end);
             passed = 0;
+            clauseSent = 0;
+            firstClause.close();
           }
           if (!hold) {
             pass(pending.slice(passed));
             passed = pending.length;
+          } else if (clauseSent === 0) {
+            clauseSent = firstClause.take(pending, clauseSafe);
+            if (clauseSent > 0) emit(pending.slice(0, clauseSent)); // the rest of its sentence stays held
           }
         }
-        if (pending) flush(pending);
+        if (pending) flush(pending, clauseSent);
         if (deferred && !said && !calling.has(deferred.kind)) {
           emit(honestLine(deferred.kind, deferred.reason, open.has('reminder')));
         }
