@@ -97,7 +97,7 @@ if (missingVars.length > 0) {
   log('================================================================================');
   log('The worker cannot start without these variables.');
   log('');
-  log('To fix: Redeploy with `ferni deploy gce` which sets all required env vars.');
+  log('To fix: set them with `lk agent update-secrets` (.claude/skills/deploy-agent).');
   log('');
   process.exit(1);
 }

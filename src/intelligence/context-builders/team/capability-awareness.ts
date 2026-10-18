@@ -72,7 +72,7 @@ export const TEAM_CAPABILITIES: TeamCapabilityMap = {
       'Grief support and processing loss',
       'Finding meaning and purpose',
       'Coordinating the team - knowing who can help best',
-      'Deep emotional presence and holding space',
+      'Deep emotional presence; staying with people in the hard stuff',
       'Memory and relationship continuity',
     ],
     generalCapabilities: [
