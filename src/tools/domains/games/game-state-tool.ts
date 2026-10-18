@@ -27,12 +27,13 @@ const log = getLogger();
 
 export const GAME_STATE_TOOL = 'gameState';
 
-const DESCRIPTION = `Keep score in a game you're playing with the user by voice, like a friend would: whose turn it is, the score, what's been asked or said already (so you never repeat a question, dilemma or trivia question), and in 20 questions the thing you're thinking of.
-- start: when a game begins. gameType; players (names, default caller and Ferni); turn (who goes first); secret (20 questions, when you're the one thinking of something: pick it now and stay consistent with it).
-- update: after each move. used (the question, guess, dilemma, trivia question, story line or word just used); scorePlayer + scorePoints; nextTurn or turn.
-- get: to check the game, including your secret answer, before answering a 20-questions question.
-- end: when the game finishes or the user stops; it gives the final score and the answer to reveal.
-Never say the secret before the game ends.`;
+const DESCRIPTION = `Keep score in a game you're playing with the user by voice, like a friend would: whose turn it is, the score, what's been asked or said already (so you never repeat a question, dilemma or trivia question), and in 20 questions or a riddle the answer you're holding.
+- start: when a game begins. gameType; players (names, default caller and Ferni); turn (who goes first); secret (20 questions when you're thinking of something, or a riddle's answer: pick it now and stay consistent with it).
+- update: once per turn, after each move. used (the question asked, dilemma, story line or word just used); scorePlayer + scorePoints; nextTurn (true, or the name of who goes next) or turn. Its answer shows the whole game, your secret included, so you never need get first.
+- get: to check the game when you aren't recording a move.
+- end: when the game finishes, or as soon as the caller wants to stop or switch; then don't make another move. It gives the final score and the answer to reveal.
+Trivia: turn is whoever answers. The score counts right answers only, to whoever answered (usually the caller); a wrong answer scores nobody. used is the question you asked, not their guess.
+Never say the secret before the game ends, and never give a hint that contains it.`;
 
 const parameters = z.object({
   action: z.enum(['start', 'update', 'get', 'end']).describe('What to do'),
@@ -41,15 +42,20 @@ const parameters = z.object({
   secret: z
     .string()
     .optional()
-    .describe('start or update: what you are thinking of (20 questions); kept private'),
+    .describe(
+      'start or update: what you are thinking of (20 questions) or the riddle answer; kept private'
+    ),
   turn: z.string().optional().describe('Whose turn it is now'),
-  nextTurn: z.boolean().optional().describe('update: pass the turn to the next player'),
+  nextTurn: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .describe('update: pass the turn on; true for the next player, or the name of who goes next'),
   scorePlayer: z.string().optional().describe('update: who scored'),
   scorePoints: z.number().optional().describe('update: points to add (default 1)'),
   used: z
     .string()
     .optional()
-    .describe('update: the question, guess, dilemma, trivia question, story line or word used'),
+    .describe('update: the question asked, dilemma, story line or word used'),
 });
 
 type GameStateArgs = z.infer<typeof parameters>;
@@ -77,8 +83,12 @@ export function runGameState(session: object | undefined, args: GameStateArgs): 
         result.secretKept
           ? 'The secret was already set and stays the same; stay consistent with it.'
           : '',
+        result.scoreRefused
+          ? `No point given: in trivia only the player answering (${result.game.turn}) scores, and a wrong answer scores nobody.`
+          : '',
       ].filter(Boolean);
-      return [...notes, describeCallGame(result.game, { withSecret: false })].join('\n');
+      // Tool output is private to the model: the secret rides here so a turn needs one call, not get + update.
+      return [...notes, describeCallGame(result.game, { withSecret: true })].join('\n');
     }
     case 'get': {
       const game = getCallGame(session);
