@@ -44,6 +44,8 @@ export const FLAG_MANIFEST = {
   CASCADE_CACHE_WARM: { default: 'off', owner: 'voice', kind: 'experiment' },
   CASCADE_FAST_LANE: { default: 'off', owner: 'voice', kind: 'kill-switch' },
   CASCADE_TRIM_LEAD_SILENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // vad restores the silence timer; anything else is the STT end-of-turn (cartesia-cascade.ts)
+  CASCADE_TURN_DETECTION: { default: 'stt', owner: 'voice', kind: 'config' },
   // set by CI runners, not by us
   CI: { default: 'off', owner: 'tools', kind: 'config' },
   CLIP_TRACK_PACED: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -86,6 +88,8 @@ export const FLAG_MANIFEST = {
   DEMO_RATE_LIMIT_SHARED: { default: 'off', owner: 'platform', kind: 'experiment' },
   DEV_TELEMETRY: { default: 'off', owner: 'voice', kind: 'config' },
   DEV_TELEMETRY_VERBOSE: { default: 'off', owner: 'voice', kind: 'config' },
+  // on speaks the actor's line; shadow writes it without speaking; off skips it (speech/direction/director.ts)
+  DIRECTED_SPEECH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   DIRECTOR_ANSWER_TURN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_ESCALATE: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_LOOK_BACK: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -205,6 +209,8 @@ export const FLAG_MANIFEST = {
   MAYA_PROACTIVE_CHECKS: { default: 'off', owner: 'platform', kind: 'experiment' },
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // which store holds caller memory: memory, firestore or postgres; unset auto-detects (memory/index.ts)
+  MEMORY_STORE_TYPE: { default: 'auto', owner: 'memory', kind: 'config' },
   // on: the caller can see, forget and correct what Ferni knows (/api/memories/remembered).
   // Turn on with the web app's switch for the view that calls it: VITE_MEMORY_CONTROL, or the
   // memory view (VITE_MEMORY_VIEW / localStorage ferni:flag:memory-view, web known.ts).
@@ -239,6 +245,8 @@ export const FLAG_MANIFEST = {
   PRE_STT_SIP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PROACTIVE_CHANNELS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // character loads a short character sheet instead of the full prompt (prompt-loader.ts)
+  PROMPT_MODE: { default: 'full', owner: 'voice', kind: 'config' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   PUBSUB_ENABLED: { default: 'off', owner: 'voice', kind: 'config' },
   // no question right after a reply that ended on one (question-pace.ts)
@@ -246,6 +254,8 @@ export const FLAG_MANIFEST = {
   QUIET_CALLER: { default: 'off', owner: 'voice', kind: 'experiment' },
   QUIET_HOURS_UNIFIED: { default: 'off', owner: 'outreach', kind: 'experiment' },
   QUIRK_AWARENESS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // direct: reaction clips play on this track, as VOICED_PRESENCE requires (direct-clip-track.ts)
+  REACTION_SIDETRACK: { default: 'off', owner: 'voice', kind: 'experiment' },
   RECALL_BRIDGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   RECALL_EPISODES: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_PEOPLE: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -294,10 +304,16 @@ export const FLAG_MANIFEST = {
   SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
   SKIP_GEMINI_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
   SKIP_PERSONA_INDEXING: { default: 'off', owner: 'platform', kind: 'config' },
+  // anything but 'false' skips the full generateReply prewarm, the quick path (generate-reply-gateway.ts)
+  SKIP_PREWARM_GENERATEREPLY: { default: 'true', owner: 'platform', kind: 'config' },
   SKIP_TWILIO_VALIDATION: { default: 'off', owner: 'platform', kind: 'config' },
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
   SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // off, shadow or live; the default is off under tests (speech/tts-gateway/director/gate.ts)
+  SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
+  // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
+  SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   // streaks count days from the summaries subcollection (up to 400 reads per profile load)
   STREAK_FROM_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -310,6 +326,8 @@ export const FLAG_MANIFEST = {
   TEAMMATE_IDENTITY_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: talk to a teammate is not stored as the caller's life (utils/teammate-talk.ts, #1507)
   TEAMMATE_TALK_FILTER: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // off: teammates unlock with conversations and streaks; on: every teammate is on every team (team-by-need-flag.ts)
+  TEAM_BY_NEED: { default: 'off', owner: 'tools', kind: 'experiment' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a call or text read back and waiting for the owner's yes is kept as a follow-up (outreach/confirm-thread.ts)
@@ -333,6 +351,8 @@ export const FLAG_MANIFEST = {
   TRUST_UNSIGNED_DEVICE_ID: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // on: inner TTS failures reach the agent session (which closes after 4 in a row)
   TTS_FORWARD_ERRORS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // cartesia by default; sonata only when its native addon is built (speech/tts-gateway/providers/index.ts)
+  TTS_PROVIDER: { default: 'cartesia', owner: 'voice', kind: 'config' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_INTELLIGENCE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -375,6 +395,8 @@ export const FLAG_MANIFEST = {
   VOICE_EVAL_CLOCK: { default: 'off', owner: 'voice', kind: 'config' },
   VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // which voice pipeline runs; anything unrecognised is the Cartesia cascade (model-provider-config.ts)
+  VOICE_PIPELINE: { default: 'cartesia-cascade', owner: 'voice', kind: 'config' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   // current weather is reused 10 min per place and answered within 3 s (information/weather.ts)
   WEATHER_FAST_ANSWER: { default: 'on', owner: 'tools', kind: 'kill-switch' },
