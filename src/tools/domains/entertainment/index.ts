@@ -502,7 +502,7 @@ function getMovieToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'getMovieShowtimes',
       'Movie Showtimes',
-      'Get showtime information for a movie in a specific location.',
+      'Says where to find showtimes for a movie; it cannot list times.',
       legacyTools.getMovieShowtimes,
       { tags: ['movie', 'showtimes', 'theater'] }
     ),

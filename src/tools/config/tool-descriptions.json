@@ -462,7 +462,7 @@
       "_original": "Find a contact and prepare to call them. Use when: -"
     },
     "callUser": {
-      "description": "Use when the user asks you to call their phone. Relay the result exactly: if it says no call is coming, tell them so and offer the alternative it gives.",
+      "description": "Use when the user asks you to call their phone. Relay the result: if it says no call is coming, tell them so and offer the alternative it gives. If it says you already told them, don't say it again.",
       "file": "src/tools/telephony.ts"
     },
     "cancelAppointment": {
@@ -3591,7 +3591,7 @@
       "file": "src/tools/communication-tools.ts"
     },
     "scheduleCallback": {
-      "description": "Use when the user asks you to call their phone at a later time. Relay the result exactly: if it says nothing is booked, tell them so and offer the alternative it gives.",
+      "description": "Use when the user asks you to call their phone at a later time. Relay the result: if it says nothing is booked, tell them so and offer the alternative it gives. If it says you already told them, don't say it again.",
       "file": "src/tools/telephony.ts",
       "_original": "Schedule Jack to call the user back at a specific time. Use when: - User says"
     },

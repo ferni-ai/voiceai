@@ -174,6 +174,10 @@ class RedisPubSubService {
       log.info({ instanceId: this.config.instanceId }, '🚀 Redis Pub/Sub initialized');
     } catch (error) {
       log.warn({ error: String(error) }, 'Redis Pub/Sub initialization failed');
+      // Close both clients: left open, ioredis keeps reconnecting to an unreachable Redis.
+      for (const client of [this.publisher, this.subscriber]) {
+        (client as unknown as { disconnect?: () => void } | null)?.disconnect?.();
+      }
       this.publisher = null;
       this.subscriber = null;
     }
