@@ -34,6 +34,8 @@ export const FLAG_MANIFEST = {
   // shadow: log where a reply answers its own question for the caller, cut nothing; on: cut there (caller-voice-guard.ts)
   CALLER_VOICE_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
+  // on: the per-turn crisis check waits at most 150 ms, then the turn goes on without it (better-than-human-builders.ts)
+  CALL_START_TRIM: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },

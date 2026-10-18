@@ -16,6 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService } from '../slack-notifications.js';
 import { recordMetricValue } from '../predictive-alerting.js';
+import { logCallStartStages } from './call-start-stages.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
 
@@ -189,7 +190,6 @@ export function recordCallEvent(event: CallEvent): void {
   if (forward) return forward('recordCallEvent', [event]);
   let session = sessions.get(event.callId);
 
-  // Create session if needed
   if (!session) {
     session = {
       callId: event.callId,
@@ -209,10 +209,8 @@ export function recordCallEvent(event: CallEvent): void {
     sessions.set(event.callId, session);
   }
 
-  // Add event
   session.events.push(event);
 
-  // Process event
   switch (event.type) {
     case 'connection_success':
       session.connectionTimeMs = event.timestamp - session.startTime;
@@ -228,6 +226,7 @@ export function recordCallEvent(event: CallEvent): void {
         };
         // Feed to predictive alerting (true first audio only)
         recordMetricValue('first_response_time', session.firstResponseTimeMs);
+        logCallStartStages(session);
       }
       break;
 
@@ -258,6 +257,7 @@ export function recordCallEvent(event: CallEvent): void {
     case 'call_end_natural':
     case 'call_end_disconnect':
     case 'call_end_error':
+      logCallStartStages(session); // a call that never spoke still gets its line
       session.endTime = event.timestamp;
       session.totalDurationMs = session.endTime - session.startTime;
       session.endReason =
@@ -316,6 +316,7 @@ export function markCallStage(callId: string, stage: string, atMs: number = Date
     session_start: session.stages?.session_start ?? 0,
     [stage]: getElapsedStageMs(session, atMs),
   };
+  if (stage === 'tts_first_frame') logCallStartStages(session);
 }
 
 /** Record the moment a user barge-in is detected while the agent is speaking. */
@@ -404,7 +405,6 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
   const now = Date.now();
   const windowStart = now - windowMs;
 
-  // Get sessions in window
   const windowSessions = completedSessions.filter((s) => s.startTime >= windowStart);
   const activeSessions = Array.from(sessions.values());
 

@@ -304,6 +304,7 @@ export async function logTransferEvent(
 
     // Store in user's crisis history
     await db.collection('bogle_users').doc(userId).collection('crisis_history').add(record);
+    forgetRecentCrisis(userId); // the next turn's check-in sees this event
 
     log.info({ userId }, '🗄️ Crisis event stored in Firestore');
   } catch (error) {
@@ -376,6 +377,28 @@ export async function logCrisisSignal(
   }
 }
 
+/** The crisis_history query; throws when Firestore does. */
+async function queryCrisisHistory(userId: string, limitDays: number): Promise<CrisisEventRecord[]> {
+  const db = getFirestoreDb();
+  if (!db) return [];
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - limitDays);
+
+  const snapshot = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('crisis_history')
+    .where('timestamp', '>=', cutoffDate.toISOString())
+    .orderBy('timestamp', 'desc')
+    .limit(10)
+    .get();
+
+  return snapshot.docs.map(
+    (doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as CrisisEventRecord
+  );
+}
+
 /**
  * Get user's crisis history (for cross-session awareness)
  * SAFETY-CRITICAL: Used for proactive check-ins
@@ -385,46 +408,51 @@ export async function getCrisisHistory(
   limitDays: number = 30
 ): Promise<CrisisEventRecord[]> {
   try {
-    const db = getFirestoreDb();
-    if (!db) return [];
-
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - limitDays);
-
-    const snapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('crisis_history')
-      .where('timestamp', '>=', cutoffDate.toISOString())
-      .orderBy('timestamp', 'desc')
-      .limit(10)
-      .get();
-
-    return snapshot.docs.map(
-      (doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as CrisisEventRecord
-    );
+    return await queryCrisisHistory(userId, limitDays);
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get crisis history');
     return [];
   }
 }
 
+type RecentCrisis = { hasCrisis: boolean; lastCrisis?: CrisisEventRecord };
+
+/**
+ * The crisis check-in runs every turn; the answer is kept for a minute so a
+ * call queries crisis_history about once a minute instead of once a turn.
+ * logTransferEvent drops it when it records a crisis, and a failed query is
+ * not kept, so the next turn asks again.
+ */
+const RECENT_CRISIS_TTL_MS = 60_000;
+const recentCrisis = new Map<string, { at: number; result: Promise<RecentCrisis> }>();
+
+/** Drop the kept crisis answers for a user. */
+export function forgetRecentCrisis(userId: string): void {
+  for (const key of recentCrisis.keys()) if (key.startsWith(`${userId}|`)) recentCrisis.delete(key);
+}
+
 /**
  * Check if user had recent crisis (for proactive check-in)
  * BETTER-THAN-HUMAN: Remember past crises and check in
  */
-export async function hadRecentCrisis(
-  userId: string,
-  withinDays: number = 7
-): Promise<{ hasCrisis: boolean; lastCrisis?: CrisisEventRecord }> {
-  const history = await getCrisisHistory(userId, withinDays);
-  if (history.length === 0) {
-    return { hasCrisis: false };
-  }
-  return {
-    hasCrisis: true,
-    lastCrisis: history[0],
-  };
+export function hadRecentCrisis(userId: string, withinDays = 7): Promise<RecentCrisis> {
+  const key = `${userId}|${withinDays}`;
+  const now = Date.now();
+  const kept = recentCrisis.get(key);
+  if (kept && now - kept.at < RECENT_CRISIS_TTL_MS) return kept.result;
+
+  for (const [k, v] of recentCrisis) if (now - v.at >= RECENT_CRISIS_TTL_MS) recentCrisis.delete(k);
+  const result = queryCrisisHistory(userId, withinDays).then(
+    (history): RecentCrisis =>
+      history.length === 0 ? { hasCrisis: false } : { hasCrisis: true, lastCrisis: history[0] },
+    (error: unknown): RecentCrisis => {
+      log.error({ error: String(error), userId }, 'Failed to get crisis history');
+      if (recentCrisis.get(key)?.result === result) recentCrisis.delete(key);
+      return { hasCrisis: false };
+    }
+  );
+  recentCrisis.set(key, { at: now, result });
+  return result;
 }
 
 export default humanTransfer;

@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { forgetCallStartReads, readUserDocOnce } from '../../utils/call-start-reads.js';
 
 const log = createLogger({ module: 'LanguageService' });
 
@@ -813,8 +814,8 @@ export async function persistUserLanguagePreference(
         { merge: true }
       );
 
-    // Update cache
     userLanguagePreferences.set(userId, language);
+    forgetCallStartReads(userId);
 
     log.info({ userId, language }, '💾 User language preference saved');
   } catch (error) {
@@ -828,7 +829,6 @@ export async function persistUserLanguagePreference(
 export async function loadUserLanguagePreference(
   userId: string
 ): Promise<SupportedLanguage | null> {
-  // Check cache first
   if (userLanguagePreferences.has(userId)) {
     return userLanguagePreferences.get(userId)!;
   }
@@ -838,8 +838,8 @@ export async function loadUserLanguagePreference(
     const db = getFirestoreDb();
     if (!db) return null;
 
-    const doc = await db.collection('bogle_users').doc(userId).get();
-    const data = doc.data();
+    const ref = db.collection('bogle_users').doc(userId);
+    const data = await readUserDocOnce(userId, ref); // shared with the call-start profile load
 
     const language = data?.preferences?.spokenLanguage as SupportedLanguage | undefined;
     if (language && LANGUAGE_CONFIGS[language]) {

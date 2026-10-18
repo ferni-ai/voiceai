@@ -15,6 +15,7 @@
  */
 
 import { diag } from '../../../services/diagnostic-logger.js';
+import { flagOn } from '../../../config/env-flag.js';
 import type { ContextInjection } from '../types.js';
 import type { UserData } from '../../shared/types.js';
 import { getCachedInjection, setCachedInjection } from './cache.js';
@@ -418,6 +419,9 @@ export async function buildHumanTransferInjections(
 // Priority: 85
 // ============================================================================
 
+/** How long a turn waits for the crisis check under CALL_START_TRIM. */
+export const CRISIS_READ_BUDGET_MS = 150;
+
 /**
  * Build crisis history context injection for users who had recent crisis.
  */
@@ -427,7 +431,17 @@ export async function buildCrisisHistoryInjection(
   try {
     const { hadRecentCrisis } = await import('../../../services/human-transfer/index.js');
 
-    const { hasCrisis, lastCrisis } = await hadRecentCrisis(userId, 7);
+    // CALL_START_TRIM: a slow read no longer holds the turn; it keeps loading and
+    // the next turn uses it (hadRecentCrisis keeps the answer for a minute).
+    const check = hadRecentCrisis(userId, 7);
+    const { hasCrisis, lastCrisis } = flagOn('CALL_START_TRIM')
+      ? await Promise.race([
+          check,
+          new Promise<{ hasCrisis: false; lastCrisis?: undefined }>((resolve) => {
+            setTimeout(() => resolve({ hasCrisis: false }), CRISIS_READ_BUDGET_MS);
+          }),
+        ])
+      : await check;
 
     if (!hasCrisis || !lastCrisis) {
       return null;
