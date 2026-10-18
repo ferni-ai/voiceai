@@ -77,6 +77,8 @@ export const COHORT_FLAGS = [
   // across calls. The system prompt (FERNI_PERSONA_SLIP_GUARD) loads after
   // applyCallerFlags: loadCallerPrompt (voice-agent-entry/persona-builder.ts).
   'HANDOFF_FULL_TOOLS',
+  // Read at agent build, a tool update and each turn's request, never at boot (same-turn-tools-config.ts).
+  'TOOLS_SAME_TURN',
   'TEAM_VOICES',
   'FERNI_PERSONA_SLIP_GUARD',
   'DIRECTOR_PERSONA_AWARE',

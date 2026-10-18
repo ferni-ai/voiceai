@@ -353,6 +353,8 @@ export const FLAG_MANIFEST = {
   // topic tools go to the agent on the call now, and a handed-to agent gets the call's
   // loaded domains (voice-agent/deferred-tool-update.ts)
   TOOLS_FOLLOW_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // a turn's topic tools go into that turn's own request (config/same-turn-tools-config.ts)
+  TOOLS_SAME_TURN: { default: 'off', owner: 'tools', kind: 'experiment' },
   // callUser places a real call to the verified phone; off keeps the honest stub
   TOOLS_REAL_CALL_USER: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_ACK: { default: 'on', owner: 'voice', kind: 'kill-switch' },
