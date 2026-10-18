@@ -66,16 +66,28 @@ case "${1:-}" in
   clear)
     reason=${2:-}
     [ -n "${reason// /}" ] || { echo "::error::Unfreezing needs a reason" >&2; exit 1; }
+    who=${GITHUB_ACTOR:-unknown}
+    when=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     rc=0
     was=$(check) || rc=$?
     [ "$rc" != 1 ] || exit 1
     if [ "$rc" = 0 ]; then
-      echo "Deploys were not frozen."
+      echo "Deploys were not frozen (checked by $who at $when)."
       exit 0
     fi
     gh api -X DELETE "repos/$REPO/git/refs/$REF" >/dev/null
-    echo "::notice::Deploys unfrozen by ${GITHUB_ACTOR:-a maintainer} (was: $was). Reason: $reason"
-    echo "### 🔓 Deploys unfrozen (was: $was). Reason: $reason" >> "${GITHUB_STEP_SUMMARY:-/dev/null}" ;;
+    # Audit: who lifted it, when, why, and what it was frozen for, in the log and the summary.
+    echo "::notice::Deploys unfrozen by $who at $when. Reason: $reason. Was frozen for: $was"
+    {
+      echo "### 🔓 Deploys unfrozen"
+      echo ""
+      echo "| | |"
+      echo "|---|---|"
+      echo "| By | $who |"
+      echo "| When (UTC) | $when |"
+      echo "| Reason | $reason |"
+      echo "| Was frozen for | $was |"
+    } >> "${GITHUB_STEP_SUMMARY:-/dev/null}" ;;
   *)
     echo "usage: $0 check|gate|set <reason>|clear <reason>" >&2
     exit 2 ;;
