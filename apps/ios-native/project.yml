@@ -51,6 +51,8 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         FerniAPIBaseURL: $(FERNI_API_BASE_URL)
         ITSAppUsesNonExemptEncryption: false
+        # ProMotion: the avatar asks for 120 Hz only while Ferni speaks.
+        CADisableMinimumFrameDurationOnPhone: true
         LSRequiresIPhoneOS: true
         UILaunchScreen:
           UIColorName: LaunchBackground

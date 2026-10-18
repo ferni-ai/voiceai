@@ -1,4 +1,5 @@
 import FerniDesign
+import FerniKit
 import FerniVoice
 import SwiftUI
 
@@ -16,7 +17,7 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: FerniSpace.rest) {
-                    SpeakingAvatar(avatar: call.avatar, level: call.agentLevel)
+                    CallAvatar(avatar: call.avatar, level: call.agentLevel)
                     .opacity(call.phase == .reconnecting ? 0.5 : 1)
                     .padding(.top, FerniSpace.silence)
                     CallStatus(call: call)
@@ -56,34 +57,31 @@ struct HomeView: View {
     }
 }
 
-/// The avatar with its mouth on Ferni's real voice level: read every frame
-/// while Ferni speaks, paused otherwise.
-private struct SpeakingAvatar: View {
+/// Ferni's face, driven by the call's avatar state and Ferni's voice level.
+private struct CallAvatar: View {
     let avatar: AvatarModel
     let level: AudioLevelMeter
-    @State private var mouth = Mouth()
 
     var body: some View {
-        let speaking = avatar.pose == .speaking
-        TimelineView(.animation(paused: !speaking)) { context in
-            FerniWindowAvatar(
-                size: 200,
-                persona: WindowPersona(personaId: avatar.personaID),
-                expression: avatar.expression,
-                isSpeaking: .constant(speaking),
-                volume: .constant(CGFloat(mouth.value(level.level, at: context.date)))
-            )
-        }
+        AvatarView(
+            persona: WindowPersona(personaId: avatar.personaID),
+            expression: avatar.expression,
+            activity: Self.activity(avatar.pose),
+            name: PersonaRegistry.get(avatar.personaID).name,
+            level: { [level] in level.level }
+        )
+        .frame(width: 200, height: 200)
     }
 
-    /// Frame-to-frame smoothing state; a reference so rendering doesn't write view state.
-    final class Mouth {
-        private var smoother = LevelSmoother()
-        private var last: Date?
-
-        func value(_ target: Float, at now: Date) -> Float {
-            defer { last = now }
-            return smoother.step(toward: target, dt: last.map { now.timeIntervalSince($0) } ?? 0)
+    static func activity(_ pose: AvatarPose) -> AvatarActivity {
+        switch pose {
+        case .idle, .departing: .idle
+        case .arriving, .handoffArriving: .arriving
+        case .listening: .listening
+        case .thinking: .thinking
+        case .speaking: .speaking
+        case .reconnecting: .reconnecting
+        case .error: .error
         }
     }
 }
