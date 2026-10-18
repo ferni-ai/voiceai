@@ -440,12 +440,8 @@ function injectStyles(): void {
       flex-shrink: 0;
     }
     
-    /* Only the ring turns (so progress starts at 12 o'clock); a plain
-       descendant selector also turned the heart icon on its side. */
-    .progress-ring > svg {
-      display: block;
-      transform: rotate(-90deg);
-    }
+    /* Only the ring turns, never the icon inside it. */
+    .progress-ring > svg, .progress-ring-large > svg { display: block; transform: rotate(-90deg); }
     
     .progress-ring-bg {
       fill: none;
@@ -461,21 +457,15 @@ function injectStyles(): void {
       transition: stroke-dashoffset ${DURATION.CELEBRATION}ms ${EASING.EXPO_OUT};
     }
     
-    .progress-ring-icon {
-      position: absolute;
-      inset: 0;
+    .progress-ring-icon, .progress-ring-icon-large {
       display: flex;
       align-items: center;
       justify-content: center;
       line-height: 0;
       color: var(--persona-text);
     }
-
-    .progress-ring-icon svg {
-      display: block;
-      width: 18px;
-      height: 18px;
-    }
+    .progress-ring-icon { position: absolute; inset: 0; }
+    .progress-ring-icon svg { display: block; width: 18px; height: 18px; }
     
     .progress-collapsed-text {
       display: flex;
@@ -578,18 +568,7 @@ function injectStyles(): void {
       margin: 0 auto var(--space-3, 12px);
     }
     
-    .progress-ring-large > svg {
-      display: block;
-      transform: rotate(-90deg);
-    }
-    
-    .progress-ring-large .progress-ring-bg {
-      stroke-width: 7;
-    }
-    
-    .progress-ring-large .progress-ring-fill {
-      stroke-width: 7;
-    }
+    .progress-ring-large .progress-ring-bg, .progress-ring-large .progress-ring-fill { stroke-width: 7; }
     
     .progress-ring-center {
       position: absolute;
@@ -614,19 +593,7 @@ function injectStyles(): void {
       margin-top: 2px;
     }
     
-    .progress-ring-icon-large {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 0;
-      color: var(--persona-text);
-    }
-
-    .progress-ring-icon-large svg {
-      display: block;
-      width: 28px;
-      height: 28px;
-    }
+    .progress-ring-icon-large svg { display: block; width: 28px; height: 28px; }
     
     /* Stage info */
     .progress-stage {

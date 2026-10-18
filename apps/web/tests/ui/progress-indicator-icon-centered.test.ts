@@ -28,7 +28,13 @@ function rotated(el: Element): boolean {
 function ruleFor(selector: string): CSSStyleRule | undefined {
   for (const sheet of Array.from(document.styleSheets)) {
     for (const rule of Array.from(sheet.cssRules)) {
-      if (rule instanceof CSSStyleRule && rule.selectorText === selector) return rule;
+      if (
+        rule instanceof CSSStyleRule &&
+        rule.style.display &&
+        rule.selectorText.split(',').map((s) => s.trim()).includes(selector)
+      ) {
+        return rule;
+      }
     }
   }
   return undefined;
