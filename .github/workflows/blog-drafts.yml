@@ -54,9 +54,11 @@ on:
           - how-ferni-works
           - team-letter
 
-# Only for the no-token fallback (push the branch); the PR steps use BLOG_PR_TOKEN.
+# GITHUB_TOKEN reads merged PRs for the drafter and the live check, and pushes
+# the branch when BLOG_PR_TOKEN is missing. The PR steps use BLOG_PR_TOKEN.
 permissions:
   contents: write
+  pull-requests: read
 
 concurrency:
   group: blog-drafts
