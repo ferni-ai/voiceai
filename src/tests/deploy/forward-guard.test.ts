@@ -20,6 +20,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 const ROOT = join(__dirname, '..', '..', '..');
 const SCRIPT = join(ROOT, 'scripts/ci/deploy-forward-guard.sh');
 const FREEZE = join(ROOT, 'scripts/ci/deploy-freeze.sh');
+const CONFIRM = join(ROOT, 'scripts/ci/confirm-rollback-traffic.sh');
 const read = (p: string): string => readFileSync(join(ROOT, p), 'utf8');
 
 let dir: string;
@@ -412,7 +413,9 @@ describe('deploy freeze: a rollback holds until someone unfreezes', () => {
     expect(guard({ freezeDir: f, live: sha.b, deploy: sha.c }).deploy).toBe('false');
     const cleared = freezeCmd(f, ['clear', 'fix #123 is on main']);
     expect(cleared.status).toBe(0);
-    expect(cleared.out).toMatch(/unfrozen.*was: rollback.*fix #123 is on main/);
+    expect(cleared.out).toMatch(
+      /unfrozen by tester at .*Reason: fix #123 is on main\. Was frozen for: rollback/
+    );
     expect(guard({ freezeDir: f, live: sha.b, deploy: sha.c }).deploy).toBe('true');
     expect(freezeCmd(f, ['clear', 'again']).status).toBe(0); // not frozen: nothing to do
   });
@@ -432,6 +435,70 @@ describe('deploy freeze: a rollback holds until someone unfreezes', () => {
     const r = guard({ freezeError: true, live: sha.b, deploy: sha.c });
     expect(r.status).not.toBe(0);
     expect(r.deploy).toBeUndefined();
+  });
+});
+
+describe('unfreeze audit: who, when and why', () => {
+  it('logs the actor, a UTC timestamp, the reason and the old freeze, in the log and the summary', () => {
+    const f = freshDir();
+    freezeCmd(f, ['set', 'rollback.yml by seth: c broke sign-in']);
+    const summary = join(f, 'summary.md');
+    writeFileSync(summary, '');
+    const r = freezeCmd(f, ['clear', 'fix #123 is on main'], {
+      GITHUB_ACTOR: 'mindy',
+      GITHUB_STEP_SUMMARY: summary,
+    });
+    expect(r.status).toBe(0);
+    expect(r.out).toMatch(
+      /::notice::Deploys unfrozen by mindy at \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ\. Reason: fix #123 is on main\. Was frozen for: rollback\.yml by seth: c broke sign-in/
+    );
+    const md = readFileSync(summary, 'utf8');
+    expect(md).toContain('| By | mindy |');
+    expect(md).toMatch(/\| When \(UTC\) \| \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ \|/);
+    expect(md).toContain('| Reason | fix #123 is on main |');
+    expect(md).toContain('| Was frozen for | rollback.yml by seth: c broke sign-in |');
+  });
+});
+
+describe('a rollback confirms its traffic held', () => {
+  function confirm(target: string): Run {
+    const summary = join(freshDir(), 'summary.md');
+    writeFileSync(summary, '');
+    const r = spawnSync('bash', [CONFIRM, target], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: {
+        ...baseEnv(freshDir()),
+        GCP_REGION: 'us-central1',
+        GITHUB_STEP_SUMMARY: summary,
+        FAKE_SERVICE: 'ok',
+      },
+    });
+    return {
+      status: r.status,
+      deploy: undefined,
+      summary: readFileSync(summary, 'utf8'),
+      out: r.stdout + r.stderr,
+    };
+  }
+
+  it('passes when the rollback target still serves traffic', () => {
+    const r = confirm('john-bogle-ui-live');
+    expect(r.status).toBe(0);
+    expect(r.summary).toMatch(/Rollback held/);
+  });
+
+  it('fails loudly when a racing deploy moved traffic off the target', () => {
+    const r = confirm('john-bogle-ui-rolled-back');
+    expect(r.status).not.toBe(0);
+    expect(r.out).toMatch(
+      /::error::Traffic is on john-bogle-ui-live, not the rollback target john-bogle-ui-rolled-back/
+    );
+    expect(r.summary).toMatch(/Rollback did not hold/);
+  });
+
+  it('fails without a target', () => {
+    expect(confirm('').status).not.toBe(0);
   });
 });
 
@@ -536,6 +603,15 @@ describe('deploy-production.yml wiring', () => {
     expect(steps[at('Rollback on failure')]).toMatch(/steps\.freeze\.outcome == 'failure'/);
   });
 
+  it('incident-response hands its rollback target to the traffic check', () => {
+    const text = read('.github/workflows/incident-response.yml');
+    expect(text).toMatch(/name: "Action: Rollback to previous version"\n {8}id: rollback\n/);
+    expect(text).toContain('echo "revision=$PREV_REV" >> "$GITHUB_OUTPUT"');
+    expect(text).toMatch(
+      /TARGET: \$\{\{ steps\.rollback\.outputs\.revision \}\}[\s\S]*?confirm-rollback-traffic\.sh "\$TARGET"/
+    );
+  });
+
   it('unfreeze is its own job; the deploy job never gets contents: write', () => {
     expect(workflow).toMatch(
       /\n {2}unfreeze:\n[\s\S]*?inputs\.unfreeze == true[\s\S]*?contents: write[\s\S]*?deploy-freeze\.sh clear/
@@ -554,6 +630,13 @@ describe('deploy-production.yml wiring', () => {
       const freezeAt = text.indexOf('deploy-freeze.sh set');
       expect(freezeAt).toBeGreaterThan(-1);
       expect(freezeAt).toBeLessThan(text.indexOf('update-traffic'));
+      // A freeze failure never blocks the rollback itself.
+      expect(text).toMatch(
+        /deploy-freeze\.sh set "[^\n]*" \\\n\s+\|\| echo "::error::Could not set the deploy freeze; rolling back anyway/
+      );
+      // ...and confirms afterwards that traffic stayed on the target.
+      const confirmAt = text.indexOf('confirm-rollback-traffic.sh');
+      expect(confirmAt).toBeGreaterThan(text.lastIndexOf('update-traffic'));
     }
   );
 });
