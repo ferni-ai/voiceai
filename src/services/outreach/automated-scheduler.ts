@@ -38,6 +38,8 @@ import {
 } from './outreach-cadence.js';
 import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
 import { blocksGenericCheckIns } from './grounded-checkin.js';
+import { pushIfSavedInApp } from './in-app-push.js';
+import { flagOn } from '../../config/env-flag.js';
 import { skipReasonCounts, type SchedulerResult } from './scheduler-report.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
@@ -237,6 +239,9 @@ async function processCandidate(
   });
 
   await proactive?.done(outreachType, deliveryResult.success);
+  if (flagOn('OUTREACH_IN_APP_PUSH')) {
+    await pushIfSavedInApp(userId, deliveryResult, { ...content, kind: outreachType });
+  }
 
   if (deliveryResult.success) {
     // Record that we sent outreach
