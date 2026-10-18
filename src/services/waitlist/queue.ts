@@ -5,7 +5,7 @@
  * @module services/waitlist/queue
  */
 import { randomInt } from 'crypto';
-import { DISPOSABLE_DOMAINS } from './disposable-domains.js';
+import { DISPOSABLE_DOMAINS, RELAY_DOMAINS } from './disposable-domains.js';
 
 export type Lane = 'vip' | 'friends' | 'standard';
 export const LANE_RANK: Readonly<Record<Lane, number>> = { vip: 0, friends: 1, standard: 2 };
@@ -37,12 +37,14 @@ export function canonicalEmail(email: string): string {
   return GMAIL.has(domain) ? `${local.replace(/\./g, '')}@gmail.com` : `${local}@${domain}`;
 }
 
-/** A throwaway inbox (the domain or any subdomain of one on the static list). */
-export function isDisposableEmail(email: string): boolean {
-  const domain = email.trim().toLowerCase().split('@').pop() ?? '';
-  const parts = domain.split('.');
-  return parts.some((_, i) => DISPOSABLE_DOMAINS.has(parts.slice(i).join('.')));
-}
+const inList = (list: ReadonlySet<string>, email: string): boolean => {
+  const parts = (email.trim().toLowerCase().split('@').pop() ?? '').split('.');
+  return parts.some((_, i) => list.has(parts.slice(i).join('.'))); // the domain or a subdomain
+};
+/** A throwaway inbox: refused. */
+export const isDisposableEmail = (email: string): boolean => inList(DISPOSABLE_DOMAINS, email);
+/** A forwarding relay (Hide My Email, Firefox Relay, ...): may join, earns no referral credit. */
+export const isRelayEmail = (email: string): boolean => inList(RELAY_DOMAINS, email);
 
 /** Effective join time in ms: earlier for each verified friend, at most MAX_CREDITED_REFERRALS. */
 export function priorityKey(joinedAtMs: number, verifiedReferrals: number): number {
