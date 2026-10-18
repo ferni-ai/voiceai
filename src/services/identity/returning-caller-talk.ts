@@ -1,22 +1,23 @@
 /**
  * What a call says and hears about a returning caller (returning-caller.ts),
- * pure. A number can be shared, and saying a stored name would disclose it,
- * so Ferni never says it first: he greets a possible returning caller warmly
- * without naming anyone and lets them say who it is. Only a name the caller
- * states that matches the record confirms them; a bare "yes" never does.
- * Then, and only then, the model gets the one-line topic hint. Also "forget
- * me" and its notes.
+ * pure. A number can be shared, and a first name can be guessed, so nothing
+ * Ferni says or is told before confirmation depends on whether a record
+ * exists: every looked-up call gets the same neutral greeting and note. Only
+ * the first name the caller states, matching the record, confirms them; a
+ * bare "yes" never does, and any other stated name ends it (with a cooldown,
+ * returning-caller.ts). Then the model gets the one-line topic hint. Also
+ * "forget me" and its notes.
  *
  * @module services/identity/returning-caller-talk
  */
 
-/** The model's note at call start: someone may have called before; no name, nothing else. */
-export const POSSIBLY_RETURNING_NOTE =
-  "Possibly a returning caller: someone has called you from this number before, but you don't know who this is. Don't say or guess any name, and don't mention anything from an earlier call; let them tell you who it is.";
+/** The model's call-start note for every looked-up call, record or not. */
+export const UNKNOWN_CALLER_NOTE =
+  "You don't know who this is yet. Let them tell you; don't guess a name, and don't assume whether or not you've talked before.";
 
-/** The greeting's direction for the same: warm, no name, ask who it is. */
-export const POSSIBLY_RETURNING_GREETING =
-  "Someone has called you from this number before, but you don't know who this is. Greet them warmly, like a voice you're glad to hear again, without naming anyone, and ask who it is (\"hey, good to hear from you again, who's this?\"), in one short sentence. Don't guess a name or mention anything from an earlier call.";
+/** The greeting for every looked-up call, record or not: warm, neutral, asks who it is. */
+export const UNKNOWN_CALLER_GREETING =
+  "Greet them warmly and ask who you've got, in one short sentence (\"hey, who've I got?\"). Don't guess a name.";
 
 /** Once they said the record's name themselves: their name and at most a one-line topic hint. */
 export function confirmedNote(name: string, summary: string | undefined): string {

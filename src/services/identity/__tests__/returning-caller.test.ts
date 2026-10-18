@@ -42,6 +42,7 @@ describe('toStoredRecord', () => {
       'callCount',
       'expireAt',
       'forgotten',
+      'deniedUntil',
     ]);
     const at = new Date('2026-10-18T00:00:00Z');
     const record = toStoredRecord({
@@ -105,6 +106,7 @@ describe('beginReturningCaller', () => {
     erasurePending: async () => false,
     markErasure: async () => undefined,
     clearErasure: async () => undefined,
+    markDenied: async () => undefined,
   });
 
   it('ignores a record past its expiry that TTL has not removed yet', async () => {
@@ -134,6 +136,7 @@ describe('beginReturningCaller', () => {
         erasurePending: async () => false,
         markErasure: async () => undefined,
         clearErasure: async () => undefined,
+        markDenied: async () => undefined,
       };
       await beginReturningCaller(id, '+15551234567', store, ENV);
       expect(await recordReturningCall({ sessionId: id, firstName: 'Dana' }, store, ENV)).toBe(
