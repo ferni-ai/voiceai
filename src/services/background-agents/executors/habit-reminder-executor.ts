@@ -16,6 +16,8 @@ import type { OutcomeStatus, ResultPriority } from '../result-types.js';
 
 const log = createLogger({ module: 'HabitReminderExecutor' });
 
+const STREAK_TYPES: ReadonlySet<string> = new Set(['streak_warning', 'celebration']);
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -55,6 +57,13 @@ export async function executeHabitReminder(
   log.info({ userId: request.userId, habitName: request.habitName }, 'Executing habit reminder');
 
   const startTime = Date.now();
+
+  // A 0-day streak has nothing at risk and nothing to celebrate: no nudge.
+  if (request.currentStreak === 0 && STREAK_TYPES.has(request.reminderType)) {
+    log.info({ userId: request.userId, habitName: request.habitName }, 'No streak yet: skipped');
+    const { habitId, habitName, reminderType } = request;
+    return { sent: false, habitId, habitName, reminderType, currentStreak: 0, message: '' };
+  }
 
   try {
     // Build the reminder message based on type

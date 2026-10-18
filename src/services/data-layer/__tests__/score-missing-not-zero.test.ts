@@ -10,19 +10,23 @@
  * matched. Scope is kept to the modules that persist or send scores; elsewhere
  * most `?? 0` on these names are in-call thresholds.
  *
- * @module tests/score-missing-not-zero.test
+ * Lives here, not in src/tests, so it runs on every PR.
+ *
+ * @module services/data-layer/__tests__/score-missing-not-zero.test
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const SRC = join(__dirname, '..');
+const SRC = join(__dirname, '..', '..', '..');
 const GUARDED = [
   'services/data-layer',
   'services/wellbeing-tracking',
   'services/ceo-coaching',
   'services/background-agents',
   'services/outreach',
+  'services/contacts',
+  'services/identity',
 ];
 const SCORE_DEFAULTS_TO_ZERO =
   /\w*(mood|energy|stress|sleep|wellbeing|worry|loneliness|hope|sentiment|satisfaction|streak|rating|score|closeness)\w*(\??\.\w+)*\s*(\?\?|\|\|)\s*0(?![.\d])(?!\s*\)?\s*([<>=!]|\+\s*1\b))/i;
@@ -33,6 +37,8 @@ const ALLOWED: Record<string, string> = {
     'fix/wellbeing-after-call-guards owns this file and is fixing these two lines; remove after it merges',
   'services/wellbeing-tracking/persistence.ts: energy: (snapshot.dimensions.energy ?? 0) * 10, // Convert 0-1 to 0-10 scale':
     'same: owned by fix/wellbeing-after-call-guards',
+  'services/identity/eight-sleep-api.ts: score: interval.score || 0,':
+    'SleepSummary.score is a required number in the /eight-sleep API the app reads; making it optional changes that contract and the client, so it is a separate PR',
 };
 
 function sourceFiles(dir: string): string[] {
@@ -56,6 +62,15 @@ describe('scores in modules that persist or send them', () => {
       .flatMap((path) => scoreZeroDefaults(relative(SRC, path), readFileSync(path, 'utf8')))
       .filter((hit) => !(hit in ALLOWED));
     expect(offenders).toEqual([]);
+  });
+
+  it('every allowlisted line still exists (no stale entries)', () => {
+    const hits = new Set(
+      GUARDED.flatMap((dir) => sourceFiles(join(SRC, dir))).flatMap((path) =>
+        scoreZeroDefaults(relative(SRC, path), readFileSync(path, 'utf8'))
+      )
+    );
+    expect(Object.keys(ALLOWED).filter((line) => !hits.has(line))).toEqual([]);
   });
 
   it.each([

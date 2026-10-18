@@ -10,10 +10,10 @@
  * for a real 0.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as storeHooks from '../services/data-layer/store-hooks.js';
+import * as storeHooks from '../../data-layer/store-hooks.js';
 
-vi.mock('../services/data-layer/store-hooks.js', () => ({ onStoreChange: vi.fn() }));
-vi.mock('../services/background-agents/unified-result-capture.js', () => ({
+vi.mock('../../data-layer/store-hooks.js', () => ({ onStoreChange: vi.fn() }));
+vi.mock('../../background-agents/unified-result-capture.js', () => ({
   captureBackgroundResult: vi.fn(async () => undefined),
 }));
 const fakeRef: Record<string, unknown> = {};
@@ -24,12 +24,12 @@ Object.assign(fakeRef, {
   update: async () => undefined,
   get: async () => ({ data: () => undefined }),
 });
-vi.mock('../services/superhuman/firestore-utils.js', () => ({
+vi.mock('../../superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => fakeRef,
   cleanForFirestore: (value: unknown) => value,
 }));
 const energyTrend = vi.fn();
-vi.mock('../tools/domains/ceo-coaching/storage.js', () => ({
+vi.mock('../../../tools/domains/ceo-coaching/storage.js', () => ({
   getRecentWins: async () => [],
   getEnergyTrend: () => energyTrend(),
   getRecentEnergyEntries: async () => [],
@@ -39,16 +39,16 @@ vi.mock('../tools/domains/ceo-coaching/storage.js', () => ({
   getPriorities: async () => [],
 }));
 
-const { onWellnessCheckinChange } = await import('../services/data-layer/hooks/index.js');
-const { onHabitDNAChange } = await import('../services/data-layer/hooks/superhuman-hooks.js');
+const { onWellnessCheckinChange } = await import('../../data-layer/hooks/index.js');
+const { onHabitDNAChange } = await import('../../data-layer/hooks/superhuman-hooks.js');
 const { executeHabitReminder } =
-  await import('../services/background-agents/executors/habit-reminder-executor.js');
+  await import('../../background-agents/executors/habit-reminder-executor.js');
 const { buildRelationshipInsightsView } =
-  await import('../services/contacts/relationship-insights-view.js');
+  await import('../../contacts/relationship-insights-view.js');
 const { generateWeeklyDigest, renderDigestEmail, renderDigestText } =
-  await import('../services/ceo-coaching/weekly-digest.js');
+  await import('../../ceo-coaching/weekly-digest.js');
 
-const { processSyncPayload } = await import('../services/identity/apple-health-sync.js');
+const { processSyncPayload } = await import('../../identity/apple-health-sync.js');
 
 type Contact = Parameters<typeof buildRelationshipInsightsView>[0][number];
 
@@ -106,14 +106,22 @@ describe('habit reminder sent to the member', () => {
     expect(celebrated.message).not.toMatch(/\d/);
   });
 
-  it('keeps a real streak, 0 included', async () => {
+  it('keeps a real streak', async () => {
     expect((await executeHabitReminder({ ...request, currentStreak: 5 })).message).toContain(
       'Your 5-day streak'
     );
-    expect((await executeHabitReminder({ ...request, currentStreak: 0 })).message).toContain(
-      'Your 0-day streak'
-    );
   });
+
+  it.each(['streak_warning', 'celebration'] as const)(
+    'sends no %s for a real 0-day streak: nothing is at risk or to celebrate',
+    async (reminderType) => {
+      const capture = await import('../../background-agents/unified-result-capture.js');
+      vi.mocked(capture.captureBackgroundResult).mockClear();
+      const result = await executeHabitReminder({ ...request, reminderType, currentStreak: 0 });
+      expect(result).toMatchObject({ sent: false, message: '', currentStreak: 0 });
+      expect(capture.captureBackgroundResult).not.toHaveBeenCalled();
+    }
+  );
 });
 
 describe('relationship insights average strength', () => {
@@ -145,6 +153,14 @@ describe('weekly digest energy', () => {
     expect(data.energy.average).toBeNull();
     expect(renderDigestText(data)).toContain('⚡ Energy: not logged (stable)');
     expect(renderDigestEmail(data)).not.toContain('0.0');
+  });
+
+  it('a NaN average is unknown, not a number', async () => {
+    energyTrend.mockResolvedValue({ trend: 'down', weekAverage: Number.NaN });
+    const data = await generateWeeklyDigest('u1');
+    expect(data.energy.average).toBeNull();
+    expect(renderDigestText(data)).toContain('⚡ Energy: not logged (down)');
+    expect(renderDigestText(data)).not.toContain('NaN');
   });
 
   it('a trend without an average is still unknown', async () => {

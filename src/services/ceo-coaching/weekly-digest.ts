@@ -223,7 +223,7 @@ export async function generateWeeklyDigest(userId: string): Promise<WeeklyDigest
       categories: winCategories,
     },
     energy: {
-      average: energyTrend?.weekAverage ?? null,
+      average: finiteOrNull(energyTrend?.weekAverage),
       trend: energyTrend?.trend || 'stable',
       bestDay,
       lowestDay,
@@ -381,6 +381,11 @@ export function renderDigestEmail(data: WeeklyDigestData): string {
 </body>
 </html>
   `.trim();
+}
+
+/** A real number, or null: a missing or NaN average is not logged, never 0. */
+function finiteOrNull(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 /** "6.5/10", or "not logged" for a week without an energy entry. */
