@@ -29,7 +29,10 @@ struct HomeView: View {
                         CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
                     } else {
                         RestingLine(call: call)
-                        if call.phase == .ended { RememberCard(call: call, memory: model.memory) }
+                        if call.phase == .ended {
+                            RememberCard(call: call, memory: model.memory)
+                            if call.hasTalked { NotificationAsk() }
+                        }
                         TeamRow(team: model.team)
                     }
                     // At accessibility text sizes the controls scroll with the
