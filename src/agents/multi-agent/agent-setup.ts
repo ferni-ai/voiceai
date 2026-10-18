@@ -146,7 +146,7 @@ import {
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
-import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
+import { callerHistory, firstTalkNote, rememberCallerHistory } from './greeting-direction.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
@@ -407,9 +407,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
-        userAwareness.push(
-          'This is your first conversation with them - be welcoming but not overwhelming.'
-        );
+        userAwareness.push(firstTalkNote(sessionId)); // or a returning caller's note
       }
 
       // Key relationship facts (if available)
