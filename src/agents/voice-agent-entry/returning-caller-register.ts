@@ -28,13 +28,6 @@ export function nameTheyGave(turns: AfterCallContext['turns']): string | undefin
   return name;
 }
 
-/**
- * Whether the caller may be a minor: then nothing is kept.
- * TODO(fix/minor-caller-care): read the session's MINOR_CARE / likelyMinor
- * signal here once that PR merges; until then no session reports one.
- */
-export const likelyMinor = (_sessionId: string): boolean => false;
-
 export async function recordReturningCallAfterCall(ctx: AfterCallContext): Promise<void> {
   const summary = ctx.summary as { mainTopics?: unknown[] } | undefined;
   await recordReturningCall({
@@ -42,8 +35,9 @@ export async function recordReturningCallAfterCall(ctx: AfterCallContext): Promi
     firstName: nameTheyGave(ctx.turns),
     topics: summary?.mainTopics,
     callerLines: ctx.turns.filter((t) => t.role === 'user').map((t) => t.content),
-    likelyMinor: likelyMinor(ctx.sessionId),
   });
 }
 
 registerAfterCallTask(RETURNING_CALLER_TASK, recordReturningCallAfterCall, { timeoutMs: 10_000 });
+// TODO(#1897 fix/minor-caller-care): registerMinorSignal(memoryHeld) from src/utils/minor-care.ts
+// once it merges. Until a minor-signal check is registered, recordReturningCall writes nothing.

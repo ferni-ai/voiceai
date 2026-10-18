@@ -1,26 +1,26 @@
 /**
  * RETURNING_CALLER=on (default off): Ferni recognises an unverified phone
- * caller who called before, by their number alone, and keeps almost nothing.
+ * caller who called before, from their attested number, and keeps almost nothing.
  *
- * Every unverified phone call ran under a fresh `anon:<uuid>` id
- * (anonymous-session-id.ts), so a caller who gave their name and called back a
- * minute later was greeted as a stranger. This keeps, per number, only the
- * first name the caller gave for themselves and one short line about what
- * they talked about, for 30 days from their last call:
+ * Each unverified phone call gets a fresh `anon:<uuid>` id, so a caller who
+ * gave their name and called back was a stranger. This keeps, per number,
+ * only their first name and one short line, for 30 days from their last call:
  *
  *   returning_callers/{HMAC-SHA256(E.164)} =
  *     { firstName?, summary?, lastCallAt, callCount, expireAt }
  *
  * - The number is never stored or logged: the key is an HMAC under a key
- *   derived from LOG_HASH_SECRET for this purpose only (as checkin-replies.ts
- *   does). Without the secret the feature does nothing (fail closed) and says
- *   so once.
+ *   derived from LOG_HASH_SECRET for this purpose only (as checkin-replies.ts).
+ *   Without the secret the feature does nothing and says so once.
  * - Only the allow-listed fields are written (toStoredRecord). The summary is
  *   built from the call summary's topics, and any topic that might carry an
  *   age, a place, a number, a person's name or a health, faith, money or
  *   legal detail is dropped whole (safeSummary). If none survive, no summary.
- * - Accounts never come here: only an `anon:` session on a SIP call
- *   (caller-recognition.ts startReturningCaller).
+ * - Accounts never come here: only an `anon:` session on a SIP call with a
+ *   signed attestation A (caller-recognition.ts startReturningCaller), since
+ *   caller ID alone can be spoofed.
+ * - Nothing is written unless a minor-signal check is registered
+ *   (registerMinorSignal) and says the caller is not a likely minor.
  * - expireAt is a Firestore TTL field; reads also ignore an expired record.
  *
  * So far this is the end-of-call write and the call-start read; nothing in
@@ -247,9 +247,34 @@ export function returningCallerFor(sessionId: string | undefined): ReturningCall
   return entry?.record;
 }
 
+/** Whether a session's caller may be a minor (MINOR_CARE). Null: none registered yet. */
+let minorCheck: ((sessionId: string) => boolean) | null = null;
+let warnedNoMinorCheck = false;
+
+/** Registers the minor-signal check; without one, recordReturningCall writes nothing. */
+export function registerMinorSignal(check: ((sessionId: string) => boolean) | null): void {
+  minorCheck = check;
+}
+
+/** Fails closed: no registered check, or a check that throws, counts as a possible minor. */
+function mayBeMinor(sessionId: string): boolean {
+  if (!minorCheck) {
+    if (!warnedNoMinorCheck)
+      log.warn('Returning caller not saved: no minor-signal check registered');
+    warnedNoMinorCheck = true;
+    return true;
+  }
+  try {
+    return minorCheck(sessionId);
+  } catch {
+    return true;
+  }
+}
+
 /**
  * End of call: write (or refresh) this caller's record. Nothing for a
- * session that isn't an unverified phone call, or whose caller may be a minor.
+ * session that isn't an attested unverified phone call, or whose caller may
+ * be a minor (or when no minor-signal check is registered).
  */
 export async function recordReturningCall(
   input: {
@@ -257,7 +282,6 @@ export async function recordReturningCall(
     firstName?: string;
     topics?: readonly unknown[];
     callerLines?: readonly string[];
-    likelyMinor?: boolean;
   },
   store: ReturningCallerStore = firestoreReturningCallerStore,
   env: Env = process.env,
@@ -265,7 +289,7 @@ export async function recordReturningCall(
 ): Promise<boolean> {
   const entry = bySession.get(input.sessionId);
   bySession.delete(input.sessionId);
-  if (!entry || input.likelyMinor || !returningCallerEnabled(env)) return false;
+  if (!entry || !returningCallerEnabled(env) || mayBeMinor(input.sessionId)) return false;
   const firstName = safeFirstName(input.firstName) ?? entry.record?.firstName;
   const summary = safeSummary(input.topics, input.callerLines) ?? entry.record?.summary;
   await store.set(
@@ -289,4 +313,6 @@ export async function recordReturningCall(
 export function clearReturningCallers(): void {
   bySession.clear();
   warnedNoSecret = false;
+  minorCheck = null;
+  warnedNoMinorCheck = false;
 }
