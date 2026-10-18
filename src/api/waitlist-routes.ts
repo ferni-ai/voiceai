@@ -34,6 +34,7 @@ import {
   verifyApprovalToken,
 } from './waitlist-approval-token.js';
 import { addSigninToWaitlist, keepWaitlistReferral } from './waitlist-record.js';
+import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/waitlist/queue.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
 
@@ -104,16 +105,6 @@ const VALID_SOURCES: WaitlistSource[] = [
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
-}
-
-/**
- * Validate email format
- */
-function isValidEmail(email: unknown): email is string {
-  if (typeof email !== 'string') return false;
-  // Basic email validation regex
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email) && email.length <= 254;
 }
 
 /**
@@ -254,6 +245,10 @@ async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<
     sendJson(res, 400, { error: 'Valid email is required' });
     return true;
   }
+  if (isDisposableEmail(body.email)) {
+    sendJson(res, 400, { error: 'disposable_email', message: 'Use an inbox you’ll keep, so we can reach you.' }); // prettier-ignore
+    return true;
+  }
 
   const source = isValidSource(body.source) ? body.source : 'marketplace';
 
@@ -281,6 +276,7 @@ async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<
       .set(
         cleanForFirestore({
           ...signup,
+          emailCanonical: canonicalEmail(signup.email), // one place per inbox (services/waitlist)
           updatedAt: new Date(),
         }),
         { merge: true }
@@ -578,8 +574,8 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       return true;
     }
 
-    // Not on waitlist - add them automatically
-    await addSigninToWaitlist(waitlistRef, email, referralCode);
+    // Not on waitlist - add them automatically, in line (a verified sign-in)
+    await addSigninToWaitlist(email, referralCode);
 
     log.info({ email: hashEmail(email) }, 'Auto-added user to waitlist on sign-in');
     sendJson(res, 200, {

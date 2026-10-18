@@ -30,6 +30,10 @@ vi.mock('firebase-admin', () => ({
   },
 }));
 vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => fakeDb, FieldValue: {} }));
+vi.mock('../../utils/firestore-utils.js', async (orig) => ({
+  ...(await orig<object>()),
+  getFirestoreDb: () => fakeDb, // the queue store (services/waitlist) writes to the same docs
+}));
 vi.mock('../auth-middleware.js', () => ({ rateLimit: () => false, requireAdmin: () => true }));
 
 const { handleWaitlistRoutes } = await import('../waitlist-routes.js');
@@ -93,6 +97,15 @@ describe('waitlist check', () => {
     const { body } = await check();
     expect(body).toMatchObject({ approved: false, status: 'pending' });
     expect(coll('user_profiles').size).toBe(0);
+    // A verified sign-in joins the line: verified, standard lane, with an invite code of their own
+    expect(coll('waitlist').get(docId(email.value))).toMatchObject({
+      status: 'pending',
+      source: 'app_signin',
+      inQueue: true,
+      laneRank: 2,
+      verifiedAt: expect.any(Date),
+      inviteCode: expect.stringMatching(/^[a-z0-9]{6}-[a-z]+$/),
+    });
   });
 
   it("never acts on an unverified email: no access, no write to that email's profile", async () => {
