@@ -10,10 +10,8 @@ import { DAILY_TEXT_CAP, DAILY_TEXT_WINDOW_MS } from './types.js';
 import type { Channel, Decision, Intent, LocalWindow, MessageKind, PolicyCtx } from './types.js';
 
 type Requester = Intent['requestedBy'];
-
-const MIN_MS = 60_000;
-const HOUR_MS = 60 * MIN_MS;
-const DAY_MS = 24 * HOUR_MS;
+type Entry = PolicyCtx['ledger'][number];
+const [MIN_MS, HOUR_MS, DAY_MS] = [60_000, 3_600_000, 86_400_000];
 
 /** 21:00-08:00; the owner's saved window replaces it for messages to them (4-16 h long). */
 export const DEFAULT_QUIET: LocalWindow = { startMin: 21 * 60, endMin: 8 * 60 };
@@ -21,8 +19,11 @@ export const CRISIS_QUIET_MS = 14 * DAY_MS;
 export const APP_DAILY_BUDGET = 6; // push and in-app share it; texts: DAILY_TEXT_CAP
 export const SAME_BODY_MS = 12 * HOUR_MS;
 export const LIVE_REPLY_MS = 30 * MIN_MS; // a reply this soon after their text: they're awake
-/** Codes skip the daily budget but have their own limits per number (no SMS pumping). */
-export const CODE_LIMITS = { perHour: 5, perDay: 10, gapMs: 30_000 } as const;
+export const RATE_LIMITS = {
+  code: { gapMs: 30_000, perHour: 5, perDay: 10 }, // per destination (phone hash)
+  reply: { perInbound: 5, perHour: 20 },
+  requested: { perDay: 10 }, // the user's own requests, which skip the budget
+} as const;
 const FALLBACK_ZONES = ['America/New_York', 'America/Los_Angeles']; // no zone: either coast
 
 /** Per kind: priority when the budget is short, the gap between two (today's guarded-text gaps), digestible. */
@@ -79,10 +80,8 @@ function localAt(at: Date, zone: string, dayOffset: number, minutes: number): Da
   return zonedWallTimeToUtc({ year, month, day, hour, minute: minutes % 60 }, zone);
 }
 
-const minuteIn = (at: Date, zone: string): number => {
-  const { hour, minute } = wallTimeIn(at, zone);
-  return hour * 60 + minute;
-};
+const minuteIn = (at: Date, zone: string): number =>
+  ((w) => w.hour * 60 + w.minute)(wallTimeIn(at, zone));
 
 const toMin = (hhmm: string): number | null => {
   const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm);
@@ -149,17 +148,16 @@ function textsOffGate(i: Intent, ctx: PolicyCtx): Decision | null {
   return off && !RESPONSIVE.has(i.kind) ? drop('sms-off') : null;
 }
 
-/** 4. For 14 days after a crisis nothing Ferni starts; their reminders and replies still go. */
+/** 4. For 14 days after a crisis only a code they asked for goes; Ferni's own drop, the rest hold. */
 function crisisGate(i: Intent, ctx: PolicyCtx): Decision | null {
-  const at = ctx.crisis.lastCrisisAt;
-  const quiet = at !== undefined && ctx.now.getTime() - at.getTime() < CRISIS_QUIET_MS;
-  return quiet && isProactive(i) ? drop('crisis-quiet') : null;
+  const ends = (ctx.crisis.lastCrisisAt?.getTime() ?? -Infinity) + CRISIS_QUIET_MS;
+  if (ctx.now.getTime() >= ends || userCode(i)) return null;
+  return isProactive(i) ? drop('crisis-quiet') : hold('crisis-quiet', new Date(ends));
 }
 
 /** 5. Quiet hours and their windows; a time the owner chose, a user's code and a live reply go. */
 function timeGate(i: Intent, ctx: PolicyCtx): Decision | null {
-  if (i.channel === 'in_app' || ownerTimed(i) || userCode(i)) return null;
-  if (liveReply(i, ctx)) return null;
+  if (i.channel === 'in_app' || i.kind === 'reply' || ownerTimed(i) || userCode(i)) return null;
   const known = isValidTimeZone(ctx.zone);
   if (!known && isProactive(i)) return hold('no-timezone');
   const until = quietUntil(ctx.now, zonesOf(ctx), quietWindow(i, ctx));
@@ -217,14 +215,12 @@ function budgetGate(i: Intent, ctx: PolicyCtx): Decision | null {
 
 /** 6. Once per intent; the same words twice in 12 hours is a duplicate too. */
 function dedupeGate(i: Intent, ctx: PolicyCtx): Decision | null {
+  const again = (e: Entry): boolean => e.status === 'sent' || (e.status === 'held' && !i.redecide);
+  const sameBody = (e: Entry): boolean =>
+    i.bodyHash !== undefined && e.bodyHash === i.bodyHash && e.status === 'sent';
   const dup = ctx.ledger.some(
     (e) =>
-      (e.intentKey === i.intentKey &&
-        (e.status === 'sent' || (e.status === 'held' && !i.redecide))) ||
-      (i.bodyHash !== undefined &&
-        e.bodyHash === i.bodyHash &&
-        e.status === 'sent' &&
-        recent(e, ctx, SAME_BODY_MS))
+      (e.intentKey === i.intentKey && again(e)) || (sameBody(e) && recent(e, ctx, SAME_BODY_MS))
   );
   return dup ? drop('duplicate') : null;
 }
@@ -239,16 +235,32 @@ function gapGate(i: Intent, ctx: PolicyCtx): Decision | null {
   return gap > 0 && close ? drop('recently-sent') : null;
 }
 
-/** 8. Codes, asked for or not: per number, 30 s apart, 5 an hour, 10 a day (sent or failed). */
-function codeRateGate(i: Intent, ctx: PolicyCtx): Decision | null {
-  if (i.kind !== 'transactional') return null;
-  const tries = ctx.ledger.filter(
-    (e) => e.kind === 'transactional' && (e.status === 'sent' || e.status === 'failed')
-  );
-  const within = (ms: number): number => tries.filter((e) => recent(e, ctx, ms)).length;
-  const { perHour, perDay, gapMs } = CODE_LIMITS;
-  const over = within(gapMs) > 0 || within(HOUR_MS) >= perHour || within(DAY_MS) >= perDay;
-  return over ? drop('transactional-rate') : null;
+/** 8. Bounds on what the budget skips (attempts, sent or failed): codes, live replies, requests. */
+function rateGate(i: Intent, ctx: PolicyCtx): Decision | null {
+  const tried = (match: (e: Entry) => boolean, ms: number): number =>
+    ctx.ledger
+      .filter((e) => e.status !== 'held' && e.status !== 'skipped' && match(e))
+      .filter((e) => recent(e, ctx, ms)).length;
+  if (i.kind === 'transactional') {
+    const { gapMs, perHour, perDay } = RATE_LIMITS.code;
+    const code = (e: Entry): boolean =>
+      e.kind === 'transactional' && e.destination === i.destination;
+    const over =
+      tried(code, gapMs) > 0 || tried(code, HOUR_MS) >= perHour || tried(code, DAY_MS) >= perDay;
+    return over ? drop('transactional-rate') : null;
+  }
+  if (i.kind === 'reply') {
+    const { perInbound, perHour } = RATE_LIMITS.reply;
+    const reply = (e: Entry): boolean => e.kind === 'reply';
+    const burst = ctx.now.getTime() - (ctx.lastInboundAt?.getTime() ?? 0) + 1; // since their text
+    return tried(reply, burst) >= perInbound || tried(reply, HOUR_MS) >= perHour
+      ? drop('reply-rate')
+      : null;
+  }
+  const asked = (e: Entry): boolean => e.requestedBy === 'user' && e.kind !== 'transactional';
+  const overAsked =
+    i.requestedBy === 'user' && tried(asked, DAY_MS) >= RATE_LIMITS.requested.perDay;
+  return overAsked ? drop('requested-rate') : null;
 }
 
 /** 10. Send. A third party's first text from Ferni says who is writing and for whom. */
@@ -271,41 +283,16 @@ export const GATES: ReadonlyArray<readonly [string, Gate]> = [
   ['quiet-hours', timeGate],
   ['dedupe', dedupeGate],
   ['gap', gapGate],
-  ['code-rate', codeRateGate],
+  ['rate', rateGate],
   ['budget', budgetGate],
 ];
 
+/** A reply with no text from them in the last 30 min answers nothing: it's proactive, and recorded so. */
 export function decide(intent: Intent, ctx: PolicyCtx): Decision {
-  for (const [, gate] of GATES) {
-    const d = gate(intent, ctx);
-    if (d) return d;
-  }
-  return sendDecision(intent, ctx);
-}
-
-// SMS segments: count, never cut (sms-delivery cut to 160 and reported success, PR 1929).
-
-const GSM_BASIC = new Set(
-  '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡' +
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà'
-);
-const GSM_EXT = new Set('\f^{}\\[~]|€'); // escape + character: two septets
-
-/** GSM-7 160 (else 153 each) or UCS-2 70 (else 67); a two-unit character never straddles. */
-export function segments(text: string): number {
-  const chars = [...text];
-  const gsm = chars.every((c) => GSM_BASIC.has(c) || GSM_EXT.has(c));
-  const cost = (c: string): number => (gsm ? (GSM_EXT.has(c) ? 2 : 1) : c.length);
-  const [single, part] = gsm ? [160, 153] : [70, 67];
-  if (chars.reduce((n, c) => n + cost(c), 0) <= single) return 1;
-  let [count, used] = [1, 0];
-  for (const c of chars) {
-    if (used + cost(c) > part) [count, used] = [count + 1, 0];
-    used += cost(c);
-  }
-  return count;
-}
-
-export function fitsSms(text: string, maxSegments = 3): boolean {
-  return segments(text) <= maxSegments;
+  const stale = intent.kind === 'reply' && !liveReply(intent, ctx);
+  const i: Intent = stale ? { ...intent, kind: 'proactive' } : intent;
+  const replyBound = stale ? rateGate(intent, ctx) : null; // still bounded as a reply
+  const d = replyBound ?? GATES.reduce<Decision | null>((hit, [, g]) => hit ?? g(i, ctx), null);
+  const decided = d ?? sendDecision(i, ctx);
+  return stale ? { ...decided, recordAs: 'proactive' } : decided;
 }

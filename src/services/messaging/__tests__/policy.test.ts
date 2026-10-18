@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { zonedWallTimeToUtc } from '../../../utils/time-zone.js';
-import { GATES, decide, fitsSms, isDigestible, priorityOf, segments } from '../policy.js';
+import { GATES, decide, isDigestible, priorityOf } from '../policy.js';
 import type { Decision, Intent, LedgerEntry, PolicyCtx } from '../types.js';
 
 const NY = 'America/New_York';
@@ -20,6 +20,9 @@ function at(local: string, zone: string = NY): Date {
 }
 
 const NOON = at('2026-10-14T12:00');
+/** A reply answers their text: anchored to it, sent while they're still there unless a row says. */
+const REPLY = { kind: 'reply', anchor: 'inbound:1' } as const;
+const LIVE = { lastInboundAt: new Date(NOON.getTime() - 5 * 60_000) };
 
 function intent(o: Partial<Intent> = {}): Intent {
   return {
@@ -195,8 +198,8 @@ const textsOff: Row[] = [
   },
   {
     name: 'texts off: a reply to their text still goes',
-    i: { kind: 'reply', anchor: undefined },
-    c: { prefs: { textsOff: true } },
+    i: REPLY,
+    c: { ...LIVE, prefs: { textsOff: true } },
     want: SEND,
   },
   {
@@ -225,15 +228,33 @@ const crisis: Row[] = [
     want: SEND,
   },
   {
-    name: 'crisis 13 days ago: their own reminder still goes',
+    name: 'crisis 13 days ago: even a reminder they set holds until the 14 days end',
     i: { kind: 'reminder', requestedBy: 'user' },
+    c: { crisis: { lastCrisisAt: new Date(NOON.getTime() - 13 * DAY) } },
+    want: { action: 'hold', reason: 'crisis-quiet', holdUntil: new Date(NOON.getTime() + DAY) },
+  },
+  {
+    name: 'crisis 13 days ago: a reply holds',
+    i: REPLY,
+    c: { ...LIVE, crisis: { lastCrisisAt: new Date(NOON.getTime() - 13 * DAY) } },
+    want: { action: 'hold', reason: 'crisis-quiet', holdUntil: new Date(NOON.getTime() + DAY) },
+  },
+  {
+    name: 'crisis 13 days ago: a transactional Ferni sends unasked holds',
+    i: { kind: 'transactional', anchor: undefined },
+    c: { crisis: { lastCrisisAt: new Date(NOON.getTime() - 13 * DAY) } },
+    want: { action: 'hold', reason: 'crisis-quiet' },
+  },
+  {
+    name: 'crisis 13 days ago: a code they asked for still goes',
+    i: { kind: 'transactional', requestedBy: 'user', anchor: undefined },
     c: { crisis: { lastCrisisAt: new Date(NOON.getTime() - 13 * DAY) } },
     want: SEND,
   },
   {
-    name: 'crisis 13 days ago: a reply still goes',
-    i: { kind: 'reply', anchor: undefined },
-    c: { crisis: { lastCrisisAt: new Date(NOON.getTime() - 13 * DAY) } },
+    name: 'crisis 13 days ago: a code to a number they are verifying still goes',
+    i: { kind: 'transactional', requestedBy: 'user', anchor: undefined, verifyingNumber: true },
+    c: { verifiedRecipient: false, crisis: { lastCrisisAt: new Date(NOON.getTime() - 13 * DAY) } },
     want: SEND,
   },
 ];
@@ -389,15 +410,15 @@ const quietHours: Row[] = [
   },
   {
     name: 'a reply at 23:15, 5 min after their text, goes (they are awake and talking)',
-    i: { kind: 'reply', anchor: undefined },
+    i: REPLY,
     c: { now: at('2026-10-14T23:15'), lastInboundAt: at('2026-10-14T23:10') },
     want: SEND,
   },
   {
-    name: 'the same reply 45 min after their text waits for 08:00',
-    i: { kind: 'reply', anchor: undefined },
+    name: 'the same reply 45 min after their text is proactive: waits for 08:00',
+    i: REPLY,
     c: { now: at('2026-10-14T23:15'), lastInboundAt: at('2026-10-14T22:30') },
-    want: quietUntil(at('2026-10-15T08:00')),
+    want: { ...quietUntil(at('2026-10-15T08:00')), recordAs: 'proactive' },
   },
   {
     name: 'a verification code at 02:00 goes',
@@ -474,10 +495,10 @@ const quietHours: Row[] = [
     want: quietUntil(at('2026-10-14T08:00')),
   },
   {
-    name: 'a reply at 23:00 waits for 08:00',
-    i: { kind: 'reply', anchor: undefined },
+    name: 'a reply at 23:00 with no text from them is proactive: waits for 08:00',
+    i: REPLY,
     c: { now: at('2026-10-14T23:00') },
-    want: quietUntil(at('2026-10-15T08:00')),
+    want: { ...quietUntil(at('2026-10-15T08:00')), recordAs: 'proactive' },
   },
   {
     name: 'a push at 23:00 waits for 08:00',
@@ -497,14 +518,14 @@ const quietHours: Row[] = [
     want: { action: 'hold', reason: 'no-timezone', holdUntil: undefined },
   },
   {
-    name: 'invalid zone: a reply at NY noon goes (both coasts awake)',
-    i: { kind: 'reply', anchor: undefined },
+    name: 'invalid zone: a reminder they asked for at NY noon goes (both coasts awake)',
+    i: { kind: 'reminder', requestedBy: 'user' },
     c: { zone: 'Mars/Olympus' },
     want: SEND,
   },
   {
-    name: 'invalid zone: a reply at LA 07:30 waits for LA 08:00',
-    i: { kind: 'reply', anchor: undefined },
+    name: 'invalid zone: a reminder they asked for at LA 07:30 waits for LA 08:00',
+    i: { kind: 'reminder', requestedBy: 'user' },
     c: { zone: 'Mars/Olympus', now: at('2026-10-14T07:30', LA) },
     want: quietUntil(at('2026-10-14T08:00', LA)),
   },
@@ -549,7 +570,7 @@ const budget: Row[] = [
   },
   {
     name: 'budget: a live reply at 23:15 with 3 sent today goes',
-    i: { kind: 'reply', anchor: undefined },
+    i: REPLY,
     c: { now: at('2026-10-14T23:15'), lastInboundAt: at('2026-10-14T23:10'), ledger: sentToday(3) },
     want: SEND,
   },
@@ -599,9 +620,9 @@ const budget: Row[] = [
     want: SEND,
   },
   {
-    name: 'budget: a reply is outside it',
-    i: { kind: 'reply', anchor: undefined },
-    c: { ledger: sentToday(3) },
+    name: 'budget: a live reply is outside it',
+    i: REPLY,
+    c: { ...LIVE, ledger: sentToday(3) },
     want: SEND,
   },
   {
@@ -734,7 +755,20 @@ const codes = (minutesAgo: number[], o: Partial<LedgerEntry> = {}, from = NOON):
     at: new Date(from.getTime() - m * 60_000),
   }));
 const RATE = { action: 'drop', reason: 'transactional-rate' } as const;
+const HOURS = (n: number): number[] => Array.from({ length: n }, (_, k) => (k + 1) * 60);
 const codeRate: Row[] = [
+  {
+    name: "codes: 10 to another number don't count",
+    i: { ...CODE, destination: 'h:b' },
+    c: { ledger: codes(HOURS(10), { destination: 'h:a' }) },
+    want: SEND,
+  },
+  {
+    name: 'codes: the 11th to the same number in 24 h is dropped',
+    i: { ...CODE, destination: 'h:a' },
+    c: { ledger: codes(HOURS(10), { destination: 'h:a' }) },
+    want: RATE,
+  },
   {
     name: 'codes: the 11th in 24 h is dropped',
     i: CODE,
@@ -792,6 +826,102 @@ const codeRate: Row[] = [
   },
 ];
 
+const replies = (minutesAgo: number[]): LedgerEntry[] =>
+  codes(minutesAgo, { kind: 'reply', requestedBy: 'ferni' });
+const REPLY_RATE = { action: 'drop', reason: 'reply-rate' } as const;
+const replyRate: Row[] = [
+  {
+    name: 'replies: no text from them in 30 min, over budget, it merges as proactive',
+    i: REPLY,
+    c: { ledger: sentToday(3) },
+    want: { ...DIGEST_TODAY, recordAs: 'proactive' },
+  },
+  {
+    name: 'replies: no text from them, sent, it is recorded as proactive',
+    i: REPLY,
+    c: { lastInboundAt: new Date(NOON.getTime() - 45 * 60_000) },
+    want: { ...SEND, recordAs: 'proactive' },
+  },
+  {
+    name: 'replies: #51 in 50 min with no text from them is dropped',
+    i: REPLY,
+    c: { ledger: replies(Array.from({ length: 50 }, (_, k) => k + 1)) },
+    want: REPLY_RATE,
+  },
+  {
+    name: 'replies: a 6th reply to one text is dropped',
+    i: REPLY,
+    c: { lastInboundAt: new Date(NOON.getTime() - 10 * 60_000), ledger: replies([1, 2, 3, 4, 5]) },
+    want: REPLY_RATE,
+  },
+  {
+    name: 'replies: a 5th reply to one text goes',
+    i: REPLY,
+    c: { lastInboundAt: new Date(NOON.getTime() - 10 * 60_000), ledger: replies([1, 2, 3, 4]) },
+    want: SEND,
+  },
+  {
+    name: "replies: replies before their latest text don't count toward it",
+    i: REPLY,
+    c: {
+      lastInboundAt: new Date(NOON.getTime() - 2 * 60_000),
+      ledger: replies([10, 11, 12, 13, 14]),
+    },
+    want: SEND,
+  },
+  {
+    name: 'replies: a 21st in an hour is dropped, however many texts they sent',
+    i: REPLY,
+    c: {
+      lastInboundAt: new Date(NOON.getTime() - 60_000),
+      ledger: replies(Array.from({ length: 20 }, (_, k) => 2 + k * 2)),
+    },
+    want: REPLY_RATE,
+  },
+  {
+    name: 'replies: a 20th in an hour goes',
+    i: REPLY,
+    c: {
+      lastInboundAt: new Date(NOON.getTime() - 60_000),
+      ledger: replies(Array.from({ length: 19 }, (_, k) => 2 + k * 2)),
+    },
+    want: SEND,
+  },
+];
+
+const asked = (minutesAgo: number[], from = NOON): LedgerEntry[] =>
+  codes(minutesAgo, { kind: 'reminder' }, from);
+const ASKED_RATE = { action: 'drop', reason: 'requested-rate' } as const;
+const requestedRate: Row[] = [
+  {
+    name: 'requested: an 11th text they asked for in 24 h is dropped',
+    i: { kind: 'reminder', requestedBy: 'user' },
+    c: { ledger: asked(HOURS(10)) },
+    want: ASKED_RATE,
+  },
+  {
+    name: 'requested: a 10th goes',
+    i: { kind: 'reminder', requestedBy: 'user' },
+    c: { ledger: asked(HOURS(9)) },
+    want: SEND,
+  },
+  {
+    name: 'requested: a check-in claimed as asked for at 02:00, cap full, is bounded',
+    i: { requestedBy: 'user', requestedAt: at('2026-10-14T02:00') },
+    c: {
+      now: at('2026-10-14T02:00'),
+      ledger: [...asked(HOURS(10), at('2026-10-14T02:00')), ...sentToday(3)],
+    },
+    want: ASKED_RATE,
+  },
+  {
+    name: "requested: codes they asked for don't count toward it",
+    i: { kind: 'reminder', requestedBy: 'user' },
+    c: { ledger: codes(HOURS(10)) },
+    want: SEND,
+  },
+];
+
 const firstContact: Row[] = [
   {
     name: 'a third party, first contact: send with the intro',
@@ -821,6 +951,8 @@ describe.each([
   ['dedupe', dedupe],
   ['per-kind gap', gap],
   ['code rate', codeRate],
+  ['reply rate', replyRate],
+  ['requested rate', requestedRate],
   ['first contact', firstContact],
 ] as const)('decide: %s', (_gate, rows) => {
   it.each(rows)('$name', ({ i, c, want }) => {
@@ -841,7 +973,7 @@ describe('decide: the gates', () => {
       'quiet-hours',
       'dedupe',
       'gap',
-      'code-rate',
+      'rate',
       'budget',
     ]);
   });
@@ -871,35 +1003,5 @@ describe('priorityOf and isDigestible', () => {
     expect(isDigestible('reminder')).toBe(false);
     expect(isDigestible('reply')).toBe(false);
     expect(isDigestible('on-behalf')).toBe(false);
-  });
-});
-
-describe('segments', () => {
-  const a = (n: number): string => 'a'.repeat(n);
-  it.each([
-    [a(160), 1],
-    [a(161), 2],
-    [a(306), 2],
-    [a(307), 3],
-    [a(459), 3],
-    [a(460), 4],
-    ['€'.repeat(80), 1],
-    ['€'.repeat(81), 2],
-    [`${a(152)}€${a(152)}`, 3], // the escape pair can't straddle: 152 | 153 | 1, not 2
-    ['✓'.repeat(70), 1],
-    ['✓'.repeat(71), 2],
-    ['✓'.repeat(134), 2],
-    ['✓'.repeat(135), 3],
-    ['😀'.repeat(35), 1],
-    ['😀'.repeat(67), 3], // 33 a segment: a surrogate pair can't straddle
-    [`It’s Ferni. ${a(60)}`, 2], // one curly apostrophe makes it UCS-2
-  ])('case %#', (text, n) => {
-    expect(segments(text)).toBe(n);
-  });
-
-  it('fitsSms: 3 segments by default', () => {
-    expect(fitsSms('a'.repeat(459))).toBe(true);
-    expect(fitsSms('a'.repeat(460))).toBe(false);
-    expect(fitsSms('a'.repeat(161), 1)).toBe(false);
   });
 });

@@ -17,7 +17,22 @@ describe('messaging policy purity', () => {
     expect([...new Set(specs)].sort()).toEqual(['../../utils/time-zone.js', './types.js']);
   });
 
+  // Any mention of process or globalThis, not just process.env: process['env'], globalThis.process?.env.
+  const IMPURE = /\bprocess\b|\bglobalThis\b|Date\.now|new Date\(\s*\)|Math\.random|\brequire\s*\(/;
+
   it('reads no env, no clock and no randomness', () => {
-    expect(source).not.toMatch(/process\.env|Date\.now|new Date\(\)|Math\.random|require\(/);
+    expect(source).not.toMatch(IMPURE);
+  });
+
+  it.each([
+    'process.env.FLAG',
+    "process['env']",
+    'globalThis.process?.env',
+    'Date.now()',
+    'new Date( )',
+    'Math.random()',
+    "require ('fs')",
+  ])('the check catches %s', (snippet) => {
+    expect(snippet).toMatch(IMPURE);
   });
 });

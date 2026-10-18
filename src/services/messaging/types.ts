@@ -22,10 +22,16 @@ export type RequestedBy = 'user' | 'ferni';
 export const REASON_CODES = [
   ...['ok', 'requested-time', 'no-verified-phone', 'needs-consent', 'no-anchor', 'bad-channel'],
   ...['opted-out', 'sms-off', 'crisis-quiet', 'quiet-hours', 'outside-window', 'no-timezone'],
-  ...['over-budget', 'duplicate', 'recently-sent', 'transactional-rate'],
+  ...['over-budget', 'duplicate', 'recently-sent', 'transactional-rate', 'reply-rate'],
+  'requested-rate',
 ] as const;
 export type ReasonCode = (typeof REASON_CODES)[number];
 
+/**
+ * Provenance contract: the policy is pure and can't check where an intent came from. The
+ * sender (M2) sets kind, requestedBy, requestedAt and verifyingNumber only from server-side
+ * records (the reminder doc, the OTP request, the inbound text), never from model output.
+ */
 export interface Intent {
   readonly personId: string; // the owner's uid, or a third party's contact key
   readonly recipient: 'owner' | 'third-party';
@@ -40,6 +46,7 @@ export interface Intent {
   readonly text?: string;
   readonly bodyHash?: string; // keyed by the sender; the policy only compares
   readonly verifyingNumber?: boolean; // a code to the number this request is verifying
+  readonly destination?: string; // the phone hash it goes to: code limits count per destination
   readonly redecide?: boolean; // re-deciding its own hold: not a duplicate or a rival
 }
 
@@ -52,6 +59,7 @@ export interface LedgerEntry {
   readonly priority: number;
   readonly bodyHash?: string;
   readonly requestedBy?: RequestedBy; // Ferni when unset
+  readonly destination?: string; // the phone hash it went to
 }
 
 export interface LocalWindow {
@@ -82,5 +90,6 @@ export interface Decision {
   readonly reason: ReasonCode;
   readonly holdUntil?: Date; // re-decide then; unset: when something changes (consent, a zone)
   readonly mergeInto?: string; // the digest it joins: "digest:2026-10-18", their local date
+  readonly recordAs?: MessageKind; // the kind the ledger records when it isn't the intent's
   readonly introRequired?: boolean; // a third party's first text says who is writing
 }
