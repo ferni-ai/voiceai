@@ -691,7 +691,7 @@ async function detectDisconnectPattern(): Promise<DisconnectPattern | null> {
     patternType = 'startup_race';
     confidence = 0.8;
     indicators.push('Startup/prewarm timing issues');
-    suggestedFix = 'Check prewarm logs. May need to redeploy: ferni deploy gce';
+    suggestedFix = 'Check prewarm logs. May need to redeploy (.claude/skills/deploy-agent)';
   }
 
   // Pattern 4: Network issues (ICE failures, transport errors)
