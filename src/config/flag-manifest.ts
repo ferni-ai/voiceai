@@ -364,6 +364,9 @@ export const FLAG_MANIFEST = {
   TTS_PROVIDER: { default: 'cartesia', owner: 'voice', kind: 'config' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a mode: off | cloud | local (turn-patience.ts)
+  TURN_DETECTOR: { default: 'off', owner: 'voice', kind: 'experiment' },
+  TURN_DETECTOR_SOLE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_INTELLIGENCE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_KEEPER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_KEEPER_SPOKE: { default: 'off', owner: 'voice', kind: 'experiment' },
