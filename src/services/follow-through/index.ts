@@ -10,6 +10,7 @@ export {
   apply,
   isClosed,
   nextOccurrence,
+  type CloseReason,
   type FollowUp,
   type FollowUpAction,
   type FollowUpEvent,
@@ -34,3 +35,4 @@ export {
   type OutreachEnd,
   type PromiseJobCounts,
 } from './promise-outcomes.js';
+export { releaseForgotten } from './release-forgotten.js';

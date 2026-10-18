@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FollowUp } from '../../follow-through/index.js';
 import { followUp } from '../../follow-through/__tests__/fixtures.js';
+import { storedTopic } from '../../../memory/recall/session-recall.js';
 import {
   FOLLOW_UP_GAP_MS,
   followUpJobOn,
@@ -29,7 +30,12 @@ const NOW = new Date('2026-10-13T16:10:00Z'); // 12:10 in New York; the fixture 
 /** An in-memory store with the real one's live() and compare-and-set save(). */
 function deps(
   due: FollowUp[],
-  opts: { cohort?: string[]; saveOk?: boolean; optedIn?: string[] } = {}
+  opts: {
+    cohort?: string[];
+    saveOk?: boolean;
+    optedIn?: string[];
+    forgotten?: (u: string) => Promise<string[] | null>;
+  } = {}
 ) {
   const docs = new Map(due.map((f) => [f.id, f]));
   const saved: FollowUp[] = [];
@@ -48,6 +54,7 @@ function deps(
       (opts.cohort ?? ['u1']).includes(u) ? { FOLLOW_THROUGH_TEXTS: 'on' } : {}
     ),
     sendText: vi.fn(async () => ({ sent: true })),
+    forgotten: vi.fn(opts.forgotten ?? (async () => [])),
   };
   return { d, saved, docs };
 }
@@ -226,6 +233,60 @@ describe('PROMISE_OUTCOME / PROMISE_JOB_RUN lines', () => {
     logPromiseJobRun.mockClear();
     await sendDueFollowUpTexts(deps([followUp()]).d, { now: NOW, dryRun: true });
     expect(logPromiseJobRun).not.toHaveBeenCalled();
+    expect(logPromiseOutcome).not.toHaveBeenCalled();
+  });
+});
+
+describe('sendDueFollowUpTexts and forgotten topics', () => {
+  const trip = followUp({ id: 'trip', text: 'ask how the Lisbon trip planning went' });
+
+  it('never texts a follow-up about a forgotten topic, and closes it as forgotten', async () => {
+    const { d, docs } = deps([trip], { forgotten: async () => [storedTopic('the Lisbon trip')] });
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).not.toHaveBeenCalled();
+    expect(docs.get('trip')).toMatchObject({ status: 'released', closedReason: 'forgotten' });
+    expect(report).toMatchObject({ sent: 0, forgotten: 1 });
+    // The person's own stop: cancelled, never a failure.
+    expect(logPromiseOutcome).toHaveBeenCalledWith(
+      'follow-through-text',
+      { outcome: 'cancelled', reason: 'forgotten' },
+      { followUpId: 'trip' }
+    );
+  });
+
+  it('still texts the next due follow-up that is not about the topic', async () => {
+    const older = { ...trip, dueAt: '2026-10-13T15:00:00.000Z' };
+    const { d } = deps([older, followUp()], {
+      forgotten: async () => [storedTopic('the Lisbon trip')],
+    });
+    await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).toHaveBeenCalledTimes(1);
+    expect(d.sendText).toHaveBeenCalledWith(expect.objectContaining({ refId: 'f1' }));
+  });
+
+  it('fails closed: no text for someone whose forgotten topics cannot be read', async () => {
+    const { d, saved } = deps([followUp()], {
+      forgotten: async () => {
+        throw new Error('firestore down');
+      },
+    });
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).not.toHaveBeenCalled();
+    expect(saved).toHaveLength(0);
+    expect(report).toMatchObject({ sent: 0, forgottenUnreadable: 1 });
+  });
+
+  it('fails closed on an unreadable list (null) too', async () => {
+    const { d } = deps([followUp()], { forgotten: async () => null });
+    expect((await sendDueFollowUpTexts(d, { now: NOW })).forgottenUnreadable).toBe(1);
+    expect(d.sendText).not.toHaveBeenCalled();
+  });
+
+  it('in a dry run counts a forgotten follow-up but saves nothing', async () => {
+    const { d, saved } = deps([trip], { forgotten: async () => [storedTopic('the Lisbon trip')] });
+    const report = await sendDueFollowUpTexts(d, { now: NOW, dryRun: true });
+    expect(saved).toHaveLength(0);
+    expect(report).toMatchObject({ wouldSend: 0, forgotten: 1 });
     expect(logPromiseOutcome).not.toHaveBeenCalled();
   });
 });

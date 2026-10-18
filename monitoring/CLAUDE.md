@@ -11,6 +11,7 @@
 | `observability-config.yaml` | Observability settings |
 | `pubsub-dashboard.json` | Pub/Sub monitoring dashboard |
 | `ops-alert-policy.json` | Emails the operator for any `opsAlert(...)` log line (API and voice agent), rate-limited to one per 15 min. Live in johnb-2025 as "Ferni ops alert"; apply changes with `gcloud alpha monitoring policies update <name> --policy-from-file=...` |
+| `promise/` | Promise-ledger alerts on `PROMISE_OUTCOME` / `PROMISE_JOB_RUN` lines (src/services/follow-through/promise-outcomes.ts): failed for our reason, failed and told nobody, a per-minute job stopped, daily outreach sent nothing two days running. Two log metrics (`*-metric.json`, `gcloud logging metrics create <name> --config-from-file=...`) and four policies (`*-policy.json`, `gcloud alpha monitoring policies create --policy-from-file=...`), same format and channel as `ops-alert-policy.json` |
 
 ## Alert Categories
 

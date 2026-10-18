@@ -4,7 +4,10 @@
  *
  * Each run asks who may have FOLLOW_THROUGH_TEXTS on, then per person:
  * reads their own flags first (nothing is read or written for anyone who
- * isn't opted in), expires their stale follow-ups, and texts the oldest one
+ * isn't opted in), then the topics they asked Ferni to forget: a due
+ * follow-up about one is closed as forgotten and never texted, and when the
+ * list can't be read nothing is sent to them this run (fail closed). Then it
+ * expires their stale follow-ups and texts the oldest one
  * whose right moment is `text-now`. It claims the follow-up (saves it
  * surfaced, compare-and-set) before sending, so a call that raised it a
  * moment earlier wins and no text goes; if the sender holds the text, the
@@ -28,6 +31,7 @@ import {
   type FollowUpStore,
   type PromiseJobCounts,
 } from '../follow-through/index.js';
+import { isForgotten } from '../../memory/recall/session-recall.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'follow-up-texts' });
@@ -59,6 +63,8 @@ export interface FollowUpTextDeps {
     refId: string;
     minGapMs: number;
   }) => Promise<{ sent: boolean; reason?: string }>;
+  /** Topics they asked Ferni to forget (forget.ts forgottenTopicsOrNull); null when unreadable. */
+  forgotten: (userId: string) => Promise<string[] | null>;
 }
 
 export interface FollowUpTextReport {
@@ -73,6 +79,10 @@ export interface FollowUpTextReport {
   notInCohort: number;
   held: Record<string, number>;
   lostSaves: number;
+  /** Due follow-ups closed (or, in a dry run, that would be) because their topic was forgotten. */
+  forgotten: number;
+  /** People sent nothing because their forgotten topics couldn't be read. */
+  forgottenUnreadable: number;
   /** People whose turn failed (a flag or store read threw); the run went on. */
   errors: number;
 }
@@ -147,6 +157,40 @@ async function textOne(
   if (!(await deps.store.save(pick, claimed.data.updatedAt))) report.lostSaves++;
 }
 
+/** Their forgotten topics, or null (logged with a fixed reason) when unreadable. */
+async function forgottenOf(deps: FollowUpTextDeps, userId: string): Promise<string[] | null> {
+  const topics = await deps.forgotten(userId).catch(() => null);
+  if (!topics)
+    log.warn({ reason: 'forgotten-unreadable' }, 'Follow-up texts: none for this person');
+  return topics;
+}
+
+/** Close due follow-ups about a forgotten topic; the rest, still to consider. */
+async function dropForgotten(
+  deps: FollowUpTextDeps,
+  due: FollowUp[],
+  topics: string[],
+  opts: { now: Date; dryRun: boolean },
+  report: FollowUpTextReport
+): Promise<FollowUp[]> {
+  const keep: FollowUp[] = [];
+  for (const f of due) {
+    if (!isForgotten(f.text, topics)) {
+      keep.push(f);
+      continue;
+    }
+    const event: FollowUpEvent = { type: 'release', reason: 'forgotten' };
+    if (opts.dryRun) report.forgotten++;
+    else if (await record(deps.store, f, event, opts.now)) {
+      report.forgotten++;
+      logPromiseOutcome('follow-through-text', followUpTextOutcome('forgotten'), {
+        followUpId: f.id,
+      });
+    } else report.lostSaves++;
+  }
+  return keep;
+}
+
 async function forPerson(
   deps: FollowUpTextDeps,
   userId: string,
@@ -158,9 +202,15 @@ async function forPerson(
     report.notInCohort++;
     return;
   }
+  const topics = await forgottenOf(deps, userId);
+  if (!topics) {
+    report.forgottenUnreadable++;
+    return;
+  }
   const { now, dryRun } = opts;
-  const due = await dueFor(deps.store, userId, now);
-  report.scanned += due.length;
+  const allDue = await dueFor(deps.store, userId, now);
+  report.scanned += allDue.length;
+  const due = await dropForgotten(deps, allDue, topics, opts, report);
   const moments = due.map((f) => ({ f, moment: rightMoment(f, now) }));
   for (const { f } of moments.filter((m) => m.moment === 'expire')) {
     if (dryRun) report.expired++;
@@ -197,6 +247,8 @@ export async function sendDueFollowUpTexts(
     notInCohort: 0,
     held: {},
     lostSaves: 0,
+    forgotten: 0,
+    forgottenUnreadable: 0,
     errors: 0,
   };
   for (const userId of people) {

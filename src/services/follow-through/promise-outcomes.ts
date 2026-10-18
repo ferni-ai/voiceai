@@ -44,6 +44,7 @@ export const OUTCOME_REASONS = [
   'missed-window',
   'job-not-run',
   'user-cancelled',
+  'forgotten',
   'unknown',
 ] as const;
 export type OutcomeReason = (typeof OUTCOME_REASONS)[number];
@@ -132,10 +133,14 @@ const REMINDER = {
 } satisfies Record<string, PromiseOutcome>;
 export const reminderOutcome = (end: keyof typeof REMINDER): PromiseOutcome => REMINDER[end];
 
-/** The follow-through text job: 'sent', 'expired' (unsent), or the guarded sender's skip. */
+/**
+ * The follow-through text job: 'sent', 'expired' (unsent), 'forgotten' (the person asked
+ * Ferni to forget the topic: their own stop, so cancelled), or the guarded sender's skip.
+ */
 const FOLLOW_UP_TEXT: Record<string, PromiseOutcome> = {
   sent: done,
   expired: failed('missed-window'),
+  forgotten: { outcome: 'cancelled', reason: 'forgotten' },
   'recently-sent': held('rate-gap'),
   'opted-out': failed('opted-out'),
   'no-verified-phone': failed('no-verified-phone'),

@@ -91,6 +91,8 @@ describe('each executor maps to the design table', () => {
       outcome: 'failed',
       reason: 'not-configured',
     });
+    // "Forget X" is the person's own stop: the only cancelled outcome an executor gives.
+    expect(followUpTextOutcome('forgotten')).toEqual({ outcome: 'cancelled', reason: 'forgotten' });
     expect(followUpTextOutcome('something new')).toEqual({ outcome: 'failed', reason: 'unknown' });
   });
 
