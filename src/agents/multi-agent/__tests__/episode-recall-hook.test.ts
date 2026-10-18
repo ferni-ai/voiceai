@@ -12,7 +12,7 @@ const episodeStore = {
       lines: [
         'Hey, could you call my brother?',
         'This name is Pete.',
-        "Uh, yes. It's uh 435 339 7687.",
+        "Uh, yes. It's uh 435 555 0188.",
       ],
     },
   ],
@@ -48,12 +48,12 @@ async function ask(episodes: boolean): Promise<string> {
 describe('episode recall in the live hook', () => {
   it("quotes the caller's own words when no fact holds the answer", async () => {
     const note = await ask(true);
-    expect(note).toContain("It's uh 435 339 7687.");
+    expect(note).toContain("It's uh 435 555 0188.");
     expect(note).toContain('in their own words');
   });
 
   it('is off unless asked for', async () => {
-    expect(await ask(false)).not.toContain('435 339 7687');
+    expect(await ask(false)).not.toContain('435 555 0188');
   });
 });
 

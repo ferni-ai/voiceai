@@ -455,7 +455,7 @@ public struct MagicalSplashView: View {
         if isReturningUser {
             return "I've been thinking about you"
         } else {
-            return "I'm Ferni, your AI companion"
+            return "I'm Ferni, and I'm glad you're here"
         }
     }
 

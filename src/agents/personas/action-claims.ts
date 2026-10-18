@@ -170,6 +170,10 @@ export function kindsOfTool(name: string): ActionKind[] {
 
 /** The confirm gate's preview (outreach-confirm.ts): nothing sent until the caller says yes. */
 const PREVIEW = /^\W*not sent yet\b/i;
+/** A call held for a better hour (services/outreach/deferred-calls.ts): set, but nothing rang. */
+const HELD = /^\W*nothing was dialed yet\b/i;
+/** The held call's time as its result words it: "later today at 9:00 AM". */
+const HELD_WHEN = /\b((?:later today|tomorrow|\w+day) at \d{1,2}:\d{2}\s?[AP]M)\b/i;
 /** A result that says the action did not happen. */
 const REFUSAL =
   /^\W*(?:nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi don't have (?:a|the|their|any) (?:phone )?number\b|\bi couldn't find\b|\bdon't see \w+(?: \w+)? in your contacts\b|\bdoesn't look (?:valid|right)\b|\b(?:calls?|calling|texts?|texting|outbound \w+) (?:are|is) (?:disabled|turned off|off|not available|unavailable)\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
@@ -198,19 +202,40 @@ export interface CallActions {
   awaiting: Set<ActionKind>;
   /** Kinds whose latest result refused or failed. */
   failed: Set<ActionKind>;
+  /** Kinds whose latest result is held for later (a call outside the recipient's hours). */
+  held: Set<ActionKind>;
+  /** When the held action happens, as its result said, if it said. */
+  heldWhen?: string;
 }
 
 /** What the call's tools did: each kind as its latest tool result left it. */
 export function callActions(chatCtx: { items: readonly unknown[] }): CallActions {
-  const latest = new Map<ActionKind, keyof CallActions>();
+  type State = 'done' | 'awaiting' | 'failed' | 'held';
+  const latest = new Map<ActionKind, State>();
+  let heldWhen: string | undefined;
   for (const item of chatCtx.items as readonly ItemView[]) {
     if (item.type !== 'function_call_output') continue;
     const text = outputText(item.output);
-    const state =
-      item.isError || REFUSAL.test(text) ? 'failed' : PREVIEW.test(text) ? 'awaiting' : 'done';
+    // Held is read first: "Nothing was dialed yet" would otherwise read as a refusal.
+    const state: State = item.isError
+      ? 'failed'
+      : HELD.test(text)
+        ? 'held'
+        : REFUSAL.test(text)
+          ? 'failed'
+          : PREVIEW.test(text)
+            ? 'awaiting'
+            : 'done';
+    if (state === 'held') heldWhen = HELD_WHEN.exec(text)?.[1];
     for (const kind of kindsOfTool(item.name ?? '')) latest.set(kind, state);
   }
-  const actions: CallActions = { done: new Set(), awaiting: new Set(), failed: new Set() };
+  const actions: CallActions = {
+    done: new Set(),
+    awaiting: new Set(),
+    failed: new Set(),
+    held: new Set(),
+  };
   for (const [kind, state] of latest) actions[state].add(kind);
+  if (actions.held.size > 0) actions.heldWhen = heldWhen;
   return actions;
 }
