@@ -16,6 +16,7 @@ export {
   setUserContactInfo,
   getUserContactInfo,
   canReachUser,
+  SAVED_NOT_VERIFIED,
 
   // Immediate outreach
   textUser,

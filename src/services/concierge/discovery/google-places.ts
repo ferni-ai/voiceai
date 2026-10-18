@@ -1,28 +1,15 @@
 /**
  * Google Places Discovery
  *
- * Discovers businesses using Google Places API for contact information.
+ * Discovers businesses using Google Places API (New) for contact information.
  * This is the first step in the concierge flow - finding who to call.
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { ConciergeDomain, DiscoveryOptions, DiscoveredBusiness } from '../types.js';
+import { PLACES_API_NEW, priceLevelToNumber } from '../../google-places.js';
 
 const log = createLogger({ module: 'concierge-discovery' });
-
-// Map domains to Google Places types
-const DOMAIN_TO_PLACE_TYPES: Record<ConciergeDomain, string[]> = {
-  hotel: ['lodging', 'hotel'],
-  restaurant: ['restaurant', 'cafe', 'bar'],
-  healthcare: ['doctor', 'dentist', 'hospital', 'health', 'physiotherapist'],
-  local_service: ['plumber', 'electrician', 'locksmith', 'moving_company', 'painter'],
-  airline: ['airport', 'travel_agency'],
-  car_rental: ['car_rental'],
-  insurance: ['insurance_agency'],
-  utility: ['local_government_office'],
-  government: ['local_government_office', 'post_office', 'courthouse'],
-  other: ['point_of_interest'],
-};
 
 // Domain-specific search terms for better results
 const DOMAIN_SEARCH_TERMS: Record<ConciergeDomain, string> = {
@@ -38,90 +25,77 @@ const DOMAIN_SEARCH_TERMS: Record<ConciergeDomain, string> = {
   other: '',
 };
 
+/** The Places key, read per call (GOOGLE_PLACES_API_KEY, else GOOGLE_API_KEY). */
+function placesApiKey(): string {
+  return process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_API_KEY || '';
+}
+
 /**
  * Check if Google Places API is configured
  */
 export function isGooglePlacesConfigured(): boolean {
-  return !!process.env.GOOGLE_API_KEY;
+  return !!placesApiKey();
 }
+
+/**
+ * One Text Search (New) returns the phone and website too, so there is no
+ * geocode call and no Place Details call per result. Only the fields mapped
+ * below are requested.
+ */
+export const DISCOVERY_FIELD_MASK = [
+  'places.id',
+  'places.displayName',
+  'places.formattedAddress',
+  'places.location',
+  'places.rating',
+  'places.userRatingCount',
+  'places.priceLevel',
+  'places.types',
+  'places.currentOpeningHours',
+  'places.nationalPhoneNumber',
+  'places.websiteUri',
+].join(',');
 
 /**
  * Discover businesses matching the criteria
  */
 export async function discoverBusinesses(options: DiscoveryOptions): Promise<DiscoveredBusiness[]> {
-  const {
-    domain,
-    location,
-    radius = 10000,
-    keyword,
-    limit = 5,
-    minRating,
-    priceLevel,
-    openNow,
-  } = options;
+  const { domain, location, keyword, limit = 5, minRating, priceLevel, openNow } = options;
 
   log.info({ domain, location, limit }, 'Discovering businesses');
 
-  // Check if API is configured
-  if (!isGooglePlacesConfigured()) {
+  const apiKey = placesApiKey();
+  if (!apiKey) {
     log.warn('Google Places API not configured, returning mock data');
     return getMockBusinesses(domain, location, limit);
   }
 
-  const apiKey = process.env.GOOGLE_API_KEY!;
-
   try {
-    // First, geocode the location to get coordinates
-    const coords = await geocodeLocation(location, apiKey);
-    if (!coords) {
-      log.warn({ location }, 'Could not geocode location');
-      return getMockBusinesses(domain, location, limit);
-    }
-
-    // Build the Places API request
-    const placeTypes = DOMAIN_TO_PLACE_TYPES[domain] || ['point_of_interest'];
     const searchTerm = keyword || DOMAIN_SEARCH_TERMS[domain];
-
-    // Use Text Search for better results with natural language
     const textQuery = searchTerm ? `${searchTerm} in ${location}` : `${domain} in ${location}`;
 
-    const searchUrl = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
-    searchUrl.searchParams.set('query', textQuery);
-    searchUrl.searchParams.set('location', `${coords.lat},${coords.lng}`);
-    searchUrl.searchParams.set('radius', radius.toString());
-    searchUrl.searchParams.set('key', apiKey);
+    const response = await fetch(`${PLACES_API_NEW}/places:searchText`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': DISCOVERY_FIELD_MASK,
+      },
+      body: JSON.stringify({ textQuery, languageCode: 'en', ...(openNow ? { openNow } : {}) }),
+      signal: AbortSignal.timeout(10000),
+    });
 
-    if (openNow) {
-      searchUrl.searchParams.set('opennow', 'true');
+    if (!response.ok) {
+      log.error({ status: response.status }, 'Places API (New) search failed');
+      return [];
     }
 
-    const response = await fetch(searchUrl.toString());
-    const data = await response.json();
+    const data = (await response.json()) as { places?: PlaceNew[] };
+    let businesses = (data.places || []).map(toDiscoveredBusiness);
 
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      log.error({ status: data.status, error: data.error_message }, 'Places API error');
-      return getMockBusinesses(domain, location, limit);
-    }
-
-    // Transform results
-    let businesses: DiscoveredBusiness[] = (data.results || []).map((place: GooglePlaceResult) => ({
-      placeId: place.place_id,
-      name: place.name,
-      address: place.formatted_address,
-      rating: place.rating,
-      userRatingsTotal: place.user_ratings_total,
-      priceLevel: place.price_level,
-      types: place.types || [],
-      openNow: place.opening_hours?.open_now,
-      location: place.geometry?.location || { lat: 0, lng: 0 },
-    }));
-
-    // Filter by rating if specified
     if (minRating) {
       businesses = businesses.filter((b) => (b.rating || 0) >= minRating);
     }
-
-    // Filter by price level if specified
     if (priceLevel && priceLevel.length > 0) {
       businesses = businesses.filter((b) => b.priceLevel && priceLevel.includes(b.priceLevel));
     }
@@ -133,83 +107,34 @@ export async function discoverBusinesses(options: DiscoveryOptions): Promise<Dis
       return (b.userRatingsTotal || 0) - (a.userRatingsTotal || 0);
     });
 
-    // Limit results
-    businesses = businesses.slice(0, limit);
+    // We can only reach a business with a phone number or website
+    const contactable = businesses.slice(0, limit).filter((b) => b.phone || b.website);
 
-    // Get phone numbers for each business (requires Place Details API)
-    const enrichedBusinesses = await Promise.all(
-      businesses.map((biz) => enrichBusinessDetails(biz, apiKey))
-    );
-
-    // Filter out businesses without phone numbers (we can't call them)
-    const contactableBusinesses = enrichedBusinesses.filter((b) => b.phone || b.website);
-
-    log.info(
-      { domain, location, found: contactableBusinesses.length },
-      'Business discovery complete'
-    );
-
-    return contactableBusinesses;
+    log.info({ domain, location, found: contactable.length }, 'Business discovery complete');
+    return contactable;
   } catch (error) {
     log.error({ error: String(error), domain, location }, 'Failed to discover businesses');
-    return getMockBusinesses(domain, location, limit);
+    return [];
   }
 }
 
-/**
- * Geocode a location string to coordinates
- */
-async function geocodeLocation(
-  location: string,
-  apiKey: string
-): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const url = new URL('https://maps.googleapis.com/maps/api/geocode/json');
-    url.searchParams.set('address', location);
-    url.searchParams.set('key', apiKey);
-
-    const response = await fetch(url.toString());
-    const data = await response.json();
-
-    if (data.status === 'OK' && data.results.length > 0) {
-      return data.results[0].geometry.location;
-    }
-    return null;
-  } catch (error) {
-    log.error({ error: String(error), location }, 'Geocoding failed');
-    return null;
-  }
-}
-
-/**
- * Enrich a business with phone number and website from Place Details
- */
-async function enrichBusinessDetails(
-  business: DiscoveredBusiness,
-  apiKey: string
-): Promise<DiscoveredBusiness> {
-  try {
-    const url = new URL('https://maps.googleapis.com/maps/api/place/details/json');
-    url.searchParams.set('place_id', business.placeId);
-    url.searchParams.set('fields', 'formatted_phone_number,website,opening_hours');
-    url.searchParams.set('key', apiKey);
-
-    const response = await fetch(url.toString());
-    const data = await response.json();
-
-    if (data.status === 'OK' && data.result) {
-      return {
-        ...business,
-        phone: data.result.formatted_phone_number,
-        website: data.result.website,
-        businessHours: data.result.opening_hours?.weekday_text,
-      };
-    }
-    return business;
-  } catch (error) {
-    log.warn({ error: String(error), placeId: business.placeId }, 'Failed to enrich business');
-    return business;
-  }
+function toDiscoveredBusiness(place: PlaceNew): DiscoveredBusiness {
+  return {
+    placeId: place.id,
+    name: place.displayName?.text || '',
+    address: place.formattedAddress || '',
+    phone: place.nationalPhoneNumber,
+    website: place.websiteUri,
+    rating: place.rating,
+    userRatingsTotal: place.userRatingCount,
+    priceLevel: priceLevelToNumber(place.priceLevel),
+    types: place.types || [],
+    openNow: place.currentOpeningHours?.openNow,
+    businessHours: place.currentOpeningHours?.weekdayDescriptions,
+    location: place.location
+      ? { lat: place.location.latitude, lng: place.location.longitude }
+      : { lat: 0, lng: 0 },
+  };
 }
 
 /**
@@ -338,15 +263,17 @@ function getMockBusinesses(
   return (mockData[domain] || []).slice(0, limit);
 }
 
-// Google Places API response types
-interface GooglePlaceResult {
-  place_id: string;
-  name: string;
-  formatted_address: string;
+/** A Places API (New) place, limited to DISCOVERY_FIELD_MASK. */
+interface PlaceNew {
+  id: string;
+  displayName?: { text: string };
+  formattedAddress?: string;
+  location?: { latitude: number; longitude: number };
   rating?: number;
-  user_ratings_total?: number;
-  price_level?: number;
+  userRatingCount?: number;
+  priceLevel?: string;
   types?: string[];
-  opening_hours?: { open_now?: boolean; weekday_text?: string[] };
-  geometry?: { location: { lat: number; lng: number } };
+  currentOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[] };
+  nationalPhoneNumber?: string;
+  websiteUri?: string;
 }

@@ -68,6 +68,8 @@
 		C4909C595E333E8852DDFD7B /* SessionWindowAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187E97C616ED5CF9BB291723 /* SessionWindowAvatar.swift */; };
 		D0DE478E4FA67CA03902966A /* HandoffProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 981DBC4242D7E38D88F4C69B /* HandoffProtocolTests.swift */; };
 		B2D0FEED0000000000000106 /* MeetTheTeamTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D0FEED0000000000000006 /* MeetTheTeamTests.swift */; };
+		C3A6E5150000000000000101 /* AgentSignals.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A6E5150000000000000001 /* AgentSignals.swift */; };
+		C3A6E5150000000000000102 /* AgentProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A6E5150000000000000002 /* AgentProtocolTests.swift */; };
 		B2D0FEED0000000000000101 /* TeamUnlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D0FEED0000000000000001 /* TeamUnlockTests.swift */; };
 		A1C0FFEE0000000000000003 /* SubscriptionAccountTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */; };
 		D3C80696A4CDAD54CE9C0511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */; };
@@ -197,6 +199,8 @@
 		A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionAccountTokenTests.swift; sourceTree = "<group>"; };
 		B2D0FEED0000000000000001 /* TeamUnlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamUnlockTests.swift; sourceTree = "<group>"; };
 		B2D0FEED0000000000000006 /* MeetTheTeamTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetTheTeamTests.swift; sourceTree = "<group>"; };
+		C3A6E5150000000000000001 /* AgentSignals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSignals.swift; sourceTree = "<group>"; };
+		C3A6E5150000000000000002 /* AgentProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentProtocolTests.swift; sourceTree = "<group>"; };
 		98E497A52D1874327EA2C4E8 /* FerniWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchApp.swift; sourceTree = "<group>"; };
 		A621A2880FBC7F0E4BAE7443 /* E2EIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2EIntegrationTests.swift; sourceTree = "<group>"; };
 		A7209647670485E81A61C468 /* PersonaPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaPickerSheet.swift; sourceTree = "<group>"; };
@@ -461,6 +465,7 @@
 				A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */,
 				B2D0FEED0000000000000001 /* TeamUnlockTests.swift */,
 				B2D0FEED0000000000000006 /* MeetTheTeamTests.swift */,
+				C3A6E5150000000000000002 /* AgentProtocolTests.swift */,
 				9959BC2455D3EF9C77443775 /* TestHelpers */,
 			);
 			path = FerniVoiceiOSTests;
@@ -512,6 +517,7 @@
 				76626BFFF99251B574EA46E0 /* HealthKitService.swift */,
 				A943E77BFDBA802900FA6014 /* HomeKitService.swift */,
 				FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */,
+				C3A6E5150000000000000001 /* AgentSignals.swift */,
 				1A9E71C3A7CB1F6BB57DC8E8 /* KeychainManager.swift */,
 				F20933E62906112CEBE251D0 /* LocationService.swift */,
 				A87A7C7C965C1033A85462E9 /* MusicKitService.swift */,
@@ -770,6 +776,7 @@
 				A1C0FFEE0000000000000003 /* SubscriptionAccountTokenTests.swift in Sources */,
 				B2D0FEED0000000000000101 /* TeamUnlockTests.swift in Sources */,
 				B2D0FEED0000000000000106 /* MeetTheTeamTests.swift in Sources */,
+				C3A6E5150000000000000102 /* AgentProtocolTests.swift in Sources */,
 				5C05BE8159C8AD8A815C7B68 /* MockDataChannel.swift in Sources */,
 				C3B0D026C4877C0FB9EEA0CA /* MockNetworking.swift in Sources */,
 			);
@@ -815,6 +822,7 @@
 				35C03580BC88E4E8D27539EB /* HealthKitService.swift in Sources */,
 				087EA07EC8A40E2707A1D567 /* HomeKitService.swift in Sources */,
 				81DD38671F19B6737A0B0324 /* IOSLiveKitSession.swift in Sources */,
+				C3A6E5150000000000000101 /* AgentSignals.swift in Sources */,
 				07A0DCA13A93E6271232535C /* KeychainManager.swift in Sources */,
 				1CDCF6AEA8221C5C3BA32246 /* LocationService.swift in Sources */,
 				C340251A1D014037CC241AE5 /* MusicKitService.swift in Sources */,
@@ -1339,7 +1347,7 @@
 			repositoryURL = "https://github.com/livekit/client-sdk-swift";
 			requirement = {
 				kind = exactVersion;
-				version = 2.11.0;
+				version = 2.12.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

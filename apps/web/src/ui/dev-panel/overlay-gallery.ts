@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { captionHeardListening, captionHeardReply } from './overlay-gallery-captions.js';
 
 const log = createLogger('OverlayGallery');
 
@@ -314,6 +315,8 @@ export const SCENES: Readonly<Record<string, Scene>> = {
   'caption-moments': captionMoments,
   // The captions scene with the captions-breath flag on (set by the spec).
   'caption-breath': captions,
+  'caption-heard': captionHeardListening,
+  'caption-heard-reply': captionHeardReply,
 };
 
 // Probe: measurements of every visible fixed overlay, for the screenshot report.

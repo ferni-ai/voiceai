@@ -97,7 +97,7 @@ describe('on-behalf call', () => {
 
     expect(createSipParticipant).not.toHaveBeenCalled();
     expect(reply).toBe(
-      "It's not a good hour to call Dad right now, so I'll call tomorrow at 9:00 AM their time to wish him happy birthday."
+      "Nothing was dialed yet: it's not a good hour to call Dad, so I'll call tomorrow at 9:00 AM their time to wish him happy birthday."
     );
     expect(deferred()).toHaveLength(1);
     expect(deferred()[0].data).toMatchObject({
@@ -117,6 +117,22 @@ describe('on-behalf call', () => {
     expect(createSipParticipant).toHaveBeenCalledTimes(1);
     expect(createSipParticipant.mock.calls[0]).toContain('+12135550100');
     expect(deferred()[0].data.status).toBe('placed');
+  });
+
+  it('picked up after hours: held again for the next 9:00 and marked rescheduled, never placed', async () => {
+    vi.setSystemTime(ELEVEN_PM_LA);
+    await callDad();
+    // The job only reached it the next evening, at 21:00 their time (still outside their hours).
+    vi.setSystemTime(new Date('2026-10-15T04:00:00Z'));
+    expect(await executeDueDeferredCalls()).toMatchObject({ due: 1, placed: 0, rescheduled: 1 });
+    expect(createSipParticipant).not.toHaveBeenCalled();
+    const [first, again] = deferred();
+    expect(first.data.status).toBe('rescheduled');
+    expect(again.data).toMatchObject({
+      status: 'pending',
+      scheduledFor: '2026-10-15T16:00:00.000Z',
+    });
+    expect(first.data.rescheduledAs).toBe(again.id);
   });
 
   it('at 10am the recipient’s time: calls now', async () => {

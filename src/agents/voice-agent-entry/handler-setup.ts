@@ -22,6 +22,7 @@ import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
+import { callerChecks } from './caller-recognition.js';
 import { setupFrontendPublisher } from './handler-frontend-publisher.js';
 
 /** Inputs for handler setup */
@@ -183,7 +184,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     const { unregisterSession } = await import('../shared/crash-analytics.js');
     const multiAgentModeResult = await runMultiAgentMode({
       ctx, room: ctx.room!, participant, sessionPersona, services, userData, sessionId, userId: userId ?? undefined,
-      unregisterSession,
+      unregisterSession, callerChecks,
     });
     if (multiAgentModeResult.activated) {
       // Return a sentinel — caller should check and return early
@@ -522,9 +523,8 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     process.stderr.write(`[voice-agent-entry] Cameo handlers failed (non-fatal): ${cameoErr}\n`);
   }
 
-  // Data channel handler
   const dataChannelResult = setupDataChannelHandler({
-    room: ctx.room, ctx, session, services, sessionPersona, userId: userId ?? undefined, sessionId, voiceAgentRef,
+    room: ctx.room, ctx, session, services, sessionPersona, userId: userId ?? undefined, sessionId, voiceAgentRef, callerChecks,
     tts: session.tts as { switchVoice?: (name: string, voiceId: string, accent?: string) => void },
   });
   cleanupHandlers.push(dataChannelResult.cleanup);
