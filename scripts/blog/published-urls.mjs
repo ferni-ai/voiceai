@@ -1,12 +1,8 @@
 /**
- * Where a blog post file is published. Plain Node (no dependencies) so the
- * publish check (blog-publish-check.yml) runs it without installing anything.
- *
- * Both sites' src/blog/blog.json set `permalink: /blog/{{ page.fileSlug }}/`,
- * and both firebase.json files set `trailingSlash: false`, so Firebase serves
- * the post at /blog/<fileSlug> (the slash form 301s there). A post's own
- * `permalink:` front matter overrides that; `permalink: false` means it isn't
- * written at all.
+ * Where a blog post file is published (plain Node, for blog-publish-check.yml).
+ * Both sites' blog.json set `permalink: /blog/{{ page.fileSlug }}/` and both
+ * firebase.json set `trailingSlash: false`, so a post lives at /blog/<fileSlug>
+ * unless its own `permalink:` says otherwise (`false`: not written).
  */
 
 import * as fs from 'node:fs';

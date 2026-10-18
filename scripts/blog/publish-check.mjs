@@ -1,17 +1,10 @@
 #!/usr/bin/env node
 /**
- * The publish check behind blog-publish-check.yml. Plain Node, no install.
- *
- *   node scripts/blog/publish-check.mjs urls --site ferni --files changed.txt --out posts.json
- *     Maps changed files to the posts they publish (published-urls.mjs).
- *   node scripts/blog/publish-check.mjs verify --posts posts.json [--out results.json] [--timeout 300]
- *     Waits for each post's URL to return 200 with the post title in the page,
- *     and writes each post with ok/why. Exits 1 if any isn't live by the timeout.
- *   node scripts/blog/publish-check.mjs indexnow --site ferni --posts posts.json
- *     Submits the URLs to IndexNow (Bing, Yandex and the other engines that
- *     share it) once the site serves its key file. Exits 1 if that fails.
+ * The publish check behind blog-publish-check.yml (plain Node, no install):
+ *   urls --site <id> --files <list> --out <posts.json>   changed files -> posts and URLs
+ *   verify --posts <posts.json> [--out <results.json>]   200 + title within --timeout, else exit 1
+ *   indexnow --site <id> --posts <posts.json>            submit the URLs, else exit 1
  */
-
 import * as fs from 'node:fs';
 import { parseArgs } from 'node:util';
 import { SITES, pageShowsPost, postsFor } from './published-urls.mjs';

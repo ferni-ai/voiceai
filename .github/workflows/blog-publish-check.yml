@@ -1,21 +1,11 @@
 name: Blog Publish Check
 
-# After a site deploy, proves that every blog post it published is live, then
-# tells search engines. Blog posts publish with no person watching, so a post
-# that merged but never went live has to fail loudly.
-#
-# For each run of Deploy Firebase Hosting (ferni.ai) or Deploy Developers
-# Portal (developers.ferni.ai) on main:
-# 1. Find the blog post files changed since that workflow's last successful
-#    run, so posts in a run the concurrency group cancelled are still checked.
-# 2. Map each to its URL (scripts/blog/published-urls.mjs) and wait up to 5
-#    minutes for it to return 200 with the post's title on the page (the sites
-#    serve their 404 page with 200, so the status alone proves nothing).
-# 3. Not live: the job fails and opens (or comments on) an issue labelled
-#    blog-publish-failed, one per post URL. Live: closes that post's open issue.
-# 4. All live: submits the URLs to IndexNow (Bing, Yandex and the engines that
-#    share it) with the key each site serves at /indexnow-key.txt. Google no
-#    longer takes sitemap pings; it reads the sitemaps.
+# After each deploy of ferni.ai or developers.ferni.ai on main: the blog posts
+# changed since that workflow's last successful run must return 200 with their
+# title on the page within 5 minutes (both sites serve their 404 page with 200).
+# A post that isn't live fails the job and opens an issue labelled
+# blog-publish-failed (closed by a later check that finds it live). Once all
+# are live, their URLs go to IndexNow; Google no longer takes sitemap pings.
 
 on:
   workflow_run:
@@ -82,8 +72,7 @@ jobs:
           if [ -z "$base" ]; then
             base=$(gh api "repos/$REPO/commits/$HEAD_SHA" --jq '.parents[0].sha')
           fi
-          # A post changed if its blob differs from (or is missing at) the base.
-          # The folder listing, not the compare API, which stops at 300 files.
+          # Blob listing, not the compare API, which stops at 300 files.
           list() {
             gh api "repos/$REPO/contents/${folder%/}?ref=$1" \
               --jq '.[] | select(.type == "file") | "\(.path) \(.sha)"' | sort
@@ -104,8 +93,6 @@ jobs:
           node scripts/blog/publish-check.mjs verify --posts "$RUNNER_TEMP/posts.json" \
             --out "$RUNNER_TEMP/results.json" --timeout 300 --interval 15
 
-      # One open issue per post URL: a later failure comments on it, a later
-      # success closes it.
       - name: Open or close blog-publish-failed issues
         if: always() && steps.posts.outcome == 'success' && steps.posts.outputs.count != '0'
         env:
