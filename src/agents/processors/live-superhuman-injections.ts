@@ -18,6 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { heldAfter } from '../../utils/minor-care.js';
 import type { ContextInjection, EmotionalState } from './types.js';
 import type { SessionServices } from '../../services/types.js';
 // UserData type available if needed for future enhancements
@@ -551,13 +552,9 @@ Human friends forget promises. You don't.`,
           priority: 73,
         });
 
-        // Fire-and-forget: Save to commitment keeper (original path)
-        void saveCommitmentAsync(
-          ctx.userId,
-          commitment.type!,
-          commitment.phrase!,
-          ctx.currentTopic
-        );
+        // Fire-and-forget: Save to commitment keeper (original path); MINOR_CARE=on holds it
+        if (!heldAfter(ctx.sessionId, ctx.userText))
+          void saveCommitmentAsync(ctx.userId, commitment.type!, commitment.phrase!, ctx.currentTopic);
       }
     }
 
@@ -1041,15 +1038,14 @@ async function saveCommitmentAsync(
 }
 
 /**
- * Load Commitment E2E detection (Phase 13)
- * Enhanced commitment detection with conversation context and memory linking
+ * Load Commitment E2E detection (Phase 13): with conversation context and memory linking.
  */
 async function loadCommitmentE2EAsync(
   ctx: LiveSuperhumanContext
 ): Promise<CommitmentE2EResult | null> {
   try {
-    const { detectCommitmentE2E } =
-      await import('../../services/superhuman/commitment-keeper-e2e.js');
+    if (heldAfter(ctx.sessionId, ctx.userText)) return null; // MINOR_CARE=on: it stores (minor-care.ts)
+    const { detectCommitmentE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
 
     const result = await detectCommitmentE2E({
       userId: ctx.userId,

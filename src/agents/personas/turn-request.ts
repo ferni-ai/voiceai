@@ -12,6 +12,7 @@ import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { heldAfter, minorCareNote } from '../../utils/minor-care.js';
 import {
   phoneOnlyIdentity,
   sessionIsVerifiedOwner,
@@ -156,6 +157,10 @@ export function withTurnReminder(
     state.note,
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     porchLightNote(chatCtx, session, { careful: options.shape === false }),
+    // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts); none with crisis guidance.
+    minorCareNote(sessionIdOf((session as { userData?: unknown }).userData), words, {
+      careful: options.shape === false,
+    }),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
       said: words,
@@ -429,9 +434,11 @@ export async function toolsForTurn(
 ): Promise<llm.ToolContext> {
   if (staticCoreToolsEnabled()) withPinnedTools(toolCtx, state.agent);
   const view = unlockViewFor(session.userData);
-  const allowed = phoneOnlyIdentity(sessionIdOf(session.userData))
-    ? await withoutAccountTools(toolCtx, state)
-    : toolCtx;
+  const sessionId = sessionIdOf(session.userData);
+  // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores anything.
+  const held = heldAfter(sessionId, callerWords(chatCtx));
+  const allowed =
+    phoneOnlyIdentity(sessionId) || held ? await withoutAccountTools(toolCtx, state) : toolCtx;
   const unlocked = await withoutLockedHandoffs(allowed, view).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
     return allowed;

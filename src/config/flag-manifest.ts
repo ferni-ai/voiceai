@@ -229,6 +229,8 @@ export const FLAG_MANIFEST = {
   // (patches/@livekit__agents@1.9.3.patch), and save tools refuse them (tools/utils/own-note.ts)
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
+  // on: a caller who says they're under 18 (and isn't a verified owner): nothing personal stored, a care note (minor-care.ts)
+  MINOR_CARE: { default: 'off', owner: 'memory', kind: 'experiment' },
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
