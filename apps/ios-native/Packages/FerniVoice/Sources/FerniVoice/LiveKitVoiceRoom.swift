@@ -24,8 +24,10 @@ public final class LiveKitVoiceRoom: NSObject, VoiceRoom, RoomDelegate, @uncheck
         try await room.registerTextStreamHandler(for: Self.transcriptionTopic) { [weak self] reader, sender in
             guard let self else { return }
             let attributes = reader.info.attributes
-            let speaker: CaptionChunk.Speaker =
-                sender == self.room.localParticipant.identity ? .you : .ferni
+            let agents = Set(self.room.remoteParticipants.values.filter(\.isAgent).compactMap(\.identity?.stringValue))
+            guard let speaker = Self.captionSpeaker(
+                sender: sender.stringValue, local: self.room.localParticipant.identity?.stringValue, agents: agents
+            ) else { return } // only Ferni's words, or ours as Ferni heard them
             let segmentID = attributes["lk.segment_id"] ?? reader.info.id
             let isFinal = attributes["lk.transcription_final"] == "true"
             for try await text in reader {
@@ -76,7 +78,18 @@ public final class LiveKitVoiceRoom: NSObject, VoiceRoom, RoomDelegate, @uncheck
         _ room: Room, participant: RemoteParticipant?, didReceiveData data: Data,
         forTopic topic: String, encryptionType: EncryptionType
     ) {
+        guard Self.trustsData(fromAgent: participant?.isAgent) else { return }
         continuation.yield(.data(data))
+    }
+
+    /// Data messages steer the call (speech state, expressions): only the agent may send them.
+    static func trustsData(fromAgent isAgent: Bool?) -> Bool { isAgent == true }
+
+    /// Whose caption a transcript stream is: ours (the agent sends our words under our
+    /// identity), Ferni's (an agent participant), or nobody's (anyone else: ignored).
+    static func captionSpeaker(sender: String, local: String?, agents: Set<String>) -> CaptionChunk.Speaker? {
+        if sender == local { return .you }
+        return agents.contains(sender) ? .ferni : nil
     }
 
     public func room(_ room: Room, didStartReconnectWithMode reconnectMode: ReconnectMode) {
