@@ -130,18 +130,27 @@ users.
 
 ### Switch on
 
-**(e) Set the provider.** The production workflow sets these env vars on
-`john-bogle-ui` from repository variables, with defaults that keep SendGrid:
+**(e) Set the provider. This is a follow-up PR, not done yet.** The production
+workflow's `--set-env-vars` replaces the service's env on every deploy, so
+`EMAIL_*` must be set there. A value set by hand on Cloud Run is gone after
+the next main push. The CLI's `deploy.ts` no longer deploys the web server
+itself (#1835). Its `ui` target runs this same workflow, so one edit covers
+both deploy paths.
+
+Three open flag PRs (#1774, #1696 and the web-cohort-flags branch) edit that
+same line, so the email vars wait until they land. The follow-up appends these
+to the `john-bogle-ui` `--set-env-vars` list in
+`.github/workflows/deploy-production.yml`. It also adds an assertion for them
+in `src/tests/deploy/ui-server-flags.test.ts`.
 
 ```
-EMAIL_PROVIDER=${{ vars.EMAIL_PROVIDER || 'sendgrid' }}
-EMAIL_FROM=${{ vars.EMAIL_FROM || 'hello@ferni.ai' }}
-EMAIL_MAILBOX=${{ vars.EMAIL_MAILBOX || vars.EMAIL_FROM || 'hello@ferni.ai' }}
+::EMAIL_PROVIDER=${{ vars.EMAIL_PROVIDER || 'sendgrid' }}
+::EMAIL_FROM=${{ vars.EMAIL_FROM || 'hello@ferni.ai' }}
+::EMAIL_MAILBOX=${{ vars.EMAIL_MAILBOX || vars.EMAIL_FROM || 'hello@ferni.ai' }}
 ```
 
-The CLI's `deploy.ts` no longer deploys the web server itself (#1835). Its
-`ui` target runs this same workflow, so these variables cover both deploy
-paths. After (a) to (d):
+The values come from repository variables, and the defaults keep SendGrid, so
+that PR is safe to merge at any time. After (a) to (d) and that PR:
 
 ```bash
 gh variable set EMAIL_PROVIDER --body gmail
