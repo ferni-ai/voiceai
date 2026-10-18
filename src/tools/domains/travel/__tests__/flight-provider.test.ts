@@ -149,8 +149,16 @@ describe('findAirportCode', () => {
     expect(findAirportCode('Paris, Texas')).toBeNull();
   });
 
-  it('asks for any comma-qualified place, so "Paris, France" is asked too', () => {
-    expect(findAirportCode('Paris, France')).toBeNull();
+  it('resolves a city with its own state or country as the qualifier', () => {
+    expect(findAirportCode('New York, NY')).toBe('JFK');
+    expect(findAirportCode('Boston, MA')).toBe('BOS');
+    expect(findAirportCode('London, UK')).toBe('LHR');
+    expect(findAirportCode('Paris, France')).toBe('CDG');
+  });
+
+  it('asks about a qualifier that does not match the city', () => {
+    expect(findAirportCode('Paris, Texas')).toBeNull();
+    expect(findAirportCode('Boston, UK')).toBeNull();
   });
 
   it('asks for a place it does not know', () => {
