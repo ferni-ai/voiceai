@@ -9479,7 +9479,9 @@
     "dreamMeta": {
       "one": "Mentioned {count} time · {type}",
       "other": "Mentioned {count} times · {type}"
-    }
+    },
+    "errorTitle": "I couldn't gather our year just now",
+    "errorBody": "That's on my side, not yours. Give it another try in a moment."
   },
   "geolocation": {
     "prompts": {
@@ -9696,9 +9698,9 @@
       "encouragement": "The most meaningful insights emerge over time."
     },
     "yourYear": {
-      "headline": "A year of growth awaits",
-      "description": "This space will show your journey over time - streaks, milestones, and memories.",
-      "encouragement": "Start your first conversation to begin tracking your year."
+      "headline": "Our year is just beginning",
+      "description": "As we talk, this fills with the moments we share: streaks, milestones and the things that mattered to you.",
+      "encouragement": "Come say hi whenever you're ready. I'll be here."
     },
     "conversationHistory": {
       "headline": "Ready when you are",

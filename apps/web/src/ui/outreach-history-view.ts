@@ -95,7 +95,7 @@ export function showLoadProblem(
     <div class="outreach-schedule-empty" role="alert">
       <div class="outreach-schedule-empty-text">${copy[0]}</div>
       ${copy[1] ? `<div class="outreach-schedule-empty-subtext">${copy[1]}</div>` : ''}
-      ${copy[2] ? `<button class="outreach-item-btn" data-load-action>${copy[2]}</button>` : ''}
+      ${copy[2] ? `<button class="outreach-item-btn outreach-item-btn--preview outreach-schedule-empty-action" data-load-action>${copy[2]}</button>` : ''}
     </div>`;
   content.querySelector('[data-load-action]')?.addEventListener('click', () => {
     if (kind === 'error') return retry();
