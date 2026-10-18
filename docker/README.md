@@ -101,10 +101,10 @@ PERSONA_ID=ferni
 
 Get dev credentials from: https://cloud.livekit.io/projects/p_1gcwootg9al/settings/keys
 
-### Production (GCE)
+### Production (LiveKit Cloud)
 
-Production credentials are stored in **Google Cloud Secret Manager** and injected at runtime.
-The deploy script (`ferni deploy gce`) handles this automatically.
+Production credentials are stored in **Google Cloud Secret Manager** and set on the
+LiveKit Cloud agent with `lk agent update-secrets` (see `.claude/skills/deploy-agent/SKILL.md`).
 
 ```bash
 # Production uses these (from Secret Manager):

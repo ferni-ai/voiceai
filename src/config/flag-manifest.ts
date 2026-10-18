@@ -177,6 +177,8 @@ export const FLAG_MANIFEST = {
   GTM_REQUIRE_APPROVAL: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   HANDOFF_ARRIVAL_CONTEXT: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   HANDOFF_ASK_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // the first handoff's goodbye plays and its teammate arrives once (missed-greeting-end.ts)
+  HANDOFF_FIRST_FIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a handed-to persona gets the first agent's essential tool set, not Tier 0 (essential-tool-set.ts)
   HANDOFF_FULL_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
   // the caller can talk through a handoff goodbye (handoff-talk-through.ts)
@@ -310,6 +312,8 @@ export const FLAG_MANIFEST = {
   // once the caller said bye, Ferni's goodbye is one or two short sentences (short-goodbye.ts)
   SHORT_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a call with no caller turn is not counted in the profile (services/session/silent-call.ts)
+  SILENT_CALL_SKIP_PROFILE: { default: 'off', owner: 'memory', kind: 'experiment' },
   SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
   SKIP_GEMINI_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
@@ -371,6 +375,8 @@ export const FLAG_MANIFEST = {
   TTS_PROVIDER: { default: 'cartesia', owner: 'voice', kind: 'config' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // troubles talk: no shift to his own life during a trouble, replies no longer than what they told (troubles-talk.ts)
+  TROUBLES_TALK: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a mode: off | cloud | local (turn-patience.ts)
   TURN_DETECTOR: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_DETECTOR_SOLE: { default: 'off', owner: 'voice', kind: 'experiment' },

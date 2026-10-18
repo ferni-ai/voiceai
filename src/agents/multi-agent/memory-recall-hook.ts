@@ -54,6 +54,7 @@ import {
   type LedgerFact,
   type LedgerStore,
 } from '../personas/life-ledger.js';
+import { quietLedger } from '../personas/quiet-ledger.js';
 import { loadCanon, selfRecallEnabled, selfRecallNote } from '../personas/self-recall.js';
 import { datesRecallFor, type DatesRecall } from '../../intelligence/world-model/dates/recall.js';
 import {
@@ -392,7 +393,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         ? !toldOffered &&
           (ASKS_ABOUT_YOU.test(text) || threadsForTurn([ledgerFacts], text, callerTurn).length > 0)
         : !followUpsOffered;
-      const told = tellNow ? [ledgerNote, sinceNote].filter(Boolean).join('\n') || null : null;
+      const told = tellNow
+        ? [quietLedger(ledgerNote, text), sinceNote].filter(Boolean).join('\n') || null
+        : null;
       // Who is who (RECALL_PEOPLE, or the world note's), once, with the first note.
       const people = world.whoIsWho(snapshot.facts, deps.people);
       // What the two of them both know (COMMON_GROUND), once, with the first note.
@@ -437,7 +440,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
             told,
             groundNow,
             extraTold.length > 0
-              ? formatLedger(extraTold, deps.userName, Date.now(), { bridge })
+              ? quietLedger(formatLedger(extraTold, deps.userName, Date.now(), { bridge }), text)
               : null,
             episode,
             self,

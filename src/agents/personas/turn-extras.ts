@@ -111,6 +111,8 @@ export interface TurnSignals {
   quiet?: boolean;
   /** FERNI_PLAYFUL=on and Ferni speaking (ferni-playful.ts). */
   playful?: boolean;
+  /** TROUBLES_TALK=on: a trouble on this turn or just before it (troubles-talk.ts); unset when off. */
+  trouble?: boolean;
 }
 
 /** The model's understanding as signals. */
@@ -174,7 +176,8 @@ export function extrasFor(
   const out: Extras = { lines: [], fired: [] };
   // "lol my grandma passed" laughed, and is no moment to laugh along.
   const heavy = signals.heavy === true || isHeavyMoment([userText]);
-  if (on(env, 'LAUGH_ALONG') && signals.laughed && !heavy) {
+  // TROUBLES_TALK=on: not while they tell a trouble; a listener doesn't laugh at it (Jefferson).
+  if (on(env, 'LAUGH_ALONG') && signals.laughed && !heavy && !signals.trouble) {
     out.lines.push(LAUGH_ALONG);
     out.fired.push('laugh_along');
   }
@@ -210,6 +213,7 @@ export function extrasFor(
   if (
     on(env, 'ASK_ADVICE') &&
     !venting &&
+    !signals.trouble &&
     // Live, "keep an eye on the time for me" got the timer plus a musing about
     // his basil: a request wants the thing done, not his dilemma.
     signals.adviceFits &&
@@ -240,6 +244,7 @@ export function extrasFor(
       signals.laughFits &&
       !venting &&
       !heavy &&
+      !signals.trouble &&
       !signals.laughed &&
       shape !== 'full' &&
       rng() < scaled(0.5, style.laugh)

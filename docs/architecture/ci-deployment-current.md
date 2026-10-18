@@ -35,7 +35,6 @@ flowchart TB
     end
 
     subgraph "Deploy Pipeline"
-        deploy_gce[Deploy to GCE]
         deploy_firebase[Deploy to Firebase]
         health[Health Check]
         promote[Promote Traffic]
@@ -47,11 +46,19 @@ flowchart TB
     setup --> lint & unit & integration & agi & security & quality & gates & validation & frontend & deps
     lint & unit & integration & agi --> build
     build --> artifacts
-    artifacts --> deploy_gce & deploy_firebase
-    deploy_gce --> health
+    artifacts --> deploy_firebase
     deploy_firebase --> health
     health --> promote
+    manual --> deploy_agent[Voice agent: lk agent deploy to LiveKit Cloud]
 ```
+
+The voice agent is not deployed by CI. It runs on LiveKit Cloud (dev
+`ferni-dev`, prod `ferni-prod`) and is deployed, rolled back and configured by
+hand with `lk`, through the gated chain in `.claude/skills/deploy-agent/SKILL.md`
+(rooms=0 first). The old GCE VM path (`deploy-gce.yml`, `cloudbuild-gce.yaml`,
+`ferni deploy gce`, VM `voiceai-agent-gce`) was retired on 2026-10-18.
+`error-alerting.yml` watches the agent's errors in Cloud Logging
+(`logs/cloud-agents`, pino level >= 50).
 
 ## Component Details
 
@@ -95,7 +102,6 @@ flowchart LR
     subgraph "Primary Workflows"
         ci[ci.yml]
         deploy_prod[deploy-production.yml]
-        deploy_gce[deploy-gce.yml]
     end
 
     subgraph "Quality Workflows"
@@ -129,8 +135,7 @@ flowchart LR
 
 | Workflow | Runner | Reason |
 |----------|--------|--------|
-| ci.yml | self-hosted (GCE) | Fast, no queue |
-| deploy-gce.yml | self-hosted (GCE) | Direct VM access |
+| ci.yml | self-hosted runner VM when `CI_RUNNER` is set, else hosted | Fast, no queue |
 | Others | ubuntu-latest | Simple, reliable |
 
 ## Secrets Used
@@ -140,7 +145,7 @@ flowchart LR
 | GITHUB_TOKEN | All |
 | CODECOV_TOKEN | ci.yml |
 | GCP_SA_KEY | deploy-*.yml |
-| LIVEKIT_* | ci.yml, deploy-gce.yml |
+| LIVEKIT_* | ci.yml |
 | SLACK_WEBHOOK_URL | ci-metrics.yml, bth-benchmarks.yml |
 
 ## Optimization Summary

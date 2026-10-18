@@ -61,8 +61,7 @@ apps/cli/
 │       │   ├── build-bundle.ts     # Bundle for deploy
 │       │   └── bundle-agent.ts     # Bundle agent
 │       ├── deploy/                 # Deployment
-│       │   ├── deploy.ts           # Main deploy command
-│       │   ├── deploy-gce.ts       # GCE deployment
+│       │   ├── deploy.ts           # Main deploy command (UI; agent deploy refuses, see below)
 │       │   └── rollout.ts          # Rolling updates
 │       ├── experiments/            # A/B Testing & Experiments (NEW!)
 │       │   ├── index.ts            # Module exports
@@ -72,7 +71,6 @@ apps/cli/
 │       │   └── *.ts                # Various generators
 │       ├── jobs/                   # Background jobs
 │       ├── ops/                    # Operations
-│       │   ├── cleanup-gce.ts      # Disk cleanup
 │       │   └── cleanup-zombies.ts  # Zombie revision cleanup
 │       ├── runner/                 # GitHub Actions Runner
 │       │   ├── runner.ts           # Main command entry
@@ -170,15 +168,6 @@ ferni tokens watch
 ### Operations
 
 ```bash
-# Check disk usage on GCE
-ferni disk
-
-# Clean up disk space
-ferni disk clean
-
-# Aggressive cleanup
-ferni disk clean --aggressive
-
 # Check for zombie revisions
 ferni ops zombies
 
@@ -474,26 +463,13 @@ registerMyCommand(program);
 
 ## Deploy Command Details
 
-### GCE Deployment (`deploy gce`)
+### Voice agent (LiveKit Cloud)
 
-Uses blue-green deployment on single VM:
-
-1. Build Docker image (Cloud Build or local)
-2. SSH to GCE VM
-3. Pull new image
-4. Start green container on alternate port
-5. Health check green
-6. Stop blue, promote green
-
-### GCE MIG Deployment (`deploy gce --mig`)
-
-Uses managed instance group with rolling updates:
-
-1. Build Docker image
-2. Create new instance template
-3. Trigger rolling update
-4. Wait for all instances healthy
-5. Clean up old templates
+The voice agent runs on LiveKit Cloud (dev `ferni-dev`, prod `ferni-prod`).
+The CLI's agent deploy, restart and rollback refuse (#1730); use the gated
+chain in `.claude/skills/deploy-agent/SKILL.md` (`lk agent deploy|versions|rollback`
+with absolute `--config` paths, rooms=0 first). The old GCE VM path
+(`deploy gce`, `cloudbuild-gce.yaml`, `deploy-gce.yml`) is retired.
 
 ### Cloud Run Deployment (`deploy ui`)
 
@@ -513,8 +489,6 @@ Uses Cloud Run with traffic shifting:
 |----------|-------------|
 | `GCP_PROJECT_ID` | GCP project (default: johnb-2025) |
 | `GCP_REGION` | GCP region (default: us-central1) |
-| `GCE_INSTANCE` | GCE instance name |
-| `GCE_IP` | GCE static IP |
 
 ---
 

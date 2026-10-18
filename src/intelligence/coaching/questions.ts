@@ -210,14 +210,14 @@ const ANTICIPATORY_TEMPLATES: AnticipatedNeed[] = [
     signal: 'Voice dropped or slowed',
     anticipated: 'Entering emotional territory',
     checkQuestion: 'You sound different than you did a minute ago. What shifted?',
-    ifConfirmed: 'Slow down, hold space',
+    ifConfirmed: 'Slow down, stay with them',
     ifDenied: 'Trust their read, stay present',
   },
   {
     signal: 'Short answers after longer ones',
     anticipated: 'Pulling back or tired',
     checkQuestion: "I notice you're being more brief. Should we pause here?",
-    ifConfirmed: 'Offer to hold space or end',
+    ifConfirmed: 'Ask if they want to keep going or stop',
     ifDenied: 'Check if something specific',
   },
   {
