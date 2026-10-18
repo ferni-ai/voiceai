@@ -144,8 +144,8 @@ export function withTurnReminder(
     worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
-    // "Naya" in the transcript is Nayan (teammate-names.ts)
-    heardTeammateNote(words),
+    // "Naya" in the transcript is Nayan (teammate-names.ts); no "9 may be Nayan" with crisis guidance
+    heardTeammateNote(words, options.shape !== false),
     notes,
     corrected,
     // The caller said yes to a read-back: the call or text goes only when the tool is called now.

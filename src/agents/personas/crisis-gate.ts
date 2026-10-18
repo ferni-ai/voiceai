@@ -356,7 +356,7 @@ export async function gatedReply(
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => turnOpenedSince(session, askedAt);
   const gate = startCrisisGate(chatCtx, session.userData, options);
-  signalCrisisDecision(session, gate?.decision.action);
+  signalCrisisDecision(session, gate?.decision.action ?? 'pass'); // 'pass' clears the turn's mark
   gate?.escalation
     ?.then((decision) => signalCrisisDecision(session, decision?.action))
     .catch(() => undefined);

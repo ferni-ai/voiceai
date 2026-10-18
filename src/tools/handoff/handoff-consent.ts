@@ -22,6 +22,7 @@
 
 import type { llm } from '@livekit/agents';
 import { latestUserText } from '../retrieval/turn-tool-retrieval.js';
+import { aliasesInTransfer, crisisGuidedTurn } from '../../utils/transfer-aliases.js';
 import { misheardTeammates, teammateHeardAs } from './teammate-names.js';
 
 export function handoffAskFirstEnabled(
@@ -37,16 +38,20 @@ const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /**
  * Whether `text` names the teammate: any part of their name as a whole word
  * ("Johnny" does not name John), or a spelling speech-to-text writes for them
- * ("Can I talk to Naya?" is Nayan; see teammate-names.ts).
+ * ("Can I talk to Naya?" is Nayan; see teammate-names.ts). With `aliases`, an
+ * ordinary word that is the target of a transfer too ("talk to 9" may be
+ * Nayan; utils/transfer-aliases.ts, TRANSFER_NAME_ALIASES).
  */
-function names(text: string, agentName: string): boolean {
+function names(text: string, agentName: string, aliases = false): boolean {
   const byName = agentName
     .split(/\s+/)
     .filter((w) => w.length >= 3)
     .some((w) => new RegExp(`\\b${escape(w)}\\b`, 'i').test(text));
   if (byName) return true;
   const target = teammateHeardAs(agentName.split(/\s+/)[0] ?? '');
-  return target !== null && misheardTeammates(text).some((m) => m.id === target);
+  if (target === null) return false;
+  const heard = [...misheardTeammates(text), ...(aliases ? aliasesInTransfer(text) : [])];
+  return heard.some((m) => m.id === target);
 }
 
 /**
@@ -73,10 +78,18 @@ function previousAgentText(chatCtx: llm.ChatContext): string {
   return '';
 }
 
-/** Whether the caller asked to talk to `agentName`, said yes to an offer of them, or neither. */
-export function handoffConsent(chatCtx: llm.ChatContext, agentName: string): HandoffConsent {
+/**
+ * Whether the caller asked to talk to `agentName`, said yes to an offer of them,
+ * or neither. `aliases`: a transfer-only alias ("talk to 9") may count; never on
+ * a turn with crisis handling.
+ */
+export function handoffConsent(
+  chatCtx: llm.ChatContext,
+  agentName: string,
+  aliases = false
+): HandoffConsent {
   const said = latestUserText(chatCtx) ?? '';
-  if (names(said, agentName) || ASKS_FOR_SOMEONE.test(said)) return 'asked';
+  if (names(said, agentName, aliases) || ASKS_FOR_SOMEONE.test(said)) return 'asked';
   if (YES.test(said) && !NO.test(said) && names(previousAgentText(chatCtx), agentName)) {
     return 'agreed';
   }
@@ -118,5 +131,7 @@ export function holdUnaskedHandoff(
 ): ReturnType<typeof heldHandoff> | null {
   const chatCtx = historyOf(runCtx);
   if (!handoffAskFirstEnabled(env) || toCoordinator || !chatCtx) return null;
-  return handoffConsent(chatCtx, agentName) === 'none' ? heldHandoff(agentName) : null;
+  // A transfer-only alias counts only on a turn the crisis gate passed (utils/transfer-aliases.ts).
+  const aliases = !crisisGuidedTurn((runCtx as { userData?: unknown } | undefined)?.userData);
+  return handoffConsent(chatCtx, agentName, aliases) === 'none' ? heldHandoff(agentName) : null;
 }
