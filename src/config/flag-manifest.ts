@@ -15,67 +15,18 @@
  * @module config/flag-manifest
  */
 
-export const FLAG_OWNERS = [
-  'voice',
-  'tools',
-  'memory',
-  'intelligence',
-  'outreach',
-  'billing',
-  'platform',
-] as const;
-export const FLAG_KINDS = ['experiment', 'kill-switch', 'config'] as const;
+import {
+  FLAG_KINDS,
+  FLAG_OWNERS,
+  FLAGS_ACTION_TO_BYPASS,
+  FLAGS_MOVE_TO_PHONE_AUDIO,
+  type FlagSpec,
+} from './flag-manifest-entries.js';
 
-export interface FlagSpec {
-  /** 'on' or 'off' when unset; a mode flag names its default mode. */
-  readonly default: string;
-  readonly owner: (typeof FLAG_OWNERS)[number];
-  readonly kind: (typeof FLAG_KINDS)[number];
-}
+export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
 
 export const FLAG_MANIFEST = {
-  ACTION_CLAIM_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
-  ACTION_CLAIM_STREAM: { default: 'off', owner: 'voice', kind: 'experiment' },
-  AFTER_CALL_EXTRACTION: { default: 'off', owner: 'intelligence', kind: 'experiment' },
-  // set by the job runner for its child processes
-  AGENT_JOB_CHILD: { default: 'off', owner: 'voice', kind: 'config' },
-  AI_HONESTY_STORY: { default: 'off', owner: 'voice', kind: 'experiment' },
-  ALLOW_CLIENT_DEV_MODE: { default: 'off', owner: 'voice', kind: 'kill-switch' },
-  ALLOW_PRODUCTION_DATA: { default: 'off', owner: 'platform', kind: 'kill-switch' },
-  ALLOW_SOTA_SEED: { default: 'off', owner: 'voice', kind: 'config' },
-  // every persona starts with getNews, getWeather, getWeatherForecast, searchWeb (multi-agent/always-on-info-tools.ts)
-  ALWAYS_ON_INFO_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
-  AMBIENT_MUSIC_ENABLED: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // logs ANNOUNCED_CHECK_NO_TOOL: a reply said "I'll check" and called no tool (announced-check.ts)
-  ANNOUNCED_CHECK_LOG: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  APPLE_ONLINE_CHECKS: { default: 'on', owner: 'billing', kind: 'kill-switch' },
-  APPROVALS_PAGE: { default: 'off', owner: 'platform', kind: 'experiment' },
-  // only with APPROVALS_PAGE=on
-  APPROVALS_PASSKEYS: { default: 'off', owner: 'platform', kind: 'experiment' },
-  ASK_ADVICE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  ASK_WHEN_UNCLEAR: { default: 'off', owner: 'voice', kind: 'experiment' },
-  ASSISTANT_ACTIONS_REAL: { default: 'off', owner: 'platform', kind: 'experiment' },
-  ATTUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // Loop experiment, not live: attunement's own reply-length cap (turn-attunement.ts
-  // attunedLengthOn). Learned TURN_LENGTH owns reply length and wins when both are set.
-  // Candidate experiment for the humanness loop (#1377): ATTUNE_LENGTH=on vs TURN_LENGTH=learned.
-  ATTUNE_LENGTH: { default: 'off', owner: 'voice', kind: 'experiment' },
-  AVATAR_LISTEN_SIGNALS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  AVATAR_REPLY_TONE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // getCurrentContext / getTodaySignificance in the caller's zone, with the cached weather
-  AWARENESS_CALLER_TIME: { default: 'on', owner: 'tools', kind: 'kill-switch' },
-  BACKCHANNELS: { default: 'off', owner: 'platform', kind: 'experiment' },
-  // on: live backchannels time the caller's pause on the audio clock and skip stale frames
-  BACKCHANNEL_AUDIO_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
-  BACKCHANNEL_CLIPS: { default: 'on', owner: 'voice', kind: 'config' },
-  BACKCHANNEL_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
-  BACKGROUND_TURN_LATENCY_WARNINGS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  BARGE_IN_ACK_WORDS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  BARGE_IN_FASTPATH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  BARGE_IN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  BRIEFED_HANDOFF: { default: 'off', owner: 'voice', kind: 'experiment' },
-  BYPASS_INJECTION_FILTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
-  BYPASS_TEAM_UNLOCKS: { default: 'off', owner: 'tools', kind: 'kill-switch' },
+  ...FLAGS_ACTION_TO_BYPASS,
   CALLER_ASSERTED_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_RECOGNITION: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -93,6 +44,8 @@ export const FLAG_MANIFEST = {
   CASCADE_CACHE_WARM: { default: 'off', owner: 'voice', kind: 'experiment' },
   CASCADE_FAST_LANE: { default: 'off', owner: 'voice', kind: 'kill-switch' },
   CASCADE_TRIM_LEAD_SILENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // vad restores the silence timer; anything else is the STT end-of-turn (cartesia-cascade.ts)
+  CASCADE_TURN_DETECTION: { default: 'stt', owner: 'voice', kind: 'config' },
   // set by CI runners, not by us
   CI: { default: 'off', owner: 'tools', kind: 'config' },
   CLIP_TRACK_PACED: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -135,6 +88,8 @@ export const FLAG_MANIFEST = {
   DEMO_RATE_LIMIT_SHARED: { default: 'off', owner: 'platform', kind: 'experiment' },
   DEV_TELEMETRY: { default: 'off', owner: 'voice', kind: 'config' },
   DEV_TELEMETRY_VERBOSE: { default: 'off', owner: 'voice', kind: 'config' },
+  // on speaks the actor's line; shadow writes it without speaking; off skips it (speech/direction/director.ts)
+  DIRECTED_SPEECH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   DIRECTOR_ANSWER_TURN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_ESCALATE: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_LOOK_BACK: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -254,6 +209,8 @@ export const FLAG_MANIFEST = {
   MAYA_PROACTIVE_CHECKS: { default: 'off', owner: 'platform', kind: 'experiment' },
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // which store holds caller memory: memory, firestore or postgres; unset auto-detects (memory/index.ts)
+  MEMORY_STORE_TYPE: { default: 'auto', owner: 'memory', kind: 'config' },
   // on: the caller can see, forget and correct what Ferni knows (/api/memories/remembered).
   // Turn on with the web app's switch for the view that calls it: VITE_MEMORY_CONTROL, or the
   // memory view (VITE_MEMORY_VIEW / localStorage ferni:flag:memory-view, web known.ts).
@@ -263,61 +220,13 @@ export const FLAG_MANIFEST = {
   // on: mid-call system notes reach Gemini framed as private, not the caller's words
   // (patches/@livekit__agents@1.9.3.patch), and save tools refuse them (tools/utils/own-note.ts)
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on: log which moves each reply made and what followed, saved after the call (move-log.ts)
-  MOVE_OUTCOMES: { default: 'off', owner: 'voice', kind: 'experiment' },
-  MULTI_AGENT_ESSENTIAL_TOOLS_FIRST: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  MULTI_AGENT_MODE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // off: a handoff closes the call's session and starts another, as before (agents/multi-agent/persona-swap.ts)
-  MULTI_AGENT_SINGLE_SESSION: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  MUSIC_CONTINUE_AS_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
-  MUSIC_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
-  NAME_CORRECTION: { default: 'off', owner: 'memory', kind: 'experiment' },
-  // on: an opening "Hey Seth, ..." is voiced as "Hey Seth." so the name falls (speech/tts-gateway/name-intonation.ts);
-  // a name kept later in a reply ends its sentence the same way (agents/personas/name-gate.ts)
-  NAME_FALLING_INTONATION: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // off: the caller's name may follow every reply again (agents/personas/name-gate.ts)
-  NAME_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // sends the app a name lift when the caller names someone remembered
-  NAME_LIFT: { default: 'off', owner: 'memory', kind: 'experiment' },
-  NAME_MISHEAR_NORMALIZE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // only with NAME_MISHEAR_NORMALIZE=on: "transfer me to Fern" asks for Ferni on any persona
-  NAME_MISHEAR_HANDOFF: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // a mode: on speaks a fallback when a reply fails, shadow only logs it
-  NEVER_SILENT: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // getNews topic search with no NewsData/GNews key says so and gives RSS headlines (news.ts)
-  NEWS_HEADLINES_FALLBACK: { default: 'on', owner: 'tools', kind: 'kill-switch' },
-  ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
-  // First on-behalf dial checks the do-not-call list (first-dial-opt-out.ts)
-  ON_BEHALF_DNC_CHECK: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  ON_BEHALF_TEXTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  // off: texts to someone else skip the STOP, quiet-hours and 10-minute guards (guarded-text.ts); rollback only
-  ON_BEHALF_TEXT_GUARD: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
-  OPENER_FOLLOW_UP: { default: 'off', owner: 'memory', kind: 'experiment' },
-  OPENER_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
-  OUTBOUND_CONFIRM: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
-  // ms, 10-1000: the room audio output queue; unset keeps the SDK default (1000 ms in 1.5.1)
-  OUTPUT_QUEUE_MS: { default: 'sdk', owner: 'voice', kind: 'config' },
-  OUTREACH_DRY_RUN: { default: 'off', owner: 'platform', kind: 'kill-switch' },
-  // on: the daily scheduler sends no generic "thinking of you" check-ins
-  OUTREACH_GROUNDED_CHECKINS: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
-  // on: pondered follow-ups go out as in-app notes (also a per-person cohort flag)
-  OUTREACH_PONDERED_NOTES: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  OVERLAP_GREETING_WITH_PREWARM: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  PACE_MATCHING: { default: 'on', owner: 'voice', kind: 'config' },
-  PAUSE_HOLD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  PAYWALL: { default: 'off', owner: 'billing', kind: 'kill-switch' },
-  PERSONA_BEATS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // character-spark.md after the character sheet, one "!" on bright turns (agents/personas/prompt-loader.ts, turn-shape.ts)
-  PERSONA_SPARK: { default: 'off', owner: 'voice', kind: 'experiment' },
-  PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
-  PERSONA_MOOD_NOT_CALLERS: { default: 'on', owner: 'memory', kind: 'kill-switch' },
-  PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ...FLAGS_MOVE_TO_PHONE_AUDIO,
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PLACES_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read in patches/@livekit__agents@1.9.3.patch
   PLAYOUT_LAUNCH_RESUME: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -337,6 +246,8 @@ export const FLAG_MANIFEST = {
   PRE_STT_SIP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PROACTIVE_CHANNELS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // character loads a short character sheet instead of the full prompt (prompt-loader.ts)
+  PROMPT_MODE: { default: 'full', owner: 'voice', kind: 'config' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   PUBSUB_ENABLED: { default: 'off', owner: 'voice', kind: 'config' },
   // no question right after a reply that ended on one (question-pace.ts)
@@ -344,6 +255,8 @@ export const FLAG_MANIFEST = {
   QUIET_CALLER: { default: 'off', owner: 'voice', kind: 'experiment' },
   QUIET_HOURS_UNIFIED: { default: 'off', owner: 'outreach', kind: 'experiment' },
   QUIRK_AWARENESS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // direct: reaction clips play on this track, as VOICED_PRESENCE requires (direct-clip-track.ts)
+  REACTION_SIDETRACK: { default: 'off', owner: 'voice', kind: 'experiment' },
   RECALL_BRIDGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   RECALL_EPISODES: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_PEOPLE: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -392,13 +305,21 @@ export const FLAG_MANIFEST = {
   SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
   SKIP_GEMINI_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
   SKIP_PERSONA_INDEXING: { default: 'off', owner: 'platform', kind: 'config' },
+  // anything but 'false' skips the full generateReply prewarm, the quick path (generate-reply-gateway.ts)
+  SKIP_PREWARM_GENERATEREPLY: { default: 'true', owner: 'platform', kind: 'config' },
   SKIP_TWILIO_VALIDATION: { default: 'off', owner: 'platform', kind: 'config' },
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
   SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // off, shadow or live; the default is off under tests (speech/tts-gateway/director/gate.ts)
+  SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
+  // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
+  SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   // streaks count days from the summaries subcollection (up to 400 reads per profile load)
   STREAK_FROM_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // on: a persona handoff keeps the call's STT stream instead of reopening it (stt-handoff-reuse.ts)
+  STT_HANDOFF_REUSE: { default: 'off', owner: 'voice', kind: 'experiment' },
   STT_REFRESH_AFTER_GREETING: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read in patches/@livekit__agents@1.9.3.patch: an STT attempt resets the retry count
   // only after 60 s up (1.9.x resets after timeoutMs, 10 s)
@@ -408,7 +329,10 @@ export const FLAG_MANIFEST = {
   TEAMMATE_IDENTITY_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: talk to a teammate is not stored as the caller's life (utils/teammate-talk.ts, #1507)
   TEAMMATE_TALK_FILTER: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // off: teammates unlock with conversations and streaks; on: every teammate is on every team (team-by-need-flag.ts)
+  TEAM_BY_NEED: { default: 'off', owner: 'tools', kind: 'experiment' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
+  THEORY_OF_MIND: { default: 'off', owner: 'memory', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a call or text read back and waiting for the owner's yes is kept as a follow-up (outreach/confirm-thread.ts)
   THREADS_PENDING_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -431,6 +355,8 @@ export const FLAG_MANIFEST = {
   TRUST_UNSIGNED_DEVICE_ID: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // on: inner TTS failures reach the agent session (which closes after 4 in a row)
   TTS_FORWARD_ERRORS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // cartesia by default; sonata only when its native addon is built (speech/tts-gateway/providers/index.ts)
+  TTS_PROVIDER: { default: 'cartesia', owner: 'voice', kind: 'config' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_INTELLIGENCE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -473,6 +399,8 @@ export const FLAG_MANIFEST = {
   VOICE_EVAL_CLOCK: { default: 'off', owner: 'voice', kind: 'config' },
   VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // which voice pipeline runs; anything unrecognised is the Cartesia cascade (model-provider-config.ts)
+  VOICE_PIPELINE: { default: 'cartesia-cascade', owner: 'voice', kind: 'config' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   // current weather is reused 10 min per place and answered within 3 s (information/weather.ts)
   WEATHER_FAST_ANSWER: { default: 'on', owner: 'tools', kind: 'kill-switch' },

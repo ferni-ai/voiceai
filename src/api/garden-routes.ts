@@ -13,7 +13,8 @@
  * - DELETE /api/garden/subscription - Cancel monthly contribution
  */
 
-import admin from 'firebase-admin';
+import type { Firestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { claimedUserFor, type VerifiedCaller } from './acting-user.js';
@@ -65,14 +66,14 @@ function getCurrentMonthKey(): string {
 }
 
 // Track Firestore initialization attempts
-let firestoreInstance: admin.firestore.Firestore | null = null;
+let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
 
 /**
  * Get Firestore instance with lazy initialization.
  * Returns null if Firebase is not available.
  */
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): Firestore | null {
   if (firestoreInstance) {
     return firestoreInstance;
   }
@@ -83,25 +84,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    // Check if Firebase is already initialized
-    if (admin.apps.length === 0) {
-      // Try to initialize with default credentials or project ID
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-        log.info({ projectId }, 'Firebase initialized for garden routes');
-      } else {
-        // Try default credentials
-        admin.initializeApp();
-        log.info('Firebase initialized with default credentials');
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firebase not available for garden routes');

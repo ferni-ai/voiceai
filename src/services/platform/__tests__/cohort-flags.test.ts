@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const info = vi.hoisted(() => vi.fn());
+vi.mock('../../../utils/safe-logger.js', () => ({
+  createLogger: () => ({ info, warn: vi.fn(), debug: vi.fn(), error: vi.fn() }),
+}));
+
 import {
   applyCallerFlags,
   applyFlags,
+  envForCaller,
   FLAG_CACHE_TTL_MS,
   FLAG_STALE_MAX_MS,
   flagForUser,
@@ -12,6 +19,7 @@ import {
   usersWithFlag,
   type FlagHolderStore,
   oneCallPerProcess,
+  resolveCaller,
   resolveCallerFlags,
   type Cohort,
   type CohortStore,
@@ -35,7 +43,10 @@ const family: Cohort = {
   flags: { RECALL_PEOPLE: 'on', OPENER_FOLLOW_UP: 'on', SEMANTIC_RECALL: 'on' },
 };
 
-afterEach(() => forgetAgentValues());
+afterEach(() => {
+  forgetAgentValues();
+  info.mockClear();
+});
 
 describe('resolveCallerFlags', () => {
   it("takes the caller's enabled cohorts, then their own overrides", async () => {
@@ -148,6 +159,87 @@ describe('applyCallerFlags', () => {
     await applyCallerFlags('mindy', { store: store({ mindy: [family] }), env });
     await applyCallerFlags('anonymous', { store: store({}), env });
     expect(env.OPENER_FOLLOW_UP).toBeUndefined();
+  });
+});
+
+describe('the switches a cohort may set', () => {
+  // Each is read after applyCallerFlags (agent setup, a turn, a handoff) or, after the
+  // call, through envForCaller. Dropping one from COHORT_FLAGS must fail here.
+  it.each([
+    'CALL_WRAP_UP',
+    'WRAP_UP',
+    'SHORT_GOODBYE',
+    'PHONE_GOODBYE',
+    'HAPPY_EXITS',
+    'HANDOFF_TALK_THROUGH',
+    'NAME_CORRECTION',
+    'ROOM_GUESTS',
+    'BARGE_IN_ACK_WORDS',
+    'FRIEND_FOLLOWUPS',
+    'INSIDE_JOKES',
+    'DATES_THAT_MATTER',
+  ])('a cohort can turn %s on for its members', async (flag) => {
+    const s = store({ seth: [{ id: 'seth', enabled: true, flags: { [flag]: 'on' } }] });
+    expect(await resolveCallerFlags('seth', s)).toEqual({ [flag]: 'on' });
+    const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on' };
+    expect(await applyCallerFlags('seth', { store: s, env })).toEqual([flag]);
+    expect(env[flag]).toBe('on');
+  });
+});
+
+describe('which audience got what', () => {
+  it('names the enabled cohorts and whether the caller has overrides, never members', async () => {
+    const s = store(
+      { seth: [family, { id: 'seth', enabled: true, flags: { CALL_WRAP_UP: 'on' } }, { id: 'beta-waitlist-2026-10', enabled: false, flags: {} }] }, // prettier-ignore
+      { seth: { CANDOR: 'on' } }
+    );
+    expect(await resolveCaller('seth', s)).toMatchObject({
+      cohorts: ['friends-and-family', 'seth'],
+      overridden: true,
+    });
+    await applyCallerFlags('seth-uid-0123456789', {
+      store: {
+        ...s,
+        cohortsFor: () => s.cohortsFor('seth'),
+        overridesFor: () => s.overridesFor('seth'),
+      },
+      env: { COHORT_FLAGS: 'on' },
+    });
+    const [fields, msg] = info.mock.calls.at(-1) ?? [];
+    expect(msg).toBe('Cohort flags applied');
+    expect(fields).toMatchObject({
+      userId: 'seth-uid',
+      cohorts: ['friends-and-family', 'seth'],
+      overridden: true,
+      flags: expect.objectContaining({ CALL_WRAP_UP: 'on', CANDOR: 'on' }),
+    });
+    expect(JSON.stringify(fields)).not.toContain('members');
+  });
+});
+
+describe('envForCaller (work that runs after a call)', () => {
+  const s = store({ mindy: [{ id: 'f', enabled: true, flags: { DATES_THAT_MATTER: 'on' } }] });
+
+  it("reads the ended call's caller, not the next caller's flags in the env", async () => {
+    const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on' };
+    await applyCallerFlags('mindy', { store: s, env }); // Mindy's call
+    const next = store({ mom: [{ id: 'g', enabled: true, flags: { FRIEND_FOLLOWUPS: 'on' } }] });
+    await applyCallerFlags('mom', { store: next, env }); // the next call starts first
+    expect(env.DATES_THAT_MATTER).toBeUndefined();
+    expect((await envForCaller('mindy', { store: s, env })).DATES_THAT_MATTER).toBe('on');
+    // And the other way round: the next caller's flag never leaks into Mindy's work.
+    expect((await envForCaller('mindy', { store: s, env })).FRIEND_FOLLOWUPS).toBeUndefined();
+  });
+
+  it("falls back to the agent's own values: flag off, anonymous, or a failed read", async () => {
+    const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on', DATES_THAT_MATTER: 'off' };
+    await applyCallerFlags('mindy', { store: s, env });
+    expect(env.DATES_THAT_MATTER).toBe('on');
+    const failing: CohortStore = { cohortsFor: () => Promise.reject(new Error('down')), overridesFor: async () => ({}) }; // prettier-ignore
+    expect((await envForCaller('mindy', { store: failing, env })).DATES_THAT_MATTER).toBe('off');
+    expect((await envForCaller('anonymous', { store: s, env })).DATES_THAT_MATTER).toBe('off');
+    const gateOff = { ...env, COHORT_FLAGS: 'off' };
+    expect((await envForCaller('mindy', { store: s, env: gateOff })).DATES_THAT_MATTER).toBe('off');
   });
 });
 

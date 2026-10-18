@@ -58,6 +58,29 @@ describe('world extraction after a call', () => {
     ]);
   });
 
+  it("reads WORLD_MODEL_TEMPORAL as the ended call had it, not as the next caller's cohort set it", async () => {
+    const cohorts = (flag: string) => ({
+      cohortsFor: async () => [
+        { id: 'seth', enabled: true, flags: { WORLD_MODEL_TEMPORAL: flag } },
+      ],
+      overridesFor: async () => ({}),
+    });
+    const base = {
+      COHORT_FLAGS: 'on',
+      AFTER_CALL_EXTRACTION: 'on',
+      COACH_COMMITMENT_CAPTURE: 'off',
+    };
+    // The env holds the next caller's 'on'; this caller's cohort has it off.
+    const off = createMemoryWorldFactStore();
+    const llm = vi.fn(async (_prompt: string) => reply);
+    await extractWorldAfterCall(call, { env: { ...base, WORLD_MODEL_TEMPORAL: 'on' }, store: off, llm, cohorts: cohorts('off') }); // prettier-ignore
+    expect(llm).not.toHaveBeenCalled();
+    // This caller's cohort has it on; the env doesn't.
+    const on = createMemoryWorldFactStore();
+    await extractWorldAfterCall(call, { env: base, store: on, llm, newId: () => 'f1', cohorts: cohorts('on') }); // prettier-ignore
+    expect(on.all('u1')).toMatchObject([{ subject: 'Mindy', value: 'knee surgery' }]);
+  });
+
   it('with extraction off, or no sink on: no model call, nothing stored', async () => {
     const noCapture = { COACH_COMMITMENT_CAPTURE: 'off' };
     for (const env of [

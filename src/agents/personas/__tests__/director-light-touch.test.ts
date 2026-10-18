@@ -22,7 +22,7 @@ describe('director prompt with FERNI_LIGHT_TOUCH', () => {
   });
 
   it("adds staying flat or serious when they're being light as a habit to drop", () => {
-    const habit = "staying flat or serious when they're being light";
+    const habit = "staying flat or serious when they're being light about something light";
     expect(directorSystem(ON)).toContain(habit);
     expect(directorSystem({ ...ON, DIRECTOR_LOOK_BACK: 'on' })).toContain(habit);
     expect(directorSystem({})).not.toContain(habit);

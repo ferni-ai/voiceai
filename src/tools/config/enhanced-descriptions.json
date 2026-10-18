@@ -732,7 +732,7 @@
       }
     },
     "scoreEvidenceQuality": {
-      "description": "Evaluate evidence quality using scientific methodology. BETTER THAN HUMAN: Applies rigorous research standards.",
+      "description": "Say how well-supported a claim is, from short built-in research notes. Not a live literature search.",
       "parameters": {
         "claim": "The claim being evaluated",
         "source": "Source of the evidence",
@@ -740,7 +740,7 @@
       }
     },
     "synthesizeResearch": {
-      "description": "Synthesize multiple research sources into coherent findings. Like having a research assistant.",
+      "description": "Summarize what is generally known on a few life topics from built-in research notes. Not a live literature search.",
       "parameters": {
         "topic": "Topic to synthesize research on",
         "sources": "Array of sources/studies to synthesize"
@@ -760,7 +760,7 @@
       }
     },
     "getBaseRate": {
-      "description": "Get base rate statistics for a scenario. BETTER THAN HUMAN: Provides objective probabilities.",
+      "description": "Base-rate context for a few common scenarios. Quotes a figure only where a sourced one exists.",
       "parameters": {
         "scenario": "The scenario to get base rates for. Examples: 'startup success', 'marriage lasting'"
       }
@@ -905,25 +905,25 @@
       }
     },
     "getLocalEconomics": {
-      "description": "Get local economic indicators for your area.",
+      "description": "Talk about the local economy. Live local data is not connected, so this points to public sources instead of quoting figures.",
       "parameters": {
         "location": "Your location (city or zip)"
       }
     },
     "synthesizeIndustryTrends": {
-      "description": "Synthesize trends in a specific industry.",
+      "description": "Talk about an industry. Gives no current market views, sentiment calls or company picks.",
       "parameters": {
         "industry": "Industry to analyze (e.g., 'technology', 'healthcare')"
       }
     },
     "analyzeNewsSentiment": {
-      "description": "Analyze sentiment in news about a topic or company.",
+      "description": "Talk about news coverage of a topic. Live news is not connected, so this does not score current coverage.",
       "parameters": {
         "topic": "Topic or company to analyze"
       }
     },
     "recordSpending": {
-      "description": "Record spending to calculate YOUR personal inflation rate.",
+      "description": "Record a spending entry for the user's own spending summary.",
       "parameters": {
         "category": "Category: 'housing', 'food', 'transportation', 'healthcare', 'utilities', etc.",
         "amount": "Amount spent",
@@ -931,7 +931,7 @@
       }
     },
     "calculatePersonalInflation": {
-      "description": "Calculate YOUR personal inflation rate vs official CPI. See how YOUR costs compare."
+      "description": "Summarize the user's recorded spending by category. Live inflation data is not connected, so this gives no personal inflation rate."
     },
     "trackRelationship": {
       "description": "Track a relationship for network analysis.",
