@@ -33,18 +33,22 @@ const DIRECTIVE: readonly RegExp[] = [
 
 /** Moving money, or handing over something that unlocks an account. */
 const RISKY: readonly RegExp[] = [
-  /\b(wire|transfer|venmo|zelle|cash ?app|paypal|send|pay)\b[^.!?]{0,50}(\$\s?\d|\b(dollars|bucks|grand)\b|\baccount\b|\brouting\b|\bvenmo\b|\bzelle\b|\bcrypto|\bbitcoin\b)/i,
+  /\b(wire|transfer|venmo|zelle|cash ?app|paypal|send|pay)\b[^.!?]{0,50}(\p{Sc}\s?\d|\b\d[\d,.]*(?!\d|st\b|nd\b|rd\b|th\b|\s*[ap]m\b|:\d)|\b(dollars|bucks|grand|usd|k|hundred|thousand|million|account|routing|venmo|zelle|crypto|bitcoin)\b)/iu,
   /\b(password|passcode|pin( number)?|ssn|social security|card number|cvv|bank (details|info|login)|verification code|seed phrase|one-time code)\b/i,
   /\bgift ?cards?\b[^.!?]{0,40}\bcodes?\b/i,
 ];
 
-/** Lower case, words only: a quote matches its turn whatever the model did to punctuation. */
-const norm = (s: string): string =>
+/**
+ * The words of a text for matching a quote to its turn: NFKC, lower case,
+ * apostrophes dropped, letters and digits of any script kept, and every
+ * currency sign its own token. Nothing that could carry meaning is dropped.
+ */
+const words = (s: string): string[] =>
   s
+    .normalize('NFKC')
     .toLowerCase()
     .replace(/[’']/g, '')
-    .replace(/[^a-z0-9$@]+/g, ' ')
-    .trim();
+    .match(/[\p{L}\p{M}\p{N}@]+|[\p{Sc}$]/gu) ?? [];
 
 export function isDirective(text: string): boolean {
   return DIRECTIVE.some((r) => r.test(text));
@@ -67,7 +71,8 @@ const SHORT_CODE = /\b(cvv|cvc|pin|otp|code)(\s*(?:is|:|=)?\s*)\d{3,}\b/gi;
 /** A year said as one ("by 2027", "in March 2026"), which is not a secret. */
 const YEAR_BEFORE = /\b(in|by|before|after|until|since|of|early|late|january|february|march|april|may|june|july|august|september|october|november|december)\s+$/i; // prettier-ignore
 /** Money in any currency, written as a symbol or a word next to a number. */
-const MONEY = /[$€£¥]\s?\d|\b\d[\d,.]*\s*(dollars|bucks|euros|pesos|pounds|usd)\b/i;
+const MONEY =
+  /\p{Sc}\s?\d|\b(dollars?|bucks|euros?|pesos?|pounds?|usd|grand|hundred|thousand|million)\b/iu;
 
 /**
  * Text with every account, card or routing number, PIN, passcode and
@@ -112,8 +117,6 @@ export interface GuardedItem {
   quote?: string;
 }
 
-const words = (s: string): string[] => norm(s).split(' ').filter(Boolean);
-
 /** Whether `part` is in `whole` as whole words, in order ("500 to kyle" isn't in "1500 to kyle"). */
 function hasWords(whole: readonly string[], part: readonly string[]): boolean {
   if (part.length === 0) return false;
@@ -123,41 +126,49 @@ function hasWords(whole: readonly string[], part: readonly string[]): boolean {
   return false;
 }
 
-/** Words that move money or open an account: each one in a risky statement must be the caller's. */
-const RAIL = new Set(
-  'wire transfer venmo zelle paypal cashapp cash app bitcoin crypto account routing password passcode pin ssn social security card cvv code codes seed phrase login'.split(
-    ' '
-  )
-);
-/** Capitalized words in a statement that are days or months, not payees. */
-const CALENDAR = new Set(
-  'monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december i'.split(
+/** The only words a risky statement may add to its quote: they carry no amount, payee or rail. */
+const STOP = new Set(
+  'a an the to for of on in at by with and or your you yours my me i this that it its back up'.split(
     ' '
   )
 );
 
 /**
- * What a risky statement says that must come from the caller: amounts and
- * other numbers, names (capitalized words, not the first or a day), and the
- * words of a payment rail or a credential.
+ * The numbers in a text, each whole ("1,000" stays one number, "4417-2290"
+ * one account): a well-grouped number loses its commas ("1,000" = "1000"),
+ * anything else must match exactly ("10,00" and "1000,0" are not "1000").
  */
-function riskyTokens(statement: string): string[] {
-  const raw = statement.trim().split(/\s+/);
-  const names = raw
-    .slice(1)
-    .filter((w) => /^[A-Z]/.test(w))
-    .flatMap(words)
-    .filter((w) => !CALENDAR.has(w));
-  return [...new Set([...words(statement).filter((w) => /\d/.test(w) || RAIL.has(w)), ...names])];
+function numbersIn(text: string): string[] {
+  return (text.normalize('NFKC').match(/\d[\d,.-]*\d|\d/g) ?? []).map((n) =>
+    /^\d{1,3}(,\d{3})+(\.\d+)?$/.test(n) ? n.replace(/,/g, '') : n
+  );
+}
+
+/**
+ * Whether everything a risky statement says came from the caller: every
+ * number equals one in the quote, and every other word but a few function
+ * words ("the", "to", "your") is in the quote and its turn, case-folded
+ * after NFKC. Amounts in words ("five thousand"), currency words and signs,
+ * payees in any case or script, rails, verbs and handles are all covered
+ * by that one rule rather than a list of what to look for.
+ */
+function saidByCaller(statement: string, quote: string, turn: readonly string[]): boolean {
+  const quoted = new Set(words(quote));
+  const inTurn = new Set(turn);
+  const numbers = new Set(numbersIn(quote));
+  if (!numbersIn(statement).every((n) => numbers.has(n))) return false;
+  return words(statement)
+    .filter((w) => !/\d/.test(w) && !STOP.has(w))
+    .every((w) => quoted.has(w) && inTurn.has(w));
 }
 
 /**
  * The items to keep, given what the caller said on the call (their turns
  * only). Drops directive-shaped items. A risky one (money, credentials) is
  * kept only when the call has no directive turn at all, its quote is a
- * caller turn's own words (whole words, in order), and every amount, number,
- * name and rail word in its statement is in that quote and that turn: the
- * model can't add "$500 to account 4417" the caller never said. A call with
+ * caller turn's own words (whole words, in order), and its statement says
+ * nothing that quote doesn't (saidByCaller): the model can't add "$500 to
+ * account 4417", or "five thousand", that the caller never said. A call with
  * an injection loses its real money plans too: the safe side of the trade.
  */
 export function guardJudged<T extends GuardedItem>(
@@ -174,6 +185,6 @@ export function guardJudged<T extends GuardedItem>(
     if (injected || quote.length < 3) return false;
     const turn = turns.find((t) => hasWords(t, quote));
     if (!turn) return false;
-    return riskyTokens(j.statement).every((w) => quote.includes(w) && turn.includes(w));
+    return saidByCaller(j.statement, j.quote ?? '', turn);
   });
 }

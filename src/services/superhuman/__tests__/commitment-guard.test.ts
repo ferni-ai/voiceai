@@ -93,7 +93,48 @@ describe('guardJudged', () => {
     const turn = "I'll send 1500 dollars to Kyle on Friday.";
     // "500 dollars to kyle" is inside "1500 dollars to kyle" as text, but not as words.
     expect(guardJudged([item('send 500 dollars to Kyle', '500 dollars to Kyle')], [turn])).toEqual([]); // prettier-ignore
-    expect(guardJudged([item('send 1500 dollars to Kyle Friday', 'send 1500 dollars to Kyle')], [turn])).toHaveLength(1); // prettier-ignore
+    expect(guardJudged([item('send 1500 dollars to Kyle Friday', 'send 1500 dollars to Kyle on Friday')], [turn])).toHaveLength(1); // prettier-ignore
+  });
+
+  it('drops a spelled-out amount the caller never said', () => {
+    const turn = "I'll send Mike fifty dollars for the tickets.";
+    expect(guardJudged([item('send Mike five thousand dollars for the tickets', turn)], [turn])).toEqual([]); // prettier-ignore
+    expect(guardJudged([item('send Mike fifty dollars for the tickets', turn)], [turn])).toHaveLength(1); // prettier-ignore
+  });
+
+  it('compares whole numbers: "1,000" vouches for 1000, not for "10,00" or "1000,0"', () => {
+    const turn = "I'll pay the contractor $1,000 on Monday.";
+    expect(guardJudged([item('pay the contractor $1000 on Monday', turn)], [turn])).toHaveLength(1);
+    expect(guardJudged([item('pay the contractor $10,00 on Monday', turn)], [turn])).toEqual([]);
+    expect(guardJudged([item('pay the contractor $1000,0 on Monday', turn)], [turn])).toEqual([]);
+  });
+
+  it.each([
+    ['a lowercase payee', 'mike'],
+    ['a payee that is a month', 'May'],
+    ['a payee that is a month, again', 'June'],
+    ['a payee in another script', '李伟'],
+  ])('drops %s the caller never named', (_what, payee) => {
+    const turn = "I'll venmo Jake $20 for dinner.";
+    expect(guardJudged([item(`venmo ${payee} $20 for dinner`, turn)], [turn])).toEqual([]);
+  });
+
+  it('tells non-ASCII names apart instead of dropping their letters ("Josè" is not "José")', () => {
+    const turn = "I'll venmo José $20 for dinner.";
+    expect(guardJudged([item('venmo Josè $20 for dinner', turn)], [turn])).toEqual([]);
+  });
+
+  it('treats an amount in words as money, with no digit or currency word in sight', () => {
+    const turn = "I'll send Mike fifty for the tickets.";
+    expect(isRiskyAction('send Mike five thousand for the tickets')).toBe(true);
+    expect(guardJudged([item('send Mike five thousand for the tickets', turn)], [turn])).toEqual([]); // prettier-ignore
+  });
+
+  it('drops a payee as the first word, and keeps a non-ASCII payee the caller did name', () => {
+    const turn = "I'll venmo Jake $20 tonight";
+    expect(guardJudged([item('Mike gets $20 from me by venmo tonight', turn)], [turn])).toEqual([]);
+    const jose = "I'll venmo José $20 for dinner.";
+    expect(guardJudged([item('venmo José $20 for dinner', jose)], [jose])).toHaveLength(1);
   });
 
   it('keeps a plain money plan with the day and payee from the same sentence', () => {
@@ -155,6 +196,9 @@ describe('redactSecrets and isSensitive', () => {
     expect(isSensitive('transfer the $1,450 deposit Friday')).toBe(true);
     expect(isSensitive('pagar 200 euros a Marta')).toBe(true);
     expect(isSensitive('pay rent Friday')).toBe(false);
+    expect(isSensitive('pay the hospital bill by the 15th')).toBe(false);
+    expect(isSensitive('pay rent at 5pm')).toBe(false);
+    expect(isSensitive('send Mike five thousand for the tickets')).toBe(true);
     expect(isSensitive('renew the passport before 2027')).toBe(false);
   });
 });

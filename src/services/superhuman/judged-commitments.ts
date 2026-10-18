@@ -47,6 +47,8 @@ export interface JudgedCommitment {
   person?: string;
   due?: string;
   isCommitment: boolean;
+  /** The judge's own call that it involves money or a credential, in any language. */
+  sensitive?: boolean;
   confidence: number;
   quote?: string;
 }
@@ -93,7 +95,8 @@ export function judgedCommitmentDocs(
     const statement = redactSecrets(j.statement);
     const quote = j.quote && redactSecrets(j.quote);
     const person = j.person && redactSecrets(j.person);
-    const sensitive = isSensitive(`${j.statement} ${j.quote ?? ''} ${j.person ?? ''}`);
+    const sensitive =
+      j.sensitive === true || isSensitive(`${j.statement} ${j.quote ?? ''} ${j.person ?? ''}`);
     docs.push({
       userId: ctx.userId,
       statement,

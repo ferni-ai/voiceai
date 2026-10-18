@@ -73,16 +73,17 @@ describe('the commitment judge prompt and reply', () => {
     const reply = `ok\n${JSON.stringify({
       commitments: [
         { statement: 'pay Tom back the fifty bucks Friday', person: 'Tom', due: '2026-10-16', isCommitment: true, confidence: 1.4 }, // prettier-ignore
-        { statement: 'renew the passport', due: '2026-02-30', isCommitment: true, confidence: 0.8 },
-        { statement: 'yesterday thing', due: '2026-10-01', isCommitment: true, confidence: 0.8 },
+        { statement: 'renew the passport', due: '2026-02-30', isCommitment: true, sensitive: false, confidence: 0.8 }, // prettier-ignore
+        { statement: 'yesterday thing', due: '2026-10-01', isCommitment: true, sensitive: false, confidence: 0.8 }, // prettier-ignore
         { statement: 'no verdict', confidence: 0.9 },
         'junk',
       ],
     })}`;
     expect(parseJudgedCommitments(reply, '2026-10-10')).toEqual([
-      { statement: 'pay Tom back the fifty bucks Friday', person: 'Tom', due: '2026-10-16', isCommitment: true, confidence: 1 }, // prettier-ignore
-      { statement: 'renew the passport', isCommitment: true, confidence: 0.8 },
-      { statement: 'yesterday thing', isCommitment: true, confidence: 0.8 },
+      // No sensitive field: fails closed to true.
+      { statement: 'pay Tom back the fifty bucks Friday', person: 'Tom', due: '2026-10-16', isCommitment: true, sensitive: true, confidence: 1 }, // prettier-ignore
+      { statement: 'renew the passport', isCommitment: true, sensitive: false, confidence: 0.8 },
+      { statement: 'yesterday thing', isCommitment: true, sensitive: false, confidence: 0.8 },
     ]);
     expect(parseJudgedCommitments('{"commitments": []}', '2026-10-10')).toEqual([]);
     expect(parseJudgedCommitments('not json', '2026-10-10')).toBeNull();
@@ -94,7 +95,7 @@ describe('the commitment judge prompt and reply', () => {
     const second = '{"commitments":[{"statement":"clean the garage","isCommitment":true,"confidence":0.9}]}'; // prettier-ignore
     const reply = `${first}\n\nHmm, "this weekend" is not one day. Corrected:\n\n${second}`;
     expect(parseJudgedCommitments(reply, '2026-10-10')).toEqual([
-      { statement: 'clean the garage', isCommitment: true, confidence: 0.9 },
+      { statement: 'clean the garage', isCommitment: true, sensitive: true, confidence: 0.9 },
     ]);
   });
 });

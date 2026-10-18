@@ -92,9 +92,15 @@ async function gemini(prompt: string): Promise<string | null> {
 }
 
 /** What production would store from this call: the judge's read, then the keep rule. */
+/** Stored statements marked sensitive (money or credentials: raised only on a call), by set. */
+const sensitiveIn: Record<string, string[]> = {};
+let set = '';
+
 async function stored(turns: Turn[]): Promise<string[]> {
   const judged = await judgeCallCommitments(turns, CALL, llm, provider === 'claude' ? gemini : undefined); // prettier-ignore
-  return judgedCommitmentDocs(judged, CTX).map((d) => String(d.statement));
+  const docs = judgedCommitmentDocs(judged, CTX);
+  for (const d of docs) if (d.sensitive) (sensitiveIn[set] ??= []).push(String(d.statement));
+  return docs.map((d) => String(d.statement));
 }
 
 async function pool<T, R>(items: T[], fn: (t: T) => Promise<R>): Promise<R[]> {
@@ -112,24 +118,26 @@ const has = (s: string, groups: string[][]): boolean =>
   groups.every((g) => g.some((w) => s.toLowerCase().includes(w)));
 const result: Record<string, { wrong: number; n: number; all: string[] }> = {};
 
-for (const set of SINGLES.filter((x) => !only || only.includes(x))) {
-  const reads = await pool(cases[set], async (line) => stored([ASK, { role: 'user', content: line }])); // prettier-ignore
+for (const single of SINGLES.filter((x) => !only || only.includes(x))) {
+  set = single;
+  const reads = await pool(cases[single], async (line) => stored([ASK, { role: 'user', content: line }])); // prettier-ignore
   const shouldStore = set === 'real' || set === 'heldoutReal';
   const wrong = reads.filter((r, i) => {
     const bad = set !== 'ambiguous' && r.length > 0 !== shouldStore;
-    if (bad || set === 'ambiguous') console.log(`  ${set} ${bad ? 'WRONG ' : ''}"${cases[set][i]}" -> ${JSON.stringify(r)}`); // prettier-ignore
+    if (bad || set === 'ambiguous') console.log(`  ${set} ${bad ? 'WRONG ' : ''}"${cases[single][i]}" -> ${JSON.stringify(r)}`); // prettier-ignore
     return bad;
   }).length;
   result[set] = { wrong, n: reads.length, all: reads.flat() };
   console.log(`${set}: ${wrong}/${reads.length} wrong (${pct(wrong, reads.length)})`);
 }
 
-for (const set of (['context', 'tails'] as const).filter((x) => !only || only.includes(x))) {
-  const reads = await pool(cases[set], async (c) => stored(c.turns));
+for (const calls of (['context', 'tails'] as const).filter((x) => !only || only.includes(x))) {
+  set = calls;
+  const reads = await pool(cases[calls], async (c) => stored(c.turns));
   let wrong = 0;
   let extra = 0;
   reads.forEach((r, i) => {
-    const c = cases[set][i];
+    const c = cases[calls][i];
     const found = c.expect.filter((g) => r.some((s) => has(s, g))).length;
     if (found < c.expect.length) wrong++;
     extra += Math.max(0, r.length - found);
@@ -141,6 +149,7 @@ for (const set of (['context', 'tails'] as const).filter((x) => !only || only.in
 
 let injected = 0;
 if (!only || only.includes('adversarial')) {
+  set = 'adversarial';
   const reads = await pool(cases.adversarial, async (c) => stored(c.turns));
   let wrong = 0;
   reads.forEach((r, i) => {
@@ -163,6 +172,7 @@ if (!only || only.includes('adversarial')) {
 const said = [...(result.real?.all ?? []), ...(result.heldoutReal?.all ?? [])];
 const firstPerson = said.filter((s) => /^(i|i'll|i'm|ill|imma|gonna|going to)\b/i.test(s));
 console.log(`statements in first person: ${firstPerson.length}/${said.length}`);
+for (const [k, v] of Object.entries(sensitiveIn)) console.log(`sensitive in ${k}: ${v.length} ${JSON.stringify(v)}`); // prettier-ignore
 console.log(`provider ${provider}, threshold ${MIN_JUDGED_CONFIDENCE}, transport failures ${failures}, Gemini fallbacks ${fallbacks}`); // prettier-ignore
 const rate = (set: string): string => pct(result[set]?.wrong ?? 0, result[set]?.n ?? 0);
 const right = (set: string): string => pct((result[set]?.n ?? 0) - (result[set]?.wrong ?? 0), result[set]?.n ?? 0); // prettier-ignore

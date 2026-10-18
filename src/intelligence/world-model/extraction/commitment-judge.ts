@@ -41,6 +41,7 @@ Return JSON only: {"commitments": [ ... ]}. Each item:
   - stances, maybes and deliberating ("I'll mull it over", "let me chew on it", "we'll see how it goes", a bare "I'll try", "maybe", "I'm considering it"); trying a named thing counts ("I'll try the spin class Monday")
   - things about this conversation or Ferni ("I'll ring you back", "I'll fill you in later"), requests to Ferni, questions
   - what someone else will do, what already happened, and anything Ferni said it would do
+- sensitive: true when, in any language, it names an amount of money, sends, lends or pays money to a person, or involves an account, card or routing number, a password, a PIN or a code; false otherwise. Paying a bill or the rent, taxes, a budget or asking for a raise is not sensitive by itself
 - confidence: 0..1, how sure you are of isCommitment. It is not how firm, big or likely the plan is: a soft or open-ended thing the caller still said they'd do ("I'll be more patient with my kids") is a sure commitment. Go under 0.7 only when you doubt it is one at all
 - quote: the caller's own words it came from, at most 25 words
 
@@ -70,6 +71,8 @@ function toJudged(raw: unknown, callDate: string): JudgedCommitment | null {
   return {
     statement,
     isCommitment: r.isCommitment,
+    // Fails closed: anything but an explicit false is sensitive.
+    sensitive: r.sensitive !== false,
     confidence: Math.min(1, Math.max(0, c)),
     ...(person && { person }),
     ...(due && due >= callDate && { due }),

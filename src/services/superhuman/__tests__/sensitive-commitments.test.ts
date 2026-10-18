@@ -8,6 +8,7 @@
  * Only Firestore and the forget list are fakes.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JudgedCommitment } from '../judged-commitments.js';
 
 const h = vi.hoisted(() => ({ rows: [] as Array<{ id: string; data: Record<string, unknown> }> }));
 
@@ -55,7 +56,7 @@ const ctx = { userId: 'u1', sessionId: 's1', now: NOW, timezone: 'America/New_Yo
 const judged = (statement: string, quote = statement) => ({ statement, quote, isCommitment: true, confidence: 0.95 }); // prettier-ignore
 
 /** What the writer stores for these judged items, after the guard, from these caller turns. */
-function store(items: ReturnType<typeof judged>[], turns: string[]) {
+function store(items: JudgedCommitment[], turns: string[]) {
   return judgedCommitmentDocs(guardJudged(items, turns), ctx);
 }
 /** A run of four or more digits, separators allowed: what an account or card number looks like. */
@@ -91,6 +92,12 @@ describe('what is stored', () => {
     const docs = store([judged('wire $900 to acct 99887766', turns[0]), judged(INJECTED_ES)], turns); // prettier-ignore
     expect(docs.flatMap(strings).filter((s) => RAW_NUMBER.test(s))).toEqual([]);
     expect(docs.every((d) => d.sensitive === true)).toBe(true);
+  });
+
+  it("a money move with no digit or English word in it: sensitive on the judge's word", () => {
+    const plan = 'transferir quinientos a Marta el viernes';
+    expect(store([{ ...judged(plan), sensitive: false }], [plan])[0]?.sensitive).toBeUndefined();
+    expect(store([{ ...judged(plan), sensitive: true }], [plan])[0]?.sensitive).toBe(true);
   });
 
   it('an ordinary plan: stored as said, not sensitive', () => {
