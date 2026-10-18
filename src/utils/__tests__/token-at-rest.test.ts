@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createHash } from 'node:crypto';
 import { FieldValue } from '@google-cloud/firestore';
 import {
   isPlaintextTokenRecord,
+  keyFingerprint,
   openTokens,
   sealTokens,
   sealTokensForMerge,
+  tokenKeyFingerprintLine,
 } from '../token-at-rest.js';
 
 const RAW = {
@@ -52,5 +55,59 @@ describe('token-at-rest', () => {
       expect((payload[k] as FieldValue).isEqual(FieldValue.delete())).toBe(true);
     }
     expect(openTokens({ encrypted: payload.encrypted })).toEqual(RAW);
+  });
+});
+
+describe('keyFingerprint', () => {
+  const saved = { o: process.env.OAUTH_ENCRYPTION_KEY, l: process.env.LOG_HASH_SECRET };
+  const set = (o?: string, l?: string) => {
+    if (o === undefined) delete process.env.OAUTH_ENCRYPTION_KEY;
+    else process.env.OAUTH_ENCRYPTION_KEY = o;
+    if (l === undefined) delete process.env.LOG_HASH_SECRET;
+    else process.env.LOG_HASH_SECRET = l;
+  };
+  afterEach(() => set(saved.o, saved.l));
+
+  it('is 8 hex of sha256("ferni-token-key-fp:" + key), stable across calls', () => {
+    set('fixture-key-one');
+    const expected = createHash('sha256')
+      .update('ferni-token-key-fp:fixture-key-one')
+      .digest('hex')
+      .slice(0, 8);
+    expect(keyFingerprint()).toBe(expected);
+    expect(keyFingerprint()).toBe(expected);
+    expect(keyFingerprint()).toMatch(/^[0-9a-f]{8}$/);
+  });
+
+  it('differs for different keys', () => {
+    set('fixture-key-one');
+    const one = keyFingerprint();
+    set('fixture-key-two');
+    expect(keyFingerprint()).not.toBe(one);
+  });
+
+  it('follows the encryption resolution: OAUTH_ENCRYPTION_KEY, else LOG_HASH_SECRET', () => {
+    set(undefined, 'fixture-key-one');
+    const viaHash = keyFingerprint();
+    expect(tokenKeyFingerprintLine()).toBe(
+      `token_at_rest_key_fp=${viaHash} source=LOG_HASH_SECRET`
+    );
+    set('fixture-key-one', 'fixture-key-two');
+    expect(keyFingerprint()).toBe(viaHash);
+    expect(tokenKeyFingerprintLine()).toBe(
+      `token_at_rest_key_fp=${viaHash} source=OAUTH_ENCRYPTION_KEY`
+    );
+    // The key that seals is the key the fingerprint names.
+    const sealed = sealTokens(RAW);
+    set(undefined, 'fixture-key-one');
+    expect(openTokens(sealed)).toEqual(RAW);
+  });
+
+  it('reports "none" when no key is set, and never prints the key', () => {
+    set();
+    expect(keyFingerprint()).toBe('none');
+    expect(tokenKeyFingerprintLine()).toBe('token_at_rest_key_fp=none source=none');
+    set('fixture-key-one');
+    expect(tokenKeyFingerprintLine()).not.toContain('fixture-key-one');
   });
 });

@@ -21,6 +21,19 @@ const log = createLogger({ module: 'Encryption' });
 
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 
+export type TokenKeySource = 'OAUTH_ENCRYPTION_KEY' | 'LOG_HASH_SECRET' | 'none';
+
+/** Which env var supplies the token key, and its raw value. The one resolution every caller shares. */
+export function resolveTokenKey(): { source: TokenKeySource; key: string } {
+  if (process.env.OAUTH_ENCRYPTION_KEY) {
+    return { source: 'OAUTH_ENCRYPTION_KEY', key: process.env.OAUTH_ENCRYPTION_KEY };
+  }
+  if (process.env.LOG_HASH_SECRET) {
+    return { source: 'LOG_HASH_SECRET', key: process.env.LOG_HASH_SECRET };
+  }
+  return { source: 'none', key: '' };
+}
+
 /**
  * Get encryption key from environment
  * Derives 32-byte key using SHA-256
@@ -29,7 +42,7 @@ const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
  * OAuth tokens will not be stored without encryption in production.
  */
 function getEncryptionKey(): Buffer | null {
-  const key = process.env.OAUTH_ENCRYPTION_KEY || process.env.LOG_HASH_SECRET;
+  const { key } = resolveTokenKey();
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (!key) {

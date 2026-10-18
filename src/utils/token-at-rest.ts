@@ -9,8 +9,9 @@
  * until scripts/migrations/encrypt-integration-tokens.ts has run.
  */
 
+import { createHash } from 'node:crypto';
 import { FieldValue } from '@google-cloud/firestore';
-import { encryptData, decryptData } from './token-encryption.js';
+import { encryptData, decryptData, resolveTokenKey } from './token-encryption.js';
 
 /** The stored shape: the whole token record, encrypted. */
 export interface SealedTokens {
@@ -62,4 +63,21 @@ export function openTokens<T>(stored: unknown): T | null {
   // envelope itself rather than tokens.
   if (opened === null || (opened as { encrypted?: unknown }).encrypted === true) return null;
   return opened;
+}
+
+/**
+ * A short, non-reversible tag for the effective token key: the first 8 hex of
+ * sha256("ferni-token-key-fp:" + key), or "none" with no key. Two processes
+ * that log the same value read and write each other's sealed tokens; the
+ * key itself is never printed.
+ */
+export function keyFingerprint(): string {
+  const { key } = resolveTokenKey();
+  if (key === '') return 'none';
+  return createHash('sha256').update(`ferni-token-key-fp:${key}`).digest('hex').slice(0, 8);
+}
+
+/** The boot line both the web server and the agent log, for comparing their keys. */
+export function tokenKeyFingerprintLine(): string {
+  return `token_at_rest_key_fp=${keyFingerprint()} source=${resolveTokenKey().source}`;
 }
