@@ -21,6 +21,7 @@ import { phoneHash } from '../checkin-replies.js';
 import {
   codeText,
   firestoreAtomically,
+  ipBucket,
   textVerificationCode,
   type Atomically,
   type CodeTextDeps,
@@ -30,11 +31,11 @@ const ENV = { LOG_HASH_SECRET: 'test-secret' };
 const START = Date.parse('2026-10-18T16:00:00Z');
 const N = '+15555550100';
 
-/** The same reads and writes as Firestore, run one at a time. */
-function memoryAtomically(store: Map<string, string[]>): Atomically {
-  return async (keys, decide) => {
+/** The same reads and writes as Firestore, one at a time; `stopped`: hashes that sent STOP. */
+function memoryAtomically(store: Map<string, string[]>, stopped: Set<string>): Atomically {
+  return async (keys, optOutHash, decide) => {
     const recent = Object.fromEntries(keys.map((k) => [k, store.get(k) ?? []]));
-    const { result, write } = decide(recent);
+    const { result, write } = decide(recent, stopped.has(optOutHash));
     for (const [k, v] of Object.entries(write ?? {})) store.set(k, v);
     return result;
   };
@@ -42,20 +43,21 @@ function memoryAtomically(store: Map<string, string[]>): Atomically {
 
 function deps(over: Partial<CodeTextDeps> = {}) {
   const store = new Map<string, string[]>();
+  const stopped = new Set<string>();
   let clock = START;
   const d: CodeTextDeps = {
     env: ENV,
-    isOptedOut: vi.fn(async () => false),
-    atomically: memoryAtomically(store),
+    atomically: memoryAtomically(store, stopped),
     send: vi.fn(async () => ({ success: true, messageSid: 'SM1' })),
     now: () => new Date(clock),
     ...over,
   };
-  return { d, store, advance: (ms: number) => void (clock += ms) };
+  return { d, store, stopped, advance: (ms: number) => void (clock += ms) };
 }
 const makeCode = () => vi.fn(async (_e164: string) => '123456');
 const ask = (d: CodeTextDeps, user = 'uid-1', phone = N, ip?: string) =>
   textVerificationCode(user, phone, makeCode(), d, ip);
+const num = (i: number) => `+1555555${String(1000 + i)}`;
 
 describe('textVerificationCode', () => {
   it('texts the code to the number given, in plain words, and only then is it sent', async () => {
@@ -89,73 +91,108 @@ describe('textVerificationCode', () => {
     const { d, advance } = deps();
     expect(await ask(d)).toEqual({ sent: true });
     advance(30_000);
-    expect(await ask(d, 'uid-1', '+15555550111')).toMatchObject({ reason: 'too-soon' });
+    expect(await ask(d, 'uid-1', num(1))).toMatchObject({ reason: 'too-soon' });
     for (let i = 0; i < 4; i++) {
       advance(61_000);
-      expect(await ask(d, 'uid-1', `+1555555012${i}`)).toEqual({ sent: true });
+      expect(await ask(d, 'uid-1', num(10 + i))).toEqual({ sent: true });
     }
     advance(61_000);
-    expect(await ask(d, 'uid-1', '+15555550199')).toMatchObject({ reason: 'too-many' });
+    expect(await ask(d, 'uid-1', num(20))).toMatchObject({ reason: 'too-many' });
     advance(60 * 60 * 1000);
     expect(await ask(d)).toEqual({ sent: true });
   });
 
-  it("someone hammering a number can't use up its owner's budget; the pair limit is quiet", async () => {
+  it('a number has a hard limit across users (1 a minute, 10 an hour), refused quietly', async () => {
+    const { d, advance } = deps();
+    expect(await ask(d, 'a', N)).toEqual({ sent: true });
+    expect(await ask(d, 'b', N)).toEqual({ sent: false, reason: 'quiet' }); // within the minute
+    for (let i = 0; i < 9; i++) {
+      advance(61_000);
+      expect(await ask(d, `user-${i}`, N)).toEqual({ sent: true });
+    }
+    advance(61_000);
+    expect(await ask(d, 'user-x', N)).toEqual({ sent: false, reason: 'quiet' }); // the 11th this hour
+    expect(d.send).toHaveBeenCalledTimes(10);
+  });
+
+  it('the (user, number) pair: three an hour, quietly', async () => {
     const { d, advance } = deps();
     for (let i = 0; i < 3; i++) {
-      expect(await ask(d, 'attacker', N)).toEqual({ sent: true });
+      expect(await ask(d, 'a', N)).toEqual({ sent: true });
       advance(61_000);
     }
-    expect(await ask(d, 'attacker', N)).toEqual({ sent: false, reason: 'quiet' });
-    expect(await ask(d, 'owner', N)).toEqual({ sent: true }); // the owner still gets their code
+    expect(await ask(d, 'a', N)).toEqual({ sent: false, reason: 'quiet' });
+  });
+
+  it('probing costs the prober: a quiet refusal still uses their own budget', async () => {
+    const { d, stopped, advance } = deps();
+    stopped.add(phoneHash(N, ENV) ?? '');
+    expect(await ask(d, 'prober', N, '203.0.113.7')).toEqual({ sent: false, reason: 'quiet' });
+    advance(30_000);
+    expect(await ask(d, 'prober', num(1), '203.0.113.7')).toMatchObject({ reason: 'too-soon' });
+    for (let i = 0; i < 9; i++) await ask(d, `p${i}`, N, '203.0.113.7'); // all quiet
+    expect(await ask(d, 'fresh', num(2), '203.0.113.7')).toMatchObject({ reason: 'too-many' });
+  });
+
+  it('a number that sent STOP: the same answer and the same work as a send, nothing texted', async () => {
+    const { d, stopped } = deps();
+    stopped.add(phoneHash(N, ENV) ?? '');
+    const make = makeCode();
+    expect(await textVerificationCode('uid-1', N, make, d)).toEqual({
+      sent: false,
+      reason: 'quiet',
+    });
+    expect(make).toHaveBeenCalledWith(N); // a code is made, as for a send
+    expect(d.send).not.toHaveBeenCalled();
   });
 
   it('twenty a day to one number raises an alert but never refuses', async () => {
     const { d, advance } = deps();
+    logged.errors.length = 0;
     for (let i = 0; i < 21; i++) {
       expect(await ask(d, `user-${i}`, N)).toEqual({ sent: true });
-      advance(5 * 60 * 1000);
+      advance(7 * 60 * 1000); // under the number's 10 an hour
     }
     expect(
       logged.errors.some(([, msg]) => String(msg).includes('one number asked for often'))
     ).toBe(true);
   });
 
-  it('per IP: twenty an hour, whoever asks', async () => {
+  it('per IP: ten an hour, with IPv6 grouped by its /64', async () => {
     const { d } = deps();
-    for (let i = 0; i < 20; i++) {
-      expect(await ask(d, `user-${i}`, `+1555555${String(1000 + i)}`, '203.0.113.7')).toEqual({
-        sent: true,
-      });
+    for (let i = 0; i < 10; i++) {
+      const ip = `2001:db8:abcd:12::${(i + 1).toString(16)}`;
+      expect(await ask(d, `user-${i}`, num(i), ip)).toEqual({ sent: true });
     }
-    expect(await ask(d, 'user-x', '+15555552000', '203.0.113.7')).toMatchObject({
+    expect(await ask(d, 'user-x', num(50), '2001:db8:abcd:12:ffff::9')).toMatchObject({
       reason: 'too-many',
     });
-    expect(await ask(d, 'user-x', '+15555552000', '198.51.100.9')).toEqual({ sent: true });
+    expect(await ask(d, 'user-y', num(51), '2001:db8:abcd:13::1')).toEqual({ sent: true }); // another /64
+    expect(ipBucket('2001:0db8:abcd:0012:0000:0000:0000:0001')).toBe('2001:db8:abcd:12::/64');
+    expect(ipBucket('::ffff:203.0.113.7')).toBe('203.0.113.7');
   });
 
-  it('a global cap opens the circuit (logged as an error) before any send', async () => {
+  it('the global breaker alerts at 500 an hour and refuses only at 2000', async () => {
     const { d, store } = deps();
     store.set(
       'global',
-      Array.from({ length: 500 }, () => new Date(START - 1000).toISOString())
+      Array.from({ length: 499 }, () => new Date(START - 1000).toISOString())
     );
     logged.errors.length = 0;
-    expect(await ask(d)).toEqual({ sent: false, reason: 'unavailable' });
-    expect(d.send).not.toHaveBeenCalled();
-    expect(logged.errors.some(([, msg]) => String(msg).includes('global hourly cap'))).toBe(true);
-  });
-
-  it('a number that sent STOP: quiet, no code made, nothing sent', async () => {
-    const stopped = phoneHash(N, ENV);
-    const { d } = deps({ isOptedOut: vi.fn(async (h: string) => h === stopped) });
-    const make = makeCode();
-    expect(await textVerificationCode('uid-1', N, make, d)).toEqual({
-      sent: false,
-      reason: 'quiet',
-    });
-    expect(make).not.toHaveBeenCalled();
-    expect(d.send).not.toHaveBeenCalled();
+    expect(await ask(d)).toEqual({ sent: true }); // the 500th: alert, still sent
+    expect(logged.errors.some(([, msg]) => String(msg).includes('global hourly volume high'))).toBe(
+      true
+    );
+    const many = (n: number) =>
+      Array.from({ length: n }, () => new Date(START - 1000).toISOString());
+    store.set('global', many(1000));
+    expect(await ask(d, 'uid-3', num(4))).toEqual({ sent: true }); // past the alert, under the ceiling
+    store.set('global', many(2000));
+    expect(await ask(d, 'uid-2', num(3))).toEqual({ sent: false, reason: 'unavailable' });
+    expect(logged.errors.some(([, msg]) => String(msg).includes('global hourly ceiling'))).toBe(
+      true
+    );
+    expect(d.send).toHaveBeenCalledTimes(2);
   });
 
   it('without the hash secret (STOP unreadable) nothing goes', async () => {

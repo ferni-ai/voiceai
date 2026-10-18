@@ -2,34 +2,29 @@
  * Texts a phone-verification code to the number being verified. That number
  * is not verified yet (that's the point), so the guarded sender's
  * verified-phone rule can't apply; the code goes straight to it over the same
- * transport, after these checks:
+ * transport. North American numbers only (call-retry's toE164), against SMS
+ * pumping. Everything else is decided in ONE Firestore transaction, in order:
  *
- * - North American numbers only (call-retry's toE164), against SMS pumping;
- * - never a number that sent STOP (the global opt-out every inbound STOP writes);
- * - limits, checked and recorded in ONE Firestore transaction before any send:
- *   per user 1 a minute and 5 an hour, per (user, number) pair 3 an hour, per IP 20 an
- *   hour, and 500 an hour across everyone (a circuit breaker, logged as an
- *   error). Someone else hammering a number never uses up its owner's budget;
- *   20 a day to one number only raises an alert.
+ * 1. the requester's own limits, per user (1 a minute, 5 an hour) and per IP
+ *    (10 an hour; IPv6 grouped by /64), refused with a specific answer;
+ * 2. the global breaker: alert at 500 codes an hour, refuse at 2000;
+ * 3. the attempt is recorded in the user and IP buckets, whatever comes next,
+ *    so probing other numbers costs the prober's own budget;
+ * 4. the number's side: it sent STOP (the global opt-out every inbound STOP
+ *    writes), or it is over its hard limit across all users (1 a minute,
+ *    10 an hour, against bombing), or over the (user, number) pair limit
+ *    (3 an hour). Any of these is 'quiet': answered exactly like a send, with
+ *    the same work done (a code is made), and nothing is texted;
+ * 5. otherwise every bucket records the send; 20 a day to one number alerts.
  *
- * A refusal that depends on someone else's state (their STOP, the pair limit)
- * is 'quiet': the caller answers it like a send, so it can't be used to learn
- * whether a number opted out. The code and the full number are never logged:
- * last four digits only.
+ * The code and the full number are never logged: last four digits only.
  *
  * @module services/outreach/verification-text
  */
 import { createHmac } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { toE164 } from './call-retry.js';
-import {
-  checkinDb,
-  firestoreReplyStore,
-  last4,
-  phoneHash,
-  phoneHashKey,
-  type Env,
-} from './checkin-replies.js';
+import { checkinDb, last4, OPTOUTS, phoneHash, phoneHashKey, type Env } from './checkin-replies.js';
 import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
 import { defaultTextDeps, redactNumbers } from './guarded-text.js';
 
@@ -39,39 +34,39 @@ const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
-/** Per key kind: the window it keeps, the least gap, the most in that window. */
+/** Per bucket: the window it keeps, the least gap, the most in that window. */
 export const LIMITS = {
   user: { windowMs: HOUR, gapMs: MIN, max: 5 },
+  ip: { windowMs: HOUR, gapMs: 0, max: 10 },
   pair: { windowMs: HOUR, gapMs: MIN, max: 3 },
-  ip: { windowMs: HOUR, gapMs: 0, max: 20 },
-  global: { windowMs: HOUR, gapMs: 0, max: 500 },
-  /** Alert only: never refuses, so nobody can lock a number out. */
-  phone: { windowMs: DAY, gapMs: 0, max: 20 },
+  phone: { windowMs: HOUR, gapMs: MIN, max: 10 },
+  /** Alert only. */
+  phoneDay: { windowMs: DAY, gapMs: 0, max: 20 },
+  /** Refuses here; alerts from GLOBAL_ALERT. */
+  global: { windowMs: HOUR, gapMs: 0, max: 2000 },
 } as const;
-type Kind = keyof typeof LIMITS;
-type Refused = 'too-soon' | 'too-many' | 'pair-limit' | 'ip-limit' | 'global-limit';
-interface Verdict {
-  refusal: Refused | null;
-  /** The number's own daily alert threshold is reached (never a refusal). */
-  alert: boolean;
-}
+export const GLOBAL_ALERT = 500;
+type Bucket = keyof typeof LIMITS;
 
 export const codeText = (code: string): string =>
   `Your Ferni code is ${code}. It expires in 10 minutes.`;
 
-/** 'quiet': refused for a reason about someone else; answer it like a send, send nothing. */
+/** 'quiet': refused for a reason about the number; answer it like a send, send nothing. */
 export type CodeRefusal = 'invalid-number' | 'unavailable' | 'too-soon' | 'too-many' | 'quiet';
 export type CodeOutcome = { sent: true } | { sent: false; reason: CodeRefusal | 'send-failed' };
 
-/** Reads the keys' recent send times, decides, and writes `write` back, all atomically. */
+/** Reads the buckets and the number's opt-out, decides, and writes `write` back, atomically. */
 export type Atomically = <T>(
   keys: string[],
-  decide: (recent: Record<string, string[]>) => { result: T; write?: Record<string, string[]> }
+  optOutHash: string,
+  decide: (
+    recent: Record<string, string[]>,
+    optedOut: boolean
+  ) => { result: T; write?: Record<string, string[]> }
 ) => Promise<T>;
 
 export interface CodeTextDeps {
   env: Env;
-  isOptedOut: (phoneHash: string) => Promise<boolean>;
   atomically: Atomically;
   send: (message: SMSMessage) => Promise<SMSDeliveryResult>;
   now: () => Date;
@@ -91,13 +86,16 @@ interface TxDb {
   ): Promise<T>;
 }
 
-/** Atomically over Firestore: every read through the transaction, every write in its commit. */
+/** Atomically over Firestore: every read (opt-out too) through the transaction, writes in its commit. */
 export const firestoreAtomically =
   (db: () => TxDb): Atomically =>
-  (keys, decide) =>
+  (keys, optOutHash, decide) =>
     db().runTransaction(async (tx) => {
       const refs = keys.map((k) => db().collection(SENDS).doc(k));
-      const docs = await Promise.all(refs.map((ref) => tx.get(ref)));
+      const [optOut, ...docs] = await Promise.all([
+        tx.get(db().collection(OPTOUTS).doc(optOutHash)),
+        ...refs.map((ref) => tx.get(ref)),
+      ]);
       const recent: Record<string, string[]> = {};
       docs.forEach((d, i) => {
         const at: unknown = d.exists ? d.data()?.sentAt : undefined;
@@ -105,7 +103,7 @@ export const firestoreAtomically =
           ? at.filter((t): t is string => typeof t === 'string')
           : [];
       });
-      const { result, write } = decide(recent);
+      const { result, write } = decide(recent, optOut.exists);
       for (const [key, sentAt] of Object.entries(write ?? {})) {
         tx.set(refs[keys.indexOf(key)], { sentAt });
       }
@@ -114,21 +112,49 @@ export const firestoreAtomically =
 
 export const defaultCodeTextDeps = (): CodeTextDeps => ({
   env: process.env,
-  isOptedOut: (hash) => firestoreReplyStore.isOptedOut(hash),
   atomically: firestoreAtomically(() => checkinDb() as unknown as TxDb),
   send: defaultTextDeps().send, // the guarded sender's transport (Twilio via sms-delivery)
   now: () => new Date(),
 });
 
+/** The IP bucket: IPv4 as is (also when mapped into IPv6), IPv6 by its /64 (one host's usual share). */
+export function ipBucket(ip: string): string {
+  const v = ip
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '')
+    .split('%')[0];
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(v);
+  if (mapped) return mapped[1];
+  if (!v.includes(':')) return v;
+  const [head, tail] = v.split('::');
+  const h = head ? head.split(':') : [];
+  const t = tail ? tail.split(':') : [];
+  const groups =
+    tail === undefined ? h : [...h, ...Array<string>(8 - h.length - t.length).fill('0'), ...t];
+  return `${groups
+    .slice(0, 4)
+    .map((g) => g.replace(/^0+(?=.)/, '') || '0')
+    .join(':')}::/64`;
+}
+
 const ipKey = (ip: string, env: Env): string | null => {
   const key = phoneHashKey(env);
-  return key ? createHmac('sha256', key).update(`verify-ip/v1:${ip}`).digest('hex') : null;
+  return key
+    ? createHmac('sha256', key)
+        .update(`verify-ip/v1:${ipBucket(ip)}`)
+        .digest('hex')
+    : null;
 };
 
+type Verdict =
+  | { kind: 'send'; alerts: string[] }
+  | { kind: 'quiet'; why: string }
+  | { kind: 'refuse'; reason: 'too-soon' | 'too-many' | 'unavailable'; why: string };
+
 /**
- * Texts the code `makeCode` stores for this number, if allowed. `makeCode`
- * runs only after every check passes and the send is reserved, so a refused
- * request leaves no code behind. Sent only when the provider accepted it.
+ * Texts the code `makeCode` stores for this number, if allowed (see the module
+ * doc for the order). Sent only when the provider accepted it.
  */
 export async function textVerificationCode(
   userId: string,
@@ -146,65 +172,80 @@ export async function textVerificationCode(
   if (!phone) return refuse('invalid-number');
   // No hash secret: STOP and the limits can't be checked, so nothing goes.
   const hash = phoneHash(phone, deps.env);
-  const ipHash = ip ? ipKey(ip, deps.env) : null;
   if (!hash) return refuse('unavailable');
-  if (await deps.isOptedOut(hash)) return refuse('quiet', 'opted-out');
+  const ipHash = ip ? ipKey(ip, deps.env) : null;
 
-  const keyOf: Partial<Record<Kind, string>> = {
+  const keyOf: Partial<Record<Bucket, string>> = {
     user: `user:${userId}`,
-    pair: `pair:${userId}:${hash}`,
-    global: 'global',
-    phone: `phone:${hash}`,
     ...(ipHash && { ip: `ip:${ipHash}` }),
+    pair: `pair:${userId}:${hash}`,
+    phone: `phone:${hash}`,
+    phoneDay: `phone-day:${hash}`,
+    global: 'global',
   };
-  const kinds = Object.keys(keyOf) as Kind[];
+  const buckets = Object.keys(keyOf) as Bucket[];
   const now = deps.now().getTime();
   const at = new Date(now).toISOString();
+
   const verdict = await deps.atomically<Verdict>(
-    kinds.map((k) => keyOf[k] as string),
-    (recent): { result: Verdict; write?: Record<string, string[]> } => {
-      const kept = {} as Record<Kind, string[]>;
-      for (const k of kinds) {
-        const all = recent[keyOf[k] as string] ?? [];
-        kept[k] = all.filter((t) => now - Date.parse(t) < LIMITS[k].windowMs);
+    buckets.map((b) => keyOf[b] as string),
+    hash,
+    (recent, optedOut) => {
+      const kept = {} as Record<Bucket, string[]>;
+      for (const b of buckets) {
+        const all = recent[keyOf[b] as string] ?? [];
+        kept[b] = all.filter((t) => now - Date.parse(t) < LIMITS[b].windowMs);
       }
-      const over = (k: Kind) => kept[k] !== undefined && kept[k].length >= LIMITS[k].max;
-      const soon = (k: Kind) => kept[k]?.some((t) => now - Date.parse(t) < LIMITS[k].gapMs);
-      const refusal: Refused | null = soon('user')
-        ? 'too-soon'
-        : over('user')
-          ? 'too-many'
+      const over = (b: Bucket) => kept[b] !== undefined && kept[b].length >= LIMITS[b].max;
+      const soon = (b: Bucket) =>
+        kept[b]?.some((t) => now - Date.parse(t) < LIMITS[b].gapMs) === true;
+      const record = (bs: Bucket[]) =>
+        Object.fromEntries(
+          bs.filter((b) => kept[b]).map((b) => [keyOf[b] as string, [...kept[b], at]])
+        );
+      // 1-2. The requester's own limits and the breaker: nothing about the number yet.
+      if (soon('user')) return { result: { kind: 'refuse', reason: 'too-soon', why: 'user-gap' } };
+      if (over('user')) return { result: { kind: 'refuse', reason: 'too-many', why: 'user-hour' } };
+      if (over('ip')) return { result: { kind: 'refuse', reason: 'too-many', why: 'ip-hour' } };
+      if (over('global')) {
+        return { result: { kind: 'refuse', reason: 'unavailable', why: 'global-ceiling' } };
+      }
+      // 3-4. Recorded against the requester first; then the number's side, answered quietly.
+      const quiet = optedOut
+        ? 'opted-out'
+        : soon('phone') || over('phone')
+          ? 'number-limit'
           : soon('pair') || over('pair')
             ? 'pair-limit'
-            : over('ip')
-              ? 'ip-limit'
-              : over('global')
-                ? 'global-limit'
-                : null;
-      if (refusal) return { result: { refusal, alert: false } };
-      const write = Object.fromEntries(kinds.map((k) => [keyOf[k] as string, [...kept[k], at]]));
-      return { result: { refusal: null, alert: over('phone') }, write };
+            : null;
+      if (quiet) return { result: { kind: 'quiet', why: quiet }, write: record(['user', 'ip']) };
+      // 5. A send: every bucket records it.
+      const alerts = [
+        ...(kept.phoneDay.length + 1 >= LIMITS.phoneDay.max ? ['number-day'] : []),
+        ...(kept.global.length + 1 >= GLOBAL_ALERT ? ['global'] : []),
+      ];
+      return { result: { kind: 'send', alerts }, write: record(buckets) };
     }
   );
-  if (verdict.refusal === 'too-soon' || verdict.refusal === 'too-many')
-    return refuse(verdict.refusal);
-  if (verdict.refusal === 'pair-limit') return refuse('quiet', 'pair-limit');
-  if (verdict.refusal === 'ip-limit') return refuse('too-many', 'ip-limit');
-  if (verdict.refusal === 'global-limit') {
-    log.error(
-      { limit: LIMITS.global.max },
-      'Verification codes: global hourly cap hit (circuit open)'
-    );
-    return refuse('unavailable', 'global-limit');
+
+  if (verdict.kind === 'refuse') {
+    if (verdict.why === 'global-ceiling') {
+      log.error({ ceiling: LIMITS.global.max }, 'Verification codes: global hourly ceiling hit');
+    }
+    return refuse(verdict.reason, verdict.why);
   }
-  // Many codes to one number in a day: alert, never refuse (that would let anyone lock it out).
-  if (verdict.alert)
+  // The same work either way (a code is made); only a send texts it.
+  const code = await makeCode(phone);
+  if (verdict.kind === 'quiet') return refuse('quiet', verdict.why);
+  if (verdict.alerts.includes('number-day')) {
     log.error(
-      { phoneLast4, perDay: LIMITS.phone.max },
+      { phoneLast4, perDay: LIMITS.phoneDay.max },
       'Verification codes: one number asked for often'
     );
-
-  const code = await makeCode(phone);
+  }
+  if (verdict.alerts.includes('global')) {
+    log.error({ alertAt: GLOBAL_ALERT }, 'Verification codes: global hourly volume high');
+  }
   const result = await deps.send({
     to: phone,
     body: codeText(code),

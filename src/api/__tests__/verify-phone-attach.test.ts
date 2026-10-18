@@ -58,6 +58,7 @@ vi.mock('../../tools/domains/proactive/outreach/index.js', () => ({ textUser }))
 const sms = vi.hoisted(() => ({
   send: vi.fn(async (_m: { to: string; body: string }) => ({ success: true, messageSid: 'SM1' })),
   optedOut: false,
+  ips: [] as (string | undefined)[],
 }));
 vi.mock('../../services/outreach/verification-text.js', async (importOriginal) => {
   const real =
@@ -65,13 +66,17 @@ vi.mock('../../services/outreach/verification-text.js', async (importOriginal) =
   const sends = new Map<string, string[]>();
   const deps = {
     env: { LOG_HASH_SECRET: 'test-secret' },
-    isOptedOut: async () => sms.optedOut,
     atomically: async <T>(
       keys: string[],
-      decide: (r: Record<string, string[]>) => { result: T; write?: Record<string, string[]> }
+      _optOutHash: string,
+      decide: (
+        r: Record<string, string[]>,
+        optedOut: boolean
+      ) => { result: T; write?: Record<string, string[]> }
     ) => {
       const { result, write } = decide(
-        Object.fromEntries(keys.map((k) => [k, sends.get(k) ?? []]))
+        Object.fromEntries(keys.map((k) => [k, sends.get(k) ?? []])),
+        sms.optedOut
       );
       for (const [k, v] of Object.entries(write ?? {})) sends.set(k, v);
       return result;
@@ -81,9 +86,16 @@ vi.mock('../../services/outreach/verification-text.js', async (importOriginal) =
   };
   return {
     ...real,
-    textVerificationCode: (u: string, p: string, make: (e: string) => Promise<string>) => {
+    textVerificationCode: (
+      u: string,
+      p: string,
+      make: (e: string) => Promise<string>,
+      _deps: unknown,
+      ip?: string
+    ) => {
       sends.clear();
-      return real.textVerificationCode(u, p, make, deps);
+      sms.ips.push(ip);
+      return real.textVerificationCode(u, p, make, deps, ip);
     },
   };
 });
@@ -134,6 +146,20 @@ describe('asking for a phone code', () => {
       })
     );
     expect(textUser).not.toHaveBeenCalled();
+  });
+
+  it("limits the caller's IP: the route passes the client address", async () => {
+    sms.ips.length = 0;
+    await fetch(`${base}/api/outreach/verify-phone`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer tok-A',
+        'x-forwarded-for': '203.0.113.9',
+      },
+      body: JSON.stringify({ phone: MINE }),
+    });
+    expect(sms.ips).toEqual(['203.0.113.9']);
   });
 
   it('a number that sent STOP gets the same answer as a send, and nothing is sent', async () => {
