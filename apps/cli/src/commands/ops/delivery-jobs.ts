@@ -89,5 +89,15 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
       retryCount: 0,
       timeout: '180s',
     },
+    {
+      name: 'waitlist-wave',
+      description: 'Let the next waitlist wave in, Mon and Thu (WAITLIST_WAVES)',
+      schedule: '0 17 * * 1,4',
+      timezone: 'Etc/UTC',
+      uri: `${uiServerUrl}/api/jobs/waitlist-wave`,
+      httpMethod: 'POST',
+      retryCount: 1,
+      timeout: '300s',
+    },
   ];
 }
