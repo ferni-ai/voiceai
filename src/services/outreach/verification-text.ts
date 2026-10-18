@@ -12,16 +12,21 @@
  *    so probing other numbers costs the prober's own budget;
  * 4. the number's side: it sent STOP (the global opt-out every inbound STOP
  *    writes), or it is over its hard limit across all users (1 a minute,
- *    10 an hour, against bombing), or over the (user, number) pair limit
- *    (3 an hour). Any of these is 'quiet': answered exactly like a send, with
- *    the same work done (a code is made), and nothing is texted;
+ *    10 an hour, against bombing; a pair's first request in the hour is exempt,
+ *    so a stranger spamming a number can't lock its owner out), or over the
+ *    (user, number) pair limit (3 an hour). Any of these is 'quiet': answered
+ *    exactly like a send, and NO code is stored (a throwaway is generated for
+ *    the timing), so nothing confirmable exists for a number we never texted;
  * 5. otherwise every bucket records the send; 20 a day to one number alerts.
+ *
+ * Confirming is capped per number too (reserveConfirmTry): 5 tries an hour
+ * across all users, whether or not a text went out.
  *
  * The code and the full number are never logged: last four digits only.
  *
  * @module services/outreach/verification-text
  */
-import { createHmac } from 'node:crypto';
+import { createHmac, randomInt } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { toE164 } from './call-retry.js';
 import { checkinDb, last4, OPTOUTS, phoneHash, phoneHashKey, type Env } from './checkin-replies.js';
@@ -211,9 +216,11 @@ export async function textVerificationCode(
         return { result: { kind: 'refuse', reason: 'unavailable', why: 'global-ceiling' } };
       }
       // 3-4. Recorded against the requester first; then the number's side, answered quietly.
+      // A pair's first request this hour skips the number's cross-user limit (no owner lockout).
+      const firstForPair = kept.pair.length === 0;
       const quiet = optedOut
         ? 'opted-out'
-        : soon('phone') || over('phone')
+        : !firstForPair && (soon('phone') || over('phone'))
           ? 'number-limit'
           : soon('pair') || over('pair')
             ? 'pair-limit'
@@ -234,9 +241,14 @@ export async function textVerificationCode(
     }
     return refuse(verdict.reason, verdict.why);
   }
-  // The same work either way (a code is made); only a send texts it.
+  if (verdict.kind === 'quiet') {
+    // Never store a code for a number we didn't text: it could be guessed at /confirm.
+    // A throwaway keeps the work similar; the requester's own code is left as it is.
+    void randomInt(100000, 1000000);
+    log.warn({ reason: verdict.why, phoneLast4 }, 'Verification code refused quietly');
+    return { sent: false, reason: 'quiet' };
+  }
   const code = await makeCode(phone);
-  if (verdict.kind === 'quiet') return refuse('quiet', verdict.why);
   if (verdict.alerts.includes('number-day')) {
     log.error(
       { phoneLast4, perDay: LIMITS.phoneDay.max },
@@ -259,4 +271,31 @@ export async function textVerificationCode(
   }
   log.info({ phoneLast4 }, 'Verification code sent');
   return { sent: true };
+}
+
+/** Confirm tries per number, across users, sent or not. */
+export const CONFIRM_TRIES = { windowMs: HOUR, max: 5 } as const;
+
+/**
+ * Reserves one confirm try for the number a pending code is for: 'locked' once
+ * it has had CONFIRM_TRIES.max tries this hour (from anyone), so guessing a
+ * code across accounts is capped. Atomic like the send limits.
+ */
+export async function reserveConfirmTry(
+  rawPhone: string,
+  deps: CodeTextDeps = defaultCodeTextDeps()
+): Promise<'ok' | 'locked' | 'unavailable'> {
+  const phone = toE164(rawPhone);
+  const hash = phone ? phoneHash(phone, deps.env) : null;
+  if (!hash) return 'unavailable';
+  const key = `confirm:${hash}`;
+  const now = deps.now().getTime();
+  const verdict = await deps.atomically<'ok' | 'locked'>([key], hash, (recent) => {
+    const kept = (recent[key] ?? []).filter((t) => now - Date.parse(t) < CONFIRM_TRIES.windowMs);
+    if (kept.length >= CONFIRM_TRIES.max) return { result: 'locked' };
+    return { result: 'ok', write: { [key]: [...kept, new Date(now).toISOString()] } };
+  });
+  if (verdict === 'locked')
+    log.warn({ phoneLast4: last4(phone ?? '') }, 'Confirm tries capped for a number');
+  return verdict;
 }

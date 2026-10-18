@@ -20,10 +20,15 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { attachVerifiedPhone } from '../services/identity/firebase-auth.js';
 import {
   createVerificationCode,
+  getVerificationStatus,
   verifyCode,
 } from '../services/trust-and-identity/verification-store.js';
 import { redactNumbers } from '../services/outreach/guarded-text.js';
-import { textVerificationCode, type CodeOutcome } from '../services/outreach/verification-text.js';
+import {
+  reserveConfirmTry,
+  textVerificationCode,
+  type CodeOutcome,
+} from '../services/outreach/verification-text.js';
 import { getClientIp } from '../utils/client-ip.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { claimedUserFor } from './acting-user.js';
@@ -103,6 +108,15 @@ export async function handleVerifyPhone(
   }
 
   try {
+    // Tries are capped per number (the one the pending code went to), across users.
+    const pendingFor = (await getVerificationStatus(userId))?.phone;
+    if (pendingFor && (await reserveConfirmTry(pendingFor)) !== 'ok') {
+      sendJsonResponse(res, 429, {
+        success: false,
+        error: 'Too many tries for that number. Ask for a new code in an hour.',
+      });
+      return;
+    }
     const result = await verifyCode(userId, body.code ?? '');
     if (!result.valid) {
       const error = CODE_ERRORS[result.reason] ?? 'Verification failed';

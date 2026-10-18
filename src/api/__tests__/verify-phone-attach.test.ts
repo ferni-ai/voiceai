@@ -44,6 +44,10 @@ vi.mock('../../services/trust-and-identity/verification-store.js', () => ({
     fake.codes.set(userId, { phone, code: '123456', verified: false });
     return { code: '123456', expiresAt: new Date() };
   }),
+  getVerificationStatus: vi.fn(async (userId: string) => {
+    const stored = fake.codes.get(userId);
+    return stored ? { hasPendingCode: true, phone: stored.phone } : null;
+  }),
   verifyCode: vi.fn(async (userId: string, code: string) => {
     const stored = fake.codes.get(userId);
     if (!stored) return { valid: false, reason: 'not_found' };
@@ -59,11 +63,12 @@ const sms = vi.hoisted(() => ({
   send: vi.fn(async (_m: { to: string; body: string }) => ({ success: true, messageSid: 'SM1' })),
   optedOut: false,
   ips: [] as (string | undefined)[],
+  sends: new Map<string, string[]>(),
 }));
 vi.mock('../../services/outreach/verification-text.js', async (importOriginal) => {
   const real =
     await importOriginal<typeof import('../../services/outreach/verification-text.js')>();
-  const sends = new Map<string, string[]>();
+  const sends = sms.sends;
   const deps = {
     env: { LOG_HASH_SECRET: 'test-secret' },
     atomically: async <T>(
@@ -86,6 +91,7 @@ vi.mock('../../services/outreach/verification-text.js', async (importOriginal) =
   };
   return {
     ...real,
+    reserveConfirmTry: (phone: string) => real.reserveConfirmTry(phone, deps),
     textVerificationCode: (
       u: string,
       p: string,
@@ -93,7 +99,7 @@ vi.mock('../../services/outreach/verification-text.js', async (importOriginal) =
       _deps: unknown,
       ip?: string
     ) => {
-      sends.clear();
+      for (const k of [...sends.keys()]) if (!k.startsWith('confirm:')) sends.delete(k);
       sms.ips.push(ip);
       return real.textVerificationCode(u, p, make, deps, ip);
     },
@@ -123,6 +129,7 @@ afterAll(
 beforeEach(() => {
   fake.phones.clear();
   fake.codes.clear();
+  sms.sends.clear();
   vi.clearAllMocks();
 });
 
@@ -160,6 +167,30 @@ describe('asking for a phone code', () => {
       body: JSON.stringify({ phone: MINE }),
     });
     expect(sms.ips).toEqual(['203.0.113.9']);
+  });
+
+  it('a quiet refusal stores no code, so confirming that number fails', async () => {
+    sms.optedOut = true;
+    await post('/verify-phone', { phone: MINE }, 'tok-A');
+    sms.optedOut = false;
+    expect(fake.codes.has('uid-A')).toBe(false);
+    const res = await post('/verify-phone/confirm', { phone: MINE, code: '123456' }, 'tok-A');
+    expect(res.status).toBe(400);
+    expect(fake.phones.get('uid-A')).toBeUndefined();
+  });
+
+  it('confirm tries are capped per number: the sixth try in the hour is refused, even a right one', async () => {
+    await post('/verify-phone', { phone: '+15555550177' }, 'tok-A');
+    for (let i = 0; i < 5; i++) {
+      await post('/verify-phone/confirm', { phone: '+15555550177', code: '000000' }, 'tok-A');
+    }
+    const res = await post(
+      '/verify-phone/confirm',
+      { phone: '+15555550177', code: '123456' },
+      'tok-A'
+    );
+    expect(res.status).toBe(429);
+    expect(fake.phones.get('uid-A')).toBeUndefined();
   });
 
   it('a number that sent STOP gets the same answer as a send, and nothing is sent', async () => {
