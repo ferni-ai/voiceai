@@ -58,3 +58,43 @@ export interface ErrandStore {
   /** The errand's log, oldest first. */
   events: (userId: string, id: string) => Promise<ErrandEvent[]>;
 }
+
+/** The lease a runner holds on one effect. */
+export interface EffectLease {
+  readonly userId: string;
+  readonly errandId: string;
+  readonly idemKey: string;
+  readonly leaseId: string;
+}
+
+export type Claim =
+  /** Run it. `recovered` when a dead runner's lease ran out on an effect safe to repeat. */
+  | {
+      readonly type: 'claimed';
+      readonly lease: EffectLease;
+      readonly effect: OutboxEffect;
+      readonly recovered: boolean;
+    }
+  /** It may already have reached someone: look it up with the provider before anything else. */
+  | {
+      readonly type: 'needs_provider_check';
+      readonly lease: EffectLease;
+      readonly effect: OutboxEffect;
+    }
+  | { readonly type: 'none' };
+
+/** errands/{id}/effects: runners lease, finish and fail effects here (stores/errand-outbox.ts). */
+export interface EffectOutbox {
+  /** Takes one runnable effect under a lease of `leaseMs`, or none. Only one claimer wins. */
+  claimEffect: (now: Date, leaseMs: number) => Promise<Claim>;
+  /** Saves the provider's id the moment it exists, and renews the lease (long calls). */
+  recordProviderRef: (
+    lease: EffectLease,
+    providerRef: string,
+    now: Date,
+    leaseMs: number
+  ) => Promise<boolean>;
+  completeEffect: (lease: EffectLease, providerRef: string | null, now: Date) => Promise<boolean>;
+  /** Back to pending after its backoff when `error` is retryable and attempts remain, else failed. */
+  failEffect: (lease: EffectLease, error: string, now: Date) => Promise<boolean>;
+}
