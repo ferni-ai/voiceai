@@ -56,9 +56,8 @@ struct HomeView: View {
             .fullScreenCover(isPresented: $model.isAskingConsent) {
                 ConsentView(
                     onAgree: {
-                        model.consent.agree()
                         model.isAskingConsent = false
-                        model.call.start()
+                        Task { await model.agreeAndTalk() }
                     },
                     onNotNow: { model.isAskingConsent = false }
                 )

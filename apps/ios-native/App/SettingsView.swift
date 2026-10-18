@@ -11,7 +11,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                AccountSection(account: model.account)
+                AccountSection(account: model.account, signOut: model.signOut)
                 PrivacySection(consent: model.consent)
                 Section("About") {
                     LabeledContent("Version", value: Self.version)
@@ -43,6 +43,7 @@ struct SettingsView: View {
 /// Who you are to Ferni, and the upgrade from "this phone" to "you, anywhere".
 private struct AccountSection: View {
     let account: AccountStore
+    let signOut: () async -> Void
     @Environment(\.colorScheme) private var colorScheme
     @State private var nonce = AppleNonce()
     @State private var confirmingSignOut = false
@@ -89,7 +90,7 @@ private struct AccountSection: View {
             Text("Account")
         }
         .confirmationDialog("Sign out?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
-            Button("Sign out", role: .destructive) { Task { await account.signOut() } }
+            Button("Sign out", role: .destructive) { Task { await signOut() } }
         } message: {
             Text("Ferni will start fresh on this phone until you sign in again.")
         }
