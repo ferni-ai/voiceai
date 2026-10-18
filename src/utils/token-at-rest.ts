@@ -41,7 +41,7 @@ export function sealTokensForMerge<T>(tokens: T): Record<string, unknown> {
 
 /** True when a stored record still holds a plaintext token. */
 export function isPlaintextTokenRecord(stored: unknown): boolean {
-  if (!stored || typeof stored !== 'object') return false;
+  if (stored === null || typeof stored !== 'object') return false;
   const record = stored as Record<string, unknown>;
   return PLAINTEXT_TOKEN_KEYS.some((k) => typeof record[k] === 'string' && record[k] !== '');
 }
@@ -52,7 +52,7 @@ export function isPlaintextTokenRecord(stored: unknown): boolean {
  * envelope cannot be decrypted.
  */
 export function openTokens<T>(stored: unknown): T | null {
-  if (!stored || typeof stored !== 'object') return null;
+  if (stored === null || typeof stored !== 'object') return null;
   const sealed = (stored as Partial<SealedTokens>).encrypted;
   if (typeof sealed !== 'string') {
     return isPlaintextTokenRecord(stored) ? (stored as T) : null;
@@ -60,6 +60,6 @@ export function openTokens<T>(stored: unknown): T | null {
   const opened = decryptData<T>(sealed);
   // decryptData falls back to JSON.parse on a bad key, which yields the
   // envelope itself rather than tokens.
-  if (!opened || (opened as { encrypted?: unknown }).encrypted === true) return null;
+  if (opened === null || (opened as { encrypted?: unknown }).encrypted === true) return null;
   return opened;
 }

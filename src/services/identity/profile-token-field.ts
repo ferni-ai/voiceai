@@ -17,7 +17,7 @@ const USERS_COLLECTION = 'bogle_users';
 const NOT_FOUND = 5; // gRPC status for update() on a missing document
 
 interface FirestoreBackedStore {
-  getDatabase(): Promise<Firestore>;
+  getDatabase: () => Promise<Firestore>;
 }
 
 function isFirestoreBacked(store: object): store is FirestoreBackedStore {

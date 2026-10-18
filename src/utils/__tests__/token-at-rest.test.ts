@@ -7,7 +7,11 @@ import {
   sealTokensForMerge,
 } from '../token-at-rest.js';
 
-const RAW = { access_token: 'fixture-access-abc123', refresh_token: 'fixture-refresh-xyz789', expires_at: 42 };
+const RAW = {
+  access_token: 'fixture-access-abc123',
+  refresh_token: 'fixture-refresh-xyz789',
+  expires_at: 42,
+};
 
 describe('token-at-rest', () => {
   const saved = process.env.OAUTH_ENCRYPTION_KEY;

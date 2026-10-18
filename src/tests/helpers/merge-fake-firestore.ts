@@ -30,7 +30,8 @@ function apply(target: Json, data: Json, deep: boolean): Json {
   for (const [k, v] of Object.entries(data)) {
     if (isDelete(v)) delete out[k];
     else if (deep && isMap(v) && isMap(out[k])) out[k] = apply(out[k] as Json, v, true);
-    else if (isMap(v)) out[k] = apply({}, v, true); // strip nested sentinels
+    else if (isMap(v))
+      out[k] = apply({}, v, true); // strip nested sentinels
     else out[k] = v;
   }
   return out;
@@ -46,18 +47,17 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
       id: path.split('/').pop() ?? '',
       exists: data !== undefined,
       data: () => (data ? structuredClone(data) : undefined),
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       ref: doc(path),
     };
   };
   function doc(path: string): {
     path: string;
     id: string;
-    get(): Promise<ReturnType<typeof snapshot>>;
-    set(data: Json, opts?: { merge?: boolean }): Promise<void>;
-    update(data: Json): Promise<void>;
-    delete(): Promise<void>;
-    collection(name: string): ReturnType<typeof collection>;
+    get: () => Promise<ReturnType<typeof snapshot>>;
+    set: (data: Json, opts?: { merge?: boolean }) => Promise<void>;
+    update: (data: Json) => Promise<void>;
+    delete: () => Promise<void>;
+    collection: (name: string) => ReturnType<typeof collection>;
   } {
     return {
       path,
@@ -94,7 +94,9 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
       const docs = paths()
         .filter((p) =>
           filters.every(([f]) => {
-            const v = f.split('.').reduce<unknown>((o, k) => (o as Json | undefined)?.[k], state.docs.get(p));
+            const v = f
+              .split('.')
+              .reduce<unknown>((o, k) => (o as Json | undefined)?.[k], state.docs.get(p));
             return v !== undefined && v !== null;
           })
         )
@@ -106,7 +108,9 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
     return {
       doc: (id: string) => doc(`${name}/${id}`),
       ...query(() =>
-        [...state.docs.keys()].filter((p) => p.startsWith(`${name}/`) && depth(p) === depth(name) + 1)
+        [...state.docs.keys()].filter(
+          (p) => p.startsWith(`${name}/`) && depth(p) === depth(name) + 1
+        )
       ),
     };
   }
