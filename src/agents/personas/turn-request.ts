@@ -31,7 +31,7 @@ import { teammateIdentityNote } from './teammate-identity.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
-import { retrievedTools } from './turn-request-tools.js';
+import { retrievedTools, withSameTurnTools } from './turn-request-tools.js';
 import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt-session.js';
@@ -132,7 +132,7 @@ export function withTurnReminder(
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   const style = turnStyleReminderEnabled()
-    ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
+    ? styleFor(chatCtx, session, options.shape !== false, state, answering)
     : undefined;
   noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
   // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
@@ -304,7 +304,7 @@ function styleFor(
   chatCtx: llm.ChatContext,
   session: object,
   shape: boolean,
-  ownStory?: boolean,
+  state: { ownStory?: boolean; brief?: boolean } = {},
   answering = false
 ): { text: string; turn?: TurnShape } {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
@@ -315,7 +315,7 @@ function styleFor(
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const told = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
+  const told = withRecent(withOwnStory(sig, said, state), said, chatCtx);
   const quiet = withQuiet(told, said, chatCtx);
   const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
   const troubled = withCallTrouble(session, said, shaped, source);
@@ -381,10 +381,12 @@ export function signalsFor(
 function withOwnStory(
   signals: TurnSignals | undefined,
   said: string,
-  ownStory: boolean | undefined
+  { ownStory, brief }: { ownStory?: boolean; brief?: boolean }
 ): TurnSignals | undefined {
   if (ownStory === undefined) return signals;
-  return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory };
+  // SELF_SHARE_WHEN_ASKED=on: asked about him, a short answer and no story (self-share-asked.ts).
+  const selfBrief = brief === true ? { selfBrief: true } : {};
+  return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory, ...selfBrief };
 }
 
 /**
@@ -428,6 +430,7 @@ export async function toolsForTurn(
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
   if (staticCoreToolsEnabled()) withPinnedTools(toolCtx, state.agent);
+  else withSameTurnTools(session, chatCtx, toolCtx); // TOOLS_SAME_TURN: this turn's topic tools
   const view = unlockViewFor(session.userData);
   const allowed = phoneOnlyIdentity(sessionIdOf(session.userData))
     ? await withoutAccountTools(toolCtx, state)

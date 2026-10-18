@@ -40,6 +40,7 @@ import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import { ferniThreadsOn, threadDetailFor } from './ferni-life-threads.js';
 import { dayDetailFor, isSelfShare, selfQuotes, soundsLow, turnsBack } from './ferni-self-share.js';
+import * as asked from './self-share-asked.js';
 import { callerVenting } from './turn-extras.js';
 import { hardNews } from './turn-candor.js';
 import { callerMove, taskTurn } from './turn-shape.js';
@@ -173,6 +174,8 @@ export interface SelfTurn {
   detail: string;
   /** A tool ran for this reply (it confirms or reports what was done). */
   toolRan?: boolean;
+  /** SELF_SHARE_WHEN_ASKED=on: his day only when asked, never on his first reply (self-share-asked.ts). */
+  askedOnly?: { firstReply: boolean; nextDetail: () => string | undefined };
 }
 
 /**
@@ -188,8 +191,8 @@ export const TASK_LINE =
  * The self-share line for this turn, and whether a story of his own may ride
  * this reply at all (turn-shape.ts reads it for its "second story" line).
  */
-export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean } {
-  const { replies, said, detail } = turn;
+export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean; brief?: boolean } {
+  const { replies, said, askedOnly } = turn;
   const last = replies[replies.length - 1] ?? '';
   const recent = replies.slice(-2).some(isSelfShare);
   const move = callerMove(said);
@@ -206,6 +209,13 @@ export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean 
     return { line: `${before}${TASK_LINE}`, ownStory: false };
   }
   if (move === 'about_ferni') {
+    const detail = askedOnly?.firstReply
+      ? undefined
+      : askedOnly
+        ? askedOnly.nextDetail()
+        : turn.detail;
+    const brief = askedOnly?.firstReply ? asked.FIRST_REPLY_ASKED : asked.ASKED_NO_DETAIL;
+    if (!detail) return { line: `[${[...lines, brief].join(' ')}]`, ownStory: false, brief: true };
     const told = selfQuotes(replies);
     const consistent = told.length
       ? ` You've said: ${told.map((q) => `"${q}"`).join(' ')} Stay consistent with it.`
@@ -215,6 +225,8 @@ export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean 
     );
     return { line: `[${lines.join(' ')}]`, ownStory: true };
   }
+  if (askedOnly)
+    return { line: `[${(lines.length ? lines : [asked.UNASKED]).join(' ')}]`, ownStory: false };
   // Early on, the call is theirs: nothing of his own until he has listened a
   // bit, and then at most one unasked share in any three replies.
   const early = replies.length < 2 || replies.slice(-3).some(isSelfShare);
@@ -230,7 +242,7 @@ export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean 
     return { line: `[${lines.join(' ')}]`, ownStory: false };
   }
   lines.push(
-    `If something of your own fits, it's from today (${detail}): one light sentence, then turn to them with a question about their world.`
+    `If something of your own fits, it's from today (${turn.detail}): one light sentence, then turn to them with a question about their world.`
   );
   return { line: `[${lines.join(' ')}]`, ownStory: !soundsLow(last) };
 }
@@ -261,6 +273,10 @@ interface CallState {
   lastToolRan?: boolean;
   /** The one good thing in his day this call (ferni-self-share.ts). */
   detail: string;
+  /** SELF_SHARE_WHEN_ASKED=on: the details this call may use and has used. */
+  asked?: asked.AskedRecord;
+  /** Whether the last note asked for a short answer about him, no story (turn-shape.ts). */
+  lastBrief?: boolean;
 }
 const calls = new WeakMap<object, CallState>();
 
@@ -329,6 +345,8 @@ function callFor(
       lastSelf: '',
       detail: detailFor(seed, now, view.userId, env),
     };
+    if (asked.selfShareWhenAskedOn(env))
+      call.asked = asked.askedRecordFor(seed, view.userId, call.detail);
     calls.set(session, call);
   }
   return call;
@@ -367,6 +385,8 @@ export interface StateTurn {
   last: string;
   /** Undefined when the state has no say (flag off, another persona, the caller needs him). */
   ownStory?: boolean;
+  /** SELF_SHARE_WHEN_ASKED=on: asked about him, but a short answer, not a story of his own. */
+  brief?: boolean;
 }
 
 /**
@@ -394,13 +414,13 @@ export function ferniStateTurn(
   const said = turns[turns.length - 1] ?? '';
   // The reply after a tool ran is a new request for the same words.
   const toolRan = callerTurn(chatCtx.items) === null;
-  if (said && said === call.lastSaid && toolRan === call.lastToolRan)
-    return { note: call.lastNote, last: call.lastSelf, ownStory: call.lastOwnStory };
+  if (said && said === call.lastSaid && toolRan === call.lastToolRan) return turnOf(call);
   call.lastSaid = said;
   call.lastToolRan = toolRan;
   call.lastNote = '';
   call.lastSelf = '';
   call.lastOwnStory = undefined;
+  call.lastBrief = undefined;
   const mood = understandingFor(session, said)?.mood;
   if (options.careful === true || callerNeedsHim(said, mood)) call.needed = true;
   if (call.needed) return quiet();
@@ -410,12 +430,24 @@ export function ferniStateTurn(
     said,
     detail: call.detail,
     toolRan,
+    askedOnly: call.asked && {
+      firstReply: turns.length <= 1,
+      nextDetail: () => (call.asked ? asked.nextDetail(call.asked) : undefined),
+    },
   });
   call.lastNote = [WELL, energy].filter(Boolean).join(' ');
   call.lastSelf = self.line;
   call.lastOwnStory = self.ownStory;
-  return { note: call.lastNote, last: call.lastSelf, ownStory: call.lastOwnStory };
+  call.lastBrief = self.brief;
+  return turnOf(call);
 }
+
+const turnOf = (c: CallState): StateTurn => ({
+  note: c.lastNote,
+  last: c.lastSelf,
+  ownStory: c.lastOwnStory,
+  brief: c.lastBrief,
+});
 
 /** The reminder text only (see ferniStateTurn). */
 export function ferniStateNote(
