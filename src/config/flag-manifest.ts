@@ -146,6 +146,8 @@ export const FLAG_MANIFEST = {
   FERNI_VOICE_EMOTION: { default: 'off', owner: 'voice', kind: 'config' },
   // unset: resting pace 1. A number, clamped to 0.85-1.2: Ferni's resting pace (same module)
   FERNI_VOICE_SPEED: { default: 'off', owner: 'voice', kind: 'config' },
+  // on: a first call's hello says who is calling, and "who are you?" gets a plain answer (greeting-direction.ts, first-call-rapport.ts)
+  FIRST_CALL_INTRO: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_DEFER_BACKGROUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
