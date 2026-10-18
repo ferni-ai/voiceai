@@ -18,6 +18,7 @@
 		761A16438630BC6B8CC02981 /* EndCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */; };
 		775B0EC80FED93D54BCEEF37 /* TalkIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */; };
 		7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974DF185A4FA58E1F08FD688 /* FerniApp.swift */; };
+		8008F255B971A496A174CC6F /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E0556D7156242BE3423D87 /* Notifications.swift */; };
 		9D3C3C27AA79ECED1768D30E /* EndCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */; };
 		A6EC64BC0F35C99AB84B8055 /* AudioRoutePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F678B752992C142D10FE5E /* AudioRoutePicker.swift */; };
 		B0638D9FFF8A35EDC5CD683B /* TalkControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = F76007C81E8DC1B134090AD5 /* TalkControl.swift */; };
@@ -74,6 +75,7 @@
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
 		41E550D3CF186D8D463FF66E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4E67B08698448132C9E2AE39 /* MemoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryViews.swift; sourceTree = "<group>"; };
+		58E0556D7156242BE3423D87 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		65555DCB199766EA982A43A3 /* FerniLive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniLive.swift; sourceTree = "<group>"; };
 		69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndCallIntent.swift; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 				B8C71781BAD997D314C08864 /* HomeView.swift */,
 				C643B5190988DED731CADF82 /* LiveActivityController.swift */,
 				4E67B08698448132C9E2AE39 /* MemoryViews.swift */,
+				58E0556D7156242BE3423D87 /* Notifications.swift */,
 				5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */,
 				A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */,
 				41E550D3CF186D8D463FF66E /* SettingsView.swift */,
@@ -334,6 +337,7 @@
 				27464AAE3E6286E2D651309D /* HomeView.swift in Sources */,
 				D1583676262D8254FE6C3D86 /* LiveActivityController.swift in Sources */,
 				CAAC14DD23372C8B957B3BAB /* MemoryViews.swift in Sources */,
+				8008F255B971A496A174CC6F /* Notifications.swift in Sources */,
 				E67FBA51E487A86BF76A408A /* ReportSheet.swift in Sources */,
 				B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */,
 				E88BB02A6FEC21AF520A766B /* TalkIntent.swift in Sources */,

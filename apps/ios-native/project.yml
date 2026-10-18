@@ -81,6 +81,8 @@ targets:
       path: App/Ferni.entitlements
       properties:
         com.apple.developer.applesignin: [Default]
+        # Notes from Ferni (APNs). Xcode switches it to production for TestFlight and the App Store.
+        aps-environment: development
     settings:
       base:
         PRODUCT_NAME: Ferni

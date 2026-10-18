@@ -5,6 +5,7 @@ import SwiftUI
 
 @main
 struct FerniApp: App {
+    @UIApplicationDelegateAdaptor(FerniAppDelegate.self) private var delegate
     @State private var model: AppModel
 
     init() {
@@ -27,6 +28,8 @@ struct FerniApp: App {
                 .task {
                     EndCallIntent.end = { [call = model.call] in await call.end() }
                     TalkIntent.handler = { [model] personaID in model.talk(to: personaID) }
+                    FerniAppDelegate.onToken = { [model] token in Task { await model.push.received(deviceToken: token) } }
+                    FerniAppDelegate.onTalk = { [model] in model.talk(to: model.team.chosen) }
                 }
                 .onChange(of: model.account.user?.uid, initial: true) { old, uid in
                     model.accountChanged(from: old, to: uid)
@@ -58,6 +61,7 @@ final class AppModel {
     let team: TeamStore
     let memory: MemoryStore
     let liveActivity = LiveActivityController()
+    let push: PushStore
     var isShowingSettings = false
     var isAskingConsent = false
     var isShowingCallMore = false
@@ -110,6 +114,7 @@ final class AppModel {
     /// Sign out: this person's agreement and everything shown about them leave
     /// the phone with them.
     func signOut() async {
+        await push.unregister() // while still signed in as them
         if let uid = account.user?.uid { consent.forget(uid: uid) }
         forgetPerson()
         await account.signOut()
@@ -120,7 +125,10 @@ final class AppModel {
         consent.use(uid: uid)
         guard old != nil, old != uid else { return } // first launch keeps what's loading
         forgetPerson()
-        Task { await team.refresh() }
+        Task {
+            await team.refresh()
+            await push.register() // this phone's notes are now the new person's
+        }
     }
 
     private func forgetPerson() {
@@ -136,6 +144,15 @@ final class AppModel {
         api = account.api(baseURL: config.apiBaseURL)
         team = TeamStore(api: api)
         memory = MemoryStore(api: api)
+        #if DEBUG
+        let apnsEnvironment = "sandbox"
+        #else
+        let apnsEnvironment = "production"
+        #endif
+        push = PushStore(
+            api: api, bundleID: Bundle.main.bundleIdentifier ?? "com.sethdford.ferni",
+            environment: apnsEnvironment, appVersion: SettingsView.version()
+        )
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
         let level = AudioLevelMeter()
         call = CallSession(
