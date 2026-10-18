@@ -8,18 +8,11 @@
 
 import type { AskInput, FollowUp } from './follow-up.js';
 
-/**
- * A new follow-up, before the store gives it an id and timestamps. A writer
- * that knows the topic passes `topicKey`, and the store merges it into a live
- * follow-up on the same topic instead of opening a second one.
- */
+/** A new follow-up, before the store gives it an id and timestamps. */
 export type NewFollowUp = Pick<
   FollowUp,
   'userId' | 'kind' | 'text' | 'dueAt' | 'zone' | 'repeat' | 'source' | 'action'
-> &
-  Partial<
-    Pick<FollowUp, 'topicKey' | 'eventAt' | 'eventPrecision' | 'askType' | 'salience' | 'owner'>
-  >;
+>;
 
 export interface FollowUpStore {
   /** Saves a new open follow-up, or returns the one already made from the same source. */

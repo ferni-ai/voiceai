@@ -28,8 +28,6 @@ export {
   type Salience,
   type SurfacedVia,
 } from './follow-up.js';
-export { mergeInto, mergeTarget, topicKeyOf } from './topic-merge.js';
-export { toFollowUpMeta, type FollowUpMeta } from './follow-through-meta-store.js';
 export type { FollowUpAsker } from './ports.js';
 export { isQuietHour, rightMoment, type Moment } from './right-moment.js';
 export { closeFromReply, type ReplyVerdict } from './close-from-reply.js';

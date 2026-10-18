@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { topicKeyOf, type FollowUp, type NewFollowUp } from '../../follow-through/index.js';
+import type { FollowUp, NewFollowUp } from '../../follow-through/index.js';
 import { createFollowUpStore, followUpId, toFollowUp } from '../follow-through-store.js';
 import { fakeFirestore } from './fake-firestore.js';
 
@@ -249,49 +249,6 @@ describe('follow-up brain fields (design §2.2)', () => {
     expect(f?.salience?.weight).toBe(0.7);
     for (const dropped of ['owner', 'eventPrecision', 'closedReason', 'nextEligibleAt'])
       expect(f).not.toHaveProperty(dropped);
-  });
-});
-
-describe('open merges by topic (design §2.2 merge rule)', () => {
-  it('two sources describing one thread make one follow-up listing both sources', async () => {
-    const { db, docs } = fakeFirestore();
-    const store = createFollowUpStore(db);
-    const first = await store.open(
-      newFollowUp({
-        kind: 'commitment',
-        text: 'call my mom',
-        topicKey: topicKeyOf('call my mom'),
-        source: { store: 'commitments', ref: 'c1' },
-      }),
-      NOW
-    );
-    const later = new Date(NOW.getTime() + 60_000);
-    const fromSummary = {
-      kind: 'thread' as const,
-      text: 'the mom call',
-      topicKey: topicKeyOf('the mom call'),
-      source: { store: 'summaries', ref: 's1:0' },
-    };
-    const second = await store.open(newFollowUp(fromSummary), later);
-    expect(docs.size).toBe(1);
-    expect(second.id).toBe(first.id);
-    expect(second.sources).toEqual([first.source, fromSummary.source]);
-    expect((await store.live('u1'))[0].sources).toHaveLength(2);
-
-    // the second source imported again finds its row instead of adding itself twice
-    const again = await store.open(newFollowUp(fromSummary), new Date(later.getTime() + 60_000));
-    expect(again.sources).toHaveLength(2);
-    expect(docs.size).toBe(1);
-  });
-
-  it('a different topic, or a writer with no topic key (every writer today), still makes its own row', async () => {
-    const { db, docs } = fakeFirestore();
-    const store = createFollowUpStore(db);
-    await store.open(newFollowUp({ topicKey: 'call mom', source: { store: 'r', ref: '1' } }), NOW);
-    await store.open(newFollowUp({ topicKey: 'dentist', source: { store: 'r', ref: '2' } }), NOW);
-    await store.open(newFollowUp({ source: { store: 'r', ref: '3' } }), NOW);
-    await store.open(newFollowUp({ source: { store: 'r', ref: '4' } }), NOW);
-    expect(docs.size).toBe(4);
   });
 });
 

@@ -14,15 +14,20 @@ vi.mock('../../superhuman/commitment-follow-up.js', async (orig) => ({
     markFollowedUp: async () => undefined,
   },
 }));
+vi.mock('../../../memory/storage/call-summaries.js', () => ({
+  readCallSummaries: async () => {
+    if (h.failSummaries) throw new Error('summaries down');
+    return { docs: h.summaries.map((s) => ({ id: s.id, data: () => s.data })) };
+  },
+}));
 vi.mock('../../../memory/recall/forget.js', () => ({
   forgottenTopicsOrNull: async () => h.forgotten,
 }));
 
 const { createFollowUpSources } = await import('../follow-through-sources.js');
 
-/** bogle_users/{uid}/reminders (where status, limit) and /summaries (newest first, limit). */
 function remindersDb(reminders: Array<{ id: string; data: Record<string, unknown> }>): Firestore {
-  const reminderQuery = {
+  const q = {
     where: (_f: string, _op: string, v: unknown) => ({
       limit: () => ({
         get: async () => ({
@@ -33,23 +38,7 @@ function remindersDb(reminders: Array<{ id: string; data: Record<string, unknown
       }),
     }),
   };
-  const summaryQuery = {
-    orderBy: () => ({
-      limit: (n: number) => ({
-        get: async () => {
-          if (h.failSummaries) throw new Error('summaries down');
-          return { docs: h.summaries.slice(0, n).map((s) => ({ id: s.id, data: () => s.data })) };
-        },
-      }),
-    }),
-  };
-  return {
-    collection: () => ({
-      doc: () => ({
-        collection: (name: string) => (name === 'summaries' ? summaryQuery : reminderQuery),
-      }),
-    }),
-  } as unknown as Firestore;
+  return { collection: () => ({ doc: () => ({ collection: () => q }) }) } as unknown as Firestore;
 }
 
 const NOW = new Date('2026-10-12T22:00:00.000Z');
@@ -125,9 +114,7 @@ describe('follow-through sources', () => {
   });
 
   it('brings in threads from the last calls', async () => {
-    h.summaries = [
-      { id: 's1', data: { followUpItems: ['how the interview went', ' '], callerProvenance: 1 } },
-    ];
+    h.summaries = [{ id: 's1', data: { followUpItems: ['how the interview went', ' '] } }];
     const items = await createFollowUpSources(remindersDb([])).itemsFor('u1', NOW);
     expect(items).toEqual([
       {
@@ -146,10 +133,7 @@ describe('follow-through sources', () => {
     h.summaries = [
       {
         id: 's1',
-        data: {
-          followUpItems: ['the ex-wife and the house', 'the marathon training plan'],
-          callerProvenance: 1,
-        },
+        data: { followUpItems: ['the ex-wife and the house', 'the marathon training plan'] },
       },
     ];
     const items = await createFollowUpSources(remindersDb([])).itemsFor('u1', NOW);
@@ -159,9 +143,7 @@ describe('follow-through sources', () => {
   it('when the forget list cannot be read, imports reminders only', async () => {
     h.forgotten = null;
     h.commitments = [commitment('c1', 'I am going to apply for that job by Friday')];
-    h.summaries = [
-      { id: 's1', data: { followUpItems: ['how the interview went'], callerProvenance: 1 } },
-    ];
+    h.summaries = [{ id: 's1', data: { followUpItems: ['how the interview went'] } }];
     const db = remindersDb([
       {
         id: 'r1',
@@ -170,42 +152,6 @@ describe('follow-through sources', () => {
     ]);
     const items = await createFollowUpSources(db).itemsFor('u1', NOW);
     expect(items.map((i) => i.kind)).toEqual(['reminder']);
-  });
-
-  it('brings in only threads the caller raised: no provenance check, or raised by Ferni, stays out', async () => {
-    h.summaries = [
-      {
-        id: 'checked',
-        data: {
-          callerProvenance: 1,
-          followUpItems: ['the marathon training plan', 'the career offer'],
-          assistantRaisedItems: ['the career offer'],
-        },
-      },
-      // a summary written before the provenance check: its threads may be Ferni's
-      { id: 'unchecked', data: { followUpItems: ['the job offer Ferni brought up'] } },
-      {
-        id: 'disputed',
-        data: { callerProvenance: 1, followUpItems: ['the move'], disputedItems: ['the move'] },
-      },
-    ];
-    const items = await createFollowUpSources(remindersDb([])).itemsFor('u1', NOW);
-    expect(items.map((i) => [i.text, i.source.ref])).toEqual([
-      ['the marathon training plan', 'checked:0'],
-    ]);
-    // the ref keeps the stored index, so a thread's id doesn't move when one before it goes
-    h.summaries = [
-      {
-        id: 'checked',
-        data: {
-          callerProvenance: 1,
-          followUpItems: ['the career offer', 'the marathon training plan'],
-          assistantRaisedItems: ['the career offer'],
-        },
-      },
-    ];
-    const again = await createFollowUpSources(remindersDb([])).itemsFor('u1', NOW);
-    expect(again.map((i) => i.source.ref)).toEqual(['checked:1']);
   });
 
   it('one source failing does not lose the others', async () => {

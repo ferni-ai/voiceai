@@ -5,10 +5,7 @@
  * - pending reminders (bogle_users/{uid}/reminders, status 'pending');
  * - open commitments (bogle_users/{uid}/commitments), parsed by the same
  *   rules the call check-in uses, so sign-offs like "I need to go" stay out;
- * - follow-up items from the last calls' summaries, only from summaries
- *   checked against the caller's own lines (callerProvenance) and without the
- *   items the assistant raised or the caller disputed: the same rule the
- *   recall threads use (memory/recall/session-recall.ts).
+ * - follow-up items from the last calls' summaries.
  *
  * Anything about a topic the caller asked Ferni to forget is left out. When
  * that list can't be read, the commitments and call threads (raw words) are
@@ -21,8 +18,9 @@
 import type { Firestore } from '@google-cloud/firestore';
 import type { FollowUpSources, SourceItem } from '../follow-through/index.js';
 import { firestoreCommitmentStore, toOpenCommitment } from '../superhuman/commitment-follow-up.js';
+import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
-import { CALLER_PROVENANCE, isForgotten, undisputed } from '../../memory/recall/session-recall.js';
+import { isForgotten } from '../../memory/recall/session-recall.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -89,25 +87,13 @@ async function lastCallThreads(
   userId: string,
   forgotten: readonly string[]
 ): Promise<SourceItem[]> {
-  // The live summaries, read whole: the shared reader drops callerProvenance
-  const { docs } = await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('summaries')
-    .orderBy('timestamp', 'desc')
-    .limit(SUMMARIES)
-    .get();
+  const { docs } = await readCallSummaries(db, userId, { limit: SUMMARIES });
   return docs.flatMap((d) => {
-    const data = d.data();
-    // A thread is theirs only if the summary checked it against their own lines
-    if (data.callerProvenance !== CALLER_PROVENANCE) return [];
-    const items: unknown[] = Array.isArray(data.followUpItems) ? data.followUpItems : [];
-    // Minus what Ferni raised or they disputed; the ref keeps the stored index, so ids stay put
-    const theirs = undisputed(data).followUpItems;
-    const kept = new Set(Array.isArray(theirs) ? theirs : []);
+    const raw: unknown = d.data().followUpItems;
+    const items: unknown[] = Array.isArray(raw) ? raw : [];
     return items.flatMap((item, i) => {
       const text = String(item).trim();
-      if (!text || !kept.has(item) || isForgotten(text, forgotten)) return [];
+      if (!text || isForgotten(text, forgotten)) return [];
       return [
         {
           kind: 'thread' as const,
