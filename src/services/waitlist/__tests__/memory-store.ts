@@ -13,15 +13,21 @@ export function memoryStore(settings: Record<string, unknown> = {}) {
     const hit = [...docs.entries()].find(([, d]) => pred(d));
     return hit ? readEntry(hit[0], hit[1]) : null;
   };
+  const every = (pred: (d: Record<string, unknown>) => boolean) =>
+    [...docs.entries()]
+      .filter(([, d]) => pred(d))
+      .reverse()
+      .map(([id, d]) => readEntry(id, d));
   const merge = (id: string, data: Record<string, unknown>) => {
     const clean = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
     docs.set(id, { ...docs.get(id), ...clean });
   };
   const store: WaitlistStore = {
     get: async (id) => (docs.has(id) ? readEntry(id, docs.get(id)!) : null),
-    findByCanonical: async (c) => find((d) => d.emailCanonical === c),
+    // Newest first: not the order the code wants, so a test catches anyone relying on it
+    byCanonical: async (c) => every((d) => d.emailCanonical === c),
     findByInviteCode: async (code) => find((d) => d.inviteCode === code),
-    findByUid: async (uid) => find((d) => d.uid === uid),
+    byUid: async (uid) => every((d) => d.uid === uid),
     countAhead: async (rank, key) =>
       [...docs.values()].filter(
         (d) =>

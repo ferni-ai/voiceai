@@ -33,7 +33,7 @@ import {
   getApprovalSecret,
   verifyApprovalToken,
 } from './waitlist-approval-token.js';
-import { addSigninToWaitlist, keepWaitlistReferral } from './waitlist-record.js';
+import { addSigninToWaitlist, keepWaitlistReferral, offeredReferral } from './waitlist-record.js';
 import { handleWaitlistQueueRoutes, QUEUE_ROUTE_PATHS } from './waitlist-queue-routes.js';
 import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/waitlist/queue.js';
 
@@ -269,37 +269,34 @@ async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<
       ...(req.headers.referer && { referrer: req.headers.referer }),
     };
 
-    // Use email as document ID to prevent duplicates
+    // Doc id = email. Create only: an existing entry (maybe someone else's) is never changed,
+    // and the reply below is the same either way, so this can't probe or overwrite the list.
     const docId = Buffer.from(signup.email).toString('base64').replace(/[/+=]/g, '_');
-
-    await db
+    const doc = cleanForFirestore({ ...signup, emailCanonical: canonicalEmail(signup.email), updatedAt: new Date() }); // prettier-ignore
+    const created = await db
       .collection('waitlist')
       .doc(docId)
-      .set(
-        cleanForFirestore({
-          ...signup,
-          emailCanonical: canonicalEmail(signup.email), // one place per inbox (services/waitlist)
-          updatedAt: new Date(),
-        }),
-        { merge: true }
+      .create(doc)
+      .then(
+        () => true,
+        (err: { code?: number | string }) => {
+          if (err.code === 6 || err.code === 'already-exists') return false;
+          throw err;
+        }
       );
-
-    log.info('Waitlist signup recorded', {
-      email: hashEmail(body.email),
-      source,
-      hasPhone: !!body.phone,
-    });
-
-    // Send admin notification (fire-and-forget)
-    void notifyAdminOfSignup(signup.email, source, signup.phone).catch((err) => {
-      log.warn({ error: String(err) }, 'Failed to send admin notification');
-    });
+    log.info('Waitlist signup', { email: hashEmail(body.email), source, created });
+    if (created) {
+      void notifyAdminOfSignup(signup.email, source, signup.phone).catch((err) => {
+        log.warn({ error: String(err) }, 'Failed to send admin notification');
+      });
+    }
 
     // For newsletter signups, send welcome email immediately (no approval needed)
     if (source === 'newsletter') {
-      void sendNewsletterWelcomeEmail(signup.email).catch((err) => {
-        log.warn({ error: String(err) }, 'Failed to send newsletter welcome email');
-      });
+      if (created)
+        void sendNewsletterWelcomeEmail(signup.email).catch((err) => {
+          log.warn({ error: String(err) }, 'Failed to send newsletter welcome email');
+        });
 
       sendJson(res, 200, {
         success: true,
@@ -548,7 +545,13 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       const grant = { email, uid: decodedToken.uid, tier: 'partner' as const, years: 10 };
       await grantAccess(db, profileDocId, { ...grant, grantedVia: 'waitlist-approval-auto' });
       log.info({ email: hashEmail(email) }, 'Auto-created profile for approved waitlist user');
-      sendJson(res, 200, { approved: true, status: 'approved', tier: 'partner', email, referralCode });
+      sendJson(res, 200, {
+        approved: true,
+        status: 'approved',
+        tier: 'partner',
+        email,
+        referralCode,
+      });
       return true;
     }
 
@@ -556,35 +559,33 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     if (!waitlistGateOn()) {
       const grant = { email, uid: decodedToken.uid, tier: 'free' as const };
       await grantAccess(db, profileDocId, { ...grant, grantedVia: 'open-access' });
-      await db.collection('waitlist').doc(waitlistDocId).set(
-        cleanForFirestore({ email, status: 'approved', source: 'open_access', approvedAt: new Date() }),
-        { merge: true }
-      );
+      await db
+        .collection('waitlist')
+        .doc(waitlistDocId)
+        .set(
+          cleanForFirestore({
+            email,
+            status: 'approved',
+            source: 'open_access',
+            approvedAt: new Date(),
+          }),
+          { merge: true }
+        );
       log.info({ email: hashEmail(email) }, 'Open access: signed-in user let in on the free tier');
       sendJson(res, 200, { approved: true, status: 'approved', tier: 'free', email, referralCode });
       return true;
     }
 
-    if (waitlistDoc.exists) {
-      log.info({ email: hashEmail(email) }, 'User on waitlist, pending approval');
-      sendJson(res, 200, {
-        approved: false,
-        status: 'pending',
-        email,
-        message: "You're on the waitlist! We'll notify you when it's your turn.",
-      });
-      return true;
-    }
-
-    // Not on waitlist - add them automatically, in line (a verified sign-in)
-    await addSigninToWaitlist(email, referralCode, decodedToken.uid);
-
-    log.info({ email: hashEmail(email) }, 'Auto-added user to waitlist on sign-in');
+    // Gate on: in line as a verified person (this verifies an existing website signup too)
+    await addSigninToWaitlist(email, offeredReferral(req), decodedToken.uid);
+    log.info({ email: hashEmail(email), existed: waitlistDoc.exists }, 'Signed-in user waiting in line'); // prettier-ignore
     sendJson(res, 200, {
       approved: false,
       status: 'pending',
       email,
-      message: "You've been added to the waitlist! We'll notify you when it's your turn.",
+      message: waitlistDoc.exists
+        ? "You're on the waitlist! We'll notify you when it's your turn."
+        : "You've been added to the waitlist! We'll notify you when it's your turn.",
     });
     return true;
   } catch (error) {

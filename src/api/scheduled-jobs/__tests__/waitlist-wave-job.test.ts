@@ -9,7 +9,7 @@ import { memoryStore } from '../../../services/waitlist/__tests__/memory-store.j
 import { memoryWaveStore } from '../../../services/waitlist/__tests__/memory-wave-store.js';
 import { joinWaitlist } from '../../../services/waitlist/join.js';
 import { JOB_PATHS } from '../index.js';
-import { runWaitlistWaveJob } from '../waitlist-jobs.js';
+import { handleWaitlistWave, runWaitlistWaveJob } from '../waitlist-jobs.js';
 
 const NOW = new Date('2026-10-22T17:00:00Z');
 
@@ -27,12 +27,30 @@ describe('waitlist-wave job', () => {
     const w = memoryWaveStore(q.docs);
     const deps = async (now: Date, dryRun: boolean): Promise<WaveDeps> => ({
       store: w.store,
-      guard: async () => ({ state: 'ok', costUsd: 1, errorRate: 0, reasons: [] }),
+      guard: async () => ({ state: 'ok', costUsd: 1, costDay: null, errorRate: 0, reasons: [] }),
       now,
       dryRun,
     });
     const out = await runWaitlistWaveJob({ dryRun: false, env: { WAITLIST_WAVES: 'on' }, deps, now: NOW }); // prettier-ignore
     expect(out).toMatchObject({ waveId: '2026-10-22', wave: 1, admitted: 1 });
+  });
+
+  it('a failure answers 500 with a generic error, never the exception text', async () => {
+    let status = 0;
+    let body = '';
+    const res = {
+      writeHead: (s: number) => void (status = s),
+      end: (b: string) => void (body = b),
+    };
+    const boom = async () => { throw new Error('PERMISSION_DENIED projects/secret-billing-thing'); }; // prettier-ignore
+    await handleWaitlistWave({ url: '/api/jobs/waitlist-wave' } as never, res as never, boom);
+    expect(status).toBe(500);
+    expect(body).not.toContain('PERMISSION_DENIED');
+    expect(JSON.parse(body)).toEqual({
+      success: false,
+      job: 'waitlist-wave',
+      error: 'wave_failed',
+    });
   });
 
   it('is a routed job path, and the scheduler definition matches Mon/Thu 17:00 UTC', () => {

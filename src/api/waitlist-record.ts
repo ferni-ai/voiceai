@@ -33,13 +33,25 @@ export async function keepWaitlistReferral(
 
   const offered = new URL(req.url ?? '/', 'http://local').searchParams.get('referralCode');
   if (!offered || !REFERRAL_CODE_PATTERN.test(offered)) return undefined;
-  if (waitlistDoc.exists) await waitlistRef.set({ referralCode: offered }, { merge: true });
+  // Only before the person's first verification: a code added later never earns credit
+  if (waitlistDoc.exists && !waitlistDoc.data()?.verifiedAt) await waitlistRef.set({ referralCode: offered }, { merge: true }); // prettier-ignore
   return offered;
 }
 
 /** First sign-in with the gate on: in line as a verified person, with the friend's code if one came. */
-export async function addSigninToWaitlist(email: string, referralCode: string | undefined, uid: string): Promise<void> { // prettier-ignore
+export async function addSigninToWaitlist(
+  email: string,
+  referralCode: string | undefined,
+  uid: string
+): Promise<void> {
+  // prettier-ignore
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore unavailable');
   await joinWaitlist(firestoreWaitlistStore(db), { email, uid, verified: true, ref: referralCode, source: 'app_signin', now: new Date() }); // prettier-ignore
+}
+
+/** The friend's code offered with this request only (a stored one may have been planted). */
+export function offeredReferral(req: IncomingMessage): string | undefined {
+  const offered = new URL(req.url ?? '/', 'http://local').searchParams.get('referralCode');
+  return offered && REFERRAL_CODE_PATTERN.test(offered) ? offered : undefined;
 }

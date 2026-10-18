@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events';
+import { Readable } from 'node:stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // In-memory Firestore: collection -> doc id -> data
@@ -11,6 +12,10 @@ const fakeDb = {
   collection: (name: string) => ({
     doc: (id: string) => ({
       get: async () => ({ exists: coll(name).has(id), data: () => coll(name).get(id) }),
+      create: async (data: Record<string, unknown>) => {
+        if (coll(name).has(id)) throw Object.assign(new Error('exists'), { code: 6 });
+        coll(name).set(id, data);
+      },
       set: async (data: Record<string, unknown>, opts?: { merge?: boolean }) =>
         void coll(name).set(id, opts?.merge ? { ...coll(name).get(id), ...data } : data),
     }),
@@ -38,9 +43,12 @@ vi.mock('../auth-middleware.js', () => ({ rateLimit: () => false, requireAdmin: 
 
 const { handleWaitlistRoutes } = await import('../waitlist-routes.js');
 
-async function check(): Promise<{ status: number; body: Record<string, unknown> }> {
+async function check(
+  referralCode?: string
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  // prettier-ignore
   const req = Object.assign(new EventEmitter(), {
-    url: '/api/waitlist/check',
+    url: `/api/waitlist/check${referralCode ? `?referralCode=${referralCode}` : ''}`,
     method: 'GET',
     headers: { host: 'localhost', authorization: 'Bearer a.b.c' },
   });
@@ -53,6 +61,20 @@ async function check(): Promise<{ status: number; body: Record<string, unknown> 
   };
   await handleWaitlistRoutes(req as never, res as never);
   return { status, body: JSON.parse(body) };
+}
+/** POST /api/waitlist (the public landing form). */
+async function signup(body: Record<string, unknown>): Promise<{ status: number; body: unknown }> {
+  const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), {
+    url: '/api/waitlist',
+    method: 'POST',
+    headers: { host: 'localhost', 'content-type': 'application/json' },
+    socket: { remoteAddress: `198.51.100.${Math.floor(Math.random() * 200)}` },
+  });
+  let status = 0;
+  let text = '';
+  const res = { writeHead: (s: number) => void (status = s), setHeader: () => {}, end: (b: string) => void (text = b) }; // prettier-ignore
+  await handleWaitlistRoutes(req as never, res as never);
+  return { status, body: JSON.parse(text) as unknown };
 }
 const docId = (e: string) => Buffer.from(e).toString('base64').replace(/[/+=]/g, '_');
 
@@ -90,6 +112,39 @@ describe('waitlist check', () => {
     coll('waitlist').set(docId(email.value), { email: email.value, status: 'approved' });
     const { body } = await check();
     expect(body).toMatchObject({ approved: true, tier: 'partner' });
+  });
+
+  it('the public signup never overwrites an existing entry, and answers exactly as for a new one', async () => {
+    const victim = 'victim@example.com';
+    const seat = { email: victim, status: 'admitted', phone: '+15550000001', timestamp: 'then' };
+    coll('waitlist').set(docId(victim), { ...seat });
+    const attack = await signup({ email: victim, phone: '+15550009999', source: 'landing' });
+    expect(coll('waitlist').get(docId(victim))).toEqual(seat);
+    const fresh = await signup({ email: 'someone-new@example.com', source: 'landing' });
+    expect(attack).toEqual(fresh);
+    expect(coll('waitlist').get(docId('someone-new@example.com'))).toMatchObject({ status: 'pending' }); // prettier-ignore
+  });
+
+  it('gate on: signing in verifies an existing website signup and puts it in line', async () => {
+    vi.stubEnv('WAITLIST_GATE', 'on');
+    coll('waitlist').set(docId(email.value), { email: email.value, status: 'pending', source: 'landing' }); // prettier-ignore
+    expect((await check()).body).toMatchObject({ approved: false, status: 'pending' });
+    expect(coll('waitlist').get(docId(email.value))).toMatchObject({ inQueue: true, verifiedAt: expect.any(Date), uid: 'uid-1' }); // prettier-ignore
+  });
+
+  it('gate on: verifying a planted signup drops its phone and referrer, keeps its place', async () => {
+    vi.stubEnv('WAITLIST_GATE', 'on');
+    const joinedAt = new Date('2026-09-01T00:00:00Z');
+    coll('waitlist').set(docId(email.value), { email: email.value, status: 'pending', joinedAt, phone: '+15550001111', referralCode: 'aaaaaa-fern' }); // prettier-ignore
+    await check();
+    expect(coll('waitlist').get(docId(email.value))).toMatchObject({ phone: null, referralCode: null, joinedAt, verifiedAt: expect.any(Date) }); // prettier-ignore
+  });
+
+  it('a referral code offered after the first verification is not written', async () => {
+    vi.stubEnv('WAITLIST_GATE', 'on');
+    coll('waitlist').set(docId(email.value), { email: email.value, status: 'pending', verifiedAt: new Date() }); // prettier-ignore
+    await check('abc123-fern');
+    expect(coll('waitlist').get(docId(email.value))?.referralCode).toBeUndefined();
   });
 
   it('keeps the gate when WAITLIST_GATE=on', async () => {
