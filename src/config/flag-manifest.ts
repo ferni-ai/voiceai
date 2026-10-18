@@ -368,6 +368,8 @@ export const FLAG_MANIFEST = {
   TTS_PROVIDER: { default: 'cartesia', owner: 'voice', kind: 'config' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // troubles talk: no shift to his own life during a trouble, replies no longer than what they told (troubles-talk.ts)
+  TROUBLES_TALK: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a mode: off | cloud | local (turn-patience.ts)
   TURN_DETECTOR: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_DETECTOR_SOLE: { default: 'off', owner: 'voice', kind: 'experiment' },
