@@ -116,6 +116,8 @@ export const FLAG_MANIFEST = {
   ENABLE_INTELLIGENT_ROUTING: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   ENABLE_PROFILING: { default: 'off', owner: 'voice', kind: 'config' },
   ENDPOINT_FAST_FINISHED: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: extracted entities that are numbers, placeholders, the team or requests to Ferni are not stored (memory/entity-hygiene.ts)
+  ENTITY_HYGIENE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // late turn-1 words join that turn instead of opening a new one
   EOT_CONTINUED_MERGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
