@@ -767,17 +767,13 @@ function sendMilestoneOutreach(milestone: Milestone): void {
 
   if (!emailMilestones.includes(milestone.id)) return;
 
-  // Calculate days together from conversation history
-  const daysTogether = progress.conversationDays.length;
-
-  // Send asynchronously - don't block celebration
+  // The server checks the milestone against its own records, counts for itself and
+  // sends each one once per user, so this browser's local numbers are not sent
   outreachService
     .sendMilestoneCelebration({
       milestoneId: milestone.id,
-      milestoneName: milestone.name,
-      milestoneMessage: milestone.message,
-      daysTogether,
-      streak: progress.currentStreak,
+      milestoneName: t(milestone.name),
+      milestoneMessage: t(milestone.message),
     })
     .catch((error) => {
       log.warn('Failed to send milestone outreach:', error);
@@ -812,8 +808,8 @@ function sendMilestoneNotification(milestone: Milestone): void {
   showNotification({
     id: `milestone-${milestone.id}-${Date.now()}`,
     type: 'streak_milestone',
-    title: milestone.name,
-    body: milestone.message,
+    title: t(milestone.name), // name and message are i18n keys, not copy
+    body: t(milestone.message),
     sound: true,
     data: { milestoneId: milestone.id },
   }).catch(() => {

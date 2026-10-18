@@ -1,0 +1,118 @@
+/**
+ * Sessions together: the one count of conversations Ferni and a user have had.
+ *
+ * Three counts used to reach the same prompt (profile 21, relationship engine
+ * 17, conversation docs 30). The source of truth is the agent's own call
+ * record, bogle_users/{uid}/conversations: a session counts when it ended and
+ * the user said at least one thing. Everything that says "N conversations",
+ * "N days", a streak or a milestone reads it here.
+ *
+ * @module services/stores/sessions-together
+ */
+
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
+
+/** One stored call, as realtime-memory writes it. */
+export interface StoredCall {
+  startedAt?: unknown;
+  endedAt?: unknown;
+  turnCount?: unknown;
+  userTurnCount?: unknown;
+}
+
+export interface SessionsTogether {
+  /** Completed conversations with at least one user turn. */
+  count: number;
+  /** Distinct calendar days (in the user's zone) with a counted session, oldest first. */
+  days: string[];
+  firstAt?: Date;
+  lastAt?: Date;
+}
+
+function toMs(value: unknown): number | undefined {
+  if (value == null) return undefined;
+  const date = (value as { toDate?: () => Date }).toDate?.() ?? value;
+  const ms = date instanceof Date ? date.getTime() : Date.parse(String(date));
+  return Number.isFinite(ms) ? ms : undefined;
+}
+
+/**
+ * The user said something in this call. Calls stored before userTurnCount
+ * existed only have turnCount (user and agent turns together); the agent's
+ * greeting is one turn, so a second turn means the user spoke.
+ */
+function userSpoke(call: StoredCall): boolean {
+  if (typeof call.userTurnCount === 'number') return call.userTurnCount >= 1;
+  return typeof call.turnCount === 'number' && call.turnCount >= 2;
+}
+
+/** A session that counts: it ended, and the user took part. */
+export function isCountedSession(call: StoredCall): boolean {
+  return toMs(call.endedAt) !== undefined && toMs(call.startedAt) !== undefined && userSpoke(call);
+}
+
+/** YYYY-MM-DD for an instant in a time zone (UTC when none or an unknown one is given). */
+export function calendarDay(ms: number, timeZone?: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: timeZone || 'UTC',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date(ms));
+  } catch {
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+}
+
+/** Pure: the summary of a user's stored calls. */
+export function summarizeSessions(calls: StoredCall[], timeZone?: string): SessionsTogether {
+  const starts = calls
+    .filter(isCountedSession)
+    .map((c) => toMs(c.startedAt) as number)
+    .sort((a, b) => a - b);
+  const days = [...new Set(starts.map((ms) => calendarDay(ms, timeZone)))];
+  return {
+    count: starts.length,
+    days,
+    firstAt: starts.length ? new Date(starts[0]!) : undefined,
+    lastAt: starts.length ? new Date(starts[starts.length - 1]!) : undefined,
+  };
+}
+
+/** Consecutive calendar days with a session, ending today or yesterday; 0 otherwise. */
+export function currentDayStreak(days: string[], now = new Date(), timeZone?: string): number {
+  const set = new Set(days);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const today = calendarDay(now.getTime(), timeZone);
+  const yesterday = calendarDay(now.getTime() - dayMs, timeZone);
+  let cursor = set.has(today) ? now.getTime() : set.has(yesterday) ? now.getTime() - dayMs : null;
+  let streak = 0;
+  while (cursor !== null && set.has(calendarDay(cursor, timeZone))) {
+    streak++;
+    cursor -= dayMs;
+  }
+  return streak;
+}
+
+/**
+ * Read every stored call for a user and summarize it. Throws when Firestore
+ * can't be read, so a caller never mistakes a failed read for "no sessions".
+ */
+export async function getSessionsTogether(
+  userId: string,
+  timeZone?: string
+): Promise<SessionsTogether> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore unavailable');
+  const snapshot = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('conversations')
+    .select('startedAt', 'endedAt', 'turnCount', 'userTurnCount')
+    .get();
+  return summarizeSessions(
+    snapshot.docs.map((d) => d.data() as StoredCall),
+    timeZone
+  );
+}

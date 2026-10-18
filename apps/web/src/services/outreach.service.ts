@@ -43,8 +43,6 @@ export interface MilestoneOutreachData {
   milestoneId: string;
   milestoneName: string;
   milestoneMessage: string;
-  daysTogether?: number;
-  streak?: number;
 }
 
 export interface OutreachResult {
