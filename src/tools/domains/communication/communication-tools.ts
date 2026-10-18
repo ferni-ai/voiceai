@@ -24,6 +24,7 @@
  */
 
 import { llm } from '@livekit/agents';
+import { consentBlocks } from '../../../services/messaging/consent.js';
 import { z } from 'zod';
 import {
   guardedThirdPartySend,
@@ -198,6 +199,10 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
   }
 
   const validPhone = validation.sanitized as string;
+  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
+  if (await consentBlocks(validPhone, 'call', true)) {
+    return `I can't call that number: it asked not to be called.`;
+  }
 
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
     getLogger().warn('Twilio not configured for calls');

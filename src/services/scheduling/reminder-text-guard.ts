@@ -18,8 +18,8 @@
  * MESSAGING_PIPELINE: the raw paths (a text or MMS with the flag above off, or
  * a call) dial deliveryAddress, which the model can set, and the call path
  * checked no STOP at all. They read consent/{phoneHash} first; a refused one is
- * delivered in the app instead. A text to anyone but the owner's verified
- * number needs their own opt-in; a call stops only at an opt-out.
+ * delivered in the app instead. A text or call to anyone but the owner's
+ * verified number needs their own consent: nothing confirms a reminder call.
  *
  * @module services/scheduling/reminder-text-guard
  */
@@ -90,8 +90,7 @@ async function consentRefusal(
   const refused = await consentBlocks(
     to,
     channel,
-    channel === 'call' ||
-      (async (): Promise<boolean> => (await ownNumber?.(reminder.userId, to)) === true),
+    async (): Promise<boolean> => (await ownNumber?.(reminder.userId, to)) === true,
     { ...defaultConsentDeps(), env }
   );
   if (refused) log.info({ reminderId: reminder.id, channel, refused }, 'Reminder held for the app');

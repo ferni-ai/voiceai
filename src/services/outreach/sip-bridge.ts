@@ -12,6 +12,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { consentBlocks } from '../messaging/consent.js';
 import Twilio from 'twilio';
 
 const log = getLogger().child({ module: 'sip-bridge' });
@@ -101,6 +102,9 @@ export async function initiateConversationalCall(
   }
 
   const { userId, toPhone, personaId, context, message, webhookBaseUrl } = options;
+  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
+  const refused = await consentBlocks(toPhone, 'call', true);
+  if (refused) return { success: false, error: `Not calling: ${refused}` };
 
   try {
     // Generate a unique room name for this call

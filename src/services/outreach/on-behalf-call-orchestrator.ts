@@ -157,7 +157,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     if (!request.resolvedContact?.phone) throw new Error('No phone number available for contact');
 
     const contact = request.resolvedContact;
-    await assertNotOptedOut(contact.phone); // before queueing too: a deferred call would ring later
+    await assertNotOptedOut(contact.phone, undefined, request.userId); // before queueing too: a deferred call would ring later
     const held = { recipientPhone: contact.phone, sponsorUserId: request.userId };
     const deferral = await holdForCallHours(request.userId, { kind: 'on_behalf', request }, held);
     if (deferral) return deferral.id;

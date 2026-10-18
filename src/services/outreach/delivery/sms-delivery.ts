@@ -216,6 +216,9 @@ export async function sendSMS(message: SMSMessage): Promise<SMSDeliveryResult> {
   if (!isSMSDeliveryAvailable()) {
     return { success: false, error: 'SMS delivery not initialized' };
   }
+  const { consentBlocks } = await import('../../messaging/consent.js'); // MESSAGING_PIPELINE
+  const refused = await consentBlocks(message.to, 'sms', true);
+  if (refused) return { success: false, error: `Not sent: ${refused}` };
 
   try {
     // Brand validation - ensure content is on-brand before sending
@@ -231,7 +234,6 @@ export async function sendSMS(message: SMSMessage): Promise<SMSDeliveryResult> {
       );
     }
 
-    // Format message with validated content
     const { body, segments, truncated } = formatSMSMessage(brandCheck.message, {
       maxSegments: 3,
     });
@@ -243,7 +245,6 @@ export async function sendSMS(message: SMSMessage): Promise<SMSDeliveryResult> {
       );
     }
 
-    // Prepare Twilio message options
     const messageOptions: MessageListInstanceCreateOptions = {
       to: message.to,
       from: config!.twilioPhoneNumber,
@@ -267,7 +268,6 @@ export async function sendSMS(message: SMSMessage): Promise<SMSDeliveryResult> {
       // Note: Messaging Service SID required for scheduled messages
     }
 
-    // Send via Twilio
     const twilioMessage = await twilioClient!.messages.create(messageOptions);
 
     // Record delivery

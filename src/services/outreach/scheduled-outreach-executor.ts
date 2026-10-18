@@ -131,8 +131,11 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
       if (!target.resolvedPhone) {
         throw new Error(`No phone number for ${target.resolvedContactName}`);
       }
-      // MESSAGING_PIPELINE: a number that asked not to be called is never rung.
-      const refused = await consentBlocks(target.resolvedPhone, 'call', true);
+      // MESSAGING_PIPELINE: a number that asked not to be called is never rung, and someone
+      // other than the member must have agreed to calls (nothing confirms a scheduled call).
+      const refused = await consentBlocks(target.resolvedPhone, 'call', async () =>
+        toMemberThemself(userId, channelUsed, target)
+      );
       if (refused) {
         await updateOutreachStatus(userId, id, 'cancelled', {
           success: false,

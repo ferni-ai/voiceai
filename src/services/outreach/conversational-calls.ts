@@ -174,8 +174,10 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     if (!normalizedPhone) {
       return { success: false, error: 'Invalid phone number format' };
     }
-    // MESSAGING_PIPELINE: callUser and every proactive call stop at a call opt-out.
-    // Checked again when a held call is placed (deferred-calls.ts calls back in here).
+    // MESSAGING_PIPELINE: callUser and every proactive call stop at a call opt-out. A call
+    // the call-hours guard holds comes back through here when it is placed (deferred-calls.ts),
+    // so it is checked again then. A quiet-hours call saved to scheduled_calls below is not
+    // dialled later by anything (no job reads pending scheduled_calls), so there is no later dial.
     const refused = await consentBlocks(normalizedPhone, 'call', true);
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 

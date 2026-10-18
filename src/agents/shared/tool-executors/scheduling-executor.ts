@@ -341,7 +341,6 @@ async function execute(
     }
 
     try {
-      // Check if Twilio is configured
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -351,14 +350,15 @@ async function execute(
         return `I'd love to make that call, but my phone service isn't fully set up yet. Would you like me to send a text instead?`;
       }
 
-      // Validate and clean phone number
       const cleanNumber = phoneNumber.replace(/\D/g, '');
       if (cleanNumber.length < 10) {
         return `I need a valid phone number. Can you double-check "${phoneNumber}"?`;
       }
       const e164Number = cleanNumber.startsWith('1') ? `+${cleanNumber}` : `+1${cleanNumber}`;
+      const { consentBlocks } = await import('../../../services/messaging/consent.js');
+      if (await consentBlocks(e164Number, 'call', true))
+        return `I can't call ${phoneNumber}: that number asked not to be called.`;
 
-      // Build TwiML for the voice message - use Ferni's persona voice
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Matthew">Hi! This is a message from Ferni. ${message.replace(/"/g, '&quot;')}. Take care!</Say>

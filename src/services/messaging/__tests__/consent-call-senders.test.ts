@@ -23,9 +23,17 @@ vi.mock('../consent.js', async (importOriginal) => {
   };
 });
 
+const own = vi.hoisted(() => ({ value: false }));
+vi.mock('../../outreach/guarded-text.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../outreach/guarded-text.js')>()),
+  isOwnVerifiedPhone: async () => own.value,
+}));
 const holdForCallHours = vi.hoisted(() => vi.fn(async () => ({ id: 'held-1' })));
 vi.mock('../../outreach/deferred-calls.js', () => ({ holdForCallHours }));
-vi.mock('../../outreach/quiet-hours.js', () => ({ callQuietHours: vi.fn() }));
+vi.mock('../../outreach/quiet-hours.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../outreach/quiet-hours.js')>()),
+  callQuietHours: vi.fn(),
+}));
 const sendSMS = vi.hoisted(() => vi.fn(async () => 'sent'));
 vi.mock('../../communication-service.js', () => ({ sendSMS }));
 const placeSelfCall = vi.hoisted(() => vi.fn(async () => 'answered'));
@@ -58,7 +66,11 @@ const callRequest = {
   personaId: 'ferni',
   reason: 'user_requested_call',
 };
-const trigger = { text: 'Thinking of you', kind: 'checkin', sourceId: 's1' } as unknown as ProactiveTrigger;
+const trigger = {
+  text: 'Thinking of you',
+  kind: 'checkin',
+  sourceId: 's1',
+} as unknown as ProactiveTrigger;
 
 beforeEach(() => {
   mem.consent = memoryConsentStore();
@@ -104,6 +116,26 @@ describe('on-behalf first dial (assertNotOptedOut)', () => {
     await expect(assertNotOptedOut(PHONE, async () => false)).rejects.toThrow(
       'asked not to be called'
     );
+  });
+
+  it('a third party who never agreed to calls is not dialled (needs-consent)', async () => {
+    own.value = false;
+    await expect(assertNotOptedOut(PHONE, async () => false, 'u1')).rejects.toThrow(
+      'has not agreed to calls'
+    );
+  });
+
+  it("dials once they agreed, and dials the owner's own number with no record", async () => {
+    own.value = true;
+    await expect(assertNotOptedOut(PHONE, async () => false, 'u1')).resolves.toBeUndefined();
+    own.value = false;
+    const { writeOptIn } = await import('../consent.js');
+    await writeOptIn(hash(), 'call', 'inbound-sms', {
+      env: { MESSAGING_PIPELINE: 'on' },
+      store: mem.consent.store,
+      now: () => new Date(),
+    });
+    await expect(assertNotOptedOut(PHONE, async () => false, 'u1')).resolves.toBeUndefined();
   });
 
   it('flag off: as today (the DNC check is off, so it dials)', async () => {

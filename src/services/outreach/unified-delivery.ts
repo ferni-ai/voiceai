@@ -30,7 +30,6 @@ export interface DeliveryRequest {
   channel: DeliveryChannel;
   content: GeneratedContent;
 
-  // Contact info (for external channels)
   phone?: string;
   email?: string;
 
@@ -193,7 +192,6 @@ export async function deliver(request: DeliveryRequest): Promise<DeliveryResult>
   } catch (error) {
     log.error({ error: String(error), userId, channel }, 'Delivery failed');
 
-    // Try fallback to in-app
     if (channel !== 'in_app') {
       log.info({ userId }, 'Falling back to in-app delivery');
       const fallbackResult = await deliverInApp(userId, content, outreachType, triggerId);
@@ -225,6 +223,9 @@ async function deliverSMS(
   if (!phone) {
     return { success: false, channel: 'sms', error: 'No phone number provided' };
   }
+  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
+  const refused = await (await import('../messaging/consent.js')).consentBlocks(phone, 'sms', true);
+  if (refused) return { success: false, channel: 'sms', error: `Not sent: ${refused}` };
 
   const creds = await loadCredentials();
   if (!creds.twilio) {
@@ -241,7 +242,6 @@ async function deliverSMS(
       to: phone,
     });
 
-    // Record delivery
     await recordDelivery(userId, 'sms', message.sid, outreachType, triggerId);
 
     log.info({ userId, messageSid: message.sid }, 'SMS delivered');

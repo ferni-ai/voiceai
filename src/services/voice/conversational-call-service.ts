@@ -14,6 +14,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { consentBlocks } from '../messaging/consent.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateStreamTwiml, getTwilioStreamBridge } from './twilio-stream-bridge.js';
@@ -178,6 +179,10 @@ export async function makeConversationalCall(
       error: 'CONFIGURATION_ERROR',
     };
   }
+
+  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
+  const refused = await consentBlocks(request.phone, 'call', true);
+  if (refused) return { success: false, message: `Not calling: ${refused}`, error: 'OPTED_OUT' };
 
   const personaId = request.personaId || 'ferni';
   const personaName = getPersonaDisplayName(personaId);

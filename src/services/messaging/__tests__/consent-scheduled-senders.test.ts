@@ -35,6 +35,11 @@ vi.mock('../../outreach/quiet-hours.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../outreach/quiet-hours.js')>()),
   callQuietHours: vi.fn(async () => ({ quiet: false })),
 }));
+const own = vi.hoisted(() => ({ value: false }));
+vi.mock('../../outreach/guarded-text.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../outreach/guarded-text.js')>()),
+  isOwnVerifiedPhone: async () => own.value,
+}));
 const callWithPersonaVoice = vi.hoisted(() => vi.fn(async () => ({ success: true })));
 vi.mock('../../voice/voice-call.js', () => ({ callWithPersonaVoice }));
 const updateOutreachStatus = vi.hoisted(() => vi.fn(async () => undefined));
@@ -129,6 +134,24 @@ describe('scheduled-outreach executor, call branch', () => {
       'cancelled',
       expect.objectContaining({ error: 'skipped: opted-out' })
     );
+  });
+
+  it('holds a scheduled call to a third party who never agreed (needs-consent)', async () => {
+    own.value = false;
+    await executeScheduledOutreach(scheduledCall());
+    expect(callWithPersonaVoice).not.toHaveBeenCalled();
+    expect(updateOutreachStatus).toHaveBeenLastCalledWith(
+      'u1',
+      'so1',
+      'cancelled',
+      expect.objectContaining({ error: 'skipped: needs-consent' })
+    );
+  });
+
+  it("calls the member's own number with no consent record", async () => {
+    own.value = true;
+    await executeScheduledOutreach(scheduledCall());
+    expect(callWithPersonaVoice).toHaveBeenCalledOnce();
   });
 
   it('flag off: places the call as today', async () => {

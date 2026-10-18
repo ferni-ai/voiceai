@@ -102,6 +102,18 @@ describe('reminder call path (the STOP gap)', () => {
     expect(saveInAppMessage).toHaveBeenCalledOnce();
   });
 
+  it('a reminder call to someone else who never agreed lands in the app (nothing confirms it)', async () => {
+    ownNumber.value = false;
+    await deliverReminder(reminder('call'));
+    expect(callWithPersonaVoice).not.toHaveBeenCalled();
+    expect(saveInAppMessage).toHaveBeenCalledOnce();
+  });
+
+  it("rings the owner's own number with no consent record", async () => {
+    expect(await deliverReminder(reminder('call'))).toBe(true);
+    expect(callWithPersonaVoice).toHaveBeenCalledOnce();
+  });
+
   it('flag off: rings as today', async () => {
     await optOut('call');
     vi.stubEnv('MESSAGING_PIPELINE', 'off');

@@ -525,17 +525,17 @@ export class ConferenceCallManager extends EventEmitter {
     relationship?: string,
     introduction?: string
   ): Promise<{ success: boolean; callSid?: string; error?: string }> {
-    // Check if Twilio is configured and client is available
+    const { consentBlocks } = await import('../../services/messaging/consent.js');
+    const refused = await consentBlocks(phoneNumber, 'call', true); // MESSAGING_PIPELINE opt-outs
+    if (refused) return { success: false, error: `Not calling: ${refused}` };
     if (!this.config.twilio || !this.twilioClient) {
       log.warn('📞 Twilio not configured - simulating call');
       return this.simulateCall(callId, phoneNumber, name);
     }
 
     try {
-      // Build TwiML URL for when they answer
       const twimlUrl = this.buildAnswerTwimlUrl(name, introduction);
 
-      // Build status callback URL
       const statusCallbackUrl = `${this.config.webhookBaseUrl}/api/group/call/status`;
 
       log.info({ callId, phoneNumber, name, twimlUrl }, '📞 Initiating Twilio call');
