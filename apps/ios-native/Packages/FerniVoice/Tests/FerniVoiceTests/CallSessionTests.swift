@@ -183,14 +183,14 @@ final class CallSessionTests: XCTestCase {
         session.start()
         await until(session.phase == .live)
 
+        XCTAssertEqual(session.avatar.pose, .listening, "the first turn shows at once")
         rooms.made[0].send(.agentAttributes(["lk.agent.state": "speaking"]))
-        await until(session.isFerniSpeaking)
-        XCTAssertEqual(session.expression, .speaking)
+        await until(session.avatar.pose == .speaking) // after the 150 ms settle
+        XCTAssertEqual(session.avatar.expression, .speaking)
 
         rooms.made[0].send(.agentAttributes(["lk.agent.state": "thinking"]))
-        await until(session.agentActivity == .thinking)
-        XCTAssertFalse(session.isFerniSpeaking)
-        XCTAssertEqual(session.expression, .thinking)
+        await until(session.avatar.pose == .thinking)
+        XCTAssertEqual(session.avatar.expression, .thinking)
     }
 
     func testSpeechStateAndExpressionMessagesAreRead() async {
@@ -201,7 +201,7 @@ final class CallSessionTests: XCTestCase {
         rooms.made[0].send(.data(Data(#"{"type":"speech_state","innerType":"speech_start"}"#.utf8)))
         await until(session.isUserSpeaking)
         rooms.made[0].send(.data(Data(#"{"type":"expression_update","expression":"warm"}"#.utf8)))
-        await until(session.expression == .warm)
+        await until(session.avatar.expression == .warm)
         rooms.made[0].send(.data(Data(#"{"type":"speech_state","innerType":"speech_end"}"#.utf8)))
         await until(!session.isUserSpeaking)
     }
@@ -282,6 +282,7 @@ final class CallSessionTests: XCTestCase {
 
         await until(session.phase == .ended)
         XCTAssertEqual(rooms.made[0].disconnects, 1)
+        XCTAssertEqual(session.avatar.pose, .departing)
     }
 
     func testEndingWhileConnectingLeavesAndStaysEnded() async {
