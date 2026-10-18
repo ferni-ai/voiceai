@@ -15,6 +15,12 @@
  * route, and startup when REMINDER_SCHEDULER_IN_PROCESS is on. A process
  * without it delivers the reminder in the app (fail closed).
  *
+ * MESSAGING_PIPELINE: the raw paths (a text or MMS with the flag above off, or
+ * a call) dial deliveryAddress, which the model can set, and the call path
+ * checked no STOP at all. They read consent/{phoneHash} first; a refused one is
+ * delivered in the app instead. A text to anyone but the owner's verified
+ * number needs their own opt-in; a call stops only at an opt-out.
+ *
  * @module services/scheduling/reminder-text-guard
  */
 
@@ -37,15 +43,25 @@ export function installReminderTextGuard(next: ReminderTextGuard | undefined): v
   guard = next;
 }
 
+/** Is this the owner's own verified number? Installed with the guard; without it, never. */
+export type OwnNumberCheck = (userId: string, phone: string) => Promise<boolean>;
+let ownNumber: OwnNumberCheck | undefined;
+
+export function installReminderOwnNumber(next: OwnNumberCheck | undefined): void {
+  ownNumber = next;
+}
+
 /** True when deliverReminder held this reminder to a later time instead of delivering it. */
 export const wasHeld = (reminder: ScheduledReminder): boolean => held.has(reminder);
 
-/** null: not a text, or the flag is off, so deliver it as before. */
+/** null: not a text, or the flag is off, so deliver it as before (unless consent refuses it). */
 export async function textThroughGuard(
   reminder: ScheduledReminder,
   env: Record<string, string | undefined> = process.env
 ): Promise<GuardedTextOutcome | null> {
-  if (!isReminderSmsDefaultOn(env) || !TEXT_METHODS.includes(reminder.deliveryMethod)) return null;
+  if (!isReminderSmsDefaultOn(env) || !TEXT_METHODS.includes(reminder.deliveryMethod)) {
+    return (await consentRefusal(reminder, env)) ? 'in-app' : null;
+  }
   if (!guard) {
     log.warn(
       { reminderId: reminder.id },
@@ -59,6 +75,27 @@ export async function textThroughGuard(
     log.error({ error: String(error), reminderId: reminder.id }, 'Guarded reminder text failed');
     return 'in-app';
   }
+}
+
+/** Why the raw text or call path may not reach deliveryAddress, or null (MESSAGING_PIPELINE). */
+async function consentRefusal(
+  reminder: ScheduledReminder,
+  env: Record<string, string | undefined>
+): Promise<string | null> {
+  const method = reminder.deliveryMethod;
+  const channel = method === 'call' ? 'call' : TEXT_METHODS.includes(method) ? 'sms' : null;
+  if (!channel) return null;
+  const { consentBlocks, defaultConsentDeps } = await import('../messaging/consent.js');
+  const to = reminder.deliveryAddress;
+  const refused = await consentBlocks(
+    to,
+    channel,
+    channel === 'call' ||
+      (async (): Promise<boolean> => (await ownNumber?.(reminder.userId, to)) === true),
+    { ...defaultConsentDeps(), env }
+  );
+  if (refused) log.info({ reminderId: reminder.id, channel, refused }, 'Reminder held for the app');
+  return refused;
 }
 
 /**

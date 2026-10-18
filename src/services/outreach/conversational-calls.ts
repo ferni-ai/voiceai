@@ -15,6 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { consentBlocks } from '../messaging/consent.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { callQuietHours } from './quiet-hours.js';
@@ -173,6 +174,10 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     if (!normalizedPhone) {
       return { success: false, error: 'Invalid phone number format' };
     }
+    // MESSAGING_PIPELINE: callUser and every proactive call stop at a call opt-out.
+    // Checked again when a held call is placed (deferred-calls.ts calls back in here).
+    const refused = await consentBlocks(normalizedPhone, 'call', true);
+    if (refused) return { success: false, error: `Not calling: ${refused}` };
 
     // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
     const held = { recipientPhone: normalizedPhone, recipientUserId: userId };

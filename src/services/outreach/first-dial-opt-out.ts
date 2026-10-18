@@ -17,6 +17,7 @@
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isCallOptedOut } from './call-retry.js';
+import { consentBlocks } from '../messaging/consent.js';
 
 const log = createLogger({ module: 'FirstDialOptOut' });
 
@@ -33,6 +34,8 @@ export async function assertNotOptedOut(
   phone: string,
   isOptedOut: (phone: string) => Promise<boolean> = isCallOptedOut
 ): Promise<void> {
+  // MESSAGING_PIPELINE: the one consent record, with call_opt_outs as its fallback.
+  if (await consentBlocks(phone, 'call', true)) throw new RecipientOptedOutError();
   if (!flagOn('ON_BEHALF_DNC_CHECK')) return;
   if (!(await isOptedOut(phone))) return;
   log.info('On-behalf call not placed: the number is on the do-not-call list');

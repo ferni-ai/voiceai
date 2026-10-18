@@ -19,6 +19,7 @@ import {
   type ConsentStore,
 } from '../consent.js';
 import { phoneHash } from '../../outreach/checkin-replies.js';
+import { memoryConsentStore } from './memory-consent.js';
 
 const PHONE = '+12025550143';
 const ON = { MESSAGING_PIPELINE: 'on', LOG_HASH_SECRET: 'test-secret' };
@@ -26,27 +27,7 @@ const OFF = { LOG_HASH_SECRET: 'test-secret' };
 const HASH = phoneHash(PHONE, ON) as string;
 const NOW = new Date('2026-10-18T15:00:00Z');
 
-function memoryStore() {
-  const docs = new Map<string, Record<string, unknown>>();
-  const legacySms = new Set<string>();
-  const legacyCall = new Set<string>();
-  const store: ConsentStore = {
-    read: async (h) => docs.get(h),
-    apply: async (h, change) => {
-      docs.set(h, change(docs.get(h)));
-    },
-    legacySmsOptOut: async (h) => legacySms.has(h),
-    setLegacySmsOptOut: async (h, out) => {
-      if (out) legacySms.add(h);
-      else legacySms.delete(h);
-    },
-    legacyCallOptOut: async (p) => legacyCall.has(p),
-    setLegacyCallOptOut: async (p) => {
-      legacyCall.add(p);
-    },
-  };
-  return { store, docs, legacySms, legacyCall };
-}
+const memoryStore = memoryConsentStore;
 
 const depsWith = (store: ConsentStore, env: Record<string, string> = ON): ConsentDeps => ({
   env,

@@ -21,7 +21,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { messagingPipelineOn, writeOptOut } from '../messaging/consent.js';
+import { consentBlocks, messagingPipelineOn, writeOptOut } from '../messaging/consent.js';
 import { phoneHash } from './checkin-replies.js';
 import {
   onBehalfDispatchFor,
@@ -322,7 +322,8 @@ export async function placeCallRetry(
   if (!process.env.SIP_TRUNK_ID) {
     return { success: false, error: 'No SIP trunk for a conversational call' };
   }
-  if (await isCallOptedOut(call.contact.phone)) {
+  const refused = await consentBlocks(call.contact.phone, 'call', true);
+  if (refused || (await isCallOptedOut(call.contact.phone))) {
     return { success: false, error: 'Recipient asked not to be called' };
   }
   const guard = deps.isAllowedCallTime ?? safeWindowGuard;

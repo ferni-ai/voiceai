@@ -19,6 +19,7 @@ import {
   type ScheduledOutreachTarget,
 } from './scheduled-multi-outreach.js';
 import { isOwnVerifiedPhone, ON_BEHALF_GAP_MS, textOnBehalf } from './guarded-text.js';
+import { consentBlocks } from '../messaging/consent.js';
 import { flagOn } from '../../config/env-flag.js';
 import { sendEmail } from './delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../voice/voice-call.js';
@@ -54,7 +55,7 @@ let isRunning = false;
 let config = DEFAULT_CONFIG;
 
 /** Guard skips that end a scheduled text rather than fail it. */
-const FINAL_SKIPS: ReadonlySet<string> = new Set(['opted-out', 'bad-number']);
+const FINAL_SKIPS: ReadonlySet<string> = new Set(['opted-out', 'no-consent', 'bad-number']);
 /** A held item released this long after its time is stale: cancelled, never sent as a backlog. */
 const HELD_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
@@ -129,6 +130,16 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
     } else if (channelUsed === 'call' || channelUsed === 'conversation') {
       if (!target.resolvedPhone) {
         throw new Error(`No phone number for ${target.resolvedContactName}`);
+      }
+      // MESSAGING_PIPELINE: a number that asked not to be called is never rung.
+      const refused = await consentBlocks(target.resolvedPhone, 'call', true);
+      if (refused) {
+        await updateOutreachStatus(userId, id, 'cancelled', {
+          success: false,
+          channel: channelUsed,
+          error: `skipped: ${refused}`,
+        });
+        return;
       }
 
       if (channelUsed === 'conversation') {

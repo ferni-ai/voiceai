@@ -7,6 +7,7 @@
  */
 
 import { sendSMS } from '../../communication-service.js';
+import { consentBlocks } from '../../messaging/consent.js';
 import { saveInAppMessage } from '../unified-delivery.js';
 import { resolveVerifiedPhone } from '../user-reach.js';
 import type { ProactiveDeps } from './proactive-tick.js';
@@ -29,11 +30,14 @@ export function defaultProactiveDeps(): ProactiveDeps {
     async verifiedPhone(userId, user) {
       return resolveVerifiedPhone(userId, user);
     },
+    // The verified phone is the member's own, so only an opt-out stops it (MESSAGING_PIPELINE).
     async sendSms(phone, text) {
+      if (await consentBlocks(phone, 'sms', true)) return false;
       await sendSMS(phone, text);
       return true;
     },
     canCall: () => canPlaceCalls(),
-    placeCall: async (userId, phone, trigger) => placeSelfCall(userId, phone, trigger),
+    placeCall: async (userId, phone, trigger) =>
+      (await consentBlocks(phone, 'call', true)) ? 'failed' : placeSelfCall(userId, phone, trigger),
   };
 }
