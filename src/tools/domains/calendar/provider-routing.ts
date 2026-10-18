@@ -95,7 +95,9 @@ async function createOnConnected(
     startTime,
     endTime: new Date(startTime.getTime() + minutes * 60_000),
     isAllDay: false,
-    attendees: params.attendees ?? [],
+    // Guests on a provider event get an invitation from the provider (Outlook
+    // emails one), and nobody confirmed who they are. The event is the user's alone.
+    attendees: [],
     status: 'confirmed',
     source: provider,
     syncStatus: 'synced',
@@ -108,7 +110,10 @@ async function createOnConnected(
   if (!result.ok) {
     return `I couldn't add "${params.title}" to your ${label}, so it isn't on it. Want me to try again?`;
   }
-  return `Added "${params.title}", ${formatStoredLocalTime(startTime, zone)}, to your ${label}.`;
+  const added = `Added "${params.title}", ${formatStoredLocalTime(startTime, zone)}, to your ${label}.`;
+  return (params.attendees?.length ?? 0) > 0
+    ? `${added} I didn't invite anyone, so add guests there if you want them.`
+    : added;
 }
 
 async function changeOnConnected(

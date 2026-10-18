@@ -100,6 +100,19 @@ describe('routeWriteToProvider', () => {
     );
   });
 
+  it('a create with guests invites nobody, and the reply says so', async () => {
+    const withGuests = { ...createParams, attendees: ['sam@example.com'] };
+    const reply = await routeWriteToProvider('createCalendarEvent', 'user-1', withGuests, ctx);
+    expect(createOnProvider).toHaveBeenCalledWith(
+      'user-1',
+      'google',
+      expect.objectContaining({ attendees: [] })
+    );
+    expect(reply).toMatch(
+      /^Added "Lunch with Sam", .* to your Google Calendar\. I didn't invite anyone, so add guests there if you want them\.$/
+    );
+  });
+
   it('a create on Outlook names Outlook', async () => {
     vi.mocked(connectedWriteProvider).mockResolvedValue('outlook');
     vi.mocked(createOnProvider).mockResolvedValue({ ok: true, externalId: 'ext-2' });

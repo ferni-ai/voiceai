@@ -401,7 +401,7 @@ export async function createEvent(
 
   return googleCalendarCircuitBreaker.execute(async () => {
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=none`,
       {
         method: 'POST',
         headers: {
@@ -439,7 +439,7 @@ export async function updateEvent(
   }
 
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=none`,
     {
       method: 'PATCH',
       headers: {
@@ -473,7 +473,7 @@ export async function deleteEvent(
   }
 
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=none`,
     {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${accessToken}` },
