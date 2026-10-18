@@ -107,6 +107,19 @@ describe('replies to a proactive text', () => {
     expect(prefs().proactiveFrequency).toBeUndefined();
   });
 
+  it('a reply belongs to the text that went out, not a newer one the guard held back', async () => {
+    docs.set(`bogle_users/${SETH}/proactive_outreach_log/promise:p2`, {
+      sourceId: 'promise:p2',
+      channel: 'sms',
+      at: new Date(NOW.getTime() - HOUR).toISOString(),
+      outcome: 'skipped',
+      skipReason: 'sms-off',
+    });
+    await inbound('Pretty good');
+    expect(logOf('promise:p1')).toMatchObject({ outcome: 'replied' });
+    expect(logOf('promise:p2')).toMatchObject({ outcome: 'skipped' });
+  });
+
   it('a number that is not on an allowlisted account changes nothing', async () => {
     await inbound('less', '+15555550999');
     expect(prefs().proactiveFrequency).toBeUndefined();

@@ -1,6 +1,6 @@
 /**
  * An in-memory Firestore keyed by document path, with nested subcollections:
- * doc get/set (with merge)/update, runTransaction (serialized; create), collection where (==, >=,
+ * doc get/set (with merge)/update/create/delete, collection add, runTransaction (serialized; create), collection where (==, >=,
  * <=, array-contains; dotted field paths), orderBy (asc/desc, or '__name__' for the document id),
  * startAfter/startAt/endAt(id), limit. Enough for the
  * proactive check-in run and the daily outreach run end to end.
@@ -55,6 +55,13 @@ export function pathFirestore(docs: Map<string, Json>) {
           opts?.merge ? deepMerge(docs.get(path) ?? {}, data) : structuredClone(data)
         ),
       update: async (patch: Json) => void docs.set(path, { ...docs.get(path), ...patch }),
+      create: async (data: Json) => {
+        if (docs.has(path)) {
+          throw Object.assign(new Error('6 ALREADY_EXISTS: Document already exists'), { code: 6 });
+        }
+        docs.set(path, structuredClone(data));
+      },
+      delete: async () => void docs.delete(path),
       collection: (name: string) => collectionRef(`${path}/${name}`),
     };
   }
@@ -104,7 +111,15 @@ export function pathFirestore(docs: Map<string, Json>) {
     };
   }
   function collectionRef(path: string): Json {
-    return { ...query(path, []), doc: (id: string) => docRef(`${path}/${id}`) };
+    return {
+      ...query(path, []),
+      doc: (id: string) => docRef(`${path}/${id}`),
+      add: async (data: Json) => {
+        const id = `auto-${Math.random().toString(36).slice(2, 12)}`;
+        docs.set(`${path}/${id}`, structuredClone(data));
+        return docRef(`${path}/${id}`);
+      },
+    };
   }
   // Transactions run one at a time (Firestore's serializable guarantee for
   // overlapping read-then-write); create fails when the document exists.

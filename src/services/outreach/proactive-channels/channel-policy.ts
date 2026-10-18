@@ -92,6 +92,9 @@ export function inQuietHours(prefs: unknown, timezone: string, now: Date): boole
   );
 }
 
+/** Held and skipped entries never went out: they don't count toward caps or back-off. */
+const wentOut = (e: OutreachLogEntry): boolean => e.outcome !== 'held' && e.outcome !== 'skipped';
+
 /** A text went out: sent as one, or as the stand-in for a call that couldn't be placed. */
 const isText = (e: OutreachLogEntry): boolean => e.channel === 'sms' || e.fallbackChannel === 'sms';
 
@@ -193,7 +196,8 @@ function textOrNote(input: PolicyInput, sentToday: OutreachLogEntry[], caps: Cap
   return { channel: 'sms', why: 'timely' };
 }
 
-export function chooseChannel(input: PolicyInput): ChannelChoice {
+export function chooseChannel(policy: PolicyInput): ChannelChoice {
+  const input = { ...policy, recent: policy.recent.filter(wentOut) };
   const sentToday = input.recent.filter((e) => input.now.getTime() - Date.parse(e.at) < DAY_MS);
   const caps = gate(input, sentToday);
   if ('why' in caps) return caps;

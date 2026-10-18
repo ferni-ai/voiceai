@@ -51,6 +51,7 @@ import {
   type QuietHoursUser,
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
+import { recordText, type TextSent } from './sent-history.js';
 
 const log = createLogger({ module: 'guarded-text' });
 /** Send locks (lockedSend), kept apart from the records so no query reads them. */
@@ -77,12 +78,13 @@ export interface TextDeps {
   authPhone: (uid: string) => Promise<string | undefined>;
   send: (message: SMSMessage) => Promise<SMSDeliveryResult>;
   now: () => Date;
+  /** Adds a text to the "How I reach you" history (sent-history.ts); absent, nothing is. */
+  recordText?: (t: TextSent, sent: boolean) => Promise<void>;
 }
 
-export interface GuardedText {
-  readonly userId: string;
+/** userId and kind (TextSent), and what the text says and is about. */
+export interface GuardedText extends TextSent {
   readonly body: string;
-  readonly kind: TextKind;
   /** What it is about (a session id, a follow-up id), stored with the record. */
   readonly refId: string;
   /** No second text of this kind to this person or phone within this many ms. */
@@ -265,6 +267,7 @@ export async function sendGuardedText(
     outreachId: `${t.kind}_${t.refId}`,
   });
   if (result === 'locked') return skip('recently-sent');
+  await deps.recordText?.(t, result.success);
   if (!result.success) {
     log.warn({ ...logCtx, phoneLast4, error: redactNumbers(result.error) }, 'Text not sent');
     return { sent: false, reason: 'send-failed' };
@@ -492,5 +495,6 @@ export function defaultTextDeps(): TextDeps {
     authPhone: async (uid) => (await getFirebaseUser(uid))?.phoneNumber ?? undefined,
     send: sendSms,
     now: () => new Date(),
+    recordText: async (t, sent) => recordText(t, sent),
   };
 }

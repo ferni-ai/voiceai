@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from './path-firestore.js';
 
 const docs = new Map<string, Record<string, unknown>>();
+const attempts: Array<Record<string, unknown>> = [];
 const authUsers = new Map<string, { phoneNumber?: string }>();
 const texts: Array<{ to: string; body: string }> = [];
 let twilioDown = false;
@@ -28,11 +29,26 @@ vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
 vi.mock('../../../identity/firebase-auth.js', () => ({
   getFirebaseUser: vi.fn(async (uid: string) => authUsers.get(uid) ?? null),
 }));
-vi.mock('../../../communication-service.js', () => ({
-  sendSMS: vi.fn(async (to: string, body: string) => {
-    if (twilioDown) throw new Error('Twilio error: 503');
+// The guarded sender's check-in records and locks (checkin-replies.ts) use the utils module.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
+// Proactive texts go through the guarded sender (guarded-text.ts); Twilio is stubbed under it.
+vi.mock('../../delivery/sms-delivery.js', () => ({
+  isSMSDeliveryAvailable: () => true,
+  initializeSMSDelivery: vi.fn(),
+  sendSMS: vi.fn(async ({ to, body }: { to: string; body: string }) => {
+    if (twilioDown) return { success: false, error: 'Twilio error: 503' };
     texts.push({ to, body });
-    return 'sent';
+    return { success: true, messageSid: 'SM1' };
+  }),
+}));
+// "How I reach you" rows (sent-history.ts → outreach-history.ts).
+vi.mock('../../outreach-history.js', () => ({
+  recordOutreachAttempt: vi.fn(async (_userId: string, a: Record<string, unknown>) => {
+    attempts.push(a);
+    return 'attempt';
   }),
 }));
 
@@ -98,6 +114,8 @@ async function runHandler(): Promise<{ status: string; channel?: string; why?: s
 }
 
 beforeEach(() => {
+  process.env.LOG_HASH_SECRET = 'path-test-secret';
+  attempts.length = 0;
   docs.clear();
   authUsers.clear();
   texts.length = 0;
@@ -129,6 +147,70 @@ describe('proactive check-in channel', () => {
     expect(notes()).toHaveLength(0);
     expect(logOf('promise:p1')).toMatchObject({ channel: 'sms', outcome: 'sent', why: 'timely' });
     expect(result).toMatchObject({ status: 'sent', channel: 'sms' });
+  });
+
+  it('goes through the guarded sender: a number that sent STOP is not texted, and the log says skipped', async () => {
+    const { phoneHash } = await import('../../checkin-replies.js');
+    docs.set(`feature_checkin_optouts/${phoneHash(PHONE)}`, {
+      at: NOW.toISOString(),
+      via: 'reply',
+    });
+    seedUser();
+    seedPromise('p1');
+    const result = await runHandler();
+    expect(texts).toHaveLength(0);
+    expect(notes()).toHaveLength(0);
+    expect(logOf('promise:p1')).toMatchObject({
+      channel: 'sms',
+      outcome: 'skipped',
+      skipReason: 'opted-out',
+    });
+    expect(result).toMatchObject({ status: 'skipped', why: 'text not sent: opted-out' });
+    expect(attempts).toHaveLength(0);
+  });
+
+  it('a text sent moments ago holds the next one, which goes out on a later run', async () => {
+    const { phoneHash } = await import('../../checkin-replies.js');
+    docs.set('feature_checkins/earlier', {
+      userId: SETH,
+      kind: 'proactive',
+      status: 'sent',
+      sentAt: new Date(NOW.getTime() - 60_000).toISOString(),
+      phoneHash: phoneHash(PHONE),
+    });
+    seedUser();
+    seedPromise('p1');
+    expect(await runHandler()).toMatchObject({ status: 'held' });
+    expect(logOf('promise:p1')).toMatchObject({ outcome: 'held', skipReason: 'recently-sent' });
+    expect(texts).toHaveLength(0);
+
+    vi.setSystemTime(new Date(NOW.getTime() + 10 * 60_000));
+    expect(await runHandler()).toMatchObject({ status: 'sent', channel: 'sms' });
+    expect(texts).toHaveLength(1);
+    expect(logOf('promise:p1')).toMatchObject({ outcome: 'sent' });
+  });
+
+  it('every send adds one row to the "How I reach you" history, without the words', async () => {
+    seedUser();
+    seedPromise('p1');
+    await runHandler();
+    expect(attempts).toEqual([
+      {
+        type: 'follow_up',
+        channel: 'sms',
+        status: 'sent',
+        personaId: 'ferni',
+        reason: 'follow_up by sms',
+        triggeredBy: 'guarded-text:proactive',
+      },
+    ]);
+
+    attempts.length = 0;
+    seedUser({ outreachPreferences: {} }); // texts off: a note in the app
+    seedPromise('p2', 'the trip');
+    await runHandler();
+    expect(attempts).toEqual([expect.objectContaining({ channel: 'push', status: 'sent' })]);
+    expect(JSON.stringify(attempts)).not.toContain('the trip');
   });
 
   it('never texts a number that is not on the Firebase account', async () => {

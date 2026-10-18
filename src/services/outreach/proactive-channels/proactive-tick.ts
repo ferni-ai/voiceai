@@ -34,6 +34,7 @@ import {
   type OutreachLogEntry,
 } from './outreach-log.js';
 import type { CallOutcome } from './self-call.js';
+import type { TextOutcome, TextSkip } from '../guarded-text.js';
 import { writeOutreachText } from './outreach-text.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
@@ -70,7 +71,8 @@ export interface ProactiveDeps {
   sendInApp: (userId: string, trigger: ProactiveTrigger) => Promise<boolean>;
   /** A number they proved is theirs (user-reach.ts resolveVerifiedPhone), if any. */
   verifiedPhone: (userId: string, user: Record<string, unknown>) => Promise<string | undefined>;
-  sendSms: (phone: string, text: string) => Promise<boolean>;
+  /** Texts them through the guarded sender (verified phone, STOP, gap, lock). */
+  sendSms: (userId: string, trigger: ProactiveTrigger) => Promise<TextOutcome>;
   /** What comes due today in their world; absent when the server has no world model. */
   worldDue?: (userId: string, timeZone?: string) => Promise<WorldDueItem[]>;
   /** Rings their verified phone (self-call.ts); absent or false canCall: no calls. */
@@ -146,9 +148,14 @@ interface Delivered {
   fallbackChannel?: ProactiveChannel;
   /** How a call ended. */
   outcome?: CallOutcome;
+  /** The text guard held it back (STOP, texts off, sent moments ago): nothing went out. */
+  skipped?: TextSkip;
 }
 
-/** Send on the chosen channel; a text that doesn't go out becomes a note in the app. */
+/**
+ * Send on the chosen channel. A text that fails to send becomes a note in the
+ * app; one the guard holds back (STOP, texts off) is not sent at all.
+ */
 async function deliver(
   userId: string,
   trigger: ProactiveTrigger,
@@ -157,11 +164,12 @@ async function deliver(
   deps: ProactiveDeps
 ): Promise<Delivered> {
   if (channel === 'sms' && phone) {
-    const sent = await deps.sendSms(phone, trigger.text).catch((error: unknown) => {
+    const sent = await deps.sendSms(userId, trigger).catch((error: unknown): TextOutcome => {
       log.warn({ error: String(error), userId }, 'Proactive text failed');
-      return false;
+      return { sent: false, reason: 'send-failed' };
     });
-    if (sent) return { channel, ok: true };
+    if (sent.sent) return { channel, ok: true };
+    if (sent.reason !== 'send-failed') return { channel, ok: false, skipped: sent.reason };
     return { channel: 'in_app', ok: await deps.sendInApp(userId, trigger), fallbackFrom: channel };
   }
   return { channel: 'in_app', ok: await deps.sendInApp(userId, trigger) };
@@ -186,7 +194,9 @@ async function call(
     : 'failed';
   if (outcome === 'failed') {
     const instead = chooseChannel({ ...policy, canCall: false }).channel;
-    const sent = await deliver(userId, trigger, instead === 'sms' ? 'sms' : 'in_app', phone, deps);
+    let sent = await deliver(userId, trigger, instead === 'sms' ? 'sms' : 'in_app', phone, deps);
+    // The text guard held the stand-in text back: the words still reach the app.
+    if (sent.skipped) sent = await deliver(userId, trigger, 'in_app', phone, deps);
     return { channel: 'voice_call', ok: sent.ok, outcome, fallbackChannel: sent.channel };
   }
   if (outcome !== 'answered') await deps.sendInApp(userId, trigger);
@@ -216,12 +226,13 @@ async function send(
   await writeOutreachLog(userId, {
     ...claimFor(trigger, choice, policy.now),
     channel: sent.channel,
-    outcome: sent.outcome ?? (sent.ok ? 'sent' : 'failed'),
+    outcome: sent.outcome ?? outcomeOf(sent),
     text: written.text,
     textSource: written.source,
     ...(sent.outcome && { outcomeAt: new Date().toISOString() }),
     ...(sent.fallbackFrom && { fallbackFrom: sent.fallbackFrom }),
     ...(sent.fallbackChannel && { fallbackChannel: sent.fallbackChannel }),
+    ...(sent.skipped && { skipReason: sent.skipped }),
   });
   if (sent.ok) {
     await trigger.afterSend?.().catch((error: unknown) => {
@@ -229,6 +240,12 @@ async function send(
     });
   }
   return sent;
+}
+
+/** Held: sent moments ago, tried again next run. Skipped: STOP, texts off, no number. */
+function outcomeOf(sent: Delivered): OutreachLogEntry['outcome'] {
+  if (sent.skipped) return sent.skipped === 'recently-sent' ? 'held' : 'skipped';
+  return sent.ok ? 'sent' : 'failed';
 }
 
 function claimFor(trigger: ProactiveTrigger, choice: ChannelChoice, now: Date): OutreachLogEntry {
@@ -284,6 +301,11 @@ async function runForUser(
   if (dryRun) return { ...base, channel, status: 'dry_run' };
 
   const sent = await send(userId, trigger, { ...choice, channel }, policy, deps);
+  if (sent.skipped) {
+    const status = outcomeOf(sent) === 'held' ? 'held' : 'skipped';
+    log.info({ ...base, channel, reason: sent.skipped }, 'Proactive text held back');
+    return { ...base, channel, status, why: `text not sent: ${sent.skipped}` };
+  }
   log.info(
     { ...base, channel: sent.channel, ok: sent.ok, kind: trigger.kind },
     'Proactive check-in sent'

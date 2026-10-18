@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from './path-firestore.js';
 
 const docs = new Map<string, Record<string, unknown>>();
+const attempts: Array<Record<string, unknown>> = [];
 const texts: string[] = [];
 
 vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
@@ -32,8 +33,21 @@ vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
 vi.mock('../../../identity/firebase-auth.js', () => ({
   getFirebaseUser: vi.fn(async () => ({ phoneNumber: '+15555550123' })),
 }));
-vi.mock('../../../communication-service.js', () => ({
-  sendSMS: vi.fn(async (_to: string, body: string) => void texts.push(body)),
+// Proactive texts go through the guarded sender (guarded-text.ts); Twilio is stubbed under it.
+vi.mock('../../delivery/sms-delivery.js', () => ({
+  isSMSDeliveryAvailable: () => true,
+  initializeSMSDelivery: vi.fn(),
+  sendSMS: vi.fn(async ({ to, body }: { to: string; body: string }) => {
+    texts.push(body);
+    return { success: true, messageSid: 'SM1' };
+  }),
+}));
+// "How I reach you" rows (sent-history.ts → outreach-history.ts).
+vi.mock('../../outreach-history.js', () => ({
+  recordOutreachAttempt: vi.fn(async (_userId: string, a: Record<string, unknown>) => {
+    attempts.push(a);
+    return 'attempt';
+  }),
 }));
 // A working model that would turn the follow-up into a pre-event line.
 vi.mock('../../../llm-utils.js', () => ({
@@ -90,6 +104,8 @@ async function run(): Promise<{ status: string; channel?: string; sourceId?: str
 }
 
 beforeEach(() => {
+  process.env.LOG_HASH_SECRET = 'path-test-secret';
+  attempts.length = 0;
   docs.clear();
   texts.length = 0;
   vi.useFakeTimers({ toFake: ['Date'] });

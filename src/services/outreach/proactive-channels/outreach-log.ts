@@ -19,7 +19,9 @@ export const LOG_COLLECTION = 'proactive_outreach_log';
  * sent: out, no answer yet. replied: they talked with Ferni or wrote back
  * after it. ignored: a day went by without that. answered / no_answer /
  * busy / declined: how a call went. failed: the channel didn't take it.
- * pending: claimed by a run that is still sending it.
+ * pending: claimed by a run that is still sending it. held: the text guard
+ * held it back for now (one went out moments ago), so a later run takes it
+ * again. skipped: the text guard said never (STOP, texts off, no number).
  */
 export type OutreachOutcome =
   | 'pending'
@@ -30,7 +32,9 @@ export type OutreachOutcome =
   | 'no_answer'
   | 'busy'
   | 'declined'
-  | 'failed';
+  | 'failed'
+  | 'held'
+  | 'skipped';
 
 export interface OutreachLogEntry {
   sourceId: string;
@@ -49,6 +53,8 @@ export interface OutreachLogEntry {
   /** What was sent, and who wrote it (outreach-text.ts). */
   text?: string;
   textSource?: TextSource;
+  /** Why the text guard held it back (guarded-text.ts TextSkip). */
+  skipReason?: string;
 }
 
 /** The newest text in the log, so the same words don't go out twice in a row. */
@@ -67,8 +73,10 @@ export function logId(sourceId: string): string {
   return sourceId.replace(/\//g, '_').slice(0, 400);
 }
 
+/** Logged and not held: a held trigger goes out on a later run. */
 export async function alreadySent(userId: string, sourceId: string): Promise<boolean> {
-  return (await logOf(userId).doc(logId(sourceId)).get()).exists;
+  const doc = await logOf(userId).doc(logId(sourceId)).get();
+  return doc.exists && (doc.data() as OutreachLogEntry | undefined)?.outcome !== 'held';
 }
 
 export async function writeOutreachLog(userId: string, entry: OutreachLogEntry): Promise<void> {
@@ -104,9 +112,11 @@ export async function claimOutreach<T>(
     .runTransaction(async (tx) => {
       const mine = await tx.get(ref);
       const recent = await tx.get(logOf(userId).where('at', '>=', since.toISOString()));
-      if (mine.exists) return 'claimed' as const;
+      const held = mine.exists && (mine.data() as OutreachLogEntry).outcome === 'held';
+      if (mine.exists && !held) return 'claimed' as const;
       const { result, claim } = decide(recent.docs.map((d) => d.data() as OutreachLogEntry));
-      if (claim) tx.create(ref, claim);
+      if (claim && held) tx.set(ref, claim);
+      else if (claim) tx.create(ref, claim);
       return result;
     })
     .catch(claimed);

@@ -8,6 +8,7 @@ import {
   type TextStore,
 } from '../guarded-text.js';
 import { phoneHash, type CheckinRecord, type StoredCheckin } from '../checkin-replies.js';
+import { recordText } from '../sent-history.js';
 
 const NOW = new Date('2026-10-12T16:00:00Z');
 const HOUR = 3_600_000;
@@ -95,6 +96,45 @@ describe('sendGuardedText', () => {
       sent: false,
       reason: 'recently-sent',
     });
+  });
+
+  it('adds each text it sends, or fails to send, to the history once, without the words', async () => {
+    const { d } = deps();
+    const rows: unknown[] = [];
+    d.recordText = vi.fn(async (t, sent) =>
+      recordText(t, sent, async (_u, a) => {
+        rows.push(a);
+      })
+    );
+    await sendGuardedText(followUp(), d);
+    expect(d.recordText).toHaveBeenCalledTimes(1);
+    expect(rows).toEqual([
+      {
+        type: 'follow_up',
+        channel: 'sms',
+        status: 'sent',
+        personaId: 'ferni',
+        reason: 'follow_up by sms',
+        triggeredBy: 'guarded-text:follow-up',
+      },
+    ]);
+    expect(JSON.stringify(rows)).not.toContain('mom');
+
+    const down = deps();
+    down.d.recordText = vi.fn(async () => undefined);
+    down.d.send = vi.fn(async () => ({ success: false, error: 'down' }));
+    await sendGuardedText(followUp({ historyType: 'reminder' }), down.d);
+    expect(down.d.recordText).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u1', historyType: 'reminder' }),
+      false
+    );
+  });
+
+  it('a text the guards hold back adds nothing to the history', async () => {
+    const { d } = deps([], { optedOut: true });
+    d.recordText = vi.fn(async () => undefined);
+    expect(await sendGuardedText(followUp(), d)).toEqual({ sent: false, reason: 'opted-out' });
+    expect(d.recordText).not.toHaveBeenCalled();
   });
 
   it('two sends at once (both past the gap check) text once: the lock decides', async () => {

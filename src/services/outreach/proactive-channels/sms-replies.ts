@@ -53,7 +53,8 @@ async function markLatest(
   if (!db) return;
   const recent = await recentOutreach(userId, new Date(now.getTime() - ANSWER_WINDOW_MS));
   const latest = recent
-    .filter((e) => channels.includes(e.channel))
+    // Held and skipped texts never went out, so nobody is answering them.
+    .filter((e) => channels.includes(e.channel) && e.outcome !== 'held' && e.outcome !== 'skipped')
     .sort((a, b) => b.at.localeCompare(a.at))
     .at(0);
   if (latest === undefined) return;

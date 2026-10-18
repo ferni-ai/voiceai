@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from './path-firestore.js';
 
 const docs = new Map<string, Record<string, unknown>>();
+const attempts: Array<Record<string, unknown>> = [];
 const texts: string[] = [];
 const dispatches: Array<{ room: string; agent: string; metadata: string }> = [];
 const dials: Array<{ trunk: string; phone: string; room: string }> = [];
@@ -28,8 +29,26 @@ vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
 vi.mock('../../../identity/firebase-auth.js', () => ({
   getFirebaseUser: vi.fn(async () => ({ phoneNumber: '+15555550123' })),
 }));
-vi.mock('../../../communication-service.js', () => ({
-  sendSMS: vi.fn(async (_to: string, body: string) => void texts.push(body)),
+// The guarded sender's check-in records and locks (checkin-replies.ts) use the utils module.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
+// Proactive texts go through the guarded sender (guarded-text.ts); Twilio is stubbed under it.
+vi.mock('../../delivery/sms-delivery.js', () => ({
+  isSMSDeliveryAvailable: () => true,
+  initializeSMSDelivery: vi.fn(),
+  sendSMS: vi.fn(async ({ to, body }: { to: string; body: string }) => {
+    texts.push(body);
+    return { success: true, messageSid: 'SM1' };
+  }),
+}));
+// "How I reach you" rows (sent-history.ts → outreach-history.ts).
+vi.mock('../../outreach-history.js', () => ({
+  recordOutreachAttempt: vi.fn(async (_userId: string, a: Record<string, unknown>) => {
+    attempts.push(a);
+    return 'attempt';
+  }),
 }));
 vi.mock('../../../llm/llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
 vi.mock('livekit-server-sdk', () => ({
@@ -85,6 +104,8 @@ const notes = () =>
   [...docs.keys()].filter((p) => p.startsWith(`bogle_users/${SETH}/pending_messages/`));
 
 beforeEach(() => {
+  process.env.LOG_HASH_SECRET = 'path-test-secret';
+  attempts.length = 0;
   docs.clear();
   texts.length = 0;
   dispatches.length = 0;

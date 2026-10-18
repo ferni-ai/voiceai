@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from './path-firestore.js';
 
 const docs = new Map<string, Record<string, unknown>>();
+const attempts: Array<Record<string, unknown>> = [];
 const authUsers = new Map<string, { phoneNumber?: string }>();
 const texts: Array<{ to: string; body: string }> = [];
 
@@ -30,8 +31,21 @@ vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
 vi.mock('../../../identity/firebase-auth.js', () => ({
   getFirebaseUser: vi.fn(async (uid: string) => authUsers.get(uid) ?? null),
 }));
-vi.mock('../../../communication-service.js', () => ({
-  sendSMS: vi.fn(async (to: string, body: string) => void texts.push({ to, body })),
+// Proactive texts go through the guarded sender (guarded-text.ts); Twilio is stubbed under it.
+vi.mock('../../delivery/sms-delivery.js', () => ({
+  isSMSDeliveryAvailable: () => true,
+  initializeSMSDelivery: vi.fn(),
+  sendSMS: vi.fn(async ({ to, body }: { to: string; body: string }) => {
+    texts.push({ to, body });
+    return { success: true, messageSid: 'SM1' };
+  }),
+}));
+// "How I reach you" rows (sent-history.ts → outreach-history.ts).
+vi.mock('../../outreach-history.js', () => ({
+  recordOutreachAttempt: vi.fn(async (_userId: string, a: Record<string, unknown>) => {
+    attempts.push(a);
+    return 'attempt';
+  }),
 }));
 vi.mock('../../../llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
 
@@ -81,6 +95,8 @@ async function processed(): Promise<string[] | null> {
 
 const ENV_KEYS = ['PROACTIVE_CHANNELS', 'PROACTIVE_CHANNELS_USERS', 'COHORT_FLAGS'];
 beforeEach(() => {
+  process.env.LOG_HASH_SECRET = 'path-test-secret';
+  attempts.length = 0;
   docs.clear();
   authUsers.clear();
   texts.length = 0;
