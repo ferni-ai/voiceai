@@ -8,6 +8,7 @@ import com.ferni.voice.models.EmotionHint
 import com.ferni.voice.models.Persona
 import com.ferni.voice.models.TranscriptMessage
 import com.ferni.voice.models.VoiceState
+import com.ferni.voice.models.WaitlistStatus
 import io.livekit.android.LiveKit
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
@@ -120,6 +121,15 @@ class LiveKitSession(private val context: Context) {
     val currentPersona: Persona
         get() = Persona.get(_currentPersonaId.value)
 
+    // Set when /token answers 403 WAITLISTED: the waiting screen shows instead of an error
+    private val _waitlist = MutableStateFlow<WaitlistStatus?>(null)
+    val waitlist: StateFlow<WaitlistStatus?> = _waitlist.asStateFlow()
+
+    /** The waiting screen was closed ("Not now" / "Come in"). */
+    fun dismissWaitlist() {
+        _waitlist.value = null
+    }
+
     /**
      * Connect to the voice session.
      */
@@ -143,7 +153,13 @@ class LiveKitSession(private val context: Context) {
         _connectionProgress.value = "Getting access token..."
 
         // Fetch token
+        _waitlist.value = null
         val tokenData = fetchToken()
+        if (tokenData == null && _waitlist.value != null) {
+            Log.i(TAG, "Token refused: on the waitlist")
+            _voiceState.value = VoiceState.Disconnected // not an error: they're in line
+            return
+        }
         if (tokenData == null) {
             Log.e(TAG, "Failed to fetch token")
             _voiceState.value = VoiceState.Error("Failed to get token")
@@ -499,7 +515,12 @@ class LiveKitSession(private val context: Context) {
             val response = httpClient.newCall(request).execute()
 
             if (!response.isSuccessful) {
-                Log.e(TAG, "Token request failed with status ${response.code}")
+                val waitlisted = WaitlistStatus.fromRefusal(response.code, response.body?.string())
+                if (waitlisted != null) {
+                    _waitlist.value = waitlisted
+                } else {
+                    Log.e(TAG, "Token request failed with status ${response.code}")
+                }
                 return@withContext null
             }
 

@@ -67,6 +67,7 @@ fun VoiceScreen(
     val isMuted by voiceViewModel.isMuted.collectAsState()
     val connectionProgress by voiceViewModel.connectionProgress.collectAsState()
     val transcriptMessages by session.transcriptMessages.collectAsState()
+    val waitlist by session.waitlist.collectAsState()
 
     // Better Than Human state for avatar emotional intelligence
     val betterThanHumanState by voiceViewModel.betterThanHumanState.collectAsState()
@@ -176,6 +177,11 @@ fun VoiceScreen(
                 },
                 onDismiss = { showPersonaPicker = false }
             )
+        }
+
+        // On the waitlist: their place in line instead of "Failed to get token"
+        waitlist?.let { status ->
+            WaitingScreen(status = status, onDismiss = { session.dismissWaitlist() })
         }
     }
 }
