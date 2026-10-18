@@ -213,6 +213,16 @@ describe('OUTREACH_SERVER_CONFIRM: the yes places the call', () => {
     expect(dialed()).toEqual([]);
   });
 
+  it('two yes finals in a row ring once', async () => {
+    const call = liveCall();
+    await call.call('callOnBehalf', CALL_DAD, 'c1');
+    call.caller('Yes.');
+    call.caller('Yes, go ahead.'); // one answer split across finals (#1862)
+    await quiet(call, true);
+    await quiet(call, false);
+    expect(dialed()).toEqual(['+18015550142']);
+  });
+
   it('a second yes after the call went out rings nothing more', async () => {
     const call = liveCall();
     await call.call('callOnBehalf', CALL_DAD, 'c1');
