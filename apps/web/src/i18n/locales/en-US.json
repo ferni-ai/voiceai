@@ -3577,8 +3577,8 @@
       "remove": "Couldn't remove them. Try again?",
       "phoneInUse": "That number is already set up for someone else."
     },
-    "checkinSubtitle": "People Ferni can check in on by phone",
-    "emptyIntro": "Add family members Ferni can check in on by phone. Ferni doesn't recognize callers by their number yet, so when they call, it's a fresh conversation."
+    "emptyIntro": "Add the people who matter to you. Ferni doesn't recognize callers by their number yet, so a call from them starts fresh.",
+    "peopleSubtitle": "The people who matter to you"
   },
   "panels": {
     "goBack": "Go back",

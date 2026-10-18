@@ -3524,8 +3524,8 @@
       "one": "{count} call",
       "other": "{count} calls"
     },
-    "checkinSubtitle": "People Ferni can check in on by phone",
-    "emptyIntro": "Add family members Ferni can check in on by phone. Ferni doesn't recognise callers by their number yet, so when they call, it's a fresh conversation."
+    "emptyIntro": "Add the people who matter to you. Ferni doesn't recognise callers by their number yet, so a call from them starts fresh.",
+    "peopleSubtitle": "The people who matter to you"
   },
   "panels": {
     "goBack": "Go back",

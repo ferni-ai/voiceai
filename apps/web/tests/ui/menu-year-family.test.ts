@@ -116,6 +116,17 @@ describe('Family Phone Access', () => {
     expect(text).toContain("Ferni doesn't recognize callers by their number yet");
   });
 
+  it('promises no check-in calls (FAMILY_CHECKIN_CALLS is off by default)', async () => {
+    mocks.apiGet.mockResolvedValue({ ok: true, status: 200, data: { identities: [] } });
+    await FamilyIdentities.show();
+
+    const intro = `${document.querySelector('.family-modal__subtitle')?.textContent ?? ''} ${
+      document.querySelector('.family-empty__text')?.textContent ?? ''
+    }`;
+    expect(intro).toContain('The people who matter to you');
+    expect(intro).not.toMatch(/check in|check-in/i);
+  });
+
   for (const locale of ['en-US', 'en-GB']) {
     it(`${locale} copy makes no automatic-recognition claim`, () => {
       const raw = readFileSync(

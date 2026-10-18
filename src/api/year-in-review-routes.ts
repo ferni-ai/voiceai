@@ -80,6 +80,12 @@ interface RelationshipGrowth {
 interface YearStats {
   totalConversations: number;
   totalMinutes?: number; // only when every conversation recorded its duration
+  // Always 0, kept for one release so a tab opened before this deploy (which
+  // still reads them) doesn't break; the web no longer reads them, and they go
+  // in a follow-up.
+  longestStreak: 0;
+  currentStreak: 0;
+  teamMembersUnlocked: 0;
   averageConversationsPerWeek: number;
   mostActiveMonth: string;
   dreamsTracked: number;
@@ -110,12 +116,11 @@ async function fetchYearData(userId: string): Promise<YearData> {
   yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 
   // Fetch from various superhuman services
-  const [conversations, dreams, commitments, relationships, teamStatus] = await Promise.all([
+  const [conversations, dreams, commitments, relationships] = await Promise.all([
     fetchConversationHistory(userId, yearAgo),
     fetchDreams(userId),
     fetchCommitments(userId),
     fetchRelationships(userId),
-    fetchTeamUnlocks(userId),
   ]);
 
   // Calculate stats
@@ -126,7 +131,7 @@ async function fetchYearData(userId: string): Promise<YearData> {
     startDate: yearAgo.toISOString(),
     conversationCounts: conversations.daily,
     emotionalJourney: conversations.emotionalMoments,
-    teamUnlocks: teamStatus,
+    teamUnlocks: wholeTeam(),
     dreams,
     commitments,
     milestones: conversations.milestones,
@@ -326,47 +331,21 @@ async function fetchRelationships(userId: string): Promise<RelationshipGrowth> {
   }
 }
 
-async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
-  try {
-    const { getTeamUnlockState } = await import('../services/team-unlocks.js');
-    const { getStore } = await import('../memory/store-factory.js');
-    const store = await getStore();
-    const profile = await store.getProfile(userId);
-    const state = getTeamUnlockState(profile);
+/**
+ * The whole team, always: TEAM_BY_NEED (Seth, 2026-10-11) puts everyone on the
+ * team from the first call, as Meet Your Team shows, whatever this server's flag.
+ */
+const TEAM: readonly TeamUnlock[] = [
+  { personaId: 'ferni', personaName: 'Ferni', primaryColor: '#4a6741' },
+  { personaId: 'maya-santos', personaName: 'Maya', primaryColor: '#a67a6a' },
+  { personaId: 'peter-john', personaName: 'Peter', primaryColor: '#3a6b73' },
+  { personaId: 'alex-chen', personaName: 'Alex', primaryColor: '#5a6b8a' },
+  { personaId: 'jordan-taylor', personaName: 'Jordan', primaryColor: '#c4856a' },
+  { personaId: 'nayan-patel', personaName: 'Nayan', primaryColor: '#b8956a' },
+];
 
-    // Use full member IDs (maya-santos, peter-john, etc.) to match TeamMemberId type
-    const PERSONA_COLORS: Record<string, string> = {
-      ferni: '#4a6741',
-      'maya-santos': '#a67a6a',
-      'peter-john': '#3a6b73',
-      'alex-chen': '#5a6b8a',
-      'jordan-taylor': '#c4856a',
-      'nayan-patel': '#b8956a',
-    };
-
-    // Map short display names for personaName (e.g., "Maya" not "Maya-santos")
-    const DISPLAY_NAMES: Record<string, string> = {
-      ferni: 'Ferni',
-      'maya-santos': 'Maya',
-      'peter-john': 'Peter',
-      'alex-chen': 'Alex',
-      'jordan-taylor': 'Jordan',
-      'nayan-patel': 'Nayan',
-    };
-
-    return state.unlockedMembers.map((memberId) => ({
-      personaId: memberId,
-      personaName:
-        DISPLAY_NAMES[memberId] ||
-        memberId.split('-')[0]?.charAt(0).toUpperCase() + memberId.split('-')[0]?.slice(1) ||
-        memberId,
-      primaryColor: PERSONA_COLORS[memberId] || '#4a6741',
-    }));
-  } catch (error) {
-    // Empty, not a made-up "Ferni unlocked": the page says it couldn't load the team.
-    log.warn({ error: String(error), userId }, 'Failed to fetch team');
-    return [];
-  }
+function wholeTeam(): TeamUnlock[] {
+  return TEAM.map((member) => ({ ...member }));
 }
 
 function calculateStats(
@@ -401,6 +380,9 @@ function calculateStats(
   return {
     totalConversations,
     totalMinutes: conversations.minutes,
+    longestStreak: 0,
+    currentStreak: 0,
+    teamMembersUnlocked: 0,
     averageConversationsPerWeek: averageConversationsPerWeek(totalConversations, conversations),
     mostActiveMonth,
     dreamsTracked: dreams.length,

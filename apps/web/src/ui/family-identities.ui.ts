@@ -894,7 +894,7 @@ export async function show(options: FamilyIdentitiesCallbacks = {}): Promise<voi
       <div class="family-modal__header">
         <span class="family-modal__eyebrow">${t('familyIdentities.eyebrow')}</span>
         <h2 class="family-modal__title" id="family-modal-title">${t('familyIdentities.familyTitle')}</h2>
-        <p class="family-modal__subtitle">${t('familyIdentities.checkinSubtitle')}</p>
+        <p class="family-modal__subtitle">${t('familyIdentities.peopleSubtitle')}</p>
         <button class="family-modal__close" aria-label="${t('accessibility.close')}">
           ${ICONS.close}
         </button>

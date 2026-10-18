@@ -3,9 +3,10 @@
  * TEAM_BY_NEED: the whole team from the first call, no streak nudges).
  *
  * The 2026-10-18 menu re-audit found the year still returned current/best
- * streaks (the best-streak loop also restarted on any gap in the sorted days,
- * so it was wrong), a "team members unlocked" count, and, when the team lookup
- * failed, a made-up team of one: "Ferni" as if just unlocked.
+ * streaks (the best-streak loop was also wrong after the first gap), a "team
+ * members unlocked" count, and, when the team lookup failed, a made-up team of
+ * one: "Ferni" as if just unlocked. Review: list all six whatever the API
+ * server's TEAM_BY_NEED, and keep the old fields at 0 for one release.
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -48,29 +49,26 @@ beforeEach(() => {
 });
 
 describe('GET /api/year-in-review/:userId', () => {
-  it('returns no streaks and no unlock count', async () => {
-    getTeamUnlockState.mockReturnValue({ unlockedMembers: ['ferni', 'maya-santos'] });
+  it('reports no streaks or unlocks: those fields stay 0 for old tabs only', async () => {
     const stats = (await year()).stats as Record<string, unknown>;
 
     expect(stats).toHaveProperty('totalConversations');
-    expect(stats).not.toHaveProperty('currentStreak');
-    expect(stats).not.toHaveProperty('longestStreak');
-    expect(stats).not.toHaveProperty('teamMembersUnlocked');
+    // kept for one release so a tab opened before the deploy still renders
+    expect(stats.currentStreak).toBe(0);
+    expect(stats.longestStreak).toBe(0);
+    expect(stats.teamMembersUnlocked).toBe(0);
   });
 
-  it('lists the team it found, with no unlock dates', async () => {
-    getTeamUnlockState.mockReturnValue({ unlockedMembers: ['ferni', 'maya-santos'] });
-    const team = (await year()).teamUnlocks as Array<Record<string, unknown>>;
-
-    expect(team.map((m) => m.personaName)).toEqual(['Ferni', 'Maya']);
-    for (const member of team) expect(member).not.toHaveProperty('unlockedAt');
-  });
-
-  it('a failed team lookup returns no team, not a made-up "Ferni unlocked"', async () => {
+  it('lists the whole team with no unlock dates, whatever TEAM_BY_NEED says here', async () => {
+    vi.stubEnv('TEAM_BY_NEED', 'off');
+    // the unlock state is never consulted: a broken lookup changes nothing
     getTeamUnlockState.mockImplementation(() => {
       throw new Error('profile store down');
     });
+    const team = (await year()).teamUnlocks as Array<Record<string, unknown>>;
+    vi.unstubAllEnvs();
 
-    expect((await year()).teamUnlocks).toEqual([]);
+    expect(team.map((m) => m.personaName)).toEqual(['Ferni', 'Maya', 'Peter', 'Alex', 'Jordan', 'Nayan']);
+    for (const member of team) expect(member).not.toHaveProperty('unlockedAt');
   });
 });
