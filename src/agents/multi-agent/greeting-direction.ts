@@ -14,6 +14,10 @@ import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
 import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import {
+  returningCallerAwareness,
+  returningCallerGreeting,
+} from '../../services/identity/returning-caller.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { callerHour } from '../shared/time-context.js';
@@ -268,6 +272,14 @@ export function greetingFacts(
   return facts;
 }
 
+/** A caller with no past conversations: new, or maybe one who called before (RETURNING_CALLER). */
+export function firstTalkNote(sessionId: string): string {
+  return (
+    returningCallerAwareness(sessionId) ??
+    'This is your first conversation with them - be welcoming but not overwhelming.'
+  );
+}
+
 /** Agent setup knows the profile, the greeting needs it: handed over per session. */
 const pendingHistory = new Map<string, CallerHistory>();
 
@@ -378,8 +390,11 @@ export async function directedGreeting(
     loadWelcomeBack(userData?.userId, personaId, history),
     anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
   ]);
-  // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
-  const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
+  // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts), or check
+  // the name someone on that number gave before (RETURNING_CALLER, returning-caller.ts).
+  const unknown =
+    returningCallerGreeting(sessionId) ??
+    unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
   const { win, checkIn } = unknown ? {} : openingThread(openWin, openCheckIn);
   // One thread per call: a win or what they said they'd do comes before a pondered ask.
   const ask = win || checkIn ? undefined : pondered;
