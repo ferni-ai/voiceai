@@ -75,6 +75,7 @@ import {
   withTurnStyleReminder,
 } from './turn-style.js';
 import { burstLine, clearBurstOffer } from './vocal-bursts.js';
+import { withHeavyMoment } from './heavy-turn.js';
 
 // Moved to turn-request-tools.ts; re-exported for existing importers.
 export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
@@ -313,11 +314,9 @@ function styleFor(
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const shaped = withPlayful(
-    session,
-    said,
-    withQuiet(withRecent(withOwnStory(sig, said, ownStory), said, chatCtx), said, chatCtx)
-  );
+  const told = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
+  const quiet = withQuiet(told, said, chatCtx);
+  const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
   const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
   // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
   const burst = burstLine(

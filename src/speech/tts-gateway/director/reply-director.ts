@@ -16,7 +16,7 @@
  */
 
 import { readCallerProsody, type CallerProsody } from '../../audio-prosody/caller-prosody.js';
-import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
 import { flagOn } from '../../../config/env-flag.js';
 import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
@@ -30,6 +30,7 @@ import { ferniSpeedNudge, porchLightOn } from './ferni-energy.js';
 import { personaLayer, restingToneTags } from './ferni-resting-voice.js';
 import { carriedPace } from './key-phrase.js';
 import { leverModes, speechDirectorMode } from './gate.js';
+import { laughterGuard } from './heavy-laughter-guard.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
 import type { DirectorMode, LeverModes, SpeechPlan, TurnContext } from './types.js';
@@ -452,14 +453,8 @@ export function directSpeech(
   if (mode === 'off') return { reply, textStream: opts.textStream };
 
   const cues = new RawCues();
-  const textStream = opts.textStream.pipeThrough(
-    new TransformStream<string, string>({
-      transform(chunk, controller) {
-        cues.see(chunk); // never throws; see raw-cues.ts
-        controller.enqueue(chunk);
-      },
-    })
-  );
+  // The raw text, read by cues; on a heavy moment with no laugh the model wrote.
+  const textStream = opts.textStream.pipeThrough(laughterGuard(opts, cues));
   const directed = new DirectedReply(reply, mode, leverModes(opts.env), opts, cues);
   return { reply: directed, textStream };
 }
