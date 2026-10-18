@@ -19,6 +19,7 @@ import {
 import { worldNowNote } from '../shared/world-now.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import { latestUserText } from '../../tools/retrieval/turn-tool-retrieval.js';
+import { confirmedActionNote } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
 import {
   teamStatusNote,
@@ -147,6 +148,8 @@ export function withTurnReminder(
     heardTeammateNote(words),
     notes,
     corrected,
+    // The caller said yes to a read-back: the call or text goes only when the tool is called now.
+    confirmedActionNote(session),
     options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
