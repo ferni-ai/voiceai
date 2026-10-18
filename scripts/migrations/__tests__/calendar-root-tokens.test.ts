@@ -1,30 +1,27 @@
 /**
- * The root-collection calendar token migration, against an in-memory
- * Firestore (documents by full path). The real token store, persistence layer
- * and encryption run; only @google-cloud/firestore is faked, so the script's
- * reads and saveTokens' writes land in the same map.
+ * The root-collection calendar token cleanup, against an in-memory Firestore
+ * (documents by full path) and a fake Google revoke endpoint. Logs run at
+ * debug so a uid or token that reached any log line would show up here.
  */
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-process.env.OAUTH_ENCRYPTION_KEY = 'migration-test-key';
+process.env.LOG_LEVEL = 'debug';
+// src/tests/setup.ts mocks the logger for every test; this one needs the real
+// pino logger (it writes to process.stderr under vitest) to prove what it emits.
+vi.mock('../../../src/utils/safe-logger.js', async (importOriginal) => importOriginal());
 
 const docs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
-/**
- * Paths whose writes fail (a Firestore error). Never cleared: the persistence
- * layer keeps a failed write dirty and retries it, so a cleared entry could
- * land in a later test.
- */
-const failingWrites = vi.hoisted(() => new Set<string>());
+/** Paths whose delete fails (a Firestore error naming the path). */
+const failingDeletes = vi.hoisted(() => new Set<string>());
 
 vi.mock('@google-cloud/firestore', () => {
   const docRef = (path: string): Record<string, unknown> => ({
     get: async () => ({ exists: docs.has(path), data: () => docs.get(path) }),
-    set: async (value: Record<string, unknown>, opts?: { merge?: boolean }) => {
-      if (failingWrites.has(path)) throw new Error(`write refused: ${path}`);
-      const prev = opts?.merge ? (docs.get(path) ?? {}) : {};
-      docs.set(path, { ...prev, ...value });
+    set: async (value: Record<string, unknown>) => void docs.set(path, value),
+    delete: async () => {
+      if (failingDeletes.has(path)) throw new Error(`delete refused: ${path}`);
+      docs.delete(path);
     },
-    delete: async () => void docs.delete(path),
     collection: (name: string) => collectionRef(`${path}/${name}`),
   });
   const collectionRef = (path: string) => ({
@@ -32,10 +29,7 @@ vi.mock('@google-cloud/firestore', () => {
     get: async () => ({
       docs: [...docs.keys()]
         .filter((p) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
-        .map((p) => {
-          const id = p.slice(path.length + 1);
-          return { id, data: () => docs.get(p), ref: docRef(p) };
-        }),
+        .map((p) => ({ id: p.slice(path.length + 1), data: () => docs.get(p), ref: docRef(p) })),
     }),
   });
   return {
@@ -43,190 +37,162 @@ vi.mock('@google-cloud/firestore', () => {
       collection(name: string) {
         return collectionRef(name);
       }
-      batch() {
-        const ops: Array<() => Promise<void>> = [];
-        return {
-          set: (ref: { set: (v: unknown, o: unknown) => Promise<void> }, v: unknown, o: unknown) =>
-            void ops.push(() => ref.set(v, o)),
-          commit: async () => {
-            for (const op of ops) await op();
-          },
-        };
-      }
       async terminate() {}
     },
   };
 });
 
 const { Firestore } = await import('@google-cloud/firestore');
-const { migrateRootCalendarTokens, main } = await import('../calendar-root-tokens.js');
-const { encryptData, decryptData, isEncrypted } = await import(
-  '../../../src/utils/token-encryption.js'
-);
-const { shutdownTokenStore } = await import(
-  '../../../src/services/identity/google-calendar-token-store.js'
-);
+const { revokeAndDeleteRootCalendarTokens, dryRunRootCalendarTokens, main, GOOGLE_REVOKE_URL } =
+  await import('../calendar-root-tokens.js');
 
 const db = new Firestore() as unknown as import('@google-cloud/firestore').Firestore;
 const root = (uid: string) => `google_calendar_tokens/${uid}`;
 const stored = (uid: string) => `bogle_users/${uid}/google_calendar_tokens/data`;
 
-function seedRoot(uid: string, refresh = `refresh-secret-${uid}`): void {
+function seedRoot(uid: string, tokens: { refresh?: string; access?: string } = {}): void {
   docs.set(root(uid), {
-    access_token: `access-secret-${uid}`,
-    refresh_token: refresh,
-    expires_in: 3599,
+    access_token: tokens.access ?? `access-secret-${uid}`,
+    refresh_token: tokens.refresh ?? `refresh-secret-${uid}`,
     token_type: 'Bearer',
-    scope: 'https://www.googleapis.com/auth/calendar',
     expiry_date: 1_700_000_000_000,
   });
 }
 
-function storedTokens(uid: string): Record<string, unknown> | null {
-  const doc = docs.get(stored(uid));
-  if (!doc) return null;
-  expect(isEncrypted(doc.encrypted as string)).toBeTruthy();
-  return decryptData<Record<string, unknown>>(doc.encrypted as string);
-}
+/** Google's revoke endpoint: answers per token; records every token revoked. */
+const revokedTokens: string[] = [];
+let revokeAnswer: (token: string) => Promise<Response> = async () => new Response('', { status: 200 });
+const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
+  expect(url).toBe(GOOGLE_REVOKE_URL);
+  const token = new URLSearchParams(String(init.body)).get('token') ?? '';
+  revokedTokens.push(token);
+  return revokeAnswer(token);
+});
+
+/** Everything printed or logged (stdout, stderr, console). */
+let output: string[] = [];
 
 beforeEach(() => {
   docs.clear();
+  failingDeletes.clear();
+  revokedTokens.length = 0;
+  revokeAnswer = async () => new Response('', { status: 200 });
+  fetchMock.mockClear();
+  vi.stubGlobal('fetch', fetchMock);
   process.exitCode = undefined;
+  output = [];
+  const capture = (...args: unknown[]) => void output.push(args.map(String).join(' '));
+  vi.spyOn(console, 'log').mockImplementation(capture);
+  vi.spyOn(console, 'error').mockImplementation(capture);
+  for (const stream of [process.stdout, process.stderr]) {
+    vi.spyOn(stream, 'write').mockImplementation((chunk: unknown) => {
+      output.push(String(chunk));
+      return true;
+    });
+  }
 });
 
-afterAll(async () => {
-  await shutdownTokenStore();
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
-describe('migrateRootCalendarTokens', () => {
-  it('moves a root token into the encrypted store and deletes the root doc', async () => {
+describe('revokeAndDeleteRootCalendarTokens', () => {
+  it('revokes each doc at Google (refresh token first) and deletes it', async () => {
     seedRoot('user-a');
+    seedRoot('user-b', { refresh: '', access: 'access-only-b' });
 
-    const counts = await migrateRootCalendarTokens(db, { apply: true });
+    const counts = await revokeAndDeleteRootCalendarTokens(db);
 
-    expect(counts).toMatchObject({ scanned: 1, migrated: 1, rootDeleted: 1, failed: 0 });
-    expect(docs.has(root('user-a'))).toBe(false);
-    expect(storedTokens('user-a')).toMatchObject({
-      access_token: 'access-secret-user-a',
-      refresh_token: 'refresh-secret-user-a',
-      expires_at: 1_700_000_000_000,
-      scope: 'https://www.googleapis.com/auth/calendar',
-    });
-    // No plaintext token anywhere in the stored doc.
-    expect(JSON.stringify(docs.get(stored('user-a')))).not.toContain('refresh-secret');
+    expect(counts).toEqual({ scanned: 2, revoked: 2, revokeFailed: 0, deleted: 2, deleteFailed: 0 });
+    expect(revokedTokens.sort()).toEqual(['access-only-b', 'refresh-secret-user-a']);
+    expect(docs.size).toBe(0);
   });
 
-  it('keeps the existing encrypted token and deletes the stale root copy', async () => {
-    seedRoot('user-b', 'old-root-refresh');
-    docs.set(stored('user-b'), {
-      encrypted: encryptData({ access_token: 'a', refresh_token: 'current-refresh', expires_at: 1 }),
-    });
+  it('deletes the doc even when the revoke fails', async () => {
+    seedRoot('user-refused');
+    seedRoot('user-offline');
+    revokeAnswer = async (token) => {
+      if (token.includes('offline')) throw new TypeError('fetch failed');
+      return new Response('{"error":"invalid_token"}', { status: 400 });
+    };
 
-    const counts = await migrateRootCalendarTokens(db, { apply: true });
+    const counts = await revokeAndDeleteRootCalendarTokens(db);
 
-    expect(counts).toMatchObject({ alreadyConnected: 1, migrated: 0, rootDeleted: 1 });
-    expect(docs.has(root('user-b'))).toBe(false);
-    expect(storedTokens('user-b')?.refresh_token).toBe('current-refresh');
+    expect(counts).toMatchObject({ revoked: 0, revokeFailed: 2, deleted: 2 });
+    expect(docs.size).toBe(0);
   });
 
-  it('keeps the root doc when the encrypted write does not land, and goes on', async () => {
-    seedRoot('user-fail');
-    seedRoot('user-ok');
-    failingWrites.add(stored('user-fail'));
-
-    const counts = await migrateRootCalendarTokens(db, { apply: true });
-
-    expect(counts).toMatchObject({ scanned: 2, migrated: 1, failed: 1, rootDeleted: 1 });
-    expect(docs.has(root('user-fail'))).toBe(true);
-    expect(docs.has(stored('user-fail'))).toBe(false);
-    expect(docs.has(root('user-ok'))).toBe(false);
-    expect(storedTokens('user-ok')?.refresh_token).toBe('refresh-secret-user-ok');
-  });
-
-  it('keeps the root doc when an existing encrypted doc does not decrypt', async () => {
+  it('never writes the token anywhere else', async () => {
     seedRoot('user-c');
-    docs.set(stored('user-c'), { encrypted: 'not-a-payload' });
-
-    const counts = await migrateRootCalendarTokens(db, { apply: true });
-
-    expect(counts).toMatchObject({ failed: 1, rootDeleted: 0 });
-    expect(docs.has(root('user-c'))).toBe(true);
+    await revokeAndDeleteRootCalendarTokens(db);
+    expect(docs.has(stored('user-c'))).toBe(false);
+    expect(docs.size).toBe(0);
   });
 
-  it('leaves a root doc with no refresh token alone', async () => {
-    seedRoot('user-d', '');
+  it('a failed delete is counted, keeps the doc and the run goes on', async () => {
+    seedRoot('user-stuck');
+    seedRoot('user-ok');
+    failingDeletes.add(root('user-stuck'));
 
-    const counts = await migrateRootCalendarTokens(db, { apply: true });
+    const counts = await revokeAndDeleteRootCalendarTokens(db);
 
-    expect(counts).toMatchObject({ keptNoRefreshToken: 1, rootDeleted: 0 });
-    expect(docs.has(root('user-d'))).toBe(true);
-    expect(docs.has(stored('user-d'))).toBe(false);
+    expect(counts).toMatchObject({ scanned: 2, deleted: 1, deleteFailed: 1 });
+    expect(docs.has(root('user-stuck'))).toBe(true);
+    expect(docs.has(root('user-ok'))).toBe(false);
   });
+});
 
-  it('dry run counts and writes nothing', async () => {
-    seedRoot('user-e');
-    seedRoot('user-f', 'old');
-    docs.set(stored('user-f'), {
-      encrypted: encryptData({ access_token: 'a', refresh_token: 'cur', expires_at: 1 }),
-    });
+describe('dryRunRootCalendarTokens', () => {
+  it('counts, and calls neither revoke nor delete', async () => {
+    seedRoot('user-d');
+    seedRoot('user-e', { refresh: '' });
+    docs.set(stored('user-d'), { encrypted: 'x' });
     const before = JSON.stringify([...docs]);
 
-    const counts = await migrateRootCalendarTokens(db, { apply: false });
+    const counts = await dryRunRootCalendarTokens(db);
 
-    expect(counts).toMatchObject({ scanned: 2, migrated: 1, alreadyConnected: 1, rootDeleted: 0 });
+    expect(counts).toEqual({ scanned: 2, withRefreshToken: 1, alreadyHasEncrypted: 1 });
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(JSON.stringify([...docs])).toBe(before);
-  });
-
-  it('is idempotent: a second run finds nothing to do', async () => {
-    seedRoot('user-g');
-    await migrateRootCalendarTokens(db, { apply: true });
-    const after = JSON.stringify([...docs]);
-
-    const counts = await migrateRootCalendarTokens(db, { apply: true });
-
-    expect(counts).toMatchObject({ scanned: 0, migrated: 0, rootDeleted: 0 });
-    expect(JSON.stringify([...docs])).toBe(after);
   });
 });
 
 describe('main', () => {
-  it('writes only with --apply --confirm-project, and prints no ids or tokens', async () => {
+  it('changes nothing without --apply --confirm-project', async () => {
     process.env.GOOGLE_CLOUD_PROJECT = 'test-project';
-    const printed: string[] = [];
-    const libraryLogs: string[] = [];
-    const capture = (...args: unknown[]) => void printed.push(args.map(String).join(' '));
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(capture);
-    const errSpy = vi.spyOn(console, 'error').mockImplementation(capture);
-    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
-      libraryLogs.push(String(chunk));
-      return true;
-    });
-    try {
-      seedRoot('user-main-uid');
-      failingWrites.add(stored('user-main-uid'));
-      seedRoot('user-main-ok');
+    seedRoot('user-f');
 
-      await main(['node', 'script']);
-      expect(docs.has(stored('user-main-ok'))).toBe(false);
+    await main(['node', 'script']);
+    await main(['node', 'script', '--apply']);
+    await main(['node', 'script', '--apply', '--confirm-project=other']);
 
-      await main(['node', 'script', '--apply']);
-      await main(['node', 'script', '--apply', '--confirm-project=other']);
-      expect(process.exitCode).toBe(1);
-      expect(docs.has(stored('user-main-ok'))).toBe(false);
+    expect(process.exitCode).toBe(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(docs.has(root('user-f'))).toBe(true);
+  });
 
-      process.exitCode = undefined;
-      const counts = await main(['node', 'script', '--apply', '--confirm-project=test-project']);
-      expect(counts).toMatchObject({ migrated: 1, failed: 1 });
-      expect(docs.has(stored('user-main-ok'))).toBe(true);
-    } finally {
-      logSpy.mockRestore();
-      errSpy.mockRestore();
-      stderrSpy.mockRestore();
-    }
-    // The script prints counts only; logs (silenced by default in a real run)
-    // never carry a token either.
-    expect(printed.join('\n')).toContain('"migrated":1');
-    expect(printed.join('\n')).not.toMatch(/secret|user-main/);
-    expect(libraryLogs.join('\n')).not.toMatch(/secret/);
+  it('under LOG_LEVEL=debug, no uid or token appears in anything printed or logged', async () => {
+    process.env.GOOGLE_CLOUD_PROJECT = 'test-project';
+    seedRoot('uid-alpha');
+    seedRoot('uid-bravo');
+    seedRoot('uid-charlie');
+    revokeAnswer = async (token) => {
+      if (token.includes('bravo')) throw new TypeError('fetch failed');
+      return new Response('', { status: 400 });
+    };
+    failingDeletes.add(root('uid-charlie'));
+
+    await main(['node', 'script']);
+    const counts = await main(['node', 'script', '--apply', '--confirm-project=test-project']);
+
+    expect(counts).toMatchObject({ revokeFailed: 3, deleted: 2, deleteFailed: 1 });
+    const all = output.join('\n');
+    // The failures were logged (so logging really ran at debug)...
+    expect(all).toContain('Revoke refused');
+    expect(all).toContain('Delete failed');
+    expect(all).toContain('"withRefreshToken":3');
+    // ...and nothing names a user or carries a token.
+    expect(all).not.toMatch(/uid-|secret/);
   });
 });
