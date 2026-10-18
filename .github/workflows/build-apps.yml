@@ -27,10 +27,12 @@ on:
           - ios
           - android
 
-# Cancel in-progress runs for same ref
+# A newer push to a PR cancels that PR's older run. Merge-queue, tag and manual
+# runs each get their own group and are never cancelled: cancelling a queue run
+# for a re-request on its ref drops the entry (see ci.yml's header).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NODE_VERSION: '22'
