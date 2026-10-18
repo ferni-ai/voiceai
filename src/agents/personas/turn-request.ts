@@ -31,7 +31,7 @@ import { teammateIdentityNote } from './teammate-identity.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
-import { retrievedTools } from './turn-request-tools.js';
+import { retrievedTools, withSameTurnTools } from './turn-request-tools.js';
 import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt-session.js';
@@ -57,7 +57,8 @@ import { journalAskFor } from './journal-ask.js';
 import { callerTurnsOf, goodbyeNoteOn, happyExitNote, questionPaceNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
 import { withPlayful } from './ferni-playful-turn.js';
-import { candorEnabled, supportHeld } from './turn-candor.js';
+import { supportHeld } from './turn-candor.js';
+import { withCallTrouble, withSupportHold } from './turn-holds.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
@@ -75,6 +76,7 @@ import {
   withTurnStyleReminder,
 } from './turn-style.js';
 import { burstLine, clearBurstOffer } from './vocal-bursts.js';
+import { withHeavyMoment } from './heavy-turn.js';
 
 // Moved to turn-request-tools.ts; re-exported for existing importers.
 export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
@@ -313,12 +315,11 @@ function styleFor(
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const shaped = withPlayful(
-    session,
-    said,
-    withQuiet(withRecent(withOwnStory(sig, said, ownStory), said, chatCtx), said, chatCtx)
-  );
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
+  const told = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
+  const quiet = withQuiet(told, said, chatCtx);
+  const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
+  const troubled = withCallTrouble(session, said, shaped, source);
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, troubled);
   // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
   const burst = burstLine(
     session,
@@ -376,23 +377,6 @@ export function signalsFor(
     : { signals: PLAIN_SIGNALS, source: 'plain' };
 }
 
-/**
- * CANDOR=on: after hard news, support comes first for the next few turns too
- * ("Can you just tell me something funny?" after "my dad's in the hospital"
- * is no moment to set them straight). Off, the signals are passed through.
- */
-function withSupportHold(
-  session: object,
-  said: string,
-  signals: TurnSignals | undefined,
-  source: 'model' | 'plain' | 'regex'
-): TurnSignals | undefined {
-  if (!candorEnabled()) return signals;
-  const sig = signals ?? regexSignals(said, callerMove(said));
-  // Only the model's reading is sticky: plain (no reading yet) is careful by default.
-  return { ...sig, supportFirst: supportHeld(session, said, source === 'model' && sig.careful) };
-}
-
 /** FERNI_STATE=on: his state's say on a story of his own rides with the signals (ferni-state.ts). */
 function withOwnStory(
   signals: TurnSignals | undefined,
@@ -444,6 +428,7 @@ export async function toolsForTurn(
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
   if (staticCoreToolsEnabled()) withPinnedTools(toolCtx, state.agent);
+  else withSameTurnTools(session, chatCtx, toolCtx); // TOOLS_SAME_TURN: this turn's topic tools
   const view = unlockViewFor(session.userData);
   const allowed = phoneOnlyIdentity(sessionIdOf(session.userData))
     ? await withoutAccountTools(toolCtx, state)

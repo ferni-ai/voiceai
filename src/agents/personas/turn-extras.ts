@@ -20,6 +20,7 @@
  *
  * @module agents/personas/turn-extras
  */
+import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { classifyBackchannelContext } from '../integrations/backchannel-context.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
@@ -95,6 +96,8 @@ export interface TurnSignals {
   laughed: boolean;
   laughFits: boolean;
   adviceFits: boolean;
+  /** Hard news in their last two turns, however they laughed (heavy-turn.ts): no laugh at all. */
+  heavy?: boolean;
   /**
    * FERNI_STATE=on: whether a story of his own may ride this reply
    * (ferni-state.ts). Undefined when his state has no say.
@@ -110,6 +113,8 @@ export interface TurnSignals {
   playful?: boolean;
   /** FERNI_PLAYFUL: false when this call had its playful line too recently (ferni-playful-turn.ts). */
   playfulLine?: boolean;
+  /** TROUBLES_TALK=on: a trouble on this turn or just before it (troubles-talk.ts); unset when off. */
+  trouble?: boolean;
 }
 
 /** The model's understanding as signals. */
@@ -171,7 +176,10 @@ export function extrasFor(
   style: StyleProfile = NEUTRAL_STYLE
 ): Extras {
   const out: Extras = { lines: [], fired: [] };
-  if (on(env, 'LAUGH_ALONG') && signals.laughed) {
+  // "lol my grandma passed" laughed, and is no moment to laugh along.
+  const heavy = signals.heavy === true || isHeavyMoment([userText]);
+  // TROUBLES_TALK=on: not while they tell a trouble; a listener doesn't laugh at it (Jefferson).
+  if (on(env, 'LAUGH_ALONG') && signals.laughed && !heavy && !signals.trouble) {
     out.lines.push(LAUGH_ALONG);
     out.fired.push('laugh_along');
   }
@@ -207,6 +215,7 @@ export function extrasFor(
   if (
     on(env, 'ASK_ADVICE') &&
     !venting &&
+    !signals.trouble &&
     // Live, "keep an eye on the time for me" got the timer plus a musing about
     // his basil: a request wants the thing done, not his dilemma.
     signals.adviceFits &&
@@ -236,6 +245,8 @@ export function extrasFor(
       move === 'share' &&
       signals.laughFits &&
       !venting &&
+      !heavy &&
+      !signals.trouble &&
       !signals.laughed &&
       shape !== 'full' &&
       rng() < scaled(0.5, style.laugh)

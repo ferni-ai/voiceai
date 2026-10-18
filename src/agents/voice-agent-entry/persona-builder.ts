@@ -2,7 +2,8 @@
  * Session persona construction with defaults and prompt loading.
  *
  * Builds the full PersonaConfig for a session, applying defaults for any missing fields.
- * Loads the system prompt and model base instructions from persona bundles.
+ * Loads the model base instructions; the persona prompt waits for the caller's
+ * flags (loadCallerPrompt).
  *
  * @module agents/voice-agent-entry/persona-builder
  */
@@ -19,7 +20,6 @@ import {
 /** Result of building a session persona */
 export interface PersonaBuildResult {
   sessionPersona: PersonaConfig;
-  systemPrompt: string;
   modelBaseInstructions: string;
 }
 
@@ -109,14 +109,9 @@ export async function buildSessionPersona(
       }
     : fallbackPersona;
 
-  // Load persona-specific system prompt and model base instructions
-  const { loadSystemPrompt, loadModelBaseInstructions } =
-    await import('../personas/prompt-loader.js');
-
-  const [baseInstructions, systemPrompt] = await Promise.all([
-    loadModelBaseInstructions(),
-    loadSystemPrompt(sessionPersona.id),
-  ]);
+  // The persona prompt is not loaded here: see loadCallerPrompt.
+  const { loadModelBaseInstructions } = await import('../personas/prompt-loader.js');
+  const baseInstructions = await loadModelBaseInstructions();
 
   // DATE/TIME AWARENESS - Critical for grounding agent in reality
   const dateTimeContext = timeContext(new Date());
@@ -124,9 +119,22 @@ export async function buildSessionPersona(
   const modelBaseInstructions = baseInstructions + dateTimeContext;
 
   process.stderr.write(
-    `[voice-agent-entry] Loaded prompts - Model base: ${modelBaseInstructions.length} chars (includes date/time), Full persona: ${systemPrompt.length} chars\n`
+    `[voice-agent-entry] Loaded prompts - Model base: ${modelBaseInstructions.length} chars (includes date/time)\n`
   );
   process.stderr.write(`[voice-agent-entry] Using persona: ${sessionPersona.name}\n`);
 
-  return { sessionPersona, systemPrompt, modelBaseInstructions };
+  return { sessionPersona, modelBaseInstructions };
+}
+
+/**
+ * The persona's system prompt for this caller. Load it only after
+ * applyCallerFlags (identifyUser, STEP 4): the prompt reads cohort flags
+ * (FERNI_PERSONA_SLIP_GUARD adds Ferni's own-life sheet), and before STEP 4
+ * process.env still holds the previous caller's flags. buildSessionPersona
+ * runs at STEP 2, so it used to hand the single-agent session a prompt built
+ * with the last caller's flags.
+ */
+export async function loadCallerPrompt(personaId: string): Promise<string> {
+  const { loadSystemPrompt } = await import('../personas/prompt-loader.js');
+  return loadSystemPrompt(personaId);
 }

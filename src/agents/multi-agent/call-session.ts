@@ -109,7 +109,11 @@ export async function createCallSession(parts: {
       ) as InstanceType<typeof SonataSTT> | undefined);
 
   const session = new voice.AgentSession<UserData>({
-    turnDetection: sessionTurnDetection(modelProvider.getSessionTurnDetection()),
+    turnDetection: sessionTurnDetection(
+      modelProvider.getSessionTurnDetection(),
+      process.env,
+      vad !== undefined
+    ),
     vad, // Silero VAD for turn detection (required for OpenAI to support allowInterruptions: false)
     ...(externalStt && { stt: externalStt }),
     llm: llmModel,

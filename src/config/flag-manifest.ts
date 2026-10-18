@@ -11,7 +11,6 @@
  * - experiment: off by default, being tried; ends as deleted or made permanent.
  * - kill-switch: guards live behaviour (usually on); kept so ops can turn it off.
  * - config: a mode, debug or platform knob rather than a feature switch.
- *
  * @module config/flag-manifest
  */
 
@@ -32,6 +31,8 @@ export const FLAG_MANIFEST = {
   CALLER_RECOGNITION: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: a reply the caller didn't prompt ends on a caller turn, not the SDK's "." (caller-turn.ts)
   CALLER_TURN_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // shadow: log where a reply answers its own question for the caller, cut nothing; on: cut there (caller-voice-guard.ts)
+  CALLER_VOICE_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -109,6 +110,8 @@ export const FLAG_MANIFEST = {
   DISABLE_USER_SEGMENTATION: { default: 'off', owner: 'tools', kind: 'config' },
   DISABLE_VAD: { default: 'off', owner: 'voice', kind: 'config' },
   DISPUTE_DENIED_FACTS: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // Ferni rests calm and lifts on bright words (director/emotion-lift.ts)
+  EMOTION_LIFT: { default: 'off', owner: 'voice', kind: 'experiment' },
   ENABLE_EMBEDDING_WORKER: { default: 'off', owner: 'platform', kind: 'experiment' },
   ENABLE_INTELLIGENT_ROUTING: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   ENABLE_PROFILING: { default: 'off', owner: 'voice', kind: 'config' },
@@ -146,6 +149,8 @@ export const FLAG_MANIFEST = {
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_DEFER_BACKGROUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // which flight search backs searchFlights and getFlightPrice: amadeus (default) or ignav (travel/flight-provider.ts)
+  FLIGHT_PROVIDER: { default: 'amadeus', owner: 'tools', kind: 'config' },
   // on: after a call, the verified owner's reminders, commitments and threads become follow-ups (agents/follow-through-import.ts)
   FOLLOW_THROUGH_IMPORT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
@@ -172,6 +177,8 @@ export const FLAG_MANIFEST = {
   GTM_REQUIRE_APPROVAL: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   HANDOFF_ARRIVAL_CONTEXT: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   HANDOFF_ASK_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // the first handoff's goodbye plays and its teammate arrives once (missed-greeting-end.ts)
+  HANDOFF_FIRST_FIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a handed-to persona gets the first agent's essential tool set, not Tier 0 (essential-tool-set.ts)
   HANDOFF_FULL_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
   // the caller can talk through a handoff goodbye (handoff-talk-through.ts)
@@ -195,6 +202,8 @@ export const FLAG_MANIFEST = {
   LIFE_LEDGER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIFE_MOVES_ON: { default: 'off', owner: 'voice', kind: 'experiment' },
   LISTEN_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a reply's "I'm here if you want to vent" / "safe space" clause is dropped (listen-offer.ts)
+  LISTEN_OFFER_STRIP: { default: 'off', owner: 'voice', kind: 'experiment' },
   // the look-up rule rides the two replies after a live-data question (turn-shape.ts)
   LIVE_DATA_CARRYOVER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIVE_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -277,6 +286,7 @@ export const FLAG_MANIFEST = {
   RESUME_AFTER_DROP: { default: 'off', owner: 'voice', kind: 'experiment' },
   REVIVED_INTELLIGENCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   ROOM_GUESTS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ROTATED_SEGMENT_FIX: { default: 'off', owner: 'voice', kind: 'experiment' }, // 1.9.3 patch, #2566
   ROUNDTABLE_VOICE: { default: 'off', owner: 'voice', kind: 'config' },
   SAVED_INTERESTS: { default: 'off', owner: 'platform', kind: 'experiment' },
   SCHEDULED_JOBS_AUTH: { default: 'on', owner: 'platform', kind: 'kill-switch' },
@@ -302,6 +312,8 @@ export const FLAG_MANIFEST = {
   // once the caller said bye, Ferni's goodbye is one or two short sentences (short-goodbye.ts)
   SHORT_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a call with no caller turn is not counted in the profile (services/session/silent-call.ts)
+  SILENT_CALL_SKIP_PROFILE: { default: 'off', owner: 'memory', kind: 'experiment' },
   SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
   SKIP_GEMINI_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
@@ -341,6 +353,8 @@ export const FLAG_MANIFEST = {
   // topic tools go to the agent on the call now, and a handed-to agent gets the call's
   // loaded domains (voice-agent/deferred-tool-update.ts)
   TOOLS_FOLLOW_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // a turn's topic tools go into that turn's own request (config/same-turn-tools-config.ts)
+  TOOLS_SAME_TURN: { default: 'off', owner: 'tools', kind: 'experiment' },
   // callUser places a real call to the verified phone; off keeps the honest stub
   TOOLS_REAL_CALL_USER: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_ACK: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -360,6 +374,11 @@ export const FLAG_MANIFEST = {
   TTS_PROVIDER: { default: 'cartesia', owner: 'voice', kind: 'config' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // troubles talk: no shift to his own life during a trouble, replies no longer than what they told (troubles-talk.ts)
+  TROUBLES_TALK: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a mode: off | cloud | local (turn-patience.ts)
+  TURN_DETECTOR: { default: 'off', owner: 'voice', kind: 'experiment' },
+  TURN_DETECTOR_SOLE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_INTELLIGENCE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_KEEPER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_KEEPER_SPOKE: { default: 'off', owner: 'voice', kind: 'experiment' },

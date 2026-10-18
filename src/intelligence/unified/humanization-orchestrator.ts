@@ -401,7 +401,7 @@ export class HumanizationOrchestrator {
     }
 
     const toneMap: Record<string, string> = {
-      gentle: 'Soft, caring, unhurried. Create safe space.',
+      gentle: 'Soft, caring, unhurried. No pressure.',
       warm: 'Friendly, engaged, personal. Like talking to a good friend.',
       enthusiastic: 'Energetic, excited, celebratory. Match their joy!',
       calm: 'Measured, steady, grounding. Provide stability.',

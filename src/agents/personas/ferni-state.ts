@@ -42,7 +42,8 @@ import { ferniThreadsOn, threadDetailFor } from './ferni-life-threads.js';
 import { dayDetailFor, isSelfShare, selfQuotes, soundsLow, turnsBack } from './ferni-self-share.js';
 import { callerVenting } from './turn-extras.js';
 import { hardNews } from './turn-candor.js';
-import { callerMove } from './turn-shape.js';
+import { callerMove, taskTurn } from './turn-shape.js';
+import { callerTurn } from '../model-provider/fast-lane.js';
 import { understandingFor } from './turn-understanding.js';
 
 const log = createLogger({ module: 'FerniState' });
@@ -170,7 +171,18 @@ export interface SelfTurn {
   said: string;
   /** The day detail for this call. */
   detail: string;
+  /** A tool ran for this reply (it confirms or reports what was done). */
+  toolRan?: boolean;
 }
+
+/**
+ * Asked to do or find something: his day stays out of it. Prod 2026-10-17,
+ * "Do you have my number?" after "I can't ring your phone directly": "I do
+ * have your number, but since I can't call you directly, I was actually just
+ * about to head out and try to find a replacement houseplant."
+ */
+export const TASK_LINE =
+  "[They want something answered or done: answer it or do it, plainly, and if you can't, say so simply. Nothing about your own day, plans or errands in this reply, and never a plan of your own as a reason to go.]";
 
 /**
  * The self-share line for this turn, and whether a story of his own may ride
@@ -189,6 +201,10 @@ export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean 
     );
   else if (isSelfShare(last) && !turnsBack(last))
     lines.push('Your last reply was about you: this one is about them, their day or their world.');
+  if (taskTurn(said, turn.toolRan)) {
+    const before = lines.length ? `[${lines.join(' ')}] ` : '';
+    return { line: `${before}${TASK_LINE}`, ownStory: false };
+  }
   if (move === 'about_ferni') {
     const told = selfQuotes(replies);
     const consistent = told.length
@@ -241,6 +257,8 @@ interface CallState {
   lastSelf: string;
   /** Whether the last note let a story of his own ride the reply (undefined: no say). */
   lastOwnStory?: boolean;
+  /** Whether a tool had run for the last request's reply. */
+  lastToolRan?: boolean;
   /** The one good thing in his day this call (ferni-self-share.ts). */
   detail: string;
 }
@@ -374,9 +392,12 @@ export function ferniStateTurn(
   const call = callFor(session, now, userData, options.env);
   const turns = callerTurns(chatCtx);
   const said = turns[turns.length - 1] ?? '';
-  if (said && said === call.lastSaid)
+  // The reply after a tool ran is a new request for the same words.
+  const toolRan = callerTurn(chatCtx.items) === null;
+  if (said && said === call.lastSaid && toolRan === call.lastToolRan)
     return { note: call.lastNote, last: call.lastSelf, ownStory: call.lastOwnStory };
   call.lastSaid = said;
+  call.lastToolRan = toolRan;
   call.lastNote = '';
   call.lastSelf = '';
   call.lastOwnStory = undefined;
@@ -384,7 +405,12 @@ export function ferniStateTurn(
   if (options.careful === true || callerNeedsHim(said, mood)) call.needed = true;
   if (call.needed) return quiet();
   const energy = stateNote(call, userData, { words: turns.map(wordsIn), said, mood }, now);
-  const self = selfShareFor({ replies: ferniReplies(chatCtx), said, detail: call.detail });
+  const self = selfShareFor({
+    replies: ferniReplies(chatCtx),
+    said,
+    detail: call.detail,
+    toolRan,
+  });
   call.lastNote = [WELL, energy].filter(Boolean).join(' ');
   call.lastSelf = self.line;
   call.lastOwnStory = self.ownStory;

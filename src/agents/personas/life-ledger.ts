@@ -114,6 +114,19 @@ const HYPOTHETICAL = /^[\w-]+(?:'s)?\s+(?:would|wouldn't|could|couldn't|might)\b
 const ABOUT_THE_CALL =
   /\b(?:the|this|our) (?:conversation|call|chat|topic)\b|\b(?:mixed up|confused|misheard|misunderstood)\b.*\b(?:talk|conversation|question|said)\b/i;
 
+/**
+ * A moment, not his life: "Ferni is about to head out to find a houseplant
+ * replacement" was kept on a prod call (2026-10-17) and came back on the next
+ * one, an hour later, as a reason to leave in the middle of a question about
+ * the caller's phone number. Never kept, and never recalled if already kept.
+ */
+const LEAVING =
+  /\b(?:heading|head|stepping|step|popping|pop|running|run|dashing) (?:out|off)\b|\babout to leave\b|\b(?:has|had|needs?|got) to (?:run|get going|go now|hop off)\b/i;
+
+export function aboutToLeave(fact: string): boolean {
+  return LEAVING.test(fact);
+}
+
 /** Drop the lines that aren't about his life (FERNI_SELF_MEMORY). */
 export function lifeFactsOnly(facts: string[]): string[] {
   return facts.filter((f) => {
@@ -131,8 +144,11 @@ export function factDocId(f: LedgerFact): string {
  * old footer invited "pick a thread back up", and on a dev call (2026-10-11)
  * Ferni answered "Still on there." with the caller's mail and then his own.
  */
-const BRIDGE_FOOTER =
+export const BRIDGE_FOOTER =
   "This is your life, kept here so you stay consistent with it, not things to bring up. Don't volunteer any of them while they're on another topic or just saying hi: mention one only when they ask about you or what they just said is about the same thing. When they ask about something you told them, it is one of these; never make up a different event in its place. Don't repeat these back or list them.";
+
+export const THREAD_FOOTER =
+  'This is your life: stay consistent with it, and if it fits, pick a thread back up the way a friend would ("the goat got out again"). When they ask about something you told them, it is one of these; never make up a different event in its place. Don\'t repeat these back or list them.';
 
 /** The note for the first turn of a call, or null when there is nothing. */
 export function formatLedger(
@@ -159,7 +175,7 @@ export function formatLedger(
     ...lines,
     opts.bridge
       ? BRIDGE_FOOTER
-      : 'This is your life: stay consistent with it, and if it fits, pick a thread back up the way a friend would ("the goat got out again"). When they ask about something you told them, it is one of these; never make up a different event in its place. Don\'t repeat these back or list them.',
+      : THREAD_FOOTER,
   ].join('\n');
 }
 
@@ -394,10 +410,13 @@ export async function loadLedger(
   limit = RECALL_LIMIT
 ): Promise<LedgerFact[]> {
   if (!lifeLedgerEnabled()) return [];
-  return store.recent(userId, personaId, limit).catch((error: unknown) => {
-    log.warn({ error: String(error) }, 'Life ledger not loaded');
-    return [];
-  });
+  return store
+    .recent(userId, personaId, limit)
+    .then((facts) => facts.filter((f) => !aboutToLeave(f.fact)))
+    .catch((error: unknown) => {
+      log.warn({ error: String(error) }, 'Life ledger not loaded');
+      return [];
+    });
 }
 
 /** Collects a call's replies per persona; flush() stores what was said about himself. */
@@ -433,7 +452,8 @@ export function createLedgerRecorder(
           const pronouns = getPersonaPronouns(personaId);
           const raw = await (deps.extract ?? defaultExtractor)(name, said, pronouns);
           const strict = selfMemoryEnabled(deps.env);
-          const grounded = groundedFacts(strict ? lifeFactsOnly(raw) : raw, said);
+          const life = (strict ? lifeFactsOnly(raw) : raw).filter((f) => !aboutToLeave(f));
+          const grounded = groundedFacts(life, said);
           const mine = strict
             ? notTheCallers(
                 grounded,

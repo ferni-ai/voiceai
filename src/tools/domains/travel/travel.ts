@@ -22,7 +22,10 @@ import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { syncTravelToCalendar } from '../../../services/calendar/calendar-bridge.js';
-import { searchAmadeusFlights } from './amadeus-flights.js';
+import { findAirportCode, unknownAirportText } from './airport-codes.js';
+import { flightProviderConfigured, searchFlights } from './flight-provider.js';
+
+export { searchFlights } from './flight-provider.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -48,6 +51,7 @@ export interface FlightResult {
   id: string;
   airline: string;
   price: number;
+  currency?: string;
   departureTime: string;
   arrivalTime: string;
   duration: string;
@@ -98,50 +102,6 @@ export interface SavedTrip {
 const flightSearches = new Map<string, FlightSearch>();
 const hotelSearches = new Map<string, HotelSearch>();
 const savedTrips = new Map<string, SavedTrip>();
-
-// ============================================================================
-// AIRPORT CODES (Common ones)
-// ============================================================================
-
-const AIRPORT_CODES: Record<string, string[]> = {
-  'new york': ['JFK', 'LGA', 'EWR'],
-  'los angeles': ['LAX'],
-  chicago: ['ORD', 'MDW'],
-  'san francisco': ['SFO', 'OAK'],
-  miami: ['MIA', 'FLL'],
-  boston: ['BOS'],
-  seattle: ['SEA'],
-  denver: ['DEN'],
-  atlanta: ['ATL'],
-  dallas: ['DFW', 'DAL'],
-  london: ['LHR', 'LGW'],
-  paris: ['CDG', 'ORY'],
-  tokyo: ['NRT', 'HND'],
-  sydney: ['SYD'],
-};
-
-/** An airport code for a city or a three-letter code; null when the city is unknown (never a guessed code). */
-function findAirportCode(city: string): string | null {
-  const trimmed = city.trim();
-  if (/^[a-z]{3}$/i.test(trimmed)) {
-    return trimmed.toUpperCase();
-  }
-
-  const lower = trimmed.toLowerCase();
-  for (const [cityName, codes] of Object.entries(AIRPORT_CODES)) {
-    if (lower.includes(cityName)) {
-      return codes[0];
-    }
-  }
-  return null;
-}
-
-function unknownAirportText(city: string): string {
-  return (
-    `I don't have an airport code for "${city}" yet. ` +
-    `Which airport should I search from? The main one in that city works best.`
-  );
-}
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -219,11 +179,6 @@ function parseNaturalDate(expression: string): Date | null {
 // API CONFIGURATION
 // ============================================================================
 
-// Amadeus API credentials (for real flight search)
-// Sign up at: https://developers.amadeus.com/
-const AMADEUS_API_KEY = process.env.AMADEUS_API_KEY || '';
-const AMADEUS_API_SECRET = process.env.AMADEUS_API_SECRET || '';
-
 // Booking.com Affiliate API (for real hotel search)
 // Sign up at: https://developers.booking.com/
 const BOOKING_AFFILIATE_ID = process.env.BOOKING_AFFILIATE_ID || '';
@@ -233,7 +188,7 @@ const BOOKING_AFFILIATE_ID = process.env.BOOKING_AFFILIATE_ID || '';
  */
 export function isTravelApiConfigured(): { flights: boolean; hotels: boolean } {
   return {
-    flights: !!(AMADEUS_API_KEY && AMADEUS_API_SECRET),
+    flights: flightProviderConfigured(),
     hotels: !!BOOKING_AFFILIATE_ID,
   };
 }
@@ -247,30 +202,11 @@ export function isTravelApiConfigured(): { flights: boolean; hotels: boolean } {
  * answer, the outcome is 'unavailable' and carries no results: nothing is
  * invented to fill the gap.
  */
-export type LiveSearchReason = 'not-configured' | 'provider-rejected' | 'provider-error';
+export type LiveSearchReason =
+  'not-configured' | 'provider-rejected' | 'provider-error' | 'unsupported-query';
 
 export type LiveSearch<T> =
   { status: 'live'; results: T[] } | { status: 'unavailable'; reason: LiveSearchReason };
-
-/** Live flight search. Never returns invented fares. */
-export async function searchFlights(params: {
-  origin: string;
-  destination: string;
-  departureDate: Date;
-  returnDate?: Date;
-  passengers: number;
-  cabinClass: CabinClass;
-}): Promise<LiveSearch<FlightResult>> {
-  if (!(AMADEUS_API_KEY && AMADEUS_API_SECRET)) {
-    return { status: 'unavailable', reason: 'not-configured' };
-  }
-  const outcome = await searchAmadeusFlights(
-    { key: AMADEUS_API_KEY, secret: AMADEUS_API_SECRET },
-    params
-  );
-  if (outcome.status === 'unavailable') return outcome;
-  return { status: 'live', results: [...outcome.results].sort((a, b) => a.price - b.price) };
-}
 
 async function searchHotelsReal(params: {
   destination: string;
@@ -360,11 +296,19 @@ export async function searchHotels(params: {
   };
 }
 
+/** A fare in its own currency; USD (or no currency given) reads as dollars. */
+function fareText(flight: FlightResult): string {
+  return !flight.currency || flight.currency === 'USD'
+    ? `$${flight.price}`
+    : `${flight.price} ${flight.currency}`;
+}
+
 const FLIGHT_REASON_TEXT: Record<LiveSearchReason, string> = {
   'not-configured': '',
   'provider-rejected':
     ' The flight search service turned down our request, so no live fares came back.',
   'provider-error': ' The flight search service did not answer, so no live fares came back.',
+  'unsupported-query': ' I can only check one-way fares for one passenger right now.',
 };
 
 /** What Ferni says when there are no live fares. Says why, offers help, invents nothing. */
@@ -476,12 +420,12 @@ export function createTravelTools() {
           results.slice(0, 5).forEach((flight, i) => {
             const stops =
               flight.stops === 0 ? 'Nonstop' : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`;
-            response += `${i + 1}. **${flight.airline}** - $${flight.price}\n`;
+            response += `${i + 1}. **${flight.airline}** - ${fareText(flight)}\n`;
             response += `   ${flight.departureTime} → ${flight.arrivalTime} (${flight.duration}) | ${stops}\n`;
           });
 
           const cheapest = results[0];
-          response += `\n💰 Cheapest: $${cheapest.price} on ${cheapest.airline}`;
+          response += `\n💰 Cheapest: ${fareText(cheapest)} on ${cheapest.airline}`;
 
           if (results[0].bookingUrl) {
             response += `\n\n🔗 Book at: ${results[0].bookingUrl}`;
@@ -794,7 +738,7 @@ export function createTravelTools() {
         const cheapest = outcome.results.reduce((a, b) => (b.price < a.price ? b : a));
         return (
           `💰 **Cheapest live fare: ${originCode} → ${destCode}**\n` +
-          `$${cheapest.price} on ${cheapest.airline}, ${cheapest.duration}, ` +
+          `${fareText(cheapest)} on ${cheapest.airline}, ${cheapest.duration}, ` +
           `${cheapest.stops === 0 ? 'nonstop' : `${cheapest.stops} stop(s)`}.\n` +
           `Prices change by the hour, so check before you book.`
         );

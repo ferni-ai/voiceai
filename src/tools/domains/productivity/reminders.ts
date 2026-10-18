@@ -28,6 +28,7 @@ import { isReminderSmsDefaultOn } from '../../../config/reminder-sms-flag.js';
 import { formatStoredLocalTime } from '../../../utils/time-zone.js';
 import { asksToRepeat, NO_REPEAT_YET } from '../../utils/honest-schedule.js';
 import { withOutreachConfirmation } from '../communication/outreach/outreach-confirm.js';
+import { WHERE_TO_ADD_NUMBER } from '../../shared/where-to-add-number.js';
 import { reminderConfirm } from '../communication/outreach/outreach-confirm-specs.js';
 
 const log = getLogger();
@@ -37,12 +38,10 @@ const log = getLogger();
 // ============================================================================
 
 /** The user asked for a text but there's no verified number to send it to. */
-export const NO_NUMBER_TO_TEXT =
-  "I don't have a verified number for you, so I can't text this one. I can keep it in the app instead. Want that?";
+export const NO_NUMBER_TO_TEXT = `I don't have a verified number for you, so I can't text this one. ${WHERE_TO_ADD_NUMBER} For now I can keep it in the app. Want that?`;
 
 /** REMINDER_SMS_DEFAULT: they asked for a text, there's no verified number, so it was kept in the app. */
-export const KEPT_IN_APP_NO_NUMBER =
-  "I don't have a verified number for you, so I'll leave this one in the Ferni app instead of texting it.";
+export const KEPT_IN_APP_NO_NUMBER = `I don't have a verified number for you, so I'll leave this one in the Ferni app instead of texting it. ${WHERE_TO_ADD_NUMBER}`;
 
 /**
  * With ASSISTANT_ACTIONS_REAL on, where a reminder for the user is texted: only

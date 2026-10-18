@@ -178,6 +178,10 @@ describe('the switches a cohort may set', () => {
     'FRIEND_FOLLOWUPS',
     'INSIDE_JOKES',
     'DATES_THAT_MATTER',
+    'HANDOFF_FULL_TOOLS',
+    'TEAM_VOICES',
+    'FERNI_PERSONA_SLIP_GUARD',
+    'DIRECTOR_PERSONA_AWARE',
   ])('a cohort can turn %s on for its members', async (flag) => {
     const s = store({ seth: [{ id: 'seth', enabled: true, flags: { [flag]: 'on' } }] });
     expect(await resolveCallerFlags('seth', s)).toEqual({ [flag]: 'on' });
