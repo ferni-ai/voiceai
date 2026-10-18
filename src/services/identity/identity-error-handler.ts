@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { PLACEHOLDER_IDS } from '../../utils/synthetic-user.js';
 
 const log = createLogger({ module: 'IdentityErrorHandler' });
 
@@ -249,8 +250,8 @@ export function validateUserIdFormat(userId: string | undefined | null): string 
   }
 
   // Skip metadata/placeholder IDs
-  const invalidIds = ['anonymous', 'undefined', 'null', 'test', 'demo'];
-  if (invalidIds.includes(trimmed.toLowerCase())) {
+  const reserved = ['undefined', 'null', 'test', 'demo'];
+  if (PLACEHOLDER_IDS.has(trimmed.toLowerCase()) || reserved.includes(trimmed.toLowerCase())) {
     log.warn({ userId: trimmed }, 'User ID is a reserved/invalid value');
     return null;
   }

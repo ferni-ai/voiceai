@@ -14,6 +14,7 @@
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getUserPreferences } from '../information/preferences/storage.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 const log = getLogger();
 
@@ -56,7 +57,7 @@ export function foodProfileFromDoc(doc: FoodDoc | undefined, allergies: string[]
 
 /** The caller's food profile; empty when nothing is stored or the read fails. */
 export async function readFoodProfile(userId: string): Promise<FoodProfile> {
-  if (!userId || userId === 'shared') return EMPTY_FOOD_PROFILE;
+  if (!isMemberIdentity(userId)) return EMPTY_FOOD_PROFILE;
   try {
     const { getFirestoreStore } = await import('../../../memory/firestore-store.js');
     const db = await getFirestoreStore().getDatabase();

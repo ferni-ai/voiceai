@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { PLACEHOLDER_IDS } from '../../utils/synthetic-user.js';
 import type { Tool, ToolContext, ToolDefinition } from './types.js';
 
 const log = createLogger({ module: 'tool-registry' });
@@ -32,17 +33,13 @@ const log = createLogger({ module: 'tool-registry' });
 /**
  * ctx.userId values that are NOT a real, individual user identity.
  *
- * These show up for shared/system contexts (e.g. the shared essential-tools
- * cache uses ctx.userId === 'shared'). When ctx.userId is one of these, we
- * leave whatever the model sent untouched so today's behavior holds.
+ * These show up for shared/system contexts (the shared essential-tools cache
+ * runs with the 'shared' placeholder). When ctx.userId is one of these, we
+ * leave whatever the model sent untouched so today's behavior holds. An anon:
+ * or onbehalf: id is NOT here: it is the session's own id, so it still
+ * overrides a model-supplied one (it names no member, but it names this call).
  */
-export const PLACEHOLDER_USER_IDS: ReadonlySet<string> = new Set([
-  'anonymous',
-  'shared',
-  'default',
-  '',
-  'unknown',
-]);
+export const PLACEHOLDER_USER_IDS: ReadonlySet<string> = new Set(['', ...PLACEHOLDER_IDS]);
 
 /**
  * True when `userId` is a real, individual user identity — a non-empty
