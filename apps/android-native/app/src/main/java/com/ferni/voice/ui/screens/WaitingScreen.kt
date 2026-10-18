@@ -101,7 +101,9 @@ fun WaitingScreen(status: WaitlistStatus, onDismiss: () -> Unit, modifier: Modif
                     }
                     Muted("Your spot opened up, and I saved it for you.")
                 } else {
-                    Text(status.positionLine, style = MaterialTheme.typography.titleMedium, color = colors.onBackground, textAlign = TextAlign.Center)
+                    status.positionLine?.let {
+                        Text(it, style = MaterialTheme.typography.titleMedium, color = colors.onBackground, textAlign = TextAlign.Center)
+                    }
                     status.nextWaveLine()?.let { Muted(it) }
                     status.inviteUrl?.let { url ->
                         Column(

@@ -17,7 +17,7 @@ class WaitlistStatusTest {
     @Test
     fun `403 WAITLISTED gives position, waves, next wave and invite link`() {
         val status = WaitlistStatus.fromRefusal(403, waiting)!!
-        assertEquals("You’re #432 — about 4 waves away", status.positionLine)
+        assertEquals("You’re #432, about 4 waves away", status.positionLine)
         assertEquals("The next wave opens Thursday, October 22.", status.nextWaveLine(TimeZone.getTimeZone("UTC"), Locale.US))
         assertEquals("https://ferni.ai/?ref=abc123", status.inviteUrl)
         assertEquals(3, status.referrals?.creditedDays)
@@ -26,7 +26,7 @@ class WaitlistStatusTest {
     @Test
     fun `other refusals are not the waitlist`() {
         assertNull(WaitlistStatus.fromRefusal(401, waiting))
-        assertNull(WaitlistStatus.fromRefusal(403, """{"error":"not_admitted","waitlisted":true}"""))
+        assertNull(WaitlistStatus.fromRefusal(403, """{"error":"identity mismatch"}"""))
         assertNull(WaitlistStatus.fromRefusal(403, "not json"))
         assertNull(WaitlistStatus.fromRefusal(403, null))
     }
@@ -44,6 +44,23 @@ class WaitlistStatusTest {
     @Test
     fun `one wave away reads as the very next wave`() {
         val body = """{"code":"WAITLISTED","status":"waiting","position":12,"wavesAway":1}"""
-        assertEquals("You’re #12 — you’re in the very next wave", WaitlistStatus.fromRefusal(403, body)!!.positionLine)
+        assertEquals("You’re #12, in the very next wave", WaitlistStatus.fromRefusal(403, body)!!.positionLine)
+    }
+
+    @Test
+    fun `the gate's first refusal shape reads as waitlisted with details unknown`() {
+        val status = WaitlistStatus.fromRefusal(403, """{"error":"not_admitted","status":"pending","waitlisted":true,"message":"x"}""")!!
+        assertTrue(status.detailsUnknown)
+        assertNull(status.positionLine)
+        assertNull(status.inviteUrl)
+        assertEquals("waiting", status.status)
+    }
+
+    @Test
+    fun `copy has no em dashes or ellipses`() {
+        val status = WaitlistStatus.fromRefusal(403, waiting)!!
+        listOf(status.positionLine, status.nextWaveLine(TimeZone.getTimeZone("UTC"), Locale.US)).forEach {
+            assertTrue(it!!.none { c -> c == '\u2014' || c == '\u2026' })
+        }
     }
 }

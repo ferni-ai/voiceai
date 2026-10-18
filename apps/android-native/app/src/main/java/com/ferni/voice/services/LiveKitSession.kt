@@ -499,6 +499,14 @@ class LiveKitSession(private val context: Context) {
         }
     }
 
+    /** GET /api/waitlist/me; null when it can't be read. Call from Dispatchers.IO. */
+    private fun fetchWaitlistMe(): WaitlistStatus? = runCatching {
+        val request = Request.Builder().url("$tokenServer/api/waitlist/me").get().build()
+        httpClient.newCall(request).execute().use { response ->
+            if (response.isSuccessful) WaitlistStatus.fromMe(response.body?.string()) else null
+        }
+    }.getOrNull()
+
     private suspend fun fetchToken(): TokenResponse? = withContext(Dispatchers.IO) {
         try {
             val roomId = "ferni-android-${UUID.randomUUID().toString().take(8)}"
@@ -517,7 +525,8 @@ class LiveKitSession(private val context: Context) {
             if (!response.isSuccessful) {
                 val waitlisted = WaitlistStatus.fromRefusal(response.code, response.body?.string())
                 if (waitlisted != null) {
-                    _waitlist.value = waitlisted
+                    // Refused without details: ask where they stand, keep the soft screen if that fails
+                    _waitlist.value = if (waitlisted.detailsUnknown) fetchWaitlistMe() ?: waitlisted else waitlisted
                 } else {
                     Log.e(TAG, "Token request failed with status ${response.code}")
                 }

@@ -2,6 +2,7 @@ package com.ferni.voice.models
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.text.SimpleDateFormat
@@ -30,15 +31,18 @@ data class WaitlistStatus(
 
     val isAdmitted: Boolean get() = status == "admitted"
 
+    /** The refusal said "waitlisted" without saying where; GET /api/waitlist/me can fill it in. */
+    val detailsUnknown: Boolean get() = status == "waiting" && position == null
+
     /** Only https links go on the share sheet. */
     val inviteUrl: String? get() = referralUrl?.takeIf { it.startsWith("https://") }
 
-    /** "You're #432 — about 4 waves away" */
-    val positionLine: String
+    /** "You're #432, about 4 waves away"; null when the position isn't known yet. */
+    val positionLine: String?
         get() {
-            val place = position?.let { "You’re #$it" } ?: "You’re on the list"
+            val place = position?.let { "You’re #$it" } ?: return null
             val waves = wavesAway ?: return place
-            return if (waves > 1) "$place — about $waves waves away" else "$place — you’re in the very next wave"
+            return if (waves > 1) "$place, about $waves waves away" else "$place, in the very next wave"
         }
 
     /** "The next wave opens Thursday, October 22." */
@@ -58,14 +62,25 @@ data class WaitlistStatus(
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
 
-        /** A /token refusal that means "you're in line": status 403 with code WAITLISTED. */
+        /**
+         * A /token refusal that means "you're in line". The contract sends 403
+         * { code: "WAITLISTED", ...details }; the gate's first version sends 403
+         * { error: "not_admitted", waitlisted: true } with no details, which
+         * reads as waiting, position unknown.
+         */
         fun fromRefusal(code: Int, body: String?): WaitlistStatus? {
             if (code != 403 || body == null) return null
-            return runCatching {
-                val element = json.parseToJsonElement(body).jsonObject
-                if ((element["code"] as? JsonPrimitive)?.content != "WAITLISTED") return null
-                json.decodeFromJsonElement(serializer(), element)
-            }.getOrNull()?.takeIf { it.status == "waiting" || it.status == "admitted" }
+            val element = runCatching { json.parseToJsonElement(body).jsonObject }.getOrNull() ?: return null
+            if (element.text("code") == "WAITLISTED") return fromMe(body)
+            val waitlisted = element.text("error") == "not_admitted" || element.text("waitlisted") == "true"
+            return if (waitlisted) WaitlistStatus(status = "waiting") else null
         }
+
+        /** The body of GET /api/waitlist/me (or a contract refusal); null unless waiting or admitted. */
+        fun fromMe(body: String?): WaitlistStatus? = body?.let {
+            runCatching { json.decodeFromString(serializer(), it) }.getOrNull()
+        }?.takeIf { it.status == "waiting" || it.status == "admitted" }
+
+        private fun JsonObject.text(key: String): String? = (this[key] as? JsonPrimitive)?.content
     }
 }
