@@ -20,6 +20,7 @@ export function memoryStore() {
     get: async (id) => (docs.has(id) ? readEntry(id, docs.get(id)!) : null),
     findByCanonical: async (c) => find((d) => d.emailCanonical === c),
     findByInviteCode: async (code) => find((d) => d.inviteCode === code),
+    findByUid: async (uid) => find((d) => d.uid === uid),
     countAhead: async (rank, key) =>
       [...docs.values()].filter(
         (d) =>

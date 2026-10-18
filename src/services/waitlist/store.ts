@@ -13,6 +13,7 @@ import { queueFields, readEntry, type QueueEntry } from './queue.js';
 export interface WaitlistStore {
   get: (id: string) => Promise<QueueEntry | null>;
   findByCanonical: (canonical: string) => Promise<QueueEntry | null>;
+  findByUid: (uid: string) => Promise<QueueEntry | null>;
   findByInviteCode: (code: string) => Promise<QueueEntry | null>;
   /** How many people in line sort before (laneRank, priorityKey). */
   countAhead: (laneRank: number, priorityKey: number) => Promise<number>;
@@ -39,6 +40,7 @@ export function firestoreWaitlistStore(db: Firestore): WaitlistStore {
     },
     findByCanonical: async (canonical) => first(col.where('emailCanonical', '==', canonical)),
     findByInviteCode: async (code) => first(col.where('inviteCode', '==', code)),
+    findByUid: async (uid) => first(col.where('uid', '==', uid)),
     async countAhead(laneRank, priorityKey) {
       const line = col.where('inQueue', '==', true);
       const [lowerLane, sameLane] = await Promise.all([

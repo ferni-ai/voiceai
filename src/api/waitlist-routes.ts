@@ -575,7 +575,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     }
 
     // Not on waitlist - add them automatically, in line (a verified sign-in)
-    await addSigninToWaitlist(email, referralCode);
+    await addSigninToWaitlist(email, referralCode, decodedToken.uid);
 
     log.info({ email: hashEmail(email) }, 'Auto-added user to waitlist on sign-in');
     sendJson(res, 200, {
