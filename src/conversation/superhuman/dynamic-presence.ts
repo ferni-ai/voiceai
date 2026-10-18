@@ -69,7 +69,7 @@ const EMBODIED_PRESENCE = {
   ],
   afterHeavy: [
     '<break time="500ms"/>That\'s heavy.',
-    '<break time="400ms"/>I hear you.',
+    '<break time="400ms"/>Yeah.',
     '<break time="500ms"/>That\'s a lot to carry.',
     '<break time="400ms"/>I\'m here.',
     '<break time="500ms"/>Take your time.',
@@ -148,7 +148,7 @@ const TOPIC_PRESENCE: Record<string, string[]> = {
     '<volume ratio="0.8"/>Grief doesn\'t have a timeline.</volume>',
     '<volume ratio="0.8"/>I\'m sorry.</volume>',
   ],
-  general: ['Something in that.', 'I hear you.', 'Yeah.', 'Mm.', "There's weight to that."],
+  general: ['Something in that.', 'Yeah.', 'Mm.', "There's weight to that."],
 };
 
 // ============================================================================

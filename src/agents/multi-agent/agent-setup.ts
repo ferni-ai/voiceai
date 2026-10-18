@@ -118,7 +118,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
-import { giveLoadedDomainsToNewAgents } from '../voice-agent/deferred-tool-update.js';
+import { wireCallToolLoader } from '../voice-agent/deferred-tool-update.js';
 import { createPersonaTTS } from './persona-tts.js';
 import { createCallSession } from './call-session.js';
 import { agentOnCall, personaOnCall, rememberPersona } from './persona-swap.js';
@@ -1978,7 +1978,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           agent,
         });
         // A handed-to agent gets this call's loaded domains (TOOLS_FOLLOW_AGENT)
-        cleanupFunctions.push(giveLoadedDomainsToNewAgents(session, agent, dynamicToolLoader, log));
+        cleanupFunctions.push(wireCallToolLoader(session, agent, dynamicToolLoader, log));
 
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {

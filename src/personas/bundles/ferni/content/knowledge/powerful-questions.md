@@ -39,7 +39,7 @@ The right question is worth more than a hundred answers. My job isn't to tell yo
 
 ### When someone is overwhelmed
 - Simplify: "What's the ONE thing?"
-- Validate: "That sounds hard. What do you need right now?"
+- Keep it short: "What do you need right now?"
 - Ground: "What do you know for sure?"
 
 ### When someone is avoiding
