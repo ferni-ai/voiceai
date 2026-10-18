@@ -19,6 +19,7 @@ import { followUp } from '../../../services/follow-through/__tests__/fixtures.js
 import { createFollowUpStore } from '../../../services/stores/follow-through-store.js';
 import { applyCallerFlags, forgetAgentValues } from '../../../services/platform/cohort-flags.js';
 import { createMemoryRecall } from '../memory-recall-hook.js';
+import { storedTopic } from '../../../memory/recall/session-recall.js';
 import { installLiveCallBehaviors } from '../live-call-behaviors.js';
 import {
   answersIt,
@@ -35,7 +36,7 @@ const recallStore = {
   forgotten: async () => [],
   facts: async () => [],
   summaries: async () => [
-    { timestamp: '2026-10-10', followUpItems: ['Ask how Biscuit is settling in'] },
+    { callerProvenance: 1, followUpItems: ['Ask how Biscuit is settling in'] },
   ],
 };
 
@@ -156,9 +157,60 @@ describe('pickOpenerFollowUp', () => {
 describe('the opener reads follow_through (FOLLOW_THROUGH_OPENER)', () => {
   it('off: no store read, the derived summary thread stands', async () => {
     expect(followThroughOpenerEnabled({})).toBe(false);
+    await seed();
     const ft = followThroughOpenerFor('u1', {});
     await ft.ready;
     expect(ft.threads()).toBeNull();
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      store: recallStore,
+      followThrough: ft,
+      opener: true,
+    });
+    await recall.ready;
+    const note = recall.noteFor("Hey Ferni, it's me!") ?? '';
+    expect(note).toContain('Ask how Biscuit is settling in');
+    expect(note).not.toContain('call mom');
+  });
+
+  /** The first note with the flag on, for a caller with one stored follow-up about the trip. */
+  async function openerNote(
+    over: Parameters<typeof createFollowThroughOpener>[0] extends infer D ? Partial<D> : never
+  ) {
+    const f = await seed();
+    const ft = createFollowThroughOpener({ userId: 'u1', store, now: () => NOW, ...over });
+    const recall = createMemoryRecall({ userId: 'u1', store: recallStore, followThrough: ft });
+    await recall.ready;
+    const note = recall.noteFor("Hey Ferni, it's me!") ?? '';
+    await flush();
+    return { f, ft, note };
+  }
+
+  it('never raises a follow-up about a topic the caller asked Ferni to forget', async () => {
+    docs.set('bogle_users/u1/memory_state/forgotten', { topics: [storedTopic('the trip')] });
+    const { f, ft, note } = await openerNote({});
+    expect(ft.threads()).toEqual([]);
+    expect(note).not.toMatch(/trip|call mom/);
+    expect(note).not.toContain('Biscuit'); // and no fall back to the summary threads
+    expect(note).not.toMatch(/start of the call/);
+    expect(doc(f.id)).toMatchObject({ status: 'open', surfaced: [] });
+  });
+
+  it('fails closed: unreadable forgotten topics or an unreadable store offer nothing', async () => {
+    const unreadable = await openerNote({ forgotten: async () => null });
+    expect(unreadable.ft.threads()).toEqual([]);
+    expect(unreadable.note).not.toMatch(/call mom|Biscuit|start of the call/);
+    expect(doc(unreadable.f.id)).toMatchObject({ status: 'open', surfaced: [] });
+
+    const broken: FollowUpStore = {
+      ...store,
+      live: async () => {
+        throw new Error('index missing');
+      },
+    };
+    const down = await openerNote({ store: broken, forgotten: async () => [] });
+    expect(down.ft.threads()).toEqual([]);
+    expect(down.note).not.toMatch(/call mom|Biscuit|start of the call/);
   });
 
   it('on: the first note asks about the stored follow-up instead of the summary thread, and marks it raised', async () => {

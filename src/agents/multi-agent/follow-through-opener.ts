@@ -17,6 +17,10 @@
  *   the caller's next final transcript, and only that one, goes through
  *   closeFromReply: done (kept), replan (moved a day on) or release (dropped).
  *   Ferni's own words never close anything: they only arm the listener.
+ * - A follow-up about a topic the caller asked Ferni to forget is never
+ *   picked (the same forgotten-topic list and match recall uses), and when
+ *   that list can't be read the opener offers nothing at all: no stored row,
+ *   and no fall back to the summary threads. Fails closed, like recall.
  * - A reply that talks about something else closes nothing ("work's done for
  *   the week" is not "I called mom"), and only the account owner's answer
  *   counts.
@@ -38,6 +42,11 @@ import {
   type ReplyVerdict,
 } from '../../services/follow-through/index.js';
 import { firestoreFollowUpStore } from '../../services/stores/follow-through-store.js';
+import {
+  forgottenInProcess,
+  forgottenTopicsOrNull,
+  isForgotten,
+} from '../../memory/recall/forget.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FollowThroughOpener' });
@@ -155,7 +164,7 @@ async function save(store: FollowUpStore, f: FollowUp, event: FollowUpEvent, now
 
 export interface FollowThroughOpener {
   ready: Promise<void>;
-  /** Null when off or unreadable (the derived threads stand); else the one follow-up's text, or none. */
+  /** Null only when off (the derived threads stand); on, the one follow-up's text, or none. */
   threads(): string[] | null;
   /** The opener's ask went out with these threads: the picked follow-up is surfaced (opener). */
   raised(threads: readonly string[]): void;
@@ -170,26 +179,41 @@ const INERT: FollowThroughOpener = {
 export function createFollowThroughOpener(deps: {
   userId: string;
   store: FollowUpStore;
+  /** Topics the caller asked Ferni to forget, or null when unreadable (forget.ts). */
+  forgotten?: (userId: string) => Promise<string[] | null>;
   now?: () => Date;
 }): FollowThroughOpener {
   const now = deps.now ?? (() => new Date());
+  const forgotten = deps.forgotten ?? ((userId: string) => forgottenTopicsOrNull(userId));
   let picked: FollowUp | null = null;
-  let loaded = false;
   let raisedOnce = false;
   raisedFor.delete(deps.userId); // a new opener: nothing from an earlier call is still waiting
-  const ready = deps.store
-    .live(deps.userId)
-    .then((live) => {
-      picked = pickOpenerFollowUp(live, now());
-      loaded = true;
+  // Recall's rule for raw words: unreadable forgotten topics mean nothing is offered.
+  const ready = Promise.all([deps.store.live(deps.userId), forgotten(deps.userId)])
+    .then(([live, topics]) => {
+      if (topics === null) {
+        log.warn({}, 'Forgotten topics unreadable: the opener offers no follow-up');
+        return;
+      }
+      const all = [...topics, ...forgottenInProcess(deps.userId)];
+      const kept = live.filter((f) => !isForgotten(f.text, all));
+      picked = pickOpenerFollowUp(kept, now());
       log.info({ live: live.length, picked: picked?.kind ?? null }, 'FOLLOW_THROUGH_OPENER_LOADED');
     })
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Follow-ups not loaded'));
+  /** Still not forgotten: a forget asked earlier in this call applies at once. */
+  const offered = (): FollowUp | null =>
+    picked && !isForgotten(picked.text, forgottenInProcess(deps.userId)) ? picked : null;
   return {
     ready,
-    threads: () => (loaded ? (picked ? [picked.text] : []) : null),
+    // On means the store is the only source: a failed or fail-closed load is [], never null,
+    // so the recall hook's `?? summary threads` fallback can't bring unfiltered rows back.
+    threads: () => {
+      const f = offered();
+      return f ? [f.text] : [];
+    },
     raised(threads) {
-      const f = picked;
+      const f = offered();
       if (!f || raisedOnce || !threads.includes(f.text)) return;
       raisedOnce = true;
       void save(deps.store, f, { type: 'surface', via: 'opener' }, now())
