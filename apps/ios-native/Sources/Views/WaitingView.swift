@@ -66,7 +66,7 @@ struct WaitingView: View {
                 .background(Capsule().fill(accent.opacity(0.18)))
                 .foregroundColor(textPrimary)
         }
-        Text("Your spot opened up, and I saved it for you.")
+        Text("Your spot is open. Come in within a week to keep it.")
             .foregroundColor(textSecondary)
     }
 
