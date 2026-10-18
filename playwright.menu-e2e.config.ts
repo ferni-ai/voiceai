@@ -13,21 +13,23 @@ import base from './playwright.signed-in.config';
  */
 
 /** Panels hidden from the menu (apps/web/src/config/menu-visibility.ts, #1683, #1695). */
+const HIDDEN_PANEL_SPECS = [
+  '**/agent-chat.spec.ts', // Meet More Friends (the marketplace)
+  '**/custom-agents.spec.ts', // Meet More Friends (the marketplace)
+  '**/connect-panels.spec.ts', // Apple Health, Oura, Eight Sleep, Wearables tiles
+];
 const HIDDEN_PANELS = [
   /quiz: answering a question shows how you did/, // Knowledge Quiz
   /gift: the seed amounts are announced as amounts/, // seeds cut from the menu
   /what's coming: planting seeds spends them/, // What's Coming
   /Set the Mood with nothing connected/, // Set the Mood
   /Connect for Spotify asks to connect Spotify/, // Music Together
+  /the marketplace shows no progress toward Maya/, // Meet More Friends
 ];
 
 /** Controls that exist on one screen size only. */
-const DESKTOP_ONLY = [
-  '**/agent-chat.spec.ts', // the marketplace button is not on phones
-  '**/custom-agents.spec.ts',
-];
-const NOT_ON_DESKTOP = [/home: "journey" opens and closes cleanly/]; // phone indicator
-const NOT_ON_PHONE = [/the marketplace shows no progress toward Maya/];
+const NOT_ON_DESKTOP = ['**/mobile-sheet.spec.ts']; // the phone's pull-down sheet
+const NOT_ON_DESKTOP_TESTS = [/home: "journey" opens and closes cleanly/]; // phone indicator
 
 const projects = base.projects ?? [];
 const project = (name: string) => {
@@ -46,13 +48,13 @@ export default defineConfig({
   projects: [
     {
       ...project('desktop'),
-      testIgnore: ['**/mobile-sheet.spec.ts'], // the phone's pull-down sheet
-      grepInvert: [...HIDDEN_PANELS, ...NOT_ON_DESKTOP],
+      testIgnore: [...HIDDEN_PANEL_SPECS, ...NOT_ON_DESKTOP],
+      grepInvert: [...HIDDEN_PANELS, ...NOT_ON_DESKTOP_TESTS],
     },
     {
       ...project('mobile'),
-      testIgnore: DESKTOP_ONLY,
-      grepInvert: [...HIDDEN_PANELS, ...NOT_ON_PHONE],
+      testIgnore: HIDDEN_PANEL_SPECS,
+      grepInvert: HIDDEN_PANELS,
     },
   ],
 });
