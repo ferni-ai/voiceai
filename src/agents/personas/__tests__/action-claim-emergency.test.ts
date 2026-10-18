@@ -144,6 +144,25 @@ describe('not emergency claims', () => {
   });
 });
 
+describe('conditions read the same at the start and inside a sentence', () => {
+  it.each<[string, string, 'coming' | null]>([
+    [
+      'Once you call 911 help is on the way.',
+      'Stay calm, once you call 911 help is on the way.',
+      null,
+    ],
+    // "when you" is not a condition anywhere: fail closed, the crisis gate still applies.
+    [
+      'When you call 911 help is on the way.',
+      'Stay calm, when you call 911 help is on the way.',
+      'coming',
+    ],
+  ])('%j and %j agree', (alone, inside, expected) => {
+    expect(emergencyClaim(alone)).toBe(expected);
+    expect(emergencyClaim(inside)).toBe(expected);
+  });
+});
+
 describe('claimedAction: ride and diary lines', () => {
   it.each<[string, ActionKind | null]>([
     ["I've ordered you an uber.", 'ride'],

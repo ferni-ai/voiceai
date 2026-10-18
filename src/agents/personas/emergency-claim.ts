@@ -97,9 +97,14 @@ export const OFFER_OR_NOT =
 export const ANECDOTE =
   /^(?:when|after|before|because|since|as|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time|summer|winter|spring|fall|autumn)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time|before)\b/;
 
-/** A condition: "if you call 911, help is on the way" is advice, not a report. */
-export const CONDITION = /^(?:if|once|when|as soon as|after) you\b/;
-export const CLAUSE_CONDITION = /\b(?:if|once|as soon as) you\b/;
+/**
+ * A condition: "if you call 911, help is on the way" is advice, not a report.
+ * One word list for the sentence's start and for each clause, so a clause read
+ * alone (emergencyRemainder) and the same clause inside a sentence agree.
+ */
+const IF_YOU = '(?:if|once|as soon as) you\\b';
+export const CONDITION = new RegExp(`^${IF_YOU}`);
+export const CLAUSE_CONDITION = new RegExp(`\\b${IF_YOU}`);
 
 /** The caller (or someone with them) called for help, or says help is coming. */
 const CALLED_FOR_HELP = new RegExp(

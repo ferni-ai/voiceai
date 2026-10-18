@@ -345,6 +345,11 @@ async function checkActionClaims<T>(
         last = spaced;
         lineLast = false;
       };
+      /** Held words go out in order: behind an uncalled claim's sentence, or now. */
+      const release = (text: string): void => {
+        if (deferred?.reason === 'uncalled') queued.push(text);
+        else emit(text);
+      };
       /** A whole sentence: held ones go out unless they claim; streamed ones are already out. */
       const flush = (text: string): void => {
         const { kind, reason } = judge(text, calling);
@@ -354,9 +359,7 @@ async function checkActionClaims<T>(
           return;
         }
         if (!kind || !reason) {
-          if (!hold) return;
-          if (deferred?.reason === 'uncalled') queued.push(text);
-          else emit(text);
+          if (hold) release(text);
           return;
         }
         log.warn({ kind, reason, held: hold }, 'ACTION_CLAIM_DROPPED');
@@ -367,9 +370,10 @@ async function checkActionClaims<T>(
             emit(hold ? EMERGENCY_LINE : `Scratch that, ${EMERGENCY_LINE}`);
             crisisSaid = said = lineLast = true;
           }
-          // Through flush again, so it keeps its place behind any held sentences.
+          // The rest of the sentence keeps its place, and is never judged again: re-reading it
+          // as an emergency would recurse. Any claim left in it is dropped.
           const rest = hold ? emergencyRemainder(text) : '';
-          if (rest) flush(rest);
+          if (rest && rest !== text && claimedAction(rest) === null) release(rest);
           return;
         }
         if (said || deferred) return;
