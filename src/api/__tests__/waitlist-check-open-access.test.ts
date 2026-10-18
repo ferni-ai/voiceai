@@ -132,6 +132,14 @@ describe('waitlist check', () => {
     expect(coll('waitlist').get(docId(email.value))).toMatchObject({ inQueue: true, verifiedAt: expect.any(Date), uid: 'uid-1' }); // prettier-ignore
   });
 
+  it('gate on: verifying a planted signup drops its phone and referrer, keeps its place', async () => {
+    vi.stubEnv('WAITLIST_GATE', 'on');
+    const joinedAt = new Date('2026-09-01T00:00:00Z');
+    coll('waitlist').set(docId(email.value), { email: email.value, status: 'pending', joinedAt, phone: '+15550001111', referralCode: 'aaaaaa-fern' }); // prettier-ignore
+    await check();
+    expect(coll('waitlist').get(docId(email.value))).toMatchObject({ phone: null, referralCode: null, joinedAt, verifiedAt: expect.any(Date) }); // prettier-ignore
+  });
+
   it('a referral code offered after the first verification is not written', async () => {
     vi.stubEnv('WAITLIST_GATE', 'on');
     coll('waitlist').set(docId(email.value), { email: email.value, status: 'pending', verifiedAt: new Date() }); // prettier-ignore

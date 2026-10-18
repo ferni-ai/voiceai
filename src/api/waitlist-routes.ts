@@ -33,7 +33,7 @@ import {
   getApprovalSecret,
   verifyApprovalToken,
 } from './waitlist-approval-token.js';
-import { addSigninToWaitlist, keepWaitlistReferral } from './waitlist-record.js';
+import { addSigninToWaitlist, keepWaitlistReferral, offeredReferral } from './waitlist-record.js';
 import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/waitlist/queue.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
@@ -575,7 +575,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     }
 
     // Gate on: in line as a verified person (this verifies an existing website signup too)
-    await addSigninToWaitlist(email, referralCode, decodedToken.uid);
+    await addSigninToWaitlist(email, offeredReferral(req), decodedToken.uid);
     log.info({ email: hashEmail(email), existed: waitlistDoc.exists }, 'Signed-in user waiting in line'); // prettier-ignore
     sendJson(res, 200, {
       approved: false,

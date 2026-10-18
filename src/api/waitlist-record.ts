@@ -49,3 +49,9 @@ export async function addSigninToWaitlist(
   if (!db) throw new Error('Firestore unavailable');
   await joinWaitlist(firestoreWaitlistStore(db), { email, uid, verified: true, ref: referralCode, source: 'app_signin', now: new Date() }); // prettier-ignore
 }
+
+/** The friend's code offered with this request only (a stored one may have been planted). */
+export function offeredReferral(req: IncomingMessage): string | undefined {
+  const offered = new URL(req.url ?? '/', 'http://local').searchParams.get('referralCode');
+  return offered && REFERRAL_CODE_PATTERN.test(offered) ? offered : undefined;
+}
