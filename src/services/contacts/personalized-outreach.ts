@@ -20,6 +20,7 @@ import { getGroup, getGroups } from './contact-groups.js';
 import { getContact, getContacts, recordInteraction } from './contact-relationship-service.js';
 import { isRememberedContact, REMEMBERED_SKIP_REASON } from './remembered-contacts.js';
 import { onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
+import { thanksgivingDay } from '../../utils/us-holidays.js';
 import type {
   BatchOutreachRequest,
   BatchOutreachResult,
@@ -289,7 +290,6 @@ export async function buildOutreachContext(
     return null;
   }
 
-  // Calculate days since last contact
   const now = new Date();
   const lastContactedDays = Math.floor(
     (now.getTime() - contact.lastInteraction.getTime()) / (1000 * 60 * 60 * 24)
@@ -1088,7 +1088,7 @@ function getUpcomingHolidays(): Array<{
     occasion: OutreachOccasion;
   }> = [
     { month: 1, day: 1, name: "New Year's Day", occasion: 'new_year' },
-    { month: 11, day: 28, name: 'Thanksgiving', occasion: 'thanksgiving' },
+    { month: 11, day: thanksgivingDay(currentYear), name: 'Thanksgiving', occasion: 'thanksgiving' },
     { month: 12, day: 25, name: 'Christmas', occasion: 'christmas' },
   ];
 

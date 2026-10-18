@@ -150,6 +150,7 @@ import { initConversationSession } from '../integrations/conversation-session-in
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
+import { calendarDaysSince } from '../../utils/calendar-days.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
 const log = getLogger();
@@ -399,12 +400,10 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           );
         }
 
-        // Last conversation time
+        // Last conversation, in calendar days where they live ("yesterday" is the calendar day)
         if (userProfile.lastContact) {
-          const lastContactDate = new Date(userProfile.lastContact);
-          const daysSince = Math.floor(
-            (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
-          );
+          const timeZone = userProfile.contactInfo?.timezone;
+          const daysSince = calendarDaysSince(userProfile.lastContact, sessionStartTime, timeZone);
           userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {

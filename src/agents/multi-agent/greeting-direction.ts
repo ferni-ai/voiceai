@@ -27,6 +27,7 @@ import {
   lineSaysAnniversary,
 } from './friendship-anniversary.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
+import { calendarDaysSince } from '../../utils/calendar-days.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -195,6 +196,7 @@ export function callerHistory(
     firstContact?: string | number | Date | { toDate: () => Date };
     /** Only a last-call summary checked for who said what (caller-assertions.ts). */
     lastCallerSummary?: string;
+    contactInfo?: { timezone?: string };
   },
   now: Date = new Date()
 ): CallerHistory | undefined {
@@ -202,8 +204,11 @@ export function callerHistory(
   if (calls <= 0) return undefined;
   const history: CallerHistory = { calls };
   if (profile.lastContact) {
-    const ms = now.getTime() - new Date(profile.lastContact).getTime();
-    if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
+    // Calendar days in their zone: "yesterday" means the calendar day, not 24-48 hours ago
+    const last = new Date(profile.lastContact).getTime();
+    if (Number.isFinite(last) && last <= now.getTime()) {
+      history.daysSince = calendarDaysSince(last, now, profile.contactInfo?.timezone);
+    }
   }
   const fc = profile.firstContact;
   const first =
