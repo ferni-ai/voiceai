@@ -49,7 +49,7 @@ import {
 } from '../../intelligence/world-model/temporal/in-call-load.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { quirkTurnNote } from './quirk-note.js';
-import { honestFriendNote } from './honest-friend.js';
+import { friendNotes } from './friend-tease.js';
 import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
@@ -171,8 +171,8 @@ export function withTurnReminder(
     }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
-    // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
-    honestFriendNote(chatCtx, words, { careful: options.shape === false }),
+    // HONEST_FRIEND=on (no caving or flattery), FRIEND_TEASE=on (teasing earned); not in crisis.
+    ...friendNotes(chatCtx, session, words, options.shape === false),
     // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
     ...withLiveData(style?.text ?? '', callerTurnsOf(chatCtx)),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.

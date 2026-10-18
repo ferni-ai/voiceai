@@ -71,6 +71,8 @@ const PUSHBACK_NOTE =
   "They're pressing you to agree. If they gave a real new reason, weigh it and change your mind if it holds. If not, don't drop an honest view, or the truth about a fact, to please them: keep it, kindly, in a sentence, without repeating the whole case or warning twice, and say it's their call.";
 const PRAISE_NOTE =
   "They're fishing for praise. Be warm and specific about what's really good, honest about what isn't, a little teasing is fine; don't call them a genius, perfect, the best or a ten, and don't go along with putting other people down.";
+/** The praise note when teasing isn't earned (FRIEND_TEASE, friend-tease.ts). */
+const PRAISE_NO_TEASE_NOTE = PRAISE_NOTE.replace(', a little teasing is fine;', ';');
 
 /** The caller's last few messages, most recent last (turn notes aside). */
 function callerTurns(chatCtx: llm.ChatContext, max: number): string[] {
@@ -101,14 +103,18 @@ const NOTES: Record<string, string> = {
   praise: PRAISE_NOTE,
 };
 
-/** HONEST_FRIEND=on: the note for this reply, if any; none with crisis guidance. */
+/**
+ * HONEST_FRIEND=on: the note for this reply, if any; none with crisis guidance.
+ * `teaseOk: false` (FRIEND_TEASE, friend-tease.ts) drops the praise note's tease.
+ */
 export function honestFriendNote(
   chatCtx: llm.ChatContext,
   said: string,
-  options: { careful?: boolean; env?: Env } = {}
+  options: { careful?: boolean; env?: Env; teaseOk?: boolean } = {}
 ): string {
   if (!honestFriendEnabled(options.env) || options.careful) return '';
+  const notes = options.teaseOk === false ? { ...NOTES, praise: PRAISE_NO_TEASE_NOTE } : NOTES;
   return honestFriendCues(chatCtx, said)
-    .map((c) => NOTES[c])
+    .map((c) => notes[c])
     .join(' ');
 }
