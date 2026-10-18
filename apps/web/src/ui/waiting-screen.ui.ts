@@ -9,6 +9,7 @@
  */
 
 import { getLocale, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { fetchWaitlistStatus, type WaitlistStatus } from '../services/waitlist-status.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -108,7 +109,7 @@ function waveDate(iso: string | null): string | null {
   return new Intl.DateTimeFormat(getLocale(), DATE_FORMAT).format(date);
 }
 
-function invite(url: string, creditedDays: number): HTMLElement {
+function invite(url: string, daysMovedUp: number): HTMLElement {
   const box = el('div', 'waiting-screen__invite');
   box.append(
     el('p', 'waiting-screen__label', t('waitlistScreen.inviteLabel')),
@@ -127,10 +128,11 @@ function invite(url: string, creditedDays: number): HTMLElement {
   if (typeof navigator.share === 'function')
     row.appendChild(button(t('waitlistScreen.share'), false, share));
   box.append(row, el('p', 'waiting-screen__muted', t('waitlistScreen.inviteHelp')));
-  if (creditedDays > 0)
+  if (daysMovedUp > 0) {
     box.appendChild(
-      el('p', 'waiting-screen__muted', t('waitlistScreen.credited', { days: creditedDays }))
+      el('p', 'waiting-screen__muted', tp('waitlistScreen.friendsMovedYouUp', daysMovedUp))
     );
+  }
   return box;
 }
 

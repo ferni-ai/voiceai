@@ -11220,7 +11220,10 @@
     "copied": "Copied",
     "share": "Share",
     "inviteHelp": "Each friend who joins moves you up a few days.",
-    "credited": "Your friends have already moved you up {days} days.",
+    "friendsMovedYouUp": {
+      "one": "Your friends have already moved you up {count} day.",
+      "other": "Your friends have already moved you up {count} days."
+    },
     "emailPromise": "I’ll email you the moment your spot opens.",
     "inTitle": "You’re in",
     "inMessage": "Your spot opened up, and I saved it for you.",

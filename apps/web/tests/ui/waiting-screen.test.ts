@@ -35,6 +35,7 @@ const {
   hideWaitingOverlay,
   WAITLIST_SCREEN_STORAGE_KEY,
 } = await import('../../src/ui/waiting-screen.ui.js');
+const { setLocale } = await import('../../src/i18n/index.js');
 const { parseWaitlistStatus, waitlistFromRefusal } =
   await import('../../src/services/waitlist-status.js');
 
@@ -101,7 +102,7 @@ describe('a 403 WAITLISTED from /token', () => {
       'https://ferni.ai/?ref=abc123'
     );
     expect(text()).toContain('Each friend who joins moves you up a few days.');
-    expect(text()).toContain('moved you up 3 days');
+    expect(text()).toContain('Your friends have already moved you up 3 days.');
     expect(text()).toContain('I’ll email you the moment your spot opens.');
     expect(document.getElementById('callStatusNotice')).toBeNull(); // no error notice alongside
   });
@@ -185,6 +186,37 @@ describe("you're in", () => {
     const screen = buildWaitingScreen(parseWaitlistStatus(admitted)!, { onEnter })!;
     screen.querySelector<HTMLButtonElement>('.waiting-screen__btn--primary')!.click();
     expect(onEnter).toHaveBeenCalledOnce();
+  });
+});
+
+describe('other locales', () => {
+  const en = JSON.parse(
+    readFileSync(resolve(__dirname, '../../src/i18n/locales/en-US.json'), 'utf8')
+  );
+  const gb = JSON.parse(
+    readFileSync(resolve(__dirname, '../../src/i18n/locales/en-GB.json'), 'utf8')
+  );
+
+  afterEach(async () => setLocale('en-US', { reload: false }));
+
+  it('en-GB carries every waiting-screen string', () => {
+    expect(gb.waitlistScreen).toEqual(en.waitlistScreen);
+    expect(gb.connectFailure.waitlisted).toBe(en.connectFailure.waitlisted);
+  });
+
+  it.each(['de', 'ja', 'ar'])('%s falls back to English copy, never raw keys', async (locale) => {
+    await setLocale(locale as Parameters<typeof setLocale>[0], { reload: false });
+    const screen = buildWaitingScreen(parseWaitlistStatus(waiting)!)!;
+    expect(screen.textContent).not.toMatch(/waitlistScreen\./);
+    expect(screen.textContent).toContain('Each friend who joins moves you up a few days.');
+    expect(screen.textContent).toContain('Your friends have already moved you up 3 days.');
+  });
+
+  it('one day reads as one day', () => {
+    const screen = buildWaitingScreen(
+      parseWaitlistStatus({ ...waiting, referrals: { verified: 1, creditedDays: 1, max: 5 } })!
+    )!;
+    expect(screen.textContent).toContain('moved you up 1 day.');
   });
 });
 
