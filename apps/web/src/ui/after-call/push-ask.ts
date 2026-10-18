@@ -1,22 +1,13 @@
 /**
  * After-call ask: "Want Ferni to check in about this?"
  *
- * A new person who has one call has no way for Ferni to reach them again: the
- * only place to turn notifications on was behind the settings Save button.
- * This puts one optional question on the after-call card. Yes asks the browser
- * for notification permission and saves the subscription through the same
- * path as settings (subscribePush, POST /api/push/subscribe).
- *
- * Shown only when all hold:
- * - WEB_PUSH_DELIVERY is on for this person (webPushDelivery from
- *   GET /api/outreach/preferences, read per person on the server)
- * - they are signed in, and this browser can remember that we asked
- * - we haven't asked this person on this browser before (once, ever)
- * - permission is still "default" (never re-ask after a yes or a no)
- *
- * iPhone and iPad only deliver web push to a site added to the Home Screen, so
- * there the card shows a short how-to instead of a prompt that can't work.
- * The ask never blocks closing the card.
+ * After one call a new person had no channel back: notifications were only
+ * behind the settings Save button. Yes asks for permission and subscribes the
+ * way settings does (subscribePush). Shown once per person per browser, only
+ * with WEB_PUSH_DELIVERY on for them (webPushDelivery from GET
+ * /api/outreach/preferences), signed in, and permission still "default".
+ * iPhone/iPad outside the Home Screen (no web push there) get a how-to
+ * instead. It never blocks closing the card.
  *
  * @module ui/after-call/push-ask
  */
