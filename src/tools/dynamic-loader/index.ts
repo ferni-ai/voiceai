@@ -27,6 +27,8 @@ import type {
 } from './types.js';
 import { DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './topic-mappings.js';
 import { TOPIC_PATTERNS } from './topic-patterns.js';
+import { predictionTopicPatterns } from './prediction-topics.js';
+import { flagOn } from '../../config/env-flag.js';
 
 // Re-export types
 export type {
@@ -118,7 +120,11 @@ export class DynamicToolLoader {
     const domainScores = new Map<ToolDomain, number>();
 
     // Check each topic keyword, as a whole word
-    for (const [topic, domains, pattern] of TOPIC_PATTERNS) {
+    // WEEKLY_PREDICTION=on: "predict my week" loads Peter's game (prediction-topics.ts).
+    const patterns = flagOn('WEEKLY_PREDICTION')
+      ? [...TOPIC_PATTERNS, ...predictionTopicPatterns(this.toolContext?.userId)]
+      : TOPIC_PATTERNS;
+    for (const [topic, domains, pattern] of patterns) {
       if (pattern.test(lowerMessage)) {
         detectedTopics.push(topic);
         for (const domain of domains) {

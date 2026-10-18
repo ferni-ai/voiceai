@@ -53,6 +53,8 @@ interface QuizState {
   currentIndex: number;
   results: QuizResult[];
   isComplete: boolean;
+  /** The questions couldn't be loaded: say so, never stand in generic ones. */
+  loadFailed?: boolean;
 }
 
 // ============================================================================
@@ -114,39 +116,28 @@ export async function openKnowledgeQuiz(): Promise<void> {
 
   try {
     const response = await apiGet<QuizResponse>('/api/quiz/knowledge');
-    if (response.ok && response.data?.questions && response.data.questions.length > 0) {
-      state.questions = response.data.questions;
-      state.quizId = response.data.quizId; // lets the server re-score this exact quiz
+    if (response.ok) {
+      state.questions = response.data?.questions ?? [];
+      state.quizId = response.data?.quizId; // lets the server re-score this exact quiz
     } else {
-      state.questions = getDefaultQuestions();
+      state.loadFailed = true;
     }
   } catch (err) {
     log.debug('Could not fetch quiz questions', { error: String(err) });
-    state.questions = getDefaultQuestions();
+    state.loadFailed = true;
   }
 
   showQuizOverlay();
 }
 
-function getDefaultQuestions(): QuizQuestion[] {
-  return [
-    {
-      id: 'default-1',
-      question: t('knowledgeQuiz.defaultQuestion1'),
-      options: [t('knowledgeQuiz.defaultOption1A'), t('knowledgeQuiz.defaultOption1B'), t('knowledgeQuiz.defaultOption1C'), t('knowledgeQuiz.defaultOption1D')],
-      correctIndex: -1, // No correct answer - just learning
-      category: 'preferences',
-      hint: t('knowledgeQuiz.defaultHint1'),
-    },
-    {
-      id: 'default-2',
-      question: t('knowledgeQuiz.defaultQuestion2'),
-      options: [t('knowledgeQuiz.defaultOption2A'), t('knowledgeQuiz.defaultOption2B'), t('knowledgeQuiz.defaultOption2C'), t('knowledgeQuiz.defaultOption2D')],
-      correctIndex: -1,
-      category: 'personality',
-      hint: t('knowledgeQuiz.defaultHint2'),
-    },
-  ];
+/** No questions: an honest error, or "not enough yet". Never generic stand-in questions. */
+function renderNoQuestions(container: HTMLElement): void {
+  const message = document.createElement('p');
+  message.className = 'knowledge-quiz-unavailable';
+  message.dataset.state = state.loadFailed ? 'error' : 'empty';
+  if (state.loadFailed) message.setAttribute('role', 'alert');
+  message.textContent = t(state.loadFailed ? 'knowledgeQuiz.loadFailed' : 'knowledgeQuiz.notEnoughYet');
+  container.appendChild(message);
 }
 
 // ============================================================================
@@ -259,6 +250,11 @@ function renderCurrentQuestion(): void {
 
   // Clear container
   container.textContent = '';
+
+  if (state.questions.length === 0) {
+    renderNoQuestions(container);
+    return;
+  }
 
   if (state.isComplete) {
     renderResults(container);
@@ -707,7 +703,8 @@ function injectStyles(): void {
     }
 
     /* Results */
-    .knowledge-quiz-results {
+    .knowledge-quiz-results,
+    .knowledge-quiz-unavailable {
       text-align: center;
       padding: var(--space-lg, 26px) 0;
     }

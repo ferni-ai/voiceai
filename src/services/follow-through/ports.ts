@@ -11,7 +11,7 @@ import type { FollowUp } from './follow-up.js';
 /** A new follow-up, before the store gives it an id and timestamps. */
 export type NewFollowUp = Pick<
   FollowUp,
-  'userId' | 'kind' | 'text' | 'dueAt' | 'zone' | 'repeat' | 'source'
+  'userId' | 'kind' | 'text' | 'dueAt' | 'zone' | 'repeat' | 'source' | 'action'
 >;
 
 export interface FollowUpStore {

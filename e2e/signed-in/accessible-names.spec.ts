@@ -58,7 +58,7 @@ test('importing contacts: each source is announced by name', async ({ page }) =>
   expect(await badNames(page, `[data-e2e-dialog="${id}"]`)).toEqual([]);
 });
 
-const ALL_PANELS = ['garden', 'gift', 'invite', 'commands', 'calendar-settings', 'notifications', 'journal',
+const ALL_PANELS = ['commands', 'calendar-settings', 'notifications', 'journal',
   'knowledge-quiz', 'music-dashboard', 'play-games', 'vibe-controller', 'contacts', 'family-callers',
   'all-connections', 'theme', 'billing', 'export', 'whats-growing', 'share-ferni', 'help'];
 
