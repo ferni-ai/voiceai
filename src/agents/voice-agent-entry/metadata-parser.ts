@@ -350,6 +350,24 @@ export async function finishCallTypeContexts(
 }
 
 /**
+ * Runs `finish` once, from whichever comes first: the entrypoint's own exit
+ * path, or LiveKit's shutdown callbacks. The job gives the entrypoint only 15 s
+ * after the room closes (ENTRYPOINT_SHUTDOWN_TIMEOUT in @livekit/agents) and
+ * then exits the process, but it awaits its shutdown callbacks first. Without
+ * this, a call report still running at the end of a slow cleanup (the LLM read
+ * of the call, the requester's push and records) was dropped with no log line.
+ */
+export function finishOnce(
+  ctx: { addShutdownCallback: (callback: () => Promise<void>) => void },
+  finish: () => Promise<void>
+): () => Promise<void> {
+  let running: Promise<void> | undefined;
+  const once = (): Promise<void> => (running ??= finish());
+  ctx.addShutdownCallback(once);
+  return once;
+}
+
+/**
  * The one gate for outbound calls our server places (on-behalf, family
  * check-in, proactive outreach): the job metadata exactly as dispatched
  * carries a valid signature.
