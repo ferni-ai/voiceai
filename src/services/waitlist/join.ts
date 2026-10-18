@@ -1,11 +1,11 @@
 /**
- * Joining the waitlist, and a person's place in it.
- *
- * - One place per inbox: an alias (dots, +tag) finds the existing entry.
- * - Throwaway domains are refused.
- * - A friend's invite code counts once, and only when the person it brought
- *   in has verified their email (signed in with Google/Apple), is new to the
- *   line, and isn't the inviter under another alias.
+ * Joining the waitlist, and a person's place in it. Identity is bound to the
+ * verified address: a verified sign-in writes only the doc keyed by its own
+ * email; a Gmail alias someone typed in earlier lends only its join time and is
+ * retired (its phone, friend's code and lane are dropped). A join without a
+ * sign-in proves nothing: it never touches an existing entry or stores a code.
+ * A friend's code counts once, only if it came with that address's own verified
+ * join, for someone new to the line who isn't the inviter. Throwaway domains are refused.
  *
  * @module services/waitlist/join
  */
@@ -16,7 +16,6 @@ import {
   isValidEmail,
   LANE_RANK,
   newInviteCode,
-  priorityKey,
   queueFields,
   WAITING_STATUSES,
   type QueueEntry,
@@ -27,15 +26,24 @@ import type { WaitlistStore } from './store.js';
 export const waitlistDocId = (email: string): string =>
   Buffer.from(email).toString('base64').replace(/[/+=]/g, '_');
 
+/**
+ * A person's own entry: the doc keyed by their address, else a verified entry
+ * for the same inbox (a verified Gmail spelling is the same Google account).
+ * An unverified alias proves nothing about who typed it, so it isn't theirs.
+ */
 export async function findEntry(store: WaitlistStore, email: string): Promise<QueueEntry | null> {
   const lower = email.trim().toLowerCase();
-  return (await store.get(waitlistDocId(lower))) ?? store.findByCanonical(canonicalEmail(lower));
+  const exact = await store.get(waitlistDocId(lower));
+  if (exact) return exact;
+  const alias = await store.findByCanonical(canonicalEmail(lower));
+  return alias?.verified ? alias : null;
 }
 
 /** 1-based place among verified people waiting; null when not in the line. */
 export async function positionOf(store: WaitlistStore, e: QueueEntry): Promise<number | null> {
-  if (!queueFields(e).inQueue) return null;
-  return 1 + (await store.countAhead(LANE_RANK[e.lane], priorityKey(e.joinedAtMs, e.verifiedReferrals))); // prettier-ignore
+  const fields = queueFields(e);
+  if (!fields.inQueue) return null;
+  return 1 + (await store.countAhead(LANE_RANK[e.lane], fields.priorityKey));
 }
 
 export interface JoinInput {
@@ -49,48 +57,70 @@ export interface JoinInput {
 
 export type JoinOutcome = { entry: QueueEntry } | { refused: 'invalid_email' | 'disposable_email' };
 
+const isGmail = (e: QueueEntry): boolean => e.emailCanonical.endsWith('@gmail.com');
+
 /** Idempotent per inbox: a second join only fills in what is missing (verification, a code). */
 export async function joinWaitlist(store: WaitlistStore, input: JoinInput): Promise<JoinOutcome> {
   const email = input.email.trim().toLowerCase();
   if (!isValidEmail(email)) return { refused: 'invalid_email' };
   if (isDisposableEmail(email)) return { refused: 'disposable_email' };
-  const ref = input.ref && INVITE_CODE_PATTERN.test(input.ref) ? input.ref : undefined;
+  const exact = await store.get(waitlistDocId(email));
+  const existing = exact ?? (await store.findByCanonical(canonicalEmail(email)));
+  if (!input.verified) {
+    if (existing) return { entry: existing }; // can't prove it's theirs: touch nothing
+    const entry = { ...newEntry(email, input.now), inviteCode: newInviteCode() };
+    await store.merge(entry.id, { ...freshFields(entry, input), ...queueFields(entry) });
+    return { entry };
+  }
+  if (!exact && existing?.verified) return { entry: existing }; // the same Google account, spelled differently
+  return { entry: await joinVerified(store, { ...input, email }, exact, exact ? null : existing) };
+}
 
-  const found = await findEntry(store, email);
-  const base = found ?? newEntry(email, input.now);
-  const entry = withJoin(base, input, ref);
-  const fresh = found ? {} : { email, status: 'pending', source: input.source, lane: 'standard', createdAt: input.now, referralCode: ref }; // prettier-ignore
+/** Writes only the doc keyed by the verified address; a waiting Gmail alias lends its place, nothing else. */
+async function joinVerified(
+  store: WaitlistStore,
+  input: JoinInput,
+  exact: QueueEntry | null,
+  alias: QueueEntry | null
+): Promise<QueueEntry> {
+  // prettier-ignore
+  const { email, now } = input;
+  const inherit = alias && isGmail(alias) && WAITING_STATUSES.has(alias.status) ? alias : null;
+  const ref = input.ref && INVITE_CODE_PATTERN.test(input.ref) ? input.ref : undefined;
+  const base = exact ?? { ...newEntry(email, now), joinedAtMs: inherit?.joinedAtMs ?? now.getTime() }; // prettier-ignore
+  const entry: QueueEntry = {
+    ...base,
+    email,
+    verified: true,
+    joinedAtMs: base.joinedAtMs || now.getTime(),
+    inviteCode: base.inviteCode ?? newInviteCode(),
+    // Set before or with this address's own verification, never after, never from an alias
+    referredBy: base.verified ? base.referredBy : (base.referredBy ?? ref),
+  };
   await store.merge(entry.id, {
-    ...fresh,
+    ...(exact ? {} : freshFields(entry, input)),
+    email,
     emailCanonical: entry.emailCanonical,
     joinedAt: new Date(entry.joinedAtMs),
     inviteCode: entry.inviteCode,
     referredBy: entry.referredBy,
-    verifiedAt: input.verified && !base.verified ? input.now : undefined,
+    verifiedAt: base.verified ? undefined : now,
     ...queueFields(entry),
   });
-  if (entry.verified && !entry.referralCredited && WAITING_STATUSES.has(entry.status)) {
-    await creditInviter(store, entry);
-  }
-  return { entry: (await store.get(entry.id)) ?? entry };
-}
-
-/** What a join adds: a join time and invite code if missing, verification, a friend's code. */
-function withJoin(base: QueueEntry, input: JoinInput, ref: string | undefined): QueueEntry {
-  return {
-    ...base,
-    joinedAtMs: base.joinedAtMs || input.now.getTime(),
-    verified: base.verified || input.verified,
-    inviteCode: base.inviteCode ?? newInviteCode(),
-    // A code can be attached until the person verifies, never after
-    referredBy: base.referredBy ?? (base.verified ? undefined : ref),
-  };
+  if (inherit) await store.merge(inherit.id, { status: 'merged', mergedInto: entry.id, inQueue: false }); // prettier-ignore
+  if (!entry.referralCredited && WAITING_STATUSES.has(entry.status)) await creditInviter(store, entry); // prettier-ignore
+  return (await store.get(entry.id)) ?? entry;
 }
 
 function newEntry(email: string, now: Date): QueueEntry {
   const id = waitlistDocId(email);
   const emailCanonical = canonicalEmail(email);
   return { id, email, emailCanonical, status: 'pending', lane: 'standard', joinedAtMs: now.getTime(), verified: false, verifiedReferrals: 0, referralCredited: false }; // prettier-ignore
+}
+
+/** A new doc: standard lane, no phone, and a friend's code only when verified with it. */
+function freshFields(e: QueueEntry, input: JoinInput): Record<string, unknown> {
+  return { email: e.email, emailCanonical: e.emailCanonical, status: 'pending', source: input.source, lane: 'standard', createdAt: input.now, joinedAt: new Date(e.joinedAtMs), inviteCode: e.inviteCode, referralCode: e.referredBy }; // prettier-ignore
 }
 
 async function creditInviter(store: WaitlistStore, referred: QueueEntry): Promise<void> {

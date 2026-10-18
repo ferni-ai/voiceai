@@ -1,7 +1,6 @@
 /**
- * Throwaway-inbox domains refused by the waitlist, so one person can't hold
- * many places or farm referral credit. A short static list of the common
- * providers; it is a speed bump, not a wall (verification is the wall).
+ * Throwaway-inbox domains the waitlist refuses, so one person can't hold many
+ * places or farm referral credit: a speed bump, not a wall (verification is).
  *
  * @module services/waitlist/disposable-domains
  */

@@ -1,15 +1,9 @@
 /**
- * The waitlist queue: one line, on the existing `waitlist` collection, that
- * waves let in 100 at a time (decided 2026-10-18).
- *
- * Order is lane first (vip, then friends, then standard), then the effective
- * join time: joinedAt minus 3 days for each friend who joined and verified,
- * counting at most 5. A time boost is stable and explainable; "N places" would
- * reshuffle everyone. Only verified people are in the line: a wave can't let in
- * an address nobody has proven they own.
- *
- * Each doc carries three derived fields so Firestore can order and count it
- * with one index (inQueue, laneRank, priorityKey): see queueFields().
+ * The waitlist queue on the existing `waitlist` collection, which waves let in
+ * 100 at a time (2026-10-18). Order: lane (vip, friends, standard), then join
+ * time less 3 days per verified friend, at most 5 (a time boost is stable; "N
+ * places" would reshuffle everyone). Only verified people are in line. Derived
+ * fields let one index (inQueue, laneRank, priorityKey) order and count it.
  *
  * @module services/waitlist/queue
  */

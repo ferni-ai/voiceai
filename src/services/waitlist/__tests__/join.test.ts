@@ -59,7 +59,7 @@ describe('place in line', () => {
     expect(await place(s, 'early@example.com')).toBe(2);
   });
 
-  it('credits a friend only once they verify, once, and never the inviter under an alias', async () => {
+  it('credits a friend once, when their code comes with their own verified join', async () => {
     const s = memoryStore();
     const inviter = await join(s.store, 'jdoe@gmail.com', 0);
     const ref = inviter.inviteCode!;
@@ -67,24 +67,61 @@ describe('place in line', () => {
 
     await join(s.store, 'pal@example.com', 1, { verified: false, ref });
     expect(await credits()).toBe(0); // joined from the website, not verified yet
-    await join(s.store, 'pal@example.com', 2); // signs in with Google
+    await join(s.store, 'pal@example.com', 2, { ref }); // signs in with Google, the link's code along
     expect(await credits()).toBe(1);
-    await join(s.store, 'pal@example.com', 3);
+    await join(s.store, 'pal@example.com', 3, { ref });
     expect(await credits()).toBe(1);
 
     await join(s.store, 'j.doe+again@gmail.com', 4, { ref }); // the inviter's own inbox
     expect(await credits()).toBe(1);
   });
+
+  it('a code typed in without a sign-in is never credited when the real owner verifies', async () => {
+    const s = memoryStore();
+    const attacker = await join(s.store, 'farmer@example.com', 0);
+    await join(s.store, 'victim@example.com', 1, { verified: false, ref: attacker.inviteCode });
+    await join(s.store, 'victim@example.com', 2); // the owner signs in, with no code of their own
+    expect((await s.store.get(attacker.id))!.verifiedReferrals).toBe(0);
+    expect((await s.store.get(waitlistDocId('victim@example.com')))!.referredBy).toBeUndefined();
+  });
 });
 
-describe('one place per inbox', () => {
-  it('an alias finds the existing entry instead of making a second', async () => {
+describe('one place per inbox, bound to the verified address', () => {
+  it('an honest dotted Gmail user keeps their place: one entry in line, keyed by the signed-in address', async () => {
     const s = memoryStore();
-    const first = await join(s.store, 'j.doe+waitlist@gmail.com', 0);
-    const again = await join(s.store, 'jdoe@gmail.com', 5);
-    expect(again.id).toBe(first.id);
-    expect(again.joinedAtMs).toBe(day(0).getTime()); // keeps the original place
-    expect(s.docs.size).toBe(1);
+    const site = await join(s.store, 'j.doe+waitlist@gmail.com', 0, { verified: false });
+    expect((await join(s.store, 'J.Doe+Waitlist@gmail.com', 1, { verified: false })).id).toBe(site.id); // prettier-ignore
+    const signedIn = await join(s.store, 'jdoe@gmail.com', 5);
+    expect(signedIn.id).toBe(waitlistDocId('jdoe@gmail.com'));
+    expect(signedIn).toMatchObject({ email: 'jdoe@gmail.com', verified: true, joinedAtMs: day(0).getTime() }); // prettier-ignore
+    expect(s.docs.get(site.id)).toMatchObject({ status: 'merged', inQueue: false });
+    expect([...s.docs.values()].filter((d) => d.inQueue === true)).toHaveLength(1);
+    expect((await join(s.store, 'jdoe@gmail.com', 6)).id).toBe(signedIn.id); // idempotent
+  });
+
+  it('a pre-registered alias is never verified or merged into: its phone, code and lane are dropped', async () => {
+    const s = memoryStore();
+    const farmer = await join(s.store, 'farmer@example.com', 0);
+    const alias = waitlistDocId('s.e.t.h+x@gmail.com');
+    await join(s.store, 's.e.t.h+x@gmail.com', 1, { verified: false, ref: farmer.inviteCode });
+    await s.store.merge(alias, { phone: '+15550001111', referredBy: farmer.inviteCode, lane: 'vip', laneRank: 0 }); // prettier-ignore
+
+    const owner = await join(s.store, 'seth@gmail.com', 9);
+    expect(owner.id).toBe(waitlistDocId('seth@gmail.com'));
+    expect(s.docs.get(owner.id)).toMatchObject({ email: 'seth@gmail.com', lane: 'standard', laneRank: 2 }); // prettier-ignore
+    expect(s.docs.get(owner.id)!.phone).toBeUndefined();
+    expect(owner.referredBy).toBeUndefined();
+    expect(s.docs.get(alias)!.verifiedAt).toBeUndefined(); // never verified under someone else's address
+    expect(s.docs.get(alias)).toMatchObject({ email: 's.e.t.h+x@gmail.com', status: 'merged' });
+    expect((await s.store.get(farmer.id))!.verifiedReferrals).toBe(0);
+  });
+
+  it('verifiedAt only ever lands on the doc whose email is the verified one', async () => {
+    const s = memoryStore();
+    await join(s.store, 'first.last@example.com', 0, { verified: false });
+    await join(s.store, 'first.last+news@example.com', 1); // another spelling, verified
+    for (const [, d] of s.docs) if (d.verifiedAt) expect(d.email).toBe('first.last+news@example.com'); // prettier-ignore
+    expect(s.docs.get(waitlistDocId('first.last@example.com'))!.verifiedAt).toBeUndefined();
   });
 
   it('refuses a throwaway inbox and writes nothing', async () => {
