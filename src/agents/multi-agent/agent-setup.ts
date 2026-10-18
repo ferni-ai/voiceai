@@ -103,6 +103,7 @@ const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
 import { withAlwaysOnInfoTools } from './always-on-info-tools.js';
+import { withCallJournalTools } from './call-journal-tools.js';
 import {
   createFindToolsTool,
   FIND_TOOLS,
@@ -988,12 +989,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Wait for TTS and tools (LLM is created below in parallel section)
   const [tts, loadedTools] = await Promise.all([ttsPromise, toolsPromise]);
   // Before the cap, so it keeps them: every path above (handoff, first agent, fallback)
-  const orchestratorTools = await withAlwaysOnInfoTools(loadedTools, {
-    userId: userId || 'anonymous',
-    sessionId,
-    agentId: persona.id,
-    agentDisplayName: persona.name || persona.id,
-  });
+  const toolsCtx = { userId: userId || 'anonymous', sessionId, agentId: persona.id };
+  const named = { ...toolsCtx, agentDisplayName: persona.name || persona.id };
+  const withJournal = await withCallJournalTools(loadedTools, named); // CALL_JOURNAL=on
+  const orchestratorTools = await withAlwaysOnInfoTools(withJournal, named);
 
   // =========================================================================
   // 🔍 CRITICAL VISIBILITY: Log exactly what tools are available to LLM

@@ -1,8 +1,8 @@
 /**
  * OUTPUT_QUEUE_MS: how much of Ferni's audio the room output may buffer.
  *
- * The SDK's room audio output queues up to 1000 ms by default in
- * @livekit/agents 1.5.1 (AudioSource's default; 1.9.x lowers it to 200 ms).
+ * The SDK's room audio output queued up to 1000 ms by default up to
+ * @livekit/agents 1.6.x (AudioSource's default); 1.7.0 lowers it to 200 ms (#2256).
  * TTS runs faster than real time, so that queue fills, and audio sits in it
  * before it reaches WebRTC. A LiveKit forum case measured echo round trip
  * 803 ms at the 1000 ms default and 392 ms at 10 ms; the cost is worst on the
@@ -10,7 +10,7 @@
  *
  * Unset leaves the SDK's default. A value is used only if it is a whole number
  * of milliseconds from 10 to 1000: 0 needs exactly 10 ms frames, and more than
- * the default buys nothing. Anything else is ignored with a warning.
+ * the old 1000 ms default buys nothing. Anything else is ignored with a warning.
  *
  * @module agents/multi-agent/room-output-options
  */

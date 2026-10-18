@@ -355,6 +355,22 @@
   transform: scaleY(0.4);
 }
 
+/* SETTLING - Late evening: lids half down, content, not tired */
+.ferni-avatar[data-mood="settling"] .eye-white {
+  transform: scaleY(0.92);
+}
+.ferni-avatar[data-mood="settling"] .smile-crease {
+  opacity: 0.4;
+}
+
+/* GLAD - A returning visitor: smiling eyes, a small lift */
+.ferni-avatar[data-mood="glad"] .eye-white {
+  transform: scaleY(0.85) scaleX(1.04);
+}
+.ferni-avatar[data-mood="glad"] .smile-crease {
+  opacity: 0.9;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    GLOW COLOR CHANGES BY MOOD
    ═══════════════════════════════════════════════════════════════════════════════ */

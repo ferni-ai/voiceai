@@ -3050,6 +3050,20 @@
     "checkFailedMessage": "Something went wrong on our side. Give it a moment and try again.",
     "signOutFailed": "Couldn't sign you out. Try again."
   },
+  "tryFirst": {
+    "subtitle": "Say hello first. Sign in whenever you want to keep the conversation.",
+    "talkNow": "Talk to Ferni now",
+    "noAccount": "No account needed. Just say hello.",
+    "connecting": "Connecting",
+    "inCall": "You're talking with Ferni. Say whatever's on your mind.",
+    "endCall": "End call",
+    "keepTitle": "Want to keep this conversation?",
+    "keepMessage": "Sign in and Ferni will remember what you talked about, so you can pick up where you left off.",
+    "usedUp": "That's all the free calls for today. Sign in to keep talking.",
+    "cooldown": "Give it a few minutes before the next free call, or sign in to keep talking now.",
+    "micBlocked": "Ferni needs your microphone to hear you. Allow it in your browser, then try again.",
+    "unavailable": "Ferni couldn't pick up just now. Try again in a moment, or sign in."
+  },
   "visualizations": {
     "lifeSeasons": "Your Life Seasons",
     "conversationCurrents": "Your Conversation Currents",
@@ -4533,6 +4547,8 @@
     "defaultOption2C": "Easing into it slowly",
     "defaultOption2D": "Diving right into work",
     "defaultHint2": "I'm curious to learn!",
+    "loadFailed": "I couldn't load your quiz just now. That's on my end. Try again in a little while.",
+    "notEnoughYet": "I don't know enough about you yet to quiz you. Talk with me a bit more and come back.",
     "resultMessageHigh": "We really know each other!",
     "resultMessageMedium": "We're building something special",
     "resultMessageLow": "Every conversation helps me know you better",
@@ -6329,7 +6345,8 @@
     },
     "emptyDescription": "Your chronicle is empty, but every great story starts somewhere. Capture your first thought, and watch your wisdom grow.",
     "quoted": "\"{text}\"",
-    "replyFailed": "That didn't go through. It's on my end, not yours. Try sending it again."
+    "replyFailed": "That didn't go through. It's on my end, not yours. Try sending it again.",
+    "loadFailed": "I couldn't load your Chronicle just now. Your entries are safe. Try again in a little while."
   },
   "marketplacePermissionConsent": {
     "required": "Required Permissions",
@@ -10873,7 +10890,9 @@
     "helper": "Your personal guide",
     "connectToTalk": "Connect",
     "endTalk": "Disconnect",
-    "connectingCancel": "Connecting. Tap to cancel"
+    "connectingCancel": "Connecting. Tap to cancel",
+    "connectingNow": "Connecting…",
+    "tapToCancel": "Tap to cancel"
   },
   "analyticsDashboard": {
     "title": "Your Journey",

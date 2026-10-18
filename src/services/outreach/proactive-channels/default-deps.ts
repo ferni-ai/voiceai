@@ -1,14 +1,14 @@
 /**
  * The production edges for the proactive check-in run: the app's message
- * panel, the phone on the user's Firebase account, Twilio texts, and calls
+ * panel, the member's verified phone (user-reach.ts), Twilio texts, and calls
  * over the LiveKit SIP trunk.
  *
  * @module services/outreach/proactive-channels/default-deps
  */
 
 import { sendSMS } from '../../communication-service.js';
-import { getFirebaseUser } from '../../identity/firebase-auth.js';
 import { saveInAppMessage } from '../unified-delivery.js';
+import { resolveVerifiedPhone } from '../user-reach.js';
 import type { ProactiveDeps } from './proactive-tick.js';
 import { canPlaceCalls, placeSelfCall } from './self-call.js';
 
@@ -24,10 +24,10 @@ export function defaultProactiveDeps(): ProactiveDeps {
       });
       return result.success;
     },
-    // Firebase only puts a number on an account through phone verification
-    // (verify-phone-routes.ts) or an admin, so this is a number they proved they hold.
-    async verifiedPhone(userId) {
-      return (await getFirebaseUser(userId))?.phoneNumber ?? undefined;
+    // The same answer every Ferni text uses: sponsor-confirmed, then a phone
+    // id or one proved in Settings, then Firebase Auth's. Never contactInfo.phone.
+    async verifiedPhone(userId, user) {
+      return resolveVerifiedPhone(userId, user);
     },
     async sendSms(phone, text) {
       await sendSMS(phone, text);

@@ -10800,7 +10800,9 @@
     "helper": "나만을 위한 다정한 가이드",
     "connectToTalk": "대화해요",
     "endTalk": "대화 종료",
-    "connectingCancel": "연결 중입니다. 탭하여 취소"
+    "connectingCancel": "연결 중입니다. 탭하여 취소",
+    "connectingNow": "연결 중…",
+    "tapToCancel": "탭하여 취소"
   },
   "analyticsDashboard": {
     "title": "나의 여정",

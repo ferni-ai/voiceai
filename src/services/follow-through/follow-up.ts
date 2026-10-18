@@ -21,6 +21,21 @@ export type FollowUpKind = 'reminder' | 'commitment' | 'promise' | 'thread' | 'd
 export type FollowUpStatus = 'open' | 'surfaced' | 'done' | 'released' | 'expired';
 export type SurfacedVia = 'opener' | 'in-call' | 'text';
 
+/**
+ * Something Ferni read back to do for the caller, a call or a text
+ * (outreach-confirm.ts). `waitingOn: 'you'` while it waits for the caller's
+ * yes; gone once it was sent or dropped.
+ */
+export interface FollowUpAction {
+  /** The tool that would act, e.g. callOnBehalf or reachOut. */
+  readonly tool: string;
+  /** The saved contact it goes to. Never the number itself. */
+  readonly contactId?: string;
+  readonly waitingOn?: 'you';
+  /** After the yes: the tool ran and said it sent, said it didn't, or said nothing we can read. */
+  readonly outcome?: 'sent' | 'failed' | 'unknown';
+}
+
 /** Repeats at `at` ("08:00") in the follow-up's zone. */
 export interface Repeat {
   readonly every: 'day' | 'week' | 'year';
@@ -45,6 +60,7 @@ export interface FollowUp {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly closedAt?: string;
+  readonly action?: FollowUpAction;
 }
 
 export type FollowUpEvent =

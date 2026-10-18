@@ -10800,7 +10800,9 @@
     "helper": "你的专属向导",
     "connectToTalk": "连线",
     "endTalk": "挂断",
-    "connectingCancel": "正在连接。点按即可取消"
+    "connectingCancel": "正在连接。点按即可取消",
+    "connectingNow": "正在连接…",
+    "tapToCancel": "点按即可取消"
   },
   "analyticsDashboard": {
     "title": "你的旅程",

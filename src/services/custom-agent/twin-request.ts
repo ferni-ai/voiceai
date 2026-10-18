@@ -77,7 +77,18 @@ async function findTwin(uid: string, agentId?: string | null): Promise<CustomAge
   return (await listCustomAgents(uid)).find((agent) => agent.type === 'twin') ?? null;
 }
 
-const words = (text: string) => new Set(text.toLowerCase().match(/[a-z']+/g) ?? []);
+/** Words too common to say what an entry is about ("the", "and", "you" match nearly every one). */
+const STOP_WORDS = new Set(
+  `the and you was are but not for with that this have had has were what when where
+  who how why did does can could would should will just about from they them then
+  than there their our your into been some very really`.split(/\s+/)
+);
+
+/** The words that can make an entry relevant: three letters or more, no stopwords. */
+const words = (text: string) =>
+  new Set(
+    (text.toLowerCase().match(/[a-z']+/g) ?? []).filter((w) => w.length >= 3 && !STOP_WORDS.has(w))
+  );
 
 /**
  * The request with a profile, relevant journal entries and themes filled in

@@ -4,6 +4,8 @@
  * Tools for accessing information: news, weather, sports scores.
  * This domain provides properly-routed consolidated tools for the LLM.
  *
+ * Web search: searchWeb (search.ts), grounded in Google Search with WEB_SEARCH=on.
+ *
  * DOMAIN: information
  * TOOLS:
  *   News: getNews (routes to general/finance/tech/stock based on category)
@@ -26,6 +28,7 @@ import {
   searchNewsByTopic,
 } from './news.js';
 import { getSportScores, getTeamScore } from './sports.js';
+import { getWeatherToolDefinitions } from './weather-tools.js';
 
 // Import legacy tool creators for simple wrapping
 import { createTrafficTools } from './traffic.js';
@@ -158,103 +161,6 @@ function getNewsToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
-// WEATHER TOOLS (Context-aware: uses IP-detected location as default)
-// ============================================================================
-
-import { getCurrentWeather, getWeatherForecast } from './weather.js';
-import { resolveCallerLocation } from '../../shared/caller-location.js';
-
-function getWeatherToolDefinitions(): ToolDefinition[] {
-  const log = getLogger();
-
-  return [
-    {
-      id: 'getWeather',
-      name: 'Get Weather',
-      description:
-        'Get current weather for a city or location. Returns temperature, humidity, wind, and conditions. If user just says "weather" without a location, uses their detected location from IP.',
-      domain: 'information',
-      tags: ['information', 'weather', 'temperature', 'conditions'],
-      create: (ctx: ToolContext) =>
-        llm.tool({
-          description: getToolDescription('getWeather'),
-          parameters: z.object({
-            location: z
-              .string()
-              .optional()
-              .describe(
-                'City name (e.g., "Philadelphia", "Denver"). Optional - if not provided, uses user\'s detected location.'
-              ),
-          }),
-          execute: async ({ location }, opts) => {
-            const startTime = Date.now();
-            const effectiveLocation = resolveCallerLocation(location, opts, ctx);
-
-            if (!effectiveLocation) {
-              return "I don't know your location. Which city would you like weather for?";
-            }
-
-            log.info({ location: effectiveLocation }, '🌤️ Weather tool called');
-
-            try {
-              const result = await getCurrentWeather(effectiveLocation);
-              log.info(
-                { location: effectiveLocation, elapsed: Date.now() - startTime },
-                '🌤️ Weather result returned'
-              );
-              return result;
-            } catch (error) {
-              log.error({ location: effectiveLocation, error: String(error) }, '🌤️ Weather error');
-              return `I couldn't get weather for ${effectiveLocation}. Try a different city name?`;
-            }
-          },
-        }),
-    },
-    {
-      id: 'getWeatherForecast',
-      name: 'Get Weather Forecast',
-      description:
-        'Get weather forecast for upcoming days. If user just asks about "weekend weather" without a location, uses their detected location.',
-      domain: 'information',
-      tags: ['information', 'weather', 'forecast', 'weekend'],
-      create: (ctx: ToolContext) =>
-        llm.tool({
-          description: getToolDescription('getWeatherForecast'),
-          parameters: z.object({
-            location: z
-              .string()
-              .optional()
-              .describe('City name. Optional - uses detected location if not provided.'),
-            days: z.number().optional().describe('Number of days to forecast (1-7), defaults to 5'),
-          }),
-          execute: async ({ location, days = 5 }, opts) => {
-            const startTime = Date.now();
-            const effectiveLocation = resolveCallerLocation(location, opts, ctx);
-
-            if (!effectiveLocation) {
-              return "I don't know your location. Which city would you like the forecast for?";
-            }
-
-            log.info({ location: effectiveLocation, days }, '📅 Weather forecast called');
-
-            try {
-              const result = await getWeatherForecast(effectiveLocation, Math.min(days, 7));
-              log.info(
-                { location: effectiveLocation, days, elapsed: Date.now() - startTime },
-                '📅 Forecast returned'
-              );
-              return result;
-            } catch (error) {
-              log.error({ location: effectiveLocation, error: String(error) }, '📅 Forecast error');
-              return `I couldn't get the forecast for ${effectiveLocation}. Try a different city?`;
-            }
-          },
-        }),
-    },
-  ];
-}
-
-// ============================================================================
 // SPORTS TOOLS (Properly routes between team and league queries)
 // ============================================================================
 
@@ -319,13 +225,6 @@ function getSportsToolDefinitions(): ToolDefinition[] {
     },
   ];
 }
-
-// ============================================================================
-// SEARCH TOOLS - REMOVED
-// ============================================================================
-// Web search is now handled by Gemini's built-in Google Search tool.
-// See: https://ai.google.dev/gemini-api/docs/live-tools#google-search
-// Configured in voice-agent-entry.ts: tools: [{ googleSearch: {} }]
 
 // ============================================================================
 // TRAFFIC TOOLS (Directions and commute times)
