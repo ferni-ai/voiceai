@@ -92,7 +92,7 @@ export const LAYER_MAP: Record<string, string> = {
   ...under('src/memory', 'L1', ['storage', 'vectors', 'firestore-vector-store', 'spanner-graph']),
   ...under('src/services', 'L1', ['redis', 'cache', 'persistence', 'stores', 'data', 'data-layer', 'llm', 'tts', 'pubsub']),
   ...under('src/services', 'L1', ['external-apis', 'apple', 'linkedin', 'observability', 'analytics', 'performance']),
-  ...under('src/services', 'L1', ['self-healing', 'async-events', 'webhooks', 'core']),
+  ...under('src/services', 'L1', ['self-healing', 'async-events', 'webhooks', 'core', 'email-transport']),
   ...under('src/utils', 'L1', ['firebase-admin-app.ts', 'firestore-query.ts', 'firestore-utils.ts', 'safe-firestore.ts']),
   ...under('src/utils', 'L1', ['transformers-loader.ts', 'native-binding-guard.ts']),
 

@@ -64,8 +64,8 @@ import {
 } from '../personas/life-updates.js';
 import { commonGroundEnabled, formatCommonGround } from '../personas/common-ground.js';
 import { firestoreGroundStore, type GroundStore } from '../personas/common-ground-after-call.js';
+import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import {
-  callCheckIns,
   coachFollowThroughMode,
   formatCheckIn,
   type OpenCommitment,
@@ -309,7 +309,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     });
   // Also never holds up the snapshot; joins the first note once it is ready.
   const checkIns =
-    deps.checkIns ?? (coachFollowThroughMode() ? () => callCheckIns(deps.userId) : undefined);
+    deps.checkIns ?? (coachFollowThroughMode() ? () => checkInsWithCalls(deps.userId) : undefined);
   const checkedIn = (checkIns ? checkIns() : Promise.resolve([]))
     .then((open) => {
       checkInNote = formatCheckIn(open, Date.now());
