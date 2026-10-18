@@ -85,4 +85,17 @@ describe('releaseHeldTexts', () => {
     expect(send).toHaveBeenCalledTimes(2); // never the stale one
     expect(removed.sort()).toEqual(['due', 'stale']);
   });
+
+  it('one still over the daily cap moves to its new time (the guard re-queued it), not dropped', async () => {
+    const { s: st, removed } = store([
+      { id: 'capped', text, releaseAt: at(0), reason: 'daily-cap' },
+    ]);
+    const send = vi.fn(async () => ({
+      sent: false as const,
+      reason: 'held' as const,
+      until: EIGHT_AM_NY,
+    }));
+    expect(await releaseHeldTexts(st, deps, send)).toEqual({ sent: 0, dropped: 0, waiting: 1 });
+    expect(removed).toEqual(['capped']);
+  });
 });

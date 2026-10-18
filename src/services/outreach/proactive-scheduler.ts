@@ -255,7 +255,7 @@ export async function deliverOutreach(outreach: ScheduledOutreach): Promise<bool
           const text = await callUserAdapter.textOwner?.(outreach.userId, outreach.message, {
             askedNow: false,
           });
-          if (!text?.sent) {
+          if (!text?.sent && !text?.held) {
             log.debug(
               { userId: outreach.userId, reason: text?.reason },
               'Text not sent, falling back to push'

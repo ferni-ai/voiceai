@@ -28,6 +28,8 @@ export interface TextOwnerResult {
   reason?: string;
   /** Not sent until Ferni says this out loud and they agree (no texting consent yet). */
   disclose?: string;
+  /** Held by the daily text cap: it goes out later on its own, so don't send it another way. */
+  held?: boolean;
 }
 
 export interface TextOwnerOptions {

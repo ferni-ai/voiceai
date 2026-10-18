@@ -62,6 +62,8 @@ export interface CheckinRecord {
   kind?: TextKind;
   /** What the text was about (a session id, a follow-up id). */
   refId?: string;
+  /** The member asked for it: the daily cap doesn't count it (sent-texts.ts). */
+  capExempt?: boolean;
 }
 
 export interface StoredCheckin extends CheckinRecord {

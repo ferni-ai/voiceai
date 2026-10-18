@@ -48,11 +48,18 @@ describe('textOwner', () => {
     );
   });
 
+  it('one the daily text cap held says so and is marked held, so no one sends a copy', async () => {
+    vi.useFakeTimers({ now: NOON_NY });
+    h.guarded.mockResolvedValueOnce({ sent: false, reason: 'held' });
+    const out = await callUserAdapter.textOwner!('uid-1', 'hi', { askedNow: true });
+    expect(out).toEqual({ sent: false, reason: expect.stringContaining('later'), held: true });
+  });
+
   it('a STOP or texts-off held by the guard comes back as a reason to say', async () => {
     vi.useFakeTimers({ now: NOON_NY });
     h.guarded.mockResolvedValueOnce({ sent: false, reason: 'opted-out' });
     const out = await callUserAdapter.textOwner!('uid-1', 'hi', { askedNow: true });
-    expect(out).toEqual({ sent: false, reason: 'you replied STOP to my texts' });
+    expect(out).toEqual({ sent: false, reason: 'you replied STOP to my texts', held: false });
   });
 
   it('Ferni-initiated texts are held in quiet hours; one they just asked for is not', async () => {

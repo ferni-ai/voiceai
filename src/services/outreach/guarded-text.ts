@@ -52,8 +52,17 @@ import {
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
 import { consentSkip } from './text-consent.js';
+import {
+  capExempt,
+  capReleaseAt,
+  CAP_RETRY_MS,
+  holdCapped,
+  lastSentAt,
+  sentWithin,
+} from './sent-texts.js';
 
 export { consentSkip, smsTurnedOff } from './text-consent.js';
+export { lastSentAt } from './sent-texts.js';
 
 const log = createLogger({ module: 'guarded-text' });
 /** Send locks (lockedSend), kept apart from the records so no query reads them. */
@@ -80,6 +89,8 @@ export interface TextDeps {
   authPhone: (uid: string) => Promise<string | undefined>;
   send: (message: SMSMessage) => Promise<SMSDeliveryResult>;
   now: () => Date;
+  /** Keeps a text the daily cap held until `until` (held-texts.ts holdText). */
+  hold?: (t: GuardedText, until: Date, reason: string) => Promise<void>;
 }
 
 export interface GuardedText {
@@ -92,6 +103,8 @@ export interface GuardedText {
   readonly minGapMs: number;
   /** The member asked for it ("text me that", their own reminder): consent given on a call covers it. */
   readonly requested?: boolean;
+  /** 'return': the caller holds a capped text itself (reminders, follow-ups), so it isn't queued here. */
+  readonly onHold?: 'queue' | 'return';
 }
 
 export type TextSkip =
@@ -101,25 +114,10 @@ export type TextSkip =
   | 'sms-off'
   | 'no-consent'
   | 'opted-out'
+  | 'held'
   | 'send-failed';
-export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip };
-
-/** The most recent text of `kind` actually sent, if any. Records from before kinds existed are check-ins. */
-export function lastSentAt(
-  records: readonly CheckinRecord[],
-  kind: TextKind = 'checkin'
-): Date | null {
-  let latest: number | null = null;
-  for (const r of records) {
-    const t = Date.parse(r.sentAt);
-    if ((r.kind ?? 'checkin') !== kind || r.status !== 'sent' || Number.isNaN(t)) continue;
-    if (latest === null || t > latest) latest = t;
-  }
-  return latest === null ? null : new Date(latest);
-}
-
-const sentWithin = (at: Date | null, now: Date, gapMs: number): boolean =>
-  at !== null && now.getTime() - at.getTime() < gapMs;
+/** `until`: when a text the daily cap held may go. */
+export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip; until?: Date };
 
 /**
  * A number known to be the member's, as E.164 (toE164, the same normalizer the reply side
@@ -220,13 +218,15 @@ export async function sendGuardedText(
   if (!storedId) return skip('no-verified-phone');
 
   const sponsored = t.userId.startsWith('sponsored_');
+  // DAILY_TEXT_CAP fails closed: an unreadable count (null) holds the text, never sends it blind.
+  const capped = flagOn('DAILY_TEXT_CAP', deps.env) && !capExempt(t);
   const [records, userDoc, legacyChannels] = await Promise.all([
-    deps.store.forUser(storedId),
+    capped ? deps.store.forUser(storedId).catch(() => null) : deps.store.forUser(storedId),
     sponsored ? undefined : deps.store.userDoc(t.userId),
     deps.store.legacySmsChannels(t.userId),
   ]);
   const now = deps.now();
-  if (sentWithin(lastSentAt(records, t.kind), now, t.minGapMs)) return skip('recently-sent');
+  if (sentWithin(lastSentAt(records ?? [], t.kind), now, t.minGapMs)) return skip('recently-sent');
   const phone = await resolveCheckinPhone(t.userId, userDoc, deps);
   if (!phone) return skip('no-verified-phone');
   const noConsent = consentSkip(userDoc, legacyChannels, t.requested === true);
@@ -241,6 +241,10 @@ export async function sendGuardedText(
   if (optedOut) return skip('opted-out');
   // Per phone too: two accounts can share a number.
   if (sentWithin(lastSentAt(toPhone, t.kind), now, t.minGapMs)) return skip('recently-sent');
+  if (capped) {
+    const until = records ? capReleaseAt(records, now) : new Date(now.getTime() + CAP_RETRY_MS);
+    if (until) return holdCapped(t, until, records ? 'daily-cap' : 'count-unreadable', deps.hold);
+  }
 
   const phoneLast4 = last4(phone);
   const record: CheckinRecord = {
@@ -253,6 +257,7 @@ export async function sendGuardedText(
     phoneHash: hash,
     kind: t.kind,
     refId: t.refId,
+    ...(capExempt(t) && { capExempt: true }),
   };
   const result = await lockedSend(deps, t.minGapMs, record, {
     to: phone,
@@ -489,5 +494,6 @@ export function defaultTextDeps(): TextDeps {
     authPhone: async (uid) => (await getFirebaseUser(uid))?.phoneNumber ?? undefined,
     send: sendSms,
     now: () => new Date(),
+    hold: (t, until, why) => import('./held-texts.js').then((m) => m.holdText(t, until, why)),
   };
 }

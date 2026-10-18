@@ -83,9 +83,11 @@ export async function releaseHeldTexts(
       out.waiting++;
       continue;
     }
-    if (!outcome.sent) log.warn({ ...ctx, reason: outcome.reason }, 'Held text dropped');
+    // Still over the daily cap: the guard queued it again for its new time, so this copy goes.
+    const reheld = !outcome.sent && outcome.reason === 'held';
+    if (!outcome.sent && !reheld) log.warn({ ...ctx, reason: outcome.reason }, 'Held text dropped');
     await store.remove(held.id);
-    out[outcome.sent ? 'sent' : 'dropped']++;
+    out[outcome.sent ? 'sent' : reheld ? 'waiting' : 'dropped']++;
   }
   return out;
 }

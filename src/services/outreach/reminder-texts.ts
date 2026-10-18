@@ -121,10 +121,12 @@ export async function guardReminderText(
     const requested = r.requestedByUser === true;
     const t = { userId: r.userId, body: reminderText(r), kind: 'reminder' as const, requested };
     const outcome = await deps.sendOwn(
-      { ...t, refId: r.id, minGapMs: REMINDER_TEXT_GAP_MS },
+      { ...t, refId: r.id, minGapMs: REMINDER_TEXT_GAP_MS, onHold: 'return' },
       deps.text
     );
     if (outcome.sent) return 'sent';
+    // Over the daily text cap: the reminder itself waits for the freed slot (not queued twice).
+    if (outcome.reason === 'held' && outcome.until) return holdUntil(r, outcome.until);
     // Several due at once (08:00 after quiet hours): spaced by the guard's gap, not dropped.
     if (outcome.reason === 'recently-sent') {
       return holdUntil(r, new Date(now.getTime() + REMINDER_TEXT_GAP_MS));

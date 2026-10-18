@@ -8,7 +8,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({
   textOwner: vi.fn(
-    async (..._a: unknown[]) => ({ sent: true }) as { sent: boolean; reason?: string }
+    async (..._a: unknown[]) =>
+      ({ sent: true }) as { sent: boolean; reason?: string; held?: boolean }
   ),
   sms: vi.fn(async () => ({ success: true })),
   push: vi.fn(async () => ({ success: true })),
@@ -54,5 +55,13 @@ describe('proactive scheduler texts', () => {
     await deliverOutreach(outreach);
     expect(h.sms).not.toHaveBeenCalled();
     expect(h.push).toHaveBeenCalledTimes(1);
+  });
+
+  it('one the daily text cap held goes out later on its own: no push copy now', async () => {
+    setUserOutreachPreferences('uid-proactive', { preferredMethod: 'text' });
+    h.textOwner.mockResolvedValueOnce({ sent: false, reason: 'later', held: true });
+    await deliverOutreach(outreach);
+    expect(h.push).not.toHaveBeenCalled();
+    expect(h.sms).not.toHaveBeenCalled();
   });
 });

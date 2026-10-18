@@ -73,6 +73,8 @@ export const FLAG_MANIFEST = {
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // interim cap: 3 texts Ferni starts per member per rolling 24 h, the rest held (sent-texts.ts)
+  DAILY_TEXT_CAP: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // after-call date extraction into world_facts (nothing reads them in a call yet)
   DATES_THAT_MATTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   DEBUG_AGENT: { default: 'off', owner: 'voice', kind: 'config' },
