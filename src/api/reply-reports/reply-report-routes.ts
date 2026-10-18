@@ -41,7 +41,7 @@ export interface ReplyReportDeps {
 }
 
 const defaultDeps: ReplyReportDeps = {
-  authenticate: async (req, res) => requireAuth(req, res),
+  authenticate: requireAuth,
   getDb: getFirestoreDb,
   now: Date.now,
 };
