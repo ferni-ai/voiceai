@@ -198,6 +198,31 @@ describe('daily outreach selection', () => {
     expect(result.details.map((d) => d.userId)).toEqual(['device:device-9f3a']);
   });
 
+  it('ids that name no account do not use up the day’s candidates', async () => {
+    // Every unrecognised caller (eval runs included) leaves an anon: doc, and
+    // calls placed on someone's behalf an onbehalf: one. They sort before
+    // most real ids, so counting them toward the cap starved real accounts.
+    const strangers = Array.from({ length: 120 }, (_, i) => user(`anon:eval-${i}`));
+    const onBehalf = Array.from({ length: 30 }, (_, i) => user(`onbehalf:call-${i}`));
+    const real = ['real-account-1', 'real-account-2', 'real-account-3'];
+    users = [...strangers, ...onBehalf, ...real.map((id) => user(id))];
+
+    const result = await runDailyOutreach({ dryRun: true, respectQuietHours: false });
+
+    expect(result.details.map((d) => d.userId)).toEqual(real);
+  });
+
+  it('jumps past a long run of anon: ids instead of spending the scan bound on them', async () => {
+    const strangers = Array.from({ length: 6000 }, (_, i) =>
+      user(`anon:${String(i).padStart(5, '0')}`)
+    );
+    users = [...strangers, user('real-account-1')];
+
+    const result = await runDailyOutreach({ dryRun: true, respectQuietHours: false });
+
+    expect(result.details.map((d) => d.userId)).toEqual(['real-account-1']);
+  });
+
   it('pages past the first 200 users', async () => {
     const recent = { lastOutreachDate: new Date().toISOString() };
     users = Array.from({ length: 201 }, (_, i) =>

@@ -10,6 +10,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { withTimeout } from './utils.js';
 import { SUMMARIZE_TIMEOUT_MS } from './constants.js';
+import { fallbackCallSummary } from '../memory/call-summary-fallback.js';
 import {
   indexConversationSummary,
   summarizeConversation,
@@ -161,9 +162,5 @@ export async function indexSummaryForRetrieval(
  * @returns Simple text summary or null
  */
 export function createFallbackSummary(turns: ConversationTurn[]): string | null {
-  const userTurns = turns.filter((t) => t.role === 'user');
-  if (userTurns.length === 0) return null;
-
-  const topics = userTurns.slice(-3).map((t) => t.content.slice(0, 50).replace(/[.!?]+$/, ''));
-  return `Discussed: ${topics.join('; ')}`;
+  return fallbackCallSummary(turns, 50) || null; // null when the caller said only filler
 }
