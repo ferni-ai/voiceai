@@ -91,11 +91,29 @@ describe('the written asks', () => {
     for (const help of asks) expect(followLine(help)).not.toMatch(/—|…|\.\.\./);
   });
 
+  it('no hint has a bracket inside it, since nothing strips brackets before speech', () => {
+    const asks = Object.values(HELP_ASKS).flatMap((a) => a.filter((x) => x !== undefined));
+    const inner = (note: string) => note.replace(/^\[/, '').replace(/\]$/, '');
+    for (const help of asks) {
+      expect(inner(followLine(help))).not.toMatch(/[[\]]/);
+      expect(help.sayBack.toLowerCase()).toContain(help.heard.toLowerCase());
+    }
+    const userData = { services: { userProfile: { totalConversations: slotFor('caller-a') } } };
+    const plant = LIFE_THREADS.find((t) => t.id === 'jade-plant');
+    const beat = plant?.beats[askBeatFor('caller-a', 'jade-plant') ?? 0] ?? '';
+    const line = helpAskLine(
+      { detail: beat, replies: ['a', 'b'], ownStory: true, userId: 'caller-a', userData, env: ON },
+      newHelpAskState()
+    );
+    expect(line).toMatch(ASK);
+    expect(inner(line)).not.toMatch(/[[\]]/);
+  });
+
   it('say an answer back in the words of their own ask', () => {
     const plant = HELP_ASKS['jade-plant']?.[0];
     const book = HELP_ASKS.book?.[0];
-    expect(plant && followLine(plant)).toContain('the jade plant is [their name] now');
-    expect(book && followLine(book)).toContain('The book is [their title] now');
+    expect(plant && followLine(plant)).toContain('the jade plant is Pickle now');
+    expect(book && followLine(book)).toContain('The book is Third of Seven now');
     expect(book && followLine(book)).not.toMatch(/jade plant/);
   });
 });

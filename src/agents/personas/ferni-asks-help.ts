@@ -41,29 +41,35 @@ export interface HelpAsk {
   ask: string;
   /** A word his reply holds when he has asked it (whole word). */
   cue: RegExp;
-  /** How he says their answer back, with their words where the brackets are. */
+  /** A made-up answer, for the example only. */
+  heard: string;
+  /** How he would say that answer back. Plain words: nothing strips brackets before speech. */
   sayBack: string;
 }
 
 const PLANT_NAME: HelpAsk = {
   ask: 'a name for the jade plant Scott gave you, since nothing you have owned has lived long enough to get one',
   cue: /\bplant\b/i,
-  sayBack: "Okay, the jade plant is [their name] now, that's settled",
+  heard: 'Pickle',
+  sayBack: "Okay, the jade plant is Pickle now, that's settled",
 };
 const BOOK_TITLE: HelpAsk = {
   ask: 'a working title for the book, because you keep calling it "the book" and it deserves better',
   cue: /\b(?:book|title)\b/i,
-  sayBack: 'The book is [their title] now, at least until I finish the next chapter',
+  heard: 'Third of Seven',
+  sayBack: 'The book is Third of Seven now, at least until I finish the next chapter',
 };
 const JAPAN_STOP: HelpAsk = {
   ask: 'one place to take your brothers and sisters on the Japan trip after Tokyo, since you only know the city',
   cue: /\b(?:japan|trip)\b/i,
-  sayBack: "[Their place] goes on the Japan trip after Tokyo, I'm telling the group chat",
+  heard: 'Kyoto',
+  sayBack: "Kyoto goes on the Japan trip after Tokyo, I'm telling the group chat",
 };
 const SKI_LEGS: HelpAsk = {
   ask: 'a good way to get your legs back before the ski week, beyond the long walks',
   cue: /\b(?:ski|legs)\b/i,
-  sayBack: "I'm doing [their idea] before the ski week, starting tomorrow",
+  heard: 'squats every morning',
+  sayBack: "I'm doing squats every morning before the ski week, starting tomorrow",
 };
 
 /** Per thread, the ask for each weekly beat (undefined: nothing to ask that week). */
@@ -75,7 +81,8 @@ export const HELP_ASKS: Readonly<Record<string, ReadonlyArray<HelpAsk | undefine
     {
       ask: 'whether the jade plant that dropped two leaves wants more water or less',
       cue: /\b(?:plant|water)\b/i,
-      sayBack: "[More or less] water it is, I'm doing exactly what you said",
+      heard: 'less water',
+      sayBack: "Less water it is, I'm doing exactly what you said",
     },
   ],
   book: [BOOK_TITLE, BOOK_TITLE, BOOK_TITLE, BOOK_TITLE, BOOK_TITLE],
@@ -85,8 +92,8 @@ export const HELP_ASKS: Readonly<Record<string, ReadonlyArray<HelpAsk | undefine
     {
       ask: "settling it between Ken's Japan powder and Dermot's Alps for the ski week, since they want a tiebreaker",
       cue: /\b(?:ski|alps|powder)\b/i,
-      sayBack:
-        "I'm voting [their pick] for the ski week, and I'm telling Ken and Dermot it was you",
+      heard: 'the Alps',
+      sayBack: "I'm voting the Alps for the ski week, and I'm telling Ken and Dermot it was you",
     },
     SKI_LEGS,
     SKI_LEGS,
@@ -166,7 +173,7 @@ const askLine = (ask: string): string =>
 
 /** Said back as his choice, so it is his life the ledger keeps (life-ledger.ts). */
 export const followLine = (help: HelpAsk): string =>
-  `[You just asked them for a hand. If they gave you an answer, take it as they said it, without improving on it: say you are going with it in one full sentence that names it, like "${help.sayBack}" with their words in place of the brackets, and thank them. If they brushed it off, let it go lightly and don't ask again.]`;
+  `[You just asked them for a hand. If they gave you an answer, take it as they said it, without improving on it: say you are going with it in one full sentence that names it, like "${help.sayBack}" if they had said ${help.heard}, but with their own words, and thank them. If they brushed it off, let it go lightly and don't ask again.]`;
 
 export interface HelpTurn {
   /** This call's day detail (ferni-state.ts). */
