@@ -113,3 +113,30 @@ describe('sendgrid sender', () => {
     expect(r.calls).toHaveLength(0);
   });
 });
+
+describe('sendgrid sender: no recipient addresses in errors', () => {
+  it('redacts addresses SendGrid echoes back, so the result is safe to log', async () => {
+    const fetchImpl = (async () =>
+      new Response(
+        '{"errors":[{"message":"Does not contain a valid address: sam.o-neil+x@example.co.uk"}]}',
+        {
+          status: 400,
+        }
+      )) as typeof fetch;
+    const res = await createSendGridSender(CONFIG, { fetch: fetchImpl }).send({
+      ...EMAIL,
+      to: 'sam.o-neil+x@example.co.uk',
+    });
+    expect(res.ok).toBe(false);
+    expect(res.error).toContain('[address]');
+    expect(JSON.stringify(res)).not.toContain('@');
+  });
+
+  it('redacts addresses in a thrown network error', async () => {
+    const fetchImpl = (async () => {
+      throw new Error('socket hang up while sending to sam@example.com');
+    }) as typeof fetch;
+    const res = await createSendGridSender(CONFIG, { fetch: fetchImpl }).send(EMAIL);
+    expect(JSON.stringify(res)).not.toContain('@');
+  });
+});

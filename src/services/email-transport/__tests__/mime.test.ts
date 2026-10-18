@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { OutgoingEmail } from '../../../types/email-sender.js';
-import { buildMimeMessage, encodeHeaderText, toBase64Url, unsubscribeHeaders } from '../mime.js';
+import {
+  buildMimeMessage,
+  encodeHeaderText,
+  redactAddresses,
+  toBase64Url,
+  unsubscribeHeaders,
+} from '../mime.js';
 
 const FROM = { address: 'hello@ferni.ai', name: 'Ferni' };
 const DATE = new Date('2026-10-18T12:00:00Z');
@@ -171,5 +177,26 @@ describe('toBase64Url', () => {
     const enc = toBase64Url(msg);
     expect(enc).not.toMatch(/[+/=]/);
     expect(Buffer.from(enc, 'base64url').toString('utf8')).toBe(msg);
+  });
+});
+
+describe('no recipient addresses in errors', () => {
+  it('rejects a bad address without echoing it', () => {
+    for (const to of ['sam@example', 'sam@@example.com', 'sam @example.com']) {
+      let message = '';
+      try {
+        buildMimeMessage({ ...base, to }, FROM);
+      } catch (err) {
+        message = (err as Error).message;
+      }
+      expect(message).toBe('not an email address');
+    }
+  });
+
+  it('redactAddresses replaces every address-shaped token', () => {
+    expect(redactAddresses('to <a.b+c@x.co.uk>, d@e.io: rejected')).toBe(
+      'to <[address]>, [address]: rejected'
+    );
+    expect(redactAddresses('no address here')).toBe('no address here');
   });
 });

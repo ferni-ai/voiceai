@@ -23,8 +23,13 @@ function noBreaks(value: string, what: string): string {
 
 function address(value: string): string {
   const a = noBreaks(value.trim(), 'address');
-  if (!ADDRESS.test(a)) throw new Error(`not an email address: ${a.slice(0, 80)}`);
+  if (!ADDRESS.test(a)) throw new Error('not an email address'); // never echo it: errors get logged
   return a;
+}
+
+/** Replace anything address-shaped in provider error text, so recipients never reach logs. */
+export function redactAddresses(text: string): string {
+  return text.replace(/[^\s<>"'(),;:@]+@[^\s<>"'(),;:@]+/g, '[address]');
 }
 
 /** RFC 2047 encoded-words (each under the 75-char limit), folded; ASCII passes through. */

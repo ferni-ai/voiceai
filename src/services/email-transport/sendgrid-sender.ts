@@ -6,7 +6,7 @@
  */
 
 import type { EmailSender, EmailSendResult } from '../../types/email-sender.js';
-import { unsubscribeHeaders } from './mime.js';
+import { redactAddresses, unsubscribeHeaders } from './mime.js';
 
 export const SENDGRID_SEND_URL = 'https://api.sendgrid.com/v3/mail/send';
 
@@ -69,10 +69,13 @@ export function createSendGridSender(
           signal: AbortSignal.timeout(15_000),
         });
         if (!res.ok) {
-          return fail(`SendGrid ${res.status}: ${(await res.text()).slice(0, 300)}`, {
-            status: res.status,
-            retryable: res.status === 429 || res.status >= 500,
-          });
+          return fail(
+            `SendGrid ${res.status}: ${redactAddresses(await res.text()).slice(0, 300)}`,
+            {
+              status: res.status,
+              retryable: res.status === 429 || res.status >= 500,
+            }
+          );
         }
         return {
           ok: true,
@@ -81,7 +84,9 @@ export function createSendGridSender(
           messageId: res.headers.get('x-message-id') ?? undefined,
         };
       } catch (err) {
-        return fail(`SendGrid error: ${(err as Error).message}`, { retryable: true });
+        return fail(`SendGrid error: ${redactAddresses((err as Error).message)}`, {
+          retryable: true,
+        });
       }
     },
   };
