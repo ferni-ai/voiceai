@@ -16,7 +16,7 @@ export async function captionHeardListening(): Promise<void> {
     new CustomEvent('ferni:transcript', {
       detail: {
         type: 'user',
-        text: "My sister Ana starts her new job Monday and I'm weirdly nervous for her.",
+        text: "My brother Leo starts his new job Monday and I'm weirdly nervous for him.",
         isFinal: false,
       },
     })
@@ -31,7 +31,7 @@ export async function captionHeardReply(): Promise<void> {
   const say = (type: string, text: string, isFinal: boolean): void => {
     window.dispatchEvent(new CustomEvent('ferni:transcript', { detail: { type, text, isFinal } }));
   };
-  say('user', "My sister Ana starts her new job Monday and I'm weirdly nervous for her.", true);
-  say('agent', "Nervous-for-someone is love in disguise. What's she walking into?", false);
+  say('user', "My brother Leo starts his new job Monday and I'm weirdly nervous for him.", true);
+  say('agent', "Nervous-for-someone is love in disguise. What's he walking into?", false);
   await wait(400);
 }

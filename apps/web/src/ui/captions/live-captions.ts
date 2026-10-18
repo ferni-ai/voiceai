@@ -352,7 +352,7 @@ class LiveCaptions {
     const viewport = this.viewport;
     if (!viewport) return;
     const turn = this.heard ? heardTurn(this.entries) : null;
-    // Heard: once Ferni answers, the caller's line stays above her reply.
+    // Heard: once Ferni answers, the caller's line stays above his reply.
     const shown =
       turn?.user && turn.agentTookTurn
         ? [turn.user, ...currentTurn(this.entries)]
