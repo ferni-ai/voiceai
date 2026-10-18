@@ -4,11 +4,12 @@
  * - enc_ values: the agent stores secrets as enc_ ciphertexts. A user must not
  *   be able to submit one as their own credential and have the server decrypt
  *   it (a decryption oracle), so no saved credential may start with enc_.
- * - bridgeIp: the server fetches http://<bridgeIp>/ from Cloud Run. Only an
- *   RFC 1918 private address or a public unicast IPv4 literal is accepted.
- *   Hostnames (metadata.google.internal, metadata), IPv6, ports, loopback,
- *   link-local (169.254.0.0/16, which includes the metadata server) and the
- *   other reserved ranges are refused.
+ * - bridgeIp: nothing server-side ever fetches it (a home-LAN bridge is not
+ *   reachable from Cloud Run or LiveKit Cloud, and fetching a user-supplied
+ *   host is SSRF; see services/smart-home/hue-remote-access). It is still
+ *   validated on save as plain input: an RFC 1918 or public unicast IPv4
+ *   literal, never a hostname, IPv6, a port or a reserved range.
+ * - username: a Hue app key, letters, digits and dashes only.
  */
 import { isIPv4 } from 'node:net';
 
@@ -53,6 +54,9 @@ export function isSafeBridgeIp(ip: unknown): ip is string {
   return !RESERVED.some((inRange) => inRange(n));
 }
 
+/** A Hue bridge app key ("username"): letters, digits and dashes. */
+export const HUE_USERNAME = /^[A-Za-z0-9-]{1,64}$/;
+
 type Result<T> = T | { status: 400 | 401; error: string };
 
 /** The verified caller's Hue save, or why it is refused. Body userId is ignored. */
@@ -67,6 +71,7 @@ export function hueSaveInput(
   }
   if (isEncryptedValue(username))
     return { status: 400, error: 'username must not be an encrypted value' };
+  if (!HUE_USERNAME.test(username)) return { status: 400, error: 'username is not a Hue app key' };
   if (!isSafeBridgeIp(bridgeIp)) {
     return { status: 400, error: 'bridgeIp must be a private (RFC 1918) or public IPv4 address' };
   }

@@ -108,20 +108,39 @@ describe('bridgeIp guard (SSRF)', () => {
     undefined,
   ])('refuses %s', (ip) => expect(guards.isSafeBridgeIp(ip)).toBe(false));
 
-  it('hue save refuses the metadata server, and status never fetches a stored unsafe bridgeIp', async () => {
+  it('hue save refuses the metadata server', async () => {
     const res = await post('/api/smart-home/hue/save', {
       bridgeIp: '169.254.169.254',
       username: 'u',
     });
     expect(res.status).toBe(400);
     expect(state.docs.size).toBe(0);
+  });
 
-    state.docs.set('bogle_users/uid-A/smart_home/hue', { bridgeIp: '127.0.0.1', username: 'u' });
+  it('hue save refuses a username that is not a Hue app key', async () => {
+    for (const username of ['../../x', 'a b', 'x'.repeat(65), 'key?y=1']) {
+      const res = await post('/api/smart-home/hue/save', { bridgeIp: '192.168.1.2', username });
+      expect(res.status).toBe(400);
+    }
+    expect(state.docs.size).toBe(0);
+  });
+
+  it('no request ever goes to a user-supplied bridge: status says it needs remote access', async () => {
+    const save = await post('/api/smart-home/hue/save', {
+      bridgeIp: '192.168.1.2',
+      username: 'fixture-hue-app-key',
+    });
+    expect(save.status).toBe(200);
+    state.docs.set('bogle_users/uid-A/smart_home/legacy', {}); // unrelated doc
     const status = await realFetch(`${base}/api/smart-home/hue/status`, {
       headers: { authorization: 'Bearer tok-A' },
     });
-    expect(await status.json()).toEqual({ connected: false });
-    expect(h.outbound).toEqual([]);
+    expect(await status.json()).toMatchObject({
+      connected: false,
+      saved: true,
+      needsRemoteAccess: true,
+    });
+    expect(h.outbound).toEqual([]); // no outbound fetch at all, to any host
   });
 });
 
