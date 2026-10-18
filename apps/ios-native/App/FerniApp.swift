@@ -47,6 +47,7 @@ final class AppModel {
     let call: CallSession
     let consent = ConsentStore()
     let team: TeamStore
+    let memory: MemoryStore
     var isShowingSettings = false
     var isAskingConsent = false
     var isShowingCallMore = false
@@ -79,6 +80,7 @@ final class AppModel {
         account = AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
         api = account.api(baseURL: config.apiBaseURL)
         team = TeamStore(api: api)
+        memory = MemoryStore(api: api)
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
         let level = AudioLevelMeter()
         call = CallSession(

@@ -11,6 +11,9 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    NavigationLink("What Ferni remembers") { MemoryScreen(memory: model.memory) }
+                }
                 AccountSection(account: model.account, signOut: model.signOut)
                 PrivacySection(consent: model.consent)
                 Section("About") {
