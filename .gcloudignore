@@ -297,3 +297,6 @@ models/
 **/.venv*/
 *.pyc
 __pycache__/
+
+# Retired apps kept for reference (apps/archive/README.md)
+apps/archive/

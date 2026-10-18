@@ -192,3 +192,6 @@ __pycache__/
 
 # Claude config
 .claude/
+
+# Retired apps kept for reference (apps/archive/README.md)
+apps/archive/
