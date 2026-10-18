@@ -54,8 +54,8 @@ struct FerniAppleAccountAPI: AppleAccountAPI {
 
     init(
         baseURL: URL = URL(string: "https://app.ferni.ai")!,
-        // TODO(ios-rebuild PR B, sethdford): pass the signed-in account's Firebase ID token.
-        // Until then every call fails as notSignedIn, which is fine while PaidPlans.isOffered is false.
+        // Plans are off (PaidPlans.isOffered); whoever turns them back on passes
+        // `{ await account.idToken() }` here. Until then every call is notSignedIn.
         idToken: @escaping @Sendable () async -> String? = { nil },
         send: @escaping Send = { try await URLSession.shared.data(for: $0) }
     ) {

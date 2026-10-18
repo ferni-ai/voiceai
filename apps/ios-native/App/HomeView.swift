@@ -70,5 +70,5 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView().environment(AppModel(config: .production))
+    HomeView().environment(AppModel(config: .production, firebaseReady: false))
 }
