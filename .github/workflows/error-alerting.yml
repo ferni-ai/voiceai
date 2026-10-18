@@ -108,10 +108,21 @@ jobs:
         id: samples
         if: steps.spike.outputs.has_spike == 'true'
         run: |
-          echo "Recent Voice Agent errors (pino level >= 50):"
-          jq -r '.[] | select(((.textPayload // "") | fromjson? | objects | .level // 0) >= 50)
-            | "\(.timestamp) \(.labels.agent_id) \(.textPayload | fromjson | .msg // "" | tostring | .[0:200])"' \
-            "$RUNNER_TEMP/voice-errors.json" | head -n 3
+          # This repo is public, so Actions logs are public. Error text can carry
+          # caller words, names or numbers: print only timestamp, agent, level
+          # and module, never msg/err or any other free text.
+          echo "Recent Voice Agent errors (pino level >= 50; message text omitted):"
+          jq -r '[.[] | ((.textPayload // "") | fromjson? | objects) as $p
+              | select(($p.level // 0) >= 50)
+              | { ts: .timestamp,
+                  agent: .labels.agent_id,
+                  level: $p.level,
+                  module: (($p.module // "-") | tostring | gsub("[^A-Za-z0-9:_./-]"; "") | .[0:60]
+                           | if . == "" then "-" else . end) }]
+            | (.[0:3][] | "\(.ts) \(.agent) level=\(.level) module=\(.module)"),
+              "Count by agent and module:",
+              (group_by([.agent, .module])[] | "  \(length) \(.[0].agent) \(.[0].module)")' \
+            "$RUNNER_TEMP/voice-errors.json"
 
       - name: Alert on error spike
         if: steps.spike.outputs.has_spike == 'true'

@@ -52,6 +52,19 @@ describe('voice-agent error alerting', () => {
     expect(voice).not.toMatch(/\|\|\s*echo "0"/);
   });
 
+  // The repo is public, so Actions logs are public. Error text can carry
+  // caller words, names or numbers.
+  it('never prints error message text to the public Actions log or Slack', () => {
+    for (const name of ['Check Voice Agent errors', 'Get sample errors', 'Alert on error spike']) {
+      const body = step(name);
+      expect(body, name).not.toMatch(/\.(msg|err|error|message|stack)\b/);
+      expect(body, name).not.toMatch(/textPayload\)/);
+    }
+    const samples = step('Get sample errors');
+    expect(samples).toContain('module');
+    expect(samples).not.toMatch(/--format="?table/);
+  });
+
   it('runs on a schedule', () => {
     expect(workflow).toMatch(/^\s{2}schedule:\s*\n\s+- cron: '\*\/15 \* \* \* \*'/m);
   });
