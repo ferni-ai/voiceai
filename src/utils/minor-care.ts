@@ -127,6 +127,17 @@ function anyAge(re: RegExp, text: string, under: number): boolean {
   return false;
 }
 
+/** Ferni's last line in a chat's items, so a bare "16." can answer "how old are you?". */
+export function lastFerniLine(
+  items: readonly { type: string; role?: string; textContent?: string | undefined }[]
+): string | undefined {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    if (item?.type === 'message' && item.role === 'assistant') return item.textContent;
+  }
+  return undefined;
+}
+
 /** Ferni's line asked how old the caller is. */
 export function askedAboutAge(ferniSaid: string | undefined): boolean {
   return !!ferniSaid && ASKED_AGE.test(ferniSaid);

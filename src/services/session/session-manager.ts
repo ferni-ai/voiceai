@@ -1845,12 +1845,9 @@ export async function createSessionServices(
             if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
           } else if (turns.length > 0) {
             // Always save a basic summary, so a returning user is recognized without the LLM
-            const userTurns = turns.filter((t) => t.role === 'user');
-            if (userTurns.length > 0) {
-              const topics = userTurns
-                .slice(-3)
-                .map((t) => t.content.slice(0, 50).replace(/[.!?]+$/, ''));
-              updatedProfile.lastConversationSummary = `Discussed: ${topics.join('; ')}`;
+            const fallback = realtimeMemory.buildQuickSummary(turns, 50); // '' when only filler
+            if (fallback) {
+              updatedProfile.lastConversationSummary = fallback;
               getLogger().info(
                 {
                   userId: validatedUserId,
