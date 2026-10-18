@@ -146,10 +146,14 @@ function buildReminderMessage(request: HabitReminderRequest): string {
       return `Hey! Just a gentle reminder about "${habitName}". You've got this! 🌱`;
 
     case 'streak_warning':
-      return `Your ${currentStreak || 0}-day streak for "${habitName}" is at risk! Don't let it slip. 💪`;
+      return currentStreak === undefined
+        ? `Your streak for "${habitName}" is at risk! Don't let it slip. 💪`
+        : `Your ${currentStreak}-day streak for "${habitName}" is at risk! Don't let it slip. 💪`;
 
     case 'celebration':
-      return `Amazing! You've maintained "${habitName}" for ${currentStreak || 0} days! Keep it up! 🎉`;
+      return currentStreak === undefined
+        ? `Amazing! You've kept up "${habitName}"! Keep it up! 🎉`
+        : `Amazing! You've maintained "${habitName}" for ${currentStreak} days! Keep it up! 🎉`;
 
     case 'check_in':
       return `How's "${habitName}" going today? I'm here if you need support. 🤗`;
@@ -167,10 +171,10 @@ function buildSummary(request: HabitReminderRequest, result: HabitReminderResult
       return `Sent a gentle nudge about "${habitName}"`;
 
     case 'streak_warning':
-      return `Sent streak warning - ${currentStreak || 0} days at risk for "${habitName}"`;
+      return `Sent streak warning for "${habitName}"${currentStreak === undefined ? '' : ` (${currentStreak} days at risk)`}`;
 
     case 'celebration':
-      return `Celebrated ${currentStreak || 0}-day streak for "${habitName}"! 🎉`;
+      return `Celebrated ${currentStreak === undefined ? 'a' : `${currentStreak}-day`} streak for "${habitName}"! 🎉`;
 
     case 'check_in':
       return `Checked in about "${habitName}"`;
