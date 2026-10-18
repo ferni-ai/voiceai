@@ -1403,6 +1403,7 @@
     "errorInvalidCode": "That code didn't work. Try again?",
     "errorVerifyFailed": "Couldn't verify. Want another code?",
     "errorSave": "Couldn't save that. Try again?",
+    "errorLoad": "Couldn't load your contact details. Try again?",
     "savedCodeSent": "Almost there! I texted a code to {phone}. Pop it in below and I can reach you there.",
     "errorPhoneFormat": "Hmm, that number doesn't look quite right. Mind adding the area code?",
     "codeLabel": "Your 6-digit code",
