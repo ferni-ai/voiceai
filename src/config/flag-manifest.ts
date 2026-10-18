@@ -119,6 +119,8 @@ export const FLAG_MANIFEST = {
   // late turn-1 words join that turn instead of opening a new one
   EOT_CONTINUED_MERGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // set only by vitest.config.external.ts: lets ALLOW_PRODUCTION_DATA unguard that suite
+  EXTERNAL_TEST_SUITE: { default: 'off', owner: 'platform', kind: 'config' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },
