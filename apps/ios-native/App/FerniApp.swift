@@ -21,7 +21,9 @@ struct FerniApp: App {
                     await model.team.refresh()
                 }
                 // Consent belongs to whoever is signed in: switch with them.
-                .onChange(of: model.account.user?.uid, initial: true) { _, uid in model.consent.use(uid: uid) }
+                .onChange(of: model.account.user?.uid, initial: true) { old, uid in
+                    model.accountChanged(from: old, to: uid)
+                }
         }
     }
 }
@@ -69,10 +71,27 @@ final class AppModel {
         if consent.agree() { call.start(personaID: team.chosen) }
     }
 
-    /// Sign out: this person's agreement leaves the phone with them.
+    /// Sign out: this person's agreement and everything shown about them leave
+    /// the phone with them.
     func signOut() async {
         if let uid = account.user?.uid { consent.forget(uid: uid) }
+        forgetPerson()
         await account.signOut()
+    }
+
+    /// Every per-person store follows the signed-in account.
+    func accountChanged(from old: String?, to uid: String?) {
+        consent.use(uid: uid)
+        guard old != nil, old != uid else { return } // first launch keeps what's loading
+        forgetPerson()
+        Task { await team.refresh() }
+    }
+
+    private func forgetPerson() {
+        memory.reset()
+        team.reset()
+        call.forgetLastCall()
+        UserDefaults.standard.removeObject(forKey: "ferni.call.hasTalked")
     }
 
     init(config: FerniConfig = .fromBundle(), firebaseReady: Bool) {

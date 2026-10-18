@@ -60,4 +60,15 @@ final class TeamStoreTests: XCTestCase {
         await team.refresh()
         XCTAssertEqual(team.chosen, "ferni")
     }
+
+    func testANewPersonStartsWithFerniAlone() async {
+        let data = Data(answer.utf8)
+        let team = TeamStore(fetch: { data })
+        await team.refresh()
+        team.choose("maya")
+        team.reset()
+        XCTAssertEqual(team.unlocked, ["ferni"])
+        XCTAssertEqual(team.chosen, "ferni")
+        XCTAssertTrue(team.teasers.isEmpty)
+    }
 }

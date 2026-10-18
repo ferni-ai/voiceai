@@ -138,6 +138,15 @@ public final class CallSession {
         }
     }
 
+    /// A different person: the last call's outcome and its "I'll remember"
+    /// anchor don't carry over. A call in progress is left alone.
+    public func forgetLastCall() {
+        guard !isActive else { return }
+        startedAt = nil
+        phase = .idle
+        captions.clear()
+    }
+
     public func toggleMute() async {
         if await setMuted(!isMuted), let id = callID { await lifecycle?.setMuted(id: id, muted: isMuted) }
     }
