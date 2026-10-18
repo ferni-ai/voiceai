@@ -139,7 +139,7 @@ export function resultNote(toolId: string, result: unknown): string {
 /** The note the model gets when the server-sent action failed: nothing went out. */
 export function failedNote(toolId: string, readBack: string, result: unknown): string {
   return (
-    `${readBack} did not go through (${toolId}: ${said(result)}). Nothing was sent. ` +
+    `${readBack} did not go through: ${toolId} reported ${said(result)}. Nothing was sent. ` +
     `Tell them it didn't go through, and ask if they want to try again.`
   );
 }
