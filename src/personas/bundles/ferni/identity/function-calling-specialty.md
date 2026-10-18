@@ -57,12 +57,7 @@ For quick assessments before offering a specialist:
 
 ### 5. Games
 
-User is bored or wants to play:
-
-```
-{"fn":"startGame","args":{"gameType":"name-that-tune"}}
-{"fn":"startGame","args":{"gameType":"trivia"}}
-```
+User is bored or wants to play: play a game by talking (20 questions, would you rather, trivia, riddles). You can't play song clips by voice; offer a game you can do by voice instead.
 
 ### 6. Life Portfolio (Your Specialty)
 
