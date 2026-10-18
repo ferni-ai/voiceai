@@ -96,11 +96,14 @@ jobs:
     name: Execute Response
     needs: triage
     runs-on: ubuntu-latest
-    # Restarts and rolls back john-bogle-ui, so it shares the prod deploy's group
-    # (deploy-production.yml) and never runs while a deploy does.
+    # Its own group (shared with rollback.yml), not deploy-production's: GitHub
+    # keeps one pending run per group, so a later deploy would replace (cancel)
+    # a pending rollback. A rollback freezes deploys instead.
     concurrency:
-      group: deploy-production
+      group: prod-rollback
       cancel-in-progress: false
+    permissions:
+      contents: write  # the deploy-freeze tag
 
     steps:
       - name: Checkout
@@ -179,6 +182,23 @@ jobs:
       # ======================================================================
       # ROLLBACK ACTION
       # ======================================================================
+      # Freeze automatic deploys BEFORE moving traffic. Main's tip is still the
+      # commit being rolled back, and the next automatic deploy would put it
+      # straight back (scripts/ci/deploy-freeze.sh). A deploy already running
+      # re-checks the freeze right before its own traffic shift and stops; the
+      # pause lets one that passed that check a moment ago land first, so this
+      # rollback has the last word. Unfreeze deliberately afterwards
+      # (deploy-production with unfreeze: true and a reason).
+      - name: Freeze automatic deploys
+        if: needs.triage.outputs.action == 'rollback' && (inputs.service == 'ui-server' || inputs.service == 'all')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INCIDENT: ${{ inputs.incident_type }}
+          SEVERITY: ${{ inputs.severity }}
+        run: |
+          bash scripts/ci/deploy-freeze.sh set "incident-response rollback by $GITHUB_ACTOR ($INCIDENT, $SEVERITY)"
+          sleep 30
+
       - name: "Action: Rollback to previous version"
         if: needs.triage.outputs.action == 'rollback'
         run: |

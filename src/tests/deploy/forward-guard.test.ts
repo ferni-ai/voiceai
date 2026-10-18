@@ -19,6 +19,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const SCRIPT = join(ROOT, 'scripts/ci/deploy-forward-guard.sh');
+const FREEZE = join(ROOT, 'scripts/ci/deploy-freeze.sh');
 const read = (p: string): string => readFileSync(join(ROOT, p), 'utf8');
 
 let dir: string;
@@ -39,21 +40,45 @@ function commit(name: string): string {
 }
 
 const FAKE_GH = `#!/usr/bin/env bash
-# gh api repos/o/r/commits/main --jq .sha | gh api repos/o/r/compare/BASE...HEAD --jq .status
-path=$2
-case "$path" in
-  */commits/main) echo "$FAKE_TIP" ;;
-  */compare/*)
+# The gh api calls the deploy scripts make. The deploy-freeze tag lives in $FREEZE_DIR.
+shift # api
+method=GET; path=; msg=; sha=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -X) method=$2; shift 2 ;;
+    --jq) shift 2 ;;
+    -f|-F)
+      case "$2" in message=*) msg=\${2#message=} ;; sha=*) sha=\${2#sha=} ;; esac
+      [ "$method" = GET ] && method=POST
+      shift 2 ;;
+    *) path=$1; shift ;;
+  esac
+done
+notfound() { echo "gh: Not Found (HTTP 404)" >&2; exit 1; }
+case "$method $path" in
+  "GET "*/commits/main) echo "$FAKE_TIP" ;;
+  "GET "*/compare/*)
     spec=\${path##*/compare/}; base=\${spec%%...*}; head=\${spec##*...}
     [ "$base" = main ] && base=$FAKE_TIP
     [ "$head" = main ] && head=$FAKE_TIP
-    git cat-file -e "$base^{commit}" 2>/dev/null && git cat-file -e "$head^{commit}" 2>/dev/null \\
-      || { echo "gh: Not Found (HTTP 404)" >&2; exit 1; }
+    git cat-file -e "$base^{commit}" 2>/dev/null && git cat-file -e "$head^{commit}" 2>/dev/null || notfound
     if [ "$base" = "$head" ]; then echo identical
     elif git merge-base --is-ancestor "$base" "$head"; then echo ahead
     elif git merge-base --is-ancestor "$head" "$base"; then echo behind
     else echo diverged; fi ;;
-  *) echo "unexpected gh $*" >&2; exit 2 ;;
+  "GET "*/git/ref/tags/deploy-freeze)
+    [ -z "$FAKE_FREEZE_ERROR" ] || { echo "gh: Server Error (HTTP 500)" >&2; exit 1; }
+    [ -f "$FREEZE_DIR/ref" ] && cat "$FREEZE_DIR/ref" || notfound ;;
+  "GET "*/git/tags/*) f="$FREEZE_DIR/tag-\${path##*/}"; [ -f "$f" ] && cat "$f" || notfound ;;
+  "POST "*/git/tags)
+    id=$(printf '%s %s' "$msg" "$RANDOM$RANDOM" | git hash-object --stdin)
+    printf '%s' "$msg" > "$FREEZE_DIR/tag-$id"; echo "$id" ;;
+  "POST "*/git/refs)
+    [ -f "$FREEZE_DIR/ref" ] && { echo "gh: Reference already exists (HTTP 422)" >&2; exit 1; }
+    echo "$sha" > "$FREEZE_DIR/ref" ;;
+  "PATCH "*/git/refs/tags/deploy-freeze) echo "$sha" > "$FREEZE_DIR/ref" ;;
+  "DELETE "*/git/refs/tags/deploy-freeze) [ -f "$FREEZE_DIR/ref" ] && rm "$FREEZE_DIR/ref" || notfound ;;
+  *) echo "unexpected gh $method $path" >&2; exit 2 ;;
 esac
 `;
 
@@ -95,6 +120,35 @@ afterAll(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+function freshDir(): string {
+  return mkdtempSync(join(dir, 'freeze-'));
+}
+
+function baseEnv(freezeDir: string): NodeJS.ProcessEnv {
+  return {
+    PATH: `${bin}:${process.env.PATH}`,
+    HOME: process.env.HOME,
+    GITHUB_REPOSITORY: 'o/r',
+    GITHUB_SHA: sha.c,
+    GITHUB_ACTOR: 'tester',
+    FREEZE_DIR: freezeDir,
+  };
+}
+
+/** Runs scripts/ci/deploy-freeze.sh the way rollback.yml and deploy-production.yml do. */
+function freezeCmd(
+  freezeDir: string,
+  args: string[],
+  env: Record<string, string> = {}
+): { status: number | null; out: string } {
+  const r = spawnSync('bash', [FREEZE, ...args], {
+    cwd: repo,
+    encoding: 'utf8',
+    env: { ...baseEnv(freezeDir), GITHUB_STEP_SUMMARY: '/dev/null', ...env },
+  });
+  return { status: r.status, out: r.stdout + r.stderr };
+}
+
 interface Run {
   status: number | null;
   deploy: string | undefined;
@@ -110,6 +164,8 @@ function guard(opts: {
   reason?: string;
   tip?: string;
   service?: 'ok' | 'missing' | 'error';
+  freezeDir?: string;
+  freezeError?: boolean;
   queueTested?: string;
 }): Run {
   const output = join(dir, `out-${Math.random().toString(36).slice(2)}`);
@@ -120,8 +176,8 @@ function guard(opts: {
     cwd: repo,
     encoding: 'utf8',
     env: {
-      PATH: `${bin}:${process.env.PATH}`,
-      HOME: process.env.HOME,
+      ...baseEnv(opts.freezeDir ?? freshDir()),
+      FAKE_FREEZE_ERROR: opts.freezeError ? '1' : '',
       DEPLOY_SHA: opts.deploy,
       EVENT: opts.event ?? 'workflow_run',
       ALLOW_OLDER: String(opts.allowOlder ?? false),
@@ -129,7 +185,6 @@ function guard(opts: {
       QUEUE_TESTED: opts.queueTested ?? '',
       GCP_REGION: 'us-central1',
       GCP_PROJECT_ID: 'p',
-      GITHUB_REPOSITORY: 'o/r',
       GITHUB_OUTPUT: output,
       GITHUB_STEP_SUMMARY: summary,
       FAKE_TIP: opts.tip ?? sha.c,
@@ -138,7 +193,12 @@ function guard(opts: {
     },
   });
   const deploy = /^deploy=(\w+)$/m.exec(readFileSync(output, 'utf8'))?.[1];
-  return { status: r.status, deploy, summary: readFileSync(summary, 'utf8'), out: r.stdout + r.stderr };
+  return {
+    status: r.status,
+    deploy,
+    summary: readFileSync(summary, 'utf8'),
+    out: r.stdout + r.stderr,
+  };
 }
 
 const dispatch = { event: 'workflow_dispatch' } as const;
@@ -184,7 +244,10 @@ describe('forward-only deploy guard: automatic (workflow_run) path', () => {
   });
 
   it('deploys when the service does not exist yet', () => {
-    expect(guard({ service: 'missing', deploy: sha.c })).toMatchObject({ status: 0, deploy: 'true' });
+    expect(guard({ service: 'missing', deploy: sha.c })).toMatchObject({
+      status: 0,
+      deploy: 'true',
+    });
   });
 
   it('fails closed when production cannot be read', () => {
@@ -206,7 +269,13 @@ describe('forward-only deploy guard: manual dispatch', () => {
   });
 
   it('an intentional rollback (allow_older + reason, commit on main) goes through', () => {
-    const r = guard({ ...dispatch, live: sha.c, deploy: sha.a, allowOlder: true, reason: 'c broke sign-in' });
+    const r = guard({
+      ...dispatch,
+      live: sha.c,
+      deploy: sha.a,
+      allowOlder: true,
+      reason: 'c broke sign-in',
+    });
     expect(r).toMatchObject({ status: 0, deploy: 'true' });
     expect(r.summary).toMatch(/c broke sign-in/);
   });
@@ -225,11 +294,17 @@ describe('forward-only deploy guard: manual dispatch', () => {
   });
 
   it('a redeploy of the serving commit still runs', () => {
-    expect(guard({ ...dispatch, live: sha.c, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'true' });
+    expect(guard({ ...dispatch, live: sha.c, deploy: sha.c })).toMatchObject({
+      status: 0,
+      deploy: 'true',
+    });
   });
 
   it('a forward deploy runs', () => {
-    expect(guard({ ...dispatch, live: sha.a, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'true' });
+    expect(guard({ ...dispatch, live: sha.a, deploy: sha.c })).toMatchObject({
+      status: 0,
+      deploy: 'true',
+    });
   });
 });
 
@@ -263,9 +338,107 @@ describe('forward-only deploy guard: merge-queue fast path (push)', () => {
   });
 });
 
+describe('deploy freeze: a rollback holds until someone unfreezes', () => {
+  it('a pending rollback freezes first; the workflow_run that arrives next no-ops', () => {
+    const f = freshDir();
+    // rollback.yml: freeze, then move traffic back to b.
+    expect(freezeCmd(f, ['set', 'rollback.yml by seth: c broke sign-in']).status).toBe(0);
+    // CI passes on main's tip c (ahead of b, so the forward-only check alone would deploy it).
+    const r = guard({ freezeDir: f, live: sha.b, deploy: sha.c });
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toContain('frozen: rollback.yml by seth: c broke sign-in');
+  });
+
+  it('a deploy that passed the guard before the freeze stops at the pre-shift re-check', () => {
+    const f = freshDir();
+    expect(guard({ freezeDir: f, live: sha.b, deploy: sha.c }).deploy).toBe('true');
+    freezeCmd(f, ['set', 'incident-response rollback']);
+    const recheck = freezeCmd(f, ['gate'], { EVENT: 'workflow_run' });
+    expect(recheck.status).toBe(3);
+    expect(recheck.out).toContain('incident-response rollback');
+  });
+
+  it('the merge-queue push path no-ops while frozen too, even when queue-tested', () => {
+    const f = freshDir();
+    freezeCmd(f, ['set', 'rollback']);
+    const r = guard({
+      freezeDir: f,
+      event: 'push',
+      queueTested: 'true',
+      live: sha.b,
+      deploy: sha.c,
+    });
+    expect(r).toMatchObject({ deploy: 'false' });
+    expect(r.summary).toContain('frozen: rollback');
+  });
+
+  it('a plain manual run no-ops while frozen; allow_older still deploys', () => {
+    const f = freshDir();
+    freezeCmd(f, ['set', 'rollback']);
+    expect(
+      guard({ freezeDir: f, event: 'workflow_dispatch', live: sha.b, deploy: sha.c })
+    ).toMatchObject({
+      deploy: 'false',
+    });
+    const older = guard({
+      freezeDir: f,
+      event: 'workflow_dispatch',
+      live: sha.c,
+      deploy: sha.a,
+      allowOlder: true,
+      reason: 'roll back further',
+    });
+    expect(older).toMatchObject({ status: 0, deploy: 'true' });
+    expect(freezeCmd(f, ['gate'], { EVENT: 'workflow_dispatch', ALLOW_OLDER: 'true' }).status).toBe(
+      0
+    );
+  });
+
+  it('allow_older bypasses the freeze only on a manual run', () => {
+    const f = freshDir();
+    freezeCmd(f, ['set', 'rollback']);
+    expect(freezeCmd(f, ['gate'], { EVENT: 'workflow_run', ALLOW_OLDER: 'true' }).status).toBe(3);
+    expect(
+      guard({ freezeDir: f, live: sha.b, deploy: sha.c, allowOlder: true, reason: 'x' })
+    ).toMatchObject({
+      deploy: 'false',
+    });
+  });
+
+  it('unfreeze is deliberate: it needs a reason, then automatic deploys resume', () => {
+    const f = freshDir();
+    freezeCmd(f, ['set', 'rollback']);
+    expect(freezeCmd(f, ['clear', ' ']).status).not.toBe(0);
+    expect(guard({ freezeDir: f, live: sha.b, deploy: sha.c }).deploy).toBe('false');
+    const cleared = freezeCmd(f, ['clear', 'fix #123 is on main']);
+    expect(cleared.status).toBe(0);
+    expect(cleared.out).toMatch(/unfrozen.*was: rollback.*fix #123 is on main/);
+    expect(guard({ freezeDir: f, live: sha.b, deploy: sha.c }).deploy).toBe('true');
+    expect(freezeCmd(f, ['clear', 'again']).status).toBe(0); // not frozen: nothing to do
+  });
+
+  it('a second rollback replaces the freeze reason', () => {
+    const f = freshDir();
+    freezeCmd(f, ['set', 'first']);
+    expect(freezeCmd(f, ['set', 'second']).status).toBe(0);
+    expect(freezeCmd(f, ['check']).out).toContain('second');
+  });
+
+  it('a freeze needs a reason', () => {
+    expect(freezeCmd(freshDir(), ['set', '']).status).not.toBe(0);
+  });
+
+  it('fails closed when the freeze cannot be read', () => {
+    const r = guard({ freezeError: true, live: sha.b, deploy: sha.c });
+    expect(r.status).not.toBe(0);
+    expect(r.deploy).toBeUndefined();
+  });
+});
+
 describe('deploy-production.yml wiring', () => {
   const workflow = read('.github/workflows/deploy-production.yml');
-  const job = workflow.slice(workflow.indexOf('\n  deploy-ui:'), workflow.indexOf('\n  report-not-live:'));
+  // deploy-ui runs until the next job (unfreeze).
+  const job = workflow.slice(workflow.indexOf('\n  deploy-ui:'), workflow.indexOf('\n  unfreeze:'));
   const steps = job.split('\n      - name: ').slice(1);
   const names = steps.map((s) => s.split('\n')[0]);
   const at = (name: string): number => {
@@ -299,13 +472,16 @@ describe('deploy-production.yml wiring', () => {
     for (const input of ['sha', 'allow_older', 'reason']) {
       expect(workflow).toMatch(new RegExp(`\\n {6}${input}:\\n`));
     }
-    expect(workflow).toMatch(/DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \|\| inputs\.sha \|\| github\.sha \}\}/);
+    expect(workflow).toMatch(
+      /DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \|\| inputs\.sha \|\| github\.sha \}\}/
+    );
     expect(steps[guardAt]).toMatch(/ALLOW_OLDER: \$\{\{ inputs\.allow_older == true \}\}/);
     expect(steps[guardAt]).toMatch(/REASON: \$\{\{ inputs\.reason \}\}/);
   });
 
   it('manual deploys run only from main, in the job if and the concurrency group', () => {
-    const dispatchFromMain = "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'";
+    const dispatchFromMain =
+      "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'";
     expect(job).toContain(dispatchFromMain);
     expect(/\nconcurrency:\n {2}group: (.*)\n/.exec(workflow)?.[1]).toContain(dispatchFromMain);
     expect(workflow).not.toMatch(/github\.event_name == 'workflow_dispatch' \|\|/);
@@ -334,20 +510,50 @@ describe('deploy-production.yml wiring', () => {
 
   it('health check and smoke tests hit green before it gets traffic', () => {
     expect(steps[at('Health check green revision')]).toMatch(/steps\.deploy\.outputs\.green_url/);
-    expect(steps[at('Run smoke tests')]).toMatch(/SMOKE_TEST_URL: \$\{\{ steps\.deploy\.outputs\.green_url \}\}/);
+    expect(steps[at('Run smoke tests')]).toMatch(
+      /SMOKE_TEST_URL: \$\{\{ steps\.deploy\.outputs\.green_url \}\}/
+    );
     expect(at('Run smoke tests')).toBeLessThan(at('Shift traffic to green'));
     expect(steps[at('Rollback on failure')]).toMatch(/steps\.smoke\.outcome == 'failure'/);
-    expect(steps[at('🟢 Deploy GREEN revision (no traffic)')]).toMatch(/select\(\.tag == "green"\) \| \.url/);
+    expect(steps[at('🟢 Deploy GREEN revision (no traffic)')]).toMatch(
+      /select\(\.tag == "green"\) \| \.url/
+    );
   });
 
   it('a redeploy of the same commit gets a fresh revision name', () => {
     expect(steps[at('🟢 Deploy GREEN revision (no traffic)')]).toMatch(
       /REVISION_SUFFIX=\$\{\{ steps\.meta\.outputs\.revision_suffix \}\}/
     );
-    expect(steps[at('Generate metadata')]).toMatch(/revision_suffix=\$\{DEPLOY_SHA::8\}-\$\{GITHUB_RUN_ID\}-\$\{GITHUB_RUN_ATTEMPT\}/);
+    expect(steps[at('Generate metadata')]).toMatch(
+      /revision_suffix=\$\{DEPLOY_SHA::8\}-\$\{GITHUB_RUN_ID\}-\$\{GITHUB_RUN_ATTEMPT\}/
+    );
   });
 
-  it.each(['rollback.yml', 'incident-response.yml'])('%s shares the deploy-production group', (file) => {
-    expect(read(`.github/workflows/${file}`)).toMatch(/concurrency:\n {6}group: deploy-production\n/);
+  it('re-checks the freeze right before the traffic shift, and a freeze rolls green back', () => {
+    const recheck = at('Re-check the deploy freeze');
+    expect(recheck).toBeLessThan(at('Shift traffic to green'));
+    expect(steps[recheck]).toMatch(/bash scripts\/ci\/deploy-freeze\.sh gate/);
+    expect(steps[at('Rollback on failure')]).toMatch(/steps\.freeze\.outcome == 'failure'/);
   });
+
+  it('unfreeze is its own job; the deploy job never gets contents: write', () => {
+    expect(workflow).toMatch(
+      /\n {2}unfreeze:\n[\s\S]*?inputs\.unfreeze == true[\s\S]*?contents: write[\s\S]*?deploy-freeze\.sh clear/
+    );
+    expect(job).toMatch(/\n {4}permissions:\n {6}contents: read\n/);
+    expect(job).not.toMatch(/\n {6}contents: write/);
+    expect(job).toContain('inputs.unfreeze != true');
+  });
+
+  it.each(['rollback.yml', 'incident-response.yml'])(
+    '%s has its own group, so a deploy can never replace a pending rollback, and freezes before moving traffic',
+    (file) => {
+      const text = read(`.github/workflows/${file}`);
+      expect(text).not.toMatch(/group: deploy-production/);
+      expect(text).toMatch(/concurrency:\n {6}group: prod-rollback\n/);
+      const freezeAt = text.indexOf('deploy-freeze.sh set');
+      expect(freezeAt).toBeGreaterThan(-1);
+      expect(freezeAt).toBeLessThan(text.indexOf('update-traffic'));
+    }
+  );
 });

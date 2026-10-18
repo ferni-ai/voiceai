@@ -33,10 +33,11 @@ name: Deploy Production (Blue-Green)
 # in the single deploy-ui job:
 # 1. Prepare  → Validate secrets, metadata, deployment safety check
 # 2. Gate     → CI verdict on this commit, or the merge queue's on its tree
-#               (see "on:" below), then the forward-only guard
+#               (see "on:" below), then the deploy freeze and forward-only guard
 # 3. Build    → design-system, then the UI Docker image
 # 4. Deploy   → Blue-green: green gets no traffic until it passes 5
-# 5. Verify   → Health check + smoke tests on green; rollback if either fails
+# 5. Verify   → Health check + smoke tests on green, freeze re-check; any
+#               failure removes green and keeps blue
 # 6. Notify   → Summary, Slack, DORA metrics (always)
 #
 # The voice agent is not deployed here: it runs on LiveKit Cloud and ships with
@@ -101,8 +102,12 @@ on:
         description: 'Roll back on purpose: skip the forward-only check (needs a reason)'
         type: boolean
         default: false
+      unfreeze:
+        description: 'Lift a rollback''s deploy freeze and stop (deploys nothing; needs a reason)'
+        type: boolean
+        default: false
       reason:
-        description: 'Why (required with allow_older; shown in the run summary)'
+        description: 'Why (required with allow_older or unfreeze; shown in the run summary)'
         type: string
         default: ''
 
@@ -119,7 +124,7 @@ on:
 # deploy and then no-op; the replaced commit, or a newer one, still deploys
 # from its own CI verdict, and the guard keeps every deploy forward-only.
 concurrency:
-  group: ${{ ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) && 'deploy-production' || format('deploy-production-noop-{0}', github.run_id) }}
+  group: ${{ ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.unfreeze != true) || (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) && 'deploy-production' || format('deploy-production-noop-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:
@@ -145,7 +150,7 @@ jobs:
     runs-on: ubuntu-24.04
     # Manual deploys only from main's workflow file; never from a branch.
     if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.unfreeze != true) ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
@@ -240,7 +245,8 @@ jobs:
       # deploy only when DEPLOY_SHA is ahead of the commit production serves.
       # A no-op otherwise (deploy=false), which skips every step below. A manual
       # allow_older (with a reason, for a commit on main) skips the check, for
-      # an intentional rollback.
+      # an intentional rollback. While a rollback's deploy freeze holds
+      # (scripts/ci/deploy-freeze.sh), only a manual allow_older run deploys.
       - name: Forward-only guard
         id: guard
         env:
@@ -443,6 +449,26 @@ jobs:
           test -n "$SMOKE_TEST_URL" || { echo "::error::the deploy step gave no green URL"; exit 1; }
           npx tsx apps/cli/src/commands/test/smoke-test.ts
 
+      # A rollback may have started while this run built. It freezes deploys
+      # before it moves traffic, so look again right before shifting: frozen
+      # means stop here, keep blue, and let the rollback have the last word.
+      - name: Re-check the deploy freeze
+        id: freeze
+        if: steps.guard.outputs.deploy == 'true' && steps.health.outputs.healthy == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          ALLOW_OLDER: ${{ inputs.allow_older == true }}
+        run: |
+          rc=0
+          reason=$(bash scripts/ci/deploy-freeze.sh gate) || rc=$?
+          if [ "$rc" = 3 ]; then
+            echo "::error::frozen: $reason. A rollback started while this deploy ran, so traffic stays where it is."
+            echo "### 🧊 frozen: $reason (traffic not shifted)" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          [ "$rc" = 0 ] || { echo "::error::Could not read the deploy freeze, so traffic is not shifted."; exit 1; }
+
       - name: Shift traffic to green
         if: steps.guard.outputs.deploy == 'true' && steps.health.outputs.healthy == 'true'
         run: |
@@ -459,7 +485,7 @@ jobs:
           fi
 
       - name: Rollback on failure
-        if: always() && steps.guard.outputs.deploy == 'true' && steps.deploy.outcome == 'success' && (steps.health.outputs.healthy != 'true' || steps.smoke.outcome == 'failure')
+        if: always() && steps.guard.outputs.deploy == 'true' && steps.deploy.outcome == 'success' && (steps.health.outputs.healthy != 'true' || steps.smoke.outcome == 'failure' || steps.freeze.outcome == 'failure')
         run: |
           gcloud run services update-traffic john-bogle-ui \
             --region=${{ env.GCP_REGION }} \
@@ -564,6 +590,29 @@ jobs:
               "success": ${{ steps.status.outputs.status == 'success' }},
               "triggeredBy": "${{ github.actor }}"
             }' || true
+
+  # ============================================================================
+  # UNFREEZE: lift a rollback's deploy freeze, deliberately
+  # ============================================================================
+  # Deploys nothing. The next CI-green commit then deploys as usual, so unfreeze
+  # once the fix is on main (or main is safe again). Its own job, so the deploy
+  # job never holds contents: write.
+  unfreeze:
+    name: 🔓 Unfreeze deploys
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.unfreeze == true
+    timeout-minutes: 5
+    permissions:
+      contents: write  # deletes the deploy-freeze tag
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Lift the freeze
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REASON: ${{ inputs.reason }}
+        run: bash scripts/ci/deploy-freeze.sh clear "$REASON"
 
   # ============================================================================
   # MERGED BUT NOT LIVE: CI failed on a push to main, so nothing deploys

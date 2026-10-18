@@ -21,6 +21,8 @@
 #     is true: a successful merge-queue CI run tested exactly this tree. If it
 #     isn't (admin merge, direct push), the push is a no-op and the workflow_run
 #     path deploys after push CI passes. Either way the forward-only check holds.
+#   - While a rollback's deploy freeze holds (scripts/ci/deploy-freeze.sh), it
+#     is a no-op ("frozen: <reason>"), except for a manual run with allow_older.
 #
 # Env: DEPLOY_SHA, EVENT (github.event_name), ALLOW_OLDER, REASON, QUEUE_TESTED,
 # GCP_REGION, GCP_PROJECT_ID, GITHUB_REPOSITORY, GITHUB_OUTPUT,
@@ -44,6 +46,14 @@ refuse() { echo "::error::Not deploying ${DEPLOY_SHA}: $1"; summary "### ❌ Ref
 compare() { gh api "repos/$REPO/compare/$1...$2" --jq .status 2>/dev/null || true; }
 
 [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || refuse "DEPLOY_SHA is not a full commit SHA"
+
+rc=0
+frozen=$(bash "$(dirname "$0")/deploy-freeze.sh" gate) || rc=$?
+case "$rc" in
+  0) ;;
+  3) noop "frozen: $frozen. Automatic deploys wait for a deliberate unfreeze (deploy-production with unfreeze: true and a reason, or delete the deploy-freeze tag). A manual run with allow_older still deploys." ;;
+  *) refuse "could not read the deploy freeze" ;;
+esac
 
 if [ "$EVENT" = push ] && [ "${QUEUE_TESTED:-false}" != true ]; then
   noop "no successful merge-queue run tested this tree (admin merge or direct push?), so it deploys once push CI passes on main."
