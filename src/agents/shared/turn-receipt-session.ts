@@ -6,6 +6,7 @@
  *
  * @module agents/shared/turn-receipt-session
  */
+import { recordCallEvent } from '../../services/analytics/call-quality-monitor.js';
 import { onGatewayFirstAudio } from '../../speech/tts-gateway/first-audio-observer.js';
 import { onPauseHoldReleased } from '../../speech/output-control/pause-hold.js';
 import {
@@ -16,6 +17,7 @@ import type { ItemView, ReminderNote } from './prompt-sections.js';
 import {
   TurnReceiptRecorder,
   type BargeInSource,
+  type TurnReceipt,
   type TurnReceiptOptions,
 } from './turn-receipt.js';
 import { eotCallFrom } from './turn-receipt-eot.js';
@@ -45,6 +47,18 @@ export function noteRequest(
     ?.onRequest(request.items as ItemView[], Object.keys(tools.functionTools ?? {}).length);
 }
 
+/** A caller turn's reply latency, for the call-quality reply SLO (call-quality-slo.ts). */
+export function noteReplyLatency(receipt: TurnReceipt): void {
+  const firstAudioMs = receipt.timing.firstAudioMs;
+  if (firstAudioMs === null || firstAudioMs === undefined) return;
+  recordCallEvent({
+    callId: receipt.sessionId,
+    timestamp: Date.now(),
+    type: 'first_response',
+    metadata: { firstAudioMs, userKind: receipt.userKind },
+  });
+}
+
 interface EventSource {
   on(event: string, handler: (ev: unknown) => void): unknown;
   off(event: string, handler: (ev: unknown) => void): unknown;
@@ -60,6 +74,7 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
       turnDetection: turnDetectionInUse(session),
       interruptionMode: interruptionModeInUse(session),
     }),
+    onReceipt: noteReplyLatency,
     ...opts,
   });
   recorders.set(session, rec);

@@ -100,10 +100,12 @@ describe('CallQualityMonitor', () => {
         type: 'connection_attempt',
       });
 
+      // 25 s into the call, the caller's first turn got audio 1.5 s after they stopped.
       recordCallEvent({
         callId,
-        timestamp: startTime + 1500,
+        timestamp: startTime + 25_000,
         type: 'first_response',
+        metadata: { firstAudioMs: 1500 },
       });
 
       const activeCalls = getActiveCalls();
@@ -348,6 +350,7 @@ describe('CallQualityMonitor', () => {
           callId,
           timestamp: startTime + 1000,
           type: 'first_response',
+          metadata: { firstAudioMs: 1000 },
         });
 
         // End some naturally, some with disconnect

@@ -66,7 +66,7 @@ export function createFirstAudioObserver({
         recordCallEvent({
           callId: sessionId,
           timestamp: firstAudioAtMs,
-          type: 'first_response',
+          type: 'first_audio',
         });
       } catch {
         // Non-fatal observability
