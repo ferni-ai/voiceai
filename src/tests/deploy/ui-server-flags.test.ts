@@ -31,6 +31,10 @@ const SERVER_FLAGS = [
   'COHORT_FLAGS=on',
   'PROACTIVE_CHANNELS=on',
   'FOLLOW_THROUGH_JOB=on',
+  // One seed ledger (docs/plans/2026-10-10-one-seed-ledger.md): the web reads the server, and only
+  // accounts that existed when it was switched on may import their browser seeds once.
+  'SEEDS_SERVER_LEDGER=on',
+  'SEEDS_IMPORT_BEFORE=2026-10-18T13:00:00Z',
 ];
 
 /** The `--set-env-vars` value of the workflow's john-bogle-ui deploy, split on its `::` delimiter. */
