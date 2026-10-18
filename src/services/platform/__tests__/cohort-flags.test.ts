@@ -182,12 +182,39 @@ describe('the switches a cohort may set', () => {
     'TEAM_VOICES',
     'FERNI_PERSONA_SLIP_GUARD',
     'DIRECTOR_PERSONA_AWARE',
+    'PERSONA_VOICE',
   ])('a cohort can turn %s on for its members', async (flag) => {
     const s = store({ seth: [{ id: 'seth', enabled: true, flags: { [flag]: 'on' } }] });
     expect(await resolveCallerFlags('seth', s)).toEqual({ [flag]: 'on' });
     const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on' };
     expect(await applyCallerFlags('seth', { store: s, env })).toEqual([flag]);
     expect(env[flag]).toBe('on');
+  });
+});
+
+describe('flags with a mode, not a switch', () => {
+  it('a cohort can set TURN_LENGTH and TURN_TEXTURE to learned, and they reach the env', async () => {
+    const flags = { PERSONA_VOICE: 'on', TURN_LENGTH: 'learned', TURN_TEXTURE: 'learned' };
+    const s = store({ seth: [{ id: 'seth', enabled: true, flags }] });
+    const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on' };
+    expect((await applyCallerFlags('seth', { store: s, env })).sort()).toEqual(Object.keys(flags).sort());
+    expect(env).toMatchObject(flags);
+  });
+
+  it('drops a mode on a switch and a switch value on a mode', async () => {
+    const s = store(
+      { u: [{ id: 'c', enabled: true, flags: { TURN_LENGTH: 'on', CANDOR: 'learned' } }] },
+      { u: { TURN_TEXTURE: 'yes', PERSONA_VOICE: 'learned' } }
+    );
+    expect(await resolveCallerFlags('u', s)).toEqual({});
+  });
+
+  it("an override 'off' beats a cohort's learned", async () => {
+    const s = store(
+      { u: [{ id: 'c', enabled: true, flags: { TURN_LENGTH: 'learned' } }] },
+      { u: { TURN_LENGTH: 'off' } }
+    );
+    expect(await resolveCallerFlags('u', s)).toEqual({ TURN_LENGTH: 'off' });
   });
 });
 
