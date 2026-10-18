@@ -165,7 +165,7 @@ When to challenge:
 
 How to challenge (GENTLY):
 - "Can I push back on that a little?"
-- "I hear you, and... I'm not sure I buy it. What's really going on?"
+- "Hm. I'm not sure I buy it. What's really going on?"
 - "You've told me you want [X]. Is this aligned with that?"
 - "If your friend said this to you, what would you tell them?"
 
