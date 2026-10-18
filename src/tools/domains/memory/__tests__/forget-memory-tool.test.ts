@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const forget = vi.hoisted(() =>
-  vi.fn(async (): Promise<{ kind: string; marked?: number }> => ({ kind: 'forgotten', marked: 2 }))
+  vi.fn(
+    async (): Promise<{ kind: string; marked?: number; deleted?: number; hidden?: number }> => ({
+      kind: 'forgotten',
+      marked: 2,
+    })
+  )
 );
 vi.mock('../../../../memory/recall/forget.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../memory/recall/forget.js')>()),
@@ -29,11 +34,29 @@ describe('forgetMemory (the live tool)', () => {
     ).toMatch(/confirm/);
     expect(forget).not.toHaveBeenCalled();
 
-    expect(
-      await run({ whatToForget: 'my divorce', confirmDeletion: true }, { ctx: { userData } })
-    ).toBe('');
+    const reply = await run(
+      { whatToForget: 'my divorce', confirmDeletion: true },
+      { ctx: { userData } }
+    );
     expect(forget).toHaveBeenCalledWith('u-1', 'my divorce');
     expect(userData.keyMoments).toEqual(['Biscuit learned sit']);
+    // Hidden, not erased: he says only that he won't bring it up (FORGET_DELETES off)
+    expect(reply).toContain('"I won\'t bring that up again."');
+    expect(reply).toMatch(/Don't say you've forgotten, deleted or erased it/);
+  });
+
+  it('says it deleted the facts only when every one was deleted (FORGET_DELETES on)', async () => {
+    const userData = { userId: 'u-1' };
+    const run = execute(userData);
+    const confirm = { whatToForget: 'my divorce', confirmDeletion: true };
+    forget.mockResolvedValueOnce({ kind: 'forgotten', marked: 2, deleted: 2, hidden: 0 });
+    expect(await run(confirm, { ctx: { userData } })).toContain(
+      "\"I've deleted the facts I'd saved about that, and I won't bring it up again.\""
+    );
+    forget.mockResolvedValueOnce({ kind: 'forgotten', marked: 2, deleted: 1, hidden: 1 });
+    const partly = await run(confirm, { ctx: { userData } });
+    expect(partly).not.toMatch(/deleted the facts/);
+    expect(partly).toContain('"I won\'t bring that up again."');
   });
 
   it('never says it forgot when the delete failed', async () => {
