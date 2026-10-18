@@ -2,8 +2,10 @@ import { llm } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
 
 import {
+  askBeatFor,
+  callerAskFor,
   CALLS_PER_ASK,
-  FOLLOW_LINE,
+  followLine,
   FRIEND_AFTER_CALLS,
   HELP_ASKS,
   helpAskFor,
@@ -17,8 +19,24 @@ import { ferniStateTurn } from '../ferni-state.js';
 
 const ON = { FERNI_STATE: 'on', FERNI_THREADS: 'on', FERNI_ASKS_HELP: 'on' };
 const THREADS_ONLY = { FERNI_STATE: 'on', FERNI_THREADS: 'on' };
-const NOW = new Date('2026-10-27T15:00:00Z'); // every thread's second beat, all with an ask
 const ASK = /ask them for a small hand with/;
+const FOLLOW = /You just asked them for a hand/;
+const DAY_MS = 86_400_000;
+const START = Date.parse('2026-10-19T15:00:00Z'); // every thread's first beat
+
+/** The thread a caller hears (the same every week). */
+function threadOf(userId: string) {
+  const first = threadDetailFor(userId, new Date(START));
+  const thread = LIFE_THREADS.find((t) => t.beats[0] === first);
+  if (!thread) throw new Error('no thread');
+  return thread;
+}
+
+/** A day in the week of this caller's one ask beat on their thread. */
+function askDay(userId: string): Date {
+  const beat = askBeatFor(userId, threadOf(userId).id) ?? 0;
+  return new Date(START + (beat * 7 + 1) * DAY_MS);
+}
 
 /** The prior-call count that lands on this caller's one-in-five slot. */
 function slotFor(userId: string): number {
@@ -70,13 +88,40 @@ describe('the written asks', () => {
       const names = ask.match(/\b[A-Z][a-z]+\b/g) ?? [];
       expect(names.filter((n) => !canon.includes(n))).toEqual([]);
     }
-    expect(FOLLOW_LINE).not.toMatch(/—|…|\.\.\./);
+    for (const help of asks) expect(followLine(help)).not.toMatch(/—|…|\.\.\./);
+  });
+
+  it('say an answer back in the words of their own ask', () => {
+    const plant = HELP_ASKS['jade-plant']?.[0];
+    const book = HELP_ASKS.book?.[0];
+    expect(plant && followLine(plant)).toContain('the jade plant is [their name] now');
+    expect(book && followLine(book)).toContain('The book is [their title] now');
+    expect(book && followLine(book)).not.toMatch(/jade plant/);
+  });
+});
+
+describe('one ask per thread per caller', () => {
+  it('asks each caller on one beat of a thread only, a beat that has an ask', () => {
+    const plant = LIFE_THREADS.find((t) => t.id === 'jade-plant');
+    for (const id of ['caller-a', 'caller-b', 'caller-c', 'caller-d']) {
+      const beat = askBeatFor(id, 'jade-plant') ?? -1;
+      expect(HELP_ASKS['jade-plant']?.[beat]).toBeDefined();
+      const asked = (plant?.beats ?? []).filter((b) => callerAskFor(id, b));
+      expect(asked).toEqual([plant?.beats[beat]]);
+    }
+  });
+
+  it('spreads callers over the beats', () => {
+    const beats = new Set(Array.from({ length: 30 }, (_, i) => askBeatFor(`caller-${i}`, 'book')));
+    expect(beats.size).toBeGreaterThan(1);
   });
 });
 
 describe('helpAskLine', () => {
-  const plantBeat = LIFE_THREADS.find((t) => t.id === 'jade-plant')?.beats[0] ?? '';
   const userId = 'caller-a';
+  const plantBeat =
+    LIFE_THREADS.find((t) => t.id === 'jade-plant')?.beats[askBeatFor(userId, 'jade-plant') ?? 0] ??
+    '';
   const userData = { services: { userProfile: { totalConversations: slotFor(userId) } } };
   const turn = (replies: string[], ownStory = true, env: Record<string, string> = ON) => ({
     detail: plantBeat,
@@ -91,7 +136,7 @@ describe('helpAskLine', () => {
     const state = newHelpAskState();
     expect(helpAskLine(turn(['a', 'b']), state)).toMatch(ASK);
     expect(helpAskLine(turn(['a', 'b', 'c']), state)).toMatch(ASK);
-    expect(state.offers).toBe(MAX_OFFERS);
+    expect(state.offeredAt).toHaveLength(MAX_OFFERS);
     expect(helpAskLine(turn(['a', 'b', 'c', 'd']), state)).toBe('');
   });
 
@@ -103,8 +148,58 @@ describe('helpAskLine', () => {
     const state = newHelpAskState();
     helpAskLine(turn(['a', 'b']), state);
     const asked = ['a', 'b', 'Can I ask you something? Help me name this plant?'];
-    expect(helpAskLine(turn(asked, false), state)).toBe(FOLLOW_LINE);
+    expect(helpAskLine(turn(asked, false), state)).toMatch(FOLLOW);
     expect(helpAskLine(turn([...asked, 'Pickle it is.'], true), state)).toBe('');
+  });
+
+  it('a plain request without a question mark is his ask too', () => {
+    const state = newHelpAskState();
+    helpAskLine(turn(['a', 'b']), state);
+    const asked = ['a', 'b', 'Help me name this plant, I am out of ideas.'];
+    expect(helpAskLine(turn(asked, false), state)).toMatch(FOLLOW);
+  });
+
+  it('a later question about their life with his topic word is not his ask', () => {
+    const state = newHelpAskState();
+    helpAskLine(turn(['a', 'b']), state);
+    // He skipped the ask, then the caller mentions their own plants.
+    const replies = ['a', 'b', 'Ha, that sounds like a good morning.'];
+    expect(helpAskLine(turn(replies, false), state)).toBe('');
+    const later = [...replies, 'How is the plant on your desk doing?'];
+    expect(helpAskLine(turn(later, false), state)).toBe('');
+    expect(state.followed).toBe(false);
+  });
+
+  it('a question about their own trip right after the offer is not his ask', () => {
+    const japan = LIFE_THREADS.find((t) => t.id === 'japan-siblings');
+    const id = Array.from({ length: 50 }, (_, i) => `caller-${i}`).find(
+      (c) => askBeatFor(c, 'japan-siblings') !== undefined
+    );
+    const beat = japan?.beats[askBeatFor(id ?? '', 'japan-siblings') ?? 0] ?? '';
+    const data = { services: { userProfile: { totalConversations: slotFor(id ?? '') } } };
+    const t = (replies: string[]) => ({
+      detail: beat,
+      replies,
+      ownStory: true,
+      userId: id,
+      userData: data,
+      env: ON,
+    });
+    const state = newHelpAskState();
+    expect(helpAskLine(t(['a', 'b']), state)).toMatch(ASK);
+    expect(helpAskLine(t(['a', 'b', 'Oh nice, how was the trip you just took?']), state)).toMatch(
+      ASK
+    );
+    expect(state.followed).toBe(false);
+  });
+
+  it('a reply that skipped the ask gets one more offer, then none', () => {
+    const state = newHelpAskState();
+    expect(helpAskLine(turn(['a', 'b']), state)).toMatch(ASK);
+    const skipped = ['a', 'b', 'The plant has a new leaf. How was your day?'];
+    expect(helpAskLine(turn(skipped), state)).toMatch(ASK);
+    expect(helpAskLine(turn([...skipped, 'Nice.']), state)).toBe('');
+    expect(state.followed).toBe(false);
   });
 
   it('a question before the offer is not his ask', () => {
@@ -145,26 +240,44 @@ describe('ferniStateTurn with FERNI_ASKS_HELP', () => {
     const lines = callers.map(
       (id) =>
         ferniStateTurn(lightCall('Just a slow afternoon.'), sessionFor(id, slotFor(id)), {
-          now: NOW,
+          now: askDay(id),
           env: ON,
         }).last
     );
     expect(lines.every((l) => ASK.test(l))).toBe(true);
+    expect(new Set(callers.map((id) => threadOf(id).id)).size).toBe(LIFE_THREADS.length);
+  });
+
+  it("on, a friend on another week of their thread isn't asked again", () => {
+    const lines = callers.map((id) => {
+      const other = new Date(
+        askDay(id).getTime() + 7 * DAY_MS * (askBeatFor(id, threadOf(id).id) === 0 ? 1 : -1)
+      );
+      return ferniStateTurn(lightCall('Just a slow afternoon.'), sessionFor(id, slotFor(id)), {
+        now: other,
+        env: ON,
+      }).last;
+    });
+    expect(lines.some((l) => ASK.test(l))).toBe(false);
   });
 
   it('on, takes the answer after he asked', () => {
     const id = 'friend-1';
     const session = sessionFor(id, slotFor(id));
     const first = lightCall('Just a slow afternoon.');
-    expect(ferniStateTurn(first, session, { now: NOW, env: ON }).last).toMatch(ASK);
-    expect(helpAskFor(threadDetailFor(id, NOW) ?? '')).toBeDefined();
+    const now = askDay(id);
+    expect(ferniStateTurn(first, session, { now, env: ON }).last).toMatch(ASK);
     // Names every thread's topic, so it is his ask whichever thread this caller is on.
     first.addMessage({
       role: 'assistant',
       content: 'Can you help me out with the plant, the book, the trip or the ski week?',
     });
     first.addMessage({ role: 'user', content: 'Sure, go with Pickle.' });
-    expect(ferniStateTurn(first, session, { now: NOW, env: ON }).last).toContain(FOLLOW_LINE);
+    const help = callerAskFor(id, threadDetailFor(id, now) ?? '');
+    expect(help).toBeDefined();
+    expect(ferniStateTurn(first, session, { now, env: ON }).last).toContain(
+      help ? followLine(help) : 'missing'
+    );
   });
 
   it('on, a new caller or an off-slot call never hears it', () => {
@@ -172,7 +285,7 @@ describe('ferniStateTurn with FERNI_ASKS_HELP', () => {
     const off = slotFor(id) + 1;
     for (const total of [0, 2, off]) {
       const { last } = ferniStateTurn(lightCall('Just a slow afternoon.'), sessionFor(id, total), {
-        now: NOW,
+        now: askDay(id),
         env: ON,
       });
       expect(last).not.toMatch(ASK);
@@ -184,7 +297,7 @@ describe('ferniStateTurn with FERNI_ASKS_HELP', () => {
     const { last } = ferniStateTurn(
       lightCall('My dad just died this morning.'),
       sessionFor(id, slotFor(id)),
-      { now: NOW, env: ON }
+      { now: askDay(id), env: ON }
     );
     expect(last).not.toMatch(ASK);
   });
@@ -195,7 +308,7 @@ describe('ferniStateTurn with FERNI_ASKS_HELP', () => {
       lightCall('Just a slow afternoon.'),
       sessionFor(id, slotFor(id)),
       {
-        now: NOW,
+        now: askDay(id),
         env: THREADS_ONLY,
       }
     );
