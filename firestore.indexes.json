@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "memories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "archived", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "follow_through",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
