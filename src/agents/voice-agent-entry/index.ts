@@ -63,7 +63,7 @@ import { configureModelProvider } from '../../personas/bundles/model-provider-co
 // Submodule imports
 import { finishCallTypeContexts, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
 import { evalLocalTime } from '../personas/eval-local-time.js';
-import { buildSessionPersona } from './persona-builder.js';
+import { buildSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
@@ -257,7 +257,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Build persona with defaults and load prompts
     const personaResult = await buildSessionPersona(personaId, e2e);
     sessionPersona = personaResult.sessionPersona;
-    const { systemPrompt } = personaResult;
     modelBaseInstructions = personaResult.modelBaseInstructions;
 
     // =========================================================================
@@ -663,7 +662,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       const sessionResult = await createAgentSession({
         sessionId,
         sessionPersona,
-        systemPrompt,
+        // After applyCallerFlags (STEP 4), so the prompt has this caller's flags.
+        systemPrompt: await loadCallerPrompt(sessionPersona.id),
         modelBaseInstructions,
         userId,
         userAccent,
