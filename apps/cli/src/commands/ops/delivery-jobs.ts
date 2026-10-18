@@ -14,6 +14,8 @@ export interface DeliverySchedulerJob {
   minBackoff?: string;
   maxBackoff?: string;
   timeout?: string;
+  /** Sent without the Content-Type and X-CloudScheduler headers (OIDC alone authenticates). */
+  noHeaders?: boolean;
 }
 
 export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
@@ -79,14 +81,17 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
     },
     {
       // Off until the UI server has FOLLOW_THROUGH_JOB=on; until then each run answers flag-off.
+      // As created in prod on 2026-10-18 (gcloud scheduler jobs describe follow-through).
       name: 'follow-through',
-      description: 'Text each person the follow-up due for them now (FOLLOW_THROUGH_JOB)',
+      description:
+        'Follow-up texts (follow-up-texts.ts via /api/jobs/follow-through); sends only to people with FOLLOW_THROUGH_TEXTS on',
       schedule: '*/5 * * * *',
       timezone: 'America/Los_Angeles',
       uri: `${uiServerUrl}/api/jobs/follow-through`,
       httpMethod: 'POST',
       retryCount: 0,
-      timeout: '180s',
+      timeout: '120s',
+      noHeaders: true,
     },
     {
       // Hourly: each poll ponders callers whose night slot has come (ponder-job.ts), at most
