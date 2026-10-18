@@ -42,7 +42,7 @@ env:
 jobs:
   changes:
     name: Did the menu change?
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON((github.event_name != 'pull_request' && vars.CI_RUNNER) || '"ubuntu-latest"') }}
     timeout-minutes: 5
     permissions:
       contents: read
@@ -64,7 +64,7 @@ jobs:
     name: Menu contracts (L1)
     needs: changes
     if: needs.changes.outputs.menu == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON((github.event_name != 'pull_request' && vars.CI_RUNNER) || '"ubuntu-latest"') }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -115,7 +115,7 @@ jobs:
     name: Menu walk (L2) ${{ matrix.shard }}/3
     needs: changes
     if: needs.changes.outputs.menu == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON((github.event_name != 'pull_request' && vars.CI_RUNNER) || '"ubuntu-latest"') }}
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -219,7 +219,7 @@ jobs:
     name: Menu E2E
     needs: [changes, contracts, walk]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON((github.event_name != 'pull_request' && vars.CI_RUNNER) || '"ubuntu-latest"') }}
     timeout-minutes: 5
     steps:
       - name: Verdict
