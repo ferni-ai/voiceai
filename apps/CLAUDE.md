@@ -12,7 +12,6 @@ This directory contains all client applications and deployment targets. Each app
 | ------------------- | -------------------------------- | ----------- |
 | **Web**             | `web/`, `website/`               | Production  |
 | **iOS**             | `ios-native/`, `shared/`         | Production  |
-| **Android**         | `android-native/`                | Development |
 | **Desktop**         | `electron/`, `macos-menubar/`    | Development |
 | **Backend Workers** | `async/`, `intelligence-worker/` | Production  |
 | **Performance**     | `rust-audio/`, `rust-perf/`      | Production  |
@@ -34,7 +33,6 @@ This directory contains all client applications and deployment targets. Each app
 | App               | CLAUDE.md | Purpose                                                  |
 | ----------------- | --------- | -------------------------------------------------------- |
 | `ios-native/`     | ✅        | Full iOS app (SwiftUI, LiveKit, Watch, CarPlay, Widgets) |
-| `android-native/` | ✅        | Android app (Kotlin, Jetpack Compose)                    |
 | `shared/`         | ✅        | Shared Swift Package for iOS/macOS                       |
 | `ios/`            | ✅        | Placeholder → points to `ios-native/`                    |
 

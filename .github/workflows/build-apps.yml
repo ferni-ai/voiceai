@@ -1,6 +1,6 @@
 # Voice AI - Build Native Apps
 #
-# Builds the mobile apps (iOS, Android). The Electron desktop app was removed.
+# Builds the iOS app. The Electron desktop app and the Android app were removed.
 # Triggered on version tags (v*) or manual dispatch. Pull requests and the merge
 # queue run only the iOS build and unit tests, and only when the iPhone app,
 # the shared Swift package or this workflow changed.
@@ -25,7 +25,6 @@ on:
           - all
           - mobile
           - ios
-          - android
 
 # Cancel in-progress runs for same ref
 concurrency:
@@ -171,105 +170,3 @@ jobs:
           name: ios-archive-unsigned
           path: ${{ runner.temp }}/FerniVoice.xcarchive
           retention-days: 30
-
-  # ============================================================================
-  # ANDROID BUILD (Native Kotlin/Compose)
-  # ============================================================================
-  build-android:
-    if: >
-      github.event_name == 'push' ||
-      github.event.inputs.platforms == 'all' ||
-      github.event.inputs.platforms == 'mobile' ||
-      github.event.inputs.platforms == 'android'
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Setup Java
-        uses: actions/setup-java@v6
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
-
-      - name: Cache Gradle packages
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('apps/android-native/**/*.gradle*', 'apps/android-native/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Decode Keystore
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > apps/android-native/ferni-release.keystore
-
-      - name: Create key.properties
-        if: env.ANDROID_KEYSTORE_PASSWORD != ''
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          cat > apps/android-native/key.properties << EOF
-          storePassword=$ANDROID_KEYSTORE_PASSWORD
-          keyPassword=$ANDROID_KEY_PASSWORD
-          keyAlias=$ANDROID_KEY_ALIAS
-          storeFile=../ferni-release.keystore
-          EOF
-
-      - name: Build Android APK
-        run: |
-          cd apps/android-native
-          chmod +x gradlew
-          ./gradlew assembleRelease
-
-      - name: Build Android Bundle (AAB)
-        run: |
-          cd apps/android-native
-          ./gradlew bundleRelease
-        continue-on-error: true
-
-      - name: Upload Android artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: android-build
-          path: |
-            apps/android-native/app/build/outputs/apk/release/*.apk
-            apps/android-native/app/build/outputs/bundle/release/*.aab
-          retention-days: 30
-
-  # ============================================================================
-  # CREATE RELEASE
-  # ============================================================================
-  create-release:
-    needs: [build-android]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v8
-        with:
-          path: artifacts/
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v3
-        with:
-          draft: true
-          generate_release_notes: true
-          files: |
-            artifacts/android-build/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

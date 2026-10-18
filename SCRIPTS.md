@@ -118,7 +118,6 @@ Code and asset generation
 
 | Script | Command |
 |--------|----------|
-| `npm run build:android` | `npx tsx scripts/build.ts android` |
 | `npm run build:animation-constants` | `node design-system/generate-animation-constants.js` |
 | `npm run build:apps` | `npx tsx scripts/build.ts apps` |
 | `npm run build:assets` | `node design-system/build-assets.js` |
