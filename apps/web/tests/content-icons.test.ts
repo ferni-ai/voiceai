@@ -4,8 +4,16 @@
  * that used emoji must now render SVG.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CONTENT_ICONS, contentIcon, type ContentIconName } from '../src/ui/icons/content-icons.js';
+import {
+  CONTENT_ICONS,
+  contentIcon,
+  contentIconOr,
+  type ContentIconName,
+} from '../src/ui/icons/content-icons.js';
+import { insightIcon } from '../src/ui/music-dashboard/icons.js';
 
 const NAMES = Object.keys(CONTENT_ICONS) as ContentIconName[];
 
@@ -67,4 +75,24 @@ describe('screens that used emoji now draw SVG', () => {
       expect(container.textContent ?? '').not.toMatch(/\p{Extended_Pictographic}/u);
     }
   );
+});
+
+describe('music game insights send icon names the client knows', () => {
+  it('every icon in game-insights.ts is a content icon name', () => {
+    const text = readFileSync(
+      join(__dirname, '../../../src/services/games/game-insights.ts'),
+      'utf8'
+    );
+    const values = [...text.matchAll(/\bicon:\s*'([^']*)'/g)].map((m) => m[1]);
+    expect(values.length).toBeGreaterThan(10);
+    expect(values.filter((v) => !NAMES.includes(v as ContentIconName))).toEqual([]);
+  });
+
+  it('the dashboard draws the named icon, and the fallback for junk', () => {
+    expect(insightIcon('flame')).toBe(contentIcon('flame', 20));
+    expect(insightIcon('<img src=x onerror=alert(1)>')).toBe(contentIcon('music', 20));
+    expect(insightIcon('🔥')).toBe(contentIcon('music', 20));
+    expect(contentIconOr('constructor', 'star')).toBe(contentIcon('star'));
+    expect(contentIconOr(undefined, 'star', 12)).toBe(contentIcon('star', 12));
+  });
 });

@@ -49,6 +49,7 @@ const SERVER_UI_DATA = [
   'src/services/workflows/templates/template-library.ts',
   'src/services/workflows/workflow-engine.ts',
   'src/tools/domains/routines/index.ts',
+  'src/services/games/game-insights.ts',
 ];
 
 function uiSources(dir: string = UI): string[] {

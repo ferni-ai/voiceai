@@ -74,6 +74,10 @@ export const CONTENT_ICONS = {
     '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="m5 14 4 4"/><path d="m7 17-3 3"/><path d="m3 19 2 2"/>'
   ),
   thought: IDEA_ICONS.thought,
+  trophy: JOURNEY_ICONS.trophy,
+  zap: svg(
+    '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>'
+  ),
 } as const;
 
 export type ContentIconName = keyof typeof CONTENT_ICONS;
@@ -83,4 +87,14 @@ export function contentIcon(name: ContentIconName, size = 24): string {
   return CONTENT_ICONS[name]
     .replace(/width="\d+"/, `width="${size}"`)
     .replace(/height="\d+"/, `height="${size}"`);
+}
+
+/**
+ * A content icon for a name that came from data (an API response). Unknown
+ * names and non-strings get the fallback, so the data never reaches the DOM.
+ */
+export function contentIconOr(name: unknown, fallback: ContentIconName, size = 24): string {
+  const known =
+    typeof name === 'string' && Object.prototype.hasOwnProperty.call(CONTENT_ICONS, name);
+  return contentIcon(known ? (name as ContentIconName) : fallback, size);
 }
