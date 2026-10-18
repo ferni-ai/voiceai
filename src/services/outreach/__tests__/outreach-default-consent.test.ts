@@ -62,6 +62,8 @@ vi.mock('../intelligent-onboarding-arc.js', () => ({
   getPendingCheckIns: vi.fn(async () => []),
 }));
 vi.mock('../llm-content-generator.js', () => ({ generatePersonalizedContent: vi.fn() }));
+const confirmSmsOptIn = vi.hoisted(() => vi.fn(async () => 'sent'));
+vi.mock('../opt-in-text.js', () => ({ confirmSmsOptIn }));
 
 const consent = await import('../outreach-consent.js');
 const { deliver } = await import('../unified-delivery.js');
@@ -157,6 +159,24 @@ describe('outreach consent mapping', () => {
     // Only revokedAt: the merge keeps the original grant on record.
     expect(revoked.smsConsent).toEqual({ revokedAt: expect.stringMatching(/^\d{4}-/) });
     expect(revoked).not.toHaveProperty('callConsent'); // unchanged, so untouched
+  });
+
+  it('texts going on in settings send one confirmation; going off, or another source, none', async () => {
+    confirmSmsOptIn.mockClear();
+    const web = { disclosureVersion: consent.SMS_DISCLOSURE_VERSION, source: 'web-settings' };
+    users = [user('u1', { outreachPreferences: { channels: [] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms'] }, web);
+    const granted = (
+      setCalls[0].value as { outreachPreferences: { smsConsent: { grantedAt: string } } }
+    ).outreachPreferences.smsConsent.grantedAt;
+    expect(confirmSmsOptIn).toHaveBeenCalledWith('u1', granted);
+    await consent.writeOutreachConsent('u1', { channels: ['voice_call'] }, web); // calls only: no sms grant
+    users = [user('u1', { outreachPreferences: { channels: ['sms'] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms'] }, web); // already on
+    await consent.writeOutreachConsent('u1', { channels: [] }, web); // off
+    users = [user('u1', { outreachPreferences: { channels: [] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms'] }); // not from settings
+    expect(confirmSmsOptIn).toHaveBeenCalledTimes(1);
   });
 
   it('fails loudly when the opt-out cannot be saved', async () => {

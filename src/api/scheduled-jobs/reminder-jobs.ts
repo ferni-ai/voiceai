@@ -25,7 +25,10 @@ export async function handleDeliverReminders(
     const { installReminderTexts } = await import('../../services/outreach/reminder-texts.js');
     installReminderTexts();
     const result = await deliverDueReminders({ dryRun });
-    sendJson(res, 200, { success: true, job: 'deliver-reminders', ...result });
+    // Texts a guard held (quiet hours) go out once due, on the same every-minute run.
+    const { releaseHeldTexts } = await import('../../services/outreach/held-texts.js');
+    const heldTexts = dryRun ? undefined : await releaseHeldTexts();
+    sendJson(res, 200, { success: true, job: 'deliver-reminders', ...result, heldTexts });
   } catch (error) {
     log.error({ error: String(error) }, 'Reminder delivery job failed');
     sendJson(res, 500, { success: false, job: 'deliver-reminders', error: String(error) });

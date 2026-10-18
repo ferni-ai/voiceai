@@ -210,4 +210,16 @@ export async function writeOutreachConsent(
     { merge: true }
   );
   log.info({ userId, ...outreachPreferences }, 'Outreach consent saved');
+  const granted = (outreachPreferences.smsConsent as { grantedAt?: string } | undefined)?.grantedAt;
+  if (granted && how.source === 'web-settings') await confirmOptIn(userId, granted);
+}
+
+/** Texts going on in settings get one confirmation text (opt-in-text.ts); it never fails the save. */
+async function confirmOptIn(userId: string, grantedAt: string): Promise<void> {
+  try {
+    const { confirmSmsOptIn } = await import('./opt-in-text.js');
+    log.info({ userId, outcome: await confirmSmsOptIn(userId, grantedAt) }, 'Opt-in confirmation');
+  } catch (error) {
+    log.warn({ userId, error: String(error) }, 'Opt-in confirmation not sent');
+  }
 }
