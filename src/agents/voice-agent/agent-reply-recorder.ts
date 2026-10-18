@@ -25,6 +25,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import type { UserData } from '../shared/types.js';
 import { createLedgerRecorder } from '../personas/life-ledger.js';
+import { heldOutOfMemory } from '../multi-agent/arrival-grounding.js';
 import { recordAgentTurn } from './agent-turn-recorder.js';
 
 const log = createLogger({ module: 'agent-reply-recorder' });
@@ -134,6 +135,9 @@ export async function recordCommittedAgentReply(
     log.debug({ error: String(error), sessionId }, 'Repair/advice tracking failed');
   }
 
+  // A teammate's first line on a handoff is their hello, never a record of the caller
+  // (ARRIVAL_LINE_GROUNDED): out of the summary, the after-call extraction and the life ledger.
+  if (heldOutOfMemory(sessionId, text)) return false;
   await recordAgentTurn(sessionId, services, text);
 
   log.debug(
