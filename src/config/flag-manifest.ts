@@ -395,7 +395,6 @@ export const FLAG_MANIFEST = {
   USE_PRE_STT_PROCESSING: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // SERVICE_MODE=remote also turns it on
   USE_RUNTIME: { default: 'off', owner: 'platform', kind: 'experiment' },
-  USE_SIMPLIFIED_ROUTING: { default: 'off', owner: 'tools', kind: 'experiment' },
   USE_SMART_CONTEXT_ROUTING: { default: 'off', owner: 'voice', kind: 'experiment' },
   USE_SONATA_STT: { default: 'off', owner: 'voice', kind: 'experiment' },
   USE_TOOL_GATEWAY: { default: 'on', owner: 'voice', kind: 'kill-switch' },
