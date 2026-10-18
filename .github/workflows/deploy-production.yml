@@ -63,9 +63,6 @@ on:
 # production, even an older commit (2026-10-02: four at once). A queued run
 # waits; GitHub keeps only the newest pending one, so main's head wins.
 # cancel-in-progress stays off so a rollout is never cut off midway.
-# Every job runs on ferni-deploy, a 4-core GitHub-hosted runner (max 2) kept
-# for prod deploys only, so a deploy never queues behind PR CI on the shared
-# ubuntu-latest pool (2026-10-18: the #2023 security fix waited 3+ hours).
 concurrency:
   group: deploy-production
   cancel-in-progress: false
@@ -86,7 +83,7 @@ jobs:
   # ============================================================================
   prepare:
     name: 🔍 Validate & Prepare
-    runs-on: ferni-deploy
+    runs-on: ubuntu-latest
     outputs:
       short_sha: ${{ steps.meta.outputs.short_sha }}
       deploy_voice: ${{ steps.services.outputs.voice }}
@@ -138,7 +135,7 @@ jobs:
   # ============================================================================
   build-test:
     name: 🧪 Build & Test
-    runs-on: ferni-deploy
+    runs-on: ubuntu-latest
     needs: prepare
     if: ${{ !inputs.skip_tests }}
     timeout-minutes: 75
@@ -247,7 +244,7 @@ jobs:
   # ============================================================================
   build-voice-image:
     name: 🐳 Build Voice Agent Image
-    runs-on: ferni-deploy
+    runs-on: ubuntu-latest
     needs: [prepare]
     if: ${{ needs.prepare.outputs.deploy_voice == 'true' }}
     
@@ -307,7 +304,7 @@ jobs:
   # ============================================================================
   build-ui-image:
     name: 🐳 Build UI Server Image
-    runs-on: ferni-deploy
+    runs-on: ubuntu-latest
     needs: [prepare]
     if: ${{ needs.prepare.outputs.deploy_ui == 'true' }}
     
@@ -398,7 +395,7 @@ jobs:
   # ============================================================================
   deploy-voice:
     name: ⛔ Voice Agent (GCE only - skip Cloud Run)
-    runs-on: ferni-deploy
+    runs-on: ubuntu-latest
     needs: [prepare, build-test, build-voice-image]
     if: |
       always() &&
@@ -445,7 +442,7 @@ jobs:
   # ============================================================================
   deploy-ui:
     name: 🔵🟢 Deploy UI Server (Blue-Green)
-    runs-on: ferni-deploy
+    runs-on: ubuntu-latest
     needs: [prepare, build-test, build-ui-image]
     if: |
       always() && 
@@ -570,7 +567,7 @@ jobs:
   # ============================================================================
   verify:
     name: ✅ Verify Deployment
-    runs-on: ferni-deploy
+    runs-on: ubuntu-latest
     needs: [prepare, deploy-voice, deploy-ui]
     if: always() && (needs.deploy-voice.result == 'success' || needs.deploy-ui.result == 'success')
     
@@ -642,7 +639,7 @@ jobs:
   # ============================================================================
   notify:
     name: 📢 Notify
-    runs-on: ferni-deploy
+    runs-on: ubuntu-latest
     needs: [prepare, deploy-voice, deploy-ui, verify]
     if: always()
     
