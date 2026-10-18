@@ -1,5 +1,5 @@
 /**
- * Pins our @livekit/agents patch (patches/@livekit__agents@1.6.4.patch): a
+ * Pins our @livekit/agents patch (patches/@livekit__agents@1.9.3.patch): a
  * caller's "mm-hmm" over Ferni's reply doesn't end the reply.
  *
  * Dev, 2026-09-30 (rounds 6 and 8, playful scenario): the caller's "mm-hmm"

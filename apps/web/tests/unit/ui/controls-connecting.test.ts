@@ -34,8 +34,11 @@ describe('connect button while connecting', () => {
 
     expect(btn.disabled).toBe(false);
     expect(btn.getAttribute('aria-busy')).toBe('true');
-    expect(btn.dataset.status).toBeTruthy();
-    expect(btn.getAttribute('aria-label')).toBe(btn.dataset.status);
+    // Two lines in the pill; one sentence for screen readers.
+    expect(btn.querySelector('.btn-status-main')?.textContent).toBe('Connecting…');
+    expect(btn.querySelector('.btn-status-hint')?.textContent).toBe('Tap to cancel');
+    expect(btn.querySelector('.btn-status')?.getAttribute('aria-hidden')).toBe('true');
+    expect(btn.getAttribute('aria-label')).toBe('Connecting. Tap to cancel');
 
     btn.click();
     expect(onCancelConnect).toHaveBeenCalledTimes(1);
@@ -51,6 +54,7 @@ describe('connect button while connecting', () => {
     appState.set('connection', 'disconnected');
     expect(btn.getAttribute('aria-busy')).toBe('false');
     expect(btn.dataset.status).toBeUndefined();
+    expect(btn.querySelector('.btn-status')).toBeNull();
     expect(btn.hasAttribute('aria-label')).toBe(false);
   });
 
@@ -58,5 +62,15 @@ describe('connect button while connecting', () => {
     const { btn } = mount();
     appState.set('connection', 'reconnecting');
     expect(btn.disabled).toBe(true);
+    // One line, no cancel hint it can't honour.
+    expect(btn.querySelector('.btn-status-main')?.textContent).toBe('Connecting…');
+    expect(btn.querySelector('.btn-status-hint')).toBeNull();
+  });
+
+  it('re-entering connecting leaves one status, not two', () => {
+    const { btn } = mount();
+    appState.set('connection', 'reconnecting');
+    appState.set('connection', 'connecting');
+    expect(btn.querySelectorAll('.btn-status')).toHaveLength(1);
   });
 });

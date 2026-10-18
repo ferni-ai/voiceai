@@ -503,11 +503,6 @@ export class LinguisticMirroringEngine {
       'here is': "here's",
     };
 
-    // Create reverse map
-    const expansionMap: Record<string, string> = {};
-    for (const [expanded, contracted] of Object.entries(contractionMap)) {
-      expansionMap[contracted] = expanded;
-    }
 
     if (this.profile.usesContractions) {
       // User uses contractions - contract our response
@@ -515,7 +510,12 @@ export class LinguisticMirroringEngine {
         const regex = new RegExp(`\\b${expanded}\\b`, 'gi');
         if (regex.test(result)) {
           const original = result;
-          result = result.replace(regex, contracted);
+          // Keep a capital at the start of a sentence: "It is" becomes "It's", not "it's".
+          result = result.replace(regex, (m) =>
+            m[0] === m[0].toUpperCase()
+              ? contracted[0].toUpperCase() + contracted.slice(1)
+              : contracted
+          );
           if (result !== original) {
             applications.push({
               type: 'formality',
@@ -525,23 +525,10 @@ export class LinguisticMirroringEngine {
           }
         }
       }
-    } else {
-      // User doesn't use contractions - expand ours
-      for (const [contracted, expanded] of Object.entries(expansionMap)) {
-        const regex = new RegExp(`\\b${contracted.replace("'", "'")}\\b`, 'gi');
-        if (regex.test(result)) {
-          const original = result;
-          result = result.replace(regex, expanded);
-          if (result !== original) {
-            applications.push({
-              type: 'formality',
-              original: contracted,
-              mirrored: expanded,
-            });
-          }
-        }
-      }
     }
+    // A caller who says "I am" still hears contractions: never expand ours. Expanding made
+    // every persona stilted after one such line ("I am Jordan . it is really cool", prod
+    // 2026-10-17), against the prompt's "always use contractions".
 
     return { text: result, applications };
   }

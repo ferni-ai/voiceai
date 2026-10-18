@@ -8,7 +8,10 @@
  * 3. Sends a personalized welcome email via SendGrid
  *
  * Usage:
- *   npx tsx scripts/approve-waitlist-user.ts --email=jack.sneddon@gmail.com --phone="+18013305541"
+ *   npx tsx scripts/approve-waitlist-user.ts --email=<address> --phone=<+1XXXXXXXXXX> [--name=<first name>]
+ *
+ * Or set WAITLIST_EMAIL, WAITLIST_PHONE and WAITLIST_NAME. Contact details are
+ * never written into this file: it is in a public repository.
  */
 
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
@@ -18,13 +21,34 @@ import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 // CONFIGURATION
 // ============================================================================
 
-// Jack Sneddon's info
-const JACK = {
-  email: 'jack.sneddon@gmail.com',
-  phone: '+18013305541', // (801) 330-5541
-  name: 'Jack',
-  fullName: 'Jack Sneddon',
-};
+const USAGE = `Usage: npx tsx scripts/approve-waitlist-user.ts --email=<address> --phone=<+1XXXXXXXXXX> [--name=<first name>]
+   or: WAITLIST_EMAIL=<address> WAITLIST_PHONE=<+1XXXXXXXXXX> [WAITLIST_NAME=<first name>] npx tsx scripts/approve-waitlist-user.ts`;
+
+interface WaitlistContact {
+  email: string;
+  phone: string;
+  name: string;
+}
+
+function argValue(flag: string): string | undefined {
+  const prefix = `--${flag}=`;
+  const inline = process.argv.find((a) => a.startsWith(prefix));
+  if (inline) return inline.slice(prefix.length);
+  const i = process.argv.indexOf(`--${flag}`);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+}
+
+/** The waitlister to approve, from flags or env. Exits with usage text if email or phone is missing. */
+function readContact(): WaitlistContact {
+  const email = (argValue('email') ?? process.env.WAITLIST_EMAIL ?? '').trim();
+  const phone = (argValue('phone') ?? process.env.WAITLIST_PHONE ?? '').trim();
+  const name = (argValue('name') ?? process.env.WAITLIST_NAME ?? '').trim() || 'there';
+  if (!email || !phone) {
+    console.error(`Missing ${!email ? 'email' : 'phone'}.\n\n${USAGE}`);
+    process.exit(1);
+  }
+  return { email, phone, name };
+}
 
 // Ferni's voice - Cartesia voice ID for Ferni
 const FERNI_VOICE_ID = process.env.FERNI_CARTESIA_VOICE_ID || 'c45bc5ec-dc68-4feb-8829-6e6b2748095d';
@@ -415,27 +439,28 @@ function escapeXml(text: string): string {
 // ============================================================================
 
 async function main() {
+  const contact = readContact();
   console.log('╔════════════════════════════════════════════════════════════════╗');
   console.log('║           FERNI WAITLIST APPROVAL & OUTREACH                   ║');
   console.log('╚════════════════════════════════════════════════════════════════╝');
-  console.log(`\n👤 User: ${JACK.fullName}`);
-  console.log(`📧 Email: ${JACK.email}`);
-  console.log(`📱 Phone: ${JACK.phone}`);
+  console.log(`\n👤 User: ${contact.name}`);
+  console.log(`📧 Email: ${contact.email}`);
+  console.log(`📱 Phone: ${contact.phone}`);
 
   // Initialize Firebase
   const db = initFirebase();
 
   // Step 1: Approve in waitlist
-  await approveWaitlistUser(db, JACK.email);
+  await approveWaitlistUser(db, contact.email);
 
   // Step 2: Send voicemail
-  await sendVoicemail(JACK.phone, JACK.name);
+  await sendVoicemail(contact.phone, contact.name);
 
   // Step 3: Send email
-  await sendEmail(JACK.email, JACK.name);
+  await sendEmail(contact.email, contact.name);
 
   console.log('\n════════════════════════════════════════════════════════════════');
-  console.log('✅ Outreach complete! Jack should receive:');
+  console.log('✅ Outreach complete! They should receive:');
   console.log('   • A phone call with Ferni\'s voicemail');
   console.log('   • A personalized welcome email');
   console.log('   • Access to app.ferni.ai');

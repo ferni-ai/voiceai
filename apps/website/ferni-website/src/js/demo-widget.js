@@ -161,7 +161,7 @@
   
   const CAPABILITIES = {
     memory: {
-      label: 'Perfect Memory',
+      label: 'Remembers What Matters',
       description: 'I remember your whole story'
     },
     understanding: {

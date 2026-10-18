@@ -32,6 +32,8 @@ export interface SoakArgs {
   evalLimit: number;
   write: boolean;
   purge: boolean;
+  /** Dry-run the scheduled job (ponder-job.ts) over its real cohort. Never writes. */
+  job: boolean;
 }
 
 export function parseSoakArgs(argv: readonly string[]): SoakArgs {
@@ -41,6 +43,7 @@ export function parseSoakArgs(argv: readonly string[]): SoakArgs {
     evalLimit: 10,
     write: false,
     purge: false,
+    job: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -54,9 +57,11 @@ export function parseSoakArgs(argv: readonly string[]): SoakArgs {
     else if (a === '--eval-limit') args.evalLimit = Number(value());
     else if (a === '--write') args.write = true;
     else if (a === '--purge') args.purge = true;
+    else if (a === '--job') args.job = true;
     else throw new Error(`Unknown argument: ${a}`);
   }
   if (args.write && args.purge) throw new Error('--write and --purge are separate runs');
+  if (args.job && (args.write || args.purge)) throw new Error('--job is a dry run only');
   if (args.uids.length === 0 && !args.evalUsers) args.uids.push(SOAK_OWNER_UID);
   assertSoakAllowed(args.uids);
   return args;

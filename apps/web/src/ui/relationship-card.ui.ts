@@ -16,6 +16,7 @@ import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { resizePhotoToDataUrl } from '../utils/photo-resize.js';
 import { openLogMoment } from './log-moment.ui.js';
 import { openRecordGift } from './record-gift.ui.js';
 import { openEditPerson, type PersonData } from './edit-person.ui.js';
@@ -1789,13 +1790,8 @@ async function handlePhotoUpload(file: File): Promise<void> {
   toast.info(t('toasts.uploadingPhoto'));
 
   try {
-    // Convert to base64 for simple storage (in production, use Cloud Storage)
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+    // A small JPEG data URL: the photo is stored inside the contact's document.
+    const base64 = await resizePhotoToDataUrl(file);
 
     // Update contact with photo
     const response = await apiFetch(`/api/contacts/${state.person.contactId}`, {

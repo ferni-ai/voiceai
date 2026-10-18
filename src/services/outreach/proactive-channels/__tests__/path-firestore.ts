@@ -1,7 +1,8 @@
 /**
  * An in-memory Firestore keyed by document path, with nested subcollections:
- * doc get/set (with merge)/update, collection where (==, >=, <=, array-contains), orderBy (asc/desc, or
- * '__name__' for the document id), startAfter/startAt/endAt(id), limit. Enough for the
+ * doc get/set (with merge)/update, runTransaction (serialized; create), collection where (==, >=,
+ * <=, array-contains; dotted field paths), orderBy (asc/desc, or '__name__' for the document id),
+ * startAfter/startAt/endAt(id), limit. Enough for the
  * proactive check-in run and the daily outreach run end to end.
  */
 type Json = Record<string, unknown>;
@@ -11,6 +12,9 @@ const cmp = (a: unknown, b: unknown): number => {
   const [x, y] = [v(a), v(b)];
   return x === y ? 0 : x < y ? -1 : 1;
 };
+
+/** One transaction queue per database, however many handles open it. */
+const queues = new WeakMap<Map<string, Json>, Promise<unknown>>();
 
 const isMap = (v: unknown): v is Json =>
   typeof v === 'object' && v !== null && !Array.isArray(v) && !(v instanceof Date);
@@ -23,6 +27,12 @@ function deepMerge(base: Json, patch: Json): Json {
   }
   return out;
 }
+
+/** A field, or a nested one by dotted path ('flags.CANDOR'). */
+const fieldOf = (doc: Json | undefined, f: string): unknown =>
+  doc && f in doc
+    ? doc[f]
+    : f.split('.').reduce<unknown>((v, k) => (isMap(v) ? v[k] : undefined), doc);
 
 export function pathFirestore(docs: Map<string, Json>) {
   const snap = (path: string) => {
@@ -71,7 +81,7 @@ export function pathFirestore(docs: Map<string, Json>) {
         );
         paths = paths.filter((p) =>
           filters.every(([f, op, v]) => {
-            const x = docs.get(p)?.[f];
+            const x = fieldOf(docs.get(p), f);
             if (op === '==') return x === v;
             if (op === 'array-contains') return Array.isArray(x) && x.includes(v);
             if (x === undefined) return false;
@@ -96,5 +106,24 @@ export function pathFirestore(docs: Map<string, Json>) {
   function collectionRef(path: string): Json {
     return { ...query(path, []), doc: (id: string) => docRef(`${path}/${id}`) };
   }
-  return { collection: (name: string) => collectionRef(name) };
+  // Transactions run one at a time (Firestore's serializable guarantee for
+  // overlapping read-then-write); create fails when the document exists.
+  type Ref = { path: string; get: () => Promise<unknown>; set: (d: Json) => Promise<void> };
+  const tx = {
+    get: async (r: { get: () => Promise<unknown> }) => r.get(),
+    create: (r: Ref, d: Json) => {
+      if (docs.has(r.path)) throw new Error('6 ALREADY_EXISTS: Document already exists');
+      docs.set(r.path, structuredClone(d));
+    },
+    set: (r: Ref, d: Json) => void docs.set(r.path, structuredClone(d)),
+  };
+  const runTransaction = async <T>(fn: (t: typeof tx) => Promise<T>): Promise<T> => {
+    const run = (queues.get(docs) ?? Promise.resolve()).then(async () => fn(tx));
+    queues.set(
+      docs,
+      run.catch(() => undefined)
+    );
+    return run;
+  };
+  return { collection: (name: string) => collectionRef(name), runTransaction };
 }

@@ -6,14 +6,22 @@
  * persona copies a real person's life. This test scans Peter's files and
  * fails if a real identifier comes back.
  *
- * The bundle is cleaned in a few small PRs. SCANNED lists the parts already
- * clean on main; widen it as each part lands, until it is the whole bundle.
+ * The whole bundle is scanned (identity, behaviors, stories, knowledge and the
+ * rest), plus the two places outside it that speak as Peter: his spontaneous
+ * shares (spontaneous-vulnerability.ts, which had Carolyn, Dunkin' and a 1982
+ * Taco Bell) and his personal moments (peter-moments.ts, which had a Boston
+ * accent and a donut-chain ten-bagger). Persona audit, 2026-10-17.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import {
+  HOT_TAKES,
+  MICRO_STORIES,
+} from '../../intelligence/context-builders/personas/spontaneous-vulnerability.js';
+import { PETER_MOMENTS } from '../../personality/moments/peter-moments.js';
 
 const BUNDLE_DIR = fileURLToPath(new URL('../bundles/peter-john', import.meta.url));
 const AGENT_FILE = fileURLToPath(new URL('../../agents/personas/peter-agent.ts', import.meta.url));
@@ -60,6 +68,8 @@ const DENYLIST = new RegExp(
     'fifty-six years',
     'crayon',
     'six times out of ten',
+    'Boston accent',
+    'Bostonian',
   ].join('|'),
   'i'
 );
@@ -71,19 +81,27 @@ function listFiles(dir: string): string[] {
   });
 }
 
-const SCANNED = ['content/stories', 'content/knowledge'];
-const SCANNED_FILES = ['speech-traits.ts', 'persona.manifest.json'];
-
-const files = [
-  ...SCANNED.flatMap((dir) => listFiles(join(BUNDLE_DIR, dir))),
-  ...SCANNED_FILES.map((name) => join(BUNDLE_DIR, name)),
-  AGENT_FILE,
+const files = [...listFiles(BUNDLE_DIR), AGENT_FILE];
+const shares = [...(MICRO_STORIES['peter-john'] ?? []), ...(HOT_TAKES['peter-john'] ?? [])];
+const corpus = [
+  ...files.map((path) => ({ path, text: readFileSync(path, 'utf8') })),
+  ...shares.map((share, i) => ({
+    path: `${BUNDLE_DIR}/<spontaneous-vulnerability #${i}>`,
+    text: [share.content, share.transition, share.ssmlEnhanced].join('\n'),
+  })),
+  ...PETER_MOMENTS.map((moment) => ({
+    path: `${BUNDLE_DIR}/<peter-moments ${moment.id}>`,
+    text: [moment.content, ...moment.transitions, ...(moment.followUpPrompts ?? [])].join('\n'),
+  })),
 ];
-const corpus = files.map((path) => ({ path, text: readFileSync(path, 'utf8') }));
 
 describe("Peter John's persona is fictional", () => {
   it('reads the scanned files, not an empty or moved directory', () => {
-    expect(corpus.length).toBeGreaterThan(25);
+    expect(corpus.length).toBeGreaterThan(100);
+    expect(corpus.some(({ path }) => path.endsWith('identity/character.md'))).toBe(true);
+    expect(corpus.some(({ path }) => path.includes('content/behaviors/'))).toBe(true);
+    expect(shares.length).toBeGreaterThan(0);
+    expect(PETER_MOMENTS.length).toBeGreaterThan(5);
     expect(corpus.some(({ path }) => path.endsWith('content/stories/diane-story.json'))).toBe(true);
     expect(corpus.some(({ path }) => path.endsWith('content/stories/register-days.json'))).toBe(
       true
@@ -114,6 +132,7 @@ describe("Peter John's persona is fictional", () => {
   it('the denylist really catches the old content', () => {
     expect(DENYLIST.test('I married Carolyn in 1968')).toBe(true);
     expect(DENYLIST.test('my years running Magellan at Fidelity')).toBe(true);
+    expect(DENYLIST.test("I still can't shake the Boston accent")).toBe(true);
     expect(DENYLIST.test('Diane and I met at URI')).toBe(false);
   });
 });

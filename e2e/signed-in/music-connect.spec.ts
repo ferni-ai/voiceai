@@ -16,6 +16,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("Connect for Spotify asks to connect Spotify, and goes where it's sent", async ({ page }) => {
+  test.skip(true, 'Music Together is hidden: apps/web/src/config/menu-visibility.ts');
   let asked: Record<string, unknown> | undefined;
   await page.route('**/auth/oauth/start', async (route) => {
     asked = route.request().postDataJSON() as Record<string, unknown>;

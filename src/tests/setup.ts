@@ -42,6 +42,7 @@ const createMockFirestore = () => {
     where: ReturnType<typeof vi.fn>;
     orderBy: ReturnType<typeof vi.fn>;
     limit: ReturnType<typeof vi.fn>;
+    select: ReturnType<typeof vi.fn>;
   } = {
     doc: vi.fn(() => mockDoc),
     add: vi.fn().mockResolvedValue({ id: 'mock-doc-id' }),
@@ -49,6 +50,7 @@ const createMockFirestore = () => {
     where: vi.fn(() => mockCollection),
     orderBy: vi.fn(() => mockCollection),
     limit: vi.fn(() => mockCollection),
+    select: vi.fn(() => mockCollection),
   };
 
   return {

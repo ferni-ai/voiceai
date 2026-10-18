@@ -127,6 +127,7 @@ describe('calendar-awareness context builder', () => {
 
     it('should activate for alex-chen persona', async () => {
       mockIsConnected.mockResolvedValue(false);
+      mockGetDayOverview.mockResolvedValue(createMockDayOverview({ events: [] }));
 
       const result = await buildCalendarAwarenessContext('user-123', 'alex-chen');
 
@@ -135,6 +136,7 @@ describe('calendar-awareness context builder', () => {
 
     it('should activate for ferni persona (as coordinator)', async () => {
       mockIsConnected.mockResolvedValue(false);
+      mockGetDayOverview.mockResolvedValue(createMockDayOverview({ events: [] }));
 
       const result = await buildCalendarAwarenessContext('user-123', 'ferni');
 
@@ -146,6 +148,8 @@ describe('calendar-awareness context builder', () => {
   describe('calendar not connected', () => {
     it('should suggest connecting when calendar not connected', async () => {
       mockIsConnected.mockResolvedValue(false);
+      // Not connected reads Ferni's own list for the day (#1547); nothing is on it here.
+      mockGetDayOverview.mockResolvedValue(createMockDayOverview({ events: [] }));
 
       const result = await buildCalendarAwarenessContext('user-123', 'alex-chen');
 

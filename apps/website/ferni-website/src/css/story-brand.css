@@ -283,6 +283,13 @@ button {
   background: var(--color-ferni-green);
 }
 
+/* A ring that stands apart from the green pill, in both themes */
+.nav__cta:focus-visible {
+  outline: 3px solid var(--color-text-primary);
+  outline-offset: 3px;
+  transition: background var(--duration-normal) ease;
+}
+
 .nav__cta svg {
   width: 16px;
   height: 16px;
@@ -2112,11 +2119,6 @@ button {
 /* ============================================
    FERNI FUND SECTION - Gift Forward Model
    ============================================ */
-.ferni-fund {
-  background: linear-gradient(180deg, var(--color-paper-sand) 0%, var(--color-paper-cream) 100%);
-  padding: clamp(80px, 12vh, 120px) var(--space-6);
-}
-
 /* Fund Explainer - How it Works */
 .fund-explainer {
   background: var(--page-card, white);
@@ -4576,6 +4578,17 @@ html {
 
 .cookie-banner.is-hidden {
   transform: translateY(100%);
+}
+
+/* Lift the floating chat pill above the banner so it never covers Accept */
+body:has(.cookie-banner.is-visible) #ferni-live-chat {
+  bottom: calc(81px + var(--space-6));
+}
+
+@media (max-width: 768px) {
+  body:has(.cookie-banner.is-visible) #ferni-live-chat {
+    bottom: calc(145px + var(--space-4));
+  }
 }
 
 .cookie-banner__content {
@@ -7589,7 +7602,7 @@ body:not(.theme--dark) .chat-demo__label,
   font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-inverse);
   min-width: 120px;
 }
 

@@ -15,7 +15,7 @@
   },
   "voice": {
     "provider": "cartesia",
-    "voice_id": "85680374-8d94-43a1-bb15-5eea7a8bdbb8",
+    "voice_id": "4cf80313-54dc-4ca9-a17c-3e5b8f68a78c",
     "model": "sonic-3.6-2026-08-27",
     "default_rate": "medium",
     "default_speed": 1.0,
@@ -75,11 +75,7 @@
       ]
     }
   },
-  "tools": {
-    "always_available": ["handoff_to_team_member", "get_current_time", "get_user_context"],
-    "domain_specific": ["stock_research", "company_fundamentals", "investment_analysis"],
-    "restricted": []
-  },
+  "tools": {},
   "capabilities": {
     "voice_enabled": true,
     "memory_enabled": true,

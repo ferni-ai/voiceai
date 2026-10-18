@@ -45,11 +45,8 @@ When you finish implementing a feature, **proactively suggest the correct deploy
 | Files Changed                       | Deploy Command                | What it does                                |
 | ----------------------------------- | ----------------------------- | ------------------------------------------- |
 | `src/agents/**/*.ts` (voice agent)  | `lk agent deploy`             | Deploy voice agent to LiveKit Cloud         |
-| `src/**/*.ts` (backend)             | `npm run deploy:ui:async`     | Blue-green deploy UI backend                |
-| `frontend-typescript/src/*`         | `npm run deploy:frontend`     | Deploys to BOTH ferni-prod AND app.ferni.ai |
-| `frontend-typescript/firebase.json` | `npm run deploy:frontend`     | Updates Firebase rewrites                   |
-| `promo/ferni-website/*`             | `npm run deploy:landing`      | Deploys landing page                        |
-| Multiple areas                      | `npm run deploy:all`          | Deploys everything                          |
+| `src/**/*.ts` (backend)             | merge to main                 | deploy-production.yml (blue-green UI)       |
+| app / landing                       | merge to main                 | deploy-firebase.yml (both Firebase sites)   |
 
 ### ⛔ NEVER USE DIRECT GCLOUD DEPLOYS (PRE-COMMIT WILL BLOCK!)
 
@@ -58,9 +55,9 @@ When you finish implementing a feature, **proactively suggest the correct deploy
 | ❌ FORBIDDEN (blocks commit)          | ✅ REQUIRED                    |
 | ------------------------------------- | ------------------------------ |
 | `gcloud compute ssh ... docker run`   | `ferni deploy gce`             |
-| `gcloud run deploy ...`               | `ferni deploy ui`              |
-| `firebase deploy --only hosting`      | `ferni deploy frontend`        |
-| `docker push gcr.io/...`              | `ferni deploy` (handles push)  |
+| `gcloud run deploy ...`               | deploy-production.yml          |
+| `firebase deploy --only hosting`      | deploy-firebase.yml            |
+| `docker push gcr.io/...`              | the deploy workflows           |
 
 **Enforcement:**
 1. **Pre-commit hook** - Scans for direct cloud commands, blocks commit
@@ -107,7 +104,7 @@ Example rewrite for new `/api/newfeature` endpoint:
 
 - **Push to main** → CI/CD auto-deploys Cloud Run (UI server only)
 - **Voice Agent** → Manual: `lk agent deploy` (LiveKit Cloud; the GCE VM is terminated)
-- **Firebase Hosting** → Manual: `ferni deploy frontend` or `ferni deploy landing`
+- **Firebase Hosting** → deploy-firebase.yml on push to main (manual: `gh workflow run deploy-firebase.yml`)
 
 ### Verification Commands
 

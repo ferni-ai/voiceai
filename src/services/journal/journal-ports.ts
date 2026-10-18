@@ -26,6 +26,7 @@ const SOURCES: readonly JournalSource[] = [
   'auto_capture',
   'quick_note',
   'trust_analytics',
+  'call',
 ];
 const TEXT_FIELDS = [
   'agentId',

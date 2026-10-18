@@ -144,6 +144,31 @@ describe('architecture gate: what the graph sees', () => {
   });
 });
 
+describe('architecture gate: vendor SDKs stay out of core', () => {
+  it('catches L2 and L3 importing a vendor SDK directly, under the package name', () => {
+    const vs = violations({
+      'src/memory/store.ts': "import { getFirestore } from 'firebase-admin/firestore';\n",
+      'src/kernel/room.ts': "import { Room } from '@livekit/rtc-node';\n",
+    });
+    expect(rules(vs)).toEqual(['vendor src/kernel/room.ts -> @livekit/rtc-node', 'vendor src/memory/store.ts -> firebase-admin']);
+    expect(vs.find((v) => v.rule === 'vendor')!.line).toBe(1);
+  });
+
+  it('allows the vendor import in L4, L5 and L1, where adapters and wiring live', () => {
+    expect(
+      violations({
+        'src/pipeline/turn.ts': "import { Room } from '@livekit/agents';\n",
+        'src/app/main.ts': "import admin from 'firebase-admin';\n",
+        'src/adapters/store.ts': "import admin from 'firebase-admin';\n",
+      })
+    ).toEqual([]);
+  });
+
+  it('does not mistake a local file named like a vendor for the vendor', () => {
+    expect(violations({ 'src/memory/store.ts': "import { x } from '../adapters/firebase-admin-app.js';\n" })).toEqual([]);
+  });
+});
+
 describe('architecture gate: ratchet', () => {
   const v = (from: string, to: string, rule: Violation['rule'] = 'upward'): Violation => ({ rule, from, to, line: 1 });
   const base = toBaseline([v('src/a.ts', 'src/b.ts'), v('src/c.ts', 'src/d.ts', 'cycle')]);

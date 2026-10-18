@@ -9,6 +9,7 @@
  */
 
 import { getGCPProjectId } from '../../config/environment.js';
+import { useVertexAI } from '../../config/vertex-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
@@ -65,6 +66,16 @@ const DEFAULT_CONFIG: ValidationConfig = {
 // ============================================================================
 
 /**
+ * Gemini calls and embeddings go through Vertex AI on the service's own
+ * credentials (ADC) unless USE_VERTEX_AI is "false", once a project is set
+ * (llm-utils.ts, embeddings.ts). No API key is involved, so a key-only check
+ * reported "No LLM API key" on every prod start while the AI worked.
+ */
+function usesVertexAI(): boolean {
+  return useVertexAI() && !!process.env.GOOGLE_CLOUD_PROJECT;
+}
+
+/**
  * Validate Google Cloud configuration
  */
 function validateGoogleCloud(): { valid: boolean; errors: string[]; warnings: string[] } {
@@ -108,7 +119,7 @@ function validateEmbeddings(): {
   const hasGoogleKey = !!process.env.GOOGLE_API_KEY;
   const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
 
-  if (hasGoogleKey) {
+  if (hasGoogleKey || usesVertexAI()) {
     provider = 'google';
   } else if (hasOpenAIKey) {
     provider = 'openai';
@@ -155,10 +166,10 @@ function validateLLM(): { valid: boolean; errors: string[]; warnings: string[] }
   const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
   const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
 
-  if (!hasGoogleKey && !hasOpenAIKey && !hasAnthropicKey) {
+  if (!usesVertexAI() && !hasGoogleKey && !hasOpenAIKey && !hasAnthropicKey) {
     errors.push(
       'No LLM API key found. The AI cannot function. ' +
-        'Set GOOGLE_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY.'
+        'Set GOOGLE_CLOUD_PROJECT (Vertex AI), GOOGLE_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY.'
     );
   }
 
@@ -269,7 +280,9 @@ export function validateStartup(config: Partial<ValidationConfig> = {}): Validat
     }
 
     if (mergedConfig.requireSemanticSearch && embeddingResult.provider === 'local') {
-      allErrors.push('Production requires semantic search. Set GOOGLE_API_KEY or OPENAI_API_KEY.');
+      allErrors.push(
+        'Production requires semantic search. Set GOOGLE_CLOUD_PROJECT (Vertex AI), GOOGLE_API_KEY or OPENAI_API_KEY.'
+      );
     }
   }
 

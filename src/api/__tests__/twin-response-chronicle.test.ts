@@ -109,6 +109,17 @@ describe("the Chronicle's talk to past self", () => {
     expect(prompt()).toContain('resilience');
   });
 
+  it('an entry that shares only words like "the" and "you" is not relevant', async () => {
+    m.getAllEntries.mockResolvedValue([
+      entry('The day you called, I was at the office.'),
+      entry('We walked by the lake every morning in April.'),
+    ]);
+    await post({ userMessage: 'Do you remember the lake?', agentId: null });
+
+    expect(prompt()).toContain('We walked by the lake every morning in April.');
+    expect(prompt()).not.toContain('The day you called, I was at the office.');
+  });
+
   it('reads only the signed-in caller’s agents and journal', async () => {
     await post({ userMessage: 'Do you remember the lake?', agentId: null, userId: 'uid-other' });
 

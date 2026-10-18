@@ -311,11 +311,6 @@
     border-color: var(--color-border-subtle);
   }
 
-  /* Chip-in band: --color-paper-sand stays cream in dark mode */
-  :root:root .ferni-fund {
-    background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
-  }
-
   :root:root .chip-in {
     border-color: var(--color-border-subtle);
   }

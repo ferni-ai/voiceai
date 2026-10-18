@@ -8,7 +8,6 @@
 // Research executor (Peter's domain)
 export {
   executeResearchTask,
-  queueResearchTask,
   type ResearchRequest,
   type ResearchResult,
   type ResearchFinding,

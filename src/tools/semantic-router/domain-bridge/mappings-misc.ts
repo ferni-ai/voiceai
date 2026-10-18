@@ -85,17 +85,13 @@ export const MISC_MAPPINGS: Record<string, ToolMapping> = {
   },
 
   // ==========================================================================
-  // 💰 FINANCE EXTENDED (6 tools)
+  // 💰 FINANCE EXTENDED (5 tools)
   // ==========================================================================
   finance_charitable: { domainToolId: 'planCharitableGiving' },
   finance_align_giving: { domainToolId: 'alignGivingWithValues' },
   finance_tax: { domainToolId: 'prepareForTaxSeason' },
   finance_assistance: { domainToolId: 'findFinancialAssistance' },
   finance_insurance: { domainToolId: 'reviewInsuranceCoverage' },
-  finance_compare: {
-    domainToolId: 'comparePrices',
-    transformArgs: (args) => ({ item: args.item }),
-  },
 
   // ==========================================================================
   // 📖 STORIES & REFLECTION (8 tools)

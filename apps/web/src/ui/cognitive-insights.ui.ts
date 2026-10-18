@@ -382,7 +382,6 @@ class CognitiveInsightsUI {
   }
 
   private renderMemory(memory: CognitiveMemory, index: number): string {
-    const confidence = Math.round(memory.confidence * 100);
     const learned = memory.learnedAt ? new Date(memory.learnedAt) : null;
     const dateStr = learned ? formatDate(learned, { month: 'short', day: 'numeric' }) : '';
     const delay = index * STAGGER_DELAYS.MICRO;
@@ -393,9 +392,6 @@ class CognitiveInsightsUI {
           <p>${escapeHtml(memory.content)}</p>
           <div class="cognitive-insights__memory-meta">
             ${dateStr ? `<span>${dateStr}</span>` : ''}
-            <span class="cognitive-insights__memory-confidence">
-              ${t('cognitive.percentSure', { percent: confidence })}
-            </span>
           </div>
         </div>
         <button class="cognitive-insights__memory-delete" data-id="${escapeHtml(memory.id)}" aria-label="${t('accessibility.forgetThis')}">
@@ -830,10 +826,6 @@ class CognitiveInsightsUI {
         gap: var(--space-3, 12px);
         font-size: var(--text-xs);
         color: var(--color-text-muted);
-      }
-
-      .cognitive-insights__memory-confidence {
-        color: var(--color-accent-text);
       }
 
       .cognitive-insights__memory-delete {
