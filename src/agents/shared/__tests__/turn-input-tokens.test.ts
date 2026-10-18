@@ -97,7 +97,7 @@ describe('inputTokenParts', () => {
 });
 
 describe('toolSchemaChars', () => {
-  it('measures each tool as Gemini declares it: name, description and JSON schema', () => {
+  it('measures each tool as the Google plugin declares it: name, description and JSON schema', () => {
     const one = toolSchemaChars(toolSet(['getWeather']));
     const schema = JSON.stringify(llm.toJsonSchema(tool('getWeather').parameters, false));
     expect(one).toBeGreaterThan(

@@ -8,7 +8,7 @@
  * in `Est`): the persona prompt (the agent's instructions), the context
  * injected for this call and turn (recall, turn context, the reminder with the
  * context packet, director notes, other system notes), the tool schemas as the
- * Gemini plugin declares them (name, description, JSON schema), and the chat
+ * Google plugin declares them (name, description, JSON schema), and the chat
  * history (both sides, tool calls and outputs, the caller's latest words).
  * `totalMeasured` and `cachedMeasured` are the model's own counts
  * (promptTokenCount, cachedContentTokenCount), from the turn's first request;
