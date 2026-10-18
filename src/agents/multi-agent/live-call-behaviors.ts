@@ -39,6 +39,7 @@ import {
   SOLE_STANDS_DOWN,
 } from '../shared/turn-detector-sole.js';
 import { noteBargeIn } from '../shared/turn-receipt-session.js';
+import { addRecallNote, type RecallAgent } from './recall-note.js';
 
 const log = getLogger();
 
@@ -224,7 +225,16 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Texts, calls and emails wait for the caller's own yes (outreach-confirm.ts).
   if (isOutreachConfirmOn()) {
-    const confirm = outreachConfirmListeners(session, () => speakerIsAccountOwner(sessionId));
+    // OUTREACH_SERVER_CONFIRM: what the caller's yes sent reaches the model as a mid-call note.
+    const note = (text: string) => {
+      try {
+        addRecallNote(session.currentAgent as unknown as RecallAgent, text);
+      } catch (error) {
+        log.warn({ sessionId, error: String(error) }, 'OUTREACH_SERVER_CONFIRM: note not added');
+      }
+    };
+    const owner = () => speakerIsAccountOwner(sessionId);
+    const confirm = outreachConfirmListeners(session, owner, note);
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },

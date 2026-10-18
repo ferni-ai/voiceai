@@ -27,11 +27,12 @@
 import { stt } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { FERNI_NAME_MISHEARS } from '../../utils/ferni-name-mishears.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'NameMishear' });
 
-const MISHEARD = /\b(freddy|fernie|ferny|furny|fern)\b/gi;
+const MISHEARD = new RegExp(`\\b(${FERNI_NAME_MISHEARS.join('|')})\\b`, 'gi');
 /** The name ends its clause: punctuation or the end of the utterance follows. */
 const CLOSES = /^\s*(?:[.!?,;:]|$)/;
 /** "Hey Fern how are you": what follows is said to the one greeted. */
