@@ -1,0 +1,76 @@
+---
+layout: layouts/story-brand.njk
+title: What Ferni is
+description: Ferni isn't a person. Ferni is software, built with artificial intelligence, made and looked after by real people.
+permalink: /what-ferni-is/
+---
+
+{#
+  The plain answer to "Is Ferni a person?" (owner decision 2026-10-18: say it
+  here on the website, not inside the app). Linked from every footer, the
+  homepage, both FAQs and the sign-up modal. Ferni speaks as himself, so the
+  copy is in the first person; it names the technology in prose and never as
+  a label. e2e/website-what-ferni-is.spec.ts keeps it from quietly going away.
+#}
+<main class="story-page what-ferni-is" id="main-content">
+
+  <section class="story-page__hero what-ferni-is__hero">
+    <div class="container container--narrow">
+      <p class="story-page__eyebrow">What Ferni is</p>
+      <h1 class="story-page__headline">I'm not a person.</h1>
+      <p class="story-page__text">
+        I'm software, built with artificial intelligence. I listen, I remember what matters to you, and I talk with you.
+        Real people built me, and they stand behind me.
+      </p>
+    </div>
+  </section>
+
+  <section class="story-page__section what-ferni-is__section">
+    <div class="story-page__block">
+      <h2 class="story-page__subhead">How I work</h2>
+      <p class="story-page__text">
+        When we talk, large language models help me understand what you say and find the words to answer.
+        The voice you hear is made by software too. Maya, Peter, Alex, Jordan and Nayan work the same way:
+        each has a personality and a focus, and none of them is a person either.
+      </p>
+    </div>
+  </section>
+
+  <section class="story-page__section what-ferni-is__section">
+    <div class="story-page__block">
+      <h2 class="story-page__subhead">Who's behind me</h2>
+      <p class="story-page__text">
+        Real people build Ferni and look after it. If something I said felt off,
+        or you'd just like to talk to a person, <a href="/contact/">write to them</a>.
+      </p>
+    </div>
+  </section>
+
+  <section class="story-page__section what-ferni-is__section" id="care">
+    <div class="story-page__block">
+      <h2 class="story-page__subhead">What I'm not</h2>
+      <p class="story-page__text">
+        I'm not a therapist, a doctor or emergency help, and I don't take their place.
+        If you're in crisis or need someone right now, call or text <a href="tel:988">988</a> in the US
+        (the <a href="https://988lifeline.org/" rel="noopener">988 Suicide &amp; Crisis Lifeline</a>),
+        or your local emergency number.
+      </p>
+    </div>
+  </section>
+
+  <section class="story-page__section what-ferni-is__section">
+    <div class="story-page__block">
+      <h2 class="story-page__subhead">Yours to keep, or delete</h2>
+      <p class="story-page__text">
+        What you share is yours. You can delete your account and everything in it, any time.
+      </p>
+      <p class="story-page__text what-ferni-is__links">
+        <a href="/delete-account/">Delete your account</a>
+        <a href="/privacy/">Read the privacy policy</a>
+      </p>
+    </div>
+  </section>
+
+</main>
+
+{% include "partials/footer-premium.njk" %}
