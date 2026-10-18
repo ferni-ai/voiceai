@@ -401,14 +401,14 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'scoreEvidenceQuality',
       'Score Evidence Quality',
-      'Score the quality of evidence behind any claim. Separate fact from anecdote from opinion.',
+      'Say how well-supported a claim is, from short built-in research notes. Not a live literature search.',
       superhumanTools.scoreEvidenceQuality,
       { tags: ['superhuman', 'research', 'evidence', 'critical-thinking'] }
     ),
     wrapLegacyTool(
       'synthesizeResearch',
       'Synthesize Research',
-      'Synthesize research on any topic in seconds. Get the real consensus, not pop science headlines.',
+      'Summarize what is generally known on a few life topics from built-in research notes. Not a live literature search.',
       superhumanTools.synthesizeResearch,
       { tags: ['superhuman', 'research', 'synthesis', 'evidence'] }
     ),
@@ -422,14 +422,14 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'verifyClaim',
       'Verify Claim',
-      'Verify any claim against evidence. Get a truth rating from verified to false.',
+      'Check advice against well-known myths and built-in research notes. Says when it cannot verify a claim.',
       superhumanTools.verifyClaim,
       { tags: ['superhuman', 'research', 'fact-check', 'evidence'] }
     ),
     wrapLegacyTool(
       'getBaseRate',
       'Get Base Rate',
-      'Get the base rate for any situation. Combat probability blindness with real statistics.',
+      'Base-rate context for a few common scenarios. Quotes a figure only where a sourced one exists.',
       superhumanTools.getBaseRate,
       { tags: ['superhuman', 'research', 'statistics', 'probability'] }
     ),
@@ -592,35 +592,35 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'getLocalEconomics',
       'Get Local Economics',
-      'Get local economic indicators for your area. See how YOUR local economy is doing.',
+      'Talk about the local economy. Live local data is not connected, so this points to public sources instead of quoting figures.',
       superhumanTools.getLocalEconomics,
       { tags: ['superhuman', 'external-data', 'economics', 'local'] }
     ),
     wrapLegacyTool(
       'synthesizeIndustryTrends',
       'Synthesize Industry Trends',
-      'Synthesize trends for any industry. Know where sectors are heading.',
+      'Talk about an industry: no current market views, sentiment calls or company picks.',
       superhumanTools.synthesizeIndustryTrends,
       { tags: ['superhuman', 'external-data', 'industry', 'trends'] }
     ),
     wrapLegacyTool(
       'analyzeNewsSentiment',
       'Analyze News Sentiment',
-      'Analyze news sentiment for any topic. Cut through noise to see the real narrative.',
+      'Talk about news coverage of a topic. Live news is not connected, so this does not score current coverage.',
       superhumanTools.analyzeNewsSentiment,
       { tags: ['superhuman', 'external-data', 'news', 'sentiment'] }
     ),
     wrapLegacyTool(
       'recordSpending',
       'Record Spending',
-      'Record spending for personal inflation calculation.',
+      "Record a spending entry for the user's own spending summary.",
       superhumanTools.recordSpending,
       { tags: ['superhuman', 'external-data', 'spending', 'inflation'] }
     ),
     wrapLegacyTool(
       'calculatePersonalInflation',
       'Calculate Personal Inflation',
-      'Calculate YOUR personal inflation rate. See how inflation actually affects YOU.',
+      "Summarize the user's recorded spending by category. Live inflation data is not connected, so this gives no personal inflation rate.",
       superhumanTools.calculatePersonalInflation,
       { tags: ['superhuman', 'external-data', 'inflation', 'personal'] }
     ),
@@ -810,13 +810,13 @@ function getBackgroundResearchToolDefinitions(): ToolDefinition[] {
       id: 'backgroundResearch',
       name: 'Background Research',
       description:
-        'Start background research that continues even when the user disconnects. Perfect for: "Research NVDA while I\'m away", "Find out about X and let me know later", "Dig into this topic in the background". Results are delivered when the user reconnects.',
+        'Background research is not connected. Use when the user asks to research something "while I\'m away" or "let me know later": it tells them nothing can be queued and offers a quick search now instead.',
       domain: 'research',
       tags: ['background', 'async', 'research', 'while-you-were-away'],
-      create: (ctx: ToolContext) => {
+      create: (_ctx: ToolContext) => {
         return llm.tool({
           description:
-            'Start deep research in the background. Results are saved and delivered when the user returns. Use for research that takes time.',
+            "Background research is not connected. Call this when the user asks you to research something later or while they're away; it says nothing can be queued. Never promise background findings.",
           parameters: {
             type: 'object',
             properties: {
@@ -842,45 +842,10 @@ function getBackgroundResearchToolDefinitions(): ToolDefinition[] {
             },
             required: ['query', 'researchType'],
           },
-          execute: async ({
-            query,
-            researchType,
-            depth = 'standard',
-            urgency = 'when_ready',
-          }: {
-            query: string;
-            researchType:
-              'stock_analysis' | 'fact_check' | 'deep_dive' | 'market_research' | 'general';
-            depth?: 'quick' | 'standard' | 'comprehensive';
-            urgency?: 'when_ready' | 'asap' | 'next_session';
-          }) => {
-            try {
-              const { queueResearchTask } =
-                await import('../../../services/background-agents/index.js');
-
-              const taskId = await queueResearchTask({
-                userId: ctx.userId || 'anonymous',
-                query,
-                type: researchType,
-                depth,
-                initiatedBy: 'peter',
-                sessionId: ctx.sessionId,
-                context: urgency !== 'when_ready' ? `Delivery: ${urgency}` : undefined,
-              });
-
-              return `**Background Research Started** 🔍
-
-I'm on it! I'll research "${query}" in the background.
-
-**Research Type:** ${researchType.replace(/_/g, ' ')}
-**Depth:** ${depth}
-**Task ID:** ${taskId.slice(0, 8)}...
-
-I'll keep working on this even if you disconnect. When you come back, I'll have findings ready to share!`;
-            } catch (error) {
-              return `I couldn't start the background research right now. Let me do this research in real-time instead...`;
-            }
-          },
+          // No research source is connected, so nothing is queued: a queued job
+          // used to deliver placeholder findings as finished research.
+          execute: async () =>
+            "I can't research things in the background right now, so I haven't started anything and won't have findings for you later. I can try a quick search on it now, or we can think it through together.",
         });
       },
     },

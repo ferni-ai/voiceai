@@ -124,22 +124,98 @@ export async function holdForCallHours(
   return decision.allowed ? undefined : deferCall(userId, call, decision);
 }
 
+/** The last ten digits, so "+13035550100" and "303-555-0100" match. */
+const lastTen = (phone: unknown): string =>
+  String(phone ?? '')
+    .replace(/\D/g, '')
+    .slice(-10);
+
+/**
+ * The user's on-behalf call to this number that is still waiting for its hour,
+ * if any. A failed read finds none, so a call is never refused on a hiccup.
+ */
+export async function pendingCallTo(
+  userId: string,
+  phone: string | undefined,
+  now = new Date()
+): Promise<Deferral | undefined> {
+  const want = lastTen(phone);
+  if (want.length < 7) return undefined;
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) return undefined;
+    const snap = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(COLLECTION)
+      .where('status', '==', 'pending')
+      .get();
+    for (const doc of snap.docs) {
+      const data = doc.data() as Partial<DeferredCall> & {
+        scheduledFor?: string;
+        timezone?: string;
+      };
+      if (data.kind !== 'on_behalf' || lastTen(data.request?.resolvedContact?.phone) !== want)
+        continue;
+      const at = new Date(data.scheduledFor ?? '');
+      // Too late to be placed (executeDueDeferredCalls drops it): not waiting any more.
+      if (Number.isNaN(at.getTime()) || now.getTime() - at.getTime() > LATE_AFTER_MS) continue;
+      return { id: doc.id, at, timezone: data.timezone || 'UTC' };
+    }
+  } catch (error) {
+    log.warn({ userId, error: String(error) }, 'Could not read pending deferred calls');
+  }
+  return undefined;
+}
+
+/**
+ * Place an on-behalf call unless one to the same number already waits for its
+ * hour. `held` is what to tell the user when nothing rang now: the call already
+ * set (prod 2026-10-17: after a handoff Ferni went to call the same mom again and
+ * asked "Should I go ahead?"), or this one held by the call-hours guard.
+ */
+export async function placeOrHold(
+  request: OnBehalfCallRequest,
+  place: (request: OnBehalfCallRequest) => Promise<string>,
+  now = new Date()
+): Promise<{ callId?: string; held?: string }> {
+  const name = request.resolvedContact?.name || request.contactQuery;
+  const waiting = await pendingCallTo(request.userId, request.resolvedContact?.phone, now);
+  if (waiting) return { held: alreadySetReply(name, waiting, now) };
+  const callId = await place(request);
+  return { callId, held: deferredCallReply(callId, name, request.purpose, now) };
+}
+
+/** A call to this person is already set: nothing new dialed, and when the set one rings. */
+export function alreadySetReply(contactName: string, waiting: Deferral, now = new Date()): string {
+  return (
+    `Nothing was dialed yet: a call to ${contactName} is already set for ` +
+    `${spokenWhen(waiting.at, waiting.timezone, now)} their time, so I didn't set up another. ` +
+    `Tell the caller it's already on the way then.`
+  );
+}
+
 export interface DeferredCallsRunResult {
   due: number;
   placed: number;
+  /** Still outside the recipient's hours when picked up, so held again for the next good hour. */
+  rescheduled: number;
   failed: number;
   missed: number;
 }
 
-async function place(userId: string, call: DeferredCall): Promise<void> {
+/** The new deferral's id when the call-hours guard held it again, else undefined (it rang). */
+async function place(userId: string, call: DeferredCall): Promise<string | undefined> {
   if (call.kind === 'on_behalf') {
     const { getOnBehalfCallOrchestrator } = await import('./on-behalf-call-orchestrator.js');
-    await getOnBehalfCallOrchestrator().initiateCall({ ...call.request, userId });
-    return;
+    const callId = await getOnBehalfCallOrchestrator().initiateCall({ ...call.request, userId });
+    return callId.startsWith('deferred_') ? callId : undefined;
   }
   const { scheduleProactiveCall } = await import('./conversational-calls.js');
   const result = await scheduleProactiveCall({ ...call.request, userId });
   if (!result.success) throw new Error(result.error ?? 'proactive call failed');
+  return undefined;
 }
 
 /** Place the deferred calls that are due. Run by the execute-scheduled-outreach job. */
@@ -160,14 +236,17 @@ export async function executeDueDeferredCalls(
     now: opts.now,
     limit: opts.limit ?? 10,
   });
-  const result = { due: claim.due, placed: 0, failed: 0, missed: claim.late };
+  const result = { due: claim.due, placed: 0, rescheduled: 0, failed: 0, missed: claim.late };
   for (const item of claim.claimed) {
     const call = item.data as unknown as DeferredCall;
     let status = 'placed';
+    let heldAs: string | undefined;
     try {
       // Owner from the document's path, not the stored request.
-      await place(item.userId, call);
-      result.placed++;
+      heldAs = await place(item.userId, call);
+      // Still outside their hours (prod 2026-10-18 02:39Z, 8:39pm in Denver): held, not placed.
+      if (heldAs) status = 'rescheduled';
+      result[heldAs ? 'rescheduled' : 'placed']++;
     } catch (error) {
       status = 'failed';
       result.failed++;
@@ -178,7 +257,12 @@ export async function executeDueDeferredCalls(
       .doc(item.userId)
       .collection(COLLECTION)
       .doc(item.id)
-      .set({ ...item.data, status, placedAt: new Date().toISOString() });
+      .set({
+        ...item.data,
+        status,
+        placedAt: new Date().toISOString(),
+        ...(heldAs ? { rescheduledAs: heldAs } : {}),
+      });
   }
   if (result.due > 0) log.info(result, 'Deferred calls run');
   return result;

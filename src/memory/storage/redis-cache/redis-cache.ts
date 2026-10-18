@@ -13,9 +13,8 @@ export type { RedisConfig, RedisClient, SessionCacheData };
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);
 
-// ============================================================================
-// REDIS CACHE
-// ============================================================================
+/** How long after a failed connect before initialize() dials Redis again. */
+const INIT_RETRY_MS = 5 * 60_000;
 
 /**
  * Redis-based cache for session data
@@ -48,6 +47,8 @@ export class RedisCache {
   private warningCount = 0;
   private readonly WARNING_INTERVAL_MS = 60_000; // Only log once per minute
   private readonly WARNING_BATCH_SIZE = 10; // After this many, batch them
+  /** After a failed connect: initialize() rejects with it until retryAt, without dialing again. */
+  private initFailure: { error: unknown; retryAt: number } | null = null;
 
   constructor(config?: RedisConfig) {
     this.config = config || {
@@ -84,15 +85,15 @@ export class RedisCache {
   }
 
   private async doInitialize(): Promise<void> {
-    // No Redis configured (the LiveKit Cloud agent has none): don't dial
-    // localhost:6379 and leave every cache call waiting on retries.
+    // No Redis configured (the LiveKit Cloud agent has none): don't dial localhost:6379.
     if (!this.config.url && !process.env.REDIS_HOST) {
       getLogger().debug('Redis not configured (REDIS_URL/REDIS_HOST unset) - cache disabled');
       return;
     }
 
+    // ~50 call sites initialize() before each use; an unreachable Redis is dialed once a window.
+    if (this.initFailure && Date.now() < this.initFailure.retryAt) throw this.initFailure.error;
     try {
-      // Dynamic import of ioredis
       const Redis = (await import('ioredis')).default;
 
       // lazyConnect: we test the connection manually below. protocol 2: ioredis 6
@@ -109,9 +110,7 @@ export class RedisCache {
         ? new Redis(this.config.url, options)
         : new Redis({ ...options, host, port, password, db });
 
-      // CRITICAL: Add error handler to prevent "Unhandled error event" crashes
-      // This is required by ioredis when Redis is not available locally
-      // FIX: Throttle error logging to prevent log spam (log once every 60 seconds per error type)
+      // ioredis needs an error handler ("Unhandled error event"); log each error type once a minute.
       const loggedErrors = new Map<string, number>();
       const ERROR_LOG_THROTTLE_MS = 60000; // 60 seconds
 
@@ -137,14 +136,15 @@ export class RedisCache {
       await this.client.ping();
 
       this.initialized = true;
+      this.initFailure = null;
       getLogger().info('Redis cache initialized successfully');
     } catch (error) {
-      // Drop the unconnected client so cache calls skip Redis instead of
-      // retrying against it (each retry was a MaxRetriesPerRequestError).
+      // Drop the unconnected client so cache calls skip Redis (no MaxRetriesPerRequestError).
       const failed = this.client as unknown as { disconnect?: () => void } | null;
       this.client = null;
       failed?.disconnect?.();
-      getLogger().error(`Redis initialization failed: ${error}`);
+      this.initFailure = { error, retryAt: Date.now() + INIT_RETRY_MS };
+      getLogger().warn(`Redis unreachable, cache off; next try in 5 min: ${error}`);
       throw error;
     }
   }

@@ -111,6 +111,19 @@
       "presenceRing": { "opacity": 0.25 }
     },
 
+    "glad": {
+      "family": "happy",
+      "description": "Glad to see you - smiling eyes, head lifted and tilted toward you, warm glow",
+      "body": { "transform": "translateY(-5px) rotate(6deg)" },
+      "eyeWhite": { "scaleX": 1.08, "scaleY": 0.74 },
+      "eyesGroup": { "translateX": 1, "translateY": -2 },
+      "lidTop": { "curve": 30 },
+      "lidBottom": { "curve": -18 },
+      "smileCrease": { "opacity": 1, "strokeWidth": 1.3 },
+      "sparkleGroup": { "opacity": 0.35 },
+      "presenceRing": { "opacity": 0.48, "strokeWidth": 1.8 }
+    },
+
     "excited": {
       "family": "happy",
       "description": "High energy, eyes wide, constant micro-bounce",
@@ -552,6 +565,19 @@
       "lidTop": { "curve": 20 },
       "smileCrease": { "opacity": 0.4 },
       "presenceRing": { "opacity": 0.32 }
+    },
+
+    "settling": {
+      "family": "presence",
+      "description": "Settling in, often late in the day - lids softly lowered, gaze resting down, head leaning to one side; content, not tired",
+      "body": { "transform": "translateY(2px) rotate(-5deg)" },
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 0.7 },
+      "eyesGroup": { "translateX": -1, "translateY": 4 },
+      "lidTop": { "curve": 32 },
+      "lidBottom": { "curve": 8 },
+      "smileCrease": { "opacity": 0.4 },
+      "presenceRing": { "opacity": 0.24 },
+      "animation": "calmBreathe"
     },
 
     "encouraging": {
@@ -1284,7 +1310,7 @@
     },
     "presence": {
       "displayName": "Presence",
-      "description": "Grounded states: present, grounded, calm, serene, peaceful"
+      "description": "Grounded states: present, grounded, calm, serene, peaceful, settling"
     },
     "coaching": {
       "displayName": "Coaching",
@@ -1363,6 +1389,12 @@
       "description": "Brief surprise micro-expression",
       "expression": "surprised",
       "duration": 80,
+      "returnTo": "listening"
+    },
+    "noticing": {
+      "description": "Small flash of noticing - something you said caught Ferni's attention",
+      "expression": "intrigued",
+      "duration": 100,
       "returnTo": "listening"
     }
   }

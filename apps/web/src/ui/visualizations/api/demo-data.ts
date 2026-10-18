@@ -53,7 +53,7 @@ export interface YourStoryData extends VisualizationApiResponse {
   milestones: Array<{
     id: string;
     name: string;
-    celebratedAt: number;
+    celebratedAt?: number; // a milestone can be reached with no recorded date
     category: 'relationship' | 'team' | 'conversation' | 'discovery' | 'sweet';
   }>;
 }

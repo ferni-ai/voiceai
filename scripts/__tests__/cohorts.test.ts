@@ -72,6 +72,29 @@ describe('argument checks', () => {
   });
 });
 
+describe('override names the person, then the flag and its value', () => {
+  // 2026-10-17: run() took the uid off positional[] and planWrites then read the flag from
+  // positional[1] (the value), so `override <uid> FLAG on` always failed "on: not a cohort flag".
+  it('override <uid> FLAG on', async () => {
+    const r = await cli(['override', 'uid-1', 'PROACTIVE_CHANNELS', 'on', '--project', 'p1']);
+    expect(r.code).toBe(0);
+    expect(r.lines.join('\n')).toContain('feature_flag_overrides/uid-1 {"flags":{"PROACTIVE_CHANNELS":"on"}');
+  });
+
+  it('override FLAG on --uid <uid>', async () => {
+    const r = await cli(['override', 'PROACTIVE_CHANNELS', 'off', '--uid', 'uid-1', '--project', 'p1']);
+    expect(r.code).toBe(0);
+    expect(r.lines.join('\n')).toContain('feature_flag_overrides/uid-1 {"flags":{"PROACTIVE_CHANNELS":"off"}');
+  });
+
+  it('clear-override <uid> FLAG', async () => {
+    const r = await cli(['clear-override', 'uid-1', 'PROACTIVE_CHANNELS', '--project', 'p1']);
+    expect(r.code).toBe(0);
+    expect(r.lines.join('\n')).toContain('feature_flag_overrides/uid-1');
+    expect(r.lines.join('\n')).toContain('PROACTIVE_CHANNELS');
+  });
+});
+
 describe('dry run (the default)', () => {
   it('prints the intended writes and writes nothing, even with --project', async () => {
     const r = await cli(['set-flag', 'seth', 'CANDOR', 'on', '--project', 'p1']);

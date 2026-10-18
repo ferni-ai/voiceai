@@ -39,6 +39,24 @@ export const GREETING_DIRECTION =
   'They just called you. Answer like you would a friend calling: relaxed and low-key, one short sentence, maybe a quick easy question. No exclamation marks, no "so good to hear your voice", no cheer, do not list what you can do or introduce yourself. If they have called before, you may pick up from last time in a few words, the way a friend would, but only if it was light: never open on something painful. Name the actual thing ("how did the interview go?"), never a vague callback ("did you figure that out?"); if you are not told what you talked about, do not refer back.';
 
 /**
+ * FERNI_PLAYFUL=on, Ferni only: warm and a little playful instead of
+ * relaxed and low-key, which read as calm and boring (Seth, 2026-10-17).
+ * Still no exclamation marks (calmGreeting turns them into full stops) and
+ * no hype: "too happy to start the call" is still the failure to avoid.
+ */
+export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
+  'relaxed and low-key, one short sentence, maybe a quick easy question. No exclamation marks, no "so good to hear your voice", no cheer,',
+  'warm and a little playful, glad it\'s them, one short sentence, maybe a quick easy question or a light, friendly tease. No exclamation marks, no "so good to hear your voice", no hype,'
+);
+
+/** The hello's direction for this persona. */
+export function greetingDirection(personaId: string, env: Env = process.env): string {
+  return personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env)
+    ? PLAYFUL_GREETING_DIRECTION
+    : GREETING_DIRECTION;
+}
+
+/**
  * Added when they told you last time they meant to do something (COACH_FOLLOW_THROUGH).
  * Without a written example he opened "Hey Sam, did you actually start running
  * again?": a yes-or-no check before any hello, which the judge called an
@@ -358,7 +376,7 @@ export async function directedGreeting(
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const direction =
-    GREETING_DIRECTION +
+    greetingDirection(personaId) +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
