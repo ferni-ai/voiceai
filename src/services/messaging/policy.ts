@@ -1,37 +1,21 @@
 /**
- * The one messaging policy (DESIGN 2026-10-18, section 2): whether a message
- * goes now, waits, joins the day's digest or is dropped. Today seven
- * quiet-hour rules and no cross-kind cap decide that per sender.
- *
- * Gates in order, the first that objects decides (GATES): recipient, consent,
- * texts off, crisis quiet, quiet hours, dedupe, per-kind gap, code rate, budget,
- * then send. DESIGN lists the budget before dedupe; it runs last so a
- * duplicate is dropped, not merged into the digest.
- *
- * Pure: no I/O, flags or clock (all in the context); imports only the zone
- * math and its types (policy-purity.test.ts).
- *
+ * The one messaging policy (DESIGN 2026-10-18, section 2): send, hold, merge into
+ * the digest, or drop. The gates run in GATES order and the first that objects
+ * decides; the budget runs last so a duplicate is dropped, not merged.
+ * Pure: no I/O, flags or clock; imports only the zone math and its types.
  * @module services/messaging/policy
  */
 import { isValidTimeZone, wallTimeIn, zonedWallTimeToUtc } from '../../utils/time-zone.js';
-import type {
-  Channel,
-  Decision,
-  Intent,
-  LedgerEntry,
-  LocalWindow,
-  MessageKind,
-  PolicyCtx,
-  ReasonCode,
-  RequestedBy,
-} from './types.js';
+import type { Channel, Decision, Intent, LocalWindow, MessageKind, PolicyCtx } from './types.js';
+
+type Requester = Intent['requestedBy'];
 
 const MIN_MS = 60_000;
 const HOUR_MS = 60 * MIN_MS;
 const DAY_MS = 24 * HOUR_MS;
 
-export const QUIET_START_HOUR = 21;
-export const QUIET_END_HOUR = 8;
+/** 21:00-08:00; the owner's saved window replaces it for messages to them (4-16 h long). */
+export const DEFAULT_QUIET: LocalWindow = { startMin: 21 * 60, endMin: 8 * 60 };
 export const CRISIS_QUIET_MS = 14 * DAY_MS;
 /** Ferni-initiated texts per person per rolling 24 h (every kind and persona); push + in-app share 6. */
 export const SMS_DAILY_BUDGET = 3;
@@ -42,11 +26,7 @@ export const LIVE_REPLY_MS = 30 * MIN_MS; // a reply this soon after their text:
 export const CODE_LIMITS = { perHour: 5, perDay: 10, gapMs: 30_000 } as const;
 const FALLBACK_ZONES = ['America/New_York', 'America/Los_Angeles']; // no zone: either coast
 
-/**
- * Per kind: priority when the budget is short (a user's request outranks them
- * all), the least gap between two on a channel (today's guarded-text gaps)
- * and whether it can wait for the digest rather than be lost.
- */
+/** Per kind: priority when the budget is short, the gap between two (today's guarded-text gaps), digestible. */
 const KINDS: Readonly<Record<MessageKind, { priority: number; gapMs: number; digest: boolean }>> = {
   transactional: { priority: 95, gapMs: 0, digest: false },
   reply: { priority: 90, gapMs: 0, digest: false },
@@ -61,16 +41,16 @@ const KINDS: Readonly<Record<MessageKind, { priority: number; gapMs: number; dig
   digest: { priority: 20, gapMs: DAY_MS, digest: false }, // one a day
 };
 
-export const priorityOf = (kind: MessageKind, requestedBy: RequestedBy): number =>
+export const priorityOf = (kind: MessageKind, requestedBy: Requester): number =>
   requestedBy === 'user' ? 100 : KINDS[kind].priority;
 export const isDigestible = (kind: MessageKind): boolean => KINDS[kind].digest;
 
 // Kinds that answer the person rather than reach out to them.
 const RESPONSIVE: ReadonlySet<MessageKind> = new Set(['reply', 'transactional']);
 
-const ferniInitiated = (kind: MessageKind, by: RequestedBy | undefined): boolean =>
+const ferniInitiated = (kind: MessageKind, by: Requester | undefined): boolean =>
   (by ?? 'ferni') === 'ferni' && !RESPONSIVE.has(kind);
-const countsTowardBudget = (kind: MessageKind, by: RequestedBy | undefined): boolean =>
+const countsTowardBudget = (kind: MessageKind, by: Requester | undefined): boolean =>
   ferniInitiated(kind, by) && kind !== 'digest';
 const isProactive = (i: Intent): boolean => ferniInitiated(i.kind, i.requestedBy);
 const byPhone = (c: Channel): c is 'sms' | 'call' => c === 'sms' || c === 'call';
@@ -84,11 +64,11 @@ const userCode = (i: Intent): boolean =>
   (i.recipient === 'owner' || i.verifyingNumber === true);
 const liveReply = (i: Intent, { now, lastInboundAt: at }: PolicyCtx): boolean =>
   i.kind === 'reply' && at !== undefined && now.getTime() - at.getTime() < LIVE_REPLY_MS;
-const recent = (e: LedgerEntry, ctx: PolicyCtx, ms: number): boolean =>
+const recent = (e: { readonly at: Date }, ctx: PolicyCtx, ms: number): boolean =>
   ctx.now.getTime() - e.at.getTime() < ms;
 
-const drop = (reason: ReasonCode): Decision => ({ action: 'drop', reason });
-const hold = (reason: ReasonCode, until?: Date): Decision =>
+const drop = (reason: Decision['reason']): Decision => ({ action: 'drop', reason });
+const hold = (reason: Decision['reason'], until?: Date): Decision =>
   until ? { action: 'hold', reason, holdUntil: until } : { action: 'hold', reason };
 
 /** The UTC instant of a local wall time `dayOffset` days after `at`'s local date. */
@@ -100,13 +80,32 @@ function localAt(at: Date, zone: string, dayOffset: number, minutes: number): Da
   return zonedWallTimeToUtc({ year, month, day, hour, minute: minutes % 60 }, zone);
 }
 
-/** When quiet hours end, if it is quiet now in any of the zones (the latest end). */
-function quietUntil(now: Date, zones: readonly string[]): Date | null {
+const minuteIn = (at: Date, zone: string): number => {
+  const { hour, minute } = wallTimeIn(at, zone);
+  return hour * 60 + minute;
+};
+
+const toMin = (hhmm: string): number | null => {
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+};
+
+/** The quiet window for this recipient: the owner's saved one when valid, else 21:00-08:00. */
+function quietWindow(i: Intent, ctx: PolicyCtx): LocalWindow {
+  const saved = i.recipient === 'owner' ? ctx.prefs.quiet : undefined;
+  const [startMin, endMin] = [toMin(saved?.start ?? ''), toMin(saved?.end ?? '')];
+  if (startMin === null || endMin === null) return DEFAULT_QUIET;
+  const span = (endMin - startMin + 1440) % 1440;
+  return span >= 240 && span <= 960 ? { startMin, endMin } : DEFAULT_QUIET;
+}
+
+/** When the quiet window ends, if it is quiet now in any of the zones (the latest end). */
+function quietUntil(now: Date, zones: readonly string[], w: LocalWindow): Date | null {
   let until: Date | null = null;
   for (const zone of zones) {
-    const { hour } = wallTimeIn(now, zone);
-    if (hour < QUIET_START_HOUR && hour >= QUIET_END_HOUR) continue;
-    const end = localAt(now, zone, hour >= QUIET_START_HOUR ? 1 : 0, QUIET_END_HOUR * 60);
+    const min = minuteIn(now, zone);
+    if (!inWindow(w, min)) continue;
+    const end = localAt(now, zone, w.startMin > w.endMin && min >= w.startMin ? 1 : 0, w.endMin);
     if (!until || end > until) until = end;
   }
   return until;
@@ -121,8 +120,7 @@ const inWindow = (w: LocalWindow, min: number): boolean =>
     : min >= w.startMin || min < w.endMin;
 
 function nextWindow(now: Date, zone: string, windows: readonly LocalWindow[]): Date | null {
-  const { hour, minute } = wallTimeIn(now, zone);
-  const min = hour * 60 + minute;
+  const min = minuteIn(now, zone);
   if (windows.some((w) => inWindow(w, min))) return null;
   const opens = windows.map((w) => localAt(now, zone, w.startMin > min ? 0 : 1, w.startMin));
   return opens.reduce((a, b) => (b < a ? b : a));
@@ -159,16 +157,13 @@ function crisisGate(i: Intent, ctx: PolicyCtx): Decision | null {
   return quiet && isProactive(i) ? drop('crisis-quiet') : null;
 }
 
-/**
- * 5. Quiet hours and the person's own windows. Going anyway: a time the owner
- * chose, a code or confirmation, a live reply; in-app notes wait for them to look.
- */
+/** 5. Quiet hours and their windows; a time the owner chose, a user's code and a live reply go. */
 function timeGate(i: Intent, ctx: PolicyCtx): Decision | null {
   if (i.channel === 'in_app' || ownerTimed(i) || userCode(i)) return null;
   if (liveReply(i, ctx)) return null;
   const known = isValidTimeZone(ctx.zone);
   if (!known && isProactive(i)) return hold('no-timezone');
-  const until = quietUntil(ctx.now, zonesOf(ctx));
+  const until = quietUntil(ctx.now, zonesOf(ctx), quietWindow(i, ctx));
   if (until) return hold('quiet-hours', until);
   const windows = ctx.prefs.windows ?? [];
   const opens =
@@ -200,10 +195,8 @@ function digestKey(ctx: PolicyCtx): string {
 }
 
 /**
- * 9. The daily budget, rolling 24 h. A sent message can't be taken back, so a
- * spent budget merges or drops. Slots still open but claimed by held messages
- * go to this one only if it outranks one of them (that one re-decides later
- * and finds the budget spent). The user's requests, replies and codes don't count.
+ * 9. The daily budget, rolling 24 h: spent, it merges or drops. A slot a held message
+ * claims goes to this one only if it outranks one (that one finds the budget spent later).
  */
 function budgetGate(i: Intent, ctx: PolicyCtx): Decision | null {
   const group = budgetGroup(i.channel);
@@ -261,7 +254,7 @@ function codeRateGate(i: Intent, ctx: PolicyCtx): Decision | null {
 
 /** 10. Send. A third party's first text from Ferni says who is writing and for whom. */
 function sendDecision(i: Intent, ctx: PolicyCtx): Decision {
-  const inQuiet = ownerTimed(i) && quietUntil(ctx.now, zonesOf(ctx)) !== null;
+  const inQuiet = ownerTimed(i) && quietUntil(ctx.now, zonesOf(ctx), quietWindow(i, ctx)) !== null;
   return {
     action: 'send',
     reason: inQuiet ? 'requested-time' : 'ok',
@@ -291,8 +284,7 @@ export function decide(intent: Intent, ctx: PolicyCtx): Decision {
   return sendDecision(intent, ctx);
 }
 
-// SMS segments. Twilio splits rather than truncates; the old sms-delivery path
-// cut to 160 and reported success (#1929). Count, never cut.
+// SMS segments: count, never cut (sms-delivery cut to 160 and reported success, #1929).
 
 const GSM_BASIC = new Set(
   '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡' +
@@ -300,11 +292,7 @@ const GSM_BASIC = new Set(
 );
 const GSM_EXT = new Set('\f^{}\\[~]|€'); // escape + character: two septets
 
-/**
- * How many SMS segments the text takes: GSM-7 (160 in one, else 153 each) or,
- * with any other character, UCS-2 (70, else 67 UTF-16 units each). A
- * two-unit character never straddles two segments.
- */
+/** GSM-7 160 (else 153 each) or UCS-2 70 (else 67); a two-unit character never straddles. */
 export function segments(text: string): number {
   const chars = [...text];
   const gsm = chars.every((c) => GSM_BASIC.has(c) || GSM_EXT.has(c));

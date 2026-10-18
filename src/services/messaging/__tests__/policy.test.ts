@@ -238,7 +238,82 @@ const crisis: Row[] = [
   },
 ];
 
+const OWN_QUIET = { textsOff: false, quiet: { start: '22:30', end: '07:00' } } as const;
 const quietHours: Row[] = [
+  {
+    name: "owner's quiet 22:30-07:00: 21:30 goes",
+    c: { now: at('2026-10-14T21:30'), prefs: OWN_QUIET },
+    want: SEND,
+  },
+  {
+    name: "owner's quiet 22:30-07:00: 22:45 holds to 07:00",
+    c: { now: at('2026-10-14T22:45'), prefs: OWN_QUIET },
+    want: quietUntil(at('2026-10-15T07:00')),
+  },
+  {
+    name: "owner's quiet 22:30-07:00: 06:59 holds to 07:00",
+    c: { now: at('2026-10-14T06:59'), prefs: OWN_QUIET },
+    want: quietUntil(at('2026-10-14T07:00')),
+  },
+  {
+    name: "owner's quiet 22:30-07:00: 07:00 goes",
+    c: { now: at('2026-10-14T07:00'), prefs: OWN_QUIET },
+    want: SEND,
+  },
+  {
+    name: "owner's quiet never applies to a third party: 21:30 holds to 08:00",
+    i: { recipient: 'third-party', kind: 'on-behalf', requestedBy: 'user' },
+    c: { now: at('2026-10-14T21:30'), prefs: OWN_QUIET },
+    want: quietUntil(at('2026-10-15T08:00')),
+  },
+  {
+    name: 'a saved window under 4 h is ignored: 21:30 holds to 08:00',
+    c: {
+      now: at('2026-10-14T21:30'),
+      prefs: { textsOff: false, quiet: { start: '23:00', end: '02:30' } },
+    },
+    want: quietUntil(at('2026-10-15T08:00')),
+  },
+  {
+    name: 'a saved window over 16 h is ignored',
+    c: {
+      now: at('2026-10-14T21:30'),
+      prefs: { textsOff: false, quiet: { start: '20:00', end: '12:01' } },
+    },
+    want: quietUntil(at('2026-10-15T08:00')),
+  },
+  {
+    name: 'a 16 h saved window is used: 12:00 goes',
+    c: {
+      now: at('2026-10-14T12:00'),
+      prefs: { textsOff: false, quiet: { start: '20:00', end: '12:00' } },
+    },
+    want: SEND,
+  },
+  {
+    name: 'a malformed saved window is ignored',
+    c: {
+      now: at('2026-10-14T21:30'),
+      prefs: { textsOff: false, quiet: { start: '9pm', end: '07:00' } },
+    },
+    want: quietUntil(at('2026-10-15T08:00')),
+  },
+  {
+    name: 'a non-wrapping saved window (01:00-07:00): 01:30 holds to 07:00',
+    c: {
+      now: at('2026-10-14T01:30'),
+      prefs: { textsOff: false, quiet: { start: '01:00', end: '07:00' } },
+    },
+    want: quietUntil(at('2026-10-14T07:00')),
+  },
+  {
+    name: 'a non-wrapping saved window: 00:30 goes',
+    c: {
+      now: at('2026-10-14T00:30'),
+      prefs: { textsOff: false, quiet: { start: '01:00', end: '07:00' } },
+    },
+    want: SEND,
+  },
   {
     name: 'a code to the number being verified at 02:00 goes',
     i: { kind: 'transactional', requestedBy: 'user', anchor: undefined, verifyingNumber: true },

@@ -1,10 +1,6 @@
 /**
- * The shapes of Ferni's one messaging pipeline (DESIGN 2026-10-18): what a
- * sender asks for (Intent), what the policy knows about the person (PolicyCtx)
- * and what it decides (Decision). MESSAGE_KINDS is the one list of kinds from
- * now on: today 'reminder' means two things and 'follow-up' and 'follow_up'
- * both exist.
- *
+ * Ferni's one messaging pipeline: what a sender asks (Intent), what the policy
+ * knows (PolicyCtx), what it decides (Decision). MESSAGE_KINDS is the one list of kinds.
  * @module services/messaging/types
  */
 
@@ -27,26 +23,20 @@ export const REASON_CODES = [
 export type ReasonCode = (typeof REASON_CODES)[number];
 
 export interface Intent {
-  /** The recipient: the owner's uid, or the contact's key for a third party. */
-  readonly personId: string;
+  readonly personId: string; // the owner's uid, or a third party's contact key
   readonly recipient: 'owner' | 'third-party';
   readonly kind: MessageKind;
   readonly persona: string;
   readonly priority: number; // priorityOf
-  /** What it is grounded in (a commitment, reminder, event or request). No anchor, no proactive send. */
-  readonly anchor?: string;
+  readonly anchor?: string; // what it's grounded in; no anchor, no proactive send
   readonly requestedBy: RequestedBy;
-  /** The time the user chose for it ("remind me at 6:30"); such a send goes in quiet hours. */
-  readonly requestedAt?: Date;
+  readonly requestedAt?: Date; // the time the user chose ("remind me at 6:30")
   readonly intentKey: string;
   readonly channel: Channel;
   readonly text?: string;
-  /** The keyed hash the ledger stores for this body (the sender hashes; the policy compares). */
-  readonly bodyHash?: string;
-  /** A code to the number the user is verifying in this same request (not yet verified). */
-  readonly verifyingNumber?: boolean;
-  /** Set when re-deciding a message this policy held, so its own hold isn't a duplicate. */
-  readonly redecide?: boolean;
+  readonly bodyHash?: string; // keyed by the sender; the policy only compares
+  readonly verifyingNumber?: boolean; // a code to the number this request is verifying
+  readonly redecide?: boolean; // re-deciding its own hold: not a duplicate or a rival
 }
 
 export interface LedgerEntry {
@@ -57,8 +47,7 @@ export interface LedgerEntry {
   readonly intentKey: string;
   readonly priority: number;
   readonly bodyHash?: string;
-  /** Who asked for it; a user-requested text doesn't use the day's budget. Ferni when unset. */
-  readonly requestedBy?: RequestedBy;
+  readonly requestedBy?: RequestedBy; // Ferni when unset
 }
 
 export interface LocalWindow {
@@ -72,15 +61,13 @@ export interface PolicyCtx {
   readonly consent: { readonly sms: Consent; readonly call: Consent };
   readonly prefs: {
     readonly textsOff: boolean;
-    /** Lowers the daily SMS budget ("fewer texts"); never raises it. */
-    readonly maxPerDay?: number;
-    /** When Ferni-initiated messages are welcome ("only mornings"); narrows, never widens. */
-    readonly windows?: readonly LocalWindow[];
+    readonly maxPerDay?: number; // "fewer texts": lowers the SMS budget, never raises it
+    readonly windows?: readonly LocalWindow[]; // "only mornings": narrows, never widens
+    readonly quiet?: { readonly start: string; readonly end: string }; // the owner's, "22:30"-"07:00"
   };
   readonly crisis: { readonly lastCrisisAt?: Date };
   readonly ledger: readonly LedgerEntry[]; // the person's last 7 days
-  /** The owner's verified number (never one the model passed). */
-  readonly verifiedRecipient: boolean;
+  readonly verifiedRecipient: boolean; // the owner's verified number, never one the model passed
   readonly lastInboundAt?: Date; // their last text to us
   readonly isFirstContact: boolean;
 }
@@ -88,9 +75,7 @@ export interface PolicyCtx {
 export interface Decision {
   readonly action: 'send' | 'hold' | 'merge' | 'drop';
   readonly reason: ReasonCode;
-  /** Re-decide then; unset on a hold means "until something changes" (consent, a zone). */
-  readonly holdUntil?: Date;
+  readonly holdUntil?: Date; // re-decide then; unset: when something changes (consent, a zone)
   readonly mergeInto?: string; // the digest it joins: "digest:2026-10-18", their local date
-  /** A third party's first text from Ferni opens with who is writing and for whom. */
-  readonly introRequired?: boolean;
+  readonly introRequired?: boolean; // a third party's first text says who is writing
 }
