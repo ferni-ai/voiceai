@@ -11,3 +11,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** The app's version, set by vite.config.ts `define`. Undefined under vitest. */
+declare const __FERNI_APP_VERSION__: string | undefined;

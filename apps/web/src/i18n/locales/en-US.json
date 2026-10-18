@@ -11208,5 +11208,21 @@
     "helper": "Scan with your phone's camera, or tap Open Venmo. You can change the amount.",
     "maybeLater": "Maybe later",
     "close": "Close"
+  },
+  "reportReply": {
+    "button": "Report",
+    "describe": "Report something {name} said",
+    "title": "Report a reply",
+    "whichReply": "Which reply?",
+    "whatsWrong": "What's wrong with it?",
+    "reasonHarmful": "Harmful or unsafe",
+    "reasonWrong": "Wrong or misleading",
+    "reasonInappropriate": "Inappropriate",
+    "reasonOther": "Something else",
+    "note": "Anything to add? (optional)",
+    "send": "Send",
+    "thanks": "Thanks — a person will look at this.",
+    "failed": "That didn't send. Please try again.",
+    "tooMany": "You've sent a lot of reports today. Please try again tomorrow."
   }
 }
