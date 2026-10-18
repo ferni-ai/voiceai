@@ -30,11 +30,25 @@ const MAX_RETRY_MS = 6 * 60 * 60 * 1000;
 const BATCH = 200;
 
 /**
- * revoked: Google ended the grant. refused: Google answered 4xx (the token is
- * already invalid, nothing left to revoke). unreachable: 5xx, timeout or no
- * network; worth trying again.
+ * revoked: Google ended the grant. refused: Google said definitively that the
+ * token is already dead (400 with error=invalid_token, or invalid_request for
+ * a token it doesn't know): nothing left to revoke. unreachable: anything else
+ * (408, 429, 5xx, another status, timeout, no network); the grant may still be
+ * live, so it is worth trying again.
  */
 export type RevokeOutcome = 'revoked' | 'refused' | 'unreachable';
+
+const DEAD_TOKEN_ERRORS = new Set(['invalid_token', 'invalid_request']);
+
+async function isDeadTokenAnswer(response: Response): Promise<boolean> {
+  if (response.status !== 400) return false;
+  try {
+    const body = JSON.parse(await response.text()) as { error?: unknown };
+    return typeof body.error === 'string' && DEAD_TOKEN_ERRORS.has(body.error);
+  } catch {
+    return false;
+  }
+}
 
 export async function revokeGoogleToken(token: string): Promise<RevokeOutcome> {
   try {
@@ -46,7 +60,7 @@ export async function revokeGoogleToken(token: string): Promise<RevokeOutcome> {
     });
     if (response.ok) return 'revoked';
     log.warn({ status: response.status }, 'Google token revoke not accepted');
-    return response.status >= 500 ? 'unreachable' : 'refused';
+    return (await isDeadTokenAnswer(response)) ? 'refused' : 'unreachable';
   } catch (err) {
     log.warn({ error: (err as Error)?.name }, 'Google token revoke failed');
     return 'unreachable';

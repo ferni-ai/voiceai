@@ -25,12 +25,13 @@ const NOW = Date.UTC(2026, 9, 18, 12);
 const pending = () => docs.get('pending_revocations') ?? new Map();
 
 let googleStatus: number | 'offline' = 200;
+let googleBody = '';
 const revoked: string[] = [];
 const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
   expect(url).toBe(GOOGLE_REVOKE_URL);
   revoked.push(new URLSearchParams(String(init.body)).get('token') ?? '');
   if (googleStatus === 'offline') throw new TypeError('fetch failed');
-  return new Response('', { status: googleStatus });
+  return new Response(googleBody, { status: googleStatus });
 });
 
 beforeEach(() => {
@@ -38,16 +39,35 @@ beforeEach(() => {
   logged.length = 0;
   revoked.length = 0;
   googleStatus = 200;
+  googleBody = '';
   vi.stubGlobal('fetch', fetchMock);
 });
 
 describe('revokeGoogleToken', () => {
-  it('tells revoked, refused (4xx) and unreachable (5xx, offline) apart', async () => {
-    expect(await revokeGoogleToken('t')).toBe('revoked');
-    googleStatus = 400;
-    expect(await revokeGoogleToken('t')).toBe('refused');
-    googleStatus = 503;
-    expect(await revokeGoogleToken('t')).toBe('unreachable');
+  const invalidToken = '{"error":"invalid_token","error_description":"Token expired or revoked"}';
+  // Only a definitive "this token is dead" is refused; anything else may leave
+  // the grant live, so it is unreachable and gets retried.
+  it.each([
+    [200, '', 'revoked'],
+    [400, invalidToken, 'refused'],
+    [400, '{"error":"invalid_request"}', 'refused'],
+    [400, '{"error":"unsupported_token_type"}', 'unreachable'],
+    [400, 'not json', 'unreachable'],
+    [401, invalidToken, 'unreachable'],
+    [403, '', 'unreachable'],
+    [404, '', 'unreachable'],
+    [408, '', 'unreachable'],
+    [429, '{"error":"rate_limit_exceeded"}', 'unreachable'],
+    [500, '', 'unreachable'],
+    [502, '', 'unreachable'],
+    [503, '', 'unreachable'],
+  ] as const)('HTTP %i %s -> %s', async (status, body, outcome) => {
+    googleStatus = status;
+    googleBody = body;
+    expect(await revokeGoogleToken('t')).toBe(outcome);
+  });
+
+  it('a network failure is unreachable', async () => {
     googleStatus = 'offline';
     expect(await revokeGoogleToken('t')).toBe('unreachable');
   });
@@ -77,9 +97,9 @@ describe('retryPendingRevocations', () => {
     expect(pending().size).toBe(0);
   });
 
-  it('keeps the entry while Google is unreachable, and backs off', async () => {
+  it('keeps the entry while Google is unreachable or rate-limiting, and backs off', async () => {
     await queueGoogleRevocation('tok-2', NOW - 60_000);
-    googleStatus = 503;
+    googleStatus = 429;
 
     expect(await retryPendingRevocations(NOW)).toMatchObject({ retrying: 1, revoked: 0 });
     const [entry] = [...pending().values()];
@@ -95,6 +115,7 @@ describe('retryPendingRevocations', () => {
   it('drops an entry Google refuses (the token is already invalid)', async () => {
     await queueGoogleRevocation('tok-3', NOW - 60_000);
     googleStatus = 400;
+    googleBody = '{"error":"invalid_token"}';
 
     expect(await retryPendingRevocations(NOW)).toMatchObject({ refused: 1 });
     expect(pending().size).toBe(0);

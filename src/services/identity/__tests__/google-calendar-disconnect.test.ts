@@ -144,7 +144,7 @@ describe('disconnectGoogleCalendar', () => {
   it('queues nothing on a plain disconnect, or when Google refuses the token', async () => {
     fetchMock.mockResolvedValue(new Response('', { status: 503 }));
     await disconnectGoogleCalendar('user-1');
-    fetchMock.mockResolvedValue(new Response('', { status: 400 }));
+    fetchMock.mockResolvedValue(new Response('{"error":"invalid_token"}', { status: 400 }));
     await disconnectGoogleCalendar('user-1', { queueIfUnreachable: true });
 
     expect(queueGoogleRevocation).not.toHaveBeenCalled();
