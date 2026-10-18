@@ -30,7 +30,7 @@ const CONFIG = {
   region: 'us-central1',
   agentUrl: 'voiceai-agent-1031920444452.us-central1.run.app',
   uiUrl: 'john-bogle-ui-1031920444452.us-central1.run.app',
-  notificationEmail: process.env.ALERT_EMAIL || 'seth.ford@gmail.com',
+  notificationEmail: process.env.ALERT_EMAIL || process.env.OWNER_EMAIL || 'admin@ferni.ai',
   slackWebhook: process.env.SLACK_WEBHOOK_URL || '',
   budgetAmount: process.env.BUDGET_AMOUNT || '50',
 };

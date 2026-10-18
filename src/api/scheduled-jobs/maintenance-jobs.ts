@@ -9,10 +9,9 @@
 import type { ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
+import { ownerEmail } from '../../config/owner-email.js';
 
 const log = createLogger({ module: 'MaintenanceJobs' });
-
-const ADMIN_REPORT_EMAIL = 'seth.ford@gmail.com';
 
 export async function handleTTLCleanup(res: ServerResponse): Promise<void> {
   try {
@@ -90,6 +89,12 @@ export async function handleTTLBackfill(res: ServerResponse): Promise<void> {
 }
 
 export async function handleDailyAdminReport(res: ServerResponse): Promise<void> {
+  const owner = ownerEmail();
+  if (!owner) {
+    log.warn('OWNER_EMAIL is not set; daily admin report skipped');
+    sendJson(res, 200, { success: true, job: 'daily-admin-report', skipped: 'OWNER_EMAIL unset' });
+    return;
+  }
   try {
     log.info('Running daily admin report job (Cloud Scheduler)');
 
@@ -119,7 +124,7 @@ export async function handleDailyAdminReport(res: ServerResponse): Promise<void>
     const plainText = generateDailyReportPlainText(reportData);
 
     const emailResult = await sendEmail({
-      to: ADMIN_REPORT_EMAIL,
+      to: owner,
       toName: 'Seth Ford',
       subject: `Ferni Daily Report - ${reportData.date}`,
       body: plainText,
@@ -153,7 +158,7 @@ export async function handleDailyAdminReport(res: ServerResponse): Promise<void>
         uniqueVisitors: reportData.visitors.unique,
         totalSessions: reportData.visitors.totalSessions,
         phoneCalls: reportData.callers.total,
-        emailSentTo: ADMIN_REPORT_EMAIL,
+        emailSent: true,
         messageId: emailResult.messageId,
       },
       timestamp: new Date().toISOString(),

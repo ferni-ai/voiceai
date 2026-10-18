@@ -54,6 +54,7 @@ const docId = (e: string) => Buffer.from(e).toString('base64').replace(/[/+=]/g,
 
 describe('waitlist check', () => {
   afterEach(() => {
+    email.value = 'newcomer@example.com';
     email.verified = true;
     store.clear();
     vi.unstubAllEnvs();
@@ -93,6 +94,27 @@ describe('waitlist check', () => {
     const { body } = await check();
     expect(body).toMatchObject({ approved: false, status: 'pending' });
     expect(coll('user_profiles').size).toBe(0);
+  });
+
+  // A made-up address: the real owner address is the OWNER_EMAIL secret.
+  it.each(['pat.example@gmail.com', 'patexample@gmail.com'])(
+    'lets the owner in as partner when OWNER_EMAIL is set (%s)',
+    async (signedIn) => {
+      vi.stubEnv('OWNER_EMAIL', 'pat.example@gmail.com');
+      vi.stubEnv('WAITLIST_GATE', 'on');
+      email.value = signedIn;
+      const { body } = await check();
+      expect(body).toMatchObject({ approved: true, status: 'approved', tier: 'partner' });
+      expect(coll('user_profiles').size).toBe(0); // the bypass, not open access
+    }
+  );
+
+  it('gives no owner bypass while OWNER_EMAIL is unset', async () => {
+    vi.stubEnv('OWNER_EMAIL', '');
+    vi.stubEnv('WAITLIST_GATE', 'on');
+    email.value = 'pat.example@gmail.com';
+    const { body } = await check();
+    expect(body).toMatchObject({ approved: false, status: 'pending' });
   });
 
   it("never acts on an unverified email: no access, no write to that email's profile", async () => {

@@ -24,6 +24,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { BRAND_ACCENT, BRAND_TEXT_PRIMARY, getPersonaColor } from '../config/brand-colors.js';
+import { isOwnerEmail } from '../config/owner-email.js';
 import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { waitlistRateLimit } from './waitlist-rate-limits.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
@@ -487,7 +488,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     // =========================================================================
     // ADMIN BYPASS - Founders/admins should NEVER be blocked
     // =========================================================================
-    if (ADMIN_BYPASS_EMAILS.includes(email)) {
+    if (ADMIN_BYPASS_EMAILS.includes(email) || isOwnerEmail(email)) {
       log.info({ email: hashEmail(email) }, '👑 Admin bypass - auto-approved');
       sendJson(res, 200, {
         approved: true,
@@ -611,15 +612,10 @@ const ADMIN_NOTIFICATION_EMAILS: string[] = (
   .filter(Boolean);
 
 /**
- * Admin emails that bypass waitlist entirely (auto-approved)
- * These are the owners/founders who should NEVER be blocked
+ * Admin emails that bypass waitlist entirely (auto-approved).
+ * The owner's own address comes from OWNER_EMAIL (isOwnerEmail), never from this list.
  */
-const ADMIN_BYPASS_EMAILS: string[] = [
-  'noreply@ferni.ai',
-  'sethford@gmail.com',
-  'seth.ford@gmail.com', // Gmail treats dots as optional, but we check exact strings
-  'admin@ferni.ai',
-];
+const ADMIN_BYPASS_EMAILS: string[] = ['noreply@ferni.ai', 'admin@ferni.ai'];
 
 /**
  * Send notification to admin when someone joins the waitlist
