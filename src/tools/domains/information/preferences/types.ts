@@ -153,7 +153,7 @@ export interface LocationPreference {
   };
 }
 
-/** A city the caller chose to be remembered in. Never a street, postcode or coordinates. */
+/** A city the caller chose to be remembered in: the Places place ID and the caller's own words. No postcode or coordinates. */
 export interface CallerCityPreference {
   /** The Google Places place ID that confirmed the city. The only Google value kept. */
   placeId: string;

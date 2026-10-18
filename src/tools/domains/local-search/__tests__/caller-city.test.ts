@@ -300,7 +300,7 @@ describe('saving the city', () => {
     'Flat B',
     'Philly 19103',
     'Wall Street area',
-  ])('refuses "%s", which names a street, a unit, a home or a coordinate', async (name) => {
+  ])('saves nothing for "%s": a digit is refused first, else Places gives no locality', async (name) => {
     const result = await (await rememberCity()).execute(
       { city: name, callerSaidYes: true },
       phoneInStGeorge

@@ -9,11 +9,12 @@
  *   3. the city their phone shows (userData.userLocation, from dispatch metadata).
  * Nothing known: undefined, and the tool asks where they are.
  *
- * City level only. Nothing here stores a street, a postcode, GPS or
- * coordinates. A name with a digit or a character no place name uses is refused
- * before any lookup. Saving a city asks Google Places to confirm it, and keeps
- * only the Places place ID and the caller's own words. Google's name, address
- * and coordinates are never stored.
+ * City level only. Nothing here stores a postcode, GPS or coordinates. A name
+ * with a digit or a character no place name uses is refused before any lookup.
+ * Saving a city asks Google Places to confirm it, and keeps only the Places place
+ * ID and the caller's own words. A street name is refused only when Places gives
+ * it no locality, so that refusal depends on Places' answer. Google's name,
+ * address and coordinates are never stored.
  *
  * @module tools/domains/local-search/caller-city
  */

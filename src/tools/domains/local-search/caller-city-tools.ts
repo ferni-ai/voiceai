@@ -24,7 +24,7 @@ const rememberCallerCityDef: ToolDefinition = {
     return llm.tool({
       description:
         'Remember the caller\'s city for "near me" searches, until they ask you to forget it. Offer first ("Want me to remember you\'re in Philly for next time?"). ' +
-        'Call this only after they say yes. City or region only: the name is checked with Places, and the caller\'s own words are what is kept.',
+        'Call this only after they say yes. City or region only, never a street, postcode or coordinates. The name is checked with Places, and the caller\'s own words are what is kept.',
       parameters: z.object({
         city: z.string().describe('The city or town, e.g. "Philadelphia"'),
         region: z.string().optional().describe('The state or region, e.g. "PA"'),
