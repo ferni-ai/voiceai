@@ -163,7 +163,7 @@ describe('outreach consent mapping', () => {
 
   it('texts going on in settings send one confirmation; going off, or another source, none', async () => {
     confirmSmsOptIn.mockClear();
-    const web = { disclosureVersion: consent.SMS_DISCLOSURE_VERSION, source: 'web-settings' };
+    const web = { disclosureVersion: consent.CURRENT_SMS_DISCLOSURE, source: 'web-settings' };
     users = [user('u1', { outreachPreferences: { channels: [] } })];
     await consent.writeOutreachConsent('u1', { channels: ['sms'] }, web);
     const granted = (
