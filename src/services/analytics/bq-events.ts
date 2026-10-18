@@ -1,9 +1,10 @@
 /**
  * Product analytics rows for BigQuery (johnb-2025.ferni_events), off unless BQ_EVENTS is on.
  *
- * Privacy is enforced here, not by callers: a row with a field outside its table's allowlist,
- * a string over 64 characters or a wrongly typed value is dropped whole, so no free text can
- * leak; ids become HMAC-SHA256 keyed from LOG_HASH_SECRET per purpose (never the raw id).
+ * Privacy is enforced here, not by callers: a row with an unknown field or a wrongly typed
+ * value is dropped whole, and every string column passes a per-column allowlist
+ * (bq-fields.ts) that writes 'other' for anything off it, so no free text can leak; ids become HMAC-SHA256 keyed from LOG_HASH_SECRET per purpose (never the raw id),
+ * so rows are pseudonymous, not anonymous: account erasure must delete them too.
  *
  * Rows are buffered and sent with tabledata.insertAll via google-auth-library (already a
  * dependency). Nothing blocks a call or a request; a failed batch is logged (rate-limited)
@@ -18,6 +19,7 @@ import type { AuthClient } from 'google-auth-library';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { FIELD_VALUE, OTHER } from './bq-fields.js';
 
 const log = createLogger({ module: 'bq-events' });
 
@@ -73,6 +75,8 @@ const FLUSH_ROWS = 50;
 const FLUSH_MS = 5_000;
 const MAX_BUFFER = 1_000;
 const WARN_EVERY_MS = 5 * 60_000;
+const REQUEST_TIMEOUT_MS = 10_000;
+const MAX_IN_FLIGHT = 4;
 const INSERT_SCOPE = 'https://www.googleapis.com/auth/bigquery.insertdata';
 const INSERT_URL = (table: string) =>
   `https://bigquery.googleapis.com/bigquery/v2/projects/johnb-2025/datasets/ferni_events/tables/${table}/insertAll`;
@@ -83,7 +87,22 @@ const buffer = new Map<BqTable, Record<string, unknown>[]>();
 let buffered = 0;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let transport: BqTransport | null = null;
+let inFlight = 0;
 const lastWarn = new Map<string, number>();
+
+/** What a failed insert says about itself without its message, which could quote row data. */
+function errorShape(error: unknown): Record<string, unknown> {
+  const e = error as {
+    name?: unknown;
+    status?: unknown;
+    code?: unknown;
+    response?: { status?: unknown };
+  };
+  return {
+    errorName: String(e?.name ?? 'unknown'),
+    status: e?.response?.status ?? e?.status ?? e?.code,
+  };
+}
 
 /** One warning per topic per WARN_EVERY_MS; never the row's values. */
 function warnOnce(topic: string, ctx: Record<string, unknown>): void {
@@ -93,11 +112,19 @@ function warnOnce(topic: string, ctx: Record<string, unknown>): void {
   log.warn(ctx, `BigQuery events: ${topic}`);
 }
 
-/** prod only on an explicit prod signal; both voice agents run with NODE_ENV=production. */
-export function bqEnv(env: Env = process.env): 'prod' | 'dev' {
+const ENV_NAMES: Record<string, 'prod' | 'dev'> = {
+  prod: 'prod',
+  production: 'prod',
+  dev: 'dev',
+  development: 'dev',
+};
+
+/** DEPLOY_ENV first, then SENTRY_ENVIRONMENT, then the LiveKit project; anything else is unknown. */
+export function bqEnv(env: Env = process.env): 'prod' | 'dev' | 'unknown' {
   const named = (env.DEPLOY_ENV || env.SENTRY_ENVIRONMENT || '').trim().toLowerCase();
-  if (named) return named === 'prod' || named === 'production' ? 'prod' : 'dev';
-  return (env.LIVEKIT_URL ?? '').includes('test-rvg91u1z') ? 'prod' : 'dev';
+  if (named) return ENV_NAMES[named] ?? 'unknown';
+  const url = env.LIVEKIT_URL ?? '';
+  return url.includes('test-rvg91u1z') ? 'prod' : url.includes('dev-8sm1ba0z') ? 'dev' : 'unknown';
 }
 
 /** HMAC-SHA256(key = HMAC(LOG_HASH_SECRET, "bq-<purpose>:"), id), truncated hex. Null without the secret. */
@@ -111,11 +138,15 @@ export function bqHash(purpose: Purpose, id: string, env: Env = process.env): st
   return createHmac('sha256', key).update(id).digest('hex').slice(0, HASH_HEX);
 }
 
-function coerce(col: Col, v: unknown): unknown {
-  const str = (x: unknown) =>
-    (typeof x === 'string' || typeof x === 'number') && String(x).length <= MAX_STRING
-      ? String(x)
-      : undefined;
+/** A string column's value through its allowlist (bq-fields.ts): off the list is 'other'. */
+function allowed(field: string, x: unknown): string | undefined {
+  if (typeof x !== 'string' && typeof x !== 'number') return undefined;
+  const v = (FIELD_VALUE[field] ?? (() => OTHER))(String(x));
+  return v.length <= MAX_STRING ? v : OTHER;
+}
+
+function coerce(field: string, col: Col, v: unknown): unknown {
+  const str = (x: unknown) => allowed(field, x);
   switch (col) {
     case 'INT64':
     case 'FLOAT64': {
@@ -150,7 +181,7 @@ export function buildRow(
     if (!col || (MANAGED as readonly string[]).includes(field))
       return { refused: `field ${field}` };
     if (value === null || value === undefined) continue;
-    const coerced = coerce(col, value);
+    const coerced = coerce(field, col, value);
     if (coerced === undefined) return { refused: `value of ${field}` };
     out[field] = coerced;
   }
@@ -194,7 +225,7 @@ export function emitEvent<K extends BqTable>(
     }
     return true;
   } catch (error) {
-    warnOnce('emit failed', { table, error: String(error) });
+    warnOnce('emit failed', { table, ...errorShape(error) });
     return false;
   }
 }
@@ -214,21 +245,30 @@ async function insertAll(table: BqTable, rows: Record<string, unknown>[]): Promi
   ).request<{ insertErrors?: unknown[] }>({
     url: INSERT_URL(table),
     method: 'POST',
+    timeout: REQUEST_TIMEOUT_MS,
     data: { rows: rows.map((json) => ({ insertId: randomUUID(), json })) },
   });
   const errors = res.data?.insertErrors?.length ?? 0;
-  if (errors) throw new Error(`${errors} of ${rows.length} rows rejected`);
+  if (errors)
+    throw Object.assign(new Error('rows rejected'), { name: 'InsertErrors', code: errors });
 }
 
 /** Sends everything buffered, waiting at most `timeoutMs`. Failures are logged (rate-limited) and dropped. */
 export async function flushBqEvents(timeoutMs = 10_000): Promise<void> {
   const batches = drain();
   const send = transport ?? insertAll;
-  const sends = batches.map(([table, rows]) =>
-    send(table, rows).catch((error: unknown) =>
-      warnOnce(`insert failed (${table})`, { table, rows: rows.length, error: String(error) })
-    )
-  );
+  const sends = batches.map(async ([table, rows]) => {
+    if (inFlight >= MAX_IN_FLIGHT)
+      return warnOnce('too many inserts in flight, rows dropped', { table });
+    inFlight++;
+    try {
+      await send(table, rows);
+    } catch (error) {
+      warnOnce(`insert failed (${table})`, { table, rows: rows.length, ...errorShape(error) });
+    } finally {
+      inFlight--;
+    }
+  });
   await Promise.race([Promise.all(sends), sleep(timeoutMs, undefined, { ref: false })]);
 }
 
@@ -248,4 +288,5 @@ export function setBqTransportForTests(fn: BqTransport | null): void {
   transport = fn;
   drain();
   lastWarn.clear();
+  inFlight = 0;
 }

@@ -65,7 +65,7 @@ export const FLAGS_ACTION_TO_BYPASS = {
   BARGE_IN_ACK_WORDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   BARGE_IN_FASTPATH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   BARGE_IN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on: anonymised call and outreach rows go to BigQuery ferni_events (analytics/bq-events.ts)
+  // on: pseudonymous call and outreach rows go to BigQuery ferni_events (analytics/bq-events.ts)
   BQ_EVENTS: { default: 'off', owner: 'platform', kind: 'experiment' },
   BRIEFED_HANDOFF: { default: 'off', owner: 'voice', kind: 'experiment' },
   BYPASS_INJECTION_FILTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },

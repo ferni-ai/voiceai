@@ -14,7 +14,7 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 }));
 
 import { bqHash, flushBqEvents, setBqTransportForTests } from '../bq-events.js';
-import { onExperimentFlags } from '../bq-call-events.js';
+import { callSummary, onExperimentFlags } from '../bq-call-events.js';
 import {
   endCall,
   recordBargeInDetected,
@@ -41,7 +41,7 @@ describe('call_events from the call-quality monitor', () => {
     setBqTransportForTests(null);
   });
 
-  it('sends one anonymised row when a call ends', async () => {
+  it('sends one pseudonymous row when a call ends', async () => {
     vi.stubEnv('BQ_EVENTS', 'on');
     startCall('RM_1', 'uid-42', 'ferni');
     recordCallEvent({ callId: 'RM_1', timestamp: Date.now() + 900, type: 'first_response' });
@@ -83,5 +83,37 @@ describe('call_events from the call-quality monitor', () => {
     expect(onExperimentFlags({ WRAP_UP: 'off' })).not.toContain('WRAP_UP');
     // kill switches that are on by default are not experiments
     expect(onExperimentFlags({})).not.toContain('CALLER_TURN_NOTE');
+  });
+
+  it('a persona id that is not a known persona is written as other (it comes from /token)', async () => {
+    vi.stubEnv('BQ_EVENTS', 'on');
+    startCall('RM_3', 'uid-42', 'pat@example.com');
+    endCall('RM_3', 'natural');
+    startCall('RM_4', 'uid-42', '+15551234567');
+    endCall('RM_4', 'natural');
+    await flushBqEvents();
+    expect(rows.map((r) => r.persona)).toEqual(['other', 'other']);
+    expect(JSON.stringify(rows)).not.toMatch(/pat@example|5551234567/);
+  });
+
+  it("in process-per-call mode the child's gate and flags decide, not the worker's env", async () => {
+    vi.stubEnv('BQ_EVENTS', 'on');
+    startCall('RM_5', 'uid-42', 'ferni');
+    endCall('RM_5', 'natural', { bq: false, flags: ['WRAP_UP'] });
+    vi.stubEnv('BQ_EVENTS', 'off');
+    startCall('RM_6', 'uid-42', 'ferni');
+    endCall('RM_6', 'natural', { bq: true, flags: ['WRAP_UP'] });
+    await flushBqEvents();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.session_hash).toBe(
+      bqHash('session', 'RM_6', { LOG_HASH_SECRET: 'test-secret' })
+    );
+    expect(rows[0]?.flags).toEqual(['WRAP_UP']);
+  });
+
+  it("callSummary reads the caller's flags and gate from the call's own env", async () => {
+    const summary = await callSummary('RM_none', { BQ_EVENTS: 'on', WRAP_UP: 'on' });
+    expect(summary).toEqual({ bq: true, flags: expect.arrayContaining(['BQ_EVENTS', 'WRAP_UP']) });
+    expect((await callSummary('RM_none', {})).bq).toBe(false);
   });
 });
