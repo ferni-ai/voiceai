@@ -138,10 +138,13 @@ describe('nothing in a brief can carry someone else\'s phishing', () => {
       'login at paypal．com now',
       'go to account-help。support today',
       'see evil.example/reset',
+      'go to evil.\u{1F642}com',
+      'go to evil\u200B.com',
+      'call 801\u2060555\u20600199',
       `${'word '.repeat(7)}https://evil.example/very/long/path`,
     ]) {
       const out = cleanItem(raw);
-      expect(out, raw).not.toMatch(/paypal|support|evil|https|\.com/i);
+      expect(out, raw).not.toMatch(/paypal|support|evil|https|\.com|555|0199/i);
     }
   });
 

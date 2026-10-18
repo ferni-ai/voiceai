@@ -46,9 +46,14 @@ const EMAIL_LIKE = /\S+@\S+/gu;
 const DOMAIN_LIKE = /[\p{L}\p{N}-]+[.。｡][\p{L}]{2,}\S*/gu;
 const PHONE_LIKE = /\+?\d[\d\s().-]{6,}\d/gu;
 
+// Invisible and pictographic characters go first: removed after the scrub, they
+// could join "evil.🙂com" back into a link.
+const INVISIBLE = /[\p{Extended_Pictographic}\p{Cf}\u{FE00}-\u{FE0F}\u{20E3}]/gu;
+
 function withoutContacts(text: string): string {
   return text
     .normalize('NFKC')
+    .replace(INVISIBLE, '')
     .slice(0, 200)
     .replace(URL_LIKE, ' ')
     .replace(EMAIL_LIKE, ' ')
@@ -61,12 +66,11 @@ export function cleanItem(raw: string): string {
   const s = withoutContacts(raw)
     .replace(/\s*[—–]\s*/g, ', ')
     .replace(/…|\.{2,}/g, ' ')
-    .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '')
     .replace(/\s+/g, ' ')
     .trim()
     .replace(FIRST_PERSON, '')
     .replace(/[\s,;:.!?]+$/, '');
-  if (s.length <= ITEM_CHARS) return s;
+  if (s.length <= ITEM_CHARS) return withoutContacts(s).trim();
   const cut = s.slice(0, ITEM_CHARS + 1);
   const space = cut.lastIndexOf(' ');
   return withoutContacts(space > 10 ? cut.slice(0, space) : cut.slice(0, ITEM_CHARS))
