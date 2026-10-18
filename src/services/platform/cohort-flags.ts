@@ -89,6 +89,11 @@ export const COHORT_FLAGS = [
   'GOOD_NEWS_BIGGER',
   'FERNI_PERSONA_SLIP_GUARD',
   'DIRECTOR_PERSONA_AWARE',
+  // Read on each turn's request (withTurnReminder, turn-request.ts), never at boot: how
+  // each persona sounds, and reply length and roughness drawn from friends' turns.
+  'PERSONA_VOICE',
+  'TURN_LENGTH',
+  'TURN_TEXTURE',
   // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
   'ALEX_CHIEF_OF_STAFF',
   // Read after the call, through envForCaller, never process.env as applied.
@@ -105,8 +110,17 @@ export const COHORT_FLAGS = [
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
-/** Values a flag may take: the env flags here are all on/off switches. */
-const VALUES: ReadonlySet<string> = new Set(['on', 'off']);
+const ON_OFF: readonly string[] = ['on', 'off'];
+/** The flags that are not on/off switches, and the values they may take. */
+const MODES: Partial<Record<CohortFlag, readonly string[]>> = {
+  TURN_LENGTH: ['learned', 'off'],
+  TURN_TEXTURE: ['learned', 'off'],
+};
+
+/** Values a cohort or override may give this flag: on/off, or the flag's own modes. */
+export function cohortFlagValues(flag: string): readonly string[] {
+  return MODES[flag as CohortFlag] ?? ON_OFF;
+}
 
 /**
  * A switch that does nothing unless these are on too (the memory stack
@@ -174,11 +188,11 @@ export function inSample(cohort: Cohort, userId: string): boolean {
   return typeof p === 'number' && p > 0 && sampleBucket(cohort.id, userId) < Math.min(p, 100);
 }
 
-/** Keeps only allowed switches with on/off values; anything else is dropped (and logged). */
+/** Keeps only allowed switches with values they take; anything else is dropped (and logged). */
 function allowed(flags: Record<string, unknown>, from: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(flags)) {
-    if (ALLOWED.has(k) && typeof v === 'string' && VALUES.has(v)) out[k] = v;
+    if (ALLOWED.has(k) && typeof v === 'string' && cohortFlagValues(k).includes(v)) out[k] = v;
     else log.warn({ flag: k, from }, 'Ignored a flag cohorts may not set');
   }
   return out;
