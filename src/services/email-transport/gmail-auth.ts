@@ -62,8 +62,10 @@ export async function runtimeAccessToken(): Promise<string> {
   return token;
 }
 
+/** Google's error text can name the mailbox or account; errors get logged, so addresses are redacted. */
 async function failure(step: string, res: Response): Promise<Error> {
-  return new Error(`${step} failed: ${res.status} ${(await res.text()).slice(0, 300)}`);
+  const body = (await res.text()).replace(/[^\s<>"'(),;:@]+@[^\s<>"'(),;:@]+/g, '[address]');
+  return new Error(`${step} failed: ${res.status} ${body.slice(0, 300)}`);
 }
 
 export interface GmailTokenSource {

@@ -138,4 +138,20 @@ describe('createGmailTokenSource', () => {
     });
     await expect(tokens.get()).rejects.toThrow(/token exchange failed: 401 .*unauthorized_client/);
   });
+
+  it('keeps addresses out of the error Google echoes back', async () => {
+    const fetchImpl = (async () =>
+      new Response(
+        '{"error":"invalid_grant","error_description":"Invalid email or User ID: hello@ferni.ai for ferni-mailer@johnb-2025.iam.gserviceaccount.com"}',
+        { status: 400 }
+      )) as typeof fetch;
+    const tokens = createGmailTokenSource(MAILER, MAILBOX, {
+      fetch: fetchImpl,
+      runtimeToken: async () => 'rt',
+      now: () => T0,
+    });
+    const err = await tokens.get().catch((e: Error) => e);
+    expect((err as Error).message).toMatch(/^signJwt failed: 400 .*\[address\]/);
+    expect((err as Error).message).not.toContain('@');
+  });
 });
