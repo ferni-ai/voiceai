@@ -45,14 +45,19 @@ export async function runWaitlistWaveJob(opts: {
   return { ...report };
 }
 
-export async function handleWaitlistWave(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleWaitlistWave(
+  req: IncomingMessage,
+  res: ServerResponse,
+  run = runWaitlistWaveJob
+): Promise<void> {
+  // prettier-ignore
   const dryRun = ['true', '1'].includes(
     new URL(req.url ?? '/', 'http://localhost').searchParams.get('dryRun') ?? ''
   );
   try {
-    sendJson(res, 200, { success: true, job: 'waitlist-wave', ...(await runWaitlistWaveJob({ dryRun })) }); // prettier-ignore
+    sendJson(res, 200, { success: true, job: 'waitlist-wave', ...(await run({ dryRun })) }); // prettier-ignore
   } catch (error) {
     log.error({ error: String(error) }, 'Waitlist wave failed');
-    sendJson(res, 500, { success: false, job: 'waitlist-wave', error: String(error) });
+    sendJson(res, 500, { success: false, job: 'waitlist-wave', error: 'wave_failed' }); // detail stays in the log
   }
 }
