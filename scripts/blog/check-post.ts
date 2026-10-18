@@ -18,6 +18,7 @@ import { checkPost, type GateIssue } from './brand-gate.js';
 import { forbiddenTerms } from './brand-terms.js';
 import { HOUSE_FACTS, renderPack, runGh, type Source } from './grounding.js';
 import { citedPrNumbers, notLiveReason, offFlags, type LiveContext } from './live-check.js';
+import { unsafeOutput } from './untrusted-text.js';
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -76,6 +77,7 @@ const sourceText = values.meta
   : live && renderPack([...live.sources, HOUSE_FACTS]);
 const issues = [
   ...checkPost(markdown, { terms: forbiddenTerms(process.cwd(), audience), sourceText }),
+  ...unsafeOutput(markdown),
   ...(live?.issues ?? []),
 ];
 
