@@ -1,14 +1,17 @@
 /**
- * The commitment extractor keeps the caller's own commitments and drops what only
+ * The commitment extractors keep the caller's own commitments and drop what only
  * sounds like one: a request to Ferni, a question, a food or drink order.
  *
- * Drives the production detectCommitment (commitment-keeper.ts), the function the
- * live paths call before saving a commitment (commitment-keeper-e2e.ts,
- * memory/entity-store/integration.ts). Pure: no Firestore is touched.
+ * Drives both production detectors: detectCommitment (superhuman/commitment-keeper.ts,
+ * called before saving by commitment-keeper-e2e.ts and memory/entity-store/integration.ts)
+ * and detectCommitments (trust-systems/commitment-tracking.ts, whose commitments the
+ * commitment-follow-up context builder turns into follow-up questions). Pure: no
+ * Firestore is touched.
  */
 
 import { describe, expect, it } from 'vitest';
-import { detectCommitment } from '../commitment-keeper.js';
+import { detectCommitment } from '../../services/superhuman/commitment-keeper.js';
+import { detectCommitments } from '../../services/trust-systems/commitment-tracking.js';
 
 const detected = (text: string) => detectCommitment(text, 'user-1').detected;
 
@@ -51,5 +54,27 @@ describe('detectCommitment: real commitments still count', () => {
   it('sarcasm and outside pressure are still not commitments', () => {
     expect(detected("Yeah right, I'll go to the gym.")).toBe(false);
     expect(detected('Everyone says I should quit my job.')).toBe(false);
+  });
+});
+
+describe('detectCommitments (follow-up builder source): the same requests and orders are skipped', () => {
+  it.each([
+    "I'm going to need you to do 7 jumping jacks.",
+    "I'm gonna have you read it back to me",
+    "I'll take butter and honey.",
+    'Am I going to have time for that',
+  ])('nothing tracked: %s', (text) => {
+    expect(detectCommitments(text)).toEqual([]);
+  });
+
+  it.each([
+    ["I'm going to call my sister tomorrow.", 'call my sister'],
+    ["I'll take a coffee. I will start running on Monday.", 'start running'],
+  ])('tracked: %s', (text, words) => {
+    expect(
+      detectCommitments(text)
+        .map((c) => c.content)
+        .join(' ')
+    ).toContain(words);
   });
 });
