@@ -25,6 +25,7 @@ import {
 } from '../../services/outreach/on-behalf-dispatch.js';
 import { screenedCallerText } from '../../services/outreach/caller-text.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
+import { noteCallRefinement } from '../../services/follow-through/index.js';
 import type { CallDisposition } from './call-control.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
@@ -354,8 +355,7 @@ async function reportCall(
     // A voicemail is retried only when the words heard read as a recorded greeting
     // (or nothing was transcribed); anything a person might have said fails closed.
     const machine = heardAs === 'voicemail' || heard.length === 0;
-    const missed =
-      outcome.status === 'no_answer' || (outcome.status === 'voicemail' && machine);
+    const missed = outcome.status === 'no_answer' || (outcome.status === 'voicemail' && machine);
     const refused = heardAs === 'opted_out' || heardAs === 'declined';
     if (followthrough && missed && !refused && scheduleRetry) {
       const retryAt = await scheduleRetry(call);
@@ -369,6 +369,13 @@ async function reportCall(
         };
       }
     }
+    const refined =
+      disposition === 'wrong_number'
+        ? 'wrong-number'
+        : disposition === 'refused' || refused
+          ? 'declined'
+          : undefined;
+    if (refined) noteCallRefinement(call.callId, refined); // read by captureCallResult's PROMISE_OUTCOME
     await report(call.callId, outcome, request);
     log.info(
       { callId: call.callId, status: outcome.status, objectiveAchieved: outcome.objectiveAchieved },
