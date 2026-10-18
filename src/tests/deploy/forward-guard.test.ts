@@ -110,6 +110,7 @@ function guard(opts: {
   reason?: string;
   tip?: string;
   service?: 'ok' | 'missing' | 'error';
+  queueTested?: string;
 }): Run {
   const output = join(dir, `out-${Math.random().toString(36).slice(2)}`);
   const summary = `${output}-summary`;
@@ -125,6 +126,7 @@ function guard(opts: {
       EVENT: opts.event ?? 'workflow_run',
       ALLOW_OLDER: String(opts.allowOlder ?? false),
       REASON: opts.reason ?? '',
+      QUEUE_TESTED: opts.queueTested ?? '',
       GCP_REGION: 'us-central1',
       GCP_PROJECT_ID: 'p',
       GITHUB_REPOSITORY: 'o/r',
@@ -231,6 +233,36 @@ describe('forward-only deploy guard: manual dispatch', () => {
   });
 });
 
+describe('forward-only deploy guard: merge-queue fast path (push)', () => {
+  const push = { event: 'push' } as const;
+
+  it('a push whose tree the merge queue tested deploys right away', () => {
+    expect(guard({ ...push, queueTested: 'true', live: sha.b, deploy: sha.c })).toMatchObject({
+      status: 0,
+      deploy: 'true',
+    });
+  });
+
+  it('an admin merge or direct push (not queue-tested) is a no-op: push CI deploys it', () => {
+    for (const queueTested of ['false', '']) {
+      const r = guard({ ...push, queueTested, live: sha.b, deploy: sha.c });
+      expect(r).toMatchObject({ status: 0, deploy: 'false' });
+      expect(r.summary).toMatch(/merge-queue/);
+    }
+  });
+
+  it('the forward-only check holds on the fast path too', () => {
+    expect(guard({ ...push, queueTested: 'true', live: sha.c, deploy: sha.b })).toMatchObject({
+      status: 0,
+      deploy: 'false',
+    });
+  });
+
+  it('push CI passing later on a fast-pathed head deploys nothing again', () => {
+    expect(guard({ live: sha.c, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'false' });
+  });
+});
+
 describe('deploy-production.yml wiring', () => {
   const workflow = read('.github/workflows/deploy-production.yml');
   const job = workflow.slice(workflow.indexOf('\n  deploy-ui:'), workflow.indexOf('\n  report-not-live:'));
@@ -277,6 +309,21 @@ describe('deploy-production.yml wiring', () => {
     expect(job).toContain(dispatchFromMain);
     expect(/\nconcurrency:\n {2}group: (.*)\n/.exec(workflow)?.[1]).toContain(dispatchFromMain);
     expect(workflow).not.toMatch(/github\.event_name == 'workflow_dispatch' \|\|/);
+  });
+
+  it('a push to main runs the job, and the queue verdict reaches the guard', () => {
+    const pushToMain = "github.event_name == 'push' && github.ref == 'refs/heads/main'";
+    expect(job).toContain(pushToMain);
+    expect(/\nconcurrency:\n {2}group: (.*)\n/.exec(workflow)?.[1]).toContain(pushToMain);
+    expect(workflow).toMatch(/\n {2}push:\n {4}branches: \[main\]\n/);
+    const queue = steps[at('Did the merge queue already test this tree?')];
+    expect(queue).toMatch(/uses: \.\/\.github\/actions\/queue-tested/);
+    expect(at('Did the merge queue already test this tree?')).toBeLessThan(guardAt);
+    expect(steps[guardAt]).toMatch(/QUEUE_TESTED: \$\{\{ steps\.queue\.outputs\.tested \}\}/);
+  });
+
+  it('merge_group CI runs never deploy', () => {
+    expect(job).not.toMatch(/merge_group/);
   });
 
   it('the manual CI check counts only push runs on main, never a green PR run', () => {

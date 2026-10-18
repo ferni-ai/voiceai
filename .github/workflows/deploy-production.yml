@@ -32,7 +32,8 @@ name: Deploy Production (Blue-Green)
 # for 3+ hours on 2026-10-18. The steps are unchanged; they now run in order
 # in the single deploy-ui job:
 # 1. Prepare  → Validate secrets, metadata, deployment safety check
-# 2. Gate     → CI verdict on this commit (see "on:" below), forward-only guard
+# 2. Gate     → CI verdict on this commit, or the merge queue's on its tree
+#               (see "on:" below), then the forward-only guard
 # 3. Build    → design-system, then the UI Docker image
 # 4. Deploy   → Blue-green: green gets no traffic until it passes 5
 # 5. Verify   → Health check + smoke tests on green; rollback if either fails
@@ -63,6 +64,16 @@ on:
   workflow_run:
     workflows: [CI]
     types: [completed]
+    branches: [main]
+  # Merge-queue fast path. A queue merge lands a tree that a successful
+  # merge-queue CI run already tested (squash merges land the same tree), so
+  # the push deploys right away instead of waiting 65-132 min for push CI
+  # (queue-tested decides; merge_group runs themselves never deploy, because
+  # the group can still be dequeued). An admin merge or direct push has no such
+  # run: its push is a no-op, and the workflow_run path deploys it after push CI.
+  # One deploy per head: when push CI on a fast-pathed head passes, the
+  # workflow_run run finds production already serving it (identical) and stops.
+  push:
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -103,9 +114,12 @@ on:
 # Every CI completion on main starts a run, most of them cancelled or failed
 # CI that deploy nothing. Those take a group of their own, so they can never
 # replace a pending real deploy. The condition matches the deploying part of
-# the deploy-ui `if:`.
+# the deploy-ui `if:`. Push runs always take the group (whether the queue
+# tested the tree is only known on a runner), so one can replace a pending
+# deploy and then no-op; the replaced commit, or a newer one, still deploys
+# from its own CI verdict, and the guard keeps every deploy forward-only.
 concurrency:
-  group: ${{ ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) && 'deploy-production' || format('deploy-production-noop-{0}', github.run_id) }}
+  group: ${{ ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) && 'deploy-production' || format('deploy-production-noop-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:
@@ -132,6 +146,7 @@ jobs:
     # Manual deploys only from main's workflow file; never from a branch.
     if: >-
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main' &&
@@ -214,6 +229,13 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      # The push (fast-path) verdict: did a successful merge-queue CI run test
+      # exactly this tree? The guard deploys a push only when it did.
+      - name: Did the merge queue already test this tree?
+        id: queue
+        if: github.event_name == 'push'
+        uses: ./.github/actions/queue-tested
+
       # Never move production backwards, including a re-run of an old CI run:
       # deploy only when DEPLOY_SHA is ahead of the commit production serves.
       # A no-op otherwise (deploy=false), which skips every step below. A manual
@@ -226,6 +248,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           ALLOW_OLDER: ${{ inputs.allow_older == true }}
           REASON: ${{ inputs.reason }}
+          QUEUE_TESTED: ${{ steps.queue.outputs.tested }}
         run: bash scripts/ci/deploy-forward-guard.sh
 
       - name: Setup pnpm
@@ -569,7 +592,7 @@ jobs:
         run: |
           tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha) || tip=""
           if [ "$SHA" = "$tip" ]; then
-            msg="Merged but not live: CI failed on $SHA, main's tip, so production was not deployed. CI: $CI_URL"
+            msg="Merged but not live: push CI failed on $SHA, main's tip. Unless the merge-queue fast path already deployed it (see this commit's push run), production is behind main. CI: $CI_URL"
             echo "::error::$msg"
             echo "### ❌ $msg" >> "$GITHUB_STEP_SUMMARY"
             exit 1

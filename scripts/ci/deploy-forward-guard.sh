@@ -17,10 +17,14 @@
 #   - Manual dispatch deploys only commits on main. With ALLOW_OLDER=true and
 #     a REASON it skips the forward-only check, for an intentional rollback.
 #     rollback.yml doesn't come through here; it shifts traffic on its own.
+#   - A push to main (the merge-queue fast path) deploys only when QUEUE_TESTED
+#     is true: a successful merge-queue CI run tested exactly this tree. If it
+#     isn't (admin merge, direct push), the push is a no-op and the workflow_run
+#     path deploys after push CI passes. Either way the forward-only check holds.
 #
-# Env: DEPLOY_SHA, EVENT (github.event_name), ALLOW_OLDER, REASON, GCP_REGION,
-# GCP_PROJECT_ID, GITHUB_REPOSITORY, GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, and
-# GH_TOKEN for gh.
+# Env: DEPLOY_SHA, EVENT (github.event_name), ALLOW_OLDER, REASON, QUEUE_TESTED,
+# GCP_REGION, GCP_PROJECT_ID, GITHUB_REPOSITORY, GITHUB_OUTPUT,
+# GITHUB_STEP_SUMMARY, and GH_TOKEN for gh.
 set -euo pipefail
 
 SERVICE=john-bogle-ui
@@ -40,6 +44,10 @@ refuse() { echo "::error::Not deploying ${DEPLOY_SHA}: $1"; summary "### ❌ Ref
 compare() { gh api "repos/$REPO/compare/$1...$2" --jq .status 2>/dev/null || true; }
 
 [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || refuse "DEPLOY_SHA is not a full commit SHA"
+
+if [ "$EVENT" = push ] && [ "${QUEUE_TESTED:-false}" != true ]; then
+  noop "no successful merge-queue run tested this tree (admin merge or direct push?), so it deploys once push CI passes on main."
+fi
 
 if [ "$EVENT" = workflow_dispatch ]; then
   on_main=$(compare "$DEPLOY_SHA" main)
