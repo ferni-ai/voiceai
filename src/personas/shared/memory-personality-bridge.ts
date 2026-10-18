@@ -151,7 +151,7 @@ export function createDateCallback(
   // Adjust tone for difficult dates
   if (dateType === 'anniversary_loss' || dateType === 'difficult') {
     tone = 'gentle';
-    naturalPhrase = naturalPhrase.replace('How are you feeling', "I'm here if you want to talk");
+    naturalPhrase = naturalPhrase.replace(/How are you feeling.*$/, 'Thinking of you.');
   }
 
   return {
