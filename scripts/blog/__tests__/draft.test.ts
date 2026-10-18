@@ -87,6 +87,7 @@ describe('each post type', () => {
 
       expect(result.status, JSON.stringify(result.issues)).toBe('written');
       expect(writes).toHaveLength(1);
+      expect(result.title).toBe(`A fresh ${type.id} title`);
       expect(path.dirname(writes[0].file)).toBe(path.join(root, type.folder));
       const { data, content } = matter(writes[0].content);
       for (const field of REQUIRED_FIELDS) expect(data[field], field).toBeTruthy();
