@@ -104,11 +104,7 @@ const TOPIC_TRANSITIONS: Record<string, string[]> = {
     'I love hearing about your memories.',
     'Memories are such treasures.',
   ],
-  feelings: [
-    "Let's check in with how you're feeling.",
-    "I'm here for whatever you're feeling.",
-    'Thanks for sharing that with me.',
-  ],
+  feelings: ["Let's check in with how you're feeling.", "What's the mood today, honestly?"],
   goals: [
     "Let's dream big!",
     'I love talking about goals!',
@@ -133,11 +129,7 @@ const TOPIC_TRANSITIONS: Record<string, string[]> = {
 
 const EMOTION_TRANSITIONS: Record<string, string[]> = {
   happy: ['I can hear the joy in your words!', 'This makes me smile too!', 'What a great mood!'],
-  sad: [
-    "I'm here with you.",
-    "It's okay to feel this way.",
-    'I appreciate you sharing this with me.',
-  ],
+  sad: ["I'm here with you.", "Yeah. That's heavy.", 'I appreciate you sharing this with me.'],
   anxious: ["Let's take a breath together.", "I'm listening.", 'We can work through this.'],
   excited: ['That energy is contagious!', 'I love this excitement!', 'Tell me everything!'],
   nostalgic: [
@@ -145,7 +137,7 @@ const EMOTION_TRANSITIONS: Record<string, string[]> = {
     "There's something special about looking back.",
     'Those moments matter.',
   ],
-  frustrated: ['I hear you.', 'That sounds really frustrating.', "Let's talk about it."],
+  frustrated: ['Ugh.', 'That sounds really frustrating.', "Let's talk about it."],
 };
 
 // ============================================================================

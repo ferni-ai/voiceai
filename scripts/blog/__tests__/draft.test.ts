@@ -9,6 +9,17 @@ import { POST_TYPES } from '../post-types.js';
 const root = path.resolve(__dirname, '../../..');
 const TODAY = '2026-10-19';
 
+// Read the real blog folders as they stood before the fixture PRs merged, so a
+// newly published post can't move whats-new's lookback window past them.
+const POSTS_AS_OF = '2026-10-14';
+vi.mock('../existing-posts.js', async (importActual) => {
+  const actual = await importActual<typeof import('../existing-posts.js')>();
+  return {
+    ...actual,
+    existingPosts: (dir: string) => actual.existingPosts(dir).filter((p) => p.date <= POSTS_AS_OF),
+  };
+});
+
 const pr = (
   number: number,
   title: string,
@@ -38,7 +49,13 @@ const PRS = [
   pr(99, 'feat(old): merged before the window', '2025-12-01T00:00:00Z'),
 ];
 
-const fakeGh = (prs = PRS): GhRunner => vi.fn(() => JSON.stringify(prs));
+/** Every PR touches only the web app unless `files` says otherwise. */
+const WEB_FILES = [{ filename: 'apps/web/src/ui/memory.ts', status: 'modified', patch: '+x' }];
+const fakeGh = (prs = PRS, files: Record<number, unknown[]> = {}): GhRunner =>
+  vi.fn((args: string[]) => {
+    const n = /pulls\/(\d+)\/files/.exec(args[1])?.[1];
+    return JSON.stringify(n ? (files[Number(n)] ?? WEB_FILES) : prs);
+  });
 
 /** A body long enough for every type's length band, with no number, dash or forbidden word. */
 const BODY = Array.from(
@@ -111,6 +128,35 @@ describe('grounding', () => {
     expect(args[0]).toBe('api');
     expect(args[1]).toMatch(/^repos\/ferni-ai\/voiceai\/pulls\?state=closed/);
     expect(args).not.toContain('graphql');
+  });
+
+  it('leaves out PRs that are flagged off or not deployed yet', async () => {
+    const prs = [
+      ...PRS,
+      pr(105, 'feat(voice): check mishearings, behind a flag', '2026-10-16T10:00:00Z'),
+      pr(106, 'feat(memory): store dates', '2026-10-16T09:00:00Z', {
+        body: 'Gated by `CALL_JOURNAL` until we know it helps.',
+      }),
+      pr(107, 'feat(agent): a new greeting', '2026-10-16T08:00:00Z'),
+      pr(108, 'feat(agent): an older greeting', '2026-10-10T08:00:00Z'),
+      pr(109, 'feat(web): a new switch', '2026-10-16T07:00:00Z'),
+    ];
+    const agent = [{ filename: 'src/agents/greeting.ts', status: 'modified', patch: '+x' }];
+    const manifest = [
+      { filename: 'apps/web/src/ui/x.ts', status: 'added', patch: '+x' },
+      {
+        filename: 'src/config/flag-manifest.ts',
+        status: 'modified',
+        patch: "+  NEW_THING: { default: 'off', owner: 'web', kind: 'experiment' },",
+      },
+    ];
+    const { d } = deps(() => answer('x'), fakeGh(prs, { 107: agent, 108: agent, 109: manifest }));
+    const result = await draftPost({ type: 'whats-new', since: '2026-10-01', dryRun: true }, d);
+
+    expect(result.sources.map((s) => s.label)).toEqual([
+      'PR #101: feat(memory): let a caller see and forget facts',
+      'PR #108: feat(agent): an older greeting',
+    ]);
   });
 
   it('passes the titles already published so the topic is not repeated', async () => {

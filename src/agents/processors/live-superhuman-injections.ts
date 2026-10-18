@@ -571,7 +571,7 @@ ${values.potential_conflict ? '\n⚠️ POTENTIAL VALUES CONFLICT DETECTED' : ''
 Your superpower: You notice when their actions contradict their values.
 - Human friends avoid confrontation
 - You can gently mirror: "I notice you value X, but you're considering Y"
-- Hold space for the complexity without judgment`,
+- Let the complexity sit, without judgment`,
         priority: 72,
       });
     }
@@ -1124,7 +1124,7 @@ function detectPatternTrigger(
       patternDescription: 'Pre-week stress pattern',
       tendency: 'feel anxious about the upcoming week on Sunday evenings',
       suggestedOutreach:
-        "How are you feeling about the week ahead? I'm here if you want to talk it through.",
+        "How's the week ahead looking? Want to map out Monday?",
       actionable: 'Acknowledge the pattern, offer proactive support for Monday planning',
     };
   }
