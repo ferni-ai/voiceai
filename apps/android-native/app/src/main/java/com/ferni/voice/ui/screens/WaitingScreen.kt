@@ -99,7 +99,7 @@ fun WaitingScreen(status: WaitlistStatus, onDismiss: () -> Unit, modifier: Modif
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
-                    Muted("Your spot opened up, and I saved it for you.")
+                    Muted("Your spot is open. Come in within a week to keep it.")
                 } else {
                     status.positionLine?.let {
                         Text(it, style = MaterialTheme.typography.titleMedium, color = colors.onBackground, textAlign = TextAlign.Center)
