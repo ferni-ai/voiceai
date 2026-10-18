@@ -25,6 +25,7 @@ Element.prototype.animate = vi.fn(() => ({ finished: Promise.resolve() })) as ne
 
 await (await import('../../src/i18n/index.js')).initI18n();
 const cosmetics = await import('../../src/services/cosmetics.service.js');
+const { listedCosmetics } = await import('../../src/services/cosmetics-listed.js');
 const personalize = await import('../../src/ui/personalize.ui.js');
 const { openReferral, closeReferral } = await import('../../src/ui/referral.ui.js');
 
@@ -51,7 +52,7 @@ describe('Make It Yours', () => {
     const items = [...document.querySelectorAll<HTMLElement>('.personalize-item')];
     const priced = cosmetics.COSMETICS_CATALOG.filter((c) => c.priceInSeeds !== null);
     expect(priced.length).toBeGreaterThan(0); // the catalog still carries old prices
-    expect(items).toHaveLength(cosmetics.COSMETICS_CATALOG.length);
+    expect(items.map((item) => item.dataset.itemId)).toEqual(listedCosmetics().map((c) => c.id));
     for (const item of items) {
       const usable = item.querySelector('[data-action="equip"]');
       const active = item.querySelector('.personalize-item-status.equipped');
@@ -71,6 +72,48 @@ describe('Make It Yours', () => {
       .click();
 
     expect(cosmetics.getEquippedCosmetics()['avatar-skin']).toBe(skin.id);
+  });
+});
+
+/**
+ * Review of #1954: several newly free items changed nothing (sound packs play
+ * silent files, Deep Forest / Cozy Cabin only set a hue nothing reads, voice
+ * packs have no caller). Only items that change something are listed.
+ */
+describe('Make It Yours lists nothing that does nothing', () => {
+  /** What a pick can change: Ferni's colours (--skin-*), the skin effect, light/dark. */
+  const look = (): string =>
+    JSON.stringify([
+      document.documentElement.style.getPropertyValue('--skin-primary'),
+      document.documentElement.style.getPropertyValue('--skin-glow'),
+      document.documentElement.style.getPropertyValue('--skin-secondary'),
+      document.documentElement.getAttribute('data-skin-effect'),
+      document.documentElement.getAttribute('data-theme'),
+    ]);
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('every listed item changes how Ferni or the page looks when picked', () => {
+    const listed = listedCosmetics();
+    expect(listed.map((c) => c.type)).toEqual(expect.arrayContaining(['avatar-skin', 'ui-theme']));
+    for (const item of listed) {
+      // start from a different item of the same kind
+      const other = listed.find((c) => c.type === item.type && c.id !== item.id)!;
+      cosmetics.equipCosmetic(other.id);
+      const before = look();
+      cosmetics.equipCosmetic(item.id);
+      expect(look(), `${item.id} after ${other.id}`).not.toBe(before);
+    }
+  });
+
+  it('hides silent sound packs, accent-only themes and voice packs while the flag is off', () => {
+    const ids = listedCosmetics().map((c) => c.id);
+    expect(listedCosmetics().some((c) => c.type === 'sound-pack' || c.type === 'voice-pack')).toBe(false);
+    expect(ids).not.toContain('theme-forest');
+    expect(ids).not.toContain('theme-cozy');
+
+    vi.stubEnv('VITE_PERSONALIZE_EXTRAS', 'true');
+    expect(listedCosmetics().map((c) => c.id)).toEqual(expect.arrayContaining(['theme-forest', 'sounds-rain']));
   });
 });
 

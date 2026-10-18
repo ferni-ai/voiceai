@@ -13,7 +13,8 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { COSMETICS_CATALOG, equipCosmetic, getCosmeticName, getEquippedCosmetics, onCosmeticsChange, type CosmeticItem, type CosmeticType } from '../services/cosmetics.service.js';
+import { equipCosmetic, getCosmeticName, getEquippedCosmetics, onCosmeticsChange, type CosmeticItem, type CosmeticType } from '../services/cosmetics.service.js';
+import { listedCosmetics } from '../services/cosmetics-listed.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
@@ -485,7 +486,7 @@ function renderCategories(): string {
   return `
     <div class="personalize-categories">
       ${categories
-        .filter((cat) => cat === 'all' || COSMETICS_CATALOG.some((item) => item.type === cat))
+        .filter((cat) => cat === 'all' || listedCosmetics().some((item) => item.type === cat))
         .map(
           (cat) => `
         <button 
@@ -558,7 +559,7 @@ function renderPreview(item: CosmeticItem): string {
 function renderItems(): string {
   const equipped = getEquippedCosmetics();
 
-  let items = COSMETICS_CATALOG;
+  let items = listedCosmetics(); // only items that change something (personalize-extras-flag.ts)
   if (selectedCategory !== 'all') {
     items = items.filter((item) => item.type === selectedCategory);
   }

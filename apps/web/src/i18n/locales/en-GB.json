@@ -3646,6 +3646,12 @@
     "added": "Added!"
   },
   "referral": {
+    "share": {
+      "title": "Meet Ferni",
+      "message": "I've been using Ferni and it's genuinely changed how I approach my day. Join me! {url}",
+      "shortMessage": "Join me on Ferni! {url}",
+      "emailSubject": "You should try Ferni"
+    },
     "buttons": {
       "share": "Share",
       "copyLink": "Copy Link",
@@ -3655,6 +3661,7 @@
     "errorClipboard": "Couldn't copy. Try again?",
     "copyError": "Couldn't copy. Try again?",
     "linkUnavailable": "Couldn't load your link right now. Try again in a moment.",
+    "quoteMessage": "\"Give them someone who remembers everything, shows up at 2am, and never judges.\"",
     "subtitle": "Know someone who could use a friend like this?",
     "title": "Share the Growth",
     "yourLink": "Your link:",

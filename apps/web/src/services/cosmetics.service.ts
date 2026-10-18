@@ -471,11 +471,7 @@ export async function buyCosmetic(cosmeticId: string): Promise<boolean> {
   return canPurchase(cosmeticId).canBuy && purchaseOnServer(cosmeticId);
 }
 
-/**
- * Equip a cosmetic. Seeds are cut (Seth, 2026-10-17: "cut seeds"), so anything
- * in the catalog is free to pick: no ownership or balance check. The old
- * prices stay in the catalog data only; Make It Yours shows none of them.
- */
+/** Equip a cosmetic: free to pick since seeds were cut (Seth, 2026-10-17), no ownership check. */
 export function equipCosmetic(cosmeticId: string): boolean {
   const cosmetic = COSMETICS_CATALOG.find((c) => c.id === cosmeticId);
   if (!cosmetic) return false;
@@ -485,6 +481,8 @@ export function equipCosmetic(cosmeticId: string): boolean {
   // Save and apply
   saveCosmetics();
   applyEquippedCosmetics();
+  // Zen Garden chosen here means light (on load it leaves light/dark to Look & Feel)
+  if (cosmetic.type === 'ui-theme' && !cosmetic.config?.systemTheme) setTheme('zen');
   notifyListeners();
 
   log.info({ cosmeticId, type: cosmetic.type }, 'Cosmetic equipped');
