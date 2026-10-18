@@ -52,6 +52,8 @@ export const COHORT_FLAGS = [
   'COACH_FOLLOW_THROUGH',
   'LIFE_MOVES_ON',
   'CANDOR',
+  // Read only when searchWeb runs mid-call (information/web-search.ts), never at boot.
+  'WEB_SEARCH',
   'WORLD_MODEL_TEMPORAL',
   // Read when the call session is built, after applyCallerFlags (in-call-load.ts).
   'WORLD_FACTS_IN_CALL',
