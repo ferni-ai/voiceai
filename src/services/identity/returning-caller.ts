@@ -63,7 +63,6 @@ export interface StoredReturningCaller {
 export interface ReturningCallerStore {
   get: (hash: string) => Promise<Record<string, unknown> | null>;
   set: (hash: string, data: StoredReturningCaller) => Promise<void>;
-  delete: (hash: string) => Promise<void>;
 }
 
 export const firestoreReturningCallerStore: ReturningCallerStore = {
@@ -73,9 +72,6 @@ export const firestoreReturningCallerStore: ReturningCallerStore = {
   },
   async set(hash, data) {
     await getFirestoreDb()?.collection(RETURNING_CALLERS).doc(hash).set(data);
-  },
-  async delete(hash) {
-    await getFirestoreDb()?.collection(RETURNING_CALLERS).doc(hash).delete();
   },
 };
 
@@ -190,6 +186,8 @@ export interface ReturningCallerView {
 interface SessionEntry {
   hash: string;
   record?: ReturningCallerView & { callCount: number };
+  /** The call-start read didn't complete: what is stored is unknown, so nothing is written. */
+  noWrite?: boolean;
 }
 
 const bySession = new Map<string, SessionEntry>();
@@ -228,13 +226,17 @@ export async function beginReturningCaller(
   const entry: SessionEntry = { hash };
   remember(sessionId, entry);
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<null>((resolve) => {
-    timer = setTimeout(() => resolve(null), LOOKUP_TIMEOUT_MS);
+  const timedOut = Symbol('timed out');
+  const timeout = new Promise<typeof timedOut>((resolve) => {
+    timer = setTimeout(() => resolve(timedOut), LOOKUP_TIMEOUT_MS);
   });
   try {
-    entry.record = asView(await Promise.race([store.get(hash), timeout]), now);
+    const data = await Promise.race([store.get(hash), timeout]);
+    if (data === timedOut) throw new Error('timed out');
+    entry.record = asView(data, now);
     log.info({ sessionId, returning: !!entry.record }, 'RETURNING_CALLER lookup');
   } catch (error) {
+    entry.noWrite = true; // fail closed: never overwrite what couldn't be read
     log.warn({ sessionId, error: String(error) }, 'RETURNING_CALLER lookup failed');
   } finally {
     clearTimeout(timer);
@@ -289,7 +291,8 @@ export async function recordReturningCall(
 ): Promise<boolean> {
   const entry = bySession.get(input.sessionId);
   bySession.delete(input.sessionId);
-  if (!entry || !returningCallerEnabled(env) || mayBeMinor(input.sessionId)) return false;
+  if (!entry || entry.noWrite || !returningCallerEnabled(env)) return false;
+  if (mayBeMinor(input.sessionId)) return false;
   const firstName = safeFirstName(input.firstName) ?? entry.record?.firstName;
   const summary = safeSummary(input.topics, input.callerLines) ?? entry.record?.summary;
   await store.set(

@@ -7,6 +7,8 @@ import {
   beginReturningCaller,
   callerHash,
   clearReturningCallers,
+  recordReturningCall,
+  registerMinorSignal,
   RETURNING_CALLER_FIELDS,
   returningCallerFor,
   safeSummary,
@@ -98,7 +100,6 @@ describe('beginReturningCaller', () => {
   const storeWith = (data: Record<string, unknown> | null): ReturningCallerStore => ({
     get: async () => data,
     set: async () => undefined,
-    delete: async () => undefined,
   });
 
   it('ignores a record past its expiry that TTL has not removed yet', async () => {
@@ -109,6 +110,24 @@ describe('beginReturningCaller', () => {
     const live = { ...old, expireAt: new Date('2026-11-01T00:00:00Z') };
     await beginReturningCaller('live', '+15551234567', storeWith(live), ENV, now);
     expect(returningCallerFor('live')).toEqual({ firstName: 'Dana', callCount: 1 });
+  });
+
+  it('writes nothing when the call-start read timed out or failed', async () => {
+    registerMinorSignal(() => false);
+    const sets: unknown[] = [];
+    const reads = {
+      hang: () => new Promise<null>(() => undefined),
+      fail: async () => Promise.reject(new Error('unavailable')),
+      ok: async () => null,
+    };
+    for (const [id, get] of Object.entries(reads)) {
+      const store = { get, set: async (_h: string, d: unknown) => void sets.push(d) };
+      await beginReturningCaller(id, '+15551234567', store, ENV);
+      expect(await recordReturningCall({ sessionId: id, firstName: 'Dana' }, store, ENV)).toBe(
+        id === 'ok'
+      );
+    }
+    expect(sets).toHaveLength(1);
   });
 
   it('reads nothing without the secret or with the flag off', async () => {
