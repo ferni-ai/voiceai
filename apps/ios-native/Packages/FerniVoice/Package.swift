@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "FerniVoice",
-    platforms: [.iOS(.v18)],
+    platforms: [.iOS("26.0")],
     products: [.library(name: "FerniVoice", targets: ["FerniVoice"])],
     dependencies: [
         .package(path: "../FerniKit"),

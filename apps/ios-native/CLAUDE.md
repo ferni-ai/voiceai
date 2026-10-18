@@ -1,6 +1,6 @@
 # Ferni for iPhone and iPad
 
-Native SwiftUI app, bundle `com.sethdford.ferni`, iOS 18+, Swift 6 language mode
+Native SwiftUI app, bundle `com.sethdford.ferni`, iOS 26+, Swift 6 language mode
 with strict concurrency. Plan: `voiceai-evidence/mobile-2026-10-18/IOS-PLAN.md`.
 
 ## Layout
