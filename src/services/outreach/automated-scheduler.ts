@@ -38,6 +38,7 @@ import {
 } from './outreach-cadence.js';
 import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
 import { blocksGenericCheckIns } from './grounded-checkin.js';
+import { skipReasonCounts, type SchedulerResult } from './scheduler-report.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
 
@@ -58,19 +59,7 @@ export interface SchedulerConfig {
   dryRun: boolean;
 }
 
-export interface SchedulerResult {
-  processed: number;
-  sent: number;
-  skipped: number;
-  errors: number;
-  details: Array<{
-    userId: string;
-    status: 'sent' | 'skipped' | 'error';
-    channel?: string;
-    outreachType?: string;
-    reason?: string;
-  }>;
-}
+export type { SchedulerResult };
 
 interface UserOutreachCandidate {
   userId: string;
@@ -116,6 +105,8 @@ export async function runDailyOutreach(
     sent: 0,
     skipped: 0,
     errors: 0,
+    skipReasons: {},
+    genericCheckInsBlocked: blocksGenericCheckIns(),
     details: [],
   };
 
@@ -157,15 +148,10 @@ export async function runDailyOutreach(
       }
     }
 
-    log.info(
-      {
-        processed: result.processed,
-        sent: result.sent,
-        skipped: result.skipped,
-        errors: result.errors,
-      },
-      'Daily outreach job complete'
-    );
+    result.skipReasons = skipReasonCounts(result.details);
+    // Counts and reasons only: details carry user IDs and stay out of the log.
+    const { details: _details, ...summary } = result;
+    log.info(summary, 'Daily outreach job complete');
 
     return result;
   } catch (error) {

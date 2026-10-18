@@ -59,6 +59,7 @@ export const GENERATED_ENTRY_POINTS: Readonly<Record<string, string>> = {
   'src/config/animation-constants.generated.ts': 'src/config/animation-constants.ts',
   'src/config/persona-colors.generated.ts': 'src/config/persona-colors.ts',
   'src/config/expressions.generated.ts': 'src/config/avatar-expressions.ts',
+  'src/config/sequences.generated.ts': 'src/config/motion-sequences.ts',
 };
 
 /** Modules with a documented public API: outsiders import the entry, not internals. */

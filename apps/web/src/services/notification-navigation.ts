@@ -7,6 +7,8 @@
  * resolve to the same `ferni:open-*` events the app already listens for.
  */
 
+import { isPanelVisible } from '../config/menu-visibility.js';
+
 type PanelName = 'engagement' | 'predictions' | 'analytics';
 
 const PANEL_EVENTS: Record<PanelName, string> = {
@@ -22,16 +24,18 @@ const TYPE_PANELS = new Map<string, PanelName>([
   ['streak_milestone', 'analytics'],
 ]);
 
-function openPanel(panel: PanelName): void {
+/** Dispatch the panel's open event. False for a hidden panel (config/menu-visibility.ts). */
+function openPanel(panel: PanelName): boolean {
+  if (!isPanelVisible(panel)) return false;
   window.dispatchEvent(new CustomEvent(PANEL_EVENTS[panel]));
+  return true;
 }
 
 /** Open the panel a notification of this type points at. False when it points at none. */
 export function openPanelForNotificationType(type: string | undefined): boolean {
   const panel = TYPE_PANELS.get(type ?? '');
   if (!panel) return false;
-  openPanel(panel);
-  return true;
+  return openPanel(panel);
 }
 
 /**
@@ -49,6 +53,5 @@ export function openPanelFromUrl(): boolean {
 
   const panel = (Object.keys(PANEL_EVENTS) as PanelName[]).find((known) => known === name);
   if (!panel) return false;
-  openPanel(panel);
-  return true;
+  return openPanel(panel);
 }

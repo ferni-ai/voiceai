@@ -159,19 +159,25 @@ async function fetchRelationshipProgress(userId: string): Promise<RelationshipPr
       trusted_advisor: 100,
     };
 
+    // Dated from the first conversation. "One Week Together" means seven days since it, not
+    // a session count (it used to be "3 sessions", which could all be on one afternoon).
+    const firstAt =
+      arcData?.firstMeeting?.timestamp ??
+      (arcData && arcData.totalSessions > 0 ? arcData.firstSessionDate : undefined);
+    const weekAt = firstAt === undefined ? undefined : firstAt + 7 * 24 * 60 * 60 * 1000;
+    const weekDoneAt = weekAt !== undefined && weekAt <= Date.now() ? weekAt : undefined;
     const milestones = [
       {
         id: 'first_hello',
         title: 'First Hello',
-        completed: !!arcData?.firstMeeting,
-        completedAt: arcData?.firstMeeting?.timestamp
-          ? new Date(arcData.firstMeeting.timestamp).toISOString()
-          : undefined,
+        completed: firstAt !== undefined,
+        completedAt: firstAt === undefined ? undefined : new Date(firstAt).toISOString(),
       },
       {
         id: 'one_week',
         title: 'One Week Together',
-        completed: (arcData?.totalSessions || 0) >= 3,
+        completed: weekDoneAt !== undefined,
+        completedAt: weekDoneAt === undefined ? undefined : new Date(weekDoneAt).toISOString(),
       },
       {
         id: 'deep_dive',

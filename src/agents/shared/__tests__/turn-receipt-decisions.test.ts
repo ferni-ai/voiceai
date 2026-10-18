@@ -17,7 +17,8 @@ import {
   installLiveCallBehaviors,
   logBargeInDecisions,
 } from '../../multi-agent/live-call-behaviors.js';
-import { attachTurnReceipts, type TurnReceipt, type TurnReceiptOptions } from '../turn-receipt.js';
+import type { TurnReceipt, TurnReceiptOptions } from '../turn-receipt.js';
+import { attachTurnReceipts } from '../turn-receipt-session.js';
 
 const SESSION = 'RM_decisions';
 

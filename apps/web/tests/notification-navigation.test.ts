@@ -30,15 +30,15 @@ afterEach(() => {
 describe('openPanelForNotificationType', () => {
   it.each([
     ['ritual_reminder', 'ferni:open-engagement'],
-    ['prediction_result', 'ferni:open-predictions'],
     ['streak_milestone', 'ferni:open-analytics'],
   ])('%s opens %s', (type, event) => {
     expect(openPanelForNotificationType(type)).toBe(true);
     expect(opened).toEqual([event]);
   });
 
-  // team_huddle: the Team Huddle panel was invented content and is gone
-  it.each(['general', 'ferni_checkin', 'team_huddle', undefined, 'constructor'])('%s opens nothing', (type) => {
+  // team_huddle: the Team Huddle panel was invented content and is gone.
+  // prediction_result: Predictions is hidden (config/menu-visibility.ts).
+  it.each(['general', 'ferni_checkin', 'team_huddle', 'prediction_result', undefined, 'constructor'])('%s opens nothing', (type) => {
     expect(openPanelForNotificationType(type)).toBe(false);
     expect(opened).toEqual([]);
   });
@@ -46,11 +46,11 @@ describe('openPanelForNotificationType', () => {
 
 describe('openPanelFromUrl', () => {
   it('opens the named panel and drops the parameter, keeping the rest of the URL', () => {
-    window.history.replaceState({}, '', '/?panel=predictions&ref=push#top');
+    window.history.replaceState({}, '', '/?panel=engagement&ref=push#top');
 
     expect(openPanelFromUrl()).toBe(true);
 
-    expect(opened).toEqual(['ferni:open-predictions']);
+    expect(opened).toEqual(['ferni:open-engagement']);
     expect(window.location.search).toBe('?ref=push');
     expect(window.location.hash).toBe('#top');
   });

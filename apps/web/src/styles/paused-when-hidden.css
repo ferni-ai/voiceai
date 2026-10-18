@@ -15,7 +15,6 @@
 /* Relationship stage celebration (subscription.ui.ts styles its icon) */
 .relationship-celebration:not(.visible) .celebration-icon,
 /* Settings menu */
-.settings-menu:not(.settings-menu--visible) .settings-menu__stage-fill::after,
 .settings-menu:not(.settings-menu--visible) .settings-menu__badge,
 /* Insights view empty state */
 .insights-view:not(.insights-view--visible) .insights-empty__glow,

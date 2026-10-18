@@ -69,9 +69,8 @@ vi.mock('../services/superhuman/firestore-utils.js', async () => {
 });
 vi.mock('../services/outreach/guarded-text.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../services/outreach/guarded-text.js')>();
-  return {
-    ...real,
-    defaultTextDeps: () => ({
+  const deps = (): ReturnType<typeof real.defaultTextDeps> =>
+    ({
       env: state.env,
       store: {
         forUser: async (id: string) => state.records.filter((r) => r.userId === id),
@@ -101,7 +100,14 @@ vi.mock('../services/outreach/guarded-text.js', async (importOriginal) => {
         return { success: true, messageId: 'SM1' };
       },
       now: () => state.now,
-    }),
+    }) as unknown as ReturnType<typeof real.defaultTextDeps>;
+  return {
+    ...real,
+    defaultTextDeps: deps,
+    // The real isOwnVerifiedPhone defaults to the module's own defaultTextDeps, which this
+    // mock can't reach; give it the test's store so the member's verified phone is theirs.
+    isOwnVerifiedPhone: (userId: string, phone: string) =>
+      real.isOwnVerifiedPhone(userId, phone, deps()),
   };
 });
 vi.mock('../services/communication-service.js', () => ({
