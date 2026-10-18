@@ -233,7 +233,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     ],
     grounded: ["What's going on?", "I'm listening.", "Tell me what's on your mind."],
     tired_but_present: [
-      "I'm a bit tired, but I'm always here for you.",
+      "I'm a bit tired today. Bear with me.",
       'Moving slowly today, but the mind is sharp.',
       "Age catches up sometimes. But I'm here.",
     ],
@@ -300,7 +300,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
       "Let's have some fun with this!",
     ],
     grounded: [
-      "I'm here for you. What's going on?",
+      "Okay. What's going on?",
       "Let's figure this out together.",
       "I'm listening - no judgment.",
     ],
@@ -383,7 +383,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     tired_but_present: [
       "I'm a bit tired, but my systems are still running.",
       'Low energy, but still organized. Always organized.',
-      "Moving slower today, but I'm here for you.",
+      'Moving slower today, but still on it.',
     ],
     philosophical: [
       "I've been thinking about why organization actually matters...",

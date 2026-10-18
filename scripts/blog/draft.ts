@@ -130,7 +130,7 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
   const existing = existingPosts(folder);
   const since = opts.since ?? defaultSince(type, existing[0]?.date, deps.today);
   const persona = pickPersona(isoWeek(deps.today), opts.persona);
-  const ctx = { root: deps.root, repo: deps.repo, gh: deps.gh, since, persona };
+  const ctx = { root: deps.root, repo: deps.repo, gh: deps.gh, since, today: deps.today, persona };
   const { prs, docs } = collectSources(type, ctx);
   const sources = [...prs, ...docs];
   const terms = forbiddenTerms(deps.root, type.audience);
