@@ -387,7 +387,8 @@ describe('Contact Settings UI', () => {
       findVerifyPhoneButton()?.click();
       await new Promise((r) => setTimeout(r, 100));
 
-      expect(send).toHaveBeenCalledWith(mockContactInfo.phone);
+      // Sent and confirmed as E.164, the form the server stores and texts.
+      expect(send).toHaveBeenCalledWith('+15551234567');
       const codeInput = document.querySelector<HTMLInputElement>('#verification-code');
       expect(codeInput).not.toBeNull();
       if (codeInput) {
@@ -395,7 +396,7 @@ describe('Contact Settings UI', () => {
         codeInput.dispatchEvent(new Event('input'));
       }
       await new Promise((r) => setTimeout(r, 50));
-      expect(confirm).toHaveBeenCalledWith(mockContactInfo.phone, '123456');
+      expect(confirm).toHaveBeenCalledWith('+15551234567', '123456');
     });
 
     it('should show verification code input after sending SMS', async () => {
@@ -627,6 +628,296 @@ describe('Contact Settings UI', () => {
       const _text = modal?.textContent || '';
 
       // Should explain quiet hours purpose (implementation dependent)
+    });
+  });
+
+  // ==========================================================================
+  // A number typed by a new user reaches verification (2026-10-17 prod bug:
+  // the typed number was wiped by a re-render and saved as "")
+  // ==========================================================================
+  describe('Typed phone numbers', () => {
+    const NO_PHONE = { email: '', preferredName: '' };
+    const tick = (ms = 0): Promise<void> => new Promise((r) => setTimeout(r, ms));
+    const type = (input: HTMLInputElement | null, value: string): void => {
+      if (!input) throw new Error('input missing');
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    };
+    const posts = (path: string): unknown[] =>
+      mockApiPost.mock.calls.filter(([url]) => String(url).includes(path)).map(([, body]) => body);
+
+    function contextWith(personal: Record<string, unknown>, gate?: Promise<void>): void {
+      mockApiGet.mockImplementation(async (url: string) => {
+        if (gate) await gate;
+        if (url.includes('/api/outreach/context')) {
+          return { ok: true, status: 200, data: { success: true, context: { personal } } };
+        }
+        return { ok: true, status: 200, data: {} };
+      });
+    }
+
+    it('keeps what was typed while the form was still loading, through to what save sends', async () => {
+      let releaseLoad: () => void = () => undefined;
+      contextWith(NO_PHONE, new Promise<void>((r) => (releaseLoad = r)));
+
+      const opening = openContactSettings();
+      await tick();
+      type(findPhoneInput(), '5552017497');
+      type(findEmailInput(), 'sam@example.com');
+      releaseLoad();
+      await opening;
+      await tick(20);
+
+      expect(findPhoneInput()?.value).toBe('5552017497');
+      expect(findEmailInput()?.value).toBe('sam@example.com');
+
+      findSaveButton()?.click();
+      await tick(50);
+      const [contactBody] = posts('/api/user/contact') as Array<Record<string, unknown>>;
+      expect(contactBody.email).toBe('sam@example.com');
+      expect(contactBody).not.toHaveProperty('phone'); // never phone: "" over a stored number
+      expect(posts('/api/outreach/verify-phone')).toEqual([{ phone: '+15552017497' }]);
+    });
+
+    it('offers "Send me a code" as soon as a valid number is typed, and sends it as E.164', async () => {
+      contextWith(NO_PHONE);
+      await openContactSettings();
+      await tick(20);
+      expect(findVerifyPhoneButton()).toBeNull();
+
+      const input = findPhoneInput();
+      type(input, '555201749');
+      expect(findVerifyPhoneButton()).toBeNull();
+      type(input, '5552017497');
+      expect(findVerifyPhoneButton()).not.toBeNull();
+      expect(findPhoneInput()).toBe(input); // typing never rebuilds the input under the user
+
+      findVerifyPhoneButton()?.click();
+      await tick(50);
+      expect(posts('/api/outreach/verify-phone')).toEqual([{ phone: '+15552017497' }]);
+      expect(document.querySelector('#verification-code')).not.toBeNull();
+      expect(document.querySelector('.contact-settings-verification-text')?.textContent).toContain(
+        '(555) 201-7497'
+      );
+    });
+
+    it('saving a new unverified number texts a code instead of claiming the phone is saved', async () => {
+      contextWith(NO_PHONE);
+      await openContactSettings();
+      await tick(20);
+      type(findPhoneInput(), '(555) 201-7497');
+
+      findSaveButton()?.click();
+      await tick(50);
+
+      expect(posts('/api/outreach/verify-phone')).toEqual([{ phone: '+15552017497' }]);
+      expect(posts('/api/user/contact')[0]).not.toHaveProperty('phone');
+      expect(document.querySelector('#verification-code')).not.toBeNull();
+      const success = findSuccessMessage()?.textContent ?? '';
+      expect(success).toMatch(/code/i);
+      expect(success).not.toMatch(/saved/i);
+    });
+
+    it('a number that is not one gets a friendly hint, no code button, and is not saved', async () => {
+      contextWith(NO_PHONE);
+      await openContactSettings();
+      await tick(20);
+      const input = findPhoneInput();
+      type(input, '12');
+      input?.dispatchEvent(new Event('blur'));
+
+      expect(document.querySelector('.contact-settings-field-error')).not.toBeNull();
+      expect(findVerifyPhoneButton()).toBeNull();
+      findSaveButton()?.click();
+      await tick(50);
+      expect(posts('/api/user/contact')).toHaveLength(0);
+      expect(posts('/api/outreach/verify-phone')).toHaveLength(0);
+    });
+
+    it('once verified, turning on Texts saves sms consent for check-ins', async () => {
+      contextWith(NO_PHONE);
+      const { outreachService } = await import('../../src/services/outreach.service.js');
+      vi.spyOn(outreachService, 'verifyPhone').mockResolvedValue({ success: true, message: 'Phone verified' });
+      await openContactSettings();
+      await tick(20);
+      expect(document.querySelector('#checkin-channels')).toBeNull(); // not before verification
+
+      type(findPhoneInput(), '5552017497');
+      findVerifyPhoneButton()?.click();
+      await tick(50);
+      type(document.querySelector<HTMLInputElement>('#verification-code'), '123456');
+      await tick(50);
+
+      expect(posts('/api/user/contact')).toContainEqual({ phone: '+15552017497' });
+      const texts = document.querySelector<HTMLInputElement>('[data-channel="sms"]');
+      expect(texts).not.toBeNull();
+      expect(texts?.checked).toBe(false);
+      if (texts) {
+        texts.checked = true;
+        texts.dispatchEvent(new Event('change'));
+      }
+      await tick(20);
+      expect(posts('/api/outreach/preferences')).toEqual([{ preferences: { allowedChannels: ['sms'] } }]);
+    });
+
+    it('shows the saved channels for an already-verified number', async () => {
+      mockApiGet.mockImplementation(async (url: string) => {
+        if (url.includes('/api/user/contact')) {
+          return { ok: true, status: 200, data: { success: true, contactInfo: { verifiedPhone: '+15552017497' } } };
+        }
+        if (url.includes('/api/outreach/preferences')) {
+          return { ok: true, status: 200, data: { success: true, allowedChannels: ['call'] } };
+        }
+        return { ok: true, status: 200, data: {} };
+      });
+      await openContactSettings();
+      await tick(20);
+      expect(findPhoneInput()?.value).toBe('+15552017497');
+      expect(document.querySelector('#phone-verified-badge')?.hasAttribute('hidden')).toBe(false);
+      expect(document.querySelector<HTMLInputElement>('[data-channel="call"]')?.checked).toBe(true);
+      expect(document.querySelector<HTMLInputElement>('[data-channel="sms"]')?.checked).toBe(false);
+    });
+  });
+
+  describe('Code outcomes, clearing, and changing your mind', () => {
+    const tick = (ms = 0): Promise<void> => new Promise((r) => setTimeout(r, ms));
+    const type = (input: HTMLInputElement | null, value: string): void => {
+      if (!input) throw new Error('input missing');
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    };
+    const posts = (path: string): unknown[] =>
+      mockApiPost.mock.calls.filter(([url]) => String(url).includes(path)).map(([, body]) => body);
+    const loads = (verifiedPhone: string | null, allowedChannels: string[]): void => {
+      mockApiGet.mockImplementation(async (url: string) => {
+        if (url.includes('/api/user/contact')) {
+          return { ok: true, status: 200, data: { success: true, contactInfo: { verifiedPhone } } };
+        }
+        if (url.includes('/api/outreach/preferences')) {
+          return { ok: true, status: 200, data: { success: true, allowedChannels } };
+        }
+        return { ok: true, status: 200, data: {} };
+      });
+    };
+    async function codeSentFor(phone: string): Promise<void> {
+      await openContactSettings();
+      await tick(20);
+      type(findPhoneInput(), phone);
+      findVerifyPhoneButton()?.click();
+      await tick(50);
+    }
+    const enterCode = async (code: string): Promise<void> => {
+      type(document.querySelector<HTMLInputElement>('#verification-code'), code);
+      await tick(50);
+    };
+    const badgeShown = (): boolean =>
+      document.querySelector('#phone-verified-badge')?.hasAttribute('hidden') === false;
+
+    it('a wrong code is not a verified number', async () => {
+      loads(null, []);
+      const { outreachService } = await import('../../src/services/outreach.service.js');
+      vi.spyOn(outreachService, 'verifyPhone').mockResolvedValue({ success: false, error: 'Invalid code' });
+      await codeSentFor('5552017497');
+      await enterCode('000000');
+
+      expect(findErrorMessage()?.textContent).toMatch(/didn't work/);
+      expect(badgeShown()).toBe(false);
+      expect(document.querySelector('#checkin-channels')).toBeNull();
+      expect(document.querySelector('#verification-code')).not.toBeNull(); // try again
+      expect(posts('/api/user/contact')).toHaveLength(0);
+    });
+
+    it('a code the server could not link to the account is not shown as verified', async () => {
+      loads(null, []);
+      const { outreachService } = await import('../../src/services/outreach.service.js');
+      vi.spyOn(outreachService, 'verifyPhone').mockResolvedValue({
+        success: true,
+        phoneLinked: false,
+      } as never);
+      await codeSentFor('5552017497');
+      await enterCode('123456');
+
+      expect(findErrorMessage()?.textContent).toMatch(/couldn't connect the number/);
+      expect(findSuccessMessage()).toBeNull();
+      expect(badgeShown()).toBe(false);
+      expect(document.querySelector('#checkin-channels')).toBeNull();
+      expect(posts('/api/user/contact')).toHaveLength(0);
+    });
+
+    it('clearing a verified number asks the server to clear it and says texts and calls are off', async () => {
+      loads('+15552017497', ['sms']);
+      mockApiPost.mockImplementation(async (url: string) => ({
+        ok: true,
+        status: 200,
+        data: url.includes('/api/user/contact') ? { success: true, phoneChannelsOff: true } : {},
+      }));
+      await openContactSettings();
+      await tick(20);
+      expect(document.querySelector<HTMLInputElement>('[data-channel="sms"]')?.checked).toBe(true);
+
+      type(findPhoneInput(), '');
+      findSaveButton()?.click();
+      await tick(50);
+
+      expect(posts('/api/user/contact')[0]).toMatchObject({ clearPhone: true });
+      expect(findSuccessMessage()?.textContent).toMatch(/won't text or call you/);
+      expect(document.querySelector('[data-channel="sms"]')).toBeNull();
+    });
+
+    it('keeps the switches while texts are on, so they can be turned off without a verified number', async () => {
+      loads(null, ['sms']);
+      await openContactSettings();
+      await tick(20);
+      const texts = document.querySelector<HTMLInputElement>('[data-channel="sms"]');
+      const calls = document.querySelector<HTMLInputElement>('[data-channel="call"]');
+      expect(texts?.checked).toBe(true);
+      expect(texts?.disabled).toBe(false);
+      expect(calls?.disabled).toBe(true); // can't turn one on without a verified number
+
+      if (texts) {
+        texts.checked = false;
+        texts.dispatchEvent(new Event('change'));
+      }
+      await tick(20);
+      expect(posts('/api/outreach/preferences')).toEqual([{ preferences: { allowedChannels: [] } }]);
+    });
+
+    it('while a code is pending you can get a new one or change the number', async () => {
+      loads(null, []);
+      await codeSentFor('5552017497');
+
+      document.querySelector<HTMLElement>('#resend-code-btn')?.click();
+      await tick(50);
+      expect(posts('/api/outreach/verify-phone')).toEqual([
+        { phone: '+15552017497' },
+        { phone: '+15552017497' },
+      ]);
+
+      document.querySelector<HTMLElement>('#change-number-btn')?.click();
+      await tick(20);
+      expect(document.querySelector('#verification-code')).toBeNull();
+      expect(findPhoneInput()?.disabled).toBe(false);
+      type(findPhoneInput(), '5552017400');
+      findVerifyPhoneButton()?.click();
+      await tick(50);
+      expect(posts('/api/outreach/verify-phone').at(-1)).toEqual({ phone: '+15552017400' });
+    });
+  });
+
+  // Same table as src/api/__tests__/user-contact-route.test.ts (the server's toE164).
+  describe('toE164 (client copy of the server normalizer)', () => {
+    it.each([
+      ['5552017497', '+15552017497'],
+      ['(555) 201-7497', '+15552017497'],
+      ['1-555-201-7497', '+15552017497'],
+      ['+44 20 7946 0958', '+442079460958'],
+      ['12', null],
+      ['555-201-749', null],
+      ['call me', null],
+      ['', null],
+    ])('%s → %s', async (raw, want) => {
+      const { toE164 } = await import('../../src/utils/phone.js');
+      expect(toE164(raw)).toBe(want);
     });
   });
 });

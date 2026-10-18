@@ -22,6 +22,7 @@ import { callOpeningDialOptions } from '../../config/call-opening-flag.js';
 import { trackOutboundCall } from './outbound-call-tracker.js';
 import { onBehalfDispatchFor, signOnBehalfDispatch } from './on-behalf-dispatch.js';
 import { holdForCallHours } from './deferred-calls.js';
+import { assertNotOptedOut } from './first-dial-opt-out.js';
 import {
   enrichMessage,
   enrichVoicemailMessage,
@@ -153,11 +154,10 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     );
 
     // Validate contact
-    if (!request.resolvedContact?.phone) {
-      throw new Error('No phone number available for contact');
-    }
+    if (!request.resolvedContact?.phone) throw new Error('No phone number available for contact');
 
     const contact = request.resolvedContact;
+    await assertNotOptedOut(contact.phone); // before queueing too: a deferred call would ring later
     const held = { recipientPhone: contact.phone, sponsorUserId: request.userId };
     const deferral = await holdForCallHours(request.userId, { kind: 'on_behalf', request }, held);
     if (deferral) return deferral.id;

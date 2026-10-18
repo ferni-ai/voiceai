@@ -8,7 +8,7 @@
  * BLOCKS commits that contain:
  * - Direct `gcloud run deploy` commands (use `ferni deploy`)
  * - Direct `gcloud compute ssh ... docker run`
- * - Any Cloud Run deploy of a voice agent (it runs on LiveKit Cloud: `ferni deploy agent`)
+ * - Any Cloud Run deploy of a voice agent (it runs on LiveKit Cloud: deploy-agent skill)
  * - Hardcoded credentials or API keys
  *
  * Usage:
@@ -44,12 +44,11 @@ const UNSAFE_PATTERNS = [
     pattern: /gcloud\s+run\s+deploy\s+(?!.*--dry-run)/gi,
     severity: 'error',
     message: 'Direct `gcloud run deploy` is forbidden',
-    fix: 'Use `ferni deploy ui` or `ferni deploy agent` instead',
+    fix: 'Use `ferni deploy ui`; the voice agent deploys via .claude/skills/deploy-agent/SKILL.md',
     allowedIn: [
       'scripts/deploy.ts',
       'scripts/deploy-worker.sh',
       'apps/cli/src/commands/deploy/',
-      'apps/cli/src/commands/agent/',
       '.github/workflows/',
       'docs/',
       '.md',
@@ -65,7 +64,7 @@ const UNSAFE_PATTERNS = [
     pattern: /gcloud\s+compute\s+ssh.*docker\s+run/gi,
     severity: 'error',
     message: 'Direct SSH + docker run is forbidden',
-    fix: 'The GCE VM is terminated; deploy the voice agent with `ferni deploy agent`',
+    fix: 'The GCE VM is terminated; deploy the voice agent via .claude/skills/deploy-agent/SKILL.md',
     allowedIn: [
       'scripts/check-deploy-safety.ts',
       'apps/cli/src/commands/quality/',
@@ -82,7 +81,7 @@ const UNSAFE_PATTERNS = [
     pattern: /gcloud\s+run\s+deploy\s+\S*(voiceai-agent|voice-agent|-agent)\b/gi,
     severity: 'error',
     message: 'Voice agents must not be deployed to Cloud Run',
-    fix: 'Use `ferni deploy agent` (LiveKit Cloud agents)',
+    fix: 'Deploy to LiveKit Cloud via .claude/skills/deploy-agent/SKILL.md',
     allowedIn: [
       'apps/cli/src/commands/quality/',
       'docs/',

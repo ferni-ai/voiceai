@@ -4,7 +4,6 @@
  *
  * RECOMMENDED: Use the Ferni CLI instead of calling this directly:
  *   ferni deploy            # Interactive menu
- *   ferni deploy agent      # Voice agent to LiveKit Cloud (dev; --prod for production)
  *   ferni deploy ui         # UI backend to Cloud Run
  *   ferni deploy frontend   # Frontend to Firebase
  *   ferni deploy all        # Deploy everything
@@ -13,18 +12,9 @@
  */
 
 import { findProjectRoot } from '../../utils/project-root.js';
-import {
-  LIVEKIT_AGENTS,
-  isLkInstalled,
-  lkAgentArgs,
-  parseAgentStatus,
-  prepareAgentDockerfile,
-  resolveAgentEnv,
-  runLkAgent,
-  type AgentEnv,
-} from '../../utils/livekit-agent.js';
+import { AGENT_DEPLOY_MOVED } from '../../utils/livekit-agent.js';
 import { ChildProcess, execSync, spawn } from 'child_process';
-import { createWriteStream, existsSync, mkdirSync, rmSync } from 'fs';
+import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { healthCheck, smokeTestFrontend } from './url-checks.js';
 import { buildFrontend } from './web-build-env.js';
@@ -40,7 +30,7 @@ const CONFIG = {
   projectId: process.env.GCP_PROJECT_ID || 'johnb-2025',
   region: process.env.GCP_REGION || 'us-central1',
 
-  // Cloud Run services (the voice agent is on LiveKit Cloud, see deployAgent)
+  // Cloud Run services (the voice agent is on LiveKit Cloud, see AGENT_DEPLOY_MOVED)
   services: {
     ui: process.env.UI_SERVICE_NAME || 'john-bogle-ui',
   },
@@ -195,7 +185,6 @@ interface DeployOptions {
   verbose: boolean;
   async: boolean;
   skipGitCheck: boolean;
-  agentEnv: AgentEnv;
 }
 
 // ============================================================================
@@ -246,57 +235,6 @@ function spawnAsync(cmd: string, logFile: string): ChildProcess {
   return child;
 }
 
-/**
- * The voice agent runs on LiveKit Cloud agents, never Cloud Run: Cloud Run has
- * no UDP, and a worker there steals jobs from the real agent (2026-02-24
- * outage). Production must be chosen with --prod, so a bare deploy hits dev.
- */
-async function deployAgent(options: DeployOptions): Promise<boolean> {
-  const target = LIVEKIT_AGENTS[options.agentEnv];
-  log.step(`DEPLOYING VOICE AGENT TO LIVEKIT CLOUD (${target.project}, ${target.agentId})`);
-
-  const deployCmd = `lk ${lkAgentArgs('deploy', target).join(' ')}`;
-  if (options.dryRun) {
-    log.info('Would copy docker/Dockerfile.agent to ./Dockerfile (lk builds ./Dockerfile)');
-    log.info(`Would run: ${deployCmd}`);
-    log.info(`Would check: lk ${lkAgentArgs('status', target).join(' ')}`);
-    return true;
-  }
-
-  if (!isLkInstalled()) {
-    log.error('The LiveKit CLI (lk) is required: brew install livekit-cli');
-    return false;
-  }
-  if (options.async) {
-    log.warn('--async is not supported for the agent; deploying in the foreground');
-  }
-
-  const dockerfile = prepareAgentDockerfile(PROJECT_ROOT);
-  if (!dockerfile.ok) {
-    log.error(dockerfile.reason);
-    return false;
-  }
-
-  try {
-    log.info(`Running: ${deployCmd}`);
-    if (!runLkAgent(PROJECT_ROOT, 'deploy', target).ok) {
-      log.error(
-        `lk agent deploy failed. Logs: ferni logs agent${options.agentEnv === 'prod' ? '' : ' --dev'}`
-      );
-      return false;
-    }
-  } finally {
-    if (dockerfile.created) rmSync(join(PROJECT_ROOT, 'Dockerfile'));
-  }
-
-  const status = parseAgentStatus(
-    runLkAgent(PROJECT_ROOT, 'status', target, { capture: true }).output,
-    target.agentId
-  );
-  log.success(`Agent ${target.agentId} status: ${status ?? 'unknown (run lk agent status)'}`);
-  return true;
-}
-
 async function deployUi(options: DeployOptions): Promise<boolean> {
   log.step('DEPLOYING FRONTEND UI (BLUE-GREEN)');
 
@@ -327,7 +265,7 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     '--min-instances 0',
     '--max-instances 10',
     '--vpc-connector ferni-redis-connector',
-    '--set-env-vars "^@^NODE_ENV=production@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app,https://developers.ferni.ai,https://marketplace.ferni.ai,https://www.ferni.ai@TWILIO_STREAM_WEBHOOK_URL=wss://john-bogle-ui-bmopaivmsq-uc.a.run.app/stream@MEMORY_VIEW=on@JOURNAL_ONE_STORE=on"',
+    '--set-env-vars "^@^NODE_ENV=production@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app,https://developers.ferni.ai,https://marketplace.ferni.ai,https://www.ferni.ai@TWILIO_STREAM_WEBHOOK_URL=wss://john-bogle-ui-bmopaivmsq-uc.a.run.app/stream@MEMORY_VIEW=on@JOURNAL_ONE_STORE=on@CALL_HOURS_GUARD=on@FAMILY_CHECKIN_STOP=on"',
     '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest"',
     '--no-traffic', // Blue-green: deploy without receiving traffic
     '--tag green', // Tag for easy identification
@@ -1003,11 +941,12 @@ ${colors.bold}Usage:${colors.reset}
 ${colors.bold}Targets:${colors.reset}
   ${colors.green}ui${colors.reset}         Deploy UI backend to Cloud Run (APIs)
   ${colors.green}frontend${colors.reset}   Deploy frontend to Firebase Hosting (app.ferni.ai)
-  ${colors.green}agent${colors.reset}      Deploy voice agent to LiveKit Cloud (dev agent; --prod for production)
   ${colors.green}brand${colors.reset}      Deploy brand assets to Cloud Storage
   ${colors.green}landing${colors.reset}    Deploy landing page (Firebase/Cloud Storage)
   ${colors.green}workers${colors.reset}    Deploy async workers to Cloud Run (outreach processing)
-  ${colors.green}all${colors.reset}        Deploy ui, frontend, landing (and the production agent with --prod)
+  ${colors.green}all${colors.reset}        Deploy ui, frontend, landing
+
+  The voice agent is not deployed here: see .claude/skills/deploy-agent/SKILL.md
 
 ${colors.bold}Options:${colors.reset}
   --async           Run deployment in background (don't wait for completion)
@@ -1015,13 +954,11 @@ ${colors.bold}Options:${colors.reset}
   --skip-build      Skip local build steps
   --skip-git-check  Allow deploy with uncommitted changes (not recommended)
   --verbose         Show detailed output
-  --prod / --dev    Agent target: ferni-prod (livekit.prod-cloud.toml) or ferni-dev (livekit.toml, default)
   --help, -h        Show this help
 
 ${colors.bold}Safety:${colors.reset}
   All deploys require committed code. Uncommitted changes will be rejected.
   Cloud Run deploys are blue-green: health check before traffic shift.
-  The agent deploy goes to ferni-dev unless --prod is given.
 
 ${colors.bold}Environment Variables:${colors.reset}
   GCP_PROJECT_ID    Google Cloud project (default: johnb-2025)
@@ -1033,8 +970,6 @@ ${colors.bold}Examples:${colors.reset}
   npm run deploy all             # Deploy everything
   npm run deploy -- --dry-run ui # Preview UI deployment
   npm run deploy -- --async ui   # Deploy UI async via flags
-  ferni deploy agent --dry-run   # Preview a dev agent deploy
-  ferni deploy agent --prod      # Deploy the production agent
 `);
 }
 
@@ -1048,7 +983,6 @@ async function main() {
     verbose: args.includes('--verbose'),
     async: args.includes('--async'),
     skipGitCheck: args.includes('--skip-git-check'),
-    agentEnv: resolveAgentEnv(args, 'dev'),
   };
 
   // Get target (non-option argument)
@@ -1060,6 +994,12 @@ async function main() {
   }
 
   const target = targets[0];
+
+  // Before the banner and preflight: preflight runs `gcloud config set project`.
+  if (target === 'agent') {
+    log.error(AGENT_DEPLOY_MOVED);
+    process.exit(1);
+  }
 
   // Banner
   console.log(`
@@ -1086,10 +1026,6 @@ ${colors.cyan}╚═════════════════════
       success = await deployUi(options);
       break;
 
-    case 'agent':
-      success = await deployAgent(options);
-      break;
-
     case 'brand':
       success = await deployBrand(options);
       break;
@@ -1112,12 +1048,9 @@ ${colors.cyan}╚═════════════════════
       break;
 
     case 'all':
-      if (options.agentEnv !== 'prod') {
-        log.warn('Skipping the voice agent; add --prod to deploy the production agent too');
-      }
+      log.warn('Skipping the voice agent: see .claude/skills/deploy-agent/SKILL.md');
       if (options.async) {
         // In async mode, start all deployments in parallel
-        if (options.agentEnv === 'prod') await deployAgent(options);
         await deployUi(options);
         await deployFrontend(options);
         await deployLanding(options);
@@ -1125,7 +1058,6 @@ ${colors.cyan}╚═════════════════════
         success = true;
       } else {
         success =
-          (options.agentEnv !== 'prod' || (await deployAgent(options))) &&
           (await deployUi(options)) &&
           (await deployFrontend(options)) &&
           (await deployLanding(options));

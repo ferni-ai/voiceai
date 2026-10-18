@@ -1101,10 +1101,9 @@ export async function endConversation(
       const archived = await archiveConversationState(manager);
       log.info({ sessionId: id, userId: manager.userId, archived }, '📦 Archive result');
     } else {
-      log.warn(
-        { sessionId: id, userId: manager.userId },
-        '📦 SKIP: Persistence was NOT enabled for this session'
-      );
+      // Nothing calls initConversationStateWithPersistence, so this is every call; other
+      // pipelines save the call's memory. Debug, not a warning at the end of every call.
+      log.debug({ sessionId: id }, '📦 Conversation state not archived (persistence off)');
     }
 
     activeConversations.delete(id);

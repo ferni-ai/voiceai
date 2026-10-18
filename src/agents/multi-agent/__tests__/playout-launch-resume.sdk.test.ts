@@ -1,6 +1,6 @@
 /**
  * A reply paused at playout launch comes back on its own (PLAYOUT_LAUNCH_RESUME,
- * patches/@livekit__agents@1.8.1.patch).
+ * patches/@livekit__agents@1.9.3.patch).
  *
  * Dev, 2026-10-13, on @livekit/agents 1.6.4: three replies sat paused before their
  * first audio for 16.3 s, 16.4 s and 46.2 s while the caller said nothing. Since
