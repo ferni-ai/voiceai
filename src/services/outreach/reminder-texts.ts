@@ -10,7 +10,8 @@
  * - stored as the owner's verified phone ('verified-own') but no longer matching
  *   it (they changed or removed their number): never texted;
  * - to anyone else (a reminder the caller said yes to): sendOnBehalfText, so
- *   STOP, quiet hours, the 10-minute gap and ON_BEHALF_TEXTS apply.
+ *   STOP, quiet hours and the 10-minute gap apply; held in the app unless
+ *   SCHEDULED_OUTREACH_THIRD_PARTY is on, like any later send to someone else.
  *
  * Installed per process by installReminderTexts: the job route, and startup
  * when the in-process scheduler runs.
@@ -18,6 +19,7 @@
  * @module services/outreach/reminder-texts
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isValidTimeZone, wallTimeIn, zonedWallTimeToUtc } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
@@ -129,6 +131,8 @@ export async function guardReminderText(
   }
   // Stored as their verified phone, which it no longer is: never text the old number.
   if (r.addressSource === 'verified-own') return held(r, 'verified-phone-changed');
+  // Reaching someone else later needs the same opt-in as scheduled outreach.
+  if (!flagOn('SCHEDULED_OUTREACH_THIRD_PARTY', deps.text.env)) return held(r, 'third-party-off');
 
   const zone = isValidTimeZone(r.timezone) ? r.timezone : undefined;
   const body = reminderText(r);

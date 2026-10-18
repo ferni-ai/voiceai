@@ -142,3 +142,24 @@ describe('reads', () => {
     expect(r.writes).toEqual([]);
   });
 });
+
+describe('sampled cohorts and prerequisites', () => {
+  it('percent sets a whole-number sample, and 0 goes back to members only', () => {
+    const plan = (n: string) => planWrites(parseArgs(['percent', 'memory-recall', n]), undefined, NOW); // prettier-ignore
+    expect(plan('5')[0]?.fields).toEqual({ percent: 5, updatedAt: NOW });
+    expect(plan('0')[0]?.deleteFields).toEqual(['percent']);
+    for (const bad of ['101', '-1', '2.5', 'x']) expect(() => plan(bad)).toThrow(/0-100/);
+  });
+
+  it('warns when a memory switch goes on without what it builds on', async () => {
+    const store = fakeStore({ 'memory-recall': { enabled: true, members: [], flags: {} } });
+    const r = await cli(['set-flag', 'memory-recall', 'RECALL_EPISODES', 'on', '--project', 'p1'], store); // prettier-ignore
+    expect(r.lines).toContain('warning: RECALL_EPISODES needs SEMANTIC_RECALL (in this cohort or on the agent)'); // prettier-ignore
+  });
+
+  it("who counts a cohort's sample: at 100% everyone is in", async () => {
+    const store = fakeStore({ everyone: { enabled: true, members: [], percent: 100, flags: { SEMANTIC_RECALL: 'on' } } }); // prettier-ignore
+    const r = await cli(['who', 'uid-mom', '--project', 'p1'], store);
+    expect(r.lines).toContain('flags:     {"SEMANTIC_RECALL":"on"} (with COHORT_FLAGS=on; else agent defaults)'); // prettier-ignore
+  });
+});

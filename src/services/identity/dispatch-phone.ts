@@ -8,16 +8,20 @@
  * puts a caller-controlled number there (the inbound SIP rules send fixed
  * metadata, 2026-10-10), but if one ever did, a spoofed caller ID would load
  * another user's account. So a number in metadata counts only on a dispatch
- * signed with dispatchSigningSecret() (verifyOnBehalfDispatch, over the whole
+ * signed with one of dispatchVerifySecrets() (verifyOnBehalfDispatch, over the whole
  * payload); anything else stays anonymous.
  *
  * @module services/identity/dispatch-phone
  */
-import { dispatchSigningSecret, verifyOnBehalfDispatch } from '../outreach/on-behalf-dispatch.js';
+import {
+  dispatchVerifySecrets,
+  type DispatchSecrets,
+  verifyOnBehalfDispatch,
+} from '../outreach/on-behalf-dispatch.js';
 
 export function phoneFromSignedDispatch(
   metadata: Record<string, unknown>,
-  secret: string | undefined = dispatchSigningSecret()
+  secret: DispatchSecrets = dispatchVerifySecrets()
 ): string | null {
   const phone = metadata.caller_id ?? metadata.phone ?? metadata.from;
   if (typeof phone !== 'string' || !phone) return null;
