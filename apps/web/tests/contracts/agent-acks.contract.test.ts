@@ -33,6 +33,8 @@ async function askAgent(request: Record<string, unknown>): Promise<DataMessage[]
   const room = {
     on: vi.fn(),
     off: vi.fn(),
+    // The session's own user (ParticipantKind.STANDARD is 0)
+    remoteParticipants: new Map([['user-1', { kind: 0 }]]),
     localParticipant: {
       identity: 'agent',
       publishData: async (bytes: Uint8Array) =>
@@ -46,8 +48,9 @@ async function askAgent(request: Record<string, unknown>): Promise<DataMessage[]
     sessionPersona: { id: 'ferni' },
     userId: 'user-1',
     sessionId: 'call-1',
+    callerChecks: { verifiedOwner: () => true, phoneOnly: () => false },
   } as unknown as DataChannelContext);
-  handler(new TextEncoder().encode(JSON.stringify(request)), { identity: 'user' });
+  handler(new TextEncoder().encode(JSON.stringify(request)), { identity: 'user-1' });
   await vi.waitFor(() => expect(published.length).toBeGreaterThan(0), { timeout: ACK_WAIT_MS });
   cleanup();
   return published;

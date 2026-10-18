@@ -147,7 +147,7 @@ const findRestaurantsDef: ToolDefinition = {
           const results = await unifiedSearch(
             cleanCuisine ? `${cleanCuisine} restaurant` : 'restaurant',
             location,
-            { openNow, priceLevel, explicitSource }
+            { openNow, priceLevel, explicitSource, restaurantsOnly: true }
           );
 
           if (results.length === 0) {

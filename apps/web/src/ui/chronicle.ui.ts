@@ -1195,7 +1195,7 @@ async function loadData(): Promise<ChronicleData> {
           greeting,
           timeContext,
           entries: transformedEntries,
-          insights: transformedInsights.length > 0 ? transformedInsights : getDefaultInsights(),
+          insights: transformedInsights,
           memories: transformedEntries.slice(0, 3),
           streak: result.data.stats?.currentStreak || 0,
           totalEntries: result.data.stats?.totalEntries || 0,
@@ -1206,37 +1206,18 @@ async function loadData(): Promise<ChronicleData> {
     log.warn({ error }, 'Failed to load chronicle data');
   }
 
-  // Signed out: an empty Chronicle. Signed in and here: the load failed, so say so (no stand-in tips).
+  // Signed out: an empty Chronicle. Signed in and here: the load failed, so say so.
   const loadFailed = Boolean(getUserId());
   return {
     greeting,
     timeContext,
     entries: [],
-    insights: loadFailed ? [] : getDefaultInsights(),
+    insights: [],
     memories: [],
     streak: 0,
     totalEntries: 0,
     loadFailed,
   };
-}
-
-function getDefaultInsights(): JournalInsight[] {
-  return [
-    {
-      id: 'start-journey',
-      type: 'growth',
-      title: t('chronicle.defaultInsights.startJourney.title'),
-      description: t('chronicle.defaultInsights.startJourney.description'),
-      icon: ICONS.book,
-    },
-    {
-      id: 'voice-text',
-      type: 'pattern',
-      title: t('chronicle.defaultInsights.twoPaths.title'),
-      description: t('chronicle.defaultInsights.twoPaths.description'),
-      icon: ICONS.brain,
-    },
-  ];
 }
 
 function getJournalPrompts(): string[] {
@@ -1305,7 +1286,7 @@ function render(): void {
           ${insights.map((insight) => renderInsightCard(insight)).join('')}
         </div>
       </section>
-    ` : ''}
+    ` : `<p class="chronicle-empty-description" data-state="empty">${t('chronicle.noPatternsYet')}</p>`}
     
     <!-- Memory Section -->
     ${memories.length > 0 && memories[0] ? `

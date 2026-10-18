@@ -53,7 +53,7 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Ferni uses your location to provide context-aware support, like knowing when you're at home vs work.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Ferni needs microphone access for voice conversations with your AI team.</string>
+	<string>Ferni needs the microphone so you can talk out loud with Ferni and your team.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Ferni may use motion data to enhance your experience.</string>
 	<key>NSSiriUsageDescription</key>

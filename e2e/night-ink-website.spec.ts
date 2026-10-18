@@ -5,7 +5,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
-import { serveBuiltSite, type BuiltSite } from './built-site-server';
+import { keepOffProdApi, serveBuiltSite, type BuiltSite } from './built-site-server';
 
 const PORT = 8766;
 const SITE = `http://127.0.0.1:${PORT}`;
@@ -90,6 +90,10 @@ test.describe('Night Ink website', () => {
 
   test.afterAll(() => {
     site?.stop();
+  });
+
+  test.beforeEach(async ({ context }) => {
+    await keepOffProdApi(context);
   });
 
   for (const [label, when] of Object.entries(HOURS)) {

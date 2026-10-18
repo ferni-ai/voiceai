@@ -351,17 +351,8 @@ async function fetchTeamInsights(): Promise<{ insights: TeamInsight[]; teamStatu
     return { ...data, insights: parseTeamInsights(data.insights, 'GET /api/team-insights') };
   } catch (err) {
     log.warn({ error: String(err) }, 'Failed to fetch team insights');
-    // Return empty data on error
-    return {
-      insights: [],
-      teamStatus: {
-        financialHealth: { budgetOnTrack: true, savingsProgress: 0 },
-        habitHealth: { activeHabits: 0, totalStreakDays: 0, keystoneActive: false },
-        goalHealth: { activeGoals: 0, nearingCompletion: 0 },
-        emotionalContext: 'unknown',
-        topConcern: null,
-      },
-    };
+    // The panel shows its error state: no empty list, no made-up "budget on track"
+    throw err;
   }
 }
 
@@ -687,7 +678,7 @@ async function loadInsights(): Promise<void> {
 
 async function refreshInsights(): Promise<void> {
   await loadInsights();
-  toast.success(t('toasts.insightsUpdated'));
+  if (!state.error) toast.success(t('toasts.insightsUpdated'));
 }
 
 // ============================================================================

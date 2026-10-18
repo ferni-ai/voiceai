@@ -42,7 +42,7 @@ import { logToolMarkup, withToolMarkupStrip } from '../shared/tool-markup-strip.
 import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
 import { spokenCaptions, toolsForTurn, withTeammateTool } from './turn-request.js';
-import { noteRequest } from '../shared/turn-receipt.js';
+import { noteRequest } from '../shared/turn-receipt-session.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 

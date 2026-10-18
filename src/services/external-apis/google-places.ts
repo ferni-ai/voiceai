@@ -3,8 +3,11 @@
  *
  * Provides restaurant search and details using Google Places API (New):
  * - Search for restaurants by query and location
- * - Get restaurant details (phone, address, hours, reviews)
- * - Get place photos
+ * - Get restaurant details (phone, address, hours)
+ *
+ * Only Places API (New) is used: the legacy maps/api/place endpoints return
+ * REQUEST_DENIED for the Places key. Field masks request only fields a caller
+ * reads; each field mask tier is billed separately (reviews, photos left out).
  *
  * This replaces OpenTable/Resy/Yelp with a single, cost-effective API.
  * Reservations are handled via phone calls through the appointment system.
@@ -20,9 +23,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 // ============================================================================
 
 const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_API_KEY || '';
-const PLACES_API_NEW = 'https://places.googleapis.com/v1';
-const PLACES_API_LEGACY = 'https://maps.googleapis.com/maps/api/place';
-const PLACES_API_BASE = PLACES_API_LEGACY; // Alias for legacy endpoints
+export const PLACES_API_NEW = 'https://places.googleapis.com/v1';
 
 // ============================================================================
 // TYPES
@@ -41,7 +42,6 @@ export interface PlaceSearchResult {
   priceLevel?: number; // 0-4
   types: string[];
   openNow?: boolean;
-  photoReference?: string;
 }
 
 export interface PlaceDetails {
@@ -62,17 +62,6 @@ export interface PlaceDetails {
       close?: { day: number; time: string };
     }>;
   };
-  reviews?: Array<{
-    authorName: string;
-    rating: number;
-    text: string;
-    relativeTimeDescription: string;
-  }>;
-  photos?: Array<{
-    photoReference: string;
-    width: number;
-    height: number;
-  }>;
   types: string[];
   url: string; // Google Maps URL
 }
@@ -81,7 +70,7 @@ export interface RestaurantSearchOptions {
   query?: string;
   location?: string; // Address or "lat,lng"
   radius?: number; // meters, max 50000
-  type?: 'restaurant' | 'cafe' | 'bar' | 'bakery' | 'meal_delivery' | 'meal_takeaway';
+  type?: 'restaurant' | 'cafe' | 'bar' | 'bakery' | 'meal_delivery' | 'meal_takeaway' | null; // null: any type
   minPrice?: number; // 0-4
   maxPrice?: number; // 0-4
   openNow?: boolean;
@@ -119,7 +108,7 @@ export async function searchRestaurants(
     // Use the new Places API format
     const requestBody: Record<string, unknown> = {
       textQuery: searchQuery,
-      includedType: type,
+      ...(type ? { includedType: type } : {}),
       languageCode: 'en',
     };
 
@@ -133,7 +122,7 @@ export async function searchRestaurants(
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_API_KEY,
         'X-Goog-FieldMask':
-          'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours,places.photos',
+          'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours',
       },
       body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(10000),
@@ -159,7 +148,6 @@ export async function searchRestaurants(
         priceLevel?: string;
         types: string[];
         currentOpeningHours?: { openNow: boolean };
-        photos?: Array<{ name: string }>;
       }>;
     };
 
@@ -173,7 +161,6 @@ export async function searchRestaurants(
       priceLevel: priceLevelToNumber(place.priceLevel),
       types: place.types,
       openNow: place.currentOpeningHours?.openNow,
-      photoReference: place.photos?.[0]?.name,
     }));
 
     getLogger().info({ count: results.length }, 'Restaurant search complete');
@@ -187,7 +174,7 @@ export async function searchRestaurants(
 /**
  * Convert new API price level string to number
  */
-function priceLevelToNumber(priceLevel?: string): number | undefined {
+export function priceLevelToNumber(priceLevel?: string): number | undefined {
   if (!priceLevel) return undefined;
   const levels: Record<string, number> = {
     PRICE_LEVEL_FREE: 0,
@@ -220,13 +207,11 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
       'userRatingCount',
       'priceLevel',
       'currentOpeningHours',
-      'reviews',
-      'photos',
       'types',
       'googleMapsUri',
     ].join(',');
 
-    const response = await fetch(`${PLACES_API_NEW}/places/${placeId}`, {
+    const response = await fetch(`${PLACES_API_NEW}/places/${encodeURIComponent(placeId)}`, {
       headers: {
         'X-Goog-Api-Key': GOOGLE_API_KEY,
         'X-Goog-FieldMask': fieldMask,
@@ -256,22 +241,11 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
       currentOpeningHours?: {
         openNow: boolean;
         weekdayDescriptions: string[];
-        periods: Array<{
+        periods?: Array<{
           open: { day: number; hour: number; minute: number };
           close?: { day: number; hour: number; minute: number };
         }>;
       };
-      reviews?: Array<{
-        authorAttribution: { displayName: string };
-        rating: number;
-        text: { text: string };
-        relativePublishTimeDescription: string;
-      }>;
-      photos?: Array<{
-        name: string;
-        widthPx: number;
-        heightPx: number;
-      }>;
       types: string[];
       googleMapsUri: string;
     };
@@ -290,7 +264,7 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
         ? {
             openNow: place.currentOpeningHours.openNow,
             weekdayText: place.currentOpeningHours.weekdayDescriptions,
-            periods: place.currentOpeningHours.periods.map((p) => ({
+            periods: (place.currentOpeningHours.periods ?? []).map((p) => ({
               open: {
                 day: p.open.day,
                 time: `${p.open.hour.toString().padStart(2, '0')}${p.open.minute.toString().padStart(2, '0')}`,
@@ -304,17 +278,6 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
             })),
           }
         : undefined,
-      reviews: place.reviews?.map((r) => ({
-        authorName: r.authorAttribution.displayName,
-        rating: r.rating,
-        text: r.text.text,
-        relativeTimeDescription: r.relativePublishTimeDescription,
-      })),
-      photos: place.photos?.map((p) => ({
-        photoReference: p.name,
-        width: p.widthPx,
-        height: p.heightPx,
-      })),
       types: place.types,
       url: place.googleMapsUri,
     };
@@ -322,17 +285,6 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
     getLogger().error({ error }, 'Google Places details error');
     return null;
   }
-}
-
-/**
- * Get a photo URL for a place
- */
-export function getPhotoUrl(photoReference: string, maxWidth = 400): string {
-  if (!GOOGLE_API_KEY || !photoReference) {
-    return '';
-  }
-
-  return `${PLACES_API_BASE}/photo?maxwidth=${maxWidth}&photo_reference=${photoReference}&key=${GOOGLE_API_KEY}`;
 }
 
 /**
@@ -375,7 +327,7 @@ export async function findNearbyRestaurants(
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_API_KEY,
         'X-Goog-FieldMask':
-          'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours,places.photos',
+          'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours',
       },
       body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(10000),
@@ -401,7 +353,6 @@ export async function findNearbyRestaurants(
         priceLevel?: string;
         types: string[];
         currentOpeningHours?: { openNow: boolean };
-        photos?: Array<{ name: string }>;
       }>;
     };
 
@@ -415,7 +366,6 @@ export async function findNearbyRestaurants(
       priceLevel: priceLevelToNumber(place.priceLevel),
       types: place.types,
       openNow: place.currentOpeningHours?.openNow,
-      photoReference: place.photos?.[0]?.name,
     }));
   } catch (error) {
     getLogger().error({ error }, 'Google Places nearby search error');
@@ -503,7 +453,6 @@ export function isGooglePlacesConfigured(): boolean {
 export default {
   searchRestaurants,
   getPlaceDetails,
-  getPhotoUrl,
   findNearbyRestaurants,
   formatPriceLevel,
   formatRating,

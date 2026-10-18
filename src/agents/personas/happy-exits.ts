@@ -205,3 +205,6 @@ export function happyExitNote(
   }
   return exit.note;
 }
+
+// QUESTION_PACE (question-pace.ts): the other late "no question" note, read where the goodbye note is.
+export { questionPaceNote } from './question-pace.js';
