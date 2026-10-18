@@ -23,7 +23,9 @@ import {
   startCrisisClassifier,
   turnVerdicts,
   type CrisisGenerateFn,
+  type CrisisVerdict,
 } from '../../../services/safety/crisis-classifier.js';
+import { griefWatchGuidance, type GriefTurn } from '../../../services/safety/crisis-grief.js';
 import {
   applyClassifierVerdict,
   detectCrisis,
@@ -46,9 +48,40 @@ export interface TurnCrisis {
   /**
    * Whether this turn gets a soft check-in instead (CRISIS_AGREEMENT_GATE):
    * its reads disagreed and no pattern matched. resolve() then returns the
-   * patterns' reading.
+   * patterns' reading. A string is the check's own guidance: grief with no risk
+   * words (CRISIS_GRIEF_NO_HOTLINE, crisis-grief.ts).
    */
-  softCheck(): Promise<boolean>;
+  softCheck(): Promise<boolean | string>;
+}
+
+/** Above hasCrisisSignal's bar, below a crisis: the LLM stays in the loop, no 988. */
+const GRIEF_WATCH_SEVERITY = 0.4;
+
+interface Settled {
+  crisis: CrisisDetectionResult;
+  soft: boolean | string;
+}
+
+/**
+ * CRISIS_GRIEF_NO_HOTLINE (crisis-grief.ts): a classifier-only crisis on grief
+ * with no risk words gets presence and a watch instead of crisis guidance.
+ */
+async function withGriefWatch(
+  settled: Settled,
+  patterns: CrisisDetectionResult,
+  turn: Omit<GriefTurn, 'indicators' | 'verdict'> & { scope?: string },
+  verdict: Promise<CrisisVerdict | null> | undefined
+): Promise<Settled> {
+  if (settled.crisis === patterns || !settled.crisis.isCrisis) return settled;
+  const guidance = griefWatchGuidance({
+    ...turn,
+    verdict: (await verdict) ?? null,
+    indicators: patterns.indicators,
+    source: 'pipeline',
+  });
+  if (!guidance) return settled;
+  const severity = Math.max(patterns.severity, GRIEF_WATCH_SEVERITY);
+  return { crisis: { ...patterns, severity, indicators: ['grief_watch'] }, soft: guidance };
 }
 
 export function startTurnCrisis(
@@ -85,11 +118,11 @@ export function startTurnCrisis(
     companion: userData?.lastAgentResponse,
   };
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope });
-  let settled: Promise<{ crisis: CrisisDetectionResult; soft: boolean }> | null = null;
-  const settle = (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> =>
+  let settled: Promise<Settled> | null = null;
+  const settle = (): Promise<Settled> =>
     (settled ??=
       classifier?.mode === 'live'
-        ? classifier.verdict.then(async (verdict) => {
+        ? classifier.verdict.then(async (verdict): Promise<Settled> => {
             const crisis = applyClassifierVerdict(patterns, verdict);
             if (!scope || crisis === patterns) return { crisis, soft: false };
             if (!holdForReads) {
@@ -125,11 +158,15 @@ export function startTurnCrisis(
             return { crisis: patterns, soft: true };
           })
         : Promise.resolve({ crisis: patterns, soft: false }));
+  let graded: Promise<Settled> | null = null;
+  const turn = { env, ...input, scope: options.sessionId };
+  const grade = (): Promise<Settled> =>
+    (graded ??= settle().then((s) => withGriefWatch(s, patterns, turn, classifier?.verdict)));
   return {
     patterns,
     shouldBlock,
-    resolve: () => settle().then((s) => s.crisis),
-    softCheck: () => settle().then((s) => s.soft),
+    resolve: () => grade().then((s) => s.crisis),
+    softCheck: () => grade().then((s) => s.soft),
   };
 }
 
@@ -139,9 +176,13 @@ export function hasCrisisSignal(crisis: CrisisDetectionResult): boolean {
 }
 
 /** The turn result's crisis field. */
-export function crisisSummary(crisis: CrisisDetectionResult, softCheck = false): CrisisDetection {
+export function crisisSummary(
+  crisis: CrisisDetectionResult,
+  softCheck: boolean | string = false
+): CrisisDetection {
   return {
-    ...(softCheck ? { softCheck } : {}),
+    ...(softCheck ? { softCheck: true } : {}),
+    ...(typeof softCheck === 'string' && softCheck !== '' ? { softGuidance: softCheck } : {}),
     isCrisis: crisis.isCrisis,
     severity: crisis.severity,
     indicators: crisis.indicators,

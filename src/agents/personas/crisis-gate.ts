@@ -38,7 +38,9 @@ import {
   startCrisisClassifier,
   turnVerdicts,
   type CrisisGenerateFn,
+  type CrisisVerdict,
 } from '../../services/safety/crisis-classifier.js';
+import { griefWatchGuidance } from '../../services/safety/crisis-grief.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
@@ -149,6 +151,30 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   return { action: 'pass' };
 }
 
+/**
+ * CRISIS_GRIEF_NO_HOTLINE (crisis-grief.ts): a classifier-only crisis on grief
+ * with no risk words gets presence and a watch, not the 988 line. Null escalates.
+ */
+function griefDecision(
+  detection: CrisisDetectionResult,
+  verdict: CrisisVerdict | null,
+  words: ReturnType<typeof callerWords>,
+  userData: unknown,
+  env: Record<string, string | undefined>
+): CrisisGateDecision | null {
+  const guidance = griefWatchGuidance({
+    env,
+    indicators: detection.indicators,
+    verdict,
+    ...words,
+    scope: sessionScope(userData),
+    source: 'gate',
+  });
+  if (!guidance) return null;
+  log.info({ action: 'guide', source: 'grief' }, 'CRISIS_GATE');
+  return { action: 'guide', guidance };
+}
+
 export interface CrisisGateOptions {
   env?: Record<string, string | undefined>;
   /** The classifier's model call. */
@@ -239,6 +265,8 @@ export function startCrisisGate(
         return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
       }
     }
+    const grief = griefDecision(detection, verdict, { latest, earlier, companion }, userData, env);
+    if (grief) return grief;
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
