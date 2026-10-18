@@ -386,7 +386,7 @@ export async function listCalendars(accessToken: string): Promise<CalendarListEn
 }
 
 /**
- * Create a calendar event (with rate limiting and circuit breaker protection)
+ * Create a calendar event (rate limited, circuit broken). sendUpdates=none: Google emails no attendee.
  */
 export async function createEvent(
   accessToken: string,
@@ -401,7 +401,7 @@ export async function createEvent(
 
   return googleCalendarCircuitBreaker.execute(async () => {
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=none`,
       {
         method: 'POST',
         headers: {

@@ -10,6 +10,10 @@
  * which the copy can name. Outlook and Apple need the calendar the adapter
  * picked to update or delete later, so they are reported, not written.
  *
+ * Attendees the model passes are not written: inviting someone is contacting
+ * them, and that needs the caller's confirmation (not built yet). The Google
+ * client also sends sendUpdates=none, so Google emails nobody.
+ *
  * @module services/calendar/provider-write
  */
 import { isCalendarConfigured } from '../identity/google-calendar-oauth.js';
@@ -54,7 +58,9 @@ function draftEvent(userId: string, input: CreateEventInput): CalendarEvent {
       input.endTime ??
       new Date(input.startTime.getTime() + (input.durationMinutes ?? 60) * 60 * 1000),
     isAllDay: false,
-    attendees: input.attendees ?? [],
+    // Never the model's attendee list: a guest on the caller's real calendar is someone
+    // contacted on their behalf, which needs the caller's confirmation first (#1749 follow-up).
+    attendees: [],
     status: 'confirmed',
     source: 'google',
     externalCalendarId: GOOGLE_CALENDAR_ID,

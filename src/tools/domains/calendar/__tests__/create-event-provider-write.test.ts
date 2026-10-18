@@ -156,7 +156,6 @@ describe('createCalendarEvent with a connected calendar (#1749)', () => {
     expect(sent.description).toBe('Cleaning');
     expect(sent.start.dateTime).toBe('2026-11-03T18:00:00.000Z');
     expect(sent.end.dateTime).toBe('2026-11-03T18:30:00.000Z');
-    expect(sent.attendees).toEqual([{ email: 'sam@example.com' }]);
     // Not saved to Ferni's list as its own event; a copy of the Google event is kept instead.
     expect(storeCreate).not.toHaveBeenCalled();
     expect(importExternalEvent).toHaveBeenCalledWith(
@@ -165,6 +164,24 @@ describe('createCalendarEvent with a connected calendar (#1749)', () => {
       'g-123',
       'primary',
       expect.objectContaining({ title: 'Dentist' })
+    );
+  });
+
+  it('flag on: an attendee list the model filled in never reaches Google (no confirmation step yet)', async () => {
+    vi.stubEnv('CALENDAR_PROVIDER_WRITE', 'on');
+
+    await createTool().execute({ ...ASK, attendees: ['sam@example.com', 'boss@example.com'] });
+
+    expect(googleCreate).toHaveBeenCalledTimes(1);
+    const sent = vi.mocked(googleCreate).mock.calls[0][2];
+    expect(sent.attendees ?? []).toEqual([]);
+    expect(JSON.stringify(sent)).not.toContain('example.com');
+    expect(importExternalEvent).toHaveBeenCalledWith(
+      USER,
+      'google',
+      'g-123',
+      'primary',
+      expect.objectContaining({ attendees: [] })
     );
   });
 
