@@ -192,3 +192,7 @@ __pycache__/
 
 # Claude config
 .claude/
+
+# Written by the deploy-agent chain; .gitignore excludes it and lk agent deploy
+# applies .gitignore to its upload, so re-include it here (later patterns win).
+!.build-sha

@@ -104,7 +104,7 @@ import { handleChatRoutes } from '../../api/chat-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handlePasskeyRoutes } from '../../api/passkey-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
-import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
+import { installUiServerPorts } from '../../services/outreach/ui-server-ports.js';
 import { handlePendingActionRoutes } from '../../api/pending-action-routes.js';
 import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
 import { handleAnswerCardRoutes } from '../../api/answer-card-routes.js';
@@ -1492,8 +1492,8 @@ server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api
 async function startBackgroundServices(): Promise<void> {
   log.info({ port: PORT, livekitUrl: LIVEKIT_URL, ddosProtection: true }, 'UI Server started');
 
-  // Texts and calls to a member (outreach routes, chat) reach only their verified phone.
-  installCallUserPort();
+  // Outreach reaches only verified phones; a forgotten topic closes its follow-ups.
+  installUiServerPorts();
   startSpotifyAutoRefresh();
 
   // Start Calendar real-time sync services
