@@ -191,6 +191,20 @@ describe('recordInboundSmsConsent', () => {
       ]);
     });
 
+    it('no hash secret: "stop calling" still reaches the do-not-call list (keyed by number)', async () => {
+      const m = memoryStore();
+      await recordInboundSmsConsent(
+        PHONE,
+        'stop calling',
+        depsWith(m.store, { MESSAGING_PIPELINE: 'on' })
+      );
+      expect(m.legacyCall.has(PHONE)).toBe(true);
+      expect(m.docs.size).toBe(0);
+      expect(logged.error.map(([, msg]) => msg)).toEqual([
+        'Opt-out recognised but not saved: no LOG_HASH_SECRET',
+      ]);
+    });
+
     it('no hash secret: an error with the last four digits only, never the number', async () => {
       const m = memoryStore();
       await recordInboundSmsConsent(PHONE, 'STOP', depsWith(m.store, { MESSAGING_PIPELINE: 'on' }));
