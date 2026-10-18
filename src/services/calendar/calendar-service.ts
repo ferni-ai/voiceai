@@ -264,7 +264,8 @@ export async function getCalendarMode(userId: string): Promise<CalendarMode> {
  */
 export async function isConnected(userId: string): Promise<boolean> {
   // Google sign-in writes tokens, not a provider record, so both count (#1547).
-  return (await isCalendarConfigured(userId)) || (await hasAnyProviderConnected(userId));
+  if (await isCalendarConfigured(userId)) return true;
+  return hasAnyProviderConnected(userId);
 }
 
 /**
