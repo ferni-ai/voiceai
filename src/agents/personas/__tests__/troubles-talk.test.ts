@@ -217,10 +217,16 @@ describe('TROUBLES_TALK reflections in the character sheet', () => {
 describe('TROUBLES_TALK and LAUGH_ALONG', () => {
   it('does not laugh along with a trouble, still laughs with a funny story', () => {
     process.env.LAUGH_ALONG = 'on';
-    expect(troubleWords('haha I got fired today')).toBe(true);
-    const [off, on] = offOn('haha I got fired today, I mean what even is my life', 'model');
+    // A vent laughs along only with the flag off. Hard news never does, flag or not (heavy-turn.ts).
+    const vent = "haha my roommate keeps leaving dirty dishes everywhere and I'm so annoyed";
+    expect(troubleWords(vent)).toBe(true);
+    const [off, on] = offOn(vent, 'model');
     expect(off).toMatch(LAUGH);
     expect(on).not.toMatch(LAUGH);
+    expect(troubleWords('haha I got fired today')).toBe(true);
+    const [hardOff, hardOn] = offOn('haha I got fired today, I mean what even is my life', 'model');
+    expect(hardOff).not.toMatch(LAUGH);
+    expect(hardOn).not.toMatch(LAUGH);
     expect(offOn('haha my dog stole a whole pizza off the counter', 'model')[1]).toMatch(LAUGH);
   });
 });

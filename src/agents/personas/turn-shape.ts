@@ -30,9 +30,7 @@ import {
   SHARE_LINES,
   telling,
   tellingLengthLine,
-  troubleOpening,
-  troublesTalkEnabled,
-  troubleTurn,
+  withTrouble,
 } from './troubles-talk.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
 import {
@@ -259,21 +257,6 @@ function noQuestion(ownStory: boolean | undefined): string {
 /** The no-question line; during a trouble (TROUBLES_TALK=on) it invites nothing of his own. */
 function noQuestionFor(sig: TurnSignals): string {
   return sig.trouble ? QUESTION_LINE.noneOnThem : noQuestion(sig.ownStory);
-}
-
-/**
- * TROUBLES_TALK=on: whether this turn is a trouble, on the signals (unset when
- * off). "Do you have a minute?" reads as a question about him, and got his
- * brother's first snow; announcing a trouble is their turn, not his.
- */
-function withTrouble(userText: string, sig: TurnSignals): TurnSignals {
-  if (!troublesTalkEnabled()) return sig;
-  const opening = sig.move === 'about_ferni' && troubleOpening(userText);
-  return {
-    ...sig,
-    move: opening ? 'share' : sig.move,
-    trouble: sig.trouble ?? troubleTurn(userText, sig),
-  };
 }
 
 export interface TurnShape {

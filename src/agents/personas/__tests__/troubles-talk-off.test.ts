@@ -1,7 +1,7 @@
 /**
  * TROUBLES_TALK off (or unset): every prompt it touches is byte for byte what
- * origin/main builds without it (c8ee11d96, re-taken when main was merged in;
- * first taken on 2705bbda6). The hashes below were taken on that commit with
+ * origin/main builds without it (d41e88e46, re-taken when main was merged in;
+ * before that c8ee11d96, first taken on 2705bbda6). The hashes below were taken on that commit with
  * this same file; a change to any of these prompts that is
  * not behind the flag fails here.
  *
@@ -110,12 +110,12 @@ const BASELINE: Record<string, string> = {
   'model:dishes:3': '421323abdaf1b072',
   'model:dishes:4': '23948d7c54784fd4',
   'model:dishes:5': '0c06596abea9b49a',
-  'model:laughTrouble:0': '9b48d32fc761e020',
-  'model:laughTrouble:1': '0891acd3bc17339e',
-  'model:laughTrouble:2': '6d43894db4b3c803',
-  'model:laughTrouble:3': 'd0b08cbb2a474721',
-  'model:laughTrouble:4': 'c8be85a2acad8ef5',
-  'model:laughTrouble:5': 'c8be85a2acad8ef5',
+  'model:laughTrouble:0': '551d7ee33d8ae4da',
+  'model:laughTrouble:1': '75d68478443a5b04',
+  'model:laughTrouble:2': '0c06596abea9b49a',
+  'model:laughTrouble:3': '96c4b73276b3fc48',
+  'model:laughTrouble:4': '555d637288150473',
+  'model:laughTrouble:5': '555d637288150473',
   'model:laughLight:0': '0891acd3bc17339e',
   'model:laughLight:1': '6d43894db4b3c803',
   'model:laughLight:2': '714245ae06a7143c',
@@ -158,12 +158,12 @@ const BASELINE: Record<string, string> = {
   'dice:dishes:3': '676a3a726c550328',
   'dice:dishes:4': '61e4f1fdf03b0302',
   'dice:dishes:5': '50867c397fe22bc6',
-  'dice:laughTrouble:0': '127bca3ca027c74a',
-  'dice:laughTrouble:1': 'cf4360b0b8cdfbbe',
-  'dice:laughTrouble:2': '62400cdf2549c2b7',
-  'dice:laughTrouble:3': '11e7664b3de7db20',
-  'dice:laughTrouble:4': '1d88ca08690d957e',
-  'dice:laughTrouble:5': 'e683c2c84d15c5a6',
+  'dice:laughTrouble:0': 'eafdd8969ddad1f2',
+  'dice:laughTrouble:1': '5ece9a52affedd9e',
+  'dice:laughTrouble:2': '50867c397fe22bc6',
+  'dice:laughTrouble:3': 'a46ccd08b0796e8e',
+  'dice:laughTrouble:4': '288b4a819af33650',
+  'dice:laughTrouble:5': '4b1172b646ebc8b3',
   'dice:laughLight:0': '459ec57a7e631b20',
   'dice:laughLight:1': '21d2d00cf33d8744',
   'dice:laughLight:2': '29ae2b54ef55bfd9',
@@ -189,9 +189,9 @@ const BASELINE: Record<string, string> = {
   'dice:request:4': 'a1b5d09b13023ff3',
   'dice:request:5': 'ef9e2d64540503cf',
   'request:opening': '6ee1fe8eacd556cb',
-  'request:hospital': '6608f59aa8879cba',
+  'request:hospital': '50f7e78498ca6a6b',
   'request:dishes': '617d208e487a60b0',
-  'request:laughTrouble': '3dbc206b4c6cfb0d',
+  'request:laughTrouble': '532e47b6559ae321',
   'request:laughLight': 'f4756f3812c0dd06',
   'request:fence': '89233209adad80e2',
   'request:ack': '25d548b98270752e',
@@ -199,10 +199,10 @@ const BASELINE: Record<string, string> = {
   ledger: '969858475dd1023e',
   'recall:opening': 'b3e7205e818a3418',
   'recall:fence': 'b3e7205e818a3418',
-  'character:ferni': '38a211cfe2802e85',
-  'character:peter-john': 'e1f1a726043eb4d6',
-  'character:maya-santos': 'f250d6d523d51c55',
-  'character:alex-chen': '074e2a565130904b',
+  'character:ferni': 'd346bd6260445a32',
+  'character:peter-john': '9ba94c71b1470611',
+  'character:maya-santos': 'db2d5a01fbe2fe2a',
+  'character:alex-chen': '5198aec44e53e80c',
 };
 
 describe('TROUBLES_TALK off', () => {

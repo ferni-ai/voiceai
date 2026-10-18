@@ -56,6 +56,21 @@ export function troubleWords(text: string): boolean {
   return callerVenting(text) || hardNews(text) || troubleOpening(text);
 }
 
+/**
+ * Whether this turn is a trouble, on the signals (unset when off). "Do you
+ * have a minute?" reads as a question about him, and got his brother's first
+ * snow; announcing a trouble is their turn, not his.
+ */
+export function withTrouble(userText: string, sig: TurnSignals): TurnSignals {
+  if (!troublesTalkEnabled()) return sig;
+  const opening = sig.move === 'about_ferni' && troubleOpening(userText);
+  return {
+    ...sig,
+    move: opening ? 'share' : sig.move,
+    trouble: sig.trouble ?? troubleTurn(userText, sig),
+  };
+}
+
 /** They are telling something (news, a story, how it went), not asking Ferni a question. */
 export function telling(text: string, move: TurnSignals['move']): boolean {
   return move === 'share' && !text.includes('?');

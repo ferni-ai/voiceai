@@ -50,11 +50,11 @@ import {
   formatLedger,
   loadLedger,
   personaDisplayName,
-  quietLedger,
   RECALL_LIMIT,
   type LedgerFact,
   type LedgerStore,
 } from '../personas/life-ledger.js';
+import { quietLedger } from '../personas/quiet-ledger.js';
 import { loadCanon, selfRecallEnabled, selfRecallNote } from '../personas/self-recall.js';
 import { datesRecallFor, type DatesRecall } from '../../intelligence/world-model/dates/recall.js';
 import {
