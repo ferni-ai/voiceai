@@ -5,6 +5,10 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firestore.js';
+import {
+  PENDING_OUTREACH_HORIZON_MS,
+  PENDING_OUTREACH_LOAD_LIMIT,
+} from '../pending-outreach-query.js';
 
 const rows: Row[] = [];
 vi.mock('../../superhuman/firestore-utils.js', () => ({
@@ -48,7 +52,7 @@ describe('loadPendingOutreach is bounded', () => {
     rows.push(
       pending('due', new Date(Date.now() - HOUR)),
       pending('tomorrow', new Date(Date.now() + 24 * HOUR)),
-      pending('far', new Date(Date.now() + s.PENDING_OUTREACH_HORIZON_MS + 24 * HOUR)),
+      pending('far', new Date(Date.now() + PENDING_OUTREACH_HORIZON_MS + 24 * HOUR)),
       pending('sent', new Date(Date.now() - HOUR), { status: 'sent' })
     );
 
@@ -60,7 +64,7 @@ describe('loadPendingOutreach is bounded', () => {
 
   it('reads at most the limit, keeping the soonest due', async () => {
     const s = await freshScheduler();
-    const n = s.PENDING_OUTREACH_LOAD_LIMIT + 5;
+    const n = PENDING_OUTREACH_LOAD_LIMIT + 5;
     // Inserted latest-first, so an unordered read would keep the wrong ones.
     for (let i = n - 1; i >= 0; i--) {
       rows.push(pending(`o${i}`, new Date(Date.now() + i * 60_000)));
@@ -69,7 +73,7 @@ describe('loadPendingOutreach is bounded', () => {
     await s.loadPendingOutreach();
 
     const ids = new Set(s.getPendingOutreach('u1').map((o) => o.id));
-    expect(ids.size).toBe(s.PENDING_OUTREACH_LOAD_LIMIT);
+    expect(ids.size).toBe(PENDING_OUTREACH_LOAD_LIMIT);
     expect(ids.has('o0')).toBe(true);
     expect(ids.has(`o${n - 1}`)).toBe(false);
   });

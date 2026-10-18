@@ -443,21 +443,8 @@ async function persistOutreach(outreach: ScheduledOutreach): Promise<void> {
   }
 }
 
-/** Most pending docs one startup load reads. */
-export const PENDING_OUTREACH_LOAD_LIMIT = 500;
-/** How far ahead a startup load looks; later outreach loads on a later boot. */
-export const PENDING_OUTREACH_HORIZON_MS = 30 * 24 * 60 * 60 * 1000;
-
 /**
  * Load pending outreach from Firestore on startup.
- *
- * Bounded: this runs on every Cloud Run cold boot, and the unbounded
- * collection-group scan it replaced was part of a ~40s boot stall. The range
- * filter on the ISO-string `scheduledFor` (which this module writes) also
- * drops the Timestamp-typed docs scheduled-multi-outreach writes, since a
- * Firestore range filter only matches values of the same type. Soonest first,
- * so a capped load keeps the outreach that is due. Index: scheduled_outreach
- * COLLECTION_GROUP (status ASC, scheduledFor ASC), live in prod.
  */
 export async function loadPendingOutreach(): Promise<void> {
   try {
@@ -465,20 +452,8 @@ export async function loadPendingOutreach(): Promise<void> {
     const db = getFirestoreDb();
     if (!db) return;
 
-    const horizon = new Date(Date.now() + PENDING_OUTREACH_HORIZON_MS).toISOString();
-    const snapshot = await db
-      .collectionGroup('scheduled_outreach')
-      .where('status', '==', 'pending')
-      .where('scheduledFor', '<=', horizon)
-      .orderBy('scheduledFor')
-      .limit(PENDING_OUTREACH_LOAD_LIMIT)
-      .get();
-    if (snapshot.size >= PENDING_OUTREACH_LOAD_LIMIT) {
-      log.warn(
-        { limit: PENDING_OUTREACH_LOAD_LIMIT },
-        'Pending outreach load hit its limit; the latest-due docs were not loaded'
-      );
-    }
+    const { queryPendingOutreach } = await import('./pending-outreach-query.js');
+    const { snapshot, capped } = await queryPendingOutreach(db); // bounded: runs every cold boot
 
     // Filtered here: a collection-group query on `source` would need a new index.
     const docs = snapshot.docs.filter((d) => d.data().source === PROACTIVE_OUTREACH_SOURCE);
@@ -494,7 +469,7 @@ export async function loadPendingOutreach(): Promise<void> {
     }
 
     const skipped = snapshot.size - docs.length;
-    log.info({ count: docs.length, skipped }, '📥 Loaded pending outreach from Firestore');
+    log.info({ count: docs.length, skipped, capped }, '📥 Loaded pending outreach from Firestore');
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to load pending outreach');
   }
