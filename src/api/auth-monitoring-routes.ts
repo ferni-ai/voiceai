@@ -4,6 +4,7 @@
  * API endpoints for monitoring authentication metrics:
  * - GET /api/auth/metrics - Get auth metrics (admin only)
  * - GET /api/auth/health - Health check for auth system
+ * - POST /api/auth/revoke - Revoke the caller's refresh tokens (auth-revoke-routes.ts)
  *
  * @module AuthMonitoringRoutes
  */
@@ -12,6 +13,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getRecentEvents, getSecurityMetrics } from '../services/security-events.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAdmin } from './auth-middleware.js';
+import { handleAuthRevokeRoutes } from './auth-revoke-routes.js';
 import { sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'AuthMonitoringRoutes' });
@@ -115,7 +117,8 @@ export async function handleAuthMonitoringRoutes(
     return handleGetEvents(req, res);
   }
 
-  return false;
+  // POST /api/auth/revoke - Revoke the caller's own refresh tokens
+  return handleAuthRevokeRoutes(req, res, pathname);
 }
 
 // ============================================================================
