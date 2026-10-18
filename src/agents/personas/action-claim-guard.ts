@@ -278,6 +278,7 @@ async function checkActionClaims<T>(
   const open = new Set(toolNames.flatMap(kindsOfTool));
   // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
   const calendarCreateOpen = toolNames.some(isCalendarCreate);
+  const providerWrite = flagOn('CALENDAR_PROVIDER_WRITE', env);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
@@ -375,10 +376,12 @@ async function checkActionClaims<T>(
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
             if (names.some(isCalendarCreate)) calendarCalled = true;
-            // A create came after the claim. A create only saves to Ferni's own list (#1547), so the
-            // claim is still false: the honest line replaces it, and what followed goes out after.
+            // A create came after the claim. Without provider writes a create only saves to Ferni's
+            // own list (#1547), so the claim is still false: the honest line replaces it, and what
+            // followed goes out after. With them (#1749) the create may reach the caller's calendar,
+            // which only its result knows, so the claim is dropped and the result is spoken next.
             if (deferred?.reason === 'uncalled' && calling.has(deferred.kind)) {
-              if (deferred.text) {
+              if (deferred.text && !(calendarCalled && providerWrite)) {
                 emit(
                   calendarCalled ? honestLine(deferred.kind, 'elsewhere', false) : deferred.text
                 );

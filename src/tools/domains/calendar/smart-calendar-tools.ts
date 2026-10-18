@@ -58,6 +58,7 @@ import {
   getPendingEvent,
 } from '../../../services/calendar/event-confirmation.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
+import { saveNewEvent } from './create-event-destination.js';
 import { formatStoredLocalTime, zonedWallTimeToUtc } from '../../../utils/time-zone.js';
 import {
   getUpcomingBriefings,
@@ -245,16 +246,8 @@ const createCalendarEventDef: ToolDefinition = {
           attendees: params.attendees,
         };
 
-        const created = await createEvent(userId, eventInput);
-
-        if (!created) {
-          return "Couldn't create the event. There might be an issue with your calendar connection.";
-        }
-
-        const formattedTime = formatStoredLocalTime(startTime, zone);
-        log.info({ userId, eventTitle: params.title }, 'Created calendar event');
-        // createEvent keeps it in Ferni's own calendar; nothing pushes it to Google.
-        return `Saved to the Ferni calendar only, not Google Calendar: "${params.title}", ${formattedTime}, ${durationMinutes} minutes.`;
+        // Ferni's own list, or the caller's Google Calendar with CALENDAR_PROVIDER_WRITE (#1749).
+        return saveNewEvent(userId, eventInput, formatStoredLocalTime(startTime, zone));
       },
     }),
 };

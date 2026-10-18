@@ -183,3 +183,81 @@ describe('calendar claims', () => {
     expect(text).toContain("It isn't booked yet, though.");
   });
 });
+
+describe('calendar claims with CALENDAR_PROVIDER_WRITE (#1749)', () => {
+  const ENV = { ACTION_CLAIM_STREAM: 'on', CALENDAR_PROVIDER_WRITE: 'on' };
+  const checkOn = (
+    stream: ReadableStream<llm.ChatChunk>,
+    items: unknown[],
+    tools: { functionTools: Record<string, unknown> }
+  ) => withActionClaimCheck(Promise.resolve(stream), { items }, tools, undefined, ENV);
+
+  it("a create later in the reply: the claim is dropped, not called Ferni's own list", async () => {
+    const parts = [
+      chunk('Sure. '),
+      chunk("I've got that on your calendar. "),
+      chunk('Enjoy. '),
+      toolCall('createCalendarEvent'),
+    ];
+    const text = await textOf(
+      await checkOn(streamOf(...parts), [ASK], toolsWith('createCalendarEvent'))
+    );
+    expect(text).not.toMatch(/on your calendar/);
+    expect(text).not.toContain("Ferni's own list");
+    expect(text).toContain('Sure.');
+    expect(text).toContain('Enjoy.');
+  });
+
+  it('after a create that reached Google Calendar, the claim stands', async () => {
+    const items = [
+      ASK,
+      result(
+        'createCalendarEvent',
+        JSON.stringify(
+          'Added to your Google Calendar: "Lunch with Sam", Saturday, Oct 18, 12:00 PM your time, 60 minutes.'
+        )
+      ),
+    ];
+    const parts = ["I've got that on your calendar for tomorrow at noon. "];
+    const text = await textOf(
+      await checkOn(streamOf(...parts), items, toolsWith('createCalendarEvent'))
+    );
+    expect(text).toBe("I've got that on your calendar for tomorrow at noon. ");
+  });
+
+  it('after a Google write that failed, the claim is replaced by "didn\'t go through"', async () => {
+    const items = [
+      ASK,
+      result(
+        'createCalendarEvent',
+        JSON.stringify(
+          'I couldn\'t add "Lunch with Sam" to your Google Calendar, so it isn\'t on your calendar. Nothing was saved.'
+        )
+      ),
+    ];
+    const parts = ["I've got that on your calendar for tomorrow at noon. "];
+    const text = await textOf(
+      await checkOn(streamOf(...parts), items, toolsWith('createCalendarEvent'))
+    );
+    expect(text).not.toMatch(/on your calendar for/);
+    expect(text).toContain("That didn't go through, so it isn't booked.");
+  });
+
+  it("a save to Ferni's list while Outlook is connected is reported as elsewhere", async () => {
+    const items = [
+      ASK,
+      result(
+        'createCalendarEvent',
+        JSON.stringify(
+          "Saved to Ferni's own list: \"Lunch with Sam\", Saturday, Oct 18, 12:00 PM your time, 60 minutes. It isn't on your calendar, since I can't add to Outlook yet."
+        )
+      ),
+    ];
+    const parts = ["I've got that on your calendar for tomorrow at noon. "];
+    const text = await textOf(
+      await checkOn(streamOf(...parts), items, toolsWith('createCalendarEvent'))
+    );
+    expect(text).not.toMatch(/on your calendar for/);
+    expect(text).toContain("It's saved to Ferni's own list, not your calendar.");
+  });
+});
