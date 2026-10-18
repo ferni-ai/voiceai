@@ -22,9 +22,22 @@ export interface CallUserResult {
   error?: string;
 }
 
+/** How a guarded text to the owner went; `reason` is said to them when it wasn't sent. */
+export interface TextOwnerResult {
+  sent: boolean;
+  reason?: string;
+}
+
 export interface CallUserPort {
   /** The verified phone on the account, or undefined; never the model-written profile phone */
   verifiedPhone(userId: string): Promise<string | undefined>;
+  /** The account's verified email (Firebase Auth), or undefined; never the model-saved address */
+  verifiedEmail?(userId: string): Promise<string | undefined>;
+  /**
+   * Text the owner at the verified phone through the guarded sender (STOP, texts off,
+   * quiet hours unless they just asked for it). Not installed: nothing is sent.
+   */
+  textOwner?(userId: string, body: string, opts: { askedNow: boolean }): Promise<TextOwnerResult>;
   /** Ring that phone with the message, through calling hours and quiet hours */
   call(request: CallUserRequest): Promise<CallUserResult>;
 }
