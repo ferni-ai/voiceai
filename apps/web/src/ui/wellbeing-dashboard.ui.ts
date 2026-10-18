@@ -18,6 +18,7 @@ import {
   type ApiDashboardResponse,
   type ApiTrendsResponse,
 } from './wellbeing-api.js';
+import { renderDimensionCard, renderQuiet, type DimensionCard } from './wellbeing-cards.js';
 
 const log = createLogger('WellbeingDashboard');
 
@@ -30,15 +31,7 @@ export interface WellbeingData {
   trend: 'improving' | 'stable' | 'declining';
 }
 
-export interface DimensionCard {
-  dimension: string;
-  displayNameKey: string;
-  currentScore: number; // 0-1
-  trend: 'up' | 'stable' | 'down';
-  sparkline: number[] | null; // Last 30 days; null when the trend failed to load
-  insight: string;
-  color: string;
-}
+export type { DimensionCard } from './wellbeing-cards.js';
 
 export interface MoodCalendarEntry {
   date: string; // ISO date
@@ -67,6 +60,8 @@ export interface DashboardData {
   achievements: Achievement[];
   prediction: Prediction | null;
   lastUpdated: string;
+  /** Name keys of the dimensions nobody has talked about lately */
+  quiet: string[];
 }
 
 // ============================================================================
@@ -332,6 +327,21 @@ const styles = `
     margin: var(--space-2, 8px) 0;
   }
   
+  .wellbeing-dimension-card__as-of,
+  .wellbeing-quiet {
+    font-size: var(--text-xs, 12px);
+    color: var(--color-text-muted, #9a8f85);
+    margin-top: var(--space-2, 8px);
+  }
+
+  .wellbeing-quiet__name {
+    display: inline-block;
+    padding: 2px 8px;
+    margin: 2px;
+    border-radius: 999px;
+    background: var(--color-surface-2, rgba(0, 0, 0, 0.04));
+  }
+
   .wellbeing-dimension-card__insight {
     font-size: 13px;
     color: var(--color-text-secondary);
@@ -1323,7 +1333,28 @@ function transformApiResponse(
     { dimension: 'purpose', displayNameKey: 'wellbeing.purpose', currentScore: currentState.purpose },
     { dimension: 'sleep', displayNameKey: 'wellbeing.sleep', currentScore: currentState.sleep },
   ].filter((dim): dim is typeof dim & { currentScore: number } => dim.currentScore !== null);
+  const fields = currentState.fields;
   const dimensions: DimensionCard[] = measured.map((dim) => {
+    // The server's per-field estimate, when it sends one: its direction, or none yet
+    const field = fields?.[dim.dimension as keyof typeof fields];
+    if (fields) {
+      const dir = field?.direction ?? null;
+      const trend = dir === 'rising' ? 'up' : dir === 'falling' ? 'down' : dir === 'steady' ? 'stable' : null;
+      const sparkline = trendsData
+        ? trendsData.dataPoints
+            .map((dp) => dp[dim.dimension as keyof typeof dp] as number | null)
+            .filter((v): v is number => v !== null)
+        : null;
+      return {
+        ...dim,
+        trend,
+        sparkline,
+        asOf: field?.asOf,
+        observations: field?.observations,
+        insight: getDimensionInsight(dim.dimension, dim.currentScore, trend ?? 'stable'),
+        color: DIMENSION_COLORS[dim.dimension] || 'var(--color-text-secondary)',
+      };
+    }
     // Determine trend for this dimension
     const isTrending = trends.changedDimensions.includes(dim.dimension);
     let trend: 'up' | 'stable' | 'down' = 'stable';
@@ -1416,6 +1447,12 @@ function transformApiResponse(
     achievements,
     prediction,
     lastUpdated: currentState.lastUpdated,
+    // Only a server that sends per-field info can tell "never came up" from "not sent"
+    quiet: fields
+      ? (['mood', 'energy', 'anxiety', 'connection', 'purpose', 'sleep'] as const)
+          .filter((k) => !fields[k])
+          .map((k) => `wellbeing.${k}`)
+      : [],
   };
 }
 
@@ -1701,6 +1738,7 @@ function renderContent(): void {
     ${renderScoreSection(data.overall)}
     <h3 class="wellbeing-section-title">${t('wellbeing.howYoureDoing')}</h3>
     ${renderDimensions(data.dimensions)}
+    ${renderQuiet(data.quiet)}
     <h3 class="wellbeing-section-title">${t('wellbeing.last4Weeks')}</h3>
     ${renderCalendar(data.calendar)}
     ${
@@ -1781,76 +1819,6 @@ function renderDimensions(dimensions: DimensionCard[]): string {
     <div class="wellbeing-dimensions">
       ${dimensions.map((dim) => renderDimensionCard(dim)).join('')}
     </div>
-  `;
-}
-
-function renderDimensionCard(dim: DimensionCard): string {
-  const score = Math.round(dim.currentScore * 100);
-  const trendClass = dim.trend === 'up' ? 'up' : dim.trend === 'down' ? 'down' : 'stable';
-  const trendLabel = dim.trend === 'up' ? '↑' : dim.trend === 'down' ? '↓' : '→';
-  const trendTextKey = { up: 'wellbeing.trendUp', down: 'wellbeing.trendDown', stable: 'wellbeing.trendStable' }[trendClass];
-
-  return `
-    <div class="wellbeing-dimension-card">
-      <div class="wellbeing-dimension-card__header">
-        <div>
-          <div class="wellbeing-dimension-card__name">${t(dim.displayNameKey)}</div>
-          <span class="wellbeing-dimension-card__trend wellbeing-dimension-card__trend--${trendClass}">
-            ${trendLabel} ${t(trendTextKey)}
-          </span>
-        </div>
-        <div class="wellbeing-dimension-card__score" style="color: ${dim.color}">${score}</div>
-      </div>
-      <div class="wellbeing-dimension-card__sparkline">
-        ${dim.sparkline ? renderSparkline(dim.sparkline, dim.color) : t('wellbeing.trendUnavailable')}
-      </div>
-      <div class="wellbeing-dimension-card__insight">${dim.insight}</div>
-    </div>
-  `;
-}
-
-function renderSparkline(data: number[], color: string): string {
-  const width = 180;
-  const height = 40;
-  const padding = 4;
-
-  // Handle edge case of single data point
-  if (data.length === 0) return '';
-  if (data.length === 1) {
-    // Single point: draw a horizontal line at that value
-    const y = height / 2;
-    return `
-      <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
-        <line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}"
-          stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" />
-      </svg>
-    `;
-  }
-
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-
-  const divisor = data.length - 1; // Safe: we know data.length >= 2 here
-  const points = data
-    .map((value, index) => {
-      const x = padding + (index / divisor) * (width - 2 * padding);
-      const y = height - padding - ((value - min) / range) * (height - 2 * padding);
-      return `${x},${y}`;
-    })
-    .join(' ');
-
-  return `
-    <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
-      <polyline
-        points="${points}"
-        fill="none"
-        stroke="${color}"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
   `;
 }
 

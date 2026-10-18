@@ -94,6 +94,45 @@ describe('wellbeing dashboard empty state', () => {
     expect(cards.length).toBe(2);
   });
 
+  it('dates each estimate, shows a direction only when the server has one, and names what never came up', async () => {
+    const info = (observations: number, direction: string | null) => ({
+      asOf: NOW,
+      observations,
+      direction,
+    });
+    const measured = {
+      mood: 0.7,
+      energy: 0.3,
+      anxiety: null,
+      connection: null,
+      purpose: null,
+      sleep: null,
+      lastUpdated: NOW,
+      fields: {
+        mood: info(4, 'rising'),
+        energy: info(1, null),
+        anxiety: null,
+        connection: null,
+        purpose: null,
+        sleep: null,
+      },
+    };
+    respond(dashboardBody(measured, { hasData: true }));
+    await showWellbeingDashboard();
+
+    const cards = [...(content()?.querySelectorAll('.wellbeing-dimension-card') ?? [])];
+    expect(cards.length).toBe(2);
+    const [mood, energy] = cards;
+    expect(mood?.querySelector('.wellbeing-dimension-card__trend--up')).not.toBeNull();
+    expect(mood?.querySelector('.wellbeing-dimension-card__as-of')?.textContent).toContain('4');
+    // One mention: no trend chip at all, rather than a made-up "stable"
+    expect(energy?.querySelector('.wellbeing-dimension-card__trend')).toBeNull();
+    expect(energy?.querySelector('.wellbeing-dimension-card__as-of')).not.toBeNull();
+    // Never talked about: named, not scored
+    const quiet = content()?.querySelectorAll('.wellbeing-quiet__name') ?? [];
+    expect(quiet.length).toBe(4);
+  });
+
   it('shows the error state, not the empty state, when the load fails', async () => {
     respond({ error: 'boom' }, 500);
     await showWellbeingDashboard();
