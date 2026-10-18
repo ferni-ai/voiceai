@@ -1,63 +1,84 @@
 /**
- * Bundle voices win over the hardcoded fallbacks, even after an early lookup.
+ * The persona bundles, the hardcoded fallbacks (config/voice-ids.ts) and the
+ * design-system persona kits name the same voice for every persona.
  *
- * initializeVoiceRegistry() had no caller, and the first getVoiceId() registered
- * the fallbacks and set `initialized`, so a later real init returned early and
- * every voice came from FALLBACK_VOICE_IDS (config/voice-ids.ts), never the
- * persona bundles. These tests also pin where the two sources disagree, so a new
- * drift fails here instead of changing a voice silently.
+ * The voice registry now loads bundle voices over the fallbacks
+ * (voice-registry-init-order.test.ts), so a bundle voice that differs from its
+ * fallback would change how that persona sounds in prod. Jordan's bundle named
+ * a different voice than prod used; Seth kept prod's (2026-10-18). Any new
+ * mismatch fails here.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { discoverAndLoadBundles } from '../bundles/index.js';
-import { getVoiceId, initializeVoiceRegistry, resetVoiceRegistry } from '../voice-registry.js';
+import { toCanonical } from '../persona-ids.js';
 
-/** Personas whose bundle voice_id differs from the fallback, as of 2026-10-18. */
-const KNOWN_DRIFT: Record<string, { fallback: string; bundle: string }> = {
-  'jordan-taylor': {
-    fallback: 'b2d14370-c56b-4bdd-a6a3-71abe1b6e345',
-    bundle: '219ccddf-e83d-491f-ae44-5f4447d5a9ca',
-  },
-};
+/** Env vars the bundles' ${env:…|default} voices and the fallbacks read first. */
+const VOICE_ENV = [
+  'FERNI_VOICE_ID',
+  'JACK_B_VOICE_ID',
+  'PETER_JOHN_VOICE_ID',
+  'JACK_BOGLE_VOICE_ID',
+  'ALEX_CHEN_VOICE_ID',
+  'COMM_SPECIALIST_VOICE_ID',
+  'MAYA_SANTOS_VOICE_ID',
+  'SPEND_SAVE_VOICE_ID',
+  'JORDAN_TAYLOR_VOICE_ID',
+  'EVENT_PLANNER_VOICE_ID',
+  'NAYAN_PATEL_VOICE_ID',
+  'NAYAN_VOICE_ID',
+  'JOEL_DICKSON_VOICE_ID',
+  'PETER_LYNCH_VOICE_ID',
+  'JOHN_BOGLE_VOICE_ID',
+];
 
 async function bundleVoices(): Promise<Array<[string, string]>> {
   const { bundles } = await discoverAndLoadBundles();
   return bundles.map((b) => [b.manifest.identity.id, b.manifest.voice.voice_id]);
 }
 
-beforeEach(() => {
-  // The bundles' ${env:…|default} voices and the fallbacks both read these first
-  for (const id of ['JORDAN_TAYLOR_VOICE_ID', 'EVENT_PLANNER_VOICE_ID']) vi.stubEnv(id, '');
-  resetVoiceRegistry();
-});
-afterAll(() => {
-  vi.unstubAllEnvs();
-  resetVoiceRegistry();
-});
+/** Every Cartesia voiceId in design-system/tokens/persona-kits.json, keyed by kit name. */
+function personaKitVoices(): Array<[string, string]> {
+  const kits = JSON.parse(
+    readFileSync(resolve(__dirname, '../../../design-system/tokens/persona-kits.json'), 'utf8')
+  ) as { personas: Record<string, { avatar?: { voiceId?: { cartesia?: string } } }> };
+  return Object.entries(kits.personas).flatMap(([name, kit]) => {
+    const voice = kit.avatar?.voiceId?.cartesia;
+    return voice ? [[name, voice] as [string, string]] : [];
+  });
+}
 
-describe('voice registry sources', () => {
-  it('reports every persona whose bundle voice differs from its fallback', async () => {
+const drift = (voices: Array<[string, string]>, canonical: (id: string) => string) =>
+  Object.fromEntries(
+    voices
+      .filter(([id, voice]) => voice !== getVoiceIdForPersona(canonical(id)))
+      .map(([id, voice]) => [id, { fallback: getVoiceIdForPersona(canonical(id)), voice }])
+  );
+
+beforeEach(() => {
+  for (const name of VOICE_ENV) vi.stubEnv(name, '');
+});
+afterAll(() => vi.unstubAllEnvs());
+
+describe('persona voice sources', () => {
+  it('every persona bundle names the same voice as its fallback', async () => {
     const voices = await bundleVoices();
     expect(voices.length).toBeGreaterThan(0);
-    const drift = Object.fromEntries(
-      voices
-        .filter(([id, voice]) => voice !== getVoiceIdForPersona(id))
-        .map(([id, voice]) => [id, { fallback: getVoiceIdForPersona(id), bundle: voice }])
-    );
-    expect(drift).toEqual(KNOWN_DRIFT);
+    expect(drift(voices, (id) => id)).toEqual({});
   });
 
-  it('serves bundle voices once initialised, though a lookup came first', async () => {
-    expect(getVoiceId('jordan-taylor')).toBe(KNOWN_DRIFT['jordan-taylor'].fallback);
-    await initializeVoiceRegistry();
-    for (const [id, voice] of await bundleVoices()) {
-      expect(getVoiceId(id), id).toBe(voice);
-    }
+  it('every persona kit voiceId names the same voice as its fallback', () => {
+    const voices = personaKitVoices();
+    expect(voices.length).toBeGreaterThan(0);
+    expect(drift(voices, (name) => toCanonical(name))).toEqual({});
   });
 
-  it('loads the bundles once for concurrent callers', async () => {
-    await Promise.all([initializeVoiceRegistry(), initializeVoiceRegistry()]);
-    expect(getVoiceId('jordan-taylor')).toBe(KNOWN_DRIFT['jordan-taylor'].bundle);
+  it('keeps Jordan on the voice prod used before bundles won', async () => {
+    const jordan = new Map(await bundleVoices()).get('jordan-taylor');
+    expect(jordan).toBe('b2d14370-c56b-4bdd-a6a3-71abe1b6e345');
   });
 });

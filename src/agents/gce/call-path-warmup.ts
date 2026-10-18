@@ -94,8 +94,12 @@ export async function warmCallPath(
   }
   // Bundle voices, before the call path's first getVoiceId would settle for the
   // hardcoded fallbacks (voice-registry.ts).
-  const { initializeVoiceRegistry } = await import('../../personas/voice-registry.js');
-  await initializeVoiceRegistry(); // never throws: falls back on its own
+  try {
+    const { initializeVoiceRegistry } = await import('../../personas/voice-registry.js');
+    await initializeVoiceRegistry();
+  } catch {
+    failed++;
+  }
   const result = { modules: targets.size, failed, durationMs: Date.now() - started };
   log('✅ Call path warmed', result);
   return result;
