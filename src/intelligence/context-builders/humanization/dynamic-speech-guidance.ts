@@ -184,7 +184,7 @@ When something is SURPRISING:
 
 When something is HARD:
 - Don't fix it. Be present.
-- "That's a lot." "I hear you." — short, then space
+- One short, real reaction, then space
 - Resist the urge to silver-lining
 
 When something is JOYFUL:

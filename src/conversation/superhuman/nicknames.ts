@@ -282,7 +282,6 @@ export function formatNamingGuidance(userId: string, context: NamingContext): st
       '',
       'Examples:',
       `- "Oh ${decision.suggestion}, I\'m so sorry."`,
-      `- "I\'m here for you, ${decision.suggestion}."`,
       '',
       "Only if it feels natural. Don't force it.",
     ].join('\n');
