@@ -11,8 +11,33 @@ import type { ConfirmSpec } from '../communication/outreach/outreach-confirm.js'
 import { checkDialableNumber } from '../../../utils/dialable-number.js';
 
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
+/** "My Dad" and "dad" are the same person to call. */
+const person = (v: unknown): string =>
+  text(v)
+    .toLowerCase()
+    .replace(/^my\s+/, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+/**
+ * A yes to one call tool's read-back also confirms the other's call to the same
+ * number (the same person when no number is given): both place the same call.
+ * What rings is still exactly what was read back (number and purpose).
+ * Owner call 2026-10-18: callAndConverse after callOnBehalf's read-back who again.
+ */
+function sameCall(stored: Record<string, unknown>, next: Record<string, unknown>): boolean {
+  const raw = text(next.phoneNumber);
+  if (raw) {
+    const number = checkDialableNumber(raw);
+    return number.ok && number.e164 === stored.phoneNumber;
+  }
+  return (
+    person(next.contactQuery) !== '' && person(next.contactQuery) === person(stored.contactQuery)
+  );
+}
 
 export const callConfirm: ConfirmSpec = {
+  sameAction: sameCall,
   prepare: async (args, userId) => {
     const who = text(args.contactQuery) || 'them';
     const purpose = text(args.purpose);

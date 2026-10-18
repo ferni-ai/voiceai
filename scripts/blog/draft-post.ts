@@ -8,7 +8,8 @@
  * Types: see post-types.ts. --dry-run prints the prompt and sources and calls
  * no model. --meta-out writes what the workflow needs for the PR (the path,
  * the sources, and the grounding text the gate checks numbers against).
- * Exits 1 when the draft still fails the brand gate after a retry.
+ * Exits 1 when the draft still fails the brand gate after a retry, or at once
+ * when it links off the allowlist or carries raw HTML (untrusted-text.ts).
  */
 
 import * as fs from 'node:fs';
@@ -68,7 +69,7 @@ switch (result.status) {
     console.log(`Wrote ${result.path}`);
     break;
   case 'rejected':
-    console.error(`The ${result.type} draft failed the brand gate twice:`);
+    console.error(`The ${result.type} draft was rejected; nothing written:`);
     for (const issue of result.issues) console.error(`  [${issue.rule}] ${issue.message}`);
     if (result.markdown) console.error(`\nLast draft:\n${result.markdown}`);
     process.exit(1);
