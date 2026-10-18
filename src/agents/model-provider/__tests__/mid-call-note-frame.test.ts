@@ -1,6 +1,6 @@
 /**
  * Pins MID_CALL_NOTE_FRAME in our @livekit/agents patch
- * (patches/@livekit__agents@1.8.1.patch, provider_format/google.js).
+ * (patches/@livekit__agents@1.9.3.patch, provider_format/google.js).
  *
  * The SDK turns every system message after the first into a USER message reading
  * "New instructions received. Apply them carefully: <note>", and the formatter

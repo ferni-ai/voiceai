@@ -110,7 +110,7 @@ final class SplashPhaseEffectsTests: XCTestCase {
 final class GreetingTextLogicTests: XCTestCase {
 
     func testNewUserGreetingScenario() {
-        // For new users: "Your AI team is ready"
+        // For new users: "I'm Ferni, and I'm glad you're here"
         // Verified by creating view with isReturningUser: false
         let view = MagicalSplashView(isReturningUser: false)
         _ = view.body // Forces computation

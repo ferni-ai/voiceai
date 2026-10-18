@@ -50,15 +50,12 @@ export function shouldHandoffToNayan(userInput: string): boolean {
   const lowerInput = userInput.toLowerCase();
 
   const nayanTriggers = [
-    // Wake words - IMMEDIATE transfer to Nayan Patel
+    // Wake words - IMMEDIATE transfer to Nayan Patel (his own name only: he is
+    // fictional, not the real teacher he was first modelled on)
     'hey nayan',
     'hi nayan',
     'hello nayan',
-    'hey sadhguru',
-    'hi sadhguru',
-    'hello sadhguru',
     'talk to nayan',
-    'talk to sadhguru',
     'get nayan',
     // Topic triggers - wisdom and philosophy
     'meaning of life',

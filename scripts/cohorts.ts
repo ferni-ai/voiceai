@@ -14,6 +14,7 @@
  *   set-flag <cohort> FLAG on|off             FLAG from COHORT_FLAGS
  *   unset-flag <cohort> FLAG
  *   enable|disable <cohort>                   a whole cohort on or off (off is the fast kill)
+ *   percent <cohort> <0-100>                  also a stable sample of every caller (0: members only)
  *   override <uid|email> FLAG on|off          one person's own value, beats every cohort
  *   clear-override <uid|email> FLAG
  *   who <uid|email>                           the flags a call from this person gets
@@ -22,7 +23,11 @@
  * emails other than the one given, and nothing from the environment.
  */
 import { pathToFileURL } from 'node:url';
-import { COHORT_FLAGS, resolveCallerFlags } from '../src/services/platform/cohort-flags.js';
+import {
+  COHORT_FLAGS,
+  missingPrerequisites,
+  resolveCallerFlags,
+} from '../src/services/platform/cohort-flags.js';
 
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
 const COHORT_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -35,6 +40,7 @@ export interface CohortDoc {
   enabled?: boolean;
   members?: string[];
   flags?: Record<string, string>;
+  percent?: number;
 }
 
 /** One document write: plain fields, plus member and field operations. */
@@ -69,7 +75,7 @@ export interface Args {
 
 const COMMANDS = new Set([
   'list', 'show', 'create', 'add-member', 'remove-member', 'set-flag', 'unset-flag',
-  'enable', 'disable', 'override', 'clear-override', 'who',
+  'enable', 'disable', 'percent', 'override', 'clear-override', 'who',
 ]); // prettier-ignore
 const READS = new Set(['list', 'show', 'who']);
 const VALUE_OPTS = new Set(['--project', '--description', '--uid', '--email']);
@@ -142,6 +148,12 @@ export function planWrites(a: Args, uid: string | undefined, now: string): Write
     case 'enable':
     case 'disable':
       return cohort({ enabled: a.cmd === 'enable' });
+    case 'percent': {
+      const p = Number(second);
+      if (!second || !Number.isInteger(p) || p < 0 || p > 100)
+        throw new Error(`percent: a whole number 0-100, not ${second ?? '(none)'}`);
+      return p === 0 ? cohort({}, { deleteFields: ['percent'] }) : cohort({ percent: p });
+    }
     case 'override':
       return [{ collection: 'feature_flag_overrides', doc: needUid(), kind: 'merge', fields: { flags: { [cohortFlag(second)]: onOff(third) }, updatedAt: now } }]; // prettier-ignore
     case 'clear-override':
@@ -162,6 +174,8 @@ export function describeWrite(w: Write): string {
 function showCohort(id: string, c: CohortDoc, out: (l: string) => void, members: boolean): void {
   out(`${id} ${c.enabled === false ? 'DISABLED' : 'enabled'}: ${c.description ?? c.name ?? ''}`);
   out(`  flags:   ${JSON.stringify(c.flags ?? {})}`);
+  if (typeof c.percent === 'number') out(`  sample:  ${c.percent}% of callers`);
+  for (const m of missingPrerequisites(c.flags ?? {})) out(`  warning: ${m}`);
   const m = c.members ?? [];
   out(members ? `  members: ${m.join(', ') || '(none)'}` : `  members: ${m.length}`);
 }
@@ -201,11 +215,13 @@ export async function run(argv: string[], deps: RunDeps): Promise<number> {
   }
   if (a.cmd === 'who' && store) {
     if (!uid) throw new Error('who needs <uid|email>');
-    const [found, own] = await Promise.all([store.cohortsWith(uid), store.overrides(uid)]);
+    const [found, own, all] = await Promise.all([store.cohortsWith(uid), store.overrides(uid), store.listCohorts()]); // prettier-ignore
     const mine = [...found].sort((x, y) => x.id.localeCompare(y.id));
+    const asCohort = (c: CohortDoc & { id: string }) => ({ id: c.id, enabled: c.enabled !== false, flags: c.flags ?? {}, percent: c.percent }); // prettier-ignore
     const flags = await resolveCallerFlags(uid, {
-      cohortsFor: async () => mine.map((c) => ({ id: c.id, enabled: c.enabled !== false, flags: c.flags ?? {} })), // prettier-ignore
+      cohortsFor: async () => mine.map(asCohort),
       overridesFor: async () => own,
+      sampledCohorts: async () => all.filter((c) => typeof c.percent === 'number').map(asCohort),
     });
     deps.out(`cohorts:   ${mine.map((c) => (c.enabled === false ? `${c.id} (disabled)` : c.id)).join(', ') || '(none)'}`); // prettier-ignore
     deps.out(`overrides: ${JSON.stringify(own)}`);
@@ -213,6 +229,12 @@ export async function run(argv: string[], deps: RunDeps): Promise<number> {
     return 0;
   }
   const writes = planWrites(a, uid, (deps.now ?? (() => new Date().toISOString()))());
+  if (a.cmd === 'set-flag' && store && a.positional[2] === 'on') {
+    const c = await store.getCohort(cohortId(a.positional[0]));
+    const after = { ...(c?.flags ?? {}), [a.positional[1] ?? '']: 'on' };
+    for (const m of missingPrerequisites(after))
+      deps.out(`warning: ${m} (in this cohort or on the agent)`);
+  }
   for (const w of writes) {
     if (a.apply && store) {
       await store.apply(w);

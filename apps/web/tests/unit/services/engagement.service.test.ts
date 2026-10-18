@@ -248,6 +248,10 @@ describe('EngagementService', () => {
   });
 
   describe('Streak Milestone Detection', () => {
+    // Milestones fire only in a build that shows streaks (config/no-streaks.ts)
+    beforeEach(() => vi.stubEnv('VITE_NO_STREAKS', 'false'));
+    afterEach(() => vi.unstubAllEnvs());
+
     it('should detect 7 day streak milestone', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
 
