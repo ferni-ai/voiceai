@@ -5,11 +5,9 @@
  * @module agents/multi-agent/greeting-direction
  */
 
-import {
-  callCheckIns,
-  coachFollowThroughMode,
-} from '../../services/superhuman/commitment-follow-up.js';
+import { coachFollowThroughMode } from '../../services/superhuman/commitment-follow-up.js';
 import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
+import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import { contentWords } from '../../memory/recall/session-recall.js';
 import { claimOpenerFollowUp } from '../../memory/recall/opener-claim.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
@@ -103,7 +101,8 @@ async function inTime<T>(work: Promise<T>): Promise<T | undefined> {
 /** The commitment to open on, or undefined (flag off, none open, or too slow). */
 async function checkInFor(userId: string | undefined): Promise<string | undefined> {
   if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
-  return (await inTime(callCheckIns(userId)))?.[0]?.statement;
+  // Never one about a call Ferni hasn't completed: it is held, failed or unheard.
+  return (await inTime(checkInsWithCalls(userId)))?.find((c) => !c.callNote)?.statement;
 }
 
 /** A win not yet named, or undefined (COACH_WINS off, none, or too slow). */
