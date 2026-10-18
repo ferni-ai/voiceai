@@ -15,6 +15,11 @@ struct SettingsView: View {
                     NavigationLink("What Ferni remembers") { MemoryScreen(memory: model.memory) }
                 }
                 AccountSection(account: model.account, signOut: model.signOut)
+                Section {
+                    NavigationLink("Help") { HelpView() }
+                    NavigationLink("Delete account") { DeleteAccountView(delete: model.deleteAccount) }
+                        .foregroundStyle(FerniColor.error)
+                }
                 PrivacySection(consent: model.consent)
                 Section("About") {
                     LabeledContent("Version", value: Self.version)
@@ -121,5 +126,75 @@ private struct PrivacySection: View {
         } message: {
             Text("Ferni won't take calls until you agree again.")
         }
+    }
+}
+
+/// Getting help now, and what Ferni is and isn't.
+struct HelpView: View {
+    var body: some View {
+        List {
+            Section {
+                Text("Ferni is a friend, not a therapist. If you're struggling, people are ready to help right now.")
+            }
+            Section {
+                Link(destination: URL(string: "tel:988")!) { Label("Call 988", systemImage: "phone") }
+                Link(destination: URL(string: "sms:988")!) { Label("Text 988", systemImage: "message") }
+            } header: {
+                Text("Suicide & Crisis Lifeline (US)")
+            } footer: {
+                Text("Free and confidential, any time. If you're in danger, call 911.")
+            }
+        }
+        .navigationTitle("Help")
+        .navigationBarTitleDisplayMode(.inline)
+        .tint(FerniColor.accent)
+    }
+}
+
+/// Deleting the account: what goes, one clear confirmation, and the result.
+struct DeleteAccountView: View {
+    let delete: () async throws -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirming = false
+    @State private var working = false
+    @State private var failed = false
+
+    var body: some View {
+        List {
+            Section {
+                Text("This deletes your Ferni account and everything Ferni remembers about you: conversations, notes, check-ins and settings. If you signed in with Apple, Ferni's access to your Apple ID ends too.")
+                Text("It can't be undone.")
+                    .foregroundStyle(FerniColor.error)
+            }
+            Section {
+                Button("Delete my account", role: .destructive) { confirming = true }
+                    .disabled(working)
+                if working { ProgressView() }
+                if failed {
+                    Text("Couldn't delete your account. Check your connection and try again.")
+                        .foregroundStyle(FerniColor.error)
+                }
+            }
+        }
+        .navigationTitle("Delete account")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Delete everything?", isPresented: $confirming) {
+            Button("Delete", role: .destructive) { Task { await run() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your account and everything Ferni remembers will be gone for good.")
+        }
+    }
+
+    private func run() async {
+        working = true
+        failed = false
+        do {
+            try await delete()
+            dismiss()
+        } catch {
+            failed = true
+        }
+        working = false
     }
 }
