@@ -17,6 +17,14 @@
       ]
     },
     {
+      "collectionGroup": "errands",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "state", "order": "ASCENDING" },
+        { "fieldPath": "nextWakeAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "pre_briefings",
       "queryScope": "COLLECTION",
       "fields": [

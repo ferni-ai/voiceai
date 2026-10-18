@@ -1,10 +1,14 @@
 import type { Firestore } from '@google-cloud/firestore';
 
-// A Firestore fake with only the calls the follow-through store makes: documents by
-// path, where (in, >=, <, <=), orderBy, limit, collectionGroup and transactions.
+// A Firestore fake with only the calls the follow-through and errand stores make:
+// documents by path, where (==, in, >=, <, <=), orderBy, limit, collectionGroup and
+// transactions. Transactions are optimistic like Firestore's: writes are buffered,
+// and if a document read inside one changed before it commits, it runs again.
 type Cond = [string, string, unknown];
 export function fakeFirestore() {
   const docs = new Map<string, Record<string, unknown>>();
+  const versions = new Map<string, number>();
+  const version = (path: string): number => versions.get(path) ?? 0;
   const snapOf = (path: string) => ({
     id: path.split('/').pop() ?? '',
     exists: docs.has(path),
@@ -18,6 +22,7 @@ export function fakeFirestore() {
   const matches = (data: Record<string, unknown>, [f, op, v]: Cond): boolean => {
     const x = data[f];
     if (op === 'in') return (v as unknown[]).includes(x);
+    if (op === '==') return x === v;
     if (typeof x !== 'string') return false;
     if (op === '>=') return x >= String(v);
     if (op === '<') return x < String(v);
@@ -49,12 +54,28 @@ export function fakeFirestore() {
   const db = {
     collection: (name: string) => coll(name),
     collectionGroup: (name: string) => query((p) => p.split('/').slice(-2, -1)[0] === name),
-    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> =>
-      fn({
-        get: async (ref: { path: string }) => snapOf(ref.path),
-        set: (ref: { path: string }, data: Record<string, unknown>) =>
-          void docs.set(ref.path, { ...data }),
-      }),
+    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const reads = new Map<string, number>();
+        const writes: Array<[string, Record<string, unknown>]> = [];
+        const result = await fn({
+          get: async (ref: { path: string }) => {
+            reads.set(ref.path, version(ref.path));
+            return snapOf(ref.path);
+          },
+          set: (ref: { path: string }, data: Record<string, unknown>) =>
+            void writes.push([ref.path, structuredClone(data)]),
+        });
+        if ([...reads].every(([path, v]) => version(path) === v)) {
+          for (const [path, data] of writes) {
+            docs.set(path, data);
+            versions.set(path, version(path) + 1);
+          }
+          return result;
+        }
+      }
+      throw new Error('fake transaction: too much contention');
+    },
   };
   return { db: db as unknown as Firestore, docs };
 }
