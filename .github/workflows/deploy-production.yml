@@ -411,14 +411,14 @@ jobs:
       #
       # Cloud Run cannot handle WebRTC/UDP which LiveKit requires for voice.
       # More importantly, a Cloud Run voiceai-agent registers as a LiveKit worker
-      # and STEALS JOBS from the GCE agent via round-robin dispatch. The Cloud Run
+      # and STEALS JOBS from the real agent via round-robin dispatch. The Cloud Run
       # worker then fails (no UDP), causing silent connection failures for users.
       #
       # This exact bug caused a production outage on 2026-02-24.
       # The Cloud Run voiceai-agent service was deleted to fix it.
       #
-      # Voice agent deployment: use `ferni deploy gce` (deploys to GCE VM).
-      # GCE instance: voiceai-agent-gce (34.134.186.63)
+      # Voice agent deployment: LiveKit Cloud via `lk agent deploy`, gated by
+      # .claude/skills/deploy-agent/SKILL.md. (The GCE VM is retired.)
       #
       # DO NOT re-add `gcloud run deploy voiceai-agent` here.
       - name: ⛔ Skip Cloud Run deploy (the voice agent runs on LiveKit Cloud)
