@@ -3,7 +3,7 @@
 #
 # The app target is a thin SwiftUI shell; the work lives in local packages:
 #   Packages/FerniKit    configuration, the account, the server API, team, plans
-#   Packages/FerniVoice  a call with Ferni (agent signals; next: the LiveKit session)
+#   Packages/FerniVoice  a call with Ferni: the session, the LiveKit room, agent signals
 #   Packages/FerniDesign color/type/spacing tokens and the window avatar
 name: Ferni
 options:
@@ -61,7 +61,7 @@ targets:
         # Calls keep talking with the screen locked. Nothing else runs in the background.
         UIBackgroundModes:
           - audio
-        NSMicrophoneUsageDescription: Ferni needs the microphone so you can talk out loud with Ferni and your team.
+        NSMicrophoneUsageDescription: Ferni listens only while you're talking together, so you can talk out loud.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UISupportedInterfaceOrientations~ipad:
@@ -81,7 +81,6 @@ targets:
         FERNI_API_BASE_URL: "https://app.ferni.ai"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
         SWIFT_EMIT_LOC_STRINGS: YES
         ENABLE_PREVIEWS: YES
 

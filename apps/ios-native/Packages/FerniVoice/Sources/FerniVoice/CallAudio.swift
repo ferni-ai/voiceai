@@ -1,8 +1,7 @@
 import Foundation
 
 /// The phone's audio for a call, behind a protocol so the session is testable.
-/// The system implementation (AVAudioSession in voice-chat mode) arrives with
-/// the LiveKit room.
+/// `SystemCallAudio` is the real one.
 public protocol CallAudio: Sendable {
     /// Asks once; later calls return the saved answer.
     func requestMicrophone() async -> Bool

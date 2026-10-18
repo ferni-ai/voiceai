@@ -71,7 +71,8 @@ public struct CaptionBook: Sendable, Equatable {
             let sameStream = streamForSegment[id] == chunk.streamID
             lines[index].text = sameStream ? lines[index].text + chunk.text : chunk.text
             lines[index].isFinal = chunk.isFinal
-        } else {
+        } else if !chunk.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // A bare end-of-segment marker with nothing said isn't a line.
             lines.append(Caption(id: id, speaker: chunk.speaker, text: chunk.text, isFinal: chunk.isFinal))
             if lines.count > keep { lines.removeFirst(lines.count - keep) }
         }
