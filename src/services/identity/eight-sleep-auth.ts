@@ -162,13 +162,11 @@ export async function getUserTokens(userId: string): Promise<EightSleepTokens | 
     if (firestore) {
       try {
         const doc = await firestore.collection(EIGHT_SLEEP_TOKENS_COLLECTION).doc(userId).get();
-        if (doc.exists) {
-          const data = openTokens<EightSleepTokens>(doc.data());
-          if (data) {
-            userTokens.set(userId, data);
-            loadedTokenUsers.add(userId);
-            return data;
-          }
+        const data = doc.exists ? openTokens<EightSleepTokens>(doc.data()) : null;
+        if (data) {
+          userTokens.set(userId, data);
+          loadedTokenUsers.add(userId);
+          return data;
         }
       } catch (err) {
         log.warn({ err, userId }, 'Failed to load Eight Sleep tokens from Firestore');

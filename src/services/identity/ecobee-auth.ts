@@ -137,12 +137,7 @@ export async function storeUserTokens(userId: string, tokens: EcobeeTokens): Pro
       await firestore
         .collection(ECOBEE_TOKENS_COLLECTION)
         .doc(userId)
-        .set(
-          removeUndefined({
-            ...sealTokens(tokens),
-            updatedAt: new Date(),
-          })
-        );
+        .set(removeUndefined({ ...sealTokens(tokens), updatedAt: new Date() }));
       log.info({ userId }, 'Stored Ecobee tokens in Firestore');
     } catch (err) {
       log.warn({ err, userId }, 'Failed to persist Ecobee tokens to Firestore');
@@ -165,13 +160,11 @@ export async function getUserTokens(userId: string): Promise<EcobeeTokens | unde
     if (firestore) {
       try {
         const doc = await firestore.collection(ECOBEE_TOKENS_COLLECTION).doc(userId).get();
-        if (doc.exists) {
-          const data = openTokens<EcobeeTokens>(doc.data());
-          if (data) {
-            userTokens.set(userId, data);
-            loadedTokenUsers.add(userId);
-            return data;
-          }
+        const data = doc.exists ? openTokens<EcobeeTokens>(doc.data()) : null;
+        if (data) {
+          userTokens.set(userId, data);
+          loadedTokenUsers.add(userId);
+          return data;
         }
       } catch (err) {
         log.warn({ err, userId }, 'Failed to load Ecobee tokens from Firestore');
