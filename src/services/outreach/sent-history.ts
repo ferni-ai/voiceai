@@ -65,6 +65,7 @@ const TEXT_TYPE: Record<TextKind, SentAttempt['type']> = {
   reminder: 'reminder',
   message: 'check_in',
   'on-behalf': 'check_in',
+  'morning-brief': 'check_in',
   proactive: 'check_in',
 };
 
