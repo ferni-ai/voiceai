@@ -83,9 +83,7 @@ export function openTokens<T>(stored: unknown, store: string): T | null {
     return isPlaintextTokenRecord(stored) ? (stored as T) : null;
   }
   const opened = decryptData<T>(sealed);
-  // decryptData falls back to JSON.parse on a bad key, which yields the
-  // envelope itself rather than tokens.
-  if (opened === null || (opened as { encrypted?: unknown }).encrypted === true) {
+  if (opened === null) {
     // A key mismatch must not look like "not connected": say which store and why.
     log.warn(
       { store, ...envelopeFailure(sealed), kid: tokenKeyId() },

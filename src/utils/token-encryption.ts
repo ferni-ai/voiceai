@@ -185,35 +185,48 @@ export function encryptData<T>(data: T): string {
   return JSON.stringify(payload);
 }
 
+/** An envelope, or something dressed as one: never handed back as plaintext. */
+function looksLikeEnvelope(parsed: unknown): boolean {
+  if (parsed === null || typeof parsed !== 'object') return false;
+  const p = parsed as Record<string, unknown>;
+  return (
+    Boolean(p.encrypted) ||
+    typeof p.kid === 'string' ||
+    (typeof p.iv === 'string' && typeof p.authTag === 'string')
+  );
+}
+
 /**
- * Decrypt stored data
+ * Decrypt stored data. Fails closed: an envelope that does not open (tampered,
+ * wrong key, no key) is null, never the envelope itself. The one plaintext
+ * form returned as-is is JSON written by encryptData with no key configured
+ * (dev), the same "no-key encrypted string" the #2026 migration seals.
  */
 export function decryptData<T>(encryptedStr: string): T | null {
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(encryptedStr);
+    parsed = JSON.parse(encryptedStr);
+  } catch {
+    log.error('Failed to decrypt or parse token data');
+    return null;
+  }
+  if (!looksLikeEnvelope(parsed)) return parsed as T;
 
-    // If not encrypted, return as-is (legacy/development mode)
-    if (!parsed.encrypted) {
-      return parsed as T;
-    }
-
+  try {
     if (!getEncryptionKey()) {
       log.warn('Cannot decrypt - no encryption key configured');
       return null;
     }
-
-    const opened = openEnvelope<T>(encryptedStr);
-    if (!opened) throw new Error('no key on the ring opens this envelope');
-    return opened.value;
   } catch {
-    // If decryption fails, try parsing as plain JSON (migration from old format)
-    try {
-      return JSON.parse(encryptedStr) as T;
-    } catch {
-      log.error('Failed to decrypt or parse token data');
-      return null;
-    }
+    // Production with no key: getEncryptionKey already logged it.
+    return null;
   }
+  const opened = openEnvelope<T>(encryptedStr);
+  if (!opened) {
+    log.error('Failed to decrypt token data: no key on the ring opens this envelope');
+    return null;
+  }
+  return opened.value;
 }
 
 /**
