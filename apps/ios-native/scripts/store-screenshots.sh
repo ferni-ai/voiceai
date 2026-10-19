@@ -8,8 +8,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 spm=$1 out=$2
-trap 'xcrun simctl shutdown all 2>/dev/null || true' EXIT
-devices=("iPhone 17 Pro Max" "iPhone 17" "iPad Pro 13-inch (M5)")
+trap 'for d in "${devices[@]}"; do xcrun simctl shutdown "$d" 2>/dev/null || true; done' EXIT
+IFS=, read -r -a devices <<< "${DEVICES:-iPhone 17 Pro Max,iPhone 17,iPad Pro 13-inch (M5)}"
 common=(-project Ferni.xcodeproj -scheme FerniUITests -clonedSourcePackagesDirPath "$spm"
         -derivedDataPath "$out/DerivedData" -disableAutomaticPackageResolution CODE_SIGNING_ALLOWED=NO)
 
@@ -25,7 +25,7 @@ sys.exit('no simulator named ' + sys.argv[1])" "$name")
   dir="$out/${name//[^A-Za-z0-9]/-}"
   rm -rf "$dir" && mkdir -p "$dir"
   if xcodebuild test-without-building "${common[@]}" -destination "id=$udid" \
-       -only-testing:FerniUITests/StoreScreenshotTests -resultBundlePath "$dir/run.xcresult" -quiet; then
+       -only-testing:"${ONLY:-FerniUITests/StoreScreenshotTests}" -resultBundlePath "$dir/run.xcresult" -quiet; then
     xcrun xcresulttool export attachments --path "$dir/run.xcresult" --output-path "$dir"
     # "1-home_0_<uuid>.png" in the manifest becomes 1-home.png.
     python3 - "$dir" <<'PY'

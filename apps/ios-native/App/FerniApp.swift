@@ -304,7 +304,11 @@ final class AppModel {
         #else
         account = AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
         #endif
+        #if DEBUG
+        api = UITestScenario.storeData ? UITestScenario.api(baseURL: config.apiBaseURL) : account.api(baseURL: config.apiBaseURL)
+        #else
         api = account.api(baseURL: config.apiBaseURL)
+        #endif
         team = TeamStore(api: api)
         memory = MemoryStore(api: api)
         callRemembered = CallRemembered(api: api)
@@ -349,7 +353,13 @@ final class AppModel {
             case .home: break
             case .consent: isAskingConsent = true
             case .settings: isShowingSettings = true
-            case .call: call.start(personaID: PersonaRegistry.ferni.id)
+            case .call, .handoff: call.start(personaID: PersonaRegistry.ferni.id)
+            case .remember:
+                call.start(personaID: PersonaRegistry.ferni.id)
+                Task { [call] in
+                    try? await Task.sleep(for: .seconds(2))
+                    await call.end()
+                }
             }
             return // no watch session in a UI test
         }
