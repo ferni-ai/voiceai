@@ -22,6 +22,12 @@ interface EncryptedPayload {
 const log = createLogger({ module: 'Encryption' });
 
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
+/**
+ * Full 128-bit GCM tag. Pinned on both cipher and decipher: without
+ * authTagLength, Node's decipher accepts any tag from 4 to 16 bytes, so a
+ * truncated prefix of the real tag still verifies and forgery gets cheaper.
+ */
+const AUTH_TAG_BYTES = 16;
 
 export type TokenKeySource = 'OAUTH_ENCRYPTION_KEY' | 'LOG_HASH_SECRET' | 'none';
 
@@ -78,6 +84,8 @@ export function openEnvelope<T>(encryptedStr: string): { value: T; kid: string }
   if (parsed.encrypted !== true || typeof iv !== 'string' || typeof authTag !== 'string')
     return null;
   if (typeof data !== 'string') return null;
+  const tag = Buffer.from(authTag, 'base64');
+  if (tag.length !== AUTH_TAG_BYTES) return null;
   const ring = decryptionKeys();
   for (const candidate of typeof kid === 'string' ? ring.filter((k) => k.kid === kid) : ring) {
     try {
@@ -85,9 +93,10 @@ export function openEnvelope<T>(encryptedStr: string): { value: T; kid: string }
       const decipher = crypto.createDecipheriv(
         ENCRYPTION_ALGORITHM,
         derived,
-        Buffer.from(iv, 'base64')
+        Buffer.from(iv, 'base64'),
+        { authTagLength: AUTH_TAG_BYTES }
       );
-      decipher.setAuthTag(Buffer.from(authTag, 'base64'));
+      decipher.setAuthTag(tag);
       const plain = decipher.update(data, 'base64', 'utf8') + decipher.final('utf8');
       return { value: JSON.parse(plain) as T, kid: candidate.kid };
     } catch {
@@ -155,7 +164,9 @@ export function encryptData<T>(data: T): string {
   }
 
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
+  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, key, iv, {
+    authTagLength: AUTH_TAG_BYTES,
+  });
 
   const plaintext = JSON.stringify(data);
   let encrypted = cipher.update(plaintext, 'utf8', 'base64');

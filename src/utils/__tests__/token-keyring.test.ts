@@ -4,7 +4,7 @@
  * still opens until the migration re-seals it.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { keyIdOf, openEnvelope, tokenKeyId } from '../token-encryption.js';
+import { encryptData, keyIdOf, openEnvelope, tokenKeyId } from '../token-encryption.js';
 import { openTokens, sealTokens } from '../token-at-rest.js';
 
 const warn = vi.hoisted(() => vi.fn());
@@ -72,5 +72,96 @@ describe('token keyring', () => {
       envelopeKid: keyIdOf('some-other-key'),
       kid: keyIdOf(NEW),
     });
+  });
+});
+
+/** Seal a value with NEW and hand back the envelope fields for tampering. */
+function sealedEnvelope(value: unknown): Record<string, string> {
+  keys(NEW, undefined);
+  return JSON.parse(encryptData(value)) as Record<string, string>;
+}
+
+/** XOR one byte of a base64 field with `mask`. */
+function flipByte(b64: string, index: number, mask = 0x01): string {
+  const bytes = Buffer.from(b64, 'base64');
+  bytes[index] ^= mask;
+  return bytes.toString('base64');
+}
+
+describe('envelope authentication', () => {
+  afterEach(() => keys(saved.o, saved.l));
+
+  // Plaintext is {"t":"xxxxxxxxxxxx"}; byte 8 is an "x". GCM is CTR underneath,
+  // so flipping that ciphertext bit turns it into a "y": still valid JSON. Only
+  // the auth tag check can tell this envelope was altered.
+  const VALUE = { t: 'xxxxxxxxxxxx' };
+
+  it('opens the untampered envelope (control)', () => {
+    const env = sealedEnvelope(VALUE);
+    expect(openEnvelope(JSON.stringify(env))).toEqual({ value: VALUE, kid: keyIdOf(NEW) });
+  });
+
+  it('rejects an envelope with one ciphertext byte flipped', () => {
+    const env = sealedEnvelope(VALUE);
+    env.data = flipByte(env.data, 8);
+    expect(openEnvelope(JSON.stringify(env))).toBeNull();
+  });
+
+  it('rejects an envelope with one auth-tag byte flipped', () => {
+    const env = sealedEnvelope(VALUE);
+    env.authTag = flipByte(env.authTag, 0);
+    expect(openEnvelope(JSON.stringify(env))).toBeNull();
+  });
+
+  it('rejects a truncated auth tag, even the true tag cut to 12 bytes', () => {
+    const env = sealedEnvelope(VALUE);
+    expect(Buffer.from(env.authTag, 'base64')).toHaveLength(16);
+    // A prefix of the real tag is a valid 12-byte GCM tag; only the pinned
+    // length stops it from verifying. Node 22 (prod and CI) accepts it without
+    // authTagLength; Node 23+ rejects short tags itself.
+    env.authTag = Buffer.from(env.authTag, 'base64').subarray(0, 12).toString('base64');
+    expect(openEnvelope(JSON.stringify(env))).toBeNull();
+  });
+});
+
+describe('the envelope kid picks the key', () => {
+  afterEach(() => keys(saved.o, saved.l));
+
+  it('an envelope sealed with NEW but relabelled with LEGACY kid does not open', () => {
+    keys(NEW, LEGACY);
+    const env = JSON.parse(encryptData(RAW)) as Record<string, string>;
+    expect(env.kid).toBe(keyIdOf(NEW));
+    expect(openEnvelope(JSON.stringify(env))).toEqual({ value: RAW, kid: keyIdOf(NEW) });
+    // NEW is on the ring and would open it; the kid must stop us falling through to it.
+    env.kid = keyIdOf(LEGACY);
+    expect(openEnvelope(JSON.stringify(env))).toBeNull();
+  });
+
+  it('an envelope whose kid names no key on the ring does not open', () => {
+    keys(NEW, LEGACY);
+    const env = JSON.parse(encryptData(RAW)) as Record<string, string>;
+    env.kid = keyIdOf('a-key-nobody-has');
+    expect(openEnvelope(JSON.stringify(env))).toBeNull();
+  });
+});
+
+describe('production without a token key', () => {
+  const savedNodeEnv = process.env.NODE_ENV;
+  afterEach(() => {
+    keys(saved.o, saved.l);
+    process.env.NODE_ENV = savedNodeEnv;
+  });
+
+  it('throws instead of writing tokens in the clear', () => {
+    process.env.NODE_ENV = 'production';
+    keys(undefined, undefined);
+    expect(() => encryptData(RAW)).toThrow('OAUTH_ENCRYPTION_KEY is required in production');
+    expect(() => sealTokens(RAW)).toThrow('OAUTH_ENCRYPTION_KEY is required in production');
+  });
+
+  it('seals normally in production once a key is set (control)', () => {
+    process.env.NODE_ENV = 'production';
+    keys(NEW, undefined);
+    expect(JSON.parse(encryptData(RAW))).toMatchObject({ encrypted: true, kid: keyIdOf(NEW) });
   });
 });
