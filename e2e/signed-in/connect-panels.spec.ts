@@ -20,6 +20,8 @@ async function openHub(page: Page) {
   return { hub, id: (await hub.getAttribute('data-e2e-dialog')) as string };
 }
 
+test.skip(true, 'These tiles have no prod credentials and are hidden: apps/web/src/config/menu-visibility.ts');
+
 test.beforeEach(async ({ page }) => {
   await signIn(page, await createUser());
   await expectHome(page);

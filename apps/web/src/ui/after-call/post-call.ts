@@ -20,6 +20,7 @@ import { hideAfterCallCard, showAfterCallCard } from './after-call-card.ui.js';
 import { loadAfterCallData } from './after-call-data.js';
 import { buildCallFeedbackRow } from './call-feedback.js';
 import { isAfterCallCardEnabled } from './after-call-flag.js';
+import { addPushAsk } from './push-ask.js';
 
 const log = createLogger('PostCall');
 
@@ -61,6 +62,8 @@ export async function showPostCallCard(): Promise<void> {
     onSupport: canOpenSupport() ? openSupport : undefined,
   });
   addFeedbackRow(card);
+  // One optional "check in about this?" when it applies (push-ask.ts); never blocks the card.
+  void addPushAsk(card);
 }
 
 function addFeedbackRow(card: HTMLElement | null): void {
