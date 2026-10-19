@@ -50,5 +50,20 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(model.call.phase, .failed(.notSignedIn))
         XCTAssertFalse(model.consent.hasAgreed)
     }
+
+    /// Critic H6: Siri, Control Center or a notification can launch the app
+    /// cold and run before any view appears. The handlers are wired when the
+    /// model is made, so the very first request is heard (and passes consent).
+    func testAColdLaunchTalkRequestIsHeard() async throws {
+        TalkIntent.handler = nil
+        FerniAppDelegate.onTalk = nil
+        let model = model()
+        _ = try await TalkIntent(teammate: .ferni).perform()
+        XCTAssertTrue(model.isAskingConsent, "the intent reached the model")
+
+        model.isAskingConsent = false
+        FerniAppDelegate.onTalk?()
+        XCTAssertTrue(model.isAskingConsent, "the notification's Talk now reached the model")
+    }
 }
 
