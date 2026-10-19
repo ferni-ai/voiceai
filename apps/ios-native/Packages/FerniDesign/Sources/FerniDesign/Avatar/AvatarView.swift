@@ -24,6 +24,7 @@ public struct AvatarView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.displayScale) private var displayScale
     @State private var rig = AliveRig()
     @State private var woke = Date()
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
@@ -79,7 +80,7 @@ public struct AvatarView: View {
                                 AliveMetalView(
                                     renderer: renderer, uniforms: u,
                                     radius: Float(Self.radius / Self.canvas.width), below: Float(Self.lift / Self.canvas.width),
-                                    scale: throttled ? 1.5 : 2
+                                    scale: Self.renderScale(display: displayScale, throttled: throttled)
                                 )
                                 AliveParticles(
                                     particles: rig.particles,
@@ -180,6 +181,12 @@ public struct AvatarView: View {
     static func joinPlan(from: AvatarActivity, to: AvatarActivity, waited: Double, reduceMotion: Bool, arrived: Bool) -> JoinPlan {
         guard from == .arriving, to == .listening || to == .speaking, !arrived, !reduceMotion else { return .none }
         return waited < 0.3 ? .settle : .hop
+    }
+
+    /// Ferni draws at the screen's own scale (3x on most iPhones, gap 8), at
+    /// most 3x; 1.5x in Low Power Mode or when the device is hot.
+    static func renderScale(display: CGFloat, throttled: Bool) -> CGFloat {
+        throttled ? 1.5 : min(max(display, 1), 3)
     }
 
     /// Frame interval (nil = the display's rate) and whether the clock is paused.

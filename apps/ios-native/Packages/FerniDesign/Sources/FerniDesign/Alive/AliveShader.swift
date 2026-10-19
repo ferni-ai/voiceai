@@ -168,7 +168,10 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
   float d0 = length(cuv);
   float3 light = u.glowCol.xyz * (0.05 + 0.22 * u.bg1.w) * exp(-d0 * d0 * 0.42) * mix(0.55, 1.0, dark);
   float ringR = 1.24 * uScale * u.ring.y; float dr = length(cuv - float2(0.0, u.ring.x));
-  light += u.glowCol.xyz * u.arch.z * (0.55 * exp(-pow((dr - ringR) / 0.028, 2.0)) + 0.18 * exp(-pow((dr - ringR) / 0.12, 2.0))) * mix(0.8, 1.4, dark);
+  // Light added over a dark room shows far more after gamma, so in dark mode the ring is
+  // scaled down until it shows no more than in light mode: never a target outline (gap 8).
+  light += u.glowCol.xyz * u.arch.z * (0.55 * exp(-pow((dr - ringR) / 0.028, 2.0)) * mix(0.8, 0.1, dark)
+                                       + 0.18 * exp(-pow((dr - ringR) / 0.12, 2.0)) * mix(0.8, 0.25, dark));
   float shade = 0.0;
   float floorY = -1.18;
   if (rd.y < 0.0) {
