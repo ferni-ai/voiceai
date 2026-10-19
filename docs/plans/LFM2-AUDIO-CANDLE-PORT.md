@@ -54,5 +54,5 @@
 ## References
 
 - [LFM2-Audio-1.5B](https://huggingface.co/LiquidAI/LFM2-Audio-1.5B)
-- [LFM2-Audio evaluation](LFM2-AUDIO-EVALUATION.md)
+- LFM2-Audio evaluation (archived: `git show docs-archive-2026-10-18:docs/plans/LFM2-AUDIO-EVALUATION.md`)
 - Existing Candle pieces: `candle_audio_encoder.rs`, `candle_talker.rs`, `candle_code2wav.rs` (apps/rust-perf); Mimi in moshi crate / kyutai-bridge.
