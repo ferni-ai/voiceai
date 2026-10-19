@@ -777,7 +777,7 @@
     "phoneLabel": "문자나 전화하기",
     "emailLabel": "소식 이메일 받기",
     "nameLabel": "어떻게 불러드리면 좋을까요?",
-    "privacyNote": "이 정보는 오직 체크인을 위해서만 사용해요. 스팸을 보내거나 다른 곳에 공유하지 않으니 안심하세요.",
+    "privacyNote": "이 정보는 오직 체크인을 위해서만 사용해요. 스팸을 보내거나 판매하지 않으니 안심하세요.",
     "quietHours": "방해 금지 시간",
     "dontCall": "연락하지 않기",
     "until": "까지",
@@ -2408,7 +2408,7 @@
     "intro": "웨어러블 기기를 연결해서 Ferni에게 나의 건강 상태와 에너지 수준을 알려주세요.",
     "loading": "불러오는 중...",
     "privacy": {
-      "note": "건강 데이터는 안전하게 보호되어요. 코칭 세션에는 종합된 인사이트만 공유해 드려요."
+      "note": "Ferni는 함께 패턴을 찾기 위해 건강 데이터를 저장해요. 절대 판매하지 않으며, 계정을 삭제하면 지워져요."
     },
     "providers": {
       "appleHealth": {
@@ -2951,7 +2951,7 @@
     "orUseEmail": "또는 이메일 사용하기",
     "emailLabel": "이메일",
     "passwordLabel": "비밀번호",
-    "privacyNote": "당신의 데이터는 언제나 안전하게 보호되어요.",
+    "privacyNote": "데이터를 절대 판매하지 않아요. 계정을 삭제하면 지워져요.",
     "loading": "잠시만 기다려 주세요...",
     "welcomeBack": "다시 만나서 반가워요! 전부 기억하고 있답니다.",
     "somethingWentWrong": "문제가 발생했어요",
@@ -2974,7 +2974,7 @@
     "waitlistMessage": "모든 분께 최고의 경험을 선사해 드리기 위해 Ferni를 순차적으로 공개하고 있어요. 자리가 준비되는 대로 이메일을 보내드릴게요.",
     "waitlistEmail": "{email}(으)로 알려드릴게요",
     "tryDifferentAccount": "다른 계정으로 시도하기",
-    "checkingAccess": "접속 권한을 확인하고 있어요...",
+    "checkingAccess": "준비하고 있어요…",
     "checkingLabel": "잠시만 기다려 주세요...",
     "signInError": "로그인이 취소되었거나 실패했어요. 다시 시도해 주세요.",
     "verifyEmailTitle": "이메일을 인증해 주세요",
@@ -3432,7 +3432,7 @@
     "weeklyDigest": "주간 다이제스트",
     "weeklyDigestDesc": "일요일 저녁에 미리 보는 다가오는 한 주의 일정",
     "viewSyncConflicts": "동기화 충돌 보기",
-    "integrationsPrivacy": "연동을 통해 기존 일정을 Ferni로 동기화합니다. 회원님의 데이터는 안전하게 보호돼요.",
+    "integrationsPrivacy": "연동을 통해 기존 일정을 Ferni로 동기화합니다. 회원님의 데이터는 절대 판매하지 않아요.",
     "tryAgain": "다시 시도하기",
     "syncing": "동기화 중...",
     "connectAppleCalendar": "Apple Calendar 연결하기",
@@ -9892,7 +9892,7 @@
       "title": "개인 맞춤화",
       "message": "위치 정보를 활용하면 대화가 훨씬 더 개인적이고 와닿게 느껴질 거예요. 마치 제가 정말 곁에 있는 것처럼요."
     },
-    "note": "이 정보는 우리 둘만의 비밀이에요. 오직 대화를 더 개인 맞춤형으로 만들기 위해서만 사용한답니다.",
+    "note": "오직 대화를 더 개인 맞춤형으로 만들기 위해서만 사용하고, 절대 판매하지 않아요.",
     "notNow": "나중에 할게요",
     "allow": "위치 허용하기"
   },
@@ -10803,7 +10803,7 @@
   },
   "entrance": {
     "helper": "나만을 위한 다정한 가이드",
-    "connectToTalk": "대화해요",
+    "connectToTalk": "Ferni와 대화하기",
     "endTalk": "대화 종료",
     "connectingCancel": "연결 중입니다. 탭하여 취소",
     "connectingNow": "연결 중…",
