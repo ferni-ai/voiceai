@@ -4,10 +4,16 @@
  *
  * Read-only: lists prod indexes with
  *   gcloud firestore indexes composite list --project <p> --format=json
- * and compares. Changes nothing. Exits 1 when a declared index is missing or
- * not READY in prod, 0 otherwise. Indexes in prod that the repo does not
- * declare are counted for information (--all lists them): johnb-2025 also
- * holds other apps' collections, so most of them are not ours.
+ * and compares, both ways. Changes nothing. Exits 1 when:
+ *   - a declared index is missing or not READY in prod (code would throw
+ *     FAILED_PRECONDITION), or
+ *   - prod holds an index the repo does not declare (drift: someone created it
+ *     by hand, so a fresh environment would lack it). --allow-undeclared turns
+ *     this half back into information.
+ *
+ * firestore.indexes.json declares every live composite index in johnb-2025,
+ * other apps' included, so a fresh environment matches prod and indexes can be
+ * deployed before the code that needs them.
  *
  * The unit test (scripts/firestore/__tests__/index-coverage.test.ts) checks
  * that every query in src has a declared index; this checks that declared
@@ -17,7 +23,7 @@
  *   npx tsx scripts/firestore/check-indexes.ts                     # johnb-2025
  *   npx tsx scripts/firestore/check-indexes.ts --project <id>
  *   npx tsx scripts/firestore/check-indexes.ts --prod-json <file>  # a saved listing
- *   npx tsx scripts/firestore/check-indexes.ts --all               # list undeclared too
+ *   npx tsx scripts/firestore/check-indexes.ts --allow-undeclared  # prod-only indexes don't fail
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -57,7 +63,9 @@ const section = (title: string, rows: string[]): void => {
 console.log(`declared ${declared.length}, prod ${prod.length}`);
 section('MISSING in prod (declared, not deployed)', diff.missing);
 section('NOT READY in prod', diff.notReady);
-if (process.argv.includes('--all')) section('in prod, not declared (info)', diff.undeclared);
-else console.log(`\nin prod, not declared (info): ${diff.undeclared.length} (--all lists them)`);
+section('in prod, NOT DECLARED (add them to firestore.indexes.json)', diff.undeclared);
 
-process.exit(diff.missing.length + diff.notReady.length > 0 ? 1 : 0);
+const allowUndeclared = process.argv.includes('--allow-undeclared');
+const failures =
+  diff.missing.length + diff.notReady.length + (allowUndeclared ? 0 : diff.undeclared.length);
+process.exit(failures > 0 ? 1 : 0);

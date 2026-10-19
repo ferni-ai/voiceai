@@ -22,7 +22,7 @@ const log = createLogger({ module: 'checkin-replies' });
 
 export const REPLY_WINDOW_MS = 72 * 60 * 60 * 1000;
 export const CHECKINS = 'feature_checkins';
-const OPTOUTS = 'feature_checkin_optouts';
+export const OPTOUTS = 'feature_checkin_optouts';
 const HASH_PURPOSE = 'after-call-checkin/phone/v1';
 /** As in user-reach.ts. */
 const E164 = /^\+[1-9]\d{7,14}$/;

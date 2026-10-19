@@ -40,6 +40,30 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   maxDelayMs: RETRY_MAX_DELAY_MS,
 };
 
+/** A provider answered with a non-2xx HTTP status. */
+export class ProviderHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = 'ProviderHttpError';
+  }
+}
+
+/**
+ * Whether a failed send is worth retrying, judged by HTTP status rather than
+ * message text ("not authorized" matched none of the old keywords, so a key
+ * without Mail Send was retried on every email). A 4xx is permanent, except
+ * 408 and 429; a 5xx, timeout or network error may pass.
+ */
+export function isRetryableSendError(error: unknown): boolean {
+  if (!(error instanceof ProviderHttpError)) return true;
+  const { status } = error;
+  if (status === 408 || status === 429) return true;
+  return status < 400 || status >= 500;
+}
+
 /**
  * Execute a function with exponential backoff retry logic
  */
@@ -53,11 +77,7 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
-      // Don't retry on validation or authentication errors
-      const nonRetryableMessages = ['Invalid', 'Unauthorized', 'Forbidden', 'not configured'];
-      const shouldSkipRetry = nonRetryableMessages.some((msg) => lastError?.message.includes(msg));
-
-      if (shouldSkipRetry || attempt === opts.maxRetries - 1) {
+      if (!isRetryableSendError(error) || attempt === opts.maxRetries - 1) {
         throw lastError;
       }
 
@@ -140,7 +160,10 @@ export async function sendEmail(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`SendGrid error: ${response.status} - ${errorText}`);
+      throw new ProviderHttpError(
+        `SendGrid error: ${response.status} - ${errorText}`,
+        response.status
+      );
     }
 
     getLogger().info(
@@ -205,7 +228,10 @@ export async function sendSMS(to: string, message: string): Promise<string> {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Twilio error: ${response.status} - ${JSON.stringify(errorData)}`);
+      throw new ProviderHttpError(
+        `Twilio error: ${response.status} - ${JSON.stringify(errorData)}`,
+        response.status
+      );
     }
 
     getLogger().info(

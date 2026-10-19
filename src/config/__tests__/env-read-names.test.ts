@@ -88,18 +88,13 @@ const HEADER = `/**
 export const ENV_READ_NAMES: readonly string[] = \`
 `;
 
+/**
+ * One name per line: a PR that adds a name then touches one line, so two flag PRs
+ * in the merge queue no longer collide on a reflowed paragraph.
+ */
 function generatedSource(names: string[]): string {
-  const lines: string[] = [];
-  let line = '';
-  for (const name of names) {
-    line = line ? `${line} ${name}` : name;
-    if (line.length > 96) {
-      lines.push(`  ${line}`);
-      line = '';
-    }
-  }
-  if (line) lines.push(`  ${line}`);
-  return `${HEADER}${lines.join('\n')}\n\`.trim().split(/\\s+/);\n`;
+  const lines = names.map((name) => `  ${name}`);
+  return `${HEADER}${lines.join('\n')}\n\`\n  .trim()\n  .split(/\\s+/);\n`;
 }
 
 describe('env read names', () => {

@@ -9,7 +9,7 @@
  *   npx tsx scripts/build.ts                 # Show help
  *   npx tsx scripts/build.ts frontend        # Build frontend
  *   npx tsx scripts/build.ts ios             # Build iOS app
- *   npx tsx scripts/build.ts android         # Build Android app
+ *   npx tsx scripts/build.ts android         # Build the Android Play bundle (TWA)
  *   npx tsx scripts/build.ts apps            # Build all native apps
  *   npx tsx scripts/build.ts store-assets    # Generate store marketing assets
  *   npx tsx scripts/build.ts sync            # Sync web assets to all platforms
@@ -158,26 +158,25 @@ Next steps:
 }
 
 async function buildAndroid(options: BuildOptions): Promise<boolean> {
-  log.step('BUILDING ANDROID NATIVE APP');
+  log.step('BUILDING ANDROID APP (TRUSTED WEB ACTIVITY)');
 
-  const androidDir = join(PROJECT_ROOT, 'apps/android-native');
+  const androidDir = join(PROJECT_ROOT, 'apps/android-twa');
 
   if (!existsSync(androidDir)) {
-    log.error('Android native directory not found: apps/android-native');
+    log.error('Android app directory not found: apps/android-twa');
     return false;
   }
 
-  // Build the app
-  log.info('Building Android app...');
-  exec('./gradlew assembleRelease', { cwd: androidDir });
+  // Unsigned unless ANDROID_UPLOAD_KEYSTORE_PATH and the ANDROID_UPLOAD_* values are set
+  log.info('Building the Play bundle...');
+  exec('./gradlew bundleRelease', { cwd: androidDir });
 
-  log.success('Android native app built!');
+  log.success('Android bundle built!');
   console.log(`
-Output: apps/android-native/app/build/outputs/apk/release/
+Output: apps/android-twa/app/build/outputs/bundle/release/app-release.aab
 
-Next steps:
-  Open in Android Studio: open apps/android-native in Android Studio
-  Run on emulator: ./gradlew installDebug
+The app wraps https://app.ferni.ai, so web changes ship without a new bundle.
+See apps/android-twa/README.md for signing and Play upload.
 `);
 
   return true;
