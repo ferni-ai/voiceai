@@ -86,6 +86,31 @@ describe('the merge queue runs the required checks and only those', () => {
     expect(onPush(k)).toBe(true);
   });
 
+  // The usual push to main follows a queue merge: queue-tested finds the queue run
+  // for the same tree and setup reports node 'false', which skips the required
+  // Node suite. The moved jobs must not ride on that output, or they never run.
+  describe('after a queue merge (setup.outputs.node is false on the push)', () => {
+    // setup's outputs on that push: queue-tested turns both 'false'
+    const queueTested = running('ci.yml', 'push', {
+      'needs.setup.outputs.node': 'false',
+      'needs.setup.outputs.voice-eval': 'false',
+    });
+    const moved = POST_MERGE.filter((k) => k.startsWith('ci.yml#')).map((k) => k.split('#')[1]);
+
+    it('the required Node suite does skip (the simulation is live)', () => {
+      expect(queueTested.has('lint')).toBe(false);
+      expect(queueTested.has('test-unit')).toBe(false);
+    });
+
+    it.each(moved)('ci.yml#%s still runs', (id) => {
+      expect(queueTested.has(id)).toBe(true);
+    });
+  });
+
+  it.each(POST_MERGE.filter((k) => k.startsWith('ci.yml#')))('%s runs nightly', (k) => {
+    expect(running('ci.yml', 'schedule').has(k.split('#')[1])).toBe(true);
+  });
+
   it('a failed push run of each moved job’s workflow opens a main-red issue', () => {
     const health = readFileSync(
       join(__dirname, '..', '..', '..', '.github/workflows/nightly-health.yml'),

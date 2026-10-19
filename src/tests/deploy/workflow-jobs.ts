@@ -12,7 +12,7 @@ import { join } from 'node:path';
 const ROOT = join(__dirname, '..', '..', '..');
 const DIR = '.github/workflows';
 
-export type Event = 'push' | 'pull_request' | 'merge_group';
+export type Event = 'push' | 'pull_request' | 'merge_group' | 'schedule';
 
 export interface Job {
   workflow: string;
@@ -60,11 +60,14 @@ function expandMatrix(name: string, text: string): string[] {
   return values.map((v) => name.replace(m[0], v.trim()));
 }
 
-/** Whether a job-level `if:` is true for the event (refs/heads/main for push). */
-function evaluate(cond: string, event: Event): boolean {
+/**
+ * Whether a job-level `if:` is true for the event (refs/heads/main for push).
+ * `outputs` overrides named `needs.X.outputs.Y` values; the rest read as 'true'.
+ */
+function evaluate(cond: string, event: Event, outputs: Record<string, string> = {}): boolean {
   const src = cond
     .replace(/^\$\{\{\s*|\s*\}\}$/g, '')
-    .replace(/needs\.[\w-]+\.outputs\.[\w-]+/g, "'true'")
+    .replace(/needs\.[\w-]+\.outputs\.[\w-]+/g, (ref) => `'${outputs[ref] ?? 'true'}'`)
     .replace(/github\.event\.pull_request\.labels\.\*\.name/g, '[]')
     .replace(/github\.event\.inputs\.\w+/g, "''")
     .replace(/github\.event_name/g, `'${event}'`)
@@ -144,7 +147,11 @@ function evaluate(cond: string, event: Event): boolean {
 const STATUS_FN = /\b(always|cancelled|failure|success)\(\)/;
 
 /** Ids of the jobs of a workflow that run for the event. */
-export function running(workflow: string, event: Event): Set<string> {
+export function running(
+  workflow: string,
+  event: Event,
+  outputs: Record<string, string> = {}
+): Set<string> {
   const all = jobs(workflow);
   const ran = new Set<string>();
   if (!triggers(workflow).includes(event)) return ran;
@@ -155,7 +162,7 @@ export function running(workflow: string, event: Event): Set<string> {
       if (decided.has(j.id) || !j.needs.every((n) => decided.has(n))) continue;
       const needsOk = j.needs.every((n) => ran.has(n));
       const explicitStatus = j.if !== undefined && STATUS_FN.test(j.if);
-      const ok = (explicitStatus || needsOk) && (j.if === undefined || evaluate(j.if, event));
+      const ok = (explicitStatus || needsOk) && (j.if === undefined || evaluate(j.if, event, outputs));
       if (ok) ran.add(j.id);
       decided.add(j.id);
     }
