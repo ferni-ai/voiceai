@@ -40,9 +40,12 @@ on:
       - '.github/workflows/deploy-worker.yml'
   workflow_dispatch:
 
+# A newer push to a PR cancels that PR's older build. A manual deploy has its own
+# group and is never cancelled: it used to share worker-refs/heads/main with the
+# build that every push to main runs, so a merge mid-deploy cancelled the deploy.
 concurrency:
-  group: worker-${{ github.ref }}
-  cancel-in-progress: true
+  group: worker-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   PROJECT_ID: johnb-2025

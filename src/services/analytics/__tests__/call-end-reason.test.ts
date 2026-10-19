@@ -27,6 +27,7 @@ import {
 describe('classifyCallEnd', () => {
   it.each([
     ['empty_room', 'natural'],
+    ['caller_left', 'natural'],
     ['job.shutdownCallback', 'natural'],
     ['room.closed', 'natural'],
     ['idle', 'natural'],
