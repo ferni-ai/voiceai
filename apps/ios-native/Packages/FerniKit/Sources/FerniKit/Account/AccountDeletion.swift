@@ -10,5 +10,5 @@ public enum AccountDeletion {
     }
 
     /// What this phone keeps about a person, removed after the server says yes.
-    public static let localKeys = ["ferni.call.hasTalked", "ferni.captions"]
+    public static let localKeys = ["ferni.call.hasTalked", "ferni.captions", AccountMemory.key]
 }

@@ -13,8 +13,12 @@ final class AccountStoreTests: XCTestCase {
         var linkError: Error?
         /// The Apple ID already has its own Ferni account (Firebase signs into it instead).
         var appleAccount: String?
+        /// Phone numbers that already have their own Ferni account.
+        var phoneAccounts: [String: String] = [:]
+        var sendError: Error?
         private(set) var anonymousCalls = 0
         private(set) var linked: [String] = []
+        private(set) var codesSent: [String] = []
         private(set) var signOuts = 0
         private(set) var tokenRequests: [Bool] = []
         private var next = 0
@@ -31,11 +35,32 @@ final class AccountStoreTests: XCTestCase {
             tokenRequests.append(forceRefresh)
             return existing.map { "token-for-\($0.uid)" }
         }
-        func linkOrSignIn(apple: AppleCredential) async throws -> AccountUser {
+        func sendPhoneCode(to phoneNumber: String) async throws -> String {
+            if let sendError { throw sendError }
+            codesSent.append(phoneNumber)
+            return "verification-\(phoneNumber)"
+        }
+        func linkOrSignIn(_ credential: SignInCredential) async throws -> SignInResult {
             if let linkError { throw linkError }
-            linked.append(apple.idToken)
-            existing = AccountUser(uid: appleAccount ?? existing?.uid ?? "apple", isAnonymous: false, providerIDs: ["apple.com"])
-            return existing!
+            let before = existing
+            let user: AccountUser
+            switch credential {
+            case .apple(let apple):
+                linked.append(apple.idToken)
+                user = AccountUser(uid: appleAccount ?? before?.uid ?? "apple", isAnonymous: false, providerIDs: ["apple.com"])
+            case .phone(let verificationID, let code):
+                guard code == "123456" else { throw SignInError.invalidCode }
+                let number = String(verificationID.dropFirst("verification-".count))
+                linked.append(number)
+                user = AccountUser(uid: phoneAccounts[number] ?? before?.uid ?? "phone", isAnonymous: false, providerIDs: ["phone"])
+            case .google(let idToken, _):
+                linked.append(idToken)
+                user = AccountUser(uid: before?.uid ?? "google", isAnonymous: false, providerIDs: ["google.com"])
+            }
+            existing = user
+            let leftBehind = before.flatMap { $0.isAnonymous && $0.uid != user.uid
+                ? LeftBehindAccount(uid: $0.uid, idToken: "token-for-\($0.uid)") : nil }
+            return SignInResult(user: user, leftBehind: leftBehind)
         }
         func signOut() async throws {
             signOuts += 1
@@ -43,16 +68,23 @@ final class AccountStoreTests: XCTestCase {
         }
     }
 
-    private final class Uploads: @unchecked Sendable { var codes: [String] = [] }
+    /// The device's memory of a real sign-in, without UserDefaults.
+    private final class Memory: @unchecked Sendable { var hadRealAccount = false }
 
-    private func store(_ backend: FakeBackend?, uploads: Uploads = Uploads(), uploadFails: Bool = false) -> AccountStore {
+    private final class Uploads: @unchecked Sendable { var codes: [String] = [] }
+    private final class Merges: @unchecked Sendable { var accounts: [LeftBehindAccount] = [] }
+
+    private func store(
+        _ backend: FakeBackend?, uploads: Uploads = Uploads(), uploadFails: Bool = false, memory: Memory = Memory()
+    ) -> AccountStore {
         AccountStore(
             backend: backend,
             uploadAppleCode: { code in
                 uploads.codes.append(code)
                 if uploadFails { throw FerniAPIError.status(404) }
             },
-            retryDelays: [.zero, .zero]
+            retryDelays: [.zero, .zero],
+            memory: AccountMemory(get: { memory.hadRealAccount }, set: { memory.hadRealAccount = $0 })
         )
     }
 
@@ -181,7 +213,112 @@ final class AccountStoreTests: XCTestCase {
         XCTAssertNil(account.notice)
     }
 
-    func testSigningOutStartsAFreshAnonymousAccount() async {
+    func testSigningOutOfAnAnonymousAccountStartsAFreshOne() async {
+        let backend = FakeBackend()
+        let account = store(backend)
+        await account.start()
+
+        await account.signOut()
+
+        XCTAssertEqual(backend.signOuts, 1)
+        XCTAssertEqual(account.user?.uid, "anon-2")
+    }
+
+    // MARK: Signing in to an existing account (P0 2026-10-19: Seth's calls ran
+    // as a new anonymous account, and nothing in the app reached his real one)
+
+    func testPhoneNumbersBecomeE164() {
+        XCTAssertEqual(PhoneNumber.e164("(415) 555-0134"), "+14155550134")
+        XCTAssertEqual(PhoneNumber.e164("1 415 555 0134"), "+14155550134")
+        XCTAssertEqual(PhoneNumber.e164("+44 20 7946 0958"), "+442079460958")
+        XCTAssertNil(PhoneNumber.e164("555-0134"), "too short to be anyone's number")
+        XCTAssertNil(PhoneNumber.e164("not a number"))
+    }
+
+    func testANewPhoneNumberJoinsThisAccount() async throws {
+        let backend = FakeBackend()
+        let merged = Merges()
+        let account = store(backend)
+        account.mergeLeftBehind = { merged.accounts.append($0); return true }
+        await account.start()
+
+        let verification = await account.sendPhoneCode(to: "(415) 555-0134")
+        XCTAssertEqual(backend.codesSent, ["+14155550134"])
+        await account.signIn(phoneVerification: try XCTUnwrap(verification), code: "123456")
+
+        XCTAssertEqual(account.user?.uid, "anon-1", "the conversations so far stay with the person")
+        XCTAssertEqual(account.user?.isAnonymous, false)
+        XCTAssertTrue(merged.accounts.isEmpty)
+        XCTAssertNil(account.notice)
+    }
+
+    /// The case that bit Seth: his number already has a Ferni account.
+    func testAPhoneNumberWithAnAccountSignsIntoItAndHandsOverTheAnonymousOne() async throws {
+        let backend = FakeBackend()
+        backend.phoneAccounts["+14155550134"] = "seths-real-uid"
+        let merged = Merges()
+        let account = store(backend)
+        account.mergeLeftBehind = { merged.accounts.append($0); return true }
+        await account.start()
+
+        let verification = await account.sendPhoneCode(to: "4155550134")
+        await account.signIn(phoneVerification: try XCTUnwrap(verification), code: "123456")
+
+        XCTAssertEqual(account.user?.uid, "seths-real-uid")
+        XCTAssertEqual(merged.accounts, [LeftBehindAccount(uid: "anon-1", idToken: "token-for-anon-1")])
+        XCTAssertEqual(account.notice, AccountStore.welcomeBackNotice)
+    }
+
+    func testAWrongCodeKeepsTheAccountAndSaysSo() async throws {
+        let backend = FakeBackend()
+        let account = store(backend)
+        await account.start()
+        let verification = await account.sendPhoneCode(to: "4155550134")
+
+        await account.signIn(phoneVerification: try XCTUnwrap(verification), code: "000000")
+
+        XCTAssertEqual(account.user?.uid, "anon-1")
+        XCTAssertEqual(account.notice, SignInError.invalidCode.message)
+        XCTAssertFalse(account.isWorking)
+    }
+
+    func testANumberThatCantBeTextedSaysWhy() async {
+        let backend = FakeBackend()
+        let account = store(backend)
+        await account.start()
+
+        let unreadable = await account.sendPhoneCode(to: "555")
+        XCTAssertNil(unreadable)
+        XCTAssertEqual(account.notice, SignInError.invalidPhoneNumber.message)
+        XCTAssertTrue(backend.codesSent.isEmpty)
+
+        backend.sendError = SignInError.tooManyAttempts
+        let refused = await account.sendPhoneCode(to: "4155550134")
+        XCTAssertNil(refused)
+        XCTAssertEqual(account.notice, SignInError.tooManyAttempts.message)
+    }
+
+    /// Never silently anonymous after a real sign-in on this phone.
+    func testAfterARealSignInNoAccountMeansAskingNotAnonymous() async {
+        let memory = Memory()
+        let first = FakeBackend()
+        let account = store(first, memory: memory)
+        await account.start()
+        await account.signInWithApple(apple)
+        XCTAssertTrue(memory.hadRealAccount)
+
+        // Later, the account is gone from the phone (signed out elsewhere, keychain lost).
+        let later = FakeBackend()
+        let relaunched = store(later, memory: memory)
+        await relaunched.start()
+        let token = await relaunched.idToken()
+
+        XCTAssertEqual(later.anonymousCalls, 0)
+        XCTAssertEqual(relaunched.state, .needsSignIn)
+        XCTAssertNil(token, "Talk can't run as someone new")
+    }
+
+    func testSigningOutOfARealAccountAsksToSignInAgain() async {
         let backend = FakeBackend()
         let account = store(backend)
         await account.start()
@@ -190,8 +327,29 @@ final class AccountStoreTests: XCTestCase {
         await account.signOut()
 
         XCTAssertEqual(backend.signOuts, 1)
-        XCTAssertEqual(account.user?.isAnonymous, true)
-        XCTAssertEqual(account.user?.uid, "anon-2")
+        XCTAssertEqual(backend.anonymousCalls, 1, "only the first launch's")
+        XCTAssertEqual(account.state, .needsSignIn)
+    }
+
+    func testSigningInFromNeedsSignInReachesTheAccount() async throws {
+        let memory = Memory()
+        memory.hadRealAccount = true
+        let backend = FakeBackend()
+        backend.phoneAccounts["+14155550134"] = "seths-real-uid"
+        let account = store(backend, memory: memory)
+        await account.start()
+        XCTAssertEqual(account.state, .needsSignIn)
+
+        let verification = await account.sendPhoneCode(to: "4155550134")
+        await account.signIn(phoneVerification: try XCTUnwrap(verification), code: "123456")
+
+        XCTAssertEqual(account.user?.uid, "seths-real-uid")
+        XCTAssertEqual(backend.anonymousCalls, 0)
+    }
+
+    /// Deleting the account is the one way back to a fresh anonymous start.
+    func testTheDeletionKeysIncludeTheRealAccountMemory() {
+        XCTAssertTrue(AccountDeletion.localKeys.contains(AccountMemory.key))
     }
 
     func testNonceHashIsSHA256OfTheRawValue() {
