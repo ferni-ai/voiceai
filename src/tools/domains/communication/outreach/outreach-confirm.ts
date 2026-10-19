@@ -6,9 +6,14 @@
  * - The first call sends nothing. It fixes the words, channel, contact and
  *   address (outreach-confirm-specs.ts, telephony/call-confirm.ts), stores
  *   them for this session and user for 5 minutes, and returns the read-back.
- * - The next call sends that stored action once, only if the caller's first
- *   speech-to-text turn after the preview is a plain yes with no other tool
- *   output in between. Tool output and model text are never read.
+ * - The next call for the same action sends that stored action once (a tool
+ *   whose spec has `sameAction` may be another tool doing the same thing,
+ *   e.g. callAndConverse after callOnBehalf's read-back of the same number),
+ *   only if the caller's
+ *   speech-to-text turns after the preview, read together, are a plain yes
+ *   with no other tool output in between ("Yeah, go ahead." then "Go ahead and
+ *   give her a call." is one answer split in two). Tool output and model text
+ *   are never read.
  * - Anything else (a no, a question, another tool's output, expiry, no live
  *   call, a speaker not proven to be the account owner) sends nothing.
  * - Test accounts (voice-eval-*, e2e-*) never reach anyone, flag or no flag.
@@ -62,10 +67,14 @@ type ConfirmEvent = SessionEvent & { seq: number };
 interface PendingAction {
   toolId: string;
   userId: string;
+  spec: ConfirmSpec;
+  readBack: string;
   args: Record<string, unknown>;
   callId: string;
   createdSeq: number;
   expiresAt: number;
+  /** The owner's first name, lower-case, from the call's user data: a yes may address them. */
+  owner?: string[];
 }
 
 interface SessionLog {
@@ -127,6 +136,24 @@ const FILLERS = [
   ),
 ];
 const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
+// Never taken for a name the caller calls Ferni by: a word that could change what is sent
+// (who, when, how, how many), a question word or a no. "Yes, Tuesday." is not a plain yes.
+const NOT_A_NAME = new Set([
+  ...NOES,
+  ...`call ring dial phone text email message send tell ask voicemail facetime who what when where
+    why how which instead also too again both all everyone first later now noon today tonight
+    tomorrow morning afternoon evening monday tuesday wednesday thursday friday saturday sunday
+    mom mum mother dad father sister brother wife husband son daughter grandma grandpa aunt
+    uncle cousin friend boss doctor her him them me us it that this there here`.split(/\s+/),
+]);
+
+// Names that may address Ferni inside a yes: the personas (as in FILLERS) and STT mishearings of
+// "Ferni" (agents/personas/name-mishear.ts, plus "fred" and "freddie", taken as the name only
+// here: in other speech "Fred" is as likely a real person). Owner call 10-18: "Uh, go ahead, Fred."
+const FERNI_NAMES = new Set([
+  ...'ferni fern maya jordan peter alex nayan'.split(' '),
+  ...'freddy freddie fred fernie ferny furny'.split(' '),
+]);
 
 const words = (text: string): string[] =>
   text
@@ -134,11 +161,41 @@ const words = (text: string): string[] =>
     .replace(/['’]/g, '')
     .match(/[a-z]+/g) ?? [];
 
-/** A reply made only of yes phrases (and please/thanks); never with a "?" or "Sure, to Bob". */
-export function isClearYes(text: string): boolean {
-  let w = words(text);
+/**
+ * A reply made only of yes phrases (and please/thanks); never with a "?" or "Sure, to Bob".
+ * It may also carry one name set off by a comma at its start or end ("Uh, go ahead, Fred."),
+ * but only a name that leaves the action as read back: Ferni's (or a persona's) name or a
+ * mishearing of it, the owner's own first name (`owner`), or the person the action reaches
+ * (`target`: "Yes, go ahead, Mike." for a call to Mike restates it). Any other name voids the
+ * yes: with a call to Mike waiting, "Yes, go ahead, Bob." may mean Bob. Never a NOT_A_NAME word.
+ */
+export function isClearYes(
+  text: string,
+  target: readonly string[] = [],
+  owner: readonly string[] = []
+): boolean {
   // A question word is never a yes phrase, so "which one, yes" already fails below.
-  if (text.includes('?') || w.length === 0) return false;
+  if (text.includes('?')) return false;
+  if (onlyYes(words(text))) return true;
+  const parts = text.split(',');
+  if (parts.length < 2) return false;
+  const head = parts[0].trim().split(/\s+/);
+  const tail = parts[parts.length - 1].trim().replace(/[.!…]+$/, '');
+  const options: Array<[string, string]> = [
+    [head[head.length - 1], [...head.slice(0, -1), ...parts.slice(1)].join(' ')],
+  ];
+  if (!/\s/.test(tail)) options.push([tail, parts.slice(0, -1).join(' ')]);
+  const isName = (w: string): boolean => {
+    const name = w.toLowerCase();
+    if (!/^[A-Z][a-z]+$/.test(w) || NOT_A_NAME.has(name)) return false;
+    return FERNI_NAMES.has(name) || target.includes(name) || owner.includes(name);
+  };
+  return options.some(([name, rest]) => isName(name) && onlyYes(words(rest)));
+}
+
+function onlyYes(said: string[]): boolean {
+  let w = said;
+  if (w.length === 0) return false;
   let sawYes = false;
   while (w.length > 0) {
     const rest = w;
@@ -150,6 +207,14 @@ export function isClearYes(text: string): boolean {
     w = w.slice(phrase.split(' ').length);
   }
   return sawYes;
+}
+
+/** The owner's first names, lower-case, from the tool run's user data (userName, name). */
+function ownerFirstNames(opts: unknown): string[] {
+  const data = (opts as { ctx?: { userData?: Record<string, unknown> } } | undefined)?.ctx
+    ?.userData;
+  const names = [data?.userName, data?.name].filter((n): n is string => typeof n === 'string');
+  return [...new Set(names.flatMap((n) => words(n).slice(0, 1)))];
 }
 
 export function isClearNo(text: string): boolean {
@@ -165,8 +230,9 @@ export function confirmationState(
   if (now > pending.expiresAt) return 'void';
   const after = events.filter((e) => e.seq > pending.createdSeq);
   let delivered = false;
-  for (let i = 0; i < after.length; i++) {
-    const e = after[i];
+  // Speech-to-text may cut one answer into several finals; they are judged as one reply.
+  const answer: string[] = [];
+  for (const e of after) {
     if (e.kind === 'tool') {
       // The preview's own output reaching the model is expected once; any other output voids it.
       if (!delivered && e.callIds.length > 0 && e.callIds.every((id) => id === pending.callId)) {
@@ -176,11 +242,47 @@ export function confirmationState(
       return 'void';
     }
     if (isClearNo(e.text)) return 'void';
-    // Words before the preview was read, or over Ferni reading it, are not the answer.
-    if (!delivered || e.agentSpeaking) continue;
-    return isClearYes(e.text) && i === after.length - 1 ? 'confirmed' : 'void';
+    // Words before the preview was read are not the answer.
+    if (!delivered) continue;
+    // Words over Ferni are not the answer, and once the answer has begun they void it.
+    if (e.agentSpeaking) {
+      if (answer.length > 0) return 'void';
+      continue;
+    }
+    answer.push(e.text);
   }
-  return 'waiting';
+  if (answer.length === 0) return 'waiting';
+  // Every part must be a yes phrase or a filler: "Yes." then "Call Bob instead." is not a yes.
+  const target = ['contactQuery', 'contactName', 'friendName', 'recipientName'].flatMap((k) =>
+    typeof pending.args[k] === 'string' ? words(pending.args[k]) : []
+  );
+  return isClearYes(answer.join(' '), target, pending.owner) ? 'confirmed' : 'void';
+}
+
+/**
+ * The turn note after the caller's yes to a read-back: the action goes only when the model calls
+ * the tool, so it must call it now. Owner call 2026-10-18: a fourth yes got "I'm on it" and no call.
+ */
+export function confirmedActionNote(session: object): string {
+  const entry = sessions.get(session);
+  const pending = entry?.pending;
+  if (!pending || speakerIsNotOwner(session)) return '';
+  if (confirmationState(pending, entry.events, Date.now()) !== 'confirmed') return '';
+  return (
+    `The caller just said yes to ${pending.readBack}. Call ${pending.toolId} now with the same ` +
+    `details. Don't ask again, and don't say it's done before the tool says so.`
+  );
+}
+
+/** Whether this call carries on the stored action: the same tool, or `sameAction` says so. */
+function continues(
+  pending: PendingAction,
+  toolId: string,
+  spec: ConfirmSpec,
+  args: Record<string, unknown>
+): boolean {
+  if (!spec.sameAction) return pending.toolId === toolId;
+  return pending.spec === spec && spec.sameAction(pending.args, args);
 }
 
 /**
@@ -218,6 +320,12 @@ export interface ConfirmSpec {
     userId: string,
     plan: (args: Record<string, unknown>) => Promise<unknown>
   ) => Promise<{ args: Record<string, unknown>; readBack: string } | string>;
+  /**
+   * Whether a call (to any tool with this spec) is the action read back, `stored` being the
+   * prepared args. Omitted: only the same tool is. The stored args are what run, so tools sharing
+   * a spec with `sameAction` must take the same args (callOnBehalf, callAndConverse).
+   */
+  sameAction?: (stored: Record<string, unknown>, next: Record<string, unknown>) => boolean;
 }
 
 /** Wrap an outbound tool so it acts only on a caller's yes (see the module comment). */
@@ -250,12 +358,16 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         }
         const { pending } = entry;
         if (
-          pending?.toolId === def.id &&
+          pending &&
+          continues(pending, def.id, spec, args) &&
           pending.userId === ctx.userId &&
           confirmationState(pending, entry.events, Date.now()) === 'confirmed'
         ) {
           entry.pending = undefined; // taken before sending, so a second call can't repeat it
-          log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: caller said yes, sending');
+          log.info(
+            { toolId: def.id, previewedBy: pending.toolId },
+            'OUTREACH_CONFIRM: caller said yes, sending'
+          );
           return sentConfirmThread(pending, execute(pending.args, opts));
         }
         if (entry.pending) dropConfirmThread(entry.pending); // replaced or discarded, never sent
@@ -267,10 +379,13 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         entry.pending = {
           toolId: def.id,
           userId: ctx.userId,
+          spec,
+          readBack: prepared.readBack,
           args: prepared.args,
           callId,
           createdSeq: entry.seq,
           expiresAt: Date.now() + CONFIRM_WINDOW_MS,
+          owner: ownerFirstNames(opts),
         };
         openConfirmThread(entry.pending, {
           userId: ctx.userId,

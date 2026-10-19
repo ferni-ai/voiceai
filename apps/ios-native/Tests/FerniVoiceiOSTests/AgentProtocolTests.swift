@@ -1,3 +1,4 @@
+import FerniDesign
 import XCTest
 @testable import FerniVoice
 

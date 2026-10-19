@@ -26,6 +26,7 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { indexCommitment, deindexCommitment } from '../data-layer/integrations/index.js';
 import { settleAwaitingAnswers, type FollowUpAnswer } from './commitment-follow-through.js';
 import { followUpAllowed } from '../coach-media/feedback.js';
+import { commitmentSentences } from '../../utils/commitment-filters.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -208,13 +209,12 @@ const SETBACK_PATTERNS = [
 // CORE FUNCTIONS
 // ============================================================================
 
-/**
- * Detect commitments in user text
- */
+/** Detect commitments in user text; questions, requests to Ferni and food orders are skipped. */
 export function detectCommitments(
-  userText: string,
+  said: string,
   _context?: { recentTopics?: string[]; emotion?: string }
 ): Array<{ type: CommitmentType; content: string; quote: string }> {
+  const userText = commitmentSentences(said);
   const detected: Array<{ type: CommitmentType; content: string; quote: string }> = [];
   const text = userText.toLowerCase();
 

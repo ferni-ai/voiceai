@@ -12,6 +12,7 @@ import {
   type CommitmentStore,
   type OpenCommitment,
 } from '../commitment-follow-up.js';
+import { ferniCallNotes, type CallRecords } from '../../outreach/call-status.js';
 
 const DAY = 86_400_000;
 const NOW = Date.parse('2026-10-10T18:00:00Z');
@@ -234,6 +235,61 @@ describe('loadCallCheckIns', () => {
       markFollowedUp: async () => undefined,
     };
     await expect(loadCallCheckIns('u1', store, NOW)).resolves.toEqual([]);
+  });
+});
+
+describe('a call Ferni was asked to make (owner call 2026-10-18)', () => {
+  const asked = {
+    status: 'active',
+    statement: 'Call my mom to check in on her',
+    createdAt: NOW - DAY,
+    followUpAfter: NOW - DAY,
+    followUpCount: 0,
+  };
+  const store: CommitmentStore = {
+    active: async () => [{ id: 'c-mom', data: asked }],
+    markFollowedUp: async () => undefined,
+  };
+  const notesFrom = (records: CallRecords) => (u: string, s: readonly string[], n: number) =>
+    ferniCallNotes(u, s, n, records);
+  const heldCall: CallRecords = {
+    load: async () => ({
+      deferred: [
+        {
+          kind: 'on_behalf',
+          status: 'pending',
+          scheduledFor: new Date(NOW + 2 * 3_600_000).toISOString(),
+          timezone: 'America/Denver',
+          request: { contactQuery: 'my mom' },
+        },
+      ],
+      results: [],
+    }),
+  };
+
+  it('held: the check-in says it has not happened, never to ask how it went', async () => {
+    const open = await loadCallCheckIns('u1', store, NOW, notesFrom(heldCall));
+    expect(open[0].callNote).toMatch(/has not happened yet/);
+    const note = formatCheckIn(open, NOW) ?? '';
+    expect(note).toContain('"Call my mom to check in on her" (they said this yesterday)');
+    expect(note).toMatch(
+      /has not happened yet: it is set for later today at 2:00\sPM their time\. Do not ask how it went/
+    );
+  });
+
+  it('completed, or never asked of Ferni: asked about as before', async () => {
+    const none: CallRecords = { load: async () => ({ deferred: [], results: [] }) };
+    const done: CallRecords = {
+      load: async () => ({
+        deferred: [],
+        results: [{ request: { contactQuery: 'my mom' }, outcome: { status: 'completed' } }],
+      }),
+    };
+    for (const calls of [none, done]) {
+      const open = await loadCallCheckIns('u1', store, NOW, notesFrom(calls));
+      expect(open[0].callNote).toBeUndefined();
+      expect(formatCheckIn(open, NOW)).not.toMatch(/Do not ask how it went/);
+    }
   });
 });
 

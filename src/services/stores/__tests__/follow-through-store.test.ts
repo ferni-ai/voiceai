@@ -1,66 +1,7 @@
-import type { Firestore } from '@google-cloud/firestore';
 import { describe, expect, it } from 'vitest';
 import type { FollowUp, NewFollowUp } from '../../follow-through/index.js';
 import { createFollowUpStore, followUpId, toFollowUp } from '../follow-through-store.js';
-
-// A Firestore fake with only the calls the store makes: documents by path,
-// where (in, >=, <, <=), orderBy, limit, collectionGroup and transactions.
-type Cond = [string, string, unknown];
-function fakeFirestore() {
-  const docs = new Map<string, Record<string, unknown>>();
-  const snapOf = (path: string) => ({
-    id: path.split('/').pop() ?? '',
-    exists: docs.has(path),
-    data: () => docs.get(path),
-  });
-  const docRef = (path: string): Record<string, unknown> => ({
-    path,
-    collection: (name: string) => coll(`${path}/${name}`),
-    get: async () => snapOf(path),
-  });
-  const matches = (data: Record<string, unknown>, [f, op, v]: Cond): boolean => {
-    const x = data[f];
-    if (op === 'in') return (v as unknown[]).includes(x);
-    if (typeof x !== 'string') return false;
-    if (op === '>=') return x >= String(v);
-    if (op === '<') return x < String(v);
-    if (op === '<=') return x <= String(v);
-    throw new Error(`op ${op} not faked`);
-  };
-  const query = (
-    pick: (path: string) => boolean,
-    conds: Cond[] = [],
-    order?: string,
-    max?: number
-  ): Record<string, unknown> => ({
-    where: (f: string, op: string, v: unknown) => query(pick, [...conds, [f, op, v]], order, max),
-    orderBy: (f: string) => query(pick, conds, f, max),
-    limit: (n: number) => query(pick, conds, order, n),
-    get: async () => {
-      let hits = [...docs.entries()].filter(
-        ([p, d]) => pick(p) && conds.every((c) => matches(d, c))
-      );
-      if (order) hits = hits.sort((a, b) => String(a[1][order]).localeCompare(String(b[1][order])));
-      if (max !== undefined) hits = hits.slice(0, max);
-      return { docs: hits.map(([p]) => snapOf(p)) };
-    },
-  });
-  const coll = (path: string): Record<string, unknown> => ({
-    ...query((p) => p.startsWith(`${path}/`) && p.split('/').length === path.split('/').length + 1),
-    doc: (id: string) => docRef(`${path}/${id}`),
-  });
-  const db = {
-    collection: (name: string) => coll(name),
-    collectionGroup: (name: string) => query((p) => p.split('/').slice(-2, -1)[0] === name),
-    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> =>
-      fn({
-        get: async (ref: { path: string }) => snapOf(ref.path),
-        set: (ref: { path: string }, data: Record<string, unknown>) =>
-          void docs.set(ref.path, { ...data }),
-      }),
-  };
-  return { db: db as unknown as Firestore, docs };
-}
+import { fakeFirestore } from './fake-firestore.js';
 
 const NOW = new Date('2026-10-12T15:00:00.000Z');
 const newFollowUp = (over: Partial<NewFollowUp> = {}): NewFollowUp => ({
@@ -250,5 +191,88 @@ describe('toFollowUp', () => {
       outcome: 'sent',
     });
     expect(toFollowUp('x', base)).not.toHaveProperty('action');
+  });
+});
+
+describe('follow-up brain fields (design §2.2)', () => {
+  // A row exactly as the importer writes it today, before any brain field existed
+  const old = {
+    userId: 'u1',
+    kind: 'commitment',
+    text: 'apply for the job',
+    dueAt: '2026-10-14T00:00:00.000Z',
+    zone: 'UTC',
+    repeat: null,
+    source: { store: 'commitments', ref: 'c1' },
+    status: 'surfaced',
+    surfaced: [{ at: '2026-10-13T00:00:00.000Z', via: 'opener' }],
+    createdAt: '2026-10-12T00:00:00.000Z',
+    updatedAt: '2026-10-13T00:00:00.000Z',
+  };
+
+  it('an old document still parses unchanged, with no brain field added', () => {
+    expect(toFollowUp('x', old)).toEqual({ id: 'x', ...old });
+    const forgotten = { ...old, status: 'released', closedReason: 'forgotten' };
+    expect(toFollowUp('x', forgotten)?.closedReason).toBe('forgotten');
+  });
+
+  it('keeps well-formed brain fields and drops a bad one without losing the row', () => {
+    const ask = {
+      at: '2026-10-13T00:00:00.000Z',
+      via: 'opener',
+      personaId: 'ferni',
+      sessionId: 's1',
+      answer: 'not-yet',
+      by: 'live',
+    };
+    const f = toFollowUp('x', {
+      ...old,
+      topicKey: 'apply job',
+      sources: [old.source, { store: 'summaries', ref: 's1:0' }, { store: 7 }],
+      eventAt: null,
+      askType: 'how-is-it-going',
+      salience: { weight: 0.7, heavy: false, sensitive: false, by: 'llm', v: 1 },
+      asks: [ask, { at: 'soon', via: 'opener' }],
+      snoozedUntil: '2026-10-20T00:00:00.000Z',
+      owner: 'stranger',
+      eventPrecision: 'fortnight',
+      closedReason: 'bored',
+    });
+    expect(f).toMatchObject({
+      topicKey: 'apply job',
+      sources: [old.source, { store: 'summaries', ref: 's1:0' }],
+      eventAt: null,
+      askType: 'how-is-it-going',
+      asks: [ask],
+      snoozedUntil: '2026-10-20T00:00:00.000Z',
+    });
+    expect(f?.salience?.weight).toBe(0.7);
+    for (const dropped of ['owner', 'eventPrecision', 'closedReason', 'nextEligibleAt'])
+      expect(f).not.toHaveProperty(dropped);
+  });
+});
+
+describe('ask is a compare-and-set on the stored row', () => {
+  const by = (sessionId: string) => ({ via: 'opener' as const, personaId: 'ferni', sessionId });
+
+  it('two workers asking the same follow-up at once: one marks it asked, the other loses', async () => {
+    const { db } = fakeFirestore();
+    const store = createFollowUpStore(db);
+    const f = await store.open(newFollowUp({ dueAt: null, kind: 'thread' }), NOW);
+    const at = new Date(NOW.getTime() + 60_000);
+    const results = await Promise.all([
+      store.ask('u1', f.id, by('call-a'), at),
+      store.ask('u1', f.id, by('call-b'), at),
+    ]);
+    expect(results.filter((r) => r !== null)).toHaveLength(1);
+    const stored = (await store.live('u1'))[0];
+    expect(stored.asks).toHaveLength(1);
+    expect(stored.status).toBe('surfaced');
+  });
+
+  it('a missing follow-up is not asked', async () => {
+    const { db, docs } = fakeFirestore();
+    expect(await createFollowUpStore(db).ask('u1', 'nope', by('s'), NOW)).toBeNull();
+    expect(docs.size).toBe(0);
   });
 });
