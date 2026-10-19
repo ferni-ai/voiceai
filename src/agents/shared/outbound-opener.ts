@@ -20,6 +20,14 @@ import { partiesOf, type OutboundParties } from '../../services/outreach/opening
 // The opener text is in services, where the outbound-call prompt can quote it too.
 export { outboundOpener, type OutboundParties } from '../../services/outreach/opening-line.js';
 
+/**
+ * True for a call placed on someone's behalf (it gets call-control's own
+ * endCall). A family check-in also has an outbound context but is not one.
+ */
+export function isOnBehalfCall(sessionId: string): boolean {
+  return getOutboundCallContext(sessionId)?.kind === 'on_behalf';
+}
+
 /** The parties of this session's on-behalf call, or undefined for any other call. */
 export function outboundPartiesFor(sessionId: string): OutboundParties | undefined {
   const call = getOutboundCallContext(sessionId);

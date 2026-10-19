@@ -84,7 +84,7 @@ export function buildRelationshipInsightsView(
   // Only people with a real score count toward strength: an unscored person is not "0%"
   const scores = contacts
     .map((c) => c.strengthScore)
-    .filter((s): s is number => typeof s === 'number');
+    .filter((s): s is number => typeof s === 'number' && Number.isFinite(s));
   const scored = scores.length;
   const scoredCount = (test: (score: number) => boolean) => scores.filter(test).length;
 
