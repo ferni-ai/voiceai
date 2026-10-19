@@ -126,16 +126,19 @@ export function adaptForChannel(
     fromChannel?: Channel;
     persona?: PersonaId;
     context?: ContextType;
+    /** Overrides the channel's maxLength (a sender that allows several SMS segments). */
+    maxLength?: number;
   } = {}
 ): string {
   const config = CHANNEL_CONFIGS[toChannel];
   const { persona = 'ferni', context = 'checkin' } = options;
+  const maxLength = options.maxLength ?? config.constraints.maxLength;
 
   let adapted = content;
 
   // 1. Length adaptation
-  if (adapted.length > config.constraints.maxLength) {
-    adapted = shortenContent(adapted, config.constraints.maxLength, context);
+  if (adapted.length > maxLength) {
+    adapted = shortenContent(adapted, maxLength, context);
   }
 
   // 2. Formality adaptation
@@ -144,7 +147,7 @@ export function adaptForChannel(
   }
 
   // 3. Channel-specific additions
-  adapted = addChannelFraming(adapted, toChannel, persona, context);
+  adapted = addChannelFraming(adapted, toChannel, persona, context, maxLength);
 
   // 4. Link handling
   if (!config.constraints.allowLinks) {
@@ -223,7 +226,8 @@ function addChannelFraming(
   content: string,
   channel: Channel,
   personaId: PersonaId,
-  context: ContextType
+  context: ContextType,
+  maxLength: number
 ): string {
   const config = CHANNEL_CONFIGS[channel];
   const persona = getPersonaVoice(personaId);
@@ -233,7 +237,7 @@ function addChannelFraming(
       return addEmailFraming(content, persona.name, context);
 
     case 'sms':
-      return addSmsFraming(content);
+      return addSmsFraming(content, maxLength);
 
     case 'push':
       return addPushFraming(content, persona.name);
@@ -287,14 +291,14 @@ function addEmailFraming(content: string, personaName: string, context: ContextT
 /**
  * Add SMS-specific framing
  */
-function addSmsFraming(content: string): string {
+function addSmsFraming(content: string, maxLength: number): string {
   // SMS should be ultra-concise
   // Remove any email-style formatting
   let framed = content.replace(/\n\n/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
 
-  // Ensure it fits in 160 chars
-  if (framed.length > 160) {
-    framed = framed.slice(0, 157) + '...';
+  // Ensure it fits the length the sender allows (one 160-char segment unless told more)
+  if (framed.length > maxLength) {
+    framed = framed.slice(0, maxLength - 3) + '...';
   }
 
   return framed;

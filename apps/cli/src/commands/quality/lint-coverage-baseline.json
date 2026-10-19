@@ -118,7 +118,6 @@
   "src/services/actions/action-store.ts": 2,
   "src/services/automation/pattern-reinforcement.ts": 1,
   "src/services/background-agents/executors/research-executor.ts": 2,
-  "src/services/background-agents/executors/reservation-executor.ts": 2,
   "src/services/better-than-human-validation/baseline-extractors/dataset-downloader.ts": 8,
   "src/services/better-than-human-validation/production-telemetry.ts": 3,
   "src/services/better-than-human-validation/types.ts": 1,
